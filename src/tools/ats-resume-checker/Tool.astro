@@ -1,0 +1,164 @@
+---
+// ATS resume checker: reads a resume the way hiring software does and scores it out of 100.
+---
+<div class="ats panel">
+  <label class="ats-drop">
+    <input class="ats-input visually-hidden" type="file" accept=".pdf,.docx,.doc,.txt,.md" />
+    <strong>Choose your resume</strong>
+    <span>PDF, Word (.docx), text or Markdown · it never leaves your device</span>
+  </label>
+  <details class="ats-jdbox">
+    <summary>Add the job ad (optional, for a keyword match)</summary>
+    <textarea class="ats-jd" rows="6" placeholder="Paste the full job description here…"></textarea>
+  </details>
+  <p class="ats-status" role="status" aria-live="polite"></p>
+  <p class="note bad ats-error" role="alert" hidden></p>
+  <div class="ats-result" hidden>
+    <div class="ats-top">
+      <div class="ats-ring" style="--p:0"><b class="ats-score">0</b><span>/ 100</span></div>
+      <div>
+        <h3 class="ats-label"></h3>
+        <p class="ats-sum"></p>
+      </div>
+    </div>
+    <div class="ats-kw" hidden>
+      <h3>Job ad keywords <span class="ats-kwp"></span></h3>
+      <p class="ats-kwhint">Add the missing ones only if you really have them, using the job ad's own words.</p>
+      <div class="ats-chips"></div>
+    </div>
+    <h3 class="ats-todo-h">To fix</h3>
+    <ul class="ats-checks ats-todo"></ul>
+    <details class="ats-passed">
+      <summary></summary>
+      <ul class="ats-checks ats-ok"></ul>
+    </details>
+    <details class="ats-seen">
+      <summary>What the ATS sees (plain text)</summary>
+      <p class="ats-fine">If words are jumbled, missing or out of order here, an ATS will get them wrong too.</p>
+      <textarea class="ats-text" rows="12" readonly aria-label="Text read from your resume"></textarea>
+    </details>
+    <div class="ats-actions">
+      <button type="button" class="btn secondary ats-again">Check another resume</button>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .ats { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ats-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .ats-drop strong { font-size: 19px; color: var(--accent); }
+  .ats-drop span { color: var(--muted); font-size: 14px; }
+  .ats-drop.over, .ats-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .ats-passed[open] { display: grid; gap: 8px; }
+  .ats-jdbox summary, .ats-seen summary, .ats-passed summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .ats-jdbox[open], .ats-seen[open] { display: grid; gap: 8px; }
+  .ats textarea { width: 100%; font: 14px/1.5 system-ui, sans-serif; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .ats-text { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
+  .ats-status { margin: 0; color: var(--muted); }
+  .ats-status:empty { display: none; }
+  .ats-result { display: grid; gap: 10px; }
+  .ats-result h3 { margin: 8px 0 0; }
+  .ats-top { display: flex; gap: 16px; align-items: center; }
+  .ats-top h3 { margin: 0; font-size: 20px; }
+  .ats-top p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+  .ats-ring { --c: var(--good); flex: none; width: 104px; height: 104px; border-radius: 50%; display: grid; place-content: center; text-align: center; background: radial-gradient(closest-side, var(--surface) 78%, transparent 80%), conic-gradient(var(--c) calc(var(--p) * 1%), var(--line) 0); }
+  .ats-ring b { font-size: 32px; line-height: 1; }
+  .ats-ring span { font-size: 12px; color: var(--muted); }
+  .ats-ring.warn { --c: var(--warn); }
+  .ats-ring.bad { --c: var(--bad); }
+  .ats-checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .ats-checks li { display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .ats-checks li::before { content: '✓'; grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--good); background: var(--good-soft); }
+  .ats-checks li.warn::before { content: '!'; color: var(--warn); background: var(--warn-soft); }
+  .ats-checks li.fail::before { content: '✕'; color: var(--bad); background: var(--bad-soft); }
+  .ats-checks b { font-size: 15px; }
+  .ats-checks em { font-style: normal; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .ats-checks p { grid-column: 2 / -1; margin: 0; font-size: 14px; color: var(--muted); }
+  .ats-kwp { color: var(--muted); font-weight: 500; }
+  .ats-kwhint, .ats-fine { margin: 0; font-size: 14px; color: var(--muted); }
+  .ats-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ats-chips span { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
+  .ats-chips span.miss { background: var(--bad-soft); color: var(--bad); }
+  .ats-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 420px) { .ats-top { gap: 12px; } .ats-ring { width: 88px; height: 88px; } .ats-ring b { font-size: 26px; } }
+</style>
+
+<script>
+  import type { Report } from '../../lib/ats/score';
+  import type { Extracted } from '../../lib/ats/extract';
+
+  const engine = () => Promise.all([import('../../lib/ats/extract'), import('../../lib/ats/score')]);
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  // Fetch the PDF reader early so the tool keeps working with no internet.
+  idle(() => import('../../lib/compress/pdf').then((m) => m.loadPdfJs()).catch(() => {}));
+
+  const root = document.querySelector<HTMLElement>('.ats')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.ats-input'), drop = q('.ats-drop'), status = q('.ats-status'), err = q('.ats-error');
+  const result = q('.ats-result'), jd = q<HTMLTextAreaElement>('.ats-jd');
+  let last: { x: Extracted; name: string; size: number } | null = null;
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  function show(r: Report, x: Extracted) {
+    const ring = q('.ats-ring');
+    ring.style.setProperty('--p', String(r.score));
+    ring.className = 'ats-ring' + (r.score >= 80 ? '' : r.score >= 60 ? ' warn' : ' bad');
+    q('.ats-score').textContent = String(r.score);
+    q('.ats-label').textContent = r.score >= 80 ? 'Ready for most ATS' : r.score >= 60 ? 'Good, with a few fixes' : r.score >= 40 ? 'Needs work' : 'Hard for an ATS to read';
+    const todo = r.checks.filter((c) => c.status !== 'pass').length;
+    q('.ats-sum').textContent = `${x.kind}${x.pages ? `, ${x.pages} page${x.pages === 1 ? '' : 's'}` : ''}, ${r.words.toLocaleString('en')} words. ${todo ? `${todo} thing${todo === 1 ? '' : 's'} to fix, biggest first below.` : 'Nothing to fix.'}`;
+    const order = { fail: 0, warn: 1, pass: 2 } as const;
+    const sorted = [...r.checks].sort((a, b) => order[a.status] - order[b.status] || (b.max - b.points) - (a.max - a.points));
+    const li = (c: Report['checks'][number]) => `<li class="${c.status}"><b>${esc(c.title)}</b><em>${c.points}/${c.max}</em><p>${esc(c.fix)}</p></li>`;
+    const bad = sorted.filter((c) => c.status !== 'pass'), ok = sorted.filter((c) => c.status === 'pass');
+    q('.ats-todo').innerHTML = bad.map(li).join('');
+    q('.ats-todo-h').hidden = !bad.length;
+    q('.ats-ok').innerHTML = ok.map(li).join('');
+    q('.ats-passed summary').textContent = `${ok.length} check${ok.length === 1 ? '' : 's'} passed`;
+    q('.ats-passed').hidden = !ok.length;
+    const kw = q('.ats-kw');
+    kw.hidden = !r.keywords;
+    if (r.keywords) {
+      q('.ats-kwp').textContent = `${r.keywords.percent}% found`;
+      q('.ats-chips').innerHTML = [...r.keywords.matched.map((k) => `<span>✓ ${esc(k)}</span>`), ...r.keywords.missing.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('');
+    }
+    q<HTMLTextAreaElement>('.ats-text').value = x.text.trim();
+    result.hidden = false;
+  }
+
+  async function rescore() {
+    if (!last) return;
+    const [, s] = await engine();
+    show(s.score(last.x, last.name, last.size, jd.value), last.x);
+  }
+
+  async function pick(f?: File) {
+    if (!f) return;
+    err.hidden = true; result.hidden = true;
+    if (f.size > 20e6) { err.hidden = false; err.textContent = 'This file is over 20 MB, which is far too big for a resume. Remove pictures and try again.'; return; }
+    status.textContent = 'Reading your resume on this device…';
+    try {
+      const [e] = await engine();
+      last = { x: await e.extract(f), name: f.name, size: f.size };
+      status.textContent = '';
+      await rescore();
+    } catch (e: any) {
+      console.error(e);
+      status.textContent = ''; err.hidden = false;
+      err.textContent = e?.message === 'OLD_DOC'
+        ? 'This is an old Word file (.doc). Open it in Word or Google Docs and save it as .docx or PDF, then check it again.'
+        : e?.name === 'PasswordException'
+          ? 'This PDF is password-protected, and an ATS could not open it either. Save a copy without a password.'
+          : 'Sorry, this file could not be read. Use a PDF, Word (.docx), text or Markdown file.';
+    }
+  }
+
+  input.addEventListener('change', () => pick(input.files?.[0]));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer?.files[0]); });
+  let t: ReturnType<typeof setTimeout>;
+  jd.addEventListener('input', () => { clearTimeout(t); t = setTimeout(rescore, 300); });
+  q('.ats-again').addEventListener('click', () => { last = null; result.hidden = true; input.value = ''; window.scrollTo({ top: root.offsetTop - 80, behavior: 'smooth' }); });
+</script>

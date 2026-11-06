@@ -429,10 +429,68 @@ try {
     check(png.name === 'photo.png', `converter: JPG to PNG -> ${png.name ?? png.error}`);
   }
 
+  // 6j. ATS resume checker.
+  {
+    const x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const para = (t) => `<w:p><w:r><w:t xml:space="preserve">${t.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</w:t></w:r></w:p>`;
+    const docx = (body) => zipSync({
+      '[Content_Types].xml': strToU8(x + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+      'word/document.xml': strToU8(x + `<w:document ${W}><w:body>${body}</w:body></w:document>`),
+    });
+    const resume = [
+      'Asha Rao', 'asha.rao@example.com | +1 416 555 0100 | linkedin.com/in/asharao', 'Toronto, ON', '',
+      'Summary', 'Data analyst with 4 years of experience turning sales and operations data into clear Power BI dashboards and SQL reports.', '',
+      'Experience', 'Data Analyst, Northwind Retail', 'Jan 2023 – Present',
+      ...['Built 12 Power BI dashboards used by 40 store managers every week, replacing manual Excel reports.', 'Reduced monthly reporting time by 60% by automating SQL extracts and data cleaning in Python.', 'Analysed basket data for 2 million transactions to find cross-sell pairs worth $300K a year.', 'Led stakeholder reporting for the regional operations team of 8 people.', 'Designed a star schema data model for sales, stock and staffing data.'].map((b) => '• ' + b),
+      'Junior Analyst, Contoso Logistics', 'Jun 2020 – Dec 2022',
+      ...['Created weekly KPI reports for delivery times across 30 depots.', 'Improved data quality checks, cutting duplicate shipment records by 25%.', 'Maintained SQL Server views and documented 50 business definitions.', 'Supported the migration of 3 legacy reports to Power BI.'].map((b) => '• ' + b), '',
+      'Education', 'Master of Data Analytics, Example University, 2020', 'BSc Statistics, Example College, 2018', '',
+      'Skills', 'SQL, Power BI, DAX, Python, pandas, Excel, data modelling, ETL, stakeholder reporting, A/B testing', '',
+      'Projects', ...['Forecast hotel room demand with a seasonal model and a Power BI what-if page; error fell to 6%.', 'Cleaned and joined 5 public datasets into a tidy warehouse with dbt-style SQL steps.'].map((b) => '• ' + b),
+      'Certifications', 'Microsoft PL-300 Power BI Data Analyst, 2024',
+      'Additional', 'Comfortable presenting findings to non-technical leaders, writing clear documentation, and training colleagues on dashboards and self-serve reporting. Volunteer data mentor for a local coding club, 2 hours a week, helping beginners learn spreadsheets, SQL basics and simple charts. Fluent in English, Hindi and Tamil.',
+    ];
+    writeFileSync(OUT + 'resume-good.docx', docx(resume.map(para).join('')));
+    const table = `<w:tbl><w:tr><w:tc>${resume.slice(0, 12).map(para).join('')}</w:tc><w:tc>${resume.slice(12).map(para).join('')}</w:tc></w:tr></w:tbl>`;
+    writeFileSync(OUT + 'resume-table.docx', docx(table + `<w:p><w:r><w:pict><v:shape xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent>${para('Hire me')}</w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>`));
+    // A two-column PDF: left column skills, right column experience, on the same lines.
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pg = doc.addPage([612, 792]);
+    const plain = resume.map((l) => l.replace('•', '-').replace('–', '-'));
+    for (let i = 0; i < 26; i++) {
+      pg.drawText(['SQL', 'Power BI', 'Python', 'Excel', 'DAX', 'ETL', 'pandas', 'dbt'][i % 8] + ' expert level', { x: 40, y: 740 - i * 26, size: 9, font });
+      if (plain[i]) pg.drawText(plain[i].slice(0, 70), { x: 250, y: 740 - i * 26, size: 9, font });
+      if (plain[i + 26]) pg.drawText(plain[i + 26].slice(0, 70), { x: 250, y: 740 - i * 26 - 12, size: 9, font });
+    }
+    writeFileSync(OUT + 'resume-2col.pdf', await doc.save());
+    writeFileSync(OUT + 'resume.doc', 'old');
+
+    const ats = async (file, jd) => {
+      await page.goto(BASE + '/documents/ats-resume-checker/');
+      if (jd) { await page.click('.ats-jdbox summary'); await page.fill('.ats-jd', jd); }
+      await page.setInputFiles('.ats-input', OUT + file);
+      await page.waitForSelector('.ats-result:not([hidden]), .ats-error:not([hidden])', { timeout: 60000 });
+      if (await page.isVisible('.ats-error')) return { error: await page.textContent('.ats-error') };
+      const fails = await page.$$eval('.ats-checks li.fail b, .ats-checks li.warn b', (b) => b.map((e) => e.textContent));
+      return { score: +(await page.textContent('.ats-score')), fails, chips: await page.$$eval('.ats-chips span', (s) => s.map((e) => e.textContent)) };
+    };
+    const good = await ats('resume-good.docx', 'We need a Data Analyst skilled in SQL and Power BI. Power BI dashboards, SQL reporting, stakeholder reporting and Python are key. Experience with Snowflake and Snowflake data sharing is a plus.');
+    check(good.score >= 85, `ATS: clean Word resume scores ${good.score} (fixes: ${good.fails?.join(', ') || 'none'})`);
+    check(good.chips?.some((c) => c.includes('✓') && c.includes('power bi')) && good.chips?.some((c) => c.includes('✕') && c.includes('snowflake')), `ATS: job ad keywords matched and missing -> ${good.chips?.join(' ')}`);
+    const tbl = await ats('resume-table.docx');
+    check(tbl.fails?.includes('No tables for layout') && tbl.fails?.includes('No text boxes') && tbl.score < 75, `ATS: Word tables and text boxes flagged (${tbl.score})`);
+    const two = await ats('resume-2col.pdf');
+    check(two.fails?.includes('Single-column layout'), `ATS: two-column PDF flagged (${two.score}; ${two.error ?? two.fails?.join(', ')})`);
+    const old = await ats('resume.doc');
+    check(/\.docx or PDF/.test(old.error ?? ''), 'ATS: old .doc file asks to save as .docx or PDF');
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/']) {
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
       await page.goto(BASE + path);
       const og = await page.getAttribute('meta[property="og:image"]', 'content');
       const file = 'dist' + new URL(og).pathname;
@@ -539,14 +597,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
