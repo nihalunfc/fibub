@@ -21,6 +21,7 @@ const tools = defineCollection({
     // row fits a 320 px phone screen without wrapping. Required for live tools.
     // 'offline': once the page is open it keeps working with no internet. 'online': needs internet
     // while in use (for example live currency rates). Shown on every card and tool page.
+    icon: z.enum(ICON_NAMES),     // shown on the tool's card
     works: z.enum(['offline', 'online']),
     flow: z.array(z.object({ icon: z.enum(ICON_NAMES), label: z.string().max(12) })).min(3).max(4).optional(),
   }),

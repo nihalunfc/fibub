@@ -6,6 +6,7 @@ summary: See what is inside a ZIP, how well each file is packed, and whether it 
 status: live
 ads: false
 order: 15
+icon: zip
 works: offline
 updated: 2026-11-06
 flow:

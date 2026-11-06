@@ -8,7 +8,6 @@ interface Props {
 const { accept = '', what = 'a file' } = Astro.props;
 ---
 <div class="cmp panel" data-state="empty">
-  <p class="promise"><strong>Your file never leaves your device.</strong> It is compressed right here in your browser: nothing is uploaded, and we never see, store or use it.</p>
 
   <label class="drop">
     <input class="cmp-input visually-hidden" type="file" accept={accept || undefined} />
@@ -95,7 +94,6 @@ const { accept = '', what = 'a file' } = Astro.props;
 
 <style>
   .cmp { display: grid; gap: 16px; margin-bottom: 32px; position: relative; }
-  .promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
   .drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
   .drop strong { font-size: 19px; color: var(--accent); }
   .drop span, .muted { color: var(--muted); font-size: 14px; }

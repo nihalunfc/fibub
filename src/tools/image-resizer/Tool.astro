@@ -3,7 +3,6 @@
 // Everything happens in src/lib/image/edit.ts, in the browser. Nothing is uploaded.
 ---
 <div class="rz panel" data-state="empty">
-  <p class="rz-promise"><strong>Your photo never leaves your device.</strong> It is edited right here in your browser: nothing is uploaded, and we never see, store or use it.</p>
 
   <label class="rz-drop">
     <input class="rz-input visually-hidden" type="file" accept="image/*" />
@@ -94,7 +93,6 @@
 <style is:global>
   .rz { display: grid; gap: 16px; margin-bottom: 32px; }
   .rz [hidden] { display: none !important; }
-  .rz-promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
   .rz-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
   .rz-drop strong { font-size: 19px; color: var(--accent); }
   .rz-drop span, .rz-muted { color: var(--muted); font-size: 14px; }

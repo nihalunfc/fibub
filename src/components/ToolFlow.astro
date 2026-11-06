@@ -2,8 +2,8 @@
 // A picture of what the tool does: 3 or 4 steps in one row, on every screen size.
 // The row never wraps; steps shrink instead, so labels must stay short (see the schema).
 import { ICONS, type IconName } from '../lib/icons';
-interface Props { steps: { icon: IconName; label: string }[] }
-const { steps } = Astro.props;
+interface Props { steps: { icon: IconName; label: string }[]; works: 'offline' | 'online' }
+const { steps, works } = Astro.props;
 ---
 <figure class="flow">
   <ol class="flow-steps" style={`--n:${steps.length}`}>
@@ -14,11 +14,11 @@ const { steps } = Astro.props;
       </li>
     ))}
   </ol>
-  <figcaption class="flow-cap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.lock} />All on your device. Nothing is uploaded.</figcaption>
+  <figcaption class="flow-cap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.lock} />Nothing is uploaded<span class="dot" aria-hidden="true">·</span><span class:list={['flow-works', works]} data-works={works}>{works === 'offline' ? 'Works offline once open' : 'Needs internet'}</span></figcaption>
 </figure>
 
 <style>
-  .flow { margin: 0 0 24px; padding: clamp(12px, 3vw, 20px) clamp(8px, 3vw, 24px) 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .flow { max-width: 720px; margin: 0 0 20px; padding: clamp(12px, 3vw, 20px) clamp(8px, 3vw, 24px) 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
   .flow-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
   .flow-step { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; min-width: 0; }
   /* The arrow sits in the gap between two icons, centred on the icon row. */
@@ -37,4 +37,7 @@ const { steps } = Astro.props;
   .flow-lbl { font-size: clamp(12px, 3.3vw, 15px); line-height: 1.25; font-weight: 600; padding: 0 2px; text-wrap: balance; }
   .flow-cap { display: flex; align-items: center; justify-content: center; gap: 6px; margin: clamp(12px, 3vw, 16px) calc(-1 * clamp(8px, 3vw, 24px)) 0; padding: 8px; font-size: 13px; color: var(--good); background: var(--good-soft); }
   .flow-cap svg { width: 14px; height: 14px; flex: none; }
+  .flow-cap { flex-wrap: wrap; font-weight: 600; }
+  .flow-cap .dot { opacity: .6; }
+  .flow-works.online { color: var(--warn); }
 </style>

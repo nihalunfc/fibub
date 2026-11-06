@@ -1,0 +1,23 @@
+---
+// Tools that are not built yet: a compact row of chips, not full cards.
+import { ICONS } from '../lib/icons';
+import type { Tool } from '../lib/tools';
+interface Props { tools: Tool[] }
+const { tools } = Astro.props;
+---
+{tools.length > 0 && (
+  <ul class="soon-list" aria-label="Coming soon">
+    {tools.map((t) => (
+      <li data-shelf={t.data.shelf} data-search={`${t.data.name} ${t.data.summary}`.toLowerCase()} title={t.data.summary}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
+        {t.data.name}
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .soon-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .soon-list li { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); padding: 6px 12px 6px 10px; border: 1px dashed var(--line); border-radius: 999px; background: var(--surface); }
+  .soon-list svg { width: 15px; height: 15px; opacity: .8; }
+</style>

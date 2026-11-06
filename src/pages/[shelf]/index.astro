@@ -1,19 +1,21 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
+import SoonList from '../../components/SoonList.astro';
 import { SHELVES } from '../../site';
-import { allTools, toolUrl } from '../../lib/tools';
+import { allTools } from '../../lib/tools';
 export function getStaticPaths() {
   return SHELVES.map((s) => ({ params: { shelf: s.id }, props: { shelf: s } }));
 }
 const { shelf } = Astro.props;
 const tools = (await allTools()).filter((t) => t.data.shelf === shelf.id);
+const live = tools.filter((t) => t.data.status === 'live');
+const soon = tools.filter((t) => t.data.status === 'soon');
 ---
 <Base title={`${shelf.name} tools`} description={`Free ${shelf.name.toLowerCase()} tools that run in your browser. ${shelf.blurb}`} shelf={shelf.id}>
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
-  <p class="lead">{shelf.blurb} Free, no sign-up, and nothing leaves your device.</p>
-  <div class="grid">
-    {tools.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} works={t.data.works} />)}
-  </div>
+  <p class="lead">{shelf.blurb} Free, with no sign-up.</p>
+  {live.length > 0 && <div class="grid">{live.map((t) => <ToolCard tool={t} />)}</div>}
+  {soon.length > 0 && <><h2>Coming soon</h2><SoonList tools={soon} /></>}
 </Base>

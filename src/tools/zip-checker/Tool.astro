@@ -2,7 +2,6 @@
 // ZIP checker: is this ZIP already as small as it can be? Runs in the browser only.
 ---
 <div class="zc panel" data-state="empty">
-  <p class="zc-promise"><strong>Your ZIP never leaves your device.</strong> It is checked right here in your browser: nothing is uploaded or stored.</p>
   <label class="zc-drop">
     <input class="zc-input visually-hidden" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
     <strong>Choose a ZIP file</strong>
@@ -27,7 +26,6 @@
 <style is:global>
   .zc { display: grid; gap: 16px; margin-bottom: 32px; }
   .zc [hidden] { display: none !important; }
-  .zc-promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
   .zc-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
   .zc-drop strong { font-size: 19px; color: var(--accent); }
   .zc-drop span { color: var(--muted); font-size: 14px; }

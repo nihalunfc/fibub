@@ -399,6 +399,13 @@ try {
   await page.waitForSelector('.zc-report:not([hidden])', { timeout: 60000 });
   check(/smaller/.test(await page.textContent('.zc-report')), 'offline: ZIP checker still works');
   await ctx.setOffline(false);
+  // Home search filters the tools.
+  await page.goto(BASE + '/');
+  await page.fill('.search input', 'zip');
+  const shown = await page.$$eval('.tc', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('b').textContent));
+  check(shown.includes('ZIP checker') && !shown.includes('Image resizer'), `home search "zip" -> ${shown.join(', ')}`);
+  await page.fill('.search input', 'qqqq');
+  check(await page.isVisible('.empty'), 'home search: no match shows a suggestion link');
   for (const path of ['/', '/documents/compress-file/']) {
     await page.goto(BASE + path);
     const n = await page.$$eval('[data-works]', (els) => els.length);

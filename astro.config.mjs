@@ -6,4 +6,6 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [sitemap()],
   build: { format: 'directory', inlineStylesheets: 'always' },
+  // Never inline scripts: the CSP (public/_headers) allows only script files from this site.
+  vite: { build: { assetsInlineLimit: 0 } },
 });
