@@ -49,7 +49,7 @@ const { accept = '', what = 'a file' } = Astro.props;
         <button type="button" class="chip" data-kb="2048">2 MB</button>
       </div>
       <label class="custom">Or exactly <input type="number" class="cmp-fit-kb" min="10" max="51200" value="200" inputmode="numeric" /> KB</label>
-      <p class="muted small">We find the best quality that fits. Your file is still never uploaded.</p>
+      <p class="muted small">We go only as small as possible without visible quality loss. If that is not enough, we tell you and you choose. Your file is still never uploaded.</p>
     </div>
   </div>
 
@@ -81,6 +81,10 @@ const { accept = '', what = 'a file' } = Astro.props;
     </div>
     <div class="meter" aria-hidden="true"><span class="cmp-meter"></span></div>
     <p class="cmp-note"></p>
+    <div class="note warn cmp-loss" hidden>
+      <p class="cmp-loss-text"></p>
+      <button type="button" class="btn secondary cmp-below">Go below anyway</button>
+    </div>
     <div class="actions">
       <a class="btn cmp-download" download>Download</a>
       <button type="button" class="btn secondary cmp-again">Compress another file</button>
@@ -105,6 +109,9 @@ const { accept = '', what = 'a file' } = Astro.props;
   .choices :global(label) { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
   .choices :global(label:has(input:checked)) { border-color: var(--accent); background: var(--accent-soft); }
   .choices :global(span) { grid-column: 2; color: var(--muted); font-size: 14px; }
+  .cmp-loss { display: grid; gap: 10px; justify-items: start; }
+  .cmp-loss[hidden] { display: none; }
+  .cmp-loss p { margin: 0; }
   .fit { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 12px; }
   .switch { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; cursor: pointer; }
   .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -167,8 +174,8 @@ const { accept = '', what = 'a file' } = Astro.props;
   idle(() => engine().then((m) => m.warmUp()).catch(() => {}));
 
   const BLURBS: Record<Method, [string, string, string]> = {
-    pdf: ['Keeps text, links and forms exactly as they are. Smaller saving.', 'Best for scans and photos. Pages become images at 150 DPI.', 'For strict upload limits. Pages become images at 100 DPI.'],
-    image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Best for email and upload limits.'],
+    pdf: ['Keeps text, links and forms exactly as they are. Smaller saving.', 'Best for scans and photos. Pages become images at 150 DPI.', 'Pages become images at 100 DPI. Small text may look softer.'],
+    image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Fine on screens, may look softer when zoomed or printed.'],
     office: ['Repacks the file more tightly. Pictures untouched.', 'Pictures up to 2560 pixels wide. Looks the same on screen and in print.', 'Pictures up to 1600 pixels. Smallest file, fine on screen.'],
     zip: ['', '', ''],
     repack: ['', '', ''],
@@ -211,7 +218,7 @@ const { accept = '', what = 'a file' } = Astro.props;
 
     function clearResult() {
       if (url) URL.revokeObjectURL(url);
-      url = null; result.hidden = true; error.hidden = true;
+      url = null; result.hidden = true; error.hidden = true; q('.cmp-loss').hidden = true;
     }
 
     function reset() {
@@ -290,11 +297,16 @@ const { accept = '', what = 'a file' } = Astro.props;
       working.hidden = true;
     }
 
-    go.addEventListener('click', async () => {
+    let lossLimit: number | undefined;
+    go.addEventListener('click', () => run(false));
+    q('.cmp-below').addEventListener('click', () => run(true));
+
+    async function run(allowLoss: boolean) {
       if (!file) return;
       clearResult();
       const m = method(), lv = level();
-      const limit = fitting() ? Math.round(+fitKb.value * 1024) : undefined;
+      // "Go below anyway" reuses the limit from the run that offered it (the fit box is hidden by then).
+      const limit = allowLoss ? lossLimit : fitting() ? Math.round(+fitKb.value * 1024) : undefined;
       if (limit !== undefined && !(limit >= 10 * 1024)) { showError('Enter an upload limit of at least 10 KB.'); return; }
       for (const el of [methodsBox, levelsBox, pdfNote, go, fitBox]) el.hidden = true;
       q<HTMLButtonElement>('.cmp-clear').hidden = true;
@@ -303,7 +315,15 @@ const { accept = '', what = 'a file' } = Astro.props;
       const shownAt = performance.now();
       try {
         const { compressFile } = await engine();
-        const out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label), limit);
+        let out, needsLoss = false;
+        try {
+          out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label), limit, allowLoss);
+        } catch (e) {
+          // The limit can only be met by losing visible quality: show the best no-loss
+          // version and let the person choose to go further.
+          if ((e as Error)?.name !== 'NeedsLossError') throw e;
+          out = (e as any).safe; needsLoss = true;
+        }
         setProgress(1, 'Done');
         // Let the ring reach 100% before the result appears.
         await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - shownAt))));
@@ -317,7 +337,14 @@ const { accept = '', what = 'a file' } = Astro.props;
         q('.cmp-saved').textContent = `${saved}%`;
         q('.cmp-meter').style.width = '100%';
         requestAnimationFrame(() => requestAnimationFrame(() => (q('.cmp-meter').style.width = `${Math.max(2, 100 - saved)}%`)));
-        if (out.outcome === 'original' && out.note === 'fits') {
+        if (needsLoss) {
+          lossLimit = limit;
+          q('.cmp-note').textContent = `Smallest without visible quality loss: ${formatBytes(after)}. That is still above your ${formatBytes(limit!)} limit.`;
+          q('.cmp-loss-text').textContent = `To fit ${formatBytes(limit!)} we have to lower the quality: text and photos may look softer or blurry. It is your choice.`;
+          q('.cmp-below').textContent = `Go below anyway to fit ${formatBytes(limit!)}`;
+          q('.cmp-loss').hidden = false;
+          dl.textContent = out.outcome === 'original' ? 'Download original file' : 'Download no-loss version';
+        } else if (out.outcome === 'original' && out.note === 'fits') {
           q('.cmp-note').textContent = `Good news: this file is already under ${formatBytes(limit!)}, so it can be uploaded as it is.`;
           dl.textContent = 'Download original file';
         } else if (out.outcome === 'original') {
@@ -330,7 +357,7 @@ const { accept = '', what = 'a file' } = Astro.props;
         stopWaiting();
         result.hidden = false;
         setState('done');
-        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: out.outcome, fitLimit: limit ?? null } }));
+        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: needsLoss ? 'no-loss-floor' : out.outcome, fitLimit: limit ?? null, allowLoss } }));
       } catch (e) {
         console.error(e);
         stopWaiting();
@@ -350,7 +377,7 @@ const { accept = '', what = 'a file' } = Astro.props;
         setState('ready');
         root.dispatchEvent(new CustomEvent('fibub:compress-failed', { bubbles: true, detail: { method: m, error: name || 'Error' } }));
       }
-    });
+    }
     reset();
     // A file passed from another fibub tool (such as the ZIP checker) opens straight away.
     receive().then((f) => f && pick(f));

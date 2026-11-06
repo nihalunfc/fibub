@@ -76,11 +76,14 @@ export async function render(oriented: HTMLCanvasElement, e: Edit): Promise<Blob
  * Find the best-looking image under `maxBytes`: first the highest quality that fits, then, if
  * even low quality is too big (or the format is PNG), smaller dimensions.
  */
-export async function renderUnder(oriented: HTMLCanvasElement, e: Edit, maxBytes: number, onStep: (msg: string) => void) {
+export async function renderUnder(
+  oriented: HTMLCanvasElement, e: Edit, maxBytes: number, onStep: (msg: string) => void,
+  floor: { minQuality: number; minSide: number } = { minQuality: 0.3, minSide: 16 },
+) {
   let edit = { ...e };
   for (let round = 0; round < 8; round++) {
     if (formatInfo(edit.format).lossy) {
-      let lo = 0.3, hi = 0.95, best: Blob | null = null, bestQ = lo;
+      let lo = floor.minQuality, hi = 0.95, best: Blob | null = null, bestQ = lo;
       for (let i = 0; i < 7; i++) {
         const q = (lo + hi) / 2;
         onStep(`Trying quality ${Math.round(q * 100)}% at ${edit.outW} × ${edit.outH}…`);
@@ -93,8 +96,11 @@ export async function renderUnder(oriented: HTMLCanvasElement, e: Edit, maxBytes
       const b = await render(oriented, edit);
       if (b.size <= maxBytes) return { blob: b, edit };
     }
-    const probe = await render(oriented, { ...edit, quality: 0.3 });
-    const k = Math.max(0.5, Math.min(0.92, Math.sqrt(maxBytes / probe.size) * 0.95));
+    const probe = await render(oriented, { ...edit, quality: floor.minQuality });
+    let k = Math.max(0.5, Math.min(0.92, Math.sqrt(maxBytes / probe.size) * 0.95));
+    const side = Math.max(edit.outW, edit.outH);
+    if (side <= floor.minSide) break;
+    if (side * k < floor.minSide) k = floor.minSide / side;
     if (edit.outW * k < 16 || edit.outH * k < 16) break;
     edit = { ...edit, outW: Math.round(edit.outW * k), outH: Math.round(edit.outH * k) };
   }

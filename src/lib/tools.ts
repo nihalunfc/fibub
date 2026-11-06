@@ -10,6 +10,7 @@ export async function allTools() {
   const tools = await getCollection('tools');
   for (const t of tools) {
     if (t.data.status === 'live' && !toolComponent(t.id)) throw new Error(`Tool "${t.id}" is live but has no Tool.astro`);
+    if (t.data.status === 'live' && !t.data.flow) throw new Error(`Tool "${t.id}" is live but has no flow (the picture of its steps) in guide.md`);
   }
   const live = (t: Tool) => (t.data.status === 'live' ? 0 : 1);
   return tools.sort((a, b) => live(a) - live(b) || a.data.order - b.data.order || a.data.name.localeCompare(b.data.name));

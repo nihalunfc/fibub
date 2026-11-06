@@ -7,6 +7,11 @@ status: live
 ads: false
 order: 5
 updated: 2026-11-06
+flow:
+  - { icon: file, label: "Drop a file" }
+  - { icon: sliders, label: "Pick a level" }
+  - { icon: shrink, label: "Shrink" }
+  - { icon: download, label: "Download" }
 ---
 
 ## How it works

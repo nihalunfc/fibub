@@ -7,6 +7,11 @@ status: live
 ads: false
 order: 12
 updated: 2026-11-06
+flow:
+  - { icon: image, label: "Add a photo" }
+  - { icon: crop, label: "Crop, resize" }
+  - { icon: convert, label: "Pick format" }
+  - { icon: download, label: "Download" }
 ---
 
 ## How to resize an image

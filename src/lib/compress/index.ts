@@ -1,6 +1,6 @@
 // One entry point for every compressor. The page loads this file only when it is needed.
 import { compress as compressPdf, fitPdf } from './pdf';
-import { orient, renderUnder } from '../image/edit';
+import { orient, renderUnder, render } from '../image/edit';
 import { compressImage, extFor } from './image';
 import { compressOffice } from './office';
 import { zipAsync, unzipAsync } from './zipper';
@@ -18,10 +18,22 @@ export class TooBigError extends Error {
   constructor(public smallest: number) { super('too big'); }
 }
 
+/** The limit can only be met by losing visible quality. Carries the best no-loss version. */
+export class NeedsLossError extends Error {
+  name = 'NeedsLossError';
+  constructor(public safe: Output) { super('needs loss'); }
+}
+
+const IMAGE_NO_LOSS = { minQuality: 0.6, minSide: 1600 };
+
 /** Shrink a PDF or image until it fits under maxBytes (upload-limit mode). */
-async function fitUnder(file: File, input: Uint8Array, method: Method, maxBytes: number, onProgress: Progress): Promise<Output> {
+async function fitUnder(file: File, input: Uint8Array, method: Method, maxBytes: number, onProgress: Progress, allowLoss: boolean): Promise<Output> {
   if (method === 'pdf') {
-    const r = await fitPdf(input, maxBytes, (label, fraction) => onProgress({ fraction, label }));
+    const r = await fitPdf(input, maxBytes, (label, fraction) => onProgress({ fraction, label }), allowLoss);
+    if (!r.bytes && !allowLoss) {
+      const safe = r.safest.length < input.length ? r.safest : input;
+      throw new NeedsLossError({ bytes: safe, name: `${base(file.name)}-compressed.pdf`, mime: 'application/pdf', outcome: safe === input ? 'original' : 'smaller', note: 'Smallest version with no visible quality loss.' });
+    }
     if (!r.bytes) throw new TooBigError(r.smallest);
     return {
       bytes: r.bytes, name: `${base(file.name)}-compressed.pdf`, mime: 'application/pdf', outcome: 'smaller',
@@ -33,7 +45,16 @@ async function fitUnder(file: File, input: Uint8Array, method: Method, maxBytes:
   const canvas = orient(bmp, 0, false, false);
   const w = bmp.width, h = bmp.height;
   bmp.close();
-  const r = await renderUnder(canvas, { crop: { x: 0, y: 0, w, h }, outW: w, outH: h, format: 'image/jpeg', quality: 0.9, background: '#ffffff' }, maxBytes, (label) => onProgress({ fraction: null, label }));
+  const start = { crop: { x: 0, y: 0, w, h }, outW: w, outH: h, format: 'image/jpeg' as const, quality: 0.9, background: '#ffffff' };
+  const r = await renderUnder(canvas, start, maxBytes, (label) => onProgress({ fraction: null, label }), allowLoss ? undefined : IMAGE_NO_LOSS);
+  if (!r && !allowLoss) {
+    // The smallest no-loss version: quality 60%, long side no smaller than 1600 pixels.
+    const k = Math.min(1, IMAGE_NO_LOSS.minSide / Math.max(w, h));
+    const blob = await render(canvas, { ...start, outW: Math.round(w * k), outH: Math.round(h * k), quality: IMAGE_NO_LOSS.minQuality });
+    canvas.width = canvas.height = 0;
+    const bytes = blob.size < input.length ? new Uint8Array(await blob.arrayBuffer()) : input;
+    throw new NeedsLossError({ bytes, name: bytes === input ? file.name : `${base(file.name)}-compressed.jpg`, mime: bytes === input ? file.type : 'image/jpeg', outcome: bytes === input ? 'original' : 'smaller', note: 'Smallest version with no visible quality loss.' });
+  }
   canvas.width = canvas.height = 0;
   if (!r) throw new TooBigError(0);
   return {
@@ -42,13 +63,13 @@ async function fitUnder(file: File, input: Uint8Array, method: Method, maxBytes:
   };
 }
 
-export async function compressFile(file: File, method: Method, level: Level, onProgress: Progress, maxBytes?: number): Promise<Output> {
+export async function compressFile(file: File, method: Method, level: Level, onProgress: Progress, maxBytes?: number, allowLoss = false): Promise<Output> {
   const input = new Uint8Array(await file.arrayBuffer());
   const e = ext(file.name);
   let out: Output;
   if (maxBytes && (method === 'pdf' || method === 'image')) {
     if (input.length <= maxBytes) return { bytes: input, name: file.name, mime: file.type || 'application/octet-stream', outcome: 'original', note: 'fits' };
-    return fitUnder(file, input, method, maxBytes, onProgress);
+    return fitUnder(file, input, method, maxBytes, onProgress, allowLoss);
   }
 
   if (method === 'pdf') {

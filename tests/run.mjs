@@ -295,17 +295,30 @@ try {
     await page.click('.cmp-go');
     await page.waitForSelector('.result:not([hidden]), .cmp-error:not([hidden])', { timeout: 180000 });
     if (await page.isVisible('.cmp-error')) return { error: await page.textContent('.cmp-error') };
+    let offer = null;
+    if (await page.isVisible('.cmp-loss')) {
+      // No-loss floor is above the limit: note the offer, check its download, then go below anyway.
+      const [d0] = await Promise.all([page.waitForEvent('download'), page.click('.cmp-download')]);
+      offer = { note: await page.textContent('.cmp-note'), size: size(await d0.path()) };
+      await page.click('.cmp-below');
+      await page.waitForSelector('.result:not([hidden]), .cmp-error:not([hidden])', { timeout: 180000 });
+      if (await page.isVisible('.cmp-error')) return { offer, error: await page.textContent('.cmp-error') };
+    }
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.cmp-download')]);
     const path = OUT + `fit-${kb}-${dl.suggestedFilename()}`;
     await dl.saveAs(path);
-    return { path, note: await page.textContent('.cmp-note') };
+    return { path, offer, note: await page.textContent('.cmp-note') };
   }
   {
     const r = await fit('photo.pdf', 200);
     check(r.path && size(r.path) <= 200 * 1024, `fit: 26 MB PDF under 200 KB -> ${r.path && (size(r.path) / 1024).toFixed(0)} KB (${r.note ?? r.error})`);
     check(r.path && (await PDFDocument.load(readFileSync(r.path))).getPageCount() === 3, 'fit: PDF keeps its 3 pages');
+    check(r.offer && /without visible quality loss/.test(r.offer.note) && r.offer.size > 200 * 1024, `fit: PDF offers the no-loss size first -> "${(r.offer?.note ?? '').trim()}" (${r.offer && (r.offer.size / 1024).toFixed(0)} KB)`);
     const i = await fit('photo.png', 100);
     check(i.path && size(i.path) <= 100 * 1024, `fit: 13 MB PNG under 100 KB -> ${i.path && (size(i.path) / 1024).toFixed(0)} KB (${i.note ?? i.error})`);
+    check(!i.offer && /quality 60%/.test(i.note), `fit: PNG reaches 100 KB without visible loss, so no offer is needed -> ${i.note}`);
+    const i2 = await fit('photo.png', 40);
+    check(i2.offer && i2.offer.size > 40 * 1024 && i2.path && size(i2.path) <= 40 * 1024, `fit: PNG to 40 KB offers the no-loss size (${i2.offer && (i2.offer.size / 1024).toFixed(0)} KB) then goes below -> ${i2.path && (size(i2.path) / 1024).toFixed(0)} KB`);
     const t = await fit('text.pdf', 100);
     check(/already under/.test(t.note ?? ''), `fit: small file already fits -> "${(t.note ?? t.error).trim()}"`);
     const tiny = await fit('photo.pdf', 10);
@@ -384,6 +397,15 @@ try {
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
+  // The picture of each tool's steps stays on one row, even on a 320 px screen.
+  await phone.setViewportSize({ width: 320, height: 640 });
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/']) {
+    await phone.goto(BASE + path);
+    const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
+    const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
+    check(rows === 1 && sw <= 320, `${path} step picture: one row at 320 px (rows ${rows}, scrollWidth ${sw})`);
+  }
+  await phone.setViewportSize({ width: 390, height: 664 });
   await phone.goto(BASE + '/documents/compress-file/');
   await phone.setInputFiles('.cmp-input', OUT + 'report.docx');
   await phone.screenshot({ path: OUT + 'phone-ready.png' });

@@ -43,7 +43,7 @@ a.card:hover { border-color: var(--accent); }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
 .prose { max-width: 720px; }
 .prose table { border-collapse: collapse; width: 100%; font-size: 15px; }
-.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
+.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 10px; padding: 12px 20px; font: inherit; font-weight: 600; cursor: pointer; background: var(--accent); color: var(--accent-ink); text-decoration: none; }
 .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }

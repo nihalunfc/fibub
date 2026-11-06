@@ -7,6 +7,11 @@ status: live
 ads: false
 order: 15
 updated: 2026-11-06
+flow:
+  - { icon: zip, label: "Drop a ZIP" }
+  - { icon: search, label: "Look inside" }
+  - { icon: check, label: "See verdict" }
+  - { icon: shrink, label: "Repack" }
 ---
 
 ## How to check a ZIP

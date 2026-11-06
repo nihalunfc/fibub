@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
+import ToolFlow from '../../components/ToolFlow.astro';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
 import { allTools, toolComponent, toolUrl } from '../../lib/tools';
@@ -20,6 +21,7 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
+  {tool.data.flow && <ToolFlow steps={tool.data.flow} />}
   <ToolUI />
   <article class="prose">
     <Content />

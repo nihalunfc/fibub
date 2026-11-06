@@ -14,7 +14,7 @@ fibub.com: free everyday tools (money, documents, everyday) that run entirely in
 
 ## Adding a tool
 1. Make `src/tools/<id>/` (the id is the URL slug, e.g. `compress-pdf`).
-2. `guide.md`: frontmatter (`name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
+2. `guide.md`: frontmatter (`name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`, and for live tools `flow`: 3 or 4 steps of `{ icon, label }`, labels up to 12 characters, icons from `src/lib/icons.ts`; it is the picture at the top of the tool page and must stay on one row on a 320 px phone) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
 3. `Tool.astro`: the UI and its `<script>`. Load heavy libraries with `import()` so the page stays fast.
 4. Add checks for it in `tests/run.mjs`.
 5. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
