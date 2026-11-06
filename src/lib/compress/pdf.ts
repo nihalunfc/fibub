@@ -39,7 +39,7 @@ export async function compressLossless(input: Uint8Array): Promise<Uint8Array> {
 }
 
 let pdfjsReady: Promise<typeof import('pdfjs-dist')> | null = null;
-function loadPdfJs() {
+export function loadPdfJs() {
   pdfjsReady ??= (async () => {
     const pdfjs = await import('pdfjs-dist');
     const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');

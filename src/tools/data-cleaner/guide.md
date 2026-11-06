@@ -2,7 +2,7 @@
 name: Data cleaner
 shelf: documents
 title: "Data cleaner"
-summary: "Find missing values, outliers and duplicates in CSV or Excel, clean them up, and trim PDFs or text to use fewer AI tokens."
+summary: "Find missing values, outliers and duplicates in CSV, Excel or JSON, clean them up, and get a SQL table schema."
 status: soon
 order: 28
 icon: table

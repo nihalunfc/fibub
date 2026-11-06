@@ -353,10 +353,50 @@ try {
     check(await page.isVisible('.lf-more'), 'post formatter: preview folds at "see more"');
   }
 
+  // 6h. Prompt pruner.
+  {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    for (let i = 1; i <= 5; i++) {
+      const pg = doc.addPage([595, 842]);
+      pg.drawText('ACME Quarterly Report 2026 - Confidential', { x: 50, y: 800, size: 9, font });
+      if (i === 1) pg.drawText('Revenue overview', { x: 50, y: 740, size: 22, font: bold });
+      const words = ['north', 'south', 'east', 'west', 'online', 'outlet', 'airport', 'campus'];
+      for (let l = 0; l < 20; l++) pg.drawText(`${words[(l + i) % 8]} region note ${l}-${i}: ${'sales grew '.repeat(1 + ((l * 7 + i) % 4))}thanks to new stores.`, { x: 50, y: 700 - l * 16, size: 11, font });
+      pg.drawText(`Page ${i} of 5`, { x: 270, y: 40, size: 9, font });
+      pg.drawText('(c) 2026 ACME Corp. All rights reserved.', { x: 50, y: 25, size: 8, font });
+    }
+    writeFileSync(OUT + 'report.pdf', await doc.save());
+    await page.goto(BASE + '/documents/prompt-pruner/');
+    await page.setInputFiles('.pp-input', OUT + 'report.pdf');
+    await page.waitForSelector('.pp-result:not([hidden]), .pp-error:not([hidden])', { timeout: 60000 });
+    const md = await page.inputValue('.pp-out');
+    check(md.includes('# Revenue overview') && md.includes('note 19-5') && md.includes('note 0-1'), 'prompt pruner: PDF heading and body kept');
+    check(!/ACME Quarterly|Page \d of 5|All rights reserved/.test(md), 'prompt pruner: headers, page numbers and copyright removed');
+    check(/\d+%/.test(await page.textContent('.pp-saved')) && (await page.textContent('.pp-saved')) !== '0%', `prompt pruner: tokens saved ${await page.textContent('.pp-saved')}`);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.pp-dl')]);
+    check(dl.suggestedFilename() === 'report-clean.md', `prompt pruner: download ${dl.suggestedFilename()}`);
+    writeFileSync(OUT + 'repo.zip', zipSync({
+      'proj-main/src/app.js': strToU8('/*\n * Copyright 2026 Someone\n * Licensed under the MIT License\n */\n\nexport const add = (a, b) => a + b;   \n\n\n\n// helper\nexport const sub = (a, b) => a - b;\n'),
+      'proj-main/node_modules/x/index.js': strToU8('module.exports = 1;'),
+      'proj-main/package-lock.json': strToU8('{}'),
+      'proj-main/LICENSE': strToU8('MIT License ...'),
+      'proj-main/README.md': strToU8('# Proj\n\nDoes maths.\n'),
+    }));
+    await page.click('.pp-again');
+    await page.setInputFiles('.pp-input', OUT + 'repo.zip');
+    await page.waitForSelector('.pp-result:not([hidden])');
+    const r = await page.inputValue('.pp-out');
+    check(r.includes('### src/app.js') && r.includes('export const add') && !r.includes('Licensed under') && !r.includes('node_modules') && !r.includes('package-lock') && r.includes('// helper'), 'prompt pruner: code ZIP keeps code, drops licence, dependencies and lock files');
+    await page.check('[data-opt=comments]');
+    await page.waitForFunction(() => !document.querySelector('.pp-out').value.includes('// helper'));
+    check(true, 'prompt pruner: "All code comments" removes comments');
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/']) {
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/']) {
       await page.goto(BASE + path);
       const og = await page.getAttribute('meta[property="og:image"]', 'content');
       const file = 'dist' + new URL(og).pathname;
@@ -463,14 +503,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
