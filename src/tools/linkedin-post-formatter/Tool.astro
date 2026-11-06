@@ -1,0 +1,132 @@
+---
+// LinkedIn post formatter: bold, italic and lists made of Unicode characters, with a feed preview.
+---
+<div class="lf panel">
+  <div class="lf-tools" role="toolbar" aria-label="Formatting">
+    <button type="button" data-do="bold" title="Bold"><b>B</b></button>
+    <button type="button" data-do="italic" title="Italic"><i>I</i></button>
+    <button type="button" data-do="bolditalic" title="Bold italic"><b><i>BI</i></b></button>
+    <button type="button" data-do="underline" title="Underline"><u>U</u></button>
+    <button type="button" data-do="strike" title="Strikethrough"><s>S</s></button>
+    <button type="button" data-do="mono" title="Typewriter">{'</>'}</button>
+    <button type="button" data-do="bullets" title="Bullet list">• List</button>
+    <button type="button" data-do="numbers" title="Numbered list">1. List</button>
+    <button type="button" data-do="plain" title="Remove formatting from the selection">Clear</button>
+    <button type="button" data-do="markdown" title="Turn **stars** and - dashes in the whole post into formatting">From Markdown</button>
+  </div>
+  <label for="lf-in" class="visually-hidden">Your post</label>
+  <textarea id="lf-in" class="lf-in" rows="10" placeholder="Write or paste your post. Select words, then press B or I."></textarea>
+  <p class="lf-hint" role="status" aria-live="polite"></p>
+  <div class="lf-meta">
+    <span class="lf-count">0 / 3,000</span>
+    <button type="button" class="btn lf-copy">Copy post</button>
+  </div>
+  <p class="note warn lf-warn" hidden>A lot of this post uses styled letters. Screen readers read them letter by letter and LinkedIn search can't find them, so keep them to a few key words.</p>
+  <div class="lf-preview-wrap">
+    <span class="lf-ptitle">Feed preview</span>
+    <div class="lf-preview">
+      <div class="lf-who"><span class="lf-avatar" aria-hidden="true"></span><span><b>You</b><small>Your headline · 1m</small></span></div>
+      <div class="lf-text"></div>
+      <button type="button" class="lf-more" hidden>…see more</button>
+    </div>
+    <small class="lf-pnote">LinkedIn shows about the first 3 lines (around 210 characters) before "…see more". Put your hook there.</small>
+  </div>
+</div>
+
+<style is:global>
+  .lf { display: grid; gap: 12px; margin-bottom: 32px; }
+  .lf-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lf-tools button { font: inherit; font-size: 14px; min-width: 40px; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .lf-tools button:hover { border-color: var(--accent); color: var(--accent); }
+  .lf-tools button[data-do="markdown"] { margin-left: auto; }
+  .lf-in { width: 100%; font: 15px/1.55 system-ui, sans-serif; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .lf-in:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+  .lf-hint { margin: 0; font-size: 14px; color: var(--warn); }
+  .lf-hint:empty { display: none; }
+  .lf-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .lf-count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .lf-count.over { color: var(--bad); font-weight: 700; }
+  .lf-preview-wrap { display: grid; gap: 6px; }
+  .lf-ptitle { font-weight: 600; font-size: 14px; }
+  .lf-preview { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); max-width: 560px; }
+  .lf-who { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .lf-who span:last-child { display: grid; line-height: 1.3; }
+  .lf-who small { color: var(--muted); font-size: 12px; }
+  .lf-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); flex: none; }
+  .lf-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.45; }
+  .lf-text:empty::before { content: 'Your post appears here.'; color: var(--muted); }
+  .lf-more { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+  .lf-pnote { color: var(--muted); }
+</style>
+
+<script>
+  import { style, mark, plain, fromMarkdown, hasStyled, type Style } from '../../lib/unistyle';
+
+  const root = document.querySelector<HTMLElement>('.lf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = q<HTMLTextAreaElement>('.lf-in'), hint = q('.lf-hint'), count = q('.lf-count');
+  const text = q('.lf-text'), more = q<HTMLButtonElement>('.lf-more'), warn = q('.lf-warn');
+  const LIMIT = 3000, FOLD = 210;
+  let expanded = false;
+
+  function replaceSelection(fn: (s: string) => string, wholeLines = false) {
+    let a = ta.selectionStart, b = ta.selectionEnd;
+    if (wholeLines) {
+      a = ta.value.lastIndexOf('\n', a - 1) + 1;
+      const e = ta.value.indexOf('\n', b === a ? b : b - 1);
+      b = e === -1 ? ta.value.length : e;
+    } else if (a === b) {
+      hint.textContent = 'Select some text first, then press the button.';
+      return;
+    }
+    hint.textContent = '';
+    const out = fn(ta.value.slice(a, b));
+    ta.focus();
+    ta.setSelectionRange(a, b);
+    // execCommand keeps the browser's undo (Ctrl+Z) working; fall back to setRangeText.
+    if (!document.execCommand('insertText', false, out)) ta.setRangeText(out, a, b, 'end');
+    ta.setSelectionRange(a, a + out.length);
+    update();
+  }
+
+  const actions: Record<string, () => void> = {
+    bold: () => replaceSelection((s) => style(s, 'bold')),
+    italic: () => replaceSelection((s) => style(s, 'italic')),
+    bolditalic: () => replaceSelection((s) => style(s, 'bolditalic')),
+    mono: () => replaceSelection((s) => style(s, 'mono' as Style)),
+    underline: () => replaceSelection((s) => mark(s, 'underline')),
+    strike: () => replaceSelection((s) => mark(s, 'strike')),
+    plain: () => replaceSelection(plain),
+    bullets: () => replaceSelection((s) => s.split('\n').map((l) => (l.trim() ? `• ${l.replace(/^(\s*)(•|\d+\.)\s+/, '')}` : l)).join('\n'), true),
+    numbers: () => replaceSelection((s) => { let n = 0; return s.split('\n').map((l) => (l.trim() ? `${++n}. ${l.replace(/^(\s*)(•|\d+\.)\s+/, '')}` : l)).join('\n'); }, true),
+    markdown: () => { ta.select(); replaceSelection(fromMarkdown); },
+  };
+  root.querySelectorAll<HTMLButtonElement>('[data-do]').forEach((b) => {
+    b.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection in the box
+    b.addEventListener('click', () => actions[b.dataset.do!]());
+  });
+
+  function update() {
+    const v = ta.value;
+    const n = v.length; // LinkedIn counts styled letters as 2, like this.
+    count.textContent = `${n.toLocaleString('en')} / ${LIMIT.toLocaleString('en')}`;
+    count.classList.toggle('over', n > LIMIT);
+    const lines = v.split('\n');
+    let cut = Math.min(v.length, FOLD);
+    if (lines.length > 3) cut = Math.min(cut, lines.slice(0, 3).join('\n').length);
+    const folded = !expanded && v.length > cut;
+    text.textContent = folded ? v.slice(0, cut).trimEnd() : v;
+    more.hidden = !folded;
+    const styled = [...v].filter((c) => hasStyled(c)).length;
+    warn.hidden = !(styled > 40 && styled / Math.max(1, [...v].length) > 0.3);
+  }
+  more.addEventListener('click', () => { expanded = true; update(); });
+  ta.addEventListener('input', () => { expanded = false; hint.textContent = ''; update(); });
+  q('.lf-copy').addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLElement;
+    try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand('copy'); }
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => (btn.textContent = 'Copy post'), 1500);
+  });
+  update();
+</script>

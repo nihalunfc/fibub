@@ -337,6 +337,22 @@ try {
     check(await page.isVisible('.lc-note'), 'link cleaner: short links are flagged');
   }
 
+  // 6f. LinkedIn post formatter.
+  {
+    await page.goto(BASE + '/everyday/linkedin-post-formatter/');
+    await page.fill('.lf-in', 'Big news today');
+    await page.evaluate(() => { const t = document.querySelector('.lf-in'); t.setSelectionRange(0, 3); });
+    await page.click('[data-do=bold]');
+    const v = await page.inputValue('.lf-in');
+    check(v === '𝗕𝗶𝗴 news today', `post formatter: bold selection -> ${v}`);
+    await page.fill('.lf-in', '**Hi** there\n- one\n- two');
+    await page.click('[data-do=markdown]');
+    const m = await page.inputValue('.lf-in');
+    check(m === '𝗛𝗶 there\n• one\n• two', `post formatter: from Markdown -> ${JSON.stringify(m)}`);
+    await page.fill('.lf-in', 'x'.repeat(400));
+    check(await page.isVisible('.lf-more'), 'post formatter: preview folds at "see more"');
+  }
+
   // 6c. ZIP checker and hand-off to the compressor.
   {
     writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));
@@ -434,14 +450,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
