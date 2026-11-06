@@ -18,6 +18,7 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 12 | Prompt pruner: strip boilerplate, repeated headers, metadata blocks and extra whitespace from PDFs, text and code folders to cut LLM tokens (shows tokens before and after). Output: clean text with headings and lists kept, to copy or download as .md, so people paste text instead of uploading the heavy PDF. No AI summary: nothing is cut that matters | /documents/prompt-pruner/ | Planned |
 | 13 | Where did I put it? Type an item and where it is; a searchable list kept only in your browser, with backup file save/load | /everyday/where-is-it/ | Planned |
 | 14 | Declutter shredder: pick your Downloads folder, group files by type and age, review and clear old ones (moved to a Trash folder by default). Banner at the top: works only in Chrome and Edge on a computer | /everyday/declutter/ | Planned |
+| 15 | Palette chameleon: drop an image, get its main hex codes, preview them on mock layouts (phone screen, resume header, web page, outfit top/bottom/shoes); plus ready palettes for outfits and for coders, with contrast checks. Works offline | /everyday/palette/ | Planned |
 | - | Clickbait checker browser extension (on-device summary of the real outcome on hover). A separate extension, not a fibub.com page | - | Idea |
 | - | Anonymous usage counter feeding /stats/ | - | Planned |
 | - | Budget, sales tax/VAT/GST, loan EMI, currency, time zone, QR code tools | - | Ideas |
