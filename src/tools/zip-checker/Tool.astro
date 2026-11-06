@@ -1,0 +1,152 @@
+---
+// ZIP checker: is this ZIP already as small as it can be? Runs in the browser only.
+---
+<div class="zc panel" data-state="empty">
+  <label class="zc-drop">
+    <input class="zc-input visually-hidden" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
+    <strong>Choose a ZIP file</strong>
+    <span>or drop it here · up to <b class="zc-limit">200 MB</b></span>
+  </label>
+  <p class="zc-status" role="status" aria-live="polite"></p>
+  <div class="zc-report" hidden>
+    <div class="zc-verdict note"></div>
+    <div class="zc-actions"></div>
+    <div class="zc-kpis"></div>
+    <h3>What's inside</h3>
+    <div class="zc-tablewrap"><table class="zc-table">
+      <thead><tr><th>File</th><th>Size</th><th>In the ZIP</th><th>Saved</th><th>Packing</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="zc-more"></p>
+    <button type="button" class="btn secondary zc-again">Check another ZIP</button>
+  </div>
+  <p class="note bad zc-error" role="alert" hidden></p>
+</div>
+
+<style is:global>
+  .zc { display: grid; gap: 16px; margin-bottom: 32px; }
+  .zc [hidden] { display: none !important; }
+  .zc-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .zc-drop strong { font-size: 19px; color: var(--accent); }
+  .zc-drop span { color: var(--muted); font-size: 14px; }
+  .zc-drop.over, .zc-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .zc:not([data-state="empty"]) .zc-drop { display: none; }
+  .zc-status { margin: 0; color: var(--muted); }
+  .zc-status:empty { display: none; }
+  .zc-verdict { font-size: 17px; }
+  .zc-verdict b { display: block; font-size: 20px; margin-bottom: 4px; }
+  .zc-actions:empty { display: none; }
+  .zc-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .zc-kpis div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; }
+  .zc-kpis span { color: var(--muted); font-size: 13px; }
+  .zc-kpis b { font-size: 19px; }
+  .zc h3 { margin: 8px 0 0; }
+  .zc-tablewrap { overflow-x: auto; }
+  .zc-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .zc-table th, .zc-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .zc-table td:first-child { white-space: normal; word-break: break-all; min-width: 140px; }
+  .zc-table .flag { color: var(--warn); font-weight: 600; }
+  .zc-more { margin: 0; color: var(--muted); font-size: 14px; }
+  .zc-more:empty { display: none; }
+  .zc-again { justify-self: start; }
+</style>
+
+<script>
+  import { readZipInfo, METHOD_NAMES, ALREADY_COMPRESSED } from '../../lib/zipinfo';
+  import { formatBytes } from '../../lib/compress/format';
+  import { handOff } from '../../lib/handoff';
+
+  // Load the packer once the page is idle, so the checker keeps working with no internet.
+  const packer = () => import('../../lib/compress/zipper');
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => packer().catch(() => {}));
+
+  const root = document.querySelector<HTMLElement>('.zc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.zc-input'), drop = q('.zc-drop'), status = q('.zc-status'), err = q('.zc-error');
+  const LIMIT = (matchMedia('(pointer: coarse)').matches ? 50 : 200) * 1024 * 1024;
+  q('.zc-limit').textContent = formatBytes(LIMIT);
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((1 - a / b) * 100) : 0);
+
+  function reset() {
+    root.dataset.state = 'empty'; input.value = ''; status.textContent = '';
+    q('.zc-report').hidden = true; err.hidden = true;
+  }
+  q('.zc-again').addEventListener('click', reset);
+
+  async function check(file?: File) {
+    err.hidden = true;
+    if (!file) return;
+    if (file.size > LIMIT) { err.textContent = `This ZIP is ${formatBytes(file.size)}; the limit on this device is ${formatBytes(LIMIT)}.`; err.hidden = false; return; }
+    root.dataset.state = 'working';
+    status.textContent = 'Reading the ZIP…';
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let info;
+    try { info = readZipInfo(bytes); } catch {
+      status.textContent = ''; root.dataset.state = 'empty';
+      err.textContent = 'This does not look like a ZIP file, or it is damaged.'; err.hidden = false; return;
+    }
+    const files = info.entries.filter((e) => !e.dir);
+    const total = files.reduce((s, e) => s + e.size, 0);
+    const packed = files.reduce((s, e) => s + e.packed, 0);
+    const stored = files.filter((e) => e.method === 0 && e.size > 1024 && !ALREADY_COMPRESSED.test(e.name));
+    const already = files.filter((e) => ALREADY_COMPRESSED.test(e.name)).reduce((s, e) => s + e.size, 0);
+    const locked = files.some((e) => e.encrypted);
+    const odd = files.some((e) => ![0, 8].includes(e.method));
+
+    // Try the strongest repack, entirely in the browser, unless that can't be done safely.
+    let repacked: number | null = null;
+    if (!locked && !odd && files.length) {
+      status.textContent = `Test-packing ${files.length} file${files.length === 1 ? '' : 's'} with the strongest setting…`;
+      try {
+        const { unzipAsync, zipAsync } = await packer();
+        repacked = (await zipAsync(await unzipAsync(bytes), { level: 9 })).length;
+      } catch { repacked = null; }
+    }
+    status.textContent = '';
+
+    const v = q('.zc-verdict'), actions = q('.zc-actions');
+    actions.innerHTML = '';
+    const gain = repacked === null ? 0 : file.size - repacked;
+    if (locked) {
+      v.className = 'zc-verdict note warn';
+      v.innerHTML = '<b>Password-protected</b>This ZIP is locked, so its contents can\'t be tested. fibub never removes passwords.';
+    } else if (odd || repacked === null) {
+      v.className = 'zc-verdict note warn';
+      v.innerHTML = '<b>Could not test this ZIP</b>It uses a packing method this tool can\'t open, or part of it is damaged.';
+    } else if (gain / file.size >= 0.01 && gain > 4096) {
+      v.className = 'zc-verdict note warn';
+      v.innerHTML = `<b>Can be ${pct(repacked!, file.size)}% smaller</b>Repacking it with the strongest setting brings it from ${formatBytes(file.size)} to about ${formatBytes(repacked!)}. The files inside stay exactly the same.`;
+      const b = document.createElement('button');
+      b.className = 'btn'; b.type = 'button'; b.textContent = 'Compress it in the File compressor';
+      b.addEventListener('click', () => { b.disabled = true; b.textContent = 'Opening…'; handOff(file, '/documents/compress-file/'); });
+      actions.append(b);
+    } else {
+      v.className = 'zc-verdict note good';
+      v.innerHTML = `<b>Already as small as it gets</b>Repacking it with the strongest setting would save ${gain > 0 ? `only ${formatBytes(gain)}` : 'nothing'}.${already > total * 0.6 ? ' Most of what is inside (photos, videos, PDFs or Office files) is already compressed, so it can\'t shrink much further as a ZIP.' : ''}`;
+    }
+
+    q('.zc-kpis').innerHTML = [
+      ['Files inside', files.length.toLocaleString('en')],
+      ['Unpacked size', formatBytes(total)],
+      ['ZIP size', formatBytes(file.size)],
+      ['Saved by zipping', `${Math.max(0, pct(packed, total))}%`],
+    ].map(([k, val]) => `<div><span>${k}</span><b>${val}</b></div>`).join('') +
+      (stored.length ? `<div><span>Not compressed</span><b>${stored.length} file${stored.length === 1 ? '' : 's'}</b></div>` : '');
+
+    const top = files.slice().sort((a, b) => b.size - a.size).slice(0, 50);
+    q('.zc-table tbody').innerHTML = top.map((e) => {
+      const flag = e.method === 0 && e.size > 1024 && !ALREADY_COMPRESSED.test(e.name);
+      return `<tr><td>${esc(e.name)}</td><td>${formatBytes(e.size)}</td><td>${formatBytes(e.packed)}</td><td>${Math.max(0, pct(e.packed, e.size))}%</td><td class="${flag ? 'flag' : ''}">${e.encrypted ? 'Locked' : esc(METHOD_NAMES[e.method] ?? `Method ${e.method}`)}${flag ? ' · could shrink' : ''}</td></tr>`;
+    }).join('');
+    q('.zc-more').textContent = files.length > 50 ? `Showing the 50 largest of ${files.length.toLocaleString('en')} files.` : '';
+    q('.zc-report').hidden = false;
+    root.dataset.state = 'done';
+  }
+
+  input.addEventListener('change', () => check(input.files?.[0]));
+  for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
+  for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); check((e as DragEvent).dataTransfer?.files?.[0]); });
+</script>

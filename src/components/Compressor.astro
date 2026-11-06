@@ -8,7 +8,6 @@ interface Props {
 const { accept = '', what = 'a file' } = Astro.props;
 ---
 <div class="cmp panel" data-state="empty">
-  <p class="promise"><strong>Your file never leaves your device.</strong> It is compressed right here in your browser: nothing is uploaded, and we never see, store or use it.</p>
 
   <label class="drop">
     <input class="cmp-input visually-hidden" type="file" accept={accept || undefined} />
@@ -34,6 +33,25 @@ const { accept = '', what = 'a file' } = Astro.props;
     <label><input type="radio" name="cmp-level" value="recommended" checked /> <b>Recommended</b><span class="cmp-rec-blurb"></span></label>
     <label><input type="radio" name="cmp-level" value="smallest" /> <b>Smallest</b><span class="cmp-small-blurb"></span></label>
   </fieldset>
+  <div class="fit" hidden>
+    <label class="switch">
+      <input type="checkbox" class="cmp-fit-on" role="switch" />
+      <span class="track" aria-hidden="true"></span>
+      <span><b>Fit an upload limit</b><small>For government, visa and job portals that only accept files under a set size.</small></span>
+    </label>
+    <div class="fit-opts" hidden>
+      <div class="chips">
+        <button type="button" class="chip" data-kb="100">100 KB</button>
+        <button type="button" class="chip on" data-kb="200">200 KB</button>
+        <button type="button" class="chip" data-kb="500">500 KB</button>
+        <button type="button" class="chip" data-kb="1024">1 MB</button>
+        <button type="button" class="chip" data-kb="2048">2 MB</button>
+      </div>
+      <label class="custom">Or exactly <input type="number" class="cmp-fit-kb" min="10" max="51200" value="200" inputmode="numeric" /> KB</label>
+      <p class="muted small">We go only as small as possible without visible quality loss. If that is not enough, we tell you and you choose. Your file is still never uploaded.</p>
+    </div>
+  </div>
+
   <p class="note warn cmp-pdf-note" hidden>Recommended and Smallest turn each PDF page into an image: text can no longer be selected or searched, and links and fill-in fields are removed. Choose Light to keep them. If images would not make the file smaller, you get the Light result instead.</p>
 
   <button class="btn cmp-go" type="button" hidden>Compress</button>
@@ -62,6 +80,10 @@ const { accept = '', what = 'a file' } = Astro.props;
     </div>
     <div class="meter" aria-hidden="true"><span class="cmp-meter"></span></div>
     <p class="cmp-note"></p>
+    <div class="note warn cmp-loss" hidden>
+      <p class="cmp-loss-text"></p>
+      <button type="button" class="btn secondary cmp-below">Go below anyway</button>
+    </div>
     <div class="actions">
       <a class="btn cmp-download" download>Download</a>
       <button type="button" class="btn secondary cmp-again">Compress another file</button>
@@ -72,7 +94,6 @@ const { accept = '', what = 'a file' } = Astro.props;
 
 <style>
   .cmp { display: grid; gap: 16px; margin-bottom: 32px; position: relative; }
-  .promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
   .drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
   .drop strong { font-size: 19px; color: var(--accent); }
   .drop span, .muted { color: var(--muted); font-size: 14px; }
@@ -86,6 +107,23 @@ const { accept = '', what = 'a file' } = Astro.props;
   .choices :global(label) { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
   .choices :global(label:has(input:checked)) { border-color: var(--accent); background: var(--accent-soft); }
   .choices :global(span) { grid-column: 2; color: var(--muted); font-size: 14px; }
+  .cmp-loss { display: grid; gap: 10px; justify-items: start; }
+  .cmp-loss[hidden] { display: none; }
+  .cmp-loss p { margin: 0; }
+  .fit { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 12px; }
+  .switch { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .switch .track { width: 44px; height: 26px; border-radius: 99px; background: var(--line); position: relative; transition: background .2s; }
+  .switch .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .switch small { display: block; color: var(--muted); font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .custom { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .custom input { width: 100px; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
   .cmp-go { width: 100%; font-size: 17px; padding: 14px; }
   .working { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 8px 0; }
   .ring-wrap { position: relative; width: 132px; height: 132px; }
@@ -125,6 +163,7 @@ const { accept = '', what = 'a file' } = Astro.props;
   import { detect, sizeLimit, METHOD_INFO } from '../lib/compress/detect';
   import { formatBytes } from '../lib/compress/format';
   import type { Level, Method } from '../lib/compress/types';
+  import { receive } from '../lib/handoff';
 
   // The compressors (about 1 MB) load in the background once the page is idle, so they are
   // ready when needed and keep working if the connection drops.
@@ -133,10 +172,11 @@ const { accept = '', what = 'a file' } = Astro.props;
   idle(() => engine().then((m) => m.warmUp()).catch(() => {}));
 
   const BLURBS: Record<Method, [string, string, string]> = {
-    pdf: ['Keeps text, links and forms exactly as they are. Smaller saving.', 'Best for scans and photos. Pages become images at 150 DPI.', 'For strict upload limits. Pages become images at 100 DPI.'],
-    image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Best for email and upload limits.'],
+    pdf: ['Keeps text, links and forms exactly as they are. Smaller saving.', 'Best for scans and photos. Pages become images at 150 DPI.', 'Pages become images at 100 DPI. Small text may look softer.'],
+    image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Fine on screens, may look softer when zoomed or printed.'],
     office: ['Repacks the file more tightly. Pictures untouched.', 'Pictures up to 2560 pixels wide. Looks the same on screen and in print.', 'Pictures up to 1600 pixels. Smallest file, fine on screen.'],
     zip: ['', '', ''],
+    repack: ['', '', ''],
   };
 
   for (const root of document.querySelectorAll<HTMLElement>('.cmp')) {
@@ -152,28 +192,37 @@ const { accept = '', what = 'a file' } = Astro.props;
     let url: string | null = null;
 
     const setState = (s: string) => (root.dataset.state = s);
+    const fitBox = q('.fit'), fitOn = q<HTMLInputElement>('.cmp-fit-on'), fitKb = q<HTMLInputElement>('.cmp-fit-kb');
+    const fitting = () => !fitBox.hidden && fitOn.checked;
+    fitOn.addEventListener('change', () => { q('.fit-opts').hidden = !fitOn.checked; clearResult(); refreshOptions(); });
+    root.querySelectorAll<HTMLButtonElement>('.chip').forEach((c) => c.addEventListener('click', () => {
+      root.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
+      fitKb.value = c.dataset.kb!; clearResult();
+    }));
+    fitKb.addEventListener('input', () => { root.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', (x as HTMLElement).dataset.kb === fitKb.value)); clearResult(); });
     const method = () => (root.querySelector<HTMLInputElement>('input[name=cmp-method]:checked')?.value ?? 'zip') as Method;
     const level = () => (root.querySelector<HTMLInputElement>('input[name=cmp-level]:checked')!.value as Level);
     const showError = (msg: string) => { error.textContent = msg; error.hidden = false; };
 
     function refreshOptions() {
       const m = method();
-      levelsBox.hidden = m === 'zip';
+      fitBox.hidden = !(m === 'pdf' || m === 'image');
+      levelsBox.hidden = m === 'zip' || m === 'repack' || fitting();
       const [l, r, s] = BLURBS[m];
       q('.cmp-light-blurb').textContent = l; q('.cmp-rec-blurb').textContent = r; q('.cmp-small-blurb').textContent = s;
-      pdfNote.hidden = !(m === 'pdf' && level() !== 'light');
-      go.textContent = m === 'zip' ? 'Pack into ZIP' : 'Compress';
+      pdfNote.hidden = !(m === 'pdf' && (fitting() || level() !== 'light'));
+      go.textContent = m === 'zip' ? 'Pack into ZIP' : m === 'repack' ? 'Repack ZIP' : 'Compress';
     }
 
     function clearResult() {
       if (url) URL.revokeObjectURL(url);
-      url = null; result.hidden = true; error.hidden = true;
+      url = null; result.hidden = true; error.hidden = true; q('.cmp-loss').hidden = true;
     }
 
     function reset() {
       clearResult();
       file = null; input.value = '';
-      for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working]) el.hidden = true;
+      for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working, fitBox]) el.hidden = true;
       q('.cmp-clear').hidden = false;
       setState('empty');
     }
@@ -246,18 +295,33 @@ const { accept = '', what = 'a file' } = Astro.props;
       working.hidden = true;
     }
 
-    go.addEventListener('click', async () => {
+    let lossLimit: number | undefined;
+    go.addEventListener('click', () => run(false));
+    q('.cmp-below').addEventListener('click', () => run(true));
+
+    async function run(allowLoss: boolean) {
       if (!file) return;
       clearResult();
       const m = method(), lv = level();
-      for (const el of [methodsBox, levelsBox, pdfNote, go]) el.hidden = true;
+      // "Go below anyway" reuses the limit from the run that offered it (the fit box is hidden by then).
+      const limit = allowLoss ? lossLimit : fitting() ? Math.round(+fitKb.value * 1024) : undefined;
+      if (limit !== undefined && !(limit >= 10 * 1024)) { showError('Enter an upload limit of at least 10 KB.'); return; }
+      for (const el of [methodsBox, levelsBox, pdfNote, go, fitBox]) el.hidden = true;
       q<HTMLButtonElement>('.cmp-clear').hidden = true;
       setState('working');
       startWaiting();
       const shownAt = performance.now();
       try {
         const { compressFile } = await engine();
-        const out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label));
+        let out, needsLoss = false;
+        try {
+          out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label), limit, allowLoss);
+        } catch (e) {
+          // The limit can only be met by losing visible quality: show the best no-loss
+          // version and let the person choose to go further.
+          if ((e as Error)?.name !== 'NeedsLossError') throw e;
+          out = (e as any).safe; needsLoss = true;
+        }
         setProgress(1, 'Done');
         // Let the ring reach 100% before the result appears.
         await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - shownAt))));
@@ -271,7 +335,17 @@ const { accept = '', what = 'a file' } = Astro.props;
         q('.cmp-saved').textContent = `${saved}%`;
         q('.cmp-meter').style.width = '100%';
         requestAnimationFrame(() => requestAnimationFrame(() => (q('.cmp-meter').style.width = `${Math.max(2, 100 - saved)}%`)));
-        if (out.outcome === 'original') {
+        if (needsLoss) {
+          lossLimit = limit;
+          q('.cmp-note').textContent = `Smallest without visible quality loss: ${formatBytes(after)}. That is still above your ${formatBytes(limit!)} limit.`;
+          q('.cmp-loss-text').textContent = `To fit ${formatBytes(limit!)} we have to lower the quality: text and photos may look softer or blurry. It is your choice.`;
+          q('.cmp-below').textContent = `Go below anyway to fit ${formatBytes(limit!)}`;
+          q('.cmp-loss').hidden = false;
+          dl.textContent = out.outcome === 'original' ? 'Download original file' : 'Download no-loss version';
+        } else if (out.outcome === 'original' && out.note === 'fits') {
+          q('.cmp-note').textContent = `Good news: this file is already under ${formatBytes(limit!)}, so it can be uploaded as it is.`;
+          dl.textContent = 'Download original file';
+        } else if (out.outcome === 'original') {
           q('.cmp-note').textContent = 'This file is already well compressed, so none of the methods made it smaller. You can download your original file unchanged.';
           dl.textContent = 'Download original file';
         } else {
@@ -281,24 +355,29 @@ const { accept = '', what = 'a file' } = Astro.props;
         stopWaiting();
         result.hidden = false;
         setState('done');
-        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: out.outcome } }));
+        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: needsLoss ? 'no-loss-floor' : out.outcome, fitLimit: limit ?? null, allowLoss } }));
       } catch (e) {
         console.error(e);
         stopWaiting();
         const name = (e as Error)?.name;
-        showError(name === 'EncryptedPdfError'
+        showError(name === 'TooBigError'
+          ? `Even at the lowest quality this file stays above ${formatBytes(limit!)}${(e as any).smallest ? ` (smallest reached: ${formatBytes((e as any).smallest)})` : ''}. Try a larger limit, or split the PDF into parts.`
+          : name === 'EncryptedPdfError'
           ? 'This PDF is password-protected. Open it in your PDF reader, save a copy without a password, then try again.'
           : name === 'UnsupportedError'
-            ? 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.'
+            ? (m === 'repack' ? 'This ZIP could not be opened. It may be password-protected, damaged, or use a format this tool does not support.' : 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.')
             : 'Sorry, this file could not be read. It may be damaged, or your device may have run out of memory. Try "Pack into a ZIP", or a smaller file.');
         for (const el of [go]) el.hidden = false;
+        fitBox.hidden = !(m === 'pdf' || m === 'image');
         methodsBox.hidden = (root.querySelectorAll('input[name=cmp-method]').length < 2);
         refreshOptions();
         q<HTMLButtonElement>('.cmp-clear').hidden = false;
         setState('ready');
         root.dispatchEvent(new CustomEvent('fibub:compress-failed', { bubbles: true, detail: { method: m, error: name || 'Error' } }));
       }
-    });
+    }
     reset();
+    // A file passed from another fibub tool (such as the ZIP checker) opens straight away.
+    receive().then((f) => f && pick(f));
   }
 </script>

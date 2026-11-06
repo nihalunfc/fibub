@@ -1,0 +1,7 @@
+# Old tool addresses, now one File compressor page.
+/documents/compress-pdf/ /documents/compress-file/ 301
+/documents/compress-pdf /documents/compress-file/ 301
+/documents/compress-image/ /documents/compress-file/ 301
+/documents/compress-image /documents/compress-file/ 301
+/documents/compress-office/ /documents/compress-file/ 301
+/documents/compress-office /documents/compress-file/ 301

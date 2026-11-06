@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
+import ToolFlow from '../../components/ToolFlow.astro';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
 import { allTools, toolComponent, toolUrl } from '../../lib/tools';
@@ -8,7 +9,7 @@ export async function getStaticPaths() {
   const tools = await allTools();
   return tools
     .filter((t) => t.data.status === 'live')
-    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, others: tools.filter((o) => o.id !== t.id && o.data.shelf === t.data.shelf).slice(0, 3) } }));
+    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, others: tools.filter((o) => o.id !== t.id && o.data.status === 'live').slice(0, 3) } }));
 }
 const { tool, others } = Astro.props;
 const shelf = shelfById(tool.data.shelf);
@@ -20,15 +21,27 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
+  {tool.data.flow && <ToolFlow steps={tool.data.flow} works={tool.data.works} />}
   <ToolUI />
   <article class="prose">
     <Content />
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
   </article>
+  <aside class="suggest panel">
+    <b>Have a suggestion, or found a bug?</b>
+    <span>Tell us what would make {tool.data.name} more useful. Ideas that ship are credited, if you'd like.</span>
+    <a class="btn secondary" href={`/contact/?about=${tool.id}`}>Send a suggestion</a>
+  </aside>
   {others.length > 0 && (
     <section>
-      <h2>More {shelf.name.toLowerCase()} tools</h2>
-      <div class="grid">{others.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}</div>
+      <h2>More tools</h2>
+      <div class="grid">{others.map((t) => <ToolCard tool={t} />)}</div>
     </section>
   )}
 </Base>
+
+<style>
+  .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
+  .suggest span { color: var(--muted); font-size: 15px; }
+  .suggest .btn { margin-top: 6px; }
+</style>

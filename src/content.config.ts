@@ -1,6 +1,7 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { SHELF_IDS } from './site';
+import { ICON_NAMES } from './lib/icons';
 
 // Each tool is one folder in src/tools/<id>/ holding:
 //   guide.md   - the tool's name, shelf and summary (frontmatter) and its explainer text (body)
@@ -16,6 +17,13 @@ const tools = defineCollection({
     ads: z.boolean().default(false), // false on any page that handles personal files or bank data
     order: z.number().default(100),
     updated: z.coerce.date(),
+    // The picture at the top of the tool page: 3 or 4 steps, one short label each so the
+    // row fits a 320 px phone screen without wrapping. Required for live tools.
+    // 'offline': once the page is open it keeps working with no internet. 'online': needs internet
+    // while in use (for example live currency rates). Shown on every card and tool page.
+    icon: z.enum(ICON_NAMES),     // shown on the tool's card
+    works: z.enum(['offline', 'online']),
+    flow: z.array(z.object({ icon: z.enum(ICON_NAMES), label: z.string().max(12) })).min(3).max(4).optional(),
   }),
 });
 

@@ -4,7 +4,7 @@
 export type Level = 'light' | 'recommended' | 'smallest';
 
 /** The way a file is compressed. The UI picks one from the file type; people can change it. */
-export type Method = 'pdf' | 'image' | 'office' | 'zip';
+export type Method = 'pdf' | 'image' | 'office' | 'zip' | 'repack';
 
 /** Progress: `fraction` is 0..1, or null when the length of the job is unknown. */
 export type Progress = (p: { fraction: number | null; label: string }) => void;

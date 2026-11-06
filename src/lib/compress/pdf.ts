@@ -67,10 +67,10 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Uint8
 
 export async function compressAsImages(
   input: Uint8Array,
-  level: Exclude<Level, 'light'>,
+  settings: { dpi: number; quality: number },
   onProgress: (done: number, total: number) => void = () => {},
 ): Promise<{ bytes: Uint8Array; pages: number }> {
-  const { dpi, quality } = LEVELS[level];
+  const { dpi, quality } = settings;
   const pdfjs = await loadPdfJs();
   // pdf.js takes ownership of the buffer it is given, so pass a copy.
   const task = pdfjs.getDocument({ data: input.slice(), isEvalSupported: false });
@@ -119,10 +119,43 @@ export async function compress(
   const pages = (await PDFDocument.load(lossless, { updateMetadata: false })).getPageCount();
   let best: PdfResult = { bytes: lossless, method: 'lossless', pages };
   if (level !== 'light') {
-    const img = await compressAsImages(input, level, onProgress);
+    const img = await compressAsImages(input, LEVELS[level], onProgress);
     if (img.bytes.length < best.bytes.length) best = { bytes: img.bytes, method: 'image', pages: img.pages };
   }
   if (best.bytes.length >= input.length) best = { bytes: input, method: 'original', pages };
   return best;
 }
 
+
+/** Steps tried, best looking first, when a PDF must fit under an upload limit. */
+const FIT_STEPS = [
+  { dpi: 150, quality: 0.72 }, { dpi: 130, quality: 0.62 }, { dpi: 110, quality: 0.55 }, { dpi: 96, quality: 0.48 },
+  { dpi: 84, quality: 0.42 }, { dpi: 72, quality: 0.38 }, { dpi: 60, quality: 0.34 }, { dpi: 50, quality: 0.3 },
+];
+
+/**
+ * Smallest change that gets the PDF under maxBytes: first the text-keeping re-save, then page
+ * images from sharp to light. Returns the best-looking file that fits, or null with the smallest tried.
+ */
+/** Page images at this DPI or more look the same as the original on screen and in print. */
+export const NO_LOSS_DPI = 110;
+
+export async function fitPdf(input: Uint8Array, maxBytes: number, onStep: (label: string, fraction: number | null) => void, allowLoss = true) {
+  onStep('Trying without changing the text…', null);
+  const lossless = await compressLossless(input);
+  const pages = (await PDFDocument.load(lossless, { updateMetadata: false })).getPageCount();
+  if (lossless.length <= maxBytes) return { bytes: lossless, pages, method: 'lossless' as const, dpi: 0, smallest: lossless.length, safest: lossless };
+  let smallest = lossless.length;
+  let safest: Uint8Array = lossless; // smallest result with no visible loss
+  const steps = allowLoss ? FIT_STEPS : FIT_STEPS.filter((s) => s.dpi >= NO_LOSS_DPI);
+  for (let i = 0; i < steps.length; i++) {
+    const st = steps[i];
+    const r = await compressAsImages(input, st, (d, t) => onStep(`Try ${i + 1}: pages at ${st.dpi} DPI, page ${d} of ${t}…`, (i + d / t) / steps.length));
+    smallest = Math.min(smallest, r.bytes.length);
+    if (st.dpi >= NO_LOSS_DPI && r.bytes.length < safest.length) safest = r.bytes;
+    if (r.bytes.length <= maxBytes) return { bytes: r.bytes, pages, method: 'image' as const, dpi: st.dpi, smallest, safest };
+    // Skip ahead when far off, to save time on big files (not past the no-loss floor).
+    if (allowLoss && r.bytes.length > maxBytes * 3 && i < steps.length - 3 && st.dpi < NO_LOSS_DPI) i++;
+  }
+  return { bytes: null, pages, method: 'image' as const, dpi: 0, smallest, safest };
+}

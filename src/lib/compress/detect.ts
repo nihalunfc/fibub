@@ -17,6 +17,7 @@ export function detect(file: { name: string; type: string }): Kind {
     const label = /^(doc|dot|odt)/.test(e) ? 'Word document' : /^(xl|ods)/.test(e) ? 'Excel workbook' : 'PowerPoint presentation';
     return { label: `${label} (.${e})`, methods: ['office', 'zip'] };
   }
+  if (e === 'zip' || file.type === 'application/zip' || file.type === 'application/x-zip-compressed') return { label: 'ZIP archive', methods: ['repack'] };
   if (['csv', 'tsv', 'txt', 'json', 'xml', 'log', 'sql', 'md', 'html', 'svg'].includes(e)) return { label: `${e.toUpperCase()} text file`, methods: ['zip'] };
   if (['doc', 'xls', 'ppt'].includes(e)) return { label: `Older Office file (.${e})`, methods: ['zip'] };
   return { label: e ? `.${e} file` : 'File', methods: ['zip'] };
@@ -26,6 +27,7 @@ export const METHOD_INFO: Record<Method, { name: string; blurb: string }> = {
   pdf: { name: 'Compress the PDF', blurb: 'Gives back a smaller PDF.' },
   image: { name: 'Compress the image', blurb: 'Gives back a smaller image. Location and camera details are removed.' },
   office: { name: 'Shrink the pictures inside', blurb: 'Gives back the same document, with lighter pictures.' },
+  repack: { name: 'Repack the ZIP tighter', blurb: 'Same files inside, packed with the strongest compression.' },
   zip: { name: 'Pack into a ZIP', blurb: 'Any file. Text files such as CSV often shrink by 80% or more. Unzip to use it.' },
 };
 
