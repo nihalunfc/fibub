@@ -325,6 +325,18 @@ try {
     check(/lowest quality/.test(tiny.error ?? '') || (tiny.path && size(tiny.path) <= 10240), `fit: impossible limit is explained -> "${(tiny.error ?? 'fitted').trim().slice(0, 90)}"`);
   }
 
+  // 6e. Link cleaner.
+  {
+    await page.goto(BASE + '/everyday/link-cleaner/');
+    await page.fill('.lc-in', 'Look: https://www.amazon.ca/Mug/dp/B0ABCDEFGH/ref=sr_1_3?crid=X&qid=1&tag=me-20 and https://www.google.com/url?q=https%3A%2F%2Fnews.site%2Fa%3Futm_source%3Dx%26p%3D2&ved=1 and https://github.com/a/b?ref=main.');
+    const out = await page.inputValue('.lc-out');
+    check(out === 'Look: https://www.amazon.ca/dp/B0ABCDEFGH and https://news.site/a?p=2 and https://github.com/a/b?ref=main.', `link cleaner: message cleaned -> ${out}`);
+    await page.uncheck('.lc-aff');
+    check((await page.inputValue('.lc-out')).includes('tag=me-20'), 'link cleaner: affiliate switch off keeps the tag');
+    await page.fill('.lc-in', 'https://bit.ly/3abc');
+    check(await page.isVisible('.lc-note'), 'link cleaner: short links are flagged');
+  }
+
   // 6c. ZIP checker and hand-off to the compressor.
   {
     writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));
@@ -422,14 +434,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
