@@ -1,0 +1,3 @@
+// The fibub mark: a cluster of bubbles, in one colour (nihal, 2026-11-06: option A, black and white).
+// `ink` is the bubble colour, `hole` the shine on the big bubble (the background colour).
+export const mark = (ink = 'currentColor', hole = 'var(--bg)') => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><circle cx="26" cy="37" r="21" fill="${ink}"/><circle cx="49" cy="14" r="8.5" fill="none" stroke="${ink}" stroke-width="4"/><circle cx="54.5" cy="32" r="4" fill="${ink}"/><path d="M14.5 33a12 12 0 0 1 9-9.5" fill="none" stroke="${hole}" stroke-width="4" stroke-linecap="round"/></svg>`;

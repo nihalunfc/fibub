@@ -17,7 +17,7 @@ const ToolUI = toolComponent(tool.id);
 const { Content } = await render(tool);
 const updated = tool.data.updated.toISOString().slice(0, 10);
 ---
-<Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id}>
+<Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
   <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>

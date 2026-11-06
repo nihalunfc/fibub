@@ -31,8 +31,8 @@ img, svg { max-width: 100%; }
 header.site { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
 header.site .wrap { display: flex; align-items: center; gap: 12px; height: 56px; }
 .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 21px; letter-spacing: -0.03em; color: var(--ink); text-decoration: none; flex: none; }
-.logo svg { width: 26px; height: 26px; }
-.logo-t span { color: var(--accent); }
+.logo svg { width: 28px; height: 28px; }
+.logo-t span { color: var(--muted); }
 nav.main { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; min-width: 0; }
 nav.main::-webkit-scrollbar { display: none; }
 nav.main a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 999px; font-size: 15px; font-weight: 500; white-space: nowrap; }

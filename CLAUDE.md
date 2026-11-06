@@ -16,8 +16,11 @@ fibub.com: free everyday tools (money, documents, everyday) that run entirely in
 1. Make `src/tools/<id>/` (the id is the URL slug, e.g. `compress-pdf`).
 2. `guide.md`: frontmatter (`name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`, `works`: offline | online (offline = keeps working with no internet once the page is open; test it), and for live tools `flow`: 3 or 4 steps of `{ icon, label }`, labels up to 12 characters, icons from `src/lib/icons.ts`; it is the picture at the top of the tool page and must stay on one row on a 320 px phone) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
 3. `Tool.astro`: the UI and its `<script>`. Load heavy libraries with `import()` so the page stays fast.
-4. Add checks for it in `tests/run.mjs`.
+4. Add checks for it in `tests/run.mjs`, and run `npm run images` to make its share image (`public/og/<id>.png`: tool name, fibub.com, FREE, NO SIGN-UP). Commit the image.
 5. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+
+## Brand
+Logo: a black-and-white bubble cluster (nihal chose option A, one colour, 2026-11-06), in `src/lib/brand.ts`. `npm run images` rebuilds the favicons and share images from it.
 
 ## Security
 `public/_headers` sets HSTS and a strict Content Security Policy (scripts only from this site and Cloudflare Web Analytics). Don't add inline scripts or outside script hosts without updating it, and keep `connect-src` tight.

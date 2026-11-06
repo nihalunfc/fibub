@@ -2,7 +2,7 @@
 // Usage: npm test            (uses the Playwright that is installed on the machine)
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
@@ -351,6 +351,19 @@ try {
     check(m === '𝗛𝗶 there\n• one\n• two', `post formatter: from Markdown -> ${JSON.stringify(m)}`);
     await page.fill('.lf-in', 'x'.repeat(400));
     check(await page.isVisible('.lf-more'), 'post formatter: preview folds at "see more"');
+  }
+
+  // 6g. Share images and icons: every live tool has its own 1200x630 image.
+  {
+    const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/']) {
+      await page.goto(BASE + path);
+      const og = await page.getAttribute('meta[property="og:image"]', 'content');
+      const file = 'dist' + new URL(og).pathname;
+      const ok = existsSync(file) && pngSize(file).join('x') === '1200x630';
+      check(ok, `share image for ${path}: ${new URL(og).pathname}${ok ? '' : ' missing or wrong size (run npm run images)'}`);
+    }
+    for (const f of ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest']) check(existsSync('dist/' + f), `icon file ${f}`);
   }
 
   // 6c. ZIP checker and hand-off to the compressor.
