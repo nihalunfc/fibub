@@ -1,5 +1,6 @@
 // One entry point for every compressor. The page loads this file only when it is needed.
-import { compress as compressPdf } from './pdf';
+import { compress as compressPdf, fitPdf } from './pdf';
+import { orient, renderUnder } from '../image/edit';
 import { compressImage, extFor } from './image';
 import { compressOffice } from './office';
 import { zipAsync, unzipAsync } from './zipper';
@@ -12,10 +13,43 @@ export { warmUp } from './pdf';
 const base = (name: string) => name.replace(/\.[^.]+$/, '') || 'file';
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
-export async function compressFile(file: File, method: Method, level: Level, onProgress: Progress): Promise<Output> {
+export class TooBigError extends Error {
+  name = 'TooBigError';
+  constructor(public smallest: number) { super('too big'); }
+}
+
+/** Shrink a PDF or image until it fits under maxBytes (upload-limit mode). */
+async function fitUnder(file: File, input: Uint8Array, method: Method, maxBytes: number, onProgress: Progress): Promise<Output> {
+  if (method === 'pdf') {
+    const r = await fitPdf(input, maxBytes, (label, fraction) => onProgress({ fraction, label }));
+    if (!r.bytes) throw new TooBigError(r.smallest);
+    return {
+      bytes: r.bytes, name: `${base(file.name)}-compressed.pdf`, mime: 'application/pdf', outcome: 'smaller',
+      note: r.method === 'lossless' ? `${plural(r.pages, 'page')}. Fits without changing the text.` : `${plural(r.pages, 'page')}, turned into images at ${r.dpi} DPI to fit the limit.`,
+    };
+  }
+  onProgress({ fraction: null, label: 'Finding the best quality that fits…' });
+  const bmp = await createImageBitmap(file).catch(() => { throw new UnsupportedError('image'); });
+  const canvas = orient(bmp, 0, false, false);
+  const w = bmp.width, h = bmp.height;
+  bmp.close();
+  const r = await renderUnder(canvas, { crop: { x: 0, y: 0, w, h }, outW: w, outH: h, format: 'image/jpeg', quality: 0.9, background: '#ffffff' }, maxBytes, (label) => onProgress({ fraction: null, label }));
+  canvas.width = canvas.height = 0;
+  if (!r) throw new TooBigError(0);
+  return {
+    bytes: new Uint8Array(await r.blob.arrayBuffer()), name: `${base(file.name)}-compressed.jpg`, mime: 'image/jpeg', outcome: 'smaller',
+    note: `${r.edit.outW} × ${r.edit.outH} pixels, JPG quality ${Math.round(r.edit.quality * 100)}%. Location and camera details were removed.`,
+  };
+}
+
+export async function compressFile(file: File, method: Method, level: Level, onProgress: Progress, maxBytes?: number): Promise<Output> {
   const input = new Uint8Array(await file.arrayBuffer());
   const e = ext(file.name);
   let out: Output;
+  if (maxBytes && (method === 'pdf' || method === 'image')) {
+    if (input.length <= maxBytes) return { bytes: input, name: file.name, mime: file.type || 'application/octet-stream', outcome: 'original', note: 'fits' };
+    return fitUnder(file, input, method, maxBytes, onProgress);
+  }
 
   if (method === 'pdf') {
     const r = await compressPdf(input, level, (d, t) => onProgress({ fraction: d / t, label: `Compressing page ${d} of ${t}…` }));

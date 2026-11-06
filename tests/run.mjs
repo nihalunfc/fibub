@@ -286,6 +286,32 @@ try {
     await page.setViewportSize({ width: 1280, height: 720 });
   }
 
+  // 6d. Upload-limit switch.
+  async function fit(fileName, kb) {
+    await page.goto(BASE + '/documents/compress-file/');
+    await page.setInputFiles('.cmp-input', OUT + fileName);
+    await page.locator('.switch').click();
+    await page.fill('.cmp-fit-kb', String(kb));
+    await page.click('.cmp-go');
+    await page.waitForSelector('.result:not([hidden]), .cmp-error:not([hidden])', { timeout: 180000 });
+    if (await page.isVisible('.cmp-error')) return { error: await page.textContent('.cmp-error') };
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.cmp-download')]);
+    const path = OUT + `fit-${kb}-${dl.suggestedFilename()}`;
+    await dl.saveAs(path);
+    return { path, note: await page.textContent('.cmp-note') };
+  }
+  {
+    const r = await fit('photo.pdf', 200);
+    check(r.path && size(r.path) <= 200 * 1024, `fit: 26 MB PDF under 200 KB -> ${r.path && (size(r.path) / 1024).toFixed(0)} KB (${r.note ?? r.error})`);
+    check(r.path && (await PDFDocument.load(readFileSync(r.path))).getPageCount() === 3, 'fit: PDF keeps its 3 pages');
+    const i = await fit('photo.png', 100);
+    check(i.path && size(i.path) <= 100 * 1024, `fit: 13 MB PNG under 100 KB -> ${i.path && (size(i.path) / 1024).toFixed(0)} KB (${i.note ?? i.error})`);
+    const t = await fit('text.pdf', 100);
+    check(/already under/.test(t.note ?? ''), `fit: small file already fits -> "${(t.note ?? t.error).trim()}"`);
+    const tiny = await fit('photo.pdf', 10);
+    check(/lowest quality/.test(tiny.error ?? '') || (tiny.path && size(tiny.path) <= 10240), `fit: impossible limit is explained -> "${(tiny.error ?? 'fitted').trim().slice(0, 90)}"`);
+  }
+
   // 6c. ZIP checker and hand-off to the compressor.
   {
     writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));

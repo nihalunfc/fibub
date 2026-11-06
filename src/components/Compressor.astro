@@ -34,6 +34,25 @@ const { accept = '', what = 'a file' } = Astro.props;
     <label><input type="radio" name="cmp-level" value="recommended" checked /> <b>Recommended</b><span class="cmp-rec-blurb"></span></label>
     <label><input type="radio" name="cmp-level" value="smallest" /> <b>Smallest</b><span class="cmp-small-blurb"></span></label>
   </fieldset>
+  <div class="fit" hidden>
+    <label class="switch">
+      <input type="checkbox" class="cmp-fit-on" role="switch" />
+      <span class="track" aria-hidden="true"></span>
+      <span><b>Fit an upload limit</b><small>For government, visa and job portals that only accept files under a set size.</small></span>
+    </label>
+    <div class="fit-opts" hidden>
+      <div class="chips">
+        <button type="button" class="chip" data-kb="100">100 KB</button>
+        <button type="button" class="chip on" data-kb="200">200 KB</button>
+        <button type="button" class="chip" data-kb="500">500 KB</button>
+        <button type="button" class="chip" data-kb="1024">1 MB</button>
+        <button type="button" class="chip" data-kb="2048">2 MB</button>
+      </div>
+      <label class="custom">Or exactly <input type="number" class="cmp-fit-kb" min="10" max="51200" value="200" inputmode="numeric" /> KB</label>
+      <p class="muted small">We find the best quality that fits. Your file is still never uploaded.</p>
+    </div>
+  </div>
+
   <p class="note warn cmp-pdf-note" hidden>Recommended and Smallest turn each PDF page into an image: text can no longer be selected or searched, and links and fill-in fields are removed. Choose Light to keep them. If images would not make the file smaller, you get the Light result instead.</p>
 
   <button class="btn cmp-go" type="button" hidden>Compress</button>
@@ -86,6 +105,20 @@ const { accept = '', what = 'a file' } = Astro.props;
   .choices :global(label) { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
   .choices :global(label:has(input:checked)) { border-color: var(--accent); background: var(--accent-soft); }
   .choices :global(span) { grid-column: 2; color: var(--muted); font-size: 14px; }
+  .fit { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 12px; }
+  .switch { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .switch .track { width: 44px; height: 26px; border-radius: 99px; background: var(--line); position: relative; transition: background .2s; }
+  .switch .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .2s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .switch small { display: block; color: var(--muted); font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .custom { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .custom input { width: 100px; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
   .cmp-go { width: 100%; font-size: 17px; padding: 14px; }
   .working { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 8px 0; }
   .ring-wrap { position: relative; width: 132px; height: 132px; }
@@ -154,16 +187,25 @@ const { accept = '', what = 'a file' } = Astro.props;
     let url: string | null = null;
 
     const setState = (s: string) => (root.dataset.state = s);
+    const fitBox = q('.fit'), fitOn = q<HTMLInputElement>('.cmp-fit-on'), fitKb = q<HTMLInputElement>('.cmp-fit-kb');
+    const fitting = () => !fitBox.hidden && fitOn.checked;
+    fitOn.addEventListener('change', () => { q('.fit-opts').hidden = !fitOn.checked; clearResult(); refreshOptions(); });
+    root.querySelectorAll<HTMLButtonElement>('.chip').forEach((c) => c.addEventListener('click', () => {
+      root.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
+      fitKb.value = c.dataset.kb!; clearResult();
+    }));
+    fitKb.addEventListener('input', () => { root.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', (x as HTMLElement).dataset.kb === fitKb.value)); clearResult(); });
     const method = () => (root.querySelector<HTMLInputElement>('input[name=cmp-method]:checked')?.value ?? 'zip') as Method;
     const level = () => (root.querySelector<HTMLInputElement>('input[name=cmp-level]:checked')!.value as Level);
     const showError = (msg: string) => { error.textContent = msg; error.hidden = false; };
 
     function refreshOptions() {
       const m = method();
-      levelsBox.hidden = m === 'zip' || m === 'repack';
+      fitBox.hidden = !(m === 'pdf' || m === 'image');
+      levelsBox.hidden = m === 'zip' || m === 'repack' || fitting();
       const [l, r, s] = BLURBS[m];
       q('.cmp-light-blurb').textContent = l; q('.cmp-rec-blurb').textContent = r; q('.cmp-small-blurb').textContent = s;
-      pdfNote.hidden = !(m === 'pdf' && level() !== 'light');
+      pdfNote.hidden = !(m === 'pdf' && (fitting() || level() !== 'light'));
       go.textContent = m === 'zip' ? 'Pack into ZIP' : m === 'repack' ? 'Repack ZIP' : 'Compress';
     }
 
@@ -175,7 +217,7 @@ const { accept = '', what = 'a file' } = Astro.props;
     function reset() {
       clearResult();
       file = null; input.value = '';
-      for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working]) el.hidden = true;
+      for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working, fitBox]) el.hidden = true;
       q('.cmp-clear').hidden = false;
       setState('empty');
     }
@@ -252,14 +294,16 @@ const { accept = '', what = 'a file' } = Astro.props;
       if (!file) return;
       clearResult();
       const m = method(), lv = level();
-      for (const el of [methodsBox, levelsBox, pdfNote, go]) el.hidden = true;
+      const limit = fitting() ? Math.round(+fitKb.value * 1024) : undefined;
+      if (limit !== undefined && !(limit >= 10 * 1024)) { showError('Enter an upload limit of at least 10 KB.'); return; }
+      for (const el of [methodsBox, levelsBox, pdfNote, go, fitBox]) el.hidden = true;
       q<HTMLButtonElement>('.cmp-clear').hidden = true;
       setState('working');
       startWaiting();
       const shownAt = performance.now();
       try {
         const { compressFile } = await engine();
-        const out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label));
+        const out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label), limit);
         setProgress(1, 'Done');
         // Let the ring reach 100% before the result appears.
         await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - shownAt))));
@@ -273,7 +317,10 @@ const { accept = '', what = 'a file' } = Astro.props;
         q('.cmp-saved').textContent = `${saved}%`;
         q('.cmp-meter').style.width = '100%';
         requestAnimationFrame(() => requestAnimationFrame(() => (q('.cmp-meter').style.width = `${Math.max(2, 100 - saved)}%`)));
-        if (out.outcome === 'original') {
+        if (out.outcome === 'original' && out.note === 'fits') {
+          q('.cmp-note').textContent = `Good news: this file is already under ${formatBytes(limit!)}, so it can be uploaded as it is.`;
+          dl.textContent = 'Download original file';
+        } else if (out.outcome === 'original') {
           q('.cmp-note').textContent = 'This file is already well compressed, so none of the methods made it smaller. You can download your original file unchanged.';
           dl.textContent = 'Download original file';
         } else {
@@ -283,17 +330,20 @@ const { accept = '', what = 'a file' } = Astro.props;
         stopWaiting();
         result.hidden = false;
         setState('done');
-        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: out.outcome } }));
+        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: out.outcome, fitLimit: limit ?? null } }));
       } catch (e) {
         console.error(e);
         stopWaiting();
         const name = (e as Error)?.name;
-        showError(name === 'EncryptedPdfError'
+        showError(name === 'TooBigError'
+          ? `Even at the lowest quality this file stays above ${formatBytes(limit!)}${(e as any).smallest ? ` (smallest reached: ${formatBytes((e as any).smallest)})` : ''}. Try a larger limit, or split the PDF into parts.`
+          : name === 'EncryptedPdfError'
           ? 'This PDF is password-protected. Open it in your PDF reader, save a copy without a password, then try again.'
           : name === 'UnsupportedError'
             ? (m === 'repack' ? 'This ZIP could not be opened. It may be password-protected, damaged, or use a format this tool does not support.' : 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.')
             : 'Sorry, this file could not be read. It may be damaged, or your device may have run out of memory. Try "Pack into a ZIP", or a smaller file.');
         for (const el of [go]) el.hidden = false;
+        fitBox.hidden = !(m === 'pdf' || m === 'image');
         methodsBox.hidden = (root.querySelectorAll('input[name=cmp-method]').length < 2);
         refreshOptions();
         q<HTMLButtonElement>('.cmp-clear').hidden = false;
