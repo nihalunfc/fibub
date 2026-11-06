@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
+import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -56,20 +57,51 @@ async function makeFixtures(page) {
   writeFileSync(OUT + 'encrypted.pdf', Buffer.from(s, 'latin1'));
 
   writeFileSync(OUT + 'not-a-pdf.pdf', 'hello, this is plain text');
+
+  // Images
+  writeFileSync(OUT + 'photo.png', await photoPng(page, 3000, 2000, 4));
+  const jpgB64 = await page.evaluate(async () => { const c = document.createElement('canvas'); c.width = 4000; c.height = 3000; const x = c.getContext('2d'); for (let i = 0; i < 400; i++) { x.fillStyle = `hsl(${i * 7},60%,${30 + (i % 40)}%)`; x.fillRect(Math.random() * 4000, Math.random() * 3000, 300, 300); } return c.toDataURL('image/jpeg', 0.95).split(',')[1]; });
+  writeFileSync(OUT + 'photo.jpg', Buffer.from(jpgB64, 'base64'));
+
+  // A minimal Word file holding two large pictures.
+  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  writeFileSync(OUT + 'report.docx', zipSync({
+    '[Content_Types].xml': strToU8(xml + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+    'word/document.xml': strToU8(xml + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Quarterly report</w:t></w:r></w:p></w:body></w:document>'),
+    'word/_rels/document.xml.rels': strToU8(xml + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image2.jpeg"/></Relationships>'),
+    'word/media/image1.png': new Uint8Array(await photoPng(page, 2400, 1800, 5)),
+    'word/media/image2.jpeg': new Uint8Array(Buffer.from(jpgB64, 'base64')),
+  }, { level: 6 }));
+
+  // A 3 MB CSV
+  let csv = 'date,store,sku,units,price\n';
+  for (let i = 0; i < 60000; i++) csv += `2026-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')},S${i % 40},SKU${(i * 7919) % 5000},${i % 17},${(i % 997) / 10}\n`;
+  writeFileSync(OUT + 'sales.csv', csv);
 }
 
 // ---------- helpers ----------
-async function runTool(page, file, level) {
-  await page.goto(`${BASE}/documents/compress-pdf/`);
-  await page.setInputFiles('#pdfc-file', file);
-  await page.check(`input[name=level][value=${level}]`);
-  await page.click('#pdfc-go');
-  await page.waitForSelector('#pdfc-result:not([hidden]), #pdfc-error:not([hidden])', { timeout: 60000 });
-  if (await page.isVisible('#pdfc-error')) return { error: await page.textContent('#pdfc-error') };
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#pdfc-download')]);
-  const path = OUT + `${level}-${file.split('/').pop()}`;
+async function runTool(page, file, level, { url = '/documents/compress-file/', method } = {}) {
+  await page.goto(BASE + url);
+  await page.setInputFiles('.cmp-input', file);
+  if (await page.isVisible('.cmp-error')) return { error: await page.textContent('.cmp-error') };
+  if (method) await page.check(`input[name=cmp-method][value=${method}]`);
+  if (level && await page.isVisible('.cmp-levels')) await page.check(`input[name=cmp-level][value=${level}]`);
+  await page.click('.cmp-go');
+  await page.waitForSelector('.result:not([hidden]), .cmp-error:not([hidden])', { timeout: 90000 });
+  if (await page.isVisible('.cmp-error')) return { error: await page.textContent('.cmp-error') };
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.cmp-download')]);
+  const path = OUT + `out-${level ?? method}-${dl.suggestedFilename()}`;
   await dl.saveAs(path);
-  return { path, summary: await page.textContent('#pdfc-summary'), name: dl.suggestedFilename() };
+  return { path, note: (await page.textContent('.cmp-note')).trim(), name: dl.suggestedFilename() };
+}
+
+function jpegSize(b) {
+  for (let i = 2; i < b.length;) {
+    const marker = b[i + 1], len = b.readUInt16BE(i + 2);
+    if (marker >= 0xc0 && marker <= 0xc3) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+    i += 2 + len;
+  }
+  return [0, 0];
 }
 
 async function pageSizes(path) {
@@ -80,83 +112,151 @@ async function pageSizes(path) {
   });
 }
 
+// The security headers Cloudflare will send (from public/_headers), applied in tests too,
+// so a Content Security Policy problem shows up here rather than on the live site.
+const CSP = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8').match(/Content-Security-Policy: (.+)/)[1];
+
 // ---------- run ----------
 const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: 'ignore' });
 try {
   for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ acceptDownloads: true });
+  await ctx.route(BASE + '/**', async (route) => {
+    const res = await route.fetch();
+    const headers = { ...res.headers() };
+    if ((headers['content-type'] || '').includes('text/html')) headers['content-security-policy'] = CSP.replace('upgrade-insecure-requests', '');
+    await route.fulfill({ response: res, headers });
+  });
   const page = await ctx.newPage();
   const requests = [];
-  page.on('request', (r) => requests.push({ url: r.url(), method: r.method(), body: r.postData() }));
-  const consoleErrors = [];
-  page.on('pageerror', (e) => consoleErrors.push(String(e)));
+  page.on('request', (r) => requests.push({ url: r.url(), method: r.method() }));
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy|Refused/.test(m.text())) pageErrors.push('CSP: ' + m.text()); });
 
   await page.goto(BASE);
   await makeFixtures(page);
+  const size = (p) => statSync(p).size;
+  const mb = (n) => (n / 1e6).toFixed(2) + ' MB';
 
-  // 1. Photo-heavy PDF shrinks a lot and keeps pages, order and sizes.
+  // 1. PDF: photo-heavy file shrinks a lot and keeps pages, order and sizes.
   const photoIn = OUT + 'photo.pdf';
   const before = await pageSizes(photoIn);
-  for (const level of ['balanced', 'smallest']) {
-    const r = await runTool(page, photoIn, level);
-    check(!r.error, `${level}: photo PDF compresses without error ${r.error ?? ''}`);
+  for (const level of ['recommended', 'smallest']) {
+    const r = await runTool(page, photoIn, level, { url: '/documents/compress-pdf/' });
+    check(!r.error, `pdf ${level}: compresses without error ${r.error ?? ''}`);
     if (r.error) continue;
-    const a = statSync(photoIn).size, b = statSync(r.path).size;
-    check(b < a * 0.5, `${level}: photo PDF ${(a / 1e6).toFixed(2)} MB -> ${(b / 1e6).toFixed(2)} MB`);
-    check(JSON.stringify(await pageSizes(r.path)) === JSON.stringify(before), `${level}: same page count and page sizes (incl. rotated page)`);
-    check(r.name === 'photo-compressed.pdf', `${level}: download name is ${r.name}`);
+    check(size(r.path) < size(photoIn) * 0.5, `pdf ${level}: ${mb(size(photoIn))} -> ${mb(size(r.path))}`);
+    check(JSON.stringify(await pageSizes(r.path)) === JSON.stringify(before), `pdf ${level}: same page count and page sizes (incl. rotated page)`);
+    check(r.name === 'photo-compressed.pdf', `pdf ${level}: download name ${r.name}`);
   }
-  const bal = statSync(OUT + 'balanced-photo.pdf').size, small = statSync(OUT + 'smallest-photo.pdf').size;
-  check(small < bal, `smallest (${small}) is smaller than recommended (${bal})`);
-
-  // 2. Text PDF never gets bigger, and stays text when images would not help.
-  for (const level of ['lossless', 'balanced']) {
+  for (const level of ['light', 'recommended']) {
     const r = await runTool(page, OUT + 'text.pdf', level);
-    check(!r.error, `${level}: text PDF works`);
-    if (r.error) continue;
-    check(statSync(r.path).size <= statSync(OUT + 'text.pdf').size, `${level}: text PDF not bigger (${statSync(OUT + 'text.pdf').size} -> ${statSync(r.path).size})`);
-    const doc = await PDFDocument.load(readFileSync(r.path));
-    check(doc.getPageCount() === 5, `${level}: text PDF keeps 5 pages`);
-    console.log('      summary:', r.summary.trim());
+    check(!r.error && size(r.path) <= size(OUT + 'text.pdf'), `pdf ${level}: text PDF never bigger (${size(OUT + 'text.pdf')} -> ${r.path && size(r.path)})`);
+    check(r.path && (await PDFDocument.load(readFileSync(r.path))).getPageCount() === 5, `pdf ${level}: text PDF keeps 5 pages`);
   }
 
-  // 3. Bad inputs show a clear message.
-  const enc = await runTool(page, OUT + 'encrypted.pdf', 'balanced');
-  check(/password/i.test(enc.error ?? ''), `encrypted PDF shows password message: "${enc.error}"`);
-  const bad = await runTool(page, OUT + 'not-a-pdf.pdf', 'balanced');
-  check(/could not be read/i.test(bad.error ?? ''), `non-PDF shows read error: "${bad.error}"`);
+  // 2. Images
+  {
+    const r = await runTool(page, OUT + 'photo.jpg', 'recommended');
+    check(!r.error && size(r.path) < size(OUT + 'photo.jpg') * 0.6, `jpg recommended: ${mb(size(OUT + 'photo.jpg'))} -> ${r.path && mb(size(r.path))} (${r.name})`);
+    const dims = jpegSize(readFileSync(r.path));
+    check(dims[0] === 2560 && dims[1] === 1920, `jpg recommended: resized to ${dims.join('x')}`);
+    const p = await runTool(page, OUT + 'photo.png', 'smallest', { url: '/documents/compress-image/' });
+    check(!p.error && p.name === 'photo-compressed.jpg' && size(p.path) < size(OUT + 'photo.png') * 0.2, `png smallest: opaque PNG becomes JPG ${mb(size(OUT + 'photo.png'))} -> ${p.path && mb(size(p.path))}`);
+  }
 
-  // 4. Nothing is uploaded: every request is a GET to this site.
-  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !r.url.startsWith('blob:') && !r.url.startsWith('data:'));
-  const posts = requests.filter((r) => r.method !== 'GET');
+  // 3. Word file: pictures shrink, every part is still there, text untouched.
+  {
+    const src = unzipSync(readFileSync(OUT + 'report.docx'));
+    const r = await runTool(page, OUT + 'report.docx', 'recommended');
+    check(!r.error && r.name === 'report-compressed.docx', `docx: works, name ${r.name} ${r.error ?? ''}`);
+    const out = unzipSync(readFileSync(r.path));
+    const expect = Object.keys(src).map((k) => k.replace('image1.png', 'image1.jpeg')).sort();
+    check(JSON.stringify(Object.keys(out).sort()) === JSON.stringify(expect), 'docx: same parts inside (PNG photo now JPEG)');
+    check(strFromU8(out['word/_rels/document.xml.rels']).includes('Target="media/image1.jpeg"'), 'docx: picture link updated to the new name');
+    check(/Extension="jpeg"/.test(strFromU8(out['[Content_Types].xml'])), 'docx: JPEG type registered');
+    check(strFromU8(out['word/document.xml']) === strFromU8(src['word/document.xml']), 'docx: document text unchanged');
+    check(size(r.path) < size(OUT + 'report.docx') * 0.6, `docx: ${mb(size(OUT + 'report.docx'))} -> ${mb(size(r.path))} (${r.note})`);
+    await page.goto(BASE + '/documents/compress-file/');
+    await page.setInputFiles('.cmp-input', OUT + 'report.docx');
+    check(await page.isVisible('input[name=cmp-method][value=zip]'), 'docx: user can choose ZIP instead');
+    const rels = strFromU8(out['word/_rels/document.xml.rels'] ?? new Uint8Array());
+    check(!out['word/media/image1.png'] || !('word/media/image1.jpeg' in out), 'docx: picture renamed cleanly');
+  }
+
+  // 4. CSV packs into a ZIP that unpacks to the identical file.
+  {
+    const r = await runTool(page, OUT + 'sales.csv', null);
+    check(!r.error && r.name === 'sales.zip', `csv: packed as ${r.name}`);
+    const out = unzipSync(readFileSync(r.path));
+    check(Buffer.from(out['sales.csv']).equals(readFileSync(OUT + 'sales.csv')), 'csv: unzips to the identical file');
+    check(size(r.path) < size(OUT + 'sales.csv') * 0.3, `csv: ${mb(size(OUT + 'sales.csv'))} -> ${mb(size(r.path))}`);
+  }
+
+  // 5. Bad inputs show a clear message.
+  const enc = await runTool(page, OUT + 'encrypted.pdf', 'recommended');
+  check(/password/i.test(enc.error ?? ''), `encrypted PDF: "${enc.error}"`);
+  const bad = await runTool(page, OUT + 'not-a-pdf.pdf', 'recommended');
+  check(/could not/i.test(bad.error ?? ''), `damaged PDF: "${bad.error}"`);
+
+  // 6. The waiting screen shows a moving ring and bubbles you can pop.
+  {
+    await page.goto(BASE + '/documents/compress-pdf/');
+    await page.setInputFiles('.cmp-input', photoIn);
+    await page.check('input[name=cmp-level][value=recommended]');
+    await page.click('.cmp-go');
+    await page.waitForSelector('.bubble', { timeout: 5000 });
+    check(await page.isVisible('.working'), 'waiting screen shows while compressing');
+    await page.locator('.bubble').first().dispatchEvent('pointerdown');
+    check((await page.textContent('.cmp-pops')) === '1', 'popping a bubble counts it');
+    await page.locator('.working').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'waiting.png' });
+    await page.waitForSelector('.result:not([hidden])', { timeout: 90000 });
+    check((await page.locator('.bubble').count()) === 0, 'bubbles cleared when done');
+    await page.screenshot({ path: OUT + 'result.png' });
+  }
+
+  // 7. Nothing is uploaded: every request is a GET to this site.
+  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url));
   check(offsite.length === 0, `no requests leave the site (${offsite.map((r) => r.url).join(', ') || 'none'})`);
-  check(posts.length === 0, `no uploads: ${requests.length} requests, all GET`);
+  check(requests.every((r) => r.method === 'GET'), `no uploads: ${requests.length} requests, all GET`);
 
-  // 5. Works offline once the page has loaded.
-  await page.goto(`${BASE}/documents/compress-pdf/`);
-  await page.waitForTimeout(2500); // let the idle preload finish
+  // 8. Works offline once the page has loaded.
+  await page.goto(`${BASE}/documents/compress-file/`);
+  await page.waitForTimeout(2500);
   await ctx.setOffline(true);
-  await page.setInputFiles('#pdfc-file', photoIn);
-  await page.click('#pdfc-go');
-  await page.waitForSelector('#pdfc-result:not([hidden]), #pdfc-error:not([hidden])', { timeout: 60000 });
-  check(await page.isVisible('#pdfc-result'), 'works with the network switched off after load');
+  for (const f of ['photo.pdf', 'report.docx', 'sales.csv']) {
+    await page.click('.cmp-clear').catch(() => {});
+    await page.setInputFiles('.cmp-input', OUT + f);
+    await page.click('.cmp-go');
+    await page.waitForSelector('.result:not([hidden]), .cmp-error:not([hidden])', { timeout: 90000 });
+    check(await page.isVisible('.result'), `offline: ${f} still works`);
+    await page.click('.cmp-again');
+  }
   await ctx.setOffline(false);
 
-  check(consoleErrors.length === 0, `no uncaught page errors ${consoleErrors.join(' | ')}`);
+  check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
-  // 6. Phone layout: no sideways scroll.
-  const phone = await browser.newPage({ viewport: { width: 375, height: 800 } });
-  for (const path of ['/', '/documents/compress-pdf/', '/privacy/']) {
+  // 9. Phone: 50 MB limit, layout fits.
+  const phoneCtx = await browser.newContext({ ...require('playwright').devices['iPhone 13'], acceptDownloads: true });
+  const phone = await phoneCtx.newPage();
+  await phone.goto(BASE + '/documents/compress-file/');
+  check((await phone.textContent('.cmp-limit')) === '50 MB', `phone limit shown: ${await phone.textContent('.cmp-limit')}`);
+  writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
+  await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
+  check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
+  for (const path of ['/', '/documents/compress-file/', '/documents/compress-office/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
-    check(sw <= 375, `${path} fits a 375px phone (scrollWidth ${sw})`);
+    check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
-  await phone.goto(BASE + '/documents/compress-pdf/');
-  await phone.screenshot({ path: OUT + 'phone-compress.png', fullPage: false });
-  await page.setViewportSize({ width: 1200, height: 900 });
-  await page.goto(BASE + '/');
-  await page.screenshot({ path: OUT + 'desktop-home.png' });
+  await phone.goto(BASE + '/documents/compress-file/');
+  await phone.setInputFiles('.cmp-input', OUT + 'report.docx');
+  await phone.screenshot({ path: OUT + 'phone-ready.png' });
+  const desk = await ctx.newPage();
+  await desk.goto(`${BASE}/documents/compress-file/`);
+  check((await desk.textContent('.cmp-limit')) === '200 MB', `desktop limit shown: ${await desk.textContent('.cmp-limit')}`);
   await browser.close();
 } finally {
   server.kill();

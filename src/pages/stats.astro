@@ -1,0 +1,80 @@
+---
+// Public usage statistics, built from the daily anonymous totals in data/stats/.
+import Base from '../layouts/Base.astro';
+
+type Row = { tool: string; type: string; size: string; device: string; os: string; browser: string; country: string; outcome: string; saved?: number; count: number };
+const files = import.meta.glob<{ date: string; rows: Row[] }>('../../data/stats/*.json', { eager: true, import: 'default' });
+const days = Object.values(files).sort((a, b) => a.date.localeCompare(b.date));
+const rows = days.flatMap((d) => d.rows.map((r) => ({ ...r, date: d.date })));
+const total = rows.reduce((s, r) => s + r.count, 0);
+
+function tally(key: keyof Row, limit = 8) {
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(String(r[key]), (m.get(String(r[key])) ?? 0) + r.count);
+  return [...m].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+const byMonth = (() => {
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(r.date.slice(0, 7), (m.get(r.date.slice(0, 7)) ?? 0) + r.count);
+  return [...m].sort((a, b) => a[0].localeCompare(b[0]));
+})();
+const last30 = days.slice(-30).map((d) => [d.date, d.rows.reduce((s, r) => s + r.count, 0)] as [string, number]);
+const savedRows = rows.filter((r) => r.outcome === 'smaller' && r.saved != null);
+const avgSaved = savedRows.length ? Math.round(savedRows.reduce((s, r) => s + r.saved! * r.count, 0) / savedRows.reduce((s, r) => s + r.count, 0)) : null;
+const sections: [string, [string, number][]][] = [
+  ['Tools', tally('tool')], ['File types', tally('type')], ['File sizes', tally('size')], ['Devices', tally('device')],
+  ['Operating systems', tally('os')], ['Browsers', tally('browser')], ['Countries', tally('country', 12)],
+];
+const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+---
+<Base title="Usage statistics" description="How many people use fibub's tools, on which devices and for which file types. Anonymous totals only.">
+  <h1>Usage statistics</h1>
+  <p class="lead">Anonymous totals of how fibub's tools are used, updated daily. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
+
+  {total === 0 ? (
+    <div class="panel"><p style="margin:0">No usage has been counted yet. Totals appear here the day after the first tools are used.</p></div>
+  ) : (
+    <>
+      <div class="grid kpis">
+        <div class="card"><span class="muted">Files processed</span><b>{total.toLocaleString('en')}</b></div>
+        <div class="card"><span class="muted">Days counted</span><b>{days.length}</b></div>
+        {avgSaved !== null && <div class="card"><span class="muted">Average size saved</span><b>{avgSaved}%</b></div>}
+      </div>
+
+      <h2>Last 30 days</h2>
+      <div class="bars daily">
+        {last30.map(([d, n]) => <div title={`${d}: ${n}`} style={`height:${Math.max(2, (n / Math.max(...last30.map((x) => x[1]))) * 100)}%`}></div>)}
+      </div>
+
+      <h2>By month</h2>
+      <table class="tbl"><thead><tr><th>Month</th><th>Files processed</th></tr></thead>
+        <tbody>{byMonth.slice().reverse().map(([m, n]) => <tr><td>{m}</td><td>{n.toLocaleString('en')}</td></tr>)}</tbody></table>
+
+      <div class="split">
+        {sections.map(([title, list]) => (
+          <section>
+            <h2>{title}</h2>
+            {list.map(([k, n]) => (
+              <div class="row"><span>{k}</span><span class="track"><span style={`width:${pct(n)}%`}></span></span><span class="num">{pct(n)}%</span></div>
+            ))}
+          </section>
+        ))}
+      </div>
+    </>
+  )}
+</Base>
+
+<style>
+  .muted { color: var(--muted); font-size: 14px; }
+  .kpis .card { display: grid; gap: 4px; }
+  .kpis b { font-size: 28px; }
+  .bars.daily { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .bars.daily div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; }
+  .tbl { border-collapse: collapse; width: 100%; max-width: 420px; }
+  .tbl th, .tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .split { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 32px; }
+  .row { display: grid; grid-template-columns: 1fr 2fr 44px; align-items: center; gap: 8px; font-size: 15px; padding: 3px 0; }
+  .row .track { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .row .track span { display: block; height: 100%; background: var(--accent); }
+  .row .num { text-align: right; color: var(--muted); }
+</style>
