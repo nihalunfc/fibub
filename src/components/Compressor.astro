@@ -125,6 +125,7 @@ const { accept = '', what = 'a file' } = Astro.props;
   import { detect, sizeLimit, METHOD_INFO } from '../lib/compress/detect';
   import { formatBytes } from '../lib/compress/format';
   import type { Level, Method } from '../lib/compress/types';
+  import { receive } from '../lib/handoff';
 
   // The compressors (about 1 MB) load in the background once the page is idle, so they are
   // ready when needed and keep working if the connection drops.
@@ -137,6 +138,7 @@ const { accept = '', what = 'a file' } = Astro.props;
     image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Best for email and upload limits.'],
     office: ['Repacks the file more tightly. Pictures untouched.', 'Pictures up to 2560 pixels wide. Looks the same on screen and in print.', 'Pictures up to 1600 pixels. Smallest file, fine on screen.'],
     zip: ['', '', ''],
+    repack: ['', '', ''],
   };
 
   for (const root of document.querySelectorAll<HTMLElement>('.cmp')) {
@@ -158,11 +160,11 @@ const { accept = '', what = 'a file' } = Astro.props;
 
     function refreshOptions() {
       const m = method();
-      levelsBox.hidden = m === 'zip';
+      levelsBox.hidden = m === 'zip' || m === 'repack';
       const [l, r, s] = BLURBS[m];
       q('.cmp-light-blurb').textContent = l; q('.cmp-rec-blurb').textContent = r; q('.cmp-small-blurb').textContent = s;
       pdfNote.hidden = !(m === 'pdf' && level() !== 'light');
-      go.textContent = m === 'zip' ? 'Pack into ZIP' : 'Compress';
+      go.textContent = m === 'zip' ? 'Pack into ZIP' : m === 'repack' ? 'Repack ZIP' : 'Compress';
     }
 
     function clearResult() {
@@ -289,7 +291,7 @@ const { accept = '', what = 'a file' } = Astro.props;
         showError(name === 'EncryptedPdfError'
           ? 'This PDF is password-protected. Open it in your PDF reader, save a copy without a password, then try again.'
           : name === 'UnsupportedError'
-            ? 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.'
+            ? (m === 'repack' ? 'This ZIP could not be opened. It may be password-protected, damaged, or use a format this tool does not support.' : 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.')
             : 'Sorry, this file could not be read. It may be damaged, or your device may have run out of memory. Try "Pack into a ZIP", or a smaller file.');
         for (const el of [go]) el.hidden = false;
         methodsBox.hidden = (root.querySelectorAll('input[name=cmp-method]').length < 2);
@@ -300,5 +302,7 @@ const { accept = '', what = 'a file' } = Astro.props;
       }
     });
     reset();
+    // A file passed from another fibub tool (such as the ZIP checker) opens straight away.
+    receive().then((f) => f && pick(f));
   }
 </script>

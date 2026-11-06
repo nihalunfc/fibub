@@ -144,7 +144,7 @@ try {
   const photoIn = OUT + 'photo.pdf';
   const before = await pageSizes(photoIn);
   for (const level of ['recommended', 'smallest']) {
-    const r = await runTool(page, photoIn, level, { url: '/documents/compress-pdf/' });
+    const r = await runTool(page, photoIn, level, { url: '/documents/compress-file/' });
     check(!r.error, `pdf ${level}: compresses without error ${r.error ?? ''}`);
     if (r.error) continue;
     check(size(r.path) < size(photoIn) * 0.5, `pdf ${level}: ${mb(size(photoIn))} -> ${mb(size(r.path))}`);
@@ -163,7 +163,7 @@ try {
     check(!r.error && size(r.path) < size(OUT + 'photo.jpg') * 0.6, `jpg recommended: ${mb(size(OUT + 'photo.jpg'))} -> ${r.path && mb(size(r.path))} (${r.name})`);
     const dims = jpegSize(readFileSync(r.path));
     check(dims[0] === 2560 && dims[1] === 1920, `jpg recommended: resized to ${dims.join('x')}`);
-    const p = await runTool(page, OUT + 'photo.png', 'smallest', { url: '/documents/compress-image/' });
+    const p = await runTool(page, OUT + 'photo.png', 'smallest', { url: '/documents/compress-file/' });
     check(!p.error && p.name === 'photo-compressed.jpg' && size(p.path) < size(OUT + 'photo.png') * 0.2, `png smallest: opaque PNG becomes JPG ${mb(size(OUT + 'photo.png'))} -> ${p.path && mb(size(p.path))}`);
   }
 
@@ -203,7 +203,7 @@ try {
 
   // 6. The waiting screen shows a moving ring and bubbles you can pop.
   {
-    await page.goto(BASE + '/documents/compress-pdf/');
+    await page.goto(BASE + '/documents/compress-file/');
     await page.setInputFiles('.cmp-input', photoIn);
     await page.check('input[name=cmp-level][value=recommended]');
     await page.click('.cmp-go');
@@ -215,6 +215,113 @@ try {
     await page.waitForSelector('.result:not([hidden])', { timeout: 90000 });
     check((await page.locator('.bubble').count()) === 0, 'bubbles cleared when done');
     await page.screenshot({ path: OUT + 'result.png' });
+  }
+
+  // 6b. Image resizer: crop, rotate, resize, convert, size limit.
+  {
+    await page.goto(BASE + '/documents/image-resizer/');
+    await page.waitForSelector('input[name=rz-format]', { state: 'attached' });
+    await page.setInputFiles('.rz-input', OUT + 'photo.png'); // 3000 x 2000
+    await page.waitForSelector('.rz-editor:not([hidden])');
+    check((await page.inputValue('.rz-w')) === '3000' && (await page.inputValue('.rz-hgt')) === '2000', 'resizer: starts at the full 3000 × 2000');
+    // Drag the bottom-right corner up and left by a quarter of the shown picture.
+    await page.setViewportSize({ width: 1100, height: 1400 });
+    await page.locator('.rz-stage').scrollIntoViewIfNeeded();
+    const box = await page.locator('.rz-canvas').boundingBox();
+    const h = await page.locator('.rz-h[data-h=se]').boundingBox();
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + h.width / 2 - box.width / 4, h.y + h.height / 2 - box.height / 4, { steps: 5 });
+    await page.mouse.up();
+    const cw = +(await page.inputValue('.rz-w')), chh = +(await page.inputValue('.rz-hgt'));
+    check(Math.abs(cw - 2250) < 40 && Math.abs(chh - 1500) < 40, `resizer: dragging a corner crops to ${cw} × ${chh}`);
+    // Square crop, rotate, then resize to 50%.
+    await page.selectOption('.rz-aspect', '1');
+    await page.click('[data-act=rotr]');
+    await page.selectOption('.rz-aspect', '1');
+    check((await page.inputValue('.rz-w')) === (await page.inputValue('.rz-hgt')), `resizer: square crop ${await page.inputValue('.rz-w')} × ${await page.inputValue('.rz-hgt')}`);
+    await page.click('.rz-chip[data-pct="50"]');
+    await page.check('input[name=rz-format][value="image/jpeg"]');
+    await page.click('.rz-go');
+    await page.waitForSelector('.rz-result:not([hidden]), .rz-error:not([hidden])');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.rz-download')]);
+    await dl.saveAs(OUT + 'resized.jpg');
+    const d = jpegSize(readFileSync(OUT + 'resized.jpg'));
+    check(dl.suggestedFilename() === 'photo-resized.jpg' && d[0] === 1000 && d[1] === 1000, `resizer: PNG to JPG, square 50% = ${d.join(' × ')} (${dl.suggestedFilename()})`);
+    // Exact size and a 60 KB limit.
+    await page.selectOption('.rz-aspect', 'free');
+    await page.fill('.rz-w', '1600');
+    await page.check('.rz-target-on');
+    await page.fill('.rz-target', '60');
+    await page.click('.rz-go');
+    await page.waitForSelector('.rz-result:not([hidden]), .rz-error:not([hidden])', { timeout: 60000 });
+    const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('.rz-download')]);
+    await dl2.saveAs(OUT + 'resized-60k.jpg');
+    check(statSync(OUT + 'resized-60k.jpg').size <= 60 * 1024, `resizer: under 60 KB (${statSync(OUT + 'resized-60k.jpg').size} bytes, ${jpegSize(readFileSync(OUT + 'resized-60k.jpg')).join(' × ')})`);
+    // Passport preset gives exact print pixels.
+    await page.uncheck('.rz-target-on');
+    await page.selectOption('.rz-aspect', { label: 'Photo 2 × 2 in (US, India OCI)' });
+    await page.click('.rz-go');
+    await page.waitForSelector('.rz-result:not([hidden])');
+    const [dl3] = await Promise.all([page.waitForEvent('download'), page.click('.rz-download')]);
+    await dl3.saveAs(OUT + 'passport.jpg');
+    check(jpegSize(readFileSync(OUT + 'passport.jpg')).join('x') === '600x600', `resizer: 2 × 2 in preset = ${jpegSize(readFileSync(OUT + 'passport.jpg')).join(' × ')}`);
+    // JPG to PNG and WebP.
+    await page.click('.rz-new');
+    await page.setInputFiles('.rz-input', OUT + 'photo.jpg');
+    await page.waitForFunction(() => document.querySelector('.rz-name').textContent === 'photo.jpg');
+    for (const [mime, ext] of [['image/png', 'png'], ['image/webp', 'webp']]) {
+      await page.check(`input[name=rz-format][value="${mime}"]`);
+      await page.click('.rz-chip[data-pct="25"]');
+      await page.click('.rz-go');
+      await page.waitForSelector('.rz-result:not([hidden])');
+      const [x] = await Promise.all([page.waitForEvent('download'), page.click('.rz-download')]);
+      const buf = readFileSync(await x.path());
+      const ok = ext === 'png' ? buf.subarray(1, 4).toString() === 'PNG' : buf.subarray(8, 12).toString() === 'WEBP';
+      check(ok && x.suggestedFilename() === `photo-resized.${ext}`, `resizer: JPG to ${ext.toUpperCase()} (${x.suggestedFilename()})`);
+    }
+    await page.setViewportSize({ width: 1100, height: 1400 });
+    await page.locator('.rz-stage').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: OUT + 'resizer.png', fullPage: false });
+    await page.setViewportSize({ width: 1280, height: 720 });
+  }
+
+  // 6c. ZIP checker and hand-off to the compressor.
+  {
+    writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));
+    writeFileSync(OUT + 'tight.zip', zipSync({ 'sales.csv': new Uint8Array(readFileSync(OUT + 'sales.csv')) }, { level: 9 }));
+    const locked = Buffer.from(readFileSync(OUT + 'tight.zip'));
+    const cd = locked.lastIndexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])); locked[cd + 8] |= 1; // mark as encrypted
+    writeFileSync(OUT + 'locked.zip', locked);
+
+    await page.goto(BASE + '/documents/zip-checker/');
+    await page.setInputFiles('.zc-input', OUT + 'tight.zip');
+    await page.waitForSelector('.zc-report:not([hidden])');
+    check(/Already as small/.test(await page.textContent('.zc-verdict')), `zip checker: tight ZIP -> "${(await page.textContent('.zc-verdict b')).trim()}"`);
+    await page.click('.zc-again');
+    await page.setInputFiles('.zc-input', OUT + 'locked.zip');
+    await page.waitForSelector('.zc-report:not([hidden])');
+    check(/Password-protected/.test(await page.textContent('.zc-verdict')), 'zip checker: locked ZIP is reported as locked');
+    await page.click('.zc-again');
+    await page.setInputFiles('.zc-input', OUT + 'stored.zip');
+    await page.waitForSelector('.zc-report:not([hidden])');
+    check(/Can be \d+% smaller/.test(await page.textContent('.zc-verdict')), `zip checker: stored ZIP -> "${(await page.textContent('.zc-verdict b')).trim()}"`);
+    check(/could shrink/.test(await page.textContent('.zc-table')), 'zip checker: flags the uncompressed CSV');
+    await page.setViewportSize({ width: 1100, height: 1300 });
+    await page.screenshot({ path: OUT + 'zip-checker.png' });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await Promise.all([page.waitForURL('**/documents/compress-file/'), page.click('.zc-actions .btn')]);
+    await page.waitForSelector('.file:not([hidden])');
+    check((await page.textContent('.cmp-name')) === 'stored.zip', 'hand-off: compressor opens the same ZIP without uploading');
+    await page.click('.cmp-go');
+    await page.waitForSelector('.result:not([hidden])', { timeout: 60000 });
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.cmp-download')]);
+    await dl.saveAs(OUT + 'repacked.zip');
+    const out = unzipSync(readFileSync(OUT + 'repacked.zip'));
+    check(Buffer.from(out['sales.csv']).equals(readFileSync(OUT + 'sales.csv')) && Buffer.from(out['photo.jpg']).equals(readFileSync(OUT + 'photo.jpg')), 'repack: files inside are byte-identical');
+    check(size(OUT + 'repacked.zip') < size(OUT + 'stored.zip') * 0.8, `repack: ${mb(size(OUT + 'stored.zip'))} -> ${mb(size(OUT + 'repacked.zip'))}`);
+    const r = await runTool(page, OUT + 'locked.zip', null);
+    check(/could not be opened/i.test(r.error ?? ''), 'repack: locked ZIP refused, not damaged');
   }
 
   // 7. Nothing is uploaded: every request is a GET to this site.
@@ -246,7 +353,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/compress-file/', '/documents/compress-office/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);

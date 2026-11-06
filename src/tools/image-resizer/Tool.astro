@@ -1,0 +1,371 @@
+---
+// Image resizer: crop, rotate, resize, change format and compress to a target size.
+// Everything happens in src/lib/image/edit.ts, in the browser. Nothing is uploaded.
+---
+<div class="rz panel" data-state="empty">
+  <p class="rz-promise"><strong>Your photo never leaves your device.</strong> It is edited right here in your browser: nothing is uploaded, and we never see, store or use it.</p>
+
+  <label class="rz-drop">
+    <input class="rz-input visually-hidden" type="file" accept="image/*" />
+    <strong>Choose an image</strong>
+    <span>or drop it here · JPG, PNG, WebP, GIF, BMP, AVIF, HEIC (where your browser supports it)</span>
+    <span>Up to <b class="rz-limit">50 MB</b></span>
+  </label>
+
+  <div class="rz-editor" hidden>
+    <div class="rz-file"><b class="rz-name"></b> <span class="rz-muted rz-orig"></span> <button type="button" class="rz-link rz-new">Choose another image</button></div>
+
+    <div class="rz-tools" role="toolbar" aria-label="Turn and flip">
+      <button type="button" class="rz-btn" data-act="rotl" title="Rotate left">⟲ Rotate left</button>
+      <button type="button" class="rz-btn" data-act="rotr" title="Rotate right">⟳ Rotate right</button>
+      <button type="button" class="rz-btn" data-act="fliph" title="Flip left to right">⇋ Flip</button>
+      <button type="button" class="rz-btn" data-act="flipv" title="Flip upside down">⇅ Flip</button>
+    </div>
+
+    <div class="rz-stage">
+      <canvas class="rz-canvas"></canvas>
+      <div class="rz-crop" tabindex="0" aria-label="Crop area. Drag to move; drag a corner to resize.">
+        <span class="rz-h" data-h="nw"></span><span class="rz-h" data-h="ne"></span><span class="rz-h" data-h="sw"></span><span class="rz-h" data-h="se"></span>
+        <span class="rz-grid"></span>
+      </div>
+    </div>
+    <p class="rz-muted rz-cropinfo"></p>
+
+    <div class="rz-grid2">
+      <label class="rz-field">Crop shape
+        <select class="rz-aspect">
+          <option value="free">Free</option>
+          <option value="orig">Original shape</option>
+          <option value="1">Square 1:1</option>
+          <option value="1.3333">4:3</option>
+          <option value="0.75">3:4</option>
+          <option value="1.7778">16:9 (widescreen)</option>
+          <option value="0.5625">9:16 (phone, stories)</option>
+          <option value="0.7778" data-px="413x531">Photo 35 × 45 mm (UK, India, Gulf, EU)</option>
+          <option value="1" data-px="600x600">Photo 2 × 2 in (US, India OCI)</option>
+          <option value="0.7143" data-px="591x827">Photo 50 × 70 mm (Canada passport)</option>
+        </select>
+      </label>
+      <div class="rz-field">Size in pixels
+        <div class="rz-size">
+          <input class="rz-w" type="number" min="1" max="16000" inputmode="numeric" aria-label="Width in pixels" />
+          <span>×</span>
+          <input class="rz-hgt" type="number" min="1" max="16000" inputmode="numeric" aria-label="Height in pixels" />
+          <label class="rz-check"><input type="checkbox" class="rz-lock" checked /> Keep shape</label>
+        </div>
+        <div class="rz-pcts">
+          <button type="button" class="rz-chip" data-pct="25">25%</button><button type="button" class="rz-chip" data-pct="50">50%</button><button type="button" class="rz-chip" data-pct="75">75%</button><button type="button" class="rz-chip" data-pct="100">100%</button>
+        </div>
+      </div>
+    </div>
+    <p class="rz-muted rz-photo-note" hidden>Photo sizes are set at 300 DPI for printing. Each country also has rules on background, head size and expression; check the official rules before you apply.</p>
+
+    <fieldset class="rz-field rz-formats"><legend>Save as</legend><div class="rz-format-list"></div></fieldset>
+
+    <div class="rz-grid2">
+      <label class="rz-field rz-q">Quality <b class="rz-qv">85%</b>
+        <input class="rz-quality" type="range" min="10" max="100" value="85" />
+      </label>
+      <div class="rz-field">
+        <label class="rz-check"><input type="checkbox" class="rz-target-on" /> Make it smaller than</label>
+        <div class="rz-size">
+          <input class="rz-target" type="number" min="1" value="200" inputmode="numeric" aria-label="Maximum file size" />
+          <select class="rz-unit"><option value="1024">KB</option><option value="1048576">MB</option></select>
+        </div>
+      </div>
+    </div>
+    <label class="rz-field rz-bg-row" hidden>Background for see-through areas <input class="rz-bg" type="color" value="#ffffff" /></label>
+
+    <button class="btn rz-go" type="button">Create image</button>
+    <p class="rz-muted rz-status" role="status" aria-live="polite"></p>
+
+    <div class="rz-result" hidden>
+      <img class="rz-preview" alt="Preview of the new image" />
+      <div>
+        <p class="rz-summary"></p>
+        <a class="btn rz-download" download>Download</a>
+      </div>
+    </div>
+    <p class="note bad rz-error" role="alert" hidden></p>
+  </div>
+  <p class="note bad rz-error0" role="alert" hidden></p>
+</div>
+
+<style is:global>
+  .rz { display: grid; gap: 16px; margin-bottom: 32px; }
+  .rz [hidden] { display: none !important; }
+  .rz-promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
+  .rz-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .rz-drop strong { font-size: 19px; color: var(--accent); }
+  .rz-drop span, .rz-muted { color: var(--muted); font-size: 14px; }
+  .rz-drop.over, .rz-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .rz:not([data-state="empty"]) .rz-drop { display: none; }
+  .rz-editor { display: grid; gap: 16px; }
+  .rz-file { word-break: break-all; }
+  .rz-link { background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-size: 14px; padding: 4px 0; }
+  .rz-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rz-btn, .rz-chip { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .rz-btn:hover, .rz-chip:hover { border-color: var(--accent); }
+  .rz-chip { padding: 4px 10px; border-radius: 99px; }
+  .rz-stage { position: relative; justify-self: center; max-width: 100%; overflow: hidden; border-radius: 8px; touch-action: none; user-select: none; background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .rz-canvas { display: block; max-width: 100%; max-height: 60vh; }
+  .rz-crop { position: absolute; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55); outline: 2px solid #fff; cursor: move; }
+  .rz-grid { position: absolute; inset: 0; pointer-events: none; background:
+    linear-gradient(to right, transparent 33.2%, rgba(255,255,255,.5) 33.3%, transparent 33.5%, transparent 66.5%, rgba(255,255,255,.5) 66.6%, transparent 66.8%),
+    linear-gradient(to bottom, transparent 33.2%, rgba(255,255,255,.5) 33.3%, transparent 33.5%, transparent 66.5%, rgba(255,255,255,.5) 66.6%, transparent 66.8%); }
+  .rz-h { position: absolute; width: 22px; height: 22px; background: #fff; border: 2px solid var(--accent); border-radius: 50%; z-index: 1; }
+  /* Handles sit just inside the corners so they stay visible and easy to grab at the image edge. */
+  .rz-h[data-h="nw"] { left: -4px; top: -4px; cursor: nwse-resize; }
+  .rz-h[data-h="ne"] { right: -4px; top: -4px; cursor: nesw-resize; }
+  .rz-h[data-h="sw"] { left: -4px; bottom: -4px; cursor: nesw-resize; }
+  .rz-h[data-h="se"] { right: -4px; bottom: -4px; cursor: nwse-resize; }
+  .rz-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .rz-field { display: grid; gap: 6px; font-weight: 600; border: 0; padding: 0; margin: 0; }
+  .rz-field legend { margin-bottom: 6px; }
+  .rz-field select, .rz-field input[type=number] { font: inherit; font-weight: 400; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+  .rz-size { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 400; }
+  .rz-size input[type=number] { width: 110px; }
+  .rz-check { font-weight: 400; display: inline-flex; gap: 6px; align-items: center; }
+  .rz-pcts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rz-format-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rz-format-list label { font-weight: 400; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+  .rz-format-list label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .rz-quality { width: 100%; accent-color: var(--accent); }
+  .rz-q.off { opacity: 0.45; }
+  .rz-go { width: 100%; font-size: 17px; padding: 14px; }
+  .rz-status { margin: 0; min-height: 1.4em; }
+  .rz-result { display: grid; grid-template-columns: minmax(0, 220px) 1fr; gap: 16px; align-items: center; animation: rzfade .25s ease; }
+  @media (max-width: 520px) { .rz-result { grid-template-columns: 1fr; } }
+  .rz-preview { max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--line); background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .rz-summary { margin: 0 0 12px; }
+  @keyframes rzfade { from { opacity: 0; transform: translateY(4px); } }
+</style>
+
+<script>
+  import { FORMATS, formatInfo, orient, render, renderUnder, writableFormats, type Format, type Rect } from '../../lib/image/edit';
+  import { formatBytes } from '../../lib/compress/format';
+
+  const root = document.querySelector<HTMLElement>('.rz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.rz-input'), drop = q('.rz-drop');
+  const canvas = q<HTMLCanvasElement>('.rz-canvas'), cropEl = q('.rz-crop');
+  const wIn = q<HTMLInputElement>('.rz-w'), hIn = q<HTMLInputElement>('.rz-hgt'), lock = q<HTMLInputElement>('.rz-lock');
+  const aspectSel = q<HTMLSelectElement>('.rz-aspect');
+  const quality = q<HTMLInputElement>('.rz-quality'), targetOn = q<HTMLInputElement>('.rz-target-on');
+  const status = q('.rz-status'), result = q('.rz-result'), err = q('.rz-error');
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const LIMIT = (coarse ? 50 : 100) * 1024 * 1024;
+  q('.rz-limit').textContent = formatBytes(LIMIT);
+
+  let file: File | null = null;
+  let source: ImageBitmap | null = null;
+  let oriented: HTMLCanvasElement | null = null;
+  let rot = 0, flipH = false, flipV = false;
+  let crop: Rect = { x: 0, y: 0, w: 1, h: 1 };
+  let aspect: number | null = null;       // width / height, or null for free
+  let sizeTouched = false;                 // has the person typed a size?
+  let url: string | null = null;
+  let formats: Format[] = ['image/jpeg', 'image/png'];
+  writableFormats().then((f) => { formats = f; buildFormats(); });
+
+  const fmt = () => (root.querySelector<HTMLInputElement>('input[name=rz-format]:checked')?.value ?? 'image/jpeg') as Format;
+
+  function buildFormats(preferred?: string) {
+    const list = q('.rz-format-list');
+    const current = preferred ?? fmt();
+    list.innerHTML = '';
+    for (const f of FORMATS.filter((x) => formats.includes(x.mime))) {
+      const l = document.createElement('label');
+      l.innerHTML = `<input type="radio" name="rz-format" value="${f.mime}"/> ${f.label}`;
+      const r = l.querySelector('input')!;
+      r.checked = f.mime === current;
+      r.addEventListener('change', onFormat);
+      list.append(l);
+    }
+    if (!root.querySelector('input[name=rz-format]:checked')) (root.querySelector('input[name=rz-format]') as HTMLInputElement).checked = true;
+    onFormat();
+  }
+  function onFormat() {
+    const lossy = formatInfo(fmt()).lossy;
+    q('.rz-q').classList.toggle('off', !lossy || targetOn.checked);
+    quality.disabled = !lossy || targetOn.checked;
+    q('.rz-bg-row').hidden = fmt() !== 'image/jpeg';
+    clearResult();
+  }
+  quality.addEventListener('input', () => { q('.rz-qv').textContent = `${quality.value}%`; clearResult(); });
+  targetOn.addEventListener('change', onFormat);
+
+  function showError(el: HTMLElement, msg: string) { el.textContent = msg; el.hidden = false; }
+  function clearResult() {
+    if (url) URL.revokeObjectURL(url);
+    url = null; result.hidden = true; err.hidden = true; status.textContent = '';
+  }
+
+  // ---------- loading ----------
+  async function pick(f?: File) {
+    q('.rz-error0').hidden = true;
+    if (!f) return;
+    if (f.size > LIMIT) return showError(q('.rz-error0'), `This image is ${formatBytes(f.size)}; the limit on this device is ${formatBytes(LIMIT)}.`);
+    try {
+      source?.close();
+      source = await createImageBitmap(f, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    } catch {
+      return showError(q('.rz-error0'), 'This image could not be opened. Your browser may not support this format (HEIC works in Safari; on other browsers convert it to JPG first).');
+    }
+    file = f;
+    rot = 0; flipH = flipV = false; sizeTouched = false;
+    q('.rz-name').textContent = f.name;
+    q('.rz-orig').textContent = `${source.width} × ${source.height} px · ${formatBytes(f.size)}`;
+    const t = f.type as Format;
+    buildFormats(formats.includes(t) ? t : 'image/jpeg');
+    root.dataset.state = 'editing';
+    q('.rz-editor').hidden = false;
+    reorient(true);
+  }
+  input.addEventListener('change', () => pick(input.files?.[0]));
+  for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
+  for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); pick((e as DragEvent).dataTransfer?.files?.[0]); });
+  q('.rz-new').addEventListener('click', () => { clearResult(); input.value = ''; root.dataset.state = 'empty'; q('.rz-editor').hidden = true; });
+
+  // ---------- turning ----------
+  function reorient(resetCrop: boolean) {
+    oriented = orient(source!, rot, flipH, flipV);
+    // Show a light copy on screen; the full-size one is used for the result.
+    const maxShow = 1600;
+    const s = Math.min(1, maxShow / Math.max(oriented.width, oriented.height));
+    canvas.width = Math.round(oriented.width * s); canvas.height = Math.round(oriented.height * s);
+    canvas.getContext('2d')!.drawImage(oriented, 0, 0, canvas.width, canvas.height);
+    if (resetCrop) crop = { x: 0, y: 0, w: oriented.width, h: oriented.height };
+    applyAspect();
+    clearResult();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rz-btn').forEach((b) => b.addEventListener('click', () => {
+    const a = b.dataset.act;
+    if (a === 'rotl') rot -= 90; else if (a === 'rotr') rot += 90; else if (a === 'fliph') flipH = !flipH; else flipV = !flipV;
+    reorient(true);
+  }));
+
+  // ---------- crop box ----------
+  const scale = () => canvas.getBoundingClientRect().width / oriented!.width;
+  function drawCrop() {
+    const s = scale();
+    Object.assign(cropEl.style, { left: `${crop.x * s}px`, top: `${crop.y * s}px`, width: `${crop.w * s}px`, height: `${crop.h * s}px` });
+    q('.rz-cropinfo').textContent = `Crop: ${Math.round(crop.w)} × ${Math.round(crop.h)} px. Drag the box to move it, or a corner to resize it.`;
+    if (!sizeTouched) { wIn.value = String(Math.round(crop.w)); hIn.value = String(Math.round(crop.h)); }
+    else if (lock.checked) hIn.value = String(Math.max(1, Math.round(+wIn.value * crop.h / crop.w)));
+  }
+  function clampCrop() {
+    const W = oriented!.width, H = oriented!.height, min = 8;
+    crop.w = Math.max(min, Math.min(crop.w, W)); crop.h = Math.max(min, Math.min(crop.h, H));
+    crop.x = Math.max(0, Math.min(crop.x, W - crop.w)); crop.y = Math.max(0, Math.min(crop.y, H - crop.h));
+  }
+  function applyAspect() {
+    const opt = aspectSel.selectedOptions[0];
+    const W = oriented!.width, H = oriented!.height;
+    aspect = opt.value === 'free' ? null : opt.value === 'orig' ? W / H : +opt.value;
+    if (aspect) {
+      // Largest box of that shape, centred on the current crop.
+      const cx = crop.x + crop.w / 2, cy = crop.y + crop.h / 2;
+      let w = W, h = w / aspect;
+      if (h > H) { h = H; w = h * aspect; }
+      crop = { x: cx - w / 2, y: cy - h / 2, w, h };
+    }
+    const px = opt.dataset.px;
+    q('.rz-photo-note').hidden = !px;
+    if (px) { const [pw, ph] = px.split('x'); wIn.value = pw; hIn.value = ph; sizeTouched = true; lock.checked = true; }
+    clampCrop();
+    drawCrop();
+  }
+  aspectSel.addEventListener('change', () => { if (!aspectSel.selectedOptions[0].dataset.px) sizeTouched = false; applyAspect(); clearResult(); });
+  addEventListener('resize', () => oriented && drawCrop());
+
+  let drag: { mode: string; sx: number; sy: number; c: Rect } | null = null;
+  cropEl.addEventListener('pointerdown', (e) => {
+    const h = (e.target as HTMLElement).dataset.h;
+    drag = { mode: h ?? 'move', sx: e.clientX, sy: e.clientY, c: { ...crop } };
+    cropEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  cropEl.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const s = scale(), dx = (e.clientX - drag.sx) / s, dy = (e.clientY - drag.sy) / s, c = drag.c;
+    const W = oriented!.width, H = oriented!.height;
+    if (drag.mode === 'move') {
+      crop = { ...c, x: c.x + dx, y: c.y + dy };
+    } else {
+      const left = drag.mode.includes('w'), top = drag.mode.includes('n');
+      // The opposite corner stays put.
+      const ax = left ? c.x + c.w : c.x, ay = top ? c.y + c.h : c.y;
+      let w = Math.max(8, left ? c.w - dx : c.w + dx);
+      let h = Math.max(8, top ? c.h - dy : c.h + dy);
+      w = Math.min(w, left ? ax : W - ax); h = Math.min(h, top ? ay : H - ay);
+      if (aspect) { if (w / h > aspect) w = h * aspect; else h = w / aspect; }
+      crop = { x: left ? ax - w : ax, y: top ? ay - h : ay, w, h };
+    }
+    clampCrop(); drawCrop();
+  });
+  const endDrag = () => { if (drag) { drag = null; clearResult(); } };
+  cropEl.addEventListener('pointerup', endDrag);
+  cropEl.addEventListener('pointercancel', endDrag);
+  cropEl.addEventListener('keydown', (e) => {
+    const step = (e.shiftKey ? 10 : 1) / scale();
+    const k: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (!k[e.key]) return;
+    e.preventDefault(); crop.x += k[e.key][0]; crop.y += k[e.key][1]; clampCrop(); drawCrop(); clearResult();
+  });
+
+  // ---------- size ----------
+  wIn.addEventListener('input', () => { sizeTouched = true; if (lock.checked && +wIn.value > 0) hIn.value = String(Math.max(1, Math.round(+wIn.value * crop.h / crop.w))); clearResult(); });
+  hIn.addEventListener('input', () => { sizeTouched = true; if (lock.checked && +hIn.value > 0) wIn.value = String(Math.max(1, Math.round(+hIn.value * crop.w / crop.h))); clearResult(); });
+  root.querySelectorAll<HTMLButtonElement>('.rz-chip').forEach((b) => b.addEventListener('click', () => {
+    const p = +b.dataset.pct! / 100;
+    wIn.value = String(Math.max(1, Math.round(crop.w * p))); hIn.value = String(Math.max(1, Math.round(crop.h * p)));
+    sizeTouched = p !== 1; clearResult();
+  }));
+
+  // ---------- create ----------
+  q('.rz-go').addEventListener('click', async () => {
+    if (!oriented || !file) return;
+    clearResult();
+    const outW = Math.round(+wIn.value), outH = Math.round(+hIn.value);
+    if (!(outW >= 1 && outH >= 1 && outW <= 16000 && outH <= 16000)) return showError(err, 'Enter a width and height between 1 and 16,000 pixels.');
+    const edit = {
+      crop: { x: Math.round(crop.x), y: Math.round(crop.y), w: Math.round(crop.w), h: Math.round(crop.h) },
+      outW, outH, format: fmt(), quality: +quality.value / 100, background: q<HTMLInputElement>('.rz-bg').value,
+    };
+    const btn = q<HTMLButtonElement>('.rz-go');
+    btn.disabled = true;
+    try {
+      let blob: Blob, used = edit;
+      if (targetOn.checked) {
+        const max = +q<HTMLInputElement>('.rz-target').value * +q<HTMLSelectElement>('.rz-unit').value;
+        if (!(max >= 1024)) throw new RangeError('Enter a size of at least 1 KB.');
+        const r = await renderUnder(oriented, edit, max, (m) => (status.textContent = m));
+        if (!r) throw new RangeError(`Could not get this image under ${formatBytes(max)}. Try a smaller size in pixels, a lossy format such as JPG or WebP, or a larger limit.`);
+        blob = r.blob; used = r.edit;
+      } else {
+        status.textContent = 'Creating your image…';
+        blob = await render(oriented, edit);
+      }
+      const info = formatInfo(used.format);
+      url = URL.createObjectURL(blob);
+      const dl = q<HTMLAnchorElement>('.rz-download');
+      dl.href = url;
+      dl.download = `${file.name.replace(/\.[^.]+$/, '') || 'image'}-resized.${info.ext}`;
+      dl.textContent = `Download ${info.label}`;
+      q<HTMLImageElement>('.rz-preview').src = url;
+      const change = blob.size < file.size ? `${Math.round((1 - blob.size / file.size) * 100)}% smaller than the original` : `${Math.round((blob.size / file.size - 1) * 100)}% larger than the original`;
+      q('.rz-summary').textContent = `${info.label}, ${used.outW} × ${used.outH} px, ${formatBytes(blob.size)} (${change})${info.lossy ? `, quality ${Math.round(used.quality * 100)}%` : ''}.`;
+      status.textContent = '';
+      result.hidden = false;
+      root.dispatchEvent(new CustomEvent('fibub:image-resized', { bubbles: true, detail: { format: used.format, before: file.size, after: blob.size } }));
+    } catch (e) {
+      console.error(e);
+      status.textContent = '';
+      showError(err, e instanceof RangeError ? e.message : 'Sorry, the image could not be created. Your device may have run out of memory; try smaller dimensions.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>

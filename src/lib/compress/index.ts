@@ -2,8 +2,9 @@
 import { compress as compressPdf } from './pdf';
 import { compressImage, extFor } from './image';
 import { compressOffice } from './office';
-import { zipAsync } from './zipper';
+import { zipAsync, unzipAsync } from './zipper';
 import { ext } from './detect';
+import { readZipInfo } from '../zipinfo';
 import { UnsupportedError, type Level, type Method, type Output, type Progress } from './types';
 
 export { warmUp } from './pdf';
@@ -40,6 +41,18 @@ export async function compressFile(file: File, method: Method, level: Level, onP
       bytes: r.bytes, name: `${base(file.name)}-compressed.${e}`, mime: file.type || 'application/octet-stream', outcome: 'smaller',
       note: r.pictures ? `${r.shrunk} of ${plural(r.pictures, 'picture')} made lighter; text and layout unchanged.` : 'Repacked more tightly; text, layout and pictures unchanged.',
     };
+  } else if (method === 'repack') {
+    onProgress({ fraction: null, label: 'Opening the ZIP…' });
+    let info;
+    try { info = readZipInfo(input); } catch { throw new UnsupportedError('zip'); }
+    // Never unpack password-protected or unusual entries: the result would be wrong.
+    if (info.entries.some((e) => e.encrypted || ![0, 8].includes(e.method))) throw new UnsupportedError('zip');
+    let files;
+    try { files = await unzipAsync(input); } catch { throw new UnsupportedError('zip'); }
+    onProgress({ fraction: null, label: 'Repacking with the strongest compression…' });
+    const bytes = await zipAsync(files, { level: 9 });
+    const n = Object.keys(files).filter((k) => !k.endsWith('/')).length;
+    out = { bytes, name: `${base(file.name)}-compressed.zip`, mime: 'application/zip', outcome: 'smaller', note: `${plural(n, 'file')} inside, unchanged, packed more tightly.` };
   } else {
     onProgress({ fraction: null, label: 'Packing into a ZIP…' });
     const bytes = await zipAsync({ [file.name]: [input, { mtime: file.lastModified || Date.now() }] }, { level: level === 'light' ? 6 : 9 });
