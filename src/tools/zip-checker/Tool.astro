@@ -58,6 +58,11 @@
   import { formatBytes } from '../../lib/compress/format';
   import { handOff } from '../../lib/handoff';
 
+  // Load the packer once the page is idle, so the checker keeps working with no internet.
+  const packer = () => import('../../lib/compress/zipper');
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => packer().catch(() => {}));
+
   const root = document.querySelector<HTMLElement>('.zc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const input = q<HTMLInputElement>('.zc-input'), drop = q('.zc-drop'), status = q('.zc-status'), err = q('.zc-error');
@@ -97,7 +102,7 @@
     if (!locked && !odd && files.length) {
       status.textContent = `Test-packing ${files.length} file${files.length === 1 ? '' : 's'} with the strongest setting…`;
       try {
-        const { unzipAsync, zipAsync } = await import('../../lib/compress/zipper');
+        const { unzipAsync, zipAsync } = await packer();
         repacked = (await zipAsync(await unzipAsync(bytes), { level: 9 })).length;
       } catch { repacked = null; }
     }

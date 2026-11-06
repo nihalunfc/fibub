@@ -5,5 +5,6 @@ title: Budget calculator
 summary: Split your income into needs, wants and savings, monthly and yearly.
 status: soon
 order: 10
+works: offline
 updated: 2026-11-06
 ---

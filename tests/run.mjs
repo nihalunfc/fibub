@@ -381,6 +381,29 @@ try {
     await page.click('.cmp-again');
   }
   await ctx.setOffline(false);
+  // The other tools marked "Works offline" too.
+  await page.goto(`${BASE}/documents/image-resizer/`);
+  await page.waitForTimeout(2500);
+  await ctx.setOffline(true);
+  await page.setInputFiles('.rz-input', OUT + 'photo.jpg');
+  await page.waitForSelector('.rz-editor:not([hidden])');
+  await page.click('.rz-go');
+  await page.waitForSelector('.rz-result:not([hidden]), .rz-error:not([hidden])');
+  const [odl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('.rz-download')]).catch(() => [null]);
+  check(!!odl, 'offline: image resizer still works');
+  await ctx.setOffline(false);
+  await page.goto(`${BASE}/documents/zip-checker/`);
+  await page.waitForTimeout(2500);
+  await ctx.setOffline(true);
+  await page.setInputFiles('.zc-input', OUT + 'stored.zip');
+  await page.waitForSelector('.zc-report:not([hidden])', { timeout: 60000 });
+  check(/smaller/.test(await page.textContent('.zc-report')), 'offline: ZIP checker still works');
+  await ctx.setOffline(false);
+  for (const path of ['/', '/documents/compress-file/']) {
+    await page.goto(BASE + path);
+    const n = await page.$$eval('[data-works]', (els) => els.length);
+    check(n > 0, `${path} shows offline/online labels (${n})`);
+  }
 
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 

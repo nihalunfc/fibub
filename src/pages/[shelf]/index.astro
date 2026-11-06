@@ -14,6 +14,6 @@ const tools = (await allTools()).filter((t) => t.data.shelf === shelf.id);
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, no sign-up, and nothing leaves your device.</p>
   <div class="grid">
-    {tools.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}
+    {tools.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} works={t.data.works} />)}
   </div>
 </Base>

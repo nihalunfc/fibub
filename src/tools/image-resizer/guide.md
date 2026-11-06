@@ -6,6 +6,7 @@ summary: Crop, rotate and resize any photo or screenshot, convert between JPG, P
 status: live
 ads: false
 order: 12
+works: offline
 updated: 2026-11-06
 flow:
   - { icon: image, label: "Add a photo" }

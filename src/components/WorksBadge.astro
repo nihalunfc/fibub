@@ -1,0 +1,24 @@
+---
+// Says plainly whether a tool keeps working without internet.
+interface Props { works: 'offline' | 'online'; small?: boolean }
+const { works, small = false } = Astro.props;
+const text = works === 'offline'
+  ? (small ? 'Works offline' : 'Works offline: once this page is open, it keeps working with no internet')
+  : (small ? 'Needs internet' : 'Needs internet while you use it');
+---
+<span class:list={['works', works, { small }]} data-works={works}>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {works === 'offline'
+      ? <><path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M5 12.6a10 10 0 0 1 5.2-2.8M14 9.9a10 10 0 0 1 5 2.7M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8"/><path d="M12 20h.01"/></>
+      : <><path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 14 0M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01"/></>}
+  </svg>
+  {text}
+</span>
+
+<style>
+  .works { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; }
+  .works svg { width: 14px; height: 14px; flex: none; }
+  .works.offline { color: var(--good); background: var(--good-soft); }
+  .works.online { color: var(--warn); background: var(--warn-soft); }
+  .works.small { margin-top: 10px; font-size: 12px; padding: 2px 8px; }
+</style>

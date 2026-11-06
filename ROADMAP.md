@@ -24,4 +24,4 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 
 Every tool page opens with a picture of its 3 or 4 steps (`flow` in guide.md), kept on one row on phones.
 
-Dropped (nihal, 2026-11-06): suggestion box (use the Contact page), postal code finder, WebAssembly "sub-second" shrinkers, recipe scaler.
+Dropped (nihal, 2026-11-06): suggestion box (use the Contact page), postal code finder, WebAssembly "sub-second" shrinkers, recipe scaler, expiry meal wheel (too hard across cuisines).

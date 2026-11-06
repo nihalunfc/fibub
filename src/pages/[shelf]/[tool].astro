@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
+import WorksBadge from '../../components/WorksBadge.astro';
 import ToolFlow from '../../components/ToolFlow.astro';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
@@ -21,6 +22,7 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
+  <p class="works-line"><WorksBadge works={tool.data.works} /></p>
   {tool.data.flow && <ToolFlow steps={tool.data.flow} />}
   <ToolUI />
   <article class="prose">
@@ -35,12 +37,13 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   {others.length > 0 && (
     <section>
       <h2>More {shelf.name.toLowerCase()} tools</h2>
-      <div class="grid">{others.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}</div>
+      <div class="grid">{others.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} works={t.data.works} />)}</div>
     </section>
   )}
 </Base>
 
 <style>
+  .works-line { margin: -12px 0 16px; }
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
   .suggest span { color: var(--muted); font-size: 15px; }
   .suggest .btn { margin-top: 6px; }

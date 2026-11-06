@@ -20,7 +20,7 @@ const tools = await allTools();
       <section>
         <h2><a href={`/${s.id}/`} style="color:inherit;text-decoration:none">{s.name}</a></h2>
         <div class="grid">
-          {list.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}
+          {list.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} works={t.data.works} />)}
         </div>
       </section>
     );
