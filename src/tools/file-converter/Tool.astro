@@ -1,0 +1,129 @@
+---
+// File converter: picks the conversions that work in the browser for the chosen file.
+---
+<div class="fc panel" data-state="empty">
+  <label class="fc-drop">
+    <input class="fc-input visually-hidden" type="file" multiple accept=".pdf,.docx,.csv,.tsv,.xlsx,.json,.jpg,.jpeg,.png,.webp,.avif,.gif,.bmp,image/*" />
+    <strong>Choose a file</strong>
+    <span>PDF, Word, Excel, CSV, JSON or pictures (several pictures at once is fine) · up to <b class="fc-limit">200 MB</b></span>
+  </label>
+  <div class="fc-picked" hidden>
+    <p class="fc-files"></p>
+    <fieldset class="fc-targets"><legend>Convert to</legend><div class="fc-chips"></div></fieldset>
+    <div class="fc-row">
+      <button type="button" class="btn fc-go">Convert</button>
+      <button type="button" class="btn secondary fc-clear">Choose other files</button>
+    </div>
+  </div>
+  <p class="fc-status" role="status" aria-live="polite"></p>
+  <div class="fc-result note good" hidden>
+    <b class="fc-done"></b>
+    <span class="fc-note"></span>
+    <div class="fc-row"><a class="btn fc-dl" download>Download</a><button type="button" class="btn secondary fc-again">Convert another file</button></div>
+  </div>
+  <p class="note bad fc-error" role="alert" hidden></p>
+</div>
+
+<style is:global>
+  .fc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .fc-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .fc-drop strong { font-size: 19px; color: var(--accent); }
+  .fc-drop span { color: var(--muted); font-size: 14px; }
+  .fc-drop.over, .fc-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .fc:not([data-state="empty"]) .fc-drop { display: none; }
+  .fc-picked { display: grid; gap: 12px; }
+  .fc-files { margin: 0; font-weight: 600; word-break: break-all; }
+  .fc-targets { border: 0; padding: 0; margin: 0; }
+  .fc-targets legend { font-weight: 600; margin-bottom: 8px; }
+  .fc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fc-chips label { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; background: var(--surface); font-size: 15px; }
+  .fc-chips label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .fc-chips input { accent-color: var(--accent); }
+  .fc-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fc-status { margin: 0; color: var(--muted); }
+  .fc-status:empty { display: none; }
+  .fc-result { display: grid; gap: 8px; }
+  .fc-note:empty { display: none; }
+</style>
+
+<script>
+  import { kindOf, targetsFor, type Target } from '../../lib/convert/index';
+  import { writableFormats } from '../../lib/image/edit';
+  import { sizeLimit } from '../../lib/compress/detect';
+  import { formatBytes } from '../../lib/compress/format';
+
+  const engine = () => import('../../lib/convert/index');
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  // Load the PDF reader early so conversions keep working offline.
+  idle(() => import('../../lib/prune/index').then((m) => m.warmUp()).catch(() => {}));
+
+  const root = document.querySelector<HTMLElement>('.fc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.fc-input'), drop = q('.fc-drop'), picked = q('.fc-picked'), chips = q('.fc-chips');
+  const status = q('.fc-status'), err = q('.fc-error'), result = q('.fc-result'), dl = q<HTMLAnchorElement>('.fc-dl');
+  const limit = sizeLimit();
+  q('.fc-limit').textContent = formatBytes(limit);
+  let files: File[] = [], targets: Target[] = [], url: string | null = null;
+  const formats = writableFormats();
+
+  function fail(msg: string) { err.textContent = msg; err.hidden = false; }
+  function reset() {
+    files = []; input.value = ''; picked.hidden = true; result.hidden = true; err.hidden = true; status.textContent = '';
+    root.dataset.state = 'empty';
+  }
+
+  async function pick(list: File[]) {
+    err.hidden = true; result.hidden = true;
+    if (!list.length) return;
+    const kind = kindOf(list[0]);
+    if (!kind) return fail('This type of file can\'t be converted here yet. Supported: PDF, Word (.docx), Excel (.xlsx), CSV, JSON and pictures.');
+    if (list.length > 1 && (kind !== 'image' || !list.every((f) => kindOf(f) === 'image'))) return fail('Choose one file at a time, or several pictures together.');
+    const big = list.find((f) => f.size > limit);
+    if (big) return fail(`${big.name} is ${formatBytes(big.size)}. The limit on this device is ${formatBytes(limit)}.`);
+    files = list;
+    targets = targetsFor(kind, await formats).filter((t) => !(kind === 'image' && list.length === 1 && t.id === list[0].type));
+    q('.fc-files').textContent = list.length > 1 ? `${list.length} pictures (${formatBytes(list.reduce((n, f) => n + f.size, 0))})` : `${list[0].name} (${formatBytes(list[0].size)})`;
+    chips.replaceChildren(...targets.map((t, i) => {
+      const l = document.createElement('label');
+      const r = document.createElement('input');
+      r.type = 'radio'; r.name = 'fc-target'; r.value = String(i); r.checked = i === 0;
+      l.append(r, ` ${t.label}`);
+      return l;
+    }));
+    root.dataset.state = 'ready';
+    picked.hidden = false;
+  }
+
+  q('.fc-go').addEventListener('click', async () => {
+    const t = targets[+(root.querySelector<HTMLInputElement>('input[name=fc-target]:checked')?.value ?? 0)];
+    picked.hidden = true; err.hidden = true; status.textContent = 'Converting on your device…';
+    try {
+      const { convert } = await engine();
+      const out = await convert(files, t, (s) => (status.textContent = s));
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(out.blob);
+      dl.href = url; dl.download = out.name;
+      dl.textContent = `Download ${out.name.split('.').pop()!.toUpperCase()}`;
+      q('.fc-done').textContent = `${out.name} · ${formatBytes(out.blob.size)}`;
+      q('.fc-note').textContent = out.note;
+      result.hidden = false;
+      root.dispatchEvent(new CustomEvent('fibub:converted', { bubbles: true, detail: { to: t.id } }));
+    } catch (e: any) {
+      console.error(e);
+      picked.hidden = false;
+      fail(e?.message === 'NO_TEXT' ? 'This PDF has no text inside: it is probably a scan. Convert it to JPG or PNG instead.'
+        : e?.message === 'BAD_JSON' ? 'This JSON file could not be read. Check that it is valid JSON.'
+        : e?.message === 'IMAGE_DECODE' ? 'Your browser can\'t open this picture. Try a JPG or PNG.'
+        : e?.name === 'PasswordException' ? 'This PDF is password-protected. Save a copy without a password, then try again.'
+        : e?.message === 'EMPTY' ? 'This file has no rows to convert.'
+        : 'Sorry, this file could not be converted. It may be damaged, or not what its name says.');
+    }
+    status.textContent = '';
+  });
+  input.addEventListener('change', () => pick([...(input.files ?? [])]));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick([...(e.dataTransfer?.files ?? [])]); });
+  q('.fc-clear').addEventListener('click', reset);
+  q('.fc-again').addEventListener('click', reset);
+</script>

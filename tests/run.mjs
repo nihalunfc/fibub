@@ -2,7 +2,7 @@
 // Usage: npm test            (uses the Playwright that is installed on the machine)
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 
@@ -325,6 +325,181 @@ try {
     check(/lowest quality/.test(tiny.error ?? '') || (tiny.path && size(tiny.path) <= 10240), `fit: impossible limit is explained -> "${(tiny.error ?? 'fitted').trim().slice(0, 90)}"`);
   }
 
+  // 6e. Link cleaner.
+  {
+    await page.goto(BASE + '/everyday/link-cleaner/');
+    await page.fill('.lc-in', 'Look: https://www.amazon.ca/Mug/dp/B0ABCDEFGH/ref=sr_1_3?crid=X&qid=1&tag=me-20 and https://www.google.com/url?q=https%3A%2F%2Fnews.site%2Fa%3Futm_source%3Dx%26p%3D2&ved=1 and https://github.com/a/b?ref=main.');
+    const out = await page.inputValue('.lc-out');
+    check(out === 'Look: https://www.amazon.ca/dp/B0ABCDEFGH and https://news.site/a?p=2 and https://github.com/a/b?ref=main.', `link cleaner: message cleaned -> ${out}`);
+    await page.uncheck('.lc-aff');
+    check((await page.inputValue('.lc-out')).includes('tag=me-20'), 'link cleaner: affiliate switch off keeps the tag');
+    await page.fill('.lc-in', 'https://bit.ly/3abc');
+    check(await page.isVisible('.lc-note'), 'link cleaner: short links are flagged');
+  }
+
+  // 6f. LinkedIn post formatter.
+  {
+    await page.goto(BASE + '/everyday/linkedin-post-formatter/');
+    await page.fill('.lf-in', 'Big news today');
+    await page.evaluate(() => { const t = document.querySelector('.lf-in'); t.setSelectionRange(0, 3); });
+    await page.click('[data-do=bold]');
+    const v = await page.inputValue('.lf-in');
+    check(v === '𝗕𝗶𝗴 news today', `post formatter: bold selection -> ${v}`);
+    await page.fill('.lf-in', '**Hi** there\n- one\n- two');
+    await page.click('[data-do=markdown]');
+    const m = await page.inputValue('.lf-in');
+    check(m === '𝗛𝗶 there\n• one\n• two', `post formatter: from Markdown -> ${JSON.stringify(m)}`);
+    await page.fill('.lf-in', 'x'.repeat(400));
+    check(await page.isVisible('.lf-more'), 'post formatter: preview folds at "see more"');
+  }
+
+  // 6h. Prompt pruner.
+  {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    for (let i = 1; i <= 5; i++) {
+      const pg = doc.addPage([595, 842]);
+      pg.drawText('ACME Quarterly Report 2026 - Confidential', { x: 50, y: 800, size: 9, font });
+      if (i === 1) pg.drawText('Revenue overview', { x: 50, y: 740, size: 22, font: bold });
+      const words = ['north', 'south', 'east', 'west', 'online', 'outlet', 'airport', 'campus'];
+      for (let l = 0; l < 20; l++) pg.drawText(`${words[(l + i) % 8]} region note ${l}-${i}: ${'sales grew '.repeat(1 + ((l * 7 + i) % 4))}thanks to new stores.`, { x: 50, y: 700 - l * 16, size: 11, font });
+      pg.drawText(`Page ${i} of 5`, { x: 270, y: 40, size: 9, font });
+      pg.drawText('(c) 2026 ACME Corp. All rights reserved.', { x: 50, y: 25, size: 8, font });
+    }
+    writeFileSync(OUT + 'report.pdf', await doc.save());
+    await page.goto(BASE + '/documents/prompt-pruner/');
+    await page.setInputFiles('.pp-input', OUT + 'report.pdf');
+    await page.waitForSelector('.pp-result:not([hidden]), .pp-error:not([hidden])', { timeout: 60000 });
+    const md = await page.inputValue('.pp-out');
+    check(md.includes('# Revenue overview') && md.includes('note 19-5') && md.includes('note 0-1'), 'prompt pruner: PDF heading and body kept');
+    check(!/ACME Quarterly|Page \d of 5|All rights reserved/.test(md), 'prompt pruner: headers, page numbers and copyright removed');
+    check(/\d+%/.test(await page.textContent('.pp-saved')) && (await page.textContent('.pp-saved')) !== '0%', `prompt pruner: tokens saved ${await page.textContent('.pp-saved')}`);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.pp-dl')]);
+    check(dl.suggestedFilename() === 'report-clean.md', `prompt pruner: download ${dl.suggestedFilename()}`);
+    writeFileSync(OUT + 'repo.zip', zipSync({
+      'proj-main/src/app.js': strToU8('/*\n * Copyright 2026 Someone\n * Licensed under the MIT License\n */\n\nexport const add = (a, b) => a + b;   \n\n\n\n// helper\nexport const sub = (a, b) => a - b;\n'),
+      'proj-main/node_modules/x/index.js': strToU8('module.exports = 1;'),
+      'proj-main/package-lock.json': strToU8('{}'),
+      'proj-main/LICENSE': strToU8('MIT License ...'),
+      'proj-main/README.md': strToU8('# Proj\n\nDoes maths.\n'),
+    }));
+    await page.click('.pp-again');
+    await page.setInputFiles('.pp-input', OUT + 'repo.zip');
+    await page.waitForSelector('.pp-result:not([hidden])');
+    const r = await page.inputValue('.pp-out');
+    check(r.includes('### src/app.js') && r.includes('export const add') && !r.includes('Licensed under') && !r.includes('node_modules') && !r.includes('package-lock') && r.includes('// helper'), 'prompt pruner: code ZIP keeps code, drops licence, dependencies and lock files');
+    await page.check('[data-opt=comments]');
+    await page.waitForFunction(() => !document.querySelector('.pp-out').value.includes('// helper'));
+    check(true, 'prompt pruner: "All code comments" removes comments');
+  }
+
+  // 6i. File converter.
+  {
+    const conv = async (files, to) => {
+      await page.goto(BASE + '/documents/file-converter/');
+      await page.setInputFiles('.fc-input', files.map((f) => OUT + f));
+      await page.waitForSelector('.fc-picked:not([hidden])');
+      await page.locator('.fc-chips label', { hasText: to }).first().click();
+      await page.click('.fc-go');
+      await page.waitForSelector('.fc-result:not([hidden]), .fc-error:not([hidden])', { timeout: 60000 });
+      if (await page.isVisible('.fc-error')) return { error: await page.textContent('.fc-error') };
+      const [d] = await Promise.all([page.waitForEvent('download'), page.click('.fc-dl')]);
+      const path = OUT + 'conv-' + d.suggestedFilename();
+      await d.saveAs(path);
+      return { path, name: d.suggestedFilename() };
+    };
+    writeFileSync(OUT + 'people.csv', 'name,age,zip,note\nAsha,31,01234,"likes, commas"\nBen,40,90210,"said ""hi"""\n');
+    const x = await conv(['people.csv'], 'Excel');
+    check(x.name === 'people.xlsx', `converter: CSV to Excel -> ${x.name ?? x.error}`);
+    const back = await conv(['conv-people.xlsx'], 'CSV');
+    const csv = back.path ? readFileSync(back.path, 'utf8').replace(/^﻿/, '') : back.error;
+    check(csv === 'name,age,zip,note\r\nAsha,31,01234,"likes, commas"\r\nBen,40,90210,"said ""hi"""\r\n', `converter: Excel back to CSV is identical -> ${JSON.stringify(csv)}`);
+    const j = await conv(['people.csv'], 'JSON');
+    const data = JSON.parse(readFileSync(j.path, 'utf8'));
+    check(data[0].age === 31 && data[0].zip === '01234' && data[1].note === 'said "hi"', 'converter: CSV to JSON keeps numbers and leading zeros');
+    const pics = await conv(['photo.jpg', 'photo.png'], 'PDF');
+    check(pics.name === 'pictures.pdf' && (await PDFDocument.load(readFileSync(pics.path))).getPageCount() === 2, `converter: 2 pictures to one 2-page PDF -> ${pics.name ?? pics.error}`);
+    const pages = await conv(['report.pdf'], 'PNG');
+    check(pages.name === 'report-png.zip' && Object.keys(unzipSync(readFileSync(pages.path))).length === 5, `converter: 5-page PDF to PNG ZIP -> ${pages.name ?? pages.error}`);
+    const txt = await conv(['report.pdf'], 'Text');
+    check(txt.path && readFileSync(txt.path, 'utf8').includes('Revenue overview'), 'converter: PDF to text');
+    const html = await conv(['report.docx'], 'HTML');
+    check(html.path && /<html/.test(readFileSync(html.path, 'utf8')), `converter: Word to HTML -> ${html.name ?? html.error}`);
+    const png = await conv(['photo.jpg'], 'PNG');
+    check(png.name === 'photo.png', `converter: JPG to PNG -> ${png.name ?? png.error}`);
+  }
+
+  // 6j. ATS resume checker.
+  {
+    const x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const para = (t) => `<w:p><w:r><w:t xml:space="preserve">${t.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</w:t></w:r></w:p>`;
+    const docx = (body) => zipSync({
+      '[Content_Types].xml': strToU8(x + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+      'word/document.xml': strToU8(x + `<w:document ${W}><w:body>${body}</w:body></w:document>`),
+    });
+    const resume = [
+      'Asha Rao', 'asha.rao@example.com | +1 416 555 0100 | linkedin.com/in/asharao', 'Toronto, ON', '',
+      'Summary', 'Data analyst with 4 years of experience turning sales and operations data into clear Power BI dashboards and SQL reports.', '',
+      'Experience', 'Data Analyst, Northwind Retail', 'Jan 2023 – Present',
+      ...['Built 12 Power BI dashboards used by 40 store managers every week, replacing manual Excel reports.', 'Reduced monthly reporting time by 60% by automating SQL extracts and data cleaning in Python.', 'Analysed basket data for 2 million transactions to find cross-sell pairs worth $300K a year.', 'Led stakeholder reporting for the regional operations team of 8 people.', 'Designed a star schema data model for sales, stock and staffing data.'].map((b) => '• ' + b),
+      'Junior Analyst, Contoso Logistics', 'Jun 2020 – Dec 2022',
+      ...['Created weekly KPI reports for delivery times across 30 depots.', 'Improved data quality checks, cutting duplicate shipment records by 25%.', 'Maintained SQL Server views and documented 50 business definitions.', 'Supported the migration of 3 legacy reports to Power BI.'].map((b) => '• ' + b), '',
+      'Education', 'Master of Data Analytics, Example University, 2020', 'BSc Statistics, Example College, 2018', '',
+      'Skills', 'SQL, Power BI, DAX, Python, pandas, Excel, data modelling, ETL, stakeholder reporting, A/B testing', '',
+      'Projects', ...['Forecast hotel room demand with a seasonal model and a Power BI what-if page; error fell to 6%.', 'Cleaned and joined 5 public datasets into a tidy warehouse with dbt-style SQL steps.'].map((b) => '• ' + b),
+      'Certifications', 'Microsoft PL-300 Power BI Data Analyst, 2024',
+      'Additional', 'Comfortable presenting findings to non-technical leaders, writing clear documentation, and training colleagues on dashboards and self-serve reporting. Volunteer data mentor for a local coding club, 2 hours a week, helping beginners learn spreadsheets, SQL basics and simple charts. Fluent in English, Hindi and Tamil.',
+    ];
+    writeFileSync(OUT + 'resume-good.docx', docx(resume.map(para).join('')));
+    const table = `<w:tbl><w:tr><w:tc>${resume.slice(0, 12).map(para).join('')}</w:tc><w:tc>${resume.slice(12).map(para).join('')}</w:tc></w:tr></w:tbl>`;
+    writeFileSync(OUT + 'resume-table.docx', docx(table + `<w:p><w:r><w:pict><v:shape xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent>${para('Hire me')}</w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>`));
+    // A two-column PDF: left column skills, right column experience, on the same lines.
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const pg = doc.addPage([612, 792]);
+    const plain = resume.map((l) => l.replace('•', '-').replace('–', '-'));
+    for (let i = 0; i < 26; i++) {
+      pg.drawText(['SQL', 'Power BI', 'Python', 'Excel', 'DAX', 'ETL', 'pandas', 'dbt'][i % 8] + ' expert level', { x: 40, y: 740 - i * 26, size: 9, font });
+      if (plain[i]) pg.drawText(plain[i].slice(0, 70), { x: 250, y: 740 - i * 26, size: 9, font });
+      if (plain[i + 26]) pg.drawText(plain[i + 26].slice(0, 70), { x: 250, y: 740 - i * 26 - 12, size: 9, font });
+    }
+    writeFileSync(OUT + 'resume-2col.pdf', await doc.save());
+    writeFileSync(OUT + 'resume.doc', 'old');
+
+    const ats = async (file, jd) => {
+      await page.goto(BASE + '/documents/ats-resume-checker/');
+      if (jd) { await page.click('.ats-jdbox summary'); await page.fill('.ats-jd', jd); }
+      await page.setInputFiles('.ats-input', OUT + file);
+      await page.waitForSelector('.ats-result:not([hidden]), .ats-error:not([hidden])', { timeout: 60000 });
+      if (await page.isVisible('.ats-error')) return { error: await page.textContent('.ats-error') };
+      const fails = await page.$$eval('.ats-checks li.fail b, .ats-checks li.warn b', (b) => b.map((e) => e.textContent));
+      return { score: +(await page.textContent('.ats-score')), fails, chips: await page.$$eval('.ats-chips span', (s) => s.map((e) => e.textContent)) };
+    };
+    const good = await ats('resume-good.docx', 'We need a Data Analyst skilled in SQL and Power BI. Power BI dashboards, SQL reporting, stakeholder reporting and Python are key. Experience with Snowflake and Snowflake data sharing is a plus.');
+    check(good.score >= 85, `ATS: clean Word resume scores ${good.score} (fixes: ${good.fails?.join(', ') || 'none'})`);
+    check(good.chips?.some((c) => c.includes('✓') && c.includes('power bi')) && good.chips?.some((c) => c.includes('✕') && c.includes('snowflake')), `ATS: job ad keywords matched and missing -> ${good.chips?.join(' ')}`);
+    const tbl = await ats('resume-table.docx');
+    check(tbl.fails?.includes('No tables for layout') && tbl.fails?.includes('No text boxes') && tbl.score < 75, `ATS: Word tables and text boxes flagged (${tbl.score})`);
+    const two = await ats('resume-2col.pdf');
+    check(two.fails?.includes('Single-column layout'), `ATS: two-column PDF flagged (${two.score}; ${two.error ?? two.fails?.join(', ')})`);
+    const old = await ats('resume.doc');
+    check(/\.docx or PDF/.test(old.error ?? ''), 'ATS: old .doc file asks to save as .docx or PDF');
+  }
+
+  // 6g. Share images and icons: every live tool has its own 1200x630 image.
+  {
+    const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
+      await page.goto(BASE + path);
+      const og = await page.getAttribute('meta[property="og:image"]', 'content');
+      const file = 'dist' + new URL(og).pathname;
+      const ok = existsSync(file) && pngSize(file).join('x') === '1200x630';
+      check(ok, `share image for ${path}: ${new URL(og).pathname}${ok ? '' : ' missing or wrong size (run npm run images)'}`);
+    }
+    for (const f of ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest']) check(existsSync('dist/' + f), `icon file ${f}`);
+  }
+
   // 6c. ZIP checker and hand-off to the compressor.
   {
     writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));
@@ -422,14 +597,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

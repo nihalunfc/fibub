@@ -1,0 +1,149 @@
+---
+// Prompt pruner: PDFs, Word files, web pages, text and code folders to lean Markdown for AI chats.
+---
+<div class="pp panel">
+  <label class="pp-drop">
+    <input class="pp-input visually-hidden" type="file" accept=".pdf,.docx,.html,.htm,.txt,.md,.zip,.csv,.json,.xml,.yml,.yaml,.js,.ts,.tsx,.jsx,.py,.java,.go,.rs,.rb,.php,.cs,.cpp,.c,.h,.sql,.sh,.css,.scss" />
+    <strong>Choose a file</strong>
+    <span>PDF, Word, web page, text, code, or a ZIP of a code folder · up to <b class="pp-limit">200 MB</b></span>
+  </label>
+  <details class="pp-pastebox">
+    <summary>Or paste text</summary>
+    <textarea class="pp-paste" rows="6" placeholder="Paste text, an email or a web page's HTML…"></textarea>
+    <button type="button" class="btn secondary pp-paste-go">Clean pasted text</button>
+  </details>
+  <fieldset class="pp-opts">
+    <legend>Remove</legend>
+    <label><input type="checkbox" data-opt="headers" checked /> Repeated headers and footers</label>
+    <label><input type="checkbox" data-opt="pageNumbers" checked /> Page numbers</label>
+    <label><input type="checkbox" data-opt="boilerplate" checked /> Copyright, confidentiality and legal lines</label>
+    <label><input type="checkbox" data-opt="whitespace" checked /> Extra spaces and blank lines</label>
+    <label><input type="checkbox" data-opt="licences" checked /> Licence headers in code</label>
+    <label><input type="checkbox" data-opt="comments" /> All code comments</label>
+  </fieldset>
+  <p class="pp-status" role="status" aria-live="polite"></p>
+  <div class="pp-result" hidden>
+    <div class="pp-stats">
+      <div><span>Before</span><b class="pp-before"></b></div>
+      <div><span>After</span><b class="pp-after"></b></div>
+      <div class="good"><span>Saved</span><b class="pp-saved"></b></div>
+    </div>
+    <p class="pp-note"></p>
+    <textarea class="pp-out" rows="14" readonly aria-label="Clean Markdown"></textarea>
+    <div class="pp-actions">
+      <button type="button" class="btn pp-copy">Copy Markdown</button>
+      <a class="btn secondary pp-dl" download="clean.md">Download .md</a>
+      <button type="button" class="btn secondary pp-again">Start again</button>
+    </div>
+    <small class="pp-fine">Token counts are estimates (about 4 characters per token). Uploading a PDF to an AI chat often costs more than its text, because many chats also read each page as an image.</small>
+  </div>
+  <p class="note bad pp-error" role="alert" hidden></p>
+</div>
+
+<style is:global>
+  .pp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pp-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .pp-drop strong { font-size: 19px; color: var(--accent); }
+  .pp-drop span { color: var(--muted); font-size: 14px; }
+  .pp-drop.over, .pp-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .pp-pastebox summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .pp-pastebox[open] { display: grid; gap: 8px; }
+  .pp textarea { width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .pp-paste-go { justify-self: start; }
+  .pp-opts { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 6px 16px; }
+  .pp-opts legend { font-weight: 600; padding: 0 4px; }
+  .pp-opts label { display: flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
+  .pp-opts input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .pp-status { margin: 0; color: var(--muted); }
+  .pp-status:empty { display: none; }
+  .pp-result { display: grid; gap: 12px; }
+  .pp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pp-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .pp-stats span { font-size: 13px; color: var(--muted); }
+  .pp-stats b { font-size: clamp(16px, 4vw, 22px); }
+  .pp-stats .good b { color: var(--good); }
+  .pp-note { margin: 0; color: var(--muted); font-size: 14px; }
+  .pp-note:empty { display: none; }
+  .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pp-fine { color: var(--muted); }
+</style>
+
+<script>
+  import { DEFAULTS, type PruneOptions, type PruneResult } from '../../lib/prune/clean';
+  import { sizeLimit } from '../../lib/compress/detect';
+  import { formatBytes } from '../../lib/compress/format';
+
+  const engine = () => import('../../lib/prune/index');
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => engine().then((m) => m.warmUp()).catch(() => {}));
+
+  const root = document.querySelector<HTMLElement>('.pp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.pp-input'), drop = q('.pp-drop'), status = q('.pp-status'), err = q('.pp-error');
+  const result = q('.pp-result'), out = q<HTMLTextAreaElement>('.pp-out'), dl = q<HTMLAnchorElement>('.pp-dl');
+  const limit = sizeLimit();
+  q('.pp-limit').textContent = formatBytes(limit);
+  let last: { file?: File; text?: string } | null = null;
+  let url: string | null = null;
+  const fmt = (n: number) => n.toLocaleString('en');
+
+  const options = (): PruneOptions => {
+    const o = { ...DEFAULTS };
+    root.querySelectorAll<HTMLInputElement>('[data-opt]').forEach((c) => ((o as any)[c.dataset.opt!] = c.checked));
+    return o;
+  };
+
+  function show(r: PruneResult, name: string) {
+    out.value = r.markdown;
+    q('.pp-before').textContent = `${fmt(r.before)} tokens`;
+    q('.pp-after').textContent = `${fmt(r.after)} tokens`;
+    q('.pp-saved').textContent = `${Math.max(0, Math.round((1 - r.after / Math.max(1, r.before)) * 100))}%`;
+    q('.pp-note').textContent = [r.kind, r.note].filter(Boolean).join(': ');
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(new Blob([r.markdown], { type: 'text/markdown' }));
+    dl.href = url;
+    dl.download = `${name.replace(/\.[^.]+$/, '') || 'clean'}-clean.md`;
+    result.hidden = false;
+  }
+
+  async function run() {
+    if (!last) return;
+    err.hidden = true; status.textContent = 'Working on your device…';
+    try {
+      const m = await engine();
+      if (last.file) show(await m.pruneFile(last.file, options(), (s) => (status.textContent = s)), last.file.name);
+      else show(m.pruneText(last.text!, options()), 'pasted');
+      status.textContent = '';
+    } catch (e: any) {
+      console.error(e);
+      status.textContent = ''; result.hidden = true; err.hidden = false;
+      err.textContent = e?.message === 'NO_TEXT'
+        ? 'This PDF has no text to read: it is probably a scan (pictures of pages). Run it through a text-recognition (OCR) tool first.'
+        : e?.name === 'PasswordException'
+          ? 'This PDF is password-protected. Save a copy without a password, then try again.'
+          : 'Sorry, this file could not be read. Supported: PDF, Word (.docx), web pages, text, code files and ZIPs of code.';
+    }
+  }
+
+  function pick(f?: File) {
+    if (!f) return;
+    if (f.size > limit) { err.hidden = false; err.textContent = `This file is ${formatBytes(f.size)}. The limit on this device is ${formatBytes(limit)}.`; return; }
+    last = { file: f };
+    run();
+  }
+  input.addEventListener('change', () => pick(input.files?.[0]));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick(e.dataTransfer?.files[0]); });
+  q('.pp-paste-go').addEventListener('click', () => {
+    const t = q<HTMLTextAreaElement>('.pp-paste').value;
+    if (t.trim()) { last = { text: t }; run(); }
+  });
+  root.querySelectorAll('[data-opt]').forEach((c) => c.addEventListener('change', run));
+  q('.pp-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLElement;
+    try { await navigator.clipboard.writeText(out.value); } catch { out.select(); document.execCommand('copy'); }
+    b.textContent = 'Copied ✓'; setTimeout(() => (b.textContent = 'Copy Markdown'), 1500);
+  });
+  q('.pp-again').addEventListener('click', () => { last = null; result.hidden = true; input.value = ''; q<HTMLTextAreaElement>('.pp-paste').value = ''; });
+</script>

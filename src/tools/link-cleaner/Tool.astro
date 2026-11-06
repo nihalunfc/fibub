@@ -1,0 +1,107 @@
+---
+// Link cleaner: strips tracking and affiliate parts from links. Pure text work in the browser.
+---
+<div class="lc panel">
+  <label class="lc-label" for="lc-in">Paste a link, or a whole message with links in it</label>
+  <textarea id="lc-in" class="lc-in" rows="4" spellcheck="false" autocomplete="off" placeholder="https://www.example.com/page?utm_source=newsletter&fbclid=…"></textarea>
+  <div class="lc-bar">
+    <label class="lc-switch"><input type="checkbox" class="lc-aff" checked /> Also remove affiliate and referral tags</label>
+    <button type="button" class="btn secondary lc-paste">Paste</button>
+  </div>
+  <div class="lc-result" hidden>
+    <p class="lc-summary" role="status" aria-live="polite"></p>
+    <div class="lc-outwrap">
+      <textarea class="lc-out" rows="3" readonly aria-label="Clean text"></textarea>
+      <button type="button" class="btn lc-copy">Copy clean text</button>
+    </div>
+    <ol class="lc-list"></ol>
+  </div>
+</div>
+
+<style is:global>
+  .lc { display: grid; gap: 12px; margin-bottom: 32px; }
+  .lc-label { font-weight: 600; }
+  .lc textarea { width: 100%; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); resize: vertical; word-break: break-all; }
+  .lc textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+  .lc-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+  .lc-switch { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
+  .lc-switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .lc-paste { padding: 8px 14px; }
+  .lc-result { display: grid; gap: 12px; }
+  .lc-summary { margin: 0; font-weight: 600; color: var(--good); }
+  .lc-summary.none { color: var(--muted); }
+  .lc-outwrap { display: grid; gap: 8px; }
+  .lc-out { background: var(--good-soft) !important; }
+  .lc-copy { justify-self: start; }
+  .lc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .lc-list li { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; background: var(--surface); }
+  .lc-url { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
+  .lc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lc-chips span { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--bad-soft); color: var(--bad); text-decoration: line-through; }
+  .lc-chips .ok { background: var(--good-soft); color: var(--good); text-decoration: none; }
+  .lc-note { font-size: 13px; color: var(--warn); margin: 0; }
+  .lc-row-actions { display: flex; gap: 12px; font-size: 14px; }
+  .lc-row-actions button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
+</style>
+
+<script>
+  import { cleanText } from '../../lib/linkclean';
+
+  const root = document.querySelector<HTMLElement>('.lc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLTextAreaElement>('.lc-in'), out = q<HTMLTextAreaElement>('.lc-out'), aff = q<HTMLInputElement>('.lc-aff');
+  const result = q('.lc-result'), list = q('.lc-list'), summary = q('.lc-summary');
+
+  async function copy(text: string, btn: HTMLElement) {
+    const old = btn.textContent;
+    try { await navigator.clipboard.writeText(text); }
+    catch { out.value = text; out.select(); document.execCommand('copy'); }
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => (btn.textContent = old), 1500);
+  }
+
+  function run() {
+    const text = input.value;
+    const { text: clean, results } = cleanText(text, { affiliate: aff.checked });
+    result.hidden = text.trim() === '';
+    if (result.hidden) return;
+    out.value = clean;
+    const parts = results.reduce((n, r) => n + r.removed.length, 0);
+    const changed = results.filter((r) => r.changed).length;
+    summary.classList.toggle('none', parts === 0);
+    summary.textContent = results.length === 0
+      ? 'No links found. Paste a link that starts with http:// or https://.'
+      : parts === 0
+        ? `${results.length === 1 ? 'This link is' : `All ${results.length} links are`} already clean.`
+        : `Cleaned ${changed} of ${results.length} link${results.length === 1 ? '' : 's'}: removed ${parts} tracking part${parts === 1 ? '' : 's'}.`;
+    list.replaceChildren(...results.map((r) => {
+      const li = document.createElement('li');
+      const url = document.createElement('div');
+      url.className = 'lc-url'; url.textContent = r.output;
+      const chips = document.createElement('div');
+      chips.className = 'lc-chips';
+      if (r.removed.length) for (const k of r.removed) { const s = document.createElement('span'); s.textContent = k; chips.append(s); }
+      else { const s = document.createElement('span'); s.className = 'ok'; s.textContent = 'nothing to remove'; chips.append(s); }
+      li.append(url, chips);
+      if (r.short) {
+        const n = document.createElement('p'); n.className = 'lc-note';
+        n.textContent = 'This is a short link, so it hides where it goes. We can\'t see that without opening it, so it is left as it is.';
+        li.append(n);
+      }
+      const actions = document.createElement('div'); actions.className = 'lc-row-actions';
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Copy link';
+      b.addEventListener('click', () => copy(r.output, b));
+      actions.append(b); li.append(actions);
+      return li;
+    }));
+  }
+
+  input.addEventListener('input', run);
+  aff.addEventListener('change', run);
+  q('.lc-copy').addEventListener('click', (e) => copy(out.value, e.currentTarget as HTMLElement));
+  const paste = q<HTMLButtonElement>('.lc-paste');
+  if (!navigator.clipboard?.readText) paste.hidden = true;
+  paste.addEventListener('click', async () => {
+    try { input.value = await navigator.clipboard.readText(); run(); } catch { input.focus(); }
+  });
+</script>
