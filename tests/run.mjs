@@ -393,10 +393,46 @@ try {
     check(true, 'prompt pruner: "All code comments" removes comments');
   }
 
+  // 6i. File converter.
+  {
+    const conv = async (files, to) => {
+      await page.goto(BASE + '/documents/file-converter/');
+      await page.setInputFiles('.fc-input', files.map((f) => OUT + f));
+      await page.waitForSelector('.fc-picked:not([hidden])');
+      await page.locator('.fc-chips label', { hasText: to }).first().click();
+      await page.click('.fc-go');
+      await page.waitForSelector('.fc-result:not([hidden]), .fc-error:not([hidden])', { timeout: 60000 });
+      if (await page.isVisible('.fc-error')) return { error: await page.textContent('.fc-error') };
+      const [d] = await Promise.all([page.waitForEvent('download'), page.click('.fc-dl')]);
+      const path = OUT + 'conv-' + d.suggestedFilename();
+      await d.saveAs(path);
+      return { path, name: d.suggestedFilename() };
+    };
+    writeFileSync(OUT + 'people.csv', 'name,age,zip,note\nAsha,31,01234,"likes, commas"\nBen,40,90210,"said ""hi"""\n');
+    const x = await conv(['people.csv'], 'Excel');
+    check(x.name === 'people.xlsx', `converter: CSV to Excel -> ${x.name ?? x.error}`);
+    const back = await conv(['conv-people.xlsx'], 'CSV');
+    const csv = back.path ? readFileSync(back.path, 'utf8').replace(/^﻿/, '') : back.error;
+    check(csv === 'name,age,zip,note\r\nAsha,31,01234,"likes, commas"\r\nBen,40,90210,"said ""hi"""\r\n', `converter: Excel back to CSV is identical -> ${JSON.stringify(csv)}`);
+    const j = await conv(['people.csv'], 'JSON');
+    const data = JSON.parse(readFileSync(j.path, 'utf8'));
+    check(data[0].age === 31 && data[0].zip === '01234' && data[1].note === 'said "hi"', 'converter: CSV to JSON keeps numbers and leading zeros');
+    const pics = await conv(['photo.jpg', 'photo.png'], 'PDF');
+    check(pics.name === 'pictures.pdf' && (await PDFDocument.load(readFileSync(pics.path))).getPageCount() === 2, `converter: 2 pictures to one 2-page PDF -> ${pics.name ?? pics.error}`);
+    const pages = await conv(['report.pdf'], 'PNG');
+    check(pages.name === 'report-png.zip' && Object.keys(unzipSync(readFileSync(pages.path))).length === 5, `converter: 5-page PDF to PNG ZIP -> ${pages.name ?? pages.error}`);
+    const txt = await conv(['report.pdf'], 'Text');
+    check(txt.path && readFileSync(txt.path, 'utf8').includes('Revenue overview'), 'converter: PDF to text');
+    const html = await conv(['report.docx'], 'HTML');
+    check(html.path && /<html/.test(readFileSync(html.path, 'utf8')), `converter: Word to HTML -> ${html.name ?? html.error}`);
+    const png = await conv(['photo.jpg'], 'PNG');
+    check(png.name === 'photo.png', `converter: JPG to PNG -> ${png.name ?? png.error}`);
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/']) {
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/']) {
       await page.goto(BASE + path);
       const og = await page.getAttribute('meta[property="og:image"]', 'content');
       const file = 'dist' + new URL(og).pathname;
@@ -503,14 +539,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
