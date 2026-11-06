@@ -1,0 +1,57 @@
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --ink: #1d2321; --muted: #5d6763; --line: #e3e1da;
+  --accent: #0f766e; --accent-ink: #ffffff; --accent-soft: #e6f2f0; --warn: #9a5b00; --warn-soft: #fff4e0;
+  --good: #166534; --good-soft: #e8f5ec; --bad: #a11d1d; --bad-soft: #fdecec;
+  --radius: 12px; --max: 1040px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121615; --surface: #1a201e; --ink: #e8ece9; --muted: #a2aca8; --line: #2c3431;
+    --accent: #2dd4bf; --accent-ink: #062b27; --accent-soft: #163330; --warn: #f0b45a; --warn-soft: #2e2512;
+    --good: #6ee79a; --good-soft: #15291c; --bad: #f59a9a; --bad-soft: #321818;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; }
+a { color: var(--accent); }
+img, svg { max-width: 100%; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
+header.site { border-bottom: 1px solid var(--line); background: var(--surface); }
+header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; flex-wrap: wrap; }
+.logo { font-weight: 700; font-size: 22px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+.logo span { color: var(--accent); }
+nav.main { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.main a { color: var(--ink); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 15px; }
+nav.main a:hover, nav.main a[aria-current="page"] { background: var(--accent-soft); }
+main { padding: 32px 0 48px; }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; }
+h2 { font-size: 22px; margin: 32px 0 12px; }
+h3 { font-size: 18px; margin: 24px 0 8px; }
+.lead { color: var(--muted); font-size: 18px; max-width: 680px; margin: 0 0 24px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--good); background: var(--good-soft); padding: 4px 10px; border-radius: 999px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.card { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; text-decoration: none; color: var(--ink); }
+a.card:hover { border-color: var(--accent); }
+.card h3 { margin: 0 0 6px; font-size: 17px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.card .soon { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 400; }
+.crumbs { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.crumbs a { color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.prose { max-width: 720px; }
+.prose table { border-collapse: collapse; width: 100%; font-size: 15px; }
+.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 10px; padding: 12px 20px; font: inherit; font-weight: 600; cursor: pointer; background: var(--accent); color: var(--accent-ink); text-decoration: none; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.note { border-radius: 10px; padding: 10px 14px; font-size: 15px; }
+.note.warn { background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); }
+.note.good { background: var(--good-soft); border-left: 3px solid var(--good); }
+.note.bad { background: var(--bad-soft); border-left: 3px solid var(--bad); }
+footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 24px 0 40px; }
+footer.site .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+footer.site a { color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

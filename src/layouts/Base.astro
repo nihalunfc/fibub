@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+import { SITE, SHELVES } from '../site';
+interface Props { title: string; description?: string; shelf?: string; noindex?: boolean }
+const { title, description = SITE.description, shelf, noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, SITE.url).href;
+const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0f766e" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="logo" href="/">fi<span>bub</span></a>
+        <nav class="main" aria-label="Shelves">
+          {SHELVES.map((s) => <a href={`/${s.id}/`} aria-current={shelf === s.id ? 'page' : undefined}>{s.name}</a>)}
+          <a href="/about/">About</a>
+        </nav>
+      </div>
+    </header>
+    <main><div class="wrap"><slot /></div></main>
+    <footer class="site">
+      <div class="wrap">
+        <span>Free tools. Your files stay on your device.</span>
+        <span><a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · Made by <a href={SITE.maker.url}>{SITE.maker.name}</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

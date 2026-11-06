@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import ToolCard from '../components/ToolCard.astro';
+import { SITE, SHELVES } from '../site';
+import { allTools, toolUrl } from '../lib/tools';
+const tools = await allTools();
+---
+<Base title={SITE.name}>
+  <span class="badge">● Runs in your browser. Nothing is uploaded.</span>
+  <h1 style="margin-top:16px">{SITE.tagline}</h1>
+  <p class="lead">Compress a PDF, plan a budget, convert a currency. Every tool on fibub works on your own device, so your files and numbers are never sent to us or anyone else.</p>
+  {SHELVES.map((s) => {
+    const list = tools.filter((t) => t.data.shelf === s.id);
+    return list.length > 0 && (
+      <section>
+        <h2><a href={`/${s.id}/`} style="color:inherit;text-decoration:none">{s.name}</a></h2>
+        <div class="grid">
+          {list.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}
+        </div>
+      </section>
+    );
+  })}
+</Base>
