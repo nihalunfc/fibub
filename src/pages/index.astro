@@ -8,7 +8,12 @@ const tools = await allTools();
 <Base title={SITE.name}>
   <span class="badge">● Runs in your browser. Nothing is uploaded.</span>
   <h1 style="margin-top:16px">{SITE.tagline}</h1>
-  <p class="lead">Compress a PDF, plan a budget, convert a currency. Every tool on fibub works on your own device, so your files and numbers are never sent to us or anyone else.</p>
+  <p class="lead">Compress a PDF, Word file or photo, plan a budget, convert a currency. Every tool works on your own device.</p>
+  <ul class="promises">
+    <li><b>Nothing is uploaded.</b> Your files stay in your browser.</li>
+    <li><b>Nothing about you is saved.</b> No accounts, no cookies, no tracking.</li>
+    <li><b>Free, with no limits.</b> No sign-up and no watermarks.</li>
+  </ul>
   {SHELVES.map((s) => {
     const list = tools.filter((t) => t.data.shelf === s.id);
     return list.length > 0 && (
@@ -21,3 +26,9 @@ const tools = await allTools();
     );
   })}
 </Base>
+
+<style>
+  .promises { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .promises li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 15px; color: var(--muted); }
+  .promises b { display: block; color: var(--ink); }
+</style>

@@ -9,5 +9,5 @@ npm run build    # static site in dist/
 npm test         # end-to-end checks in a headless browser (run build first)
 ```
 
-Hosting: Cloudflare Pages, build command `npm run build`, output directory `dist`.
+Hosting: Cloudflare Workers static assets (see `wrangler.jsonc`); merging to `main` deploys fibub.com.
 How to add a tool: see CLAUDE.md.

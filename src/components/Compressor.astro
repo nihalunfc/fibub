@@ -1,0 +1,304 @@
+---
+// The shared file compressor. Each compress tool page uses it with its own file types.
+// All work happens in src/lib/compress/, in the browser. Nothing is uploaded.
+interface Props {
+  accept?: string;   // file input accept list; empty = any file
+  what?: string;     // "a PDF", "an image", "a file"…
+}
+const { accept = '', what = 'a file' } = Astro.props;
+---
+<div class="cmp panel" data-state="empty">
+  <p class="promise"><strong>Your file never leaves your device.</strong> It is compressed right here in your browser: nothing is uploaded, and we never see, store or use it.</p>
+
+  <label class="drop">
+    <input class="cmp-input visually-hidden" type="file" accept={accept || undefined} />
+    <strong>Choose {what}</strong>
+    <span>or drop it here</span>
+    <span class="limit">Up to <b class="cmp-limit">200 MB</b> on this device</span>
+  </label>
+
+  <div class="file" hidden>
+    <div><b class="cmp-name"></b> <span class="muted cmp-size"></span></div>
+    <div class="muted cmp-kind"></div>
+    <button type="button" class="link cmp-clear">Choose another file</button>
+  </div>
+
+  <fieldset class="choices cmp-methods" hidden>
+    <legend>What should we do with it?</legend>
+    <div class="cmp-method-list"></div>
+  </fieldset>
+
+  <fieldset class="choices cmp-levels" hidden>
+    <legend>How much to compress</legend>
+    <label><input type="radio" name="cmp-level" value="light" /> <b>Light</b><span class="cmp-light-blurb"></span></label>
+    <label><input type="radio" name="cmp-level" value="recommended" checked /> <b>Recommended</b><span class="cmp-rec-blurb"></span></label>
+    <label><input type="radio" name="cmp-level" value="smallest" /> <b>Smallest</b><span class="cmp-small-blurb"></span></label>
+  </fieldset>
+  <p class="note warn cmp-pdf-note" hidden>Recommended and Smallest turn each PDF page into an image: text can no longer be selected or searched, and links and fill-in fields are removed. Choose Light to keep them. If images would not make the file smaller, you get the Light result instead.</p>
+
+  <button class="btn cmp-go" type="button" hidden>Compress</button>
+
+  <div class="working" hidden aria-live="polite">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="52" class="track" />
+        <circle cx="60" cy="60" r="52" class="bar" pathLength="100" />
+      </svg>
+      <div class="ring-text"><b class="cmp-pct">…</b><span class="cmp-elapsed">0 s</span></div>
+    </div>
+    <p class="cmp-label">Starting…</p>
+    <p class="muted small">Working on your device. Keep this tab open.</p>
+    <div class="pond" aria-label="Pop the bubbles while you wait">
+      <span class="pond-hint">Pop the bubbles while you wait · <b class="cmp-pops">0</b> popped</span>
+    </div>
+  </div>
+
+  <div class="result" hidden>
+    <div class="sizes">
+      <div><span class="muted">Before</span><b class="cmp-before"></b></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div><span class="muted">After</span><b class="cmp-after"></b></div>
+      <div class="saved"><b class="cmp-saved"></b><span class="muted">smaller</span></div>
+    </div>
+    <div class="meter" aria-hidden="true"><span class="cmp-meter"></span></div>
+    <p class="cmp-note"></p>
+    <div class="actions">
+      <a class="btn cmp-download" download>Download</a>
+      <button type="button" class="btn secondary cmp-again">Compress another file</button>
+    </div>
+  </div>
+  <p class="note bad cmp-error" role="alert" hidden></p>
+</div>
+
+<style>
+  .cmp { display: grid; gap: 16px; margin-bottom: 32px; position: relative; }
+  .promise { margin: 0; font-size: 15px; padding: 10px 14px; border-radius: 10px; background: var(--good-soft); border-left: 3px solid var(--good); }
+  .drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 40px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .drop strong { font-size: 19px; color: var(--accent); }
+  .drop span, .muted { color: var(--muted); font-size: 14px; }
+  .drop .limit { margin-top: 6px; }
+  .drop.over, .drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .cmp:not([data-state="empty"]) .drop { display: none; }
+  .file { display: grid; gap: 2px; word-break: break-all; }
+  .link { justify-self: start; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-size: 14px; padding: 4px 0; }
+  .choices { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .choices legend { font-weight: 600; margin-bottom: 8px; }
+  .choices :global(label) { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+  .choices :global(label:has(input:checked)) { border-color: var(--accent); background: var(--accent-soft); }
+  .choices :global(span) { grid-column: 2; color: var(--muted); font-size: 14px; }
+  .cmp-go { width: 100%; font-size: 17px; padding: 14px; }
+  .working { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 8px 0; }
+  .ring-wrap { position: relative; width: 132px; height: 132px; }
+  .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 10; }
+  .ring .track { stroke: var(--line); }
+  .ring .bar { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 0 100; transition: stroke-dasharray 0.3s ease; }
+  .working.unknown .ring .bar { stroke-dasharray: 25 75; animation: spin 1.1s linear infinite; transform-origin: 60px 60px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ring-text { position: absolute; inset: 0; display: grid; place-content: center; }
+  .ring-text b { font-size: 26px; }
+  .ring-text span { font-size: 13px; color: var(--muted); }
+  .cmp-label { margin: 8px 0 0; font-weight: 600; }
+  .small { margin: 0; font-size: 13px; }
+  .pond { position: relative; width: 100%; height: 150px; margin-top: 8px; border-radius: var(--radius); background: var(--accent-soft); overflow: hidden; touch-action: manipulation; }
+  .pond-hint { position: absolute; left: 0; right: 0; bottom: 8px; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .pond :global(.bubble) { position: absolute; bottom: -60px; border-radius: 50%; border: 2px solid var(--accent); background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%); cursor: pointer; animation: rise linear forwards; padding: 0; }
+  .pond :global(.bubble.popped) { animation: pop 0.25s ease-out forwards; pointer-events: none; }
+  @keyframes rise { to { transform: translateY(-230px); } }
+  @keyframes pop { to { transform: scale(1.6); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pond { display: none; } .working.unknown .ring .bar { animation: none; } }
+  .sizes { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .sizes > div { display: grid; }
+  .sizes b { font-size: 22px; }
+  .sizes .arrow { font-size: 22px; color: var(--muted); }
+  .sizes .saved b { color: var(--good); }
+  .meter { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .meter span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.8s ease; width: 100%; }
+  .cmp-note { margin: 0; color: var(--muted); }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .result, .working { animation: fade 0.25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+  [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { detect, sizeLimit, METHOD_INFO } from '../lib/compress/detect';
+  import { formatBytes } from '../lib/compress/format';
+  import type { Level, Method } from '../lib/compress/types';
+
+  // The compressors (about 1 MB) load in the background once the page is idle, so they are
+  // ready when needed and keep working if the connection drops.
+  const engine = () => import('../lib/compress/index');
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => engine().then((m) => m.warmUp()).catch(() => {}));
+
+  const BLURBS: Record<Method, [string, string, string]> = {
+    pdf: ['Keeps text, links and forms exactly as they are. Smaller saving.', 'Best for scans and photos. Pages become images at 150 DPI.', 'For strict upload limits. Pages become images at 100 DPI.'],
+    image: ['Same size in pixels, lighter file.', 'Up to 2560 pixels on the long side. Looks the same on any screen.', 'Up to 1600 pixels. Best for email and upload limits.'],
+    office: ['Repacks the file more tightly. Pictures untouched.', 'Pictures up to 2560 pixels wide. Looks the same on screen and in print.', 'Pictures up to 1600 pixels. Smallest file, fine on screen.'],
+    zip: ['', '', ''],
+  };
+
+  for (const root of document.querySelectorAll<HTMLElement>('.cmp')) {
+    const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+    const input = q<HTMLInputElement>('.cmp-input');
+    const drop = q('.drop');
+    const go = q<HTMLButtonElement>('.cmp-go');
+    const methodsBox = q('.cmp-methods'), levelsBox = q('.cmp-levels'), pdfNote = q('.cmp-pdf-note');
+    const working = q('.working'), result = q('.result'), error = q('.cmp-error');
+    const limit = sizeLimit();
+    q('.cmp-limit').textContent = formatBytes(limit);
+    let file: File | null = null;
+    let url: string | null = null;
+
+    const setState = (s: string) => (root.dataset.state = s);
+    const method = () => (root.querySelector<HTMLInputElement>('input[name=cmp-method]:checked')?.value ?? 'zip') as Method;
+    const level = () => (root.querySelector<HTMLInputElement>('input[name=cmp-level]:checked')!.value as Level);
+    const showError = (msg: string) => { error.textContent = msg; error.hidden = false; };
+
+    function refreshOptions() {
+      const m = method();
+      levelsBox.hidden = m === 'zip';
+      const [l, r, s] = BLURBS[m];
+      q('.cmp-light-blurb').textContent = l; q('.cmp-rec-blurb').textContent = r; q('.cmp-small-blurb').textContent = s;
+      pdfNote.hidden = !(m === 'pdf' && level() !== 'light');
+      go.textContent = m === 'zip' ? 'Pack into ZIP' : 'Compress';
+    }
+
+    function clearResult() {
+      if (url) URL.revokeObjectURL(url);
+      url = null; result.hidden = true; error.hidden = true;
+    }
+
+    function reset() {
+      clearResult();
+      file = null; input.value = '';
+      for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working]) el.hidden = true;
+      q('.cmp-clear').hidden = false;
+      setState('empty');
+    }
+
+    function pick(f?: File) {
+      clearResult();
+      if (!f) return;
+      if (f.size > limit) {
+        showError(`This file is ${formatBytes(f.size)}. On this device the limit is ${formatBytes(limit)}, because your browser has to hold the whole file in memory. Try a computer for bigger files.`);
+        return;
+      }
+      if (f.size === 0) return showError('This file is empty.');
+      file = f;
+      const kind = detect(f);
+      q('.cmp-name').textContent = f.name;
+      q('.cmp-size').textContent = formatBytes(f.size);
+      q('.cmp-kind').textContent = `Detected: ${kind.label}`;
+      q('.cmp-method-list').innerHTML = '';
+      kind.methods.forEach((m, i) => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="radio" name="cmp-method" value="${m}" ${i === 0 ? 'checked' : ''}/> <b></b><span></span>`;
+        label.querySelector('b')!.textContent = METHOD_INFO[m].name;
+        label.querySelector('span')!.textContent = METHOD_INFO[m].blurb;
+        label.querySelector('input')!.addEventListener('change', () => { clearResult(); refreshOptions(); });
+        q('.cmp-method-list').append(label);
+      });
+      methodsBox.hidden = kind.methods.length < 2;
+      q('.file').hidden = false; go.hidden = false; go.disabled = false;
+      refreshOptions();
+      setState('ready');
+    }
+
+    input.addEventListener('change', () => pick(input.files?.[0]));
+    for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
+    for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
+    drop.addEventListener('drop', (e) => { e.preventDefault(); pick((e as DragEvent).dataTransfer?.files?.[0]); });
+    q('.cmp-clear').addEventListener('click', reset);
+    q('.cmp-again').addEventListener('click', reset);
+    root.querySelectorAll<HTMLInputElement>('input[name=cmp-level]').forEach((r) => r.addEventListener('change', () => { clearResult(); refreshOptions(); }));
+
+    // --- the waiting screen: progress ring, timer and a small bubble game ---
+    const bar = q<SVGCircleElement & HTMLElement>('.ring .bar');
+    const pond = q('.pond');
+    let pops = 0, timer = 0, spawner = 0;
+    function setProgress(fraction: number | null, label: string) {
+      working.classList.toggle('unknown', fraction === null);
+      bar.style.strokeDasharray = fraction === null ? '' : `${Math.round(fraction * 100)} 100`;
+      q('.cmp-pct').textContent = fraction === null ? '…' : `${Math.round(fraction * 100)}%`;
+      q('.cmp-label').textContent = label;
+    }
+    function spawnBubble() {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'bubble'; b.setAttribute('aria-label', 'Pop');
+      const size = 22 + Math.random() * 30;
+      Object.assign(b.style, { width: `${size}px`, height: `${size}px`, left: `${Math.random() * 88}%`, animationDuration: `${3.5 + Math.random() * 3}s` });
+      b.addEventListener('pointerdown', () => { b.classList.add('popped'); pops++; q('.cmp-pops').textContent = String(pops); navigator.vibrate?.(8); }, { once: true });
+      b.addEventListener('animationend', () => b.remove());
+      pond.append(b);
+    }
+    function startWaiting() {
+      const t0 = performance.now();
+      working.hidden = false;
+      setProgress(null, 'Starting…');
+      timer = window.setInterval(() => (q('.cmp-elapsed').textContent = `${Math.round((performance.now() - t0) / 1000)} s`), 500);
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { spawnBubble(); spawner = window.setInterval(spawnBubble, 700); }
+    }
+    function stopWaiting() {
+      clearInterval(timer); clearInterval(spawner);
+      pond.querySelectorAll('.bubble').forEach((b) => b.remove());
+      working.hidden = true;
+    }
+
+    go.addEventListener('click', async () => {
+      if (!file) return;
+      clearResult();
+      const m = method(), lv = level();
+      for (const el of [methodsBox, levelsBox, pdfNote, go]) el.hidden = true;
+      q<HTMLButtonElement>('.cmp-clear').hidden = true;
+      setState('working');
+      startWaiting();
+      const shownAt = performance.now();
+      try {
+        const { compressFile } = await engine();
+        const out = await compressFile(file, m, lv, (p) => setProgress(p.fraction, p.label));
+        setProgress(1, 'Done');
+        // Let the ring reach 100% before the result appears.
+        await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - shownAt))));
+        const before = file.size, after = out.bytes.length;
+        url = URL.createObjectURL(new Blob([out.bytes as Uint8Array<ArrayBuffer>], { type: out.mime }));
+        const dl = q<HTMLAnchorElement>('.cmp-download');
+        dl.href = url; dl.download = out.name;
+        q('.cmp-before').textContent = formatBytes(before);
+        q('.cmp-after').textContent = formatBytes(after);
+        const saved = Math.max(0, Math.round((1 - after / before) * 100));
+        q('.cmp-saved').textContent = `${saved}%`;
+        q('.cmp-meter').style.width = '100%';
+        requestAnimationFrame(() => requestAnimationFrame(() => (q('.cmp-meter').style.width = `${Math.max(2, 100 - saved)}%`)));
+        if (out.outcome === 'original') {
+          q('.cmp-note').textContent = 'This file is already well compressed, so none of the methods made it smaller. You can download your original file unchanged.';
+          dl.textContent = 'Download original file';
+        } else {
+          q('.cmp-note').textContent = out.note;
+          dl.textContent = `Download ${out.name.split('.').pop()!.toUpperCase()}`;
+        }
+        stopWaiting();
+        result.hidden = false;
+        setState('done');
+        root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: m, level: lv, before, after, outcome: out.outcome } }));
+      } catch (e) {
+        console.error(e);
+        stopWaiting();
+        const name = (e as Error)?.name;
+        showError(name === 'EncryptedPdfError'
+          ? 'This PDF is password-protected. Open it in your PDF reader, save a copy without a password, then try again.'
+          : name === 'UnsupportedError'
+            ? 'This file could not be opened that way. Try "Pack into a ZIP" instead, which works for any file.'
+            : 'Sorry, this file could not be read. It may be damaged, or your device may have run out of memory. Try "Pack into a ZIP", or a smaller file.');
+        for (const el of [go]) el.hidden = false;
+        methodsBox.hidden = (root.querySelectorAll('input[name=cmp-method]').length < 2);
+        refreshOptions();
+        q<HTMLButtonElement>('.cmp-clear').hidden = false;
+        setState('ready');
+        root.dispatchEvent(new CustomEvent('fibub:compress-failed', { bubbles: true, detail: { method: m, error: name || 'Error' } }));
+      }
+    });
+    reset();
+  }
+</script>

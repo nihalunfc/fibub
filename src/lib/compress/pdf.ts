@@ -10,23 +10,22 @@
 // so a text-only PDF is never made bigger.
 import { PDFDocument } from 'pdf-lib';
 
-export type Level = 'lossless' | 'balanced' | 'smallest';
-export const LEVELS: Record<Exclude<Level, 'lossless'>, { dpi: number; quality: number }> = {
-  balanced: { dpi: 150, quality: 0.72 },
+import type { Level } from './types';
+export const LEVELS: Record<Exclude<Level, 'light'>, { dpi: number; quality: number }> = {
+  recommended: { dpi: 150, quality: 0.72 },
   smallest: { dpi: 100, quality: 0.5 },
 };
 // Keep each page canvas under ~16 million pixels so phones (iOS Safari) can draw it.
 const MAX_PIXELS = 16_000_000;
 
-export interface Result {
+export interface PdfResult {
   bytes: Uint8Array;
   method: 'lossless' | 'image' | 'original';
   pages: number;
 }
 
-export class EncryptedPdfError extends Error {
-  name = 'EncryptedPdfError';
-}
+export { EncryptedPdfError } from './types';
+import { EncryptedPdfError } from './types';
 
 export async function compressLossless(input: Uint8Array): Promise<Uint8Array> {
   let doc: PDFDocument;
@@ -68,7 +67,7 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Uint8
 
 export async function compressAsImages(
   input: Uint8Array,
-  level: Exclude<Level, 'lossless'>,
+  level: Exclude<Level, 'light'>,
   onProgress: (done: number, total: number) => void = () => {},
 ): Promise<{ bytes: Uint8Array; pages: number }> {
   const { dpi, quality } = LEVELS[level];
@@ -115,11 +114,11 @@ export async function compress(
   input: Uint8Array,
   level: Level,
   onProgress: (done: number, total: number) => void = () => {},
-): Promise<Result> {
+): Promise<PdfResult> {
   const lossless = await compressLossless(input);
   const pages = (await PDFDocument.load(lossless, { updateMetadata: false })).getPageCount();
-  let best: Result = { bytes: lossless, method: 'lossless', pages };
-  if (level !== 'lossless') {
+  let best: PdfResult = { bytes: lossless, method: 'lossless', pages };
+  if (level !== 'light') {
     const img = await compressAsImages(input, level, onProgress);
     if (img.bytes.length < best.bytes.length) best = { bytes: img.bytes, method: 'image', pages: img.pages };
   }
@@ -127,4 +126,3 @@ export async function compress(
   return best;
 }
 
-export { formatBytes } from './format';
