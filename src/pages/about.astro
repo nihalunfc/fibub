@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../site';
+---
+<Base title="About" description="Why fibub exists and how its tools keep your files on your device.">
+  <article class="prose">
+    <h1>About fibub</h1>
+    <p class="lead">fibub is a growing set of free tools for money, documents and everyday tasks, built so that your files and numbers never leave your device.</p>
+    <h2>Why it exists</h2>
+    <p>Most free online tools ask you to upload your file to a server you know nothing about. That is a poor deal for a bank statement, a passport scan or a signed contract. Every fibub tool does its work inside your browser instead, using your own computer or phone.</p>
+    <h2>How you can check</h2>
+    <p>Open a tool, switch off your internet connection, and use it: it keeps working, because nothing needs our server. The site's code is also public on GitHub for anyone to read.</p>
+    <h2>Who makes it</h2>
+    <p>fibub is built and run by <a href={SITE.maker.url}>{SITE.maker.name}</a>, a data analyst based in Ontario, Canada. Have an idea for a tool, or found a bug? Write to <a href="mailto:hello@fibub.com">hello@fibub.com</a>.</p>
+  </article>
+</Base>

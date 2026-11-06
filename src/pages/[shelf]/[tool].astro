@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+import ToolCard from '../../components/ToolCard.astro';
+import { render } from 'astro:content';
+import { shelfById } from '../../site';
+import { allTools, toolComponent, toolUrl } from '../../lib/tools';
+export async function getStaticPaths() {
+  const tools = await allTools();
+  return tools
+    .filter((t) => t.data.status === 'live')
+    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, others: tools.filter((o) => o.id !== t.id && o.data.shelf === t.data.shelf).slice(0, 3) } }));
+}
+const { tool, others } = Astro.props;
+const shelf = shelfById(tool.data.shelf);
+const ToolUI = toolComponent(tool.id);
+const { Content } = await render(tool);
+const updated = tool.data.updated.toISOString().slice(0, 10);
+---
+<Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id}>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
+  <h1>{tool.data.title}</h1>
+  <p class="lead">{tool.data.summary}</p>
+  <ToolUI />
+  <article class="prose">
+    <Content />
+    <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
+  </article>
+  {others.length > 0 && (
+    <section>
+      <h2>More {shelf.name.toLowerCase()} tools</h2>
+      <div class="grid">{others.map((t) => <ToolCard href={toolUrl(t)} name={t.data.name} summary={t.data.summary} soon={t.data.status === 'soon'} />)}</div>
+    </section>
+  )}
+</Base>

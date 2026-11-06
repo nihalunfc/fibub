@@ -1,0 +1,7 @@
+---
+interface Props { href: string; name: string; summary: string; soon?: boolean }
+const { href, name, summary, soon = false } = Astro.props;
+---
+{soon
+  ? <div class="card"><h3>{name}<span class="soon">coming soon</span></h3><p>{summary}</p></div>
+  : <a class="card" href={href}><h3>{name}</h3><p>{summary}</p></a>}
