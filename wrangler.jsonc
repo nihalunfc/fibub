@@ -11,5 +11,7 @@
     "not_found_handling": "404-page",
     "html_handling": "force-trailing-slash"
   },
-  "observability": { "enabled": false }
+  "observability": { "enabled": false },
+  // Needed by `wrangler preview`, which Cloudflare runs to build a preview link for each pull request.
+  "previews": {}
 }
