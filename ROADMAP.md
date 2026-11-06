@@ -15,7 +15,7 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 9 | BI sandbox: SQL on local CSV/Parquet with duckdb-wasm, partitioning, instant charts | /documents/bi-sandbox/ | Planned |
 | 10 | MCP server starter: production-ready MCP server code from your API endpoints or file schema | /everyday/mcp-starter/ | Planned |
 | 11 | Equation physicalizer: paste a 2D/3D formula, see it as weights, friction or waves on a canvas | /everyday/equation-physicalizer/ | Planned |
-| 12 | Prompt pruner: strip boilerplate, repeated headers, metadata blocks and extra whitespace from PDFs, text and code folders to cut LLM tokens (shows tokens before and after) | /documents/prompt-pruner/ | Planned |
+| 12 | Prompt pruner: strip boilerplate, repeated headers, metadata blocks and extra whitespace from PDFs, text and code folders to cut LLM tokens (shows tokens before and after). Output: clean text with headings and lists kept, to copy or download as .md, so people paste text instead of uploading the heavy PDF. No AI summary: nothing is cut that matters | /documents/prompt-pruner/ | Planned |
 | 13 | Where did I put it? Type an item and where it is; a searchable list kept only in your browser, with backup file save/load | /everyday/where-is-it/ | Planned |
 | 14 | Declutter shredder: pick your Downloads folder, group files by type and age, review and clear old ones (moved to a Trash folder by default). Banner at the top: works only in Chrome and Edge on a computer | /everyday/declutter/ | Planned |
 | - | Clickbait checker browser extension (on-device summary of the real outcome on hover). A separate extension, not a fibub.com page | - | Idea |
