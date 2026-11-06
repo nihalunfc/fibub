@@ -25,6 +25,11 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
     <Content />
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
   </article>
+  <aside class="suggest panel">
+    <b>Have a suggestion, or found a bug?</b>
+    <span>Tell us what would make {tool.data.name} more useful. Ideas that ship are credited, if you'd like.</span>
+    <a class="btn secondary" href={`/contact/?about=${tool.id}`}>Send a suggestion</a>
+  </aside>
   {others.length > 0 && (
     <section>
       <h2>More {shelf.name.toLowerCase()} tools</h2>
@@ -32,3 +37,9 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
     </section>
   )}
 </Base>
+
+<style>
+  .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
+  .suggest span { color: var(--muted); font-size: 15px; }
+  .suggest .btn { margin-top: 6px; }
+</style>

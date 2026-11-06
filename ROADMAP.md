@@ -11,5 +11,8 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 5 | Weekly and monthly planner, download as image or PDF | /everyday/planner/ | Planned |
 | 6 | Link cleaner (strip trackers, UTM tags, affiliate parts) | /everyday/link-cleaner/ | Planned |
 | 7 | ATS resume checker (PDF, DOCX, DOC, Markdown; score out of 100 with fixes) | /documents/ats-resume-checker/ | Planned |
+| 8 | Data cleaner: CSV/Excel profile (missing values, outliers, duplicates, types) and basic cleaning; PDF/text pruning to cut LLM tokens | /documents/data-cleaner/ | Planned |
 | - | Anonymous usage counter feeding /stats/ | - | Planned |
 | - | Budget, sales tax/VAT/GST, loan EMI, currency, time zone, QR code tools | - | Ideas |
+
+Dropped (nihal, 2026-11-06): suggestion box (use the Contact page), postal code finder, WebAssembly "sub-second" shrinkers.
