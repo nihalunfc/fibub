@@ -1,105 +1,149 @@
 ---
+// The home page: a short line about fibub, a search box, and a plain index of every tool by shelf.
+// People can star the tools they use ("My tools") and switch to seeing only those.
 import Base from '../layouts/Base.astro';
-import ToolCard from '../components/ToolCard.astro';
-import SoonList from '../components/SoonList.astro';
 import { SITE, SHELVES } from '../site';
 import { ICONS } from '../lib/icons';
-import { allTools } from '../lib/tools';
+import { allTools, bySection, toolUrl } from '../lib/tools';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const soon = tools.filter((t) => t.data.status === 'soon');
-const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'], ['check', 'Nothing about you is saved'], ['download', 'Free, no sign-up']];
+const shelves = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, live) })).filter((s) => s.groups.length);
+const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
 <Base title={SITE.name}>
   <section class="hero">
     <h1>Free tools that never see your files</h1>
-    <p class="lead">The tools people need and can't find for free, from PDFs and resumes to bills, data and the night sky. Everything runs right in your browser.</p>
-    <ul class="promises">
-      {promises.map(([i, t]) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[i]} />{t}</li>)}
-    </ul>
+    <p class="lead">{live.length} tools for documents, money, everyday tasks and science. They all run in your browser: nothing is uploaded, nothing about you is saved, and there is no sign-up.</p>
     <label class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
       <span class="visually-hidden">Find a tool</span>
-      <input type="search" placeholder="Find a tool: PDF, photo, ZIP…" autocomplete="off" />
+      <input type="search" placeholder="Find a tool, or #3" autocomplete="off" />
     </label>
   </section>
 
-  <section class="shelf mine" hidden>
-    <div class="shelf-h"><h2>My tools</h2><button type="button" class="mine-clear">Clear</button></div>
-    <div class="grid tools mine-grid"></div>
-    <p class="mine-note">Tools you bookmarked, saved only in this browser.</p>
+  <section class="mine" hidden aria-labelledby="mine-h">
+    <div class="mine-h">
+      <h2 id="mine-h">My tools</h2>
+      <div class="mine-act">
+        <button type="button" class="link focus-btn"></button>
+        <button type="button" class="link mine-clear">Clear</button>
+      </div>
+    </div>
+    <ul class="ix mine-list"></ul>
+    <p class="note">Starred tools are saved only in this browser, never sent anywhere.</p>
   </section>
 
-  {SHELVES.map((sh) => {
-    const mine = live.filter((t) => t.data.shelf === sh.id);
-    return mine.length > 0 && (
-      <section class="shelf" data-shelf={sh.id}>
-        <div class="shelf-h"><h2>{sh.name}</h2><a href={`/${sh.id}/`}>All {mine.length} →</a></div>
-        <div class="grid tools">{mine.map((t, i) => <div class:list={['slot', { extra: i >= 6 }]}><ToolCard tool={t} /></div>)}</div>
+  <div class="dir">
+    {shelves.map(({ shelf, groups }) => (
+      <section class="sh" data-shelf={shelf.id}>
+        <h2><a href={`/${shelf.id}/`}>{shelf.name}</a></h2>
+        {groups.map((g) => (
+          <div class="grp">
+            {g.name && <h3>{g.name.replace(/^Astronomy: /, '')}</h3>}
+            <ul class="ix">
+              {g.tools.map((t) => (
+                <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} ${shelf.name} ${g.name ?? ''}`.toLowerCase()}>
+                  <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
+                  <span class="num">#{t.data.num}</span>
+                  <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </section>
-    );
-  })}
+    ))}
+  </div>
   <p class="empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
+  <p class="hint">Tap the star next to a tool to add it to My tools. Then you can hide the rest and see only the tools you use.</p>
 
-  <h2>Coming soon</h2>
-  <SoonList tools={soon} />
+  {soon.length > 0 && <p class="next"><b>Coming next:</b> {soon.map((t) => t.data.name).join(', ')}.</p>}
 </Base>
 
 <style>
-  .hero { position: relative; padding: 12px 0 4px; isolation: isolate; }
-  .hero h1 { max-width: 760px; }
-  .promises { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 8px 18px; }
-  .promises li { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
-  .promises svg { width: 16px; height: 16px; color: var(--good); }
-  .search { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--muted); }
+  .hero { padding: 8px 0 6px; }
+  .hero h1 { max-width: 720px; }
+  .hero .lead { max-width: 620px; }
+  .search { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
   .search:focus-within { border-color: var(--accent); }
   .search svg { width: 18px; height: 18px; flex: none; }
   .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }
+
+  .dir { display: grid; gap: 8px 40px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); margin-top: 28px; align-items: start; }
+  .sh h2 { margin: 18px 0 4px; font-size: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sh h2 a { color: var(--ink); text-decoration: none; }
+  .sh h2 a:hover { color: var(--accent); }
+  .grp h3 { margin: 14px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .ix { list-style: none; margin: 0; padding: 0; }
+  .ti { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
+  .ti a { display: grid; padding: 9px 0; min-width: 0; color: var(--ink); text-decoration: none; }
+  .ti .nm { font-weight: 600; }
+  .ti a:hover .nm { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .ti .sm { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ti .num { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pin { width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); opacity: .45; cursor: pointer; border-radius: 8px; padding: 0; }
+  .pin svg { width: 18px; height: 18px; }
+  .pin:hover { opacity: 1; }
+  .pin[aria-pressed=true] { color: var(--warn); opacity: 1; }
+  .pin[aria-pressed=true] svg { fill: currentColor; }
+
+  .mine { margin-top: 26px; padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); max-width: 720px; }
+  .mine-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+  .mine-h h2 { margin: 12px 0 4px; font-size: 18px; }
+  .mine-act { display: flex; gap: 14px; }
+  .link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .mine .ti:last-child { border-bottom: 0; }
+  .note, .hint, .next { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+  .hint { margin-top: 18px; }
+  .next { margin-top: 28px; }
   .empty { color: var(--muted); }
-  .mine-clear { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .mine-note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
-  .shelf-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .shelf-h a { font-size: 14px; font-weight: 600; text-decoration: none; }
-  .slot { display: grid; }
-  .slot > :global(.tc) { height: 100%; }
-  /* Show six per shelf; the rest appear while searching. */
-  body:not(.searching) .slot.extra { display: none; }
-  .slot:has(> [hidden]) { display: none; }
-  @media (max-width: 600px) {
-    .grid { gap: 6px; }
-    .grid :global(.tc) { padding: 10px 12px; gap: 12px; }
-    .grid :global(.tc-sum) { -webkit-line-clamp: 1; }
-  }
+  /* Only my tools: the full index is out of the way until the person asks for it. */
+  :global(body.focus) .dir, :global(body.focus) .hint, :global(body.focus) .next { display: none; }
 </style>
 
 <script>
-  import { myTools, matches } from '../scripts/site';
-  // My tools: copies of the bookmarked tools' cards, first on the page.
-  const mine = document.querySelector<HTMLElement>('.mine')!, mineGrid = mine.querySelector<HTMLElement>('.mine-grid')!;
-  function showMine() {
-    const cards = myTools().map((id) => document.querySelector<HTMLElement>(`section.shelf:not(.mine) .tc[href$="/${id}/"]`)).filter(Boolean);
-    mineGrid.replaceChildren(...cards.map((c) => { const d = document.createElement('div'); d.className = 'slot'; const k = c!.cloneNode(true) as HTMLElement; k.removeAttribute('data-search'); d.append(k); return d; }));
-    mine.hidden = !cards.length || document.body.classList.contains('searching');
-  }
-  showMine();
-  document.addEventListener('fibub:mytools', showMine);
-  mine.querySelector('.mine-clear')!.addEventListener('click', () => { try { localStorage.removeItem('fibub-mytools-v1'); } catch {} document.dispatchEvent(new CustomEvent('fibub:mytools')); });
-
-  // Filter the tool cards and the coming-soon chips as the person types.
+  import { myTools, togglePin, matches, focusOn, setFocus, setMyTools } from '../scripts/site';
+  const rows = [...document.querySelectorAll<HTMLElement>('.dir .ti')];
+  const mine = document.querySelector<HTMLElement>('.mine')!, list = mine.querySelector<HTMLElement>('.mine-list')!;
+  const focusBtn = mine.querySelector<HTMLButtonElement>('.focus-btn')!;
   const input = document.querySelector<HTMLInputElement>('.search input')!;
-  const items = [...document.querySelectorAll<HTMLElement>('[data-search]')];
   const empty = document.querySelector<HTMLElement>('.empty')!;
+  const searching = () => input.value.trim() !== '';
+
+  function show() {
+    const ids = myTools();
+    for (const r of rows) {
+      const on = ids.includes(r.dataset.id!), p = r.querySelector<HTMLButtonElement>('.pin')!;
+      p.setAttribute('aria-pressed', String(on));
+      p.title = on ? 'Remove from My tools' : 'Add to My tools';
+    }
+    list.replaceChildren(...ids.map((id) => rows.find((r) => r.dataset.id === id)).filter(Boolean).map((r) => {
+      const c = r!.cloneNode(true) as HTMLElement; c.hidden = false; c.removeAttribute('data-search'); return c;
+    }));
+    const f = focusOn() && !searching();
+    document.body.classList.toggle('focus', f);
+    mine.hidden = !list.children.length || searching();
+    focusBtn.textContent = f ? `Show all ${rows.length} tools` : 'Show only my tools';
+  }
+  show();
+  document.addEventListener('fibub:mytools', show);
+  document.addEventListener('fibub:focus', show);
+  document.addEventListener('click', (e) => {
+    const p = (e.target as HTMLElement).closest<HTMLElement>('.pin'); if (!p) return;
+    togglePin(p.closest<HTMLElement>('.ti')!.dataset.id!);
+  });
+  focusBtn.addEventListener('click', () => setFocus(!focusOn()));
+  mine.querySelector('.mine-clear')!.addEventListener('click', () => { setFocus(false); setMyTools([]); });
+
+  // Search: typing shows matching tools from every shelf, even in "only my tools".
   input.addEventListener('input', () => {
     const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
     let shown = 0;
-    for (const el of items) {
-      const ok = words.every((w) => matches(el, w));
-      el.hidden = !ok;
-      if (ok) shown++;
-    }
+    for (const r of rows) { const ok = words.every((w) => matches(r, w)); r.hidden = !ok; if (ok) shown++; }
+    document.querySelectorAll<HTMLElement>('.dir .grp').forEach((g) => (g.hidden = !g.querySelector('.ti:not([hidden])')));
+    document.querySelectorAll<HTMLElement>('.dir .sh').forEach((s) => (s.hidden = !s.querySelector('.ti:not([hidden])')));
     empty.hidden = shown > 0;
-    document.body.classList.toggle('searching', words.length > 0);
-    document.querySelectorAll<HTMLElement>('section.shelf:not(.mine)').forEach((s) => (s.hidden = !s.querySelector('.tc:not([hidden])')));
-    showMine();
+    show();
   });
 </script>

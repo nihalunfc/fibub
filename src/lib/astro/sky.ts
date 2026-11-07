@@ -1,7 +1,7 @@
 // Sky calculations for the astronomy tools, built on astronomy-engine (MIT, accurate to about
 // an arcminute). Everything runs in the browser.
 import * as A from 'astronomy-engine';
-import { noonOf, type Place } from './place';
+import { type Place } from './place';
 import CATALOG from './catalog.json';
 
 export { A };
@@ -101,7 +101,10 @@ export function moonName(phase: number) {
 
 export function night(place: Place, iso: string): Night {
   const obs = observer(place);
-  const start = noonOf(iso, place.tz), end = new Date(start.getTime() + 24 * HOUR);
+  // The night is the place's own night: it starts at local solar noon there (from the longitude),
+  // whatever time zone the times are shown in.
+  const [y, m, dd] = iso.split('-').map(Number);
+  const start = new Date(Date.UTC(y, m - 1, dd, 12) - (place.lon / 15) * HOUR), end = new Date(start.getTime() + 24 * HOUR);
   const within = (t: Date | null) => (t && t < end ? t : null);
   const down = (alt: number) => within(d(A.SearchAltitude(A.Body.Sun, obs, -1, start, 1, alt)));
   const up = (alt: number, after: Date | null) => within(d(A.SearchAltitude(A.Body.Sun, obs, +1, after ?? start, 1, alt)));

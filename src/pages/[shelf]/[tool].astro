@@ -26,6 +26,7 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>
     <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
+    {tool.data.shelf === 'science' && <button type="button" class="red-btn" aria-pressed="false" title="Turns the page dim red on black, so your eyes stay used to the dark">Red light for night use</button>}
     <span class="bm-tip" role="status" aria-live="polite">Keep it one tap away for everyday use.</span>
     <dialog class="bm-dlg" aria-labelledby="bm-title">
       <h2 id="bm-title">Bookmark {tool.data.name}?</h2>
