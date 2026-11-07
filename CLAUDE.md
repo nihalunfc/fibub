@@ -18,7 +18,16 @@ fibub.com: free everyday tools (money, documents, everyday) that run entirely in
 2. `guide.md`: frontmatter (`name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`, `works`: offline | online (offline = keeps working with no internet once the page is open; test it), and for live tools `flow`: 3 or 4 steps of `{ icon, label }`, labels up to 12 characters, icons from `src/lib/icons.ts`; it is the picture at the top of the tool page and must stay on one row on a 320 px phone) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
 3. `Tool.astro`: the UI and its `<script>`. Load heavy libraries with `import()` so the page stays fast.
 4. Add checks for it in `tests/run.mjs`, and run `npm run images` to make its share image (`public/og/<id>.png`: tool name, fibub.com, FREE, NO SIGN-UP). Commit the image.
-5. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+5. Shelves can have sections (`section` in guide.md, listed in `SECTIONS` in `src/site.ts`; e.g. science: observing, astrophotography, research). The build fails on an unknown section.
+6. **Cross-link related tools (nihal's hard rule):** list them in `related:` (tool ids). Links show both ways ("Works well with" and Related tools); the build fails on an unknown id.
+7. Tools that make a report use `src/lib/report.ts` (sections of facts, tables and canvas figures) and `components/Downloads.astro` for PNG, PDF and Word downloads.
+8. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+
+## Site rules
+- **No tool lives on both sites** (nihal, 2026-11-07). Everyday public tools go on fibub; ambitious career prototypes go on nihalsulaiman.com. Link between them only where useful. nihal's name appears only on the About page; the footer says "Developer" and links to the portfolio.
+- Header: drop-down menus per shelf on computers; on phones a "Tools" button opens a full-height side panel half the screen wide, and the page behind keeps scrolling.
+- Every tool page has a **Bookmark this tool** button. Browsers cannot open their bookmark box from a script, so it shows Ctrl/⌘+D (or the share sheet on phones) and offers an optional "pin to My tools" (tool ids only, localStorage `fibub-mytools-v1`, with a Clear button).
+- Astronomy pages share the place and night (`src/lib/astro/state.ts`, `components/SkyPlace.astro`) and a **Red light** mode (`html.red-mode`) for night vision.
 
 ## Brand
 Logo: a black-and-white bubble cluster (nihal chose option A, one colour, 2026-11-06), in `src/lib/brand.ts`. `npm run images` rebuilds the favicons and share images from it.

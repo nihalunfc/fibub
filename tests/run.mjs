@@ -630,6 +630,87 @@ try {
     await rp.close();
   }
 
+  // 6o. Science shelf: every astronomy tool loads, draws and downloads PNG, PDF and Word.
+  {
+    const ASTRO = ['/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/astro-time/', '/science/sky-coordinates/'];
+    for (const path of ASTRO) {
+      await page.goto(`${BASE}${path}?date=2026-11-07`);
+      await page.waitForTimeout(400);
+      if (path.includes('sky-coordinates')) { await page.fill('.sc-obj', 'M42'); await page.press('.sc-obj', 'Tab'); await page.waitForTimeout(400); }
+      const ok = [];
+      for (const f of ['png', 'pdf', 'docx']) {
+        const btn = page.locator(`.dl [data-f=${f}]`).first();
+        if (!(await btn.count())) continue;
+        const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), btn.click()]).catch(() => [null]);
+        if (d) { await d.saveAs(OUT + 'astro.' + f); if (size(OUT + 'astro.' + f) > 1000) ok.push(f); }
+      }
+      check(ok.length === 3, `${path}: downloads ${ok.join(', ')}`);
+    }
+    // Sky tonight for Toronto on 7 Nov 2026: dark from 18:38.
+    await page.goto(`${BASE}/science/sky-tonight/?date=2026-11-07`);
+    check(/18:3\d/.test(await page.textContent('.ax')), 'sky tonight: Toronto dark from about 18:38');
+    // FITS viewer reads a small 16-bit image with a header.
+    const cards = ['SIMPLE  =                    T', 'BITPIX  =                   16', 'NAXIS   =                    2', 'NAXIS1  =                   64', 'NAXIS2  =                   48', "OBJECT  = 'M42     '", 'EXPTIME =                 30.0', "FILTER  = 'Ha      '", 'END'];
+    const hdr = Buffer.alloc(2880, ' '); cards.forEach((c, i) => hdr.write(c.padEnd(80), i * 80, 'latin1'));
+    const data = Buffer.alloc(2880 * Math.ceil(64 * 48 * 2 / 2880));
+    for (let i = 0; i < 64 * 48; i++) data.writeInt16BE(((i * 37) % 2000) + (i % 64 === 32 ? 20000 : 0), i * 2);
+    writeFileSync(OUT + 'm42.fits', Buffer.concat([hdr, data]));
+    await page.goto(`${BASE}/science/fits-viewer/`);
+    await page.setInputFiles('.fv-in', OUT + 'm42.fits');
+    await page.waitForTimeout(800);
+    check((await page.textContent('.fv-hdr')).includes('EXPTIME'), 'fits viewer: shows the header cards');
+    // Observing log: save asks where it goes; "Keep in this tab" lists it.
+    await page.goto(`${BASE}/science/observing-log/`);
+    await page.fill('input[name=object]', 'M13');
+    await page.click('.ol-save');
+    check(await page.isVisible('.ol-dlg'), 'observing log: saving asks new file, existing file or keep');
+    await page.click('.ol-later');
+    check((await page.textContent('.ol-table')).includes('M13'), 'observing log: observation kept in the tab');
+    // Observing session: parts can be downloaded together.
+    await page.goto(`${BASE}/science/observing-session/?date=2026-11-07`);
+    await page.waitForSelector('.os-sec');
+    const [sd] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('[data-all=pdf]')]);
+    await sd.saveAs(OUT + 'session.pdf');
+    check((await PDFDocument.load(readFileSync(OUT + 'session.pdf'))).getPageCount() >= 2, `observing session: one PDF with ${(await PDFDocument.load(readFileSync(OUT + 'session.pdf'))).getPageCount()} pages`);
+  }
+
+  // 6p. Bill calendar: sample data, a new bill, running balance, downloads.
+  {
+    await page.goto(`${BASE}/money/bill-calendar/`);
+    await page.click('.bc-sample');
+    check((await page.locator('.bc-day .bc-chip').count()) > 10, 'bill calendar: sample bills fill the month');
+    await page.click('.bc-set summary');
+    await page.fill('.s-start', '100');
+    await page.waitForTimeout(500);
+    check(/Lowest balance/.test(await page.textContent('.bc-sum')), 'bill calendar: starting balance gives a lowest balance');
+    await page.click('.bc-new');
+    await page.fill('input[name=title]', 'Gym');
+    await page.fill('input[name=amount]', '40');
+    await page.click('button[value=save]');
+    check((await page.locator('.bc-chip', { hasText: 'Gym' }).count()) >= 1, 'bill calendar: new bill appears');
+    const [bd] = await Promise.all([page.waitForEvent('download'), page.click('.dl [data-f=pdf]')]);
+    check(/^bills-\d{4}-\d{2}\.pdf$/.test(bd.suggestedFilename()), `bill calendar: PDF download ${bd.suggestedFilename()}`);
+    check(!(await page.evaluate(() => localStorage.getItem('fibub-bills-v1'))), 'bill calendar: nothing kept in the browser unless asked');
+  }
+
+  // 6q. Header drop-downs on a computer, the bookmark dialog and My tools.
+  {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`${BASE}/science/sky-tonight/`);
+    await page.hover('.dd[data-shelf=science] > a');
+    await page.waitForTimeout(300);
+    check(await page.isVisible('.dd[data-shelf=science] .dd-panel'), 'header: Science drop-down opens on hover');
+    await page.click('.bm-btn');
+    check(await page.isVisible('.bm-dlg'), 'bookmark: button opens the bookmark dialog');
+    await page.check('.bm-pin');
+    await page.click('.bm-done');
+    const mine = await page.evaluate(() => localStorage.getItem('fibub-mytools-v1') || '');
+    check(mine.includes('sky-tonight'), 'bookmark: "pin to My tools" saves only the tool id in this browser');
+    await page.goto(BASE + '/');
+    check(await page.isVisible('.mine'), 'home: My tools shows the pinned tool');
+    await page.evaluate(() => localStorage.removeItem('fibub-mytools-v1'));
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
@@ -724,7 +805,7 @@ try {
   check(shown.includes('ZIP checker') && !shown.includes('Image resizer'), `home search "zip" -> ${shown.join(', ')}`);
   await page.fill('.search input', 'qqqq');
   check(await page.isVisible('.empty'), 'home search: no match shows a suggestion link');
-  for (const path of ['/', '/documents/compress-file/']) {
+  for (const path of ['/documents/compress-file/', '/money/bill-calendar/']) {
     await page.goto(BASE + path);
     const n = await page.$$eval('[data-works]', (els) => els.length);
     check(n > 0, `${path} shows offline/online labels (${n})`);
@@ -740,14 +821,25 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
+  // Phone tool list: a full-height side panel half the screen wide; the page behind still scrolls.
+  await phone.goto(BASE + '/money/bill-calendar/');
+  await phone.click('.menu-btn');
+  const box = await phone.locator('#all-tools').boundingBox();
+  const vw = phone.viewportSize();
+  check(box && box.width < vw.width * 0.75 && box.y + box.height >= vw.height - 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, full height`);
+  check((await phone.locator('#all-tools .at-item').count()) > 20, 'phone menu: lists every tool');
+  await phone.mouse.wheel(0, 0);
+  await phone.evaluate(() => window.scrollTo(0, 400));
+  check((await phone.evaluate(() => window.scrollY)) > 300, 'phone menu: the page still scrolls while it is open');
+  await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

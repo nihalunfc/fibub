@@ -1,0 +1,366 @@
+---
+// Bill and expense calendar: bills and pay days on a month calendar, with paid ticks, repeating
+// items and a running balance that shows what is due before the next pay day.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bc">
+  <div class="ax-card bc-top">
+    <div class="bc-nav">
+      <button type="button" class="btn secondary small bc-prev" aria-label="Previous month">‹</button>
+      <h2 class="bc-title" aria-live="polite"></h2>
+      <button type="button" class="btn secondary small bc-next" aria-label="Next month">›</button>
+      <button type="button" class="btn secondary small bc-today">Today</button>
+      <div class="ax-seg bc-view" role="group" aria-label="View"><button type="button" data-v="cal" aria-pressed="true">Calendar</button><button type="button" data-v="list" aria-pressed="false">List</button></div>
+      <button type="button" class="btn small bc-new">+ Add</button>
+    </div>
+    <dl class="ax-facts bc-sum" style="margin-top:14px"></dl>
+  </div>
+
+  <div class="ax-card bc-empty" hidden>
+    <h2>Start your bill calendar</h2>
+    <p class="ax-help" style="margin-top:0">Add your rent, bills, subscriptions and pay days once. Repeating items fill in every month by themselves.</p>
+    <div class="ax-row"><button type="button" class="btn small bc-first">Add your first bill</button><button type="button" class="btn secondary small bc-sample">Try it with sample data</button></div>
+  </div>
+
+  <div class="bc-cal ax-card" role="grid"></div>
+  <div class="bc-list ax-card" hidden></div>
+
+  <div class="bc-two">
+    <div class="ax-card">
+      <h2>Coming up (next 14 days)</h2>
+      <ol class="bc-up"></ol>
+    </div>
+    <div class="ax-card">
+      <h2>Where the money goes this month</h2>
+      <div class="bc-cats"></div>
+    </div>
+  </div>
+
+  <details class="ax-card bc-set">
+    <summary><b>Balance, currency and your data</b></summary>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Money in my account <input class="s-start" inputmode="decimal" placeholder="e.g. 1800" /></label>
+      <label>On this date <input class="s-date" type="date" /></label>
+      <label>Currency <select class="s-cur"></select></label>
+      <label>Week starts on <select class="s-wk"><option value="1">Monday</option><option value="0">Sunday</option></select></label>
+    </div>
+    <p class="ax-help">With a starting balance, each day shows the money you will have left after that day's bills and pay, and days that go below zero turn red.</p>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="s-remember" /> Remember my calendar on this device</label>
+    <p class="ax-help">Off by default: your calendar is kept only while this tab is open. Tick it to keep it in this browser between visits. It never leaves your device. Untick to delete it from this browser.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small s-backup">Download backup</button>
+      <label class="btn secondary small" style="cursor:pointer">Restore backup<input type="file" class="s-restore" accept=".json,application/json" hidden /></label>
+      <button type="button" class="btn secondary small s-csv">Bills as CSV</button>
+      <button type="button" class="btn secondary small s-clear">Delete everything</button>
+    </div>
+    <p class="ax-help s-msg" role="status" aria-live="polite"></p>
+  </details>
+  <Downloads />
+
+  <dialog class="bc-dlg" aria-labelledby="bc-dt">
+    <form method="dialog" class="bc-form">
+      <h2 id="bc-dt">Add a bill</h2>
+      <div class="ax-seg bc-kind" role="group" aria-label="Type"><button type="button" data-k="bill" aria-pressed="true">Bill or expense</button><button type="button" data-k="income" aria-pressed="false">Income</button></div>
+      <div class="ax-grid" style="margin-top:12px">
+        <label class="bc-wide">What is it? <input name="title" required maxlength="80" placeholder="Rent, phone, pay day…" autocomplete="off" /></label>
+        <label>Amount <input name="amount" inputmode="decimal" required placeholder="0" /></label>
+        <label class="bc-catl">Category <select name="cat"></select></label>
+        <label>Date <input name="date" type="date" required /></label>
+        <label>Repeats <select name="repeat"></select></label>
+        <label class="bc-untl">Until (optional) <input name="until" type="date" /></label>
+        <label class="bc-wide">Note <input name="note" maxlength="200" placeholder="Account, reference, how to pay…" /></label>
+      </div>
+      <p class="ax-help bc-occ"></p>
+      <div class="ax-row" style="margin-top:12px">
+        <button type="submit" value="save" class="btn small">Save</button>
+        <button type="button" class="btn secondary small bc-paid" hidden>Mark paid</button>
+        <button type="button" class="btn secondary small bc-skip" hidden>Skip this date</button>
+        <button type="button" class="btn secondary small bc-del" hidden>Delete</button>
+        <button type="button" class="btn secondary small bc-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+</div>
+
+<style is:global>
+  .bc-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .bc-nav h2 { margin: 0 6px; font-size: 19px; min-width: 150px; text-align: center; }
+  .bc-new { margin-left: auto; }
+  .bc-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; padding: 8px; }
+  .bc-cal .h { font-size: 12px; color: var(--muted); text-align: center; padding: 2px 0; }
+  .bc-day { display: grid; align-content: start; gap: 2px; min-height: 96px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; min-width: 0; overflow: hidden; text-align: left; font: inherit; color: var(--ink); }
+  .bc-day.out { opacity: .45; }
+  .bc-day.today { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .bc-day > span { font-size: 12px; font-weight: 700; }
+  .bc-chip { display: flex; gap: 4px; align-items: center; font-size: 11.5px; line-height: 1.25; border-radius: 5px; padding: 1px 3px; background: var(--surface); border-left: 3px solid var(--c); min-width: 0; }
+  .bc-chip b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .bc-chip i { font-style: normal; color: var(--muted); white-space: nowrap; }
+  .bc-chip.paid b { text-decoration: line-through; color: var(--muted); }
+  .bc-chip.inc i { color: var(--good); font-weight: 700; }
+  .bc-bal { margin-top: auto; font-size: 11px; color: var(--muted); text-align: right; }
+  .bc-bal.neg { color: var(--bad); font-weight: 700; }
+  .bc-more { font-size: 11px; color: var(--accent); }
+  @media (max-width: 640px) {
+    .bc-cal { gap: 2px; padding: 4px; }
+    .bc-day { min-height: 54px; padding: 3px; }
+    .bc-chip { display: none; }
+    .bc-day .bc-dots { display: flex; flex-wrap: wrap; gap: 2px; }
+    .bc-day .bc-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+    .bc-bal { font-size: 9.5px; }
+  }
+  @media (min-width: 641px) { .bc-dots { display: none; } }
+  .bc-list ol { list-style: none; margin: 0; padding: 0; }
+  .bc-list h3 { font-size: 14px; margin: 12px 0 4px; color: var(--muted); }
+  .bc-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .bc-row .t { display: grid; min-width: 0; cursor: pointer; }
+  .bc-row .t b { border-left: 3px solid var(--c); padding-left: 8px; overflow-wrap: anywhere; }
+  .bc-row .t small { color: var(--muted); padding-left: 11px; }
+  .bc-row.paid .t b { text-decoration: line-through; color: var(--muted); }
+  .bc-row .a { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bc-row .a.inc { color: var(--good); }
+  .bc-two { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+  .bc-up { list-style: none; margin: 0; padding: 0; }
+  .bc-cats .bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; margin-bottom: 8px; font-size: 14px; }
+  .bc-cats .bar i { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--c); width: var(--w); min-width: 2px; }
+  .bc-dlg { border: 1px solid var(--line); border-radius: 16px; padding: 18px; width: min(560px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); }
+  .bc-dlg::backdrop { background: rgba(18, 24, 38, .4); }
+  .bc-dlg h2 { margin: 0 0 10px; font-size: 19px; }
+  .bc-wide { grid-column: 1 / -1; }
+</style>
+
+<script>
+  import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, type Item, type State, type Repeat } from '../../lib/bills';
+  import { iso, fromIso, addDays, monthDays } from '../../lib/planner';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-bills-v1';
+  const blank = (): State => ({ v: 1, currency: defaultCurrency(), weekStart: 1, start: NaN, startDate: '', items: [] });
+  let S: State = blank(), remember = false;
+  const valid = (x: any): x is State => x && x.v === 1 && Array.isArray(x.items);
+  try {
+    const l = JSON.parse(localStorage.getItem(KEY) || 'null');
+    const s = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    if (valid(s)) S = s; else if (valid(l)) S = l;
+    remember = valid(l);
+  } catch {}
+  const fix = () => { if (S.start == null || (S.start as any) === '') S.start = NaN; };
+  fix();
+  function store() {
+    const json = JSON.stringify(S, (k, v) => (k === 'start' && !Number.isFinite(v) ? null : v));
+    try { sessionStorage.setItem(KEY, json); } catch {}
+    try { remember ? localStorage.setItem(KEY, json) : localStorage.removeItem(KEY); } catch {}
+  }
+  const $ = (n: number, d = 0) => money(n, S.currency, d);
+  const amt = (n: number) => $(n, Number.isInteger(n) ? 0 : 2);
+
+  let month = new Date(); month = new Date(month.getFullYear(), month.getMonth(), 1);
+  let view: 'cal' | 'list' = 'cal';
+  const todayIso = () => iso(new Date());
+
+  // ---- Rendering ----
+  function render() {
+    store();
+    const y = month.getFullYear(), m = month.getMonth();
+    const first = iso(new Date(y, m, 1)), last = iso(new Date(y, m + 1, 0));
+    q('.bc-title').textContent = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(month);
+    const occ = inRange(S.items, first, last);
+    const t = monthTotals(occ);
+    const days = monthDays(month, S.weekStart);
+    const bal = balances(S, iso(days[0]), iso(days[days.length - 1]));
+    let low: [string, number] | null = null;
+    for (const [d, v] of bal) if (d >= first && d <= last && Number.isFinite(v) && (!low || v < low[1])) low = [d, v];
+    const facts: [string, string, string?][] = [['Bills this month', $(t.bills)], ['Paid', $(t.paid)], ['Still to pay', $(t.left), t.left ? `${occ.filter((o) => o.it.kind === 'bill' && !o.paid).length} bills` : 'all done'], ['Income', $(t.income)]];
+    if (low) facts.push(['Lowest balance', $(low[1]), `on ${fromIso(low[0]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`]);
+    q('.bc-sum').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } if (k === 'Lowest balance' && low && low[1] < 0) (d.querySelector('dd') as HTMLElement).style.color = 'var(--bad)'; return d; }));
+    q('.bc-empty').hidden = S.items.length > 0;
+
+    // Calendar.
+    const cal = q('.bc-cal'); cal.hidden = view !== 'cal'; q('.bc-list').hidden = view !== 'list';
+    cal.replaceChildren();
+    const names = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(2024, 0, 7 + ((S.weekStart + i) % 7))));
+    for (const n of names) cal.append(Object.assign(document.createElement('span'), { className: 'h', textContent: n }));
+    const all = inRange(S.items, iso(days[0]), iso(days[days.length - 1]));
+    for (const d of days) {
+      const ds = iso(d), cell = document.createElement('button'); cell.type = 'button'; cell.className = 'bc-day'; cell.dataset.d = ds;
+      if (d.getMonth() !== m) cell.classList.add('out'); if (ds === todayIso()) cell.classList.add('today');
+      cell.innerHTML = `<span>${d.getDate()}</span>`;
+      const mine = all.filter((o) => o.date === ds);
+      const dots = document.createElement('div'); dots.className = 'bc-dots';
+      mine.slice(0, 4).forEach((o) => {
+        const c = document.createElement('div'); c.className = `bc-chip${o.paid ? ' paid' : ''}${o.it.kind === 'income' ? ' inc' : ''}`; c.style.setProperty('--c', catOf(o.it.cat).c); c.dataset.id = o.it.id; c.dataset.d = ds;
+        c.innerHTML = '<b></b><i></i>'; c.querySelector('b')!.textContent = o.it.title; c.querySelector('i')!.textContent = (o.it.kind === 'income' ? '+' : '') + $(o.it.amount);
+        cell.append(c);
+        const dot = document.createElement('i'); dot.style.setProperty('--c', catOf(o.it.cat).c); dots.append(dot);
+      });
+      if (mine.length > 4) cell.append(Object.assign(document.createElement('span'), { className: 'bc-more', textContent: `+${mine.length - 4} more` }));
+      cell.append(dots);
+      const b = bal.get(ds);
+      if (b != null && Number.isFinite(b)) cell.append(Object.assign(document.createElement('span'), { className: `bc-bal${b < 0 ? ' neg' : ''}`, textContent: $(b) }));
+      cell.setAttribute('aria-label', `${d.toDateString()}: ${mine.map((o) => `${o.it.title} ${$(o.it.amount)}${o.paid ? ' paid' : ''}`).join(', ') || 'nothing due'}`);
+      cal.append(cell);
+    }
+
+    // List.
+    const list = q('.bc-list'); list.replaceChildren();
+    if (!occ.length) list.append(Object.assign(document.createElement('p'), { className: 'ax-help', textContent: 'Nothing this month yet.' }));
+    let lastDay = '';
+    let ol: HTMLOListElement | null = null;
+    for (const o of occ) {
+      if (o.date !== lastDay) { lastDay = o.date; list.append(Object.assign(document.createElement('h3'), { textContent: fromIso(o.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) })); ol = document.createElement('ol'); list.append(ol); }
+      ol!.append(row(o));
+    }
+
+    // Coming up.
+    const now = todayIso(), soon = iso(addDays(new Date(), 14));
+    const up = inRange(S.items, now, soon).filter((o) => !o.paid);
+    q('.bc-up').replaceChildren(...(up.length ? up.slice(0, 12).map(row) : [Object.assign(document.createElement('li'), { className: 'ax-help', textContent: 'Nothing due in the next two weeks.' })]));
+
+    // Categories.
+    const max = Math.max(1, ...t.byCat.map((c) => c[1]));
+    q('.bc-cats').replaceChildren(...(t.byCat.length ? t.byCat.map(([id, v]) => {
+      const c = catOf(id), d = document.createElement('div'); d.className = 'bar'; d.style.setProperty('--c', c.c); d.style.setProperty('--w', `${(v / max) * 100}%`);
+      d.innerHTML = '<span></span><b></b><i></i>'; d.querySelector('span')!.textContent = c.name; d.querySelector('b')!.textContent = `${$(v)} (${Math.round((v / t.bills) * 100)}%)`; return d;
+    }) : [Object.assign(document.createElement('p'), { className: 'ax-help', textContent: 'Add bills to see where your money goes.' })]));
+    report = { occ, t, low, bal };
+  }
+  function row(o: { it: Item; date: string; paid: boolean }) {
+    const li = document.createElement('li'); li.className = `bc-row${o.paid ? ' paid' : ''}`; li.style.setProperty('--c', catOf(o.it.cat).c);
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = o.paid; cb.setAttribute('aria-label', `${o.it.title} paid`); cb.dataset.id = o.it.id; cb.dataset.d = o.date; cb.className = 'bc-tick';
+    if (o.it.kind === 'income') cb.setAttribute('aria-label', `${o.it.title} received`);
+    const t = document.createElement('div'); t.className = 't'; t.dataset.id = o.it.id; t.dataset.d = o.date;
+    t.innerHTML = '<b></b><small></small>'; t.querySelector('b')!.textContent = o.it.title;
+    t.querySelector('small')!.textContent = `${fromIso(o.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${catOf(o.it.cat).name}${o.it.repeat !== 'none' ? ' · ' + REPEATS.find((r) => r[0] === o.it.repeat)![1].toLowerCase() : ''}`;
+    const a = document.createElement('span'); a.className = `a${o.it.kind === 'income' ? ' inc' : ''}`; a.textContent = (o.it.kind === 'income' ? '+' : '') + amt(o.it.amount);
+    li.append(cb, t, a); return li;
+  }
+
+  // ---- Interaction ----
+  root.addEventListener('change', (e) => {
+    const cb = e.target as HTMLInputElement; if (!cb.classList.contains('bc-tick')) return;
+    const it = S.items.find((x) => x.id === cb.dataset.id); if (!it) return;
+    if (cb.checked) it.paid[cb.dataset.d!] = true; else delete it.paid[cb.dataset.d!];
+    render();
+  });
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const chip = el.closest<HTMLElement>('.bc-chip, .bc-row .t');
+    if (chip) { e.stopPropagation(); edit(chip.dataset.id!, chip.dataset.d!); return; }
+    const day = el.closest<HTMLElement>('.bc-day'); if (day) edit(null, day.dataset.d!);
+  });
+  q('.bc-prev').addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); render(); });
+  q('.bc-next').addEventListener('click', () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); render(); });
+  q('.bc-today').addEventListener('click', () => { const n = new Date(); month = new Date(n.getFullYear(), n.getMonth(), 1); render(); });
+  q('.bc-view').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-v]'); if (!b) return; view = b.dataset.v as any; root.querySelectorAll('.bc-view button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render(); });
+  q('.bc-new').addEventListener('click', () => edit(null, todayIso()));
+  q('.bc-first').addEventListener('click', () => edit(null, todayIso()));
+  q('.bc-sample').addEventListener('click', () => { S.items = sample(new Date()); render(); });
+
+  // Dialog.
+  const dlg = q<HTMLDialogElement>('.bc-dlg'), form = q<HTMLFormElement>('.bc-form');
+  const F = (n: string) => form.elements.namedItem(n) as HTMLInputElement & HTMLSelectElement;
+  (F('repeat') as HTMLSelectElement).innerHTML = REPEATS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  let editing: Item | null = null, editDate = '', kind: 'bill' | 'income' = 'bill';
+  const setKind = (k: 'bill' | 'income') => {
+    kind = k; root.querySelectorAll('.bc-kind button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.k === k)));
+    (F('cat') as HTMLSelectElement).innerHTML = (k === 'income' ? [INCOME] : CATS).map((c) => `<option value="${c.id}">${c.name}</option>`).join('');
+    q('.bc-catl').hidden = k === 'income';
+    q('#bc-dt').textContent = `${editing ? 'Edit' : 'Add'} ${k === 'income' ? 'income' : 'a bill'}`;
+  };
+  q('.bc-kind').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-k]'); if (b) setKind(b.dataset.k as any); });
+  F('repeat').addEventListener('change', () => (q('.bc-untl').hidden = F('repeat').value === 'none'));
+  function edit(id: string | null, date: string) {
+    editing = id ? S.items.find((x) => x.id === id) ?? null : null; editDate = date;
+    setKind(editing?.kind ?? 'bill');
+    F('title').value = editing?.title ?? ''; F('amount').value = editing ? String(editing.amount) : '';
+    F('cat').value = editing?.cat ?? (kind === 'income' ? 'income' : 'bills');
+    F('date').value = editing?.date ?? date; F('repeat').value = editing?.repeat ?? 'monthly'; F('until').value = editing?.until ?? ''; F('note').value = editing?.note ?? '';
+    q('.bc-untl').hidden = F('repeat').value === 'none';
+    const rep = !!editing && editing.repeat !== 'none';
+    q('.bc-occ').textContent = rep ? `This repeats. Changes apply to every date. You opened the one on ${fromIso(date).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}.` : '';
+    q('.bc-skip').hidden = !rep; q('.bc-del').hidden = !editing; q('.bc-paid').hidden = !editing;
+    if (editing) q('.bc-paid').textContent = editing.paid[date] ? (editing.kind === 'income' ? 'Mark not received' : 'Mark not paid') : (editing.kind === 'income' ? 'Mark received' : 'Mark paid');
+    dlg.showModal(); setTimeout(() => F(editing ? 'amount' : 'title').focus(), 30);
+  }
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const a = num(F('amount').value);
+    if (!F('title').value.trim() || !(a > 0) || !F('date').value) { form.reportValidity(); if (!(a > 0)) { F('amount').setCustomValidity('Enter an amount above 0'); F('amount').reportValidity(); F('amount').setCustomValidity(''); } return; }
+    const data = { title: F('title').value.trim(), amount: Math.round(a * 100) / 100, kind, cat: kind === 'income' ? 'income' : F('cat').value, date: F('date').value, repeat: F('repeat').value as Repeat, until: F('repeat').value === 'none' ? '' : F('until').value, note: F('note').value.trim() };
+    if (editing) Object.assign(editing, data); else S.items.push({ id: uid(), ...data, paid: {}, skip: {} });
+    dlg.close();
+    const d = fromIso(data.date); if (!editing && (d.getMonth() !== month.getMonth() || d.getFullYear() !== month.getFullYear())) month = new Date(d.getFullYear(), d.getMonth(), 1);
+    render();
+  });
+  q('.bc-cancel').addEventListener('click', () => dlg.close());
+  q('.bc-paid').addEventListener('click', () => { if (!editing) return; if (editing.paid[editDate]) delete editing.paid[editDate]; else editing.paid[editDate] = true; dlg.close(); render(); });
+  q('.bc-skip').addEventListener('click', () => { if (!editing) return; editing.skip[editDate] = true; dlg.close(); render(); });
+  q('.bc-del').addEventListener('click', () => { if (!editing || !confirm(`Delete "${editing.title}"${editing.repeat !== 'none' ? ' and all its repeats' : ''}?`)) return; S.items = S.items.filter((x) => x !== editing); dlg.close(); render(); });
+
+  // Settings.
+  const sc = q<HTMLSelectElement>('.s-cur'); sc.innerHTML = currencyOptions(S.currency);
+  q<HTMLSelectElement>('.s-wk').value = String(S.weekStart);
+  q<HTMLInputElement>('.s-start').value = Number.isFinite(S.start) ? String(S.start) : '';
+  q<HTMLInputElement>('.s-date').value = S.startDate;
+  q<HTMLInputElement>('.s-remember').checked = remember;
+  sc.addEventListener('change', () => { S.currency = sc.value; render(); });
+  q('.s-wk').addEventListener('change', (e) => { S.weekStart = +(e.target as HTMLSelectElement).value; render(); });
+  q('.s-start').addEventListener('input', (e) => { const v = (e.target as HTMLInputElement).value.trim(); S.start = v ? num(v) : NaN; if (v && !S.startDate) { S.startDate = todayIso(); q<HTMLInputElement>('.s-date').value = S.startDate; } if (!v) S.startDate = ''; render(); });
+  q('.s-date').addEventListener('change', (e) => { S.startDate = (e.target as HTMLInputElement).value; render(); });
+  q('.s-remember').addEventListener('change', (e) => { remember = (e.target as HTMLInputElement).checked; msg(remember ? 'Kept in this browser between visits.' : 'Removed from this browser. It stays only while this tab is open.'); render(); });
+  const msg = (t: string) => (q('.s-msg').textContent = t);
+  q('.s-backup').addEventListener('click', () => save(new Blob([JSON.stringify({ fibub: 'bill-calendar', ...S, start: Number.isFinite(S.start) ? S.start : null }, null, 1)], { type: 'application/json' }), `bill-calendar-backup-${todayIso()}.json`, 'application/json'));
+  q<HTMLInputElement>('.s-restore').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    try { const j = JSON.parse(await f.text()); if (!valid(j)) throw 0; S = { ...blank(), ...j }; fix(); sc.innerHTML = currencyOptions(S.currency); q<HTMLInputElement>('.s-start').value = Number.isFinite(S.start) ? String(S.start) : ''; q<HTMLInputElement>('.s-date').value = S.startDate; msg(`Restored ${S.items.length} items.`); render(); }
+    catch { msg('That file is not a bill calendar backup.'); }
+  });
+  q('.s-csv').addEventListener('click', () => save(new Blob(['﻿' + itemsCsv(S.items)], { type: 'text/csv' }), 'bills-and-income.csv', 'text/csv'));
+  q('.s-clear').addEventListener('click', () => { if (!confirm('Delete every bill and income item? Download a backup first if you might want them back.')) return; S = { ...blank(), currency: S.currency }; q<HTMLInputElement>('.s-start').value = ''; q<HTMLInputElement>('.s-date').value = ''; render(); msg('Everything deleted.'); });
+
+  // ---- Download ----
+  let report: { occ: ReturnType<typeof inRange>; t: ReturnType<typeof monthTotals>; low: [string, number] | null; bal: Map<string, number> } | null = null;
+  function monthFigure(): Figure {
+    const days = monthDays(month, S.weekStart), rows = days.length / 7, all = inRange(S.items, iso(days[0]), iso(days[days.length - 1])), bal = report!.bal;
+    return {
+      w: 1100, h: 40 + rows * 124, alt: 'Bill calendar for the month',
+      draw(ctx, w, h, pal) {
+        const cw = w / 7;
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        for (let i = 0; i < 7; i++) ctx.fillText(new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(2024, 0, 7 + ((S.weekStart + i) % 7))), i * cw + cw / 2, 22);
+        days.forEach((d, k) => {
+          const x = (k % 7) * cw, y = 34 + Math.floor(k / 7) * 124, ds = iso(d), inM = d.getMonth() === month.getMonth();
+          ctx.globalAlpha = inM ? 1 : 0.4;
+          ctx.strokeStyle = pal.line; ctx.strokeRect(x + 2, y, cw - 4, 120);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '700 14px system-ui, sans-serif'; ctx.fillText(String(d.getDate()), x + 8, y + 18);
+          all.filter((o) => o.date === ds).slice(0, 5).forEach((o, i) => {
+            ctx.fillStyle = catOf(o.it.cat).c; ctx.fillRect(x + 8, y + 27 + i * 16, 3, 12);
+            ctx.fillStyle = o.paid ? pal.muted : pal.ink; ctx.font = '12px system-ui, sans-serif';
+            const label = `${o.it.title.length > 14 ? o.it.title.slice(0, 13) + '…' : o.it.title} ${o.it.kind === 'income' ? '+' : ''}${$(o.it.amount)}${o.paid ? ' ✓' : ''}`;
+            ctx.fillText(label, x + 15, y + 37 + i * 16);
+          });
+          const b = bal.get(ds);
+          if (b != null && Number.isFinite(b)) { ctx.textAlign = 'right'; ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = b < 0 ? pal.bad : pal.muted; ctx.fillText($(b), x + cw - 8, y + 112); }
+          ctx.globalAlpha = 1;
+        });
+      },
+    };
+  }
+  wireDownloads(q('.dl'), () => {
+    const r = report!;
+    const title = `Bills: ${q('.bc-title').textContent}`;
+    return {
+      title, subtitle: 'Made with fibub.com bill calendar', file: `bills-${iso(month).slice(0, 7)}`,
+      sections: [
+        { title: 'Summary', facts: [['Bills', $(r.t.bills)], ['Paid', $(r.t.paid)], ['Still to pay', $(r.t.left)], ['Income', $(r.t.income)], ...(r.low ? [['Lowest balance', `${$(r.low[1])} on ${r.low[0]}`] as [string, string]] : [])] },
+        { title: 'Calendar', figure: monthFigure() },
+        { title: 'Every bill and pay day', table: { head: ['Date', 'What', 'Category', 'Amount', 'Paid'], rows: r.occ.map((o) => [o.date, o.it.title, catOf(o.it.cat).name, (o.it.kind === 'income' ? '+' : '') + amt(o.it.amount), o.paid ? 'Yes' : '']), align: ['l', 'l', 'l', 'r', 'l'] } },
+        { title: 'Where the money goes', table: { head: ['Category', 'Amount', 'Share'], rows: r.t.byCat.map(([id, v]) => [catOf(id).name, $(v), `${Math.round((v / r.t.bills) * 100)}%`]), align: ['l', 'r', 'r'] } },
+      ] as Section[],
+    };
+  });
+  render();
+</script>

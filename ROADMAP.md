@@ -24,6 +24,12 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 18 | Loan payoff planner: interest and time saved by prepayments (lump sums or recurring, ready-made plans, custom intervals), finish sooner or lower EMI, year-by-year savings | /money/loan-payoff-planner/ | Live |
 | 19 | Budget planner: trip or project budget with monthly saving target; monthly salary budget with weekly/yearly costs, needs vs wants, yearly-bill set-aside, savings growth | /money/budget-calculator/ | Live |
 | 20 | ATS resume builder: form for contact, summary, skills, experience, projects, education, certifications and extra sections; live preview and ATS score (with job-ad keywords); download text-based PDF or Word (.docx); draft kept in the tab, optional "remember", backup file | /documents/resume-builder/ | Built (PR #6) |
+| 21 | Bill calendar: bills, pay days and repeating items on a month calendar, paid ticks, skip a date, running balance with red days, coming up, by category, CSV and backup, image/PDF/Word; kept in the tab unless "remember" is ticked. Replaces the portfolio's expense calendar | /money/bill-calendar/ | Built |
+| 22 | Astronomy, observing: sky tonight, target altitude planner (horizon mask, batch airmass), polar alignment, sky events calendar (.ics), observing log (CSV file as the database), observing session page (pick tools, one file or each part) | /science/... | Built |
+| 23 | Astronomy, astrophotography: telescope and eyepiece calculator, star trail and NPF exposure, FITS viewer (stretch, WCS, batch header table) | /science/... | Built |
+| 24 | Astronomy, research: astronomical time (JD, MJD, BJD, HJD), sky coordinates (J2000, JNow, galactic, ecliptic, batch) | /science/... | Built |
+| - | Next astronomy tools: dark-window heatmap, sub-exposure (swamp) calculator, backfocus solver, cosmology calculator, flux and magnitude converter, author-list LaTeX builder | /science/... | Next |
+| - | Later astronomy: guiding log analyser, spectrum viewer, redshifted lines, meteor angular speed. Skipped: weather, VizieR, Aladin (they call outside servers), voice notes by Web Speech (Chrome sends audio to Google) | - | Later |
 | - | Clickbait checker browser extension (on-device summary of the real outcome on hover). A separate extension, not a fibub.com page | - | Idea |
 | - | Anonymous usage counter feeding /stats/ | - | Planned |
 | - | Sales tax/VAT/GST, currency, time zone tools | - | Ideas |
