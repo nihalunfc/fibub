@@ -125,7 +125,6 @@ import Downloads from '../../components/Downloads.astro';
   }
   root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
   document.addEventListener('fibub:theme', calc);
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', calc);
   calc();
   wireDownloads(q('.dl'), () => ({
     title: 'Star trails and exposure', file: 'star-trail-exposure',

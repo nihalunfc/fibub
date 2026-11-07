@@ -204,7 +204,6 @@ import Downloads from '../../components/Downloads.astro';
 
   onSky(render);
   addEventListener('resize', drawHz);
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
   document.addEventListener('fibub:theme', render);
   wireDownloads(q('.dl'), () => {
     const { place, date } = getSky();

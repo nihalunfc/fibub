@@ -127,7 +127,6 @@ import Downloads from '../../components/Downloads.astro';
 
   onSky(() => { if (live) setNow(); draw(); });
   document.addEventListener('fibub:theme', draw);
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
   setInterval(() => { if (live) { setNow(); draw(); } }, 5000);
   wireDownloads(q('.dl'), () => ({ title: 'Polar alignment', subtitle: `${getSky().place.name}, ${when.value.replace('T', ' ')} local time`, file: 'polar-alignment', sections: [{ title: 'Where to put the star', facts, figure: fig! }] }));
 </script>

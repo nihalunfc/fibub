@@ -130,16 +130,25 @@ if (bm) {
   });
 }
 
-// Red light for night use (science tools): dim red on black, kept for this tab only.
+// Light or dark (every page): kept only in this browser. Red light (astronomy pages): kept for this tab.
 {
-  const KEY = 'fibub-red-light', html = document.documentElement;
-  const sync = () => document.querySelectorAll('.red-btn').forEach((b) => { const on = html.classList.contains('red-mode'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Turn off red light' : 'Red light for night use'; });
+  const html = document.documentElement, fire = () => document.dispatchEvent(new CustomEvent('fibub:theme'));
+  const sync = () => {
+    const dark = html.dataset.theme === 'dark', red = html.classList.contains('red-mode');
+    document.querySelectorAll('.theme-btn').forEach((b) => { b.setAttribute('aria-pressed', String(dark)); b.setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode'); });
+    document.querySelectorAll('.red-btn').forEach((b) => { b.setAttribute('aria-pressed', String(red)); b.setAttribute('aria-label', red ? 'Turn off red light' : 'Red light for night use'); });
+  };
+  document.querySelectorAll('.theme-btn').forEach((b) => b.addEventListener('click', () => {
+    const dark = html.dataset.theme !== 'dark';
+    if (dark) html.dataset.theme = 'dark'; else delete html.dataset.theme;
+    try { dark ? localStorage.setItem('fibub-theme', 'dark') : localStorage.removeItem('fibub-theme'); } catch {}
+    sync(); fire();
+  }));
   document.querySelectorAll('.red-btn').forEach((b) => b.addEventListener('click', () => {
     const on = !html.classList.contains('red-mode');
     html.classList.toggle('red-mode', on);
-    try { on ? sessionStorage.setItem(KEY, '1') : sessionStorage.removeItem(KEY); } catch {}
-    sync();
-    document.dispatchEvent(new CustomEvent('fibub:theme'));
+    try { on ? sessionStorage.setItem('fibub-red-light', '1') : sessionStorage.removeItem('fibub-red-light'); } catch {}
+    sync(); fire();
   }));
   sync();
 }

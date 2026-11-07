@@ -1,28 +1,25 @@
-/* fibub design tokens. Light first; dark follows the system setting. */
+/* fibub design tokens: plain black on white. Dark (the switch in the header) is the same page with
+   black and white swapped. Colour is kept for meaning only: good, warning and error. */
 :root {
-  --bg: #f6f7fb; --surface: #ffffff; --ink: #121826; --muted: #5d6577; --line: #e4e7ef;
-  --accent: #0e8f84; --accent-2: #6d4aff; --accent-ink: #ffffff; --accent-soft: #e3f4f2;
-  --warn: #9a5b00; --warn-soft: #fff3df; --good: #137a3e; --good-soft: #e6f6ec; --bad: #b42323; --bad-soft: #fdecec;
-  /* One colour per shelf, used on card icons. */
-  --money: #d97706; --money-soft: #fff4e2; --documents: #4f5bd5; --documents-soft: #eceefe; --everyday: #e0457b; --everyday-soft: #fdebf2; --science: #0b7fa6; --science-soft: #e1f3fa;
-  --radius: 14px; --max: 1080px; --shadow: 0 1px 2px rgba(18, 24, 38, .04), 0 4px 16px rgba(18, 24, 38, .05);
+  --bg: #ffffff; --surface: #ffffff; --ink: #0a0a0a; --muted: #5c5c5c; --line: #e3e3e3;
+  --accent: #0a0a0a; --accent-2: #0a0a0a; --accent-ink: #ffffff; --accent-soft: #f2f2f2;
+  --warn: #8a5300; --warn-soft: #fff4e0; --good: #146c34; --good-soft: #e8f5ec; --bad: #b3261e; --bad-soft: #fdeceb;
+  /* Shelf colours are kept as names for older styles; they are all ink now. */
+  --money: var(--ink); --money-soft: var(--accent-soft); --documents: var(--ink); --documents-soft: var(--accent-soft); --everyday: var(--ink); --everyday-soft: var(--accent-soft); --science: var(--ink); --science-soft: var(--accent-soft);
+  --radius: 10px; --max: 1080px; --shadow: none;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d111a; --surface: #151b27; --ink: #e9edf5; --muted: #a0a9ba; --line: #262e3d;
-    --accent: #2fd3c1; --accent-2: #9d86ff; --accent-ink: #04231f; --accent-soft: #12302d;
-    --warn: #f3b65c; --warn-soft: #2d2412; --good: #6fe39b; --good-soft: #142a1d; --bad: #f59a9a; --bad-soft: #331819;
-    --money: #f5a83a; --money-soft: #2e2311; --documents: #8f99ff; --documents-soft: #1c2043; --everyday: #ff7aa6; --everyday-soft: #351a25; --science: #5cc8f0; --science-soft: #0f2a36;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
-    color-scheme: dark;
-  }
+html[data-theme=dark] {
+  --bg: #000000; --surface: #0a0a0a; --ink: #f5f5f5; --muted: #a3a3a3; --line: #2a2a2a;
+  --accent: #f5f5f5; --accent-2: #f5f5f5; --accent-ink: #000000; --accent-soft: #171717;
+  --warn: #f0b45a; --warn-soft: #241a0a; --good: #74d391; --good-soft: #0f2015; --bad: #f28b82; --bad-soft: #2a1211;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: 72px; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; -webkit-font-smoothing: antialiased; }
-a { color: var(--accent); }
+a { color: var(--accent); text-underline-offset: 3px; }
 img, svg { max-width: 100%; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
@@ -138,7 +135,8 @@ footer.site a:hover { color: var(--accent); }
 .at-note, .at-empty { margin: 4px; font-size: 13px; color: var(--muted); }
 @media not ((min-width: 900px) and (hover: hover)) {
   nav.main { display: none; }
-  .menu-btn { display: inline-flex; }
+  .menu-btn { display: inline-flex; margin-left: 0; }
+  .hdr-btns { margin-left: auto; }
 }
 @media (min-width: 900px) and (hover: hover) {
   .all-tools { width: 380px; }
@@ -176,10 +174,20 @@ html.red-mode ::selection { background: #2b0000; color: #c00000; }
 html.red-mode :focus-visible { outline-color: #a30000; }
 html.red-mode img, html.red-mode video, html.red-mode canvas.photo { filter: url(#red-night); }
 html.red-mode input::placeholder, html.red-mode textarea::placeholder { color: #4a0000; }
-.red-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 15px; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
-.red-btn::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #c00000; }
-html.red-mode .red-btn { border-color: #a30000; }
 
 /* "Only my tools" in the tool list. */
 .all-tools.focus .at-shelf, .all-tools.focus .at-empty { display: none; }
 .at-focus { margin-top: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+
+/* Light/dark and red light switches in the header. */
+.hdr-btns { display: flex; gap: 6px; flex: none; margin-left: 4px; }
+.ico-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; padding: 0; }
+.ico-btn svg { width: 18px; height: 18px; }
+.ico-btn:hover { border-color: var(--ink); }
+.ico-btn[aria-pressed=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+html.red-mode .ico-btn.red-btn[aria-pressed=true] { background: #2b0000; color: #c00000; border-color: #a30000; }
+.theme-btn .to-light { display: none; } html[data-theme=dark] .theme-btn .to-light { display: block; } html[data-theme=dark] .theme-btn .to-dark { display: none; }
+.ico-btn.red-btn { width: auto; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; font: inherit; font-size: 14px; font-weight: 600; }
+.red-dot { width: 10px; height: 10px; border-radius: 50%; background: #c00000; flex: none; }
+.ico-btn.red-btn[aria-pressed=true] .red-dot { box-shadow: 0 0 0 2px #2b0000; }
+@media (max-width: 420px) { .red-t { display: none; } .ico-btn.red-btn { width: 36px; padding: 0; justify-content: center; } }
