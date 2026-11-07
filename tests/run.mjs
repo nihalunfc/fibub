@@ -575,10 +575,65 @@ try {
     await bp.context().close();
   }
 
+  // 6n. ATS resume builder: build from the form, then read the downloads back with the ATS checker.
+  {
+    const rp = await ctx.newPage();
+    rp.on('dialog', (d) => d.accept());
+    await rp.goto(BASE + '/documents/resume-builder/');
+    await rp.fill('[data-p="name"]', 'Sam Lee');
+    await rp.fill('[data-p="email"]', 'sam@example.com');
+    await rp.fill('[data-p="experience.0.title"]', 'Store Supervisor');
+    await rp.fill('[data-p="experience.0.company"]', 'Corner Mart');
+    await rp.fill('[data-p="experience.0.start"]', '2022-03');
+    await rp.check('[data-p="experience.0.current"]');
+    await rp.fill('[data-p="experience.0.bullets"]', 'Led a team of 6\nCut stock losses by 15%');
+    await rp.waitForTimeout(300);
+    const doc = await rp.textContent('.rb-doc');
+    check(/Sam Lee/.test(doc) && /Store Supervisor, Corner Mart/.test(doc) && /Mar 2022 – Present/.test(doc) && /Cut stock losses by 15%/.test(doc), 'resume builder: preview follows the form (title, employer, dates, bullets)');
+    await rp.reload();
+    check((await rp.inputValue('[data-p="name"]')) === 'Sam Lee', 'resume builder: draft survives a reload in the same tab');
+    await rp.click('.rb-example');
+    await rp.waitForTimeout(300);
+    const sc = +(await rp.textContent('.rb-sc'));
+    check(sc >= 90, `resume builder: example scores ${sc} live`);
+    await rp.click('.rb-jd summary');
+    await rp.fill('.rb-jdt', 'Data Analyst with SQL, Power BI and Tableau. Tableau dashboards and SQL reporting.');
+    check(await rp.locator('.rb-kw .miss', { hasText: 'tableau' }).count() === 1, 'resume builder: job ad shows missing keywords');
+    const [pdf] = await Promise.all([rp.waitForEvent('download'), rp.click('.rb-pdf')]);
+    await pdf.saveAs(OUT + 'built-resume.pdf');
+    const [docx] = await Promise.all([rp.waitForEvent('download'), rp.click('.rb-docx')]);
+    await docx.saveAs(OUT + 'built-resume.docx');
+    check(pdf.suggestedFilename() === 'Alex-Morgan-Resume.pdf' && docx.suggestedFilename() === 'Alex-Morgan-Resume.docx', `resume builder: file names ${pdf.suggestedFilename()}, ${docx.suggestedFilename()}`);
+    const files = unzipSync(readFileSync(OUT + 'built-resume.docx'));
+    const xml = strFromU8(files['word/document.xml']);
+    check(!/<w:tbl|txbxContent|<w:drawing|<w:hdr/.test(xml) && /Heading1/.test(xml) && /<w:numPr>/.test(xml) && !files['word/header1.xml'], 'resume builder: Word file has real headings and bullets, no tables, text boxes, pictures or page headers');
+    for (const f of ['built-resume.pdf', 'built-resume.docx']) {
+      await rp.goto(BASE + '/documents/ats-resume-checker/');
+      await rp.setInputFiles('.ats-input', OUT + f);
+      await rp.waitForSelector('.ats-result:not([hidden]), .ats-error:not([hidden])', { timeout: 60000 });
+      const s = +(await rp.textContent('.ats-score'));
+      const bad = await rp.$$eval('.ats-checks li.fail b', (b) => b.map((e) => e.textContent));
+      check(s >= 90 && !bad.length, `resume builder: the downloaded ${f.split('.').pop().toUpperCase()} scores ${s} in the ATS checker${bad.length ? ' (fails: ' + bad.join(', ') + ')' : ''}`);
+    }
+    await rp.goto(BASE + '/documents/resume-builder/');
+    const [bk] = await Promise.all([rp.waitForEvent('download'), rp.click('.rb-save')]);
+    await bk.saveAs(OUT + 'resume-backup.json');
+    await rp.click('.rb-reset');
+    check((await rp.inputValue('[data-p="name"]')) === '', 'resume builder: start over clears the form');
+    await rp.setInputFiles('.rb-file', OUT + 'resume-backup.json');
+    await rp.waitForTimeout(200);
+    check((await rp.inputValue('[data-p="name"]')) === 'Alex Morgan', 'resume builder: backup file opens again');
+    await rp.fill('[data-p="name"]', 'Анна Иванова');
+    await rp.waitForTimeout(200);
+    await Promise.all([rp.waitForEvent('download'), rp.click('.rb-pdf')]);
+    check(await rp.isVisible('.rb-lost') && /Word file keeps them/.test(await rp.textContent('.rb-lost')), 'resume builder: warns when the PDF fonts cannot show some letters');
+    await rp.close();
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/']) {
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/']) {
       await page.goto(BASE + path);
       const og = await page.getAttribute('meta[property="og:image"]', 'content');
       const file = 'dist' + new URL(og).pathname;
@@ -685,14 +740,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

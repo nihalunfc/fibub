@@ -1,0 +1,385 @@
+---
+// ATS resume maker: fill in the form, watch the preview and ATS score, download PDF or Word.
+---
+<div class="rb">
+  <div class="rb-switch" role="tablist" aria-label="Show">
+    <button type="button" role="tab" data-show="edit" aria-selected="true">Edit</button>
+    <button type="button" role="tab" data-show="preview" aria-selected="false">Preview <b class="rb-mini"></b></button>
+  </div>
+
+  <div class="rb-cols">
+    <form class="rb-form" autocomplete="on" novalidate>
+      <div class="rb-tools">
+        <button type="button" class="rb-link rb-example">Fill in an example</button>
+        <button type="button" class="rb-link rb-open">Open a backup file</button>
+        <input type="file" class="rb-file visually-hidden" accept=".json,application/json" tabindex="-1" />
+        <button type="button" class="rb-link rb-reset">Start over</button>
+      </div>
+      <div class="rb-cards"></div>
+    </form>
+
+    <aside class="rb-side">
+      <div class="rb-score panel">
+        <div class="rb-ring" style="--p:0"><b class="rb-sc">0</b></div>
+        <div>
+          <strong class="rb-sl">ATS score</strong>
+          <ul class="rb-fixes"></ul>
+        </div>
+        <details class="rb-jd">
+          <summary>Match it to a job ad</summary>
+          <textarea class="rb-jdt" rows="4" placeholder="Paste the job description to see which key terms you're missing"></textarea>
+          <div class="rb-kw"></div>
+        </details>
+      </div>
+      <div class="rb-dl">
+        <button type="button" class="btn rb-pdf">Download PDF</button>
+        <button type="button" class="btn secondary rb-docx">Download Word</button>
+      </div>
+      <p class="note warn rb-lost" hidden></p>
+      <div class="rb-paper" aria-label="Resume preview"><div class="rb-doc"></div></div>
+      <p class="rb-pages"></p>
+    </aside>
+  </div>
+
+  <div class="rb-keep">
+    <label><input type="checkbox" class="rb-remember" /> Remember my resume on this device</label>
+    <button type="button" class="btn secondary rb-save">Save a backup file</button>
+  </div>
+  <p class="rb-fine">Your resume is made in your browser and never uploaded. While this tab is open your draft is kept in it; tick the box to keep it on this device, or save a backup file to carry on later or on another device.</p>
+</div>
+
+<style is:global>
+  .rb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rb-switch { display: none; }
+  .rb-cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .rb-form, .rb-cards, .rb-body, .rb-item, .rb-side { grid-template-columns: minmax(0, 1fr); }
+  .rb-form { display: grid; gap: 10px; min-width: 0; }
+  .rb-tools { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .rb-link { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .rb-cards { display: grid; gap: 10px; }
+  .rb-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .rb-card > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; font-weight: 700; }
+  .rb-card > summary::-webkit-details-marker { display: none; }
+  .rb-card > summary::after { content: '+'; color: var(--muted); font-size: 20px; line-height: 1; }
+  .rb-card[open] > summary::after { content: '–'; }
+  .rb-card > summary small { color: var(--muted); font-weight: 500; font-size: 13px; margin-left: auto; }
+  .rb-body { padding: 0 16px 16px; display: grid; gap: 10px; }
+  .rb-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .rb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .rb label.full { grid-column: 1 / -1; }
+  .rb input[type=text], .rb input[type=email], .rb input[type=tel], .rb input[type=month], .rb textarea, .rb select { font: inherit; font-size: 15px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rb textarea { resize: vertical; line-height: 1.45; }
+  .rb input:focus, .rb textarea:focus, .rb select:focus { border-color: var(--accent); outline: none; }
+  .rb-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .rb-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; background: var(--bg); }
+  .rb-item input, .rb-item textarea, .rb-item select { background: var(--surface) !important; }
+  .rb-item-h { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+  .rb-item-h span { margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rb-ib { font: inherit; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); cursor: pointer; }
+  .rb-ib:disabled { opacity: .35; cursor: default; }
+  .rb-check { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; cursor: pointer; }
+  .rb-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .rb-add { justify-self: start; }
+  .rb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rb-chips button { font: inherit; font-size: 13px; border: 1px dashed var(--line); background: none; color: var(--muted); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  .rb-order { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .rb-order li { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 6px 12px; font-size: 15px; }
+  .rb-order li span { margin-right: auto; }
+  .rb-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 3px; background: var(--bg); }
+  .rb-seg label { display: block; cursor: pointer; }
+  .rb-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .rb-seg span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .rb-seg input:checked + span { background: var(--ink); color: var(--bg); }
+  .rb-seg input:focus-visible + span { outline: 2px solid var(--accent); }
+
+  .rb-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .rb-score { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; padding: 12px 14px; }
+  .rb-ring { --c: var(--good); width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, var(--surface) 76%, transparent 78%), conic-gradient(var(--c) calc(var(--p) * 1%), var(--line) 0); }
+  .rb-ring.warn { --c: var(--warn); }
+  .rb-ring.bad { --c: var(--bad); }
+  .rb-ring b { font-size: 19px; }
+  .rb-fixes { margin: 2px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+  .rb-fixes:empty { display: none; }
+  .rb-jd { grid-column: 1 / -1; }
+  .rb-jd summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
+  .rb-jd[open] { display: grid; gap: 8px; }
+  .rb-kw { display: flex; flex-wrap: wrap; gap: 5px; }
+  .rb-kw span { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
+  .rb-kw span.miss { background: var(--bad-soft); color: var(--bad); }
+  .rb-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rb-lost { margin: 0; font-size: 14px; }
+
+  /* The preview mimics the printed page: sizes are in container units so it scales with the column. */
+  .rb-paper { container-type: inline-size; background: #fff; color: #121826; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); aspect-ratio: 8.5 / 11; overflow: hidden; }
+  .rb-paper.a4 { aspect-ratio: 210 / 297; }
+  .rb-doc { padding: 8.8cqw; font: 1.72cqw/1.32 Helvetica, Arial, sans-serif; }
+  .rb-doc.serif { font-family: 'Times New Roman', Times, serif; font-size: 1.8cqw; }
+  .rb-doc .n { font-size: 3.27cqw; font-weight: 700; text-align: center; line-height: 1.2; }
+  .rb-doc .hl { text-align: center; color: #4d5466; font-size: 1.88cqw; }
+  .rb-doc .ct { text-align: center; color: #4d5466; font-size: 1.55cqw; margin-bottom: .4cqw; overflow-wrap: anywhere; }
+  .rb-doc .h { font-weight: 700; text-transform: uppercase; border-bottom: .12cqw solid #4d5466; margin: 2.2cqw 0 .9cqw; padding-bottom: .2cqw; font-size: 1.8cqw; }
+  .rb-doc .e { display: flex; justify-content: space-between; gap: 2cqw; font-weight: 700; margin-top: .6cqw; }
+  .rb-doc .e span:last-child { font-weight: 400; white-space: nowrap; }
+  .rb-doc .s { font-style: italic; color: #4d5466; font-size: 1.64cqw; }
+  .rb-doc .p { margin: 0 0 .3cqw; }
+  .rb-doc .b { padding-left: 2cqw; position: relative; margin-bottom: .15cqw; }
+  .rb-doc .b::before { content: '•'; position: absolute; left: .3cqw; }
+  .rb-doc .empty { color: #9aa1b0; text-align: center; margin-top: 30cqw; font-size: 2.2cqw; }
+  .rb-pages { margin: 0; font-size: 13px; color: var(--muted); }
+  .rb-keep { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .rb-keep label { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 15px; cursor: pointer; }
+  .rb-keep input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .rb-fine { margin: 0; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 960px) {
+    .rb-switch { display: inline-flex; justify-self: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; position: sticky; top: 64px; z-index: 5; }
+    .rb-switch button { font: inherit; font-weight: 600; border: 0; background: none; padding: 7px 16px; border-radius: 9px; color: var(--muted); cursor: pointer; }
+    .rb-switch button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+    .rb-mini { font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--good-soft); color: var(--good); margin-left: 4px; }
+    .rb-cols { grid-template-columns: minmax(0, 1fr); }
+    .rb-side { position: static; }
+    .rb[data-show="edit"] .rb-side { display: none; }
+    .rb[data-show="preview"] .rb-form { display: none; }
+  }
+  @media (max-width: 520px) { .rb-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { type Resume, type Block, type SectionId, emptyResume, emptyJob, emptyEdu, emptyProject, emptyExtra, EXAMPLE, SECTION_TITLES, DEFAULT_ORDER, blocks, plainText, fileBase } from '../../lib/resume/model';
+  import { score, type Report } from '../../lib/ats/score';
+
+  const KEY = 'fibub-resume-v1';
+  const root = document.querySelector<HTMLElement>('.rb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const esc = (s: string) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const region = (navigator.language.split('-')[1] ?? '').toUpperCase();
+  const defaultPaper = ['US', 'CA', 'MX', 'PH'].includes(region) || !region ? 'letter' : 'a4';
+
+  // ---------- state ----------
+  const load = (): Resume | null => {
+    for (const store of [sessionStorage, localStorage]) {
+      try { const r = JSON.parse(store.getItem(KEY) || 'null'); if (r?.order) return fix(r); } catch {}
+    }
+    return null;
+  };
+  const fix = (r: any): Resume => ({ ...emptyResume(defaultPaper), ...r, order: [...new Set([...(r.order ?? []), ...DEFAULT_ORDER])].filter((x) => DEFAULT_ORDER.includes(x)) });
+  let remembered = false;
+  try { remembered = !!localStorage.getItem(KEY); } catch {}
+  let R: Resume = load() ?? emptyResume(defaultPaper);
+  const save = () => {
+    const s = JSON.stringify(R);
+    try { sessionStorage.setItem(KEY, s); } catch {}
+    try { if (remembered) localStorage.setItem(KEY, s); } catch {}
+  };
+
+  const getPath = (p: string) => p.split('.').reduce<any>((o, k) => o?.[k], R);
+  const setPath = (p: string, v: any) => { const ks = p.split('.'); const last = ks.pop()!; ks.reduce<any>((o, k) => o[k], R)[last] = v; };
+
+  // ---------- form ----------
+  const field = (path: string, label: string, opts: { type?: string; full?: boolean; area?: number; ph?: string; auto?: string } = {}) => {
+    const v = esc(getPath(path) ?? '');
+    const attrs = `data-p="${path}" placeholder="${esc(opts.ph ?? '')}"${opts.auto ? ` autocomplete="${opts.auto}"` : ''}`;
+    const input = opts.area ? `<textarea ${attrs} rows="${opts.area}">${v}</textarea>` : `<input type="${opts.type ?? 'text'}" ${attrs} value="${v}" />`;
+    return `<label class="${opts.full ? 'full' : ''}">${label}${input}</label>`;
+  };
+  const itemHead = (list: string, i: number, n: number, title: string) => `<div class="rb-item-h"><span>${esc(title) || 'New entry'}</span>
+    <button type="button" class="rb-ib" data-move="${list}" data-i="${i}" data-d="-1" aria-label="Move up"${i === 0 ? ' disabled' : ''}>↑</button>
+    <button type="button" class="rb-ib" data-move="${list}" data-i="${i}" data-d="1" aria-label="Move down"${i === n - 1 ? ' disabled' : ''}>↓</button>
+    <button type="button" class="rb-ib" data-del="${list}" data-i="${i}" aria-label="Remove">×</button></div>`;
+  const card = (id: string, title: string, inner: string, open: boolean, note = '') => `<details class="rb-card" data-card="${id}"${open ? ' open' : ''}><summary>${title}${note ? `<small>${note}</small>` : ''}</summary><div class="rb-body">${inner}</div></details>`;
+
+  const openCards = new Set(['contact', 'summary', 'experience']);
+  function renderForm() {
+    root.querySelectorAll<HTMLDetailsElement>('.rb-card').forEach((d) => (d.open ? openCards.add(d.dataset.card!) : openCards.delete(d.dataset.card!)));
+    const c: string[] = [];
+    c.push(card('contact', 'Contact details', `<div class="rb-grid">
+      ${field('name', 'Full name', { ph: 'e.g. Priya Sharma', auto: 'name' })}
+      ${field('headline', 'Job title you want', { ph: 'e.g. Data Analyst', auto: 'organization-title' })}
+      ${field('email', 'Email', { type: 'email', ph: 'you@example.com', auto: 'email' })}
+      ${field('phone', 'Phone', { type: 'tel', ph: '+1 555 010 0100', auto: 'tel' })}
+      ${field('location', 'City and region', { ph: 'e.g. Toronto, ON', auto: 'address-level2' })}
+      ${field('links', 'Links (comma between them)', { ph: 'linkedin.com/in/you, github.com/you', auto: 'url' })}
+    </div><p class="rb-hint">Contact details go in the main text, not a page header, because many ATS skip headers. Skip your full street address, photo and date of birth.</p>`, openCards.has('contact')));
+    c.push(card('summary', 'Summary', `${field('summary', 'A short pitch (2 to 3 lines)', { area: 4, full: true, ph: 'Who you are, your strongest skills, and the result you bring. Use words from the job ad.' })}`, openCards.has('summary')));
+    c.push(card('skills', 'Skills', `${field('skills', 'One line per group', { area: 4, full: true, ph: 'Tools: Excel, SQL, Power BI\nLanguages: English, Hindi' })}<p class="rb-hint">Write skills as plain words separated by commas. ATS search for exact terms, so copy the spelling from the job ad (for example "Microsoft Excel", "Power BI").</p>`, openCards.has('skills')));
+    c.push(card('experience', 'Experience', R.experience.map((j, i) => `<div class="rb-item">${itemHead('experience', i, R.experience.length, [j.title, j.company].filter(Boolean).join(', '))}<div class="rb-grid">
+      ${field(`experience.${i}.title`, 'Job title')}${field(`experience.${i}.company`, 'Employer')}
+      ${field(`experience.${i}.location`, 'Location', { ph: 'City, region (optional)' })}<span></span>
+      ${field(`experience.${i}.start`, 'Started', { type: 'month' })}
+      ${j.current ? '<label>Ended<input type="text" value="Present" disabled /></label>' : field(`experience.${i}.end`, 'Ended', { type: 'month' })}
+      <label class="rb-check full"><input type="checkbox" data-p="experience.${i}.current"${j.current ? ' checked' : ''} /> I work here now</label>
+      ${field(`experience.${i}.bullets`, 'What you achieved (one per line)', { area: 5, full: true, ph: 'Reduced report time by 40% by automating…\nLed a team of 5 to…' })}
+    </div></div>`).join('') + `<button type="button" class="btn secondary rb-add" data-add="experience">+ Add a job</button><p class="rb-hint">Most recent job first. 3 to 6 bullets each: start with a verb (Led, Built, Cut) and add a number where you can.</p>`, openCards.has('experience'), R.experience.length ? String(R.experience.length) : ''));
+    c.push(card('projects', 'Projects', R.projects.map((p, i) => `<div class="rb-item">${itemHead('projects', i, R.projects.length, p.name)}<div class="rb-grid">
+      ${field(`projects.${i}.name`, 'Project name')}${field(`projects.${i}.link`, 'Link (optional)', { ph: 'github.com/you/project' })}
+      ${field(`projects.${i}.start`, 'Started', { type: 'month' })}${field(`projects.${i}.end`, 'Finished', { type: 'month' })}
+      ${field(`projects.${i}.bullets`, 'What you did (one per line)', { area: 3, full: true })}
+    </div></div>`).join('') + `<button type="button" class="btn secondary rb-add" data-add="projects">+ Add a project</button>`, openCards.has('projects'), R.projects.length ? String(R.projects.length) : 'optional'));
+    c.push(card('education', 'Education', R.education.map((e, i) => `<div class="rb-item">${itemHead('education', i, R.education.length, [e.degree, e.school].filter(Boolean).join(', '))}<div class="rb-grid">
+      ${field(`education.${i}.degree`, 'Degree or course', { ph: 'e.g. BSc Computer Science' })}${field(`education.${i}.school`, 'School, college or university')}
+      ${field(`education.${i}.location`, 'Location (optional)')}<span></span>
+      ${field(`education.${i}.start`, 'Started', { type: 'month' })}${field(`education.${i}.end`, 'Finished (or expected)', { type: 'month' })}
+      ${field(`education.${i}.details`, 'Details (optional, one per line)', { area: 2, full: true, ph: 'Grade, awards, relevant courses' })}
+    </div></div>`).join('') + `<button type="button" class="btn secondary rb-add" data-add="education">+ Add education</button>`, openCards.has('education'), R.education.length ? String(R.education.length) : ''));
+    c.push(card('certs', 'Certifications', `${field('certs', 'One per line', { area: 3, full: true, ph: 'Microsoft Certified: Power BI Data Analyst Associate, 2024' })}`, openCards.has('certs'), 'optional'));
+    c.push(card('extras', 'More sections', R.extras.map((x, i) => `<div class="rb-item">${itemHead('extras', i, R.extras.length, x.title)}
+      ${field(`extras.${i}.title`, 'Section heading', { ph: 'e.g. Languages' })}${field(`extras.${i}.body`, 'Content (one item per line)', { area: 3 })}</div>`).join('')
+      + `<div class="rb-chips">${['Languages', 'Volunteering', 'Awards', 'Publications', 'Interests'].map((t) => `<button type="button" data-extra="${t}">+ ${t}</button>`).join('')}<button type="button" data-extra="">+ Other</button></div>`, openCards.has('extras'), R.extras.length ? String(R.extras.length) : 'optional'));
+    c.push(card('layout', 'Layout and order', `
+      <div class="rb-grid">
+        <div><span class="rb-hint">Font</span><div class="rb-seg" role="radiogroup" aria-label="Font">
+          <label><input type="radio" name="rb-style" value="sans"${R.style === 'sans' ? ' checked' : ''} /><span>Modern</span></label>
+          <label><input type="radio" name="rb-style" value="serif"${R.style === 'serif' ? ' checked' : ''} /><span>Classic</span></label></div></div>
+        <div><span class="rb-hint">Paper</span><div class="rb-seg" role="radiogroup" aria-label="Paper size">
+          <label><input type="radio" name="rb-paper" value="letter"${R.paper === 'letter' ? ' checked' : ''} /><span>Letter (US, Canada)</span></label>
+          <label><input type="radio" name="rb-paper" value="a4"${R.paper === 'a4' ? ' checked' : ''} /><span>A4</span></label></div></div>
+      </div>
+      <p class="rb-hint">Section order. Put your strongest section near the top: Experience for most people, Education or Projects for students and new graduates.</p>
+      <ol class="rb-order">${R.order.map((id, i) => `<li><span>${SECTION_TITLES[id]}</span><button type="button" class="rb-ib" data-order="${i}" data-d="-1" aria-label="Move ${SECTION_TITLES[id]} up"${i === 0 ? ' disabled' : ''}>↑</button><button type="button" class="rb-ib" data-order="${i}" data-d="1" aria-label="Move ${SECTION_TITLES[id]} down"${i === R.order.length - 1 ? ' disabled' : ''}>↓</button></li>`).join('')}</ol>`, openCards.has('layout')));
+    q('.rb-cards').innerHTML = c.join('');
+  }
+
+  // ---------- preview and score ----------
+  let current: Block[] = [];
+  function renderPreview() {
+    current = blocks(R);
+    const doc = q('.rb-doc');
+    doc.className = `rb-doc${R.style === 'serif' ? ' serif' : ''}`;
+    q('.rb-paper').classList.toggle('a4', R.paper === 'a4');
+    doc.innerHTML = current.length ? current.map((k) => {
+      switch (k.t) {
+        case 'name': return `<div class="n">${esc(k.text)}</div>`;
+        case 'headline': return `<div class="hl">${esc(k.text)}</div>`;
+        case 'contact': return `<div class="ct">${esc(k.text)}</div>`;
+        case 'heading': return `<div class="h">${esc(k.text)}</div>`;
+        case 'entry': return `<div class="e"><span>${esc(k.left)}</span><span>${esc(k.right)}</span></div>`;
+        case 'sub': return `<div class="s">${esc(k.text)}</div>`;
+        case 'para': return `<p class="p">${esc(k.text)}</p>`;
+        case 'bullet': return `<div class="b">${esc(k.text)}</div>`;
+      }
+    }).join('') : '<div class="empty">Your resume appears here as you type.</div>';
+    // Let the page grow past one sheet so long resumes stay readable, and say how many pages.
+    const paper = q('.rb-paper');
+    paper.style.aspectRatio = '';
+    const pageH = paper.clientWidth * (R.paper === 'a4' ? 297 / 210 : 11 / 8.5);
+    const pages = Math.max(1, Math.ceil((doc.scrollHeight - 2) / pageH));
+    if (pages > 1) paper.style.aspectRatio = 'auto';
+    q('.rb-pages').textContent = current.length ? `About ${pages} page${pages === 1 ? '' : 's'}${pages > 2 ? '. Most employers prefer 1 to 2 pages.' : '.'}` : '';
+    runScore();
+  }
+
+  function runScore() {
+    const text = plainText(current);
+    const filled = R.name || R.summary || R.experience.some((j) => j.title || j.bullets);
+    const r: Report = score({ text, kind: 'Word', oddChars: (text.match(/[\u{E000}-\u{F8FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) ?? []).length }, 'resume.docx', 30000, q<HTMLTextAreaElement>('.rb-jdt').value);
+    const ring = q('.rb-ring');
+    const s = filled ? r.score : 0;
+    ring.style.setProperty('--p', String(s));
+    ring.className = 'rb-ring' + (s >= 80 ? '' : s >= 60 ? ' warn' : ' bad');
+    q('.rb-sc').textContent = filled ? String(s) : '–';
+    q('.rb-mini').textContent = filled ? String(s) : '';
+    q('.rb-sl').textContent = !filled ? 'ATS score: fill in the form' : s >= 80 ? 'ATS score: ready for most ATS' : s >= 60 ? 'ATS score: good, a few things to add' : 'ATS score: keep going';
+    const todo = r.checks.filter((c) => c.status !== 'pass' && c.id !== 'file').sort((a, b) => (b.max - b.points) - (a.max - a.points)).slice(0, 3);
+    q('.rb-fixes').innerHTML = filled ? todo.map((c) => `<li>${esc(c.fix)}</li>`).join('') : '';
+    q('.rb-kw').innerHTML = r.keywords ? [...r.keywords.matched.map((k) => `<span>✓ ${esc(k)}</span>`), ...r.keywords.missing.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('') : '';
+  }
+
+  let timer: ReturnType<typeof setTimeout>;
+  const later = () => { clearTimeout(timer); timer = setTimeout(() => { renderPreview(); save(); }, 150); };
+
+  // ---------- events ----------
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.matches('.rb-jdt')) { runScore(); return; }
+    const p = el.dataset.p;
+    if (!p) return;
+    if (el.type === 'checkbox') { setPath(p, el.checked); renderForm(); }
+    else setPath(p, el.value);
+    // Keep the item's title in step without rebuilding the form (which would lose focus).
+    const head = el.closest('.rb-item')?.querySelector('.rb-item-h span');
+    if (head) {
+      const [list, i] = p.split('.');
+      const it: any = (R as any)[list][+i];
+      head.textContent = (list === 'experience' ? [it.title, it.company] : list === 'education' ? [it.degree, it.school] : [it.name ?? it.title]).filter(Boolean).join(', ') || 'New entry';
+    }
+    later();
+  });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.name === 'rb-style') { R.style = el.value as any; later(); }
+    if (el.name === 'rb-paper') { R.paper = el.value as any; later(); }
+  });
+  const FRESH: Record<string, () => any> = { experience: emptyJob, education: emptyEdu, projects: emptyProject, extras: emptyExtra };
+  root.addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('button');
+    if (!el) return;
+    const d = el.dataset;
+    if (d.show) { root.dataset.show = d.show; root.querySelectorAll('[data-show]').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.show === d.show))); if (d.show === 'preview') renderPreview(); return; }
+    if (d.add) { (R as any)[d.add].push(FRESH[d.add]()); renderForm(); later(); focusLast(d.add); return; }
+    if (d.extra !== undefined) { R.extras.push({ title: d.extra, body: '' }); openCards.add('extras'); renderForm(); later(); focusLast('extras', d.extra ? 1 : 0); return; }
+    if (d.del) { if (!confirm('Remove this entry?')) return; (R as any)[d.del].splice(+d.i!, 1); renderForm(); later(); return; }
+    if (d.move) { const a = (R as any)[d.move], i = +d.i!, j = i + +d.d!; [a[i], a[j]] = [a[j], a[i]]; renderForm(); later(); return; }
+    if (d.order !== undefined) { const i = +d.order, j = i + +d.d!; [R.order[i], R.order[j]] = [R.order[j], R.order[i]]; renderForm(); later(); root.querySelectorAll<HTMLButtonElement>(`[data-order="${j}"][data-d="${d.d}"]`)[0]?.focus(); return; }
+  });
+  const focusLast = (list: string, nth = 0) => {
+    const items = root.querySelectorAll(`[data-card="${list}"] .rb-item`);
+    (items[items.length - 1]?.querySelectorAll<HTMLElement>('input, textarea')[nth])?.focus();
+  };
+
+  // ---------- downloads ----------
+  const download = (blob: Blob, name: string) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  const ready = () => {
+    renderPreview();
+    if (!current.length) { alert('Fill in at least your name and one section first.'); return false; }
+    return true;
+  };
+  q('.rb-pdf').addEventListener('click', async () => {
+    if (!ready()) return;
+    const { resumePdf } = await import('../../lib/resume/pdf');
+    const { bytes, lost } = await resumePdf(R, current);
+    const warn = q('.rb-lost');
+    warn.hidden = !lost.length;
+    warn.textContent = lost.length ? `These characters can't be shown in the PDF and were left out: ${lost.slice(0, 12).join(' ')}. The Word file keeps them.` : '';
+    download(new Blob([bytes as BlobPart], { type: 'application/pdf' }), `${fileBase(R)}.pdf`);
+  });
+  q('.rb-docx').addEventListener('click', async () => {
+    if (!ready()) return;
+    const { resumeDocx } = await import('../../lib/resume/docx');
+    download(new Blob([resumeDocx(R, current) as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), `${fileBase(R)}.docx`);
+  });
+  // Fetch the PDF and Word makers early so downloads work offline.
+  ((window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500)))(() => { import('../../lib/resume/pdf').catch(() => {}); import('../../lib/resume/docx').catch(() => {}); });
+
+  // ---------- drafts ----------
+  const remember = q<HTMLInputElement>('.rb-remember');
+  remember.checked = remembered;
+  remember.addEventListener('change', () => { remembered = remember.checked; try { if (remembered) localStorage.setItem(KEY, JSON.stringify(R)); else localStorage.removeItem(KEY); } catch {} });
+  q('.rb-save').addEventListener('click', () => download(new Blob([JSON.stringify({ fibub: 'resume', v: 1, resume: R }, null, 2)], { type: 'application/json' }), `${fileBase(R)}-backup.json`));
+  q('.rb-open').addEventListener('click', () => q<HTMLInputElement>('.rb-file').click());
+  q<HTMLInputElement>('.rb-file').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    try { const j = JSON.parse(await f.text()); if (!j?.resume?.order) throw 0; R = fix(j.resume); renderForm(); renderPreview(); save(); }
+    catch { alert('That file is not a fibub resume backup.'); }
+    (e.target as HTMLInputElement).value = '';
+  });
+  q('.rb-example').addEventListener('click', () => {
+    if ((R.name || R.summary || R.experience.some((j) => j.title)) && !confirm('Replace what you have typed with the example?')) return;
+    R = fix(JSON.parse(JSON.stringify({ ...EXAMPLE, paper: R.paper }))); renderForm(); renderPreview(); save();
+  });
+  q('.rb-reset').addEventListener('click', () => {
+    if (!confirm('Clear the whole resume and start again?')) return;
+    R = emptyResume(R.paper); renderForm(); renderPreview(); save();
+  });
+
+  root.dataset.show = 'edit';
+  renderForm();
+  renderPreview();
+  let lastW = 0;
+  new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w && w !== lastW) { lastW = w; renderPreview(); } }).observe(q('.rb-paper'));
+</script>

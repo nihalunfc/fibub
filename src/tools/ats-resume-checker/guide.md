@@ -29,7 +29,7 @@ This checker reads your resume the same way: it pulls out the plain text, looks 
 3. Read your score and the checks. Problems are listed first, biggest first, each with a one-line fix.
 4. Open "What the ATS sees" to read the plain text that was pulled from your file. If the order looks wrong there, it will look wrong to an employer's system too.
 
-Change your resume, save it, and check it again until you are happy.
+Change your resume, save it, and check it again until you are happy. Starting from scratch? The [ATS resume builder](/documents/resume-builder/) makes a resume in this format for you, as PDF or Word.
 
 ## What each check means
 
