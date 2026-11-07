@@ -68,8 +68,12 @@ function docx(data: Uint8Array): Extracted {
   if (!body) throw new Error('NOT_DOCX');
   const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
   const doc = new DOMParser().parseFromString(body, 'application/xml');
-  const paras = Array.from(doc.getElementsByTagNameNS(W, 'p')).map((p) =>
-    Array.from(p.getElementsByTagNameNS(W, 't')).map((t) => t.textContent).join(''));
+  // Word list items (bullets) carry no bullet character in their text, so add one back.
+  const paras = Array.from(doc.getElementsByTagNameNS(W, 'p')).map((p) => {
+    const t = Array.from(p.getElementsByTagNameNS(W, 't')).map((t) => t.textContent).join('');
+    const list = p.getElementsByTagNameNS(W, 'numPr').length || /List(Bullet|Paragraph)/.test(p.getElementsByTagNameNS(W, 'pStyle')[0]?.getAttributeNS(W, 'val') ?? '');
+    return list && t.trim() ? `• ${t}` : t;
+  });
   const text = paras.join('\n');
   const hf = Object.keys(files).filter((k) => /^word\/(header|footer)\d*\.xml$/.test(k))
     .map((k) => xml(k).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).join(' ').trim();

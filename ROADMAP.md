@@ -8,7 +8,7 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 2 | Image resizer (crop, rotate, resize, JPG/PNG/WebP/AVIF, target size, photo sizes) | /documents/image-resizer/ | Live |
 | 3 | ZIP checker (is it as small as it can be? hands off to the compressor) | /documents/zip-checker/ | Live |
 | 4 | File converter (only conversions that work in the browser) | /documents/file-converter/ | Live |
-| 5 | Weekly and monthly planner: several plans a day with times and colours, quick add ("Gym 7am tue"), tick off, week and month views, one-click image or PDF; kept only in this browser | /everyday/planner/ | Built (PR #5) |
+| 5 | Weekly and monthly planner: several plans a day with times and colours, quick add ("Gym 7am tue"), tick off, week and month views, one-click image or PDF; kept only in this browser | /everyday/planner/ | Live |
 | 6 | Link cleaner (strip trackers, UTM tags, affiliate parts) | /everyday/link-cleaner/ | Live |
 | 7 | ATS resume checker (PDF, DOCX, DOC, Markdown; score out of 100 with fixes) | /documents/ats-resume-checker/ | Live |
 | 8 | Data cleaner: CSV/Excel/JSON profile (missing values, outliers, duplicates, types), basic cleaning, plus a schema generator (SQL CREATE TABLE, nested-field warnings, matching mock data) | /documents/data-cleaner/ | Planned |
@@ -21,8 +21,9 @@ Rule: every tool runs fully in the browser. Nothing is uploaded, and nothing abo
 | 15 | Palette chameleon: drop an image, get its main hex codes, preview them on mock layouts (phone screen, resume header, web page, outfit top/bottom/shoes); plus ready palettes for outfits and for coders, with contrast checks. Works offline | /everyday/palette/ | Planned |
 | 16 | Chart picker: choose your data shape (variable types, time or not, number of points, part-of-whole or comparison) and get the right chart with a sample drawn from your answers, plus the charts to avoid and why. Can also read a dropped CSV to fill the answers in. Works offline | /documents/chart-picker/ | Planned |
 | 17 | LinkedIn post formatter: bold, italic, underline, strike, lists and a feed preview with the "see more" fold | /everyday/linkedin-post-formatter/ | Live |
-| 18 | Loan payoff planner: interest and time saved by prepayments (lump sums or recurring, ready-made plans, custom intervals), finish sooner or lower EMI, year-by-year savings | /money/loan-payoff-planner/ | Built (PR #5) |
-| 19 | Budget planner: trip or project budget with monthly saving target; monthly salary budget with weekly/yearly costs, needs vs wants, yearly-bill set-aside, savings growth | /money/budget-calculator/ | Built (PR #5) |
+| 18 | Loan payoff planner: interest and time saved by prepayments (lump sums or recurring, ready-made plans, custom intervals), finish sooner or lower EMI, year-by-year savings | /money/loan-payoff-planner/ | Live |
+| 19 | Budget planner: trip or project budget with monthly saving target; monthly salary budget with weekly/yearly costs, needs vs wants, yearly-bill set-aside, savings growth | /money/budget-calculator/ | Live |
+| 20 | ATS resume builder: form for contact, summary, skills, experience, projects, education, certifications and extra sections; live preview and ATS score (with job-ad keywords); download text-based PDF or Word (.docx); draft kept in the tab, optional "remember", backup file | /documents/resume-builder/ | Built (PR #6) |
 | - | Clickbait checker browser extension (on-device summary of the real outcome on hover). A separate extension, not a fibub.com page | - | Idea |
 | - | Anonymous usage counter feeding /stats/ | - | Planned |
 | - | Sales tax/VAT/GST, currency, time zone tools | - | Ideas |
