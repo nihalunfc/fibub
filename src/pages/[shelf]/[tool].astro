@@ -6,7 +6,7 @@ import { render } from 'astro:content';
 import { shelfById } from '../../site';
 import { allTools, toolComponent, toolUrl, relatedTools } from '../../lib/tools';
 import { ICONS } from '../../lib/icons';
-import { SECTIONS } from '../../site';
+import { SECTIONS, sectionLabel } from '../../site';
 export async function getStaticPaths() {
   const tools = await allTools();
   return tools
@@ -21,12 +21,11 @@ const { Content } = await render(tool);
 const updated = tool.data.updated.toISOString().slice(0, 10);
 ---
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{sectionLabel(section)}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>
     <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
-    {tool.data.shelf === 'science' && <button type="button" class="red-btn" aria-pressed="false" title="Turns the page dim red on black, so your eyes stay used to the dark">Red light for night use</button>}
     <span class="bm-tip" role="status" aria-live="polite">Keep it one tap away for everyday use.</span>
     <dialog class="bm-dlg" aria-labelledby="bm-title">
       <h2 id="bm-title">Bookmark {tool.data.name}?</h2>

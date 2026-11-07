@@ -181,7 +181,6 @@ import Downloads from '../../components/Downloads.astro';
   const fo = q<HTMLInputElement>('.f-obj');
   fo.addEventListener('input', () => { q('#f-objs').replaceChildren(...searchObjects(fo.value).map((v) => Object.assign(document.createElement('option'), { value: v }))); calc(); });
   root.querySelectorAll('.ax-card input:not(.f-obj), .ax-card select:not(.t-preset):not(.c-preset)').forEach((i) => i.addEventListener('input', calc));
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', calc);
   document.addEventListener('fibub:theme', calc);
   renderEps(); calc();
 

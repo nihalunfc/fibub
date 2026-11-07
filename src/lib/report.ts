@@ -11,13 +11,13 @@ export type Section = {
   note?: string;
 };
 export type Palette = { bg: string; ink: string; muted: string; line: string; grid: string; accent: string; accent2: string; good: string; warn: string; bad: string; night: string; twilight: string; day: string; red: boolean };
-export const LIGHT: Palette = { bg: '#ffffff', ink: '#121826', muted: '#5d6577', line: '#cfd5e1', grid: '#e9ecf3', accent: '#0b7fa6', accent2: '#d97706', good: '#137a3e', warn: '#9a5b00', bad: '#b42323', night: '#1d2742', twilight: '#5a6a92', day: '#e8eefb', red: false };
-export const DARK: Palette = { bg: '#151b27', ink: '#e9edf5', muted: '#a0a9ba', line: '#3a4458', grid: '#262e3d', accent: '#5cc8f0', accent2: '#f5a83a', good: '#6fe39b', warn: '#f3b65c', bad: '#f59a9a', night: '#0a0f1c', twilight: '#2b3a5c', day: '#2a3550', red: false };
+export const LIGHT: Palette = { bg: '#ffffff', ink: '#0a0a0a', muted: '#5c5c5c', line: '#cfcfcf', grid: '#ececec', accent: '#1f5fae', accent2: '#c26a00', good: '#146c34', warn: '#8a5300', bad: '#b3261e', night: '#1c2333', twilight: '#58637a', day: '#eef1f6', red: false };
+export const DARK: Palette = { bg: '#0a0a0a', ink: '#f5f5f5', muted: '#a3a3a3', line: '#3a3a3a', grid: '#222222', accent: '#7fb2f0', accent2: '#f0b45a', good: '#74d391', warn: '#f0b45a', bad: '#f28b82', night: '#05070c', twilight: '#232a3a', day: '#2c3240', red: false };
 export const RED: Palette = { bg: '#000000', ink: '#a30000', muted: '#6e0000', line: '#3a0000', grid: '#1c0000', accent: '#a30000', accent2: '#7a0000', good: '#a30000', warn: '#a30000', bad: '#c00000', night: '#080000', twilight: '#140000', day: '#240000', red: true };
 /** The palette matching the page right now: red night mode, dark or light. */
 export function pagePalette(): Palette {
   if (document.documentElement.classList.contains('red-mode')) return RED;
-  return matchMedia('(prefers-color-scheme: dark)').matches ? DARK : LIGHT;
+  return document.documentElement.dataset.theme === 'dark' ? DARK : LIGHT;
 }
 
 /** Draw a figure into a canvas on the page, sharp on high-density screens. */
