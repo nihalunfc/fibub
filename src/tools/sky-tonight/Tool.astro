@@ -1,0 +1,142 @@
+---
+// What's up tonight: sun and twilight times, the Moon, the planets and the best deep-sky objects.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tn">
+  <SkyPlace />
+  <div class="ax-card tn-night">
+    <h2>The night</h2>
+    <div class="tn-top">
+      <canvas class="tn-moon" width="96" height="96"></canvas>
+      <dl class="ax-facts tn-out"></dl>
+    </div>
+    <p class="ax-help tn-note"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Planets and the Moon</h2>
+    <div class="ax-scroll"><table class="tn-pl"></table></div>
+    <canvas class="ax-fig tn-fig" style="margin-top:12px"></canvas>
+    <div class="ax-legend tn-leg"></div>
+  </div>
+  <div class="ax-card">
+    <h2>Best deep-sky objects tonight</h2>
+    <div class="ax-row">
+      <div class="ax-seg tn-gear" role="group" aria-label="What you observe with">
+        <button type="button" data-g="eyes" aria-pressed="false">Eyes</button>
+        <button type="button" data-g="binoculars" aria-pressed="true">Binoculars</button>
+        <button type="button" data-g="small" aria-pressed="false">Small telescope</button>
+        <button type="button" data-g="large" aria-pressed="false">Large telescope</button>
+      </div>
+      <label class="ax-check">Higher than <select class="tn-min" style="width:auto"><option>20</option><option selected>30</option><option>45</option></select>°</label>
+    </div>
+    <p class="ax-help">Objects that climb above that height while it is dark, brightest first. Tap one to see its height through the night.</p>
+    <div class="ax-scroll"><table class="tn-dso"></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .tn-top { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .tn-moon { width: 96px; height: 96px; }
+  @media (max-width: 420px) { .tn-top { grid-template-columns: minmax(0, 1fr); } }
+  .tn a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .tn a:hover { text-decoration: underline; }
+</style>
+
+<script>
+  import { night, planets, bestObjects, observer, track, GEAR, type Gear, type Night } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay, noonOf } from '../../lib/astro/place';
+  import { altitudeFigure, moonFigure, seriesColour } from '../../lib/astro/charts';
+  import { wireDownloads, paint, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let gear: Gear = 'binoculars';
+  let out: { facts: [string, string][]; planets: string[][]; dso: string[][]; fig: Figure | null; moon: Figure | null } = { facts: [], planets: [], dso: [], fig: null, moon: null };
+
+  q('.tn-gear').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-g]'); if (!b) return;
+    gear = b.dataset.g as Gear; root.querySelectorAll('.tn-gear button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); dso();
+  });
+  q('.tn-min').addEventListener('change', () => dso());
+
+  let n: Night;
+  const dur = (a: Date, b: Date) => { const m = Math.round((b.getTime() - a.getTime()) / 60000); return `${Math.floor(m / 60)} h ${m % 60} min`; };
+  const table = (el: HTMLTableElement, head: string[], rows: (string | Node)[][], right: number[] = []) => {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody();
+    for (const r of rows) { const tr = b.insertRow(); r.forEach((v, i) => { const c = tr.insertCell(); if (typeof v === 'string') c.textContent = v; else c.append(v); if (right.includes(i)) c.className = 'r'; }); }
+  };
+  const link = (label: string, target: string) => Object.assign(document.createElement('a'), { href: `/science/object-altitude/?t=${encodeURIComponent(target)}`, textContent: label });
+
+  function render() {
+    const { place, date } = getSky();
+    const tz = place.tz;
+    n = night(place, date);
+    const rows: [string, string, string?][] = [
+      ['Sunset', fmtTime(n.sunset, tz)],
+      ['Properly dark', n.dark ? `${fmtTime(n.dark[0], tz)} to ${fmtTime(n.dark[1], tz)}` : 'Not tonight', n.dark ? dur(n.dark[0], n.dark[1]) : 'the Sun stays less than 18° below the horizon'],
+      ['Sunrise', fmtTime(n.sunrise, tz)],
+      ['Moon', `${n.moonName}, ${Math.round(n.moonIllum * 100)}% lit`],
+      ['Moonrise', fmtTime(n.moonrise, tz), n.moonrise ? fmtDay(n.moonrise, tz) : ''],
+      ['Moonset', fmtTime(n.moonset, tz), n.moonset ? fmtDay(n.moonset, tz) : ''],
+    ];
+    if (n.polar) rows.splice(0, 3, ['Sun', n.polar === 'day' ? 'Up all night (midnight sun)' : 'Down all day (polar night)']);
+    q('.tn-out').replaceChildren(...rows.map(([k, v, s]) => {
+      const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+      d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+      if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); }
+      return d;
+    }));
+    out.facts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+    q('.tn-note').textContent = n.moonIllum > 0.6 ? 'A bright Moon washes out faint galaxies and nebulae tonight. Planets, the Moon itself, double stars and bright clusters are still great.' : n.moonIllum < 0.25 ? 'A dark Moon: a good night for faint galaxies and nebulae.' : 'Plan faint targets for when the Moon is down.';
+    out.moon = moonFigure(n.moonPhase, 96);
+    paint(q<HTMLCanvasElement>('.tn-moon'), out.moon);
+
+    // Planets.
+    const obs = observer(place);
+    const pl = planets(place, n);
+    out.planets = pl.map((p) => [p.name, fmtTime(p.rise, tz), `${fmtTime(p.transit, tz)} (${Math.round(p.transitAlt)}°)`, fmtTime(p.set, tz), p.mag.toFixed(1), p.con, p.visible ? `Best ${fmtTime(p.bestTime, tz)}, ${Math.round(p.bestAlt)}° up` : 'Not well placed']);
+    table(q<HTMLTableElement>('.tn-pl'), ['', 'Rises', 'Highest', 'Sets', 'Mag', 'In', 'Tonight'],
+      pl.map((p, i) => [link(p.name, p.name), ...out.planets[i].slice(1)]), [4]);
+    q('.tn-pl').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('dim', !pl[i].visible));
+    const vis = pl.filter((p) => p.visible);
+    const from = n.sunset ?? n.window[0], to = n.sunrise ?? n.window[1];
+    const lines = [{ label: 'Moon', pts: track({ kind: 'body', body: 'Moon', label: 'Moon' }, obs, from, to, 10).pts }, ...vis.map((p) => ({ label: p.name, pts: track({ kind: 'body', body: p.name, label: p.name }, obs, from, to, 10).pts }))];
+    out.fig = altitudeFigure({ place, night: n, lines, from: new Date(from.getTime() - 30 * 60e3), to: new Date(to.getTime() + 30 * 60e3) });
+    paint(q<HTMLCanvasElement>('.tn-fig'), out.fig);
+    const pal = pagePalette();
+    q('.tn-leg').replaceChildren(...lines.map((l, i) => { const s = document.createElement('span'); s.innerHTML = `<i style="background:${seriesColour(i, pal)}"></i>`; s.append(l.label); return s; }));
+    dso();
+  }
+
+  function dso() {
+    const { place } = getSky();
+    const picks = bestObjects(place, n, gear, +q<HTMLSelectElement>('.tn-min').value, 25);
+    out.dso = picks.map((o) => [o.id.split(' / ')[0] + (o.name ? ` ${o.name}` : ''), o.type, o.mag!.toFixed(1), `${fmtTime(o.bestTime, place.tz)} (${Math.round(o.bestAlt)}°)`, o.con, `${Math.round(o.moonSep)}°`]);
+    table(q<HTMLTableElement>('.tn-dso'), ['Object', 'Type', 'Mag', 'Highest while dark', 'In', 'From Moon'],
+      picks.map((o, i) => [link(out.dso[i][0], o.id.split(' / ')[0]), ...out.dso[i].slice(1)]), [2, 5]);
+    if (!picks.length) q('.tn-dso').innerHTML = `<tbody><tr><td>Nothing in our list climbs that high while it is dark. Try a lower height or a different date.</td></tr></tbody>`;
+  }
+
+  onSky(render);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+  document.addEventListener('fibub:theme', render);
+  wireDownloads(q('.dl'), () => {
+    const { place, date } = getSky();
+    return {
+      title: `Sky tonight: ${fmtDay(noonOf(date, place.tz), place.tz, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`,
+      subtitle: `${place.name} (${place.lat.toFixed(2)}, ${place.lon.toFixed(2)}), times in local time`, file: `sky-tonight-${date}`,
+      sections: [
+        { title: 'The night', facts: out.facts },
+        { title: 'Planets', table: { head: ['Planet', 'Rises', 'Highest', 'Sets', 'Mag', 'In', 'Tonight'], rows: out.planets }, ...(out.fig ? { figure: out.fig } : {}) },
+        { title: `Best deep-sky objects (${GEAR[gear].label.toLowerCase()})`, table: { head: ['Object', 'Type', 'Mag', 'Highest while dark', 'In', 'From Moon'], rows: out.dso } },
+      ] as Section[],
+    };
+  });
+</script>

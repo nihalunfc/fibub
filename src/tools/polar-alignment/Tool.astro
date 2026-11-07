@@ -1,0 +1,133 @@
+---
+// Polar alignment helper: where Polaris (or Sigma Octantis) should sit in the polar scope right now.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pa">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <div class="ax-seg pa-view" role="group" aria-label="Show the view">
+        <button type="button" data-v="scope" aria-pressed="true">Polar scope view</button>
+        <button type="button" data-v="sky" aria-pressed="false">Naked-eye view</button>
+      </div>
+      <label class="ax-check">Time <input type="datetime-local" class="pa-when" step="60" style="width:auto" /></label>
+      <button type="button" class="btn secondary small pa-now">Now</button>
+    </div>
+    <div class="pa-wrap">
+      <canvas class="ax-fig pa-fig"></canvas>
+      <dl class="ax-facts pa-out"></dl>
+    </div>
+    <p class="ax-help pa-tip"></p>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .pa-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 14px; align-items: start; }
+  .pa-fig { max-width: 420px; justify-self: center; }
+  @media (min-width: 760px) { .pa-wrap { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { toJNow, lst, A, observer } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { localDate, localTime, zoned, sexa, fmtTime } from '../../lib/astro/place';
+  import { wireDownloads, paint, type Figure } from '../../lib/report';
+
+  // J2000 positions (Hipparcos). Proper motion over a few decades moves them by well under an arcsecond for this use.
+  const POLARIS = { name: 'Polaris', ra: (2 + 31 / 60 + 49.09 / 3600) * 15, dec: 89 + 15 / 60 + 50.8 / 3600 };
+  const SIGOCT = { name: 'Sigma Octantis', ra: (21 + 8 / 60 + 46.86 / 3600) * 15, dec: -(88 + 57 / 60 + 23.4 / 3600) };
+
+  const root = document.querySelector<HTMLElement>('.pa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const when = q<HTMLInputElement>('.pa-when');
+  let view: 'scope' | 'sky' = 'scope', live = true, facts: [string, string][] = [], fig: Figure | null = null;
+
+  q('.pa-view').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-v]'); if (!b) return;
+    view = b.dataset.v as any; root.querySelectorAll('.pa-view button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  });
+  const time = () => {
+    if (live || !when.value) return new Date();
+    const [d, t] = when.value.split('T'); const [y, m, dd] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number);
+    return zoned(y, m, dd, h, mi, getSky().place.tz);
+  };
+  const setNow = () => { const tz = getSky().place.tz, n = new Date(); when.value = `${localDate(n, tz)}T${localTime(n, tz)}`; };
+  when.addEventListener('input', () => { live = false; draw(); });
+  q('.pa-now').addEventListener('click', () => { live = true; setNow(); draw(); });
+
+  function draw() {
+    const { place } = getSky();
+    const t = time();
+    const south = place.lat < 0;
+    const star = south ? SIGOCT : POLARIS;
+    const now = toJNow(star.ra, star.dec, t);
+    const ha = (((lst(t, place.lon) - now.ra / 15) % 24) + 24) % 24; // hours
+    const offset = 90 - Math.abs(now.dec); // degrees from the pole
+    // Position angle on the screen, clockwise from 12 o'clock, for the naked-eye view facing the pole.
+    let pa = south ? ha * 15 : -ha * 15;
+    if (view === 'scope') pa += 180; // a polar scope turns the view upside down
+    const clock = (((pa / 30) % 12) + 12) % 12;
+    const clockTxt = `${Math.floor(clock) === 0 ? 12 : Math.floor(clock)}:${String(Math.round((clock % 1) * 60) % 60).padStart(2, '0')}`;
+    // Next upper transit (hour angle 0).
+    A.DefineStar(A.Body.Star1, star.ra / 15, star.dec, 400);
+    const transit = A.SearchHourAngle(A.Body.Star1, observer(place), 0, t).time.date;
+    const rows: [string, string, string?][] = [
+      [`${star.name} hour angle`, sexa(ha, 'h', 0).replace(/ \d\d(\.\d)?s$/, ''), `${(ha * 15).toFixed(1)}°`],
+      ['Clock position', clockTxt, view === 'scope' ? 'in an upside-down polar scope' : 'as you see it in the sky'],
+      ['Distance from the pole', `${(offset * 60).toFixed(1)}′`, `${offset.toFixed(3)}°`],
+      ['Next time it is straight above the pole', fmtTime(transit, place.tz), `${localDate(transit, place.tz)} local time`],
+      ['Your latitude', `${Math.abs(place.lat).toFixed(2)}° ${south ? 'S' : 'N'}`, 'set the mount\'s altitude scale to this'],
+    ];
+    q('.pa-out').replaceChildren(...rows.map(([k, v, s]) => {
+      const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+      d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+      if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); }
+      return d;
+    }));
+    facts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+    q('.pa-tip').textContent = south
+      ? 'Sigma Octantis is faint (magnitude 5.4). Find it from the "trapezium" of stars next to it, or use the mount\'s app or a camera-based alignment if your sky is bright.'
+      : 'Put Polaris on the small circle of your polar scope reticle at this clock position, using the mount\'s altitude and azimuth bolts only. Many reticles have the 0 or 12 mark at the top: level the mount first and turn the RA axis until that mark is at the top.';
+    fig = reticle(pa, offset, star.name, clockTxt, view);
+    paint(q<HTMLCanvasElement>('.pa-fig'), fig);
+  }
+
+  function reticle(pa: number, offset: number, name: string, clockTxt: string, v: string): Figure {
+    return {
+      w: 420, h: 420, alt: `${name} at ${clockTxt} in the ${v === 'scope' ? 'polar scope' : 'sky'} view`,
+      draw(ctx, w, h, pal) {
+        const cx = w / 2, cy = h / 2, R = w * 0.42, r = R * 0.62;
+        const ink = pal.red ? '#ff3b30' : '#e9edf5', dim = pal.red ? '#5c0f0b' : '#5a6478';
+        ctx.fillStyle = pal.red ? '#000' : '#0a0f1c'; ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = dim; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+        ctx.strokeStyle = ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+        ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (let k = 0; k < 12; k++) {
+          const a = (k * 30 * Math.PI) / 180, x = cx + Math.sin(a) * r, y = cy - Math.cos(a) * r;
+          ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(cx + Math.sin(a) * (r + 7), cy - Math.cos(a) * (r + 7)); ctx.stroke();
+          ctx.fillStyle = ink; ctx.fillText(String(k === 0 ? 12 : k), cx + Math.sin(a) * (r + 20), cy - Math.cos(a) * (r + 20));
+        }
+        ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 7); ctx.fill();
+        const a = (pa * Math.PI) / 180, sx = cx + Math.sin(a) * r, sy = cy - Math.cos(a) * r;
+        ctx.strokeStyle = pal.red ? '#ff3b30' : '#f5a83a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx, sy, 10, 0, 7); ctx.stroke();
+        ctx.fillStyle = pal.red ? '#ff3b30' : '#fff7d6'; ctx.beginPath(); ctx.arc(sx, sy, 4.5, 0, 7); ctx.fill();
+        ctx.fillStyle = ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText(`${name} at ${clockTxt}`, 8, 8);
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.red ? '#b3261e' : '#a0a9ba';
+        ctx.fillText(v === 'scope' ? 'Polar scope view (upside down)' : 'Naked-eye view, facing the pole', 8, 26);
+        ctx.textBaseline = 'bottom'; ctx.fillText(`Circle radius = ${(offset * 60).toFixed(1)}′ from the pole`, 8, h - 8);
+      },
+    };
+  }
+
+  onSky(() => { if (live) setNow(); draw(); });
+  document.addEventListener('fibub:theme', draw);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  setInterval(() => { if (live) { setNow(); draw(); } }, 5000);
+  wireDownloads(q('.dl'), () => ({ title: 'Polar alignment', subtitle: `${getSky().place.name}, ${when.value.replace('T', ' ')} local time`, file: 'polar-alignment', sections: [{ title: 'Where to put the star', facts, figure: fig! }] }));
+</script>

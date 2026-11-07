@@ -1,0 +1,153 @@
+---
+// Sky events month by month: Moon phases, meteor showers, eclipses, planet events, equinoxes.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ev">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <div class="ev-nav">
+      <button type="button" class="btn secondary small ev-prev" aria-label="Previous month">‹</button>
+      <h2 class="ev-title" aria-live="polite"></h2>
+      <button type="button" class="btn secondary small ev-next" aria-label="Next month">›</button>
+    </div>
+    <div class="ev-grid" role="grid"></div>
+    <p class="ax-help">Each day shows how much of the Moon is lit. Tap a day to see that night's sky.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Events this month</h2>
+    <ol class="ev-list"></ol>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ev-ics">Add to my calendar (.ics)</button><span class="ax-help ev-tz"></span></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .ev-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ev-nav h2 { margin: 0; font-size: 19px; text-align: center; }
+  .ev-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 12px; }
+  .ev-grid .h { font-size: 12px; color: var(--muted); text-align: center; padding: 2px 0; }
+  .ev-grid a { display: grid; align-content: start; gap: 2px; min-height: 64px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 13px; min-width: 0; overflow: hidden; }
+  .ev-grid a:hover { border-color: var(--accent); }
+  .ev-grid a.today { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .ev-grid a .m { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; }
+  .ev-grid a .m i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: conic-gradient(var(--ink) calc(var(--l) * 1%), var(--line) 0); }
+  .ev-grid a b { font-size: 11px; font-weight: 600; line-height: 1.25; color: var(--science); overflow-wrap: anywhere; }
+  .ev-grid a b.meteor { color: var(--money); } .ev-grid a b.eclipse { color: var(--bad); } .ev-grid a b.planet { color: var(--documents); }
+  @media (max-width: 520px) { .ev-grid a { min-height: 48px; padding: 3px; } .ev-grid a b { display: none; } .ev-grid a.has::after { content: '•'; color: var(--accent); font-size: 18px; line-height: 0.6; } }
+  .ev-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .ev-list li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .ev-list time { font-weight: 700; font-size: 14px; }
+  .ev-list time small { display: block; font-weight: 400; color: var(--muted); }
+  .ev-list b { display: block; }
+  .ev-list span { color: var(--muted); font-size: 14px; }
+</style>
+
+<script>
+  import { monthEvents, A, type SkyEvent } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay, localDate, zoned, todayIn, tzLabel } from '../../lib/astro/place';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ev')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const now = new Date();
+  let y = now.getFullYear(), m = now.getMonth() + 1;
+  const qm = new URLSearchParams(location.search).get('month');
+  if (qm && /^\d{4}-\d{2}$/.test(qm)) { [y, m] = qm.split('-').map(Number); }
+  let events: SkyEvent[] = [];
+
+  q('.ev-prev').addEventListener('click', () => { m--; if (m < 1) { m = 12; y--; } render(); });
+  q('.ev-next').addEventListener('click', () => { m++; if (m > 12) { m = 1; y++; } render(); });
+
+  function render() {
+    const { place } = getSky(), tz = place.tz;
+    const first = zoned(y, m, 1, 12, 0, tz);
+    q('.ev-title').textContent = fmtDay(first, tz, { month: 'long', year: 'numeric' });
+    events = monthEvents(place, y, m).filter((e) => localDate(e.date, tz).startsWith(`${y}-${String(m).padStart(2, '0')}`));
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // Monday first
+    const grid = q('.ev-grid'); grid.replaceChildren();
+    for (const d of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) grid.append(Object.assign(document.createElement('span'), { className: 'h', textContent: d }));
+    for (let i = 0; i < lead; i++) grid.append(document.createElement('span'));
+    const today = todayIn(tz);
+    for (let d = 1; d <= days; d++) {
+      const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const noon = zoned(y, m, d, 22, 0, tz);
+      const lit = Math.round(A.Illumination(A.Body.Moon, noon).phase_fraction * 100);
+      const a = document.createElement('a'); a.href = `/science/sky-tonight/?date=${iso}`;
+      if (iso === today) a.className = 'today';
+      a.innerHTML = `<span>${d}</span><span class="m"><i style="--l:${lit}"></i>${lit}%</span>`;
+      const evs = events.filter((e) => localDate(e.date, tz) === iso);
+      for (const e of evs.slice(0, 2)) { const b = document.createElement('b'); b.className = e.kind; b.textContent = e.title.replace(/ \(around\)| meteor shower peak/g, (s) => (s.includes('meteor') ? ' peak' : '')); a.append(b); }
+      if (evs.length) a.classList.add('has');
+      a.setAttribute('aria-label', `${iso}: Moon ${lit}% lit${evs.length ? '. ' + evs.map((e) => e.title).join('. ') : ''}`);
+      grid.append(a);
+    }
+    q('.ev-list').replaceChildren(...(events.length ? events : []).map((e) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<time></time><div><b></b><span></span></div>';
+      const t = li.querySelector('time')!; t.textContent = fmtDay(e.date, tz, { month: 'short', day: 'numeric' });
+      const sm = document.createElement('small'); sm.textContent = e.kind === 'meteor' ? 'night' : fmtTime(e.date, tz); t.append(sm);
+      li.querySelector('b')!.textContent = e.title; li.querySelector('span')!.textContent = e.detail;
+      return li;
+    }));
+    if (!events.length) q('.ev-list').innerHTML = '<li><span>No major events this month.</span></li>';
+    q('.ev-tz').textContent = `Times in ${tz.replace(/_/g, ' ')} (${tzLabel(tz, first)}).`;
+  }
+
+  q('.ev-ics').addEventListener('click', () => {
+    const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const day = (d: Date) => localDate(d, getSky().place.tz).replace(/-/g, '');
+    const esc = (s: string) => s.replace(/[\\,;]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fibub.com//Sky events//EN', 'CALSCALE:GREGORIAN'];
+    events.forEach((e, i) => {
+      lines.push('BEGIN:VEVENT', `UID:${y}${m}-${i}-${stamp(e.date)}@fibub.com`, `DTSTAMP:${stamp(new Date())}`);
+      if (e.kind === 'meteor') lines.push(`DTSTART;VALUE=DATE:${day(e.date)}`); else lines.push(`DTSTART:${stamp(e.date)}`, `DURATION:PT30M`);
+      lines.push(`SUMMARY:${esc(e.title)}`, `DESCRIPTION:${esc(e.detail)}`, 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    save(new Blob([lines.join('\r\n')], { type: 'text/calendar' }), `sky-events-${y}-${String(m).padStart(2, '0')}.ics`, 'text/calendar');
+  });
+
+  function monthFigure(): Figure {
+    const { place } = getSky(), tz = place.tz;
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+    const rows = Math.ceil((lead + days) / 7);
+    return {
+      w: 980, h: 40 + rows * 96, alt: `Sky events calendar for ${y}-${m}`,
+      draw(ctx, w, h, pal) {
+        const cw = w / 7;
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach((d, i) => ctx.fillText(d, i * cw + cw / 2, 22));
+        for (let d = 1; d <= days; d++) {
+          const k = lead + d - 1, x = (k % 7) * cw, yy = 34 + Math.floor(k / 7) * 96;
+          ctx.strokeStyle = pal.line; ctx.strokeRect(x + 2, yy, cw - 4, 92);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '700 14px system-ui, sans-serif'; ctx.fillText(String(d), x + 8, yy + 18);
+          const lit = A.Illumination(A.Body.Moon, zoned(y, m, d, 22, 0, tz)).phase_fraction;
+          ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(`Moon ${Math.round(lit * 100)}%`, x + cw - 8, yy + 18);
+          const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          ctx.textAlign = 'left'; ctx.font = '600 11.5px system-ui, sans-serif';
+          events.filter((e) => localDate(e.date, tz) === iso).slice(0, 3).forEach((e, i) => {
+            ctx.fillStyle = e.kind === 'meteor' ? '#d97706' : e.kind === 'eclipse' ? pal.bad : e.kind === 'planet' ? '#4f5bd5' : pal.accent;
+            const t = e.title.replace(' meteor shower peak (around)', ' peak');
+            ctx.fillText(t.length > 22 ? t.slice(0, 21) + '…' : t, x + 8, yy + 38 + i * 16);
+          });
+        }
+      },
+    };
+  }
+
+  onSky(render);
+  wireDownloads(q('.dl'), () => {
+    const { place } = getSky(), tz = place.tz;
+    return {
+      title: `Sky events: ${q('.ev-title').textContent}`, subtitle: `${place.name}, times in local time`, file: `sky-events-${y}-${String(m).padStart(2, '0')}`,
+      sections: [
+        { title: 'Calendar', figure: monthFigure() },
+        { title: 'Events', table: { head: ['Date', 'Time', 'Event', 'Details'], rows: events.map((e) => [fmtDay(e.date, tz, { weekday: 'short', month: 'short', day: 'numeric' }), e.kind === 'meteor' ? 'night' : fmtTime(e.date, tz), e.title, e.detail]) } },
+      ] as Section[],
+    };
+  });
+</script>

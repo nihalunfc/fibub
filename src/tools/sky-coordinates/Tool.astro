@@ -1,0 +1,169 @@
+---
+// Sky coordinate converter: J2000, JNow (of date), galactic, ecliptic and alt/az, one at a time or a whole list.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sc">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>One position</h2>
+    <div class="ax-grid">
+      <label>Object (optional) <input class="sc-obj" placeholder="M42, Vega, Jupiter…" list="sc-objs" autocomplete="off" /></label>
+      <label>Coordinates are <select class="sc-frame"><option value="j2000">RA/Dec J2000 (ICRS)</option><option value="jnow">RA/Dec of date (JNow)</option><option value="gal">Galactic l, b</option><option value="ecl">Ecliptic λ, β (J2000)</option></select></label>
+      <label><span class="sc-l1">Right ascension</span> <input class="sc-a" placeholder="05h 35m 17s or 83.82" /></label>
+      <label><span class="sc-l2">Declination</span> <input class="sc-b" placeholder="-05° 23′ 28″" /></label>
+      <label>At (your local time) <input type="datetime-local" class="sc-when" step="60" /></label>
+    </div>
+    <datalist id="sc-objs"></datalist>
+    <p class="ax-help">Type angles any common way: <code>05 35 17.3</code>, <code>5h35m17s</code>, <code>-5:23:28</code> or decimal degrees like <code>83.82</code>.</p>
+    <p class="ax-err sc-err" hidden></p>
+    <dl class="ax-facts sc-out" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>A whole list</h2>
+    <p class="ax-help" style="margin-top:0">Paste one target a line: <code>name, RA, Dec</code> (J2000). Commas, tabs or semicolons all work, and a header row is skipped.</p>
+    <textarea class="sc-list" rows="6" spellcheck="false" placeholder="M31, 00 42 44.3, +41 16 09&#10;Vega, 18 36 56.3, +38 47 01&#10;Betelgeuse, 88.793, 7.407"></textarea>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small sc-run">Convert the list</button>
+      <button type="button" class="btn secondary small sc-csv" hidden>Download CSV</button>
+      <span class="ax-help sc-count"></span>
+    </div>
+    <div class="ax-scroll"><table class="sc-table" hidden></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<script>
+  import { A, searchObjects, findTarget, toJNow, fromJNow, altAzJ2000, observer, constellation, airmass, lst } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { sexa, parseAngle, localDate, localTime, zoned } from '../../lib/astro/place';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const frame = q<HTMLSelectElement>('.sc-frame'), ai = q<HTMLInputElement>('.sc-a'), bi = q<HTMLInputElement>('.sc-b'), when = q<HTMLInputElement>('.sc-when'), obj = q<HTMLInputElement>('.sc-obj');
+  const err = q('.sc-err');
+  let single: [string, string][] = [], listRows: string[][] = [];
+  const HEAD = ['Name', 'RA J2000', 'Dec J2000', 'RA JNow', 'Dec JNow', 'Gal l', 'Gal b', 'Ecl λ', 'Ecl β', 'Alt', 'Az', 'Airmass', 'Const.'];
+
+  const time = () => {
+    const v = when.value;
+    if (!v) return new Date();
+    const [d, t] = v.split('T'); const [y, m, dd] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number);
+    return zoned(y, m, dd, h, mi, getSky().place.tz);
+  };
+  const setNow = () => { const tz = getSky().place.tz, n = new Date(); when.value = `${localDate(n, tz)}T${localTime(n, tz)}`; };
+  const vec = (lon: number, lat: number, t: Date) => A.VectorFromSphere(new A.Spherical(lat, lon, 1), A.MakeTime(t));
+  const sph = (v: A.Vector) => { const s = A.SphereFromVector(v); return { lon: ((s.lon % 360) + 360) % 360, lat: s.lat }; };
+
+  /** Everything about one J2000 position (degrees). */
+  function convert(ra: number, dec: number, t: Date) {
+    const now = toJNow(ra, dec, t);
+    const g = sph(A.RotateVector(A.Rotation_EQJ_GAL(), vec(ra, dec, t)));
+    const e = sph(A.RotateVector(A.Rotation_EQJ_ECL(), vec(ra, dec, t)));
+    const h = altAzJ2000(ra, dec, t, observer(getSky().place));
+    return { ra, dec, now, g, e, h, con: constellation(ra, dec) };
+  }
+  function toJ2000(f: string, a: number, b: number, t: Date) {
+    if (f === 'j2000') return { ra: a, dec: b };
+    if (f === 'jnow') return fromJNow(a, b, t);
+    const rot = f === 'gal' ? A.Rotation_GAL_EQJ() : A.Rotation_ECL_EQJ();
+    const s = sph(A.RotateVector(rot, vec(a, b, t)));
+    return { ra: s.lon, dec: s.lat };
+  }
+
+  function labels() {
+    const f = frame.value;
+    q('.sc-l1').textContent = f === 'gal' ? 'Galactic longitude l (°)' : f === 'ecl' ? 'Ecliptic longitude λ (°)' : 'Right ascension';
+    q('.sc-l2').textContent = f === 'gal' ? 'Galactic latitude b (°)' : f === 'ecl' ? 'Ecliptic latitude β (°)' : 'Declination';
+  }
+  function readA() {
+    const f = frame.value;
+    if (f === 'gal' || f === 'ecl') { const v = parseAngle(ai.value); return v == null ? null : ((v % 360) + 360) % 360; }
+    const h = parseAngle(ai.value, true); return h == null ? null : h * 15;
+  }
+
+  function showOne() {
+    err.hidden = true;
+    const out = q('.sc-out');
+    const a = ai.value.trim() ? readA() : null, b = bi.value.trim() ? parseAngle(bi.value) : null;
+    if (a == null || b == null) {
+      out.replaceChildren(); single = [];
+      if (ai.value.trim() && a == null) { err.textContent = 'That first angle could not be read. Try 05h 35m 17s or 83.82.'; err.hidden = false; }
+      else if (bi.value.trim() && b == null) { err.textContent = 'That second angle could not be read. Try -05° 23′ 28″ or -5.39.'; err.hidden = false; }
+      return;
+    }
+    const t = time();
+    const j = toJ2000(frame.value, a, b, t);
+    const c = convert(j.ra, j.dec, t);
+    const rows: [string, string, string][] = [
+      ['RA, Dec J2000', `${sexa(c.ra / 15, 'h')}  ${sexa(c.dec, 'd')}`, `${c.ra.toFixed(5)}°, ${c.dec.toFixed(5)}°`],
+      ['RA, Dec of date (JNow)', `${sexa(c.now.ra / 15, 'h')}  ${sexa(c.now.dec, 'd')}`, 'what most GoTo mounts expect'],
+      ['Galactic l, b', `${c.g.lon.toFixed(4)}°, ${c.g.lat.toFixed(4)}°`, ''],
+      ['Ecliptic λ, β (J2000)', `${c.e.lon.toFixed(4)}°, ${c.e.lat.toFixed(4)}°`, ''],
+      ['Altitude, azimuth', `${c.h.alt.toFixed(1)}°, ${c.h.az.toFixed(1)}°`, c.h.alt > 0 ? `airmass ${airmass(c.h.alt).toFixed(2)}` : 'below the horizon'],
+      ['Hour angle', sexa((((lst(t, getSky().place.lon) - c.now.ra / 15) % 24) + 24) % 24, 'h', 0), ''],
+      ['Constellation', c.con.name, c.con.symbol],
+    ];
+    out.replaceChildren(...rows.map(([k, v, s]) => {
+      const d = document.createElement('div');
+      d.innerHTML = '<dt></dt><dd></dd>';
+      d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+      if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); }
+      return d;
+    }));
+    single = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+  }
+
+  function runList() {
+    const t = time();
+    const lines = q<HTMLTextAreaElement>('.sc-list').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const rows: string[][] = [], bad: number[] = [];
+    lines.forEach((l, i) => {
+      const parts = l.split(/\s*[,;\t]\s*/);
+      let name = '', ra: number | null = null, dec: number | null = null;
+      if (parts.length >= 3) { name = parts[0]; ra = parseAngle(parts[1], true); dec = parseAngle(parts[2]); }
+      else if (parts.length === 1) { const tg = findTarget(parts[0]); if (tg?.kind === 'radec') { name = tg.label; ra = tg.ra / 15; dec = tg.dec; } }
+      if (ra == null || dec == null) { if (i > 0 || !/ra|dec|name/i.test(l)) bad.push(i + 1); return; }
+      const c = convert(ra * 15, dec, t);
+      rows.push([name, sexa(c.ra / 15, 'h'), sexa(c.dec, 'd'), sexa(c.now.ra / 15, 'h'), sexa(c.now.dec, 'd'), c.g.lon.toFixed(4), c.g.lat.toFixed(4), c.e.lon.toFixed(4), c.e.lat.toFixed(4), c.h.alt.toFixed(1), c.h.az.toFixed(1), c.h.alt > 0 ? airmass(c.h.alt).toFixed(2) : '-', c.con.symbol]);
+    });
+    listRows = rows;
+    const tb = q<HTMLTableElement>('.sc-table');
+    tb.hidden = !rows.length;
+    tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); HEAD.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const body = tb.createTBody();
+    for (const r of rows) { const tr = body.insertRow(); r.forEach((v) => (tr.insertCell().textContent = v)); }
+    q('.sc-csv').hidden = !rows.length;
+    q('.sc-count').textContent = `${rows.length} converted${bad.length ? `; line${bad.length > 1 ? 's' : ''} ${bad.slice(0, 8).join(', ')}${bad.length > 8 ? '…' : ''} could not be read` : ''}.`;
+  }
+
+  obj.addEventListener('input', () => q('#sc-objs').replaceChildren(...searchObjects(obj.value).map((v) => Object.assign(document.createElement('option'), { value: v }))));
+  obj.addEventListener('change', () => {
+    const tg = findTarget(obj.value);
+    if (!tg) return;
+    frame.value = 'j2000'; labels();
+    if (tg.kind === 'radec') { ai.value = sexa(tg.ra / 15, 'h'); bi.value = sexa(tg.dec, 'd', 0); }
+    else { const p = A.Equator(tg.body as A.Body, time(), observer(getSky().place), false, true); ai.value = sexa(p.ra, 'h'); bi.value = sexa(p.dec, 'd', 0); }
+    showOne();
+  });
+  frame.addEventListener('change', () => { labels(); showOne(); });
+  [ai, bi, when].forEach((i) => i.addEventListener('input', showOne));
+  q('.sc-run').addEventListener('click', runList);
+  q('.sc-csv').addEventListener('click', () => {
+    const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const csv = [HEAD, ...listRows].map((r) => r.map(cell).join(',')).join('\r\n');
+    save(new Blob(['﻿' + csv], { type: 'text/csv' }), 'converted-coordinates.csv', 'text/csv');
+  });
+  onSky(() => { if (!when.value) setNow(); showOne(); if (listRows.length) runList(); });
+
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (single.length) s.push({ title: obj.value || 'Position', facts: single });
+    if (listRows.length) s.push({ title: 'Converted list', table: { head: HEAD, rows: listRows } });
+    return { title: 'Sky coordinates', subtitle: `${getSky().place.name}, ${when.value.replace('T', ' ')} local time`, file: 'sky-coordinates', sections: s };
+  });
+</script>

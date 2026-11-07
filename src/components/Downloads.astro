@@ -1,0 +1,16 @@
+---
+// "Download as" buttons for a tool's report. Wire them with wireDownloads() from src/lib/report.ts.
+interface Props { label?: string; class?: string }
+const { label = 'Download', class: cls = '' } = Astro.props;
+---
+<div class:list={['dl', cls]}>
+  <span class="dl-l">{label}</span>
+  <button type="button" class="btn secondary" data-f="png">Image</button>
+  <button type="button" class="btn secondary" data-f="pdf">PDF</button>
+  <button type="button" class="btn secondary" data-f="docx">Word</button>
+</div>
+<style is:global>
+  .dl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; }
+  .dl-l { font-weight: 600; font-size: 15px; margin-right: 2px; }
+  .dl .btn { padding: 8px 14px; font-size: 15px; }
+</style>

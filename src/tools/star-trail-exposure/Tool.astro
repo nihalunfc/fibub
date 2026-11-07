@@ -1,0 +1,138 @@
+---
+// Untracked exposure (NPF rule and 500 rule) and a star-trail planner. Pure arithmetic in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax st">
+  <div class="ax-card">
+    <h2>Camera and lens</h2>
+    <div class="ax-grid">
+      <label>Camera <select class="s-cam"></select></label>
+      <label>Sensor width (mm) <input class="s-w" inputmode="decimal" /></label>
+      <label>Sensor height (mm) <input class="s-h" inputmode="decimal" /></label>
+      <label>Pixel size (µm) <input class="s-px" inputmode="decimal" /></label>
+      <label>Lens focal length (mm) <input class="s-fl" inputmode="decimal" value="24" /></label>
+      <label>Aperture (f/) <input class="s-n" inputmode="decimal" value="2.8" /></label>
+      <label>Aiming at declination (°) <input class="s-dec" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Declination: 0 for the celestial equator (Orion's belt), about 40 for the summer Milky Way core seen from the north, 90 at the pole star. Stars near the pole move slower, so you can expose longer.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Longest exposure before stars trail</h2>
+    <dl class="ax-facts s-out"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="s-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Star trails planner</h2>
+    <div class="ax-grid">
+      <label>Arc you want (°) <input class="t-arc" inputmode="decimal" value="45" /></label>
+      <label>Or total time (min) <input class="t-min" inputmode="decimal" placeholder="e.g. 120" /></label>
+      <label>Each frame (s) <input class="t-sub" inputmode="decimal" value="30" /></label>
+      <label>Gap between frames (s) <input class="t-gap" inputmode="decimal" value="1" /></label>
+      <label>File size per frame (MB) <input class="t-mb" inputmode="decimal" value="30" /></label>
+    </div>
+    <dl class="ax-facts t-out" style="margin-top:14px"></dl>
+    <canvas class="ax-fig t-fig" style="margin-top:12px;max-width:520px"></canvas>
+  </div>
+  <Downloads />
+</div>
+
+<script>
+  import { SENSORS } from '../../lib/astro/optics';
+  import { wireDownloads, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.st')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => { const x = parseFloat(q<HTMLInputElement>(c).value.replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+  const cams = SENSORS.filter((s) => s.w >= 17);
+  const sel = q<HTMLSelectElement>('.s-cam');
+  sel.append(...cams.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: s.name })), Object.assign(document.createElement('option'), { value: 'phone', textContent: 'Phone main camera (about 9.8 × 7.4 mm, 1.2 µm)' }));
+  const setCam = () => {
+    const s = sel.value === 'phone' ? { w: 9.8, h: 7.4, px: 1.2 } : cams[+sel.value];
+    q<HTMLInputElement>('.s-w').value = String(s.w); q<HTMLInputElement>('.s-h').value = String(s.h); q<HTMLInputElement>('.s-px').value = String(s.px);
+  };
+  sel.addEventListener('change', () => { setCam(); calc(); });
+  sel.value = '0'; setCam();
+
+  const fill = (el: HTMLElement, rows: [string, string, string?][]) => el.replaceChildren(...rows.map(([k, val, s]) => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+    d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val;
+    if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); }
+    return d;
+  }));
+  const secs = (s: number) => (s >= 60 ? `${Math.floor(s / 60)} min ${Math.round(s % 60)} s` : `${s < 10 ? s.toFixed(1) : Math.round(s)} s`);
+  const npf = (N: number, p: number, f: number, dec: number) => (35 * N + 30 * p) / f / Math.max(0.05, Math.cos((Math.min(89.9, Math.abs(dec)) * Math.PI) / 180));
+
+  let eFacts: [string, string][] = [], tFacts: [string, string][] = [], table: string[][] = [], fig: Figure | null = null;
+  function calc() {
+    const w = v('.s-w'), h = v('.s-h'), p = v('.s-px'), f = v('.s-fl'), N = v('.s-n'), dec = v('.s-dec');
+    if ([w, h, p, f, N].some((x) => !(x > 0))) return;
+    const crop = 43.27 / Math.hypot(w, h);
+    const r500 = 500 / (f * crop), r300 = 300 / (f * crop);
+    const n = npf(N, p, f, Number.isFinite(dec) ? dec : 0);
+    const rows: [string, string, string?][] = [
+      ['NPF rule (sharp stars)', secs(n), `at declination ${Number.isFinite(dec) ? dec : 0}°; best for today's high-resolution sensors`],
+      ['500 rule (old rule of thumb)', secs(r500), 'stars look sharp on a phone screen, trailed when zoomed in'],
+      ['300 rule (stricter)', secs(r300), 'a quick check for high-resolution cameras'],
+      ['Crop factor', `${crop.toFixed(2)}×`, `${(f * crop).toFixed(0)} mm full-frame equivalent`],
+      ['Field of view', `${((2 * Math.atan(w / 2 / f) * 180) / Math.PI).toFixed(1)}° × ${((2 * Math.atan(h / 2 / f) * 180) / Math.PI).toFixed(1)}°`],
+    ];
+    fill(q('.s-out'), rows); eFacts = rows.map(([k, a, s]) => [k, s ? `${a} (${s})` : a]);
+    const decs = [0, 20, 40, 60, 75, 85];
+    table = decs.map((d) => [`${d}°`, secs(npf(N, p, f, d)), d === 0 ? 'Orion, the ecliptic' : d === 20 ? 'Pleiades area' : d === 40 ? 'Cygnus, Andromeda' : d === 60 ? 'Cassiopeia' : d === 75 ? 'Little Dipper' : 'Near the pole star']);
+    const tb = q<HTMLTableElement>('.s-tab'); tb.innerHTML = '<thead><tr><th>Declination</th><th class="r">NPF limit</th><th>Area of sky</th></tr></thead>';
+    const body = tb.createTBody(); for (const r of table) { const tr = body.insertRow(); r.forEach((x, i) => { const c = tr.insertCell(); c.textContent = x; if (i === 1) c.className = 'r'; }); }
+
+    // Star trails: the sky turns 15° an hour (360° in a sidereal day of 23 h 56 m).
+    const sub = v('.t-sub'), gap = Math.max(0, v('.t-gap') || 0), mb = v('.t-mb');
+    let minutes = v('.t-min'), arc = v('.t-arc');
+    const rate = 360 / (23.9345 * 60); // degrees per minute
+    if (document.activeElement === q('.t-min') && minutes > 0) { arc = minutes * rate; q<HTMLInputElement>('.t-arc').value = arc.toFixed(1); }
+    else if (arc > 0) { minutes = arc / rate; q<HTMLInputElement>('.t-min').value = String(Math.round(minutes)); }
+    if (!(minutes > 0 && sub > 0)) return;
+    const frames = Math.ceil((minutes * 60) / (sub + gap));
+    const trows: [string, string, string?][] = [
+      ['Total time', minutes >= 60 ? `${Math.floor(minutes / 60)} h ${Math.round(minutes % 60)} min` : `${Math.round(minutes)} min`],
+      ['Arc around the pole', `${arc.toFixed(1)}°`, 'the same for every star'],
+      ['Frames to shoot', `${frames}`, `${sub} s each, ${gap} s gap; set your intervalometer to ${frames}`],
+      ['Space needed', mb > 0 ? `${((frames * mb) / 1024).toFixed(1)} GB` : '-', mb > 0 ? `${mb} MB per frame` : ''],
+      ['Gaps in the trails', gap > 2 ? 'Visible' : 'Hidden', gap > 2 ? 'keep the gap at 1 to 2 s for smooth lines' : 'gaps of 1 to 2 s blend away when stacked'],
+    ];
+    fill(q('.t-out'), trows); tFacts = trows.map(([k, a, s]) => [k, s ? `${a} (${s})` : a]);
+    fig = trailFigure(arc);
+    paint(q<HTMLCanvasElement>('.t-fig'), fig);
+  }
+  function trailFigure(arc: number): Figure {
+    return {
+      w: 520, h: 300, alt: `Star trails turning ${arc.toFixed(0)} degrees around the pole`,
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = pal.red ? '#000' : '#0d1320'; ctx.fillRect(0, 0, w, h);
+        const cx = w / 2, cy = h * 0.72; let seed = 3; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        for (let i = 0; i < 140; i++) {
+          const r = 8 + rnd() * w * 0.7, a0 = rnd() * Math.PI * 2, b = rnd();
+          ctx.strokeStyle = pal.red ? `rgba(255,59,48,${0.25 + b * 0.6})` : `hsla(${200 + rnd() * 40},80%,${70 + b * 25}%,${0.3 + b * 0.6})`;
+          ctx.lineWidth = 0.6 + b * 1.4;
+          ctx.beginPath(); ctx.arc(cx, cy, r, a0, a0 + (Math.min(arc, 360) * Math.PI) / 180); ctx.stroke();
+        }
+        ctx.fillStyle = pal.red ? '#ff3b30' : '#fff'; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 7); ctx.fill();
+        ctx.fillStyle = pal.red ? '#000' : '#05080f'; ctx.beginPath(); ctx.moveTo(0, h); for (let x = 0; x <= w; x += 20) ctx.lineTo(x, h - 26 - Math.sin(x / 47) * 8 - rnd() * 6); ctx.lineTo(w, h); ctx.fill();
+        ctx.fillStyle = pal.red ? '#ff3b30' : '#e9edf5'; ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'top';
+        ctx.fillText(`${arc.toFixed(0)}° of rotation`, 10, 10);
+      },
+    };
+  }
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  document.addEventListener('fibub:theme', calc);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', calc);
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Star trails and exposure', file: 'star-trail-exposure',
+    subtitle: `${q<HTMLInputElement>('.s-fl').value} mm at f/${q<HTMLInputElement>('.s-n').value}`,
+    sections: [
+      { title: 'Longest untracked exposure', facts: eFacts, table: { head: ['Declination', 'NPF limit', 'Area of sky'], rows: table, align: ['l', 'r', 'l'] } },
+      { title: 'Star trails plan', facts: tFacts, ...(fig ? { figure: fig } : {}) },
+    ] as Section[],
+  }));
+</script>

@@ -1,0 +1,223 @@
+---
+// FITS viewer and header inspector: open one image to view and stretch it, or drop a whole
+// night's files to list their headers (exposure, filter, temperature) and total time per filter.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fv">
+  <label class="fv-drop">
+    <input type="file" class="fv-in" accept=".fits,.fit,.fts,.fits.gz,.fit.gz,.gz,application/fits,image/fits" multiple hidden />
+    <b>Choose FITS files</b>
+    <span>or drop them here. One file opens as an image; several files are listed by their headers. Files never leave your device.</span>
+  </label>
+  <p class="ax-err fv-err" hidden></p>
+
+  <div class="ax-card fv-view" hidden>
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 class="fv-name" style="margin:0;overflow-wrap:anywhere"></h2>
+      <span class="ax-help fv-dims" style="margin:0"></span>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Stretch <select class="fv-st"><option value="asinh">Asinh (best for most)</option><option value="log">Log</option><option value="sqrt">Square root</option><option value="linear">Linear</option></select></label>
+      <label>Black point <input type="range" class="fv-lo" min="0" max="50" step="0.5" value="5" /></label>
+      <label>White point <input type="range" class="fv-hi" min="90" max="100" step="0.05" value="99.8" /></label>
+      <label class="ax-check" style="align-self:end"><input type="checkbox" class="fv-inv" /> Invert</label>
+    </div>
+    <div class="fv-stage"><canvas class="fv-img"></canvas></div>
+    <p class="ax-help fv-px" aria-live="polite">Move over the image to read pixel values.</p>
+    <canvas class="fv-hist" style="width:100%;height:70px;display:block;margin-top:6px"></canvas>
+    <dl class="ax-facts fv-facts" style="margin-top:12px"></dl>
+    <details style="margin-top:12px"><summary>Full header</summary>
+      <input class="fv-filter" placeholder="Filter cards, e.g. EXPTIME" style="margin:8px 0" />
+      <div class="ax-scroll" style="max-height:360px"><table class="fv-hdr"></table></div>
+    </details>
+  </div>
+
+  <div class="ax-card fv-batch" hidden>
+    <h2>Session summary</h2>
+    <dl class="ax-facts fv-tot"></dl>
+    <div class="ax-scroll" style="margin-top:12px;max-height:480px"><table class="fv-list"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fv-csv">Download CSV</button><span class="ax-help fv-note"></span></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .fv-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 28px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; }
+  .fv-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .fv-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+  .fv-stage { margin-top: 12px; background: #000; border-radius: 8px; overflow: hidden; display: grid; place-items: center; }
+  .fv-img { max-width: 100%; max-height: 70vh; image-rendering: auto; cursor: crosshair; }
+  .fv-list th { cursor: pointer; }
+</style>
+
+<script>
+  import { readImage, readHeader, parseHeader, percentiles, stretchFn, wcs, SUMMARY_KEYS, type Image, type Header, type Stretch } from '../../lib/astro/fits';
+  import { sexa } from '../../lib/astro/place';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.fv-err');
+  let img: Image | null = null, name = '', listRows: string[][] = [], listHead: string[] = [], totals: [string, string][] = [], facts: [string, string][] = [];
+
+  const drop = q('.fv-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); open([...(e.dataTransfer?.files ?? [])]); });
+  q<HTMLInputElement>('.fv-in').addEventListener('change', (e) => open([...((e.target as HTMLInputElement).files ?? [])]));
+
+  async function bytesOf(f: File) {
+    const b = new Uint8Array(await f.arrayBuffer());
+    if (b[0] === 0x1f && b[1] === 0x8b) { const { gunzipSync } = await import('fflate'); return gunzipSync(b); }
+    return b;
+  }
+
+  async function open(files: File[]) {
+    err.hidden = true;
+    if (!files.length) return;
+    if (files.length === 1) {
+      q('.fv-batch').hidden = true;
+      try {
+        name = files[0].name;
+        img = readImage(await bytesOf(files[0]));
+        q('.fv-view').hidden = false;
+        showImage(); showHeader(img.header);
+      } catch (e: any) { err.textContent = `${files[0].name}: ${e.message ?? 'could not be read.'}`; err.hidden = false; }
+      return;
+    }
+    q('.fv-view').hidden = true; img = null;
+    await batch(files);
+  }
+
+  // ---- One image ----
+  let lo = 0, hi = 1, view: { scale: number; ox: number; oy: number } = { scale: 1, ox: 0, oy: 0 };
+  function showImage() {
+    if (!img) return;
+    const { w, h, planes } = img;
+    const pl = +q<HTMLInputElement>('.fv-lo').value / 100, ph = +q<HTMLInputElement>('.fv-hi').value / 100;
+    const kind = q<HTMLSelectElement>('.fv-st').value as Stretch, inv = q<HTMLInputElement>('.fv-inv').checked;
+    [lo, hi] = percentiles(planes[0], [pl, ph]);
+    const fns = planes.map((p) => { const [a, b] = p === planes[0] ? [lo, hi] : percentiles(p, [pl, ph]); return stretchFn(kind, a, b); });
+    const max = 2400, s = Math.min(1, max / Math.max(w, h));
+    const cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+    view = { scale: s, ox: 0, oy: 0 };
+    const c = q<HTMLCanvasElement>('.fv-img'); c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(cw, ch), d = id.data;
+    for (let y = 0; y < ch; y++) {
+      const sy = h - 1 - Math.min(h - 1, Math.floor(y / s)); // FITS row 1 is the bottom
+      for (let x = 0; x < cw; x++) {
+        const i = sy * w + Math.min(w - 1, Math.floor(x / s)), o = (y * cw + x) * 4;
+        if (planes.length === 3) { for (let k = 0; k < 3; k++) { const v = fns[k](planes[k][i]); d[o + k] = inv ? 255 - v : v; } }
+        else { const v = fns[0](planes[0][i]); d[o] = d[o + 1] = d[o + 2] = inv ? 255 - v : v; }
+        d[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+    q('.fv-name').textContent = name;
+    q('.fv-dims').textContent = `${w} × ${h}${planes.length === 3 ? ' colour' : ''}, BITPIX ${img.bitpix}${img.hdu ? `, extension ${img.hdu}` : ''}`;
+    hist();
+  }
+  function hist() {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.fv-hist'), w = c.clientWidth || 600, h = 70, dpr = devicePixelRatio || 1;
+    c.width = w * dpr; c.height = h * dpr; const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const [a, b] = percentiles(img.planes[0], [0.001, 0.999]);
+    const bins = new Array(200).fill(0), data = img.planes[0], step = Math.max(1, Math.floor(data.length / 300000));
+    for (let i = 0; i < data.length; i += step) { const k = Math.floor(((data[i] - a) / (b - a || 1)) * 199); if (k >= 0 && k < 200) bins[k]++; }
+    const mx = Math.max(...bins.map((x) => Math.log1p(x)));
+    const cs = getComputedStyle(document.documentElement);
+    ctx.fillStyle = cs.getPropertyValue('--muted'); for (let i = 0; i < 200; i++) { const bh = (Math.log1p(bins[i]) / mx) * (h - 4); ctx.fillRect((i / 200) * w, h - bh, w / 200 + 0.5, bh); }
+    ctx.fillStyle = cs.getPropertyValue('--accent');
+    for (const v of [lo, hi]) ctx.fillRect(((v - a) / (b - a || 1)) * w - 1, 0, 2, h);
+  }
+  function showHeader(h: Header) {
+    const W = wcs(h);
+    const rows: [string, string][] = [];
+    for (const k of SUMMARY_KEYS) { const v = h.get(k); if (v) rows.push([k, v]); }
+    if (W) rows.push(['Plate scale (from WCS)', `${W.scale.toFixed(2)}″ per pixel`]);
+    const st = img ? percentiles(img.planes[0], [0, 0.5, 1]) : [];
+    if (st.length) rows.push(['Min / median / max', st.map((v) => (Math.abs(v) >= 1000 ? Math.round(v) : +v.toPrecision(4))).join(' / ')]);
+    q('.fv-facts').replaceChildren(...rows.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    facts = rows;
+    const t = q<HTMLTableElement>('.fv-hdr');
+    const fill = (f: string) => {
+      t.innerHTML = '<thead><tr><th>Key</th><th>Value</th><th>Comment</th></tr></thead>';
+      const b = t.createTBody();
+      for (const c of h.cards) if (!f || `${c.key} ${c.value} ${c.comment}`.toLowerCase().includes(f)) { const tr = b.insertRow(); [c.key, c.value, c.comment].forEach((v) => (tr.insertCell().textContent = v)); }
+    };
+    fill('');
+    q<HTMLInputElement>('.fv-filter').oninput = (e) => fill((e.target as HTMLInputElement).value.toLowerCase());
+  }
+  q('.fv-img').addEventListener('mousemove', (e) => {
+    if (!img) return;
+    const c = e.currentTarget as HTMLCanvasElement, r = c.getBoundingClientRect();
+    const x = Math.floor(((e.clientX - r.left) / r.width) * c.width / view.scale), yTop = Math.floor(((e.clientY - r.top) / r.height) * c.height / view.scale);
+    const y = img.h - 1 - yTop; if (x < 0 || y < 0 || x >= img.w || y >= img.h) return;
+    const v = img.planes.map((p) => p[y * img!.w + x]);
+    const W = wcs(img.header); const sky = W?.toSky(x + 1, y + 1);
+    q('.fv-px').textContent = `x ${x + 1}, y ${y + 1}: ${v.map((n) => (Math.abs(n) >= 1000 ? Math.round(n) : +n.toPrecision(5))).join(', ')}${sky ? `  ·  RA ${sexa(sky.ra / 15, 'h')}, Dec ${sexa(sky.dec, 'd', 0)}` : ''}`;
+  });
+  root.querySelectorAll('.fv-st, .fv-lo, .fv-hi, .fv-inv').forEach((i) => i.addEventListener('input', showImage));
+
+  // ---- Many files: headers only ----
+  async function batch(files: File[]) {
+    const fits = files.filter((f) => /\.(fits?|fts)(\.gz)?$/i.test(f.name) || f.type.includes('fits'));
+    const rows: { name: string; h: Header | null }[] = [];
+    q('.fv-note').textContent = 'Reading headers…';
+    for (const f of fits) {
+      let h: Header | null = null;
+      try { h = /\.gz$/i.test(f.name) ? parseHeader(await bytesOf(f)) : await readHeader(f); } catch { h = null; }
+      rows.push({ name: f.name, h });
+    }
+    listHead = ['File', ...SUMMARY_KEYS.slice(0, 10), 'Size'];
+    listRows = rows.map((r) => [r.name, ...SUMMARY_KEYS.slice(0, 10).map((k) => r.h?.get(k) ?? ''), r.h ? `${r.h.num('NAXIS1') ?? ''}×${r.h.num('NAXIS2') ?? ''}` : 'not a FITS file']);
+    // Totals: lights only (or all if no IMAGETYP), grouped by filter.
+    const per = new Map<string, { n: number; s: number }>();
+    for (const r of rows) {
+      if (!r.h) continue;
+      const type = (r.h.get('IMAGETYP') ?? 'Light').toLowerCase();
+      if (!type.includes('light')) continue;
+      const f = r.h.get('FILTER') || 'No filter', e = r.h.num('EXPTIME') ?? r.h.num('EXPOSURE') ?? 0;
+      const v = per.get(f) ?? { n: 0, s: 0 }; v.n++; v.s += e; per.set(f, v);
+    }
+    const hm = (s: number) => (s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min` : `${Math.round(s / 60)} min`);
+    const temps = rows.map((r) => r.h?.num('CCD-TEMP')).filter((v): v is number => v != null);
+    totals = [['Files read', `${rows.filter((r) => r.h).length} of ${files.length}`], ...[...per].map(([f, v]) => [`${f}`, `${hm(v.s)} (${v.n} frames)`] as [string, string]),
+      ...(temps.length ? [['Sensor temperature', `${Math.min(...temps)} to ${Math.max(...temps)} °C`] as [string, string]] : [])];
+    q('.fv-tot').replaceChildren(...totals.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    drawList();
+    q('.fv-batch').hidden = false;
+    q('.fv-note').textContent = files.length - fits.length ? `${files.length - fits.length} non-FITS files skipped.` : '';
+  }
+  let sortCol = -1, asc = true;
+  function drawList() {
+    const t = q<HTMLTableElement>('.fv-list'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    listHead.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h + (i === sortCol ? (asc ? ' ▲' : ' ▼') : ''); th.dataset.i = String(i); hr.append(th); });
+    const b = t.createTBody();
+    for (const r of listRows) { const tr = b.insertRow(); r.forEach((v) => (tr.insertCell().textContent = v)); }
+  }
+  q('.fv-list').addEventListener('click', (e) => {
+    const th = (e.target as HTMLElement).closest<HTMLElement>('th'); if (!th) return;
+    const i = +th.dataset.i!; asc = sortCol === i ? !asc : true; sortCol = i;
+    listRows.sort((a, b) => { const x = parseFloat(a[i]), y = parseFloat(b[i]); const c = Number.isFinite(x) && Number.isFinite(y) ? x - y : a[i].localeCompare(b[i]); return asc ? c : -c; });
+    drawList();
+  });
+  q('.fv-csv').addEventListener('click', () => {
+    const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    save(new Blob(['﻿' + [listHead, ...listRows].map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }), 'fits-session.csv', 'text/csv');
+  });
+
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (img) {
+      const c = q<HTMLCanvasElement>('.fv-img');
+      const k = Math.min(1, 1600 / c.width);
+      const fig: Figure = { w: Math.round(c.width * k), h: Math.round(c.height * k), alt: name, draw: (ctx, w, h) => ctx.drawImage(c, 0, 0, w, h) };
+      sections.push({ title: name, figure: fig, facts });
+    }
+    if (listRows.length && !q('.fv-batch').hidden) sections.push({ title: 'Session summary', facts: totals }, { title: 'Files', table: { head: listHead.slice(0, 8), rows: listRows.map((r) => r.slice(0, 8)) } });
+    return { title: img ? 'FITS image' : 'FITS session', file: img ? name.replace(/\.(fits?|fts)(\.gz)?$/i, '') : 'fits-session', sections };
+  });
+</script>

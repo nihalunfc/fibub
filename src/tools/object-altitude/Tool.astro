@@ -1,0 +1,220 @@
+---
+// Altitude and airmass through the night for one or many targets, against your own horizon
+// (trees, roofs), with meridian (pier flip) times and parallactic angle.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax oa">
+  <SkyPlace />
+  <div class="ax-card">
+    <h2>Targets</h2>
+    <div class="ax-row">
+      <input class="oa-add" placeholder="Add: M31, NGC 7000, Jupiter, or name, RA, Dec" list="oa-objs" autocomplete="off" style="flex:1 1 220px" />
+      <button type="button" class="btn small oa-addb">Add</button>
+    </div>
+    <datalist id="oa-objs"></datalist>
+    <ul class="oa-chips"></ul>
+    <details style="margin-top:8px"><summary>Paste a list</summary>
+      <p class="ax-help">One target a line: a name from our catalogue (M13), or <code>name, RA, Dec</code> in J2000.</p>
+      <textarea class="oa-paste" rows="4" spellcheck="false"></textarea>
+      <button type="button" class="btn secondary small oa-pasteb" style="margin-top:6px">Add these</button>
+    </details>
+    <p class="ax-err oa-err" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check">Lowest useful height <select class="oa-min" style="width:auto"><option value="20">20°</option><option value="30" selected>30° (airmass 2)</option><option value="40">40° (airmass 1.55)</option><option value="45">45°</option></select></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig oa-fig"></canvas>
+    <div class="ax-legend oa-leg"></div>
+    <p class="ax-help">Background: light = day, blue = twilight, dark = night. Dashed line = your lowest useful height. A dotted part of a line means your horizon (below) hides the target then.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Summary</h2>
+    <div class="ax-scroll"><table class="oa-sum"></table></div>
+    <details style="margin-top:10px"><summary>Hour by hour: height, airmass and parallactic angle</summary><div class="ax-scroll"><table class="oa-hours"></table></div></details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your horizon</h2>
+    <p class="ax-help" style="margin-top:0">Tap or drag on the strip to draw trees, roofs or a dome slit (height in degrees for each direction). Kept for this tab; save it as a file to use again.</p>
+    <canvas class="oa-hz" style="width:100%;height:140px;touch-action:none;cursor:crosshair;border-radius:8px;display:block"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small oa-hz-save">Save horizon file</button>
+      <label class="btn secondary small" style="cursor:pointer">Open horizon file<input type="file" class="oa-hz-open" accept=".json,application/json" hidden /></label>
+      <button type="button" class="btn secondary small oa-hz-clear">Flat horizon</button>
+    </div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .oa-chips { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .oa-chips li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 14px; }
+  .oa-chips i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .oa-chips button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 4px; }
+</style>
+
+<script>
+  import { findTarget, searchObjects, observer, night, track, airmass, parallactic, riseSet, altAz, type Target, type Night } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, parseAngle, fmtDay, noonOf } from '../../lib/astro/place';
+  import { altitudeFigure, horizonAt, seriesColour, type Horizon } from '../../lib/astro/charts';
+  import { wireDownloads, paint, pagePalette, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.oa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-altitude-tab';
+  let targets: Target[] = [];
+  let hz: Horizon = Array.from({ length: 24 }, (_, i) => ({ az: i * 15, alt: 0 }));
+  try {
+    const s = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    if (s?.targets) targets = s.targets; if (Array.isArray(s?.hz) && s.hz.length === 24) hz = s.hz;
+  } catch {}
+  const fromUrl = new URLSearchParams(location.search).getAll('t');
+  if (fromUrl.length) {
+    for (const t of fromUrl) { const f = findTarget(t); if (f && !targets.some((x) => x.label === f.label)) targets.unshift(f); }
+  }
+  if (!targets.length) targets = ['M31', 'M45'].map((x) => findTarget(x)!).filter(Boolean);
+  const keep = () => { try { sessionStorage.setItem(KEY, JSON.stringify({ targets, hz })); } catch {} };
+  const err = q('.oa-err');
+
+  function addText(text: string) {
+    const parts = text.split(/\s*[,;\t]\s*/).filter(Boolean);
+    let t: Target | null = null;
+    if (parts.length >= 3) { const ra = parseAngle(parts[1], true), dec = parseAngle(parts[2]); if (ra != null && dec != null) t = { kind: 'radec', ra: ra * 15, dec, label: parts[0] }; }
+    else t = findTarget(text);
+    if (!t) return false;
+    if (!targets.some((x) => x.label === t!.label)) targets.push(t);
+    return true;
+  }
+  const addIn = q<HTMLInputElement>('.oa-add');
+  addIn.addEventListener('input', () => q('#oa-objs').replaceChildren(...searchObjects(addIn.value).map((v) => Object.assign(document.createElement('option'), { value: v }))));
+  const doAdd = () => {
+    err.hidden = true;
+    if (!addIn.value.trim()) return;
+    if (!addText(addIn.value)) { err.textContent = `"${addIn.value}" is not in our catalogue. Type its position instead: name, RA, Dec.`; err.hidden = false; return; }
+    addIn.value = ''; render();
+  };
+  q('.oa-addb').addEventListener('click', doAdd);
+  addIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+  q('.oa-pasteb').addEventListener('click', () => {
+    const lines = q<HTMLTextAreaElement>('.oa-paste').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const bad = lines.filter((l) => !addText(l));
+    err.hidden = !bad.length; err.textContent = bad.length ? `Could not read: ${bad.slice(0, 5).join('; ')}` : '';
+    render();
+  });
+  q('.oa-chips').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-i]'); if (!b) return; targets.splice(+b.dataset.i!, 1); render(); });
+  q('.oa-min').addEventListener('change', () => render());
+
+  let fig: Figure | null = null, sumRows: string[][] = [], hourHead: string[] = [], hourRows: string[][] = [];
+  function render() {
+    keep();
+    const { place, date } = getSky(), tz = place.tz, obs = observer(place);
+    const pal = pagePalette();
+    q('.oa-chips').replaceChildren(...targets.map((t, i) => {
+      const li = document.createElement('li'); li.innerHTML = `<i style="background:${seriesColour(i, pal)}"></i>`;
+      li.append(t.label); const b = document.createElement('button'); b.type = 'button'; b.dataset.i = String(i); b.textContent = '×'; b.setAttribute('aria-label', `Remove ${t.label}`); li.append(b); return li;
+    }));
+    const n: Night = night(place, date);
+    const from = new Date((n.sunset ?? n.window[0]).getTime() - 45 * 60e3), to = new Date((n.sunrise ?? n.window[1]).getTime() + 45 * 60e3);
+    const min = +q<HTMLSelectElement>('.oa-min').value;
+    const tracks = targets.map((t) => ({ t, ...track(t, obs, from, to, 5) }));
+    fig = altitudeFigure({ place, night: n, from, to, minAlt: min, horizon: hz.some((h) => h.alt > 0) ? hz : null, lines: tracks.map((x) => ({ label: x.t.label, pts: x.pts })) });
+    paint(q<HTMLCanvasElement>('.oa-fig'), fig);
+    q('.oa-leg').replaceChildren(...targets.map((t, i) => { const s = document.createElement('span'); s.innerHTML = `<i style="background:${seriesColour(i, pal)}"></i>`; s.append(t.label); return s; }));
+
+    // Summary per target, inside the dark window (or twilight if it never gets fully dark).
+    const [d0, d1] = n.window;
+    sumRows = tracks.map(({ t, pts }) => {
+      const dark = pts.filter((p) => p.time >= d0 && p.time <= d1);
+      const ok = dark.filter((p) => p.alt >= Math.max(min, horizonAt(hz, p.az)));
+      const hidden = dark.filter((p) => p.alt >= min && p.alt < horizonAt(hz, p.az)).length * 5;
+      const best = dark.reduce((a, b) => (b.alt > a.alt ? b : a), dark[0]);
+      const rs = riseSet(t, place, n);
+      const span = ok.length ? `${fmtTime(ok[0].time, tz)} to ${fmtTime(ok[ok.length - 1].time, tz)}` : 'Not tonight';
+      const mins = ok.length * 5;
+      return [t.label, span, ok.length ? `${Math.floor(mins / 60)} h ${mins % 60} min` : '-', `${fmtTime(rs.transit, tz)} (${Math.round(altAz(t, rs.transit, obs).alt)}°)`,
+        best ? `${fmtTime(best.time, tz)}, ${Math.round(best.alt)}°` : '-', best && best.alt > 0 ? airmass(best.alt).toFixed(2) : '-', hidden ? `${hidden} min` : '-'];
+    });
+    table(q<HTMLTableElement>('.oa-sum'), ['Target', `Above ${min}° while dark`, 'Time', 'Meridian (pier flip)', 'Best while dark', 'Lowest airmass', 'Hidden by horizon'], sumRows, [2, 5, 6]);
+
+    // Hour by hour.
+    const hours: Date[] = [];
+    for (let t = Math.ceil(d0.getTime() / 36e5) * 36e5; t <= d1.getTime(); t += 36e5) hours.push(new Date(t));
+    hourHead = ['Local time', ...targets.flatMap((t) => [`${t.label} alt`, 'airmass', 'PA'])];
+    hourRows = hours.map((h) => [fmtTime(h, tz), ...targets.flatMap((t) => {
+      const p = altAz(t, h, obs) as { alt: number; az: number; ra?: number; dec?: number };
+      const ra = t.kind === 'radec' ? t.ra : p.ra!, dec = t.kind === 'radec' ? t.dec : p.dec!;
+      return [`${Math.round(p.alt)}°`, p.alt > 0 ? airmass(p.alt).toFixed(2) : '-', p.alt > 0 ? `${Math.round(parallactic(ra, dec, h, obs))}°` : '-'];
+    })]);
+    table(q<HTMLTableElement>('.oa-hours'), hourHead, hourRows, hourHead.map((_, i) => i).slice(1));
+    drawHz();
+  }
+  function table(el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody();
+    for (const r of rows) { const tr = b.insertRow(); r.forEach((v, i) => { const c = tr.insertCell(); c.textContent = v; if (right.includes(i)) c.className = 'r'; }); }
+  }
+
+  // Horizon editor: 24 directions, 0 to 60 degrees.
+  const hc = q<HTMLCanvasElement>('.oa-hz');
+  function drawHz() {
+    const pal = pagePalette();
+    const w = hc.clientWidth || 600, h = 140, dpr = devicePixelRatio || 1;
+    hc.width = w * dpr; hc.height = h * dpr;
+    const ctx = hc.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = pal.red ? '#000' : '#0d1320'; ctx.fillRect(0, 0, w, h);
+    const B = 18, ph = h - B, Y = (a: number) => ph - (a / 60) * ph;
+    ctx.fillStyle = pal.red ? '#5c0f0b' : '#2c4a33';
+    ctx.beginPath(); ctx.moveTo(0, ph);
+    for (let x = 0; x <= w; x += 2) ctx.lineTo(x, Y(horizonAt(hz, (x / w) * 360)));
+    ctx.lineTo(w, ph); ctx.fill();
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.red ? '#ff3b30' : '#a0a9ba';
+    ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'].forEach((d, i) => ctx.fillText(d, Math.min(w - 8, Math.max(8, (i / 8) * w)), h - 5));
+    ctx.textAlign = 'left'; for (const a of [15, 30, 45]) { ctx.fillText(`${a}°`, 4, Y(a) + 4); ctx.fillRect(24, Y(a), w - 24, 0.5); }
+  }
+  let dragging = false;
+  const setAt = (e: PointerEvent) => {
+    const r = hc.getBoundingClientRect();
+    const az = ((e.clientX - r.left) / r.width) * 360, alt = Math.max(0, Math.min(60, (1 - (e.clientY - r.top) / (r.height - 18)) * 60));
+    const i = Math.round(az / 15) % 24;
+    hz[i] = { az: i * 15, alt: Math.round(alt) };
+    drawHz();
+  };
+  hc.addEventListener('pointerdown', (e) => { dragging = true; hc.setPointerCapture(e.pointerId); setAt(e); });
+  hc.addEventListener('pointermove', (e) => { if (dragging) setAt(e); });
+  hc.addEventListener('pointerup', () => { dragging = false; render(); });
+  q('.oa-hz-clear').addEventListener('click', () => { hz = hz.map((x) => ({ ...x, alt: 0 })); render(); });
+  q('.oa-hz-save').addEventListener('click', () => save(new Blob([JSON.stringify({ fibub: 'horizon', place: getSky().place.name, points: hz }, null, 1)], { type: 'application/json' }), 'my-horizon.json', 'application/json'));
+  q<HTMLInputElement>('.oa-hz-open').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text()); const pts = (j.points ?? j) as Horizon;
+      if (!Array.isArray(pts) || !pts.every((p) => Number.isFinite(p.az) && Number.isFinite(p.alt))) throw 0;
+      hz = Array.from({ length: 24 }, (_, i) => ({ az: i * 15, alt: Math.round(Math.max(0, Math.min(90, horizonAt(pts, i * 15)))) }));
+      render();
+    } catch { err.textContent = 'That file is not a horizon file saved from this page.'; err.hidden = false; }
+  });
+
+  onSky(render);
+  addEventListener('resize', drawHz);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+  document.addEventListener('fibub:theme', render);
+  wireDownloads(q('.dl'), () => {
+    const { place, date } = getSky();
+    return {
+      title: `Target heights: night of ${fmtDay(noonOf(date, place.tz), place.tz, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}`,
+      subtitle: `${place.name}, times in local time`, file: `target-heights-${date}`,
+      sections: [
+        { title: 'Height through the night', figure: fig!, table: { head: ['Target', 'Above min. height while dark', 'Time', 'Meridian (pier flip)', 'Best while dark', 'Lowest airmass', 'Hidden by horizon'], rows: sumRows } },
+        { title: 'Hour by hour', table: { head: hourHead, rows: hourRows } },
+      ] as Section[],
+    };
+  });
+</script>

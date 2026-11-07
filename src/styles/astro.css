@@ -1,0 +1,44 @@
+/* Shared look for the science tools: cards, form fields, key facts, tables and figures. */
+.ax { display: grid; gap: 14px; margin-bottom: 32px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.ax-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.ax-card > h2, .ax-card > h3 { margin: 0 0 10px; font-size: 17px; }
+.ax-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px 12px; }
+.ax label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; align-content: start; }
+.ax input:not([type=checkbox]):not([type=radio]):not([type=range]), .ax select, .ax textarea { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; }
+.ax textarea { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+.ax input:focus, .ax select:focus, .ax textarea:focus { border-color: var(--accent); outline: none; }
+.ax input[type=checkbox], .ax input[type=radio] { width: 18px; height: 18px; accent-color: var(--accent); }
+.ax .ax-check { display: inline-flex; flex-direction: row; gap: 8px; align-items: center; color: var(--ink); font-size: 15px; cursor: pointer; }
+.ax-help { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.ax-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; margin: 0; }
+.ax-facts div { min-width: 0; }
+.ax-facts dt { font-size: 13px; color: var(--muted); }
+.ax-facts dd { margin: 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.ax-facts dd small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+.ax-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.ax table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ax th, .ax td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ax th { font-size: 12.5px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.ax td.r, .ax th.r { text-align: right; }
+.ax tr.dim td { color: var(--muted); }
+.ax canvas.ax-fig { display: block; width: 100%; height: auto; border-radius: 8px; }
+.ax-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.ax-seg button { border: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; padding: 7px 12px; cursor: pointer; }
+.ax-seg button + button { border-left: 1px solid var(--line); }
+.ax-seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.ax-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.ax-big { font-size: clamp(22px, 5vw, 30px); font-weight: 750; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.ax-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.ax-pill.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.ax-pill.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.ax-pill.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.ax-err { color: var(--bad); font-size: 14px; margin: 6px 0 0; }
+.ax .btn.small { padding: 8px 14px; font-size: 15px; }
+.ax-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.ax-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* Red night mode: keeps eyes dark-adapted at the telescope. */
+html.red-mode, html.red-mode body { background: #000 !important; }
+html.red-mode { --bg: #000; --surface: #0b0101; --ink: #ff3b30; --muted: #b3261e; --line: #3a0906; --accent: #ff3b30; --accent-ink: #000; --good: #ff3b30; --good-soft: #1a0302; --warn: #ff3b30; --warn-soft: #1a0302; --bad: #ff3b30; --bad-soft: #1a0302; --science: #ff3b30; --money: #ff3b30; --documents: #ff3b30; --everyday: #ff3b30; --accent-soft: #1a0302; color-scheme: dark; }
+html.red-mode img, html.red-mode svg { filter: none; }
+html.red-mode header.site { background: #000; }
