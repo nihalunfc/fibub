@@ -1,0 +1,302 @@
+---
+// Weekly and monthly planner. Plans stay in this browser; download as an image or PDF.
+import { COLOURS, COLOUR_NAMES } from '../../lib/planner';
+---
+<div class="pl">
+  <div class="pl-bar">
+    <div class="pl-nav">
+      <button type="button" class="pl-ico pl-prev" aria-label="Previous">‹</button>
+      <button type="button" class="pl-today">Today</button>
+      <button type="button" class="pl-ico pl-next" aria-label="Next">›</button>
+      <h2 class="pl-label" aria-live="polite"></h2>
+    </div>
+    <div class="pl-seg" role="group" aria-label="View">
+      <button type="button" data-view="week" aria-pressed="true">Week</button>
+      <button type="button" data-view="month" aria-pressed="false">Month</button>
+    </div>
+  </div>
+
+  <form class="pl-quick" autocomplete="off">
+    <input class="pl-quick-in" type="text" aria-label="Quick add" placeholder="Quick add, e.g. Gym 7am tue" />
+    <button class="btn" type="submit">Add</button>
+  </form>
+
+  <div class="pl-week"></div>
+  <div class="pl-month" hidden></div>
+
+  <div class="pl-foot">
+    <div class="pl-dl">
+      <button type="button" class="btn pl-png">Download image</button>
+      <button type="button" class="btn secondary pl-pdf">Download PDF</button>
+    </div>
+    <details class="pl-set">
+      <summary>Settings</summary>
+      <label>Title on the download <input class="pl-title" type="text" maxlength="40" placeholder="My week" /></label>
+      <label>Week starts on
+        <select class="pl-start"><option value="1">Monday</option><option value="0">Sunday</option><option value="6">Saturday</option></select>
+      </label>
+      <button type="button" class="btn secondary pl-clear">Clear this week</button>
+    </details>
+  </div>
+  <p class="pl-fine">Your plan is saved only in this browser on this device. Nothing is sent to fibub or anyone else. Clearing your browser data removes it, so download a copy of anything important.</p>
+
+  <dialog class="pl-dlg">
+    <form method="dialog" class="pl-form">
+      <h3 class="pl-dlg-h">Add a plan</h3>
+      <label>What <input name="text" type="text" required maxlength="120" placeholder="e.g. Team meeting" /></label>
+      <div class="pl-row">
+        <label>Day <input name="date" type="date" required /></label>
+        <label>From <input name="t" type="time" /></label>
+        <label>To <input name="e" type="time" /></label>
+      </div>
+      <fieldset class="pl-cols">
+        <legend>Colour</legend>
+        {COLOURS.map((c, i) => (
+          <label style={`--c:${c}`} title={COLOUR_NAMES[i]}><input type="radio" name="c" value={i} checked={i === 0} /><span class="visually-hidden">{COLOUR_NAMES[i]}</span></label>
+        ))}
+      </fieldset>
+      <div class="pl-acts">
+        <button class="btn" value="save">Save</button>
+        <button class="btn secondary" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn secondary pl-del" value="delete" formnovalidate>Delete</button>
+      </div>
+    </form>
+  </dialog>
+</div>
+
+<style is:global>
+  .pl { display: grid; gap: 12px; margin-bottom: 32px; }
+  .pl-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .pl-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .pl-nav h2 { margin: 0 0 0 6px; font-size: 19px; white-space: nowrap; }
+  .pl button { font: inherit; color: var(--ink); }
+  .pl-ico, .pl-today { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; height: 36px; cursor: pointer; }
+  .pl-ico { width: 36px; font-size: 22px !important; line-height: 1; }
+  .pl-today { padding: 0 12px; font-weight: 600; }
+  .pl-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .pl-seg button { border: 0; background: none; padding: 5px 14px; border-radius: 7px; cursor: pointer; font-weight: 600; color: var(--muted) !important; }
+  .pl-seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg) !important; }
+  .pl-quick { display: flex; gap: 8px; }
+  .pl-quick input { flex: 1; min-width: 0; font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+  .pl-quick .btn { padding: 10px 18px; }
+
+  .pl-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  .pl-day { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 280px; }
+  .pl-day.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .pl-dh { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 14px; padding: 0 2px 4px; border-bottom: 1px solid var(--line); }
+  .pl-dh span { color: var(--muted); font-weight: 600; }
+  .pl-day.today .pl-dh b { color: var(--accent); }
+  .pl-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .pl-it { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: start; padding: 6px 6px 6px 8px; border-radius: 8px; background: color-mix(in srgb, var(--c) 12%, transparent); border-left: 3px solid var(--c); cursor: pointer; font-size: 14px; line-height: 1.35; }
+  .pl-it:hover { background: color-mix(in srgb, var(--c) 20%, transparent); }
+  .pl-it small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .pl-it span { overflow-wrap: anywhere; }
+  .pl-it.done span { text-decoration: line-through; color: var(--muted); }
+  .pl-tick { width: 16px; height: 16px; margin: 1px 0 0; border-radius: 50%; border: 1.5px solid var(--c); background: none; padding: 0; cursor: pointer; }
+  .pl-it.done .pl-tick { background: var(--c); }
+  .pl-add { margin-top: auto; border: 1px dashed var(--line) !important; background: none; border-radius: 8px; padding: 6px; color: var(--muted) !important; cursor: pointer; font-size: 14px !important; }
+  .pl-add:hover { color: var(--accent) !important; border-color: var(--accent) !important; }
+
+  .pl-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
+  .pl-mh { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 6px 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg); }
+  .pl-cell { min-height: 104px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px; text-align: left; background: none; border-top: 0; border-left: 0; cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px !important; }
+  .pl-cell:hover { background: var(--accent-soft); }
+  .pl-cell.out { background: var(--bg); color: var(--muted) !important; }
+  .pl-cell b { font-size: 14px; }
+  .pl-cell.today b { color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 0 7px; align-self: flex-start; }
+  .pl-cell i { font-style: normal; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 9px; position: relative; }
+  .pl-cell i::before { content: ''; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: var(--c); }
+  .pl-cell em { font-style: normal; color: var(--muted); font-weight: 600; }
+
+  .pl-foot { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: flex-start; }
+  .pl-dl { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pl-set summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 10px 0; }
+  .pl-set[open] { display: grid; gap: 10px; }
+  .pl-set label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pl input[type=text], .pl input[type=date], .pl input[type=time], .pl select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; }
+  .pl-fine { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .pl-dlg { border: 1px solid var(--line); border-radius: 18px; padding: 0; width: min(440px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); }
+  .pl-dlg::backdrop { background: rgba(10, 14, 22, .45); }
+  .pl-form { display: grid; gap: 12px; padding: 18px; }
+  .pl-form h3 { margin: 0; }
+  .pl-form label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pl-form input { width: 100%; }
+  .pl-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+  .pl-cols { border: 0; padding: 0; margin: 0; display: flex; gap: 10px; align-items: center; }
+  .pl-cols legend { font-size: 14px; color: var(--muted); padding: 0 0 4px; }
+  .pl-cols label { display: block; width: 28px; height: 28px; border-radius: 50%; background: var(--c); cursor: pointer; position: relative; }
+  .pl-cols input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .pl-cols label:has(input:checked) { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--c); }
+  .pl-cols label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .pl-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pl-del { margin-left: auto; color: var(--bad) !important; }
+
+  @media (max-width: 900px) {
+    .pl-week { grid-template-columns: 1fr; }
+    .pl-day { min-height: 0; }
+    .pl-dh { font-size: 15px; }
+    .pl-add { margin-top: 2px; }
+  }
+  @media (max-width: 600px) {
+    .pl-cell { min-height: 58px; padding: 4px; }
+    .pl-cell i { font-size: 0; padding: 0; width: 6px; height: 6px; display: inline-block; margin-right: 2px; }
+    .pl-cell i::before { position: static; display: block; }
+    .pl-cell em { font-size: 10px; }
+    .pl-row { grid-template-columns: 1fr 1fr; }
+    .pl-row label:first-child { grid-column: 1 / -1; }
+    .pl-nav h2 { font-size: 16px; }
+  }
+</style>
+
+<script>
+  import { type Item, type Plan, COLOURS, iso, fromIso, addDays, weekDays, monthDays, weekLabel, monthLabel, dayShort, timeLabel, sortItems, parseQuick } from '../../lib/planner';
+
+  const KEY = 'fibub-planner-v1';
+  const root = document.querySelector<HTMLElement>('.pl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const dlg = q<HTMLDialogElement>('.pl-dlg'), form = q<HTMLFormElement>('.pl-form');
+
+  type Saved = { plan: Plan; weekStart: number; title: string; view: 'week' | 'month' };
+  const load = (): Saved => {
+    try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s?.plan) return s; } catch {}
+    return { plan: {}, weekStart: 1, title: '', view: 'week' };
+  };
+  const st = load();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
+  let cursor = new Date();
+  let editing: { date: string; id: string } | null = null;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const items = (d: string) => (st.plan[d] ?? []).slice().sort(sortItems);
+  const when = (i: Item) => (i.t ? timeLabel(i.t) + (i.e ? ` – ${timeLabel(i.e)}` : '') : '');
+
+  function render() {
+    const today = iso(new Date());
+    root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === st.view)));
+    q('.pl-week').hidden = st.view !== 'week';
+    q('.pl-month').hidden = st.view !== 'month';
+    q<HTMLSelectElement>('.pl-start').value = String(st.weekStart);
+    q<HTMLInputElement>('.pl-title').value = st.title;
+    q('.pl-clear').hidden = st.view !== 'week';
+    if (st.view === 'week') {
+      const days = weekDays(cursor, st.weekStart);
+      q('.pl-label').textContent = weekLabel(days);
+      q('.pl-week').innerHTML = days.map((d) => {
+        const k = iso(d);
+        return `<section class="pl-day${k === today ? ' today' : ''}" data-date="${k}" aria-label="${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}">
+          <div class="pl-dh"><b>${dayShort(d)}</b><span>${d.getDate()}</span></div>
+          <ul class="pl-items">${items(k).map((i) => `<li class="pl-it${i.d ? ' done' : ''}" style="--c:${COLOURS[i.c] ?? COLOURS[0]}" data-id="${i.id}" tabindex="0"><button type="button" class="pl-tick" aria-label="${i.d ? 'Mark not done' : 'Mark done'}" aria-pressed="${!!i.d}"></button><span>${i.t ? `<small>${when(i)}</small>` : ''}${esc(i.text)}</span></li>`).join('')}</ul>
+          <button type="button" class="pl-add">+ Add</button>
+        </section>`;
+      }).join('');
+    } else {
+      const days = monthDays(cursor, st.weekStart);
+      q('.pl-label').textContent = monthLabel(cursor);
+      q('.pl-month').innerHTML = days.slice(0, 7).map((d) => `<div class="pl-mh">${dayShort(d)}</div>`).join('') + days.map((d) => {
+        const k = iso(d), list = items(k), out = d.getMonth() !== cursor.getMonth();
+        return `<button type="button" class="pl-cell${out ? ' out' : ''}${k === today ? ' today' : ''}" data-date="${k}" aria-label="${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}, ${list.length} plan${list.length === 1 ? '' : 's'}"><b>${d.getDate()}</b>${list.slice(0, 3).map((i) => `<i style="--c:${COLOURS[i.c] ?? COLOURS[0]}">${i.t ? timeLabel(i.t) + ' ' : ''}${esc(i.text)}</i>`).join('')}${list.length > 3 ? `<em>+${list.length - 3} more</em>` : ''}</button>`;
+      }).join('');
+    }
+  }
+
+  function open(date: string, id?: string) {
+    const it = id ? st.plan[date]?.find((i) => i.id === id) : undefined;
+    editing = { date, id: it?.id ?? '' };
+    q('.pl-dlg-h').textContent = it ? 'Edit plan' : 'Add a plan';
+    (form.elements.namedItem('text') as HTMLInputElement).value = it?.text ?? '';
+    (form.elements.namedItem('date') as HTMLInputElement).value = date;
+    (form.elements.namedItem('t') as HTMLInputElement).value = it?.t ?? '';
+    (form.elements.namedItem('e') as HTMLInputElement).value = it?.e ?? '';
+    form.querySelectorAll<HTMLInputElement>('[name=c]').forEach((r) => (r.checked = +r.value === (it?.c ?? 0)));
+    q('.pl-del').hidden = !it;
+    dlg.returnValue = '';
+    dlg.showModal();
+    (form.elements.namedItem('text') as HTMLInputElement).focus();
+  }
+
+  function put(date: string, item: Item) {
+    (st.plan[date] ??= []).push(item);
+  }
+  function remove(date: string, id: string) {
+    st.plan[date] = (st.plan[date] ?? []).filter((i) => i.id !== id);
+    if (!st.plan[date].length) delete st.plan[date];
+  }
+
+  dlg.addEventListener('close', () => {
+    if (!editing) return;
+    const v = dlg.returnValue;
+    const f = (n: string) => (form.elements.namedItem(n) as HTMLInputElement).value;
+    const old = editing.id ? st.plan[editing.date]?.find((i) => i.id === editing!.id) : undefined;
+    if (v === 'save' && f('text').trim()) {
+      if (old) remove(editing.date, old.id);
+      const c = +(form.querySelector<HTMLInputElement>('[name=c]:checked')?.value ?? 0);
+      put(f('date') || editing.date, { id: old?.id ?? uid(), text: f('text').trim(), t: f('t'), e: f('e'), c, d: old?.d });
+    } else if (v === 'delete' && old) remove(editing.date, old.id);
+    editing = null; save(); render();
+  });
+
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const day = el.closest<HTMLElement>('[data-date]');
+    const view = el.closest<HTMLElement>('[data-view]');
+    if (view) { st.view = view.dataset.view as any; save(); render(); return; }
+    if (el.closest('.pl-tick') && day) {
+      const it = st.plan[day.dataset.date!]?.find((i) => i.id === el.closest<HTMLElement>('.pl-it')!.dataset.id);
+      if (it) { it.d = !it.d; save(); render(); }
+      return;
+    }
+    if (el.closest('.pl-it') && day) return open(day.dataset.date!, el.closest<HTMLElement>('.pl-it')!.dataset.id);
+    if (el.closest('.pl-add') && day) return open(day.dataset.date!);
+    if (el.closest('.pl-cell') && day) { cursor = fromIso(day.dataset.date!); st.view = 'week'; save(); render(); return; }
+  });
+  root.addEventListener('keydown', (e) => {
+    const it = (e.target as HTMLElement).closest<HTMLElement>('.pl-it');
+    if (it && (e.key === 'Enter' || e.key === ' ') && !(e.target as HTMLElement).closest('.pl-tick')) { e.preventDefault(); open(it.closest<HTMLElement>('[data-date]')!.dataset.date!, it.dataset.id); }
+  });
+
+  const step = (n: number) => { cursor = st.view === 'week' ? addDays(cursor, 7 * n) : new Date(cursor.getFullYear(), cursor.getMonth() + n, 1); render(); };
+  q('.pl-prev').addEventListener('click', () => step(-1));
+  q('.pl-next').addEventListener('click', () => step(1));
+  q('.pl-today').addEventListener('click', () => { cursor = new Date(); render(); });
+  q<HTMLSelectElement>('.pl-start').addEventListener('change', (e) => { st.weekStart = +(e.target as HTMLSelectElement).value; save(); render(); });
+  q<HTMLInputElement>('.pl-title').addEventListener('input', (e) => { st.title = (e.target as HTMLInputElement).value; save(); });
+  q('.pl-clear').addEventListener('click', () => {
+    if (!confirm('Remove every plan in this week?')) return;
+    weekDays(cursor, st.weekStart).forEach((d) => delete st.plan[iso(d)]);
+    save(); render();
+  });
+
+  q<HTMLFormElement>('.pl-quick').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const inp = q<HTMLInputElement>('.pl-quick-in');
+    if (!inp.value.trim()) return;
+    const shown = st.view === 'week' ? weekDays(cursor, st.weekStart) : monthDays(cursor, st.weekStart).filter((d) => d.getMonth() === cursor.getMonth()).slice(0, 7);
+    const p = parseQuick(inp.value, shown);
+    if (!p.text) return;
+    put(p.date, { id: uid(), text: p.text, t: p.t, e: p.e, c: 0 });
+    inp.value = '';
+    if (st.view === 'week') cursor = fromIso(p.date);
+    save(); render();
+  });
+
+  async function download(kind: 'png' | 'pdf') {
+    const m = await import('../../lib/planner');
+    const canvas = document.createElement('canvas');
+    if (st.view === 'week') m.drawWeek(canvas, st.plan, weekDays(cursor, st.weekStart), st.title);
+    else m.drawMonth(canvas, st.plan, cursor, st.weekStart, st.title);
+    const blob = kind === 'pdf' ? await m.toPdf(canvas) : await new Promise<Blob>((ok) => canvas.toBlob((b) => ok(b!), 'image/png'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const first = st.view === 'week' ? weekDays(cursor, st.weekStart)[0] : new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    a.download = `${st.view === 'week' ? 'week' : 'month'}-${iso(first).slice(0, st.view === 'week' ? 10 : 7)}.${kind}`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  q('.pl-png').addEventListener('click', () => download('png'));
+  q('.pl-pdf').addEventListener('click', () => download('pdf'));
+  // Fetch the PDF maker early so downloads keep working offline.
+  ((window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500)))(() => import('pdf-lib').catch(() => {}));
+
+  render();
+</script>
