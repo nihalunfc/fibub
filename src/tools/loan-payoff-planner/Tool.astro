@@ -1,0 +1,308 @@
+---
+// Loan payoff planner: how much interest and time prepayments save.
+---
+<div class="ln">
+  <section class="panel ln-loan">
+    <h2>Your loan</h2>
+    <div class="ln-grid">
+      <label>Currency <select class="ln-cur" data-k="cur"></select></label>
+      <label>Amount still owed <input data-k="p" inputmode="decimal" /></label>
+      <label>Interest rate <span class="ln-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+      <div class="ln-term">
+        <label>Time left <span class="ln-suf"><input data-k="years" inputmode="numeric" /><i>years</i></span></label>
+        <label><span class="visually-hidden">and months</span><span class="ln-suf"><input data-k="months" inputmode="numeric" /><i>months</i></span></label>
+      </div>
+      <label>Next payment <input data-k="first" type="month" /></label>
+      <label>Monthly payment (EMI) <input data-k="pay" inputmode="decimal" placeholder="worked out for you" /></label>
+    </div>
+    <p class="ln-base" aria-live="polite"></p>
+    <p class="note bad ln-err" role="alert" hidden></p>
+  </section>
+
+  <section class="panel ln-what">
+    <h2>What does one extra payment do?</h2>
+    <div class="ln-what-row">
+      <label>If I pay an extra <input class="ln-once" inputmode="decimal" /></label>
+      <span>once, next month…</span>
+    </div>
+    <p class="ln-what-out" aria-live="polite"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Ready-made plans</h2>
+    <p class="ln-hint">Common ways people pay a loan off early, worked out for your loan. Pick one to start your own plan from it.</p>
+    <div class="ln-table-wrap"><table class="ln-presets">
+      <thead><tr><th>Plan</th><th>Extra</th><th>Interest saved</th><th>Done sooner</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel ln-planbox">
+    <h2>Your prepayment plan</h2>
+    <p class="ln-hint">Add lump sums or regular extra payments. Mix as many as you like, such as a yearly bonus plus a little extra every month.</p>
+    <div class="ln-rows"></div>
+    <button type="button" class="btn secondary ln-addrow">+ Add a prepayment</button>
+    <fieldset class="ln-mode">
+      <legend>After each prepayment</legend>
+      <label><input type="radio" name="ln-mode" value="tenure" checked /> <span><b>Finish sooner</b><small>Keep the same EMI, so the loan ends earlier. Saves the most interest.</small></span></label>
+      <label><input type="radio" name="ln-mode" value="emi" /> <span><b>Lower my EMI</b><small>Keep the same end date and pay less each month.</small></span></label>
+    </fieldset>
+  </section>
+
+  <section class="ln-result" aria-live="polite">
+    <div class="ln-stats">
+      <div class="good"><span>Interest saved</span><b class="ln-s-int"></b></div>
+      <div class="good"><span class="ln-s-time-l">Debt-free sooner by</span><b class="ln-s-time"></b></div>
+      <div><span>Last payment</span><b class="ln-s-end"></b></div>
+      <div><span>Total extra paid</span><b class="ln-s-extra"></b></div>
+    </div>
+    <p class="ln-ratio"></p>
+    <figure class="ln-chart panel">
+      <figcaption>Amount still owed <span><i class="k-base"></i>No prepayments</span> <span><i class="k-plan"></i>Your plan</span></figcaption>
+      <svg class="ln-svg" viewBox="0 0 640 220" role="img" aria-label="Loan balance over time, with and without your plan"></svg>
+    </figure>
+    <details class="ln-years panel" open>
+      <summary>Year by year</summary>
+      <div class="ln-table-wrap"><table>
+        <thead><tr><th>Year</th><th>Interest, no prepay</th><th>Interest, your plan</th><th>Saved this year</th><th>Saved so far</th><th>Still owed</th></tr></thead>
+        <tbody class="ln-ybody"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary ln-csv">Download month-by-month schedule (CSV)</button>
+    </details>
+  </section>
+  <p class="ln-fine">Estimates for a fixed rate with monthly payments. Real loans can differ: some lenders charge a prepayment fee, limit how much you can prepay, or apply extra payments differently. Check with your lender before you pay. Nothing you type leaves this page.</p>
+</div>
+
+<style is:global>
+  .ln { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ln > *, .ln-result > * { min-width: 0; }
+  .ln h2 { margin: 0 0 12px; font-size: 18px; }
+  .ln .panel { padding: 16px; }
+  .ln-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ln label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ln input, .ln select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ln input:focus, .ln select:focus { border-color: var(--accent); outline: none; }
+  .ln-suf { position: relative; display: block; }
+  .ln-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ln-suf input { padding-right: 70px; }
+  .ln-term { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+  .ln-base { margin: 12px 0 0; font-size: 15px; }
+  .ln-hint { margin: -6px 0 10px; color: var(--muted); font-size: 14px; }
+  .ln-what-row { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+  .ln-what-row label { flex: 0 1 260px; }
+  .ln-what-row span { color: var(--muted); padding-bottom: 10px; }
+  .ln-what-out { margin: 10px 0 0; font-size: 15px; }
+  .ln-what-out:empty { display: none; }
+  .ln-table-wrap { overflow-x: auto; }
+  .ln table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ln th, .ln td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ln th:first-child, .ln td:first-child { text-align: left; white-space: normal; }
+  .ln th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ln td.good { color: var(--good); font-weight: 600; }
+  .ln-presets button { font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  .ln-rows { display: grid; gap: 10px; margin-bottom: 10px; }
+  .ln-row { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 1fr 36px; gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+  .ln-row input, .ln-row select { background: var(--surface); }
+  .ln-row .ln-n { display: none; }
+  .ln-row.custom .ln-n { display: grid; }
+  .ln-row.custom { grid-template-columns: 1.2fr 1.2fr .7fr 1fr 1fr 36px; }
+  .ln-row.once .ln-until { visibility: hidden; }
+  .ln-x { width: 36px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 18px; color: var(--muted); cursor: pointer; }
+  .ln-mode { border: 0; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 8px; }
+  .ln-mode legend { font-size: 14px; color: var(--muted); padding-bottom: 6px; }
+  .ln-mode label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; color: var(--ink); }
+  .ln-mode label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .ln-mode input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+  .ln-mode small { display: block; color: var(--muted); font-size: 13px; }
+  .ln-result { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ln-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ln-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ln-stats span { font-size: 13px; color: var(--muted); }
+  .ln-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .ln-stats .good b { color: var(--good); }
+  .ln-ratio { margin: 0; font-size: 15px; }
+  .ln-ratio:empty { display: none; }
+  .ln-chart { margin: 0; }
+  .ln-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .ln-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .ln-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .k-base { background: var(--muted); opacity: .6; }
+  .k-plan { background: var(--accent); }
+  .ln-svg { width: 100%; height: auto; display: block; }
+  .ln-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .ln-years summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .ln-years .btn { margin-top: 12px; }
+  .ln-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) {
+    .ln-stats { grid-template-columns: 1fr 1fr; }
+    .ln-row, .ln-row.custom { grid-template-columns: 1fr 1fr; position: relative; }
+    .ln-row label:first-child { grid-column: 1 / -1; margin-right: 46px; }
+    .ln-row .ln-x { position: absolute; top: 30px; right: 10px; }
+    .ln-row .ln-until { grid-column: 1 / -1; }
+    .ln-presets thead { display: none; }
+    .ln-presets tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 2px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: end; }
+    .ln-presets td { border: 0; padding: 0; text-align: left !important; white-space: normal; }
+    .ln-presets td:first-child { grid-column: 1 / -1; font-weight: 600; }
+    .ln-presets td[data-l]::before { content: attr(data-l); display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+    .ln-presets td:nth-child(2) { grid-column: 1 / -1; color: var(--muted); }
+    .ln-presets td:nth-child(2)::before { display: none; }
+    .ln-row.once .ln-until { display: none; }
+  }
+</style>
+
+<script>
+  import { simulate, presets, byYear, span, monthsFor, type Prepay, type Result } from '../../lib/loan';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.ln')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.ln-cur').innerHTML = currencyOptions(cur);
+  const india = cur === 'INR';
+  f('p').value = india ? '50,00,000' : '300,000';
+  f('rate').value = india ? '8.5' : '5.5';
+  f('years').value = india ? '20' : '25';
+  f('months').value = '0';
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  f('first').value = ym(nextMonth);
+  q<HTMLInputElement>('.ln-once').value = india ? '1,00,000' : '10,000';
+
+  const firstMonth = () => { const [y, m] = (f('first').value || ym(nextMonth)).split('-').map(Number); return new Date(y, m - 1, 1); };
+  const monthDate = (i: number) => { const d = firstMonth(); return new Date(d.getFullYear(), d.getMonth() + i - 1, 1); };
+  const monthIndex = (v: string) => { if (!v) return 0; const [y, m] = v.split('-').map(Number); const d = firstMonth(); return (y - d.getFullYear()) * 12 + (m - 1 - d.getMonth()) + 1; };
+  const label = (i: number) => monthDate(i).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  const $ = (n: number) => money(n, q<HTMLSelectElement>('.ln-cur').value);
+  const pct = (n: number) => `${Math.round(n * 10) / 10}%`;
+
+  // ---------- plan rows ----------
+  const FREQ: [string, string][] = [['0', 'One time'], ['1', 'Every month'], ['3', 'Every 3 months'], ['6', 'Every 6 months'], ['12', 'Every year'], ['c', 'Every … months']];
+  function addRow(p?: Prepay) {
+    const row = document.createElement('div');
+    row.className = 'ln-row';
+    const every = p ? (FREQ.some(([v]) => v === String(p.every)) ? String(p.every) : 'c') : '12';
+    row.innerHTML = `
+      <label>Amount <input class="r-amt" inputmode="decimal" value="${p ? Math.round(p.amount).toLocaleString('en') : ''}" placeholder="e.g. 50,000" /></label>
+      <label>How often <select class="r-freq">${FREQ.map(([v, t]) => `<option value="${v}"${v === every ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label class="ln-n">Every <span class="ln-suf"><input class="r-n" inputmode="numeric" value="${every === 'c' ? p!.every : 2}" /><i>months</i></span></label>
+      <label>Starting <input class="r-from" type="month" value="${ym(monthDate(p?.start ?? 12))}" /></label>
+      <label class="ln-until">Until (optional) <input class="r-to" type="month" value="${p?.end ? ym(monthDate(p.end)) : ''}" /></label>
+      <button type="button" class="ln-x" aria-label="Remove this prepayment">×</button>`;
+    q('.ln-rows').append(row);
+    syncRow(row);
+  }
+  const syncRow = (row: HTMLElement) => {
+    const v = (row.querySelector('.r-freq') as HTMLSelectElement).value;
+    row.classList.toggle('custom', v === 'c');
+    row.classList.toggle('once', v === '0');
+  };
+  const readPlan = (): Prepay[] => [...root.querySelectorAll<HTMLElement>('.ln-row')].map((row) => {
+    const g = (c: string) => (row.querySelector(c) as HTMLInputElement).value;
+    const fr = g('.r-freq');
+    return { amount: num(g('.r-amt')), every: fr === 'c' ? Math.max(1, Math.round(num(g('.r-n')))) : +fr, start: Math.max(1, monthIndex(g('.r-from'))), end: fr === '0' ? undefined : monthIndex(g('.r-to')) || undefined };
+  }).filter((p) => p.amount > 0);
+
+  // ---------- chart ----------
+  function chart(base: Result, plan: Result, p: number) {
+    const W = 640, H = 220, L = 52, R = 10, T = 10, B = 26;
+    const n = base.months;
+    const x = (m: number) => L + (m / n) * (W - L - R), y = (v: number) => T + (1 - v / p) * (H - T - B);
+    const line = (r: Result) => `M${x(0)},${y(p)} ` + r.rows.map((row) => `L${x(row.m).toFixed(1)},${y(row.balance).toFixed(1)}`).join(' ');
+    const years = Math.ceil(n / 12), stepY = years > 20 ? 5 : years > 8 ? 2 : 1;
+    let ticks = '';
+    for (let yr = 0; yr <= years; yr += stepY) ticks += `<text x="${x(Math.min(n, yr * 12))}" y="${H - 8}" text-anchor="middle">${yr === 0 ? 'Now' : yr + 'y'}</text>`;
+    const short = (v: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+    for (const v of [0, 0.5, 1]) ticks += `<text x="${L - 6}" y="${y(p * v) + 4}" text-anchor="end">${short(p * v)}</text><line x1="${L}" x2="${W - R}" y1="${y(p * v)}" y2="${y(p * v)}" stroke="var(--line)"/>`;
+    q('.ln-svg').innerHTML = `${ticks}<path d="${line(base)}" fill="none" stroke="var(--muted)" stroke-opacity=".6" stroke-width="2" stroke-dasharray="5 4"/><path d="${line(plan)}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  }
+
+  let last: { base: Result; plan: Result } | null = null;
+  function run() {
+    const p = num(f('p').value), rate = num(f('rate').value);
+    const n = Math.round(num(f('years').value) * 12 + num(f('months').value));
+    const pay = num(f('pay').value);
+    const err = q('.ln-err');
+    const bad = !(p > 0) ? 'Enter how much you still owe.' : !(n > 0) && !(pay > 0) ? 'Enter how long is left on the loan.' : rate < 0 || rate > 60 ? 'Enter the yearly interest rate, for example 8.5.' : pay > 0 && rate > 0 && pay <= (p * rate) / 1200 ? `A monthly payment of ${$(pay)} doesn't even cover the interest (${$((p * rate) / 1200)} a month), so the loan would never end.` : '';
+    err.hidden = !bad; err.textContent = bad;
+    q('.ln-result').hidden = !!bad;
+    if (bad) return;
+    const term = pay > 0 ? monthsFor(p, rate, pay) : n;
+    const mode = (root.querySelector('[name=ln-mode]:checked') as HTMLInputElement).value as 'tenure' | 'emi';
+    const base = simulate(p, rate, term, [], 'tenure', pay || undefined);
+    f('pay').placeholder = `${Math.round(base.emi).toLocaleString(cur === 'INR' ? 'en-IN' : 'en')} (worked out for you)`;
+    q('.ln-base').innerHTML = `Monthly payment <b>${$(base.emi)}</b> · total interest if you change nothing <b>${$(base.interest)}</b> · last payment <b>${label(base.months)}</b>`;
+
+    // One extra payment, next month.
+    const once = num(q<HTMLInputElement>('.ln-once').value);
+    if (once > 0) {
+      const w = simulate(p, rate, term, [{ amount: once, every: 0, start: 1 }], 'tenure', pay || undefined);
+      q('.ln-what-out').innerHTML = `You'd save <b class="good-t">${$(base.interest - w.interest)}</b> in interest and finish <b>${span(base.months - w.months)}</b> sooner. Every ${$(1)} you prepay saves about <b>${money((base.interest - w.interest) / once, q<HTMLSelectElement>('.ln-cur').value, 2)}</b> in interest.`;
+    } else q('.ln-what-out').textContent = '';
+
+    // Ready-made plans.
+    q('.ln-presets tbody').innerHTML = presets(base.emi, p).map((x, i) => {
+      const r = simulate(p, rate, term, x.plan, 'tenure', pay || undefined);
+      const a = x.plan[0];
+      const freq = a.every === 0 ? 'once' : a.every === 1 ? '/month' : a.every === 12 ? '/year' : `every ${a.every} months`;
+      return `<tr><td>${x.label}</td><td data-l="Extra">${$(a.amount)}${freq.startsWith("/") ? "" : " "}${freq}</td><td class="good" data-l="Interest saved">${$(base.interest - r.interest)}</td><td data-l="Done sooner">${span(base.months - r.months)}</td><td><button type="button" data-preset="${i}">Use</button></td></tr>`;
+    }).join('');
+
+    // Your plan.
+    const plan = simulate(p, rate, term, readPlan(), mode, pay || undefined);
+    last = { base, plan };
+    q('.ln-s-int').textContent = $(base.interest - plan.interest);
+    if (mode === 'tenure') {
+      q('.ln-s-time-l').textContent = 'Debt-free sooner by';
+      q('.ln-s-time').textContent = span(base.months - plan.months);
+    } else {
+      q('.ln-s-time-l').textContent = 'New monthly payment';
+      q('.ln-s-time').textContent = $(plan.lastEmi);
+    }
+    q('.ln-s-end').textContent = label(plan.months);
+    q('.ln-s-extra').textContent = $(plan.extra);
+    q('.ln-ratio').innerHTML = plan.extra > 0
+      ? `Your ${$(plan.extra)} of prepayments cut your total interest from ${$(base.interest)} to ${$(plan.interest)}, a ${pct((1 - plan.interest / base.interest) * 100)} saving.`
+      : 'Add a prepayment above, or pick a ready-made plan, to see what you save.';
+    chart(base, plan, p);
+
+    const yb = byYear(base), yp = byYear(plan);
+    let cum = 0;
+    q('.ln-ybody').innerHTML = yb.map((b, i) => {
+      const pl = yp[i] ?? { interest: 0, balance: 0 };
+      const saved = b.interest - pl.interest; cum += saved;
+      const y0 = monthDate(i * 12 + 1).getFullYear(), y1 = monthDate(i * 12 + 12).getFullYear();
+      return `<tr><td>Year ${i + 1} <small style="color:var(--muted)">${y0 === y1 ? y0 : `${y0}–${String(y1).slice(2)}`}</small></td><td>${$(b.interest)}</td><td>${$(pl.interest)}</td><td class="good">${$(saved)}</td><td class="good">${$(cum)}</td><td>${$(pl.balance)}</td></tr>`;
+    }).join('');
+  }
+
+  q('.ln-csv').addEventListener('click', () => {
+    if (!last) return;
+    const lines = ['Month,Date,Payment,Interest,Principal,Extra payment,Still owed,Still owed with no prepayments'];
+    last.plan.rows.forEach((r, i) => lines.push([r.m, ym(monthDate(r.m)), r.payment, r.interest, r.principal, r.extra, r.balance, last!.base.rows[i]?.balance ?? 0].map((v) => (typeof v === 'number' ? v.toFixed(2) : v)).join(',')));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv' }));
+    a.download = 'loan-payoff-schedule.csv';
+    document.body.append(a); a.click(); a.remove();
+  });
+
+  root.addEventListener('input', (e) => { const row = (e.target as HTMLElement).closest<HTMLElement>('.ln-row'); if (row) syncRow(row); run(); });
+  root.addEventListener('change', run);
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('.ln-x')) { el.closest('.ln-row')!.remove(); run(); }
+    const pre = el.closest<HTMLElement>('[data-preset]');
+    if (pre) {
+      const p = num(f('p').value), rate = num(f('rate').value), n = Math.round(num(f('years').value) * 12 + num(f('months').value));
+      const base = simulate(p, rate, num(f('pay').value) > 0 ? monthsFor(p, rate, num(f('pay').value)) : n, [], 'tenure', num(f('pay').value) || undefined);
+      q('.ln-rows').innerHTML = '';
+      presets(base.emi, p)[+pre.dataset.preset!].plan.forEach((x) => addRow(x));
+      run();
+      q('.ln-planbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+  q('.ln-addrow').addEventListener('click', () => { addRow(); (q('.ln-rows').lastElementChild!.querySelector('input') as HTMLInputElement).focus(); });
+  addRow({ amount: india ? 100000 : 5000, every: 12, start: 12 });
+  run();
+</script>
