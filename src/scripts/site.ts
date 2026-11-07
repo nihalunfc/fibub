@@ -143,3 +143,11 @@ if (bm) {
   }));
   sync();
 }
+
+// Two-level header menu (Science): pointing at or focusing a subject shows its sections and tools.
+for (const panel of document.querySelectorAll<HTMLElement>('.dd-mega')) {
+  const subs = [...panel.querySelectorAll<HTMLButtonElement>('.dd-subj')], panes = [...panel.querySelectorAll<HTMLElement>('.dd-pane')];
+  const show = (i: number) => { subs.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); panes.forEach((p, j) => p.classList.toggle('on', i === j)); };
+  subs.forEach((b, i) => { b.addEventListener('mouseenter', () => show(i)); b.addEventListener('focus', () => show(i)); b.addEventListener('click', () => { show(i); panes[i].querySelector<HTMLElement>('a')?.focus(); }); });
+  show(0);
+}

@@ -25,7 +25,7 @@ const groups = bySection(shelf.id, live);
     <div class="sections">
       {groups.map((g) => (
         <details class="sec" open id={g.id} data-sec={g.id}>
-          <summary><span><b>{g.name}</b>{g.blurb && <small>{g.blurb}</small>}</span><em>{g.tools.length}</em></summary>
+          <summary><span><b>{g.label}</b>{g.blurb && <small>{g.blurb}</small>}</span><em>{g.tools.length}</em></summary>
           <div class="grid">{g.tools.map((t) => <ToolCard tool={t} />)}</div>
         </details>
       ))}

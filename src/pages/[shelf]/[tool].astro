@@ -6,7 +6,7 @@ import { render } from 'astro:content';
 import { shelfById } from '../../site';
 import { allTools, toolComponent, toolUrl, relatedTools } from '../../lib/tools';
 import { ICONS } from '../../lib/icons';
-import { SECTIONS } from '../../site';
+import { SECTIONS, sectionLabel } from '../../site';
 export async function getStaticPaths() {
   const tools = await allTools();
   return tools
@@ -21,7 +21,7 @@ const { Content } = await render(tool);
 const updated = tool.data.updated.toISOString().slice(0, 10);
 ---
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{sectionLabel(section)}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>

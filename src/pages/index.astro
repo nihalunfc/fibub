@@ -4,11 +4,11 @@
 import Base from '../layouts/Base.astro';
 import { SITE, SHELVES } from '../site';
 import { ICONS } from '../lib/icons';
-import { allTools, bySection, toolUrl } from '../lib/tools';
+import { allTools, bySubject, toolUrl } from '../lib/tools';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const soon = tools.filter((t) => t.data.status === 'soon');
-const shelves = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, live) })).filter((s) => s.groups.length);
+const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live) })).filter((s) => s.subjects.length);
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
 <Base title={SITE.name}>
@@ -35,15 +35,17 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   </section>
 
   <div class="dir">
-    {shelves.map(({ shelf, groups }) => (
+    {shelves.map(({ shelf, subjects }) => (
       <section class="sh" data-shelf={shelf.id}>
         <h2><a href={`/${shelf.id}/`}>{shelf.name}</a></h2>
-        {groups.map((g) => (
+        {subjects.map((sj) => (<div class="subj">
+        {sj.subject && <h3 class="sj">{sj.subject}</h3>}
+        {sj.groups.map((g) => (
           <div class="grp">
-            {g.name && <h3>{g.name.replace(/^Astronomy: /, '')}</h3>}
+            {g.name && <h3>{g.name}</h3>}
             <ul class="ix">
               {g.tools.map((t) => (
-                <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} ${shelf.name} ${g.name ?? ''}`.toLowerCase()}>
+                <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} ${shelf.name} ${g.label}`.toLowerCase()}>
                   <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
                   <span class="num">#{t.data.num}</span>
                   <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
@@ -52,6 +54,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
             </ul>
           </div>
         ))}
+        </div>))}
       </section>
     ))}
   </div>
@@ -74,6 +77,8 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   .sh h2 { margin: 18px 0 4px; font-size: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
   .sh h2 a { color: var(--ink); text-decoration: none; }
   .sh h2 a:hover { color: var(--accent); }
+  .sj { margin: 16px 0 0; font-size: 15px; }
+  .sj + .grp h3 { margin-top: 6px; }
   .grp h3 { margin: 14px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .ix { list-style: none; margin: 0; padding: 0; }
   .ti { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
@@ -141,7 +146,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
     const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
     let shown = 0;
     for (const r of rows) { const ok = words.every((w) => matches(r, w)); r.hidden = !ok; if (ok) shown++; }
-    document.querySelectorAll<HTMLElement>('.dir .grp').forEach((g) => (g.hidden = !g.querySelector('.ti:not([hidden])')));
+    document.querySelectorAll<HTMLElement>('.dir .grp, .dir .subj').forEach((g) => (g.hidden = !g.querySelector('.ti:not([hidden])')));
     document.querySelectorAll<HTMLElement>('.dir .sh').forEach((s) => (s.hidden = !s.querySelector('.ti:not([hidden])')));
     empty.hidden = shown > 0;
     show();

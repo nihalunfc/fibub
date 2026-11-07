@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { SECTIONS } from '../site';
+import { SECTIONS, sectionLabel } from '../site';
 
 export type Tool = CollectionEntry<'tools'>;
 
@@ -44,8 +44,21 @@ export function relatedTools(tool: Tool, tools: Tool[], max = 6) {
 /** Live and coming tools on a shelf, grouped by section (tools without one go in a final group). */
 export function bySection(shelf: string, tools: Tool[]) {
   const mine = tools.filter((t) => t.data.shelf === shelf);
-  const groups = (SECTIONS[shelf] ?? []).map((s) => ({ ...s, tools: mine.filter((t) => t.data.section === s.id) }));
+  const groups: { id: string; name: string; blurb: string; subject?: string; label: string; tools: Tool[] }[] =
+    (SECTIONS[shelf] ?? []).map((s) => ({ ...s, label: sectionLabel(s), tools: mine.filter((t) => t.data.section === s.id) }));
   const rest = mine.filter((t) => !t.data.section || !groups.some((g) => g.id === t.data.section));
-  if (rest.length) groups.push({ id: 'other', name: groups.length ? 'More tools' : '', blurb: '', tools: rest });
+  if (rest.length) groups.push({ id: 'other', name: groups.length ? 'More tools' : '', label: groups.length ? 'More tools' : '', blurb: '', tools: rest });
   return groups.filter((g) => g.tools.length);
+}
+
+/** The same groups, gathered by subject (Astronomy, ...). Sections without a subject share one unnamed subject. */
+export function bySubject(shelf: string, tools: Tool[]) {
+  const out: { subject: string; groups: ReturnType<typeof bySection> }[] = [];
+  for (const g of bySection(shelf, tools)) {
+    const name = g.subject ?? '';
+    let s = out.find((x) => x.subject === name);
+    if (!s) out.push((s = { subject: name, groups: [] }));
+    s.groups.push(g);
+  }
+  return out;
 }
