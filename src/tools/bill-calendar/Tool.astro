@@ -130,7 +130,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, type Item, type State, type Repeat } from '../../lib/bills';
+  import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, fromBackup, type Item, type State, type Repeat } from '../../lib/bills';
   import { iso, fromIso, addDays, monthDays } from '../../lib/planner';
   import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
   import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
@@ -315,8 +315,8 @@ import Downloads from '../../components/Downloads.astro';
   q('.s-backup').addEventListener('click', () => save(new Blob([JSON.stringify({ fibub: 'bill-calendar', ...S, start: Number.isFinite(S.start) ? S.start : null }, null, 1)], { type: 'application/json' }), `bill-calendar-backup-${todayIso()}.json`, 'application/json'));
   q<HTMLInputElement>('.s-restore').addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
-    try { const j = JSON.parse(await f.text()); if (!valid(j)) throw 0; S = { ...blank(), ...j }; fix(); sc.innerHTML = currencyOptions(S.currency); q<HTMLInputElement>('.s-start').value = Number.isFinite(S.start) ? String(S.start) : ''; q<HTMLInputElement>('.s-date').value = S.startDate; msg(`Restored ${S.items.length} items.`); render(); }
-    catch { msg('That file is not a bill calendar backup.'); }
+    try { const j = fromBackup(JSON.parse(await f.text())); if (!j) throw 0; S = j; fix(); sc.innerHTML = currencyOptions(S.currency); q<HTMLInputElement>('.s-start').value = Number.isFinite(S.start) ? String(S.start) : ''; q<HTMLInputElement>('.s-date').value = S.startDate; msg(`Restored ${S.items.length} items.`); render(); }
+    catch { msg('That file is not a bill calendar backup. Backups locked with a passcode in the old expense calendar must be unlocked there first.'); }
   });
   q('.s-csv').addEventListener('click', () => save(new Blob(['﻿' + itemsCsv(S.items)], { type: 'text/csv' }), 'bills-and-income.csv', 'text/csv'));
   q('.s-clear').addEventListener('click', () => { if (!confirm('Delete every bill and income item? Download a backup first if you might want them back.')) return; S = { ...blank(), currency: S.currency }; q<HTMLInputElement>('.s-start').value = ''; q<HTMLInputElement>('.s-date').value = ''; render(); msg('Everything deleted.'); });

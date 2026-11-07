@@ -51,6 +51,8 @@ Everything is worked out in your browser. Nothing is uploaded, and the page work
 
 **Does it connect to my bank?** No, and it never will. You type in your own bills, so nothing about your accounts leaves your device.
 
+**I used the expense calendar on nihalsulaiman.com. Can I bring my bills over?** Yes. In the old calendar press **Download backup**, then here open **Balance, currency and your data** and press **Restore backup**. Your bills, repeats, paid ticks and skipped dates come across. If you locked the old calendar with a passcode, unlock it there before you download the backup.
+
 **Can I use rupees, dirhams or pounds?** Yes. Pick your currency in the settings. It only changes how amounts are shown.
 
 **What is the difference from the budget planner?** The budget planner works out monthly totals and savings. The bill calendar shows *when* each payment happens, so you can plan around pay days.

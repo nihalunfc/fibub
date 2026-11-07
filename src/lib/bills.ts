@@ -103,3 +103,37 @@ export function itemsCsv(items: Item[]) {
   const head = ['title', 'amount', 'type', 'category', 'first_date', 'repeats', 'until', 'note'];
   return [head.join(','), ...items.map((i) => [i.title, String(i.amount), i.kind, catOf(i.cat).name, i.date, i.repeat, i.until, i.note].map(cell).join(','))].join('\r\n') + '\r\n';
 }
+
+const REPEAT_IDS = new Set(REPEATS.map((r) => r[0]));
+const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d\d-\d\d$/.test(s);
+const dateSet = (o: unknown): Record<string, true> => {
+  const out: Record<string, true> = {};
+  if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) if (isDate(k) && v) out[k] = true;
+  return out;
+};
+/**
+ * Reads a backup file: this tool's own backups, and plain (not passcode-locked) backups from the
+ * older expense calendar on nihalsulaiman.com, whose items have `done` dates for repeating bills
+ * and a single `paid` flag for one-off ones. Returns null when it is neither.
+ */
+export function fromBackup(j: any): State | null {
+  if (!j || typeof j !== 'object' || !Array.isArray(j.items)) return null;
+  const items: Item[] = [];
+  for (const x of j.items) {
+    if (!x || typeof x.title !== 'string' || !isDate(x.date) || !Number.isFinite(+x.amount)) continue;
+    const repeat: Repeat = REPEAT_IDS.has(x.repeat) ? x.repeat : 'none';
+    const kind = x.kind === 'income' ? 'income' : 'bill';
+    const paid = dateSet(x.paid && typeof x.paid === 'object' ? x.paid : x.done);
+    if (x.paid === true && repeat === 'none') paid[x.date] = true;
+    items.push({
+      id: typeof x.id === 'string' && x.id ? x.id.slice(0, 40) : uid(), title: x.title.slice(0, 80), amount: Math.abs(+x.amount), kind,
+      cat: kind === 'income' ? 'income' : catOf(String(x.cat)).id, date: x.date, repeat, until: repeat !== 'none' && isDate(x.until) ? x.until : '',
+      note: typeof x.note === 'string' ? x.note.slice(0, 200) : '', paid, skip: dateSet(x.skip),
+    });
+  }
+  const start = j.start == null || j.start === '' ? NaN : +j.start;
+  return {
+    v: 1, currency: typeof j.currency === 'string' && /^[A-Z]{3}$/.test(j.currency) ? j.currency : 'USD', weekStart: j.weekStart === 0 ? 0 : 1,
+    start: Number.isFinite(start) ? start : NaN, startDate: isDate(j.startDate) ? j.startDate : '', items,
+  };
+}

@@ -691,6 +691,16 @@ try {
     const [bd] = await Promise.all([page.waitForEvent('download'), page.click('.dl [data-f=pdf]')]);
     check(/^bills-\d{4}-\d{2}\.pdf$/.test(bd.suggestedFilename()), `bill calendar: PDF download ${bd.suggestedFilename()}`);
     check(!(await page.evaluate(() => localStorage.getItem('fibub-bills-v1'))), 'bill calendar: nothing kept in the browser unless asked');
+    // A backup from the older expense calendar on nihalsulaiman.com restores here.
+    const ym = new Date().toISOString().slice(0, 7);
+    writeFileSync(OUT + 'old-expenses.json', JSON.stringify({ v: 1, currency: 'CAD', budget: 2000, weekStart: 0, items: [
+      { id: 'a1', title: 'Rent', amount: 1450, cat: 'housing', date: `${ym}-01`, time: '', repeat: 'monthly', until: '', note: '', done: { [`${ym}-01`]: 1 }, skip: {} },
+      { id: 'a2', title: 'Dentist', amount: 90, cat: 'health', date: `${ym}-09`, time: '', repeat: 'none', until: '', note: 'cleaning', paid: true, done: {}, skip: {} },
+    ] }));
+    await page.setInputFiles('.s-restore', OUT + 'old-expenses.json');
+    await page.waitForTimeout(400);
+    const sum = await page.textContent('.bc-sum');
+    check(/Restored 2/.test(await page.textContent('.s-msg')) && (sum.match(/1,540/g) || []).length >= 2, `bill calendar: old expense calendar backup restores with paid ticks (${sum.replace(/\s+/g, ' ')})`);
   }
 
   // 6q. Header drop-downs on a computer, the bookmark dialog and My tools.
