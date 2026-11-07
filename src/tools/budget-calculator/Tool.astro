@@ -1,0 +1,350 @@
+---
+// Budget planner: a one-off plan (trip, project, event) or a monthly salary budget.
+---
+<div class="bg">
+  <div class="bg-top">
+    <div class="bg-seg" role="tablist" aria-label="What are you planning?">
+      <button type="button" role="tab" data-tab="plan" aria-selected="true">Trip or project</button>
+      <button type="button" role="tab" data-tab="month" aria-selected="false">Monthly budget</button>
+    </div>
+    <label class="bg-curl">Currency <select class="bg-cur"></select></label>
+  </div>
+
+  <!-- One-off plan -->
+  <section class="bg-tab" data-pane="plan">
+    <div class="panel">
+      <div class="bg-tpl" role="group" aria-label="Start from">
+        <span>Start from</span>
+        <button type="button" data-tpl="trip">Trip</button>
+        <button type="button" data-tpl="home">Home project</button>
+        <button type="button" data-tpl="event">Wedding or event</button>
+        <button type="button" data-tpl="purchase">Big purchase</button>
+        <button type="button" data-tpl="blank">Blank</button>
+      </div>
+      <label class="bg-name">Plan name <input class="p-name" type="text" maxlength="60" /></label>
+      <div class="bg-lines p-lines"></div>
+      <button type="button" class="btn secondary p-add">+ Add a cost</button>
+      <div class="bg-grid">
+        <label>Extra for surprises <span class="bg-suf"><input class="p-buffer" inputmode="decimal" value="10" /><i>%</i></span></label>
+        <label>Already saved <input class="p-saved" inputmode="decimal" placeholder="0" /></label>
+        <label>I want it ready by <input class="p-date" type="month" /></label>
+      </div>
+    </div>
+    <div class="bg-out">
+      <div class="bg-stats">
+        <div><span>Total cost</span><b class="p-total"></b></div>
+        <div><span>Still to save</span><b class="p-left"></b></div>
+        <div class="hl"><span>Save each month</span><b class="p-month"></b></div>
+        <div class="hl"><span>or each week</span><b class="p-week"></b></div>
+      </div>
+      <div class="bg-bar p-bar" aria-hidden="true"></div>
+      <ul class="bg-legend p-legend"></ul>
+      <div class="panel bg-alt">
+        <label>Or: I can save <input class="p-can" inputmode="decimal" placeholder="amount" /> a month</label>
+        <p class="p-ready"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Monthly budget -->
+  <section class="bg-tab" data-pane="month" hidden>
+    <div class="panel">
+      <h2>Money in</h2>
+      <div class="bg-lines m-in"></div>
+      <button type="button" class="btn secondary m-addin">+ Add income</button>
+      <h2>Money out</h2>
+      <p class="bg-hint">Enter each cost as you pay it: weekly, monthly or yearly. Mark each one as a <b>need</b> (must pay) or a <b>want</b> (could cut).</p>
+      <div class="bg-lines m-out"></div>
+      <button type="button" class="btn secondary m-addout">+ Add a cost</button>
+      <button type="button" class="bg-link m-example">Fill in an example</button>
+    </div>
+    <div class="bg-out">
+      <div class="bg-stats">
+        <div><span>Money in / month</span><b class="m-inc"></b></div>
+        <div><span>Money out / month</span><b class="m-exp"></b></div>
+        <div class="hl"><span>Left to save / month</span><b class="m-left"></b></div>
+        <div><span>Saving rate</span><b class="m-rate"></b></div>
+      </div>
+      <div class="panel">
+        <h3>Needs, wants and savings</h3>
+        <p class="bg-hint">A common guide is 50% needs, 30% wants and 20% savings. Yours:</p>
+        <div class="bg-split m-split"></div>
+      </div>
+      <div class="panel m-yearly-box">
+        <h3>Set aside for bills that aren't monthly</h3>
+        <p class="bg-hint">Put this much away every month so yearly and quarterly bills never catch you out.</p>
+        <ul class="bg-list m-yearly"></ul>
+      </div>
+      <div class="panel">
+        <h3>Trim your wants</h3>
+        <label class="bg-range">Cut wants by <b class="m-cutv">20%</b><input class="m-cut" type="range" min="0" max="100" step="5" value="20" /></label>
+        <p class="m-cutout"></p>
+      </div>
+      <div class="panel">
+        <h3>Watch your savings grow</h3>
+        <div class="bg-grid">
+          <label>Save each month <input class="m-save" inputmode="decimal" /></label>
+          <label>Interest or growth <span class="bg-suf"><input class="m-growth" inputmode="decimal" value="4" /><i>% a year</i></span></label>
+          <label>Savings goal (optional) <input class="m-goal" inputmode="decimal" placeholder="e.g. emergency fund" /></label>
+        </div>
+        <div class="bg-grow m-grow"></div>
+        <p class="m-goalout"></p>
+      </div>
+    </div>
+  </section>
+
+  <label class="bg-keep"><input type="checkbox" class="bg-remember" /> Remember my numbers on this device</label>
+  <p class="bg-fine">Everything is worked out in your browser and nothing is sent anywhere. Numbers are only kept on this device if you tick the box above. Growth figures are estimates, not financial advice.</p>
+</div>
+
+<style is:global>
+  .bg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .bg > *, .bg-tab > *, .bg-out > * { min-width: 0; }
+  .bg h2 { font-size: 17px; margin: 0 0 10px; }
+  .bg h2:not(:first-child) { margin-top: 20px; }
+  .bg h3 { font-size: 16px; margin: 0 0 6px; }
+  .bg .panel { padding: 16px; }
+  .bg-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 10px; }
+  .bg-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
+  .bg-seg button { font: inherit; font-weight: 600; border: 0; background: none; padding: 7px 14px; border-radius: 9px; color: var(--muted); cursor: pointer; }
+  .bg-seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+  .bg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .bg-curl { min-width: 200px; }
+  .bg input, .bg select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .bg input:focus, .bg select:focus { border-color: var(--accent); outline: none; }
+  .bg-tab { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .bg-tab[hidden] { display: none; }
+  .bg-tpl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+  .bg-tpl span { font-size: 14px; color: var(--muted); margin-right: 4px; }
+  .bg-tpl button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .bg-tpl button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .bg-name { margin-bottom: 12px; }
+  .bg-lines { display: grid; gap: 6px; margin-bottom: 10px; }
+  .bg-line { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 36px; gap: 6px; align-items: center; }
+  .bg-line.inc { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.2fr) 36px; }
+  .bg-line.exp { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.2fr) 112px 36px; }
+  .bg-x { width: 36px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 18px; color: var(--muted); cursor: pointer; }
+  .bg-nw { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; height: 40px; }
+  .bg-nw button { font: inherit; font-size: 12px; font-weight: 600; border: 0; background: var(--bg); color: var(--muted); padding: 0 6px; cursor: pointer; flex: 1; }
+  .bg-nw button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .bg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 14px; }
+  .bg-suf { position: relative; display: block; }
+  .bg-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .bg-suf input { padding-right: 70px; }
+  .bg-out { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bg-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .bg-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .bg-stats span { font-size: 13px; color: var(--muted); }
+  .bg-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .bg-stats .hl b { color: var(--accent); }
+  .bg-stats b.neg { color: var(--bad); }
+  .bg-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--line); }
+  .bg-bar i { display: block; height: 100%; }
+  .bg-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+  .bg-legend li::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 3px; background: var(--c); margin-right: 6px; }
+  .bg-alt label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; }
+  .bg-alt input { width: 160px; }
+  .bg-alt p, .bg p.m-cutout, .bg p.m-goalout { margin: 10px 0 0; font-size: 15px; }
+  .bg p:empty { display: none; }
+  .bg-hint { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .bg-link { font: inherit; font-size: 14px; background: none; border: 0; color: var(--accent); cursor: pointer; margin-left: 8px; text-decoration: underline; }
+  .bg-split { display: grid; gap: 10px; }
+  .bg-split .row { display: grid; grid-template-columns: 70px 1fr 110px; gap: 10px; align-items: center; font-size: 14px; }
+  .bg-split .track { position: relative; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .bg-split .fill { position: absolute; inset: 0 auto 0 0; background: var(--c); border-radius: 999px; }
+  .bg-split .mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .5; }
+  .bg-split .row b { text-align: right; font-size: 14px; }
+  .bg-split .row small { color: var(--muted); font-weight: 500; }
+  .bg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+  .bg-list li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 4px 0; }
+  .bg-list li:last-child { border: 0; font-weight: 700; }
+  .bg-range { display: grid !important; grid-template-columns: auto auto 1fr; gap: 10px !important; align-items: center; color: var(--ink) !important; font-size: 15px !important; }
+  .bg-range input { padding: 0; accent-color: var(--accent); border: 0; background: none; }
+  .bg-grow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+  .bg-grow div { border-radius: 12px; padding: 10px; background: var(--accent-soft); display: grid; }
+  .bg-grow span { font-size: 13px; color: var(--muted); }
+  .bg-grow b { font-size: clamp(15px, 3vw, 20px); overflow-wrap: anywhere; }
+  .bg-keep { display: flex !important; gap: 8px; align-items: center; color: var(--ink) !important; font-size: 15px !important; cursor: pointer; }
+  .bg-keep input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .bg-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) {
+    .bg-stats, .bg-grow { grid-template-columns: 1fr 1fr; }
+    .bg-line.inc, .bg-line.exp { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+    .bg-line.exp { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 50px 50px; }
+    .bg-line.inc input:first-child { grid-column: 1 / 3; }
+    .bg-line.exp input:first-child { grid-column: 1 / 4; }
+    .bg-line.inc .bg-x, .bg-line.exp .bg-x { grid-row: 1; justify-self: end; }
+    .bg-line.inc .bg-x { grid-column: 3; }
+    .bg-line.exp .bg-x { grid-column: 4; }
+    .bg-line.exp .bg-nw { grid-column: 3 / 5; }
+    .bg-nw button { padding: 0 2px; }
+    .bg-line select { padding-left: 6px; padding-right: 2px; }
+    .bg-curl { min-width: 0; flex: 1 1 100%; }
+    .bg-split .row { grid-template-columns: 56px 1fr 92px; }
+  }
+</style>
+
+<script>
+  import { FREQ, type Freq, monthly, grow, monthsTo, monthsUntil, TEMPLATES, INCOME_DEFAULT, EXPENSE_DEFAULT } from '../../lib/budget';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+
+  const KEY = 'fibub-budget-v1';
+  const root = document.querySelector<HTMLElement>('.bg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = (c: string) => [...root.querySelectorAll<HTMLElement>(c)];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const val = (el: Element | null) => (el as HTMLInputElement | null)?.value ?? '';
+  const cur = () => q<HTMLSelectElement>('.bg-cur').value;
+  const $ = (n: number) => money(n, cur());
+  const COLS = ['#0e8f84', '#6d4aff', '#d97706', '#e0457b', '#2f6fde', '#3f8f3a', '#8a5a44', '#7a8494'];
+  const nf = (n: number) => (n ? Math.round(n).toLocaleString(cur() === 'INR' ? 'en-IN' : 'en') : '');
+  const freqOpts = (keys: Freq[], sel: Freq) => keys.map((k) => `<option value="${k}"${k === sel ? ' selected' : ''}>${FREQ[k].label}</option>`).join('');
+
+  // ---------- rows ----------
+  function planLine(name = '', amount = 0) {
+    const d = document.createElement('div');
+    d.className = 'bg-line';
+    d.innerHTML = `<input class="l-name" aria-label="Cost" placeholder="What for" value="${esc(name)}" /><input class="l-amt" aria-label="Amount" inputmode="decimal" placeholder="Amount" value="${nf(amount)}" /><button type="button" class="bg-x" aria-label="Remove">×</button>`;
+    q('.p-lines').append(d);
+  }
+  function incLine(name = '', amount = 0, f: Freq = 'month') {
+    const d = document.createElement('div');
+    d.className = 'bg-line inc';
+    d.innerHTML = `<input class="l-name" aria-label="Income" placeholder="Income" value="${esc(name)}" /><input class="l-amt" aria-label="Amount" inputmode="decimal" placeholder="Amount" value="${nf(amount)}" /><select class="l-f" aria-label="How often">${freqOpts(['week', 'fortnight', 'twice', 'month', 'year'], f)}</select><button type="button" class="bg-x" aria-label="Remove">×</button>`;
+    q('.m-in').append(d);
+  }
+  function expLine(name = '', amount = 0, f: Freq = 'month', kind: 'need' | 'want' = 'need') {
+    const d = document.createElement('div');
+    d.className = 'bg-line exp';
+    d.dataset.kind = kind;
+    d.innerHTML = `<input class="l-name" aria-label="Cost" placeholder="Cost" value="${esc(name)}" /><input class="l-amt" aria-label="Amount" inputmode="decimal" placeholder="Amount" value="${nf(amount)}" /><select class="l-f" aria-label="How often">${freqOpts(['week', 'fortnight', 'month', 'quarter', 'half', 'year'], f)}</select><span class="bg-nw" role="group" aria-label="Need or want"><button type="button" data-k="need" aria-pressed="${kind === 'need'}">Need</button><button type="button" data-k="want" aria-pressed="${kind === 'want'}">Want</button></span><button type="button" class="bg-x" aria-label="Remove">×</button>`;
+    q('.m-out').append(d);
+  }
+  const rows = (sel: string) => qa(`${sel} .bg-line`).map((r) => ({ name: val(r.querySelector('.l-name')), amount: num(val(r.querySelector('.l-amt'))), f: (val(r.querySelector('.l-f')) || 'month') as Freq, kind: (r.dataset.kind ?? 'need') as 'need' | 'want' }));
+
+  function useTemplate(id: string) {
+    const t = TEMPLATES[id];
+    q('.p-lines').innerHTML = '';
+    t.items.forEach(([n, a]) => planLine(n, a));
+    q<HTMLInputElement>('.p-name').value = t.name;
+    qa('[data-tpl]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tpl === id)));
+  }
+
+  // ---------- one-off plan ----------
+  function runPlan() {
+    const lines = rows('.p-lines').filter((l) => l.amount > 0);
+    const sub = lines.reduce((s, l) => s + l.amount, 0);
+    const buffer = sub * (num(val(q('.p-buffer'))) / 100);
+    const total = sub + buffer;
+    const left = Math.max(0, total - num(val(q('.p-saved'))));
+    const months = monthsUntil(val(q('.p-date')) || nextYear());
+    q('.p-total').textContent = $(total);
+    q('.p-left').textContent = $(left);
+    q('.p-month').textContent = $(left / months);
+    q('.p-week').textContent = $(left / (months * 52 / 12));
+    const parts = [...lines.map((l, i) => ({ n: l.name || `Cost ${i + 1}`, a: l.amount })), ...(buffer > 0 ? [{ n: 'Surprises', a: buffer }] : [])].sort((a, b) => b.a - a.a);
+    q('.p-bar').innerHTML = total ? parts.map((p, i) => `<i style="width:${(p.a / total) * 100}%;background:${COLS[i % COLS.length]}"></i>`).join('') : '';
+    q('.p-legend').innerHTML = parts.map((p, i) => `<li style="--c:${COLS[i % COLS.length]}">${esc(p.n)} ${$(p.a)} (${Math.round((p.a / total) * 100)}%)</li>`).join('');
+    const can = num(val(q('.p-can')));
+    const need = monthsTo(left, can);
+    const d = new Date(); d.setMonth(d.getMonth() + need);
+    q('.p-ready').innerHTML = !can || !left ? '' : need === Infinity ? 'That would take over 100 years. Try a bigger amount.'
+      : `At ${$(can)} a month you'll have it all by <b>${d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</b> (${need} month${need === 1 ? '' : 's'}).`;
+  }
+  const nextYear = () => { const d = new Date(); d.setMonth(d.getMonth() + 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+
+  // ---------- monthly budget ----------
+  function runMonth() {
+    const inc = rows('.m-in').reduce((s, l) => s + monthly(l.amount, l.f), 0);
+    const exps = rows('.m-out').filter((l) => l.amount > 0);
+    const need = exps.filter((l) => l.kind === 'need').reduce((s, l) => s + monthly(l.amount, l.f), 0);
+    const want = exps.filter((l) => l.kind === 'want').reduce((s, l) => s + monthly(l.amount, l.f), 0);
+    const out = need + want, left = inc - out;
+    q('.m-inc').textContent = $(inc);
+    q('.m-exp').textContent = $(out);
+    const lb = q('.m-left'); lb.textContent = $(left); lb.classList.toggle('neg', left < 0);
+    q('.m-rate').textContent = inc ? `${Math.round((left / inc) * 100)}%` : '–';
+    const pc = (x: number) => (inc ? (x / inc) * 100 : 0);
+    const bars: [string, number, number, string][] = [['Needs', need, 50, '#2f6fde'], ['Wants', want, 30, '#e0457b'], ['Savings', Math.max(0, left), 20, '#0e8f84']];
+    q('.m-split').innerHTML = bars.map(([n, v, g, c]) => `<div class="row"><span>${n}</span><div class="track" style="--c:${c}"><div class="fill" style="width:${Math.min(100, pc(v))}%"></div><div class="mark" style="left:${g}%" title="Guide: ${g}%"></div></div><b>${Math.round(pc(v))}% <small>(guide ${g}%)</small></b></div>`).join('')
+      + (left < 0 ? `<p class="note bad" style="margin:0">You're spending ${$(-left)} a month more than comes in. Start with the wants below.</p>` : '');
+    const odd = exps.filter((l) => ['quarter', 'half', 'year'].includes(l.f));
+    q('.m-yearly-box').hidden = !odd.length;
+    q('.m-yearly').innerHTML = odd.map((l) => `<li><span>${esc(l.name || 'Cost')} (${$(l.amount)} ${FREQ[l.f].label})</span><b>${$(monthly(l.amount, l.f))}</b></li>`).join('') + (odd.length ? `<li><span>Set aside each month</span><b>${$(odd.reduce((s, l) => s + monthly(l.amount, l.f), 0))}</b></li>` : '');
+    const cut = +val(q('.m-cut'));
+    q('.m-cutv').textContent = `${cut}%`;
+    const freed = (want * cut) / 100;
+    q('.m-cutout').innerHTML = want ? `Spending ${cut}% less on wants frees <b>${$(freed)}</b> a month, <b>${$(freed * 12)}</b> a year.` : 'Mark some costs as "want" to see what trimming them would free up.';
+    const saveEl = q<HTMLInputElement>('.m-save');
+    if (!saveEl.dataset.touched) saveEl.value = nf(Math.max(0, left + freed));
+    const s = num(saveEl.value), g = num(val(q('.m-growth')));
+    q('.m-grow').innerHTML = [1, 3, 5, 10].map((y) => `<div><span>After ${y} year${y === 1 ? '' : 's'}</span><b>${$(grow(s, y * 12, g))}</b></div>`).join('');
+    const goal = num(val(q('.m-goal')));
+    const m = monthsTo(goal, s, g);
+    const d = new Date(); d.setMonth(d.getMonth() + m);
+    q('.m-goalout').innerHTML = !goal ? '' : m === Infinity ? 'Save something each month to reach your goal.' : `You'll reach ${$(goal)} in <b>${m} month${m === 1 ? '' : 's'}</b>, around ${d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.`;
+  }
+
+  // ---------- saving on this device (only if asked) ----------
+  function snapshot() {
+    return {
+      cur: cur(), tab: q('[data-tab][aria-selected="true"]').dataset.tab,
+      plan: { name: val(q('.p-name')), lines: rows('.p-lines'), buffer: val(q('.p-buffer')), saved: val(q('.p-saved')), date: val(q('.p-date')), can: val(q('.p-can')) },
+      month: { inc: rows('.m-in'), out: rows('.m-out'), cut: val(q('.m-cut')), growth: val(q('.m-growth')), goal: val(q('.m-goal')) },
+    };
+  }
+  const remember = () => q<HTMLInputElement>('.bg-remember').checked;
+  function store() { try { if (remember()) localStorage.setItem(KEY, JSON.stringify(snapshot())); } catch {} }
+
+  function run() { runPlan(); runMonth(); store(); }
+
+  function tab(id: string) {
+    qa('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
+    qa('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== id));
+  }
+
+  // ---------- start ----------
+  let saved: any = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  q('.bg-cur').innerHTML = currencyOptions(saved?.cur ?? defaultCurrency());
+  q<HTMLInputElement>('.p-date').value = nextYear();
+  if (saved) {
+    q<HTMLInputElement>('.bg-remember').checked = true;
+    q<HTMLInputElement>('.p-name').value = saved.plan.name;
+    saved.plan.lines.forEach((l: any) => planLine(l.name, l.amount));
+    for (const k of ['buffer', 'saved', 'date', 'can']) (q(`.p-${k}`) as HTMLInputElement).value = saved.plan[k] ?? '';
+    saved.month.inc.forEach((l: any) => incLine(l.name, l.amount, l.f));
+    saved.month.out.forEach((l: any) => expLine(l.name, l.amount, l.f, l.kind));
+    for (const k of ['cut', 'growth', 'goal']) (q(`.m-${k}`) as HTMLInputElement).value = saved.month[k] ?? '';
+    tab(saved.tab ?? 'plan');
+  } else {
+    useTemplate('trip');
+    INCOME_DEFAULT.forEach(([n, f]) => incLine(n, 0, f));
+    EXPENSE_DEFAULT.forEach(([n, f, k]) => expLine(n, 0, f, k));
+  }
+
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.m-save')) (e.target as HTMLElement).dataset.touched = '1'; run(); });
+  root.addEventListener('change', run);
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const t = el.closest<HTMLElement>('[data-tab]'); if (t) { tab(t.dataset.tab!); store(); return; }
+    const tp = el.closest<HTMLElement>('[data-tpl]'); if (tp) { useTemplate(tp.dataset.tpl!); run(); return; }
+    if (el.closest('.bg-x')) { el.closest('.bg-line')!.remove(); run(); return; }
+    const nw = el.closest<HTMLElement>('.bg-nw button');
+    if (nw) { const line = nw.closest<HTMLElement>('.bg-line')!; line.dataset.kind = nw.dataset.k; line.querySelectorAll('.bg-nw button').forEach((b) => b.setAttribute('aria-pressed', String(b === nw))); run(); }
+  });
+  const focusLast = (sel: string) => (q(sel).lastElementChild!.querySelector('input') as HTMLInputElement).focus();
+  q('.p-add').addEventListener('click', () => { planLine(); focusLast('.p-lines'); });
+  q('.m-addin').addEventListener('click', () => { incLine(); focusLast('.m-in'); });
+  q('.m-addout').addEventListener('click', () => { expLine(); focusLast('.m-out'); });
+  q('.m-example').addEventListener('click', () => {
+    const india = cur() === 'INR';
+    const k = india ? 25 : 1;
+    const ex: Record<string, number> = { 'Salary (after tax)': 4200, 'Rent or mortgage': 1500, Groceries: 110, 'Electricity, water, heating': 160, 'Phone and internet': 90, 'Transport and fuel': 220, Insurance: 1400, 'Eating out and takeaway': 250, Subscriptions: 45, 'Shopping and clothes': 180, 'Car service and repairs': 900, 'Holidays and gifts': 2400 };
+    qa('.m-in .bg-line, .m-out .bg-line').forEach((r) => { const n = val(r.querySelector('.l-name')); if (ex[n]) (r.querySelector('.l-amt') as HTMLInputElement).value = nf(ex[n] * k); });
+    delete q('.m-save').dataset.touched;
+    run();
+  });
+  q('.bg-remember').addEventListener('change', () => { try { if (!remember()) localStorage.removeItem(KEY); } catch {} store(); });
+  run();
+</script>
