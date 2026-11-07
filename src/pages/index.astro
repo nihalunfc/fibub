@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import ToolCard from '../components/ToolCard.astro';
 import SoonList from '../components/SoonList.astro';
-import { SITE } from '../site';
+import { SITE, SHELVES } from '../site';
 import { ICONS } from '../lib/icons';
 import { allTools } from '../lib/tools';
 const tools = await allTools();
@@ -12,8 +12,8 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
 ---
 <Base title={SITE.name}>
   <section class="hero">
-    <h1>Everyday tools that <span class="grad">never see your files</span></h1>
-    <p class="lead">Compress, resize, check and convert, right in your browser. Fast, free and private.</p>
+    <h1>Free tools that never see your files</h1>
+    <p class="lead">The tools people need and can't find for free, from PDFs and resumes to bills, data and the night sky. Everything runs right in your browser.</p>
     <ul class="promises">
       {promises.map(([i, t]) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[i]} />{t}</li>)}
     </ul>
@@ -24,8 +24,21 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
     </label>
   </section>
 
-  <h2>Ready to use</h2>
-  <div class="grid tools">{live.map((t) => <ToolCard tool={t} />)}</div>
+  <section class="shelf mine" hidden>
+    <div class="shelf-h"><h2>My tools</h2><button type="button" class="mine-clear">Clear</button></div>
+    <div class="grid tools mine-grid"></div>
+    <p class="mine-note">Tools you bookmarked, saved only in this browser.</p>
+  </section>
+
+  {SHELVES.map((sh) => {
+    const mine = live.filter((t) => t.data.shelf === sh.id);
+    return mine.length > 0 && (
+      <section class="shelf" data-shelf={sh.id}>
+        <div class="shelf-h"><h2>{sh.name}</h2><a href={`/${sh.id}/`}>All {mine.length} →</a></div>
+        <div class="grid tools">{mine.map((t, i) => <div class:list={['slot', { extra: i >= 6 }]}><ToolCard tool={t} /></div>)}</div>
+      </section>
+    );
+  })}
   <p class="empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
 
   <h2>Coming soon</h2>
@@ -34,19 +47,44 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
 
 <style>
   .hero { position: relative; padding: 12px 0 4px; isolation: isolate; }
-  .hero::before { content: ''; position: absolute; z-index: -1; inset: -60px -40px auto auto; width: min(520px, 90vw); height: 320px; background: radial-gradient(closest-side, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent), radial-gradient(closest-side at 30% 60%, color-mix(in srgb, var(--accent) 14%, transparent), transparent); pointer-events: none; }
   .hero h1 { max-width: 760px; }
   .promises { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 8px 18px; }
   .promises li { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
   .promises svg { width: 16px; height: 16px; color: var(--good); }
-  .search { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); color: var(--muted); }
+  .search { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--muted); }
   .search:focus-within { border-color: var(--accent); }
   .search svg { width: 18px; height: 18px; flex: none; }
   .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }
   .empty { color: var(--muted); }
+  .mine-clear { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .mine-note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .shelf-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .shelf-h a { font-size: 14px; font-weight: 600; text-decoration: none; }
+  .slot { display: grid; }
+  .slot > :global(.tc) { height: 100%; }
+  /* Show six per shelf; the rest appear while searching. */
+  body:not(.searching) .slot.extra { display: none; }
+  .slot:has(> [hidden]) { display: none; }
+  @media (max-width: 600px) {
+    .grid { gap: 6px; }
+    .grid :global(.tc) { padding: 10px 12px; gap: 12px; }
+    .grid :global(.tc-sum) { -webkit-line-clamp: 1; }
+  }
 </style>
 
 <script>
+  import { myTools, matches } from '../scripts/site';
+  // My tools: copies of the bookmarked tools' cards, first on the page.
+  const mine = document.querySelector<HTMLElement>('.mine')!, mineGrid = mine.querySelector<HTMLElement>('.mine-grid')!;
+  function showMine() {
+    const cards = myTools().map((id) => document.querySelector<HTMLElement>(`section.shelf:not(.mine) .tc[href$="/${id}/"]`)).filter(Boolean);
+    mineGrid.replaceChildren(...cards.map((c) => { const d = document.createElement('div'); d.className = 'slot'; const k = c!.cloneNode(true) as HTMLElement; k.removeAttribute('data-search'); d.append(k); return d; }));
+    mine.hidden = !cards.length || document.body.classList.contains('searching');
+  }
+  showMine();
+  document.addEventListener('fibub:mytools', showMine);
+  mine.querySelector('.mine-clear')!.addEventListener('click', () => { try { localStorage.removeItem('fibub-mytools-v1'); } catch {} document.dispatchEvent(new CustomEvent('fibub:mytools')); });
+
   // Filter the tool cards and the coming-soon chips as the person types.
   const input = document.querySelector<HTMLInputElement>('.search input')!;
   const items = [...document.querySelectorAll<HTMLElement>('[data-search]')];
@@ -55,10 +93,13 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
     const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
     let shown = 0;
     for (const el of items) {
-      const ok = words.every((w) => el.dataset.search!.includes(w));
+      const ok = words.every((w) => matches(el, w));
       el.hidden = !ok;
       if (ok) shown++;
     }
     empty.hidden = shown > 0;
+    document.body.classList.toggle('searching', words.length > 0);
+    document.querySelectorAll<HTMLElement>('section.shelf:not(.mine)').forEach((s) => (s.hidden = !s.querySelector('.tc:not([hidden])')));
+    showMine();
   });
 </script>

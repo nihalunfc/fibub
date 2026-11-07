@@ -1,11 +1,13 @@
 ---
 name: File compressor
+num: 1
 shelf: documents
 title: Compress PDF, Word, Excel, images, ZIP and any file, free
 summary: One tool for PDF, Word, Excel, PowerPoint, JPG, PNG, CSV, ZIP and more. Files are compressed on your device and never uploaded.
 status: live
 ads: false
 order: 5
+related: [image-resizer, zip-checker, file-converter, prompt-pruner]
 icon: shrink
 works: offline
 updated: 2026-11-06

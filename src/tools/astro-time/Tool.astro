@@ -1,0 +1,173 @@
+---
+// Astronomy time converter: UTC, local time, Julian Date, MJD, sidereal time, ΔT, and
+// heliocentric/barycentric Julian Date for a target. All worked out in the browser.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax at">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>Which moment?</h2>
+    <div class="ax-row">
+      <div class="ax-seg at-mode" role="group" aria-label="Enter the time as">
+        <button type="button" data-m="now" aria-pressed="true">Now</button>
+        <button type="button" data-m="local" aria-pressed="false">Date and time</button>
+        <button type="button" data-m="jd" aria-pressed="false">JD</button>
+        <button type="button" data-m="mjd" aria-pressed="false">MJD</button>
+        <button type="button" data-m="unix" aria-pressed="false">Unix</button>
+      </div>
+    </div>
+    <div class="ax-grid at-in" style="margin-top:12px">
+      <label class="at-f" data-for="local">Date <input type="date" class="at-date" /></label>
+      <label class="at-f" data-for="local">Time <input type="time" step="1" class="at-time" /></label>
+      <label class="at-f ax-check" data-for="local" style="align-self:end"><input type="checkbox" class="at-utc" /> This is UTC</label>
+      <label class="at-f" data-for="jd">Julian Date <input class="at-jd" inputmode="decimal" placeholder="2461352.5" /></label>
+      <label class="at-f" data-for="mjd">Modified Julian Date <input class="at-mjd" inputmode="decimal" placeholder="61352" /></label>
+      <label class="at-f" data-for="unix">Unix time (seconds) <input class="at-unix" inputmode="numeric" placeholder="1794000000" /></label>
+    </div>
+    <p class="ax-err at-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results <span class="ax-pill at-live">live</span></h2>
+    <dl class="ax-facts at-out"></dl>
+  </div>
+
+  <details class="ax-card at-bjd">
+    <summary><b>Heliocentric and barycentric Julian Date (for timing a star)</b></summary>
+    <p class="ax-help">Light from a star reaches the Sun or the Solar System's centre up to 8.3 minutes earlier or later than it reaches Earth. Enter the star's position (J2000) to correct for it.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Object (optional) <input class="at-obj" placeholder="M13, Algol…" list="at-objs" autocomplete="off" /></label>
+      <label>RA (J2000) <input class="at-ra" placeholder="03h 08m 10.1s" /></label>
+      <label>Dec (J2000) <input class="at-dec" placeholder="+40° 57′ 20″" /></label>
+    </div>
+    <datalist id="at-objs"></datalist>
+    <dl class="ax-facts at-bout" style="margin-top:12px"></dl>
+  </details>
+  <Downloads />
+</div>
+
+<script>
+  import { A, lst, findTarget, searchObjects, toJNow } from '../../lib/astro/sky';
+  import { onSky, getSky } from '../../lib/astro/state';
+  import { localDate, localTime, zoned, sexa, parseAngle, tzLabel } from '../../lib/astro/place';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.at')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'now';
+  let facts: [string, string][] = [], bfacts: [string, string][] = [];
+  const err = q('.at-err');
+
+  q('.at-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    const cur = moment();
+    mode = b.dataset.m!;
+    root.querySelectorAll('.at-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (cur) prefill(cur);
+    show();
+  });
+  function prefill(d: Date) {
+    const tz = q<HTMLInputElement>('.at-utc').checked ? 'UTC' : getSky().place.tz;
+    q<HTMLInputElement>('.at-date').value = localDate(d, tz);
+    q<HTMLInputElement>('.at-time').value = localTime(d, tz) + ':' + String(d.getUTCSeconds()).padStart(2, '0');
+    const jd = d.getTime() / 864e5 + 2440587.5;
+    q<HTMLInputElement>('.at-jd').value = jd.toFixed(5);
+    q<HTMLInputElement>('.at-mjd').value = (jd - 2400000.5).toFixed(5);
+    q<HTMLInputElement>('.at-unix').value = String(Math.round(d.getTime() / 1000));
+  }
+  function moment(): Date | null {
+    err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; return null; };
+    if (mode === 'now') return new Date();
+    if (mode === 'local') {
+      const dv = q<HTMLInputElement>('.at-date').value, tv = q<HTMLInputElement>('.at-time').value || '00:00:00';
+      if (!dv) return fail('Pick a date.');
+      const [y, m, d] = dv.split('-').map(Number), [h, mi, s = 0] = tv.split(':').map(Number);
+      const tz = q<HTMLInputElement>('.at-utc').checked ? 'UTC' : getSky().place.tz;
+      return new Date(zoned(y, m, d, h, mi, tz).getTime() + s * 1000);
+    }
+    const num = (c: string) => parseFloat(q<HTMLInputElement>(c).value.replace(',', '.'));
+    if (mode === 'jd') { const v = num('.at-jd'); return Number.isFinite(v) ? new Date((v - 2440587.5) * 864e5) : fail('Type a Julian Date, such as 2461352.5.'); }
+    if (mode === 'mjd') { const v = num('.at-mjd'); return Number.isFinite(v) ? new Date((v + 2400000.5 - 2440587.5) * 864e5) : fail('Type a Modified Julian Date, such as 61352.'); }
+    const v = num('.at-unix'); return Number.isFinite(v) ? new Date(v * 1000) : fail('Type Unix seconds, such as 1794000000.');
+  }
+
+  function dl(el: HTMLElement, rows: [string, string, string?][]) {
+    el.replaceChildren(...rows.map(([k, v, s]) => {
+      const d = document.createElement('div');
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); }
+      d.append(dt, dd); return d;
+    }));
+  }
+
+  function show() {
+    root.querySelectorAll<HTMLElement>('.at-f').forEach((f) => (f.hidden = f.dataset.for !== mode));
+    q('.at-live').hidden = mode !== 'now';
+    const d = moment();
+    if (!d || isNaN(d.getTime())) { facts = []; return; }
+    const { place } = getSky();
+    const t = A.MakeTime(d);
+    const jd = t.ut + 2451545, jdtt = t.tt + 2451545, dT = (t.tt - t.ut) * 86400;
+    const gmst = A.SiderealTime(d), l = lst(d, place.lon);
+    const start = Date.UTC(d.getUTCFullYear(), 0, 1);
+    const doy = Math.floor((d.getTime() - start) / 864e5) + 1;
+    const rows: [string, string, string?][] = [
+      ['UTC', d.toISOString().replace('T', ' ').slice(0, 19)],
+      [`Local time (${place.name})`, `${localDate(d, place.tz)} ${localTime(d, place.tz)}`, tzLabel(place.tz, d)],
+      ['Julian Date (UT)', jd.toFixed(5)],
+      ['Modified Julian Date', (jd - 2400000.5).toFixed(5)],
+      ['Julian Date (TT)', jdtt.toFixed(5), 'Terrestrial Time, used by ephemerides'],
+      ['ΔT (TT − UT)', `${dT.toFixed(1)} s`],
+      ['Greenwich sidereal time', sexa(gmst, 'h', 0)],
+      ['Local sidereal time', sexa(l, 'h', 0), `RA on your meridian: ${(l * 15).toFixed(2)}°`],
+      ['Day of the year', `${doy}`],
+      ['Unix time', `${Math.floor(d.getTime() / 1000)}`],
+      ['J2000 epoch years', `J${(2000 + t.tt / 365.25).toFixed(4)}`],
+    ];
+    dl(q('.at-out'), rows);
+    facts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+    bjd(d);
+  }
+
+  function bjd(d: Date) {
+    const ra = parseAngle(q<HTMLInputElement>('.at-ra').value, true), dec = parseAngle(q<HTMLInputElement>('.at-dec').value);
+    if (ra == null || dec == null) { q('.at-bout').replaceChildren(); bfacts = []; return; }
+    const t = A.MakeTime(d);
+    const r = Math.PI / 180, n = { x: Math.cos(dec * r) * Math.cos(ra * 15 * r), y: Math.cos(dec * r) * Math.sin(ra * 15 * r), z: Math.sin(dec * r) };
+    const LT = 499.004783836; // light seconds per au
+    const bary = A.BaryState(A.Body.Earth, t), helio = A.HelioVector(A.Body.Earth, t);
+    const db = (bary.x * n.x + bary.y * n.y + bary.z * n.z) * LT, dh = (helio.x * n.x + helio.y * n.y + helio.z * n.z) * LT;
+    const jdtt = t.tt + 2451545, jdut = t.ut + 2451545;
+    const now = toJNow(ra * 15, dec, d);
+    const rows: [string, string, string?][] = [
+      ['BJD (TDB)', (jdtt + db / 86400).toFixed(6), `${db >= 0 ? '+' : ''}${db.toFixed(2)} s light-time correction`],
+      ['HJD (UT)', (jdut + dh / 86400).toFixed(6), `${dh >= 0 ? '+' : ''}${dh.toFixed(2)} s`],
+      ['Hour angle', sexa(((lst(d, getSky().place.lon) - now.ra / 15) % 24 + 24) % 24, 'h', 0)],
+    ];
+    dl(q('.at-bout'), rows);
+    bfacts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+  }
+  const obj = q<HTMLInputElement>('.at-obj');
+  obj.addEventListener('input', () => {
+    q('#at-objs').replaceChildren(...searchObjects(obj.value).map((v) => Object.assign(document.createElement('option'), { value: v })));
+    const t = findTarget(obj.value);
+    if (t && t.kind === 'radec' && searchObjects(obj.value).includes(obj.value)) {
+      q<HTMLInputElement>('.at-ra').value = sexa(t.ra / 15, 'h'); q<HTMLInputElement>('.at-dec').value = sexa(t.dec, 'd', 0); show();
+    }
+  });
+  obj.addEventListener('change', () => { const t = findTarget(obj.value); if (t && t.kind === 'radec') { q<HTMLInputElement>('.at-ra').value = sexa(t.ra / 15, 'h'); q<HTMLInputElement>('.at-dec').value = sexa(t.dec, 'd', 0); show(); } });
+  root.querySelectorAll('.at-in input, .at-ra, .at-dec').forEach((i) => i.addEventListener('input', show));
+  q('.at-utc').addEventListener('change', () => { const d = moment(); show(); if (d) prefill(d); });
+  onSky(() => show());
+  setInterval(() => { if (mode === 'now') show(); }, 1000);
+  prefill(new Date());
+
+  wireDownloads(q('.dl'), () => ({
+    title: 'Astronomy time', subtitle: `${getSky().place.name} · made with fibub.com`, file: 'astronomy-time',
+    sections: [{ title: 'Time systems', facts }, ...(bfacts.length ? [{ title: 'Light-time corrected', facts: bfacts, note: `Target RA ${q<HTMLInputElement>('.at-ra').value}, Dec ${q<HTMLInputElement>('.at-dec').value} (J2000).` }] : [])] as Section[],
+  }));
+</script>

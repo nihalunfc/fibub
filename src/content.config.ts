@@ -16,12 +16,16 @@ const tools = defineCollection({
     status: z.enum(['live', 'soon']).default('live'),
     ads: z.boolean().default(false), // false on any page that handles personal files or bank data
     order: z.number().default(100),
+    num: z.number().int().positive().optional(), // the tool's permanent #number (1, 2, 3...): never changed or reused
     updated: z.coerce.date(),
     // The picture at the top of the tool page: 3 or 4 steps, one short label each so the
     // row fits a 320 px phone screen without wrapping. Required for live tools.
     // 'offline': once the page is open it keeps working with no internet. 'online': needs internet
     // while in use (for example live currency rates). Shown on every card and tool page.
     icon: z.enum(ICON_NAMES),     // shown on the tool's card
+    section: z.string().optional(), // a group within the shelf (see SECTIONS in src/site.ts)
+    // Tools that go well with this one. Links show both ways automatically, so list each pair once.
+    related: z.array(z.string()).default([]),
     works: z.enum(['offline', 'online']),
     flow: z.array(z.object({ icon: z.enum(ICON_NAMES), label: z.string().max(12) })).min(3).max(4).optional(),
   }),

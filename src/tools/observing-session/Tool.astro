@@ -1,0 +1,164 @@
+---
+// Observing session: choose the astronomy tools you want on one page for a night, then download
+// them together in one file or each on its own.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+---
+<div class="ax os">
+  <SkyPlace />
+  <div class="ax-card">
+    <h2>What do you want in your session?</h2>
+    <div class="os-pick">
+      <label class="ax-check"><input type="checkbox" value="tonight" checked /> Sky tonight: dark hours, Moon, planets, best objects</label>
+      <label class="ax-check"><input type="checkbox" value="targets" checked /> Target heights for my list</label>
+      <label class="ax-check"><input type="checkbox" value="polar" /> Polar alignment</label>
+      <label class="ax-check"><input type="checkbox" value="gear" /> Telescope, eyepieces and camera</label>
+      <label class="ax-check"><input type="checkbox" value="events" /> Sky events this month</label>
+      <label class="ax-check"><input type="checkbox" value="log" checked /> Blank observing log sheet to fill in</label>
+    </div>
+  </div>
+
+  <div class="ax-card os-opts">
+    <h2>Details</h2>
+    <div class="ax-grid">
+      <label data-for="tonight">Observing with <select class="o-gear"><option value="eyes">Eyes</option><option value="binoculars">Binoculars</option><option value="small" selected>Small telescope</option><option value="large">Large telescope</option></select></label>
+      <label data-for="targets" class="os-wide">My targets (comma separated) <input class="o-targets" value="M31, M45, M42, Saturn" /></label>
+      <label data-for="polar">Align at (local time) <input class="o-time" type="time" value="21:00" /></label>
+      <label data-for="gear">Aperture (mm) <input class="o-ap" inputmode="decimal" value="150" /></label>
+      <label data-for="gear">Focal length (mm) <input class="o-fl" inputmode="decimal" value="750" /></label>
+      <label data-for="gear">Eyepieces (mm) <input class="o-eps" value="25, 10, 6" /></label>
+      <label data-for="gear">Camera <select class="o-cam"><option value="">None</option></select></label>
+      <label data-for="log">Log sheet rows <input class="o-rows" inputmode="numeric" value="12" /></label>
+    </div>
+    <p class="ax-err os-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Download</h2>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <b style="font-size:15px">All together, one file:</b>
+      <button type="button" class="btn small" data-all="png">Image</button>
+      <button type="button" class="btn small" data-all="pdf">PDF</button>
+      <button type="button" class="btn small" data-all="docx">Word</button>
+    </div>
+    <p class="ax-help">Or download any part on its own with the buttons under it below.</p>
+  </div>
+
+  <div class="os-out"></div>
+</div>
+
+<style is:global>
+  .os-pick { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+  .os-wide { grid-column: 1 / -1; }
+  .os-out { display: grid; gap: 14px; }
+  .os-sec h3 { margin: 0 0 10px; font-size: 17px; }
+  .os-sec canvas { display: block; width: 100%; height: auto; border-radius: 8px; margin: 10px 0; }
+  .os-sec canvas.small { max-width: 120px; }
+  .os-sec .os-open { font-size: 14px; font-weight: 600; text-decoration: none; }
+</style>
+
+<script>
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { tonightSections, targetSections, polarSections, gearSections, eventSections, logSheet } from '../../lib/astro/sections';
+  import { SENSORS } from '../../lib/astro/optics';
+  import { paint, toPng, toPdf, toDocx, save, fileSafe, type Section } from '../../lib/report';
+  import type { Gear } from '../../lib/astro/sky';
+
+  const root = document.querySelector<HTMLElement>('.os')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-session-tab';
+  const LINKS: Record<string, [string, string]> = {
+    tonight: ['/science/sky-tonight/', 'Open Sky tonight'], targets: ['/science/object-altitude/', 'Open the target altitude planner'], polar: ['/science/polar-alignment/', 'Open the live polar alignment helper'],
+    gear: ['/science/telescope-calculator/', 'Open the telescope calculator'], events: ['/science/sky-events-calendar/', 'Open the sky events calendar'], log: ['/science/observing-log/', 'Log observations as a file instead'],
+  };
+  const NAMES: Record<string, string> = { tonight: 'Sky tonight', targets: 'Target heights', polar: 'Polar alignment', gear: 'Telescope and camera', events: 'Sky events', log: 'Log sheet' };
+  q<HTMLSelectElement>('.o-cam').append(...SENSORS.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: s.name })));
+
+  // Keep choices for this tab.
+  const fields = [...root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('.os-pick input, .os-opts input, .os-opts select')];
+  try { const s = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (s) fields.forEach((f, i) => { if (s[i] != null) (f as HTMLInputElement).type === 'checkbox' ? ((f as HTMLInputElement).checked = s[i]) : (f.value = s[i]); }); } catch {}
+  const keep = () => { try { sessionStorage.setItem(KEY, JSON.stringify(fields.map((f) => ((f as HTMLInputElement).type === 'checkbox' ? (f as HTMLInputElement).checked : f.value)))); } catch {} };
+
+  let parts: { id: string; sections: Section[] }[] = [];
+  function build() {
+    keep();
+    const { place, date } = getSky();
+    const on = [...root.querySelectorAll<HTMLInputElement>('.os-pick input:checked')].map((i) => i.value);
+    root.querySelectorAll<HTMLElement>('.os-opts [data-for]').forEach((l) => (l.hidden = !on.includes(l.dataset.for!)));
+    q('.os-opts').hidden = !on.length;
+    const err = q('.os-err'); err.hidden = true;
+    parts = [];
+    for (const id of on) {
+      if (id === 'tonight') parts.push({ id, sections: tonightSections(place, date, q<HTMLSelectElement>('.o-gear').value as Gear) });
+      if (id === 'targets') {
+        const r = targetSections(place, date, q<HTMLInputElement>('.o-targets').value.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean));
+        if (r.missing.length) { err.textContent = `Not in our catalogue: ${r.missing.join(', ')}. Use the target altitude planner to add them by position.`; err.hidden = false; }
+        if (r.sections.length) parts.push({ id, sections: r.sections });
+      }
+      if (id === 'polar') parts.push({ id, sections: polarSections(place, date, q<HTMLInputElement>('.o-time').value || '21:00') });
+      if (id === 'gear') {
+        const ap = parseFloat(q<HTMLInputElement>('.o-ap').value), fl = parseFloat(q<HTMLInputElement>('.o-fl').value);
+        const eps = q<HTMLInputElement>('.o-eps').value.split(/[,; ]+/).map(parseFloat).filter((x) => x > 0);
+        const cs = SENSORS[+q<HTMLSelectElement>('.o-cam').value];
+        if (ap > 0 && fl > 0) parts.push({ id, sections: gearSections(ap, fl, eps, q<HTMLSelectElement>('.o-cam').value ? cs : null, 2.5) });
+      }
+      if (id === 'events') parts.push({ id, sections: eventSections(place, date) });
+      if (id === 'log') parts.push({ id, sections: logSheet(place, date, Math.max(1, Math.min(40, parseInt(q<HTMLInputElement>('.o-rows').value) || 12))) });
+    }
+    render();
+  }
+
+  function render() {
+    const out = q('.os-out');
+    out.replaceChildren(...parts.map((p) => {
+      const card = document.createElement('section'); card.className = 'ax-card os-sec';
+      for (const s of p.sections) {
+        const h = document.createElement('h3'); h.textContent = s.title; card.append(h);
+        for (const t of s.text ?? []) card.append(Object.assign(document.createElement('p'), { textContent: t, className: 'ax-help' }));
+        if (s.facts?.length) {
+          const dl = document.createElement('dl'); dl.className = 'ax-facts';
+          for (const [k, v] of s.facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; dl.append(d); }
+          card.append(dl);
+        }
+        if (s.figure) { const c = document.createElement('canvas'); if (s.figure.w <= 160) c.className = 'small'; else if (s.figure.w <= 400) c.style.maxWidth = '360px'; paint(c, s.figure); card.append(c); }
+        if (s.table) {
+          const wrap = document.createElement('div'); wrap.className = 'ax-scroll';
+          const t = document.createElement('table'); const hr = t.createTHead().insertRow();
+          s.table.head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; hr.append(th); });
+          const b = t.createTBody(); for (const r of s.table.rows) { const tr = b.insertRow(); r.forEach((v) => (tr.insertCell().textContent = v)); }
+          wrap.append(t); card.append(wrap);
+        }
+        if (s.note) card.append(Object.assign(document.createElement('p'), { textContent: s.note, className: 'ax-help' }));
+      }
+      const row = document.createElement('div'); row.className = 'dl';
+      row.innerHTML = `<span class="dl-l">Just this part</span><button type="button" class="btn secondary" data-one="${p.id}" data-f="png">Image</button><button type="button" class="btn secondary" data-one="${p.id}" data-f="pdf">PDF</button><button type="button" class="btn secondary" data-one="${p.id}" data-f="docx">Word</button>`;
+      const a = Object.assign(document.createElement('a'), { href: LINKS[p.id][0], textContent: `${LINKS[p.id][1]} →`, className: 'os-open' });
+      card.append(row, a);
+      return card;
+    }));
+  }
+
+  async function download(f: string, sections: Section[], name: string) {
+    const { place, date } = getSky();
+    const title = `Observing session: ${date}`, sub = `${place.name} (${place.lat.toFixed(2)}, ${place.lon.toFixed(2)}), times in local time`;
+    const file = `${fileSafe(name)}-${date}`;
+    if (f === 'png') save(await toPng(title, sections, sub), `${file}.png`, 'image/png');
+    if (f === 'pdf') save((await toPdf(title, sections, sub)).bytes, `${file}.pdf`, 'application/pdf');
+    if (f === 'docx') save(await toDocx(title, sections, sub), `${file}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  }
+  root.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-all], button[data-one]'); if (!b) return;
+    const old = b.textContent; b.disabled = true; b.textContent = 'Making…';
+    try {
+      if (b.dataset.all) await download(b.dataset.all, parts.flatMap((p) => p.sections), 'observing-session');
+      else { const p = parts.find((x) => x.id === b.dataset.one)!; await download(b.dataset.f!, p.sections, NAMES[p.id]); }
+    } finally { b.disabled = false; b.textContent = old; }
+  });
+
+  let timer = 0;
+  fields.forEach((f) => f.addEventListener(f.tagName === 'INPUT' && (f as HTMLInputElement).type !== 'checkbox' ? 'input' : 'change', () => { clearTimeout(timer); timer = window.setTimeout(build, 350); }));
+  onSky(build);
+  document.addEventListener('fibub:theme', render);
+</script>

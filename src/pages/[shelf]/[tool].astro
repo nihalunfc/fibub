@@ -4,25 +4,48 @@ import ToolCard from '../../components/ToolCard.astro';
 import ToolFlow from '../../components/ToolFlow.astro';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
-import { allTools, toolComponent, toolUrl } from '../../lib/tools';
+import { allTools, toolComponent, toolUrl, relatedTools } from '../../lib/tools';
+import { ICONS } from '../../lib/icons';
+import { SECTIONS } from '../../site';
 export async function getStaticPaths() {
   const tools = await allTools();
   return tools
     .filter((t) => t.data.status === 'live')
-    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, others: tools.filter((o) => o.id !== t.id && o.data.status === 'live').slice(0, 3) } }));
+    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, related: relatedTools(t, tools) } }));
 }
-const { tool, others } = Astro.props;
+const { tool, related } = Astro.props;
+const section = SECTIONS[tool.data.shelf]?.find((s) => s.id === tool.data.section);
 const shelf = shelfById(tool.data.shelf);
 const ToolUI = toolComponent(tool.id);
 const { Content } = await render(tool);
 const updated = tool.data.updated.toISOString().slice(0, 10);
 ---
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {tool.data.name}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
+  <div class="bm" data-id={tool.id}>
+    <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
+    <span class="bm-tip" role="status" aria-live="polite">Keep it one tap away for everyday use.</span>
+    <dialog class="bm-dlg" aria-labelledby="bm-title">
+      <h2 id="bm-title">Bookmark {tool.data.name}?</h2>
+      <p class="bm-desk">Press <kbd class="bm-k">Ctrl</kbd> + <kbd>D</kbd> now. Your browser opens its own bookmark box, where you choose the name and folder.</p>
+      <p class="bm-phone" hidden>Tap <b>Add bookmark</b>, then choose <b>Add bookmark</b> or <b>Add to Home Screen</b> from your phone's list.</p>
+      <label><input type="checkbox" class="bm-pin" /> Also pin it to My tools on fibub (kept only in this browser)</label>
+      <div class="bm-row">
+        <button type="button" class="btn bm-share" hidden>Add bookmark</button>
+        <button type="button" class="btn secondary bm-done">Done</button>
+      </div>
+    </dialog>
+  </div>
   {tool.data.flow && <ToolFlow steps={tool.data.flow} works={tool.data.works} />}
   <ToolUI />
+  {related.direct.length > 0 && (
+    <nav class="also" aria-label="Works well with">
+      <span>Works well with</span>
+      {related.direct.map((t) => <a href={toolUrl(t)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />{t.data.name}</a>)}
+    </nav>
+  )}
   <article class="prose">
     <Content />
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
@@ -32,10 +55,10 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
     <span>Tell us what would make {tool.data.name} more useful. Ideas that ship are credited, if you'd like.</span>
     <a class="btn secondary" href={`/contact/?about=${tool.id}`}>Send a suggestion</a>
   </aside>
-  {others.length > 0 && (
+  {related.all.length > 0 && (
     <section>
-      <h2>More tools</h2>
-      <div class="grid">{others.map((t) => <ToolCard tool={t} />)}</div>
+      <h2>Related tools</h2>
+      <div class="grid">{related.all.map((t) => <ToolCard tool={t} />)}</div>
     </section>
   )}
 </Base>
@@ -44,4 +67,9 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
   .suggest span { color: var(--muted); font-size: 15px; }
   .suggest .btn { margin-top: 6px; }
+  .also { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -16px 0 28px; }
+  .also span { font-size: 14px; color: var(--muted); }
+  .also a { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none; color: var(--ink); border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px 5px 10px; }
+  .also a:hover { border-color: var(--accent); color: var(--accent); }
+  .also svg { width: 15px; height: 15px; color: var(--accent); }
 </style>

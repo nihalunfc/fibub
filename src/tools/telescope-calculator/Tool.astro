@@ -1,0 +1,198 @@
+---
+// Telescope and camera calculator: magnification, field of view, exit pupil, resolution,
+// limiting magnitude, image scale and sampling, with a field-of-view picture.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tsc">
+  <div class="ax-card">
+    <h2>Telescope</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="t-preset"><option value="">Choose a common telescope…</option></select></label>
+      <label>Aperture (mm) <input class="t-ap" inputmode="decimal" value="150" /></label>
+      <label>Focal length (mm) <input class="t-fl" inputmode="decimal" value="750" /></label>
+      <label>Barlow or reducer <select class="t-x"><option value="1">None (×1)</option><option value="0.63">Reducer ×0.63</option><option value="0.7">Reducer ×0.7</option><option value="0.8">Reducer ×0.8</option><option value="2">Barlow ×2</option><option value="2.5">Barlow ×2.5</option><option value="3">Barlow ×3</option></select></label>
+      <label>Typical seeing (″) <input class="t-seeing" inputmode="decimal" value="2.5" /></label>
+    </div>
+    <dl class="ax-facts t-out" style="margin-top:14px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Eyepieces</h2>
+    <div class="ax-scroll"><table class="t-ep"><thead><tr><th>Eyepiece (mm)</th><th>Apparent field (°)</th><th class="r">Power</th><th class="r">True field</th><th class="r">Exit pupil</th><th>Good for</th><th></th></tr></thead><tbody></tbody></table></div>
+    <button type="button" class="btn secondary small t-add" style="margin-top:10px">Add an eyepiece</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Camera</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="c-preset"><option value="">Choose a camera sensor…</option></select></label>
+      <label>Sensor width (mm) <input class="c-w" inputmode="decimal" value="23.5" /></label>
+      <label>Sensor height (mm) <input class="c-h" inputmode="decimal" value="15.7" /></label>
+      <label>Pixel size (µm) <input class="c-px" inputmode="decimal" value="3.76" /></label>
+      <label>Binning <select class="c-bin"><option value="1">1×1</option><option value="2">2×2</option><option value="3">3×3</option></select></label>
+    </div>
+    <dl class="ax-facts c-out" style="margin-top:14px"></dl>
+    <div class="t-gauge" aria-hidden="true"><i></i><span class="g1">Under</span><span class="g2">Good</span><span class="g3">Over</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What fits in the view</h2>
+    <div class="ax-grid">
+      <label>Object <input class="f-obj" value="M42 Orion Nebula" list="f-objs" autocomplete="off" /></label>
+      <label>Show <select class="f-ep"></select></label>
+    </div>
+    <datalist id="f-objs"></datalist>
+    <canvas class="ax-fig f-fig" style="margin-top:12px;max-width:520px"></canvas>
+    <div class="ax-legend"><span><i style="background:var(--science)"></i>Eyepiece view</span><span><i style="background:#d97706"></i>Camera frame</span><span><i style="background:#9aa3b5"></i>Full Moon, for scale</span></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .t-ep input { padding: 6px 8px !important; max-width: 90px; }
+  .t-ep button { border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+  .t-gauge { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; height: 26px; margin-top: 12px; border-radius: 8px; overflow: hidden; font-size: 12px; font-weight: 600; text-align: center; line-height: 26px; }
+  .t-gauge .g1 { background: var(--warn-soft); color: var(--warn); } .t-gauge .g2 { background: var(--good-soft); color: var(--good); } .t-gauge .g3 { background: var(--bad-soft); color: var(--bad); }
+  .t-gauge i { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); left: var(--x, 50%); transform: translateX(-1px); }
+</style>
+
+<script>
+  import { findTarget, searchObjects, OBJECTS } from '../../lib/astro/sky';
+  import { wireDownloads, paint, type Figure, type Section } from '../../lib/report';
+  import { TELESCOPES, SENSORS, scope, eyepiece, camera } from '../../lib/astro/optics';
+
+  const root = document.querySelector<HTMLElement>('.tsc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (c: string) => { const v = parseFloat(q<HTMLInputElement>(c).value.replace(',', '.')); return Number.isFinite(v) && v > 0 ? v : NaN; };
+  const KEY = 'fibub-scope-tab';
+  let eps: { fl: number; afov: number }[] = [{ fl: 25, afov: 52 }, { fl: 10, afov: 52 }, { fl: 6, afov: 66 }];
+  try { const s = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (s?.eps) eps = s.eps; } catch {}
+
+  const tp = q<HTMLSelectElement>('.t-preset'), cp = q<HTMLSelectElement>('.c-preset');
+  tp.append(...TELESCOPES.map((t, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: t.name })));
+  cp.append(...SENSORS.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: s.name })));
+  tp.addEventListener('change', () => { const t = TELESCOPES[+tp.value]; if (!t) return; q<HTMLInputElement>('.t-ap').value = String(t.ap); q<HTMLInputElement>('.t-fl').value = String(t.fl); calc(); });
+  cp.addEventListener('change', () => { const s = SENSORS[+cp.value]; if (!s) return; q<HTMLInputElement>('.c-w').value = String(s.w); q<HTMLInputElement>('.c-h').value = String(s.h); q<HTMLInputElement>('.c-px').value = String(s.px); calc(); });
+
+  const fill = (el: HTMLElement, rows: [string, string, string?][]) => el.replaceChildren(...rows.map(([k, v, s]) => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+    d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+    if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); }
+    return d;
+  }));
+
+  let sFacts: [string, string][] = [], cFacts: [string, string][] = [], epRows: string[][] = [], fig: Figure | null = null;
+
+  function renderEps() {
+    const tb = q('.t-ep tbody');
+    tb.replaceChildren(...eps.map((e, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><input inputmode="decimal" data-i="${i}" data-k="fl" value="${e.fl}" aria-label="Eyepiece focal length"></td><td><input inputmode="decimal" data-i="${i}" data-k="afov" value="${e.afov}" aria-label="Apparent field"></td><td class="r"></td><td class="r"></td><td class="r"></td><td></td><td><button type="button" data-del="${i}" aria-label="Remove">×</button></td>`;
+      return tr;
+    }));
+  }
+  q('.t-ep').addEventListener('input', (e) => {
+    const i = e.target as HTMLInputElement; if (!i.dataset.k) return;
+    const v = parseFloat(i.value); if (Number.isFinite(v) && v > 0) (eps[+i.dataset.i!] as any)[i.dataset.k] = v;
+    calc();
+  });
+  q('.t-ep').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-del]'); if (!b) return; eps.splice(+b.dataset.del!, 1); renderEps(); calc(); });
+  q('.t-add').addEventListener('click', () => { eps.push({ fl: 15, afov: 60 }); renderEps(); calc(); });
+
+  function calc() {
+    const ap = num('.t-ap'), fl0 = num('.t-fl'), x = +q<HTMLSelectElement>('.t-x').value, seeing = num('.t-seeing');
+    if (!(ap && fl0)) return;
+    const s = scope(ap, fl0 * x);
+    const rows: [string, string, string?][] = [
+      ['Focal ratio', `f/${s.f.toFixed(1)}`, x !== 1 ? `effective focal length ${Math.round(s.fl)} mm` : ''],
+      ['Light grasp', `${Math.round(s.grasp)}×`, 'compared with your eye'],
+      ['Faintest stars', `mag ${s.limit.toFixed(1)}`, 'under a dark sky'],
+      ['Resolution (Dawes)', `${s.dawes.toFixed(2)}″`, `Rayleigh ${s.rayleigh.toFixed(2)}″`],
+      ['Highest useful power', `${Math.round(s.maxMag)}×`, seeing ? `about ${Math.round(Math.min(s.maxMag, 400 / seeing))}× on a ${seeing}″ night` : ''],
+      ['Lowest useful power', `${Math.round(s.minMag)}×`, '7 mm exit pupil'],
+    ];
+    fill(q('.t-out'), rows); sFacts = rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+
+    epRows = [];
+    q('.t-ep tbody').querySelectorAll('tr').forEach((tr, i) => {
+      const e = eps[i]; if (!e) return;
+      const r = eyepiece(s, e.fl, e.afov);
+      const c = tr.querySelectorAll('td');
+      c[2].textContent = `${Math.round(r.mag)}×`; c[3].textContent = r.tfov >= 1 ? `${r.tfov.toFixed(2)}°` : `${(r.tfov * 60).toFixed(0)}′`; c[4].textContent = `${r.exit.toFixed(1)} mm`; c[5].textContent = r.use;
+      tr.classList.toggle('dim', r.mag > s.maxMag || r.exit > 7.5);
+      epRows.push([`${e.fl} mm`, `${e.afov}°`, `${Math.round(r.mag)}×`, c[3].textContent!, `${r.exit.toFixed(1)} mm`, r.use]);
+    });
+    const sel = q<HTMLSelectElement>('.f-ep'), keep = sel.value;
+    sel.replaceChildren(...[...eps.map((e, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: `${e.fl} mm eyepiece and camera` })), Object.assign(document.createElement('option'), { value: 'cam', textContent: 'Camera frame only' })]);
+    if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+
+    const w = num('.c-w'), h = num('.c-h'), px = num('.c-px'), bin = +q<HTMLSelectElement>('.c-bin').value;
+    let cam: ReturnType<typeof camera> | null = null;
+    if (w && h && px) {
+      cam = camera(s, w, h, px * bin, seeing || 2.5);
+      const crows: [string, string, string?][] = [
+        ['Image scale', `${cam.scale.toFixed(2)}″ per pixel`],
+        ['Field of view', `${fmtArc(cam.fovW)} × ${fmtArc(cam.fovH)}`, `diagonal ${fmtArc(Math.hypot(cam.fovW, cam.fovH))}`],
+        ['Sampling', cam.verdict, cam.advice],
+      ];
+      fill(q('.c-out'), crows); cFacts = crows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]);
+      q<HTMLElement>('.t-gauge i').style.setProperty('--x', `${Math.max(2, Math.min(98, cam.gauge * 100))}%`);
+    }
+    // Field picture.
+    const t = findTarget(q<HTMLInputElement>('.f-obj').value);
+    const o = t && t.kind === 'radec' ? OBJECTS.find((x) => t.label.startsWith(x.id.split(' / ')[0])) : null;
+    const ei = sel.value === 'cam' ? -1 : +sel.value;
+    const ep = ei >= 0 && eps[ei] ? eyepiece(s, eps[ei].fl, eps[ei].afov) : null;
+    fig = fovFigure(ep ? ep.tfov * 60 : 0, cam ? [cam.fovW, cam.fovH] : null, o?.size ?? null, t?.label ?? '');
+    paint(q<HTMLCanvasElement>('.f-fig'), fig);
+    try { sessionStorage.setItem(KEY, JSON.stringify({ eps })); } catch {}
+  }
+  const fmtArc = (m: number) => (m >= 120 ? `${(m / 60).toFixed(2)}°` : `${m.toFixed(1)}′`);
+
+  function fovFigure(epArcmin: number, cam: [number, number] | null, objArcmin: number | null, label: string): Figure {
+    return {
+      w: 520, h: 360, alt: `Field of view compared with ${label || 'the object'}`,
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = pal.red ? '#000' : '#0d1320'; ctx.fillRect(0, 0, w, h);
+        const span = Math.max(epArcmin, cam ? Math.hypot(cam[0], cam[1]) : 0, (objArcmin ?? 0) * 1.2, 31 * 1.2, 1);
+        const k = (Math.min(w, h) * 0.9) / span, cx = w / 2, cy = h / 2;
+        // Faint random stars for feel (fixed seed).
+        let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        ctx.fillStyle = pal.red ? '#5c0f0b' : 'rgba(255,255,255,.55)';
+        for (let i = 0; i < 160; i++) { ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, rnd() * 1.1 + 0.2, 0, 7); ctx.fill(); }
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.red ? '#8f1d15' : '#9aa3b5'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, (31 * k) / 2, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+        if (objArcmin) {
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, (objArcmin * k) / 2);
+          g.addColorStop(0, pal.red ? 'rgba(255,59,48,.45)' : 'rgba(170,200,255,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, (objArcmin * k) / 2, (objArcmin * k) / 2.6, -0.4, 0, 7); ctx.fill();
+        }
+        if (epArcmin) { ctx.strokeStyle = pal.red ? '#ff3b30' : '#5cc8f0'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(cx, cy, (epArcmin * k) / 2, 0, 7); ctx.stroke(); }
+        if (cam) { ctx.strokeStyle = pal.red ? '#ff7a70' : '#f5a83a'; ctx.lineWidth = 2.2; ctx.strokeRect(cx - (cam[0] * k) / 2, cy - (cam[1] * k) / 2, cam[0] * k, cam[1] * k); }
+        ctx.fillStyle = pal.red ? '#ff3b30' : '#e9edf5'; ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'top';
+        ctx.fillText(label ? `${label}${objArcmin ? ` (${fmtArc(objArcmin)})` : ''}` : '', 10, 10);
+        ctx.textBaseline = 'bottom'; ctx.font = '12px system-ui, sans-serif';
+        ctx.fillText(`Picture is ${fmtArc(span / 0.9 * (w / Math.min(w, h)))} wide`, 10, h - 8);
+      },
+    };
+  }
+
+  const fo = q<HTMLInputElement>('.f-obj');
+  fo.addEventListener('input', () => { q('#f-objs').replaceChildren(...searchObjects(fo.value).map((v) => Object.assign(document.createElement('option'), { value: v }))); calc(); });
+  root.querySelectorAll('.ax-card input:not(.f-obj), .ax-card select:not(.t-preset):not(.c-preset)').forEach((i) => i.addEventListener('input', calc));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', calc);
+  renderEps(); calc();
+
+  wireDownloads(q('.dl'), () => ({
+    title: 'Telescope and camera', file: 'telescope-calculator',
+    subtitle: `${q<HTMLInputElement>('.t-ap').value} mm aperture, ${q<HTMLInputElement>('.t-fl').value} mm focal length`,
+    sections: [
+      { title: 'Telescope', facts: sFacts },
+      { title: 'Eyepieces', table: { head: ['Eyepiece', 'Apparent field', 'Power', 'True field', 'Exit pupil', 'Good for'], rows: epRows, align: ['l', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: 'Camera', facts: cFacts },
+      ...(fig ? [{ title: 'Field of view', figure: { ...fig } }] : []),
+    ] as Section[],
+  }));
+</script>

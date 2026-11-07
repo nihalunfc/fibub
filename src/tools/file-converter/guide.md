@@ -1,11 +1,13 @@
 ---
 name: File converter
+num: 4
 shelf: documents
 title: "File converter: PDF to JPG, JPG to PDF, Excel to CSV, Word to text and more, free"
 summary: "Convert pictures to PDF and back, PDF to text, Word to HTML or Markdown, and Excel, CSV and JSON between each other. Nothing is uploaded."
 status: live
 ads: false
 order: 20
+related: [prompt-pruner]
 icon: convert
 works: offline
 updated: 2026-11-06

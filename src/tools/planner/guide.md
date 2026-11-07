@@ -1,11 +1,13 @@
 ---
 name: Weekly and monthly planner
+num: 5
 shelf: everyday
 title: "Free weekly and monthly planner: plan your week and download it as an image or PDF"
 summary: "A clean week and month planner with times and colours. Type “Gym 7am tue” to add a plan, then download the week or month as an image or PDF in one click."
 status: live
 ads: true
 order: 5
+related: [budget-calculator]
 icon: calendar
 works: offline
 updated: 2026-11-07

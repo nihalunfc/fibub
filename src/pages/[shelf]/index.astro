@@ -2,20 +2,77 @@
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import SoonList from '../../components/SoonList.astro';
-import { SHELVES } from '../../site';
-import { allTools } from '../../lib/tools';
+import { SHELVES, SECTIONS } from '../../site';
+import { allTools, bySection } from '../../lib/tools';
 export function getStaticPaths() {
   return SHELVES.map((s) => ({ params: { shelf: s.id }, props: { shelf: s } }));
 }
 const { shelf } = Astro.props;
-const tools = (await allTools()).filter((t) => t.data.shelf === shelf.id);
-const live = tools.filter((t) => t.data.status === 'live');
-const soon = tools.filter((t) => t.data.status === 'soon');
+const tools = await allTools();
+const live = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'live');
+const soon = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'soon');
+const hasSections = (SECTIONS[shelf.id] ?? []).length > 0;
+const groups = bySection(shelf.id, live);
 ---
 <Base title={`${shelf.name} tools`} description={`Free ${shelf.name.toLowerCase()} tools that run in your browser. ${shelf.blurb}`} shelf={shelf.id}>
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, with no sign-up.</p>
-  {live.length > 0 && <div class="grid">{live.map((t) => <ToolCard tool={t} />)}</div>}
+  {live.length > 6 && (
+    <label class="sf"><span class="visually-hidden">Find a {shelf.name.toLowerCase()} tool</span><input type="search" placeholder={`Find a ${shelf.name.toLowerCase()} tool…`} autocomplete="off" /></label>
+  )}
+  {hasSections ? (
+    <div class="sections">
+      {groups.map((g) => (
+        <details class="sec" open id={g.id} data-sec={g.id}>
+          <summary><span><b>{g.name}</b>{g.blurb && <small>{g.blurb}</small>}</span><em>{g.tools.length}</em></summary>
+          <div class="grid">{g.tools.map((t) => <ToolCard tool={t} />)}</div>
+        </details>
+      ))}
+    </div>
+  ) : (
+    live.length > 0 && <div class="grid">{live.map((t) => <ToolCard tool={t} />)}</div>
+  )}
+  <p class="sf-empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
   {soon.length > 0 && <><h2>Coming soon</h2><SoonList tools={soon} /></>}
 </Base>
+
+<style>
+  .sf { display: block; max-width: 420px; margin: 0 0 16px; }
+  .sf input { width: 100%; font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+  .sf input:focus { outline: none; border-color: var(--accent); }
+  .sections { display: grid; gap: 12px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+  .sec > summary::-webkit-details-marker { display: none; }
+  .sec > summary span { display: grid; }
+  .sec > summary b { font-size: 18px; }
+  .sec > summary small { color: var(--muted); font-size: 14px; }
+  .sec > summary em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; display: flex; align-items: center; gap: 6px; }
+  .sec > summary em::after { content: '▾'; transition: transform .15s; }
+  .sec:not([open]) > summary em::after { transform: rotate(-90deg); }
+  .sec .grid { padding: 0 12px 12px; }
+  .sf-empty { color: var(--muted); }
+  /* Phones: a tighter list instead of tall cards, so a long shelf stays easy to scan. */
+  @media (max-width: 600px) {
+    .sec .grid, .grid { gap: 6px; }
+    .grid :global(.tc) { padding: 10px 12px; gap: 12px; }
+    .grid :global(.tc-sum) { -webkit-line-clamp: 1; }
+  }
+</style>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('.sf input');
+  if (input) {
+    const cards = [...document.querySelectorAll<HTMLElement>('.tc[data-search]')];
+    const secs = [...document.querySelectorAll<HTMLDetailsElement>('.sec')];
+    const empty = document.querySelector<HTMLElement>('.sf-empty')!;
+    input.addEventListener('input', () => {
+      const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const c of cards) { const ok = words.every((w) => c.dataset.search!.includes(w)); c.hidden = !ok; if (ok) shown++; }
+      for (const s of secs) { const any = [...s.querySelectorAll<HTMLElement>('.tc')].some((c) => !c.hidden); s.hidden = !any; if (words.length && any) s.open = true; }
+      empty.hidden = shown > 0;
+    });
+  }
+</script>

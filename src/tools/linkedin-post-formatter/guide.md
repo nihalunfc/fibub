@@ -1,11 +1,13 @@
 ---
 name: LinkedIn post formatter
+num: 9
 shelf: everyday
 title: "LinkedIn post formatter: bold, italic and bullet points for LinkedIn"
 summary: "Add bold, italic, underline and bullet lists to LinkedIn posts, see where '…see more' cuts in, and copy it ready to paste."
 status: live
 ads: true
 order: 9
+related: [resume-builder]
 icon: bold
 works: offline
 updated: 2026-11-06

@@ -1,5 +1,6 @@
 ---
 name: Budget planner
+num: 10
 shelf: money
 title: "Budget calculator: plan a trip or project, or your monthly salary budget"
 summary: "Work out what a trip, project or event will cost and how much to save each month, or plan your monthly budget with weekly and yearly bills, and see your savings grow."

@@ -1,0 +1,222 @@
+---
+// Observing log: write down what you saw, then save each time as a new log file or add it to
+// an existing one, so your files become a database (CSV) of every observation.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ol">
+  <SkyPlace date={false} />
+  <form class="ax-card ol-form">
+    <h2>New observation</h2>
+    <div class="ax-grid">
+      <label>Object <input name="object" list="ol-objs" placeholder="M13, Saturn, Albireo…" autocomplete="off" required /></label>
+      <label>Date and time <input name="when" type="datetime-local" step="60" required /></label>
+      <label>Telescope or binoculars <input name="scope" placeholder="8-inch Dobsonian" /></label>
+      <label>Eyepiece or camera <input name="optics" placeholder="25 mm Plössl" /></label>
+      <label>Magnification <input name="power" inputmode="decimal" placeholder="48" /></label>
+      <label>Filter <input name="filter" placeholder="none, UHC, OIII…" /></label>
+      <label>Seeing (steadiness) <select name="seeing"><option value="">-</option><option value="1">1 Very poor</option><option value="2">2 Poor</option><option value="3">3 Moderate</option><option value="4">4 Good</option><option value="5">5 Excellent</option></select></label>
+      <label>Transparency (clarity) <select name="transparency"><option value="">-</option><option value="1">1 Very poor</option><option value="2">2 Poor</option><option value="3">3 Moderate</option><option value="4">4 Good</option><option value="5">5 Excellent</option></select></label>
+      <label>Sky darkness (Bortle) <select name="bortle"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></label>
+      <label>How good was it? <select name="rating"><option value="">-</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option></select></label>
+    </div>
+    <datalist id="ol-objs"></datalist>
+    <label style="margin-top:10px">Notes <textarea name="notes" rows="4" placeholder="What did you see? Shape, colour, detail, averted vision…"></textarea></label>
+    <p class="ax-help">Tip: use your phone keyboard's microphone to dictate notes. Turn on <b>Red light</b> (top of the page) to keep your night vision.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="submit" class="btn ol-save">Save observation</button>
+      <span class="ax-help ol-msg" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <dialog class="ol-dlg" aria-labelledby="ol-dlg-t">
+    <h2 id="ol-dlg-t">Where should this observation go?</h2>
+    <p>Your log is a CSV file on your device. Every observation is one row, so it opens in Excel or Google Sheets and works as your own database.</p>
+    <div class="ol-choices">
+      <button type="button" class="btn ol-again" hidden></button>
+      <button type="button" class="btn secondary ol-new">Save as a new log file</button>
+      <button type="button" class="btn secondary ol-add">Add to an existing log file</button>
+      <button type="button" class="btn secondary ol-later">Keep in this tab for now</button>
+    </div>
+    <p class="ax-help ol-how"></p>
+  </dialog>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Your log</h2>
+      <label class="btn secondary small" style="cursor:pointer">Open a log file<input type="file" class="ol-open" accept=".csv,text/csv" hidden /></label>
+    </div>
+    <p class="ax-help ol-src">Observations saved in this tab appear here. Open a log file to see all of them.</p>
+    <dl class="ax-facts ol-stats" style="margin-top:10px"></dl>
+    <div class="ax-scroll" style="margin-top:10px;max-height:420px"><table class="ol-table"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ol-csv" hidden>Download this log (CSV)</button>
+      <button type="button" class="btn secondary small ol-clear" hidden>Clear this tab</button>
+    </div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .ol-dlg { border: 1px solid var(--line); border-radius: 16px; padding: 20px; max-width: min(460px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); }
+  .ol-dlg::backdrop { background: rgba(18, 24, 38, .4); }
+  .ol-dlg h2 { margin: 0 0 8px; font-size: 19px; }
+  .ol-dlg p { color: var(--muted); margin: 0 0 12px; }
+  .ol-choices { display: grid; gap: 8px; }
+  .ol-form > label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { findTarget, searchObjects, constellation, OBJECTS } from '../../lib/astro/sky';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { localDate, localTime, zoned, sexa } from '../../lib/astro/place';
+  import { toCsv, fromCsv, merge, type Entry } from '../../lib/astro/log';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ol')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const form = q<HTMLFormElement>('.ol-form'), dlg = q<HTMLDialogElement>('.ol-dlg'), msg = q('.ol-msg');
+  const TAB = 'fibub-obslog-tab';
+  const fsApi = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+  let handle: any = null, handleName = '';
+  let session: Entry[] = [];   // saved in this tab
+  let shown: Entry[] = [];     // what the table shows (tab entries, or an opened file)
+  let shownFrom = '';
+  let pending: Entry | null = null;
+  let unsaved: string[] = []; // ids kept in this tab but not yet written to a file
+  try { const s = JSON.parse(sessionStorage.getItem(TAB) || '{}'); session = s.session ?? []; unsaved = s.unsaved ?? []; } catch {}
+  const keep = () => { try { sessionStorage.setItem(TAB, JSON.stringify({ session, unsaved })); } catch {} };
+  /** The observation being saved plus any kept earlier in this tab and not yet in a file. */
+  const toWrite = () => [...session.filter((e) => unsaved.includes(e.id)), pending!];
+
+  const when = form.elements.namedItem('when') as HTMLInputElement, objIn = form.elements.namedItem('object') as HTMLInputElement;
+  const setNow = () => { const tz = getSky().place.tz, n = new Date(); when.value = `${localDate(n, tz)}T${localTime(n, tz)}`; };
+  onSky(() => { if (!when.value) setNow(); });
+  objIn.addEventListener('input', () => q('#ol-objs').replaceChildren(...searchObjects(objIn.value).map((v) => Object.assign(document.createElement('option'), { value: v }))));
+
+  function entry(): Entry {
+    const f = new FormData(form), g = (k: string) => String(f.get(k) ?? '').trim();
+    const { place } = getSky();
+    const [d, t] = g('when').split('T'); const [y, m, dd] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number);
+    const at = zoned(y, m, dd, h, mi, place.tz);
+    const tg = findTarget(g('object'));
+    const o = tg?.kind === 'radec' ? OBJECTS.find((x) => tg.label.startsWith(x.id.split(' / ')[0])) : null;
+    return {
+      id: `${at.toISOString()}-${Math.random().toString(36).slice(2, 7)}`, utc: at.toISOString().slice(0, 16) + 'Z', date: d, time: t,
+      object: g('object'), type: tg?.kind === 'body' ? (tg.body === 'Moon' ? 'Moon' : 'Planet') : o?.type ?? '', con: tg?.kind === 'radec' ? constellation(tg.ra, tg.dec).name : '',
+      ra: tg?.kind === 'radec' ? sexa(tg.ra / 15, 'h', 0) : '', dec: tg?.kind === 'radec' ? sexa(tg.dec, 'd', 0) : '',
+      place: place.name, lat: place.lat.toFixed(3), lon: place.lon.toFixed(3),
+      scope: g('scope'), optics: g('optics'), power: g('power'), filter: g('filter'), seeing: g('seeing'), transparency: g('transparency'), bortle: g('bortle'), rating: g('rating'), notes: g('notes'),
+    };
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    pending = entry();
+    const again = q<HTMLButtonElement>('.ol-again');
+    again.hidden = !handle; again.textContent = handle ? `Add to ${handleName} again` : '';
+    q('.ol-how').textContent = fsApi
+      ? 'Your browser can write to the file directly: you pick it once and later saves add to it.'
+      : 'This browser cannot write to your files directly, so "Add to an existing log file" opens your file, adds the observation and downloads the updated file. Replace the old one with it.';
+    dlg.showModal();
+  });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+
+  function done(text: string, saved = true) {
+    if (pending) { session.push(pending); unsaved = saved ? [] : [...unsaved, pending.id]; keep(); }
+    pending = null; dlg.close();
+    msg.textContent = text;
+    // Keep the equipment and conditions for the next object; clear the object and notes.
+    objIn.value = ''; (form.elements.namedItem('notes') as HTMLTextAreaElement).value = ''; (form.elements.namedItem('rating') as HTMLSelectElement).value = '';
+    setNow();
+    if (!shownFrom || shownFrom === 'tab') show(session, 'tab');
+  }
+  const fileName = () => `observing-log-${localDate(new Date(), getSky().place.tz)}.csv`;
+
+  q('.ol-later').addEventListener('click', () => done('Kept in this tab. It goes into the file the next time you save to one.', false));
+  q('.ol-new').addEventListener('click', async () => {
+    if (!pending) return;
+    const data = merge([], toWrite());
+    if (fsApi) {
+      try {
+        handle = await (window as any).showSaveFilePicker({ suggestedName: fileName(), types: [{ description: 'CSV log', accept: { 'text/csv': ['.csv'] } }] });
+        const w = await handle.createWritable(); await w.write('﻿' + toCsv(data)); await w.close();
+        handleName = handle.name; done(`Saved to ${handleName}. Next time choose "Add to ${handleName} again".`);
+        show(data, handleName);
+      } catch (e: any) { if (e?.name !== 'AbortError') msg.textContent = 'Could not save the file.'; }
+    } else {
+      save(new Blob(['﻿' + toCsv(data)], { type: 'text/csv' }), fileName(), 'text/csv');
+      done(`Downloaded ${fileName()}. Next time, choose "Add to an existing log file" and pick it.`);
+    }
+  });
+  async function addTo(h: any) {
+    const file: File = await h.getFile();
+    const { entries, ok } = fromCsv(await file.text());
+    if (!ok) { msg.textContent = `${file.name} is not an observing log (it has no "object" column).`; dlg.close(); return; }
+    const all = merge(entries, toWrite());
+    const w = await h.createWritable(); await w.write('﻿' + toCsv(all)); await w.close();
+    handle = h; handleName = h.name;
+    done(`Added to ${h.name}: now ${all.length} observation${all.length === 1 ? '' : 's'}.`);
+    show(all, h.name);
+  }
+  q('.ol-again').addEventListener('click', async () => { try { if ((await handle.requestPermission?.({ mode: 'readwrite' })) === 'denied') throw 0; await addTo(handle); } catch { msg.textContent = 'Could not write to that file. Choose it again.'; handle = null; } });
+  q('.ol-add').addEventListener('click', async () => {
+    if (!pending) return;
+    if (fsApi) {
+      try { const [h] = await (window as any).showOpenFilePicker({ types: [{ description: 'CSV log', accept: { 'text/csv': ['.csv'] } }] }); await addTo(h); }
+      catch (e: any) { if (e?.name !== 'AbortError') msg.textContent = 'Could not open that file for writing.'; }
+      return;
+    }
+    const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.csv,text/csv' });
+    inp.onchange = async () => {
+      const f = inp.files?.[0]; if (!f) return;
+      const { entries, ok } = fromCsv(await f.text());
+      if (!ok) { msg.textContent = `${f.name} is not an observing log.`; dlg.close(); return; }
+      const all = merge(entries, toWrite());
+      save(new Blob(['﻿' + toCsv(all)], { type: 'text/csv' }), f.name, 'text/csv');
+      done(`Downloaded the updated ${f.name} (${all.length} observations). Replace your old copy with it.`);
+      show(all, f.name);
+    };
+    inp.click();
+  });
+
+  q<HTMLInputElement>('.ol-open').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    const { entries, ok } = fromCsv(await f.text());
+    if (!ok) { q('.ol-src').textContent = `${f.name} is not an observing log (no "object" column).`; return; }
+    show(merge(entries, []), f.name);
+  });
+
+  function show(list: Entry[], from: string) {
+    shown = list; shownFrom = from;
+    q('.ol-src').textContent = from === 'tab' ? (list.length ? 'Saved in this tab (gone when you close it unless you save to a file).' : 'Observations saved in this tab appear here. Open a log file to see all of them.') : `From ${from}.`;
+    const objs = new Set(list.map((e) => e.object.split(' ')[0].toUpperCase()));
+    const messier = [...objs].filter((o) => /^M\d{1,3}$/.test(o) && +o.slice(1) <= 110).length;
+    const nights = new Set(list.map((e) => e.date)).size;
+    const stats: [string, string][] = list.length ? [['Observations', String(list.length)], ['Nights', String(nights)], ['Different objects', String(objs.size)], ['Messier objects seen', `${messier} of 110`]] : [];
+    q('.ol-stats').replaceChildren(...stats.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    const t = q<HTMLTableElement>('.ol-table'); t.innerHTML = '';
+    if (list.length) {
+      const hr = t.createTHead().insertRow(); ['Date', 'Time', 'Object', 'Telescope', 'Seeing', 'Rating', 'Notes'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const b = t.createTBody();
+      for (const e of [...list].reverse()) { const tr = b.insertRow(); [e.date, e.time, e.object, [e.scope, e.optics].filter(Boolean).join(', '), e.seeing, e.rating ? '★'.repeat(+e.rating) : '', e.notes].forEach((v) => (tr.insertCell().textContent = v)); }
+    }
+    q('.ol-csv').hidden = !list.length; q('.ol-clear').hidden = from !== 'tab' || !list.length;
+  }
+  q('.ol-csv').addEventListener('click', () => save(new Blob(['﻿' + toCsv(shown)], { type: 'text/csv' }), shownFrom === 'tab' ? fileName() : shownFrom, 'text/csv'));
+  q('.ol-clear').addEventListener('click', () => { session = []; unsaved = []; keep(); show(session, 'tab'); });
+  show(session, 'tab');
+
+  wireDownloads(q('.dl'), () => {
+    const first = shown[0], last = shown[shown.length - 1];
+    return {
+      title: 'Observing log', file: 'observing-log',
+      subtitle: shown.length ? `${shown.length} observations, ${first.date}${last.date !== first.date ? ` to ${last.date}` : ''}` : 'Empty log',
+      sections: shown.length ? [
+        { title: 'Summary', facts: [...q('.ol-stats').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+        { title: 'Observations', table: { head: ['Date', 'Time', 'Object', 'Where', 'Equipment', 'Seeing', 'Transp.', 'Rating', 'Notes'], rows: shown.map((e) => [e.date, e.time, e.object, e.place, [e.scope, e.optics, e.power && `${e.power}×`, e.filter].filter(Boolean).join(', '), e.seeing, e.transparency, e.rating ? '★'.repeat(+e.rating) : '', e.notes]) } },
+      ] as Section[] : [],
+    };
+  });
+</script>

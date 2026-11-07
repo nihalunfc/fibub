@@ -1,0 +1,122 @@
+---
+// The "where and when" bar on astronomy tools: place, time zone and the night to plan.
+// The place stays on the device: kept for this tab, and between visits only if the box is ticked.
+interface Props { date?: boolean }
+const { date = true } = Astro.props;
+---
+<div class="sp">
+  <div class="sp-bar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+    <span class="sp-sum"><b class="sp-name"></b> <span class="sp-coords"></span></span>
+    <button type="button" class="sp-edit" aria-expanded="false">Change</button>
+    <button type="button" class="sp-red" aria-pressed="false" title="Red light keeps your eyes adapted to the dark">Red light</button>
+    {date && <label class="sp-date-l">Night of <input type="date" class="sp-date" required /></label>}
+  </div>
+  <div class="sp-form" hidden>
+    <div class="sp-grid">
+      <label class="sp-wide">City <input class="sp-city" list="sp-cities" placeholder="Type a city, or enter numbers below" autocomplete="off" /></label>
+      <label>Latitude <input class="sp-lat" inputmode="decimal" placeholder="43.65" /></label>
+      <label>Longitude <input class="sp-lon" inputmode="decimal" placeholder="-79.38" /></label>
+      <label>Height (m) <input class="sp-elev" inputmode="decimal" placeholder="0" /></label>
+      <label>Time zone <select class="sp-tz"></select></label>
+    </div>
+    <datalist id="sp-cities"></datalist>
+    <p class="sp-help">North and east are positive; south and west are negative (Toronto is 43.65, -79.38).</p>
+    <div class="sp-row">
+      <button type="button" class="btn secondary sp-geo">Use my location</button>
+      <label class="sp-check"><input type="checkbox" class="sp-remember" /> Remember my place on this device</label>
+    </div>
+    <p class="sp-msg" role="status" aria-live="polite">Your location never leaves this device.</p>
+  </div>
+</div>
+
+<style is:global>
+  .sp { margin: 0 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .sp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; }
+  .sp-bar > svg { width: 18px; height: 18px; color: var(--science); flex: none; }
+  .sp-sum { min-width: 0; flex: 1 1 160px; }
+  .sp-coords { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .sp-edit { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 2px; }
+  .sp-red { border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  .sp-red[aria-pressed=true] { background: #ff3b30; color: #000; border-color: #ff3b30; }
+  .sp-date-l { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+  .sp input, .sp select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; }
+  .sp-date { width: auto !important; }
+  .sp-form { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
+  .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; margin-top: 10px; }
+  .sp-grid label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sp-wide { grid-column: 1 / -1; }
+  .sp-help, .sp-msg { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .sp-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 10px; }
+  .sp-geo { padding: 8px 14px; }
+  .sp-check { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+  .sp-check input { width: 18px !important; height: 18px; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { CITIES, allZones, tzLabel, guessPlace, type Place } from '../lib/astro/place';
+  import { getSky, setSky, onSky } from '../lib/astro/state';
+
+  // Red light: the whole page in red and black, kept for this tab.
+  const RED = 'fibub-red-light';
+  const setRed = (on: boolean) => {
+    document.documentElement.classList.toggle('red-mode', on);
+    document.querySelectorAll('.sp-red').forEach((b) => b.setAttribute('aria-pressed', String(on)));
+    try { on ? sessionStorage.setItem(RED, '1') : sessionStorage.removeItem(RED); } catch {}
+    document.dispatchEvent(new CustomEvent('fibub:theme'));
+  };
+  try { if (sessionStorage.getItem(RED)) setRed(true); } catch {}
+  document.querySelectorAll('.sp-red').forEach((b) => b.addEventListener('click', () => setRed(!document.documentElement.classList.contains('red-mode'))));
+
+  for (const root of document.querySelectorAll<HTMLElement>('.sp')) {
+    const q = <T extends HTMLElement>(c: string) => root.querySelector(c) as T;
+    const form = q<HTMLElement>('.sp-form'), edit = q<HTMLButtonElement>('.sp-edit');
+    const city = q<HTMLInputElement>('.sp-city'), lat = q<HTMLInputElement>('.sp-lat'), lon = q<HTMLInputElement>('.sp-lon'), elev = q<HTMLInputElement>('.sp-elev');
+    const tz = q<HTMLSelectElement>('.sp-tz'), remember = q<HTMLInputElement>('.sp-remember'), msg = q<HTMLElement>('.sp-msg');
+    const date = root.querySelector<HTMLInputElement>('.sp-date');
+    root.querySelector('#sp-cities')!.replaceChildren(...CITIES.map((c) => Object.assign(document.createElement('option'), { value: c.name })));
+    const zones = allZones();
+    const fill = () => {
+      const s = getSky();
+      if (![...tz.options].some((o) => o.value === s.place.tz)) zones.includes(s.place.tz) || zones.push(s.place.tz);
+      if (!tz.options.length) tz.replaceChildren(...zones.map((z) => Object.assign(document.createElement('option'), { value: z, textContent: `${z.replace(/_/g, ' ')} (${tzLabel(z)})` })));
+      tz.value = s.place.tz;
+      city.value = s.place.name; lat.value = String(s.place.lat); lon.value = String(s.place.lon); elev.value = String(s.place.elev || 0);
+      remember.checked = s.remembered;
+    };
+    onSky((s) => {
+      const p = s.place;
+      q<HTMLElement>('.sp-name').textContent = p.name;
+      q<HTMLElement>('.sp-coords').textContent = `${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lon).toFixed(2)}°${p.lon >= 0 ? 'E' : 'W'} · ${tzLabel(p.tz)}`;
+      if (date && date.value !== s.date) date.value = s.date;
+    });
+    edit.addEventListener('click', () => { form.hidden = !form.hidden; edit.setAttribute('aria-expanded', String(!form.hidden)); edit.textContent = form.hidden ? 'Change' : 'Close'; if (!form.hidden) fill(); });
+    const apply = (p: Partial<Place>) => setSky({ place: { ...getSky().place, ...p } });
+    city.addEventListener('change', () => {
+      const c = CITIES.find((c) => c.name.toLowerCase() === city.value.trim().toLowerCase());
+      if (c) { apply(c); fill(); } else if (city.value.trim()) apply({ name: city.value.trim() });
+    });
+    const num = (el: HTMLInputElement, max: number) => { const v = parseFloat(el.value.replace(',', '.').replace('−', '-')); return Number.isFinite(v) && Math.abs(v) <= max ? v : null; };
+    for (const [el, key, max] of [[lat, 'lat', 90], [lon, 'lon', 180], [elev, 'elev', 9000]] as const) {
+      el.addEventListener('change', () => {
+        const v = num(el, max);
+        if (v == null) { el.setCustomValidity('Enter a number'); el.reportValidity(); return; }
+        el.setCustomValidity('');
+        apply({ [key]: v, ...(key !== 'elev' && getSky().place.name === CITIES.find((c) => c.name === getSky().place.name)?.name ? { name: 'My place' } : {}) });
+      });
+    }
+    tz.addEventListener('change', () => apply({ tz: tz.value }));
+    remember.addEventListener('change', () => setSky({ remembered: remember.checked }));
+    date?.addEventListener('change', () => { if (date.value) setSky({ date: date.value }); });
+    q<HTMLButtonElement>('.sp-geo').addEventListener('click', () => {
+      if (!navigator.geolocation) { msg.textContent = 'This browser cannot share your location. Type a city or the numbers instead.'; return; }
+      msg.textContent = 'Asking your device for your location…';
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude, longitude, altitude } = pos.coords;
+        apply({ name: 'My location', lat: +latitude.toFixed(3), lon: +longitude.toFixed(3), elev: altitude ? Math.round(altitude) : getSky().place.elev, tz: guessPlace().tz });
+        fill();
+        msg.textContent = 'Location set. It stays on this device.';
+      }, () => { msg.textContent = 'Location was not shared. Type a city or the numbers instead.'; }, { maximumAge: 600000, timeout: 15000 });
+    });
+  }
+</script>

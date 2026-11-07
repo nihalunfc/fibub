@@ -1,11 +1,13 @@
 ---
 name: Link cleaner
+num: 6
 shelf: everyday
 title: "Link cleaner: remove tracking codes and UTM tags from any link"
 summary: "Remove tracking codes, UTM tags and affiliate parts from any link and get the clean address. Works on a whole message at once."
 status: live
 ads: true
 order: 8
+related: [linkedin-post-formatter]
 icon: link
 works: offline
 updated: 2026-11-06
