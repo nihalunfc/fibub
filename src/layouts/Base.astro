@@ -2,6 +2,11 @@
 import '../styles/global.css';
 import { SITE, SHELVES } from '../site';
 import { mark } from '../lib/brand';
+import { ICONS } from '../lib/icons';
+import { allTools, bySection, toolUrl } from '../lib/tools';
+// The header menu: on computers each shelf opens a panel listing its tools, grouped by section.
+const tools = await allTools();
+const menus = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, tools.filter((t) => t.data.status === 'live')) }));
 interface Props { title: string; description?: string; shelf?: string; noindex?: boolean; image?: string }
 const { title, description = SITE.description, shelf, noindex = false, image = '/og/home.png' } = Astro.props;
 const imageUrl = new URL(image, SITE.url).href;
@@ -41,9 +46,58 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
       <div class="wrap">
         <a class="logo" href="/" aria-label="fibub home"><Fragment set:html={mark()} /><span class="logo-t">fi<span>bub</span></span></a>
         <nav class="main" aria-label="Shelves">
-          {SHELVES.map((s) => <a href={`/${s.id}/`} aria-current={shelf === s.id ? 'page' : undefined}>{s.name}</a>)}
+          {menus.map(({ shelf: s, groups }) => (
+            <div class="dd" data-shelf={s.id}>
+              <a href={`/${s.id}/`} aria-current={shelf === s.id ? 'page' : undefined} aria-haspopup="true">{s.name}<svg class="dd-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></a>
+              <div class="dd-panel" role="menu" aria-label={`${s.name} tools`}>
+                <div class="dd-cols" style={`--cols:${Math.min(3, Math.max(1, groups.length > 1 ? groups.length : Math.ceil(groups[0]?.tools.length / 6 || 1)))}`}>
+                  {groups.map((g) => (
+                    <div class="dd-group">
+                      {g.name && <b class="dd-h">{g.name}</b>}
+                      {g.tools.map((t) => (
+                        <a class="dd-item" role="menuitem" href={toolUrl(t)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
+                          <span>{t.data.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                <a class="dd-all" href={`/${s.id}/`}>All {s.name.toLowerCase()} tools →</a>
+              </div>
+            </div>
+          ))}
         </nav>
+        <button type="button" class="menu-btn" aria-expanded="false" aria-controls="all-tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>Tools</button>
       </div>
+      <nav id="all-tools" class="all-tools" aria-label="All tools" hidden>
+        <div class="at-top">
+          <input type="search" class="at-search" placeholder="Find a tool…" aria-label="Find a tool" autocomplete="off" />
+          <button type="button" class="at-close" aria-label="Close the tool list">✕</button>
+        </div>
+        <div class="at-mine" hidden>
+          <div class="at-h"><b>My tools</b><button type="button" class="at-clear">Clear</button></div>
+          <div class="at-mine-list"></div>
+          <p class="at-note">Saved only in this browser, never sent anywhere.</p>
+        </div>
+        {menus.map(({ shelf: s, groups }) => (
+          <section class="at-shelf" data-shelf={s.id}>
+            <a class="at-shelf-h" href={`/${s.id}/`}>{s.name} <span>All →</span></a>
+            {groups.map((g) => (
+              <div class="at-group">
+                {g.name && <b class="at-sub">{g.name}</b>}
+                {g.tools.map((t) => (
+                  <a class="at-item" href={toolUrl(t)} data-id={t.id} data-search={`${t.data.name} ${t.data.summary} ${s.name} ${g.name ?? ''}`.toLowerCase()}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
+                    <span>{t.data.name}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </section>
+        ))}
+        <p class="at-empty" hidden>No tool matches that yet.</p>
+      </nav>
     </header>
     <main><div class="wrap"><slot /></div></main>
     <footer class="site">
@@ -52,8 +106,11 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
           <span>Free tools. Your files stay on your device.</span>
           <nav aria-label="Site"><a href="/about/">About</a><a href="/stats/">Usage stats</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/contact/">Contact</a></nav>
         </div>
-        <span>Made by <a href={SITE.maker.url}>{SITE.maker.name}</a></span>
+        <span><a href={SITE.maker.url} rel="author">Developer</a></span>
       </div>
     </footer>
+    <script>
+      import '../scripts/site';
+    </script>
   </body>
 </html>

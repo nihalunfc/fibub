@@ -22,6 +22,9 @@ const tools = defineCollection({
     // 'offline': once the page is open it keeps working with no internet. 'online': needs internet
     // while in use (for example live currency rates). Shown on every card and tool page.
     icon: z.enum(ICON_NAMES),     // shown on the tool's card
+    section: z.string().optional(), // a group within the shelf (see SECTIONS in src/site.ts)
+    // Tools that go well with this one. Links show both ways automatically, so list each pair once.
+    related: z.array(z.string()).default([]),
     works: z.enum(['offline', 'online']),
     flow: z.array(z.object({ icon: z.enum(ICON_NAMES), label: z.string().max(12) })).min(3).max(4).optional(),
   }),

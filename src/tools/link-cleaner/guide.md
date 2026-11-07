@@ -6,6 +6,7 @@ summary: "Remove tracking codes, UTM tags and affiliate parts from any link and 
 status: live
 ads: true
 order: 8
+related: [linkedin-post-formatter]
 icon: link
 works: offline
 updated: 2026-11-06

@@ -6,6 +6,7 @@ summary: "A clean week and month planner with times and colours. Type “Gym 7am
 status: live
 ads: true
 order: 5
+related: [budget-calculator]
 icon: calendar
 works: offline
 updated: 2026-11-07

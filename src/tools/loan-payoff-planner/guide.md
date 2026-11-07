@@ -6,6 +6,7 @@ summary: "Plan extra payments on a home, car or personal loan, as lump sums or r
 status: live
 ads: true
 order: 30
+related: [budget-calculator]
 icon: bank
 works: offline
 updated: 2026-11-07

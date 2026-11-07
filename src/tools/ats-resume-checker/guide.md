@@ -6,6 +6,7 @@ summary: "See your resume the way hiring software reads it, get a score out of 1
 status: live
 ads: false
 order: 25
+related: [resume-builder, file-converter]
 icon: resume
 works: offline
 updated: 2026-11-06

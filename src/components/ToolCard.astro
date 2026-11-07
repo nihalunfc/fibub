@@ -1,5 +1,5 @@
 ---
-// A tool on the home and shelf pages: coloured icon, name, one-line summary, offline label.
+// A tool on the home and shelf pages: icon, name, one-line summary (and a label if it needs internet).
 import { ICONS } from '../lib/icons';
 import { toolUrl, type Tool } from '../lib/tools';
 interface Props { tool: Tool }
@@ -11,19 +11,20 @@ const d = tool.data;
   <span class="tc-body">
     <b>{d.name}</b>
     <span class="tc-sum">{d.summary}</span>
-    <span class:list={['tc-works', d.works]} data-works={d.works}>{d.works === 'offline' ? 'Works offline' : 'Needs internet'}</span>
+    {d.works === 'online' && <span class="tc-works online" data-works={d.works}>Needs internet</span>}
   </span>
   <span class="tc-go" aria-hidden="true">→</span>
 </a>
 
 <style>
-  .tc { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; padding: 14px 14px 14px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
-  .tc:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); box-shadow: var(--shadow); transform: translateY(-1px); }
+  .tc { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; padding: 14px 14px 14px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); text-decoration: none; transition: border-color .15s; }
+  .tc:hover { border-color: color-mix(in srgb, var(--c) 55%, var(--line)); }
   .tc { --c: var(--accent); --cs: var(--accent-soft); }
   .tc[data-shelf=money] { --c: var(--money); --cs: var(--money-soft); }
   .tc[data-shelf=documents] { --c: var(--documents); --cs: var(--documents-soft); }
   .tc[data-shelf=everyday] { --c: var(--everyday); --cs: var(--everyday-soft); }
-  .tc-ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: var(--cs); }
+  .tc[data-shelf=science] { --c: var(--science); --cs: var(--science-soft); }
+  .tc-ico { width: 24px; height: 24px; margin-top: 1px; display: grid; place-items: center; color: var(--c); }
   .tc-ico svg { width: 22px; height: 22px; }
   .tc-body { display: grid; gap: 2px; min-width: 0; }
   .tc-body b { font-size: 16px; line-height: 1.3; }

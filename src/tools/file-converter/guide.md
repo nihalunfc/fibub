@@ -6,6 +6,7 @@ summary: "Convert pictures to PDF and back, PDF to text, Word to HTML or Markdow
 status: live
 ads: false
 order: 20
+related: [prompt-pruner]
 icon: convert
 works: offline
 updated: 2026-11-06
