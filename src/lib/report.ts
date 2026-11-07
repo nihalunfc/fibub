@@ -84,8 +84,8 @@ export async function toPng(title: string, sections: Section[], subtitle = ''): 
       }
       const f = figs[i];
       if (f) {
-        const h = (IW * f.height) / f.width;
-        if (draw) ctx.drawImage(f, M, y, IW, h);
+        const fw = Math.min(IW, s.figure!.w * 1.25), h = (fw * f.height) / f.width;
+        if (draw) ctx.drawImage(f, M, y, fw, h);
         y += h + 10;
       }
       if (s.table) {
@@ -177,8 +177,10 @@ export async function toPdf(title: string, sections: Section[], subtitle = ''): 
   };
   text(title, 20, bold);
   if (subtitle) { y -= 2; text(subtitle, 10.5, reg, muted); }
+  const figW = (f: Figure) => Math.min(IW, f.w * 0.6);
   for (const s of sections) {
-    y -= 14; need(60);
+    y -= 14;
+    need(40 + (s.figure ? (figW(s.figure) * s.figure.h) / s.figure.w : s.table ? 50 : 20));
     page.drawLine({ start: { x: M, y: y + 6 }, end: { x: W - M, y: y + 6 }, thickness: 0.6, color: line });
     text(s.title, 14, bold); y -= 3;
     for (const t of s.text ?? []) { text(t, 10.5); y -= 3; }
@@ -198,9 +200,9 @@ export async function toPdf(title: string, sections: Section[], subtitle = ''): 
     }
     if (s.figure) {
       const img = await doc.embedPng(await figurePng(s.figure).bytes);
-      const h = (IW * s.figure.h) / s.figure.w;
+      const fw = figW(s.figure), h = (fw * s.figure.h) / s.figure.w;
       need(h + 6);
-      page.drawImage(img, { x: M, y: y - h, width: IW, height: h });
+      page.drawImage(img, { x: M, y: y - h, width: fw, height: h });
       y -= h + 8;
     }
     if (s.table) {
@@ -263,7 +265,7 @@ export async function toDocx(title: string, sections: Section[], subtitle = ''):
       const bytes = await figurePng(s.figure).bytes;
       media[`word/media/fig${n}.png`] = bytes;
       rels.push(`<Relationship Id="rFig${n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/fig${n}.png"/>`);
-      const cx = Math.round(TW * 635), cy = Math.round((cx * s.figure.h) / s.figure.w);
+      const cx = Math.round(Math.min(TW, s.figure.w * 12) * 635), cy = Math.round((cx * s.figure.h) / s.figure.w);
       body += `<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Figure ${n}" descr="${esc(s.figure.alt)}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="fig${n}.png" descr="${esc(s.figure.alt)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rFig${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
     }
     if (s.table) {

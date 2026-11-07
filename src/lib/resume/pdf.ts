@@ -4,7 +4,7 @@ import type { Block, Resume } from './model';
 
 // Characters the built-in PDF fonts can draw (Windows-1252). Anything else is swapped or reported.
 const CP1252 = new Set([...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'].map((c) => c.codePointAt(0)!));
-const SWAP: Record<string, string> = { '‐': '-', '‑': '-', '‒': '-', '−': '-', ' ': ' ', ' ': ' ', ' ': ' ', '→': '->', '✓': '-', '★': '*', '●': '•', '▪': '•', '◦': '•' };
+const SWAP: Record<string, string> = { '‐': '-', '‑': '-', '‒': '-', '−': '-', ' ': ' ', ' ': ' ', ' ': ' ', '→': '->', '′': "'", '″': '"', '×': 'x', '≈': '~', '·': '·', '✓': '-', '★': '*', '●': '•', '▪': '•', '◦': '•' };
 export function pdfSafe(s: string): { text: string; lost: string[] } {
   const lost: string[] = [];
   let text = '';
