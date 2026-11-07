@@ -143,3 +143,26 @@ footer.site a:hover { color: var(--accent); }
 .bm-dlg label input { width: 18px; height: 18px; accent-color: var(--accent); }
 .bm-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .bm-tip kbd, .bm-dlg kbd { font: inherit; font-weight: 700; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; }
+
+/* Red light for night use at the telescope. Only the red channel is lit (no green or blue light,
+   which bleaches night vision fastest), on pure black, and dim: the brightest text is about 60%
+   red. Pictures and camera images are turned into dim red too, so nothing on the page is white. */
+html.red-mode, html.red-mode body { background: #000 !important; }
+html.red-mode {
+  --bg: #000; --surface: #070000; --ink: #a30000; --muted: #6e0000; --line: #2b0000; --accent: #a30000; --accent-2: #a30000; --accent-ink: #000; --accent-soft: #140000;
+  --good: #a30000; --good-soft: #140000; --warn: #a30000; --warn-soft: #140000; --bad: #c00000; --bad-soft: #140000;
+  --science: #a30000; --money: #a30000; --documents: #a30000; --everyday: #a30000; color-scheme: dark;
+}
+html.red-mode header.site, html.red-mode footer.site, html.red-mode .all-tools, html.red-mode .dd-panel { background: #000; }
+html.red-mode *, html.red-mode *::before, html.red-mode *::after { box-shadow: none !important; text-shadow: none !important; }
+html.red-mode ::selection { background: #2b0000; color: #c00000; }
+html.red-mode :focus-visible { outline-color: #a30000; }
+html.red-mode img, html.red-mode video, html.red-mode canvas.photo { filter: url(#red-night); }
+html.red-mode input::placeholder, html.red-mode textarea::placeholder { color: #4a0000; }
+.red-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 15px; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.red-btn::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: #c00000; }
+html.red-mode .red-btn { border-color: #a30000; }
+
+/* "Only my tools" in the tool list. */
+.all-tools.focus .at-shelf, .all-tools.focus .at-empty { display: none; }
+.at-focus { margin-top: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; border-radius: 8px; padding: 6px 10px; cursor: pointer; }

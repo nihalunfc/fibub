@@ -28,10 +28,10 @@ export const CITIES: Place[] = [
 const KEY = 'fibub-sky-place-v1';
 export const browserTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } };
 
-/** The best first guess: a city in the browser's own time zone, or Toronto (with Toronto's own time). No location is asked for. */
+/** The best first guess: a city in the browser's own time zone, or Toronto. Times always start in the person's own zone. No location is asked for. */
 export function guessPlace(): Place {
   const tz = browserTz();
-  return { ...(CITIES.find((c) => c.tz === tz) ?? CITIES[0]) };
+  return { ...(CITIES.find((c) => c.tz === tz) ?? CITIES[0]), tz };
 }
 
 function valid(p: any): p is Place {

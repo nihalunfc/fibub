@@ -13,7 +13,7 @@ export type Section = {
 export type Palette = { bg: string; ink: string; muted: string; line: string; grid: string; accent: string; accent2: string; good: string; warn: string; bad: string; night: string; twilight: string; day: string; red: boolean };
 export const LIGHT: Palette = { bg: '#ffffff', ink: '#121826', muted: '#5d6577', line: '#cfd5e1', grid: '#e9ecf3', accent: '#0b7fa6', accent2: '#d97706', good: '#137a3e', warn: '#9a5b00', bad: '#b42323', night: '#1d2742', twilight: '#5a6a92', day: '#e8eefb', red: false };
 export const DARK: Palette = { bg: '#151b27', ink: '#e9edf5', muted: '#a0a9ba', line: '#3a4458', grid: '#262e3d', accent: '#5cc8f0', accent2: '#f5a83a', good: '#6fe39b', warn: '#f3b65c', bad: '#f59a9a', night: '#0a0f1c', twilight: '#2b3a5c', day: '#2a3550', red: false };
-export const RED: Palette = { bg: '#000000', ink: '#ff3b30', muted: '#b3261e', line: '#5c0f0b', grid: '#2a0705', accent: '#ff3b30', accent2: '#d0291f', good: '#ff3b30', warn: '#ff3b30', bad: '#ff3b30', night: '#120302', twilight: '#2a0705', day: '#3d0a07', red: true };
+export const RED: Palette = { bg: '#000000', ink: '#a30000', muted: '#6e0000', line: '#3a0000', grid: '#1c0000', accent: '#a30000', accent2: '#7a0000', good: '#a30000', warn: '#a30000', bad: '#c00000', night: '#080000', twilight: '#140000', day: '#240000', red: true };
 /** The palette matching the page right now: red night mode, dark or light. */
 export function pagePalette(): Palette {
   if (document.documentElement.classList.contains('red-mode')) return RED;

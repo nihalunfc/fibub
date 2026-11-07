@@ -27,7 +27,9 @@ fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the
 - **No tool lives on both sites** (nihal, 2026-11-07). Everyday public tools go on fibub; ambitious career prototypes go on nihalsulaiman.com. Link between them only where useful. nihal's name appears only on the About page; the footer says "Developer" and links to the portfolio.
 - Header: drop-down menus per shelf on computers; on phones a "Tools" button opens a full-height side panel half the screen wide, and the page behind keeps scrolling.
 - Every tool page has a **Bookmark this tool** button. Browsers cannot open their bookmark box from a script, so it shows Ctrl/⌘+D (or the share sheet on phones) and offers an optional "pin to My tools" (tool ids only, localStorage `fibub-mytools-v1`, with a Clear button).
-- Astronomy pages share the place and night (`src/lib/astro/state.ts`, `components/SkyPlace.astro`) and a **Red light** mode (`html.red-mode`) for night vision.
+- Astronomy pages share the place and night (`src/lib/astro/state.ts`, `components/SkyPlace.astro`). Times show in the visitor's own time zone by default, with a "Times in" switch (the place's local time or any zone); the night itself is the place's own night (from its longitude), whatever zone is shown.
+- **Red light for night use** (button on every Science tool page, `html.red-mode`, kept for the tab, switched on before paint by `public/red-light.js`): dim pure red on black only, no green or blue light; photos go through the `#red-night` filter. Keep it that way for dark-adapted eyes.
+- Home page: a plain index of tools by shelf (no cards). A star adds a tool to **My tools**; "Show only my tools" hides the rest until "Show all" (flag `fibub-focus-v1`, this browser only). The phone tool list follows the same switch.
 
 ## Brand
 Logo: a black-and-white bubble cluster (nihal chose option A, one colour, 2026-11-06), in `src/lib/brand.ts`. `npm run images` rebuilds the favicons and share images from it.

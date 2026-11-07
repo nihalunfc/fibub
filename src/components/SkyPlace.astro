@@ -1,5 +1,6 @@
 ---
-// The "where and when" bar on astronomy tools: place, time zone and the night to plan.
+// The "where and when" bar on astronomy tools: place, the night to plan, and the time zone every
+// time is shown in (the person's own zone by default, or the place's local time, or any zone).
 // The place stays on the device: kept for this tab, and between visits only if the box is ticked.
 interface Props { date?: boolean }
 const { date = true } = Astro.props;
@@ -9,8 +10,8 @@ const { date = true } = Astro.props;
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
     <span class="sp-sum"><b class="sp-name"></b> <span class="sp-coords"></span></span>
     <button type="button" class="sp-edit" aria-expanded="false">Change</button>
-    <button type="button" class="sp-red" aria-pressed="false" title="Red light keeps your eyes adapted to the dark">Red light</button>
     {date && <label class="sp-date-l">Night of <input type="date" class="sp-date" required /></label>}
+    <label class="sp-tz-l">Times in <select class="sp-tz" title="Every time on the page is shown in this time zone"></select></label>
   </div>
   <div class="sp-form" hidden>
     <div class="sp-grid">
@@ -18,7 +19,6 @@ const { date = true } = Astro.props;
       <label>Latitude <input class="sp-lat" inputmode="decimal" placeholder="43.65" /></label>
       <label>Longitude <input class="sp-lon" inputmode="decimal" placeholder="-79.38" /></label>
       <label>Height (m) <input class="sp-elev" inputmode="decimal" placeholder="0" /></label>
-      <label>Time zone <select class="sp-tz"></select></label>
     </div>
     <datalist id="sp-cities"></datalist>
     <p class="sp-help">North and east are positive; south and west are negative (Toronto is 43.65, -79.38).</p>
@@ -37,11 +37,11 @@ const { date = true } = Astro.props;
   .sp-sum { min-width: 0; flex: 1 1 160px; }
   .sp-coords { color: var(--muted); font-size: 14px; white-space: nowrap; }
   .sp-edit { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 2px; }
-  .sp-red { border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
-  .sp-red[aria-pressed=true] { background: #ff3b30; color: #000; border-color: #ff3b30; }
   .sp-date-l { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
   .sp input, .sp select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; }
   .sp-date { width: auto !important; }
+  .sp-tz-l { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; flex: 1 1 220px; }
+  .sp-tz-l select { flex: 1; width: auto; max-width: 100%; }
   .sp-form { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
   .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; margin-top: 10px; }
   .sp-grid label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
@@ -54,19 +54,8 @@ const { date = true } = Astro.props;
 </style>
 
 <script>
-  import { CITIES, allZones, tzLabel, guessPlace, type Place } from '../lib/astro/place';
+  import { CITIES, allZones, tzLabel, browserTz, type Place } from '../lib/astro/place';
   import { getSky, setSky, onSky } from '../lib/astro/state';
-
-  // Red light: the whole page in red and black, kept for this tab.
-  const RED = 'fibub-red-light';
-  const setRed = (on: boolean) => {
-    document.documentElement.classList.toggle('red-mode', on);
-    document.querySelectorAll('.sp-red').forEach((b) => b.setAttribute('aria-pressed', String(on)));
-    try { on ? sessionStorage.setItem(RED, '1') : sessionStorage.removeItem(RED); } catch {}
-    document.dispatchEvent(new CustomEvent('fibub:theme'));
-  };
-  try { if (sessionStorage.getItem(RED)) setRed(true); } catch {}
-  document.querySelectorAll('.sp-red').forEach((b) => b.addEventListener('click', () => setRed(!document.documentElement.classList.contains('red-mode'))));
 
   for (const root of document.querySelectorAll<HTMLElement>('.sp')) {
     const q = <T extends HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -76,25 +65,36 @@ const { date = true } = Astro.props;
     const date = root.querySelector<HTMLInputElement>('.sp-date');
     root.querySelector('#sp-cities')!.replaceChildren(...CITIES.map((c) => Object.assign(document.createElement('option'), { value: c.name })));
     const zones = allZones();
+    // "Times in": your own time zone first (the default), then the place's local time, then every zone.
+    const mine = browserTz();
+    const opt = (v: string, t: string) => Object.assign(document.createElement('option'), { value: v, textContent: t });
+    const zoneName = (z: string) => `${z.replace(/_/g, ' ')} (${tzLabel(z)})`;
+    const fillTz = () => {
+      const p = getSky().place, there = CITIES.find((c) => c.name === p.name)?.tz;
+      const top = [opt(mine, `My time zone: ${zoneName(mine)}`)];
+      if (there && there !== mine) top.push(opt(there, `Local time in ${p.name}: ${zoneName(there)}`));
+      const all = document.createElement('optgroup'); all.label = 'Other time zones';
+      all.append(...[...new Set([...zones, p.tz])].filter((z) => z !== mine && z !== there).map((z) => opt(z, zoneName(z))));
+      tz.replaceChildren(...top, all);
+      tz.value = p.tz;
+    };
     const fill = () => {
       const s = getSky();
-      if (![...tz.options].some((o) => o.value === s.place.tz)) zones.includes(s.place.tz) || zones.push(s.place.tz);
-      if (!tz.options.length) tz.replaceChildren(...zones.map((z) => Object.assign(document.createElement('option'), { value: z, textContent: `${z.replace(/_/g, ' ')} (${tzLabel(z)})` })));
-      tz.value = s.place.tz;
       city.value = s.place.name; lat.value = String(s.place.lat); lon.value = String(s.place.lon); elev.value = String(s.place.elev || 0);
       remember.checked = s.remembered;
     };
     onSky((s) => {
       const p = s.place;
       q<HTMLElement>('.sp-name').textContent = p.name;
-      q<HTMLElement>('.sp-coords').textContent = `${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lon).toFixed(2)}°${p.lon >= 0 ? 'E' : 'W'} · ${tzLabel(p.tz)}`;
+      q<HTMLElement>('.sp-coords').textContent = `${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lon).toFixed(2)}°${p.lon >= 0 ? 'E' : 'W'}`;
       if (date && date.value !== s.date) date.value = s.date;
+      fillTz();
     });
     edit.addEventListener('click', () => { form.hidden = !form.hidden; edit.setAttribute('aria-expanded', String(!form.hidden)); edit.textContent = form.hidden ? 'Change' : 'Close'; if (!form.hidden) fill(); });
     const apply = (p: Partial<Place>) => setSky({ place: { ...getSky().place, ...p } });
     city.addEventListener('change', () => {
       const c = CITIES.find((c) => c.name.toLowerCase() === city.value.trim().toLowerCase());
-      if (c) { apply(c); fill(); } else if (city.value.trim()) apply({ name: city.value.trim() });
+      if (c) { apply({ ...c, tz: getSky().place.tz }); fill(); } else if (city.value.trim()) apply({ name: city.value.trim() });
     });
     const num = (el: HTMLInputElement, max: number) => { const v = parseFloat(el.value.replace(',', '.').replace('−', '-')); return Number.isFinite(v) && Math.abs(v) <= max ? v : null; };
     for (const [el, key, max] of [[lat, 'lat', 90], [lon, 'lon', 180], [elev, 'elev', 9000]] as const) {
@@ -113,7 +113,7 @@ const { date = true } = Astro.props;
       msg.textContent = 'Asking your device for your location…';
       navigator.geolocation.getCurrentPosition((pos) => {
         const { latitude, longitude, altitude } = pos.coords;
-        apply({ name: 'My location', lat: +latitude.toFixed(3), lon: +longitude.toFixed(3), elev: altitude ? Math.round(altitude) : getSky().place.elev, tz: guessPlace().tz });
+        apply({ name: 'My location', lat: +latitude.toFixed(3), lon: +longitude.toFixed(3), elev: altitude ? Math.round(altitude) : getSky().place.elev, tz: getSky().place.tz });
         fill();
         msg.textContent = 'Location set. It stays on this device.';
       }, () => { msg.textContent = 'Location was not shared. Type a city or the numbers instead.'; }, { maximumAge: 600000, timeout: 15000 });

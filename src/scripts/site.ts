@@ -9,9 +9,20 @@ export function myTools(): string[] {
   try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; }
   catch { return []; }
 }
-function setMyTools(ids: string[]) {
+export function setMyTools(ids: string[]) {
   try { ids.length ? localStorage.setItem(KEY, JSON.stringify(ids)) : localStorage.removeItem(KEY); } catch { /* storage blocked: nothing kept */ }
   document.dispatchEvent(new CustomEvent('fibub:mytools', { detail: ids }));
+}
+
+export const togglePin = (id: string) => { const ids = myTools(); setMyTools(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]); };
+
+// "Only my tools": hide every other tool on the home page and in the tool list, until the person
+// asks to see them all again. A single on/off flag, kept only in this browser.
+const FOCUS = 'fibub-focus-v1';
+export const focusOn = () => { try { return localStorage.getItem(FOCUS) === '1' && myTools().length > 0; } catch { return false; } };
+export function setFocus(on: boolean) {
+  try { on ? localStorage.setItem(FOCUS, '1') : localStorage.removeItem(FOCUS); } catch { /* blocked */ }
+  document.dispatchEvent(new CustomEvent('fibub:focus', { detail: on }));
 }
 
 const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
@@ -47,6 +58,7 @@ if (btn && panel) {
     panel.querySelectorAll<HTMLElement>('.at-group').forEach((g) => (g.hidden = !g.querySelector('.at-item:not([hidden])')));
     panel.querySelectorAll<HTMLElement>('.at-shelf').forEach((s) => (s.hidden = !s.querySelector('.at-item:not([hidden])')));
     mine.hidden = words.length > 0 || !mineList.children.length;
+    panel.classList.toggle('focus', focusOn() && !words.length);
     empty.hidden = shown > 0;
   });
   search.addEventListener('keydown', (e) => {
@@ -63,8 +75,14 @@ if (btn && panel) {
       return c;
     }));
     mine.hidden = !mineList.children.length || search.value.trim() !== '';
+    const f = focusOn() && !search.value.trim();
+    panel.classList.toggle('focus', f);
+    focusBtn.textContent = f ? `Show all ${items.length} tools` : 'Show only my tools';
   }
-  panel.querySelector('.at-clear')!.addEventListener('click', () => { setMyTools([]); renderMine(); });
+  const focusBtn = panel.querySelector<HTMLButtonElement>('.at-focus')!;
+  focusBtn.addEventListener('click', () => setFocus(!focusOn()));
+  document.addEventListener('fibub:focus', renderMine);
+  panel.querySelector('.at-clear')!.addEventListener('click', () => { setMyTools([]); setFocus(false); renderMine(); });
   document.addEventListener('fibub:mytools', renderMine);
 }
 
@@ -110,4 +128,18 @@ if (bm) {
     try { await navigator.share({ title: document.title, url: location.href }); } catch { /* closed the share sheet */ }
     close();
   });
+}
+
+// Red light for night use (science tools): dim red on black, kept for this tab only.
+{
+  const KEY = 'fibub-red-light', html = document.documentElement;
+  const sync = () => document.querySelectorAll('.red-btn').forEach((b) => { const on = html.classList.contains('red-mode'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Turn off red light' : 'Red light for night use'; });
+  document.querySelectorAll('.red-btn').forEach((b) => b.addEventListener('click', () => {
+    const on = !html.classList.contains('red-mode');
+    html.classList.toggle('red-mode', on);
+    try { on ? sessionStorage.setItem(KEY, '1') : sessionStorage.removeItem(KEY); } catch {}
+    sync();
+    document.dispatchEvent(new CustomEvent('fibub:theme'));
+  }));
+  sync();
 }
