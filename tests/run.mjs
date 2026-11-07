@@ -487,10 +487,98 @@ try {
     check(/\.docx or PDF/.test(old.error ?? ''), 'ATS: old .doc file asks to save as .docx or PDF');
   }
 
+  // 6k. Weekly and monthly planner.
+  {
+    await page.goto(BASE + '/everyday/planner/');
+    await page.evaluate(() => localStorage.removeItem('fibub-planner-v1'));
+    await page.reload();
+    for (const t of ['Gym 7am mon', 'Client call 10-11am tue', 'Groceries sat', 'Movie night 8pm sat', 'Late shift 9-11pm thu']) { await page.fill('.pl-quick-in', t); await page.press('.pl-quick-in', 'Enter'); }
+    const days = await page.$$eval('.pl-day', (d) => d.map((x) => [x.querySelector('.pl-dh b').textContent, [...x.querySelectorAll('.pl-it')].map((i) => i.textContent.trim())]));
+    const on = (d) => days.find(([n]) => n.startsWith(d))?.[1] ?? [];
+    check(on('Mon').some((t) => /7:00.*Gym/i.test(t)) && on('Tue').some((t) => /10:00.*11:00.*Client call/i.test(t)), `planner: quick add reads day and time -> ${JSON.stringify(days.filter(([, i]) => i.length))}`);
+    check(on('Sat').length === 2 && /Groceries/.test(on('Sat')[0]) && /8:00.*Movie night/i.test(on('Sat')[1]), 'planner: several plans a day, untimed first then by time');
+    check(on('Thu').some((t) => /9:00\s*pm.*11:00\s*pm|21:00.*23:00/i.test(t)), `planner: "9-11pm" is an evening range -> ${on('Thu')}`);
+    await page.locator('.pl-day', { hasText: 'Gym' }).locator('.pl-it', { hasText: 'Gym' }).click();
+    await page.fill('.pl-form [name=text]', 'Gym and swim');
+    await page.click('.pl-form button[value=save]');
+    check(await page.locator('.pl-it', { hasText: 'Gym and swim' }).waitFor({ timeout: 3000 }).then(() => true, () => false), 'planner: edit a plan');
+    await page.locator('.pl-it', { hasText: 'Groceries' }).locator('.pl-tick').click();
+    check(await page.locator('.pl-it.done', { hasText: 'Groceries' }).count() === 1, 'planner: tick a plan as done');
+    await page.reload();
+    check(await page.locator('.pl-it', { hasText: 'Movie night' }).count() === 1, 'planner: plans are still there after reload (kept in this browser)');
+    const [png] = await Promise.all([page.waitForEvent('download'), page.click('.pl-png')]);
+    await png.saveAs(OUT + 'week.png');
+    const pb = readFileSync(OUT + 'week.png');
+    check(/^week-\d{4}-\d{2}-\d{2}\.png$/.test(png.suggestedFilename()) && pb.readUInt32BE(16) === 2339 && pb.readUInt32BE(20) === 1654, `planner: week image ${png.suggestedFilename()} ${pb.readUInt32BE(16)}x${pb.readUInt32BE(20)}`);
+    await page.click('[data-view=month]');
+    check(await page.locator('.pl-cell i', { hasText: 'Movie night' }).count() === 1, 'planner: month view shows plans');
+    const [pdf] = await Promise.all([page.waitForEvent('download'), page.click('.pl-pdf')]);
+    await pdf.saveAs(OUT + 'month.pdf');
+    const pd = await PDFDocument.load(readFileSync(OUT + 'month.pdf'));
+    check(pd.getPageCount() === 1 && Math.round(pd.getPage(0).getWidth()) === 842, `planner: month PDF is one A4 landscape page (${pdf.suggestedFilename()})`);
+    await page.click('[data-view=week]');
+  }
+
+  // 6l. Loan payoff planner (50 lakh at 8.5% for 20 years: EMI 43,391).
+  {
+    const lp = await browser.newContext({ locale: 'en-IN' }).then((c) => c.newPage());
+    await lp.goto(BASE + '/money/loan-payoff-planner/');
+    const base = await lp.textContent('.ln-base');
+    check(/43,391/.test(base) && /54,13,8\d\d/.test(base), `loan: EMI and total interest -> ${base}`);
+    const row = lp.locator('.ln-presets tr', { hasText: '1 extra payment every year' });
+    const cells = await row.locator('td').allTextContents();
+    check(/10,2\d,\d{3}/.test(cells[2]) && cells[3] === '3 years 3 months', `loan: one extra EMI a year saves ~10.2 lakh and 3 years 3 months -> ${cells.join(' | ')}`);
+    await row.locator('button').click();
+    check((await lp.textContent('.ln-s-time')) === '3 years 3 months', 'loan: "Use" copies a ready-made plan into your plan');
+    await lp.click('.ln-addrow');
+    const rows = lp.locator('.ln-row');
+    await rows.nth(1).locator('.r-amt').fill('2000');
+    await rows.nth(1).locator('.r-freq').selectOption('1');
+    const more = await lp.textContent('.ln-s-int');
+    check(/₹1[1-9],\d\d,\d{3}/.test(more), `loan: mixing a yearly and a monthly prepayment saves more -> ${more}`);
+    await lp.check('[name=ln-mode][value=emi]');
+    check((await lp.textContent('.ln-s-time-l')) === 'New monthly payment' && /₹/.test(await lp.textContent('.ln-s-time')), `loan: "Lower my EMI" shows the new EMI -> ${await lp.textContent('.ln-s-time')}`);
+    await lp.fill('.ln-once', '100000');
+    check(/save ₹4,1\d,\d{3} in interest/.test(await lp.textContent('.ln-what-out')), `loan: one-time what-if -> ${await lp.textContent('.ln-what-out')}`);
+    check((await lp.$$('.ln-ybody tr')).length === 20, 'loan: year-by-year table has 20 years');
+    await lp.fill('[data-k=pay]', '30000');
+    check(!(await lp.isHidden('.ln-err')) && /never end/.test(await lp.textContent('.ln-err')), 'loan: a payment below the interest is flagged');
+    await lp.context().close();
+  }
+
+  // 6m. Budget planner.
+  {
+    const bp = await browser.newContext({ locale: 'en-CA' }).then((c) => c.newPage());
+    await bp.goto(BASE + '/money/budget-calculator/');
+    const amts = [1200, 900, 400, 250, 300, 80, 0, 150];
+    const inputs = await bp.$$('.p-lines .l-amt');
+    for (let i = 0; i < inputs.length; i++) if (amts[i]) await inputs[i].fill(String(amts[i]));
+    await bp.fill('.p-saved', '500');
+    const ry = new Date(); ry.setMonth(ry.getMonth() + 12);
+    await bp.fill('.p-date', `${ry.getFullYear()}-${String(ry.getMonth() + 1).padStart(2, '0')}`);
+    check((await bp.textContent('.p-total')) === '$3,608' && (await bp.textContent('.p-month')) === '$259', `budget: trip total with 10% extra and monthly saving -> ${await bp.textContent('.p-total')} ${await bp.textContent('.p-month')}`);
+    await bp.fill('.p-can', '400');
+    check(/8 months/.test(await bp.textContent('.p-ready')), `budget: "I can save" gives the ready date -> ${await bp.textContent('.p-ready')}`);
+    await bp.click('[data-tab=month]');
+    await bp.click('.m-example');
+    check((await bp.textContent('.m-exp')) === '$3,313' && (await bp.textContent('.m-left')) === '$887', `budget: monthly in/out with weekly and yearly costs -> ${await bp.textContent('.m-exp')} ${await bp.textContent('.m-left')}`);
+    check(/Set aside each month\$392/.test(await bp.textContent('.m-yearly')), 'budget: yearly bills turned into a monthly set-aside');
+    check(/\$135 a month, \$1,620 a year/.test(await bp.textContent('.m-cutout')), 'budget: trimming wants by 20%');
+    check(/After 5 years\$67,758/.test(await bp.textContent('.m-grow')), `budget: savings growth -> ${await bp.textContent('.m-grow')}`);
+    await bp.reload();
+    check((await bp.inputValue('.m-out .l-amt')) === '', 'budget: nothing is remembered unless you tick the box');
+    await bp.click('[data-tab=month]'); await bp.click('.m-example'); await bp.check('.bg-remember');
+    await bp.reload();
+    check((await bp.inputValue('.m-out .l-amt')) === '1,500', 'budget: "Remember my numbers" keeps them on this device');
+    await bp.uncheck('.bg-remember');
+    check(await bp.evaluate(() => localStorage.getItem('fibub-budget-v1')) === null, 'budget: unticking deletes them');
+    await bp.context().close();
+  }
+
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
   {
     const pngSize = (f) => { const b = readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
+    for (const path of ['/', '/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/']) {
       await page.goto(BASE + path);
       const og = await page.getAttribute('meta[property="og:image"]', 'content');
       const file = 'dist' + new URL(og).pathname;
@@ -597,14 +685,14 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
