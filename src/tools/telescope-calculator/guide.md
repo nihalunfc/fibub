@@ -1,5 +1,6 @@
 ---
 name: Telescope and camera calculator
+num: 19
 shelf: science
 section: astrophotography
 title: "Telescope calculator: magnification, field of view, exit pupil and camera sampling"

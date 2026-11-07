@@ -1,5 +1,6 @@
 ---
 name: Loan payoff planner
+num: 11
 shelf: money
 title: "Loan prepayment calculator: pay off your loan faster and see the interest you save"
 summary: "Plan extra payments on a home, car or personal loan, as lump sums or regular top-ups, and see the interest you save and how much sooner you're debt-free."

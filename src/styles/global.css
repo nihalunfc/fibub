@@ -70,6 +70,8 @@ h3 { font-size: 17px; margin: 24px 0 8px; }
 .crumbs { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .crumbs a { color: var(--muted); text-decoration: none; }
 .crumbs a:hover { color: var(--accent); }
+.tool-num { display: inline-block; margin-left: 10px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.num { color: var(--muted); font-weight: 500; font-size: .85em; font-variant-numeric: tabular-nums; margin-left: 6px; }
 
 /* Tool cards */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }

@@ -1,5 +1,6 @@
 ---
 name: Observing log
+num: 17
 shelf: science
 section: observing
 title: "Astronomy observing log: record observations and build your own database (CSV)"

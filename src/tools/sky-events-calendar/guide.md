@@ -1,5 +1,6 @@
 ---
 name: Sky events calendar
+num: 16
 shelf: science
 section: observing
 title: "Astronomy calendar: Moon phases, meteor showers, eclipses and planet events by month"

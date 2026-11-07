@@ -12,8 +12,8 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
 ---
 <Base title={SITE.name}>
   <section class="hero">
-    <h1>Everyday tools that never see your files</h1>
-    <p class="lead">Compress, resize, check and convert, right in your browser. Fast, free and private.</p>
+    <h1>Free tools that never see your files</h1>
+    <p class="lead">The tools people need and can't find for free, from PDFs and resumes to bills, data and the night sky. Everything runs right in your browser.</p>
     <ul class="promises">
       {promises.map(([i, t]) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[i]} />{t}</li>)}
     </ul>
@@ -73,7 +73,7 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
 </style>
 
 <script>
-  import { myTools } from '../scripts/site';
+  import { myTools, matches } from '../scripts/site';
   // My tools: copies of the bookmarked tools' cards, first on the page.
   const mine = document.querySelector<HTMLElement>('.mine')!, mineGrid = mine.querySelector<HTMLElement>('.mine-grid')!;
   function showMine() {
@@ -93,7 +93,7 @@ const promises: [keyof typeof ICONS, string][] = [['lock', 'Nothing is uploaded'
     const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
     let shown = 0;
     for (const el of items) {
-      const ok = words.every((w) => el.dataset.search!.includes(w));
+      const ok = words.every((w) => matches(el, w));
       el.hidden = !ok;
       if (ok) shown++;
     }

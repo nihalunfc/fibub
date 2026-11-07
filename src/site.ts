@@ -2,9 +2,10 @@
 export const SITE = {
   name: 'fibub',
   url: 'https://fibub.com',
-  tagline: 'Free everyday tools that never see your files',
+  tagline: 'Free tools that run in your browser',
+  meaning: 'Free In-Browser Utility Bubble',
   description:
-    'Free online tools for money, documents, everyday tasks and science. Everything runs in your browser: your files and numbers never leave your device.',
+    'Free tools for documents, money, data, everyday tasks and science, made to fill the gaps other tools leave. Everything runs in your browser: your files and numbers never leave your device.',
   maker: { name: 'Nihal Sulaiman', url: 'https://nihalsulaiman.com' },
 };
 

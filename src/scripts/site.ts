@@ -2,6 +2,9 @@
 // bookmarked. My tools is kept only in this browser (localStorage) and can be cleared from the list.
 const KEY = 'fibub-mytools-v1';
 
+/** One search word against a tool: "#3" finds tool number 3 only; "3" finds it too, or any tool whose text has a 3 in it. */
+export const matches = (el: HTMLElement, w: string) => (/^#\d+$/.test(w) ? el.dataset.num === w.slice(1) : (/^\d+$/.test(w) && el.dataset.num === w) || el.dataset.search!.includes(w));
+
 export function myTools(): string[] {
   try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; }
   catch { return []; }
@@ -40,7 +43,7 @@ if (btn && panel) {
   search.addEventListener('input', () => {
     const words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
     let shown = 0;
-    for (const a of items) { const ok = words.every((w) => a.dataset.search!.includes(w)); a.hidden = !ok; if (ok) shown++; }
+    for (const a of items) { const ok = words.every((w) => matches(a, w)); a.hidden = !ok; if (ok) shown++; }
     panel.querySelectorAll<HTMLElement>('.at-group').forEach((g) => (g.hidden = !g.querySelector('.at-item:not([hidden])')));
     panel.querySelectorAll<HTMLElement>('.at-shelf').forEach((s) => (s.hidden = !s.querySelector('.at-item:not([hidden])')));
     mine.hidden = words.length > 0 || !mineList.children.length;

@@ -16,6 +16,7 @@ const tools = defineCollection({
     status: z.enum(['live', 'soon']).default('live'),
     ads: z.boolean().default(false), // false on any page that handles personal files or bank data
     order: z.number().default(100),
+    num: z.number().int().positive().optional(), // the tool's permanent #number (1, 2, 3...): never changed or reused
     updated: z.coerce.date(),
     // The picture at the top of the tool page: 3 or 4 steps, one short label each so the
     // row fits a 320 px phone screen without wrapping. Required for live tools.

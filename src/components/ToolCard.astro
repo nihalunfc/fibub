@@ -6,10 +6,10 @@ interface Props { tool: Tool }
 const { tool } = Astro.props;
 const d = tool.data;
 ---
-<a class="tc" href={toolUrl(tool)} data-shelf={d.shelf} data-search={`${d.name} ${d.summary}`.toLowerCase()}>
+<a class="tc" href={toolUrl(tool)} data-shelf={d.shelf} data-num={d.num} data-search={`${d.name} ${d.summary}`.toLowerCase()}>
   <span class="tc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[d.icon]} /></span>
   <span class="tc-body">
-    <b>{d.name}</b>
+    <b>{d.name}{d.num && <small class="num"> #{d.num}</small>}</b>
     <span class="tc-sum">{d.summary}</span>
     {d.works === 'online' && <span class="tc-works online" data-works={d.works}>Needs internet</span>}
   </span>

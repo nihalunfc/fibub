@@ -719,6 +719,12 @@ try {
     await page.goto(BASE + '/');
     check(await page.isVisible('.mine'), 'home: My tools shows the pinned tool');
     await page.evaluate(() => localStorage.removeItem('fibub-mytools-v1'));
+    // Every tool has a #number: shown on its page, and "#3" finds exactly that tool.
+    await page.fill('.search input', '#3');
+    const byNum = await page.$$eval('.tc', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('b').textContent));
+    check(byNum.length === 1 && /#3$/.test(byNum[0]), `tool numbers: home search "#3" -> ${byNum.join(', ')}`);
+    await page.goto(`${BASE}/documents/zip-checker/`);
+    check((await page.textContent('.tool-num')) === 'Tool #3', 'tool numbers: the tool page shows Tool #3');
   }
 
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
@@ -811,7 +817,7 @@ try {
   // Home search filters the tools.
   await page.goto(BASE + '/');
   await page.fill('.search input', 'zip');
-  const shown = await page.$$eval('.tc', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('b').textContent));
+  const shown = await page.$$eval('.tc', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('b').firstChild.textContent));
   check(shown.includes('ZIP checker') && !shown.includes('Image resizer'), `home search "zip" -> ${shown.join(', ')}`);
   await page.fill('.search input', 'qqqq');
   check(await page.isVisible('.empty'), 'home search: no match shows a suggestion link');

@@ -1,6 +1,6 @@
 # Notes for Claude sessions in this repo
 
-fibub.com: free everyday tools (money, documents, everyday) that run entirely in the browser. Astro 5, static, served by a Cloudflare Worker with static assets (`wrangler.jsonc`; Cloudflare builds and deploys `main` on every merge). Owner: nihal (GitHub `nihalunfc`).
+fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the gaps people and workplaces have): tools for documents, money, data, everyday tasks and science that run entirely in the browser. MIT License (OpenNGC catalogue data is CC-BY-SA 4.0). Astro 5, static, served by a Cloudflare Worker with static assets (`wrangler.jsonc`; Cloudflare builds and deploys `main` on every merge). Owner: nihal (GitHub `nihalunfc`).
 
 ## House rules
 - **Nothing about the user is stored, ever** (nihal, 2026-11-06). Only anonymous daily totals (tool, file type, size range, device, OS, browser, country, outcome) go to `data/stats/` and the public `/stats/` page. No IPs, IDs, cookies, timestamps finer than a day, or return-visit tracking.
@@ -15,7 +15,7 @@ fibub.com: free everyday tools (money, documents, everyday) that run entirely in
 
 ## Adding a tool
 1. Make `src/tools/<id>/` (the id is the URL slug, e.g. `compress-pdf`).
-2. `guide.md`: frontmatter (`name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`, `works`: offline | online (offline = keeps working with no internet once the page is open; test it), and for live tools `flow`: 3 or 4 steps of `{ icon, label }`, labels up to 12 characters, icons from `src/lib/icons.ts`; it is the picture at the top of the tool page and must stay on one row on a 320 px phone) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
+2. `guide.md`: frontmatter (`num`: the tool's permanent #number, the next free one; never change or reuse a number, even if a tool is removed. nihal refers to tools by it, e.g. "make the buttons better on #3". `name`, `shelf`: money | documents | everyday, `title` as people search it, `summary`, `status`: live | soon, `ads`, `order`, `updated`, `works`: offline | online (offline = keeps working with no internet once the page is open; test it), and for live tools `flow`: 3 or 4 steps of `{ icon, label }`, labels up to 12 characters, icons from `src/lib/icons.ts`; it is the picture at the top of the tool page and must stay on one row on a 320 px phone) and a body of 300+ words: how to use it, what each option does, a worked example, FAQs.
 3. `Tool.astro`: the UI and its `<script>`. Load heavy libraries with `import()` so the page stays fast.
 4. Add checks for it in `tests/run.mjs`, and run `npm run images` to make its share image (`public/og/<id>.png`: tool name, fibub.com, FREE, NO SIGN-UP). Commit the image.
 5. Shelves can have sections (`section` in guide.md, listed in `SECTIONS` in `src/site.ts`; e.g. science: observing, astrophotography, research). The build fails on an unknown section.

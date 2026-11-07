@@ -1,5 +1,6 @@
 ---
 name: FITS viewer and header inspector
+num: 21
 shelf: science
 section: astrophotography
 title: "FITS viewer online: open, stretch and inspect FITS images and headers in your browser"

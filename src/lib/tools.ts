@@ -10,7 +10,12 @@ export const toolComponent = (id: string) => components[`../tools/${id}/Tool.ast
 export async function allTools() {
   const tools = await getCollection('tools');
   const ids = new Set(tools.map((t) => t.id));
+  const nums = new Map<number, string>();
   for (const t of tools) {
+    const n = t.data.num;
+    if (t.data.status === 'live' && !n) throw new Error(`Tool "${t.id}" is live but has no num (its #number). Give it the next free number: ${Math.max(0, ...tools.map((x) => x.data.num ?? 0)) + 1}`);
+    if (n && nums.has(n)) throw new Error(`Tools "${nums.get(n)}" and "${t.id}" both have num ${n}. Numbers are permanent: give the newer tool the next free one`);
+    if (n) nums.set(n, t.id);
     if (t.data.status === 'live' && !toolComponent(t.id)) throw new Error(`Tool "${t.id}" is live but has no Tool.astro`);
     if (t.data.status === 'live' && !t.data.flow) throw new Error(`Tool "${t.id}" is live but has no flow (the picture of its steps) in guide.md`);
     for (const r of t.data.related) if (!ids.has(r)) throw new Error(`Tool "${t.id}" lists unknown related tool "${r}"`);

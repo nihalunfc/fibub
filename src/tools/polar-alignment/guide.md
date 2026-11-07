@@ -1,5 +1,6 @@
 ---
 name: Polar alignment helper
+num: 15
 shelf: science
 section: observing
 title: "Polar alignment: where to put Polaris in your polar scope right now"

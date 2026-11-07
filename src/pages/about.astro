@@ -2,14 +2,18 @@
 import Base from '../layouts/Base.astro';
 import { SITE } from '../site';
 ---
-<Base title="About" description="Why fibub exists and how its tools keep your files on your device.">
+<Base title="About" description="fibub means Free In-Browser Utility Bubble: free tools that fill the gaps, and keep your files on your device.">
   <article class="prose">
     <h1>About fibub</h1>
-    <p class="lead">fibub is a growing set of free tools for money, documents and everyday tasks, built so that your files and numbers never leave your device.</p>
+    <p class="lead">fibub stands for <b>Free In-Browser Utility Bubble</b>: a growing set of free tools for documents, money, data, everyday tasks and science, built so that your files and numbers never leave your device.</p>
+    <h2>Filling the gaps</h2>
+    <p>Every workplace has gaps: the small job that needs a tool nobody has bought, the check that is done by hand every week, the file that has to be cleaned before it can be shared. Big software leaves those gaps, and the free tools that fill them usually want your file on their server, your email address, or a subscription. fibub fills them for free, with tools that are useful at home and at work, and every line of code is open source.</p>
+    <h2>Why "bubble"?</h2>
+    <p>Each tool works inside your own browser, like a bubble around your data. Your file is opened, changed and saved on your computer or phone, and nothing floats out to a server.</p>
     <h2>Why it exists</h2>
     <p>Most free online tools ask you to upload your file to a server you know nothing about. That is a poor deal for a bank statement, a passport scan or a signed contract. Every fibub tool does its work inside your browser instead, using your own computer or phone.</p>
     <h2>How you can check</h2>
-    <p>Open a tool, switch off your internet connection, and use it: it keeps working, because nothing needs our server. The site's code is also public on <a href="https://github.com/nihalunfc/fibub">GitHub</a> for anyone to read. We only count anonymous totals of tool use, published on the <a href="/stats/">usage stats page</a>.</p>
+    <p>Open a tool, switch off your internet connection, and use it: it keeps working, because nothing needs our server. The site is open source under the MIT License: the code is on <a href="https://github.com/nihalunfc/fibub">GitHub</a> for anyone to read, check, reuse or improve. We only count anonymous totals of tool use, published on the <a href="/stats/">usage stats page</a>.</p>
     <h2>Who makes it</h2>
     <p>fibub is built and run by <a href={SITE.maker.url}>{SITE.maker.name}</a>, a data analyst based in Ontario, Canada. Have an idea for a tool, or found a bug? <a href="/contact/">Get in touch</a>.</p>
   </article>

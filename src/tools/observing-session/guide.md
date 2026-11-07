@@ -1,5 +1,6 @@
 ---
 name: Observing session planner
+num: 18
 shelf: science
 section: observing
 title: "Observing session planner: tonight's sky, targets, alignment and log sheet on one page"

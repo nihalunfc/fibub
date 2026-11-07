@@ -1,5 +1,6 @@
 ---
 name: Star trails and exposure calculator
+num: 20
 shelf: science
 section: astrophotography
 title: "NPF rule and 500 rule calculator, plus a star trails planner"

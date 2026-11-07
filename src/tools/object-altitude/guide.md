@@ -1,5 +1,6 @@
 ---
 name: Target altitude planner
+num: 14
 shelf: science
 section: observing
 title: "Object altitude and airmass chart for tonight, with your own horizon"

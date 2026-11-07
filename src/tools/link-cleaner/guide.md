@@ -1,5 +1,6 @@
 ---
 name: Link cleaner
+num: 6
 shelf: everyday
 title: "Link cleaner: remove tracking codes and UTM tags from any link"
 summary: "Remove tracking codes, UTM tags and affiliate parts from any link and get the clean address. Works on a whole message at once."
