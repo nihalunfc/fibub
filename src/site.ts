@@ -20,7 +20,9 @@ export const SHELVES = [
 // A tool joins one with `section:` in its guide.md.
 export const SECTIONS: Record<string, { id: string; name: string; blurb: string }[]> = {
   science: [
-    { id: 'astronomy', name: 'Astronomy', blurb: 'Plan observing nights, size up your gear and log what you see.' },
+    { id: 'observing', name: 'Astronomy: observing', blurb: 'Plan the night, find what is up, line up the mount and log what you see.' },
+    { id: 'astrophotography', name: 'Astronomy: astrophotography', blurb: 'Size up your telescope and camera, set exposures and open FITS files.' },
+    { id: 'research', name: 'Astronomy: research', blurb: 'Coordinates, time systems and catalogue work for students and researchers.' },
   ],
 };
 

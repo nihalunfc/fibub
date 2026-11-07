@@ -25,8 +25,18 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>
-    <button type="button" class="bm-btn" aria-pressed="false"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
+    <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
     <span class="bm-tip" role="status" aria-live="polite">Keep it one tap away for everyday use.</span>
+    <dialog class="bm-dlg" aria-labelledby="bm-title">
+      <h2 id="bm-title">Bookmark {tool.data.name}?</h2>
+      <p class="bm-desk">Press <kbd class="bm-k">Ctrl</kbd> + <kbd>D</kbd> now. Your browser opens its own bookmark box, where you choose the name and folder.</p>
+      <p class="bm-phone" hidden>Tap <b>Add bookmark</b>, then choose <b>Add bookmark</b> or <b>Add to Home Screen</b> from your phone's list.</p>
+      <label><input type="checkbox" class="bm-pin" /> Also pin it to My tools on fibub (kept only in this browser)</label>
+      <div class="bm-row">
+        <button type="button" class="btn bm-share" hidden>Add bookmark</button>
+        <button type="button" class="btn secondary bm-done">Done</button>
+      </div>
+    </dialog>
   </div>
   {tool.data.flow && <ToolFlow steps={tool.data.flow} works={tool.data.works} />}
   <ToolUI />

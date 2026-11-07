@@ -97,23 +97,22 @@ footer.site a { color: var(--muted); text-decoration: none; }
 footer.site a:hover { color: var(--accent); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Tool list button and panel. On phones and tablets it replaces the shelf links; the panel covers
-   half the screen and is not modal, so the page behind it still scrolls. */
+/* Tool list button and panel. On phones and tablets it replaces the shelf links. The panel is a
+   full-height side panel, half the screen wide, and not modal: the page beside it still scrolls. */
 .menu-btn { display: none; margin-left: auto; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .menu-btn svg { width: 18px; height: 18px; }
 .menu-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
-.all-tools { position: fixed; top: 64px; right: 8px; left: 8px; max-height: 50vh; max-height: 50dvh; overflow-y: auto; overscroll-behavior: contain; z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 48px rgba(18, 24, 38, .18); padding: 0 12px 12px; }
+.all-tools { position: fixed; top: 57px; right: 0; width: max(50vw, 200px); height: calc(100vh - 57px); height: calc(100dvh - 57px); overflow-y: auto; overscroll-behavior: contain; z-index: 30; background: var(--surface); border-left: 1px solid var(--line); box-shadow: -12px 0 32px rgba(18, 24, 38, .12); padding: 0 10px 16px; }
 .at-top { position: sticky; top: 0; display: flex; gap: 8px; padding: 12px 0 8px; background: var(--surface); z-index: 1; }
-.at-search { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }
+.at-search { flex: 1; min-width: 0; width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }
 .at-close { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 16px; cursor: pointer; }
 .at-shelf, .at-mine { padding: 6px 0; border-top: 1px solid var(--line); }
 .at-shelf-h, .at-h { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 4px; font-weight: 700; color: var(--ink); text-decoration: none; }
 .at-shelf-h span { font-size: 13px; font-weight: 600; color: var(--accent); }
 .at-h button { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .at-sub { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 6px 4px 2px; }
-.at-group, .at-mine-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
-.at-sub { grid-column: 1 / -1; }
-.at-item { display: flex; align-items: center; gap: 10px; padding: 9px 6px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 15px; }
+.at-group, .at-mine-list { display: grid; }
+.at-item { display: flex; align-items: center; gap: 8px; padding: 9px 4px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; line-height: 1.3; }
 .at-item:hover, .at-item:focus-visible { background: var(--bg); }
 .at-item svg { width: 18px; height: 18px; flex: none; color: var(--c, var(--accent)); }
 .at-shelf[data-shelf=money] { --c: var(--money); } .at-shelf[data-shelf=documents] { --c: var(--documents); } .at-shelf[data-shelf=everyday] { --c: var(--everyday); } .at-shelf[data-shelf=science] { --c: var(--science); }
@@ -123,14 +122,22 @@ footer.site a:hover { color: var(--accent); }
   .menu-btn { display: inline-flex; }
 }
 @media (min-width: 900px) and (hover: hover) {
-  .all-tools { left: auto; width: 420px; }
+  .all-tools { width: 380px; }
 }
 
 /* Bookmark button on tool pages. */
 .bm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 20px; }
 .bm-btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1.5px solid var(--accent); border-radius: 12px; background: var(--surface); color: var(--accent); font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; }
 .bm-btn svg { width: 20px; height: 20px; }
-.bm-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.bm-btn[aria-pressed="true"] svg { fill: currentColor; }
+.bm-btn[data-pinned="true"] { background: var(--accent); color: var(--accent-ink); }
+.bm-btn[data-pinned="true"] svg { fill: currentColor; }
 .bm-tip { font-size: 14px; color: var(--muted); }
-.bm-tip kbd { font: inherit; font-weight: 700; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; }
+.bm-dlg { border: 1px solid var(--line); border-radius: 16px; padding: 20px; max-width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 16px 48px rgba(18, 24, 38, .2); }
+.bm-dlg::backdrop { background: rgba(18, 24, 38, .35); }
+.bm-dlg h2 { margin: 0 0 8px; font-size: 19px; }
+.bm-dlg p { margin: 0 0 12px; color: var(--muted); }
+.bm-key { font-size: 18px; color: var(--ink) !important; }
+.bm-dlg label { display: flex; gap: 8px; align-items: center; margin: 4px 0 16px; font-size: 15px; cursor: pointer; }
+.bm-dlg label input { width: 18px; height: 18px; accent-color: var(--accent); }
+.bm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.bm-tip kbd, .bm-dlg kbd { font: inherit; font-weight: 700; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; }

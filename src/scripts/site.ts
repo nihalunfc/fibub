@@ -65,42 +65,46 @@ if (btn && panel) {
   document.addEventListener('fibub:mytools', renderMine);
 }
 
-// Bookmark button on tool pages. A website cannot add a browser bookmark by itself, so the button
-// saves the tool to My tools and then offers the closest thing the device has: the share sheet on
-// phones (it has "Add bookmark" and "Add to Home Screen"), or the keyboard shortcut on computers.
+// Bookmark button on tool pages. A website cannot open the browser's bookmark box by itself, so the
+// button asks first: on computers it shows the shortcut (Ctrl+D or ⌘D), which opens the browser's own
+// bookmark box; on phones it opens the share sheet, which has "Add bookmark" and "Add to Home Screen".
+// Pinning to My tools on fibub is a separate, optional tick box.
 const bm = document.querySelector<HTMLElement>('.bm');
 if (bm) {
   const id = bm.dataset.id!;
   const b = bm.querySelector<HTMLButtonElement>('.bm-btn')!;
-  const label = b.querySelector('span')!;
   const tip = bm.querySelector<HTMLElement>('.bm-tip')!;
+  const dlg = bm.querySelector<HTMLDialogElement>('.bm-dlg')!;
+  const pin = dlg.querySelector<HTMLInputElement>('.bm-pin')!;
+  const share = dlg.querySelector<HTMLButtonElement>('.bm-share')!;
   const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const show = () => {
-    const on = myTools().includes(id);
-    b.setAttribute('aria-pressed', String(on));
-    label.textContent = on ? 'In My tools' : 'Bookmark this tool';
-  };
+  if (mac) dlg.querySelector('.bm-k')!.textContent = '⌘';
+  if (touch) {
+    dlg.querySelector<HTMLElement>('.bm-desk')!.hidden = true;
+    const ph = dlg.querySelector<HTMLElement>('.bm-phone')!;
+    ph.hidden = false;
+    if (navigator.share) share.hidden = false;
+    else ph.textContent = 'Open your browser menu (⋮ or the share icon) and choose "Add bookmark" or "Add to Home Screen".';
+  }
+  const pinned = () => myTools().includes(id);
+  const show = () => b.dataset.pinned = String(pinned());
   show();
   document.addEventListener('fibub:mytools', show);
-  b.addEventListener('click', async () => {
-    const ids = myTools();
-    if (ids.includes(id)) {
-      setMyTools(ids.filter((x) => x !== id));
-      tip.textContent = 'Removed from My tools.';
-      return;
-    }
-    setMyTools([id, ...ids]);
-    if (touch && navigator.share) {
-      tip.textContent = 'Added to My tools (in the ☰ Tools list). Choose "Add bookmark" or "Add to Home Screen" to open it in one tap.';
-      try { await navigator.share({ title: document.title, url: location.href }); } catch { /* closed the share sheet */ }
-    } else if (touch) {
-      tip.textContent = 'Added to My tools (in the ☰ Tools list). To open it in one tap, use your browser menu: "Add bookmark" or "Add to Home Screen".';
-    } else {
-      tip.innerHTML = '';
-      tip.append('Added to My tools. To keep it in your browser too, press ');
-      const k = document.createElement('kbd'); k.textContent = mac ? '⌘ D' : 'Ctrl D';
-      tip.append(k, '.');
-    }
+  const close = () => {
+    const ids = myTools().filter((x) => x !== id);
+    setMyTools(pin.checked ? [id, ...ids] : ids);
+    dlg.close();
+    tip.textContent = pin.checked ? 'Pinned to My tools (in the Tools list).' : 'Keep it one tap away for everyday use.';
+  };
+  b.addEventListener('click', () => { pin.checked = pinned(); dlg.showModal(); });
+  dlg.querySelector('.bm-done')!.addEventListener('click', close);
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); });
+  // Ctrl+D / ⌘D goes straight to the browser; close our prompt so its bookmark box is in front.
+  dlg.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') setTimeout(close, 0); });
+  share.addEventListener('click', async () => {
+    try { await navigator.share({ title: document.title, url: location.href }); } catch { /* closed the share sheet */ }
+    close();
   });
 }
