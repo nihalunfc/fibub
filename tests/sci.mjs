@@ -108,6 +108,7 @@ import * as DL from '../src/lib/sci/delta.ts';
 import * as MX from '../src/lib/sci/mixing.ts';
 import * as TER from '../src/lib/sci/ternary.ts';
 import * as PIP from '../src/lib/sci/piper.ts';
+import * as PT from '../src/lib/sci/pumptest.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1876,6 +1877,33 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('piper: water type', PIP.waterType({ Ca: 3, Mg: 1.2, Na: 0.8, HCO3: 4, SO4: 0.6, Cl: 0.5 }) === 'Ca-Mg-HCO3');
   check('piper: water type with K added to Na', PIP.waterType({ Ca: 1, Na: 0.5, K: 0.6, Cl: 2 }) === 'Na-Ca-Cl');
   near('piper: hardness', PIP.hardness(2, 1), 150.13035, 1e-9);
+}
+{
+  // Pumping tests. W(u) = E1(u) checked against values from the definition: E1(1) = 0.219383934395520 and
+  // E1(u) = -γ - ln u + u - u²/4 + ... for small u.
+  near('pump test: W(1)', PT.wellW(1), 0.21938393439552, 1e-12);
+  near('pump test: W(1e-6) from the series', PT.wellW(1e-6), -0.5772156649015329 - Math.log(1e-6) + 1e-6 - 0.25e-12, 1e-12);
+  // Above 1, compare with a fine numerical integral of e^-x / x.
+  const e1 = (u) => { let s = 0; const N = 400000, L = 50; for (let i = 0; i < N; i++) { const x = u + (i + 0.5) * L / N; s += Math.exp(-x) / x; } return s * L / N; };
+  near('pump test: W(2.5)', PT.wellW(2.5), e1(2.5), 1e-9);
+  near('pump test: W(0.99) and W(1.01) join smoothly', PT.wellW(0.99) - PT.wellW(1.01), 0.02 * Math.exp(-1) / 1, 1e-5);
+  check('pump test: W(0) is undefined', Number.isNaN(PT.wellW(0)));
+  const Q = 500 / 86400, r = 30, T = 250 / 86400, S = 2e-4;
+  const t = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].map((m) => m * 60), s = t.map((ti) => PT.theis(ti, r, Q, T, S));
+  const f = PT.fitTheis(t, s, r, Q);
+  near('pump test: Theis fit recovers T', f.T / T, 1, 1e-6); near('pump test: Theis fit recovers S', f.S / S, 1, 1e-6);
+  const cj = PT.cooperJacob(t, s, r, Q);
+  near('pump test: Cooper-Jacob T on exact data', cj.T / T, 1, 0.02);
+  check('pump test: Cooper-Jacob keeps small u only', t.every((ti, i) => !cj.used[i] || PT.uOf(ti, r, cj.T, cj.S) <= 0.05));
+  // Cooper-Jacob in its own terms: exact log-linear drawdown gives the exact T and S.
+  const tl = [100, 200, 400, 800, 1600], sl = tl.map((ti) => (2.303 * Q / (4 * Math.PI * T)) * Math.log10((2.25 * T * ti) / (r * r * 1e-6)));
+  const cjl = PT.cooperJacob(tl, sl, r, Q, 1);
+  near('pump test: Cooper-Jacob line T', cjl.T / T, 1, 1e-9); near('pump test: Cooper-Jacob line S', cjl.S / 1e-6, 1, 1e-9);
+  const tp = 6e4, tq = [600, 1200, 3000, 6000, 12000], sr = tq.map((x) => (Q / (4 * Math.PI * T)) * (PT.wellW(PT.uOf(tp + x, r, T, S)) - PT.wellW(PT.uOf(x, r, T, S))));
+  near('pump test: recovery T', PT.recovery(tq, sr, tp, Q, 1).T / T, 1, 0.01);
+  const rs = [5, 10, 20, 40], sd = rs.map((ri) => (2.303 * Q / (2 * Math.PI * T)) * Math.log10(Math.sqrt(2.25 * T * 6e4 / S) / ri));
+  const dd = PT.distanceDrawdown(rs, sd, 6e4, Q);
+  near('pump test: distance-drawdown T', dd.T / T, 1, 1e-9); near('pump test: distance-drawdown S', dd.S / S, 1, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

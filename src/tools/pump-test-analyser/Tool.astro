@@ -1,0 +1,199 @@
+---
+// Aquifer pumping test analysis: Theis fit, Cooper-Jacob line, Theis recovery and distance-drawdown. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: a confined aquifer with T = 250 m²/d and S = 0.0002, pumped at 500 m³/d, with small errors added.
+const ptDemo = 'time\tdrawdown\n1\t0.162\n1.5\t0.216\n2\t0.253\n3\t0.308\n4\t0.356\n5\t0.391\n7\t0.435\n10\t0.49\n15\t0.562\n20\t0.605\n30\t0.658\n40\t0.71\n50\t0.755\n70\t0.799\n100\t0.846\n150\t0.925\n200\t0.977\n300\t1.024\n400\t1.067\n500\t1.123\n700\t1.173\n1000\t1.209';
+const rcDemo = 'time since stop\tresidual drawdown\n1\t1.071\n2\t0.972\n3\t0.904\n5\t0.83\n7\t0.789\n10\t0.738\n15\t0.668\n20\t0.618\n30\t0.558\n50\t0.487\n70\t0.437\n100\t0.381\n150\t0.321\n200\t0.284\n300\t0.235\n500\t0.176';
+const ddDemo = 'distance\tdrawdown\n10\t1.572\n30\t1.233\n60\t1.011\n120\t0.783';
+---
+<div class="ax pta">
+  <div class="ax-card">
+    <h2>Test set-up</h2>
+    <div class="ax-grid">
+      <label>Pumping rate <input class="pt-q" type="text" inputmode="decimal" value="500" /></label>
+      <label>Rate unit <select class="pt-qu"><option value="m3d" selected>m³/day</option><option value="m3h">m³/hour</option><option value="ls">L/s</option><option value="gpm">US gal/min</option></select></label>
+      <label>Lengths in <select class="pt-lu"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+      <label>Times in <select class="pt-tu"><option value="s">seconds</option><option value="min" selected>minutes</option><option value="h">hours</option><option value="d">days</option></select></label>
+      <label>Aquifer thickness (optional, for K) <input class="pt-b" type="text" inputmode="decimal" value="" placeholder="e.g. 20" /></label>
+    </div>
+    <p class="ax-help">The methods assume a confined aquifer of even thickness and endless extent, a fully penetrating well and a steady pumping rate. Drawdown and distance use the same length unit.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Drawdown in an observation well</h2>
+    <label>Distance from the pumped well <input class="pt-r" type="text" inputmode="decimal" value="30" /></label>
+    <label>Time since pumping started, then drawdown <textarea class="pt-data" rows="8" spellcheck="false">{ptDemo}</textarea></label>
+    <DataFile target=".pt-data" maxCols={4} maxRows={20000} label="Open a file" />
+    <p class="ax-err pt-err" hidden></p>
+    <div class="pt-out">
+      <p class="ax-big pt-big"></p>
+      <dl class="ax-facts pt-facts"></dl>
+      <canvas class="ax-fig pt-fig1"></canvas>
+      <canvas class="ax-fig pt-fig2"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Recovery after the pump stops (optional)</h2>
+    <label>How long the pump ran <input class="rc-tp" type="text" inputmode="decimal" value="1000" /></label>
+    <label>Time since the pump stopped, then residual drawdown <textarea class="rc-data" rows="6" spellcheck="false">{rcDemo}</textarea></label>
+    <DataFile target=".rc-data" maxCols={4} maxRows={20000} label="Open a file" />
+    <p class="ax-err rc-err" hidden></p>
+    <div class="rc-out">
+      <p class="ax-big rc-big"></p>
+      <dl class="ax-facts rc-facts"></dl>
+      <canvas class="ax-fig rc-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Distance-drawdown (optional)</h2>
+    <label>Time of the readings <input class="dd-t" type="text" inputmode="decimal" value="1000" /></label>
+    <label>Distance of each observation well, then its drawdown at that time <textarea class="dd-data" rows="5" spellcheck="false">{ddDemo}</textarea></label>
+    <DataFile target=".dd-data" maxCols={4} maxRows={500} label="Open a file" />
+    <p class="ax-err dd-err" hidden></p>
+    <div class="dd-out">
+      <p class="ax-big dd-big"></p>
+      <dl class="ax-facts dd-facts"></dl>
+      <canvas class="ax-fig dd-fig"></canvas>
+    </div>
+    <p class="ax-help">The example data are made up. Real tests can show leakage, boundaries, delayed yield or well storage; when the late points bend away from the Theis curve, these simple methods no longer apply.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { theis, uOf, fitTheis, cooperJacob, recovery, distanceDrawdown } from '../../lib/sci/pumptest';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, sup } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pta')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (f: HTMLElement[]) => f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const Q_SI: Record<string, number> = { m3d: 1 / 86400, m3h: 1 / 3600, ls: 1e-3, gpm: 6.30901964e-5 };
+  const T_SI: Record<string, number> = { s: 1, min: 60, h: 3600, d: 86400 };
+  const sS = (S: number) => { if (S >= 0.001) return sig(S, 2); let e = Math.floor(Math.log10(S)), m = S / 10 ** e; if (+m.toFixed(1) >= 10) { m /= 10; e += 1; } return `${m.toFixed(1)} × 10${sup(e)}`; };
+  let figs: Record<string, Figure | null> = {}, sections: Record<string, Section | null> = {};
+
+  function setup() {
+    const L = sel('.pt-lu') === 'ft' ? 0.3048 : 1, Lu = sel('.pt-lu') === 'ft' ? 'ft' : 'm', tu = sel('.pt-tu'), ts = T_SI[tu];
+    const Q = val('.pt-q') * Q_SI[sel('.pt-qu')], b = val('.pt-b');
+    // T shown per day in the chosen length unit.
+    const showT = (T: number) => `${sig((T * 86400) / (L * L), 3)} ${Lu}²/day`;
+    const showK = (T: number) => (b > 0 ? `${sig((T * 86400) / (b * L) / L, 3)} ${Lu}/day` : '');
+    return { L, Lu, tu, ts, Q, b, showT, showK };
+  }
+  function pairs(text: string) {
+    const t = numericColumns(text); if (t.cols.length < 2) return null;
+    const x: number[] = [], y: number[] = []; t.cols[0].forEach((v, i) => { const w = t.cols[1][i]; if (Number.isFinite(v) && Number.isFinite(w)) { x.push(v); y.push(w); } });
+    return { x, y, skipped: t.rows - x.length };
+  }
+
+  function main() {
+    const err = q('.pt-err'), out = q('.pt-out'), U = setup();
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections.main = null; };
+    if (!(U.Q > 0)) return fail('Enter a pumping rate above zero.');
+    const r = val('.pt-r') * U.L; if (!(r > 0)) return fail('Enter the distance from the pumped well, above zero.');
+    const d = pairs(q<HTMLTextAreaElement>('.pt-data').value); if (!d) return fail('Paste two columns: time and drawdown.');
+    const ok = d.x.map((t, i) => t > 0 && d.y[i] > 0), t = d.x.filter((_, i) => ok[i]).map((v) => v * U.ts), s = d.y.filter((_, i) => ok[i]).map((v) => v * U.L);
+    if (t.length < 3) return fail('Need at least three readings with time and drawdown above zero.');
+    let th: ReturnType<typeof fitTheis>, cj: ReturnType<typeof cooperJacob> | null = null, cjErr = '';
+    try { th = fitTheis(t, s, r, U.Q); } catch (e) { return fail((e as Error).message); }
+    try { cj = cooperJacob(t, s, r, U.Q); } catch (e) { cjErr = (e as Error).message; }
+    err.hidden = true; out.hidden = false;
+    q('.pt-big').textContent = `T = ${U.showT(th.T)}, S = ${sS(th.S)} (Theis fit)`;
+    const fT = 10 ** (1.96 * th.seLogT), fS = 10 ** (1.96 * th.seLogS);
+    const f = [
+      fact('Theis fit', `T ${U.showT(th.T)} (×÷ ${fT.toFixed(2)}), S ${sS(th.S)} (×÷ ${fS.toFixed(2)})`, `95 % ranges as factors; ${th.n} readings; typical misfit ${((10 ** th.rmsLog - 1) * 100).toFixed(1)} % of the drawdown${th.converged ? '' : '; the fit did not fully settle'}`),
+      fact('Transmissivity', `${sig(th.T, 3)} m²/s`, U.b > 0 ? `K = T ÷ thickness = ${U.showK(th.T)}` : 'add the aquifer thickness to get hydraulic conductivity K'),
+    ];
+    if (cj) {
+      const n = cj.used.filter(Boolean).length, uMaxUsed = Math.max(...t.filter((_, i) => cj!.used[i]).map((ti) => uOf(ti, r, cj!.T, cj!.S)));
+      f.push(fact('Cooper-Jacob line', `T ${U.showT(cj.T)}, S ${sS(cj.S)}`, `${sig(cj.ds / U.L, 3)} ${U.Lu} of drawdown per log cycle, through ${n} late readings with u ≤ ${uMaxUsed.toFixed(3)} (the line needs u below about 0.05)`));
+    } else f.push(fact('Cooper-Jacob line', 'not found', cjErr));
+    const uFirst = uOf(t[0], r, th.T, th.S);
+    f.push(fact('Earliest reading', `u = ${sig(uFirst, 2)}`, 'u = r²S ÷ (4Tt); the straight line holds only once u is small'));
+    q('.pt-facts').replaceChildren(...f);
+    const tMin = Math.min(...t), tMax = Math.max(...t), N = 80, tc = Array.from({ length: N + 1 }, (_, i) => tMin * (tMax / tMin) ** (i / N));
+    const toU = (v: number) => v / U.ts, toL = (v: number) => v / U.L;
+    figs.f1 = chartFigure({ w: 380, h: 280, xLog: true, yLog: true, xLabel: `Time since start (${U.tu})`, yLabel: `Drawdown (${U.Lu})`, legend: 'below',
+      series: [{ name: 'Readings', x: t.map(toU), y: s.map(toL), mode: 'points', size: 3.5 }, { name: 'Theis curve', x: tc.map(toU), y: tc.map((ti) => toL(theis(ti, r, U.Q, th.T, th.S))), mode: 'line', width: 1.8 }] }, 'Drawdown against time on log-log axes with the fitted Theis curve');
+    paint(q<HTMLCanvasElement>('.pt-fig1'), figs.f1);
+    const ser: Parameters<typeof chartFigure>[0]['series'] = [{ name: 'Readings', x: t.map(toU), y: s.map(toL), mode: 'points', size: 3.5, marker: 'open-circle' }];
+    if (cj) {
+      ser.push({ name: 'Used for the line', x: t.filter((_, i) => cj!.used[i]).map(toU), y: s.filter((_, i) => cj!.used[i]).map(toL), mode: 'points', size: 3.5 });
+      const x0 = Math.min(cj.t0, tMin), xs = [x0, tMax]; ser.push({ name: 'Cooper-Jacob line', x: xs.map(toU), y: xs.map((ti) => toL(cj!.a + cj!.b * Math.log10(ti))), mode: 'line', width: 1.6, dash: [6, 3] });
+    }
+    figs.f2 = chartFigure({ w: 380, h: 260, xLog: true, yMin: 0, xLabel: `Time since start (${U.tu})`, yLabel: `Drawdown (${U.Lu})`, legend: 'below', series: ser }, 'Drawdown against log time with the Cooper-Jacob straight line');
+    paint(q<HTMLCanvasElement>('.pt-fig2'), figs.f2);
+    sections.main = { title: q('.pt-big').textContent!, facts: factPairs(f), figure: figs.f1 };
+    sections.cj = { title: 'Cooper-Jacob straight line', figure: figs.f2 };
+  }
+
+  function rec() {
+    const err = q('.rc-err'), out = q('.rc-out'), U = setup();
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections.rec = null; };
+    const raw = q<HTMLTextAreaElement>('.rc-data').value.trim();
+    if (!raw) { err.hidden = true; out.hidden = true; sections.rec = null; return; }
+    if (!(U.Q > 0)) return fail('Enter a pumping rate above zero.');
+    const tp = val('.rc-tp') * U.ts; if (!(tp > 0)) return fail('Enter how long the pump ran.');
+    const d = pairs(raw); if (!d) return fail('Paste two columns: time since the pump stopped and residual drawdown.');
+    let res: ReturnType<typeof recovery>;
+    const tq = d.x.map((v) => v * U.ts), sr = d.y.map((v) => v * U.L), ok = tq.map((v, i) => v > 0 && Number.isFinite(sr[i]));
+    try { res = recovery(tq.filter((_, i) => ok[i]), sr.filter((_, i) => ok[i]), tp, U.Q); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    q('.rc-big').textContent = `T = ${U.showT(res.T)} from recovery`;
+    const f = [fact('Slope', `${sig(res.ds / U.L, 3)} ${U.Lu} per log cycle of t/t′`, `fitted to the ${res.used} latest readings (t/t′ up to ${sig(10 ** res.xMax, 3)}); T = 2.303Q ÷ (4π × slope)`),
+      fact('Line at t/t′ = 1', `${sig(res.a / U.L, 2)} ${U.Lu}`, 'near zero for full recovery; well above zero suggests a boundary or less water coming in, below zero suggests recharge')];
+    if (U.b > 0) f.push(fact('Hydraulic conductivity', U.showK(res.T)));
+    q('.rc-facts').replaceChildren(...f);
+    const x = tq.filter((_, i) => ok[i]).map((v) => (tp + v) / v), y = sr.filter((_, i) => ok[i]).map((v) => v / U.L), xm = Math.max(...x);
+    figs.rc = chartFigure({ w: 380, h: 260, xLog: true, xMin: 1, yMin: 0, xLabel: 't/t′ (time since start ÷ time since stop)', yLabel: `Residual drawdown (${U.Lu})`, legend: 'below',
+      series: [{ name: 'Readings', x, y, mode: 'points', size: 3.5 }, { name: 'Late-time line', x: [1, xm], y: [res.a, res.a + res.b * Math.log10(xm)].map((v) => v / U.L), mode: 'line', width: 1.6, dash: [6, 3] }] }, 'Residual drawdown against t/t′ with the recovery line');
+    paint(q<HTMLCanvasElement>('.rc-fig'), figs.rc);
+    sections.rec = { title: q('.rc-big').textContent!, facts: factPairs(f), figure: figs.rc };
+  }
+
+  function dist() {
+    const err = q('.dd-err'), out = q('.dd-out'), U = setup();
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections.dd = null; };
+    const raw = q<HTMLTextAreaElement>('.dd-data').value.trim();
+    if (!raw) { err.hidden = true; out.hidden = true; sections.dd = null; return; }
+    if (!(U.Q > 0)) return fail('Enter a pumping rate above zero.');
+    const tt = val('.dd-t') * U.ts; if (!(tt > 0)) return fail('Enter the time of the readings.');
+    const d = pairs(raw); if (!d) return fail('Paste two columns: distance and drawdown.');
+    const ok = d.x.map((v, i) => v > 0 && d.y[i] > 0), r = d.x.filter((_, i) => ok[i]).map((v) => v * U.L), s = d.y.filter((_, i) => ok[i]).map((v) => v * U.L);
+    let res: ReturnType<typeof distanceDrawdown>;
+    try { res = distanceDrawdown(r, s, tt, U.Q); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    q('.dd-big').textContent = `T = ${U.showT(res.T)}, S = ${sS(res.S)} from ${r.length} wells`;
+    const uMax = Math.max(...r.map((ri) => uOf(tt, ri, res.T, res.S)));
+    const f = [fact('Slope', `${sig(res.ds / U.L, 3)} ${U.Lu} per log cycle of distance`, 'T = 2.303Q ÷ (2π × slope); S = 2.25Tt ÷ r₀²'),
+      fact('Radius of influence at this time', `${sig(res.r0 / U.L, 3)} ${U.Lu}`, `where the line reaches zero drawdown; largest u among the wells ${sig(uMax, 2)}${uMax > 0.05 ? ', above 0.05, so the far wells are too far for the straight line' : ''}`)];
+    q('.dd-facts').replaceChildren(...f);
+    figs.dd = chartFigure({ w: 380, h: 260, xLog: true, yMin: 0, xLabel: `Distance (${U.Lu})`, yLabel: `Drawdown (${U.Lu})`, legend: 'below',
+      series: [{ name: 'Wells', x: r.map((v) => v / U.L), y: s.map((v) => v / U.L), mode: 'points', size: 4 }, { name: 'Line', x: [Math.min(...r), res.r0].map((v) => v / U.L), y: [res.a + res.b * Math.log10(Math.min(...r)), 0].map((v) => v / U.L), mode: 'line', width: 1.6, dash: [6, 3] }] }, 'Drawdown against log distance');
+    paint(q<HTMLCanvasElement>('.dd-fig'), figs.dd);
+    sections.dd = { title: q('.dd-big').textContent!, facts: factPairs(f), figure: figs.dd };
+  }
+
+  const all = () => { main(); rec(); dist(); };
+  root.querySelectorAll('.pt-q, .pt-qu, .pt-lu, .pt-tu, .pt-b').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('.pt-r, .pt-data').forEach((i) => { i.addEventListener('input', main); i.addEventListener('change', main); });
+  root.querySelectorAll('.rc-tp, .rc-data').forEach((i) => { i.addEventListener('input', rec); i.addEventListener('change', rec); });
+  root.querySelectorAll('.dd-t, .dd-data').forEach((i) => { i.addEventListener('input', dist); i.addEventListener('change', dist); });
+  document.addEventListener('fibub:theme', () => { const m: [string, string][] = [['f1', '.pt-fig1'], ['f2', '.pt-fig2'], ['rc', '.rc-fig'], ['dd', '.dd-fig']]; m.forEach(([k, c]) => { if (figs[k] && !q(c).closest('[hidden]')) paint(q<HTMLCanvasElement>(c), figs[k]!); }); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Pumping test analysis', subtitle: q('.pt-big').textContent ?? '', file: 'pumping-test', sections: [sections.main, sections.cj, sections.rec, sections.dd].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .pta select, .pta input { max-width: 100%; }
+  .pta textarea { width: 100%; }
+</style>
