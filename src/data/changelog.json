@@ -1,5 +1,14 @@
 [
  {
+  "sha": "42d13367aeb8",
+  "date": "2026-11-08T07:40:29+00:00",
+  "title": "Plot maker (#27): open CSV, TSV, TXT or Excel files, with stated limits",
+  "tools": [
+   "plot-maker"
+  ],
+  "site": false
+ },
+ {
   "sha": "436277b63430",
   "date": "2026-11-08T07:33:43+00:00",
   "title": "Add the reaction kinetics fitter and titration curve simulator (#81, #82)",
