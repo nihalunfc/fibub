@@ -1,5 +1,18 @@
 [
  {
+  "sha": "42e6243c374c",
+  "date": "2026-11-08T00:54:26+00:00",
+  "title": "Add five science tools: uncertainty, graph digitiser, plot maker, calibration curve, dose-response",
+  "tools": [
+   "calibration-curve",
+   "dose-response",
+   "graph-digitizer",
+   "plot-maker",
+   "uncertainty-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "6144d90f6f03",
   "date": "2026-11-08T00:17:38+00:00",
   "title": "Change log page, folded phone menu and the tool total on the home page",
