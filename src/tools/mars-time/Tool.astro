@@ -1,0 +1,156 @@
+---
+// Mars time: Mars Sol Date, Coordinated Mars Time, local solar time at a rover, mission sols and the season.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mt">
+  <div class="ax-card">
+    <h2>When</h2>
+    <div class="ax-seg mt-mode" role="group" aria-label="Choose the moment">
+      <button type="button" data-m="now" aria-pressed="true">Now</button>
+      <button type="button" data-m="earth" aria-pressed="false">Earth date</button>
+      <button type="button" data-m="sol" aria-pressed="false">Mission sol</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label class="mt-earth" hidden>Earth date and time (your clock) <input type="datetime-local" class="mt-dt" step="1" /></label>
+      <label class="mt-solw" hidden>Sol number <input class="mt-sol" inputmode="numeric" value="1000" /></label>
+      <label>Where on Mars <select class="mt-site"></select></label>
+      <label class="mt-lonw" hidden>Longitude (degrees east) <input class="mt-lon" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Longitudes are east of the prime meridian through Airy-0 crater, as NASA uses today. A sol, the Martian day, lasts 24 h 39 min 35 s.</p>
+    <p class="ax-err mt-err" hidden></p>
+  </div>
+
+  <div class="ax-card mt-out" hidden>
+    <h2 class="mt-title"></h2>
+    <p class="ax-big mt-big"></p>
+    <dl class="ax-facts mt-facts"></dl>
+    <canvas class="ax-fig mt-fig" style="margin-top:12px"></canvas>
+    <h3 class="mt-yh"></h3>
+    <div class="ax-scroll"><table class="mt-tab"></table></div>
+    <p class="ax-help">Calculated with the Mars24 algorithm of Allison and McEwen (2000), as NASA's Goddard Institute for Space Studies publishes it, accurate to a few seconds over decades. Mars Years are counted from 1955 April 11 (Clancy et al. 2000). Mission sols count from the landing sol as sol 0.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .mt .mt-tab td, .mt .mt-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import * as A from 'astronomy-engine';
+  import { num } from '../../lib/sci/num';
+  import { marsTime, localSolar, localMsd, missionSol, solStart, lsTime, season, MISSIONS, type Mission } from '../../lib/sci/marstime';
+  import { browserTz, tzLabel } from '../../lib/astro/place';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const site = q<HTMLSelectElement>('.mt-site');
+  site.replaceChildren(...MISSIONS.map((m) => Object.assign(document.createElement('option'), { value: m.id, textContent: `${m.name}, ${m.site}` })), Object.assign(document.createElement('option'), { value: 'mtc', textContent: 'Prime meridian (Coordinated Mars Time)' }), Object.assign(document.createElement('option'), { value: 'lon', textContent: 'Another longitude' }));
+  let mode = 'now', fig: Figure | null = null, report: Section[] = [], tick = 0;
+  const tz = browserTz();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const hms = (h: number) => { const s = Math.round(h * 3600) % 86400; return `${pad(Math.floor(s / 3600) % 24)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
+  const earth = (ms: number) => new Date(ms).toLocaleString('en', { timeZone: tz, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const utc = (ms: number) => new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  const day = (ms: number) => new Date(ms).toLocaleDateString('en', { timeZone: tz, year: 'numeric', month: 'short', day: 'numeric' });
+  const toLocalInput = (ms: number) => { const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60e3); return d.toISOString().slice(0, 19); };
+  q<HTMLInputElement>('.mt-dt').value = toLocalInput(Date.now());
+
+  function where(): { lon: number; name: string; mission: Mission | null } {
+    const v = site.value;
+    if (v === 'mtc') return { lon: 0, name: 'the prime meridian', mission: null };
+    if (v === 'lon') { const l = num(q<HTMLInputElement>('.mt-lon').value); if (!Number.isFinite(l) || l < -180 || l > 360) throw new Error('Type a longitude from −180 to 360 degrees east'); return { lon: ((l % 360) + 360) % 360, name: `${(((l % 360) + 540) % 360 - 180).toFixed(2)}° E`, mission: null }; }
+    const m = MISSIONS.find((x) => x.id === v)!; return { lon: m.lonEast, name: m.site, mission: m };
+  }
+
+  function wheel(ls: number): Figure {
+    return {
+      w: 420, h: 330, alt: 'The Martian year as a circle of solar longitude, with seasons, perihelion, aphelion and the dust storm season',
+      draw(ctx, w, h, pal) {
+        const cx = w / 2, cy = h / 2 + 6, R = Math.min(w, h) / 2 - 46;
+        // Ls 0 at the top, increasing clockwise, as a calendar runs.
+        const P = (deg: number, r: number) => [cx + r * Math.sin((deg * Math.PI) / 180), cy - r * Math.cos((deg * Math.PI) / 180)];
+        const arc = (a: number, b: number, r: number) => { ctx.beginPath(); ctx.arc(cx, cy, r, ((a - 90) * Math.PI) / 180, ((b - 90) * Math.PI) / 180); };
+        ctx.lineWidth = 14; ctx.strokeStyle = pal.warn; ctx.globalAlpha = pal.red ? 0.6 : 0.35; arc(180, 330, R); ctx.stroke(); ctx.globalAlpha = 1;
+        ctx.lineWidth = 1.5; ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const names = ['Northern spring', 'Northern summer', 'Northern autumn', 'Northern winter'];
+        for (let i = 0; i < 4; i++) {
+          const [x1, y1] = P(i * 90, R - 9), [x2, y2] = P(i * 90, R + 9); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          const [lx, ly] = P(i * 90, R + 22); ctx.fillText(`Ls ${i * 90}°`, lx, ly);
+          const [nx, ny] = P(i * 90 + 45, R * 0.62); ctx.fillText(names[i], nx, ny);
+        }
+        for (const [a, label] of [[251, 'perihelion'], [71, 'aphelion']] as [number, string][]) { const [x, y] = P(a, R); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); const [lx, ly] = P(a, R - 20); ctx.fillStyle = pal.muted; ctx.fillText(label, lx, ly); }
+        const [dx, dy] = P(212, R + 26); ctx.fillStyle = pal.warn; ctx.fillText('dust storms', dx, dy);
+        const [mx, my] = P(ls, R); ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(mx, my); ctx.stroke();
+        ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.fillText(`Ls ${ls.toFixed(1)}°`, cx, cy + 14);
+        ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+      },
+    };
+  }
+
+  function moment(): number {
+    if (mode === 'now') return Date.now();
+    if (mode === 'earth') { const v = q<HTMLInputElement>('.mt-dt').value; const ms = v ? new Date(v).getTime() : NaN; if (!Number.isFinite(ms)) throw new Error('Pick an Earth date and time'); return ms; }
+    const w = where(); if (!w.mission) throw new Error('Pick a mission to count sols from');
+    const n = num(q<HTMLInputElement>('.mt-sol').value); if (!Number.isInteger(n) || n < 0 || n > 100000) throw new Error('Type a whole sol number, 0 or more');
+    return solStart(w.mission, n) + (12 / 24) * 88775.244e3; // local noon of that sol
+  }
+
+  function calc() {
+    const err = q('.mt-err');
+    try {
+      const ms = moment(), w = where(), t = marsTime(ms), { lmst, ltst } = localSolar(t, w.lon), se = season(t.ls);
+      const sol = w.mission ? missionSol(w.mission, ms) : null;
+      err.hidden = true; q('.mt-out').hidden = false;
+      q('.mt-title').textContent = w.mission ? `${w.mission.name} at ${w.name}` : `Mars time at ${w.name}`;
+      q('.mt-big').textContent = sol !== null && sol >= 0 ? `Sol ${sol.toLocaleString('en')}, ${hms(lmst).slice(0, 5)} local mean solar time` : `${hms(w.lon === 0 && site.value === 'mtc' ? t.mtc : lmst)} ${site.value === 'mtc' ? 'MTC' : 'local mean solar time'}`;
+      const g = A.GeoVector(A.Body.Mars, new Date(ms), true), dist = Math.hypot(g.x, g.y, g.z), lt = dist * 499.004784;
+      const facts: [string, string, string?][] = [
+        ['Earth time', earth(ms), `${tzLabel(tz, new Date(ms))}; ${utc(ms)}`],
+        ['Mars Sol Date', t.msd.toFixed(5), 'sols since 1873 December 29, like the Julian date for Mars'],
+        ['Coordinated Mars Time', hms(t.mtc), 'mean solar time on the prime meridian (Airy-0)'],
+        ['Local mean solar time', hms(lmst), `at ${w.lon.toFixed(2)}° E; local sol ${Math.floor(localMsd(t, w.lon)).toLocaleString('en')} by Mars Sol Date`],
+        ['Local true solar time', hms(ltst), `sundial time: the equation of time is ${(t.eot * 4).toFixed(1).replace('-', '−')} min`],
+      ];
+      if (sol !== null) facts.push(['Mission sol', sol >= 0 ? sol.toLocaleString('en') : 'before landing', `landed ${utc(w.mission!.landing)}; this sol began ${earth(solStart(w.mission!, Math.max(0, sol)))}`]);
+      facts.push(
+        ['Season', `Ls ${t.ls.toFixed(2)}°, Mars Year ${t.marsYear}`, `northern ${se.north}, southern ${se.south}${t.ls >= 180 && t.ls <= 330 ? '; dust storm season' : ''}`],
+        ['Distance from the Sun', `${t.r.toFixed(4)} AU`, `${Math.round(t.r * 149.598).toLocaleString('en')} million km`],
+        ['Distance from Earth', `${dist.toFixed(3)} AU`, `radio signals take ${Math.floor(lt / 60)} min ${pad(Math.round(lt % 60))} s each way`],
+        ['Sun overhead at', `${t.decl.toFixed(2).replace('-', '−')}° latitude, ${(360 - t.subsolarW).toFixed(2)}° E`, 'the subsolar point'],
+      );
+      q('.mt-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      fig = wheel(t.ls); paint(q<HTMLCanvasElement>('.mt-fig'), fig);
+      const events: [string, number][] = [['Northern spring equinox (year starts)', 0], ['Aphelion (farthest from the Sun)', 71], ['Northern summer solstice', 90], ['Northern autumn equinox', 180], ['Perihelion (closest to the Sun)', 251], ['Northern winter solstice', 270]];
+      const rows = events.map(([name, ls]) => [name, `Ls ${ls}°`, day(lsTime(t.marsYear, ls))]);
+      rows.push(['Next Mars Year starts', 'Ls 0°', day(lsTime(t.marsYear + 1, 0))]);
+      q('.mt-yh').textContent = `Mars Year ${t.marsYear}`;
+      const tb = q<HTMLTableElement>('.mt-tab'); tb.innerHTML = '';
+      const head = ['Event', 'Solar longitude', 'Earth date'];
+      const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+      report = [{ title: q('.mt-title').textContent!, facts: [['Result', q('.mt-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: fig }, { title: `Mars Year ${t.marsYear}`, table: { head, rows, align: ['l', 'r', 'r'] } }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.mt-out').hidden = true; report = []; }
+  }
+
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.mt-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.mt-earth').hidden = m !== 'earth'; q('.mt-solw').hidden = m !== 'sol';
+    if (m === 'sol' && !MISSIONS.some((x) => x.id === site.value)) site.value = MISSIONS[0].id;
+    clearInterval(tick); if (m === 'now') tick = window.setInterval(calc, 1000);
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.mt-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  site.addEventListener('change', () => { q('.mt-lonw').hidden = site.value !== 'lon'; calc(); });
+  for (const c of ['.mt-dt', '.mt-sol', '.mt-lon']) q(c).addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.mt-fig'), fig));
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('site') && [...site.options].some((o) => o.value === qs.get('site'))) site.value = qs.get('site')!;
+  if (qs.get('sol')) { q<HTMLInputElement>('.mt-sol').value = qs.get('sol')!; setMode('sol'); } else setMode('now');
+  wireDownloads(q('.dl'), () => ({ title: 'Mars time', file: 'mars-time', sections: report }));
+</script>

@@ -1,0 +1,158 @@
+---
+// Light pollution calculator: sky quality meter reading, limiting magnitude, Bortle class and luminance.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lp">
+  <div class="ax-card">
+    <h2>Your sky</h2>
+    <div class="ax-grid">
+      <label>I know <select class="lp-kind">
+        <option value="sqm" selected>A sky quality meter reading (mag/arcsec²)</option>
+        <option value="nelm">The faintest star I can see (limiting magnitude)</option>
+        <option value="bortle">The Bortle class</option>
+        <option value="mcd">The luminance (mcd/m²)</option>
+      </select></label>
+      <label><span class="lp-vl">Reading</span> <input class="lp-v" inputmode="decimal" value="20.8" /></label>
+      <label>Compare with (optional) <input class="lp-ref" inputmode="decimal" placeholder="another reading, e.g. 21.6" /></label>
+    </div>
+    <p class="ax-help lp-help"></p>
+    <p class="ax-err lp-err" hidden></p>
+  </div>
+
+  <div class="ax-card lp-out" hidden>
+    <h2 class="lp-title"></h2>
+    <p class="ax-big lp-big"></p>
+    <p class="lp-desc"></p>
+    <dl class="ax-facts lp-facts"></dl>
+    <canvas class="ax-fig lp-fig" style="margin-top:12px"></canvas>
+    <h3>The Bortle scale</h3>
+    <div class="ax-scroll"><table class="lp-tab"></table></div>
+    <p class="ax-help">John Bortle (2001) defined his classes by what an experienced observer sees, not by meter readings, so the reading ranges are a common approximation and sources differ by a few tenths. Meter readings cannot tell class 8 from class 9. Limiting magnitudes in the table are Bortle's own, for experienced observers; the figure above is for a typical observer looking straight up.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lp .lp-tab td, .lp .lp-tab th { white-space: nowrap; }
+  .lp .lp-tab td.lp-name { white-space: normal; min-width: 210px; }
+  .lp .lp-tab td.lp-name small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .lp tr.lp-on td { font-weight: 650; }
+  .lp .lp-desc { margin: 4px 0 10px; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { BORTLE, skyglow, sqmToNelm, nelmToSqm, mcdToSqm, sqmForBortle } from '../../lib/sci/skyglow';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const kindSel = q<HTMLSelectElement>('.lp-kind');
+  let fig: Figure | null = null, report: Section[] = [];
+  const DEF: Record<string, [string, string, string]> = {
+    sqm: ['Reading', '20.8', 'Point the meter straight up on a clear, moonless night, well after twilight, and take a few readings. You can type several, separated by spaces: the tool uses their average. Higher numbers mean a darker sky (22 is about as dark as Earth gets).'],
+    nelm: ['Limiting magnitude', '5.8', 'Look straight up and find the faintest star you can hold steadily, after 20 minutes in the dark. Charts of the Little Dipper or of star triangles help you judge it.'],
+    bortle: ['Bortle class (1 to 9)', '4', 'Pick the class from the description in the table below. The tool uses the middle of that class\'s range.'],
+    mcd: ['Luminance (mcd/m²)', '0.5', 'Millicandela per square metre, as given by light pollution atlases. The natural sky is about 0.17 mcd/m².'],
+  };
+  const lbl = (b: { n: number; label?: string }) => b.label ?? String(b.n);
+  const range = (i: number) => { const b = BORTLE[i], hi = i ? BORTLE[i - 1].sqm : null; return b.sqm === -Infinity ? `below ${BORTLE[i - 1].sqm.toFixed(2)}` : hi === null ? `${b.sqm.toFixed(2)} or more` : `${b.sqm.toFixed(2)} to ${hi.toFixed(2)}`; };
+
+  function setKind() {
+    const [l, v, h] = DEF[kindSel.value];
+    q('.lp-vl').textContent = l; q<HTMLInputElement>('.lp-v').value = v; q('.lp-help').textContent = h;
+    calc();
+  }
+
+  function readSqm(): { sqm: number; note: string } {
+    const txt = q<HTMLInputElement>('.lp-v').value.trim(), k = kindSel.value;
+    const vals = txt.split(/[\s;]+|,(?=\s)/).map(num).filter(Number.isFinite);
+    if (!vals.length) throw new Error('Type a number');
+    const v = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (k === 'sqm') {
+      if (vals.some((x) => x < 10 || x > 23)) throw new Error('Sky quality meter readings run from about 16 (city) to 22 (darkest sites)');
+      const sd = vals.length > 1 ? Math.sqrt(vals.reduce((s, x) => s + (x - v) ** 2, 0) / (vals.length - 1)) : 0;
+      return { sqm: v, note: vals.length > 1 ? `average of ${vals.length} readings (spread ${sd.toFixed(2)})` : '' };
+    }
+    if (vals.length > 1) throw new Error('Type one number');
+    if (k === 'nelm') { if (v < 1 || v >= 7.9) throw new Error('Type a limiting magnitude between 1 and 7.8'); return { sqm: nelmToSqm(v), note: '' }; }
+    if (k === 'bortle') { if (!(v >= 1 && v <= 9)) throw new Error('A Bortle class runs from 1 to 9'); return { sqm: sqmForBortle(Math.min(8, v)), note: 'the middle of the class' }; }
+    if (!(v > 0)) throw new Error('Type a luminance above zero'); return { sqm: mcdToSqm(v), note: '' };
+  }
+
+  function figure(m: number, ref: number | null): Figure {
+    return {
+      w: 560, h: 130, alt: 'Sky brightness scale from city to pristine, with your reading marked',
+      draw(ctx, w, h, pal) {
+        const lo = 16.5, hi = 22.2, L = 14, R = w - 14, X = (v: number) => L + ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * (R - L), y0 = 46, bh = 34;
+        // Bands from bright (left) to dark (right), shaded grey to black, so no colour is needed.
+        BORTLE.forEach((b, i) => {
+          const a = b.sqm === -Infinity ? lo : b.sqm, z = i ? BORTLE[i - 1].sqm : hi;
+          const shade = pal.red ? `rgb(${40 + (7 - i) * 18},0,0)` : `hsl(0,0%,${12 + (BORTLE.length - 1 - i) * 10}%)`;
+          ctx.fillStyle = shade; ctx.fillRect(X(a), y0, X(z) - X(a), bh);
+          ctx.fillStyle = i >= 5 ? '#000' : '#fff'; if (pal.red) ctx.fillStyle = '#ff3b3b';
+          ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          if (X(z) - X(a) > 14) ctx.fillText(lbl(b).replace(' to ', '–'), (X(a) + X(z)) / 2, y0 + bh / 2);
+        });
+        ctx.strokeStyle = pal.line; ctx.strokeRect(L, y0, R - L, bh);
+        ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'top';
+        for (let v = 17; v <= 22; v++) { ctx.textAlign = 'center'; ctx.fillText(String(v), X(v), y0 + bh + 6); }
+        ctx.textAlign = 'left'; ctx.fillText('city', L, y0 + bh + 22); ctx.textAlign = 'right'; ctx.fillText('pristine  (mag/arcsec²)', R, y0 + bh + 22);
+        const mark = (v: number, col: string, text: string, up: boolean) => {
+          const x = X(v); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(x, y0 - 4); ctx.lineTo(x, y0 + bh + 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x - 6, y0 - 12); ctx.lineTo(x + 6, y0 - 12); ctx.lineTo(x, y0 - 3); ctx.closePath(); ctx.fill();
+          ctx.font = '600 12px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.textAlign = x < 80 ? 'left' : x > w - 80 ? 'right' : 'center';
+          ctx.fillText(text, x, y0 - (up ? 26 : 14));
+        };
+        if (ref !== null) mark(ref, pal.accent2, `compare ${ref.toFixed(2)}`, Math.abs(X(ref) - X(m)) < 90);
+        mark(m, pal.accent, `you ${m.toFixed(2)}`, false);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.lp-err');
+    try {
+      const { sqm, note } = readSqm();
+      const refTxt = q<HTMLInputElement>('.lp-ref').value.trim();
+      let ref: number | null = null;
+      if (refTxt) { ref = num(refTxt); if (!(ref >= 10 && ref <= 23)) throw new Error('Type the comparison as a meter reading, from about 16 to 22'); }
+      const s = skyglow(sqm, ref ?? 22), b = s.bortle;
+      err.hidden = true; q('.lp-out').hidden = false;
+      q('.lp-title').textContent = `Bortle class ${lbl(b)}: ${b.name}`;
+      q('.lp-big').textContent = `${sqm.toFixed(2)} mag/arcsec², stars to magnitude ${s.nelm.toFixed(1)}`;
+      q('.lp-desc').textContent = b.sky;
+      const facts: [string, string, string?][] = [
+        ['Sky brightness', `${sqm.toFixed(2)} mag/arcsec²`, note || 'at the zenith, as a sky quality meter reads it'],
+        ['Luminance', `${sig(s.mcd, 3)} mcd/m²`, `${sig(s.mcd * 1000, 3)} µcd/m²`],
+        ['Naked-eye limit', `magnitude ${s.nelm.toFixed(1)}`, 'faintest star overhead for a typical observer; practised eyes go 0.5 to 1 fainter'],
+        ['Brighter than a natural sky', s.nsu < 1.005 ? 'no: a natural sky' : `${sig(s.nsu, 3)} times`, s.nsu < 1.005 ? 'little or no artificial light' : `artificial light adds ${Math.round(s.artificial * 100).toLocaleString('en')} % to the natural glow of 0.174 mcd/m²`],
+      ];
+      if (ref === null) facts.push(['Exposure against a pristine sky', s.exposureFactor < 1.005 ? 'the same' : `${sig(s.exposureFactor, 3)} times as long`, 'for faint targets in sky-limited images to reach the same signal-to-noise as under a 22.0 sky']);
+      else {
+        const darker = ref > sqm;
+        facts.push([`Against ${ref.toFixed(2)}`, `${sig(darker ? s.exposureFactor : 1 / s.exposureFactor, 3)} times ${darker ? 'brighter' : 'darker'} here`, `${darker ? 'the other sky shows' : 'this sky shows'} stars ${Math.abs(sqmToNelm(ref) - s.nelm).toFixed(1)} magnitude fainter; ${darker ? 'here' : 'there'} you need ${sig(darker ? s.exposureFactor : 1 / s.exposureFactor, 3)} times the exposure for faint targets`]);
+      }
+      q('.lp-facts').replaceChildren(...facts.map(([k, v, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; }));
+      const t = q<HTMLTableElement>('.lp-tab'); t.innerHTML = '';
+      const head = ['Class', 'Name and what you see', 'Reading (mag/arcsec²)', 'Limiting magnitude'];
+      const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const tb = t.createTBody();
+      const rows = BORTLE.map((x, i) => [lbl(x), x.name, range(i), x.nelm]);
+      rows.forEach((r, i) => { const tr = tb.insertRow(); if (BORTLE[i] === b) tr.className = 'lp-on'; r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 1) { td.className = 'lp-name'; const sm = document.createElement('small'); sm.textContent = BORTLE[i].sky; td.append(sm); } }); });
+      fig = figure(sqm, ref); paint(q<HTMLCanvasElement>('.lp-fig'), fig);
+      report = [
+        { title: `Bortle class ${lbl(b)}: ${b.name}`, text: [b.sky], facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig },
+        { title: 'The Bortle scale', table: { head: ['Class', 'Name', 'Reading (mag/arcsec²)', 'Limiting magnitude'], rows, align: ['l', 'l', 'r', 'r'] } },
+      ];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lp-out').hidden = true; report = []; }
+  }
+  kindSel.addEventListener('change', setKind);
+  for (const c of ['.lp-v', '.lp-ref']) q(c).addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.lp-fig'), fig));
+  const [, , h0] = DEF.sqm; q('.lp-help').textContent = h0;
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Light pollution calculator', file: 'sky-brightness', sections: report }));
+</script>

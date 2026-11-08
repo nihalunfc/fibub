@@ -1,0 +1,173 @@
+---
+// Exoplanet transit planner: which transits a place can see, with altitudes, darkness and the Moon.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tp">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>Planet</h2>
+    <div class="ax-grid">
+      <label>Planet <select class="tp-pre"></select></label>
+      <label>Right ascension <input class="tp-ra" placeholder="20 00 43.7" /></label>
+      <label>Declination <input class="tp-dec" placeholder="+22 42 39" /></label>
+      <label>Mid-transit time T₀ (BJD_TDB) <input class="tp-t0" inputmode="decimal" /></label>
+      <label>Period (days) <input class="tp-p" inputmode="decimal" /></label>
+      <label>Transit duration (hours) <input class="tp-dur" inputmode="decimal" /></label>
+      <label>T₀ uncertainty (days, optional) <input class="tp-t0e" inputmode="decimal" placeholder="0.0001" /></label>
+      <label>Period uncertainty (days, optional) <input class="tp-pe" inputmode="decimal" placeholder="0.000001" /></label>
+    </div>
+    <p class="ax-help">Copy the ephemeris from the NASA Exoplanet Archive, ExoClock or the discovery paper. Times must be barycentric Julian dates (BJD_TDB); the tool converts them to your clock. With the uncertainties it shows how far each prediction could be off.</p>
+    <h2 style="margin-top:16px">Observing limits</h2>
+    <div class="ax-grid">
+      <label>Look ahead <select class="tp-days"><option value="30">30 days</option><option value="60" selected>60 days</option><option value="120">120 days</option><option value="365">A year</option></select></label>
+      <label>Lowest altitude <select class="tp-alt"><option value="20">20°</option><option value="30" selected>30° (airmass 2)</option><option value="40">40°</option><option value="50">50°</option></select></label>
+      <label>Sky dark enough when the Sun is below <select class="tp-sun"><option value="-6">−6° (end of civil twilight)</option><option value="-12" selected>−12° (nautical)</option><option value="-18">−18° (fully dark)</option></select></label>
+      <label>Baseline each side <select class="tp-base"><option value="0">None</option><option value="0.5" selected>30 min</option><option value="1">1 hour</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="tp-all" /> Also list transits I can't see</label>
+    <p class="ax-err tp-err" hidden></p>
+  </div>
+
+  <div class="ax-card tp-out" hidden>
+    <h2 class="tp-title"></h2>
+    <p class="ax-big tp-big"></p>
+    <div class="ax-scroll"><table class="tp-tab"></table></div>
+    <p class="ax-help">Full: the whole transit and both baselines are dark and high enough. Transit: the transit itself is, but some baseline is not. Partial: only part of the transit can be seen. Tap a row to see that night.</p>
+    <h3 class="tp-nh"></h3>
+    <canvas class="ax-fig tp-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tp-csv">Transit list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .tp .tp-tab td, .tp .tp-tab th { white-space: nowrap; }
+  .tp .tp-tab tbody tr { cursor: pointer; }
+  .tp .tp-tab tr.tp-on td { font-weight: 650; }
+  .tp .tp-tab td.tp-q-none { color: var(--muted); }
+</style>
+
+<script>
+  import * as A from 'astronomy-engine';
+  import { num, csv } from '../../lib/sci/num';
+  import { transitWindows, type TransitWindow, type TransitTarget } from '../../lib/astro/transits';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay, parseAngle } from '../../lib/astro/place';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  // Published ephemerides: HD 189733 b (Agol et al. 2010), HD 209458 b (Knutson et al. 2007).
+  const PRESETS = [
+    { id: 'hd189733b', name: 'HD 189733 b', ra: '20 00 43.71', dec: '+22 42 39.1', t0: '2454279.436714', p: '2.21857567', dur: '1.83', t0e: '0.000015', pe: '0.00000015' },
+    { id: 'hd209458b', name: 'HD 209458 b', ra: '22 03 10.77', dec: '+18 53 03.5', t0: '2452826.628521', p: '3.52474859', dur: '3.07', t0e: '0.000087', pe: '0.00000038' },
+    { id: 'custom', name: 'My own planet' },
+  ];
+  const pre = q<HTMLSelectElement>('.tp-pre');
+  pre.replaceChildren(...PRESETS.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
+  let list: TransitWindow[] = [], pick = -1, fig: Figure | null = null, report: Section[] = [], target: TransitTarget | null = null;
+  const mn = (x: number) => `${Math.round(x)}°`.replace('-', '−');
+  const QUAL = { full: 'Full', transit: 'Transit', partial: 'Partial', none: 'Not visible' };
+
+  function setPreset(id: string) {
+    const p = PRESETS.find((x) => x.id === id)!; if (id === 'custom') return;
+    inp('.tp-ra').value = p.ra!; inp('.tp-dec').value = p.dec!; inp('.tp-t0').value = p.t0!; inp('.tp-p').value = p.p!; inp('.tp-dur').value = p.dur!; inp('.tp-t0e').value = p.t0e!; inp('.tp-pe').value = p.pe!;
+  }
+
+  function read(): TransitTarget {
+    const ra = parseAngle(inp('.tp-ra').value, true), dec = parseAngle(inp('.tp-dec').value);
+    if (ra === null || dec === null) throw new Error('Type the star\'s right ascension (e.g. 20 00 43.7) and declination (e.g. +22 42 39)');
+    const t0 = num(inp('.tp-t0').value), P = num(inp('.tp-p').value), dur = num(inp('.tp-dur').value);
+    if (!(t0 > 2400000 && t0 < 2500000)) throw new Error('Type T₀ as a full barycentric Julian date, such as 2454279.4367');
+    if (!(P > 0.1 && P < 10000)) throw new Error('Type the period in days');
+    if (!(dur > 0 && dur < 48 && dur / 24 < P)) throw new Error('Type the transit duration in hours, shorter than the period');
+    const t0e = num(inp('.tp-t0e').value), pe = num(inp('.tp-pe').value);
+    return { ra: ra * 15, dec, t0, period: P, durH: dur, t0Err: t0e > 0 ? t0e : 0, pErr: pe > 0 ? pe : 0 };
+  }
+  const limits = () => ({ minAlt: Number(q<HTMLSelectElement>('.tp-alt').value), sunMax: Number(q<HTMLSelectElement>('.tp-sun').value), base: Number(q<HTMLSelectElement>('.tp-base').value) });
+
+  function calc() {
+    const err = q('.tp-err');
+    try {
+      target = read();
+      const { place } = getSky(), { minAlt, sunMax, base } = limits(), days = Number(q<HTMLSelectElement>('.tp-days').value);
+      const now = Date.now();
+      list = transitWindows(target, place, now - 3 * 3600e3, now + days * 864e5, minAlt, sunMax, base);
+      const name = pre.value === 'custom' ? 'Your planet' : PRESETS.find((p) => p.id === pre.value)!.name;
+      const vis = list.filter((w) => w.quality !== 'none'), full = list.filter((w) => w.quality === 'full' || w.quality === 'transit');
+      err.hidden = true; q('.tp-out').hidden = false;
+      q('.tp-title').textContent = `${name} from ${place.name}`;
+      q('.tp-big').textContent = vis.length ? `${full.length} complete and ${vis.length - full.length} partial transit${vis.length - full.length === 1 ? '' : 's'} in the next ${days} days` : `None of the ${list.length} transits in the next ${days} days can be seen from here`;
+      const shown = q<HTMLInputElement>('.tp-all').checked ? list : vis;
+      pick = shown.length ? list.indexOf(shown.find((w) => w.quality === 'full' || w.quality === 'transit') ?? shown[0]) : -1;
+      table(shown);
+      night();
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.tp-out').hidden = true; report = []; }
+  }
+
+  function rowOf(w: TransitWindow, tz: string) {
+    const unc = w.sigmaMin > 0 ? `± ${w.sigmaMin < 10 ? w.sigmaMin.toFixed(1) : Math.round(w.sigmaMin)} min` : '–';
+    return [fmtDay(w.mid, tz, { weekday: 'short', month: 'short', day: 'numeric' }), fmtTime(w.ingress, tz), fmtTime(w.mid, tz), fmtTime(w.egress, tz), `${mn(w.altIn)} · ${mn(w.altMid)} · ${mn(w.altOut)}`, mn(w.sunMid), `${Math.round(w.moonIllum * 100)} %, ${Math.round(w.moonSep)}° away`, `${QUAL[w.quality]}${w.quality === 'partial' ? ` (${Math.round(w.seen * 100)} %)` : ''}`, unc];
+  }
+  const HEAD = ['Date', 'Ingress', 'Middle', 'Egress', 'Altitude (in · mid · out)', 'Sun', 'Moon', 'Seen', 'Timing'];
+
+  function table(shown: TransitWindow[]) {
+    const tz = getSky().place.tz, t = q<HTMLTableElement>('.tp-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); HEAD.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i && i < 7) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    shown.forEach((w) => {
+      const i = list.indexOf(w), tr = b.insertRow(); if (i === pick) tr.className = 'tp-on';
+      rowOf(w, tz).forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j && j < 7) td.className = 'r'; if (j === 7) td.className = `tp-q-${w.quality}`; });
+      tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', `Show the night of ${rowOf(w, tz)[0]}`);
+      const go = () => { pick = i; table(shown); night(); };
+      tr.addEventListener('click', go); tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
+    });
+    if (!shown.length) { const tr = b.insertRow(), td = tr.insertCell(); td.colSpan = HEAD.length; td.textContent = 'Nothing to list. Tick "Also list transits I can\'t see", lower the altitude limit or look further ahead.'; }
+  }
+
+  function night() {
+    const { place } = getSky(), tz = place.tz, { minAlt } = limits();
+    if (pick < 0 || !target) { q('.tp-nh').textContent = ''; fig = null; q<HTMLCanvasElement>('.tp-fig').hidden = true; buildReport(); return; }
+    q<HTMLCanvasElement>('.tp-fig').hidden = false;
+    const w = list[pick], obs = new A.Observer(place.lat, place.lon, place.elev || 0);
+    const t0 = w.ingress.getTime() - 3 * 3600e3, t1 = w.egress.getTime() + 3 * 3600e3, xs: number[] = [], star: number[] = [], sun: number[] = [];
+    for (let t = t0; t <= t1; t += 10 * 60e3) {
+      const d = new Date(t), v = A.VectorFromSphere(new A.Spherical(target.dec, target.ra, 1), A.MakeTime(d));
+      star.push(A.HorizonFromVector(A.RotateVector(A.Rotation_EQJ_HOR(d, obs), v), 'normal').lat);
+      const eq = A.Equator(A.Body.Sun, d, obs, true, true); sun.push(A.Horizon(d, obs, eq.ra, eq.dec).altitude);
+      xs.push((t - w.mid.getTime()) / 3600e3);
+    }
+    const half = (w.egress.getTime() - w.ingress.getTime()) / 7200e3;
+    q('.tp-nh').textContent = `Night of ${fmtDay(w.mid, tz, { weekday: 'long', month: 'long', day: 'numeric' })}`;
+    fig = chartFigure({ h: 280, xLabel: `Hours from mid-transit (${fmtTime(w.mid, tz)})`, yLabel: 'Altitude (°)', yMin: -30, yMax: 90, legend: 'inside',
+      series: [{ name: 'Star', x: xs, y: star, mode: 'line', width: 2.2 }, { name: 'Sun', x: xs, y: sun, mode: 'line', width: 1.5 }],
+      marks: [{ kind: 'vline', at: -half, label: 'ingress' }, { kind: 'vline', at: half, label: 'egress' }, { kind: 'hline', at: minAlt, dash: [4, 4], label: `${minAlt}°` }, { kind: 'hline', at: 0, label: 'horizon' }] }, `Altitude of the star and the Sun around the transit of ${fmtDay(w.mid, tz)}`);
+    paint(q<HTMLCanvasElement>('.tp-fig'), fig);
+    buildReport();
+  }
+
+  function buildReport() {
+    const tz = getSky().place.tz, shown = q<HTMLInputElement>('.tp-all').checked ? list : list.filter((w) => w.quality !== 'none');
+    report = [{ title: q('.tp-title').textContent!, text: [q('.tp-big').textContent!], table: { head: HEAD, rows: shown.map((w) => rowOf(w, tz)), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'l', 'l'] } }];
+    if (fig) report.push({ title: q('.tp-nh').textContent!, figure: fig });
+  }
+
+  q('.tp-csv').addEventListener('click', () => {
+    if (!target) return;
+    const rows: (string | number)[][] = [['epoch', 'ingress_utc', 'mid_utc', 'egress_utc', 'alt_ingress_deg', 'alt_mid_deg', 'alt_egress_deg', 'sun_alt_mid_deg', 'moon_illum', 'moon_sep_deg', 'seen_fraction', 'quality', 'timing_sigma_min']];
+    for (const w of list) rows.push([w.epoch, w.ingress.toISOString(), w.mid.toISOString(), w.egress.toISOString(), w.altIn.toFixed(1), w.altMid.toFixed(1), w.altOut.toFixed(1), w.sunMid.toFixed(1), w.moonIllum.toFixed(2), w.moonSep.toFixed(1), w.seen.toFixed(2), w.quality, w.sigmaMin.toFixed(2)]);
+    save(new Blob([csv(rows).replace(/\n/g, '\r\n')], { type: 'text/csv' }), 'transits.csv', 'text/csv');
+  });
+  pre.addEventListener('change', () => { setPreset(pre.value); calc(); });
+  for (const c of ['.tp-ra', '.tp-dec', '.tp-t0', '.tp-p', '.tp-dur', '.tp-t0e', '.tp-pe']) inp(c).addEventListener('input', () => { pre.value = 'custom'; calc(); });
+  for (const c of ['.tp-days', '.tp-alt', '.tp-sun', '.tp-base', '.tp-all']) q(c).addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.tp-fig'), fig));
+  const qp = new URLSearchParams(location.search).get('planet');
+  setPreset(PRESETS.some((p) => p.id === qp) ? qp! : 'hd189733b'); if (qp && PRESETS.some((p) => p.id === qp)) pre.value = qp;
+  onSky(calc); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Transit planner', file: 'transits', sections: report }));
+</script>

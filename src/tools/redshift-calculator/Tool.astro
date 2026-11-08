@@ -1,0 +1,143 @@
+---
+// Redshift and velocity converter: relativistic, optical and radio conventions, spectral lines and recession velocity.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rz">
+  <div class="ax-card">
+    <h2>What you know</h2>
+    <div class="ax-grid">
+      <label>I know <select class="rz-kind">
+        <option value="z" selected>The redshift z</option>
+        <option value="v">A velocity (km/s)</option>
+        <option value="lam">Where a line is seen (wavelength)</option>
+        <option value="freq">Where a line is seen (frequency)</option>
+      </select></label>
+      <label><span class="rz-vl">Redshift z</span> <input class="rz-v" inputmode="decimal" value="0.05" /></label>
+      <label class="rz-cw" hidden>Velocity convention <select class="rz-conv">
+        <option value="relativistic" selected>Relativistic (special relativity)</option>
+        <option value="optical">Optical (v = cz)</option>
+        <option value="radio">Radio (v = c(1 − 1/(1+z)))</option>
+      </select></label>
+      <label class="rz-uw" hidden>Unit <select class="rz-unit"></select></label>
+      <label class="rz-lw" hidden>Line <select class="rz-line"></select></label>
+      <label class="rz-rw" hidden>Rest value <input class="rz-rest" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help rz-help"></p>
+    <p class="ax-err rz-err" hidden></p>
+  </div>
+
+  <div class="ax-card rz-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big rz-big"></p>
+    <dl class="ax-facts rz-facts"></dl>
+    <h3>Lines at this redshift</h3>
+    <div class="ax-scroll"><table class="rz-tab"></table></div>
+    <canvas class="ax-fig rz-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help">The three conventions agree for small velocities and part ways above about 0.1 c. Only the relativistic one is a physical speed for motion through space; radio astronomers and optical spectroscopists quote velocities in their own conventions, so always say which you use. The redshift of distant galaxies comes from the expansion of space: their recession velocity, H₀ times today's distance, can exceed c without breaking relativity.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rz .rz-tab td, .rz .rz-tab th { white-space: nowrap; }
+  .rz tr.rz-on td { font-weight: 650; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { C_KMS, velocity, redshift, gamma, LINES, nmToGhz, zFromLambda, zFromFreq, type Convention } from '../../lib/sci/redshift';
+  import { cosmology, presets } from '../../lib/sci/cosmo';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const kind = q<HTMLSelectElement>('.rz-kind'), unit = q<HTMLSelectElement>('.rz-unit'), line = q<HTMLSelectElement>('.rz-line');
+  let fig: Figure | null = null, report: Section[] = [];
+  const P18 = presets.planck18, COSMO = { H0: P18.H0, Om: P18.Om, OL: 1 - P18.Om, Or: 0 };
+  const LAM_UNITS: Record<string, number> = { 'nm': 1, 'Å': 0.1, 'µm': 1000, 'mm': 1e6, 'cm': 1e7 };
+  const FREQ_UNITS: Record<string, number> = { 'MHz': 1e-3, 'GHz': 1 };
+  const HELP: Record<string, string> = {
+    z: 'z is how much the light is stretched: an observed wavelength is (1 + z) times the rest wavelength. Negative z is a blueshift.',
+    v: 'Type a line-of-sight velocity; negative means coming towards you. Choose the convention it was quoted in.',
+    lam: 'Type where you measured the line in your spectrum, and pick which line it is. Optical lines are air wavelengths, as usually tabulated.',
+    freq: 'Type the observed frequency and pick the line. Use the radio convention for velocities, as radio astronomers do.',
+  };
+  const opt = (v: string, t: string) => Object.assign(document.createElement('option'), { value: v, textContent: t });
+  const trim = (x: number, n: number) => String(+x.toPrecision(n));
+  const showLam = (nm: number) => (nm >= 1e6 ? (nmToGhz(nm) < 2 ? `${(+(nmToGhz(nm) * 1000).toFixed(3)).toLocaleString('en')} MHz` : `${trim(nmToGhz(nm), 7)} GHz`) : nm >= 1e4 ? `${sig(nm / 1000, 5)} µm` : `${(+nm.toFixed(nm < 1000 ? 3 : 1)).toLocaleString('en')} nm`);
+
+  function setKind() {
+    const k = kind.value;
+    q('.rz-vl').textContent = { z: 'Redshift z', v: 'Velocity (km/s)', lam: 'Observed wavelength', freq: 'Observed frequency' }[k]!;
+    q<HTMLInputElement>('.rz-v').value = { z: '0.05', v: '15000', lam: '689.1', freq: '1350' }[k]!;
+    q('.rz-cw').hidden = k !== 'v'; q('.rz-uw').hidden = q('.rz-lw').hidden = !(k === 'lam' || k === 'freq');
+    q('.rz-help').textContent = HELP[k];
+    if (k === 'lam') { unit.replaceChildren(...Object.keys(LAM_UNITS).map((u) => opt(u, u))); unit.value = 'nm'; line.replaceChildren(...LINES.filter((l) => l.nm < 1e5).map((l) => opt(l.id, `${l.name} (${showLam(l.nm)})`)), opt('custom', 'Another line')); line.value = 'ha'; }
+    if (k === 'freq') { unit.replaceChildren(...Object.keys(FREQ_UNITS).map((u) => opt(u, u))); unit.value = 'MHz'; line.replaceChildren(...LINES.filter((l) => l.nm > 1e5).map((l) => opt(l.id, `${l.name} (${showLam(l.nm)})`)), opt('custom', 'Another line')); line.value = 'hi'; }
+    if (k === 'v') q<HTMLSelectElement>('.rz-conv').value = 'relativistic';
+    setLine();
+  }
+  function setLine() { q('.rz-rw').hidden = !(kind.value === 'lam' || kind.value === 'freq') || line.value !== 'custom'; calc(); }
+
+  function readZ(): number {
+    const v = num(q<HTMLInputElement>('.rz-v').value), k = kind.value;
+    if (!Number.isFinite(v)) throw new Error('Type a number');
+    if (k === 'z') { if (!(v > -1)) throw new Error('A redshift must be above −1'); if (v > 1500) throw new Error('Redshifts above 1500 are before the cosmic microwave background'); return v; }
+    if (k === 'v') return redshift(v, q<HTMLSelectElement>('.rz-conv').value as Convention);
+    const custom = line.value === 'custom', rest = custom ? num(q<HTMLInputElement>('.rz-rest').value) : NaN;
+    if (custom && !(rest > 0)) throw new Error('Type the line\'s rest value in the same unit');
+    if (!(v > 0)) throw new Error('The observed value must be above zero');
+    if (k === 'lam') { const obsNm = v * LAM_UNITS[unit.value]; return custom ? zFromLambda(v, rest) : zFromLambda(obsNm, LINES.find((l) => l.id === line.value)!.nm); }
+    const obsGhz = v * FREQ_UNITS[unit.value]; return custom ? zFromFreq(v, rest) : zFromFreq(obsGhz, nmToGhz(LINES.find((l) => l.id === line.value)!.nm));
+  }
+
+  function calc() {
+    const err = q('.rz-err');
+    try {
+      const z = readZ(); if (!(z > -1)) throw new Error('That gives a redshift below −1');
+      const vr = velocity(z, 'relativistic'), vo = velocity(z, 'optical'), vd = velocity(z, 'radio');
+      err.hidden = true; q('.rz-out').hidden = false;
+      q('.rz-big').textContent = `z = ${Math.abs(z) < 0.001 && z !== 0 ? z.toExponential(4) : trim(z, 6)}${z < 0 ? ' (blueshift)' : ''}`;
+      const kms = (v: number) => `${Math.round(v).toLocaleString('en')} km/s`;
+      const facts: [string, string, string?][] = [
+        ['Relativistic velocity', kms(vr), `${(vr / C_KMS).toFixed(5)} c; Lorentz factor ${gamma(z).toFixed(5)}`],
+        ['Optical velocity (cz)', kms(vo), Math.abs(z) < 0.1 ? 'close to the true speed at this redshift' : 'no longer a physical speed at this redshift'],
+        ['Radio velocity', kms(vd), 'used for 21 cm and molecular lines'],
+        ['Wavelengths stretched by', `${trim(1 + z, 6)} times`, `and clocks there appear ${trim(1 + z, 6)} times slower`],
+      ];
+      if (z > 0) {
+        const c = cosmology(COSMO, z);
+        facts.push(['If the redshift is cosmological', `recession velocity ${kms(COSMO.H0 * c.dc)}`, `${(COSMO.H0 * c.dc / C_KMS).toFixed(3)} c, at ${Math.round(c.dc).toLocaleString('en')} Mpc today (Planck 2018); light-travel time ${c.lookback < 1 ? `${Math.round(c.lookback * 1000)} million` : c.lookback.toFixed(3) + ' billion'} years`]);
+        if (z < 0.1) facts.push(['Hubble law distance', `${sig(vo / COSMO.H0, 4)} Mpc`, `cz / H₀ with H₀ = ${COSMO.H0} km/s/Mpc; ignores the galaxy's own motion, which matters below about 0.01`]);
+      }
+      q('.rz-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const head = ['Line', 'Rest', 'Observed'];
+      const rows = LINES.map((l) => [l.name, showLam(l.nm), showLam(l.nm * (1 + z))]);
+      const sel = (kind.value === 'lam' || kind.value === 'freq') ? line.value : '';
+      const t = q<HTMLTableElement>('.rz-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); rows.forEach((r, k) => { const tr = tb.insertRow(); if (LINES[k].id === sel) tr.className = 'rz-on'; r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+      const zMax = Math.max(3, Math.min(20, z * 1.6)), xs: number[] = [];
+      for (let i = 0; i <= 120; i++) xs.push((zMax * i) / 120);
+      fig = chartFigure({ h: 280, xLabel: 'Redshift z', yLabel: 'Velocity / c', yMin: 0, legend: 'inside',
+        series: [
+          { name: 'Relativistic', x: xs, y: xs.map((x) => velocity(x, 'relativistic') / C_KMS), mode: 'line' },
+          { name: 'Optical cz', x: xs, y: xs.map((x) => x), mode: 'line' },
+          { name: 'Radio', x: xs, y: xs.map((x) => velocity(x, 'radio') / C_KMS), mode: 'line' },
+          { name: 'Recession (Planck 2018)', x: xs.slice(1), y: xs.slice(1).map((x) => (COSMO.H0 * cosmology(COSMO, x).dc) / C_KMS), mode: 'line' },
+        ],
+        yMax: Math.min(4, zMax), marks: [{ kind: 'hline', at: 1, dash: [4, 4], label: 'speed of light' }, ...(z > 0 && z <= zMax ? [{ kind: 'vline' as const, at: z, label: 'your z' }] : [])] }, 'Velocity against redshift in each convention');
+      paint(q<HTMLCanvasElement>('.rz-fig'), fig);
+      report = [{ title: q('.rz-big').textContent!, facts: facts.map(([k, v]) => [k, v] as [string, string]) }, { title: 'Lines at this redshift', table: { head, rows, align: ['l', 'r', 'r'] } }, { title: 'Velocity against redshift', figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.rz-out').hidden = true; report = []; }
+  }
+  kind.addEventListener('change', setKind);
+  line.addEventListener('change', setLine);
+  for (const c of ['.rz-unit', '.rz-conv']) q(c).addEventListener('change', calc);
+  for (const c of ['.rz-v', '.rz-rest']) q(c).addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.rz-fig'), fig));
+  setKind();
+  wireDownloads(q('.dl'), () => ({ title: 'Redshift calculator', file: 'redshift', sections: report }));
+</script>

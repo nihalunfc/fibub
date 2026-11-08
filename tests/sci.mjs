@@ -33,6 +33,11 @@ import { staging, propellantFor, BODIES, AU, hohmann, biElliptic } from '../src/
 import { lombScargle, falseAlarm, peaks, phase } from '../src/lib/sci/lombscargle.ts';
 import { fovArcmin, framesAlong, offsetToRaDec, mosaic } from '../src/lib/sci/mosaic.ts';
 import { hourlyRate } from '../src/lib/sci/meteorrate.ts';
+import { sqmToMcd, mcdToSqm, sqmToNelm, nelmToSqm, bortleOf, sqmForBortle, skyglow } from '../src/lib/sci/skyglow.ts';
+import { habitableZone, tEq, periodDays, auForPeriod, lumFrom } from '../src/lib/sci/habitable.ts';
+import { marsTime, localSolar, missionSol, solStart, MISSIONS, msdToMs, lsTime } from '../src/lib/sci/marstime.ts';
+import { transitWindows, bjdToMs, msToBjd, trapezoid } from '../src/lib/astro/transits.ts';
+import { velocity, redshift, zFromLambda, nmToGhz, LINES } from '../src/lib/sci/redshift.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -388,6 +393,67 @@ near('F cdf round trip', fCdf(fInv(0.3, 7, 4), 7, 4), 0.3, 1e-9);
 near('ZHR with radiant overhead, perfect sky', hourlyRate(100, 2.2, 6.5, 90), 100, 1e-9);
 near('Perseids at 60°, LM 6', hourlyRate(100, 2.2, 6, 60), 58.39, 0.01);
 check('no meteors with radiant below horizon', hourlyRate(100, 2.2, 6.5, -5) === 0);
+
+// ---- Sky brightness: luminance scale, the SQM to NELM relation and Bortle bands.
+near('22 mag/arcsec² in mcd/m²', sqmToMcd(22), 0.1712, 0.0005);
+near('mcd round trip', mcdToSqm(sqmToMcd(19.3)), 19.3, 1e-9);
+near('NELM for SQM 21.5', sqmToNelm(21.5), 6.384, 0.001);
+near('NELM round trip', nelmToSqm(sqmToNelm(18.7)), 18.7, 1e-9);
+check('Bortle bands', bortleOf(22).n === 1 && bortleOf(21.8).n === 3 && bortleOf(20).n === 5 && bortleOf(17).n === 8);
+check('class to reading and back', [1, 2, 3, 4, 5, 6, 7, 8].every((n) => bortleOf(sqmForBortle(n)).n === n));
+near('a sky 2.5 mag brighter needs 10× the exposure', skyglow(19.5).exposureFactor, 10, 1e-9);
+throws('NELM too faint for the formula', () => nelmToSqm(8));
+
+// ---- Habitable zone (Kopparapu et al. 2014: the Sun's conservative zone is 0.95 to 1.67 AU) and equilibrium temperature.
+{
+  const hz = habitableZone(5780, 1);
+  near('Sun runaway greenhouse edge', hz.conservative[0], 0.950, 0.002); near('Sun maximum greenhouse edge', hz.conservative[1], 1.676, 0.002);
+  near('Sun recent Venus edge', hz.optimistic[0], 0.750, 0.002); near('Sun early Mars edge', hz.optimistic[1], 1.768, 0.002);
+  check('5 Earth masses moves the inner edge in', habitableZone(5780, 1, '5').conservative[0] < hz.conservative[0]);
+  check('cool star flagged outside the fit', habitableZone(2500, 0.0005).outOfRange && !hz.outOfRange);
+  near('Earth equilibrium temperature', tEq(1, 1, 0.306), 254.0, 0.5);
+  near('day side only is 2^¼ warmer', tEq(1, 1, 0.306, 2) / tEq(1, 1, 0.306), 2 ** 0.25, 1e-12);
+  near('Earth year', periodDays(1, 1), 365.256, 0.001); near('Kepler round trip', auForPeriod(periodDays(0.05, 0.12), 0.12), 0.05, 1e-12);
+  near('the Sun from radius and temperature', lumFrom(1, 5772), 1, 1e-12);
+}
+
+// ---- Mars time: Allison & McEwen (2000) worked example for 2000 January 6, 00:00 UTC.
+{
+  const t = marsTime(Date.UTC(2000, 0, 6));
+  near('ΔtJ2000', t.dt, 4.5007428, 1e-6); near('Mars mean anomaly', t.M, 21.74558, 1e-4); near('fictitious mean sun', t.alphaFMS, 272.74566, 1e-4);
+  near('perturbers', t.pbs, 0.00142, 1e-5); near('equation of centre', t.nuM, 4.44193, 1e-4); near('Ls', t.ls, 277.18758, 1e-4);
+  near('equation of time', t.eot, -5.18774, 1e-4); near('MSD', t.msd, 44795.99976, 1e-5); near('heliocentric distance', t.r, 1.39358, 1e-4);
+  near('MTC', t.mtc, 23.9942, 1e-3);
+  check('Mars Year 24', t.marsYear === 24); check('Mars Year 38 on 2025 Jan 1', marsTime(Date.UTC(2025, 0, 1)).marsYear === 38);
+  near('MSD round trip', marsTime(msdToMs(52000.25)).msd, 52000.25, 1e-7);
+  const c = MISSIONS.find((m) => m.id === 'curiosity');
+  near('Curiosity landed mid-afternoon', localSolar(marsTime(c.landing), c.lonEast).lmst, 15.05, 0.05);
+  check('Curiosity sol 0 is the landing sol', missionSol(c, c.landing) === 0 && missionSol(c, solStart(c, 1000) + 60e3) === 1000);
+  check('Mars Years 36, 37, 38 began 2021 Feb 7, 2022 Dec 26, 2024 Nov 12', [[36, '2021-02-07'], [37, '2022-12-26'], [38, '2024-11-12']].every(([y, d]) => new Date(lsTime(y, 0)).toISOString().startsWith(d)));
+  check('Curiosity sol 1000 began on 2015 May 30 (UTC)', new Date(solStart(c, 1000)).toISOString().startsWith('2015-05-30'));
+}
+
+// ---- Transit windows: barycentric time round trip and a known epoch count.
+{
+  const ra = 300.18213, dec = 22.71086, t = Date.UTC(2026, 10, 8);
+  near('BJD round trip', msToBjd(bjdToMs(2461000.25, ra, dec), ra, dec), 2461000.25, 1e-9);
+  near('BJD differs from JD by at most 8.3 min plus TT', Math.abs(msToBjd(t, ra, dec) - (2440587.5 + t / 864e5)) * 1440, 4, 5.5);
+  const w = transitWindows({ ra, dec, t0: 2454279.436714, period: 2.21857567, durH: 1.827, pErr: 1e-7 }, { name: 'T', lat: 43.65, lon: -79.38, elev: 0, tz: 'UTC' }, t, t + 10 * 864e5);
+  check('HD 189733 b: 4 or 5 transits in 10 days', w.length >= 4 && w.length <= 5);
+  near('epoch spacing (UTC, so the light-time across the orbit adds seconds)', (w[1].mid - w[0].mid) / 864e5, 2.21857567, 3e-4);
+  check('timing error grows with epoch', w[0].sigmaMin > 0.4 && w[0].sigmaMin < 0.5);
+  check('qualities', w.every((x) => ['full', 'transit', 'partial', 'none'].includes(x.quality)));
+  near('trapezoid floor', trapezoid(0, 2, 0.02), 0.98, 1e-12); check('trapezoid outside', trapezoid(1.1, 2, 0.02) === 1);
+}
+
+// ---- Redshift conventions.
+near('relativistic v at z = 1', velocity(1, 'relativistic'), 179875.47, 0.01);
+near('radio v at z = 1', velocity(1, 'radio'), 149896.229, 1e-3);
+near('optical z from v', redshift(3000, 'optical'), 0.010006922, 1e-9);
+check('round trips', ['relativistic', 'optical', 'radio'].every((c) => Math.abs(redshift(velocity(0.37, c), c) - 0.37) < 1e-12));
+near('Hα at z = 0.1', zFromLambda(656.281 * 1.1, 656.281), 0.1, 1e-12);
+near('21 cm line frequency', nmToGhz(LINES.find((l) => l.id === 'hi').nm), 1.420405752, 1e-9);
+throws('faster than light', () => redshift(3e5, 'relativistic'));
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
