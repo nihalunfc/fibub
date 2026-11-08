@@ -102,6 +102,7 @@ import * as AQ from '../src/lib/sci/aqi.ts';
 import * as ALT from '../src/lib/sci/altermagnet.ts';
 import * as PL from '../src/lib/sci/plume.ts';
 import * as MT from '../src/lib/sci/mccabe.ts';
+import * as VL from '../src/lib/sci/vle.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1695,6 +1696,33 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('mccabe: data inverse', d.x(d.y(0.42)), 0.42, 1e-9);
   let bad = false; try { MT.dataEq([0.2, 0.4], [0.5, 0.45]); } catch { bad = true; }
   check('mccabe: falling data refused', bad);
+}
+
+{
+  // Antoine and Raoult: every rounded example boils within 0.2 °C of its normal boiling point.
+  for (const e of VL.EXAMPLES) near(`vle: ${e.name} normal boiling point`, VL.tsat(e, 101.325), e.bp, 0.2);
+  const [bz, tl] = [VL.EXAMPLES.find((e) => e.name === 'Benzene'), VL.EXAMPLES.find((e) => e.name === 'Toluene')];
+  near('vle: Antoine by hand', VL.psat(bz, 95), 10 ** (6.906 - 1211 / 315.8) * 101.325 / 760, 1e-12);
+  near('vle: tsat inverts psat', VL.tsat(tl, VL.psat(tl, 47.3)), 47.3, 1e-9);
+  near('vle: kPa constants agree', VL.psat({ ...bz, A: bz.A + Math.log10(101.325 / 760), unit: 'kPa' }, 60), VL.psat(bz, 60), 1e-9);
+  const b = VL.bubbleT(bz, tl, 0.5, 101.325), d = VL.dewT(bz, tl, 0.5, 101.325);
+  near('vle: bubble point sums', 0.5 * VL.psat(bz, b.t) + 0.5 * VL.psat(tl, b.t), 101.325, 1e-6);
+  near('vle: dew point sums', 0.5 / VL.psat(bz, d.t) + 0.5 / VL.psat(tl, d.t), 1 / 101.325, 1e-9);
+  check('vle: bubble below dew, between pure points', VL.tsat(bz, 101.325) < b.t && b.t < d.t && d.t < VL.tsat(tl, 101.325));
+  near('vle: dew of the bubble vapour gives the bubble T', VL.dewT(bz, tl, b.y1, 101.325).t, b.t, 1e-6);
+  near('vle: bubble P at the bubble T', VL.bubbleP(bz, tl, 0.5, b.t).P, 101.325, 1e-6);
+  near('vle: dew P at the dew T', VL.dewP(bz, tl, 0.5, d.t).P, 101.325, 1e-6);
+  const f = VL.flash(bz, tl, 0.5, 95, 101.325);
+  near('vle: flash mass balance', f.V * f.y1 + (1 - f.V) * f.x1, 0.5, 1e-12);
+  near('vle: flash phases sum', f.x1 * VL.psat(bz, 95) + (1 - f.x1) * VL.psat(tl, 95), 101.325, 1e-9);
+  check('vle: flash below bubble is liquid, above dew is vapour', VL.flash(bz, tl, 0.5, 85, 101.325).state === 'liquid' && VL.flash(bz, tl, 0.5, 105, 101.325).state === 'vapour');
+  near('vle: alpha mean', VL.alphaMean(bz, tl, 101.325).mean, Math.sqrt(VL.alphaAt(bz, tl, VL.tsat(bz, 101.325)) * VL.alphaAt(bz, tl, VL.tsat(tl, 101.325))), 1e-12);
+  // Clausius-Clapeyron: dHvap equals -R d(lnP)/d(1/T), checked by finite differences.
+  const T1 = 90, T2 = 90.01, num = Math.log(VL.psat(tl, T2) / VL.psat(tl, T1)), den = 1 / (T1 + 273.15) - 1 / (T2 + 273.15);
+  near('vle: heat of vaporisation from the slope', VL.dHvap(tl, 90.005), (8.314462618 * num) / den / 1000, 1e-3);
+  near('vle: water at 70 kPa boils near 90 °C', VL.tsat(VL.EXAMPLES[0], 70), 90.03, 0.05);
+  const c = VL.txy(bz, tl, 101.325, 10);
+  check('vle: Txy ends at the pure boiling points', Math.abs(c[0].t - VL.tsat(tl, 101.325)) < 1e-6 && Math.abs(c[10].t - VL.tsat(bz, 101.325)) < 1e-6);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

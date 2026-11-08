@@ -1,0 +1,155 @@
+---
+// Antoine vapour pressure and ideal binary VLE: bubble and dew points, flash, Txy and xy diagrams, relative volatility.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLES } from '../../lib/sci/vle';
+const comps = [{ k: '1', pick: 'Benzene' }, { k: '2', pick: 'Toluene' }];
+---
+<div class="ax vp">
+  <div class="ax-card">
+    <h2>Components</h2>
+    {comps.map((c) => {
+      const e = EXAMPLES.find((x) => x.name === c.pick)!;
+      return (
+        <fieldset class="vp-comp" data-k={c.k}>
+          <legend>Component {c.k}{c.k === '1' ? ' (the lighter one)' : ''}</legend>
+          <div class="ax-grid">
+            <label>Example <select class="vp-ex">{EXAMPLES.map((x, i) => <option value={i} selected={x.name === c.pick}>{x.name}</option>)}<option value="custom">My own constants</option></select></label>
+            <label>Name <input class="vp-name" value={e.name} /></label>
+            <label>A <input class="vp-a" inputmode="decimal" value={e.A} /></label>
+            <label>B <input class="vp-b" inputmode="decimal" value={e.B} /></label>
+            <label>C <input class="vp-c" inputmode="decimal" value={e.C} /></label>
+            <label>Pressure unit of the constants <select class="vp-u"><option value="mmHg">mmHg</option><option value="kPa">kPa</option><option value="bar">bar</option><option value="Pa">Pa</option><option value="atm">atm</option></select></label>
+          </div>
+        </fieldset>
+      );
+    })}
+    <p class="ax-help">Antoine equation: log₁₀ P = A − B / (C + T), with T in °C. Some sources use kelvin or natural logs; convert those first (for kelvin, C(°C) = C(K) + 273.15). The example constants are rounded, so they are approximate; use constants from your own reference for accurate work, and stay inside their temperature range.</p>
+    <p class="ax-err vp-err" hidden></p>
+  </div>
+
+  <div class="ax-card vp-out">
+    <h2>Pure components</h2>
+    <div class="ax-grid">
+      <label>Temperature (°C) <input class="vp-t" inputmode="decimal" value="95" /></label>
+      <label>Pressure <input class="vp-p" inputmode="decimal" value="101.325" /></label>
+      <label>Unit <select class="vp-pu"><option value="kPa">kPa</option><option value="mmHg">mmHg</option><option value="bar">bar</option><option value="atm">atm</option></select></label>
+    </div>
+    <div class="ax-scroll"><table class="vp-pure"></table></div>
+
+    <h2 style="margin-top:18px">Mixture (ideal, Raoult's law)</h2>
+    <div class="ax-grid">
+      <label>Mole fraction of component 1 <input class="vp-x" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">Raoult's law suits mixtures of similar molecules, such as benzene and toluene or hexane and heptane. Mixtures such as ethanol and water are far from ideal (they form an azeotrope), so treat their results as rough.</p>
+    <p class="ax-big vp-big"></p>
+    <dl class="ax-facts vp-facts"></dl>
+    <canvas class="ax-fig vp-txy"></canvas>
+    <canvas class="ax-fig vp-xy" style="margin-top:10px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { EXAMPLES, TO_KPA, psat, tsat, dHvap, bubbleP, dewP, bubbleT, dewT, txy, alphaMean, flash, type Antoine, type PUnit } from '../../lib/sci/vle';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.vp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f3 = (x: number) => x.toFixed(3);
+  let figs: Figure[] = [], report: Section[] = [];
+
+  function comp(k: string): Antoine {
+    const fs = root.querySelector<HTMLElement>(`.vp-comp[data-k="${k}"]`)!;
+    const g = (c: string) => fs.querySelector<HTMLInputElement>(c)!;
+    const A = num(g('.vp-a').value), B = num(g('.vp-b').value), C = num(g('.vp-c').value);
+    const name = g('.vp-name').value.trim() || `Component ${k}`;
+    if (![A, B, C].every(Number.isFinite) || !(B > 0)) throw new Error(`Enter numbers for A, B and C of ${name} (B above zero)`);
+    const ex = fs.querySelector<HTMLSelectElement>('.vp-ex')!.value, base = ex === 'custom' ? null : EXAMPLES[+ex];
+    const same = base && base.A === A && base.B === B && base.C === C && (fs.querySelector<HTMLSelectElement>('.vp-u')!.value === base.unit);
+    return { name, A, B, C, unit: fs.querySelector<HTMLSelectElement>('.vp-u')!.value as PUnit, tmin: same ? base!.tmin : undefined, tmax: same ? base!.tmax : undefined };
+  }
+
+  function calc() {
+    const err = q('.vp-err'), out = q('.vp-out');
+    const fail = (m: string) => { err.textContent = m.replace(/([^.])$/, '$1.'); err.hidden = false; out.hidden = true; report = []; };
+    let a1: Antoine, a2: Antoine;
+    try { a1 = comp('1'); a2 = comp('2'); } catch (e) { return fail((e as Error).message); }
+    const t = num(q<HTMLInputElement>('.vp-t').value), pu = q<HTMLSelectElement>('.vp-pu').value as PUnit, p = num(q<HTMLInputElement>('.vp-p').value) * TO_KPA[pu];
+    const x = num(q<HTMLInputElement>('.vp-x').value);
+    if (!(t > -273.15)) return fail('Enter a temperature above absolute zero');
+    if (!(p > 0)) return fail('Enter a pressure above zero');
+    if (!(x >= 0 && x <= 1)) return fail('Enter a mole fraction from 0 to 1');
+    for (const a of [a1, a2]) if (!(a.C + t > 0)) return fail(`${a.name}: C + T must be above zero; the constants do not cover ${t} °C`);
+    const ptxt = (kpa: number) => `${(kpa / TO_KPA[pu]).toPrecision(4)} ${pu}`;
+    err.hidden = true; out.hidden = false;
+
+    // Pure components.
+    const rng = (a: Antoine, tt: number) => (a.tmin !== undefined && (tt < a.tmin - 1e-9 || tt > a.tmax! + 1e-9) ? ` (outside ${a.tmin} to ${a.tmax} °C)` : '');
+    const head = ['', a1.name, a2.name];
+    const tb1 = tsat(a1, p), tb2 = tsat(a2, p);
+    const rows = [
+      [`Vapour pressure at ${t} °C`, ptxt(psat(a1, t)) + rng(a1, t), ptxt(psat(a2, t)) + rng(a2, t)],
+      [`Boiling point at ${ptxt(p)}`, `${tb1.toFixed(2)} °C${rng(a1, tb1)}`, `${tb2.toFixed(2)} °C${rng(a2, tb2)}`],
+      [`Heat of vaporisation at ${t} °C`, `${dHvap(a1, t).toFixed(1)} kJ/mol`, `${dHvap(a2, t).toFixed(1)} kJ/mol`],
+    ];
+    const tab = q<HTMLTableElement>('.vp-pure'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+
+    // Mixture.
+    const bt = bubbleT(a1, a2, x, p), dt = dewT(a1, a2, x, p), bp = bubbleP(a1, a2, x, t), dp = dewP(a1, a2, x, t), am = alphaMean(a1, a2, p), fl = flash(a1, a2, x, t, p);
+    q('.vp-big').textContent = `At ${ptxt(p)}, it starts to boil at ${bt.t.toFixed(2)} °C and is all vapour at ${dt.t.toFixed(2)} °C`;
+    const f = [
+      fact('Bubble point', `${bt.t.toFixed(2)} °C`, `first vapour has y₁ = ${f3(bt.y1)}`),
+      fact('Dew point', `${dt.t.toFixed(2)} °C`, `last liquid has x₁ = ${f3(dt.x1)}`),
+      fact(`Bubble and dew pressure at ${t} °C`, `${ptxt(bp.P)} and ${ptxt(dp.P)}`, `vapour over the liquid has y₁ = ${f3(bp.y1)}`),
+      fact(`Flash at ${t} °C and ${ptxt(p)}`, fl.state === 'two-phase' ? `${(fl.V * 100).toFixed(1)} % vapour` : fl.state === 'liquid' ? 'all liquid' : 'all vapour', fl.state === 'two-phase' ? `liquid x₁ = ${f3(fl.x1)}, vapour y₁ = ${f3(fl.y1)}` : 'outside the two-phase region'),
+      fact('Relative volatility', `${am.mean.toFixed(3)} (mean)`, `${am.top.toFixed(3)} at ${a1.name}'s boiling point, ${am.bottom.toFixed(3)} at ${a2.name}'s; use it in the McCabe-Thiele calculator`),
+    ];
+    if (am.mean < 1) f.push(fact('Note', 'component 2 is the more volatile one', 'swap the components so component 1 is the lighter'));
+    q('.vp-facts').replaceChildren(...f);
+
+    const c = txy(a1, a2, p, 60);
+    const fig1 = chartFigure({ h: 300, xMin: 0, xMax: 1, xLabel: `Mole fraction of ${a1.name}`, yLabel: 'Temperature (°C)', legend: 'inside',
+      series: [{ name: 'Bubble (liquid)', x: c.map((r) => r.x), y: c.map((r) => r.t), mode: 'line', width: 2 }, { name: 'Dew (vapour)', x: c.map((r) => r.y), y: c.map((r) => r.t), mode: 'line', width: 2 },
+        { name: '', x: [x, x], y: [bt.t, dt.t], mode: 'points', size: 5 }],
+      marks: [{ kind: 'vline', at: x, dash: [3, 3] }] }, `Txy diagram at ${ptxt(p)}`);
+    const fig2 = chartFigure({ h: 300, xMin: 0, xMax: 1, yMin: 0, yMax: 1, xLabel: `x, ${a1.name} in the liquid`, yLabel: 'y, in the vapour', legend: 'none',
+      series: [{ name: 'Equilibrium', x: c.map((r) => r.x), y: c.map((r) => r.y), mode: 'line', width: 2 }, { name: 'y = x', x: [0, 1], y: [0, 1], mode: 'line', width: 1, dash: [3, 3], color: '#888888' }] }, `xy diagram at ${ptxt(p)}`);
+    figs = [fig1, fig2];
+    paint(q<HTMLCanvasElement>('.vp-txy'), fig1); paint(q<HTMLCanvasElement>('.vp-xy'), fig2);
+    report = [
+      { title: 'Pure components', table: { head, rows, align: ['l', 'r', 'r'] } },
+      { title: q('.vp-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig1 },
+      { title: 'xy diagram', figure: fig2 },
+    ];
+  }
+
+  for (const fs of root.querySelectorAll<HTMLElement>('.vp-comp')) {
+    fs.querySelector('.vp-ex')!.addEventListener('change', (e) => {
+      const v = (e.target as HTMLSelectElement).value; if (v === 'custom') return;
+      const ex = EXAMPLES[+v], set = (c: string, val: string) => { fs.querySelector<HTMLInputElement>(c)!.value = val; };
+      set('.vp-name', ex.name); set('.vp-a', String(ex.A)); set('.vp-b', String(ex.B)); set('.vp-c', String(ex.C));
+      fs.querySelector<HTMLSelectElement>('.vp-u')!.value = ex.unit;
+    });
+    fs.querySelectorAll('.vp-a, .vp-b, .vp-c').forEach((i) => i.addEventListener('input', () => {
+      const sel = fs.querySelector<HTMLSelectElement>('.vp-ex')!, ex = sel.value === 'custom' ? null : EXAMPLES[+sel.value];
+      const g = (c: string) => num(fs.querySelector<HTMLInputElement>(c)!.value);
+      if (ex && (g('.vp-a') !== ex.A || g('.vp-b') !== ex.B || g('.vp-c') !== ex.C)) { sel.value = 'custom'; }
+    }));
+  }
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.vp-txy'), figs[0]); paint(q<HTMLCanvasElement>('.vp-xy'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Vapour pressure and VLE', subtitle: q('.vp-big').textContent ?? '', file: 'vapour-pressure', sections: report }));
+</script>
+
+<style is:global>
+  .vp fieldset.vp-comp { border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; min-width: 0; }
+  .vp fieldset.vp-comp legend { font-weight: 600; padding: 0 4px; }
+  .vp select { max-width: 100%; }
+</style>
