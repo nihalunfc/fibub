@@ -75,6 +75,7 @@ import * as EQL from '../src/lib/sci/equilibrium.ts';
 import * as CV from '../src/lib/sci/cv.ts';
 import * as TLC from '../src/lib/sci/tlc.ts';
 import * as HMO from '../src/lib/sci/huckel.ts';
+import * as CFT from '../src/lib/sci/crystalfield.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1085,6 +1086,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('jacobi diagonalises', (() => { const j = HMO.jacobi([[2, 1], [1, 2]]); return j.values.map((x) => Math.round(x)).sort().join() === '1,3'; })());
   check('bonds parsed', HMO.parseBonds('1-2, 2–3 3=4').length === 3);
   check('too many electrons refused', (() => { try { HMO.solve(HMO.build(2, [[0, 1]]), -3); return false; } catch { return true; } })());
+}
+{
+  // Crystal field: textbook octahedral CFSE and spin states, square planar d8, Δ from Ti(H2O)6 3+ at 493 nm.
+  const oh = CFT.GEOMETRIES.find((g) => g.id === 'oh'), sp = CFT.GEOMETRIES.find((g) => g.id === 'sp'), td = CFT.GEOMETRIES.find((g) => g.id === 'td');
+  check('every geometry has its barycentre at 0', CFT.GEOMETRIES.every((g) => Math.abs(g.levels.reduce((s, l) => s + l.e, 0)) < 1e-9));
+  const hs = [0, -0.4, -0.8, -1.2, -0.6, 0, -0.4, -0.8, -1.2, -0.6, 0], ls = [0, -0.4, -0.8, -1.2, -1.6, -2.0, -2.4, -1.8, -1.2, -0.6, 0];
+  check('octahedral high-spin CFSE d0–d10', hs.every((c, d) => Math.abs(CFT.spinStates(oh.levels, d, 1, 100)[0].cfse - c) < 1e-9));
+  check('octahedral low-spin CFSE d0–d10', ls.every((c, d) => Math.abs(CFT.spinStates(oh.levels, d, 100, 1)[0].cfse - c) < 1e-9));
+  const fe = CFT.spinStates(oh.levels, 6, 10400, 17600)[0], fecn = CFT.spinStates(oh.levels, 6, 33000, 17600)[0];
+  check('Fe(H2O)6 2+ high spin, 4 unpaired', fe.unpaired === 4 && CFT.configLabel(oh, fe.occ) === 't2g⁴ eg²');
+  check('Fe(CN)6 4- low spin, diamagnetic', fecn.unpaired === 0 && CFT.configLabel(oh, fecn.occ) === 't2g⁶ eg⁰');
+  near('spin-only μ for 4 unpaired', CFT.spinOnly(4), 4.899, 0.001);
+  check('square planar d8 diamagnetic', CFT.spinStates(sp.levels, 8, 20000, 15000)[0].unpaired === 0);
+  check('tetrahedral d5 high spin', CFT.spinStates(td.levels, 5, 4000, 15000)[0].unpaired === 5);
+  check('d counts', CFT.dCount('Fe', 2) === 6 && CFT.dCount('Cu', 2) === 9 && CFT.dCount('Pt', 2) === 8 && CFT.dCount('Ti', 3) === 1);
+  check('impossible oxidation state refused', (() => { try { CFT.dCount('Sc', 5); return false; } catch { return true; } })());
+  check('Jahn–Teller: Cu2+ strong, Cr3+ none, LS Co3+ none, HS Fe2+ weak', CFT.jahnTeller([2, 2, 2, 2, 1]) === 'strong' && CFT.jahnTeller([1, 1, 1, 0, 0]) === 'none' && CFT.jahnTeller([2, 2, 2, 0, 0]) === 'none' && CFT.jahnTeller(fe.occ) === 'weak');
+  near('Ti(H2O)6 3+ Δo (cm-1)', CFT.deltaFromNm(493), 20284, 1);
+  near('in kJ/mol', CFT.deltaFromNm(493) * CFT.CM_TO_KJ, 242.6, 0.1);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

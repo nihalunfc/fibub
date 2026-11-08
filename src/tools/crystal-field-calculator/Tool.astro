@@ -1,0 +1,148 @@
+---
+// Crystal field splitting and spin state helper: metal ion and geometry to d-orbital diagram, high or low spin from
+// Δ and the pairing energy, CFSE, unpaired electrons, spin-only moment, Jahn–Teller, and Δ from an absorption band.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { METALS, GEOMETRIES, SPECTROCHEMICAL } from '../../lib/sci/crystalfield';
+---
+<div class="ax cfs">
+  <div class="ax-card">
+    <h2>Metal ion and field</h2>
+    <div class="ax-grid">
+      <label>Metal <select class="cfs-m">{METALS.map((m) => <option value={m} selected={m === 'Fe'}>{m}</option>)}</select></label>
+      <label>Oxidation state <input class="cfs-ox" inputmode="numeric" value="2" /></label>
+      <label>d electrons <input class="cfs-d" inputmode="numeric" value="6" /></label>
+      <label>Geometry <select class="cfs-g">{GEOMETRIES.map((g) => <option value={g.id}>{g.name}</option>)}</select></label>
+      <label>Units <select class="cfs-u"><option value="cm">cm⁻¹</option><option value="kj">kJ/mol</option></select></label>
+      <label><span class="cfs-Dl">Splitting Δo</span> <input class="cfs-D" inputmode="decimal" value="10400" /></label>
+      <label>Pairing energy P <input class="cfs-P" inputmode="decimal" value="17600" /></label>
+      <label>Or: absorption band (nm, for Δ) <input class="cfs-nm" inputmode="decimal" placeholder="e.g. 493" /></label>
+    </div>
+    <p class="ax-help">The d count fills in from the metal and oxidation state (group number minus the charge). A band wavelength gives Δ directly only for d¹ (and d⁹); for other counts it is a rough guide. Pairing energies are usually 15,000 to 25,000 cm⁻¹ for 3d ions and smaller for 4d and 5d.</p>
+    <p class="ax-err cfs-err" hidden></p>
+    <div class="cfs-out">
+      <p class="ax-big cfs-big"></p>
+      <canvas class="ax-fig cfs-fig" style="margin-top:6px"></canvas>
+      <dl class="ax-facts cfs-facts"></dl>
+      <div class="ax-scroll"><table class="cfs-tab"></table></div>
+    </div>
+    <details class="cfs-series"><summary>The spectrochemical series (weak field to strong field)</summary><p>{SPECTROCHEMICAL.join(' < ')}</p><p class="ax-help">Strong-field ligands give a large Δ and favour low spin. Δ also grows with the metal's charge (M³⁺ about 50 % more than M²⁺) and down a group (4d and 5d metals are almost always low spin).</p></details>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { dCount, GEOMETRIES, spinStates, spinOnly, configLabel, jahnTeller, CM_TO_KJ, deltaFromNm, seenColour, type Config, type Geometry } from '../../lib/sci/crystalfield';
+  import { num, sig } from '../../lib/sci/num';
+  import { wireDownloads, paint, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cfs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const sup = (n: number) => String(n).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(c)]).join('');
+  let fig: Figure | null = null, rows: string[][] = [];
+
+  function fillD() {
+    try { q<HTMLInputElement>('.cfs-d').value = String(dCount(q<HTMLSelectElement>('.cfs-m').value, Math.round(v('.cfs-ox')))); } catch { /* leave the d count; run() explains */ }
+  }
+
+  function diagram(geo: Geometry, c: Config): Figure {
+    // Group levels of equal energy, highest first, and space them at least 34 px apart.
+    const groups: number[][] = [];
+    geo.levels.forEach((l, i) => { const g = groups.find((gg) => Math.abs(geo.levels[gg[0]].e - l.e) < 1e-9); if (g) g.push(i); else groups.push([i]); });
+    groups.sort((p, r) => geo.levels[r[0]].e - geo.levels[p[0]].e);
+    const es = geo.levels.map((l) => l.e), top = Math.max(...es), bot = Math.min(...es), span = 170;
+    const ys: number[] = [];
+    groups.forEach((g, i) => { const y = 36 + ((top - geo.levels[g[0]].e) / (top - bot || 1)) * span; ys.push(i ? Math.max(y, ys[i - 1] + 34) : y); });
+    const zeroY = (() => { // barycentre between the neighbouring levels
+      const k = groups.findIndex((g) => geo.levels[g[0]].e < 0); if (k <= 0) return ys[0];
+      const e1 = geo.levels[groups[k - 1][0]].e, e2 = geo.levels[groups[k][0]].e; return ys[k - 1] + ((e1 - 0) / (e1 - e2)) * (ys[k] - ys[k - 1]);
+    })();
+    const W = 380, H = Math.max(240, ys[ys.length - 1] + 36);
+    return {
+      w: W, h: H, alt: `d-orbital splitting diagram, ${geo.name.toLowerCase()}`,
+      draw: (ctx, w, h, pal: Palette) => {
+        ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(20, zeroY); ctx.lineTo(w - 20, zeroY); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = '12px system-ui, sans-serif'; ctx.fillText('barycentre', 20, zeroY - 9);
+        groups.forEach((g, gi) => {
+          const y = ys[gi], bw = 46, gap = 10, total = g.length * bw + (g.length - 1) * gap, x0 = (w - total) / 2 + 40;
+          g.forEach((i, k) => {
+            const x = x0 + k * (bw + gap);
+            ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + bw, y); ctx.stroke();
+            const o = c.occ[i]; if (o) { ctx.fillStyle = pal.accent; ctx.textAlign = 'center'; ctx.font = '16px system-ui, sans-serif'; ctx.fillText(o === 2 ? '↑↓' : '↑', x + bw / 2, y - 11); }
+            ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.font = '11px system-ui, sans-serif'; ctx.fillText(geo.levels[i].name, x + bw / 2, y + 11);
+          });
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.font = '14px system-ui, sans-serif';
+          const e = geo.levels[g[0]].e; ctx.fillText(`${e > 0 ? '+' : '−'}${Math.abs(e).toFixed(geo.id === 'oh' || geo.id === 'td' ? 1 : 3)}${geo.deltaName}`, x0 - 12, y);
+        });
+      },
+    };
+  }
+
+  function run() {
+    const err = (m: string) => { q('.cfs-err').textContent = m; q('.cfs-err').hidden = !m; q('.cfs-out').hidden = !!m; if (m) fig = null; };
+    const geo = GEOMETRIES.find((g) => g.id === q<HTMLSelectElement>('.cfs-g').value)!;
+    q('.cfs-Dl').textContent = `Splitting ${geo.deltaName}`;
+    const n = Math.round(v('.cfs-d'));
+    if (!(n >= 0 && n <= 10)) return err('The d electron count must be 0 to 10.');
+    const kj = q<HTMLSelectElement>('.cfs-u').value === 'kj', unit = kj ? 'kJ/mol' : 'cm⁻¹';
+    const nm = v('.cfs-nm');
+    let D = v('.cfs-D'); const P = v('.cfs-P');
+    const facts: HTMLElement[] = [];
+    if (nm > 0) {
+      const cm = deltaFromNm(nm); D = kj ? cm * CM_TO_KJ : cm;
+      const col = seenColour(nm);
+      facts.push(fact('From the band', `${sig(cm, 4)} cm⁻¹ = ${sig(cm * CM_TO_KJ, 4)} kJ/mol`, `absorbs ${col.absorbed} light, so it looks ${col.seen}${n === 1 || n === 9 ? '' : '; for this d count the band energy is only an estimate of Δ'}`));
+    }
+    if (!(D > 0)) return err(`Type ${geo.deltaName}, above zero, or a band wavelength.`);
+    if (!(P >= 0)) return err('Type the pairing energy P (0 or more).');
+    err('');
+    const states = spinStates(geo.levels, n, D, P), best = states[0];
+    const both = states.length > 1, maxU = Math.max(...states.map((s) => s.unpaired)), minU = Math.min(...states.map((s) => s.unpaired));
+    const spin = !both ? '' : best.unpaired === maxU ? 'High spin ' : best.unpaired === minU ? 'Low spin ' : 'Intermediate spin ';
+    q('.cfs-big').textContent = `${spin}d${sup(n)}: ${configLabel(geo, best.occ)}, ${best.unpaired} unpaired electron${best.unpaired === 1 ? '' : 's'}, μ = ${spinOnly(best.unpaired).toFixed(2)} BM`;
+    const cfTxt = Math.abs(best.cfse) < 1e-9 ? '0' : `${best.cfse > 0 ? '+' : '−'}${Math.abs(best.cfse).toFixed(geo.id === 'oh' || geo.id === 'td' ? 1 : 3)}${geo.deltaName} = ${sig(best.cfse * D, 4)} ${unit}`;
+    facts.push(fact('CFSE', cfTxt, `crystal field stabilisation energy, ignoring pairing; ${geo.note}`));
+    if (both) {
+      const alt = states.find((s) => s.unpaired !== best.unpaired)!;
+      const margin = alt.energy - best.energy;
+      facts.push(fact('Why this spin state', geo.id === 'oh' && (n >= 4 && n <= 7) ? (D > P ? `${geo.deltaName} > P` : `${geo.deltaName} < P`) : 'lowest total energy', `the next best arrangement (${configLabel(geo, alt.occ)}) is ${sig(margin, 3)} ${unit} higher; ${margin < 0.1 * D ? 'close: a spin crossover may happen with temperature or pressure' : 'a clear choice'}`));
+    }
+    facts.push(fact('Spin-only moment', `${spinOnly(best.unpaired).toFixed(2)} BM`, '√(n(n + 2)); orbital contributions raise it for some ions (Co²⁺ in particular)'));
+    if (geo.id === 'oh') { const jt = jahnTeller(best.occ); facts.push(fact('Jahn–Teller', jt === 'strong' ? 'strong distortion expected' : jt === 'weak' ? 'weak (t2g degeneracy)' : 'none expected', jt === 'strong' ? 'an odd number of eg electrons: the octahedron elongates along one axis, as in Cu²⁺ and high-spin Mn³⁺' : jt === 'weak' ? 'unevenly filled t2g orbitals give only a small, often unseen distortion' : 'evenly filled degenerate sets')); }
+    if (n === 8 && geo.id === 'sp') facts.push(fact('d⁸ square planar', 'diamagnetic', 'why Ni²⁺ with strong-field ligands, Pd²⁺, Pt²⁺ and Au³⁺ are square planar: the high dx²−y² orbital stays empty'));
+    q('.cfs-facts').replaceChildren(...facts);
+    rows = states.map((s) => [configLabel(geo, s.occ), String(s.unpaired), `${s.cfse.toFixed(3)}${geo.deltaName}`, String(s.pairs), `${sig(s.energy, 4)} ${unit}`, s === best ? 'lowest' : '']);
+    const tb = q<HTMLTableElement>('.cfs-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Arrangement', 'Unpaired', 'CFSE', 'Pairs', 'CFSE + pairs × P', ''].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j && j < 5) td.style.textAlign = 'right'; }); });
+    fig = diagram(geo, best); paint(q<HTMLCanvasElement>('.cfs-fig'), fig);
+  }
+
+  q('.cfs-m').addEventListener('change', () => { fillD(); run(); });
+  q('.cfs-ox').addEventListener('input', () => { fillD(); run(); });
+  q('.cfs-u').addEventListener('change', () => {
+    const toKj = q<HTMLSelectElement>('.cfs-u').value === 'kj', f = toKj ? CM_TO_KJ : 1 / CM_TO_KJ;
+    for (const c of ['.cfs-D', '.cfs-P']) { const x = v(c); if (Number.isFinite(x)) q<HTMLInputElement>(c).value = sig(x * f, 4); }
+    run();
+  });
+  for (const c of ['.cfs-d', '.cfs-D', '.cfs-P', '.cfs-nm']) q(c).addEventListener('input', run);
+  q('.cfs-g').addEventListener('change', run);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cfs-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Crystal field', subtitle: q('.cfs-big').textContent!, file: 'crystal-field',
+    sections: q('.cfs-out').hidden ? [] : [
+      { title: 'Result', facts: [...root.querySelectorAll('.cfs-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) },
+      { title: 'Spin states compared', table: { head: ['Arrangement', 'Unpaired', 'CFSE', 'Pairs', 'CFSE + pairs × P', ''], rows, align: ['l', 'r', 'r', 'r', 'r', 'l'] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .cfs .cfs-series { margin-top: 12px; }
+  .cfs .cfs-series summary { cursor: pointer; font-weight: 600; }
+  .cfs .cfs-tab td, .cfs .cfs-tab th { white-space: nowrap; }
+</style>
