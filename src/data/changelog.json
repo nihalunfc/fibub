@@ -1,5 +1,14 @@
 [
  {
+  "sha": "12d5d888627c",
+  "date": "2026-11-08T17:36:13+00:00",
+  "title": "Add the vapour pressure and VLE calculator (#120)",
+  "tools": [
+   "vapour-pressure-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "b2d362efa13c",
   "date": "2026-11-08T17:26:08+00:00",
   "title": "Add the McCabe-Thiele calculator (#119)",
