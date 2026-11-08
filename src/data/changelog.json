@@ -1,5 +1,14 @@
 [
  {
+  "sha": "f44f86efac1d",
+  "date": "2026-11-08T18:33:28+00:00",
+  "title": "Add the ternary and spider plot maker (#124)",
+  "tools": [
+   "ternary-plot-maker"
+  ],
+  "site": false
+ },
+ {
   "sha": "adccea29334a",
   "date": "2026-11-08T18:21:02+00:00",
   "title": "Add the mixing model calculator (#123)",
