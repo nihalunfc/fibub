@@ -1,5 +1,14 @@
 [
  {
+  "sha": "19b8d4052fad",
+  "date": "2026-11-08T09:29:21+00:00",
+  "title": "Add the diatomic spectroscopy calculator (#94)",
+  "tools": [
+   "diatomic-spectroscopy"
+  ],
+  "site": false
+ },
+ {
   "sha": "273986c21391",
   "date": "2026-11-08T09:17:21+00:00",
   "title": "Add the crystal field and spin state calculator (#93)",
