@@ -1,5 +1,14 @@
 [
  {
+  "sha": "1c91fa16923d",
+  "date": "2026-11-08T16:22:42+00:00",
+  "title": "Add the binding curve fitter (#114)",
+  "tools": [
+   "binding-curve-fitter"
+  ],
+  "site": false
+ },
+ {
   "sha": "1414dbf1b3ed",
   "date": "2026-11-08T16:11:15+00:00",
   "title": "Add the buffer recipe calculator (#113)",
