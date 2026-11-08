@@ -4,7 +4,7 @@ num: 27
 shelf: science
 section: figures-and-data-presentation
 title: "Publication plot maker: journal-ready graphs as SVG, PDF or 300 dpi PNG (free)"
-summary: "Paste columns from a spreadsheet and get a clean scientific figure with error bars, sized for a journal column. Download vector SVG or PDF, or PNG at 300 or 600 dpi. Your data stays in your browser."
+summary: "Paste columns or open a CSV or Excel file and get a clean scientific figure with error bars, sized for a journal column. Download vector SVG or PDF, or PNG at 300 or 600 dpi. Your data stays in your browser."
 status: live
 ads: true
 order: 20
@@ -13,7 +13,7 @@ works: offline
 updated: 2026-11-08
 related: [graph-digitizer, calibration-curve, dose-response, uncertainty-calculator]
 flow:
-  - { icon: table, label: "Paste data" }
+  - { icon: table, label: "Your data" }
   - { icon: chart, label: "Style" }
   - { icon: download, label: "SVG/PDF/PNG" }
 ---
@@ -24,7 +24,7 @@ Journals ask for figures at a set width, with readable text, error bars, and no 
 
 ## How to use it
 
-1. **Paste your data** with a header row. The first column is x. Every other column becomes a series.
+1. **Paste your data** with a header row, or press **Open a file** (or drop a file on the box) to load a CSV, TSV, TXT or Excel (.xlsx) file. Files can be up to 10 MB, 20 columns and 50,000 rows; a wider or longer file is cut to the first 20 columns and 50,000 rows, and the page says so. For an Excel file with several sheets, the first sheet with data is used. The first column is x. Every other column becomes a series.
 2. A column headed **SD**, **SE**, **SEM** or **error** is used as error bars (±) for the column to its left. Each column has a menu, so you can change its role or leave it out.
 3. Type the **axis labels**, including units, for example "Time (h)".
 4. Choose the **width**. A single journal column is about 85 mm and a full page width about 178 mm (Elsevier, Springer Nature, ACS and the APS all use widths close to these). Check your journal's author guide.

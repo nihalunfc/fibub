@@ -1007,6 +1007,33 @@ try {
     await page.fill('.pm-data', '1\n2\n3');
     await page.waitForSelector('.pm-err:not([hidden])');
     check(/two columns/.test(await page.textContent('.pm-err')), 'plot maker: one column gives a plain message');
+    // Open a file instead of pasting: CSV, an Excel workbook (second sheet has the data), limits.
+    check(/up to 10 MB, 20 columns and 50,000 rows/.test(await page.textContent('.pm-limit')), 'plot maker: file limits shown');
+    await page.setInputFiles('.pm-in', { name: 'growth.csv', mimeType: 'text/csv', buffer: Buffer.from('Dose,"Response, %",SD\n1,10,1\n2,20,2\n3,35,2\n4,48,3\n') });
+    await page.waitForSelector('.pm-file-note:not([hidden])');
+    check(/Opened growth\.csv: 5 rows and 3 columns/.test(await page.textContent('.pm-file-note')) && (await page.$$eval('.pm-cols select', (x) => x.map((e) => e.value).join())) === 'x,y,err', 'plot maker: CSV file with a quoted comma');
+    {
+      const { zipSync, strToU8 } = await import('fflate');
+      const sheet = (rows) => `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((c, j) => `<c r="${String.fromCharCode(65 + j)}${i + 1}"${typeof c === 'string' ? ' t="inlineStr"><is><t>' + c + '</t></is>' : '><v>' + c + '</v>'}</c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;
+      const wide = [Array.from({ length: 24 }, (_, j) => (j ? `S${j}` : 'x')), ...Array.from({ length: 6 }, (_, i) => Array.from({ length: 24 }, (_, j) => (j ? i * j : i)))];
+      const xlsx = zipSync({
+        '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'),
+        'xl/workbook.xml': strToU8('<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Notes" sheetId="1" r:id="rId1"/><sheet name="Data" sheetId="2" r:id="rId2"/></sheets></workbook>'),
+        'xl/_rels/workbook.xml.rels': strToU8('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="worksheets/sheet2.xml"/></Relationships>'),
+        'xl/worksheets/sheet1.xml': strToU8(sheet([])),
+        'xl/worksheets/sheet2.xml': strToU8(sheet(wide)),
+      });
+      await page.setInputFiles('.pm-in', { name: 'wide.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(xlsx) });
+      await page.waitForFunction(() => /wide\.xlsx/.test(document.querySelector('.pm-file-note')?.textContent ?? ''));
+      const note = await page.textContent('.pm-file-note');
+      check(/7 rows and 20 columns/.test(note) && /sheet "Data"/.test(note) && /24 columns; only the first 20/.test(note) && (await page.$$('.pm-cols select')).length === 20, `plot maker: Excel file, sheet and column limit (${note})`);
+    }
+    await page.setInputFiles('.pm-in', { name: 'big.csv', mimeType: 'text/csv', buffer: Buffer.alloc(10_500_000, 'a') });
+    await page.waitForFunction(() => /10\.5 MB/.test(document.querySelector('.pm-err')?.textContent ?? ''));
+    check(/up to 10 MB/.test(await page.textContent('.pm-err')), 'plot maker: file size limit explained');
+    await page.setInputFiles('.pm-in', { name: 'old.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('x') });
+    await page.waitForFunction(() => /Save it as \.xlsx/.test(document.querySelector('.pm-err')?.textContent ?? ''));
+    check(true, 'plot maker: old .xls explained');
   }
   // Science batch B.
   {

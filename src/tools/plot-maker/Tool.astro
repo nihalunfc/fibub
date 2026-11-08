@@ -14,6 +14,12 @@ import '../../styles/astro.css';
 8	0.92	0.06	0.36	0.04
 10	1.21	0.07	0.52	0.05
 12	1.35	0.08	0.66	0.05</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small pm-open">Open a file</button>
+      <input type="file" class="pm-in" hidden />
+      <span class="ax-help pm-limit" style="margin:0"></span>
+    </div>
+    <p class="ax-help pm-file-note" hidden></p>
     <div class="pm-cols"></div>
     <p class="ax-help">The first column is x. A column headed SD, SE, SEM or error becomes ± error bars for the column to its left. Change any of them here.</p>
     <p class="ax-err pm-err" hidden></p>
@@ -75,6 +81,7 @@ import '../../styles/astro.css';
   import { numericColumns, num } from '../../lib/sci/num';
   import { drawChart, canvasPainter, svgPainter, chartPdf, pngWithDpi, OKABE_ITO, GREYS, MARKERS, type Chart, type Series } from '../../lib/sci/plot';
   import { save } from '../../lib/report';
+  import { readDataFile, limitText, ACCEPT } from '../../lib/datafile';
 
   const root = document.querySelector<HTMLElement>('.pm')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -203,6 +210,25 @@ import '../../styles/astro.css';
   let timer = 0;
   const later = () => { clearTimeout(timer); timer = window.setTimeout(draw, 200); };
   q('.pm-data').addEventListener('input', later);
+  // Open a CSV, TSV, TXT or Excel file (or drop one on the data box) instead of pasting.
+  const LIMITS = { maxBytes: 10e6, maxCols: 20, maxRows: 50000 };
+  q('.pm-limit').textContent = limitText(LIMITS);
+  const fileIn = q<HTMLInputElement>('.pm-in'); fileIn.accept = ACCEPT;
+  async function openFile(f: File) {
+    const note = q('.pm-file-note');
+    try {
+      const r = await readDataFile(f, LIMITS);
+      q<HTMLTextAreaElement>('.pm-data').value = r.text;
+      note.textContent = `Opened ${f.name}: ${r.rows.toLocaleString('en')} rows and ${r.cols} columns. ${r.notes.join(' ')}`.trim();
+      note.hidden = false; err.hidden = true;
+      draw();
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; note.hidden = true; }
+  }
+  q('.pm-open').addEventListener('click', () => fileIn.click());
+  fileIn.addEventListener('change', () => { const f = fileIn.files?.[0]; fileIn.value = ''; if (f) openFile(f); });
+  const box = q('.pm-data');
+  box.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  box.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); openFile(f); } });
   q('.pm-xl').addEventListener('input', () => { xLabelTouched = true; later(); });
   root.querySelectorAll('.ax-card:nth-child(2) input:not([type=checkbox])').forEach((el) => el.addEventListener('input', later));
   root.querySelectorAll('.ax-card:nth-child(2) select, .ax-card:nth-child(2) input[type=checkbox]').forEach((el) => el.addEventListener('change', draw));
