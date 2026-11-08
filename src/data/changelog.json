@@ -1,5 +1,14 @@
 [
  {
+  "sha": "0e0c1102ec79",
+  "date": "2026-11-08T12:02:48+00:00",
+  "title": "Add the NMR solvent and impurity peak checker (#106)",
+  "tools": [
+   "nmr-impurity-checker"
+  ],
+  "site": false
+ },
+ {
   "sha": "2f5cf2545061",
   "date": "2026-11-08T11:44:54+00:00",
   "title": "Add the Tafel corrosion rate calculator (#105)",
