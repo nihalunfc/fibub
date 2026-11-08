@@ -1,5 +1,14 @@
 [
  {
+  "sha": "7dadda4082d5",
+  "date": "2026-11-08T20:01:02+00:00",
+  "title": "Add the drill hole composites and intercepts tool (#131)",
+  "tools": [
+   "drill-hole-composites"
+  ],
+  "site": false
+ },
+ {
   "sha": "1e3f9868bfc4",
   "date": "2026-11-08T19:47:57+00:00",
   "title": "Add the grade-tonnage and cut-off grade calculator (#130)",
