@@ -74,6 +74,7 @@ import * as COL from '../src/lib/sci/colligative.ts';
 import * as EQL from '../src/lib/sci/equilibrium.ts';
 import * as CV from '../src/lib/sci/cv.ts';
 import * as TLC from '../src/lib/sci/tlc.ts';
+import * as HMO from '../src/lib/sci/huckel.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1057,6 +1058,33 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('ΔCV', TLC.separation(0.36, 0.58).dCV, 1.0536, 0.0001);
   check('lanes grouped by x', TLC.lanes([130, 240, 242, 350, 352, 348], 480).join() === '0,1,1,2,2,2');
   check('Rf advice', TLC.rfAdvice(0.05).level === 'warn' && TLC.rfAdvice(0.3).text === 'good for a flash column' && TLC.rfAdvice(1.2).level === 'bad');
+}
+{
+  // Hückel: textbook values (Streitwieser; Atkins): butadiene, benzene, naphthalene, allyl, cyclobutadiene, fulvene.
+  const P = (id) => { const p = HMO.PRESETS.find((x) => x.id === id); return HMO.solve(HMO.build(p.n, p.bonds, p.types), p.charge); };
+  const bd = P('butadiene');
+  check('butadiene x', bd.orbitals.map((o) => o.x.toFixed(3)).join() === '1.618,0.618,-0.618,-1.618');
+  near('butadiene DE', bd.delocalisation, 0.472, 0.001);
+  near('butadiene p12', bd.bondOrders[0].p, 0.894, 0.001);
+  near('butadiene p23', bd.bondOrders[1].p, 0.447, 0.001);
+  near('butadiene free valence C1', bd.freeValence[0], 0.838, 0.001);
+  near('butadiene ψ1 c1', bd.orbitals[0].c[0], 0.3717, 0.0001);
+  near('benzene Eπ', P('benzene').xTotal, 8, 1e-9);
+  near('benzene DE', P('benzene').delocalisation, 2, 1e-9);
+  near('naphthalene DE', P('naphthalene').delocalisation, 3.683, 0.001);
+  near('naphthalene p12', P('naphthalene').bondOrders[0].p, 0.725, 0.001);
+  near('allyl anion DE', P('allyl-').delocalisation, 0.828, 0.001);
+  near('allyl cation end charge', P('allyl+').charges[0], 0.5, 1e-9);
+  near('cyclopentadienyl anion DE', P('cp-').delocalisation, 2.472, 0.001);
+  near('tropylium DE', P('tropylium').delocalisation, 2.988, 0.001);
+  const cb = P('cyclobutadiene');
+  check('cyclobutadiene: degenerate pair half filled', Math.abs(cb.orbitals[1].x) < 1e-9 && cb.orbitals[1].occ === 1 && cb.orbitals[2].occ === 1 && Math.abs(cb.delocalisation) < 1e-9);
+  check('fulvene levels', P('fulvene').orbitals.map((o) => o.x.toFixed(3)).join() === '2.115,1.000,0.618,-0.254,-1.618,-1.861');
+  near('formaldehyde HOMO (h 1, k 1)', P('formaldehyde').orbitals[0].x, 1.618, 0.001);
+  check('pyridine: 2- and 4-positions electron poor', P('pyridine').charges[0] < 0 && P('pyridine').charges[1] > 0 && P('pyridine').charges[3] > 0);
+  check('jacobi diagonalises', (() => { const j = HMO.jacobi([[2, 1], [1, 2]]); return j.values.map((x) => Math.round(x)).sort().join() === '1,3'; })());
+  check('bonds parsed', HMO.parseBonds('1-2, 2–3 3=4').length === 3);
+  check('too many electrons refused', (() => { try { HMO.solve(HMO.build(2, [[0, 1]]), -3); return false; } catch { return true; } })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

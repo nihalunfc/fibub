@@ -1,0 +1,151 @@
+---
+// Hückel MO calculator: presets or any π system (atoms, bonds, heteroatoms, charge); energies α + xβ with an
+// orbital diagram, coefficients, π energy, delocalisation energy, HOMO–LUMO gap, charges, bond orders, free valence.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { PRESETS, ATOM_TYPES } from '../../lib/sci/huckel';
+---
+<div class="ax hmo">
+  <div class="ax-card">
+    <h2>π system</h2>
+    <div class="ax-grid">
+      <label>Molecule <select class="hmo-pre">{PRESETS.map((p) => <option value={p.id} selected={p.id === 'benzene'}>{p.name}</option>)}<option value="">My own</option></select></label>
+      <label>π atoms <input class="hmo-n" inputmode="numeric" value="6" /></label>
+      <label>Net charge <input class="hmo-q" inputmode="numeric" value="0" /></label>
+    </div>
+    <label style="margin-top:8px">Bonds between π atoms, numbered from 1 <textarea class="hmo-bonds" rows="2" spellcheck="false">1-2 2-3 3-4 4-5 5-6 6-1</textarea></label>
+    <label style="margin-top:8px">Heteroatoms, one per line: atom number and type ({ATOM_TYPES.slice(1).map((t) => t.id).join(', ')}), or number, h, k and π electrons <textarea class="hmo-het" rows="2" spellcheck="false" placeholder="1 N"></textarea></label>
+    <p class="ax-help">Every other atom is carbon with one π electron. N is a pyridine nitrogen (h 0.5, k 1.0), N: a pyrrole nitrogen (h 1.5, k 0.8), O a carbonyl oxygen (h 1.0, k 1.0), O: a furan oxygen (h 2.0, k 0.8), from Streitwieser.</p>
+    <p class="ax-err hmo-err" hidden></p>
+    <div class="hmo-out">
+      <p class="ax-big hmo-big"></p>
+      <dl class="ax-facts hmo-facts"></dl>
+      <canvas class="ax-fig hmo-fig" style="margin-top:10px"></canvas>
+      <h3 class="hmo-h3">Molecular orbitals</h3>
+      <div class="ax-scroll"><table class="hmo-tab"></table></div>
+      <h3 class="hmo-h3">Atoms and bonds</h3>
+      <div class="ax-scroll"><table class="hmo-atab"></table></div>
+      <div class="ax-scroll"><table class="hmo-btab"></table></div>
+      <p class="ax-help">Energies are E = α + xβ. Both α and β are negative, so a larger x is a lower, more stable orbital. Charges are π charges (positive means electron poor). Free valence F = √3 − (sum of bond orders) points to the most reactive carbon for radical attack.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { solve, build, parseBonds, PRESETS, ATOM_TYPES, type Huckel } from '../../lib/sci/huckel';
+  import { num } from '../../lib/sci/num';
+  import { wireDownloads, paint, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hmo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f3 = (x: number) => (Math.abs(x) < 5e-4 ? '0.000' : x.toFixed(3));
+  const energy = (x: number) => (Math.abs(x) < 5e-4 ? 'α' : `α ${x > 0 ? '+' : '−'} ${Math.abs(x).toFixed(3)}β`);
+  let fig: Figure | null = null, moRows: string[][] = [], moHead: string[] = [], atomRows: string[][] = [], bondRows: string[][] = [];
+
+  function loadPreset() {
+    const p = PRESETS.find((x) => x.id === q<HTMLSelectElement>('.hmo-pre').value); if (!p) return;
+    q<HTMLInputElement>('.hmo-n').value = String(p.n); q<HTMLInputElement>('.hmo-q').value = String(p.charge);
+    q<HTMLTextAreaElement>('.hmo-bonds').value = p.bonds.map(([a, b]) => `${a + 1}-${b + 1}`).join(' ');
+    q<HTMLTextAreaElement>('.hmo-het').value = Object.entries(p.types ?? {}).map(([i, t]) => `${Number(i) + 1} ${t}`).join('\n');
+  }
+
+  function diagram(r: Huckel): Figure {
+    // Group degenerate levels.
+    const groups: number[][] = [];
+    r.orbitals.forEach((o, i) => { const g = groups[groups.length - 1]; if (g && Math.abs(r.orbitals[g[0]].x - o.x) < 1e-6) g.push(i); else groups.push([i]); });
+    const W = 380, H = Math.max(320, groups.length * 34 + 70);
+    return {
+      w: W, h: H, alt: 'Hückel molecular orbital energy diagram with electrons',
+      draw: (ctx, w, h, pal: Palette) => {
+        const xs = r.orbitals.map((o) => o.x), top = Math.max(...xs, 0.5), bot = Math.min(...xs, -0.5), padT = 34, padB = 24;
+        const Y = (x: number) => padT + ((top - x) / (top - bot || 1)) * (h - padT - padB);
+        ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        const lx = 132; // levels start here; energy labels to the left
+        ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(lx - 6, Y(0)); ctx.lineTo(w - 8, Y(0)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('↑ higher energy', 8, 14);
+        // Label positions pushed apart so they never overlap.
+        const ys = groups.map((g) => Y(r.orbitals[g[0]].x)), ly = [...ys];
+        for (let i = 1; i < ly.length; i++) if (ly[i] - ly[i - 1] < 18) ly[i] = ly[i - 1] + 18;
+        const over = ly[ly.length - 1] - (h - padB + 10); if (over > 0) for (let i = ly.length - 1; i >= 0; i--) { ly[i] -= over; if (i && ly[i] - ly[i - 1] >= 18) break; }
+        groups.forEach((g, gi) => {
+          const y = ys[gi], bw = 50, gap = 12, total = g.length * bw + (g.length - 1) * gap, x0 = lx + (w - lx - 8 - total) / 2;
+          g.forEach((i, k) => {
+            const o = r.orbitals[i], x = x0 + k * (bw + gap);
+            ctx.strokeStyle = i === r.homo ? pal.accent : i === r.lumo ? pal.accent2 : pal.ink; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + bw, y); ctx.stroke();
+            const e = o.occ >= 1.999 ? '↑↓' : o.occ >= 0.999 ? '↑' : o.occ > 0 ? `${o.occ.toFixed(1)}` : '';
+            if (e) { ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(e, x + bw / 2, y - 9); }
+          });
+          ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+          ctx.fillText(energy(r.orbitals[g[0]].x), lx - 12, ly[gi]);
+          if (Math.abs(ly[gi] - y) > 2) { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(lx - 10, ly[gi]); ctx.lineTo(x0 - 2, y); ctx.stroke(); }
+        });
+        ctx.textAlign = 'right'; ctx.fillStyle = pal.accent; ctx.fillText('— HOMO', w - 8, 14); ctx.fillStyle = pal.accent2; ctx.fillText('— LUMO', w - 8, 32);
+      },
+    };
+  }
+
+  function run() {
+    const err = (m: string) => { q('.hmo-err').textContent = m; q('.hmo-err').hidden = !m; q('.hmo-out').hidden = !!m; if (m) fig = null; };
+    const n = Math.round(num(q<HTMLInputElement>('.hmo-n').value)), charge = Math.round(num(q<HTMLInputElement>('.hmo-q').value) || 0);
+    if (!(n >= 1 && n <= 40)) return err('Give between 1 and 40 π atoms.');
+    const bonds = parseBonds(q<HTMLTextAreaElement>('.hmo-bonds').value);
+    if (n > 1 && !bonds.length) return err('List the bonds, such as 1-2 2-3.');
+    const types: Record<number, string | { h: number; k: number; electrons: number }> = {};
+    for (const line of q<HTMLTextAreaElement>('.hmo-het').value.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      const parts = line.split(/[\s,;]+/), i = Number(parts[0]) - 1;
+      if (!(i >= 0 && i < n)) return err(`Heteroatom line "${line}": the atom number must be 1 to ${n}.`);
+      if (parts.length >= 4) { const [h, k, e] = parts.slice(1, 4).map(num); if (![h, k, e].every(Number.isFinite)) return err(`Heteroatom line "${line}": give number, h, k and π electrons.`); types[i] = { h, k, electrons: e }; }
+      else if (ATOM_TYPES.some((t) => t.id === parts[1])) types[i] = parts[1];
+      else return err(`Heteroatom line "${line}": the type must be one of ${ATOM_TYPES.slice(1).map((t) => t.id).join(', ')}.`);
+    }
+    let r: Huckel;
+    try { r = solve(build(n, bonds, types), charge); } catch (e) { return err((e as Error).message); }
+    err('');
+    const name = PRESETS.find((p) => p.id === q<HTMLSelectElement>('.hmo-pre').value)?.name;
+    const aromatic = r.ringSize ? ((r.electrons - 2) % 4 === 0 ? 'aromatic (4n + 2 π electrons in one ring)' : r.electrons % 4 === 0 ? 'antiaromatic (4n π electrons in one ring)' : '') : '';
+    q('.hmo-big').textContent = `${name ? `${name}: ` : ''}${r.electrons} π electrons, Eπ = ${r.electrons}α + ${r.xTotal.toFixed(3)}β${r.delocalisation !== null ? `, delocalisation energy ${f3(r.delocalisation)}β` : ''}`;
+    const facts: HTMLElement[] = [];
+    if (r.homo >= 0 && r.lumo >= 0) {
+      const gap = r.orbitals[r.homo].x - r.orbitals[r.lumo].x;
+      facts.push(fact('HOMO and LUMO', `${energy(r.orbitals[r.homo].x)} and ${energy(r.orbitals[r.lumo].x)}`, r.homo === r.lumo ? 'a half-filled orbital is both: a radical' : `gap ${f3(gap)}|β|; with β about −2.4 eV (from UV spectra) roughly ${(gap * 2.4).toFixed(1)} eV`));
+    }
+    const open = r.orbitals.filter((o) => o.occ > 0 && o.occ < 2 - 1e-9).length;
+    if (open) facts.push(fact('Unpaired electrons', `${open} half-filled orbital${open > 1 ? 's' : ''}`, open > 1 ? 'degenerate orbitals share the electrons (Hund\'s rule): a diradical, as in square cyclobutadiene' : 'a radical'));
+    if (aromatic) facts.push(fact('Hückel rule', aromatic, aromatic.startsWith('anti') ? 'the electrons half-fill a degenerate pair, which is destabilising; real molecules distort to avoid it' : 'a closed shell of bonding orbitals'));
+    if (r.delocalisation === null) facts.push(fact('Delocalisation energy', 'not shown with heteroatoms', 'it needs a localised reference structure, which is ambiguous here'));
+    q('.hmo-facts').replaceChildren(...facts);
+    fig = diagram(r); paint(q<HTMLCanvasElement>('.hmo-fig'), fig);
+    const table = (sel: string, head: string[], rows: string[][]) => { const tb = q<HTMLTableElement>(sel); tb.replaceChildren(); const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = tb.createTBody(); rows.forEach((rw) => { const tr = bd.insertRow(); rw.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }); };
+    moHead = ['MO', 'x', 'Energy', 'Electrons', ...Array.from({ length: n }, (_, i) => `c${i + 1}`)];
+    moRows = r.orbitals.map((o, i) => [`ψ${i + 1}${i === r.homo ? ' HOMO' : i === r.lumo ? ' LUMO' : ''}`, f3(o.x), energy(o.x), o.occ % 1 ? o.occ.toFixed(2) : String(o.occ), ...o.c.map((c) => (Math.abs(c) < 5e-5 ? '0' : c.toFixed(4)))]);
+    table('.hmo-tab', moHead, moRows);
+    const lab = (i: number) => `${i + 1}${typeof types[i] === 'string' ? ` (${types[i]})` : types[i] ? ' (X)' : ''}`;
+    atomRows = r.charges.map((c, i) => [lab(i), f3(c), types[i] ? '–' : f3(r.freeValence[i])]);
+    table('.hmo-atab', ['Atom', 'π charge', 'Free valence'], atomRows);
+    bondRows = r.bondOrders.map((b) => [`${b.a + 1}–${b.b + 1}`, f3(b.p)]);
+    table('.hmo-btab', ['Bond', 'π bond order'], bondRows);
+  }
+
+  q('.hmo-pre').addEventListener('change', () => { loadPreset(); run(); });
+  for (const c of ['.hmo-n', '.hmo-q', '.hmo-bonds', '.hmo-het']) q(c).addEventListener('input', () => { q<HTMLSelectElement>('.hmo-pre').value = ''; run(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.hmo-fig'), fig); });
+  loadPreset(); run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Hückel MO calculation', subtitle: q('.hmo-big').textContent!, file: 'huckel',
+    sections: q('.hmo-out').hidden ? [] : [
+      { title: 'Summary', facts: [...root.querySelectorAll('.hmo-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) },
+      { title: 'Molecular orbitals', table: { head: moHead, rows: moRows, align: moHead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: 'Atoms', table: { head: ['Atom', 'π charge', 'Free valence'], rows: atomRows, align: ['l', 'r', 'r'] } },
+      { title: 'Bonds', table: { head: ['Bond', 'π bond order'], rows: bondRows, align: ['l', 'r'] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .hmo .hmo-h3 { font-size: 15px; margin: 14px 0 6px; }
+  .hmo .hmo-tab td, .hmo .hmo-tab th { white-space: nowrap; }
+  .hmo .hmo-atab, .hmo .hmo-btab { margin-bottom: 8px; }
+</style>
