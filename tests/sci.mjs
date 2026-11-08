@@ -125,6 +125,7 @@ import * as TRD from '../src/lib/sci/trend.ts';
 import * as WAV from '../src/lib/sci/waves.ts';
 import * as OCH from '../src/lib/sci/openchannel.ts';
 import * as RO from '../src/lib/sci/runoff.ts';
+import * as FF from '../src/lib/sci/floodfreq.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2421,6 +2422,49 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('runoff: triangular peak (Python 1.31068939)', h.qp, 1.310689387860392, 1e-9);
   near('runoff: triangle holds the runoff volume', 0.5 * h.Tb * 3600 * h.qp, r.Q / 1000 * 0.2e6, 1e-6);
   near('runoff: peak is about 0.208 A Q / Tp', h.qp, 0.208 * 0.2 * r.Q / h.Tp, 0.002);
+}
+{
+  // Flood frequency, against SciPy 1.18 (pearson3, gumbel_r, genextreme, gammainc) on a made-up 40-year record.
+  const x = [675, 325, 441, 434, 319, 682, 318, 346, 300, 353, 379, 534, 620, 392, 492, 366, 494, 619, 920, 665, 397, 379, 565, 789, 240, 500, 719, 568, 356, 376, 205, 812, 359, 464, 448, 534, 463, 629, 529, 367];
+  for (const [a, v, want] of [[0.5, 0.3, 0.5614219739190003], [3, 2.5, 0.45618688411667035], [10, 15, 0.9301463393005901], [400, 380, 0.15855070978429484], [2, 7, 0.9927049442755639]]) near(`flood: gammaP(${a}, ${v}) (SciPy gammainc)`, FF.gammaP(a, v), want, 1e-12);
+  near('flood: gammaPInv round trip', FF.gammaP(3, FF.gammaPInv(0.37, 3)), 0.37, 1e-12);
+  for (const [p, g, want] of [[0.99, 0.5, 2.685721479529419], [0.99, -0.5, 1.9547230565417744], [0.9, 1.2, 1.3404673495554114], [0.5, 0.3, -0.04993278464719886], [0.002, 2.0, -0.9979979973293269], [0.999, -1.5, 1.3127490769294372], [0.99, 0.02, 2.341043791580546]]) near(`flood: Pearson III K(p ${p}, g ${g}) (SciPy pearson3.ppf)`, FF.pearsonK(p, g), want, 1e-7);
+  near('flood: Pearson III K with g ≈ 0 is the normal z (Wilson-Hilferty branch)', FF.pearsonK(0.99, 0.005), 2.326347874 + 0.005 / 6 * (2.326347874 ** 2 - 1), 1e-4);
+  const L = FF.lmoments(x);
+  near('flood: L-moment λ2', L.l2, 91.73653846153849, 1e-9);
+  near('flood: L-moment τ3', L.t3, 0.1692787720511917, 1e-12);
+  near('flood: Gumbel moments Q100 (SciPy 995.68676)', FF.gumbelMoments(x).q(100), 995.6867596814511, 1e-8);
+  near('flood: Gumbel L-moments Q100 (SciPy 1016.7516)', FF.gumbelL(x).q(100), 1016.7516040136445, 1e-8);
+  const gev = FF.gevL(x);
+  near('flood: GEV k (Hosking approximation)', gev.params.k, 0.0010111034027748954, 1e-12);
+  near('flood: GEV Q10 (SciPy genextreme 705.76322)', gev.q(10), 705.7632215706234, 1e-7);
+  near('flood: GEV Q100 (SciPy 1015.9660)', gev.q(100), 1015.9660356646408, 1e-7);
+  near('flood: GEV return period of 800 (SciPy 19.87225)', FF.returnPeriod(gev, 800), 19.872247468697104, 1e-6);
+  const x2 = x.map((v) => (v * v) / 1000), gev2 = FF.gevL(x2);
+  near('flood: skewed GEV k (Python -0.204776)', gev2.params.k, -0.20477628517702348, 1e-10);
+  near('flood: skewed GEV Q100 (SciPy 1003.6413)', gev2.q(100), 1003.6412608022964, 1e-7);
+  near('flood: skewed GEV return period of 500 (SciPy 11.03591)', FF.returnPeriod(gev2, 500), 11.035908059473918, 1e-6);
+  const lp = FF.logPearson3(x);
+  near('flood: LP3 log mean', lp.params.mean, 2.6615991904416894, 1e-12);
+  near('flood: LP3 log sd', lp.params.sd, 0.14545701521863424, 1e-12);
+  near('flood: LP3 station skew (SciPy skew, bias=False)', lp.params.skew, -0.05234611937201275, 1e-10);
+  near('flood: LP3 Q10 (SciPy 703.35678)', lp.q(10), 703.3567804365356, 1e-6);
+  near('flood: LP3 Q100 (SciPy 987.12958)', lp.q(100), 987.129580129204, 1e-6);
+  near('flood: LP3 Q100 with typed skew -0.1 (SciPy 975.5563)', FF.logPearson3(x, -0.1).q(100), 975.5563009697038, 1e-6);
+  near('flood: LP3 return period of 800 (SciPy 21.34228)', FF.returnPeriod(lp, 800), 21.34227799312686, 1e-6);
+  const gb = FF.grubbsBeck(x);
+  near('flood: Grubbs-Beck K_N for n = 40', gb.KN, 2.681356937533647, 1e-12);
+  near('flood: Grubbs-Beck high threshold', gb.hi, 1126.2151553890617, 1e-6);
+  check('flood: no outliers in the example', gb.high.length === 0 && gb.low.length === 0 && gb.valid);
+  check('flood: Grubbs-Beck flags a planted low outlier', FF.grubbsBeck([...x.slice(0, 39), 20]).low.length === 1);
+  near('flood: Gumbel standard error at T = 100 (Kite)', FF.gumbelSE(x, 100), 101.14610793271349, 1e-8);
+  const pp = FF.plotting(x);
+  check('flood: Weibull largest T = n + 1', pp[0].T === 41 && pp[0].x === 920 && pp[39].T === 41 / 40);
+  near('flood: Gringorten largest T', FF.plotting(x, 0.44)[0].T, (40 + 0.12) / 0.56, 1e-12);
+  const ci = FF.bootstrap(x, FF.gevL, [10, 100], 400);
+  check('flood: bootstrap interval brackets the estimate', ci[0][0] < gev.q(10) && gev.q(10) < ci[0][1] && ci[1][0] < gev.q(100) && gev.q(100) < ci[1][1]);
+  check('flood: bootstrap is repeatable with the seed', JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)) === JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)));
+  near('flood: 100-year flood in 30 years', FF.riskInYears(100, 30), 1 - 0.99 ** 30, 1e-15);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
