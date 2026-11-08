@@ -1,5 +1,14 @@
 [
  {
+  "sha": "45110bb42989",
+  "date": "2026-11-08T07:02:59+00:00",
+  "title": "Add the variable star observation log (#77)",
+  "tools": [
+   "variable-star-log"
+  ],
+  "site": false
+ },
+ {
   "sha": "27e0223057c5",
   "date": "2026-11-08T06:52:04+00:00",
   "title": "Add hydrogen line analyser, planet data explorer, sunspot counter and image stacker (#73–#76)",
