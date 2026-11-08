@@ -23,6 +23,12 @@ import { cellCount, seeding } from '../src/lib/sci/cells.ts';
 import { profile, tableName, columnNames } from '../src/lib/sci/profile.ts';
 import { fInv, fCdf } from '../src/lib/sci/stats.ts';
 import { readFileSync } from 'node:fs';
+import { cosmology, omegaR } from '../src/lib/sci/cosmo.ts';
+import { skyFromFrame, skyFromSqm, subLength, efficiency } from '../src/lib/sci/subexp.ts';
+import { filterShift, readSpacers, solveSpacers } from '../src/lib/sci/backfocus.ts';
+import { BANDS, toJy, fromJy } from '../src/lib/sci/photometry.ts';
+import { darkNight, yearDates } from '../src/lib/astro/darkness.ts';
+import * as Astro from 'astronomy-engine';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -273,6 +279,64 @@ near('F cdf round trip', fCdf(fInv(0.3, 7, 4), 7, 4), 0.3, 1e-9);
   check('NA is missing', p[2].missing === 1 && p[2].mean === 2); check('top value', p[3].top[0][0] === 'a' && p[3].top[0][1] === 2);
   check('table names', tableName('My Data (2024).csv', new Set()) === 'my_data_2024' && tableName('2024.csv', new Set()) === 't_2024' && tableName('a.csv', new Set(['a'])) === 'a_2');
   check('column names', columnNames(['a', '', 'A']).join() === 'a,column2,A_2');
+}
+
+// ---- Cosmology: exact solutions (Einstein-de Sitter, empty, flat LCDM age) and Planck 2018.
+{
+  const C = 299792.458, HG = 977.792221;
+  const eds = cosmology({ H0: 70, Om: 1, OL: 0, Or: 0 }, 3);
+  near('EdS comoving distance', eds.dc, ((2 * C) / 70) * (1 - 1 / 2), 1e-3); near('EdS age', eds.age0, ((2 / 3) * HG) / 70, 1e-4); near('EdS age at z=3', eds.ageZ, ((2 / 3) * HG) / 70 / 8, 1e-4);
+  near('empty universe luminosity distance', cosmology({ H0: 70, Om: 0, OL: 0, Or: 0 }, 2).dl, (C / 70) * 2 * 2, 1e-3);
+  near('flat LCDM age', cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 0).age0, ((2 / (3 * Math.sqrt(0.7))) * Math.asinh(Math.sqrt(0.7 / 0.3)) * HG) / 70, 1e-4);
+  const Or = omegaR(67.66), p18 = cosmology({ H0: 67.66, Om: 0.3111, OL: 1 - 0.3111 - Or, Or }, 3);
+  near('Planck 2018 age (13.787 ± 0.020 Gyr)', p18.age0, 13.787, 0.02);
+  near('Planck z=3 angular scale', p18.kpcPerArcsec, 7.883, 0.002);
+  check('angular diameter distance peaks', cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 1.6).da > cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 5).da);
+  throws('a universe with no Big Bang', () => cosmology({ H0: 70, Om: 0.1, OL: 2, Or: 0 }, 5));
+}
+
+// ---- Sub-exposure length: the 5 % rule is about 10 R²/S.
+{
+  const s = skyFromFrame(1250, 500, 0.25, 60);
+  near('sky e/s from a test frame', s, 3.125, 1e-12);
+  near('5 % sub length', subLength(1.5, s), 2.25 / (3.125 * 0.1025), 1e-9);
+  near('efficiency at the 5 % length', efficiency(subLength(1.5, s), 1.5, s), 1 / 1.05, 1e-12);
+  near('sky photons: 1000 per s per cm² per Å at mag 0', skyFromSqm({ sqm: 20, apertureMm: 112.8379, obstructionPct: 0, focalMm: 206265, pixelUm: 1000, bandwidthNm: 0.1, qe: 1, throughput: 1 }), 1e-3, 1e-7);
+  throws('background below offset', () => skyFromFrame(400, 500, 1, 60));
+}
+
+// ---- Backfocus and spacers.
+{
+  near('2 mm filter shift', filterShift(2), 2 / 3, 1e-12);
+  check('spacer list', readSpacers('10, 2 x3, 0.5mm').join() === '10,2,2,2,0.5');
+  const r = solveSpacers(9.17, readSpacers('10, 5, 2 x2, 1, 0.5, 0.3, 0.2, 0.1'));
+  near('spacer stack within 0.03 mm', r.error, 0.03, 1e-9); check('fewest pieces', r.pieces.length === 4);
+  check('exact stack', solveSpacers(7.3, [5, 2, 0.3, 1, 1]).pieces.join() === '5,2,0.3');
+  throws('parts longer than backfocus', () => solveSpacers(-1, [1]));
+}
+
+// ---- Magnitudes and fluxes (Bessell et al. 1998; AB 3631 Jy).
+{
+  const V = BANDS.find((b) => b.id === 'V'), K = BANDS.find((b) => b.id === 'K2');
+  near('V = 0 is 3636 Jy', toJy(0, 'vega', V.lam, V.vegaJy), 3636, 1e-9);
+  near('AB 0 is 3631 Jy', toJy(0, 'ab', 0.5, null), 3631, 1e-9);
+  near('Ks AB - Vega', fromJy(toJy(10, 'vega', K.lam, K.vegaJy), K.lam, K.vegaJy).ab - 10, 1.84, 0.01);
+  near('f_nu to f_lambda round trip', toJy(fromJy(0.1, 0.8, null).cgs_lam, 'cgs_lam', 0.8, null), 0.1, 1e-12);
+  near('photon round trip', toJy(fromJy(2, 1.2, null).phot, 'phot', 1.2, null), 2, 1e-12);
+  near('1 Jy in cgs', fromJy(1, 1, null).cgs_nu, 1e-23, 1e-35);
+}
+
+// ---- Darkness through the night against astronomy-engine's own twilight search.
+{
+  const place = { lat: 43.65, lon: -79.38, elev: 0 }, obs = new Astro.Observer(43.65, -79.38, 0);
+  for (const iso of ['2027-01-15', '2027-06-21']) {
+    const r = darkNight(place, iso);
+    const du = Astro.SearchAltitude(Astro.Body.Sun, obs, -1, r.start, 1, -18).date, da = Astro.SearchAltitude(Astro.Body.Sun, obs, +1, du, 1, -18).date;
+    near(`${iso} dusk within a minute`, (r.dusk - du) / 6e4, 0, 1); near(`${iso} dark hours`, r.darkH, (da - du) / 36e5, 0.02);
+    check(`${iso} Moon-free dark is part of the dark`, r.moonFreeH <= r.darkH + 1e-9);
+  }
+  check('no true darkness in London at midsummer', darkNight({ lat: 51.51, lon: -0.13, elev: 0 }, '2027-06-21').darkH === 0);
+  check('a leap year has 366 evenings', yearDates(2028).length === 366);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

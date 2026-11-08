@@ -1,0 +1,117 @@
+---
+// Sub-exposure calculator: shortest sub length that swamps read noise with sky noise.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sx">
+  <div class="ax-card">
+    <h2>Camera</h2>
+    <div class="ax-grid">
+      <label>Read noise (e⁻) <input class="sx-rn" inputmode="decimal" value="1.5" /></label>
+      <label>Dark current (e⁻/pixel/s) <input class="sx-dc" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Read noise at the gain you shoot at, from the camera maker's chart. Dark current is close to 0 for cooled cameras; use about 0.1 for an uncooled camera on a warm night.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Sky</h2>
+    <div class="ax-seg sx-mode" role="group" aria-label="Sky signal from">
+      <button type="button" data-m="frame" aria-pressed="true">From a test frame</button><button type="button" data-m="sqm" aria-pressed="false">From sky brightness</button>
+    </div>
+    <div class="sx-p" data-m="frame">
+      <div class="ax-grid">
+        <label>Test frame length (s) <input class="sx-t" inputmode="decimal" value="60" /></label>
+        <label>Sky background (ADU) <input class="sx-bg" inputmode="decimal" value="1250" /></label>
+        <label>Offset or bias level (ADU) <input class="sx-off" inputmode="decimal" value="500" /></label>
+        <label>Gain (e⁻ per ADU) <input class="sx-g" inputmode="decimal" value="0.25" /></label>
+      </div>
+      <p class="ax-help">Take one sub with the filter you will use, then read the median of an empty patch of sky (not the whole image) and the median of a bias frame. Use the gain in the units of your file: if the camera has a 12 or 14-bit sensor saved as 16-bit, divide the maker's e⁻/ADU by 16 or 4.</p>
+    </div>
+    <div class="sx-p" data-m="sqm" hidden>
+      <div class="ax-grid">
+        <label>Sky brightness (mag/arcsec²) <input class="sx-sqm" inputmode="decimal" value="19.5" /></label>
+        <div class="sx-bandw"><label for="sx-band">Filter</label><select id="sx-band" class="sx-band">
+          <option value="300">Luminance or one-shot colour (≈ 300 nm)</option>
+          <option value="100" selected>Red, green or blue (≈ 100 nm)</option>
+          <option value="12">Narrowband 12 nm</option>
+          <option value="7">Narrowband 7 nm</option>
+          <option value="3">Narrowband 3 nm</option>
+        </select></div>
+        <label>Aperture (mm) <input class="sx-ap" inputmode="decimal" value="80" /></label>
+        <label>Central obstruction (%) <input class="sx-ob" inputmode="decimal" value="0" /></label>
+        <label>Focal length (mm) <input class="sx-fl" inputmode="decimal" value="480" /></label>
+        <label>Pixel size (µm) <input class="sx-px" inputmode="decimal" value="3.76" /></label>
+        <label>Quantum efficiency (%) <input class="sx-qe" inputmode="decimal" value="80" /></label>
+      </div>
+      <p class="ax-help">A rough estimate (within a factor of 2): sky colour, the filter's real shape and moonlight all change it. Measuring a test frame is better. Bortle 4 skies read about 21 mag/arcsec², suburbs 19 to 20, city centres 17 to 18.</p>
+    </div>
+    <p class="ax-err sx-err" hidden></p>
+  </div>
+
+  <div class="ax-card sx-out" hidden>
+    <h2>Sub length</h2>
+    <div class="ax-grid">
+      <label>Extra noise from read noise <select class="sx-pen"><option value="0.02">2 % (strict)</option><option value="0.05" selected>5 % (usual)</option><option value="0.1">10 % (relaxed)</option></select></label>
+    </div>
+    <p class="ax-big sx-big"></p>
+    <dl class="ax-facts sx-facts"></dl>
+    <canvas class="ax-fig sx-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help">Longer subs than this gain almost nothing, and each lost frame (a plane, wind, a guiding error) costs more. Shorter subs keep more stars from saturating. The chart shows how much of the ideal signal-to-noise each sub length reaches in the same total time.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sx .sx-p { margin-top: 12px; }
+  .sx .sx-bandw { display: grid; gap: 6px; }
+  .sx .sx-bandw label { font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { skyFromFrame, skyFromSqm, subLength, efficiency } from '../../lib/sci/subexp';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  let mode = 'frame', fig: Figure | null = null, report: Section[] = [];
+  const secs = (s: number) => (s < 1 ? `${sig(s, 2)} s` : s < 120 ? `${Math.ceil(s)} s` : s < 7200 ? `${sig(s / 60, 3)} min` : `${sig(s / 3600, 3)} h`);
+
+  function calc() {
+    const err = q('.sx-err');
+    try {
+      const rn = v('.sx-rn'), dc = Math.max(0, v('.sx-dc') || 0), pen = Number(q<HTMLSelectElement>('.sx-pen').value);
+      const sky = mode === 'frame' ? skyFromFrame(v('.sx-bg'), v('.sx-off'), v('.sx-g'), v('.sx-t'))
+        : skyFromSqm({ sqm: v('.sx-sqm'), apertureMm: v('.sx-ap'), obstructionPct: v('.sx-ob') || 0, focalMm: v('.sx-fl'), pixelUm: v('.sx-px'), bandwidthNm: Number(q<HTMLSelectElement>('.sx-band').value), qe: (v('.sx-qe') || 80) / 100, throughput: 0.8 });
+      const t = subLength(rn, sky, dc, pen);
+      err.hidden = true; q('.sx-out').hidden = false;
+      q('.sx-big').textContent = `At least ${secs(t)} per sub`;
+      const facts: [string, string, string?][] = [
+        ['Sky signal', `${sig(sky, 3)} e⁻ per pixel per second`, mode === 'sqm' ? 'estimated, assuming 80 % optics throughput' : 'measured from your test frame'],
+        ['Sky in one sub', `${sig(sky * t, 3)} e⁻, noise ${sig(Math.sqrt((sky + dc) * t), 3)} e⁻`, `${sig(Math.sqrt((sky + dc) * t) / rn, 3)} × the read noise`],
+        ['Signal-to-noise reached', `${(efficiency(t, rn, sky, dc) * 100).toFixed(1)} % of a single perfect exposure`],
+        ...([0.02, 0.05, 0.1].filter((p) => p !== pen).map((p) => [`For ${p * 100} % extra noise`, secs(subLength(rn, sky, dc, p))] as [string, string])),
+      ];
+      if (mode === 'frame') { const ft = v('.sx-t'); facts.push(['Your test frame', `${secs(ft)}: ${(efficiency(ft, rn, sky, dc) * 100).toFixed(1)} % efficient`, ft >= t ? 'already long enough' : 'too short: read noise is costing signal-to-noise']); }
+      q('.sx-facts').replaceChildren(...facts.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const xs: number[] = []; for (let i = 0; i <= 80; i++) xs.push(t * 10 ** (-1.3 + (2.3 * i) / 80));
+      fig = chartFigure({ h: 300, xLog: true, xLabel: 'Sub length (s)', yLabel: 'Signal-to-noise reached (%)', yMin: 0, yMax: 100, legend: 'none',
+        series: [{ name: 'Efficiency', x: xs, y: xs.map((x) => efficiency(x, rn, sky, dc) * 100), mode: 'line' }], marks: [{ kind: 'vline', at: t, label: secs(t) }] }, 'Signal-to-noise against sub length');
+      paint(q<HTMLCanvasElement>('.sx-fig'), fig);
+      report = [{ title: 'Sub-exposure length', facts: [['Shortest sub', q('.sx-big').textContent!], ['Read noise', `${rn} e⁻`], ['Dark current', `${dc} e⁻/pixel/s`], ['Extra noise allowed', `${pen * 100} %`], ...facts.map(([k, val]) => [k, val] as [string, string])] }, { title: 'Efficiency', figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.sx-out').hidden = true; report = []; }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sx-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!;
+    root.querySelectorAll<HTMLButtonElement>('.sx-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.sx-p').forEach((p) => (p.hidden = p.dataset.m !== mode));
+    calc();
+  }));
+  root.addEventListener('input', calc);
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.sx-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Sub-exposure calculator', file: 'sub-exposure', sections: report }));
+</script>

@@ -1,0 +1,81 @@
+---
+// Magnitude and flux converter: Vega and AB magnitudes, Jy, f_nu, f_lambda and photon flux.
+import '../../styles/astro.css';
+---
+<div class="ax mf">
+  <div class="ax-card">
+    <h2>Convert</h2>
+    <div class="ax-grid">
+      <label>Value <input class="mf-v" inputmode="decimal" value="12" /></label>
+      <div class="mf-uw"><label for="mf-u">Unit</label><select id="mf-u" class="mf-u"></select></div>
+      <div class="mf-bw"><label for="mf-b">Band</label><select id="mf-b" class="mf-b"></select></div>
+      <label class="mf-lw" hidden>Wavelength (µm) <input class="mf-lam" inputmode="decimal" value="0.55" /></label>
+    </div>
+    <p class="ax-help mf-bandinfo"></p>
+    <p class="ax-err mf-err" hidden></p>
+  </div>
+  <div class="ax-card mf-out" hidden>
+    <h2>Same brightness in every unit</h2>
+    <div class="ax-scroll"><table class="mf-tab"></table></div>
+    <p class="ax-help">f_ν and f_λ are linked through the band's effective wavelength (f_λ = f_ν c / λ²). That is exact for a single wavelength and a close guide for a broad band. Tap a value to copy it.</p>
+  </div>
+</div>
+
+<style is:global>
+  .mf .mf-uw, .mf .mf-bw { display: grid; gap: 6px; }
+  .mf .mf-uw label, .mf .mf-bw label { font-size: 14px; color: var(--muted); }
+  .mf .mf-tab td.r { font-variant-numeric: tabular-nums; cursor: copy; }
+  .mf .mf-tab tr.mf-in td { font-weight: 650; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { BANDS, UNITS, toJy, fromJy, type Unit } from '../../lib/sci/photometry';
+
+  const root = document.querySelector<HTMLElement>('.mf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const uSel = q<HTMLSelectElement>('.mf-u'), bSel = q<HTMLSelectElement>('.mf-b');
+  uSel.replaceChildren(...UNITS.map((u) => Object.assign(document.createElement('option'), { value: u.id, textContent: u.label })));
+  const groups = new Map<string, HTMLOptGroupElement>();
+  for (const b of BANDS) {
+    const g = b.system || 'Other';
+    if (!groups.has(g)) { const og = document.createElement('optgroup'); og.label = g; groups.set(g, og); bSel.append(og); }
+    groups.get(g)!.append(Object.assign(document.createElement('option'), { value: b.id, textContent: `${b.name} (${b.lam} µm)` }));
+  }
+  bSel.value = 'V';
+  const fmt = (x: number, mag: boolean) => (!Number.isFinite(x) ? '–' : mag ? x.toFixed(3).replace('-', '−') : sig(x, 5));
+
+  function calc() {
+    const err = q('.mf-err');
+    const band = BANDS.find((b) => b.id === bSel.value)!, custom = band.id === 'custom';
+    q('.mf-lw').hidden = !custom;
+    try {
+      const lam = custom ? num(q<HTMLInputElement>('.mf-lam').value) : band.lam;
+      if (!(lam > 0 && lam < 1e7)) throw new Error('Type a wavelength in micrometres, such as 0.55 for green light or 21 cm as 210000.');
+      const vega = custom ? null : band.vegaJy;
+      q('.mf-bandinfo').textContent = custom ? 'Any wavelength: AB magnitudes and flux units only, since Vega magnitudes depend on a band.' : `${band.system} ${band.name}, effective wavelength ${band.lam} µm${vega ? `, Vega zero point ${sig(vega, 5)} Jy (AB − Vega = ${(-2.5 * Math.log10(vega / 3631)).toFixed(3).replace('-', '−')} mag)` : ', AB system'}.`;
+      const unit = uSel.value as Unit, v = num(q<HTMLInputElement>('.mf-v').value);
+      if (!Number.isFinite(v)) throw new Error('Type a number.');
+      if (unit !== 'ab' && unit !== 'vega' && !(v > 0)) throw new Error('A flux must be above zero.');
+      const all = fromJy(toJy(v, unit, lam, vega), lam, vega);
+      err.hidden = true; q('.mf-out').hidden = false;
+      const tb = q<HTMLTableElement>('.mf-tab'); tb.innerHTML = '';
+      const hr = tb.createTHead().insertRow(); ['Unit', 'Value'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody();
+      for (const u of UNITS) {
+        if (u.id === 'vega' && !vega) continue;
+        const tr = body.insertRow(); if (u.id === unit) tr.className = 'mf-in';
+        tr.insertCell().textContent = u.label;
+        const td = tr.insertCell(); td.className = 'r'; td.textContent = fmt(all[u.id], u.id === 'ab' || u.id === 'vega');
+        td.title = 'Copy'; td.addEventListener('click', () => navigator.clipboard?.writeText(td.textContent!.replace('−', '-')).catch(() => {}));
+      }
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.mf-out').hidden = true; }
+  }
+  root.addEventListener('input', calc);
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t === bSel && uSel.value === 'vega' && BANDS.find((b) => b.id === bSel.value)?.vegaJy == null) uSel.value = 'ab';
+    calc();
+  });
+  calc();
+</script>

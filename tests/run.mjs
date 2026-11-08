@@ -1157,6 +1157,55 @@ try {
     await page.waitForSelector('.rl-err:not([hidden])');
     check(/"x" in row 2 is not a number/.test(await page.textContent('.rl-err')), 'reliability: text in scores is reported');
   }
+  {
+    // Batch D: astronomy.
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/cosmology-calculator/');
+    check((await page.textContent('.cz-big')) === 'Light left 11.643 billion years ago', `cosmology: Planck z = 3 (${await page.textContent('.cz-big')})`);
+    const czF = await page.textContent('.cz-facts');
+    check(/13\.786 Gyr/.test(czF) && /7\.883 kpc per arcsecond/.test(czF) && /26,015 Mpc/.test(czF), `cosmology: ages and distances (${czF.slice(0, 200)})`);
+    await page.selectOption('.cz-pre', 'round'); await page.fill('.cz-z', '0');
+    check(/^The universe is 13\.4\d+ billion years old$/.test(await page.textContent('.cz-big')), `cosmology: H0 70 age (${await page.textContent('.cz-big')})`);
+    await page.uncheck('.cz-flat'); await page.fill('.cz-ol', '2'); await page.fill('.cz-z', '5');
+    await page.waitForSelector('.cz-err:not([hidden])');
+    check(/no Big Bang/.test(await page.textContent('.cz-err')), 'cosmology: impossible universe explained');
+
+    await page.goto(BASE + '/science/sub-exposure-calculator/');
+    check((await page.textContent('.sx-big')) === 'At least 8 s per sub', `sub-exposure: test frame example (${await page.textContent('.sx-big')})`);
+    check(/99\.4 % efficient/.test(await page.textContent('.sx-facts')), 'sub-exposure: test frame efficiency');
+    await page.click('.sx-mode button[data-m=sqm]');
+    check(/^At least 17 s per sub$/.test(await page.textContent('.sx-big')), `sub-exposure: SQM estimate (${await page.textContent('.sx-big')})`);
+    await page.selectOption('.sx-band', '7');
+    check(/min per sub$/.test(await page.textContent('.sx-big')), `sub-exposure: narrowband needs minutes (${await page.textContent('.sx-big')})`);
+    await page.click('.sx-mode button[data-m=frame]'); await page.fill('.sx-bg', '300');
+    check(await page.isVisible('.sx-err') && /above the offset/.test(await page.textContent('.sx-err')), 'sub-exposure: background below offset is explained');
+
+    await page.goto(BASE + '/science/backfocus-calculator/');
+    check((await page.textContent('.bf-big')) === 'Add 9.17 mm of spacers', `backfocus: gap (${await page.textContent('.bf-big')})`);
+    const bfF = await page.textContent('.bf-facts');
+    check(/5 \+ 2 \+ 2 \+ 0\.2 = 9\.2 mm/.test(bfF) && /long by 0\.03 mm/.test(bfF), `backfocus: stack (${bfF})`);
+    check((await page.locator('.bf-stack li').count()) === 9, 'backfocus: stack listed front to back');
+    await page.fill('.bf-need', '40');
+    check(/more than the/.test(await page.textContent('.bf-err')), 'backfocus: too many parts explained');
+
+    await page.goto(BASE + '/science/magnitude-flux-converter/');
+    const mfT = await page.textContent('.mf-tab');
+    check(/mJy57\.627/.test(mfT) && /magnitude \(AB\)11\.999/.test(mfT), `magnitudes: V = 12 (${mfT.slice(0, 200)})`);
+    await page.selectOption('.mf-b', 'g');
+    check((await page.inputValue('.mf-u')) === 'ab' && !/Vega\)/.test(await page.textContent('.mf-tab')), 'magnitudes: AB-only band switches to AB');
+    await page.selectOption('.mf-b', 'custom'); await page.selectOption('.mf-u', 'Jy'); await page.fill('.mf-v', '3631');
+    check(/magnitude \(AB\)0\.000/.test(await page.textContent('.mf-tab')), 'magnitudes: 3631 Jy is AB 0');
+
+    await page.goto(BASE + '/science/dark-sky-calendar/?year=2027');
+    await page.waitForSelector('.dk-out:not([hidden])', { timeout: 30000 });
+    check(/^1,5\d\d hours of Moon-free darkness in 2027$/.test(await page.textContent('.dk-big')), `dark sky: Toronto 2027 (${await page.textContent('.dk-big')})`);
+    check((await page.locator('.dk-tab tbody tr').count()) === 13, 'dark sky: twelve months and a total');
+    const dkCsv = readFileSync(await dl(page, '.dk-csv'), 'utf8').trim().split(/\r?\n/);
+    check(dkCsv.length === 366 && dkCsv[0].startsWith('evening,astronomical_dusk'), `dark sky: CSV has every night (${dkCsv.length})`);
+    await page.click('.dk-next');
+    await page.waitForFunction(() => /in 2028$/.test(document.querySelector('.dk-big')?.textContent || ''), null, { timeout: 30000 });
+    check(true, 'dark sky: next year');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -1167,7 +1216,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -1191,7 +1240,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

@@ -1,0 +1,97 @@
+---
+// Backfocus calculator: spacers needed between a reducer or flattener and the sensor.
+import '../../styles/astro.css';
+---
+<div class="ax bf">
+  <div class="ax-card">
+    <h2>Target</h2>
+    <div class="ax-grid">
+      <label>Backfocus needed (mm) <input class="bf-need" inputmode="decimal" value="55" /></label>
+    </div>
+    <p class="ax-help">The distance from the reducer's or flattener's mounting face (or its thread's end) to the sensor, from its manual. Many are 55 mm; some are 44, 56, 63.5 or more.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Parts in the light path</h2>
+    <label>One part per line: a name, then its optical length in mm (the length it adds, not the length of its thread).
+      <textarea class="bf-parts" rows="5" spellcheck="false">Camera (flange to sensor) 17.5
+Filter wheel 20
+Off-axis guider 9</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Filter thickness (mm) <input class="bf-ft" inputmode="decimal" value="2" /></label>
+      <label>Filter glass index <input class="bf-n" inputmode="decimal" value="1.5" /></label>
+    </div>
+    <p class="ax-help">A filter between the reducer and the sensor moves focus back by about a third of its thickness, so the spacing must grow by the same amount. Type 0 if there is no filter in the path or it sits in front of the reducer.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Spacers you have</h2>
+    <label>Lengths in mm, separated by commas. "2 x3" means three 2 mm spacers.
+      <input class="bf-own" value="10, 5, 2 x2, 1, 0.5, 0.3, 0.2, 0.1" /></label>
+    <p class="ax-err bf-err" hidden></p>
+  </div>
+
+  <div class="ax-card bf-out" hidden>
+    <h2>Spacing</h2>
+    <p class="ax-big bf-big"></p>
+    <dl class="ax-facts bf-facts"></dl>
+    <h3>Stack, front to back</h3>
+    <p class="ax-help" style="margin:0">Spacers can go anywhere between the reducer and the camera; this is one tidy order.</p>
+    <ol class="bf-stack"></ol>
+    <p class="ax-help">Most reducers and flatteners work within about ±0.5 mm of their spacing; fast optics (f/4 and faster) and large sensors need closer. If the corners show stretched stars pointing outward, the spacing is too short; pointing inward, too long. Check your manual, as some makers count the other way.</p>
+  </div>
+</div>
+
+<style is:global>
+  .bf .bf-stack { margin: 6px 0 10px; padding-left: 22px; }
+  .bf .bf-stack li { padding: 3px 0; font-variant-numeric: tabular-nums; }
+  .bf .bf-stack li.bf-sp { font-weight: 650; }
+  .bf .bf-stack small { color: var(--muted); margin-left: 6px; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { filterShift, readSpacers, solveSpacers } from '../../lib/sci/backfocus';
+
+  const root = document.querySelector<HTMLElement>('.bf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const mm = (x: number) => `${(Math.round(x * 100) / 100).toFixed(2).replace(/\.?0+$/, '')} mm`;
+
+  function parts() {
+    return q<HTMLTextAreaElement>('.bf-parts').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      const m = l.match(/^(.*?)[\s:=,]*(-?\d+(?:[.,]\d+)?)\s*(?:mm)?$/i);
+      if (!m) throw new Error(`"${l}" needs a length in mm at the end, such as "Filter wheel 20".`);
+      return { name: m[1].trim() || 'Part', len: Number(m[2].replace(',', '.')) };
+    });
+  }
+
+  function calc() {
+    const err = q('.bf-err');
+    try {
+      const need = num(q<HTMLInputElement>('.bf-need').value);
+      if (!(need > 0)) throw new Error('Type the backfocus your reducer or flattener needs, in mm.');
+      const ps = parts(), ft = Math.max(0, num(q<HTMLInputElement>('.bf-ft').value) || 0), n = num(q<HTMLInputElement>('.bf-n').value) || 1.5;
+      if (!(n >= 1 && n < 3)) throw new Error('The refractive index of filter glass is about 1.5.');
+      const shift = filterShift(ft, n), used = ps.reduce((s, p) => s + p.len, 0), target = need + shift, gap = target - used;
+      if (gap < -0.005) throw new Error(`The parts add up to ${mm(used)}, ${mm(-gap)} more than the ${mm(target)} needed. Use a thinner adapter or leave a part out.`);
+      const own = readSpacers(q<HTMLInputElement>('.bf-own').value);
+      const r = solveSpacers(Math.max(0, gap), own);
+      err.hidden = true; q('.bf-out').hidden = false;
+      q('.bf-big').textContent = gap < 0.005 ? 'No spacers needed' : `Add ${mm(gap)} of spacers`;
+      const off = r.error, close = Math.abs(off) < 0.005;
+      const facts: [string, string, string?][] = [
+        ['Backfocus needed', mm(need)],
+        ...(shift ? [['Plus the filter shift', `+${mm(shift)}`, `${mm(ft)} of glass at n = ${sig(n, 3)}`] as [string, string, string]] : []),
+        ['Parts in the path', mm(used)],
+        ['Best stack from your spacers', r.pieces.length ? `${r.pieces.map((p) => String(+p.toFixed(2))).join(' + ')} = ${mm(r.total)}` : gap < 0.005 ? 'none' : 'none of your spacers fit'],
+        ['Total spacing', `${mm(used + r.total)}`, close ? 'exactly on target' : `${off > 0 ? 'long' : 'short'} by ${mm(Math.abs(off))}`],
+      ];
+      q('.bf-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const li = (t: string, s: string, cls = '') => { const e = document.createElement('li'); e.textContent = t; if (cls) e.className = cls; const m = document.createElement('small'); m.textContent = s; e.append(m); return e; };
+      const items = [li('Reducer or flattener', 'mounting face'), ...r.pieces.map((p) => li(`Spacer ${mm(p)}`, '', 'bf-sp')), ...ps.slice().reverse().map((p) => li(p.name, mm(p.len))), li('Sensor', '')];
+      q('.bf-stack').replaceChildren(...items);
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.bf-out').hidden = true; }
+  }
+  root.addEventListener('input', calc);
+  calc();
+</script>
