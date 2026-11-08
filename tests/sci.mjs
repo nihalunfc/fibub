@@ -120,6 +120,7 @@ import * as GPS from '../src/lib/sci/gpstrack.ts';
 import * as TIF from '../src/lib/sci/tiff.ts';
 import * as SPX from '../src/lib/sci/spectral.ts';
 import * as SND from '../src/lib/sci/sounding.ts';
+import * as KOP from '../src/lib/sci/koppen.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2225,6 +2226,51 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('sounding: tidy sorts and drops repeats', SND.tidy([{ p: 500, t: -10 }, { p: 1000, t: 20 }, { p: 500, t: -9 }, { p: NaN, t: 1 }]).length === 2);
   let threw = ''; try { SND.analyse([{ p: 1000, t: 20 }, { p: 900, t: 12 }, { p: 800, t: 5 }]); } catch (e) { threw = e.message; }
   check('sounding: needs a surface dew point', /dew point/.test(threw));
+}
+
+// Köppen (#137): made-up stations worked by hand against the Peel et al. (2007) rules; Walter-Lieth scale; parser.
+{
+  const med = [[10, 11, 13, 15, 19, 23, 26, 26, 23, 19, 14, 11], [80, 70, 55, 40, 25, 8, 2, 5, 25, 60, 85, 95]];
+  const r = KOP.koppen(...med);
+  check('koppen: Mediterranean Csa', r.code === 'Csa' && r.name === 'Mediterranean, hot summer');
+  near('koppen: MAT', r.m.MAT, 17.5, 1e-12); near('koppen: MAP', r.m.MAP, 550, 1e-12);
+  near('koppen: winter share → Pthreshold = 2·MAT', KOP.pThreshold(r.m).v, 35, 1e-12);
+  check('koppen: summer half Apr–Sep, Psdry 2, Pwwet 95', r.m.nhSummer && r.m.Psdry === 2 && r.m.Pwwet === 95);
+  check('koppen: explanation steps', r.steps.map((s) => s.result).filter(Boolean).join('>') === 'not E>not B>C (temperate)>s (dry summer)>a (hot summer)');
+  const cls = (T, P, o) => KOP.koppen(T, P, o).code;
+  check('koppen: hot desert BWh', cls([14, 16, 20, 25, 30, 33, 34, 33, 31, 26, 19, 15], [5, 4, 3, 1, 0, 0, 0, 0, 0, 1, 3, 5]) === 'BWh');
+  check('koppen: monsoon Am (driest 20 mm ≥ 100 − 2540/25)', cls([26, 27, 28, 29, 28, 27, 27, 27, 27, 27, 27, 26], [20, 25, 40, 120, 300, 450, 500, 450, 350, 200, 60, 25]) === 'Am');
+  check('koppen: rainforest Af', cls(Array(12).fill(27), Array(12).fill(200)) === 'Af');
+  check('koppen: savanna Aw (dry month in winter)', cls([24, 25, 27, 29, 29, 28, 27, 27, 27, 27, 26, 24], [5, 5, 10, 30, 120, 200, 250, 250, 180, 80, 15, 5]) === 'Aw');
+  check('koppen: humid continental Dfb', cls([-12, -10, -3, 6, 13, 18, 21, 19, 13, 6, -2, -9], [30, 25, 35, 50, 70, 90, 100, 90, 70, 55, 45, 35]) === 'Dfb');
+  check('koppen: southern hemisphere oceanic Cfb (summer = Oct–Mar)', cls([17, 17, 16, 14, 11, 9, 8, 9, 10, 12, 14, 16], [60, 55, 65, 75, 90, 95, 100, 95, 80, 70, 65, 60]) === 'Cfb' && !KOP.metrics([17, 17, 16, 14, 11, 9, 8, 9, 10, 12, 14, 16], Array(12).fill(1)).nhSummer);
+  check('koppen: tundra ET and ice cap EF', cls([-28, -27, -25, -17, -6, 3, 7, 6, 1, -9, -20, -25], [10, 8, 9, 9, 12, 25, 35, 40, 25, 18, 12, 10]) === 'ET' && cls(Array(12).fill(-20), Array(12).fill(1)) === 'EF');
+  // E before B: an ice cap with almost no precipitation stays EF.
+  check('koppen: E takes precedence over B', cls(Array(12).fill(-30), Array(12).fill(0)) === 'EF');
+  // Dry winter monsoon with a hot summer: Cwa.
+  check('koppen: Cwa', cls([3, 6, 12, 18, 23, 27, 28, 27, 23, 17, 10, 4], [10, 12, 25, 60, 110, 180, 230, 210, 120, 50, 20, 8]) === 'Cwa');
+  // Coldest month −2 °C: D with Peel's 0 °C, C with Köppen's −3 °C.
+  const edge = [[-2, 0, 5, 11, 16, 20, 23, 22, 17, 11, 5, 0], Array(12).fill(70)];
+  check('koppen: C/D boundary option', cls(...edge) === 'Dfa' && cls(...edge, { cdBoundary: -3 }) === 'Cfa');
+  // Cold steppe at MAT < 18 (k), hot by the coldest-month rule (coldest month 2 °C > 0).
+  const steppe = [[2, 4, 9, 14, 19, 24, 27, 26, 21, 15, 8, 3], [25, 20, 30, 35, 30, 15, 8, 10, 15, 25, 30, 30]];
+  check('koppen: BSk by MAT, BSh by coldest month', cls(...steppe) === 'BSk' && cls(...steppe, { hk: 'cold' }) === 'BSh');
+  // Subarctic with a very cold winter: Dfd; with a dry winter: Dwd.
+  check('koppen: Dfd and Dwd', cls([-45, -40, -28, -12, 3, 13, 16, 12, 3, -12, -32, -43], [20, 15, 12, 12, 20, 40, 50, 45, 30, 25, 20, 20]) === 'Dfd' && cls([-45, -40, -28, -12, 3, 13, 16, 12, 3, -12, -32, -43], [3, 3, 3, 5, 20, 40, 60, 50, 30, 10, 5, 3]) === 'Dwd');
+  check('koppen: Cfc (only 3 months above 10 °C)', cls([1, 1, 2, 4, 7, 10.5, 12, 11.5, 9, 6, 3, 2], Array(12).fill(100)) === 'Cfc');
+  // Walter-Lieth: 10 °C ↔ 20 mm, compressed above 100 mm; dry months where P < 2T.
+  const w = KOP.walterLieth(med[0], med[1]);
+  check('koppen: Walter-Lieth dry months May–Sep', w.arid.map((a, i) => (a ? i : -1)).filter((i) => i >= 0).join() === '4,5,6,7,8');
+  const w2 = KOP.walterLieth([20], [300]); near('koppen: compressed scale above 100 mm', w2.py[0], 60, 1e-12);
+  near('koppen: curves cross', KOP.crossing(20, 20, 60, 20), 0.5, 1e-12);
+  // Parser: long with month names, a year row skipped, wide two-row form with labels, wrong counts.
+  const rows = (t) => t.split('\n').map((l) => l.split(/\t|,/));
+  const n = (s) => (s.trim() === '' ? NaN : Number(s));
+  const long = KOP.parseMonthly(rows('month,T,P\n' + med[0].map((t, i) => `${i + 1},${t},${med[1][i]}`).join('\n') + '\nYear,17.5,550'), n);
+  check('koppen: parse 12 rows with a month number and a year row', long.T?.[6] === 26 && long.P?.[11] === 95 && long.T.length === 12);
+  const wide = KOP.parseMonthly(rows('Precipitation (mm),' + med[1].join(',') + '\nTemperature,' + med[0].join(',')), n);
+  check('koppen: parse two labelled rows of 12', wide.P?.[0] === 80 && wide.T?.[0] === 10);
+  check('koppen: too few months explained', /only 3 months/.test(KOP.parseMonthly(rows('1,2,3\n4,5,6\n7,8,9'), n).error));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
