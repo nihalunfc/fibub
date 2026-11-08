@@ -98,6 +98,7 @@ import * as ENZ from '../src/lib/sci/enzyme.ts';
 import * as BUF from '../src/lib/sci/buffer.ts';
 import * as BND from '../src/lib/sci/binding.ts';
 import * as CEN from '../src/lib/sci/centrifuge.ts';
+import * as AQ from '../src/lib/sci/aqi.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1556,6 +1557,30 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('protocol conversion', CEN.convertTime(1, k, CEN.kFactor(45000, 3.5, 7.5)) * 60, 47.93, 0.01);
   let threw = false; try { CEN.kFactor(40000, 8, 4); } catch { threw = true; } check('k-factor needs rmax > rmin', threw);
   check('time text', CEN.hms(0.005) === '18 s' && CEN.hms(1.7048) === '102 min' && CEN.hms(2.5) === '2 h 30 min');
+}
+{
+  // Air quality: unit conversion, US AQI (2024 PM2.5 breakpoints, truncation), India AQI and Canada AQHI.
+  near('molar volume 25 °C, 1 atm', AQ.molarVolume(25, 101.325), 24.465, 0.001);
+  near('100 µg/m³ NO2 → ppb', AQ.convertGas(100, 'ug', 'ppb', AQ.gasMass('NO2')), 53.18, 0.01);
+  near('1 ppm CO → mg/m³', AQ.convertGas(1, 'ppm', 'mg', AQ.gasMass('CO')), 1.145, 0.001);
+  near('unit round trip at 0 °C', AQ.convertGas(AQ.convertGas(37, 'ppb', 'ug', 48, 0, 90), 'ug', 'ppb', 48, 0, 90), 37, 1e-9);
+  const u = (k, c) => AQ.usSub(k, c);
+  check('US breakpoints map to their AQI', u('PM2.5', 9.0).index === 50 && u('PM2.5', 9.1).index === 51 && u('PM2.5', 35.4).index === 100 && u('PM2.5', 55.5).index === 151 && u('PM2.5', 225.5).index === 301 && u('PM2.5', 325.4).index === 500);
+  check('US PM2.5 truncates to 0.1 (9.05 is Good)', u('PM2.5', 9.05).index === 50 && u('PM2.5', 9.05).cat === 0);
+  check('US PM2.5 35.9 → 102, sensitive groups', u('PM2.5', 35.9).index === 102 && u('PM2.5', 35.9).cat === 2);
+  check('US ozone 8-hour 0.0789 → 126', u('O3_8h', 0.0789).index === 126);
+  check('US ozone 8-hour above 0.200 is off its scale', Number.isNaN(u('O3_8h', 0.25).index));
+  check('US 1-hour ozone below 0.125 not used', u('O3_1h', 0.1).text === 'not used');
+  check('US CO, NO2, PM10', u('CO', 8.4).index === 90 && u('NO2', 60).index === 57 && u('PM10', 155).index === 101 && u('NO2', 2049).index === 500);
+  const i = (k, c) => AQ.inSub(k, c);
+  check('India bands', i('PM2.5', 30).index === 50 && i('PM2.5', 31).index === 51 && i('PM10', 250).index === 200 && i('PM10', 351).index === 301 && i('PM2.5', 300).text === '401+');
+  check('India CO in mg/m³', i('CO', 2.0).index === 100 && i('CO', 2.1).index === 101);
+  near('India ozone 118 µg/m³', i('O3_8h', 118).index, 126, 0);
+  const a = AQ.aqhi(20, 30, 10);
+  near('AQHI raw', a.raw, (1000 / 10.4) * (Math.exp(0.000871 * 20) - 1 + Math.exp(0.000537 * 30) - 1 + Math.exp(0.000487 * 10) - 1), 1e-12);
+  check('AQHI 4, moderate', a.value === 4 && a.cat === 1);
+  check('AQHI+ wins in smoke', AQ.aqhi(20, 30, 10, 85).value === 9 && AQ.aqhiPlus(0) === 1 && AQ.aqhiPlus(10.1) === 2);
+  check('AQHI bands', AQ.aqhiCat(3) === 0 && AQ.aqhiCat(6) === 1 && AQ.aqhiCat(10) === 2 && AQ.aqhiCat(11) === 3 && AQ.aqhiText(11) === '10+');
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
