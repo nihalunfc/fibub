@@ -1,5 +1,14 @@
 [
  {
+  "sha": "6dbc212134e9",
+  "date": "2026-11-08T20:45:47+00:00",
+  "title": "Add the GPS track analyser (#134)",
+  "tools": [
+   "gps-track-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "e48d0fe179cd",
   "date": "2026-11-08T20:26:28+00:00",
   "title": "Add the level book reducer (#133)",
