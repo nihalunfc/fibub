@@ -1,0 +1,183 @@
+---
+// Mass spectrometry isotope pattern and adduct calculator: exact m/z for common ESI and EI ions, the isotope
+// pattern (unit clusters or fine structure) with a profile at any resolving power, and a check against measured peaks.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ipc">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Molecule (neutral formula) <input class="ipc-in" value="C17H19NO3" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Ion <select class="ipc-ad"></select></label>
+      <label>Resolving power (m/Δm) <input class="ipc-res" inputmode="numeric" value="20000" /></label>
+    </div>
+    <div class="ax-row ipc-ex" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Try</span>
+      <button type="button" class="btn secondary small" data-f="C6H12O6">Glucose</button>
+      <button type="button" class="btn secondary small" data-f="C8H10N4O2">Caffeine</button>
+      <button type="button" class="btn secondary small" data-f="CH2Cl2">CH₂Cl₂</button>
+      <button type="button" class="btn secondary small" data-f="C6H4Br2">Dibromobenzene</button>
+      <button type="button" class="btn secondary small" data-f="C254H377N65O75S6">Bovine insulin</button>
+    </div>
+    <p class="ax-help">Type the neutral molecule; the ion adds or removes the rest. Resolving power is your instrument's m/Δm at half height: about 1,000 for a single quadrupole, 20,000 to 60,000 for a time-of-flight, 100,000 and up for an Orbitrap or FT-ICR.</p>
+    <p class="ax-err ipc-err" hidden></p>
+    <div class="ipc-out">
+      <p class="ax-big ipc-big"></p>
+      <dl class="ax-facts ipc-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card ipc-out">
+    <h2>Isotope pattern</h2>
+    <div class="ax-seg ipc-mode" role="group" aria-label="Peaks">
+      <button type="button" data-m="unit" aria-pressed="true">By nominal mass</button>
+      <button type="button" data-m="fine" aria-pressed="false">Fine structure</button>
+    </div>
+    <canvas class="ax-fig ipc-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help ipc-fig-note"></p>
+    <div class="ax-scroll"><table class="ipc-tab"></table></div>
+  </div>
+
+  <div class="ax-card ipc-out">
+    <h2>Compare with your spectrum</h2>
+    <label>Measured peaks: m/z and intensity, one per line <textarea class="ipc-meas" rows="4" placeholder="286.1436 100&#10;287.1470 19.5"></textarea></label>
+    <p class="ax-help">Paste from your software: two columns, any separator. Each peak is matched to the nearest calculated one within 0.02 u (over the charge), and intensities are scaled to the tallest.</p>
+    <div class="ax-scroll"><table class="ipc-cmp"></table></div>
+    <p class="ax-big ipc-cmp-big" style="font-size:18px"></p>
+  </div>
+
+  <div class="ax-card ipc-out">
+    <h2>Every common ion of this molecule</h2>
+    <div class="ax-scroll"><table class="ipc-all"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ipc-csv">Pattern (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseFormula, ADDUCTS, adductFormula, isotopePattern, clusterPattern, profile, monoMass, molarMass, hill, ppm, FormulaError, ELECTRON, type Formula, type Peak } from '../../lib/sci/chem';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ipc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode: 'unit' | 'fine' = 'unit', fig: Figure | null = null, ion: Formula | null = null, peaks: Peak[] = [], shown: Peak[] = [], cmpRows: string[][] = [];
+
+  const sel = q<HTMLSelectElement>('.ipc-ad');
+  sel.replaceChildren(...ADDUCTS.map((a) => { const o = document.createElement('option'); o.value = a.id; o.textContent = a.label; return o; }));
+  sel.value = 'M+H';
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const hide = (h: boolean) => root.querySelectorAll<HTMLElement>('.ipc-out').forEach((x) => (x.hidden = h));
+  const err = (m: string) => { q('.ipc-err').textContent = m; q('.ipc-err').hidden = !m; };
+
+  function run() {
+    let M: Formula;
+    try {
+      M = parseFormula(q<HTMLInputElement>('.ipc-in').value);
+      if (M.charge) throw new FormulaError('Type the neutral molecule, without a charge: the ion menu adds the charge.');
+      const atoms = [...M.counts.values()].reduce((a, b) => a + b, 0);
+      if (atoms > 20000) throw new FormulaError('That molecule is too large for a full isotope pattern here (over 20,000 atoms).');
+      ion = adductFormula(M, ADDUCTS.find((a) => a.id === sel.value)!);
+      peaks = isotopePattern(ion, { prune: 1e-5, merge: 2e-5 });
+    } catch (e) { ion = null; err(e instanceof FormulaError ? e.message : 'That formula could not be read.'); hide(true); return; }
+    err(''); hide(false);
+    const ad = ADDUCTS.find((a) => a.id === sel.value)!, z = Math.abs(ion.charge) || 1;
+    const mono = monoMass(ion), mzMono = mono / z, unit = clusterPattern(peaks, z), top = unit.reduce((b, p) => (p.abundance > b.abundance ? p : b), unit[0]);
+    q('.ipc-big').textContent = ion.charge ? `${ad.label}: m/z ${mzMono.toFixed(4)}` : `Monoisotopic mass ${mono.toFixed(4)} u`;
+    const facts = [
+      fact('Ion formula', hill(ion, true)),
+      fact('Monoisotopic m/z', `${mzMono.toFixed(5)}`, ion.charge ? `${ion.charge > 0 ? 'less' : 'plus'} ${Math.abs(ion.charge)} electron${Math.abs(ion.charge) > 1 ? 's' : ''} (${(Math.abs(ion.charge) * ELECTRON).toFixed(6)} u each)` : 'neutral'),
+      fact('Most abundant peak', `m/z ${top.mz.toFixed(4)}`, top === unit[0] ? 'the monoisotopic peak is the tallest' : `M+${unit.indexOf(top)} is taller than the monoisotopic peak, as for any large molecule`),
+      fact('Average mass', `${(molarMass(ion) - ion.charge * ELECTRON).toFixed(4)}`, 'from standard atomic weights: what a low-resolution instrument centres on for big molecules'),
+    ];
+    if (unit[1]) { const c = ion.counts.get('C') ?? 0; facts.push(fact('M+1 ÷ M', `${(unit[1].abundance * 100 / unit[0].abundance).toFixed(1)} %`, c ? `about 1.1 % per carbon atom: ${c} carbons give about ${(c * 1.08).toFixed(0)} %` : '')); }
+    if (unit[2] && unit[2].abundance > 5) facts.push(fact('M+2 ÷ M', `${(unit[2].abundance * 100 / unit[0].abundance).toFixed(1)} %`, 'a large M+2 is the mark of Cl (32 % per atom), Br (97 %), S (4.5 %) or a metal'));
+    q('.ipc-facts').replaceChildren(...facts);
+    draw(); compare(); allIons(M);
+  }
+
+  function draw() {
+    if (!ion) return;
+    const z = Math.abs(ion.charge) || 1, R = Math.max(100, num(q<HTMLInputElement>('.ipc-res').value) || 20000);
+    root.querySelectorAll<HTMLButtonElement>('.ipc-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    const unit = clusterPattern(peaks, z);
+    shown = (mode === 'unit' ? unit : peaks.filter((p) => p.abundance >= 0.01)).filter((p) => p.abundance >= 0.005);
+    const visible = shown.filter((p) => p.abundance >= 0.5);
+    const lo = Math.min(...visible.map((p) => p.mz)), hi = Math.max(...visible.map((p) => p.mz));
+    const prof = profile(peaks.filter((p) => p.mz >= lo - 1 && p.mz <= hi + 1), R, 2400);
+    const sx: number[] = [], sy: number[] = [];
+    for (const p of shown.filter((p) => p.mz >= lo - 0.5 && p.mz <= hi + 0.5)) { sx.push(p.mz, p.mz, p.mz); sy.push(0, p.abundance, 0); }
+    const meas = measured();
+    const series = [
+      { name: `Profile at R = ${sig(R, 3)}`, x: prof.x, y: prof.y, mode: 'line' as const, width: 1.4 },
+      { name: mode === 'unit' ? 'Peaks by nominal mass' : 'Fine structure', x: sx, y: sy, mode: 'line' as const, width: 1.6 },
+      ...(meas.length ? [{ name: 'Measured', x: meas.map((m) => m[0]), y: meas.map((m) => m[1]), mode: 'points' as const, marker: 'open-circle' as const, size: 4.5 }] : []),
+    ];
+    fig = chartFigure({ h: 320, xLabel: 'm/z', yLabel: 'Relative abundance (%)', yMin: 0, yMax: 105, xMin: lo - 0.6 / z - (hi + lo) / 2 / R * 3, xMax: hi + 0.6 / z + (hi + lo) / 2 / R * 3, legend: 'below', series }, `Isotope pattern of ${hill(ion)}`);
+    paint(q<HTMLCanvasElement>('.ipc-fig'), fig);
+    const fwhm = (lo + hi) / 2 / R;
+    q('.ipc-fig-note').textContent = `At this resolving power each peak is ${fwhm < 0.01 ? `${(fwhm * 1000).toFixed(1)} mu` : `${fwhm.toFixed(3)} u`} wide at half height.${mode === 'fine' ? ' Fine structure shows the separate isotope combinations inside each nominal peak, such as ¹³C against ¹⁵N or ²H; they need very high resolving power to separate.' : ''}`;
+    const tb = q<HTMLTableElement>('.ipc-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); (mode === 'unit' ? ['Peak', 'm/z', 'Relative abundance (%)'] : ['m/z', 'Relative abundance (%)', 'Δ from monoisotopic (mu)']).forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(), m0 = shown[0]?.mz ?? 0;
+    shown.filter((p) => p.abundance >= (mode === 'unit' ? 0.01 : 0.05)).slice(0, 60).forEach((p, i) => { const row = bd.insertRow(); (mode === 'unit' ? [i ? `M+${i}` : 'M', p.mz.toFixed(5), p.abundance.toFixed(2)] : [p.mz.toFixed(5), p.abundance.toFixed(3), ((p.mz - m0) * 1000).toFixed(2)]).forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j || mode === 'fine') td.style.textAlign = 'right'; }); });
+  }
+
+  function measured(): [number, number][] {
+    const rows = parseTable(q<HTMLTextAreaElement>('.ipc-meas').value).map((r) => [num(r[0]), num(r[1])] as [number, number]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b) && b >= 0);
+    const top = Math.max(0, ...rows.map((r) => r[1]));
+    return top > 0 ? rows.map(([a, b]) => [a, (100 * b) / top]) : [];
+  }
+
+  function compare() {
+    const meas = measured(), tb = q<HTMLTableElement>('.ipc-cmp'); tb.replaceChildren(); cmpRows = [];
+    if (!ion || !meas.length) { q('.ipc-cmp-big').textContent = ''; return; }
+    const z = Math.abs(ion.charge) || 1, unit = clusterPattern(peaks, z);
+    const hr = tb.createTHead().insertRow(); ['Measured m/z', 'Calculated m/z', 'Error (ppm)', 'Measured %', 'Calculated %'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    let sq = 0, n = 0;
+    for (const [m, a] of meas) {
+      const near = unit.reduce((b, p) => (Math.abs(p.mz - m) < Math.abs(b.mz - m) ? p : b), unit[0]);
+      const ok = Math.abs(near.mz - m) <= 0.02;
+      const r = ok ? [m.toFixed(5), near.mz.toFixed(5), ppm(m, near.mz).toFixed(1), a.toFixed(1), near.abundance.toFixed(1)] : [m.toFixed(5), 'no match', '–', a.toFixed(1), '–'];
+      if (ok) { sq += (a - near.abundance) ** 2; n++; }
+      cmpRows.push(r);
+      const row = bd.insertRow(); r.forEach((c) => { const td = row.insertCell(); td.textContent = c; td.style.textAlign = 'right'; });
+    }
+    const first = meas.reduce((b, x) => (x[1] > b[1] ? x : b));
+    const mono = unit[0], e = ppm(first[0], unit.reduce((b, p) => (Math.abs(p.mz - first[0]) < Math.abs(b.mz - first[0]) ? p : b)).mz);
+    q('.ipc-cmp-big').textContent = n ? `Mass error ${e.toFixed(1)} ppm on the tallest peak; intensities differ by ${Math.sqrt(sq / n).toFixed(1)} percentage points on average (RMS). ${Math.abs(e) <= 5 && Math.sqrt(sq / n) <= 10 ? 'A good match.' : Math.abs(e) > 5 ? 'More than 5 ppm out: check the calibration or the formula.' : 'The pattern shape differs: check the formula or an overlapping ion.'}` : `None of the peaks is within 0.02 of the calculated ones (monoisotopic m/z ${mono.mz.toFixed(4)}).`;
+  }
+
+  function allIons(M: Formula) {
+    const tb = q<HTMLTableElement>('.ipc-all'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Ion', 'Formula', 'Monoisotopic m/z'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    for (const a of ADDUCTS) {
+      let f: Formula; try { f = adductFormula(M, a); } catch { continue; }
+      const row = bd.insertRow(); [a.label, hill(f, true), (monoMass(f) / (Math.abs(f.charge) || 1)).toFixed(5)].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j === 2) td.style.textAlign = 'right'; });
+    }
+  }
+
+  q('.ipc-in').addEventListener('input', run); sel.addEventListener('change', run);
+  q('.ipc-res').addEventListener('change', draw);
+  q('.ipc-meas').addEventListener('input', () => { draw(); compare(); });
+  root.querySelectorAll<HTMLButtonElement>('.ipc-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ipc-in').value = b.dataset.f!; run(); }));
+  root.querySelectorAll<HTMLButtonElement>('.ipc-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as 'unit' | 'fine'; draw(); }));
+  q('.ipc-csv').addEventListener('click', () => { if (ion) save(new Blob([csv([['mz', 'mass', 'relative_abundance'], ...shown.map((p) => [p.mz.toFixed(6), p.mass.toFixed(6), p.abundance.toFixed(4)])])], { type: 'text/csv' }), `isotope-pattern-${hill(ion).replace(/[^A-Za-z0-9]+/g, '')}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ipc-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Isotope pattern', subtitle: ion ? hill(ion, true) : '', file: 'isotope-pattern',
+    sections: ion ? [
+      { title: q('.ipc-big').textContent!, facts: [...root.querySelectorAll('.ipc-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig ?? undefined },
+      { title: 'Peaks', table: { head: ['m/z', 'Relative abundance (%)'], rows: shown.filter((p) => p.abundance >= 0.05).slice(0, 60).map((p) => [p.mz.toFixed(5), p.abundance.toFixed(2)]), align: ['r', 'r'] } },
+      ...(cmpRows.length ? [{ title: 'Measured against calculated', table: { head: ['Measured m/z', 'Calculated m/z', 'Error (ppm)', 'Measured %', 'Calculated %'], rows: cmpRows, align: ['r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, text: [q('.ipc-cmp-big').textContent!] }] : []),
+    ] : [],
+  }));
+</script>
+
+<style is:global>
+  .ipc .ipc-tab td, .ipc .ipc-tab th, .ipc .ipc-all td, .ipc .ipc-cmp td { white-space: nowrap; }
+</style>

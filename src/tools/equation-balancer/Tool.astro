@@ -1,0 +1,137 @@
+---
+// Chemical equation balancer with stoichiometry: smallest whole-number coefficients (elements and charge conserved),
+// an atom check, then limiting reagent, theoretical yields, leftovers and percent yield.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax eqb">
+  <div class="ax-card">
+    <label>Reaction <input class="eqb-in" value="C3H8 + O2 -> CO2 + H2O" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    <div class="ax-row eqb-ex" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Try</span>
+      <button type="button" class="btn secondary small" data-e="Fe + O2 -> Fe2O3">Rusting</button>
+      <button type="button" class="btn secondary small" data-e="KMnO4 + HCl -> KCl + MnCl2 + H2O + Cl2">KMnO₄ + HCl</button>
+      <button type="button" class="btn secondary small" data-e="Cu + HNO3 -> Cu(NO3)2 + NO + H2O">Cu + HNO₃</button>
+      <button type="button" class="btn secondary small" data-e="MnO4^- + Fe^2+ + H^+ -> Mn^2+ + Fe^3+ + H2O">Ionic redox</button>
+      <button type="button" class="btn secondary small" data-e="C6H12O6 + O2 -> CO2 + H2O">Respiration</button>
+    </div>
+    <p class="ax-help">Separate substances with + and the two sides with -&gt;, = or →. Write formulas as in the molar mass calculator: capitals matter, brackets nest, and charges take a caret (Fe^2+, MnO4^-). Coefficients and state symbols such as (aq) you type are ignored.</p>
+    <p class="ax-err eqb-err" hidden></p>
+    <div class="eqb-out">
+      <p class="ax-big eqb-big"></p>
+      <p class="ax-help eqb-note"></p>
+      <div class="ax-scroll"><table class="eqb-check"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card eqb-out">
+    <h2>Amounts: limiting reagent and yield</h2>
+    <p class="ax-help">Type how much of each reactant you start with. Leave a box empty for a reactant in excess (such as oxygen from the air).</p>
+    <div class="ax-scroll"><table class="eqb-tab"></table></div>
+    <p class="ax-big eqb-lim" style="font-size:18px;margin-top:10px"></p>
+    <div class="ax-grid" style="margin-top:6px">
+      <label>Product you collected <select class="eqb-prod"></select></label>
+      <label>Actual yield (g) <input class="eqb-actual" inputmode="decimal" placeholder="e.g. 25.0" /></label>
+    </div>
+    <p class="ax-big eqb-pct" style="font-size:18px"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small eqb-csv">Table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseEquation, balance, stoichiometry, molarMass, byElement, pretty, BY_SYMBOL, FormulaError, type Balanced } from '../../lib/sci/chem';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { save, wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.eqb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let bal: Balanced | null = null, amounts: { v: string; unit: 'g' | 'mol' }[] = [], tableRows: string[][] = [];
+  const HEAD = ['Substance', 'Coefficient', 'Molar mass (g/mol)', 'Start with', 'Reacts or forms', 'Left over'];
+  const g = (x: number) => (Number.isFinite(x) ? `${sig(x, 4)} g` : '–'), mol = (x: number) => (Number.isFinite(x) ? `${sig(x, 4)} mol` : '–');
+
+  function run() {
+    const text = q<HTMLInputElement>('.eqb-in').value;
+    try { bal = balance(parseEquation(text)); } catch (e) {
+      bal = null; q('.eqb-err').textContent = e instanceof FormulaError ? e.message : 'That reaction could not be read.'; q('.eqb-err').hidden = false;
+      root.querySelectorAll<HTMLElement>('.eqb-out').forEach((x) => (x.hidden = true)); return;
+    }
+    q('.eqb-err').hidden = true; root.querySelectorAll<HTMLElement>('.eqb-out').forEach((x) => (x.hidden = false));
+    const b = bal;
+    const side = (sd: 'reactant' | 'product') => b.species.map((s, i) => [s, b.coefficients[i]] as const).filter(([s]) => s.side === sd).map(([s, c]) => `${c === 1 ? '' : c}${pretty(s.text)}`).join(' + ');
+    q('.eqb-big').textContent = `${side('reactant')} → ${side('product')}`;
+    q('.eqb-note').textContent = b.unique ? 'These are the smallest whole numbers that keep every atom (and the charge) the same on both sides.' : 'Careful: these substances can be balanced in more than one way, because two or more separate reactions are mixed together. This is the balance with the smallest numbers; real amounts depend on the conditions.';
+    // Atom check
+    const ct = q<HTMLTableElement>('.eqb-check'); ct.replaceChildren();
+    const hr = ct.createTHead().insertRow(); ['Atom', 'Left side', 'Right side', ''].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const cb = ct.createTBody();
+    const count = (e: string, sd: string) => b.species.reduce((s, sp, i) => s + (sp.side === sd ? (byElement(sp.formula).get(e) ?? 0) * b.coefficients[i] : 0), 0);
+    const rowsC: [string, number, number][] = b.elements.map((e) => [`${e} (${BY_SYMBOL.get(e)!.name})`, count(e, 'reactant'), count(e, 'product')]);
+    if (b.species.some((s) => s.formula.charge)) { const ch = (sd: string) => b.species.reduce((s, sp, i) => s + (sp.side === sd ? sp.formula.charge * b.coefficients[i] : 0), 0); rowsC.push(['Charge', ch('reactant'), ch('product')]); }
+    for (const [k, l, r] of rowsC) { const row = cb.insertRow(); [k, sig(l, 6), sig(r, 6), Math.abs(l - r) < 1e-9 ? '✓' : '✗'].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }
+    // Keep typed amounts while the species list is the same length.
+    if (amounts.length !== b.species.length) amounts = b.species.map((s, i) => ({ v: s.side === 'reactant' && i === 0 ? '10' : '', unit: 'g' as const }));
+    const ps = q<HTMLSelectElement>('.eqb-prod'), prev = ps.value;
+    ps.replaceChildren(...b.species.map((s, i) => [s, i] as const).filter(([s]) => s.side === 'product').map(([s, i]) => { const o = document.createElement('option'); o.value = String(i); o.textContent = pretty(s.text); return o; }));
+    if ([...ps.options].some((o) => o.value === prev)) ps.value = prev;
+    table();
+  }
+
+  function table() {
+    if (!bal) return;
+    const b = bal;
+    const moles = b.species.map((s, i) => { if (s.side !== 'reactant') return undefined; const x = num(amounts[i]?.v); if (!Number.isFinite(x) || x < 0) return undefined; return amounts[i].unit === 'g' ? x / molarMass(s.formula) : x; });
+    const st = stoichiometry(b, moles);
+    const tb = q<HTMLTableElement>('.eqb-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); HEAD.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    tableRows = [];
+    b.species.forEach((s, i) => {
+      const row = bd.insertRow(), r = st.rows[i];
+      const cells = [pretty(s.text) + (i === st.limiting ? ' (limiting)' : ''), String(b.coefficients[i]), r.molarMass.toFixed(3)];
+      cells.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; if (i === st.limiting && !j) td.style.fontWeight = '600'; });
+      const td = row.insertCell();
+      let start = '';
+      if (s.side === 'reactant') {
+        const wrap = document.createElement('div'); wrap.className = 'eqb-amt';
+        const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.value = amounts[i].v; inp.placeholder = 'excess'; inp.className = `eqb-amt-${i}`; inp.setAttribute('aria-label', `Amount of ${s.text}`);
+        const sel = document.createElement('select'); sel.innerHTML = '<option value="g">g</option><option value="mol">mol</option>'; sel.value = amounts[i].unit; sel.setAttribute('aria-label', `Unit for ${s.text}`);
+        inp.addEventListener('change', () => { amounts[i].v = inp.value; table(); });
+        sel.addEventListener('change', () => { amounts[i].unit = sel.value as 'g' | 'mol'; table(); });
+        wrap.append(inp, sel); td.append(wrap);
+        start = amounts[i].v ? `${amounts[i].v} ${amounts[i].unit}` : 'excess';
+      } else td.textContent = '–';
+      const used = Number.isFinite(r.moles) ? `${g(r.grams)} (${mol(r.moles)})` : '–';
+      const left = s.side === 'reactant' && Number.isFinite(r.left) ? `${g(Math.max(0, r.leftGrams))}` : s.side === 'reactant' && moles[i] === undefined ? 'excess' : '–';
+      [used, left].forEach((c) => { const t = row.insertCell(); t.textContent = c; t.style.textAlign = 'right'; });
+      tableRows.push([cells[0], cells[1], cells[2], start, used, left]);
+    });
+    if (st.limiting < 0) { q('.eqb-lim').textContent = 'Type an amount for at least one reactant.'; q('.eqb-pct').textContent = ''; return; }
+    const L = b.species[st.limiting];
+    const prods = b.species.map((s, i) => [s, i] as const).filter(([s]) => s.side === 'product').map(([s, i]) => `${g(st.rows[i].grams)} of ${pretty(s.text)}`).join(', ');
+    q('.eqb-lim').textContent = `${pretty(L.text)} runs out first. At most ${prods}.`;
+    const pi = Number(q<HTMLSelectElement>('.eqb-prod').value), act = num(q<HTMLInputElement>('.eqb-actual').value), theo = st.rows[pi]?.grams;
+    q('.eqb-pct').textContent = Number.isFinite(act) && act >= 0 && theo > 0 ? `Percent yield: ${(100 * act / theo).toFixed(1)} % (${sig(act, 4)} g of ${sig(theo, 4)} g possible)${act > theo * 1.0001 ? '. Over 100 %: the product may still be wet or impure.' : ''}` : 'Type the mass you collected to get the percent yield.';
+  }
+
+  q('.eqb-in').addEventListener('input', () => { amounts = []; run(); });
+  root.querySelectorAll<HTMLButtonElement>('.eqb-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.eqb-in').value = b.dataset.e!; amounts = []; run(); }));
+  q('.eqb-prod').addEventListener('change', table);
+  q('.eqb-actual').addEventListener('input', table);
+  q('.eqb-csv').addEventListener('click', () => { if (bal) save(new Blob([csv([HEAD, ...tableRows])], { type: 'text/csv' }), 'stoichiometry.csv', 'text/csv'); });
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Balanced equation', file: 'balanced-equation',
+    sections: bal ? [
+      { title: q('.eqb-big').textContent!, text: [q('.eqb-note').textContent!] },
+      { title: 'Amounts', table: { head: HEAD, rows: tableRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, text: [q('.eqb-lim').textContent!, q('.eqb-pct').textContent!].filter(Boolean) },
+    ] : [],
+  }));
+</script>
+
+<style is:global>
+  .eqb .eqb-tab td, .eqb .eqb-tab th { white-space: nowrap; }
+  .eqb .eqb-amt { display: flex; gap: 4px; min-width: 150px; }
+  .eqb .eqb-amt input { width: 90px; }
+  .eqb .eqb-amt select { width: auto; }
+</style>

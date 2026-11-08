@@ -62,6 +62,7 @@ import { crater, impactorFor } from '../src/lib/sci/crater.ts';
 import { fspl, dishGain, slantRange, requiredEbN0, budget } from '../src/lib/sci/linkbudget.ts';
 import { scope } from '../src/lib/sci/radiotel.ts';
 import { jd as aavsoJd, toVisual, toExtended, parseAavso, fractionEstimate, differential } from '../src/lib/astro/aavso.ts';
+import * as CHEM from '../src/lib/sci/chem.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -795,6 +796,52 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('round trip extended', pe.filter === 'V' && pe.err === 0.012 && pe.cmag === 7.1 && pe.comp1 === '000-BBB-123' && back.obs.length >= 1);
   check('commas cleaned', toVisual([{ ...obs[0], notes: 'a, b' }], 'X').includes(',a  b\n'));
   near('reduced JD', parseAavso('SS CYG,60000.5,11.2').obs[0].jd, 2460000.5, 1e-9);
+}
+{
+  // Chemistry: IUPAC standard atomic weights; textbook molar masses; balancing; NIST exact masses; isotope patterns.
+  const F = CHEM.parseFormula, mm = (x) => CHEM.molarMass(F(x));
+  check('118 elements', CHEM.ELEMENTS.length === 118 && CHEM.BY_SYMBOL.get('Og').z === 118);
+  check('isotope abundances sum to 1', CHEM.ELEMENTS.every((e) => Math.abs(e.isotopes.reduce((a, x) => a + x.abundance, 0) - 1) < 1e-6));
+  near('water 18.015', mm('H2O'), 18.015, 0.0005);
+  near('glucose 180.156', mm('C6H12O6'), 180.156, 0.001);
+  near('CuSO4·5H2O 249.677', mm('CuSO4·5H2O'), 249.677, 0.001);
+  near('CuSO4.5H2O same', mm('CuSO4.5H2O'), 249.677, 0.001);
+  near('Ca3(PO4)2 310.174', mm('Ca3(PO4)2'), 310.174, 0.001);
+  near('K4[Fe(CN)6]·3H2O 422.39', mm('K4[Fe(CN)6]·3H2O'), 422.39, 0.01);
+  near('Fe0.95O', mm('Fe0.95O'), 0.95 * 55.845 + 15.999, 1e-9);
+  near('caffeine mono 194.08038', CHEM.monoMass(F('C8H10N4O2')), 194.080376, 2e-6);
+  near('13C6 glucose mono', CHEM.monoMass(F('[13C]6H12O6')), 180.063388 + 6 * 1.003354835, 2e-6);
+  near('D2O mono', CHEM.monoMass(F('D2O')), 20.023118, 2e-6);
+  check('charges', F('SO4^2-').charge === -2 && F('NH4+').charge === 1 && F('Fe^3+').charge === 3 && F('Cl-').charge === -1 && F('[Fe(CN)6]^4-').charge === -4);
+  check('Co vs CO', CHEM.byElement(F('Co')).has('Co') && CHEM.byElement(F('CO')).size === 2);
+  check('bad formulas', ['Xy', 'C6H5)', '(C6H5', 'h2o', 'Ph'].every((x) => { try { F(x); return false; } catch (e) { return e instanceof CHEM.FormulaError; } }));
+  check('Hill order', CHEM.hill(F('CH3CH2OH')) === 'C2H6O' && CHEM.hill(F('H2SO4')) === 'H2O4S' && CHEM.hill(F('[13C]6H12O6')) === '[13C]6H12O6');
+  check('unsaturation', CHEM.unsaturation(F('C6H6')) === 4 && CHEM.unsaturation(F('C7H5ClO')) === 5 && CHEM.unsaturation(F('H2O')) === null);
+  const eq = (t) => CHEM.balance(CHEM.parseEquation(t)).coefficients.join(',');
+  check('balance propane', eq('C3H8 + O2 -> CO2 + H2O') === '1,5,3,4');
+  check('balance KMnO4 + HCl', eq('KMnO4 + HCl -> KCl + MnCl2 + H2O + Cl2') === '2,16,2,2,8,5');
+  check('balance Cu + HNO3', eq('Cu + HNO3 -> Cu(NO3)2 + NO + H2O') === '3,8,3,2,4');
+  check('balance ionic redox', eq('MnO4^- + Fe^2+ + H^+ -> Mn^2+ + Fe^3+ + H2O') === '1,5,8,1,5,4');
+  check('balance with typed coefficients and states', eq('2 H2(g) + O2(g) = 2 H2O(l)') === '2,1,2');
+  check('balance photosynthesis', eq('CO2 + H2O → C6H12O6 + O2') === '6,6,1,6');
+  check('unbalanceable', (() => { try { eq('H2O -> H2 + CO2'); return false; } catch (e) { return /only one side/.test(e.message); } })());
+  const b = CHEM.balance(CHEM.parseEquation('C3H8 + O2 -> CO2 + H2O')), st = CHEM.stoichiometry(b, [10 / 44.097, 20 / 31.998, undefined, undefined]);
+  check('limiting reagent O2', st.limiting === 1);
+  near('CO2 from 20 g O2', st.rows[2].grams, 16.504, 0.002);
+  near('propane left', st.rows[0].leftGrams, 4.4875, 0.001);
+  // Isotope patterns: Cl2 (75.76/24.24 %): M+2/M = 2·0.2424/0.7576; caffeine [M+H]+ 195.08765; morphine [M+H]+ 286.14377.
+  const pat = (f, ad) => { const ion = CHEM.adductFormula(F(f), CHEM.ADDUCTS.find((a) => a.id === ad)); return CHEM.clusterPattern(CHEM.isotopePattern(ion), ion.charge || 1); };
+  const cl = pat('Cl2', 'M');
+  near('Cl2 M+2', cl[1].abundance, (100 * 2 * 0.2424) / 0.7576, 0.05);
+  near('Cl2 M+4', cl[2].abundance, (100 * 0.2424 ** 2) / 0.7576 ** 2, 0.05);
+  near('caffeine [M+H]+', pat('C8H10N4O2', 'M+H')[0].mz, 195.087652, 2e-5);
+  near('morphine [M+H]+', CHEM.monoMass(CHEM.adductFormula(F('C17H19NO3'), CHEM.ADDUCTS.find((a) => a.id === 'M+H'))), 286.143770, 2e-6);
+  near('[M+2H]2+ is half', CHEM.monoMass(CHEM.adductFormula(F('C8H10N4O2'), CHEM.ADDUCTS.find((a) => a.id === 'M+2H'))) / 2, (194.080376 + 2 * CHEM.PROTON) / 2, 2e-6);
+  near('[M-H]- caffeine', CHEM.monoMass(CHEM.adductFormula(F('C8H10N4O2'), CHEM.ADDUCTS.find((a) => a.id === 'M-H'))), 194.080376 - CHEM.PROTON, 2e-6);
+  const br = pat('Br2', 'M');
+  check('Br2 1:2:1', br.length === 3 && br[1].abundance === 100 && Math.abs(br[0].abundance - br[2].abundance) < 5);
+  near('morphine M+1', pat('C17H19NO3', 'M+H')[1].abundance, 19.1, 0.2);
+  near('ppm', CHEM.ppm(286.1436, 286.14377), -0.594, 0.001);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
