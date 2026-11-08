@@ -1,5 +1,15 @@
 [
  {
+  "sha": "60e407c09aac",
+  "date": "2026-11-08T08:08:29+00:00",
+  "title": "Add the reaction equivalents table and chromatography calculator (#85, #86)",
+  "tools": [
+   "chromatography-calculator",
+   "reaction-equivalents"
+  ],
+  "site": false
+ },
+ {
   "sha": "87c9ec946496",
   "date": "2026-11-08T07:54:00+00:00",
   "title": "Add the gas law calculator and Beer-Lambert calculator (#83, #84)",
