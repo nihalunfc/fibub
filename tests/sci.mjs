@@ -79,6 +79,7 @@ import * as CFT from '../src/lib/sci/crystalfield.ts';
 import * as DIA from '../src/lib/sci/diatomic.ts';
 import * as THM from '../src/lib/sci/thermo.ts';
 import * as NST from '../src/lib/sci/nernst.ts';
+import * as FAR from '../src/lib/sci/faraday.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1179,6 +1180,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('cell notation', NST.cellNotation(zn, cu, CHEM.pretty) === 'Zn(s) | Zn²⁺(aq) ‖ Cu²⁺(aq) | Cu(s)' && NST.cellNotation(NST.half('H2'), NST.half('AgCl'), CHEM.pretty) === 'Pt(s) | H₂(g) | H⁺(aq) ‖ Cl⁻(aq) | AgCl(s) | Ag(s)');
   near('SCE to Ag/AgCl', NST.convertRef(0.5, 'SCE', 'AgClsat'), 0.544, 1e-12);
   near('Ag/AgCl to RHE at pH 13', NST.convertRef(-1, 'AgClsat', 'RHE', 13), -1 + 0.197 + 0.76907, 0.0001);
+}
+{
+  // Faraday's law: plating rates (Cu 26.5 µm/h at 2 A/dm², Ni 12.3 µm/h at 1 A/dm²), time and current round trips, gas volumes.
+  const cu = FAR.sub('Cu'), ni = FAR.sub('Ni');
+  near('Cu plating rate at 2 A/dm²', FAR.rate(0.02, cu), 26.46, 0.01);
+  near('Ni plating rate at 1 A/dm²', FAR.rate(0.01, ni), 12.29, 0.01);
+  const t = FAR.timeFor(25, 2, 100, ni, 0.95);
+  near('Ni 25 µm at 2 A, 100 cm², 95 % (min)', t / 60, 64.23, 0.01);
+  near('current round trip', FAR.currentFor(25, t, 100, ni, 0.95), 2, 1e-12);
+  near('thickness round trip', FAR.thickness(FAR.mass(2, t, ni, 0.95), ni.rho, 100), 25, 1e-9);
+  near('Ag: 1 A for 1 h deposits 4.025 g', FAR.mass(1, 3600, FAR.sub('Ag')), 4.0247, 0.0001);
+  const h2 = FAR.moles(3600, 2);
+  near('H2 from 1 A·h (mol)', h2, 0.018656, 1e-6);
+  near('H2 at 0 °C, 1 atm (L)', FAR.gasVolume(h2, 273.15, 101.325), 0.4181, 0.0001);
+  check('every metal has a density', FAR.SUBSTANCES.every((x) => x.gas || x.rho > 0));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
