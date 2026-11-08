@@ -1,5 +1,14 @@
 [
  {
+  "sha": "1d41ee4670db",
+  "date": "2026-11-08T23:54:32+00:00",
+  "title": "Add the chiral magnon bands tool (#148)",
+  "tools": [
+   "chiral-magnon-bands"
+  ],
+  "site": false
+ },
+ {
   "sha": "217270cf3c6b",
   "date": "2026-11-08T23:48:25+00:00",
   "title": "Add the spin splitter conductivity tool (#147)",
