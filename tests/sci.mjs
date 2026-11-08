@@ -126,6 +126,7 @@ import * as WAV from '../src/lib/sci/waves.ts';
 import * as OCH from '../src/lib/sci/openchannel.ts';
 import * as RO from '../src/lib/sci/runoff.ts';
 import * as FF from '../src/lib/sci/floodfreq.ts';
+import * as ET from '../src/lib/sci/et0.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2465,6 +2466,40 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('flood: bootstrap interval brackets the estimate', ci[0][0] < gev.q(10) && gev.q(10) < ci[0][1] && ci[1][0] < gev.q(100) && gev.q(100) < ci[1][1]);
   check('flood: bootstrap is repeatable with the seed', JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)) === JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)));
   near('flood: 100-year flood in 30 years', FF.riskInYears(100, 30), 1 - 0.99 ** 30, 1e-15);
+}
+{
+  // FAO-56 Penman-Monteith on made-up days, against an independent Python version (and pyet 1.5 pm_fao56 for day 1, 5.52785).
+  const d1 = ET.penmanMonteith({ tmax: 29, tmin: 16.5, lat: 43.1, z: 180, J: 196, u: 3.1, uh: 10, hum: { kind: 'rhmaxmin', rhmax: 88, rhmin: 41 }, sol: { kind: 'sun', n: 10.2 } });
+  near('et0: day 1 ET0 (Python and pyet 5.5278496)', d1.et0, 5.527849621116586, 1e-9);
+  near('et0: day 1 Ra', d1.Ra, 40.69930161983453, 1e-9);
+  near('et0: day 1 daylight hours', d1.N, 14.878123797966975, 1e-9);
+  near('et0: day 1 Rs from sunshine', d1.Rs, 24.125941895165486, 1e-9);
+  near('et0: day 1 Rnl', d1.Rnl, 4.302173796565052, 1e-9);
+  near('et0: day 1 ea from RHmax/RHmin', d1.ea, 1.647121275020091, 1e-12);
+  near('et0: wind at 10 m to 2 m', d1.u2, 2.3186483330206267, 1e-12);
+  near('et0: pressure at 180 m', d1.P, 99.19030396361237, 1e-10);
+  near('et0: radiation and aerodynamic parts add up', d1.radPart + d1.aeroPart, d1.et0, 1e-12);
+  const d2 = ET.penmanMonteith({ tmax: 12.4, tmin: 3.1, lat: -33.9, z: 40, J: 170, u: 4, hum: { kind: 'tdew', tdew: 2 }, sol: { kind: 'rs', rs: 9.5 } });
+  near('et0: day 2 southern winter, dew point, measured Rs (Python 1.8017673)', d2.et0, 1.8017673003420527, 1e-9);
+  near('et0: day 2 Ra', d2.Ra, 16.219422863339513, 1e-9);
+  const d3 = ET.penmanMonteith({ tmax: 34.5, tmin: 21, lat: 13, z: 350, J: 75, u: 1.6, hum: { kind: 'rhmean', rh: 48 }, sol: { kind: 'temp' } });
+  near('et0: day 3 RH mean, Hargreaves radiation (Python 5.4704115)', d3.et0, 5.470411527731706, 1e-9);
+  near('et0: day 3 Rs from the temperature range', d3.Rs, 21.390841932470586, 1e-9);
+  const d4 = ET.penmanMonteith({ tmax: 5, tmin: -4, lat: 60, z: 800, J: 40, u: 2.5, uh: 3, hum: { kind: 'none' }, sol: { kind: 'sun', n: 4 } });
+  near('et0: day 4 cold, no humidity (dew point = Tmin), negative Rn (Python 0.5239102)', d4.et0, 0.5239102395205919, 1e-9);
+  check('et0: day 4 net radiation is negative', d4.Rn < 0 && Math.abs(d4.Rn - -0.8425105124825056) < 1e-9);
+  near('et0: Hargreaves day 1 (Python 5.4754627)', ET.hargreaves(29, 16.5, d1.Ra), 5.475462654153093, 1e-9);
+  near('et0: Hargreaves day 2 (Python 1.1859210)', ET.hargreaves(12.4, 3.1, d2.Ra), 1.1859210408730503, 1e-9);
+  near('et0: svp at 20 °C', ET.svp(20), 2.338281, 1e-6);
+  near('et0: wind default is 2 m/s', ET.penmanMonteith({ tmax: 25, tmin: 15, lat: 0, z: 0, J: 100, hum: { kind: 'rhmean', rh: 60 }, sol: { kind: 'temp' } }).u2, 2, 0);
+  check('et0: polar night has no sun', ET.extraterrestrial(75, 355).Ra === 0 && ET.extraterrestrial(75, 355).N === 0);
+  near('et0: midnight sun has 24 h of daylight', ET.extraterrestrial(75, 172).N, 24, 1e-9);
+  near('et0: sunshine capped at the day length', ET.penmanMonteith({ tmax: 25, tmin: 15, lat: 40, z: 0, J: 172, hum: { kind: 'rhmean', rh: 60 }, sol: { kind: 'sun', n: 20 } }).Rs, (0.75) * ET.extraterrestrial(40, 172).Ra, 1e-9);
+  check('et0: day of year', ET.dayOfYear('2026-07-15') === 196 && ET.dayOfYear('2024-12-31') === 366 && Number.isNaN(ET.dayOfYear('15/07/2026')));
+  const wc = ET.weatherColumns(['Date', 'Tmax (°C)', 'Tmin (°C)', 'RH max %', 'RH min %', 'Wind 2 m (m/s)', 'Sunshine (h)']);
+  check('et0: weather columns found by name', wc.date === 0 && wc.tmax === 1 && wc.tmin === 2 && wc.rhmax === 3 && wc.rhmin === 4 && wc.rh === -1 && wc.u === 5 && wc.sun === 6 && wc.rs === -1 && wc.tdew === -1);
+  const wc2 = ET.weatherColumns(['day', 'max temp', 'min temp', 'humidity', 'dew point', 'solar radiation']);
+  check('et0: other column names', wc2.tmax === 1 && wc2.tmin === 2 && wc2.rh === 3 && wc2.tdew === 4 && wc2.rs === 5 && wc2.u === -1);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

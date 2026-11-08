@@ -1,0 +1,226 @@
+---
+// Daily reference evapotranspiration (FAO-56 Penman-Monteith and Hargreaves), one day or a daily table. Example weather made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// A made-up July of daily weather, drawn at random by fibub (not from any real station).
+const rows = [
+  '2026-07-01,24.8,15.9,85,45,0.9,9.8',
+  '2026-07-02,27.3,18.7,79,40,0.6,9.5',
+  '2026-07-03,26.6,14.1,71,49,2.5,7.8',
+  '2026-07-04,29.2,17.3,76,60,3.8,12.5',
+  '2026-07-05,29.8,19.3,91,47,2.6,10.6',
+  '2026-07-06,30.4,19.9,90,49,2.8,10.3',
+  '2026-07-07,26.5,15.5,82,73,2.9,12.1',
+  '2026-07-08,30.7,19.6,86,15,3.2,8.9',
+  '2026-07-09,29.4,17.6,81,44,2.3,5.9',
+  '2026-07-10,31.5,18.4,82,44,1.6,9.9',
+  '2026-07-11,29.0,20.2,83,53,2.9,7.5',
+  '2026-07-12,31.0,14.9,76,41,1.6,6.9',
+  '2026-07-13,31.9,19.1,92,46,3.1,11.5',
+  '2026-07-14,25.2,15.3,83,38,2.7,14.5',
+  '2026-07-15,33.1,21.5,90,34,3.1,11.1',
+  '2026-07-16,27.2,16.9,87,35,1.6,14.5',
+  '2026-07-17,27.2,16.1,89,46,3.8,10.8',
+  '2026-07-18,28.1,15.8,81,50,2.1,10.3',
+  '2026-07-19,23.1,14.2,70,31,1.4,8.9',
+  '2026-07-20,23.9,12.1,80,31,2.6,10.8',
+  '2026-07-21,21.9,10.0,81,41,3.0,4.5',
+  '2026-07-22,23.1,10.9,86,41,2.5,12.6',
+  '2026-07-23,26.0,19.1,87,60,3.4,6.7',
+  '2026-07-24,22.5,13.7,80,42,2.8,10.9',
+  '2026-07-25,20.8,10.7,85,41,1.3,8.3',
+  '2026-07-26,25.8,14.4,91,63,3.5,8.0',
+  '2026-07-27,21.7,13.0,76,49,1.7,14.5',
+  '2026-07-28,20.2,9.4,85,30,3.6,8.8',
+  '2026-07-29,23.5,13.7,90,25,3.4,11.7',
+  '2026-07-30,24.2,13.2,87,36,1.3,7.4',
+  '2026-07-31,25.1,13.7,93,37,2.5,9.2',
+];
+const demo = 'date,Tmax (°C),Tmin (°C),RH max (%),RH min (%),wind (m/s),sunshine (h)\n' + rows.join('\n');
+---
+<div class="ax etc">
+  <div class="ax-card">
+    <h2>Place</h2>
+    <div class="ax-grid">
+      <label><span>Latitude (°, south is negative)</span> <input class="et-lat" type="text" inputmode="decimal" value="43.1" /></label>
+      <label>Elevation (m) <input class="et-z" type="text" inputmode="decimal" value="180" /></label>
+      <label>Wind measured at height (m) <input class="et-uh" type="text" inputmode="decimal" value="10" /></label>
+      <label>Crop coefficient Kc (blank = none) <input class="et-kc" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">ET0 is the water used by a wide, well-watered field of short grass. Multiply by your crop's coefficient Kc (from your local extension service or FAO-56) for the crop's own use, ETc = Kc × ET0. The place matters for the sun: latitude and date set the radiation at the top of the air, elevation sets the air pressure.</p>
+    <p class="ax-err et-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>One day</h2>
+    <div class="ax-grid">
+      <label>Date <input class="et-date" type="date" value="2026-07-15" /></label>
+      <label><span>Highest temperature (°C)</span> <input class="et-tx" type="text" inputmode="decimal" value="29" /></label>
+      <label><span>Lowest temperature (°C)</span> <input class="et-tn" type="text" inputmode="decimal" value="16.5" /></label>
+      <label>Humidity given as <select class="et-hm">
+        <option value="rhmaxmin" selected>Highest and lowest RH</option>
+        <option value="rhmean">Mean RH</option>
+        <option value="tdew">Dew point</option>
+        <option value="none">Not measured</option>
+      </select></label>
+      <label class="et-h1"><span>Highest RH (%)</span> <input class="et-rhx" type="text" inputmode="decimal" value="88" /></label>
+      <label class="et-h1"><span>Lowest RH (%)</span> <input class="et-rhn" type="text" inputmode="decimal" value="41" /></label>
+      <label class="et-h2" hidden><span>Mean RH (%)</span> <input class="et-rh" type="text" inputmode="decimal" value="60" /></label>
+      <label class="et-h3" hidden><span>Dew point (°C)</span> <input class="et-td" type="text" inputmode="decimal" value="14" /></label>
+      <label><span>Mean wind speed (m/s; blank = 2 m/s at 2 m)</span> <input class="et-u" type="text" inputmode="decimal" value="3.1" /></label>
+      <label>Sunlight given as <select class="et-sm">
+        <option value="sun" selected>Hours of bright sunshine</option>
+        <option value="rs">Measured solar radiation</option>
+        <option value="temp">Not measured (from the temperature range)</option>
+      </select></label>
+      <label class="et-s1"><span>Sunshine (hours)</span> <input class="et-n" type="text" inputmode="decimal" value="10.2" /></label>
+      <label class="et-s2" hidden><span>Solar radiation (MJ/m² per day)</span> <input class="et-rs" type="text" inputmode="decimal" value="22" /></label>
+      <label class="et-s3" hidden>Site <select class="et-krs"><option value="0.16" selected>Inland (krs 0.16)</option><option value="0.19">Coastal (krs 0.19)</option></select></label>
+    </div>
+    <p class="ax-help">With no humidity reading, the dew point is taken as the lowest temperature, which suits humid and irrigated places; in dry places it overstates the humidity. With no sunshine or radiation, radiation comes from the day's temperature range (Hargreaves). Both shortcuts are rougher than measurements. The example day is made up.</p>
+    <p class="ax-big et-big"></p>
+    <dl class="ax-facts et-facts"></dl>
+    <p class="ax-err et-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Daily table</h2>
+    <label>Daily weather <textarea class="et-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".et-data" maxCols={30} maxRows={4000} label="Open a file" />
+    <p class="ax-help">One row per day with a header. Columns are found by name: date (YYYY-MM-DD), Tmax and Tmin (needed), then RH max and RH min, or RH (mean), or dew point; wind (at the height above); sunshine hours, or solar radiation in MJ/m². Missing columns use the same shortcuts as above. Up to 3,660 days (10 years). The example month is made up.</p>
+    <p class="ax-err et-terr" hidden></p>
+    <div class="et-tout">
+      <p class="ax-big et-tbig"></p>
+      <dl class="ax-facts et-tfacts"></dl>
+      <canvas class="ax-fig et-fig"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small et-csv">Download daily ET0 (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { penmanMonteith, hargreaves, dayOfYear, weatherColumns, type Humidity, type Solar } from '../../lib/sci/et0';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const f2 = (x: number) => (Math.round(x * 100) / 100).toFixed(2);
+  const root = document.querySelector<HTMLElement>('.etc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const blank = (c: string) => q<HTMLInputElement>(c).value.trim() === '';
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let fig: Figure | null = null, csvRows: (string | number)[][] = [], daySec: Section | null = null, tabSec: Section | null = null;
+
+  function place() {
+    const lat = val('.et-lat'), z = val('.et-z'), uh = val('.et-uh'), kc = blank('.et-kc') ? NaN : val('.et-kc');
+    const e = q('.et-perr');
+    const bad = !(Math.abs(lat) <= 90) ? 'Give the latitude between −90 and 90.' : !(z > -500 && z < 9000) ? 'Give the elevation in metres.' : !(uh >= 0.5 && uh <= 100) ? 'Give the height of the wind reading, 0.5 to 100 m (2 m and 10 m are usual).' : !blank('.et-kc') && !(kc > 0 && kc < 3) ? 'Kc is usually between 0.1 and 1.4; leave it blank for ET0 only.' : '';
+    e.textContent = bad; e.hidden = !bad;
+    return bad ? null : { lat, z, uh, kc };
+  }
+
+  function oneDay(P: NonNullable<ReturnType<typeof place>>) {
+    const hm = sel('.et-hm'), sm = sel('.et-sm');
+    root.querySelectorAll<HTMLElement>('.et-h1').forEach((e) => { e.hidden = hm !== 'rhmaxmin'; });
+    q('.et-h2').hidden = hm !== 'rhmean'; q('.et-h3').hidden = hm !== 'tdew';
+    q('.et-s1').hidden = sm !== 'sun'; q('.et-s2').hidden = sm !== 'rs'; q('.et-s3').hidden = sm !== 'temp';
+    const err = q('.et-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.et-big').textContent = ''; q('.et-facts').replaceChildren(); daySec = null; };
+    const J = dayOfYear(q<HTMLInputElement>('.et-date').value), tx = val('.et-tx'), tn = val('.et-tn');
+    if (!Number.isFinite(J)) return fail('Give the date.');
+    if (!(tx > -60 && tx < 60 && tn > -60 && tn < 60)) return fail('Give the highest and lowest temperatures in °C.');
+    if (tn > tx) return fail('The lowest temperature is above the highest.');
+    let hum: Humidity;
+    if (hm === 'rhmaxmin') { const a = val('.et-rhx'), b = val('.et-rhn'); if (!(a > 0 && a <= 100 && b > 0 && b <= a)) return fail('Give the highest and lowest relative humidity (%), highest first.'); hum = { kind: 'rhmaxmin', rhmax: a, rhmin: b }; }
+    else if (hm === 'rhmean') { const a = val('.et-rh'); if (!(a > 0 && a <= 100)) return fail('Give the mean relative humidity (%).'); hum = { kind: 'rhmean', rh: a }; }
+    else if (hm === 'tdew') { const a = val('.et-td'); if (!(a > -80 && a <= tx + 0.5)) return fail('Give the dew point in °C (not above the highest temperature).'); hum = { kind: 'tdew', tdew: a }; }
+    else hum = { kind: 'none' };
+    let sol: Solar;
+    if (sm === 'sun') { const n = val('.et-n'); if (!(n >= 0 && n <= 24)) return fail('Give the hours of bright sunshine.'); sol = { kind: 'sun', n }; }
+    else if (sm === 'rs') { const r = val('.et-rs'); if (!(r >= 0 && r < 50)) return fail('Give the solar radiation in MJ/m² per day (1 kWh/m² = 3.6 MJ/m²).'); sol = { kind: 'rs', rs: r }; }
+    else sol = { kind: 'temp', krs: +sel('.et-krs') };
+    const u = blank('.et-u') ? undefined : val('.et-u');
+    if (u !== undefined && !(u >= 0 && u < 60)) return fail('Give the mean wind speed in m/s, or leave it blank.');
+    err.hidden = true;
+    const r = penmanMonteith({ tmax: tx, tmin: tn, lat: P.lat, z: P.z, J, u, uh: P.uh, hum, sol });
+    q('.et-big').textContent = `ET0 ${f2(r.et0)} mm/day` + (Number.isFinite(P.kc) ? `; crop ${f2(r.et0 * P.kc)} mm/day` : '');
+    const facts = [
+      fact('Energy and wind shares', `${sg(r.radPart, 3)} + ${sg(r.aeroPart, 3)} mm/day`, 'from net radiation, and from dry air moved by the wind'),
+      fact('Net radiation Rn', `${sg(r.Rn, 3)} MJ/m²`, `solar ${sg(r.Rs, 3)} in, ${sg(r.Rs - r.Rns, 3)} reflected (albedo 0.23), ${sg(r.Rnl, 3)} net long-wave out`),
+      fact('Sun at the top of the air Ra', `${sg(r.Ra, 3)} MJ/m²`, `clear-sky Rso ${sg(r.Rso, 3)} MJ/m²; day length ${sg(r.N, 3)} h; day ${J} of the year`),
+      fact('Vapour pressure deficit', `${sg(r.vpd, 3)} kPa`, `saturation ${sg(r.es, 3)} kPa, actual ${sg(r.ea, 3)} kPa`),
+      fact('Wind at 2 m', `${sg(r.u2, 3)} m/s`, u === undefined ? 'not given, so the usual 2 m/s' : P.uh === 2 ? 'as measured' : `from ${sg(u, 3)} m/s at ${sg(P.uh, 3)} m`),
+      fact('Air pressure', `${sg(r.P, 4)} kPa`, `mean temperature ${sg(r.T, 3)} °C; slope Δ ${sg(r.delta, 3)}, psychrometric γ ${sg(r.gamma, 3)} kPa/°C`),
+      fact('Hargreaves ET0', `${f2(hargreaves(tx, tn, r.Ra))} mm/day`, 'from temperature and Ra only, for comparison'),
+    ];
+    if (Number.isFinite(P.kc)) facts.push(fact('Crop water use ETc', `${f2(r.et0 * P.kc)} mm/day`, `Kc ${P.kc} × ET0; 1 mm over a hectare is 10 m³`));
+    q('.et-facts').replaceChildren(...facts);
+    daySec = { title: q('.et-big').textContent!, facts: factsOf(q('.et-facts')) };
+  }
+
+  function table(P: NonNullable<ReturnType<typeof place>>) {
+    const err = q('.et-terr'), out = q('.et-tout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; tabSec = null; fig = null; csvRows = []; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.et-data').value).filter((r) => r.some((c) => c.trim() !== ''));
+    if (rows.length < 2) return fail('Paste a header row and at least one day.');
+    const C = weatherColumns(rows[0]), body = rows.slice(1);
+    if (C.tmax < 0 || C.tmin < 0) return fail('Name the temperature columns Tmax and Tmin (or "max temp" and "min temp").');
+    if (body.length > 3660) return fail(`The table has ${body.length.toLocaleString('en')} days; the limit is 3,660 (10 years).`);
+    const J0 = dayOfYear(q<HTMLInputElement>('.et-date').value) || 1;
+    const hk = C.rhmax >= 0 && C.rhmin >= 0 ? 'RH max and min' : C.tdew >= 0 ? 'dew point' : C.rh >= 0 ? 'mean RH' : 'none (dew point = Tmin)';
+    const sk = C.rs >= 0 ? 'solar radiation' : C.sun >= 0 ? 'sunshine hours' : 'temperature range';
+    const days: string[] = [], et: number[] = [], hg: number[] = [], xs: number[] = [];
+    let skipped = 0;
+    csvRows = [['date', 'ET0 Penman-Monteith (mm)', 'ET0 Hargreaves (mm)'].concat(Number.isFinite(P.kc) ? ['ETc (mm)'] : [])];
+    body.forEach((r, i) => {
+      const cell = (k: number) => (k >= 0 ? num(r[k] ?? '') : NaN);
+      const tx = cell(C.tmax), tn = cell(C.tmin);
+      const ds = C.date >= 0 ? (r[C.date] ?? '').trim() : '', J = C.date >= 0 ? dayOfYear(ds) : ((J0 - 1 + i) % 365) + 1;
+      if (!Number.isFinite(tx) || !Number.isFinite(tn) || tn > tx || !Number.isFinite(J)) { skipped++; return; }
+      const rx = cell(C.rhmax), rn = cell(C.rhmin), td = cell(C.tdew), rh = cell(C.rh);
+      const hum: Humidity = Number.isFinite(rx) && Number.isFinite(rn) ? { kind: 'rhmaxmin', rhmax: rx, rhmin: rn } : Number.isFinite(td) ? { kind: 'tdew', tdew: td } : Number.isFinite(rh) ? { kind: 'rhmean', rh } : { kind: 'none' };
+      const rs = cell(C.rs), n = cell(C.sun), u = cell(C.u);
+      const sol: Solar = Number.isFinite(rs) ? { kind: 'rs', rs } : Number.isFinite(n) ? { kind: 'sun', n } : { kind: 'temp', krs: +sel('.et-krs') };
+      const res = penmanMonteith({ tmax: tx, tmin: tn, lat: P.lat, z: P.z, J, u: Number.isFinite(u) ? u : undefined, uh: P.uh, hum, sol });
+      const h = hargreaves(tx, tn, res.Ra);
+      days.push(ds || `day ${J}`); et.push(res.et0); hg.push(h); xs.push(et.length);
+      csvRows.push([ds || String(J), f2(res.et0), f2(h)].concat(Number.isFinite(P.kc) ? [f2(res.et0 * P.kc)] : []));
+    });
+    if (!et.length) return fail('No usable days: each row needs Tmax and Tmin (lowest not above highest) and a date as YYYY-MM-DD if there is a date column.');
+    err.hidden = true; out.hidden = false;
+    const tot = et.reduce((s, v) => s + v, 0), mx = Math.max(...et), imx = et.indexOf(mx);
+    q('.et-tbig').textContent = `${sg(tot, 4)} mm over ${et.length} days (${f2(tot / et.length)} mm/day)` + (Number.isFinite(P.kc) ? `; crop ${sg(tot * P.kc, 4)} mm` : '');
+    const tf = [
+      fact('Highest day', `${f2(mx)} mm`, days[imx]),
+      fact('Hargreaves total', `${sg(hg.reduce((s, v) => s + v, 0), 4)} mm`, 'temperature only, for comparison'),
+      fact('Columns used', `humidity: ${hk}; sun: ${sk}`, `wind: ${C.u >= 0 ? `column, at ${P.uh} m` : '2 m/s (no column)'}${C.date >= 0 ? '' : `; no date column, so days count from ${q<HTMLInputElement>('.et-date').value}`}`),
+    ];
+    if (Number.isFinite(P.kc)) tf.push(fact('Water for the crop', `${sg(tot * P.kc * 10, 4)} m³ per hectare`, `Kc ${P.kc}; before rain and irrigation losses`));
+    if (skipped) tf.push(fact('Skipped rows', String(skipped), 'missing or impossible temperatures, or an unreadable date'));
+    q('.et-tfacts').replaceChildren(...tf);
+    fig = chartFigure({ w: 380, h: 220, xLabel: 'Day', yLabel: 'ET0 (mm/day)', yMin: 0, legend: 'below', series: [
+      { name: 'Penman-Monteith', x: xs, y: et, mode: et.length > 60 ? 'line' : 'both', width: 1.8, size: 2.5 },
+      { name: 'Hargreaves', x: xs, y: hg, mode: 'line', width: 1.2, dash: [5, 4] },
+    ] }, 'Daily reference evapotranspiration');
+    paint(q<HTMLCanvasElement>('.et-fig'), fig);
+    tabSec = { title: q('.et-tbig').textContent!, facts: factsOf(q('.et-tfacts')), figure: fig, table: { head: csvRows[0].map(String), rows: csvRows.slice(1, 400).map((r) => r.map(String)) } };
+  }
+
+  function all() { const P = place(); if (!P) { q('.et-big').textContent = ''; q('.et-facts').replaceChildren(); q('.et-tout').hidden = true; return; } oneDay(P); table(P); }
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.et-tout').hidden) paint(q<HTMLCanvasElement>('.et-fig'), fig); });
+  q('.et-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new TextEncoder().encode(toCsv(csvRows)), 'et0-daily.csv', 'text/csv'); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Reference evapotranspiration', subtitle: q('.et-big').textContent ?? '', file: 'et0', sections: [daySec, tabSec].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .etc select, .etc input { max-width: 100%; }
+  .etc textarea { width: 100%; }
+</style>
