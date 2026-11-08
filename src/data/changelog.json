@@ -1,5 +1,19 @@
 [
  {
+  "sha": "6144d90f6f03",
+  "date": "2026-11-08T00:17:38+00:00",
+  "title": "Change log page, folded phone menu and the tool total on the home page",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "1f682572169a",
+  "date": "2026-11-08T00:17:38+00:00",
+  "title": "Apache License 2.0 with a NOTICE file that credits fibub",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "abf6ac0670cb",
   "date": "2026-11-08T00:03:23+00:00",
   "title": "Reshape the site for hundreds of science tools",
