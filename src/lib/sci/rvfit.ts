@@ -35,14 +35,14 @@ export function solve(M: number[][], b: number[]) {
   }
   return a.map((r, i) => r[n] / r[i]);
 }
-function invert(M: number[][]) {
+export function invert(M: number[][]) {
   const n = M.length, out: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
   for (let j = 0; j < n; j++) { const e = new Array(n).fill(0); e[j] = 1; const x = solve(M, e); if (!x) return null; for (let i = 0; i < n; i++) out[i][j] = x[i]; }
   return out;
 }
 
 /** Nelder-Mead minimiser. */
-function nelderMead(f: (x: number[]) => number, x0: number[], step: number[], iters = 600) {
+export function nelderMead(f: (x: number[]) => number, x0: number[], step: number[], iters = 600) {
   const n = x0.length; let pts = [x0, ...step.map((s, i) => x0.map((v, j) => (j === i ? v + s : v)))], fs = pts.map(f);
   for (let it = 0; it < iters; it++) {
     const idx = fs.map((_, i) => i).sort((a, b) => fs[a] - fs[b]); pts = idx.map((i) => pts[i]); fs = idx.map((i) => fs[i]);

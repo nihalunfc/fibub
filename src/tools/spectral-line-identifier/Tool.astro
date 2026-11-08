@@ -1,0 +1,207 @@
+---
+// Spectral line identifier: match measured wavelengths (or the peaks of a pasted spectrum) to known lines,
+// and find the redshift at which several lines agree.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sl">
+  <div class="ax-card">
+    <h2>Your lines or spectrum</h2>
+    <label>Paste wavelengths, one per line, or a whole spectrum as two columns (wavelength, flux).
+      <textarea class="sl-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sl-sample">Example galaxy spectrum</button>
+      <button type="button" class="btn secondary small sl-sample2">Example list of lines</button>
+      <label class="btn secondary small" style="cursor:pointer">Open a file<input type="file" class="sl-file" accept=".txt,.csv,.tsv,.dat,text/*" hidden /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Wavelength unit <select class="sl-unit"><option value="1" selected>ångström (Å)</option><option value="10">nanometre (nm)</option><option value="10000">micrometre (µm)</option></select></label>
+      <label>Measured in <select class="sl-med"><option value="air" selected>air (most ground spectra)</option><option value="vac">vacuum (SDSS, space telescopes)</option></select></label>
+      <label>Match within (same unit) <input class="sl-tol" inputmode="decimal" value="3" /></label>
+      <label class="sl-kind-l">Spectrum lines are <select class="sl-kind"><option value="em" selected>bright (emission)</option><option value="ab">dark (absorption)</option></select></label>
+    </div>
+    <fieldset class="sl-sets" style="margin-top:12px;border:0;padding:0">
+      <legend style="font-size:14px;color:var(--muted);margin-bottom:4px">Look among</legend>
+      <div class="ax-row" style="gap:6px 16px">
+        <label class="ax-check"><input type="checkbox" value="stellar" checked /> Stars</label>
+        <label class="ax-check"><input type="checkbox" value="nebular" checked /> Nebulae and galaxies</label>
+        <label class="ax-check"><input type="checkbox" value="quasar" /> Quasars</label>
+        <label class="ax-check"><input type="checkbox" value="lamp" /> Calibration lamps</label>
+        <label class="ax-check"><input type="checkbox" value="pollution" /> Light pollution and airglow</label>
+        <label class="ax-check"><input type="checkbox" value="telluric" checked /> Earth's atmosphere</label>
+      </div>
+    </fieldset>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Redshift <select class="sl-zmode"><option value="auto" selected>find it from the lines</option><option value="set">I know it</option></select></label>
+      <label class="sl-zl" hidden>Redshift z <input class="sl-z" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Lines of Earth's atmosphere, lamps and light pollution never shift: they are matched at z = 0 whatever the redshift. Choose air or vacuum to match how your wavelengths were calibrated; the difference is about 1.8 Å at Hα.</p>
+    <p class="ax-err sl-err" hidden></p>
+  </div>
+
+  <div class="ax-card sl-out" hidden>
+    <h2>Lines found</h2>
+    <p class="ax-big sl-big"></p>
+    <div class="sl-cands" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <canvas class="ax-fig sl-fig"></canvas>
+    <dl class="ax-facts sl-facts" style="margin-top:12px"></dl>
+    <div class="ax-scroll" style="margin-top:10px"><table class="sl-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sl-csv">Identifications (CSV)</button></div>
+    <p class="ax-help">Rest wavelengths are from the NIST Atomic Spectra Database. Offsets in km/s show how far each line sits from where it should be; a few tens of km/s is normal for real galaxies and rough calibrations. A match is a suggestion: check that the line makes sense for your object.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { identify, findRedshift, simulatedSpectrum, findPeaks, continuum, type LineSet } from '../../lib/sci/speclines';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.sl-in');
+  const REST_FRAME: LineSet[] = ['lamp', 'pollution', 'telluric'];
+  const sample = () => { const s = simulatedSpectrum(0.0832); return 'wavelength_A\tflux\n' + s.lam.map((x, i) => `${x}\t${s.f[i]}`).join('\n'); };
+  const SAMPLE2 = '4037.4\n5266.0\n5371.3\n5423.6\n5602.9\n7108.6\n7131.0\n7275.6\n7593.9';
+  box.value = sample();
+  let fig: Figure | null = null, report: Section[] = [], tableRows: string[][] = [], zPick: number | null = null;
+
+  const fmt = (aa: number, u: number) => (u === 1 ? aa.toFixed(1) : u === 10 ? (aa / 10).toFixed(2) : (aa / 1e4).toFixed(4));
+  const unitName = (u: number) => (u === 1 ? 'Å' : u === 10 ? 'nm' : 'µm');
+
+  function specFigure(lam: number[] | null, f: number[] | null, marks: { aa: number; label: string; rest: boolean }[], u: number, title: string): Figure {
+    return {
+      w: 760, h: 340, alt: title,
+      draw(ctx, w, h, pal) {
+        const fs = 12, L = 50, R = w - 14, T = 74, B = h - 40;
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+        let x0 = Infinity, x1 = -Infinity;
+        for (const x of lam ?? []) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+        for (const m of marks) { if (m.aa < x0) x0 = m.aa; if (m.aa > x1) x1 = m.aa; }
+        if (!lam) { const pad = Math.max(50, (x1 - x0) * 0.06); x0 -= pad; x1 += pad; }
+        let y0 = Infinity, y1 = -Infinity;
+        for (const y of f ?? []) { if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        if (!f) { y0 = 0; y1 = 1; } else { const p = (y1 - y0) * 0.05 || 1; y0 -= p; y1 += p; }
+        const X = (v: number) => L + ((v - x0) / (x1 - x0 || 1)) * (R - L), Y = (v: number) => B - ((v - y0) / (y1 - y0 || 1)) * (B - T);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(L, T, R - L, B - T);
+        ctx.font = `${fs}px system-ui, sans-serif`; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (const t of niceTicks(x0 / u, x1 / u, 7)) { const px = X(t * u); if (px < L - 1 || px > R + 1) continue; ctx.beginPath(); ctx.moveTo(px, B); ctx.lineTo(px, B + 5); ctx.stroke(); ctx.fillText(String(+t.toFixed(4)), px, B + 7); }
+        ctx.fillText(`Wavelength (${unitName(u)})`, (L + R) / 2, B + 22);
+        if (f) { ctx.save(); ctx.translate(14, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Flux', 0, -6); ctx.restore(); }
+        // Lines first, faint, so the spectrum sits on top.
+        ctx.save(); ctx.beginPath(); ctx.rect(L, T, R - L, B - T); ctx.clip();
+        for (const m of marks) { ctx.strokeStyle = m.rest ? pal.muted : pal.accent2; ctx.setLineDash(m.rest ? [2, 3] : [5, 3]); ctx.beginPath(); ctx.moveTo(X(m.aa), T); ctx.lineTo(X(m.aa), B); ctx.stroke(); }
+        ctx.setLineDash([]);
+        if (lam && f) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.2; ctx.beginPath(); lam.forEach((x, i) => (i ? ctx.lineTo(X(x), Y(f[i])) : ctx.moveTo(X(x), Y(f[i])))); ctx.stroke(); }
+        ctx.restore();
+        // Labels above the frame in up to four rows, each placed in the first row where it does not overlap.
+        const rows: number[] = [-Infinity, -Infinity, -Infinity, -Infinity]; ctx.font = `${fs - 1}px system-ui, sans-serif`; ctx.textBaseline = 'bottom';
+        for (const m of [...marks].sort((a, b) => a.aa - b.aa)) {
+          const tw = ctx.measureText(m.label).width, px = Math.min(Math.max(X(m.aa), L + tw / 2), R - tw / 2);
+          const r = rows.findIndex((e) => px - tw / 2 > e + 4); if (r < 0) continue;
+          rows[r] = px + tw / 2; const ty = T - 4 - r * 16;
+          ctx.fillStyle = m.rest ? pal.muted : pal.ink; ctx.fillText(m.label, px, ty);
+          ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(X(m.aa), ty + 1); ctx.lineTo(X(m.aa), T); ctx.stroke();
+        }
+      },
+    };
+  }
+
+  function read(u: number) {
+    const rows = parseTable(box.value).map((r) => r.map((c) => num(c))).filter((r) => r.length && Number.isFinite(r[0]) && r[0] > 0);
+    const two = rows.filter((r) => r.length >= 2 && Number.isFinite(r[1])).length;
+    if (rows.length >= 30 && two >= rows.length * 0.9) {
+      const pts = rows.filter((r) => Number.isFinite(r[1])).map((r) => [r[0] * u, r[1]]).sort((a, b) => a[0] - b[0]);
+      return { lam: pts.map((p) => p[0]), f: pts.map((p) => p[1]), obs: null as number[] | null };
+    }
+    // A short list: every number in the first column (or a single row of numbers) is a measured wavelength.
+    const obs = rows.length === 1 ? rows[0].filter((x) => Number.isFinite(x) && x > 0) : rows.map((r) => r[0]);
+    return { lam: null, f: null, obs: obs.map((x) => x * u).sort((a, b) => a - b) };
+  }
+
+  function run() {
+    const err = q('.sl-err'); err.hidden = true;
+    try {
+      const u = +q<HTMLSelectElement>('.sl-unit').value, med = q<HTMLSelectElement>('.sl-med').value as 'air' | 'vac';
+      const tol = num(q<HTMLInputElement>('.sl-tol').value) * u;
+      if (!(tol > 0)) throw new Error('Give a matching tolerance above 0.');
+      const sets = [...root.querySelectorAll<HTMLInputElement>('.sl-sets input:checked')].map((c) => c.value as LineSet);
+      if (!sets.length) throw new Error('Tick at least one group of lines to look among.');
+      const { lam, f, obs: given } = read(u);
+      q('.sl-kind-l').style.opacity = lam ? '1' : '0.5';
+      let obs = given ?? [];
+      const absorb = q<HTMLSelectElement>('.sl-kind').value === 'ab';
+      if (lam && f) {
+        const step = (lam[lam.length - 1] - lam[0]) / (lam.length - 1);
+        obs = findPeaks(lam, f, 5, absorb, Math.max(10, Math.round(80 / step))).sort((a, b) => b.height - a.height).slice(0, 40).map((p) => p.aa).sort((a, b) => a - b);
+        if (!obs.length) throw new Error(`No ${absorb ? 'dark' : 'bright'} lines stand out from the noise. Try the other line type, or paste the wavelengths yourself.`);
+      }
+      if (!obs.length) throw new Error('Paste at least one wavelength above 0.');
+      // Bright peaks cannot be atmospheric absorption bands, and dark dips cannot be lamp or street-light emission.
+      const shifting = sets.filter((s) => !REST_FRAME.includes(s)), still = sets.filter((s) => REST_FRAME.includes(s) && !(lam && (absorb ? s !== 'telluric' : s === 'telluric')));
+      // Lines that sit on a rest-frame (atmosphere, lamp, pollution) line are left out of the redshift search.
+      const restHits = still.length ? identify(obs, 0, tol, still, med) : obs.map((o) => ({ obs: o, matches: [] }));
+      const free = obs.filter((_, i) => !restHits[i].matches.some((m) => m.line.strong));
+      const auto = q<HTMLSelectElement>('.sl-zmode').value === 'auto';
+      const cands = auto && shifting.length && free.length >= 2 ? findRedshift(free, shifting, -0.01, 7, 4e-4 + tol / 6000, med) : [];
+      let z = auto ? (zPick ?? cands[0]?.z ?? 0) : num(q<HTMLInputElement>('.sl-z').value);
+      if (!Number.isFinite(z) || z <= -1) throw new Error('Give a redshift above −1.');
+      const shiftHits = shifting.length ? identify(obs, z, tol * (1 + Math.max(0, z)), shifting, med) : obs.map((o) => ({ obs: o, matches: [] }));
+      q('.sl-out').hidden = false;
+
+      const cbox = q('.sl-cands'); cbox.replaceChildren();
+      if (auto && cands.length > 1) for (const c of cands.slice(0, 4)) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small';
+        b.setAttribute('aria-pressed', String(Math.abs(c.z - z) < 1e-9)); if (Math.abs(c.z - z) < 1e-9) b.style.fontWeight = '700';
+        b.textContent = `z = ${c.z.toFixed(4)} · ${c.n} lines`; b.addEventListener('click', () => { zPick = c.z; run(); }); cbox.append(b);
+      }
+      const matched = obs.map((o, i) => { const all = [...shiftHits[i].matches.map((m) => ({ ...m, rest0: false })), ...restHits[i].matches.map((m) => ({ ...m, rest0: true }))].sort((a, b) => Number(a.rest0 && !a.line.strong) - Number(b.rest0 && !b.line.strong) || Math.abs(a.diff) - Math.abs(b.diff)); return { o, best: all[0], others: all.slice(1, 3) }; });
+      const nMatch = matched.filter((m) => m.best).length;
+      const cz = 299792.458 * z;
+      const fromLines = auto && cands.length && zPick === null ? `, from ${cands[0].n} lines that agree` : '';
+      q('.sl-big').textContent = shifting.length ? `Redshift z = ${z.toFixed(4)}${fromLines}; ${nMatch} of ${obs.length} lines identified` : `${nMatch} of ${obs.length} lines identified`;
+      // Velocity-weighted mean redshift from the identified shifting lines, and its scatter.
+      const zs = matched.filter((m) => m.best && !m.best.rest0).map((m) => m.o / m.best!.rest - 1);
+      const zMean = zs.length ? zs.reduce((s, x) => s + x, 0) / zs.length : NaN;
+      const zSd = zs.length > 1 ? Math.sqrt(zs.reduce((s, x) => s + (x - zMean) ** 2, 0) / (zs.length - 1)) : NaN;
+      const facts: [string, string, string?][] = [];
+      if (shifting.length) {
+        facts.push(['Redshift z', zs.length ? `${zMean.toFixed(6)}${Number.isFinite(zSd) ? ` ± ${Math.max(1e-6, zSd / Math.sqrt(zs.length)).toFixed(6)}` : ''}` : z.toFixed(4), zs.length ? `mean of ${zs.length} identified lines${Number.isFinite(zSd) ? `, scatter ${sig(zSd * 299792.458, 2)} km/s` : ''}` : 'no shifted lines matched']);
+        facts.push(['Velocity cz', `${sig(Number.isFinite(zMean) ? zMean * 299792.458 : cz, 4)} km/s`, Math.abs(z) < 0.1 ? `for small z, the line-of-sight speed; ${z < 0 ? 'coming towards us' : 'moving away'}` : 'for large z use the redshift itself, or the cosmology calculator for distance']);
+        if (Number.isFinite(zMean) && zMean > 0.003) facts.push(['Rough distance', `${sig((zMean * 299792.458) / 70, 3)} Mpc`, 'Hubble law cz/H₀ with H₀ = 70 km/s/Mpc; only for z below about 0.1']);
+      }
+      const nRest = matched.filter((m) => m.best?.rest0).length;
+      if (nRest) facts.push(['Not from your object', `${nRest} line${nRest > 1 ? 's' : ''}`, 'Earth\'s atmosphere, a lamp or light pollution: these do not shift with redshift']);
+      if (lam) facts.push(['Lines picked out of the spectrum', String(obs.length), `${absorb ? 'dips' : 'peaks'} at least 5 times the noise above the continuum`]);
+      q('.sl-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+
+      const un = unitName(u), head = [`Measured (${un})`, 'Line', `Rest (${un})`, 'Offset', 'Also possible'];
+      tableRows = matched.map((m) => [fmt(m.o, u), m.best ? m.best.line.name + (m.best.rest0 ? ' (not shifted)' : '') : 'no match', m.best ? fmt(m.best.rest, u) : '', m.best ? `${m.best.kms >= 0 ? '+' : '−'}${Math.abs(Math.round(m.best.kms))} km/s` : '', m.others.map((x) => x.line.name).join(', ')]);
+      const tb = q<HTMLTableElement>('.sl-tab'); tb.replaceChildren();
+      const tr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+      const body = tb.createTBody(); for (const r of tableRows) { const row = body.insertRow(); r.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j === 0 || j === 2 || j === 3) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); }
+
+      const marks = matched.filter((m) => m.best).map((m) => ({ aa: m.best!.expected, label: m.best!.line.name.replace(/ \(.*\)$/, ''), rest: m.best!.rest0 }));
+      if (!lam) for (const m of matched.filter((x) => !x.best)) marks.push({ aa: m.o, label: '?', rest: true });
+      let plotF = f;
+      if (lam && f) { const c = continuum(f, Math.max(10, Math.round(80 / ((lam[lam.length - 1] - lam[0]) / (lam.length - 1))))); const s = c.reduce((a, b) => a + b, 0) / c.length || 1; plotF = f.map((x) => x / s); }
+      fig = specFigure(lam, plotF, marks, u, 'Spectrum with the identified lines marked');
+      paint(q<HTMLCanvasElement>('.sl-fig'), fig);
+      report = [{ title: 'Spectral lines', facts: [['Result', q('.sl-big').textContent!], ...facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], figure: fig }, { title: 'Identifications', table: { head, rows: tableRows, align: ['r', 'l', 'r', 'r', 'l'] } }];
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.sl-out').hidden = true; }
+  }
+
+  let timer = 0;
+  box.addEventListener('input', () => { zPick = null; clearTimeout(timer); timer = window.setTimeout(run, 500); });
+  q<HTMLSelectElement>('.sl-zmode').addEventListener('change', () => { const set = q<HTMLSelectElement>('.sl-zmode').value === 'set'; q('.sl-zl').hidden = !set; if (set && zPick !== null) q<HTMLInputElement>('.sl-z').value = zPick.toFixed(5); run(); });
+  for (const c of ['.sl-unit', '.sl-med', '.sl-tol', '.sl-kind', '.sl-z']) q(c).addEventListener('change', () => { zPick = null; run(); });
+  q('.sl-sets').addEventListener('change', () => { zPick = null; run(); });
+  q('.sl-sample').addEventListener('click', () => { box.value = sample(); q<HTMLSelectElement>('.sl-unit').value = '1'; q<HTMLSelectElement>('.sl-kind').value = 'em'; zPick = null; run(); });
+  q('.sl-sample2').addEventListener('click', () => { box.value = SAMPLE2; q<HTMLSelectElement>('.sl-unit').value = '1'; zPick = null; run(); });
+  q<HTMLInputElement>('.sl-file').addEventListener('change', async (e) => { const fl = (e.target as HTMLInputElement).files?.[0]; if (!fl) return; box.value = await fl.text(); zPick = null; run(); });
+  q('.sl-csv').addEventListener('click', () => { if (!tableRows.length) return; save(new Blob([csv([['measured', 'line', 'rest', 'offset', 'also_possible'], ...tableRows])], { type: 'text/csv' }), 'spectral-lines.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sl-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Spectral line identification', file: 'spectral-lines', sections: report }));
+</script>

@@ -1,0 +1,205 @@
+---
+// Star FWHM and elongation checker: measure every star in a sub-frame for focus, tilt, field curvature and tracking.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fw">
+  <div class="ax-card">
+    <label class="fw-drop">
+      <input type="file" class="fw-in" accept=".fits,.fit,.fts,.fits.gz,.fit.gz,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden />
+      <strong>Open a star image</strong>
+      <span>A FITS sub-frame straight from the camera is best; PNG and JPEG work too. The image stays on your device.</span>
+    </label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small fw-sample">Load the example</button>
+      <label class="ax-check"><input type="checkbox" class="fw-bin" /> Bin 2 × 2 (colour camera raw frames)</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Pixel size (µm) <input class="fw-pix" inputmode="decimal" placeholder="e.g. 3.76" /></label>
+      <label>Focal length (mm) <input class="fw-fl" inputmode="decimal" placeholder="e.g. 400" /></label>
+      <label>Detect stars above (σ) <input class="fw-k" inputmode="decimal" value="8" /></label>
+      <label>Most stars to measure <input class="fw-max" inputmode="numeric" value="300" /></label>
+    </div>
+    <p class="ax-help">With the pixel size and focal length the sizes are also given in arcseconds. Raise the detection level if noise or hot pixels are picked up; lower it for a faint field. Undebayered colour frames have a checkerboard pattern: tick Bin 2 × 2 (it is ticked for you when the FITS header names a Bayer pattern).</p>
+    <p class="ax-err fw-err" hidden></p>
+  </div>
+
+  <div class="ax-card fw-out" hidden>
+    <h2 class="fw-title">Star shapes</h2>
+    <p class="ax-big fw-big"></p>
+    <canvas class="ax-fig fw-img photo"></canvas>
+    <p class="ax-help">Each star found is circled; the ellipse shows its shape, stretched three times so small elongations show.</p>
+    <dl class="ax-facts fw-facts" style="margin-top:12px"></dl>
+    <h3>Across the field</h3>
+    <canvas class="ax-fig fw-map" style="max-width:420px;margin:0 auto"></canvas>
+    <canvas class="ax-fig fw-rad" style="margin-top:8px"></canvas>
+    <h3>Brightest stars</h3>
+    <div class="ax-scroll"><table class="fw-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fw-csv">All stars (CSV)</button></div>
+    <p class="ax-help">FWHM is the width at half the peak brightness, from a Moffat profile fitted to each star; HFR is the radius holding half the star's light, the number most capture programs use for autofocus. Both depend on seeing as well as focus, so compare frames taken close together. Stretched PNG and JPEG images give different numbers from raw frames.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .fw-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 24px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; }
+  .fw-drop.over { border-color: var(--accent); }
+  .fw-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+</style>
+
+<script>
+  import { readImage, percentiles } from '../../lib/astro/fits';
+  import { findStars, fieldSummary, plateScale, simulatedField, median, type Star } from '../../lib/sci/starfwhm';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Img = { d: Float32Array; w: number; h: number; name: string; flip: boolean; stretched: boolean };
+  let src: Img | null = null, figs: Figure[] = [], report: Section[] = [], stars: Star[] = [], scale = NaN;
+
+  function bin2(im: Img): Img {
+    const w = im.w >> 1, h = im.h >> 1, d = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = 2 * y * im.w + 2 * x; d[y * w + x] = im.d[i] + im.d[i + 1] + im.d[i + im.w] + im.d[i + im.w + 1]; }
+    return { ...im, d, w, h };
+  }
+
+  async function openFile(f: File) {
+    const err = q('.fw-err'); err.hidden = true;
+    try {
+      let b = new Uint8Array(await f.arrayBuffer());
+      if (b[0] === 0x1f && b[1] === 0x8b) { const { gunzipSync } = await import('fflate'); b = gunzipSync(b); }
+      if (String.fromCharCode(...b.slice(0, 6)) === 'SIMPLE') {
+        const im = readImage(b), n = im.w * im.h, d = new Float32Array(n);
+        for (const p of im.planes) for (let i = 0; i < n; i++) d[i] += p[i] / im.planes.length;
+        src = { d, w: im.w, h: im.h, name: f.name, flip: true, stretched: false };
+        q<HTMLInputElement>('.fw-bin').checked = !!im.header.get('BAYERPAT') && im.planes.length === 1;
+        const pix = im.header.num('XPIXSZ') ?? im.header.num('PIXSIZE1'), fl = im.header.num('FOCALLEN');
+        if (pix && !q<HTMLInputElement>('.fw-pix').value) q<HTMLInputElement>('.fw-pix').value = String(pix);
+        if (fl && !q<HTMLInputElement>('.fw-fl').value) q<HTMLInputElement>('.fw-fl').value = String(fl);
+      } else {
+        const bmp = await createImageBitmap(f), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+        const ctx = c.getContext('2d')!; ctx.drawImage(bmp, 0, 0); const px = ctx.getImageData(0, 0, c.width, c.height).data, d = new Float32Array(c.width * c.height);
+        for (let i = 0; i < d.length; i++) d[i] = (px[4 * i] + px[4 * i + 1] + px[4 * i + 2]) / 3;
+        src = { d, w: c.width, h: c.height, name: f.name, flip: false, stretched: true };
+        q<HTMLInputElement>('.fw-bin').checked = false;
+      }
+      runSoon();
+    } catch (e) { err.textContent = `${f.name}: ${(e as Error).message || 'could not be read.'}`; err.hidden = false; q('.fw-out').hidden = true; }
+  }
+
+  function imageFigure(im: Img, list: Star[]): Figure {
+    // Draw the stretched image once to an offscreen canvas; the figure scales it and adds the ellipses.
+    const [lo, hi] = percentiles(im.d, [0.2, 0.998]), span = hi - lo || 1;
+    const max = 1600, s = Math.min(1, max / Math.max(im.w, im.h)), cw = Math.max(1, Math.round(im.w * s)), ch = Math.max(1, Math.round(im.h * s));
+    const off = document.createElement('canvas'); off.width = cw; off.height = ch;
+    const octx = off.getContext('2d')!, id = octx.createImageData(cw, ch);
+    for (let y = 0; y < ch; y++) {
+      const sy = Math.min(im.h - 1, Math.floor(y / s)), ry = im.flip ? im.h - 1 - sy : sy;
+      for (let x = 0; x < cw; x++) { const v = (im.d[ry * im.w + Math.min(im.w - 1, Math.floor(x / s))] - lo) / span, g = v <= 0 ? 0 : v >= 1 ? 255 : Math.round(Math.sqrt(v) * 255), o = (y * cw + x) * 4; id.data[o] = id.data[o + 1] = id.data[o + 2] = g; id.data[o + 3] = 255; }
+    }
+    octx.putImageData(id, 0, 0);
+    const W = 760, H = Math.round((W * ch) / cw);
+    return {
+      w: W, h: H, alt: 'The image with each measured star marked',
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, 0, 0, w, h);
+        const k = w / im.w; ctx.strokeStyle = pal.red ? pal.ink : pal.accent2; ctx.lineWidth = 1.2;
+        for (const st of list) {
+          const x = st.x * k, y = (im.flip ? im.h - 1 - st.y : st.y) * k, a = Math.max(3, st.fwhm * k * 1.5), e = st.fwhmMaj / st.fwhmMin, stretch = 1 + 3 * (e - 1);
+          const ang = ((im.flip ? -st.angle : st.angle) * Math.PI) / 180;
+          ctx.beginPath(); ctx.ellipse(x, y, a * Math.sqrt(stretch), a / Math.sqrt(stretch), ang, 0, 2 * Math.PI); ctx.stroke();
+        }
+      },
+    };
+  }
+
+  function mapFigure(grid: number[][], flip: boolean, unit: (v: number) => string): Figure {
+    const vals = grid.flat().filter(Number.isFinite), lo = Math.min(...vals), hi = Math.max(...vals);
+    return {
+      w: 420, h: 300, alt: 'Median FWHM in each ninth of the image',
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+        const cw = w / 3, chh = h / 3;
+        for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
+          const v = grid[flip ? 2 - j : j][i], x = i * cw, y = j * chh;
+          const t = Number.isFinite(v) && hi > lo ? (v - lo) / (hi - lo) : 0;
+          ctx.globalAlpha = 0.12 + 0.5 * t; ctx.fillStyle = pal.accent; ctx.fillRect(x + 2, y + 2, cw - 4, chh - 4); ctx.globalAlpha = 1;
+          ctx.strokeStyle = pal.line; ctx.strokeRect(x + 2, y + 2, cw - 4, chh - 4);
+          ctx.fillStyle = pal.ink; ctx.font = '600 20px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(Number.isFinite(v) ? unit(v) : '–', x + cw / 2, y + chh / 2);
+        }
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.fw-err'); err.hidden = true;
+    if (!src) return;
+    try {
+      const bin = q<HTMLInputElement>('.fw-bin').checked, im = bin ? bin2(src) : src, f = bin ? 2 : 1;
+      const k = Math.max(3, num(q<HTMLInputElement>('.fw-k').value) || 8), mx = Math.min(2000, Math.max(10, Math.round(num(q<HTMLInputElement>('.fw-max').value) || 300)));
+      const pix = num(q<HTMLInputElement>('.fw-pix').value), fl = num(q<HTMLInputElement>('.fw-fl').value);
+      scale = pix > 0 && fl > 0 ? plateScale(pix, fl) * f : NaN;
+      const r = findStars(im.d, im.w, im.h, { k, max: mx });
+      stars = r.stars;
+      if (stars.length < 3) throw new Error(`Only ${stars.length} usable star${stars.length === 1 ? '' : 's'} found${r.saturated ? ` (${r.saturated} saturated ones skipped)` : ''}. Lower the detection level, or use a frame with more unsaturated stars.`);
+      const sm = fieldSummary(stars, im.w, im.h);
+      const px = (v: number) => v * f, arc = (v: number) => (Number.isFinite(scale) ? ` (${(v * scale).toFixed(2)}″)` : '');
+      const el = median(stars.map((s) => s.fwhmMaj / s.fwhmMin));
+      q('.fw-out').hidden = false;
+      q('.fw-title').textContent = `Star shapes in ${src.name}`;
+      q('.fw-big').textContent = `Median FWHM ${px(sm.fwhm).toFixed(2)} px${arc(sm.fwhm)}, HFR ${px(sm.hfr).toFixed(2)} px, from ${stars.length} stars`;
+      const facts: [string, string, string?][] = [];
+      facts.push(['FWHM', `${px(sm.fwhm).toFixed(2)} px${arc(sm.fwhm)}`, Number.isFinite(scale) ? (sm.fwhm < 1.6 ? 'under 1.6 pixels: stars are undersampled, a longer focal length or binning less would show more detail' : sm.fwhm > 5 ? 'over 5 pixels: oversampled; binning 2 × 2 would cost no detail and raise signal' : 'between 1.6 and 5 pixels: well sampled') + `; scale ${scale.toFixed(2)}″ per pixel${bin ? ' after binning' : ''}` : 'give the pixel size and focal length for arcseconds']);
+      facts.push(['Half-flux radius (HFR)', `${px(sm.hfr).toFixed(2)} px${arc(sm.hfr)}`, 'smallest at best focus; for focusing, compare it between frames']);
+      const ell = el >= 1.2 ? 'stars are visibly stretched' : el >= 1.1 ? 'slightly stretched' : 'round';
+      let cause = '';
+      if (el >= 1.1) cause = sm.align > 0.6 ? `; they all point the same way (${sm.direction.toFixed(0)}° from the image's x axis), the mark of tracking or guiding error, wind or flexure` : sm.radial > 0.4 ? '; they point towards the centre, typical of the wrong spacing to a field flattener or coma corrector' : sm.radial < -0.4 ? '; they run around the centre, typical of field curvature or astigmatism' : '; their directions vary, so look at the corners and the optics';
+      facts.push(['Elongation', `${el.toFixed(2)}`, `major ÷ minor axis; ${ell}${cause}`]);
+      facts.push(['Tilt', Number.isFinite(sm.tilt) ? `${Math.round(sm.tilt * 100)} %` : '–', Number.isFinite(sm.tilt) ? `spread of FWHM between the four corners; ${sm.tilt > 0.2 ? 'over 20 %: the sensor is probably tilted, or the focuser sags' : 'small'}` : 'too few stars in the corners']);
+      facts.push(['Corners vs centre', Number.isFinite(sm.curvature) ? `${sm.curvature >= 0 ? '+' : '−'}${Math.abs(Math.round(sm.curvature * 100))} %` : '–', Number.isFinite(sm.curvature) ? (sm.curvature > 0.15 ? 'corners are softer: field curvature, or a flattener at the wrong distance' : sm.curvature < -0.15 ? 'centre is softer than the corners: focus a little closer to the centre' : 'the field is evenly sharp') : 'too few stars to compare']);
+      facts.push(['Moffat β', sm.beta.toFixed(1), 'how fast the star\'s wings fade; 2.5 to 4.5 is usual for seeing, large values look Gaussian']);
+      if (r.odd) facts.push(['Left out', `${r.odd} odd object${r.odd > 1 ? 's' : ''}`, 'far wider or narrower than the rest: close pairs of stars, galaxies or hot pixels']);
+      if (r.saturated) facts.push(['Skipped', `${r.saturated} saturated star${r.saturated > 1 ? 's' : ''}`, 'clipped stars look wider than they are, so they are left out']);
+      q('.fw-facts').replaceChildren(...facts.map(([kk, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = v; if (s) { const smm = document.createElement('small'); smm.textContent = s; d.querySelector('dd')!.append(smm); } return d; }));
+
+      const imgF = imageFigure(im, stars);
+      const mapF = mapFigure(sm.grid, im.flip, (v) => (Number.isFinite(scale) ? `${(v * scale).toFixed(2)}″` : `${px(v).toFixed(2)} px`));
+      const cx = im.w / 2, cy = im.h / 2, rr = stars.map((s) => Math.hypot(s.x - cx, s.y - cy) * f), yy = stars.map((s) => (Number.isFinite(scale) ? s.fwhm * scale : px(s.fwhm)));
+      const radF = chartFigure({ h: 260, xLabel: 'Distance from the image centre (px)', yLabel: Number.isFinite(scale) ? 'FWHM (″)' : 'FWHM (px)', xMin: 0, yMin: 0, legend: 'none', series: [{ name: 'Stars', x: rr, y: yy, mode: 'points', size: 3 }] }, 'FWHM of each star against its distance from the centre');
+      paint(q<HTMLCanvasElement>('.fw-img'), imgF); paint(q<HTMLCanvasElement>('.fw-map'), mapF); paint(q<HTMLCanvasElement>('.fw-rad'), radF);
+      figs = [imgF, mapF, radF];
+
+      const head = ['x', 'y', 'FWHM (px)', ...(Number.isFinite(scale) ? ['FWHM (″)'] : []), 'HFR (px)', 'Elongation', 'Angle (°)'];
+      const rowsOf = (list: Star[]) => list.map((s) => [(s.x * f).toFixed(1), (s.y * f).toFixed(1), px(s.fwhm).toFixed(2), ...(Number.isFinite(scale) ? [(s.fwhm * scale).toFixed(2)] : []), px(s.hfr).toFixed(2), (s.fwhmMaj / s.fwhmMin).toFixed(2), s.angle.toFixed(0)]);
+      const top = rowsOf(stars.slice(0, 25));
+      const tb = q<HTMLTableElement>('.fw-tab'); tb.replaceChildren();
+      const tr = tb.createTHead().insertRow(); head.forEach((hh) => { const th = document.createElement('th'); th.textContent = hh; tr.append(th); });
+      const body = tb.createTBody(); for (const rw of top) { const row = body.insertRow(); rw.forEach((c) => { const td = row.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); }
+      report = [
+        { title: 'Star shapes', facts: [['Image', src.name], ['Result', q('.fw-big').textContent!], ...facts.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v] as [string, string])], figure: imgF },
+        { title: 'Median FWHM across the field', figure: mapF },
+        { title: 'FWHM against distance from the centre', figure: radF },
+        { title: 'Brightest stars', table: { head, rows: top, align: head.map(() => 'r' as const) } },
+      ];
+      (q('.fw-csv') as HTMLButtonElement).onclick = () => save(new Blob([csv([head, ...rowsOf(stars)])], { type: 'text/csv' }), `${src!.name.replace(/\.[^.]+(\.gz)?$/, '')}-stars.csv`, 'text/csv');
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.fw-out').hidden = true; }
+  }
+
+  // Measuring hundreds of stars takes a moment on a phone: say so first, then measure.
+  function runSoon() { if (!src) return; q('.fw-big').textContent = 'Measuring stars…'; q('.fw-out').hidden = false; window.setTimeout(run, 30); }
+
+  const drop = q('.fw-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files?.[0]; if (f) openFile(f); });
+  q<HTMLInputElement>('.fw-in').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) openFile(f); });
+  const loadSample = () => { const s = simulatedField(); src = { d: s.d, w: s.w, h: s.h, name: 'the example field', flip: false, stretched: false }; q<HTMLInputElement>('.fw-bin').checked = false; q<HTMLInputElement>('.fw-pix').value = '3.76'; q<HTMLInputElement>('.fw-fl').value = '800'; runSoon(); };
+  q('.fw-sample').addEventListener('click', loadSample);
+  for (const c of ['.fw-bin', '.fw-pix', '.fw-fl', '.fw-k', '.fw-max']) q(c).addEventListener('change', runSoon);
+  document.addEventListener('fibub:theme', () => { const c = ['.fw-img', '.fw-map', '.fw-rad']; figs.forEach((fg, i) => paint(q<HTMLCanvasElement>(c[i]), fg)); });
+  loadSample();
+  wireDownloads(q('.dl'), () => ({ title: 'Star FWHM check', file: 'star-fwhm', sections: report }));
+</script>

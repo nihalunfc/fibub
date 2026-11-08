@@ -47,6 +47,10 @@ import { solarEclipses, lunarEclipses, shadowGeometry, overlap } from '../src/li
 import { parseTLE, tleChecksum, fromHeights, orbitInfo, ssoInclination, gmst, position as satPos, subpoint, footprint, passes as satPasses } from '../src/lib/sci/satorbit.ts';
 import { uvTracks, baselines, yArray, dirtyBeam, beamWidth, scales, fft, parseAntennas } from '../src/lib/sci/uvcover.ts';
 import { orbitAt, measure as dsMeasure, systemMass, yearOf } from '../src/lib/sci/visualbinary.ts';
+import { vDisc, vBulge, vNFW, vIso, fitRotation, nfwVirial, components as rcComponents, besselI0, besselK0, besselI1, besselK1 } from '../src/lib/sci/rotcurve.ts';
+import { identify, findRedshift, simulatedSpectrum, findPeaks, vacToAir, airToVac } from '../src/lib/sci/speclines.ts';
+import { blocked, overlapUniform, intensity, durations, stellarDensity, aRFromDensity, fitTransit, simulatedTransit, fold } from '../src/lib/sci/transit.ts';
+import { measureStar, findStars, fieldSummary, simulatedField, moffatFwhm, plateScale } from '../src/lib/sci/starfwhm.ts';
 import { planckLam, bandFraction, bcV, tFromBV, star as starBB, WIEN_LAM } from '../src/lib/sci/blackbody.ts';
 import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_EARTH, AU as AU_M, R_JUP } from '../src/lib/sci/rvmass.ts';
 import { crater, impactorFor } from '../src/lib/sci/crater.ts';
@@ -658,6 +662,66 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('decimal year of J2000.0', yearOf(Date.UTC(2000, 0, 1, 12)), 2000, 1e-12);
   const m1 = dsMeasure(100, 100, 100, 90, 0.5), m2 = dsMeasure(100, 100, 90, 100, 0.5), m3 = dsMeasure(100, 100, 90, 100, 0.5, 0, true);
   check('measure: up is north, left is east, mirrored flips', m1.pa === 0 && m1.sep === 5 && Math.abs(m2.pa - 90) < 1e-9 && Math.abs(m3.pa - 270) < 1e-9);
+}
+
+{
+  // Rotation curves. Bessel values from Abramowitz and Stegun tables 9.8.
+  near('I0(1)', besselI0(1), 1.2660659, 1e-6); near('K0(1)', besselK0(1), 0.4210244, 1e-6);
+  near('I1(1)', besselI1(1), 0.5651591, 1e-6); near('K1(1)', besselK1(1), 0.6019072, 1e-6);
+  // Freeman (1970): an exponential disc peaks at 2.15 Rd with v = 0.622 √(GM/Rd).
+  let pk = 0, rpk = 0; for (let r = 0.5; r < 6; r += 0.005) { const v = vDisc(r, 5e10, 1); if (v > pk) { pk = v; rpk = r; } }
+  near('disc peak radius / Rd', rpk, 2.15, 0.01); near('disc peak speed', pk / Math.sqrt(4.30091e-6 * 5e10), 0.6219, 0.001);
+  near('disc far out → point mass', vDisc(200, 5e10, 3), Math.sqrt(4.30091e-6 * 5e10 / 200), 0.2);
+  near('Hernquist v at r = a', vBulge(1, 1e10, 1), Math.sqrt(4.30091e-6 * 1e10 / 4), 1e-9);
+  near('isothermal flat speed', vIso(1e4, 1e7, 2), Math.sqrt(4 * Math.PI * 4.30091e-6 * 1e7 * 4), 0.1);
+  near('NFW peak at 2.163 rs', (() => { let b = 0, rb = 0; for (let r = 0.5; r < 6; r += 0.001) { const v = vNFW(r, 1e7, 1); if (v > b) { b = v; rb = r; } } return rb; })(), 2.163, 0.002);
+  const vir = nfwVirial(1.2e7, 16); near('M200 encloses 200 ρc', (vir.m200 / (4 / 3 * Math.PI * vir.r200 ** 3)) / vir.rhoc, 200, 0.01);
+  const truth = { Mb: 1e10, ab: 0.6, Md: 5e10, Rd: 3, rho: 1.2e7, rh: 16, halo: 'nfw' };
+  const rr = Array.from({ length: 20 }, (_, i) => 1.5 * (i + 1)), vv = rr.map((r) => rcComponents(r, truth).total);
+  const fr = fitRotation(rr, vv, rr.map(() => 2), { halo: 'nfw', fixRd: 3 });
+  check('noise-free curve fits to χ² ≈ 0', fr.chi2 < 0.05);
+  near('fitted curve matches at 30 kpc', rcComponents(30, fr.m).total, vv[19], 0.5);
+
+  // Spectral lines: Hα in air and vacuum (NIST 6562.80 / 6564.61 Å).
+  near('Hα vacuum → air', vacToAir(6564.61), 6562.80, 0.01); near('Hα air → vacuum', airToVac(6562.80), 6564.61, 0.01);
+  const zf = findRedshift([4861.33, 5006.84, 6562.8].map((x) => x * 1.158), ['stellar', 'nebular']);
+  near('three lines give z', zf[0].z, 0.158, 1e-6); check('three lines agree', zf[0].n === 3);
+  const id = identify([5890.1, 6562.5, 5577.5], 0, 2, ['stellar', 'pollution']);
+  check('Na D, Hα and airglow named', id[0].matches[0].line.name.startsWith('Na I D') && id[1].matches[0].line.name === 'Hα' && id[2].matches[0].line.name === '[O I] airglow');
+  const sp = simulatedSpectrum(0.0832), peaks = findPeaks(sp.lam, sp.f, 5, false, 40);
+  check('10 emission peaks found', peaks.length === 10);
+  near('redshift from the peaks', findRedshift(peaks.map((p) => p.aa), ['stellar', 'nebular'])[0].z, 0.0832, 2e-4);
+  const dips = findPeaks(sp.lam, sp.f, 5, true, 40).map((p) => p.aa);
+  check('atmospheric A band dip found', dips.some((x) => Math.abs(x - 7600) < 3));
+  check('A band matched as a band', identify([7605], 0, 3, ['telluric'])[0].matches[0].line.name === 'O₂ A band');
+
+  // Transits: uniform disc overlap, and small-planet limits of the quadratic law.
+  near('overlap of a 0.1 disc at the centre', overlapUniform(0, 0.1), 0.01, 1e-12);
+  near('half-covered limb (p = 0.1, z = 1)', blocked(1, 0.1, 1e-12, 0), overlapUniform(1, 0.1), 1e-6);
+  near('small planet at centre: p²/(1 − u1/3 − u2/6)', blocked(0, 0.01, 0.4, 0.25), 1e-4 / (1 - 0.4 / 3 - 0.25 / 6), 1e-8);
+  near('small planet at r = 0.8', blocked(0.8, 0.01, 0.4, 0.25), 1e-4 * intensity(0.8, 0.4, 0.25) / (1 - 0.4 / 3 - 0.25 / 6), 1e-8);
+  // HD 209458 b (Torres et al. 2008): P 3.52475 d, a/R* 8.76, b 0.507, k 0.1209 → T14 ≈ 3.07 h, ρ* ≈ 1.02 g/cm³.
+  near('HD 209458 b duration (h)', durations({ P: 3.52474859, k: 0.1209, aR: 8.76, b: 0.507 }).t14 * 24, 3.07, 0.05);
+  near('HD 209458 b star density', stellarDensity(8.76, 3.52474859), 1.02, 0.03);
+  near('density round trip', aRFromDensity(stellarDensity(8.8, 3.5), 3.5), 8.8, 1e-9);
+  near('Sun–Earth density', stellarDensity(215.03, 365.25), 1.41, 0.01);
+  near('fold', fold(10.4, 1, 3), 0.4, 1e-12);
+  const st = simulatedTransit(), tfit = fitTransit(st.t, st.f, null, { P: st.m.P, u1: 0.4, u2: 0.25 });
+  check('fit recovers k within 3σ', Math.abs(tfit.m.k - 0.1205) < 3 * tfit.err.k);
+  check('fit recovers b within 3σ', Math.abs(tfit.m.b - 0.5) < 3 * tfit.err.b);
+  check('fit recovers mid-transit within 3σ', Math.abs(tfit.m.T0 - st.m.T0) < 3 * tfit.err.T0);
+
+  // Star shapes: Gaussian and Moffat stars of known width and elongation.
+  near('Moffat FWHM formula', moffatFwhm(2, 1), 4, 1e-12); near('plate scale', plateScale(3.76, 800), 0.9694, 1e-4);
+  const mk = (fw, el, ang, gauss) => { const w = 64, d = new Float32Array(w * w).fill(100), c = Math.cos(ang * Math.PI / 180), s = Math.sin(ang * Math.PI / 180), al = fw / (2 * Math.sqrt(2 ** (1 / 3) - 1));
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { const dx = x - 31.3, dy = y - 32.6, u = (dx * c + dy * s) / Math.sqrt(el), v = (-dx * s + dy * c) * Math.sqrt(el), r2 = u * u + v * v; d[y * w + x] += gauss ? 1000 * Math.exp(-0.5 * r2 / (fw / 2.3548) ** 2) : 1000 * (1 + r2 / al ** 2) ** -3; }
+    return measureStar(d, w, w, 31, 33, 100, 14); };
+  const g = mk(4, 1, 0, true); near('Gaussian FWHM', g.fwhm, 4, 0.04); near('Gaussian HFR = FWHM/2', g.hfr, 2, 0.05);
+  const m = mk(5, 1.3, 60, false); near('Moffat FWHM', m.fwhm, 5, 0.01); near('elongation', m.fwhmMaj / m.fwhmMin, 1.3, 0.005); near('angle', m.angle, 60, 0.2); near('centroid x', m.x, 31.3, 0.01);
+  const fld = simulatedField(), found = findStars(fld.d, fld.w, fld.h), sm = fieldSummary(found.stars, fld.w, fld.h);
+  check('most stars found', found.stars.length > 100); near('median FWHM of the field', sm.fwhm, 4.4, 0.15);
+  check('trailing detected', sm.align > 0.6 && Math.abs(sm.direction - 30) < 3);
+  check('tilt detected', sm.tilt > 0.2 && Math.abs(sm.curvature) < 0.1);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
