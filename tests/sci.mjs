@@ -91,6 +91,7 @@ import * as COR from '../src/lib/sci/corrosion.ts';
 import * as NMR from '../src/lib/sci/nmr.ts';
 import * as EC from '../src/lib/sci/ecount.ts';
 import * as PH from '../src/lib/sci/phase.ts';
+import * as IR from '../src/lib/sci/irbands.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1404,6 +1405,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('Bz–Np 50 % at 25 °C: liquid + solid naphthalene', zs.phases.length === 2 && zs.phases[1].name === 'solid B' && Math.abs(zs.phases[0].x - 0.3015) < 0.0005);
   check('below the eutectic: two pure solids', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 250).phases.every((p) => p.name.startsWith('solid')));
   check('above the liquidus: all liquid', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 330).phases.length === 1);
+}
+{
+  // IR bands: table sanity, group rules, parsing, peak picking on the simulated ester.
+  check('every band has lo < hi inside 400–4000', IR.BANDS.every((b) => b.lo < b.hi && b.lo >= 400 && b.hi <= 4000));
+  check('band ids unique', new Set(IR.BANDS.map((b) => b.id)).size === IR.BANDS.length);
+  check('every group rule names real bands', IR.GROUPS.every((g) => [...g.need, ...(g.not ?? [])].flat().every((id) => IR.BANDS.some((b) => b.id === id))));
+  check('parse a characterisation line', JSON.stringify(IR.parseIR('3350 (br, s), 2960, 1715 (s)\n3300–2500 br; 45.2')) === JSON.stringify([{ x: 3350, broad: true }, { x: 2960, broad: false }, { x: 1715, broad: false }, { x: 2900, broad: true }]));
+  const likely = (t) => IR.assign(IR.parseIR(t)).groups.filter((g) => g.likely).map((g) => g.name);
+  check('carboxylic acid', likely('3300-2500 br, 1710, 1290').includes('Carboxylic acid'));
+  check('sharp C–H does not count as acid O–H', !likely('2820, 2720, 1730, 2950').includes('Carboxylic acid') && likely('2820, 2720, 1730').includes('Aldehyde'));
+  check('ketone', JSON.stringify(likely('2960, 1715, 1360').sort()) === JSON.stringify(['Alkyl chain', 'Ketone']));
+  check('ester rules out ketone and ether', JSON.stringify(likely('2984, 2940, 1742, 1447, 1373, 1240, 1047').sort()) === JSON.stringify(['Alkyl chain', 'Ester']));
+  check('amide', likely('3300, 1650, 1550').includes('Amide'));
+  check('nitrile', likely('2250, 2950').includes('Nitrile'));
+  check('toluene is aromatic, not nitro', likely('3030, 1600, 1500, 730, 2920, 1460, 1380').includes('Aromatic ring') && !likely('3030, 1600, 1500, 730, 2920, 1460, 1380').includes('Nitro'));
+  const s = IR.exampleSpectrum(), pk = IR.pickPeaks(s.x, s.y, true, 0.05);
+  check('example spectrum: 9 peaks found within 4 cm⁻¹', pk.length === 9 && [2984, 2940, 1742, 1447, 1373, 1240, 1047, 938, 847].every((c, i) => Math.abs(pk[i].x - c) <= 4));
+  near('cm⁻¹ to µm', IR.toMicron(1715), 5.8309, 0.0001);
+  near('%T ↔ A', IR.toAbsorbance(IR.toTransmittance(0.5)), 0.5, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

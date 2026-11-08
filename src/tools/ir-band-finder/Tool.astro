@@ -1,0 +1,133 @@
+---
+// IR spectrum band finder: match peaks (typed, or picked from a spectrum) to characteristic functional group bands,
+// suggest groups that need several bands together, and browse the band table. Plus cm⁻¹ ↔ µm.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleSpectrum } from '../../lib/sci/irbands';
+const ex = exampleSpectrum();
+const demoSpec = ex.x.map((x, i) => `${x}\t${ex.y[i]}`).join('\n');
+const demo = '2984, 2940, 1742 (s), 1447, 1373, 1240 (s), 1047';
+---
+<div class="ax irb">
+  <div class="ax-card">
+    <h2>Your peaks</h2>
+    <label class="irb-lab">Peak positions in cm⁻¹, one per line or separated by commas. Mark broad bands with "br", e.g. "3350 (br)"; a range such as "3300–2500 br" counts as one broad band. <textarea class="irb-peaks" rows="4" spellcheck="false">{demo}</textarea></label>
+    <div class="ax-grid"><label>Tolerance (± cm⁻¹) <input class="irb-tol" inputmode="decimal" value="10" /></label></div>
+    <p class="ax-err irb-err" hidden></p>
+    <div class="irb-out">
+      <p class="ax-big irb-big"></p>
+      <h3>Functional groups</h3>
+      <div class="ax-scroll"><table class="irb-grp"></table></div>
+      <h3>Each peak</h3>
+      <div class="ax-scroll"><table class="irb-tab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Pick peaks from a spectrum</h2>
+    <label class="irb-lab">Wavenumber (cm⁻¹) and %T or absorbance, two columns <textarea class="irb-spec" rows="5" spellcheck="false">{demoSpec}</textarea></label>
+    <DataFile target=".irb-spec" maxCols={2} label="Open a spectrum (2 columns)" />
+    <div class="ax-grid">
+      <label>Y values are <select class="irb-y"><option value="auto">Detect</option><option value="T">% transmittance</option><option value="A">Absorbance</option></select></label>
+      <label>Smallest peak (% of the range) <input class="irb-prom" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-err irb-serr" hidden></p>
+    <div class="irb-sout">
+      <p class="ax-big irb-sbig"></p>
+      <canvas class="ax-fig irb-fig" style="margin-top:10px"></canvas>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small irb-use">Check these peaks above</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Band table</h2>
+    <div class="ax-grid">
+      <label>Find <input class="irb-find" placeholder="group, bond or cm⁻¹, e.g. ester or 1715" /></label>
+      <label>cm⁻¹ to µm <input class="irb-cm" inputmode="decimal" value="1715" /></label>
+    </div>
+    <p class="irb-conv ax-help"></p>
+    <div class="ax-scroll" style="margin-top:8px"><table class="irb-all"></table></div>
+    <p class="ax-help">s strong, m medium, w weak, v variable. Ranges are typical and rounded; conjugation, ring strain, hydrogen bonding and the sample state (solid, liquid, solution) move bands by tens of cm⁻¹. Use the fingerprint region below 1500 cm⁻¹ to compare with a reference spectrum of the same compound.</p>
+  </div>
+</div>
+
+<script>
+  import { BANDS, assign, parseIR, pickPeaks, toMicron } from '../../lib/sci/irbands';
+  import { num, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.irb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const S = { s: 'strong', m: 'medium', w: 'weak', v: 'variable' } as const;
+  const range = (b: { lo: number; hi: number }) => `${b.hi}–${b.lo}`;
+  let grpRows: string[][] = [], peakRows: string[][] = [], fig: Figure | null = null, picked: { x: number; broad: boolean }[] = [];
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+
+  function check() {
+    const err = (m: string) => { q('.irb-err').textContent = m; q('.irb-err').hidden = !m; q('.irb-out').hidden = !!m; };
+    const tol = num(q<HTMLInputElement>('.irb-tol').value), peaks = parseIR(q<HTMLTextAreaElement>('.irb-peaks').value);
+    if (!(tol >= 0 && tol <= 100)) return err('Tolerance is between 0 and 100 cm⁻¹.');
+    if (!peaks.length) return err('Type at least one peak between 300 and 5000 cm⁻¹ (wavenumbers, not µm).');
+    err('');
+    const a = assign(peaks, tol), likely = a.groups.filter((g) => g.likely);
+    q('.irb-big').textContent = likely.length ? `Consistent with: ${likely.map((g) => g.name.toLowerCase()).join(', ')}` : a.groups.length ? `No group has all its key bands; closest: ${a.groups.slice(0, 2).map((g) => g.name.toLowerCase()).join(', ')}` : 'No characteristic band matches these peaks';
+    grpRows = a.groups.map((g) => [g.name, `${g.met} of ${g.total}`, g.likely ? 'all key bands present' : g.blocked ? 'ruled out by another band' : 'partly', g.hint]);
+    table(q<HTMLTableElement>('.irb-grp'), ['Group', 'Key bands', 'Status', 'What to look for'], grpRows, [1]);
+    peakRows = a.perPeak.map((p) => [`${p.peak}${p.broad ? ' br' : ''}`, p.bands.length ? p.bands.map((b) => `${b.bond}, ${b.group} (${range(b)}, ${S[b.strength]})`).join('; ') : p.peak < 1500 ? 'fingerprint region: compare with a reference spectrum' : 'no listed band']);
+    table(q<HTMLTableElement>('.irb-tab'), ['cm⁻¹', 'Could be'], peakRows, [0]);
+  }
+
+  function spectrum() {
+    const err = (m: string) => { q('.irb-serr').textContent = m; q('.irb-serr').hidden = !m; q('.irb-sout').hidden = !!m; if (m) { fig = null; picked = []; } };
+    const t = numericColumns(q<HTMLTextAreaElement>('.irb-spec').value), prom = num(q<HTMLInputElement>('.irb-prom').value) / 100;
+    if (t.cols.length < 2 || t.rows < 10) return err('Paste at least 10 rows of wavenumber and signal.');
+    if (!(prom > 0 && prom < 1)) return err('The smallest peak is between 0 and 100 % of the range.');
+    const pts = t.cols[0].map((x, i) => [x, t.cols[1][i]]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y)).sort((a, b) => a[0] - b[0]);
+    const x = pts.map((p) => p[0]), y = pts.map((p) => p[1]);
+    if (x[0] < 100 || x[x.length - 1] > 10000) return err('The first column should be wavenumbers in cm⁻¹ (about 400 to 4000). If it is in µm, convert with 10000 / µm.');
+    const mode = q<HTMLSelectElement>('.irb-y').value, T = mode === 'T' || (mode === 'auto' && Math.max(...y) > 3);
+    err('');
+    const pk = pickPeaks(x, y, T, prom);
+    picked = pk.map((p) => ({ x: Math.round(p.x), broad: p.width > 150 }));
+    q('.irb-sbig').textContent = pk.length ? `${pk.length} peak${pk.length > 1 ? 's' : ''}: ${picked.map((p) => `${p.x}${p.broad ? ' br' : ''}`).join(', ')}` : 'No peaks this large: lower the smallest peak setting';
+    fig = chartFigure({ h: 240, xLabel: 'Wavenumber (cm⁻¹)', yLabel: T ? 'Transmittance (%)' : 'Absorbance', xReverse: true, xMin: Math.min(...x), xMax: Math.max(...x), series: [{ name: 'spectrum', x, y, mode: 'line', width: 1.2 }, { name: 'peaks', x: pk.map((p) => p.x), y: pk.map((p) => p.y), mode: 'points' }], legend: 'none' }, 'Infrared spectrum with the picked peaks');
+    paint(q<HTMLCanvasElement>('.irb-fig'), fig);
+  }
+
+  function browse() {
+    const f = q<HTMLInputElement>('.irb-find').value.trim().toLowerCase(), fn = num(f);
+    const rows = BANDS.filter((b) => !f || (/^\d+(\.\d+)?$/.test(f) ? fn >= b.lo - 10 && fn <= b.hi + 10 : `${b.bond} ${b.group}`.toLowerCase().includes(f))).sort((a, b) => b.hi - a.hi)
+      .map((b) => [range(b), b.bond, b.group, `${b.strength}${b.shape === 'broad' ? ', broad' : b.shape === 'sharp' ? ', sharp' : ''}`, b.note ?? '']);
+    table(q<HTMLTableElement>('.irb-all'), ['cm⁻¹', 'Bond', 'Group', 'Band', 'Note'], rows.length ? rows : [['', 'nothing found', '', '', '']], [0]);
+    const cm = num(q<HTMLInputElement>('.irb-cm').value);
+    q('.irb-conv').textContent = cm > 0 ? `${cm} cm⁻¹ = ${toMicron(cm).toFixed(3)} µm = ${(toMicron(cm) * 1000).toFixed(0)} nm` : 'Type a wavenumber above zero.';
+  }
+
+  q('.irb-peaks').addEventListener('input', check); q('.irb-tol').addEventListener('input', check);
+  root.querySelectorAll('.irb-spec, .irb-prom').forEach((i) => { i.addEventListener('input', spectrum); i.addEventListener('change', spectrum); });
+  q('.irb-y').addEventListener('change', spectrum);
+  root.querySelectorAll('.irb-find, .irb-cm').forEach((i) => i.addEventListener('input', browse));
+  q('.irb-use').addEventListener('click', () => { if (!picked.length) return; q<HTMLTextAreaElement>('.irb-peaks').value = picked.map((p) => `${p.x}${p.broad ? ' (br)' : ''}`).join(', '); check(); q('.irb-peaks').scrollIntoView({ block: 'center' }); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.irb-fig'), fig); });
+  check(); spectrum(); browse();
+  wireDownloads(q('.dl'), () => ({
+    title: 'IR band check', subtitle: q<HTMLTextAreaElement>('.irb-peaks').value.slice(0, 120), file: 'ir-bands',
+    sections: [
+      ...(q('.irb-out').hidden ? [] : [
+        { title: q('.irb-big').textContent!, table: { head: ['Group', 'Key bands', 'Status', 'What to look for'], rows: grpRows, align: ['l', 'r', 'l', 'l'] as ('l' | 'r')[] } },
+        { title: 'Each peak', table: { head: ['cm⁻¹', 'Could be'], rows: peakRows, align: ['r', 'l'] as ('l' | 'r')[] } },
+      ]),
+      ...(fig ? [{ title: q('.irb-sbig').textContent!, figure: fig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .irb .irb-lab { display: block; }
+  .irb textarea { width: 100%; font: inherit; font-size: 14px; }
+  .irb select { max-width: 100%; }
+  .irb h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>
