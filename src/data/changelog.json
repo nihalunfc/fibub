@@ -1,5 +1,19 @@
 [
  {
+  "sha": "05ac2c4c51a2",
+  "date": "2026-11-08T01:46:59+00:00",
+  "title": "Add six science tools: solutions, PCR master mix, sample size, stereonet, psychrometrics, plate layout",
+  "tools": [
+   "pcr-master-mix",
+   "plate-layout",
+   "psychrometric-calculator",
+   "sample-size",
+   "solution-calculator",
+   "stereonet"
+  ],
+  "site": false
+ },
+ {
   "sha": "42e6243c374c",
   "date": "2026-11-08T00:54:26+00:00",
   "title": "Add five science tools: uncertainty, graph digitiser, plot maker, calibration curve, dose-response",
