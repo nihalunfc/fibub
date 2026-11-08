@@ -213,19 +213,20 @@ export function bestObjects(place: Place, n: Night, gear: Gear, minAlt = 30, max
 export type SkyEvent = { date: Date; kind: 'moon' | 'meteor' | 'eclipse' | 'planet' | 'season'; title: string; detail: string };
 
 // Major meteor showers. Peak dates move by about a day from year to year; the International Meteor
-// Organization (imo.net) publishes the exact times each year. ZHR = meteors an hour under a perfect dark sky.
+// Organization (imo.net) publishes the exact times each year. ZHR = meteors an hour under a perfect dark sky;
+// r = population index (how much faster the count grows per magnitude of darker sky), from the IMO calendar.
 export const SHOWERS = [
-  { name: 'Quadrantids', m: 1, d: 3, zhr: 110, radiant: [230, 49] },
-  { name: 'Lyrids', m: 4, d: 22, zhr: 18, radiant: [272, 33] },
-  { name: 'Eta Aquariids', m: 5, d: 6, zhr: 50, radiant: [338, -1] },
-  { name: 'Southern Delta Aquariids', m: 7, d: 30, zhr: 25, radiant: [340, -16] },
-  { name: 'Perseids', m: 8, d: 12, zhr: 100, radiant: [48, 58] },
-  { name: 'Draconids', m: 10, d: 8, zhr: 10, radiant: [262, 54] },
-  { name: 'Orionids', m: 10, d: 21, zhr: 20, radiant: [95, 16] },
-  { name: 'Northern Taurids', m: 11, d: 12, zhr: 5, radiant: [58, 22] },
-  { name: 'Leonids', m: 11, d: 17, zhr: 15, radiant: [152, 22] },
-  { name: 'Geminids', m: 12, d: 14, zhr: 150, radiant: [112, 33] },
-  { name: 'Ursids', m: 12, d: 22, zhr: 10, radiant: [217, 76] },
+  { name: 'Quadrantids', m: 1, d: 3, zhr: 110, radiant: [230, 49], r: 2.1 },
+  { name: 'Lyrids', m: 4, d: 22, zhr: 18, radiant: [272, 33], r: 2.1 },
+  { name: 'Eta Aquariids', m: 5, d: 6, zhr: 50, radiant: [338, -1], r: 2.4 },
+  { name: 'Southern Delta Aquariids', m: 7, d: 30, zhr: 25, radiant: [340, -16], r: 3.2 },
+  { name: 'Perseids', m: 8, d: 12, zhr: 100, radiant: [48, 58], r: 2.2 },
+  { name: 'Draconids', m: 10, d: 8, zhr: 10, radiant: [262, 54], r: 2.6 },
+  { name: 'Orionids', m: 10, d: 21, zhr: 20, radiant: [95, 16], r: 2.5 },
+  { name: 'Northern Taurids', m: 11, d: 12, zhr: 5, radiant: [58, 22], r: 2.3 },
+  { name: 'Leonids', m: 11, d: 17, zhr: 15, radiant: [152, 22], r: 2.5 },
+  { name: 'Geminids', m: 12, d: 14, zhr: 150, radiant: [112, 33], r: 2.6 },
+  { name: 'Ursids', m: 12, d: 22, zhr: 10, radiant: [217, 76], r: 3.0 },
 ] as const;
 
 export function monthEvents(place: Place, year: number, month: number): SkyEvent[] {

@@ -1,0 +1,124 @@
+---
+// Meteor shower planner: expected meteors per hour at your place, hour by hour, and the Moon.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ms">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>Shower</h2>
+    <div class="ax-grid">
+      <label>Shower <select class="ms-sh"></select></label>
+      <label>Your sky <select class="ms-lm">
+        <option value="6.5">Dark countryside (stars to magnitude 6.5)</option>
+        <option value="6" selected>Rural (6.0)</option>
+        <option value="5.5">Outer suburbs (5.5)</option>
+        <option value="5">Suburbs (5.0)</option>
+        <option value="4">Town (4.0)</option>
+        <option value="3">City (3.0)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Your sky is the faintest star you can see overhead. Peak dates move by about a day from year to year: check the International Meteor Organization's calendar (imo.net) for the exact time.</p>
+  </div>
+
+  <div class="ax-card ms-out" hidden>
+    <h2 class="ms-title"></h2>
+    <p class="ax-big ms-big"></p>
+    <dl class="ax-facts ms-facts"></dl>
+    <canvas class="ax-fig ms-fig" style="margin-top:12px"></canvas>
+    <h3>Hour by hour</h3>
+    <div class="ax-scroll"><table class="ms-tab"></table></div>
+    <h3>Nights around the peak</h3>
+    <p class="ax-help" style="margin:0">If the Moon spoils the peak night, a darker night just before can show more meteors.</p>
+    <div class="ax-scroll"><table class="ms-nights"></table></div>
+    <h3>All major showers this year</h3>
+    <div class="ax-scroll"><table class="ms-year"></table></div>
+    <p class="ax-help">Rates are for one observer watching the whole sky, with the radiant at its height and the shower at full strength. Moonlight hides the fainter meteors, so a bright Moon above the horizon can halve the count or worse. Real numbers vary from year to year.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ms .ms-tab td, .ms .ms-tab th, .ms .ms-nights td, .ms .ms-nights th, .ms .ms-year td, .ms .ms-year th { white-space: nowrap; }
+  .ms tr.ms-best td { font-weight: 650; }
+</style>
+
+<script>
+  import { SHOWERS, A } from '../../lib/astro/sky';
+  import { meteorNight, nextPeak, isoDay, type Shower } from '../../lib/astro/meteors';
+  import { darkNight } from '../../lib/astro/darkness';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay } from '../../lib/astro/place';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ms')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = q<HTMLSelectElement>('.ms-sh');
+  sel.replaceChildren(...SHOWERS.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: `${s.name} (around ${new Date(Date.UTC(2000, s.m - 1, s.d)).toLocaleDateString('en', { month: 'short', day: 'numeric', timeZone: 'UTC' })})` })));
+  // Start on the next shower to come.
+  const now = new Date();
+  const upcoming = SHOWERS.map((s, i) => ({ i, t: nextPeak(s, now).getTime() })).sort((a, b) => a.t - b.t)[0];
+  const qs = new URLSearchParams(location.search).get('shower');
+  const qi = SHOWERS.findIndex((s) => s.name.toLowerCase().replace(/\s+/g, '-') === (qs ?? '').toLowerCase());
+  sel.value = String(qi >= 0 ? qi : upcoming.i);
+  let fig: Figure | null = null, report: Section[] = [];
+  const rate = (x: number) => (x < 1 && x > 0 ? '< 1' : String(Math.round(x)));
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], best = -1) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, k) => { const tr = b.insertRow(); if (k === best) tr.className = 'ms-best'; r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const { place } = getSky(), tz = place.tz, sh: Shower = SHOWERS[Number(sel.value)], lm = Number(q<HTMLSelectElement>('.ms-lm').value);
+    const peak = nextPeak(sh, new Date(Date.now() - 2 * 864e5));
+    // The peak night is the one that runs into the morning of the peak date; the table shows two nights either side.
+    const N = { iso: isoDay(peak.getTime() - 864e5), ...meteorNight(place, isoDay(peak.getTime() - 864e5), sh, lm) };
+    const around = [-3, -2, -1, 0, 1].map((k) => { const iso = isoDay(peak.getTime() + k * 864e5); return { iso, d: darkNight(place, iso) }; });
+    q('.ms-out').hidden = false;
+    q('.ms-title').textContent = `${sh.name}, ${peak.getUTCFullYear()}`;
+    const evening = (iso: string) => fmtDay(new Date(iso + 'T12:00:00Z'), 'UTC', { weekday: 'short', month: 'short', day: 'numeric' });
+    const nextDay = (iso: string) => fmtDay(new Date(Date.parse(iso + 'T12:00:00Z') + 864e5), 'UTC', { month: 'short', day: 'numeric' });
+    q('.ms-big').textContent = N.best.rate >= 0.5 ? `Up to about ${rate(N.best.rate)} meteors an hour, around ${fmtTime(N.best.time, tz)}` : 'The radiant stays too low to see many meteors from here';
+    const lit = Math.round(N.night.moonIllum * 100);
+    const moonUpAtBest = N.best.moonAlt > 0;
+    const facts: [string, string, string?][] = [
+      ['Peak night', `${evening(N.iso)} into ${nextDay(N.iso)}`, 'activity rises and falls over a few nights; most showers are strongest within a day of the peak'],
+      ['ZHR at peak', String(sh.zhr), 'meteors an hour with the radiant overhead under a perfect sky'],
+      ['Population index r', String(sh.r), 'higher means more faint meteors, so dark skies matter more'],
+      ['Moon', `${lit} % lit, ${N.night.moonName.toLowerCase()}`, moonUpAtBest ? 'up at the best time: expect fewer meteors' : 'down at the best time'],
+      ['Radiant', `RA ${(sh.radiant[0] / 15).toFixed(1)} h, Dec ${sh.radiant[1] > 0 ? '+' : ''}${sh.radiant[1]}°`, `highest ${Math.max(...N.hours.map((h) => h.radiantAlt)).toFixed(0)}° above the horizon that night`],
+    ];
+    q('.ms-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    const hrs = N.hours.filter((_, i) => i % 2 === 0); // hourly rows from the half-hourly samples
+    const hourRows = hrs.map((h) => [fmtTime(h.time, tz), `${h.radiantAlt.toFixed(0)}°`, h.moonAlt > 0 ? `up (${h.moonAlt.toFixed(0)}°)` : 'down', h.dark ? rate(h.rate) : 'twilight']);
+    table(q<HTMLTableElement>('.ms-tab'), ['Time', 'Radiant height', 'Moon', 'Meteors an hour'], hourRows, hrs.indexOf(hrs.reduce((a, b) => (b.rate > a.rate ? b : a), hrs[0])));
+    const hm = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+    const nightRows = around.map((n) => [`${evening(n.iso)}–${nextDay(n.iso)}`, `${Math.round(n.d.illum * 100)} %`, n.d.darkH > 0 ? hm(n.d.moonFreeH) : 'no true dark']);
+    table(q<HTMLTableElement>('.ms-nights'), ['Night', 'Moon lit', 'Dark, no Moon'], nightRows, 2);
+    const yearRows = SHOWERS.map((s) => {
+      const p = nextPeak(s, new Date(Date.now() - 2 * 864e5)), iso = isoDay(p.getTime() - 864e5);
+      const n = meteorNight(place, iso, s, lm);
+      return { t: p.getTime(), row: [s.name, fmtDay(p, 'UTC', { month: 'short', day: 'numeric', year: 'numeric' }), String(s.zhr), `${Math.round(A.Illumination(A.Body.Moon, p).phase_fraction * 100)} %`, n.best.rate >= 0.5 ? rate(n.best.rate) : '–'] };
+    }).sort((a, b) => a.t - b.t).map((x) => x.row);
+    table(q<HTMLTableElement>('.ms-year'), ['Shower', 'Peak', 'ZHR', 'Moon lit', 'Best here'], yearRows);
+    const t0 = N.hours[0].time.getTime();
+    fig = chartFigure({ h: 260, xLabel: `Hours after sunset (${fmtTime(N.hours[0].time, tz)})`, yLabel: 'Meteors an hour', yMin: 0, legend: 'none',
+      series: [{ name: 'Meteors an hour', x: N.hours.map((h) => (h.time.getTime() - t0) / 3600e3), y: N.hours.map((h) => h.rate), mode: 'line' }] }, `${sh.name}: expected meteors an hour through the night`);
+    paint(q<HTMLCanvasElement>('.ms-fig'), fig);
+    report = [
+      { title: `${sh.name}, ${place.name}`, facts: [['Expected', q('.ms-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: fig },
+      { title: 'Hour by hour', table: { head: ['Time', 'Radiant height', 'Moon', 'Meteors an hour'], rows: hourRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'All major showers', table: { head: ['Shower', 'Peak', 'ZHR', 'Moon lit', 'Best here'], rows: yearRows, align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+  sel.addEventListener('change', calc);
+  q('.ms-lm').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ms-fig'), fig));
+  onSky(calc);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Meteor shower planner', file: 'meteors', sections: report }));
+</script>

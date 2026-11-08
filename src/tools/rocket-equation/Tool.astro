@@ -1,0 +1,106 @@
+---
+// Rocket equation and delta-v budget with staging.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax re">
+  <div class="ax-card">
+    <h2>Stages</h2>
+    <label>One stage per line, the first stage (the one that fires first) at the top: a name, dry mass (kg), propellant (kg), and specific impulse Isp (s).
+      <textarea class="re-in" rows="5" spellcheck="false" wrap="off">Stage 1	22000	400000	300
+Stage 2	4000	100000	340</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Payload (kg) <input class="re-pl" inputmode="decimal" value="10000" /></label>
+      <label>Compare with <select class="re-goal">
+        <option value="">Nothing</option>
+        <option value="9400" selected>Earth's surface to low Earth orbit (about 9.4 km/s with losses)</option>
+        <option value="2440">Low Earth orbit to geostationary transfer orbit (about 2.44 km/s)</option>
+        <option value="3900">Low Earth orbit to geostationary orbit, no plane change (about 3.9 km/s)</option>
+        <option value="3150">Low Earth orbit to the Moon (trans-lunar injection, about 3.15 km/s)</option>
+        <option value="3600">Low Earth orbit to a Mars transfer (about 3.6 km/s)</option>
+        <option value="1870">Lunar surface to low lunar orbit (about 1.87 km/s)</option>
+        <option value="custom">My own figure</option>
+      </select></label>
+      <label class="re-cw" hidden>Delta-v needed (m/s) <input class="re-c" inputmode="decimal" value="5000" /></label>
+    </div>
+    <p class="ax-help">Isp is the engine's efficiency: about 280 to 310 s for kerosene engines at sea level, 310 to 350 s in vacuum, 420 to 450 s for hydrogen, and 1500 s or more for ion engines. Budget figures are rounded textbook values; real missions add margins.</p>
+    <p class="ax-err re-err" hidden></p>
+  </div>
+
+  <div class="ax-card re-out" hidden>
+    <h2>Delta-v</h2>
+    <p class="ax-big re-big"></p>
+    <dl class="ax-facts re-facts"></dl>
+    <div class="ax-scroll"><table class="re-tab"></table></div>
+    <canvas class="ax-fig re-fig" style="margin-top:14px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .re .re-tab td, .re .re-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, parseTable, sig } from '../../lib/sci/num';
+  import { staging, propellantFor, type Stage } from '../../lib/sci/orbit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.re')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, report: Section[] = [];
+  const kg = (x: number) => `${Math.round(x).toLocaleString('en')} kg`;
+  const ms = (x: number) => `${Math.round(x).toLocaleString('en')} m/s`;
+
+  function read(): Stage[] {
+    return parseTable(q<HTMLTextAreaElement>('.re-in').value).map((r, i) => {
+      // The name may contain spaces; the last three cells are the numbers.
+      const n = r.length >= 4 ? r.slice(-3).map(num) : r.map(num);
+      const name = r.length >= 4 ? r.slice(0, -3).join(' ') : `Stage ${i + 1}`;
+      if (n.length !== 3 || n.some((x) => !Number.isFinite(x))) throw new Error(`Line ${i + 1} needs dry mass, propellant and Isp.`);
+      return { name, dry: n[0], prop: n[1], isp: n[2] };
+    });
+  }
+
+  function calc() {
+    const err = q('.re-err'), goalSel = q<HTMLSelectElement>('.re-goal').value;
+    q('.re-cw').hidden = goalSel !== 'custom';
+    try {
+      const st = read(), pl = num(q<HTMLInputElement>('.re-pl').value) || 0, r = staging(st, pl);
+      const goal = goalSel === 'custom' ? num(q<HTMLInputElement>('.re-c').value) : goalSel ? Number(goalSel) : NaN;
+      err.hidden = true; q('.re-out').hidden = false;
+      q('.re-big').textContent = `${(r.dv / 1000).toFixed(2)} km/s in total`;
+      const facts: [string, string, string?][] = [
+        ['Mass at ignition', kg(r.liftoff)],
+        ['Payload fraction', `${(r.payloadFraction * 100).toFixed(2)} %`],
+      ];
+      if (Number.isFinite(goal) && goal > 0) {
+        const spare = r.dv - goal;
+        const top = r.stages[r.stages.length - 1];
+        let extra = '';
+        if (spare < 0) { const more = propellantFor(-spare, top.isp, top.mf) ; extra = `the top stage would need about ${kg(more)} more propellant (ignoring its heavier tanks)`; }
+        facts.push(['Against the budget', spare >= 0 ? `${ms(spare)} to spare` : `${ms(-spare)} short`, spare >= 0 ? `${((spare / goal) * 100).toFixed(1)} % margin over ${ms(goal)}` : extra]);
+      }
+      q('.re-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const head = ['Stage', 'Mass at start', 'Mass at burnout', 'Mass ratio', 'Exhaust speed', 'Delta-v'];
+      const rows = r.stages.map((s) => [s.name, kg(s.m0), kg(s.mf), sig(s.ratio, 4), ms(s.ve), ms(s.dv)]);
+      const t = q<HTMLTableElement>('.re-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const b = t.createTBody(); rows.forEach((row) => { const tr = b.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      // Delta-v against payload, so trade-offs are visible.
+      const maxP = Math.max(pl * 3, r.liftoff * 0.05, 100), xs: number[] = [];
+      for (let i = 0; i <= 60; i++) xs.push((maxP * i) / 60);
+      fig = chartFigure({ h: 280, xLabel: 'Payload (kg)', yLabel: 'Total delta-v (km/s)', yMin: 0, legend: 'none',
+        series: [{ name: 'Delta-v', x: xs, y: xs.map((p) => staging(st, p).dv / 1000), mode: 'line' }],
+        marks: [{ kind: 'vline', at: pl, label: 'your payload' }, ...(Number.isFinite(goal) && goal > 0 ? [{ kind: 'hline' as const, at: goal / 1000, label: 'needed' }] : [])] }, 'Delta-v against payload');
+      paint(q<HTMLCanvasElement>('.re-fig'), fig);
+      report = [{ title: 'Delta-v', facts: [['Total delta-v', ms(r.dv)], ...facts.map(([k, v]) => [k, v] as [string, string])] }, { title: 'Stages', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }, { title: 'Delta-v against payload', figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.re-out').hidden = true; report = []; }
+  }
+  root.addEventListener('input', calc);
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.re-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Rocket equation', file: 'delta-v', sections: report }));
+</script>

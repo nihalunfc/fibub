@@ -22,6 +22,8 @@ export type Series = {
 };
 export type Chart = {
   w: number; h: number; title?: string; xLabel?: string; yLabel?: string;
+  /** Larger values lower down, as astronomers draw magnitudes. */
+  yReverse?: boolean;
   xLog?: boolean; yLog?: boolean; xMin?: number; xMax?: number; yMin?: number; yMax?: number;
   series: Series[]; legend?: 'auto' | 'none' | 'inside' | 'below'; font?: number; grid?: boolean;
   colors?: string[]; ink?: string; muted?: string; gridColor?: string; bg?: string | null;
@@ -125,7 +127,7 @@ export function drawChart(P: Painter, c: Chart) {
   const px0 = left, px1 = c.w - right, py0 = top, py1 = c.h - bottom;
   const lx = (v: number) => (c.xLog ? Math.log10(v) : v), ly = (v: number) => (c.yLog ? Math.log10(v) : v);
   const X = (v: number) => px0 + ((lx(v) - lx(xa)) / (lx(xb) - lx(xa))) * (px1 - px0);
-  const Y = (v: number) => py1 - ((ly(v) - ly(ya)) / (ly(yb) - ly(ya))) * (py1 - py0);
+  const Y = (v: number) => (c.yReverse ? py0 + ((ly(v) - ly(ya)) / (ly(yb) - ly(ya))) * (py1 - py0) : py1 - ((ly(v) - ly(ya)) / (ly(yb) - ly(ya))) * (py1 - py0));
 
   if (c.title) P.text(px0, fs * 0.4, c.title, fs * 1.08, ink, 'start', 'top', 0, true);
   // Grid and ticks.

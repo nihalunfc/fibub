@@ -29,6 +29,10 @@ import { filterShift, readSpacers, solveSpacers } from '../src/lib/sci/backfocus
 import { BANDS, toJy, fromJy } from '../src/lib/sci/photometry.ts';
 import { darkNight, yearDates } from '../src/lib/astro/darkness.ts';
 import * as Astro from 'astronomy-engine';
+import { staging, propellantFor, BODIES, AU, hohmann, biElliptic } from '../src/lib/sci/orbit.ts';
+import { lombScargle, falseAlarm, peaks, phase } from '../src/lib/sci/lombscargle.ts';
+import { fovArcmin, framesAlong, offsetToRaDec, mosaic } from '../src/lib/sci/mosaic.ts';
+import { hourlyRate } from '../src/lib/sci/meteorrate.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -338,6 +342,52 @@ near('F cdf round trip', fCdf(fInv(0.3, 7, 4), 7, 4), 0.3, 1e-9);
   check('no true darkness in London at midsummer', darkNight({ lat: 51.51, lon: -0.13, elev: 0 }, '2027-06-21').darkH === 0);
   check('a leap year has 366 evenings', yearDates(2028).length === 366);
 }
+
+// ---- Rocket equation and orbit transfers (Curtis, Orbital Mechanics for Engineering Students, LEO to GEO).
+{
+  near('Tsiolkovsky, mass ratio e', staging([{ name: 'S', dry: 1, prop: Math.E - 1, isp: 300 }], 0).dv, 300 * 9.80665, 1e-9);
+  const r = staging([{ name: 'A', dry: 22000, prop: 400000, isp: 300 }, { name: 'B', dry: 4000, prop: 100000, isp: 340 }], 10000);
+  near('two-stage liftoff mass', r.liftoff, 536000, 1e-9); near('two-stage delta-v', r.dv, 11027.30, 0.01);
+  near('propellant for a delta-v', staging([{ name: 'S', dry: 1000, prop: propellantFor(3000, 320, 1000), isp: 320 }], 0).dv, 3000, 1e-6);
+  const E = BODIES.find((b) => b.id === 'earth').mu, h = hohmann(E, 6678, 42164);
+  near('LEO to GEO first burn', h.dv1, 2.426, 1e-3); near('LEO to GEO second burn', h.dv2, 1.467, 1e-3); near('LEO to GEO time (h)', h.tof / 3600, 5.27, 0.01);
+  const S = BODIES.find((b) => b.id === 'sun').mu, m = hohmann(S, AU, 1.5237 * AU);
+  near('Earth to Mars days', m.tof / 86400, 259, 1); near('Mars lead angle', (m.lead * 180) / Math.PI, 44.3, 0.3); near('Earth-Mars synodic days', m.synodic / 86400, 780, 1);
+  near('bi-elliptic beats Hohmann at ratio 20', hohmann(E, 7000, 140000).dv - biElliptic(E, 7000, 140000, 280000).dv, 0.0703, 0.002);
+  throws('bi-elliptic apoapsis too low', () => biElliptic(E, 7000, 14000, 10000));
+}
+
+// ---- Lomb-Scargle: a clean sine is found, the fast trig recurrence matches a direct sum, and noise false alarms are calibrated.
+{
+  let seed = 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const t = Array.from({ length: 120 }, () => rnd() * 50).sort((a, b) => a - b), y = t.map((x) => Math.sin((2 * Math.PI * x) / 2.345) + 0.1 * (rnd() - 0.5));
+  const P = lombScargle(t, y, null, 1 / 50, 2, 2000), best = peaks(P, 1)[0];
+  near('period of a sine', 1 / best.freq, 2.345, 0.002); check('power near 1', best.power > 0.98);
+  // Direct evaluation at one frequency.
+  const f = P.freq[777], w = 1 / t.length, Y = y.reduce((s, v) => s + v * w, 0);
+  let C = 0, Sn = 0, YC = 0, YS = 0, CC = 0, SS = 0, CS = 0, YY = 0;
+  t.forEach((x, i) => { const c = Math.cos(2 * Math.PI * f * (x - t[0])), sn = Math.sin(2 * Math.PI * f * (x - t[0])); C += w * c; Sn += w * sn; YC += w * y[i] * c; YS += w * y[i] * sn; CC += w * c * c; SS += w * sn * sn; CS += w * c * sn; YY += w * y[i] * y[i]; });
+  const yc = YC - Y * C, ys = YS - Y * Sn, cc = CC - C * C, ss = SS - Sn * Sn, cs = CS - C * Sn, D = cc * ss - cs * cs;
+  near('recurrence matches a direct sum', P.power[777], (ss * yc * yc + cc * ys * ys - 2 * cs * yc * ys) / ((YY - Y * Y) * D), 1e-9);
+  let low = 0; for (let k = 0; k < 200; k++) { const yy = t.map(() => rnd() + rnd() + rnd()); const p = lombScargle(t, yy, null, 1 / 50, 2, 1000); if (falseAlarm(Math.max(...p.power), t.length, 2, t, null) < 0.1) low++; }
+  near('noise: about 10 % of trials below FAP 0.1', low / 200, 0.1, 0.06);
+  near('phase', phase([5.5], 2, 0)[0], 0.75, 1e-12);
+}
+
+// ---- Mosaics.
+{
+  near('APS-C at 480 mm', fovArcmin(23.5, 480), 168.27, 0.01);
+  check('frames along a side', framesAlong(190, 168.27, 0.15) === 2 && framesAlong(100, 168, 0.15) === 1 && framesAlong(300, 100, 0) === 3);
+  const p = offsetToRaDec(0, 0, 60, 0); near('one degree east on the equator', p.ra, 1, 1e-3);
+  near('gnomonic north', offsetToRaDec(180, 30, 0, 60).dec, 31, 1e-3);
+  const r = mosaic({ ra: 10, dec: 0, tw: 100, th: 10, fw: 60, fh: 40, overlap: 0, pa: 90 });
+  check('pa 90: panel 1 to the east', r.panels[0].ra > 10 && Math.abs(r.panels[0].dec) < 1e-9);
+}
+
+// ---- Meteor rates (IMO formula).
+near('ZHR with radiant overhead, perfect sky', hourlyRate(100, 2.2, 6.5, 90), 100, 1e-9);
+near('Perseids at 60°, LM 6', hourlyRate(100, 2.2, 6, 60), 58.39, 0.01);
+check('no meteors with radiant below horizon', hourlyRate(100, 2.2, 6.5, -5) === 0);
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
