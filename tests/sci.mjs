@@ -110,6 +110,7 @@ import * as TER from '../src/lib/sci/ternary.ts';
 import * as PIP from '../src/lib/sci/piper.ts';
 import * as PT from '../src/lib/sci/pumptest.ts';
 import * as SLG from '../src/lib/sci/slug.ts';
+import * as DAR from '../src/lib/sci/darcy.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1918,6 +1919,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('slug: Hvorslev', SLG.hvorslev(0.025, 0.05, 1.5, 70), 0.025 ** 2 * Math.log(30) / (2 * 1.5 * 70), 1e-18);
   near('slug: Bouwer-Rice equals Hvorslev when ln(Re/R) = ln(Le/R)', SLG.bouwerRice(0.025, Math.log(30), 1.5, 70), SLG.hvorslev(0.025, 0.05, 1.5, 70), 1e-18);
   near('slug: effective casing radius', SLG.rcEffective(0.025, 0.05, 0.3), Math.sqrt(0.7 * 0.025 ** 2 + 0.3 * 0.05 ** 2), 1e-15);
+}
+{
+  // Darcy flow, gradient from wells, grain size and Hazen.
+  const d = DAR.darcy(1e-4, 0.002, 50, 0.25, 100);
+  near('darcy: flux', d.q, 2e-7, 1e-20); near('darcy: discharge', d.Q, 1e-5, 1e-18); near('darcy: seepage velocity', d.v, 8e-7, 1e-20); near('darcy: travel time', d.time, 100 / 8e-7, 1e-3);
+  near('darcy: water viscosity at 20 °C about 1.002 mPa·s', DAR.waterViscosity(20) * 1000, 1.002, 0.003);
+  near('darcy: water density at 4 °C', DAR.waterDensity(4), 1000, 0.01);
+  near('darcy: K to k and back', DAR.KFromk(DAR.kFromK(3e-5, 15), 15), 3e-5, 1e-18);
+  const g = DAR.gradient3([0, 100, 0], [0, 0, 100], [10, 9.9, 10.05]);
+  near('darcy: three-point gradient', g.i, Math.hypot(0.001, 0.0005), 1e-15);
+  near('darcy: flow bearing', g.bearing, 90 + Math.atan(0.0005 / 0.001) * 180 / Math.PI, 1e-9);
+  near('darcy: flow due north', DAR.gradient3([0, 10, 0], [0, 0, 10], [5, 5, 4]).bearing % 360, 0, 1e-9);
+  const g4 = DAR.gradient3([0, 100, 0, 100], [0, 0, 100, 100], [10, 9.9, 10.05, 9.95]);
+  near('darcy: four wells on a plane fit exactly', g4.rms, 0, 1e-12);
+  let threw = false; try { DAR.gradient3([0, 1, 2], [0, 1, 2], [1, 2, 3]); } catch { threw = true; }
+  check('darcy: wells in a line refused', threw);
+  near('darcy: d at a sieve', DAR.dAt([1, 0.1], [50, 10], 10), 0.1, 1e-12);
+  near('darcy: d halfway in log size', DAR.dAt([1, 0.1], [50, 10], 30), Math.sqrt(0.1), 1e-12);
+  const gr = DAR.gradation([4, 2, 1, 0.5, 0.25], [100, 80, 60, 30, 10]);
+  near('darcy: d10', gr.d10, 0.25, 1e-12); near('darcy: Cu', gr.Cu, 4, 1e-12); near('darcy: Cc', gr.Cc, 1, 1e-12);
+  near('darcy: Hazen, d10 0.2 mm and C 100 gives 0.04 cm/s', DAR.hazen(0.2, 100), 4e-4, 1e-15);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

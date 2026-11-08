@@ -1,0 +1,189 @@
+---
+// Darcy flow, travel time and permeability; gradient from three or more wells; grain-size curve with Hazen K.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example data, written by fibub.
+const wellDemo = 'well\tx (m)\ty (m)\thead (m)\nMW1\t0\t0\t25.40\nMW2\t300\t50\t24.95\nMW3\t120\t260\t25.10';
+const sieveDemo = 'size (mm)\tpassing (%)\n4.75\t100\n2\t96\n0.85\t82\n0.425\t55\n0.25\t30\n0.15\t12\n0.075\t3';
+---
+<div class="ax dfc">
+  <div class="ax-card">
+    <h2>Darcy flow</h2>
+    <div class="ax-grid">
+      <label>K comes from <select class="dc-ksrc"><option value="typed" selected>the value typed here</option><option value="hazen">the Hazen estimate below</option></select></label>
+      <label>Hydraulic conductivity K <input class="dc-k" type="text" inputmode="decimal" value="10" /></label>
+      <label>K unit <select class="dc-ku"><option value="md" selected>m/day</option><option value="ms">m/s</option><option value="cms">cm/s</option><option value="ftd">ft/day</option></select></label>
+      <label>Gradient comes from <select class="dc-isrc"><option value="typed" selected>a head drop over a distance</option><option value="wells">the wells below</option></select></label>
+      <label>Head drop Δh (m) <input class="dc-dh" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Over a distance (m) <input class="dc-dl" type="text" inputmode="decimal" value="250" /></label>
+      <label>Flow area A (m², thickness × width) <input class="dc-a" type="text" inputmode="decimal" value="100" /></label>
+      <label>Effective porosity ne <input class="dc-ne" type="text" inputmode="decimal" value="0.25" /></label>
+      <label>Travel distance (m) <input class="dc-l" type="text" inputmode="decimal" value="500" /></label>
+      <label>Water temperature (°C) <input class="dc-t" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-err dc-err" hidden></p>
+    <div class="dc-out">
+      <p class="ax-big dc-big"></p>
+      <dl class="ax-facts dc-facts"></dl>
+    </div>
+    <p class="ax-help">Darcy's law holds for slow, smooth flow through pores, which covers almost all groundwater. The travel time is for water moving with the average seepage velocity; dissolved substances can be slowed by sorption or spread out by dispersion.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Gradient from three or more wells</h2>
+    <label>Name, x (east), y (north) and head, in metres <textarea class="gw-data" rows="5" spellcheck="false">{wellDemo}</textarea></label>
+    <DataFile target=".gw-data" maxCols={6} maxRows={500} label="Open a file" />
+    <p class="ax-err gw-err" hidden></p>
+    <div class="gw-out">
+      <p class="ax-big gw-big"></p>
+      <dl class="ax-facts gw-facts"></dl>
+      <canvas class="ax-fig gw-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Grain-size curve and Hazen K</h2>
+    <label>Sieve size (mm), then percent passing <textarea class="gs-data" rows="7" spellcheck="false">{sieveDemo}</textarea></label>
+    <DataFile target=".gs-data" maxCols={4} maxRows={200} label="Open a file" />
+    <label style="margin-top:10px">Hazen coefficient C (K in cm/s, d10 in cm) <input class="gs-c" type="text" inputmode="decimal" value="100" /></label>
+    <p class="ax-err gs-err" hidden></p>
+    <div class="gs-out">
+      <p class="ax-big gs-big"></p>
+      <dl class="ax-facts gs-facts"></dl>
+      <canvas class="ax-fig gs-fig"></canvas>
+    </div>
+    <p class="ax-help">Hazen's rule is a rough estimate for clean, fairly uniform sand (d10 about 0.1 to 3 mm, Cu below about 5). Textbooks give C from about 40 for fine, silty sand to 150 for coarse sand. The example data are made up.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { darcy, kFromK, waterViscosity, waterDensity, gradient3, gradation, hazen, DARCY } from '../../lib/sci/darcy';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pairsOf = (f: HTMLElement[]) => f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const K_SI: Record<string, number> = { md: 1 / 86400, ms: 1, cms: 0.01, ftd: 0.3048 / 86400 };
+  const DIRS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+  const compass = (b: number) => DIRS[Math.round(b / 45) % 8];
+  const dur = (s: number) => { const d = s / 86400; return d < 1 ? `${sig(s / 3600, 3)} hours` : d < 365.25 * 2 ? `${sig(d, 3)} days` : `${sig(d / 365.25, 3)} years`; };
+  let grad: number | null = null, hazK: number | null = null, gwFig: Figure | null = null, gsFig: Figure | null = null, S: Record<string, Section | null> = {};
+
+  function wells() {
+    const err = q('.gw-err'), out = q('.gw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; grad = null; S.gw = null; };
+    const t = parseTable(q<HTMLTextAreaElement>('.gw-data').value).filter((r) => r.some((c) => c.trim()));
+    const rows = t.filter((r) => r.length >= 3 && r.slice(-3).every((c) => Number.isFinite(num(c))));
+    if (rows.length < 3) return fail('Give at least three wells, each with x, y and head.');
+    const names = rows.map((r, i) => (r.length >= 4 ? r[0].trim() : `Well ${i + 1}`)), x = rows.map((r) => num(r[r.length - 3])), y = rows.map((r) => num(r[r.length - 2])), h = rows.map((r) => num(r[r.length - 1]));
+    let g: ReturnType<typeof gradient3>;
+    try { g = gradient3(x, y, h); } catch (e) { return fail((e as Error).message); }
+    if (!(g.i > 0)) return fail('All heads are the same, so there is no gradient.');
+    err.hidden = true; out.hidden = false; grad = g.i;
+    q('.gw-big').textContent = `Gradient ${sig(g.i, 3)}, water flows towards ${sig(g.bearing, 3)}° (${compass(g.bearing)})`;
+    const f = [fact('Gradient', `${sig(g.i, 3)} m/m`, `${sig(g.i * 1000, 3)} m of head per km`), fact('Flow direction', `${g.bearing.toFixed(1)}° clockwise from north`, 'straight down the slope of the water table, at right angles to the head contours')];
+    if (rows.length > 3) f.push(fact('Fit of the plane', `${sig(g.rms, 2)} m rms`, `${rows.length} wells; a large value means the water table is not flat between them`));
+    q('.gw-facts').replaceChildren(...f);
+    const xmin = Math.min(...x), xmax = Math.max(...x), ymin = Math.min(...y), ymax = Math.max(...y), span = Math.max(xmax - xmin, ymax - ymin) || 1;
+    gwFig = { w: 360, h: 300, alt: 'Plan of the wells with the head contours and the flow direction', draw: (ctx, W, H, pal) => {
+      const pad = 40, sc = Math.min((W - 2 * pad) / span, (H - 2 * pad) / span), cx = (xmin + xmax) / 2, cy = (ymin + ymax) / 2;
+      const P = (a: number, b: number): [number, number] => [W / 2 + (a - cx) * sc, H / 2 - (b - cy) * sc];
+      // Head contours: lines of constant a + b·x + c·y, drawn across the box.
+      const hs = h.slice().sort((p, r) => p - r), lo = hs[0], hi = hs[hs.length - 1], step = 10 ** Math.floor(Math.log10((hi - lo) / 3 || 1));
+      ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.lineWidth = 1; ctx.font = '9px system-ui, sans-serif';
+      const gx = g.b, gy = g.c, ux = -gy / g.i, uy = gx / g.i, half = span;
+      for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) {
+        // Point on the contour nearest the centre, then a line along it.
+        const d = (v - (g.a + gx * cx + gy * cy)) / (g.i * g.i), px = cx + gx * d, py = cy + gy * d;
+        const [x1, y1] = P(px - ux * half, py - uy * half), [x2, y2] = P(px + ux * half, py + uy * half);
+        ctx.save(); ctx.beginPath(); ctx.rect(pad / 2, pad / 2, W - pad, H - pad); ctx.clip();
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+        const [lx, ly] = P(px, py); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(sig(v, 4), lx + 3, ly - 2);
+      }
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif';
+      x.forEach((xi, i) => { const [px, py] = P(xi, y[i]); ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI); ctx.fill(); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`${names[i]} ${h[i]}`, px + 5, py + 3); });
+      // Flow arrow from the centre.
+      const [ax, ay] = P(cx, cy), ang = (g.bearing * Math.PI) / 180, len = Math.min(W, H) * 0.22, bx = ax + Math.sin(ang) * len, by = ay - Math.cos(ang) * len;
+      ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.accent; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      const hd = 9; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - hd * Math.sin(ang - 0.4), by + hd * Math.cos(ang - 0.4)); ctx.lineTo(bx - hd * Math.sin(ang + 0.4), by + hd * Math.cos(ang + 0.4)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('N ↑', W - 6, 4);
+    } };
+    paint(q<HTMLCanvasElement>('.gw-fig'), gwFig);
+    S.gw = { title: q('.gw-big').textContent!, facts: pairsOf(f), figure: gwFig };
+  }
+
+  function grains() {
+    const err = q('.gs-err'), out = q('.gs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; hazK = null; S.gs = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.gs-data').value);
+    if (t.cols.length < 2) return fail('Paste two columns: sieve size in mm and percent passing.');
+    const size: number[] = [], pass: number[] = [];
+    t.cols[0].forEach((s, i) => { const p = t.cols[1][i]; if (s > 0 && p >= 0 && p <= 100) { size.push(s); pass.push(p); } });
+    if (size.length < 2) return fail('Need at least two sieves with a size above zero and 0 to 100 % passing.');
+    const g = gradation(size, pass), C = val('.gs-c');
+    if (!Number.isFinite(g.d10)) return fail('The curve does not reach 10 % passing, so d10 cannot be read. Add a finer sieve.');
+    if (!(C > 0)) return fail('Enter a Hazen coefficient above zero.');
+    err.hidden = true; out.hidden = false; hazK = hazen(g.d10, C);
+    q('.gs-big').textContent = `d10 = ${sig(g.d10, 3)} mm, Hazen K ≈ ${sig(hazK * 86400, 2)} m/day`;
+    const f = [fact('d10, d30, d60', `${sig(g.d10, 3)}, ${Number.isFinite(g.d30) ? sig(g.d30, 3) : '–'}, ${Number.isFinite(g.d60) ? sig(g.d60, 3) : '–'} mm`, 'sizes that 10, 30 and 60 % of the sample pass, read from the curve on a log scale'),
+      fact('Uniformity Cu = d60/d10', Number.isFinite(g.Cu) ? sig(g.Cu, 3) : '–', g.Cu < 4 ? 'below about 4: fairly uniform' : 'well spread sizes'),
+      fact('Curvature Cc = d30²/(d10·d60)', Number.isFinite(g.Cc) ? sig(g.Cc, 3) : '–', '1 to 3 together with a high Cu is usually called well graded'),
+      fact('Hazen K', `${sig(hazK, 2)} m/s, ${sig(hazK * 100, 2)} cm/s, ${sig(hazK * 86400, 2)} m/day`, `K (cm/s) = ${C} × d10² (cm); ${g.d10 < 0.1 || g.d10 > 3 || g.Cu > 5 ? 'outside the range where Hazen works well, so treat it as very rough' : 'within the usual range for the rule'}`)];
+    q('.gs-facts').replaceChildren(...f);
+    const o = size.map((s, i) => [s, pass[i]]).sort((a, b) => a[0] - b[0]);
+    gsFig = chartFigure({ w: 380, h: 260, xLog: true, yMin: 0, yMax: 100, xLabel: 'Grain size (mm)', yLabel: 'Passing (%)', legend: 'none',
+      series: [{ name: 'Sieves', x: o.map((r) => r[0]), y: o.map((r) => r[1]), mode: 'both', size: 3.5, width: 1.6 }],
+      marks: [{ kind: 'vline', at: g.d10, dash: [3, 3], label: 'd10' }, ...(Number.isFinite(g.d60) ? [{ kind: 'vline' as const, at: g.d60, dash: [3, 3], label: 'd60' }] : [])] }, 'Grain-size curve with d10 and d60');
+    paint(q<HTMLCanvasElement>('.gs-fig'), gsFig);
+    S.gs = { title: q('.gs-big').textContent!, facts: pairsOf(f), figure: gsFig };
+  }
+
+  function flow() {
+    const err = q('.dc-err'), out = q('.dc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.dc = null; };
+    const useHaz = sel('.dc-ksrc') === 'hazen', useWells = sel('.dc-isrc') === 'wells';
+    q<HTMLInputElement>('.dc-k').disabled = useHaz; q<HTMLInputElement>('.dc-dh').disabled = useWells; q<HTMLInputElement>('.dc-dl').disabled = useWells;
+    const K = useHaz ? hazK : val('.dc-k') * K_SI[sel('.dc-ku')];
+    if (useHaz && K === null) return fail('The Hazen estimate is not available; check the grain-size card.');
+    if (!(K! > 0)) return fail('Enter a hydraulic conductivity above zero.');
+    const i = useWells ? grad : val('.dc-dh') / val('.dc-dl');
+    if (useWells && i === null) return fail('The gradient from the wells is not available; check the wells card.');
+    if (!(i! > 0)) return fail('Enter a head drop and a distance above zero.');
+    const A = val('.dc-a'), ne = val('.dc-ne'), L = val('.dc-l'), T = val('.dc-t');
+    if (!(ne > 0 && ne < 1)) return fail('Effective porosity must be between 0 and 1.');
+    if (!(T >= 0 && T <= 100)) return fail('Water temperature must be between 0 and 100 °C.');
+    const r = darcy(K!, i!, A > 0 ? A : 0, ne, L > 0 ? L : undefined);
+    err.hidden = true; out.hidden = false;
+    q('.dc-big').textContent = `Seepage velocity ${sig(r.v * 86400, 3)} m/day${L > 0 ? `; ${L} m takes ${dur(r.time)}` : ''}`;
+    const k = kFromK(K!, T);
+    const f = [fact('Gradient i', sig(i!, 3), useWells ? 'from the wells card' : 'head drop ÷ distance'),
+      fact('Darcy flux q = K·i', `${sig(r.q * 86400, 3)} m/day`, 'volume per unit area of aquifer, as if the whole area were open'),
+      fact('Seepage velocity v = q/ne', `${sig(r.v * 86400, 3)} m/day`, 'how fast the water itself moves through the pores')];
+    if (A > 0) f.push(fact('Discharge Q = K·i·A', `${sig(r.Q * 86400, 3)} m³/day`, `${sig(r.Q * 1000, 3)} L/s through ${A} m²`));
+    f.push(fact('Intrinsic permeability', `${sig(k, 3)} m² (${sig(k / DARCY, 3)} darcy)`, `a property of the rock alone; water at ${T} °C has viscosity ${sig(waterViscosity(T) * 1000, 3)} mPa·s and density ${sig(waterDensity(T), 5)} kg/m³ (approximate formulas)`));
+    if (useHaz) f.push(fact('K used', `${sig(K! * 86400, 3)} m/day`, 'Hazen estimate from the grain-size card'));
+    q('.dc-facts').replaceChildren(...f);
+    S.dc = { title: q('.dc-big').textContent!, facts: pairsOf(f) };
+  }
+
+  const all = () => { wells(); grains(); flow(); };
+  root.querySelectorAll('.gw-data').forEach((i) => i.addEventListener('input', all));
+  root.querySelectorAll('.gs-data, .gs-c').forEach((i) => i.addEventListener('input', all));
+  root.querySelectorAll('.dfc .ax-card:first-child input, .dfc .ax-card:first-child select').forEach((i) => { i.addEventListener('input', flow); i.addEventListener('change', flow); });
+  root.querySelectorAll('textarea').forEach((i) => i.addEventListener('change', all));
+  document.addEventListener('fibub:theme', () => { if (gwFig && !q('.gw-out').hidden) paint(q<HTMLCanvasElement>('.gw-fig'), gwFig); if (gsFig && !q('.gs-out').hidden) paint(q<HTMLCanvasElement>('.gs-fig'), gsFig); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Darcy flow', subtitle: q('.dc-big').textContent ?? '', file: 'darcy-flow', sections: [S.dc, S.gw, S.gs].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .dfc select, .dfc input { max-width: 100%; }
+  .dfc textarea { width: 100%; }
+</style>
