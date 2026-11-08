@@ -1,5 +1,14 @@
 [
  {
+  "sha": "273986c21391",
+  "date": "2026-11-08T09:17:21+00:00",
+  "title": "Add the crystal field and spin state calculator (#93)",
+  "tools": [
+   "crystal-field-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "e90bdb4ab42e",
   "date": "2026-11-08T09:00:26+00:00",
   "title": "Add the Hückel MO calculator (#92)",
