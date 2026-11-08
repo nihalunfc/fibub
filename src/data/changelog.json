@@ -1,5 +1,16 @@
 [
  {
+  "sha": "d78ff4e98be8",
+  "date": "2026-11-08T08:31:04+00:00",
+  "title": "Add method validation, colligative properties and equilibrium solver (#87-#89)",
+  "tools": [
+   "colligative-properties",
+   "equilibrium-solver",
+   "method-validation"
+  ],
+  "site": false
+ },
+ {
   "sha": "60e407c09aac",
   "date": "2026-11-08T08:08:29+00:00",
   "title": "Add the reaction equivalents table and chromatography calculator (#85, #86)",
