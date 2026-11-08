@@ -113,6 +113,7 @@ import * as SLG from '../src/lib/sci/slug.ts';
 import * as DAR from '../src/lib/sci/darcy.ts';
 import * as WF from '../src/lib/sci/wellfield.ts';
 import * as GTN from '../src/lib/sci/gradetonnage.ts';
+import * as DH from '../src/lib/sci/drillhole.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1980,5 +1981,37 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('grade-tonnage: margin is zero at breakeven grade', GTN.margin(1000, co.breakeven, v, 0.88, 13.5), 0, 1e-9);
   near('grade-tonnage: gold in g/t', GTN.cutoffs(GTN.netValue(2000 / GTN.TROY_OZ, 0, 0, 'gpt'), 0.9, 3, 15, 2).breakeven, 20 / (2000 / 31.1034768 * 0.9), 1e-12);
 }
+// Drill hole composites and intercepts (worked by hand).
+{
+  const H = [[0, 2, 0.1, 'OX'], [2, 4, 3, 'QV'], [4, 5, 0.2, 'QV'], [5, 7, 2, 'QV'], [7, 8, 0.05, 'SED'], [8, 10, 0.1, 'SED'], [10, 11, 5, 'QV']].map(([from, to, g, lith]) => ({ hole: 'H', from, to, g, lith }));
+  const a = DH.intercepts(H, 0.5, 2, 1);
+  check('drillhole: two intercepts with 2 m dilution', a.length === 2 && a[0].from === 2 && a[0].to === 7 && a[0].dilution === 1 && a[1].from === 10);
+  near('drillhole: first intercept grade', a[0].g, 2.04, 1e-9);
+  const b = DH.intercepts(H, 0.5, 3, 1);
+  check('drillhole: 3 m dilution joins them', b.length === 1 && b[0].len === 9 && b[0].dilution === 4);
+  near('drillhole: joined grade', b[0].g, 15.45 / 9, 1e-9);
+  check('drillhole: minimum length drops the short one', DH.intercepts(H, 0.5, 2, 2).length === 1);
+  check('drillhole: intercept text', DH.fmtIntercept(a[0], 'g/t') === '5.0 m @ 2.04 g/t from 2.0 m');
+  const c = DH.composites(H, 4, 'half');
+  check('drillhole: half rule keeps a 3 m tail', c.length === 3 && c[2].from === 8 && c[2].to === 11);
+  near('drillhole: composite 1', c[0].g, 1.55, 1e-9); near('drillhole: composite 2', c[1].g, 1.0625, 1e-9); near('drillhole: tail composite', c[2].g, 5.2 / 3, 1e-9);
+  const m = DH.composites(H, 4, 'merge');
+  check('drillhole: merge rule', m.length === 2 && m[1].len === 7); near('drillhole: merged grade', m[1].g, 9.45 / 7, 1e-9);
+  check('drillhole: drop rule', DH.composites(H, 4, 'drop').length === 2 && DH.composites(H, 4, 'keep').length === 3);
+  const e = DH.composites(H, 4, 'equal'); near('drillhole: equal lengths', e[1].len, 11 / 3, 1e-9);
+  check('drillhole: half rule merges a short tail', DH.composites(H, 5, 'half').map((x) => x.to).join() === '5,11');
+  const l = DH.lithComposites(H);
+  check('drillhole: lithology runs', l.map((x) => x.lith).join() === 'OX,QV,SED,QV'); near('drillhole: QV run grade', l[1].g, 10.2 / 5, 1e-9);
+  const iss = DH.validate([{ hole: 'A', from: 0, to: 2, g: 1 }, { hole: 'A', from: 3, to: 4, g: 1 }, { hole: 'A', from: 3.5, to: 5, g: 1 }, { hole: 'A', from: 6, to: 6, g: 1 }]);
+  check('drillhole: gap, overlap and bad row found', iss.map((x) => `${x.kind}${x.from}-${x.to}`).join() === 'gap2-3,overlap3.5-4,bad6-6');
+  const cl = DH.clean([{ hole: 'A', from: 3, to: 4, g: 1 }, { hole: 'A', from: 3.5, to: 5, g: 2 }]);
+  check('drillhole: overlap trimmed', cl[1].from === 4);
+  // An unsampled gap counts as zero-grade waste in an intercept but is left out of a composite grade.
+  const G = [{ hole: 'G', from: 0, to: 1, g: 2 }, { hole: 'G', from: 2, to: 3, g: 2 }];
+  near('drillhole: gap is waste in intercepts', DH.intercepts(G, 1, 1, 0)[0].g, 4 / 3, 1e-9);
+  near('drillhole: gap left out of composites', DH.composites(G, 3, 'keep')[0].g, 2, 1e-9);
+  check('drillhole: thin coverage composite dropped', DH.composites(G, 1, 'keep').length === 2);
+}
+
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
