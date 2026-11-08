@@ -12,6 +12,13 @@
   "site": false
  },
  {
+  "sha": "389533e7b784",
+  "date": "2026-11-08T05:30:05+00:00",
+  "title": "Add a language menu and Malayalam pages",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "114ed509b3c1",
   "date": "2026-11-08T05:00:25+00:00",
   "title": "Add five tools: blackbody, exoplanet mass, impact crater, link budget, radio telescope",
