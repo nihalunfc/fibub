@@ -1,5 +1,14 @@
 [
  {
+  "sha": "1414dbf1b3ed",
+  "date": "2026-11-08T16:11:15+00:00",
+  "title": "Add the buffer recipe calculator (#113)",
+  "tools": [
+   "buffer-recipe-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "7465abd598c7",
   "date": "2026-11-08T15:58:03+00:00",
   "title": "Add the enzyme kinetics fitter (#112)",
