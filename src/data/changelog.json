@@ -1,5 +1,14 @@
 [
  {
+  "sha": "ca387e085e48",
+  "date": "2026-11-08T08:40:28+00:00",
+  "title": "Add the cyclic voltammetry analyser (#90)",
+  "tools": [
+   "cyclic-voltammetry"
+  ],
+  "site": false
+ },
+ {
   "sha": "d78ff4e98be8",
   "date": "2026-11-08T08:31:04+00:00",
   "title": "Add method validation, colligative properties and equilibrium solver (#87-#89)",
