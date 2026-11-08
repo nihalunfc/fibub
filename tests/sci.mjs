@@ -76,6 +76,7 @@ import * as CV from '../src/lib/sci/cv.ts';
 import * as TLC from '../src/lib/sci/tlc.ts';
 import * as HMO from '../src/lib/sci/huckel.ts';
 import * as CFT from '../src/lib/sci/crystalfield.ts';
+import * as DIA from '../src/lib/sci/diatomic.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1105,6 +1106,28 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('Jahn–Teller: Cu2+ strong, Cr3+ none, LS Co3+ none, HS Fe2+ weak', CFT.jahnTeller([2, 2, 2, 2, 1]) === 'strong' && CFT.jahnTeller([1, 1, 1, 0, 0]) === 'none' && CFT.jahnTeller([2, 2, 2, 0, 0]) === 'none' && CFT.jahnTeller(fe.occ) === 'weak');
   near('Ti(H2O)6 3+ Δo (cm-1)', CFT.deltaFromNm(493), 20284, 1);
   near('in kJ/mol', CFT.deltaFromNm(493) * CFT.CM_TO_KJ, 242.6, 0.1);
+}
+{
+  // Diatomics (Huber–Herzberg constants): bond lengths from Be reproduce re; HCl fundamental, lines and isotope shift.
+  const mass = (s) => CHEM.monoMass(CHEM.parseFormula(`[${s}]`));
+  for (const m of DIA.MOLECULES) near(`${m.id} r from Be`, DIA.bondLength(m.k.Be, DIA.reducedMass(mass(m.atoms[0]), mass(m.atoms[1]))), m.k.re, 0.0015);
+  const hcl = DIA.MOLECULES.find((m) => m.id === 'HCl').k, mu = DIA.reducedMass(mass('1H'), mass('35Cl'));
+  near('HCl μ', mu, 0.97959, 0.00001);
+  near('HCl fundamental', DIA.G(hcl, 1) - DIA.G(hcl, 0), 2885.31, 0.01);
+  near('HCl force constant (N/m)', DIA.morse(hcl, mu).kf, 516.3, 0.2);
+  const L = DIA.rovibLines(hcl, 298);
+  near('HCl R(0)', L.find((l) => l.branch === 'R' && l.J === 0).nu, 2905.57, 0.02);
+  near('HCl P(1)', L.find((l) => l.branch === 'P' && l.J === 1).nu, 2864.43, 0.02);
+  check('HCl strongest lines from J = 3', DIA.jMax(hcl.Be, 298) === 3);
+  const dcl = DIA.isotopeScale(hcl, mu, DIA.reducedMass(mass('2H'), mass('35Cl')));
+  near('DCl fundamental', DIA.G(dcl, 1) - DIA.G(dcl, 0), 2090.8, 0.1);
+  near('CO first rotational line (GHz)', (DIA.F(DIA.MOLECULES.find((m) => m.id === 'CO').k, 0, 1)) * 29.9792458, 115.27, 0.05);
+  const f = DIA.fitAnharmonic([1, 2, 3, 4], [2885.9, 5668.0, 8346.8, 10923.1]);
+  near('fit ωe', f.we, 2989.22, 0.01);
+  near('fit ωexe', f.wexe, 51.71, 0.01);
+  const exact = DIA.fitAnharmonic([1, 2, 3], [1, 2, 3].map((v) => DIA.G(hcl, v) - DIA.G(hcl, 0)));
+  near('fit recovers ωe exactly', exact.we, 2990.95, 1e-6);
+  near('Morse V at re is 0', DIA.morseV(100, 2, 1.2, 1.2), 0, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

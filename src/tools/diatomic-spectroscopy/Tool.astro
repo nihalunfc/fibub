@@ -1,0 +1,171 @@
+---
+// Diatomic spectroscopy: vibrational levels and the Morse potential, rotational constants and bond length, the IR
+// rovibrational spectrum (P and R branches) and pure rotational lines at any temperature, isotope substitution, and
+// a fit of ωe and ωexe from measured band origins.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MOLECULES } from '../../lib/sci/diatomic';
+---
+<div class="ax dia">
+  <div class="ax-card">
+    <h2>Molecule</h2>
+    <div class="ax-grid">
+      <label>Molecule <select class="dia-mol">{MOLECULES.map((m) => <option value={m.id}>{m.name}</option>)}<option value="">My own constants</option></select></label>
+      <label>Atom 1 <input class="dia-a1" value="1H" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Atom 2 <input class="dia-a2" value="35Cl" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Temperature (K) <input class="dia-T" inputmode="decimal" value="298" /></label>
+      <label>ωe (cm⁻¹) <input class="dia-we" inputmode="decimal" /></label>
+      <label>ωexe (cm⁻¹) <input class="dia-wexe" inputmode="decimal" /></label>
+      <label>Be (cm⁻¹) <input class="dia-Be" inputmode="decimal" /></label>
+      <label>αe (cm⁻¹) <input class="dia-ae" inputmode="decimal" /></label>
+      <label>De, centrifugal (cm⁻¹, optional) <input class="dia-De" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Constants are for the main isotopologue (Huber and Herzberg, via the NIST Chemistry WebBook). Change an atom to an isotope, such as 2H or 37Cl, and they are rescaled with the reduced mass. Type over a constant to use your own.</p>
+    <p class="ax-err dia-err" hidden></p>
+    <div class="dia-out">
+      <p class="ax-big dia-big"></p>
+      <dl class="ax-facts dia-facts"></dl>
+      <h3 class="dia-h3">Infrared spectrum (fundamental band)</h3>
+      <canvas class="ax-fig dia-sfig"></canvas>
+      <div class="ax-scroll"><table class="dia-tab"></table></div>
+      <h3 class="dia-h3">Potential energy curve</h3>
+      <canvas class="ax-fig dia-mfig"></canvas>
+      <p class="ax-help">The Morse curve uses De = ωe²/4ωexe, which often overestimates the true dissociation energy because real levels crowd together faster near the top.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fit ωe and ωexe from band origins</h2>
+    <label>Upper level v and band origin ν(0 → v) in cm⁻¹, one per line <textarea class="dia-fit" rows="4" spellcheck="false">1 2885.9
+2 5668.0
+3 8346.8
+4 10923.1</textarea></label>
+    <p class="ax-err dia-ferr" hidden></p>
+    <p class="ax-big dia-fbig"></p>
+    <dl class="ax-facts dia-ffacts"></dl>
+    <p class="ax-help">The fit is a straight line of ν/v against v + 1: the intercept is ωe and the slope is −ωexe. The example is the measured H³⁵Cl fundamental and its first three overtones.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MOLECULES, reducedMass, isotopeScale, G, Bv, F, bondLength, morse, morseV, rovibLines, jMax, fitAnharmonic, CM_EV, CM_KJ, type Constants } from '../../lib/sci/diatomic';
+  import { parseFormula, monoMass, keyInfo } from '../../lib/sci/chem';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dia')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  let sfig: Figure | null = null, mfig: Figure | null = null, rows: string[][] = [];
+
+  function atom(s: string): number {
+    const t = s.trim(); if (!t) throw new Error('Type both atoms, such as 1H and 35Cl.');
+    const key = /^\d/.test(t) ? `[${t}]` : t;
+    const f = parseFormula(key);
+    if ([...f.counts.values()].reduce((a, b) => a + b, 0) !== 1) throw new Error(`"${t}" is not a single atom.`);
+    const k = [...f.counts.keys()][0], info = keyInfo(k);
+    if (info.a !== undefined && !info.el.isotopes.some((x) => x.a === info.a)) throw new Error(`${t} is not a known isotope of ${info.el.name.toLowerCase()}.`);
+    return monoMass(f);
+  }
+
+  function fill() {
+    const m = MOLECULES.find((x) => x.id === q<HTMLSelectElement>('.dia-mol').value); if (!m) return;
+    q<HTMLInputElement>('.dia-a1').value = m.atoms[0]; q<HTMLInputElement>('.dia-a2').value = m.atoms[1];
+    const k = m.k; q<HTMLInputElement>('.dia-we').value = String(k.we); q<HTMLInputElement>('.dia-wexe').value = String(k.wexe); q<HTMLInputElement>('.dia-Be').value = String(k.Be); q<HTMLInputElement>('.dia-ae').value = String(k.ae); q<HTMLInputElement>('.dia-De').value = k.De !== undefined ? String(k.De) : '';
+  }
+
+  function run() {
+    const err = (m: string) => { q('.dia-err').textContent = m; q('.dia-err').hidden = !m; q('.dia-out').hidden = !!m; };
+    let m1: number, m2: number;
+    try { m1 = atom(q<HTMLInputElement>('.dia-a1').value); m2 = atom(q<HTMLInputElement>('.dia-a2').value); } catch (e) { return err((e as Error).message); }
+    const mu = reducedMass(m1, m2), T = v('.dia-T');
+    const base: Constants = { we: v('.dia-we'), wexe: v('.dia-wexe'), Be: v('.dia-Be'), ae: v('.dia-ae') || 0, De: q<HTMLInputElement>('.dia-De').value.trim() ? v('.dia-De') : undefined, re: NaN };
+    if (!(base.we > 0 && base.wexe > 0 && base.Be > 0)) return err('Type ωe, ωexe and Be, all above zero.');
+    if (!(T > 0)) return err('Type the temperature in kelvin, above zero.');
+    err('');
+    // Isotope substitution relative to the preset's own atoms.
+    const preset = MOLECULES.find((x) => x.id === q<HTMLSelectElement>('.dia-mol').value);
+    let k = base, isoNote = '';
+    if (preset) {
+      const mu0 = reducedMass(atom(preset.atoms[0]), atom(preset.atoms[1]));
+      if (Math.abs(mu0 - mu) > 1e-9) { k = isotopeScale(base, mu0, mu); isoNote = `rescaled from ${preset.name} by the reduced mass (${sig(mu0, 6)} → ${sig(mu, 6)} u)`; }
+    }
+    const nu0 = G(k, 1) - G(k, 0), r = bondLength(k.Be, mu), mo = morse(k, mu);
+    const name = preset && !isoNote ? preset.name : `${q<HTMLInputElement>('.dia-a1').value.trim()}–${q<HTMLInputElement>('.dia-a2').value.trim()}`;
+    q('.dia-big').textContent = `${name}: fundamental ${nu0.toFixed(1)} cm⁻¹ (${sig(1e4 / nu0, 4)} µm), bond length ${r.toFixed(4)} Å`;
+    const facts: HTMLElement[] = [];
+    if (isoNote) facts.push(fact('Isotopologue', `ωe ${k.we.toFixed(1)}, Be ${k.Be.toFixed(4)} cm⁻¹`, isoNote));
+    facts.push(fact('Reduced mass', `${sig(mu, 6)} u`, `from ${sig(m1, 7)} and ${sig(m2, 7)} u`));
+    facts.push(fact('Force constant', `${mo.kf.toFixed(1)} N/m`, 'k = μ(2πcωe)²'));
+    facts.push(fact('Overtones', `${(G(k, 2) - G(k, 0)).toFixed(1)} and ${(G(k, 3) - G(k, 0)).toFixed(1)} cm⁻¹`, 'first and second overtones (0 → 2, 0 → 3): a little less than 2× and 3× the fundamental because of anharmonicity'));
+    facts.push(fact('Zero-point energy', `${G(k, 0).toFixed(1)} cm⁻¹ = ${(G(k, 0) * CM_KJ).toFixed(2)} kJ/mol`, 'G(0) = ωe/2 − ωexe/4'));
+    facts.push(fact('Morse well', `De ${(mo.De * CM_EV).toFixed(3)} eV, D0 ${(mo.D0 * CM_EV).toFixed(3)} eV`, `${mo.vmax + 1} bound levels (v = 0 to ${mo.vmax})${preset?.D0eV && !isoNote ? `; measured D0 is ${preset.D0eV} eV` : ''}`));
+    const B0 = Bv(k, 0), B1 = Bv(k, 1), jm = jMax(B0, T);
+    facts.push(fact('Rotation', `B0 ${B0.toFixed(4)}, B1 ${B1.toFixed(4)} cm⁻¹`, `line spacing about 2B = ${(2 * B0).toFixed(3)} cm⁻¹; most populated level at ${T} K is J = ${jm}; first pure rotational line ${(F(k, 0, 1) - F(k, 0, 0)).toFixed(3)} cm⁻¹ (${sig((F(k, 0, 1) - F(k, 0, 0)) * 29.9792458, 4)} GHz)`));
+    const pop1 = 100 * Math.exp((-1.438776877 * nu0) / T);
+    facts.push(fact('Thermal population of v = 1', pop1 < 0.01 ? 'below 0.01 %' : `${sig(pop1, 2)} %`, 'relative to v = 0; hot bands appear when this is large'));
+    q('.dia-facts').replaceChildren(...facts);
+
+    const lines = rovibLines(k, T, 0, 1, Math.max(20, jm * 3 + 6)).filter((l) => l.intensity > 0.005);
+    const stick = (ls: typeof lines) => ({ x: ls.flatMap((l) => [l.nu, l.nu, l.nu]), y: ls.flatMap((l) => [0, l.intensity, 0]) });
+    const P = stick(lines.filter((l) => l.branch === 'P')), R = stick(lines.filter((l) => l.branch === 'R'));
+    sfig = chartFigure({ h: 260, xLabel: 'Wavenumber (cm⁻¹)', yLabel: 'Relative intensity', yMin: 0, yMax: 1.08, series: [{ name: 'P branch', ...P, mode: 'line', width: 1.4 }, { name: 'R branch', ...R, mode: 'line', width: 1.4 }], marks: [{ kind: 'vline', at: nu0, label: 'ν0', dash: [3, 3] }], legend: 'below' }, 'Simulated rovibrational spectrum with P and R branches');
+    paint(q<HTMLCanvasElement>('.dia-sfig'), sfig);
+    const show = rovibLines(k, T, 0, 1, 10);
+    rows = Array.from({ length: 11 }, (_, J) => { const p = show.find((l) => l.branch === 'P' && l.J === J), rr = show.find((l) => l.branch === 'R' && l.J === J)!; return [String(J), p ? p.nu.toFixed(2) : '–', rr.nu.toFixed(2), (rr.intensity).toFixed(2)]; });
+    const tb = q<HTMLTableElement>('.dia-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['J (lower)', 'P(J) cm⁻¹', 'R(J) cm⁻¹', 'Population'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows.forEach((rw) => { const tr = bd.insertRow(); rw.forEach((c) => { const td = tr.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); });
+
+    // Morse curve with levels between the classical turning points, and the harmonic curve.
+    const re = r, a = mo.a, De = mo.De, rs: number[] = [];
+    const rmin = re - Math.log(1 + Math.sqrt(1.3)) / a, rmax = re + 3.2 / a;
+    for (let i = 0; i <= 300; i++) rs.push(rmin + ((rmax - rmin) * i) / 300);
+    const lv = Math.min(mo.vmax, 12), levels: { name: string; x: number[]; y: number[]; mode: 'line'; color: string; width: number }[] = [];
+    for (let n = 0; n <= lv; n++) { const e = G(k, n), s = Math.sqrt(e / De); if (s >= 1) break; levels.push({ name: `v = ${n}`, x: [re - Math.log(1 + s) / a, re - Math.log(1 - s) / a], y: [e / 1000, e / 1000], mode: 'line', color: '#888888', width: 1 }); }
+    mfig = chartFigure({ h: 300, xLabel: 'Bond length (Å)', yLabel: 'Energy (1000 cm⁻¹)', yMin: 0, yMax: (De * 1.25) / 1000, xMin: rmin, xMax: rmax, legend: 'none', series: [{ name: 'Morse', x: rs, y: rs.map((x) => morseV(De, a, re, x) / 1000), mode: 'line', width: 2 }, { name: 'Harmonic', x: rs, y: rs.map((x) => (0.5 * mo.kf * ((x - re) * 1e-10) ** 2) / (6.62607015e-34 * 2.99792458e10) / 1000), mode: 'line', dash: [5, 4], width: 1.2 }, ...levels], marks: [{ kind: 'hline', at: De / 1000, label: 'dissociation', dash: [3, 3] }] }, 'Morse potential with vibrational levels and the harmonic approximation');
+    paint(q<HTMLCanvasElement>('.dia-mfig'), mfig);
+  }
+
+  function fit() {
+    const err = (m: string) => { q('.dia-ferr').textContent = m; q('.dia-ferr').hidden = !m; };
+    const pts = parseTable(q<HTMLTextAreaElement>('.dia-fit').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => a >= 1 && b > 0);
+    if (pts.length < 3) { q('.dia-fbig').textContent = ''; q('.dia-ffacts').replaceChildren(); return err('Give at least 3 bands: the upper level v (1, 2, 3 …) and the wavenumber.'); }
+    err('');
+    const f = fitAnharmonic(pts.map((p) => p[0]), pts.map((p) => p[1]));
+    q('.dia-fbig').textContent = `ωe = ${f.we.toFixed(1)} ± ${f.seWe.toFixed(1)} cm⁻¹, ωexe = ${f.wexe.toFixed(2)} ± ${f.seWexe.toFixed(2)} cm⁻¹`;
+    const k: Constants = { we: f.we, wexe: f.wexe, Be: 1, ae: 0, re: NaN };
+    q('.dia-ffacts').replaceChildren(
+      fact('Fit quality', `R² = ${f.r2.toFixed(5)}`, `${pts.length} bands`),
+      fact('Morse estimate', `De ${(f.we ** 2 / (4 * f.wexe) * CM_EV).toFixed(2)} eV`, `D0 ≈ ${((f.we ** 2 / (4 * f.wexe) - G(k, 0)) * CM_EV).toFixed(2)} eV (Birge–Sponer extrapolation of a Morse oscillator)`),
+      fact('Use them', 'press below to send these to the molecule card', ''),
+    );
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = 'Use ωe and ωexe above';
+    b.addEventListener('click', () => { q<HTMLInputElement>('.dia-we').value = f.we.toFixed(2); q<HTMLInputElement>('.dia-wexe').value = f.wexe.toFixed(3); q<HTMLSelectElement>('.dia-mol').value = ''; run(); });
+    (q('.dia-ffacts').lastElementChild!.querySelector('dd') as HTMLElement).replaceChildren(b);
+  }
+
+  q('.dia-mol').addEventListener('change', () => { fill(); run(); });
+  for (const c of ['.dia-a1', '.dia-a2', '.dia-T']) q(c).addEventListener('input', run);
+  for (const c of ['.dia-we', '.dia-wexe', '.dia-Be', '.dia-ae', '.dia-De']) q(c).addEventListener('input', () => { q<HTMLSelectElement>('.dia-mol').value = ''; run(); });
+  q('.dia-fit').addEventListener('input', fit);
+  document.addEventListener('fibub:theme', () => { if (sfig) paint(q<HTMLCanvasElement>('.dia-sfig'), sfig); if (mfig) paint(q<HTMLCanvasElement>('.dia-mfig'), mfig); });
+  fill(); run(); fit();
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0]?.textContent ?? ''] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Diatomic spectroscopy', subtitle: q('.dia-big').textContent!, file: 'diatomic',
+    sections: q('.dia-out').hidden ? [] : [
+      { title: 'Constants and results', facts: factsOf('.dia-facts') },
+      { title: 'Infrared spectrum', ...(sfig ? { figure: sfig } : {}), table: { head: ['J (lower)', 'P(J) cm⁻¹', 'R(J) cm⁻¹', 'Population'], rows, align: ['r', 'r', 'r', 'r'] } },
+      { title: 'Potential energy curve', ...(mfig ? { figure: mfig } : {}) },
+      ...(q('.dia-fbig').textContent ? [{ title: q('.dia-fbig').textContent!, facts: factsOf('.dia-ffacts').slice(0, 2) }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .dia .dia-h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>
