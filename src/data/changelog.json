@@ -1,5 +1,14 @@
 [
  {
+  "sha": "8b9781bddee6",
+  "date": "2026-11-08T21:33:35+00:00",
+  "title": "Add the Köppen climate classifier with a Walter-Lieth climate diagram (#137)",
+  "tools": [
+   "koppen-climate"
+  ],
+  "site": false
+ },
+ {
   "sha": "25c7382a628c",
   "date": "2026-11-08T21:19:58+00:00",
   "title": "Add the skew-T sounding plotter with CAPE, CIN, LCL and stability indices (#136)",
