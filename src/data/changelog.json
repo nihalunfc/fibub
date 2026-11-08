@@ -1,5 +1,14 @@
 [
  {
+  "sha": "cf6ee469fe12",
+  "date": "2026-11-08T10:15:10+00:00",
+  "title": "Add the green chemistry metrics calculator (#98)",
+  "tools": [
+   "green-chemistry-metrics"
+  ],
+  "site": false
+ },
+ {
   "sha": "7ea3956baa62",
   "date": "2026-11-08T09:59:42+00:00",
   "title": "Add the electroplating and electrolysis calculator (#97)",
