@@ -81,6 +81,7 @@ import * as THM from '../src/lib/sci/thermo.ts';
 import * as NST from '../src/lib/sci/nernst.ts';
 import * as FAR from '../src/lib/sci/faraday.ts';
 import * as GRN from '../src/lib/sci/green.ts';
+import * as DEC from '../src/lib/sci/decay.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1213,6 +1214,20 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('E-factor', m.eFactor, 13.80, 0.01);
   near('E-factor without water', m.eFactorNoWater, 7.054, 0.001);
   near('PMI = E + 1', m.pmi, m.eFactor + 1, 1e-12);
+}
+{
+  // Decay: F-18 2 h, time to 100 MBq; carrier-free C-14 62.4–62.7 mCi/mmol, tritium ~29 Ci/mmol, Tc-99m 5.27e6 Ci/g.
+  const f18 = DEC.halfLifeS(109.77, 'min');
+  near('F-18 370 MBq after 2 h', DEC.decay(370, 7200, f18), 173.43, 0.01);
+  near('F-18 back-correction', DEC.decay(173.4272, -7200, f18), 370, 0.001);
+  near('F-18 to 100 MBq (min)', DEC.timeTo(370, 100, f18) / 60, 207.19, 0.01);
+  near('one half-life halves', DEC.decay(8, DEC.halfLifeS(8.0252, 'd'), DEC.halfLifeS(8.0252, 'd')), 4, 1e-12);
+  near('C-14 molar activity (mCi/mmol)', DEC.specific(DEC.halfLifeS(5700, 'y'), 14).perMol / DEC.CI, 62.72, 0.02);
+  near('C-14 per gram (Ci/g)', DEC.specific(DEC.halfLifeS(5700, 'y'), 14).perGram / DEC.CI, 4.48, 0.01);
+  near('tritium molar activity (Ci/mmol)', DEC.specific(DEC.halfLifeS(12.32, 'y'), 3).perMol / DEC.CI / 1000, 29.02, 0.02);
+  near('Tc-99m specific activity (Ci/g)', DEC.specific(DEC.halfLifeS(6.0067, 'h'), 99).perGram / DEC.CI / 1e6, 5.27, 0.01);
+  check('nuclide ids unique and half-lives positive', new Set(DEC.NUCLIDES.map((n) => n.id)).size === DEC.NUCLIDES.length && DEC.NUCLIDES.every((n) => n.t > 0 && n.A > 0));
+  near('mCi in Bq', DEC.ACT_UNITS.mCi, 3.7e7, 1e-6);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

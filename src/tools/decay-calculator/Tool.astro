@@ -1,0 +1,161 @@
+---
+// Radioactive decay correction and specific activity: activity at any date and time, a decay table, time to reach
+// an activity, carrier-free specific and molar activity, and the labelled fraction of a sample.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { NUCLIDES, ACT_UNITS } from '../../lib/sci/decay';
+const units = Object.keys(ACT_UNITS);
+const tu = ['s', 'min', 'h', 'd', 'y'];
+---
+<div class="ax dec">
+  <div class="ax-card">
+    <h2>Decay correction</h2>
+    <div class="ax-grid">
+      <label class="dec-wide">Nuclide <select class="dec-n">{NUCLIDES.map((n) => <option value={n.id} selected={n.id === 'F-18'}>{n.id}: half-life {n.t < 1e5 ? n.t : n.t.toExponential(3)} {n.u === 'y' ? 'years' : n.u} ({n.use})</option>)}<option value="custom">Your own half-life…</option></select></label>
+      <label class="dec-cw" hidden>Half-life <input class="dec-ct" inputmode="decimal" value="1" /></label>
+      <label class="dec-cw" hidden>Unit <select class="dec-cu">{tu.map((u) => <option value={u} selected={u === 'h'}>{u}</option>)}</select></label>
+      <label>Activity at the reference time <input class="dec-a0" inputmode="decimal" value="370" /></label>
+      <label>Unit <select class="dec-au">{units.map((u) => <option value={u} selected={u === 'MBq'}>{u}</option>)}</select></label>
+      <label>Reference date and time <input class="dec-t0" type="datetime-local" value="2026-01-01T08:00" /></label>
+      <label>Wanted date and time <input class="dec-t1" type="datetime-local" value="2026-01-01T10:00" /></label>
+      <label>When will it fall to (same unit, optional) <input class="dec-target" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-err dec-err" hidden></p>
+    <div class="dec-out">
+      <p class="ax-big dec-big"></p>
+      <dl class="ax-facts dec-facts"></dl>
+      <canvas class="ax-fig dec-fig" style="margin-top:10px"></canvas>
+      <h3 style="margin:14px 0 6px">Decay table</h3>
+      <div class="ax-row"><label>Every <input class="dec-step" inputmode="decimal" value="30" style="width:80px" /></label><label>Unit <select class="dec-su">{tu.map((u) => <option value={u} selected={u === 'min'}>{u}</option>)}</select></label><label>Rows <input class="dec-rows" inputmode="numeric" value="12" style="width:70px" /></label></div>
+      <div class="ax-scroll" style="margin-top:8px"><table class="dec-tab"></table></div>
+    </div>
+    <p class="ax-help">For lab and teaching use. It does not work out doses for people, and it is no substitute for a calibrated dose calibrator and your local rules.</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Specific activity</h2>
+    <p class="ax-help">For the nuclide chosen above, as the pure (carrier-free) isotope, with the molar mass taken as the mass number (good to about 0.1 %).</p>
+    <dl class="ax-facts dec-sfacts"></dl>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Your sample's activity (unit above) <input class="dec-sa" inputmode="decimal" value="" placeholder="e.g. 37" /></label>
+      <label>Amount of compound (µmol) <input class="dec-smol" inputmode="decimal" value="" placeholder="e.g. 2" /></label>
+    </div>
+    <p class="ax-err dec-serr" hidden></p>
+    <dl class="ax-facts dec-sout"></dl>
+  </div>
+</div>
+
+<script>
+  import { nuclide, halfLifeS, decay, timeTo, specific, ACT_UNITS, CI, UNIT_S } from '../../lib/sci/decay';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dec')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const n4 = (x: number) => (x !== 0 && (Math.abs(x) >= 1e6 || Math.abs(x) < 1e-3) ? fmtExp(x, 4) : sig(x, 4));
+  let fig: Figure | null = null, tab: string[][] = [];
+
+  function dur(s: number) {
+    const a = Math.abs(s), sg = s < 0 ? '−' : '';
+    if (a < 120) return `${sg}${sig(a, 4)} s`;
+    if (a < 7200) return `${sg}${sig(a / 60, 4)} min`;
+    if (a < 3 * 86400) { const h = Math.floor(a / 3600), m = Math.round((a - h * 3600) / 60); return `${sg}${h} h ${m} min`; }
+    if (a < 2 * UNIT_S.y) return `${sg}${sig(a / 86400, 4)} days`;
+    return `${sg}${n4(a / UNIT_S.y)} years`;
+  }
+  const whenShort = (ms: number) => new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const when = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+  function half(): number | string {
+    const id = q<HTMLSelectElement>('.dec-n').value;
+    root.querySelectorAll<HTMLElement>('.dec-cw').forEach((e) => (e.hidden = id !== 'custom'));
+    if (id !== 'custom') { const n = nuclide(id)!; return halfLifeS(n.t, n.u); }
+    const t = num(val('.dec-ct')); if (!(t > 0)) return 'Type your half-life, above zero.';
+    return halfLifeS(t, q<HTMLSelectElement>('.dec-cu').value);
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.dec-err').textContent = m; q('.dec-err').hidden = !m; q('.dec-out').hidden = !!m; if (m) fig = null; };
+    const T = half(); if (typeof T === 'string') { err(T); spec(NaN); return; }
+    spec(T);
+    const A0 = num(val('.dec-a0')), u = q<HTMLSelectElement>('.dec-au').value;
+    if (!(A0 > 0)) return err('Type the activity at the reference time, above zero.');
+    const t0 = new Date(val('.dec-t0')).getTime(), t1 = new Date(val('.dec-t1')).getTime();
+    if (!Number.isFinite(t0) || !Number.isFinite(t1)) return err('Pick both dates and times.');
+    err('');
+    const dt = (t1 - t0) / 1000, A = decay(A0, dt, T), frac = A / A0;
+    q('.dec-big').textContent = `${n4(A)} ${u} on ${when(t1)} (${sig(frac * 100, 4)} % of the reference)`;
+    const facts = [
+      fact('Time between', dur(dt), dt < 0 ? 'the wanted time is before the reference, so activity is higher (decay back-correction)' : `${sig(dt / T, 4)} half-lives`),
+      fact('Decay factor', sig(frac, 5), `A = A₀ × 2^(−t/T½) = A₀ × e^(−λt)`),
+      fact('Half-life', dur(T), `λ = ${fmtExp(Math.LN2 / T, 4)} s⁻¹, mean life ${dur(T / Math.LN2)}`),
+      fact('In other units', units(A)),
+    ];
+    const target = num(val('.dec-target'));
+    if (val('.dec-target').trim()) {
+      if (!(target > 0)) facts.push(fact('Falls to', 'type an activity above zero'));
+      else { const tt = timeTo(A0, target, T); facts.push(fact(`Falls to ${n4(target)} ${u}`, when(t0 + tt * 1000), `${dur(tt)} after the reference time`)); }
+    }
+    q('.dec-facts').replaceChildren(...facts);
+    // Plot from the reference to past the wanted time (at least 3 half-lives when that is a sensible span).
+    const span = Math.max(Math.abs(dt) * 1.3, Math.min(3 * T, Math.max(Math.abs(dt) * 3, 1)));
+    const lo = Math.min(0, dt), hi = Math.max(0, dt) + (dt >= 0 ? span - Math.abs(dt) : 0.3 * span);
+    const [scale, su] = hi - lo < 7200 ? [60, 'min'] : hi - lo < 4 * 86400 ? [3600, 'h'] : hi - lo < 3 * UNIT_S.y ? [86400, 'days'] : [UNIT_S.y, 'years'];
+    const xs: number[] = []; for (let i = 0; i <= 120; i++) xs.push((lo + ((hi - lo) * i) / 120) / scale);
+    fig = chartFigure({ h: 230, xLabel: `Time from reference (${su})`, yLabel: `Activity (${u})`, xMin: lo / scale, xMax: hi / scale, yMin: 0, series: [{ name: 'activity', x: xs, y: xs.map((x) => decay(A0, x * scale, T)), mode: 'line', width: 2 }, { name: 'wanted', x: [dt / scale], y: [A], mode: 'points' }], marks: [{ kind: 'vline', at: dt / scale, label: 'wanted', dash: [4, 3] }], legend: 'none' }, 'Activity against time');
+    paint(q<HTMLCanvasElement>('.dec-fig'), fig);
+    table(A0, u, T, t0);
+  }
+  const units = (A: number) => { const u = q<HTMLSelectElement>('.dec-au').value, bq = A * ACT_UNITS[u]; return ['MBq', 'GBq', 'mCi', 'µCi'].filter((x) => x !== u).map((x) => `${n4(bq / ACT_UNITS[x])} ${x}`).join(' · '); };
+
+  function table(A0: number, u: string, T: number, t0: number) {
+    const step = num(val('.dec-step')) * UNIT_S[q<HTMLSelectElement>('.dec-su').value], rows = Math.min(200, Math.max(1, Math.round(num(val('.dec-rows')))));
+    const tb = q<HTMLTableElement>('.dec-tab'); tb.replaceChildren(); tab = [];
+    if (!(step > 0) || !Number.isFinite(rows)) { const c = tb.insertRow().insertCell(); c.textContent = 'Type a step above zero and a number of rows.'; return; }
+    const hr = tb.createTHead().insertRow(); ['When', 'After', `Activity (${u})`, 'Left'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    for (let i = 0; i <= rows; i++) {
+      const s = i * step, A = decay(A0, s, T), r = [whenShort(t0 + s * 1000), dur(s), n4(A), `${sig((100 * A) / A0, 4)} %`]; tab.push(r);
+      const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; });
+    }
+  }
+
+  function spec(T: number) {
+    const id = q<HTMLSelectElement>('.dec-n').value, n = nuclide(id), out = q('.dec-sfacts'), so = q('.dec-sout'), e = q('.dec-serr');
+    if (!n || !Number.isFinite(T)) { out.replaceChildren(fact('Specific activity', id === 'custom' ? 'pick a nuclide from the list (the mass number is needed)' : '–')); so.replaceChildren(); e.hidden = true; return; }
+    const s = specific(T, n.A);
+    out.replaceChildren(
+      fact('Per gram', `${n4(s.perGram)} Bq/g`, `${n4(s.perGram / CI)} Ci/g`),
+      fact('Molar activity', `${n4(s.perMol / 1e9 / 1e6)} GBq/µmol`, `${n4(s.perMol / CI / 1e3)} Ci/mmol, one ${n.id} atom per molecule`),
+      fact('Atoms in 1 MBq', n4(1e6 / s.lambda), `${n4(1e6 / s.lambda / 6.02214076e23 * n.A)} g of ${n.id}`),
+    );
+    const a = val('.dec-sa').trim(), m = val('.dec-smol').trim();
+    if (!a && !m) { so.replaceChildren(); e.hidden = true; return; }
+    const A = num(a) * ACT_UNITS[q<HTMLSelectElement>('.dec-au').value], mol = num(m) * 1e-6;
+    if (!(A > 0) || !(mol > 0)) { e.textContent = 'Type both the activity and the amount, above zero.'; e.hidden = false; so.replaceChildren(); return; }
+    e.hidden = true; const am = A / mol, f = am / s.perMol;
+    so.replaceChildren(
+      fact('Your molar activity', `${n4(am / 1e9 / 1e6)} GBq/µmol`, `${n4(am / CI / 1e3)} Ci/mmol`),
+      fact('Labelled molecules', `${sig(f * 100, 4)} %`, f > 1.0001 ? 'over 100 %: check the numbers, or more than one label per molecule' : 'the rest carry the stable isotope (carrier)'),
+    );
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dec-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Radioactive decay', subtitle: q<HTMLSelectElement>('.dec-n').selectedOptions[0].textContent!, file: 'decay',
+    sections: q('.dec-out').hidden ? [] : [{ title: q('.dec-big').textContent!, facts: [...root.querySelectorAll('.dec-facts > div, .dec-sfacts > div, .dec-sout > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Date and time', 'After', 'Activity', 'Left'], rows: tab, align: ['l', 'r', 'r', 'r'] }, ...(fig ? { figure: fig } : {}) }],
+  }));
+</script>
+
+<style is:global>
+  .dec .dec-wide { grid-column: 1 / -1; }
+  .dec select { max-width: 100%; }
+  .dec .dec-tab td { white-space: nowrap; }
+</style>
