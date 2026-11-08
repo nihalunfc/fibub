@@ -1,5 +1,14 @@
 [
  {
+  "sha": "98de518bab00",
+  "date": "2026-11-08T19:31:47+00:00",
+  "title": "Add the well field drawdown and capture zone tool (#129)",
+  "tools": [
+   "well-field-drawdown"
+  ],
+  "site": false
+ },
+ {
   "sha": "2f857b017481",
   "date": "2026-11-08T19:21:25+00:00",
   "title": "Add the Darcy flow calculator (#128)",
