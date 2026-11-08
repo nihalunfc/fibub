@@ -1,5 +1,14 @@
 [
  {
+  "sha": "d0e3450e5c5a",
+  "date": "2026-11-08T12:24:41+00:00",
+  "title": "Add the binary phase diagram and lever rule calculator (#108)",
+  "tools": [
+   "phase-diagram-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "f652b3ef28db",
   "date": "2026-11-08T12:10:07+00:00",
   "title": "Add the 18-electron rule and oxidation state checker (#107)",
