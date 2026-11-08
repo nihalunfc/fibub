@@ -72,6 +72,7 @@ import * as CHR from '../src/lib/sci/chrom.ts';
 import * as VAL from '../src/lib/sci/validation.ts';
 import * as COL from '../src/lib/sci/colligative.ts';
 import * as EQL from '../src/lib/sci/equilibrium.ts';
+import * as CV from '../src/lib/sci/cv.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1027,6 +1028,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('decomposition: CO2 equals K', EQL.solveIce(t, [0, 0, 0], 1.16).eq[2], 1.16, 1e-9);
   check('coefficients and fractions read', EQL.parseReaction('1/2 N2(g) + 3/2 H2(g) -> NH3(g)')[1].coef === 1.5);
   check('bad reaction explained', (() => { try { EQL.parseReaction('H2 + I2'); return false; } catch { return true; } })());
+}
+{
+  // Cyclic voltammetry: Randles–Sevcik constant 2.69 × 10^5 at 25 °C; a simulated reversible couple reproduces it.
+  near('Randles–Sevcik constant', CV.rsConstant(), 2.6865e5, 50);
+  near('ip for 1 mM, 3 mm disc, D 1e-5, 100 mV/s (µA)', CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, 0.1) * 1e6, 18.993, 0.005);
+  near('D back from ip', CV.diffusionFromPeak(CV.randlesSevcik(2, 0.03, 7e-6, 5e-3, 0.05), 2, 0.03, 5e-3, 0.05), 7e-6, 1e-15);
+  near('C back from ip', CV.concFromPeak(CV.randlesSevcik(1, 0.03, 7e-6, 5e-3, 0.05), 1, 0.03, 7e-6, 0.05), 5e-3, 1e-15);
+  near('reversible ΔEp at 25 °C (mV)', CV.reversibleDeltaEp() * 1000, 56.99, 0.01);
+  const sim = CV.simulateCV({ E0: 0.2, Ei: -0.1, Es: 0.5, v: 0.1, A: 0.0707, C: 1e-3, D: 1e-5 });
+  const a = CV.analyseCV(sim.E, sim.I);
+  near('simulated peak matches Randles–Sevcik', a.forward.I / CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, 0.1), 1, 0.01);
+  near('simulated ΔEp (mV)', a.dEp * 1000, 58, 1.5);
+  near('simulated E½ = E°', a.Ehalf, 0.2, 0.001);
+  near('Nicholson ratio about 1', a.ratio, 1, 0.03);
+  const rev = sim.E.map((e) => -e), cath = CV.analyseCV(rev, sim.I.map((i) => -i));
+  check('cathodic-first sweep found', cath.firstAnodic === false && Math.abs(cath.forward.E + 0.229) < 0.003);
+  const v = [0.025, 0.05, 0.1, 0.2, 0.4], st = CV.scanRateStudy(v, v.map((x) => CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, x)), 1, 0.0707, 1e-3);
+  near('scan-rate D', st.D, 1e-5, 1e-12);
+  near('log-log slope 0.5', st.logFit.slope, 0.5, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
