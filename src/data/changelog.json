@@ -1,10 +1,15 @@
 [
  {
-  "sha": "389533e7b784",
-  "date": "2026-11-08T05:30:05+00:00",
-  "title": "Add a language menu and Malayalam pages",
-  "tools": [],
-  "site": true
+  "sha": "f1aa4c65c675",
+  "date": "2026-11-08T05:31:25+00:00",
+  "title": "Add four tools: Sun position, Jupiter's moons, porkchop plot, radial velocity fitter",
+  "tools": [
+   "jupiter-moons",
+   "porkchop-plot",
+   "radial-velocity-fitter",
+   "sun-position-calculator"
+  ],
+  "site": false
  },
  {
   "sha": "114ed509b3c1",
