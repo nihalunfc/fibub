@@ -12,6 +12,9 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [solution-calculator, equation-balancer, isotope-pattern-calculator, calibration-curve, uncertainty-calculator]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Isotope masses and abundances: the chemical-elements data set by cheminfo (MIT licence), compiled from NIST and IUPAC data."
 flow:
   - { icon: pencil, label: "Formula" }
   - { icon: calculator, label: "Molar mass" }

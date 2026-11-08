@@ -12,6 +12,9 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [orbit-transfer-calculator, rocket-equation, link-budget-calculator, mars-time]
+sources:
+  - "Planet orbits: JPL approximate Keplerian elements (Standish), NASA."
+  - "Gravitational parameters and radii: JPL and IAU values."
 flow:
   - { icon: orbit, label: "Planets" }
   - { icon: calendar, label: "Dates" }

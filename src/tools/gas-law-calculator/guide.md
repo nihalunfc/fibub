@@ -12,6 +12,10 @@ icon: calculator
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, equation-balancer, psychrometric-calculator, solution-calculator, reaction-kinetics-fitter]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "van der Waals constants: common values for 13 gases from the CRC Handbook, which you can type over."
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: pencil, label: "3 values" }
   - { icon: calculator, label: "PV = nRT" }

@@ -12,6 +12,10 @@ icon: book
 works: offline
 updated: 2026-11-07
 related: [sky-tonight, object-altitude, fits-viewer, astro-time]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "Deep-sky objects: the OpenNGC catalogue by Mattia Verga (CC BY-SA 4.0)."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: eye, label: "Observe" }
   - { icon: pencil, label: "Write notes" }

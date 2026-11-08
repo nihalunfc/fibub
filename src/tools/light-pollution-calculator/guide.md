@@ -12,6 +12,9 @@ icon: eye
 works: offline
 updated: 2026-11-08
 related: [dark-sky-calendar, sub-exposure-calculator, sky-tonight, meteor-shower-planner, telescope-calculator]
+sources:
+  - "Natural sky brightness: about 22.0 mag/arcsec², as used by Falchi et al. (2016)."
+  - "Bortle classes: descriptions written by fibub after Bortle's 2001 scale."
 flow:
   - { icon: eye, label: "Your sky" }
   - { icon: sliders, label: "Convert" }

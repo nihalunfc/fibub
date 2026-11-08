@@ -12,6 +12,10 @@ icon: calculator
 works: offline
 updated: 2026-11-08
 related: [cyclic-voltammetry, equilibrium-solver, thermochemistry-calculator, titration-curve]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Standard reduction potentials: the CRC Handbook electrochemical series and Bard, Parsons and Jordan, Standard Potentials in Aqueous Solution, which you can type over."
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: flask, label: "Electrodes" }
   - { icon: sliders, label: "Conc. and pH" }

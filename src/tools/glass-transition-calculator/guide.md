@@ -12,6 +12,8 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [copolymer-composition, polymer-molar-mass, colligative-properties, plot-maker]
+sources:
+  - "Homopolymer glass transition temperatures: typical literature values, rounded, which you can type over."
 flow:
   - { icon: flask, label: "Monomers" }
   - { icon: sliders, label: "Weights" }

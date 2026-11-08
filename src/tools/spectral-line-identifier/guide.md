@@ -12,6 +12,8 @@ icon: search
 works: offline
 updated: 2026-11-08
 related: [redshift-calculator, cosmology-calculator, radial-velocity-fitter, rotation-curve-fitter, plot-maker]
+sources:
+  - "Line wavelengths: NIST Atomic Spectra Database (US government), rounded to 0.01 Å; molecular bands give the band head."
 flow:
   - { icon: table, label: "Spectrum" }
   - { icon: search, label: "Match lines" }

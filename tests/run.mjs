@@ -2129,6 +2129,11 @@ try {
     check((await page.inputValue('.phd-x')) === '31.7', `phase diagram: units switch keeps the mixture (${await page.inputValue('.phd-x')})`);
     await page.fill('.phd-c0', '50');
     check(/must lie between/.test(await page.textContent('.phd-lerr')), 'phase diagram: lever rule outside the tie line');
+
+    await page.goto(BASE + '/science/decay-calculator/');
+    check(/NNDC/.test(await page.textContent('#sources')) && (await page.getAttribute('#sources a', 'href')) === '/contact/?about=rights-decay-calculator#rights', 'sources: listed with a removal-request link');
+    await page.goto(BASE + '/contact/');
+    check(/data removal requests/.test(await page.textContent('#rights')), 'contact: rights requests section');
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 

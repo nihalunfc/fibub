@@ -12,6 +12,11 @@ icon: star
 works: offline
 updated: 2026-11-08
 related: [sky-events-calendar, dark-sky-calendar, sky-tonight, observing-log]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
+  - "Meteor shower dates, rates and radiants: typical values from the International Meteor Organization's shower calendar, rounded."
+  - "Rate formula: the standard IMO correction for radiant altitude and limiting magnitude."
 flow:
   - { icon: pointer, label: "Your place" }
   - { icon: star, label: "Shower" }

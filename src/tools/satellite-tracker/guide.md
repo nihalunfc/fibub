@@ -12,6 +12,10 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [orbit-transfer-calculator, link-budget-calculator, rocket-equation, porkchop-plot, sky-tonight, object-altitude]
+sources:
+  - "World map: Natural Earth land outlines (public domain)."
+  - "Earth constants: WGS 84 and the J2 term used by NORAD two-line elements."
+  - "Orbit data: the two-line element set you paste."
 flow:
   - { icon: orbit, label: "Orbit" }
   - { icon: compass, label: "Map track" }

@@ -12,6 +12,8 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [huckel-mo-calculator, beer-lambert-calculator, molar-mass-calculator, equilibrium-solver]
+sources:
+  - "Spectrochemical series and pairing behaviour: standard textbook order (Shriver and Atkins; Housecroft and Sharpe)."
 flow:
   - { icon: flask, label: "Metal ion" }
   - { icon: sliders, label: "Δ and P" }

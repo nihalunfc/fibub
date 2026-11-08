@@ -12,6 +12,9 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [nernst-calculator, electroplating-calculator, cyclic-voltammetry, battery-cycling-analyser]
+sources:
+  - "Rate formula and equivalent weights: ASTM G102 and ASTM G1/G31 methods."
+  - "Metal densities: CRC Handbook values."
 flow:
   - { icon: table, label: "Scan" }
   - { icon: ruler, label: "Tafel lines" }

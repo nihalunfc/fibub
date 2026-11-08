@@ -12,6 +12,9 @@ icon: moon
 works: offline
 updated: 2026-11-08
 related: [sky-events-calendar, sky-tonight, observing-session, sub-exposure-calculator]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: pointer, label: "Your place" }
   - { icon: moon, label: "Each night" }

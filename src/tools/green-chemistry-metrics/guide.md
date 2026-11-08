@@ -12,6 +12,8 @@ icon: percent
 works: offline
 updated: 2026-11-08
 related: [reaction-equivalents, equation-balancer, molar-mass-calculator, thermochemistry-calculator]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
 flow:
   - { icon: pencil, label: "Reaction" }
   - { icon: percent, label: "Atom econ." }

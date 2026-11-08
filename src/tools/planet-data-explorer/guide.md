@@ -12,6 +12,10 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [habitable-zone-calculator, impact-crater-calculator, orbit-transfer-calculator, mars-time, jupiter-moons]
+sources:
+  - "Planets: NASA Planetary Fact Sheet (NSSDCA), a US government source."
+  - "Moons: JPL Solar System Dynamics planetary satellite parameters (NASA)."
+  - "Moon counts: confirmed moons, mid-2025."
 flow:
   - { icon: table, label: "Worlds" }
   - { icon: chart, label: "Compare" }

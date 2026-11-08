@@ -12,6 +12,9 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [sky-tonight, object-altitude, telescope-calculator, observing-session, observing-log, sky-events-calendar]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: compass, label: "Your place" }
   - { icon: clock, label: "Date, time" }

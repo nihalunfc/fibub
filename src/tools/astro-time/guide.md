@@ -12,6 +12,9 @@ icon: clock
 works: offline
 updated: 2026-11-07
 related: [sky-coordinates, polar-alignment, observing-log]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: clock, label: "Pick a time" }
   - { icon: convert, label: "Convert" }

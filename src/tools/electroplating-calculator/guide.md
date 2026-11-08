@@ -12,6 +12,10 @@ icon: ruler
 works: offline
 updated: 2026-11-08
 related: [nernst-calculator, cyclic-voltammetry, molar-mass-calculator, gas-law-calculator]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Metal densities: CRC Handbook room-temperature values."
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: flask, label: "Metal" }
   - { icon: sliders, label: "Current" }

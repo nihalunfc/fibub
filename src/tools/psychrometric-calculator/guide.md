@@ -12,6 +12,9 @@ icon: sliders
 works: offline
 updated: 2026-11-08
 related: [uncertainty-calculator, plot-maker, sample-size]
+sources:
+  - "Moist air equations: Hyland and Wexler, as given in the ASHRAE Handbook, Fundamentals (2017)."
+  - "Heat index: US National Weather Service; humidex: Environment Canada (government formulas)."
 flow:
   - { icon: sliders, label: "Air" }
   - { icon: calculator, label: "Properties" }

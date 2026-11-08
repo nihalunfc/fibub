@@ -12,6 +12,8 @@ icon: check
 works: offline
 updated: 2026-11-08
 related: [sample-size, uncertainty-calculator, sql-playground, plot-maker]
+sources:
+  - "Formulas: Cronbach (1951), Cohen (1960), Fleiss (1971), Shrout and Fleiss (1979)."
 flow:
   - { icon: table, label: "Paste data" }
   - { icon: sigma, label: "Alpha/kappa" }

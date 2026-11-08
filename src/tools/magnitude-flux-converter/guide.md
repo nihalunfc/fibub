@@ -12,6 +12,9 @@ icon: star
 works: offline
 updated: 2026-11-08
 related: [cosmology-calculator, telescope-calculator, sub-exposure-calculator, uncertainty-calculator]
+sources:
+  - "Vega zero points: Bessell, Castelli and Plez (1998), Cohen et al. (2003) for 2MASS and Jarrett et al. (2011) for WISE."
+  - "AB magnitudes: 3631 Jy for every band (Oke and Gunn 1983)."
 flow:
   - { icon: star, label: "Magnitude" }
   - { icon: convert, label: "Band" }

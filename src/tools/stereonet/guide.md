@@ -12,6 +12,8 @@ icon: compass
 works: offline
 updated: 2026-11-08
 related: [plot-maker, graph-digitizer, uncertainty-calculator]
+sources:
+  - "Projections: standard Schmidt (equal-area) and Wulff (equal-angle) nets."
 flow:
   - { icon: table, label: "Strike, dip" }
   - { icon: compass, label: "Stereonet" }

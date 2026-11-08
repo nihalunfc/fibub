@@ -12,6 +12,9 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [magnitude-flux-converter, plot-maker, uncertainty-calculator, observing-log]
+sources:
+  - "Method: generalised Lomb–Scargle (Zechmeister and Kürster 2009) with Baluev (2008) false alarm levels."
+  - "Example data: simulated by fibub."
 flow:
   - { icon: table, label: "Paste data" }
   - { icon: chart, label: "Periodogram" }

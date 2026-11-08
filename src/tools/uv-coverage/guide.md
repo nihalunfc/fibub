@@ -12,6 +12,8 @@ icon: telescope
 works: offline
 updated: 2026-11-08
 related: [radio-telescope-calculator, link-budget-calculator, redshift-calculator, sky-coordinates, object-altitude]
+sources:
+  - "Array layouts: example layouts drawn by fibub; real arrays publish their own antenna positions."
 flow:
   - { icon: telescope, label: "Array" }
   - { icon: clock, label: "Observation" }

@@ -12,6 +12,9 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [sky-coordinates, telescope-calculator, uncertainty-calculator, plot-maker]
+sources:
+  - "Distance formulas: Hogg (1999), Distance measures in cosmology."
+  - "Preset parameters: Planck 2018 and WMAP 9-year published results (two numbers each), and round textbook values."
 flow:
   - { icon: target, label: "Redshift" }
   - { icon: sliders, label: "Cosmology" }

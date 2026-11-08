@@ -12,6 +12,9 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, calibration-curve, chromatography-calculator, plot-maker]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Example: a simulated polymer and calibration standards made by fibub."
 flow:
   - { icon: table, label: "Trace" }
   - { icon: ruler, label: "Calibration" }
