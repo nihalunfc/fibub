@@ -1,5 +1,14 @@
 [
  {
+  "sha": "1e817b054d0a",
+  "date": "2026-11-08T09:49:05+00:00",
+  "title": "Add the Nernst and cell potential calculator (#96)",
+  "tools": [
+   "nernst-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "8f76b910121e",
   "date": "2026-11-08T09:37:53+00:00",
   "title": "Add the thermochemistry calculator (#95)",
