@@ -115,6 +115,7 @@ import * as WF from '../src/lib/sci/wellfield.ts';
 import * as GTN from '../src/lib/sci/gradetonnage.ts';
 import * as DH from '../src/lib/sci/drillhole.ts';
 import * as TRV from '../src/lib/sci/traverse.ts';
+import * as LVL from '../src/lib/sci/levelling.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2052,6 +2053,32 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const dd = TRV.distanceDistance({ E: 0, N: 0 }, 5, { E: 8, N: 0 }, 5);
   check('traverse: distance-distance', dd.length === 2 && Math.abs(dd[0].E - 4) < 1e-9 && Math.abs(dd[0].N - 3) < 1e-9 && Math.abs(dd[1].N + 3) < 1e-9);
   check('traverse: circles too far apart', TRV.distanceDistance({ E: 0, N: 0 }, 1, { E: 8, N: 0 }, 1).length === 0);
+}
+
+// Level book (worked by hand).
+{
+  const book = [{ name: 'BM1', bs: 1.5, dist: 0 }, { name: 'P1', is: 1.2, dist: 30 }, { name: 'CP1', fs: 0.8, bs: 2.1, dist: 30 }, { name: 'P2', is: 2.5, dist: 40 }, { name: 'BM2', fs: 1.0, dist: 20 }];
+  check('levelling: good book has no errors', LVL.bookErrors(book).length === 0);
+  const r = LVL.reduce(book, 100);
+  check('levelling: HoC RLs', r.map((x) => x.rlHoc.toFixed(3)).join() === '100.000,100.300,100.700,100.300,101.800');
+  check('levelling: rise and fall RLs agree', r.every((x) => Math.abs(x.rlRf - x.rlHoc) < 1e-9));
+  near('levelling: second HI', r[2].hi, 102.8, 1e-9);
+  check('levelling: rises and falls', Math.abs(r[3].fall - 0.4) < 1e-9 && Math.abs(r[4].rise - 1.5) < 1e-9);
+  const c = LVL.checks(r);
+  near('levelling: ΣBS − ΣFS', c.bsFs, 1.8, 1e-9);
+  check('levelling: all checks close', [c.hocDiff, c.rfDiff, c.rlDiff, c.fullHoc].every((x) => Math.abs(x) < 1e-9) && c.setups === 2);
+  near('levelling: Σrise', c.sRise, 2.2, 1e-9);
+  const a = LVL.adjust(r, 101.79, 'setup');
+  near('levelling: closing error', a.error, 0.01, 1e-9);
+  check('levelling: correction by setup', a.corr.map((x) => (x * 1000).toFixed(1)).join() === '0.0,-5.0,-5.0,-10.0,-10.0');
+  near('levelling: adjusted closing RL', a.adj[4], 101.79, 1e-9);
+  const d = LVL.adjust(r, 101.79, 'distance');
+  near('levelling: correction by distance', d.corr[2], -0.01 * 60 / 120, 1e-12);
+  check('levelling: chainage mode', LVL.reduce([{ name: 'A', bs: 1, dist: 100 }, { name: 'B', fs: 1, dist: 150 }], 0, 'chainage')[1].chain === 150);
+  near('levelling: allowable', LVL.allowable(12, 4), 24, 1e-12);
+  check('levelling: IS with FS flagged', LVL.bookErrors([{ name: 'A', bs: 1 }, { name: 'B', is: 1, fs: 2 }]).some((x) => /intermediate/.test(x.msg)));
+  const bad = LVL.bookErrors([{ name: 'A', is: 1 }, { name: 'B', bs: 1 }, { name: 'C', is: 1 }]);
+  check('levelling: book errors', bad.length === 3 && bad.some((x) => /change point/.test(x.msg)) && bad.some((x) => /last reading/.test(x.msg)));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
