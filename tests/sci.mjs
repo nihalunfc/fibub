@@ -95,6 +95,7 @@ import * as IR from '../src/lib/sci/irbands.ts';
 import * as PG from '../src/lib/sci/pointgroup.ts';
 import * as EIS from '../src/lib/sci/eis.ts';
 import * as ENZ from '../src/lib/sci/enzyme.ts';
+import * as BUF from '../src/lib/sci/buffer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1487,6 +1488,34 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('linear plots exact on perfect data', [L2.lineweaver, L2.eadie, L2.hanes].every((r) => Math.abs(r.Vmax - 60) < 1e-9 && Math.abs(r.Km - 8) < 1e-9));
   let threw = false; try { ENZ.fitEnzyme(ENZ.MODELS[0], [{ S: 1, I: 0, v: 1 }, { S: 2, I: 0, v: 2 }]); } catch { threw = true; }
   check('enzyme: too few rates refused', threw);
+}
+{
+  // Buffers: Henderson–Hasselbalch at zero ionic strength, charge balance, Davies shifts, temperature and capacity.
+  const g = (id) => BUF.BUFFERS.find((b) => b.id === id);
+  check('every buffer form has a molar mass', BUF.BUFFERS.every((b) => b.forms.length && b.forms.every((f) => BUF.formMass(f) > 30)));
+  near('Tris base molar mass', BUF.formMass(g('tris').forms[0]), 121.14, 0.01);
+  near('Na2HPO4·7H2O molar mass', BUF.formMass(g('phosphate').forms.find((f) => f.formula === 'Na2HPO4·7H2O')), 268.06, 0.01);
+  check('fractions at pH = pKa are a half each', Math.abs(BUF.fractions(7.5, [7.5])[0] - 0.5) < 1e-12);
+  near('Henderson–Hasselbalch ratio 10:1 one unit above pKa', BUF.fractions(8.5, [7.5])[1] / BUF.fractions(8.5, [7.5])[0], 10, 1e-9);
+  const h = BUF.oneForm(g('hepes'), g('hepes').forms[0], 7.5, 25, 1e-4, 1, 1);
+  near('dilute HEPES at its pKa is half deprotonated', h.state.nbar, 0.5, 0.005);
+  // Davies: a −1 → −2 pair (phosphate) drops, a +1 → 0 pair (Tris) rises with ionic strength.
+  check('ionic strength moves pKa′ the right way', BUF.pKaApparent(g('phosphate'), 25, 0.1)[1] < 7.2 - 0.3 && BUF.pKaApparent(g('tris'), 25, 0.1)[0] > 8.05 + 0.08);
+  const t = BUF.oneForm(g('tris'), g('tris').forms[0], 8.0, 25, 0.05, 1, 1);
+  near('Tris 50 mM pH 8.0: mL of 1 M HCl', t.titrantmL, 28.40, 0.02); near('Tris grams', t.forms[0].grams, 6.057, 0.001);
+  check('Tris: acid, not base', t.titrant < 0);
+  near('Tris pH at 4 °C', BUF.pHAtOtherT(g('tris'), t, 4), 8.63, 0.01);
+  const p = BUF.twoForms(g('phosphate'), g('phosphate').forms[0], g('phosphate').forms[3], 7.4, 25, 0.1, 1);
+  check('phosphate pair reaches 7.4', p.ok);
+  near('phosphate 7.4: NaH2PO4 share', p.forms[0].mol / 0.1, 0.202, 0.003); near('phosphate ionic strength', p.state.I, 0.2596, 0.001);
+  // Round trip: the pH of the mixed solution comes back as the target.
+  near('phosphate recipe round trip', BUF.pHAtOtherT(g('phosphate'), p, 25), 7.4, 1e-4);
+  near('Tris recipe round trip', BUF.pHAtOtherT(g('tris'), t, 25), 8.0, 1e-4);
+  check('pure NaH2PO4 and Na2HPO4 pH', Math.abs(BUF.pHFor(g('phosphate'), g('phosphate').forms[0], 25, 0.1) - 4.48) < 0.03 && Math.abs(BUF.pHFor(g('phosphate'), g('phosphate').forms[3], 25, 0.1) - 9.22) < 0.03);
+  check('pair out of reach refused', !BUF.twoForms(g('phosphate'), g('phosphate').forms[0], g('phosphate').forms[3], 10, 25, 0.1, 1).ok);
+  near('acetate: NaOH at pH 4.75', BUF.oneForm(g('acetate'), g('acetate').forms[0], 4.75, 25, 0.1, 1, 1).titrantmL, 55.04, 0.05);
+  near('capacity of a single pair at its pKa′ ≈ 2.303 C / 4', BUF.oneForm(g('mops'), g('mops').forms[0], BUF.pKaApparent(g('mops'), 25, 0.05)[0], 25, 0.1, 1, 1).state.beta / BUF.betaMaxSingle(0.1), 1, 0.01);
+  near('pKw at 25 °C and 37 °C', BUF.pKw(25) + BUF.pKw(37), 27.6, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

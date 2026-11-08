@@ -1,0 +1,149 @@
+---
+// Buffer recipe: weigh one form and adjust with strong acid or base, or mix two forms; full charge balance, Davies
+// activity corrections, temperature-adjusted pKa, buffer capacity and the pH at another temperature.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { BUFFERS } from '../../lib/sci/buffer';
+---
+<div class="ax buf">
+  <div class="ax-card">
+    <h2>Buffer</h2>
+    <div class="ax-grid">
+      <label class="buf-wide">Buffer <select class="buf-b">{BUFFERS.map((b) => <option value={b.id} selected={b.id === 'tris'}>{b.name} (pKa {b.pKa.map((p) => p.toFixed(2)).join(', ')})</option>)}</select></label>
+      <label>Target pH <input class="buf-ph" inputmode="decimal" value="8.0" /></label>
+      <label>Concentration (mM) <input class="buf-c" inputmode="decimal" value="50" /></label>
+      <label>Final volume (mL) <input class="buf-v" inputmode="decimal" value="1000" /></label>
+      <label>Temperature when you set the pH (°C) <input class="buf-t" inputmode="decimal" value="25" /></label>
+      <label>Temperature you will use it at (°C) <input class="buf-tu" inputmode="decimal" value="4" /></label>
+      <label>Extra NaCl (mM, optional) <input class="buf-salt" inputmode="decimal" value="0" /></label>
+      <label class="buf-wide">Recipe <select class="buf-mode"><option value="one">Weigh one form, then add strong acid or base</option><option value="two">Mix two forms (no acid or base needed)</option></select></label>
+      <label class="buf-wide">Form to weigh <select class="buf-f1"></select></label>
+      <label class="buf-wide buf-f2l" hidden>Second form <select class="buf-f2"></select></label>
+      <label class="buf-tl">Acid or base strength (M) <input class="buf-ct" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">The recipe solves the full charge balance over every pKa of the buffer, with pKa adjusted for temperature and for ionic strength (Davies equation). It is a starting point: make up to about 80 % of the volume, check with a calibrated pH meter at the working temperature, adjust, then make up to volume.</p>
+    <p class="ax-err buf-err" hidden></p>
+    <div class="buf-out">
+      <p class="ax-big buf-big"></p>
+      <ol class="buf-steps"></ol>
+      <dl class="ax-facts buf-facts"></dl>
+      <canvas class="ax-fig buf-fig" style="margin-top:10px"></canvas>
+      <h3>Species at this pH</h3>
+      <div class="ax-scroll"><table class="buf-sp"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { BUFFERS, oneForm, twoForms, pHAtOtherT, pHFor, betaMaxSingle, fractions, nBar, type Recipe } from '../../lib/sci/buffer';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.buf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+  const grams = (g: number) => (g >= 100 ? g.toFixed(1) : g >= 10 ? g.toFixed(2) : g >= 1 ? g.toFixed(3) : g >= 0.01 ? g.toFixed(4) : (g * 1000).toPrecision(3) + ' m');
+  const mL = (v: number) => (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2));
+  // Species names: the fully protonated form carries the most H.
+  const speciesName = (z0: number, i: number, n: number) => { const h = n - i, z = z0 - i; return `${h ? 'H' + (h > 1 ? toSub(h) : '') : ''}A${z === 0 ? '' : (Math.abs(z) > 1 ? toSup(Math.abs(z)) : '') + (z > 0 ? '⁺' : '⁻')}`; };
+  const toSub = (n: number) => String(n).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+  const toSup = (n: number) => String(n).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
+  const lc = (t: string) => (/^[A-Z][a-z]/.test(t) && !/^Tris\b/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
+  let figs: Figure[] = [], steps: string[] = [], spRows: string[][] = [];
+
+  // Default forms: the pair that brackets the target pH, or the usual form to weigh (listed first).
+  function fillForms() {
+    const b = BUFFERS.find((x) => x.id === q<HTMLSelectElement>('.buf-b').value)!;
+    for (const sel of ['.buf-f1', '.buf-f2']) q<HTMLSelectElement>(sel).replaceChildren(...b.forms.map((f, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = f.name; return o; }));
+    const pH = num(q<HTMLInputElement>('.buf-ph').value), nb = Number.isFinite(pH) ? nBar(fractions(pH, b.pKa)) : 0.5;
+    const first = (test: (k: number) => boolean, pick: (a: number, c: number) => boolean) => b.forms.reduce((best, f, i) => (test(f.k) && (best < 0 || pick(f.k, b.forms[best].k)) ? i : best), -1);
+    let lo = first((k) => k <= nb, (a, c) => a > c), hi = first((k) => k >= nb && k > (lo >= 0 ? b.forms[lo].k : -1), (a, c) => a < c);
+    if (lo < 0) lo = 0; if (hi < 0) hi = b.forms.length - 1;
+    const two = q<HTMLSelectElement>('.buf-mode').value === 'two';
+    q<HTMLSelectElement>('.buf-f1').value = String(two ? lo : 0); q<HTMLSelectElement>('.buf-f2').value = String(hi);
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.buf-err').textContent = m; q('.buf-err').hidden = !m; q('.buf-out').hidden = !!m; if (m) figs = []; };
+    const b = BUFFERS.find((x) => x.id === q<HTMLSelectElement>('.buf-b').value)!;
+    const two = q<HTMLSelectElement>('.buf-mode').value === 'two';
+    q('.buf-f2l').hidden = !two; q('.buf-tl').hidden = two;
+    q('.buf-f1').parentElement!.firstChild!.textContent = two ? 'First form ' : 'Form to weigh ';
+    const pHs = q<HTMLInputElement>('.buf-ph').value.trim(), pH = num(pHs), C = num(q<HTMLInputElement>('.buf-c').value) / 1000, Vml = num(q<HTMLInputElement>('.buf-v').value);
+    const t = num(q<HTMLInputElement>('.buf-t').value), tuRaw = q<HTMLInputElement>('.buf-tu').value.trim(), tu = tuRaw ? num(tuRaw) : t;
+    const salt = (num(q<HTMLInputElement>('.buf-salt').value) || 0) / 1000, Ct = num(q<HTMLInputElement>('.buf-ct').value);
+    if (!(pH >= 0 && pH <= 14)) return err('Enter a target pH between 0 and 14.');
+    if (!(C > 0 && C <= 2)) return err('Enter a concentration above 0 and up to 2000 mM.');
+    if (!(Vml > 0)) return err('Enter the final volume in mL.');
+    if (!(t >= 0 && t <= 95) || !(tu >= 0 && tu <= 95)) return err('Temperatures must be between 0 and 95 °C.');
+    if (!(salt >= 0 && salt <= 3)) return err('Extra NaCl must be between 0 and 3000 mM.');
+    if (!two && !(Ct > 0)) return err('Enter the strength of the acid or base you will add, in mol/L (for example 1 or 5).');
+    const f1 = b.forms[+q<HTMLSelectElement>('.buf-f1').value], f2 = b.forms[+q<HTMLSelectElement>('.buf-f2').value];
+    if (two && b.forms.length < 2) return err(`${b.name} is sold here in one form only: use "Weigh one form".`);
+    const V = Vml / 1000;
+    const r: Recipe = two ? twoForms(b, f1, f2, pH, t, C, V, salt) : oneForm(b, f1, pH, t, C, V, Ct, salt);
+    if (two && !r.ok) return err(r.warn[0]);
+    err('');
+    const s = r.state;
+    steps = [];
+    for (const x of r.forms) if (x.mol > 1e-12) steps.push(x.mL !== undefined ? `Measure ${mL(x.mL)} mL (${grams(x.grams)} g) of ${lc(x.form.name)}, ${x.form.formula}.` : `Weigh ${grams(x.grams)} g of ${lc(x.form.name)} (${x.form.formula}, ${x.mol >= 0.01 ? x.mol.toFixed(3) + ' mol' : (x.mol * 1000).toPrecision(3) + ' mmol'}).`);
+    if (salt > 0) steps.push(`Weigh ${grams(salt * V * 58.44)} g of sodium chloride (NaCl).`);
+    steps.push(`Dissolve in about ${mL(Vml * 0.8)} mL of water at ${t} °C.`);
+    if (!two) {
+      const what = r.titrant >= 0 ? 'NaOH' : 'HCl';
+      if (Math.abs(r.titrant) < 1e-9 * V) steps.push('No acid or base is needed: the form you weigh already sits at this pH.');
+      else steps.push(`Add about ${mL(r.titrantmL)} mL of ${Ct} M ${what} (${(Math.abs(r.titrant) * 1000).toPrecision(3)} mmol), watching the pH meter, until it reads ${pHs}.`);
+    } else steps.push(`Check the pH reads ${pHs}; trim with a little of either solution if it does not.`);
+    steps.push(`Make up to ${Vml} mL with water and mix.`);
+    q('.buf-steps').replaceChildren(...steps.map((x) => { const li = document.createElement('li'); li.textContent = x; return li; }));
+    const main = r.forms.filter((x) => x.mol > 1e-12).map((x) => `${grams(x.grams)} g ${lc(x.form.name.split(/[,(]/)[0].trim())}`).join(' + ');
+    q('.buf-big').textContent = two ? `${main} in ${Vml} mL` : `${main} + ${mL(r.titrantmL)} mL ${Ct} M ${r.titrant >= 0 ? 'NaOH' : 'HCl'} in ${Vml} mL`;
+
+    const near = s.pKa.reduce((bi, p, i) => (Math.abs(p - pH) < Math.abs(s.pKa[bi] - pH) ? i : bi), 0);
+    const facts: HTMLElement[] = [
+      fact(`pKa at ${t} °C`, `${(b.pKa[near] + b.dT[near] * (t - 25)).toFixed(2)} (pKa′ ${s.pKa[near].toFixed(2)} at this ionic strength)`, `25 °C value ${b.pKa[near].toFixed(2)}, changes by ${b.dT[near] > 0 ? '+' : b.dT[near] < 0 ? '−' : ''}${Math.abs(b.dT[near]).toFixed(3)} per °C (approximate)`),
+      fact('Ionic strength', `${(s.I * 1000).toFixed(1)} mM`, 'from the buffer ions, the added acid or base and any NaCl'),
+      fact('Buffer capacity β', `${(s.beta * 1000).toFixed(1)} mM per pH unit`, `${Math.round((100 * s.beta) / betaMaxSingle(C))} % of the most a ${C * 1000} mM buffer gives at its pKa`),
+    ];
+    if (tu !== t) { const p2 = pHAtOtherT(b, r, tu, salt); facts.push(fact(`pH at ${tu} °C`, p2.toFixed(2), `${p2 > pH ? 'rises' : 'falls'} by ${Math.abs(p2 - pH).toFixed(2)} because the pKa and water change with temperature; set the pH at ${tu} °C if that is where it matters`)); }
+    for (const w of r.warn) facts.push(fact('Warning', w));
+    if (b.note) facts.push(fact('Note', b.note));
+    if (!two) facts.push(fact('Without adjustment', `${f1.name} alone gives pH ${pHFor(b, f1, t, C, salt).toFixed(2)}`));
+    q('.buf-facts').replaceChildren(...facts);
+
+    spRows = s.alpha.map((a, i) => [speciesName(b.z0, i, b.pKa.length), a < 1e-4 ? '< 0.01 %' : `${(100 * a).toFixed(a > 0.001 ? 1 : 2)} %`, a * C * 1000 < 0.001 ? '< 0.001 mM' : `${(a * C * 1000).toPrecision(3)} mM`]);
+    table(q<HTMLTableElement>('.buf-sp'), ['Species', 'Share', 'Concentration'], spRows, [1, 2]);
+
+    const xs = Array.from({ length: 141 }, (_, i) => i / 10);
+    const fr = xs.map((x) => fractions(x, s.pKa));
+    figs = [chartFigure({ h: 240, xLabel: 'pH', yLabel: 'share of buffer (%)', xMin: 0, xMax: 14, yMin: 0, yMax: 100, legend: 'below',
+      series: s.alpha.map((_, i) => ({ name: speciesName(b.z0, i, b.pKa.length), x: xs, y: fr.map((f) => 100 * f[i]), mode: 'line' as const, width: 2 })),
+      marks: [{ kind: 'vline', at: pH, dash: [4, 3], label: `pH ${pH}` }] }, `Share of each ${b.name} species against pH, with the target pH marked`)];
+    paint(q<HTMLCanvasElement>('.buf-fig'), figs[0]);
+  }
+
+  q('.buf-b').addEventListener('change', () => { fillForms(); calc(); });
+  q('.buf-mode').addEventListener('change', () => { fillForms(); calc(); });
+  root.querySelectorAll('.buf-f1, .buf-f2').forEach((i) => i.addEventListener('change', calc));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  document.addEventListener('fibub:theme', () => { if (figs.length) paint(q<HTMLCanvasElement>('.buf-fig'), figs[0]); });
+  fillForms(); calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Buffer recipe', subtitle: q('.buf-big').textContent ?? '', file: 'buffer-recipe',
+    sections: q('.buf-out').hidden ? [] : [
+      { title: q('.buf-big').textContent!, facts: [...steps.map((x, i) => [`Step ${i + 1}`, x] as [string, string]), ...[...root.querySelectorAll('.buf-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string])], figure: figs[0] },
+      { title: 'Species at this pH', table: { head: ['Species', 'Share', 'Concentration'], rows: spRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .buf .buf-wide { grid-column: 1 / -1; }
+  .buf select { max-width: 100%; }
+  .buf h3 { font-size: 15px; margin: 14px 0 6px; }
+  .buf .buf-steps { margin: 6px 0 12px; padding-left: 22px; }
+  .buf .buf-steps li { margin: 4px 0; }
+</style>
