@@ -123,6 +123,7 @@ import * as SND from '../src/lib/sci/sounding.ts';
 import * as KOP from '../src/lib/sci/koppen.ts';
 import * as TRD from '../src/lib/sci/trend.ts';
 import * as WAV from '../src/lib/sci/waves.ts';
+import * as OCH from '../src/lib/sci/openchannel.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2356,6 +2357,35 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('waves: Iribarren spilling, plunging, surging', ir.type === 'spilling' && WAV.iribarren(0.1, 1, 100).type === 'plunging' && WAV.iribarren(0.5, 1, 100).type === 'surging or collapsing');
   near('waves: deep-water equivalent height', WAV.deepEquivalent(10, 2, 50), 2 / Math.sqrt(WAV.wave(10, 50).C0 / 2 / WAV.wave(10, 50).Cg), 1e-12);
   check('waves: no depth gives NaN', Number.isNaN(WAV.wavenumber(10, 0)));
+}
+
+// Open channels (#140): Manning, normal and critical depth, part-full pipe peak, weirs; against an independent SciPy calculation.
+{
+  const tr = { kind: 'trap', b: 2, z1: 2, z2: 2 }, pipe = { kind: 'circ', D: 1 };
+  near('channel: rectangle 3 m × 1 m, n 0.013, S 0.001 (SciPy 5.19133)', OCH.manningQ({ kind: 'rect', b: 3 }, 1, 0.013, 0.001), 5.191331186026805, 1e-9);
+  near('channel: trapezoid Q (SciPy 3.78232)', OCH.manningQ(tr, 1.2, 0.025, 0.0005), 3.7823198655300083, 1e-9);
+  near('channel: trapezoid normal depth for 5 m³/s (SciPy 1.369813)', OCH.normalDepth(tr, 5, 0.025, 0.0005), 1.3698134016594972, 1e-8);
+  near('channel: trapezoid critical depth (SciPy 0.681644)', OCH.criticalDepth(tr, 5), 0.6816444124755032, 1e-8);
+  near('channel: rectangle critical depth = (q²/g)^(1/3)', OCH.criticalDepth({ kind: 'rect', b: 3 }, 6), Math.cbrt(4 / OCH.G), 1e-9);
+  const tri = OCH.section({ kind: 'tri', z1: 1, z2: 3 }, 2);
+  check('channel: triangle area, perimeter, top width', Math.abs(tri.A - 8) < 1e-12 && Math.abs(tri.P - 2 * (Math.SQRT2 + Math.sqrt(10))) < 1e-12 && tri.T === 8);
+  const half = OCH.section(pipe, 0.5);
+  check('channel: half-full pipe A = πD²/8, P = πD/2', Math.abs(half.A - Math.PI / 8) < 1e-12 && Math.abs(half.P - Math.PI / 2) < 1e-12 && Math.abs(half.T - 1) < 1e-12);
+  near('channel: full pipe (SciPy 1.072231)', OCH.manningQ(pipe, 1, 0.013, 0.002), 1.0722306051861303, 1e-9);
+  near('channel: pipe peak at y/D ≈ 0.938', OCH.peakDepth(pipe, 0.013, 0.002), 0.9381812163758312, 1e-6);
+  near('channel: peak is 1.0757 × full flow', OCH.manningQ(pipe, OCH.peakDepth(pipe, 0.013, 0.002), 0.013, 0.002) / OCH.manningQ(pipe, 1, 0.013, 0.002), 1.0757061294004646, 1e-8);
+  near('channel: pipe normal depth for 0.8 m³/s (SciPy 0.643818)', OCH.normalDepth(pipe, 0.8, 0.013, 0.002), 0.6438177507245075, 1e-8);
+  check('channel: pipe too small gives NaN', Number.isNaN(OCH.normalDepth(pipe, 2, 0.013, 0.002)));
+  near('channel: US units factor 1.486', OCH.manningQ({ kind: 'rect', b: 10 }, 2, 0.015, 0.002, 1.486) / OCH.manningQ({ kind: 'rect', b: 10 }, 2, 0.015, 0.002), 1.486, 1e-12);
+  const fl = OCH.flowAt(tr, 1.2, 3.7823198655300083, 0.0005);
+  near('channel: Froude', fl.Fr, 0.7163484593806837 / Math.sqrt(OCH.G * 5.28 / 6.8), 1e-12);
+  near('channel: specific energy', fl.E, 1.2 + fl.V ** 2 / (2 * OCH.G), 1e-12);
+  near('channel: bed shear ρgRS', fl.tau, 9806.65 * (5.28 / (2 + 2 * 1.2 * Math.sqrt(5))) * 0.0005, 1e-9);
+  near('weir: V-notch 90°, 0.3 m (SciPy 0.0675313)', OCH.vNotch(90, 0.3), 0.06753131303139304, 1e-12);
+  near('weir: rectangular 2 m, 2 contractions, 0.4 m (SciPy 0.889134)', OCH.rectWeir(2, 0.4, 0.62, 2), 0.889133516858493, 1e-12);
+  near('weir: broad-crested Cd 1 = L √g (2H/3)^1.5', OCH.broadWeir(3, 0.6, 1), 3 * Math.sqrt(OCH.G) * 0.4 ** 1.5, 1e-12);
+  near('weir: Cipolletti', OCH.cipolletti(1.5, 0.25), 0.63 * (2 / 3) * Math.sqrt(2 * OCH.G) * 1.5 * 0.125, 1e-12);
+  near('weir: head from discharge round trip', OCH.headFor((H) => OCH.vNotch(90, H), OCH.vNotch(90, 0.3)), 0.3, 1e-9);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
