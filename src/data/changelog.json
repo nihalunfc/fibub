@@ -1,5 +1,14 @@
 [
  {
+  "sha": "c3ca8e2589d7",
+  "date": "2026-11-08T21:58:14+00:00",
+  "title": "Add the water wave calculator: dispersion, energy, shoaling, refraction and breaking (#139)",
+  "tools": [
+   "wave-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "7d87d3f47143",
   "date": "2026-11-08T21:46:56+00:00",
   "title": "Add the trend and anomaly analyser: Mann-Kendall, Hamed-Rao, seasonal test, Sen slope and Pettitt change point (#138)",
