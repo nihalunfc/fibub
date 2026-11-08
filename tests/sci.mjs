@@ -92,6 +92,7 @@ import * as NMR from '../src/lib/sci/nmr.ts';
 import * as EC from '../src/lib/sci/ecount.ts';
 import * as PH from '../src/lib/sci/phase.ts';
 import * as IR from '../src/lib/sci/irbands.ts';
+import * as PG from '../src/lib/sci/pointgroup.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1424,6 +1425,24 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('example spectrum: 9 peaks found within 4 cm⁻¹', pk.length === 9 && [2984, 2940, 1742, 1447, 1373, 1240, 1047, 938, 847].every((c, i) => Math.abs(pk[i].x - c) <= 4));
   near('cm⁻¹ to µm', IR.toMicron(1715), 5.8309, 0.0001);
   near('%T ↔ A', IR.toAbsorbance(IR.toTransmittance(0.5)), 0.5, 1e-12);
+}
+{
+  // Point groups: every example, also turned, moved and with ±0.02 Å noise; orders, chirality, polarity, flowchart.
+  for (const e of PG.EXAMPLES) check(`${e.id}: ${e.group}`, PG.findPointGroup(e.atoms()).group === e.group);
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  const u = [0.3, 0.5, 0.81].map((x) => x / Math.hypot(0.3, 0.5, 0.81));
+  check('all examples survive rotation, translation and noise', PG.EXAMPLES.every((e) => PG.findPointGroup(e.atoms().map((a) => ({ el: a.el, p: PG.rotate(a.p, u, 1.234).map((x) => x + 3 + 0.04 * rnd()) }))).group === e.group));
+  const w = PG.EXAMPLES[0].atoms(); w[1].p = [w[1].p[0] + 0.3, w[1].p[1], w[1].p[2]];
+  check('distorted water drops to Cs', PG.findPointGroup(w).group === 'Cs');
+  check('group orders', PG.orderOf('D3h') === 12 && PG.orderOf('C2v') === 4 && PG.orderOf('Td') === 24 && PG.orderOf('Oh') === 48 && PG.orderOf('S4') === 4 && PG.orderOf('C3h') === 6 && PG.orderOf('D∞h') === null);
+  check('chiral groups', PG.isChiral('C2') && PG.isChiral('C1') && PG.isChiral('D3') && !PG.isChiral('Cs') && !PG.isChiral('S4') && !PG.isChiral('D2d'));
+  check('polar groups', PG.isPolar('C2v') && PG.isPolar('C∞v') && PG.isPolar('Cs') && !PG.isPolar('D3h') && !PG.isPolar('C2h') && !PG.isPolar('Td'));
+  const F = (o) => PG.flowchart({ linear: false, inversion: false, cubic: 'none', n: 1, perpC2: false, sigmaH: false, sigmaV: false, s2n: false, mirror: false, ...o });
+  check('flowchart', F({ n: 3, perpC2: true, sigmaH: true }) === 'D3h' && F({ n: 2, sigmaV: true }) === 'C2v' && F({ n: 2, s2n: true }) === 'S4' && F({ n: 3, perpC2: true, sigmaV: true }) === 'D3d' && F({ mirror: true }) === 'Cs' && F({}) === 'C1' && F({ cubic: 'T', mirror: true }) === 'Td' && F({ linear: true, inversion: true }) === 'D∞h');
+  const px = PG.parseXYZ('3\nwater from a file\nO 0 0 0\nH 0.757 0.586 0\nh -0.757 0.586 0');
+  check('read an .xyz file', px.atoms.length === 3 && px.bad.length === 0 && px.atoms[2].el === 'H');
+  check('bad line reported', PG.parseXYZ('O 0 0 0\nH 1 2').bad.length === 1);
+  check('subscripts', PG.pretty('D3h') === 'D₃h' && PG.pretty('C2v') === 'C₂v' && PG.pretty('Td') === 'Td' && PG.pretty('D∞h') === 'D∞h');
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
