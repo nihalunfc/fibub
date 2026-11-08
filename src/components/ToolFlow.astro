@@ -2,19 +2,21 @@
 // A picture of what the tool does: 3 or 4 steps in one row, on every screen size.
 // The row never wraps; steps shrink instead, so labels must stay short (see the schema).
 import { ICONS, type IconName } from '../lib/icons';
-interface Props { steps: { icon: IconName; label: string }[]; works: 'offline' | 'online' }
+import { useLang } from '../i18n';
+interface Props { steps: { icon: IconName; label: string }[]; works: 'offline' | 'online'; lang?: string }
 const { steps, works } = Astro.props;
+const L = useLang(Astro.props.lang);
 ---
 <figure class="flow">
   <ol class="flow-steps" style={`--n:${steps.length}`}>
     {steps.map((s, i) => (
       <li class="flow-step">
         <span class="flow-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[s.icon]} /><i>{i + 1}</i></span>
-        <span class="flow-lbl">{s.label}</span>
+        <span class="flow-lbl" lang="en">{s.label}</span>
       </li>
     ))}
   </ol>
-  <figcaption class="flow-cap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.lock} />Nothing is uploaded<span class="dot" aria-hidden="true">·</span><span class:list={['flow-works', works]} data-works={works}>{works === 'offline' ? 'Works offline once open' : 'Needs internet'}</span></figcaption>
+  <figcaption class="flow-cap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.lock} />{L.t('nothingUploaded')}<span class="dot" aria-hidden="true">·</span><span class:list={['flow-works', works]} data-works={works}>{L.t(works === 'offline' ? 'worksOffline' : 'needsInternet')}</span></figcaption>
 </figure>
 
 <style>

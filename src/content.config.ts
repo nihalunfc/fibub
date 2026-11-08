@@ -31,4 +31,15 @@ const tools = defineCollection({
   }),
 });
 
-export const collections = { tools };
+// Translated tool guides: src/i18n/guides/<lang>/<tool id>.md holds the guide (the body of the tool's
+// guide.md) in that language. A tool without one shows its English guide, with a note.
+const guides = defineCollection({
+  loader: glob({ pattern: '*/*.md', base: './src/i18n/guides', generateId: ({ entry }) => entry.replace(/\.md$/, '') }),
+  schema: z.object({
+    // The date of the English guide.md this translation was made from ("updated" in its frontmatter).
+    // When the English guide changes, re-translate and bump this date; tests list guides that are behind.
+    source: z.coerce.date(),
+  }),
+});
+
+export const collections = { tools, guides };

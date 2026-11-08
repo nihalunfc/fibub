@@ -1,0 +1,11 @@
+---
+// The home page in another language: /ml/, /ta/, ...
+import HomeView from '../../views/HomeView.astro';
+import { OTHER_LANGS, checkLangFiles } from '../../i18n';
+import { allTools } from '../../lib/tools';
+export async function getStaticPaths() {
+  checkLangFiles((await allTools()).map((t) => t.id)); // the build stops on a broken language file
+  return OTHER_LANGS.map((l) => ({ params: { lang: l.code } }));
+}
+---
+<HomeView lang={Astro.params.lang} />

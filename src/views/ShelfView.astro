@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import ToolCard from '../components/ToolCard.astro';
+import SoonList from '../components/SoonList.astro';
+import { SECTIONS, SUBJECTS } from '../site';
+import { allTools, bySection, bySubject } from '../lib/tools';
+import { useLang } from '../i18n';
+interface Props { shelf: { id: string }; lang: string }
+const L = useLang(Astro.props.lang);
+const shelf = L.shelf(Astro.props.shelf.id);
+const tools = await allTools();
+const live = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'live');
+const soon = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'soon');
+const hasSections = (SECTIONS[shelf.id] ?? []).length > 0;
+const groups = bySection(shelf.id, live).map((g) => L.section(g));
+// Science: a grid of subjects, each with its sections; the tools are one click away on the subject's page.
+const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live).map((sj) => ({ ...L.subject(sj), url: L.url(sj.url), groups: sj.groups.map((g) => L.section(g)) })) : null;
+---
+<Base title={L.t('shelfTools', { shelf: shelf.name })} description={L.t('shelfDescription', { shelf: shelf.name, blurb: shelf.blurb })} shelf={shelf.id} lang={L.code} i18n>
+  <div class="crumbs"><a href={L.url('/')}>{L.t('home')}</a> / {shelf.name}</div>
+  <h1>{L.t('shelfTools', { shelf: shelf.name })}</h1>
+  <p class="lead">{L.t('shelfLead', { blurb: shelf.blurb })}</p>
+  {subjects ? (
+    <div class="sj-grid">
+      {subjects.map((sj) => (
+        <section class="sj">
+          <h2><a href={sj.url}>{sj.name}</a> <small>{L.t('nTools', { n: sj.count })}</small></h2>
+          <p>{sj.blurb}</p>
+          <ul>{sj.groups.map((g) => <li><a href={`${sj.url}#${g.id}`}>{g.name}</a> <span>{g.tools.length}</span></li>)}</ul>
+        </section>
+      ))}
+    </div>
+  ) : <>
+  {live.length > 6 && (
+    <label class="sf"><span class="visually-hidden">{L.t('findShelfTool', { shelf: shelf.name })}</span><input type="search" placeholder={L.t('findShelfTool', { shelf: shelf.name })} autocomplete="off" /></label>
+  )}
+  {hasSections ? (
+    <div class="sections">
+      {groups.map((g) => (
+        <details class="sec" open id={g.id} data-sec={g.id}>
+          <summary><span><b>{g.label}</b>{g.blurb && <small>{g.blurb}</small>}</span><em>{g.tools.length}</em></summary>
+          <div class="grid">{g.tools.map((t) => <ToolCard tool={t} lang={L.code} />)}</div>
+        </details>
+      ))}
+    </div>
+  ) : (
+    live.length > 0 && <div class="grid">{live.map((t) => <ToolCard tool={t} lang={L.code} />)}</div>
+  )}
+  <p class="sf-empty" hidden set:html={L.rich('noMatch')} />
+  </>}
+  {soon.length > 0 && <><h2>{L.t('comingSoon')}</h2><SoonList tools={soon} /></>}
+</Base>
+
+<style>
+  .sf { display: block; max-width: 420px; margin: 0 0 16px; }
+  .sf input { width: 100%; font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+  .sf input:focus { outline: none; border-color: var(--accent); }
+  .sections { display: grid; gap: 12px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+  .sec > summary::-webkit-details-marker { display: none; }
+  .sec > summary span { display: grid; }
+  .sec > summary b { font-size: 18px; }
+  .sec > summary small { color: var(--muted); font-size: 14px; }
+  .sec > summary em { font-style: normal; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; display: flex; align-items: center; gap: 6px; }
+  .sec > summary em::after { content: '▾'; transition: transform .15s; }
+  .sec:not([open]) > summary em::after { transform: rotate(-90deg); }
+  .sec .grid { padding: 0 12px 12px; }
+  .sf-empty { color: var(--muted); }
+  .sj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px 40px; }
+  .sj h2 { display: flex; align-items: baseline; gap: 8px; font-size: 18px; margin: 18px 0 4px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sj h2 a { color: var(--ink); text-decoration: none; }
+  .sj h2 a:hover { text-decoration: underline; }
+  .sj h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .sj p { margin: 6px 0; font-size: 14px; color: var(--muted); }
+  .sj ul { list-style: none; margin: 0; padding: 0; }
+  .sj li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .sj li a { color: var(--ink); text-decoration: none; }
+  .sj li a:hover { text-decoration: underline; }
+  .sj li span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  /* Phones: a tighter list instead of tall cards, so a long shelf stays easy to scan. */
+  @media (max-width: 600px) {
+    .sec .grid, .grid { gap: 6px; }
+    .grid :global(.tc) { padding: 10px 12px; gap: 12px; }
+    .grid :global(.tc-sum) { -webkit-line-clamp: 1; }
+  }
+</style>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('.sf input');
+  if (input) {
+    const cards = [...document.querySelectorAll<HTMLElement>('.tc[data-search]')];
+    const secs = [...document.querySelectorAll<HTMLDetailsElement>('.sec')];
+    const empty = document.querySelector<HTMLElement>('.sf-empty')!;
+    input.addEventListener('input', () => {
+      const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const c of cards) { const ok = words.every((w) => c.dataset.search!.includes(w)); c.hidden = !ok; if (ok) shown++; }
+      for (const s of secs) { const any = [...s.querySelectorAll<HTMLElement>('.tc')].some((c) => !c.hidden); s.hidden = !any; if (words.length && any) s.open = true; }
+      empty.hidden = shown > 0;
+    });
+  }
+</script>

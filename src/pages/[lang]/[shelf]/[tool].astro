@@ -1,0 +1,13 @@
+---
+import ToolView from '../../../views/ToolView.astro';
+import SubjectView from '../../../views/SubjectView.astro';
+import { shelfAndToolPages } from '../../../lib/pages';
+import { OTHER_LANGS } from '../../../i18n';
+export async function getStaticPaths() {
+  const pages = await shelfAndToolPages();
+  return OTHER_LANGS.flatMap((l) => pages.map((p) => ({ params: { ...p.params, lang: l.code }, props: p.props })));
+}
+const { tool, related, subjectPage } = Astro.props as any;
+const lang = Astro.params.lang;
+---
+{subjectPage ? <SubjectView shelf={subjectPage.shelf} subject={subjectPage.subject} lang={lang} /> : <ToolView tool={tool} related={related} lang={lang} />}

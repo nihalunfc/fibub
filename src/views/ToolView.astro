@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import ToolCard from '../components/ToolCard.astro';
+import ToolFlow from '../components/ToolFlow.astro';
+import ChangeList from '../components/ChangeList.astro';
+import { changesFor } from '../lib/changes';
+import { render, getEntry, getCollection } from 'astro:content';
+import { allTools, toolComponent, toolPlace, type Tool } from '../lib/tools';
+import { ICONS } from '../lib/icons';
+import { useLang } from '../i18n';
+// A tool page, in any language. The tool itself (its labels and buttons) stays in English; the
+// summary and the guide below it come in the page's language when they have been translated.
+interface Props { tool: Tool; related: { direct: Tool[]; all: Tool[] }; lang: string }
+const { tool, related } = Astro.props;
+const L = useLang(Astro.props.lang);
+const toolUrl = L.toolUrl;
+const place = toolPlace(tool);
+const section = place.section && L.section(place.section), subject = place.subject && L.subject(place.subject);
+const shelf = L.shelf(tool.data.shelf);
+const summary = L.summary(tool);
+const ToolUI = toolComponent(tool.id);
+const guide = L.en ? undefined : await getEntry('guides', `${L.code}/${tool.id}`);
+const Content = (await render(guide ?? tool)).Content;
+// Languages whose guide for this tool is translated. Elsewhere the page is mostly English, so it is
+// kept out of search results (noindex) until its guide is done, and Google is not pointed at it.
+const guideLangs = ['en', ...(await getCollection('guides')).filter((g) => g.id.endsWith(`/${tool.id}`)).map((g) => g.id.split('/')[0])];
+const updated = tool.data.updated.toISOString().slice(0, 10);
+const changes = changesFor(tool.id);
+const everyTool = await allTools();
+const kbd = (k: string, cls = '') => `<kbd${cls ? ` class="${cls}"` : ''}>${k}</kbd>`;
+const bold = (s: string) => `<b lang="en">${s}</b>`;
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+---
+<Base title={tool.data.title} description={summary} shelf={shelf.id} image={`/og/${tool.id}.png`} lang={L.code} i18n langs={guideLangs} noindex={!L.en && !guide}>
+  <div class="crumbs"><a href={L.url('/')}>{L.t('home')}</a> / <a href={L.url(`/${shelf.id}/`)}>{shelf.name}</a>{subject && <> / <a href={L.url(`/${shelf.id}/${subject.id}/`)}>{subject.name}</a></>}{section && <> / <a href={subject ? L.url(`/${shelf.id}/${subject.id}/#${section.id}`) : L.url(`/${shelf.id}/#${section.id}`)}>{section.name}</a></>} / <span lang="en">{tool.data.name}</span>{tool.data.num && <span class="tool-num" title={L.t('toolNumTitle')}>{L.t('toolNum', { n: tool.data.num })}</span>}</div>
+  <h1 lang="en">{tool.data.title}</h1>
+  <p class="lead">{summary}</p>
+  <div class="bm" data-id={tool.id}>
+    <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span lang="en">Bookmark this tool</span></button>
+    <span class="bm-tip" role="status" aria-live="polite">{L.t('bookmarkTip')}</span>
+    <dialog class="bm-dlg" aria-labelledby="bm-title">
+      <h2 id="bm-title">{L.t('bookmarkTitle', { name: tool.data.name })}</h2>
+      <p class="bm-desk" set:html={esc(L.t('bookmarkDesk', { keys: '\u0000' })).replace('\u0000', `${kbd('Ctrl', 'bm-k')} + ${kbd('D')}`)} />
+      <p class="bm-phone" hidden set:html={esc(L.t('bookmarkPhone', { add: '\u0001', home: '\u0002' })).replaceAll('\u0001', bold('Add bookmark')).replaceAll('\u0002', bold('Add to Home Screen'))} />
+      <label><input type="checkbox" class="bm-pin" /> {L.t('bookmarkPin')}</label>
+      <div class="bm-row">
+        <button type="button" class="btn bm-share" hidden lang="en">Add bookmark</button>
+        <button type="button" class="btn secondary bm-done" lang="en">Done</button>
+      </div>
+    </dialog>
+  </div>
+  {tool.data.flow && <ToolFlow steps={tool.data.flow} works={tool.data.works} lang={L.code} />}
+  {L.en ? <ToolUI /> : <div class="tool-en" lang="en" dir="ltr"><ToolUI /></div>}
+  {related.direct.length > 0 && (
+    <nav class="also" aria-label={L.t('worksWith')}>
+      <span>{L.t('worksWith')}</span>
+      {related.direct.map((t) => <a href={toolUrl(t)} lang="en"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />{t.data.name}</a>)}
+    </nav>
+  )}
+  {!L.en && !guide && <p class="note guide-note">{L.t('guideInEnglish', { lang: L.lang.name })}</p>}
+  {guide && <p class="note guide-note" set:html={L.rich('guideTranslated', {}, { contact: `/contact/?about=translation-${L.code}-${tool.id}` })} />}
+  <article class="prose" lang={L.en || guide ? undefined : 'en'} dir={L.en || guide ? undefined : 'ltr'}>
+    <Content />
+    <p style="color:var(--muted);font-size:14px">{L.t('lastUpdated', { date: updated })}</p>
+  </article>
+  {changes.length > 0 && (
+    <section class="tool-log" id="changes">
+      <h2>{L.t('changeLogFor', { name: tool.data.name })}</h2>
+      <div lang="en"><ChangeList changes={changes.slice(0, 10)} tools={everyTool} showTools={false} /></div>
+      <p class="more-log">{changes.length > 10 ? `${L.t('latestChanges', { n: changes.length })} ` : ''}<a href="/changes/">{L.t('everyChange')}</a></p>
+    </section>
+  )}
+  <aside class="suggest panel">
+    <b>{L.t('suggestTitle')}</b>
+    <span>{L.t('suggestText', { name: tool.data.name })}</span>
+    <a class="btn secondary" href={`/contact/?about=${tool.id}`} lang="en">Send a suggestion</a>
+  </aside>
+  {related.all.length > 0 && (
+    <section>
+      <h2>{L.t('relatedTools')}</h2>
+      <div class="grid">{related.all.map((t) => <ToolCard tool={t} lang={L.code} />)}</div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .guide-note { max-width: 720px; margin: 28px 0 -8px; font-size: 14px; background: var(--surface); border: 1px solid var(--line); }
+  .more-log { font-size: 14px; color: var(--muted); }
+  .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
+  .suggest span { color: var(--muted); font-size: 15px; }
+  .suggest .btn { margin-top: 6px; }
+  .also { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -16px 0 28px; }
+  .also span { font-size: 14px; color: var(--muted); }
+  .also a { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none; color: var(--ink); border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px 5px 10px; }
+  .also a:hover { border-color: var(--accent); color: var(--accent); }
+  .also svg { width: 15px; height: 15px; color: var(--accent); }
+</style>

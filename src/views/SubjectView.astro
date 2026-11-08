@@ -2,22 +2,24 @@
 // A subject's own page (/science/physics/): its sections as headings and every tool as a plain row,
 // with a filter box and a jump list when there are many sections.
 import Base from '../layouts/Base.astro';
-import { shelfById } from '../site';
-import { toolUrl, type SubjectGroup } from '../lib/tools';
-interface Props { shelf: string; subject: SubjectGroup }
-const { shelf: shelfId, subject } = Astro.props;
-const shelf = shelfById(shelfId);
+import { type SubjectGroup } from '../lib/tools';
+import { useLang } from '../i18n';
+interface Props { shelf: string; subject: SubjectGroup; lang: string }
+const L = useLang(Astro.props.lang);
+const toolUrl = L.toolUrl;
+const shelf = L.shelf(Astro.props.shelf);
+const subject = { ...L.subject(Astro.props.subject), groups: Astro.props.subject.groups.map((g) => L.section(g)) };
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
-<Base title={`${subject.name} tools`} description={`${subject.count} free ${subject.name.toLowerCase()} tools that run in your browser. ${subject.blurb}`} shelf={shelf.id}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {subject.name}</div>
-  <h1>{subject.name} tools</h1>
-  <p class="lead">{subject.blurb} {subject.count} free tools, with no sign-up. Nothing you enter leaves your device.</p>
+<Base title={L.t('subjectTools', { subject: subject.name })} description={L.t('subjectDescription', { n: subject.count, subject: subject.name, blurb: subject.blurb })} shelf={shelf.id} lang={L.code} i18n>
+  <div class="crumbs"><a href={L.url('/')}>{L.t('home')}</a> / <a href={L.url(`/${shelf.id}/`)}>{shelf.name}</a> / {subject.name}</div>
+  <h1>{L.t('subjectTools', { subject: subject.name })}</h1>
+  <p class="lead">{L.t('subjectLead', { n: subject.count, blurb: subject.blurb })}</p>
   {subject.count > 8 && (
-    <label class="find sp-find"><span class="visually-hidden">Find a {subject.name.toLowerCase()} tool</span><input type="search" placeholder={`Find a ${subject.name.toLowerCase()} tool…`} autocomplete="off" /></label>
+    <label class="find sp-find"><span class="visually-hidden">{L.t('findSubjectTool', { subject: subject.name })}</span><input type="search" placeholder={L.t('findSubjectTool', { subject: subject.name })} autocomplete="off" /></label>
   )}
   {subject.groups.length > 3 && (
-    <nav class="jump" aria-label="Sections">{subject.groups.map((g) => <a href={`#${g.id}`}>{g.name}</a>)}</nav>
+    <nav class="jump" aria-label={L.t('sectionsAria')}>{subject.groups.map((g) => <a href={`#${g.id}`}>{g.name}</a>)}</nav>
   )}
   <div class="secs">
     {subject.groups.map((g) => (
@@ -26,17 +28,17 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
         {g.blurb && <p class="blurb">{g.blurb}</p>}
         <ul class="ix">
           {g.tools.map((t) => (
-            <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} #${t.data.num}`.toLowerCase()}>
-              <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
+            <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${L.summary(t)} ${t.data.summary} #${t.data.num}`.toLowerCase()}>
+              <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{L.summary(t)}</span></a>
               <span class="num">#{t.data.num}</span>
-              <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
+              <button type="button" class="pin" aria-pressed="false" aria-label={L.t('addMine', { name: t.data.name })} title={L.t('addMineShort')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
             </li>
           ))}
         </ul>
       </section>
     ))}
   </div>
-  <p class="sp-empty" hidden>No {subject.name.toLowerCase()} tool matches that yet. Try the search on the <a href="/">home page</a>, or <a href="/contact/">suggest it</a>.</p>
+  <p class="sp-empty" hidden set:html={L.rich('noSubjectMatch', { subject: subject.name })} />
 </Base>
 
 <style>

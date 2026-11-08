@@ -1,0 +1,7 @@
+---
+import ShelfView from '../../../views/ShelfView.astro';
+import { shelfPages } from '../../../lib/pages';
+import { OTHER_LANGS } from '../../../i18n';
+export const getStaticPaths = () => OTHER_LANGS.flatMap((l) => shelfPages().map((p) => ({ params: { ...p.params, lang: l.code }, props: p.props })));
+---
+<ShelfView shelf={Astro.props.shelf} lang={Astro.params.lang} />

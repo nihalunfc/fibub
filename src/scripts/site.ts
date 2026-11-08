@@ -1,6 +1,7 @@
 // Runs on every page: the tool list (☰ Tools) and "My tools", the list of tools a person has
 // bookmarked. My tools is kept only in this browser (localStorage) and can be cleared from the list.
 import { loadIndex, rank, row, type Entry } from './find';
+import { prefix, tr } from './i18n';
 const KEY = 'fibub-mytools-v1';
 
 export function myTools(): string[] {
@@ -33,8 +34,8 @@ const syncStars = () => {
   document.querySelectorAll<HTMLButtonElement>('.ti[data-id] > .pin').forEach((p) => {
     const li = p.parentElement!, on = ids.includes(li.dataset.id!), name = li.querySelector('.nm')?.textContent ?? 'this tool';
     p.setAttribute('aria-pressed', String(on));
-    p.setAttribute('aria-label', on ? `Remove ${name} from My tools` : `Add ${name} to My tools`);
-    p.title = on ? 'Remove from My tools' : 'Add to My tools';
+    p.setAttribute('aria-label', tr(on ? 'removeMine' : 'addMine', { name }));
+    p.title = tr(on ? 'removeMineShort' : 'addMineShort');
   });
 };
 syncStars();
@@ -127,7 +128,7 @@ if (bm) {
     const ph = dlg.querySelector<HTMLElement>('.bm-phone')!;
     ph.hidden = false;
     if (navigator.share) share.hidden = false;
-    else ph.textContent = 'Open your browser menu (⋮ or the share icon) and choose "Add bookmark" or "Add to Home Screen".';
+    else ph.textContent = tr('bookmarkMenu');
   }
   const pinned = () => myTools().includes(id);
   const show = () => b.dataset.pinned = String(pinned());
@@ -137,7 +138,7 @@ if (bm) {
     const ids = myTools().filter((x) => x !== id);
     setMyTools(pin.checked ? [id, ...ids] : ids);
     dlg.close();
-    tip.textContent = pin.checked ? 'Pinned to My tools (in the Tools list).' : 'Keep it one tap away for everyday use.';
+    tip.textContent = tr(pin.checked ? 'pinnedTip' : 'bookmarkTip');
   };
   b.addEventListener('click', () => { pin.checked = pinned(); dlg.showModal(); });
   dlg.querySelector('.bm-done')!.addEventListener('click', close);
@@ -156,8 +157,8 @@ if (bm) {
   const html = document.documentElement, fire = () => document.dispatchEvent(new CustomEvent('fibub:theme'));
   const sync = () => {
     const dark = html.dataset.theme === 'dark', red = html.classList.contains('red-mode');
-    document.querySelectorAll('.theme-btn').forEach((b) => { b.setAttribute('aria-pressed', String(dark)); b.setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode'); });
-    document.querySelectorAll('.red-btn').forEach((b) => { b.setAttribute('aria-pressed', String(red)); b.setAttribute('aria-label', red ? 'Turn off red light' : 'Red light for night use'); });
+    document.querySelectorAll('.theme-btn').forEach((b) => { b.setAttribute('aria-pressed', String(dark)); b.setAttribute('aria-label', tr(dark ? 'lightMode' : 'darkMode')); });
+    document.querySelectorAll('.red-btn').forEach((b) => { b.setAttribute('aria-pressed', String(red)); b.setAttribute('aria-label', tr(red ? 'redLightOff' : 'redLightAria')); });
   };
   document.querySelectorAll('.theme-btn').forEach((b) => b.addEventListener('click', () => {
     const dark = html.dataset.theme !== 'dark';
@@ -180,4 +181,20 @@ for (const panel of document.querySelectorAll<HTMLElement>('.dd-mega')) {
   const show = (i: number) => { subs.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); panes.forEach((p, j) => p.classList.toggle('on', i === j)); };
   subs.forEach((b, i) => { b.addEventListener('mouseenter', () => show(i)); b.addEventListener('focus', () => show(i)); b.addEventListener('click', () => { show(i); panes[i].querySelector<HTMLElement>('a')?.focus(); }); });
   show(0);
+}
+
+// Language menu: close it on a click outside or Escape.
+for (const dd of document.querySelectorAll<HTMLDetailsElement>('.lang-dd')) {
+  document.addEventListener('click', (e) => { if (dd.open && !dd.contains(e.target as Node)) dd.open = false; });
+  dd.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dd.open) { dd.open = false; dd.querySelector('summary')?.focus(); } });
+}
+
+// On a translated page, links to other tools and shelves stay in the same language. Pages render
+// those links in English inside tools and guides, so they are moved over here.
+if (prefix) {
+  const shelves = new Set([...document.querySelectorAll<HTMLElement>('header .dd[data-shelf]')].map((d) => d.dataset.shelf));
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('main a[href^="/"]')) {
+    const first = a.getAttribute('href')!.split('/')[1];
+    if (shelves.has(first)) a.setAttribute('href', prefix + a.getAttribute('href'));
+  }
 }

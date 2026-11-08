@@ -1,10 +1,14 @@
 // Site-wide tool search. The list of every live tool is one small file (/tools.json), loaded the
 // first time someone searches or has starred tools, and kept for the rest of the visit.
-export type Entry = { id: string; n: string; s: string; k?: number; u: string; p: string };
+export type Entry = { id: string; n: string; s: string; k?: number; u: string; p: string; x?: string }; // x: the English summary, so English words still find tools
+
+import { prefix, tr } from './i18n';
+export type { Entry as IndexEntry };
 
 let index: Promise<Entry[]> | null = null;
+// Each language has its own index (/ml/tools.json) with summaries in that language and links that stay in it.
 export function loadIndex(): Promise<Entry[]> {
-  index ??= fetch('/tools.json').then((r) => (r.ok ? r.json() : [])).catch(() => { index = null; return []; });
+  index ??= fetch(`${prefix}/tools.json`).then((r) => (r.ok ? r.json() : [])).catch(() => { index = null; return []; });
   return index;
 }
 
@@ -20,7 +24,7 @@ export function rank(list: Entry[], q: string): Entry[] {
   if (!ws.length) return [];
   const out: { e: Entry; score: number }[] = [];
   for (const e of list) {
-    const name = norm(e.n), hay = `${name} ${norm(e.s)} ${norm(e.p)}`;
+    const name = norm(e.n), hay = `${name} ${norm(e.s)} ${norm(e.p)} ${e.x ? norm(e.x) : ''}`;
     let score = 0, ok = true;
     for (const w of ws) {
       if (/^#\d+$/.test(w)) { if (String(e.k) === w.slice(1)) score += 100; else { ok = false; break; } continue; }
@@ -52,8 +56,8 @@ export function row(e: Entry, opts: { star?: boolean; pinned?: boolean; place?: 
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'pin'; b.innerHTML = STAR;
     b.setAttribute('aria-pressed', String(!!opts.pinned));
-    b.setAttribute('aria-label', `${opts.pinned ? 'Remove' : 'Add'} ${e.n} ${opts.pinned ? 'from' : 'to'} My tools`);
-    b.title = opts.pinned ? 'Remove from My tools' : 'Add to My tools';
+    b.setAttribute('aria-label', tr(opts.pinned ? 'removeMine' : 'addMine', { name: e.n }));
+    b.title = tr(opts.pinned ? 'removeMineShort' : 'addMineShort');
     li.append(b);
   }
   return li;
