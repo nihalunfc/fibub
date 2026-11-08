@@ -1,5 +1,18 @@
 [
  {
+  "sha": "4ec45f68a717",
+  "date": "2026-11-08T04:39:42+00:00",
+  "title": "Add five astronomy tools: light pollution, habitable zone, Mars time, transit planner, redshift",
+  "tools": [
+   "habitable-zone-calculator",
+   "light-pollution-calculator",
+   "mars-time",
+   "redshift-calculator",
+   "transit-planner"
+  ],
+  "site": false
+ },
+ {
   "sha": "0de3c5982211",
   "date": "2026-11-08T04:13:31+00:00",
   "title": "Add five tools: rocket equation, orbit transfer, period finder, mosaic planner, meteor shower planner",
