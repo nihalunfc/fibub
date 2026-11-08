@@ -89,6 +89,7 @@ import * as TH from '../src/lib/sci/thermal.ts';
 import * as BAT from '../src/lib/sci/battery.ts';
 import * as COR from '../src/lib/sci/corrosion.ts';
 import * as NMR from '../src/lib/sci/nmr.ts';
+import * as EC from '../src/lib/sci/ecount.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1365,6 +1366,17 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('unmatched peak left for the compound', m.perPeak.find((p) => p.peak === 6.88).hits.length === 0);
   check('residual solvent recognised', m.perPeak[0].hits.some((h) => h.solvent));
   check('13C residual CDCl3 77.16 matched at 0.2 ppm', NMR.match([77.0], 'CDCl3', 'c', 0.2).perPeak[0].hits.some((h) => h.solvent));
+}
+{
+  // Electron counting: every textbook preset gives its known count; OS and dⁿ for classic cases.
+  for (const p of EC.PRESETS) { const N = EC.METALS.find((m) => m[0] === p.m)[1]; check(`${p.name}: ${p.ve} electrons`, EC.count(N, p.q, p.items, p.mm).ve === p.ve); }
+  const fc = EC.count(8, 0, [{ id: 'Cp', n: 2 }]); check('ferrocene Fe(II) d6', fc.os === 2 && fc.d === 6 && fc.lbn === 6);
+  const co = EC.count(9, 3, [{ id: 'NH3', n: 6 }]); check('[Co(NH3)6]3+ Co(III) d6', co.os === 3 && co.d === 6);
+  const pt = EC.count(10, -1, [{ id: 'Cl', n: 3 }, { id: 'alkene', n: 1 }]); check('Zeise Pt(II) d8', pt.os === 2 && pt.d === 8);
+  const mn = EC.count(7, 0, [{ id: 'CO', n: 5 }], 1); check('Mn2(CO)10: M–M bond does not change OS', mn.os === 0 && mn.ve === 18);
+  check('ionic and covalent counts agree', EC.PRESETS.every((p) => { const N = EC.METALS.find((m) => m[0] === p.m)[1], r = EC.count(N, p.q, p.items, p.mm); return r.d + 2 * (r.l + r.x) + r.mm === r.ve; }));
+  check('roman numerals', EC.roman(4) === 'IV' && EC.roman(7) === 'VII' && EC.roman(0) === '0' && EC.roman(-1) === '−I');
+  check('square-planar d8 verdict', /square-planar/.test(EC.verdict(16, 8, 4)));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
