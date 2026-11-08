@@ -97,6 +97,7 @@ import * as EIS from '../src/lib/sci/eis.ts';
 import * as ENZ from '../src/lib/sci/enzyme.ts';
 import * as BUF from '../src/lib/sci/buffer.ts';
 import * as BND from '../src/lib/sci/binding.ts';
+import * as CEN from '../src/lib/sci/centrifuge.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1540,6 +1541,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const S = BND.scatchard(Ls, Ls.map((l) => (100 * l) / (3 + l)));
   check('Scatchard exact on one-site data', Math.abs(S.Kd - 3) < 1e-9 && Math.abs(S.Bmax - 100) < 1e-9);
   near('Cheng–Prusoff', BND.chengPrusoff(40, 2, 2.5), 40 / 1.8, 1e-12);
+}
+{
+  // Centrifuge: the textbook constant, round trips, k-factor scaling and protocol conversion.
+  near('RCF constant 1.118e-5', CEN.RCF_CONST, 1.118e-5, 0.001e-5);
+  near('10 cm at 3000 rpm ≈ 1006 × g', CEN.rcf(3000, 10), 1006.42, 0.01);
+  near('rpm round trip', CEN.rpmFor(CEN.rcf(13000, 9.5), 9.5), 13000, 1e-6);
+  near('RCF grows with rpm²', CEN.rcf(20000, 8) / CEN.rcf(10000, 8), 4, 1e-12);
+  const k = CEN.kFactor(40000, 4, 8.5);
+  near('k-factor 4–8.5 cm at 40,000 rpm', k, 119.33, 0.01);
+  near('k = 2.533e11 ln(rmax/rmin) / rpm²', k, 2.533e11 * Math.log(8.5 / 4) / 40000 ** 2, 0.05);
+  near('k scales with 1/rpm²', CEN.kAtSpeed(k, 40000, 20000), CEN.kFactor(20000, 4, 8.5), 1e-9);
+  near('70 S pellets in 102 min', CEN.pelletHours(k, 70) * 60, 102.29, 0.01);
+  near('protocol conversion', CEN.convertTime(1, k, CEN.kFactor(45000, 3.5, 7.5)) * 60, 47.93, 0.01);
+  let threw = false; try { CEN.kFactor(40000, 8, 4); } catch { threw = true; } check('k-factor needs rmax > rmin', threw);
+  check('time text', CEN.hms(0.005) === '18 s' && CEN.hms(1.7048) === '102 min' && CEN.hms(2.5) === '2 h 30 min');
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
