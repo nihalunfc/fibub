@@ -1,5 +1,14 @@
 [
  {
+  "sha": "0981bcd182e8",
+  "date": "2026-11-08T19:09:02+00:00",
+  "title": "Add the slug test analyser (#127)",
+  "tools": [
+   "slug-test-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "abf7d274dd3c",
   "date": "2026-11-08T18:57:42+00:00",
   "title": "Add the aquifer pump test analyser (#126)",
