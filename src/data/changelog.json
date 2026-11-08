@@ -1,5 +1,18 @@
 [
  {
+  "sha": "e3f8c0003029",
+  "date": "2026-11-08T03:55:57+00:00",
+  "title": "Add five astronomy tools: cosmology, sub-exposure, backfocus, magnitude-flux, dark-sky calendar",
+  "tools": [
+   "backfocus-calculator",
+   "cosmology-calculator",
+   "dark-sky-calendar",
+   "magnitude-flux-converter",
+   "sub-exposure-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "e1a4756cbe3d",
   "date": "2026-11-08T03:35:36+00:00",
   "title": "Add five science tools: hemocytometer, radiocarbon calibration, SQL playground, biodiversity indices, reliability",
