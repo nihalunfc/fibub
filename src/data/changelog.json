@@ -1,5 +1,14 @@
 [
  {
+  "sha": "24be9e68accd",
+  "date": "2026-11-08T15:11:27+00:00",
+  "title": "Add the IR spectrum band finder (#109)",
+  "tools": [
+   "ir-band-finder"
+  ],
+  "site": false
+ },
+ {
   "sha": "9a935b05fe76",
   "date": "2026-11-08T15:00:50+00:00",
   "title": "Show where each science tool's numbers come from, with a removal-request link",
