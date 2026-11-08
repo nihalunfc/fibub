@@ -119,6 +119,7 @@ import * as LVL from '../src/lib/sci/levelling.ts';
 import * as GPS from '../src/lib/sci/gpstrack.ts';
 import * as TIF from '../src/lib/sci/tiff.ts';
 import * as SPX from '../src/lib/sci/spectral.ts';
+import * as SND from '../src/lib/sci/sounding.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2166,6 +2167,64 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('spectral: projected pixel area', SPX.rowAreas(3, { model: 1, scale: [30, 30] })[2] === 900);
   // A 1° × 1° cell at the equator on the sphere: R² × (π/180) × sin 1°.
   near('spectral: geographic pixel area', SPX.rowAreas(1, { model: 2, scale: [1, 1], tie: [0, 0, 0, 1] })[0], 6371008.8 ** 2 * (Math.PI / 180) * Math.sin(Math.PI / 180), 1);
+}
+
+// Sounding (#136): Bolton es and θe, LCL, moist adiabat, CAPE/CIN, indices; references computed with MetPy 1.7 (BSD) on made-up soundings.
+{
+  near('sounding: es(20 °C) Bolton', SND.es(20), 23.37, 0.01);
+  near('sounding: es(0 °C)', SND.es(0), 6.112, 1e-9);
+  near('sounding: dew point round trip', SND.tdFromW(850, SND.mixr(850, 12.3)), 12.3, 1e-9);
+  near('sounding: saturation mixing ratio 1000 hPa 20 °C (MetPy 0.014868)', SND.mixr(1000, 20), 0.014868, 0.00005);
+  near('sounding: θe 850 hPa 20/15 °C (MetPy 345.68 K)', SND.thetaE(850, 20, 15), 345.676, 0.05);
+  near('sounding: moist adiabat 1000→500 hPa from 20 °C (MetPy −8.48)', SND.moist(1000, 20, 500), -8.485, 0.05);
+  const L = SND.lcl(1000, 30, 20);
+  near('sounding: LCL pressure (MetPy 864.2 hPa)', L.p, 864.2, 1);
+  near('sounding: LCL temperature (MetPy 17.66 °C)', L.t, 17.66, 0.05);
+  near('sounding: θ at 850 hPa, 10 °C', SND.theta(850, 10), 283.15 * (1000 / 850) ** SND.KAPPA, 1e-9);
+  const demo = '985 30.0 20.0 170 10\n950 26.6 18.8 180 18\n925 24.2 18.0 190 22\n900 22.0 16.6 200 25\n850 18.6 13.4 210 28\n800 15.0 9.0 220 30\n750 11.2 3.5 230 32\n700 7.4 -2.6 235 35\n650 3.4 -9.0 240 38\n600 -0.8 -14.5 245 42\n550 -5.4 -19.0 250 46\n500 -10.4 -24.0 250 50\n450 -15.9 -30.5 255 55\n400 -22.1 -36.0 255 60\n350 -29.2 -42.0 260 66\n300 -37.4 -49.0 260 72\n250 -46.8 -57.0 265 78\n200 -55.6 -65.0 265 80\n150 -60.5 -73.0 270 65\n100 -63.0 -80.0 270 45';
+  const ps = SND.parseSounding(demo);
+  check('sounding: headerless 5-column table read', ps.levels.length === 20 && ps.levels[0].dir === 170 && ps.levels[19].spd === 45 && ps.levels[3].td === 16.6);
+  const sb = SND.analyse(ps.levels, 'sb');
+  near('sounding: SBCAPE (MetPy 2849 J/kg, within 2 %)', sb.cape, 2849, 57);
+  check('sounding: SBCIN 0 (MetPy 0)', sb.cin === 0);
+  near('sounding: LCL (MetPy 851.2 hPa)', sb.lcl.p, 851.2, 1);
+  near('sounding: EL (MetPy 188.0 hPa)', sb.el.p, 188.0, 1.5);
+  check('sounding: LFC just above the LCL', sb.lfc.p < sb.lcl.p && sb.lfc.p > 800);
+  near('sounding: lifted index (MetPy −7.41)', sb.li, -7.41, 0.1);
+  near('sounding: Showalter (MetPy −3.66)', sb.showalter, -3.66, 0.1);
+  near('sounding: K index (MetPy 32.4)', sb.k, 32.4, 1e-6);
+  near('sounding: total totals (MetPy 52.8)', sb.tt, 52.8, 1e-6);
+  near('sounding: precipitable water (MetPy 36.72 mm)', sb.pw, 36.72, 0.1);
+  const nv = SND.analyse(ps.levels, 'sb', { virtual: false });
+  near('sounding: LFC without virtual correction (MetPy 813.7 hPa)', nv.lfc.p, 813.7, 1.5);
+  check('sounding: virtual correction raises CAPE', sb.cape > nv.cape);
+  const ml = SND.startParcel(ps.levels, 'ml');
+  near('sounding: mixed parcel T (MetPy 29.76 °C)', ml.t, 29.763, 0.02);
+  near('sounding: mixed parcel Td (MetPy 18.98 °C)', ml.td, 18.978, 0.03);
+  near('sounding: MLCAPE (MetPy 2238, within 3 %)', SND.analyse(ps.levels, 'ml').cape, 2238, 70);
+  // Shear: 10 kt from 170° at the ground, wind at 6 km interpolated.
+  check('sounding: 0–6 km shear about 52 kt', Math.abs(sb.shear06 - 52.1) < 0.5 && sb.shear01 > 15 && sb.shear01 < 22);
+  near('sounding: freezing level ≈ 4.05 km', sb.freezing, 4052, 15);
+  // Hypsometric heights: thickness 1000→500 hPa of an isothermal 0 °C dry layer = Rd·T/g·ln 2.
+  const z = SND.heights([{ p: 1000, t: 0 }, { p: 500, t: 0 }], 0);
+  near('sounding: hypsometric thickness', z[1], (SND.RD * 273.15 / SND.G) * Math.log(2), 1e-6);
+  // Elevated instability over a cold surface: no surface CAPE, MU parcel from 800 hPa (MetPy MUCAPE 368.7, MUCIN −0.77).
+  const el = SND.parseSounding('1000 2.0 0.0 90 10\n950 1.0 -1.0 120 20\n900 8.0 7.0 200 35\n850 10.0 9.5 220 45\n800 7.5 7.0 230 50\n750 4.2 3.8 235 52\n700 0.6 0.0 240 55\n650 -3.4 -4.5 245 58\n600 -7.6 -10.0 250 60\n550 -12.2 -16.0 250 64\n500 -17.4 -24.0 255 68\n400 -29.4 -38.0 260 75\n300 -44.0 -52.0 260 85\n250 -52.5 -60.0 265 90\n200 -56.0 -68.0 265 80').levels;
+  const esb = SND.analyse(el, 'sb'), emu = SND.analyse(el, 'mu');
+  check('sounding: cold surface has no SBCAPE', esb.cape === 0 && esb.lfc === null);
+  check('sounding: MU parcel at 800 hPa', emu.start.p === 800);
+  near('sounding: MUCAPE (MetPy 368.7)', emu.cape, 368.7, 10);
+  near('sounding: MUCIN (MetPy −0.77)', emu.cin, -0.77, 0.3);
+  // Parsers: Wyoming fixed-width text with blank cells, header names, m/s and kelvin.
+  const wy = ['-----------------------------------------------------------------------------', '   PRES   HGHT   TEMP   DWPT   RELH   MIXR   DRCT   SKNT   THTA   THTE   THTV', '    hPa     m      C      C      %    g/kg    deg   knot     K      K      K ', '-----------------------------------------------------------------------------', ' 1000.0    111                                                               ', '  985.0    250   30.0   20.0     55  15.21    170     10  304.4  350.0  307.1', '  850.0   1500   18.6   13.4     72  11.37    210     28  304.6  338.9  306.7', '  500.0   5800  -10.4  -24.0     31   0.71    250     50  320.4  322.9  320.5', ['30.0', '24000', '-50.0', '', '', '', '270', '40', '700.0', '', ''].map((c) => c.padStart(7)).join(''), '', 'Station information and sounding indices'].join('\n');
+  const w = SND.parseSounding(wy);
+  check('sounding: Wyoming text read, below-ground level skipped', w.format === 'University of Wyoming text' && w.levels.length === 4 && w.levels[0].p === 985 && w.levels[0].z === 250);
+  check('sounding: Wyoming missing dew point and wind kept as blanks', w.levels[3].td === undefined && w.levels[3].dir === 270 && w.levels[3].spd === 40 && w.levels[2].dir === 250);
+  const hd = SND.parseSounding('Pressure,Height,Temperature (K),Dewpoint (K),Wind dir,Wind speed (m/s)\n1000,100,300.15,290.15,180,5.14444\n900,1000,293.15,283.15,200,10.28888\n800,2000,286.15,275.15,220,15.43332');
+  check('sounding: header names, kelvin and m/s converted', hd.levels.length === 3 && Math.abs(hd.levels[0].t - 27) < 1e-9 && Math.abs(hd.levels[1].td - 10) < 1e-9 && Math.abs(hd.levels[0].spd - 10) < 1e-3 && hd.levels[2].z === 2000 && /kelvin/.test(hd.note));
+  check('sounding: tidy sorts and drops repeats', SND.tidy([{ p: 500, t: -10 }, { p: 1000, t: 20 }, { p: 500, t: -9 }, { p: NaN, t: 1 }]).length === 2);
+  let threw = ''; try { SND.analyse([{ p: 1000, t: 20 }, { p: 900, t: 12 }, { p: 800, t: 5 }]); } catch (e) { threw = e.message; }
+  check('sounding: needs a surface dew point', /dew point/.test(threw));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
