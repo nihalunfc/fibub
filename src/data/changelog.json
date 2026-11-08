@@ -1,5 +1,14 @@
 [
  {
+  "sha": "b2d362efa13c",
+  "date": "2026-11-08T17:26:08+00:00",
+  "title": "Add the McCabe-Thiele calculator (#119)",
+  "tools": [
+   "mccabe-thiele-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "fd14ff4baa6d",
   "date": "2026-11-08T17:14:02+00:00",
   "title": "Add the Gaussian plume calculator (#118)",
