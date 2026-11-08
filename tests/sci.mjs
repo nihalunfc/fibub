@@ -87,6 +87,7 @@ import * as COP from '../src/lib/sci/copolymer.ts';
 import * as GT from '../src/lib/sci/glass.ts';
 import * as TH from '../src/lib/sci/thermal.ts';
 import * as BAT from '../src/lib/sci/battery.ts';
+import * as COR from '../src/lib/sci/corrosion.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1330,6 +1331,23 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('two dQ/dV peaks', pk.length === 2);
   near('LiMn2O4 peak 1', pk[0].V, 4.0, 0.001); near('LiMn2O4 peak 2', pk[1].V, 4.14, 0.001);
   near('flat line has dQ/dV = slope', BAT.dqdv([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => 5 * v), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => 3 + v * 0.1), 0.01, 0.03)[20].d, 50, 1e-6);
+}
+{
+  // Corrosion: ASTM G102 conversions, Tafel extrapolation, Wagner–Traud fit and Stern–Geary on a simulated curve.
+  near('G102: 1 µA/cm² on iron', COR.rateMmY(1, 27.92, 7.87), 0.0116, 0.0001);
+  near('G102 mass loss on iron', COR.massRate(1, 27.92), 0.25, 0.001);
+  near('Stern–Geary B for 60/120 mV', COR.sternGeary(0.06, 0.12), 0.017372, 0.000001);
+  near('Wagner–Traud is zero at Ecorr', COR.bv(-0.65, -0.65, 1e-5, 0.06, 0.12), 0, 1e-18);
+  const e = COR.exampleCurve(), c = COR.signed(e.map((r) => r[0]), e.map((r) => r[1])), t = COR.tafel(c, 0.08, 0.2);
+  near('Tafel Ecorr', t.Ecorr, -0.65, 0.0005); near('Tafel icorr', t.icorr, 1e-5, 2e-7);
+  near('Tafel βa', t.ba, 0.06, 0.001); near('Tafel βc', t.bc, 0.12, 0.002);
+  const nl = COR.fitBV(c, t.E0, t);
+  near('fit icorr', nl.icorr, 1e-5, 1e-8); near('fit βa', nl.ba, 0.06, 0.0001); near('fit βc', nl.bc, 0.12, 0.0002);
+  const rp = COR.polarisationResistance(c, t.E0);
+  near('Stern–Geary icorr', COR.sternGeary(0.06, 0.12) / rp.Rp, 1e-5, 3e-7);
+  const ab = COR.signed(e.map((r) => r[0]), e.map((r) => Math.abs(r[1])));
+  near('unsigned currents: Ecorr from the minimum', COR.zeroCrossing(ab), -0.65, 0.001);
+  near('coupon rate (G31 formula)', (8.76e4 * 0.05) / (20 * 168 * 7.87), 0.1656, 0.0001);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
