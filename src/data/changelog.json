@@ -1,5 +1,14 @@
 [
  {
+  "sha": "c0af055fde73",
+  "date": "2026-11-08T08:48:02+00:00",
+  "title": "Add the TLC Rf calculator with plate photo marking (#91)",
+  "tools": [
+   "tlc-rf-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "ca387e085e48",
   "date": "2026-11-08T08:40:28+00:00",
   "title": "Add the cyclic voltammetry analyser (#90)",
