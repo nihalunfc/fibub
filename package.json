@@ -5,10 +5,11 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/changelog.mjs && astro build",
     "preview": "astro preview",
     "test": "node tests/run.mjs",
-    "images": "node scripts/make-images.mjs"
+    "images": "node scripts/make-images.mjs",
+    "changelog": "node scripts/changelog.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.6.0",
@@ -17,5 +18,6 @@
     "fflate": "0.8.2",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "4.10.38"
-  }
+  },
+  "license": "Apache-2.0"
 }

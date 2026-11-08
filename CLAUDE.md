@@ -1,6 +1,6 @@
 # Notes for Claude sessions in this repo
 
-fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the gaps people and workplaces have): tools for documents, money, data, everyday tasks and science that run entirely in the browser. MIT License (OpenNGC catalogue data is CC-BY-SA 4.0). Astro 5, static, served by a Cloudflare Worker with static assets (`wrangler.jsonc`; Cloudflare builds and deploys `main` on every merge). Owner: nihal (GitHub `nihalunfc`).
+fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the gaps people and workplaces have): tools for documents, money, data, everyday tasks and science that run entirely in the browser. Apache License 2.0 with a NOTICE file that credits fibub and nihal (nihal's choice, 2026-11-08: anyone may use it, also commercially, but must keep the credit); OpenNGC catalogue data is CC-BY-SA 4.0. Astro 5, static, served by a Cloudflare Worker with static assets (`wrangler.jsonc`; Cloudflare builds and deploys `main` on every merge). Owner: nihal (GitHub `nihalunfc`).
 
 ## House rules
 - **Nothing about the user is stored, ever** (nihal, 2026-11-06). Only anonymous daily totals (tool, file type, size range, device, OS, browser, country, outcome) go to `data/stats/` and the public `/stats/` page. No IPs, IDs, cookies, timestamps finer than a day, or return-visit tracking.
