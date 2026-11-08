@@ -1,0 +1,115 @@
+---
+// Biodiversity indices and rarefaction for one or more sites.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bd">
+  <div class="ax-card">
+    <h2>Counts</h2>
+    <label>Species in the first column, then one column of counts per site or sample. Paste from a spreadsheet; the first row holds the site names.
+      <textarea class="bd-in" rows="10" spellcheck="false" wrap="off">Species	Meadow	Hedgerow
+Carabus nemoralis	12	4
+Pterostichus madidus	35	18
+Nebria brevicollis	8	22
+Abax parallelepipedus	0	15
+Harpalus rufipes	21	2
+Amara aenea	5	0
+Notiophilus biguttatus	1	3
+Loricera pilicornis	2	1
+Bembidion lampros	1	0
+Leistus spinibarbis	0	1</textarea></label>
+    <p class="ax-help">Use whole-number counts of individuals: rarefaction and Chao1 need them. The example is invented, for illustration.</p>
+    <p class="ax-err bd-err" hidden></p>
+  </div>
+
+  <div class="ax-card bd-out" hidden>
+    <h2>Diversity</h2>
+    <div class="ax-scroll"><table class="bd-tab"></table></div>
+    <h3>Rarefaction</h3>
+    <p class="ax-help" style="margin-top:0">Expected number of species if only m individuals had been sampled (Hurlbert 1971). Compare sites at the same m: a site with more individuals will always show more species.</p>
+    <canvas class="ax-fig bd-fig"></canvas>
+    <p class="bd-rare"></p>
+    <div class="bd-cmpw" hidden>
+      <h3>How alike are the sites?</h3>
+      <div class="ax-scroll"><table class="bd-cmp"></table></div>
+      <p class="ax-help">Bray-Curtis dissimilarity uses the counts (0 = identical, 1 = no species shared). Jaccard similarity uses presence only (1 = same species list).</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bd .bd-tab td, .bd .bd-tab th { white-space: nowrap; vertical-align: top; }
+  .bd .bd-tab td small { display: block; white-space: normal; min-width: 120px; max-width: 160px; color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 2px; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { diversity, rarefy, compare } from '../../lib/sci/diversity';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function read() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.bd-in').value);
+    if (rows.length < 2) throw new Error('Paste at least a header row and one species.');
+    const head = rows[0].slice(1).map((h, i) => h || `Site ${i + 1}`);
+    const headerIsNumber = rows[0].slice(1).every((c) => Number.isFinite(num(c)));
+    const body = headerIsNumber ? rows : rows.slice(1), names = headerIsNumber ? head.map((_, i) => `Site ${i + 1}`) : head;
+    if (!names.length) throw new Error('Add at least one column of counts after the species names.');
+    const sites = names.map((name, j) => ({ name, counts: body.map((r) => { const v = num(r[j + 1] ?? ''); return Number.isFinite(v) ? v : 0; }) }));
+    for (const s of sites) if (s.counts.some((v) => v < 0 || !Number.isInteger(v))) throw new Error(`${s.name}: counts must be whole numbers of zero or more.`);
+    return { species: body.map((r) => r[0]), sites };
+  }
+
+  function calc() {
+    const err = q('.bd-err');
+    let data: ReturnType<typeof read>;
+    try { data = read(); if (data.sites.every((s) => s.counts.every((c) => c === 0))) throw new Error('All counts are zero.'); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.bd-out').hidden = true; report = []; return; }
+    err.hidden = true; q('.bd-out').hidden = false;
+    const sites = data.sites.filter((s) => s.counts.some((c) => c > 0)), ds = sites.map((s) => diversity(s.counts));
+    const rowsDef: [string, (d: ReturnType<typeof diversity>) => string, string][] = [
+      ['Individuals (N)', (d) => d.N.toLocaleString('en'), ''],
+      ['Species (S)', (d) => String(d.S), 'observed richness'],
+      ['Chao1 richness', (d) => sig(d.chao1, 4), 'estimated total, from singletons and doubletons'],
+      ['Shannon H′', (d) => sig(d.H, 4), 'natural log; 0 = one species'],
+      ['Effective species exp(H′)', (d) => sig(d.expH, 4), 'Hill number of order 1'],
+      ['Simpson 1 − D', (d) => sig(d.simpson, 4), 'chance two individuals differ'],
+      ['Inverse Simpson 1/D', (d) => sig(d.invSimpson, 4), 'Hill number of order 2'],
+      ['Pielou evenness J′', (d) => (Number.isFinite(d.pielou) ? sig(d.pielou, 3) : '–'), '1 = all species equally common'],
+      ['Berger-Parker dominance', (d) => sig(d.berger, 3), 'share of the commonest species'],
+      ['Singletons, doubletons', (d) => `${d.F1}, ${d.F2}`, ''],
+    ];
+    const tb = q<HTMLTableElement>('.bd-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['', ...sites.map((s) => s.name)].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(), tableRows: string[][] = [];
+    for (const [label, f, note] of rowsDef) {
+      const r = [label, ...ds.map(f), note]; tableRows.push(r);
+      const tr = body.insertRow();
+      r.slice(0, -1).forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; });
+      if (note) { const sm = document.createElement('small'); sm.textContent = note; tr.cells[0].append(sm); }
+    }
+    // Rarefaction curves, and every site at the smallest site's N.
+    const series = sites.map((s, i) => { const N = ds[i].N, xs: number[] = []; for (let k = 0; k <= 40; k++) xs.push(Math.max(1, Math.round((N * k) / 40))); const u = [...new Set(xs)]; return { name: s.name, x: u, y: u.map((m) => rarefy(s.counts, m).s), mode: 'line' as const }; });
+    const mMin = Math.min(...ds.map((d) => d.N));
+    fig = chartFigure({ h: 320, xLabel: 'Individuals sampled (m)', yLabel: 'Expected species', series, yMin: 0, marks: sites.length > 1 ? [{ kind: 'vline', at: mMin, label: `m = ${mMin}` }] : [] }, 'Rarefaction curves');
+    paint(q<HTMLCanvasElement>('.bd-fig'), fig);
+    const rare = sites.map((s) => { const r = rarefy(s.counts, mMin); return r.sd > 1e-9 ? `${s.name}: ${sig(r.s, 3)} ± ${sig(r.sd, 2)}` : `${s.name}: ${sig(r.s, 3)} (its whole sample)`; });
+    q('.bd-rare').textContent = sites.length > 1 ? `Species expected in ${mMin} individuals: ${rare.join('; ')}.` : '';
+    const cmpRows: string[][] = [];
+    for (let a = 0; a < sites.length; a++) for (let b = a + 1; b < sites.length; b++) { const c = compare(sites[a].counts, sites[b].counts); cmpRows.push([`${sites[a].name} – ${sites[b].name}`, sig(c.brayCurtis, 3), sig(c.jaccard, 3)]); }
+    q('.bd-cmpw').hidden = !cmpRows.length;
+    const ct = q<HTMLTableElement>('.bd-cmp'); ct.innerHTML = '';
+    if (cmpRows.length) { const h = ct.createTHead().insertRow(); ['Sites', 'Bray-Curtis', 'Jaccard'].forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; h.append(th); }); const bb = ct.createTBody(); cmpRows.slice(0, 200).forEach((r) => { const tr = bb.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); }); }
+    report = [{ title: 'Diversity indices', table: { head: ['', ...sites.map((s) => s.name), ''], rows: tableRows, align: ['l', ...sites.map(() => 'r' as const), 'l'] } }, { title: 'Rarefaction', figure: fig, text: q('.bd-rare').textContent ? [q('.bd-rare').textContent!] : [] }, ...(cmpRows.length ? [{ title: 'Similarity between sites', table: { head: ['Sites', 'Bray-Curtis', 'Jaccard'], rows: cmpRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : [])];
+  }
+  let t = 0;
+  q('.bd-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.bd-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Biodiversity indices', file: 'biodiversity', sections: report }));
+</script>

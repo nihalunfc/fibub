@@ -16,6 +16,13 @@ import { pole, project, greatCircle, fisher, planeFromPole, roseBins } from '../
 import { layout, names, order, wellName } from '../src/lib/sci/plate.ts';
 import { c1v1, serial, toGperL, fromGperL } from '../src/lib/sci/solution.ts';
 import { masterMix } from '../src/lib/sci/mastermix.ts';
+import { readCurve, calibrate as calibrate14, calYear } from '../src/lib/sci/radiocarbon.ts';
+import { diversity, rarefy, compare } from '../src/lib/sci/diversity.ts';
+import { cronbach, cohen, fleiss, icc } from '../src/lib/sci/reliability.ts';
+import { cellCount, seeding } from '../src/lib/sci/cells.ts';
+import { profile, tableName, columnNames } from '../src/lib/sci/profile.ts';
+import { fInv, fCdf } from '../src/lib/sci/stats.ts';
+import { readFileSync } from 'node:fs';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -197,6 +204,75 @@ throws('cannot dilute up', () => c1v1(1, NaN, 10, 50));
   const m = masterMix(C, 50, 10, 10);
   near('NEB water per reaction', m.water.one, 40.75, 1e-9); near('mix per tube', m.mixPerTube, 49, 1e-9); near('mix total', m.mixTotal, 539, 1e-9);
   throws('units that do not match', () => masterMix([{ name: 'x', stock: 10, stockUnit: 'X', final: 1, finalUnit: 'µM', inMix: true }], 50, 1, 0));
+}
+
+// ---- F distribution (standard tables).
+near('F 95 % (5, 10)', fInv(0.95, 5, 10), 3.3258, 1e-3);
+near('F 99 % (3, 20)', fInv(0.99, 3, 20), 4.9382, 1e-3);
+near('F cdf round trip', fCdf(fInv(0.3, 7, 4), 7, 4), 0.3, 1e-9);
+
+// ---- Radiocarbon calibration against IntCal20 (OxCal 4.4 gives the same ranges to within a year or two).
+{
+  const curve = readCurve(readFileSync(new URL('../src/data/intcal20.txt', import.meta.url), 'utf8'));
+  check('IntCal20 rows', curve.cal.length === 9501);
+  const r = calibrate14(curve, 3000, 30), r95 = r.hpd.find((h) => h.level === 0.954).ranges;
+  const bc = (bp) => { const y = calYear(bp); return y.era === 'BC' ? -y.year : y.year; };
+  check('3000 ± 30 has two 95 % ranges', r95.length === 2);
+  near('3000 ± 30 main range from', bc(r95[1][0]), -1304, 3); near('3000 ± 30 main range to', bc(r95[1][1]), -1125, 3);
+  near('3000 ± 30 main range share', r95[1][2], 0.86, 0.01);
+  near('3000 ± 30 median', bc(r.median), -1239, 3);
+  near('probabilities add to 1', Array.from(r.p).reduce((a, b) => a + b, 0), 1, 1e-6);
+  throws('an age far outside the curve', () => calibrate14(curve, -5000, 20));
+  check('an age near the end is flagged', calibrate14(curve, 54500, 300).outside);
+}
+
+// ---- Biodiversity: Shannon, Simpson, Chao1, rarefaction.
+{
+  const even = diversity([5, 5, 5, 5]);
+  near('Shannon of 4 equal species', even.H, Math.log(4), 1e-12); near('evenness of equal species', even.pielou, 1, 1e-12); near('1/D of 4 equal', even.invSimpson, 4, 1e-12);
+  near('Chao1 with all singletons', diversity([1, 1, 1, 1]).chao1, 8.5, 1e-12);
+  const meadow = [12, 35, 8, 0, 21, 5, 1, 2, 1, 0], hedge = [4, 18, 22, 15, 2, 0, 3, 1, 0, 1];
+  const d = diversity(meadow);
+  near('meadow H', d.H, 1.569, 1e-3); near('meadow 1-D', d.simpson, 0.736, 1e-3); near('meadow Chao1', d.chao1, 8.49, 0.01);
+  near('rarefy to N gives S', rarefy(meadow, 85).s, 8, 1e-9); near('rarefy to 1 gives 1', rarefy(meadow, 1).s, 1, 1e-9);
+  near('meadow rarefied to 66', rarefy(meadow, 66).s, 7.50, 0.01);
+  const c = compare(meadow, hedge); near('Bray-Curtis', c.brayCurtis, 0.550, 1e-3); near('Jaccard', c.jaccard, 0.6, 1e-12);
+}
+
+// ---- Reliability: Shrout and Fleiss (1979) Table 2, Cohen, Fleiss (Wikipedia worked example).
+{
+  const SF = [[9, 2, 5, 8], [6, 1, 3, 2], [8, 4, 6, 8], [7, 1, 2, 6], [10, 5, 6, 9], [6, 2, 4, 7]];
+  const r = icc(SF);
+  near('ICC(1,1)', r.icc1, 0.1657, 1e-4); near('ICC(1,k)', r.icc1k, 0.4428, 1e-4); near('ICC(2,1)', r.icc2, 0.2898, 1e-4);
+  near('ICC(2,k)', r.icc2k, 0.6201, 1e-4); near('ICC(3,1)', r.icc3, 0.7148, 1e-4); near('ICC(3,k)', r.icc3k, 0.9093, 1e-4);
+  // R psych::ICC(sf) bounds.
+  near('ICC(2,1) lower', r.ci.icc2[0], 0.019, 2e-3); near('ICC(2,1) upper', r.ci.icc2[1], 0.761, 2e-3);
+  near('ICC(1,1) lower', r.ci.icc1[0], -0.133, 2e-3); near('ICC(3,k) lower', r.ci.icc3k[0], 0.676, 2e-3);
+  near('ICC F test p', r.test.icc3.p, 0.00013, 2e-5);
+  const a = cronbach(SF); near('alpha = ICC(3,k)', a.alpha, 0.9093, 1e-4); near('Feldt lower = ICC(3,k) lower', a.ci[0], r.ci.icc3k[0], 1e-9);
+  near('Cohen kappa', cohen([[20, 5], [10, 15]]).kappa, 0.4, 1e-12);
+  near('quadratic kappa of perfect agreement', cohen([[5, 0, 0], [0, 5, 0], [0, 0, 5]], 'quadratic').kappa, 1, 1e-12);
+  const F = [[0,0,0,0,14],[0,2,6,4,2],[0,0,3,5,6],[0,3,9,2,0],[2,2,8,1,1],[7,7,0,0,0],[3,2,6,3,0],[2,5,3,2,2],[6,5,2,1,0],[0,2,2,3,7]];
+  near('Fleiss kappa', fleiss(F).kappa, 0.2099, 1e-4);
+  throws('Fleiss with unequal raters', () => fleiss([[1, 1], [2, 1]]));
+}
+
+// ---- Hemocytometer and seeding (guide's worked example).
+{
+  const c = cellCount([52, 47, 55, 46], [4, 3, 5, 4], 2);
+  near('live cells/mL', c.liveMl, 1e6, 1e-6); near('viability', c.viability, 200 / 216, 1e-12);
+  const s = seeding(c.liveMl, 1e5, 24, 0.5, 10);
+  near('suspension mL', s.suspensionMl, 2.64, 1e-9); near('medium mL', s.mediumMl, 10.56, 1e-9);
+  throws('too dilute to seed', () => seeding(1e5, 1e5, 24, 0.5));
+}
+
+// ---- Table profiles for the SQL playground.
+{
+  const p = profile(['zip', 'n', 'x', 'name'], [['007', '1', '1.5', 'a'], ['123', '2', 'NA', 'b'], ['045', '3', '2.5', 'a']]);
+  check('leading zeros stay text', p[0].type === 'TEXT'); check('integers', p[1].type === 'INTEGER'); check('reals', p[2].type === 'REAL');
+  check('NA is missing', p[2].missing === 1 && p[2].mean === 2); check('top value', p[3].top[0][0] === 'a' && p[3].top[0][1] === 2);
+  check('table names', tableName('My Data (2024).csv', new Set()) === 'my_data_2024' && tableName('2024.csv', new Set()) === 't_2024' && tableName('a.csv', new Set(['a'])) === 'a_2');
+  check('column names', columnNames(['a', '', 'A']).join() === 'a,column2,A_2');
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

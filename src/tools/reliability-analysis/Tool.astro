@@ -1,0 +1,307 @@
+---
+// Reliability and agreement: Cronbach's alpha, Cohen's kappa, Fleiss' kappa and intraclass correlations.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rl">
+  <div class="ax-card">
+    <h2>What are you checking?</h2>
+    <div class="ax-seg rl-mode" role="group" aria-label="Analysis">
+      <button type="button" data-m="alpha" aria-pressed="true">Scale items</button><button type="button" data-m="cohen" aria-pressed="false">Two raters</button><button type="button" data-m="fleiss" aria-pressed="false">Many raters</button><button type="button" data-m="icc" aria-pressed="false">Scores (ICC)</button>
+    </div>
+    <p class="ax-help rl-what"></p>
+
+    <div class="rl-p" data-m="alpha">
+      <label>One row per respondent, one column per item. A header row with item names is optional.
+        <textarea class="rl-in" rows="9" spellcheck="false" wrap="off">Q1	Q2	Q3	Q4	Q5
+4	5	4	2	3
+3	3	4	3	4
+5	4	5	1	3
+2	2	3	4	4
+4	4	3	3	5
+3	4	4	3	2
+5	4	4	2	3
+1	2	2	4	3
+4	3	4	2	2
+3	3	2	3	4
+4	5	5	2	3
+2	3	3	4	4</textarea></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Reverse-scored items <input class="rl-rev" value="Q4" placeholder="e.g. Q4, Q7 or 4, 7" /></label>
+      </div>
+      <p class="ax-help">Reversed items are scored as (lowest + highest) − score, using the lowest and highest values in your data. Rows with a blank cell are left out.</p>
+    </div>
+
+    <div class="rl-p" data-m="cohen" hidden>
+      <div class="ax-grid">
+        <label>My data is <select class="rl-cform"><option value="table" selected>A table of counts</option><option value="raw">Two columns of ratings</option></select></label>
+        <label>Weights <select class="rl-w"><option value="none">None (categories)</option><option value="linear">Linear (ordered)</option><option value="quadratic">Quadratic (ordered)</option></select></label>
+      </div>
+      <label style="margin-top:10px">Counts: rows are rater 1's categories, columns rater 2's, in the same order. Category names in the first row and column are optional.
+        <textarea class="rl-in" rows="5" spellcheck="false" wrap="off">	Yes	No
+Yes	20	5
+No	10	15</textarea></label>
+      <p class="ax-help">Weights give partial credit for near misses when the categories have an order, such as mild, moderate and severe.</p>
+    </div>
+
+    <div class="rl-p" data-m="fleiss" hidden>
+      <div class="ax-grid">
+        <label>My data is <select class="rl-fform"><option value="counts" selected>Counts per category</option><option value="raw">One column per rater</option></select></label>
+      </div>
+      <label style="margin-top:10px">One row per subject. With counts, each column is a category and each cell the number of raters who chose it; every row must add up to the same number of raters.
+        <textarea class="rl-in" rows="10" spellcheck="false" wrap="off">A	B	C	D	E
+0	0	0	0	14
+0	2	6	4	2
+0	0	3	5	6
+0	3	9	2	0
+2	2	8	1	1
+7	7	0	0	0
+3	2	6	3	0
+2	5	3	2	2
+6	5	2	1	0
+0	2	2	3	7</textarea></label>
+    </div>
+
+    <div class="rl-p" data-m="icc" hidden>
+      <label>One row per subject (target), one column per rater or measurement. A header row is optional.
+        <textarea class="rl-in" rows="8" spellcheck="false" wrap="off">Judge 1	Judge 2	Judge 3	Judge 4
+9	2	5	8
+6	1	3	2
+8	4	6	8
+7	1	2	6
+10	5	6	9
+6	2	4	7</textarea></label>
+      <p class="ax-help">Rows with a blank cell are left out.</p>
+    </div>
+    <p class="ax-err rl-err" hidden></p>
+  </div>
+
+  <div class="ax-card rl-out" hidden>
+    <h2 class="rl-h"></h2>
+    <p class="ax-big rl-big"></p>
+    <dl class="ax-facts rl-facts"></dl>
+    <div class="rl-tw" hidden><h3 class="rl-th"></h3><div class="ax-scroll"><table class="rl-tab"></table></div></div>
+    <p class="ax-help rl-note"></p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rl .rl-p { margin-top: 12px; }
+  .rl .rl-tab td.rl-low { color: var(--bad); font-weight: 600; }
+  .rl .rl-tab tr.rl-pick td { font-weight: 650; }
+  .rl .rl-tab.rl-icc td, .rl .rl-tab.rl-icc th { white-space: nowrap; vertical-align: top; }
+  .rl .rl-tab.rl-icc td small { display: block; white-space: normal; min-width: 120px; max-width: 160px; font-weight: 400; color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 2px; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { cronbach, cohen, fleiss, icc } from '../../lib/sci/reliability';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let mode = 'alpha', report: Section[] = [];
+  const WHAT: Record<string, string> = {
+    alpha: "Cronbach's alpha: do the items of a questionnaire scale measure the same thing?",
+    cohen: "Cohen's kappa: how far two raters agree on categories, beyond the agreement expected by chance.",
+    fleiss: "Fleiss' kappa: agreement on categories when three or more raters each rate every subject.",
+    icc: 'Intraclass correlation: agreement or consistency of numeric scores from two or more raters, or repeated measurements.',
+  };
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const ci = (c: [number, number]) => (c.every(Number.isFinite) ? `${f3(c[0])} to ${f3(c[1])}` : '–');
+  const pTxt = (p: number) => (p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const kappaBand = (k: number) => k < 0 ? 'poor (worse than chance)' : k <= 0.2 ? 'slight' : k <= 0.4 ? 'fair' : k <= 0.6 ? 'moderate' : k <= 0.8 ? 'substantial' : 'almost perfect';
+  const iccBand = (r: number) => r < 0.5 ? 'poor' : r < 0.75 ? 'moderate' : r < 0.9 ? 'good' : 'excellent';
+  const alphaBand = (a: number) => a < 0.6 ? 'low' : a < 0.7 ? 'questionable' : a < 0.8 ? 'acceptable' : a < 0.9 ? 'good' : a <= 0.95 ? 'excellent' : 'very high (items may repeat each other)';
+
+  /** Rows of cells; a first row that is not all numbers is the header. */
+  function grid(text: string) {
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error('Paste your data first.');
+    const isNum = (c: string) => c.trim() === '' || Number.isFinite(num(c));
+    const hasHead = !rows[0].every(isNum);
+    return { head: hasHead ? rows[0] : null, body: hasHead ? rows.slice(1) : rows };
+  }
+  const numbers = (body: string[][], width: number) => body.map((r, i) => Array.from({ length: width }, (_, j) => {
+    const c = (r[j] ?? '').trim(); if (c === '') return NaN;
+    const v = num(c); if (!Number.isFinite(v)) throw new Error(`"${c}" in row ${i + 1} is not a number.`); return v;
+  }));
+  /** Raw ratings: the first row is a header when none of its cells appears again below it. */
+  function ratings(text: string) {
+    const rows = parseTable(text).map((r) => r.map((c) => c.trim()));
+    const below = new Set(rows.slice(1).flat());
+    const B = rows.length > 2 && rows[0].every((c) => !below.has(c)) ? rows.slice(1) : rows;
+    const cats = [...new Set(B.flat().filter((c) => c !== ''))];
+    if (cats.every((c) => Number.isFinite(num(c)))) cats.sort((a, b) => num(a) - num(b)); else cats.sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    return { B, cats };
+  }
+
+  function facts(list: [string, string][]) {
+    const dl = q('.rl-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function table(title: string, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    q('.rl-tw').hidden = !rows.length; q('.rl-th').textContent = title;
+    const t = q<HTMLTableElement>('.rl-tab'); t.innerHTML = ''; t.className = 'rl-tab';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+    return t;
+  }
+
+  function runAlpha(text: string): Section[] {
+    const { head, body } = grid(text);
+    const k = Math.max(...body.map((r) => r.length)), names = Array.from({ length: k }, (_, j) => head?.[j] || `Item ${j + 1}`);
+    let X = numbers(body, k);
+    const revTxt = q<HTMLInputElement>('.rl-rev').value.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+    const rev = new Set<number>();
+    for (const t of revTxt) { const byName = names.findIndex((n) => n.toLowerCase() === t.toLowerCase()); const j = byName >= 0 ? byName : /^\d+$/.test(t) ? Number(t) - 1 : -1; if (j < 0 || j >= k) throw new Error(`Reverse-scored item "${t}" is not a column name or number.`); rev.add(j); }
+    const all = X.flat().filter(Number.isFinite), lo = Math.min(...all), hi = Math.max(...all);
+    if (rev.size) X = X.map((r) => r.map((v, j) => (rev.has(j) && Number.isFinite(v) ? lo + hi - v : v)));
+    const r = cronbach(X), dropped = X.length - r.n;
+    q('.rl-h').textContent = "Cronbach's alpha";
+    q('.rl-big').textContent = `α = ${f3(r.alpha)}`;
+    const fl: [string, string][] = [
+      ['95 % interval (Feldt)', ci(r.ci)],
+      ['Reads as', alphaBand(r.alpha)],
+      ['Standardised alpha', f3(r.std)],
+      ['Mean inter-item correlation', f3(r.rbar)],
+      ['Respondents, items', `${r.n}, ${r.k}${dropped ? ` (${dropped} incomplete row${dropped > 1 ? 's' : ''} left out)` : ''}`],
+    ];
+    if (rev.size) fl.push(['Reverse-scored', `${[...rev].map((j) => names[j]).join(', ')} (as ${lo + hi} − score)`]);
+    facts(fl);
+    const rows = r.items.map((it, j) => [names[j] + (rev.has(j) ? ' (R)' : ''), sig(it.mean, 3), sig(it.sd, 3), f3(it.itemRest), f3(it.alphaIfDeleted)]);
+    table('Items', ['Item', 'Mean', 'SD', 'Item-rest r', 'α if deleted'], rows, (ri, c) => (c === 3 && r.items[ri].itemRest < 0.3) || (c === 4 && r.items[ri].alphaIfDeleted > r.alpha + 0.01) ? 'rl-low' : '');
+    const weak = r.items.map((it, j) => (it.itemRest < 0 ? names[j] : '')).filter(Boolean);
+    q('.rl-note').textContent = (weak.length ? `${weak.join(', ')} ${weak.length > 1 ? 'run' : 'runs'} against the rest of the scale (negative item-rest correlation): check whether ${weak.length > 1 ? 'they need' : 'it needs'} reverse scoring. ` : '') + 'Item-rest correlations below 0.3 and items whose removal raises alpha are marked. Alpha of 0.70 is the usual minimum for a research scale.';
+    return [{ title: "Cronbach's alpha", facts: [['Alpha', f3(r.alpha)], ...fl] }, { title: 'Items', table: { head: ['Item', 'Mean', 'SD', 'Item-rest r', 'Alpha if deleted'], rows, align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  function cohenTable(text: string) {
+    if (q<HTMLSelectElement>('.rl-cform').value === 'raw') {
+      const { B, cats: all } = ratings(text);
+      const body = B.filter((r) => r.length >= 2 && r[0] !== '' && r[1] !== '');
+      if (!body.length) throw new Error('Paste two columns: rater 1 and rater 2, one row per subject.');
+      const used = new Set(body.flatMap((r) => [r[0], r[1]])), cats = all.filter((c) => used.has(c));
+      if (cats.length < 2) throw new Error('Both raters used the same single category, so kappa cannot be worked out.');
+      const T = cats.map(() => cats.map(() => 0));
+      for (const r of body) T[cats.indexOf(r[0])][cats.indexOf(r[1])]++;
+      return { cats, T };
+    }
+    const rows = parseTable(text);
+    const isNum = (c: string) => Number.isFinite(num(c));
+    const head = rows[0] && !rows[0].every((c) => c === '' || isNum(c)) ? rows[0] : null;
+    let body = head ? rows.slice(1) : rows;
+    const labelled = body.length > 0 && body.every((r) => !isNum(r[0]));
+    const cats = labelled ? body.map((r) => r[0]) : (head ? head.filter((c) => c !== '') : body.map((_, i) => String(i + 1)));
+    body = labelled ? body.map((r) => r.slice(1)) : body;
+    const T = body.map((r) => r.map((c) => (c.trim() === '' ? 0 : num(c))));
+    if (T.flat().some((v) => !Number.isFinite(v) || v < 0)) throw new Error('Counts must be numbers of zero or more.');
+    if (T.some((r) => r.length !== T.length)) throw new Error(`The table must be square: ${T.length} rows need ${T.length} columns of counts.`);
+    return { cats, T };
+  }
+
+  function runCohen(text: string): Section[] {
+    const { cats, T } = cohenTable(text), w = q<HTMLSelectElement>('.rl-w').value as 'none' | 'linear' | 'quadratic';
+    const r = cohen(T, w);
+    q('.rl-h').textContent = w === 'none' ? "Cohen's kappa" : `Weighted kappa (${w})`;
+    q('.rl-big').textContent = `κ = ${f3(r.kappa)}`;
+    const fl: [string, string][] = [
+      ...(w === 'none' ? [['95 % interval', ci(r.ci)] as [string, string]] : []),
+      ['Reads as', `${kappaBand(r.kappa)} agreement`],
+      [w === 'none' ? 'Observed agreement' : 'Weighted observed agreement', `${(r.po * 100).toFixed(1)} %`],
+      ['Expected by chance', `${(r.pe * 100).toFixed(1)} %`],
+      ['Subjects', r.n.toLocaleString('en')],
+    ];
+    facts(fl);
+    const rows = T.map((row, i) => [cats[i] ?? String(i + 1), ...row.map((v) => v.toLocaleString('en')), row.reduce((s, x) => s + x, 0).toLocaleString('en')]);
+    rows.push(['Total', ...T[0].map((_, j) => T.reduce((s, x) => s + x[j], 0).toLocaleString('en')), r.n.toLocaleString('en')]);
+    const head = ['Rater 1 ↓ / Rater 2 →', ...cats.map((c, j) => c ?? String(j + 1)), 'Total'];
+    table('Agreement table', head, rows);
+    q('.rl-note').textContent = 'Bands follow Landis and Koch (1977): 0–0.20 slight, 0.21–0.40 fair, 0.41–0.60 moderate, 0.61–0.80 substantial, above 0.80 almost perfect. Kappa falls when one category is much more common than the others, even if raters rarely disagree, so report the observed agreement too.' + (w !== 'none' ? ' The interval is shown for unweighted kappa only.' : '');
+    return [{ title: q('.rl-h').textContent!, facts: [['Kappa', f3(r.kappa)], ...fl] }, { title: 'Agreement table', table: { head, rows, align: ['l', ...cats.map(() => 'r' as const), 'r'] } }];
+  }
+
+  function runFleiss(text: string): Section[] {
+    let counts: number[][], cats: string[];
+    if (q<HTMLSelectElement>('.rl-fform').value === 'raw') {
+      const { B, cats: c0 } = ratings(text);
+      cats = c0;
+      counts = B.map((r) => cats.map((c) => r.filter((x) => x === c).length));
+    } else {
+      const { head, body } = grid(text);
+      const k = Math.max(...body.map((r) => r.length));
+      cats = Array.from({ length: k }, (_, j) => head?.[j] || String(j + 1));
+      counts = body.map((r) => Array.from({ length: k }, (_, j) => { const c = (r[j] ?? '').trim(); return c === '' ? 0 : num(c); }));
+      if (counts.flat().some((v) => !Number.isInteger(v) || v < 0)) throw new Error('Counts must be whole numbers of zero or more.');
+    }
+    const totals = counts.map((r) => r.reduce((s, x) => s + x, 0)), bad = totals.findIndex((t) => t !== totals[0]);
+    if (bad > 0) throw new Error(`Subject ${bad + 1} has ${totals[bad]} ratings but subject 1 has ${totals[0]}. Fleiss' kappa needs the same number of raters for every subject.`);
+    const r = fleiss(counts);
+    q('.rl-h').textContent = "Fleiss' kappa";
+    q('.rl-big').textContent = `κ = ${f3(r.kappa)}`;
+    const fl: [string, string][] = [
+      ['Reads as', `${kappaBand(r.kappa)} agreement`],
+      ['Mean observed agreement P̄', f3(r.P)],
+      ['Expected by chance P̄e', f3(r.Pe)],
+      ['Subjects, raters per subject', `${r.subjects}, ${r.raters}`],
+    ];
+    facts(fl);
+    // Kappa for each category: agreement on that category against the rest (Fleiss 1971).
+    const N = counts.length, n = r.raters;
+    const rows = cats.map((c, j) => { const p = counts.reduce((s, x) => s + x[j], 0) / (N * n); const kj = 1 - counts.reduce((s, x) => s + x[j] * (n - x[j]), 0) / (N * n * (n - 1) * p * (1 - p)); return [c, `${(p * 100).toFixed(1)} %`, f3(kj)]; });
+    table('By category', ['Category', 'Share of ratings', 'Kappa'], rows);
+    q('.rl-note').textContent = "Bands follow Landis and Koch (1977). Fleiss' kappa does not need the same raters for every subject, only the same number of them. The per-category kappa shows which categories raters agree on.";
+    return [{ title: "Fleiss' kappa", facts: [['Kappa', f3(r.kappa)], ...fl] }, { title: 'By category', table: { head: ['Category', 'Share of ratings', 'Kappa'], rows, align: ['l', 'r', 'r'] } }];
+  }
+
+  function runIcc(text: string): Section[] {
+    const { body } = grid(text);
+    const k = Math.max(...body.map((r) => r.length)), X = numbers(body, k), r = icc(X), dropped = X.length - r.n;
+    const defs: [string, string, string][] = [
+      ['icc1', 'ICC(1,1)', 'One-way random, single rater: each subject rated by different raters'],
+      ['icc2', 'ICC(2,1)', 'Two-way random, absolute agreement, single rater'],
+      ['icc3', 'ICC(3,1)', 'Two-way mixed, consistency, single rater'],
+      ['icc1k', 'ICC(1,k)', 'One-way random, mean of k raters'],
+      ['icc2k', 'ICC(2,k)', 'Two-way random, absolute agreement, mean of k raters'],
+      ['icc3k', 'ICC(3,k)', 'Two-way mixed, consistency, mean of k raters'],
+    ];
+    const R = r as unknown as Record<string, number>;
+    q('.rl-h').textContent = 'Intraclass correlation';
+    q('.rl-big').textContent = `ICC(2,1) = ${f3(r.icc2)}`;
+    const fl: [string, string][] = [
+      ['95 % interval', ci(r.ci.icc2)],
+      ['Reads as', `${iccBand(r.icc2)} reliability (Koo and Li)`],
+      ['Subjects, raters', `${r.n}, ${r.k}${dropped ? ` (${dropped} incomplete row${dropped > 1 ? 's' : ''} left out)` : ''}`],
+    ];
+    facts(fl);
+    const rows = defs.map(([key, name, desc]) => { const t = r.test[key]; return [name, f3(R[key]), ci(r.ci[key]), `F(${t.df1}, ${t.df2}) = ${sig(t.F, 3)}`, pTxt(t.p), desc]; });
+    const t = table('All six forms (Shrout and Fleiss 1979)', ['Form', 'ICC', '95 % interval', 'F test', 'p'], rows.map((x) => x.slice(0, 5)));
+    t.classList.add('rl-icc');
+    [...t.tBodies[0].rows].forEach((tr, i) => { const sm = document.createElement('small'); sm.textContent = defs[i][2]; tr.cells[0].append(sm); });
+    t.tBodies[0].rows[1].classList.add('rl-pick');
+    q('.rl-note').textContent = 'Pick the form before looking at the numbers. ICC(2,1) is the usual choice when the raters are a sample of possible raters and you care about the same score, not just the same ranking. Use the k forms only if you will average all k raters in practice. Bands follow Koo and Li (2016): below 0.5 poor, 0.5–0.75 moderate, 0.75–0.9 good, above 0.9 excellent, judged on the interval as well as the value.';
+    return [{ title: 'Intraclass correlation', facts: [['ICC(2,1)', f3(r.icc2)], ...fl] }, { title: 'All six forms', table: { head: ['Form', 'ICC', '95 % interval', 'F test', 'p', 'Use when'], rows, align: ['l', 'r', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  function calc() {
+    const err = q('.rl-err'), panel = q(`.rl-p[data-m="${mode}"]`), text = q<HTMLTextAreaElement>('.rl-in', panel).value;
+    try {
+      report = mode === 'alpha' ? runAlpha(text) : mode === 'cohen' ? runCohen(text) : mode === 'fleiss' ? runFleiss(text) : runIcc(text);
+      err.hidden = true; q('.rl-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.rl-out').hidden = true; report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.rl-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.rl-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.rl-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rl-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  setMode('alpha');
+  wireDownloads(q('.dl'), () => ({ title: 'Reliability analysis', file: 'reliability', sections: report }));
+</script>

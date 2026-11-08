@@ -1,0 +1,129 @@
+---
+// Hemocytometer counter with keyboard tallies, viability and a seeding calculator.
+import '../../styles/astro.css';
+---
+<div class="ax hc">
+  <div class="ax-card">
+    <h2>Chamber and dilution</h2>
+    <div class="ax-grid">
+      <label>Squares to count <select class="hc-n"><option value="4" selected>4 corner squares</option><option value="5">4 corners and the centre</option><option value="9">All 9 squares</option><option value="1">1 square</option></select></label>
+      <label>Cells : trypan blue <select class="hc-tb"><option value="2" selected>1 : 1 (×2)</option><option value="1">No stain (×1)</option><option value="1.111">9 : 1 (×1.11)</option><option value="5">1 : 4 (×5)</option></select></label>
+      <label>Earlier dilution (×) <input class="hc-pre" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">For an improved Neubauer chamber, each large square holds 0.1 µL. Count cells touching the top and left lines, not the bottom and right ones, so no cell is counted twice.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Count</h2>
+    <div class="hc-pad">
+      <button type="button" class="btn hc-live" aria-keyshortcuts="L Space">Live <kbd>L</kbd></button>
+      <button type="button" class="btn secondary hc-dead" aria-keyshortcuts="D">Dead (blue) <kbd>D</kbd></button>
+      <button type="button" class="btn secondary hc-next" aria-keyshortcuts="N Enter">Next square <kbd>N</kbd></button>
+      <button type="button" class="btn secondary hc-undo" aria-keyshortcuts="Backspace">Undo <kbd>⌫</kbd></button>
+    </div>
+    <p class="ax-help">Keys work anywhere on the page: L or Space for a live cell, D for a dead one, N or Enter for the next square, Backspace to undo. You can also type the counts into the table.</p>
+    <div class="ax-scroll"><table class="hc-tab"></table></div>
+    <button type="button" class="btn secondary small hc-reset" style="margin-top:8px">Start again</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-big hc-big" aria-live="polite"></p>
+    <dl class="ax-facts hc-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Seed the cells</h2>
+    <div class="ax-grid">
+      <label>Live cells per well <input class="hc-cpw" inputmode="decimal" value="1e5" /></label>
+      <label>Wells (or flasks) <input class="hc-w" inputmode="numeric" value="24" /></label>
+      <label>Medium per well (mL) <input class="hc-v" inputmode="decimal" value="0.5" /></label>
+      <label>Spare (%) <input class="hc-sp" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-big hc-seed"></p>
+    <p class="ax-help hc-seedsub"></p>
+    <p class="ax-help">Typical seeding: 96-well 0.1–0.2 mL, 24-well 0.5–1 mL, 12-well 1 mL, 6-well 2 mL per well. 1e5 means 100,000.</p>
+  </div>
+</div>
+
+<style is:global>
+  .hc-pad { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .hc-pad .btn { padding: 18px 10px; font-size: 18px; }
+  .hc-pad kbd { font: inherit; font-size: 13px; opacity: .7; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
+  .hc-tab input { width: 72px !important; text-align: right; }
+  .hc-tab tr.cur td { font-weight: 700; }
+  .hc-tab tr.cur td:first-child::before { content: '▶ '; }
+</style>
+
+<script>
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { cellCount, seeding } from '../../lib/sci/cells';
+
+  const root = document.querySelector<HTMLElement>('.hc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let live: number[] = [], dead: number[] = [], cur = 0;
+  const hist: (() => void)[] = [];
+  const big = (x: number) => (Number.isFinite(x) ? (x >= 1e4 ? fmtExp(x, 3) : sig(x, 3)) : '–');
+
+  function reset() { const n = Number(q<HTMLSelectElement>('.hc-n').value); live = new Array(n).fill(0); dead = new Array(n).fill(0); cur = 0; hist.length = 0; table(); calc(); }
+  function table() {
+    const tb = q<HTMLTableElement>('.hc-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['Square', 'Live', 'Dead'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    live.forEach((_, i) => {
+      const tr = body.insertRow(); if (i === cur) tr.className = 'cur';
+      tr.insertCell().textContent = String(i + 1);
+      for (const [arr, k] of [[live, 'l'], [dead, 'd']] as const) {
+        const td = tr.insertCell(); td.className = 'r';
+        const inp = Object.assign(document.createElement('input'), { inputMode: 'numeric', value: String(arr[i]) });
+        inp.setAttribute('aria-label', `Square ${i + 1} ${k === 'l' ? 'live' : 'dead'}`);
+        inp.addEventListener('input', () => { arr[i] = Math.max(0, Math.round(num(inp.value) || 0)); calc(); });
+        inp.addEventListener('focus', () => { cur = i; body.querySelectorAll('tr').forEach((r, j) => r.classList.toggle('cur', j === cur)); });
+        td.append(inp);
+      }
+    });
+  }
+  function tally(kind: 'live' | 'dead' | 'next' | 'undo') {
+    if (kind === 'undo') { hist.pop()?.(); }
+    else if (kind === 'next') { const prev = cur; cur = (cur + 1) % live.length; hist.push(() => (cur = prev)); }
+    else { const arr = kind === 'live' ? live : dead, i = cur; arr[i]++; hist.push(() => { arr[i] = Math.max(0, arr[i] - 1); }); }
+    table(); calc();
+  }
+  function calc() {
+    const dil = Number(q<HTMLSelectElement>('.hc-tb').value) * (num(q<HTMLInputElement>('.hc-pre').value) || 1);
+    try {
+      const r = cellCount(live, dead, dil);
+      q('.hc-big').textContent = r.counted ? `${big(r.liveMl)} live cells/mL, ${sig(r.viability * 100, 3)} % viable` : 'Count the cells to see the result';
+      const facts: [string, string, string?][] = [
+        ['Live cells', `${big(r.liveMl)} per mL`], ['Dead cells', `${big(r.deadMl)} per mL`], ['All cells', `${big(r.totalMl)} per mL`],
+        ['Counted', `${r.counted} cells in ${live.length} square${live.length > 1 ? 's' : ''}`, r.counted < 100 ? 'count at least 100 cells for a ±10 % result' : `counting error about ±${sig(r.poissonRel * 100, 2)} %`],
+        ['Dilution used', `× ${sig(dil, 4)}`],
+      ];
+      if (Number.isFinite(r.cv)) facts.push(['Spread between squares', `CV ${sig(r.cv * 100, 2)} %`, r.cv > 0.25 && r.perSquare >= 20 ? 'uneven: mix the cells well and load the chamber again' : 'even enough']);
+      if (r.counted && (r.perSquare < 20 || r.perSquare > 200)) facts.push(['Density', `${sig(r.perSquare, 3)} cells per square`, r.perSquare < 20 ? 'too few: concentrate the cells or count more squares' : 'too many: dilute further for an accurate count']);
+      q('.hc-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      seed(r.liveMl);
+    } catch (e) { q('.hc-big').textContent = (e as Error).message; }
+  }
+  function seed(liveMl: number) {
+    try {
+      const s = seeding(liveMl, num(q<HTMLInputElement>('.hc-cpw').value), Math.round(num(q<HTMLInputElement>('.hc-w').value)), num(q<HTMLInputElement>('.hc-v').value), num(q<HTMLInputElement>('.hc-sp').value) || 0);
+      // Pipette resolution: µL to 3 figures, mL to 0.01 mL.
+      const v = (ml: number) => (ml < 1 ? `${sig(ml * 1000, 3)} µL` : ml >= 100 ? `${sig(ml, 4)} mL` : `${ml.toFixed(2).replace(/\.?0+$/, '')} mL`);
+      q('.hc-seed').textContent = `Mix ${v(s.suspensionMl)} of cells with ${v(s.mediumMl)} of medium`;
+      q('.hc-seedsub').textContent = `That makes ${v(s.totalMl)} at ${big(s.targetConc)} cells/mL, enough for every well plus spare. Put ${v(s.totalMl / Math.round(num(q<HTMLInputElement>('.hc-w').value)) / (1 + (num(q<HTMLInputElement>('.hc-sp').value) || 0) / 100))} in each well and mix the tube between wells, because cells settle.`;
+    } catch (e) { q('.hc-seed').textContent = ''; q('.hc-seedsub').textContent = liveMl > 0 ? (e as Error).message : 'Count the cells first.'; }
+  }
+  q('.hc-live').addEventListener('click', () => tally('live')); q('.hc-dead').addEventListener('click', () => tally('dead'));
+  q('.hc-next').addEventListener('click', () => tally('next')); q('.hc-undo').addEventListener('click', () => tally('undo'));
+  q('.hc-reset').addEventListener('click', reset); q('.hc-n').addEventListener('change', reset);
+  root.querySelectorAll('.hc-tb, .hc-pre, .hc-cpw, .hc-w, .hc-v, .hc-sp').forEach((el) => { el.addEventListener('input', calc); el.addEventListener('change', calc); });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+    const k = e.key.toLowerCase(), act = k === 'l' || k === ' ' ? 'live' : k === 'd' ? 'dead' : k === 'n' || k === 'enter' ? 'next' : k === 'backspace' ? 'undo' : null;
+    if (!act || ((k === 'enter' || k === ' ') && t.tagName === 'BUTTON')) return;
+    e.preventDefault(); tally(act);
+  });
+  reset();
+</script>
