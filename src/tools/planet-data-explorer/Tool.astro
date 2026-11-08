@@ -1,0 +1,181 @@
+---
+// Planet and moon data explorer: a sortable table, side-by-side comparison drawn to scale, a plot of any two
+// quantities and your weight on each world.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pdx">
+  <div class="ax-card">
+    <div class="ax-seg pdx-set" role="group" aria-label="Which worlds">
+      <button type="button" data-s="planet" aria-pressed="true">Planets and Pluto</button>
+      <button type="button" data-s="moon" aria-pressed="false">Large moons</button>
+      <button type="button" data-s="all" aria-pressed="false">All</button>
+    </div>
+    <p class="ax-help">Tap a column heading to sort by it, and again to reverse.</p>
+    <div class="ax-scroll"><table class="pdx-tab"></table></div>
+    <p class="ax-help">Sources: NASA Planetary Fact Sheet (D. R. Williams, NSSDCA) for the planets and Pluto, and JPL Solar System Dynamics for the moons. Radii are equatorial for planets and mean for moons. The gravity of the giant planets is at the 1-bar cloud level, including their spin. Moon counts are confirmed moons as of mid-2025 and keep growing; check the official source.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare two worlds</h2>
+    <div class="ax-grid">
+      <label>First <select class="pdx-a"></select></label>
+      <label>Second <select class="pdx-b"></select></label>
+    </div>
+    <p class="ax-big pdx-big"></p>
+    <canvas class="ax-fig pdx-cmp" style="max-width:560px;margin:0 auto"></canvas>
+    <dl class="ax-facts pdx-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plot any two quantities</h2>
+    <div class="ax-grid">
+      <label>Across <select class="pdx-x"></select></label>
+      <label>Up <select class="pdx-y"></select></label>
+    </div>
+    <canvas class="ax-fig pdx-plot" style="margin-top:10px"></canvas>
+    <p class="ax-help pdx-plot-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your weight on each world</h2>
+    <label style="max-width:260px">What you weigh on Earth <input class="pdx-kg" inputmode="decimal" value="70" /></label>
+    <div class="ax-scroll" style="margin-top:10px"><table class="pdx-wt"></table></div>
+    <p class="ax-help">The same mass pulled by each world's surface gravity, as a bathroom scale calibrated on Earth would read. Giant planets have no surface: the number is for their cloud tops. Use any unit; the answer comes in the same one.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pdx-csv">All data (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { BODIES, QUANTITIES, derived, body, weightOn, lightMinutes, type Body } from '../../lib/sci/planets';
+  import { sig, csv, num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pdx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let set = 'planet', sortKey = 'a', sortDir = 1, cmpFig: Figure | null = null, plotFig: Figure | null = null, tableRows: string[][] = [], tableHead: string[] = [];
+  const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+  const sci = (x: number, n = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e5 && Math.abs(x) >= 0.01 || x === 0) return sig(x, n); const e = Math.floor(Math.log10(Math.abs(x))), mm = x / 10 ** e; return `${mm.toFixed(n - 1)} × 10${(e < 0 ? '⁻' : '') + String(Math.abs(e)).split('').map((c) => SUP[+c]).join('')}`; };
+  const parentName = (b: Body) => (b.parent ? body(b.parent)!.name : 'Sun');
+  const shown = () => BODIES.filter((b) => set === 'all' || (set === 'planet' ? b.kind !== 'moon' : b.kind === 'moon'));
+
+  const COLS: { key: string; head: string; val: (b: Body) => number | undefined; fmt: (b: Body) => string }[] = [
+    { key: 'radius', head: 'Radius (km)', val: (b) => b.radius, fmt: (b) => Math.round(b.radius).toLocaleString('en') },
+    { key: 'mass', head: 'Mass (Earths)', val: (b) => b.mass, fmt: (b) => sig(b.mass / 5.97e24, 3) },
+    { key: 'density', head: 'Density (g/cm³)', val: (b) => derived(b).density, fmt: (b) => (derived(b).density / 1000).toFixed(2) },
+    { key: 'gravity', head: 'Gravity (m/s²)', val: (b) => derived(b).gravity, fmt: (b) => sig(derived(b).gravity, 3) },
+    { key: 'escape', head: 'Escape (km/s)', val: (b) => derived(b).escape, fmt: (b) => sig(derived(b).escape, 3) },
+    { key: 'a', head: 'Orbit (million km)', val: (b) => b.a, fmt: (b) => sig(b.a / 1e6, 4) },
+    { key: 'period', head: 'Year (days)', val: (b) => Math.abs(b.period), fmt: (b) => `${sig(Math.abs(b.period), 4)}${b.period < 0 ? ' R' : ''}` },
+    { key: 'rotation', head: 'Day (hours)', val: (b) => (b.rotation === undefined ? undefined : Math.abs(b.rotation)), fmt: (b) => (b.rotation === undefined ? '–' : `${sig(Math.abs(b.rotation), 4)}${b.rotation < 0 ? ' R' : ''}`) },
+    { key: 'obliquity', head: 'Tilt (°)', val: (b) => b.obliquity, fmt: (b) => (b.obliquity === undefined ? '–' : sig(b.obliquity, 3)) },
+    { key: 'temp', head: 'Mean temp (°C)', val: (b) => b.temp, fmt: (b) => (b.temp === undefined ? '–' : String(b.temp)) },
+    { key: 'moons', head: 'Moons', val: (b) => b.moons, fmt: (b) => (b.moons === undefined ? '–' : String(b.moons)) },
+  ];
+
+  function table() {
+    root.querySelectorAll<HTMLButtonElement>('.pdx-set button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === set)));
+    const list = shown().sort((x, y) => { const c = COLS.find((cc) => cc.key === sortKey)!; const a = c.val(x) ?? -Infinity, b = c.val(y) ?? -Infinity; return (a - b) * sortDir; });
+    const tb = q<HTMLTableElement>('.pdx-tab'); tb.replaceChildren();
+    const tr = tb.createTHead().insertRow();
+    const th0 = document.createElement('th'); th0.textContent = set === 'moon' ? 'Moon (of)' : 'World'; tr.append(th0);
+    for (const c of COLS) {
+      const th = document.createElement('th'), btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'pdx-sort'; btn.textContent = c.head + (sortKey === c.key ? (sortDir > 0 ? ' ▲' : ' ▼') : '');
+      btn.setAttribute('aria-label', `Sort by ${c.head}`);
+      btn.addEventListener('click', () => { if (sortKey === c.key) sortDir = -sortDir; else { sortKey = c.key; sortDir = 1; } table(); });
+      th.append(btn); tr.append(th);
+    }
+    const body = tb.createTBody();
+    tableHead = ['World', ...COLS.map((c) => c.head)];
+    tableRows = list.map((b) => [b.kind === 'moon' ? `${b.name} (${parentName(b)})` : b.name, ...COLS.map((c) => c.fmt(b))]);
+    for (const r of tableRows) { const row = body.insertRow(); r.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }
+  }
+
+  function fillSelect(sel: HTMLSelectElement, value: string) {
+    sel.replaceChildren(...BODIES.map((b) => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.kind === 'moon' ? `${b.name} (moon of ${parentName(b)})` : b.name; return o; }));
+    sel.value = value;
+  }
+
+  function compare() {
+    const A = body(q<HTMLSelectElement>('.pdx-a').value)!, B = body(q<HTMLSelectElement>('.pdx-b').value)!;
+    const dA = derived(A), dB = derived(B);
+    const ratio = (x: number, y: number) => (x >= y ? `${sig(x / y, 3)} ×` : `1/${sig(y / x, 3)}`);
+    q('.pdx-big').textContent = A.id === B.id ? `${A.name}` : `${A.name} is ${sig(A.radius / B.radius, 3)} times as wide as ${B.name} and ${sig(A.mass / B.mass, 3)} times as heavy`;
+    const facts: [string, string, string][] = [
+      ['Diameter', `${Math.round(2 * A.radius).toLocaleString('en')} km vs ${Math.round(2 * B.radius).toLocaleString('en')} km`, ratio(A.radius, B.radius)],
+      ['Mass', `${sci(A.mass)} kg vs ${sci(B.mass)} kg`, ratio(A.mass, B.mass)],
+      ['Volume', `${sci(dA.volume)} km³ vs ${sci(dB.volume)} km³`, `${ratio(dA.volume, dB.volume)}: ${dA.volume >= dB.volume ? `${A.name} could hold ${sig(dA.volume / dB.volume, 3)} worlds the size of ${B.name}` : `${B.name} could hold ${sig(dB.volume / dA.volume, 3)} worlds the size of ${A.name}`}`],
+      ['Density', `${(dA.density / 1000).toFixed(2)} vs ${(dB.density / 1000).toFixed(2)} g/cm³`, 'water is 1.00; rock about 3; iron 7.9'],
+      ['Surface gravity', `${sig(dA.gravity, 3)} vs ${sig(dB.gravity, 3)} m/s²`, ratio(dA.gravity, dB.gravity)],
+      ['Escape speed', `${sig(dA.escape, 3)} vs ${sig(dB.escape, 3)} km/s`, 'the speed needed to leave for good from the surface'],
+      ['Year', `${sig(Math.abs(A.period), 4)} vs ${sig(Math.abs(B.period), 4)} days`, `orbits of the ${parentName(A)}${parentName(A) !== parentName(B) ? ` and the ${parentName(B)}` : ''}`],
+    ];
+    if (A.kind !== 'moon' && B.kind !== 'moon') facts.push(['Sunlight takes', `${sig(lightMinutes(A), 3)} vs ${sig(lightMinutes(B), 3)} minutes`, 'to arrive, at the average distance']);
+    q('.pdx-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); return d; }));
+    cmpFig = {
+      w: 560, h: 260, alt: `${A.name} and ${B.name} drawn to the same scale`,
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+        const big = Math.max(A.radius, B.radius), s = Math.min((h - 60) / 2, (w / 2 - 30) / 2) / big;
+        const draw = (b: Body, cx: number) => {
+          const r = Math.max(0.8, b.radius * s), cy = (h - 30) / 2 + 6;
+          ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fillStyle = pal.red ? pal.muted : pal.grid; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.stroke();
+          if (b.rings) { ctx.beginPath(); ctx.ellipse(cx, cy, r * 1.9, r * 0.45, -0.25, 0, 2 * Math.PI); ctx.strokeStyle = pal.muted; ctx.stroke(); }
+          ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+          ctx.fillText(b.name, cx, h - 10);
+        };
+        draw(A, w / 4); draw(B, (3 * w) / 4);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.pdx-cmp'), cmpFig);
+  }
+
+  function plot() {
+    const X = QUANTITIES.find((x) => x.id === q<HTMLSelectElement>('.pdx-x').value)!, Y = QUANTITIES.find((x) => x.id === q<HTMLSelectElement>('.pdx-y').value)!;
+    const list = shown().filter((b) => { const x = X.get(b), y = Y.get(b); return x !== undefined && y !== undefined && Number.isFinite(x) && Number.isFinite(y) && (!X.log || x > 0) && (!Y.log || y > 0); });
+    const groups = set === 'all' ? [list.filter((b) => b.kind !== 'moon'), list.filter((b) => b.kind === 'moon')] : [list];
+    const names = set === 'all' ? ['Planets and Pluto', 'Moons'] : [set === 'planet' ? 'Planets and Pluto' : 'Moons'];
+    plotFig = chartFigure({ h: 340, xLabel: `${X.label}${X.unit ? ` (${X.unit})` : ''}`, yLabel: `${Y.label}${Y.unit ? ` (${Y.unit})` : ''}`, xLog: X.log, yLog: Y.log, legend: set === 'all' ? 'below' : 'none',
+      series: groups.map((g, i) => ({ name: names[i], x: g.map((b) => X.get(b)!), y: g.map((b) => Y.get(b)!), mode: 'points' as const, size: 4.5, labels: g.map((b) => b.name), marker: i ? 'square' as const : 'circle' as const })),
+    }, `${Y.label} against ${X.label}`);
+    paint(q<HTMLCanvasElement>('.pdx-plot'), plotFig);
+    const kepler = (X.id === 'a' && Y.id === 'period') || (X.id === 'period' && Y.id === 'a');
+    q('.pdx-plot-note').textContent = kepler ? 'Kepler\'s third law: for bodies orbiting the same thing, the period squared goes as the orbit size cubed, so on these log axes each family lies on its own straight line of slope 3/2.' : X.log || Y.log ? `Axes marked as powers of ten are logarithmic, so the worlds spread out evenly despite their huge range.` : '';
+  }
+
+  function weights() {
+    const kg = num(q<HTMLInputElement>('.pdx-kg').value);
+    const tb = q<HTMLTableElement>('.pdx-wt'); tb.replaceChildren();
+    const tr = tb.createTHead().insertRow(); ['World', 'You would weigh', 'Compared with Earth'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+    const bd = tb.createTBody();
+    for (const b of shown()) { const w = weightOn(b, kg > 0 ? kg : 70), row = bd.insertRow(); [b.name, sig(w, 3), `${sig((derived(b).gravity / derived(body('earth')!).gravity) * 100, 3)} %`].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }
+  }
+
+  function all() { table(); plot(); weights(); }
+
+  fillSelect(q<HTMLSelectElement>('.pdx-a'), 'earth'); fillSelect(q<HTMLSelectElement>('.pdx-b'), 'mars');
+  for (const [sel, v] of [['.pdx-x', 'a'], ['.pdx-y', 'period']] as const) { const s = q<HTMLSelectElement>(sel); s.replaceChildren(...QUANTITIES.map((x) => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.label; return o; })); s.value = v; }
+  root.querySelectorAll<HTMLButtonElement>('.pdx-set button').forEach((b) => b.addEventListener('click', () => { set = b.dataset.s!; all(); }));
+  for (const c of ['.pdx-a', '.pdx-b']) q(c).addEventListener('change', compare);
+  for (const c of ['.pdx-x', '.pdx-y']) q(c).addEventListener('change', plot);
+  q('.pdx-kg').addEventListener('input', weights);
+  q('.pdx-csv').addEventListener('click', () => {
+    const head = ['name', 'kind', 'orbits', 'radius_km', 'mass_kg', 'density_kg_m3', 'gravity_m_s2', 'escape_km_s', 'semi_major_axis_km', 'period_days', 'eccentricity', 'inclination_deg', 'rotation_hours', 'obliquity_deg', 'mean_temp_c', 'moons'];
+    save(new Blob([csv([head, ...BODIES.map((b) => { const d = derived(b); return [b.name, b.kind, parentName(b), b.radius, b.mass, Math.round(d.density), +d.gravity.toFixed(3), +d.escape.toFixed(3), b.a, b.period, b.ecc, b.incl, b.rotation ?? '', b.obliquity ?? '', b.temp ?? '', b.moons ?? '']; })])], { type: 'text/csv' }), 'planet-data.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (cmpFig) paint(q<HTMLCanvasElement>('.pdx-cmp'), cmpFig); if (plotFig) paint(q<HTMLCanvasElement>('.pdx-plot'), plotFig); });
+  all(); compare();
+  wireDownloads(q('.dl'), () => ({ title: 'Planet and moon data', file: 'planet-data', sections: [
+    { title: 'Data', table: { head: tableHead, rows: tableRows, align: tableHead.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') } },
+    ...(cmpFig ? [{ title: q('.pdx-big').textContent!, figure: cmpFig, facts: [...root.querySelectorAll('.pdx-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) }] : []),
+    ...(plotFig ? [{ title: 'Plot', figure: plotFig }] : []),
+  ] }));
+</script>
+
+<style is:global>
+  .pdx .pdx-tab th, .pdx .pdx-tab td { white-space: nowrap; }
+  .pdx .pdx-sort { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-align: right; }
+</style>

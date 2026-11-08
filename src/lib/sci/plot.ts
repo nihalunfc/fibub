@@ -19,6 +19,8 @@ export type Marker = 'circle' | 'square' | 'triangle' | 'diamond' | 'open-circle
 export type Series = {
   name: string; x: number[]; y: number[]; yErr?: (number | undefined)[]; xErr?: (number | undefined)[];
   mode?: 'points' | 'line' | 'both'; color?: string; marker?: Marker; dash?: number[]; width?: number; size?: number;
+  /** Optional text drawn just right of each point. */
+  labels?: string[];
 };
 export type Chart = {
   w: number; h: number; title?: string; xLabel?: string; yLabel?: string;
@@ -163,6 +165,7 @@ export function drawChart(P: Painter, c: Chart) {
     });
     if (mode !== 'points' && pts.length > 1) P.line(pts.map(([a, b]) => [X(a), Y(b)]), col, s.width ?? 1.8, s.dash);
     if (mode !== 'line') for (const [a, b] of pts) marker(P, X(a), Y(b), s.marker ?? 'circle', s.size ?? 3.6, col);
+    if (s.labels) s.x.forEach((xv, i) => { const yv = s.y[i], t = s.labels![i]; if (t && finite(xv, c.xLog) && finite(yv, c.yLog)) P.text(X(xv) + (s.size ?? 3.6) + 3, Y(yv), t, fs * 0.82, muted, 'start', 'middle'); });
   });
   P.unclip();
 

@@ -51,6 +51,11 @@ import { vDisc, vBulge, vNFW, vIso, fitRotation, nfwVirial, components as rcComp
 import { identify, findRedshift, simulatedSpectrum, findPeaks, vacToAir, airToVac } from '../src/lib/sci/speclines.ts';
 import { blocked, overlapUniform, intensity, durations, stellarDensity, aRFromDensity, fitTransit, simulatedTransit, fold } from '../src/lib/sci/transit.ts';
 import { measureStar, findStars, fieldSummary, simulatedField, moffatFwhm, plateScale } from '../src/lib/sci/starfwhm.ts';
+import { velRadio, eqToGal, lsrCorrection, baseline as hiBaseline, terminalVelocity, tangentPoint, kinematicDistance, columnDensity, simulatedHI, smooth as hiSmooth } from '../src/lib/astro/hline.ts';
+import { BODIES as PLANET_BODIES, body as planetBody, derived as planetDerived, weightOn, parentMassFromOrbit } from '../src/lib/sci/planets.ts';
+import { findDisc, findSpots, groupSpots, wolfNumber, simulatedSun } from '../src/lib/sci/sunspots.ts';
+import { average as stkAverage, hotPixels, calibrate as stkCalibrate, stars as stkStars, align as stkAlign, warp as stkWarp, Stacker, noise as stkNoise, writeFits, simulatedSet } from '../src/lib/sci/stack.ts';
+import { readImage } from '../src/lib/astro/fits.ts';
 import { planckLam, bandFraction, bcV, tFromBV, star as starBB, WIEN_LAM } from '../src/lib/sci/blackbody.ts';
 import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_EARTH, AU as AU_M, R_JUP } from '../src/lib/sci/rvmass.ts';
 import { crater, impactorFor } from '../src/lib/sci/crater.ts';
@@ -722,6 +727,55 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('most stars found', found.stars.length > 100); near('median FWHM of the field', sm.fwhm, 4.4, 0.15);
   check('trailing detected', sm.align > 0.6 && Math.abs(sm.direction - 30) < 3);
   check('tilt detected', sm.tilt > 0.2 && Math.abs(sm.curvature) < 0.1);
+}
+
+{
+  // 21 cm line. The standard solar apex (RA 18h, Dec +30°, B1900) lies at l = 56°, b = +23°; Sgr A* at l = 359.94°, b = −0.05°.
+  const apex = eqToGal(18 + 3 / 60 + 50.24 / 3600, 30.0047); near('solar apex l', apex.l, 56.2, 0.1); near('solar apex b', apex.b, 22.8, 0.1);
+  const sgr = eqToGal(17 + 45 / 60 + 40.04 / 3600, -29.00781); near('Sgr A* l', sgr.l, 359.944, 0.005); near('Sgr A* b', sgr.b, -0.046, 0.002);
+  near('1 MHz below rest = +211 km/s', velRadio(1419.405751768), 211.06, 0.01);
+  const lc = lsrCorrection(56.2, 22.8, new Date(Date.UTC(2026, 0, 1))); near('Sun moves 20 km/s towards the apex', lc.sun, 20, 0.05);
+  check('Earth orbit term under 30.5 km/s', Math.abs(lc.earth) < 30.5);
+  near('tangent point at l = 30°', tangentPoint(30, 110, 8.5, 220).R, 4.25, 1e-9); near('flat curve at the tangent point', tangentPoint(30, 110, 8.5, 220).V, 220, 1e-9);
+  const kd = kinematicDistance(30, 0, 50, 8.5, 220); near('near and far distances agree on R', Math.hypot(8.5 - kd.d[0] * Math.cos(Math.PI / 6), kd.d[0] * 0.5), kd.R, 1e-9);
+  check('two kinematic distances inside the solar circle', kd.d.length === 2 && kd.d[0] < kd.d[1]);
+  near('column density for 100 K km/s', columnDensity(100), 1.823e20, 1e14);
+  const bx = Array.from({ length: 200 }, (_, i) => i - 100), by = bx.map((x) => 10 + 0.02 * x + 0.0003 * x * x + 30 * Math.exp(-0.5 * ((x - 10) / 6) ** 2));
+  const bb = hiBaseline(bx, by, 2); near('baseline removed under a strong line', bb.residual[0], 0, 0.01); near('line height kept', bb.residual[110], 30, 0.05);
+  const hs = simulatedHI(), corr = lsrCorrection(30, 0, new Date(Date.UTC(2026, 6, 15, 4))).total, hv = hs.f.map((f) => velRadio(f) + corr), hb = hiBaseline(hv, hs.T, 2);
+  const tv = terminalVelocity(hv, hiSmooth(hb.residual, 1), hb.sigma / Math.sqrt(3), 30, 5);
+  check('terminal velocity a few km/s above the 110 km/s rotation value', tv.vt > 110 && tv.vt < 118);
+
+  // Planets: NASA fact sheet densities, Kepler's third law gives Jupiter's mass from Io and Earth+Moon from the Moon.
+  near('Earth density', planetDerived(planetBody('earth')).density, 5514, 1); near('Saturn floats', planetDerived(planetBody('saturn')).density, 687, 1);
+  near('Jupiter mass from Io', parentMassFromOrbit(planetBody('io')) / 1.898e27, 1, 0.003);
+  near('Earth + Moon mass from the Moon', parentMassFromOrbit(planetBody('moon')) / (5.97e24 + 7.346e22), 1, 0.005);
+  near('weight on Earth unchanged', weightOn(planetBody('earth'), 70), 70, 1e-9); near('weight on Mars', weightOn(planetBody('mars'), 70), 26.43, 0.01);
+  near('Moon surface gravity', planetDerived(planetBody('moon')).gravity, 1.62, 0.01);
+  check('20 bodies, every moon has a parent', PLANET_BODIES.length === 20 && PLANET_BODIES.filter((b) => b.kind === 'moon').every((b) => planetBody(b.parent)));
+
+  // Sunspots: the simulated Sun (R = 264 px) has 3 groups of 7 spots.
+  const sun = simulatedSun(), disc = findDisc(sun.d, sun.w, sun.h);
+  near('disc radius', disc.r, 264, 2); near('disc centre x', disc.cx, 304, 1);
+  const spots = findSpots(sun.d, sun.w, sun.h, disc), W = wolfNumber(groupSpots(spots, disc, 2 * Math.sin((10 * Math.PI) / 360)));
+  check('Wolf number of the example: g = 3, s = 7, R = 37', W.g === 3 && W.s === 7 && W.R === 37);
+  check('tight grouping splits groups', wolfNumber(groupSpots(spots, disc, 0.01)).g > 3);
+
+  // Stacking: calibration, alignment, clipping and FITS output.
+  const sset = simulatedSet(), dk = stkAverage(sset.darks), fl = stkAverage(sset.flats), bi = stkAverage(sset.bias), hot = hotPixels(dk);
+  check('25 hot pixels found', hot.length === 25);
+  const cal = sset.lights.map((l) => stkCalibrate(l, { dark: dk, flat: fl, bias: bi, hot })), sw = cal[0].w, sh = cal[0].h, ref = stkStars(cal[0].planes[0], sw, sh);
+  const xfs = cal.map((c) => stkAlign(ref, stkStars(c.planes[0], sw, sh)));
+  check('every frame aligns to better than 0.15 px', xfs.every((x) => x && x.rms < 0.15 && x.matched >= 20));
+  near('frame 2 rotation matches the simulation', Math.atan2(xfs[1].b, xfs[1].a) - Math.atan2(xfs[0].b, xfs[0].a), sset.truth[1].rot - sset.truth[0].rot, 0.002);
+  const stk = new Stacker(sw, sh, 1), wr = cal.map((c, i) => stkWarp(c, xfs[i])); wr.forEach((f) => stk.add(f)); wr.forEach((f) => stk.addClipped(f, 3));
+  const res = stk.result(), plain = stk.result(false);
+  check('stack noise at least 2.5 times lower', stkNoise(cal[0].planes[0]) / stkNoise(res.planes[0]) > 2.5);
+  let trail = 0; for (let i = 0; i < res.planes[0].length; i++) trail = Math.max(trail, plain.planes[0][i] - res.planes[0][i]);
+  check('clipping removes the satellite trail', trail > 10);
+  const fits = writeFits(res, [['NCOMBINE', 8, 'frames']]), back = readImage(fits);
+  check('FITS file is whole 2880-byte blocks', fits.length % 2880 === 0);
+  check('FITS round trip', back.w === sw && back.h === sh && Math.abs(back.planes[0][(sh - 1 - 10) * sw + 20] - res.planes[0][10 * sw + 20]) < 1e-3 && back.header.num('NCOMBINE') === 8);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

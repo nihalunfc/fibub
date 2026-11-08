@@ -1,0 +1,159 @@
+---
+// Sunspot counter: find the spots and groups on your own white-light image of the Sun and give the Wolf number.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ssn">
+  <div class="ax-card">
+    <p class="ax-err" style="display:block;margin-top:0"><strong>Never look at the Sun through any telescope, binoculars or camera finder without a proper solar filter over the front.</strong> Blindness is instant and permanent.</p>
+    <label class="ssn-drop">
+      <input type="file" class="ssn-in" accept=".fits,.fit,.fts,.fits.gz,.fit.gz,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden />
+      <strong>Open a picture of the Sun</strong>
+      <span>A white-light image through a safe solar filter: JPEG, PNG or FITS. The whole disc should be in the frame. The image stays on your device.</span>
+    </label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ssn-sample">Load the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Spot sensitivity <select class="ssn-pen"><option value="0.92">high (faint spots and pores)</option><option value="0.86" selected>normal</option><option value="0.8">low (only clear spots)</option></select></label>
+      <label>Group spots closer than <select class="ssn-link"><option value="6">6° on the Sun</option><option value="10" selected>10° on the Sun</option><option value="15">15° on the Sun</option></select></label>
+      <label>Your k factor <input class="ssn-k" inputmode="decimal" value="1" /></label>
+      <label>Date of the image <input type="date" class="ssn-date" /></label>
+    </div>
+    <p class="ax-help">Tap a found spot on the picture to leave it out (dust, a cloud edge), or tap an empty part of the disc to add a spot the tool missed; tap an added spot again to remove it. The k factor scales your count to match the international number; leave it at 1 until you have compared counts for a few months.</p>
+    <p class="ax-err ssn-err" hidden></p>
+  </div>
+
+  <div class="ax-card ssn-out" hidden>
+    <h2>Sunspot count</h2>
+    <p class="ax-big ssn-big"></p>
+    <canvas class="ax-fig ssn-img photo" style="max-width:640px;margin:0 auto;cursor:crosshair;touch-action:manipulation"></canvas>
+    <dl class="ax-facts ssn-facts" style="margin-top:12px"></dl>
+    <h3>Groups</h3>
+    <div class="ax-scroll"><table class="ssn-tab"></table></div>
+    <p class="ax-help">Areas are in millionths of the visible hemisphere (MSH), corrected for foreshortening towards the limb; the Earth's cross-section is about 169 MSH. Positions are in units of the disc's radius from its centre (x to the right, y up), as the image is oriented (rotate it so north is up for heliographic work).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ssn-csv">Spots (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .ssn-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 22px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; margin-top: 10px; }
+  .ssn-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+</style>
+
+<script>
+  import { readImage } from '../../lib/astro/fits';
+  import { findDisc, findSpots, groupSpots, wolfNumber, spotCount, simulatedSun, type Disc, type Spot, type Group } from '../../lib/sci/sunspots';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ssn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Img = { d: Float32Array; w: number; h: number; name: string; flip: boolean };
+  let img: Img | null = null, disc: Disc | null = null, found: Spot[] = [], added: Spot[] = [], off = new Set<number>(), groups: Group[] = [], fig: Figure | null = null, report: Section[] = [], off2: HTMLCanvasElement | null = null;
+  q<HTMLInputElement>('.ssn-date').value = new Date().toISOString().slice(0, 10);
+
+  async function openFile(f: File) {
+    q('.ssn-err').hidden = true;
+    try {
+      let b = new Uint8Array(await f.arrayBuffer());
+      if (b[0] === 0x1f && b[1] === 0x8b) { const { gunzipSync } = await import('fflate'); b = gunzipSync(b); }
+      if (String.fromCharCode(...b.slice(0, 6)) === 'SIMPLE') {
+        const im = readImage(b), n = im.w * im.h, d = new Float32Array(n);
+        for (const p of im.planes) for (let i = 0; i < n; i++) d[i] += p[i] / im.planes.length;
+        img = { d, w: im.w, h: im.h, name: f.name, flip: true };
+        const dt = im.header.get('DATE-OBS'); if (dt) q<HTMLInputElement>('.ssn-date').value = dt.slice(0, 10);
+      } else {
+        const bmp = await createImageBitmap(f), max = 1600, s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+        const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+        const ctx = c.getContext('2d')!; ctx.drawImage(bmp, 0, 0, c.width, c.height);
+        const px = ctx.getImageData(0, 0, c.width, c.height).data, d = new Float32Array(c.width * c.height);
+        // Green, or the brightest channel for a coloured filter image (orange or yellow film gives little blue).
+        let sr = 0, sg = 0, sb = 0; for (let i = 0; i < d.length; i += 97) { sr += px[4 * i]; sg += px[4 * i + 1]; sb += px[4 * i + 2]; }
+        const ch = sg >= sr * 0.6 ? 1 : 0;
+        for (let i = 0; i < d.length; i++) d[i] = px[4 * i + ch] * 0.7 + (px[4 * i] + px[4 * i + 1] + px[4 * i + 2]) * 0.1;
+        img = { d, w: c.width, h: c.height, name: f.name, flip: false };
+      }
+      added = []; off = new Set(); detect();
+    } catch (e) { q('.ssn-err').textContent = `${f.name}: ${(e as Error).message || 'could not be read.'}`; q('.ssn-err').hidden = false; q('.ssn-out').hidden = true; }
+  }
+
+  function detect() {
+    if (!img) return;
+    try {
+      disc = findDisc(img.d, img.w, img.h);
+      if (disc.cx - disc.r < -disc.r * 0.05 || disc.cy - disc.r < -disc.r * 0.05 || disc.cx + disc.r > img.w * 1.05 || disc.cy + disc.r > img.h * 1.05) throw new Error('The disc runs off the edge of the picture. Use an image with the whole Sun in it.');
+      found = findSpots(img.d, img.w, img.h, disc, { pen: +q<HTMLSelectElement>('.ssn-pen').value });
+      makeBackdrop(); count();
+    } catch (e) { q('.ssn-err').textContent = (e as Error).message; q('.ssn-err').hidden = false; q('.ssn-out').hidden = true; }
+  }
+
+  function makeBackdrop() {
+    if (!img) return;
+    let lo = Infinity, hi = -Infinity; for (let i = 0; i < img.d.length; i += 31) { const v = img.d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    const c = document.createElement('canvas'); c.width = img.w; c.height = img.h;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(img.w, img.h);
+    for (let y = 0; y < img.h; y++) { const sy = img.flip ? img.h - 1 - y : y; for (let x = 0; x < img.w; x++) { const g = Math.round(((img.d[sy * img.w + x] - lo) / (hi - lo || 1)) * 255), o = (y * img.w + x) * 4; id.data[o] = id.data[o + 1] = id.data[o + 2] = g; id.data[o + 3] = 255; } }
+    ctx.putImageData(id, 0, 0); off2 = c;
+  }
+
+  function count() {
+    if (!img || !disc) return;
+    const all = [...found.map((s) => ({ ...s, off: off.has(s.id) })), ...added];
+    const link = 2 * Math.sin((+q<HTMLSelectElement>('.ssn-link').value * Math.PI) / 360);
+    groups = groupSpots(all, disc, link);
+    const k = num(q<HTMLInputElement>('.ssn-k').value) > 0 ? num(q<HTMLInputElement>('.ssn-k').value) : 1, W = wolfNumber(groups, k);
+    q('.ssn-out').hidden = false;
+    q('.ssn-big').textContent = `R = ${sig(W.R, 3)}: ${W.g} group${W.g === 1 ? '' : 's'} and ${W.s} spot${W.s === 1 ? '' : 's'}`;
+    const msh = (s: Spot) => (s.area / (2 * Math.PI * disc!.r * disc!.r)) * 1e6 / Math.max(0.2, s.mu);
+    const total = groups.reduce((t, g) => t + g.spots.reduce((u, s) => u + msh(s), 0), 0);
+    const facts: [string, string, string?][] = [
+      ['Relative sunspot number', `R = ${k === 1 ? '' : `${k} × `}(10 × ${W.g} + ${W.s}) = ${sig(W.R, 3)}`, 'the Wolf number: each group counts 10, each spot 1'],
+      ['Spotted area', `${Math.round(total)} MSH`, 'millionths of the visible hemisphere, foreshortening corrected'],
+      ['Solar disc', `${Math.round(2 * disc.r)} pixels across`, `${found.length} dark region${found.length === 1 ? '' : 's'} found${off.size ? `, ${off.size} left out` : ''}${added.length ? `, ${added.length} added by hand` : ''}`],
+    ];
+    q('.ssn-facts').replaceChildren(...facts.map(([kk, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+    const rel = (x: number, y: number) => [((x - disc!.cx) / disc!.r).toFixed(2), ((img!.flip ? y - disc!.cy : disc!.cy - y) / disc!.r).toFixed(2)];
+    const head = ['Group', 'Spots', 'Area (MSH)', 'Position x, y (R)'];
+    const rows = groups.map((g) => [String(g.id), String(g.spots.reduce((u, s) => u + spotCount(s), 0)), String(Math.round(g.spots.reduce((u, s) => u + msh(s), 0))), rel(g.x, g.y).join(', ')]);
+    const tb = q<HTMLTableElement>('.ssn-tab'); tb.replaceChildren();
+    const tr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+    const body = tb.createTBody(); for (const r of rows) { const row = body.insertRow(); r.forEach((c) => { const td = row.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); }
+    const im = img, dc = disc, gr = groups, allS = all;
+    fig = {
+      w: 640, h: Math.round((640 * im.h) / im.w), alt: 'The Sun with each spot and group marked',
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); if (off2) ctx.drawImage(off2, 0, 0, w, h);
+        const s = w / im.w, Y = (y: number) => (im.flip ? im.h - 1 - y : y) * s;
+        ctx.strokeStyle = pal.red ? pal.ink : pal.muted; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(dc.cx * s, Y(dc.cy), dc.r * s, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+        const accent = pal.red ? pal.ink : pal.accent2;
+        for (const sp of allS) { const r = Math.max(4, Math.sqrt(sp.area / Math.PI) * s + 3); ctx.strokeStyle = sp.off ? pal.muted : accent; ctx.lineWidth = sp.manual ? 2 : 1.4; ctx.beginPath(); if (sp.manual) { ctx.rect(sp.x * s - r, Y(sp.y) - r, 2 * r, 2 * r); } else ctx.arc(sp.x * s, Y(sp.y), r, 0, 2 * Math.PI); ctx.stroke(); if (sp.off) { ctx.beginPath(); ctx.moveTo(sp.x * s - r, Y(sp.y) - r); ctx.lineTo(sp.x * s + r, Y(sp.y) + r); ctx.stroke(); } }
+        ctx.font = '700 15px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        for (const g of gr) { const top = Math.min(...g.spots.map((sp) => Y(sp.y) - Math.max(4, Math.sqrt(sp.area / Math.PI) * s + 3))); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(String(g.id), g.x * s, top - 3); ctx.fillStyle = pal.red ? pal.ink : '#ffffff'; ctx.fillText(String(g.id), g.x * s, top - 3); }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.ssn-img'), fig);
+    const date = q<HTMLInputElement>('.ssn-date').value;
+    report = [{ title: `Sunspot count${date ? `, ${date}` : ''}`, facts: [['Image', im.name], ['Result', q('.ssn-big').textContent!], ...facts.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v] as [string, string])], figure: fig }, { title: 'Groups', table: { head, rows, align: ['r', 'r', 'r', 'r'] } }];
+    (q('.ssn-csv') as HTMLButtonElement).onclick = () => save(new Blob([csv([['date', 'group', 'x_R', 'y_R', 'spots', 'area_px', 'area_msh', 'mu', 'added_by_hand'], ...groups.flatMap((g) => g.spots.map((sp) => [date, g.id, ...rel(sp.x, sp.y), spotCount(sp), sp.area, Math.round(msh(sp)), sp.mu.toFixed(3), sp.manual ? 'yes' : 'no']))])], { type: 'text/csv' }), `sunspots-${date || 'count'}.csv`, 'text/csv');
+  }
+
+  // Tap: toggle a found spot, remove an added one, or add a spot on an empty part of the disc.
+  q<HTMLCanvasElement>('.ssn-img').addEventListener('click', (e) => {
+    if (!img || !disc) return;
+    const c = e.currentTarget as HTMLCanvasElement, rect = c.getBoundingClientRect(), s = rect.width / img.w;
+    const x = (e.clientX - rect.left) / s, yv = (e.clientY - rect.top) / s, y = img.flip ? img.h - 1 - yv : yv, near = Math.max(8 / s, disc.r * 0.025);
+    const hitAdded = added.findIndex((sp) => Math.hypot(sp.x - x, sp.y - y) < near + Math.sqrt(sp.area / Math.PI));
+    if (hitAdded >= 0) { added.splice(hitAdded, 1); count(); return; }
+    const hit = found.find((sp) => Math.hypot(sp.x - x, sp.y - y) < near + Math.sqrt(sp.area / Math.PI));
+    if (hit) { if (off.has(hit.id)) off.delete(hit.id); else off.add(hit.id); count(); return; }
+    const rr = Math.hypot(x - disc.cx, y - disc.cy) / disc.r; if (rr >= 1) return;
+    added.push({ id: 10000 + added.length, x, y, area: Math.max(4, (disc.r / 120) ** 2), umbrae: 1, depth: 0.5, mu: Math.sqrt(1 - rr * rr), manual: true }); count();
+  });
+  q<HTMLInputElement>('.ssn-in').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) openFile(f); });
+  q('.ssn-sample').addEventListener('click', () => { const s = simulatedSun(); img = { d: s.d, w: s.w, h: s.h, name: 'the example image', flip: false }; added = []; off = new Set(); detect(); });
+  q('.ssn-pen').addEventListener('change', () => { off = new Set(); detect(); });
+  for (const c of ['.ssn-link', '.ssn-k', '.ssn-date']) q(c).addEventListener('change', count);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ssn-img'), fig); });
+  { const s = simulatedSun(); img = { d: s.d, w: s.w, h: s.h, name: 'the example image', flip: false }; detect(); }
+  wireDownloads(q('.dl'), () => ({ title: 'Sunspot count', file: 'sunspot-count', sections: report }));
+</script>

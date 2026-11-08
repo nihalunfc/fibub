@@ -1,0 +1,173 @@
+---
+// Hydrogen 21 cm line analyser: from a backyard radio telescope's spectrum to LSR velocities, the terminal velocity,
+// kinematic distances and the Milky Way's rotation curve.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hi">
+  <div class="ax-card">
+    <h2>Spectrum</h2>
+    <label>Paste frequency (MHz) or velocity (km/s), and power or temperature, one channel per line. A header row is fine.
+      <textarea class="hi-in" rows="7" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small hi-sample">Load the example</button>
+      <label class="btn secondary small" style="cursor:pointer">Open a file<input type="file" class="hi-file" accept=".txt,.csv,.tsv,.dat,text/*" hidden /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>First column is <select class="hi-x"><option value="auto" selected>found from the numbers</option><option value="mhz">frequency (MHz)</option><option value="topo">velocity as observed (km/s)</option><option value="lsr">velocity, already LSR (km/s)</option></select></label>
+      <label>Intensity is in <select class="hi-unit"><option value="k" selected>kelvin (calibrated)</option><option value="arb">any unit (not calibrated)</option></select></label>
+      <label>Pointing given as <select class="hi-coord"><option value="gal" selected>galactic l, b</option><option value="eq">RA, Dec (J2000)</option></select></label>
+      <label><span class="hi-c1l">Galactic longitude l (°)</span> <input class="hi-c1" inputmode="decimal" /></label>
+      <label><span class="hi-c2l">Galactic latitude b (°)</span> <input class="hi-c2" inputmode="decimal" /></label>
+      <label>Middle of the observation (UTC) <input type="datetime-local" class="hi-time" step="60" /></label>
+      <label>Baseline <select class="hi-ord"><option value="1">straight line</option><option value="2" selected>curve (2nd order)</option><option value="3">curve (3rd order)</option></select></label>
+      <label>Smoothing <select class="hi-sm"><option value="0">none</option><option value="1" selected>3 channels</option><option value="2">5 channels</option><option value="3">7 channels</option></select></label>
+      <label>Milky Way constants <select class="hi-gal"><option value="iau" selected>IAU: R₀ 8.5 kpc, V₀ 220 km/s</option><option value="modern">Modern: R₀ 8.2 kpc, V₀ 233 km/s</option></select></label>
+    </div>
+    <p class="ax-help">The date and pointing turn observed velocities into velocities relative to the local standard of rest (LSR), correcting for the Earth's orbit (up to ±30 km/s) and the Sun's own motion. RA and Dec are converted to galactic coordinates. The baseline is fitted around the line, leaving the line out.</p>
+    <p class="ax-err hi-err" hidden></p>
+  </div>
+
+  <div class="ax-card hi-out" hidden>
+    <h2>Hydrogen line</h2>
+    <p class="ax-big hi-big"></p>
+    <canvas class="ax-fig hi-fig"></canvas>
+    <canvas class="ax-fig hi-raw" style="margin-top:8px"></canvas>
+    <dl class="ax-facts hi-facts" style="margin-top:12px"></dl>
+    <h3>Peaks and their distances</h3>
+    <div class="ax-scroll"><table class="hi-tab"></table></div>
+    <p class="ax-help">Distances assume a flat rotation curve. Inside the Sun's orbit one velocity fits two places along the line of sight, a near and a far one; at the terminal velocity they meet at the tangent point.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hi-add">Add this pointing to the rotation curve</button>
+      <button type="button" class="btn secondary small hi-csv">Spectrum (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card hi-rc">
+    <h2>Rotation curve of the Milky Way</h2>
+    <label>Galactic longitude (°) and terminal velocity (km/s) of each pointing, one per line. Between 0° and 90°, or 270° and 360°.
+      <textarea class="hi-pts" rows="6" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small hi-pts-ex">Example set of pointings</button><button type="button" class="btn secondary small hi-pts-clear">Clear</button></div>
+    <canvas class="ax-fig hi-curve" style="margin-top:10px"></canvas>
+    <p class="ax-help hi-curve-note"></p>
+  </div>
+</div>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { F0, velRadio, eqToGal, lsrCorrection, baseline, smooth, terminalVelocity, tangentPoint, kinematicDistance, columnDensity, simulatedHI, GALAXY } from '../../lib/astro/hline';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.hi-in'), pts = q<HTMLTextAreaElement>('.hi-pts');
+  const EX_TIME = '2026-07-15T04:00';
+  const sample = () => { const s = simulatedHI(30, 0, new Date(Date.UTC(2026, 6, 15, 4))); return 'freq_mhz\tantenna_temp_k\n' + s.f.map((f, i) => `${f.toFixed(4)}\t${s.T[i]}`).join('\n'); };
+  // Terminal velocities a flat 220 km/s curve gives, plus a few km/s of gas motion, as a small survey would find.
+  const EX_PTS = [[20, 151], [30, 114], [40, 80], [50, 57], [60, 34], [70, 18], [80, 8], [340, -150], [320, -83]].map(([l, v]) => `${l}\t${v}`).join('\n');
+  const loadSample = () => { box.value = sample(); q<HTMLSelectElement>('.hi-x').value = 'auto'; q<HTMLSelectElement>('.hi-unit').value = 'k'; q<HTMLSelectElement>('.hi-coord').value = 'gal'; q<HTMLInputElement>('.hi-c1').value = '30'; q<HTMLInputElement>('.hi-c2').value = '0'; q<HTMLInputElement>('.hi-time').value = EX_TIME; labels(); };
+  loadSample(); pts.value = EX_PTS;
+  let figs: Figure[] = [], curveFig: Figure | null = null, report: Section[] = [], current: { l: number; vt: number } | null = null, specRows: (string | number)[][] = [];
+
+  function labels() {
+    const eq = q<HTMLSelectElement>('.hi-coord').value === 'eq';
+    q('.hi-c1l').textContent = eq ? 'Right ascension (hours)' : 'Galactic longitude l (°)';
+    q('.hi-c2l').textContent = eq ? 'Declination (°)' : 'Galactic latitude b (°)';
+  }
+
+  function run() {
+    const err = q('.hi-err'); err.hidden = true;
+    try {
+      const rows = parseTable(box.value).map((r) => r.map((c) => num(c))).filter((r) => r.length >= 2 && Number.isFinite(r[0]) && Number.isFinite(r[1]));
+      if (rows.length < 20) throw new Error('Paste at least 20 channels of frequency (or velocity) and intensity.');
+      const eq = q<HTMLSelectElement>('.hi-coord').value === 'eq', c1 = num(q<HTMLInputElement>('.hi-c1').value), c2 = num(q<HTMLInputElement>('.hi-c2').value);
+      if (!Number.isFinite(c1) || !Number.isFinite(c2)) throw new Error(eq ? 'Give the RA (hours) and Dec (degrees) of the pointing.' : 'Give the galactic longitude and latitude of the pointing.');
+      const g = eq ? eqToGal(c1, c2) : { l: ((c1 % 360) + 360) % 360, b: c2 };
+      let xMode = q<HTMLSelectElement>('.hi-x').value;
+      if (xMode === 'auto') xMode = rows.every((r) => r[0] > 1400 && r[0] < 1440) ? 'mhz' : 'lsr';
+      const tIn = q<HTMLInputElement>('.hi-time').value, time = tIn ? new Date(tIn + 'Z') : null;
+      if (xMode !== 'lsr' && (!time || isNaN(+time))) throw new Error('Give the date and time of the observation, to correct for the Earth\'s motion.');
+      const corr = xMode === 'lsr' ? null : lsrCorrection(g.l, g.b, time!);
+      const v = rows.map((r) => (xMode === 'mhz' ? velRadio(r[0]) : r[0]) + (corr ? corr.total : 0)), y = rows.map((r) => r[1]);
+      const ord = +q<HTMLSelectElement>('.hi-ord').value, k = +q<HTMLSelectElement>('.hi-sm').value, K = q<HTMLSelectElement>('.hi-unit').value === 'k';
+      const bl = baseline(v, y, ord), line = smooth(bl.residual, k), sigma = bl.sigma / Math.sqrt(2 * k + 1);
+      const gal = GALAXY[q<HTMLSelectElement>('.hi-gal').value as 'iau' | 'modern'];
+      let pk = -Infinity, vpk = NaN; line.forEach((t, i) => { if (t > pk) { pk = t; vpk = v[i]; } });
+      if (!(pk > 5 * sigma)) throw new Error(`No line stands out: the strongest channel is ${sig(pk / sigma, 2)} times the noise. Check the pointing, integrate longer, or try more smoothing.`);
+      q('.hi-out').hidden = false;
+      // Channel width and the integral over the line (channels flagged as line by the baseline fit).
+      const order = v.map((_, i) => i).sort((a, b) => v[a] - v[b]);
+      let integ = 0; for (let n = 1; n < order.length; n++) { const i = order[n], j = order[n - 1]; if (bl.line[i] || bl.line[j]) integ += ((bl.residual[i] + bl.residual[j]) / 2) * (v[i] - v[j]); }
+      const dv = Math.abs(v[order[order.length - 1]] - v[order[0]]) / (v.length - 1);
+      const lq = g.l < 90 || g.l > 270, term = terminalVelocity(v, line, sigma, g.l, 5);
+      const tp = lq && Number.isFinite(term.vt) ? tangentPoint(g.l, term.vt, gal.R0, gal.V0) : null;
+      current = tp ? { l: g.l, vt: term.vt } : null;
+      q('.hi-big').textContent = tp ? `Terminal velocity ${term.vt.toFixed(1)} km/s: the Milky Way turns at ${Math.round(tp.V)} km/s at ${tp.R.toFixed(2)} kpc from its centre` : `Hydrogen line peaks at ${vpk.toFixed(1)} km/s (LSR), ${sig(pk / sigma, 3)} times the noise`;
+      (q('.hi-add') as HTMLButtonElement).disabled = !tp;
+
+      const xs = order.map((i) => v[i]);
+      const main = chartFigure({ h: 300, xLabel: 'Velocity relative to the LSR (km/s)', yLabel: K ? 'Brightness above baseline (K)' : 'Intensity above baseline', legend: 'none',
+        series: [{ name: 'Line', x: xs, y: order.map((i) => line[i]), mode: 'line', width: 1.6 }],
+        marks: [{ kind: 'hline', at: 0 }, { kind: 'hline', at: 5 * sigma, label: '5σ', dash: [2, 3] }, ...(tp ? [{ kind: 'vline' as const, at: term.vt, label: `terminal ${term.vt.toFixed(0)}` }] : []), { kind: 'vline', at: 0, dash: [2, 3] }] }, 'Hydrogen line after the baseline is removed, against LSR velocity');
+      const raw = chartFigure({ h: 180, xLabel: 'Velocity relative to the LSR (km/s)', yLabel: K ? 'Measured (K)' : 'Measured', legend: 'below',
+        series: [{ name: 'Measured', x: xs, y: order.map((i) => y[i]), mode: 'line', width: 1.2 }, { name: 'Fitted baseline', x: xs, y: order.map((i) => bl.base[i]), mode: 'line', width: 1.4, dash: [6, 4] }] }, 'Measured spectrum with the fitted baseline');
+      paint(q<HTMLCanvasElement>('.hi-fig'), main); paint(q<HTMLCanvasElement>('.hi-raw'), raw); figs = [main, raw];
+
+      const facts: [string, string, string?][] = [];
+      facts.push(['Pointing', `l = ${g.l.toFixed(2)}°, b = ${g.b.toFixed(2)}°`, eq ? `from RA ${c1}h, Dec ${c2}°` : lq ? 'inside the Sun\'s orbit, where the tangent-point method works' : 'outside the Sun\'s orbit: no tangent point on this line of sight']);
+      if (corr) facts.push(['Correction to LSR', `${corr.total >= 0 ? '+' : '−'}${Math.abs(corr.total).toFixed(2)} km/s`, `Earth's orbit ${corr.earth >= 0 ? '+' : '−'}${Math.abs(corr.earth).toFixed(2)}, Sun's motion ${corr.sun >= 0 ? '+' : '−'}${Math.abs(corr.sun).toFixed(2)} km/s (radio convention, rest frequency ${F0.toFixed(4)} MHz)`]);
+      facts.push(['Noise', `${sig(sigma, 2)}${K ? ' K' : ''}`, `per channel after smoothing; channel width ${dv.toFixed(2)} km/s`]);
+      facts.push(['Brightest emission', `${sig(pk, 3)}${K ? ' K' : ''} at ${vpk.toFixed(1)} km/s`, `${sig(pk / sigma, 3)} times the noise`]);
+      facts.push(['Area under the line', `${sig(integ, 4)}${K ? ' K km/s' : ' × km/s'}`, K ? `column density ${sig(columnDensity(integ), 3)} hydrogen atoms per cm², if the gas is optically thin` : 'calibrate in kelvin to get the column density']);
+      if (tp) {
+        facts.push(['Terminal velocity', `${term.vt.toFixed(1)} km/s`, `where the outermost peak (at ${term.peak.toFixed(1)}) falls to half; the 5σ edge is at ${term.edge.toFixed(1)}. Gas motions push it a few km/s beyond the true value`]);
+        facts.push(['Tangent point', `R = ${tp.R.toFixed(2)} kpc`, `${tp.d.toFixed(2)} kpc from us, the point on this line of sight closest to the galactic centre`]);
+        facts.push(['Rotation speed there', `${tp.V.toFixed(0)} km/s`, `V = |v_t| + V₀ |sin l| with R₀ = ${gal.R0} kpc, V₀ = ${gal.V0} km/s`]);
+      }
+      q('.hi-facts').replaceChildren(...facts.map(([kk, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+
+      // Peaks: local maxima above 5σ, at least 10 km/s apart.
+      const peaks: number[] = [];
+      for (let n = 2; n < order.length - 2; n++) { const i = order[n], t = line[i]; if (t > 5 * sigma && [-2, -1, 1, 2].every((dd) => t >= line[order[n + dd]])) { const last = peaks[peaks.length - 1]; if (last !== undefined && Math.abs(v[i] - v[last]) < 10) { if (t > line[last]) peaks[peaks.length - 1] = i; } else peaks.push(i); } }
+      const head = ['Velocity (km/s)', K ? 'Brightness (K)' : 'Intensity', 'Galactocentric R (kpc)', 'Distance (kpc)'];
+      const tRows = peaks.map((i) => { const kd = kinematicDistance(g.l, g.b, v[i], gal.R0, gal.V0); return [v[i].toFixed(1), sig(line[i], 3), Number.isFinite(kd.R) ? kd.R.toFixed(2) : '–', kd.d.length === 2 ? `${kd.d[0].toFixed(1)} or ${kd.d[1].toFixed(1)}` : kd.d.length === 1 ? kd.d[0].toFixed(1) : 'beyond the tangent speed']; });
+      const tb = q<HTMLTableElement>('.hi-tab'); tb.replaceChildren();
+      const tr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+      const body = tb.createTBody(); for (const r of tRows) { const row = body.insertRow(); r.forEach((c) => { const td = row.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); }
+      specRows = [['v_lsr_km_s', 'measured', 'baseline', 'line'], ...order.map((i) => [v[i].toFixed(3), y[i], bl.base[i].toFixed(4), line[i].toFixed(4)])];
+      report = [{ title: 'Hydrogen line', facts: [['Result', q('.hi-big').textContent!], ...facts.map(([kk, val, s]) => [kk, s ? `${val} (${s})` : val] as [string, string])], figure: main }, { title: 'Measured spectrum', figure: raw }, { title: 'Peaks', table: { head, rows: tRows, align: ['r', 'r', 'r', 'r'] } }, ...(curveFig ? [{ title: 'Rotation curve', figure: curveFig }] : [])];
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.hi-out').hidden = true; current = null; }
+  }
+
+  function curve() {
+    const gal = GALAXY[q<HTMLSelectElement>('.hi-gal').value as 'iau' | 'modern'];
+    const rows = parseTable(pts.value).map((r) => r.map((c) => num(c))).filter((r) => r.length >= 2 && Number.isFinite(r[0]) && Number.isFinite(r[1]));
+    const use = rows.map(([l, vt]) => ({ l: ((l % 360) + 360) % 360, vt })).filter((p) => (p.l > 0 && p.l < 90) || (p.l > 270 && p.l < 360));
+    const left = rows.length - use.length;
+    const tp = use.map((p) => tangentPoint(p.l, p.vt, gal.R0, gal.V0));
+    curveFig = chartFigure({ h: 280, xLabel: 'Distance from the galactic centre R (kpc)', yLabel: 'Rotation speed (km/s)', xMin: 0, yMin: 0, legend: 'below',
+      series: [{ name: 'Your pointings', x: tp.map((t) => t.R), y: tp.map((t) => t.V), mode: 'points', size: 4.5 }, { name: `Flat curve at ${gal.V0} km/s`, x: [0.5, gal.R0], y: [gal.V0, gal.V0], mode: 'line', dash: [6, 4], width: 1.4 }],
+      marks: [{ kind: 'vline', at: gal.R0, label: 'Sun' }] }, 'Rotation speed against distance from the galactic centre');
+    paint(q<HTMLCanvasElement>('.hi-curve'), curveFig);
+    const mean = tp.length ? tp.reduce((s, t) => s + t.V, 0) / tp.length : NaN;
+    q('.hi-curve-note').textContent = tp.length ? `${tp.length} pointing${tp.length > 1 ? 's' : ''}; mean speed ${Math.round(mean)} km/s. A curve that stays flat out to the Sun, instead of falling, is the Milky Way's own sign of dark matter.${left ? ` ${left} line${left > 1 ? 's' : ''} outside 0–90° or 270–360° left out.` : ''}` : 'Add pointings between l = 0° and 90° (or 270° and 360°) to draw the curve.';
+  }
+
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 500); });
+  pts.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(curve, 400); });
+  q('.hi-coord').addEventListener('change', () => { labels(); run(); });
+  for (const c of ['.hi-x', '.hi-unit', '.hi-c1', '.hi-c2', '.hi-time', '.hi-ord', '.hi-sm']) q(c).addEventListener('change', run);
+  q('.hi-gal').addEventListener('change', () => { run(); curve(); });
+  q('.hi-sample').addEventListener('click', () => { loadSample(); run(); });
+  q('.hi-pts-ex').addEventListener('click', () => { pts.value = EX_PTS; curve(); });
+  q('.hi-pts-clear').addEventListener('click', () => { pts.value = ''; curve(); });
+  q('.hi-add').addEventListener('click', () => { if (!current) return; pts.value = (pts.value.trim() ? pts.value.trim() + '\n' : '') + `${current.l.toFixed(2)}\t${current.vt.toFixed(1)}`; curve(); });
+  q<HTMLInputElement>('.hi-file').addEventListener('change', async (e) => { const fl = (e.target as HTMLInputElement).files?.[0]; if (!fl) return; box.value = await fl.text(); run(); });
+  q('.hi-csv').addEventListener('click', () => { if (specRows.length) save(new Blob([csv(specRows)], { type: 'text/csv' }), 'hydrogen-line.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { const c = ['.hi-fig', '.hi-raw']; figs.forEach((f, i) => paint(q<HTMLCanvasElement>(c[i]), f)); if (curveFig) paint(q<HTMLCanvasElement>('.hi-curve'), curveFig); });
+  curve(); run();
+  wireDownloads(q('.dl'), () => ({ title: 'Hydrogen line analysis', file: 'hydrogen-line', sections: report }));
+</script>
