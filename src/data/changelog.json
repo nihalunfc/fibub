@@ -1,5 +1,14 @@
 [
  {
+  "sha": "7465abd598c7",
+  "date": "2026-11-08T15:58:03+00:00",
+  "title": "Add the enzyme kinetics fitter (#112)",
+  "tools": [
+   "enzyme-kinetics-fitter"
+  ],
+  "site": false
+ },
+ {
   "sha": "c14ab9f25e1a",
   "date": "2026-11-08T15:45:22+00:00",
   "title": "Add the impedance (EIS) equivalent circuit fitter (#111)",
