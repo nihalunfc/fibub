@@ -1,5 +1,14 @@
 [
  {
+  "sha": "fa09a5a28011",
+  "date": "2026-11-08T22:12:16+00:00",
+  "title": "Add the Manning and weir flow calculator (#140)",
+  "tools": [
+   "manning-weir-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "c3ca8e2589d7",
   "date": "2026-11-08T21:58:14+00:00",
   "title": "Add the water wave calculator: dispersion, energy, shoaling, refraction and breaking (#139)",
