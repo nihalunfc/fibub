@@ -1,5 +1,14 @@
 [
  {
+  "sha": "adccea29334a",
+  "date": "2026-11-08T18:21:02+00:00",
+  "title": "Add the mixing model calculator (#123)",
+  "tools": [
+   "mixing-model-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "6791e412a55a",
   "date": "2026-11-08T17:55:42+00:00",
   "title": "Add the isotope delta converter (#122)",
