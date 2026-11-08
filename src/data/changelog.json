@@ -1,5 +1,14 @@
 [
  {
+  "sha": "0b07a3281797",
+  "date": "2026-11-08T23:14:48+00:00",
+  "title": "Add the rating curve fitter (#144)",
+  "tools": [
+   "rating-curve"
+  ],
+  "site": false
+ },
+ {
   "sha": "9f0716ecd28f",
   "date": "2026-11-08T22:56:57+00:00",
   "title": "Add the evapotranspiration calculator (#143)",
