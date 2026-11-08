@@ -100,6 +100,7 @@ import * as BND from '../src/lib/sci/binding.ts';
 import * as CEN from '../src/lib/sci/centrifuge.ts';
 import * as AQ from '../src/lib/sci/aqi.ts';
 import * as ALT from '../src/lib/sci/altermagnet.ts';
+import * as PL from '../src/lib/sci/plume.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1610,5 +1611,47 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const pc = ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 1/3 -0.25 1.5 2.5\nnonsense line');
   check('parser: fractions, wrapping, moments, bad lines', pc.crystal.atoms[0].f[0] === 1 / 3 && pc.crystal.atoms[0].f[1] === 0.75 && pc.crystal.atoms[0].f[2] === 0.5 && pc.crystal.atoms[0].m === 2.5 && pc.bad.length === 1);
 }
+{
+  // Gaussian plume: hand-worked values (Briggs rural D at 1 km, stack 50 m, 100 g/s, 4 m/s at 10 m).
+  const u = PL.windAt(4, 50, 'D', 'rural');
+  near('plume: wind power law', u, 4 * 5 ** 0.15, 1e-12);
+  const s = PL.sigmas(1000, 'D', 'rural');
+  near('plume: sigma-y D rural 1 km', s.sy, 80 / Math.sqrt(1.1), 1e-9);
+  near('plume: sigma-z D rural 1 km', s.sz, 60 / Math.sqrt(2.5), 1e-9);
+  const src = { Q: 100, u, H: 50, cls: 'D', terrain: 'rural' };
+  const hand = (100 / (Math.PI * u * s.sy * s.sz)) * Math.exp(-2500 / (2 * s.sz * s.sz));
+  near('plume: ground centreline = Q/(pi u sy sz) exp(-H²/2sz²)', PL.conc(src, 1000), hand, 1e-15);
+  near('plume: hand value in µg/m³', PL.conc(src, 1000) * 1e6, 906.5, 0.1);
+  near('plume: off-axis factor', PL.conc(src, 1000, s.sy) / PL.conc(src, 1000), Math.exp(-0.5), 1e-12);
+  check('plume: nothing upwind', PL.conc(src, -10) === 0);
+  // The maximum agrees with a brute-force search.
+  const m = PL.groundMax(src);
+  let bx = 0, bc = 0; for (let x = 100; x < 5000; x += 0.5) { const c = PL.conc(src, x); if (c > bc) { bc = c; bx = x; } }
+  near('plume: max distance', m.x, bx, 1); near('plume: max value', m.c, bc, bc * 1e-6);
+  // Ground release: the mirror doubles it.
+  near('plume: ground source', PL.conc({ ...src, H: 0 }, 500), 100 / (Math.PI * u * PL.sigmas(500, 'D', 'rural').sy * PL.sigmas(500, 'D', 'rural').sz), 1e-15);
+  // Mixing lid: far downwind the images add up to a well-mixed layer.
+  const x = 60000, sy = PL.sigmas(x, 'D', 'rural').sy;
+  near('plume: well mixed under a lid', PL.conc({ ...src, L: 200 }, x) / (100 / (Math.sqrt(2 * Math.PI) * u * sy * 200)), 1, 1e-6);
+  near('plume: image sum close to well mixed', PL.vertical(0, 50, 250, 200) / (Math.sqrt(2 * Math.PI) * 250 / 200), 1, 0.01);
+  check('plume: above the lid gives nothing at the ground', PL.conc({ ...src, H: 300, L: 200 }, 2000) === 0);
+  // Briggs plume rise: F = g vs d² (Ts - Ta) / (4 Ts).
+  const r = PL.plumeRise(15, 2, 420, 288, u, 'D');
+  near('plume: buoyancy flux', r.F, (9.80665 * 15 * 4 * 132) / (4 * 420), 1e-12);
+  near('plume: final rise F<55', r.dh, (21.425 * r.F ** 0.75) / u, 1e-12);
+  near('plume: final rise distance', r.xf, 49 * r.F ** (5 / 8), 1e-9);
+  near('plume: gradual rise reaches the final rise at xf', r.gradual(r.xf * 0.999) / r.dh, 1, 0.01);
+  const r2 = PL.plumeRise(20, 5, 450, 288, u, 'D');
+  near('plume: final rise F>=55', r2.dh, (38.71 * r2.F ** 0.6) / u, 1e-12);
+  const rs = PL.plumeRise(15, 2, 420, 288, 3, 'F');
+  near('plume: stable rise', rs.dh, 2.6 * Math.cbrt(rs.F / (3 * (9.80665 * 0.035) / 288)), 1e-12);
+  check('plume: cold gas, no rise', PL.plumeRise(15, 2, 280, 288, 3, 'D').dh === 0);
+  // Pasquill's table and paired classes.
+  check('plume: Pasquill table', PL.pasquillClass(1.5, 'strong') === 'A' && PL.pasquillClass(4, 'moderate') === 'BC' && PL.pasquillClass(7, 'strong') === 'C' && PL.pasquillClass(2.5, 'night-clear') === 'F' && PL.pasquillClass(4, 'night-cloudy') === 'D' && PL.pasquillClass(1, 'overcast') === 'D');
+  near('plume: paired class averages sigmas', PL.sigmasFor(800, 'BC', 'rural').sz, (PL.sigmas(800, 'B', 'rural').sz + PL.sigmas(800, 'C', 'rural').sz) / 2, 1e-12);
+  near('plume: urban A-B sigma-z', PL.sigmas(1000, 'A', 'urban').sz, 240 * Math.sqrt(2), 1e-9);
+  check('plume: stable plumes spread less', PL.sigmas(2000, 'F', 'rural').sz < PL.sigmas(2000, 'D', 'rural').sz && PL.sigmas(2000, 'D', 'rural').sz < PL.sigmas(2000, 'A', 'rural').sz);
+}
+
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

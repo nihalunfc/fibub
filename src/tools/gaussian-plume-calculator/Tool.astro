@@ -1,0 +1,176 @@
+---
+// Gaussian plume from a chimney: Pasquill class, Briggs sigmas, plume rise, ground-level concentration and a plan map.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { GASES } from '../../lib/sci/aqi';
+---
+<div class="ax gp">
+  <div class="ax-card">
+    <h2>Source and weather</h2>
+    <div class="ax-grid">
+      <label>Emission rate <input class="gp-q" inputmode="decimal" value="100" /></label>
+      <label>Unit <select class="gp-qu"><option value="1">g/s</option><option value="0.000277778">kg/h</option><option value="0.0317098">tonnes/year</option></select></label>
+      <label>Stack height (m) <input class="gp-hs" inputmode="decimal" value="50" /></label>
+      <label>Wind at 10 m (m/s) <input class="gp-u" inputmode="decimal" value="4" /></label>
+      <label>Stability
+        <select class="gp-cls">
+          <option value="sky" selected>Work it out from the sky</option>
+          <option value="A">A: very unstable</option><option value="B">B: moderately unstable</option><option value="C">C: slightly unstable</option>
+          <option value="D">D: neutral</option><option value="E">E: slightly stable</option><option value="F">F: moderately stable</option>
+        </select>
+      </label>
+      <label class="gp-skyl">Sky
+        <select class="gp-sky">
+          <option value="strong">Day, strong sun</option><option value="moderate" selected>Day, moderate sun</option><option value="slight">Day, weak sun</option>
+          <option value="overcast">Overcast (day or night)</option><option value="night-cloudy">Night, 4/8 or more low cloud</option><option value="night-clear">Night, 3/8 cloud or less</option>
+        </select>
+      </label>
+      <label>Ground <select class="gp-t"><option value="rural">Open country</option><option value="urban">City</option></select></label>
+      <label>Mixing height (m, optional) <input class="gp-l" inputmode="decimal" value="" placeholder="no lid" /></label>
+    </div>
+    <p class="ax-help">Strong sun is a high summer sun in a clear sky; weak sun is a low winter sun. Stable night air (E, F) keeps a plume thin; sunny, light-wind days (A, B) stir it to the ground quickly. The mixing height is the top of the stirred layer, if you know it.</p>
+    <label class="gp-chk"><input type="checkbox" class="gp-rise" checked /> Add plume rise (hot gas rises before it bends over)</label>
+    <div class="ax-grid gp-rbox">
+      <label>Gas exit speed (m/s) <input class="gp-vs" inputmode="decimal" value="15" /></label>
+      <label>Stack inner diameter (m) <input class="gp-d" inputmode="decimal" value="2" /></label>
+      <label>Gas temperature (°C) <input class="gp-ts" inputmode="decimal" value="147" /></label>
+      <label>Air temperature (°C) <input class="gp-ta" inputmode="decimal" value="15" /></label>
+    </div>
+    <div class="ax-grid">
+      <label>Gas, to show ppb (optional) <select class="gp-gas"><option value="">None, µg/m³ only</option>{GASES.map((g) => <option value={g.formula} selected={g.id === 'SO2'}>{g.name} ({g.formula})</option>)}</select></label>
+      <label>Receptor: distance downwind (m) <input class="gp-x" inputmode="decimal" value="2000" /></label>
+      <label>Receptor: distance off the centreline (m) <input class="gp-y" inputmode="decimal" value="0" /></label>
+      <label>Receptor: height above ground (m) <input class="gp-z" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-err gp-err" hidden></p>
+  </div>
+
+  <div class="ax-card gp-out">
+    <h2>Concentration at the ground</h2>
+    <p class="ax-big gp-big"></p>
+    <dl class="ax-facts gp-facts"></dl>
+    <canvas class="ax-fig gp-fig"></canvas>
+    <canvas class="ax-fig gp-map" style="margin-top:10px"></canvas>
+    <p class="ax-help">The map looks down on the ground: darker means more, from a thousandth of the peak (palest) to the peak (darkest).</p>
+    <div class="ax-scroll"><table class="gp-tab"></table></div>
+    <p class="ax-help">A screening estimate for flat, open ground and a steady wind, roughly a 10 to 60 minute average. It is not for emergency response or for permits; those need an approved model and local weather data. Briggs's curves were fitted from about 100 m to 10 km.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { pasquillClass, sigmasFor, windAt, plumeRise, conc, groundMax, halfWidth, CLASS_NAMES, type Terrain, type Sky, type Cls } from '../../lib/sci/plume';
+  import { convertGas, gasMass } from '../../lib/sci/aqi';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s3 = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1e5 || Math.abs(x) < 1e-3 ? x.toExponential(2) : String(+x.toPrecision(3)));
+  const dist = (m: number) => (m >= 1000 ? `${+(m / 1000).toPrecision(3)} km` : `${Math.round(m)} m`);
+  const clsName = (c: string) => [...c].map((ch) => CLASS_NAMES[ch as Cls]).join(' to ');
+  let figs: Figure[] = [], report: Section[] = [];
+
+  function calc() {
+    const err = q('.gp-err'), out = q('.gp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const sel = q<HTMLSelectElement>('.gp-cls').value; q('.gp-skyl').hidden = sel !== 'sky';
+    const rise = q<HTMLInputElement>('.gp-rise').checked; q('.gp-rbox').hidden = !rise;
+    const Q = v('.gp-q') * num(q<HTMLSelectElement>('.gp-qu').value), hs = v('.gp-hs'), u10 = v('.gp-u'), terrain = q<HTMLSelectElement>('.gp-t').value as Terrain;
+    const Lraw = q<HTMLInputElement>('.gp-l').value.trim(), L = Lraw ? num(Lraw) : undefined;
+    const x = v('.gp-x'), y = v('.gp-y'), z = v('.gp-z');
+    if (!(Q > 0)) return fail('Enter an emission rate above zero.');
+    if (!(hs >= 0)) return fail('Enter a stack height of zero or more.');
+    if (!(u10 >= 0.5)) return fail('Enter a wind speed of at least 0.5 m/s. In calmer air a plume does not travel in a straight line, so this model does not apply.');
+    if (L !== undefined && !(L > 0)) return fail('Enter a mixing height above zero, or leave it blank.');
+    if (!(x > 0) || !Number.isFinite(y) || !(z >= 0)) return fail('Enter a receptor distance above zero, an off-centre distance and a height of zero or more.');
+    const cls = sel === 'sky' ? pasquillClass(u10, q<HTMLSelectElement>('.gp-sky').value as Sky) : sel;
+    const u = windAt(u10, hs, cls, terrain);
+    let pr = { F: 0, dh: 0, xf: 0, gradual: (_: number) => 0 };
+    if (rise) {
+      const vs = v('.gp-vs'), d = v('.gp-d'), Ts = v('.gp-ts') + 273.15, Ta = v('.gp-ta') + 273.15;
+      if (!(vs >= 0 && d > 0 && Ts > 0 && Ta > 0)) return fail('Enter the exit speed, a diameter above zero and both temperatures.');
+      pr = plumeRise(vs, d, Ts, Ta, u, cls);
+    }
+    err.hidden = true; out.hidden = false;
+    const H = hs + pr.dh, Hx = (xx: number) => hs + pr.gradual(xx);
+    const src = { Q, u, H, cls, terrain, L };
+    const gas = q<HTMLSelectElement>('.gp-gas').value, M = gas ? gasMass(gas) : 0;
+    const ug = (c: number) => c * 1e6;
+    const show = (c: number) => `${s3(ug(c))} µg/m³` + (gas ? ` (${s3(convertGas(ug(c), 'ug', 'ppb', M))} ppb)` : '');
+    const mx = groundMax(src, 50, 100000, Hx);
+    const cR = conc(src, x, y, z, Hx(x)), sR = sigmasFor(x, cls, terrain);
+    q('.gp-big').textContent = mx.c > 0 ? `Highest at the ground: ${show(mx.c)}, ${dist(mx.x)} downwind` : 'The plume does not reach the ground under these conditions';
+    const f = [
+      fact('Stability class', `${cls}: ${clsName(cls)}`, sel === 'sky' ? `from a ${u10} m/s wind and the sky (Pasquill and Turner's table)` : 'chosen by you'),
+      fact('Wind at the stack top', `${u.toFixed(2)} m/s`, `the 10 m wind scaled with height (power law, ${terrain === 'urban' ? 'city' : 'open country'})`),
+    ];
+    if (rise) f.push(fact('Plume rise', `${pr.dh.toFixed(1)} m`, pr.F > 0 ? `buoyancy flux ${pr.F.toFixed(1)} m⁴/s³; full rise reached about ${dist(pr.xf)} downwind` : 'the gas is no warmer than the air, so it does not rise by buoyancy'));
+    f.push(fact('Effective height', `${H.toFixed(1)} m`, rise ? 'stack plus final plume rise; closer in, the plume is still rising' : 'the stack height'));
+    if (L !== undefined && H > L) f.push(fact('Above the lid', 'the plume is above the mixing height', 'so the model treats it as trapped aloft, with nothing at the ground'));
+    f.push(fact(`At your receptor (${dist(x)}, ${Math.round(y)} m off, ${Math.round(z)} m up)`, show(cR), `σy ${sR.sy.toFixed(1)} m, σz ${sR.sz.toFixed(1)} m`));
+    if (mx.c > 0) f.push(fact('Plume width at the peak', `${dist(2 * halfWidth(mx.x, cls, terrain))}`, 'across the wind, where the ground level is at least a tenth of the centreline value'));
+    if (x < 100 || x > 10000) f.push(fact('Outside the fitted range', 'Briggs fitted his curves from 100 m to 10 km', 'treat the receptor value as a rough guide'));
+    q('.gp-facts').replaceChildren(...f);
+
+    // Ground-level centreline concentration against distance.
+    const xs: number[] = []; for (let i = 0; i <= 160; i++) xs.push(10 ** (2 + (3 * i) / 160));
+    const ys = xs.map((xx) => ug(conc(src, xx, 0, 0, Hx(xx))));
+    const pos = ys.filter((c) => c > 0), top = Math.max(...pos, 1e-9);
+    const fig1 = chartFigure({ h: 260, xLog: true, yLog: true, yMin: top / 1e4, yMax: top * 2, xLabel: 'Distance downwind (m)', yLabel: 'Ground-level concentration (µg/m³)', legend: 'none',
+      series: [{ name: 'Centreline', x: xs.filter((_, i) => ys[i] > top / 1e4), y: ys.filter((c) => c > top / 1e4), mode: 'line', width: 2.2 }, ...(mx.c > 0 ? [{ name: 'Peak', x: [mx.x], y: [ug(mx.c)], mode: 'points' as const, size: 6 }] : [])],
+      marks: [{ kind: 'vline', at: x, dash: [4, 4], label: 'receptor' }] }, 'Ground-level concentration on the plume centreline against distance');
+
+    // Plan view of ground-level concentration.
+    const xRaw = Math.min(100000, Math.max(3 * (mx.x || 1000), x * 1.2, 1000)), mag = 10 ** Math.floor(Math.log10(xRaw));
+    const xMax = [1, 2, 4, 8, 10].map((k) => k * mag).find((v) => v >= xRaw * 0.999)!;
+    const wMax = Math.max(halfWidth(xMax, cls, terrain, 0.01), Math.abs(y) * 1.2, 50);
+    const fig2: Figure = { w: 340, h: 260, alt: 'Plan view: ground-level concentration around the source, wind blowing to the right', draw: (ctx, W, Hh, pal) => {
+      const l = 54, r = 24, t = 10, b = 34, pw = W - l - r, ph = Hh - t - b, NX = 120, NY = 60;
+      const hex = (c: string) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16)), A = hex(pal.accent), B = hex(pal.bg);
+      const cmax = mx.c || 1e-30;
+      for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) {
+        const xx = ((i + 0.5) / NX) * xMax, yy = wMax - ((j + 0.5) / NY) * 2 * wMax;
+        const c = conc(src, xx, yy, 0, Hx(xx)); if (!(c > cmax / 1000)) continue;
+        const w = Math.min(1, (Math.log10(c / cmax) + 3) / 3);
+        ctx.fillStyle = `rgb(${A.map((a, k) => Math.round(B[k] + (a - B[k]) * w)).join(',')})`;
+        ctx.fillRect(l + (i * pw) / NX, t + (j * ph) / NY, pw / NX + 0.6, ph / NY + 0.6);
+      }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(l, t, pw, ph);
+      ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(l, t + ph / 2, 4, 0, 2 * Math.PI); ctx.fill();
+      const rx = l + (x / xMax) * pw, ry = t + ph / 2 - (y / wMax) * (ph / 2);
+      if (x <= xMax) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(rx - 5, ry - 5); ctx.lineTo(rx + 5, ry + 5); ctx.moveTo(rx + 5, ry - 5); ctx.lineTo(rx - 5, ry + 5); ctx.stroke(); }
+      ctx.font = '10px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+      for (let k = 0; k <= 4; k++) ctx.fillText(dist((xMax * k) / 4), l + (pw * k) / 4, t + ph + 4);
+      ctx.fillText('wind →   • source   × receptor', l + pw / 2, t + ph + 18);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(`+${dist(wMax)}`, l - 4, t + 6); ctx.fillText('0', l - 4, t + ph / 2); ctx.fillText(`−${dist(wMax)}`, l - 4, t + ph - 6);
+    } };
+    figs = [fig1, fig2];
+    paint(q<HTMLCanvasElement>('.gp-fig'), fig1); paint(q<HTMLCanvasElement>('.gp-map'), fig2);
+
+    const rows = [100, 200, 500, 1000, 2000, 5000, 10000, 20000].map((xx) => { const s = sigmasFor(xx, cls, terrain); return [dist(xx), s.sy.toFixed(1), s.sz.toFixed(1), (Hx(xx)).toFixed(1), s3(ug(conc(src, xx, 0, 0, Hx(xx))))]; });
+    const head = ['Distance', 'σy (m)', 'σz (m)', 'Plume height (m)', 'Ground centreline (µg/m³)'];
+    const tab = q<HTMLTableElement>('.gp-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    const facts = [...q('.gp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.gp-big').textContent!, facts, figure: fig1 },
+      { title: 'Plan view at ground level', figure: fig2, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener(i.tagName === 'SELECT' || (i as HTMLInputElement).type === 'checkbox' ? 'change' : 'input', calc));
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.gp-fig'), figs[0]); paint(q<HTMLCanvasElement>('.gp-map'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gaussian plume', subtitle: q('.gp-big').textContent ?? '', file: 'gaussian-plume', sections: report }));
+</script>
+
+<style is:global>
+  .gp .gp-chk { display: flex; gap: 8px; align-items: center; margin: 10px 0; }
+  .gp select { max-width: 100%; }
+</style>
