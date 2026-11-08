@@ -1,5 +1,14 @@
 [
  {
+  "sha": "a207f3fb45d5",
+  "date": "2026-11-08T23:27:11+00:00",
+  "title": "Add the altermagnet band explorer (#145)",
+  "tools": [
+   "altermagnet-bands"
+  ],
+  "site": false
+ },
+ {
   "sha": "0b07a3281797",
   "date": "2026-11-08T23:14:48+00:00",
   "title": "Add the rating curve fitter (#144)",
