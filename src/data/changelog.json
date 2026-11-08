@@ -1,5 +1,17 @@
 [
  {
+  "sha": "1a5ce9e71086",
+  "date": "2026-11-08T06:25:58+00:00",
+  "title": "Add rotation curve fitter, spectral line identifier, transit fitter and star FWHM checker (#69–#72)",
+  "tools": [
+   "rotation-curve-fitter",
+   "spectral-line-identifier",
+   "star-fwhm-checker",
+   "transit-light-curve-fitter"
+  ],
+  "site": false
+ },
+ {
   "sha": "0a80f4ae9beb",
   "date": "2026-11-08T05:59:21+00:00",
   "title": "Add four tools: eclipse finder, satellite tracker, uv-coverage, double stars",
