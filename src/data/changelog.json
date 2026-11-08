@@ -1,5 +1,18 @@
 [
  {
+  "sha": "e1a4756cbe3d",
+  "date": "2026-11-08T03:35:36+00:00",
+  "title": "Add five science tools: hemocytometer, radiocarbon calibration, SQL playground, biodiversity indices, reliability",
+  "tools": [
+   "biodiversity-indices",
+   "hemocytometer",
+   "radiocarbon-calibration",
+   "reliability-analysis",
+   "sql-playground"
+  ],
+  "site": true
+ },
+ {
   "sha": "05ac2c4c51a2",
   "date": "2026-11-08T01:46:59+00:00",
   "title": "Add six science tools: solutions, PCR master mix, sample size, stereonet, psychrometrics, plate layout",
