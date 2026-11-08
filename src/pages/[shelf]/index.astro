@@ -2,8 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import SoonList from '../../components/SoonList.astro';
-import { SHELVES, SECTIONS } from '../../site';
-import { allTools, bySection } from '../../lib/tools';
+import { SHELVES, SECTIONS, SUBJECTS } from '../../site';
+import { allTools, bySection, bySubject } from '../../lib/tools';
 export function getStaticPaths() {
   return SHELVES.map((s) => ({ params: { shelf: s.id }, props: { shelf: s } }));
 }
@@ -13,11 +13,24 @@ const live = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 
 const soon = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'soon');
 const hasSections = (SECTIONS[shelf.id] ?? []).length > 0;
 const groups = bySection(shelf.id, live);
+// Science: a grid of subjects, each with its sections; the tools are one click away on the subject's page.
+const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live) : null;
 ---
 <Base title={`${shelf.name} tools`} description={`Free ${shelf.name.toLowerCase()} tools that run in your browser. ${shelf.blurb}`} shelf={shelf.id}>
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, with no sign-up.</p>
+  {subjects ? (
+    <div class="sj-grid">
+      {subjects.map((sj) => (
+        <section class="sj">
+          <h2><a href={sj.url}>{sj.name}</a> <small>{sj.count} tools</small></h2>
+          <p>{sj.blurb}</p>
+          <ul>{sj.groups.map((g) => <li><a href={`${sj.url}#${g.id}`}>{g.name}</a> <span>{g.tools.length}</span></li>)}</ul>
+        </section>
+      ))}
+    </div>
+  ) : <>
   {live.length > 6 && (
     <label class="sf"><span class="visually-hidden">Find a {shelf.name.toLowerCase()} tool</span><input type="search" placeholder={`Find a ${shelf.name.toLowerCase()} tool…`} autocomplete="off" /></label>
   )}
@@ -34,6 +47,7 @@ const groups = bySection(shelf.id, live);
     live.length > 0 && <div class="grid">{live.map((t) => <ToolCard tool={t} />)}</div>
   )}
   <p class="sf-empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
+  </>}
   {soon.length > 0 && <><h2>Coming soon</h2><SoonList tools={soon} /></>}
 </Base>
 
@@ -53,6 +67,17 @@ const groups = bySection(shelf.id, live);
   .sec:not([open]) > summary em::after { transform: rotate(-90deg); }
   .sec .grid { padding: 0 12px 12px; }
   .sf-empty { color: var(--muted); }
+  .sj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px 40px; }
+  .sj h2 { display: flex; align-items: baseline; gap: 8px; font-size: 18px; margin: 18px 0 4px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sj h2 a { color: var(--ink); text-decoration: none; }
+  .sj h2 a:hover { text-decoration: underline; }
+  .sj h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .sj p { margin: 6px 0; font-size: 14px; color: var(--muted); }
+  .sj ul { list-style: none; margin: 0; padding: 0; }
+  .sj li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .sj li a { color: var(--ink); text-decoration: none; }
+  .sj li a:hover { text-decoration: underline; }
+  .sj li span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   /* Phones: a tighter list instead of tall cards, so a long shelf stays easy to scan. */
   @media (max-width: 600px) {
     .sec .grid, .grid { gap: 6px; }

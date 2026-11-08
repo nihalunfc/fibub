@@ -58,8 +58,12 @@ nav.main a { display: inline-flex; align-items: center; gap: 4px; }
   .dd-subj[aria-expanded=true] { color: var(--accent); }
   .dd-pane { display: none; min-width: 0; }
   .dd-pane.on { display: block; }
-  .dd-mega .dd-cols { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-  .dd-mega .dd-all { grid-column: 1 / -1; }
+  .dd-mega .dd-cols { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-items: start; }
+  .dd-mega .dd-pane { max-height: min(68vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+  nav.main .dd-sec { padding: 8px 10px 2px; border-radius: 6px; white-space: normal; color: var(--muted); }
+  nav.main .dd-sec:hover { color: var(--ink); background: none; text-decoration: underline; }
+  nav.main .dd-more { display: block; padding: 2px 10px 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  nav.main .dd-more:hover { color: var(--ink); background: none; text-decoration: underline; }
   /* The wide panel lines up with the page edge, not the menu word, so it never runs off screen. */
   header.site .wrap { position: relative; }
   .dd:has(.dd-mega) { position: static; }
@@ -123,6 +127,16 @@ footer.site a:hover { color: var(--accent); }
 .at-search { flex: 1; min-width: 0; width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }
 .at-close { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 16px; cursor: pointer; }
 .at-shelf, .at-mine { padding: 6px 0; border-top: 1px solid var(--line); }
+.at-shelf > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; font-weight: 700; cursor: pointer; }
+.at-shelf > summary::-webkit-details-marker { display: none; }
+.at-shelf > summary small { margin-left: auto; margin-right: 8px; color: var(--muted); font-weight: 500; font-size: 13px; }
+.at-shelf > summary::after { content: '▾'; color: var(--muted); transition: transform .15s; }
+.at-shelf:not([open]) > summary::after { transform: rotate(-90deg); }
+.at-item .num { margin-left: auto; }
+.at-all { display: block; padding: 6px 4px 4px; font-size: 13.5px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.at-results, .at-mine-list { margin: 0 0 4px; }
+.all-tools .ti a { padding: 8px 0; }
+.all-tools .ti .sm { font-size: 12.5px; }
 .at-shelf-h, .at-h { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 4px; font-weight: 700; color: var(--ink); text-decoration: none; }
 .at-shelf-h span { font-size: 13px; font-weight: 600; color: var(--accent); }
 .at-h button { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -134,7 +148,7 @@ footer.site a:hover { color: var(--accent); }
 .at-shelf[data-shelf=money] { --c: var(--money); } .at-shelf[data-shelf=documents] { --c: var(--documents); } .at-shelf[data-shelf=everyday] { --c: var(--everyday); } .at-shelf[data-shelf=science] { --c: var(--science); }
 .at-note, .at-empty { margin: 4px; font-size: 13px; color: var(--muted); }
 @media not ((min-width: 900px) and (hover: hover)) {
-  nav.main { display: none; }
+  nav.main, .find-btn { display: none !important; }
   .menu-btn { display: inline-flex; margin-left: 0; }
   .hdr-btns { margin-left: auto; }
 }
@@ -191,3 +205,22 @@ html.red-mode .ico-btn.red-btn[aria-pressed=true] { background: #2b0000; color: 
 .red-dot { width: 10px; height: 10px; border-radius: 50%; background: #c00000; flex: none; }
 .ico-btn.red-btn[aria-pressed=true] .red-dot { box-shadow: 0 0 0 2px #2b0000; }
 @media (max-width: 420px) { .red-t { display: none; } .ico-btn.red-btn { width: 36px; padding: 0; justify-content: center; } }
+
+/* Plain tool rows (home, subject pages, search results): name and one line under it, #number, star. */
+.ix { list-style: none; margin: 0; padding: 0; }
+.ti { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
+.ti:last-child { border-bottom: 0; }
+.ti a { display: grid; padding: 9px 0; min-width: 0; color: var(--ink); text-decoration: none; }
+.ti .nm { font-weight: 600; }
+.ti a:hover .nm { text-decoration: underline; text-underline-offset: 3px; }
+.ti .sm { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ti .num { font-size: 12px; margin: 0; }
+.pin { width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); opacity: .45; cursor: pointer; border-radius: 8px; padding: 0; }
+.pin svg { width: 18px; height: 18px; }
+.pin:hover { opacity: 1; }
+.pin[aria-pressed=true] { color: var(--warn); opacity: 1; }
+.pin[aria-pressed=true] svg { fill: currentColor; }
+.find { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+.find:focus-within { border-color: var(--accent); }
+.find svg { width: 18px; height: 18px; flex: none; }
+.find input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }

@@ -1,0 +1,67 @@
+---
+// A subject's own page (/science/physics/): its sections as headings and every tool as a plain row,
+// with a filter box and a jump list when there are many sections.
+import Base from '../layouts/Base.astro';
+import { shelfById } from '../site';
+import { toolUrl, type SubjectGroup } from '../lib/tools';
+interface Props { shelf: string; subject: SubjectGroup }
+const { shelf: shelfId, subject } = Astro.props;
+const shelf = shelfById(shelfId);
+const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
+---
+<Base title={`${subject.name} tools`} description={`${subject.count} free ${subject.name.toLowerCase()} tools that run in your browser. ${subject.blurb}`} shelf={shelf.id}>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a> / {subject.name}</div>
+  <h1>{subject.name} tools</h1>
+  <p class="lead">{subject.blurb} {subject.count} free tools, with no sign-up. Nothing you enter leaves your device.</p>
+  {subject.count > 8 && (
+    <label class="find sp-find"><span class="visually-hidden">Find a {subject.name.toLowerCase()} tool</span><input type="search" placeholder={`Find a ${subject.name.toLowerCase()} tool…`} autocomplete="off" /></label>
+  )}
+  {subject.groups.length > 3 && (
+    <nav class="jump" aria-label="Sections">{subject.groups.map((g) => <a href={`#${g.id}`}>{g.name}</a>)}</nav>
+  )}
+  <div class="secs">
+    {subject.groups.map((g) => (
+      <section class="sec" id={g.id}>
+        <h2>{g.name} <small>{g.tools.length}</small></h2>
+        {g.blurb && <p class="blurb">{g.blurb}</p>}
+        <ul class="ix">
+          {g.tools.map((t) => (
+            <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} #${t.data.num}`.toLowerCase()}>
+              <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
+              <span class="num">#{t.data.num}</span>
+              <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+  <p class="sp-empty" hidden>No {subject.name.toLowerCase()} tool matches that yet. Try the search on the <a href="/">home page</a>, or <a href="/contact/">suggest it</a>.</p>
+</Base>
+
+<style>
+  .sp-find { margin-bottom: 14px; }
+  .jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .jump a { font-size: 13.5px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px; }
+  .jump a:hover { border-color: var(--ink); }
+  .secs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 0 40px; align-items: start; }
+  .sec h2 { display: flex; align-items: baseline; gap: 8px; font-size: 18px; margin: 24px 0 4px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sec h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .blurb { margin: 6px 0 2px; font-size: 14px; color: var(--muted); }
+  .sp-empty { color: var(--muted); }
+</style>
+
+<script>
+  const input = document.querySelector<HTMLInputElement>('.sp-find input');
+  if (input) {
+    const rows = [...document.querySelectorAll<HTMLElement>('.secs .ti')];
+    const empty = document.querySelector<HTMLElement>('.sp-empty')!;
+    input.addEventListener('input', () => {
+      const ws = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const r of rows) { const ok = ws.every((w) => r.dataset.search!.includes(w)); r.hidden = !ok; if (ok) shown++; }
+      document.querySelectorAll<HTMLElement>('.secs .sec').forEach((s) => (s.hidden = !s.querySelector('.ti:not([hidden])')));
+      empty.hidden = shown > 0;
+    });
+  }
+</script>

@@ -737,9 +737,10 @@ try {
     const mine = await page.evaluate(() => localStorage.getItem('fibub-mytools-v1') || '');
     check(mine.includes('sky-tonight'), 'bookmark: "pin to My tools" saves only the tool id in this browser');
     await page.goto(BASE + '/');
-    check(await page.isVisible('.mine'), 'home: My tools shows the pinned tool');
+    check(!!(await page.waitForSelector('.mine:not([hidden])', { timeout: 5000 }).catch(() => null)), 'home: My tools shows the pinned tool');
     // Only my tools: star a second tool, hide the rest, then bring them back.
     await page.click('.dir .ti[data-id=bill-calendar] .pin');
+    await page.waitForFunction(() => document.querySelectorAll('.mine-list .ti').length === 2, null, { timeout: 5000 }).catch(() => {});
     check((await page.locator('.mine-list .ti').count()) === 2, 'home: the star adds a tool to My tools');
     await page.click('.focus-btn');
     check(!(await page.isVisible('.dir')) && await page.isVisible('.mine'), 'home: "Show only my tools" hides every other tool');
@@ -750,8 +751,9 @@ try {
     await page.evaluate(() => localStorage.removeItem('fibub-focus-v1'));
     await page.evaluate(() => localStorage.removeItem('fibub-mytools-v1'));
     // Every tool has a #number: shown on its page, and "#3" finds exactly that tool.
-    await page.fill('.search input', '#3');
-    const byNum = await page.$$eval('.dir .ti', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('.nm').textContent));
+    await page.fill('.find input', '#3');
+    await page.waitForSelector('.hits:not([hidden]) .hits-list .ti');
+    const byNum = await page.$$eval('.hits-list .ti .nm', (els) => els.map((e) => e.textContent));
     check(byNum.length === 1 && byNum[0] === 'ZIP checker', `tool numbers: home search "#3" -> ${byNum.join(', ')}`);
     await page.goto(`${BASE}/documents/zip-checker/`);
     check((await page.textContent('.tool-num')) === 'Tool #3', 'tool numbers: the tool page shows Tool #3');
@@ -846,11 +848,45 @@ try {
   await ctx.setOffline(false);
   // Home search filters the tools.
   await page.goto(BASE + '/');
-  await page.fill('.search input', 'zip');
-  const shown = await page.$$eval('.dir .ti', (els) => els.filter((e) => e.offsetParent !== null).map((e) => e.querySelector('.nm').textContent));
-  check(shown.includes('ZIP checker') && !shown.includes('Image resizer'), `home search "zip" -> ${shown.join(', ')}`);
-  await page.fill('.search input', 'qqqq');
+  await page.fill('.find input', 'zip');
+  await page.waitForSelector('.hits-list .ti');
+  const shown = await page.$$eval('.hits-list .ti .nm', (els) => els.map((e) => e.textContent));
+  check(shown[0] === 'ZIP checker' && !shown.includes('Image resizer'), `home search "zip" -> ${shown.join(', ')}`);
+  check(!(await page.isVisible('.dir')), 'home search: the shelf index steps aside while searching');
+  await page.fill('.find input', 'sky astronomy');
+  await page.waitForTimeout(150);
+  const sky = await page.$$eval('.hits-list .ti .nm', (els) => els.map((e) => e.textContent));
+  check(sky.length >= 3 && sky[0].startsWith('Sky'), `home search finds tools on every subject page: "sky astronomy" -> ${sky.join(', ')}`);
+  await page.fill('.find input', 'qqqq');
+  await page.waitForTimeout(150);
   check(await page.isVisible('.empty'), 'home search: no match shows a suggestion link');
+  await page.fill('.find input', '');
+  await page.waitForTimeout(150);
+  check(await page.isVisible('.dir'), 'home search: clearing the box brings the shelves back');
+  // Science is grouped by subject: the shelf page lists subjects, each subject has its own page.
+  {
+    const idx = JSON.parse(await (await fetch(BASE + '/tools.json')).text());
+    const nums = idx.map((e) => e.k);
+    check(idx.length >= 24 && new Set(nums).size === nums.length && nums.every((n) => n > 0), `search index: ${idx.length} live tools, each with its own #number`);
+    await page.goto(BASE + '/science/');
+    check(await page.isVisible('.sj-grid a[href="/science/astronomy/"]'), 'science shelf: lists its subjects');
+    await page.goto(BASE + '/science/astronomy/');
+    const rows = await page.locator('.secs .ti').count();
+    check(rows === idx.filter((e) => e.p.startsWith('Science › Astronomy')).length, `subject page: /science/astronomy/ lists all ${rows} astronomy tools`);
+    await page.fill('.sp-find input', 'fits header');
+    check((await page.$$eval('.secs .ti', (els) => els.filter((e) => !e.hidden).length)) === 1, 'subject page: the filter box narrows the list');
+    await page.goto(BASE + '/science/sky-tonight/');
+    check((await page.getAttribute('.crumbs a[href="/science/astronomy/"]', 'href')) === '/science/astronomy/', 'tool page: breadcrumb links to its subject page');
+    await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
+    check(await page.isVisible('.dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd-pane.on .dd-all')), 'header: each subject links to all its tools');
+    const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
+    check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
+    await page.click('.find-btn');
+    await page.keyboard.type('#13');
+    await page.waitForSelector('.at-results .ti');
+    check((await page.textContent('.at-results .ti .nm')) === 'Sky tonight', 'header search: "#13" from any page finds Sky tonight');
+    await page.keyboard.press('Escape');
+  }
   for (const path of ['/documents/compress-file/', '/money/bill-calendar/']) {
     await page.goto(BASE + path);
     const n = await page.$$eval('[data-works]', (els) => els.length);
@@ -867,7 +903,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -878,7 +914,11 @@ try {
   const box = await phone.locator('#all-tools').boundingBox();
   const vw = phone.viewportSize();
   check(box && box.width < vw.width * 0.75 && box.y + box.height >= vw.height - 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, full height`);
-  check((await phone.locator('#all-tools .at-item').count()) > 20, 'phone menu: lists every tool');
+  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && await phone.isVisible('#all-tools .at-shelf[data-shelf=money][open] .at-item'), 'phone menu: shelves fold, and the current shelf is open');
+  await phone.fill('.at-search', 'loan');
+  await phone.waitForSelector('.at-results .ti');
+  check((await phone.textContent('.at-results .ti .nm')) === 'Loan payoff planner' && !(await phone.isVisible('.at-browse')), 'phone menu: search finds any tool and hides the shelves');
+  await phone.fill('.at-search', '');
   await phone.mouse.wheel(0, 0);
   await phone.evaluate(() => window.scrollTo(0, 400));
   check((await phone.evaluate(() => window.scrollY)) > 300, 'phone menu: the page still scrolls while it is open');

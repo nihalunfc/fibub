@@ -2,26 +2,32 @@
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import ToolFlow from '../../components/ToolFlow.astro';
+import SubjectPage from '../../components/SubjectPage.astro';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
-import { allTools, toolComponent, toolUrl, relatedTools } from '../../lib/tools';
+import { allTools, toolComponent, toolUrl, relatedTools, bySubject, toolPlace } from '../../lib/tools';
 import { ICONS } from '../../lib/icons';
-import { SECTIONS, sectionLabel } from '../../site';
+import { SHELVES, SUBJECTS } from '../../site';
+// Two kinds of page share this address pattern: a tool (/science/sky-tonight/) and, on shelves with
+// subjects, a subject (/science/physics/). The build fails if a tool id is also a subject id.
 export async function getStaticPaths() {
   const tools = await allTools();
-  return tools
-    .filter((t) => t.data.status === 'live')
-    .map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, related: relatedTools(t, tools) } }));
+  const live = tools.filter((t) => t.data.status === 'live');
+  const toolPages = live.map((t) => ({ params: { shelf: t.data.shelf, tool: t.id }, props: { tool: t, related: relatedTools(t, tools) } }));
+  const subjectPages = SHELVES.filter((s) => SUBJECTS[s.id]).flatMap((s) => bySubject(s.id, live).map((sj) => ({ params: { shelf: s.id, tool: sj.id }, props: { subjectPage: { shelf: s.id, subject: sj } } })));
+  return [...toolPages, ...subjectPages];
 }
-const { tool, related } = Astro.props;
-const section = SECTIONS[tool.data.shelf]?.find((s) => s.id === tool.data.section);
-const shelf = shelfById(tool.data.shelf);
-const ToolUI = toolComponent(tool.id);
-const { Content } = await render(tool);
-const updated = tool.data.updated.toISOString().slice(0, 10);
+const { tool, related, subjectPage } = Astro.props as any;
+const place = tool ? toolPlace(tool) : null;
+const section = place?.section, subject = place?.subject;
+const shelf = tool ? shelfById(tool.data.shelf) : null;
+const ToolUI = tool ? toolComponent(tool.id) : null;
+const Content = tool ? (await render(tool)).Content : null;
+const updated = tool?.data.updated.toISOString().slice(0, 10);
 ---
+{subjectPage ? <SubjectPage shelf={subjectPage.shelf} subject={subjectPage.subject} /> : (
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{section && <> / <a href={`/${shelf.id}/#${section.id}`}>{sectionLabel(section)}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={subject ? `/${shelf.id}/${subject.id}/#${section.id}` : `/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>
@@ -62,6 +68,7 @@ const updated = tool.data.updated.toISOString().slice(0, 10);
     </section>
   )}
 </Base>
+)}
 
 <style>
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
