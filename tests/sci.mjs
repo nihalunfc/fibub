@@ -114,6 +114,7 @@ import * as DAR from '../src/lib/sci/darcy.ts';
 import * as WF from '../src/lib/sci/wellfield.ts';
 import * as GTN from '../src/lib/sci/gradetonnage.ts';
 import * as DH from '../src/lib/sci/drillhole.ts';
+import * as TRV from '../src/lib/sci/traverse.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2011,6 +2012,46 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('drillhole: gap is waste in intercepts', DH.intercepts(G, 1, 1, 0)[0].g, 4 / 3, 1e-9);
   near('drillhole: gap left out of composites', DH.composites(G, 3, 'keep')[0].g, 2, 1e-9);
   check('drillhole: thin coverage composite dropped', DH.composites(G, 1, 'keep').length === 2);
+}
+
+// Traverses (worked by hand on a 100 m square and simple triangles).
+{
+  near('traverse: DMS', TRV.parseAngle('45 30 15'), 45.50416666666667, 1e-12);
+  near('traverse: DMS symbols', TRV.parseAngle("45°30'15\""), 45.50416666666667, 1e-12);
+  near('traverse: dashes', TRV.parseAngle('45-30-15'), 45.50416666666667, 1e-12);
+  near('traverse: quadrant SW', TRV.parseAngle('S 30 W'), 210, 1e-12);
+  near('traverse: quadrant NW', TRV.parseAngle('N45°30\'W'), 314.5, 1e-12);
+  near('traverse: gons', TRV.parseAngle('150', 'gon') * 0.9, 135, 1e-12);
+  check('traverse: bad minutes rejected', Number.isNaN(TRV.parseAngle('45 61 00')) && Number.isNaN(TRV.parseAngle('abc')));
+  check('traverse: DMS text', TRV.fmtDMS(45.50416666666667) === '45°30′15″' && TRV.fmtDMS(10.99999999) === '11°00′00″');
+  check('traverse: quadrant text', TRV.fmtQuadrant(210) === 'S 30°00′00″ W' && TRV.fmtQuadrant(135) === 'S 45°00′00″ E');
+  const legs = [{ az: 0, d: 100.02 }, { az: 90, d: 100 }, { az: 180, d: 99.97 }, { az: 270, d: 100.03 }];
+  const c = TRV.close(legs, { E: 1000, N: 1000 }, null, 'bowditch');
+  near('traverse: misclosure N', c.fN, 0.05, 1e-9); near('traverse: misclosure E', c.fE, -0.03, 1e-9);
+  near('traverse: precision', c.precision, 400.02 / Math.hypot(0.05, 0.03), 1e-6);
+  near('traverse: Bowditch correction', c.cN[0], -0.05 * 100.02 / 400.02, 1e-12);
+  near('traverse: Bowditch closes', Math.hypot(c.adj[4].E - 1000, c.adj[4].N - 1000), 0, 1e-9);
+  const t = TRV.close(legs, { E: 1000, N: 1000 }, null, 'transit');
+  near('traverse: transit puts N error on N legs', t.cN[0], -0.05 * 100.02 / 199.99, 1e-12);
+  check('traverse: transit leaves E of N legs', Math.abs(t.cE[0]) < 1e-12 && Math.hypot(t.adj[4].E - 1000, t.adj[4].N - 1000) < 1e-9);
+  near('traverse: area of the adjusted square', TRV.area(c.adj.slice(0, 4)), 10000, 1);
+  near('traverse: shoelace', TRV.area([{ E: 0, N: 0 }, { E: 4, N: 0 }, { E: 4, N: 3 }]), 6, 1e-12);
+  const link = TRV.close([{ az: 90, d: 50 }, { az: 90, d: 50.1 }], { E: 0, N: 0 }, { E: 100, N: 0 });
+  near('traverse: link misclosure', link.fE, 0.1, 1e-9); near('traverse: link adjusted end', link.adj[2].E, 100, 1e-9);
+  // Square walked anticlockwise: interior angles 90; one angle 20″ too big.
+  const a = TRV.anglesToAzimuths([90, 90 + 20 / 3600, 90, 90], 0);
+  near('traverse: angular misclosure', a.misclosure * 3600, 20, 1e-6);
+  check('traverse: interior sum', a.interior === 360);
+  near('traverse: adjusted azimuths', a.az[1], 270 + 15 / 3600, 1e-9);
+  near('traverse: adjusted last azimuth', a.az[3], 90 + 5 / 3600, 1e-9);
+  const inv = TRV.inverse({ E: 0, N: 0 }, { E: -3, N: -4 });
+  near('traverse: inverse distance', inv.d, 5, 1e-12); near('traverse: inverse azimuth', inv.az, 180 + Math.atan(3 / 4) * 180 / Math.PI, 1e-9);
+  const bb = TRV.bearingBearing({ E: 0, N: 0 }, 45, { E: 100, N: 0 }, 315);
+  near('traverse: bearing-bearing E', bb.E, 50, 1e-9); near('traverse: bearing-bearing N', bb.N, 50, 1e-9);
+  check('traverse: parallel lines', TRV.bearingBearing({ E: 0, N: 0 }, 10, { E: 5, N: 0 }, 190) === null);
+  const dd = TRV.distanceDistance({ E: 0, N: 0 }, 5, { E: 8, N: 0 }, 5);
+  check('traverse: distance-distance', dd.length === 2 && Math.abs(dd[0].E - 4) < 1e-9 && Math.abs(dd[0].N - 3) < 1e-9 && Math.abs(dd[1].N + 3) < 1e-9);
+  check('traverse: circles too far apart', TRV.distanceDistance({ E: 0, N: 0 }, 1, { E: 8, N: 0 }, 1).length === 0);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

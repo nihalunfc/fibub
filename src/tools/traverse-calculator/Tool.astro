@@ -1,0 +1,196 @@
+---
+// Traverse closure, Bowditch and transit adjustment, area and coordinate geometry. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: a five-station loop written by fibub, with small made-up errors.
+const demoB = 'station\tazimuth\tdistance\nA\t33 01 48\t220.908\nB\t103 21 37\t187.364\nC\t184 22 00\t191.871\nD\t251 42 51\t192.524\nE\t316 11 58\t152.121';
+const demoA = 'station\tangle right\tdistance to next\nA\t256 49 52\t220.908\nB\t250 19 56\t187.364\nC\t261 00 17\t191.871\nD\t247 21 03\t192.524\nE\t244 29 05\t152.121';
+---
+<div class="ax trv" data-demo-b={demoB} data-demo-a={demoA}>
+  <div class="ax-card">
+    <h2>Traverse</h2>
+    <div class="ax-grid">
+      <label>What you measured <select class="tv-mode"><option value="bearing" selected>Bearings and distances</option><option value="angle">Angles and distances (closed loop)</option></select></label>
+      <label>Angles in <select class="tv-unit"><option value="deg" selected>Degrees (45 30 15, 45°30′15″ or 45.504)</option><option value="gon">Gons (400 to a circle)</option></select></label>
+    </div>
+    <label>One leg per row <span class="tv-cols">(station, bearing, distance)</span> <textarea class="tv-data" rows="7" spellcheck="false">{demoB}</textarea></label>
+    <DataFile target=".tv-data" maxCols={4} maxRows={5000} label="Open a file" />
+    <p class="ax-help tv-help"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Shape <select class="tv-type"><option value="loop" selected>Closed loop (ends where it starts)</option><option value="link">Between two known points</option></select></label>
+      <label>Distance unit <select class="tv-du"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+      <label>Start E (easting) <input class="tv-e0" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Start N (northing) <input class="tv-n0" type="text" inputmode="decimal" value="5000" /></label>
+      <label class="tv-endbox">Known end E <input class="tv-e1" type="text" inputmode="decimal" value="" /></label>
+      <label class="tv-endbox">Known end N <input class="tv-n1" type="text" inputmode="decimal" value="" /></label>
+      <label class="tv-azbox">Azimuth of the first leg <input class="tv-az0" type="text" value="33 01 42" /></label>
+      <label>Adjustment <select class="tv-rule"><option value="bowditch" selected>Bowditch (compass) rule</option><option value="transit">Transit rule</option></select></label>
+    </div>
+    <p class="ax-err tv-err" hidden></p>
+  </div>
+
+  <div class="ax-card tv-out">
+    <h2>Closure</h2>
+    <p class="ax-big tv-big"></p>
+    <dl class="ax-facts tv-facts"></dl>
+    <canvas class="ax-fig tv-fig"></canvas>
+    <div class="ax-scroll"><table class="tv-tab"></table></div>
+    <p class="ax-help">Plane survey on a flat grid: no scale factor, curvature or height correction. Check the precision against the standard your job or jurisdiction asks for.</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Coordinate geometry</h2>
+    <div class="ax-grid">
+      <label>Point A E <input class="tc-ae" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Point A N <input class="tc-an" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Point B E <input class="tc-be" type="text" inputmode="decimal" value="5302.7" /></label>
+      <label>Point B N <input class="tc-bn" type="text" inputmode="decimal" value="5141.9" /></label>
+      <label>Find <select class="tc-kind"><option value="bb" selected>Where two bearings cross</option><option value="dd">Where two distances meet</option></select></label>
+      <label><span class="tc-la">Bearing from A</span> <input class="tc-va" type="text" value="90" /></label>
+      <label><span class="tc-lb">Bearing from B</span> <input class="tc-vb" type="text" value="200" /></label>
+    </div>
+    <p class="ax-big tc-inv"></p>
+    <p class="tc-x"></p>
+  </div>
+</div>
+
+<script>
+  import { parseAngle, fmtDMS, fmtQuadrant, anglesToAzimuths, close, area, inverse, bearingBearing, distanceDistance, type Leg } from '../../lib/sci/traverse';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.trv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const demoB = root.dataset.demoB!, demoA = root.dataset.demoA!;
+  const f3 = (x: number) => x.toFixed(3), comma = (x: number) => Math.round(x).toLocaleString('en-US');
+  let fig: Figure | null = null, report: Section[] = [], lastMode = 'bearing';
+
+  function calc() {
+    const err = q('.tv-err'), out = q('.tv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const mode = sel('.tv-mode'), unit = sel('.tv-unit') as 'deg' | 'gon', du = sel('.tv-du');
+    const ta = q<HTMLTextAreaElement>('.tv-data');
+    if (mode !== lastMode) { if (ta.value.trim() === (lastMode === 'bearing' ? demoB : demoA)) ta.value = mode === 'bearing' ? demoB : demoA; if (mode === 'angle') q<HTMLSelectElement>('.tv-type').value = 'loop'; lastMode = mode; }
+    q<HTMLSelectElement>('.tv-type').disabled = mode === 'angle';
+    const link = mode === 'bearing' && sel('.tv-type') === 'link';
+    root.querySelectorAll<HTMLElement>('.tv-endbox').forEach((e) => (e.hidden = !link));
+    q('.tv-azbox').hidden = mode !== 'angle';
+    q('.tv-cols').textContent = mode === 'bearing' ? '(station, bearing, distance)' : '(station, angle, distance to the next station)';
+    q('.tv-help').textContent = mode === 'bearing'
+      ? 'Bearings are azimuths clockwise from north (0 to 360) or quadrant bearings such as N 45 30 E. The station name is optional. If you write angles with spaces (33 01 48), separate the columns with tabs or commas.'
+      : 'Angles are turned clockwise at each station, from the station behind to the station ahead. The first row\'s angle is at the start station and closes the loop. Interior angles if you walk anticlockwise, exterior if clockwise. Separate the columns with tabs or commas.';
+    const toDeg = (s: string) => { const a = parseAngle(s, unit); return unit === 'gon' ? a * 0.9 : a; };
+    const rows = parseTable(ta.value).filter((r) => r.length >= 2);
+    const legRows = rows.map((r) => (r.length >= 3 ? r : ['', ...r])).filter((r) => Number.isFinite(toDeg(r[1])) && num(r[2]) > 0);
+    if (legRows.length < 2) return fail('Paste at least two legs: station (optional), ' + (mode === 'bearing' ? 'bearing' : 'angle') + ', distance.');
+    const names = legRows.map((r, i) => r[0] || String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) : ''));
+    const E0 = val('.tv-e0'), N0 = val('.tv-n0');
+    if (!Number.isFinite(E0) || !Number.isFinite(N0)) return fail('Give the start point as easting and northing.');
+    let legs: Leg[], angInfo: ReturnType<typeof anglesToAzimuths> | null = null;
+    if (mode === 'angle') {
+      if (legRows.length < 3) return fail('A closed loop needs at least three stations.');
+      const az0 = toDeg(q<HTMLInputElement>('.tv-az0').value);
+      if (!Number.isFinite(az0)) return fail('Give the azimuth of the first leg.');
+      angInfo = anglesToAzimuths(legRows.map((r) => toDeg(r[1])), az0);
+      legs = angInfo.az.map((az, i) => ({ az, d: num(legRows[i][2]) }));
+    } else legs = legRows.map((r) => ({ az: toDeg(r[1]), d: num(r[2]) }));
+    let end: { E: number; N: number } | null = null;
+    if (link) { end = { E: val('.tv-e1'), N: val('.tv-n1') }; if (!Number.isFinite(end.E) || !Number.isFinite(end.N)) return fail('Give the known end point, or choose a closed loop.'); }
+    err.hidden = true; out.hidden = false;
+    const rule = sel('.tv-rule') as 'bowditch', c = close(legs, { E: E0, N: N0 }, end, rule);
+    const ruleName = rule === 'bowditch' ? 'Bowditch' : 'transit';
+    const prec = Number.isFinite(c.precision) ? `1 : ${comma(+c.precision.toPrecision(3))}` : 'exact';
+    q('.tv-big').textContent = `Misclosure ${f3(c.f)} ${du}, precision ${prec}`;
+    const showAng = (a: number) => (unit === 'gon' ? `${(a / 0.9).toFixed(4)} gon` : fmtDMS(a));
+    const showDiff = (a: number) => (unit === 'gon' ? `${(a / 0.9 * 10000).toFixed(0)} cc` : `${(a * 3600).toFixed(1)}″`);
+    const f: HTMLElement[] = [];
+    if (angInfo) f.push(fact('Angular misclosure', showDiff(angInfo.misclosure), `angles add up to ${showAng(angInfo.sum)}; ${Math.abs(angInfo.sum - angInfo.interior) < Math.abs(angInfo.sum - angInfo.exterior) ? `interior angles should total ${showAng(angInfo.interior)}` : `exterior angles should total ${showAng(angInfo.exterior)}`}. ${showDiff(Math.abs(angInfo.perAngle))} ${angInfo.perAngle < 0 ? 'taken off' : 'added to'} each angle.`));
+    f.push(
+      fact('Linear misclosure', `${f3(c.f)} ${du}`, `ΔE ${f3(c.fE)}, ΔN ${f3(c.fN)}; the computed end lies ${fmtQuadrant(c.dir)} of where it should be`),
+      fact('Precision', prec, `${f3(c.length)} ${du} of traverse ÷ misclosure`),
+      fact('Adjustment', `${ruleName} rule`, rule === 'bowditch' ? 'each leg corrected in proportion to its length' : 'eastings and northings corrected in proportion to each leg\'s ΔE and ΔN'),
+    );
+    const pts = c.adj.slice(0, legs.length + 1);
+    if (!link) { const A = area(pts.slice(0, legs.length)); f.push(fact('Area inside the loop', du === 'm' ? `${sig(A, 6)} m² (${sig(A / 1e4, 5)} ha)` : `${sig(A, 6)} ft² (${sig(A / 43560, 5)} acres)`, 'from the adjusted coordinates (shoelace formula)')); }
+    q('.tv-facts').replaceChildren(...f);
+    // Plot: plain and adjusted traverse, equal scale, misclosure drawn enlarged.
+    const all = [...c.raw, ...c.adj, ...(end ? [end] : [])];
+    const minE = Math.min(...all.map((p) => p.E)), maxE = Math.max(...all.map((p) => p.E)), minN = Math.min(...all.map((p) => p.N)), maxN = Math.max(...all.map((p) => p.N));
+    const span = Math.max(maxE - minE, maxN - minN) || 1, want = c.f > 0 ? (0.2 * span) / c.f : 1, dec = Math.pow(10, Math.floor(Math.log10(want))), mag = Math.max(1, [5, 2, 1].map((m) => m * dec).find((m) => m <= want) ?? dec);
+    const nm = names.concat(link ? ['end'] : []);
+    fig = { w: 380, h: 340, alt: `Traverse plan: ${legs.length} legs, plain and adjusted, misclosure ${f3(c.f)} ${du} drawn ${mag} times larger`, draw: (ctx, W, H, pal) => {
+      const pad = 30, s = Math.min((W - 2 * pad) / (maxE - minE || 1), (H - 2 * pad - 16) / (maxN - minN || 1));
+      const ox = (W - s * (maxE - minE)) / 2, oy = (H - 16 + s * (maxN - minN)) / 2;
+      const X = (e: number) => ox + (e - minE) * s, Y = (n: number) => oy - (n - minN) * s;
+      ctx.lineWidth = 1; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); c.raw.forEach((p, i) => (i ? ctx.lineTo(X(p.E), Y(p.N)) : ctx.moveTo(X(p.E), Y(p.N)))); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.accent; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(X(p.E), Y(p.N)) : ctx.moveTo(X(p.E), Y(p.N)))); ctx.stroke();
+      ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      const cx = pts.reduce((a, p) => a + p.E, 0) / pts.length, cy = pts.reduce((a, p) => a + p.N, 0) / pts.length;
+      pts.forEach((p, i) => { if (!link && i === legs.length) return; ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(X(p.E), Y(p.N), 3, 0, 7); ctx.fill(); const dx = p.E - cx, dy = p.N - cy, r = Math.hypot(dx, dy) || 1; ctx.textAlign = dx >= 0 ? 'left' : 'right'; ctx.fillText(nm[i] ?? '', X(p.E) + (dx / r) * 9, Y(p.N) - (dy / r) * 9); });
+      // North arrow.
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W - 16, 34); ctx.lineTo(W - 16, 12); ctx.lineTo(W - 20, 19); ctx.moveTo(W - 16, 12); ctx.lineTo(W - 12, 19); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText('N', W - 16, 42);
+      if (c.f > 0) {
+        const t = end ?? pts[0], ax = X(t.E), ay = Y(t.N), bx = ax + c.fE * mag * s, by = ay - c.fN * mag * s;
+        ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        const ang = Math.atan2(by - ay, bx - ax); ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 7 * Math.cos(ang - 0.4), by - 7 * Math.sin(ang - 0.4)); ctx.lineTo(bx - 7 * Math.cos(ang + 0.4), by - 7 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fillStyle = pal.bad; ctx.fill();
+      }
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; const ly = H - 8;
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(6, ly); ctx.lineTo(20, ly); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText('adjusted', 24, ly);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(84, ly); ctx.lineTo(98, ly); ctx.stroke(); ctx.setLineDash([]); ctx.fillText('as measured', 102, ly);
+      if (c.f > 0) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(182, ly); ctx.lineTo(196, ly); ctx.stroke(); ctx.fillText(`misclosure × ${comma(mag)}`, 200, ly); }
+    } };
+    paint(q<HTMLCanvasElement>('.tv-fig'), fig);
+    const head = ['Leg', 'Bearing', `Distance (${du})`, 'ΔE', 'ΔN', 'Corr. E', 'Corr. N', 'Adjusted E', 'Adjusted N'];
+    const rowsT = legs.map((l, i) => [`${nm[i]}–${i + 1 < legs.length || link ? nm[i + 1] : nm[0]}`, fmtQuadrant(l.az), f3(l.d), f3(c.dE[i]), f3(c.dN[i]), f3(c.cE[i]), f3(c.cN[i]), f3(c.adj[i + 1].E), f3(c.adj[i + 1].N)]);
+    const tab = q<HTMLTableElement>('.tv-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((v) => { tr.insertCell().textContent = v; }); });
+    const adjLegs = c.legsAdj.map((l, i) => [rowsT[i][0], fmtQuadrant(l.az, 1), f3(l.d)]);
+    report = [
+      { title: q('.tv-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: rowsT, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Adjusted bearings and distances', table: { head: ['Leg', 'Bearing', `Distance (${du})`], rows: adjLegs, align: ['l', 'l', 'r'] } },
+    ];
+  }
+
+  function cogo() {
+    const A = { E: val('.tc-ae'), N: val('.tc-an') }, B = { E: val('.tc-be'), N: val('.tc-bn') }, du = sel('.tv-du'), unit = sel('.tv-unit') as 'deg' | 'gon';
+    const kind = sel('.tc-kind'), inv = q('.tc-inv'), x = q('.tc-x');
+    q('.tc-la').textContent = kind === 'bb' ? 'Bearing from A' : `Distance from A (${du})`;
+    q('.tc-lb').textContent = kind === 'bb' ? 'Bearing from B' : `Distance from B (${du})`;
+    if (![A.E, A.N, B.E, B.N].every(Number.isFinite)) { inv.textContent = 'Give both points as easting and northing.'; x.textContent = ''; return; }
+    const iv = inverse(A, B), toDeg = (s: string) => { const a = parseAngle(s, unit); return unit === 'gon' ? a * 0.9 : a; };
+    inv.textContent = `A to B: ${fmtQuadrant(iv.az, 1)} (azimuth ${unit === 'gon' ? `${(iv.az / 0.9).toFixed(4)} gon` : fmtDMS(iv.az, 1)}), ${f3(iv.d)} ${du}`;
+    const pt = (p: { E: number; N: number }) => `E ${f3(p.E)}, N ${f3(p.N)}`;
+    if (kind === 'bb') {
+      const a = toDeg(q<HTMLInputElement>('.tc-va').value), b = toDeg(q<HTMLInputElement>('.tc-vb').value);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) { x.textContent = 'Give a bearing from each point.'; return; }
+      const p = bearingBearing(A, a, B, b);
+      x.textContent = !p ? 'The two lines are parallel, so they never cross.' : p.ta < 0 || p.tb < 0 ? `The lines cross behind ${p.ta < 0 ? 'A' : 'B'} (check the bearings): ${pt(p)}` : `The lines cross at ${pt(p)}, ${f3(p.ta)} ${du} from A and ${f3(p.tb)} ${du} from B.`;
+    } else {
+      const a = val('.tc-va'), b = val('.tc-vb');
+      if (!(a > 0 && b > 0)) { x.textContent = 'Give a distance above zero from each point.'; return; }
+      const s = distanceDistance(A, a, B, b);
+      x.textContent = !s.length ? `No point is ${sig(a, 6)} ${du} from A and ${sig(b, 6)} ${du} from B: the circles do not meet.` : s.length === 1 ? `One point: ${pt(s[0])}.` : `Two points: left of A→B ${pt(s[0])}; right of A→B ${pt(s[1])}.`;
+    }
+  }
+
+  const all = () => { calc(); cogo(); };
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q<HTMLSelectElement>('.tc-kind').addEventListener('change', () => { const bb = sel('.tc-kind') === 'bb'; q<HTMLInputElement>('.tc-va').value = bb ? '90' : '200'; q<HTMLInputElement>('.tc-vb').value = bb ? '200' : '250'; cogo(); });
+  document.addEventListener('fibub:theme', () => fig && !q('.tv-out').hidden && paint(q<HTMLCanvasElement>('.tv-fig'), fig));
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Traverse closure', subtitle: q('.tv-big').textContent ?? '', file: 'traverse', sections: report }));
+</script>
+
+<style is:global>
+  .trv select, .trv input { max-width: 100%; }
+  .trv textarea { width: 100%; }
+  .trv .tc-x { overflow-wrap: anywhere; }
+  .trv .tc-inv { font-size: 1.05rem; }
+  .trv .tv-tab td { white-space: nowrap; }
+</style>
