@@ -1,0 +1,153 @@
+---
+// Ligand binding: saturation fits (one site, + non-specific, two sites, Hill) or a tight-binding titration, compared
+// by AICc, with the Scatchard plot for comparison and a Cheng–Prusoff IC50 to Ki converter.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleData } from '../../lib/sci/binding';
+const demo = 'ligand\ttotal\tnonspecific\n' + exampleData().map((o) => `${o.L}\t${o.total}\t${o.nsb}`).join('\n');
+---
+<div class="ax bnd">
+  <div class="ax-card">
+    <h2>Binding data</h2>
+    <label class="bnd-lab">Ligand concentration and binding, two columns; or ligand, total binding and non-specific binding, three columns <textarea class="bnd-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".bnd-data" maxCols={3} label="Open a file (2 or 3 columns)" />
+    <div class="ax-grid">
+      <label>Concentration unit <input class="bnd-cu" value="nM" /></label>
+      <label>Binding or signal unit <input class="bnd-yu" value="fmol/mg" /></label>
+      <label class="bnd-wide">Model <select class="bnd-model"><option value="best">Best supported by the data (AICc)</option><option value="one">One site</option><option value="ns">One site + non-specific (two columns only)</option><option value="two">Two sites</option><option value="hill">Hill (cooperative)</option><option value="tight">Tight binding: total ligand with a known receptor concentration</option></select></label>
+      <label class="bnd-rtl" hidden>Receptor or protein concentration (same unit) <input class="bnd-rt" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">With three columns the tool subtracts non-specific from total binding and fits the specific binding. With two columns you can fit total binding with the "+ non-specific" model. Use tight binding when the receptor concentration is close to Kd or above it, so bound ligand noticeably lowers the free ligand; then the first column is the total ligand added.</p>
+    <p class="ax-err bnd-err" hidden></p>
+    <div class="bnd-out">
+      <p class="ax-big bnd-big"></p>
+      <div class="ax-scroll"><table class="bnd-tab"></table></div>
+      <dl class="ax-facts bnd-facts"></dl>
+      <canvas class="ax-fig bnd-fig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig bnd-sc" style="margin-top:10px"></canvas>
+      <h3>Compare models</h3>
+      <div class="ax-scroll"><table class="bnd-cmp"></table></div>
+    </div>
+    <Downloads />
+  </div>
+  <div class="ax-card">
+    <h2>IC50 to Ki (Cheng–Prusoff)</h2>
+    <p class="ax-help">For a competitor that displaces a labelled ligand from the same site: Ki = IC50 / (1 + [L]/Kd). Kd is filled in from the fit above; change it if you know better.</p>
+    <div class="ax-grid">
+      <label>IC50 <input class="bnd-ic" inputmode="decimal" value="40" /></label>
+      <label>Labelled ligand [L] <input class="bnd-l" inputmode="decimal" value="2" /></label>
+      <label>Kd of the labelled ligand <input class="bnd-kd" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-big bnd-ki"></p>
+  </div>
+</div>
+
+<script>
+  import { MODELS, fitBinding, akaikeWeights, scatchard, chengPrusoff, type Fit } from '../../lib/sci/binding';
+  import { num, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bnd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+  const s3 = (x: number) => (!Number.isFinite(x) ? '–' : Math.abs(x) >= 1000 ? x.toFixed(0) : x.toPrecision(3));
+  const s2 = (x: number) => (!Number.isFinite(x) ? '∞' : Math.abs(x) >= 100 ? x.toFixed(0) : x.toPrecision(2));
+  let figs: Figure[] = [], parRows: string[][] = [], cmpRows: string[][] = [], kdTouched = false;
+
+  function calc() {
+    const err = (m: string) => { q('.bnd-err').textContent = m; q('.bnd-err').hidden = !m; q('.bnd-out').hidden = !!m; if (m) figs = []; };
+    const want = q<HTMLSelectElement>('.bnd-model').value;
+    q('.bnd-rtl').hidden = want !== 'tight';
+    const t = numericColumns(q<HTMLTextAreaElement>('.bnd-data').value);
+    if (t.cols.length < 2) return err('Paste two columns (ligand and binding) or three (ligand, total and non-specific binding).');
+    const three = t.cols.length >= 3;
+    const rows = t.cols[0].map((L, i) => ({ L, y: three ? t.cols[1][i] - t.cols[2][i] : t.cols[1][i], tot: three ? t.cols[1][i] : NaN, ns: three ? t.cols[2][i] : NaN })).filter((r) => Number.isFinite(r.L) && Number.isFinite(r.y));
+    if (rows.some((r) => r.L < 0)) return err('Ligand concentrations cannot be negative.');
+    if (new Set(rows.map((r) => r.L)).size < 4) return err('Use at least four different ligand concentrations.');
+    const cu = q<HTMLInputElement>('.bnd-cu').value.trim() || 'conc.', yu = q<HTMLInputElement>('.bnd-yu').value.trim() || 'signal';
+    const Rt = num(q<HTMLInputElement>('.bnd-rt').value);
+    if (want === 'tight' && !(Rt > 0)) return err('Enter the receptor or protein concentration for the tight-binding fit.');
+    if (want === 'ns' && three) return err('With three columns the non-specific part is already subtracted: choose "One site" or "Best".');
+    const L = rows.map((r) => r.L), y = rows.map((r) => r.y);
+    const pool = want === 'tight' ? MODELS.filter((m) => m.id === 'tight') : MODELS.filter((m) => !m.needsRt && !(three && m.id === 'ns'));
+    const fits: Fit[] = [];
+    for (const m of pool) { try { fits.push(fitBinding(m, L, y, Rt)); } catch { /* too few points for this one */ } }
+    if (!fits.length) return err(`Use more points: at least ${pool[0].params.length + 1} are needed.`);
+    err('');
+    const W = akaikeWeights(fits), amin = Math.min(...fits.map((f) => f.aicc));
+    // Best: the simplest well-defined model within 2 AICc units of the lowest.
+    const auto = fits.filter((f) => f.ok && f.aicc - amin < 2).sort((a, b) => a.model.params.length - b.model.params.length || a.aicc - b.aicc)[0] ?? fits[0];
+    const fit = want === 'best' ? auto : fits.find((f) => f.model.id === want)!;
+    const unit = (i: number) => { const p = fit.model.params[i]; return p.conc ? cu : p.signal ? yu : p.key === 'NS' ? `${yu} per ${cu}` : ''; };
+    const pm = fit.model.params.map((p, i) => `${p.key} ${s3(fit.p[i])} ± ${s2(fit.se[i])}${unit(i) ? ' ' + unit(i) : ''}`);
+    q('.bnd-big').textContent = `${fit.model.name}: ${pm.join(', ')}`;
+    parRows = fit.model.params.map((p, i) => [p.label, `${s3(fit.p[i])} ${unit(i)}`.trim(), `± ${s2(fit.se[i])}`, `${((100 * fit.se[i]) / Math.abs(fit.p[i])).toPrecision(2)} %`]);
+    table(q<HTMLTableElement>('.bnd-tab'), ['Value', 'Fitted', 'Std. error', 'Relative'], parRows, [1, 2, 3]);
+
+    const get = (k: string) => fit.p[fit.model.params.findIndex((p) => p.key === k)];
+    const K = get('Kd') ?? get('Kd1') ?? get('K0.5');
+    const facts: HTMLElement[] = [fact('Fit quality', `R² ${fit.r2.toFixed(4)}, residual SD ${s3(fit.s)} ${yu}`, `${fit.n} points${three ? ', specific = total − non-specific' : ''}`)];
+    if (fit.model.id !== 'tight' && fit.model.id !== 'two') {
+      const h = fit.model.id === 'hill' ? get('h') : 1, at = (f: number) => K * (f / (1 - f)) ** (1 / h);
+      facts.push(fact('Ligand for 50 %, 90 % and 99 % of sites', `${s3(at(0.5))}, ${s3(at(0.9))} and ${s3(at(0.99))} ${cu}`, h === 1 ? 'Kd, 9 × Kd and 99 × Kd' : 'from K₀.₅ and h'));
+    }
+    if (fit.model.id === 'hill') facts.push(fact('Cooperativity', get('h') > 1.15 ? 'positive (h > 1)' : get('h') < 0.85 ? 'negative, or sites that differ (h < 1)' : 'none to speak of (h ≈ 1)'));
+    if (fit.model.id === 'two') facts.push(fact('High-affinity share of sites', `${Math.round((100 * get('Bmax1')) / (get('Bmax1') + get('Bmax2')))} %`, `Kd ratio ${s3(get('Kd2') / get('Kd1'))}`));
+    if (fit.model.id === 'tight') facts.push(fact('Receptor to Kd ratio', `${s3(Rt / get('Kd'))}`, Rt / get('Kd') > 10 ? 'very tight: the curve is nearly a straight line then a corner, so Kd is poorly defined; lower the receptor concentration' : Rt / get('Kd') < 0.1 ? 'ligand depletion is small; a simple one-site fit would do' : 'in the useful range for this fit'));
+    if (!fit.ok) facts.push(fact('Warning', 'a value is not well defined by these data', 'extend the ligand range, or use a simpler model'));
+    const Lmax = Math.max(...L);
+    if (K && fit.model.id !== 'tight' && Lmax < 5 * K) facts.push(fact('Ligand range', `highest ligand is only ${(Lmax / K).toFixed(1)} × Kd`, 'Bmax needs ligand up to about 10 × Kd to be well defined'));
+    let sc: ReturnType<typeof scatchard> | null = null;
+    if (fit.model.id !== 'tight') { try { sc = scatchard(L, fit.model.id === 'ns' ? y.map((v, i) => v - get('NS') * L[i]) : y); facts.push(fact('Scatchard line (for comparison)', `Kd ${s3(sc.Kd)} ${cu}, Bmax ${s3(sc.Bmax)} ${yu}`, sc.line.r2 < 0.98 ? 'curved: a sign of more than one site, cooperativity or non-specific binding' : fit.model.id === 'ns' ? 'after taking off the fitted non-specific line; it distorts the errors, so report the non-linear fit' : 'distorts the errors, so report the non-linear fit')); } catch { sc = null; } }
+    q('.bnd-facts').replaceChildren(...facts);
+
+    const xs = Array.from({ length: 160 }, (_, i) => (Lmax * 1.05 * i) / 159);
+    const ser = [{ name: three ? 'specific' : fit.model.id === 'tight' ? 'signal' : 'binding', x: L, y, mode: 'points' as const }, { name: 'fit', x: xs, y: xs.map((l) => fit.model.y(l, fit.p, Rt)), mode: 'line' as const, width: 2 }];
+    if (three) ser.push({ name: 'total', x: L, y: rows.map((r) => r.tot), mode: 'points' as const }, { name: 'non-specific', x: L, y: rows.map((r) => r.ns), mode: 'points' as const });
+    figs = [chartFigure({ h: 260, xLabel: `${fit.model.id === 'tight' ? 'total ligand' : 'ligand'} (${cu})`, yLabel: `${fit.model.id === 'tight' ? 'signal' : 'bound'} (${yu})`, xMin: 0, yMin: fit.model.id === 'tight' ? undefined : 0, series: ser, legend: 'below' }, 'Binding against ligand concentration with the fitted curve')];
+    paint(q<HTMLCanvasElement>('.bnd-fig'), figs[0]);
+    q('.bnd-sc').hidden = !sc;
+    if (sc) {
+      const bx = Array.from({ length: 50 }, (_, i) => (Math.max(...sc!.x) * 1.05 * i) / 49);
+      figs.push(chartFigure({ h: 220, xLabel: `bound (${yu})`, yLabel: `bound / free`, xMin: 0, yMin: 0, legend: 'none', series: [{ name: 'data', x: sc.x, y: sc.y, mode: 'points' }, { name: 'Scatchard line', x: bx, y: bx.map((b) => sc!.line.intercept + sc!.line.slope * b), mode: 'line', dash: [5, 4], width: 1.5 }] }, 'Scatchard plot: bound over free against bound, with its straight line'));
+      paint(q<HTMLCanvasElement>('.bnd-sc'), figs[1]);
+    }
+    cmpRows = fits.map((f, i) => [f.model.name, String(f.model.params.length), (f.aicc - amin).toFixed(1), `${Math.round(100 * W[i])} %`, f === auto ? 'chosen (simplest well-supported)' : !f.ok ? 'values not well defined' : f.aicc - amin < 2 ? 'also supported' : f.aicc - amin > 10 ? 'ruled out' : 'less likely']);
+    table(q<HTMLTableElement>('.bnd-cmp'), ['Model', 'Values', 'ΔAICc', 'Weight', 'Verdict'], cmpRows, [1, 2, 3]);
+    if (!kdTouched && Number.isFinite(K)) q<HTMLInputElement>('.bnd-kd').value = s3(K);
+    ki();
+  }
+
+  function ki() {
+    const ic = num(q<HTMLInputElement>('.bnd-ic').value), l = num(q<HTMLInputElement>('.bnd-l').value), kd = num(q<HTMLInputElement>('.bnd-kd').value), cu = q<HTMLInputElement>('.bnd-cu').value.trim() || '';
+    q('.bnd-ki').textContent = ic > 0 && l >= 0 && kd > 0 ? `Ki = ${s3(chengPrusoff(ic, l, kd))} ${cu} (IC50 is ${s3(1 + l / kd)} × Ki)` : 'Enter IC50, [L] and Kd, all in the same unit.';
+  }
+
+  q('.bnd-data').addEventListener('input', calc); q('.bnd-data').addEventListener('change', calc);
+  root.querySelectorAll('.bnd-cu, .bnd-yu, .bnd-rt').forEach((i) => i.addEventListener('input', calc));
+  q('.bnd-model').addEventListener('change', calc);
+  root.querySelectorAll('.bnd-ic, .bnd-l').forEach((i) => i.addEventListener('input', ki));
+  q('.bnd-kd').addEventListener('input', () => { kdTouched = true; ki(); });
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.bnd-fig'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.bnd-sc'), figs[1]); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Binding curve fit', subtitle: q('.bnd-big').textContent ?? '', file: 'binding-fit',
+    sections: q('.bnd-out').hidden ? [] : [
+      { title: q('.bnd-big').textContent!, table: { head: ['Value', 'Fitted', 'Std. error', 'Relative'], rows: parRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: [...root.querySelectorAll('.bnd-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      ...(figs[1] ? [{ title: 'Scatchard plot', figure: figs[1] }] : []),
+      { title: 'Compare models', table: { head: ['Model', 'Values', 'ΔAICc', 'Weight', 'Verdict'], rows: cmpRows, align: ['l', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] } },
+      { title: 'IC50 to Ki', facts: [['Cheng–Prusoff', q('.bnd-ki').textContent ?? '']] as [string, string][] },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .bnd .bnd-wide { grid-column: 1 / -1; }
+  .bnd .bnd-lab { display: block; }
+  .bnd textarea { width: 100%; font: inherit; font-size: 14px; }
+  .bnd select { max-width: 100%; }
+  .bnd h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>

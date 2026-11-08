@@ -96,6 +96,7 @@ import * as PG from '../src/lib/sci/pointgroup.ts';
 import * as EIS from '../src/lib/sci/eis.ts';
 import * as ENZ from '../src/lib/sci/enzyme.ts';
 import * as BUF from '../src/lib/sci/buffer.ts';
+import * as BND from '../src/lib/sci/binding.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1516,6 +1517,29 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('acetate: NaOH at pH 4.75', BUF.oneForm(g('acetate'), g('acetate').forms[0], 4.75, 25, 0.1, 1, 1).titrantmL, 55.04, 0.05);
   near('capacity of a single pair at its pKa′ ≈ 2.303 C / 4', BUF.oneForm(g('mops'), g('mops').forms[0], BUF.pKaApparent(g('mops'), 25, 0.05)[0], 25, 0.1, 1, 1).state.beta / BUF.betaMaxSingle(0.1), 1, 0.01);
   near('pKw at 25 °C and 37 °C', BUF.pKw(25) + BUF.pKw(37), 27.6, 1e-9);
+}
+{
+  // Binding: exact recovery for every model, the simulated saturation study, Scatchard on perfect data, Cheng–Prusoff.
+  const Ls = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+  const truth = { one: [100, 3], ns: [100, 3, 2], two: [60, 0.5, 80, 20], hill: [100, 3, 2] };
+  for (const m of BND.MODELS.filter((m) => !m.needsRt)) {
+    const f = BND.fitBinding(m, Ls, Ls.map((l) => m.y(l, truth[m.id], 0)));
+    check(`binding ${m.id} recovers its values`, f.p.every((v, i) => Math.abs(v / truth[m.id][i] - 1) < 1e-4));
+  }
+  const tm = BND.MODELS.find((m) => m.id === 'tight'), Lt = [0, 0.2, 0.5, 1, 1.5, 2, 3, 5, 10, 20];
+  const ft = BND.fitBinding(tm, Lt, Lt.map((l) => tm.y(l, [0.1, 0.8, 0.05], 1)), 1);
+  check('tight binding recovers y0, ΔY and Kd', Math.abs(ft.p[0] - 0.1) < 1e-6 && Math.abs(ft.p[1] - 0.8) < 1e-6 && Math.abs(ft.p[2] / 0.05 - 1) < 1e-4);
+  near('quadratic: equal R and L, Kd = R gives 0.382 bound', BND.complexTotal(1, 1, 1), (3 - Math.sqrt(5)) / 2, 1e-12);
+  near('quadratic: very tight binding takes all of the smaller', BND.complexTotal(0.4, 1, 1e-9), 0.4, 1e-6);
+  near('quadratic: weak binding matches one site with free ≈ total', BND.complexTotal(1e-6, 1e-6, 10) / 1e-6, 1e-6 / (10 + 1e-6), 1e-6);
+  const ex = BND.exampleData(), L = ex.map((o) => o.L), sp = ex.map((o) => o.total - o.nsb), tot = ex.map((o) => o.total);
+  const one = BND.fitBinding(BND.MODELS[0], L, sp);
+  near('example Kd', one.p[1], 2.514, 0.005); near('example Bmax', one.p[0], 1204, 1);
+  const fits = ['one', 'ns', 'two', 'hill'].map((id) => BND.fitBinding(BND.MODELS.find((m) => m.id === id), L, tot)), w = BND.akaikeWeights(fits);
+  check('total binding: one site + non-specific wins', w[1] > 0.9 && Math.abs(fits[1].p[1] - 2.53) < 0.01);
+  const S = BND.scatchard(Ls, Ls.map((l) => (100 * l) / (3 + l)));
+  check('Scatchard exact on one-site data', Math.abs(S.Kd - 3) < 1e-9 && Math.abs(S.Bmax - 100) < 1e-9);
+  near('Cheng–Prusoff', BND.chengPrusoff(40, 2, 2.5), 40 / 1.8, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
