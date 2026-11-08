@@ -1306,6 +1306,52 @@ try {
     await page.selectOption('.rz-kind', 'v'); await page.fill('.rz-v', '300000');
     check(/below the speed of light/.test(await page.textContent('.rz-err')), 'redshift: faster than light explained');
   }
+  {
+    // Batch G: blackbody, exoplanet mass, impact craters, link budgets, radio telescopes.
+    await page.goto(BASE + '/science/blackbody-calculator/');
+    check((await page.textContent('.bb-big')) === 'Peak at 502 nm; it looks white with a hint of yellow' && /bolometric 4\.74, visual 4\.82/.test(await page.textContent('.bb-facts')), 'blackbody: the Sun');
+    await page.selectOption('.bb-pre', 'sirius');
+    check(/V = −1\.44/.test(await page.textContent('.bb-facts')) && /25\.7\d* Suns/.test(await page.textContent('.bb-facts')), 'blackbody: Sirius from Earth');
+    await page.selectOption('.bb-kind', 'bv');
+    check(/5,778 K/.test(await page.textContent('.bb-facts')), 'blackbody: temperature from B − V');
+    await page.fill('.bb-cmp', '3000');
+    check(await page.isVisible('.bb-fig'), 'blackbody: compare two spectra');
+    await page.fill('.bb-v', '9');
+    check(/B − V runs/.test(await page.textContent('.bb-err')), 'blackbody: impossible colour explained');
+
+    await page.goto(BASE + '/science/exoplanet-mass-calculator/');
+    check((await page.textContent('.rv-big')) === 'm sin i = 0.477 Jupiter masses (152 Earths)' && /0\.05301 AU/.test(await page.textContent('.rv-facts')), 'exoplanet mass: 51 Peg b');
+    await page.selectOption('.rv-pre', 'jupiter');
+    check(/1\.33 g\/cm³/.test(await page.textContent('.rv-facts')), 'exoplanet mass: Jupiter density from a transit');
+    await page.click('.rv-mode button[data-m=k]');
+    await page.selectOption('.rv-pre', 'earth');
+    check((await page.textContent('.rv-big')) === 'K = 8.95 cm/s', `exoplanet mass: Earth's wobble on the Sun (${await page.textContent('.rv-big')})`);
+    await page.fill('.rv-e', '1.2');
+    check(/Eccentricity runs/.test(await page.textContent('.rv-err')), 'exoplanet mass: bad eccentricity explained');
+
+    await page.goto(BASE + '/science/impact-crater-calculator/');
+    check((await page.textContent('.ic-big')) === 'A crater 1.28 km wide (a simple bowl)' && /6\.78 megatons/.test(await page.textContent('.ic-facts')) && /485 years/.test(await page.textContent('.ic-facts')), 'impact: 50 m rock');
+    await page.click('.ic-quick button:has-text("10 km rock")');
+    check(/complex crater/.test(await page.textContent('.ic-big')), 'impact: big impact makes a complex crater');
+    await page.click('.ic-mode button[data-m=impactor]');
+    await page.selectOption('.ic-body', 'moon'); await page.fill('.ic-d', '1.28');
+    check(/^An impactor about \d+(\.\d+)? m across$/.test(await page.textContent('.ic-big')), `impact: impactor from a lunar crater (${await page.textContent('.ic-big')})`);
+
+    await page.goto(BASE + '/science/link-budget-calculator/');
+    check((await page.textContent('.lb-big')) === 'Margin +1.60 dB: only just, with little to spare' && /1,695 km/.test(await page.textContent('.lb-facts')), 'link budget: CubeSat UHF');
+    check((await page.locator('.lb-tab tbody tr').count()) === 17, 'link budget: every step listed');
+    await page.selectOption('.lb-pre', 'sband');
+    check(/^Margin \+9\.33 dB/.test(await page.textContent('.lb-big')), `link budget: S-band to a 3 m dish (${await page.textContent('.lb-big')})`);
+    await page.fill('.lb-r', '0');
+    check(/data rate/.test(await page.textContent('.lb-err')), 'link budget: missing data rate explained');
+
+    await page.goto(BASE + '/science/radio-telescope-calculator/');
+    check((await page.textContent('.rt-big')) === 'Signal-to-noise 244 on a 1,590 Jy source in 1 minute' && /78,129 Jy/.test(await page.textContent('.rt-facts')), 'radio telescope: backyard dish on Cygnus A');
+    await page.selectOption('.rt-pre', '100m');
+    check(/1\.99 K\/Jy/.test(await page.textContent('.rt-facts')) && /flux density10 Jy/.test(await page.textContent('.rt-facts')), 'radio telescope: 100 m dish gain and SEFD');
+    await page.fill('.rt-n', '0');
+    check(/whole number of dishes/.test(await page.textContent('.rt-err')), 'radio telescope: bad dish count explained');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -1316,7 +1362,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -1340,7 +1386,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

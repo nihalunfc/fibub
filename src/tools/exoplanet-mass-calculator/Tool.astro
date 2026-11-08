@@ -1,0 +1,146 @@
+---
+// Exoplanet mass from the star's wobble (radial velocity), and radius and density from a transit.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rv">
+  <div class="ax-card">
+    <h2>Planet and star</h2>
+    <div class="ax-seg rv-mode" role="group" aria-label="Work out">
+      <button type="button" data-m="mass" aria-pressed="true">Mass from the wobble</button>
+      <button type="button" data-m="k" aria-pressed="false">Wobble from the mass</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Example <select class="rv-pre"></select></label>
+      <label>Star mass (Suns) <input class="rv-ms" inputmode="decimal" /></label>
+      <label>Orbital period (days) <input class="rv-p" inputmode="decimal" /></label>
+      <label>Eccentricity <input class="rv-e" inputmode="decimal" value="0" /></label>
+      <label class="rv-kw">Velocity semi-amplitude K (m/s) <input class="rv-k" inputmode="decimal" /></label>
+      <label class="rv-mw" hidden>Planet mass <span class="ax-row" style="gap:6px"><input class="rv-m" inputmode="decimal" style="flex:1;min-width:0" /><select class="rv-mu" aria-label="Mass unit"><option value="jup" selected>Jupiters</option><option value="earth">Earths</option></select></span></label>
+      <label>Inclination (degrees, optional) <input class="rv-i" inputmode="decimal" placeholder="90 if it transits" /></label>
+      <label>Argument of periastron ω (degrees) <input class="rv-w" inputmode="decimal" value="90" /></label>
+    </div>
+    <h2 style="margin-top:16px">If it transits (optional)</h2>
+    <div class="ax-grid">
+      <label>Transit depth (%) <input class="rv-depth" inputmode="decimal" placeholder="e.g. 1.46" /></label>
+      <label>Star radius (Suns) <input class="rv-rs" inputmode="decimal" placeholder="e.g. 1.2" /></label>
+    </div>
+    <p class="ax-help">K is half the peak-to-peak swing of the star's velocity. The wobble only gives the mass times sin i, a lower limit, because we don't know how the orbit is tilted; a transiting planet's orbit is seen nearly edge-on, so there it is close to the true mass. Depth gives the radius as R* × √depth, ignoring limb darkening.</p>
+    <p class="ax-err rv-err" hidden></p>
+  </div>
+
+  <div class="ax-card rv-out" hidden>
+    <h2 class="rv-title"></h2>
+    <p class="ax-big rv-big"></p>
+    <dl class="ax-facts rv-facts"></dl>
+    <canvas class="ax-fig rv-fig" style="margin-top:12px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rv .rv-mu { width: auto; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, gravity, M_JUP, M_EARTH, R_JUP, R_EARTH, AU } from '../../lib/sci/rvmass';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PRE = [
+    { id: '51peg', name: '51 Pegasi b', ms: '1.11', p: '4.230785', e: '0.013', k: '55.94', m: '', i: '', w: '58', depth: '', rs: '' },
+    { id: 'jupiter', name: 'Jupiter pulling the Sun', ms: '1', p: '4332.59', e: '0.0489', k: '12.47', m: '1', i: '', w: '275', depth: '1.01', rs: '1' },
+    { id: 'earth', name: 'Earth pulling the Sun', ms: '1', p: '365.256', e: '0.0167', k: '0.0895', m: '', i: '', w: '103', depth: '0.0084', rs: '1' },
+    { id: 'custom', name: 'My own' },
+  ];
+  const pre = q<HTMLSelectElement>('.rv-pre');
+  pre.replaceChildren(...PRE.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
+  let mode = 'mass', fig: Figure | null = null, report: Section[] = [];
+
+  function setPre(id: string) {
+    const p = PRE.find((x) => x.id === id) as Record<string, string>; if (id === 'custom') return;
+    for (const k of ['ms', 'p', 'e', 'k', 'i', 'w', 'depth', 'rs']) inp(`.rv-${k}`).value = p[k];
+    if (mode === 'k') { inp('.rv-m').value = p.m || ''; q<HTMLSelectElement>('.rv-mu').value = id === 'earth' ? 'earth' : 'jup'; if (id === 'earth') inp('.rv-m').value = '1'; if (id === '51peg') inp('.rv-m').value = '0.477'; }
+  }
+  const mTxt = (m: number) => m / M_JUP >= 0.1 ? `${sig(m / M_JUP, 3)} Jupiter masses (${Math.round(m / M_EARTH).toLocaleString('en')} Earths)` : `${sig(m / M_EARTH, 3)} Earth masses (${sig(m / M_JUP, 2)} Jupiters)`;
+
+  // The star's velocity through one orbit: solve Kepler's equation for each moment.
+  function curve(K: number, e: number, wDeg: number) {
+    const w = (wDeg * Math.PI) / 180, ph: number[] = [], v: number[] = [];
+    for (let i = 0; i <= 200; i++) {
+      const M = (2 * Math.PI * i) / 200; let E = e < 0.8 ? M : Math.PI;
+      for (let k = 0; k < 50; k++) { const d = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); E -= d; if (Math.abs(d) < 1e-12) break; }
+      const nu = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+      ph.push(i / 200); v.push(K * (Math.cos(nu + w) + e * Math.cos(w)));
+    }
+    return { ph, v };
+  }
+
+  function calc() {
+    const err = q('.rv-err');
+    try {
+      const Ms = num(inp('.rv-ms').value), P = num(inp('.rv-p').value), e = num(inp('.rv-e').value || '0'), w = num(inp('.rv-w').value || '90');
+      const iTxt = inp('.rv-i').value.trim(), inc = iTxt ? num(iTxt) : 90;
+      if (!(Ms > 0)) throw new Error('Type the star mass in solar masses'); if (!(P > 0)) throw new Error('Type the orbital period in days');
+      if (!(e >= 0 && e < 1)) throw new Error('Eccentricity runs from 0 to just below 1');
+      if (!(inc > 0 && inc <= 90)) throw new Error('The inclination runs from just above 0 to 90 degrees');
+      if (!Number.isFinite(w)) throw new Error('Type ω in degrees');
+      const sinI = Math.sin((inc * Math.PI) / 180);
+      let K: number, mMin: number, mTrue: number;
+      if (mode === 'mass') {
+        K = num(inp('.rv-k').value); if (!(K > 0)) throw new Error('Type K in metres per second');
+        mMin = minMass(K, Ms, P, e).m;
+        // With a known tilt, solve again for the true mass (the planet's mass enters the total).
+        mTrue = mMin / sinI; for (let k = 0; k < 40; k++) mTrue = mTrue * (K / semiAmplitude(mTrue, Ms, P, e, inc));
+      } else {
+        const mv = num(inp('.rv-m').value); if (!(mv > 0)) throw new Error('Type the planet mass');
+        mTrue = mv * (q<HTMLSelectElement>('.rv-mu').value === 'jup' ? M_JUP : M_EARTH);
+        K = semiAmplitude(mTrue, Ms, P, e, inc); mMin = mTrue * sinI;
+      }
+      const a = semiMajor(Ms, mTrue, P), aStar = (a * mTrue) / (Ms * 1.98840987e30 + mTrue);
+      err.hidden = true; q('.rv-out').hidden = false;
+      q('.rv-title').textContent = mode === 'mass' ? 'Planet mass' : 'Star wobble';
+      q('.rv-big').textContent = mode === 'mass' ? `${iTxt ? 'm' : 'm sin i'} = ${mTxt(iTxt ? mTrue : mMin)}` : `K = ${K < 1 ? sig(K * 100, 3) + ' cm/s' : sig(K, 4) + ' m/s'}`;
+      const facts: [string, string, string?][] = [];
+      if (mode === 'mass') facts.push(iTxt ? ['Minimum mass (m sin i)', mTxt(mMin), `true mass at ${inc}° inclination: ${mTxt(mTrue)}`] : ['True mass', `at least ${mTxt(mMin)}`, 'only a lower limit until the tilt is known: on average the true mass is about 1.15 times this']);
+      else facts.push(['Velocity semi-amplitude', `${sig(K, 4)} m/s`, `the star swings ±${K < 1 ? sig(K * 100, 3) + ' cm/s' : sig(K, 3) + ' m/s'}; the best spectrographs reach about 0.3 to 1 m/s`]);
+      facts.push(
+        ['Planet orbit', `${sig(a / AU, 4)} AU`, `semi-major axis from Kepler's third law; ${sig(a / 1e9, 4)} million km`],
+        ['Star orbit', aStar >= 1e6 ? `${sig(aStar / 1e3, 4)} km` : `${sig(aStar, 4)} m`, `how far the star swings round the shared centre of mass: ${sig(aStar / 6.957e8, 3)} solar radii`],
+      );
+      const depth = num(inp('.rv-depth').value), Rs = num(inp('.rv-rs').value);
+      if (inp('.rv-depth').value.trim() || inp('.rv-rs').value.trim()) {
+        if (!(depth > 0 && depth < 100)) throw new Error('Type the transit depth as a percentage, such as 1.46');
+        if (!(Rs > 0)) throw new Error('Type the star radius in solar radii');
+        const r = radiusFromDepth(depth / 100, Rs), rho = density(mTrue, r) / 1000, g = gravity(mTrue, r);
+        facts.push(
+          ['Planet radius', r > 0.3 * R_JUP ? `${sig(r / R_JUP, 3)} Jupiter radii` : `${sig(r / R_EARTH, 3)} Earth radii`, `${Math.round(r / 1000).toLocaleString('en')} km`],
+          ['Density', `${sig(rho, 3)} g/cm³`, `Saturn 0.69, Jupiter 1.33, Neptune 1.64, Earth 5.51${rho > 4 ? ': dense enough to be mostly rock and iron' : rho < 0.5 ? ': a puffed-up gas giant' : ''}`],
+          ['Surface gravity', `${sig(g, 3)} m/s²`, `${sig(g / 9.80665, 3)} times Earth's${r > 1.8 * R_EARTH ? ' (at the cloud tops)' : ''}`],
+        );
+      }
+      q('.rv-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const c = curve(K, e, w), cm = K < 1;
+      fig = chartFigure({ h: 260, xLabel: 'Orbital phase (0 = periastron)', yLabel: `Star velocity (${cm ? 'cm/s' : 'm/s'})`, xMin: 0, xMax: 1, legend: 'none',
+        series: [{ name: 'Velocity', x: c.ph, y: c.v.map((v) => (cm ? v * 100 : v)), mode: 'line', width: 2.2 }], marks: [{ kind: 'hline', at: 0 }] }, 'Radial velocity of the star through one orbit');
+      paint(q<HTMLCanvasElement>('.rv-fig'), fig);
+      report = [{ title: q('.rv-big').textContent!, facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig }];
+    } catch (ex) { err.textContent = (ex as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.rv-out').hidden = true; report = []; }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rv-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.rv-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.rv-kw').hidden = mode !== 'mass'; q('.rv-mw').hidden = mode !== 'k';
+    if (pre.value !== 'custom') setPre(pre.value); else if (mode === 'k' && !inp('.rv-m').value) inp('.rv-m').value = '1';
+    calc();
+  }));
+  pre.addEventListener('change', () => { setPre(pre.value); calc(); });
+  for (const c of ['.rv-ms', '.rv-p', '.rv-e', '.rv-k', '.rv-m', '.rv-i', '.rv-w', '.rv-depth', '.rv-rs']) inp(c).addEventListener('input', () => { pre.value = 'custom'; calc(); });
+  q('.rv-mu').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.rv-fig'), fig));
+  setPre('51peg'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Exoplanet mass calculator', file: 'exoplanet-mass', sections: report }));
+</script>

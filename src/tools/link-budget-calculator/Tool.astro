@@ -1,0 +1,151 @@
+---
+// Radio link budget: satellite or ground link, from transmitter power to link margin.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lb">
+  <div class="ax-card">
+    <h2>Link</h2>
+    <div class="ax-grid">
+      <label>Example <select class="lb-pre"></select></label>
+      <label>Frequency (MHz) <input class="lb-f" inputmode="decimal" /></label>
+      <label>Distance <select class="lb-dm"><option value="sat" selected>A satellite: altitude and elevation</option><option value="km">A distance I know</option></select></label>
+      <label class="lb-hw">Satellite altitude (km) <input class="lb-h" inputmode="decimal" /></label>
+      <label class="lb-ew">Elevation above the horizon (°) <input class="lb-el" inputmode="decimal" /></label>
+      <label class="lb-kw" hidden>Distance (km) <input class="lb-km" inputmode="decimal" /></label>
+    </div>
+    <h3>Transmitter</h3>
+    <div class="ax-grid">
+      <label>Power (W) <input class="lb-pt" inputmode="decimal" /></label>
+      <label>Antenna gain (dBi) <input class="lb-gt" inputmode="decimal" /></label>
+      <label>Cable and other losses (dB) <input class="lb-lt" inputmode="decimal" /></label>
+    </div>
+    <h3>Receiver</h3>
+    <div class="ax-grid">
+      <label>Antenna <select class="lb-ant"><option value="gain">I know its gain</option><option value="dish">A dish of known size</option></select></label>
+      <label class="lb-grw">Antenna gain (dBi) <input class="lb-gr" inputmode="decimal" /></label>
+      <label class="lb-dw" hidden>Dish diameter (m) <input class="lb-dd" inputmode="decimal" value="3" /></label>
+      <label class="lb-dw" hidden>Aperture efficiency <input class="lb-eta" inputmode="decimal" value="0.55" /></label>
+      <label>Cable and other losses (dB) <input class="lb-lr" inputmode="decimal" /></label>
+      <label>System noise temperature (K) <input class="lb-ts" inputmode="decimal" /></label>
+    </div>
+    <h3>Path and data</h3>
+    <div class="ax-grid">
+      <label>Atmosphere and rain (dB) <input class="lb-la" inputmode="decimal" /></label>
+      <label>Polarisation mismatch (dB) <input class="lb-lp" inputmode="decimal" /></label>
+      <label>Pointing loss (dB) <input class="lb-lpt" inputmode="decimal" /></label>
+      <label>Data rate (bit/s) <input class="lb-r" inputmode="decimal" /></label>
+      <label>Modulation <select class="lb-mod"><option value="bpsk">BPSK or QPSK</option><option value="cfsk">FSK, coherent</option><option value="fsk">FSK or GFSK, non-coherent</option><option value="custom">My own required Eb/N0</option></select></label>
+      <label class="lb-berw">Bit error rate <select class="lb-ber"><option value="1e-5" selected>1 in 100,000</option><option value="1e-6">1 in a million</option><option value="1e-4">1 in 10,000</option></select></label>
+      <label class="lb-reqw" hidden>Required Eb/N0 (dB) <input class="lb-req" inputmode="decimal" value="4.4" /></label>
+      <label>Implementation loss (dB) <input class="lb-im" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Polarisation mismatch is 0 dB for matched antennas and 3 dB for a linear antenna receiving a circular signal. System noise temperature is the receiver's noise plus what the antenna picks up: about 100 to 300 K for a good amateur station, and 500 K or more at UHF in a town. Implementation loss covers real radios falling short of theory, usually 1 to 3 dB.</p>
+    <p class="ax-err lb-err" hidden></p>
+  </div>
+
+  <div class="ax-card lb-out" hidden>
+    <h2>Link budget</h2>
+    <p class="ax-big lb-big"></p>
+    <dl class="ax-facts lb-facts"></dl>
+    <div class="ax-scroll"><table class="lb-tab"></table></div>
+    <canvas class="ax-fig lb-fig" style="margin-top:14px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lb .lb-tab td, .lb .lb-tab th { white-space: nowrap; }
+  .lb .lb-tab td:first-child { white-space: normal; }
+  .lb tr.lb-sum td { font-weight: 650; border-top: 1px solid var(--line); }
+  .lb .lb-big.good { color: var(--good); } .lb .lb-big.warn { color: var(--warn); } .lb .lb-big.bad { color: var(--bad); }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { budget, slantRange, dishGain, beamwidth, requiredEbN0, fspl, K_DB } from '../../lib/sci/linkbudget';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  type P = Record<string, string>;
+  const PRE: { id: string; name: string; v: P }[] = [
+    { id: 'uhf', name: 'CubeSat UHF downlink to a Yagi', v: { f: '437', dm: 'sat', h: '500', el: '10', km: '', pt: '1', gt: '0', lt: '1', ant: 'gain', gr: '12', lr: '1.5', ts: '500', la: '0.5', lp: '3', lpt: '1', r: '9600', mod: 'fsk', im: '2' } },
+    { id: 'sband', name: 'CubeSat S-band downlink to a 3 m dish', v: { f: '2250', dm: 'sat', h: '500', el: '10', km: '', pt: '2', gt: '6', lt: '1', ant: 'dish', gr: '', lr: '1', ts: '200', la: '0.5', lp: '0.5', lpt: '1', r: '1000000', mod: 'bpsk', im: '2' } },
+    { id: 'wifi', name: 'Point-to-point Wi-Fi link, 5 km', v: { f: '5800', dm: 'km', h: '', el: '', km: '5', pt: '0.1', gt: '23', lt: '1', ant: 'gain', gr: '23', lr: '1', ts: '600', la: '0.5', lp: '0', lpt: '0.5', r: '20000000', mod: 'bpsk', im: '3' } },
+    { id: 'custom', name: 'My own', v: {} },
+  ];
+  sel('.lb-pre').replaceChildren(...PRE.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
+  let fig: Figure | null = null, report: Section[] = [];
+  const dB = (x: number, plus = false) => `${x < 0 ? '−' : plus ? '+' : ''}${Math.abs(x).toFixed(2)}`;
+  const t3 = (x: number) => String(+x.toPrecision(3));
+  const rate = (r: number) => (r >= 1e6 ? `${t3(r / 1e6)} Mbit/s` : r >= 1e3 ? `${t3(r / 1e3)} kbit/s` : `${t3(r)} bit/s`);
+
+  function setPre(id: string) {
+    const p = PRE.find((x) => x.id === id)!; if (id === 'custom') return;
+    for (const [k, v] of Object.entries(p.v)) { const el = root.querySelector<HTMLInputElement | HTMLSelectElement>(`.lb-${k}`); if (el) el.value = v; }
+    sync();
+  }
+  function sync() {
+    const sat = sel('.lb-dm').value === 'sat', dish = sel('.lb-ant').value === 'dish', custom = sel('.lb-mod').value === 'custom';
+    q('.lb-hw').hidden = q('.lb-ew').hidden = !sat; q('.lb-kw').hidden = sat;
+    q('.lb-grw').hidden = dish; root.querySelectorAll<HTMLElement>('.lb-dw').forEach((x) => (x.hidden = !dish));
+    q('.lb-berw').hidden = custom; q('.lb-reqw').hidden = !custom;
+  }
+  const val = (c: string, name: string, min = -Infinity) => { const v = num(inp(c).value || '0'); if (!Number.isFinite(v) || v < min) throw new Error(`Check ${name}`); return v; };
+
+  function calc() {
+    const err = q('.lb-err');
+    try {
+      sync();
+      const f = val('.lb-f', 'the frequency', 0) * 1e6; if (!(f > 0)) throw new Error('Type the frequency in MHz');
+      const sat = sel('.lb-dm').value === 'sat', h = val('.lb-h', 'the altitude', 0), el = val('.lb-el', 'the elevation', 0);
+      if (sat && !(h > 0)) throw new Error('Type the satellite altitude in km'); if (sat && el > 90) throw new Error('The elevation runs from 0 to 90 degrees');
+      const d = sat ? slantRange(h, el) : val('.lb-km', 'the distance', 0) * 1000; if (!(d > 0)) throw new Error('Type the distance in km');
+      const dish = sel('.lb-ant').value === 'dish', D = val('.lb-dd', 'the dish diameter', 0), eta = val('.lb-eta', 'the efficiency', 0);
+      if (dish && !(D > 0 && eta > 0 && eta <= 1)) throw new Error('Type the dish diameter in metres and an efficiency between 0 and 1');
+      const gr = dish ? dishGain(D, f, eta) : val('.lb-gr', 'the receive gain');
+      const mod = sel('.lb-mod').value, req = mod === 'custom' ? val('.lb-req', 'the required Eb/N0') : requiredEbN0(mod, Number(sel('.lb-ber').value));
+      const L = { f, d, ptW: val('.lb-pt', 'the power', 0), gt: val('.lb-gt', 'the transmit gain'), lt: val('.lb-lt', 'the transmit losses', 0), gr, lr: val('.lb-lr', 'the receive losses', 0), tsys: val('.lb-ts', 'the noise temperature', 0), latm: val('.lb-la', 'the atmospheric loss', 0), lpol: val('.lb-lp', 'the polarisation loss', 0), lpoint: val('.lb-lpt', 'the pointing loss', 0), rate: val('.lb-r', 'the data rate', 0), req, impl: val('.lb-im', 'the implementation loss', 0) };
+      const b = budget(L);
+      err.hidden = true; q('.lb-out').hidden = false;
+      const big = q('.lb-big'); big.className = `ax-big lb-big ${b.margin >= 3 ? 'good' : b.margin >= 0 ? 'warn' : 'bad'}`;
+      big.textContent = `Margin ${dB(b.margin, true)} dB: ${b.margin >= 6 ? 'a solid link' : b.margin >= 3 ? 'it should work' : b.margin >= 0 ? 'only just, with little to spare' : 'the link will not close'}`;
+      const facts: [string, string, string?][] = [
+        ['Distance', `${Math.round(d / 1000).toLocaleString('en')} km`, sat ? `slant range to a satellite ${h} km up, seen ${el}° above the horizon` : undefined],
+        ['Fastest rate at zero margin', rate(b.maxRate), `with the same power, antennas and modulation; you asked for ${rate(L.rate)}`],
+        ['Received power', `${dB(b.prxDbm)} dBm`, `${sig(10 ** (b.prxDbm / 10) * 1e-3, 3)} W`],
+      ];
+      if (dish) facts.push(['Dish', `${gr.toFixed(1)} dBi`, `beam ${sig(beamwidth(D, f), 3)}° wide at half power: ${sat ? 'track the satellite to keep it in the beam' : 'aim it carefully'}`]);
+      q('.lb-facts').replaceChildren(...facts.map(([k, v, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; dd.querySelector('dd')!.append(m); } return dd; }));
+      const rows: [string, string, boolean?][] = [
+        ['Transmit power', `${dB(b.pt)} dBW`], ['Transmit antenna gain', `${dB(L.gt, true)} dB`], ['Transmit losses', `${dB(-L.lt)} dB`], ['EIRP', `${dB(b.eirp)} dBW`, true],
+        ['Free-space path loss', `${dB(-b.path)} dB`], ['Atmosphere, polarisation, pointing', `${dB(-(L.latm + L.lpol + L.lpoint))} dB`],
+        ['Receive antenna gain', `${dB(gr, true)} dB`], ['Receive losses', `${dB(-L.lr)} dB`], ['Received power', `${dB(b.prx)} dBW`, true],
+        ['Noise temperature', `${dB(-10 * Math.log10(L.tsys))} dBK`], ['Boltzmann constant', `${dB(-K_DB, true)} dB`], ['C/N₀', `${dB(b.cn0)} dB-Hz`, true],
+        ['Data rate', `${dB(-10 * Math.log10(L.rate))} dB-Hz`], ['Eb/N₀', `${dB(b.ebn0)} dB`, true],
+        [`Required Eb/N₀${mod === 'custom' ? '' : ` (BER ${sel('.lb-ber').selectedOptions[0].textContent})`}`, `${dB(-req)} dB`], ['Implementation loss', `${dB(-L.impl)} dB`], ['Margin', `${dB(b.margin, true)} dB`, true],
+      ];
+      const t = q<HTMLTableElement>('.lb-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); ['Step', 'Value'].forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); rows.forEach(([k, v, s]) => { const tr = tb.insertRow(); if (s) tr.className = 'lb-sum'; const a = tr.insertCell(); a.textContent = k; const c = tr.insertCell(); c.textContent = v; c.className = 'r'; });
+      // Margin across the pass (satellite) or against distance (fixed link).
+      const xs: number[] = [], ys: number[] = [];
+      if (sat) for (let e = 0; e <= 90; e += 1) { xs.push(e); ys.push(b.margin + b.path - fspl(slantRange(h, e), f)); }
+      else for (let i = 0; i <= 100; i++) { const dd = d * 10 ** (-1 + (2 * i) / 100); xs.push(dd / 1000); ys.push(b.margin + b.path - fspl(dd, f)); }
+      fig = chartFigure({ h: 260, xLog: !sat, xLabel: sat ? 'Elevation (°)' : 'Distance (km)', yLabel: 'Margin (dB)', legend: 'none',
+        series: [{ name: 'Margin', x: xs, y: ys, mode: 'line', width: 2.2 }], marks: [{ kind: 'hline', at: 0, label: '0 dB' }, { kind: 'hline', at: 3, dash: [4, 4], label: '3 dB' }, { kind: 'vline', at: sat ? el : d / 1000, label: 'this link' }] }, sat ? 'Link margin against elevation through a pass' : 'Link margin against distance');
+      paint(q<HTMLCanvasElement>('.lb-fig'), fig);
+      report = [{ title: 'Link budget', facts: [['Result', big.textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])] }, { title: 'Budget', table: { head: ['Step', 'Value'], rows: rows.map(([k, v]) => [k, v]), align: ['l', 'r'] } }, { title: 'Margin', figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lb-out').hidden = true; report = []; }
+  }
+  sel('.lb-pre').addEventListener('change', () => { setPre(sel('.lb-pre').value); calc(); });
+  root.querySelectorAll('input').forEach((x) => x.addEventListener('input', () => { sel('.lb-pre').value = 'custom'; calc(); }));
+  root.querySelectorAll('select:not(.lb-pre)').forEach((x) => x.addEventListener('change', () => { sel('.lb-pre').value = 'custom'; calc(); }));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.lb-fig'), fig));
+  setPre('uhf'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Link budget', file: 'link-budget', sections: report }));
+</script>

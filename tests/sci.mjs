@@ -38,6 +38,11 @@ import { habitableZone, tEq, periodDays, auForPeriod, lumFrom } from '../src/lib
 import { marsTime, localSolar, missionSol, solStart, MISSIONS, msdToMs, lsTime } from '../src/lib/sci/marstime.ts';
 import { transitWindows, bjdToMs, msToBjd, trapezoid } from '../src/lib/astro/transits.ts';
 import { velocity, redshift, zFromLambda, nmToGhz, LINES } from '../src/lib/sci/redshift.ts';
+import { planckLam, bandFraction, bcV, tFromBV, star as starBB, WIEN_LAM } from '../src/lib/sci/blackbody.ts';
+import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_EARTH, AU as AU_M, R_JUP } from '../src/lib/sci/rvmass.ts';
+import { crater, impactorFor } from '../src/lib/sci/crater.ts';
+import { fspl, dishGain, slantRange, requiredEbN0, budget } from '../src/lib/sci/linkbudget.ts';
+import { scope } from '../src/lib/sci/radiotel.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -454,6 +459,66 @@ check('round trips', ['relativistic', 'optical', 'radio'].every((c) => Math.abs(
 near('Hα at z = 0.1', zFromLambda(656.281 * 1.1, 656.281), 0.1, 1e-12);
 near('21 cm line frequency', nmToGhz(LINES.find((l) => l.id === 'hi').nm), 1.420405752, 1e-9);
 throws('faster than light', () => redshift(3e5, 'relativistic'));
+
+// ---- Black bodies: Wien, Stefan-Boltzmann and the Sun's bolometric correction (Torres 2010: about −0.08).
+near('Sun peak wavelength (nm)', (WIEN_LAM / 5772) * 1e9, 502.0, 0.1);
+{
+  // Numerical peak of Planck's law agrees with Wien's constant.
+  let best = 0, at = 0; for (let l = 300e-9; l < 800e-9; l += 0.05e-9) { const b = planckLam(l, 5772); if (b > best) { best = b; at = l; } }
+  near('Planck peak matches Wien', at * 1e9, 502.0, 0.1);
+}
+near('whole spectrum sums to 1', bandFraction(1e-9, 1e-2, 5772), 1, 1e-6);
+near('the Sun: 37 % visible (400 to 700 nm)', bandFraction(400e-9, 700e-9, 5772), 0.366, 0.002);
+near('one solar luminosity', starBB(5772, 1).Lsun, 1, 1e-5);
+near('Sun BC_V', bcV(5772), -0.081, 0.003); near('Sun M_V', starBB(5772, 1).Mv, 4.82, 0.01);
+check('hot and cool stars have large negative BCs', bcV(30000) < -2.5 && bcV(3500) < -1.5 && bcV(7000) > -0.1);
+near('Ballesteros: Sun B−V 0.65', tFromBV(0.65), 5778, 5);
+near('the Sun at 10 pc', starBB(5772, 1, 10).mV, 4.82, 0.01);
+
+// ---- Radial velocity: Jupiter pulls the Sun at 12.5 m/s; 51 Peg b is 0.47 Jupiter masses (Mayor & Queloz 1995).
+near('Jupiter K', semiAmplitude(M_JUP, 1, 4332.59, 0.0489), 12.47, 0.02);
+{
+  const p = minMass(55.94, 1.11, 4.230785, 0.013);
+  near('51 Peg b m sin i (MJ), published 0.47', p.m / M_JUP, 0.477, 0.005); near('51 Peg b orbit (AU)', semiMajor(1.11, p.m, 4.230785) / AU_M, 0.0530, 0.0003);
+  near('mass round trip', semiAmplitude(p.m, 1.11, 4.230785, 0.013), 55.94, 1e-6);
+  near('Earth from 9 cm/s', minMass(0.0895, 1, 365.256).m / M_EARTH, 1.0, 0.005);
+  near('Jupiter-size radius from 1 % depth', radiusFromDepth(0.0105, 1) / R_JUP, 1.0, 0.01);
+  near('Jupiter density', density(M_JUP, 6.9911e7), 1326, 2);
+  throws('eccentricity 1', () => minMass(10, 1, 10, 1));
+}
+
+// ---- Impact craters (Collins, Melosh and Marcus 2005, eq. 21, 22, 27).
+{
+  const p = { L: 50, rhoI: 8000, v: 12800, angle: 45, rhoT: 2500, g: 9.81, dc: 3200 }, r = crater(p);
+  near('transient crater (by hand, 1.161 (ρi/ρt)^⅓ L^0.78 v^0.44 g^−0.22 sin^⅓θ)', r.Dtc, 1250.97, 0.1);
+  check('simple crater 1.25 × transient', r.simple && Math.abs(r.D - 1.25 * r.Dtc) < 1e-9);
+  near('energy in megatons', r.Mt, 10.25, 0.01);
+  near('impactor from the crater', impactorFor(r.D, p), 50, 1e-6);
+  const big = crater({ ...p, L: 10000, rhoI: 3000, v: 20000 });
+  check('complex crater above the transition', !big.simple && Math.abs(big.D - (1.17 * big.Dtc ** 1.13) / 3200 ** 0.13) < 1e-6);
+}
+
+// ---- Link budgets.
+near('free-space loss, 2.4 GHz over 1 km', fspl(1000, 2.4e9), 100.05, 0.01);
+near('free-space loss, 437 MHz over 1000 km', fspl(1e6, 437e6), 145.26, 0.01);
+near('BPSK at BER 1e-5', requiredEbN0('bpsk', 1e-5), 9.59, 0.01); near('non-coherent FSK at 1e-5', requiredEbN0('fsk', 1e-5), 13.35, 0.01);
+near('500 km satellite on the horizon', slantRange(500, 0) / 1000, 2573, 1); near('overhead', slantRange(500, 90) / 1000, 500, 1e-9);
+near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
+{
+  const b = budget({ f: 437e6, d: 1e6, ptW: 1, gt: 0, lt: 1, gr: 12, lr: 1, tsys: 500, latm: 0.5, lpol: 3, lpoint: 0, rate: 9600, req: 9.59, impl: 2 });
+  // EIRP −1 dBW; C/N0 = −1 − 145.26 − 3.5 + (11 − 26.99) + 228.60.
+  near('C/N0', b.cn0, -1 - 145.257 - 3.5 + 11 - 26.990 + 228.599, 0.01); near('margin', b.margin, b.cn0 - 39.823 - 11.59, 0.01);
+}
+
+// ---- Radio telescopes: a 100 m dish with 70 % efficiency gives about 2 K/Jy (as the GBT quotes).
+{
+  const g = scope({ D: 100, eta: 0.7, tsys: 20, f: 1.4e9, n: 1, npol: 2, bw: 1e6 });
+  near('gain K/Jy', g.gain, 1.991, 0.002); near('SEFD', g.sefd, 10.05, 0.01); near('beam (arcmin)', (g.hpbw * 180 * 60) / Math.PI, 8.83, 0.01);
+  near('radiometer equation', g.sigma(100), 10.045 / Math.sqrt(2 * 1e6 * 100), 1e-6);
+  const v = scope({ D: 25, eta: 0.6, tsys: 30, f: 1.4e9, n: 27, npol: 2, bw: 1e6 });
+  near('27 dishes: N(N−1) pairs', v.sigma1s, v.sefd / Math.sqrt(2 * 27 * 26 * 1e6), 1e-12);
+  near('time for SNR 5', g.timeFor(1, 5), 25 / (1 / g.sigma1s) ** 2, 1e-9);
+}
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

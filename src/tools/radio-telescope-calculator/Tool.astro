@@ -1,0 +1,115 @@
+---
+// Radio telescope sensitivity: beam, gain, SEFD and the radiometer equation.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rt">
+  <div class="ax-card">
+    <h2>Telescope</h2>
+    <div class="ax-grid">
+      <label>Example <select class="rt-pre"></select></label>
+      <label>Frequency (MHz) <input class="rt-f" inputmode="decimal" /></label>
+      <label>Dish diameter (m) <input class="rt-d" inputmode="decimal" /></label>
+      <label>Aperture efficiency <input class="rt-eta" inputmode="decimal" /></label>
+      <label>System temperature (K) <input class="rt-ts" inputmode="decimal" /></label>
+      <label>Number of dishes <input class="rt-n" inputmode="numeric" /></label>
+      <label>Polarisations <select class="rt-pol"><option value="1">One</option><option value="2" selected>Two</option></select></label>
+    </div>
+    <h2 style="margin-top:16px">Observation</h2>
+    <div class="ax-grid">
+      <label>Bandwidth (MHz) <input class="rt-bw" inputmode="decimal" /></label>
+      <label>Integration time <span class="ax-row" style="gap:6px"><input class="rt-t" inputmode="decimal" style="flex:1;min-width:0" /><select class="rt-tu" aria-label="Time unit"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option></select></span></label>
+      <label>Source flux density (Jy, optional) <input class="rt-s" inputmode="decimal" /></label>
+      <label>Signal-to-noise wanted <input class="rt-snr" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Aperture efficiency is the share of the dish that collects usefully: 0.5 to 0.7 for most dishes. System temperature is the noise of the whole receiving chain plus the sky: 20 to 40 K for big research receivers, 100 to 200 K for a good backyard set-up. For a spectral line, use the width of one channel as the bandwidth. 1 Jy (jansky) is 10⁻²⁶ W m⁻² Hz⁻¹.</p>
+    <p class="ax-err rt-err" hidden></p>
+  </div>
+
+  <div class="ax-card rt-out" hidden>
+    <h2>Sensitivity</h2>
+    <p class="ax-big rt-big"></p>
+    <dl class="ax-facts rt-facts"></dl>
+    <canvas class="ax-fig rt-fig" style="margin-top:12px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rt .rt-tu { width: auto; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { scope } from '../../lib/sci/radiotel';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  // Cygnus A is about 1590 Jy at 1.4 GHz (Baars et al. 1977).
+  const PRE = [
+    { id: 'backyard', name: 'Backyard 3 m dish on the 21 cm line', v: { f: '1420.4', d: '3', eta: '0.5', ts: '100', n: '1', pol: '1', bw: '2.4', t: '1', tu: '60', s: '1590' } },
+    { id: 'small', name: '1.2 m satellite TV dish on the 21 cm line', v: { f: '1420.4', d: '1.2', eta: '0.5', ts: '120', n: '1', pol: '1', bw: '2.4', t: '1', tu: '60', s: '1590' } },
+    { id: '25m', name: '25 m research dish, L band', v: { f: '1400', d: '25', eta: '0.6', ts: '35', n: '1', pol: '2', bw: '100', t: '10', tu: '60', s: '0.01' } },
+    { id: '100m', name: '100 m dish, L band', v: { f: '1400', d: '100', eta: '0.7', ts: '20', n: '1', pol: '2', bw: '600', t: '1', tu: '60', s: '0.001' } },
+    { id: 'array', name: 'Array of 27 dishes of 25 m, L band', v: { f: '1500', d: '25', eta: '0.45', ts: '26', n: '27', pol: '2', bw: '1000', t: '1', tu: '3600', s: '0.0001' } },
+    { id: 'custom', name: 'My own', v: {} as Record<string, string> },
+  ];
+  const pre = q<HTMLSelectElement>('.rt-pre');
+  pre.replaceChildren(...PRE.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
+  let fig: Figure | null = null, report: Section[] = [];
+  const jy = (x: number) => (x >= 1000 ? `${Math.round(x).toLocaleString('en')} Jy` : x >= 1 ? `${sig(x, 3)} Jy` : x >= 1e-3 ? `${sig(x * 1e3, 3)} mJy` : `${sig(x * 1e6, 3)} µJy`);
+  const kel = (x: number) => (x >= 1 ? `${sig(x, 3)} K` : `${sig(x * 1e3, 3)} mK`);
+  const dur = (s: number) => (s < 1 ? `${sig(s * 1000, 3)} ms` : s < 120 ? `${sig(s, 3)} s` : s < 7200 ? `${sig(s / 60, 3)} min` : s < 2 * 86400 ? `${sig(s / 3600, 3)} h` : s < 2 * 365.25 * 86400 ? `${sig(s / 86400, 3)} days` : `${sig(s / (365.25 * 86400), 3)} years`);
+  const ang = (rad: number) => { const d = (rad * 180) / Math.PI; return d >= 1 ? `${sig(d, 3)}°` : d * 60 >= 1 ? `${sig(d * 60, 3)} arcmin` : `${sig(d * 3600, 3)} arcsec`; };
+
+  function setPre(id: string) {
+    const p = PRE.find((x) => x.id === id)!; if (id === 'custom') return;
+    for (const [k, v] of Object.entries(p.v)) { const el = root.querySelector<HTMLInputElement | HTMLSelectElement>(`.rt-${k}`); if (el) el.value = v; }
+  }
+
+  function calc() {
+    const err = q('.rt-err');
+    try {
+      const f = num(inp('.rt-f').value) * 1e6, D = num(inp('.rt-d').value), eta = num(inp('.rt-eta').value), ts = num(inp('.rt-ts').value), n = num(inp('.rt-n').value || '1');
+      const npol = Number(q<HTMLSelectElement>('.rt-pol').value) as 1 | 2, bw = num(inp('.rt-bw').value) * 1e6, t = num(inp('.rt-t').value) * Number(q<HTMLSelectElement>('.rt-tu').value);
+      if (!Number.isInteger(n) || n < 1 || n > 10000) throw new Error('Type a whole number of dishes, 1 or more');
+      if (!(t > 0)) throw new Error('Type the integration time');
+      const s = scope({ D, eta, tsys: ts, f, n, npol, bw });
+      const S = num(inp('.rt-s').value), snr = num(inp('.rt-snr').value || '5'), sigma = s.sigma(t);
+      if (inp('.rt-s').value.trim() && !(S > 0)) throw new Error('Type the source flux density in Jy');
+      if (!(snr > 0)) throw new Error('Type the signal-to-noise you want');
+      err.hidden = true; q('.rt-out').hidden = false;
+      const tv = inp('.rt-t').value.trim(), tu = q<HTMLSelectElement>('.rt-tu').selectedOptions[0].textContent!, tTxt = `${tv} ${num(tv) === 1 ? tu.replace(/s$/, '') : tu}`;
+      q('.rt-big').textContent = S > 0 ? `Signal-to-noise ${sig(S / sigma, 3)} on a ${jy(S)} source in ${tTxt}` : `Noise ${jy(sigma)} after ${tTxt}`;
+      const facts: [string, string, string?][] = [
+        ['Wavelength', s.lam >= 1 ? `${sig(s.lam, 3)} m` : `${sig(s.lam * 100, 3)} cm`],
+        [n > 1 ? 'Beam of one dish (field of view)' : 'Beam width', ang(s.hpbw), n > 1 ? 'half-power width of each dish; the array\'s resolution is set by its longest baseline, about λ divided by that length' : 'half-power width, about 1.2 λ/D: the telescope cannot see detail finer than this'],
+        ['Collecting area', `${sig(s.ae * n, 4)} m²`, n > 1 ? `effective, ${n} dishes of ${sig(s.ae, 4)} m²` : 'effective: the dish area times the efficiency'],
+        ['Gain', `${sig(s.gain, 3)} K/Jy`, `per dish: a 1 Jy source raises the antenna temperature by ${kel(s.gain)}`],
+        ['System equivalent flux density', jy(s.sefd), 'SEFD: how bright a source would match the system noise, per dish; lower is better'],
+        ['Noise after the integration', jy(sigma), `radiometer equation: SEFD / √(${npol > 1 ? '2 × ' : ''}${n > 1 ? `${n}(${n}−1) × ` : ''}bandwidth × time)`],
+      ];
+      if (S > 0) facts.push(
+        ['Antenna temperature from the source', kel(s.antennaTemp(S)), `against a system temperature of ${ts} K`],
+        [`Time to reach signal-to-noise ${snr}`, dur(s.timeFor(S, snr)), 'noise falls with the square root of time: four times longer halves it'],
+      );
+      q('.rt-facts').replaceChildren(...facts.map(([k, v, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; }));
+      const xs: number[] = []; for (let i = 0; i <= 80; i++) xs.push(10 ** (-1 + (7 * i) / 80));
+      const marks: { kind: 'hline' | 'vline'; at: number; label?: string; dash?: number[] }[] = [{ kind: 'vline', at: t, label: 'your time' }];
+      if (S > 0) marks.push({ kind: 'hline', at: S / snr, dash: [4, 4], label: `${jy(S)} ÷ ${snr}` });
+      fig = chartFigure({ h: 280, xLog: true, yLog: true, xLabel: 'Integration time (s)', yLabel: 'Noise (Jy)', legend: 'none',
+        series: [{ name: 'Noise', x: xs, y: xs.map((x) => s.sigma(x)), mode: 'line', width: 2.2 }], marks }, 'Noise against integration time');
+      paint(q<HTMLCanvasElement>('.rt-fig'), fig);
+      report = [{ title: q('.rt-big').textContent!, facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.rt-out').hidden = true; report = []; }
+  }
+  pre.addEventListener('change', () => { setPre(pre.value); calc(); });
+  root.querySelectorAll('input').forEach((x) => x.addEventListener('input', () => { pre.value = 'custom'; calc(); }));
+  for (const c of ['.rt-pol', '.rt-tu']) q(c).addEventListener('change', () => { pre.value = 'custom'; calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.rt-fig'), fig));
+  setPre('backyard'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Radio telescope calculator', file: 'radio-telescope', sections: report }));
+</script>

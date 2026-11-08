@@ -1,0 +1,122 @@
+---
+// Blackbody and star calculator: Planck spectrum, Wien peak, luminosity, bolometric correction and magnitudes.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bb">
+  <div class="ax-card">
+    <h2>Temperature</h2>
+    <div class="ax-grid">
+      <label>Example <select class="bb-pre"></select></label>
+      <label>I know <select class="bb-kind">
+        <option value="t" selected>The temperature (K)</option>
+        <option value="bv">The B − V colour</option>
+        <option value="peak">The peak wavelength (nm)</option>
+      </select></label>
+      <label><span class="bb-vl">Temperature (K)</span> <input class="bb-v" inputmode="decimal" /></label>
+      <label>Compare with (K, optional) <input class="bb-cmp" inputmode="decimal" placeholder="e.g. 3000" /></label>
+    </div>
+    <h2 style="margin-top:16px">For a star (optional)</h2>
+    <div class="ax-grid">
+      <label>Radius (Suns) <input class="bb-r" inputmode="decimal" placeholder="e.g. 1" /></label>
+      <label>Distance (parsecs) <input class="bb-d" inputmode="decimal" placeholder="1 pc = 3.26 light years" /></label>
+    </div>
+    <p class="ax-help">Add a radius to get the luminosity and absolute magnitudes, and a distance for how bright it looks from Earth. Stars are only roughly black bodies: their spectra have absorption lines, so the bolometric correction comes from real stars, not from the Planck curve.</p>
+    <p class="ax-err bb-err" hidden></p>
+  </div>
+
+  <div class="ax-card bb-out" hidden>
+    <h2 class="bb-title"></h2>
+    <p class="ax-big bb-big"></p>
+    <dl class="ax-facts bb-facts"></dl>
+    <canvas class="ax-fig bb-fig" style="margin-top:12px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { planckLam, bandFraction, tFromBV, star, WIEN_LAM, WIEN_NU, SIGMA } from '../../lib/sci/blackbody';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  // Rounded values: Sun (IAU 2015), Sirius A (Liebert et al. 2005; Gaia distance), Proxima Centauri (Ribas et al. 2017).
+  const PRE = [
+    { id: 'sun', name: 'The Sun', t: 5772, r: '1', d: '' },
+    { id: 'sirius', name: 'Sirius A', t: 9940, r: '1.711', d: '2.64' },
+    { id: 'proxima', name: 'Proxima Centauri', t: 3042, r: '0.154', d: '1.30' },
+    { id: 'bulb', name: 'Incandescent bulb filament', t: 2700, r: '', d: '' },
+    { id: 'body', name: 'Human skin', t: 306, r: '', d: '' },
+    { id: 'cmb', name: 'Cosmic microwave background', t: 2.7255, r: '', d: '' },
+    { id: 'custom', name: 'My own', t: NaN, r: '', d: '' },
+  ];
+  const pre = q<HTMLSelectElement>('.bb-pre'), kind = q<HTMLSelectElement>('.bb-kind');
+  pre.replaceChildren(...PRE.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
+  let fig: Figure | null = null, report: Section[] = [];
+  const minus = (s: string) => s.replace(/^-/, '−');
+  const lamTxt = (m: number) => (m < 1e-6 ? `${sig(m * 1e9, 4)} nm` : m < 1e-3 ? `${sig(m * 1e6, 4)} µm` : m < 1 ? `${sig(m * 1e3, 4)} mm` : `${sig(m, 4)} m`);
+  const nuTxt = (h: number) => (h >= 1e12 ? `${sig(h / 1e12, 4)} THz` : h >= 1e9 ? `${sig(h / 1e9, 4)} GHz` : `${sig(h / 1e6, 4)} MHz`);
+  const pct = (x: number) => (x < 0.001 ? '< 0.1 %' : x > 0.999 ? '> 99.9 %' : `${(x * 100).toFixed(1)} %`);
+  const looks = (T: number) => T < 800 ? 'gives off almost no visible light' : T < 1300 ? 'glows dull red' : T < 2500 ? 'glows orange-red' : T < 3700 ? 'looks orange' : T < 5200 ? 'looks yellow-orange' : T < 6000 ? 'looks white with a hint of yellow' : T < 7500 ? 'looks white' : T < 10000 ? 'looks bluish white' : 'looks blue-white';
+
+  function setPre(id: string) {
+    const p = PRE.find((x) => x.id === id)!; if (id === 'custom') return;
+    kind.value = 't'; q('.bb-vl').textContent = 'Temperature (K)'; inp('.bb-v').value = String(p.t); inp('.bb-r').value = p.r; inp('.bb-d').value = p.d;
+  }
+  function readT() {
+    const v = num(inp('.bb-v').value), k = kind.value;
+    if (!Number.isFinite(v)) throw new Error('Type a number');
+    if (k === 't') { if (!(v > 0 && v <= 1e9)) throw new Error('Type a temperature above 0 K'); return v; }
+    if (k === 'bv') { if (!(v >= -0.4 && v <= 2)) throw new Error('B − V runs from about −0.4 (hot blue stars) to 2 (cool red ones)'); return tFromBV(v); }
+    if (!(v > 0)) throw new Error('Type the peak wavelength in nm'); return WIEN_LAM / (v * 1e-9);
+  }
+
+  function calc() {
+    const err = q('.bb-err');
+    try {
+      const T = readT(), peak = WIEN_LAM / T, cmpT = num(inp('.bb-cmp').value), R = num(inp('.bb-r').value), D = num(inp('.bb-d').value);
+      if (inp('.bb-cmp').value.trim() && !(cmpT > 0)) throw new Error('Type the comparison temperature in kelvin');
+      if (inp('.bb-r').value.trim() && !(R > 0)) throw new Error('Type the radius in solar radii');
+      if (inp('.bb-d').value.trim() && !(D > 0)) throw new Error('Type the distance in parsecs');
+      err.hidden = true; q('.bb-out').hidden = false;
+      q('.bb-title').textContent = `A black body at ${T < 100 ? sig(T, 5) : Math.round(T).toLocaleString('en')} K`;
+      q('.bb-big').textContent = `Peak at ${lamTxt(peak)}; it ${looks(T)}`;
+      const uv = bandFraction(1e-12, 400e-9, T), vis = bandFraction(400e-9, 700e-9, T), ir = Math.max(0, 1 - uv - vis);
+      const flux = SIGMA * T ** 4;
+      const facts: [string, string, string?][] = [
+        ['Peak (per wavelength)', lamTxt(peak), "Wien's law: 2.898 mm K ÷ T"],
+        ['Peak (per frequency)', nuTxt(WIEN_NU * T), `that is ${lamTxt(2.99792458e8 / (WIEN_NU * T))}: the peak depends on how you slice the spectrum`],
+        ['Power from each square metre', flux >= 1e6 ? `${sig(flux / 1e6, 4)} MW/m²` : flux >= 1 ? `${sig(flux, 4)} W/m²` : `${sig(flux * 1e6, 4)} µW/m²`, 'Stefan-Boltzmann: σT⁴'],
+        ['Where the power goes', `${pct(uv)} ultraviolet, ${pct(vis)} visible, ${pct(ir)} infrared`, 'visible taken as 400 to 700 nm'],
+      ];
+      if (kind.value === 'bv') facts.unshift(['Temperature from B − V', `${Math.round(T).toLocaleString('en')} K`, 'Ballesteros (2012), for stars near the main sequence']);
+      if (R > 0) {
+        const s = star(T, R, D > 0 ? D : undefined);
+        facts.push(['Luminosity', `${+s.Lsun.toPrecision(4)} ${Math.abs(s.Lsun - 1) < 5e-4 ? 'Sun' : 'Suns'}`, `${sig(s.L, 4)} W`]);
+        facts.push(['Absolute magnitudes', `bolometric ${minus(s.Mbol.toFixed(2))}, visual ${minus(s.Mv.toFixed(2))}`, `bolometric correction BC_V = ${minus(s.bc.toFixed(3))} (Flower 1996, corrected by Torres 2010)${T < 2900 || T > 50000 ? '; outside the stars it was fitted to' : ''}`]);
+        if (D > 0) facts.push(['Seen from Earth', `V = ${minus(s.mV.toFixed(2))}`, `apparent bolometric ${minus(s.mBol.toFixed(2))}; ${sig(s.fluxEarth, 3)} W/m² arrives at the top of the atmosphere (${sig(D * 3.26156, 4)} light years away)`]);
+      }
+      q('.bb-facts').replaceChildren(...facts.map(([k, v, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; }));
+      // Spectrum from a fifth to twenty times the peak, in µm on a log axis; radiance relative to this body's peak.
+      const lo = Math.min(peak, cmpT > 0 ? WIEN_LAM / cmpT : peak) / 5, hi = Math.max(peak, cmpT > 0 ? WIEN_LAM / cmpT : peak) * 20, xs: number[] = [];
+      for (let i = 0; i <= 300; i++) xs.push(lo * (hi / lo) ** (i / 300));
+      const norm = planckLam(peak, T);
+      const series = [{ name: `${sig(T, 4)} K`, x: xs.map((l) => l * 1e6), y: xs.map((l) => planckLam(l, T) / norm), mode: 'line' as const, width: 2.2 }];
+      if (cmpT > 0) series.push({ name: `${sig(cmpT, 4)} K`, x: xs.map((l) => l * 1e6), y: xs.map((l) => planckLam(l, cmpT) / norm), mode: 'line' as const, width: 1.6 });
+      const marks = lo < 0.7e-6 && hi > 0.4e-6 ? [{ kind: 'vline' as const, at: 0.4, dash: [3, 3], label: '400 nm' }, { kind: 'vline' as const, at: 0.7, dash: [3, 3], label: '700 nm' }] : [];
+      fig = chartFigure({ h: 300, xLog: true, yLog: cmpT > 0 && Math.abs(Math.log10(cmpT / T)) > 0.3, xLabel: 'Wavelength (µm)', yLabel: `Radiance (peak at ${sig(T, 4)} K = 1)`, yMin: cmpT > 0 && Math.abs(Math.log10(cmpT / T)) > 0.3 ? undefined : 0, legend: cmpT > 0 ? 'inside' : 'none', series, marks }, `Planck spectrum at ${sig(T, 4)} K`);
+      paint(q<HTMLCanvasElement>('.bb-fig'), fig);
+      report = [{ title: q('.bb-title').textContent!, facts: [['Result', q('.bb-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.bb-out').hidden = true; report = []; }
+  }
+  pre.addEventListener('change', () => { setPre(pre.value); calc(); });
+  kind.addEventListener('change', () => { q('.bb-vl').textContent = { t: 'Temperature (K)', bv: 'B − V', peak: 'Peak wavelength (nm)' }[kind.value]!; inp('.bb-v').value = { t: '5772', bv: '0.65', peak: '502' }[kind.value]!; pre.value = 'custom'; calc(); });
+  inp('.bb-v').addEventListener('input', () => { pre.value = 'custom'; calc(); });
+  for (const c of ['.bb-cmp', '.bb-r', '.bb-d']) inp(c).addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.bb-fig'), fig));
+  setPre('sun'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Blackbody calculator', file: 'blackbody', sections: report }));
+</script>
