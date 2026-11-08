@@ -1,5 +1,16 @@
 [
  {
+  "sha": "d3696ddc6ac5",
+  "date": "2026-11-08T22:30:39+00:00",
+  "title": "Add the rainfall runoff calculator (#141)",
+  "tools": [
+   "manning-weir-calculator",
+   "runoff-calculator",
+   "wave-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "fa09a5a28011",
   "date": "2026-11-08T22:12:16+00:00",
   "title": "Add the Manning and weir flow calculator (#140)",
