@@ -84,6 +84,7 @@ import * as GRN from '../src/lib/sci/green.ts';
 import * as DEC from '../src/lib/sci/decay.ts';
 import * as PMW from '../src/lib/sci/polymer.ts';
 import * as COP from '../src/lib/sci/copolymer.ts';
+import * as GT from '../src/lib/sci/glass.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1269,6 +1270,24 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const san = COP.drift(0.4, 0.04, 0.3, 0.9), sl = san[san.length - 1];
   check('S/AN: styrene used up near 70 % conversion', sl.f1 < 0.005 && Math.abs(sl.X - 0.70) < 0.01);
   check('azeotropic feed does not drift', COP.drift(0.52, 0.46, 0.5294117647).every((p) => Math.abs(p.f1 - 0.5294117647) < 1e-6));
+}
+{
+  // Glass transition: Fox, target solver, Gordon–Taylor (Simha–Boyer, Kwei), Flory–Fox.
+  const K = 273.15;
+  near('Fox MMA/BA 50:50', GT.fox([50, 50], [105 + K, -54 + K]) - K, 4.337, 0.001);
+  near('Fox of one component', GT.fox([1], [300]), 300, 1e-9);
+  near('Fox target 20 °C needs 60.0 % MMA', GT.foxTrade(20 + K, 105 + K, -54 + K, []).wA, 0.6004, 0.0001);
+  near('Fox target with 2 % AA fixed', GT.foxTrade(20 + K, 105 + K, -54 + K, [{ w: 0.02, Tg: 106 + K }]).wA, 0.5803, 0.0001);
+  check('Fox target out of reach is null', GT.foxTrade(120 + K, 105 + K, -54 + K, []) === null);
+  near('GT with k = Tg1/Tg2 equals Fox', GT.gordonTaylor(0.3, 400, 250, 400 / 250), GT.fox([0.7, 0.3], [400, 250]), 1e-9);
+  near('GT with k = 1 is the weight average', GT.gordonTaylor(0.3, 400, 250, 1), 0.7 * 400 + 0.3 * 250, 1e-9);
+  near('sucrose + 5 % water (k 4.7)', GT.gordonTaylor(0.05, 62 + K, -137 + K, 4.7) - K, 22.54, 0.01);
+  near('Simha–Boyer k sucrose/water', GT.simhaBoyer(1.58, 62 + K, 1, -137 + K), 3.889, 0.001);
+  near('water for Tg 0 °C', GT.solveGT(K, 62 + K, -137 + K, 4.7), 0.0878, 0.0001);
+  near('GT inverse round trip with Kwei q', GT.gordonTaylor(GT.solveGT(350, 420, 300, 0.8, 40), 420, 300, 0.8, 40), 350, 1e-6);
+  near('mole fractions MMA/BA 50:50', GT.moleFractions([0.5, 0.5], [100.12, 128.17])[0], 0.5614, 0.0001);
+  near('Flory–Fox PS at Mn 10 000', GT.floryFox(100, 1e5, 1e4), 90, 1e-9);
+  check('all listed materials have Tg, density and M', GT.MATERIALS.every((m) => Number.isFinite(m.tg) && m.rho > 0.5 && m.M > 10));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
