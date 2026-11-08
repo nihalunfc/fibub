@@ -1,0 +1,165 @@
+---
+// Stage-discharge rating curve fitter: Q = a (h − h0)^b from gaugings, one or two segments, with ranges. Example gaugings made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// 24 made-up gaugings drawn by fibub around a curve with a little scatter (not from any real river).
+const rows = ['0.642,1.566', '0.658,1.67', '0.677,1.809', '0.711,2.241', '0.731,2.525', '0.79,2.98', '0.9,4.121', '0.93,4.611', '0.97,5.258', '0.981,5.534', '1.147,7.973', '1.284,11.116', '1.295,11.022', '1.671,19.104', '1.83,21.919', '1.881,24.115', '2.269,36.939', '2.454,41.45', '2.636,47.97', '2.67,46.741', '2.722,49.209', '2.766,47.673', '2.887,57.671', '3.041,61.862'];
+const demo = 'stage (m),discharge (m³/s)\n' + rows.join('\n');
+---
+<div class="ax rcf">
+  <div class="ax-card">
+    <h2>Gaugings</h2>
+    <label>Stage and discharge <textarea class="rc-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".rc-data" maxCols={30} maxRows={5000} label="Open a file" />
+    <p class="ax-help">One gauging per row: the stage (water level on the gauge) and the measured discharge. Columns named stage, level or gauge height and discharge, flow or Q are found by name; otherwise the first two number columns are used. Other columns (dates, notes) are ignored. Up to 5,000 gaugings. The example is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Stage unit <input class="rc-hu" type="text" value="m" /></label>
+      <label>Discharge unit <input class="rc-qu" type="text" value="m³/s" /></label>
+      <label><span>Zero-flow stage h0 (blank = fitted)</span> <input class="rc-h0" type="text" inputmode="decimal" value="" /></label>
+      <label>Segments <select class="rc-seg"><option value="1" selected>One curve</option><option value="2">Two, split at a break stage</option></select></label>
+      <label class="rc-brkbox" hidden><span>Break stage</span> <input class="rc-brk" type="text" inputmode="decimal" value="2" /></label>
+      <label class="rc-brkbox" hidden><span>Upper h0 (blank = fitted)</span> <input class="rc-h0u" type="text" inputmode="decimal" value="" /></label>
+      <label>Flag gaugings off the curve by more than (%) <input class="rc-tol" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">h0 is the stage at which flow stops (the lowest point of the control, such as a riffle crest or weir crest). If you have surveyed it, type it; otherwise it is fitted. Use two segments when the control changes, for example when the water spills over the banks.</p>
+    <p class="ax-err rc-err" hidden></p>
+  </div>
+
+  <div class="ax-card rc-out">
+    <h2>Rating curve</h2>
+    <p class="ax-big rc-big"></p>
+    <dl class="ax-facts rc-facts"></dl>
+    <canvas class="ax-fig rc-fig"></canvas>
+    <canvas class="ax-fig rc-rfig"></canvas>
+  </div>
+
+  <div class="ax-card rc-out">
+    <h2>Use the curve</h2>
+    <div class="ax-grid">
+      <label><span>Discharge at stage (<span class="rc-hul">m</span>)</span> <input class="rc-qh" type="text" inputmode="decimal" value="2.5" /></label>
+      <label><span>Stage for discharge (<span class="rc-qul">m³/s</span>)</span> <input class="rc-hq" type="text" inputmode="decimal" value="30" /></label>
+      <label>Table from stage <input class="rc-t0" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>to <input class="rc-t1" type="text" inputmode="decimal" value="3.5" /></label>
+      <label>in steps of <input class="rc-ts" type="text" inputmode="decimal" value="0.25" /></label>
+    </div>
+    <dl class="ax-facts rc-ufacts"></dl>
+    <div class="ax-scroll"><table class="rc-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rc-csv">Download the table (CSV)</button></div>
+    <p class="ax-help">The range is where the mean curve lies with 95 % confidence; a single gauging scatters more widely. Stages outside the gauged range are marked: the curve there is an extrapolation and can be badly wrong, especially above the highest gauging.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitRating, ratingQ, ratingH, segFor, band, scatterPct, pickColumns, type Rating, type Seg } from '../../lib/sci/rating';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.rcf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const blank = (c: string) => q<HTMLInputElement>(c).value.trim() === '';
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const eq = (s: Seg) => `Q = ${sg(s.a, 4)} (h ${s.h0 < 0 ? '+' : '−'} ${sg(Math.abs(s.h0), 4)})^${sg(s.b, 4)}`;
+  let figs: [string, Figure][] = [], csvRows: (string | number)[][] = [], report: Section[] = [], R: Rating | null = null, gmin = 0, gmax = 0;
+
+  function fit() {
+    const err = q('.rc-err'), hu = q<HTMLInputElement>('.rc-hu').value.trim() || 'm', qu = q<HTMLInputElement>('.rc-qu').value.trim() || 'm³/s';
+    q('.rc-hul').textContent = hu; q('.rc-qul').textContent = qu;
+    const two = sel('.rc-seg') === '2';
+    root.querySelectorAll<HTMLElement>('.rc-brkbox').forEach((e) => { e.hidden = !two; });
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; root.querySelectorAll<HTMLElement>('.rc-out').forEach((e) => { e.hidden = true; }); R = null; report = []; figs = []; csvRows = []; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.rc-data').value), c = pickColumns(t.headers, t.cols);
+    if (c.hi < 0 || c.qi < 0) return fail('Give two columns of numbers: stage and discharge.');
+    const h: number[] = [], Q: number[] = [];
+    let skipped = 0;
+    t.cols[c.hi].forEach((v, i) => { const qq = t.cols[c.qi][i]; if (Number.isFinite(v) && qq > 0) { h.push(v); Q.push(qq); } else skipped++; });
+    if (h.length > 5000) return fail(`There are ${h.length.toLocaleString('en')} gaugings; the limit is 5,000.`);
+    if (h.length < 4) return fail(`Give at least 4 gaugings with a discharge above zero (found ${h.length}).`);
+    const opts: { h0?: number; brk?: number; h0Upper?: number } = {};
+    if (!blank('.rc-h0')) { opts.h0 = val('.rc-h0'); if (!Number.isFinite(opts.h0)) return fail('Give h0 as a number, or leave it blank.'); if (opts.h0 >= Math.min(...h)) return fail(`h0 must be below the lowest gauged stage (${sg(Math.min(...h), 4)} ${hu}).`); }
+    if (two) {
+      opts.brk = val('.rc-brk');
+      const nl = h.filter((v) => v < opts.brk!).length, nu = h.length - nl;
+      if (!(nl >= 4 && nu >= 4)) return fail(`Each segment needs at least 4 gaugings; the break at ${sg(opts.brk, 4)} ${hu} leaves ${nl} below and ${nu} at or above.`);
+      if (!blank('.rc-h0u')) { opts.h0Upper = val('.rc-h0u'); if (!(opts.h0Upper < Math.min(...h.filter((v) => v >= opts.brk!)))) return fail('The upper h0 must be below the lowest gauging in the upper segment.'); }
+    }
+    const r = fitRating(h, Q, opts);
+    if (!r) return fail('The curve could not be fitted; check that discharge rises with stage.');
+    err.hidden = true; root.querySelectorAll<HTMLElement>('.rc-out').forEach((e) => { e.hidden = false; });
+    R = r; gmin = Math.min(...h); gmax = Math.max(...h);
+    const tol = val('.rc-tol') > 0 ? val('.rc-tol') : 10;
+    const res = h.map((v, i) => (Q[i] / ratingQ(r, v) - 1) * 100), off = res.map((p, i) => [p, i] as [number, number]).filter(([p]) => Math.abs(p) > tol);
+    q('.rc-big').textContent = r.segs.length === 1 ? eq(r.segs[0]) : `${eq(r.segs[0])} below ${sg(r.brk!, 4)} ${hu}; ${eq(r.segs[1])} above`;
+    const facts = [fact('Gaugings', `${h.length}, stage ${sg(gmin, 4)} to ${sg(gmax, 4)} ${hu}`, `discharge ${sg(Math.min(...Q), 4)} to ${sg(Math.max(...Q), 4)} ${qu}${skipped ? `; ${skipped} rows skipped` : ''}`)];
+    r.segs.forEach((s, k) => {
+      const [lo, hi] = scatterPct(s);
+      facts.push(fact(r.segs.length === 1 ? 'Scatter about the curve' : `Scatter, ${k ? 'upper' : 'lower'} segment`, `${sg(lo, 3)} % to +${sg(hi, 3)} %`, `95 % of single gaugings; log standard error ${sg(s.s, 3)}; h0 ${opts[k ? 'h0Upper' : 'h0'] === undefined ? 'fitted' : 'typed'}`));
+    });
+    if (r.brk !== undefined) { const a = r.segs[0], b = r.segs[1], qa = a.a * Math.pow(r.brk - a.h0, a.b), qb = b.a * Math.pow(r.brk - b.h0, b.b); facts.push(fact('Step at the break', `${sg(((qb / qa) - 1) * 100, 3)} %`, `lower curve ${sg(qa, 4)}, upper curve ${sg(qb, 4)} ${qu} at ${sg(r.brk, 4)} ${hu}; adjust the break to make them meet`)); }
+    facts.push(fact(`Gaugings more than ${sg(tol, 3)} % off`, off.length ? off.map(([p, i]) => `${sg(h[i], 4)} ${hu} (${p > 0 ? '+' : ''}${sg(p, 3)} %)`).join(', ') : 'none', 'check the measurement, or a change in the channel'));
+    q('.rc-facts').replaceChildren(...facts);
+    // Charts: curve (discharge across, stage up) and residuals.
+    const hs: number[] = [], top = gmax + 0.15 * (gmax - gmin), bot = Math.max(r.segs[0].h0, gmin - 0.15 * (gmax - gmin));
+    for (let k = 0; k <= 160; k++) hs.push(bot + ((top - bot) * k) / 160);
+    const bands = hs.map((v) => band(segFor(r, v), v));
+    const fig = chartFigure({ w: 380, h: 260, xLabel: `Discharge (${qu})`, yLabel: `Stage (${hu})`, xMin: 0, legend: 'below', series: [
+      { name: 'Rating curve', x: hs.map((v) => ratingQ(r, v)), y: hs, mode: 'line', width: 2 },
+      { name: '95 % range of the curve', x: [...bands.map((b) => b[0]), ...bands.map((b) => b[1]).reverse()], y: [...hs, ...[...hs].reverse()], mode: 'line', width: 1, dash: [2, 3] },
+      { name: 'Gaugings', x: Q, y: h, mode: 'points', size: 3.5 },
+    ], marks: r.brk !== undefined ? [{ kind: 'hline', at: r.brk, dash: [4, 3], label: 'break' }] : [] }, 'Stage against discharge with the fitted rating curve');
+    const rfig = chartFigure({ w: 380, h: 200, xLabel: `Stage (${hu})`, yLabel: 'Off the curve (%)', legend: 'none', series: [
+      { name: 'Gaugings', x: h, y: res, mode: 'points', size: 3.5 },
+    ], marks: [{ kind: 'hline', at: tol, dash: [4, 3], label: `+${sg(tol, 3)} %` }, { kind: 'hline', at: -tol, dash: [4, 3], label: `−${sg(tol, 3)} %` }, { kind: 'hline', at: 0, dash: [1, 0] }] }, 'Gauging residuals against stage');
+    paint(q<HTMLCanvasElement>('.rc-fig'), fig); paint(q<HTMLCanvasElement>('.rc-rfig'), rfig);
+    figs = [['.rc-fig', fig], ['.rc-rfig', rfig]];
+    report = [{ title: q('.rc-big').textContent!, facts: factsOf(q('.rc-facts')), figure: fig }, { title: 'Residuals', figure: rfig }];
+    use();
+  }
+
+  function use() {
+    if (!R) return;
+    const r = R, hu = q<HTMLInputElement>('.rc-hu').value.trim() || 'm', qu = q<HTMLInputElement>('.rc-qu').value.trim() || 'm³/s';
+    const out = (v: number) => (v < gmin || v > gmax ? ' (outside the gauged range)' : '');
+    const uf: HTMLElement[] = [];
+    const hq = val('.rc-qh');
+    if (Number.isFinite(hq)) { const b = band(segFor(r, hq), hq); uf.push(fact(`Discharge at ${sg(hq, 4)} ${hu}`, `${sg(ratingQ(r, hq), 4)} ${qu}${out(hq)}`, ratingQ(r, hq) > 0 ? `95 % range ${sg(b[0], 4)} to ${sg(b[1], 4)}` : 'at or below the zero-flow stage')); }
+    const qh = val('.rc-hq');
+    if (qh > 0) { const st = ratingH(r, qh); uf.push(fact(`Stage for ${sg(qh, 4)} ${qu}`, `${sg(st, 4)} ${hu}${out(st)}`)); }
+    const t0 = val('.rc-t0'), t1 = val('.rc-t1'), ts = val('.rc-ts');
+    const tab = q<HTMLTableElement>('.rc-tab'); tab.replaceChildren();
+    csvRows = [];
+    if (Number.isFinite(t0) && t1 > t0 && ts > 0 && (t1 - t0) / ts <= 2000) {
+      const head = [`Stage (${hu})`, `Discharge (${qu})`, '95 % low', '95 % high', 'Note'];
+      csvRows = [head];
+      for (let k = 0; t0 + k * ts <= t1 + 1e-9 * ts; k++) {
+        const v = +(t0 + k * ts).toFixed(10), qq = ratingQ(r, v), b = band(segFor(r, v), v);
+        csvRows.push([sg(v, 6), sg(qq, 4), qq > 0 ? sg(b[0], 4) : '', qq > 0 ? sg(b[1], 4) : '', v < gmin || v > gmax ? 'outside gauged range' : '']);
+      }
+      const hr = tab.createTHead().insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; hr.append(th); });
+      const bd = tab.createTBody(); csvRows.slice(1).forEach((row) => { const tr = bd.insertRow(); if (row[4]) tr.className = 'rc-ext'; row.forEach((x) => { tr.insertCell().textContent = String(x); }); });
+    } else uf.push(fact('Table', 'give a start, a higher end and a step (at most 2,000 rows)'));
+    q('.rc-ufacts').replaceChildren(...uf);
+    report = report.slice(0, 2);
+    if (csvRows.length > 1) report.push({ title: 'Rating table', facts: factsOf(q('.rc-ufacts')), table: { head: csvRows[0].map(String), rows: csvRows.slice(1).map((x) => x.map(String)) } });
+  }
+
+  root.querySelectorAll('.rc-data, .rc-hu, .rc-qu, .rc-h0, .rc-seg, .rc-brk, .rc-h0u, .rc-tol').forEach((i) => { i.addEventListener('input', fit); i.addEventListener('change', fit); });
+  root.querySelectorAll('.rc-qh, .rc-hq, .rc-t0, .rc-t1, .rc-ts').forEach((i) => { i.addEventListener('input', use); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  q('.rc-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new TextEncoder().encode(toCsv(csvRows)), 'rating-table.csv', 'text/csv'); });
+  fit();
+  wireDownloads(q('.dl'), () => ({ title: 'Rating curve', subtitle: q('.rc-big').textContent ?? '', file: 'rating-curve', sections: report }));
+</script>
+
+<style is:global>
+  .rcf select, .rcf input { max-width: 100%; }
+  .rcf textarea { width: 100%; }
+  .rcf .rc-tab td, .rcf .rc-tab th { text-align: right; white-space: nowrap; }
+  .rcf .rc-ext td { color: var(--muted); }
+</style>

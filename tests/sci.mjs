@@ -127,6 +127,7 @@ import * as OCH from '../src/lib/sci/openchannel.ts';
 import * as RO from '../src/lib/sci/runoff.ts';
 import * as FF from '../src/lib/sci/floodfreq.ts';
 import * as ET from '../src/lib/sci/et0.ts';
+import * as RC from '../src/lib/sci/rating.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2500,6 +2501,39 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('et0: weather columns found by name', wc.date === 0 && wc.tmax === 1 && wc.tmin === 2 && wc.rhmax === 3 && wc.rhmin === 4 && wc.rh === -1 && wc.u === 5 && wc.sun === 6 && wc.rs === -1 && wc.tdew === -1);
   const wc2 = ET.weatherColumns(['day', 'max temp', 'min temp', 'humidity', 'dew point', 'solar radiation']);
   check('et0: other column names', wc2.tmax === 1 && wc2.tmin === 2 && wc2.rh === 3 && wc2.tdew === 4 && wc2.rs === 5 && wc2.u === -1);
+}
+{
+  // Rating curves on 24 made-up gaugings, against SciPy curve_fit (h0 free) and linregress (h0 fixed).
+  const h = [0.642, 0.658, 0.677, 0.711, 0.731, 0.79, 0.9, 0.93, 0.97, 0.981, 1.147, 1.284, 1.295, 1.671, 1.83, 1.881, 2.269, 2.454, 2.636, 2.67, 2.722, 2.766, 2.887, 3.041], Q = [1.566, 1.67, 1.809, 2.241, 2.525, 2.98, 4.121, 4.611, 5.258, 5.534, 7.973, 11.116, 11.022, 19.104, 21.919, 24.115, 36.939, 41.45, 47.97, 46.741, 49.209, 47.673, 57.671, 61.862];
+  const s = RC.fitSearch(h, Q);
+  near('rating: searched h0 (SciPy 0.3406196)', s.h0, 0.34061961776027544, 2e-5);
+  near('rating: a (SciPy 11.61084)', s.a, 11.610844433136483, 2e-3);
+  near('rating: b (SciPy 1.681117)', s.b, 1.6811168654976243, 1e-4);
+  near('rating: log standard error (SciPy 0.0349236)', s.s, 0.03492364890363027, 1e-7);
+  near('rating: Q at 2.5 m (SciPy 42.3555)', RC.qAt(s, 2.5), 42.355535950917414, 2e-4);
+  const f = RC.fitFixed(h, Q, 0.3);
+  near('rating: fixed h0 a (SciPy linregress 10.602063)', f.a, 10.602063210872172, 1e-9);
+  near('rating: fixed h0 b (SciPy 1.7639135)', f.b, 1.763913506299644, 1e-12);
+  const bd = RC.band(f, 2);
+  near('rating: 95 % band low at 2 m (SciPy t 26.49459)', bd[0], 26.494592419590404, 1e-8);
+  near('rating: 95 % band high at 2 m (SciPy 27.58084)', bd[1], 27.580838507481623, 1e-8);
+  near('rating: stage for a discharge round trip', RC.hAt(s, RC.qAt(s, 1.7)), 1.7, 1e-12);
+  check('rating: zero flow at or below h0', RC.qAt(s, s.h0) === 0 && RC.qAt(s, 0.1) === 0);
+  // Exact curve with a typed h0 is recovered exactly.
+  const hx = [0.5, 0.8, 1.2, 1.9, 2.6, 3.4], qx = hx.map((v) => 7.5 * Math.pow(v - 0.2, 1.8));
+  const ex = RC.fitFixed(hx, qx, 0.2);
+  near('rating: exact a', ex.a, 7.5, 1e-10); near('rating: exact b', ex.b, 1.8, 1e-12);
+  near('rating: exact curve found by the search', RC.fitSearch(hx, qx).h0, 0.2, 1e-5);
+  // Two segments: a control change at 2 m.
+  const h2 = [0.4, 0.6, 0.8, 1.0, 1.3, 1.6, 1.9, 2.1, 2.4, 2.8, 3.2, 3.6], q2 = h2.map((v) => (v < 2 ? 5 * Math.pow(v - 0.1, 1.6) : 9 * Math.pow(v - 0.6, 1.4)));
+  const r2 = RC.fitRating(h2, q2, { brk: 2, h0: 0.1, h0Upper: 0.6 });
+  check('rating: two segments recovered', Math.abs(r2.segs[0].b - 1.6) < 1e-10 && Math.abs(r2.segs[1].a - 9) < 1e-9 && Math.abs(RC.ratingQ(r2, 3) - 9 * Math.pow(2.4, 1.4)) < 1e-9);
+  near('rating: two-segment stage for a discharge', RC.ratingH(r2, 9 * Math.pow(2.4, 1.4)), 3, 1e-9);
+  near('rating: two-segment stage below the break', RC.ratingH(r2, 5 * Math.pow(1.4, 1.6)), 1.5, 1e-9);
+  const sc = RC.scatterPct(s);
+  check('rating: scatter band about ±7 %', sc[0] < -6 && sc[0] > -8 && sc[1] > 6 && sc[1] < 8);
+  check('rating: columns by name', JSON.stringify(RC.pickColumns(['date', 'Discharge (m3/s)', 'Gauge height (m)'], [[NaN, NaN, NaN], [1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 2, qi: 1 }));
+  check('rating: columns by order', JSON.stringify(RC.pickColumns(['a', 'b'], [[1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 0, qi: 1 }));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
