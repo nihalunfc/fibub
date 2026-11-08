@@ -85,6 +85,7 @@ import * as DEC from '../src/lib/sci/decay.ts';
 import * as PMW from '../src/lib/sci/polymer.ts';
 import * as COP from '../src/lib/sci/copolymer.ts';
 import * as GT from '../src/lib/sci/glass.ts';
+import * as TH from '../src/lib/sci/thermal.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1288,6 +1289,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('mole fractions MMA/BA 50:50', GT.moleFractions([0.5, 0.5], [100.12, 128.17])[0], 0.5614, 0.0001);
   near('Flory–Fox PS at Mn 10 000', GT.floryFox(100, 1e5, 1e4), 90, 1e-9);
   check('all listed materials have Tg, density and M', GT.MATERIALS.every((m) => Number.isFinite(m.tg) && m.rho > 0.5 && m.M > 10));
+}
+{
+  // Thermal analysis: simulated PET DSC and calcium oxalate monohydrate TGA recover the values they were built with.
+  const d = TH.exampleDSC(), p = TH.prep(d.map((r) => r[0]), d.map((r) => -r[1] / 10));
+  const g = TH.glassTransition(p, 60, 95, 1.5);
+  near('DSC Tg midpoint', g.mid, 78, 0.1); near('DSC ΔCp', TH.deltaCp(g.step, 10), 0.4, 0.005);
+  check('Tg onset < mid < end', g.onset < g.mid && g.mid < g.end && g.end - g.onset < 8);
+  const c = TH.peak(p, 110, 165, 1.5), m = TH.peak(p, 225, 272, 1.5);
+  near('cold crystallisation ΔH', TH.enthalpy(c.area, 10), -25, 0.1); near('cold crystallisation peak', c.Tpeak, 135, 0.3);
+  near('melting ΔH', TH.enthalpy(m.area, 10), 40, 0.1); near('melting peak', m.Tpeak, 250, 0.3);
+  check('melting onset before the peak', m.onset < 245 && m.onset > 238);
+  near('PET crystallinity', TH.crystallinity(40, 25, 140), 0.10714, 0.00001);
+  near('crystallinity in a 30 % filled sample', TH.crystallinity(28, 0, 140, 0.7), 0.2857, 0.0001);
+  near('peak area of a triangle', TH.peak([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((T) => ({ T, y: Math.max(0, 3 - Math.abs(T - 6)) })), 0, 12, 1).area, 9, 1e-9);
+  const t = TH.exampleTGA(), r = TH.tga(TH.prep(t.map((x) => x[0]), t.map((x) => x[1])), 5);
+  check('TGA finds 3 steps', r.steps.length === 3);
+  near('CaC2O4·H2O water loss', r.steps[0].loss, 12.33, 0.02); near('CO loss', r.steps[1].loss, 19.17, 0.02); near('CO2 loss', r.steps[2].loss, 30.12, 0.02);
+  near('residue CaO', r.residue, 38.38, 0.02);
+  near('DTG peaks', r.steps[2].Tpeak, 735, 1);
+  check('fragments matched', ['H2O', 'CO', 'CO2'].every((f, i) => TH.matchFragment(r.steps[i].loss, 146.11)?.frag === f));
+  check('no match for an odd loss', TH.matchFragment(4.4, 146.11, 0.3) === null);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
