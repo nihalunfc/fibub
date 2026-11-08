@@ -122,6 +122,7 @@ import * as SPX from '../src/lib/sci/spectral.ts';
 import * as SND from '../src/lib/sci/sounding.ts';
 import * as KOP from '../src/lib/sci/koppen.ts';
 import * as TRD from '../src/lib/sci/trend.ts';
+import * as WAV from '../src/lib/sci/waves.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2324,6 +2325,37 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('trend: parse dates, sort, skip blanks', p1.kind === 'dates' && p1.x.join() === '3,5,6' && p1.month.join() === '1,3,4' && p1.skipped === 1 && Math.abs(p1.t[2] - (2020 + 3 / 12 + 15 / 365.25)) < 1e-9);
   const p2 = TRD.parseSeries(rows('4\n5\nx\n7'), n);
   check('trend: parse a single column', p2.kind === 'values' && p2.t.join() === '1,2,3' && p2.x.join() === '4,5,7');
+}
+
+// Waves (#139): dispersion against an independent SciPy root-find, deep and shallow limits, shoaling, refraction and breaking.
+{
+  const w = WAV.wave(10, 10);
+  near('waves: L for T 10 s, h 10 m (SciPy 92.35582)', w.L, 92.35581694832722, 1e-9);
+  near('waves: Cg (SciPy 8.067984)', w.Cg, 8.067984310698067, 1e-9);
+  near('waves: n (SciPy 0.873576)', w.n, 0.8735761944710076, 1e-12);
+  near('waves: L for 8 s in 5 m (SciPy 53.07145)', WAV.wave(8, 5).L, 53.071449593263175, 1e-9);
+  near('waves: L for 12 s in 100 m (SciPy 223.1468)', WAV.wave(12, 100).L, 223.14684963659394, 1e-9);
+  near('waves: Cg for 6 s in 2 m (SciPy 3.955186)', WAV.wave(6, 2).Cg, 3.9551859452633202, 1e-9);
+  near('waves: deep limit L = gT²/2π', WAV.wave(15, 5000).L, (WAV.G * 225) / (2 * Math.PI), 1e-9);
+  near('waves: deep group speed = C/2', WAV.wave(9, 5000).Cg, WAV.wave(9, 5000).C / 2, 1e-12);
+  near('waves: shallow limit C → √(gh)', WAV.wave(200, 1).C, Math.sqrt(WAV.G), 1e-3);
+  check('waves: Fenton-McKee within 1.7 %', [[10, 10], [8, 5], [12, 100], [6, 2]].every(([T, h]) => Math.abs(WAV.fentonMcKee(T, h) / WAV.wave(T, h).L - 1) < 0.017));
+  near('waves: bed orbital speed (SciPy 0.427991)', w.ub, 0.42799129591085666, 1e-9);
+  near('waves: power per metre for H = 1 m (SciPy 10137.24 W)', w.P, 10137.236974877485, 1e-6);
+  check('waves: depth classes', w.regime === 'intermediate' && WAV.wave(10, 200).regime === 'deep' && WAV.wave(10, 1).regime === 'shallow');
+  const t = WAV.transform(10, 2, 50, 5, 30);
+  near('waves: shoaling Ks (SciPy 1.162573)', t.Ks, 1.1625731928861587, 1e-9);
+  near('waves: refraction Kr (SciPy 0.942625)', t.Kr, 0.9426246337224414, 1e-9);
+  near('waves: angle at 5 m (SciPy 12.926°)', t.a2, 12.92599201073054, 1e-7);
+  const bp = WAV.breakPoint(10, 2, 50);
+  near('waves: breaking depth (SciPy 3.25905 m)', bp.hb, 3.2590514863823823, 2e-4);
+  near('waves: breaking height = 0.78 × depth', bp.Hb, 0.78 * bp.hb, 2e-4);
+  check('waves: breaking is depth-limited', bp.by === 'depth' && !bp.already);
+  check('waves: already broken offshore', WAV.breakPoint(10, 5, 5).already === true);
+  const ir = WAV.iribarren(0.02, 2, 156.08);
+  check('waves: Iribarren spilling, plunging, surging', ir.type === 'spilling' && WAV.iribarren(0.1, 1, 100).type === 'plunging' && WAV.iribarren(0.5, 1, 100).type === 'surging or collapsing');
+  near('waves: deep-water equivalent height', WAV.deepEquivalent(10, 2, 50), 2 / Math.sqrt(WAV.wave(10, 50).C0 / 2 / WAV.wave(10, 50).Cg), 1e-12);
+  check('waves: no depth gives NaN', Number.isNaN(WAV.wavenumber(10, 0)));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

@@ -1,0 +1,133 @@
+---
+// Linear water wave calculator: dispersion, celerity, energy, shoaling, refraction and breaking. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wvc">
+  <div class="ax-card">
+    <h2>Wave and water</h2>
+    <div class="ax-grid">
+      <label>Units <select class="wv-u"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+      <label>Wave period T (s) <input class="wv-T" type="text" inputmode="decimal" value="10" /></label>
+      <label>Wave height H (<span class="wv-lu">m</span>) <input class="wv-H" type="text" inputmode="decimal" value="2" /></label>
+      <label>Water depth where H is measured (<span class="wv-lu">m</span>) <input class="wv-h" type="text" inputmode="decimal" value="50" /></label>
+      <label>Angle between the wave crests and the depth contours (°) <input class="wv-a" type="text" inputmode="decimal" value="0" /></label>
+      <label>Shallower depth to carry the wave to (<span class="wv-lu">m</span>) <input class="wv-h2" type="text" inputmode="decimal" value="5" /></label>
+      <label>Beach slope, 1 in <input class="wv-s" type="text" inputmode="decimal" value="50" /></label>
+      <label>Breaker index γ (breaking H ÷ depth) <input class="wv-g" type="text" inputmode="decimal" value="0.78" /></label>
+      <label>Water <select class="wv-rho"><option value="1025" selected>Sea water (1,025 kg/m³)</option><option value="1000">Fresh water (1,000 kg/m³)</option></select></label>
+    </div>
+    <p class="ax-help">Period: the time between crests, from a buoy report or a stopwatch. Height: crest to trough (use the significant height Hs for a sea state, as an approximation). The angle is 0 when the crests run parallel to the shore. γ = 0.78 is McCowan's classic value; 0.6 to 1.2 is seen on real beaches. The example values are made up.</p>
+    <p class="ax-err wv-err" hidden></p>
+  </div>
+
+  <div class="ax-card wv-out">
+    <h2>At the measured depth</h2>
+    <p class="ax-big wv-big"></p>
+    <dl class="ax-facts wv-facts"></dl>
+    <h2 style="margin-top:14px">Into shallower water</h2>
+    <p class="ax-big wv-big2"></p>
+    <dl class="ax-facts wv-facts2"></dl>
+    <canvas class="ax-fig wv-fig"></canvas>
+    <canvas class="ax-fig wv-fig2"></canvas>
+    <p class="ax-help">Linear (Airy) wave theory over straight, parallel depth contours, with no friction, currents or wind. It is a good first estimate; steep waves in shallow water (a large Ursell number) are better described by nonlinear theories. Not for navigation or safety decisions.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { wave, transform, breakPoint, deepEquivalent, iribarren, fentonMcKee } from '../../lib/sci/waves';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wvc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [];
+
+  function calc() {
+    const err = q('.wv-err'), out = q('.wv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const ft = sel('.wv-u') === 'ft', U = ft ? 0.3048 : 1, lu = ft ? 'ft' : 'm';
+    root.querySelectorAll('.wv-lu').forEach((e) => { e.textContent = lu; });
+    const T = val('.wv-T'), H = val('.wv-H') * U, h = val('.wv-h') * U, a = val('.wv-a'), h2 = val('.wv-h2') * U, slopeN = val('.wv-s'), gam = val('.wv-g'), rho = +sel('.wv-rho');
+    if (!(T > 0 && T < 1000)) return fail('Give a wave period in seconds (greater than 0).');
+    if (!(H > 0)) return fail('Give a wave height greater than 0.');
+    if (!(h > 0)) return fail('Give the water depth where the height was measured.');
+    if (!(Math.abs(a) < 90)) return fail('The angle must be between −90° and 90°.');
+    if (!(gam > 0 && gam <= 2)) return fail('The breaker index γ is usually between 0.5 and 1.3.');
+    err.hidden = true; out.hidden = false;
+    const L = (m: number, d = 3) => `${sig(m / U, d)} ${lu}`, V = (m: number) => `${sig(m / U, 3)} ${lu}/s`;
+    const w = wave(T, h, H, rho);
+    q('.wv-big').textContent = `Wavelength ${L(w.L, 4)}, speed ${V(w.C)} in ${L(h)} of water (${w.regime} water)`;
+    const steepOk = H <= w.hmax;
+    const f1 = [
+      fact('Wavelength L', L(w.L, 4), `deep-water wavelength L₀ = gT²/2π = ${L(w.L0, 4)}; Fenton-McKee approximation ${L(fentonMcKee(T, h), 4)}`),
+      fact('Water depth class', `${w.regime} (h/L = ${sig(w.rel, 3)})`, 'deep above 0.5, shallow below 0.05'),
+      fact('Phase speed C', V(w.C), `the crests travel at L/T; deep water C₀ = ${V(w.C0)}`),
+      fact('Group speed Cg', V(w.Cg), `energy travels at n × C, n = ${w.n.toFixed(3)}`),
+      fact('Wavenumber k', `${sig(w.k * U, 4)} rad/${lu}`, `kh = ${sig(w.kh, 3)}; angular frequency ${sig(w.w, 4)} rad/s`),
+      fact('Energy', `${sig(w.E / 1000, 3)} kJ/m²`, 'ρgH²/8 for a regular wave'),
+      fact('Wave power', `${sig((w.P / 1000) * (ft ? 0.3048 : 1), 3)} kW per ${lu} of crest`, 'energy × group speed (regular wave; for a sea state with Hs use about half)'),
+      fact('Water speed at the bed', V(w.ub), 'peak back-and-forth orbital speed, πH / (T sinh kh): what moves sand'),
+      fact('Steepness H/L', sig(w.steep, 3), steepOk ? `below the breaking limit (Miche) of ${L(w.hmax)} at this depth` : `above the Miche limit of ${L(w.hmax)}: this wave would already be breaking`),
+      fact('Ursell number', sig(w.ursell, 3), w.ursell > 25 ? 'above about 25: nonlinear effects matter, linear results are rough' : 'small: linear theory is fine'),
+    ];
+    q('.wv-facts').replaceChildren(...f1);
+    // Transformation and breaking.
+    const f2: HTMLElement[] = [];
+    const bp = breakPoint(T, H, h, a, gam);
+    let big2 = '';
+    if (h2 > 0 && h2 < h) {
+      const t = transform(T, H, h, h2, a), broken = bp && !bp.already && h2 < bp.hb;
+      big2 = broken ? `At ${L(h2)} the wave has already broken (it breaks at about ${L(bp!.hb)})` : `At ${L(h2)} the wave is ${L(t.H2)} high`;
+      f2.push(fact(`Height at ${L(h2)}`, broken ? `broken (would be ${L(t.H2)} unbroken)` : L(t.H2), `shoaling Ks = ${t.Ks.toFixed(3)} × refraction Kr = ${t.Kr.toFixed(3)}`));
+      if (a) f2.push(fact('Angle there', `${t.a2.toFixed(1)}°`, "the crests turn towards the contours (Snell's law)"));
+    } else if (h2 >= h) f2.push(fact('Shallower depth', 'must be less than the measured depth', ''));
+    if (bp) {
+      if (bp.already) { big2 = big2 || 'The wave is already breaking at the measured depth'; f2.push(fact('Breaking', 'already breaking at the measured depth', `H ≥ ${gam} × depth or steeper than the Miche limit`)); }
+      else {
+        if (!big2) big2 = `Breaks in about ${L(bp.hb)} of water, ${L(bp.Hb)} high`;
+        f2.push(fact('Breaking depth and height', `${L(bp.hb)} deep, ${L(bp.Hb)} high`, bp.by === 'depth' ? `where H reaches γ × depth = ${gam} × depth` : 'where the wave reaches the Miche steepness limit'));
+        if (slopeN > 0) f2.push(fact('Surf zone width', `about ${L(bp.hb * slopeN)}`, `breaking depth × ${sig(slopeN, 4)} on a 1 in ${sig(slopeN, 4)} plane beach`));
+        if (a) f2.push(fact('Angle at breaking', `${bp.ab.toFixed(1)}°`, 'drives the longshore current'));
+      }
+    }
+    if (slopeN > 0) {
+      const H0 = deepEquivalent(T, H, h), ir = iribarren(1 / slopeN, H0, w.L0);
+      f2.push(fact('Breaker type', ir.type, `Iribarren number ξ₀ = ${ir.xi.toFixed(2)} (deep-water height ${L(H0)}); spilling below 0.5, plunging 0.5 to 3.3 (Battjes)`));
+    }
+    q('.wv-big2').textContent = big2 || '—';
+    q('.wv-facts2').replaceChildren(...f2);
+    // Charts: height across the shoaling zone, and speeds against depth.
+    const end = bp && !bp.already ? bp.hb : h * 0.02, ds: number[] = [];
+    for (let i = 0; i <= 120; i++) ds.push(h * Math.pow(end / h, i / 120));
+    const Hs = ds.map((d) => transform(T, H, h, d, a).H2 / U), lim = ds.filter((d) => (gam * d) / U <= Math.max(...Hs) * 1.6);
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: `Water depth (${lu}), shore to the right`, yLabel: `Wave height (${lu})`, xReverse: true, xLog: true, yMin: 0, legend: 'below', series: [
+      { name: 'Wave height (shoaling and refraction)', x: ds.map((d) => d / U), y: Hs, mode: 'line', width: 2 },
+      { name: `Breaking limit γ × depth`, x: lim.map((d) => d / U), y: lim.map((d) => (gam * d) / U), mode: 'line', width: 1.2, dash: [5, 4] },
+    ], marks: bp && !bp.already ? [{ kind: 'vline', at: bp.hb / U, dash: [3, 3], label: 'breaks' }] : [] }, `Wave height from ${L(h)} towards the shore${bp && !bp.already ? `, breaking at ${L(bp.hb)}` : ''}`);
+    const dd: number[] = []; const dmax = Math.max(h, w.L0 / 2);
+    for (let i = 0; i <= 100; i++) dd.push(0.1 * Math.pow(dmax / 0.1, i / 100) * (ft ? 1 : 1));
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: `Water depth (${lu})`, yLabel: `Speed (${lu}/s)`, xLog: true, yMin: 0, legend: 'below', series: [
+      { name: 'Phase speed C', x: dd.map((d) => d / U), y: dd.map((d) => wave(T, d).C / U), mode: 'line', width: 2 },
+      { name: 'Group speed Cg', x: dd.map((d) => d / U), y: dd.map((d) => wave(T, d).Cg / U), mode: 'line', width: 2, dash: [6, 3] },
+    ], marks: [{ kind: 'vline', at: h / U, dash: [3, 3], label: 'here' }] }, `Phase and group speed against depth for a ${sig(T, 3)} s wave`);
+    paint(q<HTMLCanvasElement>('.wv-fig'), c1); paint(q<HTMLCanvasElement>('.wv-fig2'), c2);
+    figs = [c1, c2];
+    const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.wv-big').textContent!, facts: rows(f1), figure: c2 }, { title: q('.wv-big2').textContent!, facts: rows(f2), figure: c1 }];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.wv-out').hidden) { paint(q<HTMLCanvasElement>('.wv-fig'), figs[0]); paint(q<HTMLCanvasElement>('.wv-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Water waves', subtitle: `T = ${q<HTMLInputElement>('.wv-T').value} s, H = ${q<HTMLInputElement>('.wv-H').value} ${sel('.wv-u')}`, file: 'waves', sections: report }));
+</script>
+
+<style is:global>
+  .wvc select, .wvc input { max-width: 100%; }
+</style>
