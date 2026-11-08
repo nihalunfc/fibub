@@ -881,6 +881,20 @@ try {
     check(await page.isVisible('.dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd-pane.on .dd-all')), 'header: each subject links to all its tools');
     const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
     check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
+    // Change log: footer link, newest first, 50 to a page; each tool page shows its own changes.
+    await page.goto(BASE + '/');
+    await Promise.all([page.waitForURL('**/changes/'), page.click('footer a[href="/changes/"]')]);
+    const log = JSON.parse(readFileSync('src/data/changelog.json', 'utf8'));
+    const shownLog = await page.locator('.cl li').count();
+    check(shownLog === Math.min(50, log.length) && shownLog > 0, `change log: footer link opens it, ${shownLog} of ${log.length} changes on page 1`);
+    const times = await page.$$eval('.cl time', (els) => els.map((e) => e.getAttribute('datetime')));
+    check(times.every((t, i) => i === 0 || t <= times[i - 1]), 'change log: newest first, with times');
+    if (log.length > 50) { await page.goto(BASE + '/changes/2/'); check((await page.locator('.cl li').count()) === Math.min(50, log.length - 50), 'change log: page 2 holds the next 50'); }
+    await page.goto(BASE + '/science/sky-tonight/');
+    check((await page.locator('#changes .cl li').count()) === Math.min(10, log.filter((c) => c.tools.includes('sky-tonight')).length), 'change log: a tool page lists its own changes');
+    await page.goto(BASE + '/');
+    check(Number((await page.textContent('.total b')).trim()) === JSON.parse(await (await fetch(BASE + '/tools.json')).text()).length, 'home: the number of tools is shown as a figure');
+    await page.goto(BASE + '/science/sky-tonight/');
     await page.click('.find-btn');
     await page.keyboard.type('#13');
     await page.waitForSelector('.at-results .ti');
@@ -914,7 +928,9 @@ try {
   const box = await phone.locator('#all-tools').boundingBox();
   const vw = phone.viewportSize();
   check(box && box.width < vw.width * 0.75 && box.y + box.height >= vw.height - 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, full height`);
-  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && await phone.isVisible('#all-tools .at-shelf[data-shelf=money][open] .at-item'), 'phone menu: shelves fold, and the current shelf is open');
+  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && (await phone.locator('#all-tools details[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
+  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-sj > summary');
+  check(await phone.isVisible('#all-tools .at-sj[open] .at-item'), 'phone menu: opening a subject lists its tools with their numbers');
   await phone.fill('.at-search', 'loan');
   await phone.waitForSelector('.at-results .ti');
   check((await phone.textContent('.at-results .ti .nm')) === 'Loan payoff planner' && !(await phone.isVisible('.at-browse')), 'phone menu: search finds any tool and hides the shelves');

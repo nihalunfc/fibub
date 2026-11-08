@@ -1,0 +1,33 @@
+---
+// A list of changes: time, what changed, the tools it touched, and a link to the change on GitHub.
+import { commitUrl, when, type Change } from '../lib/changes';
+import { toolUrl, type Tool } from '../lib/tools';
+interface Props { changes: Change[]; tools: Tool[]; showTools?: boolean }
+const { changes, tools, showTools = true } = Astro.props;
+const byId = new Map(tools.map((t) => [t.id, t]));
+---
+<ol class="cl">
+  {changes.map((c) => (
+    <li>
+      <time datetime={c.date}>{when(c.date)}</time>
+      <span class="cl-t">{c.title}</span>
+      {showTools && (c.tools.length > 0 || c.site) && (
+        <span class="cl-tags">
+          {c.tools.map((id) => byId.get(id)).filter((t) => t && t.data.status === 'live').map((t) => <a href={toolUrl(t!)}>#{t!.data.num} {t!.data.name}</a>)}
+          {c.site && <span>Whole site</span>}
+        </span>
+      )}
+      <a class="cl-gh" href={commitUrl(c.sha)} rel="noopener">Details on GitHub</a>
+    </li>
+  ))}
+</ol>
+<style>
+  .cl { list-style: none; margin: 0; padding: 0; max-width: 760px; }
+  .cl li { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .cl time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cl-t { font-weight: 600; }
+  .cl-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cl-tags a, .cl-tags span { font-size: 12.5px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+  .cl-tags a:hover { border-color: var(--ink); }
+  .cl-gh { font-size: 13px; color: var(--muted); }
+</style>

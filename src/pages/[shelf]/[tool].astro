@@ -3,6 +3,8 @@ import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import ToolFlow from '../../components/ToolFlow.astro';
 import SubjectPage from '../../components/SubjectPage.astro';
+import ChangeList from '../../components/ChangeList.astro';
+import { changesFor } from '../../lib/changes';
 import { render } from 'astro:content';
 import { shelfById } from '../../site';
 import { allTools, toolComponent, toolUrl, relatedTools, bySubject, toolPlace } from '../../lib/tools';
@@ -24,6 +26,8 @@ const shelf = tool ? shelfById(tool.data.shelf) : null;
 const ToolUI = tool ? toolComponent(tool.id) : null;
 const Content = tool ? (await render(tool)).Content : null;
 const updated = tool?.data.updated.toISOString().slice(0, 10);
+const changes = tool ? changesFor(tool.id) : [];
+const everyTool = tool ? await allTools() : [];
 ---
 {subjectPage ? <SubjectPage shelf={subjectPage.shelf} subject={subjectPage.subject} /> : (
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} image={`/og/${tool.id}.png`}>
@@ -56,6 +60,13 @@ const updated = tool?.data.updated.toISOString().slice(0, 10);
     <Content />
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
   </article>
+  {changes.length > 0 && (
+    <section class="tool-log" id="changes">
+      <h2>Change log for {tool.data.name}</h2>
+      <ChangeList changes={changes.slice(0, 10)} tools={everyTool} showTools={false} />
+      <p class="more-log">{changes.length > 10 ? `Showing the latest 10 of ${changes.length} changes. ` : ''}<a href="/changes/">Every change to fibub</a></p>
+    </section>
+  )}
   <aside class="suggest panel">
     <b>Have a suggestion, or found a bug?</b>
     <span>Tell us what would make {tool.data.name} more useful. Ideas that ship are credited, if you'd like.</span>
@@ -71,6 +82,7 @@ const updated = tool?.data.updated.toISOString().slice(0, 10);
 )}
 
 <style>
+  .more-log { font-size: 14px; color: var(--muted); }
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
   .suggest span { color: var(--muted); font-size: 15px; }
   .suggest .btn { margin-top: 6px; }
