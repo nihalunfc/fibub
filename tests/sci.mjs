@@ -61,6 +61,7 @@ import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_E
 import { crater, impactorFor } from '../src/lib/sci/crater.ts';
 import { fspl, dishGain, slantRange, requiredEbN0, budget } from '../src/lib/sci/linkbudget.ts';
 import { scope } from '../src/lib/sci/radiotel.ts';
+import { jd as aavsoJd, toVisual, toExtended, parseAavso, fractionEstimate, differential } from '../src/lib/astro/aavso.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -778,5 +779,22 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('FITS round trip', back.w === sw && back.h === sh && Math.abs(back.planes[0][(sh - 1 - 10) * sw + 20] - res.planes[0][10 * sw + 20]) < 1e-3 && back.header.num('NCOMBINE') === 8);
 }
 
+{
+  // AAVSO formats: J2000.0 = JD 2451545.0; Argelander step estimate; differential photometry; round trip.
+  near('JD of J2000', aavsoJd(Date.UTC(2000, 0, 1, 12)), 2451545, 1e-9);
+  near('step estimate 11.0/11.3, 1:2', fractionEstimate(11.0, 11.3, 1, 2), 11.1, 1e-9);
+  near('differential photometry', differential(15200, 21800, 11.034), 11.4255, 0.0002);
+  const obs = [{ name: 'SS Cyg', jd: 2454702.1234, mag: 11.1, fainter: true, filter: 'Vis.', comp1: '110', comp2: '113', chart: '070613', comment: 'B' },
+    { name: 'R Leo', jd: 2460000.5, mag: 7.234, err: 0.012, fainter: false, filter: 'V', comp1: '000-BBB-123', cmag: 7.1, mtype: 'ABS' }];
+  const vis = toVisual(obs, 'abc'), ext = toExtended(obs, 'abc', 'CCD');
+  check('visual header', /^#TYPE=VISUAL\n#OBSCODE=ABC\n/.test(vis) && vis.includes('\nSS CYG,2454702.1234,<11.1,B,110,113,070613,na\n'));
+  check('extended row', ext.includes('#OBSTYPE=CCD') && ext.includes('\nR LEO,2460000.50000,7.234,0.012,V,NO,ABS,000-BBB-123,7.100,na,na,na,na,na,na\n'));
+  const back = parseAavso(vis + ext.replace(/^#TYPE=VISUAL[\s\S]*?(?=#TYPE)/, ''));
+  check('round trip visual', parseAavso(vis).obs[0].fainter && parseAavso(vis).obs[0].comment === 'B' && parseAavso(vis).obscode === 'ABC');
+  const pe = parseAavso(ext).obs[0];
+  check('round trip extended', pe.filter === 'V' && pe.err === 0.012 && pe.cmag === 7.1 && pe.comp1 === '000-BBB-123' && back.obs.length >= 1);
+  check('commas cleaned', toVisual([{ ...obs[0], notes: 'a, b' }], 'X').includes(',a  b\n'));
+  near('reduced JD', parseAavso('SS CYG,60000.5,11.2').obs[0].jd, 2460000.5, 1e-9);
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
