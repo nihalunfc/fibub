@@ -1,0 +1,229 @@
+---
+// Double star calculator: predict separation and position angle of a binary from its orbit, or measure them
+// on your own image by tapping the two stars.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ds">
+  <div class="ax-card">
+    <div class="ax-seg ds-mode" role="group" aria-label="What to do">
+      <button type="button" data-m="orbit" aria-pressed="true">Predict from an orbit</button>
+      <button type="button" data-m="measure" aria-pressed="false">Measure my image</button>
+    </div>
+
+    <div class="ds-orbit" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Star <select class="ds-pre">
+          <option value="sirius" selected>Sirius A and B</option>
+          <option value="eta">η Coronae Borealis (Meeus's example)</option>
+          <option value="custom">My own orbit</option>
+        </select></label>
+        <label>Period P (years) <input class="ds-P" inputmode="decimal" /></label>
+        <label>Periastron time T (year) <input class="ds-T" inputmode="decimal" /></label>
+        <label>Eccentricity e <input class="ds-e" inputmode="decimal" /></label>
+        <label>Semi-major axis a (″) <input class="ds-a" inputmode="decimal" /></label>
+        <label>Inclination i (°) <input class="ds-i" inputmode="decimal" /></label>
+        <label>Node Ω (°) <input class="ds-node" inputmode="decimal" /></label>
+        <label>Periastron argument ω (°) <input class="ds-w" inputmode="decimal" /></label>
+        <label>Parallax (mas, optional) <input class="ds-plx" inputmode="decimal" /></label>
+        <label>Date <input type="date" class="ds-date" /></label>
+      </div>
+      <p class="ax-help">The seven elements come from the Washington Double Star catalogue's Sixth Orbit Catalog or a published paper. Angles follow the usual convention: position angle from north through east, Ω for the node with 0–180°. With the parallax the tool also gives the system's mass.</p>
+    </div>
+
+    <div class="ds-meas" hidden style="margin-top:12px">
+      <label>Image <input type="file" class="ds-file" accept="image/*" /></label>
+      <p class="ax-help">Tap star A (the brighter one), then star B. Each tap snaps to the centre of the light nearby. The image stays on your device.</p>
+      <canvas class="ds-img" hidden style="width:100%;height:auto;margin-top:8px;cursor:crosshair;border-radius:8px"></canvas>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>A at x, y (pixels) <input class="ds-ax" inputmode="decimal" placeholder="x" /></label>
+        <label>&nbsp;<input class="ds-ay" inputmode="decimal" placeholder="y" aria-label="A y" /></label>
+        <label>B at x, y (pixels) <input class="ds-bx" inputmode="decimal" placeholder="x" /></label>
+        <label>&nbsp;<input class="ds-by" inputmode="decimal" placeholder="y" aria-label="B y" /></label>
+        <label>Pixel size (µm) <input class="ds-pix" inputmode="decimal" value="3.76" /></label>
+        <label>Focal length (mm) <input class="ds-fl" inputmode="decimal" value="2000" /></label>
+        <label>Position angle of the image's top (°) <input class="ds-pa0" inputmode="decimal" value="0" /></label>
+      </div>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="ds-mir" /> Image is mirrored (east on the right, as with a star diagonal)</label>
+      <p class="ax-help">The image scale is 206.265 × pixel size ÷ focal length arcseconds per pixel. 0° for the top means north is up. To find it, let a star drift with the drive off: it moves west, so the top's angle is the drift direction's angle plus 270°.</p>
+    </div>
+    <p class="ax-err ds-err" hidden></p>
+  </div>
+
+  <div class="ax-card ds-out" hidden>
+    <h2 class="ds-title"></h2>
+    <p class="ax-big ds-big"></p>
+    <dl class="ax-facts ds-facts"></dl>
+    <canvas class="ax-fig ds-fig" style="margin:12px auto 0;max-width:460px"></canvas>
+    <div class="ds-eph-wrap">
+      <h3>Over the coming years</h3>
+      <div class="ax-scroll"><table class="ds-eph"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ds .ds-eph td, .ds .ds-eph th { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { orbitAt, yearOf, measure, systemMass, type VisualOrbit } from '../../lib/sci/visualbinary';
+  import { paint, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  // Sirius: Bond et al. 2017, ApJ 840, 70. η CrB: Meeus, Astronomical Algorithms, example 57.a.
+  const PRE: Record<string, [number[], number, string]> = {
+    sirius: [[50.1284, 1994.5715, 0.59142, 7.4957, 136.336, 45.4, 149.161], 379.21, 'Sirius A and B'],
+    eta: [[41.623, 1934.008, 0.2763, 0.907, 59.025, 23.717, 219.907], 0, 'η Coronae Borealis'],
+  };
+  const F = ['.ds-P', '.ds-T', '.ds-e', '.ds-a', '.ds-i', '.ds-node', '.ds-w'];
+  let mode = 'orbit', fig: Figure | null = null, report: Section[] = [], img: HTMLImageElement | null = null, pickB = false;
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  q<HTMLInputElement>('.ds-date').value = iso(new Date());
+  const COMP = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+
+  function preset() {
+    const p = q<HTMLSelectElement>('.ds-pre').value; if (p === 'custom') return;
+    F.forEach((c, i) => (q<HTMLInputElement>(c).value = String(PRE[p][0][i]))); q<HTMLInputElement>('.ds-plx').value = PRE[p][1] ? String(PRE[p][1]) : '';
+    if (p === 'eta') q<HTMLInputElement>('.ds-date').value = '1980-01-01';
+  }
+
+  function orbitFigure(o: VisualOrbit, y: number, name: string): Figure {
+    const pts: { e: number; n: number }[] = []; for (let k = 0; k <= 360; k++) { const p = orbitAt(o, o.T + (o.P * k) / 360); pts.push({ e: p.east, n: p.north }); }
+    const now = orbitAt(o, y), m = Math.max(...pts.map((p) => Math.max(Math.abs(p.e), Math.abs(p.n)))) * 1.15;
+    const ticks = Array.from({ length: Math.min(20, Math.ceil(o.P)) }, (_, k) => orbitAt(o, Math.floor(y) + Math.round((k * o.P) / Math.min(20, Math.ceil(o.P)))));
+    return {
+      w: 420, h: 420, alt: `Apparent orbit of ${name}, north up and east left`,
+      draw(ctx, w, h, pal: Palette) {
+        const s = (w / 2 - 30) / m, cx = w / 2, cy = h / 2, X = (e: number) => cx - e * s, Y = (n: number) => cy - n * s;
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, 20); ctx.lineTo(cx, h - 20); ctx.moveTo(20, cy); ctx.lineTo(w - 20, cy); ctx.stroke();
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); pts.forEach((p, k) => (k ? ctx.lineTo(X(p.e), Y(p.n)) : ctx.moveTo(X(p.e), Y(p.n)))); ctx.stroke();
+        ctx.fillStyle = pal.muted; for (const t of ticks) { ctx.beginPath(); ctx.arc(X(t.east), Y(t.north), 2.4, 0, 2 * Math.PI); ctx.fill(); }
+        ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = pal.warn; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(now.east), Y(now.north), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = pal.warn; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(X(now.east), Y(now.north)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', cx, 4);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('E', 4, cy); ctx.textAlign = 'right'; ctx.fillText('W', w - 4, cy);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`dots: yearly positions · ${sig(m / 1.15, 3)}″ to the edge of the orbit`, 8, h - 4);
+      },
+    };
+  }
+
+  function runOrbit() {
+    const err = q('.ds-err'); err.hidden = true;
+    const v = F.map((c) => num(q<HTMLInputElement>(c).value)), [P, T, e, a, i, node, w] = v;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.ds-out').hidden = true; };
+    if (!v.every(Number.isFinite)) return fail('Fill in all seven orbital elements.');
+    if (!(P > 0) || !(a > 0)) return fail('The period and semi-major axis must be above 0.');
+    if (!(e >= 0 && e < 1)) return fail('Eccentricity runs from 0 to just below 1.');
+    const d = Date.parse(q<HTMLInputElement>('.ds-date').value + 'T00:00:00Z'); if (!Number.isFinite(d)) return fail('Pick a date.');
+    const o: VisualOrbit = { P, T, e, a, i, node, omega: w }, y = yearOf(d), p = orbitAt(o, y), pre = q<HTMLSelectElement>('.ds-pre').value;
+    const name = pre === 'custom' ? 'Your binary' : PRE[pre][2];
+    q('.ds-out').hidden = false;
+    q('.ds-title').textContent = `${name} on ${q<HTMLInputElement>('.ds-date').value}`;
+    q('.ds-big').textContent = `B is ${sig(p.rho, 3)}″ from A at position angle ${p.theta.toFixed(1)}° (towards the ${COMP[Math.round(p.theta / 45) % 8]})`;
+    const plx = num(q<HTMLInputElement>('.ds-plx').value);
+    const facts: [string, string, string?][] = [
+      ['Separation ρ', `${p.rho.toFixed(3)}″`, 'angle between the two stars on the sky'],
+      ['Position angle θ', `${p.theta.toFixed(2)}°`, 'direction of B from A, measured from north through east'],
+      ['Moving', i > 90 ? 'clockwise on the sky' : 'anticlockwise on the sky', 'i above 90° means the position angle decreases'],
+      ['Year', y.toFixed(3), `${(((y - T) / P) % 1 + 1) % 1 < 0.5 ? 'heading away from' : 'heading towards'} periastron (phase ${((((y - T) / P) % 1 + 1) % 1).toFixed(3)})`],
+    ];
+    if (plx > 0) {
+      const mass = systemMass(a, P, plx / 1000), au = a / (plx / 1000);
+      facts.push(['Real semi-major axis', `${sig(au, 3)} AU`, `a ÷ parallax; the stars are ${sig(1000 / plx, 3)} pc away`], ['Total mass', `${sig(mass, 3)} solar masses`, "Kepler's third law: (a/ϖ)³ / P²"]);
+    }
+    q('.ds-facts').replaceChildren(...facts.map(([k, v2, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v2; if (s) { const m = document.createElement('small'); m.textContent = s; dd.querySelector('dd')!.append(m); } return dd; }));
+    fig = orbitFigure(o, y, name); paint(q<HTMLCanvasElement>('.ds-fig'), fig);
+    const y0 = Math.floor(y), step = P > 40 ? 1 : P > 8 ? 0.5 : P > 2 ? 0.25 : 0.1;
+    const rows = Array.from({ length: 12 }, (_, k) => { const yy = y0 + k * step, pp = orbitAt(o, yy); return [String(+yy.toFixed(2)), `${pp.rho.toFixed(3)}″`, `${pp.theta.toFixed(1)}°`]; });
+    const t = q<HTMLTableElement>('.ds-eph'); t.innerHTML = '';
+    const head = ['Year', 'Separation', 'Position angle'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, k) => { const th = document.createElement('th'); th.textContent = h; if (k) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); });
+    q('.ds-eph-wrap').hidden = false;
+    report = [{ title: q('.ds-title').textContent!, facts: [['Result', q('.ds-big').textContent!], ...facts.map(([k, v2]) => [k, v2] as [string, string])], figure: fig }, { title: 'Ephemeris', table: { head, rows, align: ['l', 'r', 'r'] } }];
+  }
+
+  // Brightness-weighted centre within 6 pixels of a tap.
+  function centroid(x: number, y: number) {
+    if (!img) return [x, y];
+    const r = 6, c = document.createElement('canvas'); c.width = 2 * r + 1; c.height = 2 * r + 1;
+    const g = c.getContext('2d')!; g.drawImage(img, x - r, y - r, 2 * r + 1, 2 * r + 1, 0, 0, 2 * r + 1, 2 * r + 1);
+    const d = g.getImageData(0, 0, 2 * r + 1, 2 * r + 1).data; let lo = 255;
+    for (let k = 0; k < d.length; k += 4) lo = Math.min(lo, (d[k] + d[k + 1] + d[k + 2]) / 3);
+    let sw = 0, sx = 0, sy = 0;
+    for (let j = 0; j <= 2 * r; j++) for (let i = 0; i <= 2 * r; i++) { const k = (j * (2 * r + 1) + i) * 4, wgt = (d[k] + d[k + 1] + d[k + 2]) / 3 - lo; sw += wgt; sx += wgt * i; sy += wgt * j; }
+    return sw > 0 ? [x - r + sx / sw, y - r + sy / sw] : [x, y];
+  }
+  function drawImg() {
+    const c = q<HTMLCanvasElement>('.ds-img'); if (!img) return;
+    c.width = img.naturalWidth; c.height = img.naturalHeight; const g = c.getContext('2d')!; g.drawImage(img, 0, 0);
+    const mark = (x: number, y: number, label: string) => { if (!Number.isFinite(x) || !Number.isFinite(y)) return; const rr = Math.max(8, c.width / 80); g.strokeStyle = '#ff9f1c'; g.lineWidth = Math.max(1.5, c.width / 600); g.beginPath(); g.arc(x, y, rr, 0, 2 * Math.PI); g.stroke(); g.fillStyle = '#ff9f1c'; g.font = `${Math.round(rr * 1.6)}px system-ui, sans-serif`; g.fillText(label, x + rr * 1.2, y - rr * 0.6); };
+    mark(num(q<HTMLInputElement>('.ds-ax').value), num(q<HTMLInputElement>('.ds-ay').value), 'A');
+    mark(num(q<HTMLInputElement>('.ds-bx').value), num(q<HTMLInputElement>('.ds-by').value), 'B');
+  }
+
+  function runMeasure() {
+    const err = q('.ds-err'); err.hidden = true;
+    const [ax, ay, bx, by, pix, fl, pa0] = ['.ds-ax', '.ds-ay', '.ds-bx', '.ds-by', '.ds-pix', '.ds-fl', '.ds-pa0'].map((c) => num(q<HTMLInputElement>(c).value));
+    q('.ds-eph-wrap').hidden = true;
+    if (![ax, ay, bx, by].every(Number.isFinite)) { q('.ds-out').hidden = true; return; }
+    if (!(pix > 0) || !(fl > 0)) { err.textContent = 'Give the pixel size and focal length, both above 0.'; err.hidden = false; return; }
+    const scale = (206.265 * pix) / fl, m = measure(ax, ay, bx, by, scale, Number.isFinite(pa0) ? pa0 : 0, q<HTMLInputElement>('.ds-mir').checked);
+    const px = Math.hypot(bx - ax, by - ay);
+    q('.ds-out').hidden = false;
+    q('.ds-title').textContent = 'Your measurement';
+    q('.ds-big').textContent = `Separation ${m.sep.toFixed(2)}″, position angle ${m.pa.toFixed(1)}°`;
+    const facts: [string, string, string?][] = [
+      ['Separation', `${m.sep.toFixed(2)}″`, `${px.toFixed(2)} pixels × ${scale.toFixed(4)}″ per pixel`],
+      ['Position angle', `${m.pa.toFixed(1)}°`, 'direction of B from A, from north through east'],
+      ['One pixel of error', `±${scale.toFixed(2)}″ in separation, ±${((Math.atan(1 / Math.max(px, 1)) * 180) / Math.PI).toFixed(1)}° in angle`, 'average several images to do better'],
+    ];
+    q('.ds-facts').replaceChildren(...facts.map(([k, v2, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v2; if (s) { const mm = document.createElement('small'); mm.textContent = s; dd.querySelector('dd')!.append(mm); } return dd; }));
+    // A small diagram of the measured pair.
+    fig = {
+      w: 420, h: 300, alt: 'The measured pair: A at the centre, B in its direction, north up and east left',
+      draw(ctx, w, h, pal: Palette) {
+        const cx = w / 2, cy = h / 2, L = 100, t = (m.pa * Math.PI) / 180;
+        ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(cx, 20); ctx.lineTo(cx, h - 20); ctx.moveTo(40, cy); ctx.lineTo(w - 40, cy); ctx.stroke();
+        ctx.strokeStyle = pal.warn; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - L * Math.sin(t), cy - L * Math.cos(t)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.arc(cx, cy, 30, -Math.PI / 2, -Math.PI / 2 - t, true); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(cx - L * Math.sin(t), cy - L * Math.cos(t), 4, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', cx, 4);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('E', 24, cy); ctx.textAlign = 'right'; ctx.fillText('W', w - 24, cy);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`θ = ${m.pa.toFixed(1)}°, ρ = ${m.sep.toFixed(2)}″`, 8, h - 4);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.ds-fig'), fig);
+    report = [{ title: 'Double star measurement', facts: [['Result', q('.ds-big').textContent!], ...facts.map(([k, v2, s]) => [k, s ? `${v2} (${s})` : v2] as [string, string])], figure: fig }];
+  }
+  const run = () => (mode === 'orbit' ? runOrbit() : runMeasure());
+
+  q('.ds-mode').querySelectorAll<HTMLButtonElement>('button').forEach((bt) => bt.addEventListener('click', () => {
+    mode = bt.dataset.m!; q('.ds-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === bt)));
+    q('.ds-orbit').hidden = mode !== 'orbit'; q('.ds-meas').hidden = mode !== 'measure'; q('.ds-out').hidden = true; run();
+  }));
+  q('.ds-pre').addEventListener('change', () => { preset(); runOrbit(); });
+  for (const c of F) q(c).addEventListener('input', () => { q<HTMLSelectElement>('.ds-pre').value = 'custom'; runOrbit(); });
+  for (const c of ['.ds-plx', '.ds-date']) q(c).addEventListener('change', runOrbit);
+  for (const c of ['.ds-ax', '.ds-ay', '.ds-bx', '.ds-by', '.ds-pix', '.ds-fl', '.ds-pa0']) q(c).addEventListener('input', () => { runMeasure(); drawImg(); });
+  q('.ds-mir').addEventListener('change', runMeasure);
+  q('.ds-file').addEventListener('change', () => {
+    const f = q<HTMLInputElement>('.ds-file').files?.[0]; if (!f) return;
+    const im = new Image(); im.onload = () => { img = im; q('.ds-img').hidden = false; pickB = false; drawImg(); }; im.onerror = () => { const e = q('.ds-err'); e.textContent = 'That file could not be opened as an image.'; e.hidden = false; };
+    im.src = URL.createObjectURL(f);
+  });
+  q('.ds-img').addEventListener('click', (ev) => {
+    const c = ev.currentTarget as HTMLCanvasElement, x = (ev.offsetX / c.clientWidth) * c.width, y = (ev.offsetY / c.clientHeight) * c.height, [cx, cy] = centroid(x, y);
+    q<HTMLInputElement>(pickB ? '.ds-bx' : '.ds-ax').value = cx.toFixed(2); q<HTMLInputElement>(pickB ? '.ds-by' : '.ds-ay').value = cy.toFixed(2);
+    pickB = !pickB; drawImg(); runMeasure();
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ds-fig'), fig));
+  preset(); runOrbit();
+  wireDownloads(q('.dl'), () => ({ title: 'Double star calculator', file: 'double-star', sections: report }));
+</script>

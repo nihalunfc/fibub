@@ -1410,6 +1410,71 @@ try {
     await page.waitForTimeout(700);
     check(/at least 5 rows/.test(await page.textContent('.rvf-err')), 'rv fit: too few rows explained');
   }
+  {
+    // Batch I: eclipse finder, satellite tracker, uv coverage, double stars.
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/eclipse-finder/');
+    await page.selectOption('.sp-tz', 'America/Toronto');
+    check(/^Next you can see: /.test(await page.textContent('.ec-big')) && (await page.locator('.ec-tab tbody tr').count()) >= 8, `eclipses: list for Toronto (${await page.textContent('.ec-big')})`);
+    const ecVisible = await page.locator('.ec-tab tbody tr').count();
+    await page.check('.ec-all');
+    check((await page.locator('.ec-tab tbody tr').count()) > ecVisible, 'eclipses: unseen ones on request');
+    await page.selectOption('.ec-type', 'solar');
+    await page.click('.ec-tab tbody tr:nth-child(1)');
+    check(/^Solar/.test(await page.textContent('.ec-dt')) && !(await page.locator('.ec-safe').isHidden()), 'eclipses: solar detail shows the eye-safety warning');
+    await page.fill('.ec-slide', '1000'); await page.dispatchEvent('.ec-slide', 'input');
+    check(/covers (0|< 1) % of the Sun/.test(await page.textContent('.ec-now')), `eclipses: slider to last contact (${await page.textContent('.ec-now')})`);
+    await page.selectOption('.ec-type', 'lunar');
+    await page.click('.ec-tab tbody tr:has-text("Lunar, total")');
+    check(/fully in Earth's shadow for \d+ minutes|Moon is below your horizon/.test(await page.textContent('.ec-db')) && (await page.locator('.ec-safe').isHidden()), 'eclipses: total lunar eclipse detail');
+    const ecCsv = readFileSync(await dl(page, '.ec-csv'), 'utf8').trim().split(/\r?\n/);
+    check(ecCsv.length > 10 && ecCsv[0].startsWith('type,kind_here,kind_global'), 'eclipses: CSV');
+
+    await page.goto(BASE + '/science/satellite-tracker/');
+    check((await page.textContent('.st-big')) === 'One orbit every 92.9 minutes, 415 × 422 km up' && /−4\.950° a day/.test(await page.textContent('.st-facts')), 'satellite: space station orbit');
+    check((await page.locator('.st-tab tbody tr').count()) >= 6, 'satellite: passes listed');
+    await page.selectOption('.st-pre', 'sso');
+    check(/sun-synchronous: it passes over at the same local time/.test(await page.textContent('.st-facts')), 'satellite: sun-synchronous orbit recognised');
+    await page.selectOption('.st-pre', 'geo');
+    check(/^One orbit every 23\.93 hours/.test(await page.textContent('.st-big')), `satellite: geostationary period (${await page.textContent('.st-big')})`);
+    await page.click('.st-mode button[data-m=tle]');
+    const issTle = 'ISS (ZARYA)\n1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537';
+    await page.fill('.st-tx', issTle);
+    check((await page.textContent('.st-title')) === 'ISS (ZARYA)' && /too old for reliable pass times/.test(await page.textContent('.st-facts')), 'satellite: TLE read, age flagged');
+    await page.fill('.st-tx', issTle.replace('51.6416', '51.6417'));
+    check(/checksum on line 2/.test(await page.textContent('.st-err')), 'satellite: bad TLE digit caught');
+    await page.fill('.st-tx', issTle);
+    const stCsv = readFileSync(await dl(page, '.st-csv'), 'utf8').trim().split(/\r?\n/);
+    check(stCsv.length > 300 && stCsv[0] === 'time_utc,latitude_deg,longitude_deg,height_km,sunlit', 'satellite: track CSV');
+
+    await page.goto(BASE + '/science/uv-coverage/');
+    check((await page.textContent('.uvc-big')) === 'Beam about 57.8″ × 52.1″ (east–west × north–south)' && /351 baselines/.test(await page.textContent('.uvc-facts')), `uv: Y array beam (${await page.textContent('.uvc-big')})`);
+    await page.selectOption('.uvc-pre', 'y36');
+    check(/^Beam about 9\.\d+″ × 8\.\d+″/.test(await page.textContent('.uvc-big')), 'uv: wider array, sharper beam');
+    await page.fill('.uvc-dec', '-60'); await page.dispatchEvent('.uvc-dec', 'change');
+    check(/never rises above 15°/.test(await page.textContent('.uvc-err')), 'uv: source too far south explained');
+    await page.fill('.uvc-dec', '30'); await page.dispatchEvent('.uvc-dec', 'change');
+    await page.fill('.uvc-ants', '0 0\n20 0'); await page.dispatchEvent('.uvc-ants', 'input');
+    check((await page.inputValue('.uvc-pre')) === 'custom' && /2 dishes, 1 baselines|2 dishes, 1 baseline/.test(await page.textContent('.uvc-facts')), 'uv: own antennas');
+    const uvCsv = readFileSync(await dl(page, '.uvc-csv'), 'utf8').trim().split(/\r?\n/);
+    check(uvCsv.length > 50 && uvCsv[0] === 'u_wavelengths,v_wavelengths', 'uv: CSV');
+
+    await page.goto(BASE + '/science/double-star-calculator/');
+    check(/^B is \d+\.\d″ from A at position angle/.test(await page.textContent('.ds-big')) && /3\.07 solar masses/.test(await page.textContent('.ds-facts')), 'double star: Sirius and its mass');
+    await page.selectOption('.ds-pre', 'eta');
+    check((await page.textContent('.ds-big')) === 'B is 0.411″ from A at position angle 318.4° (towards the north-west)', 'double star: Meeus example 57.a');
+    await page.click('.ds-mode button[data-m=measure]');
+    // A dark test image with two stars: A at (60, 60), B 20 px straight up at (60, 40).
+    const png = await page.evaluate(async () => { const c = document.createElement('canvas'); c.width = 120; c.height = 120; const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 120, 120); g.fillStyle = '#fff'; for (const [x, y] of [[60, 60], [60, 40]]) { g.beginPath(); g.arc(x, y, 2.5, 0, 7); g.fill(); } const b = await new Promise((r) => c.toBlob(r, 'image/png')); return Array.from(new Uint8Array(await b.arrayBuffer())); });
+    await page.setInputFiles('.ds-file', { name: 'pair.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+    await page.waitForSelector('.ds-img:not([hidden])');
+    const box = await page.locator('.ds-img').boundingBox(), k = box.width / 120;
+    await page.click('.ds-img', { position: { x: 61 * k, y: 59 * k } });
+    await page.click('.ds-img', { position: { x: 59 * k, y: 41 * k } });
+    check(/^Separation 7\.7\d″, position angle (0\.\d|359\.\d)°$/.test(await page.textContent('.ds-big')), `double star: taps snap to the stars (${await page.textContent('.ds-big')})`);
+    await page.check('.ds-mir'); await page.fill('.ds-ax', '60'); await page.fill('.ds-ay', '60'); await page.fill('.ds-bx', '40'); await page.fill('.ds-by', '60');
+    check(/position angle 270\.0°/.test(await page.textContent('.ds-big')), 'double star: mirrored image');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -1420,7 +1485,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -1444,7 +1509,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

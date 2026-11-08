@@ -43,6 +43,10 @@ import { moonsAt, events as jovEvents } from '../src/lib/astro/jupiter.ts';
 import { lambert } from '../src/lib/sci/lambert.ts';
 import { leg, grid, nextWindow, hohmannDays, burnFromOrbit, synodicDays } from '../src/lib/astro/porkchop.ts';
 import { fitOrbit, binary, rv as rvModel, trueAnomaly } from '../src/lib/sci/rvfit.ts';
+import { solarEclipses, lunarEclipses, shadowGeometry, overlap } from '../src/lib/astro/eclipses.ts';
+import { parseTLE, tleChecksum, fromHeights, orbitInfo, ssoInclination, gmst, position as satPos, subpoint, footprint, passes as satPasses } from '../src/lib/sci/satorbit.ts';
+import { uvTracks, baselines, yArray, dirtyBeam, beamWidth, scales, fft, parseAntennas } from '../src/lib/sci/uvcover.ts';
+import { orbitAt, measure as dsMeasure, systemMass, yearOf } from '../src/lib/sci/visualbinary.ts';
 import { planckLam, bandFraction, bcV, tFromBV, star as starBB, WIEN_LAM } from '../src/lib/sci/blackbody.ts';
 import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_EARTH, AU as AU_M, R_JUP } from '../src/lib/sci/rvmass.ts';
 import { crater, impactorFor } from '../src/lib/sci/crater.ts';
@@ -587,6 +591,73 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('circular fit P', c.o.P, 4.2308, 3 * c.err.P); near('circular fit K', c.o.K, 55.9, 3 * c.err.K);
   check('circular fit errors finite', Number.isFinite(c.err.w) && Number.isFinite(c.err.gamma) && c.o.e === 0);
   throws('too few velocities', () => fitOrbit([1, 2, 3, 4, 5, 6], [1, 2, 3, 2, 1, 0], null));
+}
+
+
+// Batch I: eclipses, satellite orbits, uv coverage, visual binaries.
+{
+  const tor = { name: 'Toronto', lat: 43.65, lon: -79.38, elev: 76, tz: 'America/Toronto' };
+  const nf = { name: 'Niagara Falls', lat: 43.0896, lon: -79.0849, elev: 180, tz: 'America/Toronto' };
+  const apr = solarEclipses(tor, Date.UTC(2024, 3, 1), Date.UTC(2024, 4, 1))[0];
+  check('2024 eclipse partial in Toronto, total elsewhere', apr.kind === 'partial' && apr.globalKind === 'total');
+  near('Toronto 2024 obscuration', apr.obscuration, 0.999, 0.002);
+  near('Toronto 2024 begin (UTC h)', apr.begin.getUTCHours() + apr.begin.getUTCMinutes() / 60, 18 + 4 / 60, 2 / 60);
+  near('Toronto 2024 end (UTC h)', apr.end.getUTCHours() + apr.end.getUTCMinutes() / 60, 20 + 31 / 60, 2 / 60);
+  const nfe = solarEclipses(nf, Date.UTC(2024, 3, 1), Date.UTC(2024, 4, 1))[0];
+  check('Niagara Falls 2024 total', nfe.kind === 'total');
+  near('Niagara Falls totality (s)', (nfe.centralEnd - nfe.centralBegin) / 1000, 213, 10);
+  const mar = lunarEclipses(tor, Date.UTC(2025, 2, 1), Date.UTC(2025, 3, 1))[0];
+  // NASA: 14 March 2025 total lunar eclipse, U1 05:09, U2 06:26, U3 07:31, U4 08:47 UTC.
+  const hm = (d) => d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60;
+  near('lunar U1', hm(mar.contacts[1]), 5 * 60 + 9, 1.5); near('lunar U2', hm(mar.contacts[2]), 6 * 60 + 26, 1.5);
+  near('lunar U3', hm(mar.contacts[3]), 7 * 60 + 31, 1.5); near('lunar U4', hm(mar.contacts[4]), 8 * 60 + 47, 1.5);
+  check('March 2025 lunar eclipse seen from Toronto', mar.kind === 'total' && mar.visible);
+  const g = shadowGeometry(mar.peak);
+  near('umbral magnitude (NASA 1.178)', (g.umbra + g.rMoon - Math.hypot(g.east, g.north)) / (2 * g.rMoon), 1.178, 0.01);
+  near('overlap: equal discs centred', overlap(1, 1, 0), 1, 1e-12); near('overlap: touching', overlap(1, 1, 2), 0, 1e-12);
+  near('overlap: half-offset equal discs', overlap(1, 1, 1), (2 * Math.PI / 3 - Math.sqrt(3) / 2) / Math.PI, 1e-9);
+
+  const tle = 'ISS (ZARYA)\n1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537';
+  const el = parseTLE(tle);
+  check('TLE checksums', tleChecksum('1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927') === 7 && tleChecksum('2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537') === 7);
+  check('TLE epoch 2008-09-20 12:25:40 UTC', Math.abs(el.epoch - Date.UTC(2008, 8, 20, 12, 25, 40, 104)) < 2);
+  near('TLE inclination', el.inc, 51.6416, 1e-9); near('TLE eccentricity', el.ecc, 0.0006703, 1e-12);
+  throws('TLE with a bad digit', () => parseTLE(tle.replace('51.6416', '51.6417')));
+  near('GMST at J2000.0 (deg)', (gmst(Date.UTC(2000, 0, 1, 12)) * 180) / Math.PI, 280.46061837, 1e-6);
+  near('sun-synchronous inclination at 700 km', ssoInclination(700, 700), 98.19, 0.02);
+  const issLike = orbitInfo(fromHeights('x', 415, 422, 51.64, 0, 0, 0, 0));
+  near('ISS-like period (min)', issLike.periodMin, 92.94, 0.02); near('ISS-like nodal drift (°/day)', issLike.raanRate, -4.95, 0.03);
+  near('Molniya perigee nearly frozen', orbitInfo(fromHeights('m', 600, 39700, 63.4, 0, 270, 0, 0)).argpRate, 0, 0.01);
+  const geo = fromHeights('g', 35786, 35786, 0, 0, 0, 0, Date.UTC(2026, 0, 1));
+  near('geostationary period (min)', orbitInfo(geo).periodMin, 1436.07, 0.05);
+  const l0 = subpoint(satPos(geo, geo.epoch), geo.epoch).lon, l1 = subpoint(satPos(geo, geo.epoch + 12 * 3600e3), geo.epoch + 12 * 3600e3).lon;
+  near('geostationary stays put (12 h)', l1 - l0, 0, 0.05);
+  near('ISS height at epoch (km)', subpoint(satPos(el, el.epoch), el.epoch).h, 350, 15);
+  near('footprint at 10° from 420 km (deg)', footprint(420, 10), 12.49, 0.02);
+  const ps = satPasses(fromHeights('x', 415, 422, 51.64, 0, 0, 0, Date.UTC(2026, 10, 8)), 43.65, -79.38, 0.076, Date.UTC(2026, 10, 8), Date.UTC(2026, 10, 11), 10);
+  check('passes found and ordered', ps.length >= 6 && ps.every((p, i) => p.rise < p.peak && p.peak < p.set && (i === 0 || p.rise > ps[i - 1].set)));
+
+  const two = uvTracks([{ e: 0, n: 0 }, { e: 100, n: 0 }], 0, 0, 1.4e9, 0, 0, 1);
+  near('E–W baseline at transit: u = B/λ', two.u[0], 100 / (299792458 / 1.4e9), 1e-9);
+  const pole = uvTracks([{ e: 0, n: 0 }, { e: 100, n: 0 }], 90, 90, 1.4e9, -6, 6, 13);
+  check('pole source traces a circle', pole.u.every((x, i) => Math.abs(Math.hypot(x, pole.v[i]) - two.u[0]) < 1e-9));
+  check('27 antennas make 351 baselines', baselines(yArray(9, 600)).length === 351);
+  const re = new Float64Array([1, 2, 3, 4, 0, 0, 0, 0]), im = new Float64Array(8); fft(re, im); fft(re, im, true);
+  check('FFT round trip', [1, 2, 3, 4, 0, 0, 0, 0].every((x, i) => Math.abs(re[i] / 8 - x) < 1e-12));
+  const tr = uvTracks(yArray(9, 600), 34.08, 30, 1.42e9, -4, 4, 97, 15), bw = beamWidth(dirtyBeam(tr.u, tr.v, 256));
+  near('Y array beam E–W (arcsec)', bw.ew, 57.8, 2); near('Y array beam N–S (arcsec)', bw.ns, 52.1, 2);
+  near('largest scale (arcsec)', scales(1.42e9, 23.946, 1039.23, 25).largest, 1091, 2);
+  check('antenna text', parseAntennas('A1 0 0\nA2, 10, 5, 1\n# note\n3 4').length === 3);
+
+  // Meeus, Astronomical Algorithms, example 57.a: η CrB on 1980.0.
+  const eta = orbitAt({ P: 41.623, T: 1934.008, e: 0.2763, a: 0.907, i: 59.025, node: 23.717, omega: 219.907 }, 1980.0);
+  near('η CrB position angle', eta.theta, 318.4, 0.05); near('η CrB separation', eta.rho, 0.411, 0.0005);
+  const sir = { P: 50.1284, T: 1994.5715, e: 0.59142, a: 7.4957, i: 136.336, node: 45.4, omega: 149.161 };
+  check('Sirius B widest around 2023', orbitAt(sir, 2023).rho > 11.2 && orbitAt(sir, 1994.57).rho < 3.2);
+  near('Sirius system mass', systemMass(7.4957, 50.1284, 0.37921), 3.07, 0.02);
+  near('decimal year of J2000.0', yearOf(Date.UTC(2000, 0, 1, 12)), 2000, 1e-12);
+  const m1 = dsMeasure(100, 100, 100, 90, 0.5), m2 = dsMeasure(100, 100, 90, 100, 0.5), m3 = dsMeasure(100, 100, 90, 100, 0.5, 0, true);
+  check('measure: up is north, left is east, mirrored flips', m1.pa === 0 && m1.sep === 5 && Math.abs(m2.pa - 90) < 1e-9 && Math.abs(m3.pa - 270) < 1e-9);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
