@@ -112,6 +112,7 @@ import * as PT from '../src/lib/sci/pumptest.ts';
 import * as SLG from '../src/lib/sci/slug.ts';
 import * as DAR from '../src/lib/sci/darcy.ts';
 import * as WF from '../src/lib/sci/wellfield.ts';
+import * as GTN from '../src/lib/sci/gradetonnage.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1963,6 +1964,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('well field: width at the well', 2 * cz.halfWidthAtWell, 400, 1e-9);
   const mid = cz.pts.reduce((b, p) => (Math.abs(p[0]) < Math.abs(b[0]) ? p : b));
   near('well field: divide crosses the well line at Q/(4Bq)', Math.abs(mid[1]), 200, 5);
+}
+{
+  // Grade-tonnage and cut-offs.
+  const b = [{ t: 100, g: 0.2 }, { t: 200, g: 0.5 }, { t: 100, g: 1.0 }];
+  const a = GTN.above(b, 0.5);
+  check('grade-tonnage: tonnes above', a.t === 300); near('grade-tonnage: mean grade above', a.g, (200 * 0.5 + 100) / 300, 1e-12);
+  check('grade-tonnage: nothing above the top', GTN.above(b, 2).t === 0 && Number.isNaN(GTN.above(b, 2).g));
+  const cv = GTN.curve(b, 10);
+  check('grade-tonnage: curve falls', cv.every((c, i) => i === 0 || c.t <= cv[i - 1].t) && cv[0].t === 400);
+  const v = GTN.netValue(9000, 500, 0.02, 'pct');
+  near('grade-tonnage: net value per %', v, 83.2, 1e-12);
+  const co = GTN.cutoffs(v, 0.88, 2.5, 9, 2);
+  near('grade-tonnage: breakeven cut-off', co.breakeven, 13.5 / (83.2 * 0.88), 1e-12); near('grade-tonnage: marginal cut-off', co.marginal, 11 / (83.2 * 0.88), 1e-12);
+  near('grade-tonnage: margin is zero at breakeven grade', GTN.margin(1000, co.breakeven, v, 0.88, 13.5), 0, 1e-9);
+  near('grade-tonnage: gold in g/t', GTN.cutoffs(GTN.netValue(2000 / GTN.TROY_OZ, 0, 0, 'gpt'), 0.9, 3, 15, 2).breakeven, 20 / (2000 / 31.1034768 * 0.9), 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

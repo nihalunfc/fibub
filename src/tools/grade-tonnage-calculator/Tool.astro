@@ -1,0 +1,128 @@
+---
+// Grade-tonnage curve and cut-off grades from blocks or composites. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: 40 blocks of a copper deposit, written by fibub.
+const demo = 'block\ttonnes\tCu (%)\nB01\t24000\t0.39\nB02\t24000\t0.61\nB03\t25500\t0.51\nB04\t24000\t0.35\nB05\t24000\t0.64\nB06\t26000\t0.36\nB07\t25500\t0.31\nB08\t26000\t0.56\nB09\t25000\t0.93\nB10\t25500\t0.60\nB11\t26000\t0.95\nB12\t24000\t0.35\nB13\t25000\t0.54\nB14\t25000\t0.44\nB15\t25500\t0.23\nB16\t25000\t0.65\nB17\t24000\t0.19\nB18\t25500\t0.32\nB19\t24000\t0.32\nB20\t25500\t0.38\nB21\t25500\t0.37\nB22\t25000\t0.21\nB23\t25000\t0.21\nB24\t26000\t0.46\nB25\t25000\t0.26\nB26\t25000\t0.32\nB27\t25000\t0.58\nB28\t24000\t0.18\nB29\t25000\t0.23\nB30\t26000\t0.32\nB31\t24000\t0.30\nB32\t25500\t1.18\nB33\t25000\t0.19\nB34\t26000\t0.74\nB35\t24000\t0.12\nB36\t25500\t0.93\nB37\t25000\t0.15\nB38\t25000\t0.26\nB39\t25500\t0.34\nB40\t26000\t0.21';
+---
+<div class="ax gtc">
+  <div class="ax-card">
+    <h2>Blocks or composites</h2>
+    <label>Name, then tonnes and grade (or volume in m³, density in t/m³ and grade) <textarea class="gt-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".gt-data" maxCols={8} maxRows={200000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Grade unit <select class="gt-gu"><option value="pct" selected>% (base metals)</option><option value="gpt">g/t or ppm (gold, silver)</option></select></label>
+      <label>Cut-offs for the table (blank: automatic) <input class="gt-cuts" type="text" value="" placeholder="e.g. 0.2, 0.3, 0.5" /></label>
+    </div>
+    <p class="ax-err gt-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Economics</h2>
+    <div class="ax-grid">
+      <label>Metal price <input class="gt-p" type="text" inputmode="decimal" value="9000" /></label>
+      <label>Price unit <select class="gt-pu"></select></label>
+      <label>Selling and refining cost (same unit) <input class="gt-s" type="text" inputmode="decimal" value="500" /></label>
+      <label>Royalty (% of price) <input class="gt-roy" type="text" inputmode="decimal" value="2" /></label>
+      <label>Recovery (%) <input class="gt-rec" type="text" inputmode="decimal" value="88" /></label>
+      <label>Mining cost per tonne of ore <input class="gt-cm" type="text" inputmode="decimal" value="2.5" /></label>
+      <label>Processing cost per tonne <input class="gt-cp" type="text" inputmode="decimal" value="9" /></label>
+      <label>Overheads (G&amp;A) per tonne <input class="gt-cg" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-help">Use any one currency throughout. All prices and costs here are made-up examples; use your own.</p>
+  </div>
+
+  <div class="ax-card gt-out">
+    <h2>Grade and tonnage</h2>
+    <p class="ax-big gt-big"></p>
+    <dl class="ax-facts gt-facts"></dl>
+    <canvas class="ax-fig gt-fig"></canvas>
+    <div class="ax-scroll"><table class="gt-tab"></table></div>
+    <p class="ax-help">This is a screening tool: it treats each block on its own and ignores mine design, dilution, ore loss, stripping, timing and discounting. Public reporting of resources and reserves follows codes such as NI 43-101 or JORC and needs a qualified person.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { above, curve, cutoffs, netValue, margin, TROY_OZ, LB, type Block } from '../../lib/sci/gradetonnage';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gtc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  // Price units: [value, label, factor to price per tonne of metal (for %) or per gram (for g/t)].
+  const PU: Record<string, [string, string, number][]> = { pct: [['t', 'per tonne of metal', 1], ['lb', 'per pound', 1000 / LB]], gpt: [['oz', 'per troy ounce', 1 / TROY_OZ], ['g', 'per gram', 1]] };
+  let lastGU = '', fig: Figure | null = null, report: Section[] = [];
+  const money = (x: number) => Math.round(+x.toPrecision(3)).toLocaleString('en-US');
+  const tonnes = (t: number) => (t >= 1e6 ? `${sig(t / 1e6, 3)} Mt` : t >= 1e3 ? `${sig(t / 1e3, 3)} kt` : `${sig(t, 3)} t`);
+
+  function calc() {
+    const err = q('.gt-err'), out = q('.gt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const gu = sel('.gt-gu').value as 'pct' | 'gpt', gl = gu === 'pct' ? '%' : 'g/t';
+    if (gu !== lastGU) { const s = sel('.gt-pu'); s.replaceChildren(...PU[gu].map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; })); if (gu === 'gpt' && lastGU) { q<HTMLInputElement>('.gt-p').value = '2000'; q<HTMLInputElement>('.gt-s').value = '5'; } if (gu === 'pct' && lastGU) { q<HTMLInputElement>('.gt-p').value = '9000'; q<HTMLInputElement>('.gt-s').value = '500'; } lastGU = gu; }
+    const rows = parseTable(q<HTMLTextAreaElement>('.gt-data').value).filter((r) => r.length >= 3);
+    const numRows = rows.filter((r) => r.slice(1).every((c) => Number.isFinite(num(c))));
+    if (!numRows.length) return fail('Paste a name column, then tonnes and grade (or volume, density and grade).');
+    const width = numRows[0].length - 1;
+    if (width !== 2 && width !== 3) return fail('Use two number columns (tonnes, grade) or three (volume, density, grade).');
+    const blocks: Block[] = []; let bad = 0;
+    for (const r of numRows) { const v = r.slice(1).map(num); const t = width === 2 ? v[0] : v[0] * v[1], g = v[width - 1]; if (t > 0 && g >= 0) blocks.push({ t, g }); else bad++; }
+    if (!blocks.length) return fail('No row has tonnes above zero and a grade of zero or more.');
+    const factor = PU[gu].find((p) => p[0] === sel('.gt-pu').value)?.[2] ?? 1;
+    const P = val('.gt-p') * factor, sc = val('.gt-s') * factor, roy = val('.gt-roy') / 100, rec = val('.gt-rec') / 100, cm = val('.gt-cm'), cp = val('.gt-cp'), cg = val('.gt-cg');
+    if (!(P > 0 && rec > 0 && rec <= 1 && roy >= 0 && roy < 1 && sc >= 0 && cm >= 0 && cp >= 0 && cg >= 0)) return fail('Check the economics: price above zero, recovery 1 to 100 %, royalty below 100 %, costs zero or more.');
+    const v = netValue(P, sc, roy, gu);
+    if (!(v > 0)) return fail('After royalty and selling costs the metal is worth nothing, so no cut-off exists.');
+    err.hidden = true; out.hidden = false;
+    const co = cutoffs(v, rec, cm, cp, cg), at = above(blocks, co.breakeven), all = above(blocks, 0), cost = cm + cp + cg;
+    q('.gt-big').textContent = `Breakeven cut-off ${sig(co.breakeven, 3)} ${gl}: ${tonnes(at.t)} at ${sig(at.g, 3)} ${gl}`;
+    const metalTxt = (m: number) => (gu === 'pct' ? `${sig(m / 100, 3)} t of metal` : `${sig(m / TROY_OZ, 3)} troy oz (${sig(m / 1000, 3)} kg)`);
+    const f = [
+      fact('Breakeven cut-off', `${sig(co.breakeven, 3)} ${gl}`, `pays mining, processing and overheads: ${sig(cost, 3)} per tonne ÷ (${sig(v, 4)} per tonne per ${gl} × ${sig(rec * 100, 3)} % recovery)`),
+      fact('Marginal (mill) cut-off', `${sig(co.marginal, 3)} ${gl}`, 'for rock that is mined anyway, it only has to pay processing and overheads'),
+      fact('Above the breakeven cut-off', `${tonnes(at.t)} at ${sig(at.g, 3)} ${gl}`, `${metalTxt(at.metal)} in the ground, ${metalTxt(at.metal * rec)} recovered`),
+      fact('Operating margin', money(margin(at.t, at.g, v, rec, cost)), 'undiscounted, before capital costs and tax'),
+      fact('All blocks', `${tonnes(all.t)} at ${sig(all.g, 3)} ${gl}`, `${blocks.length} blocks${bad ? `; ${bad} rows skipped` : ''}`),
+    ];
+    q('.gt-facts').replaceChildren(...f);
+    const cv = curve(blocks, 120), gmax = cv[cv.length - 1].cut, tMax = all.t;
+    fig = { w: 380, h: 280, alt: 'Grade-tonnage curve: tonnes and average grade above each cut-off', draw: (ctx, W, H, pal) => {
+      const l = 50, r = 46, t = 12, b = 50, pw = W - l - r, ph = H - t - b, gTop = Math.max(...cv.filter((c) => c.t > 0).map((c) => c.g)) * 1.05;
+      const X = (c: number) => l + (c / gmax) * pw, Y1 = (tt: number) => t + ph * (1 - tt / tMax), Y2 = (g: number) => t + ph * (1 - g / gTop);
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7; ctx.font = '9px system-ui, sans-serif';
+      for (let k = 0; k <= 4; k++) { const yy = t + (ph * k) / 4; ctx.beginPath(); ctx.moveTo(l, yy); ctx.lineTo(l + pw, yy); ctx.stroke(); ctx.fillStyle = pal.accent; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(tonnes(tMax * (1 - k / 4)).replace(/ /, ''), l - 4, yy); ctx.fillStyle = pal.accent2; ctx.textAlign = 'left'; ctx.fillText(sig(gTop * (1 - k / 4), 2), l + pw + 4, yy); }
+      for (let k = 0; k <= 4; k++) { const c = (gmax * k) / 4; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(sig(c, 2), X(c), t + ph + 4); }
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, t, pw, ph);
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.accent; ctx.beginPath(); cv.forEach((c, i) => (i ? ctx.lineTo(X(c.cut), Y1(c.t)) : ctx.moveTo(X(c.cut), Y1(c.t)))); ctx.stroke();
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash(pal.red ? [6, 3] : []); ctx.beginPath(); let pen = false; cv.forEach((c) => { if (!(c.t > 0)) return; if (pen) ctx.lineTo(X(c.cut), Y2(c.g)); else { ctx.moveTo(X(c.cut), Y2(c.g)); pen = true; } }); ctx.stroke(); ctx.setLineDash([]);
+      for (const [c, lab, yo] of [[co.marginal, 'marginal', 0.5], [co.breakeven, 'breakeven', 0]] as [number, string, number][]) if (c <= gmax) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(c), t); ctx.lineTo(X(c), t + ph); ctx.stroke(); ctx.setLineDash([]); ctx.save(); ctx.translate(X(c) + 3, t + 4 + ph * yo); ctx.rotate(Math.PI / 2); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(lab, 0, 0); ctx.restore(); }
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Cut-off grade (${gl})`, l + pw / 2, t + ph + 16);
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = pal.accent; ctx.fillText('— tonnes above (left)', l, H - 14); ctx.fillStyle = pal.accent2; ctx.textAlign = 'right'; ctx.fillText(`average grade above, ${gl} (right) —`, l + pw + r - 2, H - 14);
+    } };
+    paint(q<HTMLCanvasElement>('.gt-fig'), fig);
+    let cuts = q<HTMLInputElement>('.gt-cuts').value.split(/[,;\s]+/).map(num).filter((c) => c >= 0);
+    if (!cuts.length) { const st = 10 ** Math.floor(Math.log10(gmax / 6 || 1)), stp = [1, 2, 5, 10].map((m) => m * st).find((s) => gmax / s <= 8) ?? st * 10; cuts = Array.from({ length: Math.floor(gmax / stp) + 1 }, (_, i) => +(i * stp).toPrecision(6)); }
+    const head = [`Cut-off (${gl})`, 'Tonnes', `Grade (${gl})`, gu === 'pct' ? 'Metal (t)' : 'Metal (oz)', 'Margin'];
+    const rowsT = cuts.slice(0, 40).map((c) => { const a = above(blocks, c); return [String(c), tonnes(a.t), a.t > 0 ? sig(a.g, 3) : '–', a.t > 0 ? sig(gu === 'pct' ? a.metal / 100 : a.metal / TROY_OZ, 3) : '0', a.t > 0 ? money(margin(a.t, a.g, v, rec, cost)) : '0']; });
+    const tab = q<HTMLTableElement>('.gt-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    report = [{ title: q('.gt-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: rowsT, align: ['r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && !q('.gt-out').hidden && paint(q<HTMLCanvasElement>('.gt-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Grade-tonnage', subtitle: q('.gt-big').textContent ?? '', file: 'grade-tonnage', sections: report }));
+</script>
+
+<style is:global>
+  .gtc select, .gtc input { max-width: 100%; }
+  .gtc textarea { width: 100%; }
+</style>
