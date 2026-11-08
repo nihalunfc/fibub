@@ -1,5 +1,15 @@
 [
  {
+  "sha": "436277b63430",
+  "date": "2026-11-08T07:33:43+00:00",
+  "title": "Add the reaction kinetics fitter and titration curve simulator (#81, #82)",
+  "tools": [
+   "reaction-kinetics-fitter",
+   "titration-curve"
+  ],
+  "site": false
+ },
+ {
   "sha": "baec11a52b43",
   "date": "2026-11-08T07:22:02+00:00",
   "title": "Add the molar mass calculator, equation balancer and isotope pattern calculator (#78-#80)",
