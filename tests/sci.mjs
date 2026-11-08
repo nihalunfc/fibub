@@ -38,6 +38,11 @@ import { habitableZone, tEq, periodDays, auForPeriod, lumFrom } from '../src/lib
 import { marsTime, localSolar, missionSol, solStart, MISSIONS, msdToMs, lsTime } from '../src/lib/sci/marstime.ts';
 import { transitWindows, bjdToMs, msToBjd, trapezoid } from '../src/lib/astro/transits.ts';
 import { velocity, redshift, zFromLambda, nmToGhz, LINES } from '../src/lib/sci/redshift.ts';
+import { sunDay, sunAltAz, seasons } from '../src/lib/astro/sun.ts';
+import { moonsAt, events as jovEvents } from '../src/lib/astro/jupiter.ts';
+import { lambert } from '../src/lib/sci/lambert.ts';
+import { leg, grid, nextWindow, hohmannDays, burnFromOrbit, synodicDays } from '../src/lib/astro/porkchop.ts';
+import { fitOrbit, binary, rv as rvModel, trueAnomaly } from '../src/lib/sci/rvfit.ts';
 import { planckLam, bandFraction, bcV, tFromBV, star as starBB, WIEN_LAM } from '../src/lib/sci/blackbody.ts';
 import { semiAmplitude, minMass, semiMajor, radiusFromDepth, density, M_JUP, M_EARTH, AU as AU_M, R_JUP } from '../src/lib/sci/rvmass.ts';
 import { crater, impactorFor } from '../src/lib/sci/crater.ts';
@@ -518,6 +523,70 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const v = scope({ D: 25, eta: 0.6, tsys: 30, f: 1.4e9, n: 27, npol: 2, bw: 1e6 });
   near('27 dishes: N(N−1) pairs', v.sigma1s, v.sefd / Math.sqrt(2 * 27 * 26 * 1e6), 1e-12);
   near('time for SNR 5', g.timeFor(1, 5), 25 / (1 / g.sigma1s) ** 2, 1e-9);
+}
+
+
+// Batch H: Sun position, Jupiter's moons, Lambert and porkchop, radial velocity orbits.
+{
+  const tor = { name: 'Toronto', lat: 43.65, lon: -79.38, elev: 76, tz: 'America/Toronto' };
+  const d = sunDay(tor, '2026-06-21');
+  // USNO: Toronto 21 June 2026 sunrise 05:36 EDT, sunset 21:03 EDT.
+  near('Toronto solstice sunrise (UTC min)', d.rise.getUTCHours() * 60 + d.rise.getUTCMinutes() + d.rise.getUTCSeconds() / 60, 9 * 60 + 36, 1);
+  near('Toronto solstice sunset (UTC min)', d.set.getUTCHours() * 60 + d.set.getUTCMinutes() + d.set.getUTCSeconds() / 60, 25 * 60 + 2.6 - 24 * 60, 1);
+  near('Toronto solstice day length', d.dayH, 15.44, 0.02);
+  near('Toronto noon altitude = 90 − φ + ε', d.noonAlt, 90 - 43.65 + 23.44, 0.1);
+  near('equation of time early November', sunDay(tor, '2026-11-03').eotMin, 16.45, 0.1);
+  near('equation of time mid February', sunDay(tor, '2026-02-11').eotMin, -14.2, 0.1);
+  const tro = { name: 'Tromsø', lat: 69.65, lon: 18.96, elev: 0, tz: 'Europe/Oslo' };
+  check('midnight sun and polar night', sunDay(tro, '2026-06-21').polar === 'day' && sunDay(tro, '2026-12-21').polar === 'night');
+  near('June solstice 2026 (UTC h on 21 June)', (seasons(2026)[1][1].getTime() - Date.UTC(2026, 5, 21)) / 3600e3, 8.42, 0.05);
+  const s3 = sunAltAz(tor, new Date('2026-06-21T19:00:00Z'));
+  check('afternoon Sun in the south-west', s3.az > 225 && s3.az < 240 && s3.alt > 60 && s3.alt < 62);
+
+  // Jupiter: Callisto stays within ~26.3 radii; Io's transit lasts about 2 h 15 min; at opposition eclipses and occultations coincide.
+  const ms = moonsAt(new Date('2027-02-11T03:00:00Z'));
+  near('Jupiter diameter near 2027 opposition (arcsec)', 2 * ms.radiusArcsec, 45.2, 0.3);
+  check('moons inside their orbits', ms.moons.every((m, i) => Math.hypot(m.east, m.north) < [5.95, 9.45, 15.1, 26.4][i]));
+  const ev = jovEvents(Date.UTC(2027, 1, 10), Date.UTC(2027, 1, 13));
+  const ioT = ev.find((e) => e.moon === 'Io' && e.kind === 'Transit' && e.start && e.end);
+  near('Io transit duration (h)', (ioT.end - ioT.start) / 3600e3, 2.28, 0.08);
+  const eu = ev.filter((e) => e.moon === 'Europa' && (e.kind === 'Occultation' || e.kind === 'Eclipse') && e.start && Math.abs(e.start - Date.UTC(2027, 1, 12)) < 3600e3);
+  check('Europa occultation and eclipse overlap at opposition', eu.length === 2 && Math.abs(eu[0].start - eu[1].start) < 600e3);
+
+  // Curtis, Orbital Mechanics, Example 5.2.
+  const L = lambert([5000, 10000, 2100], [-14600, 2500, 7000], 3600, 398600);
+  near('Lambert v1 x', L.v1[0], -5.9925, 1e-3); near('Lambert v1 y', L.v1[1], 1.9254, 1e-3); near('Lambert v1 z', L.v1[2], 3.2456, 1e-3);
+  near('Lambert v2 x', L.v2[0], -3.3125, 1e-3); near('Lambert v2 y', L.v2[1], -4.1966, 1e-3); near('Lambert v2 z', L.v2[2], -0.38529, 1e-3);
+  near('Hohmann Earth to Mars (days)', hohmannDays('Earth', 'Mars'), 259, 1);
+  near('synodic period Earth–Mars', synodicDays('Earth', 'Mars'), 780, 1);
+  near('burn from 200 km LEO at v∞ 3 km/s', burnFromOrbit('Earth', 3), Math.sqrt(9 + 2 * 398600.4 / 6578.1) - Math.sqrt(398600.4 / 6578.1), 1e-9);
+  // Perseverance: launched 30 July 2020, landed 18 February 2021 (203 days).
+  near('Mars 2020 launch C3', leg('Earth', 'Mars', Date.UTC(2020, 6, 30), 203).c3, 14.5, 0.3);
+  const w = nextWindow('Earth', 'Mars', Date.UTC(2026, 10, 8));
+  const g = grid('Earth', 'Mars', w.start, w.days, w.tof[0], w.tof[1], 40);
+  check('2026 Mars window found', Math.abs(g.best.dep - Date.UTC(2026, 10, 2)) < 12 * 864e5);
+  near('2026 Mars window C3', g.best.c3, 9.2, 0.3);
+  const wv = nextWindow('Earth', 'Venus', Date.UTC(2026, 10, 8));
+  check('a passed window is skipped', wv.best.dep > Date.UTC(2026, 10, 1));
+
+  // Radial velocity fit recovers the simulated binary in src/data.
+  const rows = readFileSync(new URL('../src/data/spectroscopic-binary-sim.tsv', import.meta.url), 'utf8').split('\n').filter((l) => /^\d/.test(l)).map((l) => l.split('\t').map(Number));
+  const f = fitOrbit(rows.map((r) => r[0]), rows.map((r) => r[1]), rows.map((r) => r[2]));
+  near('RV fit P', f.o.P, 12.345, 3 * f.err.P + 1e-3); near('RV fit K', f.o.K, 23.4, 3 * f.err.K);
+  near('RV fit e', f.o.e, 0.42, 3 * f.err.e); near('RV fit ω', f.o.w, 2.1, 3 * f.err.w); near('RV fit γ', f.o.gamma, -14.2, 3 * f.err.gamma);
+  check('RV fit reduced χ² near 1', f.redChi2 > 0.6 && f.redChi2 < 1.6);
+  const b = binary(23.4, 12.345, 0.42);
+  // Textbook form: f(m) = 1.0361 × 10⁻⁷ (1 − e²)^1.5 K³ P, with K in km/s and P in days.
+  near('mass function', b.fm, 1.0361e-7 * (1 - 0.42 ** 2) ** 1.5 * 23.4 ** 3 * 12.345, 2e-5);
+  near('a sin i (km)', b.asini, 23.4 * 12.345 * 86400 * Math.sqrt(1 - 0.42 ** 2) / (2 * Math.PI), 1);
+  near('Kepler: true anomaly at periastron', trueAnomaly(5, 10, 0.5, 5), 0, 1e-12);
+  // A circular planet: four numbers, finite uncertainties.
+  const tt = [], vv = []; let sd = 1; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647 - 0.5; };
+  for (let i = 0; i < 30; i++) { const ti = 60000 + i * 1.37 + rnd(); tt.push(ti); vv.push(rvModel(ti, { P: 4.2308, K: 55.9, e: 0, w: 1, tp: 60000, gamma: -33.2 }) + rnd() * 6); }
+  const c = fitOrbit(tt, vv, tt.map(() => 3), { circular: true });
+  near('circular fit P', c.o.P, 4.2308, 3 * c.err.P); near('circular fit K', c.o.K, 55.9, 3 * c.err.K);
+  check('circular fit errors finite', Number.isFinite(c.err.w) && Number.isFinite(c.err.gamma) && c.o.e === 0);
+  throws('too few velocities', () => fitOrbit([1, 2, 3, 4, 5, 6], [1, 2, 3, 2, 1, 0], null));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

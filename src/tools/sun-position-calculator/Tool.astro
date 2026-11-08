@@ -1,0 +1,213 @@
+---
+// Sun position calculator: altitude, azimuth and shadow at any moment, the day's rise, set and twilight,
+// a sun path diagram and a year of day lengths.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spc">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>When</h2>
+    <div class="ax-grid">
+      <label>Date <input type="date" class="spc-date" required /></label>
+      <label>Time <input type="time" class="spc-time" required /></label>
+      <label>Object height for the shadow (m) <input class="spc-h" inputmode="decimal" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small spc-now">Now</button></div>
+    <p class="ax-help">The date and time are on the clock chosen in "Times in" above. The object height is for the shadow length: a 1.8 m person, a 10 m tree or a building.</p>
+    <p class="ax-err spc-err" hidden></p>
+  </div>
+
+  <div class="ax-card spc-out" hidden>
+    <h2 class="spc-title"></h2>
+    <p class="ax-big spc-big"></p>
+    <dl class="ax-facts spc-now-facts"></dl>
+    <h3>The day</h3>
+    <dl class="ax-facts spc-day"></dl>
+    <canvas class="ax-fig spc-fig" style="margin-top:12px"></canvas>
+    <h3>Sun path</h3>
+    <p class="ax-help" style="margin:0">Seen from above with north at the top: the centre is straight overhead and the outer ring is the horizon. Dots mark each hour on the chosen date; the dashed paths are the longest and shortest days.</p>
+    <canvas class="ax-fig spc-path" style="margin:8px auto 0;max-width:440px"></canvas>
+    <h3>Through the year</h3>
+    <canvas class="ax-fig spc-year"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="spc-tab"></table></div>
+    <h3>Equinoxes and solstices</h3>
+    <div class="ax-scroll"><table class="spc-seasons"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small spc-csv">Every day of the year (CSV)</button></div>
+    <p class="ax-help">Sunrise and sunset are when the top edge of the Sun touches the horizon, with normal refraction, as almanacs give them. Hills, buildings and unusual air can shift them by a few minutes.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .spc .spc-tab td, .spc .spc-tab th, .spc .spc-seasons td, .spc .spc-seasons th { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { sunDay, sunAltAz, seasons, type SunDay } from '../../lib/astro/sun';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay, zoned, localDate, localTime, localHours, type Place } from '../../lib/astro/place';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.spc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const dateIn = q<HTMLInputElement>('.spc-date'), timeIn = q<HTMLInputElement>('.spc-time');
+  const POINTS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+  const P16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const word = (az: number) => POINTS[Math.round(az / 45) % 8];
+  const p16 = (az: number) => P16[Math.round(az / 22.5) % 16];
+  const deg = (x: number, d = 1) => `${x < 0 ? '−' : ''}${Math.abs(x).toFixed(d)}°`;
+  const hm = (h: number) => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`; };
+  const signedMin = (m: number) => { const s = Math.round(Math.abs(m) * 60); return `${m < 0 ? '−' : '+'}${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
+  /** The place's own calendar date at a moment (from its longitude), which is the day the rise and set belong to. */
+  const placeDate = (p: Place, t: Date) => new Date(t.getTime() + (p.lon / 15) * 3600e3).toISOString().slice(0, 10);
+  let figs: Figure[] = [], report: Section[] = [], yearKey = '', yearRows: string[][] = [];
+  let yearDays: { iso: string; s: SunDay }[] = [];
+
+  function setNow() { const tz = getSky().place.tz, n = new Date(); dateIn.value = localDate(n, tz); timeIn.value = localTime(n, tz); }
+
+  function facts(el: HTMLElement, rows: [string, string, string?][]) {
+    el.replaceChildren(...rows.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  }
+  function table(t: HTMLTableElement, head: string[], rows: string[][]) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  // Sun path diagram: altitude and azimuth on a circle, north up, east to the right (a map seen from above).
+  function pathFigure(place: Place, day: Date, now: { alt: number; az: number }, tz: string): Figure {
+    const y = Number(localDate(day, tz).slice(0, 4));
+    const track = (start: Date) => { const out: { alt: number; az: number; t: Date }[] = []; for (let k = 0; k <= 24 * 6; k++) { const t = new Date(start.getTime() + k * 600e3); out.push({ ...sunAltAz(place, t), t }); } return out; };
+    const [, june, , dec] = seasons(y).map(([, d]) => d);
+    const startOf = (d: Date) => { const [yy, mm, dd] = localDate(d, tz).split('-').map(Number); return zoned(yy, mm, dd, 0, 0, tz); };
+    const paths = [{ pts: track(startOf(june)), main: false }, { pts: track(startOf(dec)), main: false }, { pts: track(startOf(day)), main: true }];
+    return {
+      w: 360, h: 360, alt: `Sun path for ${place.name}: the Sun's track across the sky on the chosen date and at the solstices`,
+      draw(ctx, w, h, pal: Palette) {
+        const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 26;
+        const xy = (alt: number, az: number) => { const r = ((90 - alt) / 90) * R, a = (az * Math.PI) / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+        ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (const a of [0, 30, 60]) { ctx.beginPath(); ctx.arc(cx, cy, ((90 - a) / 90) * R, 0, 2 * Math.PI); ctx.strokeStyle = a === 0 ? pal.line : pal.grid; ctx.stroke(); }
+        for (let az = 0; az < 360; az += 45) { const [x, yy] = xy(0, az); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, yy); ctx.strokeStyle = pal.grid; ctx.stroke(); }
+        ctx.fillStyle = pal.muted;
+        for (const [lab, az] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]] as [string, number][]) { const r = R + 13, a = (az * Math.PI) / 180; ctx.fillText(lab, cx + r * Math.sin(a), cy - r * Math.cos(a)); }
+        for (const a of [30, 60]) ctx.fillText(`${a}°`, cx + 12, cy - ((90 - a) / 90) * R + 8);
+        for (const p of paths) {
+          ctx.strokeStyle = p.main ? pal.accent : pal.muted; ctx.lineWidth = p.main ? 2.2 : 1.2; ctx.setLineDash(p.main ? [] : [5, 4]);
+          ctx.beginPath(); let on = false;
+          for (const s of p.pts) { if (s.alt < 0) { on = false; continue; } const [x, yy] = xy(s.alt, s.az); if (on) ctx.lineTo(x, yy); else ctx.moveTo(x, yy); on = true; }
+          ctx.stroke(); ctx.setLineDash([]);
+        }
+        // Hour dots on the chosen date.
+        ctx.fillStyle = pal.accent;
+        for (const s of paths[2].pts) {
+          if (s.alt < 0 || Math.abs(localHours(s.t, tz) % 1) > 0.01) continue;
+          const [x, yy] = xy(s.alt, s.az); ctx.beginPath(); ctx.arc(x, yy, 2.6, 0, 2 * Math.PI); ctx.fill();
+          const hr = Math.round(localHours(s.t, tz)) % 24; if (hr % 2 === 0) { ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.fillText(String(hr), x, yy - 9); ctx.fillStyle = pal.accent; }
+        }
+        if (now.alt > 0) { const [x, yy] = xy(now.alt, now.az); ctx.fillStyle = pal.warn; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, yy, 7, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }
+      },
+    };
+  }
+
+  function yearData(place: Place, y: number) {
+    const key = `${place.lat},${place.lon},${y}`;
+    if (key === yearKey) return;
+    yearKey = key; yearDays = [];
+    for (let t = Date.UTC(y, 0, 1); t < Date.UTC(y + 1, 0, 1); t += 864e5) { const iso = new Date(t).toISOString().slice(0, 10); yearDays.push({ iso, s: sunDay(place, iso) }); }
+  }
+
+  function calc() {
+    const err = q('.spc-err'); err.hidden = true;
+    const { place } = getSky(), tz = place.tz;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateIn.value) || !/^\d{2}:\d{2}/.test(timeIn.value)) { err.textContent = 'Pick a date and a time.'; err.hidden = false; return; }
+    const [Y, M, D] = dateIn.value.split('-').map(Number), [hh, mm] = timeIn.value.split(':').map(Number);
+    if (Y < 1700 || Y > 2300) { err.textContent = 'Pick a year from 1700 to 2300.'; err.hidden = false; return; }
+    const t = zoned(Y, M, D, hh, mm, tz), s = sunAltAz(place, t), iso = placeDate(place, t), day = sunDay(place, iso);
+    const prev = sunDay(place, new Date(Date.parse(iso) - 864e5).toISOString().slice(0, 10));
+    const H = num(q<HTMLInputElement>('.spc-h').value), height = H > 0 ? H : 1;
+    q('.spc-out').hidden = false;
+    q('.spc-title').textContent = `The Sun from ${place.name}`;
+    const when = `${fmtDay(t, tz, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}, ${fmtTime(t, tz)}`;
+    q('.spc-big').textContent = s.alt > -0.833
+      ? `${deg(s.alt)} above the horizon, towards the ${word(s.az)} (azimuth ${s.az.toFixed(1)}°)`
+      : `Below the horizon (${deg(s.alt)}), under the ${word(s.az)}`;
+    const shadow = s.alt > 0 ? height / Math.tan((s.alt * Math.PI) / 180) : Infinity;
+    const shadowTxt = s.alt <= 0 ? 'none (the Sun is down)' : shadow > 1000 * height ? 'very long (the Sun is on the horizon)' : `${sig(shadow, 3)} m, pointing ${p16((s.az + 180) % 360)} (${((s.az + 180) % 360).toFixed(0)}°)`;
+    const twi = s.alt > -0.833 ? 'day' : s.alt > -6 ? 'civil twilight' : s.alt > -12 ? 'nautical twilight' : s.alt > -18 ? 'astronomical twilight' : 'full night';
+    const nowFacts: [string, string, string?][] = [
+      ['At', when],
+      ['Altitude', deg(s.alt, 2), `${twi}; with normal refraction`],
+      ['Azimuth', `${s.az.toFixed(2)}° (${p16(s.az)})`, 'measured from north through east'],
+      [`Shadow of ${sig(height, 3)} m`, shadowTxt],
+      ['Right ascension, declination', `${(s.ra).toFixed(3)} h, ${deg(s.dec, 2)}`, 'apparent, of date'],
+      ['Distance', `${s.dist.toFixed(5)} AU`, `${sig(s.dist * 149.5978707, 5)} million km`],
+    ];
+    facts(q('.spc-now-facts'), nowFacts);
+    const change = (day.dayH - prev.dayH) * 60;
+    const polarTxt = day.polar === 'day' ? 'The Sun stays up all day (midnight sun)' : day.polar === 'night' ? 'The Sun stays down all day (polar night)' : '';
+    const pair = (p: [Date | null, Date | null]) => (p[0] || p[1] ? `${fmtTime(p[0], tz)} and ${fmtTime(p[1], tz)}` : 'none on this date');
+    const dayFacts: [string, string, string?][] = [
+      ['Sunrise', day.rise ? `${fmtTime(day.rise, tz)}, azimuth ${day.riseAz!.toFixed(0)}° (${p16(day.riseAz!)})` : polarTxt || '-'],
+      ['Solar noon', `${fmtTime(day.noon, tz)}, ${deg(day.noonAlt)} high`, 'the Sun is due south (or north) and highest'],
+      ['Sunset', day.set ? `${fmtTime(day.set, tz)}, azimuth ${day.setAz!.toFixed(0)}° (${p16(day.setAz!)})` : polarTxt || '-'],
+      ['Day length', hm(day.dayH), day.polar ? '' : `${change >= 0 ? '+' : '−'}${Math.abs(change).toFixed(1)} min on the day before`],
+      ['Civil twilight', pair(day.civil), 'dawn and dusk with the Sun 6° down: enough light to work outside'],
+      ['Nautical twilight', pair(day.nautical), 'Sun 12° down: the horizon fades'],
+      ['Astronomical twilight', pair(day.astro), 'Sun 18° down: the sky is fully dark between these'],
+      ['Equation of time', signedMin(day.eotMin), 'how far a sundial runs ahead of mean time'],
+    ];
+    facts(q('.spc-day'), dayFacts);
+
+    // The day's altitude curve on the display clock.
+    const d0 = zoned(Y, M, D, 0, 0, tz), xs: number[] = [], ys: number[] = [];
+    for (let k = 0; k <= 24 * 6; k++) { const tt = new Date(d0.getTime() + k * 600e3); xs.push(k / 6); ys.push(sunAltAz(place, tt).alt); }
+    const nowH = (t.getTime() - d0.getTime()) / 3600e3;
+    const dayFig = chartFigure({ h: 260, xLabel: `Hours after midnight (${tz.replace(/_/g, ' ')})`, yLabel: 'Sun altitude (°)', xMin: 0, xMax: 24, yMin: -90, yMax: 90, legend: 'none',
+      series: [{ name: 'Altitude', x: xs, y: ys, mode: 'line', width: 2 }],
+      marks: [{ kind: 'hline', at: 0, label: 'horizon' }, { kind: 'hline', at: -18, dash: [3, 3], label: 'full dark' }, { kind: 'vline', at: nowH, dash: [4, 3], label: fmtTime(t, tz) }] }, `Sun altitude through ${dateIn.value} at ${place.name}`);
+    paint(q<HTMLCanvasElement>('.spc-fig'), dayFig);
+    const pathFig = pathFigure(place, t, s, tz);
+    paint(q<HTMLCanvasElement>('.spc-path'), pathFig);
+
+    // A year of day lengths.
+    yearData(place, Y);
+    const yx = yearDays.map((_, i) => i + 1), yy = yearDays.map((d) => d.s.dayH);
+    const doy = Math.floor((Date.parse(iso) - Date.UTC(Y, 0, 1)) / 864e5) + 1;
+    const yearFig = chartFigure({ h: 240, xLabel: `Day of ${Y}`, yLabel: 'Day length (hours)', xMin: 1, xMax: yearDays.length, yMin: 0, yMax: 24, legend: 'none',
+      series: [{ name: 'Day length', x: yx, y: yy, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: doy, dash: [4, 3], label: 'chosen date' }, { kind: 'hline', at: 12, dash: [2, 3] }] }, `Day length through ${Y} at ${place.name}`);
+    paint(q<HTMLCanvasElement>('.spc-year'), yearFig);
+    const monthly = Array.from({ length: 12 }, (_, m) => yearDays[Math.floor((Date.UTC(Y, m, 21) - Date.UTC(Y, 0, 1)) / 864e5)]);
+    const monthRows = monthly.map(({ iso: i2, s: d2 }) => [fmtDay(new Date(i2 + 'T12:00:00Z'), 'UTC', { month: 'short', day: 'numeric' }), fmtTime(d2.rise, tz), fmtTime(d2.set, tz), d2.polar === 'day' ? '24 h' : d2.polar === 'night' ? '0 h' : hm(d2.dayH), deg(d2.noonAlt, 0)]);
+    table(q<HTMLTableElement>('.spc-tab'), ['Date', 'Sunrise', 'Sunset', 'Day length', 'Noon height'], monthRows);
+    const seasonRows = seasons(Y).map(([n, d2]) => [n, `${fmtDay(d2, tz, { month: 'short', day: 'numeric', year: 'numeric' })}, ${fmtTime(d2, tz)}`]);
+    table(q<HTMLTableElement>('.spc-seasons'), ['Event', 'Moment'], seasonRows);
+    yearRows = yearDays.map(({ iso: i2, s: d2 }) => [i2, d2.rise ? d2.rise.toISOString().slice(11, 16) : '', d2.noon.toISOString().slice(11, 16), d2.set ? d2.set.toISOString().slice(11, 16) : '', d2.dayH.toFixed(3), d2.noonAlt.toFixed(2), d2.eotMin.toFixed(2), d2.civil[0] ? d2.civil[0].toISOString().slice(11, 16) : '', d2.civil[1] ? d2.civil[1].toISOString().slice(11, 16) : '']);
+
+    figs = [dayFig, pathFig, yearFig];
+    report = [
+      { title: `Sun at ${place.name}, ${when}`, facts: [['Position', q('.spc-big').textContent!], ...nowFacts.slice(1).map(([k, v]) => [k, v] as [string, string])], figure: dayFig },
+      { title: 'The day', facts: dayFacts.map(([k, v]) => [k, v] as [string, string]), figure: pathFig },
+      { title: `Through ${Y}`, table: { head: ['Date', 'Sunrise', 'Sunset', 'Day length', 'Noon height'], rows: monthRows, align: ['l', 'r', 'r', 'r', 'r'] }, figure: yearFig },
+      { title: 'Equinoxes and solstices', table: { head: ['Event', 'Moment'], rows: seasonRows, align: ['l', 'r'] } },
+    ];
+  }
+
+  q('.spc-csv').addEventListener('click', () => {
+    const p = getSky().place;
+    save(new Blob([csv([['date', 'sunrise_utc', 'solar_noon_utc', 'sunset_utc', 'day_length_h', 'noon_altitude_deg', 'equation_of_time_min', 'civil_dawn_utc', 'civil_dusk_utc'], ...yearRows])], { type: 'text/csv' }), `sun-${p.name.replace(/[^\w]+/g, '-').toLowerCase()}-${dateIn.value.slice(0, 4)}.csv`, 'text/csv');
+  });
+  q('.spc-now').addEventListener('click', () => { setNow(); calc(); });
+  for (const el of [dateIn, timeIn, q('.spc-h')]) el.addEventListener('change', calc);
+  q('.spc-h').addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => { const c = ['.spc-fig', '.spc-path', '.spc-year']; figs.forEach((f, i) => paint(q<HTMLCanvasElement>(c[i]), f)); });
+  setNow();
+  // Keep the same clock reading when the place or the time zone changes.
+  onSky(() => calc());
+  wireDownloads(q('.dl'), () => ({ title: 'Sun position', file: 'sun-position', sections: report }));
+</script>

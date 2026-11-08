@@ -1,0 +1,196 @@
+---
+// Jupiter's moons: where Io, Europa, Ganymede and Callisto are at any moment, and the coming transits,
+// shadow transits, occultations and eclipses, with whether Jupiter is up and the sky dark at your place.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax jm">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>When and how you look</h2>
+    <div class="ax-grid">
+      <label>Date and time <input type="datetime-local" class="jm-t" step="60" required /></label>
+      <label>View <select class="jm-view">
+        <option value="eye" selected>Eye or binoculars (north up, east left)</option>
+        <option value="inv">Reflector or finder (upside down)</option>
+        <option value="mir">Refractor or SCT with a diagonal (mirrored)</option>
+      </select></label>
+      <label>Events for <select class="jm-span"><option value="1">1 day</option><option value="3" selected>3 days</option><option value="7">7 days</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small jm-back">− 1 hour</button>
+      <button type="button" class="btn secondary small jm-now">Now</button>
+      <button type="button" class="btn secondary small jm-fwd">+ 1 hour</button>
+      <label class="ax-check"><input type="checkbox" class="jm-vis" /> Only events I can see</label>
+    </div>
+    <p class="ax-help">Times are on the clock chosen in "Times in" above. The view matches what you see in the eyepiece: most telescopes turn the image upside down, and a star diagonal mirrors it.</p>
+    <p class="ax-err jm-err" hidden></p>
+  </div>
+
+  <div class="ax-card jm-out" hidden>
+    <h2 class="jm-title"></h2>
+    <p class="ax-big jm-big"></p>
+    <canvas class="ax-fig jm-fig"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="jm-pos"></table></div>
+    <dl class="ax-facts jm-facts"></dl>
+    <h3>Coming events</h3>
+    <div class="ax-scroll"><table class="jm-ev"></table></div>
+    <p class="ax-help jm-none" hidden>No events match in this period.</p>
+    <p class="ax-help">Tap an event to show the moons at its middle. "You can see it" means Jupiter is at least 10° up and the Sun at least 6° below the horizon at that moment. A transit is a moon crossing in front of Jupiter; a shadow transit is its black shadow crossing the cloud tops; an occultation is the moon hidden behind Jupiter; an eclipse is the moon in Jupiter's shadow, so it fades out or reappears beside the planet.</p>
+    <h3>The moons over the coming days</h3>
+    <p class="ax-help" style="margin:0">Time runs down the page; the band in the middle is Jupiter. Each wave is one moon swinging from side to side.</p>
+    <canvas class="ax-fig jm-wave" style="margin-top:8px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small jm-csv">Event list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .jm .jm-ev td, .jm .jm-ev th, .jm .jm-pos td, .jm .jm-pos th { white-space: nowrap; }
+  .jm .jm-ev tbody tr { cursor: pointer; }
+  .jm .jm-ev td.jm-no { color: var(--muted); }
+</style>
+
+<script>
+  import * as A from 'astronomy-engine';
+  import { csv } from '../../lib/sci/num';
+  import { moonsAt, events, MOONS, type JovEvent } from '../../lib/astro/jupiter';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay, zoned, localDate, localTime, type Place } from '../../lib/astro/place';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.jm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tIn = q<HTMLInputElement>('.jm-t'), viewSel = q<HTMLSelectElement>('.jm-view');
+  const WHAT: Record<JovEvent['kind'], string> = { Transit: 'crosses Jupiter', 'Shadow transit': 'shadow crosses Jupiter', Occultation: 'hidden behind Jupiter', Eclipse: "in Jupiter's shadow" };
+  let figs: Figure[] = [], report: Section[] = [], evRows: { ev: JovEvent; vis: boolean; mid: Date }[] = [];
+  let evKey = '';
+
+  const altOf = (body: A.Body, place: Place, t: Date) => { const o = new A.Observer(place.lat, place.lon, place.elev || 0), e = A.Equator(body, t, o, true, true); return A.Horizon(t, o, e.ra, e.dec, 'normal').altitude; };
+  /** Screen direction for east and north offsets in the chosen view: [x sign for east, y sign for north]. */
+  const dirs = () => ({ eye: [-1, 1], inv: [1, -1], mir: [1, 1] } as Record<string, number[]>)[viewSel.value];
+  const readT = () => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(tIn.value); if (!m) return null; const [, y, mo, d, h, mi] = m.map(Number); return zoned(y, mo, d, h, mi, getSky().place.tz); };
+  const writeT = (t: Date) => { const tz = getSky().place.tz; tIn.value = `${localDate(t, tz)}T${localTime(t, tz)}`; };
+  const when = (t: Date, tz: string) => `${fmtDay(t, tz, { weekday: 'short', month: 'short', day: 'numeric' })} ${fmtTime(t, tz)}`;
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (i: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, k) => { const tr = b.insertRow(); tr.dataset.i = String(k); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls ? cls(k) : ''].join(' ').trim(); }); });
+  }
+
+  function discFigure(t: Date, tz: string): Figure {
+    const m = moonsAt(t), [sx, sy] = dirs();
+    // The moons' line is tilted on the sky by up to about 25°, so the picture is as tall as the farthest moon needs.
+    const R0 = (600 / 2 - 10) / 28, H = Math.round(Math.max(130, 2 * (Math.max(...m.moons.map((s) => Math.abs(s.north))) + 1.6) * R0 + 34));
+    return {
+      w: 600, h: H, alt: `Jupiter and its four large moons at ${when(t, tz)}`,
+      draw(ctx, w, h, pal: Palette) {
+        const R = (w / 2 - 10) / 28, cx = w / 2, cy = h / 2 - 6;
+        const X = (e: number) => cx + sx * e * R, Y = (n: number) => cy - sy * n * R;
+        ctx.fillStyle = pal.night; ctx.fillRect(0, 0, w, h);
+        // Jupiter: flattened by 6.5 %.
+        ctx.fillStyle = pal.red ? pal.ink : '#d9c6a5'; ctx.beginPath(); ctx.ellipse(cx, cy, R, R * 0.935, 0, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = pal.red ? pal.line : '#b89a6c'; ctx.lineWidth = 1;
+        for (const b of [-0.35, 0.3]) { ctx.beginPath(); ctx.moveTo(cx - R * Math.sqrt(1 - b * b), cy - sy * b * R); ctx.lineTo(cx + R * Math.sqrt(1 - b * b), cy - sy * b * R); ctx.stroke(); }
+        ctx.font = "13px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        for (const s of m.moons) {
+          if (s.shadow && s.shadowEast !== null) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(X(s.shadowEast), Y(s.shadowNorth!), 3.4, 0, 2 * Math.PI); ctx.fill(); }
+        }
+        for (const s of m.moons) {
+          const x = X(s.east), y = Y(s.north);
+          ctx.fillStyle = pal.red ? pal.ink : '#e8e8e8';
+          if (s.occulted) { /* behind the disc */ }
+          else if (s.eclipsed) { ctx.strokeStyle = pal.red ? pal.muted : '#777'; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 2 * Math.PI); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.arc(x, y, 3.4, 0, 2 * Math.PI); ctx.fill(); if (s.transit) { ctx.strokeStyle = pal.red ? pal.bg : '#7a6a50'; ctx.stroke(); } }
+          ctx.fillStyle = pal.red ? pal.muted : '#bdbdbd';
+          if (!s.occulted) ctx.fillText(s.name[0], x, y + 8);
+        }
+        ctx.fillStyle = pal.red ? pal.muted : '#9a9a9a'; ctx.textBaseline = 'bottom';
+        ctx.textAlign = 'left'; ctx.fillText(sx < 0 ? 'E' : 'W', 6, h - 4);
+        ctx.textAlign = 'right'; ctx.fillText(sx < 0 ? 'W' : 'E', w - 6, h - 4);
+        ctx.textAlign = 'center'; ctx.fillText(sy > 0 ? 'N ↑' : 'S ↑', cx, h - 4);
+      },
+    };
+  }
+
+  function draw() {
+    const err = q('.jm-err'); err.hidden = true;
+    const t = readT(); const { place } = getSky(), tz = place.tz;
+    if (!t) { err.textContent = 'Pick a date and time.'; err.hidden = false; return; }
+    const y = Number(localDate(t, tz).slice(0, 4));
+    if (y < 1900 || y > 2200) { err.textContent = 'Pick a year from 1900 to 2200.'; err.hidden = false; return; }
+    const m = moonsAt(t), jAlt = altOf(A.Body.Jupiter, place, t), sAlt = altOf(A.Body.Sun, place, t);
+    q('.jm-out').hidden = false;
+    q('.jm-title').textContent = `Jupiter's moons, ${when(t, tz)}`;
+    const up = jAlt > 0, dark = sAlt < -6;
+    q('.jm-big').textContent = !up ? `Jupiter is below the horizon from ${place.name} (${jAlt.toFixed(0)}°)` : !dark ? `Jupiter is ${jAlt.toFixed(0)}° up, but the sky is ${sAlt > 0 ? 'in daylight' : 'still bright'}` : `Jupiter is ${jAlt.toFixed(0)}° up in a dark sky`;
+    const disc = discFigure(t, tz); paint(q<HTMLCanvasElement>('.jm-fig'), disc);
+    const posRows = m.moons.map((s) => {
+      const d = Math.hypot(s.east, s.north), side = s.east >= 0 ? 'east' : 'west';
+      const state = s.occulted ? 'hidden behind Jupiter' : s.eclipsed ? "in Jupiter's shadow" : s.transit ? `in front of Jupiter${s.shadow ? ', shadow on the disc' : ''}` : s.shadow ? 'its shadow is on the disc' : 'visible';
+      return [s.name, d < 1 ? 'on the disc' : `${d.toFixed(1)} radii ${side}`, `${(d * m.radiusArcsec / 60).toFixed(1)}′`, state];
+    });
+    table(q<HTMLTableElement>('.jm-pos'), ['Moon', 'Distance from Jupiter', 'On the sky', 'Now'], posRows);
+    const facts: [string, string, string?][] = [
+      ['Jupiter height', `${jAlt.toFixed(1)}°`, 'above the horizon at your place'],
+      ['Sun', `${sAlt.toFixed(1)}°`, sAlt < -18 ? 'fully dark' : sAlt < -6 ? 'twilight, dark enough for Jupiter' : sAlt < 0 ? 'bright twilight' : 'daytime'],
+      ['Jupiter size', `${(2 * m.radiusArcsec).toFixed(1)}″ across`, `${m.distAU.toFixed(3)} AU from Earth`],
+    ];
+    const dl = q('.jm-facts');
+    dl.replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+
+    // Events and the wave chart cover the chosen span from the chosen moment (rounded to the hour so stepping keeps them).
+    const span = Number(q<HTMLSelectElement>('.jm-span').value), from = Math.floor(t.getTime() / 3600e3) * 3600e3 - 3600e3, to = from + span * 864e5;
+    const key = `${from},${span},${place.lat},${place.lon},${tz}`;
+    let wave = figs[1];
+    if (key !== evKey) {
+      evKey = key;
+      evRows = events(from, to).map((ev) => {
+        const s0 = ev.start?.getTime() ?? from, e0 = ev.end?.getTime() ?? to, mid = new Date((s0 + e0) / 2);
+        // Visible if any of start, middle or end has Jupiter up and the sky dark.
+        const vis = [s0, mid.getTime(), e0].some((x) => altOf(A.Body.Jupiter, place, new Date(x)) >= 10 && altOf(A.Body.Sun, place, new Date(x)) <= -6);
+        return { ev, vis, mid };
+      });
+      const xs: number[][] = MOONS.map(() => []), hs: number[] = [];
+      for (let x = from; x <= to; x += 20 * 60e3) { const mm = moonsAt(new Date(x)).moons; hs.push((x - from) / 3600e3); mm.forEach((s, i) => xs[i].push(s.east)); }
+      const sxv = dirs()[0];
+      wave = chartFigure({ h: Math.min(720, 180 + span * 70), xLabel: sxv < 0 ? '← east · Jupiter radii · west →' : '← west · Jupiter radii · east →', yLabel: `Hours after ${when(new Date(from), tz)}`, yReverse: true, xMin: -28, xMax: 28, yMin: 0, yMax: span * 24, legend: 'below',
+        series: MOONS.map((n, i) => ({ name: n, x: xs[i].map((v) => sxv * v), y: hs, mode: 'line' as const, width: 1.6 })),
+        marks: [{ kind: 'vline', at: -1 }, { kind: 'vline', at: 1 }] }, `Positions of Io, Europa, Ganymede and Callisto over ${span} day${span > 1 ? 's' : ''}`);
+    }
+    paint(q<HTMLCanvasElement>('.jm-wave'), wave);
+    const only = q<HTMLInputElement>('.jm-vis').checked;
+    const shown = evRows.filter((r) => !only || r.vis);
+    const rows = shown.map(({ ev, vis, mid }) => [ev.start ? when(ev.start, tz) : 'already on', ev.end ? fmtTime(ev.end, tz) : 'later', ev.moon, WHAT[ev.kind], `${altOf(A.Body.Jupiter, place, mid).toFixed(0)}°`, vis ? 'You can see it' : 'No']);
+    table(q<HTMLTableElement>('.jm-ev'), ['Starts', 'Ends', 'Moon', 'What happens', 'Jupiter height', 'From here'], rows, (k) => (shown[k].vis ? '' : 'jm-no'));
+    q('.jm-ev').querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((tr) => tr.addEventListener('click', () => { writeT(shown[Number(tr.dataset.i)].mid); draw(); }));
+    q('.jm-none').hidden = rows.length > 0;
+    figs = [disc, wave];
+    report = [
+      { title: `Jupiter's moons from ${place.name}, ${when(t, tz)}`, facts: [['Jupiter', q('.jm-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: disc, table: { head: ['Moon', 'Distance from Jupiter', 'On the sky', 'Now'], rows: posRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Coming events', table: { head: ['Starts', 'Ends', 'Moon', 'What happens', 'Jupiter height', 'From here'], rows, align: ['l', 'r', 'l', 'l', 'r', 'r'] }, figure: wave },
+    ];
+  }
+
+  const step = (h: number) => { const t = readT(); if (t) { writeT(new Date(t.getTime() + h * 3600e3)); draw(); } };
+  q('.jm-back').addEventListener('click', () => step(-1));
+  q('.jm-fwd').addEventListener('click', () => step(1));
+  q('.jm-now').addEventListener('click', () => { writeT(new Date()); draw(); });
+  tIn.addEventListener('change', draw);
+  viewSel.addEventListener('change', () => { evKey = ''; draw(); });
+  q('.jm-span').addEventListener('change', draw);
+  q('.jm-vis').addEventListener('change', draw);
+  q('.jm-csv').addEventListener('click', () => {
+    save(new Blob([csv([['start_utc', 'end_utc', 'moon', 'event', 'visible_from_place'], ...evRows.map(({ ev, vis }) => [ev.start?.toISOString().slice(0, 19) ?? '', ev.end?.toISOString().slice(0, 19) ?? '', ev.moon, ev.kind, vis ? 'yes' : 'no'])])], { type: 'text/csv' }), 'jupiter-moon-events.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (figs[0]) { paint(q<HTMLCanvasElement>('.jm-fig'), figs[0]); paint(q<HTMLCanvasElement>('.jm-wave'), figs[1]); } });
+  const qt = new URLSearchParams(location.search).get('t');
+  if (qt && !Number.isNaN(Date.parse(qt))) writeT(new Date(qt)); else writeT(new Date());
+  let lastTz = getSky().place.tz;
+  // When the clock zone changes, keep the same moment and rewrite the box in the new zone.
+  onSky((s) => { if (s.place.tz !== lastTz) { const t = (() => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(tIn.value); return m ? zoned(+m[1], +m[2], +m[3], +m[4], +m[5], lastTz) : new Date(); })(); lastTz = s.place.tz; writeT(t); } evKey = ''; draw(); });
+  wireDownloads(q('.dl'), () => ({ title: "Jupiter's moons", file: 'jupiter-moons', sections: report }));
+</script>
