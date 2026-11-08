@@ -1,5 +1,14 @@
 [
  {
+  "sha": "28bd60a3517e",
+  "date": "2026-11-08T23:39:11+00:00",
+  "title": "Add the anomalous Hall checker (#146)",
+  "tools": [
+   "anomalous-hall-checker"
+  ],
+  "site": false
+ },
+ {
   "sha": "a207f3fb45d5",
   "date": "2026-11-08T23:27:11+00:00",
   "title": "Add the altermagnet band explorer (#145)",
