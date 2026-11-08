@@ -1,0 +1,116 @@
+---
+// Chiral magnon bands of a 2D altermagnet in linear spin-wave theory: the two magnon modes of opposite chirality split
+// in a d-wave pattern. Every parameter is a made-up model value.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cmg">
+  <div class="ax-card">
+    <h2>Spin model</h2>
+    <div class="ax-grid">
+      <label><span>Antiferro coupling J1 (A to B)</span> <input class="mg-J1" type="text" inputmode="decimal" value="1" /></label>
+      <label><span>Same-sublattice coupling Ja</span> <input class="mg-Ja" type="text" inputmode="decimal" value="0.3" /></label>
+      <label><span>Same-sublattice coupling Jb</span> <input class="mg-Jb" type="text" inputmode="decimal" value="0.05" /></label>
+      <label><span>Easy-axis anisotropy K</span> <input class="mg-K" type="text" inputmode="decimal" value="0.02" /></label>
+      <label><span>Spin length S</span> <input class="mg-S" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Two sublattices on a square checkerboard: A (spin up) and B (spin down). J1 couples each atom to its four neighbours on the other sublattice and favours opposite spins. Ja and Jb couple atoms of the same sublattice one cell apart and favour parallel spins: on A, Ja acts along x and Jb along y; on B it is the other way round. K holds the spins along their axis. All values are made up, in any energy unit.</p>
+    <p class="ax-err mg-err" hidden></p>
+  </div>
+
+  <div class="ax-card mg-out">
+    <h2>Magnon bands</h2>
+    <p class="ax-big mg-big"></p>
+    <dl class="ax-facts mg-facts"></dl>
+    <canvas class="ax-fig mg-bfig"></canvas>
+    <canvas class="ax-fig mg-sfig"></canvas>
+    <p class="ax-help">The α magnon lowers the spin by one unit and lives mostly on the spin-up sublattice; the β magnon raises it and lives mostly on the spin-down sublattice. They turn the spins in opposite senses (right- and left-handed). In an ordinary antiferromagnet the two have the same energy at every k. Here they split, with opposite signs along x and y.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { modes, gapGamma, stability, maxSplit, type Mag } from '../../lib/sci/amagnon';
+  import { kPath } from '../../lib/sci/amband';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-9) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.cmg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const kTxt = (x: number) => { const r = x / Math.PI; return Math.abs(r) < 1e-9 ? '0' : Math.abs(Math.abs(r) - 1) < 1e-9 ? (r < 0 ? '−π' : 'π') : `${sg(r, 2)}π`; };
+  const point = (kx: number, ky: number) => { const ax = Math.abs(Math.abs(kx) - Math.PI) < 1e-9, ay = Math.abs(Math.abs(ky) - Math.PI) < 1e-9, zx = Math.abs(kx) < 1e-9, zy = Math.abs(ky) < 1e-9; return ax && zy ? 'X' : zx && ay ? 'Y' : ax && ay ? 'M' : zx && zy ? 'Γ' : ''; };
+  let figs: [string, Figure][] = [], report: Section[] = [];
+
+  function calc() {
+    const err = q('.mg-err'), out = q('.mg-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; };
+    const m: Mag = { J1: val('.mg-J1'), Ja: val('.mg-Ja'), Jb: val('.mg-Jb'), K: val('.mg-K'), S: val('.mg-S') };
+    if (![m.J1, m.Ja, m.Jb, m.K].every((v) => Math.abs(v) <= 100)) return fail('Give the couplings as numbers between −100 and 100.');
+    if (!(m.J1 > 0)) return fail('J1 must be above 0: it is the coupling that makes the spins antiparallel.');
+    if (!(m.S >= 0.5 && m.S <= 10)) return fail('Give S between 1/2 and 10 (for example 0.5, 1, 1.5, 2, 2.5).');
+    const st = stability(m);
+    if (!st.stable) return fail(`This spin pattern is not stable: a magnon energy goes ${Number.isFinite(st.min) ? `to ${sg(st.min, 3)}` : 'imaginary'} near k = (${kTxt(st.kx)}, ${kTxt(st.ky)}). ${m.K < 0 ? 'A negative K turns the spins away from their axis.' : 'The same-sublattice couplings are too antiferromagnetic.'} Up-down order would not survive, so linear spin waves do not apply.`);
+    err.hidden = true; out.hidden = false;
+    const sp = maxSplit(m), gap = gapGamma(m), P = kPath(80), es = P.pts.map((p) => modes(m, p.kx, p.ky));
+    const top = Math.max(...es.flat()), none = Math.abs(sp.d) < 1e-9, where = point(sp.kx, sp.ky);
+    q('.mg-big').textContent = none ? 'No chirality splitting: both magnons have the same energy' : `Chiral magnons split by up to ${sg(Math.abs(sp.d), 3)} (d-wave)`;
+    const facts = [
+      fact('Largest splitting ωα − ωβ', sg(sp.d, 3), none ? 'Ja = Jb: both sublattices alike, a plain antiferromagnet' : `at k = (${kTxt(sp.kx)}, ${kTxt(sp.ky)})${where ? `, the ${where} point` : ''}; 4S|Ja − Jb| for this model; zero along kx = ±ky`),
+      fact('Gap at Γ', sg(gap, 3), m.K > 0 ? '2S√(K(4J1 + K)): set by the easy-axis anisotropy' : 'no anisotropy: gapless Goldstone magnons'),
+      fact('Top of the bands', sg(top, 3), 'highest magnon energy on the path Y–Γ–X–M–Γ'),
+      fact('Net thermal spin', '0', 'a 90° rotation turns α into β, so at any temperature equal numbers of each are excited'),
+    ];
+    q('.mg-facts').replaceChildren(...facts);
+    const bfig: Figure = { w: 380, h: 250, alt: 'Magnon bands of both chiralities along Y–Γ–X–M–Γ', draw: (ctx, W, H, pal) => {
+      const L = 40, R = 10, T = 10, B = 26, pw = W - L - R, ph = H - T - B, hi = top * 1.08 || 1, lo = 0;
+      const X = (x: number) => L + (x / P.length) * pw, Y = (e: number) => T + ((hi - e) / (hi - lo)) * ph;
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(L, T, pw, ph);
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const t of P.ticks) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(t.at), T); ctx.lineTo(X(t.at), T + ph); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(t.label, X(t.at), T + ph + 4); }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted;
+      const e10 = Math.pow(10, Math.floor(Math.log10(hi / 4))), step = e10 * ([1, 2, 5].find((s) => hi / (s * e10) <= 6) ?? 10);
+      for (let e = 0; e <= hi; e += step) ctx.fillText(sg(e, 2), L - 4, Y(e));
+      ctx.save(); ctx.translate(10, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Magnon energy', 0, 0); ctx.restore();
+      for (const s of [0, 1]) {
+        ctx.setLineDash(s ? [5, 3] : []); ctx.strokeStyle = s ? pal.accent2 : pal.accent; ctx.lineWidth = 1.8; ctx.beginPath();
+        P.pts.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(es[i][s])) : ctx.moveTo(X(p.x), Y(es[i][s])))); ctx.stroke();
+      }
+      ctx.setLineDash([]); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '10px system-ui, sans-serif';
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(L + 6, T + 10); ctx.lineTo(L + 24, T + 10); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText('α (lowers Sᶻ)', L + 28, T + 10);
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(L + 106, T + 10); ctx.lineTo(L + 124, T + 10); ctx.stroke(); ctx.setLineDash([]); ctx.fillText('β (raises Sᶻ)', L + 128, T + 10);
+    } };
+    const M = 80;
+    const sfig: Figure = { w: 380, h: 330, alt: 'Map of the chirality splitting ωα − ωβ over the Brillouin zone', draw: (ctx, W, H, pal) => {
+      const S = Math.min(W - 60, H - 60), x0 = (W - S) / 2 + 8, y0 = 12, c = S / M;
+      const X = (k: number) => x0 + ((k + Math.PI) / (2 * Math.PI)) * S, Y = (k: number) => y0 + ((Math.PI - k) / (2 * Math.PI)) * S;
+      const vals: number[] = []; let amax = 0;
+      for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { const [a, b] = modes(m, -Math.PI + (2 * Math.PI * (i + 0.5)) / M, -Math.PI + (2 * Math.PI * (j + 0.5)) / M); vals.push(a - b); amax = Math.max(amax, Math.abs(a - b)); }
+      vals.forEach((v, idx) => { if (!amax) return; const i = idx % M, j = Math.floor(idx / M); ctx.globalAlpha = Math.min(1, Math.abs(v) / amax) * 0.85; ctx.fillStyle = v > 0 ? pal.accent : pal.accent2; ctx.fillRect(x0 + i * c, y0 + S - (j + 1) * c, c + 0.5, c + 0.5); });
+      ctx.globalAlpha = 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, S, S);
+      ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(0), y0); ctx.lineTo(X(0), y0 + S); ctx.moveTo(x0, Y(0)); ctx.lineTo(x0 + S, Y(0)); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText('−π', X(-Math.PI), y0 + S + 3); ctx.fillText('kx', X(0), y0 + S + 3); ctx.fillText('π', X(Math.PI), y0 + S + 3);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('π', x0 - 4, Y(Math.PI)); ctx.fillText('ky', x0 - 4, Y(0)); ctx.fillText('−π', x0 - 4, Y(-Math.PI));
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(amax ? `ωα − ωβ: dark = ±${sg(amax, 2)}` : 'ωα − ωβ = 0 everywhere', x0 + 4, y0 + 4);
+      const ly = y0 + S + 18; ctx.fillStyle = pal.accent; ctx.fillRect(x0, ly, 12, 9); ctx.fillStyle = pal.ink; ctx.fillText('α higher', x0 + 16, ly);
+      ctx.fillStyle = pal.accent2; ctx.fillRect(X(0) + 10, ly, 12, 9); ctx.fillStyle = pal.ink; ctx.fillText('β higher', X(0) + 26, ly);
+    } };
+    figs = [['.mg-bfig', bfig], ['.mg-sfig', sfig]];
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+    report = [{ title: q('.mg-big').textContent!, facts: [...q('.mg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: bfig }, { title: 'Chirality splitting map', figure: sfig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', later));
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Chiral magnon bands', subtitle: q('.mg-big').textContent ?? '', file: 'chiral-magnons', sections: report }));
+</script>
+
+<style is:global>
+  .cmg input { max-width: 100%; }
+</style>

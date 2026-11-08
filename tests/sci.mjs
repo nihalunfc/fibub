@@ -131,6 +131,7 @@ import * as RC from '../src/lib/sci/rating.ts';
 import * as AMB from '../src/lib/sci/amband.ts';
 import * as AHE from '../src/lib/sci/ahe.ts';
 import * as SSC from '../src/lib/sci/sscond.ts';
+import * as AMG from '../src/lib/sci/amagnon.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2619,6 +2620,22 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   { const rm = SSC.tensors(one('dx2y2', -0.3), 200), rp = SSC.tensors(one('dx2y2', 0.3), 200); near('ssc: reversing J reverses the spin current', SSC.atAngle(rm.up, rm.dn, Math.PI / 4).splitter, -SSC.atAngle(rp.up, rp.dn, Math.PI / 4).splitter, 1e-12); }
   // Plain antiferromagnet limit (ta = tb): the spins are degenerate, so no spin current at all.
   { const tw = SSC.tensors({ ...two, ta: 0.2, tb: 0.2 }, 200); near('ssc: ta = tb gives no spin current', Math.abs(SSC.atAngle(tw.up, tw.dn, Math.PI / 4).splitter) + Math.abs(SSC.atAngle(tw.up, tw.dn, 0).polar), 0, 1e-9); }
+}
+
+// #148 chiral magnon bands: linear spin waves checked against NumPy eig of the paraunitary BdG matrix σ3·H
+{
+  const m = { J1: 1, Ja: 0.3, Jb: 0.05, K: 0.02, S: 1 };
+  const ref = [[[0, 0], 0.5670978752, 0.5670978752], [[Math.PI, 0], 5.24, 4.24], [[0, Math.PI], 4.24, 5.24], [[Math.PI, Math.PI], 5.44, 5.44], [[1, 0.4], 2.5537149894, 2.3633356453], [[2.2, -1.3], 4.846387156, 4.4183871831]];
+  for (const [[kx, ky], a, b] of ref) { const [wa, wb] = AMG.modes(m, kx, ky); near(`magnon: α at (${kx.toFixed(2)}, ${ky.toFixed(2)})`, wa, a, 1e-9); near(`magnon: β at (${kx.toFixed(2)}, ${ky.toFixed(2)})`, wb, b, 1e-9); }
+  near('magnon: gap at Γ = 2S√(K(4J1 + K))', AMG.gapGamma(m), 2 * Math.sqrt(0.02 * 4.02), 1e-12);
+  near('magnon: plain J1 antiferromagnet ω = 4SJ1√(1 − γ²)', AMG.modes({ J1: 1, Ja: 0, Jb: 0, K: 0, S: 1.5 }, 1.1, 0.7)[0], 4 * 1.5 * Math.sqrt(1 - (Math.cos(0.55) * Math.cos(0.35)) ** 2), 1e-12);
+  { const d = AMG.maxSplit(m); near('magnon: largest chirality splitting 4S|Ja − Jb|', Math.abs(d.d), 1, 1e-12); near('magnon: at X or Y', Math.abs(Math.cos(d.kx) - Math.cos(d.ky)), 2, 1e-12); }
+  check('magnon: degenerate along the diagonal', [0.3, 1.2, 2.5].every((k) => Math.abs(AMG.modes(m, k, k)[0] - AMG.modes(m, k, k)[1]) < 1e-12 && Math.abs(AMG.modes(m, k, -k)[0] - AMG.modes(m, k, -k)[1]) < 1e-12));
+  check('magnon: 90° rotation swaps the two chiralities', [[0.4, 1.7], [2.9, -0.8]].every(([x, y]) => Math.abs(AMG.modes(m, x, y)[0] - AMG.modes(m, -y, x)[1]) < 1e-12));
+  check('magnon: Ja = Jb gives degenerate magnons', Math.abs(AMG.maxSplit({ ...m, Jb: 0.3 }).d) < 1e-12);
+  check('magnon: stable with ferro J2 and easy axis', AMG.stability(m).stable);
+  check('magnon: unstable with a hard axis (K < 0)', !AMG.stability({ ...m, K: -0.05 }).stable);
+  check('magnon: unstable with strong antiferro J2', !AMG.stability({ ...m, Ja: -1.5 }).stable);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
