@@ -1,5 +1,14 @@
 [
  {
+  "sha": "9f0716ecd28f",
+  "date": "2026-11-08T22:56:57+00:00",
+  "title": "Add the evapotranspiration calculator (#143)",
+  "tools": [
+   "et0-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "6f9174b7ee56",
   "date": "2026-11-08T22:44:34+00:00",
   "title": "Add flood frequency analysis (#142)",
