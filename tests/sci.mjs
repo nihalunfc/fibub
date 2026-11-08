@@ -116,6 +116,7 @@ import * as GTN from '../src/lib/sci/gradetonnage.ts';
 import * as DH from '../src/lib/sci/drillhole.ts';
 import * as TRV from '../src/lib/sci/traverse.ts';
 import * as LVL from '../src/lib/sci/levelling.ts';
+import * as GPS from '../src/lib/sci/gpstrack.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2079,6 +2080,42 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('levelling: IS with FS flagged', LVL.bookErrors([{ name: 'A', bs: 1 }, { name: 'B', is: 1, fs: 2 }]).some((x) => /intermediate/.test(x.msg)));
   const bad = LVL.bookErrors([{ name: 'A', is: 1 }, { name: 'B', bs: 1 }, { name: 'C', is: 1 }]);
   check('levelling: book errors', bad.length === 3 && bad.some((x) => /change point/.test(x.msg)) && bad.some((x) => /last reading/.test(x.msg)));
+}
+
+// GPS tracks.
+{
+  near('gps: 1° of longitude on the sphere', GPS.haversine(0, 0, 0, 1), 2 * Math.PI * 6371008.8 / 360, 1e-6);
+  near('gps: 1° on the WGS84 equator', GPS.vincenty(0, 0, 0, 1).d, 6378137 * Math.PI / 180, 1e-6);
+  // Flinders Peak to Buninyong, the standard Vincenty test line: 54 972.271 m, forward azimuth 306°52′05.37″.
+  const dms = (d, m, s) => Math.sign(d) * (Math.abs(d) + m / 60 + s / 3600);
+  const fb = GPS.vincenty(dms(-37, 57, 3.7203), dms(144, 25, 29.5244), dms(-37, 39, 10.1561), dms(143, 55, 35.3839));
+  near('gps: Vincenty test line distance', fb.d, 54972.271, 0.005);
+  near('gps: Vincenty test line azimuth', fb.az, dms(306, 52, 5.37), 1 / 3600);
+  check('gps: same point', GPS.vincenty(10, 20, 10, 20).d === 0);
+  check('gps: nearly antipodal falls back', Number.isFinite(GPS.vincenty(0, 0, 0.5, 179.7).d));
+  near('gps: ISO time', GPS.parseTime('2026-01-01T00:00:10Z') - GPS.parseTime('2026-01-01T00:00:00Z'), 10000, 0);
+  // Due north along a meridian, 100 m steps (on the sphere) every 20 s, then a 60 s stop, then a spike.
+  const dLat = 100 / (6371008.8 * Math.PI / 180);
+  const pts = [0, 1, 2, 3].map((k) => ({ lat: k * dLat, lon: 0, t: k * 20000, ele: [100, 101, 106, 104][k], seg: 0 }));
+  pts.push({ lat: 3 * dLat, lon: 0, t: 120000, ele: 104, seg: 0 }, { lat: 3 * dLat + 1, lon: 0, t: 121000, ele: 104, seg: 0 }, { lat: 4 * dLat, lon: 0, t: 140000, ele: 98, seg: 0 });
+  const a = GPS.analyse(pts, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 3, ellipsoid: false });
+  check('gps: spike dropped', a.spikes === 1);
+  near('gps: distance without the spike', a.dist, 400, 1e-6);
+  near('gps: moving time (the 60 s stop left out)', a.moving, 80, 1e-9);
+  near('gps: elapsed', a.elapsed, 140, 1e-9);
+  near('gps: max speed', a.maxV, 5, 1e-9);
+  check('gps: climbing with a 3 m step', a.gain === 6 && a.loss === 8);
+  const sp = GPS.splits(pts, a.cum, 150);
+  check('gps: splits', sp.length === 2 && Math.abs(sp[0].time - 30) < 1e-9 && Math.abs(sp[1].split - 30) < 1e-9);
+  const segs = [{ lat: 0, lon: 0, seg: 0 }, { lat: dLat, lon: 0, seg: 0 }, { lat: 5, lon: 5, seg: 1 }, { lat: 5 + dLat, lon: 5, seg: 1 }];
+  const s2 = GPS.analyse(segs, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 3, ellipsoid: false });
+  check('gps: no distance across a segment gap', Math.abs(s2.dist - 200) < 1e-6 && s2.gaps === 1 && !s2.timed);
+  const zig = Array.from({ length: 11 }, (_, k) => ({ lat: 0, lon: (k * 100) / 111195 + (k % 2 ? 0 : 0), seg: 0 }));
+  zig[5] = { lat: 30 / 111195, lon: zig[5].lon, seg: 0 };
+  check('gps: thinning keeps the bump only', GPS.thin(zig, 10).length === 5 && GPS.thin(zig, 25).length === 3 && GPS.thin(zig, 50).length === 2);
+  const noisy = [100, 102, 100, 102, 100, 102].map((ele, k) => ({ lat: 0, lon: k * 1e-4, ele, seg: 0 }));
+  check('gps: height noise below the step is not climbing', GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 5, ellipsoid: false }).gain === 0 && GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 0, ellipsoid: false }).gain === 6);
+  check('gps: durations', GPS.fmtDuration(3725) === '1:02:05' && GPS.fmtDuration(247) === '4:07');
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
