@@ -94,6 +94,7 @@ import * as PH from '../src/lib/sci/phase.ts';
 import * as IR from '../src/lib/sci/irbands.ts';
 import * as PG from '../src/lib/sci/pointgroup.ts';
 import * as EIS from '../src/lib/sci/eis.ts';
+import * as ENZ from '../src/lib/sci/enzyme.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1464,6 +1465,28 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('−Z″ column detected', flipped.flipped && flipped.pts[0].im === -2 && flipped.pts[0].f === 100);
   const mp = EIS.toPoints([[10], [2], [-30]], 'modphase', 'auto').pts[0]; near('|Z| and phase to Z″', mp.im, -1, 1e-12);
   check('SI prefixes', EIS.eng(2.004e-5, 'F') === '20.04 µF' && EIS.eng(1234, 'Ω') === '1.234 kΩ');
+}
+{
+  // Enzyme kinetics: every model recovers its own values from exact rates; the simulated competitive study is identified.
+  const Ss = [1, 2.5, 5, 10, 20, 40, 80, 160, 320];
+  const truth = { mm: [100, 20], subinh: [120, 20, 200], hill: [100, 20, 2.2], comp: [100, 20, 10], uncomp: [100, 20, 15], noncomp: [100, 20, 25], mixed: [100, 20, 8, 40] };
+  for (const m of ENZ.MODELS) {
+    const d = (m.needsI ? [0, 10, 30] : [0]).flatMap((I) => Ss.map((S) => ({ S, I, v: m.v(S, I, truth[m.id]) })));
+    const f = ENZ.fitEnzyme(m, d);
+    check(`enzyme ${m.id} recovers its values`, f.p.every((v, i) => Math.abs(v / truth[m.id][i] - 1) < 1e-4));
+  }
+  const ex = ENZ.exampleData(), fits = ENZ.MODELS.filter((m) => m.needsI).map((m) => ENZ.fitEnzyme(m, ex)), w = ENZ.akaikeWeights(fits);
+  const comp = fits[0];
+  near('enzyme example Vmax', comp.p[0], 98.13, 0.02); near('enzyme example Km', comp.p[1], 19.20, 0.02); near('enzyme example Ki', comp.p[2], 9.816, 0.01);
+  check('enzyme: competitive and mixed share the support, the other two are ruled out', w[0] > 0.5 && w[3] > 0.4 && w[1] < 1e-10 && w[2] < 1e-10);
+  check('enzyme: mixed fit puts Ki′ far above Ki', fits[3].p[3] / fits[3].p[2] > 50);
+  const L = ENZ.linearised(ex.filter((o) => o.I === 0));
+  near('Lineweaver–Burk Vmax', L.lineweaver.Vmax, 102.07, 0.01); near('Eadie–Hofstee Km', L.eadie.Km, 19.83, 0.01); near('Hanes–Woolf Vmax', L.hanes.Vmax, 98.65, 0.01);
+  // Exact linear data: all three straight-line methods agree with the truth.
+  const L2 = ENZ.linearised([2, 5, 10, 20, 50].map((S) => ({ S, I: 0, v: (60 * S) / (8 + S) })));
+  check('linear plots exact on perfect data', [L2.lineweaver, L2.eadie, L2.hanes].every((r) => Math.abs(r.Vmax - 60) < 1e-9 && Math.abs(r.Km - 8) < 1e-9));
+  let threw = false; try { ENZ.fitEnzyme(ENZ.MODELS[0], [{ S: 1, I: 0, v: 1 }, { S: 2, I: 0, v: 2 }]); } catch { threw = true; }
+  check('enzyme: too few rates refused', threw);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

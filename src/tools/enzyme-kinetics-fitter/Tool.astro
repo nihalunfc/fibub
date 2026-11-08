@@ -1,0 +1,144 @@
+---
+// Enzyme kinetics: Michaelis–Menten, substrate inhibition, Hill and reversible inhibition fitted by non-linear
+// least squares; models compared by AICc; Lineweaver–Burk, Eadie–Hofstee and Hanes–Woolf for comparison.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleData } from '../../lib/sci/enzyme';
+const demo = '[S]\t[I]\tv\n' + exampleData().map((o) => `${o.S}\t${o.I}\t${o.v}`).join('\n');
+---
+<div class="ax enz">
+  <div class="ax-card">
+    <h2>Initial rates</h2>
+    <label class="enz-lab">Substrate concentration and initial rate, two columns; or substrate, inhibitor and rate, three columns <textarea class="enz-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".enz-data" maxCols={3} label="Open a file (2 or 3 columns)" />
+    <div class="ax-grid">
+      <label>Concentration unit <input class="enz-su" value="µM" /></label>
+      <label>Rate unit <input class="enz-vu" value="µM/min" /></label>
+      <label class="enz-wide">Model <select class="enz-model"><option value="best">Best supported by the data (AICc)</option><option value="mm">Michaelis–Menten</option><option value="subinh">Substrate inhibition</option><option value="hill">Hill (cooperative)</option><option value="comp">Competitive inhibition</option><option value="uncomp">Uncompetitive inhibition</option><option value="noncomp">Non-competitive inhibition</option><option value="mixed">Mixed inhibition</option></select></label>
+      <label>Errors <select class="enz-w"><option value="constant">About the same size for every rate</option><option value="relative">About the same % of each rate</option></select></label>
+      <label>Enzyme concentration (optional, same unit) <input class="enz-e" inputmode="decimal" value="0.01" /></label>
+    </div>
+    <p class="ax-help">The fit uses the rates directly (non-linear least squares), which is more reliable than a straight line through 1/v. With three columns, every inhibitor level is fitted at once, and the four inhibition types are compared.</p>
+    <p class="ax-err enz-err" hidden></p>
+    <div class="enz-out">
+      <p class="ax-big enz-big"></p>
+      <div class="ax-scroll"><table class="enz-tab"></table></div>
+      <dl class="ax-facts enz-facts"></dl>
+      <canvas class="ax-fig enz-fig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig enz-lb" style="margin-top:10px"></canvas>
+      <h3>Compare models</h3>
+      <div class="ax-scroll"><table class="enz-cmp"></table></div>
+      <h3>Straight-line plots (no inhibitor)</h3>
+      <div class="ax-scroll"><table class="enz-lin"></table></div>
+      <p class="ax-help">The straight-line plots distort the errors (Lineweaver–Burk worst of all, because it stretches the least accurate low-substrate rates), so use them to see the pattern, not for the numbers.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MODELS, fitEnzyme, akaikeWeights, linearised, type Fit, type Obs } from '../../lib/sci/enzyme';
+  import { num, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.enz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+  const s3 = (x: number) => (Math.abs(x) >= 1000 ? x.toFixed(0) : x.toPrecision(3));
+  const s2 = (x: number) => (!Number.isFinite(x) ? '∞' : Math.abs(x) >= 100 ? x.toFixed(0) : x.toPrecision(2));
+  let figs: Figure[] = [], parRows: string[][] = [], cmpRows: string[][] = [], linRows: string[][] = [];
+
+  function calc() {
+    const err = (m: string) => { q('.enz-err').textContent = m; q('.enz-err').hidden = !m; q('.enz-out').hidden = !!m; if (m) figs = []; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.enz-data').value);
+    if (t.cols.length < 2) return err('Paste two columns (substrate and rate) or three (substrate, inhibitor and rate).');
+    const three = t.cols.length >= 3;
+    const d: Obs[] = t.cols[0].map((S, i) => ({ S, I: three ? t.cols[1][i] : 0, v: three ? t.cols[2][i] : t.cols[1][i] })).filter((o) => [o.S, o.I, o.v].every(Number.isFinite));
+    if (d.some((o) => o.S <= 0)) return err('Substrate concentrations must be above zero (leave out blanks without substrate).');
+    if (d.some((o) => o.I < 0)) return err('Inhibitor concentrations cannot be negative.');
+    if (d.some((o) => o.v <= 0)) return err('Rates must be above zero: subtract the blank, then leave out rates at or below zero.');
+    if (new Set(d.filter((o) => o.I === 0).map((o) => o.S)).size < 3 && new Set(d.map((o) => o.S)).size < 3) return err('Use at least three different substrate concentrations.');
+    const levels = [...new Set(d.map((o) => o.I))].sort((a, b) => a - b), withI = levels.length > 1;
+    if (three && !levels.includes(0)) return err('Include rates without inhibitor ([I] = 0), so Vmax and Km are defined.');
+    const su = q<HTMLInputElement>('.enz-su').value.trim() || 'conc.', vu = q<HTMLInputElement>('.enz-vu').value.trim() || 'rate', wt = q<HTMLSelectElement>('.enz-w').value as 'constant';
+    const pool = MODELS.filter((m) => (withI ? m.needsI : !m.needsI));
+    const fits: Fit[] = [];
+    for (const m of pool) { try { fits.push(fitEnzyme(m, d, wt)); } catch { /* not enough points for this one */ } }
+    if (!fits.length) return err(`Use more rates: at least ${pool[0].params.length + 1} are needed.`);
+    const W = akaikeWeights(fits), amin = Math.min(...fits.map((f) => f.aicc));
+    // Best: among models within 2 AICc units of the minimum, the one with the fewest values (simplest).
+    const auto = fits.filter((f) => f.ok && f.aicc - amin < 2).sort((a, b) => a.model.params.length - b.model.params.length || a.aicc - b.aicc)[0] ?? fits[0];
+    const want = q<HTMLSelectElement>('.enz-model').value;
+    if (want !== 'best' && !fits.some((f) => f.model.id === want)) return err(withI ? 'With an inhibitor column, choose an inhibition model or "Best".' : 'This model needs a third column with inhibitor concentrations.');
+    err('');
+    const fit = want === 'best' ? auto : fits.find((f) => f.model.id === want)!;
+    const unit = (k: string) => (k === 'Vmax' ? vu : k === 'h' ? '' : su);
+    const pm = fit.model.params.map((p, i) => `${p.key} ${s3(fit.p[i])} ± ${s2(fit.se[i])}${unit(p.key) ? ' ' + unit(p.key) : ''}`);
+    q('.enz-big').textContent = `${fit.model.name}: ${pm.join(', ')}`;
+    parRows = fit.model.params.map((p, i) => [p.label, `${s3(fit.p[i])} ${unit(p.key)}`.trim(), `± ${s2(fit.se[i])}`, `${(100 * fit.se[i] / fit.p[i]).toPrecision(2)} %`]);
+    table(q<HTMLTableElement>('.enz-tab'), ['Value', 'Fitted', 'Std. error', 'Relative'], parRows, [1, 2, 3]);
+
+    const E = num(q<HTMLInputElement>('.enz-e').value), get = (k: string) => fit.p[fit.model.params.findIndex((p) => p.key === k)];
+    const facts: HTMLElement[] = [fact('Fit quality', `R² ${fit.r2.toFixed(4)}, residual SD ${s3(fit.s)}${wt === 'relative' ? ' (relative)' : ` ${vu}`}`, `${fit.n} rates`)];
+    if (E > 0) {
+      const kcat = get('Vmax') / E, Km = get('Km') ?? get('K0.5'), per = vu.split('/')[1] ?? 'time';
+      facts.push(fact('Turnover number kcat', `${s3(kcat)} per ${per}`, 'Vmax / [E], assuming one active site per enzyme'));
+      if (Km) facts.push(fact('Catalytic efficiency kcat/Km', `${s3(kcat / Km)} per ${su} per ${per}`, per === 'min' ? `= ${s3((kcat / Km) / 60)} per ${su} per s` : ''));
+    }
+    if (fit.model.id === 'mixed') {
+      const r = get("Ki'") / get('Ki');
+      facts.push(fact('Mixed inhibition leans', r > 10 ? 'competitive (Ki′ ≫ Ki)' : r < 0.1 ? 'uncompetitive (Ki ≫ Ki′)' : r > 0.5 && r < 2 ? 'non-competitive (Ki ≈ Ki′)' : r > 1 ? 'towards competitive' : 'towards uncompetitive', `Ki′/Ki = ${s3(r)}`));
+    }
+    if (fit.model.id === 'hill') facts.push(fact('Cooperativity', get('h') > 1.15 ? 'positive (h > 1)' : get('h') < 0.85 ? 'negative or mixed sites (h < 1)' : 'none to speak of (h ≈ 1)'));
+    if (!fit.ok) facts.push(fact('Warning', 'a value is not well defined by these data', 'extend the substrate range, especially above Km'));
+    const Smax = Math.max(...d.map((o) => o.S)), K = get('Km') ?? get('K0.5');
+    if (K && Smax < 2 * K) facts.push(fact('Substrate range', `highest [S] is only ${(Smax / K).toFixed(1)} × Km`, 'Vmax and Km are poorly separated below about 2 to 5 × Km'));
+    q('.enz-facts').replaceChildren(...facts);
+
+    const xs = Array.from({ length: 120 }, (_, i) => (Smax * 1.05 * (i + 1)) / 120);
+    const ser = levels.flatMap((I) => {
+      const pts = d.filter((o) => o.I === I), name = withI ? `[I] = ${I}` : 'data';
+      return [{ name, x: pts.map((o) => o.S), y: pts.map((o) => o.v), mode: 'points' as const }, { name: '', x: xs, y: xs.map((S) => fit.model.v(S, I, fit.p)), mode: 'line' as const, width: 2 }];
+    });
+    figs = [chartFigure({ h: 260, xLabel: `[S] (${su})`, yLabel: `v (${vu})`, xMin: 0, yMin: 0, series: ser, legend: withI ? 'below' : 'none' }, 'Initial rate against substrate with the fitted curves')];
+    const ix = Array.from({ length: 60 }, (_, i) => (i / 59) * (1 / Math.min(...d.map((o) => o.S))) * 1.05);
+    const lbs = levels.flatMap((I) => { const pts = d.filter((o) => o.I === I); return [{ name: withI ? `[I] = ${I}` : 'data', x: pts.map((o) => 1 / o.S), y: pts.map((o) => 1 / o.v), mode: 'points' as const }, { name: '', x: ix.filter((u) => u > 0), y: ix.filter((u) => u > 0).map((u) => 1 / fit.model.v(1 / u, I, fit.p)), mode: 'line' as const, width: 1.5 }]; });
+    figs.push(chartFigure({ h: 240, xLabel: `1/[S] (1/${su})`, yLabel: `1/v (1/(${vu}))`, xMin: 0, yMin: 0, series: lbs, legend: withI ? 'below' : 'none' }, 'Lineweaver–Burk plot with the lines of the non-linear fit'));
+    paint(q<HTMLCanvasElement>('.enz-fig'), figs[0]); paint(q<HTMLCanvasElement>('.enz-lb'), figs[1]);
+
+    cmpRows = fits.map((f, i) => [f.model.name, String(f.model.params.length), (f.aicc - amin).toFixed(1), `${Math.round(100 * W[i])} %`, f === auto ? 'chosen (simplest well-supported)' : !f.ok ? 'values not well defined' : f.aicc - amin < 2 ? 'also supported' : f.aicc - amin > 10 ? 'ruled out' : 'less likely']);
+    table(q<HTMLTableElement>('.enz-cmp'), ['Model', 'Values', 'ΔAICc', 'Weight', 'Verdict'], cmpRows, [1, 2, 3]);
+    const d0 = d.filter((o) => o.I === 0);
+    if (d0.length >= 3) {
+      const L = linearised(d0);
+      linRows = [['Lineweaver–Burk (1/v against 1/S)', s3(L.lineweaver.Vmax), s3(L.lineweaver.Km)], ['Eadie–Hofstee (v against v/S)', s3(L.eadie.Vmax), s3(L.eadie.Km)], ['Hanes–Woolf (S/v against S)', s3(L.hanes.Vmax), s3(L.hanes.Km)], ['Non-linear fit (above)', s3(fit.p[0]), s3(get('Km') ?? get('K0.5'))]];
+    } else linRows = [];
+    table(q<HTMLTableElement>('.enz-lin'), ['Method', `Vmax (${vu})`, `Km (${su})`], linRows.length ? linRows : [['needs three rates without inhibitor', '', '']], [1, 2]);
+  }
+
+  root.querySelectorAll('.enz-data').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.enz-su, .enz-vu, .enz-e').forEach((i) => i.addEventListener('input', calc));
+  root.querySelectorAll('.enz-model, .enz-w').forEach((i) => i.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.enz-fig'), figs[0]); paint(q<HTMLCanvasElement>('.enz-lb'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Enzyme kinetics', subtitle: q('.enz-big').textContent ?? '', file: 'enzyme-kinetics',
+    sections: q('.enz-out').hidden ? [] : [
+      { title: q('.enz-big').textContent!, table: { head: ['Value', 'Fitted', 'Std. error', 'Relative'], rows: parRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: [...root.querySelectorAll('.enz-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      { title: 'Lineweaver–Burk plot', figure: figs[1] },
+      { title: 'Compare models', table: { head: ['Model', 'Values', 'ΔAICc', 'Weight', 'Verdict'], rows: cmpRows, align: ['l', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] } },
+      ...(linRows.length ? [{ title: 'Straight-line plots', table: { head: ['Method', 'Vmax', 'Km'], rows: linRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .enz .enz-wide { grid-column: 1 / -1; }
+  .enz .enz-lab { display: block; }
+  .enz textarea { width: 100%; font: inherit; font-size: 14px; }
+  .enz select { max-width: 100%; }
+  .enz h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>
