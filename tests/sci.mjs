@@ -107,6 +107,7 @@ import * as GC from '../src/lib/sci/geochron.ts';
 import * as DL from '../src/lib/sci/delta.ts';
 import * as MX from '../src/lib/sci/mixing.ts';
 import * as TER from '../src/lib/sci/ternary.ts';
+import * as PIP from '../src/lib/sci/piper.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1847,6 +1848,34 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('spider: normalise', n[0] === 5 && Number.isNaN(n[1]) && Number.isNaN(n[2]));
   near('spider: Eu anomaly', TER.anomaly(10, 25, 16), 0.5, 1e-12);
   check('spider: Eu anomaly missing value', Number.isNaN(TER.anomaly(1, 0, 2)));
+}
+{
+  // Piper diagram: meq/L, ion balance, positions, water type.
+  near('piper: 40.078 mg/L Ca is 2 meq/L', PIP.meq(40.078, 'Ca'), 2, 1e-12);
+  near('piper: 61.0168 mg/L HCO3 is 1 meq/L', PIP.meq(61.0168, 'HCO3'), 1, 1e-12);
+  near('piper: mmol to meq for SO4', PIP.meqFromMmol(1.5, 'SO4'), 3, 1e-12);
+  const a = PIP.analyse({ Ca: 3, Mg: 1, Na: 1, HCO3: 4, SO4: 0.5, Cl: 0.5 });
+  near('piper: balanced sample', a.ibe, 0, 1e-12);
+  near('piper: ion balance error', PIP.analyse({ Ca: 5.5, HCO3: 4.5 }).ibe, 10, 1e-12);
+  near('piper: nitrate in the balance', PIP.analyse({ Ca: 2, HCO3: 1, NO3: 1 }).ibe, 0, 1e-12);
+  near('piper: cation share', a.cp.Ca, 0.6, 1e-12);
+  const pCa = PIP.piperXY({ Ca: 1, Mg: 0, NaK: 0 }, { HCO3: 1, SO4: 0, Cl: 0 }, 0.2);
+  check('piper: Ca corner and HCO3 corner', Math.abs(pCa.cat[0]) < 1e-12 && Math.abs(pCa.an[0] - 1.2) < 1e-12);
+  near('piper: Ca-HCO3 is the left diamond corner x', pCa.dia[0], 0.6, 1e-12);
+  near('piper: Ca-HCO3 is the left diamond corner y', pCa.dia[1], 1.2 * Math.sqrt(3) / 2, 1e-12);
+  const pNa = PIP.piperXY({ Ca: 0, Mg: 0, NaK: 1 }, { HCO3: 1, SO4: 0, Cl: 0 }, 0.2);
+  near('piper: Na-HCO3 is the bottom corner', pNa.dia[1], 0.2 * Math.sqrt(3) / 2, 1e-12);
+  const pTop = PIP.piperXY({ Ca: 0.5, Mg: 0.5, NaK: 0 }, { HCO3: 0, SO4: 0.5, Cl: 0.5 }, 0.2);
+  near('piper: top corner', pTop.dia[1], 2.2 * Math.sqrt(3) / 2, 1e-12);
+  // Projection rule: from the cation point along the left edge's direction to the diamond's lower-left edge.
+  const cp = { Ca: 0.3, Mg: 0.25, NaK: 0.45 }, ap = { HCO3: 0.7, SO4: 0.1, Cl: 0.2 }, pp = PIP.piperXY(cp, ap, 0.2), h = Math.sqrt(3) / 2;
+  const tHit = 0.2 + (cp.Ca + cp.Mg) - cp.Mg;
+  near('piper: cation projection meets the diamond edge', pp.cat[0] + 0.5 * tHit, 1.1 - 0.5 * (cp.Ca + cp.Mg), 1e-12);
+  check('piper: diamond point inside', pp.dia[1] > 0.2 * h && pp.dia[1] < 2.2 * h);
+  check('piper: fields', PIP.diamondField({ Ca: 0.7, Mg: 0.1, NaK: 0.2 }, { HCO3: 0.8, SO4: 0.1, Cl: 0.1 }) === 'Ca-Mg-HCO3' && PIP.diamondField({ Ca: 0.2, Mg: 0.2, NaK: 0.6 }, { HCO3: 0.2, SO4: 0.1, Cl: 0.7 }) === 'Na-K-Cl-SO4' && PIP.diamondField(cp, { HCO3: 0.2, SO4: 0.1, Cl: 0.7 }) === 'Ca-Mg-Cl-SO4');
+  check('piper: water type', PIP.waterType({ Ca: 3, Mg: 1.2, Na: 0.8, HCO3: 4, SO4: 0.6, Cl: 0.5 }) === 'Ca-Mg-HCO3');
+  check('piper: water type with K added to Na', PIP.waterType({ Ca: 1, Na: 0.5, K: 0.6, Cl: 2 }) === 'Na-Ca-Cl');
+  near('piper: hardness', PIP.hardness(2, 1), 150.13035, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
