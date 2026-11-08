@@ -1,5 +1,14 @@
 [
  {
+  "sha": "2f857b017481",
+  "date": "2026-11-08T19:21:25+00:00",
+  "title": "Add the Darcy flow calculator (#128)",
+  "tools": [
+   "darcy-flow-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "0981bcd182e8",
   "date": "2026-11-08T19:09:02+00:00",
   "title": "Add the slug test analyser (#127)",
