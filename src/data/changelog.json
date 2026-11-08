@@ -1,5 +1,15 @@
 [
  {
+  "sha": "87c9ec946496",
+  "date": "2026-11-08T07:54:00+00:00",
+  "title": "Add the gas law calculator and Beer-Lambert calculator (#83, #84)",
+  "tools": [
+   "beer-lambert-calculator",
+   "gas-law-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "9a387b6b05c2",
   "date": "2026-11-08T07:45:54+00:00",
   "title": "Open a file on every science paste box, with stated limits",
