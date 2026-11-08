@@ -1,5 +1,14 @@
 [
  {
+  "sha": "32584eb7b6a0",
+  "date": "2026-11-08T16:31:52+00:00",
+  "title": "Add the centrifuge calculator (#115)",
+  "tools": [
+   "centrifuge-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "1c91fa16923d",
   "date": "2026-11-08T16:22:42+00:00",
   "title": "Add the binding curve fitter (#114)",
