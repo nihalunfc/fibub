@@ -1,5 +1,14 @@
 [
  {
+  "sha": "6f9174b7ee56",
+  "date": "2026-11-08T22:44:34+00:00",
+  "title": "Add flood frequency analysis (#142)",
+  "tools": [
+   "flood-frequency"
+  ],
+  "site": false
+ },
+ {
   "sha": "d3696ddc6ac5",
   "date": "2026-11-08T22:30:39+00:00",
   "title": "Add the rainfall runoff calculator (#141)",
