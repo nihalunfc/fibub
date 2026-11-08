@@ -1,5 +1,14 @@
 [
  {
+  "sha": "8f76b910121e",
+  "date": "2026-11-08T09:37:53+00:00",
+  "title": "Add the thermochemistry calculator (#95)",
+  "tools": [
+   "thermochemistry-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "19b8d4052fad",
   "date": "2026-11-08T09:29:21+00:00",
   "title": "Add the diatomic spectroscopy calculator (#94)",
