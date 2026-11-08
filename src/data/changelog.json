@@ -1,5 +1,17 @@
 [
  {
+  "sha": "0a80f4ae9beb",
+  "date": "2026-11-08T05:59:21+00:00",
+  "title": "Add four tools: eclipse finder, satellite tracker, uv-coverage, double stars",
+  "tools": [
+   "double-star-calculator",
+   "eclipse-finder",
+   "satellite-tracker",
+   "uv-coverage"
+  ],
+  "site": false
+ },
+ {
   "sha": "f1aa4c65c675",
   "date": "2026-11-08T05:31:25+00:00",
   "title": "Add four tools: Sun position, Jupiter's moons, porkchop plot, radial velocity fitter",
