@@ -65,6 +65,8 @@ import { jd as aavsoJd, toVisual, toExtended, parseAavso, fractionEstimate, diff
 import * as CHEM from '../src/lib/sci/chem.ts';
 import * as KIN from '../src/lib/sci/kinetics.ts';
 import * as TIT from '../src/lib/sci/titration.ts';
+import * as GAS from '../src/lib/sci/gas.ts';
+import * as BEER from '../src/lib/sci/beer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -885,6 +887,34 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const v = [], ph = []; for (let x = 0; x <= 60; x += 1) { v.push(x); ph.push(TIT.pHAt(p, t, x)); }
   const e = TIT.endpoints(v, ph);
   check('two H3PO4 end points', e.length === 2 && Math.abs(e[0].volume - 25) < 0.3 && Math.abs(e[1].volume - 50) < 0.3);
+}
+{
+  // Gas laws: molar volumes; van der Waals CO2 (1 mol, 1 L, 300 K → 22.4 bar); vdW critical point of CO2 (304 K, 74 bar); round trips.
+  near('molar volume 0 °C 1 atm', GAS.MOLAR_VOLUME.stpOld * 1000, 22.414, 0.001);
+  near('molar volume 0 °C 1 bar', GAS.MOLAR_VOLUME.stpIupac * 1000, 22.711, 0.001);
+  near('molar volume 25 °C 1 bar', GAS.MOLAR_VOLUME.satp * 1000, 24.790, 0.001);
+  const id = GAS.solveIdeal({ P: 101325, n: 1, T: 273.15 });
+  check('ideal solves V', id.solved === 'V' && Math.abs(id.V - 0.022414) < 1e-6);
+  near('ideal T back', GAS.solveIdeal({ P: 101325, V: id.V, n: 1 }).T, 273.15, 1e-9);
+  near('vdW CO2 pressure (bar)', GAS.vdwPressure(1, 1e-3, 300, 3.640, 0.04267) / 1e5, 22.42, 0.01);
+  near('vdW volume inverts pressure', GAS.vdwVolume(1, GAS.vdwPressure(1, 1e-3, 300, 3.640, 0.04267), 300, 3.640, 0.04267), 1e-3, 1e-12);
+  const cc = GAS.vdwCritical(3.640, 0.04267);
+  near('vdW CO2 Tc', cc.Tc, 304.0, 0.5);
+  near('vdW CO2 Pc (bar)', cc.Pc / 1e5, 74.0, 0.3);
+  near('°F to K', GAS.toK(32, '°F'), 273.15, 1e-9);
+  near('combined law V2', GAS.combined({ P: 1, V: 2, T: 298.15 }, { P: 2, T: 373.15 }).value, 1.2515, 0.0001);
+  near('air density', GAS.density(101325, 273.15, 28.96), 1.292, 0.001);
+  check('ideal needs exactly one blank', (() => { try { GAS.solveIdeal({ P: 1, V: 1, n: 1, T: 1 }); return false; } catch { return true; } })());
+}
+{
+  // Beer–Lambert: NADH at 340 nm (ε 6220): A 0.622 → 0.100 mM; T ↔ A; peaks of the simulated NADH spectrum.
+  near('NADH concentration', BEER.solveBL({ A: 0.622, eps: 6220, l: 1 }).c, 1e-4, 1e-12);
+  near('A from 10 % T', BEER.absFromT(0.1), 1, 1e-12);
+  near('T from A 0.622', BEER.tFromAbs(0.622) * 100, 23.88, 0.01);
+  check('quality ranges', BEER.absQuality(0.5).level === 'good' && BEER.absQuality(1.5).level === 'warn' && BEER.absQuality(2.5).level === 'bad');
+  const sp = BEER.simulatedNadh(), pk = BEER.peaks(sp.wl, sp.A).map((p) => Math.round(p.x));
+  check(`NADH maxima at 259 and 340 nm (${pk})`, pk.length === 2 && Math.abs(pk[0] - 259) <= 1 && Math.abs(pk[1] - 340) <= 1);
+  near('NADH A340', BEER.interpAt(sp.wl, sp.A, 340), 0.622, 0.005);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

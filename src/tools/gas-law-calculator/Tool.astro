@@ -1,0 +1,145 @@
+---
+// Gas law calculator: PV = nRT for any missing quantity with units, mass and density for a named gas, the van der
+// Waals real-gas answer and compressibility, and the combined gas law for a change of state.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gas">
+  <div class="ax-card">
+    <h2>Ideal gas law, PV = nRT</h2>
+    <p class="ax-help">Fill in three and leave one empty: the empty one is worked out.</p>
+    <div class="gas-rows">
+      <label>Pressure <span class="gas-pair"><input class="gas-P" inputmode="decimal" value="101.325" /><select class="gas-Pu"></select></span></label>
+      <label>Volume <span class="gas-pair"><input class="gas-V" inputmode="decimal" /><select class="gas-Vu"></select></span></label>
+      <label>Amount <span class="gas-pair"><input class="gas-n" inputmode="decimal" value="1" /><select class="gas-nu"><option value="mol">mol</option><option value="mmol">mmol</option><option value="g">g</option><option value="kg">kg</option></select></span></label>
+      <label>Temperature <span class="gas-pair"><input class="gas-T" inputmode="decimal" value="0" /><select class="gas-Tu"><option>°C</option><option>K</option><option>°F</option></select></span></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Gas <select class="gas-gas"></select></label>
+      <label class="gas-fwrap" hidden>Formula <input class="gas-formula" value="SF6" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-help">Choosing a gas lets you give the amount in grams, and adds its density and the van der Waals real-gas answer.</p>
+    <p class="ax-err gas-err" hidden></p>
+    <div class="gas-out">
+      <p class="ax-big gas-big"></p>
+      <dl class="ax-facts gas-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Change of state (combined gas law)</h2>
+    <p class="ax-help">P₁V₁/T₁ = P₂V₂/T₂ for a fixed amount of gas. Fill in all of the start and two of the end; units as chosen above.</p>
+    <div class="ax-grid">
+      <label>P₁ <input class="gas-p1" inputmode="decimal" value="101.325" /></label>
+      <label>V₁ <input class="gas-v1" inputmode="decimal" value="2.0" /></label>
+      <label>T₁ <input class="gas-t1" inputmode="decimal" value="25" /></label>
+      <label>P₂ <input class="gas-p2" inputmode="decimal" value="202.65" /></label>
+      <label>V₂ <input class="gas-v2" inputmode="decimal" /></label>
+      <label>T₂ <input class="gas-t2" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-err gas-cerr" hidden></p>
+    <p class="ax-big gas-cbig" style="font-size:18px"></p>
+    <p class="ax-help gas-cnote"></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { P_UNITS, V_UNITS, toK, fromK, solveIdeal, combined, VDW, vdwPressure, vdwVolume, vdwCritical, R, type TUnit } from '../../lib/sci/gas';
+  import { parseFormula, molarMass, pretty, FormulaError } from '../../lib/sci/chem';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gas')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fill = (sel: HTMLSelectElement, keys: string[], v: string) => { sel.replaceChildren(...keys.map((k) => { const o = document.createElement('option'); o.textContent = k; return o; })); sel.value = v; };
+  fill(q('.gas-Pu'), Object.keys(P_UNITS), 'kPa'); fill(q('.gas-Vu'), Object.keys(V_UNITS), 'L');
+  const gs = q<HTMLSelectElement>('.gas-gas');
+  gs.replaceChildren(...[['ideal', 'Any gas (ideal)'], ...VDW.map((g) => [g.id, `${g.name} (${pretty(g.formula)})`]), ['other', 'Another gas (type its formula)']].map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+  gs.value = 'n2';
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? undefined : num(s); };
+  const fmtT = (k: number) => `${sig(k - 273.15, 4)} °C (${sig(k, 5)} K)`;
+
+  function molar(): { M: number; name: string; vdw?: (typeof VDW)[number] } | null {
+    const g = gs.value;
+    q('.gas-fwrap').hidden = g !== 'other';
+    if (g === 'ideal') return null;
+    if (g === 'other') { const f = q<HTMLInputElement>('.gas-formula').value; return { M: molarMass(parseFormula(f)), name: pretty(f) }; }
+    const v = VDW.find((x) => x.id === g)!;
+    return { M: molarMass(parseFormula(v.formula)), name: v.name.toLowerCase(), vdw: v };
+  }
+
+  function run() {
+    const err = (m: string) => { q('.gas-err').textContent = m; q('.gas-err').hidden = !m; q('.gas-out').hidden = !!m; };
+    let gas: ReturnType<typeof molar>;
+    try { gas = molar(); } catch (e) { return err(e instanceof FormulaError ? e.message : 'That formula could not be read.'); }
+    const Pu = q<HTMLSelectElement>('.gas-Pu').value, Vu = q<HTMLSelectElement>('.gas-Vu').value, nu = q<HTMLSelectElement>('.gas-nu').value, Tu = q<HTMLSelectElement>('.gas-Tu').value as TUnit;
+    if ((nu === 'g' || nu === 'kg') && !gas) return err('Choose a gas to give the amount in grams: the molar mass is needed.');
+    const P = opt('.gas-P'), V = opt('.gas-V'), n = opt('.gas-n'), T = opt('.gas-T');
+    if ([P, V, n, T].some((x) => x !== undefined && !Number.isFinite(x))) return err('Type numbers only.');
+    const nMol = n === undefined ? undefined : nu === 'mol' ? n : nu === 'mmol' ? n / 1000 : (n * (nu === 'kg' ? 1000 : 1)) / gas!.M;
+    let s;
+    try { s = solveIdeal({ P: P === undefined ? undefined : P * P_UNITS[Pu], V: V === undefined ? undefined : V * V_UNITS[Vu], n: nMol, T: T === undefined ? undefined : toK(T, Tu) }); } catch (e) { return err((e as Error).message); }
+    err('');
+    const label = { P: 'Pressure', V: 'Volume', n: 'Amount', T: 'Temperature' }[s.solved];
+    const shown = s.solved === 'P' ? `${sig(s.P / P_UNITS[Pu], 5)} ${Pu}` : s.solved === 'V' ? `${sig(s.V / V_UNITS[Vu], 5)} ${Vu}` : s.solved === 'n' ? (nu === 'g' || nu === 'kg' ? `${sig((s.n * gas!.M) / (nu === 'kg' ? 1000 : 1), 5)} ${nu}` : `${sig(nu === 'mmol' ? s.n * 1000 : s.n, 5)} ${nu}`) : `${sig(fromK(s.T, Tu), 5)} ${Tu}`;
+    q('.gas-big').textContent = `${label}: ${shown}`;
+    const facts = [
+      fact('Pressure', `${sig(s.P / 1000, 5)} kPa = ${sig(s.P / 101325, 5)} atm = ${sig(s.P / 1e5, 5)} bar`, `${sig(s.P / P_UNITS.psi, 4)} psi, ${sig(s.P / P_UNITS.mmHg, 5)} mmHg`),
+      fact('Volume', `${sig(s.V * 1000, 5)} L`, `${sig(s.V, 4)} m³; molar volume ${sig((s.V / s.n) * 1000, 5)} L/mol (22.711 at 0 °C and 1 bar, 24.790 at 25 °C and 1 bar)`),
+      fact('Amount', `${sig(s.n, 5)} mol`, `${fmtExp(s.n * 6.02214076e23, 4)} molecules`),
+      fact('Temperature', fmtT(s.T)),
+    ];
+    if (gas) {
+      facts.push(fact(`Mass of ${gas.name}`, `${sig(s.n * gas.M, 5)} g`, `molar mass ${gas.M.toFixed(3)} g/mol`));
+      facts.push(fact('Density', `${sig((s.n * gas.M) / (s.V * 1000), 4)} g/L`, `air at 0 °C and 1 atm is 1.29 g/L; heavier gases sink`));
+      if (gas.vdw) {
+        const { a, b } = gas.vdw, c = vdwCritical(a, b);
+        const Preal = vdwPressure(s.n, s.V, s.T, a, b), Vreal = vdwVolume(s.n, s.P, s.T, a, b);
+        const Z = (s.P * Vreal) / (s.n * R * s.T);
+        facts.push(fact('Real gas (van der Waals)', s.solved === 'V' ? `${sig(Vreal * 1000, 5)} L` : `${sig(Preal / P_UNITS[Pu], 5)} ${Pu}`, `${s.solved === 'V' ? 'volume' : 'pressure'} for ${gas.name} with a = ${a} L²·bar/mol², b = ${b} L/mol; Z = PV/nRT = ${Z.toFixed(4)} (1 for an ideal gas)`));
+        const dev = 100 * Math.abs(Z - 1);
+        facts.push(fact('Ideal gas law error', `${dev.toFixed(dev < 1 ? 2 : 1)} %`, dev < 1 ? 'the ideal gas law is fine here' : dev < 5 ? 'small but noticeable: use the real-gas value for careful work' : 'large: molecules attract each other or crowd the space; even van der Waals is only approximate here'));
+        if (s.T < c.Tc) facts.push(fact('Critical temperature', fmtT(c.Tc), `${gas.name[0].toUpperCase() + gas.name.slice(1)} is below it, so enough pressure would liquefy it (van der Waals estimate; critical pressure about ${sig(c.Pc / 1e5, 3)} bar)`));
+      }
+    }
+    q('.gas-facts').replaceChildren(...facts);
+    runCombined();
+  }
+
+  function runCombined() {
+    const Pu = q<HTMLSelectElement>('.gas-Pu').value, Vu = q<HTMLSelectElement>('.gas-Vu').value, Tu = q<HTMLSelectElement>('.gas-Tu').value as TUnit;
+    const v = (c: string) => opt(c);
+    const p1 = v('.gas-p1'), v1 = v('.gas-v1'), t1 = v('.gas-t1'), p2 = v('.gas-p2'), v2 = v('.gas-v2'), t2 = v('.gas-t2');
+    const err = (m: string) => { q('.gas-cerr').textContent = m; q('.gas-cerr').hidden = !m; if (m) { q('.gas-cbig').textContent = ''; q('.gas-cnote').textContent = ''; } };
+    if (p1 === undefined || v1 === undefined || t1 === undefined) return err('Fill in all three starting values.');
+    const T1 = toK(t1, Tu), T2 = t2 === undefined ? undefined : toK(t2, Tu);
+    if (!(p1 > 0 && v1 > 0 && T1 > 0) || [p2, v2].some((x) => x !== undefined && !(x > 0)) || (T2 !== undefined && !(T2 > 0))) return err('Pressures and volumes must be above zero, and temperatures above absolute zero.');
+    let r;
+    try { r = combined({ P: p1, V: v1, T: T1 }, { P: p2, V: v2, T: T2 }); } catch (e) { return err((e as Error).message); }
+    err('');
+    const out = r.key === 'P' ? `P₂ = ${sig(r.value, 5)} ${Pu}` : r.key === 'V' ? `V₂ = ${sig(r.value, 5)} ${Vu}` : `T₂ = ${sig(fromK(r.value, Tu), 5)} ${Tu}`;
+    q('.gas-cbig').textContent = out;
+    q('.gas-cnote').textContent = `Temperatures always go into the law in kelvin (${sig(T1, 5)} K at the start). ${r.key === 'T' && r.value < T1 ? 'The gas cools.' : r.key === 'T' ? 'The gas warms.' : ''}`.trim();
+  }
+
+  for (const c of ['.gas-P', '.gas-V', '.gas-n', '.gas-T', '.gas-formula']) q(c).addEventListener('input', run);
+  for (const c of ['.gas-Pu', '.gas-Vu', '.gas-nu', '.gas-Tu', '.gas-gas']) q(c).addEventListener('change', run);
+  for (const c of ['.gas-p1', '.gas-v1', '.gas-t1', '.gas-p2', '.gas-v2', '.gas-t2']) q(c).addEventListener('input', runCombined);
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Gas law calculation', file: 'gas-law',
+    sections: [
+      { title: q('.gas-big').textContent || 'Ideal gas', facts: [...root.querySelectorAll('.gas-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      ...(q('.gas-cbig').textContent ? [{ title: 'Change of state', text: [q('.gas-cbig').textContent!, q('.gas-cnote').textContent!] }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .gas .gas-rows { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .gas .gas-pair { display: flex; gap: 6px; }
+  .gas .gas-pair input { flex: 1; min-width: 0; }
+  .gas .gas-pair select { width: auto; flex: none; }
+</style>
