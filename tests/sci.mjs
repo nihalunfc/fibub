@@ -69,6 +69,9 @@ import * as GAS from '../src/lib/sci/gas.ts';
 import * as BEER from '../src/lib/sci/beer.ts';
 import * as EQV from '../src/lib/sci/equivalents.ts';
 import * as CHR from '../src/lib/sci/chrom.ts';
+import * as VAL from '../src/lib/sci/validation.ts';
+import * as COL from '../src/lib/sci/colligative.ts';
+import * as EQL from '../src/lib/sci/equilibrium.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -956,6 +959,74 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('solvent ratio', tr.solventRatio, 0.0834, 0.0005);
   near('same particles keeps time scale = L ratio', CHR.transfer({ L: 150, d: 4.6, dp: 3 }, { L: 150, d: 3.0, dp: 3 }, 1, 10).timeScale, 1, 1e-12);
   check('L/dp drop beyond −25 % fails', !CHR.transfer({ L: 250, d: 4.6, dp: 5 }, { L: 50, d: 2.1, dp: 1.8 }, 1, 10).uspOk);
+}
+{
+  // Method validation: Grubbs critical values (ASTM E178 two-sided 5 %: n=3 1.155, n=4 1.481, n=10 2.290, n=20 2.709; 1 %: n=10 2.482).
+  near('Grubbs crit n=3', VAL.grubbsCritical(3), 1.154, 0.002);
+  near('Grubbs crit n=4', VAL.grubbsCritical(4), 1.481, 0.001);
+  near('Grubbs crit n=10', VAL.grubbsCritical(10), 2.290, 0.001);
+  near('Grubbs crit n=20', VAL.grubbsCritical(20), 2.709, 0.002);
+  near('Grubbs crit n=10 at 1 %', VAL.grubbsCritical(10, 0.01), 2.482, 0.001);
+  // Miller & Miller nitrite example: 0.403, 0.410, 0.401, 0.380 → G = 1.43, retained.
+  const mg = VAL.grubbs([0.403, 0.410, 0.401, 0.380]);
+  check(`Miller nitrite G 1.43 retained (${mg.G})`, Math.abs(mg.G - 1.43) < 0.005 && !mg.outlier && mg.value === 0.38);
+  const g6 = VAL.grubbs([100.6, 101.0, 100.3, 100.8, 103.9, 100.5]);
+  check('high value flagged', g6.outlier && g6.value === 103.9 && Math.abs(g6.G - 2.008) < 0.001);
+  check('Grubbs p below 5 % when flagged', g6.p < 0.05 && mg.p > 0.05);
+  const rep = VAL.grubbsRepeated([100.6, 101.0, 100.3, 100.8, 103.9, 100.5]);
+  check('repeated Grubbs removes only 103.9', rep.removed.length === 1 && rep.removed[0] === 103.9);
+  const pr = VAL.precision([[10, 11, 12], [12, 13, 14], [11, 12, 13]]);
+  check('ANOVA: MSw 1, MSb 3, F 3, p 0.125', Math.abs(pr.msWithin - 1) < 1e-12 && Math.abs(pr.msBetween - 3) < 1e-12 && Math.abs(pr.p - 0.125) < 1e-9);
+  near('intermediate precision s_I', pr.sI, Math.sqrt(5 / 3), 1e-12);
+  check('s_L is 0 when series agree better than replicates', VAL.precision([[1, 3], [1.9, 2.1], [2, 2]]).sL === 0);
+  const ac = VAL.accuracy([99.8, 100.2, 99.5, 100.4, 99.9, 100.1], 100);
+  near('recovery', ac.recovery, 99.9833, 0.0001);
+  near('bias t', ac.t, -0.128, 0.001);
+  near('Horwitz 1 ppm', VAL.horwitz(1e-6), 16.0, 0.01);
+  near('Horwitz 1 %', VAL.horwitz(0.01), 4.0, 0.01);
+  near('Horwitz (Thompson) 100 %', VAL.horwitz(1), 1, 1e-12);
+  near('Horwitz cap', VAL.horwitz(1e-9), 22, 0);
+}
+{
+  // Colligative: 10.0 g glucose in 200 g water; sulfur in benzene (S8); albumin by osmometry.
+  const m = COL.molality(10, 180.156, 200);
+  near('glucose molality', m, 0.27754, 0.00001);
+  near('ΔTf', COL.deltaT(1, 1.86, m), 0.5162, 0.0001);
+  near('ΔTb', COL.deltaT(1, 0.512, m), 0.1421, 0.0001);
+  near('S8 from benzene', COL.molarMassFromDT(1, 5.12, 1, 50, 0.4), 256, 1e-9);
+  near('albumin by osmotic pressure', COL.molarMassFromOsmotic(10, 0.00373, 298.15), 66460, 1);
+  near('Raoult vapour pressure', COL.raoult(10, 180.156, 200, 18.015, 3.169).P, 3.1532, 0.0001);
+  near('saline osmotic pressure (bar)', COL.osmotic(2, 9 / 58.44, 310.15), 7.943, 0.001);
+  check('every solvent has Kf or Kb', COL.SOLVENTS.every((s) => (s.Kf ?? s.Kb) > 0 && s.M > 0));
+}
+{
+  // Equilibrium: Chang's HI example; acetic acid pH 2.88; AgCl common ion; extreme K stays exact; Kp ↔ Kc.
+  let t = EQL.parseReaction('H2(g) + I2(g) ⇌ 2HI(g)');
+  let r = EQL.solveIce(t, [0.5, 0.5, 0], 54.3);
+  near('HI: [H2]', r.eq[0], 0.1067, 0.0001);
+  near('HI: [HI]', r.eq[2], 0.7865, 0.0001);
+  check('HI goes forward', r.direction === 'forward');
+  t = EQL.parseReaction('CH3COOH(aq) ⇌ H^+(aq) + CH3COO^-(aq)');
+  near('acetic acid pH', -Math.log10(EQL.solveIce(t, [0.1, 0, 0], 1.8e-5).eq[1]), 2.875, 0.001);
+  t = EQL.parseReaction('AgCl(s) ⇌ Ag^+(aq) + Cl^-(aq)');
+  check('solid is not in K', !t[0].active && t[1].active);
+  near('AgCl solubility in 0.10 M Cl-', EQL.solveIce(t, [0, 0, 0.1], 1.8e-10).eq[1], 1.8e-9, 1e-12);
+  t = EQL.parseReaction('N2(g) + O2(g) = 2NO(g)');
+  const tiny = EQL.solveIce(t, [0.8, 0.2, 0], 1e-30), huge = EQL.solveIce(t, [0.8, 0.2, 0], 1e30);
+  near('K 1e-30 recovered', Math.log10(EQL.quotient(t, tiny.eq)), -30, 1e-9);
+  near('K 1e30 recovered', Math.log10(EQL.quotient(t, huge.eq)), 30, 1e-9);
+  const back = EQL.solveIce(t, [0, 0, 0.5], 4.1e-4);
+  check('products only goes in reverse', back.direction === 'reverse' && Math.abs(EQL.quotient(t, back.eq) / 4.1e-4 - 1) < 1e-9);
+  t = EQL.parseReaction('N2O4(g) ⇌ 2NO2(g)');
+  near('N2O4: [NO2]', EQL.solveIce(t, [0.05, 0], 4.63e-3).eq[1], 0.014102, 0.000001);
+  near('Kp from Kc (Δn = 1)', EQL.kpFromKc(4.63e-3, 298.15, EQL.deltaNGas(t)), 0.11478, 0.00001);
+  near('Kc ↔ Kp round trip', EQL.kcFromKp(EQL.kpFromKc(0.5, 700, -2), 700, -2), 0.5, 1e-12);
+  near('van \'t Hoff: same T keeps K', EQL.kAtT(2, 300, 300, 5e4), 2, 1e-12);
+  check('endothermic K rises with T', EQL.kAtT(1, 300, 350, 5e4) > 1 && EQL.kAtT(1, 300, 350, -5e4) < 1);
+  t = EQL.parseReaction('CaCO3(s) ⇌ CaO(s) + CO2(g)');
+  near('decomposition: CO2 equals K', EQL.solveIce(t, [0, 0, 0], 1.16).eq[2], 1.16, 1e-9);
+  check('coefficients and fractions read', EQL.parseReaction('1/2 N2(g) + 3/2 H2(g) -> NH3(g)')[1].coef === 1.5);
+  check('bad reaction explained', (() => { try { EQL.parseReaction('H2 + I2'); return false; } catch { return true; } })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -1,0 +1,189 @@
+---
+// Equilibrium solver: an exact ICE table for any reaction and K (Kc or Kp), Q and the direction, Kp ↔ Kc, pH when
+// H⁺ or OH⁻ takes part, and Le Chatelier: add or remove a species, change the volume or the temperature.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax eqs">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Reaction and K</h2>
+      <label class="eqs-exl"><select class="eqs-ex" aria-label="Load an example"><option value="">Load an example…</option><option value="hi">H₂ + I₂ ⇌ 2HI, Kc 54.3 at 430 °C</option><option value="n2o4">N₂O₄ ⇌ 2NO₂, Kc 4.63 × 10⁻³ at 25 °C</option><option value="acetic">Acetic acid, Ka 1.8 × 10⁻⁵</option><option value="agcl">AgCl in 0.10 M NaCl, Ksp 1.8 × 10⁻¹⁰</option></select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="eqs-wide">Reaction, with state symbols <input class="eqs-rxn" value="H2(g) + I2(g) ⇌ 2HI(g)" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>K <input class="eqs-K" inputmode="decimal" value="54.3" /></label>
+      <label>K is <select class="eqs-kt"><option value="c">Kc (amounts in mol/L)</option><option value="p">Kp (pressures in bar)</option></select></label>
+      <label>Temperature (°C) <input class="eqs-T" inputmode="decimal" value="430" /></label>
+    </div>
+    <p class="ax-help">Write coefficients in front (2HI) and states after: (g), (aq), (s) or (l). Solids and liquids such as water do not appear in K. Ions take a caret: H^+, CH3COO^-. Type K as 1.8e-5.</p>
+    <h3 class="eqs-h3">Starting amounts</h3>
+    <div class="ax-grid eqs-start"></div>
+    <p class="ax-err eqs-err" hidden></p>
+    <div class="eqs-out">
+      <p class="ax-big eqs-big"></p>
+      <div class="ax-scroll"><table class="eqs-tab"></table></div>
+      <dl class="ax-facts eqs-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Disturb it (Le Chatelier)</h2>
+    <div class="ax-grid">
+      <label>Add to <select class="eqs-dsp"></select></label>
+      <label><span class="eqs-dadd-l">Amount added (mol/L; negative removes)</span> <input class="eqs-dadd" inputmode="decimal" value="0" /></label>
+      <label>New volume ÷ old volume <input class="eqs-dvol" inputmode="decimal" value="1" /></label>
+      <label>New temperature (°C, optional) <input class="eqs-dT" inputmode="decimal" placeholder="same" /></label>
+      <label>ΔH° of the reaction (kJ/mol) <input class="eqs-dH" inputmode="decimal" placeholder="for a temperature change" /></label>
+    </div>
+    <p class="ax-help">A volume ratio of 0.5 halves the volume, which doubles every concentration (or pressure) at once. A temperature change alters K itself through the van 't Hoff equation, with ΔH° taken as constant.</p>
+    <p class="ax-err eqs-lerr" hidden></p>
+    <div class="eqs-lout">
+      <p class="ax-big eqs-lbig"></p>
+      <div class="ax-scroll"><table class="eqs-ltab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseReaction, solveIce, quotient, deltaNGas, kpFromKc, kcFromKp, kAtT, type Term } from '../../lib/sci/equilibrium';
+  import { pretty } from '../../lib/sci/chem';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.eqs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nice = (t: string) => { try { return pretty(t); } catch { return t; } };
+  const amt = (x: number) => (x === 0 ? '0' : Math.abs(x) < 1e-3 || Math.abs(x) >= 1e5 ? fmtExp(x, 3) : sig(x, 4));
+  const EX: Record<string, { rxn: string; K: string; kt: string; T: string; c0: string[] }> = {
+    hi: { rxn: 'H2(g) + I2(g) ⇌ 2HI(g)', K: '54.3', kt: 'c', T: '430', c0: ['0.500', '0.500', '0'] },
+    n2o4: { rxn: 'N2O4(g) ⇌ 2NO2(g)', K: '4.63e-3', kt: 'c', T: '25', c0: ['0.0500', '0'] },
+    acetic: { rxn: 'CH3COOH(aq) ⇌ H^+(aq) + CH3COO^-(aq)', K: '1.8e-5', kt: 'c', T: '25', c0: ['0.10', '0', '0'] },
+    agcl: { rxn: 'AgCl(s) ⇌ Ag^+(aq) + Cl^-(aq)', K: '1.8e-10', kt: 'c', T: '25', c0: ['', '0', '0.10'] },
+  };
+  let terms: Term[] = [], startVals: string[] = ['0.500', '0.500', '0'], lastEq: number[] | null = null, K = NaN;
+  let iceRows: string[][] = [], lRows: string[][] = [];
+  const unit = () => (q<HTMLSelectElement>('.eqs-kt').value === 'p' ? 'bar' : 'mol/L');
+
+  function buildStart() {
+    const box = q('.eqs-start'); box.replaceChildren();
+    terms.forEach((t, i) => {
+      const l = document.createElement('label');
+      if (!t.active) { l.textContent = `${nice(t.text)} (${t.phase})`; const s = document.createElement('small'); s.textContent = ' pure, not in K: assumed present in excess'; s.style.display = 'block'; l.append(s); box.append(l); return; }
+      l.append(`${nice(t.text)} (${unit()}) `);
+      const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.dataset.i = String(i); inp.value = startVals[i] ?? '0';
+      inp.addEventListener('input', () => { startVals[i] = inp.value; solve(); });
+      l.append(inp); box.append(l);
+    });
+    const sel = q<HTMLSelectElement>('.eqs-dsp'), prev = sel.value;
+    sel.replaceChildren(...terms.map((t, i) => ({ t, i })).filter((a) => a.t.active).map(({ t, i }) => { const o = document.createElement('option'); o.value = String(i); o.textContent = nice(t.text); return o; }));
+    if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+    q('.eqs-dadd-l').textContent = `Amount added (${unit()}; negative removes)`;
+  }
+
+  function parse() {
+    try { terms = parseReaction(q<HTMLInputElement>('.eqs-rxn').value); } catch (e) { terms = []; return (e as Error).message; }
+    buildStart(); return '';
+  }
+
+  function iceTable(tb: HTMLTableElement, head: string[], rows: string[][]) {
+    tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    for (const r of rows) { const row = bd.insertRow(); r.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }
+  }
+
+  function solve() {
+    const err = (m: string) => { q('.eqs-err').textContent = m; q('.eqs-err').hidden = !m; q('.eqs-out').hidden = !!m; if (m) { lastEq = null; disturb(); } };
+    if (!terms.length) return err(parse() || 'Type a reaction.');
+    K = v('.eqs-K');
+    if (!(K > 0)) return err('Type K, above zero (for example 54.3 or 1.8e-5).');
+    const c0 = terms.map((t, i) => (t.active ? num(startVals[i] ?? '') : 0));
+    const bad = terms.findIndex((t, i) => t.active && !(c0[i] >= 0));
+    if (bad >= 0) return err(`Type a starting amount for ${nice(terms[bad].text)} (0 or more).`);
+    let r;
+    try { r = solveIce(terms, c0, K); } catch (e) { return err((e as Error).message); }
+    err('');
+    lastEq = r.eq;
+    const u = unit(), act = terms.map((t, i) => ({ t, i })).filter((a) => a.t.active);
+    iceRows = act.map(({ t, i }) => [nice(t.text), amt(c0[i]), `${t.nu * r.x >= 0 ? '+' : '−'}${amt(Math.abs(t.nu * r.x))}`, amt(r.eq[i])]);
+    iceTable(q<HTMLTableElement>('.eqs-tab'), ['Species', `Initial (${u})`, 'Change', 'Equilibrium'], iceRows);
+    // The species to headline: one on the favoured side that changed most, relative to its amount.
+    const side = act.filter((a) => (r.direction === 'reverse' ? a.t.nu < 0 : a.t.nu > 0));
+    const rel = (a: { t: Term; i: number }) => (r.eq[a.i] > 0 ? Math.abs(a.t.nu * r.x) / r.eq[a.i] : 0);
+    const main = side.reduce<{ t: Term; i: number } | undefined>((best, a) => (!best || rel(a) > rel(best) + 1e-9 ? a : best), undefined) ?? act[0];
+    q('.eqs-big').textContent = `${r.direction === 'forward' ? 'Goes forward' : r.direction === 'reverse' ? 'Goes backward' : 'Already at equilibrium'}: at equilibrium ${nice(main.t.text)} = ${amt(r.eq[main.i])} ${u}`;
+    const facts: HTMLElement[] = [];
+    facts.push(fact('Q at the start', Number.isFinite(r.Q) ? amt(r.Q) : r.Q === Infinity ? 'infinite (no reactant yet)' : 'undefined', r.direction === 'forward' ? 'Q < K, so the reaction moves towards products' : r.direction === 'reverse' ? 'Q > K, so the reaction moves back towards reactants' : 'Q = K'));
+    facts.push(fact('Check', `K from the answer = ${amt(quotient(terms, r.eq))}`, `extent of reaction x = ${amt(r.x)} ${u}`));
+    if (r.limiting !== undefined && r.conversion !== undefined) facts.push(fact('Conversion', `${r.conversion > 99.99 ? '> 99.99' : r.conversion < 0.01 ? '< 0.01' : sig(r.conversion, 4)} % of ${nice(terms[r.limiting].text)}`, 'how much of the reactant that would run out first has reacted'));
+    const dn = deltaNGas(terms), T = v('.eqs-T') + 273.15, kt = q<HTMLSelectElement>('.eqs-kt').value;
+    const solid = terms.find((t) => t.nu < 0 && t.phase === 's');
+    if (solid && kt === 'c' && r.x > 0) facts.push(fact('Molar solubility', `${amt(r.x)} mol/L of ${nice(solid.text)}`, 'how much of the solid dissolves per litre'));
+    if (terms.some((t) => t.phase === 'g') && terms.every((t) => t.phase === 'g' || !t.active) && T > 0) {
+      facts.push(dn === 0 ? fact('Kp and Kc', 'equal', 'the same number of gas moles on both sides (Δn = 0)') : kt === 'c' ? fact('Kp', amt(kpFromKc(K, T, dn)), `Kp = Kc(RT)^Δn with Δn = ${dn}, in bar, at ${sig(T, 5)} K`) : fact('Kc', amt(kcFromKp(K, T, dn)), `Kc = Kp/(RT)^Δn with Δn = ${dn}, in mol/L, at ${sig(T, 5)} K`));
+    }
+    const h = terms.findIndex((t) => t.active && /^(H\^?\+|H3O\^?\+)$/.test(t.text.replace(/\s/g, ''))), oh = terms.findIndex((t) => t.active && /^OH\^?-$/.test(t.text.replace(/\s/g, '')));
+    if (kt === 'c' && h >= 0 && r.eq[h] > 0) facts.push(fact('pH', (-Math.log10(r.eq[h])).toFixed(2), 'from [H⁺] alone; water\'s own 10⁻⁷ M matters only for very weak or very dilute acids'));
+    else if (kt === 'c' && oh >= 0 && r.eq[oh] > 0) facts.push(fact('pH', (14 + Math.log10(r.eq[oh])).toFixed(2), 'from [OH⁻], with pKw = 14.00 at 25 °C'));
+    q('.eqs-facts').replaceChildren(...facts);
+    disturb();
+  }
+
+  function disturb() {
+    const err = (m: string) => { q('.eqs-lerr').textContent = m; q('.eqs-lerr').hidden = !m; q('.eqs-lout').hidden = !!m; };
+    if (!lastEq) return err('Solve the equilibrium above first.');
+    const si = Number(q<HTMLSelectElement>('.eqs-dsp').value), add = v('.eqs-dadd') || 0, f = q<HTMLInputElement>('.eqs-dvol').value.trim() ? v('.eqs-dvol') : 1;
+    if (!(f > 0)) return err('The volume ratio must be above zero.');
+    const T1 = v('.eqs-T') + 273.15, dTs = q<HTMLInputElement>('.eqs-dT').value.trim(), T2 = dTs ? num(dTs) + 273.15 : T1, dH = v('.eqs-dH');
+    let K2 = K, kNote = '';
+    if (dTs && T2 !== T1) {
+      if (!(T1 > 0 && T2 > 0)) return err('Type both temperatures.');
+      if (!Number.isFinite(dH)) return err('Type ΔH° to see the effect of a temperature change.');
+      K2 = kAtT(K, T1, T2, dH * 1000);
+      kNote = `K becomes ${amt(K2)} at ${sig(T2 - 273.15, 4)} °C (${dH < 0 ? 'exothermic' : 'endothermic'}, so ${(T2 > T1) === (dH < 0) ? 'heating favours reactants' : 'heating favours products'}). `;
+    }
+    const start = lastEq.map((c, i) => (terms[i].active ? c / f + (i === si ? add : 0) : c));
+    const neg = terms.findIndex((t, i) => t.active && start[i] < 0);
+    if (neg >= 0) return err(`That removes more ${nice(terms[neg].text)} than there is.`);
+    if (add === 0 && f === 1 && K2 === K) { err(''); q('.eqs-lbig').textContent = 'Change an amount, the volume or the temperature to see how the equilibrium responds.'; q('.eqs-ltab').replaceChildren(); lRows = []; return; }
+    let r;
+    try { r = solveIce(terms, start, K2); } catch (e) { return err((e as Error).message); }
+    err('');
+    q('.eqs-lbig').textContent = `${kNote}${r.direction === 'forward' ? 'Shifts towards products (right)' : r.direction === 'reverse' ? 'Shifts towards reactants (left)' : 'No shift'}${f !== 1 && deltaNGas(terms) !== 0 && add === 0 && K2 === K ? `: ${f < 1 ? 'squeezing favours the side with fewer gas moles' : 'expanding favours the side with more gas moles'}` : ''}.`;
+    const u = unit();
+    lRows = terms.map((t, i) => ({ t, i })).filter((a) => a.t.active).map(({ t, i }) => [nice(t.text), amt(lastEq![i]), amt(start[i]), amt(r.eq[i])]);
+    iceTable(q<HTMLTableElement>('.eqs-ltab'), ['Species', `Before (${u})`, 'Just after', 'New equilibrium'], lRows);
+  }
+
+  q('.eqs-rxn').addEventListener('input', () => { const m = parse(); if (m) { q('.eqs-err').textContent = m; q('.eqs-err').hidden = false; q('.eqs-out').hidden = true; q('.eqs-start').replaceChildren(); lastEq = null; disturb(); } else solve(); });
+  q('.eqs-K').addEventListener('input', solve);
+  q('.eqs-T').addEventListener('input', solve);
+  q('.eqs-kt').addEventListener('change', () => { buildStart(); solve(); });
+  for (const c of ['.eqs-dadd', '.eqs-dvol', '.eqs-dT', '.eqs-dH']) q(c).addEventListener('input', disturb);
+  q('.eqs-dsp').addEventListener('change', disturb);
+  q('.eqs-ex').addEventListener('change', () => {
+    const e = EX[q<HTMLSelectElement>('.eqs-ex').value]; if (!e) return;
+    q<HTMLInputElement>('.eqs-rxn').value = e.rxn; q<HTMLInputElement>('.eqs-K').value = e.K; q<HTMLSelectElement>('.eqs-kt').value = e.kt; q<HTMLInputElement>('.eqs-T').value = e.T;
+    startVals = [...e.c0]; q<HTMLInputElement>('.eqs-dadd').value = '0'; q<HTMLInputElement>('.eqs-dvol').value = '1'; q<HTMLInputElement>('.eqs-dT').value = '';
+    parse(); solve(); q<HTMLSelectElement>('.eqs-ex').value = '';
+  });
+  parse(); solve();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Equilibrium', subtitle: q<HTMLInputElement>('.eqs-rxn').value, file: 'equilibrium',
+    sections: [
+      ...(q('.eqs-out').hidden ? [] : [{ title: q('.eqs-big').textContent!, table: { head: ['Species', `Initial (${unit()})`, 'Change', 'Equilibrium'], rows: iceRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: [...root.querySelectorAll('.eqs-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }]),
+      ...(q('.eqs-lout').hidden || !lRows.length ? [] : [{ title: q('.eqs-lbig').textContent!, table: { head: ['Species', 'Before', 'Just after', 'New equilibrium'], rows: lRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] } }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .eqs .eqs-wide { grid-column: 1 / -1; }
+  .eqs .eqs-h3 { font-size: 15px; margin: 12px 0 6px; }
+  .eqs .eqs-exl select { width: auto; max-width: 100%; }
+  .eqs .eqs-tab td, .eqs .eqs-tab th, .eqs .eqs-ltab td, .eqs .eqs-ltab th { white-space: nowrap; }
+</style>
