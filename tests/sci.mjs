@@ -90,6 +90,7 @@ import * as BAT from '../src/lib/sci/battery.ts';
 import * as COR from '../src/lib/sci/corrosion.ts';
 import * as NMR from '../src/lib/sci/nmr.ts';
 import * as EC from '../src/lib/sci/ecount.ts';
+import * as PH from '../src/lib/sci/phase.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1377,6 +1378,31 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('ionic and covalent counts agree', EC.PRESETS.every((p) => { const N = EC.METALS.find((m) => m[0] === p.m)[1], r = EC.count(N, p.q, p.items, p.mm); return r.d + 2 * (r.l + r.x) + r.mm === r.ve; }));
   check('roman numerals', EC.roman(4) === 'IV' && EC.roman(7) === 'VII' && EC.roman(0) === '0' && EC.roman(-1) === '−I');
   check('square-planar d8 verdict', /square-planar/.test(EC.verdict(16, 8, 4)));
+}
+{
+  // Binary phase diagrams (ideal): lens limits and ordering, eutectics against experiment, lever rule, unit conversion.
+  const S = Object.fromEntries(PH.SYSTEMS.map((s) => [s.id, s])), c = S.CuNi, K = 273.15;
+  const l = PH.lens(c.A.Tm, c.A.H, c.B.Tm, c.B.H, 1500);
+  check('lens: solid richer in the higher-melting Ni', l.xS > l.xL);
+  const t = PH.lensTemps(c.A.Tm, c.A.H, c.B.Tm, c.B.H, 0.35);
+  check('liquidus above solidus', t.liq > t.sol && t.sol > c.A.Tm && t.liq < c.B.Tm);
+  near('liquid on the liquidus has the overall composition', PH.lens(c.A.Tm, c.A.H, c.B.Tm, c.B.H, t.liq).xL, 0.35, 1e-6);
+  const x = PH.toMole(0.35, c.A.M, c.B.M), st = PH.lensState(c.A.Tm, c.A.H, c.B.Tm, c.B.H, x, 1225 + K);
+  near('Cu–Ni 35 wt %: liquidus', st.liq - K, 1237.06, 0.01); near('Cu–Ni 35 wt %: solidus', st.sol - K, 1211.35, 0.01);
+  near('Cu–Ni liquid wt % Ni at 1225 °C', 100 * PH.toMass(st.phases[0].x, c.A.M, c.B.M), 31.93, 0.01);
+  near('Cu–Ni solid wt % Ni at 1225 °C', 100 * PH.toMass(st.phases[1].x, c.A.M, c.B.M), 38.69, 0.01);
+  near('mole fractions of phases add up', st.phases[0].f + st.phases[1].f, 1, 1e-12);
+  near('mass ↔ mole round trip', PH.toMass(PH.toMole(0.42, 63.5, 58.7), 63.5, 58.7), 0.42, 1e-12);
+  near('Callister lever rule: liquid', 1 - PH.lever(35, 31.5, 42.5), 0.682, 0.001);
+  const z = S.BzNp, ez = PH.eutectic(z.A.Tm, z.A.H, z.B.Tm, z.B.H);
+  near('benzene–naphthalene eutectic (exp. −3.5 °C)', ez.T - K, -3.5, 0.2);
+  near('eutectic lies on both liquidus curves', PH.liqA(z.A.Tm, z.A.H, ez.T), ez.x, 1e-9);
+  const b = S.BiCd, eb = PH.eutectic(b.A.Tm, b.A.H, b.B.Tm, b.B.H);
+  near('Bi–Cd eutectic T (ideal 135.3 °C)', eb.T - K, 135.31, 0.01); near('Bi–Cd eutectic wt % Cd', 100 * PH.toMass(eb.x, b.A.M, b.B.M), 41.09, 0.01);
+  const zs = PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 25 + K);
+  check('Bz–Np 50 % at 25 °C: liquid + solid naphthalene', zs.phases.length === 2 && zs.phases[1].name === 'solid B' && Math.abs(zs.phases[0].x - 0.3015) < 0.0005);
+  check('below the eutectic: two pure solids', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 250).phases.every((p) => p.name.startsWith('solid')));
+  check('above the liquidus: all liquid', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 330).phases.length === 1);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
