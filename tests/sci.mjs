@@ -78,6 +78,7 @@ import * as HMO from '../src/lib/sci/huckel.ts';
 import * as CFT from '../src/lib/sci/crystalfield.ts';
 import * as DIA from '../src/lib/sci/diatomic.ts';
 import * as THM from '../src/lib/sci/thermo.ts';
+import * as NST from '../src/lib/sci/nernst.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1151,6 +1152,33 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('water lookup by phase', L('H2O', 'g').H === -241.83 && L('H2O', 'l').H === -285.83 && L('H2O') !== undefined && L('XeF4') === undefined);
   const nogG = THM.reaction([{ nu: -1, H: 0, S: 100 }, { nu: 1, H: -50, S: 120 }]);
   check('ΔG from ΔH − TΔS when a ΔfG is missing', !nogG.fromG && Math.abs(nogG.dG - (-50 - 298.15 * 20 / 1000)) < 1e-12);
+}
+{
+  // Nernst: every half-reaction balances atoms and charge; Daniell cell; oxygen electrode in air at pH 7; references.
+  for (const h of NST.HALVES) {
+    const bal = new Map(); let q = -h.n;
+    for (const [c, f] of h.ox) { const fo = CHEM.parseFormula(f); q += c * fo.charge; for (const [e, k] of CHEM.byElement(fo)) bal.set(e, (bal.get(e) ?? 0) + c * k); }
+    for (const [c, f] of h.red) { const fo = CHEM.parseFormula(f); q -= c * fo.charge; for (const [e, k] of CHEM.byElement(fo)) bal.set(e, (bal.get(e) ?? 0) - c * k); }
+    check(`${h.id} half-reaction balanced`, q === 0 && [...bal.values()].every((v) => v === 0));
+  }
+  check('table in order of E°', NST.HALVES.every((h, i) => i === 0 || NST.HALVES[i - 1].E >= h.E));
+  const zn = NST.half('Zn'), cu = NST.half('Cu2'), st = NST.cellStandard(cu.E, zn.E, 2);
+  near('Daniell E°', st.E0, 1.1037, 1e-12);
+  near('Daniell ΔG° (kJ/mol)', st.dG0, -212.98, 0.01);
+  near('Daniell log K', st.lnK / Math.LN10, 37.31, 0.01);
+  near('Daniell with 0.01 M Cu2+', NST.halfE(cu, { 'Cu^2+': 0.01 }) - NST.halfE(zn, { 'Zn^2+': 1 }), 1.0445, 0.0001);
+  near('Nernst slope 59.16 mV', NST.thermalV(298.15) * Math.LN10 * 1000, 59.159, 0.001);
+  near('O2 electrode, pH 7, air', NST.halfE(NST.half('O2acid'), { 'H^+': 1e-7, O2: 0.21 }), 0.8049, 0.0001);
+  const r = NST.cellReaction(NST.half('MnO4'), NST.half('Fe3'));
+  check('permanganate + iron(II): n = 5, 5 Fe2+, 8 H+', r.n === 5 && r.reactants.find((x) => x.f === 'Fe^2+').nu === 5 && r.reactants.find((x) => x.f === 'H^+').nu === 8 && r.products.find((x) => x.f === 'H2O').nu === 4);
+  const lead = NST.cellReaction(NST.half('PbO2'), NST.half('PbSO4'));
+  check('lead-acid: 2 PbSO4 + 2 H2O, n = 2', lead.n === 2 && lead.products.find((x) => x.f === 'PbSO4').nu === 2 && lead.reactants.find((x) => x.f === 'SO4^2-').nu === 2);
+  near('lead-acid E°', NST.half('PbO2').E - NST.half('PbSO4').E, 2.0501, 1e-9);
+  const conc = NST.cellReaction(cu, cu);
+  check('concentration cell cancels to nothing', conc.reactants.length === 0 && conc.products.length === 0);
+  check('cell notation', NST.cellNotation(zn, cu, CHEM.pretty) === 'Zn(s) | Zn²⁺(aq) ‖ Cu²⁺(aq) | Cu(s)' && NST.cellNotation(NST.half('H2'), NST.half('AgCl'), CHEM.pretty) === 'Pt(s) | H₂(g) | H⁺(aq) ‖ Cl⁻(aq) | AgCl(s) | Ag(s)');
+  near('SCE to Ag/AgCl', NST.convertRef(0.5, 'SCE', 'AgClsat'), 0.544, 1e-12);
+  near('Ag/AgCl to RHE at pH 13', NST.convertRef(-1, 'AgClsat', 'RHE', 13), -1 + 0.197 + 0.76907, 0.0001);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
