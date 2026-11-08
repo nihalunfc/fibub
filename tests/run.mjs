@@ -2094,15 +2094,15 @@ try {
 
     await page.goto(BASE + '/science/nmr-impurity-checker/');
     await page.waitForFunction(() => document.querySelector('.nmi-big')?.textContent);
-    check((await page.textContent('.nmi-big')) === '7 of 9 peaks match a solvent or impurity signal; all signals of ethyl acetate are present', `nmr: summary (${await page.textContent('.nmi-big')})`);
-    check(/no match: likely your compound/.test(await page.textContent('.nmi-tab')) && /8\.62/.test(await page.textContent('.nmi-imp')), 'nmr: unmatched peaks and missing pyridine signals');
+    check((await page.textContent('.nmi-big')) === '8 of 9 peaks match a solvent or impurity signal; all signals of ethyl acetate are present', `nmr: summary (${await page.textContent('.nmi-big')})`);
+    check(/no match: likely your compound/.test(await page.textContent('.nmi-tab')) && /8\.60/.test(await page.textContent('.nmi-imp')), 'nmr: unmatched peaks and missing pyridine signals');
     await page.selectOption('.nmi-sol', 'DMSO');
     await page.fill('.nmi-peaks', '2.50\n3.33\n5.76\n7.95, 2.89, 2.73');
     check(/all signals of DMF/.test(await page.textContent('.nmi-big')) && /dichloromethane/.test(await page.textContent('.nmi-tab')), 'nmr: DMSO-d6 water, DCM and DMF');
     await page.fill('.nmi-find', 'ether');
-    check(/diethyl ether/.test(await page.textContent('.nmi-all')) && /3\.38/.test(await page.textContent('.nmi-all')), 'nmr: table search');
+    check(/diethyl ether/.test(await page.textContent('.nmi-all')) && /3\.40/.test(await page.textContent('.nmi-all')), 'nmr: table search');
     await page.selectOption('.nmi-nuc', 'c');
-    check((await page.inputValue('.nmi-tol')) === '0.2' && /outside the usual/.test(await page.textContent('.nmi-err')) === false, 'nmr: 13C switches tolerance');
+    check((await page.inputValue('.nmi-tol')) === '0.3' && /outside the usual/.test(await page.textContent('.nmi-err')) === false, 'nmr: 13C switches tolerance');
     await page.fill('.nmi-peaks', '400');
     check(/outside the usual/.test(await page.textContent('.nmi-err')), 'nmr: out-of-range shift explained');
 

@@ -1,6 +1,6 @@
 ---
 // NMR solvent and impurity cross-checker: match a peak list against residual solvent signals and 45 common
-// impurities (Fulmer et al. 2010) in 10 deuterated solvents, for ¹H or ¹³C; browse the table for any solvent.
+// impurities (approximate positions) in 10 deuterated solvents, for ¹H or ¹³C; browse the table for any solvent.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 import DataFile from '../../components/DataFile.astro';
@@ -13,7 +13,7 @@ const demo = 'δ 7.26 (s), 7.31 (d, J = 8.6 Hz, 2H), 6.88 (d, J = 8.6 Hz, 2H), 4
     <div class="ax-grid">
       <label>Solvent <select class="nmi-sol">{SOLVENTS.map((s) => <option value={s.id}>{s.name}</option>)}</select></label>
       <label>Nucleus <select class="nmi-nuc"><option value="h">¹H</option><option value="c">¹³C</option></select></label>
-      <label>Tolerance (± ppm) <input class="nmi-tol" inputmode="decimal" value="0.02" /></label>
+      <label>Tolerance (± ppm) <input class="nmi-tol" inputmode="decimal" value="0.03" /></label>
     </div>
     <label class="nmi-lab">Peaks in ppm: one per line, or a journal-style list (the parts in brackets are skipped) <textarea class="nmi-peaks" rows="4" spellcheck="false">{demo}</textarea></label>
     <DataFile target=".nmi-peaks" maxCols={4} label="Open a peak list (ppm in the first column)" />
@@ -33,7 +33,7 @@ const demo = 'δ 7.26 (s), 7.31 (d, J = 8.6 Hz, 2H), 6.88 (d, J = 8.6 Hz, 2H), 4
     <h2>Impurity table for this solvent</h2>
     <label>Find <input class="nmi-find" placeholder="name or shift, e.g. ether or 3.4" /></label>
     <div class="ax-scroll" style="margin-top:8px"><table class="nmi-all"></table></div>
-    <p class="ax-help">Values from Fulmer et al., Organometallics 2010, 29, 2176, which extends Gottlieb, Kotlyar and Nudelman, J. Org. Chem. 1997, 62, 7512 (spectra at 298 K, referenced to TMS or the solvent). Check the paper for multiplicities and coupling constants.</p>
+    <p class="ax-help">Approximate positions, rounded to 0.05 ppm for ¹H and 0.5 ppm for ¹³C, for spectra at room temperature referenced to TMS or the solvent. Real peaks move a little with concentration, temperature and water, and OH and NH peaks move a lot.</p>
   </div>
 </div>
 
@@ -45,7 +45,7 @@ const demo = 'δ 7.26 (s), 7.31 (d, J = 8.6 Hz, 2H), 6.88 (d, J = 8.6 Hz, 2H), 4
   const root = document.querySelector<HTMLElement>('.nmi')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const sol = () => q<HTMLSelectElement>('.nmi-sol').value, nuc = () => q<HTMLSelectElement>('.nmi-nuc').value as 'h' | 'c';
-  const dp = (x: number) => (nuc() === 'h' ? x.toFixed(2) : x.toFixed(2));
+  const dp = (x: number) => (nuc() === 'h' ? x.toFixed(2) : x.toFixed(1));
   let impRows: string[][] = [], peakRows: string[][] = [];
   const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
 
@@ -74,7 +74,7 @@ const demo = 'δ 7.26 (s), 7.31 (d, J = 8.6 Hz, 2H), 6.88 (d, J = 8.6 Hz, 2H), 4
     table(q<HTMLTableElement>('.nmi-all'), ['δ (ppm)', 'Compound', 'Group'], rows.length ? rows : [['', 'nothing found', '']], [0]);
   }
 
-  q('.nmi-nuc').addEventListener('change', () => { q<HTMLInputElement>('.nmi-tol').value = nuc() === 'h' ? '0.02' : '0.2'; check(); browse(); });
+  q('.nmi-nuc').addEventListener('change', () => { q<HTMLInputElement>('.nmi-tol').value = nuc() === 'h' ? '0.03' : '0.3'; check(); browse(); });
   q('.nmi-sol').addEventListener('change', () => { check(); browse(); });
   root.querySelectorAll('.nmi-tol, .nmi-peaks').forEach((i) => { i.addEventListener('input', check); i.addEventListener('change', check); });
   q('.nmi-find').addEventListener('input', browse);
