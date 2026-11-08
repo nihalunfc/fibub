@@ -1,5 +1,14 @@
 [
  {
+  "sha": "7d87d3f47143",
+  "date": "2026-11-08T21:46:56+00:00",
+  "title": "Add the trend and anomaly analyser: Mann-Kendall, Hamed-Rao, seasonal test, Sen slope and Pettitt change point (#138)",
+  "tools": [
+   "trend-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "8b9781bddee6",
   "date": "2026-11-08T21:33:35+00:00",
   "title": "Add the Köppen climate classifier with a Walter-Lieth climate diagram (#137)",
