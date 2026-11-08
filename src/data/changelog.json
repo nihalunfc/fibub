@@ -1,5 +1,14 @@
 [
  {
+  "sha": "89fc705887fd",
+  "date": "2026-11-08T10:31:57+00:00",
+  "title": "Add the radioactive decay and specific activity calculator (#99)",
+  "tools": [
+   "decay-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "cf6ee469fe12",
   "date": "2026-11-08T10:15:10+00:00",
   "title": "Add the green chemistry metrics calculator (#98)",
