@@ -1,5 +1,14 @@
 [
  {
+  "sha": "d7ad34b07f4a",
+  "date": "2026-11-08T10:52:18+00:00",
+  "title": "Add the copolymer composition and reactivity ratio calculator (#101)",
+  "tools": [
+   "copolymer-composition"
+  ],
+  "site": false
+ },
+ {
   "sha": "406eb4223755",
   "date": "2026-11-08T10:44:10+00:00",
   "title": "Add the polymer molar mass calculator (#100)",
