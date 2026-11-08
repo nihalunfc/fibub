@@ -1,5 +1,26 @@
 [
  {
+  "sha": "9a387b6b05c2",
+  "date": "2026-11-08T07:45:54+00:00",
+  "title": "Open a file on every science paste box, with stated limits",
+  "tools": [
+   "biodiversity-indices",
+   "calibration-curve",
+   "dose-response",
+   "isotope-pattern-calculator",
+   "period-finder",
+   "radial-velocity-fitter",
+   "radiocarbon-calibration",
+   "reaction-kinetics-fitter",
+   "rotation-curve-fitter",
+   "sky-coordinates",
+   "stereonet",
+   "titration-curve",
+   "uv-coverage"
+  ],
+  "site": true
+ },
+ {
   "sha": "42d13367aeb8",
   "date": "2026-11-08T07:40:29+00:00",
   "title": "Plot maker (#27): open CSV, TSV, TXT or Excel files, with stated limits",
