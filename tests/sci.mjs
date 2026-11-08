@@ -1353,20 +1353,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('coupon rate (G31 formula)', (8.76e4 * 0.05) / (20 * 168 * 7.87), 0.1656, 0.0001);
 }
 {
-  // NMR impurities: Gottlieb/Fulmer values, parsing a journal-style list, matching and ranking.
+  // NMR impurities: approximate (rounded) values, parsing a journal-style list, matching and ranking.
   const at = (name, sol, nuc = 'h') => NMR.IMPURITIES.find((x) => x.name === name)[nuc][sol].map((x) => x[0]);
-  check('ethyl acetate in CDCl3: 2.05, 4.12, 1.26', JSON.stringify(at('ethyl acetate', 'CDCl3')) === '[2.05,4.12,1.26]');
-  check('water in DMSO-d6 3.33, in CDCl3 1.56, in C6D6 0.40', at('water', 'DMSO')[0] === 3.33 && at('water', 'CDCl3')[0] === 1.56 && at('water', 'C6D6')[0] === 0.4);
-  check('acetone in CDCl3 2.17, 13C 30.92', at('acetone', 'CDCl3')[0] === 2.17 && at('acetone', 'CDCl3', 'c').includes(30.92));
-  check('dichloromethane in CDCl3 5.30, DMSO 5.76', at('dichloromethane', 'CDCl3')[0] === 5.3 && at('dichloromethane', 'DMSO')[0] === 5.76);
+  check('ethyl acetate in CDCl3 about 2.05, 4.10, 1.25', JSON.stringify(at('ethyl acetate', 'CDCl3')) === '[2.05,4.1,1.25]');
+  check('water in DMSO-d6 about 3.35, in CDCl3 1.55, in C6D6 0.40', at('water', 'DMSO')[0] === 3.35 && at('water', 'CDCl3')[0] === 1.55 && at('water', 'C6D6')[0] === 0.4);
+  check('acetone in CDCl3 about 2.15, 13C 31', at('acetone', 'CDCl3')[0] === 2.15 && at('acetone', 'CDCl3', 'c').includes(31));
+  check('dichloromethane in CDCl3 about 5.30, DMSO 5.75', at('dichloromethane', 'CDCl3')[0] === 5.3 && at('dichloromethane', 'DMSO')[0] === 5.75);
+  check('every 1H value is on a 0.05 ppm step and every 13C on 0.5 ppm', NMR.IMPURITIES.every((x) => Object.values(x.h).flat().every(([d]) => Math.abs(d * 20 - Math.round(d * 20)) < 1e-9) && Object.values(x.c).flat().every(([d]) => Math.abs(d * 2 - Math.round(d * 2)) < 1e-9)));
   check('only proton-free impurities (CO2, CS2, CCl4) lack 1H data in CDCl3', NMR.IMPURITIES.filter((x) => !x.h.CDCl3).every((x) => !Object.keys(x.h).length && x.c.CDCl3));
   check('10 solvents with residual 1H', NMR.SOLVENTS.length === 10 && NMR.SOLVENTS.every((x) => x.h.length));
   check('parse a journal list', JSON.stringify(NMR.parsePeaks('δ 7.26 (d, J = 8.0 Hz, 2H), 3.80 (s, 3H)\n1.26 3H\n2.17\t1.00')) === '[7.26,3.8,1.26,2.17]');
-  const m = NMR.match([7.26, 4.12, 2.05, 1.26, 1.56, 6.88], 'CDCl3', 'h', 0.02);
+  const m = NMR.match([7.26, 4.12, 2.05, 1.26, 1.56, 6.88], 'CDCl3', 'h', 0.05);
   check('ethyl acetate ranked first with 3 of 3', m.byImp[0].name === 'ethyl acetate' && m.byImp[0].found === 3);
-  check('unmatched peak left for the compound', m.perPeak.find((p) => p.peak === 6.88).hits.length === 0);
+  check('unmatched peak left for the compound', m.perPeak.find((p) => p.peak === 6.88).hits.every((h) => h.name === 'pyrrole') && NMR.match([3.8], 'CDCl3', 'h', 0.03).perPeak[0].hits.length === 0);
   check('residual solvent recognised', m.perPeak[0].hits.some((h) => h.solvent));
-  check('13C residual CDCl3 77.16 matched at 0.2 ppm', NMR.match([77.0], 'CDCl3', 'c', 0.2).perPeak[0].hits.some((h) => h.solvent));
+  check('13C residual CDCl3 matched at 0.5 ppm', NMR.match([77.16], 'CDCl3', 'c', 0.5).perPeak[0].hits.some((h) => h.solvent));
 }
 {
   // Electron counting: every textbook preset gives its known count; OS and dⁿ for classic cases.

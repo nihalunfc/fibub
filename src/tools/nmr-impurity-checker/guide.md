@@ -36,16 +36,16 @@ The second card lists all signals for the chosen solvent, sorted by shift, with 
 
 1. Choose the solvent and ¹H or ¹³C.
 2. Paste the peak positions in ppm, one per line, or copy the characterisation line from your notebook or paper (such as "7.26 (d, J = 8.0 Hz, 2H), 3.80 (s, 3H)"): the parts in brackets are skipped. You can also open a CSV or Excel peak list with ppm in the first column.
-3. Adjust the tolerance: ±0.02 ppm suits ¹H and ±0.2 ppm suits ¹³C. Widen it if your spectrum was referenced differently.
+3. Adjust the tolerance: ±0.03 ppm suits ¹H and ±0.3 ppm suits ¹³C, because the listed positions are rounded. Widen it if your spectrum was referenced differently.
 
 ## Worked example
 
-The example is an anisole-type product in CDCl₃ with nine peaks. The tool flags 7.26 as the residual CHCl₃, 1.56 as water and 0.07 as silicone grease, and finds all three ethyl acetate signals (4.12, 2.05 and 1.26), so the sample still holds ethyl acetate from the column. The peaks at 6.88 and 3.80 have no match and belong to the compound. So does 7.31: it is close to one pyridine signal, but the table shows the other two pyridine peaks (8.62 and 7.68) are missing.
+The example is an anisole-type product in CDCl₃ with nine peaks. The tool flags 7.26 as the residual CHCl₃, 1.56 as water and 0.07 as silicone grease, and finds all three ethyl acetate signals (near 4.10, 2.05 and 1.25), so the sample still holds ethyl acetate from the column. The peak at 3.80 has no match and belongs to the compound. So do 7.31 and 6.88: each is close to one signal of pyridine or pyrrole, but the table shows the other signals of those compounds are missing.
 
 ## Questions
 
 **Why does the water peak not match?** Water moves with temperature, concentration and hydrogen bonding, by up to a few tenths of a ppm. The same goes for OH and NH peaks.
 
-**Where do the values come from?** From the tables of Fulmer and co-workers (Organometallics 2010), which extend the classic Gottlieb, Kotlyar and Nudelman tables (J. Org. Chem. 1997). Check the papers for multiplicities, coupling constants and solvents not listed here.
+**How exact are the positions?** They are approximate, rounded to 0.05 ppm for ¹H and 0.5 ppm for ¹³C. Real peaks shift slightly with concentration, temperature and water content, so treat a match as a strong hint and confirm it with the other signals of the same compound.
 
 **Is anything sent anywhere?** No. Your peaks stay in your browser, and the page works offline once loaded.

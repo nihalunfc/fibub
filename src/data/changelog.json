@@ -1,5 +1,14 @@
 [
  {
+  "sha": "22c9963a8617",
+  "date": "2026-11-08T14:53:43+00:00",
+  "title": "Use rounded, approximate positions in the NMR impurity table (#106)",
+  "tools": [
+   "nmr-impurity-checker"
+  ],
+  "site": false
+ },
+ {
   "sha": "d0e3450e5c5a",
   "date": "2026-11-08T12:24:41+00:00",
   "title": "Add the binary phase diagram and lever rule calculator (#108)",
