@@ -1,0 +1,182 @@
+---
+// Radio interferometer uv-coverage: array layout, uv tracks through an observation, resolution and the dirty beam.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax uvc">
+  <div class="ax-card">
+    <h2>Array</h2>
+    <div class="ax-grid">
+      <label>Layout <select class="uvc-pre">
+        <option value="y06" selected>Y-shaped, 27 dishes, 0.6 km arms</option>
+        <option value="y36">Y-shaped, 27 dishes, 3.6 km arms</option>
+        <option value="line">East–west line, 14 dishes over 2.7 km</option>
+        <option value="ring">Ring of 8 dishes, 50 m across</option>
+        <option value="pair">Two dishes 20 m apart (student)</option>
+        <option value="custom">My own positions</option>
+      </select></label>
+      <label>Dish diameter (m) <input class="uvc-d" inputmode="decimal" value="25" /></label>
+      <label>Array latitude (°) <input class="uvc-lat" inputmode="decimal" value="34.08" /></label>
+      <label>Frequency (GHz) <input class="uvc-f" inputmode="decimal" value="1.42" /></label>
+    </div>
+    <label style="margin-top:10px">Antenna positions: east and north in metres, one per line (a name first is fine)
+      <textarea class="uvc-ants" rows="6" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".uvc-ants" />
+    <h2 style="margin-top:16px">Observation</h2>
+    <div class="ax-grid">
+      <label>Source declination (°) <input class="uvc-dec" inputmode="decimal" value="30" /></label>
+      <label>Start hour angle (h) <input class="uvc-h0" inputmode="decimal" value="-4" /></label>
+      <label>End hour angle (h) <input class="uvc-h1" inputmode="decimal" value="4" /></label>
+      <label>Lowest elevation (°) <input class="uvc-el" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">Hour angle 0 is when the source crosses the meridian, highest in the sky; −4 to +4 is an 8-hour track centred on transit. Times with the source below the lowest elevation are left out.</p>
+    <p class="ax-err uvc-err" hidden></p>
+  </div>
+
+  <div class="ax-card uvc-out" hidden>
+    <h2>Coverage and beam</h2>
+    <p class="ax-big uvc-big"></p>
+    <dl class="ax-facts uvc-facts"></dl>
+    <div class="uvc-figs">
+      <figure><canvas class="ax-fig uvc-lay"></canvas><figcaption>Array layout (north up, east right)</figcaption></figure>
+      <figure><canvas class="ax-fig uvc-uv"></canvas><figcaption>uv coverage, in thousands of wavelengths (kλ)</figcaption></figure>
+      <figure><canvas class="ax-fig uvc-beam"></canvas><figcaption>Dirty beam: the image of a point source</figcaption></figure>
+    </div>
+    <p class="ax-help">Each pair of dishes measures one point of the sky's Fourier transform, and Earth's rotation sweeps it along an arc. Gaps in the uv plane leave sidelobes in the dirty beam, which deconvolution (CLEAN) later removes. Natural weighting is used.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small uvc-csv">uv points (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .uvc .uvc-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+  .uvc .uvc-figs figure { margin: 0; }
+  .uvc .uvc-figs figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseAntennas, yArray, ringArray, lineArray, uvTracks, dirtyBeam, beamWidth, scales, elevation, type Antenna } from '../../lib/sci/uvcover';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.uvc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const PRE: Record<string, () => Antenna[]> = {
+    y06: () => yArray(9, 600), y36: () => yArray(9, 3600),
+    line: () => lineArray([0, 144, 288, 432, 576, 720, 864, 1008, 1152, 1296, 1368, 1440, 2160, 2700]),
+    ring: () => ringArray(8, 25), pair: () => lineArray([0, 20]),
+  };
+  const DISH: Record<string, number> = { y06: 25, y36: 25, line: 25, ring: 6, pair: 3 };
+  let figs: Figure[] = [], report: Section[] = [], last: { u: number[]; v: number[] } | null = null;
+
+  function fill() {
+    const p = q<HTMLSelectElement>('.uvc-pre').value; if (p === 'custom') return;
+    q<HTMLTextAreaElement>('.uvc-ants').value = PRE[p]().map((a, i) => `A${i + 1} ${a.e.toFixed(1)} ${a.n.toFixed(1)}`).join('\n');
+    q<HTMLInputElement>('.uvc-d').value = String(DISH[p]);
+  }
+
+  /** A square scatter plot with equal scales on both axes. */
+  function scatter(xs: number[], ys: number[], alt: string, unit: string, dot: number): Figure {
+    let m = 1e-9; for (let k = 0; k < xs.length; k++) m = Math.max(m, Math.abs(xs[k]), Math.abs(ys[k]));
+    m *= 1.08;
+    return {
+      w: 360, h: 360, alt,
+      draw(ctx, w, h, pal: Palette) {
+        const pad = 34, s = (w - 2 * pad) / (2 * m), cx = w / 2, cy = h / 2;
+        ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.lineWidth = 1;
+        for (const t of niceTicks(-m, m, 5)) {
+          if (Math.abs(t) > m) continue; const x = cx + t * s, y = cy - t * s;
+          ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(sig(t, 3), x, h - pad + 4);
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(sig(t, 3), pad - 4, y);
+        }
+        ctx.strokeStyle = pal.line; ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(unit, pad, 6);
+        ctx.fillStyle = pal.accent;
+        for (let k = 0; k < xs.length; k++) ctx.fillRect(cx + xs[k] * s - dot / 2, cy - ys[k] * s - dot / 2, dot, dot);
+      },
+    };
+  }
+
+  function beamFigure(b: ReturnType<typeof dirtyBeam>, alt: string): Figure {
+    const show = Math.min(b.N, 160), off = (b.N - show) / 2, half = (show / 2) * b.cell;
+    return {
+      w: 360, h: 360, alt,
+      draw(ctx, w, h, pal: Palette) {
+        const pad = 34, side = w - 2 * pad, c = document.createElement('canvas'); c.width = show; c.height = show;
+        const g = c.getContext('2d')!, id = g.createImageData(show, show);
+        const hex = (x: string) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16)), lo = hex(pal.bg), hi = hex(pal.red ? pal.ink : pal.ink);
+        for (let y = 0; y < show; y++) for (let x = 0; x < show; x++) {
+          const v = b.img[(off + y) * b.N + (off + x)], k = Math.max(0, Math.min(1, (v + 0.2) / 1.2)), p = (y * show + x) * 4;
+          for (let ch = 0; ch < 3; ch++) id.data[p + ch] = Math.round(lo[ch] + (hi[ch] - lo[ch]) * k);
+          id.data[p + 3] = 255;
+        }
+        g.putImageData(id, 0, 0);
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(c, pad, pad, side, side);
+        ctx.strokeStyle = pal.line; ctx.strokeRect(pad, pad, side, side);
+        ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.lineWidth = 1;
+        const unit = half > 600 ? ['′', 60] : ['″', 1];
+        for (const t of niceTicks(-half / (unit[1] as number), half / (unit[1] as number), 5)) {
+          const x = w / 2 + (t * (unit[1] as number) / half) * (side / 2); if (x < pad || x > w - pad) continue;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`${sig(t, 3)}${unit[0]}`, x, h - pad + 4);
+        }
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('offset from the centre', pad, 6);
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.uvc-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.uvc-out').hidden = true; };
+    const ants = parseAntennas(q<HTMLTextAreaElement>('.uvc-ants').value);
+    const [D, lat, fG, dec, h0, h1, minEl] = ['.uvc-d', '.uvc-lat', '.uvc-f', '.uvc-dec', '.uvc-h0', '.uvc-h1', '.uvc-el'].map((c) => num(q<HTMLInputElement>(c).value));
+    if (ants.length < 2) return fail('Give at least two antenna positions, one per line.');
+    if (ants.length > 300) return fail('Use at most 300 antennas.');
+    if (!(D > 0) || !(fG > 0) || fG > 2000) return fail('Give a dish size above 0 and a frequency from 0 to 2,000 GHz.');
+    if (!(lat >= -90 && lat <= 90) || !(dec >= -90 && dec <= 90)) return fail('Latitude and declination run from −90° to +90°.');
+    if (!(h1 >= h0) || h1 - h0 > 24) return fail('The end hour angle must be after the start, at most 24 hours later.');
+    const steps = Math.max(1, Math.min(289, Math.round((h1 - h0) * 12) + 1));
+    const tr = uvTracks(ants, lat, dec, fG * 1e9, h0, h1, steps, Number.isFinite(minEl) ? minEl : 0);
+    if (!tr.hours.length) return fail(`The source never rises above ${minEl}° in this hour-angle range from latitude ${lat}°.`);
+    const lens = tr.baselines.map((b) => b.len).filter((x) => x > 0), bmin = lens.reduce((a, b) => Math.min(a, b), Infinity), bmax = lens.reduce((a, b) => Math.max(a, b), 0);
+    if (!(bmax > 0)) return fail('The antennas must not all be at the same place.');
+    const sc = scales(fG * 1e9, bmin, bmax, D), beam = dirtyBeam(tr.u, tr.v, 256), bw = beamWidth(beam);
+    last = { u: tr.u, v: tr.v };
+    q('.uvc-out').hidden = false;
+    const fmtA = (x: number) => (x >= 120 ? `${sig(x / 60, 3)}′` : `${sig(x, 3)}″`);
+    q('.uvc-big').textContent = `Beam about ${fmtA(bw.ew)} × ${fmtA(bw.ns)} (east–west × north–south)`;
+    const hrs = tr.hours.length > 1 ? tr.hours[tr.hours.length - 1] - tr.hours[0] : 0;
+    const facts: [string, string, string?][] = [
+      ['Antennas and baselines', `${ants.length} dishes, ${tr.baselines.length.toLocaleString('en')} baselines`, 'every pair of dishes is one baseline'],
+      ['Shortest and longest baseline', `${sig(bmin, 3)} m to ${sig(bmax, 4)} m`, `${sig(bmin / tr.lam / 1000, 3)} to ${sig(bmax / tr.lam / 1000, 3)} kλ`],
+      ['Wavelength', tr.lam >= 0.01 ? `${sig(tr.lam * 100, 3)} cm` : `${sig(tr.lam * 1000, 3)} mm`],
+      ['Resolution (λ / longest baseline)', fmtA(sc.resolution), 'the dirty beam above is measured from the actual coverage'],
+      ['Largest scale you can image', fmtA(sc.largest), 'smooth structure bigger than this is filtered out by the shortest baseline'],
+      ['Field of view (primary beam)', fmtA(sc.primaryBeam), 'half-power width of a single dish'],
+      ['Time on source', `${hrs.toFixed(1)} hours`, `${tr.u.length.toLocaleString('en')} uv points, sampled every 5 minutes; highest at ${elevation(lat, dec, 0).toFixed(0)}°`],
+    ];
+    q('.uvc-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    const big = Math.max(...ants.map((a) => Math.max(Math.abs(a.e), Math.abs(a.n))));
+    const km = big >= 2000;
+    const lay = scatter(ants.map((a) => (km ? a.e / 1000 : a.e)), ants.map((a) => (km ? a.n / 1000 : a.n)), 'Array layout', km ? 'km' : 'm', 6);
+    const uu = [...tr.u, ...tr.u.map((x) => -x)].map((x) => x / 1000), vv = [...tr.v, ...tr.v.map((x) => -x)].map((x) => x / 1000);
+    const uvf = scatter(uu, vv, 'uv coverage of the observation', 'kλ', uu.length > 20000 ? 1.2 : 2);
+    const bf = beamFigure(beam, 'Dirty beam: the response to a point source');
+    figs = [lay, uvf, bf];
+    paint(q<HTMLCanvasElement>('.uvc-lay'), lay); paint(q<HTMLCanvasElement>('.uvc-uv'), uvf); paint(q<HTMLCanvasElement>('.uvc-beam'), bf);
+    report = [
+      { title: 'Coverage and beam', facts: [['Beam', q('.uvc-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: uvf },
+      { title: 'Array layout', figure: lay }, { title: 'Dirty beam', figure: bf },
+    ];
+  }
+
+  q('.uvc-pre').addEventListener('change', () => { fill(); run(); });
+  q('.uvc-ants').addEventListener('input', () => { q<HTMLSelectElement>('.uvc-pre').value = 'custom'; run(); });
+  for (const c of ['.uvc-d', '.uvc-lat', '.uvc-f', '.uvc-dec', '.uvc-h0', '.uvc-h1', '.uvc-el']) q(c).addEventListener('change', run);
+  q('.uvc-csv').addEventListener('click', () => { if (last) save(new Blob([csv([['u_wavelengths', 'v_wavelengths'], ...last.u.map((x, i) => [x.toFixed(2), last!.v[i].toFixed(2)])])], { type: 'text/csv' }), 'uv-coverage.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { const c = ['.uvc-lay', '.uvc-uv', '.uvc-beam']; figs.forEach((f, i) => paint(q<HTMLCanvasElement>(c[i]), f)); });
+  fill(); run();
+  wireDownloads(q('.dl'), () => ({ title: 'uv coverage', file: 'uv-coverage', sections: report }));
+</script>

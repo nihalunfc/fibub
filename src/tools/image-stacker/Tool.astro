@@ -1,0 +1,206 @@
+---
+// Image calibration and stacking: master bias, dark and flat; calibrate light frames, align them on their stars and
+// combine them with a kappa-sigma clipped average. Everything stays in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax stk">
+  <div class="ax-card">
+    <h2>Frames</h2>
+    <div class="stk-files">
+      <label class="stk-pick"><span><strong>Light frames</strong> (needed)</span><small class="stk-n" data-k="lights">none yet</small><input type="file" class="stk-in" data-k="lights" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="stk-pick"><span><strong>Dark frames</strong> (same exposure and temperature)</span><small class="stk-n" data-k="darks">none (optional)</small><input type="file" class="stk-in" data-k="darks" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="stk-pick"><span><strong>Flat frames</strong> (even light, same focus)</span><small class="stk-n" data-k="flats">none (optional)</small><input type="file" class="stk-in" data-k="flats" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="stk-pick"><span><strong>Bias frames</strong> (shortest exposure, for the flats)</span><small class="stk-n" data-k="bias">none (optional)</small><input type="file" class="stk-in" data-k="bias" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Leave out values more than <select class="stk-k"><option value="2.5">2.5 σ from the rest</option><option value="3" selected>3 σ from the rest</option><option value="3.5">3.5 σ from the rest</option><option value="0">nothing (plain average)</option></select></label>
+      <label>Alignment <select class="stk-al"><option value="stars" selected>on the stars (shift and rotation)</option><option value="none">none (already aligned)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small stk-go">Calibrate and stack</button>
+      <button type="button" class="btn secondary small stk-sample">Run the example</button>
+    </div>
+    <p class="ax-help">FITS straight from the camera is best, because its values are linear; JPEG and PNG work for a quick look. Frames are read one at a time and nothing is uploaded, but large sets need memory: frames over 25 megapixels are binned 2 × 2, and up to 100 lights are used.</p>
+    <p class="ax-help stk-status" aria-live="polite"></p>
+    <p class="ax-err stk-err" hidden></p>
+  </div>
+
+  <div class="ax-card stk-out" hidden>
+    <h2>Stacked image</h2>
+    <p class="ax-big stk-big"></p>
+    <div class="ax-seg stk-view" role="group" aria-label="Which image to show">
+      <button type="button" data-v="stack" aria-pressed="true">Stack</button>
+      <button type="button" data-v="single" aria-pressed="false">One calibrated frame</button>
+      <button type="button" data-v="raw" aria-pressed="false">One raw frame</button>
+    </div>
+    <canvas class="ax-fig stk-img photo" style="margin-top:8px"></canvas>
+    <p class="ax-help">All three use the same stretch, so the difference in noise is real.</p>
+    <dl class="ax-facts stk-facts" style="margin-top:12px"></dl>
+    <h3>One frame before and after calibration</h3>
+    <canvas class="ax-fig stk-hist"></canvas>
+    <h3>Each light frame</h3>
+    <div class="ax-scroll"><table class="stk-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small stk-fits">Stack as FITS (32-bit)</button>
+      <button type="button" class="btn secondary small stk-png">Stack as PNG (stretched)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .stk-files { display: grid; gap: 8px; }
+  .stk-pick { display: grid; gap: 2px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+  .stk-pick small { color: var(--muted); }
+</style>
+<style is:global>
+  .stk .stk-tab td, .stk .stk-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { readImage } from '../../lib/astro/fits';
+  import { average, hotPixels, calibrate, luminance, stars, align, warp, Stacker, noise, stats, writeFits, simulatedSet, type Frame, type Xf, type Pt } from '../../lib/sci/stack';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { sig } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.stk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Src = { name: string; load: () => Promise<Frame> };
+  const sets: Record<string, Src[]> = { lights: [], darks: [], flats: [], bias: [] };
+  let bottomFirst = false, binned = false, result: Frame | null = null, single: Frame | null = null, raw: Frame | null = null, view = 'stack', imgFig: Figure | null = null, histFig: Figure | null = null, report: Section[] = [];
+  const pause = () => new Promise((r) => setTimeout(r, 0));
+  const status = (t: string) => { q('.stk-status').textContent = t; };
+
+  function bin2(f: Frame): Frame { const w = f.w >> 1, h = f.h >> 1; return { w, h, planes: f.planes.map((p) => { const o = new Float32Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = 2 * y * f.w + 2 * x; o[y * w + x] = (p[i] + p[i + 1] + p[i + f.w] + p[i + f.w + 1]) / 4; } return o; }) }; }
+
+  async function decode(f: File): Promise<Frame> {
+    let b = new Uint8Array(await f.arrayBuffer());
+    if (b[0] === 0x1f && b[1] === 0x8b) { const { gunzipSync } = await import('fflate'); b = gunzipSync(b); }
+    let fr: Frame;
+    if (String.fromCharCode(...b.slice(0, 6)) === 'SIMPLE') { const im = readImage(b); fr = { w: im.w, h: im.h, planes: im.planes.map((p) => new Float32Array(p)) }; bottomFirst = true; }
+    else {
+      const bmp = await createImageBitmap(f), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      const ctx = c.getContext('2d')!; ctx.drawImage(bmp, 0, 0); const px = ctx.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height;
+      const planes = [0, 1, 2].map((k) => { const o = new Float32Array(n); for (let i = 0; i < n; i++) o[i] = px[4 * i + k]; return o; });
+      const grey = planes[0].every((v, i) => i % 97 || (v === planes[1][i] && v === planes[2][i]));
+      fr = { w: c.width, h: c.height, planes: grey ? [planes[1]] : planes };
+    }
+    if (fr.w * fr.h * fr.planes.length > 25e6) { binned = true; fr = bin2(fr); }
+    return fr;
+  }
+
+  root.querySelectorAll<HTMLInputElement>('.stk-in').forEach((inp) => inp.addEventListener('change', () => {
+    const k = inp.dataset.k!, files = [...(inp.files ?? [])].slice(0, k === 'lights' ? 100 : 50);
+    sets[k] = files.map((f) => ({ name: f.name, load: () => decode(f) }));
+    q(`.stk-n[data-k=${k}]`).textContent = files.length ? `${files.length} file${files.length > 1 ? 's' : ''}` : 'none';
+  }));
+
+  async function master(list: Src[], label: string) {
+    if (!list.length) return undefined;
+    const frames: Frame[] = [];
+    for (let i = 0; i < list.length; i++) { status(`Reading ${label} ${i + 1} of ${list.length}…`); frames.push(await list[i].load()); await pause(); }
+    return average(frames);
+  }
+
+  async function run() {
+    const err = q('.stk-err'); err.hidden = true;
+    const btns = [q<HTMLButtonElement>('.stk-go'), q<HTMLButtonElement>('.stk-sample')]; btns.forEach((b) => (b.disabled = true));
+    try {
+      const L = sets.lights; if (L.length < 2) throw new Error('Choose at least two light frames to stack.');
+      const kappa = +q<HTMLSelectElement>('.stk-k').value, doAlign = q<HTMLSelectElement>('.stk-al').value === 'stars';
+      const bias = await master(sets.bias, 'bias frame'), dark = await master(sets.darks, 'dark frame'), flat = await master(sets.flats, 'flat frame');
+      const hot = dark ? hotPixels(dark) : undefined;
+      const prep = async (i: number) => calibrate(await L[i].load(), { dark, flat, bias, hot });
+      // Pass 1: calibrate, find stars, align, and gather the mean and spread of every pixel.
+      status('Calibrating the first frame…'); await pause();
+      const first = await prep(0); raw = await L[0].load(); single = first;
+      const { w, h } = first, np = first.planes.length;
+      const ref: Pt[] = doAlign ? stars(luminance(first), w, h) : [];
+      if (doAlign && ref.length < 4) throw new Error('Too few stars found in the first frame to align on. Choose "none" for alignment if the frames are already lined up.');
+      const xfs: (Xf | null)[] = [], rows: string[][] = [], st = new Stacker(w, h, np), level = stats(luminance(first)).median;
+      const scale: number[] = [];
+      for (let i = 0; i < L.length; i++) {
+        status(`Aligning frame ${i + 1} of ${L.length}…`); await pause();
+        const f = i ? await prep(i) : first;
+        if (f.w !== w || f.h !== h || f.planes.length !== np) { xfs.push(null); scale.push(1); rows.push([String(i + 1), L[i].name, '–', '–', '–', 'different size, left out']); continue; }
+        const xf: Xf | null = doAlign ? align(ref, stars(luminance(f), w, h)) : { a: 1, b: 0, c: 0, d: 0, matched: 0, rms: 0 };
+        // Bring each frame's sky background to the first one's, so a brightening sky (dawn, Moon) does not get clipped.
+        const lv = stats(luminance(f)).median; scale.push(level - lv);
+        xfs.push(xf);
+        if (!xf) { rows.push([String(i + 1), L[i].name, '–', '–', '–', 'could not align, left out']); continue; }
+        const wf = doAlign ? warp(f, xf) : f; wf.planes.forEach((p) => { const off = level - lv; for (let k = 0; k < p.length; k++) p[k] += off; });
+        st.add(wf);
+        const cx = xf.a * (w / 2) - xf.b * (h / 2) + xf.c - w / 2, cy = xf.b * (w / 2) + xf.a * (h / 2) + xf.d - h / 2;
+        rows.push([String(i + 1), L[i].name, `${cx.toFixed(1)}, ${cy.toFixed(1)}`, ((Math.atan2(xf.b, xf.a) * 180) / Math.PI).toFixed(2), doAlign ? `${xf.matched} (${xf.rms.toFixed(2)} px)` : '–', 'used']);
+      }
+      const used = xfs.filter(Boolean).length; if (used < 2) throw new Error('Fewer than two frames could be aligned. Check that the frames show the same stars.');
+      // Pass 2: read every frame again and average, leaving out outliers (satellite trails, cosmic rays, hot pixels).
+      if (kappa > 0) for (let i = 0; i < L.length; i++) {
+        const xf = xfs[i]; if (!xf) continue;
+        status(`Stacking frame ${i + 1} of ${L.length}…`); await pause();
+        const f = i ? await prep(i) : first, wf = doAlign ? warp(f, xf) : f; wf.planes.forEach((p) => { for (let k = 0; k < p.length; k++) p[k] += scale[i]; });
+        st.addClipped(wf, kappa);
+      }
+      result = st.result(kappa > 0);
+      const n1 = noise(luminance(first)), nS = noise(luminance(result));
+      status(''); q('.stk-out').hidden = false;
+      q('.stk-big').textContent = `${used} of ${L.length} frames stacked: the background noise is ${sig(n1 / nS, 2)} times lower than in one frame`;
+      const facts: [string, string, string?][] = [
+        ['Noise in one frame', sig(n1, 3), 'robust spread of the background, in the camera\'s units'],
+        ['Noise in the stack', sig(nS, 3), `ideal for ${used} frames: ${sig(Math.sqrt(used), 2)} times lower (√N)`],
+        ['Left out by clipping', kappa > 0 ? `${sig((100 * st.rejected) / Math.max(1, st.total), 2)} % of values` : 'none (plain average)', kappa > 0 ? `values more than ${kappa} σ from the other frames: trails, cosmic rays and noise peaks` : ''],
+      ];
+      if (dark) facts.push(['Master dark', `from ${sets.darks.length} frames`, `${hot!.length} hot pixel${hot!.length === 1 ? '' : 's'} found and patched in every light`]);
+      if (flat) { const p = flat.planes[0], c = (x: number, y: number) => p[Math.round(y) * flat.w + Math.round(x)], cen = c(flat.w / 2, flat.h / 2), cor = (c(5, 5) + c(flat.w - 6, 5) + c(5, flat.h - 6) + c(flat.w - 6, flat.h - 6)) / 4, b = bias ? bias.planes[0][0] : 0; facts.push(['Master flat', `from ${sets.flats.length} frames`, `corners get ${Math.round((100 * (cor - b)) / (cen - b || 1))} % of the centre's light (vignetting), now evened out`]); }
+      if (bias) facts.push(['Master bias', `from ${sets.bias.length} frames`, 'taken off the flats']);
+      if (!dark && !flat) facts.push(['Calibration', 'none', 'add darks and flats to remove hot pixels, amp glow, vignetting and dust shadows']);
+      if (binned) facts.push(['Binned', '2 × 2', 'the frames were too large to stack at full size in a browser']);
+      q('.stk-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+      const head = ['Frame', 'File', 'Centre moved x, y (px)', 'Rotation (°)', 'Stars matched (rms)', 'Status'];
+      const tb = q<HTMLTableElement>('.stk-tab'); tb.replaceChildren();
+      const tr = tb.createTHead().insertRow(); head.forEach((hh) => { const th = document.createElement('th'); th.textContent = hh; tr.append(th); });
+      const body = tb.createTBody(); for (const r of rows) { const row = body.insertRow(); r.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j !== 1 && j !== 5) td.style.textAlign = 'right'; }); }
+      // Histograms of one raw light and the same frame calibrated (log counts), the "before and after".
+      const hist = (d: Float32Array, lo: number, hi: number, nb = 120) => { const c = new Array(nb).fill(0); for (let i = 0; i < d.length; i += 3) { const k = Math.floor(((d[i] - lo) / (hi - lo)) * nb); if (k >= 0 && k < nb) c[k]++; } return c.map((v) => Math.max(1, v)); };
+      const rl = luminance(raw), cl = luminance(first), sr = stats(rl), sc = stats(cl);
+      const span = Math.max(sr.sigma, sc.sigma) * 12, hr = hist(rl, sr.median - span / 3, sr.median + span), hc = hist(cl, sc.median - span / 3, sc.median + span);
+      const xs = hr.map((_, i) => -span / 3 + ((i + 0.5) * (span * 4 / 3)) / hr.length);
+      histFig = chartFigure({ h: 220, xLabel: 'Value relative to the background', yLabel: 'Pixels', yLog: true, legend: 'below', series: [{ name: 'Raw frame', x: xs, y: hr, mode: 'line', width: 1.4 }, { name: 'Calibrated frame', x: xs, y: hc, mode: 'line', width: 1.8 }] }, 'Histogram of one light frame before and after calibration');
+      paint(q<HTMLCanvasElement>('.stk-hist'), histFig);
+      show();
+      report = [{ title: 'Stacked image', facts: [['Result', q('.stk-big').textContent!], ...facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], figure: imgFig! }, { title: 'Histogram before and after calibration', figure: histFig }, { title: 'Each light frame', table: { head, rows, align: ['r', 'l', 'r', 'r', 'r', 'l'] } }];
+    } catch (e) { status(''); err.textContent = (e as Error).message; err.hidden = false; }
+    btns.forEach((b) => (b.disabled = false));
+  }
+
+  function show() {
+    if (!result) return;
+    root.querySelectorAll<HTMLButtonElement>('.stk-view button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === view)));
+    const f = view === 'stack' ? result : view === 'single' ? single! : raw!, ref = luminance(result), s = stats(ref);
+    // One stretch for all three (from the stack): black just below the background, asinh to bring out faint detail.
+    const sorted: number[] = []; for (let i = 0; i < ref.length; i += 7) sorted.push(ref[i]); sorted.sort((a, b) => a - b);
+    const lo = s.median - 2 * s.sigma, hi = sorted[Math.floor(sorted.length * 0.999)], base = view === 'raw' ? stats(luminance(raw!)).median - s.median : 0;
+    const { w, h } = f, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(w, h), soft = Math.max(s.sigma * 3, 1e-6), top = Math.asinh((hi - lo) / soft);
+    for (let y = 0; y < h; y++) { const sy = bottomFirst ? h - 1 - y : y; for (let x = 0; x < w; x++) { const o = (y * w + x) * 4; for (let k = 0; k < 3; k++) { const p = f.planes[Math.min(k, f.planes.length - 1)], v = p[sy * w + x] - base - lo, g = v <= 0 ? 0 : Math.min(255, Math.round((Math.asinh(v / soft) / top) * 255)); id.data[o + k] = g; } id.data[o + 3] = 255; } }
+    ctx.putImageData(id, 0, 0);
+    imgFig = { w: 760, h: Math.round((760 * h) / w), alt: view === 'stack' ? 'The stacked image' : 'One frame for comparison', draw(cx, ww, hh) { cx.imageSmoothingEnabled = true; cx.drawImage(c, 0, 0, ww, hh); } };
+    paint(q<HTMLCanvasElement>('.stk-img'), imgFig);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.stk-view button').forEach((b) => b.addEventListener('click', () => { view = b.dataset.v!; show(); }));
+  q('.stk-go').addEventListener('click', run);
+  q('.stk-sample').addEventListener('click', () => {
+    const s = simulatedSet(); bottomFirst = false; binned = false;
+    const wrap = (fs: Frame[], p: string) => fs.map((f, i) => ({ name: `${p}-${i + 1}`, load: async () => ({ w: f.w, h: f.h, planes: f.planes.map((x) => new Float32Array(x)) }) }));
+    sets.lights = wrap(s.lights, 'light'); sets.darks = wrap(s.darks, 'dark'); sets.flats = wrap(s.flats, 'flat'); sets.bias = wrap(s.bias, 'bias');
+    for (const k of Object.keys(sets)) q(`.stk-n[data-k=${k}]`).textContent = `${sets[k].length} example frames`;
+    run();
+  });
+  q('.stk-fits').addEventListener('click', () => { if (result) save(writeFits(result, [['NCOMBINE', sets.lights.length, 'light frames offered'], ['CREATOR', 'fibub.com image stacker']], bottomFirst), 'stack.fits', 'application/fits'); });
+  q('.stk-png').addEventListener('click', () => { if (!imgFig || !result) return; const v = view; view = 'stack'; show(); const c = document.createElement('canvas'); c.width = result.w; c.height = result.h; imgFig.draw(c.getContext('2d')!, c.width, c.height, null as never); c.toBlob((b) => b && save(b, 'stack.png', 'image/png')); view = v; show(); });
+  document.addEventListener('fibub:theme', () => { if (imgFig) paint(q<HTMLCanvasElement>('.stk-img'), imgFig); if (histFig) paint(q<HTMLCanvasElement>('.stk-hist'), histFig); });
+  wireDownloads(q('.dl'), () => ({ title: 'Image stack', file: 'image-stack', sections: report }));
+</script>

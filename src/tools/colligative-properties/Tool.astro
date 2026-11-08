@@ -1,0 +1,166 @@
+---
+// Colligative properties: freezing point depression, boiling point elevation, vapour pressure lowering and osmotic
+// pressure of a solution; molar mass (and the apparent van 't Hoff factor) from a measured change.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { SOLVENTS, SOLUTES } from '../../lib/sci/colligative';
+---
+<div class="ax col">
+  <div class="ax-card">
+    <h2>A solution</h2>
+    <div class="ax-grid">
+      <label>Solvent <select class="col-solv">{SOLVENTS.map((s) => <option value={s.id}>{s.name}</option>)}</select></label>
+      <label>Solute formula or molar mass <input class="col-sol" value="C6H12O6" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Solute mass (g) <input class="col-g" inputmode="decimal" value="10.0" /></label>
+      <label>Solvent mass (g) <input class="col-gs" inputmode="decimal" value="200" /></label>
+      <label>Particles per formula unit, i <select class="col-ipre">{SOLUTES.map((s) => <option value={s.i}>{s.label}</option>)}<option value="">Type my own</option></select></label>
+      <label>i <input class="col-i" inputmode="decimal" value="1" /></label>
+      <label>Kf (K·kg/mol) <input class="col-kf" inputmode="decimal" /></label>
+      <label>Kb (K·kg/mol) <input class="col-kb" inputmode="decimal" /></label>
+      <label>Pure solvent freezes at (°C) <input class="col-tf" inputmode="decimal" /></label>
+      <label>Pure solvent boils at (°C) <input class="col-tb" inputmode="decimal" /></label>
+      <label>Temperature, for vapour and osmotic pressure (°C) <input class="col-T" inputmode="decimal" value="25" /></label>
+      <label>Pure solvent vapour pressure there (kPa, optional) <input class="col-p0" inputmode="decimal" value="3.169" /></label>
+    </div>
+    <p class="ax-help">The constants fill in for the solvent you pick (common textbook values); type over them to use your own. Water's vapour pressure is 3.169 kPa at 25 °C.</p>
+    <p class="ax-err col-err" hidden></p>
+    <div class="col-out">
+      <p class="ax-big col-big"></p>
+      <dl class="ax-facts col-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Molar mass from a measurement</h2>
+    <div class="ax-grid">
+      <label>You measured <select class="col-meth"><option value="fp">freezing point depression</option><option value="bp">boiling point elevation</option><option value="osm">osmotic pressure</option></select></label>
+      <label class="col-msolv-l">Solvent <select class="col-msolv">{SOLVENTS.map((s) => <option value={s.id} selected={s.id === 'benzene'}>{s.name}</option>)}</select></label>
+      <label>Solute mass (g) <input class="col-mg" inputmode="decimal" value="1.00" /></label>
+      <label><span class="col-ms-l">Solvent mass (g)</span> <input class="col-ms" inputmode="decimal" value="50.0" /></label>
+      <label><span class="col-dt-l">Change in temperature (K or °C)</span> <span class="col-pair"><input class="col-dt" inputmode="decimal" value="0.40" /><select class="col-pu" hidden><option value="0.001">mbar</option><option value="0.01">kPa</option><option value="1.01325">atm</option><option value="0.00133322">mmHg</option></select></span></label>
+      <label class="col-mT-l" hidden>Temperature (°C) <input class="col-mT" inputmode="decimal" value="25" /></label>
+      <label>i (1 for a non-electrolyte) <input class="col-mi" inputmode="decimal" value="1" /></label>
+      <label>Formula you expect (optional) <input class="col-exp" value="S8" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err col-merr" hidden></p>
+    <div class="col-mout">
+      <p class="ax-big col-mbig"></p>
+      <dl class="ax-facts col-mfacts"></dl>
+    </div>
+    <p class="ax-help">These laws hold for dilute solutions of a solute that does not evaporate. Freezing point depression is the most precise; camphor (Kf about 40) gives the biggest change, which is why the Rast method uses it.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SOLVENTS, molality, deltaT, molarMassFromDT, molarMassFromOsmotic, osmotic, raoult } from '../../lib/sci/colligative';
+  import { parseFormula, molarMass, pretty } from '../../lib/sci/chem';
+  import { num, sig } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.col')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const mwOf = (s: string) => { const t = s.trim(); if (!t) return NaN; if (/^[\d.,\s]+$/.test(t)) return num(t); try { return molarMass(parseFormula(t)); } catch { return NaN; } };
+  const solvent = (id: string) => SOLVENTS.find((s) => s.id === id)!;
+  const fmtP = (bar: number) => (bar >= 1 ? `${sig(bar, 4)} bar (${sig(bar / 1.01325, 4)} atm)` : bar >= 0.01 ? `${sig(bar * 100, 4)} kPa` : `${sig(bar * 1000, 3)} mbar`);
+
+  function fillSolvent() {
+    const s = solvent(q<HTMLSelectElement>('.col-solv').value);
+    q<HTMLInputElement>('.col-kf').value = s.Kf !== undefined ? String(s.Kf) : '';
+    q<HTMLInputElement>('.col-kb').value = s.Kb !== undefined ? String(s.Kb) : '';
+    q<HTMLInputElement>('.col-tf').value = String(s.Tf); q<HTMLInputElement>('.col-tb').value = String(s.Tb);
+    if (s.id !== 'water') q<HTMLInputElement>('.col-p0').value = '';
+    else q<HTMLInputElement>('.col-p0').value = '3.169';
+  }
+
+  function solution() {
+    const err = (m: string) => { q('.col-err').textContent = m; q('.col-err').hidden = !m; q('.col-out').hidden = !!m; };
+    const s = solvent(q<HTMLSelectElement>('.col-solv').value);
+    const M = mwOf(q<HTMLInputElement>('.col-sol').value), g = v('.col-g'), gs = v('.col-gs'), i = v('.col-i');
+    if (!(M > 0)) return err('Type the solute formula (such as C6H12O6) or its molar mass in g/mol.');
+    if (!(g > 0 && gs > 0)) return err('Type the solute and solvent masses, above zero.');
+    if (!(i > 0)) return err('Type i, the number of particles each formula unit gives (1 for sugar, 2 for NaCl).');
+    err('');
+    const m = molality(g, M, gs), Kf = v('.col-kf'), Kb = v('.col-kb'), Tf = v('.col-tf'), Tb = v('.col-tb'), T = v('.col-T'), P0 = v('.col-p0');
+    const facts: HTMLElement[] = [];
+    facts.push(fact('Molality', `${sig(m, 4)} mol/kg`, `${sig(g / M * 1000, 4)} mmol of solute (${sig(M, 6)} g/mol) in ${sig(gs, 4)} g of ${s.name.toLowerCase()}${i !== 1 ? `; ${sig(i * m, 4)} mol/kg of particles` : ''}`));
+    let big = '';
+    if (Kf > 0) {
+      const d = deltaT(i, Kf, m);
+      facts.push(fact('Freezing point', Number.isFinite(Tf) ? `${(Tf - d).toFixed(3)} °C` : `${sig(d, 4)} K lower`, `lowered by ${sig(d, 4)} K (ΔTf = i·Kf·m)`));
+      big = `Freezes at ${Number.isFinite(Tf) ? `${(Tf - d).toFixed(3)} °C` : `${sig(d, 4)} K lower`}`;
+    }
+    if (Kb > 0) {
+      const d = deltaT(i, Kb, m);
+      facts.push(fact('Boiling point', Number.isFinite(Tb) ? `${(Tb + d).toFixed(3)} °C` : `${sig(d, 4)} K higher`, `raised by ${sig(d, 4)} K (ΔTb = i·Kb·m), at 1 atm`));
+      big += `${big ? ', boils at' : 'Boils at'} ${Number.isFinite(Tb) ? `${(Tb + d).toFixed(3)} °C` : `${sig(d, 4)} K higher`}`;
+    }
+    if (P0 > 0) {
+      const r = raoult(g, M, gs, s.M, P0, i);
+      facts.push(fact('Vapour pressure', `${sig(r.P, 4)} kPa`, `lowered by ${sig(r.lowering, 3)} kPa (${sig(100 * (1 - r.x), 3)} %); solvent mole fraction ${r.x.toFixed(5)} (Raoult's law)`));
+    }
+    if (s.id === 'water' && Number.isFinite(T)) {
+      const c = m * 0.997, pi = osmotic(i, c, T + 273.15);
+      facts.push(fact('Osmotic pressure', fmtP(pi), `π = i·c·R·T at ${sig(T, 4)} °C, taking c ≈ ${sig(c, 4)} mol/L (dilute water); ${sig(i * m * 1000, 4)} mOsm/kg`));
+    }
+    if (m > 1) facts.push(fact('Note', 'concentrated solution', 'above about 1 mol/kg real solutions depart from these ideal laws, so treat the numbers as estimates'));
+    q('.col-big').textContent = big || `Molality ${sig(m, 4)} mol/kg`;
+    q('.col-facts').replaceChildren(...facts);
+  }
+
+  function measure() {
+    const err = (m: string) => { q('.col-merr').textContent = m; q('.col-merr').hidden = !m; q('.col-mout').hidden = !!m; };
+    const meth = q<HTMLSelectElement>('.col-meth').value, osm = meth === 'osm';
+    q('.col-msolv-l').hidden = osm; q('.col-mT-l').hidden = !osm; q('.col-pu').hidden = !osm;
+    q('.col-ms-l').textContent = osm ? 'Solution volume (mL)' : 'Solvent mass (g)';
+    q('.col-dt-l').textContent = osm ? 'Osmotic pressure' : meth === 'fp' ? 'Drop in freezing point (K or °C)' : 'Rise in boiling point (K or °C)';
+    const g = v('.col-mg'), ms = v('.col-ms'), x = v('.col-dt'), i = v('.col-mi') || 1;
+    if (!(g > 0 && ms > 0)) return err(`Type the solute mass and the ${osm ? 'solution volume' : 'solvent mass'}, above zero.`);
+    if (!(x > 0)) return err(osm ? 'Type the osmotic pressure you measured, above zero.' : 'Type the temperature change you measured, above zero.');
+    let M: number, how: string;
+    if (osm) {
+      const T = v('.col-mT') + 273.15, pi = x * Number(q<HTMLSelectElement>('.col-pu').value);
+      if (!(T > 0)) return err('Type the temperature.');
+      M = molarMassFromOsmotic(g / (ms / 1000), pi, T, i);
+      how = `M = i·(g/L)·R·T/π = ${sig(i, 3)} × ${sig(g / (ms / 1000), 4)} g/L × 0.083145 × ${sig(T, 5)} K ÷ ${sig(pi, 4)} bar`;
+    } else {
+      const s = solvent(q<HTMLSelectElement>('.col-msolv').value), K = meth === 'fp' ? s.Kf : s.Kb;
+      if (!K) return err(`No ${meth === 'fp' ? 'Kf' : 'Kb'} is listed for ${s.name.toLowerCase()}; pick another solvent.`);
+      M = molarMassFromDT(i, K, g, ms, x);
+      how = `M = i·K·g/(ΔT·kg) = ${sig(i, 3)} × ${K} × ${sig(g, 4)} g ÷ (${sig(x, 4)} K × ${sig(ms / 1000, 4)} kg), with ${meth === 'fp' ? 'Kf' : 'Kb'} of ${s.name.toLowerCase()}`;
+    }
+    err('');
+    q('.col-mbig').textContent = `Molar mass ≈ ${M >= 1000 ? Number(M.toPrecision(3)).toLocaleString('en') : sig(M, 3)} g/mol`;
+    const facts = [fact('How', how)];
+    const e = q<HTMLInputElement>('.col-exp').value.trim(), Me = mwOf(e);
+    if (e && Me > 0) {
+      const n = M / Me;
+      facts.push(fact(`Compared with ${/^[\d.,\s]+$/.test(e) ? `${e} g/mol` : pretty(e)}`, `${sig(Me, 5)} g/mol`, `measured ÷ expected = ${sig(n, 3)}${Math.abs(n - Math.round(n)) < 0.15 && Math.round(n) > 1 ? `: the solute seems to exist as ${Math.round(n)}-unit clusters (as acetic acid pairs up in benzene)` : Math.abs(n - 1) <= 0.1 ? ': a good match' : n < 0.9 ? `: apparent van 't Hoff factor i ≈ ${sig(1 / n, 3)} (the solute splits into ions or the measurement is off)` : ''}`));
+    } else if (e) facts.push(fact('Expected formula', 'could not be read', 'type a formula such as S8 or a molar mass'));
+    if (!osm) { const rel = 0.01 / x; facts.push(fact('Reading error', `±${sig(M * rel, 2)} g/mol (${sig(100 * rel, 2)} %)`, 'from a ±0.01 K thermometer reading alone; use enough solute for a change of 0.3 K or more')); }
+    q('.col-mfacts').replaceChildren(...facts);
+  }
+
+  q('.col-solv').addEventListener('change', () => { fillSolvent(); solution(); });
+  q('.col-ipre').addEventListener('change', () => { const x = q<HTMLSelectElement>('.col-ipre').value; if (x) q<HTMLInputElement>('.col-i').value = x; solution(); });
+  for (const c of ['.col-sol', '.col-g', '.col-gs', '.col-i', '.col-kf', '.col-kb', '.col-tf', '.col-tb', '.col-T', '.col-p0']) q(c).addEventListener('input', solution);
+  for (const c of ['.col-mg', '.col-ms', '.col-dt', '.col-mT', '.col-mi', '.col-exp']) q(c).addEventListener('input', measure);
+  for (const c of ['.col-meth', '.col-msolv', '.col-pu']) q(c).addEventListener('change', measure);
+  fillSolvent(); solution(); measure();
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Colligative properties', file: 'colligative',
+    sections: [
+      ...(q('.col-out').hidden ? [] : [{ title: q('.col-big').textContent!, facts: factsOf('.col-facts') }]),
+      ...(q('.col-mout').hidden ? [] : [{ title: q('.col-mbig').textContent!, facts: factsOf('.col-mfacts') }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .col .col-pair { display: flex; gap: 6px; }
+  .col .col-pair input { flex: 1; min-width: 0; }
+  .col .col-pair select { width: auto; flex: none; }
+</style>

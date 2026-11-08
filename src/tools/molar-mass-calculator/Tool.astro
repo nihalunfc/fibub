@@ -1,0 +1,145 @@
+---
+// Molar mass calculator: parse a formula (groups, hydrates, isotope labels, charges), give its molar mass, exact
+// masses and percentage composition, and convert between grams, moles and particles.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mmc">
+  <div class="ax-card">
+    <label>Formula <input class="mmc-in" value="CuSO4·5H2O" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    <div class="ax-row mmc-ex" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Try</span>
+      <button type="button" class="btn secondary small" data-f="C8H10N4O2">Caffeine</button>
+      <button type="button" class="btn secondary small" data-f="Ca3(PO4)2">Ca₃(PO₄)₂</button>
+      <button type="button" class="btn secondary small" data-f="K4[Fe(CN)6]·3H2O">K₄[Fe(CN)₆]·3H₂O</button>
+      <button type="button" class="btn secondary small" data-f="[13C]6H12O6">¹³C glucose</button>
+      <button type="button" class="btn secondary small" data-f="SO4^2-">SO₄²⁻</button>
+    </div>
+    <p class="ax-help">Capitals matter: Co is cobalt, CO is carbon monoxide. Brackets nest, and a dot, · or * adds water of crystallisation (CuSO4.5H2O). Write isotopes as [13C] or ^13C, deuterium as D, and charges with ^ (Fe^3+, SO4^2-) or a sign at the end (NH4+, Cl-).</p>
+    <p class="ax-err mmc-err" hidden></p>
+    <div class="mmc-out">
+      <p class="ax-big mmc-big"></p>
+      <dl class="ax-facts mmc-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card mmc-out">
+    <h2>What it is made of</h2>
+    <div class="ax-scroll"><table class="mmc-tab"></table></div>
+    <canvas class="ax-fig mmc-fig" style="margin-top:10px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mmc-csv">Composition (CSV)</button></div>
+  </div>
+
+  <div class="ax-card mmc-out">
+    <h2>Grams, moles and particles</h2>
+    <div class="ax-grid">
+      <label>Mass (g) <input class="mmc-g" inputmode="decimal" value="10" /></label>
+      <label>Amount (mol) <input class="mmc-mol" inputmode="decimal" /></label>
+      <label>Particles <input class="mmc-n" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Change any box and the other two follow: moles = grams ÷ molar mass, particles = moles × 6.022 × 10²³ (Avogadro's number). Particles means formula units, so for a salt it counts whole CuSO₄·5H₂O units, not ions.</p>
+    <p class="ax-big mmc-conv" style="font-size:18px"></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseFormula, molarMass, monoMass, nominalMass, composition, hill, unsaturation, pretty, AVOGADRO, FormulaError, byElement, BY_SYMBOL, type Formula } from '../../lib/sci/chem';
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let f: Formula | null = null, M = NaN, fig: Figure | null = null, rows: ReturnType<typeof composition> = [], last: 'g' | 'mol' | 'n' = 'g';
+
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const tiny = (x: number) => Math.abs(x) >= 1e6 || (Math.abs(x) < 1e-3 && x !== 0);
+  const big = (x: number) => (tiny(x) ? fmtExp(x, 4) : sig(x, 5));
+  const plain = (x: number) => (tiny(x) ? x.toPrecision(5).replace('e+', 'e') : sig(x, 5));
+
+  function run() {
+    const text = q<HTMLInputElement>('.mmc-in').value;
+    try { f = parseFormula(text); } catch (e) {
+      f = null; const m = e instanceof FormulaError ? e.message : 'That formula could not be read.';
+      q('.mmc-err').textContent = m; q('.mmc-err').hidden = false; root.querySelectorAll<HTMLElement>('.mmc-out').forEach((x) => (x.hidden = true)); return;
+    }
+    q('.mmc-err').hidden = true; root.querySelectorAll<HTMLElement>('.mmc-out').forEach((x) => (x.hidden = false));
+    M = molarMass(f);
+    const name = pretty(text), radio = [...byElement(f).keys()].filter((s) => BY_SYMBOL.get(s)!.radioactive);
+    q('.mmc-big').textContent = `${name}: ${M.toFixed(2)} g/mol`;
+    const atoms = [...f.counts.values()].reduce((a, b) => a + b, 0), dbe = unsaturation(f);
+    const facts = [
+      fact('Molar mass', `${M.toFixed(3)} g/mol`, 'from IUPAC standard atomic weights; the same number in daltons (Da) for one molecule'),
+      fact('Formula in Hill order', hill(f, true), 'carbon first, then hydrogen, then the rest A to Z, as databases list it'),
+      fact('Monoisotopic mass', `${monoMass(f).toFixed(5)} u`, 'every atom its most common isotope: the main peak a mass spectrometer sees'),
+      fact('Nominal mass', `${nominalMass(f)}`, 'the same, in whole mass numbers'),
+      fact('Atoms', `${sig(atoms, 6)} in ${[...byElement(f).keys()].length} element${byElement(f).size === 1 ? '' : 's'}`),
+    ];
+    if (f.charge) facts.push(fact('Charge', `${f.charge > 0 ? '+' : '−'}${Math.abs(f.charge)}`, `the electrons' mass (${(Math.abs(f.charge) * 0.000549).toFixed(4)} u) is in the monoisotopic mass but too small to change the molar mass`));
+    if (dbe !== null) facts.push(fact('Rings plus double bonds', Number.isInteger(dbe) && dbe >= 0 ? String(dbe) : `${sig(dbe, 3)} (not a whole number: check the formula, or it is a radical or ion)`, 'degree of unsaturation: a benzene ring counts 4'));
+    if (radio.length) facts.push(fact('Radioactive elements', radio.join(', '), 'no standard atomic weight: the mass number of the longest-lived isotope is used'));
+    q('.mmc-facts').replaceChildren(...facts);
+
+    rows = composition(f);
+    const tb = q<HTMLTableElement>('.mmc-tab'); tb.replaceChildren();
+    const tr = tb.createTHead().insertRow(); ['Element', 'Atoms', 'Atomic weight', 'Mass (g/mol)', 'Mass %'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+    const bd = tb.createTBody();
+    for (const r of rows) { const row = bd.insertRow(); [`${r.symbol} (${r.name})`, sig(r.count, 6), sig(r.mass / r.count, 6), r.mass.toFixed(3), r.percent.toFixed(2)].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); }
+    const ft = tb.createTFoot().insertRow(); ['Total', sig(atoms, 6), '', M.toFixed(3), '100.00'].forEach((c, j) => { const td = ft.insertCell(); td.textContent = c; td.style.fontWeight = '600'; if (j) td.style.textAlign = 'right'; });
+
+    fig = {
+      w: 600, h: 40 + rows.length * 34, alt: `Mass percentage of each element in ${name}`,
+      draw(ctx, w, h, pal) {
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+        const left = 70, right = w - 70, top = 16;
+        ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        rows.forEach((r, i) => {
+          const y = top + i * 34, bw = ((right - left) * r.percent) / 100;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(r.symbol, left - 10, y + 12);
+          ctx.fillStyle = pal.red ? pal.muted : pal.accent; ctx.fillRect(left, y, Math.max(1, bw), 24);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`${r.percent.toFixed(1)} %`, left + bw + 8, y + 12);
+        });
+        ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(left, top - 6); ctx.lineTo(left, h - 10); ctx.stroke();
+      },
+    };
+    paint(q<HTMLCanvasElement>('.mmc-fig'), fig);
+    convert();
+  }
+
+  function convert(from = last) {
+    last = from;
+    if (!f || !(M > 0)) return;
+    let mol = NaN;
+    if (from === 'g') mol = num(q<HTMLInputElement>('.mmc-g').value) / M;
+    if (from === 'mol') mol = num(q<HTMLInputElement>('.mmc-mol').value);
+    if (from === 'n') mol = num(q<HTMLInputElement>('.mmc-n').value) / AVOGADRO;
+    if (!Number.isFinite(mol) || mol < 0) { q('.mmc-conv').textContent = 'Type a number of zero or more.'; return; }
+    if (from !== 'g') q<HTMLInputElement>('.mmc-g').value = plain(mol * M);
+    if (from !== 'mol') q<HTMLInputElement>('.mmc-mol').value = plain(mol);
+    if (from !== 'n') q<HTMLInputElement>('.mmc-n').value = plain(mol * AVOGADRO);
+    q('.mmc-conv').textContent = `${big(mol * M)} g = ${big(mol)} mol = ${fmtExp(mol * AVOGADRO, 4)} formula units`;
+  }
+
+  q('.mmc-in').addEventListener('input', run);
+  root.querySelectorAll<HTMLButtonElement>('.mmc-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.mmc-in').value = b.dataset.f!; run(); }));
+  q('.mmc-g').addEventListener('input', () => convert('g'));
+  q('.mmc-mol').addEventListener('input', () => convert('mol'));
+  q('.mmc-n').addEventListener('input', () => convert('n'));
+  q('.mmc-csv').addEventListener('click', () => {
+    if (!f) return;
+    save(new Blob([csv([['element', 'name', 'atoms', 'atomic_weight', 'mass_g_mol', 'mass_percent'], ...rows.map((r) => [r.symbol, r.name, r.count, +(r.mass / r.count).toFixed(6), +r.mass.toFixed(4), +r.percent.toFixed(4)]), ['total', '', '', '', +M.toFixed(4), 100]])], { type: 'text/csv' }), `molar-mass-${hill(f).replace(/[^A-Za-z0-9]+/g, '') || 'formula'}.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mmc-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: `Molar mass of ${pretty(q<HTMLInputElement>('.mmc-in').value)}`, file: 'molar-mass',
+    sections: f ? [
+      { title: q('.mmc-big').textContent!, facts: [...root.querySelectorAll('.mmc-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Composition', table: { head: ['Element', 'Atoms', 'Mass (g/mol)', 'Mass %'], rows: rows.map((r) => [`${r.symbol} (${r.name})`, sig(r.count, 6), r.mass.toFixed(3), r.percent.toFixed(2)]), align: ['l', 'r', 'r', 'r'] }, figure: fig ?? undefined },
+    ] : [],
+  }));
+</script>
+
+<style is:global>
+  .mmc .mmc-tab td, .mmc .mmc-tab th { white-space: nowrap; }
+</style>

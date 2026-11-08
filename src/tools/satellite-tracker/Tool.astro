@@ -1,0 +1,194 @@
+---
+// Satellite ground track and passes: paste a TLE or design an orbit, see where it flies over the Earth,
+// its orbit numbers, and when it passes over your place.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax st">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>Orbit</h2>
+    <div class="ax-seg st-mode" role="group" aria-label="Orbit from">
+      <button type="button" data-m="design" aria-pressed="true">Design an orbit</button>
+      <button type="button" data-m="tle" aria-pressed="false">Paste a TLE</button>
+    </div>
+    <div class="st-design" style="margin-top:10px">
+      <div class="ax-grid">
+        <label>Example <select class="st-pre">
+          <option value="iss" selected>Space station (415 × 422 km, 51.6°)</option>
+          <option value="sso">Sun-synchronous imager (700 km)</option>
+          <option value="gps">GPS navigation (20,180 km, 55°)</option>
+          <option value="molniya">Molniya (600 × 39,700 km, 63.4°)</option>
+          <option value="geo">Geostationary (35,786 km)</option>
+        </select></label>
+        <label>Perigee height (km) <input class="st-hp" inputmode="decimal" /></label>
+        <label>Apogee height (km) <input class="st-ha" inputmode="decimal" /></label>
+        <label>Inclination (°) <input class="st-i" inputmode="decimal" /></label>
+        <label>Ascending node longitude (°) <input class="st-raan" inputmode="decimal" /></label>
+        <label>Argument of perigee (°) <input class="st-w" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help">Heights are above the equator. The ascending node is where the orbit crosses the equator going north, measured in the sky from the March equinox; it turns the whole track east or west. The argument of perigee sets where the lowest point lies (it only matters when apogee and perigee differ). A designed orbit starts now, at its perigee.</p>
+    </div>
+    <div class="st-tle" hidden style="margin-top:10px">
+      <label>Two-line element set (TLE) <textarea class="st-tx" rows="3" spellcheck="false" wrap="off" placeholder="ISS (ZARYA)&#10;1 25544U 98067A   ...&#10;2 25544  51.6416 ..."></textarea></label>
+      <p class="ax-help">Copy the latest TLE from CelesTrak or Space-Track. TLEs age quickly for low satellites: use one less than a few days old for pass times. The text stays on your device.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Track to draw <select class="st-len"><option value="1">1 orbit</option><option value="3" selected>3 orbits</option><option value="day">1 day</option></select></label>
+      <label>Passes for <select class="st-days"><option value="1">1 day</option><option value="3" selected>3 days</option><option value="7">7 days</option></select></label>
+      <label>Lowest pass height <select class="st-min"><option value="0">0° (horizon)</option><option value="10" selected>10°</option><option value="30">30°</option></select></label>
+    </div>
+    <p class="ax-err st-err" hidden></p>
+  </div>
+
+  <div class="ax-card st-out" hidden>
+    <h2 class="st-title"></h2>
+    <p class="ax-big st-big"></p>
+    <canvas class="ax-fig st-map"></canvas>
+    <p class="ax-help">Solid line: in sunlight. Dashed: in Earth's shadow. The circle is the area that sees the satellite at least 10° up; the square is your place. Map outlines: Natural Earth.</p>
+    <dl class="ax-facts st-facts"></dl>
+    <h3>Passes over your place</h3>
+    <p class="ax-help st-pnote" style="margin:0"></p>
+    <div class="ax-scroll"><table class="st-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small st-csv">Ground track (CSV)</button></div>
+    <p class="ax-help">Positions use Kepler's laws with the main effects of Earth's bulge (J2) and the drag term in the TLE, not the full SGP4 model, so pass times can be off by up to a minute after a few days. Check a dedicated tracker before relying on a pass.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .st .st-tab td, .st .st-tab th { white-space: nowrap; }
+  .st .st-tab td.st-no { color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseTLE, fromHeights, orbitInfo, ssoInclination, position, subpoint, sunlit, groundTrack, passes, footprint, type Elements } from '../../lib/sci/satorbit';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay } from '../../lib/astro/place';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+  import LAND from '../../data/world-land-110m.json';
+
+  const root = document.querySelector<HTMLElement>('.st')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const PRE: Record<string, [string, number, number, number, number, number]> = {
+    iss: ['Space station', 415, 422, 51.64, 0, 0],
+    sso: ['Sun-synchronous imager', 700, 700, 98.19, 0, 0],
+    gps: ['GPS navigation satellite', 20180, 20180, 55, 0, 0],
+    molniya: ['Molniya', 600, 39700, 63.4, 0, 270],
+    geo: ['Geostationary satellite', 35786, 35786, 0, 0, 0],
+  };
+  const ids = ['.st-hp', '.st-ha', '.st-i', '.st-raan', '.st-w'];
+  let mode = 'design', fig: Figure | null = null, report: Section[] = [], track: ReturnType<typeof groundTrack> = [];
+  const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], cmp = (az: number) => COMPASS[Math.round(az / 45) % 8];
+  const fmtLat = (x: number) => `${Math.abs(x).toFixed(1)}° ${x >= 0 ? 'N' : 'S'}`, fmtLon = (x: number) => `${Math.abs(x).toFixed(1)}° ${x >= 0 ? 'E' : 'W'}`;
+
+  function preset() { const p = PRE[q<HTMLSelectElement>('.st-pre').value]; ids.forEach((c, i) => (q<HTMLInputElement>(c).value = String(p[i + 1]))); }
+
+  function elements(): Elements {
+    if (mode === 'tle') return parseTLE(q<HTMLTextAreaElement>('.st-tx').value);
+    const v = ids.map((c) => num(q<HTMLInputElement>(c).value));
+    if (!v.every(Number.isFinite)) throw new Error('Fill in every orbit number.');
+    if (!(v[2] >= 0 && v[2] <= 180)) throw new Error('Inclination runs from 0° to 180°.');
+    if (v[1] > 400000) throw new Error('Keep the apogee below 400,000 km, inside the Moon’s orbit.');
+    const p = PRE[q<HTMLSelectElement>('.st-pre').value];
+    const same = ids.every((c, i) => num(q<HTMLInputElement>(c).value) === p[i + 1]);
+    return fromHeights(same ? p[0] : 'Your orbit', v[0], v[1], v[2], v[3], v[4], 0, Date.now());
+  }
+
+  function mapFigure(el: Elements, now: { lat: number; lon: number; h: number }, home: { lat: number; lon: number }): Figure {
+    const fp = footprint(now.h, 10);
+    return {
+      w: 720, h: 380, alt: `Ground track of ${el.name} on a world map`,
+      draw(ctx, w, h, pal: Palette) {
+        const X = (lon: number) => ((lon + 180) / 360) * w, Y = (lat: number) => ((90 - lat) / 180) * h;
+        ctx.fillStyle = pal.red ? pal.night : pal.day; ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (let lo = -150; lo <= 150; lo += 30) { ctx.beginPath(); ctx.moveTo(X(lo), 0); ctx.lineTo(X(lo), h); ctx.stroke(); }
+        for (let la = -60; la <= 60; la += 30) { ctx.beginPath(); ctx.moveTo(0, Y(la)); ctx.lineTo(w, Y(la)); ctx.stroke(); }
+        ctx.fillStyle = pal.red ? pal.twilight : pal.line;
+        for (const poly of LAND as number[][]) { ctx.beginPath(); for (let k = 0; k < poly.length; k += 2) { const x = X(poly[k]), y = Y(poly[k + 1]); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); }
+        // Track, broken where it wraps round the map edge, solid in sunlight and dashed in shadow.
+        ctx.lineWidth = 2;
+        for (let k = 1; k < track.length; k++) {
+          const a = track[k - 1], b = track[k]; if (Math.abs(b.lon - a.lon) > 180) continue;
+          ctx.strokeStyle = b.lit ? pal.accent : pal.muted; ctx.setLineDash(b.lit ? [] : [4, 4]);
+          ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        // Footprint: points at angular distance fp from the subpoint.
+        const la0 = (now.lat * Math.PI) / 180, lo0 = (now.lon * Math.PI) / 180, d = (fp * Math.PI) / 180;
+        ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.beginPath(); let px = NaN;
+        for (let k = 0; k <= 120; k++) {
+          const b = (k / 120) * 2 * Math.PI, la = Math.asin(Math.sin(la0) * Math.cos(d) + Math.cos(la0) * Math.sin(d) * Math.cos(b));
+          const lo = lo0 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(la0), Math.cos(d) - Math.sin(la0) * Math.sin(la));
+          const lon = ((((lo * 180) / Math.PI) + 540) % 360) - 180, x = X(lon), y = Y((la * 180) / Math.PI);
+          if (k === 0 || Math.abs(x - px) > w / 2) ctx.moveTo(x, y); else ctx.lineTo(x, y); px = x;
+        }
+        ctx.stroke();
+        ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(now.lon), Y(now.lat), 6, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = pal.ink; ctx.fillRect(X(home.lon) - 4, Y(home.lat) - 4, 8, 8);
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.st-err'); err.hidden = true;
+    let el: Elements;
+    try { el = elements(); } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.st-out').hidden = true; return; }
+    const { place } = getSky(), tz = place.tz, now = Date.now(), info = orbitInfo(el);
+    if (info.perigee < 100) { err.textContent = `The perigee is ${Math.round(info.perigee)} km up: below about 100 km the satellite would burn up.`; err.hidden = false; }
+    const lenSel = q<HTMLSelectElement>('.st-len').value, span = lenSel === 'day' ? 864e5 : Number(lenSel) * info.periodMin * 60e3;
+    track = groundTrack(el, now, now + span, Math.min(2000, Math.max(300, Math.round(span / 30e3))));
+    const r = position(el, now), sp = subpoint(r, now), lit = sunlit(r, now);
+    q('.st-out').hidden = false;
+    q('.st-title').textContent = el.name;
+    q('.st-big').textContent = `One orbit every ${info.periodMin < 120 ? `${info.periodMin.toFixed(1)} minutes` : `${(info.periodMin / 60).toFixed(2)} hours`}, ${Math.round(info.perigee).toLocaleString('en')} × ${Math.round(info.apogee).toLocaleString('en')} km up`;
+    fig = mapFigure(el, sp, place); paint(q<HTMLCanvasElement>('.st-map'), fig);
+    const sso = ssoInclination(info.perigee, info.apogee);
+    const facts: [string, string, string?][] = [
+      ['Now over', `${fmtLat(sp.lat)}, ${fmtLon(sp.lon)}`, `${Math.round(sp.h).toLocaleString('en')} km up, ${lit ? 'in sunlight' : "in Earth's shadow"}`],
+      ['Inclination', `${el.inc.toFixed(2)}°`, el.inc > 90 ? 'retrograde: it travels against Earth’s spin' : `reaches latitudes up to ${Math.min(el.inc, 180 - el.inc).toFixed(1)}° north and south`],
+      ['Speed', el.ecc < 0.001 ? `${info.vPerigee.toFixed(2)} km/s` : `${info.vPerigee.toFixed(2)} km/s at perigee`, el.ecc < 0.001 ? 'nearly the same all the way round' : `${info.vApogee.toFixed(2)} km/s at apogee`],
+      ['Eccentricity', el.ecc.toFixed(5), 'how stretched the orbit is: 0 is a circle'],
+      ['Orbit plane turns', `${info.raanRate >= 0 ? '+' : '−'}${Math.abs(info.raanRate).toFixed(3)}° a day`, Math.abs(el.inc - sso) < 0.3 ? 'sun-synchronous: it passes over at the same local time every day' : Number.isFinite(sso) ? `pulled by Earth's bulge; ${sso.toFixed(2)}° inclination would make it sun-synchronous` : "pulled by Earth's bulge"],
+      ['Perigee moves', `${info.argpRate >= 0 ? '+' : '−'}${Math.abs(info.argpRate).toFixed(3)}° a day`, Math.abs(info.argpRate) < 0.05 ? 'nearly fixed: the critical inclination 63.4° (or 116.6°) keeps the high point in place' : 'within the orbit plane'],
+      ['Sees at 10° up', `${Math.round((footprint(sp.h, 10) * Math.PI / 180) * 6371).toLocaleString('en')} km around the point below it`, 'the radius of the circle on the map'],
+    ];
+    if (mode === 'tle') facts.push(['Elements from', `${fmtDay(new Date(el.epoch), tz, { day: 'numeric', month: 'short', year: 'numeric' })}, ${fmtTime(new Date(el.epoch), tz)}`, `${((now - el.epoch) / 864e5).toFixed(1)} days old${(now - el.epoch) / 864e5 > 7 && info.periodMin < 225 ? ': too old for reliable pass times' : ''}`]);
+    q('.st-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v || (s ?? ''); if (s && v) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    // Passes.
+    const days = Number(q<HTMLSelectElement>('.st-days').value), minEl = Number(q<HTMLSelectElement>('.st-min').value);
+    const ps = passes(el, place.lat, place.lon, (place.elev || 0) / 1000, now, now + days * 864e5, minEl);
+    q('.st-pnote').textContent = mode === 'design' ? 'For a designed orbit these passes are an example only: a real satellite needs its current TLE.' : ps.some((p) => p.visible) ? '"Visible" means the satellite is in sunlight while your sky is dark: look for a steadily moving star.' : '';
+    const geoLike = info.periodMin > 1400 && info.periodMin < 1480 && el.ecc < 0.01;
+    const rows = ps.slice(0, 60).map((p) => [fmtDay(new Date(p.rise), tz, { weekday: 'short', day: 'numeric', month: 'short' }), `${fmtTime(new Date(p.rise), tz)} ${cmp(p.riseAz)}`, `${fmtTime(new Date(p.peak), tz)}, ${p.maxEl.toFixed(0)}° ${cmp(p.peakAz)}`, `${fmtTime(new Date(p.set), tz)} ${cmp(p.setAz)}`, p.visible ? 'Visible' : '–']);
+    const t = q<HTMLTableElement>('.st-tab'); t.innerHTML = '';
+    const head = ['Date', 'Rises', 'Highest', 'Sets', 'To the eye'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    if (!rows.length) { const tr = b.insertRow(), td = tr.insertCell(); td.colSpan = 5; td.textContent = geoLike ? 'A geostationary satellite does not rise or set: it stays at one point in your sky.' : 'No passes above this height in this period.'; }
+    rows.forEach((r2, k) => { const tr = b.insertRow(); r2.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', ps[k].visible ? '' : 'st-no'].join(' ').trim(); }); });
+    report = [
+      { title: el.name, facts: [['Orbit', q('.st-big').textContent!], ...facts.map(([k, v, s]) => [k, v ? (s ? `${v} (${s})` : v) : s ?? ''] as [string, string])], figure: fig },
+      { title: `Passes over ${place.name}`, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.st-mode').querySelectorAll<HTMLButtonElement>('button').forEach((bt) => bt.addEventListener('click', () => {
+    mode = bt.dataset.m!; q('.st-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === bt)));
+    q('.st-design').hidden = mode !== 'design'; q('.st-tle').hidden = mode !== 'tle';
+    if (mode === 'tle' && !q<HTMLTextAreaElement>('.st-tx').value.trim()) { q('.st-out').hidden = true; q('.st-err').hidden = true; return; }
+    run();
+  }));
+  q('.st-pre').addEventListener('change', () => { preset(); run(); });
+  for (const c of ids) q(c).addEventListener('change', run);
+  q('.st-tx').addEventListener('input', run);
+  for (const c of ['.st-len', '.st-days', '.st-min']) q(c).addEventListener('change', run);
+  q('.st-csv').addEventListener('click', () => save(new Blob([csv([['time_utc', 'latitude_deg', 'longitude_deg', 'height_km', 'sunlit'], ...track.map((p) => [new Date(p.t).toISOString().slice(0, 19), p.lat.toFixed(4), p.lon.toFixed(4), p.h.toFixed(1), p.lit ? 'yes' : 'no'])])], { type: 'text/csv' }), 'ground-track.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.st-map'), fig));
+  preset();
+  onSky(run);
+  wireDownloads(q('.dl'), () => ({ title: 'Satellite ground track', file: 'satellite', sections: report }));
+</script>

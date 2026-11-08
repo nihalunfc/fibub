@@ -1,0 +1,204 @@
+---
+// Eclipse finder: every solar and lunar eclipse you can see from your place, with local contact times,
+// how much is covered, and a picture of each eclipse you can scrub through.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ec">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <h2>Eclipses</h2>
+    <div class="ax-grid">
+      <label>Look ahead <select class="ec-yrs"><option value="5">5 years</option><option value="10" selected>10 years</option><option value="25">25 years</option><option value="50">50 years</option></select></label>
+      <label>Show <select class="ec-type"><option value="both" selected>Solar and lunar</option><option value="solar">Solar only</option><option value="lunar">Lunar only</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="ec-all" /> Also list eclipses I can't see from here</label>
+    <p class="ax-help">A solar eclipse is listed when the Moon covers part of the Sun from your place; a lunar eclipse when the Moon is in Earth's shadow, which everyone with the Moon above the horizon sees.</p>
+  </div>
+
+  <div class="ax-card ec-out" hidden>
+    <h2 class="ec-title"></h2>
+    <p class="ax-big ec-big"></p>
+    <div class="ax-scroll"><table class="ec-tab"></table></div>
+    <p class="ax-help ec-none" hidden>No eclipses match in this period. Look further ahead, or tick the box to list all of them.</p>
+    <p class="ax-help">Tap an eclipse to see it. Times are on the clock chosen in "Times in" above.</p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small ec-csv">Eclipse list (CSV)</button></div>
+  </div>
+
+  <div class="ax-card ec-det" hidden>
+    <h2 class="ec-dt"></h2>
+    <p class="ax-big ec-db"></p>
+    <p class="ax-err ec-safe" hidden>Never look at the Sun without certified eclipse glasses (ISO 12312-2) or a proper solar filter, even when it is mostly covered. Only during totality itself is it safe to look with the naked eye.</p>
+    <dl class="ax-facts ec-facts"></dl>
+    <canvas class="ax-fig ec-fig" style="margin-top:12px"></canvas>
+    <label style="margin-top:8px">Time in the eclipse <input type="range" class="ec-slide" min="0" max="1000" value="500" /></label>
+    <p class="ax-help ec-now" style="margin-top:4px"></p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ec .ec-tab td, .ec .ec-tab th { white-space: nowrap; }
+  .ec .ec-tab tbody tr { cursor: pointer; }
+  .ec .ec-tab tr.ec-on td { font-weight: 650; }
+  .ec .ec-tab td.ec-no { color: var(--muted); }
+  .ec .ec-slide { width: 100%; }
+</style>
+
+<script>
+  import { csv } from '../../lib/sci/num';
+  import { solarEclipses, lunarEclipses, sunMoon, overlap, shadowGeometry, type SolarEclipse, type LunarEclipse } from '../../lib/astro/eclipses';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { fmtTime, fmtDay } from '../../lib/astro/place';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ec')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Item = { sun: true; e: SolarEclipse; t: number } | { sun: false; e: LunarEclipse; t: number };
+  let items: Item[] = [], shown: Item[] = [], cur: Item | null = null, fig: Figure | null = null, report: Section[] = [], key = '';
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+  const pct = (x: number) => (x > 0.995 && x < 1 ? '> 99' : x > 0 && x < 0.01 ? '< 1' : String(Math.round(x * 100)));
+  const day = (t: Date, tz: string) => fmtDay(t, tz, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const LNAME = ['Penumbral eclipse begins', 'Partial eclipse begins', 'Total eclipse begins', 'Total eclipse ends', 'Partial eclipse ends', 'Penumbral eclipse ends'];
+
+  function name(it: Item) {
+    if (!it.sun) return `Lunar, ${it.e.kind}`;
+    const e = it.e;
+    if (e.kind !== 'partial') return `Solar, ${e.kind} here`;
+    return e.globalKind === 'partial' ? 'Solar, partial' : `Solar, partial here (${e.globalKind} elsewhere)`;
+  }
+  const visible = (it: Item) => it.e.visible;
+
+  function load() {
+    const { place } = getSky(), yrs = Number(q<HTMLSelectElement>('.ec-yrs').value), k = `${place.lat},${place.lon},${yrs}`;
+    if (k === key) return; key = k;
+    const from = Date.now() - 864e5, to = from + yrs * 365.25 * 864e5;
+    items = [...solarEclipses(place, from, to).map((e) => ({ sun: true as const, e, t: e.peak.getTime() })), ...lunarEclipses(place, from, to).map((e) => ({ sun: false as const, e, t: e.peak.getTime() }))].sort((a, b) => a.t - b.t);
+  }
+
+  function list() {
+    load();
+    const { place } = getSky(), tz = place.tz, type = q<HTMLSelectElement>('.ec-type').value, all = q<HTMLInputElement>('.ec-all').checked;
+    shown = items.filter((it) => (type === 'both' || (type === 'solar') === it.sun) && (all || visible(it)));
+    q('.ec-out').hidden = false;
+    q('.ec-title').textContent = `Eclipses from ${place.name}`;
+    const next = items.find((it) => visible(it) && (type === 'both' || (type === 'solar') === it.sun));
+    q('.ec-big').textContent = next ? `Next you can see: ${name(next).toLowerCase().replace(/^./, (c) => c.toUpperCase())}, ${day(next.e.peak, tz)}` : 'None you can see in this period';
+    const rows = shown.map((it) => {
+      if (it.sun) { const e = it.e; return [day(e.peak, tz), name(it), `${fmtTime(e.begin, tz)}–${fmtTime(e.end, tz)}`, `${pct(e.obscuration)} % of the Sun`, `${e.altPeak.toFixed(0)}°`, e.visible ? (e.altPeak > 0 ? 'Yes' : 'Partly (Sun low)') : 'No: Sun down']; }
+      const e = it.e, c = e.contacts, from = c[1] ?? c[0]!, to = c[4] ?? c[5]!;
+      return [day(e.peak, tz), name(it), `${fmtTime(from, tz)}–${fmtTime(to, tz)}`, e.kind === 'penumbral' ? 'faint shading' : e.kind === 'total' ? 'all of the Moon' : `${pct(e.obscuration)} % of the Moon`, `${e.moonAltPeak.toFixed(0)}°`, e.visible ? (e.moonAltPeak > 0 ? 'Yes' : 'Partly (Moon low)') : 'No: Moon down'];
+    });
+    const t = q<HTMLTableElement>('.ec-tab'); t.innerHTML = '';
+    const head = ['Date', 'Eclipse', 'Times', 'Covered at most', 'Height then', 'From here'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r, k) => { const tr = b.insertRow(); if (shown[k] === cur) tr.className = 'ec-on'; r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i > 1 ? 'r' : '', visible(shown[k]) ? '' : 'ec-no'].join(' ').trim(); }); tr.addEventListener('click', () => { cur = shown[k]; q<HTMLInputElement>('.ec-slide').value = '500'; list(); detail(); q('.ec-det').scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+    q('.ec-none').hidden = rows.length > 0;
+    if (!cur || !shown.includes(cur)) { cur = shown.find(visible) ?? shown[0] ?? null; if (cur) { q<HTMLInputElement>('.ec-slide').value = '500'; const on = b.rows[shown.indexOf(cur)]; if (on) on.className = 'ec-on'; } }
+    detail();
+    report = [{ title: `Eclipses from ${place.name}`, facts: [['Next you can see', q('.ec-big').textContent!.replace(/^Next you can see: /, '')]], table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  // Slider position as a moment between the first and last contact.
+  function span(it: Item): [number, number] { if (it.sun) return [it.e.begin.getTime(), it.e.end.getTime()]; const c = it.e.contacts; return [c[0]!.getTime(), c[5]!.getTime()]; }
+  const sliderT = (it: Item) => { const [a, b] = span(it), k = Number(q<HTMLInputElement>('.ec-slide').value) / 1000; return new Date(a + (b - a) * k); };
+
+  function solarFig(e: SolarEclipse, t: Date, tz: string): Figure {
+    const { place } = getSky(), sm = sunMoon(place, t);
+    return {
+      w: 600, h: 340, alt: `The Sun and Moon from ${place.name} at ${fmtTime(t, tz)}`,
+      draw(ctx, w, h, pal: Palette) {
+        const cx = w / 2, cy = h / 2, R = h * 0.36, k = R / sm.rSun;
+        ctx.fillStyle = pal.red ? pal.bg : pal.bg; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = pal.red ? pal.ink : '#f2b233'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.fill();
+        // East is to the left on the sky as you face the Sun.
+        ctx.fillStyle = pal.red ? '#000' : '#1b1b1b'; ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx - sm.east * k, cy - sm.north * k, sm.rMoon * k, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText(`${fmtTime(t, tz)}`, 10, 10);
+        ctx.textAlign = 'right'; ctx.fillText(sm.sunAlt > 0 ? `Sun ${sm.sunAlt.toFixed(0)}° up` : 'Sun below the horizon', w - 10, 10);
+        ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText('E', 10, h - 8); ctx.textAlign = 'right'; ctx.fillText('W', w - 10, h - 8);
+        ctx.textAlign = 'center'; ctx.fillText('N ↑ (north up)', cx, h - 8);
+      },
+    };
+  }
+
+  function lunarFig(e: LunarEclipse, t: Date, tz: string): Figure {
+    const path: { x: number; y: number }[] = [], [a, b] = [e.contacts[0]!.getTime(), e.contacts[5]!.getTime()];
+    for (let k = 0; k <= 40; k++) { const g = shadowGeometry(new Date(a + ((b - a) * k) / 40)); path.push({ x: g.east, y: g.north }); }
+    const g = shadowGeometry(t), alt = sunMoonAlt(t);
+    return {
+      w: 600, h: 340, alt: `The Moon in Earth's shadow at ${fmtTime(t, tz)}`,
+      draw(ctx, w, h, pal: Palette) {
+        const cx = w / 2, cy = h / 2, k = (h * 0.42) / g.penumbra;
+        ctx.fillStyle = pal.red ? pal.twilight : pal.grid; ctx.beginPath(); ctx.arc(cx, cy, g.penumbra * k, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = pal.red ? pal.night : pal.line; ctx.beginPath(); ctx.arc(cx, cy, g.umbra * k, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); path.forEach((p, i) => (i ? ctx.lineTo(cx - p.x * k, cy - p.y * k) : ctx.moveTo(cx - p.x * k, cy - p.y * k))); ctx.stroke(); ctx.setLineDash([]);
+        // The Moon: bright where it is outside the umbra, coppery red inside it.
+        const mx = cx - g.east * k, my = cy - g.north * k, mr = g.rMoon * k;
+        ctx.save(); ctx.beginPath(); ctx.arc(mx, my, mr, 0, 2 * Math.PI); ctx.clip();
+        ctx.fillStyle = pal.red ? pal.ink : '#d8d8d0'; ctx.fillRect(mx - mr, my - mr, 2 * mr, 2 * mr);
+        ctx.fillStyle = pal.red ? pal.muted : '#8a3b1c'; ctx.beginPath(); ctx.arc(cx, cy, g.umbra * k, 0, 2 * Math.PI); ctx.fill();
+        ctx.restore(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(mx, my, mr, 0, 2 * Math.PI); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText(fmtTime(t, tz), 10, 10);
+        ctx.textAlign = 'right'; ctx.fillText(alt > 0 ? `Moon ${alt.toFixed(0)}° up` : 'Moon below the horizon', w - 10, 10);
+        ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText('E', 10, h - 8); ctx.textAlign = 'right'; ctx.fillText('W', w - 10, h - 8);
+        ctx.textAlign = 'center'; ctx.fillText('dark: umbra · grey: penumbra · north up', cx, h - 8);
+      },
+    };
+  }
+  function sunMoonAlt(t: Date) { return sunMoon(getSky().place, t).moonAlt; }
+
+  function detail() {
+    const box = q('.ec-det');
+    if (!cur) { box.hidden = true; return; }
+    box.hidden = false;
+    const { place } = getSky(), tz = place.tz, t = sliderT(cur);
+    q('.ec-dt').textContent = `${name(cur)}, ${day(cur.e.peak, tz)}`;
+    q('.ec-safe').hidden = !cur.sun;
+    let rows: [string, string, string?][];
+    if (cur.sun) {
+      const e = cur.e;
+      q('.ec-db').textContent = !e.visible ? 'The Sun is below your horizon throughout' : e.kind === 'total' ? `Totality for ${Math.round((e.centralEnd!.getTime() - e.centralBegin!.getTime()) / 1000)} seconds` : e.kind === 'annular' ? `A ring of Sun for ${Math.round((e.centralEnd!.getTime() - e.centralBegin!.getTime()) / 1000)} seconds` : `The Moon covers up to ${pct(e.obscuration)} % of the Sun`;
+      const ev = (d: Date, alt: number) => `${fmtTime(d, tz)}, Sun ${alt.toFixed(0)}° ${alt >= 0 ? 'up' : 'below the horizon'}`;
+      rows = [
+        ['Partial eclipse begins', ev(e.begin, e.altBegin), 'the Moon first touches the Sun'],
+        ...(e.centralBegin ? [[`${cap(e.kind)} phase begins`, fmtTime(e.centralBegin, tz)] as [string, string]] : []),
+        ['Greatest eclipse', ev(e.peak, e.altPeak), `${pct(e.obscuration)} % of the Sun's area covered; magnitude ${e.magnitude.toFixed(3)}`],
+        ...(e.centralEnd ? [[`${cap(e.kind)} phase ends`, fmtTime(e.centralEnd, tz)] as [string, string]] : []),
+        ['Partial eclipse ends', ev(e.end, e.altEnd)],
+        ['Elsewhere on Earth', cap(e.globalKind), e.greatest ? `greatest at ${Math.abs(e.greatest.lat).toFixed(1)}° ${e.greatest.lat >= 0 ? 'N' : 'S'}, ${Math.abs(e.greatest.lon).toFixed(1)}° ${e.greatest.lon >= 0 ? 'E' : 'W'}` : ''],
+      ];
+    } else {
+      const e = cur.e;
+      const tot = e.contacts[2] ? Math.round((e.contacts[3]!.getTime() - e.contacts[2].getTime()) / 60e3) : 0;
+      q('.ec-db').textContent = !e.visible ? 'The Moon is below your horizon throughout' : e.kind === 'total' ? `The Moon is fully in Earth's shadow for ${tot} minutes` : e.kind === 'partial' ? `Earth's shadow covers up to ${pct(e.obscuration)} % of the Moon` : 'A penumbral eclipse: the Moon dims only slightly';
+      rows = e.contacts.map((c, i) => (c ? [LNAME[i], `${fmtTime(c, tz)}, Moon ${sunMoonAlt(c).toFixed(0)}° ${sunMoonAlt(c) >= 0 ? 'up' : 'down'}`] : null)).filter((x): x is [string, string] => !!x);
+      rows.splice(Math.ceil(rows.length / 2), 0, ['Greatest eclipse', `${fmtTime(e.peak, tz)}, Moon ${e.moonAltPeak.toFixed(0)}° ${e.moonAltPeak >= 0 ? 'up' : 'down'}`, e.kind === 'penumbral' ? 'only the faint outer shadow' : `${pct(e.obscuration)} % of the Moon in the dark umbra`]);
+      if (e.visible) rows.push(['You can watch', `${fmtTime(e.visibleFrom!, tz)} to ${fmtTime(e.visibleTo!, tz)}`, 'with the Moon above your horizon']);
+    }
+    q('.ec-facts').replaceChildren(...rows.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    fig = cur.sun ? solarFig(cur.e, t, tz) : lunarFig(cur.e, t, tz);
+    paint(q<HTMLCanvasElement>('.ec-fig'), fig);
+    if (cur.sun) { const sm = sunMoon(place, t); q('.ec-now').textContent = `At ${fmtTime(t, tz)} the Moon covers ${pct(overlap(sm.rSun, sm.rMoon, Math.hypot(sm.east, sm.north)))} % of the Sun.`; }
+    else { const g = shadowGeometry(t), d = Math.hypot(g.east, g.north), m = (g.umbra + g.rMoon - d) / (2 * g.rMoon); q('.ec-now').textContent = `At ${fmtTime(t, tz)}: ${m >= 1 ? 'the whole Moon is in the umbra' : m > 0 ? `${Math.round(m * 100)} % of the Moon's width is in the umbra` : (g.penumbra + g.rMoon - d) > 0 ? 'the Moon is in the faint penumbra only' : 'the Moon is outside the shadow'}.`; }
+    report = [report[0], { title: q('.ec-dt').textContent!, facts: [['Summary', q('.ec-db').textContent!], ...rows.map(([k, v]) => [k, v] as [string, string])], figure: fig }].filter(Boolean) as Section[];
+  }
+
+  q('.ec-slide').addEventListener('input', detail);
+  for (const c of ['.ec-yrs', '.ec-type', '.ec-all']) q(c).addEventListener('change', list);
+  q('.ec-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['type', 'kind_here', 'kind_global', 'begin_utc', 'peak_utc', 'end_utc', 'covered_fraction', 'height_at_peak_deg', 'visible']];
+    for (const it of items) {
+      if (it.sun) rows.push(['solar', it.e.kind, it.e.globalKind, it.e.begin.toISOString().slice(0, 16), it.e.peak.toISOString().slice(0, 16), it.e.end.toISOString().slice(0, 16), it.e.obscuration.toFixed(3), it.e.altPeak.toFixed(1), it.e.visible ? 'yes' : 'no']);
+      else rows.push(['lunar', it.e.kind, it.e.kind, (it.e.contacts[1] ?? it.e.contacts[0])!.toISOString().slice(0, 16), it.e.peak.toISOString().slice(0, 16), (it.e.contacts[4] ?? it.e.contacts[5])!.toISOString().slice(0, 16), it.e.obscuration.toFixed(3), it.e.moonAltPeak.toFixed(1), it.e.visible ? 'yes' : 'no']);
+    }
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'eclipses.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ec-fig'), fig));
+  onSky(() => { key = ''; cur = null; list(); });
+  wireDownloads(q('.dl'), () => ({ title: 'Eclipse finder', file: 'eclipses', sections: report }));
+</script>

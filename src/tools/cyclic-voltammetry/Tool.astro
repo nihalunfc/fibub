@@ -1,0 +1,204 @@
+---
+// Cyclic voltammetry analyser: peaks of a pasted voltammogram (Ep, ip with baseline, ΔEp, E½, Ep − Ep/2, Nicholson
+// peak ratio), the Randles–Sevcik equation for any missing quantity, and a scan-rate study (ip vs √v, log–log slope).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cv">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Voltammogram</h2>
+      <button type="button" class="btn secondary small cv-sample">Load a simulated example</button>
+    </div>
+    <label style="margin-top:10px">Potential and current, one cycle, with an optional header row <textarea class="cv-in" rows="7" spellcheck="false" wrap="off" placeholder="E (V)&#9;I (µA)&#10;-0.100&#9;0.14"></textarea></label>
+    <DataFile target=".cv-in" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Potential in <select class="cv-eu"><option value="1">V</option><option value="0.001">mV</option></select></label>
+      <label>Current in <select class="cv-iu"><option value="1">A</option><option value="1e-3">mA</option><option value="1e-6" selected>µA</option><option value="1e-9">nA</option></select></label>
+      <label>Current sign <select class="cv-sign"><option value="1">anodic positive (IUPAC)</option><option value="-1">cathodic positive (US)</option></select></label>
+      <label>Electrons, n <input class="cv-n" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">The forward peak is measured from a straight baseline through the first 10 % of the sweep. The reverse peak ratio uses Nicholson's method, which needs no reverse baseline. Only the first cycle is read; trim the file to one cycle if it holds several.</p>
+    <p class="ax-err cv-err" hidden></p>
+    <div class="cv-out" hidden>
+      <p class="ax-big cv-big"></p>
+      <dl class="ax-facts cv-facts"></dl>
+      <canvas class="ax-fig cv-fig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Randles–Sevcik equation</h2>
+    <p class="ax-help">ip = 0.4463 nFAC √(nFvD / RT). Fill in all but one and leave that one empty.</p>
+    <div class="ax-grid">
+      <label>Peak current (µA) <input class="cv-ip" inputmode="decimal" /></label>
+      <label>Electrode area (cm²) <input class="cv-A" inputmode="decimal" value="0.0707" /></label>
+      <label>Concentration (mmol/L) <input class="cv-C" inputmode="decimal" value="1.0" /></label>
+      <label>Diffusion coefficient (cm²/s) <input class="cv-D" inputmode="decimal" placeholder="e.g. 1e-5" /></label>
+      <label>Scan rate (mV/s) <input class="cv-v" inputmode="decimal" value="100" /></label>
+      <label>Temperature (°C) <input class="cv-T" inputmode="decimal" value="25" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cv-use">Use the peak from the voltammogram</button></div>
+    <p class="ax-help">A 3 mm disc is 0.0707 cm², a 2 mm disc 0.0314 cm², a 1.6 mm disc 0.0201 cm². Typical D in water is 0.5 to 2 × 10⁻⁵ cm²/s.</p>
+    <p class="ax-err cv-rerr" hidden></p>
+    <div class="cv-rout">
+      <p class="ax-big cv-rbig"></p>
+      <dl class="ax-facts cv-rfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Scan-rate study</h2>
+      <button type="button" class="btn secondary small cv-ssample">Example</button>
+    </div>
+    <label style="margin-top:10px">Scan rate (mV/s) and peak current (µA), one pair per line <textarea class="cv-sr" rows="5" spellcheck="false" wrap="off" placeholder="25&#9;9.5&#10;50&#9;13.4"></textarea></label>
+    <DataFile target=".cv-sr" maxCols={2} label="Open a file (2 columns)" />
+    <p class="ax-err cv-serr" hidden></p>
+    <div class="cv-sout" hidden>
+      <p class="ax-big cv-sbig"></p>
+      <dl class="ax-facts cv-sfacts"></dl>
+      <canvas class="ax-fig cv-sfig" style="margin-top:10px"></canvas>
+    </div>
+    <p class="ax-help">The diffusion coefficient uses n, the area and the concentration from the card above.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyseCV, randlesSevcik, diffusionFromPeak, concFromPeak, simulateCV, reversibleDeltaEp, scanRateStudy, RS, F, R } from '../../lib/sci/cv';
+  import { num, sig, numericColumns, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? undefined : num(s); };
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const mv = (x: number) => `${sig(x * 1000, 4)} mV`;
+  const ua = (x: number) => `${sig(x * 1e6, 4)} µA`;
+  let fig: Figure | null = null, sfig: Figure | null = null, lastPeak: number | null = null;
+
+  function sampleText() {
+    const s = simulateCV({ E0: 0.2, Ei: -0.1, Es: 0.5, v: 0.1, A: 0.0707, C: 1e-3, D: 1e-5, points: 300 });
+    let seed = 7; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648 - 0.5; };
+    for (let i = 0; i < 8; i++) rnd();
+    const cdl = 20e-6 * 0.0707 * 0.1; // double-layer charging current, A
+    return 'E (V)\tI (µA)\n' + s.E.map((e, i) => `${e.toFixed(3)}\t${((s.I[i] + (i < s.E.length / 2 ? cdl : -cdl)) * 1e6 + rnd() * 0.04).toFixed(3)}`).join('\n');
+  }
+
+  function cycle() {
+    const err = (m: string) => { q('.cv-err').textContent = m; q('.cv-err').hidden = !m; q('.cv-out').hidden = !!m; if (m) { fig = null; lastPeak = null; } };
+    const t = numericColumns(q<HTMLTextAreaElement>('.cv-in').value);
+    if (!q<HTMLTextAreaElement>('.cv-in').value.trim()) return err('Paste potential and current in two columns, open a file, or load the example.');
+    if (t.cols.length < 2) return err('Two columns are needed: potential, then current.');
+    const eu = Number(q<HTMLSelectElement>('.cv-eu').value), iu = Number(q<HTMLSelectElement>('.cv-iu').value) * Number(q<HTMLSelectElement>('.cv-sign').value);
+    const pts = t.cols[0].map((e, i) => [e * eu, t.cols[1][i] * iu]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    if (pts.length < 10) return err('At least 10 rows of numbers are needed.');
+    const E = pts.map((p) => p[0]), I = pts.map((p) => p[1]);
+    let a;
+    try { a = analyseCV(E, I); } catch (e) { return err((e as Error).message); }
+    err('');
+    const n = v('.cv-n') > 0 ? v('.cv-n') : 1, T = (v('.cv-T') || 25) + 273.15, rev = reversibleDeltaEp(n, T);
+    const facts: HTMLElement[] = [];
+    const maxAbs = Math.max(...I.map(Math.abs)), weak = !!a.forward && Math.abs(a.forward.I) < 0.1 * maxAbs;
+    const fp = weak ? null : a.forward, rp = weak ? null : a.reverse, kind = a.firstAnodic ? ['anodic', 'cathodic'] : ['cathodic', 'anodic'];
+    if (!fp) { q('.cv-big').textContent = weak ? 'No clear forward peak. If the peaks point the other way, switch the current sign setting.' : 'No forward peak found: the current keeps rising to the switching potential. Sweep further, or this may be a catalytic or plateau wave.'; }
+    else {
+      lastPeak = Math.abs(fp.I);
+      facts.push(fact(`${kind[0][0].toUpperCase() + kind[0].slice(1)} peak`, `Ep = ${mv(fp.E)}, ip = ${ua(Math.abs(fp.I))}`, `measured from the baseline (${ua(Math.abs(fp.base))} under the peak)`));
+      // Half-peak potential on the rising part.
+      const sign = a.firstAnodic ? 1 : -1, base = (e: number) => (a.baseline ? a.baseline.intercept + a.baseline.slope * e : 0);
+      let half: number | undefined;
+      for (let i = fp.index; i > 0; i--) { const net = sign * (I[i] - base(E[i])); if (net <= Math.abs(fp.I) / 2) { const n0 = sign * (I[i + 1] - base(E[i + 1])); half = E[i] + ((Math.abs(fp.I) / 2 - net) / (n0 - net)) * (E[i + 1] - E[i]); break; } }
+      if (half !== undefined) { const w = Math.abs(fp.E - half); facts.push(fact('Ep − Ep/2', mv(w), `n ≈ ${sig((2.20 * R * T) / F / w, 2)} if reversible (56.5/n mV at 25 °C); wider means slow electron transfer`)); }
+      if (rp && a.dEp !== undefined) {
+        facts.push(fact(`${kind[1][0].toUpperCase() + kind[1].slice(1)} peak`, `Ep = ${mv(rp.E)}, ip ≈ ${ua(a.ratio! * Math.abs(fp.I))}`, `from Nicholson's ratio; ${ua(a.ipcRaw!)} measured from zero current`));
+        facts.push(fact('ΔEp', mv(a.dEp), `a reversible ${n}-electron couple gives about ${sig(rev * 1000, 3)} mV at ${sig(T - 273.15, 3)} °C`));
+        facts.push(fact('E½', mv(a.Ehalf!), 'midpoint of the two peaks: the formal potential E°′ for a reversible couple (versus your reference electrode)'));
+        facts.push(fact('Peak ratio', `${sig(a.ratio!, 3)}`, a.ratio! > 0.9 && a.ratio! < 1.1 ? 'close to 1: the product is stable on this time scale' : a.ratio! < 0.9 ? 'below 1: the product is used up by a following chemical step (EC mechanism), or adsorbs' : 'above 1: adsorption or a coupled reaction'));
+        const verdict = a.dEp <= rev + 0.012 ? 'reversible (fast electron transfer)' : a.dEp <= 0.2 ? 'quasi-reversible' : 'slow electron transfer (close to irreversible)';
+        q('.cv-big').textContent = `ΔEp ${sig(a.dEp * 1000, 3)} mV, E½ ${sig(a.Ehalf! * 1000, 4)} mV: ${verdict}`;
+      } else {
+        q('.cv-big').textContent = `${kind[0][0].toUpperCase() + kind[0].slice(1)} peak at ${mv(fp.E)}, ${ua(Math.abs(fp.I))}; no return peak: chemically irreversible on this time scale`;
+      }
+    }
+    facts.push(fact('Switching potential', mv(a.Es), `${pts.length} points`));
+    q('.cv-facts').replaceChildren(...facts);
+    const marks = [fp, rp].filter(Boolean).map((p) => ({ kind: 'vline' as const, at: p!.E * 1000, dash: [3, 3] }));
+    const base = a.baseline && fp ? [{ name: 'Baseline', x: [a.baseline.from * 1000, fp.E * 1000], y: [a.baseline.intercept + a.baseline.slope * a.baseline.from, fp.base].map((y) => y * 1e6), mode: 'line' as const, dash: [5, 4], color: '#888888', width: 1.2 }] : [];
+    const pk = [fp, rp].filter(Boolean) as NonNullable<typeof fp>[];
+    fig = chartFigure({ h: 320, xLabel: 'Potential (mV)', yLabel: 'Current (µA, anodic positive)', series: [{ name: 'Voltammogram', x: E.map((e) => e * 1000), y: I.map((i) => i * 1e6), mode: 'line', width: 1.6 }, ...base, ...(pk.length ? [{ name: 'Peaks', x: pk.map((p) => p.E * 1000), y: pk.map((p) => p.raw * 1e6), marker: 'diamond' as const, size: 5, color: '#D55E00' }] : [])], marks, legend: 'below' }, 'Cyclic voltammogram with the peaks marked');
+    paint(q<HTMLCanvasElement>('.cv-fig'), fig);
+  }
+
+  function rs() {
+    const err = (m: string) => { q('.cv-rerr').textContent = m; q('.cv-rerr').hidden = !m; q('.cv-rout').hidden = !!m; };
+    const n = v('.cv-n') > 0 ? v('.cv-n') : 1, T = (opt('.cv-T') ?? 25) + 273.15;
+    const vals = { ip: opt('.cv-ip'), A: opt('.cv-A'), C: opt('.cv-C'), D: opt('.cv-D'), v: opt('.cv-v') };
+    const blank = Object.entries(vals).filter(([, x]) => x === undefined).map(([k]) => k);
+    if (blank.length !== 1) return err(blank.length ? 'Leave exactly one box empty: the one to work out.' : 'Empty the box you want worked out.');
+    if (Object.values(vals).some((x) => x !== undefined && !(x > 0))) return err('Values must be numbers above zero (type D as 1e-5).');
+    err('');
+    const ip = vals.ip !== undefined ? vals.ip * 1e-6 : NaN, A = vals.A!, C = vals.C !== undefined ? vals.C / 1000 : NaN, D = vals.D!, sr = vals.v !== undefined ? vals.v / 1000 : NaN;
+    const k = (RS * F ** 1.5) / Math.sqrt(R * T);
+    let big = '';
+    if (blank[0] === 'ip') big = `Peak current ${ua(randlesSevcik(n, A, D, C, sr, T))}`;
+    else if (blank[0] === 'D') big = `D = ${fmtExp(diffusionFromPeak(ip, n, A, C, sr, T), 3)} cm²/s`;
+    else if (blank[0] === 'C') big = `Concentration ${sig(concFromPeak(ip, n, A, D, sr, T) * 1000, 4)} mmol/L`;
+    else if (blank[0] === 'A') { const a = ip / randlesSevcik(n, 1, D, C, sr, T); big = `Electrode area ${sig(a, 4)} cm² (a disc ${sig(2 * Math.sqrt(a / Math.PI) * 10, 3)} mm across)`; }
+    else { const vv = (ip / randlesSevcik(n, A, D, C, 1, T)) ** 2; big = `Scan rate ${sig(vv * 1000, 4)} mV/s`; }
+    q('.cv-rbig').textContent = big;
+    q('.cv-rfacts').replaceChildren(
+      fact('Constant', fmtExp(k, 3), `ip = k·n^1.5·A·√D·C·√v at ${sig(T - 273.15, 3)} °C (A in A, cm², cm²/s, mol/cm³, V/s); 2.69 × 10⁵ at 25 °C`),
+      fact('Holds for', 'a reversible, diffusion-controlled couple', 'planar diffusion to a macro-electrode in still solution with excess supporting electrolyte; quasi-reversible peaks are smaller'),
+    );
+  }
+
+  function study() {
+    const err = (m: string) => { q('.cv-serr').textContent = m; q('.cv-serr').hidden = !m; q('.cv-sout').hidden = !!m; if (m) sfig = null; };
+    const txt = q<HTMLTextAreaElement>('.cv-sr').value;
+    if (!txt.trim()) return err('Paste scan rates and peak currents, or press Example.');
+    const t = numericColumns(txt);
+    const pts = t.cols.length >= 2 ? t.cols[0].map((x, i) => [x, t.cols[1][i]]).filter(([a, b]) => a > 0 && Number.isFinite(b)) : [];
+    if (pts.length < 3) return err('At least 3 scan rates are needed, each with a peak current.');
+    err('');
+    const n = v('.cv-n') > 0 ? v('.cv-n') : 1, A = opt('.cv-A'), C = opt('.cv-C'), T = (opt('.cv-T') ?? 25) + 273.15;
+    const s = scanRateStudy(pts.map((p) => p[0] / 1000), pts.map((p) => p[1] * 1e-6), n, A, C !== undefined ? C / 1000 : undefined, T);
+    const ls = s.logFit?.slope;
+    q('.cv-sbig').textContent = `ip against √v: R² = ${s.sqrtFit.r2.toFixed(4)}${ls !== undefined ? `, log–log slope ${ls.toFixed(2)}` : ''}${ls !== undefined ? (Math.abs(ls - 0.5) <= 0.1 ? ': diffusion controlled' : Math.abs(ls - 1) <= 0.1 ? ': surface (adsorbed) species' : ': mixed control') : ''}`;
+    const facts = [fact('Slope', `${sig(s.sqrtFit.slope * 1e6, 4)} µA/(V/s)^½`, `intercept ${sig(s.sqrtFit.intercept * 1e6, 3)} µA; a large intercept points to a background or charging current`)];
+    if (s.D !== undefined) facts.push(fact('Diffusion coefficient', `${fmtExp(s.D, 3)} cm²/s`, `from the slope with n = ${n}, A = ${A} cm², C = ${C} mmol/L (Randles–Sevcik)`));
+    else facts.push(fact('Diffusion coefficient', 'needs the area and concentration', 'fill them in above'));
+    if (ls !== undefined) facts.push(fact('log ip against log v', `slope ${ls.toFixed(3)}`, '0.5 for a freely diffusing species, 1.0 for one adsorbed on the electrode'));
+    q('.cv-sfacts').replaceChildren(...facts);
+    const xs = pts.map((p) => Math.sqrt(p[0] / 1000)), xm = Math.max(...xs);
+    sfig = chartFigure({ h: 280, xLabel: '√(scan rate / (V/s))', yLabel: 'Peak current (µA)', xMin: 0, yMin: 0, series: [{ name: 'Measured', x: xs, y: pts.map((p) => Math.abs(p[1])) }, { name: 'Straight line', x: [0, xm * 1.05], y: [s.sqrtFit.intercept * 1e6, (s.sqrtFit.intercept + s.sqrtFit.slope * xm * 1.05) * 1e6], mode: 'line', dash: [5, 4] }], legend: 'below' }, 'Peak current against the square root of scan rate');
+    paint(q<HTMLCanvasElement>('.cv-sfig'), sfig);
+  }
+
+  q('.cv-sample').addEventListener('click', () => { q<HTMLTextAreaElement>('.cv-in').value = sampleText(); q<HTMLSelectElement>('.cv-eu').value = '1'; q<HTMLSelectElement>('.cv-iu').value = '1e-6'; q<HTMLSelectElement>('.cv-sign').value = '1'; cycle(); });
+  q('.cv-ssample').addEventListener('click', () => { q<HTMLTextAreaElement>('.cv-sr').value = [25, 50, 100, 200, 400].map((x) => `${x}\t${(randlesSevcik(1, 0.0707, 1e-5, 1e-3, x / 1000) * 1e6 * (1 + 0.01 * Math.sin(x))).toFixed(2)}`).join('\n'); study(); });
+  q('.cv-use').addEventListener('click', () => { if (lastPeak) { q<HTMLInputElement>('.cv-ip').value = sig(lastPeak * 1e6, 4); q<HTMLInputElement>('.cv-D').value = ''; rs(); } });
+  for (const c of ['.cv-in']) { q(c).addEventListener('input', cycle); q(c).addEventListener('change', cycle); }
+  for (const c of ['.cv-sr']) { q(c).addEventListener('input', study); q(c).addEventListener('change', study); }
+  for (const c of ['.cv-eu', '.cv-iu', '.cv-sign']) q(c).addEventListener('change', cycle);
+  q('.cv-n').addEventListener('input', () => { cycle(); rs(); study(); });
+  for (const c of ['.cv-ip', '.cv-A', '.cv-C', '.cv-D', '.cv-v', '.cv-T']) q(c).addEventListener('input', () => { rs(); study(); if (c === '.cv-T') cycle(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cv-fig'), fig); if (sfig) paint(q<HTMLCanvasElement>('.cv-sfig'), sfig); });
+  q<HTMLTextAreaElement>('.cv-in').value = sampleText();
+  cycle();
+  if (lastPeak) q<HTMLInputElement>('.cv-ip').value = sig(lastPeak * 1e6, 4);
+  rs(); q<HTMLButtonElement>('.cv-ssample').click();
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Cyclic voltammetry', file: 'cyclic-voltammetry',
+    sections: [
+      ...(q('.cv-out').hidden ? [] : [{ title: q('.cv-big').textContent!, facts: factsOf('.cv-facts'), ...(fig ? { figure: fig } : {}) }]),
+      ...(q('.cv-rout').hidden ? [] : [{ title: q('.cv-rbig').textContent!, facts: factsOf('.cv-rfacts') }]),
+      ...(q('.cv-sout').hidden ? [] : [{ title: q('.cv-sbig').textContent!, facts: factsOf('.cv-sfacts'), ...(sfig ? { figure: sfig } : {}) }]),
+    ],
+  }));
+</script>

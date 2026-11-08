@@ -1,5 +1,6 @@
 ---
 // Light curve period finder: Lomb-Scargle periodogram, false alarm probability and phase folding.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -8,6 +9,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Measurements</h2>
     <label>Paste time, value and (optional) error columns, one measurement per line. A header row is fine.
       <textarea class="lsq-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".lsq-in" />
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn secondary small lsq-sample">Load the example</button>
       <label class="ax-check"><input type="checkbox" class="lsq-mag" checked /> Values are magnitudes (brighter is up)</label>

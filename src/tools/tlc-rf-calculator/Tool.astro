@@ -1,0 +1,212 @@
+---
+// TLC Rf calculator: tap the baseline, solvent front and spots on a photo of a plate (it never leaves the device)
+// to get each spot's Rf, lane, column volumes and separation; or type measured distances.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tlc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Plate photo</h2>
+      <button type="button" class="btn secondary small tlc-sample">Example plate</button>
+    </div>
+    <label class="tlc-drop" style="margin-top:10px">Open or drop a photo of your plate (JPEG, PNG or WebP; it stays on this device)<input type="file" class="tlc-file" accept="image/*" /></label>
+    <p class="ax-err tlc-ferr" hidden></p>
+    <div class="tlc-work" hidden>
+      <p class="ax-help">Choose what you are marking, then tap the photo. Hold the plate upright in the photo, baseline at the bottom.</p>
+      <div class="ax-row">
+        <div class="ax-seg tlc-mode" role="group" aria-label="Tap to mark">
+          <button type="button" data-m="base" aria-pressed="true">Baseline</button><button type="button" data-m="front" aria-pressed="false">Front</button><button type="button" data-m="spot" aria-pressed="false">Spots</button>
+        </div>
+        <button type="button" class="btn secondary small tlc-undo">Undo</button>
+      </div>
+      <canvas class="ax-fig photo tlc-cv" style="margin-top:10px;touch-action:manipulation;cursor:crosshair"></canvas>
+      <p class="ax-big tlc-big"></p>
+      <div class="ax-scroll"><table class="tlc-tab"></table></div>
+      <dl class="ax-facts tlc-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Measured distances</h2>
+    <div class="ax-grid">
+      <label>Baseline to solvent front (mm) <input class="tlc-fd" inputmode="decimal" value="52" /></label>
+    </div>
+    <label style="margin-top:8px">Baseline to each spot centre (mm), one per line, with an optional name <textarea class="tlc-sd" rows="4" spellcheck="false">18 starting material
+32 product</textarea></label>
+    <p class="ax-err tlc-merr" hidden></p>
+    <div class="ax-scroll"><table class="tlc-mtab"></table></div>
+    <p class="ax-help tlc-mnote"></p>
+    <p class="ax-help">Rf = distance moved by the spot ÷ distance moved by the solvent, both from the baseline, measured to the centre of the spot. Values between 0.2 and 0.8 are the most reliable. On a flash column with the same eluent a compound needs about 1/Rf column volumes, so Rf 0.25 to 0.35 for the wanted compound is the usual aim.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rf, columnVolumes, lanes, rfAdvice, separation } from '../../lib/sci/tlc';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { wireDownloads, type Figure } from '../../lib/report';
+
+  type Src = CanvasImageSource & { width: number; height: number };
+  const root = document.querySelector<HTMLElement>('.tlc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const cv = q<HTMLCanvasElement>('.tlc-cv');
+  let img: Src | null = null, base: number | null = null, front: number | null = null, spots: { x: number; y: number }[] = [];
+  let mode: 'base' | 'front' | 'spot' = 'base', history: (() => void)[] = [], rows: string[][] = [], mrows: string[][] = [], fig: Figure | null = null;
+  const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  function setMode(m: typeof mode) { mode = m; root.querySelectorAll<HTMLButtonElement>('.tlc-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m))); }
+
+  function makeFig(): Figure | null {
+    if (!img) return null;
+    const W = Math.min(600, img.width), H = Math.round((img.height / img.width) * W), k = W / img.width;
+    const lane = lanes(spots.map((s) => s.x), img.width);
+    return {
+      w: W, h: H, alt: 'TLC plate with the baseline, solvent front and spots marked',
+      draw: (ctx) => {
+        ctx.drawImage(img!, 0, 0, W, H);
+        const line = (y: number, col: string, label: string) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([8, 5]); ctx.beginPath(); ctx.moveTo(0, y * k); ctx.lineTo(W, y * k); ctx.stroke(); ctx.setLineDash([]); ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = col; ctx.fillText(label, 6, y * k - 5); };
+        if (base !== null) line(base, '#0072B2', 'Baseline');
+        if (front !== null) line(front, '#D55E00', 'Solvent front');
+        spots.forEach((s, i) => {
+          ctx.strokeStyle = '#009E73'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(s.x * k, s.y * k, 9, 0, 2 * Math.PI); ctx.stroke();
+          const r = base !== null && front !== null ? rf(s.y, base, front) : NaN, lab = `${i + 1}${LETTERS[lane[i]] ?? ''}${Number.isFinite(r) ? ` ${r.toFixed(2)}` : ''}`;
+          ctx.font = '600 12px system-ui, sans-serif'; const w = ctx.measureText(lab).width;
+          const lx = Math.min(W - w - 4, s.x * k + 12);
+          ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(lx - 2, s.y * k - 9, w + 4, 16); ctx.fillStyle = '#000'; ctx.fillText(lab, lx, s.y * k + 3);
+        });
+      },
+    };
+  }
+
+  function draw() {
+    fig = makeFig();
+    if (!fig) return;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = Math.round(fig.w * dpr); cv.height = Math.round(fig.h * dpr); cv.style.aspectRatio = `${fig.w} / ${fig.h}`;
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); fig.draw(ctx, fig.w, fig.h, null as never);
+    results();
+  }
+
+  function results() {
+    const tb = q<HTMLTableElement>('.tlc-tab'); tb.replaceChildren(); rows = [];
+    const facts: HTMLElement[] = [];
+    if (base === null || front === null) { q('.tlc-big').textContent = base === null ? 'Tap the baseline (where you spotted the samples).' : 'Now tap the solvent front.'; q('.tlc-facts').replaceChildren(); return; }
+    if (Math.abs(front - base) < 10) { q('.tlc-big').textContent = 'The front is too close to the baseline: tap them again.'; return; }
+    if (!spots.length) { q('.tlc-big').textContent = 'Now tap the centre of each spot.'; q('.tlc-facts').replaceChildren(); return; }
+    const lane = lanes(spots.map((s) => s.x), img!.width), r = spots.map((s) => rf(s.y, base!, front!));
+    const head = ['Spot', 'Lane', 'Rf', 'Column volumes', ''];
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    spots.forEach((_, i) => {
+      const adv = rfAdvice(r[i]), cells = [String(i + 1), LETTERS[lane[i]] ?? '?', r[i].toFixed(2), r[i] > 0 ? sig(columnVolumes(r[i]), 2) : '–'];
+      rows.push([...cells, adv.text]);
+      const tr = bd.insertRow(); cells.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; });
+      const td = tr.insertCell(); const del = document.createElement('button'); del.type = 'button'; del.className = 'btn secondary small'; del.textContent = 'Remove'; del.setAttribute('aria-label', `Remove spot ${i + 1}`);
+      del.addEventListener('click', () => { const p = spots.splice(i, 1)[0]; history.push(() => spots.splice(i, 0, p)); draw(); }); td.append(del);
+      if (adv.level !== 'good') { const sm = document.createElement('small'); sm.textContent = ` ${adv.text}`; td.append(sm); }
+    });
+    const nl = Math.max(...lane) + 1, valid = r.filter((x) => x > 0 && x <= 1);
+    q('.tlc-big').textContent = `${spots.length} spot${spots.length > 1 ? 's' : ''} in ${nl} lane${nl > 1 ? 's' : ''}${valid.length ? `, Rf ${Math.min(...valid).toFixed(2)}${valid.length > 1 ? ` to ${Math.max(...valid).toFixed(2)}` : ''}` : ''}`;
+    // Closest pair of distinct spots (by Rf) and what it means for a column.
+    const sorted = r.map((x, i) => ({ x, i })).filter((a) => a.x > 0 && a.x <= 1).sort((a, b) => a.x - b.x);
+    let best: { a: number; b: number; d: number } | null = null;
+    for (let i = 1; i < sorted.length; i++) { const d = sorted[i].x - sorted[i - 1].x; if (d > 0.02 && (!best || d < best.d)) best = { a: sorted[i - 1].i, b: sorted[i].i, d }; }
+    if (best) { const s = separation(r[best.a], r[best.b]); facts.push(fact('Closest pair', `spots ${Math.min(best.a, best.b) + 1} and ${Math.max(best.a, best.b) + 1}: ΔRf ${s.dRf.toFixed(2)}, ΔCV ${sig(s.dCV, 2)}`, s.dCV >= 1 ? 'ΔCV of 1 or more usually separates on a flash column' : 'ΔCV below 1: a column will struggle; try a less polar eluent or another solvent pair')); }
+    const same = sorted.filter((a, i) => i > 0 && Math.abs(a.x - sorted[i - 1].x) <= 0.02 && lane[a.i] !== lane[sorted[i - 1].i]).map((a) => a.i);
+    if (same.length) facts.push(fact('Same Rf in different lanes', same.map((i) => `spot ${i + 1}`).join(', '), 'within 0.02 of a spot in another lane: possibly the same compound (a co-spot lane confirms it)'));
+    facts.push(fact('Solvent run', `${Math.round(Math.abs(front - base))} px in the photo`, 'Rf does not depend on the photo scale'));
+    q('.tlc-facts').replaceChildren(...facts);
+  }
+
+  function tapPoint(e: PointerEvent) {
+    const r = cv.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * img!.width, y: ((e.clientY - r.top) / r.height) * img!.height };
+  }
+  cv.addEventListener('pointerup', (e) => {
+    if (!img) return;
+    const p = tapPoint(e);
+    if (mode === 'base') { const old = base; base = p.y; history.push(() => { base = old; }); if (front === null) setMode('front'); else setMode('spot'); }
+    else if (mode === 'front') { const old = front; front = p.y; history.push(() => { front = old; }); setMode('spot'); }
+    else { spots.push(p); history.push(() => { spots.pop(); }); }
+    draw();
+  });
+  q('.tlc-undo').addEventListener('click', () => { history.pop()?.(); draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.tlc-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m as typeof mode)));
+
+  function start(src: Src, marks?: { base: number; front: number; spots: { x: number; y: number }[] }) {
+    img = src; base = marks?.base ?? null; front = marks?.front ?? null; spots = marks ? [...marks.spots] : []; history = [];
+    setMode(marks ? 'spot' : 'base');
+    q('.tlc-ferr').hidden = true; q('.tlc-work').hidden = false; draw();
+  }
+
+  async function open(file: File | undefined) {
+    if (!file) return;
+    const err = (m: string) => { q('.tlc-ferr').textContent = m; q('.tlc-ferr').hidden = false; };
+    if (file.size > 30 * 1024 * 1024) return err('That photo is over 30 MB. Use a smaller one.');
+    try { start(await createImageBitmap(file) as Src); }
+    catch { err('This browser could not open that image. Use JPEG, PNG or WebP (iPhone HEIC photos may need converting).'); }
+  }
+  q<HTMLInputElement>('.tlc-file').addEventListener('change', (e) => open((e.target as HTMLInputElement).files?.[0]));
+  const drop = q('.tlc-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); });
+  drop.addEventListener('drop', (e) => { e.preventDefault(); open(e.dataTransfer?.files?.[0]); });
+
+  function samplePlate() {
+    // A drawn silica plate: three lanes (starting material, co-spot, reaction mixture) under UV.
+    const c = document.createElement('canvas'); c.width = 480; c.height = 640;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#e9ecef'; x.fillRect(0, 0, 480, 640);
+    x.fillStyle = '#dde3ea'; x.fillRect(40, 20, 400, 600);
+    x.strokeStyle = '#7d858c'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(50, 560); x.lineTo(430, 560); x.stroke();
+    x.strokeStyle = '#9aa3ab'; x.setLineDash([6, 6]); x.beginPath(); x.moveTo(50, 80); x.lineTo(430, 80); x.stroke(); x.setLineDash([]);
+    const spot = (cx: number, cy: number, rx: number, ry: number, a: number) => { const g = x.createRadialGradient(cx, cy, 1, cx, cy, rx); g.addColorStop(0, `rgba(70,40,110,${a})`); g.addColorStop(1, 'rgba(70,40,110,0)'); x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI); x.fill(); };
+    const ySm = 560 - 0.36 * 480, yP = 560 - 0.58 * 480, yBy = 560 - 0.12 * 480;
+    spot(130, ySm, 18, 13, 0.85); spot(240, ySm, 18, 13, 0.8); spot(240, yP, 18, 13, 0.75); spot(350, ySm, 16, 11, 0.35); spot(350, yP, 19, 14, 0.85); spot(350, yBy, 12, 9, 0.4);
+    x.fillStyle = '#5c646b'; x.font = '18px system-ui, sans-serif'; [['SM', 130], ['Co', 240], ['Rxn', 350]].forEach(([t, cx]) => x.fillText(String(t), Number(cx) - 14, 600));
+    return { c, marks: { base: 560, front: 80, spots: [{ x: 130, y: ySm }, { x: 240, y: ySm }, { x: 240, y: yP }, { x: 350, y: ySm }, { x: 350, y: yP }, { x: 350, y: yBy }] } };
+  }
+  q('.tlc-sample').addEventListener('click', () => { const s = samplePlate(); start(s.c, s.marks); });
+  document.addEventListener('fibub:theme', () => { if (img) draw(); });
+
+  function manual() {
+    const err = (m: string) => { q('.tlc-merr').textContent = m; q('.tlc-merr').hidden = !m; };
+    const tb = q<HTMLTableElement>('.tlc-mtab'); tb.replaceChildren(); mrows = []; q('.tlc-mnote').textContent = '';
+    const fd = num(q<HTMLInputElement>('.tlc-fd').value);
+    if (!(fd > 0)) return err('Type the distance from the baseline to the solvent front.');
+    const lines = q<HTMLTextAreaElement>('.tlc-sd').value.split('\n').map((l) => l.trim()).filter(Boolean);
+    const items = lines.map((l) => { const m = l.match(/^([-+]?\d+(?:[.,]\d+)?)\s*(.*)$/); return m ? { d: num(m[1]), name: m[2] } : { d: NaN, name: l }; });
+    const bad = items.find((it) => !Number.isFinite(it.d));
+    if (bad) return err(`Could not read a distance in "${bad.name}". Start each line with the distance in mm.`);
+    if (!items.length) return err('Type at least one spot distance.');
+    if (items.some((it) => it.d > fd)) return err('A spot is further than the solvent front: check the distances.');
+    err('');
+    const hr = tb.createTHead().insertRow(); ['Spot', 'Distance (mm)', 'Rf', 'Column volumes', 'Note'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    items.forEach((it, i) => { const r = rf(it.d, 0, fd); const cells = [it.name || `Spot ${i + 1}`, sig(it.d, 3), r.toFixed(2), r > 0 ? sig(columnVolumes(r), 2) : '–', rfAdvice(r).text]; mrows.push(cells); const tr = bd.insertRow(); cells.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j && j < 4) td.style.textAlign = 'right'; }); });
+    if (items.length >= 2) {
+      const rs = items.map((it) => rf(it.d, 0, fd)).sort((a, b) => a - b);
+      let m = Infinity, pair = [0, 0]; for (let i = 1; i < rs.length; i++) if (rs[i] - rs[i - 1] < m) { m = rs[i] - rs[i - 1]; pair = [rs[i - 1], rs[i]]; }
+      const s = separation(pair[0], pair[1]);
+      q('.tlc-mnote').textContent = `Closest pair: ΔRf ${s.dRf.toFixed(2)}, ΔCV ${sig(s.dCV, 2)}. ${s.dCV >= 1 ? 'A flash column with this eluent should separate them.' : 'A flash column will struggle; adjust the eluent.'}`;
+    }
+  }
+  q('.tlc-fd').addEventListener('input', manual); q('.tlc-sd').addEventListener('input', manual);
+  manual();
+  const s0 = samplePlate(); start(s0.c, s0.marks);
+  wireDownloads(q('.dl'), () => ({
+    title: 'TLC plate', subtitle: q('.tlc-work').hidden ? undefined : q('.tlc-big').textContent!, file: 'tlc-plate',
+    sections: [
+      ...(img && rows.length ? [{ title: 'Spots on the photo', ...(fig ? { figure: fig } : {}), table: { head: ['Spot', 'Lane', 'Rf', 'Column volumes', 'Note'], rows, align: ['l', 'l', 'r', 'r', 'l'] as ('l' | 'r')[] }, facts: [...root.querySelectorAll('.tlc-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }] : []),
+      ...(mrows.length ? [{ title: 'Measured distances', table: { head: ['Spot', 'Distance (mm)', 'Rf', 'Column volumes', 'Note'], rows: mrows, align: ['l', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] }, text: [q('.tlc-mnote').textContent!].filter(Boolean) }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .tlc .tlc-drop { display: block; padding: 20px 14px; border: 2px dashed var(--line); border-radius: 12px; text-align: center; cursor: pointer; color: var(--muted); }
+  .tlc .tlc-drop input { display: block; margin: 10px auto 0; max-width: 100%; }
+  .tlc .tlc-cv { width: 100%; max-width: 600px; height: auto; display: block; border-radius: 8px; }
+  .tlc .tlc-tab td, .tlc .tlc-tab th { white-space: nowrap; }
+</style>

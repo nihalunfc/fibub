@@ -1,0 +1,147 @@
+---
+// Corrosion rate from a polarisation curve (Tafel extrapolation, Wagner–Traud fit, Stern–Geary) by ASTM G102,
+// and from a weight-loss coupon (ASTM G1/G31).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleCurve, METALS } from '../../lib/sci/corrosion';
+const curve = 'E_V_vs_SCE,i_A_cm2\n' + exampleCurve().map((r) => r.join(',')).join('\n');
+const metalOpts = METALS.map((m) => ({ id: m.id, t: `${m.name}: EW ${m.EW}, ${m.rho} g/cm³` }));
+---
+<div class="ax tfl">
+  <div class="ax-card">
+    <h2>Polarisation curve</h2>
+    <label class="tfl-lab">Potential and current, one pair per line (a slow scan through the corrosion potential) <textarea class="tfl-data" rows="6" spellcheck="false">{curve}</textarea></label>
+    <DataFile target=".tfl-data" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Potential unit <select class="tfl-eu"><option value="1">V</option><option value="0.001">mV</option></select></label>
+      <label>Current unit <select class="tfl-iu"><option value="A/cm²">A/cm²</option><option value="mA/cm²">mA/cm²</option><option value="µA/cm²">µA/cm²</option><option value="A">A</option><option value="mA">mA</option><option value="µA">µA</option><option value="nA">nA</option></select></label>
+      <label>Electrode area (cm²) <input class="tfl-area" inputmode="decimal" value="1" /></label>
+      <label>Reference electrode (label only) <input class="tfl-ref" value="SCE" /></label>
+      <label>Tafel range from (mV) <input class="tfl-e1" inputmode="decimal" value="80" /></label>
+      <label>to (mV from Ecorr) <input class="tfl-e2" inputmode="decimal" value="200" /></label>
+      <label class="tfl-wide">Metal <select class="tfl-metal">{metalOpts.map((m) => <option value={m.id}>{m.t}</option>)}<option value="custom">Your own</option></select></label>
+      <label>Equivalent weight (g) <input class="tfl-ew" inputmode="decimal" value="27.92" /></label>
+      <label>Density (g/cm³) <input class="tfl-rho" inputmode="decimal" value="7.87" /></label>
+    </div>
+    <p class="ax-help">The Tafel lines are fitted only between the two distances from the corrosion potential; ASTM G3 asks for at least one decade of current on a straight line. The equivalent weight is the molar mass divided by the electrons lost; for an alloy use the ASTM G102 value.</p>
+    <p class="ax-err tfl-err" hidden></p>
+    <div class="tfl-out">
+      <p class="ax-big tfl-big"></p>
+      <div class="ax-scroll"><table class="tfl-tab"></table></div>
+      <dl class="ax-facts tfl-facts"></dl>
+      <canvas class="ax-fig tfl-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Weight-loss coupon</h2>
+    <div class="ax-grid">
+      <label>Mass lost (g) <input class="tfl-w" inputmode="decimal" value="0.0500" /></label>
+      <label>Exposed area (cm²) <input class="tfl-ca" inputmode="decimal" value="20" /></label>
+      <label>Exposure time (h) <input class="tfl-t" inputmode="decimal" value="168" /></label>
+      <label>Density (g/cm³) <input class="tfl-cd" inputmode="decimal" value="7.87" /></label>
+    </div>
+    <p class="ax-help">Corrosion rate = 8.76 × 10⁴ × W / (A × t × ρ) in mm per year (ASTM G1 and G31), assuming even attack. Clean the coupon as G1 describes before weighing.</p>
+    <p class="ax-err tfl-cerr" hidden></p>
+    <p class="ax-big tfl-cbig"></p>
+    <dl class="ax-facts tfl-cfacts"></dl>
+  </div>
+</div>
+
+<script>
+  import { signed, tafel, polarisationResistance, fitBV, bv, sternGeary, rateMmY, massRate, MM_TO_MPY, METALS } from '../../lib/sci/corrosion';
+  import { num, sig, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tfl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (Number.isFinite(x) ? (x + (x >= 0 ? 1e-9 : -1e-9)).toFixed(n) : '–');
+  const IU: Record<string, [number, boolean]> = { 'A/cm²': [1, true], 'mA/cm²': [1e-3, true], 'µA/cm²': [1e-6, true], A: [1, false], mA: [1e-3, false], µA: [1e-6, false], nA: [1e-9, false] };
+  const s3 = (x: number) => (Math.abs(x) >= 1000 ? String(Math.round(x)) : x.toPrecision(3));
+  const rateT = (mm: number) => (mm >= 0.1 ? f(mm, 3) : sig(mm, 3));
+  let fig: Figure | null = null, tab: string[][] = [];
+
+  function calc() {
+    const err = (m: string) => { q('.tfl-err').textContent = m; q('.tfl-err').hidden = !m; q('.tfl-out').hidden = !!m; if (m) fig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.tfl-data').value);
+    if (t.cols.length < 2 || t.rows < 20) return err('Paste at least 20 lines of potential and current.');
+    const eu = num(q<HTMLSelectElement>('.tfl-eu').value), [iu, dens] = IU[q<HTMLSelectElement>('.tfl-iu').value], area = v('.tfl-area');
+    if (!dens && !(area > 0)) return err('Type the electrode area in cm² to turn current into current density.');
+    const e1 = v('.tfl-e1') / 1000, e2 = v('.tfl-e2') / 1000, EW = v('.tfl-ew'), rho = v('.tfl-rho');
+    if (!(e1 >= 0 && e2 > e1)) return err('The Tafel range goes from a smaller to a larger distance from Ecorr (in mV).');
+    if (!(EW > 0 && rho > 0)) return err('Type the equivalent weight and density of the metal.');
+    const c = signed(t.cols[0].map((x) => x * eu), t.cols[1].map((x) => (x * iu) / (dens ? 1 : area)));
+    const span = c[c.length - 1].E - c[0].E;
+    if (!(span > 0.04)) return err('The potential range is under 40 mV: check the unit (V or mV) and the column order.');
+    const tf = tafel(c, e1, e2);
+    if (!tf.ok) return err(`Too few points in the Tafel range (${tf.nA} anodic, ${tf.nC} cathodic): the scan must reach ${Math.round(e2 * 1000)} mV either side of ${f(tf.E0 * 1000, 0)} mV, or narrow the range.`);
+    err('');
+    const nl = fitBV(c, tf.E0, { Ecorr: tf.Ecorr, icorr: tf.icorr, ba: tf.ba, bc: tf.bc }), good = nl && nl.ba > 0.005 && nl.bc > 0.005 && nl.ba < 2 && nl.bc < 2;
+    const rp = polarisationResistance(c, tf.E0), best = good ? nl! : tf, B = sternGeary(best.ba, best.bc);
+    const uA = (i: number) => i * 1e6, ref = q<HTMLInputElement>('.tfl-ref').value.trim();
+    const mm = rateMmY(uA(best.icorr), EW, rho);
+    q('.tfl-big').textContent = `icorr ${s3(uA(best.icorr))} µA/cm²: about ${rateT(mm)} mm per year`;
+    tab = [['Tafel extrapolation', f(tf.Ecorr * 1000, 1), s3(uA(tf.icorr)), f(tf.ba * 1000, 1), f(tf.bc * 1000, 1), rateT(rateMmY(uA(tf.icorr), EW, rho))]];
+    if (good) tab.push(['Wagner–Traud fit', f(nl!.Ecorr * 1000, 1), s3(uA(nl!.icorr)), f(nl!.ba * 1000, 1), f(nl!.bc * 1000, 1), rateT(mm)]);
+    if (rp && rp.Rp > 0) tab.push(['Stern–Geary (Rp)', f(tf.E0 * 1000, 1), s3(uA(B / rp.Rp)), '–', '–', rateT(rateMmY(uA(B / rp.Rp), EW, rho))]);
+    const tb = q<HTMLTableElement>('.tfl-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Method', `Ecorr (mV${ref ? ` vs ${ref}` : ''})`, 'icorr (µA/cm²)', 'βa (mV/dec)', 'βc (mV/dec)', 'mm/year'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of tab) { const tr = bd.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); }
+    const facts = [
+      fact('Corrosion rate', `${rateT(mm)} mm/y = ${f(mm * 1000, mm * 1000 >= 10 ? 0 : 1)} µm/y = ${sig(mm * MM_TO_MPY, 3)} mpy`, `ASTM G102 with EW ${EW} g and ρ ${rho} g/cm³, from the ${good ? 'Wagner–Traud fit' : 'Tafel lines'}; assumes even (not pitting) attack`),
+      fact('Mass loss rate', `${sig(massRate(uA(best.icorr), EW), 3)} g/(m²·day)`),
+      fact('Stern–Geary B', `${f(B * 1000, 1)} mV`, rp && rp.Rp > 0 ? `Rp = ${sig(rp.Rp, 4)} Ω·cm² from ±10 mV around Ecorr (${rp.n} points); icorr = B/Rp` : 'too few points within ±10 mV of Ecorr for Rp'),
+      fact('Tafel lines', `anodic ${f(tf.decA, 1)} decades (r² ${f(tf.r2a, 4)}), cathodic ${f(tf.decC, 1)} decades (r² ${f(tf.r2c, 4)})`, tf.decA < 0.95 || tf.decC < 0.95 ? 'under one decade on a branch: the result is less certain; widen the range or scan further' : tf.r2a < 0.99 || tf.r2c < 0.99 ? 'a branch bends: diffusion limits, passivity or iR drop; the Wagner–Traud fit and Rp are a cross-check' : 'straight over at least a decade, as ASTM G3 asks'),
+    ];
+    if (good) facts.push(fact('Fit quality', `rms ${f(nl!.rms, 3)} in log₁₀ i over ${nl!.n} points`, 'fitted within ±250 mV of Ecorr, leaving out ±10 mV where the current crosses zero'));
+    q('.tfl-facts').replaceChildren(...facts);
+    const pts = c.filter((p) => p.i !== 0), lx = (i: number) => Math.log10(Math.abs(i));
+    const ea = [tf.Ecorr, tf.E0 + e2 + 0.03], ec = [tf.E0 - e2 - 0.03, tf.Ecorr];
+    const series = [
+      { name: 'data', x: pts.map((p) => lx(p.i)), y: pts.map((p) => p.E * 1000), mode: 'line' as const, width: 1.5 },
+      { name: 'Tafel lines', x: ea.map((E) => tf.fa.c + tf.fa.m * E), y: ea.map((E) => E * 1000), mode: 'line' as const, width: 1, dash: [4, 3] },
+      { name: 'cathodic line', x: ec.map((E) => tf.fc.c + tf.fc.m * E), y: ec.map((E) => E * 1000), mode: 'line' as const, width: 1, dash: [4, 3] },
+    ];
+    if (good) { const Es = pts.map((p) => p.E).filter((E) => Math.abs(E - nl!.Ecorr) > 0.002); series.push({ name: 'Wagner–Traud fit', x: Es.map((E) => lx(bv(E, nl!.Ecorr, nl!.icorr, nl!.ba, nl!.bc))), y: Es.map((E) => E * 1000), mode: 'line' as const, width: 1 }); }
+    const xs = pts.map((p) => lx(p.i));
+    fig = chartFigure({ h: 280, xLabel: 'log₁₀ |i| (A/cm²)', yLabel: `E (mV${ref ? ` vs ${ref}` : ''})`, xMin: Math.floor(Math.min(...xs)), xMax: Math.ceil(Math.max(...xs)), series, marks: [{ kind: 'hline', at: best.Ecorr * 1000, label: 'Ecorr', dash: [3, 3] }, { kind: 'vline', at: lx(best.icorr), label: 'icorr', dash: [3, 3] }], legend: 'below' }, 'Tafel plot: potential against the logarithm of current density');
+    paint(q<HTMLCanvasElement>('.tfl-fig'), fig);
+  }
+
+  function coupon() {
+    const W = v('.tfl-w'), A = v('.tfl-ca'), T = v('.tfl-t'), D = v('.tfl-cd');
+    const bad = !(W >= 0 && A > 0 && T > 0 && D > 0);
+    q('.tfl-cerr').textContent = bad ? 'Type the mass lost (0 or more), and an area, time and density above zero.' : ''; q('.tfl-cerr').hidden = !bad;
+    if (bad) { q('.tfl-cbig').textContent = ''; q('.tfl-cfacts').replaceChildren(); return; }
+    const mm = (8.76e4 * W) / (A * T * D);
+    q('.tfl-cbig').textContent = `About ${rateT(mm)} mm per year`;
+    q('.tfl-cfacts').replaceChildren(fact('Same rate', `${f(mm * 1000, mm * 1000 >= 10 ? 0 : 1)} µm/y = ${sig(mm * MM_TO_MPY, 3)} mpy`), fact('Mass loss rate', `${sig((W / A) * 1e4 / (T / 24), 3)} g/(m²·day)`), fact('Thickness lost in this test', `${sig(((W / D / A) * 1e4), 3)} µm`, 'if the attack was even'));
+  }
+
+  q('.tfl-metal').addEventListener('change', () => { const m = METALS.find((x) => x.id === q<HTMLSelectElement>('.tfl-metal').value); if (m) { q<HTMLInputElement>('.tfl-ew').value = String(m.EW); q<HTMLInputElement>('.tfl-rho').value = String(m.rho); q<HTMLInputElement>('.tfl-cd').value = String(m.rho); } calc(); coupon(); });
+  root.querySelectorAll('.tfl-ew, .tfl-rho').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.tfl-metal').value = 'custom'; calc(); }));
+  root.querySelectorAll('.tfl-data, .tfl-eu, .tfl-iu, .tfl-area, .tfl-ref, .tfl-e1, .tfl-e2').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.tfl-w, .tfl-ca, .tfl-t, .tfl-cd').forEach((i) => i.addEventListener('input', coupon));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tfl-fig'), fig); });
+  calc(); coupon();
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Corrosion rate', subtitle: q<HTMLSelectElement>('.tfl-metal').selectedOptions[0].textContent!, file: 'corrosion-rate',
+    sections: [
+      ...(q('.tfl-out').hidden ? [] : [{ title: q('.tfl-big').textContent!, table: { head: [...q('.tfl-tab').querySelectorAll('th')].map((x) => x.textContent!), rows: tab, align: ['l', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: facts('.tfl-facts'), ...(fig ? { figure: fig } : {}) }]),
+      ...(q('.tfl-cbig').textContent ? [{ title: `Weight-loss coupon: ${q('.tfl-cbig').textContent}`, facts: facts('.tfl-cfacts') }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .tfl .tfl-wide { grid-column: 1 / -1; }
+  .tfl select { max-width: 100%; }
+  .tfl .tfl-lab { display: block; }
+  .tfl textarea { width: 100%; font: inherit; font-size: 14px; }
+</style>

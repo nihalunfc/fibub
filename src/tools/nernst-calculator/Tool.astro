@@ -1,0 +1,226 @@
+---
+// Nernst and cell potential calculator: standard reduction potentials (bundled table or typed), electrode potential
+// at any concentrations, pH and temperature, galvanic cell E°, E, ΔG, K and line notation, and a reference converter.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { HALVES, REFERENCES, halfText } from '../../lib/sci/nernst';
+import { pretty } from '../../lib/sci/chem';
+const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Math.abs(h.E).toFixed(3)} V  ${halfText(h, pretty)}` }));
+---
+<div class="ax nst">
+  <div class="ax-card">
+    <h2>Electrode or cell</h2>
+    <div class="ax-seg nst-mode" role="group" aria-label="Work out"><button type="button" data-m="cell" aria-pressed="true">Cell (two electrodes)</button><button type="button" data-m="one" aria-pressed="false">One electrode</button></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label class="nst-wide"><span class="nst-catl">Cathode (reduction, + terminal)</span> <select class="nst-cat">{opt.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
+      <div class="nst-wide nst-cc" hidden><div class="ax-grid"><label>E° (V vs SHE) <input class="nst-cE" inputmode="decimal" value="0.500" /></label><label>Electrons n <input class="nst-cn" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input class="nst-cQ" inputmode="decimal" value="1" /></label></div></div>
+      <label class="nst-wide nst-anw">Anode (oxidation, − terminal) <select class="nst-an">{opt.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
+      <div class="nst-wide nst-ac" hidden><div class="ax-grid"><label>E° (V vs SHE) <input class="nst-aE" inputmode="decimal" value="0.000" /></label><label>Electrons n <input class="nst-an2" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input class="nst-aQ" inputmode="decimal" value="1" /></label></div></div>
+      <label>Temperature (°C) <input class="nst-T" inputmode="decimal" value="25" /></label>
+      <div class="nst-swapw" style="align-self:end"><button type="button" class="btn secondary small nst-swap">Swap electrodes</button></div>
+    </div>
+    <p class="ax-help">Both lists are reduction half-reactions with their standard potential at 25 °C. The tool writes the anode one backwards for you.</p>
+    <h3 style="margin:14px 0 6px">Concentrations</h3>
+    <div class="ax-scroll"><table class="nst-sp"></table></div>
+    <p class="ax-help">Ions in mol/L, gases in bar. Solids, liquids and water count as 1. Concentration stands in for activity, which is good below about 0.01 M and a few mV out at 0.1 M.</p>
+    <p class="ax-err nst-err" hidden></p>
+    <div class="nst-out">
+      <p class="ax-big nst-big"></p>
+      <dl class="ax-facts nst-facts"></dl>
+      <canvas class="ax-fig nst-fig" style="margin-top:10px"></canvas>
+      <p class="ax-help">Away from 25 °C the tool uses the right Nernst slope but keeps E° at its 25 °C value, which is usually within a few mV over ±20 °C.</p>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Reference electrode converter</h2>
+    <div class="ax-grid">
+      <label>Potential (V) <input class="nst-rv" inputmode="decimal" value="0.500" /></label>
+      <label>Measured against <select class="nst-rfrom">{REFERENCES.map((r) => <option value={r.id} selected={r.id === 'AgClsat'}>{r.name}</option>)}</select></label>
+      <label>pH (for RHE) <input class="nst-rpH" inputmode="decimal" value="7" /></label>
+    </div>
+    <p class="ax-err nst-rerr" hidden></p>
+    <div class="ax-scroll"><table class="nst-rtab"></table></div>
+    <p class="ax-help">Reference values at 25 °C: SCE +0.241 V, Ag/AgCl in saturated KCl +0.197 V and in 3 M KCl +0.210 V against SHE. RHE moves by 59.16 mV per pH unit. Your own electrode may differ by a few mV, so check it against a known couple such as ferrocene.</p>
+    <details class="nst-list"><summary>Standard reduction potentials in the table</summary><div class="ax-scroll"><table class="nst-tab"><thead><tr><th>Half-reaction</th><th>E° (V)</th></tr></thead><tbody>{HALVES.map((h) => <tr><td>{halfText(h, pretty)}</td><td style="text-align:right">{(h.E >= 0 ? '+' : '−') + Math.abs(h.E).toFixed(4)}</td></tr>)}</tbody></table></div><p class="ax-help">25 °C, 1 bar, against the standard hydrogen electrode, from the CRC Handbook electrochemical series (Vanýsek) and Bard, Parsons and Jordan. Check the official source for work that matters.</p></details>
+  </div>
+
+</div>
+
+<script>
+  import { half, variable, halfE, lnQhalf, cellReaction, cellStandard, cellNotation, halfText, thermalV, REFERENCES, convertRef, refE, F, type Half } from '../../lib/sci/nernst';
+  import { pretty } from '../../lib/sci/chem';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nice = (t: string) => { try { return pretty(t); } catch { return t; } };
+  const V = (x: number, d = 4) => `${x >= 0 ? '+' : '−'}${(Math.abs(x) + 1e-12).toFixed(d)} V`;
+  let mode: 'cell' | 'one' = 'cell', fig: Figure | null = null;
+  // Concentrations typed by the user, kept per electrode and species so switching couples keeps sensible values.
+  const conc: Record<'c' | 'a', Record<string, string>> = { c: {}, a: {} };
+  const DEFAULTS: Record<string, string> = { 'H^+': '0', 'OH^-': '14' }; // shown as pH
+
+  const pick = (side: 'c' | 'a'): Half | null => { const v = q<HTMLSelectElement>(side === 'c' ? '.nst-cat' : '.nst-an').value; return v === 'custom' ? null : half(v)!; };
+  const isPH = (f: string) => f === 'H^+' || f === 'OH^-';
+
+  function table() {
+    const tb = q<HTMLTableElement>('.nst-sp'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Electrode', 'Species', 'Value', ''].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); let rows = 0;
+    for (const side of (mode === 'cell' ? ['c', 'a'] : ['c']) as ('c' | 'a')[]) {
+      const hr2 = pick(side); if (!hr2) continue;
+      for (const [, f, st] of variable(hr2)) {
+        const tr = bd.insertRow(); rows++;
+        tr.insertCell().textContent = mode === 'one' ? 'Electrode' : side === 'c' ? 'Cathode' : 'Anode';
+        tr.insertCell().textContent = isPH(f) ? `${nice(f)} (as pH)` : `${nice(f)}(${st})`;
+        const td = tr.insertCell(); const inp = document.createElement('input'); inp.inputMode = 'decimal';
+        inp.value = conc[side][f] ?? DEFAULTS[f] ?? '1'; inp.dataset.side = side; inp.dataset.f = f; inp.className = `nst-v nst-v-${side}`;
+        inp.setAttribute('aria-label', `${isPH(f) ? 'pH' : nice(f)} at the ${side === 'c' ? 'cathode' : 'anode'}`);
+        inp.addEventListener('input', () => { conc[side][f] = inp.value; calc(); }); td.append(inp);
+        tr.insertCell().textContent = isPH(f) ? 'pH' : st === 'g' ? 'bar' : 'mol/L';
+      }
+    }
+    tb.hidden = !rows;
+    if (!rows) { const p = bd.insertRow().insertCell(); p.colSpan = 4; p.textContent = 'Nothing to set: every species is a solid, liquid or water.'; tb.hidden = false; }
+  }
+
+  /** Activities for one electrode, or an error message. */
+  function acts(side: 'c' | 'a', hr: Half): Record<string, number> | string {
+    const out: Record<string, number> = {};
+    for (const [, f, st] of variable(hr)) {
+      const raw = conc[side][f] ?? DEFAULTS[f] ?? '1', x = num(raw);
+      if (isPH(f)) {
+        if (!Number.isFinite(x)) return `Type the pH at the ${side === 'c' ? 'cathode' : 'anode'}.`;
+        out[f] = f === 'H^+' ? 10 ** -x : 10 ** (x - 14);
+      } else {
+        if (!(x > 0)) return `Type a value above zero for ${nice(f)}(${st})${mode === 'cell' ? ` at the ${side === 'c' ? 'cathode' : 'anode'}` : ''}.`;
+        out[f] = x;
+      }
+    }
+    return out;
+  }
+
+  type Elec = { E0: number; n: number; E: number; lnQ: number; hr: Half | null; text: string };
+  function electrode(side: 'c' | 'a', T: number): Elec | string {
+    const hr = pick(side);
+    if (!hr) {
+      const E0 = num(q<HTMLInputElement>(side === 'c' ? '.nst-cE' : '.nst-aE').value), n = num(q<HTMLInputElement>(side === 'c' ? '.nst-cn' : '.nst-an2').value), Q = num(q<HTMLInputElement>(side === 'c' ? '.nst-cQ' : '.nst-aQ').value);
+      if (!Number.isFinite(E0)) return 'Type E° of your half-reaction in volts.';
+      if (!(n >= 1 && n <= 12 && Number.isInteger(n))) return 'Electrons n should be a whole number from 1 to 12.';
+      if (!(Q > 0)) return 'Q of your half-reaction should be above zero.';
+      const lnQ = Math.log(Q); return { E0, n, lnQ, E: E0 - (thermalV(T) / n) * lnQ, hr: null, text: `your half-reaction (E° ${V(E0, 3)}, n = ${n})` };
+    }
+    const a = acts(side, hr); if (typeof a === 'string') return a;
+    return { E0: hr.E, n: hr.n, lnQ: lnQhalf(hr, a), E: halfE(hr, a, T), hr, text: halfText(hr, nice) };
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.nst-err').textContent = m; q('.nst-err').hidden = !m; q('.nst-out').hidden = !!m; if (m) fig = null; };
+    const Tc = num(q<HTMLInputElement>('.nst-T').value);
+    if (!(Tc > -273.15) || Tc > 400) return err('Type a temperature in °C between −273 and 400.');
+    const T = Tc + 273.15, slope = thermalV(T) * Math.LN10 * 1000;
+    const c = electrode('c', T); if (typeof c === 'string') return err(c);
+    if (mode === 'one') {
+      err('');
+      q('.nst-big').textContent = `E = ${V(c.E)} vs SHE (${V(convertRef(c.E, 'SHE', 'AgClsat'))} vs Ag/AgCl, ${V(convertRef(c.E, 'SHE', 'SCE'))} vs SCE)`;
+      q('.nst-facts').replaceChildren(
+        fact('Half-reaction', c.text),
+        fact('E°', V(c.E0), 'standard potential, all activities 1'),
+        fact('Q', fmtQ(Math.exp(c.lnQ)), 'products over reactants of the reduction, each to its coefficient'),
+        fact('Nernst slope', `${sig(slope / c.n, 4)} mV per tenfold change in Q`, `${sig(slope, 4)}/n mV at ${sig(Tc, 4)} °C`),
+        fact('Shift from E°', `${sig((c.E - c.E0) * 1000, 4)} mV`, c.E > c.E0 ? 'a stronger oxidant than standard' : c.E < c.E0 ? 'a weaker oxidant than standard' : 'standard conditions'),
+      );
+      plot(c.E0, c.n, c.lnQ, T, 'E (V vs SHE)', 'Electrode potential against Q', c.E);
+      return;
+    }
+    const a = electrode('a', T); if (typeof a === 'string') return err(a);
+    err('');
+    const L = c.hr && a.hr ? cellReaction(c.hr, a.hr).n : lcmN(c.n, a.n);
+    const st = cellStandard(c.E0, a.E0, L, T), E = c.E - a.E, dG = (-L * F * E) / 1000;
+    const lnQ = ((st.E0 - E) * L * F) / (8.314462618 * T);
+    q('.nst-big').textContent = `E°cell ${V(st.E0)}, Ecell ${V(E)}: ${E > 0 ? 'galvanic, runs by itself as written' : E < 0 ? `electrolytic, needs at least ${(-E).toFixed(3)} V to run as written` : 'at equilibrium'}`;
+    const facts = [] as HTMLElement[];
+    if (c.hr && a.hr) {
+      const r = cellReaction(c.hr, a.hr);
+      const sp = (x: { f: string; st: string; nu: number }) => `${x.nu === 1 ? '' : sig(x.nu, 4)}${nice(x.f)}(${x.st})`;
+      facts.push(fact('Cell reaction', `${r.reactants.map(sp).join(' + ')} → ${r.products.map(sp).join(' + ')}`, `${L} electron${L === 1 ? '' : 's'} transferred`));
+      facts.push(fact('Cell notation', cellNotation(a.hr, c.hr, nice), 'anode on the left, ‖ is the salt bridge'));
+      if (c.hr.id === a.hr.id) facts.push(fact('Note', 'concentration cell', 'the same couple on both sides: E° is zero and the voltage comes only from the concentration difference'));
+    } else facts.push(fact('Electrons', `${L}`, 'the smallest number both half-reactions share'));
+    facts.push(
+      fact('Electrode potentials', `cathode ${V(c.E)}, anode ${V(a.E)}`, 'each against SHE at your concentrations'),
+      fact('ΔG', `${kj(dG)} kJ/mol`, `ΔG° = −nFE° = ${kj(st.dG0)} kJ/mol`),
+      fact(`K at ${sig(Tc, 4)} °C`, fmtQ(Math.exp(st.lnK), st.lnK), st.lnK > 6.9 ? 'goes essentially to completion' : st.lnK < -6.9 ? 'hardly goes at all' : 'both sides present at equilibrium'),
+      fact('Q', fmtQ(Math.exp(lnQ), lnQ), E > 0 ? 'Q < K: the reaction still runs forward' : E < 0 ? 'Q > K: it would run backwards' : 'Q = K'),
+    );
+    if (E < 0) facts.push(fact('Tip', 'swap the electrodes', 'the other way round this is a working battery'));
+    q('.nst-facts').replaceChildren(...facts);
+    plot(st.E0, L, lnQ, T, 'Ecell (V)', 'Cell voltage against reaction quotient Q', E);
+  }
+  const kj = (x: number) => `${x >= 0 ? '+' : '−'}${(Math.abs(x) + 1e-9).toFixed(1)}`;
+  const lcmN = (x: number, y: number) => { const g = (p: number, r: number): number => (r ? g(r, p % r) : p); return (x * y) / g(x, y); };
+  function fmtQ(x: number, ln = Math.log(x)) {
+    if (!Number.isFinite(x) || x === 0) { const e = ln / Math.LN10, k = Math.floor(e); return `${sig(10 ** (e - k), 3)} × 10^${k}`; }
+    return x > 1e5 || x < 1e-3 ? fmtExp(x, 3) : sig(x, 4);
+  }
+  function plot(E0: number, n: number, lnQ: number, T: number, yLabel: string, alt: string, Enow: number) {
+    const lq = lnQ / Math.LN10, lo = Math.floor(Math.min(-6, lq - 3)), hi = Math.ceil(Math.max(6, lq + 3)), xs: number[] = [];
+    for (let i = 0; i <= 100; i++) xs.push(lo + ((hi - lo) * i) / 100);
+    const ys = xs.map((x) => E0 - (thermalV(T) / n) * x * Math.LN10);
+    fig = chartFigure({ h: 240, xLabel: 'log₁₀ Q', yLabel, xMin: lo, xMax: hi, series: [{ name: 'Nernst', x: xs, y: ys, mode: 'line', width: 2 }, { name: 'now', x: [lq], y: [Enow], mode: 'points' }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, { kind: 'vline', at: lq, label: 'your Q', dash: [4, 3] }], legend: 'none' }, alt);
+    paint(q<HTMLCanvasElement>('.nst-fig'), fig);
+  }
+
+  function refs() {
+    const v = num(q<HTMLInputElement>('.nst-rv').value), pH = num(q<HTMLInputElement>('.nst-rpH').value), from = q<HTMLSelectElement>('.nst-rfrom').value;
+    const e = q('.nst-rerr'), tb = q<HTMLTableElement>('.nst-rtab'); tb.replaceChildren();
+    const bad = !Number.isFinite(v) ? 'Type the potential in volts.' : !Number.isFinite(pH) ? 'Type the pH (it is used for RHE).' : '';
+    e.textContent = bad; e.hidden = !bad; if (bad) return;
+    const hr = tb.createTHead().insertRow(); ['Against', 'Potential', 'Reference vs SHE'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    for (const r of REFERENCES) { const tr = bd.insertRow(); tr.insertCell().textContent = r.name; const c1 = tr.insertCell(); c1.textContent = V(convertRef(v, from, r.id, pH), 3); c1.style.textAlign = 'right'; if (r.id === from) c1.style.fontWeight = '700'; const c2 = tr.insertCell(); c2.textContent = V(refE(r.id, pH), 3); c2.style.textAlign = 'right'; }
+  }
+
+  function sides() {
+    q('.nst-cc').hidden = q<HTMLSelectElement>('.nst-cat').value !== 'custom';
+    q('.nst-ac').hidden = mode === 'one' || q<HTMLSelectElement>('.nst-an').value !== 'custom';
+    q('.nst-anw').hidden = mode === 'one'; q('.nst-swapw').hidden = mode === 'one';
+    q('.nst-catl').textContent = mode === 'one' ? 'Half-reaction' : 'Cathode (reduction, + terminal)';
+    table(); calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.nst-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as 'cell' | 'one'; root.querySelectorAll('.nst-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); sides(); }));
+  q('.nst-cat').addEventListener('change', sides); q('.nst-an').addEventListener('change', sides);
+  q('.nst-swap').addEventListener('click', () => {
+    const c = q<HTMLSelectElement>('.nst-cat'), a = q<HTMLSelectElement>('.nst-an'); [c.value, a.value] = [a.value, c.value];
+    [conc.c, conc.a] = [conc.a, conc.c];
+    for (const [x, y] of [['.nst-cE', '.nst-aE'], ['.nst-cn', '.nst-an2'], ['.nst-cQ', '.nst-aQ']]) { const p = q<HTMLInputElement>(x), r = q<HTMLInputElement>(y); [p.value, r.value] = [r.value, p.value]; }
+    sides();
+  });
+  root.querySelectorAll('.nst-cc input, .nst-ac input, .nst-T').forEach((i) => i.addEventListener('input', calc));
+  root.querySelectorAll('.nst-rv, .nst-rpH, .nst-rfrom').forEach((i) => i.addEventListener('input', refs));
+  q('.nst-rfrom').addEventListener('change', refs);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nst-fig'), fig); });
+  conc.c['Cu^2+'] = '0.01'; sides(); refs();
+  wireDownloads(q('.dl'), () => {
+    const rows = [...root.querySelectorAll<HTMLInputElement>('.nst-v')].map((i) => [i.closest('tr')!.cells[0].textContent!, i.closest('tr')!.cells[1].textContent!, i.value, i.closest('tr')!.cells[3].textContent!]);
+    return {
+      title: 'Nernst and cell potential', subtitle: mode === 'one' ? 'One electrode' : 'Electrochemical cell', file: 'nernst',
+      sections: q('.nst-out').hidden ? [] : [{ title: q('.nst-big').textContent!, ...(rows.length ? { table: { head: ['Electrode', 'Species', 'Value', 'Unit'], rows, align: ['l', 'l', 'r', 'l'] } } : {}), facts: [...root.querySelectorAll('.nst-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }],
+    };
+  });
+</script>
+
+<style is:global>
+  .nst .nst-wide { grid-column: 1 / -1; }
+  .nst select { max-width: 100%; }
+  .nst .nst-sp input { width: 90px; min-width: 0; }
+  .nst .nst-sp td, .nst .nst-sp th { white-space: nowrap; vertical-align: middle; }
+  .nst .nst-list { margin-top: 12px; }
+  .nst .nst-list summary { cursor: pointer; font-weight: 600; }
+  .nst .nst-tab td, .nst .nst-rtab td:not(:first-child) { white-space: nowrap; }
+</style>

@@ -1,0 +1,186 @@
+---
+// DSC (glass transition by tangents and half-height, peak onset, area and enthalpy, crystallinity) and TGA (DTG,
+// mass loss steps with onset, peak and end set, T at 5 % and 10 % loss, residue, matching a step to a lost fragment).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleDSC, exampleTGA, DH100 } from '../../lib/sci/thermal';
+const dsc = 'T_C,heat_flow_mW\n' + exampleDSC().map((r) => r.join(',')).join('\n');
+const tga = 'T_C,mass_mg\n' + exampleTGA().map((r) => r.join(',')).join('\n');
+const ev = [{ t: 'tg', a: 60, b: 95 }, { t: 'peak', a: 110, b: 165 }, { t: 'peak', a: 225, b: 272 }];
+---
+<div class="ax dtg">
+  <div class="ax-card">
+    <h2>DSC: glass transition, melting and crystallinity</h2>
+    <label class="dtg-lab">Temperature (°C) and heat flow, one pair per line (one heating scan) <textarea class="dtg-dsc" rows="6" spellcheck="false">{dsc}</textarea></label>
+    <DataFile target=".dtg-dsc" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Heat flow unit <select class="dtg-unit"><option value="mW">mW</option><option value="W/g">W/g</option></select></label>
+      <label>Sample mass (mg) <input class="dtg-mass" inputmode="decimal" value="10" /></label>
+      <label>Heating rate (K/min) <input class="dtg-rate" inputmode="decimal" value="10" /></label>
+      <label>The plot shows <select class="dtg-dir"><option value="exo">Exothermic up</option><option value="endo">Endothermic up</option></select></label>
+      <label>Smoothing (± °C) <input class="dtg-h" inputmode="decimal" value="1.5" /></label>
+    </div>
+    <h3>Events to measure</h3>
+    <p class="ax-help">Give each event a window that starts and ends on flat baseline either side. A peak gets a straight baseline across its window.</p>
+    <div class="dtg-evs">
+      {ev.map((e, i) => (
+        <div class="dtg-ev" data-i={i}>
+          <label>Event {i + 1} <select class="dtg-et"><option value="tg" selected={e.t === 'tg'}>Glass transition (Tg)</option><option value="peak" selected={e.t === 'peak'}>Peak</option><option value="">none</option></select></label>
+          <label>From (°C) <input class="dtg-ea" inputmode="decimal" value={e.a} /></label>
+          <label>To (°C) <input class="dtg-eb" inputmode="decimal" value={e.b} /></label>
+        </div>
+      ))}
+    </div>
+    <div class="ax-grid">
+      <label>Polymer, for crystallinity <select class="dtg-poly">{DH100.map((p) => <option value={p.id}>{p.name}, ΔH⁰m {p.dh} J/g</option>)}<option value="custom">Your own ΔH⁰m</option><option value="">Do not work out</option></select></label>
+      <label>ΔH⁰m of 100 % crystalline (J/g) <input class="dtg-dh0" inputmode="decimal" value="140" /></label>
+      <label>Polymer in the sample (weight %) <input class="dtg-wp" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-err dtg-err" hidden></p>
+    <div class="dtg-out">
+      <p class="ax-big dtg-big"></p>
+      <div class="ax-scroll"><table class="dtg-tab"></table></div>
+      <dl class="ax-facts dtg-facts"></dl>
+      <canvas class="ax-fig dtg-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>TGA: mass loss steps</h2>
+    <label class="dtg-lab">Temperature (°C) and mass (mg or %), one pair per line <textarea class="dtg-tga" rows="6" spellcheck="false">{tga}</textarea></label>
+    <DataFile target=".dtg-tga" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Smoothing (± °C) <input class="dtg-th" inputmode="decimal" value="5" /></label>
+      <label>Smallest step to report (%) <input class="dtg-min" inputmode="decimal" value="0.5" /></label>
+      <label>Starting formula (optional) <input class="dtg-formula" value="CaC2O4·H2O" spellcheck="false" autocapitalize="off" /></label>
+    </div>
+    <p class="ax-help">With a formula, each step is compared with the loss of common small molecules (water, CO, CO₂, NH₃, HCl and others).</p>
+    <p class="ax-err dtg-terr" hidden></p>
+    <div class="dtg-tout">
+      <p class="ax-big dtg-tbig"></p>
+      <div class="ax-scroll"><table class="dtg-ttab"></table></div>
+      <dl class="ax-facts dtg-tfacts"></dl>
+      <canvas class="ax-fig dtg-tfig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig dtg-dfig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { prep, glassTransition, peak, toWg, enthalpy, deltaCp, DH100, crystallinity, tga, matchFragment } from '../../lib/sci/thermal';
+  import { parseFormula, molarMass } from '../../lib/sci/chem';
+  import { num, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dtg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f1 = (x: number) => (Number.isFinite(x) ? (x + (x >= 0 ? 1e-9 : -1e-9)).toFixed(1) : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? (x + (x >= 0 ? 1e-9 : -1e-9)).toFixed(2) : '–');
+  let fig: Figure | null = null, tfig: Figure | null = null, dfig: Figure | null = null, tab: string[][] = [], ttab: string[][] = [];
+  const table = (el: HTMLTableElement, head: string[], rows: string[][]) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+
+  function dsc() {
+    const err = (m: string) => { q('.dtg-err').textContent = m; q('.dtg-err').hidden = !m; q('.dtg-out').hidden = !!m; if (m) fig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.dtg-dsc').value);
+    if (t.cols.length < 2 || t.rows < 30) return err('Paste at least 30 lines of temperature and heat flow.');
+    const unit = q<HTMLSelectElement>('.dtg-unit').value as 'mW' | 'W/g', mass = v('.dtg-mass'), beta = v('.dtg-rate'), h = v('.dtg-h'), exoUp = q<HTMLSelectElement>('.dtg-dir').value === 'exo';
+    if (unit === 'mW' && !(mass > 0)) return err('Type the sample mass in mg (needed to turn mW into J/g).');
+    if (!(beta > 0)) return err('Type the heating rate in K/min.');
+    if (!(h > 0)) return err('Smoothing is a positive number of degrees.');
+    const raw = prep(t.cols[0], t.cols[1]);
+    const sd = Math.sign(t.cols[0][t.rows - 1] - t.cols[0][0]) || 1; for (let i = 1; i < t.rows; i++) if (sd * (t.cols[0][i] - t.cols[0][i - 1]) < -0.5) return err('The temperature turns back part way: paste one heating or cooling segment at a time.');
+    const p = raw.map((r) => ({ T: r.T, y: (exoUp ? -1 : 1) * toWg(r.y, unit, mass) })); // endo up, W/g
+    err('');
+    tab = []; const marks: { kind: 'vline'; at: number; label: string; dash: number[] }[] = []; let dhM = 0, dhC = 0; const big: string[] = []; const extra: { x: number[]; y: number[] }[] = [];
+    for (const r of root.querySelectorAll<HTMLElement>('.dtg-ev')) {
+      const type = r.querySelector<HTMLSelectElement>('.dtg-et')!.value, a = num(r.querySelector<HTMLInputElement>('.dtg-ea')!.value), b = num(r.querySelector<HTMLInputElement>('.dtg-eb')!.value);
+      if (!type) continue;
+      if (!(b > a)) { tab.push([`Event ${Number(r.dataset.i) + 1}`, '–', '–', '–', '“to” must be above “from”']); continue; }
+      if (type === 'tg') {
+        const g = glassTransition(p, a, b, h);
+        if (!g || !Number.isFinite(g.mid)) { tab.push(['Glass transition', '–', '–', '–', 'no step found in this window']); continue; }
+        const dcp = deltaCp(g.step, beta);
+        tab.push(['Glass transition', f1(g.onset), f1(g.mid), f1(g.end), `ΔCp ${f2(Math.abs(dcp))} J/(g·K)`]);
+        marks.push({ kind: 'vline', at: g.mid, label: 'Tg', dash: [3, 3] }); big.push(`Tg ${f1(g.mid)} °C`);
+        if (dcp < 0) tab[tab.length - 1][4] += ' (step the wrong way: check the plot direction)';
+      } else {
+        const k = peak(p, a, b, h);
+        if (!k || Math.abs(k.area) < 1e-9) { tab.push(['Peak', '–', '–', '–', 'no peak found in this window']); continue; }
+        const dh = enthalpy(k.area, beta), endo = dh > 0;
+        if (endo) dhM += dh; else dhC += -dh;
+        tab.push([endo ? 'Endotherm (melting)' : 'Exotherm (crystallisation)', f1(k.onset), f1(k.Tpeak), f1(k.endset), `ΔH ${f1(Math.abs(dh))} J/g`]);
+        marks.push({ kind: 'vline', at: k.Tpeak, label: endo ? 'Tm' : 'Tc', dash: [3, 3] }); big.push(`${endo ? 'melting' : 'exotherm'} ${f1(k.Tpeak)} °C, ${f1(Math.abs(dh))} J/g`);
+        const sc = (exoUp ? -1 : 1) * (unit === 'mW' ? mass : 1); extra.push({ x: [k.base.Ta, k.base.Tb], y: [k.base.ya * sc, k.base.yb * sc] });
+      }
+    }
+    q('.dtg-big').textContent = big.length ? big.join('; ') : 'Choose at least one event window';
+    table(q<HTMLTableElement>('.dtg-tab'), ['Event', 'Onset °C', 'Mid or peak °C', 'End °C', 'Value'], tab);
+    const facts: HTMLElement[] = [];
+    const poly = q<HTMLSelectElement>('.dtg-poly').value, dh0 = v('.dtg-dh0'), wp = v('.dtg-wp') / 100;
+    if (poly && dhM > 0) {
+      if (dh0 > 0 && wp > 0 && wp <= 1) { const xc = crystallinity(dhM, dhC, dh0, wp); facts.push(fact('Crystallinity before the scan', `${f1(Math.max(xc, 0) * 100)} %`, `(${f1(dhM)}${dhC ? ` − ${f1(dhC)}` : ''}) J/g ÷ (${dh0} J/g${wp < 1 ? ` × ${wp}` : ''})${dhC ? '; the exotherm is cold crystallisation formed during the scan, so it is taken off' : ''}`)); }
+      else facts.push(fact('Crystallinity', 'type ΔH⁰m and the polymer content (1 to 100 %)'));
+    }
+    facts.push(fact('Range', `${f1(p[0].T)} to ${f1(p[p.length - 1].T)} °C, ${p.length} points`, `heat flow ÷ ${unit === 'mW' ? `${mass} mg` : '1'} ÷ ${beta / 60 >= 0.1 ? f2(beta / 60) : (beta / 60).toPrecision(2)} K/s gives J/(g·K)`));
+    q('.dtg-facts').replaceChildren(...facts);
+    fig = chartFigure({ h: 260, xLabel: 'Temperature (°C)', yLabel: `Heat flow (${unit}), ${exoUp ? 'exo up' : 'endo up'}`, series: [{ name: 'DSC', x: raw.map((r) => r.T), y: raw.map((r) => r.y), mode: 'line', width: 1.5 }, ...extra.map((e, i) => ({ name: `baseline ${i + 1}`, x: e.x, y: e.y, mode: 'line' as const, width: 1, dash: [4, 3] }))], marks, legend: 'none' }, 'DSC heat flow against temperature with the measured events');
+    paint(q<HTMLCanvasElement>('.dtg-fig'), fig);
+  }
+
+  function tgaCalc() {
+    const err = (m: string) => { q('.dtg-terr').textContent = m; q('.dtg-terr').hidden = !m; q('.dtg-tout').hidden = !!m; if (m) tfig = dfig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.dtg-tga').value);
+    if (t.cols.length < 2 || t.rows < 30) return err('Paste at least 30 lines of temperature and mass.');
+    const h = v('.dtg-th'), mn = v('.dtg-min');
+    if (!(h > 0)) return err('Smoothing is a positive number of degrees.');
+    if (!(mn >= 0)) return err('The smallest step is 0 % or more.');
+    const p = prep(t.cols[0], t.cols[1]);
+    if (!(p[0].y > 0)) return err('The first mass must be above zero.');
+    err('');
+    const r = tga(p, h, mn);
+    let M0 = NaN, fnote = '';
+    const ftxt = q<HTMLInputElement>('.dtg-formula').value.trim();
+    if (ftxt) { try { M0 = molarMass(parseFormula(ftxt)); } catch (e) { fnote = `The formula could not be read: ${(e as Error).message}`; } }
+    ttab = r.steps.map((s, i) => { const m = Number.isFinite(M0) ? matchFragment(s.loss, M0) : null; return [`${i + 1}`, f1(s.onset), f1(s.Tpeak), f1(s.endset), `${f2(s.loss)} %`, f2((s.loss * r.m0) / 100), Number.isFinite(M0) ? (m ? `${m.n > 1 ? m.n : ''}${m.frag.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d])} (${f2(m.pct)} %)` : 'none within 1 %') : '']; });
+    q('.dtg-tbig').textContent = `${r.steps.length} mass loss step${r.steps.length === 1 ? '' : 's'}; residue ${f1(r.residue)} % at ${f1(p[p.length - 1].T)} °C`;
+    const head = ['Step', 'Onset °C', 'DTG peak °C', 'End °C', 'Loss', 'Mass lost', ...(Number.isFinite(M0) ? ['Matches'] : [])];
+    if (!Number.isFinite(M0)) ttab = ttab.map((x) => x.slice(0, 6));
+    table(q<HTMLTableElement>('.dtg-ttab'), head, ttab);
+    const facts = [fact('5 % mass loss at', Number.isFinite(r.T5) ? `${f1(r.T5)} °C` : 'not reached', 'a common measure of thermal stability'), fact('10 % mass loss at', Number.isFinite(r.T10) ? `${f1(r.T10)} °C` : 'not reached'), fact('Starting mass', `${f2(r.m0)} (data units)`, 'losses are given as % of this first value')];
+    if (Number.isFinite(M0)) facts.push(fact('Residue if a single product', `${f1((r.residue * M0) / 100)} g/mol per formula unit`, `from M = ${f2(M0)} g/mol; compare with the oxide or metal you expect`));
+    if (fnote) facts.push(fact('Formula', fnote));
+    q('.dtg-tfacts').replaceChildren(...facts);
+    tfig = chartFigure({ h: 220, xLabel: 'Temperature (°C)', yLabel: 'Mass (%)', series: [{ name: 'TGA', x: r.pc.map((x) => x.T), y: r.pc.map((x) => x.y), mode: 'line', width: 1.5 }], marks: r.steps.map((s) => ({ kind: 'vline' as const, at: s.onset, label: '', dash: [3, 3] })), legend: 'none' }, 'Mass as a percentage of the starting mass against temperature');
+    dfig = chartFigure({ h: 200, xLabel: 'Temperature (°C)', yLabel: 'DTG (%/°C)', series: [{ name: 'DTG', x: r.pc.map((x) => x.T), y: r.dtg, mode: 'line', width: 1.5 }], marks: r.steps.map((s, i) => ({ kind: 'vline' as const, at: s.Tpeak, label: String(i + 1), dash: [3, 3] })), legend: 'none' }, 'Rate of mass loss against temperature');
+    paint(q<HTMLCanvasElement>('.dtg-tfig'), tfig); paint(q<HTMLCanvasElement>('.dtg-dfig'), dfig);
+  }
+
+  q('.dtg-poly').addEventListener('change', () => { const p = DH100.find((x) => x.id === q<HTMLSelectElement>('.dtg-poly').value); if (p) q<HTMLInputElement>('.dtg-dh0').value = String(p.dh); dsc(); });
+  q('.dtg-dh0').addEventListener('input', () => { const s = q<HTMLSelectElement>('.dtg-poly'); if (s.value && s.value !== 'custom') s.value = 'custom'; dsc(); });
+  root.querySelectorAll('.dtg-dsc, .dtg-unit, .dtg-mass, .dtg-rate, .dtg-dir, .dtg-h, .dtg-wp, .dtg-ev select, .dtg-ev input').forEach((i) => { i.addEventListener('input', dsc); i.addEventListener('change', dsc); });
+  root.querySelectorAll('.dtg-tga, .dtg-th, .dtg-min, .dtg-formula').forEach((i) => { i.addEventListener('input', tgaCalc); i.addEventListener('change', tgaCalc); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dtg-fig'), fig); if (tfig) paint(q<HTMLCanvasElement>('.dtg-tfig'), tfig); if (dfig) paint(q<HTMLCanvasElement>('.dtg-dfig'), dfig); });
+  dsc(); tgaCalc();
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Thermal analysis', subtitle: 'DSC events and TGA mass loss steps', file: 'thermal-analysis',
+    sections: [
+      ...(q('.dtg-out').hidden ? [] : [{ title: `DSC: ${q('.dtg-big').textContent}`, table: { head: ['Event', 'Onset °C', 'Mid or peak °C', 'End °C', 'Value'], rows: tab, align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: facts('.dtg-facts'), ...(fig ? { figure: fig } : {}) }]),
+      ...(q('.dtg-tout').hidden ? [] : [{ title: `TGA: ${q('.dtg-tbig').textContent}`, table: { head: [...q('.dtg-ttab').querySelectorAll('th')].map((x) => x.textContent!), rows: ttab, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] }, facts: facts('.dtg-tfacts'), ...(tfig ? { figure: tfig } : {}) }, ...(dfig ? [{ title: 'DTG', figure: dfig }] : [])]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .dtg select { max-width: 100%; }
+  .dtg .dtg-lab { display: block; }
+  .dtg textarea { width: 100%; font: inherit; font-size: 14px; }
+  .dtg h3 { margin: 16px 0 6px; font-size: 16px; }
+  .dtg .dtg-ev { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+  .dtg .dtg-ev label { min-width: 0; font-size: 13px; }
+</style>

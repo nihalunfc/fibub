@@ -1,0 +1,108 @@
+---
+// Galaxy rotation curve fitter: bulge, disc and dark halo fitted to measured circular speeds.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rcv">
+  <div class="ax-card">
+    <h2>Rotation curve</h2>
+    <label>Paste radius (kpc), speed (km/s) and error (km/s), one point per line. A header row is fine.
+      <textarea class="rcv-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".rcv-in" />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rcv-sample">Load the example</button>
+      <label class="ax-check"><input type="checkbox" class="rcv-nob" /> No bulge</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Dark halo <select class="rcv-halo"><option value="nfw" selected>NFW (cold dark matter, cuspy)</option><option value="iso">Pseudo-isothermal (cored)</option></select></label>
+      <label>Disc scale length, if known (kpc) <input class="rcv-rd" inputmode="decimal" placeholder="fit it" /></label>
+    </div>
+    <p class="ax-help">A rotation curve alone cannot tell the disc and the halo apart very well: a heavier disc with a lighter halo often fits as well as the reverse. If you know the disc's scale length from photometry, enter it; it makes the fit much firmer. Missing errors count as 5 km/s.</p>
+    <p class="ax-err rcv-err" hidden></p>
+  </div>
+
+  <div class="ax-card rcv-out" hidden>
+    <h2>Fitted mass model</h2>
+    <p class="ax-big rcv-big"></p>
+    <canvas class="ax-fig rcv-fig"></canvas>
+    <canvas class="ax-fig rcv-res" style="margin-top:8px"></canvas>
+    <dl class="ax-facts rcv-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rcv-csv">Model curves (CSV)</button></div>
+    <p class="ax-help">Masses are in solar masses (M☉). Uncertainties come from the curvature of the fit and can be large because the parts trade off against each other. Gas is not modelled separately; it counts towards the disc.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { fitRotation, components, enclosedMass, nfwVirial, type Fit } from '../../lib/sci/rotcurve';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+  import SAMPLE from '../../data/rotation-curve-sim.tsv?raw';
+
+  const root = document.querySelector<HTMLElement>('.rcv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.rcv-in'); box.value = SAMPLE.trim();
+  let figs: Figure[] = [], report: Section[] = [], last: { f: Fit; rmax: number } | null = null;
+  const msun = (m: number, e?: number) => { const p = Math.floor(Math.log10(Math.max(m, 1))), s = 10 ** p; return e !== undefined && e > 0 ? `(${(m / s).toFixed(2)} ± ${(e / s).toFixed(2)}) × 10${String(p).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('')} M☉` : `${(m / s).toFixed(2)} × 10${String(p).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('')} M☉`; };
+  const kpc = (x: number, e?: number) => (e !== undefined && e > 0 ? `${sig(x, 3)} ± ${sig(e, 2)} kpc` : `${sig(x, 3)} kpc`);
+
+  function run() {
+    const err = q('.rcv-err'); err.hidden = true;
+    try {
+      const rows = parseTable(box.value).filter((r) => r.length >= 2 && Number.isFinite(num(r[0])) && Number.isFinite(num(r[1])) && num(r[0]) > 0).sort((a, b) => num(a[0]) - num(b[0]));
+      if (rows.length < 4) throw new Error('Paste at least 4 rows of radius and speed, with radii above 0.');
+      const r = rows.map((x) => num(x[0])), v = rows.map((x) => num(x[1])), dv = rows.map((x) => (num(x[2] ?? '') > 0 ? num(x[2]) : 5));
+      if (v.some((x) => x <= 0)) throw new Error('Speeds must be above 0 km/s.');
+      const rdIn = num(q<HTMLInputElement>('.rcv-rd').value), halo = q<HTMLSelectElement>('.rcv-halo').value as 'nfw' | 'iso', noB = q<HTMLInputElement>('.rcv-nob').checked;
+      const f = fitRotation(r, v, dv, { halo, noBulge: noB, fixRd: rdIn > 0 ? rdIn : undefined });
+      const m = f.m, rmax = r[r.length - 1];
+      last = { f, rmax };
+      q('.rcv-out').hidden = false;
+      const at = components(rmax, m), bary = Math.hypot(at.bulge, at.disc), Mtot = enclosedMass(rmax, at.total), Mbar = enclosedMass(rmax, bary);
+      const darkShare = 1 - Mbar / Mtot;
+      // Where the halo starts to outweigh the stars.
+      let cross = NaN; for (let x = 0.1; x <= rmax; x += 0.05) { const c = components(x, m); if (c.halo > Math.hypot(c.bulge, c.disc)) { cross = x; break; } }
+      q('.rcv-big').textContent = `Dark matter is ${Math.round(darkShare * 100)} % of the mass inside ${sig(rmax, 3)} kpc`;
+      const xs: number[] = [], tot: number[] = [], bul: number[] = [], dis: number[] = [], hal: number[] = [], vis: number[] = [];
+      for (let k = 0; k <= 200; k++) { const x = (rmax * 1.08 * (k + 0.5)) / 200, c = components(x, m); xs.push(x); tot.push(c.total); bul.push(c.bulge); dis.push(c.disc); hal.push(c.halo); vis.push(Math.hypot(c.bulge, c.disc)); }
+      const series = [
+        { name: 'Measured', x: r, y: v, yErr: dv, mode: 'points' as const, size: 4 },
+        { name: 'Total model', x: xs, y: tot, mode: 'line' as const, width: 2.4 },
+        { name: 'Stars only (bulge + disc)', x: xs, y: vis, mode: 'line' as const, width: 1.6, dash: [6, 4] },
+        ...(noB ? [] : [{ name: 'Bulge', x: xs, y: bul, mode: 'line' as const, width: 1.2, dash: [2, 3] }]),
+        { name: 'Disc', x: xs, y: dis, mode: 'line' as const, width: 1.2, dash: [2, 3] },
+        { name: 'Dark halo', x: xs, y: hal, mode: 'line' as const, width: 1.6, dash: [8, 3] },
+      ];
+      const main = chartFigure({ h: 360, xLabel: 'Radius (kpc)', yLabel: 'Circular speed (km/s)', xMin: 0, yMin: 0, legend: 'below', series }, 'Rotation curve with the fitted bulge, disc and dark halo');
+      const resid = r.map((ri, i) => v[i] - components(ri, m).total);
+      const res = chartFigure({ h: 160, xLabel: 'Radius (kpc)', yLabel: 'Residual (km/s)', xMin: 0, legend: 'none', series: [{ name: 'Residual', x: r, y: resid, yErr: dv, mode: 'points', size: 4 }], marks: [{ kind: 'hline', at: 0 }] }, 'Residuals of the fit');
+      paint(q<HTMLCanvasElement>('.rcv-fig'), main); paint(q<HTMLCanvasElement>('.rcv-res'), res);
+      figs = [main, res];
+      const e = f.err, rows2: [string, string, string?][] = [];
+      if (!noB) rows2.push(['Bulge mass', msun(m.Mb, e.Mb), `Hernquist profile, scale ${kpc(m.ab, e.ab)}`]);
+      rows2.push(['Disc mass', msun(m.Md, e.Md), `exponential disc, scale length ${rdIn > 0 ? `${sig(m.Rd, 3)} kpc (fixed)` : kpc(m.Rd, e.Rd)}`]);
+      rows2.push(halo === 'nfw' ? ['Halo density ρs', `${sig(m.rho, 3)} M☉/kpc³`, `scale radius ${kpc(m.rh, e.rh)}`] : ['Halo central density ρ₀', `${sig(m.rho, 3)} M☉/kpc³`, `core radius ${kpc(m.rh, e.rh)}`]);
+      rows2.push(['Mass inside the last point', msun(Mtot), `${sig(rmax, 3)} kpc; stars ${msun(Mbar)}`]);
+      rows2.push(['Halo outweighs the stars from', Number.isFinite(cross) ? `${sig(cross, 2)} kpc outward` : 'nowhere inside the data', 'where the halo speed passes the bulge and disc together']);
+      if (halo === 'nfw') { const vir = nfwVirial(m.rho, m.rh); rows2.push(['Halo total (M₂₀₀)', msun(vir.m200), `out to r₂₀₀ = ${sig(vir.r200, 3)} kpc, concentration ${sig(vir.c, 3)} (H₀ = 70)`]); }
+      rows2.push(['Fit quality', `reduced χ² = ${f.redChi2.toFixed(2)}`, `${r.length} points, ${f.free.length} fitted numbers; near 1 means a good fit`]);
+      q('.rcv-facts').replaceChildren(...rows2.map(([k, v2, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v2; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+      report = [{ title: 'Fitted mass model', facts: [['Result', q('.rcv-big').textContent!], ...rows2.map(([k, v2, s]) => [k, s ? `${v2} (${s})` : v2] as [string, string])], figure: main }, { title: 'Residuals', figure: res }];
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.rcv-out').hidden = true; }
+  }
+
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 500); });
+  for (const c of ['.rcv-halo', '.rcv-nob', '.rcv-rd']) q(c).addEventListener('change', run);
+  q('.rcv-sample').addEventListener('click', () => { box.value = SAMPLE.trim(); run(); });
+  q('.rcv-csv').addEventListener('click', () => {
+    if (!last) return; const out: (string | number)[][] = [['radius_kpc', 'total_km_s', 'bulge_km_s', 'disc_km_s', 'halo_km_s']];
+    for (let k = 1; k <= 200; k++) { const x = (last.rmax * 1.2 * k) / 200, c = components(x, last.f.m); out.push([x.toFixed(3), c.total.toFixed(2), c.bulge.toFixed(2), c.disc.toFixed(2), c.halo.toFixed(2)]); }
+    save(new Blob([out.map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'rotation-curve-model.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { const c = ['.rcv-fig', '.rcv-res']; figs.forEach((f, i) => paint(q<HTMLCanvasElement>(c[i]), f)); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Rotation curve fit', file: 'rotation-curve', sections: report }));
+</script>

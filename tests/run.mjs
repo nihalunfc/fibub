@@ -1007,6 +1007,33 @@ try {
     await page.fill('.pm-data', '1\n2\n3');
     await page.waitForSelector('.pm-err:not([hidden])');
     check(/two columns/.test(await page.textContent('.pm-err')), 'plot maker: one column gives a plain message');
+    // Open a file instead of pasting: CSV, an Excel workbook (second sheet has the data), limits.
+    check(/up to 10 MB, 20 columns and 50,000 rows/.test(await page.textContent('.pm-limit')), 'plot maker: file limits shown');
+    await page.setInputFiles('.pm-in', { name: 'growth.csv', mimeType: 'text/csv', buffer: Buffer.from('Dose,"Response, %",SD\n1,10,1\n2,20,2\n3,35,2\n4,48,3\n') });
+    await page.waitForSelector('.pm-file-note:not([hidden])');
+    check(/Opened growth\.csv: 5 rows and 3 columns/.test(await page.textContent('.pm-file-note')) && (await page.$$eval('.pm-cols select', (x) => x.map((e) => e.value).join())) === 'x,y,err', 'plot maker: CSV file with a quoted comma');
+    {
+      const { zipSync, strToU8 } = await import('fflate');
+      const sheet = (rows) => `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((c, j) => `<c r="${String.fromCharCode(65 + j)}${i + 1}"${typeof c === 'string' ? ' t="inlineStr"><is><t>' + c + '</t></is>' : '><v>' + c + '</v>'}</c>`).join('')}</row>`).join('')}</sheetData></worksheet>`;
+      const wide = [Array.from({ length: 24 }, (_, j) => (j ? `S${j}` : 'x')), ...Array.from({ length: 6 }, (_, i) => Array.from({ length: 24 }, (_, j) => (j ? i * j : i)))];
+      const xlsx = zipSync({
+        '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'),
+        'xl/workbook.xml': strToU8('<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Notes" sheetId="1" r:id="rId1"/><sheet name="Data" sheetId="2" r:id="rId2"/></sheets></workbook>'),
+        'xl/_rels/workbook.xml.rels': strToU8('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="worksheets/sheet2.xml"/></Relationships>'),
+        'xl/worksheets/sheet1.xml': strToU8(sheet([])),
+        'xl/worksheets/sheet2.xml': strToU8(sheet(wide)),
+      });
+      await page.setInputFiles('.pm-in', { name: 'wide.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(xlsx) });
+      await page.waitForFunction(() => /wide\.xlsx/.test(document.querySelector('.pm-file-note')?.textContent ?? ''));
+      const note = await page.textContent('.pm-file-note');
+      check(/7 rows and 20 columns/.test(note) && /sheet "Data"/.test(note) && /24 columns; only the first 20/.test(note) && (await page.$$('.pm-cols select')).length === 20, `plot maker: Excel file, sheet and column limit (${note})`);
+    }
+    await page.setInputFiles('.pm-in', { name: 'big.csv', mimeType: 'text/csv', buffer: Buffer.alloc(10_500_000, 'a') });
+    await page.waitForFunction(() => /10\.5 MB/.test(document.querySelector('.pm-err')?.textContent ?? ''));
+    check(/up to 10 MB/.test(await page.textContent('.pm-err')), 'plot maker: file size limit explained');
+    await page.setInputFiles('.pm-in', { name: 'old.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from('x') });
+    await page.waitForFunction(() => /Save it as \.xlsx/.test(document.querySelector('.pm-err')?.textContent ?? ''));
+    check(true, 'plot maker: old .xls explained');
   }
   // Science batch B.
   {
@@ -1410,6 +1437,699 @@ try {
     await page.waitForTimeout(700);
     check(/at least 5 rows/.test(await page.textContent('.rvf-err')), 'rv fit: too few rows explained');
   }
+  {
+    // Batch I: eclipse finder, satellite tracker, uv coverage, double stars.
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/eclipse-finder/');
+    await page.selectOption('.sp-tz', 'America/Toronto');
+    check(/^Next you can see: /.test(await page.textContent('.ec-big')) && (await page.locator('.ec-tab tbody tr').count()) >= 8, `eclipses: list for Toronto (${await page.textContent('.ec-big')})`);
+    const ecVisible = await page.locator('.ec-tab tbody tr').count();
+    await page.check('.ec-all');
+    check((await page.locator('.ec-tab tbody tr').count()) > ecVisible, 'eclipses: unseen ones on request');
+    await page.selectOption('.ec-type', 'solar');
+    await page.click('.ec-tab tbody tr:nth-child(1)');
+    check(/^Solar/.test(await page.textContent('.ec-dt')) && !(await page.locator('.ec-safe').isHidden()), 'eclipses: solar detail shows the eye-safety warning');
+    await page.fill('.ec-slide', '1000'); await page.dispatchEvent('.ec-slide', 'input');
+    check(/covers (0|< 1) % of the Sun/.test(await page.textContent('.ec-now')), `eclipses: slider to last contact (${await page.textContent('.ec-now')})`);
+    await page.selectOption('.ec-type', 'lunar');
+    await page.click('.ec-tab tbody tr:has-text("Lunar, total")');
+    check(/fully in Earth's shadow for \d+ minutes|Moon is below your horizon/.test(await page.textContent('.ec-db')) && (await page.locator('.ec-safe').isHidden()), 'eclipses: total lunar eclipse detail');
+    const ecCsv = readFileSync(await dl(page, '.ec-csv'), 'utf8').trim().split(/\r?\n/);
+    check(ecCsv.length > 10 && ecCsv[0].startsWith('type,kind_here,kind_global'), 'eclipses: CSV');
+
+    await page.goto(BASE + '/science/satellite-tracker/');
+    check((await page.textContent('.st-big')) === 'One orbit every 92.9 minutes, 415 × 422 km up' && /−4\.950° a day/.test(await page.textContent('.st-facts')), 'satellite: space station orbit');
+    check((await page.locator('.st-tab tbody tr').count()) >= 6, 'satellite: passes listed');
+    await page.selectOption('.st-pre', 'sso');
+    check(/sun-synchronous: it passes over at the same local time/.test(await page.textContent('.st-facts')), 'satellite: sun-synchronous orbit recognised');
+    await page.selectOption('.st-pre', 'geo');
+    check(/^One orbit every 23\.93 hours/.test(await page.textContent('.st-big')), `satellite: geostationary period (${await page.textContent('.st-big')})`);
+    await page.click('.st-mode button[data-m=tle]');
+    const issTle = 'ISS (ZARYA)\n1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537';
+    await page.fill('.st-tx', issTle);
+    check((await page.textContent('.st-title')) === 'ISS (ZARYA)' && /too old for reliable pass times/.test(await page.textContent('.st-facts')), 'satellite: TLE read, age flagged');
+    await page.fill('.st-tx', issTle.replace('51.6416', '51.6417'));
+    check(/checksum on line 2/.test(await page.textContent('.st-err')), 'satellite: bad TLE digit caught');
+    await page.fill('.st-tx', issTle);
+    const stCsv = readFileSync(await dl(page, '.st-csv'), 'utf8').trim().split(/\r?\n/);
+    check(stCsv.length > 300 && stCsv[0] === 'time_utc,latitude_deg,longitude_deg,height_km,sunlit', 'satellite: track CSV');
+
+    await page.goto(BASE + '/science/uv-coverage/');
+    check((await page.textContent('.uvc-big')) === 'Beam about 57.8″ × 52.1″ (east–west × north–south)' && /351 baselines/.test(await page.textContent('.uvc-facts')), `uv: Y array beam (${await page.textContent('.uvc-big')})`);
+    await page.selectOption('.uvc-pre', 'y36');
+    check(/^Beam about 9\.\d+″ × 8\.\d+″/.test(await page.textContent('.uvc-big')), 'uv: wider array, sharper beam');
+    await page.fill('.uvc-dec', '-60'); await page.dispatchEvent('.uvc-dec', 'change');
+    check(/never rises above 15°/.test(await page.textContent('.uvc-err')), 'uv: source too far south explained');
+    await page.fill('.uvc-dec', '30'); await page.dispatchEvent('.uvc-dec', 'change');
+    await page.fill('.uvc-ants', '0 0\n20 0'); await page.dispatchEvent('.uvc-ants', 'input');
+    check((await page.inputValue('.uvc-pre')) === 'custom' && /2 dishes, 1 baselines|2 dishes, 1 baseline/.test(await page.textContent('.uvc-facts')), 'uv: own antennas');
+    const uvCsv = readFileSync(await dl(page, '.uvc-csv'), 'utf8').trim().split(/\r?\n/);
+    check(uvCsv.length > 50 && uvCsv[0] === 'u_wavelengths,v_wavelengths', 'uv: CSV');
+
+    await page.goto(BASE + '/science/double-star-calculator/');
+    check(/^B is \d+\.\d″ from A at position angle/.test(await page.textContent('.ds-big')) && /3\.07 solar masses/.test(await page.textContent('.ds-facts')), 'double star: Sirius and its mass');
+    await page.selectOption('.ds-pre', 'eta');
+    check((await page.textContent('.ds-big')) === 'B is 0.411″ from A at position angle 318.4° (towards the north-west)', 'double star: Meeus example 57.a');
+    await page.click('.ds-mode button[data-m=measure]');
+    // A dark test image with two stars: A at (60, 60), B 20 px straight up at (60, 40).
+    const png = await page.evaluate(async () => { const c = document.createElement('canvas'); c.width = 120; c.height = 120; const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 120, 120); g.fillStyle = '#fff'; for (const [x, y] of [[60, 60], [60, 40]]) { g.beginPath(); g.arc(x, y, 2.5, 0, 7); g.fill(); } const b = await new Promise((r) => c.toBlob(r, 'image/png')); return Array.from(new Uint8Array(await b.arrayBuffer())); });
+    await page.setInputFiles('.ds-file', { name: 'pair.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+    await page.waitForSelector('.ds-img:not([hidden])');
+    const box = await page.locator('.ds-img').boundingBox(), k = box.width / 120;
+    await page.click('.ds-img', { position: { x: 61 * k, y: 59 * k } });
+    await page.click('.ds-img', { position: { x: 59 * k, y: 41 * k } });
+    check(/^Separation 7\.7\d″, position angle (0\.\d|359\.\d)°$/.test(await page.textContent('.ds-big')), `double star: taps snap to the stars (${await page.textContent('.ds-big')})`);
+    await page.check('.ds-mir'); await page.fill('.ds-ax', '60'); await page.fill('.ds-ay', '60'); await page.fill('.ds-bx', '40'); await page.fill('.ds-by', '60');
+    check(/position angle 270\.0°/.test(await page.textContent('.ds-big')), 'double star: mirrored image');
+  }
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/rotation-curve-fitter/');
+    await page.waitForFunction(() => document.querySelector('.rcv-big')?.textContent);
+    check((await page.textContent('.rcv-big')) === 'Dark matter is 80 % of the mass inside 30 kpc', `rotation curve: example dark share (${await page.textContent('.rcv-big')})`);
+    check(/M₂₀₀\)1\.1\d × 10¹² M☉/.test(await page.textContent('.rcv-facts')), 'rotation curve: halo virial mass');
+    await page.fill('.rcv-rd', '3'); await page.dispatchEvent('.rcv-rd', 'change');
+    check(/scale length 3 kpc \(fixed\)/.test(await page.textContent('.rcv-facts')), 'rotation curve: fixed scale length');
+    await page.selectOption('.rcv-halo', 'iso');
+    check(/core radius/.test(await page.textContent('.rcv-facts')) && !/M₂₀₀/.test(await page.textContent('.rcv-facts')), 'rotation curve: isothermal halo');
+    const rcCsv = readFileSync(await dl(page, '.rcv-csv'), 'utf8').trim().split(/\r?\n/);
+    check(rcCsv.length === 201 && rcCsv[0] === 'radius_kpc,total_km_s,bulge_km_s,disc_km_s,halo_km_s', 'rotation curve: CSV');
+    await page.fill('.rcv-in', '1 50\n2 60'); await page.dispatchEvent('.rcv-in', 'input'); await page.waitForTimeout(700);
+    check(/at least 4 rows/.test(await page.textContent('.rcv-err')), 'rotation curve: too few points explained');
+
+    await page.goto(BASE + '/science/spectral-line-identifier/');
+    await page.waitForFunction(() => document.querySelector('.sl-big')?.textContent);
+    check((await page.textContent('.sl-big')) === 'Redshift z = 0.0832, from 10 lines that agree; 10 of 10 lines identified', `spectral lines: example (${await page.textContent('.sl-big')})`);
+    check(/Hα6562\.8/.test(await page.textContent('.sl-tab')), 'spectral lines: Hα in the table');
+    await page.selectOption('.sl-kind', 'ab');
+    check(/Ca II K/.test(await page.textContent('.sl-tab')) && /O₂ A band \(not shifted\)/.test(await page.textContent('.sl-tab')), 'spectral lines: absorption and the atmosphere');
+    await page.click('.sl-sample2');
+    check(/O₂ A band \(not shifted\)/.test(await page.textContent('.sl-tab')) && /z = 0\.083/.test(await page.textContent('.sl-big')), 'spectral lines: list of wavelengths');
+    await page.selectOption('.sl-zmode', 'set'); await page.fill('.sl-z', '0'); await page.dispatchEvent('.sl-z', 'change');
+    await page.fill('.sl-in', '589.0\n656.3'); await page.selectOption('.sl-unit', '10');
+    check(/Na I D/.test(await page.textContent('.sl-tab')) && /Hα/.test(await page.textContent('.sl-tab')) && /Rest \(nm\)/.test(await page.textContent('.sl-tab')), 'spectral lines: nanometres at z = 0');
+    const slCsv = readFileSync(await dl(page, '.sl-csv'), 'utf8').trim().split(/\r?\n/);
+    check(slCsv.length === 3 && slCsv[0] === 'measured,line,rest,offset,also_possible', 'spectral lines: CSV');
+
+    await page.goto(BASE + '/science/transit-light-curve-fitter/');
+    await page.waitForFunction(() => document.querySelector('.tf-big')?.textContent);
+    check(/^1\.6\d % deep and 3\.1\d hours long: the planet is 0\.1(19|20|21) times/.test(await page.textContent('.tf-big')), `transit: example (${await page.textContent('.tf-big')})`);
+    check(/Star's mean density(0\.9\d|1\.0\d) ± 0\.1\d g\/cm³/.test(await page.textContent('.tf-facts')), 'transit: star density');
+    await page.fill('.tf-rs', '1.2'); await page.dispatchEvent('.tf-rs', 'change');
+    check(/Planet radius1[5-6]\.\d\d ± /.test(await page.textContent('.tf-facts')), 'transit: planet radius from the star radius');
+    await page.selectOption('.tf-ld', 'custom'); await page.fill('.tf-u1', '0.9'); await page.fill('.tf-u2', '0.5'); await page.dispatchEvent('.tf-u2', 'change');
+    check(/Limb darkening needs/.test(await page.textContent('.tf-err')), 'transit: impossible limb darkening explained');
+    await page.selectOption('.tf-ld', '0.40,0.25');
+    const tfCsv = readFileSync(await dl(page, '.tf-csv'), 'utf8').trim().split(/\r?\n/);
+    check(tfCsv.length === 302 && tfCsv[0] === 'hours_from_mid,time,relative_flux', 'transit: CSV');
+
+    await page.goto(BASE + '/science/star-fwhm-checker/');
+    await page.waitForFunction(() => /^Median FWHM/.test(document.querySelector('.fw-big')?.textContent ?? ''));
+    check(/^Median FWHM 4\.[2-5]\d px \(4\.\d\d″\), HFR 2\.\d\d px, from 1\d\d stars$/.test(await page.textContent('.fw-big')), `FWHM: example (${await page.textContent('.fw-big')})`);
+    check(/tracking or guiding error/.test(await page.textContent('.fw-facts')) && /sensor is probably tilted/.test(await page.textContent('.fw-facts')), 'FWHM: trailing and tilt diagnosed');
+    // A small 16-bit FITS file with 12 round Gaussian stars of FWHM 4 px, and pixel size and focal length in the header.
+    const W = 200, H = 150, card = (k, v) => (k.padEnd(8) + (v === undefined ? '' : '= ' + String(v).padStart(20))).padEnd(80);
+    const hdr = [card('SIMPLE', 'T'), card('BITPIX', 16), card('NAXIS', 2), card('NAXIS1', W), card('NAXIS2', H), card('BZERO', 32768), card('XPIXSZ', 3.76), card('FOCALLEN', 800), 'END'.padEnd(80)].join('').padEnd(2880);
+    const pix = new Float64Array(W * H).fill(300);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) { const cx = 30 + i * 45 + 0.3, cy = 30 + j * 45 - 0.2; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) pix[y * W + x] += 4000 * Math.exp(-0.5 * ((x - cx) ** 2 + (y - cy) ** 2) / (4 / 2.3548) ** 2); }
+    const data = Buffer.alloc(Math.ceil((W * H * 2) / 2880) * 2880);
+    let sd = 5; pix.forEach((v, i) => { sd = (sd * 16807) % 2147483647; data.writeInt16BE(Math.round(v + 6 * (sd / 2147483647 - 0.5)) - 32768, i * 2); });
+    await page.setInputFiles('.fw-in', { name: 'stars.fits', mimeType: 'application/fits', buffer: Buffer.concat([Buffer.from(hdr, 'latin1'), data]) });
+    await page.waitForFunction(() => /stars\.fits/.test(document.querySelector('.fw-title')?.textContent ?? '') && /^Median FWHM/.test(document.querySelector('.fw-big')?.textContent ?? ''));
+    check(/^Median FWHM (3\.9\d|4\.0\d) px \(3\.[89]\d″\), HFR (1\.9\d|2\.0\d) px, from 12 stars$/.test(await page.textContent('.fw-big')), `FWHM: FITS file with header scale (${await page.textContent('.fw-big')})`);
+    check(/Elongation1\.0\d/.test(await page.textContent('.fw-facts')) && /round/.test(await page.textContent('.fw-facts')), 'FWHM: round stars');
+    const fwCsv = readFileSync(await dl(page, '.fw-csv'), 'utf8').trim().split(/\r?\n/);
+    check(fwCsv.length === 13 && fwCsv[0].startsWith('x,y,FWHM (px),FWHM (″)'), 'FWHM: CSV of every star');
+  }
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/hydrogen-line-analyser/');
+    await page.waitForFunction(() => document.querySelector('.hi-big')?.textContent);
+    check(/^Terminal velocity 11[0-8]\.\d km\/s: the Milky Way turns at 22\d km\/s at 4\.25 kpc from its centre$/.test(await page.textContent('.hi-big')), `hydrogen: example (${await page.textContent('.hi-big')})`);
+    check(/Correction to LSR\+11\.6\d km\/s/.test(await page.textContent('.hi-facts')), 'hydrogen: LSR correction');
+    check((await page.$$('.hi-tab tbody tr')).length >= 3 && / or /.test(await page.textContent('.hi-tab')), 'hydrogen: peaks with near and far distances');
+    await page.click('.hi-pts-clear'); await page.click('.hi-add');
+    check((await page.inputValue('.hi-pts')).trim().split('\n').length === 1 && /1 pointing/.test(await page.textContent('.hi-curve-note')), 'hydrogen: pointing added to the rotation curve');
+    await page.selectOption('.hi-coord', 'eq'); await page.fill('.hi-c1', '18.5'); await page.fill('.hi-c2', '-10'); await page.dispatchEvent('.hi-c2', 'change');
+    check(/l = 2\d\.\d\d°/.test(await page.textContent('.hi-facts')), 'hydrogen: RA and Dec converted to galactic');
+    await page.fill('.hi-time', ''); await page.dispatchEvent('.hi-time', 'change');
+    check(/date and time/.test(await page.textContent('.hi-err')), 'hydrogen: missing time explained');
+    await page.click('.hi-sample');
+    const hiCsv = readFileSync(await dl(page, '.hi-csv'), 'utf8').trim().split(/\r?\n/);
+    check(hiCsv.length > 200 && hiCsv[0] === 'v_lsr_km_s,measured,baseline,line', 'hydrogen: CSV');
+
+    await page.goto(BASE + '/science/planet-data-explorer/');
+    await page.waitForFunction(() => document.querySelector('.pdx-big')?.textContent);
+    check((await page.textContent('.pdx-big')) === 'Earth is 1.88 times as wide as Mars and 9.30 times as heavy', `planets: compare (${await page.textContent('.pdx-big')})`);
+    check((await page.$$('.pdx-tab tbody tr')).length === 9, 'planets: nine rows');
+    await page.click('.pdx-sort >> nth=2');
+    check((await page.textContent('.pdx-tab tbody tr:first-child td')) === 'Saturn', 'planets: sort by density');
+    await page.click('.pdx-set button[data-s=moon]');
+    check((await page.$$('.pdx-tab tbody tr')).length === 11 && /Ganymede/.test(await page.textContent('.pdx-tab')), 'planets: moons');
+    await page.fill('.pdx-kg', '100');
+    check(/Moon16\.[56]/.test(await page.textContent('.pdx-wt')), 'planets: weight on the Moon');
+    await page.selectOption('.pdx-a', 'jupiter'); await page.selectOption('.pdx-b', 'earth');
+    check(/Jupiter is 11\.2 times as wide as Earth and 318 times as heavy/.test(await page.textContent('.pdx-big')), 'planets: Jupiter and Earth');
+    const pdCsv = readFileSync(await dl(page, '.pdx-csv'), 'utf8').trim().split(/\r?\n/);
+    check(pdCsv.length === 21 && pdCsv[0].startsWith('name,kind,orbits'), 'planets: CSV');
+
+    await page.goto(BASE + '/science/sunspot-counter/');
+    await page.waitForFunction(() => document.querySelector('.ssn-big')?.textContent);
+    check((await page.textContent('.ssn-big')) === 'R = 37: 3 groups and 7 spots', `sunspots: example (${await page.textContent('.ssn-big')})`);
+    {
+      const box = await page.locator('.ssn-img').boundingBox(), k = box.width / 600, at = { x: (304 + 0.62 * 264) * k, y: (297 + 0.3 * 264) * k };
+      await page.click('.ssn-img', { position: at });
+      check((await page.textContent('.ssn-big')) === 'R = 26: 2 groups and 6 spots', 'sunspots: tap leaves a spot out');
+      await page.click('.ssn-img', { position: at });
+      await page.click('.ssn-img', { position: { x: (304 - 0.1 * 264) * k, y: (297 + 0.6 * 264) * k } });
+      check((await page.textContent('.ssn-big')) === 'R = 48: 4 groups and 8 spots', 'sunspots: tap adds a spot');
+    }
+    await page.fill('.ssn-k', '0.6'); await page.dispatchEvent('.ssn-k', 'change');
+    check(/R = 0\.6 × \(10 × 4 \+ 8\) = 28\.8/.test(await page.textContent('.ssn-facts')), 'sunspots: k factor');
+    const ssCsv = readFileSync(await dl(page, '.ssn-csv'), 'utf8').trim().split(/\r?\n/);
+    check(ssCsv.length === 9 && ssCsv[0].startsWith('date,group'), 'sunspots: CSV');
+
+    await page.goto(BASE + '/science/image-stacker/');
+    await page.click('.stk-go');
+    check(/at least two light frames/.test(await page.textContent('.stk-err')), 'stacker: needs lights');
+    await page.click('.stk-sample');
+    await page.waitForSelector('.stk-out:not([hidden])', { timeout: 60000 });
+    check(/^8 of 8 frames stacked: the background noise is (2\.[6-9]|3(\.\d)?) times lower than in one frame$/.test(await page.textContent('.stk-big')), `stacker: example (${await page.textContent('.stk-big')})`);
+    check(/25 hot pixels/.test(await page.textContent('.stk-facts')) && /corners get 5\d %/.test(await page.textContent('.stk-facts')), 'stacker: darks and flats');
+    check((await page.$$eval('.stk-tab tbody tr', (r) => r.filter((x) => /used$/.test(x.textContent)).length)) === 8, 'stacker: all frames aligned');
+    const fitsFile = await dl(page, '.stk-fits'), fb = readFileSync(fitsFile);
+    check(fb.length % 2880 === 0 && fb.slice(0, 30).toString('latin1').startsWith('SIMPLE  =') && /BITPIX  =\s+-32/.test(fb.slice(0, 800).toString('latin1')), 'stacker: FITS download');
+    await page.click('.stk-view button[data-v=raw]');
+    check((await page.getAttribute('.stk-view button[data-v=raw]', 'aria-pressed')) === 'true', 'stacker: compare with a raw frame');
+  }
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/variable-star-log/');
+    await page.waitForFunction(() => document.querySelector('.vsl-est')?.textContent);
+    check(/^Estimate: 11\.1 /.test(await page.textContent('.vsl-est')), 'variable stars: step estimate');
+    await page.click('.vsl-sample');
+    check(/^26 observations of 2 stars: 22 visual, 4 camera\./.test(await page.textContent('.vsl-count')) && /from 8\.3 at brightest to 12\.1 at faintest/.test(await page.textContent('.vsl-plot-note')), `variable stars: example (${await page.textContent('.vsl-count')})`);
+    check((await page.$$('.vsl-tab tbody tr')).length === 25, 'variable stars: table of the chosen star');
+    await page.fill('.vsl-name', 'Mira'); await page.fill('.vsl-time', '2026-10-01T03:00'); await page.fill('.vsl-mag', '3.4'); await page.click('.vsl-add');
+    check((await page.inputValue('.vsl-star')) === 'MIRA' && /2461314\.6250/.test(await page.textContent('.vsl-tab')), 'variable stars: add an estimate with its JD');
+    await page.fill('.vsl-mag', 'x'); await page.click('.vsl-add');
+    check(/as a number/.test(await page.textContent('.vsl-err')), 'variable stars: bad magnitude explained');
+    await page.click('.vsl-vis-dl');
+    check(/observer code/.test(await page.textContent('.vsl-io-err')), 'variable stars: observer code needed');
+    await page.fill('.vsl-obscode', 'abcd');
+    const vis = readFileSync(await dl(page, '.vsl-vis-dl'), 'utf8').trim().split(/\r?\n/);
+    check(vis[0] === '#TYPE=VISUAL' && vis[1] === '#OBSCODE=ABCD' && vis.length === 6 + 23 && vis.includes('MIRA,2461314.6250,3.4,na,na,na,na,na') && vis.some((l) => l.startsWith('SS CYG,') && /,<12\.4,U,/.test(l)), 'variable stars: AAVSO visual file');
+    const ext = readFileSync(await dl(page, '.vsl-ext-dl'), 'utf8').trim().split(/\r?\n/);
+    check(ext[0] === '#TYPE=EXTENDED' && ext.length === 7 + 4 && /^SS CYG,\d+\.\d{5},8\.405,0\.007,TG,NO,ABS,000-BCP-170,8\.968,/.test(ext[9]), 'variable stars: AAVSO extended file');
+    await page.click('.vsl-help-kind button[data-h=flux]');
+    check((await page.textContent('.vsl-est')) === 'Magnitude: 11.426', 'variable stars: differential photometry');
+    await page.click('.vsl-use');
+    check((await page.inputValue('.vsl-mag')) === '11.426' && await page.isVisible('.vsl-cname'), 'variable stars: use the magnitude');
+    page.once('dialog', (d) => d.accept()); await page.click('.vsl-clear');
+    check(/No observations yet/.test(await page.textContent('.vsl-count')), 'variable stars: clear');
+    await page.setInputFiles('.vsl-in', { name: 'mine.txt', mimeType: 'text/plain', buffer: Buffer.from(vis.join('\n')) });
+    await page.waitForFunction(() => /Added/.test(document.querySelector('.vsl-count')?.textContent || ''));
+    check(/^Added 23 of 23 from mine\.txt/.test(await page.textContent('.vsl-count')) && (await page.inputValue('.vsl-obscode')) === 'ABCD', 'variable stars: open an AAVSO file');
+  }
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/molar-mass-calculator/');
+    await page.waitForFunction(() => document.querySelector('.mmc-big')?.textContent);
+    check((await page.textContent('.mmc-big')) === 'CuSO₄·5H₂O: 249.68 g/mol', `molar mass: example (${await page.textContent('.mmc-big')})`);
+    check(/Cu \(Copper\)1.*25\.45/.test(await page.textContent('.mmc-tab')), 'molar mass: composition');
+    check((await page.textContent('.mmc-conv')).startsWith('10 g = 0.040052 mol'), `molar mass: grams to moles (${await page.textContent('.mmc-conv')})`);
+    await page.fill('.mmc-mol', '2');
+    check((await page.inputValue('.mmc-g')) === '499.35', 'molar mass: moles to grams');
+    await page.click('.mmc-ex button[data-f="C8H10N4O2"]');
+    check((await page.textContent('.mmc-big')) === 'C₈H₁₀N₄O₂: 194.19 g/mol' && /194\.08038/.test(await page.textContent('.mmc-facts')) && /Rings plus double bonds6/.test(await page.textContent('.mmc-facts')), 'molar mass: caffeine');
+    await page.fill('.mmc-in', 'Xy2');
+    check(/not an element symbol/.test(await page.textContent('.mmc-err')) && await page.isHidden('.mmc-tab'), 'molar mass: bad symbol explained');
+    await page.fill('.mmc-in', 'SO4^2-');
+    check((await page.textContent('.mmc-big')) === 'SO₄²⁻: 96.06 g/mol' && /Charge−2/.test(await page.textContent('.mmc-facts')), 'molar mass: ion');
+    const mmCsv = readFileSync(await dl(page, '.mmc-csv'), 'utf8').trim().split(/\r?\n/);
+    check(mmCsv[0].startsWith('element,name,atoms') && mmCsv.length === 4, 'molar mass: CSV');
+
+    await page.goto(BASE + '/science/equation-balancer/');
+    await page.waitForFunction(() => document.querySelector('.eqb-big')?.textContent);
+    check((await page.textContent('.eqb-big')) === 'C₃H₈ + 5O₂ → 3CO₂ + 4H₂O', `balancer: propane (${await page.textContent('.eqb-big')})`);
+    check((await page.$$eval('.eqb-check tbody tr', (r) => r.filter((x) => x.textContent.endsWith('✓')).length)) === 3, 'balancer: atom check');
+    check(/At most 29\.94 g of CO₂, 16\.34 g of H₂O/.test(await page.textContent('.eqb-lim')), `balancer: yield with oxygen in excess (${await page.textContent('.eqb-lim')})`);
+    await page.fill('.eqb-amt-1', '20'); await page.dispatchEvent('.eqb-amt-1', 'change');
+    check(/^O₂ runs out first\. At most 16\.50 g of CO₂/.test(await page.textContent('.eqb-lim')) && /4\.488 g/.test(await page.textContent('.eqb-tab')), 'balancer: limiting reagent and leftover');
+    await page.fill('.eqb-actual', '15');
+    check(/Percent yield: 90\.9 %/.test(await page.textContent('.eqb-pct')), `balancer: percent yield (${await page.textContent('.eqb-pct')})`);
+    await page.click('.eqb-ex button:nth-of-type(4)');
+    check((await page.textContent('.eqb-big')) === 'MnO₄⁻ + 5Fe²⁺ + 8H⁺ → Mn²⁺ + 5Fe³⁺ + 4H₂O' && /Charge1717✓/.test(await page.textContent('.eqb-check')), 'balancer: ionic redox');
+    await page.fill('.eqb-in', 'H2O -> H2 + CO2');
+    check(/Carbon \(C\) appears on only one side/.test(await page.textContent('.eqb-err')), 'balancer: impossible reaction explained');
+    await page.fill('.eqb-in', 'Fe + O2 = Fe2O3');
+    const eqCsv = readFileSync(await dl(page, '.eqb-csv'), 'utf8').trim().split(/\r?\n/);
+    check(eqCsv.length === 4 && eqCsv[0].startsWith('Substance,Coefficient'), 'balancer: CSV');
+
+    await page.goto(BASE + '/science/isotope-pattern-calculator/');
+    await page.waitForFunction(() => document.querySelector('.ipc-big')?.textContent);
+    check((await page.textContent('.ipc-big')) === '[M+H]⁺: m/z 286.1438', `isotopes: morphine (${await page.textContent('.ipc-big')})`);
+    check(/M\+1 ÷ M19\.1 %/.test(await page.textContent('.ipc-facts')), 'isotopes: M+1');
+    check(/\[M\+Na\]⁺C₁₇H₁₉NNaO₃⁺308\.12571/.test(await page.textContent('.ipc-all')), 'isotopes: all ions table');
+    await page.fill('.ipc-meas', '286.1436 100\n287.1470 19.5\n288.1497 2.4');
+    check(/^Mass error -0\.6 ppm/.test(await page.textContent('.ipc-cmp-big')) && /A good match/.test(await page.textContent('.ipc-cmp-big')), `isotopes: measured peaks (${await page.textContent('.ipc-cmp-big')})`);
+    await page.click('.ipc-ex button[data-f="CH2Cl2"]'); await page.selectOption('.ipc-ad', 'M+');
+    check(/M\+2 ÷ M64\.0 %/.test(await page.textContent('.ipc-facts')), 'isotopes: chlorine M+2');
+    await page.click('.ipc-mode button[data-m=fine]');
+    check((await page.$$('.ipc-tab tbody tr')).length > 5, 'isotopes: fine structure');
+    await page.fill('.ipc-in', 'C6H12O6^+');
+    check(/neutral molecule/.test(await page.textContent('.ipc-err')), 'isotopes: charged input explained');
+    await page.click('.ipc-ex button[data-f="C254H377N65O75S6"]'); await page.selectOption('.ipc-ad', 'M+H');
+    check(/M\+3 is taller/.test(await page.textContent('.ipc-facts')), 'isotopes: protein');
+    const ipCsv = readFileSync(await dl(page, '.ipc-csv'), 'utf8').trim().split(/\r?\n/);
+    check(ipCsv[0] === 'mz,mass,relative_abundance' && ipCsv.length > 10, 'isotopes: CSV');
+  }
+  {
+    await page.goto(BASE + '/science/reaction-kinetics-fitter/');
+    await page.waitForFunction(() => document.querySelector('.rkf-big')?.textContent);
+    check((await page.textContent('.rkf-big')) === 'First order fits best: k = (6.174 ± 0.025) × 10⁻⁴ 1/s, half-life 1123 s', `kinetics: example (${await page.textContent('.rkf-big')})`);
+    check(/First orderrate = k\[A\].*100 %/.test(await page.textContent('.rkf-tab')) && /n = 0\.98\d* ± 0\.009\d*, close to 1/.test(await page.textContent('.rkf-free')), 'kinetics: support and free order');
+    await page.click('.rkf-view button[data-v="1"]');
+    check(/R² = 0\.9999/.test(await page.textContent('.rkf-fig-note')), 'kinetics: ln[A] plot');
+    await page.fill('.rkf-data', '0 0.050\n10 0.0357\n20 0.0278\n40 0.0192\n60 0.0147\n100 0.0100\n150 0.0071');
+    check(/^Second order fits best: k = .*L\/\(mol·s\)/.test(await page.textContent('.rkf-big')), `kinetics: second order (${await page.textContent('.rkf-big')})`);
+    await page.fill('.rkf-data', '0 1\n1 0.5');
+    check(/at least three points/.test(await page.textContent('.rkf-err')), 'kinetics: too few points explained');
+    check((await page.textContent('.rkf-arr-big')) === 'Ea = 158.4 ± 2.6 kJ/mol' && /1\.81 × 10¹³/.test(await page.textContent('.rkf-arr-facts')), `kinetics: Arrhenius (${await page.textContent('.rkf-arr-big')})`);
+    await page.fill('.rkf-arr', '300 1\n310 2'); await page.selectOption('.rkf-tunit', 'K');
+    check((await page.textContent('.rkf-arr-big')) === 'Ea = 53.60 kJ/mol', `kinetics: two-point Arrhenius (${await page.textContent('.rkf-arr-big')})`);
+
+    await page.goto(BASE + '/science/titration-curve/');
+    await page.waitForFunction(() => document.querySelector('.tit-big')?.textContent);
+    check((await page.textContent('.tit-big')) === 'Equivalence at 25.00 mL, pH 8.73', `titration: acetic (${await page.textContent('.tit-big')})`);
+    check(/Starting pH2\.88/.test(await page.textContent('.tit-facts')) && /pH 4\.76/.test(await page.textContent('.tit-facts')), 'titration: start and half-way');
+    check((await page.textContent('.tit-ind tbody tr:first-child td')) === 'Phenolphthalein', 'titration: indicator');
+    await page.click('.tit-fill');
+    check(/^End point at 25\.0\d mL/.test(await page.textContent('.tit-mbig')) && /Analyte concentration0\.(0999|1000)/.test(await page.textContent('.tit-mfacts')), `titration: end point (${await page.textContent('.tit-mbig')})`);
+    await page.selectOption('.tit-preset', 'phosphoric');
+    check((await page.textContent('.tit-big')) === 'Equivalence points at 25.00, 50.00 mL (pH 4.70, 9.66)' && /Steps with no clear jump75\.00 mL/.test(await page.textContent('.tit-facts')), 'titration: phosphoric acid');
+    await page.selectOption('.tit-preset', 'ammonia');
+    check((await page.textContent('.tit-big')) === 'Equivalence at 25.00 mL, pH 5.28' && (await page.textContent('.tit-tname')) === 'HCl', 'titration: ammonia with HCl');
+    await page.selectOption('.tit-preset', 'hcl');
+    check((await page.textContent('.tit-big')) === 'Equivalence at 25.00 mL, pH 7.00', 'titration: strong acid');
+    await page.fill('.tit-pka', 'abc');
+    check(/pKa values/.test(await page.textContent('.tit-err')), 'titration: bad pKa explained');
+  }
+  {
+    // "Open a file" on the paste boxes of the science tools: limits shown, data loaded, the tool updates.
+    await page.goto(BASE + '/science/reaction-kinetics-fitter/');
+    await page.waitForFunction(() => document.querySelector('.rkf-big')?.textContent);
+    check((await page.$$('.dfb')).length === 2 && /up to 10 MB, 2 columns and 50,000 rows/.test(await page.textContent('.dfb-limit')), 'data files: kinetics shows two upload buttons with limits');
+    await page.setInputFiles('.dfb >> nth=0 >> .dfb-in', { name: 'run.csv', mimeType: 'text/csv', buffer: Buffer.from('time,conc,notes\n0,0.050,a\n10,0.0357,b\n20,0.0278,c\n40,0.0192,d\n60,0.0147,e\n100,0.0100,f\n150,0.0071,g\n') });
+    await page.waitForFunction(() => /^Second order/.test(document.querySelector('.rkf-big')?.textContent ?? ''));
+    check(/Opened run\.csv: 8 rows and 2 columns\. The file has 3 columns; only the first 2 are used/.test(await page.textContent('.dfb-note')), 'data files: CSV loaded into kinetics, extra column trimmed');
+    await page.goto(BASE + '/science/calibration-curve/');
+    await page.waitForLoadState('networkidle');
+    const before = await page.inputValue('.cc-std');
+    await page.setInputFiles('.dfb >> nth=0 >> .dfb-in', { name: 'empty.csv', mimeType: 'text/csv', buffer: Buffer.from('\n\n') });
+    await page.waitForSelector('.dfb-err:not([hidden])');
+    check(/empty/.test(await page.textContent('.dfb-err')) && (await page.inputValue('.cc-std')) === before, 'data files: empty file explained, data kept');
+  }
+  {
+    await page.goto(BASE + '/science/gas-law-calculator/');
+    await page.waitForFunction(() => document.querySelector('.gas-big')?.textContent);
+    check((await page.textContent('.gas-big')) === 'Volume: 22.414 L' && /Density1\.250 g\/L/.test(await page.textContent('.gas-facts')), `gas: molar volume of nitrogen (${await page.textContent('.gas-big')})`);
+    check((await page.textContent('.gas-cbig')) === 'V₂ = 1.2516 L', 'gas: combined law');
+    await page.selectOption('.gas-gas', 'co2'); await page.fill('.gas-V', '1'); await page.fill('.gas-P', ''); await page.fill('.gas-T', '27');
+    check((await page.textContent('.gas-big')) === 'Pressure: 2495.6 kPa' && /Real gas \(van der Waals\)2242\.8 kPa/.test(await page.textContent('.gas-facts')) && /Critical temperature30\.85 °C/.test(await page.textContent('.gas-facts')), 'gas: CO2 real gas and critical point');
+    await page.fill('.gas-P', '100'); await page.fill('.gas-n', '');
+    await page.selectOption('.gas-nu', 'g');
+    check(/^Amount: 1\.76\d* g$/.test(await page.textContent('.gas-big')), `gas: grams of CO2 (${await page.textContent('.gas-big')})`);
+    await page.selectOption('.gas-gas', 'ideal');
+    check(/Choose a gas/.test(await page.textContent('.gas-err')), 'gas: grams need a gas');
+    await page.fill('.gas-P', '');
+    check(/exactly one/.test(await page.textContent('.gas-err')) || /Choose a gas/.test(await page.textContent('.gas-err')), 'gas: two blanks explained');
+
+    await page.goto(BASE + '/science/beer-lambert-calculator/');
+    await page.waitForFunction(() => document.querySelector('.bl-big')?.textContent);
+    check((await page.textContent('.bl-big')) === 'Concentration: 0.1000 mmol/L' && /Transmittance23\.88 %/.test(await page.textContent('.bl-facts')), `Beer–Lambert: NADH (${await page.textContent('.bl-big')})`);
+    await page.fill('.bl-A', '2.5');
+    check(/too high/.test(await page.textContent('.bl-facts')), 'Beer–Lambert: high absorbance warned');
+    await page.fill('.bl-A', '0.622');
+    await page.click('.bl-sample');
+    check(/259 \(1\.44\d\), 3(39|40) \(0\.62\d\)/.test(await page.textContent('.bl-tab')) && /0\.(0999\d|1000) mmol\/L/.test(await page.textContent('.bl-tab')), `Beer–Lambert: spectrum maxima and concentration (${await page.textContent('.bl-tab')})`);
+    await page.setInputFiles('.dfb-in', { name: 'two.csv', mimeType: 'text/csv', buffer: Buffer.from('nm,A,B\n300,10,50\n320,20,40\n340,50,30\n360,20,20\n380,10,10\n') });
+    await page.waitForFunction(() => /two\.csv/.test(document.querySelector('.dfb-note')?.textContent ?? ''));
+    await page.selectOption('.bl-kind', 'T');
+    check((await page.$$('.bl-tab tbody tr')).length === 2 && /^A/.test(await page.textContent('.bl-tab tbody tr:first-child td')), 'Beer–Lambert: transmittance file with two samples');
+
+    await page.goto(BASE + '/science/reaction-equivalents/');
+    await page.waitForFunction(() => document.querySelector('.req-big')?.textContent);
+    const reqTab = await page.textContent('.req-tab');
+    check(/935\.2 mg626 µL/.test(reqTab) && /731\.6 mg/.test(reqTab) && /1\.382 g/.test(reqTab) && /1155\.59/.test(reqTab) && /288\.9 mg/.test(reqTab), `equivalents: Suzuki table (${reqTab})`);
+    await page.fill('.req-actual', '780');
+    check(/921\.2 mg.*84\.7 %/.test(await page.textContent('.req-yield')), `equivalents: yield (${await page.textContent('.req-yield')})`);
+    await page.selectOption('.req-by', 'mg'); await page.fill('.req-scale', '1200');
+    check(/6\.416 mmol/.test(await page.textContent('.req-big')), 'equivalents: scale from 1.20 g');
+    await page.selectOption('.req-by-row', '1'); await page.selectOption('.req-by', 'ul');
+    check(/density or a molarity/.test(await page.textContent('.req-err')), 'equivalents: volume scale of a solid explained');
+    await page.click('.req-add');
+    check(/give a formula or molar mass/.test(await page.textContent('.req-err')), 'equivalents: empty reagent explained');
+    await page.click('.req-example');
+    check((await page.$$('.req-tab tbody tr')).length === 4 && /5 mmol/.test(await page.textContent('.req-big')), 'equivalents: example reloads');
+
+    await page.goto(BASE + '/science/chromatography-calculator/');
+    await page.waitForFunction(() => document.querySelector('.chr-big')?.textContent);
+    check(/Rs = 2\.66/.test(await page.textContent('.chr-big')) && /N₂ = 10,919/.test(await page.textContent('.chr-facts')) && /13\.7 µm/.test(await page.textContent('.chr-facts')), `chromatography: resolution and plates (${await page.textContent('.chr-big')})`);
+    check(/0\.579 mL\/min, inject 1\.67 µL/.test(await page.textContent('.chr-tbig')) && /\+11 %/.test(await page.textContent('.chr-tfacts')) && /3\.74/.test(await page.textContent('.chr-gtab')), `chromatography: method transfer (${await page.textContent('.chr-tbig')})`);
+    await page.selectOption('.chr-wk', 'base');
+    check(/Rs = 4\.52/.test(await page.textContent('.chr-big')), `chromatography: baseline widths (${await page.textContent('.chr-big')})`);
+    await page.fill('.chr-t2', '6.0');
+    check(/after peak 1/.test(await page.textContent('.chr-err')), 'chromatography: peak order explained');
+    await page.fill('.chr-L2', '50');
+    check(/outside/.test(await page.textContent('.chr-tfacts')), 'chromatography: USP window warning');
+
+    await page.goto(BASE + '/science/method-validation/');
+    await page.waitForFunction(() => document.querySelector('.mv-big')?.textContent);
+    check((await page.textContent('.mv-big')) === 'RSD 0.82 %, recovery 100.3 %, 1 outlier flagged (103.9 in Day 2)', `validation: headline (${await page.textContent('.mv-big')})`);
+    const mvf = await page.textContent('.mv-facts');
+    check(/s_I = 1\.06/.test(mvf) && /F = 4\.92, p = 0\.023/.test(mvf) && /Recovery100\.33 %/.test(mvf) && /p = 0\.180: no significant bias/.test(mvf), `validation: precision and accuracy (${mvf})`);
+    check(/103\.9 flagged \(G 2\.01 > 1\.89\)/.test(await page.textContent('.mv-tab')), 'validation: Grubbs in the table');
+    await page.fill('.mv-conc', '5');
+    check(/HorRat 0\.34/.test(await page.textContent('.mv-facts')), 'validation: Horwitz ratio');
+    await page.check('.mv-drop');
+    check(/^RSD 0\.31 %, recovery 100\.1 %, 1 outlier left out/.test(await page.textContent('.mv-big')), `validation: outlier left out (${await page.textContent('.mv-big')})`);
+    await page.click('.mv-clear');
+    check(/Paste your replicate results/.test(await page.textContent('.mv-err')), 'validation: empty box explained');
+    await page.setInputFiles('.dfb-in', { name: 'reps.csv', mimeType: 'text/csv', buffer: Buffer.from('Run\n10.1\n10.3\n9.9\n10.0\n10.2\n') });
+    await page.waitForFunction(() => /RSD 1\.57 %/.test(document.querySelector('.mv-big')?.textContent ?? ''));
+    await page.fill('.mv-true', '10');
+    check((await page.textContent('.mv-big')) === 'RSD 1.57 %, recovery 101.0 %, no outliers', `validation: one-column file (${await page.textContent('.mv-big')})`);
+
+    await page.goto(BASE + '/science/colligative-properties/');
+    await page.waitForFunction(() => document.querySelector('.col-big')?.textContent);
+    check((await page.textContent('.col-big')) === 'Freezes at -0.516 °C, boils at 100.142 °C' && /6\.859 bar/.test(await page.textContent('.col-facts')), `colligative: glucose in water (${await page.textContent('.col-big')})`);
+    check((await page.textContent('.col-mbig')) === 'Molar mass ≈ 256 g/mol' && /0\.998: a good match/.test(await page.textContent('.col-mfacts')), 'colligative: S8 from benzene');
+    await page.fill('.col-exp', 'S');
+    check(/8-unit clusters/.test(await page.textContent('.col-mfacts')), 'colligative: clusters recognised');
+    await page.selectOption('.col-meth', 'osm'); await page.fill('.col-ms', '100'); await page.fill('.col-dt', '3.73');
+    check((await page.textContent('.col-mbig')) === 'Molar mass ≈ 66,500 g/mol', `colligative: albumin by osmometry (${await page.textContent('.col-mbig')})`);
+    await page.selectOption('.col-solv', 'camphor');
+    check(!/Boiling point/.test(await page.textContent('.col-facts')) && /Freezing point/.test(await page.textContent('.col-facts')), 'colligative: camphor has only Kf');
+    await page.selectOption('.col-ipre', '2');
+    check((await page.inputValue('.col-i')) === '2', 'colligative: i preset');
+    await page.fill('.col-sol', 'Xx');
+    check(/solute formula/.test(await page.textContent('.col-err')), 'colligative: bad formula explained');
+
+    await page.goto(BASE + '/science/equilibrium-solver/');
+    await page.waitForFunction(() => document.querySelector('.eqs-big')?.textContent);
+    check((await page.textContent('.eqs-big')) === 'Goes forward: at equilibrium HI = 0.7865 mol/L' && /0\.1067/.test(await page.textContent('.eqs-tab')), `equilibrium: Chang's HI (${await page.textContent('.eqs-big')})`);
+    await page.fill('.eqs-dadd', '0.2');
+    check(/^Shifts towards products/.test(await page.textContent('.eqs-lbig')) && /0\.8870/.test(await page.textContent('.eqs-ltab')), 'equilibrium: adding H2 shifts right');
+    await page.selectOption('.eqs-ex', 'acetic');
+    check(/pH2\.88/.test(await page.textContent('.eqs-facts')), 'equilibrium: acetic acid pH');
+    await page.selectOption('.eqs-ex', 'n2o4');
+    check(/Kp0\.1148/.test(await page.textContent('.eqs-facts')), `equilibrium: Kp from Kc (${await page.textContent('.eqs-facts')})`);
+    await page.fill('.eqs-dvol', '0.5');
+    check(/towards reactants \(left\): squeezing/.test(await page.textContent('.eqs-lbig')), 'equilibrium: squeezing N2O4');
+    await page.fill('.eqs-dvol', '1'); await page.fill('.eqs-dT', '50'); await page.fill('.eqs-dH', '57.2');
+    check(/K becomes 0\.02760 at 50 °C/.test(await page.textContent('.eqs-lbig')), 'equilibrium: van \'t Hoff');
+    await page.selectOption('.eqs-ex', 'agcl');
+    check(/Ag⁺ = 1\.8/.test(await page.textContent('.eqs-big')) && /Molar solubility/.test(await page.textContent('.eqs-facts')), `equilibrium: AgCl common ion (${await page.textContent('.eqs-big')})`);
+    await page.fill('.eqs-rxn', 'H2 + I2');
+    check(/arrow/.test(await page.textContent('.eqs-err')), 'equilibrium: missing arrow explained');
+
+    await page.goto(BASE + '/science/cyclic-voltammetry/');
+    await page.waitForFunction(() => document.querySelector('.cv-big')?.textContent && document.querySelector('.cv-sbig')?.textContent);
+    check((await page.textContent('.cv-big')) === 'ΔEp 58 mV, E½ 199 mV: reversible (fast electron transfer)', `CV: example peaks (${await page.textContent('.cv-big')})`);
+    check(/ip = 18\.9\d µA/.test(await page.textContent('.cv-facts')) && /Peak ratio1\.0\d/.test(await page.textContent('.cv-facts')), 'CV: peak current and ratio');
+    check(/^D = 9\.9\d × 10⁻⁶ cm²\/s$/.test(await page.textContent('.cv-rbig')), `CV: D from the peak (${await page.textContent('.cv-rbig')})`);
+    check(/log–log slope 0\.50: diffusion controlled/.test(await page.textContent('.cv-sbig')), 'CV: scan-rate study');
+    await page.fill('.cv-D', '1e-5'); await page.fill('.cv-ip', '');
+    check(/^Peak current 18\.99 µA$/.test(await page.textContent('.cv-rbig')), `CV: Randles–Sevcik forward (${await page.textContent('.cv-rbig')})`);
+    await page.fill('.cv-A', '');
+    check(/Leave exactly one box empty/.test(await page.textContent('.cv-rerr')), 'CV: two blanks explained');
+    await page.selectOption('.cv-sign', '-1');
+    check(/switch the current sign/.test(await page.textContent('.cv-big')), 'CV: wrong sign hinted');
+    await page.selectOption('.cv-sign', '1');
+    await page.setInputFiles('.dfb-in >> nth=0', { name: 'irr.csv', mimeType: 'text/csv', buffer: Buffer.from('E,I\n' + Array.from({ length: 40 }, (_, i) => { const e = i < 20 ? i * 0.05 : (39 - i) * 0.05; return `${e.toFixed(2)},${(i < 20 ? Math.exp(-((e - 0.6) ** 2) / 0.02) : 0.02).toFixed(4)}`; }).join('\n')) });
+    await page.waitForFunction(() => /no return peak/.test(document.querySelector('.cv-big')?.textContent ?? ''));
+    check(/Anodic peak at 600 mV/.test(await page.textContent('.cv-big')), `CV: irreversible file (${await page.textContent('.cv-big')})`);
+
+    await page.goto(BASE + '/science/tlc-rf-calculator/');
+    await page.waitForFunction(() => document.querySelector('.tlc-big')?.textContent);
+    check((await page.textContent('.tlc-big')) === '6 spots in 3 lanes, Rf 0.12 to 0.58', `TLC: example plate (${await page.textContent('.tlc-big')})`);
+    check(/spots 3 and 4: ΔRf 0\.22, ΔCV 1\.1/.test(await page.textContent('.tlc-facts')), 'TLC: closest pair');
+    const cvBox = await page.locator('.tlc-cv').boundingBox();
+    await page.locator('.tlc-cv').click({ position: { x: cvBox.width * 0.5, y: cvBox.height * 0.5 } });
+    check(/^7 spots/.test(await page.textContent('.tlc-big')) && (await page.$$('.tlc-tab tbody tr')).length === 7, 'TLC: tap adds a spot');
+    await page.click('.tlc-undo');
+    check(/^6 spots/.test(await page.textContent('.tlc-big')), 'TLC: undo');
+    await page.click('.tlc-tab tbody tr:last-child button');
+    check(/^5 spots in 3 lanes, Rf 0\.36 to 0\.58/.test(await page.textContent('.tlc-big')), 'TLC: remove a spot');
+    check(/0\.35.*0\.62/.test(await page.textContent('.tlc-mtab')) && /ΔCV 1\.3/.test(await page.textContent('.tlc-mnote')), 'TLC: measured distances');
+    await page.fill('.tlc-sd', '60 too far');
+    check(/further than the solvent front/.test(await page.textContent('.tlc-merr')), 'TLC: impossible distance explained');
+    const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 40; c.height = 60; const x = c.getContext('2d'); x.fillStyle = '#ddd'; x.fillRect(0, 0, 40, 60); return c.toDataURL('image/png').split(',')[1]; });
+    await page.setInputFiles('.tlc-file', { name: 'plate.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+    await page.waitForFunction(() => /Tap the baseline/.test(document.querySelector('.tlc-big')?.textContent ?? ''));
+    check(true, 'TLC: own photo opens and asks for the baseline');
+
+    await page.goto(BASE + '/science/huckel-mo-calculator/');
+    await page.waitForFunction(() => document.querySelector('.hmo-big')?.textContent);
+    check((await page.textContent('.hmo-big')) === 'Benzene: 6 π electrons, Eπ = 6α + 8.000β, delocalisation energy 2.000β', `Hückel: benzene (${await page.textContent('.hmo-big')})`);
+    check(/aromatic \(4n \+ 2/.test(await page.textContent('.hmo-facts')) && (await page.$$('.hmo-tab tbody tr')).length === 6, 'Hückel: aromatic and six MOs');
+    await page.selectOption('.hmo-pre', 'butadiene');
+    check(/delocalisation energy 0\.472β/.test(await page.textContent('.hmo-big')) && /1–20\.894/.test(await page.textContent('.hmo-btab')), 'Hückel: butadiene');
+    await page.selectOption('.hmo-pre', 'cyclobutadiene');
+    check(/antiaromatic/.test(await page.textContent('.hmo-facts')) && /2 half-filled orbitals/.test(await page.textContent('.hmo-facts')), 'Hückel: cyclobutadiene diradical');
+    await page.selectOption('.hmo-pre', 'pyridine');
+    check(/not shown with heteroatoms/.test(await page.textContent('.hmo-facts')) && /1 \(N\)/.test(await page.textContent('.hmo-atab')), 'Hückel: pyridine');
+    await page.fill('.hmo-het', '9 N');
+    check(/atom number must be 1 to 6/.test(await page.textContent('.hmo-err')), 'Hückel: bad heteroatom explained');
+    await page.fill('.hmo-het', ''); await page.fill('.hmo-n', '3'); await page.fill('.hmo-bonds', '1-2 2-3'); await page.fill('.hmo-q', '-1');
+    check(/^4 π electrons, Eπ = 4α \+ 2\.828β, delocalisation energy 0\.828β$/.test(await page.textContent('.hmo-big')), `Hückel: own allyl anion (${await page.textContent('.hmo-big')})`);
+
+    await page.goto(BASE + '/science/crystal-field-calculator/');
+    await page.waitForFunction(() => document.querySelector('.cfs-big')?.textContent);
+    check((await page.textContent('.cfs-big')) === 'High spin d⁶: t2g⁴ eg², 4 unpaired electrons, μ = 4.90 BM', `crystal field: Fe(H2O)6 (${await page.textContent('.cfs-big')})`);
+    await page.fill('.cfs-D', '33000');
+    check(/^Low spin d⁶: t2g⁶ eg⁰, 0 unpaired/.test(await page.textContent('.cfs-big')) && /−2\.4Δo/.test(await page.textContent('.cfs-facts')), 'crystal field: low spin with cyanide');
+    await page.selectOption('.cfs-m', 'Cu');
+    check((await page.inputValue('.cfs-d')) === '9' && /strong distortion/.test(await page.textContent('.cfs-facts')), 'crystal field: Cu2+ Jahn–Teller');
+    await page.selectOption('.cfs-m', 'Ti'); await page.fill('.cfs-ox', '3'); await page.fill('.cfs-nm', '493');
+    check(/20284 cm⁻¹ = 242\.7 kJ\/mol/.test(await page.textContent('.cfs-facts')) && /absorbs blue-green light/.test(await page.textContent('.cfs-facts')), `crystal field: band to Δ (${await page.textContent('.cfs-facts')})`);
+    await page.fill('.cfs-nm', ''); await page.selectOption('.cfs-m', 'Ni'); await page.fill('.cfs-ox', '2'); await page.fill('.cfs-D', '33000'); await page.selectOption('.cfs-g', 'sp');
+    check(/0 unpaired/.test(await page.textContent('.cfs-big')) && /d⁸ square planar/.test(await page.textContent('.cfs-facts')), 'crystal field: square planar Ni2+');
+    await page.selectOption('.cfs-u', 'kj');
+    check(/kJ\/mol/.test(await page.textContent('.cfs-facts')) && Math.abs(Number(await page.inputValue('.cfs-D')) - 394.8) < 0.5, `crystal field: unit switch (${await page.inputValue('.cfs-D')})`);
+    await page.fill('.cfs-d', '12');
+    check(/0 to 10/.test(await page.textContent('.cfs-err')), 'crystal field: bad d count explained');
+
+    await page.goto(BASE + '/science/diatomic-spectroscopy/');
+    await page.waitForFunction(() => document.querySelector('.dia-big')?.textContent && document.querySelector('.dia-fbig')?.textContent);
+    check((await page.textContent('.dia-big')) === 'H³⁵Cl: fundamental 2885.3 cm⁻¹ (3.466 µm), bond length 1.2746 Å', `diatomic: HCl (${await page.textContent('.dia-big')})`);
+    check(/2905\.57/.test(await page.textContent('.dia-tab')) && /2864\.43/.test(await page.textContent('.dia-tab')), 'diatomic: R(0) and P(1)');
+    check(/measured D0 is 4\.434 eV/.test(await page.textContent('.dia-facts')), 'diatomic: Morse with measured D0');
+    await page.fill('.dia-a1', '2H');
+    check(/fundamental 2090\.8 cm⁻¹/.test(await page.textContent('.dia-big')) && /rescaled from H³⁵Cl/.test(await page.textContent('.dia-facts')), 'diatomic: DCl isotope shift');
+    await page.fill('.dia-a1', '9H');
+    check(/not an isotope in the table/.test(await page.textContent('.dia-err')), 'diatomic: unknown isotope explained');
+    await page.selectOption('.dia-mol', 'CO');
+    check(/bond length 1\.1283 Å/.test(await page.textContent('.dia-big')) && /115\.3 GHz/.test(await page.textContent('.dia-facts')), 'diatomic: CO');
+    check(/^ωe = 2989\.2 ± 0\.2 cm⁻¹, ωexe = 51\.71 ± 0\.06 cm⁻¹$/.test(await page.textContent('.dia-fbig')), `diatomic: fit (${await page.textContent('.dia-fbig')})`);
+    await page.click('.dia-ffacts button');
+    check((await page.inputValue('.dia-we')) === '2989.22' && (await page.inputValue('.dia-mol')) === '', 'diatomic: fit sent to the molecule card');
+
+    await page.goto(BASE + '/science/thermochemistry-calculator/');
+    await page.waitForFunction(() => document.querySelector('.thc-big')?.textContent);
+    check(/ΔrH° −890\.6 kJ\/mol \(exothermic\), ΔrG° −818\.2 kJ\/mol at 298\.15 K: spontaneous/.test(await page.textContent('.thc-big')), `thermo: methane (${await page.textContent('.thc-big')})`);
+    check(/−242\.9 J/.test(await page.textContent('.thc-facts')) && (await page.isHidden('.thc-warn')), 'thermo: ΔS and balanced');
+    await page.fill('.thc-rxn', 'CaCO3(s) → CaO(s) + CO2(g)');
+    check(/1119 K/.test(await page.textContent('.thc-facts')) && /not spontaneous/.test(await page.textContent('.thc-big')), 'thermo: limestone turnover');
+    await page.fill('.thc-T', '1200');
+    check(/spontaneous as written/.test(await page.textContent('.thc-big')) && !/not spontaneous/.test(await page.textContent('.thc-big')), 'thermo: limestone at 1200 K');
+    await page.fill('.thc-rxn', 'CaCO3(s) → CaO(s) + 2CO2(g)');
+    check(/Not balanced for C, O/.test(await page.textContent('.thc-warn')), 'thermo: balance warning');
+    await page.fill('.thc-rxn', 'XeF4(g) → Xe(g) + 2F2(g)');
+    check(/not in the table/.test(await page.textContent('.thc-in')) && /Type ΔfH° and S° for XeF/.test(await page.textContent('.thc-err')), 'thermo: unknown species asks for values');
+
+    await page.goto(BASE + '/science/nernst-calculator/');
+    await page.waitForFunction(() => document.querySelector('.nst-big')?.textContent && document.querySelector('.nst-rtab tbody'));
+    check((await page.textContent('.nst-big')) === 'E°cell +1.1037 V, Ecell +1.0445 V: galvanic, runs by itself as written', `nernst: Daniell (${await page.textContent('.nst-big')})`);
+    check(/Zn\(s\) \| Zn²⁺\(aq\) ‖ Cu²⁺\(aq\) \| Cu\(s\)/.test(await page.textContent('.nst-facts')) && /−213\.0 kJ\/mol/.test(await page.textContent('.nst-facts')), 'nernst: notation and ΔG°');
+    await page.click('.nst-swap');
+    check(/electrolytic, needs at least 1\.045 V/.test(await page.textContent('.nst-big')), 'nernst: swapped cell is electrolytic');
+    await page.click('.nst-mode button[data-m=one]');
+    await page.selectOption('.nst-cat', 'O2acid');
+    await page.fill('.nst-v[data-f="H^+"]', '7');
+    await page.fill('.nst-v[data-f="O2"]', '0.21');
+    check(/^E = \+0\.8049 V vs SHE/.test(await page.textContent('.nst-big')), `nernst: oxygen at pH 7 (${await page.textContent('.nst-big')})`);
+    await page.fill('.nst-v[data-f="O2"]', '0');
+    check(/above zero for O₂/.test(await page.textContent('.nst-err')), 'nernst: bad pressure explained');
+    await page.fill('.nst-rv', '0.300');
+    await page.selectOption('.nst-rfrom', 'SCE');
+    check(/\+0\.541 V/.test(await page.textContent('.nst-rtab')) && /\+0\.344 V/.test(await page.textContent('.nst-rtab')), 'nernst: reference converter');
+
+    await page.goto(BASE + '/science/electroplating-calculator/');
+    await page.waitForFunction(() => document.querySelector('.far-big')?.textContent);
+    check((await page.textContent('.far-big')) === '23.35 µm of nickel (2.080 g)', `plating: nickel (${await page.textContent('.far-big')})`);
+    check(/2 A\/dm²/.test(await page.textContent('.far-facts')) && /23\.35 µm\/h/.test(await page.textContent('.far-facts')), 'plating: current density and rate');
+    await page.click('.far-mode button[data-m=time]');
+    check(/^64\.23 min at 2 A for 25 µm$/.test(await page.textContent('.far-big')), `plating: time (${await page.textContent('.far-big')})`);
+    await page.selectOption('.far-sub', 'Cr');
+    check((await page.inputValue('.far-eff')) === '15', 'plating: chrome sets 15 %');
+    await page.selectOption('.far-sub', 'H2');
+    await page.click('.far-mode button[data-m=amount]');
+    await page.fill('.far-eff', '100'); await page.fill('.far-I', '1');
+    check(/^456\.4 mL of hydrogen gas/.test(await page.textContent('.far-big')) && (await page.isHidden('.far-A')), `plating: hydrogen (${await page.textContent('.far-big')})`);
+    await page.fill('.far-I', '0');
+    check(/current in amperes/.test(await page.textContent('.far-err')), 'plating: zero current explained');
+
+    await page.goto(BASE + '/science/green-chemistry-metrics/');
+    await page.waitForFunction(() => document.querySelector('.grn-big')?.textContent);
+    check((await page.textContent('.grn-ae')) === 'Atom economy 83.0 % for CH₃COOC₂H₅', `green: atom economy (${await page.textContent('.grn-ae')})`);
+    check((await page.textContent('.grn-big')) === 'Yield 80.0 %, E-factor 13.8 (7.05 without water), PMI 14.8', `green: metrics (${await page.textContent('.grn-big')})`);
+    check(/Total in104\.2/.test(await page.textContent('.grn-tab')), 'green: mass table');
+    await page.fill('.grn-oth', 'toluene 40');
+    check(/Line 1 of the other materials/.test(await page.textContent('.grn-err')), 'green: bad line explained');
+    await page.fill('.grn-rxn', 'C6H5CH3 + O2 -> C6H5COOH + H2O');
+    check(/^Atom economy 87\.1 %/.test(await page.textContent('.grn-ae')) && /2C₆H₅CH₃ \+ 3O₂/.test(await page.textContent('.grn-afacts')), 'green: new reaction balanced');
+    await page.fill('.grn-rxn', 'NaCl -> Cl2');
+    check(/only one side/.test(await page.textContent('.grn-rerr')), 'green: unbalanceable reaction explained');
+
+    await page.goto(BASE + '/science/decay-calculator/');
+    await page.waitForFunction(() => document.querySelector('.dec-big')?.textContent && document.querySelector('.dec-sfacts dt'));
+    check(/^173\.4 MBq on .* \(46\.87 % of the reference\)$/.test(await page.textContent('.dec-big')), `decay: F-18 (${await page.textContent('.dec-big')})`);
+    check(/2 h 0 min/.test(await page.textContent('.dec-facts')) && (await page.$$('.dec-tab tbody tr')).length === 13, 'decay: elapsed time and table');
+    await page.fill('.dec-target', '100');
+    check(/3 h 27 min after the reference/.test(await page.textContent('.dec-facts')), 'decay: time to 100 MBq');
+    await page.selectOption('.dec-n', 'C-14');
+    check(/62\.72 mCi\/mmol|0\.06272 Ci\/mmol/.test(await page.textContent('.dec-sfacts')), `decay: C-14 molar activity (${await page.textContent('.dec-sfacts')})`);
+    await page.selectOption('.dec-au', 'mCi');
+    await page.fill('.dec-sa', '50'); await page.fill('.dec-smol', '1000');
+    check(/79\.72 %/.test(await page.textContent('.dec-sout')), 'decay: labelled fraction');
+    await page.fill('.dec-a0', '0');
+    check(/above zero/.test(await page.textContent('.dec-err')), 'decay: zero activity explained');
+
+    await page.goto(BASE + '/science/polymer-molar-mass/');
+    await page.waitForFunction(() => document.querySelector('.pmw-big')?.textContent);
+    check(/^Mn 50,0\d\d g\/mol, Mw 99,9\d\d g\/mol, Đ 2\.00$/.test(await page.textContent('.pmw-big')), `polymer: GPC example (${await page.textContent('.pmw-big')})`);
+    check(/Degree of polymerisation \(DPn\)480/.test(await page.textContent('.pmw-facts')) && /cubic, R²/.test(await page.textContent('.pmw-facts')), 'polymer: DPn and calibration');
+    await page.fill('.pmw-hi', '29');
+    check(/outside the standards|calibration curve turns back/.test((await page.textContent('.pmw-facts')) + (await page.textContent('.pmw-err'))), 'polymer: extrapolation flagged');
+    await page.fill('.pmw-hi', '10');
+    check(/window end must be after/.test(await page.textContent('.pmw-err')), 'polymer: bad window explained');
+    await page.click('.pmw-mode button[data-m=list]');
+    check((await page.textContent('.pmw-big')) === 'Mn 15,000 g/mol, Mw 16,667 g/mol, Đ 1.11', `polymer: list (${await page.textContent('.pmw-big')})`);
+    await page.selectOption('.pmw-kind', 'w');
+    check((await page.textContent('.pmw-big')) === 'Mn 13,333 g/mol, Mw 15,000 g/mol, Đ 1.13', 'polymer: list by mass');
+    await page.setInputFiles('.dfb-in >> nth=2', { name: 'chains.csv', mimeType: 'text/csv', buffer: Buffer.from('M,n\n50000,2\n100000,1\n') });
+    await page.waitForFunction(() => /Mn 60,000/.test(document.querySelector('.pmw-big')?.textContent ?? ''));
+    check(true, 'polymer: list from a file');
+
+    await page.goto(BASE + '/science/copolymer-composition/');
+    await page.waitForFunction(() => document.querySelector('.cop-big')?.textContent && document.querySelector('.cop-fbig')?.textContent);
+    check((await page.textContent('.cop-big')) === 'Copolymer F₁ = 0.371 from a feed of f₁ = 0.300: richer in styrene than the feed', `copolymer: S/MMA (${await page.textContent('.cop-big')})`);
+    check(/f₁ = 0\.529/.test(await page.textContent('.cop-facts')) && /F̄₁ = 0\.32/.test(await page.textContent('.cop-facts')), 'copolymer: azeotrope and drift');
+    check((await page.textContent('.cop-fbig')) === 'r₁ = 0.516, r₂ = 0.456 (non-linear least squares)', `copolymer: fit (${await page.textContent('.cop-fbig')})`);
+    await page.selectOption('.cop-pair', 'S-AN');
+    check(/styrene is used up here/.test(await page.textContent('.cop-facts')), 'copolymer: SAN runs out of styrene');
+    await page.click('.cop-use');
+    check((await page.inputValue('.cop-r1')) === '0.516' && (await page.inputValue('.cop-pair')) === 'custom', 'copolymer: fitted values used');
+    await page.fill('.cop-data', '0.1, 15\n0.2, 30\n0.3, 40');
+    check(/strictly between 0 and 1/.test(await page.textContent('.cop-ferr')), 'copolymer: percentages explained');
+
+    await page.goto(BASE + '/science/glass-transition-calculator/');
+    await page.waitForFunction(() => document.querySelector('.gtg-big')?.textContent && document.querySelector('.gtg-gbig')?.textContent && document.querySelector('.gtg-fbig')?.textContent);
+    check((await page.textContent('.gtg-big')) === 'Tg ≈ 4.3 °C (277.5 K) by the Fox equation', `glass: Fox MMA/BA (${await page.textContent('.gtg-big')})`);
+    check(/MMA 60\.0 %, BA 40\.0 % by weight/.test(await page.textContent('.gtg-facts')), 'glass: target 20 °C');
+    check(/22\.5 °C with 5\.0 %/.test(await page.textContent('.gtg-gbig')) && /8\.8 % of component 2/.test(await page.textContent('.gtg-gfacts')), 'glass: sucrose and water');
+    check(/90\.0 °C/.test(await page.textContent('.gtg-fbig')), 'glass: Flory–Fox');
+    await page.selectOption('.gtg-row >> nth=2 >> .gtg-m', 'AA');
+    await page.fill('.gtg-row >> nth=2 >> .gtg-w', '2.0408');
+    check(/MMA 58\.0 %, BA 40\.0 %/.test(await page.textContent('.gtg-facts')), `glass: target with acid fixed (${await page.textContent('.gtg-facts')})`);
+    await page.click('.gtg-use');
+    check(/Tg ≈ 20\.0 °C/.test(await page.textContent('.gtg-big')), 'glass: use composition');
+    await page.fill('.gtg-target', '150');
+    check(/out of reach/.test(await page.textContent('.gtg-facts')), 'glass: unreachable target');
+    await page.selectOption('.gtg-kmode', 'sb');
+    check((await page.inputValue('.gtg-k')) === '3.89', 'glass: Simha–Boyer k');
+
+    await page.goto(BASE + '/science/dsc-tga-analyser/');
+    await page.waitForFunction(() => document.querySelector('.dtg-big')?.textContent && document.querySelector('.dtg-tbig')?.textContent);
+    check((await page.textContent('.dtg-big')) === 'Tg 78.0 °C; exotherm 135.0 °C, 25.0 J/g; melting 250.0 °C, 40.0 J/g', `dsc: events (${await page.textContent('.dtg-big')})`);
+    check(/ΔCp 0\.40/.test(await page.textContent('.dtg-tab')) && /10\.7 %/.test(await page.textContent('.dtg-facts')), 'dsc: ΔCp and crystallinity');
+    check((await page.textContent('.dtg-tbig')) === '3 mass loss steps; residue 38.4 % at 900.0 °C', `tga: steps (${await page.textContent('.dtg-tbig')})`);
+    check(/H₂O \(12\.33 %\)/.test(await page.textContent('.dtg-ttab')) && /CO₂ \(30\.12 %\)/.test(await page.textContent('.dtg-ttab')) && /56\.1 g\/mol/.test(await page.textContent('.dtg-tfacts')), 'tga: fragments and residue');
+    await page.selectOption('.dtg-dir', 'endo');
+    check(/exotherm 250\.0 °C/.test(await page.textContent('.dtg-big')) && /wrong way/.test(await page.textContent('.dtg-tab')), 'dsc: plot direction flips endo and exo');
+    await page.selectOption('.dtg-dir', 'exo');
+    await page.fill('.dtg-wp', '50');
+    check(/21\.4 %/.test(await page.textContent('.dtg-facts')), 'dsc: filled sample');
+    await page.fill('.dtg-dsc', '100, 1\n90, 2\n' + Array.from({ length: 40 }, (_, i) => `${100 + i}, 1`).join('\n'));
+    check(/turns back/.test(await page.textContent('.dtg-err')), 'dsc: mixed heating and cooling rejected');
+    await page.fill('.dtg-formula', 'Xq2');
+    check(/could not be read/.test(await page.textContent('.dtg-tfacts')), 'tga: bad formula explained');
+
+    await page.goto(BASE + '/science/battery-cycling-analyser/');
+    await page.waitForFunction(() => document.querySelector('.bcy-big')?.textContent && document.querySelector('.bcy-dbig')?.textContent);
+    check((await page.textContent('.bcy-big')) === 'Retention 78.9 % after 200 cycles; 80 % reached at cycle 184', `battery: retention (${await page.textContent('.bcy-big')})`);
+    check(/efficiency 88\.0 %/.test(await page.textContent('.bcy-facts')) && /99\.91 %/.test(await page.textContent('.bcy-facts')), 'battery: efficiencies');
+    check((await page.textContent('.bcy-dbig')) === '2 peaks: 4.000 V, 4.140 V', `battery: dQ/dV (${await page.textContent('.bcy-dbig')})`);
+    await page.fill('.bcy-ref', '3');
+    check(/80\.1 % after 200/.test(await page.textContent('.bcy-big')) && /extrapolated/.test(await page.textContent('.bcy-facts')), 'battery: reference cycle 3');
+    await page.selectOption('.bcy-order', 'vq');
+    check(/swap the column order|hardly changes/.test(await page.textContent('.bcy-derr')), 'battery: wrong column order explained');
+    await page.selectOption('.bcy-unit', 'mAh'); await page.fill('.bcy-mass', '10');
+    check(/17615\.0 mAh\/g|17,615/.test(await page.textContent('.bcy-facts')) || /mAh\/g on cycle 1/.test(await page.textContent('.bcy-facts')), 'battery: specific capacity');
+
+    await page.goto(BASE + '/science/tafel-corrosion-rate/');
+    await page.waitForFunction(() => document.querySelector('.tfl-big')?.textContent && document.querySelector('.tfl-cbig')?.textContent);
+    check((await page.textContent('.tfl-big')) === 'icorr 10.0 µA/cm²: about 0.116 mm per year', `corrosion: icorr (${await page.textContent('.tfl-big')})`);
+    check(/4\.57 mpy/.test(await page.textContent('.tfl-facts')) && /Wagner–Traud fit.*-650\.0/.test(await page.textContent('.tfl-tab')), 'corrosion: mpy and fit');
+    check((await page.textContent('.tfl-cbig')) === 'About 0.166 mm per year', `corrosion: coupon (${await page.textContent('.tfl-cbig')})`);
+    await page.selectOption('.tfl-iu', 'mA');
+    check(/about 0\.000116 mm per year/.test(await page.textContent('.tfl-big')), `corrosion: mA on 1 cm² is 1000× smaller (${await page.textContent('.tfl-big')})`);
+    await page.selectOption('.tfl-iu', 'A/cm²');
+    await page.selectOption('.tfl-metal', 'Al');
+    check(/0\.109 mm per year/.test(await page.textContent('.tfl-big')), 'corrosion: aluminium');
+    await page.fill('.tfl-e2', '400'); await page.fill('.tfl-e1', '300');
+    check(/Too few points/.test(await page.textContent('.tfl-err')), 'corrosion: range beyond the scan explained');
+
+    await page.goto(BASE + '/science/nmr-impurity-checker/');
+    await page.waitForFunction(() => document.querySelector('.nmi-big')?.textContent);
+    check((await page.textContent('.nmi-big')) === '7 of 9 peaks match a solvent or impurity signal; all signals of ethyl acetate are present', `nmr: summary (${await page.textContent('.nmi-big')})`);
+    check(/no match: likely your compound/.test(await page.textContent('.nmi-tab')) && /8\.62/.test(await page.textContent('.nmi-imp')), 'nmr: unmatched peaks and missing pyridine signals');
+    await page.selectOption('.nmi-sol', 'DMSO');
+    await page.fill('.nmi-peaks', '2.50\n3.33\n5.76\n7.95, 2.89, 2.73');
+    check(/all signals of DMF/.test(await page.textContent('.nmi-big')) && /dichloromethane/.test(await page.textContent('.nmi-tab')), 'nmr: DMSO-d6 water, DCM and DMF');
+    await page.fill('.nmi-find', 'ether');
+    check(/diethyl ether/.test(await page.textContent('.nmi-all')) && /3\.38/.test(await page.textContent('.nmi-all')), 'nmr: table search');
+    await page.selectOption('.nmi-nuc', 'c');
+    check((await page.inputValue('.nmi-tol')) === '0.2' && /outside the usual/.test(await page.textContent('.nmi-err')) === false, 'nmr: 13C switches tolerance');
+    await page.fill('.nmi-peaks', '400');
+    check(/outside the usual/.test(await page.textContent('.nmi-err')), 'nmr: out-of-range shift explained');
+
+    await page.goto(BASE + '/science/electron-count-calculator/');
+    await page.waitForFunction(() => document.querySelector('.eco-big')?.textContent);
+    check((await page.textContent('.eco-big')) === 'Fe(II), d⁶, 18 valence electrons', `electron count: ferrocene (${await page.textContent('.eco-big')})`);
+    await page.selectOption('.eco-pre', 'wilk');
+    check((await page.textContent('.eco-big')) === 'Rh(I), d⁸, 16 valence electrons' && /square-planar/.test(await page.textContent('.eco-facts')), 'electron count: Wilkinson');
+    await page.selectOption('.eco-pre', 'coam');
+    check(/Co\(III\), d⁶, 18/.test(await page.textContent('.eco-big')) && /\[ML₆\]³⁺/.test(await page.textContent('.eco-facts')), 'electron count: hexaammine cobalt');
+    await page.fill('.eco-q', '9');
+    check(/whole number/.test(await page.textContent('.eco-err')), 'electron count: silly charge explained');
+    await page.fill('.eco-q', '0'); await page.selectOption('.eco-row >> nth=0 >> .eco-l', 'N'); await page.fill('.eco-row >> nth=0 >> .eco-n', '4');
+    check(/more than its 9 valence electrons/.test(await page.textContent('.eco-err')), 'electron count: impossible oxidation state explained');
+
+    await page.goto(BASE + '/science/phase-diagram-calculator/');
+    await page.waitForFunction(() => document.querySelector('.phd-big')?.textContent && document.querySelector('.phd-lbig')?.textContent);
+    check((await page.textContent('.phd-big')) === 'At 1225.0 °C, 35.0 wt % Ni is 55 % liquid and 45 % solid solution', `phase diagram: Cu–Ni (${await page.textContent('.phd-big')})`);
+    check(/1237\.1 °C/.test(await page.textContent('.phd-facts')) && /31\.9 wt % Ni/.test(await page.textContent('.phd-facts')), 'phase diagram: liquidus and liquid composition');
+    check((await page.textContent('.phd-lbig')) === '68.2 % liquid and 31.8 % α solid', `phase diagram: lever rule (${await page.textContent('.phd-lbig')})`);
+    await page.selectOption('.phd-sys', 'BiCd');
+    check(/135\.3 °C at 41\.1 wt % Cd/.test(await page.textContent('.phd-facts')) && /23 % solid Bi/.test(await page.textContent('.phd-big')), `phase diagram: Bi–Cd eutectic (${await page.textContent('.phd-big')})`);
+    await page.selectOption('.phd-u', 'x');
+    check((await page.inputValue('.phd-x')) === '31.7', `phase diagram: units switch keeps the mixture (${await page.inputValue('.phd-x')})`);
+    await page.fill('.phd-c0', '50');
+    check(/must lie between/.test(await page.textContent('.phd-lerr')), 'phase diagram: lever rule outside the tie line');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -1420,7 +2140,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -1444,7 +2164,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

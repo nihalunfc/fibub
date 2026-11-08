@@ -1,5 +1,6 @@
 ---
 // Linear calibration curve with LOD/LOQ and back-calculated unknowns. All in the browser.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -15,6 +16,7 @@ import Downloads from '../../components/Downloads.astro';
 8	17.3
 10	21.0
 12	24.7</textarea></label>
+    <DataFile target=".cc-std" />
     <div class="ax-grid" style="margin-top:10px">
       <label>Concentration unit <input class="cc-xu" value="pg/mL" /></label>
       <label>Response name <input class="cc-yu" value="Signal" /></label>
@@ -41,6 +43,7 @@ import Downloads from '../../components/Downloads.astro';
       <textarea class="cc-unk" rows="4" spellcheck="false">Sample A: 2.9
 Sample B: 13.5
 Sample C: 23.0</textarea></label>
+    <DataFile target=".cc-unk" />
     <label style="margin-top:8px;max-width:220px">Dilution factor <input class="cc-dil" inputmode="decimal" value="1" /></label>
     <div class="ax-scroll" style="margin-top:12px"><table class="cc-tab"></table></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csv">Download results (CSV)</button></div>

@@ -1,5 +1,6 @@
 ---
 // Radial velocity orbit fitter: fits a Keplerian orbit to a star's velocities (spectroscopic binaries and exoplanets).
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -8,6 +9,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Velocities</h2>
     <label>Paste time, velocity and (optional) error columns, one measurement per line. A header row is fine.
       <textarea class="rvf-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".rvf-in" />
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn secondary small rvf-sample">Load the example</button>
       <label class="ax-check"><input type="checkbox" class="rvf-circ" /> Circular orbit</label>

@@ -1,0 +1,150 @@
+---
+// Beer–Lambert calculator and UV-Vis spectrum viewer: A = εlc for any missing value, transmittance, a reading
+// quality check, and spectra pasted or opened from a file with their maxima and concentrations at any wavelength.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax bl">
+  <div class="ax-card">
+    <h2>A = ε l c</h2>
+    <p class="ax-help">Fill in three and leave one empty.</p>
+    <div class="ax-grid">
+      <label><span><select class="bl-au" aria-label="Absorbance or transmittance"><option value="A">Absorbance</option><option value="T">Transmittance (%)</option></select></span> <input class="bl-A" inputmode="decimal" value="0.622" /></label>
+      <label>ε, molar absorptivity (L/(mol·cm)) <input class="bl-eps" inputmode="decimal" value="6220" /></label>
+      <label>Path length (cm) <input class="bl-l" inputmode="decimal" value="1" /></label>
+      <label>Concentration <span class="bl-pair"><input class="bl-c" inputmode="decimal" /><select class="bl-cu"><option value="1">mol/L</option><option value="1e-3" selected>mmol/L</option><option value="1e-6">µmol/L</option><option value="1e-9">nmol/L</option></select></span></label>
+      <label>Molar mass (g/mol, optional) <input class="bl-mm" inputmode="decimal" placeholder="for mg/L" /></label>
+    </div>
+    <p class="ax-help">The example is NADH at 340 nm (ε = 6,220 L/(mol·cm)), the reading behind thousands of enzyme assays. A standard cuvette is 1 cm; a microplate well of 200 µL is about 0.5 to 0.6 cm.</p>
+    <p class="ax-err bl-err" hidden></p>
+    <div class="bl-out">
+      <p class="ax-big bl-big"></p>
+      <dl class="ax-facts bl-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Spectrum viewer</h2>
+      <button type="button" class="btn secondary small bl-sample">Load an example</button>
+    </div>
+    <label style="margin-top:10px">Wavelength, then one column per sample, with a header row <textarea class="bl-in" rows="7" spellcheck="false" wrap="off" placeholder="nm&#9;Sample 1&#9;Sample 2&#10;300&#9;0.12&#9;0.25"></textarea></label>
+    <DataFile target=".bl-in" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>The values are <select class="bl-kind"><option value="A">absorbance</option><option value="T">transmittance (%)</option></select></label>
+      <label>Show as <select class="bl-show"><option value="A">absorbance</option><option value="T">transmittance (%)</option></select></label>
+      <label>Read at wavelength <input class="bl-at" inputmode="decimal" value="340" /></label>
+    </div>
+    <p class="ax-err bl-serr" hidden></p>
+    <div class="bl-sout" hidden>
+      <canvas class="ax-fig bl-fig" style="margin-top:10px"></canvas>
+      <div class="ax-scroll"><table class="bl-tab"></table></div>
+      <p class="ax-help bl-snote"></p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { solveBL, absFromT, tFromAbs, absQuality, interpAt, peaks, simulatedNadh } from '../../lib/sci/beer';
+  import { num, sig, numericColumns, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, rows: string[][] = [];
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? undefined : num(s); };
+  const conc = (x: number) => (x === 0 ? '0' : Math.abs(x) < 1e-3 || Math.abs(x) >= 1e5 ? fmtExp(x, 4) : sig(x, 4));
+  const unitName = () => q<HTMLSelectElement>('.bl-cu').selectedOptions[0].textContent!;
+
+  function run() {
+    const err = (m: string) => { q('.bl-err').textContent = m; q('.bl-err').hidden = !m; q('.bl-out').hidden = !!m; };
+    const isT = q<HTMLSelectElement>('.bl-au').value === 'T', cu = Number(q<HTMLSelectElement>('.bl-cu').value);
+    const a = opt('.bl-A'), eps = opt('.bl-eps'), l = opt('.bl-l'), c = opt('.bl-c'), mm = opt('.bl-mm');
+    if ([a, eps, l, c].some((x) => x !== undefined && !Number.isFinite(x))) return err('Type numbers only.');
+    if (isT && a !== undefined && !(a > 0 && a <= 100)) return err('Transmittance is a percentage above 0 and up to 100.');
+    let s;
+    try { s = solveBL({ A: a === undefined ? undefined : isT ? absFromT(a / 100) : a, eps, l, c: c === undefined ? undefined : c * cu }); } catch (e) { return err((e as Error).message); }
+    err('');
+    const T = tFromAbs(s.A), qa = absQuality(s.A);
+    q('.bl-big').textContent = s.solved === 'A' ? (isT ? `Transmittance: ${sig(T * 100, 4)} %` : `Absorbance: ${s.A.toFixed(3)}`) : s.solved === 'eps' ? `ε = ${sig(s.eps, 4)} L/(mol·cm)` : s.solved === 'l' ? `Path length: ${sig(s.l, 4)} cm` : `Concentration: ${conc(s.c / cu)} ${unitName()}`;
+    const facts = [
+      fact('Absorbance', s.A.toFixed(4), qa.text),
+      fact('Transmittance', `${sig(T * 100, 4)} %`, `${sig(T * 100, 3)} % of the light passes through; A = −log₁₀ T`),
+      fact('Concentration', `${conc(s.c)} mol/L`, `${conc(s.c * 1e3)} mmol/L = ${conc(s.c * 1e6)} µmol/L`),
+    ];
+    if (mm && mm > 0) facts.push(fact('Mass concentration', `${sig(s.c * mm * 1000, 4)} mg/L`, `= ${sig(s.c * mm, 4)} g/L with molar mass ${mm} g/mol`));
+    if (s.solved !== 'eps') facts.push(fact('Absorbance per 1 mmol/L', sig(s.eps * s.l * 1e-3, 4), 'the slope you would see on a calibration line in this cell'));
+    q('.bl-facts').replaceChildren(...facts);
+    spectrum();
+  }
+
+  function spectrum() {
+    const text = q<HTMLTextAreaElement>('.bl-in').value, out = q('.bl-sout'), err = (m: string) => { q('.bl-serr').textContent = m; q('.bl-serr').hidden = !m; out.hidden = !!m || !text.trim(); };
+    if (!text.trim()) { err(''); fig = null; return; }
+    const t = numericColumns(text);
+    if (t.cols.length < 2) return err('Paste at least two columns: wavelength, then the samples.');
+    const idx = t.cols[0].map((_, i) => i).filter((i) => Number.isFinite(t.cols[0][i])).sort((i, j) => t.cols[0][i] - t.cols[0][j]);
+    if (idx.length < 3) return err('Need at least three wavelengths.');
+    err('');
+    const inT = q<HTMLSelectElement>('.bl-kind').value === 'T', showT = q<HTMLSelectElement>('.bl-show').value === 'T';
+    const x = idx.map((i) => t.cols[0][i]);
+    const series = t.cols.slice(1).map((col, k) => {
+      const A = idx.map((i) => (inT ? absFromT(col[i] / 100) : col[i]));
+      return { name: t.headers[k + 1], A };
+    });
+    const at = num(q<HTMLInputElement>('.bl-at').value);
+    const eps = opt('.bl-eps'), l = opt('.bl-l') ?? 1, cu = Number(q<HTMLSelectElement>('.bl-cu').value);
+    fig = chartFigure({ h: 320, xLabel: 'Wavelength (nm)', yLabel: showT ? 'Transmittance (%)' : 'Absorbance', legend: series.length > 1 ? 'below' : 'none',
+      series: series.map((s) => ({ name: s.name, x, y: s.A.map((v) => (showT ? 100 * tFromAbs(v) : v)), mode: 'line' as const, width: 1.6 })),
+      marks: Number.isFinite(at) ? [{ kind: 'vline', at, label: `${at} nm` }] : [] }, 'Absorption spectra');
+    paint(q<HTMLCanvasElement>('.bl-fig'), fig);
+    const tb = q<HTMLTableElement>('.bl-tab'); tb.replaceChildren();
+    const head = ['Sample', 'Maxima (nm, A)', `A at ${Number.isFinite(at) ? at : '–'} nm`, 'Concentration'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows = [];
+    for (const s of series) {
+      const ok = s.A.map((v) => Number.isFinite(v)), xs = x.filter((_, i) => ok[i]), ys = s.A.filter((_, i) => ok[i]);
+      const pk = peaks(xs, ys).sort((a, b) => b.y - a.y).slice(0, 4).sort((a, b) => a.x - b.x);
+      const aAt = Number.isFinite(at) ? interpAt(xs, ys, at) : NaN;
+      const c = eps && eps > 0 && Number.isFinite(aAt) ? aAt / (eps * l) : NaN;
+      const r = [s.name, pk.length ? pk.map((p) => `${Math.round(p.x)} (${p.y.toFixed(3)})`).join(', ') : 'none found', Number.isFinite(aAt) ? aAt.toFixed(4) : 'outside the data', Number.isFinite(c) ? `${conc(c / cu)} ${unitName()}` : '–'];
+      rows.push(r);
+      const row = bd.insertRow(); r.forEach((v, j) => { const td = row.insertCell(); td.textContent = v; if (j > 1) td.style.textAlign = 'right'; });
+    }
+    const maxA = Math.max(...series.flatMap((s) => s.A.filter(Number.isFinite)));
+    q('.bl-snote').textContent = `Concentrations use ε = ${eps ?? '–'} L/(mol·cm) and a ${l} cm path from the calculator above${eps ? '' : ' (type ε there to get them)'}. Make sure ε is the value for the wavelength you read at.${maxA > 2 ? ' Some readings are above absorbance 2, where most instruments stop being linear: dilute and measure again.' : ''}`;
+  }
+
+  for (const c of ['.bl-A', '.bl-eps', '.bl-l', '.bl-c', '.bl-mm']) q(c).addEventListener('input', run);
+  for (const c of ['.bl-au', '.bl-cu']) q(c).addEventListener('change', run);
+  q('.bl-in').addEventListener('input', spectrum);
+  for (const c of ['.bl-kind', '.bl-show']) q(c).addEventListener('change', spectrum);
+  q('.bl-at').addEventListener('input', spectrum);
+  q('.bl-sample').addEventListener('click', () => {
+    const s = simulatedNadh();
+    q<HTMLTextAreaElement>('.bl-in').value = ['nm\tNADH 0.1 mM', ...s.wl.map((w, i) => `${w}\t${s.A[i]}`)].join('\n');
+    q<HTMLSelectElement>('.bl-kind').value = 'A'; q<HTMLInputElement>('.bl-at').value = '340';
+    spectrum();
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.bl-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Beer–Lambert', file: 'beer-lambert',
+    sections: [
+      ...(q('.bl-out').hidden ? [] : [{ title: q('.bl-big').textContent!, facts: [...root.querySelectorAll('.bl-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }]),
+      ...(fig && !q('.bl-sout').hidden ? [{ title: 'Spectra', figure: fig, table: { head: ['Sample', 'Maxima (nm, A)', 'A at wavelength', 'Concentration'], rows, align: ['l', 'l', 'r', 'r'] as ('l' | 'r')[] }, text: [q('.bl-snote').textContent!] }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .bl .bl-pair { display: flex; gap: 6px; }
+  .bl .bl-pair input { flex: 1; min-width: 0; }
+  .bl .bl-pair select { width: auto; flex: none; }
+  .bl .bl-tab td, .bl .bl-tab th { white-space: nowrap; }
+  .bl textarea { font-family: ui-monospace, monospace; }
+</style>

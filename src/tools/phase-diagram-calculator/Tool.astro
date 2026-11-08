@@ -1,0 +1,189 @@
+---
+// Binary phase diagram from the ideal-solution model (lens or simple eutectic), with the tie line and lever rule at
+// any point, plus a stand-alone lever rule for compositions read off a real diagram.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { SYSTEMS } from '../../lib/sci/phase';
+const label: Record<string, string> = { CuNi: 'Copper–nickel (complete solid solution)', GeSi: 'Germanium–silicon (complete solid solution)', BzNp: 'Benzene–naphthalene (simple eutectic)', BiCd: 'Bismuth–cadmium (simple eutectic)' };
+---
+<div class="ax phd">
+  <div class="ax-card">
+    <h2>Phase diagram of a binary mixture</h2>
+    <div class="ax-grid">
+      <label class="phd-wide">System <select class="phd-sys">{SYSTEMS.map((s) => <option value={s.id}>{label[s.id]}</option>)}<option value="custom">Your own components</option></select></label>
+      <label class="phd-wide">Type of diagram <select class="phd-type"><option value="lens">Complete solid solution (lens)</option><option value="eutectic">Simple eutectic (solids do not mix)</option></select></label>
+      <label>A name <input class="phd-an" value="Cu" /></label>
+      <label>B name <input class="phd-bn" value="Ni" /></label>
+      <label>A melting point (°C) <input class="phd-at" inputmode="decimal" value="1084.62" /></label>
+      <label>B melting point (°C) <input class="phd-bt" inputmode="decimal" value="1454.85" /></label>
+      <label>A enthalpy of fusion (kJ/mol) <input class="phd-ah" inputmode="decimal" value="13.26" /></label>
+      <label>B enthalpy of fusion (kJ/mol) <input class="phd-bh" inputmode="decimal" value="17.48" /></label>
+      <label>A molar mass (g/mol) <input class="phd-am" inputmode="decimal" value="63.546" /></label>
+      <label>B molar mass (g/mol) <input class="phd-bm" inputmode="decimal" value="58.693" /></label>
+      <label>Amount of B overall <input class="phd-x" inputmode="decimal" value="35" /></label>
+      <label>Given as <select class="phd-u"><option value="w">wt % (mass)</option><option value="x">mol %</option></select></label>
+      <label>Temperature (°C) <input class="phd-T" inputmode="decimal" value="1225" /></label>
+    </div>
+    <p class="ax-help">The diagram is calculated from the melting points and enthalpies of fusion alone, assuming ideal mixing (the van Laar and Schröder–van Laar equations). Real systems deviate, so read real compositions off a measured diagram and use the lever rule below.</p>
+    <p class="ax-err phd-err" hidden></p>
+    <div class="phd-out">
+      <p class="ax-big phd-big"></p>
+      <dl class="ax-facts phd-facts"></dl>
+      <canvas class="ax-fig phd-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Lever rule</h2>
+    <p class="ax-help">Read the two ends of the tie line off any phase diagram at your temperature. Use the same units for all three compositions (wt % gives mass fractions, mol % gives mole fractions).</p>
+    <div class="ax-grid">
+      <label>Overall composition C₀ <input class="phd-c0" inputmode="decimal" value="35" /></label>
+      <label>Phase 1 name <input class="phd-n1" value="liquid" /></label>
+      <label>Phase 1 composition C₁ <input class="phd-c1" inputmode="decimal" value="31.5" /></label>
+      <label>Phase 2 name <input class="phd-n2" value="α solid" /></label>
+      <label>Phase 2 composition C₂ <input class="phd-c2" inputmode="decimal" value="42.5" /></label>
+      <label>Total amount (optional, e.g. kg) <input class="phd-tot" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-err phd-lerr" hidden></p>
+    <div class="phd-lout">
+      <p class="ax-big phd-lbig"></p>
+      <dl class="ax-facts phd-lfacts"></dl>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { SYSTEMS, lens, lensState, eutectic, eutecticState, liqA, liqB, lever, toMass, toMole } from '../../lib/sci/phase';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.phd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const s = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f1 = (x: number) => (x + 1e-9).toFixed(1);
+  const pct = (x: number) => `${Math.round(x * 100 + 1e-9)} %`;
+  const K = 273.15;
+  let fig: Figure | null = null;
+
+  function setSystem() {
+    const sy = SYSTEMS.find((x) => x.id === q<HTMLSelectElement>('.phd-sys').value); if (!sy) return;
+    const set = (c: string, val: string) => { q<HTMLInputElement>(c).value = val; };
+    q<HTMLSelectElement>('.phd-type').value = sy.type;
+    set('.phd-an', sy.A.n); set('.phd-bn', sy.B.n);
+    set('.phd-at', String(+(sy.A.Tm - K).toFixed(2))); set('.phd-bt', String(+(sy.B.Tm - K).toFixed(2)));
+    set('.phd-ah', String(sy.A.H / 1000)); set('.phd-bh', String(sy.B.H / 1000));
+    set('.phd-am', String(sy.A.M)); set('.phd-bm', String(sy.B.M));
+    const d: Record<string, [string, string, string]> = { CuNi: ['35', 'w', '1225'], GeSi: ['50', 'x', '1200'], BzNp: ['50', 'x', '25'], BiCd: ['20', 'w', '180'] };
+    const [x, u, T] = d[sy.id]; set('.phd-x', x); q<HTMLSelectElement>('.phd-u').value = u; set('.phd-T', T);
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.phd-err').textContent = m; q('.phd-err').hidden = !m; q('.phd-out').hidden = !!m; if (m) fig = null; };
+    const type = q<HTMLSelectElement>('.phd-type').value, mass = q<HTMLSelectElement>('.phd-u').value === 'w';
+    const A = s('.phd-an') || 'A', B = s('.phd-bn') || 'B';
+    const TA = v('.phd-at') + K, TB = v('.phd-bt') + K, HA = v('.phd-ah') * 1000, HB = v('.phd-bh') * 1000, MA = v('.phd-am'), MB = v('.phd-bm');
+    const c0 = v('.phd-x') / 100, T = v('.phd-T') + K;
+    if (!(TA > 0) || !(TB > 0)) return err('Melting points must be above absolute zero (−273.15 °C).');
+    if (!(HA > 0) || !(HB > 0)) return err('Enthalpies of fusion must be more than zero.');
+    if (!(MA > 0) || !(MB > 0)) return err('Molar masses must be more than zero.');
+    if (type === 'lens' && Math.abs(TA - TB) < 0.01) return err('For a lens the two melting points must differ.');
+    if (!(c0 >= 0 && c0 <= 1)) return err('The amount of B is between 0 and 100 %.');
+    if (!(T > 0)) return err('The temperature must be above absolute zero.');
+    err('');
+    const x = mass ? toMole(c0, MA, MB) : c0, u = mass ? 'wt %' : 'mol %';
+    const show = (xx: number) => 100 * (mass ? toMass(xx, MA, MB) : xx), other = (xx: number) => `${f1(100 * (mass ? xx : toMass(xx, MA, MB)))} ${mass ? 'mol %' : 'wt %'}`;
+    const C = (T: number) => f1(T - K) + ' °C';
+    const st = type === 'lens' ? lensState(TA, HA, TB, HB, x, T) : eutecticState(TA, HA, TB, HB, x, T);
+    // Phase fractions by the lever rule in the units shown (mass fractions for wt %).
+    const ph = st.phases.map((p) => ({ ...p, c: show(p.x) }));
+    if (ph.length === 2) { const f2 = lever(show(x), ph[0].c, ph[1].c); ph[0].f = 1 - f2; ph[1].f = f2; }
+    const nm = (n: string) => n === 'solid A' ? `solid ${A}` : n === 'solid B' ? `solid ${B}` : n === 'solid' ? 'solid solution' : n;
+    q('.phd-big').textContent = `At ${C(T)}, ${f1(show(x))} ${u} ${B} is ${ph.length === 1 ? `all ${nm(ph[0].name)}` : `${pct(ph[0].f)} ${nm(ph[0].name)} and ${pct(ph[1].f)} ${nm(ph[1].name)}`}`;
+    const facts: HTMLElement[] = [];
+    for (const p of ph) facts.push(fact(`${nm(p.name)[0].toUpperCase()}${nm(p.name).slice(1)}`, `${f1(p.c)} ${u} ${B}`, `${other(p.x)}; ${ph.length === 2 ? `${pct(p.f)} of the ${mass ? 'mass' : 'moles'}` : 'single phase'}`));
+    if (type === 'lens') {
+      const t = st as ReturnType<typeof lensState>;
+      facts.push(fact('Liquidus', C(t.liq), 'cooling from the melt, the first solid appears here'));
+      facts.push(fact('Solidus', C(t.sol), 'the last liquid freezes here (with slow, equilibrium cooling)'));
+      const fs = lens(TA, HA, TB, HB, Math.min(Math.max(t.liq, Math.min(TA, TB) + 1e-6), Math.max(TA, TB) - 1e-6));
+      if (fs && x > 0 && x < 1) facts.push(fact('First solid to form', `${f1(show(fs.xS))} ${u} ${B}`, `richer in ${TB > TA ? B : A}, the higher-melting component, so fast cooling leaves cored grains`));
+    } else {
+      const e = st as ReturnType<typeof eutecticState>;
+      facts.push(fact('Eutectic', `${C(e.E.T)} at ${f1(show(e.E.x))} ${u} ${B}`, 'the lowest melting mixture; it freezes at one temperature, like a pure substance'));
+      facts.push(fact('Liquidus', C(e.liqT), x === e.E.x ? 'at the eutectic' : `cooling from the melt, pure ${x < e.E.x ? A : B} starts to crystallise here`));
+      facts.push(fact('Solidus', C(e.E.T), 'everything is solid below the eutectic temperature'));
+    }
+    q('.phd-facts').replaceChildren(...facts);
+
+    // Diagram in the chosen units.
+    const N = 160, series: { name: string; x: number[]; y: number[]; mode: 'line' | 'points'; width?: number; dash?: number[] }[] = [];
+    const lo = Math.min(TA, TB), hi = Math.max(TA, TB);
+    let ymin: number, ymax = hi - K;
+    if (type === 'lens') {
+      const Ts = Array.from({ length: N + 1 }, (_, i) => lo + ((hi - lo) * i) / N), pts = Ts.map((t) => (t === lo || t === hi ? null : lens(TA, HA, TB, HB, t)));
+      const end = (t: number) => (TB > TA ? (t === lo ? 0 : 1) : (t === lo ? 1 : 0));
+      series.push({ name: 'liquidus', x: Ts.map((t, i) => show(pts[i]?.xL ?? end(t))), y: Ts.map((t) => t - K), mode: 'line', width: 2 });
+      series.push({ name: 'solidus', x: Ts.map((t, i) => show(pts[i]?.xS ?? end(t))), y: Ts.map((t) => t - K), mode: 'line', width: 2, dash: [5, 3] });
+      ymin = lo - K - 0.15 * (hi - lo);
+    } else {
+      const E = eutectic(TA, HA, TB, HB), ta = Array.from({ length: N + 1 }, (_, i) => E.T + ((TA - E.T) * i) / N), tb = Array.from({ length: N + 1 }, (_, i) => E.T + ((TB - E.T) * i) / N);
+      series.push({ name: `liquidus (${A} crystallises)`, x: ta.map((t) => show(Math.max(0, liqA(TA, HA, t)))), y: ta.map((t) => t - K), mode: 'line', width: 2 });
+      series.push({ name: `liquidus (${B} crystallises)`, x: tb.map((t) => show(Math.min(1, liqB(TB, HB, t)))), y: tb.map((t) => t - K), mode: 'line', width: 2 });
+      series.push({ name: 'eutectic line', x: [0, 100], y: [E.T - K, E.T - K], mode: 'line', width: 1.5, dash: [5, 3] });
+      ymin = E.T - K - 0.25 * (hi - E.T);
+    }
+    ymin = Math.min(ymin, T - K - 0.05 * (hi - lo + 1)); ymax = Math.max(ymax + 0.05 * (hi - lo + 1), T - K + 0.05 * (hi - lo + 1));
+    if (ph.length === 2) series.push({ name: 'tie line', x: [ph[0].c, ph[1].c], y: [T - K, T - K], mode: 'line', width: 1.5 });
+    series.push({ name: 'your mixture', x: [show(x)], y: [T - K], mode: 'points' });
+    fig = chartFigure({ h: 260, xLabel: `${B} (${u})`, yLabel: 'Temperature (°C)', xMin: 0, xMax: 100, yMin: ymin, yMax: ymax, series, legend: 'below' }, `Ideal ${A}–${B} phase diagram with your mixture`);
+    paint(q<HTMLCanvasElement>('.phd-fig'), fig);
+  }
+
+  function leverCalc() {
+    const err = (m: string) => { q('.phd-lerr').textContent = m; q('.phd-lerr').hidden = !m; q('.phd-lout').hidden = !!m; };
+    const c0 = v('.phd-c0'), c1 = v('.phd-c1'), c2 = v('.phd-c2'), tot = s('.phd-tot') ? v('.phd-tot') : NaN;
+    const n1 = s('.phd-n1') || 'phase 1', n2 = s('.phd-n2') || 'phase 2';
+    if (![c0, c1, c2].every(Number.isFinite)) return err('Type all three compositions.');
+    if (c1 === c2) return err('The two phases must have different compositions.');
+    if (!((c0 - c1) * (c0 - c2) <= 0)) return err('The overall composition must lie between the two phase compositions, or the mixture is a single phase.');
+    if (s('.phd-tot') && !(tot > 0)) return err('The total amount must be more than zero, or leave it empty.');
+    err('');
+    const w2 = lever(c0, c1, c2), w1 = 1 - w2;
+    q('.phd-lbig').textContent = `${(w1 * 100 + 1e-9).toFixed(1)} % ${n1} and ${(w2 * 100 + 1e-9).toFixed(1)} % ${n2}`;
+    const amt = (w: number) => (Number.isFinite(tot) ? `; ${+(w * tot).toPrecision(4)} of ${+tot.toPrecision(6)}` : '');
+    q('.phd-lfacts').replaceChildren(
+      fact(`Fraction of ${n1}`, (w1 + 1e-12).toFixed(3), `(C₂ − C₀)/(C₂ − C₁) = (${c2} − ${c0})/(${c2} − ${c1})${amt(w1)}`),
+      fact(`Fraction of ${n2}`, (w2 + 1e-12).toFixed(3), `(C₀ − C₁)/(C₂ − C₁) = (${c0} − ${c1})/(${c2} − ${c1})${amt(w2)}`),
+    );
+  }
+
+  q('.phd-sys').addEventListener('change', () => { setSystem(); calc(); });
+  root.querySelectorAll('.phd-type, .phd-an, .phd-bn, .phd-at, .phd-bt, .phd-ah, .phd-bh, .phd-am, .phd-bm').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.phd-sys').value = 'custom'; calc(); }));
+  q('.phd-type').addEventListener('change', () => { q<HTMLSelectElement>('.phd-sys').value = 'custom'; calc(); });
+  root.querySelectorAll('.phd-x, .phd-T').forEach((i) => i.addEventListener('input', calc));
+  q('.phd-u').addEventListener('change', () => {
+    // Keep the same mixture when switching units.
+    const MA = v('.phd-am'), MB = v('.phd-bm'), c = v('.phd-x') / 100;
+    if (MA > 0 && MB > 0 && c >= 0 && c <= 1) q<HTMLInputElement>('.phd-x').value = (100 * (q<HTMLSelectElement>('.phd-u').value === 'w' ? toMass(c, MA, MB) : toMole(c, MA, MB)) + 1e-9).toFixed(1);
+    calc();
+  });
+  root.querySelectorAll('.phd-c0, .phd-c1, .phd-c2, .phd-n1, .phd-n2, .phd-tot').forEach((i) => i.addEventListener('input', leverCalc));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.phd-fig'), fig); });
+  calc(); leverCalc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Binary phase diagram', subtitle: `${s('.phd-an') || 'A'}–${s('.phd-bn') || 'B'} (ideal model)`, file: 'phase-diagram',
+    sections: [
+      ...(q('.phd-out').hidden ? [] : [{ title: q('.phd-big').textContent!, facts: [...root.querySelectorAll('.phd-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }]),
+      ...(q('.phd-lout').hidden ? [] : [{ title: `Lever rule: ${q('.phd-lbig').textContent!}`, facts: [...root.querySelectorAll('.phd-lfacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .phd .phd-wide { grid-column: 1 / -1; }
+  .phd select { max-width: 100%; }
+</style>

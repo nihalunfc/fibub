@@ -1,0 +1,167 @@
+---
+// Reaction kinetics fitter: zero, first and second order (and a free order) fitted to concentration against time,
+// the straight-line plots, half-life, and Arrhenius/Eyring activation parameters from k at several temperatures.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rkf">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Concentration against time</h2>
+      <button type="button" class="btn secondary small rkf-sample">Load an example</button>
+    </div>
+    <label style="margin-top:10px">Time and concentration, one pair per line <textarea class="rkf-data" rows="7" placeholder="0 0.0200&#10;300 0.0166&#10;600 0.0138"></textarea></label>
+    <DataFile target=".rkf-data" maxCols={2} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Time unit <select class="rkf-tu"><option>s</option><option>min</option><option>h</option><option>day</option><option>year</option></select></label>
+      <label>Concentration unit <input class="rkf-cu" value="mol/L" autocomplete="off" /></label>
+    </div>
+    <p class="ax-help">Paste two columns from a spreadsheet: time, then the concentration of the reactant that is used up. Absorbance works too when it is proportional to concentration (Beer–Lambert), though a second-order k then comes out per absorbance unit.</p>
+    <p class="ax-err rkf-err" hidden></p>
+    <div class="rkf-out">
+      <p class="ax-big rkf-big"></p>
+      <div class="ax-scroll"><table class="rkf-tab"></table></div>
+      <p class="ax-help rkf-free"></p>
+      <div class="ax-seg rkf-view" role="group" aria-label="Plot" style="margin-top:10px">
+        <button type="button" data-v="fit" aria-pressed="true">Fitted curves</button>
+        <button type="button" data-v="0" aria-pressed="false">[A]</button>
+        <button type="button" data-v="1" aria-pressed="false">ln [A]</button>
+        <button type="button" data-v="2" aria-pressed="false">1/[A]</button>
+      </div>
+      <canvas class="ax-fig rkf-fig" style="margin-top:10px"></canvas>
+      <p class="ax-help rkf-fig-note"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Activation energy (Arrhenius)</h2>
+    <label>Temperature and rate constant, one pair per line <textarea class="rkf-arr" rows="5">189.7 2.52e-5
+198.9 5.25e-5
+230.3 6.30e-4
+251.2 3.16e-3</textarea></label>
+    <DataFile target=".rkf-arr" maxCols={2} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Temperatures are in <select class="rkf-tunit"><option value="C">°C</option><option value="K">K</option></select></label>
+      <label>Predict k at (same unit) <input class="rkf-tpred" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-help">k in any unit, as long as all are the same. The example is the isomerisation of methyl isonitrile to acetonitrile, a classic first-order gas reaction.</p>
+    <p class="ax-err rkf-arr-err" hidden></p>
+    <div class="rkf-arr-out">
+      <p class="ax-big rkf-arr-big"></p>
+      <dl class="ax-facts rkf-arr-facts"></dl>
+      <canvas class="ax-fig rkf-arr-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitOrders, fitFreeOrder, akaikeWeights, conc, LINEAR, arrhenius, kAt, simulatedRun, type OrderFit, type Order } from '../../lib/sci/kinetics';
+  import { parseTable, num, sig, pm, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rkf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let view: 'fit' | '0' | '1' | '2' = 'fit', fits: OrderFit[] = [], best = 1, T: number[] = [], C: number[] = [], fig: Figure | null = null, arrFig: Figure | null = null, rows: string[][] = [];
+  const NAMES = ['Zero order', 'First order', 'Second order'];
+  const fmt = (x: number) => (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-2 && x !== 0) ? fmtExp(x, 4) : sig(x, 4));
+  const kUnit = (o: number) => { const tu = q<HTMLSelectElement>('.rkf-tu').value, cu = q<HTMLInputElement>('.rkf-cu').value.trim() || 'conc.'; return o === 0 ? `${cu}/${tu}` : o === 1 ? `1/${tu}` : `${cu === 'mol/L' || cu === 'M' ? 'L/(mol·' + tu + ')' : `1/(${cu}·${tu})`}`; };
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+
+  function run() {
+    const pts = parseTable(q<HTMLTextAreaElement>('.rkf-data').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    const err = q('.rkf-err'), out = q('.rkf-out');
+    if (!pts.length) { err.textContent = 'Paste your data, or load the example.'; err.hidden = false; out.hidden = true; return; }
+    pts.sort((a, b) => a[0] - b[0]); T = pts.map((p) => p[0]); C = pts.map((p) => p[1]);
+    try { fits = fitOrders(T, C); } catch (e) { err.textContent = (e as Error).message.replace('Need more than 2 points to fit 2 parameters', 'Need at least three points.'); err.hidden = false; out.hidden = true; return; }
+    err.hidden = true; out.hidden = false;
+    const w = akaikeWeights(fits.map((f) => f.aicc));
+    best = w.indexOf(Math.max(...w));
+    const B = fits[best], tu = q<HTMLSelectElement>('.rkf-tu').value;
+    q('.rkf-big').textContent = `${NAMES[best]} fits best: k = ${pm(B.k, B.seK)} ${kUnit(best)}, half-life ${fmt(B.halfLife)} ${tu}`;
+    const tb = q<HTMLTableElement>('.rkf-tab'); tb.replaceChildren();
+    const head = ['Order', 'Rate law', 'k', '[A]₀', 'R²', 'Support', 'Half-life'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows = [];
+    fits.forEach((f, i) => {
+      const r = [NAMES[i], ['rate = k', 'rate = k[A]', 'rate = k[A]²'][i], `${pm(f.k, f.seK)} ${kUnit(i)}`, fmt(f.a0), f.r2.toFixed(5), `${(100 * w[i]).toFixed(w[i] > 0.995 || w[i] < 0.005 ? 0 : 1)} %`, `${fmt(f.halfLife)} ${tu}`];
+      rows.push(r);
+      const row = bd.insertRow(); r.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j > 1) td.style.textAlign = 'right'; if (i === best) td.style.fontWeight = '600'; });
+    });
+    const free = fitFreeOrder(T, C, B);
+    q('.rkf-free').textContent = `Support is the Akaike weight: the chance each law is the best of the three, given the data. ${free ? `Letting the order float gives n = ${pm(free.p[2], free.se[2])}${Math.abs(free.p[2] - Math.round(free.p[2])) < 2 * free.se[2] + 0.05 ? `, close to ${Math.round(free.p[2])}` : ', between whole orders: the mechanism may be more complex'}.` : ''} ${T.length < 6 ? 'With so few points, more data would make the choice safer.' : ''} The half-life of a first-order reaction stays the same throughout; for other orders it is the time to fall from [A]₀ to half.`;
+    draw();
+  }
+
+  function draw() {
+    root.querySelectorAll<HTMLButtonElement>('.rkf-view button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === view)));
+    if (!fits.length) return;
+    const tu = q<HTMLSelectElement>('.rkf-tu').value, cu = q<HTMLInputElement>('.rkf-cu').value.trim() || 'concentration';
+    const tmax = Math.max(...T), xs = Array.from({ length: 201 }, (_, i) => (tmax * 1.05 * i) / 200);
+    if (view === 'fit') {
+      fig = chartFigure({ h: 320, xLabel: `Time (${tu})`, yLabel: `[A] (${cu})`, yMin: 0, legend: 'below', series: [
+        { name: 'Data', x: T, y: C, mode: 'points', size: 4 },
+        ...fits.map((f, i) => ({ name: NAMES[i], x: xs, y: xs.map((x) => conc(i, f.a0, f.k, x)), mode: 'line' as const, width: i === best ? 2.2 : 1.2, dash: i === best ? undefined : [5, 4] })),
+      ] }, 'Concentration against time with the three fitted rate laws');
+      q('.rkf-fig-note').textContent = 'The solid line is the best law; dashed lines are the others. Points should scatter evenly around the right one.';
+    } else {
+      const o = Number(view) as Order, L = LINEAR[o], f = fits[o];
+      fig = chartFigure({ h: 320, xLabel: `Time (${tu})`, yLabel: L.label, legend: 'none', series: [
+        { name: 'Data', x: T, y: C.map(L.y), mode: 'points', size: 4 },
+        { name: 'Straight line', x: [0, tmax], y: [f.line.intercept, f.line.intercept + f.line.slope * tmax], mode: 'line', width: 1.6 },
+      ] }, `${L.label} against time`);
+      q('.rkf-fig-note').textContent = `${NAMES[o]} gives a straight line in this plot, slope ${o === 2 ? '+' : '−'}k. Here the straight line has R² = ${f.line.r2.toFixed(5)}. Curved points mean another order.`;
+    }
+    paint(q<HTMLCanvasElement>('.rkf-fig'), fig);
+  }
+
+  function runArr() {
+    const pts = parseTable(q<HTMLTextAreaElement>('.rkf-arr').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    const isC = q<HTMLSelectElement>('.rkf-tunit').value === 'C', toK = (x: number) => (isC ? x + 273.15 : x);
+    const err = q('.rkf-arr-err'), out = q('.rkf-arr-out');
+    let a;
+    try { a = arrhenius(pts.map((p) => toK(p[0])), pts.map((p) => p[1])); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; arrFig = null; return; }
+    err.hidden = true; out.hidden = false;
+    const two = pts.length === 2;
+    q('.rkf-arr-big').textContent = `Ea = ${two ? sig(a.ea / 1000, 4) : pm(a.ea / 1000, a.seEa / 1000)} kJ/mol`;
+    const tp = num(q<HTMLInputElement>('.rkf-tpred').value), facts = [
+      fact('Pre-exponential factor A', fmtExp(a.a, 3), 'same unit as k'),
+      ...(two ? [] : [fact('95 % range for Ea', `${sig(a.ci95Ea[0] / 1000, 3)} to ${sig(a.ci95Ea[1] / 1000, 3)} kJ/mol`, `from ${pts.length} points; R² = ${a.line.r2.toFixed(5)} for ln k against 1/T`)]),
+      fact('ΔH‡ (Eyring)', `${sig(a.dH / 1000, 4)} kJ/mol`, 'enthalpy of activation = Ea − RT at these temperatures'),
+      fact('ΔS‡ (Eyring)', `${sig(a.dS, 3)} J/(mol·K)`, 'for a first-order k in 1/s; negative means an ordered transition state'),
+      fact('ΔG‡ at 25 °C', `${sig(a.dG298 / 1000, 4)} kJ/mol`),
+    ];
+    if (Number.isFinite(tp) && toK(tp) > 0) facts.push(fact(`k at ${tp} ${isC ? '°C' : 'K'}`, fmtExp(kAt(a, toK(tp)), 3), Math.min(...pts.map((p) => p[0])) > tp || Math.max(...pts.map((p) => p[0])) < tp ? 'outside the measured range: an extrapolation' : 'within the measured range'));
+    q('.rkf-arr-facts').replaceChildren(...facts);
+    const x = pts.map((p) => 1000 / toK(p[0])), y = pts.map((p) => Math.log(p[1])), x0 = Math.min(...x), x1 = Math.max(...x);
+    arrFig = chartFigure({ h: 300, xLabel: '1000 / T (1/K)', yLabel: 'ln k', legend: 'none', series: [
+      { name: 'Data', x, y, mode: 'points', size: 4 },
+      { name: 'Fit', x: [x0, x1], y: [a.lnA + (a.line.slope * x0) / 1000, a.lnA + (a.line.slope * x1) / 1000], mode: 'line', width: 1.6 },
+    ] }, 'Arrhenius plot of ln k against 1/T');
+    paint(q<HTMLCanvasElement>('.rkf-arr-fig'), arrFig);
+  }
+
+  q('.rkf-sample').addEventListener('click', () => { const r = simulatedRun(); q<HTMLTextAreaElement>('.rkf-data').value = r.t.map((t, i) => `${t}\t${r.c[i]}`).join('\n'); q<HTMLSelectElement>('.rkf-tu').value = 's'; q<HTMLInputElement>('.rkf-cu').value = 'mol/L'; run(); });
+  q('.rkf-data').addEventListener('input', run);
+  q('.rkf-tu').addEventListener('change', run); q('.rkf-cu').addEventListener('input', run);
+  root.querySelectorAll<HTMLButtonElement>('.rkf-view button').forEach((b) => b.addEventListener('click', () => { view = b.dataset.v as typeof view; draw(); }));
+  for (const c of ['.rkf-arr', '.rkf-tpred']) q(c).addEventListener('input', runArr);
+  q('.rkf-tunit').addEventListener('change', runArr);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.rkf-fig'), fig); if (arrFig) paint(q<HTMLCanvasElement>('.rkf-arr-fig'), arrFig); });
+  q<HTMLButtonElement>('.rkf-sample').click();
+  runArr();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Reaction kinetics', file: 'reaction-kinetics',
+    sections: [
+      ...(fits.length ? [{ title: q('.rkf-big').textContent!, table: { head: ['Order', 'Rate law', 'k', '[A]₀', 'R²', 'Support', 'Half-life'], rows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, figure: fig ?? undefined, text: [q('.rkf-free').textContent!] }] : []),
+      ...(arrFig ? [{ title: q('.rkf-arr-big').textContent!, facts: [...root.querySelectorAll('.rkf-arr-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: arrFig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .rkf .rkf-tab td, .rkf .rkf-tab th { white-space: nowrap; }
+  .rkf textarea { font-family: ui-monospace, monospace; }
+</style>

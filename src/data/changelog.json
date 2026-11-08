@@ -1,5 +1,304 @@
 [
  {
+  "sha": "d0e3450e5c5a",
+  "date": "2026-11-08T12:24:41+00:00",
+  "title": "Add the binary phase diagram and lever rule calculator (#108)",
+  "tools": [
+   "phase-diagram-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f652b3ef28db",
+  "date": "2026-11-08T12:10:07+00:00",
+  "title": "Add the 18-electron rule and oxidation state checker (#107)",
+  "tools": [
+   "electron-count-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e0c1102ec79",
+  "date": "2026-11-08T12:02:48+00:00",
+  "title": "Add the NMR solvent and impurity peak checker (#106)",
+  "tools": [
+   "nmr-impurity-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f5cf2545061",
+  "date": "2026-11-08T11:44:54+00:00",
+  "title": "Add the Tafel corrosion rate calculator (#105)",
+  "tools": [
+   "tafel-corrosion-rate"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d34a5bbf4e8c",
+  "date": "2026-11-08T11:28:33+00:00",
+  "title": "Add the battery cycling data analyser (#104)",
+  "tools": [
+   "battery-cycling-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a370033e11f4",
+  "date": "2026-11-08T11:16:52+00:00",
+  "title": "Add the DSC and TGA curve analyser (#103)",
+  "tools": [
+   "dsc-tga-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f916447fef7c",
+  "date": "2026-11-08T11:06:47+00:00",
+  "title": "Add the glass transition (Tg) calculator (#102)",
+  "tools": [
+   "glass-transition-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d7ad34b07f4a",
+  "date": "2026-11-08T10:52:18+00:00",
+  "title": "Add the copolymer composition and reactivity ratio calculator (#101)",
+  "tools": [
+   "copolymer-composition"
+  ],
+  "site": false
+ },
+ {
+  "sha": "406eb4223755",
+  "date": "2026-11-08T10:44:10+00:00",
+  "title": "Add the polymer molar mass calculator (#100)",
+  "tools": [
+   "polymer-molar-mass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "89fc705887fd",
+  "date": "2026-11-08T10:31:57+00:00",
+  "title": "Add the radioactive decay and specific activity calculator (#99)",
+  "tools": [
+   "decay-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cf6ee469fe12",
+  "date": "2026-11-08T10:15:10+00:00",
+  "title": "Add the green chemistry metrics calculator (#98)",
+  "tools": [
+   "green-chemistry-metrics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7ea3956baa62",
+  "date": "2026-11-08T09:59:42+00:00",
+  "title": "Add the electroplating and electrolysis calculator (#97)",
+  "tools": [
+   "electroplating-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1e817b054d0a",
+  "date": "2026-11-08T09:49:05+00:00",
+  "title": "Add the Nernst and cell potential calculator (#96)",
+  "tools": [
+   "nernst-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8f76b910121e",
+  "date": "2026-11-08T09:37:53+00:00",
+  "title": "Add the thermochemistry calculator (#95)",
+  "tools": [
+   "thermochemistry-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "19b8d4052fad",
+  "date": "2026-11-08T09:29:21+00:00",
+  "title": "Add the diatomic spectroscopy calculator (#94)",
+  "tools": [
+   "diatomic-spectroscopy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "273986c21391",
+  "date": "2026-11-08T09:17:21+00:00",
+  "title": "Add the crystal field and spin state calculator (#93)",
+  "tools": [
+   "crystal-field-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e90bdb4ab42e",
+  "date": "2026-11-08T09:00:26+00:00",
+  "title": "Add the Hückel MO calculator (#92)",
+  "tools": [
+   "huckel-mo-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c0af055fde73",
+  "date": "2026-11-08T08:48:02+00:00",
+  "title": "Add the TLC Rf calculator with plate photo marking (#91)",
+  "tools": [
+   "tlc-rf-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ca387e085e48",
+  "date": "2026-11-08T08:40:28+00:00",
+  "title": "Add the cyclic voltammetry analyser (#90)",
+  "tools": [
+   "cyclic-voltammetry"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d78ff4e98be8",
+  "date": "2026-11-08T08:31:04+00:00",
+  "title": "Add method validation, colligative properties and equilibrium solver (#87-#89)",
+  "tools": [
+   "colligative-properties",
+   "equilibrium-solver",
+   "method-validation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "60e407c09aac",
+  "date": "2026-11-08T08:08:29+00:00",
+  "title": "Add the reaction equivalents table and chromatography calculator (#85, #86)",
+  "tools": [
+   "chromatography-calculator",
+   "reaction-equivalents"
+  ],
+  "site": false
+ },
+ {
+  "sha": "87c9ec946496",
+  "date": "2026-11-08T07:54:00+00:00",
+  "title": "Add the gas law calculator and Beer-Lambert calculator (#83, #84)",
+  "tools": [
+   "beer-lambert-calculator",
+   "gas-law-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a387b6b05c2",
+  "date": "2026-11-08T07:45:54+00:00",
+  "title": "Open a file on every science paste box, with stated limits",
+  "tools": [
+   "biodiversity-indices",
+   "calibration-curve",
+   "dose-response",
+   "isotope-pattern-calculator",
+   "period-finder",
+   "radial-velocity-fitter",
+   "radiocarbon-calibration",
+   "reaction-kinetics-fitter",
+   "rotation-curve-fitter",
+   "sky-coordinates",
+   "stereonet",
+   "titration-curve",
+   "uv-coverage"
+  ],
+  "site": true
+ },
+ {
+  "sha": "42d13367aeb8",
+  "date": "2026-11-08T07:40:29+00:00",
+  "title": "Plot maker (#27): open CSV, TSV, TXT or Excel files, with stated limits",
+  "tools": [
+   "plot-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "436277b63430",
+  "date": "2026-11-08T07:33:43+00:00",
+  "title": "Add the reaction kinetics fitter and titration curve simulator (#81, #82)",
+  "tools": [
+   "reaction-kinetics-fitter",
+   "titration-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "baec11a52b43",
+  "date": "2026-11-08T07:22:02+00:00",
+  "title": "Add the molar mass calculator, equation balancer and isotope pattern calculator (#78-#80)",
+  "tools": [
+   "equation-balancer",
+   "isotope-pattern-calculator",
+   "molar-mass-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "45110bb42989",
+  "date": "2026-11-08T07:02:59+00:00",
+  "title": "Add the variable star observation log (#77)",
+  "tools": [
+   "variable-star-log"
+  ],
+  "site": false
+ },
+ {
+  "sha": "27e0223057c5",
+  "date": "2026-11-08T06:52:04+00:00",
+  "title": "Add hydrogen line analyser, planet data explorer, sunspot counter and image stacker (#73–#76)",
+  "tools": [
+   "hydrogen-line-analyser",
+   "image-stacker",
+   "planet-data-explorer",
+   "rotation-curve-fitter",
+   "sunspot-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1a5ce9e71086",
+  "date": "2026-11-08T06:25:58+00:00",
+  "title": "Add rotation curve fitter, spectral line identifier, transit fitter and star FWHM checker (#69–#72)",
+  "tools": [
+   "rotation-curve-fitter",
+   "spectral-line-identifier",
+   "star-fwhm-checker",
+   "transit-light-curve-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0a80f4ae9beb",
+  "date": "2026-11-08T05:59:21+00:00",
+  "title": "Add four tools: eclipse finder, satellite tracker, uv-coverage, double stars",
+  "tools": [
+   "double-star-calculator",
+   "eclipse-finder",
+   "satellite-tracker",
+   "uv-coverage"
+  ],
+  "site": false
+ },
+ {
   "sha": "f1aa4c65c675",
   "date": "2026-11-08T05:31:25+00:00",
   "title": "Add four tools: Sun position, Jupiter's moons, porkchop plot, radial velocity fitter",

@@ -1,0 +1,334 @@
+---
+// Variable star observation log: record visual estimates or instrumental magnitudes, see each star's light curve,
+// and export files in the AAVSO Visual and Extended formats ready for WebObs. Optional keeping in this browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax vsl">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <div class="ax-seg vsl-kind" role="group" aria-label="Kind of observation">
+        <button type="button" data-k="vis" aria-pressed="true">Visual estimate</button>
+        <button type="button" data-k="ins" aria-pressed="false">Camera (CCD, DSLR)</button>
+      </div>
+      <button type="button" class="btn secondary small vsl-sample">Load an example</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Star <input class="vsl-name" placeholder="SS Cyg" autocomplete="off" /></label>
+      <label>Date and time (UTC) <input class="vsl-time" type="datetime-local" step="60" /></label>
+      <label>Magnitude <input class="vsl-mag" inputmode="decimal" placeholder="11.2" /></label>
+      <label class="vsl-ins-only" hidden>Error (mag) <input class="vsl-err-in" inputmode="decimal" placeholder="0.02" /></label>
+      <label class="vsl-ins-only" hidden>Filter <select class="vsl-filter"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="vsl-fainter" /> Not seen: fainter than this</label>
+      <button type="button" class="btn secondary small vsl-now">Now</button>
+      <span class="ax-help vsl-jd" style="margin:0"></span>
+    </div>
+
+    <div class="vsl-vis-only">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Comparison 1 <input class="vsl-c1" placeholder="110" autocomplete="off" /></label>
+        <label>Comparison 2 <input class="vsl-c2" placeholder="113" autocomplete="off" /></label>
+        <label>Chart ID <input class="vsl-chart" placeholder="X12345AB" autocomplete="off" /></label>
+      </div>
+      <p class="ax-help">Comparison labels are as printed on the AAVSO chart (110 means magnitude 11.0). The chart ID is printed in its top right corner.</p>
+      <fieldset class="vsl-codes" style="border:0;padding:0;margin:8px 0 0"><legend class="ax-help" style="margin:0 0 4px">Conditions (comment codes)</legend><div class="ax-row"></div></fieldset>
+    </div>
+
+    <div class="vsl-ins-only" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Comparison star <input class="vsl-cname" placeholder="000-BBB-123" autocomplete="off" /></label>
+        <label>Its magnitude <input class="vsl-cmag" inputmode="decimal" placeholder="11.034" /></label>
+        <label>Check star <input class="vsl-kname" placeholder="000-BBB-124" autocomplete="off" /></label>
+        <label>Check star measured <input class="vsl-kmag" inputmode="decimal" placeholder="11.512" /></label>
+        <label>Airmass <input class="vsl-airmass" inputmode="decimal" placeholder="1.21" /></label>
+        <label>Chart ID <input class="vsl-chart2" placeholder="X12345AB" autocomplete="off" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px">
+        <label class="ax-check"><input type="checkbox" class="vsl-trans" /> Transformed to the standard system</label>
+      </div>
+    </div>
+
+    <label style="margin-top:10px">Notes <input class="vsl-notes" placeholder="Optional, such as the telescope or eyepiece" autocomplete="off" /></label>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn vsl-add">Add observation</button>
+    </div>
+    <p class="ax-err vsl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Work out the magnitude</h2>
+    <div class="ax-seg vsl-help-kind" role="group" aria-label="Method">
+      <button type="button" data-h="step" aria-pressed="true">Between two stars</button>
+      <button type="button" data-h="flux" aria-pressed="false">From measured brightness</button>
+    </div>
+    <div class="vsl-step" style="margin-top:10px">
+      <div class="ax-grid">
+        <label>Brighter star (mag) <input class="vsl-s1" inputmode="decimal" value="11.0" /></label>
+        <label>Fainter star (mag) <input class="vsl-s2" inputmode="decimal" value="11.3" /></label>
+        <label>Steps from brighter <input class="vsl-sa" inputmode="decimal" value="1" /></label>
+        <label>Steps from fainter <input class="vsl-sb" inputmode="decimal" value="2" /></label>
+      </div>
+      <p class="ax-help">Argelander's step method: judge how the variable sits between the two stars, such as "one step below the brighter, two above the fainter". The estimate is the brighter magnitude plus that share of the gap.</p>
+    </div>
+    <div class="vsl-flux" style="margin-top:10px" hidden>
+      <div class="ax-grid">
+        <label>Variable's counts <input class="vsl-fv" inputmode="decimal" value="15200" /></label>
+        <label>Comparison's counts <input class="vsl-fc" inputmode="decimal" value="21800" /></label>
+        <label>Comparison's catalogue mag <input class="vsl-fm" inputmode="decimal" value="11.034" /></label>
+      </div>
+      <p class="ax-help">Differential photometry: the background-subtracted counts of both stars from the same image. Magnitude = comparison magnitude − 2.5 log₁₀(variable ÷ comparison).</p>
+    </div>
+    <p class="ax-big vsl-est" style="margin-top:8px"></p>
+    <button type="button" class="btn secondary small vsl-use">Use this magnitude</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your observations</h2>
+    <div class="ax-row">
+      <label style="max-width:240px">Light curve of <select class="vsl-star"></select></label>
+    </div>
+    <canvas class="ax-fig vsl-plot" style="margin-top:10px"></canvas>
+    <p class="ax-help vsl-plot-note"></p>
+    <div class="ax-scroll"><table class="vsl-tab"></table></div>
+    <p class="ax-help vsl-count"></p>
+    <p class="ax-help">The table lists the star chosen above, newest first.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Export and import</h2>
+    <div class="ax-grid">
+      <label>Your AAVSO observer code <input class="vsl-obscode" placeholder="ABCD" autocomplete="off" maxlength="6" /></label>
+      <label>Camera files are <select class="vsl-obstype"><option>DSLR</option><option>CCD</option><option>PEP</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small vsl-vis-dl">AAVSO visual file</button>
+      <button type="button" class="btn small vsl-ext-dl">AAVSO extended file</button>
+      <button type="button" class="btn secondary small vsl-csv">CSV</button>
+      <button type="button" class="btn secondary small vsl-open">Open a file</button>
+      <input type="file" class="vsl-in" accept=".txt,.csv,.tsv,text/plain,text/csv" hidden />
+    </div>
+    <p class="ax-help">Upload the AAVSO files yourself through WebObs ("Submit observations", then "File upload") at aavso.org. This page sends nothing anywhere. Opening a file reads AAVSO Visual or Extended files, or a CSV with star, Julian Date and magnitude columns, and adds them to the list.</p>
+    <p class="ax-err vsl-io-err" hidden></p>
+    <div class="ax-row" style="margin-top:12px">
+      <label class="ax-check"><input type="checkbox" class="vsl-keep" /> Keep my observations in this browser</label>
+      <button type="button" class="btn secondary small vsl-clear">Clear all</button>
+    </div>
+    <p class="ax-help">Off by default. When on, the list and your observer code are saved only in this browser on this device, so they are here next time. They never leave the device. Clear all removes them.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { jd, msFromJd, FILTERS, COMMENT_CODES, toVisual, toExtended, parseAavso, fractionEstimate, differential, type Obs } from '../../lib/astro/aavso';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vsl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const KEY = 'fibub-varlog-v1';
+  let kind: 'vis' | 'ins' = 'vis', helpKind: 'step' | 'flux' = 'step', list: Obs[] = [], fig: Figure | null = null, est = NaN;
+
+  const showErr = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const utcText = (j: number) => new Date(msFromJd(j)).toISOString().slice(0, 16).replace('T', ' ');
+  const toInput = (ms: number) => new Date(ms).toISOString().slice(0, 16);
+  const fromInput = (s: string) => (s ? Date.parse(s + 'Z') : NaN);
+  const optNum = (c: string) => { const s = val(c); if (!s) return undefined; const x = num(s); return Number.isFinite(x) ? x : undefined; };
+
+  // ---- storage (opt-in) ----
+  const keeping = () => q<HTMLInputElement>('.vsl-keep').checked;
+  const store = () => { try { if (keeping()) localStorage.setItem(KEY, JSON.stringify({ obs: list, obscode: val('.vsl-obscode'), obstype: q<HTMLSelectElement>('.vsl-obstype').value })); } catch {} };
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (s && Array.isArray(s.obs)) { list = s.obs.filter((o: Obs) => o && typeof o.name === 'string' && Number.isFinite(o.jd) && Number.isFinite(o.mag)); q<HTMLInputElement>('.vsl-keep').checked = true; q<HTMLInputElement>('.vsl-obscode').value = s.obscode || ''; if (s.obstype) q<HTMLSelectElement>('.vsl-obstype').value = s.obstype; }
+  } catch {}
+
+  // ---- form ----
+  q<HTMLSelectElement>('.vsl-filter').replaceChildren(...FILTERS.filter((f) => f !== 'Vis.').map((f) => { const o = document.createElement('option'); o.value = f; o.textContent = { V: 'V (Johnson)', B: 'B (Johnson)', R: 'R (Cousins)', I: 'I (Cousins)', TG: 'TG (DSLR green)', TB: 'TB (DSLR blue)', TR: 'TR (DSLR red)', CV: 'CV (clear, V zero point)', CR: 'CR (clear, R zero point)', SG: "SG (Sloan g')", SR: "SR (Sloan r')", SI: "SI (Sloan i')" }[f] || f; return o; }));
+  q<HTMLSelectElement>('.vsl-filter').value = 'TG';
+  q('.vsl-codes .ax-row').replaceChildren(...COMMENT_CODES.map(([c, d]) => { const l = document.createElement('label'); l.className = 'ax-check'; l.title = d; l.innerHTML = '<input type="checkbox" /> <span></span>'; l.querySelector('input')!.value = c; l.querySelector('span')!.textContent = `${c}: ${d}`; return l; }));
+
+  function setKind(k: 'vis' | 'ins') {
+    kind = k;
+    root.querySelectorAll<HTMLButtonElement>('.vsl-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    root.querySelectorAll<HTMLElement>('.vsl-vis-only').forEach((e) => (e.hidden = k !== 'vis'));
+    root.querySelectorAll<HTMLElement>('.vsl-ins-only').forEach((e) => (e.hidden = k !== 'ins'));
+    q<HTMLInputElement>('.vsl-mag').placeholder = k === 'vis' ? '11.2' : '11.234';
+  }
+  const showJd = () => { const ms = fromInput(val('.vsl-time')); q('.vsl-jd').textContent = Number.isFinite(ms) ? `Julian Date ${jd(ms).toFixed(4)}` : ''; };
+
+  function add() {
+    const name = val('.vsl-name'), ms = fromInput(val('.vsl-time')), mag = num(val('.vsl-mag'));
+    if (!name) return showErr('.vsl-err', 'Type the star\'s name, such as SS Cyg or R Leo.');
+    if (!Number.isFinite(ms)) return showErr('.vsl-err', 'Choose the date and time of the observation, in UTC.');
+    if (ms > Date.now() + 864e5) return showErr('.vsl-err', 'That date is in the future. Check the date, and that the time is in UTC.');
+    if (!Number.isFinite(mag) || mag < -2 || mag > 25) return showErr('.vsl-err', 'Type the magnitude as a number, such as 11.2.');
+    showErr('.vsl-err', '');
+    const o: Obs = { name, jd: jd(ms), mag, fainter: q<HTMLInputElement>('.vsl-fainter').checked, filter: kind === 'vis' ? 'Vis.' : q<HTMLSelectElement>('.vsl-filter').value, notes: val('.vsl-notes') || undefined };
+    if (kind === 'vis') {
+      const codes = [...root.querySelectorAll<HTMLInputElement>('.vsl-codes input:checked')].map((i) => i.value).join('');
+      Object.assign(o, { comp1: val('.vsl-c1') || undefined, comp2: val('.vsl-c2') || undefined, chart: val('.vsl-chart') || undefined, comment: codes || undefined });
+    } else {
+      Object.assign(o, { err: optNum('.vsl-err-in'), comp1: val('.vsl-cname') || undefined, cmag: optNum('.vsl-cmag'), kname: val('.vsl-kname') || undefined, kmag: optNum('.vsl-kmag'), airmass: optNum('.vsl-airmass'), chart: val('.vsl-chart2') || undefined, trans: q<HTMLInputElement>('.vsl-trans').checked, mtype: 'ABS' });
+    }
+    list.push(o);
+    q<HTMLInputElement>('.vsl-mag').value = ''; q<HTMLInputElement>('.vsl-fainter').checked = false;
+    q<HTMLSelectElement>('.vsl-star').dataset.want = name.toUpperCase();
+    store(); render();
+  }
+
+  // ---- magnitude helpers ----
+  function estimate() {
+    root.querySelectorAll<HTMLButtonElement>('.vsl-help-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.h === helpKind)));
+    q('.vsl-step').hidden = helpKind !== 'step'; q('.vsl-flux').hidden = helpKind !== 'flux';
+    if (helpKind === 'step') {
+      const c1 = num(val('.vsl-s1')), c2 = num(val('.vsl-s2')), a = num(val('.vsl-sa')), b = num(val('.vsl-sb'));
+      const ok = [c1, c2, a, b].every(Number.isFinite) && a >= 0 && b >= 0 && a + b > 0;
+      est = ok ? fractionEstimate(c1, c2, a, b) : NaN;
+      q('.vsl-est').textContent = ok ? `Estimate: ${est.toFixed(1)} (exactly ${sig(est, 4)})` : 'Type both magnitudes and the steps.';
+    } else {
+      const fv = num(val('.vsl-fv')), fc = num(val('.vsl-fc')), m = num(val('.vsl-fm'));
+      const ok = fv > 0 && fc > 0 && Number.isFinite(m);
+      est = ok ? differential(fv, fc, m) : NaN;
+      q('.vsl-est').textContent = ok ? `Magnitude: ${est.toFixed(3)}` : 'Type both counts (above zero) and the catalogue magnitude.';
+    }
+    q<HTMLButtonElement>('.vsl-use').disabled = !Number.isFinite(est);
+  }
+  function useEstimate() {
+    if (!Number.isFinite(est)) return;
+    showErr('.vsl-err', '');
+    if (helpKind === 'step') {
+      setKind('vis'); q<HTMLInputElement>('.vsl-mag').value = est.toFixed(1);
+      const lab = (s: string) => String(Math.round(num(s) * 10));
+      q<HTMLInputElement>('.vsl-c1').value = lab(val('.vsl-s1')); q<HTMLInputElement>('.vsl-c2').value = lab(val('.vsl-s2'));
+    } else {
+      setKind('ins'); q<HTMLInputElement>('.vsl-mag').value = est.toFixed(3); q<HTMLInputElement>('.vsl-cmag').value = val('.vsl-fm');
+    }
+    q<HTMLInputElement>('.vsl-mag').focus();
+  }
+
+  // ---- list and light curve ----
+  const stars = () => [...new Set(list.map((o) => o.name.toUpperCase()))].sort();
+  function render() {
+    const sel = q<HTMLSelectElement>('.vsl-star'), names = stars(), want = sel.dataset.want || sel.value;
+    sel.replaceChildren(...names.map((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; return o; }));
+    sel.value = names.includes(want) ? want : names[0] ?? ''; delete sel.dataset.want;
+    const star = sel.value;
+    q('.vsl-count').textContent = list.length ? `${list.length} observation${list.length === 1 ? '' : 's'} of ${names.length} star${names.length === 1 ? '' : 's'}: ${list.filter((o) => o.filter === 'Vis.').length} visual, ${list.filter((o) => o.filter !== 'Vis.').length} camera.` : 'No observations yet. Add one above, open a file, or load the example.';
+
+    const tb = q<HTMLTableElement>('.vsl-tab'); tb.replaceChildren();
+    if (list.length) {
+      const tr = tb.createTHead().insertRow(); ['Star', 'UTC', 'JD', 'Mag', 'Filter', 'Comparison', 'Codes, notes', ''].forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+      const bd = tb.createTBody();
+      list.map((o, i) => [o, i] as const).filter(([o]) => o.name.toUpperCase() === star).sort((a, b) => b[0].jd - a[0].jd).forEach(([o, i]) => {
+        const row = bd.insertRow();
+        const comp = o.filter === 'Vis.' ? [o.comp1, o.comp2].filter(Boolean).join(', ') : [o.comp1, o.cmag !== undefined ? `(${o.cmag.toFixed(3)})` : ''].filter(Boolean).join(' ');
+        [o.name.toUpperCase(), utcText(o.jd), o.jd.toFixed(4), `${o.fainter ? '<' : ''}${o.filter === 'Vis.' ? o.mag.toFixed(1) : o.mag.toFixed(3)}${o.err !== undefined ? ` ± ${o.err.toFixed(3)}` : ''}`, o.filter, comp || '–', [o.comment, o.notes].filter(Boolean).join(' · ') || '–'].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j === 2 || j === 3) td.style.textAlign = 'right'; });
+        const del = document.createElement('button'); del.type = 'button'; del.className = 'btn secondary small vsl-del'; del.textContent = 'Delete'; del.setAttribute('aria-label', `Delete the ${o.name} observation of ${utcText(o.jd)}`);
+        del.addEventListener('click', () => { list.splice(i, 1); store(); render(); });
+        row.insertCell().append(del);
+      });
+    }
+
+    const pts = list.filter((o) => o.name.toUpperCase() === star).sort((a, b) => a.jd - b.jd);
+    q('.vsl-plot').hidden = !pts.length;
+    if (!pts.length) { fig = null; q('.vsl-plot-note').textContent = ''; return; }
+    const base = Math.floor(pts[0].jd / 100) * 100;
+    const filters = [...new Set(pts.map((o) => o.filter))];
+    const MK = ['circle', 'square', 'diamond', 'triangle'] as const, OPEN = ['open-circle', 'open-square', 'open-triangle', 'open-triangle'] as const;
+    const series = filters.flatMap((f, i) => {
+      const seen = pts.filter((o) => o.filter === f && !o.fainter), faint = pts.filter((o) => o.filter === f && o.fainter);
+      const label = f === 'Vis.' ? 'Visual' : f;
+      return [
+        ...(seen.length ? [{ name: label, x: seen.map((o) => o.jd - base), y: seen.map((o) => o.mag), yErr: seen.some((o) => o.err) ? seen.map((o) => o.err ?? 0) : undefined, mode: 'points' as const, size: 4, marker: MK[i % 4] }] : []),
+        ...(faint.length ? [{ name: `${label}, fainter than`, x: faint.map((o) => o.jd - base), y: faint.map((o) => o.mag), mode: 'points' as const, size: 4.5, marker: OPEN[i % 4] }] : []),
+      ];
+    });
+    fig = chartFigure({ h: 320, xLabel: `Julian Date − ${base}`, yLabel: 'Magnitude (brighter is up)', yReverse: true, legend: series.length > 1 ? 'below' : 'none', series }, `Light curve of ${star}`);
+    paint(q<HTMLCanvasElement>('.vsl-plot'), fig);
+    const mags = pts.filter((o) => !o.fainter).map((o) => o.mag);
+    q('.vsl-plot-note').textContent = `${star}: ${pts.length} point${pts.length === 1 ? '' : 's'} over ${sig(pts[pts.length - 1].jd - pts[0].jd, 3)} days${mags.length ? `, from ${Math.min(...mags).toFixed(1)} at brightest to ${Math.max(...mags).toFixed(1)} at faintest` : ''}. Open markers are "fainter than" limits: the star was not seen, so it was fainter than that.`;
+  }
+
+  // ---- export / import ----
+  function code() { const c = val('.vsl-obscode'); if (!c) { showErr('.vsl-io-err', 'Type your AAVSO observer code first. If you have none yet, it is free from aavso.org.'); return ''; } showErr('.vsl-io-err', ''); return c; }
+  q('.vsl-vis-dl').addEventListener('click', () => {
+    if (!list.some((o) => o.filter === 'Vis.')) return showErr('.vsl-io-err', 'There are no visual estimates to export.');
+    const c = code(); if (c) save(new Blob([toVisual(list, c)], { type: 'text/plain' }), 'aavso-visual.txt', 'text/plain');
+  });
+  q('.vsl-ext-dl').addEventListener('click', () => {
+    if (!list.some((o) => o.filter !== 'Vis.')) return showErr('.vsl-io-err', 'There are no camera measurements to export.');
+    const c = code(); if (c) save(new Blob([toExtended(list, c, q<HTMLSelectElement>('.vsl-obstype').value as 'CCD' | 'DSLR' | 'PEP')], { type: 'text/plain' }), 'aavso-extended.txt', 'text/plain');
+  });
+  q('.vsl-csv').addEventListener('click', () => {
+    if (!list.length) return showErr('.vsl-io-err', 'There is nothing to download yet.');
+    showErr('.vsl-io-err', '');
+    save(new Blob([csv([['star', 'utc', 'jd', 'mag', 'fainter_than', 'error', 'filter', 'comp1', 'comp2', 'comp_mag', 'check', 'check_mag', 'airmass', 'chart', 'codes', 'notes'], ...[...list].sort((a, b) => a.jd - b.jd).map((o) => [o.name.toUpperCase(), utcText(o.jd), o.jd.toFixed(5), o.mag, o.fainter ? 'yes' : 'no', o.err ?? '', o.filter, o.comp1 ?? '', o.comp2 ?? '', o.cmag ?? '', o.kname ?? '', o.kmag ?? '', o.airmass ?? '', o.chart ?? '', o.comment ?? '', o.notes ?? ''])])], { type: 'text/csv' }), 'variable-star-log.csv', 'text/csv');
+  });
+  q('.vsl-open').addEventListener('click', () => q<HTMLInputElement>('.vsl-in').click());
+  q<HTMLInputElement>('.vsl-in').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; (e.target as HTMLInputElement).value = '';
+    if (!f) return;
+    if (f.size > 20e6) return showErr('.vsl-io-err', 'That file is over 20 MB, too big for an observation file.');
+    const r = parseAavso(await f.text());
+    if (!r.obs.length) return showErr('.vsl-io-err', 'No observations found. The file should be an AAVSO Visual or Extended file, or a CSV with star, Julian Date and magnitude columns.');
+    const have = new Set(list.map((o) => `${o.name.toUpperCase()}|${o.jd.toFixed(4)}|${o.mag}|${o.filter}`));
+    const fresh = r.obs.filter((o) => !have.has(`${o.name.toUpperCase()}|${o.jd.toFixed(4)}|${o.mag}|${o.filter}`));
+    list.push(...fresh);
+    if (r.obscode && !val('.vsl-obscode')) q<HTMLInputElement>('.vsl-obscode').value = r.obscode;
+    showErr('.vsl-io-err', '');
+    store(); render();
+    q('.vsl-count').textContent = `Added ${fresh.length} of ${r.obs.length} from ${f.name}${r.obs.length - fresh.length ? ` (${r.obs.length - fresh.length} already in the list)` : ''}${r.skipped ? `; ${r.skipped} line${r.skipped === 1 ? '' : 's'} could not be read` : ''}. ` + q('.vsl-count').textContent;
+  });
+  q('.vsl-keep').addEventListener('change', () => { try { if (!keeping()) localStorage.removeItem(KEY); } catch {} store(); });
+  q('.vsl-clear').addEventListener('click', () => {
+    if (list.length && !confirm('Remove every observation from this page' + (keeping() ? ' and from this browser?' : '?'))) return;
+    list = []; q<HTMLInputElement>('.vsl-obscode').value = ''; q<HTMLInputElement>('.vsl-keep').checked = false;
+    try { localStorage.removeItem(KEY); } catch {}
+    render();
+  });
+  for (const c of ['.vsl-obscode', '.vsl-obstype']) q(c).addEventListener('change', store);
+
+  // ---- example: SS Cygni going into outburst (visual), with DSLR TG measurements on the rise ----
+  q('.vsl-sample').addEventListener('click', () => {
+    const t0 = Date.UTC(2026, 8, 1, 2, 0);
+    const curve = [12.0, 12.1, 11.9, 12.1, 12.0, 11.8, 10.4, 8.9, 8.4, 8.3, 8.4, 8.5, 8.6, 8.8, 9.0, 9.4, 10.3, 11.3, 11.9, 12.0];
+    const ex: Obs[] = curve.map((m, i) => ({ name: 'SS CYG', jd: jd(t0 + i * 864e5 + ((i * 37) % 90) * 6e4), mag: m, fainter: false, filter: 'Vis.', comp1: m < 10 ? '83' : '117', comp2: m < 10 ? '90' : '121', chart: 'X38551CF', comment: i === 3 ? 'B' : undefined }));
+    ex.push({ name: 'SS CYG', jd: jd(t0 + 2.04 * 864e5), mag: 12.4, fainter: true, filter: 'Vis.', comp1: '121', comp2: '124', chart: 'X38551CF', comment: 'U', notes: 'thin cloud' });
+    [[6.03, 10.281, 0.021], [7.05, 8.874, 0.008], [8.04, 8.405, 0.007], [9.06, 8.322, 0.007]].forEach(([d, m, e]) => ex.push({ name: 'SS CYG', jd: jd(t0 + d * 864e5), mag: m, err: e, fainter: false, filter: 'TG', comp1: '000-BCP-170', cmag: 8.968, kname: '000-BCP-187', kmag: 9.641, airmass: 1.12, trans: false, mtype: 'ABS', chart: 'X38551CF' }));
+    ex.push({ name: 'R LEO', jd: jd(t0 + 3.4 * 864e5), mag: 9.6, fainter: false, filter: 'Vis.', comp1: '94', comp2: '99', chart: 'X38552BB', comment: 'L' });
+    const have = new Set(list.map((o) => `${o.name}|${o.jd.toFixed(4)}`));
+    list.push(...ex.filter((o) => !have.has(`${o.name}|${o.jd.toFixed(4)}`)));
+    q<HTMLSelectElement>('.vsl-star').dataset.want = 'SS CYG';
+    store(); render();
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.vsl-kind button').forEach((b) => b.addEventListener('click', () => setKind(b.dataset.k as 'vis' | 'ins')));
+  root.querySelectorAll<HTMLButtonElement>('.vsl-help-kind button').forEach((b) => b.addEventListener('click', () => { helpKind = b.dataset.h as 'step' | 'flux'; estimate(); }));
+  for (const c of ['.vsl-s1', '.vsl-s2', '.vsl-sa', '.vsl-sb', '.vsl-fv', '.vsl-fc', '.vsl-fm']) q(c).addEventListener('input', estimate);
+  q('.vsl-use').addEventListener('click', useEstimate);
+  q('.vsl-now').addEventListener('click', () => { q<HTMLInputElement>('.vsl-time').value = toInput(Date.now()); showJd(); });
+  q('.vsl-time').addEventListener('input', showJd);
+  q('.vsl-add').addEventListener('click', add);
+  q('.vsl-star').addEventListener('change', render);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.vsl-plot'), fig); });
+  q<HTMLInputElement>('.vsl-time').value = toInput(Date.now()); showJd();
+  setKind('vis'); estimate(); render();
+
+  wireDownloads(q('.dl'), () => {
+    const star = q<HTMLSelectElement>('.vsl-star').value, pts = list.filter((o) => o.name.toUpperCase() === star).sort((a, b) => a.jd - b.jd);
+    return { title: star ? `Light curve of ${star}` : 'Variable star log', file: 'variable-star-log', sections: [
+      ...(fig ? [{ title: 'Light curve', figure: fig, facts: [['Observations', q('.vsl-plot-note').textContent!] as [string, string]] }] : []),
+      { title: 'Observations', table: { head: ['UTC', 'JD', 'Mag', 'Filter', 'Comparison', 'Notes'], rows: pts.map((o) => [utcText(o.jd), o.jd.toFixed(4), `${o.fainter ? '<' : ''}${o.mag}`, o.filter, [o.comp1, o.comp2].filter(Boolean).join(', '), [o.comment, o.notes].filter(Boolean).join(' ')]), align: ['l', 'r', 'r', 'l', 'l', 'l'] as ('l' | 'r')[] } },
+    ] };
+  });
+</script>
+
+<style is:global>
+  .vsl .vsl-tab th, .vsl .vsl-tab td { white-space: nowrap; }
+  .vsl .vsl-codes .ax-check { font-size: 14px; flex-basis: 100%; }
+  @media (min-width: 640px) { .vsl .vsl-codes .ax-check { flex-basis: calc(50% - 12px); } }
+</style>

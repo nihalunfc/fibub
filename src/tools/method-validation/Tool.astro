@@ -1,0 +1,158 @@
+---
+// Method validation statistics: replicate results in one column per series (day, analyst or instrument);
+// mean, SD, RSD and confidence interval, Grubbs outlier test, accuracy (bias, recovery, t-test), repeatability and
+// intermediate precision by one-way ANOVA, and the Horwitz ratio.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax mv">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Replicate results</h2>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small mv-example">Example</button>
+        <button type="button" class="btn secondary small mv-clear">Clear</button>
+      </div>
+    </div>
+    <label style="margin-top:10px">One column per series (day, analyst or instrument), with a header row. One column is fine too. <textarea class="mv-in" rows="8" spellcheck="false" wrap="off" placeholder="Day 1&#9;Day 2&#9;Day 3&#10;99.8&#9;100.6&#9;99.6"></textarea></label>
+    <DataFile target=".mv-in" maxCols={20} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>True value (optional) <input class="mv-true" inputmode="decimal" value="100" placeholder="nominal, spiked or reference" /></label>
+      <label>Significance level <select class="mv-alpha"><option value="0.05">5 % (95 % confidence)</option><option value="0.01">1 % (99 % confidence)</option></select></label>
+      <label>Level, for the Horwitz check (optional) <span class="mv-pair"><input class="mv-conc" inputmode="decimal" placeholder="e.g. 5" /><select class="mv-cu"><option value="0.01">%</option><option value="1e-3">g/kg (‰)</option><option value="1e-6">mg/kg (ppm)</option><option value="1e-9">µg/kg (ppb)</option></select></span></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="mv-drop" /> Leave out values Grubbs flags (only with a known cause, such as a recorded error)</label>
+    <p class="ax-help">The true value is what the sample should contain: a certified reference value, the amount spiked, or 100 % of the label claim. Without it, accuracy is skipped.</p>
+    <p class="ax-err mv-err" hidden></p>
+    <div class="mv-out" hidden>
+      <p class="ax-big mv-big"></p>
+      <dl class="ax-facts mv-facts"></dl>
+      <div class="ax-scroll"><table class="mv-tab"></table></div>
+      <canvas class="ax-fig mv-fig" style="margin-top:10px"></canvas>
+      <p class="ax-help">Common acceptance limits for a drug assay are RSD ≤ 2 % and recovery 98 to 102 %; for trace analysis much wider limits apply. Your SOP, ICH Q2(R2) or the AOAC and Eurachem guides set the ones that count.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { summary, grubbs, grubbsRepeated, accuracy, precision, horwitz } from '../../lib/sci/validation';
+  import { num, sig, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? undefined : num(s); };
+  const EXAMPLE = `Day 1\tDay 2\tDay 3
+99.8\t100.6\t99.6
+100.2\t101.0\t99.9
+99.5\t100.3\t100.3
+100.4\t100.8\t99.4
+99.9\t103.9\t100.0
+100.1\t100.5\t99.7`;
+  let fig: Figure | null = null, rows: string[][] = [];
+  const plain = (x: number) => String(Number(x.toPrecision(6)));
+  const pf = (p: number) => (p < 0.001 ? 'p < 0.001' : `p = ${p.toFixed(3)}`);
+
+  function run() {
+    const err = (m: string) => { q('.mv-err').textContent = m; q('.mv-err').hidden = !m; q('.mv-out').hidden = !!m; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.mv-in').value);
+    const series = t.cols.map((c, i) => ({ name: t.headers[i], x: c.filter(Number.isFinite) })).filter((s) => s.x.length);
+    if (!series.length) { fig = null; return err(q<HTMLTextAreaElement>('.mv-in').value.trim() ? 'No numbers found. Paste one column of results per series, with an optional header row.' : 'Paste your replicate results, or press Example.'); }
+    if (series.every((s) => s.x.length < 2)) return err('Each series needs at least 2 results; 6 or more is usual for repeatability.');
+    err('');
+    const alpha = Number(q<HTMLSelectElement>('.mv-alpha').value), conf = 1 - alpha, drop = q<HTMLInputElement>('.mv-drop').checked;
+    const tv = opt('.mv-true'), conc = opt('.mv-conc');
+
+    // Grubbs per series; optionally remove flagged values (repeated test) before the rest.
+    const flagged: { series: string; value: number }[] = [];
+    const used = series.map((s) => {
+      if (drop) { const r = grubbsRepeated(s.x, alpha); r.removed.forEach((v) => flagged.push({ series: s.name, value: v })); const left = [...s.x]; r.removed.forEach((v) => left.splice(left.indexOf(v), 1)); return { ...s, x: left, removed: r.removed }; }
+      const g = grubbs(s.x, alpha); if (g?.outlier) flagged.push({ series: s.name, value: g.value });
+      return { ...s, removed: [] as number[] };
+    });
+
+    const tb = q<HTMLTableElement>('.mv-tab'); tb.replaceChildren(); rows = [];
+    const head = ['Series', 'n', 'Mean', 'SD', 'RSD %', `${Math.round(conf * 100)} % CI`, 'Grubbs'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    const addRow = (cells: string[]) => { rows.push(cells); const r = bd.insertRow(); cells.forEach((c, j) => { const td = r.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); };
+    for (const s of series) {
+      const u = used.find((x) => x.name === s.name)!, sm = summary(u.x, conf), g = grubbs(s.x, alpha);
+      const gtxt = !g ? (s.x.length < 3 ? 'needs 3' : '–') : u.removed.length ? `left out ${u.removed.map(plain).join(', ')}` : g.outlier ? `${plain(g.value)} flagged (G ${g.G.toFixed(2)} > ${g.crit.toFixed(2)})` : `none (G ${g.G.toFixed(2)} ≤ ${g.crit.toFixed(2)})`;
+      addRow([s.name, String(sm.n), sig(sm.mean, 5), sig(sm.sd, 3), sm.rsd.toFixed(2), Number.isFinite(sm.ciHalf) ? `± ${sig(sm.ciHalf, 3)}` : '–', gtxt]);
+    }
+    const all = used.flatMap((u) => u.x), tot = summary(all, conf);
+    if (series.length > 1) addRow(['All', String(tot.n), sig(tot.mean, 5), sig(tot.sd, 3), tot.rsd.toFixed(2), `± ${sig(tot.ciHalf, 3)}`, '']);
+
+    const facts: HTMLElement[] = [];
+    const pr = series.length > 1 ? precision(used.map((u) => u.x)) : null;
+    if (pr) {
+      facts.push(fact('Repeatability', `s_r = ${sig(pr.sr, 3)}, RSD_r = ${pr.rsdR.toFixed(2)} %`, 'within a series: same day, analyst and instrument (pooled from the ANOVA)'));
+      facts.push(fact('Intermediate precision', `s_I = ${sig(pr.sI, 3)}, RSD_I = ${pr.rsdI.toFixed(2)} %`, `adds the spread between series, s_L = ${sig(pr.sL, 3)}${pr.sL === 0 ? ' (the series agree better than the replicates, so it is set to 0)' : ''}`));
+      facts.push(fact('Do the series differ?', `F = ${pr.F.toFixed(2)}, ${pf(pr.p)}`, pr.p < alpha ? 'yes: the series means differ by more than the replicate scatter explains; look for a day, analyst or instrument effect' : 'no clear difference between series'));
+      if (series.length >= 3) {
+        const gm = grubbs(used.map((u) => summary(u.x).mean), alpha);
+        if (gm) facts.push(fact('Grubbs on the series means', gm.outlier ? `${series[gm.index].name} stands out` : 'no series stands out', `G = ${gm.G.toFixed(3)}, critical ${gm.crit.toFixed(3)} (as in ISO 5725-2 for laboratory means)`));
+      }
+    } else {
+      facts.push(fact('Repeatability', `SD = ${sig(tot.sd, 3)}, RSD = ${tot.rsd.toFixed(2)} %`, `${tot.n} results in one series`));
+    }
+    let acc: ReturnType<typeof accuracy> | null = null;
+    if (tv !== undefined && Number.isFinite(tv) && tv !== 0 && all.length > 1) {
+      acc = accuracy(all, tv, conf);
+      facts.push(fact('Recovery', `${acc.recovery.toFixed(2)} %`, `${Math.round(conf * 100)} % interval ${acc.recoveryLow.toFixed(2)} to ${acc.recoveryHigh.toFixed(2)} %`));
+      facts.push(fact('Bias', `${acc.bias >= 0 ? '+' : ''}${sig(acc.bias, 3)} (${acc.biasPct >= 0 ? '+' : ''}${acc.biasPct.toFixed(2)} %)`, `t = ${acc.t.toFixed(2)}, ${pf(acc.p)}: ${acc.p < alpha ? 'the mean differs from the true value by more than chance' : 'no significant bias'}`));
+    }
+    if (conc !== undefined && conc > 0) {
+      const C = conc * Number(q<HTMLSelectElement>('.mv-cu').value), prsd = horwitz(C);
+      if (C > 1) facts.push(fact('Horwitz check', 'level above 100 %', 'give the level as a mass fraction, such as 5 %'));
+      else {
+        const rsd = pr ? pr.rsdI : tot.rsd, ratio = rsd / prsd;
+        facts.push(fact('Horwitz check', `predicted RSD_R ${prsd.toFixed(1)} %, HorRat ${ratio.toFixed(2)}`, `your ${pr ? 'intermediate precision' : 'RSD'} over the Horwitz prediction for reproducibility (Thompson's form). Within one lab, a ratio of about 0.3 to 1.3 is typical; above 2 suggests a problem${ratio < 0.3 ? '. Yours is unusually small: check the replicates were truly independent' : ratio > 2 ? '. Yours is high' : ''}`));
+      }
+    }
+    q('.mv-big').textContent = [
+      `RSD ${(pr ? pr.rsdR : tot.rsd).toFixed(2)} %`,
+      acc ? `recovery ${acc.recovery.toFixed(1)} %` : '',
+      flagged.length ? `${flagged.length} outlier${flagged.length > 1 ? 's' : ''} ${drop ? 'left out' : 'flagged'} (${flagged.map((f) => `${plain(f.value)} in ${f.series}`).join(', ')})` : 'no outliers',
+    ].filter(Boolean).join(', ');
+    q('.mv-facts').replaceChildren(...facts);
+
+    const ser = series.map((s, i) => {
+      const u = used.find((x) => x.name === s.name)!;
+      return { name: s.name, x: u.x.map((_, j) => i + 1 + ((j % 5) - 2) * 0.06), y: u.x };
+    });
+    const out = flagged.length ? [{ name: drop ? 'Left out' : 'Flagged by Grubbs', x: flagged.map((f) => series.findIndex((s) => s.name === f.series) + 1), y: flagged.map((f) => f.value), marker: 'cross' as const, color: '#D55E00', size: 6 }] : [];
+    const marks = [{ kind: 'hline' as const, at: tot.mean, label: 'mean', dash: [4, 3] }, ...(acc ? [{ kind: 'hline' as const, at: tv!, label: 'true value' }] : [])];
+    fig = chartFigure({ h: 300, xLabel: series.length > 1 ? 'Series' : '', yLabel: 'Result', xMin: 0.5, xMax: series.length + 0.5, series: [...ser, ...out], marks, legend: series.length > 1 || out.length ? 'below' : 'none' }, 'Replicate results by series with the overall mean');
+    paint(q<HTMLCanvasElement>('.mv-fig'), fig);
+  }
+
+  q('.mv-in').addEventListener('input', run);
+  q('.mv-in').addEventListener('change', run);
+  for (const c of ['.mv-true', '.mv-conc']) q(c).addEventListener('input', run);
+  for (const c of ['.mv-alpha', '.mv-cu', '.mv-drop']) q(c).addEventListener('change', run);
+  q('.mv-example').addEventListener('click', () => { q<HTMLTextAreaElement>('.mv-in').value = EXAMPLE; q<HTMLInputElement>('.mv-true').value = '100'; run(); });
+  q('.mv-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.mv-in').value = ''; run(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mv-fig'), fig); });
+  q<HTMLTextAreaElement>('.mv-in').value = EXAMPLE;
+  run();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Method validation', subtitle: q('.mv-big').textContent!, file: 'method-validation',
+    sections: q('.mv-out').hidden ? [] : [
+      { title: 'Summary', facts: [...root.querySelectorAll('.mv-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Series', table: { head: ['Series', 'n', 'Mean', 'SD', 'RSD %', 'CI', 'Grubbs'], rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] }, ...(fig ? { figure: fig } : {}) },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .mv .mv-pair { display: flex; gap: 6px; }
+  .mv .mv-pair input { flex: 1; min-width: 0; }
+  .mv .mv-pair select { width: auto; flex: none; }
+  .mv .mv-tab td, .mv .mv-tab th { white-space: nowrap; }
+</style>

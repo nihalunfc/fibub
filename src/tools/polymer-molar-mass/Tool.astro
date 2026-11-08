@@ -1,0 +1,128 @@
+---
+// Polymer molar mass averages (Mn, Mw, Mz, Mp, dispersity, degree of polymerisation) from a GPC/SEC trace with a
+// calibration from standards, or from a list of chain masses and amounts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleTrace } from '../../lib/sci/polymer';
+const trace = 'time_min,signal\n' + exampleTrace().map((r) => r.join(',')).join('\n');
+const stds = [5e6, 2e6, 1e6, 5e5, 2e5, 1e5, 5e4, 2e4, 1e4, 5e3, 2e3, 1e3, 500].map((M) => `${((10.5 - Math.log10(M)) / 0.3).toFixed(3)}, ${M}`).join('\n');
+---
+<div class="ax pmw">
+  <div class="ax-card">
+    <h2>Molar mass distribution</h2>
+    <div class="ax-seg pmw-mode" role="group" aria-label="Data"><button type="button" data-m="gpc" aria-pressed="true">GPC / SEC trace</button><button type="button" data-m="list" aria-pressed="false">List of chains</button></div>
+    <div class="pmw-gpc">
+      <label class="pmw-lab">Trace: retention time (or volume) and detector signal, one pair per line <textarea class="pmw-tr" rows="6" spellcheck="false">{trace}</textarea></label>
+      <DataFile target=".pmw-tr" maxCols={2} label="Open a trace (2 columns)" />
+      <label class="pmw-lab">Calibration standards: retention and peak molar mass (g/mol) <textarea class="pmw-cal" rows="5" spellcheck="false">{stds}</textarea></label>
+      <DataFile target=".pmw-cal" maxCols={2} label="Open standards (2 columns)" />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Calibration fit <select class="pmw-deg"><option value="1">Straight line</option><option value="2">Quadratic</option><option value="3" selected>Cubic</option></select></label>
+        <label>Integrate from <input class="pmw-lo" inputmode="decimal" value="13.5" /></label>
+        <label>to <input class="pmw-hi" inputmode="decimal" value="25.5" /></label>
+      </div>
+      <p class="ax-help">The baseline is the straight line joining the signal at the two window ends, so start and end the window on flat baseline either side of the peak. The signal is taken as proportional to mass (a refractive index detector). A calibration with polystyrene standards gives polystyrene-equivalent values for other polymers.</p>
+    </div>
+    <div class="pmw-listw" hidden>
+      <label class="pmw-lab">Molar mass (g/mol) and amount, one pair per line <textarea class="pmw-list" rows="6" spellcheck="false">10000, 1
+20000, 1</textarea></label>
+      <DataFile target=".pmw-list" maxCols={2} label="Open a file (2 columns)" />
+      <div class="ax-grid" style="margin-top:10px"><label>Amount is <select class="pmw-kind"><option value="n">number of chains (or moles)</option><option value="w">mass (or weight fraction)</option></select></label></div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Repeat unit formula (optional, for degree of polymerisation) <input class="pmw-ru" value="C8H8" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err pmw-err" hidden></p>
+    <div class="pmw-out">
+      <p class="ax-big pmw-big"></p>
+      <dl class="ax-facts pmw-facts"></dl>
+      <canvas class="ax-fig pmw-fig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig pmw-tfig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { averages, averagesFromNumbers, polyfit, analyseTrace, type Averages } from '../../lib/sci/polymer';
+  import { parseFormula, molarMass, pretty } from '../../lib/sci/chem';
+  import { num, sig, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pmw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const gm = (x: number) => Math.round(x).toLocaleString('en');
+  let mode: 'gpc' | 'list' = 'gpc', fig: Figure | null = null, tfig: Figure | null = null;
+
+  function calc() {
+    const err = (m: string) => { q('.pmw-err').textContent = m; q('.pmw-err').hidden = !m; q('.pmw-out').hidden = !!m; if (m) { fig = tfig = null; } };
+    let av: Averages, Mp = NaN; const facts: HTMLElement[] = [];
+    q<HTMLCanvasElement>('.pmw-tfig').hidden = mode !== 'gpc'; tfig = null;
+    if (mode === 'list') {
+      const d = numericColumns(q<HTMLTextAreaElement>('.pmw-list').value);
+      if (d.cols.length < 2 || d.rows < 1) return err('Type at least one line with a molar mass and an amount, such as "10000, 1".');
+      const M = d.cols[0], a = d.cols[1];
+      if (M.some((x) => !(x > 0)) || a.some((x) => !(x >= 0)) || a.every((x) => x === 0)) return err('Molar masses must be above zero and amounts zero or more (not all zero).');
+      av = q<HTMLSelectElement>('.pmw-kind').value === 'n' ? averagesFromNumbers(M, a) : averages(M, a);
+      Mp = M[(q<HTMLSelectElement>('.pmw-kind').value === 'n' ? M.map((m, i) => m * a[i]) : a).reduce((bi, x, i, arr) => (x > arr[bi] ? i : bi), 0)];
+      facts.push(fact('Species', String(M.length)));
+      fig = chartFigure({ h: 220, xLabel: 'log₁₀ M', yLabel: 'mass fraction', series: [{ name: 'mass', x: M.map((m) => Math.log10(m)), y: (q<HTMLSelectElement>('.pmw-kind').value === 'n' ? M.map((m, i) => m * a[i]) : a), mode: 'points' }], marks: [{ kind: 'vline', at: Math.log10(av.Mn), label: 'Mn', dash: [4, 3] }, { kind: 'vline', at: Math.log10(av.Mw), label: 'Mw', dash: [2, 3] }], legend: 'none' }, 'Mass of each species against log M');
+    } else {
+      const tr = numericColumns(q<HTMLTextAreaElement>('.pmw-tr').value), cal = numericColumns(q<HTMLTextAreaElement>('.pmw-cal').value);
+      if (tr.cols.length < 2 || tr.rows < 10) return err('Paste or open the trace: at least 10 lines of retention and signal.');
+      if (cal.cols.length < 2 || cal.rows < 2) return err('Type at least two calibration standards: retention and molar mass.');
+      const deg = Math.min(Number(q<HTMLSelectElement>('.pmw-deg').value), cal.rows - 1);
+      if (cal.cols[1].some((m) => !(m > 0))) return err('Calibration molar masses must be above zero.');
+      let fit; try { fit = polyfit(cal.cols[0], cal.cols[1].map((m) => Math.log10(m)), deg); } catch { return err('The calibration cannot be fitted: check that the standards have different retention times.'); }
+      const tmin = Math.min(...cal.cols[0]), tmax = Math.max(...cal.cols[0]);
+      // Calibration must fall with retention (bigger molecules elute first) over the window.
+      const lo = num(q<HTMLInputElement>('.pmw-lo').value), hi = num(q<HTMLInputElement>('.pmw-hi').value);
+      if (!(hi > lo)) return err('The window end must be after its start.');
+      for (let k = 0; k <= 20; k++) if (fit.df(lo + ((hi - lo) * k) / 20) >= 0) return err('The calibration curve turns back up inside the window. Use a lower-order fit or a narrower window.');
+      const t = tr.cols[0], h = tr.cols[1];
+      let r; try { r = analyseTrace(t, h, fit.f, fit.df, lo, hi); } catch (e) { return err((e as Error).message + ' Check the window.'); }
+      av = r; Mp = r.Mp;
+      facts.push(fact('Calibration', `${['', 'straight line', 'quadratic', 'cubic'][deg]}, R² = ${r2s(fit.r2)}`, `rms error ${sig(fit.rms, 2)} in log M from ${cal.rows} standards (${gm(Math.min(...cal.cols[1]))} to ${gm(Math.max(...cal.cols[1]))} g/mol)`));
+      const outside = r.dist.filter((p) => p.logM > Math.log10(Math.max(...cal.cols[1])) + 0.01 || p.logM < Math.log10(Math.min(...cal.cols[1])) - 0.01).length;
+      if (outside / r.dist.length > 0.02 || lo < tmin - 0.5 || hi > tmax + 0.5) facts.push(fact('Warning', `${Math.round((100 * outside) / r.dist.length)} % of the slices lie outside the standards`, 'the calibration is extrapolated there, so add standards that cover the whole peak'));
+      facts.push(fact('Slices', String(r.slices)));
+      const mx = Math.max(...r.dist.map((p) => p.w));
+      fig = chartFigure({ h: 220, xLabel: 'log₁₀ M', yLabel: 'w(log M)', series: [{ name: 'distribution', x: r.dist.map((p) => p.logM), y: r.dist.map((p) => p.w / mx), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: Math.log10(av.Mn), label: 'Mn', dash: [4, 3] }, { kind: 'vline', at: Math.log10(av.Mw), label: 'Mw', dash: [2, 3] }], legend: 'none' }, 'Molar mass distribution');
+      tfig = chartFigure({ h: 200, xLabel: 'Retention', yLabel: 'Signal', series: [{ name: 'trace', x: t, y: h, mode: 'line', width: 1.5 }, { name: 'baseline', x: [r.base[0], r.base[2]], y: [r.base[1], r.base[3]], mode: 'line', width: 1 }], marks: [{ kind: 'vline', at: lo, dash: [3, 3] }, { kind: 'vline', at: hi, dash: [3, 3] }], legend: 'none' }, 'Trace with the integration window and baseline');
+    }
+    err('');
+    q('.pmw-big').textContent = `Mn ${gm(av.Mn)} g/mol, Mw ${gm(av.Mw)} g/mol, Đ ${av.D.toFixed(2)}`;
+    const ru = q<HTMLInputElement>('.pmw-ru').value.trim(); let dp = '';
+    if (ru) { try { const m0 = molarMass(parseFormula(ru)); dp = `${sig(av.Mn / m0, 4)} (repeat unit ${pretty(ru)}, ${m0.toFixed(2)} g/mol)`; } catch (e) { dp = (e as Error).message; } }
+    q('.pmw-facts').replaceChildren(
+      fact('Mz', `${gm(av.Mz)} g/mol`, 'weighted towards the longest chains; Mz/Mw shows a high-mass tail'),
+      fact('Mp', `${gm(Mp)} g/mol`, 'molar mass at the peak'),
+      fact('Dispersity Đ = Mw/Mn', av.D.toFixed(3), av.D < 1.1 ? 'narrow: living or controlled polymerisation' : av.D < 1.6 ? 'moderate' : av.D < 2.2 ? 'typical of step-growth or free-radical polymerisation (about 2)' : 'broad'),
+      ...(dp ? [fact('Degree of polymerisation (DPn)', dp)] : []),
+      ...facts,
+    );
+    paint(q<HTMLCanvasElement>('.pmw-fig'), fig!); if (tfig) paint(q<HTMLCanvasElement>('.pmw-tfig'), tfig);
+  }
+  const r2s = (r: number) => (r > 0.99999 ? r.toFixed(6) : r.toFixed(4));
+
+  root.querySelectorAll<HTMLButtonElement>('.pmw-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as typeof mode; root.querySelectorAll('.pmw-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.pmw-gpc').hidden = mode !== 'gpc'; q('.pmw-listw').hidden = mode !== 'list'; calc();
+  }));
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pmw-fig'), fig); if (tfig) paint(q<HTMLCanvasElement>('.pmw-tfig'), tfig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Polymer molar mass', subtitle: mode === 'gpc' ? 'GPC / SEC trace' : 'List of chains', file: 'polymer-molar-mass',
+    sections: q('.pmw-out').hidden ? [] : [{ title: q('.pmw-big').textContent!, facts: [...root.querySelectorAll('.pmw-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }, ...(tfig ? [{ title: 'Trace', figure: tfig }] : [])],
+  }));
+</script>
+
+<style is:global>
+  .pmw .pmw-lab { display: block; margin-top: 12px; }
+  .pmw textarea { width: 100%; font: inherit; font-size: 14px; }
+  .pmw select { max-width: 100%; }
+</style>

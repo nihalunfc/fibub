@@ -1,5 +1,6 @@
 ---
 // Biodiversity indices and rarefaction for one or more sites.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -18,6 +19,7 @@ Notiophilus biguttatus	1	3
 Loricera pilicornis	2	1
 Bembidion lampros	1	0
 Leistus spinibarbis	0	1</textarea></label>
+    <DataFile target=".bd-in" maxCols={50} />
     <p class="ax-help">Use whole-number counts of individuals: rarefaction and Chao1 need them. The example is invented, for illustration.</p>
     <p class="ax-err bd-err" hidden></p>
   </div>

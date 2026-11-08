@@ -1,0 +1,98 @@
+---
+// NMR solvent and impurity cross-checker: match a peak list against residual solvent signals and 45 common
+// impurities (Fulmer et al. 2010) in 10 deuterated solvents, for ¹H or ¹³C; browse the table for any solvent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { SOLVENTS } from '../../lib/sci/nmr';
+const demo = 'δ 7.26 (s), 7.31 (d, J = 8.6 Hz, 2H), 6.88 (d, J = 8.6 Hz, 2H), 4.12 (q, J = 7.1 Hz), 3.80 (s, 3H), 2.05 (s), 1.56 (br s), 1.26 (t, J = 7.1 Hz), 0.07 (s)';
+---
+<div class="ax nmi">
+  <div class="ax-card">
+    <h2>Check a peak list</h2>
+    <div class="ax-grid">
+      <label>Solvent <select class="nmi-sol">{SOLVENTS.map((s) => <option value={s.id}>{s.name}</option>)}</select></label>
+      <label>Nucleus <select class="nmi-nuc"><option value="h">¹H</option><option value="c">¹³C</option></select></label>
+      <label>Tolerance (± ppm) <input class="nmi-tol" inputmode="decimal" value="0.02" /></label>
+    </div>
+    <label class="nmi-lab">Peaks in ppm: one per line, or a journal-style list (the parts in brackets are skipped) <textarea class="nmi-peaks" rows="4" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".nmi-peaks" maxCols={4} label="Open a peak list (ppm in the first column)" />
+    <p class="ax-help">Shifts move a little with concentration, temperature and pH, and OH and NH peaks move a lot, so treat a match as a lead to check, for example by spiking or a 2D spectrum.</p>
+    <p class="ax-err nmi-err" hidden></p>
+    <div class="nmi-out">
+      <p class="ax-big nmi-big"></p>
+      <h3>Likely impurities</h3>
+      <div class="ax-scroll"><table class="nmi-imp"></table></div>
+      <h3>Peak by peak</h3>
+      <div class="ax-scroll"><table class="nmi-tab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Impurity table for this solvent</h2>
+    <label>Find <input class="nmi-find" placeholder="name or shift, e.g. ether or 3.4" /></label>
+    <div class="ax-scroll" style="margin-top:8px"><table class="nmi-all"></table></div>
+    <p class="ax-help">Values from Fulmer et al., Organometallics 2010, 29, 2176, which extends Gottlieb, Kotlyar and Nudelman, J. Org. Chem. 1997, 62, 7512 (spectra at 298 K, referenced to TMS or the solvent). Check the paper for multiplicities and coupling constants.</p>
+  </div>
+</div>
+
+<script>
+  import { SOLVENTS, signals, parsePeaks, match } from '../../lib/sci/nmr';
+  import { num } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nmi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sol = () => q<HTMLSelectElement>('.nmi-sol').value, nuc = () => q<HTMLSelectElement>('.nmi-nuc').value as 'h' | 'c';
+  const dp = (x: number) => (nuc() === 'h' ? x.toFixed(2) : x.toFixed(2));
+  let impRows: string[][] = [], peakRows: string[][] = [];
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+
+  function check() {
+    const err = (m: string) => { q('.nmi-err').textContent = m; q('.nmi-err').hidden = !m; q('.nmi-out').hidden = !!m; };
+    const tol = num(q<HTMLInputElement>('.nmi-tol').value), peaks = parsePeaks(q<HTMLTextAreaElement>('.nmi-peaks').value);
+    if (!(tol > 0 && tol <= (nuc() === 'h' ? 0.5 : 5))) return err(`Tolerance is above 0 and at most ${nuc() === 'h' ? '0.5' : '5'} ppm.`);
+    if (!peaks.length) return err('Type or paste at least one peak position in ppm.');
+    const lim = nuc() === 'h' ? [-2, 20] : [-20, 250];
+    const odd = peaks.find((p) => p < lim[0] || p > lim[1]);
+    if (odd !== undefined) return err(`${odd} ppm is outside the usual ${nuc() === 'h' ? '¹H' : '¹³C'} range: check the nucleus or the list (Hz values and integrals should not be in the first column).`);
+    err('');
+    const m = match(peaks, sol(), nuc(), tol), matched = m.perPeak.filter((p) => p.hits.length).length;
+    const strong = m.byImp.filter((x) => !x.solvent && x.found === x.total && x.total > 1);
+    const top = m.byImp.filter((x) => !x.solvent).slice(0, 3).map((x) => x.name);
+    q('.nmi-big').textContent = `${matched} of ${peaks.length} peaks match a solvent or impurity signal${strong.length ? `; all signals of ${strong.map((x) => x.name).join(', ')} are present` : top.length ? `; possible: ${top.join(', ')}` : ''}`;
+    impRows = m.byImp.map((x) => [x.name, `${x.found} of ${x.total}`, x.missing.length ? x.missing.map((s) => `${dp(s.delta)} (${s.label})`).join(', ') : 'none: all found']);
+    table(q<HTMLTableElement>('.nmi-imp'), ['Compound', 'Signals found', 'Also expected at'], impRows, [1]);
+    peakRows = m.perPeak.map((p) => [dp(p.peak), p.hits.length ? p.hits.map((h) => `${h.name} ${h.label} ${dp(h.delta)}`).join('; ') : 'no match: likely your compound']);
+    table(q<HTMLTableElement>('.nmi-tab'), ['δ (ppm)', 'Matches within tolerance'], peakRows, [0]);
+  }
+
+  function browse() {
+    const f = q<HTMLInputElement>('.nmi-find').value.trim().toLowerCase(), fn = num(f), t = nuc() === 'h' ? 0.1 : 1;
+    const rows = signals(sol(), nuc()).filter((s) => !f || (Number.isFinite(fn) && /^-?[\d.]+$/.test(f) ? Math.abs(s.delta - fn) <= t : s.name.toLowerCase().includes(f))).map((s) => [dp(s.delta), s.name, s.label]);
+    table(q<HTMLTableElement>('.nmi-all'), ['δ (ppm)', 'Compound', 'Group'], rows.length ? rows : [['', 'nothing found', '']], [0]);
+  }
+
+  q('.nmi-nuc').addEventListener('change', () => { q<HTMLInputElement>('.nmi-tol').value = nuc() === 'h' ? '0.02' : '0.2'; check(); browse(); });
+  q('.nmi-sol').addEventListener('change', () => { check(); browse(); });
+  root.querySelectorAll('.nmi-tol, .nmi-peaks').forEach((i) => { i.addEventListener('input', check); i.addEventListener('change', check); });
+  q('.nmi-find').addEventListener('input', browse);
+  check(); browse();
+  wireDownloads(q('.dl'), () => ({
+    title: 'NMR impurity check', subtitle: `${SOLVENTS.find((s) => s.id === sol())!.name}, ${nuc() === 'h' ? '¹H' : '¹³C'}, ± ${q<HTMLInputElement>('.nmi-tol').value} ppm`, file: 'nmr-impurities',
+    sections: q('.nmi-out').hidden ? [] : [
+      { title: q('.nmi-big').textContent!, table: { head: ['Compound', 'Signals found', 'Also expected at'], rows: impRows, align: ['l', 'r', 'l'] as ('l' | 'r')[] } },
+      { title: 'Peak by peak', table: { head: ['δ (ppm)', 'Matches'], rows: peakRows, align: ['r', 'l'] as ('l' | 'r')[] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .nmi select { max-width: 100%; }
+  .nmi .nmi-lab { display: block; margin-top: 10px; }
+  .nmi textarea { width: 100%; font: inherit; font-size: 14px; }
+  .nmi h3 { margin: 16px 0 6px; font-size: 16px; }
+  .nmi .nmi-imp td:nth-child(3) { min-width: 9em; }
+  .nmi .nmi-imp td:nth-child(2) { white-space: nowrap; }
+</style>

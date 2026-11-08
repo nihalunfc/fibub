@@ -1,0 +1,124 @@
+---
+// Electroplating and electrolysis calculator (Faraday's laws): plating thickness, time or current, mass, rate and
+// current density for common metals or your own, and gas volumes from water or brine electrolysis.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { SUBSTANCES } from '../../lib/sci/faraday';
+---
+<div class="ax far">
+  <div class="ax-card">
+    <h2>Plating or electrolysis</h2>
+    <div class="ax-seg far-mode" role="group" aria-label="Work out"><button type="button" data-m="amount" aria-pressed="true">Thickness</button><button type="button" data-m="time" aria-pressed="false">Time</button><button type="button" data-m="current" aria-pressed="false">Current</button></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label class="far-wide">Metal or gas <select class="far-sub">{SUBSTANCES.map((s) => <option value={s.id} selected={s.id === 'Ni'}>{s.name}{s.gas ? '' : ` (${s.id}, n = ${s.n})`}</option>)}<option value="custom">Your own metal…</option></select></label>
+      <div class="far-wide far-cust" hidden><div class="ax-grid"><label>Electrons per atom n <input class="far-cn" inputmode="numeric" value="2" /></label><label>Molar mass (g/mol) <input class="far-cM" inputmode="decimal" value="58.69" /></label><label>Density (g/cm³) <input class="far-crho" inputmode="decimal" value="8.9" /></label></div></div>
+      <label class="far-areaw">Area plated (cm²) <input class="far-A" inputmode="decimal" value="100" /></label>
+      <label class="far-Iw">Current (A) <input class="far-I" inputmode="decimal" value="2" /></label>
+      <label class="far-tw">Time (min) <input class="far-t" inputmode="decimal" value="60" /></label>
+      <label class="far-dw"><span class="far-dl">Thickness wanted (µm)</span> <input class="far-d" inputmode="decimal" value="25" /></label>
+      <label>Current efficiency (%) <input class="far-eff" inputmode="decimal" value="95" /></label>
+      <label class="far-gas" hidden>Gas temperature (°C) <input class="far-gT" inputmode="decimal" value="25" /></label>
+      <label class="far-gas" hidden>Gas pressure (kPa) <input class="far-gP" inputmode="decimal" value="101.325" /></label>
+    </div>
+    <p class="ax-help far-note"></p>
+    <p class="ax-err far-err" hidden></p>
+    <div class="far-out">
+      <p class="ax-big far-big"></p>
+      <dl class="ax-facts far-facts"></dl>
+      <canvas class="ax-fig far-fig" style="margin-top:10px"></canvas>
+      <p class="ax-help">Thickness is the average over the area. Edges and corners plate thicker and recesses thinner, so measure the real part. Gas volumes assume an ideal, dry gas.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { sub, mass, thickness, rate, timeFor, currentFor, moles, gasVolume, F, type Sub } from '../../lib/sci/faraday';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.far')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  let mode: 'amount' | 'time' | 'current' = 'amount', fig: Figure | null = null;
+  const fmtT = (s: number) => s < 120 ? `${sig(s, 3)} s` : s < 7200 ? `${sig(s / 60, 4)} min` : `${sig(s / 3600, 4)} h`;
+  const fmtM = (g: number) => g < 1 ? `${sig(g * 1000, 4)} mg` : g < 1000 ? `${sig(g, 4)} g` : `${sig(g / 1000, 4)} kg`;
+
+  function current(): Sub | string {
+    const id = q<HTMLSelectElement>('.far-sub').value;
+    if (id !== 'custom') return sub(id)!;
+    const n = v('.far-cn'), M = v('.far-cM'), rho = v('.far-crho');
+    if (!(Number.isInteger(n) && n >= 1 && n <= 8)) return 'Electrons per atom should be a whole number from 1 to 8.';
+    if (!(M > 0) || !(rho > 0)) return 'Type the molar mass and density of your metal, above zero.';
+    return { id: 'custom', name: 'your metal', n, M, rho, note: '' };
+  }
+
+  function layout() {
+    const s = current(), gas = typeof s !== 'string' && !!s.gas;
+    q('.far-cust').hidden = q<HTMLSelectElement>('.far-sub').value !== 'custom';
+    q('.far-areaw').hidden = gas; root.querySelectorAll<HTMLElement>('.far-gas').forEach((e) => (e.hidden = !gas));
+    q('.far-Iw').hidden = mode === 'current'; q('.far-tw').hidden = mode === 'time'; q('.far-dw').hidden = mode === 'amount';
+    q('.far-dl').textContent = gas ? 'Gas volume wanted (mL)' : 'Thickness wanted (µm)';
+    root.querySelector('.far-mode button[data-m=amount]')!.textContent = gas ? 'Volume' : 'Thickness';
+    q('.far-note').textContent = typeof s === 'string' ? '' : s.note ? `${s.name}: ${s.note}.` : '';
+    calc();
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.far-err').textContent = m; q('.far-err').hidden = !m; q('.far-out').hidden = !!m; if (m) fig = null; };
+    const s = current(); if (typeof s === 'string') return err(s);
+    const eff = v('.far-eff') / 100;
+    if (!(eff > 0 && eff <= 1)) return err('Current efficiency should be between 0 and 100 %.');
+    const gas = !!s.gas, A = v('.far-A'), Tg = v('.far-gT') + 273.15, Pg = v('.far-gP');
+    if (!gas && !(A > 0)) return err('Type the area being plated, in cm².');
+    if (gas && (!(Tg > 0) || !(Pg > 0))) return err('Type the gas temperature and pressure.');
+    let I = v('.far-I'), t = v('.far-t') * 60; const want = v('.far-d');
+    if (mode !== 'current' && !(I > 0)) return err('Type the current in amperes, above zero.');
+    if (mode !== 'time' && !(t > 0)) return err('Type the time in minutes, above zero.');
+    if (mode !== 'amount' && !(want > 0)) return err(gas ? 'Type the gas volume you want, in mL.' : 'Type the thickness you want, in µm.');
+    // Convert a wanted volume to the equivalent "amount" so one set of formulas covers both cases.
+    const molWant = gas ? (want / 1000) * Pg / (8.314462618 * Tg) : 0;
+    if (mode === 'time') t = gas ? (molWant * s.n * F) / (I * eff) : timeFor(want, I, A, s, eff);
+    if (mode === 'current') I = gas ? (molWant * s.n * F) / (t * eff) : currentFor(want, t, A, s, eff);
+    err('');
+    const Q = I * t, n = moles(Q, s.n, eff), m = mass(I, t, s, eff), facts: HTMLElement[] = [];
+    if (gas) {
+      const L = gasVolume(n, Tg, Pg);
+      q('.far-big').textContent = mode === 'amount' ? `${sig(L * 1000, 4)} mL of ${s.name.toLowerCase()} (${fmtM(m)})` : mode === 'time' ? `${fmtT(t)} at ${sig(I, 4)} A for ${sig(want, 4)} mL` : `${sig(I, 4)} A for ${sig(want, 4)} mL in ${fmtT(t)}`;
+      facts.push(fact('Gas made', `${sig(L * 1000, 4)} mL`, `${sig(n * 1000, 4)} mmol at ${sig(Tg - 273.15, 4)} °C and ${sig(Pg, 5)} kPa`));
+      facts.push(fact('At 0 °C and 1 atm', `${sig(gasVolume(n, 273.15, 101.325) * 1000, 4)} mL`, 'the old "STP" volume, 22.41 L/mol'));
+    } else {
+      const d = thickness(m, s.rho!, A), j = I / A;
+      q('.far-big').textContent = mode === 'amount' ? `${sig(d, 4)} µm of ${s.name.toLowerCase()} (${fmtM(m)})` : mode === 'time' ? `${fmtT(t)} at ${sig(I, 4)} A for ${sig(want, 4)} µm` : `${sig(I, 4)} A (${sig(j * 100, 4)} A/dm²) for ${sig(want, 4)} µm in ${fmtT(t)}`;
+      facts.push(fact('Average thickness', `${sig(d, 4)} µm`, `${sig(d / 25.4, 4)} mil (thousandths of an inch)`));
+      facts.push(fact('Mass deposited', fmtM(m), `${sig(n * 1000, 4)} mmol`));
+      facts.push(fact('Current density', `${sig(j * 100, 4)} A/dm²`, `${sig(j * 1000, 4)} mA/cm² · ${sig(j * 929.03, 4)} A/ft² (ASF)`));
+      facts.push(fact('Plating rate', `${sig(rate(j, s, eff), 4)} µm/h`, `${sig(rate(j, s, eff) / 60, 3)} µm/min at this current density and efficiency`));
+    }
+    facts.push(fact('Charge passed', `${sig(Q, 5)} C`, `${sig(Q / 3600, 4)} A·h · ${sig(Q / F * 1000, 4)} mmol of electrons`));
+    if (mode !== 'time') facts.push(fact('Time', fmtT(t)));
+    if (mode !== 'current') facts.push(fact('Current', `${sig(I, 4)} A`));
+    q('.far-facts').replaceChildren(...facts);
+    const xs: number[] = []; for (let i = 0; i <= 50; i++) xs.push((2 * t * i) / 50 / 60);
+    const yOf = (tm: number) => gas ? gasVolume(moles(I * tm * 60, s.n, eff), Tg, Pg) * 1000 : thickness(mass(I, tm * 60, s, eff), s.rho!, A);
+    fig = chartFigure({ h: 220, xLabel: 'Time (min)', yLabel: gas ? 'Gas (mL)' : 'Thickness (µm)', xMin: 0, xMax: xs[50], series: [{ name: 'build-up', x: xs, y: xs.map(yOf), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: t / 60, label: fmtT(t), dash: [4, 3] }], legend: 'none' }, gas ? 'Gas volume against time' : 'Deposit thickness against time');
+    paint(q<HTMLCanvasElement>('.far-fig'), fig);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.far-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as typeof mode; root.querySelectorAll('.far-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); layout(); }));
+  q('.far-sub').addEventListener('change', () => { const s = current(); if (typeof s !== 'string' && s.id === 'Cr') q<HTMLInputElement>('.far-eff').value = '15'; layout(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', layout));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.far-fig'), fig); });
+  layout();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Electroplating and electrolysis', subtitle: q<HTMLSelectElement>('.far-sub').selectedOptions[0].textContent!, file: 'electroplating',
+    sections: q('.far-out').hidden ? [] : [{ title: q('.far-big').textContent!, facts: [...root.querySelectorAll('.far-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }],
+  }));
+</script>
+
+<style is:global>
+  .far .far-wide { grid-column: 1 / -1; }
+  .far select { max-width: 100%; }
+</style>

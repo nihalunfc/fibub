@@ -1,0 +1,47 @@
+---
+// "Open a file" for a paste box: loads CSV, TSV, TXT or Excel (.xlsx) into the textarea named by `target`
+// (a CSS selector, searched inside the nearest .ax tool root), states the limits, and accepts drag and drop on
+// the box. The textarea then gets input and change events, so the tool updates as if the data were pasted.
+interface Props { target: string; maxMB?: number; maxCols?: number; maxRows?: number; label?: string }
+const { target, maxMB = 10, maxCols = 20, maxRows = 50000, label = 'Open a file' } = Astro.props;
+---
+<div class="dfb" data-target={target} data-bytes={maxMB * 1e6} data-cols={maxCols} data-rows={maxRows}>
+  <div class="ax-row" style="margin-top:8px">
+    <button type="button" class="btn secondary small dfb-open">{label}</button>
+    <input type="file" class="dfb-in" hidden />
+    <span class="ax-help dfb-limit" style="margin:0"></span>
+  </div>
+  <p class="ax-help dfb-note" hidden></p>
+  <p class="ax-err dfb-err" hidden></p>
+</div>
+
+<script>
+  import { readDataFile, limitText, ACCEPT } from '../lib/datafile';
+
+  for (const el of document.querySelectorAll<HTMLElement>('.dfb')) {
+    if (el.dataset.wired) continue;
+    el.dataset.wired = '1';
+    const scope = el.closest('.ax') ?? document;
+    const box = scope.querySelector<HTMLTextAreaElement>(el.dataset.target!);
+    if (!box) continue;
+    const limits = { maxBytes: Number(el.dataset.bytes), maxCols: Number(el.dataset.cols), maxRows: Number(el.dataset.rows) };
+    const q = (c: string) => el.querySelector<HTMLElement>(c)!;
+    q('.dfb-limit').textContent = limitText(limits);
+    const input = el.querySelector<HTMLInputElement>('.dfb-in')!;
+    input.accept = ACCEPT;
+    const open = async (f: File) => {
+      try {
+        const r = await readDataFile(f, limits);
+        box.value = r.text;
+        q('.dfb-note').textContent = `Opened ${f.name}: ${r.rows.toLocaleString('en')} rows and ${r.cols} column${r.cols === 1 ? '' : 's'}. ${r.notes.join(' ')}`.trim();
+        q('.dfb-note').hidden = false; q('.dfb-err').hidden = true;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+        box.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (e) { q('.dfb-err').textContent = (e as Error).message; q('.dfb-err').hidden = false; q('.dfb-note').hidden = true; }
+    };
+    q('.dfb-open').addEventListener('click', () => input.click());
+    input.addEventListener('change', () => { const f = input.files?.[0]; input.value = ''; if (f) open(f); });
+    box.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+    box.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); open(f); } });
+  }
+</script>

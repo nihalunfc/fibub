@@ -1,0 +1,226 @@
+---
+// Glass transition of copolymers and blends (Fox, with a target-Tg solver), two-component mixtures with a plasticiser
+// (Gordon–Taylor with Simha–Boyer k, and Kwei), and the molar mass effect (Flory–Fox).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MATERIALS } from '../../lib/sci/glass';
+const rows = [{ id: 'MMA', w: 50 }, { id: 'BA', w: 50 }, { id: '', w: 0 }, { id: '', w: 0 }];
+---
+<div class="ax gtg">
+  <div class="ax-card">
+    <h2>Copolymer or blend (Fox equation)</h2>
+    <p class="ax-help">Pick up to four monomers (for a random copolymer) or miscible polymers, and the weight of each. The Tg shown is the homopolymer value, which you can type over.</p>
+    <div class="gtg-rows">
+      {rows.map((r, i) => (
+        <fieldset class="gtg-row" data-i={i}>
+          <legend>Component {i + 1}</legend>
+          <label class="gtg-wide">Monomer or polymer <select class="gtg-m"><option value="">none</option>{MATERIALS.map((m) => <option value={m.id} selected={m.id === r.id}>{m.name}, Tg {m.tg} °C</option>)}<option value="custom">Your own</option></select></label>
+          <label>Tg (°C) <input class="gtg-t" inputmode="decimal" value={MATERIALS.find((m) => m.id === r.id)?.tg ?? ''} /></label>
+          <label>Weight (parts) <input class="gtg-w" inputmode="decimal" value={r.w || ''} /></label>
+          <label>Unit M (g/mol) <input class="gtg-M" inputmode="decimal" value={MATERIALS.find((m) => m.id === r.id)?.M ?? ''} /></label>
+        </fieldset>
+      ))}
+    </div>
+    <p class="ax-err gtg-err" hidden></p>
+    <div class="gtg-out">
+      <p class="ax-big gtg-big"></p>
+      <div class="ax-scroll"><table class="gtg-tab"></table></div>
+      <h3>Composition for a target Tg</h3>
+      <div class="ax-grid">
+        <label>Target Tg (°C) <input class="gtg-target" inputmode="decimal" value="20" /></label>
+        <label>Trade between <select class="gtg-pair"></select></label>
+      </div>
+      <p class="ax-help">The other components keep their share of the total; the two chosen ones split the rest.</p>
+      <dl class="ax-facts gtg-facts"></dl>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gtg-use" hidden>Use this composition</button></div>
+      <canvas class="ax-fig gtg-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Polymer with a plasticiser or second polymer (Gordon–Taylor)</h2>
+    <div class="ax-grid">
+      <label class="gtg-wide">Component 1 <select class="gtg-m1">{MATERIALS.map((m) => <option value={m.id} selected={m.id === 'SUC'}>{m.name}</option>)}<option value="custom">Your own</option></select></label>
+      <label>Tg₁ (°C) <input class="gtg-t1" inputmode="decimal" value="62" /></label>
+      <label>Density ρ₁ (g/cm³) <input class="gtg-r1" inputmode="decimal" value="1.58" /></label>
+      <label class="gtg-wide">Component 2 <select class="gtg-m2">{MATERIALS.map((m) => <option value={m.id} selected={m.id === 'H2O'}>{m.name}</option>)}<option value="custom">Your own</option></select></label>
+      <label>Tg₂ (°C) <input class="gtg-t2" inputmode="decimal" value="-137" /></label>
+      <label>Density ρ₂ (g/cm³) <input class="gtg-r2" inputmode="decimal" value="1.00" /></label>
+      <label>Component 2 (weight %) <input class="gtg-w2" inputmode="decimal" value="5" /></label>
+      <label>Target Tg (°C, optional) <input class="gtg-gtar" inputmode="decimal" value="0" /></label>
+      <label class="gtg-wide">Constant k <select class="gtg-kmode"><option value="sb">Estimate from densities (Simha–Boyer)</option><option value="own" selected>Type a measured k</option></select></label>
+      <label>k <input class="gtg-k" inputmode="decimal" value="4.7" /></label>
+      <label>Kwei q (K) <input class="gtg-q" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">k sets how strongly component 2 pulls the Tg its way: Simha–Boyer estimates it as ρ₁Tg₁/(ρ₂Tg₂); a value fitted to measured Tgs is better (4.7 is the published value for sucrose and water). q adds the bend from hydrogen bonding between the two (Kwei); leave it at 0 otherwise.</p>
+    <p class="ax-err gtg-gerr" hidden></p>
+    <div class="gtg-gout">
+      <p class="ax-big gtg-gbig"></p>
+      <dl class="ax-facts gtg-gfacts"></dl>
+      <canvas class="ax-fig gtg-gfig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Molar mass effect (Flory–Fox)</h2>
+    <div class="ax-grid">
+      <label>Tg at high molar mass, Tg∞ (°C) <input class="gtg-tinf" inputmode="decimal" value="100" /></label>
+      <label>K (K·g/mol) <input class="gtg-K" inputmode="decimal" value="100000" /></label>
+      <label>Mn (g/mol) <input class="gtg-Mn" inputmode="decimal" value="10000" /></label>
+    </div>
+    <p class="ax-help">Chain ends add free volume, so short chains soften sooner: Tg = Tg∞ − K/Mn. K is about 1 × 10⁵ for polystyrene (Fox and Flory).</p>
+    <p class="ax-err gtg-ferr" hidden></p>
+    <div class="gtg-fout">
+      <p class="ax-big gtg-fbig"></p>
+      <dl class="ax-facts gtg-ffacts"></dl>
+      <canvas class="ax-fig gtg-ffig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { MATERIALS, material, fox, linear, foxTrade, moleFractions, gordonTaylor, simhaBoyer, solveGT, floryFox, floryFoxMn, K0 } from '../../lib/sci/glass';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gtg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const C = (K: number) => `${(K - K0 + (K - K0 >= 0 ? 1e-9 : -1e-9)).toFixed(1)} °C`;
+  const pct = (x: number) => `${(x * 100 + 1e-9).toFixed(1)} %`;
+  let fig: Figure | null = null, gfig: Figure | null = null, ffig: Figure | null = null, tab: string[][] = [], useComp: number[] | null = null;
+  const rowsEl = () => [...root.querySelectorAll<HTMLElement>('.gtg-row')];
+  const label = (r: HTMLElement, i: number) => { const s = r.querySelector<HTMLSelectElement>('.gtg-m')!; return s.value === 'custom' ? `component ${i + 1}` : s.selectedOptions[0].textContent!.replace(/,\s*Tg.*$/, ''); };
+  const short = (r: HTMLElement, i: number) => { const s = r.querySelector<HTMLSelectElement>('.gtg-m')!.value; return s && s !== 'custom' ? s : `#${i + 1}`; };
+
+  function fillPair(used: number[]) {
+    const sel = q<HTMLSelectElement>('.gtg-pair'), old = sel.value, rs = rowsEl(), opts: [string, string][] = [];
+    for (let a = 0; a < used.length; a++) for (let b = a + 1; b < used.length; b++) opts.push([`${used[a]}-${used[b]}`, `${short(rs[used[a]], used[a])} and ${short(rs[used[b]], used[b])}`]);
+    if (opts.map((o) => o[0]).join() !== [...sel.options].map((o) => o.value).join()) sel.replaceChildren(...opts.map(([val, t]) => { const o = document.createElement('option'); o.value = val; o.textContent = t; return o; }));
+    if (opts.some((o) => o[0] === old)) sel.value = old;
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.gtg-err').textContent = m; q('.gtg-err').hidden = !m; q('.gtg-out').hidden = !!m; if (m) fig = null; };
+    const rs = rowsEl(), used: number[] = [];
+    for (const [i, r] of rs.entries()) {
+      const sel = r.querySelector<HTMLSelectElement>('.gtg-m')!.value, w = num(r.querySelector<HTMLInputElement>('.gtg-w')!.value), t = num(r.querySelector<HTMLInputElement>('.gtg-t')!.value);
+      if (!sel) continue;
+      if (!(w > 0)) continue;
+      if (!Number.isFinite(t) || t <= -K0) return err(`Type a glass transition in °C for component ${i + 1}.`);
+      used.push(i);
+    }
+    if (!used.length) return err('Pick at least one component with a weight above zero.');
+    err('');
+    const w = used.map((i) => num(rs[i].querySelector<HTMLInputElement>('.gtg-w')!.value)), sw = w.reduce((a, b) => a + b, 0), wf = w.map((x) => x / sw);
+    const T = used.map((i) => num(rs[i].querySelector<HTMLInputElement>('.gtg-t')!.value) + K0), M = used.map((i) => num(rs[i].querySelector<HTMLInputElement>('.gtg-M')!.value));
+    const Tg = fox(wf, T), lin = linear(wf, T), mf = M.every((m) => m > 0) ? moleFractions(wf, M) : null;
+    q('.gtg-big').textContent = `Tg ≈ ${C(Tg)} (${(Tg + 1e-9).toFixed(1)} K) by the Fox equation`;
+    tab = used.map((i, j) => [label(rs[i], i), `${(T[j] - K0).toFixed(0)}`, pct(wf[j]), mf ? pct(mf[j]) : 'n/a']);
+    const tb = q<HTMLTableElement>('.gtg-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Component', 'Tg (°C)', 'Weight', 'Mole'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of tab) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); }
+    const facts = [fact('Weight-average Tg', C(lin), Math.abs(lin - Tg) > 2 ? `the simple average is ${(lin - Tg).toFixed(0)} K higher; Fox weights the soft component more, which matches most acrylic copolymers better` : 'close to the Fox value')];
+    fillPair(used); useComp = null; q('.gtg-use').hidden = true;
+    const tgt = v('.gtg-target') + K0, pair = q<HTMLSelectElement>('.gtg-pair').value;
+    if (used.length >= 2 && pair && Number.isFinite(tgt)) {
+      const [a, b] = pair.split('-').map(Number), ja = used.indexOf(a), jb = used.indexOf(b);
+      const fixed = used.map((_, j) => j).filter((j) => j !== ja && j !== jb).map((j) => ({ w: wf[j], Tg: T[j] }));
+      const sol = foxTrade(tgt, T[ja], T[jb], fixed), nA = short(rs[a], a), nB = short(rs[b], b);
+      if (sol) {
+        facts.push(fact(`For Tg ${C(tgt)}`, `${nA} ${pct(sol.wA)}, ${nB} ${pct(sol.wB)} by weight`, `${nA} : ${nB} = ${(sol.wA / sol.R * 100 + 1e-9).toFixed(1)} : ${(sol.wB / sol.R * 100 + 1e-9).toFixed(1)}${fixed.length ? `, with the other ${fixed.length === 1 ? 'component' : 'components'} kept at ${pct(1 - sol.R)} of the total` : ''}`));
+        useComp = used.map((i, j) => (j === ja ? sol.wA : j === jb ? sol.wB : wf[j]) * 100); q('.gtg-use').hidden = false;
+      } else {
+        const lo = fox([...fixed.map((c) => c.w), 1 - fixed.reduce((s, c) => s + c.w, 0)], [...fixed.map((c) => c.Tg), Math.min(T[ja], T[jb])]), hi = fox([...fixed.map((c) => c.w), 1 - fixed.reduce((s, c) => s + c.w, 0)], [...fixed.map((c) => c.Tg), Math.max(T[ja], T[jb])]);
+        facts.push(fact(`For Tg ${C(tgt)}`, 'out of reach', `trading ${nA} and ${nB} with the rest fixed spans ${C(lo)} to ${C(hi)}`));
+      }
+      const R = 1 - fixed.reduce((s, c) => s + c.w, 0), xs = Array.from({ length: 101 }, (_, i) => i / 100);
+      const yf = xs.map((x) => fox([...fixed.map((c) => c.w), R * x, R * (1 - x)], [...fixed.map((c) => c.Tg), T[ja], T[jb]]) - K0);
+      const yl = xs.map((x) => linear([...fixed.map((c) => c.w), R * x, R * (1 - x)], [...fixed.map((c) => c.Tg), T[ja], T[jb]]) - K0);
+      const cur = wf[ja] / (wf[ja] + wf[jb]);
+      fig = chartFigure({ h: 240, xLabel: `${nA} share of ${nA} + ${nB} (weight %)`, yLabel: 'Tg (°C)', xMin: 0, xMax: 100, series: [{ name: 'Fox', x: xs.map((x) => x * 100), y: yf, mode: 'line', width: 2 }, { name: 'weight average', x: xs.map((x) => x * 100), y: yl, mode: 'line', width: 1, dash: [4, 3] }, { name: 'your mix', x: [cur * 100], y: [Tg - K0], mode: 'points' }], marks: [{ kind: 'hline', at: tgt - K0, label: 'target', dash: [3, 3] }], legend: 'below' }, 'Glass transition against the share of the two traded components');
+      paint(q<HTMLCanvasElement>('.gtg-fig'), fig); q('.gtg-fig').hidden = false;
+    } else { fig = null; q('.gtg-fig').hidden = true; if (used.length < 2) facts.push(fact('Target', 'add a second component to solve for a target Tg')); }
+    q('.gtg-facts').replaceChildren(...facts);
+  }
+
+  function gt() {
+    const err = (m: string) => { q('.gtg-gerr').textContent = m; q('.gtg-gerr').hidden = !m; q('.gtg-gout').hidden = !!m; if (m) gfig = null; };
+    const T1 = v('.gtg-t1') + K0, T2 = v('.gtg-t2') + K0, r1 = v('.gtg-r1'), r2 = v('.gtg-r2'), w2 = v('.gtg-w2') / 100, qq = num(q<HTMLInputElement>('.gtg-q').value || '0');
+    if (!(T1 > 0) || !(T2 > 0)) return err('Type both glass transitions in °C (above −273.15).');
+    if (!(w2 >= 0 && w2 <= 1)) return err('Component 2 is between 0 and 100 % by weight.');
+    if (!Number.isFinite(qq)) return err('q is a number in kelvin (0 if unknown).');
+    const sb = r1 > 0 && r2 > 0 ? simhaBoyer(r1, T1, r2, T2) : NaN, own = q<HTMLSelectElement>('.gtg-kmode').value === 'own';
+    const k = own ? v('.gtg-k') : sb;
+    if (!(k > 0)) return err(own ? 'Type a k above zero.' : 'Type both densities to estimate k.');
+    if (!own) q<HTMLInputElement>('.gtg-k').value = sb.toFixed(2);
+    err('');
+    const Tg = gordonTaylor(w2, T1, T2, k, qq), fx = fox([1 - w2, w2], [T1, T2]);
+    q('.gtg-gbig').textContent = `Tg ≈ ${C(Tg)} with ${pct(w2)} of component 2 (Gordon–Taylor, k = ${sig(k, 3)})`;
+    const facts = [
+      fact('Fox for comparison', C(fx), 'Fox is Gordon–Taylor with k = Tg₁/Tg₂'),
+      fact('Simha–Boyer k', Number.isFinite(sb) ? sb.toFixed(2) : 'needs both densities', own && Number.isFinite(sb) ? 'from the densities; your typed k is used' : ''),
+    ];
+    const tg = num(q<HTMLInputElement>('.gtg-gtar').value);
+    if (q<HTMLInputElement>('.gtg-gtar').value.trim() && Number.isFinite(tg)) {
+      const w = solveGT(tg + K0, T1, T2, k, qq);
+      facts.push(fact(`For Tg ${C(tg + K0)}`, w === null ? 'out of reach' : `${pct(w)} of component 2`, w === null ? `the mixture spans ${C(Math.min(T1, T2))} to ${C(Math.max(T1, T2))}` : 'by weight; above this the mixture is rubbery (or sticky) at that temperature'));
+    }
+    if (T2 < T1 - 1 && w2 > 0) facts.push(fact('Plasticising power', `${((T1 - gordonTaylor(Math.min(w2, 0.01), T1, T2, k, qq)) / (Math.min(w2, 0.01) * 100)).toFixed(1)} K per weight % at the start`, 'how fast the first small amount of component 2 lowers Tg'));
+    q('.gtg-gfacts').replaceChildren(...facts);
+    const xs = Array.from({ length: 101 }, (_, i) => i / 100);
+    gfig = chartFigure({ h: 240, xLabel: 'Component 2 (weight %)', yLabel: 'Tg (°C)', xMin: 0, xMax: 100, series: [{ name: 'Gordon–Taylor', x: xs.map((x) => x * 100), y: xs.map((x) => gordonTaylor(x, T1, T2, k, qq) - K0), mode: 'line', width: 2 }, { name: 'Fox', x: xs.map((x) => x * 100), y: xs.map((x) => fox([1 - x, x], [T1, T2]) - K0), mode: 'line', width: 1, dash: [4, 3] }, { name: 'your mix', x: [w2 * 100], y: [Tg - K0], mode: 'points' }], legend: 'below' }, 'Glass transition against the weight fraction of component 2');
+    paint(q<HTMLCanvasElement>('.gtg-gfig'), gfig);
+  }
+
+  function ff() {
+    const err = (m: string) => { q('.gtg-ferr').textContent = m; q('.gtg-ferr').hidden = !m; q('.gtg-fout').hidden = !!m; if (m) ffig = null; };
+    const Ti = v('.gtg-tinf'), K = v('.gtg-K'), Mn = v('.gtg-Mn');
+    if (!Number.isFinite(Ti)) return err('Type Tg∞ in °C.');
+    if (!(K > 0) || !(Mn > 0)) return err('K and Mn are above zero.');
+    err('');
+    const Tg = floryFox(Ti, K, Mn);
+    q('.gtg-fbig').textContent = `Tg ≈ ${(Tg + (Tg >= 0 ? 1e-9 : -1e-9)).toFixed(1)} °C at Mn ${Math.round(Mn).toLocaleString('en')} g/mol`;
+    q('.gtg-ffacts').replaceChildren(fact('Below Tg∞ by', `${(K / Mn).toFixed(1)} K`), fact('Within 1 K of Tg∞ above', `Mn ≈ ${Math.round(floryFoxMn(K, 1)).toLocaleString('en')} g/mol`), fact('Within 5 K above', `Mn ≈ ${Math.round(floryFoxMn(K, 5)).toLocaleString('en')} g/mol`));
+    const lo = Math.max(Math.log10(K / 200), 2), hi = Math.max(Math.log10(Mn) + 1, Math.log10(K) + 1.5), xs = Array.from({ length: 121 }, (_, i) => lo + ((hi - lo) * i) / 120);
+    ffig = chartFigure({ h: 220, xLabel: 'log₁₀ Mn (g/mol)', yLabel: 'Tg (°C)', xMin: lo, xMax: hi, series: [{ name: 'Flory–Fox', x: xs, y: xs.map((x) => floryFox(Ti, K, 10 ** x)), mode: 'line', width: 2 }, { name: 'your Mn', x: [Math.log10(Mn)], y: [Tg], mode: 'points' }], marks: [{ kind: 'hline', at: Ti, label: 'Tg∞', dash: [3, 3] }], legend: 'none' }, 'Glass transition against number-average molar mass');
+    paint(q<HTMLCanvasElement>('.gtg-ffig'), ffig);
+  }
+
+  for (const r of rowsEl()) {
+    r.querySelector('.gtg-m')!.addEventListener('change', () => { const m = material(r.querySelector<HTMLSelectElement>('.gtg-m')!.value); if (m) { r.querySelector<HTMLInputElement>('.gtg-t')!.value = String(m.tg); r.querySelector<HTMLInputElement>('.gtg-M')!.value = String(m.M); if (!num(r.querySelector<HTMLInputElement>('.gtg-w')!.value)) r.querySelector<HTMLInputElement>('.gtg-w')!.value = '10'; } calc(); });
+    r.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (!i.classList.contains('gtg-w')) { const s = r.querySelector<HTMLSelectElement>('.gtg-m')!; if (s.value && s.value !== 'custom') { const m = material(s.value)!; if (i.classList.contains('gtg-t') ? num(i.value) !== m.tg : num(i.value) !== m.M) s.value = 'custom'; } } calc(); }));
+  }
+  q('.gtg-target').addEventListener('input', calc); q('.gtg-pair').addEventListener('change', calc);
+  q('.gtg-use').addEventListener('click', () => { if (!useComp) return; const rs = rowsEl(), used = rs.map((r, i) => i).filter((i) => rs[i].querySelector<HTMLSelectElement>('.gtg-m')!.value && num(rs[i].querySelector<HTMLInputElement>('.gtg-w')!.value) > 0); used.forEach((i, j) => { rs[i].querySelector<HTMLInputElement>('.gtg-w')!.value = String(Number(useComp![j].toFixed(1))); }); calc(); });
+  for (const n of ['1', '2']) q(`.gtg-m${n}`).addEventListener('change', () => { const m = material(q<HTMLSelectElement>(`.gtg-m${n}`).value); if (m) { q<HTMLInputElement>(`.gtg-t${n}`).value = String(m.tg); q<HTMLInputElement>(`.gtg-r${n}`).value = m.rho.toFixed(2); } gt(); });
+  root.querySelectorAll('.gtg-t1, .gtg-t2, .gtg-r1, .gtg-r2').forEach((i) => i.addEventListener('input', () => { const n = (i as HTMLElement).className.slice(-1); q<HTMLSelectElement>(`.gtg-m${n}`).value = 'custom'; gt(); }));
+  root.querySelectorAll('.gtg-w2, .gtg-gtar, .gtg-q').forEach((i) => i.addEventListener('input', gt));
+  q('.gtg-k').addEventListener('input', () => { q<HTMLSelectElement>('.gtg-kmode').value = 'own'; gt(); });
+  q('.gtg-kmode').addEventListener('change', gt);
+  root.querySelectorAll('.gtg-tinf, .gtg-K, .gtg-Mn').forEach((i) => i.addEventListener('input', ff));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.gtg-fig'), fig); if (gfig) paint(q<HTMLCanvasElement>('.gtg-gfig'), gfig); if (ffig) paint(q<HTMLCanvasElement>('.gtg-ffig'), ffig); });
+  calc(); gt(); ff();
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Glass transition', subtitle: 'Fox, Gordon–Taylor and Flory–Fox estimates', file: 'glass-transition',
+    sections: [
+      ...(q('.gtg-out').hidden ? [] : [{ title: q('.gtg-big').textContent!, table: { head: ['Component', 'Tg (°C)', 'Weight', 'Mole'], rows: tab, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, facts: facts('.gtg-facts'), ...(fig ? { figure: fig } : {}) }]),
+      ...(q('.gtg-gout').hidden ? [] : [{ title: q('.gtg-gbig').textContent!, facts: facts('.gtg-gfacts'), ...(gfig ? { figure: gfig } : {}) }]),
+      ...(q('.gtg-fout').hidden ? [] : [{ title: q('.gtg-fbig').textContent!, facts: facts('.gtg-ffacts'), ...(ffig ? { figure: ffig } : {}) }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .gtg .gtg-wide { grid-column: 1 / -1; }
+  .gtg select { max-width: 100%; }
+  .gtg .gtg-row { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 10px; margin: 0 0 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+  .gtg .gtg-row legend { font-size: 13px; padding: 0 4px; }
+  .gtg .gtg-row label { min-width: 0; font-size: 13px; }
+  .gtg .gtg-row input { width: 100%; }
+  .gtg h3 { margin: 16px 0 6px; font-size: 16px; }
+</style>

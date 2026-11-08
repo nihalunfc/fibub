@@ -1,5 +1,6 @@
 ---
 // 4PL dose-response (EC50 / IC50) and ELISA standard curves, fitted in the browser.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -16,6 +17,7 @@ import Downloads from '../../components/Downloads.astro';
 7.5	1.1875	0.8571	1.0571
 15	0.6875	0.525	0.825
 30	0.25	0.22	0.44</textarea></label>
+    <DataFile target=".dr-data" />
     <div class="ax-grid" style="margin-top:10px">
       <label>Dose unit <input class="dr-xu" value="mM" /></label>
       <label>Response name <input class="dr-yu" value="Root length (cm)" /></label>
@@ -39,6 +41,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Samples to read off the curve (ELISA)</h2>
     <label>Responses, one sample per line, replicates on the same line; a name first is optional.
       <textarea class="dr-unk" rows="3" spellcheck="false" placeholder="Sample 1: 4.2 4.4"></textarea></label>
+    <DataFile target=".dr-unk" />
     <label style="margin-top:8px;max-width:220px">Dilution factor <input class="dr-dil" inputmode="decimal" value="1" /></label>
     <div class="ax-scroll" style="margin-top:12px"><table class="dr-tab"></table></div>
   </div>

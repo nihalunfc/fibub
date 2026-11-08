@@ -1,0 +1,135 @@
+---
+// Transit light curve fitter: fit a limb-darkened transit to measured brightness and give the planet's size,
+// the transit's depth and duration, the impact parameter and the star's density.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tf">
+  <div class="ax-card">
+    <h2>Light curve</h2>
+    <label>Paste time (days, e.g. BJD), brightness and, if you have it, the error of each point. A header row is fine.
+      <textarea class="tf-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small tf-sample">Load the example</button>
+      <label class="btn secondary small" style="cursor:pointer">Open a file<input type="file" class="tf-file" accept=".txt,.csv,.tsv,.dat,text/*" hidden /></label>
+      <label class="ax-check"><input type="checkbox" class="tf-mag" /> Brightness is in magnitudes</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Orbital period (days) <input class="tf-P" inputmode="decimal" /></label>
+      <label>Mid-transit time, if known <input class="tf-T0" inputmode="decimal" placeholder="find it" /></label>
+      <label>Limb darkening <select class="tf-ld">
+        <option value="0.40,0.25" selected>Sun-like star, visible light</option>
+        <option value="0.30,0.30">Hotter star (F type), or red light</option>
+        <option value="0.50,0.20">Cooler star (K type), visible light</option>
+        <option value="0.25,0.30">Near infrared or TESS band</option>
+        <option value="0,0">None (uniform disc)</option>
+        <option value="custom">My own coefficients</option>
+      </select></label>
+      <label class="tf-ul" hidden>u₁ <input class="tf-u1" inputmode="decimal" value="0.4" /></label>
+      <label class="tf-ul" hidden>u₂ <input class="tf-u2" inputmode="decimal" value="0.25" /></label>
+      <label>Exposure time, if long (minutes) <input class="tf-exp" inputmode="decimal" placeholder="0" /></label>
+      <label>Star's radius, if known (R☉) <input class="tf-rs" inputmode="decimal" placeholder="optional" /></label>
+    </div>
+    <p class="ax-help">The period is held fixed; take it from a catalogue or the period finder. Limb darkening makes the star's edge dimmer than its centre and rounds the bottom of the transit; the presets are typical quadratic-law values, or enter your own from tables such as Claret's. Give the exposure time if it is longer than about 5 minutes, so the model is smeared the same way. Missing errors are estimated from the scatter.</p>
+    <p class="ax-err tf-err" hidden></p>
+  </div>
+
+  <div class="ax-card tf-out" hidden>
+    <h2>Fitted transit</h2>
+    <p class="ax-big tf-big"></p>
+    <canvas class="ax-fig tf-fig"></canvas>
+    <canvas class="ax-fig tf-res" style="margin-top:8px"></canvas>
+    <dl class="ax-facts tf-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tf-csv">Model curve (CSV)</button></div>
+    <p class="ax-help">Uncertainties come from the curvature of the fit (one standard deviation). The impact parameter and a/R* trade off against each other, so a noisy curve leaves them loose. The star's density follows from a/R* and the period alone (Kepler's third law), which makes it a good check against the star's spectral type.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { fitTransit, fluxAt, fold, durations, stellarDensity, simulatedTransit, type TransitFit } from '../../lib/sci/transit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.tf-in');
+  const sample = () => { const s = simulatedTransit(); return 'bjd\tflux\n' + s.t.map((x, i) => `${x.toFixed(5)}\t${s.f[i].toFixed(5)}`).join('\n'); };
+  const loadSample = () => { box.value = sample(); q<HTMLInputElement>('.tf-P').value = '3.52474859'; q<HTMLInputElement>('.tf-T0').value = ''; q<HTMLInputElement>('.tf-mag').checked = false; q<HTMLSelectElement>('.tf-ld').value = '0.40,0.25'; q<HTMLInputElement>('.tf-rs').value = ''; q<HTMLInputElement>('.tf-exp').value = ''; };
+  loadSample();
+  let figs: Figure[] = [], report: Section[] = [], last: { fit: TransitFit; texp: number } | null = null;
+  const pm = (v: number, e: number, d: number) => (Number.isFinite(e) && e > 0 ? `${v.toFixed(d)} ± ${e.toFixed(d)}` : v.toFixed(d));
+
+  function run() {
+    const err = q('.tf-err'); err.hidden = true;
+    try {
+      const rows = parseTable(box.value).map((r) => r.map((c) => num(c))).filter((r) => r.length >= 2 && Number.isFinite(r[0]) && Number.isFinite(r[1])).sort((a, b) => a[0] - b[0]);
+      if (rows.length < 10) throw new Error('Paste at least 10 rows of time and brightness.');
+      const isMag = q<HTMLInputElement>('.tf-mag').checked;
+      const t = rows.map((r) => r[0]);
+      let f = rows.map((r) => r[1]), df: number[] | null = rows.every((r) => r[2] > 0) ? rows.map((r) => r[2]) : null;
+      if (isMag) { const m0 = [...f].sort((a, b) => a - b)[Math.floor(f.length / 2)]; const mags = f; f = mags.map((m) => 10 ** (-0.4 * (m - m0))); if (df) df = df.map((e, i) => 0.4 * Math.LN10 * e * f[i]); }
+      else if (f.some((x) => x <= 0)) throw new Error('Brightness must be above 0. Tick "magnitudes" if the column is in magnitudes.');
+      const P = num(q<HTMLInputElement>('.tf-P').value);
+      if (!(P > 0)) throw new Error('Give the orbital period in days.');
+      const ld = q<HTMLSelectElement>('.tf-ld').value; root.querySelectorAll<HTMLElement>('.tf-ul').forEach((e) => (e.hidden = ld !== 'custom'));
+      const [u1, u2] = ld === 'custom' ? [num(q<HTMLInputElement>('.tf-u1').value), num(q<HTMLInputElement>('.tf-u2').value)] : ld.split(',').map(Number);
+      if (!Number.isFinite(u1) || !Number.isFinite(u2) || u1 + u2 > 1 || u1 < 0 || u1 + 2 * u2 < 0) throw new Error('Limb darkening needs u₁ ≥ 0, u₁ + u₂ ≤ 1 and u₁ + 2u₂ ≥ 0, so the star is bright everywhere and darkest at the edge.');
+      const T0in = num(q<HTMLInputElement>('.tf-T0').value), texp = Math.max(0, num(q<HTMLInputElement>('.tf-exp').value) || 0) / 1440;
+      const fit = fitTransit(t, f, df, { P, u1, u2, T0: Number.isFinite(T0in) ? T0in : undefined, texp });
+      const m = fit.m; last = { fit, texp };
+      const depthMin = 1 - fluxAt(m.T0, m) / m.F0;
+      if (!(m.k > 0.003) || depthMin < 3 * fit.rms / Math.sqrt(Math.max(1, t.length / 20))) throw new Error('No clear transit found. Check the period and that the data cover a transit.');
+      q('.tf-out').hidden = false;
+      const D = durations(m), t14 = fit.derived((mm) => durations(mm).t14 * 24), t23 = fit.derived((mm) => durations(mm).t23 * 24);
+      const dep = fit.derived((mm) => (1 - fluxAt(mm.T0, mm) / mm.F0) * 100), rho = fit.derived((mm) => stellarDensity(mm.aR, mm.P));
+      const inc = fit.derived((mm) => (Math.acos(Math.min(1, mm.b / mm.aR)) * 180) / Math.PI);
+      const rs = num(q<HTMLInputElement>('.tf-rs').value);
+      q('.tf-big').textContent = `${sig(dep.v, 3)} % deep and ${sig(t14.v, 3)} hours long: the planet is ${sig(m.k, 3)} times the star's radius`;
+      // Folded data in hours from mid-transit, with the model and, for many points, 10-minute bins.
+      const hrs = t.map((ti) => fold(ti, m.T0, P) * 24), win = Math.min(P * 12, Math.max(D.t14 * 24 * 1.6, 1)), keep = hrs.map((h) => Math.abs(h) <= win);
+      const xs: number[] = [], ys: number[] = [];
+      for (let k = 0; k <= 400; k++) { const h = -win + (2 * win * k) / 400; xs.push(h); ys.push(fluxAt(m.T0 + h / 24, m, texp) / m.F0); }
+      const fx = hrs.filter((_, i) => keep[i]), fy = f.filter((_, i) => keep[i]).map((v) => v / m.F0);
+      const bins: { x: number[]; y: number[] } = { x: [], y: [] };
+      if (fx.length > 150) { const w = 10 / 60; for (let h = -win; h < win; h += w) { let s = 0, c = 0; fx.forEach((x, i) => { if (x >= h && x < h + w) { s += fy[i]; c++; } }); if (c >= 3) { bins.x.push(h + w / 2); bins.y.push(s / c); } } }
+      const main = chartFigure({ h: 340, xLabel: 'Hours from mid-transit', yLabel: 'Relative brightness', legend: 'below', series: [
+        { name: 'Measured', x: fx, y: fy, mode: 'points', size: fx.length > 300 ? 2 : 3 },
+        ...(bins.x.length ? [{ name: '10-minute bins', x: bins.x, y: bins.y, mode: 'points' as const, size: 4 }] : []),
+        { name: 'Model', x: xs, y: ys, mode: 'line', width: 2.2 },
+      ], marks: [{ kind: 'vline', at: -D.t14 * 12, dash: [3, 3] }, { kind: 'vline', at: D.t14 * 12, dash: [3, 3] }] }, 'Folded light curve with the fitted transit');
+      const resid = t.map((ti, i) => (f[i] - fluxAt(ti, m, texp)) / m.F0 * 1000).filter((_, i) => keep[i]);
+      const res = chartFigure({ h: 150, xLabel: 'Hours from mid-transit', yLabel: 'Residual (ppt)', legend: 'none', series: [{ name: 'Residual', x: fx, y: resid, mode: 'points', size: 2.5 }], marks: [{ kind: 'hline', at: 0 }] }, 'Residuals of the fit');
+      paint(q<HTMLCanvasElement>('.tf-fig'), main); paint(q<HTMLCanvasElement>('.tf-res'), res); figs = [main, res];
+
+      const facts: [string, string, string?][] = [
+        ['Radius ratio Rp/R*', pm(m.k, fit.err.k, 4), 'planet radius in units of the star\'s radius'],
+        ['Depth', `${pm(dep.v, dep.e, 3)} %`, `${sig(dep.v * 10, 3)} ppt at the middle; (Rp/R*)² = ${sig(m.k * m.k * 100, 3)} %, limb darkening makes the middle deeper`],
+        ['Duration, first to last contact', `${pm(t14.v, t14.e, 2)} h`, D.t23 > 0 ? `flat bottom (second to third contact) ${pm(t23.v, t23.e, 2)} h` : 'grazing: the planet never fits wholly inside the disc'],
+        ['Impact parameter b', pm(m.b, fit.err.b, 2), `how far from the star's centre the planet crosses, in star radii; inclination ${pm(inc.v, inc.e, 1)}°`],
+        ['Orbit size a/R*', pm(m.aR, fit.err.aR, 2), rs > 0 ? `a = ${sig((m.aR * rs) / 215.032, 3)} AU for a ${sig(rs, 3)} R☉ star` : 'the orbit\'s radius in units of the star\'s radius'],
+        ['Star\'s mean density', `${pm(rho.v, rho.e, 2)} g/cm³`, `the Sun is 1.41; giants are far lower, red dwarfs higher`],
+        ['Mid-transit time', `${m.T0.toFixed(5)} ± ${sig(fit.err.T0 * 1440, 2)} min`, 'the transit nearest the middle of your data'],
+      ];
+      if (rs > 0) { const re = m.k * rs * 109.076, ee = fit.err.k * rs * 109.076; facts.push(['Planet radius', `${pm(re, ee, 2)} Earth radii`, `${sig(m.k * rs * 9.731, 3)} Jupiter radii, for a ${sig(rs, 3)} R☉ star (its error not included)`]); }
+      facts.push(['Scatter', `${sig(fit.rms * 1e6, 3)} ppm`, df ? `reduced χ² = ${fit.redChi2.toFixed(2)}; near 1 means the errors fit the scatter` : 'errors estimated from this scatter']);
+      q('.tf-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+      report = [{ title: 'Fitted transit', facts: [['Result', q('.tf-big').textContent!], ...facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], figure: main }, { title: 'Residuals', figure: res }];
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.tf-out').hidden = true; }
+  }
+
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 500); });
+  for (const c of ['.tf-P', '.tf-T0', '.tf-ld', '.tf-u1', '.tf-u2', '.tf-exp', '.tf-rs', '.tf-mag']) q(c).addEventListener('change', run);
+  q('.tf-sample').addEventListener('click', () => { loadSample(); run(); });
+  q<HTMLInputElement>('.tf-file').addEventListener('change', async (e) => { const fl = (e.target as HTMLInputElement).files?.[0]; if (!fl) return; box.value = await fl.text(); run(); });
+  q('.tf-csv').addEventListener('click', () => {
+    if (!last) return; const { fit, texp } = last, m = fit.m, d = durations(m).t14, out: (string | number)[][] = [['hours_from_mid', 'time', 'relative_flux']];
+    for (let k = 0; k <= 300; k++) { const h = (-d * 1.5 + (3 * d * k) / 300) * 24; out.push([h.toFixed(4), (m.T0 + h / 24).toFixed(6), (fluxAt(m.T0 + h / 24, m, texp) / m.F0).toFixed(6)]); }
+    save(new Blob([out.map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'transit-model.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { const c = ['.tf-fig', '.tf-res']; figs.forEach((f, i) => paint(q<HTMLCanvasElement>(c[i]), f)); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Transit light curve fit', file: 'transit-fit', sections: report }));
+</script>

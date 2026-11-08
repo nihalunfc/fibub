@@ -1,0 +1,161 @@
+---
+// Reaction equivalents table: reagents with molar mass (from the formula), equivalents, density, purity or
+// molarity; the mmol, mass and volume of each at the chosen scale; theoretical and percent yield.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax req">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Reagents</h2>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small req-example">Example</button>
+        <button type="button" class="btn secondary small req-clear">Start empty</button>
+      </div>
+    </div>
+    <p class="ax-help">Type a formula in the first box to fill in the molar mass, or type the molar mass yourself (for example for a named compound). Give a density for a liquid you measure by syringe, or a molarity for a reagent sold as a solution. Purity scales up the mass to weigh.</p>
+    <div class="req-list"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small req-add">Add a reagent</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Scale</h2>
+    <div class="ax-grid">
+      <label>Set by <select class="req-by-row"></select></label>
+      <label>Amount <span class="req-pair"><input class="req-scale" inputmode="decimal" value="5.00" /><select class="req-by"><option value="mmol">mmol</option><option value="mg">mg</option><option value="ul">µL</option></select></span></label>
+    </div>
+    <p class="ax-err req-err" hidden></p>
+    <p class="ax-big req-big"></p>
+    <div class="ax-scroll"><table class="req-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Yield</h2>
+    <div class="ax-grid">
+      <label>Product formula or molar mass <input class="req-prod" value="C13H12O" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Product per limiting reagent <input class="req-ratio" inputmode="decimal" value="1" /></label>
+      <label>You isolated (mg) <input class="req-actual" inputmode="decimal" placeholder="e.g. 780" /></label>
+    </div>
+    <p class="ax-big req-yield" style="font-size:18px"></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { table, scaleFrom, yieldOf, type Reagent } from '../../lib/sci/equivalents';
+  import { parseFormula, molarMass, pretty } from '../../lib/sci/chem';
+  import { num, sig } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  type R = Reagent & { formula: string; mwTyped: boolean };
+  const root = document.querySelector<HTMLElement>('.req')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const EXAMPLE: R[] = [
+    { name: '4-Bromoanisole', formula: 'C7H7BrO', mw: 0, equiv: 1, density: 1.494, mwTyped: false },
+    { name: 'Phenylboronic acid', formula: 'C6H7BO2', mw: 0, equiv: 1.2, mwTyped: false },
+    { name: 'Potassium carbonate', formula: 'K2CO3', mw: 0, equiv: 2, mwTyped: false },
+    { name: 'Pd(PPh₃)₄', formula: 'Pd(P(C6H5)3)4', mw: 0, equiv: 0.05, mwTyped: false },
+  ];
+  let rows: R[] = [];
+  let out: { cells: string[] }[] = [];
+  const mwOf = (f: string) => { try { return f.trim() ? molarMass(parseFormula(f)) : NaN; } catch { return NaN; } };
+  const fmtMass = (mg: number) => (mg >= 1000 ? `${sig(mg / 1000, 4)} g` : mg >= 1 ? `${sig(mg, 4)} mg` : `${sig(mg * 1000, 3)} µg`);
+  const fmtVol = (ul: number) => (ul >= 1000 ? `${sig(ul / 1000, 4)} mL` : `${sig(ul, 3)} µL`);
+  const opt = (s: string) => { const x = num(s); return s.trim() && Number.isFinite(x) ? x : undefined; };
+
+  function load(list: R[]) {
+    rows = list.map((r) => ({ ...r, mw: r.mwTyped ? r.mw : mwOf(r.formula) }));
+    renderRows(); compute();
+  }
+
+  function renderRows() {
+    const box = q('.req-list'); box.replaceChildren();
+    rows.forEach((r, i) => {
+      const d = document.createElement('fieldset'); d.className = 'req-row';
+      d.innerHTML = `<legend>Reagent ${i + 1}</legend><div class="ax-grid">
+        <label>Name <input data-k="name" autocomplete="off" /></label>
+        <label>Formula <input data-k="formula" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+        <label>Molar mass (g/mol) <input data-k="mw" inputmode="decimal" /></label>
+        <label>Equivalents <input data-k="equiv" inputmode="decimal" /></label>
+        <label>Density (g/mL) <input data-k="density" inputmode="decimal" placeholder="solid" /></label>
+        <label>Purity (%) <input data-k="purity" inputmode="decimal" placeholder="100" /></label>
+        <label>Solution (mol/L) <input data-k="molarity" inputmode="decimal" placeholder="neat" /></label>
+      </div><button type="button" class="btn secondary small req-del">Remove</button>`;
+      const set = (k: string, v: string) => (d.querySelector<HTMLInputElement>(`[data-k=${k}]`)!.value = v);
+      set('name', r.name); set('formula', r.formula); set('mw', Number.isFinite(r.mw) ? r.mw.toFixed(2) : ''); set('equiv', String(r.equiv));
+      set('density', r.density ? String(r.density) : ''); set('purity', r.purity ? String(r.purity) : ''); set('molarity', r.molarity ? String(r.molarity) : '');
+      d.querySelectorAll<HTMLInputElement>('input').forEach((inp) => inp.addEventListener('input', () => {
+        const k = inp.dataset.k!, v = inp.value;
+        if (k === 'name') r.name = v;
+        else if (k === 'formula') { r.formula = v; if (!r.mwTyped) { r.mw = mwOf(v); d.querySelector<HTMLInputElement>('[data-k=mw]')!.value = Number.isFinite(r.mw) ? r.mw.toFixed(2) : ''; } }
+        else if (k === 'mw') { r.mwTyped = v.trim() !== ''; r.mw = r.mwTyped ? num(v) : mwOf(r.formula); }
+        else if (k === 'equiv') r.equiv = num(v);
+        else (r as Record<string, unknown>)[k] = opt(v);
+        if (k === 'name') fillScaleRows(); else compute();
+      }));
+      d.querySelector('.req-del')!.addEventListener('click', () => { rows.splice(i, 1); renderRows(); compute(); });
+      box.append(d);
+    });
+    fillScaleRows();
+  }
+
+  function fillScaleRows() {
+    const sel = q<HTMLSelectElement>('.req-by-row'), prev = sel.value;
+    sel.replaceChildren(...rows.map((r, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = r.name || `Reagent ${i + 1}`; return o; }));
+    sel.value = prev && Number(prev) < rows.length ? prev : '0';
+  }
+
+  function compute() {
+    const err = (m: string) => { q('.req-err').textContent = m; q('.req-err').hidden = !m; };
+    const tb = q<HTMLTableElement>('.req-tab'); tb.replaceChildren(); out = [];
+    if (!rows.length) { err('Add a reagent.'); q('.req-big').textContent = ''; q('.req-yield').textContent = ''; return; }
+    const bad = rows.findIndex((r) => !(r.mw > 0) || !(r.equiv > 0));
+    if (bad >= 0) { err(`${rows[bad].name || `Reagent ${bad + 1}`}: give a formula or molar mass, and equivalents above zero.`); q('.req-big').textContent = ''; return; }
+    const ri = Number(q<HTMLSelectElement>('.req-by-row').value) || 0, by = q<HTMLSelectElement>('.req-by').value as 'mmol' | 'mg' | 'ul', v = num(q<HTMLInputElement>('.req-scale').value);
+    if (!(v > 0)) { err('Type the amount that sets the scale, above zero.'); return; }
+    let scale: number;
+    try { scale = scaleFrom(rows[ri], by, v); } catch (e) { err(`${rows[ri].name}: ${(e as Error).message}`); return; }
+    err('');
+    const t = table(rows, scale);
+    q('.req-big').textContent = `Scale: ${sig(scale, 4)} mmol (1 equivalent)`;
+    const head = ['Reagent', 'MW', 'Equiv', 'mmol', 'Weigh', 'Or measure'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    rows.forEach((r, i) => {
+      const x = t[i];
+      const cells = [r.name || (r.formula ? pretty(r.formula) : `Reagent ${i + 1}`), r.mw.toFixed(2), sig(r.equiv, 3), sig(x.mmol, 4), x.note === 'solution' ? '–' : fmtMass(x.weighMg), x.volumeUl !== undefined ? `${fmtVol(x.volumeUl)}${x.note === 'solution' ? ` of ${r.molarity} M` : ''}` : '–'];
+      out.push({ cells });
+      const row = bd.insertRow(); cells.forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; });
+    });
+    yieldPart(scale);
+  }
+
+  function yieldPart(scale: number) {
+    const p = q<HTMLInputElement>('.req-prod').value.trim(), ratio = num(q<HTMLInputElement>('.req-ratio').value) || 1, act = opt(q<HTMLInputElement>('.req-actual').value);
+    const mw = /^[\d.,\s]+$/.test(p) ? num(p) : mwOf(p);
+    if (!(mw > 0)) { q('.req-yield').textContent = p ? 'That product formula could not be read; type its formula or molar mass.' : ''; return; }
+    const y = yieldOf(scale, mw, ratio, act);
+    q('.req-yield').textContent = `Theoretical yield ${fmtMass(y.theoMg)} (${sig(scale * ratio, 4)} mmol at ${mw.toFixed(2)} g/mol)${act !== undefined ? `. You got ${sig(y.percent, 3)} %${y.percent > 100 ? ': over 100 % usually means solvent or impurities remain' : ''}` : ''}.`;
+  }
+
+  q('.req-add').addEventListener('click', () => { rows.push({ name: '', formula: '', mw: NaN, equiv: 1, mwTyped: false }); renderRows(); compute(); });
+  q('.req-example').addEventListener('click', () => { load(EXAMPLE); q<HTMLInputElement>('.req-prod').value = 'C13H12O'; q<HTMLInputElement>('.req-scale').value = '5.00'; q<HTMLSelectElement>('.req-by').value = 'mmol'; q<HTMLSelectElement>('.req-by-row').value = '0'; compute(); });
+  q('.req-clear').addEventListener('click', () => { load([{ name: '', formula: '', mw: NaN, equiv: 1, mwTyped: false }]); q<HTMLInputElement>('.req-prod').value = ''; });
+  for (const c of ['.req-scale', '.req-prod', '.req-ratio', '.req-actual']) q(c).addEventListener('input', compute);
+  for (const c of ['.req-by-row', '.req-by']) q(c).addEventListener('change', compute);
+  load(EXAMPLE);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Reaction equivalents', subtitle: q('.req-big').textContent!, file: 'reagent-table',
+    sections: [{ title: 'Reagents', table: { head: ['Reagent', 'MW', 'Equiv', 'mmol', 'Weigh', 'Or measure'], rows: out.map((o) => o.cells), align: ['l', 'r', 'r', 'r', 'r', 'r'] }, text: [q('.req-yield').textContent!].filter(Boolean) }],
+  }));
+</script>
+
+<style is:global>
+  .req .req-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; margin: 10px 0 0; }
+  .req .req-row legend { font-weight: 600; padding: 0 4px; }
+  .req .req-row .req-del { margin-top: 8px; }
+  .req .req-pair { display: flex; gap: 6px; }
+  .req .req-pair input { flex: 1; min-width: 0; }
+  .req .req-pair select { width: auto; flex: none; }
+  .req .req-tab td, .req .req-tab th { white-space: nowrap; }
+</style>
