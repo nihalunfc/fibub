@@ -128,6 +128,7 @@ import * as RO from '../src/lib/sci/runoff.ts';
 import * as FF from '../src/lib/sci/floodfreq.ts';
 import * as ET from '../src/lib/sci/et0.ts';
 import * as RC from '../src/lib/sci/rating.ts';
+import * as AMB from '../src/lib/sci/amband.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2534,6 +2535,43 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('rating: scatter band about ±7 %', sc[0] < -6 && sc[0] > -8 && sc[1] > 6 && sc[1] < 8);
   check('rating: columns by name', JSON.stringify(RC.pickColumns(['date', 'Discharge (m3/s)', 'Gauge height (m)'], [[NaN, NaN, NaN], [1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 2, qi: 1 }));
   check('rating: columns by order', JSON.stringify(RC.pickColumns(['a', 'b'], [[1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 0, qi: 1 }));
+}
+{
+  // Altermagnet band models, against NumPy eigh on the two-sublattice Hamiltonian, and symmetry checks.
+  const m = { kind: 'two', t1: 1, ta: 0.3, tb: -0.1, J: 0.8, mu: 0.2 };
+  const ref = [[0.7, 0.2, 1, -4.391269506032175, 3.2933059999818832, 0.3846924263377676], [0.7, 0.2, -1, -4.355251312186078, 3.257287806135787, 0.5937808309003051], [Math.PI, 0.3, 1, -1.7732018934753635, 1.3910672978251213, 0], [Math.PI, 0.3, -1, -0.20893270217487886, -0.17320189347536347, 1], [1.1, 2.5, 1, -1.246328094282544, 0.9853470919310865, 0.36642137392907353], [1.1, 2.5, -1, -1.819028447896271, 1.5580474455448137, 0.8855098125918729]];
+  for (const [kx, ky, sp, e0, e1, wa] of ref) {
+    const e = AMB.bands(m, kx, ky, sp);
+    near(`amband: two-sublattice bands at (${kx.toFixed(2)}, ${ky}) spin ${sp > 0 ? 'up' : 'down'} (NumPy)`, Math.abs(e[0] - e0) + Math.abs(e[1] - e1), 0, 1e-12);
+    near(`amband: sublattice A weight at (${kx.toFixed(2)}, ${ky}) spin ${sp > 0 ? 'up' : 'down'} (NumPy)`, AMB.weightA(m, kx, ky, sp)[0], wa, 1e-12);
+  }
+  // Spin up at (kx, ky) equals spin down at (ky, kx): the 90° rotation swaps the sublattices.
+  let worst = 0;
+  for (const [x, y] of [[0.3, 1.9], [2.2, -0.7], [-1.4, 2.8], [3, 0.1]]) { const u = AMB.bands(m, x, y, 1), d = AMB.bands(m, y, x, -1); worst = Math.max(worst, Math.abs(u[0] - d[0]), Math.abs(u[1] - d[1])); }
+  near('amband: E up(kx, ky) = E down(ky, kx)', worst, 0, 1e-12);
+  near('amband: no splitting on the diagonal kx = ky', Math.abs(AMB.bands(m, 1.3, 1.3, 1)[0] - AMB.bands(m, 1.3, 1.3, -1)[0]), 0, 1e-12);
+  near('amband: no splitting at Γ', Math.abs(AMB.bands(m, 0, 0, 1)[1] - AMB.bands(m, 0, 0, -1)[1]), 0, 1e-12);
+  check('amband: splitting changes sign across the diagonal', (AMB.bands(m, 2, 0.5, 1)[0] - AMB.bands(m, 2, 0.5, -1)[0]) * (AMB.bands(m, 0.5, 2, 1)[0] - AMB.bands(m, 0.5, 2, -1)[0]) < 0);
+  const g = AMB.grid(m, 200), fill = AMB.filling(g, 200);
+  near('amband: electrons per spin at μ = 0.2 (NumPy 1.0071)', fill[0], 1.0071, 1e-12);
+  check('amband: equal filling for both spins (no net moment)', fill[0] === fill[1]);
+  const D = AMB.dos(g, 200);
+  near('amband: spin-resolved DOS identical', D.up.reduce((s, v, i) => Math.max(s, Math.abs(v - D.dn[i])), 0), 0, 1e-9);
+  near('amband: DOS integrates to 2 bands per spin', D.up.reduce((s, v) => s + v, 0) * D.w, 2, 1e-9);
+  check('amband: no spin splitting without anisotropy (ta = tb)', AMB.maxSplit({ ...m, ta: 0.2, tb: 0.2 })[0].d === 0 || Math.abs(AMB.maxSplit({ ...m, ta: 0.2, tb: 0.2 })[0].d) < 1e-12);
+  // One-band forms.
+  const o = { kind: 'one', t: 1, tp: 0.2, J: 0.5, mu: -0.5, form: 'dx2y2' };
+  near('amband: one-band d-wave value', AMB.bands(o, 1, 2, 1)[0], -2 * (Math.cos(1) + Math.cos(2)) + 0.8 * Math.cos(1) * Math.cos(2) + 0.5 + 0.5 * (Math.cos(1) - Math.cos(2)), 1e-12);
+  near('amband: largest d-wave split is 4J at X', Math.abs(AMB.maxSplit(o)[0].d), 4 * 0.5, 1e-9);
+  near('amband: dxy split vanishes on the axes', AMB.bands({ ...o, form: 'dxy' }, 1.7, 0, 1)[0] - AMB.bands({ ...o, form: 'dxy' }, 1.7, 0, -1)[0], 0, 1e-12);
+  const gw = { ...o, form: 'g' };
+  check('amband: g-wave has four sign changes around a circle', (() => { let ch = 0, prev = 0; for (let a = 10; a <= 370; a += 1) { const r = 1.5, x = r * Math.cos(a * Math.PI / 180), y = r * Math.sin(a * Math.PI / 180), v = AMB.FORMS.g.f(x, y); const sg = Math.abs(v) < 1e-9 ? 0 : Math.sign(v); if (sg && prev && sg !== prev) ch++; if (sg) prev = sg; } return ch === 8; })());
+  near('amband: g-wave filling equal for both spins', AMB.filling(AMB.grid(gw, 120), 120)[0] - AMB.filling(AMB.grid(gw, 120), 120)[1], 0, 1e-12);
+  const P = AMB.kPath(40);
+  check('amband: path Y-Γ-X-M-Γ', P.ticks.map((t) => t.label).join('') === 'YΓXMΓ' && Math.abs(P.length - (3 + Math.SQRT2) * Math.PI) < 1e-12);
+  const circ = new Float64Array(64 * 64).map((_, i) => { const x = -Math.PI + (i % 64 + 0.5) * 2 * Math.PI / 64, y = -Math.PI + (Math.floor(i / 64) + 0.5) * 2 * Math.PI / 64; return x * x + y * y - 1; });
+  const seg = AMB.contour(circ, 64);
+  check('amband: contour of a unit circle lies on the circle', seg.length > 20 && seg.every(([a, b, c, d]) => Math.abs(Math.hypot(a, b) - 1) < 0.01 && Math.abs(Math.hypot(c, d) - 1) < 0.01));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
