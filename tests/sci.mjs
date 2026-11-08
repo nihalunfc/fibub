@@ -105,6 +105,7 @@ import * as MT from '../src/lib/sci/mccabe.ts';
 import * as VL from '../src/lib/sci/vle.ts';
 import * as GC from '../src/lib/sci/geochron.ts';
 import * as DL from '../src/lib/sci/delta.ts';
+import * as MX from '../src/lib/sci/mixing.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1794,6 +1795,35 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const Rs = 0.01118, RA = DL.rFromDelta(-28, Rs), RB = DL.rFromDelta(-12, Rs);
   const hA = 0.6 * 1 * RA / (1 + RA), hB = 0.4 * 3 * RB / (1 + RB), lA = 0.6 * 1 / (1 + RA), lB = 0.4 * 3 / (1 + RB);
   near('delta: δ mixing vs exact', DL.deltaFromR((hA + hB) / (lA + lB), Rs), m.delta, 0.01);
+}
+
+{
+  // Mixing model: exact recovery, weighted δ, clipping and a degenerate case.
+  const m = { tracers: [{ name: 'Cl', delta: false }, { name: 'SO4', delta: false }, { name: 'd18O', delta: true }], names: ['A', 'B', 'C'], em: [[1, 2, -12], [15, 40, -8], [60, 10, -5]] };
+  const f0 = [0.2, 0.3, 0.5], u = MX.unmix(m, MX.predict(m, f0));
+  check('mixing: exact three-source recovery', u.f.every((v, i) => Math.abs(v - f0[i]) < 1e-9) && u.rms < 1e-9 && !u.clipped);
+  near('mixing: fractions sum to 1', u.f.reduce((a, b) => a + b), 1, 1e-12);
+  const m2 = { tracers: [{ name: 'Sr', delta: false }, { name: 'd87', delta: true, weight: 0 }], names: ['A', 'B'], em: [[100, 5], [400, 15]] };
+  near('mixing: weighted δ forward', MX.predict(m2, [0.3, 0.7])[1], (0.3 * 100 * 5 + 0.7 * 400 * 15) / (0.3 * 100 + 0.7 * 400), 1e-12);
+  // δ alone (weighted) recovers the fraction too.
+  const m3 = { tracers: [{ name: 'C', delta: false }, { name: 'd13C', delta: true, weight: 0 }], names: ['A', 'B'], em: [[2, -25], [8, -5]] };
+  const y3 = MX.predict(m3, [0.6, 0.4]);
+  near('mixing: weighted δ inverse', MX.unmix(m3, y3).f[0], 0.6, 1e-9);
+  check('mixing: weighted δ curve is not linear', Math.abs(y3[1] - (0.6 * -25 + 0.4 * -5)) > 1);
+  const out = MX.unmix(m, [0.5, 1, -13]);
+  check('mixing: outside sample is clipped to a vertex', out.clipped && Math.abs(out.f[0] - 1) < 1e-12 && out.free.some((v) => v < 0));
+  // Outside an edge: the answer must be the best point on that edge (brute force).
+  const yE = [40, 30, -6];
+  const ue = MX.unmix(m, yE);
+  let best = Infinity, bf = null;
+  for (let a = 0; a <= 1.000001; a += 0.0005) for (let b = 0; a + b <= 1.000001; b += 0.0005) {
+    const f = [a, b, Math.max(0, 1 - a - b)], p = MX.predict(m, f);
+    const sp = [59, 38, 7], c = p.reduce((s, v, j) => s + ((v - yE[j]) / sp[j]) ** 2, 0); if (c < best) { best = c; bf = f; }
+  }
+  check('mixing: constrained answer matches brute force', ue.f.every((v, i) => Math.abs(v - bf[i]) < 0.003));
+  let threw = false; try { MX.unmix({ tracers: [{ name: 'x', delta: false }], names: ['A', 'B'], em: [[5], [5]] }, [5]); } catch { threw = true; }
+  check('mixing: identical sources refused', threw);
+  check('mixing: δ names', MX.looksDelta('d18O') && MX.looksDelta('δ13C') && MX.looksDelta('delta2H') && !MX.looksDelta('Cl') && !MX.looksDelta('DOC'));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
