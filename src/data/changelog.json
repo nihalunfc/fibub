@@ -1,5 +1,14 @@
 [
  {
+  "sha": "e90bdb4ab42e",
+  "date": "2026-11-08T09:00:26+00:00",
+  "title": "Add the Hückel MO calculator (#92)",
+  "tools": [
+   "huckel-mo-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "c0af055fde73",
   "date": "2026-11-08T08:48:02+00:00",
   "title": "Add the TLC Rf calculator with plate photo marking (#91)",
