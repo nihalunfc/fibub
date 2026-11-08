@@ -1,5 +1,18 @@
 [
  {
+  "sha": "114ed509b3c1",
+  "date": "2026-11-08T05:00:25+00:00",
+  "title": "Add five tools: blackbody, exoplanet mass, impact crater, link budget, radio telescope",
+  "tools": [
+   "blackbody-calculator",
+   "exoplanet-mass-calculator",
+   "impact-crater-calculator",
+   "link-budget-calculator",
+   "radio-telescope-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "4ec45f68a717",
   "date": "2026-11-08T04:39:42+00:00",
   "title": "Add five astronomy tools: light pollution, habitable zone, Mars time, transit planner, redshift",
