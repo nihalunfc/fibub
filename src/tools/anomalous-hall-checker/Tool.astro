@@ -1,0 +1,175 @@
+---
+// Anomalous Hall checker: for a collinear magnet and a chosen moment (Néel vector) direction, find the magnetic point
+// group with spin–orbit coupling and the Hall vector directions it allows.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLES } from '../../lib/sci/altermagnet';
+---
+<div class="ax ahc">
+  <div class="ax-card">
+    <h2>Magnetic crystal</h2>
+    <div class="ax-grid">
+      <label class="ah-wide">Example <select class="ah-ex">{EXAMPLES.map((e) => <option value={e.id}>{e.name}</option>)}<option value="">My own structure</option></select></label>
+    </div>
+    <label class="ah-lab">One line <code>cell a b c α β γ</code> (Å and degrees), then one line per atom in the cell: element, fractional x y z, and its spin (<code>up</code>, <code>down</code>, or a signed moment such as <code>2.5</code>; leave it off for a non-magnetic atom). Fractions like 1/3 are fine.
+      <textarea class="ah-in" rows="8" spellcheck="false">{EXAMPLES[0].text}</textarea></label>
+    <div class="ax-grid">
+      <label>Position tolerance (Å) <input class="ah-tol" inputmode="decimal" value="0.1" /></label>
+      <label>Or open a file <input class="ah-file" type="file" accept=".txt,.cell,.dat,text/plain" /></label>
+    </div>
+    <h3>Which way the moments point</h3>
+    <div class="ah-uvw">
+      <label>u <input class="ah-u" inputmode="decimal" value="1" /></label>
+      <label>v <input class="ah-v" inputmode="decimal" value="0" /></label>
+      <label>w <input class="ah-w" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The moment direction is the lattice direction [u v w] (u along a, v along b, w along c), the same for every atom; "up" atoms point along it and "down" atoms against it. For an antiferromagnet or altermagnet this is the Néel vector. Files stay in your browser; the limit is 200 kB and 200 atoms.</p>
+    <p class="ax-err ah-err" hidden></p>
+    <div class="ah-out">
+      <p class="ax-big ah-big"></p>
+      <dl class="ax-facts ah-facts"></dl>
+      <canvas class="ax-fig ah-map" style="margin-top:10px"></canvas>
+      <h3>Other moment directions</h3>
+      <div class="ax-scroll"><table class="ah-dtab"></table></div>
+      <h3>Magnetic symmetry for this direction</h3>
+      <div class="ax-scroll"><table class="ah-otab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { EXAMPLES, parseCrystal, classify, latticeMatrix, type Crystal, type V3 } from '../../lib/sci/altermagnet';
+  import { prepare, hall, latticeDir, dirName, components, scanSphere, type HallResult, type Prepared } from '../../lib/sci/ahe';
+  import { num } from '../../lib/sci/num';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ahc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, dRows: string[][] = [], oRows: string[][] = [];
+  let cache: { key: string; pre: Prepared; kind: string; scan: { theta: number; phi: number; rank: number }[] } | null = null;
+
+  const KIND: Record<string, string> = {
+    'non-magnetic': 'non-magnetic', ferromagnet: 'ferromagnet', ferrimagnet: 'ferrimagnet', antiferromagnet: 'conventional antiferromagnet',
+    altermagnet: 'altermagnet', 'not compensated by symmetry': 'compensated ferrimagnet',
+  };
+  const hallText = (cell: Crystal['cell'], r: HallResult) => nb(r.rank === 0 ? 'none' : r.rank === 3 ? 'any direction' : r.rank === 2 ? `any direction in the plane of ${dirName(cell, r.basis[0])} and ${dirName(cell, r.basis[1])}` : `along ${dirName(cell, r.basis[0])}`);
+  const nb = (t: string) => t.replace(/\[[^\]]*\]/g, (m) => m.replace(/ /g, '\u00a0')); // keep [u v w] on one line
+  const fmt = (x: number) => (Number.isInteger(x) ? (x < 0 ? `−${-x}` : String(x)) : String(+x.toFixed(3)).replace('-', '−'));
+
+  /** Upper hemisphere of moment directions (stereographic, c up), dots sized by how many Hall directions remain. */
+  function mapFigure(cell: Crystal['cell'], scan: { theta: number; phi: number; rank: number }[], n: V3): Figure {
+    return { w: 340, h: 360, alt: 'Moment directions over the upper hemisphere, marked by whether a Hall effect is allowed', draw: (ctx, W, H, pal) => {
+      const R = Math.min(W - 40, H - 104) / 2, cx = W / 2, cy = 40 + R;
+      const P = (th: number, ph: number) => { const r = R * Math.tan(th / 2); return [cx + r * Math.cos(ph), cy - r * Math.sin(ph)]; };
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+      for (const s of scan) {
+        const [x, y] = P(s.theta, s.phi);
+        ctx.beginPath();
+        if (s.rank === 3) { ctx.arc(x, y, 1.1, 0, 2 * Math.PI); ctx.fillStyle = pal.muted; ctx.fill(); }
+        else if (s.rank === 0) { ctx.arc(x, y, 3.6, 0, 2 * Math.PI); ctx.fillStyle = pal.ink; ctx.fill(); }
+        else { ctx.arc(x, y, 2.6, 0, 2 * Math.PI); ctx.fillStyle = s.rank === 1 ? pal.accent : pal.bg; ctx.fill(); ctx.strokeStyle = s.rank === 1 ? pal.accent : pal.accent2; ctx.lineWidth = 1.2; ctx.stroke(); }
+      }
+      // Lattice axes a, b (and c at the centre).
+      ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const [lab, d] of [['a', [1, 0, 0]], ['b', [0, 1, 0]], ['c', [0, 0, 1]]] as [string, V3][]) {
+        const v = latticeDir(cell, d), th = Math.acos(Math.min(1, Math.abs(v[2]))), ph = Math.atan2(v[1] * Math.sign(v[2] || 1), v[0] * Math.sign(v[2] || 1));
+        const [x, y] = P(th, ph), out = th > 1.5 ? 14 : 0, [ox, oy] = out ? [cx + (R + out) * Math.cos(ph), cy - (R + out) * Math.sin(ph)] : [x + 9, y - 9];
+        ctx.fillStyle = pal.muted; ctx.fillText(lab, ox, oy);
+      }
+      // The chosen direction, folded into the upper hemisphere.
+      const s = n[2] < 0 ? -1 : 1, th = Math.acos(Math.min(1, Math.abs(n[2]))), ph = Math.atan2(s * n[1], s * n[0]), [x, y] = P(th, ph);
+      ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.strokeStyle = pal.red; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Moment directions seen down c (upper half)', 6, 4);
+      const ly = H - 46, items: [string, (x: number, y: number) => void][] = [
+        ['Hall allowed in any direction', (x, y) => { ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 2 * Math.PI); ctx.fillStyle = pal.muted; ctx.fill(); }],
+        ['Hall in one plane only', (x, y) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fillStyle = pal.bg; ctx.fill(); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.2; ctx.stroke(); }],
+        ['Hall along one direction only', (x, y) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fillStyle = pal.accent; ctx.fill(); }],
+        ['No Hall effect', (x, y) => { ctx.beginPath(); ctx.arc(x, y, 3.6, 0, 2 * Math.PI); ctx.fillStyle = pal.ink; ctx.fill(); }],
+      ];
+      ctx.textBaseline = 'middle'; ctx.font = '11px system-ui, sans-serif';
+      items.forEach(([t, mark], i) => { const x = 10 + (i % 2) * (W / 2), y = ly + Math.floor(i / 2) * 18; mark(x + 4, y); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(t, x + 14, y); });
+      ctx.beginPath(); ctx.arc(14, H - 9, 6, 0, 2 * Math.PI); ctx.strokeStyle = pal.red; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText('your direction', 26, H - 9);
+    } };
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.ah-err').textContent = m; q('.ah-err').hidden = !m; q('.ah-out').hidden = !!m; if (m) fig = null; };
+    const tol = num(q<HTMLInputElement>('.ah-tol').value);
+    if (!(tol > 0 && tol <= 0.5)) return err('The tolerance is above 0 and at most 0.5 Å.');
+    const { crystal, bad } = parseCrystal(q<HTMLTextAreaElement>('.ah-in').value);
+    if (bad.length) return err(`This line is not "cell a b c α β γ" or "element x y z spin": ${bad[0].slice(0, 60)}`);
+    if (!crystal) return err('Give a "cell" line and at least one atom.');
+    if (crystal.atoms.length > 200) return err('Up to 200 atoms, please.');
+    const A = latticeMatrix(crystal.cell);
+    if (!A.every((r) => r.every(Number.isFinite)) || A[2][2] < 1e-3) return err('Those cell angles do not make a real cell.');
+    const uvw = ['.ah-u', '.ah-v', '.ah-w'].map((c) => num(q<HTMLInputElement>(c).value)) as V3;
+    if (!uvw.every((x) => Number.isFinite(x) && Math.abs(x) <= 100)) return err('Give u, v and w as numbers (0 is fine), up to 100.');
+    if (uvw.every((x) => x === 0)) return err('u, v and w cannot all be 0: give a direction.');
+    const key = `${tol}|${q<HTMLTextAreaElement>('.ah-in').value}`;
+    if (!cache || cache.key !== key) { const pre = prepare(crystal, tol); cache = { key, pre, kind: classify(crystal, tol).kind, scan: scanSphere(pre, 24) }; }
+    const { pre, kind, scan } = cache, cell = crystal.cell, n = latticeDir(cell, uvw), r = hall(pre, n);
+    err('');
+    const dName = `[${uvw.map(fmt).join('\u00a0')}]`;
+    q('.ah-big').textContent = !r.magnetic ? 'No magnetic atoms: no anomalous Hall effect'
+      : r.rank === 0 ? `No anomalous Hall effect for moments along ${dName}`
+      : `Anomalous Hall effect allowed: Hall vector ${hallText(cell, r)}`;
+    const comps = components(r.basis), T = r.ops.filter((o) => o.T).length;
+    const facts = [
+      fact('Magnet type', KIND[kind] ?? kind, `net moment ${+r.net.toFixed(4)} per cell; ${kind === 'altermagnet' ? 'altermagnets can show a Hall effect with no net moment' : kind === 'antiferromagnet' ? 'a translation or inversion swaps the spins, which forbids the Hall effect for every direction' : 'from the spin pattern alone'}`),
+      fact('Hall vector σH', hallText(cell, r), 'σH = (σzy, σxz, σyx); the Hall current flows at right angles to both the field and σH'),
+      fact('Hall components that can be non-zero', comps.length ? comps.join(', ') : 'none', 'x along a, y in the ab plane, z perpendicular to it'),
+      fact('Magnetic symmetry', `${r.ops.length} operations, ${T} of them only with time reversal`, `counted per lattice translation; ${r.dropped} crystal operations are broken by the moment direction`),
+    ];
+    if (r.rank && kind !== 'ferromagnet' && kind !== 'ferrimagnet') facts.push(fact('Size', 'not given by symmetry', 'symmetry says whether a component may be non-zero, not how big it is; that needs a band-structure calculation'));
+    const ex = EXAMPLES.find((e) => e.id === q<HTMLSelectElement>('.ah-ex').value);
+    if (ex && q<HTMLTextAreaElement>('.ah-in').value.trim() === ex.text.trim()) facts.push(fact('About this example', ex.note, 'idealised structure written by fibub with rounded values'));
+    q('.ah-facts').replaceChildren(...facts);
+
+    const DIRS: V3[] = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, -1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+    dRows = DIRS.map((d) => { const h = hall(pre, latticeDir(cell, d)); return [`[${d.map(fmt).join('\u00a0')}]`, h.rank ? 'yes' : 'no', hallText(cell, h)]; });
+    const table = (sel: string, head: string[], rows: string[][]) => {
+      const tab = q<HTMLTableElement>(sel); tab.replaceChildren();
+      const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const bd = tab.createTBody(); for (const row of rows) { const tr = bd.insertRow(); row.forEach((c) => (tr.insertCell().textContent = c)); }
+    };
+    table('.ah-dtab', ['Moments along', 'Hall effect', 'Hall vector'], dRows);
+    oRows = [...r.ops].sort((a, b) => (b.name === 'identity' ? 1 : 0) - (a.name === 'identity' ? 1 : 0)).map((o, i) => [String(i + 1), o.name, o.T ? 'yes' : 'no']);
+    table('.ah-otab', ['#', 'Operation', 'With time reversal'], oRows);
+    fig = mapFigure(cell, scan, n);
+    paint(q<HTMLCanvasElement>('.ah-map'), fig);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  q('.ah-ex').addEventListener('change', () => { const e = EXAMPLES.find((x) => x.id === q<HTMLSelectElement>('.ah-ex').value); if (e) q<HTMLTextAreaElement>('.ah-in').value = e.text; calc(); });
+  q('.ah-in').addEventListener('input', later);
+  ['.ah-tol', '.ah-u', '.ah-v', '.ah-w'].forEach((c) => q(c).addEventListener('input', later));
+  q('.ah-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.ah-file').files?.[0]; if (!f) return;
+    if (f.size > 200_000) { q('.ah-err').textContent = 'That file is over 200 kB.'; q('.ah-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.ah-in').value = await f.text(); q<HTMLSelectElement>('.ah-ex').value = ''; calc();
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ah-map'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Anomalous Hall check', subtitle: q('.ah-big').textContent ?? '', file: 'anomalous-hall-check',
+    sections: !fig ? [] : [
+      { title: q('.ah-big').textContent!, facts: [...root.querySelectorAll('.ah-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Other moment directions', table: { head: ['Moments along', 'Hall effect', 'Hall vector'], rows: dRows, align: ['l', 'l', 'l'] as ('l' | 'r')[] } },
+      { title: 'Magnetic symmetry for this direction', table: { head: ['#', 'Operation', 'With time reversal'], rows: oRows, align: ['r', 'l', 'l'] as ('l' | 'r')[] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .ahc .ah-wide { grid-column: 1 / -1; }
+  .ahc .ah-lab { display: block; }
+  .ahc textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+  .ahc select { max-width: 100%; }
+  .ahc h3 { font-size: 15px; margin: 14px 0 6px; }
+  .ahc code { font-size: 13px; }
+  .ahc .ah-uvw { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ahc .ah-uvw input { width: 100%; }
+</style>

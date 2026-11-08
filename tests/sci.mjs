@@ -129,6 +129,7 @@ import * as FF from '../src/lib/sci/floodfreq.ts';
 import * as ET from '../src/lib/sci/et0.ts';
 import * as RC from '../src/lib/sci/rating.ts';
 import * as AMB from '../src/lib/sci/amband.ts';
+import * as AHE from '../src/lib/sci/ahe.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2573,5 +2574,31 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const seg = AMB.contour(circ, 64);
   check('amband: contour of a unit circle lies on the circle', seg.length > 20 && seg.every(([a, b, c, d]) => Math.abs(Math.hypot(a, b) - 1) < 0.01 && Math.abs(Math.hypot(c, d) - 1) < 0.01));
 }
+// #146 anomalous Hall checker: magnetic point group and allowed Hall vector, checked against spglib 2.8 magnetic symmetry
+{
+  const { EXAMPLES: EX, parseCrystal: PC } = ALT;
+  const cr = (id) => PC(EX.find((e) => e.id === id).text).crystal;
+  const run = (id, d, cart = false) => { const c = cr(id), r = AHE.hall(AHE.prepare(c), cart ? d : AHE.latticeDir(c.cell, d)); return { r, dirs: r.basis.map((b) => AHE.dirName(c.cell, b)).join(' ') }; };
+  const want = [
+    ['rutile', [0, 0, 1], 0, ''], ['rutile', [1, 0, 0], 1, '[0 1 0]'], ['rutile', [1, 1, 0], 1, '[1 1 0]'], ['rutile', [1, -1, 0], 1, '[1 −1 0]'],
+    ['rutile', [1, 2, 0], 2, '[1 0 0] [0 1 0]'], ['rutile', [1, 0, 1], 1, '[0 1 0]'],
+    ['nias', [0, 0, 1], 0, ''], ['nias', [1, 0, 0], 0, ''], ['nias', [1, 1, 0], 0, ''], ['nias', [1, -1, 0], 1, '[0 0 1]'], ['nias', [1, 2, 0], 1, '[0 0 1]'],
+    ['ferri', [0, 0, 1], 1, '[0 0 1]'], ['ferri', [1, 1, 0], 1, '[1 1 0]'],
+  ];
+  for (const [id, d, rank, dirs] of want) { const { r, dirs: got } = run(id, d); check(`ahe: ${id} n=[${d}] rank ${rank} ${dirs}`, r.rank === rank && got === dirs); }
+  for (const id of ['bcc', 'chain']) for (const d of [[0, 0, 1], [1, 0, 0], [1, 1, 0], [1, 2, 3]]) check(`ahe: ${id} n=[${d}] Hall forbidden`, run(id, d).r.rank === 0);
+  check('ahe: rutile generic direction allows all three', run('rutile', [0.3, 0.5, 0.8], true).r.rank === 3);
+  check('ahe: MnTe generic direction allows all three', run('nias', [0.3, 0.5, 0.8], true).r.rank === 3);
+  // P is a projector (P² = P) and its trace is the rank.
+  { const { r } = run('rutile', [1, 1, 0]); const P = r.P, P2 = P.map((row, i) => row.map((_, j) => P[i][0] * P[0][j] + P[i][1] * P[1][j] + P[i][2] * P[2][j]));
+    check('ahe: P is a projector', P.every((row, i) => row.every((x, j) => Math.abs(x - P2[i][j]) < 1e-9)) && Math.abs(P[0][0] + P[1][1] + P[2][2] - r.rank) < 1e-9); }
+  // RuO2 n ∥ [001]: half the 16 operations need time reversal (magnetic point group 4′/mm′m).
+  { const { r } = run('rutile', [0, 0, 1]); check('ahe: rutile [001] has 16 ops, 8 with time reversal', r.ops.length === 16 && r.ops.filter((o) => o.T).length === 8); }
+  // Reversing n reverses no allowed direction set.
+  { const a = run('nias', [1, -1, 0]).dirs, b = run('nias', [-1, 1, 0]).dirs; check('ahe: −n gives the same allowed directions', a === b); }
+  check('ahe: components named', AHE.components([[0, 0, 1]]).join() === 'σxy (Hall vector along z)');
+  { const s = AHE.scanSphere(AHE.prepare(cr('rutile')), 12); check('ahe: sphere scan pole is forbidden, most directions allowed', s[0].rank === 0 && s.filter((x) => x.rank === 3).length > s.length / 2); }
+}
+
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
