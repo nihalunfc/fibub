@@ -21,7 +21,14 @@ fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the
 5. Science tools need a `section` (listed in `SECTIONS` in `src/site.ts`); each section belongs to a subject (`SUBJECTS`: physics, astronomy, chemistry, ... 16 in all, from the science ideas list). Subjects get their own page at `/science/<subject>/` once they have a live tool, so a tool id may never equal a subject id. The build fails on an unknown section, a science tool without one, or a tool id that clashes with a subject.
 6. **Cross-link related tools (nihal's hard rule):** list them in `related:` (tool ids). Links show both ways ("Works well with" and Related tools); the build fails on an unknown id.
 7. Tools that make a report use `src/lib/report.ts` (sections of facts, tables and canvas figures) and `components/Downloads.astro` for PNG, PDF and Word downloads.
-8. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+8. Translations (optional in the same PR): add the one-line summary to `tools.<id>` in each `src/i18n/<code>.json`, and the translated guide body to `src/i18n/guides/<code>/<id>.md` with frontmatter `source: <the English updated date>`. Without them the tool still appears in every language, with the English summary and guide and a "not in your language yet" note, and that language's tool page is `noindex` and left out of the sitemap until its guide exists.
+9. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+
+## Languages
+- Kept translations, not machine translation in the browser (nihal, 2026-11-08): each language has its own pages at `/<code>/...`; English stays at the plain address. A language goes live once `src/i18n/<code>.json` exists; the list of 29 candidates is `src/i18n/langs.ts`. Each language arrives in its own PR (Malayalam first).
+- What is translated: site text (`src/i18n/en.ts` lists every string and the rules for translators), shelf, subject and section names, tool summaries and tool guides. Tool names, tool titles and buttons stay in English, and the tool UI is wrapped in `lang="en"`. Translate the meaning the way a native speaker says it, not word for word.
+- The build fails on a typo'd key, a `{word}` the English text does not have, a dropped `[link](home)`, or an unknown shelf, subject, section or tool id in a language file.
+- When an English guide changes, its `updated:` date moves past the translation's `source:` date; refresh the translation then.
 
 ## Site rules
 - **No tool lives on both sites** (nihal, 2026-11-07). Everyday public tools go on fibub; ambitious career prototypes go on nihalsulaiman.com. Link between them only where useful. nihal's name appears only on the About page; the footer says "Developer" and links to the portfolio.

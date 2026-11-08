@@ -1392,6 +1392,24 @@ try {
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(rows === 1 && sw <= 320, `${path} step picture: one row at 320 px (rows ${rows}, scrollWidth ${sw})`);
   }
+  // Languages: Malayalam pages, the language menu, and English tool UI inside translated pages.
+  await phone.setViewportSize({ width: 375, height: 700 });
+  await phone.goto(BASE + '/ml/');
+  check((await phone.getAttribute('html', 'lang')) === 'ml', 'ml: home page has lang="ml"');
+  check((await phone.locator('link[rel=alternate][hreflang=en]').count()) === 1 && (await phone.locator('link[rel=alternate][hreflang=x-default]').count()) === 1, 'ml: home page links its English version (hreflang)');
+  await phone.click('.lang-dd > summary');
+  const langBox = await phone.locator('.lang-panel').boundingBox();
+  check(langBox && langBox.x >= 0 && langBox.x + langBox.width <= 375, `ml: language menu fits a 375 px phone (${langBox && Math.round(langBox.x)}..${langBox && Math.round(langBox.x + langBox.width)})`);
+  await phone.goto(BASE + '/ml/money/loan-payoff-planner/');
+  check(await phone.isVisible('.tool-en[lang=en]'), 'ml: tool controls stay in English (lang="en")');
+  check((await phone.locator('meta[name=robots][content*=noindex]').count()) === 0, 'ml: a tool with a Malayalam guide is indexed');
+  check(/ലോൺ|പലിശ/.test(await phone.textContent('main')), 'ml: the tool guide is in Malayalam');
+  check((await phone.evaluate(() => document.documentElement.scrollWidth)) <= 375, 'ml: no sideways scroll at 375 px on a tool page');
+  await phone.click('.lang-dd > summary');
+  await Promise.all([phone.waitForURL(BASE + '/money/loan-payoff-planner/'), phone.click('.lang-dd a[hreflang=en]')]);
+  check(true, 'ml: the language menu switches to the same tool in English');
+  await phone.goto(BASE + '/ml/science/');
+  check((await phone.locator('main a[href^="/science/"]').count()) === 0, 'ml: links on a Malayalam page stay in Malayalam');
   await phone.setViewportSize({ width: 390, height: 664 });
   await phone.goto(BASE + '/documents/compress-file/');
   await phone.setInputFiles('.cmp-input', OUT + 'report.docx');
