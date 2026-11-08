@@ -106,6 +106,7 @@ import * as VL from '../src/lib/sci/vle.ts';
 import * as GC from '../src/lib/sci/geochron.ts';
 import * as DL from '../src/lib/sci/delta.ts';
 import * as MX from '../src/lib/sci/mixing.ts';
+import * as TER from '../src/lib/sci/ternary.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1826,5 +1827,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('mixing: δ names', MX.looksDelta('d18O') && MX.looksDelta('δ13C') && MX.looksDelta('delta2H') && !MX.looksDelta('Cl') && !MX.looksDelta('DOC'));
 }
 
+{
+  // Ternary and spider diagrams.
+  const c = TER.closure(2, 3, 5);
+  near('ternary: closure', c[1], 0.3, 1e-12);
+  check('ternary: closure rejects negatives and zeros', TER.closure(1, -1, 2) === null && TER.closure(0, 0, 0) === null);
+  const [ax, ay] = TER.toXY(1, 0, 0), [bx, by] = TER.toXY(0, 1, 0), [cx, cy] = TER.toXY(0, 0, 1);
+  check('ternary: corners', ax === 0.5 && Math.abs(ay - Math.sqrt(3) / 2) < 1e-12 && bx === 0 && by === 0 && cx === 1 && cy === 0);
+  const [mx, my] = TER.toXY(1, 1, 1);
+  near('ternary: centroid x', mx, 0.5, 1e-12); near('ternary: centroid y', my, Math.sqrt(3) / 6, 1e-12);
+  const back = TER.fromXY(...TER.toXY(0.2, 0.5, 0.3));
+  near('ternary: round trip a', back[0], 0.2, 1e-12); near('ternary: round trip b', back[1], 0.5, 1e-12); near('ternary: round trip c', back[2], 0.3, 1e-12);
+  const ce = TER.centres([[0.5, 0.25, 0.25], [0.5, 0.25, 0.25]]);
+  near('ternary: centre of identical rows', ce.geometric[0], 0.5, 1e-12);
+  const g2 = TER.centres([[0.8, 0.1, 0.1], [0.2, 0.4, 0.4]]).geometric, gm = [0.4, 0.2, 0.2], sg = 0.8;
+  near('ternary: geometric centre closed', g2[0], gm[0] / sg, 1e-12);
+  check('ternary: centre skips rows with zeros', TER.centres([[1, 0, 0]]).geometric === null);
+  const n = TER.normalise([10, 0, 6], [2, 1, 0]);
+  check('spider: normalise', n[0] === 5 && Number.isNaN(n[1]) && Number.isNaN(n[2]));
+  near('spider: Eu anomaly', TER.anomaly(10, 25, 16), 0.5, 1e-12);
+  check('spider: Eu anomaly missing value', Number.isNaN(TER.anomaly(1, 0, 2)));
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
