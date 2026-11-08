@@ -1,5 +1,14 @@
 [
  {
+  "sha": "d34a5bbf4e8c",
+  "date": "2026-11-08T11:28:33+00:00",
+  "title": "Add the battery cycling data analyser (#104)",
+  "tools": [
+   "battery-cycling-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "a370033e11f4",
   "date": "2026-11-08T11:16:52+00:00",
   "title": "Add the DSC and TGA curve analyser (#103)",
