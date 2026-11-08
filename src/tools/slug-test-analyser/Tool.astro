@@ -1,0 +1,113 @@
+---
+// Slug test analysis: basic time lag from the head recovery, then K by Hvorslev and Bouwer-Rice. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: 50 mm casing, 100 mm borehole, 1.5 m screen, K = 1e-5 m/s, with small errors added.
+const demo = 'time\tdisplacement\n0\t0.5\n5\t0.472\n10\t0.429\n15\t0.405\n20\t0.382\n30\t0.323\n40\t0.284\n50\t0.25\n60\t0.212\n80\t0.162\n100\t0.123\n120\t0.091\n150\t0.06\n180\t0.04\n240\t0.017\n300\t0.007';
+---
+<div class="ax slg">
+  <div class="ax-card">
+    <h2>Well and readings</h2>
+    <div class="ax-grid">
+      <label>Lengths in <select class="sl-lu"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+      <label>Times in <select class="sl-tu"><option value="s" selected>seconds</option><option value="min">minutes</option><option value="h">hours</option></select></label>
+      <label>Casing radius rc (where the water level moves) <input class="sl-rc" type="text" inputmode="decimal" value="0.025" /></label>
+      <label>Screen or borehole radius R <input class="sl-R" type="text" inputmode="decimal" value="0.05" /></label>
+      <label>Screen length Le <input class="sl-le" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Filter pack porosity (only if the level falls within the screen) <input class="sl-n" type="text" inputmode="decimal" value="" placeholder="e.g. 0.3" /></label>
+      <label>Bouwer-Rice ln(Re/R) (optional) <input class="sl-lnre" type="text" inputmode="decimal" value="" placeholder="from your reference" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Second column holds <select class="sl-kind"><option value="disp" selected>displacement from the static level</option><option value="depth">depth to water</option><option value="elev">water level (height)</option></select></label>
+      <label>Static level (for depth or height) <input class="sl-static" type="text" inputmode="decimal" value="" /></label>
+      <label>Starting displacement H0 (blank: first reading) <input class="sl-h0" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <label style="margin-top:10px">Time since the slug went in or out, then the reading <textarea class="sl-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".sl-data" maxCols={4} maxRows={20000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Fit readings with H/H0 from <input class="sl-lo" type="text" inputmode="decimal" value="0.1" /></label>
+      <label>to <input class="sl-hi" type="text" inputmode="decimal" value="0.9" /></label>
+    </div>
+    <p class="ax-help">Rising-head and falling-head tests both work. Narrow the fit window to skip an early curved part (often the filter pack draining) or a noisy tail. The example data are made up.</p>
+    <p class="ax-err sl-err" hidden></p>
+  </div>
+
+  <div class="ax-card sl-out">
+    <h2>Hydraulic conductivity</h2>
+    <p class="ax-big sl-big"></p>
+    <dl class="ax-facts sl-facts"></dl>
+    <canvas class="ax-fig sl-fig"></canvas>
+    <p class="ax-help">A slug test only samples the ground close to the screen, so expect K to differ from a pumping test. Results within a factor of about two between methods are normal.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitRecovery, hvorslev, bouwerRice, rcEffective } from '../../lib/sci/slug';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, sup } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.slg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const T_SI: Record<string, number> = { s: 1, min: 60, h: 3600 };
+  const sci = (x: number) => { let e = Math.floor(Math.log10(x)), m = x / 10 ** e; if (+m.toFixed(1) >= 10) { m /= 10; e += 1; } return `${m.toFixed(1)} × 10${sup(e)}`; };
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function calc() {
+    const err = q('.sl-err'), out = q('.sl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const ft = sel('.sl-lu') === 'ft', L = ft ? 0.3048 : 1, Lu = ft ? 'ft' : 'm', ts = T_SI[sel('.sl-tu')], tu = sel('.sl-tu');
+    const rc0 = val('.sl-rc') * L, R = val('.sl-R') * L, Le = val('.sl-le') * L, n = val('.sl-n'), lnRe = val('.sl-lnre');
+    if (!(rc0 > 0 && R > 0 && Le > 0)) return fail('Enter the casing radius, the screen radius and the screen length, all above zero.');
+    if (Number.isFinite(n) && !(n > 0 && n < 1)) return fail('Filter pack porosity must be between 0 and 1, or blank.');
+    const rc = Number.isFinite(n) ? rcEffective(rc0, R, n) : rc0;
+    const tab = numericColumns(q<HTMLTextAreaElement>('.sl-data').value);
+    if (tab.cols.length < 2) return fail('Paste two columns: time and the reading.');
+    const kind = sel('.sl-kind'), st = val('.sl-static');
+    if (kind !== 'disp' && !Number.isFinite(st)) return fail('Enter the static level to turn depths or heights into displacements.');
+    const t: number[] = [], h: number[] = [];
+    tab.cols[0].forEach((tv, i) => { const v = tab.cols[1][i]; if (!Number.isFinite(tv) || !Number.isFinite(v)) return; t.push(tv * ts); h.push((kind === 'disp' ? v : kind === 'depth' ? v - st : v - st) * L); });
+    const order = t.map((_, i) => i).sort((a, b) => t[a] - t[b]), T = order.map((i) => t[i]), H = order.map((i) => h[i]);
+    const h0in = val('.sl-h0') * L, lo = val('.sl-lo'), hi = val('.sl-hi');
+    if (!(lo >= 0 && hi > lo && hi <= 1.5)) return fail('The fit window needs 0 ≤ from < to, for example 0.1 to 0.9.');
+    let f: ReturnType<typeof fitRecovery>;
+    try { f = fitRecovery(T, H, { h0: Number.isFinite(h0in) ? h0in : undefined, lo, hi }); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const K = hvorslev(rc, R, Le, f.T0), perDay = (k: number) => `${sig((k * 86400) / L, 3)} ${Lu}/day`;
+    q('.sl-big').textContent = `K = ${sci(K)} m/s (${perDay(K)}), Hvorslev`;
+    const ratio = Le / R, fs = [
+      fact('Basic time lag T0', `${sig(f.T0 / ts, 3)} ${tu}`, `time for H/H0 to fall to 0.37 on the fitted line; ${f.n} readings in the window, r² ${f.r2.toFixed(4)}`),
+      fact('Hvorslev', `K = rc² ln(Le/R) ÷ (2 Le T0) = ${sci(K)} m/s`, ratio > 8 ? `Le/R = ${sig(ratio, 3)}, above 8 as the formula needs` : `Le/R = ${sig(ratio, 3)} is below 8, so this form of the formula is only rough`),
+    ];
+    if (lnRe > 0) { const Kb = bouwerRice(rc, lnRe, Le, f.T0); fs.push(fact('Bouwer-Rice', `K = ${sci(Kb)} m/s (${perDay(Kb)})`, `with ln(Re/R) = ${lnRe}; Re/R comes from the well and aquifer geometry, using the charts or equations in your reference`)); }
+    else fs.push(fact('Bouwer-Rice', 'enter ln(Re/R) to use it', 'K has the same form as Hvorslev with ln(Re/R) in place of ln(Le/R)'));
+    if (Number.isFinite(n)) fs.push(fact('Effective casing radius', `${sig(rc / L, 3)} ${Lu}`, 'rc² = (1 − n) rc² + n R², because the level moves within the filter pack'));
+    fs.push(fact('In other units', `${sig(K * 100, 3)} cm/s, ${perDay(K)}`));
+    if (Math.abs(f.a) > 0.15) fs.push(fact('Check', `the fitted line starts at H/H0 = ${Math.exp(f.a).toFixed(2)}, not 1`, 'an early fast drop is common when the filter pack drains; fit the straight part only'));
+    if (f.oscillates) fs.push(fact('Warning', 'the head swings past the static level', 'an oscillating response means very permeable ground; these methods do not apply'));
+    q('.sl-facts').replaceChildren(...fs);
+    const tl = T.map((v) => (v - f.tStart) / ts), pos = f.ratio.map((r) => r > 0);
+    const xu = tl.filter((_, i) => f.used[i]), xe = Math.max(...tl);
+    fig = chartFigure({ w: 380, h: 280, yLog: true, xLabel: `Time (${tu})`, yLabel: 'H / H0', legend: 'below', marks: [{ kind: 'hline', at: Math.exp(-1), dash: [2, 3], label: '0.37' }],
+      series: [{ name: 'Readings', x: tl.filter((_, i) => pos[i]), y: f.ratio.filter((r) => r > 0), mode: 'points', marker: 'open-circle', size: 3.5 },
+        { name: 'In the fit', x: xu, y: f.ratio.filter((_, i) => f.used[i]), mode: 'points', size: 3.5 },
+        { name: 'Fitted line', x: [0, xe], y: [0, xe * ts].map((x) => Math.exp(f.a + f.b * x)), mode: 'line', width: 1.6, dash: [6, 3] }] }, 'Normalised head against time on a log scale, with the fitted line');
+    paint(q<HTMLCanvasElement>('.sl-fig'), fig);
+    report = [{ title: q('.sl-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.sl-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Slug test', subtitle: q('.sl-big').textContent ?? '', file: 'slug-test', sections: report }));
+</script>
+
+<style is:global>
+  .slg select, .slg input { max-width: 100%; }
+  .slg textarea { width: 100%; }
+</style>

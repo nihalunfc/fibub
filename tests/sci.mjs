@@ -109,6 +109,7 @@ import * as MX from '../src/lib/sci/mixing.ts';
 import * as TER from '../src/lib/sci/ternary.ts';
 import * as PIP from '../src/lib/sci/piper.ts';
 import * as PT from '../src/lib/sci/pumptest.ts';
+import * as SLG from '../src/lib/sci/slug.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1904,6 +1905,19 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const rs = [5, 10, 20, 40], sd = rs.map((ri) => (2.303 * Q / (2 * Math.PI * T)) * Math.log10(Math.sqrt(2.25 * T * 6e4 / S) / ri));
   const dd = PT.distanceDrawdown(rs, sd, 6e4, Q);
   near('pump test: distance-drawdown T', dd.T / T, 1, 1e-9); near('pump test: distance-drawdown S', dd.S / S, 1, 1e-9);
+}
+{
+  // Slug tests: exact exponential recovery gives T0 back, and Hvorslev K by hand.
+  const T0 = 70, t = [0, 10, 20, 40, 80, 160], h = t.map((x) => -0.4 * Math.exp(-x / T0));
+  const f = SLG.fitRecovery(t, h, { lo: 0.01, hi: 1 });
+  near('slug: basic time lag', f.T0, 70, 1e-9); near('slug: line through H/H0 = 1', f.a, 0, 1e-12);
+  check('slug: rising head (negative displacement) handled', f.n === 6 && !f.oscillates);
+  const g = SLG.fitRecovery(t, h, { lo: 0.2, hi: 0.9 });
+  check('slug: fit window', g.n === 4 && !g.used[0] && g.used[1]);
+  check('slug: oscillation flagged', SLG.fitRecovery([0, 1, 2, 3], [1, 0.5, -0.2, 0.1], { lo: 0.05 }).oscillates);
+  near('slug: Hvorslev', SLG.hvorslev(0.025, 0.05, 1.5, 70), 0.025 ** 2 * Math.log(30) / (2 * 1.5 * 70), 1e-18);
+  near('slug: Bouwer-Rice equals Hvorslev when ln(Re/R) = ln(Le/R)', SLG.bouwerRice(0.025, Math.log(30), 1.5, 70), SLG.hvorslev(0.025, 0.05, 1.5, 70), 1e-18);
+  near('slug: effective casing radius', SLG.rcEffective(0.025, 0.05, 0.3), Math.sqrt(0.7 * 0.025 ** 2 + 0.3 * 0.05 ** 2), 1e-15);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
