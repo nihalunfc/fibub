@@ -121,6 +121,7 @@ import * as TIF from '../src/lib/sci/tiff.ts';
 import * as SPX from '../src/lib/sci/spectral.ts';
 import * as SND from '../src/lib/sci/sounding.ts';
 import * as KOP from '../src/lib/sci/koppen.ts';
+import * as TRD from '../src/lib/sci/trend.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2271,6 +2272,58 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const wide = KOP.parseMonthly(rows('Precipitation (mm),' + med[1].join(',') + '\nTemperature,' + med[0].join(',')), n);
   check('koppen: parse two labelled rows of 12', wide.P?.[0] === 80 && wide.T?.[0] === 10);
   check('koppen: too few months explained', /only 3 months/.test(KOP.parseMonthly(rows('1,2,3\n4,5,6\n7,8,9'), n).error));
+}
+
+// Trend (#138): Mann-Kendall, Hamed-Rao, seasonal MK and Sen slope against pyMannKendall 1.4.3 (MIT) on made-up series; Pettitt by brute force.
+{
+  const x = [14.0, 14.02, 14.12, 14.02, 13.78, 13.77, 13.61, 13.83, 14.36, 14.13, 13.96, 14.2, 14.31, 14.3, 14.0, 14.09, 14.37, 13.93, 13.94, 13.51, 13.45, 13.25, 13.62, 13.54, 13.96, 14.18, 14.22, 13.55, 13.74, 14.01, 14.23, 13.87, 13.98, 13.9, 13.91, 14.48, 14.27, 14.39, 14.73, 14.51, 14.52, 14.6, 14.64, 14.28, 14.47, 14.97, 14.4, 14.79, 14.81, 14.59];
+  const m = TRD.mannKendall(x);
+  check('trend: S = 480', m.S === 480);
+  near('trend: Var(S) with ties (pyMK 14288.667)', m.varS, 14288.666666666666, 1e-9);
+  near('trend: Z (pyMK 4.007187)', m.Z, 4.00718747245112, 1e-9);
+  near('trend: p (pyMK 6.14461e-5)', m.p, 6.144608917701966e-5, 1e-10);
+  near('trend: tau (pyMK 0.391837)', m.tau, 0.39183673469387753, 1e-12);
+  const t = x.map((_, i) => i), ss = TRD.senSlope(t, x);
+  near('trend: Sen slope (pyMK 0.0152381)', ss.slope, 0.015238095238095252, 1e-12);
+  near('trend: Conover intercept (pyMK 13.731667)', ss.intercept, 13.731666666666667, 1e-9);
+  const ci = TRD.senCI(ss.slopes, m.varS);
+  check('trend: Sen CI brackets the slope', ci.lo < ss.slope && ci.hi > ss.slope && Math.abs(ci.lo - 0.0086957) < 1e-6 && Math.abs(ci.hi - 0.0222771) < 1e-6);
+  const h = TRD.hamedRao(x);
+  near('trend: Hamed-Rao Var(S) all lags (pyMK 35298.284)', h.varS, 35298.283998397, 1e-6);
+  near('trend: Hamed-Rao p (pyMK 0.0107871)', h.p, 0.010787079015057266, 1e-7);
+  const h3 = TRD.hamedRao(x, 0.05, 3);
+  near('trend: Hamed-Rao Var(S) 3 lags (pyMK 46826.823)', h3.varS, 46826.82320034314, 1e-6);
+  near('trend: Hamed-Rao p 3 lags (pyMK 0.0268602)', h3.p, 0.02686016098085986, 1e-7);
+  // Without ties: Var(S) = n(n−1)(2n+5)/18; a perfectly rising series has tau = 1.
+  const up = TRD.mannKendall([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  check('trend: monotone series', up.S === 45 && up.varS === 125 && up.tau === 1);
+  near('trend: Z with continuity correction', up.Z, 44 / Math.sqrt(125), 1e-12);
+  check('trend: tie groups', TRD.mkScore([1, 1, 2, 2, 2, 3]).tiedGroups === 2 && TRD.mkScore([1, 1, 2, 2, 2, 3]).varS === (6 * 5 * 17 - 2 * 1 * 9 - 3 * 2 * 11) / 18);
+  check('trend: ranks with ties', TRD.ranks([3, 1, 3, 2]).join() === '3.5,1,3.5,2');
+  // Seasonal MK on made-up monthly data (10 years).
+  const M = [5.0, 10.3, 13.26, 15.23, 13.75, 9.65, 5.38, -0.15, -3.83, -4.62, -4.0, 0.07, 5.3, 9.65, 13.99, 15.07, 13.4, 10.44, 4.84, -0.06, -3.25, -5.32, -3.48, 0.24, 4.71, 10.43, 13.72, 14.83, 14.16, 9.83, 5.05, 0.43, -3.95, -4.71, -3.43, -0.27, 5.51, 10.04, 13.6, 15.54, 13.5, 10.17, 5.43, -0.25, -3.26, -4.78, -3.85, 0.53, 5.03, 10.05, 14.24, 14.85, 13.95, 10.43, 4.8, 0.5, -3.46, -5.1, -3.06, -0.03, 5.16, 10.6, 13.53, 15.4, 14.09, 9.86, 5.59, 0.19, -3.66, -4.35, -3.69, 0.22, 5.61, 9.91, 14.17, 15.41, 13.6, 10.67, 5.17, 0.1, -2.97, -5.02, -3.32, 0.57, 4.95, 10.61, 14.06, 15.02, 14.4, 10.16, 5.21, 0.72, -3.67, -4.54, -3.09, -0.04, 5.71, 10.38, 13.77, 15.8, 13.81, 10.33, 5.74, 0.02, -3.09, -4.44, -3.64, 0.75, 5.36, 10.22, 14.51, 15.15, 14.11, 10.75, 5.05, 0.68, -3.12, -4.9, -2.83, 0.3];
+  const g = Array.from({ length: 12 }, () => ({ t: [], x: [] }));
+  M.forEach((v, i) => { g[i % 12].t.push(Math.floor(i / 12)); g[i % 12].x.push(v); });
+  const sm = TRD.seasonalMK(g);
+  check('trend: seasonal S and Var(S) (pyMK 163, 1499)', sm.S === 163 && sm.varS === 1499);
+  near('trend: seasonal p (pyMK 2.86151e-5)', sm.p, 2.8615069253445924e-5, 1e-10);
+  near('trend: seasonal tau (pyMK 0.301852)', sm.tau, 0.30185185185185187, 1e-12);
+  near('trend: seasonal Sen slope (pyMK 0.05)', sm.slope, 0.05, 1e-12);
+  // Pettitt: brute-force U_t = Σ_{i≤t} Σ_{j>t} sign(x_i − x_j) gives K = 509 after index 34.
+  const pt = TRD.pettitt(x);
+  check('trend: Pettitt K and position', pt.K === 509 && pt.at === 34);
+  near('trend: Pettitt p', pt.p, 1.014124406710227e-5, 1e-12);
+  const step = TRD.pettitt([1, 1, 1, 1, 1, 5, 5, 5, 5, 5]);
+  check('trend: Pettitt finds a clean step', step.at === 4 && step.K === 25);
+  const an = TRD.anomalies([2000, 2001, 2002, 2003], [1, 2, 3, 10], 2000, 2002);
+  check('trend: anomalies from a baseline', an.mean === 2 && an.count === 3 && an.a.join() === '-1,0,1,8');
+  // Parser: header, dates with months, unsorted rows, a missing value, single column.
+  const rows = (s) => s.split('\n').map((l) => l.split(/\t|,/));
+  const n = (s) => (s === undefined || s.trim() === '' ? NaN : Number(s));
+  const p1 = TRD.parseSeries(rows('date,value\n2020-03,5\n2020-01,3\n2020-02,\n2020-04-16,6'), n);
+  check('trend: parse dates, sort, skip blanks', p1.kind === 'dates' && p1.x.join() === '3,5,6' && p1.month.join() === '1,3,4' && p1.skipped === 1 && Math.abs(p1.t[2] - (2020 + 3 / 12 + 15 / 365.25)) < 1e-9);
+  const p2 = TRD.parseSeries(rows('4\n5\nx\n7'), n);
+  check('trend: parse a single column', p2.kind === 'values' && p2.t.join() === '1,2,3' && p2.x.join() === '4,5,7');
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
