@@ -99,6 +99,7 @@ import * as BUF from '../src/lib/sci/buffer.ts';
 import * as BND from '../src/lib/sci/binding.ts';
 import * as CEN from '../src/lib/sci/centrifuge.ts';
 import * as AQ from '../src/lib/sci/aqi.ts';
+import * as ALT from '../src/lib/sci/altermagnet.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1581,6 +1582,33 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('AQHI 4, moderate', a.value === 4 && a.cat === 1);
   check('AQHI+ wins in smoke', AQ.aqhi(20, 30, 10, 85).value === 9 && AQ.aqhiPlus(0) === 1 && AQ.aqhiPlus(10.1) === 2);
   check('AQHI bands', AQ.aqhiCat(3) === 0 && AQ.aqhiCat(6) === 1 && AQ.aqhiCat(10) === 2 && AQ.aqhiCat(11) === 3 && AQ.aqhiText(11) === '10+');
+}
+{
+  // Altermagnets: textbook verdicts for idealised structures, the swapping operation and the d/g-wave forms.
+  const run = (id) => ALT.classify(ALT.parseCrystal(ALT.EXAMPLES.find((e) => e.id === id).text).crystal);
+  const ru = run('rutile');
+  check('rutile: d-wave altermagnet, Δ ∝ kx·ky', ru.kind === 'altermagnet' && ru.wave === 'd' && ru.form === 'kxky');
+  check('rutile: swapped by the 4₂ screw', /^4-fold screw .*\[0 0 1\] with translation \(1\/2, 1\/2, 1\/2\)/.test(ru.byOp.name) && ru.keep.length === 8 && ru.swap.length === 8);
+  const mt = run('nias');
+  check('MnTe: g-wave altermagnet via the 6₃ screw', mt.kind === 'altermagnet' && mt.wave === 'g' && /^6-fold screw .*\[0 0 1\] with translation \(0, 0, 1\/2\)/.test(mt.byOp.name));
+  check('MnTe form: ky·kz·(3kx² − ky²)/3', mt.form === 'kx²kykz − (1/3)ky³kz');
+  check('g-wave form odd under the swap, even under keepers', mt.swap.every((o) => [[0.3, 0.5, 0.8], [0.9, -0.2, 0.4]].every((k) => Math.abs(mt.formFn([o.R[0][0] * k[0] + o.R[0][1] * k[1] + o.R[0][2] * k[2], o.R[1][0] * k[0] + o.R[1][1] * k[1] + o.R[1][2] * k[2], o.R[2][0] * k[0] + o.R[2][1] * k[1] + o.R[2][2] * k[2]]) + mt.formFn(k)) < 1e-9)));
+  check('CrSb also g-wave', run('crsb').wave === 'g');
+  const bcc = run('bcc'); check('bcc checkerboard: antiferromagnet by translation', bcc.kind === 'antiferromagnet' && /^translation/.test(bcc.byOp.name));
+  const ch = run('chain'); check('chain: antiferromagnet by inversion (PT)', ch.kind === 'antiferromagnet' && ch.byOp.name === 'inversion');
+  check('unequal moments: ferrimagnet', run('ferri').kind === 'ferrimagnet');
+  const fm = ALT.classify(ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 0 0 0 up\nFe 1/2 1/2 1/2 up').crystal);
+  check('all up: ferromagnet', fm.kind === 'ferromagnet');
+  const cf = ALT.classify(ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 0 0 0 up\nFe 0.5 0.5 0.3 down\nO 0 0 0.5').crystal);
+  check('cancelling but unrelated sites: compensated ferrimagnet', cf.kind === 'not compensated by symmetry');
+  // Square-lattice Néel order with ligands that make the two sites differ by a 90° rotation: the 2D d-wave toy model.
+  const sq = ALT.classify(ALT.parseCrystal('cell 4 4 6 90 90 90\nMn 0 0 0 up\nMn 1/2 1/2 0 down\nO 0.2 0 0\nO 0.8 0 0\nO 1/2 0.7 0\nO 1/2 0.3 0').crystal);
+  check('square Néel with rotated ligands: d-wave altermagnet, kx² − ky²', sq.kind === 'altermagnet' && sq.wave === 'd' && /kx² − ky²|−kx² \+ ky²/.test(sq.form));
+  // Small coordinate noise is tolerated.
+  const noisy = ALT.classify(ALT.parseCrystal('cell 4.5 4.5 3.1 90 90 90\nRu 0.002 0 0 up\nRu 0.5 0.501 0.5 down\nO 0.301 0.3 0\nO 0.7 0.699 0\nO 0.8 0.2 0.5\nO 0.2 0.801 0.5').crystal, 0.1);
+  check('rutile with 0.01 Å noise still d-wave', noisy.kind === 'altermagnet' && noisy.wave === 'd');
+  const pc = ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 1/3 -0.25 1.5 2.5\nnonsense line');
+  check('parser: fractions, wrapping, moments, bad lines', pc.crystal.atoms[0].f[0] === 1 / 3 && pc.crystal.atoms[0].f[1] === 0.75 && pc.crystal.atoms[0].f[2] === 0.5 && pc.crystal.atoms[0].m === 2.5 && pc.bad.length === 1);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
