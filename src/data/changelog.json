@@ -1,5 +1,14 @@
 [
  {
+  "sha": "dda6567b4fa8",
+  "date": "2026-11-08T16:55:54+00:00",
+  "title": "Add the altermagnet checker (#117)",
+  "tools": [
+   "altermagnet-checker"
+  ],
+  "site": false
+ },
+ {
   "sha": "6e90f4829b7e",
   "date": "2026-11-08T16:45:51+00:00",
   "title": "Add the air quality calculator: ppm ↔ µg/m³, US AQI, India AQI, Canada AQHI (#116)",
