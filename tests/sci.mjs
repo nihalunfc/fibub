@@ -103,6 +103,7 @@ import * as ALT from '../src/lib/sci/altermagnet.ts';
 import * as PL from '../src/lib/sci/plume.ts';
 import * as MT from '../src/lib/sci/mccabe.ts';
 import * as VL from '../src/lib/sci/vle.ts';
+import * as GC from '../src/lib/sci/geochron.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1723,6 +1724,49 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('vle: water at 70 kPa boils near 90 °C', VL.tsat(VL.EXAMPLES[0], 70), 90.03, 0.05);
   const c = VL.txy(bz, tl, 101.325, 10);
   check('vle: Txy ends at the pure boiling points', Math.abs(c[0].t - VL.tsat(tl, 101.325)) < 1e-6 && Math.abs(c[10].t - VL.tsat(bz, 101.325)) < 1e-6);
+}
+
+{
+  // Radiometric ages. Pearson's data with York's weights: the standard test of a York fit (b = -0.4805, a = 5.4799).
+  const X = [0, 0.9, 1.8, 2.6, 3.3, 4.4, 5.2, 6.1, 6.5, 7.4], Y = [5.9, 5.4, 4.4, 4.6, 3.5, 3.7, 2.8, 2.8, 2.4, 1.5];
+  const WX = [1000, 1000, 500, 800, 200, 80, 60, 20, 1.8, 1], WY = [1, 1.8, 4, 8, 20, 20, 70, 70, 100, 500];
+  const yf = GC.york(X.map((x, i) => ({ x, sx: 1 / Math.sqrt(WX[i]), y: Y[i], sy: 1 / Math.sqrt(WY[i]) })));
+  near('geochron: York slope (Pearson-York data)', yf.b, -0.48053, 1e-4);
+  near('geochron: York intercept', yf.a, 5.47991, 1e-4);
+  near('geochron: York slope error', yf.sb, 0.0576, 0.0005);
+  // With tiny x errors York reduces to weighted least squares of y on x.
+  const pts = [[1, 2.1, 0.1], [2, 3.9, 0.2], [3, 6.2, 0.1], [4, 7.8, 0.3], [5, 10.1, 0.2]];
+  const w = pts.map((p) => 1 / p[2] ** 2), Sw = w.reduce((a, b) => a + b), Sx = w.reduce((a, v, i) => a + v * pts[i][0], 0), Sy = w.reduce((a, v, i) => a + v * pts[i][1], 0);
+  const Sxx = w.reduce((a, v, i) => a + v * pts[i][0] ** 2, 0), Sxy = w.reduce((a, v, i) => a + v * pts[i][0] * pts[i][1], 0), D = Sw * Sxx - Sx * Sx;
+  const yw = GC.york(pts.map((p) => ({ x: p[0], sx: 1e-9, y: p[1], sy: p[2] })));
+  near('geochron: York -> weighted LS slope', yw.b, (Sw * Sxy - Sx * Sy) / D, 1e-9);
+  near('geochron: York -> weighted LS slope error', yw.sb, Math.sqrt(Sw / D), 1e-9);
+  near('geochron: chi-square tail (3.84, 1 dof)', GC.chiSqUpper(3.841459, 1), 0.05, 1e-6);
+  near('geochron: chi-square tail (10, 10 dof)', GC.chiSqUpper(10, 10), 0.4404933, 1e-6);
+  // A perfect isochron returns its age and initial ratio.
+  const lam = 1.42e-11, b = GC.ratioForAge(1.25e9, lam);
+  const perfect = [0.5, 1.5, 3, 5, 8].map((x) => ({ x, sx: 0.005 * x, y: 0.7035 + b * x, sy: 2e-5 }));
+  const pf = GC.york(perfect), pa = GC.isochronAge(pf, lam);
+  near('geochron: perfect isochron age', pa.t, 1.25e9, 1); near('geochron: perfect isochron initial', pa.initial, 0.7035, 1e-12);
+  check('geochron: perfect isochron MSWD 0', pf.mswd < 1e-12);
+  // Simple ages and half-lives.
+  near('geochron: ratio age', GC.ageFromRatio(1, 1.55125e-10).t, Math.LN2 / 1.55125e-10, 1e-3);
+  near('geochron: U-238 half-life 4.468 Ga', Math.LN2 / GC.L238 / 1e9, 4.468, 0.001);
+  near('geochron: U-235 half-life 703.8 Ma', Math.LN2 / GC.L235 / 1e6, 703.8, 0.1);
+  near('geochron: K-40 half-life 1.25 Ga', Math.LN2 / GC.K40.lambda / 1e9, 1.250, 0.001);
+  const kr = GC.kArAge(GC.K40.lambdaE / GC.K40.lambda * Math.expm1(GC.K40.lambda * 1e8));
+  near('geochron: K-Ar round trip', kr.t, 1e8, 1e-3);
+  const J = GC.jFromStandard(28.2e6, 12);
+  near('geochron: Ar-Ar standard gives its own age', GC.arArAge(J, 12).t, 28.2e6, 1e-3);
+  // U-Pb: a point on concordia is concordant and all three ages agree.
+  const c = GC.concordia(2.0e9), u = GC.uPbAges(c[1], c[0]);
+  near('geochron: concordant 206/238', u.t68, 2e9, 1e-3); near('geochron: concordant 207/235', u.t75, 2e9, 1e-3); near('geochron: concordant 207/206', u.t76, 2e9, 1e-2);
+  near('geochron: concordance 100 %', u.concordance, 1, 1e-9);
+  // Lead loss: move towards the origin along a chord; the 207/206 age stays put.
+  const lost = GC.uPbAges(c[1] * 0.8, c[0] * 0.8);
+  near('geochron: lead loss keeps the 207/206 age', lost.t76, 2e9, 1e-2);
+  check('geochron: lead loss is discordant', lost.concordance < 0.9);
+  check('geochron: age units', GC.fmtAge(1.2504e9, 3.1e6) === '1250.4 ± 3.1 Ma' && GC.fmtAge(5000) === '5 ka');
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
