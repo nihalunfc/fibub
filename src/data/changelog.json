@@ -1,5 +1,14 @@
 [
  {
+  "sha": "1e3f9868bfc4",
+  "date": "2026-11-08T19:47:57+00:00",
+  "title": "Add the grade-tonnage and cut-off grade calculator (#130)",
+  "tools": [
+   "grade-tonnage-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "98de518bab00",
   "date": "2026-11-08T19:31:47+00:00",
   "title": "Add the well field drawdown and capture zone tool (#129)",
