@@ -1,5 +1,18 @@
 [
  {
+  "sha": "27e0223057c5",
+  "date": "2026-11-08T06:52:04+00:00",
+  "title": "Add hydrogen line analyser, planet data explorer, sunspot counter and image stacker (#73–#76)",
+  "tools": [
+   "hydrogen-line-analyser",
+   "image-stacker",
+   "planet-data-explorer",
+   "rotation-curve-fitter",
+   "sunspot-counter"
+  ],
+  "site": false
+ },
+ {
   "sha": "1a5ce9e71086",
   "date": "2026-11-08T06:25:58+00:00",
   "title": "Add rotation curve fitter, spectral line identifier, transit fitter and star FWHM checker (#69–#72)",
