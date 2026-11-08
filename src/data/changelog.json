@@ -1,5 +1,14 @@
 [
  {
+  "sha": "7ea3956baa62",
+  "date": "2026-11-08T09:59:42+00:00",
+  "title": "Add the electroplating and electrolysis calculator (#97)",
+  "tools": [
+   "electroplating-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "1e817b054d0a",
   "date": "2026-11-08T09:49:05+00:00",
   "title": "Add the Nernst and cell potential calculator (#96)",
