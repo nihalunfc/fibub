@@ -727,6 +727,7 @@ try {
     check(await page.evaluate(() => document.documentElement.classList.contains('red-mode')), 'theme: red light switch beside it on astronomy pages');
     await page.click('.red-btn'); await page.click('.theme-btn');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
+    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
     check(await page.isVisible('.dd-mega .dd-subj[aria-expanded=true]') && await page.isVisible('.dd-mega .dd-pane.on >> text=Sky tonight'), 'header: Science shows subjects, then the chosen subject\'s sections and tools');
     const over = await page.$$eval('.dd-mega .dd-item', (els) => els.some((e) => { const r = e.getBoundingClientRect(), p = e.closest('.dd-group').getBoundingClientRect(); return r.right > p.right + 1; }));
     check(!over, 'header: no tool name runs into the next column');
@@ -878,6 +879,7 @@ try {
     await page.goto(BASE + '/science/sky-tonight/');
     check((await page.getAttribute('.crumbs a[href="/science/astronomy/"]', 'href')) === '/science/astronomy/', 'tool page: breadcrumb links to its subject page');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
+    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
     check(await page.isVisible('.dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd-pane.on .dd-all')), 'header: each subject links to all its tools');
     const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
     check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
@@ -907,6 +909,105 @@ try {
     check(n > 0, `${path} shows offline/online labels (${n})`);
   }
 
+  // Science batch A: each tool against a published worked example, plus its downloads.
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/uncertainty-calculator/');
+    await page.waitForFunction(() => /±/.test(document.querySelector('.up-big')?.textContent ?? ''));
+    check(/g = 9\.81 ± 0\.14/.test(await page.textContent('.up-big')), `uncertainty: pendulum example gives ${await page.textContent('.up-big')}`);
+    check(/9\.6\d\d to 9\.9\d\d\. This agrees/.test(await page.textContent(".up-mc")), `uncertainty: Monte Carlo check agrees (${(await page.textContent('.up-mc')).slice(0, 80)})`);
+    await page.selectOption('.up-ex', '1');
+    await page.waitForFunction(() => /^R = /.test(document.querySelector('.up-big')?.textContent ?? ''));
+    check(/R = 25\.00 ± 0\.16/.test(await page.textContent('.up-big')), `uncertainty: Ohm's law example ${await page.textContent('.up-big')}`);
+    await page.fill('.up-f', 'R = V / (I');
+    await page.waitForSelector('.up-ferr:not([hidden])');
+    check(true, 'uncertainty: a broken formula shows a plain message');
+
+    await page.goto(BASE + '/science/calibration-curve/');
+    await page.waitForSelector('.cc-out:not([hidden])');
+    check(/1\.930/.test(await page.textContent('.cc-eq')) && /1\.518/.test(await page.textContent('.cc-eq')), `calibration: Miller & Miller line ${await page.textContent('.cc-eq')}`);
+    const cc = await page.$$eval('.cc-tab tbody tr', (rs) => rs.map((r) => r.textContent));
+    check(cc.length === 3 && /0\.71[56]/.test(cc[0]) && /6\.2[01]/.test(cc[1]) && /11\.1[23]/.test(cc[2]), `calibration: unknowns read back as in the book (${cc.join(" | ")})`);
+    check(/LOD/i.test(cc[0]), 'calibration: sample below the LOD is flagged');
+    const ccPdf = await dl(page, '.dl [data-f=pdf]');
+    check((await PDFDocument.load(readFileSync(ccPdf))).getPageCount() >= 1, 'calibration: PDF report downloads');
+
+    await page.goto(BASE + '/science/dose-response/');
+    await page.waitForSelector('.dr-out:not([hidden])');
+    check(/IC50 = 3\.058/.test(await page.textContent('.dr-big')), `dose-response: ryegrass IC50 matches drc (${await page.textContent('.dr-big')})`);
+    check(/−2\.98/.test(await page.textContent('.dr-facts')), 'dose-response: Hill slope −2.98');
+    await page.fill('.dr-unk', 'S1: 4.0 4.2\nS2: 9');
+    await page.waitForFunction(() => document.querySelectorAll('.dr-tab tbody tr').length === 2);
+    const dr = await page.$$eval('.dr-tab tbody tr', (rs) => rs.map((r) => r.textContent));
+    check(/OK/.test(dr[0]) && /Outside the curve/.test(dr[1]), 'dose-response: samples read off the curve, one above the top is flagged');
+    const drDoc = await dl(page, '.dl [data-f=docx]');
+    check(/word\/document\.xml/.test(Object.keys(unzipSync(readFileSync(drDoc))).join()), 'dose-response: Word report downloads');
+
+    // Graph digitiser: a drawn plot with a red line y = x/10 and three blue markers.
+    await page.goto(BASE + '/science/graph-digitizer/');
+    const png = await page.evaluate(() => {
+      const c = document.createElement('canvas'); c.width = 400; c.height = 300; const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, 400, 300); g.strokeStyle = '#000'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(50.5, 20); g.lineTo(50.5, 250.5); g.lineTo(380, 250.5); g.stroke();
+      g.strokeStyle = '#d00000'; g.lineWidth = 3; g.beginPath(); g.moveTo(50, 250); g.lineTo(350, 50); g.stroke();
+      g.fillStyle = '#0050c0'; for (const [x, y] of [[30, 5], [60, 2], [75, 7]]) { g.beginPath(); g.arc(50 + 3 * x, 250 - 20 * y, 4, 0, 7); g.fill(); }
+      return c.toDataURL('image/png').split(',')[1];
+    });
+    writeFileSync(OUT + 'plot.png', Buffer.from(png, 'base64'));
+    await page.setInputFiles('.gd-file', OUT + 'plot.png');
+    await page.waitForSelector('.gd-work:not([hidden])');
+    const at = async (x, y) => { const b = await page.locator('.gd-cv').boundingBox(); await page.locator('.gd-cv').click({ position: { x: (x * b.width) / 400, y: (y * b.height) / 300 } }); };
+    // x: 20 at pixel 110, 80 at 290. y: 2 at pixel 210, 8 at 90.
+    await at(110, 250); await at(290, 250); await at(50, 210); await at(50, 90);
+    for (const [k, v] of [['x1', '20'], ['x2', '80'], ['y1', '2'], ['y2', '8']]) await page.fill(`.gd-v[data-k=${k}]`, v);
+    await page.click('.gd-steps [data-mode=points]');
+    await at(200, 150);
+    const row = await page.$$eval('.gd-tab tbody td', (t) => t.map((c) => c.textContent));
+    check(Math.abs(Number(row[1]) - 50) < 0.6 && Math.abs(Number(row[2]) - 5) < 0.1, `digitiser: a click at (50, 5) reads ${row[1]}, ${row[2]}`);
+    await page.click('.gd-undo');
+    await page.click('.gd-steps [data-mode=auto]');
+    await at(200, 150);
+    await page.click('.gd-run');
+    const line = await page.$$eval('.gd-tab tbody tr', (rs) => rs.map((r) => [...r.cells].slice(1, 3).map((c) => Number(c.textContent))));
+    const worst = Math.max(...line.map(([x, y]) => Math.abs(y - x / 10)));
+    check(line.length > 40 && worst < 0.1, `digitiser: line traced by colour, ${line.length} points, worst error ${worst.toFixed(3)} (y units)`);
+    await page.click('.gd-add');
+    await page.click('.gd-steps [data-mode=auto]');
+    await page.selectOption('.gd-kind', 'markers');
+    await at(140, 150);
+    await page.click('.gd-run');
+    const mk = await page.$$eval('.gd-tab tbody tr', (rs) => rs.map((r) => [...r.cells].slice(1, 3).map((c) => Number(c.textContent))));
+    const want = [[30, 5], [60, 2], [75, 7]];
+    check(mk.length === 3 && mk.every(([x, y], i) => Math.abs(x - want[i][0]) < 0.4 && Math.abs(y - want[i][1]) < 0.06), `digitiser: markers found at their centres ${JSON.stringify(mk)}`);
+    const csvF = await dl(page, '.gd-csv');
+    const csvT = readFileSync(csvF, 'utf8').trim().split('\n');
+    check(csvT[0].startsWith('series,x,y') && csvT.length === 1 + line.length + 3, `digitiser: CSV holds both series (${csvT.length - 1} rows for ${line.length} + 3 points)`);
+    await page.click('.gd-undo');
+    check((await page.locator('.gd-tab tbody tr').count()) === 0, 'digitiser: undo removes a whole colour search');
+    check(!requests.some((r) => r.method !== 'GET' && r.url.startsWith(BASE)), 'digitiser: the image is never sent anywhere');
+
+    // Plot maker: journal size, vector downloads, PNG with its dpi recorded.
+    await page.goto(BASE + '/science/plot-maker/');
+    await page.waitForSelector('.pm-out:not([hidden])');
+    check((await page.textContent('.pm-size')) === '85 × 64 mm, 8 pt text', `plot maker: single column size ${await page.textContent('.pm-size')}`);
+    check((await page.$$eval('.pm-cols select', (s) => s.map((x) => x.value).join())) === 'x,y,err,y,err', 'plot maker: SD columns become error bars');
+    const svg = readFileSync(await dl(page, '.pm-out [data-f=svg]'), 'utf8');
+    check(/width="85mm"/.test(svg) && /Control/.test(svg) && /Treated/.test(svg) && /Optical density/.test(svg), 'plot maker: SVG is 85 mm wide with labels and legend');
+    const pdfDoc = await PDFDocument.load(readFileSync(await dl(page, '.pm-out [data-f=pdf]')));
+    const { width: pw, height: ph } = pdfDoc.getPage(0).getSize();
+    check(Math.abs(pw - 240.94) < 0.1 && Math.abs(ph - 180.71) < 0.1, `plot maker: PDF page is 85 × 63.75 mm (${pw.toFixed(1)} × ${ph.toFixed(1)} pt)`);
+    const pngB = readFileSync(await dl(page, '.pm-out [data-f="300"]'));
+    const ihdr = [pngB.readUInt32BE(16), pngB.readUInt32BE(20)], phys = pngB.indexOf('pHYs');
+    check(ihdr[0] === 1004 && ihdr[1] === 753 && phys > 0 && pngB.readUInt32BE(phys + 4) === 11811, `plot maker: 300 dpi PNG is ${ihdr.join(' × ')} px with its dpi recorded`);
+    await page.selectOption('.pm-cols select[data-i="3"]', 'skip');
+    await page.selectOption('.pm-w', '178');
+    await page.check('.pm-ylog');
+    await page.waitForFunction(() => /^178 ×/.test(document.querySelector('.pm-size')?.textContent ?? ''));
+    check(await page.isVisible('.pm-fig'), 'plot maker: double column, log axis, one series left out');
+    await page.fill('.pm-data', '1\n2\n3');
+    await page.waitForSelector('.pm-err:not([hidden])');
+    check(/two columns/.test(await page.textContent('.pm-err')), 'plot maker: one column gives a plain message');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -917,7 +1018,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -941,7 +1042,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

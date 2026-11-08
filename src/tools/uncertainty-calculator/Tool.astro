@@ -1,0 +1,217 @@
+---
+// Uncertainty propagation (GUM) with a Monte Carlo check. Everything is worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax up">
+  <div class="ax-card">
+    <h2>Formula</h2>
+    <label>What you calculate <input class="up-f" value="g = 4 pi^2 L / T^2" autocomplete="off" spellcheck="false" /></label>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="up-deg" /> Angles in degrees</label>
+      <label class="up-ex-l">Example <select class="up-ex">
+        <option value="">Pick one…</option>
+        <option value="0">Pendulum: g from length and period</option>
+        <option value="1">Ohm's law: R = V / I</option>
+        <option value="2">Density of a cylinder</option>
+        <option value="3">Refractive index from angles</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Use + − * / ^, brackets, pi, and sin cos tan asin acos atan exp ln log sqrt abs. "2 pi r" works without the *. The letter e is a normal name here (for example a charge), so write exp(1) for Euler's number.</p>
+    <p class="ax-err up-ferr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your measurements</h2>
+    <div class="up-ins"></div>
+    <p class="ax-help"><b>± standard uncertainty</b>: you already know it (a stated 1-sigma). <b>± half-width</b>: the value is anywhere in a range with equal chance, such as a scale's last digit (u = a/√3). <b>Triangular</b>: more likely near the middle (u = a/√6). <b>Repeated readings</b>: paste them, and the mean and its standard error are used.</p>
+  </div>
+
+  <div class="ax-card up-res" hidden>
+    <h2>Result</h2>
+    <p class="ax-big up-big"></p>
+    <p class="up-sub"></p>
+    <div class="ax-row" style="margin:6px 0 12px"><label>Coverage <select class="up-cov"><option value="0.6827">68 % (1 sigma)</option><option value="0.9545" selected>95 % (2 sigma)</option><option value="0.99">99 %</option></select></label><button type="button" class="btn secondary small up-copy">Copy result</button></div>
+    <dl class="ax-facts up-facts"></dl>
+    <h3 style="margin-top:18px">Where the uncertainty comes from</h3>
+    <div class="ax-scroll"><table class="up-tab"></table></div>
+    <h3 style="margin-top:18px">Monte Carlo check</h3>
+    <p class="up-mc"></p>
+    <canvas class="ax-fig up-fig"></canvas>
+  </div>
+  <Downloads />
+</div>
+
+<style>
+  .up-ins { display: grid; gap: 10px; }
+  .up-in { display: grid; grid-template-columns: 70px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: end; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .up-in:last-child { border-bottom: 0; }
+  .up-in b { font-size: 17px; align-self: center; overflow-wrap: anywhere; }
+  .up-in textarea { min-height: 40px; height: 40px; }
+  @media (max-width: 560px) { .up-in { grid-template-columns: 1fr 1fr; } .up-in b { grid-column: 1 / -1; } }
+  .up-sub { margin: 0; color: var(--muted); font-size: 14px; }
+  .up-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--ink); vertical-align: middle; margin-right: 6px; }
+  .up-ex-l { flex-direction: row; display: inline-flex !important; align-items: center; gap: 8px; }
+  .up-ex-l select { width: auto !important; }
+</style>
+
+<script>
+  import { parse, compile, variables, splitName, ExprError } from '../../lib/sci/expr';
+  import { propagate, monteCarlo, type Input, type Dist } from '../../lib/sci/uncertainty';
+  import { num, sig, pm, roundPair } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.up')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fIn = q<HTMLInputElement>('.up-f'), insBox = q('.up-ins'), ferr = q('.up-ferr');
+  const EXAMPLES: { f: string; deg?: boolean; v: Record<string, Partial<Input> & { text?: string }> }[] = [
+    { f: 'g = 4 pi^2 L / T^2', v: { L: { value: 1.000, spread: 0.001, dist: 'rect' }, T: { dist: 'readings', text: '2.01 2.00 2.02 1.99 2.01' } } },
+    { f: 'R = V / I', v: { V: { value: 5.000, spread: 0.010, dist: 'normal' }, I: { value: 0.2000, spread: 0.0005, dist: 'normal' } } },
+    { f: 'rho = 4 m / (pi d^2 h)', v: { m: { value: 25.43, spread: 0.005, dist: 'rect' }, d: { value: 1.250, spread: 0.002, dist: 'normal' }, h: { value: 2.540, spread: 0.002, dist: 'normal' } } },
+    { f: 'n = sin(a) / sin(b)', deg: true, v: { a: { value: 45, spread: 0.5, dist: 'normal' }, b: { value: 28, spread: 0.5, dist: 'normal' } } },
+  ];
+  // Values typed for each name are kept while the formula is edited.
+  const kept = new Map<string, { value: string; spread: string; dist: Dist; text: string }>();
+  let names: string[] = [], fn: ((v: ArrayLike<number>) => number) | null = null, resultName = 'y';
+
+  function rowFor(name: string) {
+    const k = kept.get(name) ?? { value: '', spread: '', dist: 'normal' as Dist, text: '' };
+    kept.set(name, k);
+    const d = document.createElement('div'); d.className = 'up-in'; d.dataset.name = name;
+    d.innerHTML = `<b></b>
+      <label>Kind <select class="k"><option value="normal">± standard uncertainty</option><option value="rect">± half-width (even chance)</option><option value="tri">± half-width (triangular)</option><option value="readings">Repeated readings</option></select></label>
+      <label class="lv">Value <input class="v" inputmode="decimal" autocomplete="off" /></label>
+      <label class="ls">± <input class="s" inputmode="decimal" autocomplete="off" /></label>
+      <label class="lr" hidden>Readings (spaces, commas or new lines) <textarea class="r" rows="2"></textarea></label>`;
+    d.querySelector('b')!.textContent = name;
+    const k$ = d.querySelector<HTMLSelectElement>('.k')!, v$ = d.querySelector<HTMLInputElement>('.v')!, s$ = d.querySelector<HTMLInputElement>('.s')!, r$ = d.querySelector<HTMLTextAreaElement>('.r')!;
+    k$.value = k.dist; v$.value = k.value; s$.value = k.spread; r$.value = k.text;
+    const sync = () => {
+      const rd = k$.value === 'readings';
+      d.querySelector<HTMLElement>('.lv')!.hidden = rd; d.querySelector<HTMLElement>('.ls')!.hidden = rd; d.querySelector<HTMLElement>('.lr')!.hidden = !rd;
+      d.querySelector('.ls')!.firstChild!.textContent = k$.value === 'normal' ? '± u ' : '± a ';
+    };
+    sync();
+    k$.addEventListener('change', () => { k.dist = k$.value as Dist; sync(); later(); });
+    v$.addEventListener('input', () => { k.value = v$.value; later(); });
+    s$.addEventListener('input', () => { k.spread = s$.value; later(); });
+    r$.addEventListener('input', () => { k.text = r$.value; later(); });
+    return d;
+  }
+
+  function readFormula() {
+    ferr.hidden = true;
+    const { name, formula } = splitName(fIn.value);
+    try {
+      const tree = parse(formula);
+      const vs = variables(tree);
+      resultName = name;
+      if (vs.join() !== names.join()) { names = vs; insBox.replaceChildren(...names.map(rowFor)); }
+      fn = compile(tree, names, q<HTMLInputElement>('.up-deg').checked);
+      if (!names.length) throw new ExprError('The formula has no measured quantities in it', 0);
+    } catch (e) {
+      fn = null; ferr.textContent = e instanceof ExprError ? `${e.message}${e.at > 0 ? ` (near character ${e.at + 1})` : ''}.` : String(e); ferr.hidden = false;
+    }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  let report: Section[] = [], resultText = '', fig: Figure | null = null;
+
+  function inputs(): Input[] | string {
+    const out: Input[] = [];
+    for (const n of names) {
+      const k = kept.get(n)!;
+      if (k.dist === 'readings') {
+        const r = k.text.split(/[\s,;]+/).map(num).filter(Number.isFinite);
+        if (r.length < 2) return `Type at least two readings for ${n}.`;
+        out.push({ name: n, value: 0, spread: 0, dist: 'readings', readings: r });
+      } else {
+        const v = num(k.value), s = num(k.spread || '0');
+        if (!Number.isFinite(v)) return `Type a value for ${n}.`;
+        if (!Number.isFinite(s) || s < 0) return `The ± for ${n} must be a number of 0 or more.`;
+        out.push({ name: n, value: v, spread: s, dist: k.dist });
+      }
+    }
+    return out;
+  }
+
+  function calc() {
+    const res = q('.up-res');
+    if (!fn) { res.hidden = true; report = []; return; }
+    const ins = inputs();
+    if (typeof ins === 'string') { res.hidden = true; ferr.textContent = ins; ferr.hidden = false; report = []; return; }
+    ferr.hidden = true;
+    const cov = Number(q<HTMLSelectElement>('.up-cov').value), covPct = `${Math.round(cov * 1000) / 10} %`;
+    let r;
+    try { r = propagate(fn, ins, cov); } catch (e) { res.hidden = true; ferr.textContent = (e as Error).message; ferr.hidden = false; report = []; return; }
+    res.hidden = false;
+    resultText = `${resultName} = ${pm(r.y, r.U)} (${covPct} coverage, k = ${r.k.toFixed(2)})`;
+    q('.up-big').textContent = `${resultName} = ${pm(r.y, r.U)}`;
+    q('.up-sub').textContent = `Expanded uncertainty at ${covPct} coverage (k = ${r.k.toFixed(2)}). With the standard uncertainty: ${resultName} = ${pm(r.y, r.uc)}.`;
+    const facts: [string, string, string?][] = [
+      ['Value', sig(r.y, 6)],
+      ['Standard uncertainty u', sig(r.uc, 3), r.y !== 0 ? `${sig((100 * r.uc) / Math.abs(r.y), 2)} % of the value` : ''],
+      ['Coverage factor k', r.k.toFixed(3), Number.isFinite(r.dof) ? `${sig(r.dof, 3)} effective degrees of freedom (Welch-Satterthwaite)` : 'normal distribution: all inputs are Type B'],
+      [`Expanded uncertainty (${covPct})`, sig(r.U, 3), `${sig(r.y - r.U, 6)} to ${sig(r.y + r.U, 6)}`],
+    ];
+    q('.up-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    const KIND: Record<Dist, string> = { normal: 'Normal', rect: 'Rectangular', tri: 'Triangular', readings: 'Readings' };
+    const rows = [...r.rows].sort((a, b) => b.share - a.share);
+    const tableRows = rows.map((x) => [x.name, sig(x.value, 6), `${KIND[x.dist]}${x.dist === 'readings' ? ` (n = ${x.readings!.length})` : ''}`, sig(x.u, 3), sig(x.c, 4), sig(x.contrib, 3), `${(x.share * 100).toFixed(1)} %`]);
+    const tb = q<HTMLTableElement>('.up-tab');
+    tb.innerHTML = '<thead><tr><th>Input</th><th class="r">Value</th><th>Kind</th><th class="r">u</th><th class="r">Sensitivity ∂y/∂x</th><th class="r">|c|·u</th><th>Share of u²</th></tr></thead>';
+    const body = tb.createTBody();
+    rows.forEach((x, i) => { const tr = body.insertRow(); tableRows[i].forEach((t, j) => { const c = tr.insertCell(); c.textContent = t; if (j === 1 || (j >= 3 && j <= 5)) c.className = 'r'; if (j === 6) { const bar = document.createElement('span'); bar.className = 'up-bar'; bar.style.width = `${Math.max(2, x.share * 80)}px`; c.prepend(bar); } }); });
+
+    // Monte Carlo (GUM Supplement 1): 200,000 draws from the inputs' own distributions.
+    let mcText = '', mcFacts: [string, string][] = [];
+    try {
+      const mc = monteCarlo(fn, ins, 200000, cov);
+      // Shown to the precision the spread supports (two digits of the SD), not six figures.
+      const rd = (v: number) => { const p = roundPair(v, mc.sd); return p.exp ? sig(v, 6) : p.v.replace('-', '−'); };
+      const agree = Math.abs(mc.lo - (r.y - r.U)) <= 0.05 * r.U && Math.abs(mc.hi - (r.y + r.U)) <= 0.05 * r.U;
+      mcText = `${mc.n.toLocaleString('en')} random draws give a mean of ${rd(mc.mean)}, a standard deviation of ${sig(mc.sd, 2)} and a ${covPct} interval of ${rd(mc.lo)} to ${rd(mc.hi)}. ` +
+        (r.uc === 0 ? '' : agree ? 'This agrees with the formula method above, so the result can be trusted as it is.' : 'This differs from the formula method by more than 5 %: the formula is too curved over the range of your uncertainties, so quote the Monte Carlo interval instead.');
+      mcFacts = [['Monte Carlo mean', rd(mc.mean)], ['Monte Carlo standard deviation', sig(mc.sd, 2)], [`Monte Carlo ${covPct} interval`, `${rd(mc.lo)} to ${rd(mc.hi)}`]];
+      if (r.uc > 0) {
+        const bins = 60, a = mc.samples[Math.floor(mc.n * 0.0005)], b = mc.samples[Math.floor(mc.n * 0.9995)], w = (b - a) / bins || 1;
+        const counts = new Array(bins).fill(0);
+        for (const y of mc.samples) { const i = Math.floor((y - a) / w); if (i >= 0 && i < bins) counts[i]++; }
+        const xs: number[] = [], ys: number[] = [];
+        counts.forEach((c, i) => { xs.push(a + i * w, a + (i + 1) * w); ys.push(c / (mc.n * w), c / (mc.n * w)); });
+        fig = chartFigure({ h: 300, xLabel: resultName, yLabel: 'Probability density', series: [{ name: 'Monte Carlo', x: xs, y: ys, mode: 'line', width: 1.5 }], legend: 'none', yMin: 0,
+          marks: [{ kind: 'vline', at: mc.lo, label: 'MC interval' }, { kind: 'vline', at: mc.hi }, { kind: 'vline', at: r.y - r.U, dash: [2, 3], label: 'GUM' }, { kind: 'vline', at: r.y + r.U, dash: [2, 3] }] }, `Distribution of ${resultName} from the Monte Carlo run`);
+        paint(q<HTMLCanvasElement>('.up-fig'), fig);
+        q('.up-fig').hidden = false;
+      } else { fig = null; q('.up-fig').hidden = true; }
+    } catch (e) { mcText = (e as Error).message; fig = null; q('.up-fig').hidden = true; }
+    q('.up-mc').textContent = mcText;
+
+    report = [
+      { title: 'Result', text: [resultText, `Formula: ${fIn.value.trim()}${q<HTMLInputElement>('.up-deg').checked ? ' (angles in degrees)' : ''}`], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]) },
+      { title: 'Uncertainty budget', table: { head: ['Input', 'Value', 'Kind', 'u', 'Sensitivity', '|c|·u', 'Share'], rows: tableRows, align: ['l', 'r', 'l', 'r', 'r', 'r', 'r'] }, note: 'Method: GUM (JCGM 100:2008) first-order propagation; Welch-Satterthwaite degrees of freedom.' },
+      { title: 'Monte Carlo check (JCGM 101:2008)', text: [mcText], facts: mcFacts, ...(fig ? { figure: fig } : {}) },
+    ];
+  }
+
+  fIn.addEventListener('input', () => { readFormula(); later(); });
+  q('.up-deg').addEventListener('change', () => { readFormula(); calc(); });
+  q('.up-cov').addEventListener('change', calc);
+  q<HTMLSelectElement>('.up-ex').addEventListener('change', (e) => {
+    const ex = EXAMPLES[Number((e.target as HTMLSelectElement).value)];
+    if (!ex) return;
+    fIn.value = ex.f; q<HTMLInputElement>('.up-deg').checked = !!ex.deg;
+    names = [];
+    for (const [n, v] of Object.entries(ex.v)) kept.set(n, { value: v.value != null ? String(v.value) : '', spread: v.spread != null ? String(v.spread) : '', dist: v.dist ?? 'normal', text: v.text ?? '' });
+    readFormula(); calc();
+    (e.target as HTMLSelectElement).value = '';
+  });
+  q('.up-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(resultText); q('.up-copy').textContent = 'Copied'; setTimeout(() => (q('.up-copy').textContent = 'Copy result'), 1500); } catch { /* clipboard blocked */ } });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.up-fig'), fig));
+  // Start with the pendulum example filled in, so the page shows a worked result at once.
+  for (const [n, v] of Object.entries(EXAMPLES[0].v)) kept.set(n, { value: v.value != null ? String(v.value) : '', spread: v.spread != null ? String(v.spread) : '', dist: v.dist ?? 'normal', text: v.text ?? '' });
+  readFormula(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Uncertainty propagation', subtitle: resultText, file: 'uncertainty', sections: report }));
+</script>

@@ -1,0 +1,145 @@
+---
+// Linear calibration curve with LOD/LOQ and back-calculated unknowns. All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cc">
+  <div class="ax-card">
+    <h2>Standards</h2>
+    <label>Concentration and response, one standard per line (paste from a spreadsheet; repeat a concentration for replicates)
+      <textarea class="cc-std" rows="8" spellcheck="false">Concentration	Response
+0	2.1
+2	5.0
+4	9.0
+6	12.6
+8	17.3
+10	21.0
+12	24.7</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Concentration unit <input class="cc-xu" value="pg/mL" /></label>
+      <label>Response name <input class="cc-yu" value="Signal" /></label>
+      <label>Weighting <select class="cc-w"><option value="none">None (equal)</option><option value="1/x">1/x</option><option value="1/x2">1/x²</option></select></label>
+      <label>LOD and LOQ from <select class="cc-lb"><option value="residual">Residual SD (s y/x)</option><option value="intercept">SD of the intercept</option></select></label>
+    </div>
+    <p class="ax-help">Weighting: use 1/x or 1/x² when the scatter grows with concentration (common over wide ranges, for example LC-MS). With weighting, every standard must be above zero.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <h2>Calibration line</h2>
+    <p class="ax-big cc-eq"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <canvas class="ax-fig cc-fig" style="margin-top:14px"></canvas>
+    <h3>Residuals</h3>
+    <p class="ax-help" style="margin-top:0">Points should scatter evenly around zero. A curve or a funnel shape means the range is not linear or needs weighting.</p>
+    <canvas class="ax-fig cc-rfig"></canvas>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <h2>Unknown samples</h2>
+    <label>Responses, one sample per line. Put replicates on the same line; a name first is optional.
+      <textarea class="cc-unk" rows="4" spellcheck="false">Sample A: 2.9
+Sample B: 13.5
+Sample C: 23.0</textarea></label>
+    <label style="margin-top:8px;max-width:220px">Dilution factor <input class="cc-dil" inputmode="decimal" value="1" /></label>
+    <div class="ax-scroll" style="margin-top:12px"><table class="cc-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csv">Download results (CSV)</button></div>
+  </div>
+  <Downloads />
+</div>
+
+<script>
+  import { numericColumns, num, sig, csv } from '../../lib/sci/num';
+  import { calibrate, inverse, limits, type Calibration, type Weighting } from '../../lib/sci/calibration';
+  import { tTwoSided } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.cc-err');
+  let cal: Calibration | null = null, figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function readUnknowns() {
+    return q<HTMLTextAreaElement>('.cc-unk').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+      const m = /^(.*?)[:\t]\s*(.*)$/.exec(l);
+      let name = `Sample ${i + 1}`, rest = l;
+      if (m && m[1] && Number.isNaN(num(m[1]))) { name = m[1].trim(); rest = m[2]; }
+      else { const t = l.split(/\s+/); if (t.length > 1 && Number.isNaN(num(t[0]))) { name = t[0]; rest = t.slice(1).join(' '); } }
+      return { name, values: rest.split(/[\s,;]+/).map(num).filter(Number.isFinite) };
+    }).filter((u) => u.values.length);
+  }
+
+  function calc() {
+    err.hidden = true;
+    const { cols } = numericColumns(q<HTMLTextAreaElement>('.cc-std').value);
+    const pairs = cols.length >= 2 ? cols[0].map((x, i) => [x, cols[1][i]]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b)) : [];
+    const xu = q<HTMLInputElement>('.cc-xu').value.trim(), yu = q<HTMLInputElement>('.cc-yu').value.trim() || 'Response';
+    const unit = xu ? ` ${xu}` : '';
+    try {
+      if (pairs.length < 3) throw new Error('Paste at least three standards: a concentration and a response on each line.');
+      if (pairs.length > 100000) throw new Error('That is more than 100,000 standards. Is this the right data?');
+      cal = calibrate(pairs.map((p) => p[0]), pairs.map((p) => p[1]), q<HTMLSelectElement>('.cc-w').value as Weighting);
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; cal = null; report = [];
+      root.querySelectorAll<HTMLElement>('.cc-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.cc-out').forEach((o) => (o.hidden = false));
+    const c = cal, lim = limits(c, q<HTMLSelectElement>('.cc-lb').value as 'residual' | 'intercept');
+    const sign = c.intercept < 0 ? '−' : '+';
+    q('.cc-eq').textContent = `y = ${sig(c.slope, 5)} x ${sign} ${sig(Math.abs(c.intercept), 4)}`;
+    const pIntercept = c.seIntercept > 0 ? tTwoSided(c.intercept / c.seIntercept, c.df) : 1;
+    const facts: [string, string, string?][] = [
+      ['Slope (sensitivity)', `${sig(c.slope, 5)} ± ${sig(c.t * c.seSlope, 2)}`, `95 % confidence; standard error ${sig(c.seSlope, 3)}`],
+      ['Intercept', `${sig(c.intercept, 4)} ± ${sig(c.t * c.seIntercept, 2)}`, pIntercept < 0.05 ? `differs from zero (p = ${sig(pIntercept, 2)}): check your blank` : `not different from zero (p = ${sig(pIntercept, 2)})`],
+      ['R²', c.r2.toFixed(5), `r = ${c.r.toFixed(5)}`],
+      ['Residual SD (s y/x)', sig(c.syx, 4), `${c.n} standards, ${c.df} degrees of freedom`],
+      ['LOD', `${sig(lim.lod, 3)}${unit}`, `3.3 σ / slope (ICH Q2), σ = ${sig(lim.sigma, 3)}`],
+      ['LOQ', `${sig(lim.loq, 3)}${unit}`, '10 σ / slope (ICH Q2)'],
+      ['Range', `${sig(c.xmin, 4)} to ${sig(c.xmax, 4)}${unit}`, 'read unknowns only inside it'],
+    ];
+    q('.cc-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+
+    // Unknowns.
+    const dil = num(q<HTMLInputElement>('.cc-dil').value) || 1;
+    const unk = readUnknowns().map((u) => {
+      const r = inverse(c, u.values);
+      const flag = r.x0 < c.xmin || r.x0 > c.xmax ? (r.x0 > c.xmax ? 'Above the top standard: dilute and rerun' : 'Below the lowest standard') : r.x0 < lim.lod ? 'Below LOD: not detected' : r.x0 < lim.loq ? 'Below LOQ: detected, not quantified' : 'OK';
+      return { ...u, ...r, flag };
+    });
+    const rows = unk.map((u) => [u.name, String(u.m), sig(u.y0, 5), sig(u.x0, 4), `${sig(u.lo, 4)} to ${sig(u.hi, 4)}`, sig(u.x0 * dil, 4), u.flag]);
+    const head = ['Sample', 'n', `Mean ${yu.toLowerCase()}`, `Conc.${unit}`, '95 % interval', `× dilution (${dil})`, 'Note'];
+    const tb = q<HTMLTableElement>('.cc-tab');
+    tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 0 && i < 6) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    rows.forEach((r) => { const tr = body.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i > 0 && i < 6) td.className = 'r'; }); if (r[6] !== 'OK') tr.className = 'dim'; });
+    csvRows = [['Sample', 'n', 'Mean response', `Concentration${unit}`, '95% low', '95% high', 'Dilution factor', `Original concentration${unit}`, 'Note'], ...unk.map((u) => [u.name, u.m, u.y0, u.x0, u.lo, u.hi, dil, u.x0 * dil, u.flag])];
+
+    // Figures.
+    const lo = Math.min(c.xmin, 0), hi = c.xmax * 1.05;
+    const line = { name: 'Fit', x: [lo, hi], y: [c.intercept + c.slope * lo, c.intercept + c.slope * hi], mode: 'line' as const };
+    const fig = chartFigure({ h: 360, xLabel: `Concentration${xu ? ` (${xu})` : ''}`, yLabel: yu, series: [
+      { name: 'Standards', x: c.xs, y: c.ys, marker: 'circle' }, line,
+      ...(unk.length ? [{ name: 'Unknowns', x: unk.map((u) => u.x0), y: unk.map((u) => u.y0), xErr: unk.map((u) => u.hi - u.x0), marker: 'open-square' as const }] : []),
+    ] }, `Calibration line with ${c.n} standards`);
+    const rfig = chartFigure({ h: 220, xLabel: `Concentration${xu ? ` (${xu})` : ''}`, yLabel: 'Residual', series: [{ name: '', x: c.xs, y: c.residuals, marker: 'circle' }], legend: 'none', marks: [{ kind: 'hline', at: 0, dash: [] }] }, 'Residuals of the calibration line');
+    figs = [fig, rfig];
+    paint(q<HTMLCanvasElement>('.cc-fig'), fig); paint(q<HTMLCanvasElement>('.cc-rfig'), rfig);
+    report = [
+      { title: 'Calibration line', text: [`y = ${sig(c.slope, 5)} x ${sign} ${sig(Math.abs(c.intercept), 4)}, ${c.weighting === 'none' ? 'unweighted' : `weighted by ${c.weighting === '1/x' ? '1/x' : '1/x²'}`} least squares.`], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), figure: fig },
+      { title: 'Residuals', figure: rfig },
+      ...(rows.length ? [{ title: 'Unknown samples', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] }, note: 'Intervals from Miller and Miller, Statistics and Chemometrics for Analytical Chemistry, eq. 5.9 (5.17 when weighted). Limits from ICH Q2(R2).' }] : []),
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.cc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.cc-rfig'), figs[1]); } });
+  q('.cc-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'calibration-results.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Calibration curve', subtitle: q('.cc-eq').textContent ?? '', file: 'calibration-curve', sections: report }));
+</script>

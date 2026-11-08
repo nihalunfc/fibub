@@ -141,7 +141,9 @@ export function drawChart(P: Painter, c: Chart) {
   if (c.xLabel) P.text((px0 + px1) / 2, py1 + fs * 1.6 + 6, c.xLabel, fs, ink, 'middle', 'top');
   if (c.yLabel) P.text(fs * 0.6, (py0 + py1) / 2, c.yLabel, fs, ink, 'middle', 'top', -90);
 
-  P.clip(px0, py0, px1 - px0, py1 - py0);
+  // A little room past the frame, so a marker on the last tick is drawn whole.
+  const pad = 7;
+  P.clip(px0 - pad, py0 - pad, px1 - px0 + 2 * pad, py1 - py0 + 2 * pad);
   for (const m of c.marks ?? []) {
     const col = m.color ?? muted;
     if (m.kind === 'hline' && finite(m.at, c.yLog)) { P.line([[px0, Y(m.at)], [px1, Y(m.at)]], col, 1, m.dash ?? [5, 4]); if (m.label) P.text(px1 - 4, Y(m.at) - 3, m.label, fs * 0.82, col, 'end', 'bottom'); }
@@ -251,13 +253,16 @@ export function chartFigure(c: Omit<Chart, 'w' | 'h'> & { w?: number; h?: number
 /**
  * The chart as a vector PDF page of w × h points (1/72 inch). Uses the built-in Helvetica, which
  * covers Western European text plus µ, ±, ², ³ and °; other symbols are replaced and listed in `lost`
- * (the SVG download keeps every character).
+ * (the SVG download keeps every character). With `scale`, the page is c.w × c.h chart units of
+ * `scale` points each.
  */
-export async function chartPdf(c: Chart): Promise<{ bytes: Uint8Array; lost: string[] }> {
+export async function chartPdf(c: Chart, scale = 1): Promise<{ bytes: Uint8Array; lost: string[] }> {
   const lib = await import('pdf-lib');
-  const { PDFDocument, StandardFonts, rgb, degrees, pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = lib;
+  const { PDFDocument, StandardFonts, rgb, degrees, pushGraphicsState, popGraphicsState, rectangle, clip, endPath, concatTransformationMatrix } = lib;
   const doc = await PDFDocument.create();
-  const page = doc.addPage([c.w, c.h]);
+  const page = doc.addPage([c.w * scale, c.h * scale]);
+  // `scale` points per chart unit: everything below is drawn in chart units.
+  if (scale !== 1) page.pushOperators(concatTransformationMatrix(scale, 0, 0, scale, 0, 0));
   const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const lost = new Set<string>();
   const MAP: Record<string, string> = { '−': '-', '–': '-', '—': '-', '⁻': '-', '⁰': '0', '¹': '1', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '·': '·', '×': '×', 'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'Δ': 'D', 'λ': 'l', 'σ': 's', 'θ': 'th', 'Ω': 'Ohm', 'π': 'pi' };
@@ -283,4 +288,17 @@ export async function chartPdf(c: Chart): Promise<{ bytes: Uint8Array; lost: str
   };
   drawChart(P, c);
   return { bytes: await doc.save(), lost: [...lost] };
+}
+
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b: Uint8Array) { let c = 0xffffffff; for (const v of b) c = CRC[(c ^ v) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+/** A PNG with its resolution recorded (a pHYs chunk), so Word and journals place it at the right size. */
+export function pngWithDpi(png: Uint8Array, dpi: number): Uint8Array {
+  if (png.length < 33 || png[12] !== 0x49 || png[13] !== 0x48) return png; // not IHDR first: leave as is
+  const ppm = Math.round(dpi / 0.0254), chunk = new Uint8Array(21), dv = new DataView(chunk.buffer);
+  dv.setUint32(0, 9); chunk.set([0x70, 0x48, 0x59, 0x73], 4); dv.setUint32(8, ppm); dv.setUint32(12, ppm); chunk[16] = 1;
+  dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const out = new Uint8Array(png.length + 21);
+  out.set(png.subarray(0, 33)); out.set(chunk, 33); out.set(png.subarray(33), 54);
+  return out;
 }
