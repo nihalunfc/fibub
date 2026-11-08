@@ -67,6 +67,8 @@ import * as KIN from '../src/lib/sci/kinetics.ts';
 import * as TIT from '../src/lib/sci/titration.ts';
 import * as GAS from '../src/lib/sci/gas.ts';
 import * as BEER from '../src/lib/sci/beer.ts';
+import * as EQV from '../src/lib/sci/equivalents.ts';
+import * as CHR from '../src/lib/sci/chrom.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -915,6 +917,45 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const sp = BEER.simulatedNadh(), pk = BEER.peaks(sp.wl, sp.A).map((p) => Math.round(p.x));
   check(`NADH maxima at 259 and 340 nm (${pk})`, pk.length === 2 && Math.abs(pk[0] - 259) <= 1 && Math.abs(pk[1] - 340) <= 1);
   near('NADH A340', BEER.interpAt(sp.wl, sp.A, 340), 0.622, 0.005);
+}
+{
+  // Reagent table: Suzuki coupling at 5.00 mmol (bromoanisole 187.04, liquid 1.494 g/mL; PhB(OH)2 1.2 eq; K2CO3 2 eq; Pd(PPh3)4 5 mol %).
+  const R = [{ name: 'ArBr', mw: 187.037, equiv: 1, density: 1.494 }, { name: 'PhB', mw: 121.93, equiv: 1.2 }, { name: 'K2CO3', mw: 138.205, equiv: 2 }, { name: 'Pd', mw: 1155.58, equiv: 0.05 }];
+  const t = EQV.table(R, 5);
+  near('bromoanisole mg', t[0].weighMg, 935.2, 0.1);
+  near('bromoanisole µL', t[0].volumeUl, 626.0, 0.1);
+  near('boronic acid mg', t[1].weighMg, 731.6, 0.1);
+  near('K2CO3 mg', t[2].weighMg, 1382.0, 0.1);
+  near('Pd(PPh3)4 mg', t[3].weighMg, 288.9, 0.1);
+  near('purity 95 % scales the mass', EQV.table([{ name: 'x', mw: 100, equiv: 1, purity: 95 }], 1)[0].weighMg, 105.263, 0.001);
+  near('n-BuLi 2.5 M volume (µL)', EQV.table([{ name: 'BuLi', mw: 64.06, equiv: 1.1, molarity: 2.5 }], 5)[0].volumeUl, 2200, 1e-9);
+  near('scale from 1.20 g of bromoanisole', EQV.scaleFrom(R[0], 'mg', 1200), 6.4158, 0.0001);
+  near('scale from 626 µL', EQV.scaleFrom(R[0], 'ul', 626), 5.0003, 0.001);
+  near('scale from a 1.2-equiv reagent', EQV.scaleFrom(R[1], 'mmol', 6), 5, 1e-12);
+  const y = EQV.yieldOf(5, 184.238, 1, 780);
+  near('theoretical yield mg', y.theoMg, 921.2, 0.1);
+  near('percent yield', y.percent, 84.67, 0.01);
+  check('volume scale needs density or molarity', (() => { try { EQV.scaleFrom(R[2], 'ul', 1); return false; } catch { return true; } })());
+}
+{
+  // Chromatography: peaks at 6.40 and 7.10 min, t0 1.20, W½ 0.150 and 0.160; transfer 250×4.6 mm 5 µm → 100×2.1 mm 1.8 µm.
+  near('k1', CHR.retentionFactor(6.4, 1.2), 4.3333, 0.0001);
+  near('Rs (Ph. Eur. half height)', CHR.resolution(6.4, 7.1, 0.15, 0.16, 'half'), 2.658, 0.001);
+  near('Rs (USP baseline)', CHR.resolution(10, 11, 0.5, 0.5, 'base'), 2, 1e-12);
+  near('N from W½', CHR.plates(7.1, 0.16, 'half'), 10919, 1);
+  near('N from base width', CHR.plates(10, 0.5, 'base'), 6400, 1e-9);
+  near('Purnell round trip', CHR.purnell(CHR.platesFor(1.5, 1.1, 5), 1.1, 5), 1.5, 1e-9);
+  near('plates for Rs 1.5 at α 1.1, k 5', CHR.platesFor(1.5, 1.1, 5), 6272.64, 0.01);
+  near('tailing', CHR.tailing(0.3, 0.1), 1.5, 1e-12);
+  const tr = CHR.transfer({ L: 250, d: 4.6, dp: 5 }, { L: 100, d: 2.1, dp: 1.8 }, 1.0, 20);
+  near('new flow', tr.flow, 0.5789, 0.0001);
+  near('new injection', tr.injection, 1.667, 0.001);
+  near('time scale', tr.timeScale, 0.144, 0.0005);
+  near('L/dp change %', tr.lOverDpChange, 11.11, 0.01);
+  check('USP window ok', tr.uspOk);
+  near('solvent ratio', tr.solventRatio, 0.0834, 0.0005);
+  near('same particles keeps time scale = L ratio', CHR.transfer({ L: 150, d: 4.6, dp: 3 }, { L: 150, d: 3.0, dp: 3 }, 1, 10).timeScale, 1, 1e-12);
+  check('L/dp drop beyond −25 % fails', !CHR.transfer({ L: 250, d: 4.6, dp: 5 }, { L: 50, d: 2.1, dp: 1.8 }, 1, 10).uspOk);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

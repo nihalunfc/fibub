@@ -1,0 +1,123 @@
+---
+// Chromatography calculator: retention factor, selectivity, resolution, plates and HETP for a peak pair, the plates
+// needed for a target resolution, and geometric method transfer between column sizes (USP <621>).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax chr">
+  <div class="ax-card">
+    <h2>Two neighbouring peaks</h2>
+    <div class="ax-grid">
+      <label>Dead time t₀ (min) <input class="chr-t0" inputmode="decimal" value="1.20" /></label>
+      <label>Peak 1 retention (min) <input class="chr-t1" inputmode="decimal" value="6.40" /></label>
+      <label>Peak 2 retention (min) <input class="chr-t2" inputmode="decimal" value="7.10" /></label>
+      <label>Widths measured <select class="chr-wk"><option value="half">at half height (W½)</option><option value="base">at the base (tangents)</option></select></label>
+      <label>Peak 1 width (min) <input class="chr-w1" inputmode="decimal" value="0.150" /></label>
+      <label>Peak 2 width (min) <input class="chr-w2" inputmode="decimal" value="0.160" /></label>
+      <label>Column length (mm) <input class="chr-L" inputmode="decimal" value="150" /></label>
+      <label>Resolution you need <input class="chr-target" inputmode="decimal" value="2.0" /></label>
+    </div>
+    <p class="ax-help">t₀ is the time of an unretained peak (the solvent front or uracil in reversed phase). Times and widths in any one unit.</p>
+    <p class="ax-err chr-err" hidden></p>
+    <div class="chr-out">
+      <p class="ax-big chr-big"></p>
+      <dl class="ax-facts chr-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Move a method to another column</h2>
+    <div class="ax-grid">
+      <label>Length now (mm) <input class="chr-L1" inputmode="decimal" value="250" /></label>
+      <label>Inner diameter now (mm) <input class="chr-d1" inputmode="decimal" value="4.6" /></label>
+      <label>Particle size now (µm) <input class="chr-p1" inputmode="decimal" value="5" /></label>
+      <label>Flow now (mL/min) <input class="chr-f1" inputmode="decimal" value="1.0" /></label>
+      <label>Injection now (µL) <input class="chr-i1" inputmode="decimal" value="20" /></label>
+      <label>New length (mm) <input class="chr-L2" inputmode="decimal" value="100" /></label>
+      <label>New inner diameter (mm) <input class="chr-d2" inputmode="decimal" value="2.1" /></label>
+      <label>New particle size (µm) <input class="chr-p2" inputmode="decimal" value="1.8" /></label>
+    </div>
+    <label style="margin-top:8px">Gradient steps now: time (min) and %B, one per line <textarea class="chr-grad" rows="4">0 10
+20 90
+25 90
+26 10</textarea></label>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="chr-dp" checked /> Scale the flow for the smaller particles too (same reduced velocity)</label>
+    <p class="ax-err chr-terr" hidden></p>
+    <div class="chr-tout">
+      <p class="ax-big chr-tbig"></p>
+      <dl class="ax-facts chr-tfacts"></dl>
+      <div class="ax-scroll"><table class="chr-gtab"></table></div>
+      <p class="ax-help">Check the new pressure: smaller particles and faster flow raise it a lot, and 1.8 µm columns need a UHPLC system. Re-validate the method after any change outside what your pharmacopoeia allows.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { retentionFactor, plates, resolution, purnell, platesFor, transfer, type WidthKind } from '../../lib/sci/chrom';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.chr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  let gradRows: string[][] = [];
+
+  function peaks() {
+    const err = (m: string) => { q('.chr-err').textContent = m; q('.chr-err').hidden = !m; q('.chr-out').hidden = !!m; };
+    const t0 = v('.chr-t0'), t1 = v('.chr-t1'), t2 = v('.chr-t2'), w1 = v('.chr-w1'), w2 = v('.chr-w2'), L = v('.chr-L'), target = v('.chr-target'), wk = q<HTMLSelectElement>('.chr-wk').value as WidthKind;
+    if (![t0, t1, t2, w1, w2].every((x) => x > 0)) return err('Type all times and widths, above zero.');
+    if (!(t1 > t0 && t2 > t0)) return err('Both peaks must come after the dead time t₀.');
+    if (t2 <= t1) return err('Peak 2 must come after peak 1.');
+    err('');
+    const k1 = retentionFactor(t1, t0), k2 = retentionFactor(t2, t0), a = k2 / k1, rs = resolution(t1, t2, w1, w2, wk), N1 = plates(t1, w1, wk), N2 = plates(t2, w2, wk);
+    q('.chr-big').textContent = `Resolution Rs = ${rs.toFixed(2)}: ${rs >= 2 ? 'fully separated, with room to spare' : rs >= 1.5 ? 'baseline separated' : rs >= 1 ? 'partly overlapping' : 'badly overlapping'}`;
+    const facts = [
+      fact('Retention factors', `k₁ = ${k1.toFixed(2)}, k₂ = ${k2.toFixed(2)}`, k1 < 1 ? 'peak 1 elutes too close to t₀: aim for k between 2 and 10 with a weaker mobile phase' : k2 > 20 ? 'very long retention: a stronger mobile phase would save time' : 'in the usual range (about 1 to 20)'),
+      fact('Selectivity α', a.toFixed(3), 'k₂ ÷ k₁: how differently the column holds the two; above 1.1 is comfortable'),
+      fact('Plates', `N₁ = ${Math.round(N1).toLocaleString('en')}, N₂ = ${Math.round(N2).toLocaleString('en')}`, wk === 'half' ? 'N = 5.54 (tR / W½)², as in the Ph. Eur. and USP' : 'N = 16 (tR / W)², from tangent baseline widths'),
+    ];
+    if (L > 0) facts.push(fact('Plate height (HETP)', `${sig((L * 1000) / N2, 3)} µm`, `${Math.round((N2 / L) * 1000).toLocaleString('en')} plates per metre; a good packed column has HETP about 2 to 3 particle diameters`));
+    facts.push(fact('Purnell check', `Rs ≈ ${purnell(N2, a, k2).toFixed(2)}`, 'from N₂, α and k₂: (√N / 4)(α − 1)/α · k/(1 + k); a little different from Rs above because it assumes both peaks have N₂ plates'));
+    if (target > 0 && a > 1) {
+      const need = platesFor(target, a, k2), ratio = need / N2;
+      facts.push(fact(`Plates for Rs = ${target}`, Math.round(need).toLocaleString('en'), ratio <= 1 ? 'you already have enough' : `${sig(ratio, 3)} times as many: a ${sig(ratio, 3)}× longer column (resolution grows only with √N), or raise α by changing the mobile phase or column chemistry, which is usually more effective`));
+    }
+    q('.chr-facts').replaceChildren(...facts);
+  }
+
+  function move() {
+    const err = (m: string) => { q('.chr-terr').textContent = m; q('.chr-terr').hidden = !m; q('.chr-tout').hidden = !!m; };
+    const c1 = { L: v('.chr-L1'), d: v('.chr-d1'), dp: v('.chr-p1') }, c2 = { L: v('.chr-L2'), d: v('.chr-d2'), dp: v('.chr-p2') }, f1 = v('.chr-f1'), i1 = v('.chr-i1');
+    if (![c1.L, c1.d, c1.dp, c2.L, c2.d, c2.dp, f1, i1].every((x) => x > 0)) return err('Type every column size, the flow and the injection volume, above zero.');
+    err('');
+    const t = transfer(c1, c2, f1, i1, q<HTMLInputElement>('.chr-dp').checked);
+    q('.chr-tbig').textContent = `New flow ${sig(t.flow, 3)} mL/min, inject ${sig(t.injection, 3)} µL`;
+    q('.chr-tfacts').replaceChildren(
+      fact('Run time', `${sig(t.timeScale * 100, 3)} % of the original`, `every gradient time is multiplied by ${sig(t.timeScale, 4)}`),
+      fact('Solvent used', `${sig(t.solventRatio * 100, 3)} % of the original`, 'flow × run time'),
+      fact('L/dp', `${Math.round(t.lOverDp1).toLocaleString('en')} → ${Math.round(t.lOverDp2).toLocaleString('en')} (${t.lOverDpChange >= 0 ? '+' : ''}${t.lOverDpChange.toFixed(0)} %)`, t.uspOk ? 'within the −25 % to +50 % USP <621> allows without revalidation (check your monograph)' : 'outside the −25 % to +50 % USP <621> allows: separation power changes, so revalidate or choose another length'),
+    );
+    const g = parseTable(q<HTMLTextAreaElement>('.chr-grad').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    const tb = q<HTMLTableElement>('.chr-gtab'); tb.replaceChildren(); gradRows = [];
+    if (g.length) {
+      const hr = tb.createTHead().insertRow(); ['Time now (min)', '%B', 'New time (min)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const bd = tb.createTBody();
+      for (const [tm, b] of g) { const r = [sig(tm, 4), sig(b, 3), (tm * t.timeScale).toFixed(2)]; gradRows.push(r); const row = bd.insertRow(); r.forEach((c) => { const td = row.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); }
+    }
+  }
+
+  root.querySelectorAll('.ax-card:first-child input, .ax-card:first-child select').forEach((e) => e.addEventListener('input', peaks));
+  q('.chr-wk').addEventListener('change', peaks);
+  root.querySelectorAll('.ax-card:nth-child(2) input, .ax-card:nth-child(2) textarea').forEach((e) => e.addEventListener('input', move));
+  q('.chr-dp').addEventListener('change', move);
+  peaks(); move();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Chromatography', file: 'chromatography',
+    sections: [
+      ...(q('.chr-out').hidden ? [] : [{ title: q('.chr-big').textContent!, facts: [...root.querySelectorAll('.chr-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }]),
+      ...(q('.chr-tout').hidden ? [] : [{ title: q('.chr-tbig').textContent!, facts: [...root.querySelectorAll('.chr-tfacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(gradRows.length ? { table: { head: ['Time now (min)', '%B', 'New time (min)'], rows: gradRows, align: ['r', 'r', 'r'] as ('l' | 'r')[] } } : {}) }]),
+    ],
+  }));
+</script>
