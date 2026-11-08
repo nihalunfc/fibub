@@ -1,5 +1,14 @@
 [
  {
+  "sha": "25c7382a628c",
+  "date": "2026-11-08T21:19:58+00:00",
+  "title": "Add the skew-T sounding plotter with CAPE, CIN, LCL and stability indices (#136)",
+  "tools": [
+   "skew-t-sounding"
+  ],
+  "site": false
+ },
+ {
   "sha": "706443e20ad7",
   "date": "2026-11-08T21:01:03+00:00",
   "title": "Add the spectral index calculator with a GeoTIFF reader and writer (#135)",
