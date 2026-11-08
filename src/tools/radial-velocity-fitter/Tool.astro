@@ -1,0 +1,158 @@
+---
+// Radial velocity orbit fitter: fits a Keplerian orbit to a star's velocities (spectroscopic binaries and exoplanets).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rvf">
+  <div class="ax-card">
+    <h2>Velocities</h2>
+    <label>Paste time, velocity and (optional) error columns, one measurement per line. A header row is fine.
+      <textarea class="rvf-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rvf-sample">Load the example</button>
+      <label class="ax-check"><input type="checkbox" class="rvf-circ" /> Circular orbit</label>
+      <label class="ax-check"><input type="checkbox" class="rvf-w" checked /> Weight by the errors</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Velocity unit <select class="rvf-u"><option value="km" selected>km/s (binary stars)</option><option value="m">m/s (exoplanets)</option></select></label>
+      <label>Period, if known <input class="rvf-p" inputmode="decimal" placeholder="search" /></label>
+      <label>Shortest period to search <input class="rvf-pmin" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Longest period to search <input class="rvf-pmax" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Star mass (solar masses, optional) <input class="rvf-ms" inputmode="decimal" placeholder="1.0" /></label>
+    </div>
+    <p class="ax-help">Times are in days, usually a Julian date such as 2460000.5 or a shortened one such as 60000.5. Periods are in days. The star mass lets the tool turn the orbit into the companion's minimum mass.</p>
+    <p class="ax-err rvf-err" hidden></p>
+  </div>
+
+  <div class="ax-card rvf-out" hidden>
+    <h2>Fitted orbit</h2>
+    <p class="ax-big rvf-big"></p>
+    <dl class="ax-facts rvf-facts"></dl>
+    <canvas class="ax-fig rvf-fold" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig rvf-res" style="margin-top:8px"></canvas>
+    <h3>Over time</h3>
+    <canvas class="ax-fig rvf-time"></canvas>
+    <h3>Other periods tried</h3>
+    <div class="ax-scroll"><table class="rvf-cand"></table></div>
+    <p class="ax-help">The search tries the strongest peaks of a periodogram, then fits each with every eccentricity and keeps the best. If a different period is the real one, type it in "Period, if known". Gaps between nights often make false "alias" periods near one day.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rvf-csv">Velocities with the model (CSV)</button></div>
+    <p class="ax-help">Uncertainties come from the curvature of the fit. Without errors on the data they are scaled by the scatter. With few points, or an orbit that is poorly covered in phase, real uncertainties can be larger.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rvf .rvf-cand td, .rvf .rvf-cand th { white-space: nowrap; }
+  .rvf .rvf-cand tbody tr { cursor: pointer; }
+</style>
+
+<script>
+  import { parseTable, num, sig, pm, csv } from '../../lib/sci/num';
+  import { fitOrbit, rv, binary, type Fit, type Orbit } from '../../lib/sci/rvfit';
+  import { minMass, M_JUP, M_EARTH, M_SUN, semiMajor, AU } from '../../lib/sci/rvmass';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+  import SAMPLE from '../../data/spectroscopic-binary-sim.tsv?raw';
+
+  const root = document.querySelector<HTMLElement>('.rvf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.rvf-in');
+  box.value = SAMPLE.trim();
+  let figs: Figure[] = [], report: Section[] = [], last: { t: number[]; v: number[]; e: number[] | null; f: Fit } | null = null;
+  const deg = (r: number) => (r * 180) / Math.PI;
+
+  function read() {
+    const rows = parseTable(box.value).filter((r) => r.length >= 2 && Number.isFinite(num(r[0])) && Number.isFinite(num(r[1])));
+    if (rows.length < 5) throw new Error('Paste at least 5 rows of time and velocity.');
+    rows.sort((a, b) => num(a[0]) - num(b[0]));
+    const t = rows.map((r) => num(r[0])), v = rows.map((r) => num(r[1]));
+    const useE = q<HTMLInputElement>('.rvf-w').checked && rows.every((r) => num(r[2] ?? '') > 0);
+    return { t, v, e: useE ? rows.map((r) => num(r[2])) : null };
+  }
+
+  function run(forceP?: number) {
+    const err = q('.rvf-err'); err.hidden = true;
+    try {
+      const { t, v, e } = read();
+      if (!(t[t.length - 1] > t[0])) throw new Error('The times must not all be the same.');
+      const P = forceP ?? num(q<HTMLInputElement>('.rvf-p').value), pmin = num(q<HTMLInputElement>('.rvf-pmin').value), pmax = num(q<HTMLInputElement>('.rvf-pmax').value);
+      const f = fitOrbit(t, v, e, { P: P > 0 ? P : undefined, pmin: pmin > 0 ? pmin : undefined, pmax: pmax > 0 ? pmax : undefined, circular: q<HTMLInputElement>('.rvf-circ').checked });
+      last = { t, v, e, f };
+      show();
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.rvf-out').hidden = true; }
+  }
+
+  function show() {
+    if (!last) return;
+    const { t, v, e, f } = last, o = f.o, er = f.err, unit = q<HTMLSelectElement>('.rvf-u').value === 'm' ? 'm/s' : 'km/s';
+    const kms = unit === 'm/s' ? 1e-3 : 1;
+    q('.rvf-out').hidden = false;
+    q('.rvf-big').textContent = `Period ${pm(o.P, er.P)} days, semi-amplitude K = ${pm(o.K, er.K)} ${unit}`;
+    // For a circle, ω and the zero time trade off; the time of greatest velocity is what the data fix.
+    const tMax = o.tp + ((((-o.w / (2 * Math.PI)) % 1) + 1) % 1) * o.P;
+    const b = binary(o.K * kms, o.P, o.e), Ms = num(q<HTMLInputElement>('.rvf-ms').value);
+    const rows: [string, string, string?][] = [
+      ['Period P', `${pm(o.P, er.P)} days`],
+      ['Semi-amplitude K', `${pm(o.K, er.K)} ${unit}`, 'half the full swing in velocity'],
+      ['Eccentricity e', o.e === 0 ? '0 (circular)' : pm(o.e, er.e), o.e === 0 ? '' : 'how stretched the orbit is: 0 is a circle'],
+      ['Argument of periastron ω', o.e === 0 ? 'not defined for a circle' : `${pm(deg(o.w), deg(er.w))}°`, 'where the closest approach lies along the orbit'],
+      o.e === 0
+        ? ['Time of greatest velocity', pm(tMax, Math.hypot(er.tp, (er.w * o.P) / (2 * Math.PI))), 'when the star moves fastest away from us']
+        : ['Time of periastron', pm(o.tp, er.tp), 'closest approach of the two bodies'],
+      ['Systemic velocity γ', `${pm(o.gamma, er.gamma)} ${unit}`, 'the velocity of the whole system'],
+      ['Scatter about the fit', `${sig(f.rms, 3)} ${unit}`, e ? `reduced χ² = ${f.redChi2.toFixed(2)} (near 1 means the errors are right)` : 'root-mean-square residual'],
+      ['Mass function f(m)', `${sig(b.fm, 4)} M☉`, '(m₂ sin i)³ / (m₁ + m₂)²: a lower limit on the unseen companion'],
+      ['a₁ sin i', b.asini >= 1e6 ? `${sig(b.asini / 1e6, 4)} million km` : `${sig(b.asini, 4)} km`, `${sig(b.asini / 1.495978707e8, 3)} AU: the size of the visible star's own orbit`],
+    ];
+    if (Ms > 0) {
+      const mm = minMass(o.K * kms * 1000, Ms, o.P, o.e).m, a = semiMajor(Ms, mm, o.P) / AU;
+      const txt = mm < 0.08 * M_JUP ? `${sig(mm / M_EARTH, 3)} Earth masses` : mm < 0.08 * M_SUN ? `${sig(mm / M_JUP, 3)} Jupiter masses` : `${sig(mm / M_SUN, 3)} solar masses`;
+      rows.push(['Companion minimum mass m sin i', txt, `orbit ${sig(a, 3)} AU across (semi-major axis) for a ${sig(Ms, 3)} M☉ star`]);
+    }
+    q('.rvf-facts').replaceChildren(...rows.map(([k, v2, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v2; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    // Folded curve and residuals against orbital phase (0 at periastron).
+    const ph = (x: number) => ((((x - o.tp) / o.P) % 1) + 1) % 1;
+    const mx: number[] = [], my: number[] = [];
+    for (let k = 0; k <= 400; k++) { const p = k / 400; mx.push(p); my.push(rv(o.tp + p * o.P, o)); }
+    const ye = e ?? undefined;
+    const fold = chartFigure({ h: 300, xLabel: o.e === 0 ? 'Phase' : 'Phase (0 = periastron)', yLabel: `Velocity (${unit})`, xMin: 0, xMax: 1, legend: 'none',
+      series: [{ name: 'Orbit', x: mx, y: my, mode: 'line', width: 2 }, { name: 'Measured', x: t.map(ph), y: v, yErr: ye, mode: 'points', size: 4 }],
+      marks: [{ kind: 'hline', at: o.gamma, dash: [4, 3], label: 'γ' }] }, `Velocities folded on the ${sig(o.P, 5)}-day period with the fitted orbit`);
+    const resid = v.map((x, i) => x - rv(t[i], o));
+    const res = chartFigure({ h: 170, xLabel: 'Phase', yLabel: `Residual (${unit})`, xMin: 0, xMax: 1, legend: 'none',
+      series: [{ name: 'Residual', x: t.map(ph), y: resid, yErr: ye, mode: 'points', size: 4 }], marks: [{ kind: 'hline', at: 0 }] }, 'Residuals of the fit against phase');
+    const tx: number[] = [], ty: number[] = [], t0 = t[0], t1 = t[t.length - 1], n = Math.min(4000, Math.max(400, Math.ceil(((t1 - t0) / o.P) * 60)));
+    for (let k = 0; k <= n; k++) { const x = t0 + ((t1 - t0) * k) / n; tx.push(x); ty.push(rv(x, o)); }
+    const time = chartFigure({ h: 260, xLabel: 'Time (days)', yLabel: `Velocity (${unit})`, legend: 'none',
+      series: [{ name: 'Orbit', x: tx, y: ty, mode: 'line', width: 1.4 }, { name: 'Measured', x: t, y: v, yErr: ye, mode: 'points', size: 4 }] }, 'Velocities over time with the fitted orbit');
+    paint(q<HTMLCanvasElement>('.rvf-fold'), fold); paint(q<HTMLCanvasElement>('.rvf-res'), res); paint(q<HTMLCanvasElement>('.rvf-time'), time);
+    figs = [fold, res, time];
+    const near = f.candidates.reduce((a, P, i) => (Math.abs(P - o.P) < Math.abs(f.candidates[a] - o.P) ? i : a), 0);
+    const cand = f.candidates.map((P, i) => [sig(P, 6), i === near ? 'led to this fit' : 'tap to try']);
+    const tb = q<HTMLTableElement>('.rvf-cand'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['Period (days)', ''].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    cand.forEach((r, k) => { const tr = body.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); tr.addEventListener('click', () => { q<HTMLInputElement>('.rvf-p').value = String(+f.candidates[k].toPrecision(8)); run(f.candidates[k]); }); });
+    report = [
+      { title: 'Fitted orbit', facts: rows.map(([k, v2]) => [k, v2] as [string, string]), figure: fold },
+      { title: 'Residuals', facts: [['Points', String(t.length)], ['Scatter', `${sig(f.rms, 3)} ${unit}`]], figure: res },
+      { title: 'Over time', figure: time, table: { head: ['Time', `Velocity (${unit})`, `Model (${unit})`, `Residual (${unit})`], rows: t.map((x, i) => [String(x), String(v[i]), (v[i] - resid[i]).toFixed(3), resid[i].toFixed(3)]), align: ['l', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => run(), 400); };
+  box.addEventListener('input', later);
+  for (const c of ['.rvf-p', '.rvf-pmin', '.rvf-pmax']) q(c).addEventListener('change', () => run());
+  for (const c of ['.rvf-circ', '.rvf-w']) q(c).addEventListener('change', () => run());
+  q('.rvf-u').addEventListener('change', show);
+  q('.rvf-ms').addEventListener('input', show);
+  q('.rvf-sample').addEventListener('click', () => { box.value = SAMPLE.trim(); q<HTMLSelectElement>('.rvf-u').value = 'km'; q<HTMLInputElement>('.rvf-p').value = ''; run(); });
+  q('.rvf-csv').addEventListener('click', () => {
+    if (!last) return; const { t, v, f } = last;
+    save(new Blob([csv([['time', 'velocity', 'model', 'residual', 'phase'], ...t.map((x, i) => { const m = rv(x, f.o as Orbit); return [x, v[i], m.toFixed(4), (v[i] - m).toFixed(4), (((((x - f.o.tp) / f.o.P) % 1) + 1) % 1).toFixed(4)]; })])], { type: 'text/csv' }), 'rv-orbit-fit.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { const c = ['.rvf-fold', '.rvf-res', '.rvf-time']; figs.forEach((g, i) => paint(q<HTMLCanvasElement>(c[i]), g)); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Radial velocity orbit fit', file: 'rv-orbit', sections: report }));
+</script>

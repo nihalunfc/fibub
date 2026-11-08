@@ -1,0 +1,214 @@
+---
+// Porkchop plot: launch energy and arrival speed for every pair of departure date and flight time between two planets.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pk">
+  <div class="ax-card">
+    <h2>Trip</h2>
+    <div class="ax-grid">
+      <label>From <select class="pk-from"></select></label>
+      <label>To <select class="pk-to"></select></label>
+      <label>Earliest departure <input type="date" class="pk-dep" required /></label>
+      <label>Departure dates to cover (days) <input class="pk-span" inputmode="numeric" /></label>
+      <label>Shortest flight (days) <input class="pk-t0" inputmode="numeric" /></label>
+      <label>Longest flight (days) <input class="pk-t1" inputmode="numeric" /></label>
+      <label>Colour by <select class="pk-by">
+        <option value="c3" selected>Launch energy C3 (km²/s²)</option>
+        <option value="vinfDep">Departure excess speed (km/s)</option>
+        <option value="vinfArr">Arrival excess speed (km/s)</option>
+      </select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pk-next">Find the next window from today</button></div>
+    <p class="ax-help">Picking two planets jumps to their next launch window. Flight times start at half and end at 1.6 times the classic Hohmann transfer; widen them to look for slower, cheaper paths.</p>
+    <p class="ax-err pk-err" hidden></p>
+  </div>
+
+  <div class="ax-card pk-out" hidden>
+    <h2 class="pk-title"></h2>
+    <p class="ax-big pk-big"></p>
+    <dl class="ax-facts pk-best"></dl>
+    <canvas class="ax-fig pk-fig" style="margin-top:12px;cursor:crosshair"></canvas>
+    <p class="ax-help">Darker is cheaper. Blank areas need more than the top band, or no single-orbit path exists there (often near a 180° transfer, where the path must climb steeply out of the planets' plane). Tap the plot to read any flight.</p>
+    <div class="pk-pick" hidden>
+      <h3>Flight you picked</h3>
+      <dl class="ax-facts pk-sel"></dl>
+    </div>
+    <h3>Best flight for each departure date</h3>
+    <div class="ax-scroll"><table class="pk-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pk-csv">Whole grid (CSV)</button></div>
+    <p class="ax-help">Speeds are relative to the planet, outside its gravity (v∞). C3 is v∞² at departure: the number launch vehicle charts use. Burns assume a circular parking orbit 200 km up and no aerobraking or gravity assists.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pk .pk-tab td, .pk .pk-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { grid, nextWindow, tofRange, hohmannDays, synodicDays, burnFromOrbit, PLANETS, type Leg } from '../../lib/astro/porkchop';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fromSel = q<HTMLSelectElement>('.pk-from'), toSel = q<HTMLSelectElement>('.pk-to'), bySel = q<HTMLSelectElement>('.pk-by');
+  for (const s of [fromSel, toSel]) s.replaceChildren(...PLANETS.map((p) => Object.assign(document.createElement('option'), { value: p, textContent: p })));
+  const N = 60;
+  const UNIT: Record<string, string> = { c3: 'km²/s²', vinfDep: 'km/s', vinfArr: 'km/s' };
+  const NAME: Record<string, string> = { c3: 'Launch energy C3', vinfDep: 'Departure excess speed', vinfArr: 'Arrival excess speed' };
+  type G = ReturnType<typeof grid>;
+  let G0: G | null = null, fig: Figure | null = null, report: Section[] = [], pick: Leg | null = null, levels: number[] = [], trip = { a: 'Earth', b: 'Mars' };
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const day = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const val = (l: Leg, by: string) => (l as unknown as Record<string, number>)[by];
+
+  /** Band edges above the minimum: 1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8 × 10ⁿ. */
+  function bands(lo: number) {
+    const M = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8], out: number[] = [];
+    for (let e = Math.floor(Math.log10(Math.max(lo, 1e-3))) - 1; out.length < 8 && e < 6; e++) for (const m of M) { const v = m * 10 ** e; if (v > lo * 1.04 && out.length < 8) out.push(+v.toPrecision(3)); }
+    return out;
+  }
+  const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+  const mix = (a: string, b: string, k: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i] - x) * k)).join(',')})`; };
+  const L = 58, R = 14, T = 14, B = 100;
+
+  function plotFigure(g: G, by: string): Figure {
+    return {
+      w: 640, h: 500, alt: `Porkchop plot of ${NAME[by].toLowerCase()} from ${trip.a} to ${trip.b}`,
+      draw(ctx, w, h, pal: Palette) {
+        const pw = w - L - R, ph = h - T - B, cw = pw / N, ch = ph / N, nb = levels.length;
+        for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+          const c = g.cells[j][i]; if (!c) continue;
+          const v = val(c, by), k = levels.findIndex((x) => v < x); if (k < 0) continue;
+          ctx.fillStyle = mix(pal.accent, pal.bg, k / (nb + 0.5));
+          ctx.fillRect(L + i * cw, T + ph - (j + 1) * ch, cw + 0.6, ch + 0.6);
+        }
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(L, T, pw, ph);
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+        // Flight-time axis.
+        const t0 = g.tofs[0], t1 = g.tofs[N - 1];
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (const t of niceTicks(t0, t1, 6)) { if (t < t0 || t > t1) continue; const y = T + ph - ((t - t0) / (t1 - t0)) * ph; ctx.fillText(String(t), L - 6, y); ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); }
+        ctx.save(); ctx.translate(14, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Flight time (days)', 0, 0); ctx.restore();
+        // Departure axis: the first of each month, thinned to about seven labels.
+        const d0 = g.deps[0], d1 = g.deps[N - 1], months: number[] = [];
+        for (let d = new Date(d0), m = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); m <= d1; ) { months.push(m); const x = new Date(m); m = Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 1); }
+        const stepM = Math.max(1, Math.ceil(months.length / 7));
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        months.forEach((m, k) => {
+          if (k % stepM) return; const x = L + ((m - d0) / (d1 - d0)) * pw, dt = new Date(m);
+          ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke();
+          ctx.fillText(dt.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }), x, T + ph + 5);
+          if (k === 0 || dt.getUTCMonth() < stepM) ctx.fillText(String(dt.getUTCFullYear()), x, T + ph + 19);
+        });
+        ctx.fillText('Departure date', L + pw / 2, T + ph + 38);
+        // Lowest and picked.
+        const at = (l: Leg) => [L + ((l.dep - d0) / (d1 - d0)) * pw, T + ph - ((l.tof - t0) / (t1 - t0)) * ph];
+        if (g.best) { const [x, y] = at(g.best); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6); ctx.stroke(); }
+        if (pick) { const [x, y] = at(pick); ctx.strokeStyle = pal.warn; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 7, 0, 2 * Math.PI); ctx.stroke(); }
+        // Colour key.
+        const ky = h - 22, kw = Math.min(56, pw / (nb + 1));
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = pal.muted; ctx.fillText(`${UNIT[by]}:`, 6, ky + 8);
+        levels.forEach((lv, k) => { const x = L + k * kw; ctx.fillStyle = mix(pal.accent, pal.bg, k / (nb + 0.5)); ctx.fillRect(x, ky, kw - 2, 16); ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(`< ${sig(lv, 3)}`, x + kw / 2 - 1, ky - 9); });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('× lowest', L + nb * kw + 6, ky + 8);
+      },
+    };
+  }
+
+  function legFacts(l: Leg, a: string, b: string): [string, string, string?][] {
+    return [
+      ['Launch', day(l.dep)],
+      ['Flight time', `${Math.round(l.tof)} days`, `arriving ${day(l.dep + l.tof * 864e5)}`],
+      ['Launch energy C3', `${sig(l.c3, 3)} km²/s²`, 'what the rocket must supply beyond escape'],
+      ['Departure excess speed', `${l.vinfDep.toFixed(2)} km/s`, `burn from a 200 km orbit around ${a}: ${burnFromOrbit(a, l.vinfDep).toFixed(2)} km/s`],
+      ['Arrival excess speed', `${l.vinfArr.toFixed(2)} km/s`, `burn to stop in a 200 km orbit around ${b}: ${burnFromOrbit(b, l.vinfArr).toFixed(2)} km/s`],
+    ];
+  }
+  function facts(el: HTMLElement, rows: [string, string, string?][]) {
+    el.replaceChildren(...rows.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  }
+
+  function window_(fromMs = Date.now()) {
+    const a = fromSel.value, b = toSel.value; if (a === b) return;
+    const w = nextWindow(a, b, fromMs);
+    q<HTMLInputElement>('.pk-dep').value = iso(w.start); q<HTMLInputElement>('.pk-span').value = String(w.days);
+    q<HTMLInputElement>('.pk-t0').value = String(w.tof[0]); q<HTMLInputElement>('.pk-t1').value = String(w.tof[1]);
+  }
+
+  function calc() {
+    const err = q('.pk-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pk-out').hidden = true; };
+    const a = fromSel.value, b = toSel.value;
+    if (a === b) return fail('Pick two different planets.');
+    const dep = Date.parse(q<HTMLInputElement>('.pk-dep').value + 'T00:00:00Z'), span = num(q<HTMLInputElement>('.pk-span').value), t0 = num(q<HTMLInputElement>('.pk-t0').value), t1 = num(q<HTMLInputElement>('.pk-t1').value);
+    if (!Number.isFinite(dep)) return fail('Pick the earliest departure date.');
+    const y = new Date(dep).getUTCFullYear();
+    if (y < 1900 || y > 2200) return fail('Pick a departure year from 1900 to 2200.');
+    if (!(span >= 5 && span <= 4000)) return fail('Cover from 5 to 4,000 days of departure dates.');
+    if (!(t0 >= 5) || !(t1 > t0) || t1 > 20000) return fail('Give a shortest flight of at least 5 days and a longer longest flight (up to 20,000 days).');
+    trip = { a, b };
+    G0 = grid(a, b, dep, span, t0, t1, N);
+    if (!G0.best) return fail('No transfers found in this range. Try other dates or flight times.');
+    const by = bySel.value;
+    let lo = Infinity, best = G0.best;
+    for (const row of G0.cells) for (const c of row) if (c && val(c, by) < lo) { lo = val(c, by); best = c; }
+    levels = bands(lo);
+    q('.pk-out').hidden = false;
+    q('.pk-title').textContent = `${a} to ${b}`;
+    const bl = G0.best;
+    q('.pk-big').textContent = `Cheapest launch in this range: ${day(bl.dep)}, ${Math.round(bl.tof)} days to ${b}, C3 ${sig(bl.c3, 3)} km²/s²`;
+    const hd = hohmannDays(a, b), syn = synodicDays(a, b);
+    const bestFacts: [string, string, string?][] = [...legFacts(bl, a, b),
+      ['Hohmann transfer', `${Math.round(hd)} days`, 'the textbook flight time between circular, flat orbits'],
+      ['Windows repeat every', `${Math.round(syn)} days`, `${(syn / 365.25).toFixed(2)} years, the synodic period`]];
+    if (by !== 'c3') bestFacts.splice(0, 0, [`Lowest ${NAME[by].toLowerCase()}`, `${val(best, by).toFixed(2)} km/s`, `launch ${day(best.dep)}, ${Math.round(best.tof)} days`]);
+    facts(q('.pk-best'), bestFacts);
+    if (pick && (pick.dep < G0.deps[0] || pick.dep > G0.deps[N - 1])) pick = null;
+    q('.pk-pick').hidden = !pick; if (pick) facts(q('.pk-sel'), legFacts(pick, a, b));
+    fig = plotFigure(G0, by); paint(q<HTMLCanvasElement>('.pk-fig'), fig);
+    const cols = Array.from({ length: 12 }, (_, k) => Math.round((k * (N - 1)) / 11));
+    const rows = cols.map((i) => { let m: Leg | null = null; for (let j = 0; j < N; j++) { const c = G0!.cells[j][i]; if (c && (!m || c.c3 < m.c3)) m = c; } return m; }).filter((m): m is Leg => !!m)
+      .map((m) => [day(m.dep), String(Math.round(m.tof)), day(m.dep + m.tof * 864e5), sig(m.c3, 3), m.vinfDep.toFixed(2), m.vinfArr.toFixed(2)]);
+    const head = ['Launch', 'Days', 'Arrival', 'C3', 'v∞ out', 'v∞ in'];
+    const tb = q<HTMLTableElement>('.pk-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    report = [
+      { title: `${a} to ${b}`, facts: [['Cheapest', q('.pk-big').textContent!], ...bestFacts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], figure: fig },
+      { title: 'Best flight for each departure date', table: { head: ['Launch', 'Days', 'Arrival', 'C3 (km²/s²)', 'v∞ out (km/s)', 'v∞ in (km/s)'], rows, align: ['l', 'r', 'l', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.pk-fig').addEventListener('click', (e) => {
+    if (!G0 || !fig) return;
+    const c = e.currentTarget as HTMLCanvasElement, x = (e.offsetX / c.clientWidth) * fig.w, y = (e.offsetY / c.clientHeight) * fig.h;
+    const pw = fig.w - L - R, ph = fig.h - T - B, i = Math.floor(((x - L) / pw) * N), j = Math.floor(((T + ph - y) / ph) * N);
+    if (i < 0 || i >= N || j < 0 || j >= N) return;
+    const l = G0.cells[j][i]; if (!l) return;
+    pick = l; q('.pk-pick').hidden = false; facts(q('.pk-sel'), legFacts(l, trip.a, trip.b)); paint(c, fig);
+  });
+  const pair = () => { pick = null; if (fromSel.value !== toSel.value) window_(); calc(); };
+  fromSel.addEventListener('change', pair); toSel.addEventListener('change', pair);
+  bySel.addEventListener('change', calc);
+  for (const c of ['.pk-dep', '.pk-span', '.pk-t0', '.pk-t1']) q(c).addEventListener('change', calc);
+  q('.pk-next').addEventListener('click', () => { pick = null; window_(); calc(); });
+  q('.pk-csv').addEventListener('click', () => {
+    if (!G0) return;
+    const rows: (string | number)[][] = [['departure_utc', 'flight_days', 'arrival_utc', 'c3_km2_s2', 'vinf_departure_km_s', 'vinf_arrival_km_s']];
+    for (const row of G0.cells) for (const c of row) if (c) rows.push([iso(c.dep), c.tof.toFixed(1), iso(c.dep + c.tof * 864e5), c.c3.toFixed(3), c.vinfDep.toFixed(4), c.vinfArr.toFixed(4)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `porkchop-${trip.a}-${trip.b}.csv`.toLowerCase(), 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.pk-fig'), fig));
+  const qs = new URLSearchParams(location.search), cap = (s: string | null) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : '');
+  fromSel.value = (PLANETS as readonly string[]).includes(cap(qs.get('from'))) ? cap(qs.get('from')) : 'Earth';
+  toSel.value = (PLANETS as readonly string[]).includes(cap(qs.get('to'))) ? cap(qs.get('to')) : 'Mars';
+  if (fromSel.value === toSel.value) toSel.value = fromSel.value === 'Earth' ? 'Mars' : 'Earth';
+  const qd = qs.get('depart');
+  if (qd && /^\d{4}-\d{2}-\d{2}$/.test(qd)) { const [a, b] = tofRange(fromSel.value, toSel.value); q<HTMLInputElement>('.pk-dep').value = qd; q<HTMLInputElement>('.pk-span').value = '200'; q<HTMLInputElement>('.pk-t0').value = String(a); q<HTMLInputElement>('.pk-t1').value = String(b); }
+  else window_();
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Porkchop plot', file: 'porkchop', sections: report }));
+</script>
