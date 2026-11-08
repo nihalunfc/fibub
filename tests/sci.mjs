@@ -93,6 +93,7 @@ import * as EC from '../src/lib/sci/ecount.ts';
 import * as PH from '../src/lib/sci/phase.ts';
 import * as IR from '../src/lib/sci/irbands.ts';
 import * as PG from '../src/lib/sci/pointgroup.ts';
+import * as EIS from '../src/lib/sci/eis.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1443,6 +1444,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('read an .xyz file', px.atoms.length === 3 && px.bad.length === 0 && px.atoms[2].el === 'H');
   check('bad line reported', PG.parseXYZ('O 0 0 0\nH 1 2').bad.length === 1);
   check('subscripts', PG.pretty('D3h') === 'D₃h' && PG.pretty('C2v') === 'C₂v' && PG.pretty('Td') === 'Td' && PG.pretty('D∞h') === 'D∞h');
+}
+{
+  // Impedance: element formulas, exact recovery for every circuit, the simulated Randles cell, sign handling.
+  const z = EIS.zQ(2 * Math.PI * 1000, 1e-6, 1); near('CPE with α = 1 is a capacitor', z[1], -1 / (2 * Math.PI * 1000 * 1e-6), 1e-9);
+  near('Warburg: equal real and imaginary parts', EIS.zW(4, 10)[0] + EIS.zW(4, 10)[1], 0, 1e-12);
+  const truths = { RC: [15, 200, 1e-5], RQ: [15, 200, 1e-5, 0.85], Randles: [20, 100, 2e-5, 0.9, 30], RQRQ: [10, 50, 1e-6, 0.95, 300, 1e-4, 0.8], 'RQ-blocking': [12, 5e-5, 0.92] };
+  for (const m of EIS.MODELS) {
+    const t = truths[m.id], pts = Array.from({ length: 41 }, (_, k) => { const f = 10 ** (5 - (k * 7) / 40), zz = m.z(2 * Math.PI * f, t); return { f, re: zz[0], im: zz[1] }; });
+    const r = EIS.fitEIS(m, pts); check(`${m.code}: exact values recovered`, r.p.every((v, i) => Math.abs(v / t[i] - 1) < 1e-6) && !r.runaway);
+  }
+  const ex = EIS.exampleData(), rd = EIS.fitEIS(EIS.MODELS.find((m) => m.id === 'Randles'), ex);
+  near('example Rs', rd.p[0], 20, 0.1); near('example Rct', rd.p[1], 100, 0.3); near('example α', rd.p[3], 0.9, 0.002); near('example σ', rd.p[4], 30, 0.1);
+  check('example: rms error under 0.2 %', rd.rmsPct < 0.2);
+  check('two-arc circuit flagged on Randles data', EIS.fitEIS(EIS.MODELS.find((m) => m.id === 'RQRQ'), ex).runaway);
+  near('Hsu–Mansfeld with α = 1 gives Q', EIS.cEff(2e-5, 1, 100), 2e-5, 1e-15);
+  near('i0 for 1 Ω·cm² at 25 °C', EIS.exchangeCurrent(1, 1, 298.15), 0.025693, 1e-5);
+  const flipped = EIS.toPoints([[100, 10], [5, 6], [2, 3]], 'reim', 'auto');
+  check('−Z″ column detected', flipped.flipped && flipped.pts[0].im === -2 && flipped.pts[0].f === 100);
+  const mp = EIS.toPoints([[10], [2], [-30]], 'modphase', 'auto').pts[0]; near('|Z| and phase to Z″', mp.im, -1, 1e-12);
+  check('SI prefixes', EIS.eng(2.004e-5, 'F') === '20.04 µF' && EIS.eng(1234, 'Ω') === '1.234 kΩ');
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
