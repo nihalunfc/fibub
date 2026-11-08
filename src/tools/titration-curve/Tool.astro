@@ -1,0 +1,176 @@
+---
+// Titration curve simulator and end point finder: exact pH curves for strong, weak and polyprotic acids and bases,
+// equivalence points and indicators, and the end point of your own measured curve from its derivatives.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tit">
+  <div class="ax-card">
+    <h2>Simulate a titration</h2>
+    <div class="ax-grid">
+      <label>In the flask <select class="tit-preset"></select></label>
+      <label class="tit-custom" hidden>It is <select class="tit-kind"><option value="acid">an acid</option><option value="base">a base</option></select></label>
+      <label>pKa values <input class="tit-pka" autocomplete="off" /></label>
+      <label>Its concentration (mol/L) <input class="tit-ca" inputmode="decimal" value="0.100" /></label>
+      <label>Its volume (mL) <input class="tit-va" inputmode="decimal" value="25.00" /></label>
+      <label><span><span class="tit-tname">NaOH</span> in the burette (mol/L)</span> <input class="tit-cb" inputmode="decimal" value="0.100" /></label>
+    </div>
+    <p class="ax-help">pKa values are for the fully protonated form, lowest first, separated by commas: 4.76 for acetic acid, 9.25 for ammonia (the pKa of NH₄⁺). Type "strong" for a strong acid or base. Acids are titrated with NaOH, bases with HCl. Calculated at 25 °C without activity corrections.</p>
+    <p class="ax-err tit-err" hidden></p>
+    <div class="tit-out">
+      <p class="ax-big tit-big"></p>
+      <canvas class="ax-fig tit-fig" style="margin-top:10px"></canvas>
+      <dl class="ax-facts tit-facts" style="margin-top:12px"></dl>
+      <div class="ax-scroll"><table class="tit-ind"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tit-csv">Curve (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find the end point of your own curve</h2>
+    <label>Volume added (mL) and pH, one pair per line <textarea class="tit-meas" rows="6" placeholder="0 2.88&#10;5 4.16&#10;10 4.58"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small tit-fill">Use the simulated curve as an example</button></div>
+    <p class="ax-help">The end point is where the pH rises fastest: the peak of the first derivative ΔpH/ΔV, placed exactly where the second derivative crosses zero. Add readings closer together near the jump for a sharper answer. The analyte's concentration then follows from the burette concentration and the flask volume above.</p>
+    <div class="tit-mout" hidden>
+      <p class="ax-big tit-mbig"></p>
+      <dl class="ax-facts tit-mfacts"></dl>
+      <canvas class="ax-fig tit-dfig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PRESETS, STRONG, pHAt, curve, equivalenceVolumes, indicatorsFor, endpoints, interp, type Analyte } from '../../lib/sci/titration';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tit')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, dfig: Figure | null = null, cur: { v: number[]; pH: number[] } = { v: [], pH: [] }, an: Analyte | null = null;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const pre = q<HTMLSelectElement>('.tit-preset');
+  pre.replaceChildren(...PRESETS.map((p) => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.label; return o; }));
+  pre.value = 'acetic';
+  const pkaText = (p: number[]) => p.map((x) => (Math.abs(x) >= 15 ? 'strong' : String(x))).join(', ');
+
+  function setPreset() {
+    const p = PRESETS.find((x) => x.id === pre.value)!;
+    q('.tit-custom').hidden = p.id !== 'custom';
+    if (p.id !== 'custom') { q<HTMLSelectElement>('.tit-kind').value = p.kind; q<HTMLInputElement>('.tit-pka').value = pkaText(p.pKa); }
+    run();
+  }
+
+  function run() {
+    const kind = q<HTMLSelectElement>('.tit-kind').value as 'acid' | 'base';
+    q('.tit-tname').textContent = kind === 'acid' ? 'NaOH' : 'HCl';
+    const raw = q<HTMLInputElement>('.tit-pka').value.split(/[,;\s]+/).filter(Boolean);
+    const pKa = raw.map((s) => (/^strong$/i.test(s) ? (kind === 'acid' ? STRONG : -STRONG) : num(s)));
+    const ca = num(q<HTMLInputElement>('.tit-ca').value), va = num(q<HTMLInputElement>('.tit-va').value), cb = num(q<HTMLInputElement>('.tit-cb').value);
+    const err = (m: string) => { q('.tit-err').textContent = m; q('.tit-err').hidden = !m; q('.tit-out').hidden = !!m; };
+    if (!pKa.length || pKa.some((x) => !Number.isFinite(x))) return err('Type one or more pKa values separated by commas, or "strong".');
+    if (pKa.length > 4) return err('Up to four pKa values.');
+    if (!(ca > 0 && va > 0 && cb > 0)) return err('Concentrations and the volume must be numbers above zero.');
+    if (ca > 20 || cb > 20) return err('Concentrations above 20 mol/L are not realistic.');
+    err('');
+    // pKa must be in order for the fractions; base pKa listed for the fully protonated form too.
+    const sorted = [...pKa].sort((a, b) => a - b);
+    an = { kind, pKa: sorted, conc: ca, volume: va };
+    const t = { conc: cb }, veq = equivalenceVolumes(an, t), vmax = Math.max(veq[veq.length - 1] * 1.6, 1);
+    cur = curve(an, t, vmax, 400);
+    const dv = (ca * va) / cb * 0.1;
+    const all = veq.map((v, i) => ({ v, pH: pHAt(an!, t, v), i, jump: Math.abs(pHAt(an!, t, v + dv) - pHAt(an!, t, Math.max(0, v - dv))) }));
+    let steps = all.filter((s) => s.jump >= 1);
+    const hidden = all.filter((s) => s.jump < 1);
+    if (!steps.length) steps = [all.reduce((b, x) => (x.jump > b.jump ? x : b))];
+    const first = steps[0];
+    q('.tit-big').textContent = steps.length === 1 ? `Equivalence at ${first.v.toFixed(2)} mL, pH ${first.pH.toFixed(2)}` : `Equivalence points at ${steps.map((s) => s.v.toFixed(2)).join(', ')} mL (pH ${steps.map((s) => s.pH.toFixed(2)).join(', ')})`;
+    const facts = [fact('Starting pH', pHAt(an, t, 0).toFixed(2))];
+    sorted.forEach((p, i) => {
+      if (Math.abs(p) >= 15) return;
+      const vh = ((i + 0.5) * ca * va) / cb, ph = pHAt(an!, t, vh);
+      facts.push(fact(`Half-way to point ${i + 1} (${vh.toFixed(2)} mL)`, `pH ${ph.toFixed(2)}`, `a buffer: for a weak ${kind} the pH here is close to pKa ${kind === 'acid' ? p : p} (Henderson–Hasselbalch)${Math.abs(ph - p) > 0.15 ? `; it differs here because this proton is fairly strong or very weak, or the solution is dilute` : ''}`));
+    });
+    steps.forEach((s, i) => facts.push(fact(`Equivalence ${steps.length > 1 ? i + 1 : ''}`.trim(), `${s.v.toFixed(2)} mL, pH ${s.pH.toFixed(2)}`, s.pH > 7.3 ? 'above 7: what is left in the flask is a base (such as acetate or HPO₄²⁻)' : s.pH < 6.7 ? 'below 7: what is left in the flask is acidic (such as NH₄⁺ or H₂PO₄⁻)' : 'close to 7: strong acid with strong base')));
+    const lastStep = pHAt(an, t, vmax);
+    facts.push(fact(`After ${vmax.toFixed(1)} mL`, `pH ${lastStep.toFixed(2)}`, `excess ${kind === 'acid' ? 'base' : 'acid'}`));
+    if (hidden.length && hidden.length < all.length) facts.push(fact('Steps with no clear jump', hidden.map((h) => `${h.v.toFixed(2)} mL`).join(', '), 'the pH changes too gradually there (a very weak or very strong proton, or one merged with the next), so no indicator or derivative can find it'));
+    q('.tit-facts').replaceChildren(...facts);
+    // Indicators for the first clear step (or the last for polyprotic).
+    const tb = q<HTMLTableElement>('.tit-ind'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Indicator', 'Changes at pH', 'Colour', `Error at ${steps.length > 1 ? 'point 1' : 'equivalence'}`].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(), inds = indicatorsFor(an, t, steps[0].v);
+    if (!inds.length) { const row = bd.insertRow(), td = row.insertCell(); td.colSpan = 4; td.textContent = 'No indicator changes within 0.5 % of the equivalence point: the jump is too small. Use a pH meter.'; }
+    for (const ind of inds) { const row = bd.insertRow(); [ind.name, `${ind.from}–${ind.to}`, ind.colours, `${ind.error >= 0 ? '+' : '−'}${Math.abs(ind.error).toFixed(2)} %`].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j === 3) td.style.textAlign = 'right'; }); }
+    const meas = measured();
+    fig = chartFigure({ h: 320, xLabel: `Volume of ${kind === 'acid' ? 'NaOH' : 'HCl'} added (mL)`, yLabel: 'pH', yMin: 0, yMax: 14, legend: meas.v.length ? 'below' : 'none', series: [
+      { name: 'Calculated', x: cur.v, y: cur.pH, mode: 'line', width: 2 },
+      ...(meas.v.length ? [{ name: 'Measured', x: meas.v, y: meas.pH, mode: 'points' as const, marker: 'open-circle' as const, size: 4 }] : []),
+    ], marks: steps.map((s, i) => ({ kind: 'vline' as const, at: s.v, label: steps.length > 1 ? `eq ${i + 1}` : 'equivalence' })) }, 'Titration curve: pH against volume added');
+    paint(q<HTMLCanvasElement>('.tit-fig'), fig);
+    runMeas();
+  }
+
+  function measured() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.tit-meas').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b)).sort((a, b) => a[0] - b[0]);
+    return { v: rows.map((r) => r[0]), pH: rows.map((r) => r[1]) };
+  }
+
+  function runMeas() {
+    const m = measured(), out = q('.tit-mout');
+    if (m.v.length < 5) { out.hidden = !m.v.length; if (m.v.length) { q('.tit-mbig').textContent = 'Need at least five readings, spread across the jump.'; q('.tit-mfacts').replaceChildren(); dfig = null; q('.tit-dfig').hidden = true; } return; }
+    out.hidden = false; q('.tit-dfig').hidden = false;
+    const eps = endpoints(m.v, m.pH);
+    const ca = num(q<HTMLInputElement>('.tit-ca').value), va = num(q<HTMLInputElement>('.tit-va').value), cb = num(q<HTMLInputElement>('.tit-cb').value);
+    if (!eps.length) { q('.tit-mbig').textContent = 'No clear jump in pH found. Check the readings, or add more near the steep part.'; q('.tit-mfacts').replaceChildren(); }
+    else {
+      q('.tit-mbig').textContent = eps.length === 1 ? `End point at ${eps[0].volume.toFixed(2)} mL, pH ${eps[0].pH.toFixed(2)}` : `End points at ${eps.map((e) => e.volume.toFixed(2)).join(' and ')} mL`;
+      const facts: HTMLElement[] = [];
+      eps.forEach((e, i) => {
+        facts.push(fact(`End point ${eps.length > 1 ? i + 1 : ''}`.trim(), `${e.volume.toFixed(2)} mL at pH ${e.pH.toFixed(2)}`, `steepest slope ${sig(Math.abs(e.slope), 3)} pH units per mL`));
+      });
+      if (cb > 0 && va > 0) {
+        const c = (cb * eps[0].volume) / va;
+        facts.push(fact('Analyte concentration', `${sig(c, 4)} mol/L`, `= ${cb} mol/L × ${eps[0].volume.toFixed(2)} mL ÷ ${va} mL, one proton per molecule up to the first end point${Number.isFinite(ca) ? `; the simulation above assumes ${ca}` : ''}`));
+        const half = eps[0].volume / 2, ph = interp(m.v, m.pH, half);
+        facts.push(fact('pH at half the end point', ph.toFixed(2), `for a weak monoprotic ${q<HTMLSelectElement>('.tit-kind').value}, this estimates its pKa`));
+      }
+      q('.tit-mfacts').replaceChildren(...facts);
+    }
+    const mid: number[] = [], d1: number[] = [];
+    for (let i = 0; i < m.v.length - 1; i++) { const dv = m.v[i + 1] - m.v[i]; if (dv > 0) { mid.push((m.v[i] + m.v[i + 1]) / 2); d1.push(Math.abs(m.pH[i + 1] - m.pH[i]) / dv); } }
+    dfig = chartFigure({ h: 260, xLabel: 'Volume added (mL)', yLabel: '|ΔpH/ΔV| (per mL)', yMin: 0, legend: 'none', series: [{ name: 'First derivative', x: mid, y: d1, mode: 'both', size: 3 }], marks: eps.map((e) => ({ kind: 'vline' as const, at: e.volume, label: `${e.volume.toFixed(2)} mL` })) }, 'First derivative of the measured curve');
+    paint(q<HTMLCanvasElement>('.tit-dfig'), dfig);
+  }
+
+  pre.addEventListener('change', setPreset);
+  for (const c of ['.tit-pka', '.tit-ca', '.tit-va', '.tit-cb']) q(c).addEventListener('input', run);
+  q('.tit-kind').addEventListener('change', run);
+  q('.tit-meas').addEventListener('input', run);
+  q('.tit-fill').addEventListener('click', () => {
+    if (!an) return;
+    const t = { conc: num(q<HTMLInputElement>('.tit-cb').value) }, veq = equivalenceVolumes(an, t), last = veq[veq.length - 1] * 1.4, lines: string[] = [];
+    // Readings every 2 mL, then every 0.2 mL around each equivalence, as a careful student would take them, with ±0.02 pH noise.
+    let s = 3; const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647 - 0.5; };
+    const vs = new Set<number>(); for (let v = 0; v <= last; v += 2) vs.add(+v.toFixed(2));
+    for (const e of veq) for (let d = -2; d <= 2.001; d += 0.2) { const v = +(e + d).toFixed(2); if (v >= 0) vs.add(v); }
+    for (const v of [...vs].sort((a, b) => a - b)) lines.push(`${v}\t${(pHAt(an, t, v) + 0.04 * rnd()).toFixed(2)}`);
+    q<HTMLTextAreaElement>('.tit-meas').value = lines.join('\n'); run();
+  });
+  q('.tit-csv').addEventListener('click', () => save(new Blob([csv([['volume_ml', 'pH'], ...cur.v.map((v, i) => [+v.toFixed(4), +cur.pH[i].toFixed(4)])])], { type: 'text/csv' }), 'titration-curve.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tit-fig'), fig); if (dfig) paint(q<HTMLCanvasElement>('.tit-dfig'), dfig); });
+  setPreset();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Titration curve', subtitle: `${pre.selectedOptions[0].textContent}, ${q<HTMLInputElement>('.tit-ca').value} mol/L, ${q<HTMLInputElement>('.tit-va').value} mL`, file: 'titration',
+    sections: [
+      ...(fig ? [{ title: q('.tit-big').textContent!, figure: fig, facts: [...root.querySelectorAll('.tit-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }] : []),
+      ...(dfig && !q('.tit-mout').hidden ? [{ title: q('.tit-mbig').textContent!, figure: dfig, facts: [...root.querySelectorAll('.tit-mfacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .tit .tit-ind td, .tit .tit-ind th { white-space: nowrap; }
+  .tit textarea { font-family: ui-monospace, monospace; }
+</style>

@@ -63,6 +63,8 @@ import { fspl, dishGain, slantRange, requiredEbN0, budget } from '../src/lib/sci
 import { scope } from '../src/lib/sci/radiotel.ts';
 import { jd as aavsoJd, toVisual, toExtended, parseAavso, fractionEstimate, differential } from '../src/lib/astro/aavso.ts';
 import * as CHEM from '../src/lib/sci/chem.ts';
+import * as KIN from '../src/lib/sci/kinetics.ts';
+import * as TIT from '../src/lib/sci/titration.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -842,6 +844,47 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('Br2 1:2:1', br.length === 3 && br[1].abundance === 100 && Math.abs(br[0].abundance - br[2].abundance) < 5);
   near('morphine M+1', pat('C17H19NO3', 'M+H')[1].abundance, 19.1, 0.2);
   near('ppm', CHEM.ppm(286.1436, 286.14377), -0.594, 0.001);
+}
+{
+  // Kinetics: exact data recover k for each order; half-lives; Arrhenius on the methyl isonitrile textbook data (Ea ≈ 160 kJ/mol).
+  const t = [0, 10, 20, 40, 60, 100, 150];
+  for (const o of [0, 1, 2]) {
+    const k = [1e-4, 0.03, 0.8][o], c = t.map((x) => KIN.conc(o, 0.02, k, x)), f = KIN.fitOrders(t, c);
+    near(`order ${o} k recovered`, f[o].k, k, k * 1e-5);
+    const w = KIN.akaikeWeights(f.map((x) => x.aicc));
+    check(`order ${o} preferred`, w.indexOf(Math.max(...w)) === o);
+  }
+  near('first-order half-life', KIN.halfLife(1, 1, 0.01), 69.3147, 1e-3);
+  near('second-order half-life', KIN.halfLife(2, 0.5, 0.2), 10, 1e-12);
+  near('general order 2 matches', KIN.conc(2.0000001, 0.05, 0.8, 30), KIN.conc(2, 0.05, 0.8, 30), 1e-8);
+  const run = KIN.simulatedRun(), fr = KIN.fitOrders(run.t, run.c);
+  near('N2O5 simulated k', fr[1].k, 6.2e-4, 3 * fr[1].seK);
+  const a = KIN.arrhenius([189.7, 198.9, 230.3, 251.2].map((x) => x + 273.15), [2.52e-5, 5.25e-5, 6.30e-4, 3.16e-3]);
+  near('methyl isonitrile Ea (kJ/mol)', a.ea / 1000, 160, 3);
+  near('Eyring ΔH = Ea − RT', a.dH, a.ea - KIN.R_GAS * 493, 400);
+  const two = KIN.arrhenius([300, 310], [1, 2]);
+  near('two-point Arrhenius', two.ea, (KIN.R_GAS * Math.log(2)) / (1 / 300 - 1 / 310), 1e-6);
+  near('k back at a measured T', KIN.kAt(two, 310), 2, 1e-9);
+}
+{
+  // Titration: 25 mL 0.1 M acetic acid with 0.1 M NaOH (Harris: pH 2.88, 4.76, 8.72); HCl; NH3 with HCl; H3PO4.
+  const t = { conc: 0.1 }, ac = { kind: 'acid', pKa: [4.76], conc: 0.1, volume: 25 };
+  near('acetic start', TIT.pHAt(ac, t, 0), 2.88, 0.01);
+  near('acetic half-way = pKa', TIT.pHAt(ac, t, 12.5), 4.76, 0.005);
+  near('acetic equivalence', TIT.pHAt(ac, t, 25), 8.72, 0.015);
+  const hcl = { kind: 'acid', pKa: [TIT.STRONG], conc: 0.1, volume: 25 };
+  near('HCl start', TIT.pHAt(hcl, t, 0), 1, 1e-6);
+  near('HCl equivalence 7', TIT.pHAt(hcl, t, 25), 7, 1e-6);
+  near('HCl excess 10 mL', TIT.pHAt(hcl, t, 35), 14 + Math.log10(1 / 60), 1e-4);
+  near('NH3 + HCl equivalence', TIT.pHAt({ kind: 'base', pKa: [9.25], conc: 0.1, volume: 25 }, t, 25), 5.28, 0.01);
+  near('NaOH start', TIT.pHAt({ kind: 'base', pKa: [-TIT.STRONG], conc: 0.1, volume: 25 }, t, 0), 13, 1e-6);
+  const p = { kind: 'acid', pKa: [2.15, 7.2, 12.35], conc: 0.1, volume: 25 };
+  near('H3PO4 first equivalence', TIT.pHAt(p, t, 25), 4.70, 0.02);
+  near('H3PO4 second half-way = pKa2', TIT.pHAt(p, t, 37.5), 7.20, 0.01);
+  check('indicator for acetic', TIT.indicatorsFor(ac, t, 25)[0].name === 'Phenolphthalein');
+  const v = [], ph = []; for (let x = 0; x <= 60; x += 1) { v.push(x); ph.push(TIT.pHAt(p, t, x)); }
+  const e = TIT.endpoints(v, ph);
+  check('two H3PO4 end points', e.length === 2 && Math.abs(e[0].volume - 25) < 0.3 && Math.abs(e[1].volume - 50) < 0.3);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
