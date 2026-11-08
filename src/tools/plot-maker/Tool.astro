@@ -1,0 +1,215 @@
+---
+// Publication plot maker: paste columns, get a journal-sized figure as SVG, PDF or PNG.
+import '../../styles/astro.css';
+---
+<div class="ax pm">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <label>Columns from a spreadsheet, with a header row. Paste or type them here.
+      <textarea class="pm-data" rows="9" spellcheck="false" wrap="off">Time (h)	Control	SD	Treated	SD
+0	0.05	0.01	0.05	0.01
+2	0.11	0.02	0.08	0.01
+4	0.26	0.03	0.13	0.02
+6	0.55	0.05	0.22	0.03
+8	0.92	0.06	0.36	0.04
+10	1.21	0.07	0.52	0.05
+12	1.35	0.08	0.66	0.05</textarea></label>
+    <div class="pm-cols"></div>
+    <p class="ax-help">The first column is x. A column headed SD, SE, SEM or error becomes ± error bars for the column to its left. Change any of them here.</p>
+    <p class="ax-err pm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Look</h2>
+    <div class="ax-grid">
+      <label>x axis label <input class="pm-xl" /></label>
+      <label>y axis label <input class="pm-yl" value="Optical density (OD600)" /></label>
+      <label>Show as <select class="pm-mode"><option value="both">Points and lines</option><option value="points">Points only</option><option value="line">Lines only</option></select></label>
+      <label>Colours <select class="pm-pal"><option value="oi">Colour-blind safe</option><option value="grey">Black and grey</option></select></label>
+      <label>Width <select class="pm-w"><option value="85">Single column (85 mm)</option><option value="120">1.5 column (120 mm)</option><option value="178">Double column (178 mm)</option><option value="240">Slide (240 mm)</option></select></label>
+      <label>Height <select class="pm-h"><option value="0.75">4 : 3</option><option value="1">Square</option><option value="0.5625">Wide (16 : 9)</option><option value="1.25">Tall</option></select></label>
+      <label>Text size <select class="pm-fs"><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option><option>12</option><option>14</option><option>18</option></select></label>
+      <label>Legend <select class="pm-leg"><option value="auto">Automatic</option><option value="inside">Inside the plot</option><option value="below">Below the plot</option><option value="none">None</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="pm-xlog" /> Log x axis</label>
+      <label class="ax-check"><input type="checkbox" class="pm-ylog" /> Log y axis</label>
+      <label class="ax-check"><input type="checkbox" class="pm-grid" /> Grid lines</label>
+    </div>
+    <details class="pm-more">
+      <summary>Axis limits</summary>
+      <div class="ax-grid">
+        <label>x from <input class="pm-lim" data-k="xMin" inputmode="decimal" placeholder="auto" /></label>
+        <label>x to <input class="pm-lim" data-k="xMax" inputmode="decimal" placeholder="auto" /></label>
+        <label>y from <input class="pm-lim" data-k="yMin" inputmode="decimal" placeholder="auto" /></label>
+        <label>y to <input class="pm-lim" data-k="yMax" inputmode="decimal" placeholder="auto" /></label>
+      </div>
+    </details>
+  </div>
+
+  <div class="ax-card pm-out">
+    <h2>Figure <small class="pm-size"></small></h2>
+    <div class="pm-paper"><canvas class="pm-fig" role="img" aria-label="Preview of the figure"></canvas></div>
+    <div class="dl">
+      <span class="dl-l">Download</span>
+      <button type="button" class="btn secondary" data-f="svg">SVG</button>
+      <button type="button" class="btn secondary" data-f="pdf">PDF</button>
+      <button type="button" class="btn secondary" data-f="300">PNG 300 dpi</button>
+      <button type="button" class="btn secondary" data-f="600">PNG 600 dpi</button>
+    </div>
+    <p class="ax-help pm-note">SVG and PDF are vector: sharp at any size and editable in Illustrator or Inkscape. The preview is the real figure at its printed proportions.</p>
+  </div>
+</div>
+
+<style>
+  .pm-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+  .pm-cols label { font-size: 14px; }
+  .pm-more { margin-top: 12px; }
+  .pm-more summary { cursor: pointer; font-weight: 600; }
+  .pm-more .ax-grid { margin-top: 8px; }
+  .pm-paper { background: #fff; border: 1px solid var(--line, #ccc); max-width: 640px; }
+  .pm-paper canvas { display: block; width: 100%; height: auto; }
+  :global(html.red-mode) .pm-paper { background: #000; }
+  h2 small { font-weight: 400; font-size: 14px; color: var(--muted, #555); }
+</style>
+
+<script>
+  import { numericColumns, num } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, svgPainter, chartPdf, pngWithDpi, OKABE_ITO, GREYS, MARKERS, type Chart, type Series } from '../../lib/sci/plot';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.pm-err'), canvas = q<HTMLCanvasElement>('.pm-fig');
+  const FAMILY = 'Helvetica, Arial, sans-serif';
+  const ERR = /^(sd|s\.d\.|se|s\.e\.|sem|s\.e\.m\.|err|error|errors|stdev|std|±.*|ci|95 ?% ?ci)\b/i;
+  let table = { headers: [] as string[], cols: [] as number[][], rows: 0 };
+  let roles: string[] = [];       // per column: 'x', 'y', 'err', 'skip'
+  let lastHeaders = '';
+  let chart: (Chart & { mm: [number, number]; unit: number }) | null = null;
+  let xLabelTouched = false;
+
+  /** Rebuild the column role pickers when the header row changes; keep the user's choices otherwise. */
+  function columns() {
+    const key = table.headers.join('\u0001');
+    if (key === lastHeaders) return;
+    lastHeaders = key;
+    roles = table.headers.map((h, i) => (i === 0 ? 'x' : ERR.test(h.trim()) && i > 1 ? 'err' : 'y'));
+    const box = q('.pm-cols');
+    box.replaceChildren(...table.headers.map((h, i) => {
+      const l = document.createElement('label');
+      l.textContent = h + ' ';
+      const s = document.createElement('select');
+      s.dataset.i = String(i);
+      const opts: [string, string][] = [['x', 'x values'], ['y', 'A series'], ['err', '± error bars'], ['skip', 'Leave out']];
+      for (const [v, t] of opts) { if (v === 'err' && i < 2) continue; const o = document.createElement('option'); o.value = v; o.textContent = t; s.append(o); }
+      s.value = roles[i];
+      s.addEventListener('change', () => {
+        if (s.value === 'x') roles = roles.map((r) => (r === 'x' ? 'y' : r));
+        roles[i] = s.value;
+        box.querySelectorAll('select').forEach((o, j) => ((o as HTMLSelectElement).value = roles[j]));
+        draw();
+      });
+      l.append(s);
+      return l;
+    }));
+    if (!xLabelTouched) q<HTMLInputElement>('.pm-xl').value = table.headers[0] ?? '';
+  }
+
+  function build(): Chart & { mm: [number, number]; unit: number } {
+    const xi = roles.indexOf('x');
+    if (xi < 0) throw new Error('Choose one column as the x values.');
+    const xs = table.cols[xi];
+    const mode = q<HTMLSelectElement>('.pm-mode').value as Series['mode'];
+    const series: Series[] = [];
+    roles.forEach((r, i) => {
+      if (r !== 'y') return;
+      const e = roles[i + 1] === 'err' ? table.cols[i + 1].map((v) => (Number.isFinite(v) ? Math.abs(v) : undefined)) : undefined;
+      series.push({ name: table.headers[i], x: xs, y: table.cols[i], yErr: e, mode, marker: MARKERS[series.length % MARKERS.length] });
+    });
+    if (!series.length) throw new Error('Choose at least one column as a series.');
+    const xLog = q<HTMLInputElement>('.pm-xlog').checked, yLog = q<HTMLInputElement>('.pm-ylog').checked;
+    const usable = series.some((s) => s.x.some((x, i) => Number.isFinite(x) && Number.isFinite(s.y[i]) && (!xLog || x > 0) && (!yLog || s.y[i] > 0)));
+    if (!usable) throw new Error(xLog || yLog ? 'No points can be drawn: a log axis needs values above zero.' : 'No rows have numbers in both x and a series.');
+    // Sizes are in points. The chart is laid out in units of fontPt/13 points, so its proportions
+    // (tick marks, line widths, markers) match the on-screen charts at any text size.
+    const wmm = Number(q<HTMLSelectElement>('.pm-w').value), hmm = wmm * Number(q<HTMLSelectElement>('.pm-h').value);
+    const fs = Number(q<HTMLSelectElement>('.pm-fs').value), unit = fs / 13;
+    const pt = (mm: number) => (mm / 25.4) * 72;
+    const lim: Partial<Chart> = {};
+    root.querySelectorAll<HTMLInputElement>('.pm-lim').forEach((el) => { const v = num(el.value); if (el.value.trim() && Number.isFinite(v)) (lim as any)[el.dataset.k!] = v; });
+    const grey = q<HTMLSelectElement>('.pm-pal').value === 'grey';
+    return {
+      w: pt(wmm) / unit, h: pt(hmm) / unit, font: 13, mm: [wmm, hmm], unit,
+      xLabel: q<HTMLInputElement>('.pm-xl').value.trim(), yLabel: q<HTMLInputElement>('.pm-yl').value.trim(),
+      xLog, yLog, ...lim, series, legend: q<HTMLSelectElement>('.pm-leg').value as Chart['legend'],
+      grid: q<HTMLInputElement>('.pm-grid').checked, colors: grey ? GREYS : OKABE_ITO,
+      ink: '#000000', muted: '#555555', gridColor: '#dddddd', bg: '#ffffff',
+    };
+  }
+
+  function preview() {
+    if (!chart) return;
+    const red = document.documentElement.classList.contains('red-mode');
+    const cssW = canvas.parentElement!.clientWidth || 600, dpr = Math.min(3, window.devicePixelRatio || 1);
+    const s = cssW / chart.w;
+    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(chart.h * s * dpr);
+    const ctx = canvas.getContext('2d')!;
+    ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+    // Red light for night use: dim red on black, no other colour.
+    drawChart(canvasPainter(ctx, FAMILY), red ? { ...chart, ink: '#a30000', muted: '#6e0000', gridColor: '#2a0000', bg: '#000000', colors: ['#a30000', '#7a0000', '#c00000', '#5a0000'] } : chart);
+  }
+
+  function draw() {
+    err.hidden = true;
+    try {
+      table = numericColumns(q<HTMLTextAreaElement>('.pm-data').value);
+      if (table.rows > 100000) throw new Error('That is more than 100,000 rows: too many to draw one by one.');
+      if (table.headers.length < 2) throw new Error('Paste at least two columns: x, then one or more series.');
+      columns();
+      chart = build();
+    } catch (e) {
+      chart = null; err.textContent = (e as Error).message; err.hidden = false;
+      q('.pm-out').hidden = true;
+      return;
+    }
+    q('.pm-out').hidden = false;
+    q('.pm-size').textContent = `${chart.mm[0]} × ${Math.round(chart.mm[1])} mm, ${q<HTMLSelectElement>('.pm-fs').value} pt text`;
+    preview();
+  }
+
+  async function download(f: string) {
+    if (!chart) return;
+    const c = chart, [wmm, hmm] = c.mm;
+    if (f === 'svg') {
+      const P = svgPainter(c.w, c.h, FAMILY);
+      drawChart(P, c);
+      const svg = P.toString().replace(`width="${c.w}" height="${c.h}"`, `width="${wmm}mm" height="${+hmm.toFixed(2)}mm"`);
+      save(new Blob([svg], { type: 'image/svg+xml' }), 'figure.svg', 'image/svg+xml');
+    } else if (f === 'pdf') {
+      const { bytes, lost } = await chartPdf(c, c.unit);
+      save(bytes, 'figure.pdf', 'application/pdf');
+      q('.pm-note').textContent = lost.length ? `The PDF font has no ${lost.join(' ')}, so they were replaced. The SVG keeps every character.` : 'PDF saved. SVG and PDF are vector: sharp at any size and editable in Illustrator or Inkscape.';
+    } else {
+      const dpi = Number(f), W = Math.round((wmm / 25.4) * dpi), H = Math.round((hmm / 25.4) * dpi);
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d')!;
+      ctx.setTransform(W / c.w, 0, 0, H / c.h, 0, 0);
+      drawChart(canvasPainter(ctx, FAMILY), c);
+      const blob = await new Promise<Blob | null>((r) => cv.toBlob(r, 'image/png'));
+      if (!blob) { err.textContent = 'This browser could not make an image that large. Try 300 dpi or the SVG.'; err.hidden = false; return; }
+      save(pngWithDpi(new Uint8Array(await blob.arrayBuffer()), dpi), `figure-${dpi}dpi.png`, 'image/png');
+    }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(draw, 200); };
+  q('.pm-data').addEventListener('input', later);
+  q('.pm-xl').addEventListener('input', () => { xLabelTouched = true; later(); });
+  root.querySelectorAll('.ax-card:nth-child(2) input:not([type=checkbox])').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('.ax-card:nth-child(2) select, .ax-card:nth-child(2) input[type=checkbox]').forEach((el) => el.addEventListener('change', draw));
+  root.querySelectorAll<HTMLButtonElement>('.dl button').forEach((b) => b.addEventListener('click', () => download(b.dataset.f!)));
+  let rw = 0;
+  new ResizeObserver(() => { const w = canvas.parentElement!.clientWidth; if (w !== rw) { rw = w; preview(); } }).observe(canvas.parentElement!);
+  document.addEventListener('fibub:theme', preview);
+  new MutationObserver(preview).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  draw();
+</script>

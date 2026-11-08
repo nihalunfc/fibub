@@ -1,0 +1,28 @@
+---
+// The public change log: every change to fibub, newest first, 50 to a page.
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import ChangeList from '../../components/ChangeList.astro';
+import { CHANGES, REPO } from '../../lib/changes';
+import { allTools } from '../../lib/tools';
+export const getStaticPaths = (({ paginate }) => paginate(CHANGES, { pageSize: 50 })) satisfies GetStaticPaths;
+const { page } = Astro.props;
+const tools = await allTools();
+---
+<Base title={page.currentPage > 1 ? `Change log, page ${page.currentPage}` : 'Change log'} description="Every change to fibub's tools and pages, newest first, with the time it went live.">
+  <div class="crumbs"><a href="/">Home</a> / Change log</div>
+  <h1>Change log</h1>
+  <p class="lead">Every change to fibub, newest first. Times are in UTC. fibub is open source, so each change links to its full details on <a href={REPO}>GitHub</a>.</p>
+  <ChangeList changes={page.data} tools={tools} />
+  {page.lastPage > 1 && (
+    <nav class="pg" aria-label="Pages">
+      {page.url.prev ? <a href={page.url.prev}>← Newer</a> : <span />}
+      <span>Page {page.currentPage} of {page.lastPage} ({page.total} changes)</span>
+      {page.url.next ? <a href={page.url.next}>Older →</a> : <span />}
+    </nav>
+  )}
+</Base>
+<style>
+  .pg { display: flex; justify-content: space-between; align-items: center; gap: 12px; max-width: 760px; margin-top: 20px; font-size: 14px; color: var(--muted); }
+  .pg a { font-weight: 600; }
+</style>

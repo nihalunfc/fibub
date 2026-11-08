@@ -1,0 +1,361 @@
+[
+ {
+  "sha": "42e6243c374c",
+  "date": "2026-11-08T00:54:26+00:00",
+  "title": "Add five science tools: uncertainty, graph digitiser, plot maker, calibration curve, dose-response",
+  "tools": [
+   "calibration-curve",
+   "dose-response",
+   "graph-digitizer",
+   "plot-maker",
+   "uncertainty-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6144d90f6f03",
+  "date": "2026-11-08T00:17:38+00:00",
+  "title": "Change log page, folded phone menu and the tool total on the home page",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "1f682572169a",
+  "date": "2026-11-08T00:17:38+00:00",
+  "title": "Apache License 2.0 with a NOTICE file that credits fibub",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "abf6ac0670cb",
+  "date": "2026-11-08T00:03:23+00:00",
+  "title": "Reshape the site for hundreds of science tools",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "3af484d60492",
+  "date": "2026-11-07T23:45:40+00:00",
+  "title": "Black-and-white look, a light/dark switch on every page, red light beside it",
+  "tools": [
+   "object-altitude",
+   "polar-alignment",
+   "sky-tonight",
+   "star-trail-exposure",
+   "telescope-calculator"
+  ],
+  "site": true
+ },
+ {
+  "sha": "d47d1ad2f3a9",
+  "date": "2026-11-07T23:37:38+00:00",
+  "title": "Science menu: subjects, then sections, then tools; menu items wrap instead of overlapping",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "a1da6728b519",
+  "date": "2026-11-07T23:30:26+00:00",
+  "title": "Own time zone by default, true night-vision red, plain home index, only-my-tools view",
+  "tools": [
+   "fits-viewer"
+  ],
+  "site": true
+ },
+ {
+  "sha": "9e81ff89e27a",
+  "date": "2026-11-07T20:47:21+00:00",
+  "title": "Tool #numbers, the name's meaning, and the MIT License",
+  "tools": [
+   "astro-time",
+   "ats-resume-checker",
+   "bill-calendar",
+   "budget-calculator",
+   "compress-file",
+   "file-converter",
+   "fits-viewer",
+   "image-resizer",
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "loan-payoff-planner",
+   "object-altitude",
+   "observing-log",
+   "observing-session",
+   "planner",
+   "polar-alignment",
+   "prompt-pruner",
+   "resume-builder",
+   "sky-coordinates",
+   "sky-events-calendar",
+   "sky-tonight",
+   "star-trail-exposure",
+   "telescope-calculator",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "f7961efe02b2",
+  "date": "2026-11-07T20:33:01+00:00",
+  "title": "Bill calendar restores backups from the older expense calendar",
+  "tools": [
+   "bill-calendar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "72285ba5056f",
+  "date": "2026-11-07T20:28:31+00:00",
+  "title": "Bill calendar on the Money shelf, tests for the Science shelf, menu and bookmarks",
+  "tools": [
+   "bill-calendar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "11a3513fce7d",
+  "date": "2026-11-07T20:14:28+00:00",
+  "title": "Observing session page: pick astronomy tools, download together or one by one",
+  "tools": [
+   "observing-session"
+  ],
+  "site": false
+ },
+ {
+  "sha": "54b9b9a7732d",
+  "date": "2026-11-07T20:11:40+00:00",
+  "title": "Ten astronomy tools on the Science shelf, with PNG, PDF and Word downloads",
+  "tools": [
+   "astro-time",
+   "fits-viewer",
+   "object-altitude",
+   "observing-log",
+   "polar-alignment",
+   "sky-coordinates",
+   "sky-events-calendar",
+   "sky-tonight",
+   "star-trail-exposure",
+   "telescope-calculator"
+  ],
+  "site": true
+ },
+ {
+  "sha": "36860e75312b",
+  "date": "2026-11-07T19:53:25+00:00",
+  "title": "Phone tool list as a half-width side panel; bookmark button asks first",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "4e1fbfeb1b1c",
+  "date": "2026-11-07T19:50:16+00:00",
+  "title": "Science shelf, header drop-downs, phone tool list, bookmarks, related links, calmer cards",
+  "tools": [
+   "ats-resume-checker",
+   "compress-file",
+   "file-converter",
+   "image-resizer",
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "loan-payoff-planner",
+   "planner"
+  ],
+  "site": true
+ },
+ {
+  "sha": "3aba48b627df",
+  "date": "2026-11-07T18:45:23+00:00",
+  "title": "ATS resume builder",
+  "tools": [
+   "ats-resume-checker",
+   "resume-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e9692dde16e9",
+  "date": "2026-11-07T00:49:14+00:00",
+  "title": "Budget planner: trip or project, and monthly salary budget",
+  "tools": [
+   "budget-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ef3a92112b8d",
+  "date": "2026-11-07T00:49:14+00:00",
+  "title": "Loan payoff planner (replaces the EMI calculator idea)",
+  "tools": [
+   "loan-payoff-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "74511c8edccf",
+  "date": "2026-11-07T00:49:09+00:00",
+  "title": "Weekly and monthly planner",
+  "tools": [
+   "planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8fd6c17f6cf6",
+  "date": "2026-11-06T20:18:12+00:00",
+  "title": "ATS resume checker",
+  "tools": [
+   "ats-resume-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "75e5dc3d553f",
+  "date": "2026-11-06T20:02:11+00:00",
+  "title": "Add File converter",
+  "tools": [
+   "file-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f3eb713cd0b3",
+  "date": "2026-11-06T19:54:16+00:00",
+  "title": "Add Prompt pruner",
+  "tools": [
+   "data-cleaner",
+   "prompt-pruner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d421f11a74d8",
+  "date": "2026-11-06T19:45:21+00:00",
+  "title": "New black-and-white bubble logo, favicons and a share image for every tool",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "d9d3cfb0125e",
+  "date": "2026-11-06T19:40:11+00:00",
+  "title": "Add LinkedIn post formatter",
+  "tools": [
+   "linkedin-post-formatter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b259e55a577",
+  "date": "2026-11-06T19:35:56+00:00",
+  "title": "Add Link cleaner",
+  "tools": [
+   "link-cleaner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "62e5595ed6e8",
+  "date": "2026-11-06T17:15:09+00:00",
+  "title": "Fresher, more compact look on every screen",
+  "tools": [
+   "ats-resume-checker",
+   "budget-calculator",
+   "compress-file",
+   "currency-converter",
+   "data-cleaner",
+   "file-converter",
+   "image-resizer",
+   "link-cleaner",
+   "planner",
+   "qr-code-generator",
+   "sales-tax-calculator",
+   "time-zone-planner",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "958181ef8a20",
+  "date": "2026-11-06T17:00:38+00:00",
+  "title": "Label every tool 'Works offline' or 'Needs internet'",
+  "tools": [
+   "ats-resume-checker",
+   "budget-calculator",
+   "compress-file",
+   "currency-converter",
+   "data-cleaner",
+   "file-converter",
+   "image-resizer",
+   "link-cleaner",
+   "planner",
+   "qr-code-generator",
+   "sales-tax-calculator",
+   "time-zone-planner",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "a0302838dedd",
+  "date": "2026-11-06T16:55:14+00:00",
+  "title": "Fit-a-limit stops at no visible loss first; picture of the steps on each tool",
+  "tools": [
+   "compress-file",
+   "image-resizer",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "695a638b5f57",
+  "date": "2026-11-06T16:44:31+00:00",
+  "title": "Suggestion link on every tool page; data cleaner on the roadmap",
+  "tools": [
+   "data-cleaner"
+  ],
+  "site": true
+ },
+ {
+  "sha": "d7830313aed1",
+  "date": "2026-11-06T16:42:13+00:00",
+  "title": "Add 'Fit an upload limit' switch to the File compressor",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "c0d6d8ba0155",
+  "date": "2026-11-06T16:37:36+00:00",
+  "title": "Add Image resizer and ZIP checker; one File compressor page",
+  "tools": [
+   "ats-resume-checker",
+   "compress-file",
+   "file-converter",
+   "image-resizer",
+   "link-cleaner",
+   "planner",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "f11106205f57",
+  "date": "2026-11-06T16:12:10+00:00",
+  "title": "Compress any file type, add progress screen, stats and legal pages",
+  "tools": [
+   "compress-file"
+  ],
+  "site": true
+ },
+ {
+  "sha": "24096d69b584",
+  "date": "2026-11-06T15:50:34+00:00",
+  "title": "Set up fibub.com: site shell and in-browser PDF compressor",
+  "tools": [
+   "budget-calculator",
+   "currency-converter",
+   "qr-code-generator",
+   "sales-tax-calculator",
+   "time-zone-planner"
+  ],
+  "site": true
+ }
+]

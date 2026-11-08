@@ -1,0 +1,145 @@
+---
+// 4PL dose-response (EC50 / IC50) and ELISA standard curves, fitted in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dr">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <label>Dose or concentration, then one or more response columns (replicates). Paste from a spreadsheet.
+      <textarea class="dr-data" rows="9" spellcheck="false">Herbicide (mM)	Root length	Rep 2	Rep 3
+0	7.58	8	8.3286
+0	7.25	7.375	7.9625
+0.94	8.3556	6.9143	7.75
+1.88	6.8714	6.45	5.9222
+3.75	1.925	2.8857	4.2333
+7.5	1.1875	0.8571	1.0571
+15	0.6875	0.525	0.825
+30	0.25	0.22	0.44</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Dose unit <input class="dr-xu" value="mM" /></label>
+      <label>Response name <input class="dr-yu" value="Root length (cm)" /></label>
+      <label>Bottom <select class="dr-fb"><option value="">Fit it</option><option value="0">Fix at 0</option></select></label>
+      <label>Top <select class="dr-ft"><option value="">Fit it</option><option value="100">Fix at 100</option></select></label>
+      <label>Weighting <select class="dr-w"><option value="none">None</option><option value="y2">1/Y² (relative)</option></select></label>
+    </div>
+    <p class="ax-help">Fix the bottom at 0 or the top at 100 only when your data is normalised (per cent of control) and the curve does not reach that level on its own. Weight by 1/Y² when the scatter grows with the signal, as in many ELISAs.</p>
+    <p class="ax-err dr-err" hidden></p>
+  </div>
+
+  <div class="ax-card dr-out" hidden>
+    <h2>Fitted curve</h2>
+    <p class="ax-big dr-big"></p>
+    <dl class="ax-facts dr-facts"></dl>
+    <canvas class="ax-fig dr-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help dr-zero" hidden>Doses of zero are used in the fit but cannot be drawn on a log axis.</p>
+  </div>
+
+  <div class="ax-card dr-out" hidden>
+    <h2>Samples to read off the curve (ELISA)</h2>
+    <label>Responses, one sample per line, replicates on the same line; a name first is optional.
+      <textarea class="dr-unk" rows="3" spellcheck="false" placeholder="Sample 1: 4.2 4.4"></textarea></label>
+    <label style="margin-top:8px;max-width:220px">Dilution factor <input class="dr-dil" inputmode="decimal" value="1" /></label>
+    <div class="ax-scroll" style="margin-top:12px"><table class="dr-tab"></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { fitDose, type DoseFit } from '../../lib/sci/dose';
+  import { mean, sd } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.dr-err');
+  let fit: DoseFit | null = null, fig: Figure | null = null, report: Section[] = [];
+
+  function readData() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.dr-data').value);
+    const x: number[] = [], y: number[] = [];
+    for (const r of rows) {
+      const d = num(r[0]);
+      if (!Number.isFinite(d)) continue;
+      for (const c of r.slice(1)) { const v = num(c); if (Number.isFinite(v)) { x.push(d); y.push(v); } }
+    }
+    return { x, y };
+  }
+
+  function calc() {
+    err.hidden = true;
+    const { x, y } = readData();
+    const fb = q<HTMLSelectElement>('.dr-fb').value, ft = q<HTMLSelectElement>('.dr-ft').value;
+    const xu = q<HTMLInputElement>('.dr-xu').value.trim(), yu = q<HTMLInputElement>('.dr-yu').value.trim() || 'Response';
+    const unit = xu ? ` ${xu}` : '';
+    try {
+      if (x.length > 50000) throw new Error('That is more than 50,000 points. Is this the right data?');
+      const w = q<HTMLSelectElement>('.dr-w').value === 'y2' ? y.map((v) => (v !== 0 ? 1 / (v * v) : NaN)) : undefined;
+      if (w && w.some((v) => !Number.isFinite(v))) throw new Error('1/Y² weighting needs every response to be non-zero.');
+      fit = fitDose(x, y, { bottom: fb === '' ? undefined : Number(fb), top: ft === '' ? undefined : Number(ft) }, w);
+    } catch (e) {
+      fit = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.dr-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.dr-out').forEach((o) => (o.hidden = false));
+    const f = fit, label = f.rising ? 'EC50' : 'IC50';
+    q('.dr-big').textContent = `${label} = ${sig(f.ec50, 4)}${unit}`;
+    const facts: [string, string, string?][] = [
+      [`${label} (95 % interval)`, `${sig(f.ci.ec50[0], 3)} to ${sig(f.ci.ec50[1], 3)}${unit}`, `log ${label} = ${sig(f.logEc50, 4)} ± ${sig(f.se.logEc50, 2)} (SE)`],
+      ['Hill slope', `${sig(f.hill, 3)} ± ${sig(f.se.hill, 2)}`, f.rising ? 'rises with dose' : 'falls with dose (inhibition)'],
+      ['Bottom', fb !== '' ? `${fb} (fixed)` : `${sig(f.bottom, 4)} ± ${sig(f.se.bottom, 2)}`],
+      ['Top', ft !== '' ? `${ft} (fixed)` : `${sig(f.top, 4)} ± ${sig(f.se.top, 2)}`],
+      ['R²', f.r2.toFixed(4), `${f.n} points, ${f.df} degrees of freedom`],
+      ['Residual SD', sig(f.s, 3), f.converged ? 'fit converged' : 'fit stopped early: check the data'],
+    ];
+    if (f.ec50 < Math.min(...x.filter((v) => v > 0)) || f.ec50 > Math.max(...x)) facts.push(['Warning', `${label} is outside your doses`, 'the curve is extrapolated; add doses that bracket it']);
+    q('.dr-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+
+    // Means ± SD per dose for the picture; the fit used every replicate.
+    const doses = [...new Set(x)].sort((a, b) => a - b).filter((d) => d > 0);
+    const means = doses.map((d) => y.filter((_, i) => x[i] === d));
+    const lo = doses[0] / 2, hi = doses[doses.length - 1] * 2, curveX: number[] = [];
+    for (let i = 0; i <= 200; i++) curveX.push(lo * (hi / lo) ** (i / 200));
+
+    // Unknowns.
+    const dil = num(q<HTMLInputElement>('.dr-dil').value) || 1;
+    const ylo = Math.min(...doses.map((d) => f.f(d))), yhi = Math.max(...doses.map((d) => f.f(d)));
+    const unk = q<HTMLTextAreaElement>('.dr-unk').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+      const m = /^(.*?)[:\t]\s*(.*)$/.exec(l);
+      let name = `Sample ${i + 1}`, rest = l;
+      if (m && m[1] && Number.isNaN(num(m[1]))) { name = m[1].trim(); rest = m[2]; }
+      const vals = rest.split(/[\s,;]+/).map(num).filter(Number.isFinite);
+      const yv = vals.length ? mean(vals) : NaN, xv = f.inverse(yv);
+      const note = !Number.isFinite(xv) ? 'Outside the curve: beyond its top or bottom' : yv < ylo || yv > yhi ? 'Outside the standards: extrapolated' : 'OK';
+      return { name, n: vals.length, yv, xv, note };
+    }).filter((u) => u.n);
+    const rows = unk.map((u) => [u.name, String(u.n), sig(u.yv, 4), Number.isFinite(u.xv) ? sig(u.xv, 4) : '–', Number.isFinite(u.xv) ? sig(u.xv * dil, 4) : '–', u.note]);
+    const head = ['Sample', 'n', `Mean ${yu.toLowerCase()}`, `Conc.${unit}`, `× dilution (${dil})`, 'Note'];
+    const tb = q<HTMLTableElement>('.dr-tab'); tb.innerHTML = '';
+    if (rows.length) {
+      const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 0 && i < 5) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i > 0 && i < 5) td.className = 'r'; }); if (r[5] !== 'OK') tr.className = 'dim'; });
+    }
+    fig = chartFigure({ h: 380, xLog: true, xLabel: `Dose${xu ? ` (${xu})` : ''}`, yLabel: yu, series: [
+      { name: 'Mean ± SD', x: doses, y: means.map(mean), yErr: means.map((v) => (v.length > 1 ? sd(v) : 0)), marker: 'circle' },
+      { name: '4PL fit', x: curveX, y: curveX.map(f.f), mode: 'line' },
+      ...(unk.some((u) => Number.isFinite(u.xv) && u.xv > 0) ? [{ name: 'Samples', x: unk.map((u) => u.xv), y: unk.map((u) => u.yv), marker: 'open-square' as const }] : []),
+    ], marks: [{ kind: 'vline', at: f.ec50, label: label }] }, `Dose-response curve with ${label} ${sig(f.ec50, 3)}`);
+    paint(q<HTMLCanvasElement>('.dr-fig'), fig);
+    q('.dr-zero').hidden = !x.some((v) => v === 0);
+    report = [
+      { title: 'Four-parameter logistic fit', text: [`Model: y = Bottom + (Top − Bottom) / (1 + (${label} / x)^Hill), least squares${q<HTMLSelectElement>('.dr-w').value === 'y2' ? ' weighted by 1/Y²' : ''}.`], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), figure: fig },
+      ...(rows.length ? [{ title: 'Samples', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] } }] : []),
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.dr-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Dose-response (4PL) fit', subtitle: q('.dr-big').textContent ?? '', file: 'dose-response', sections: report }));
+</script>

@@ -1,9 +1,7 @@
 // Runs on every page: the tool list (☰ Tools) and "My tools", the list of tools a person has
 // bookmarked. My tools is kept only in this browser (localStorage) and can be cleared from the list.
+import { loadIndex, rank, row, type Entry } from './find';
 const KEY = 'fibub-mytools-v1';
-
-/** One search word against a tool: "#3" finds tool number 3 only; "3" finds it too, or any tool whose text has a 3 in it. */
-export const matches = (el: HTMLElement, w: string) => (/^#\d+$/.test(w) ? el.dataset.num === w.slice(1) : (/^\d+$/.test(w) && el.dataset.num === w) || el.dataset.search!.includes(w));
 
 export function myTools(): string[] {
   try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; }
@@ -25,22 +23,52 @@ export function setFocus(on: boolean) {
   document.dispatchEvent(new CustomEvent('fibub:focus', { detail: on }));
 }
 
+// Stars next to tools (home and subject pages): add or remove the tool from My tools.
+document.addEventListener('click', (e) => {
+  const p = (e.target as HTMLElement).closest<HTMLElement>('.pin'); if (!p) return;
+  const id = p.closest<HTMLElement>('[data-id]')?.dataset.id; if (id) togglePin(id);
+});
+const syncStars = () => {
+  const ids = myTools();
+  document.querySelectorAll<HTMLButtonElement>('.ti[data-id] > .pin').forEach((p) => {
+    const li = p.parentElement!, on = ids.includes(li.dataset.id!), name = li.querySelector('.nm')?.textContent ?? 'this tool';
+    p.setAttribute('aria-pressed', String(on));
+    p.setAttribute('aria-label', on ? `Remove ${name} from My tools` : `Add ${name} to My tools`);
+    p.title = on ? 'Remove from My tools' : 'Add to My tools';
+  });
+};
+syncStars();
+document.addEventListener('fibub:mytools', syncStars);
+
+/** The starred tools, in the order they were added, as index entries. */
+export async function myEntries(): Promise<Entry[]> {
+  const ids = myTools(); if (!ids.length) return [];
+  const all = await loadIndex();
+  return ids.map((id) => all.find((e) => e.id === id)).filter((e): e is Entry => !!e);
+}
+
+// The Tools panel: search every tool, My tools, and the shelves (Science opens to its subjects).
 const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
 const panel = document.querySelector<HTMLElement>('#all-tools');
 
 if (btn && panel) {
   const search = panel.querySelector<HTMLInputElement>('.at-search')!;
-  const items = [...panel.querySelectorAll<HTMLAnchorElement>('.at-shelf .at-item')];
+  const results = panel.querySelector<HTMLElement>('.at-results')!;
+  const browse = panel.querySelector<HTMLElement>('.at-browse')!;
   const mine = panel.querySelector<HTMLElement>('.at-mine')!;
   const mineList = panel.querySelector<HTMLElement>('.at-mine-list')!;
   const empty = panel.querySelector<HTMLElement>('.at-empty')!;
+  const focusBtn = panel.querySelector<HTMLButtonElement>('.at-focus')!;
+  const total = Number(panel.dataset.total);
+  let hits: Entry[] = [];
 
   const open = (show: boolean) => {
     panel.hidden = !show;
-    btn.setAttribute('aria-expanded', String(show));
-    if (show) renderMine();
+    document.querySelectorAll('.menu-btn, .find-btn').forEach((b) => b.setAttribute('aria-expanded', String(show)));
+    if (show) { loadIndex(); renderMine(); }
   };
   btn.addEventListener('click', () => open(panel.hidden));
+  document.querySelector('.find-btn')?.addEventListener('click', () => { open(panel.hidden); if (!panel.hidden) search.focus(); });
   panel.querySelector('.at-close')!.addEventListener('click', () => { open(false); btn.focus(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !panel.hidden) { open(false); btn.focus(); }
@@ -51,38 +79,31 @@ if (btn && panel) {
     }
   });
 
-  search.addEventListener('input', () => {
-    const words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
-    let shown = 0;
-    for (const a of items) { const ok = words.every((w) => matches(a, w)); a.hidden = !ok; if (ok) shown++; }
-    panel.querySelectorAll<HTMLElement>('.at-group').forEach((g) => (g.hidden = !g.querySelector('.at-item:not([hidden])')));
-    panel.querySelectorAll<HTMLElement>('.at-shelf').forEach((s) => (s.hidden = !s.querySelector('.at-item:not([hidden])')));
-    mine.hidden = words.length > 0 || !mineList.children.length;
-    panel.classList.toggle('focus', focusOn() && !words.length);
-    empty.hidden = shown > 0;
-  });
-  search.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { const first = items.find((a) => !a.hidden); if (first) location.href = first.href; }
-  });
-
-  function renderMine() {
-    const ids = myTools();
-    mineList.replaceChildren(...ids.map((id) => items.find((a) => a.dataset.id === id)).filter(Boolean).map((a) => {
-      const c = a!.cloneNode(true) as HTMLAnchorElement;
-      c.hidden = false;
-      const shelf = a!.closest<HTMLElement>('.at-shelf')!;
-      c.style.setProperty('--c', getComputedStyle(shelf).getPropertyValue('--c'));
-      return c;
-    }));
-    mine.hidden = !mineList.children.length || search.value.trim() !== '';
-    const f = focusOn() && !search.value.trim();
-    panel.classList.toggle('focus', f);
-    focusBtn.textContent = f ? `Show all ${items.length} tools` : 'Show only my tools';
+  const searching = () => search.value.trim() !== '';
+  async function find() {
+    const q = search.value;
+    hits = searching() ? rank(await loadIndex(), q) : [];
+    if (q !== search.value) return; // a newer keystroke is on its way
+    results.replaceChildren(...hits.slice(0, 40).map((e) => row(e, { place: true })));
+    results.hidden = !searching();
+    empty.hidden = !searching() || hits.length > 0;
+    browse.hidden = searching() || (focusOn() && myTools().length > 0);
+    renderMine();
   }
-  const focusBtn = panel.querySelector<HTMLButtonElement>('.at-focus')!;
+  search.addEventListener('input', find);
+  search.addEventListener('keydown', (e) => { if (e.key === 'Enter' && hits[0]) location.href = hits[0].u; });
+
+  async function renderMine() {
+    const list = await myEntries();
+    mineList.replaceChildren(...list.map((e) => row(e, { place: true })));
+    mine.hidden = !list.length || searching();
+    const f = focusOn() && !searching();
+    browse.hidden = searching() || f;
+    focusBtn.textContent = f ? `Show all ${total} tools` : 'Show only my tools';
+  }
   focusBtn.addEventListener('click', () => setFocus(!focusOn()));
   document.addEventListener('fibub:focus', renderMine);
-  panel.querySelector('.at-clear')!.addEventListener('click', () => { setMyTools([]); setFocus(false); renderMine(); });
+  panel.querySelector('.at-clear')!.addEventListener('click', () => { setMyTools([]); setFocus(false); });
   document.addEventListener('fibub:mytools', renderMine);
 }
 

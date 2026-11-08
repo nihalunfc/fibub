@@ -1,0 +1,319 @@
+---
+// Graph digitiser: get numbers back out of a picture of a plot. The picture never leaves the device.
+import '../../styles/astro.css';
+---
+<div class="ax gd">
+  <div class="ax-card gd-load">
+    <h2>1. Open a picture of a graph</h2>
+    <label class="gd-drop">
+      <input type="file" class="gd-file" accept="image/*" />
+      <b>Choose an image</b> or drop it here. You can also paste a screenshot (Ctrl+V or ⌘V).
+    </label>
+    <p class="ax-err gd-err" hidden></p>
+  </div>
+
+  <div class="gd-work" hidden>
+    <div class="ax-card">
+      <div class="gd-steps ax-seg" role="group" aria-label="Mode">
+        <button type="button" data-mode="axes" aria-pressed="true">2. Set the axes</button>
+        <button type="button" data-mode="points" aria-pressed="false">3. Click points</button>
+        <button type="button" data-mode="auto" aria-pressed="false">Or find them by colour</button>
+      </div>
+      <p class="gd-hint"></p>
+
+      <div class="gd-axes">
+        <div class="gd-ax">
+          <span>x axis</span>
+          <label>First value <input class="gd-v" data-k="x1" inputmode="decimal" /></label>
+          <label>Second value <input class="gd-v" data-k="x2" inputmode="decimal" /></label>
+          <label class="ax-check"><input type="checkbox" class="gd-xlog" /> Log scale</label>
+        </div>
+        <div class="gd-ax">
+          <span>y axis</span>
+          <label>First value <input class="gd-v" data-k="y1" inputmode="decimal" /></label>
+          <label>Second value <input class="gd-v" data-k="y2" inputmode="decimal" /></label>
+          <label class="ax-check"><input type="checkbox" class="gd-ylog" /> Log scale</label>
+        </div>
+      </div>
+
+      <div class="gd-auto" hidden>
+        <div class="ax-row">
+          <span class="gd-swatch" aria-label="Picked colour"></span>
+          <span class="gd-pick-t">Tap the curve or a marker to pick its colour.</span>
+        </div>
+        <div class="ax-grid" style="margin-top:8px">
+          <label>Shape <select class="gd-kind"><option value="line">A line</option><option value="markers">Separate markers</option></select></label>
+          <label>Colour tolerance <input type="range" class="gd-tol" min="10" max="160" value="60" /></label>
+          <label>Every … pixels (lines) <input class="gd-step" inputmode="numeric" value="5" /></label>
+        </div>
+        <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small gd-run">Find points</button><span class="ax-help gd-found"></span></div>
+      </div>
+
+      <div class="gd-stage">
+        <div class="gd-scroll"><canvas class="gd-cv"></canvas></div>
+        <canvas class="gd-loupe" width="128" height="128" hidden></canvas>
+      </div>
+      <div class="ax-row" style="margin-top:8px">
+        <span class="ax-help" style="margin:0">Zoom</span>
+        <div class="ax-seg gd-zoom"><button type="button" data-z="1" aria-pressed="true">Fit</button><button type="button" data-z="2" aria-pressed="false">2×</button><button type="button" data-z="4" aria-pressed="false">4×</button></div>
+        <button type="button" class="btn secondary small gd-undo">Undo</button>
+        <button type="button" class="btn secondary small gd-new">New image</button>
+      </div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Your data</h2>
+      <div class="ax-row">
+        <label>Series <select class="gd-series"></select></label>
+        <button type="button" class="btn secondary small gd-add">Add a series</button>
+        <label class="ax-check"><input type="checkbox" class="gd-sort" checked /> Sort by x</label>
+      </div>
+      <div class="ax-scroll gd-tabwrap"><table class="gd-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small gd-copy">Copy (paste into Excel)</button>
+        <button type="button" class="btn secondary small gd-csv">Download CSV</button>
+        <button type="button" class="btn secondary small gd-clear">Clear this series</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .gd-drop { display: block; padding: 28px 16px; border: 2px dashed var(--line); border-radius: 12px; text-align: center; cursor: pointer; color: var(--muted) !important; }
+  .gd-drop b { color: var(--ink); }
+  .gd-drop.over { border-color: var(--ink); }
+  .gd-drop input { display: block; margin: 0 auto 10px; }
+  .gd-hint { margin: 10px 0; font-size: 15px; }
+  .gd-axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px 16px; margin-bottom: 10px; }
+  .gd-ax { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 8px; align-items: end; }
+  .gd-ax > span { font-weight: 700; align-self: center; }
+  .gd-ax .ax-check { grid-column: 2 / -1; }
+  .gd-stage { position: relative; }
+  .gd-scroll { overflow: auto; max-height: 75vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; touch-action: pan-x pan-y; }
+  .gd-cv { display: block; width: 100%; cursor: crosshair; }
+  .gd-loupe { position: absolute; width: 128px; height: 128px; border-radius: 50%; border: 2px solid var(--ink); pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+  .gd-swatch { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: repeating-linear-gradient(45deg, var(--bg) 0 4px, var(--line) 4px 8px); }
+  .gd-tabwrap { max-height: 360px; margin-top: 10px; }
+  .gd-tab button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; }
+</style>
+
+<script>
+  import { makeMap, traceLine, findMarkers, type Axes, type Pt } from '../../lib/sci/digitize';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.gd-cv'), ctx = cv.getContext('2d')!, loupe = q<HTMLCanvasElement>('.gd-loupe'), lctx = loupe.getContext('2d')!;
+  const scroll = q('.gd-scroll');
+  let img: HTMLImageElement | null = null, pixels: ImageData | null = null, zoom = 1;
+  type Mode = 'axes' | 'points' | 'auto';
+  let mode: Mode = 'axes';
+  // Axis clicks: x1, x2, y1, y2 in image pixels.
+  const axisPts: Partial<Record<'x1' | 'x2' | 'y1' | 'y2', Pt>> = {};
+  const ORDER = ['x1', 'x2', 'y1', 'y2'] as const;
+  const series: { name: string; pts: Pt[] }[] = [{ name: 'Series 1', pts: [] }];
+  let cur = 0, colour: [number, number, number] | null = null;
+  const history: (() => void)[] = [];
+
+  // ---------- Loading ----------
+  function load(file: Blob) {
+    if (!file.type.startsWith('image/')) { showErr('That file is not an image. Use PNG, JPG, GIF, WebP or BMP.'); return; }
+    if (file.size > 40 * 1024 * 1024) { showErr('That image is over 40 MB. Crop or shrink it first.'); return; }
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      img = im; cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+      const tmp = document.createElement('canvas'); tmp.width = cv.width; tmp.height = cv.height;
+      const t = tmp.getContext('2d', { willReadFrequently: true })!; t.drawImage(im, 0, 0); pixels = t.getImageData(0, 0, tmp.width, tmp.height);
+      q('.gd-err').hidden = true; q('.gd-load').hidden = true; q('.gd-work').hidden = false;
+      for (const k of ORDER) delete axisPts[k];
+      series.length = 0; series.push({ name: 'Series 1', pts: [] }); cur = 0; history.length = 0; colour = null;
+      setMode('axes'); setZoom(1); draw(); table();
+    };
+    im.onerror = () => showErr('This image could not be opened. Try saving it as PNG or JPG.');
+    im.src = url;
+  }
+  const showErr = (m: string) => { const e = q('.gd-err'); e.textContent = m; e.hidden = false; };
+  q<HTMLInputElement>('.gd-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) load(f); });
+  const drop = q('.gd-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) load(f); });
+  document.addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith('image/')); if (f) { e.preventDefault(); load(f); } });
+  q('.gd-new').addEventListener('click', () => { q('.gd-load').hidden = false; q('.gd-work').hidden = true; q<HTMLInputElement>('.gd-file').value = ''; });
+
+  // ---------- Modes and hints ----------
+  function setMode(m: Mode) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.gd-steps button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    q('.gd-axes').hidden = m !== 'axes'; q('.gd-auto').hidden = m !== 'auto';
+    hint();
+  }
+  function hint() {
+    const next = ORDER.find((k) => !axisPts[k]);
+    const names = { x1: 'a first point on the x axis (a labelled tick)', x2: 'a second point on the x axis, far from the first', y1: 'a first point on the y axis', y2: 'a second point on the y axis, far from the first' };
+    q('.gd-hint').textContent = mode === 'axes'
+      ? next ? `Tap ${names[next]}, then type its value below.` : 'Axes set. Type the four values below, then go to step 3. Tap an axis point again to move it: the nearest one moves.'
+      : mode === 'points' ? (mapper() ? `Tap each data point of ${series[cur].name}. Hold and drag to aim with the magnifier.` : 'Set the axes first: four points and their values.')
+      : (mapper() ? 'Tap the curve or a marker to pick its colour, then press Find points.' : 'Set the axes first: four points and their values.');
+  }
+  root.querySelectorAll<HTMLButtonElement>('.gd-steps button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode as Mode)));
+
+  function axes(): Axes | null {
+    const v = (k: string) => num(root.querySelector<HTMLInputElement>(`.gd-v[data-k=${k}]`)!.value);
+    if (ORDER.some((k) => !axisPts[k]) || ORDER.some((k) => !Number.isFinite(v(k)))) return null;
+    return { x1: { ...axisPts.x1!, value: v('x1') }, x2: { ...axisPts.x2!, value: v('x2') }, y1: { ...axisPts.y1!, value: v('y1') }, y2: { ...axisPts.y2!, value: v('y2') }, xLog: q<HTMLInputElement>('.gd-xlog').checked, yLog: q<HTMLInputElement>('.gd-ylog').checked };
+  }
+  let axisError = '';
+  function mapper() {
+    const a = axes(); axisError = '';
+    if (!a) return null;
+    try { return makeMap(a); } catch (e) { axisError = (e as Error).message; return null; }
+  }
+  root.querySelectorAll('.gd-v, .gd-xlog, .gd-ylog').forEach((el) => el.addEventListener('input', () => { table(); hint(); draw(); if (axisError) showAxisErr(); }));
+  const showAxisErr = () => { q('.gd-hint').textContent = axisError; };
+
+  // ---------- Drawing ----------
+  const scale = () => cv.width / cv.getBoundingClientRect().width || 1;
+  function draw() {
+    if (!img) return;
+    ctx.drawImage(img, 0, 0);
+    const s = scale(), r = 5 * s;
+    ctx.lineWidth = 2 * s;
+    for (const k of ORDER) {
+      const p = axisPts[k]; if (!p) continue;
+      ctx.strokeStyle = k.startsWith('x') ? '#0072B2' : '#D55E00';
+      ctx.beginPath(); ctx.moveTo(p.x - 3 * r, p.y); ctx.lineTo(p.x + 3 * r, p.y); ctx.moveTo(p.x, p.y - 3 * r); ctx.lineTo(p.x, p.y + 3 * r); ctx.stroke();
+      ctx.fillStyle = ctx.strokeStyle; ctx.font = `700 ${13 * s}px system-ui, sans-serif`; ctx.fillText(k.toUpperCase(), p.x + 4 * s, p.y - 4 * s);
+    }
+    const COLS = ['#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000'];
+    series.forEach((se, i) => {
+      ctx.fillStyle = COLS[i % COLS.length]; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2 * s;
+      for (const p of se.pts) { ctx.beginPath(); ctx.arc(p.x, p.y, (i === cur ? 4.5 : 3.5) * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    });
+  }
+  function setZoom(z: number) {
+    zoom = z;
+    // Fit: the whole picture in view (full width, but no taller than the box). 2× and 4× zoom in from there.
+    const fit = img ? `min(100%, calc(75vh * ${img.naturalWidth / img.naturalHeight}))` : '100%';
+    cv.style.width = z === 1 ? fit : `calc(${fit} * ${z})`;
+    root.querySelectorAll<HTMLButtonElement>('.gd-zoom button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.z) === z)));
+    requestAnimationFrame(draw);
+  }
+  root.querySelectorAll<HTMLButtonElement>('.gd-zoom button').forEach((b) => b.addEventListener('click', () => setZoom(Number(b.dataset.z))));
+  window.addEventListener('resize', () => requestAnimationFrame(draw));
+
+  // ---------- Pointer: a magnifier while aiming, a point on release ----------
+  const imgPt = (e: PointerEvent): Pt => { const b = cv.getBoundingClientRect(), s = cv.width / b.width; return { x: (e.clientX - b.left) * s, y: (e.clientY - b.top) * s }; };
+  function showLoupe(e: PointerEvent, p: Pt) {
+    if (!img) return;
+    const stage = q('.gd-stage').getBoundingClientRect(), touch = e.pointerType !== 'mouse';
+    loupe.hidden = false;
+    let lx = e.clientX - stage.left + 20, ly = e.clientY - stage.top - (touch ? 150 : 140);
+    if (ly < 0) ly = e.clientY - stage.top + 30;
+    lx = Math.min(lx, stage.width - 130);
+    loupe.style.left = `${lx}px`; loupe.style.top = `${ly}px`;
+    const z = 4, w = 128 / z;
+    lctx.imageSmoothingEnabled = false;
+    lctx.fillStyle = '#fff'; lctx.fillRect(0, 0, 128, 128);
+    lctx.drawImage(cv, p.x - w / 2, p.y - w / 2, w, w, 0, 0, 128, 128);
+    lctx.strokeStyle = '#D55E00'; lctx.lineWidth = 1;
+    lctx.beginPath(); lctx.moveTo(64, 0); lctx.lineTo(64, 54); lctx.moveTo(64, 74); lctx.lineTo(64, 128); lctx.moveTo(0, 64); lctx.lineTo(54, 64); lctx.moveTo(74, 64); lctx.lineTo(128, 64); lctx.stroke();
+  }
+  let aiming: number | null = null;
+  // On touch screens, a finger hides what it touches: aim with the magnifier, place on lift.
+  cv.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') { aiming = e.pointerId; cv.setPointerCapture(e.pointerId); showLoupe(e, imgPt(e)); e.preventDefault(); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse' || aiming === e.pointerId) showLoupe(e, imgPt(e));
+  });
+  cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') loupe.hidden = true; });
+  cv.addEventListener('pointerup', (e) => {
+    if (e.pointerType !== 'mouse' && aiming !== e.pointerId) return;
+    aiming = null;
+    if (e.pointerType !== 'mouse') loupe.hidden = true;
+    place(imgPt(e));
+  });
+  cv.addEventListener('pointercancel', () => { aiming = null; loupe.hidden = true; });
+
+  function place(p: Pt) {
+    if (!img || p.x < 0 || p.y < 0 || p.x > cv.width || p.y > cv.height) return;
+    if (mode === 'axes') {
+      let k = ORDER.find((x) => !axisPts[x]);
+      if (!k) k = ORDER.reduce((a, b) => (Math.hypot(axisPts[a]!.x - p.x, axisPts[a]!.y - p.y) <= Math.hypot(axisPts[b]!.x - p.x, axisPts[b]!.y - p.y) ? a : b));
+      const prev = axisPts[k]; axisPts[k] = p;
+      history.push(() => { if (prev) axisPts[k!] = prev; else delete axisPts[k!]; });
+      root.querySelector<HTMLInputElement>(`.gd-v[data-k=${k}]`)!.focus({ preventScroll: true });
+      if (ORDER.every((x) => axisPts[x]) && mapper() && !series.some((s) => s.pts.length)) setMode('points');
+    } else if (mode === 'points') {
+      if (!mapper()) { hint(); return; }
+      const se = series[cur]; se.pts.push(p); history.push(() => se.pts.pop());
+    } else if (mode === 'auto' && pixels) {
+      const i = (Math.floor(p.y) * pixels.width + Math.floor(p.x)) * 4, d = pixels.data;
+      colour = [d[i], d[i + 1], d[i + 2]];
+      q('.gd-swatch').style.background = `rgb(${colour.join(',')})`;
+      q('.gd-pick-t').textContent = `Picked rgb(${colour.join(', ')}). Press Find points.`;
+    }
+    hint(); draw(); table();
+  }
+
+  q('.gd-run').addEventListener('click', () => {
+    const map = mapper();
+    if (!map || !pixels) { hint(); return; }
+    if (!colour) { q('.gd-found').textContent = 'Pick a colour first: tap the curve.'; return; }
+    // Search only inside the box spanned by the four axis points, so legends and labels are skipped.
+    const xs = ORDER.map((k) => axisPts[k]!.x), ys = ORDER.map((k) => axisPts[k]!.y);
+    const box = { x0: Math.min(...xs) + 2, x1: Math.max(...xs) + 2, y0: Math.min(...ys) - 2, y1: Math.max(...ys) - 2 };
+    const tol = Number(q<HTMLInputElement>('.gd-tol').value);
+    const found = q<HTMLSelectElement>('.gd-kind').value === 'line' ? traceLine(pixels, box, colour, tol, Math.max(1, num(q<HTMLInputElement>('.gd-step').value) || 5)) : findMarkers(pixels, box, colour, tol);
+    if (found.length > 5000) found.length = 5000;
+    const se = series[cur], before = se.pts.length;
+    se.pts.push(...found); history.push(() => { se.pts.length = before; });
+    q('.gd-found').textContent = found.length ? `Added ${found.length} points to ${se.name}. Undo removes them all.` : 'Nothing of that colour was found inside the axes. Raise the tolerance or pick again.';
+    draw(); table();
+  });
+
+  // ---------- The table ----------
+  function rows(i = cur) {
+    const map = mapper(); if (!map) return [];
+    const r = series[i].pts.map((p) => map(p));
+    return q<HTMLInputElement>('.gd-sort').checked ? r.sort((a, b) => a.x - b.x) : r;
+  }
+  function table() {
+    const sel = q<HTMLSelectElement>('.gd-series');
+    sel.replaceChildren(...series.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: `${s.name} (${s.pts.length})`, selected: i === cur })));
+    const tb = q<HTMLTableElement>('.gd-tab'); tb.innerHTML = '';
+    const r = rows();
+    if (!r.length) { const p = document.createElement('caption'); p.className = 'ax-help'; p.style.textAlign = 'left'; p.textContent = mapper() ? 'No points yet.' : 'Points appear here once the axes are set.'; tb.append(p); return; }
+    const hr = tb.createTHead().insertRow(); ['#', 'x', 'y', ''].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1 || i === 2) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    const map = mapper()!;
+    const order = series[cur].pts.map((p, i) => ({ i, v: map(p) }));
+    if (q<HTMLInputElement>('.gd-sort').checked) order.sort((a, b) => a.v.x - b.v.x);
+    order.forEach((o, n) => {
+      const tr = body.insertRow();
+      [String(n + 1), sig(o.v.x, 5), sig(o.v.y, 5)].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; });
+      const del = document.createElement('button'); del.type = 'button'; del.textContent = '×'; del.setAttribute('aria-label', `Remove point ${n + 1}`);
+      del.addEventListener('click', () => { const se = series[cur], p = se.pts.splice(o.i, 1)[0]; history.push(() => se.pts.splice(o.i, 0, p)); draw(); table(); });
+      tr.insertCell().append(del);
+    });
+  }
+  q('.gd-series').addEventListener('change', (e) => { cur = Number((e.target as HTMLSelectElement).value); draw(); table(); hint(); });
+  q('.gd-add').addEventListener('click', () => { series.push({ name: `Series ${series.length + 1}`, pts: [] }); cur = series.length - 1; history.push(() => { series.pop(); cur = Math.min(cur, series.length - 1); }); if (mapper()) setMode('points'); table(); draw(); });
+  q('.gd-sort').addEventListener('change', table);
+  q('.gd-undo').addEventListener('click', () => { history.pop()?.(); draw(); table(); hint(); });
+  q('.gd-clear').addEventListener('click', () => { const se = series[cur], old = se.pts.slice(); se.pts.length = 0; history.push(() => se.pts.push(...old)); draw(); table(); });
+  const allRows = () => {
+    const out: (string | number)[][] = [];
+    series.forEach((s, i) => rows(i).forEach((p) => out.push([s.name, +p.x.toPrecision(6), +p.y.toPrecision(6)])));
+    return out;
+  };
+  q('.gd-copy').addEventListener('click', async () => {
+    const r = allRows(); if (!r.length) return;
+    const text = (series.length > 1 ? 'series\tx\ty\n' : 'x\ty\n') + r.map((x) => (series.length > 1 ? x : x.slice(1)).join('\t')).join('\n');
+    try { await navigator.clipboard.writeText(text); q('.gd-copy').textContent = 'Copied'; setTimeout(() => (q('.gd-copy').textContent = 'Copy (paste into Excel)'), 1500); } catch { /* clipboard blocked */ }
+  });
+  q('.gd-csv').addEventListener('click', () => { const r = allRows(); if (r.length) save(new TextEncoder().encode(csv([['series', 'x', 'y'], ...r])), 'digitised-data.csv', 'text/csv'); });
+  hint();
+</script>

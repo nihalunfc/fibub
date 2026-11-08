@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { SECTIONS, sectionLabel } from '../site';
+import { SECTIONS, SUBJECTS, sectionLabel } from '../site';
 
 export type Tool = CollectionEntry<'tools'>;
 
@@ -20,6 +20,8 @@ export async function allTools() {
     if (t.data.status === 'live' && !t.data.flow) throw new Error(`Tool "${t.id}" is live but has no flow (the picture of its steps) in guide.md`);
     for (const r of t.data.related) if (!ids.has(r)) throw new Error(`Tool "${t.id}" lists unknown related tool "${r}"`);
     if (t.data.section && !SECTIONS[t.data.shelf]?.some((s) => s.id === t.data.section)) throw new Error(`Tool "${t.id}" has unknown section "${t.data.section}" for shelf "${t.data.shelf}"`);
+    if (SUBJECTS[t.data.shelf]?.some((s) => s.id === t.id)) throw new Error(`Tool id "${t.id}" is also a subject id: both would live at /${t.data.shelf}/${t.id}/`);
+    if (t.data.status === 'live' && SUBJECTS[t.data.shelf] && !t.data.section) throw new Error(`Tool "${t.id}" is on the ${t.data.shelf} shelf but has no section (see SECTIONS in src/site.ts)`);
   }
   const live = (t: Tool) => (t.data.status === 'live' ? 0 : 1);
   return tools.sort((a, b) => live(a) - live(b) || a.data.order - b.data.order || a.data.name.localeCompare(b.data.name));
@@ -44,21 +46,33 @@ export function relatedTools(tool: Tool, tools: Tool[], max = 6) {
 /** Live and coming tools on a shelf, grouped by section (tools without one go in a final group). */
 export function bySection(shelf: string, tools: Tool[]) {
   const mine = tools.filter((t) => t.data.shelf === shelf);
-  const groups: { id: string; name: string; blurb: string; subject?: string; label: string; tools: Tool[] }[] =
-    (SECTIONS[shelf] ?? []).map((s) => ({ ...s, label: sectionLabel(s), tools: mine.filter((t) => t.data.section === s.id) }));
+  const groups: { id: string; name: string; blurb?: string; subject?: string; label: string; tools: Tool[] }[] =
+    (SECTIONS[shelf] ?? []).map((s) => ({ ...s, label: sectionLabel(s, shelf), tools: mine.filter((t) => t.data.section === s.id) }));
   const rest = mine.filter((t) => !t.data.section || !groups.some((g) => g.id === t.data.section));
-  if (rest.length) groups.push({ id: 'other', name: groups.length ? 'More tools' : '', label: groups.length ? 'More tools' : '', blurb: '', tools: rest });
+  if (rest.length) groups.push({ id: 'other', name: groups.length ? 'More tools' : '', label: groups.length ? 'More tools' : '', tools: rest });
   return groups.filter((g) => g.tools.length);
 }
 
-/** The same groups, gathered by subject (Astronomy, ...). Sections without a subject share one unnamed subject. */
-export function bySubject(shelf: string, tools: Tool[]) {
-  const out: { subject: string; groups: ReturnType<typeof bySection> }[] = [];
-  for (const g of bySection(shelf, tools)) {
-    const name = g.subject ?? '';
-    let s = out.find((x) => x.subject === name);
-    if (!s) out.push((s = { subject: name, groups: [] }));
-    s.groups.push(g);
-  }
-  return out;
+export type SubjectGroup = { id: string; name: string; blurb: string; url: string; count: number; groups: ReturnType<typeof bySection> };
+export const subjectUrl = (shelf: string, id: string) => `/${shelf}/${id}/`;
+
+/**
+ * The same groups, gathered by subject (Physics, Astronomy, ...), in the order of SUBJECTS. Only
+ * subjects with tools are returned. On a shelf without subjects, everything is one unnamed subject.
+ */
+export function bySubject(shelf: string, tools: Tool[]): SubjectGroup[] {
+  const groups = bySection(shelf, tools);
+  const subs = SUBJECTS[shelf];
+  if (!subs) return groups.length ? [{ id: '', name: '', blurb: '', url: `/${shelf}/`, count: groups.reduce((n, g) => n + g.tools.length, 0), groups }] : [];
+  return subs.map((s) => {
+    const gs = groups.filter((g) => g.subject === s.id);
+    return { ...s, url: subjectUrl(shelf, s.id), count: gs.reduce((n, g) => n + g.tools.length, 0), groups: gs };
+  }).filter((s) => s.count);
+}
+
+/** Where a tool sits, for search results and the tool page: "Science › Physics › Optics and photonics". */
+export function toolPlace(t: Tool) {
+  const sec = SECTIONS[t.data.shelf]?.find((s) => s.id === t.data.section);
+  const sj = SUBJECTS[t.data.shelf]?.find((s) => s.id === sec?.subject);
+  return { section: sec, subject: sj };
 }

@@ -1,25 +1,38 @@
 ---
-// The home page: a short line about fibub, a search box, and a plain index of every tool by shelf.
-// People can star the tools they use ("My tools") and switch to seeing only those.
+// The home page stays short however many tools there are: a search box that finds any tool, the
+// visitor's own starred tools ("My tools"), and one block per shelf. Small shelves list their tools;
+// Science lists its subjects, each linking to its own page.
 import Base from '../layouts/Base.astro';
-import { SITE, SHELVES } from '../site';
+import { SITE, SHELVES, SUBJECTS } from '../site';
 import { ICONS } from '../lib/icons';
 import { allTools, bySubject, toolUrl } from '../lib/tools';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const soon = tools.filter((t) => t.data.status === 'soon');
-const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live) })).filter((s) => s.subjects.length);
+const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live), hasSubjects: !!SUBJECTS[s.id], count: live.filter((t) => t.data.shelf === s.id).length })).filter((s) => s.count);
+const newest = [...live].sort((a, b) => (b.data.num ?? 0) - (a.data.num ?? 0)).slice(0, 5);
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
 <Base title={SITE.name}>
   <section class="hero">
-    <h1>Free tools that never see your files</h1>
-    <p class="lead">{live.length} tools for documents, money, everyday tasks and science. They all run in your browser: nothing is uploaded, nothing about you is saved, and there is no sign-up.</p>
-    <label class="search">
+    <div class="hero-top">
+      <div>
+        <h1>Free tools that never see your files</h1>
+        <p class="lead">Tools for documents, money, everyday tasks and science. They all run in your browser: nothing is uploaded, nothing about you is saved, and there is no sign-up.</p>
+      </div>
+      <p class="total"><b>{live.length}</b><span>free tools, each with its own number</span></p>
+    </div>
+    <label class="find">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
       <span class="visually-hidden">Find a tool</span>
       <input type="search" placeholder="Find a tool, or #3" autocomplete="off" />
     </label>
+  </section>
+
+  <section class="hits" hidden aria-live="polite">
+    <p class="hits-n"></p>
+    <ul class="ix hits-list"></ul>
+    <p class="empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
   </section>
 
   <section class="mine" hidden aria-labelledby="mine-h">
@@ -35,120 +48,121 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   </section>
 
   <div class="dir">
-    {shelves.map(({ shelf, subjects }) => (
-      <section class="sh" data-shelf={shelf.id}>
-        <h2><a href={`/${shelf.id}/`}>{shelf.name}</a></h2>
-        {subjects.map((sj) => (<div class="subj">
-        {sj.subject && <h3 class="sj">{sj.subject}</h3>}
-        {sj.groups.map((g) => (
-          <div class="grp">
-            {g.name && <h3>{g.name}</h3>}
-            <ul class="ix">
-              {g.tools.map((t) => (
-                <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} ${shelf.name} ${g.label}`.toLowerCase()}>
-                  <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
-                  <span class="num">#{t.data.num}</span>
-                  <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        </div>))}
+    {shelves.map(({ shelf, subjects, hasSubjects, count }) => (
+      <section class:list={['sh', { wide: hasSubjects }]} data-shelf={shelf.id}>
+        <h2><a href={`/${shelf.id}/`}>{shelf.name}</a> <small>{count}</small></h2>
+        {hasSubjects ? (
+          <ul class="subj">
+            {subjects.map((sj) => (
+              <li><a href={sj.url}><span class="nm">{sj.name}</span><span class="sm">{sj.groups.map((g) => g.name).join(', ')}</span></a><span class="num">{sj.count}</span></li>
+            ))}
+          </ul>
+        ) : (
+          <ul class="ix">
+            {subjects.flatMap((sj) => sj.groups.flatMap((g) => g.tools)).map((t) => (
+              <li class="ti" data-id={t.id} data-num={t.data.num}>
+                <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
+                <span class="num">#{t.data.num}</span>
+                <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     ))}
   </div>
-  <p class="empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
+  <p class="new"><b>Newest:</b> {newest.map((t, i) => <>{i > 0 && ', '}<a href={toolUrl(t)}>{t.data.name}</a></>)}.</p>
   <p class="hint">Tap the star next to a tool to add it to My tools. Then you can hide the rest and see only the tools you use.</p>
-
   {soon.length > 0 && <p class="next"><b>Coming next:</b> {soon.map((t) => t.data.name).join(', ')}.</p>}
 </Base>
 
 <style>
   .hero { padding: 8px 0 6px; }
   .hero h1 { max-width: 720px; }
+  .hero-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 32px; }
+  .total { margin: 0 0 20px; display: grid; justify-items: start; }
+  .total b { font-size: clamp(44px, 8vw, 64px); line-height: 1; font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .total span { font-size: 13.5px; color: var(--muted); }
   .hero .lead { max-width: 620px; }
-  .search { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 14px; height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
-  .search:focus-within { border-color: var(--accent); }
-  .search svg { width: 18px; height: 18px; flex: none; }
-  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }
 
+  .hits { margin-top: 18px; max-width: 720px; }
+  .hits-n { font-size: 13.5px; color: var(--muted); margin: 0 0 4px; }
   .dir { display: grid; gap: 8px 40px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); margin-top: 28px; align-items: start; }
-  .sh h2 { margin: 18px 0 4px; font-size: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sh.wide { grid-column: 1 / -1; }
+  .sh h2 { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 4px; font-size: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
   .sh h2 a { color: var(--ink); text-decoration: none; }
-  .sh h2 a:hover { color: var(--accent); }
-  .sj { margin: 16px 0 0; font-size: 15px; }
-  .sj + .grp h3 { margin-top: 6px; }
-  .grp h3 { margin: 14px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .ix { list-style: none; margin: 0; padding: 0; }
-  .ti { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
-  .ti a { display: grid; padding: 9px 0; min-width: 0; color: var(--ink); text-decoration: none; }
-  .ti .nm { font-weight: 600; }
-  .ti a:hover .nm { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-  .ti .sm { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ti .num { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .pin { width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); opacity: .45; cursor: pointer; border-radius: 8px; padding: 0; }
-  .pin svg { width: 18px; height: 18px; }
-  .pin:hover { opacity: 1; }
-  .pin[aria-pressed=true] { color: var(--warn); opacity: 1; }
-  .pin[aria-pressed=true] svg { fill: currentColor; }
+  .sh h2 a:hover { text-decoration: underline; }
+  .sh h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .subj { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); column-gap: 40px; }
+  .subj li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+  .subj a { display: grid; padding: 9px 0; min-width: 0; color: var(--ink); text-decoration: none; }
+  .subj .nm { font-weight: 600; }
+  .subj a:hover .nm { text-decoration: underline; text-underline-offset: 3px; }
+  .subj .sm { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .subj .num { font-size: 12px; }
 
   .mine { margin-top: 26px; padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); max-width: 720px; }
   .mine-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
   .mine-h h2 { margin: 12px 0 4px; font-size: 18px; }
   .mine-act { display: flex; gap: 14px; }
   .link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .mine .ti:last-child { border-bottom: 0; }
-  .note, .hint, .next { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
-  .hint { margin-top: 18px; }
-  .next { margin-top: 28px; }
+  .note, .hint, .next, .new { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+  .new { margin-top: 24px; }
+  .new a { color: var(--ink); }
+  .next { margin-top: 10px; }
   .empty { color: var(--muted); }
-  /* Only my tools: the full index is out of the way until the person asks for it. */
-  :global(body.focus) .dir, :global(body.focus) .hint, :global(body.focus) .next { display: none; }
+  /* Only my tools, or searching: the full index is out of the way. */
+  :global(body.focus) .dir, :global(body.focus) .hint, :global(body.focus) .next, :global(body.focus) .new,
+  :global(body.searching) .dir, :global(body.searching) .hint, :global(body.searching) .next, :global(body.searching) .new { display: none; }
 </style>
 
 <script>
-  import { myTools, togglePin, matches, focusOn, setFocus, setMyTools } from '../scripts/site';
-  const rows = [...document.querySelectorAll<HTMLElement>('.dir .ti')];
+  import { myTools, focusOn, setFocus, setMyTools, myEntries } from '../scripts/site';
+  import { loadIndex, rank, row } from '../scripts/find';
   const mine = document.querySelector<HTMLElement>('.mine')!, list = mine.querySelector<HTMLElement>('.mine-list')!;
   const focusBtn = mine.querySelector<HTMLButtonElement>('.focus-btn')!;
-  const input = document.querySelector<HTMLInputElement>('.search input')!;
-  const empty = document.querySelector<HTMLElement>('.empty')!;
+  const input = document.querySelector<HTMLInputElement>('.find input')!;
+  const hits = document.querySelector<HTMLElement>('.hits')!, hitList = hits.querySelector<HTMLElement>('.hits-list')!;
+  const hitN = hits.querySelector<HTMLElement>('.hits-n')!, empty = hits.querySelector<HTMLElement>('.empty')!;
+  const total = document.querySelectorAll('.dir .ti').length + [...document.querySelectorAll<HTMLElement>('.dir .subj .num')].reduce((n, e) => n + Number(e.textContent), 0);
   const searching = () => input.value.trim() !== '';
 
-  function show() {
+  // The focus flag is known at once, so the page never flashes the full index first.
+  const layout = () => {
+    document.body.classList.toggle('focus', focusOn() && !searching());
+    document.body.classList.toggle('searching', searching());
+  };
+  layout();
+
+  async function show() {
+    layout();
     const ids = myTools();
-    for (const r of rows) {
-      const on = ids.includes(r.dataset.id!), p = r.querySelector<HTMLButtonElement>('.pin')!;
-      p.setAttribute('aria-pressed', String(on));
-      p.title = on ? 'Remove from My tools' : 'Add to My tools';
-    }
-    list.replaceChildren(...ids.map((id) => rows.find((r) => r.dataset.id === id)).filter(Boolean).map((r) => {
-      const c = r!.cloneNode(true) as HTMLElement; c.hidden = false; c.removeAttribute('data-search'); return c;
-    }));
-    const f = focusOn() && !searching();
-    document.body.classList.toggle('focus', f);
-    mine.hidden = !list.children.length || searching();
-    focusBtn.textContent = f ? `Show all ${rows.length} tools` : 'Show only my tools';
+    const entries = ids.length ? await myEntries() : [];
+    list.replaceChildren(...entries.map((e) => row(e, { star: true, pinned: true })));
+    mine.hidden = !entries.length || searching();
+    focusBtn.textContent = focusOn() ? `Show all ${total} tools` : 'Show only my tools';
   }
   show();
   document.addEventListener('fibub:mytools', show);
   document.addEventListener('fibub:focus', show);
-  document.addEventListener('click', (e) => {
-    const p = (e.target as HTMLElement).closest<HTMLElement>('.pin'); if (!p) return;
-    togglePin(p.closest<HTMLElement>('.ti')!.dataset.id!);
-  });
   focusBtn.addEventListener('click', () => setFocus(!focusOn()));
   mine.querySelector('.mine-clear')!.addEventListener('click', () => { setFocus(false); setMyTools([]); });
 
-  // Search: typing shows matching tools from every shelf, even in "only my tools".
-  input.addEventListener('input', () => {
-    const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
-    let shown = 0;
-    for (const r of rows) { const ok = words.every((w) => matches(r, w)); r.hidden = !ok; if (ok) shown++; }
-    document.querySelectorAll<HTMLElement>('.dir .grp, .dir .subj').forEach((g) => (g.hidden = !g.querySelector('.ti:not([hidden])')));
-    document.querySelectorAll<HTMLElement>('.dir .sh').forEach((s) => (s.hidden = !s.querySelector('.ti:not([hidden])')));
-    empty.hidden = shown > 0;
+  // Search: results from every shelf and subject, best first, even in "only my tools".
+  async function find() {
+    const q = input.value;
+    const found = searching() ? rank(await loadIndex(), q) : [];
+    if (q !== input.value) return;
+    const ids = myTools();
+    hitList.replaceChildren(...found.slice(0, 60).map((e) => row(e, { star: true, pinned: ids.includes(e.id), place: true })));
+    hits.hidden = !searching();
+    empty.hidden = found.length > 0;
+    hitN.hidden = !found.length;
+    hitN.textContent = found.length > 60 ? `Showing 60 of ${found.length} tools. Add a word to narrow it down.` : `${found.length} tool${found.length === 1 ? '' : 's'}`;
     show();
-  });
+  }
+  input.addEventListener('input', find);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = hitList.querySelector<HTMLAnchorElement>('a'); if (a) location.href = a.href; } });
+  document.addEventListener('fibub:mytools', () => { if (searching()) find(); });
+  input.addEventListener('focus', () => loadIndex(), { once: true });
 </script>
