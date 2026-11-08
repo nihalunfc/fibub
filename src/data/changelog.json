@@ -1,5 +1,14 @@
 [
  {
+  "sha": "6791e412a55a",
+  "date": "2026-11-08T17:55:42+00:00",
+  "title": "Add the isotope delta converter (#122)",
+  "tools": [
+   "isotope-delta-converter"
+  ],
+  "site": false
+ },
+ {
   "sha": "3a96cb32feaf",
   "date": "2026-11-08T17:48:50+00:00",
   "title": "Add the radiometric age calculator (#121)",
