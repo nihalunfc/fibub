@@ -1,5 +1,16 @@
 [
  {
+  "sha": "baec11a52b43",
+  "date": "2026-11-08T07:22:02+00:00",
+  "title": "Add the molar mass calculator, equation balancer and isotope pattern calculator (#78-#80)",
+  "tools": [
+   "equation-balancer",
+   "isotope-pattern-calculator",
+   "molar-mass-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "45110bb42989",
   "date": "2026-11-08T07:02:59+00:00",
   "title": "Add the variable star observation log (#77)",
