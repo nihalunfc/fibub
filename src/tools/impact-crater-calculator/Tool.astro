@@ -1,0 +1,98 @@
+---
+// Impact crater calculator: crater size and energy from an impactor, or the impactor from a crater.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ic">
+  <div class="ax-card">
+    <h2>Impact</h2>
+    <div class="ax-seg ic-mode" role="group" aria-label="Work out">
+      <button type="button" data-m="crater" aria-pressed="true">Crater from impactor</button>
+      <button type="button" data-m="impactor" aria-pressed="false">Impactor from crater</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Where <select class="ic-body"></select></label>
+      <label>Ground <select class="ic-rt"><option value="2500" selected>Sedimentary rock (2500 kg/m³)</option><option value="2750">Crystalline rock (2750 kg/m³)</option></select></label>
+      <label>Impactor <select class="ic-ri"><option value="1000">Ice (comet), 1000 kg/m³</option><option value="1500">Porous rock, 1500 kg/m³</option><option value="3000" selected>Dense rock, 3000 kg/m³</option><option value="8000">Iron, 8000 kg/m³</option></select></label>
+      <label class="ic-lw">Impactor diameter (m) <input class="ic-l" inputmode="decimal" value="50" /></label>
+      <label class="ic-dw" hidden>Crater diameter (km) <input class="ic-d" inputmode="decimal" value="1.2" /></label>
+      <label>Speed at impact (km/s) <input class="ic-v" inputmode="decimal" value="17" /></label>
+      <label>Angle above the ground (°) <input class="ic-a" inputmode="decimal" value="45" /></label>
+    </div>
+    <div class="ax-row ic-quick" style="margin-top:10px"></div>
+    <p class="ax-help">Asteroids usually hit the Earth at 12 to 25 km/s and comets at up to 70 km/s; 45° is the most likely angle. The tool leaves out the atmosphere: on Earth, stony bodies smaller than about 100 m and icy ones under a few hundred metres mostly break up in the air, so treat the speed as the speed at the ground.</p>
+    <p class="ax-err ic-err" hidden></p>
+  </div>
+
+  <div class="ax-card ic-out" hidden>
+    <h2 class="ic-title"></h2>
+    <p class="ax-big ic-big"></p>
+    <dl class="ax-facts ic-facts"></dl>
+    <canvas class="ax-fig ic-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">Crater sizes follow the scaling laws in Collins, Melosh and Marcus (2005), the Earth Impact Effects Program. They are good to about a factor of 1.5: real craters depend on the ground, water and layering.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { BODIES, crater, impactorFor, type Impact } from '../../lib/sci/crater';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ic')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const body = q<HTMLSelectElement>('.ic-body');
+  body.replaceChildren(...BODIES.map((b) => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
+  let mode = 'crater', fig: Figure | null = null, report: Section[] = [];
+  const QUICK: [string, string, string, string, string][] = [['50 m iron at 12.8 km/s', 'earth', '8000', '50', '12.8'], ['1 km rock at 17 km/s', 'earth', '3000', '1000', '17'], ['10 km rock at 20 km/s', 'earth', '3000', '10000', '20'], ['1 km comet at 50 km/s', 'earth', '1000', '1000', '50']];
+  q('.ic-quick').replaceChildren(...QUICK.map(([label, b, ri, l, v]) => { const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn secondary small'; bt.textContent = label; bt.addEventListener('click', () => { setMode('crater'); body.value = b; q<HTMLSelectElement>('.ic-ri').value = ri; inp('.ic-l').value = l; inp('.ic-v').value = v; inp('.ic-a').value = '45'; calc(); }); return bt; }));
+  const t3 = (x: number) => (+x.toPrecision(3)).toLocaleString('en');
+  const len = (m: number) => (m >= 1000 ? `${t3(m / 1000)} km` : `${t3(m)} m`);
+  const energy = (mt: number) => (mt >= 1 ? `${sig(mt, 3)} megatons of TNT` : mt >= 1e-3 ? `${sig(mt * 1000, 3)} kilotons of TNT` : `${sig(mt * 1e6, 3)} tonnes of TNT`);
+  const years = (y: number) => (y < 1e3 ? `${sig(y, 2)} years` : y < 1e6 ? `${sig(y / 1e3, 2)} thousand years` : y < 1e9 ? `${sig(y / 1e6, 2)} million years` : `${sig(y / 1e9, 2)} billion years`);
+
+  function setMode(m: string) {
+    mode = m; root.querySelectorAll<HTMLButtonElement>('.ic-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === m)));
+    q('.ic-lw').hidden = m !== 'crater'; q('.ic-dw').hidden = m !== 'impactor';
+  }
+
+  function calc() {
+    const err = q('.ic-err');
+    try {
+      const b = BODIES.find((x) => x.id === body.value)!, v = num(inp('.ic-v').value) * 1000, angle = num(inp('.ic-a').value);
+      if (!(v > 0)) throw new Error('Type the speed in km/s'); if (v > 100000) throw new Error('Nothing in the solar system hits faster than about 75 km/s');
+      const base: Omit<Impact, 'L'> = { rhoI: Number(q<HTMLSelectElement>('.ic-ri').value), rhoT: Number(q<HTMLSelectElement>('.ic-rt').value), v, angle, g: b.g, dc: b.dc };
+      let L: number;
+      if (mode === 'crater') { L = num(inp('.ic-l').value); if (!(L > 0)) throw new Error('Type the impactor diameter in metres'); }
+      else { const D = num(inp('.ic-d').value) * 1000; if (!(D > 0)) throw new Error('Type the crater diameter in km'); L = impactorFor(D, base); }
+      const r = crater({ ...base, L });
+      err.hidden = true; q('.ic-out').hidden = false;
+      q('.ic-title').textContent = `On ${b.name === 'Earth' ? 'the Earth' : b.name === 'Moon' ? 'the Moon' : b.name}`;
+      q('.ic-big').textContent = mode === 'crater' ? `A crater ${len(r.D)} wide (${r.simple ? 'a simple bowl' : 'a complex crater with a central peak'})` : `An impactor about ${len(L)} across`;
+      const facts: [string, string, string?][] = [];
+      if (mode === 'impactor') facts.push(['Impactor', `${len(L)} across`, `${q<HTMLSelectElement>('.ic-ri').selectedOptions[0].textContent!.split(',')[0].toLowerCase()} at ${sig(v / 1000, 3)} km/s and ${angle}°`]);
+      facts.push(
+        ['Energy', energy(r.Mt), `${sig(r.E, 3)} J; the Hiroshima bomb was about 15 kilotons`],
+        ['Impactor mass', r.mass >= 1e9 ? `${t3(r.mass / 1e9)} million tonnes` : `${t3(r.mass / 1e3)} tonnes`],
+        ['Transient crater', `${len(r.Dtc)} wide, ${len(r.dtc)} deep`, 'the hole dug in the first seconds, before the walls slump'],
+        ['Final crater', len(r.D), r.simple ? `simple: 1.25 times the transient crater, as it stays below ${len(b.dc)}, the size where ${b.name === 'Earth' ? 'the Earth\'s' : b.name + '\'s'} craters turn complex` : `complex: above ${len(b.dc)} the walls collapse into terraces and the floor rebounds into a central peak`],
+      );
+      if (b.id === 'earth') facts.push(['How often on Earth', `about once every ${years(r.recurrenceYears)}`, 'for impacts of this energy or more, from Collins et al. (2005) after the near-Earth asteroid survey']);
+      q('.ic-facts').replaceChildren(...facts.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      const xs: number[] = []; for (let i = 0; i <= 120; i++) xs.push(10 ** (0 + (5 * i) / 120));
+      fig = chartFigure({ h: 280, xLog: true, yLog: true, xLabel: 'Impactor diameter (m)', yLabel: 'Final crater diameter (km)', legend: 'none',
+        series: [{ name: 'Crater', x: xs, y: xs.map((x) => crater({ ...base, L: x }).D / 1000), mode: 'line', width: 2.2 }, { name: 'This impact', x: [L], y: [r.D / 1000], mode: 'points', size: 6 }],
+        marks: [{ kind: 'hline', at: b.dc / 1000, dash: [4, 4], label: 'simple to complex' }] }, `Crater size against impactor size on ${b.name}`);
+      paint(q<HTMLCanvasElement>('.ic-fig'), fig);
+      report = [{ title: `${q('.ic-title').textContent}: ${q('.ic-big').textContent}`, facts: facts.map(([k, val]) => [k, val] as [string, string]), figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.ic-out').hidden = true; report = []; }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ic-mode button').forEach((x) => x.addEventListener('click', () => { setMode(x.dataset.m!); calc(); }));
+  for (const c of ['.ic-body', '.ic-rt', '.ic-ri']) q(c).addEventListener('change', calc);
+  for (const c of ['.ic-l', '.ic-d', '.ic-v', '.ic-a']) inp(c).addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ic-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Impact crater calculator', file: 'impact-crater', sections: report }));
+</script>

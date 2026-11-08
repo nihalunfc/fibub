@@ -1,0 +1,159 @@
+---
+// Habitable zone and equilibrium temperature calculator (Kopparapu et al. 2014).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hz">
+  <div class="ax-card">
+    <h2>Star</h2>
+    <div class="ax-grid">
+      <label>Star <select class="hz-star"></select></label>
+      <label>Temperature (K) <input class="hz-t" inputmode="decimal" /></label>
+      <label>Luminosity (Suns) <input class="hz-l" inputmode="decimal" /></label>
+      <label>Mass (Suns) <input class="hz-m" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Don't know the luminosity? Leave it blank and type the radius here instead: <input class="hz-r" inputmode="decimal" placeholder="radius in Suns" style="width:9em" aria-label="Star radius in solar radii" /></p>
+    <h2 style="margin-top:16px">Planet</h2>
+    <div class="ax-grid">
+      <label>Planet <select class="hz-pl"></select></label>
+      <label>Distance from the star (AU) <input class="hz-d" inputmode="decimal" /></label>
+      <label>or orbital period (days) <input class="hz-p" inputmode="decimal" /></label>
+      <label>Albedo (0 to 1) <input class="hz-a" inputmode="decimal" /></label>
+      <label>Planet mass <select class="hz-mass"><option value="0.1">0.1 Earth (like Mars)</option><option value="1" selected>1 Earth</option><option value="5">5 Earths (super-Earth)</option></select></label>
+      <label>Heat spread <select class="hz-f"><option value="1" selected>Round the whole planet</option><option value="2">Day side only (tidally locked, no air)</option></select></label>
+    </div>
+    <p class="ax-help">Albedo is the share of light reflected: Earth 0.31, Mars 0.25, cloudy Venus 0.76. Planet mass moves the inner edge a little, as heavier planets hold thicker air.</p>
+    <p class="ax-err hz-err" hidden></p>
+  </div>
+
+  <div class="ax-card hz-out" hidden>
+    <h2>Habitable zone</h2>
+    <p class="ax-big hz-big"></p>
+    <dl class="ax-facts hz-facts"></dl>
+    <canvas class="ax-fig hz-fig" style="margin-top:12px"></canvas>
+    <h3>Zone edges</h3>
+    <div class="ax-scroll"><table class="hz-tab"></table></div>
+    <p class="ax-help">The habitable zone is where an Earth-like planet with a carbon dioxide and water atmosphere could keep liquid water on its surface. The conservative zone runs from the runaway greenhouse limit to the maximum greenhouse limit; the optimistic zone stretches from where Venus may last have had water to where early Mars apparently did. Edges from Kopparapu et al. (2014), valid for stars of 2600 to 7200 K. The equilibrium temperature leaves out any greenhouse warming: Earth's is about 254 K, 34 K below its real average.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hz .hz-tab td, .hz .hz-tab th { white-space: nowrap; }
+  .hz .hz-r { display: inline-block; padding: 4px 8px; font: inherit; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { habitableZone, tEq, insolation, periodDays, auForPeriod, lumFrom, radiusFrom, T_MIN, T_MAX } from '../../lib/sci/habitable';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  // Rounded literature values: Sun (IAU 2015), α Cen A (Kervella et al. 2017), τ Ceti (Teixeira et al. 2009),
+  // Proxima Centauri (Ribas et al. 2017), TRAPPIST-1 (Agol et al. 2021).
+  const STARS = [
+    { id: 'sun', name: 'The Sun', t: 5772, l: 1, m: 1 },
+    { id: 'acen', name: 'Alpha Centauri A', t: 5790, l: 1.519, m: 1.079 },
+    { id: 'tauceti', name: 'Tau Ceti', t: 5344, l: 0.52, m: 0.783 },
+    { id: 'proxima', name: 'Proxima Centauri', t: 3042, l: 0.00155, m: 0.122 },
+    { id: 'trappist', name: 'TRAPPIST-1', t: 2566, l: 0.000553, m: 0.0898 },
+    { id: 'custom', name: 'My own star', t: NaN, l: NaN, m: NaN },
+  ];
+  const PLANETS = [
+    { id: 'earth', name: 'Earth', star: 'sun', d: 1, a: 0.306 },
+    { id: 'venus', name: 'Venus', star: 'sun', d: 0.723, a: 0.76 },
+    { id: 'mars', name: 'Mars', star: 'sun', d: 1.524, a: 0.25 },
+    { id: 'proxb', name: 'Proxima b (albedo assumed)', star: 'proxima', d: 0.0485, a: 0.3 },
+    { id: 't1e', name: 'TRAPPIST-1 e (albedo assumed)', star: 'trappist', d: 0.02925, a: 0.3 },
+    { id: 'custom', name: 'My own planet', star: '', d: NaN, a: 0.3 },
+  ];
+  const opt = (v: string, t: string) => Object.assign(document.createElement('option'), { value: v, textContent: t });
+  q<HTMLSelectElement>('.hz-star').replaceChildren(...STARS.map((s) => opt(s.id, s.name)));
+  q<HTMLSelectElement>('.hz-pl').replaceChildren(...PLANETS.map((p) => opt(p.id, p.name)));
+  let fig: Figure | null = null, report: Section[] = [], periodLast = false;
+
+  function setStar(id: string) {
+    const s = STARS.find((x) => x.id === id)!; q<HTMLSelectElement>('.hz-star').value = id;
+    if (id !== 'custom') { inp('.hz-t').value = String(s.t); inp('.hz-l').value = String(s.l); inp('.hz-m').value = String(s.m); inp('.hz-r').value = ''; }
+  }
+  function setPlanet(id: string) {
+    const p = PLANETS.find((x) => x.id === id)!; q<HTMLSelectElement>('.hz-pl').value = id;
+    if (id === 'custom') return;
+    setStar(p.star); inp('.hz-d').value = String(p.d); inp('.hz-a').value = String(p.a); inp('.hz-p').value = ''; periodLast = false;
+  }
+  const au = (x: number) => (x < 0.1 ? x.toFixed(4) : x < 10 ? x.toFixed(3) : sig(x, 4));
+  const suns = (x: number) => `${sig(x, 3).replace(/\.?0+$/, '')} ${Math.abs(x - 1) < 1e-9 ? 'Sun' : 'Suns'}`;
+  const minus = (s: string) => s.replace(/-/g, '−');
+  const days = (x: number) => (x < 100 ? `${sig(x, 3)} days` : x < 3 * 365.25 ? `${Math.round(x).toLocaleString('en')} days` : `${sig(x / 365.25, 3)} years`);
+
+  function figure(edges: { name: string; au: number }[], d: number, name: string): Figure {
+    return {
+      w: 600, h: 170, alt: 'Habitable zone around the star, with the planet marked',
+      draw(ctx, w, h, pal) {
+        const lo = Math.log10(Math.min(edges[0].au, d) / 2.2), hi = Math.log10(Math.max(edges[3].au, d) * 2.2), L = 20, R = w - 20;
+        const X = (v: number) => L + ((Math.log10(v) - lo) / (hi - lo)) * (R - L), y0 = 58, bh = 40;
+        ctx.globalAlpha = pal.red ? 0.5 : 0.22; ctx.fillStyle = pal.good; ctx.fillRect(X(edges[0].au), y0, X(edges[3].au) - X(edges[0].au), bh);
+        ctx.globalAlpha = pal.red ? 0.8 : 0.5; ctx.fillRect(X(edges[1].au), y0, X(edges[2].au) - X(edges[1].au), bh); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.line; ctx.strokeRect(L, y0, R - L, bh);
+        // Axis ticks at 1, 2, 5 × powers of ten.
+        ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let e = Math.floor(lo); e <= Math.ceil(hi); e++) for (const m of [1, 2, 5]) { const v = m * 10 ** e; if (Math.log10(v) < lo || Math.log10(v) > hi) continue; ctx.fillRect(X(v), y0 + bh, 1, 5); ctx.fillText(String(+v.toPrecision(3)), X(v), y0 + bh + 7); }
+        ctx.textAlign = 'right'; ctx.fillText('distance from the star (AU)', R, y0 + bh + 24);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('dark: conservative zone   light: optimistic zone', L, 8);
+        const x = X(d); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y0 + bh / 2, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.font = '600 12px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.textAlign = x < 90 ? 'left' : x > w - 90 ? 'right' : 'center'; ctx.fillText(name, x, y0 - 6);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.hz-err');
+    try {
+      const T = num(inp('.hz-t').value), M = num(inp('.hz-m').value), Lt = inp('.hz-l').value.trim(), Rv = num(inp('.hz-r').value);
+      if (!(T >= 2000 && T <= 10000)) throw new Error('Type the star\'s temperature in kelvin, between 2000 and 10,000');
+      let L = num(Lt);
+      if (!Lt) { if (!(Rv > 0)) throw new Error('Type the luminosity, or leave it blank and type the radius'); L = lumFrom(Rv, T); }
+      if (!(L > 0)) throw new Error('The luminosity must be above zero');
+      if (!(M > 0)) throw new Error('Type the star\'s mass in Suns');
+      const A = num(inp('.hz-a').value); if (!(A >= 0 && A < 1)) throw new Error('Albedo runs from 0 to just below 1');
+      let d = num(inp('.hz-d').value); const P = num(inp('.hz-p').value);
+      if (periodLast && P > 0) d = auForPeriod(P, M);
+      if (!(d > 0)) throw new Error('Type the distance in AU or the orbital period in days');
+      const mass = q<HTMLSelectElement>('.hz-mass').value as '0.1' | '1' | '5', f = Number(q<HTMLSelectElement>('.hz-f').value) as 1 | 2;
+      const hz = habitableZone(T, L, mass), [ci, co] = hz.conservative, [oi, oo] = hz.optimistic;
+      const S = insolation(L, d), te = tEq(L, d, A, f), per = periodDays(d, M);
+      err.hidden = true; q('.hz-out').hidden = false;
+      const where = d >= ci && d <= co ? 'Inside the conservative habitable zone' : d >= oi && d <= oo ? 'Inside the optimistic habitable zone only' : d < oi ? 'Too close to the star for liquid water' : 'Too far from the star for liquid water';
+      q('.hz-big').textContent = `${where}`;
+      const facts: [string, string, string?][] = [
+        ['Starlight at the planet', Math.abs(S - 1) < 0.0005 ? 'the same as Earth\'s' : `${sig(S, 3)} times Earth's`, `${Math.round(S * 1361).toLocaleString('en')} W/m²`],
+        ['Equilibrium temperature', minus(`${Math.round(te)} K (${Math.round(te - 273.15)} °C)`), f === 2 ? 'day side only, no greenhouse warming' : 'heat spread round the planet, no greenhouse warming'],
+        ['Orbital period', days(per), periodLast ? `distance from Kepler's third law: ${au(d)} AU` : `at ${au(d)} AU round ${suns(M)}`],
+        ['Conservative zone', `${au(ci)} to ${au(co)} AU`, `orbits of ${days(periodDays(ci, M))} to ${days(periodDays(co, M))}`],
+        ['Optimistic zone', `${au(oi)} to ${au(oo)} AU`, `orbits of ${days(periodDays(oi, M))} to ${days(periodDays(oo, M))}`],
+        ['Star', `${Math.round(T)} K, luminosity ${suns(L)}, radius ${suns(radiusFrom(L, T))}`, hz.outOfRange ? `outside the ${T_MIN} to ${T_MAX} K range the edges were fitted for, so they are extrapolated` : undefined],
+      ];
+      q('.hz-facts').replaceChildren(...facts.map(([k, v, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; dd.querySelector('dd')!.append(m); } return dd; }));
+      const head = ['Edge', 'Starlight (Earth = 1)', 'Distance (AU)', 'Orbital period', 'Equilibrium temperature'];
+      const rows = hz.edges.map((e) => [e.name, e.seff.toFixed(3), au(e.au), days(periodDays(e.au, M)), `${Math.round(tEq(L, e.au, A, f))} K`]);
+      const t = q<HTMLTableElement>('.hz-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+      const pname = q<HTMLSelectElement>('.hz-pl').value === 'custom' ? 'planet' : PLANETS.find((p) => p.id === q<HTMLSelectElement>('.hz-pl').value)!.name.replace(/ \(.*/, '');
+      fig = figure(hz.edges, d, pname); paint(q<HTMLCanvasElement>('.hz-fig'), fig);
+      report = [{ title: where, facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig }, { title: 'Zone edges (Kopparapu et al. 2014)', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] } }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.hz-out').hidden = true; report = []; }
+  }
+  q('.hz-star').addEventListener('change', () => { setStar(q<HTMLSelectElement>('.hz-star').value); q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc(); });
+  q('.hz-pl').addEventListener('change', () => { setPlanet(q<HTMLSelectElement>('.hz-pl').value); calc(); });
+  for (const c of ['.hz-t', '.hz-l', '.hz-m', '.hz-r']) inp(c).addEventListener('input', () => { q<HTMLSelectElement>('.hz-star').value = 'custom'; calc(); });
+  inp('.hz-d').addEventListener('input', () => { periodLast = false; inp('.hz-p').value = ''; q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc(); });
+  inp('.hz-p').addEventListener('input', () => { periodLast = true; inp('.hz-d').value = ''; q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc(); });
+  inp('.hz-a').addEventListener('input', calc);
+  for (const c of ['.hz-mass', '.hz-f']) q(c).addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.hz-fig'), fig));
+  setPlanet('earth'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Habitable zone calculator', file: 'habitable-zone', sections: report }));
+</script>
