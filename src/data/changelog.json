@@ -1,5 +1,14 @@
 [
  {
+  "sha": "c14ab9f25e1a",
+  "date": "2026-11-08T15:45:22+00:00",
+  "title": "Add the impedance (EIS) equivalent circuit fitter (#111)",
+  "tools": [
+   "impedance-fitter"
+  ],
+  "site": false
+ },
+ {
   "sha": "3fb13a3d773f",
   "date": "2026-11-08T15:27:11+00:00",
   "title": "Add the molecular point group finder (#110)",
