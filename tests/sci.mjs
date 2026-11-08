@@ -111,6 +111,7 @@ import * as PIP from '../src/lib/sci/piper.ts';
 import * as PT from '../src/lib/sci/pumptest.ts';
 import * as SLG from '../src/lib/sci/slug.ts';
 import * as DAR from '../src/lib/sci/darcy.ts';
+import * as WF from '../src/lib/sci/wellfield.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1940,6 +1941,28 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const gr = DAR.gradation([4, 2, 1, 0.5, 0.25], [100, 80, 60, 30, 10]);
   near('darcy: d10', gr.d10, 0.25, 1e-12); near('darcy: Cu', gr.Cu, 4, 1e-12); near('darcy: Cc', gr.Cc, 1, 1e-12);
   near('darcy: Hazen, d10 0.2 mm and C 100 gives 0.04 cm/s', DAR.hazen(0.2, 100), 4e-4, 1e-15);
+}
+{
+  // Well field: superposition, image wells, contours and the capture zone.
+  const w1 = { name: 'A', x: 0, y: 0, Q: 800, t0: 0 }, w2 = { name: 'B', x: 300, y: 0, Q: 500, t0: 5 };
+  const T = 500, S = 1e-4, one = (w, x, y, t) => WF.drawdown(x, y, t, [w], T, S);
+  near('well field: superposition adds', WF.drawdown(100, 50, 20, [w1, w2], T, S), one(w1, 100, 50, 20) + one(w2, 100, 50, 20), 1e-12);
+  near('well field: later start shifts time', one(w2, 100, 50, 20), PT.theis(15, Math.hypot(200, 50), 500, T, S), 1e-12);
+  check('well field: nothing before a well starts', one(w2, 100, 50, 4) === 0);
+  const head = WF.withImages([w1], { kind: 'head', axis: 'x', at: 100 });
+  check('well field: constant-head image', head.length === 2 && head[1].x === 200 && head[1].Q === -800);
+  near('well field: zero drawdown on a constant-head line', WF.drawdown(100, 37, 30, head, T, S), 0, 1e-12);
+  const nf = WF.withImages([w1], { kind: 'noflow', axis: 'y', at: -50 });
+  check('well field: no-flow image', nf[1].y === -100 && nf[1].Q === 800);
+  near('well field: no-flow line has no gradient across it', (WF.drawdown(20, -49.9, 30, nf, T, S) - WF.drawdown(20, -50.1, 30, nf, T, S)), 0, 1e-12);
+  // Contours of z = x on a grid: the level-1.5 line is the vertical x = 1.5.
+  const xs = [0, 1, 2, 3], ys = [0, 1, 2], z = ys.map(() => xs.slice()), seg = WF.contour(z, xs, ys, 1.5);
+  check('well field: contour', seg.length === 2 && seg.every((g) => g[0] === 1.5 && g[2] === 1.5));
+  const cz = WF.captureZone(800, 20, 0.05);
+  near('well field: stagnation point', cz.stagnation, 800 / (2 * Math.PI * 20 * 0.05), 1e-9);
+  near('well field: width at the well', 2 * cz.halfWidthAtWell, 400, 1e-9);
+  const mid = cz.pts.reduce((b, p) => (Math.abs(p[0]) < Math.abs(b[0]) ? p : b));
+  near('well field: divide crosses the well line at Q/(4Bq)', Math.abs(mid[1]), 200, 5);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
