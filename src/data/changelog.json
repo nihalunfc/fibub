@@ -1,5 +1,14 @@
 [
  {
+  "sha": "3a96cb32feaf",
+  "date": "2026-11-08T17:48:50+00:00",
+  "title": "Add the radiometric age calculator (#121)",
+  "tools": [
+   "radiometric-age-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "12d5d888627c",
   "date": "2026-11-08T17:36:13+00:00",
   "title": "Add the vapour pressure and VLE calculator (#120)",
