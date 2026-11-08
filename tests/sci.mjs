@@ -104,6 +104,7 @@ import * as PL from '../src/lib/sci/plume.ts';
 import * as MT from '../src/lib/sci/mccabe.ts';
 import * as VL from '../src/lib/sci/vle.ts';
 import * as GC from '../src/lib/sci/geochron.ts';
+import * as DL from '../src/lib/sci/delta.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1767,6 +1768,32 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('geochron: lead loss keeps the 207/206 age', lost.t76, 2e9, 1e-2);
   check('geochron: lead loss is discordant', lost.concordance < 0.9);
   check('geochron: age units', GC.fmtAge(1.2504e9, 3.1e6) === '1250.4 ± 3.1 Ma' && GC.fmtAge(5000) === '5 ka');
+}
+
+{
+  // Delta notation.
+  const R = DL.rFromDelta(-8.5, 2005.2e-6);
+  near('delta: ratio from δ', R, 2005.2e-6 * 0.9915, 1e-15);
+  near('delta: δ from ratio round trip', DL.deltaFromR(R, 2005.2e-6), -8.5, 1e-9);
+  near('delta: VPDB -> VSMOW', DL.vpdbToVsmow(-5.2), 1.03092 * -5.2 + 30.92, 1e-9);
+  near('delta: VSMOW -> VPDB round trip', DL.vsmowToVpdb(DL.vpdbToVsmow(-5.2)), -5.2, 1e-9);
+  near('delta: VPDB standard itself is +30.92 on VSMOW', DL.vpdbToVsmow(0), 30.92, 1e-12);
+  near('delta: VSMOW is -29.99 on VPDB', DL.vsmowToVpdb(0), -29.99, 0.005);
+  // Rescaling chains: going A->B->A returns the start.
+  near('delta: rescale chain', DL.rescale(DL.rescale(12.3, 7.5), -7.5 / (1 + 7.5 / 1000)), 12.3, 1e-9);
+  const f = DL.fractionation(25, -5);
+  near('delta: alpha', f.alpha, 1025 / 995, 1e-15); near('delta: epsilon', f.eps, (1025 / 995 - 1) * 1000, 1e-12); near('delta: 1000 ln alpha', f.lnAlpha, 1000 * Math.log(1025 / 995), 1e-12);
+  near('delta: Δ′17O', DL.capDelta17(5.3, 10.1), 1000 * (Math.log(1.0053) - 0.528 * Math.log(1.0101)), 1e-12);
+  check('delta: mass-dependent point has Δ′17O 0', Math.abs(DL.capDelta17(1000 * (Math.exp(0.528 * Math.log(1.02)) - 1), 20)) < 1e-12);
+  const m = DL.mix(0.6, 1, -28, 3, -12);
+  near('delta: mixing', m.delta, (0.6 * -28 + 0.4 * 3 * -12) / (0.6 + 1.2), 1e-12);
+  near('delta: inverse mixing', DL.mix(DL.fractionFor(-18, 1, -28, 3, -12), 1, -28, 3, -12).delta, -18, 1e-12);
+  check('delta: target outside the sources', Number.isNaN(DL.fractionFor(-30, 1, -28, 3, -12)));
+  near('delta: equal concentrations mix linearly', DL.mix(0.25, 2, -10, 2, 10).delta, 5, 1e-12);
+  // Exact ratio mixing agrees with the δ approximation within 0.01 ‰ for ordinary values.
+  const Rs = 0.01118, RA = DL.rFromDelta(-28, Rs), RB = DL.rFromDelta(-12, Rs);
+  const hA = 0.6 * 1 * RA / (1 + RA), hB = 0.4 * 3 * RB / (1 + RB), lA = 0.6 * 1 / (1 + RA), lB = 0.4 * 3 / (1 + RB);
+  near('delta: δ mixing vs exact', DL.deltaFromR((hA + hB) / (lA + lB), Rs), m.delta, 0.01);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

@@ -1,0 +1,189 @@
+---
+// Stable isotope delta notation: δ ↔ ratio, reference scale changes, fractionation, Δ′17O and two-component mixing.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { STANDARDS } from '../../lib/sci/delta';
+---
+<div class="ax isd">
+  <div class="ax-card">
+    <h2>δ and isotope ratio</h2>
+    <div class="ax-grid">
+      <label>Isotope and standard <select class="d8-std">{STANDARDS.map((s) => <option value={s.id} selected={s.id === 'd18o'}>{s.label}</option>)}<option value="custom">Other: type the standard's ratio</option></select></label>
+      <label>Standard ratio (heavy / light) <input class="d8-rs" inputmode="decimal" /></label>
+      <label>δ (‰) <input class="d8-d" inputmode="decimal" value="-8.5" /></label>
+      <label>Sample ratio <input class="d8-r" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">δ = (R sample ÷ R standard − 1) × 1000, in per mil (‰). Type in either box and the other follows. A negative δ means less of the heavy isotope than the standard.</p>
+    <p class="ax-err d8-err1" hidden></p>
+    <dl class="ax-facts d8-f1"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Change the reference scale</h2>
+    <div class="ax-grid">
+      <label>Convert <select class="d8-sc"><option value="p2s">δ¹⁸O from VPDB to VSMOW</option><option value="s2p">δ¹⁸O from VSMOW to VPDB</option><option value="any">Any: give the old standard on the new scale</option></select></label>
+      <label>δ on the old scale (‰) <input class="d8-sx" inputmode="decimal" value="-5.2" /></label>
+      <label class="d8-anyl" hidden>Old standard's δ on the new scale (‰) <input class="d8-sref" inputmode="decimal" value="30.92" /></label>
+    </div>
+    <p class="ax-help">Scales chain exactly: (1 + δ sample vs A) = (1 + δ sample vs B) × (1 + δ B vs A), with δ as fractions. For oxygen, VPDB sits at +30.92 ‰ on the VSMOW scale. Never just add the two numbers for large values.</p>
+    <p class="ax-err d8-err2" hidden></p>
+    <p class="ax-big d8-big2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fractionation between two phases</h2>
+    <div class="ax-grid">
+      <label>δ of phase A (‰) <input class="d8-da" inputmode="decimal" value="25.0" /></label>
+      <label>δ of phase B (‰) <input class="d8-db" inputmode="decimal" value="-5.0" /></label>
+    </div>
+    <p class="ax-help">Use the same isotope and scale for both, for example calcite and the water it grew from.</p>
+    <p class="ax-err d8-err3" hidden></p>
+    <dl class="ax-facts d8-f3"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Triple oxygen: Δ′¹⁷O</h2>
+    <div class="ax-grid">
+      <label>δ¹⁷O (‰) <input class="d8-17" inputmode="decimal" value="5.30" /></label>
+      <label>δ¹⁸O (‰) <input class="d8-18" inputmode="decimal" value="10.10" /></label>
+      <label>Reference slope λ <input class="d8-lam" inputmode="decimal" value="0.528" /></label>
+    </div>
+    <p class="ax-help">Δ′¹⁷O = δ′¹⁷O − λ × δ′¹⁸O, where δ′ = 1000 ln(1 + δ/1000). Most processes on Earth keep it near zero; departures point to unusual chemistry such as ozone in the stratosphere. 0.528 is a widely used λ; some studies use 0.5305 or 0.52.</p>
+    <p class="ax-err d8-err4" hidden></p>
+    <dl class="ax-facts d8-f4"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mixing two sources</h2>
+    <div class="ax-grid">
+      <label>δ of source A (‰) <input class="d8-ma" inputmode="decimal" value="-28" /></label>
+      <label>Concentration in A <input class="d8-ca" inputmode="decimal" value="1" /></label>
+      <label>δ of source B (‰) <input class="d8-mb" inputmode="decimal" value="-12" /></label>
+      <label>Concentration in B <input class="d8-cb" inputmode="decimal" value="3" /></label>
+      <label>Fraction of A in the mixture (0–1) <input class="d8-fa" inputmode="decimal" value="0.6" /></label>
+      <label>Target δ, to find the fraction (optional) <input class="d8-t" inputmode="decimal" value="-18" /></label>
+    </div>
+    <p class="ax-help">Concentration means how much of the element each source carries (same unit for both). When they differ, the mixing line curves: a source rich in the element pulls the mixture's δ towards it. This is the usual δ approximation, good to a few hundredths of a per mil unless the δ values are hundreds of per mil apart.</p>
+    <p class="ax-err d8-err5" hidden></p>
+    <p class="ax-big d8-big5"></p>
+    <dl class="ax-facts d8-f5"></dl>
+    <canvas class="ax-fig d8-fig"></canvas>
+    <p class="ax-help">Standard ratios are the commonly adopted reference values (checked 2026-11-08); some labs use slightly different ones. Measured δ values come from comparison with reference materials, so the standard's ratio only matters when you need absolute ratios.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { STANDARDS, deltaFromR, rFromDelta, heavyFraction, rescale, vpdbToVsmow, vsmowToVpdb, fractionation, capDelta17, deltaPrime, mix, fractionFor } from '../../lib/sci/delta';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.isd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const pm = (x: number, d = 2) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(d)} ‰`;
+  const sig = (x: number) => (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e4 ? x.toExponential(6) : x.toPrecision(7));
+  const shown = (el: string, msg: string) => { const e = q(el); e.textContent = msg; e.hidden = !msg; return !msg; };
+  let fig: Figure | null = null;
+
+  function setStd() {
+    const id = q<HTMLSelectElement>('.d8-std').value, s = STANDARDS.find((x) => x.id === id);
+    if (s) inp('.d8-rs').value = sig(s.R);
+    fromDelta();
+  }
+  function info(R: number, Rs: number) {
+    const id = q<HTMLSelectElement>('.d8-std').value, s = STANDARDS.find((x) => x.id === id);
+    const f = [fact('Heavy isotope share', `${(heavyFraction(R) * 100).toFixed(5)} %`, s ? `${s.heavy} ÷ (${s.heavy} + ${s.light}), counting only these two isotopes` : 'counting only the two isotopes'),
+      fact('δ′ (linearised)', pm(deltaPrime(deltaFromR(R, Rs)), 3), '1000 ln(1 + δ/1000); adds up exactly along a chain of processes')];
+    if (s?.note) f.push(fact('Standard ratio', sig(s.R), s.note));
+    else if (s) f.push(fact('Standard', s.std, `ratio ${sig(s.R)}`));
+    q('.d8-f1').replaceChildren(...f);
+  }
+  function fromDelta() {
+    const Rs = val('.d8-rs'), d = val('.d8-d');
+    if (!shown('.d8-err1', !(Rs > 0) ? 'Enter the standard ratio, above zero.' : !(d > -1000) ? 'Enter a δ above −1000 ‰.' : '')) { q('.d8-f1').replaceChildren(); return; }
+    const R = rFromDelta(d, Rs); inp('.d8-r').value = sig(R); info(R, Rs);
+  }
+  function fromRatio() {
+    const Rs = val('.d8-rs'), R = val('.d8-r');
+    if (!shown('.d8-err1', !(Rs > 0) ? 'Enter the standard ratio, above zero.' : !(R > 0) ? 'Enter a sample ratio above zero.' : '')) { q('.d8-f1').replaceChildren(); return; }
+    inp('.d8-d').value = deltaFromR(R, Rs).toFixed(3); info(R, Rs);
+  }
+
+  function scale() {
+    const m = q<HTMLSelectElement>('.d8-sc').value; q('.d8-anyl').hidden = m !== 'any';
+    const x = val('.d8-sx'), ref = val('.d8-sref');
+    if (!shown('.d8-err2', !(x > -1000) ? 'Enter a δ above −1000 ‰.' : m === 'any' && !(ref > -1000) ? 'Enter the old standard\'s δ on the new scale.' : '')) { q('.d8-big2').textContent = ''; return; }
+    const y = m === 'p2s' ? vpdbToVsmow(x) : m === 's2p' ? vsmowToVpdb(x) : rescale(x, ref);
+    const [from, to] = m === 'p2s' ? ['VPDB', 'VSMOW'] : m === 's2p' ? ['VSMOW', 'VPDB'] : ['the old scale', 'the new scale'];
+    q('.d8-big2').textContent = `${pm(x)} vs ${from} = ${pm(y)} vs ${to}`;
+  }
+
+  function frac() {
+    const a = val('.d8-da'), b = val('.d8-db');
+    if (!shown('.d8-err3', !(a > -1000 && b > -1000) ? 'Enter both δ values, above −1000 ‰.' : '')) { q('.d8-f3').replaceChildren(); return; }
+    const f = fractionation(a, b);
+    q('.d8-f3').replaceChildren(
+      fact('α (A–B)', f.alpha.toFixed(6), '(1000 + δA) ÷ (1000 + δB)'),
+      fact('ε (A–B)', pm(f.eps), '(α − 1) × 1000'),
+      fact('1000 ln α', pm(f.lnAlpha), 'the form temperature equations use'),
+      fact('Δ (A–B)', pm(f.Delta), 'δA − δB; close to ε only when both δ are small'),
+    );
+  }
+
+  function tri() {
+    const a = val('.d8-17'), b = val('.d8-18'), l = val('.d8-lam');
+    if (!shown('.d8-err4', !(a > -1000 && b > -1000) ? 'Enter δ¹⁷O and δ¹⁸O above −1000 ‰.' : !(l > 0 && l < 1) ? 'Enter λ between 0 and 1.' : '')) { q('.d8-f4').replaceChildren(); return; }
+    const D = capDelta17(a, b, l);
+    q('.d8-f4').replaceChildren(
+      fact('Δ′¹⁷O', `${D >= 0 ? '+' : '−'}${Math.abs(D * 1000).toFixed(0)} per meg (${pm(D, 4)})`, '1 per meg = 0.001 ‰'),
+      fact('δ′¹⁷O and δ′¹⁸O', `${pm(deltaPrime(a), 4)} and ${pm(deltaPrime(b), 4)}`),
+      fact('Linear version', pm(a - l * b, 4), 'δ¹⁷O − λ δ¹⁸O; older papers use this, and it drifts for large δ'),
+    );
+  }
+
+  function mixing() {
+    const dA = val('.d8-ma'), cA = val('.d8-ca'), dB = val('.d8-mb'), cB = val('.d8-cb'), fA = val('.d8-fa'), traw = inp('.d8-t').value.trim(), t = traw ? num(traw) : NaN;
+    if (!shown('.d8-err5', ![dA, dB].every(Number.isFinite) ? 'Enter both δ values.' : !(cA > 0 && cB > 0) ? 'Enter both concentrations, above zero.' : !(fA >= 0 && fA <= 1) ? 'Enter a fraction from 0 to 1.' : '')) { q('.d8-big5').textContent = ''; q('.d8-f5').replaceChildren(); q('.d8-fig').hidden = true; fig = null; return; }
+    const m = mix(fA, cA, dA, cB, dB);
+    q('.d8-big5').textContent = `Mixture: ${pm(m.delta)}`;
+    const f = [fact('Share of the element from A', `${(m.shareA * 100).toFixed(1)} %`, `${(fA * 100).toFixed(1)} % of the mixture is A`), fact('Concentration in the mixture', String(+m.conc.toPrecision(4)), 'same unit as the inputs')];
+    let tf = NaN;
+    if (traw) { tf = fractionFor(t, cA, dA, cB, dB); f.push(fact(`Fraction of A for ${pm(t)}`, Number.isFinite(tf) ? `${(tf * 100).toFixed(1)} %` : 'not possible', Number.isFinite(tf) ? 'by mass or volume of the mixture' : 'the target must lie between the two sources')); }
+    q('.d8-f5').replaceChildren(...f);
+    const xs = Array.from({ length: 101 }, (_, i) => i / 100);
+    fig = chartFigure({ h: 260, xMin: 0, xMax: 1, xLabel: 'Fraction of A in the mixture', yLabel: 'δ of the mixture (‰)', legend: 'none',
+      series: [{ name: 'Mixing line', x: xs, y: xs.map((x) => mix(x, cA, dA, cB, dB).delta), mode: 'line', width: 2 }, { name: 'This mixture', x: [fA], y: [m.delta], mode: 'points', size: 5 },
+        ...(Number.isFinite(tf) ? [{ name: 'Target', x: [tf], y: [t], mode: 'points' as const, marker: 'open-circle' as const, size: 6 }] : [])] }, 'δ of a two-source mixture against the fraction of source A');
+    q('.d8-fig').hidden = false; paint(q<HTMLCanvasElement>('.d8-fig'), fig);
+  }
+
+  q('.d8-std').addEventListener('change', setStd);
+  inp('.d8-rs').addEventListener('input', () => { q<HTMLSelectElement>('.d8-std').value = 'custom'; fromDelta(); });
+  inp('.d8-d').addEventListener('input', fromDelta);
+  inp('.d8-r').addEventListener('input', fromRatio);
+  root.querySelectorAll('.d8-sc, .d8-sx, .d8-sref').forEach((i) => { i.addEventListener('input', scale); i.addEventListener('change', scale); });
+  root.querySelectorAll('.d8-da, .d8-db').forEach((i) => i.addEventListener('input', frac));
+  root.querySelectorAll('.d8-17, .d8-18, .d8-lam').forEach((i) => i.addEventListener('input', tri));
+  root.querySelectorAll('.d8-ma, .d8-ca, .d8-mb, .d8-cb, .d8-fa, .d8-t').forEach((i) => i.addEventListener('input', mixing));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.d8-fig'), fig));
+  setStd(); scale(); frac(); tri(); mixing();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Isotope delta notation', subtitle: q('.d8-big5').textContent ?? '', file: 'isotope-delta',
+    sections: [
+      { title: `${q<HTMLSelectElement>('.d8-std').selectedOptions[0].textContent}: δ = ${inp('.d8-d').value} ‰, ratio ${inp('.d8-r').value}`, facts: factsOf('.d8-f1') },
+      { title: q('.d8-big2').textContent || 'Scale change' },
+      { title: `Fractionation: δA = ${inp('.d8-da').value} ‰, δB = ${inp('.d8-db').value} ‰`, facts: factsOf('.d8-f3') },
+      { title: `Triple oxygen: δ¹⁷O = ${inp('.d8-17').value} ‰, δ¹⁸O = ${inp('.d8-18').value} ‰`, facts: factsOf('.d8-f4') },
+      { title: q('.d8-big5').textContent || 'Mixing', facts: factsOf('.d8-f5'), figure: fig ?? undefined },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .isd select { max-width: 100%; }
+</style>
