@@ -12,6 +12,10 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [radio-telescope-calculator, uv-coverage, link-budget-calculator, rotation-curve-fitter, sky-coordinates]
+sources:
+  - "21 cm line frequency: 1420.405751768 MHz."
+  - "Galactic constants: the IAU 1985 values (R₀ 8.5 kpc, V₀ 220 km/s) and modern round values."
+  - "Solar motion for the local standard of rest: the standard 20 km/s towards RA 18 h, Dec +30° (1900)."
 flow:
   - { icon: table, label: "Spectrum" }
   - { icon: sliders, label: "To LSR" }

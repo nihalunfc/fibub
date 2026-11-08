@@ -12,6 +12,9 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, solution-calculator, gas-law-calculator, reaction-equivalents]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Solvent constants (Kf, Kb, melting and boiling points): common textbook values (Atkins; CRC Handbook), which you can type over."
 flow:
   - { icon: flask, label: "Solution" }
   - { icon: calculator, label: "Molality" }

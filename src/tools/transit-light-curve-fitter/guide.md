@@ -12,6 +12,9 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [transit-planner, period-finder, exoplanet-mass-calculator, habitable-zone-calculator, radial-velocity-fitter]
+sources:
+  - "Model: the standard quadratic limb-darkening law."
+  - "Example data: simulated by fibub."
 flow:
   - { icon: table, label: "Light curve" }
   - { icon: curve, label: "Fit transit" }

@@ -12,6 +12,10 @@ icon: star
 works: offline
 updated: 2026-11-08
 related: [magnitude-flux-converter, habitable-zone-calculator, redshift-calculator, period-finder]
+sources:
+  - "Physical constants: CODATA recommended values (NIST)."
+  - "Bolometric correction: the published fit of Flower (1996) as corrected by Torres (2010)."
+  - "Colour temperature: the formula of Ballesteros (2012)."
 flow:
   - { icon: sliders, label: "Temperature" }
   - { icon: curve, label: "Spectrum" }

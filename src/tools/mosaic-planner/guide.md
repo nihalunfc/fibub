@@ -12,6 +12,9 @@ icon: crop
 works: offline
 updated: 2026-11-08
 related: [telescope-calculator, sky-coordinates, object-altitude, sub-exposure-calculator]
+sources:
+  - "Deep-sky objects: the OpenNGC catalogue by Mattia Verga (CC BY-SA 4.0)."
+  - "Camera sensor sizes: typical published sizes, typed by fibub."
 flow:
   - { icon: target, label: "Target" }
   - { icon: camera, label: "Camera" }

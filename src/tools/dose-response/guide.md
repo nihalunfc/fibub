@@ -12,6 +12,8 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [calibration-curve, plot-maker, uncertainty-calculator]
+sources:
+  - "Model: the four-parameter logistic curve, as in standard pharmacology software."
 flow:
   - { icon: table, label: "Paste data" }
   - { icon: curve, label: "4PL fit" }

@@ -12,6 +12,8 @@ icon: calculator
 works: offline
 updated: 2026-11-08
 related: [plate-layout, solution-calculator, pcr-master-mix]
+sources:
+  - "Chamber size: the improved Neubauer chamber (0.1 µL per large square)."
 flow:
   - { icon: target, label: "Tally" }
   - { icon: calculator, label: "Cells/mL" }

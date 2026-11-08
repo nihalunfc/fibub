@@ -1,0 +1,126 @@
+---
+// Electrochemical impedance spectroscopy: Nyquist and Bode plots, equivalent circuit fitting (complex non-linear
+// least squares), circuit comparison, effective capacitance and exchange current density.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { MODELS, exampleData } from '../../lib/sci/eis';
+const demo = 'f (Hz)\tZ\' (Ω)\tZ" (Ω)\n' + exampleData().map((p) => `${p.f}\t${p.re}\t${p.im}`).join('\n');
+---
+<div class="ax eis">
+  <div class="ax-card">
+    <h2>Impedance spectrum</h2>
+    <label class="eis-lab">Frequency and impedance, three columns, one frequency per line <textarea class="eis-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".eis-data" maxCols={3} label="Open a file (3 columns)" />
+    <div class="ax-grid">
+      <label>Columns are <select class="eis-fmt"><option value="reim">f, Z′, Z″</option><option value="modphase">f, |Z|, phase (°)</option></select></label>
+      <label>Sign of the third column <select class="eis-sign"><option value="auto">Detect</option><option value="z">As measured (Z″ or phase)</option><option value="minus">Holds −Z″ or −phase</option></select></label>
+      <label class="eis-wide">Equivalent circuit <select class="eis-model">{MODELS.map((m) => <option value={m.id} selected={m.id === 'Randles'}>{m.code}: {m.name}</option>)}</select></label>
+      <label>Electrode area (cm², optional) <input class="eis-area" inputmode="decimal" value="0.0707" /></label>
+      <label>Electrons n <input class="eis-n" inputmode="decimal" value="1" /></label>
+      <label>Temperature (°C) <input class="eis-T" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-help">Most instruments export Z″ as a negative number (a capacitive cell), and some export −Z″. The tool detects which from the data. The fit is weighted by |Z|, so every frequency counts by its relative error, as is usual for impedance data.</p>
+    <p class="ax-err eis-err" hidden></p>
+    <div class="eis-out">
+      <p class="ax-big eis-big"></p>
+      <p class="ax-err eis-warn" hidden></p>
+      <div class="ax-scroll"><table class="eis-tab"></table></div>
+      <dl class="ax-facts eis-facts"></dl>
+      <canvas class="ax-fig eis-nyq" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig eis-bode" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig eis-phase" style="margin-top:10px"></canvas>
+      <h3>Compare circuits</h3>
+      <div class="ax-scroll"><table class="eis-cmp"></table></div>
+      <p class="ax-help">Prefer the simplest circuit that fits within the noise and whose values are all well defined. A better fit from more elements is not proof that they exist.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MODELS, fitEIS, toPoints, cEff, exchangeCurrent, eng, type EisFit, type Point } from '../../lib/sci/eis';
+  import { num, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.eis')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) => { el.replaceChildren(); const hr = el.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const bd = el.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(j)) { td.style.textAlign = 'right'; td.style.whiteSpace = 'nowrap'; } }); } };
+  const val = (v: number, p: { unit: string; log: boolean }) => (!p.log ? v.toFixed(3) : eng(v, p.unit));
+  let figs: Figure[] = [], parRows: string[][] = [], cmpRows: string[][] = [];
+
+  function calc() {
+    const err = (m: string) => { q('.eis-err').textContent = m; q('.eis-err').hidden = !m; q('.eis-out').hidden = !!m; if (m) figs = []; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.eis-data').value);
+    if (t.cols.length < 3) return err('Paste three columns: frequency, Z′ and Z″ (or |Z| and phase).');
+    const { pts, flipped } = toPoints(t.cols, q<HTMLSelectElement>('.eis-fmt').value as 'reim', q<HTMLSelectElement>('.eis-sign').value as 'auto');
+    if (pts.length < 6) return err('Use at least 6 frequencies with numbers in all three columns (frequencies above zero).');
+    if (new Set(pts.map((p) => p.f)).size < pts.length) return err('Each frequency should appear once: check for a repeated sweep or a missing column.');
+    if (q<HTMLSelectElement>('.eis-fmt').value === 'reim' && pts.some((p) => p.re < 0)) return err('Z′ (the real part) should not be negative for a cell: check the column order.');
+    const model = MODELS.find((m) => m.id === q<HTMLSelectElement>('.eis-model').value)!;
+    let fit: EisFit;
+    try { fit = fitEIS(model, pts); } catch (e) { return err((e as Error).message); }
+    err('');
+    const P = model.params, get = (k: string) => fit.p[P.findIndex((x) => x.key === k)];
+    q('.eis-big').textContent = `${model.code} fit: ${P.filter((x) => x.unit === 'Ω').map((x) => `${x.key} ${eng(get(x.key), 'Ω')}`).join(', ')} (error ${fit.rmsPct < 0.1 ? fit.rmsPct.toFixed(3) : fit.rmsPct.toFixed(2)} % rms)`;
+    const warn = [fit.runaway ? 'At least one value ran to a limit or has no defined error: this circuit has an element the data cannot pin down. Try a simpler circuit.' : '', fit.rmsPct > 5 ? `The fit misses the data by ${fit.rmsPct.toFixed(0)} % on average: try another circuit.` : ''].filter(Boolean).join(' ');
+    q('.eis-warn').textContent = warn; q('.eis-warn').hidden = !warn;
+    parRows = P.map((x, i) => [x.label, val(fit.p[i], x), Number.isFinite(fit.rel[i]) ? `± ${(100 * fit.rel[i]).toPrecision(2)} %` : '—']);
+    table(q<HTMLTableElement>('.eis-tab'), ['Element', 'Value', 'Std. error'], parRows, [1, 2]);
+
+    const area = num(q<HTMLInputElement>('.eis-area').value), n = num(q<HTMLInputElement>('.eis-n').value), T = num(q<HTMLInputElement>('.eis-T').value) + 273.15;
+    const facts: HTMLElement[] = [fact('Third column', flipped ? 'read as −Z″ and turned back to Z″' : 'read as Z″', 'switch the sign setting if the arc comes out upside down')];
+    const arcs: [string, string, string][] = model.id === 'RQRQ' ? [['R1', 'Q1', 'α1'], ['R2', 'Q2', 'α2']] : model.id === 'RQ' || model.id === 'Randles' ? [['Rct', 'Q', 'α']] : model.id === 'RC' ? [['Rct', '', '']] : [];
+    for (const [r, qk, ak] of arcs) {
+      const Rv = get(r), Cv = qk ? cEff(get(qk), get(ak), Rv) : get('C'), tau = Rv * Cv;
+      facts.push(fact(`${qk ? 'Effective capacitance' : 'Capacitance'} (${r} arc)`, `${eng(Cv, 'F')}${area > 0 ? `, ${eng(Cv / area, 'F/cm²')}` : ''}`, qk ? 'Hsu–Mansfeld: C = Q^(1/α) R^((1−α)/α); a double layer is typically 10 to 50 µF/cm²' : ''));
+      facts.push(fact(`Time constant (${r} arc)`, `${eng(tau, 's')}, peak near ${eng(1 / (2 * Math.PI * tau), 'Hz')}`));
+    }
+    const Rct = P.some((x) => x.key === 'Rct') ? get('Rct') : NaN;
+    if (Number.isFinite(Rct) && area > 0) {
+      facts.push(fact('Rct × area', `${eng(Rct * area, 'Ω·cm²')}`));
+      if (n > 0 && T > 0) facts.push(fact('Exchange current density i₀', `${eng(exchangeCurrent(Rct * area, n, T), 'A/cm²')}`, 'i₀ = RT/(nF·Rct·A), for a single-step reaction near equilibrium'));
+    }
+    if (model.id === 'Randles') facts.push(fact('Warburg coefficient σ', `${get('σ').toPrecision(4)} Ω·s^−½`, 'slope of Z′ against ω^−½ in the diffusion tail'));
+    facts.push(fact('Reduced χ² (relative)', fit.chi2.toExponential(2), 'about the square of the relative noise for a good fit'));
+    q('.eis-facts').replaceChildren(...facts);
+
+    const fmin = Math.min(...pts.map((p) => p.f)), fmax = Math.max(...pts.map((p) => p.f));
+    const fs = Array.from({ length: 200 }, (_, i) => fmax * (fmin / fmax) ** (i / 199)), zs = fs.map((f) => model.z(2 * Math.PI * f, fit.p));
+    const xmax = Math.max(...pts.map((p) => p.re), ...zs.map((z) => z[0])), ymax = Math.max(...pts.map((p) => -p.im), ...zs.map((z) => -z[1]), 0);
+    const span = Math.max(xmax, ymax * 1.6) * 1.05;
+    figs = [
+      chartFigure({ h: 300, xLabel: 'Z′ (Ω)', yLabel: '−Z″ (Ω)', xMin: 0, xMax: span, yMin: Math.min(0, ...pts.map((p) => -p.im)), yMax: span / 1.6, series: [{ name: 'data', x: pts.map((p) => p.re), y: pts.map((p) => -p.im), mode: 'points' }, { name: 'fit', x: zs.map((z) => z[0]), y: zs.map((z) => -z[1]), mode: 'line', width: 2 }], legend: 'none' }, 'Nyquist plot of the data with the fitted circuit'),
+      chartFigure({ h: 220, xLabel: 'Frequency (Hz)', yLabel: '|Z| (Ω)', xLog: true, yLog: true, series: [{ name: 'data', x: pts.map((p) => p.f), y: pts.map((p) => Math.hypot(p.re, p.im)), mode: 'points' }, { name: 'fit', x: fs, y: zs.map((z) => Math.hypot(z[0], z[1])), mode: 'line', width: 2 }], legend: 'none' }, 'Bode plot: impedance modulus against frequency'),
+      chartFigure({ h: 220, xLabel: 'Frequency (Hz)', yLabel: '−phase (°)', xLog: true, series: [{ name: 'data', x: pts.map((p) => p.f), y: pts.map((p) => (-Math.atan2(p.im, p.re) * 180) / Math.PI), mode: 'points' }, { name: 'fit', x: fs, y: zs.map((z) => (-Math.atan2(z[1], z[0]) * 180) / Math.PI), mode: 'line', width: 2 }], legend: 'none' }, 'Bode plot: phase angle against frequency'),
+    ];
+    ['.eis-nyq', '.eis-bode', '.eis-phase'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i]));
+
+    cmpRows = MODELS.map((m) => { try { const r = m.id === model.id ? fit : fitEIS(m, pts); return [m.code, String(m.params.length), `${r.rmsPct < 0.1 ? r.rmsPct.toFixed(3) : r.rmsPct.toFixed(2)} %`, r.runaway ? 'values not pinned down' : r.rmsPct > 5 ? 'poor fit' : 'ok']; } catch { return [m.code, String(m.params.length), '—', 'did not fit']; } });
+    table(q<HTMLTableElement>('.eis-cmp'), ['Circuit', 'Values', 'rms error', 'Verdict'], cmpRows, [1, 2]);
+  }
+
+  root.querySelectorAll('.eis-data').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.eis-fmt, .eis-sign, .eis-model').forEach((i) => i.addEventListener('change', calc));
+  root.querySelectorAll('.eis-area, .eis-n, .eis-T').forEach((i) => i.addEventListener('input', calc));
+  document.addEventListener('fibub:theme', () => { if (figs.length) ['.eis-nyq', '.eis-bode', '.eis-phase'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Impedance fit', subtitle: q<HTMLSelectElement>('.eis-model').selectedOptions[0].textContent!, file: 'impedance-fit',
+    sections: q('.eis-out').hidden ? [] : [
+      { title: q('.eis-big').textContent!, table: { head: ['Element', 'Value', 'Std. error'], rows: parRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] }, facts: [...root.querySelectorAll('.eis-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      { title: 'Bode plots', figure: figs[1] }, { title: 'Phase', figure: figs[2] },
+      { title: 'Compare circuits', table: { head: ['Circuit', 'Values', 'rms error', 'Verdict'], rows: cmpRows, align: ['l', 'r', 'r', 'l'] as ('l' | 'r')[] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .eis .eis-wide { grid-column: 1 / -1; }
+  .eis .eis-lab { display: block; }
+  .eis textarea { width: 100%; font: inherit; font-size: 14px; }
+  .eis select { max-width: 100%; }
+  .eis h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>

@@ -12,6 +12,8 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [period-finder, exoplanet-mass-calculator, plot-maker, redshift-calculator, transit-planner]
+sources:
+  - "Example data: simulated by fibub."
 flow:
   - { icon: table, label: "Velocities" }
   - { icon: curve, label: "Fit orbit" }

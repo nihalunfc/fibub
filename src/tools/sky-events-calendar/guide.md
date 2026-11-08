@@ -12,6 +12,10 @@ icon: calendar
 works: offline
 updated: 2026-11-07
 related: [sky-tonight, object-altitude, observing-log]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
+  - "Meteor shower dates and rates: typical values from the International Meteor Organization's shower calendar, rounded."
 flow:
   - { icon: search, label: "Your place" }
   - { icon: calendar, label: "Pick a month" }

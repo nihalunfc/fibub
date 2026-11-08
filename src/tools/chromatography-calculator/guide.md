@@ -12,6 +12,8 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [calibration-curve, beer-lambert-calculator, isotope-pattern-calculator, solution-calculator]
+sources:
+  - "Formulas and method transfer rules: USP general chapter <621> and the European Pharmacopoeia."
 flow:
   - { icon: chart, label: "Peaks" }
   - { icon: calculator, label: "Resolution" }

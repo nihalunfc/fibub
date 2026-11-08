@@ -12,6 +12,9 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [equilibrium-solver, gas-law-calculator, equation-balancer, colligative-properties]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Standard formation values (ΔfH°, S°, ΔfG°) for 38 substances: NIST Chemistry WebBook and CRC Handbook values at 298.15 K, which you can type over."
 flow:
   - { icon: pencil, label: "Reaction" }
   - { icon: table, label: "Values" }

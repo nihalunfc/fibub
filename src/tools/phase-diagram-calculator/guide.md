@@ -12,6 +12,9 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [colligative-properties, thermochemistry-calculator, glass-transition-calculator, dsc-tga-analyser]
+sources:
+  - "Melting points, enthalpies of fusion and molar masses: CRC Handbook values, which you can type over."
+  - "Model: the ideal-solution (van Laar and Schröder–van Laar) equations."
 flow:
   - { icon: flask, label: "Components" }
   - { icon: chart, label: "Diagram" }

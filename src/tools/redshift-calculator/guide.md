@@ -12,6 +12,9 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [cosmology-calculator, magnitude-flux-converter, sky-coordinates, uncertainty-calculator]
+sources:
+  - "Rest wavelengths: NIST Atomic Spectra Database (US government), rounded."
+  - "Preset parameters: Planck 2018 published results."
 flow:
   - { icon: target, label: "Measure" }
   - { icon: sliders, label: "Convention" }

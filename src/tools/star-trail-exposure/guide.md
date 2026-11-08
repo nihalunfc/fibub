@@ -12,6 +12,9 @@ icon: camera
 works: offline
 updated: 2026-11-07
 related: [telescope-calculator, sky-tonight, polar-alignment]
+sources:
+  - "Camera sensor sizes: typical published sizes, typed by fibub."
+  - "Rules of thumb: the common 500 rule and the NPF rule (Frédéric Michaud, Société Astronomique de France)."
 flow:
   - { icon: camera, label: "Camera" }
   - { icon: target, label: "Aim" }

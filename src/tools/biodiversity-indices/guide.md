@@ -12,6 +12,8 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [sample-size, plot-maker, sql-playground, uncertainty-calculator]
+sources:
+  - "Formulas: Magurran, Measuring Biological Diversity (2004); Chao (1987, 2005)."
 flow:
   - { icon: table, label: "Paste counts" }
   - { icon: sigma, label: "Indices" }

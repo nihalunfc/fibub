@@ -12,6 +12,8 @@ icon: clock
 works: offline
 updated: 2026-11-08
 related: [uncertainty-calculator, plot-maker, stereonet]
+sources:
+  - "Calibration curve: IntCal20, Reimer et al. (2020), Radiocarbon 62(4), published under CC BY 4.0."
 flow:
   - { icon: table, label: "¹⁴C age" }
   - { icon: curve, label: "IntCal20" }

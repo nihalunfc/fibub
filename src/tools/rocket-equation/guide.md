@@ -12,6 +12,9 @@ icon: flag
 works: offline
 updated: 2026-11-08
 related: [orbit-transfer-calculator, cosmology-calculator, uncertainty-calculator]
+sources:
+  - "Gravitational parameters and radii: JPL and IAU values."
+  - "Standard gravity: 9.80665 m/s² (CGPM)."
 flow:
   - { icon: table, label: "Stages" }
   - { icon: calculator, label: "Delta-v" }

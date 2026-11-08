@@ -12,6 +12,9 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [transit-planner, magnitude-flux-converter, orbit-transfer-calculator, period-finder]
+sources:
+  - "Habitable zone limits: the published fit of Kopparapu et al. (2014)."
+  - "Solar constants: IAU nominal values."
 flow:
   - { icon: star, label: "Star" }
   - { icon: orbit, label: "Planet" }

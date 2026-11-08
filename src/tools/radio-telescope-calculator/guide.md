@@ -12,6 +12,8 @@ icon: telescope
 works: offline
 updated: 2026-11-08
 related: [link-budget-calculator, magnitude-flux-converter, redshift-calculator, telescope-calculator]
+sources:
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: telescope, label: "Dish" }
   - { icon: clock, label: "Integrate" }

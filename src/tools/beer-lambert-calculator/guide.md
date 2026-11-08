@@ -12,6 +12,8 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [calibration-curve, solution-calculator, molar-mass-calculator, reaction-kinetics-fitter, plot-maker]
+sources:
+  - "Example: NADH absorption coefficient at 340 nm (6220 L/(mol·cm)), a standard biochemistry value."
 flow:
   - { icon: pencil, label: "3 values" }
   - { icon: calculator, label: "A = εlc" }

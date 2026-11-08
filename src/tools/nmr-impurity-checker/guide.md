@@ -12,6 +12,8 @@ icon: search
 works: offline
 updated: 2026-11-08
 related: [isotope-pattern-calculator, molar-mass-calculator, reaction-equivalents, tlc-rf-calculator]
+sources:
+  - "Solvent and impurity positions: approximate values rounded by fibub to 0.05 ppm (¹H) and 0.5 ppm (¹³C), consistent with the widely used published tables. Not a copy of any table."
 flow:
   - { icon: flask, label: "Solvent" }
   - { icon: table, label: "Peaks" }

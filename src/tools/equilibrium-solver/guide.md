@@ -12,6 +12,9 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [titration-curve, gas-law-calculator, reaction-kinetics-fitter, equation-balancer]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Examples: textbook problems with standard equilibrium constants."
 flow:
   - { icon: pencil, label: "Reaction" }
   - { icon: table, label: "ICE table" }

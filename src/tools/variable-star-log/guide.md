@@ -12,6 +12,8 @@ icon: star
 works: offline
 updated: 2026-11-08
 related: [period-finder, magnitude-flux-converter, observing-log, star-fwhm-checker, image-stacker, transit-light-curve-fitter]
+sources:
+  - "File formats: the AAVSO Visual and Extended File Format specifications (formats only, no AAVSO data)."
 flow:
   - { icon: pencil, label: "Observe" }
   - { icon: curve, label: "Light curve" }

@@ -12,6 +12,8 @@ icon: sigma
 works: offline
 updated: 2026-11-08
 related: [uncertainty-calculator, plot-maker, dose-response]
+sources:
+  - "Methods: as in R's power.t.test and power.prop.test."
 flow:
   - { icon: sliders, label: "Effect" }
   - { icon: target, label: "α and power" }

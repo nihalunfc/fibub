@@ -12,6 +12,9 @@ icon: telescope
 works: offline
 updated: 2026-11-07
 related: [star-trail-exposure, fits-viewer, sky-tonight, sky-coordinates]
+sources:
+  - "Deep-sky objects: the OpenNGC catalogue by Mattia Verga (CC BY-SA 4.0)."
+  - "Telescope and camera examples: common apertures, focal lengths and sensor sizes, typed by fibub."
 flow:
   - { icon: telescope, label: "Telescope" }
   - { icon: eye, label: "Eyepieces" }

@@ -12,6 +12,8 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [rocket-equation, cosmology-calculator, sky-events-calendar]
+sources:
+  - "Gravitational parameters and radii: JPL and IAU values."
 flow:
   - { icon: orbit, label: "Two orbits" }
   - { icon: calculator, label: "Burns" }

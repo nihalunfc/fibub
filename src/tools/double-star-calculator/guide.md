@@ -12,6 +12,9 @@ icon: star
 works: offline
 updated: 2026-11-08
 related: [radial-velocity-fitter, telescope-calculator, fits-viewer, observing-log, sky-coordinates]
+sources:
+  - "Orbit formulas: Meeus, Astronomical Algorithms, chapter 57."
+  - "Example orbits: Sirius from Bond et al. (2017) and η CrB from Meeus's worked example (seven numbers each)."
 flow:
   - { icon: star, label: "Pair" }
   - { icon: ruler, label: "Measure" }

@@ -12,6 +12,9 @@ icon: target
 works: offline
 updated: 2026-11-08
 related: [orbit-transfer-calculator, rocket-equation, mars-time, uncertainty-calculator]
+sources:
+  - "Crater scaling: the equations of Collins, Melosh and Marcus (2005), Earth Impact Effects Program."
+  - "Surface gravity and crater transition sizes: typical values from NASA and textbooks, rounded."
 flow:
   - { icon: star, label: "Impactor" }
   - { icon: mountain, label: "Ground" }

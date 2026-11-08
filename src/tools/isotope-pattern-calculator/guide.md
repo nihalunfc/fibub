@@ -12,6 +12,10 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, equation-balancer, calibration-curve, spectral-line-identifier]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Isotope masses and abundances: the chemical-elements data set by cheminfo (MIT licence), compiled from NIST and IUPAC data."
+  - "Electron and proton masses: CODATA (NIST)."
 flow:
   - { icon: pencil, label: "Formula" }
   - { icon: target, label: "Ion" }

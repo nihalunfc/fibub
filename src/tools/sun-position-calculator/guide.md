@@ -12,6 +12,9 @@ icon: compass
 works: offline
 updated: 2026-11-08
 related: [sky-tonight, object-altitude, dark-sky-calendar, astro-time, time-zone-planner, sky-events-calendar]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: compass, label: "Your place" }
   - { icon: clock, label: "Date, time" }

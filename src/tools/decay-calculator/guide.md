@@ -12,6 +12,9 @@ icon: clock
 works: offline
 updated: 2026-11-08
 related: [radiocarbon-calibration, molar-mass-calculator, isotope-pattern-calculator, reaction-kinetics-fitter]
+sources:
+  - "Half-lives: NNDC (ENSDF, US Brookhaven National Laboratory) and DDEP recommended values."
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
 flow:
   - { icon: flask, label: "Nuclide" }
   - { icon: calendar, label: "Date, time" }

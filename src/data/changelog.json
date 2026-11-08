@@ -1,5 +1,147 @@
 [
  {
+  "sha": "1c91fa16923d",
+  "date": "2026-11-08T16:22:42+00:00",
+  "title": "Add the binding curve fitter (#114)",
+  "tools": [
+   "binding-curve-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1414dbf1b3ed",
+  "date": "2026-11-08T16:11:15+00:00",
+  "title": "Add the buffer recipe calculator (#113)",
+  "tools": [
+   "buffer-recipe-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7465abd598c7",
+  "date": "2026-11-08T15:58:03+00:00",
+  "title": "Add the enzyme kinetics fitter (#112)",
+  "tools": [
+   "enzyme-kinetics-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c14ab9f25e1a",
+  "date": "2026-11-08T15:45:22+00:00",
+  "title": "Add the impedance (EIS) equivalent circuit fitter (#111)",
+  "tools": [
+   "impedance-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3fb13a3d773f",
+  "date": "2026-11-08T15:27:11+00:00",
+  "title": "Add the molecular point group finder (#110)",
+  "tools": [
+   "point-group-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "24be9e68accd",
+  "date": "2026-11-08T15:11:27+00:00",
+  "title": "Add the IR spectrum band finder (#109)",
+  "tools": [
+   "ir-band-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a935b05fe76",
+  "date": "2026-11-08T15:00:50+00:00",
+  "title": "Show where each science tool's numbers come from, with a removal-request link",
+  "tools": [
+   "astro-time",
+   "beer-lambert-calculator",
+   "biodiversity-indices",
+   "blackbody-calculator",
+   "calibration-curve",
+   "chromatography-calculator",
+   "colligative-properties",
+   "copolymer-composition",
+   "cosmology-calculator",
+   "crystal-field-calculator",
+   "dark-sky-calendar",
+   "decay-calculator",
+   "diatomic-spectroscopy",
+   "dose-response",
+   "double-star-calculator",
+   "dsc-tga-analyser",
+   "eclipse-finder",
+   "electron-count-calculator",
+   "electroplating-calculator",
+   "equation-balancer",
+   "equilibrium-solver",
+   "exoplanet-mass-calculator",
+   "gas-law-calculator",
+   "glass-transition-calculator",
+   "green-chemistry-metrics",
+   "habitable-zone-calculator",
+   "hemocytometer",
+   "huckel-mo-calculator",
+   "hydrogen-line-analyser",
+   "impact-crater-calculator",
+   "isotope-pattern-calculator",
+   "jupiter-moons",
+   "light-pollution-calculator",
+   "link-budget-calculator",
+   "magnitude-flux-converter",
+   "mars-time",
+   "meteor-shower-planner",
+   "method-validation",
+   "molar-mass-calculator",
+   "mosaic-planner",
+   "nernst-calculator",
+   "nmr-impurity-checker",
+   "object-altitude",
+   "observing-log",
+   "observing-session",
+   "orbit-transfer-calculator",
+   "period-finder",
+   "phase-diagram-calculator",
+   "planet-data-explorer",
+   "polar-alignment",
+   "polymer-molar-mass",
+   "porkchop-plot",
+   "psychrometric-calculator",
+   "radial-velocity-fitter",
+   "radio-telescope-calculator",
+   "radiocarbon-calibration",
+   "reaction-equivalents",
+   "redshift-calculator",
+   "reliability-analysis",
+   "rocket-equation",
+   "rotation-curve-fitter",
+   "sample-size",
+   "satellite-tracker",
+   "sky-coordinates",
+   "sky-events-calendar",
+   "sky-tonight",
+   "spectral-line-identifier",
+   "sql-playground",
+   "star-trail-exposure",
+   "stereonet",
+   "sun-position-calculator",
+   "tafel-corrosion-rate",
+   "telescope-calculator",
+   "thermochemistry-calculator",
+   "titration-curve",
+   "transit-light-curve-fitter",
+   "transit-planner",
+   "uncertainty-calculator",
+   "uv-coverage",
+   "variable-star-log"
+  ],
+  "site": true
+ },
+ {
   "sha": "22c9963a8617",
   "date": "2026-11-08T14:53:43+00:00",
   "title": "Use rounded, approximate positions in the NMR impurity table (#106)",

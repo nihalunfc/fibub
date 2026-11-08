@@ -12,6 +12,9 @@ icon: orbit
 works: offline
 updated: 2026-11-08
 related: [transit-planner, habitable-zone-calculator, period-finder, blackbody-calculator]
+sources:
+  - "Sun, Earth and Jupiter masses and radii: IAU 2015 nominal values."
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: curve, label: "Wobble K" }
   - { icon: star, label: "Star mass" }

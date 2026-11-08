@@ -91,6 +91,12 @@ import * as COR from '../src/lib/sci/corrosion.ts';
 import * as NMR from '../src/lib/sci/nmr.ts';
 import * as EC from '../src/lib/sci/ecount.ts';
 import * as PH from '../src/lib/sci/phase.ts';
+import * as IR from '../src/lib/sci/irbands.ts';
+import * as PG from '../src/lib/sci/pointgroup.ts';
+import * as EIS from '../src/lib/sci/eis.ts';
+import * as ENZ from '../src/lib/sci/enzyme.ts';
+import * as BUF from '../src/lib/sci/buffer.ts';
+import * as BND from '../src/lib/sci/binding.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1404,6 +1410,136 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('Bz–Np 50 % at 25 °C: liquid + solid naphthalene', zs.phases.length === 2 && zs.phases[1].name === 'solid B' && Math.abs(zs.phases[0].x - 0.3015) < 0.0005);
   check('below the eutectic: two pure solids', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 250).phases.every((p) => p.name.startsWith('solid')));
   check('above the liquidus: all liquid', PH.eutecticState(z.A.Tm, z.A.H, z.B.Tm, z.B.H, 0.5, 330).phases.length === 1);
+}
+{
+  // IR bands: table sanity, group rules, parsing, peak picking on the simulated ester.
+  check('every band has lo < hi inside 400–4000', IR.BANDS.every((b) => b.lo < b.hi && b.lo >= 400 && b.hi <= 4000));
+  check('band ids unique', new Set(IR.BANDS.map((b) => b.id)).size === IR.BANDS.length);
+  check('every group rule names real bands', IR.GROUPS.every((g) => [...g.need, ...(g.not ?? [])].flat().every((id) => IR.BANDS.some((b) => b.id === id))));
+  check('parse a characterisation line', JSON.stringify(IR.parseIR('3350 (br, s), 2960, 1715 (s)\n3300–2500 br; 45.2')) === JSON.stringify([{ x: 3350, broad: true }, { x: 2960, broad: false }, { x: 1715, broad: false }, { x: 2900, broad: true }]));
+  const likely = (t) => IR.assign(IR.parseIR(t)).groups.filter((g) => g.likely).map((g) => g.name);
+  check('carboxylic acid', likely('3300-2500 br, 1710, 1290').includes('Carboxylic acid'));
+  check('sharp C–H does not count as acid O–H', !likely('2820, 2720, 1730, 2950').includes('Carboxylic acid') && likely('2820, 2720, 1730').includes('Aldehyde'));
+  check('ketone', JSON.stringify(likely('2960, 1715, 1360').sort()) === JSON.stringify(['Alkyl chain', 'Ketone']));
+  check('ester rules out ketone and ether', JSON.stringify(likely('2984, 2940, 1742, 1447, 1373, 1240, 1047').sort()) === JSON.stringify(['Alkyl chain', 'Ester']));
+  check('amide', likely('3300, 1650, 1550').includes('Amide'));
+  check('nitrile', likely('2250, 2950').includes('Nitrile'));
+  check('toluene is aromatic, not nitro', likely('3030, 1600, 1500, 730, 2920, 1460, 1380').includes('Aromatic ring') && !likely('3030, 1600, 1500, 730, 2920, 1460, 1380').includes('Nitro'));
+  const s = IR.exampleSpectrum(), pk = IR.pickPeaks(s.x, s.y, true, 0.05);
+  check('example spectrum: 9 peaks found within 4 cm⁻¹', pk.length === 9 && [2984, 2940, 1742, 1447, 1373, 1240, 1047, 938, 847].every((c, i) => Math.abs(pk[i].x - c) <= 4));
+  near('cm⁻¹ to µm', IR.toMicron(1715), 5.8309, 0.0001);
+  near('%T ↔ A', IR.toAbsorbance(IR.toTransmittance(0.5)), 0.5, 1e-12);
+}
+{
+  // Point groups: every example, also turned, moved and with ±0.02 Å noise; orders, chirality, polarity, flowchart.
+  for (const e of PG.EXAMPLES) check(`${e.id}: ${e.group}`, PG.findPointGroup(e.atoms()).group === e.group);
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  const u = [0.3, 0.5, 0.81].map((x) => x / Math.hypot(0.3, 0.5, 0.81));
+  check('all examples survive rotation, translation and noise', PG.EXAMPLES.every((e) => PG.findPointGroup(e.atoms().map((a) => ({ el: a.el, p: PG.rotate(a.p, u, 1.234).map((x) => x + 3 + 0.04 * rnd()) }))).group === e.group));
+  const w = PG.EXAMPLES[0].atoms(); w[1].p = [w[1].p[0] + 0.3, w[1].p[1], w[1].p[2]];
+  check('distorted water drops to Cs', PG.findPointGroup(w).group === 'Cs');
+  check('group orders', PG.orderOf('D3h') === 12 && PG.orderOf('C2v') === 4 && PG.orderOf('Td') === 24 && PG.orderOf('Oh') === 48 && PG.orderOf('S4') === 4 && PG.orderOf('C3h') === 6 && PG.orderOf('D∞h') === null);
+  check('chiral groups', PG.isChiral('C2') && PG.isChiral('C1') && PG.isChiral('D3') && !PG.isChiral('Cs') && !PG.isChiral('S4') && !PG.isChiral('D2d'));
+  check('polar groups', PG.isPolar('C2v') && PG.isPolar('C∞v') && PG.isPolar('Cs') && !PG.isPolar('D3h') && !PG.isPolar('C2h') && !PG.isPolar('Td'));
+  const F = (o) => PG.flowchart({ linear: false, inversion: false, cubic: 'none', n: 1, perpC2: false, sigmaH: false, sigmaV: false, s2n: false, mirror: false, ...o });
+  check('flowchart', F({ n: 3, perpC2: true, sigmaH: true }) === 'D3h' && F({ n: 2, sigmaV: true }) === 'C2v' && F({ n: 2, s2n: true }) === 'S4' && F({ n: 3, perpC2: true, sigmaV: true }) === 'D3d' && F({ mirror: true }) === 'Cs' && F({}) === 'C1' && F({ cubic: 'T', mirror: true }) === 'Td' && F({ linear: true, inversion: true }) === 'D∞h');
+  const px = PG.parseXYZ('3\nwater from a file\nO 0 0 0\nH 0.757 0.586 0\nh -0.757 0.586 0');
+  check('read an .xyz file', px.atoms.length === 3 && px.bad.length === 0 && px.atoms[2].el === 'H');
+  check('bad line reported', PG.parseXYZ('O 0 0 0\nH 1 2').bad.length === 1);
+  check('subscripts', PG.pretty('D3h') === 'D₃h' && PG.pretty('C2v') === 'C₂v' && PG.pretty('Td') === 'Td' && PG.pretty('D∞h') === 'D∞h');
+}
+{
+  // Impedance: element formulas, exact recovery for every circuit, the simulated Randles cell, sign handling.
+  const z = EIS.zQ(2 * Math.PI * 1000, 1e-6, 1); near('CPE with α = 1 is a capacitor', z[1], -1 / (2 * Math.PI * 1000 * 1e-6), 1e-9);
+  near('Warburg: equal real and imaginary parts', EIS.zW(4, 10)[0] + EIS.zW(4, 10)[1], 0, 1e-12);
+  const truths = { RC: [15, 200, 1e-5], RQ: [15, 200, 1e-5, 0.85], Randles: [20, 100, 2e-5, 0.9, 30], RQRQ: [10, 50, 1e-6, 0.95, 300, 1e-4, 0.8], 'RQ-blocking': [12, 5e-5, 0.92] };
+  for (const m of EIS.MODELS) {
+    const t = truths[m.id], pts = Array.from({ length: 41 }, (_, k) => { const f = 10 ** (5 - (k * 7) / 40), zz = m.z(2 * Math.PI * f, t); return { f, re: zz[0], im: zz[1] }; });
+    const r = EIS.fitEIS(m, pts); check(`${m.code}: exact values recovered`, r.p.every((v, i) => Math.abs(v / t[i] - 1) < 1e-6) && !r.runaway);
+  }
+  const ex = EIS.exampleData(), rd = EIS.fitEIS(EIS.MODELS.find((m) => m.id === 'Randles'), ex);
+  near('example Rs', rd.p[0], 20, 0.1); near('example Rct', rd.p[1], 100, 0.3); near('example α', rd.p[3], 0.9, 0.002); near('example σ', rd.p[4], 30, 0.1);
+  check('example: rms error under 0.2 %', rd.rmsPct < 0.2);
+  check('two-arc circuit flagged on Randles data', EIS.fitEIS(EIS.MODELS.find((m) => m.id === 'RQRQ'), ex).runaway);
+  near('Hsu–Mansfeld with α = 1 gives Q', EIS.cEff(2e-5, 1, 100), 2e-5, 1e-15);
+  near('i0 for 1 Ω·cm² at 25 °C', EIS.exchangeCurrent(1, 1, 298.15), 0.025693, 1e-5);
+  const flipped = EIS.toPoints([[100, 10], [5, 6], [2, 3]], 'reim', 'auto');
+  check('−Z″ column detected', flipped.flipped && flipped.pts[0].im === -2 && flipped.pts[0].f === 100);
+  const mp = EIS.toPoints([[10], [2], [-30]], 'modphase', 'auto').pts[0]; near('|Z| and phase to Z″', mp.im, -1, 1e-12);
+  check('SI prefixes', EIS.eng(2.004e-5, 'F') === '20.04 µF' && EIS.eng(1234, 'Ω') === '1.234 kΩ');
+}
+{
+  // Enzyme kinetics: every model recovers its own values from exact rates; the simulated competitive study is identified.
+  const Ss = [1, 2.5, 5, 10, 20, 40, 80, 160, 320];
+  const truth = { mm: [100, 20], subinh: [120, 20, 200], hill: [100, 20, 2.2], comp: [100, 20, 10], uncomp: [100, 20, 15], noncomp: [100, 20, 25], mixed: [100, 20, 8, 40] };
+  for (const m of ENZ.MODELS) {
+    const d = (m.needsI ? [0, 10, 30] : [0]).flatMap((I) => Ss.map((S) => ({ S, I, v: m.v(S, I, truth[m.id]) })));
+    const f = ENZ.fitEnzyme(m, d);
+    check(`enzyme ${m.id} recovers its values`, f.p.every((v, i) => Math.abs(v / truth[m.id][i] - 1) < 1e-4));
+  }
+  const ex = ENZ.exampleData(), fits = ENZ.MODELS.filter((m) => m.needsI).map((m) => ENZ.fitEnzyme(m, ex)), w = ENZ.akaikeWeights(fits);
+  const comp = fits[0];
+  near('enzyme example Vmax', comp.p[0], 98.13, 0.02); near('enzyme example Km', comp.p[1], 19.20, 0.02); near('enzyme example Ki', comp.p[2], 9.816, 0.01);
+  check('enzyme: competitive and mixed share the support, the other two are ruled out', w[0] > 0.5 && w[3] > 0.4 && w[1] < 1e-10 && w[2] < 1e-10);
+  check('enzyme: mixed fit puts Ki′ far above Ki', fits[3].p[3] / fits[3].p[2] > 50);
+  const L = ENZ.linearised(ex.filter((o) => o.I === 0));
+  near('Lineweaver–Burk Vmax', L.lineweaver.Vmax, 102.07, 0.01); near('Eadie–Hofstee Km', L.eadie.Km, 19.83, 0.01); near('Hanes–Woolf Vmax', L.hanes.Vmax, 98.65, 0.01);
+  // Exact linear data: all three straight-line methods agree with the truth.
+  const L2 = ENZ.linearised([2, 5, 10, 20, 50].map((S) => ({ S, I: 0, v: (60 * S) / (8 + S) })));
+  check('linear plots exact on perfect data', [L2.lineweaver, L2.eadie, L2.hanes].every((r) => Math.abs(r.Vmax - 60) < 1e-9 && Math.abs(r.Km - 8) < 1e-9));
+  let threw = false; try { ENZ.fitEnzyme(ENZ.MODELS[0], [{ S: 1, I: 0, v: 1 }, { S: 2, I: 0, v: 2 }]); } catch { threw = true; }
+  check('enzyme: too few rates refused', threw);
+}
+{
+  // Buffers: Henderson–Hasselbalch at zero ionic strength, charge balance, Davies shifts, temperature and capacity.
+  const g = (id) => BUF.BUFFERS.find((b) => b.id === id);
+  check('every buffer form has a molar mass', BUF.BUFFERS.every((b) => b.forms.length && b.forms.every((f) => BUF.formMass(f) > 30)));
+  near('Tris base molar mass', BUF.formMass(g('tris').forms[0]), 121.14, 0.01);
+  near('Na2HPO4·7H2O molar mass', BUF.formMass(g('phosphate').forms.find((f) => f.formula === 'Na2HPO4·7H2O')), 268.06, 0.01);
+  check('fractions at pH = pKa are a half each', Math.abs(BUF.fractions(7.5, [7.5])[0] - 0.5) < 1e-12);
+  near('Henderson–Hasselbalch ratio 10:1 one unit above pKa', BUF.fractions(8.5, [7.5])[1] / BUF.fractions(8.5, [7.5])[0], 10, 1e-9);
+  const h = BUF.oneForm(g('hepes'), g('hepes').forms[0], 7.5, 25, 1e-4, 1, 1);
+  near('dilute HEPES at its pKa is half deprotonated', h.state.nbar, 0.5, 0.005);
+  // Davies: a −1 → −2 pair (phosphate) drops, a +1 → 0 pair (Tris) rises with ionic strength.
+  check('ionic strength moves pKa′ the right way', BUF.pKaApparent(g('phosphate'), 25, 0.1)[1] < 7.2 - 0.3 && BUF.pKaApparent(g('tris'), 25, 0.1)[0] > 8.05 + 0.08);
+  const t = BUF.oneForm(g('tris'), g('tris').forms[0], 8.0, 25, 0.05, 1, 1);
+  near('Tris 50 mM pH 8.0: mL of 1 M HCl', t.titrantmL, 28.40, 0.02); near('Tris grams', t.forms[0].grams, 6.057, 0.001);
+  check('Tris: acid, not base', t.titrant < 0);
+  near('Tris pH at 4 °C', BUF.pHAtOtherT(g('tris'), t, 4), 8.63, 0.01);
+  const p = BUF.twoForms(g('phosphate'), g('phosphate').forms[0], g('phosphate').forms[3], 7.4, 25, 0.1, 1);
+  check('phosphate pair reaches 7.4', p.ok);
+  near('phosphate 7.4: NaH2PO4 share', p.forms[0].mol / 0.1, 0.202, 0.003); near('phosphate ionic strength', p.state.I, 0.2596, 0.001);
+  // Round trip: the pH of the mixed solution comes back as the target.
+  near('phosphate recipe round trip', BUF.pHAtOtherT(g('phosphate'), p, 25), 7.4, 1e-4);
+  near('Tris recipe round trip', BUF.pHAtOtherT(g('tris'), t, 25), 8.0, 1e-4);
+  check('pure NaH2PO4 and Na2HPO4 pH', Math.abs(BUF.pHFor(g('phosphate'), g('phosphate').forms[0], 25, 0.1) - 4.48) < 0.03 && Math.abs(BUF.pHFor(g('phosphate'), g('phosphate').forms[3], 25, 0.1) - 9.22) < 0.03);
+  check('pair out of reach refused', !BUF.twoForms(g('phosphate'), g('phosphate').forms[0], g('phosphate').forms[3], 10, 25, 0.1, 1).ok);
+  near('acetate: NaOH at pH 4.75', BUF.oneForm(g('acetate'), g('acetate').forms[0], 4.75, 25, 0.1, 1, 1).titrantmL, 55.04, 0.05);
+  near('capacity of a single pair at its pKa′ ≈ 2.303 C / 4', BUF.oneForm(g('mops'), g('mops').forms[0], BUF.pKaApparent(g('mops'), 25, 0.05)[0], 25, 0.1, 1, 1).state.beta / BUF.betaMaxSingle(0.1), 1, 0.01);
+  near('pKw at 25 °C and 37 °C', BUF.pKw(25) + BUF.pKw(37), 27.6, 1e-9);
+}
+{
+  // Binding: exact recovery for every model, the simulated saturation study, Scatchard on perfect data, Cheng–Prusoff.
+  const Ls = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+  const truth = { one: [100, 3], ns: [100, 3, 2], two: [60, 0.5, 80, 20], hill: [100, 3, 2] };
+  for (const m of BND.MODELS.filter((m) => !m.needsRt)) {
+    const f = BND.fitBinding(m, Ls, Ls.map((l) => m.y(l, truth[m.id], 0)));
+    check(`binding ${m.id} recovers its values`, f.p.every((v, i) => Math.abs(v / truth[m.id][i] - 1) < 1e-4));
+  }
+  const tm = BND.MODELS.find((m) => m.id === 'tight'), Lt = [0, 0.2, 0.5, 1, 1.5, 2, 3, 5, 10, 20];
+  const ft = BND.fitBinding(tm, Lt, Lt.map((l) => tm.y(l, [0.1, 0.8, 0.05], 1)), 1);
+  check('tight binding recovers y0, ΔY and Kd', Math.abs(ft.p[0] - 0.1) < 1e-6 && Math.abs(ft.p[1] - 0.8) < 1e-6 && Math.abs(ft.p[2] / 0.05 - 1) < 1e-4);
+  near('quadratic: equal R and L, Kd = R gives 0.382 bound', BND.complexTotal(1, 1, 1), (3 - Math.sqrt(5)) / 2, 1e-12);
+  near('quadratic: very tight binding takes all of the smaller', BND.complexTotal(0.4, 1, 1e-9), 0.4, 1e-6);
+  near('quadratic: weak binding matches one site with free ≈ total', BND.complexTotal(1e-6, 1e-6, 10) / 1e-6, 1e-6 / (10 + 1e-6), 1e-6);
+  const ex = BND.exampleData(), L = ex.map((o) => o.L), sp = ex.map((o) => o.total - o.nsb), tot = ex.map((o) => o.total);
+  const one = BND.fitBinding(BND.MODELS[0], L, sp);
+  near('example Kd', one.p[1], 2.514, 0.005); near('example Bmax', one.p[0], 1204, 1);
+  const fits = ['one', 'ns', 'two', 'hill'].map((id) => BND.fitBinding(BND.MODELS.find((m) => m.id === id), L, tot)), w = BND.akaikeWeights(fits);
+  check('total binding: one site + non-specific wins', w[1] > 0.9 && Math.abs(fits[1].p[1] - 2.53) < 0.01);
+  const S = BND.scatchard(Ls, Ls.map((l) => (100 * l) / (3 + l)));
+  check('Scatchard exact on one-site data', Math.abs(S.Kd - 3) < 1e-9 && Math.abs(S.Bmax - 100) < 1e-9);
+  near('Cheng–Prusoff', BND.chengPrusoff(40, 2, 2.5), 40 / 1.8, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

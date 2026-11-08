@@ -12,6 +12,8 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, equation-balancer, solution-calculator, uncertainty-calculator]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
 flow:
   - { icon: table, label: "Reagents" }
   - { icon: calculator, label: "Amounts" }

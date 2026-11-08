@@ -12,6 +12,9 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [redshift-calculator, cosmology-calculator, radial-velocity-fitter, plot-maker, uncertainty-calculator]
+sources:
+  - "Models: Hernquist bulge, Freeman (1970) disc, NFW and pseudo-isothermal halos."
+  - "Example data: simulated by fibub."
 flow:
   - { icon: table, label: "Speeds" }
   - { icon: curve, label: "Fit model" }

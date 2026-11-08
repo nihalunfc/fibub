@@ -26,6 +26,8 @@ export type Chart = {
   w: number; h: number; title?: string; xLabel?: string; yLabel?: string;
   /** Larger values lower down, as astronomers draw magnitudes. */
   yReverse?: boolean;
+  /** Larger values to the left, as infrared spectra are drawn (wavenumber falling to the right). */
+  xReverse?: boolean;
   xLog?: boolean; yLog?: boolean; xMin?: number; xMax?: number; yMin?: number; yMax?: number;
   series: Series[]; legend?: 'auto' | 'none' | 'inside' | 'below'; font?: number; grid?: boolean;
   colors?: string[]; ink?: string; muted?: string; gridColor?: string; bg?: string | null;
@@ -125,10 +127,10 @@ export function drawChart(P: Painter, c: Chart) {
     legendCols = Math.max(1, Math.floor((c.w - left - 10) / wItem)); legendRows = Math.ceil(named.length / legendCols);
   }
   const bottom = fs * 1.6 + (c.xLabel ? fs * 1.6 : 0) + (legend === 'below' ? legendRows * lineH + 8 : 0) + 4;
-  const right = Math.max(12, P.measure(xLabels[xLabels.length - 1] ?? '', fs * 0.9) / 2 + 4);
+  const right = Math.max(12, P.measure(xLabels[c.xReverse ? 0 : xLabels.length - 1] ?? '', fs * 0.9) / 2 + 4);
   const px0 = left, px1 = c.w - right, py0 = top, py1 = c.h - bottom;
   const lx = (v: number) => (c.xLog ? Math.log10(v) : v), ly = (v: number) => (c.yLog ? Math.log10(v) : v);
-  const X = (v: number) => px0 + ((lx(v) - lx(xa)) / (lx(xb) - lx(xa))) * (px1 - px0);
+  const X = (v: number) => (c.xReverse ? px1 - ((lx(v) - lx(xa)) / (lx(xb) - lx(xa))) * (px1 - px0) : px0 + ((lx(v) - lx(xa)) / (lx(xb) - lx(xa))) * (px1 - px0));
   const Y = (v: number) => (c.yReverse ? py0 + ((ly(v) - ly(ya)) / (ly(yb) - ly(ya))) * (py1 - py0) : py1 - ((ly(v) - ly(ya)) / (ly(yb) - ly(ya))) * (py1 - py0));
 
   if (c.title) P.text(px0, fs * 0.4, c.title, fs * 1.08, ink, 'start', 'top', 0, true);

@@ -12,6 +12,8 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [solution-calculator, equation-balancer, molar-mass-calculator, calibration-curve, uncertainty-calculator]
+sources:
+  - "Acid pKa values and indicator ranges: common textbook values (CRC Handbook; Harris, Quantitative Chemical Analysis), rounded."
 flow:
   - { icon: flask, label: "Analyte" }
   - { icon: curve, label: "pH curve" }

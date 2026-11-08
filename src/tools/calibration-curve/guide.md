@@ -12,6 +12,8 @@ icon: flask
 works: offline
 updated: 2026-11-08
 related: [dose-response, uncertainty-calculator, plot-maker, graph-digitizer]
+sources:
+  - "Formulas: Miller and Miller, Statistics and Chemometrics for Analytical Chemistry; detection limits as in ICH Q2(R2)."
 flow:
   - { icon: table, label: "Standards" }
   - { icon: chart, label: "Fit line" }

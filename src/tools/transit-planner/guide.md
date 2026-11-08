@@ -12,6 +12,9 @@ icon: telescope
 works: offline
 updated: 2026-11-08
 related: [period-finder, object-altitude, observing-session, habitable-zone-calculator, observing-log]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: target, label: "Planet" }
   - { icon: compass, label: "Your place" }

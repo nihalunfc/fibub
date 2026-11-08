@@ -12,6 +12,8 @@ icon: sigma
 works: offline
 updated: 2026-11-08
 related: [calibration-curve, plot-maker, dose-response]
+sources:
+  - "Method: the GUM (JCGM 100:2008) and its Monte Carlo supplement (JCGM 101:2008), free from BIPM."
 flow:
   - { icon: pencil, label: "Formula" }
   - { icon: ruler, label: "Measurements" }

@@ -26,6 +26,8 @@ const tools = defineCollection({
     section: z.string().optional(), // a group within the shelf (see SECTIONS in src/site.ts)
     // Tools that go well with this one. Links show both ways automatically, so list each pair once.
     related: z.array(z.string()).default([]),
+    // Where the tool's reference numbers come from (shown on the page with a link for removal requests).
+    sources: z.array(z.string()).default([]),
     works: z.enum(['offline', 'online']),
     flow: z.array(z.object({ icon: z.enum(ICON_NAMES), label: z.string().max(12) })).min(3).max(4).optional(),
   }),

@@ -12,6 +12,10 @@ icon: moon
 works: offline
 updated: 2026-11-07
 related: [object-altitude, sky-events-calendar, observing-log, telescope-calculator]
+sources:
+  - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
+  - "Deep-sky objects: the OpenNGC catalogue by Mattia Verga (CC BY-SA 4.0)."
+  - "City coordinates and time zones: public geographic facts, typed by fibub."
 flow:
   - { icon: search, label: "Your place" }
   - { icon: calendar, label: "Pick a night" }

@@ -12,6 +12,9 @@ icon: chart
 works: offline
 updated: 2026-11-08
 related: [glass-transition-calculator, polymer-molar-mass, molar-mass-calculator, plot-maker]
+sources:
+  - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
+  - "Melting enthalpy of 100 % crystalline polymers: common literature values (such as the ATHAS data bank), which you can type over."
 flow:
   - { icon: table, label: "Scan" }
   - { icon: ruler, label: "Windows" }

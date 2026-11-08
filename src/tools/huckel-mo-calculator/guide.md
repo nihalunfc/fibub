@@ -12,6 +12,8 @@ icon: sigma
 works: offline
 updated: 2026-11-08
 related: [molar-mass-calculator, equilibrium-solver, beer-lambert-calculator, isotope-pattern-calculator]
+sources:
+  - "Heteroatom parameters h and k: Streitwieser (1961), the standard textbook set."
 flow:
   - { icon: pencil, label: "Molecule" }
   - { icon: table, label: "Matrix" }

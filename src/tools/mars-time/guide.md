@@ -12,6 +12,9 @@ icon: clock
 works: offline
 updated: 2026-11-08
 related: [astro-time, orbit-transfer-calculator, habitable-zone-calculator, sky-events-calendar]
+sources:
+  - "Mars time: the published algorithm of Allison and McEwen (2000), as used by NASA's Mars24."
+  - "Landing sites and times: NASA mission facts."
 flow:
   - { icon: calendar, label: "Earth time" }
   - { icon: compass, label: "Place" }

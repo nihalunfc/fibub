@@ -58,6 +58,13 @@ const everyTool = tool ? await allTools() : [];
   )}
   <article class="prose">
     <Content />
+    {tool.data.sources.length > 0 && (
+      <section class="sources" id="sources">
+        <h2>Where the numbers come from</h2>
+        <ul>{tool.data.sources.map((x: string) => <li>{x}</li>)}</ul>
+        <p>Standard scientific values, such as constants, atomic weights and melting points, are facts found in every textbook; we name where ours were checked. If you are an author or publisher and want a value, a credit or a table changed or removed, <a href={`/contact/?about=rights-${tool.id}#rights`}>tell us</a> and we will act quickly.</p>
+      </section>
+    )}
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
   </article>
   {changes.length > 0 && (

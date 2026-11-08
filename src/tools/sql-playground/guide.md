@@ -12,6 +12,8 @@ icon: table
 works: offline
 updated: 2026-11-08
 related: [plot-maker, sample-size, data-cleaner, file-converter]
+sources:
+  - "Example table: Palmer Penguins data by Allison Horst, Alison Hill and Kristen Gorman (CC0)."
 flow:
   - { icon: file, label: "Open files" }
   - { icon: search, label: "Profile" }

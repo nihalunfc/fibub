@@ -12,6 +12,9 @@ icon: sigma
 works: offline
 updated: 2026-11-08
 related: [calibration-curve, uncertainty-calculator, chromatography-calculator, titration-curve]
+sources:
+  - "Grubbs critical values: calculated from the t distribution (as in ASTM E178)."
+  - "Horwitz ratio and validation terms: ICH Q2 and ISO 5725."
 flow:
   - { icon: table, label: "Replicates" }
   - { icon: target, label: "Outliers" }

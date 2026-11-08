@@ -12,6 +12,8 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [polymer-molar-mass, reaction-kinetics-fitter, calibration-curve, plot-maker]
+sources:
+  - "Reactivity ratios for 5 monomer pairs: typical literature values (about 60 °C, as listed in the Polymer Handbook), which you can type over."
 flow:
   - { icon: flask, label: "Monomers" }
   - { icon: sliders, label: "Feed" }

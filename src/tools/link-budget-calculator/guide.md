@@ -12,6 +12,8 @@ icon: sliders
 works: offline
 updated: 2026-11-08
 related: [radio-telescope-calculator, orbit-transfer-calculator, rocket-equation, uncertainty-calculator]
+sources:
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: sliders, label: "Radio" }
   - { icon: ruler, label: "Distance" }

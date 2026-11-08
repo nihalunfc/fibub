@@ -1,0 +1,148 @@
+---
+// Molecular point group finder: from XYZ coordinates (found by testing symmetry operations) or from the flowchart
+// questions; symmetry elements, order, chirality and polarity, and a drawing down the main axis.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLES, toXYZ } from '../../lib/sci/pointgroup';
+const first = EXAMPLES.find((e) => e.id === 'bf3')!;
+const demo = toXYZ(first.atoms(), first.name);
+---
+<div class="ax pgf">
+  <div class="ax-card">
+    <h2>Point group from coordinates</h2>
+    <div class="ax-grid">
+      <label class="pgf-wide">Example molecule <select class="pgf-ex"><option value="">Your own coordinates</option>{EXAMPLES.map((e) => <option value={e.id} selected={e.id === 'bf3'}>{e.name}</option>)}</select></label>
+    </div>
+    <label class="pgf-lab">Coordinates in ångströms, one atom per line: element x y z (an .xyz file works as it is) <textarea class="pgf-xyz" rows="7" spellcheck="false">{demo}</textarea></label>
+    <div class="ax-row" style="margin-top:6px"><label class="btn secondary small">Open an .xyz file<input type="file" class="pgf-file" accept=".xyz,.txt,text/plain" hidden /></label><span class="ax-help pgf-flim" style="margin:0">Text files up to 1 MB and 500 atoms. The file stays on your device.</span></div>
+    <div class="ax-grid">
+      <label>Tolerance (Å) <input class="pgf-tol" inputmode="decimal" value="0.1" /></label>
+      <label>Drawing <select class="pgf-view"><option value="main">Down the main axis</option><option value="side">From the side</option></select></label>
+    </div>
+    <p class="ax-help">The tolerance is how far an atom may be from where a perfect symmetry operation puts it. Coordinates from a crystal structure or a quick calculation are rarely perfect: if you get a lower group than expected, try 0.2 or 0.3 Å.</p>
+    <p class="ax-err pgf-err" hidden></p>
+    <div class="pgf-out">
+      <p class="ax-big pgf-big"></p>
+      <dl class="ax-facts pgf-facts"></dl>
+      <canvas class="ax-fig pgf-fig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Point group flowchart</h2>
+    <p class="ax-help">No coordinates? Answer the questions from a model or a drawing, top to bottom.</p>
+    <div class="ax-grid pgf-q">
+      <label>Is the molecule linear? <select class="pgf-lin"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Several high-order axes (cube or icosahedron shapes)? <select class="pgf-cub"><option value="none">No</option><option value="T">Tetrahedral (4 C₃)</option><option value="O">Octahedral or cubic (3 C₄)</option><option value="I">Icosahedral (6 C₅)</option></select></label>
+      <label>Highest rotation axis Cₙ, n = <select class="pgf-n">{[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option value={n} selected={n === 3}>{n === 1 ? '1 (no axis)' : n}</option>)}</select></label>
+      <label>n C₂ axes at right angles to it? <select class="pgf-c2"><option value="1">Yes</option><option value="0">No</option></select></label>
+      <label>Mirror plane at right angles to the main axis (σh)? <select class="pgf-sh"><option value="1">Yes</option><option value="0">No</option></select></label>
+      <label>Mirror planes containing the main axis (σv or σd)? <select class="pgf-sv"><option value="1">Yes</option><option value="0">No</option></select></label>
+      <label>Improper axis S₂ₙ along the main axis? <select class="pgf-s2n"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Centre of inversion (i)? <select class="pgf-inv"><option value="0">No</option><option value="1">Yes</option></select></label>
+      <label>Any mirror plane at all? <select class="pgf-mir"><option value="1">Yes</option><option value="0">No</option></select></label>
+    </div>
+    <p class="ax-big pgf-fbig"></p>
+    <dl class="ax-facts pgf-ffacts"></dl>
+  </div>
+</div>
+
+<script>
+  import { EXAMPLES, findPointGroup, parseXYZ, centre, toXYZ, pretty, orderOf, isChiral, isPolar, flowchart, rotate, type Atom, type Vec } from '../../lib/sci/pointgroup';
+  import { num } from '../../lib/sci/num';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pgf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null;
+  const props = (g: string) => [
+    fact('Order', orderOf(g) === null ? 'infinite' : String(orderOf(g)), 'the number of symmetry operations, including the identity E'),
+    fact('Chiral?', isChiral(g) ? 'yes: no mirror plane, inversion centre or improper axis' : 'no', isChiral(g) ? 'the molecule is not superimposable on its mirror image (unless it interconverts)' : 'it is identical to its mirror image'),
+    fact('Dipole moment allowed?', isPolar(g) ? 'yes' : 'no', isPolar(g) ? 'only C₁, Cₛ, Cₙ and Cₙᵥ groups can have a permanent dipole' : 'the symmetry cancels any dipole'),
+  ];
+
+  /** A drawing of the molecule seen down `look`, atoms shaded by depth, bonds by distance. */
+  function drawing(atoms: Atom[], look: Vec, title: string): Figure {
+    // Build a frame with look as the viewing direction.
+    const z = look, t: Vec = Math.abs(z[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const xv = ((): Vec => { const c: Vec = [z[1] * t[2] - z[2] * t[1], z[2] * t[0] - z[0] * t[2], z[0] * t[1] - z[1] * t[0]]; const n = Math.hypot(...c); return [c[0] / n, c[1] / n, c[2] / n]; })();
+    const yv: Vec = [z[1] * xv[2] - z[2] * xv[1], z[2] * xv[0] - z[0] * xv[2], z[0] * xv[1] - z[1] * xv[0]];
+    const P = atoms.map((a) => ({ el: a.el, x: a.p[0] * xv[0] + a.p[1] * xv[1] + a.p[2] * xv[2], y: a.p[0] * yv[0] + a.p[1] * yv[1] + a.p[2] * yv[2], d: a.p[0] * z[0] + a.p[1] * z[1] + a.p[2] * z[2], p: a.p }));
+    const bonds: [number, number][] = [];
+    for (let i = 0; i < atoms.length; i++) for (let j = i + 1; j < atoms.length; j++) {
+      const r = Math.hypot(atoms[i].p[0] - atoms[j].p[0], atoms[i].p[1] - atoms[j].p[1], atoms[i].p[2] - atoms[j].p[2]);
+      const h = atoms[i].el === 'H' || atoms[j].el === 'H', hal = atoms[i].el === atoms[j].el && /^(F|Cl|Br|I|H)$/.test(atoms[i].el); if (r < (h ? 1.25 : 2.2) && !hal) bonds.push([i, j]);
+    }
+    return { w: 360, h: 300, alt: `${title}: the molecule drawn down the chosen axis`, draw: (ctx, W, H, pal) => {
+      const R = Math.max(1, ...P.map((p) => Math.hypot(p.x, p.y))), s = (Math.min(W, H) / 2 - 26) / R, cx = W / 2, cy = H / 2;
+      const dmin = Math.min(...P.map((p) => p.d)), dmax = Math.max(...P.map((p) => p.d)), depth = (d: number) => (dmax - dmin < 1e-6 ? 1 : (d - dmin) / (dmax - dmin));
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.muted;
+      for (const [i, j] of bonds) { ctx.beginPath(); ctx.moveTo(cx + P[i].x * s, cy - P[i].y * s); ctx.lineTo(cx + P[j].x * s, cy - P[j].y * s); ctx.stroke(); }
+      for (const k of P.map((_, i) => i).sort((a, b) => P[a].d - P[b].d)) {
+        const p = P[k], r = p.el === 'H' ? 7 : 12;
+        ctx.globalAlpha = 0.55 + 0.45 * depth(p.d);
+        ctx.beginPath(); ctx.arc(cx + p.x * s, cy - p.y * s, r, 0, 2 * Math.PI); ctx.fillStyle = pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.font = `${p.el === 'H' ? 9 : 11}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.el, cx + p.x * s, cy - p.y * s);
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(title, 8, 6);
+    } };
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.pgf-err').textContent = m; q('.pgf-err').hidden = !m; q('.pgf-out').hidden = !!m; if (m) fig = null; };
+    const tol = num(q<HTMLInputElement>('.pgf-tol').value), { atoms, bad } = parseXYZ(q<HTMLTextAreaElement>('.pgf-xyz').value);
+    if (!(tol > 0 && tol <= 1)) return err('The tolerance is above 0 and at most 1 Å.');
+    if (bad.length) return err(`This line is not "element x y z": ${bad[0].slice(0, 60)}`);
+    if (!atoms.length) return err('Type or paste at least one atom as "element x y z".');
+    if (atoms.length > 500) return err('Up to 500 atoms, please: larger structures take too long to check in the browser.');
+    const c = centre(atoms);
+    for (let i = 0; i < c.length; i++) for (let j = i + 1; j < c.length; j++) if (Math.hypot(c[i].p[0] - c[j].p[0], c[i].p[1] - c[j].p[1], c[i].p[2] - c[j].p[2]) < 0.3) return err(`Atoms ${i + 1} and ${j + 1} are almost on top of each other: check the coordinates (they should be in ångströms).`);
+    err('');
+    const r = findPointGroup(atoms, tol), g = r.group;
+    q('.pgf-big').textContent = `Point group ${pretty(g)}`;
+    const ex = EXAMPLES.find((e) => e.id === q<HTMLSelectElement>('.pgf-ex').value);
+    q('.pgf-facts').replaceChildren(
+      fact('Symmetry elements', ['E', ...r.elements].join(', ')),
+      ...props(g),
+      fact('Shape class', `${r.top}, ${atoms.length} atom${atoms.length > 1 ? 's' : ''}`, 'from the moments of inertia'),
+      ...(ex && ex.group !== g ? [fact('Note', `the textbook answer for this molecule is ${pretty(ex.group)}`, 'the coordinates were changed or the tolerance is too tight')] : []),
+    );
+    const look: Vec = q<HTMLSelectElement>('.pgf-view').value === 'side' && r.mainAxis ? (() => { const u = r.mainAxis!, t: Vec = Math.abs(u[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0]; const v: Vec = [u[1] * t[2] - u[2] * t[1], u[2] * t[0] - u[0] * t[2], u[0] * t[1] - u[1] * t[0]], n = Math.hypot(...v); return rotate([v[0] / n, v[1] / n, v[2] / n], u, 0.35); })() : r.mainAxis ?? [0, 0, 1];
+    fig = drawing(c, look, `${pretty(g)}${q<HTMLSelectElement>('.pgf-view').value === 'side' ? ', side view' : r.mainAxis ? ', down the main axis' : ''}`);
+    paint(q<HTMLCanvasElement>('.pgf-fig'), fig);
+  }
+
+  function flow() {
+    const v = (c: string) => q<HTMLSelectElement>(c).value;
+    const g = flowchart({ linear: v('.pgf-lin') === '1', inversion: v('.pgf-inv') === '1', cubic: v('.pgf-cub') as 'none', n: +v('.pgf-n'), perpC2: v('.pgf-c2') === '1', sigmaH: v('.pgf-sh') === '1', sigmaV: v('.pgf-sv') === '1', s2n: v('.pgf-s2n') === '1', mirror: v('.pgf-mir') === '1' });
+    q('.pgf-fbig').textContent = `Point group ${pretty(g)}`;
+    const ex = EXAMPLES.filter((e) => e.group === g).map((e) => e.name);
+    q('.pgf-ffacts').replaceChildren(...props(g), ...(ex.length ? [fact('Examples', ex.join('; '))] : []));
+  }
+
+  q('.pgf-ex').addEventListener('change', () => { const e = EXAMPLES.find((x) => x.id === q<HTMLSelectElement>('.pgf-ex').value); if (e) q<HTMLTextAreaElement>('.pgf-xyz').value = toXYZ(e.atoms(), e.name); calc(); });
+  q('.pgf-xyz').addEventListener('input', () => { q<HTMLSelectElement>('.pgf-ex').value = ''; calc(); });
+  root.querySelectorAll('.pgf-tol').forEach((i) => i.addEventListener('input', calc));
+  q('.pgf-view').addEventListener('change', calc);
+  q('.pgf-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pgf-file').files?.[0]; if (!f) return;
+    if (f.size > 1024 * 1024) { q('.pgf-err').textContent = 'That file is over 1 MB: an .xyz file of one molecule is usually a few kB.'; q('.pgf-err').hidden = false; q('.pgf-out').hidden = true; return; }
+    q<HTMLTextAreaElement>('.pgf-xyz').value = await f.text(); q<HTMLSelectElement>('.pgf-ex').value = ''; q<HTMLInputElement>('.pgf-file').value = ''; calc();
+  });
+  root.querySelectorAll('.pgf-q select').forEach((s) => s.addEventListener('change', flow));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pgf-fig'), fig); });
+  calc(); flow();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Point group', subtitle: EXAMPLES.find((e) => e.id === q<HTMLSelectElement>('.pgf-ex').value)?.name ?? 'Your molecule', file: 'point-group',
+    sections: q('.pgf-out').hidden ? [] : [{ title: q('.pgf-big').textContent!, facts: [...root.querySelectorAll('.pgf-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }],
+  }));
+</script>
+
+<style is:global>
+  .pgf .pgf-wide { grid-column: 1 / -1; }
+  .pgf .pgf-lab { display: block; }
+  .pgf textarea { width: 100%; font: 13px ui-monospace, Menlo, Consolas, monospace; }
+  .pgf select { max-width: 100%; }
+</style>

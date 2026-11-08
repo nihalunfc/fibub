@@ -12,6 +12,10 @@ icon: curve
 works: offline
 updated: 2026-11-08
 related: [beer-lambert-calculator, huckel-mo-calculator, spectral-line-identifier, isotope-pattern-calculator]
+sources:
+  - "Spectroscopic constants: Huber and Herzberg (1979) as given in the NIST Chemistry WebBook."
+  - "Isotope masses and abundances: the chemical-elements data set by cheminfo (MIT licence), compiled from NIST and IUPAC data."
+  - "Physical constants: CODATA recommended values (NIST)."
 flow:
   - { icon: flask, label: "Molecule" }
   - { icon: curve, label: "Vibration" }

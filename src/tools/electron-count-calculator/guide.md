@@ -12,6 +12,8 @@ icon: calculator
 works: offline
 updated: 2026-11-08
 related: [crystal-field-calculator, molar-mass-calculator, huckel-mo-calculator, nernst-calculator]
+sources:
+  - "Electron counting: Green's covalent bond classification (L and X ligands), as in standard textbooks."
 flow:
   - { icon: flask, label: "Metal" }
   - { icon: table, label: "Ligands" }
