@@ -9,10 +9,10 @@ import Downloads from '../../components/Downloads.astro';
     <div class="ax-grid">
       <label>Units <select class="wv-u"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
       <label>Wave period T (s) <input class="wv-T" type="text" inputmode="decimal" value="10" /></label>
-      <label>Wave height H (<span class="wv-lu">m</span>) <input class="wv-H" type="text" inputmode="decimal" value="2" /></label>
-      <label>Water depth where H is measured (<span class="wv-lu">m</span>) <input class="wv-h" type="text" inputmode="decimal" value="50" /></label>
+      <label><span>Wave height H (<span class="wv-lu">m</span>)</span> <input class="wv-H" type="text" inputmode="decimal" value="2" /></label>
+      <label><span>Water depth where H is measured (<span class="wv-lu">m</span>)</span> <input class="wv-h" type="text" inputmode="decimal" value="50" /></label>
       <label>Angle between the wave crests and the depth contours (°) <input class="wv-a" type="text" inputmode="decimal" value="0" /></label>
-      <label>Shallower depth to carry the wave to (<span class="wv-lu">m</span>) <input class="wv-h2" type="text" inputmode="decimal" value="5" /></label>
+      <label><span>Shallower depth to carry the wave to (<span class="wv-lu">m</span>)</span> <input class="wv-h2" type="text" inputmode="decimal" value="5" /></label>
       <label>Beach slope, 1 in <input class="wv-s" type="text" inputmode="decimal" value="50" /></label>
       <label>Breaker index γ (breaking H ÷ depth) <input class="wv-g" type="text" inputmode="decimal" value="0.78" /></label>
       <label>Water <select class="wv-rho"><option value="1025" selected>Sea water (1,025 kg/m³)</option><option value="1000">Fresh water (1,000 kg/m³)</option></select></label>

@@ -9,10 +9,10 @@ import Downloads from '../../components/Downloads.astro';
     <div class="ax-grid">
       <label>Units <select class="mw-u"><option value="si" selected>SI (m, m³/s)</option><option value="us">US (ft, ft³/s)</option></select></label>
       <label>Shape <select class="mw-shape"><option value="trap" selected>Trapezoid</option><option value="rect">Rectangle</option><option value="tri">Triangle (V ditch)</option><option value="circ">Circular pipe, part full</option></select></label>
-      <label class="mw-bbox">Bottom width b (<span class="mw-lu">m</span>) <input class="mw-b" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-bbox"><span>Bottom width b (<span class="mw-lu">m</span>)</span> <input class="mw-b" type="text" inputmode="decimal" value="2" /></label>
       <label class="mw-zbox">Side slope z left (horizontal per 1 vertical) <input class="mw-z1" type="text" inputmode="decimal" value="2" /></label>
       <label class="mw-zbox">Side slope z right <input class="mw-z2" type="text" inputmode="decimal" value="2" /></label>
-      <label class="mw-dbox" hidden>Pipe diameter D (<span class="mw-lu">m</span>) <input class="mw-D" type="text" inputmode="decimal" value="1" /></label>
+      <label class="mw-dbox" hidden><span>Pipe diameter D (<span class="mw-lu">m</span>)</span> <input class="mw-D" type="text" inputmode="decimal" value="1" /></label>
       <label>Bed slope S (m per m, e.g. 0.001 = 1 in 1000) <input class="mw-S" type="text" inputmode="decimal" value="0.0005" /></label>
       <label>Manning's n <input class="mw-n" type="text" inputmode="decimal" value="0.025" /></label>
       <label>Typical n (approximate) <select class="mw-npick">
@@ -27,8 +27,8 @@ import Downloads from '../../components/Downloads.astro';
         <option value="0.070">0.070 floodplain with brush</option>
       </select></label>
       <label>Find <select class="mw-mode"><option value="q" selected>Discharge from the depth</option><option value="y">Normal depth from the discharge</option></select></label>
-      <label class="mw-ybox">Flow depth y (<span class="mw-lu">m</span>) <input class="mw-y" type="text" inputmode="decimal" value="1.2" /></label>
-      <label class="mw-qbox" hidden>Discharge Q (<span class="mw-qu">m³/s</span>) <input class="mw-Q" type="text" inputmode="decimal" value="5" /></label>
+      <label class="mw-ybox"><span>Flow depth y (<span class="mw-lu">m</span>)</span> <input class="mw-y" type="text" inputmode="decimal" value="1.2" /></label>
+      <label class="mw-qbox" hidden><span>Discharge Q (<span class="mw-qu">m³/s</span>)</span> <input class="mw-Q" type="text" inputmode="decimal" value="5" /></label>
     </div>
     <p class="ax-help">Manning's n describes the roughness of the channel. The typical values are rounded figures for a first estimate; look up your channel type, vegetation and condition in a hydraulics reference. Uniform, steady flow is assumed. The example values are made up.</p>
     <p class="ax-err mw-err" hidden></p>
@@ -46,13 +46,13 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Weir</h2>
     <div class="ax-grid">
       <label>Weir type <select class="mw-wt"><option value="rect" selected>Sharp-crested rectangular</option><option value="v">V-notch (triangular)</option><option value="broad">Broad-crested</option><option value="cip">Cipolletti (trapezoidal)</option></select></label>
-      <label class="mw-wlbox">Crest length L (<span class="mw-lu">m</span>) <input class="mw-wl" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-wlbox"><span>Crest length L (<span class="mw-lu">m</span>)</span> <input class="mw-wl" type="text" inputmode="decimal" value="2" /></label>
       <label class="mw-wcbox">End contractions <select class="mw-wc"><option value="0">0 (full width, suppressed)</option><option value="1">1</option><option value="2" selected>2</option></select></label>
       <label class="mw-wabox" hidden>Notch angle (°) <input class="mw-wa" type="text" inputmode="decimal" value="90" /></label>
       <label>Discharge coefficient Cd <input class="mw-wcd" type="text" inputmode="decimal" value="0.62" /></label>
       <label>Find <select class="mw-wm"><option value="q" selected>Discharge from the head</option><option value="h">Head from the discharge</option></select></label>
-      <label class="mw-whbox">Head H above the crest (<span class="mw-lu">m</span>) <input class="mw-wh" type="text" inputmode="decimal" value="0.4" /></label>
-      <label class="mw-wqbox" hidden>Discharge Q (<span class="mw-qu">m³/s</span>) <input class="mw-wq" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="mw-whbox"><span>Head H above the crest (<span class="mw-lu">m</span>)</span> <input class="mw-wh" type="text" inputmode="decimal" value="0.4" /></label>
+      <label class="mw-wqbox" hidden><span>Discharge Q (<span class="mw-qu">m³/s</span>)</span> <input class="mw-wq" type="text" inputmode="decimal" value="0.5" /></label>
     </div>
     <p class="ax-help">Measure the head upstream, at least 4 × H from the crest, where the water surface is still level. Usual Cd: about 0.62 for a sharp rectangular weir, 0.58 for a V-notch, 0.85 to 1.0 for a broad crest, 0.63 for a Cipolletti; a weir rated in a laboratory or by the maker is best. Choosing a type fills in its usual Cd.</p>
     <p class="ax-big mw-wbig"></p>

@@ -1,0 +1,223 @@
+---
+// Rainfall runoff: rational method peak flow and SCS curve number runoff with a triangular unit hydrograph. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const uses = [
+  ['', 'Pick a land use…'],
+  ['0.90|98', 'Roofs and paving'],
+  ['0.80|92', 'Shops and offices'],
+  ['0.65|85', 'Industrial'],
+  ['0.45|75', 'Houses with gardens'],
+  ['0.20|61', 'Lawns and parks'],
+  ['0.30|69', 'Pasture'],
+  ['0.35|78', 'Ploughed fields'],
+  ['0.15|58', 'Woodland'],
+];
+const rows = [['12', '0.45', '75'], ['8', '0.25', '61'], ['', '', ''], ['', '', '']];
+---
+<div class="ax rro">
+  <div class="ax-card">
+    <h2>Catchment</h2>
+    <div class="ax-grid">
+      <label>Units <select class="ro-u"><option value="si" selected>SI (ha, mm, m)</option><option value="us">US (acres, inches, ft)</option></select></label>
+    </div>
+    <div class="ro-parts">
+      {rows.map((r, k) => (
+        <fieldset class="ro-part">
+          <legend>Part {k + 1}</legend>
+          <label><span>Area (<span class="ro-au">ha</span>)</span> <input class="ro-a" type="text" inputmode="decimal" value={r[0]} /></label>
+          <label>Runoff coefficient C <input class="ro-c" type="text" inputmode="decimal" value={r[1]} /></label>
+          <label>Curve number CN <input class="ro-cn" type="text" inputmode="decimal" value={r[2]} /></label>
+          <label>Typical (approximate) <select class="ro-use">{uses.map(([v, t]) => <option value={v}>{t}</option>)}</select></label>
+        </fieldset>
+      ))}
+    </div>
+    <div class="ax-grid">
+      <label><span>Longest flow path L (<span class="ro-lu">m</span>)</span> <input class="ro-L" type="text" inputmode="decimal" value="600" /></label>
+      <label>Average slope along it (m per m) <input class="ro-S" type="text" inputmode="decimal" value="0.02" /></label>
+      <label>Time of concentration (min; blank = Kirpich) <input class="ro-tc" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Split the catchment into parts by land use; empty rows are skipped. C is the share of rain that runs off at the peak; CN (30 to 100) sets how much rain soaks in. The typical values are rounded figures chosen by fibub for a medium soil (hydrologic soil group B) in average condition; sandy soils give lower CNs, clays higher. Use your local design manual or the public-domain NRCS TR-55 tables for real work. The example catchment is made up.</p>
+    <p class="ax-err ro-err" hidden></p>
+    <dl class="ax-facts ro-cfacts"></dl>
+  </div>
+
+  <div class="ax-card ro-rbox">
+    <h2>Rational method peak</h2>
+    <div class="ax-grid">
+      <label>Rainfall intensity from <select class="ro-im"><option value="idf" selected>My curve, a / (t + b)^c</option><option value="i">A typed intensity</option></select></label>
+      <label class="ro-ibox" hidden><span>Intensity i (<span class="ro-iu">mm/h</span>) for a storm lasting tc</span> <input class="ro-i" type="text" inputmode="decimal" value="100" /></label>
+      <label class="ro-idfbox">a <input class="ro-ia" type="text" inputmode="decimal" value="1500" /></label>
+      <label class="ro-idfbox">b (minutes) <input class="ro-ib" type="text" inputmode="decimal" value="12" /></label>
+      <label class="ro-idfbox">c <input class="ro-ic" type="text" inputmode="decimal" value="0.8" /></label>
+      <label>Return period adjustment <select class="ro-cf"><option value="1" selected>× 1.00 (≤ 10 years)</option><option value="1.1">× 1.10 (25 years)</option><option value="1.2">× 1.20 (50 years)</option><option value="1.25">× 1.25 (100 years)</option></select></label>
+    </div>
+    <p class="ax-help">The rational method takes the rain that falls for as long as the time of concentration, so the whole catchment adds to the peak. Fit a, b and c to your own local intensity-duration-frequency (IDF) curve for the return period you want, with t in minutes and i in <span class="ro-iu">mm/h</span>; the example constants are made up. The adjustment raises C for rare storms (C × factor up to 1). Best for small catchments, under about 80 ha (200 acres).</p>
+    <p class="ax-big ro-rbig"></p>
+    <dl class="ax-facts ro-rfacts"></dl>
+    <canvas class="ax-fig ro-rfig"></canvas>
+  </div>
+
+  <div class="ax-card ro-sbox">
+    <h2>SCS curve number runoff</h2>
+    <div class="ax-grid">
+      <label><span>Storm rainfall P (<span class="ro-du">mm</span>)</span> <input class="ro-P" type="text" inputmode="decimal" value="80" /></label>
+      <label>Storm duration D (hours) <input class="ro-D" type="text" inputmode="decimal" value="1" /></label>
+      <label>Ground before the storm <select class="ro-amc"><option value="2" selected>Average (condition II)</option><option value="1">Dry (condition I)</option><option value="3">Wet (condition III)</option></select></label>
+      <label>Initial abstraction <select class="ro-lam"><option value="0.2" selected>Ia = 0.2 S (standard)</option><option value="0.05">Ia = 0.05 S (S converted × 1.42)</option></select></label>
+    </div>
+    <p class="ax-help">The curve number method gives the depth of rain that runs off in the whole storm. Dry and wet conditions adjust the average CN. The triangular hydrograph spreads that runoff over time as one block of evenly spread rain lasting D; for long or uneven storms a full unit hydrograph model does better.</p>
+    <p class="ax-big ro-sbig"></p>
+    <dl class="ax-facts ro-sfacts"></dl>
+    <canvas class="ax-fig ro-sfig"></canvas>
+    <canvas class="ax-fig ro-hfig"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { weighted, rationalQ, kirpich, idf, cnDry, cnWet, scsRunoff, triangularHydrograph, type Part } from '../../lib/sci/runoff';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.rro')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const blank = (s: string) => s.trim() === '';
+  let figs: [HTMLCanvasElement, Figure][] = [], report: Section[] = [];
+
+  function all() {
+    const us = sel('.ro-u') === 'us';
+    const U = { au: us ? 'acres' : 'ha', lu: us ? 'ft' : 'm', du: us ? 'in' : 'mm', iu: us ? 'in/h' : 'mm/h', qu: us ? 'ft³/s' : 'm³/s', vu: us ? 'acre-ft' : 'm³' };
+    for (const [c, t] of [['.ro-au', U.au], ['.ro-lu', U.lu], ['.ro-du', U.du], ['.ro-iu', U.iu]]) root.querySelectorAll(c).forEach((e) => { e.textContent = t; });
+    const err = q('.ro-err'), rb = q('.ro-rbox'), sb = q('.ro-sbox');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; rb.hidden = sb.hidden = true; q('.ro-cfacts').replaceChildren(); report = []; figs = []; };
+    // Parts.
+    const parts: Part[] = [];
+    const fs = [...root.querySelectorAll<HTMLElement>('.ro-part')];
+    for (let k = 0; k < fs.length; k++) {
+      const f = fs[k], ins = [...f.querySelectorAll<HTMLInputElement>('input')];
+      if (ins.every((i) => blank(i.value))) continue;
+      const a = num(ins[0].value), c = blank(ins[1].value) ? undefined : num(ins[1].value), cn = blank(ins[2].value) ? undefined : num(ins[2].value);
+      if (!(a > 0)) return fail(`Part ${k + 1}: give its area.`);
+      if (c !== undefined && !(c >= 0 && c <= 1)) return fail(`Part ${k + 1}: C is a share between 0 and 1.`);
+      if (cn !== undefined && !(cn >= 30 && cn <= 100)) return fail(`Part ${k + 1}: CN is between 30 and 100.`);
+      parts.push({ area: a, c, cn });
+    }
+    if (!parts.length) return fail('Give the area of at least one part of the catchment.');
+    const A = parts.reduce((s, p) => s + p.area, 0), Aha = us ? A * 0.40468564224 : A;
+    const C = weighted(parts, 'c'), CN = weighted(parts, 'cn');
+    if (!Number.isFinite(C) && !Number.isFinite(CN)) return fail('Give a runoff coefficient C, a curve number CN, or both.');
+    const missC = parts.some((p) => p.c === undefined), missCN = parts.some((p) => p.cn === undefined);
+    // Time of concentration.
+    let tc: number, tcHow: string;
+    if (!blank(q<HTMLInputElement>('.ro-tc').value)) { tc = val('.ro-tc'); if (!(tc > 0)) return fail('Give the time of concentration in minutes, or leave it blank.'); tcHow = 'typed'; }
+    else {
+      const L = val('.ro-L'), S = val('.ro-S');
+      if (!(L > 0)) return fail('Give the longest flow path, or type a time of concentration.');
+      if (!(S > 0 && S < 1)) return fail('Give the average slope as a fraction, for example 0.02 for 2 %.');
+      tc = kirpich(us ? L * 0.3048 : L, S); tcHow = 'Kirpich: 0.0195 L^0.77 S^−0.385 (L in m)';
+    }
+    err.hidden = true;
+    const cf = [fact('Catchment area', `${sg(A, 4)} ${U.au}`, `${sg(Aha / 100, 3)} km²`),
+      fact('Area-weighted C', Number.isFinite(C) ? sg(C, 3) : '–', missC && Number.isFinite(C) ? 'from the parts that have one' : ''),
+      fact('Area-weighted CN', Number.isFinite(CN) ? sg(CN, 3) : '–', missCN && Number.isFinite(CN) ? 'from the parts that have one' : ''),
+      fact('Time of concentration', `${sg(tc, 3)} min`, tcHow)];
+    q('.ro-cfacts').replaceChildren(...cf);
+    report = [{ title: 'Catchment', facts: factsOf(q('.ro-cfacts')) }];
+    figs = [];
+    // Rational method.
+    rb.hidden = !Number.isFinite(C);
+    const rerr = (m: string) => { q('.ro-rbig').textContent = m; q('.ro-rfacts').replaceChildren(); q('.ro-rfig').hidden = true; };
+    if (Number.isFinite(C)) {
+      const im = sel('.ro-im'); q('.ro-ibox').hidden = im !== 'i'; root.querySelectorAll<HTMLElement>('.ro-idfbox').forEach((e) => { e.hidden = im !== 'idf'; });
+      const a = val('.ro-ia'), b = val('.ro-ib'), c = val('.ro-ic'), cfac = +sel('.ro-cf');
+      let i = NaN;
+      if (im === 'i') { i = val('.ro-i'); if (!(i > 0)) rerr('Give the rainfall intensity.'); }
+      else if (!(a > 0 && b >= 0 && c > 0 && c < 2)) rerr('Give your curve constants: a above 0, b 0 or more (minutes), c usually between 0.5 and 1.');
+      else i = idf(a, b, c, tc);
+      if (i > 0) {
+        const Ce = Math.min(1, C * cfac), Q = rationalQ(Ce, i, A, us);
+        q('.ro-rbig').textContent = `Peak flow ${sg(Q, 3)} ${U.qu}`;
+        const rf = [fact('Formula', us ? 'Q = C i A' : 'Q = C i A / 360', us ? 'i in in/h, A in acres (the exact factor is 1.008)' : 'i in mm/h, A in ha'),
+          fact('Rainfall intensity', `${sg(i, 3)} ${U.iu}`, im === 'idf' ? `from your curve at t = tc = ${sg(tc, 3)} min` : 'typed, for a storm lasting tc'),
+          fact('C used', sg(Ce, 3), cfac > 1 ? `${sg(C, 3)} × ${cfac}${C * cfac > 1 ? ', capped at 1' : ''}` : '')];
+        if (Aha > 80) rf.push(fact('Check', 'large catchment for the rational method', 'it is meant for areas under about 80 ha (200 acres); consider a hydrograph method'));
+        q('.ro-rfacts').replaceChildren(...rf);
+        report.push({ title: q('.ro-rbig').textContent!, facts: factsOf(q('.ro-rfacts')) });
+        const cv = q<HTMLCanvasElement>('.ro-rfig'); cv.hidden = im !== 'idf';
+        if (im === 'idf') {
+          const ts: number[] = []; for (let t = 5; t <= Math.max(120, 3 * tc); t += 1) ts.push(t);
+          const fig = chartFigure({ w: 380, h: 220, xLabel: 'Storm duration (min)', yLabel: `Peak flow (${U.qu})`, xMin: 0, yMin: 0, legend: 'below', series: [
+            { name: 'Rational Q with your curve', x: ts, y: ts.map((t) => rationalQ(Ce, idf(a, b, c, t), A, us)), mode: 'line', width: 2 },
+            { name: 'At the time of concentration', x: [tc], y: [Q], mode: 'points', size: 4 },
+          ], marks: [{ kind: 'vline', at: tc, dash: [4, 3], label: 'tc' }] }, 'Peak flow against storm duration');
+          paint(cv, fig); figs.push([cv, fig]); report[report.length - 1].figure = fig;
+        }
+      }
+    }
+    // SCS curve number.
+    sb.hidden = !Number.isFinite(CN);
+    const serr = (m: string) => { q('.ro-sbig').textContent = m; q('.ro-sfacts').replaceChildren(); q('.ro-sfig').hidden = q('.ro-hfig').hidden = true; };
+    if (Number.isFinite(CN)) {
+      const P = val('.ro-P'), D = val('.ro-D'), amc = sel('.ro-amc'), lam = +sel('.ro-lam');
+      if (!(P > 0)) serr('Give the storm rainfall.');
+      else if (!(D > 0)) serr('Give the storm duration in hours.');
+      else {
+        const toMm = us ? 25.4 : 1, Pm = P * toMm;
+        const cnUse = amc === '1' ? cnDry(CN) : amc === '3' ? cnWet(CN) : CN;
+        const r = scsRunoff(Pm, cnUse, lam), Qd = r.Q / toMm;
+        const vol = us ? (Qd * A) / 12 : r.Q * Aha * 10;
+        q('.ro-sbig').textContent = `Runoff ${sg(Qd, 3)} ${U.du} of ${sg(P, 3)} ${U.du} rain (${sg((Qd / P) * 100, 3)} %)`;
+        const h = triangularHydrograph(Aha / 100, r.Q, D, tc / 60), qp = us ? h.qp * 35.3146667 : h.qp;
+        const sf = [fact('Curve number used', sg(cnUse, 3), amc === '2' ? 'average condition II' : `${amc === '1' ? 'dry, condition I' : 'wet, condition III'}, from ${sg(CN, 3)}`),
+          fact('Potential retention S', `${sg(r.S / toMm, 3)} ${U.du}`, us ? 'S = 1000/CN − 10' : 'S = 25400/CN − 254'),
+          fact('Initial abstraction Ia', `${sg(r.Ia / toMm, 3)} ${U.du}`, 'rain held before any runs off'),
+          fact('Runoff volume', `${sg(vol, 3)} ${U.vu}`, 'runoff depth × area'),
+          fact('Triangular hydrograph peak', `${sg(qp, 3)} ${U.qu}`, `time to peak ${sg(h.Tp, 3)} h (D/2 + 0.6 tc), ends at ${sg(h.Tb, 3)} h`)];
+        if (r.Q === 0) sf.push(fact('Note', 'no runoff', 'all the rain is taken by the initial abstraction'));
+        q('.ro-sfacts').replaceChildren(...sf);
+        q('.ro-sfig').hidden = q('.ro-hfig').hidden = false;
+        const Pmax = Math.max(2 * Pm, 4 * r.Ia, 50), ps: number[] = []; for (let k = 0; k <= 100; k++) ps.push((Pmax * k) / 100);
+        const cur = (cn: number) => ps.map((p) => scsRunoff(p, cn, lam).Q / toMm);
+        const sfig = chartFigure({ w: 380, h: 220, xLabel: `Rainfall (${U.du})`, yLabel: `Runoff (${U.du})`, xMin: 0, yMin: 0, legend: 'below', series: [
+          { name: `Wet, CN ${sg(cnWet(CN), 3)}`, x: ps.map((p) => p / toMm), y: cur(cnWet(CN)), mode: 'line', width: 1.5, dash: [5, 4] },
+          { name: `Average, CN ${sg(CN, 3)}`, x: ps.map((p) => p / toMm), y: cur(CN), mode: 'line', width: 2 },
+          { name: `Dry, CN ${sg(cnDry(CN), 3)}`, x: ps.map((p) => p / toMm), y: cur(cnDry(CN)), mode: 'line', width: 1.5, dash: [5, 4] },
+          { name: 'This storm', x: [P], y: [Qd], mode: 'points', size: 4 },
+        ] }, 'Runoff against rainfall for dry, average and wet ground');
+        const hfig = chartFigure({ w: 380, h: 200, xLabel: 'Time from the start of the storm (h)', yLabel: `Flow (${U.qu})`, xMin: 0, yMin: 0, legend: 'below', series: [
+          { name: 'Triangular unit hydrograph', x: [0, h.Tp, h.Tb], y: [0, qp, 0], mode: 'line', width: 2 },
+        ], marks: [{ kind: 'vline', at: D, dash: [4, 3], label: 'rain stops' }] }, 'Triangular runoff hydrograph');
+        paint(q<HTMLCanvasElement>('.ro-sfig'), sfig); paint(q<HTMLCanvasElement>('.ro-hfig'), hfig);
+        figs.push([q<HTMLCanvasElement>('.ro-sfig'), sfig], [q<HTMLCanvasElement>('.ro-hfig'), hfig]);
+        report.push({ title: q('.ro-sbig').textContent!, facts: factsOf(q('.ro-sfacts')), figure: sfig }, { title: 'Hydrograph', figure: hfig });
+      }
+    }
+  }
+
+  root.querySelectorAll<HTMLSelectElement>('.ro-use').forEach((s) => s.addEventListener('change', () => {
+    if (!s.value) return;
+    const [c, cn] = s.value.split('|'), f = s.closest('.ro-part')!;
+    f.querySelector<HTMLInputElement>('.ro-c')!.value = c; f.querySelector<HTMLInputElement>('.ro-cn')!.value = cn;
+    const a = f.querySelector<HTMLInputElement>('.ro-a')!; if (blank(a.value)) a.value = '1';
+    s.value = ''; all();
+  }));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { for (const [cv, f] of figs) paint(cv, f); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Rainfall runoff', subtitle: [q('.ro-rbig').textContent, q('.ro-sbig').textContent].filter(Boolean).join('; '), file: 'runoff', sections: report }));
+</script>
+
+<style is:global>
+  .rro select, .rro input { max-width: 100%; }
+  .rro .ro-parts { display: grid; gap: 0.6rem; margin: 0.6rem 0; }
+  .rro .ro-part { border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem 0.6rem 0.6rem; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem 0.6rem; min-width: 0; }
+  .rro .ro-part legend { font-size: 0.85rem; padding: 0 0.3rem; }
+  .rro .ro-part label { display: grid; gap: 0.15rem; font-size: 0.85rem; min-width: 0; }
+</style>

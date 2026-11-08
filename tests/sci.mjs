@@ -124,6 +124,7 @@ import * as KOP from '../src/lib/sci/koppen.ts';
 import * as TRD from '../src/lib/sci/trend.ts';
 import * as WAV from '../src/lib/sci/waves.ts';
 import * as OCH from '../src/lib/sci/openchannel.ts';
+import * as RO from '../src/lib/sci/runoff.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2388,5 +2389,38 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('weir: head from discharge round trip', OCH.headFor((H) => OCH.vNotch(90, H), OCH.vNotch(90, 0.3)), 0.3, 1e-9);
 }
 
+{
+  // Rainfall runoff, against an independent Python calculation of the made-up example.
+  const parts = [{ area: 12, c: 0.45, cn: 75 }, { area: 8, c: 0.25, cn: 61 }];
+  near('runoff: weighted C', RO.weighted(parts, 'c'), 0.37, 1e-12);
+  near('runoff: weighted CN', RO.weighted(parts, 'cn'), 69.4, 1e-12);
+  near('runoff: weighted skips parts without a value', RO.weighted([{ area: 5, c: 0.5 }, { area: 5, cn: 70 }], 'c'), 0.5, 1e-12);
+  check('runoff: weighted is NaN with nothing', Number.isNaN(RO.weighted([{ area: 5 }], 'cn')));
+  const tc = RO.kirpich(600, 0.02);
+  near('runoff: Kirpich tc (Python 12.1147519)', tc, 12.114751934895255, 1e-9);
+  near('runoff: Kirpich in feet form 0.0078 L^0.77 S^-0.385 agrees (rounded constants)', RO.kirpich(600, 0.02), 0.0078 * Math.pow(600 / 0.3048, 0.77) * Math.pow(0.02, -0.385), 0.03);
+  const i = RO.idf(1500, 12, 0.8, tc);
+  near('runoff: IDF intensity (Python 117.561473)', i, 117.56147329106953, 1e-9);
+  near('runoff: rational Q SI (Python 2.41654140)', RO.rationalQ(0.37, i, 20), 2.4165413954275405, 1e-9);
+  near('runoff: rational Q US is CiA', RO.rationalQ(0.5, 2, 10, true), 10, 1e-12);
+  near('runoff: SI and US forms differ by 1.008', RO.rationalQ(0.5, 2 * 25.4, 10 * 0.40468564224) * 35.3146667 / RO.rationalQ(0.5, 2, 10, true), 1.008, 0.001);
+  near('runoff: retention S for CN 69.4 (Python 111.994236)', RO.retention(69.4), 111.99423631123915, 1e-9);
+  near('runoff: retention in inches is 1000/CN - 10', RO.retention(80) / 25.4, 1000 / 80 - 10, 1e-12);
+  const r = RO.scsRunoff(80, 69.4);
+  near('runoff: Ia = 0.2 S', r.Ia, 22.39884726224783, 1e-9);
+  near('runoff: SCS Q 80 mm, CN 69.4 (Python 19.5635790)', r.Q, 19.563579029612708, 1e-9);
+  near('runoff: lambda 0.05 with S x 1.42 (Python 22.4639442)', RO.scsRunoff(80, 69.4, 0.05).Q, 22.46394418328949, 1e-9);
+  check('runoff: no runoff below Ia', RO.scsRunoff(20, 69.4).Q === 0);
+  near('runoff: CN 100 runs off everything', RO.scsRunoff(50, 100).Q, 50, 1e-9);
+  near('runoff: 1 in on CN 80 is 0.08 in (hand: (1-0.5)^2/(1+2))', RO.scsRunoff(25.4, 80).Q / 25.4, 0.25 / 3, 1e-9);
+  near('runoff: CN dry (Python 48.7848966)', RO.cnDry(69.4), 48.78489656557542, 1e-9);
+  near('runoff: CN wet (Python 83.9133635)', RO.cnWet(69.4), 83.91336347387237, 1e-9);
+  near('runoff: CN 100 stays 100 dry and wet', RO.cnDry(100) + RO.cnWet(100), 200, 1e-9);
+  const h = RO.triangularHydrograph(0.2, r.Q, 1, tc / 60);
+  near('runoff: time to peak (Python 0.621148 h)', h.Tp, 0.6211475193489525, 1e-9);
+  near('runoff: triangular peak (Python 1.31068939)', h.qp, 1.310689387860392, 1e-9);
+  near('runoff: triangle holds the runoff volume', 0.5 * h.Tb * 3600 * h.qp, r.Q / 1000 * 0.2e6, 1e-6);
+  near('runoff: peak is about 0.208 A Q / Tp', h.qp, 0.208 * 0.2 * r.Q / h.Tp, 0.002);
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
