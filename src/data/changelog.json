@@ -1,5 +1,14 @@
 [
  {
+  "sha": "706443e20ad7",
+  "date": "2026-11-08T21:01:03+00:00",
+  "title": "Add the spectral index calculator with a GeoTIFF reader and writer (#135)",
+  "tools": [
+   "spectral-index-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "6dbc212134e9",
   "date": "2026-11-08T20:45:47+00:00",
   "title": "Add the GPS track analyser (#134)",
