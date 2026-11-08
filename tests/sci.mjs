@@ -77,6 +77,7 @@ import * as TLC from '../src/lib/sci/tlc.ts';
 import * as HMO from '../src/lib/sci/huckel.ts';
 import * as CFT from '../src/lib/sci/crystalfield.ts';
 import * as DIA from '../src/lib/sci/diatomic.ts';
+import * as THM from '../src/lib/sci/thermo.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1128,6 +1129,28 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const exact = DIA.fitAnharmonic([1, 2, 3], [1, 2, 3].map((v) => DIA.G(hcl, v) - DIA.G(hcl, 0)));
   near('fit recovers ωe exactly', exact.we, 2990.95, 1e-6);
   near('Morse V at re is 0', DIA.morseV(100, 2, 1.2, 1.2), 0, 1e-12);
+}
+{
+  // Thermochemistry: every table entry obeys ΔfG = ΔfH − TΔfS; methane combustion and limestone (textbook values).
+  for (const t of THM.TABLE) {
+    let sEl = 0; for (const [e, n] of CHEM.byElement(CHEM.parseFormula(t.f))) sEl += n * THM.ELEMENT_S[e];
+    near(`${t.f}(${t.phase}) ΔfG consistent`, t.H - (298.15 * (t.S - sEl)) / 1000, t.G, t.f === 'C6H12O6' ? 1.5 : 0.6);
+  }
+  const L = (f, p) => THM.lookup(f, p);
+  const sp = (pairs) => pairs.map(([nu, f, p]) => ({ nu, ...L(f, p) }));
+  const ch4 = THM.reaction(sp([[-1, 'CH4', 'g'], [-2, 'O2', 'g'], [1, 'CO2', 'g'], [2, 'H2O', 'l']]));
+  near('CH4 combustion ΔH', ch4.dH, -890.57, 1e-9);
+  near('CH4 combustion ΔS', ch4.dS, -242.91, 1e-9);
+  near('CH4 combustion ΔG', ch4.dG, -818.15, 1e-9);
+  check('CH4 ΔG from ΔfG', ch4.fromG);
+  const lime = THM.reaction(sp([[-1, 'CaCO3', 's'], [1, 'CaO', 's'], [1, 'CO2', 'g']]));
+  near('CaCO3 ΔH', lime.dH, 179.19, 1e-9);
+  near('CaCO3 turnover (K)', THM.crossover(lime.dH, lime.dS), 1118.6, 0.2);
+  check('no turnover when ΔH < 0, ΔS > 0', THM.crossover(-10, 5) === null);
+  near('ln K from ΔG', THM.lnK(-5.708, 298.15), 2.3027, 0.001);
+  check('water lookup by phase', L('H2O', 'g').H === -241.83 && L('H2O', 'l').H === -285.83 && L('H2O') !== undefined && L('XeF4') === undefined);
+  const nogG = THM.reaction([{ nu: -1, H: 0, S: 100 }, { nu: 1, H: -50, S: 120 }]);
+  check('ΔG from ΔH − TΔS when a ΔfG is missing', !nogG.fromG && Math.abs(nogG.dG - (-50 - 298.15 * 20 / 1000)) < 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

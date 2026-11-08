@@ -1,0 +1,115 @@
+---
+// Thermochemistry calculator: a reaction's ΔrH°, ΔrS°, ΔrG° and K from standard formation values (bundled table or
+// typed), ΔG and K at other temperatures, and the temperature where the reaction turns spontaneous.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { TABLE } from '../../lib/sci/thermo';
+---
+<div class="ax thc">
+  <div class="ax-card">
+    <h2>Reaction</h2>
+    <div class="ax-grid">
+      <label class="thc-wide">Balanced reaction, with state symbols <input class="thc-rxn" value="CH4(g) + 2O2(g) → CO2(g) + 2H2O(l)" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Temperature (K) <input class="thc-T" inputmode="decimal" value="298.15" /></label>
+    </div>
+    <p class="ax-help">Values for {TABLE.length} common substances fill in by themselves. For anything else, type ΔfH°, S° and (if you have it) ΔfG° in the rows below.</p>
+    <div class="ax-scroll"><table class="thc-in"></table></div>
+    <p class="ax-err thc-err" hidden></p>
+    <p class="ax-err thc-warn" hidden style="color:var(--warn, #8a5300)"></p>
+    <div class="thc-out">
+      <p class="ax-big thc-big"></p>
+      <dl class="ax-facts thc-facts"></dl>
+      <canvas class="ax-fig thc-fig" style="margin-top:10px"></canvas>
+      <p class="ax-help">Away from 298 K the tool keeps ΔH° and ΔS° constant, which is a fair approximation over a few hundred kelvin but not for large changes or phase changes.</p>
+    </div>
+    <details class="thc-list"><summary>Substances in the built-in table</summary><p class="ax-help">{TABLE.map((t) => `${t.f}(${t.phase}) ${t.name}`).join(' · ')}</p><p class="ax-help">Standard values at 298.15 K and 1 bar from the CRC Handbook and NIST. Check the official source for work that matters.</p></details>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { lookup, reaction, dGat, crossover, lnK, type Species } from '../../lib/sci/thermo';
+  import { parseReaction, type Term } from '../../lib/sci/equilibrium';
+  import { parseFormula, byElement, pretty } from '../../lib/sci/chem';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.thc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nice = (t: string) => { try { return pretty(t); } catch { return t; } };
+  const signed = (x: number, d = 1) => `${x >= 0 ? '+' : '−'}${(Math.abs(x) + 1e-9).toFixed(d)}`;
+  let terms: Term[] = [], vals: { H: string; S: string; G: string }[] = [], fig: Figure | null = null, rowsOut: string[][] = [];
+
+  function build() {
+    const tb = q<HTMLTableElement>('.thc-in'); tb.replaceChildren(); vals = [];
+    try { terms = parseReaction(q<HTMLInputElement>('.thc-rxn').value); } catch (e) { terms = []; return (e as Error).message; }
+    const hr = tb.createTHead().insertRow(); ['Species', 'ν', 'ΔfH° (kJ/mol)', 'S° (J/(mol·K))', 'ΔfG° (kJ/mol)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    terms.forEach((t, i) => {
+      const hit = lookup(t.text, t.phase);
+      vals.push(hit ? { H: String(hit.H), S: String(hit.S), G: String(hit.G) } : { H: '', S: '', G: '' });
+      const tr = bd.insertRow();
+      const name = tr.insertCell(); name.textContent = `${nice(t.text)}${t.phase ? `(${t.phase})` : hit ? `(${hit.phase})` : ''}`; if (!hit) { const sm = document.createElement('small'); sm.textContent = ' not in the table'; sm.style.display = 'block'; name.append(sm); }
+      const nu = tr.insertCell(); nu.textContent = `${t.nu > 0 ? '+' : '−'}${sig(Math.abs(t.nu), 3)}`; nu.style.textAlign = 'right';
+      (['H', 'S', 'G'] as const).forEach((k) => { const td = tr.insertCell(); const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.value = vals[i][k]; inp.dataset.i = String(i); inp.dataset.k = k; inp.setAttribute('aria-label', `${k} for ${t.text}`); inp.addEventListener('input', () => { vals[i][k] = inp.value; calc(); }); td.append(inp); });
+    });
+    // Element balance check.
+    const bal = new Map<string, number>();
+    try { for (const t of terms) for (const [e, n] of byElement(parseFormula(t.text))) bal.set(e, (bal.get(e) ?? 0) + t.nu * n); } catch { /* formulas the chemistry parser cannot read are allowed */ }
+    const off = [...bal].filter(([, n]) => Math.abs(n) > 1e-9).map(([e]) => e);
+    q('.thc-warn').textContent = off.length ? `Not balanced for ${off.join(', ')}: check the coefficients (the equation balancer can help).` : '';
+    q('.thc-warn').hidden = !off.length;
+    return '';
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.thc-err').textContent = m; q('.thc-err').hidden = !m; q('.thc-out').hidden = !!m; if (m) fig = null; };
+    if (!terms.length) return err('Type a reaction with an arrow, such as CH4(g) + 2O2(g) → CO2(g) + 2H2O(l).');
+    const sp: Species[] = [];
+    for (let i = 0; i < terms.length; i++) {
+      const H = num(vals[i].H), S = num(vals[i].S), G = vals[i].G.trim() ? num(vals[i].G) : undefined;
+      if (!Number.isFinite(H) || !Number.isFinite(S)) return err(`Type ΔfH° and S° for ${nice(terms[i].text)}.`);
+      sp.push({ nu: terms[i].nu, H, S, G: G !== undefined && Number.isFinite(G) ? G : undefined });
+    }
+    const T = num(q<HTMLInputElement>('.thc-T').value);
+    if (!(T > 0)) return err('Type the temperature in kelvin, above zero.');
+    err('');
+    const r = reaction(sp), x = crossover(r.dH, r.dS);
+    const gT = Math.abs(T - 298.15) < 0.01 ? r.dG : dGat(r.dH, r.dS, T);
+    const K = Math.exp(lnK(gT, T));
+    q('.thc-big').textContent = `ΔrH° ${signed(r.dH)} kJ/mol (${r.dH < 0 ? 'exothermic' : 'endothermic'}), ΔrG° ${signed(gT)} kJ/mol at ${sig(T, 5)} K: ${gT < 0 ? 'spontaneous' : 'not spontaneous'} as written`;
+    const facts = [
+      fact('ΔrS°', `${signed(r.dS)} J/(mol·K)`, r.dS > 0 ? 'more disorder: often more gas molecules on the product side' : 'less disorder: often fewer gas molecules on the product side'),
+      fact('ΔrG° at 298.15 K', `${signed(r.dG)} kJ/mol`, r.fromG ? 'from the ΔfG° values' : 'from ΔH° − TΔS° (a ΔfG° was missing)'),
+      fact(`K at ${sig(T, 5)} K`, K > 1e6 || K < 1e-6 ? fmtExp(K, 3) : sig(K, 4), K > 1e3 ? 'products strongly favoured' : K < 1e-3 ? 'reactants strongly favoured' : 'both present at equilibrium'),
+      fact('Turns over at', x === null ? 'never' : `${sig(x, 4)} K (${sig(x - 273.15, 4)} °C)`, x === null ? (r.dH < 0 ? 'ΔH < 0 and ΔS > 0: spontaneous at every temperature' : 'ΔH > 0 and ΔS < 0: never spontaneous as written') : r.dH < 0 ? 'spontaneous below this temperature (enthalpy wins), not above' : 'spontaneous above this temperature (entropy wins), not below'),
+    ];
+    if (terms.some((t) => t.phase === 'g') && Math.abs(T - 298.15) > 0.01) facts.push(fact('Note', 'phases fixed', 'a species may change phase between 298 K and your temperature (water boils at 373 K); use the matching values if so'));
+    q('.thc-facts').replaceChildren(...facts);
+    rowsOut = terms.map((t, i) => [`${nice(t.text)}${t.phase ? `(${t.phase})` : ''}`, String(t.nu), vals[i].H, vals[i].S, vals[i].G || '–']);
+    const Ts: number[] = []; const lo = 100, hi = Math.max(1500, x && x < 4000 ? x * 1.4 : 0);
+    for (let t = lo; t <= hi; t += (hi - lo) / 100) Ts.push(t);
+    fig = chartFigure({ h: 260, xLabel: 'Temperature (K)', yLabel: 'ΔrG° (kJ/mol)', xMin: lo, xMax: hi, series: [{ name: 'ΔG = ΔH − TΔS', x: Ts, y: Ts.map((t) => dGat(r.dH, r.dS, t)), mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, ...(x !== null && x >= lo && x <= hi ? [{ kind: 'vline' as const, at: x, label: `${Math.round(x)} K`, dash: [4, 3] }] : []), { kind: 'vline', at: T, label: 'your T' }], legend: 'none' }, 'Gibbs energy of reaction against temperature');
+    paint(q<HTMLCanvasElement>('.thc-fig'), fig);
+  }
+
+  q('.thc-rxn').addEventListener('input', () => { const m = build(); if (m) { q('.thc-err').textContent = m; q('.thc-err').hidden = false; q('.thc-out').hidden = true; } else calc(); });
+  q('.thc-T').addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.thc-fig'), fig); });
+  build(); calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Thermochemistry', subtitle: q<HTMLInputElement>('.thc-rxn').value, file: 'thermochemistry',
+    sections: q('.thc-out').hidden ? [] : [{ title: q('.thc-big').textContent!, table: { head: ['Species', 'ν', 'ΔfH° (kJ/mol)', 'S° (J/(mol·K))', 'ΔfG° (kJ/mol)'], rows: rowsOut, align: ['l', 'r', 'r', 'r', 'r'] }, facts: [...root.querySelectorAll('.thc-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }],
+  }));
+</script>
+
+<style is:global>
+  .thc .thc-wide { grid-column: 1 / -1; }
+  .thc .thc-in input { width: 74px; min-width: 0; }
+  .thc .thc-in td, .thc .thc-in th { white-space: nowrap; vertical-align: top; }
+  .thc .thc-in small { white-space: normal; color: var(--muted); }
+  .thc .thc-list { margin-top: 12px; }
+  .thc .thc-list summary { cursor: pointer; font-weight: 600; }
+</style>
