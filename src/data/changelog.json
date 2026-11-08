@@ -1,5 +1,14 @@
 [
  {
+  "sha": "406eb4223755",
+  "date": "2026-11-08T10:44:10+00:00",
+  "title": "Add the polymer molar mass calculator (#100)",
+  "tools": [
+   "polymer-molar-mass"
+  ],
+  "site": false
+ },
+ {
   "sha": "89fc705887fd",
   "date": "2026-11-08T10:31:57+00:00",
   "title": "Add the radioactive decay and specific activity calculator (#99)",
