@@ -1,0 +1,130 @@
+---
+// Green chemistry metrics: atom economy and carbon economy from the balanced reaction, then yield, reaction mass
+// efficiency, carbon efficiency, E-factor and PMI from the masses actually used.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax grn">
+  <div class="ax-card">
+    <h2>Reaction</h2>
+    <div class="ax-grid">
+      <label class="grn-wide">Reaction (coefficients are worked out for you) <input class="grn-rxn" value="CH3COOH + C2H5OH → CH3COOC2H5 + H2O" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label class="grn-wide">Wanted product <select class="grn-prod"></select></label>
+    </div>
+    <p class="ax-err grn-rerr" hidden></p>
+    <p class="ax-big grn-ae"></p>
+    <dl class="ax-facts grn-afacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>What you used</h2>
+    <div class="ax-scroll"><table class="grn-in"></table></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Product isolated (g) <input class="grn-pm" inputmode="decimal" value="7.04" /></label>
+      <label class="grn-wide">Everything else: solvents, catalysts, work-up (one per line: name, mass in g) <textarea class="grn-oth" rows="6" spellcheck="false">sulfuric acid, 0.5
+sodium hydrogen carbonate, 2.5
+water, 47.5
+diethyl ether, 35.7
+magnesium sulfate, 2</textarea></label>
+    </div>
+    <p class="ax-help">Leave a reactant blank if you did not weigh it; at least one is needed to find the limiting reagent. Lines named water are counted separately, because E-factors are often quoted with and without water. Convert volumes to mass with the density first.</p>
+    <p class="ax-err grn-err" hidden></p>
+    <div class="grn-out">
+      <p class="ax-big grn-big"></p>
+      <dl class="ax-facts grn-facts"></dl>
+      <div class="ax-scroll"><table class="grn-tab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { atomEconomy, carbonEconomy, metrics, parseOthers } from '../../lib/sci/green';
+  import { parseEquation, balance, molarMass, pretty, type Balanced } from '../../lib/sci/chem';
+  import { num, sig } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.grn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nice = (t: string) => { try { return pretty(t); } catch { return t; } };
+  const g = (x: number) => String(Number(x.toPrecision(5)));
+  const pct = (x: number) => `${(x + 1e-9).toFixed(1)} %`;
+  const eqText = (bb: Balanced) => (['reactant', 'product'] as const).map((sd) => bb.species.map((x, i) => [x, bb.coefficients[i]] as const).filter(([x]) => x.side === sd).map(([x, c]) => `${c === 1 ? '' : c}${nice(x.text)}`).join(' + ')).join(' → ');
+  let b: Balanced | null = null, rows: string[][] = [];
+  const masses: Record<string, string> = { CH3COOH: '6.00', C2H5OH: '10.0' };
+
+  function build() {
+    const e = q('.grn-rerr'); b = null;
+    try { b = balance(parseEquation(q<HTMLInputElement>('.grn-rxn').value)); e.hidden = true; } catch (x) { e.textContent = (x as Error).message; e.hidden = false; }
+    const sel = q<HTMLSelectElement>('.grn-prod'), keep = sel.value; sel.replaceChildren();
+    const tb = q<HTMLTableElement>('.grn-in'); tb.replaceChildren();
+    if (!b) { q('.grn-ae').textContent = ''; q('.grn-afacts').replaceChildren(); q('.grn-out').hidden = true; return; }
+    b.species.forEach((s, i) => { if (s.side === 'product') { const o = document.createElement('option'); o.value = String(i); o.textContent = nice(s.text); sel.append(o); } });
+    if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    const hr = tb.createTHead().insertRow(); ['Reactant', 'ν', 'M (g/mol)', 'Mass used (g)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody();
+    b.species.forEach((s, i) => {
+      if (s.side !== 'reactant') return;
+      const tr = bd.insertRow(); tr.insertCell().textContent = nice(s.text); tr.insertCell().textContent = String(b!.coefficients[i]); tr.insertCell().textContent = molarMass(s.formula).toFixed(3);
+      const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.value = masses[s.text] ?? ''; inp.className = 'grn-m'; inp.dataset.f = s.text; inp.setAttribute('aria-label', `Mass of ${s.text} in grams`);
+      inp.addEventListener('input', () => { masses[s.text] = inp.value; calc(); }); tr.insertCell().append(inp);
+    });
+    calc();
+  }
+
+  function calc() {
+    if (!b) return;
+    const p = Number(q<HTMLSelectElement>('.grn-prod').value), ae = atomEconomy(b, p), ce = carbonEconomy(b, p);
+    q('.grn-ae').textContent = `Atom economy ${pct(ae)} for ${nice(b.species[p].text)}`;
+    q('.grn-afacts').replaceChildren(
+      fact('Balanced', eqText(b)),
+      fact('Atom economy', pct(ae), ae >= 99.99 ? 'every atom of the reactants ends up in the product' : `${pct(100 - ae)} of the reactant mass becomes by-products even at 100 % yield`),
+      ...(ce !== null ? [fact('Carbon economy', pct(ce), 'carbon atoms in the product over carbon atoms in the reactants')] : []),
+    );
+    const err = (m: string) => { q('.grn-err').textContent = m; q('.grn-err').hidden = !m; q('.grn-out').hidden = !!m; };
+    const rm = b.species.map((s) => (s.side === 'reactant' && (masses[s.text] ?? '').trim() ? num(masses[s.text]) : undefined));
+    if (rm.some((m) => m !== undefined && !(m > 0))) return err('Masses must be numbers above zero (leave a box blank if you did not weigh it).');
+    if (rm.every((m) => m === undefined)) return err('Type the mass of at least one reactant.');
+    const pm = num(q<HTMLInputElement>('.grn-pm').value);
+    if (!(pm > 0)) return err('Type the mass of product you isolated, in grams.');
+    const { rows: oth, bad } = parseOthers(q<HTMLTextAreaElement>('.grn-oth').value);
+    if (bad.length) return err(`Line ${bad.join(', ')} of the other materials should look like "toluene, 43.5".`);
+    err('');
+    const m = metrics(b, p, rm, pm, oth);
+    q('.grn-big').textContent = `Yield ${pct(m.yieldPct)}, E-factor ${sig(m.eFactor, 3)} (${sig(m.eFactorNoWater, 3)} without water), PMI ${sig(m.pmi, 3)}`;
+    q('.grn-facts').replaceChildren(
+      fact('Yield', pct(m.yieldPct), `theoretical ${sig(m.theoretical, 4)} g, limited by ${nice(b.species[m.limiting].text)}${m.yieldPct > 100 ? ' (over 100 %: is the product wet or impure?)' : ''}`),
+      fact('Reaction mass efficiency', pct(m.rme), 'product mass over the mass of all weighed reactants: yield, atom economy and excess reagents together'),
+      ...(m.carbonEff !== null ? [fact('Carbon efficiency', pct(m.carbonEff), 'carbon in the isolated product over carbon in the weighed reactants')] : []),
+      fact('E-factor', `${sig(m.eFactor, 3)} kg waste per kg product`, `${sig(m.eFactorNoWater, 3)} without water. Typical: bulk chemicals under 5, fine chemicals 5–50, pharmaceuticals 25–100+`),
+      fact('Process mass intensity', `${sig(m.pmi, 3)} kg in per kg product`, 'PMI = E-factor + 1 (the ACS Green Chemistry Institute measure)'),
+    );
+    const all = [...b.species.map((s, i) => [nice(s.text), rm[i]] as const).filter(([, v]) => v !== undefined).map(([n, v]) => [n, v as number, 'reactant'] as const), ...oth.map((o) => [o.name, o.mass, o.water ? 'water' : 'other'] as const)];
+    rows = all.map(([n, v, k]) => [n, g(v), k, pct((100 * v) / m.totalIn)]);
+    rows.push(['Total in', g(m.totalIn), '', '100 %'], ['Product out', g(pm), '', pct((100 * pm) / m.totalIn)]);
+    const tb = q<HTMLTableElement>('.grn-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Material', 'Mass (g)', 'Kind', 'Share'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 1 || j === 3) td.style.textAlign = 'right'; }); }
+  }
+
+  q('.grn-rxn').addEventListener('input', build);
+  q('.grn-prod').addEventListener('change', calc);
+  q('.grn-pm').addEventListener('input', calc); q('.grn-oth').addEventListener('input', calc);
+  build();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Green chemistry metrics', subtitle: b?.equation ?? q<HTMLInputElement>('.grn-rxn').value, file: 'green-chemistry-metrics',
+    sections: [
+      { title: q('.grn-ae').textContent!, facts: [...root.querySelectorAll('.grn-afacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      ...(q('.grn-out').hidden ? [] : [{ title: q('.grn-big').textContent!, facts: [...root.querySelectorAll('.grn-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Material', 'Mass (g)', 'Kind', 'Share'], rows, align: ['l', 'r', 'l', 'r'] } }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .grn .grn-wide { grid-column: 1 / -1; }
+  .grn select { max-width: 100%; }
+  .grn .grn-in input { width: 90px; min-width: 0; }
+  .grn .grn-in td, .grn .grn-in th { white-space: nowrap; }
+  .grn textarea { width: 100%; font: inherit; }
+</style>

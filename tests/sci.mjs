@@ -80,6 +80,7 @@ import * as DIA from '../src/lib/sci/diatomic.ts';
 import * as THM from '../src/lib/sci/thermo.ts';
 import * as NST from '../src/lib/sci/nernst.ts';
 import * as FAR from '../src/lib/sci/faraday.ts';
+import * as GRN from '../src/lib/sci/green.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1195,6 +1196,23 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('H2 from 1 A·h (mol)', h2, 0.018656, 1e-6);
   near('H2 at 0 °C, 1 atm (L)', FAR.gasVolume(h2, 273.15, 101.325), 0.4181, 0.0001);
   check('every metal has a density', FAR.SUBSTANCES.every((x) => x.gas || x.rho > 0));
+}
+{
+  // Green metrics: esterification atom economy 83.0 %; toluene oxidation 87.1 %; addition reaction 100 %; mass metrics.
+  const est = CHEM.balance(CHEM.parseEquation('CH3COOH + C2H5OH -> CH3COOC2H5 + H2O'));
+  near('esterification atom economy', GRN.atomEconomy(est, 2), 83.02, 0.01);
+  near('esterification carbon economy', GRN.carbonEconomy(est, 2), 100, 1e-9);
+  near('toluene to benzoic acid', GRN.atomEconomy(CHEM.balance(CHEM.parseEquation('C6H5CH3 + O2 -> C6H5COOH + H2O')), 2), 87.14, 0.01);
+  near('Diels–Alder addition is 100 %', GRN.atomEconomy(CHEM.balance(CHEM.parseEquation('C4H6 + C2H4 -> C6H10')), 2), 100, 1e-9);
+  const o = GRN.parseOthers('sulfuric acid, 0.5\nsodium hydrogen carbonate, 2.5\nwater, 47.5\ndiethyl ether, 35.7 g\nmagnesium sulfate; 2\n\nnope');
+  check('other materials parsed, water flagged, bad line reported', o.rows.length === 5 && o.rows[2].water && !o.rows[0].water && o.bad.length === 1 && o.bad[0] === 7);
+  const m = GRN.metrics(est, 2, [6.0, 10.0], 7.04, o.rows);
+  check('acetic acid limits', m.limiting === 0);
+  near('yield', m.yieldPct, 79.97, 0.01);
+  near('RME', m.rme, 44, 1e-9);
+  near('E-factor', m.eFactor, 13.80, 0.01);
+  near('E-factor without water', m.eFactorNoWater, 7.054, 0.001);
+  near('PMI = E + 1', m.pmi, m.eFactor + 1, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
