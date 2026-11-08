@@ -1,5 +1,15 @@
 [
  {
+  "sha": "217270cf3c6b",
+  "date": "2026-11-08T23:48:25+00:00",
+  "title": "Add the spin splitter conductivity tool (#147)",
+  "tools": [
+   "altermagnet-bands",
+   "spin-splitter-conductivity"
+  ],
+  "site": false
+ },
+ {
   "sha": "28bd60a3517e",
   "date": "2026-11-08T23:39:11+00:00",
   "title": "Add the anomalous Hall checker (#146)",
