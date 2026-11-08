@@ -82,6 +82,7 @@ import * as NST from '../src/lib/sci/nernst.ts';
 import * as FAR from '../src/lib/sci/faraday.ts';
 import * as GRN from '../src/lib/sci/green.ts';
 import * as DEC from '../src/lib/sci/decay.ts';
+import * as PMW from '../src/lib/sci/polymer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1228,6 +1229,24 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('Tc-99m specific activity (Ci/g)', DEC.specific(DEC.halfLifeS(6.0067, 'h'), 99).perGram / DEC.CI / 1e6, 5.27, 0.01);
   check('nuclide ids unique and half-lives positive', new Set(DEC.NUCLIDES.map((n) => n.id)).size === DEC.NUCLIDES.length && DEC.NUCLIDES.every((n) => n.t > 0 && n.A > 0));
   near('mCi in Bq', DEC.ACT_UNITS.mCi, 3.7e7, 1e-6);
+}
+{
+  // Polymer averages: textbook two-species mixtures; log-normal GPC trace (Mw 100k, Đ 2) recovered through a cubic calibration.
+  const n = PMW.averagesFromNumbers([10000, 20000], [1, 1]);
+  near('equal numbers Mn', n.Mn, 15000, 1e-9); near('equal numbers Mw', n.Mw, 16666.667, 0.001); near('equal numbers Mz', n.Mz, 18000, 1e-9);
+  const w = PMW.averages([10000, 20000], [1, 1]);
+  near('equal masses Mn', w.Mn, 13333.333, 0.001); near('equal masses Mw', w.Mw, 15000, 1e-9);
+  check('monodisperse Đ = 1', Math.abs(PMW.averages([5e4], [3]).D - 1) < 1e-12);
+  const fit = PMW.polyfit([1, 2, 3, 4, 5], [1, 4, 9, 16, 25], 2);
+  near('polyfit exact quadratic', fit.f(6), 36, 1e-9); near('polyfit slope', fit.df(3), 6, 1e-9);
+  const tr = PMW.exampleTrace(), t = tr.map((r) => r[0]), h = tr.map((r) => r[1]);
+  const st = [1e6, 5e5, 2e5, 1e5, 5e4, 2e4, 1e4, 5e3, 2e3, 1e3].map((M) => [(10.5 - Math.log10(M)) / 0.3, Math.log10(M)]);
+  const cal = PMW.polyfit(st.map((x) => x[0]), st.map((x) => x[1]), 3);
+  const r = PMW.analyseTrace(t, h, cal.f, cal.df, 13.5, 26.5);
+  near('GPC Mn (log-normal, 50,000)', r.Mn, 50000, 50);
+  near('GPC Mw (100,000, tail cut)', r.Mw, 100000, 200);
+  near('GPC Đ', r.D, 2, 0.005);
+  near('GPC Mp = Mw/√Đ', r.Mp, 70711, 400);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
