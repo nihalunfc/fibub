@@ -1,0 +1,122 @@
+---
+// Copolymer composition (Mayo–Lewis), azeotrope and composition drift with conversion; reactivity ratios fitted
+// from low-conversion data by Fineman–Ross, Kelen–Tüdős and non-linear least squares.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { PAIRS, F1 } from '../../lib/sci/copolymer';
+const demo = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((f, i) => `${f}, ${(F1(f, 0.52, 0.46) + [0.006, -0.004, 0.003, -0.005, 0.004, 0.002, -0.006, 0.003, -0.002][i]).toFixed(3)}`).join('\n');
+---
+<div class="ax cop">
+  <div class="ax-card">
+    <h2>Copolymer composition</h2>
+    <div class="ax-grid">
+      <label class="cop-wide">Monomer pair <select class="cop-pair">{PAIRS.map((p) => <option value={p.id}>{p.m1} (1) / {p.m2} (2): r₁ {p.r1}, r₂ {p.r2}</option>)}<option value="custom">Your own reactivity ratios</option></select></label>
+      <label>r₁ <input class="cop-r1" inputmode="decimal" value="0.52" /></label>
+      <label>r₂ <input class="cop-r2" inputmode="decimal" value="0.46" /></label>
+      <label>Monomer 1 in the feed (mole fraction f₁) <input class="cop-f" inputmode="decimal" value="0.3" /></label>
+      <label>Conversion to follow up to (%) <input class="cop-X" inputmode="decimal" value="90" /></label>
+    </div>
+    <p class="ax-help">r₁ = k₁₁/k₁₂ is how much a growing chain ending in monomer 1 prefers to add monomer 1 rather than 2. The listed values are typical at about 60 °C and change with temperature and solvent.</p>
+    <p class="ax-err cop-err" hidden></p>
+    <div class="cop-out">
+      <p class="ax-big cop-big"></p>
+      <dl class="ax-facts cop-facts"></dl>
+      <canvas class="ax-fig cop-fig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig cop-dfig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Fit reactivity ratios</h2>
+    <label class="cop-lab">Feed f₁ and copolymer F₁ (mole fractions of monomer 1), one pair per line, from runs stopped below about 10 % conversion <textarea class="cop-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".cop-data" maxCols={2} label="Open a file (2 columns)" />
+    <p class="ax-err cop-ferr" hidden></p>
+    <div class="cop-fout">
+      <p class="ax-big cop-fbig"></p>
+      <div class="ax-scroll"><table class="cop-ftab"></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cop-use">Use the fitted values above</button></div>
+      <canvas class="ax-fig cop-ffig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { F1, azeotrope, behaviour, drift, finemanRoss, kelenTudos, fitNLLS, PAIRS } from '../../lib/sci/copolymer';
+  import { num, sig, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cop')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const p3 = (x: number) => x.toFixed(3);
+  let fig: Figure | null = null, dfig: Figure | null = null, ffig: Figure | null = null, best: { r1: number; r2: number } | null = null, ftab: string[][] = [];
+  const names = () => { const p = PAIRS.find((x) => x.id === q<HTMLSelectElement>('.cop-pair').value); return p ? [p.m1.toLowerCase(), p.m2.toLowerCase()] : ['monomer 1', 'monomer 2']; };
+
+  function calc() {
+    const err = (m: string) => { q('.cop-err').textContent = m; q('.cop-err').hidden = !m; q('.cop-out').hidden = !!m; if (m) fig = dfig = null; };
+    const r1 = v('.cop-r1'), r2 = v('.cop-r2'), f = v('.cop-f'), Xm = v('.cop-X') / 100;
+    if (!(r1 >= 0) || !(r2 >= 0)) return err('Reactivity ratios are zero or more.');
+    if (!(f > 0 && f < 1)) return err('The feed fraction f₁ is between 0 and 1.');
+    if (!(Xm > 0 && Xm <= 0.99)) return err('Follow conversion up to between 1 and 99 %.');
+    err('');
+    const [n1, n2] = names(), Fi = F1(f, r1, r2), az = azeotrope(r1, r2);
+    q('.cop-big').textContent = `Copolymer F₁ = ${p3(Fi)} from a feed of f₁ = ${p3(f)}: ${Fi > f + 0.0005 ? `richer in ${n1} than the feed` : Fi < f - 0.0005 ? `richer in ${n2} than the feed` : 'the same as the feed'}`;
+    const d = drift(r1, r2, f, Xm), last = d[d.length - 1];
+    const facts = [
+      fact('Behaviour', behaviour(r1, r2), `r₁r₂ = ${sig(r1 * r2, 3)}`),
+      fact('Azeotrope', az === null ? 'none' : `f₁ = ${p3(az)}`, az === null ? 'no feed gives a copolymer of the same composition, so the feed always drifts' : 'at this feed the composition stays constant all the way through'),
+      fact(`At ${Math.round(last.X * 100)} % conversion`, `feed f₁ ${p3(last.f1)}, chains being made F₁ ${p3(last.F1)}`, `average copolymer so far F̄₁ = ${p3(last.Fbar)}${last.X < Xm - 0.005 ? `; ${last.f1 < 0.01 ? n1 : n2} is used up here and the rest is nearly homopolymer` : ''}`),
+      fact('Spread in composition', `${p3(Math.min(...d.map((x) => x.F1)))} to ${p3(Math.max(...d.map((x) => x.F1)))}`, Math.abs(d[0].F1 - last.F1) > 0.1 ? 'large drift: feed the faster monomer gradually (semi-batch) for a uniform product' : 'small drift'),
+    ];
+    q('.cop-facts').replaceChildren(...facts);
+    const xs = Array.from({ length: 101 }, (_, i) => i / 100);
+    fig = chartFigure({ h: 240, xLabel: 'f₁ (feed)', yLabel: 'F₁ (copolymer)', xMin: 0, xMax: 1, yMin: 0, yMax: 1, series: [{ name: 'Mayo–Lewis', x: xs, y: xs.map((x) => F1(x, r1, r2)), mode: 'line', width: 2 }, { name: 'F₁ = f₁', x: [0, 1], y: [0, 1], mode: 'line', width: 1 }, { name: 'your feed', x: [f], y: [Fi], mode: 'points' }], legend: 'none' }, 'Copolymer composition against feed composition');
+    dfig = chartFigure({ h: 220, xLabel: 'Conversion (%)', yLabel: 'mole fraction of 1', xMin: 0, xMax: Math.round(Xm * 100), yMin: 0, yMax: 1, series: [{ name: 'feed f₁', x: d.map((p) => p.X * 100), y: d.map((p) => p.f1), mode: 'line', width: 1.5 }, { name: 'instantaneous F₁', x: d.map((p) => p.X * 100), y: d.map((p) => p.F1), mode: 'line', width: 2 }, { name: 'cumulative F̄₁', x: d.map((p) => p.X * 100), y: d.map((p) => p.Fbar), mode: 'line', width: 1.5, dash: [4, 3] }], legend: 'below' }, 'Composition drift with conversion');
+    paint(q<HTMLCanvasElement>('.cop-fig'), fig); paint(q<HTMLCanvasElement>('.cop-dfig'), dfig);
+  }
+
+  function fit() {
+    const err = (m: string) => { q('.cop-ferr').textContent = m; q('.cop-ferr').hidden = !m; q('.cop-fout').hidden = !!m; if (m) { ffig = null; best = null; } };
+    const t = numericColumns(q<HTMLTextAreaElement>('.cop-data').value);
+    if (t.cols.length < 2 || t.rows < 3) return err('Type at least three lines of f₁ and F₁.');
+    const f = t.cols[0], F = t.cols[1];
+    if ([...f, ...F].some((x) => !(x > 0 && x < 1))) return err('All fractions must be strictly between 0 and 1 (convert percentages by dividing by 100).');
+    if (new Set(f).size < 3) return err('Use at least three different feed compositions.');
+    err('');
+    const fr = finemanRoss(f, F), kt = kelenTudos(f, F), nl = fitNLLS(f, F); best = nl;
+    q('.cop-fbig').textContent = `r₁ = ${p3(nl.r1)}, r₂ = ${p3(nl.r2)} (non-linear least squares)`;
+    ftab = [['Fineman–Ross', p3(fr.r1), p3(fr.r2), 'linearised; weights the end points heavily'], ['Kelen–Tüdős', p3(kt.r1), p3(kt.r2), `α = ${sig(kt.alpha, 3)}; spreads the points evenly`], ['Non-linear least squares', p3(nl.r1), p3(nl.r2), `rms error in F₁ ${sig(nl.rms, 2)}; IUPAC-recommended type of fit`]];
+    const tb = q<HTMLTableElement>('.cop-ftab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Method', 'r₁', 'r₂', 'Note'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of ftab) { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 1 || j === 2) td.style.textAlign = 'right'; }); }
+    const xs = Array.from({ length: 101 }, (_, i) => i / 100);
+    ffig = chartFigure({ h: 220, xLabel: 'f₁', yLabel: 'F₁', xMin: 0, xMax: 1, yMin: 0, yMax: 1, series: [{ name: 'data', x: f, y: F, mode: 'points' }, { name: 'fit', x: xs, y: xs.map((x) => F1(x, nl.r1, nl.r2)), mode: 'line', width: 2 }], legend: 'none' }, 'Measured compositions with the fitted Mayo–Lewis curve');
+    paint(q<HTMLCanvasElement>('.cop-ffig'), ffig);
+  }
+
+  q('.cop-pair').addEventListener('change', () => { const p = PAIRS.find((x) => x.id === q<HTMLSelectElement>('.cop-pair').value); if (p) { q<HTMLInputElement>('.cop-r1').value = String(p.r1); q<HTMLInputElement>('.cop-r2').value = String(p.r2); } calc(); });
+  root.querySelectorAll('.cop-r1, .cop-r2').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.cop-pair').value = 'custom'; calc(); }));
+  root.querySelectorAll('.cop-f, .cop-X').forEach((i) => i.addEventListener('input', calc));
+  q('.cop-data').addEventListener('input', fit); q('.cop-data').addEventListener('change', fit);
+  q('.cop-use').addEventListener('click', () => { if (!best) return; q<HTMLInputElement>('.cop-r1').value = best.r1.toFixed(3); q<HTMLInputElement>('.cop-r2').value = best.r2.toFixed(3); q<HTMLSelectElement>('.cop-pair').value = 'custom'; calc(); q('.cop-r1').scrollIntoView({ block: 'center' }); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cop-fig'), fig); if (dfig) paint(q<HTMLCanvasElement>('.cop-dfig'), dfig); if (ffig) paint(q<HTMLCanvasElement>('.cop-ffig'), ffig); });
+  calc(); fit();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Copolymer composition', subtitle: q<HTMLSelectElement>('.cop-pair').selectedOptions[0].textContent!, file: 'copolymer',
+    sections: [
+      ...(q('.cop-out').hidden ? [] : [{ title: q('.cop-big').textContent!, facts: [...root.querySelectorAll('.cop-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }, ...(dfig ? [{ title: 'Composition drift', figure: dfig }] : [])]),
+      ...(q('.cop-fout').hidden ? [] : [{ title: q('.cop-fbig').textContent!, table: { head: ['Method', 'r₁', 'r₂', 'Note'], rows: ftab, align: ['l', 'r', 'r', 'l'] as ('l' | 'r')[] }, ...(ffig ? { figure: ffig } : {}) }]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .cop .cop-wide { grid-column: 1 / -1; }
+  .cop select { max-width: 100%; }
+  .cop .cop-lab { display: block; }
+  .cop textarea { width: 100%; font: inherit; font-size: 14px; }
+</style>

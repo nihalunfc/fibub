@@ -83,6 +83,7 @@ import * as FAR from '../src/lib/sci/faraday.ts';
 import * as GRN from '../src/lib/sci/green.ts';
 import * as DEC from '../src/lib/sci/decay.ts';
 import * as PMW from '../src/lib/sci/polymer.ts';
+import * as COP from '../src/lib/sci/copolymer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1247,6 +1248,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('GPC Mw (100,000, tail cut)', r.Mw, 100000, 200);
   near('GPC Đ', r.D, 2, 0.005);
   near('GPC Mp = Mw/√Đ', r.Mp, 70711, 400);
+}
+{
+  // Copolymerisation: Mayo–Lewis limits, azeotropes, exact recovery of r1/r2 by all three fits, Skeist mass balance.
+  near('ideal r1 = r2 = 1 gives F1 = f1', COP.F1(0.3, 1, 1), 0.3, 1e-12);
+  near('perfect alternation r1 = r2 = 0', COP.F1(0.2, 0, 0), 0.5, 1e-12);
+  near('S/MMA F1 at f1 0.3', COP.F1(0.3, 0.52, 0.46), 0.37099, 0.00001);
+  near('S/MMA azeotrope', COP.azeotrope(0.52, 0.46), 0.52941, 0.00001);
+  near('S/AN azeotrope', COP.azeotrope(0.4, 0.04), 0.61538, 0.00001);
+  check('no azeotrope for VC/VAc', COP.azeotrope(1.68, 0.23) === null);
+  near('F1 = f1 at the azeotrope', COP.F1(0.5294117647, 0.52, 0.46), 0.5294117647, 1e-9);
+  const f = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], F = f.map((x) => COP.F1(x, 0.52, 0.46));
+  const fr = COP.finemanRoss(f, F), kt = COP.kelenTudos(f, F), nl = COP.fitNLLS(f, F);
+  near('Fineman–Ross exact r1', fr.r1, 0.52, 1e-9); near('Fineman–Ross exact r2', fr.r2, 0.46, 1e-9);
+  near('Kelen–Tüdős exact r1', kt.r1, 0.52, 1e-9); near('Kelen–Tüdős exact r2', kt.r2, 0.46, 1e-9);
+  near('NLLS exact r1', nl.r1, 0.52, 1e-6); near('NLLS exact r2', nl.r2, 0.46, 1e-6);
+  const d = COP.drift(0.52, 0.46, 0.3, 0.9), last = d[d.length - 1];
+  near('Skeist mass balance', last.Fbar * last.X + last.f1 * (1 - last.X), 0.3, 1e-9);
+  near('S/MMA drift to 90 %: feed', last.f1, 0.115, 0.002);
+  const san = COP.drift(0.4, 0.04, 0.3, 0.9), sl = san[san.length - 1];
+  check('S/AN: styrene used up near 70 % conversion', sl.f1 < 0.005 && Math.abs(sl.X - 0.70) < 0.01);
+  check('azeotropic feed does not drift', COP.drift(0.52, 0.46, 0.5294117647).every((p) => Math.abs(p.f1 - 0.5294117647) < 1e-6));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
