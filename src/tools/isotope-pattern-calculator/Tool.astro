@@ -1,6 +1,7 @@
 ---
 // Mass spectrometry isotope pattern and adduct calculator: exact m/z for common ESI and EI ions, the isotope
 // pattern (unit clusters or fine structure) with a profile at any resolving power, and a check against measured peaks.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -41,6 +42,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card ipc-out">
     <h2>Compare with your spectrum</h2>
     <label>Measured peaks: m/z and intensity, one per line <textarea class="ipc-meas" rows="4" placeholder="286.1436 100&#10;287.1470 19.5"></textarea></label>
+    <DataFile target=".ipc-meas" maxCols={2} />
     <p class="ax-help">Paste from your software: two columns, any separator. Each peak is matched to the nearest calculated one within 0.02 u (over the charge), and intensities are scaled to the tallest.</p>
     <div class="ax-scroll"><table class="ipc-cmp"></table></div>
     <p class="ax-big ipc-cmp-big" style="font-size:18px"></p>

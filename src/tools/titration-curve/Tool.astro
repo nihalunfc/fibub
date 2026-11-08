@@ -1,6 +1,7 @@
 ---
 // Titration curve simulator and end point finder: exact pH curves for strong, weak and polyprotic acids and bases,
 // equivalence points and indicators, and the end point of your own measured curve from its derivatives.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -29,6 +30,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Find the end point of your own curve</h2>
     <label>Volume added (mL) and pH, one pair per line <textarea class="tit-meas" rows="6" placeholder="0 2.88&#10;5 4.16&#10;10 4.58"></textarea></label>
+    <DataFile target=".tit-meas" maxCols={2} />
     <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small tit-fill">Use the simulated curve as an example</button></div>
     <p class="ax-help">The end point is where the pH rises fastest: the peak of the first derivative ΔpH/ΔV, placed exactly where the second derivative crosses zero. Add readings closer together near the jump for a sharper answer. The analyte's concentration then follows from the burette concentration and the flask volume above.</p>
     <div class="tit-mout" hidden>

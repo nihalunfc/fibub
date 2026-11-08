@@ -1,5 +1,6 @@
 ---
 // Radiocarbon calibration with IntCal20: probability of calendar ages, HPD ranges, plots.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -9,6 +10,7 @@ import Downloads from '../../components/Downloads.astro';
     <label>One date per line: a name (optional), the ¹⁴C age in years BP, and its ± error.
       <textarea class="rc-in" rows="4" spellcheck="false">Hearth charcoal: 3000 30
 Bone collagen: 2450 25</textarea></label>
+    <DataFile target=".rc-in" />
     <div class="ax-grid" style="margin-top:10px">
       <label>Show dates as <select class="rc-f"><option value="bcad">BC / AD</option><option value="bce">BCE / CE</option><option value="bp">cal BP</option></select></label>
       <label>Plot <select class="rc-sel"></select></label>

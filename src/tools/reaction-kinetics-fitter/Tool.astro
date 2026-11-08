@@ -1,6 +1,7 @@
 ---
 // Reaction kinetics fitter: zero, first and second order (and a free order) fitted to concentration against time,
 // the straight-line plots, half-life, and Arrhenius/Eyring activation parameters from k at several temperatures.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -11,6 +12,7 @@ import Downloads from '../../components/Downloads.astro';
       <button type="button" class="btn secondary small rkf-sample">Load an example</button>
     </div>
     <label style="margin-top:10px">Time and concentration, one pair per line <textarea class="rkf-data" rows="7" placeholder="0 0.0200&#10;300 0.0166&#10;600 0.0138"></textarea></label>
+    <DataFile target=".rkf-data" maxCols={2} />
     <div class="ax-grid" style="margin-top:8px">
       <label>Time unit <select class="rkf-tu"><option>s</option><option>min</option><option>h</option><option>day</option><option>year</option></select></label>
       <label>Concentration unit <input class="rkf-cu" value="mol/L" autocomplete="off" /></label>
@@ -38,6 +40,7 @@ import Downloads from '../../components/Downloads.astro';
 198.9 5.25e-5
 230.3 6.30e-4
 251.2 3.16e-3</textarea></label>
+    <DataFile target=".rkf-arr" maxCols={2} />
     <div class="ax-grid" style="margin-top:8px">
       <label>Temperatures are in <select class="rkf-tunit"><option value="C">°C</option><option value="K">K</option></select></label>
       <label>Predict k at (same unit) <input class="rkf-tpred" inputmode="decimal" value="25" /></label>

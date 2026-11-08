@@ -1,5 +1,6 @@
 ---
 // Radio interferometer uv-coverage: array layout, uv tracks through an observation, resolution and the dirty beam.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -21,6 +22,7 @@ import Downloads from '../../components/Downloads.astro';
     </div>
     <label style="margin-top:10px">Antenna positions: east and north in metres, one per line (a name first is fine)
       <textarea class="uvc-ants" rows="6" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".uvc-ants" />
     <h2 style="margin-top:16px">Observation</h2>
     <div class="ax-grid">
       <label>Source declination (°) <input class="uvc-dec" inputmode="decimal" value="30" /></label>

@@ -1735,6 +1735,21 @@ try {
     await page.fill('.tit-pka', 'abc');
     check(/pKa values/.test(await page.textContent('.tit-err')), 'titration: bad pKa explained');
   }
+  {
+    // "Open a file" on the paste boxes of the science tools: limits shown, data loaded, the tool updates.
+    await page.goto(BASE + '/science/reaction-kinetics-fitter/');
+    await page.waitForFunction(() => document.querySelector('.rkf-big')?.textContent);
+    check((await page.$$('.dfb')).length === 2 && /up to 10 MB, 2 columns and 50,000 rows/.test(await page.textContent('.dfb-limit')), 'data files: kinetics shows two upload buttons with limits');
+    await page.setInputFiles('.dfb >> nth=0 >> .dfb-in', { name: 'run.csv', mimeType: 'text/csv', buffer: Buffer.from('time,conc,notes\n0,0.050,a\n10,0.0357,b\n20,0.0278,c\n40,0.0192,d\n60,0.0147,e\n100,0.0100,f\n150,0.0071,g\n') });
+    await page.waitForFunction(() => /^Second order/.test(document.querySelector('.rkf-big')?.textContent ?? ''));
+    check(/Opened run\.csv: 8 rows and 2 columns\. The file has 3 columns; only the first 2 are used/.test(await page.textContent('.dfb-note')), 'data files: CSV loaded into kinetics, extra column trimmed');
+    await page.goto(BASE + '/science/calibration-curve/');
+    await page.waitForLoadState('networkidle');
+    const before = await page.inputValue('.cc-std');
+    await page.setInputFiles('.dfb >> nth=0 >> .dfb-in', { name: 'empty.csv', mimeType: 'text/csv', buffer: Buffer.from('\n\n') });
+    await page.waitForSelector('.dfb-err:not([hidden])');
+    check(/empty/.test(await page.textContent('.dfb-err')) && (await page.inputValue('.cc-std')) === before, 'data files: empty file explained, data kept');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.

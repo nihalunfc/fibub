@@ -1,5 +1,6 @@
 ---
 // Stereonet: planes and lines on an equal-area or equal-angle net, Fisher mean and a rose diagram.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 ---
 <div class="ax sn">
@@ -19,10 +20,12 @@ import '../../styles/astro.css';
 205 80
 215 88
 120 20</textarea></label>
+    <DataFile target=".sn-planes" />
       <label>Lines (lineations, fold axes), one per line
         <textarea class="sn-lines" rows="7" spellcheck="false">35 118
 40 125
 30 112</textarea></label>
+    <DataFile target=".sn-lines" />
     </div>
     <p class="ax-help">Two numbers per line, separated by a space, comma or slash. Right-hand rule: the plane dips to the right when you face along the strike (dip direction = strike + 90°). Text after # is ignored.</p>
     <p class="ax-err sn-err" hidden></p>

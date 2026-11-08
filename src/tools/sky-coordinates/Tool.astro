@@ -1,5 +1,6 @@
 ---
 // Sky coordinate converter: J2000, JNow (of date), galactic, ecliptic and alt/az, one at a time or a whole list.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import SkyPlace from '../../components/SkyPlace.astro';
 import Downloads from '../../components/Downloads.astro';
@@ -25,6 +26,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>A whole list</h2>
     <p class="ax-help" style="margin-top:0">Paste one target a line: <code>name, RA, Dec</code> (J2000). Commas, tabs or semicolons all work, and a header row is skipped.</p>
     <textarea class="sc-list" rows="6" spellcheck="false" placeholder="M31, 00 42 44.3, +41 16 09&#10;Vega, 18 36 56.3, +38 47 01&#10;Betelgeuse, 88.793, 7.407"></textarea>
+    <DataFile target=".sc-list" />
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn small sc-run">Convert the list</button>
       <button type="button" class="btn secondary small sc-csv" hidden>Download CSV</button>

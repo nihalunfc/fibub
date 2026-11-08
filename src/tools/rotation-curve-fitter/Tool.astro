@@ -1,5 +1,6 @@
 ---
 // Galaxy rotation curve fitter: bulge, disc and dark halo fitted to measured circular speeds.
+import DataFile from '../../components/DataFile.astro';
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -8,6 +9,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Rotation curve</h2>
     <label>Paste radius (kpc), speed (km/s) and error (km/s), one point per line. A header row is fine.
       <textarea class="rcv-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".rcv-in" />
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn secondary small rcv-sample">Load the example</button>
       <label class="ax-check"><input type="checkbox" class="rcv-nob" /> No bulge</label>
