@@ -1,0 +1,132 @@
+---
+// Sample size and power for t tests, two proportions and surveys, with power curves.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ss">
+  <div class="ax-card">
+    <h2>Study</h2>
+    <div class="ax-grid">
+      <label>Comparing <select class="ss-k">
+        <option value="two-sample">Two group means (t test)</option>
+        <option value="paired">Paired or before-after means</option>
+        <option value="one-sample">One mean against a value</option>
+        <option value="prop">Two proportions (percentages)</option>
+        <option value="survey">Survey: margin of error</option>
+      </select></label>
+    </div>
+    <div class="ax-grid ss-means" style="margin-top:10px">
+      <label>Difference to detect <input class="ss-diff" inputmode="decimal" value="5" /></label>
+      <label>Standard deviation <input class="ss-sd" inputmode="decimal" value="10" /></label>
+    </div>
+    <div class="ax-grid ss-props" style="margin-top:10px" hidden>
+      <label>Group 1 (%) <input class="ss-p1" inputmode="decimal" value="50" /></label>
+      <label>Group 2 (%) <input class="ss-p2" inputmode="decimal" value="75" /></label>
+    </div>
+    <div class="ax-grid ss-test" style="margin-top:10px">
+      <label>Significance level α <select class="ss-a"><option>0.01</option><option selected>0.05</option><option>0.1</option></select></label>
+      <label>Power <select class="ss-pw"><option>0.7</option><option selected>0.8</option><option>0.9</option><option>0.95</option></select></label>
+      <label>Expected dropout (%) <input class="ss-drop" inputmode="decimal" value="0" /></label>
+    </div>
+    <div class="ax-grid ss-survey" style="margin-top:10px" hidden>
+      <label>Margin of error (± %) <input class="ss-e" inputmode="decimal" value="5" /></label>
+      <label>Confidence <select class="ss-c"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Expected answer (%) <input class="ss-p" inputmode="decimal" value="50" /></label>
+      <label>Population size <input class="ss-N" inputmode="numeric" placeholder="large" /></label>
+    </div>
+    <p class="ax-help ss-help"></p>
+    <p class="ax-err ss-err" hidden></p>
+  </div>
+
+  <div class="ax-card ss-out">
+    <h2>Sample size</h2>
+    <p class="ax-big ss-big"></p>
+    <dl class="ax-facts ss-facts"></dl>
+    <canvas class="ax-fig ss-fig" style="margin-top:14px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { powerT, powerProp, solveN, surveyN, surveyMargin, type TDesign } from '../../lib/sci/power';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ss')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let fig: Figure | null = null, report: Section[] = [];
+  const HELP: Record<string, string> = {
+    'two-sample': 'Two separate groups, for example treatment and control. The difference is the smallest one worth finding, in the same units as the standard deviation (from a pilot study or the literature).',
+    paired: 'The same subjects measured twice, or matched pairs. Use the standard deviation of the differences within pairs, which is usually much smaller than between people.',
+    'one-sample': 'One group compared with a fixed value, such as a target or a reference standard.',
+    prop: 'The percentage expected in each group, for example 50 % cured with the old treatment and 75 % with the new one.',
+    survey: 'How many people to ask so that a percentage is within ± the margin, at that confidence. Use 50 % when you do not know what to expect: it gives the largest, safest number. Give the population size only when it is small (a school or a company); it barely matters above about 20,000.',
+  };
+
+  function calc() {
+    const k = q<HTMLSelectElement>('.ss-k').value, err = q('.ss-err');
+    q('.ss-means').hidden = !['two-sample', 'paired', 'one-sample'].includes(k);
+    q('.ss-props').hidden = k !== 'prop'; q('.ss-test').hidden = k === 'survey'; q('.ss-survey').hidden = k !== 'survey';
+    q('.ss-help').textContent = HELP[k];
+    try {
+      let big = '', facts: [string, string][] = [], series: { name: string; x: number[]; y: number[]; mode: 'line' }[] = [], xLabel = '', yLabel = '', marks: any[] = [];
+      if (k === 'survey') {
+        const E = val('.ss-e') / 100, conf = Number(q<HTMLSelectElement>('.ss-c').value), p = val('.ss-p') / 100;
+        const Ns = q<HTMLInputElement>('.ss-N').value.trim(), N = Ns ? num(Ns) : Infinity;
+        if (!(E > 0 && E < 0.5)) throw new Error('Type a margin of error between 0 and 50 %.');
+        if (!(p > 0 && p < 1)) throw new Error('The expected answer must be between 0 and 100 %.');
+        if (Ns && !(N >= 2)) throw new Error('The population size must be a number, or left empty.');
+        const n = Math.ceil(surveyN(E, conf, p, N) - 1e-9);
+        big = `${n.toLocaleString('en')} responses`;
+        facts = [['Margin of error', `± ${sig(E * 100, 3)} percentage points at ${conf * 100} % confidence`], ['Without the population correction', Math.ceil(surveyN(E, conf, p) - 1e-9).toLocaleString('en')], ['If only half respond', `send it to ${(2 * n).toLocaleString('en')}`]];
+        const xs: number[] = []; for (let i = 0; i <= 120; i++) xs.push(Math.round(20 * 100 ** (i / 120)));
+        const xx = xs.filter((x) => !Number.isFinite(N) || x < N);
+        series = [{ name: 'Margin of error', x: xx, y: xx.map((x) => 100 * surveyMargin(x, conf, p, N)), mode: 'line' }];
+        xLabel = 'Responses'; yLabel = 'Margin of error (± %)'; marks = [{ kind: 'vline', at: n, label: `n = ${n}` }, { kind: 'hline', at: E * 100 }];
+      } else {
+        const a = Number(q<HTMLSelectElement>('.ss-a').value), target = Number(q<HTMLSelectElement>('.ss-pw').value), drop = (val('.ss-drop') || 0) / 100;
+        if (!(drop >= 0 && drop < 0.9)) throw new Error('Dropout must be between 0 and 90 %.');
+        let pf: (n: number, scale?: number) => number, d = 0, label = '';
+        if (k === 'prop') {
+          const p1 = val('.ss-p1') / 100, p2 = val('.ss-p2') / 100;
+          if (!(p1 > 0 && p1 < 1 && p2 > 0 && p2 < 1)) throw new Error('Percentages must be between 0 and 100.');
+          if (p1 === p2) throw new Error('The two percentages must differ.');
+          pf = (n, s = 1) => powerProp(n, p1, p1 + (p2 - p1) * s, a);
+          label = `${sig(p1 * 100, 3)} % against ${sig(p2 * 100, 3)} %`;
+        } else {
+          const diff = Math.abs(val('.ss-diff')), sd = val('.ss-sd');
+          if (!(diff > 0 && sd > 0)) throw new Error('Type a difference and a standard deviation above zero.');
+          d = diff / sd;
+          pf = (n, s = 1) => powerT(n, d * s, a, k as TDesign);
+          label = `effect size d = ${sig(d, 3)}`;
+        }
+        const nRaw = solveN((n) => pf(n), target, k === 'prop' ? 1 : 2);
+        if (!Number.isFinite(nRaw)) throw new Error('That needs more than 10 million: the difference is too small to detect.');
+        const n = Math.ceil(nRaw - 1e-9), nd = Math.ceil(n / (1 - drop) - 1e-9);
+        const per = k === 'two-sample' || k === 'prop' ? 'per group' : k === 'paired' ? 'pairs' : 'subjects';
+        big = `${nd.toLocaleString('en')} ${per}`;
+        facts = [['Without dropout', `${n.toLocaleString('en')} ${per} (exactly ${sig(nRaw, 5)})`], ['Total', (k === 'two-sample' || k === 'prop' ? 2 * nd : nd).toLocaleString('en')], ['Power with that n', sig(pf(n), 3)], ['Effect', label], ['Method', k === 'prop' ? 'Normal approximation, as R power.prop.test' : 'Exact noncentral t, two-sided, as R power.t.test and G*Power']];
+        if (k !== 'prop' && k !== 'one-sample') facts.push(['Effect size guide', 'Cohen: 0.2 small, 0.5 medium, 0.8 large']);
+        const hi = Math.max(10, Math.ceil(n * 2.5)), xs: number[] = [];
+        for (let i = 0; i <= 80; i++) xs.push(Math.max(k === 'prop' ? 1 : 2, Math.round((hi * i) / 80)));
+        const u = [...new Set(xs)];
+        series = [0.75, 1, 1.25].map((s) => ({ name: s === 1 ? 'As typed' : `Effect × ${s}`, x: u, y: u.map((x) => pf(x, s)), mode: 'line' as const }));
+        xLabel = `Sample size (${per})`; yLabel = 'Power'; marks = [{ kind: 'hline', at: target, label: `power ${target}` }, { kind: 'vline', at: n, label: `n = ${n}` }];
+      }
+      err.hidden = true; q('.ss-out').hidden = false;
+      q('.ss-big').textContent = big;
+      q('.ss-facts').replaceChildren(...facts.map(([kk, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = v; return d; }));
+      fig = chartFigure({ h: 340, xLabel, yLabel, series, marks, yMin: k === 'survey' ? 0 : 0, yMax: k === 'survey' ? undefined : 1 }, k === 'survey' ? 'Margin of error against number of responses' : 'Power curves');
+      paint(q<HTMLCanvasElement>('.ss-fig'), fig);
+      report = [{ title: q<HTMLSelectElement>('.ss-k').selectedOptions[0].textContent!, facts: [['Sample size', big], ...facts], figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ss-out').hidden = true; report = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ss-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Sample size', subtitle: q('.ss-big').textContent ?? '', file: 'sample-size', sections: report }));
+</script>

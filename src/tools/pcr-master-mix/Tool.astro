@@ -1,0 +1,125 @@
+---
+// PCR master mix: stock volumes per reaction and for n reactions plus spare, with a tick-off list.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mm">
+  <div class="ax-card">
+    <h2>Reactions</h2>
+    <div class="ax-grid">
+      <label>Reaction volume (µL) <input class="mm-v" inputmode="decimal" value="50" /></label>
+      <label>Number of reactions <input class="mm-n" inputmode="numeric" value="10" /></label>
+      <label>Spare (%) <input class="mm-s" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">Count your samples plus the controls (no-template and positive). The spare covers liquid lost in tips and tube walls: 10 % is usual, or make one extra reaction.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Components</h2>
+    <div class="mm-comps"></div>
+    <button type="button" class="btn secondary small mm-add" style="margin-top:8px">Add a component</button>
+    <p class="ax-help">The final amount can be a concentration in the reaction, units per reaction (U, for enzymes) or a fixed volume (µL). Untick "In the mix" for anything added to each tube on its own, such as the template DNA. Water makes up the rest.</p>
+  </div>
+
+  <div class="ax-card mm-out">
+    <h2>Master mix</h2>
+    <p class="ax-big mm-big"></p>
+    <div class="ax-scroll"><table class="mm-tab"></table></div>
+    <p class="ax-help mm-sub"></p>
+    <p class="ax-err mm-err" hidden></p>
+    <Downloads label="Print or save" />
+  </div>
+</div>
+
+<style is:global>
+  .mm-row { display: grid; grid-template-columns: minmax(110px, 1.4fr) repeat(2, minmax(70px, 1fr) auto) auto auto; gap: 6px; align-items: end; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .mm-row label { font-size: 13px; }
+  .mm-row select { width: auto !important; padding-left: 4px !important; padding-right: 4px !important; }
+  .mm-row .mm-x { border: 0; background: none; font-size: 20px; color: var(--muted); cursor: pointer; padding: 6px; }
+  @media (max-width: 560px) { .mm-row { grid-template-columns: 1fr auto 1fr auto; } .mm-row .mm-name { grid-column: 1 / -1; } .mm-row .ax-check { grid-column: 1 / 4; } }
+  .mm-tab input { width: 18px; height: 18px; }
+  .mm-tab tr.done td { color: var(--muted); text-decoration: line-through; }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { masterMix, UNITS, type Component } from '../../lib/sci/mastermix';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  // New England Biolabs' standard Taq protocol (M0273), 50 µL.
+  const START: Component[] = [
+    { name: '10X Standard Taq buffer', stock: 10, stockUnit: 'X', final: 1, finalUnit: 'X', inMix: true },
+    { name: 'dNTPs', stock: 10, stockUnit: 'mM', final: 200, finalUnit: 'µM', inMix: true },
+    { name: 'Forward primer', stock: 10, stockUnit: 'µM', final: 0.2, finalUnit: 'µM', inMix: true },
+    { name: 'Reverse primer', stock: 10, stockUnit: 'µM', final: 0.2, finalUnit: 'µM', inMix: true },
+    { name: 'Taq polymerase', stock: 5, stockUnit: 'U/µL', final: 1.25, finalUnit: 'U', inMix: true },
+    { name: 'Template DNA', stock: 0, stockUnit: 'ng/µL', final: 1, finalUnit: 'µL', inMix: false },
+  ];
+  const STOCK_U = Object.keys(UNITS), FINAL_U = [...Object.keys(UNITS).filter((u) => u !== 'U/µL'), 'U', 'µL'];
+  const opts = (list: string[], v: string) => list.map((u) => `<option${u === v ? ' selected' : ''}>${u}</option>`).join('');
+  const box = q('.mm-comps');
+  let report: Section[] = [];
+  const done = new Set<string>();
+
+  function addRow(c: Component) {
+    const d = document.createElement('div');
+    d.className = 'mm-row';
+    d.innerHTML = `<label class="mm-name">Component <input class="c-n" /></label>
+      <label>Stock <input class="c-s" inputmode="decimal" /></label><select class="c-su" aria-label="Stock unit">${opts(STOCK_U, c.stockUnit)}</select>
+      <label>Final <input class="c-f" inputmode="decimal" /></label><select class="c-fu" aria-label="Final unit">${opts(FINAL_U, c.finalUnit)}</select>
+      <label class="ax-check" style="font-size:13px"><input type="checkbox" class="c-m" /> In the mix</label>
+      <button type="button" class="mm-x" aria-label="Remove">×</button>`;
+    (d.querySelector('.c-n') as HTMLInputElement).value = c.name;
+    (d.querySelector('.c-s') as HTMLInputElement).value = c.stock ? String(c.stock) : '';
+    (d.querySelector('.c-f') as HTMLInputElement).value = String(c.final);
+    (d.querySelector('.c-m') as HTMLInputElement).checked = c.inMix;
+    d.querySelector('.mm-x')!.addEventListener('click', () => { d.remove(); calc(); });
+    box.append(d);
+  }
+  const read = (): Component[] => [...box.querySelectorAll<HTMLElement>('.mm-row')].map((d) => {
+    const g = (s: string) => d.querySelector(s) as HTMLInputElement;
+    return { name: g('.c-n').value.trim() || 'Component', stock: num(g('.c-s').value), stockUnit: g('.c-su').value, final: num(g('.c-f').value), finalUnit: g('.c-fu').value, inMix: g('.c-m').checked };
+  });
+
+  function calc() {
+    const err = q('.mm-err'), tb = q<HTMLTableElement>('.mm-tab');
+    const v = num(q<HTMLInputElement>('.mm-v').value), n = Math.round(num(q<HTMLInputElement>('.mm-n').value)), sp = num(q<HTMLInputElement>('.mm-s').value) || 0;
+    let r: ReturnType<typeof masterMix>;
+    try {
+      const comps = read();
+      for (const c of comps) if (!Number.isFinite(c.final) || c.final < 0) throw new Error(`${c.name}: type the final amount.`);
+      r = masterMix(comps, v, n, sp);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; tb.innerHTML = ''; q('.mm-big').textContent = ''; q('.mm-sub').textContent = ''; report = []; return; }
+    err.hidden = true;
+    const f = (x: number) => (Number.isFinite(x) ? sig(+x.toFixed(3), 4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') : '–');
+    const rows = [...r.rows.filter((x) => x.inMix).map((x) => [x.name, f(x.one), f(x.total)]), ['Water (nuclease-free)', f(r.water.one), f(r.water.total)]];
+    const head = ['', 'Add', 'One reaction (µL)', `Mix for ${sig(r.multiplier, 4)} (µL)`];
+    tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= 2) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    rows.forEach((row) => {
+      const tr = body.insertRow(), key = row[0];
+      const cb = Object.assign(document.createElement('input'), { type: 'checkbox', checked: done.has(key) });
+      cb.setAttribute('aria-label', `Added ${key}`);
+      cb.addEventListener('change', () => { cb.checked ? done.add(key) : done.delete(key); tr.classList.toggle('done', cb.checked); });
+      tr.insertCell().append(cb); tr.classList.toggle('done', done.has(key));
+      row.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; });
+    });
+    const tf = tb.createTFoot().insertRow();
+    ['', 'Master mix', f(r.mixPerTube), f(r.mixTotal)].forEach((t, i) => { const td = tf.insertCell(); td.textContent = t; if (i >= 2) td.className = 'r'; td.style.fontWeight = '700'; });
+    const extra = r.rows.filter((x) => !x.inMix);
+    q('.mm-big').textContent = `${f(r.mixTotal)} µL of mix, then ${f(r.mixPerTube)} µL into each of ${n} tubes`;
+    q('.mm-sub').textContent = (extra.length ? `Then add to each tube: ${extra.map((x) => `${f(x.one)} µL ${x.name}`).join(', ')}. ` : '') + 'Add water first and the enzyme last, keep everything on ice, and mix gently. Tick each line as you add it.';
+    report = [{ title: `Master mix for ${n} reactions of ${sig(v, 4)} µL (${sig(sp, 3)} % spare)`, table: { head: head.slice(1), rows: [...rows, ['Master mix', f(r.mixPerTube), f(r.mixTotal)]], align: ['l', 'r', 'r'] }, text: [q('.mm-sub').textContent!] }];
+  }
+
+  START.forEach(addRow);
+  q('.mm-add').addEventListener('click', () => { addRow({ name: '', stock: NaN, stockUnit: 'µM', final: NaN, finalUnit: 'µM', inMix: true }); (box.lastElementChild!.querySelector('.c-n') as HTMLInputElement).focus(); });
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.mm-tab')) return; clearTimeout(t); t = window.setTimeout(calc, 150); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('.mm-tab')) return; calc(); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'PCR master mix', subtitle: q('.mm-big').textContent ?? '', file: 'master-mix', sections: report }));
+</script>

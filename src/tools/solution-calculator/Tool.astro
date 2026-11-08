@@ -1,0 +1,136 @@
+---
+// Solutions and dilutions: weigh out, dilute (C1V1 = C2V2) and plan serial dilutions.
+import '../../styles/astro.css';
+---
+<div class="ax sol">
+  <div class="ax-card sc-make">
+    <h2>Make a solution</h2>
+    <div class="ax-grid">
+      <label>Work out <select class="sc-solve"><option value="mass">Mass to weigh</option><option value="conc">Concentration</option><option value="vol">Volume</option></select></label>
+      <label>Molar mass (g/mol) <input class="sc-mw" inputmode="decimal" value="58.44" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <div class="sc-f" data-k="conc"><label for="sc-c">Concentration</label><span class="sc-pair"><input id="sc-c" class="sc-c" inputmode="decimal" value="0.5" /><select class="sc-cu" aria-label="Concentration unit"></select></span></div>
+      <div class="sc-f" data-k="vol"><label for="sc-v">Final volume</label><span class="sc-pair"><input id="sc-v" class="sc-v" inputmode="decimal" value="250" /><select class="sc-vu" aria-label="Final volume unit"><option>L</option><option selected>mL</option><option>µL</option></select></span></div>
+      <div class="sc-f" data-k="mass"><label for="sc-m">Mass</label><span class="sc-pair"><input id="sc-m" class="sc-m" inputmode="decimal" value="" /><select class="sc-mu" aria-label="Mass unit"><option>kg</option><option selected>g</option><option>mg</option><option>µg</option></select></span></div>
+    </div>
+    <p class="ax-big sc-out" aria-live="polite"></p>
+    <p class="ax-help sc-how"></p>
+    <p class="ax-help">ppm and ppb are mass per volume of a dilute water solution (1 mg/L = 1 ppm). The molar mass is only needed for M, mM, µM and nM. For a hydrate, use the hydrate's molar mass (CuSO₄·5H₂O is 249.69, not 159.61).</p>
+  </div>
+
+  <div class="ax-card sc-dil">
+    <h2>Dilute a stock (C1V1 = C2V2)</h2>
+    <p class="ax-help" style="margin-top:0">Fill in three boxes and leave one empty. Both concentrations use the same unit, and both volumes use the same unit.</p>
+    <div class="ax-grid">
+      <label>Stock concentration C1 <input class="sc-d" data-k="c1" inputmode="decimal" value="10" /></label>
+      <label>Stock volume V1 <input class="sc-d" data-k="v1" inputmode="decimal" value="" placeholder="?" /></label>
+      <label>Final concentration C2 <input class="sc-d" data-k="c2" inputmode="decimal" value="1" /></label>
+      <label>Final volume V2 <input class="sc-d" data-k="v2" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-big sc-dout" aria-live="polite"></p>
+    <p class="ax-err sc-derr" hidden></p>
+  </div>
+
+  <div class="ax-card sc-ser">
+    <h2>Serial dilution</h2>
+    <div class="ax-grid">
+      <label>Stock concentration <input class="sc-s0" inputmode="decimal" value="1000" /></label>
+      <label>Unit (any) <input class="sc-su" value="µg/mL" /></label>
+      <label>Each step dilutes by <select class="sc-sf"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>10</option><option value="other">Other…</option></select></label>
+      <label class="sc-sfo-l" hidden>Factor <input class="sc-sfo" inputmode="decimal" value="2.5" /></label>
+      <label>Tubes <input class="sc-sn" inputmode="numeric" value="6" /></label>
+      <label>Volume left in each tube <span class="sc-pair"><input class="sc-sv" inputmode="decimal" value="900" /><select class="sc-svu"><option>µL</option><option>mL</option></select></span></label>
+    </div>
+    <p class="ax-big sc-sout"></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="sc-tab"></table></div>
+    <p class="ax-err sc-serr" hidden></p>
+    <p class="ax-help">Mix each tube well and change the tip before every transfer. The extra volume taken out of the last tube is thrown away, so every tube ends with the same volume.</p>
+  </div>
+</div>
+
+<style>
+  .sc-pair { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .sc-pair select { width: auto !important; }
+  .sc-f { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .sc-f.is-out input { background: var(--line) !important; }
+</style>
+
+<script>
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+  import { CONC, MASS, VOL, toGperL, fromGperL, c1v1, serial } from '../../lib/sci/solution';
+
+  const root = document.querySelector<HTMLElement>(".sol")!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cu = q<HTMLSelectElement>('.sc-cu');
+  for (const u of Object.keys(CONC)) cu.append(Object.assign(document.createElement('option'), { value: u, textContent: u, selected: u === 'M' }));
+  const fmt = (x: number) => (Math.abs(x) >= 1e5 || (Math.abs(x) < 1e-3 && x !== 0) ? fmtExp(x, 4) : sig(x, 4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''));
+
+  function make() {
+    const solve = q<HTMLSelectElement>('.sc-solve').value, out = q('.sc-out'), how = q('.sc-how');
+    root.querySelectorAll<HTMLElement>('.sc-f').forEach((f) => { const on = f.dataset.k === solve; f.classList.toggle('is-out', on); f.querySelector('input')!.disabled = on; if (on) f.querySelector('input')!.value = ''; });
+    const mw = num(q<HTMLInputElement>('.sc-mw').value);
+    const c = num(q<HTMLInputElement>('.sc-c').value), cUnit = cu.value;
+    const v = num(q<HTMLInputElement>('.sc-v').value) * VOL[q<HTMLSelectElement>('.sc-vu').value];
+    const m = num(q<HTMLInputElement>('.sc-m').value) * MASS[q<HTMLSelectElement>('.sc-mu').value];
+    try {
+      if (solve === 'mass') {
+        if (!(c > 0 && v > 0)) throw new Error('Type the concentration and the volume.');
+        const g = toGperL(c, cUnit, mw) * v, mu = g >= 1 ? 'g' : g >= 1e-3 ? 'mg' : g >= 1e-6 ? 'µg' : 'ng';
+        out.textContent = `Weigh ${fmt(g / MASS[mu])} ${mu}`;
+        how.textContent = `Dissolve it in less than ${fmt(v / VOL[q<HTMLSelectElement>('.sc-vu').value])} ${q<HTMLSelectElement>('.sc-vu').value} of solvent, then top up to exactly that volume (in a volumetric flask for accurate work).`;
+      } else if (solve === 'conc') {
+        if (!(m > 0 && v > 0)) throw new Error('Type the mass and the volume.');
+        const r = fromGperL(m / v, cUnit, mw);
+        out.textContent = `${fmt(r)} ${cUnit}`;
+        how.textContent = CONC[cUnit].molar ? `That is ${fmt(m / v)} g/L.` : mw > 0 ? `That is ${fmt(m / v / mw)} M.` : '';
+      } else {
+        if (!(m > 0 && c > 0)) throw new Error('Type the mass and the concentration.');
+        const L = m / toGperL(c, cUnit, mw), vu = L >= 1 ? 'L' : L >= 1e-3 ? 'mL' : 'µL';
+        out.textContent = `Make up to ${fmt(L / VOL[vu])} ${vu}`;
+        how.textContent = '';
+      }
+    } catch (e) { out.textContent = '–'; how.textContent = (e as Error).message; }
+  }
+
+  function dil() {
+    const v = (k: string) => { const s = q<HTMLInputElement>(`.sc-d[data-k=${k}]`).value.trim(); return s ? num(s) : NaN; };
+    const e = q('.sc-derr'), out = q('.sc-dout');
+    try {
+      const r = c1v1(v('c1'), v('v1'), v('c2'), v('v2'));
+      out.textContent = `Take ${fmt(r.v1)} of stock and add ${fmt(r.diluent)} of diluent`;
+      q('.sc-dout').title = `C1 ${fmt(r.c1)}, V1 ${fmt(r.v1)}, C2 ${fmt(r.c2)}, V2 ${fmt(r.v2)}`;
+      e.hidden = true;
+      if (!Number.isFinite(v('c2'))) out.textContent = `Final concentration ${fmt(r.c2)}`;
+      if (!Number.isFinite(v('c1'))) out.textContent = `You need a stock of ${fmt(r.c1)}`;
+      if (!Number.isFinite(v('v2'))) out.textContent = `Dilute to ${fmt(r.v2)} in total (add ${fmt(r.diluent)} of diluent)`;
+    } catch (err) { out.textContent = ''; e.textContent = (err as Error).message; e.hidden = false; }
+  }
+
+  function ser() {
+    const fSel = q<HTMLSelectElement>('.sc-sf').value;
+    q('.sc-sfo-l').hidden = fSel !== 'other';
+    const f = fSel === 'other' ? num(q<HTMLInputElement>('.sc-sfo').value) : Number(fSel);
+    const unit = q<HTMLInputElement>('.sc-su').value.trim(), vu = q<HTMLSelectElement>('.sc-svu').value, e = q('.sc-serr'), tb = q<HTMLTableElement>('.sc-tab');
+    try {
+      const n = Math.round(num(q<HTMLInputElement>('.sc-sn').value)), s0 = num(q<HTMLInputElement>('.sc-s0').value);
+      if (!(s0 > 0)) throw new Error('Type the stock concentration.');
+      const r = serial(s0, f, n, num(q<HTMLInputElement>('.sc-sv').value));
+      e.hidden = true;
+      q('.sc-sout').textContent = `Put ${fmt(r.diluent)} ${vu} of diluent in each tube, then move ${fmt(r.transfer)} ${vu} along`;
+      tb.innerHTML = '';
+      const hr = tb.createTHead().insertRow();
+      ['Tube', 'From', 'Diluent', `Concentration${unit ? ` (${unit})` : ''}`, 'Dilution'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= 2 && i <= 4) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody();
+      for (const t of r.tubes) {
+        const tr = body.insertRow();
+        [String(t.tube), `${fmt(r.transfer)} ${vu} of ${t.tube === 1 ? 'stock' : `tube ${t.tube - 1}`}`, `${fmt(r.diluent)} ${vu}`, fmt(t.conc), `1 : ${fmt(t.total)}`].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i >= 2) td.className = 'r'; });
+      }
+    } catch (err) { q('.sc-sout').textContent = ''; tb.innerHTML = ''; e.textContent = (err as Error).message; e.hidden = false; }
+  }
+
+  q('.sc-make').addEventListener('input', make); q('.sc-make').addEventListener('change', make);
+  q('.sc-dil').addEventListener('input', dil);
+  q('.sc-ser').addEventListener('input', ser); q('.sc-ser').addEventListener('change', ser);
+  make(); dil(); ser();
+</script>

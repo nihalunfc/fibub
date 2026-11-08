@@ -1,0 +1,169 @@
+---
+// Stereonet: planes and lines on an equal-area or equal-angle net, Fisher mean and a rose diagram.
+import '../../styles/astro.css';
+---
+<div class="ax sn">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <div class="ax-grid">
+      <label>Planes are typed as <select class="sn-pf"><option value="rhr">Strike, dip (right-hand rule)</option><option value="dd">Dip direction, dip</option></select></label>
+      <label>Lines are typed as <select class="sn-lf"><option value="pt">Plunge, trend</option><option value="tp">Trend, plunge</option></select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">
+      <label>Planes (bedding, joints, faults), one per line
+        <textarea class="sn-planes" rows="7" spellcheck="false">030 40
+025 45
+035 38
+028 50
+210 85
+205 80
+215 88
+120 20</textarea></label>
+      <label>Lines (lineations, fold axes), one per line
+        <textarea class="sn-lines" rows="7" spellcheck="false">35 118
+40 125
+30 112</textarea></label>
+    </div>
+    <p class="ax-help">Two numbers per line, separated by a space, comma or slash. Right-hand rule: the plane dips to the right when you face along the strike (dip direction = strike + 90°). Text after # is ignored.</p>
+    <p class="ax-err sn-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Net <select class="sn-net"><option value="equal-area">Equal area (Schmidt)</option><option value="equal-angle">Equal angle (Wulff)</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="sn-gc" checked /> Great circles</label>
+      <label class="ax-check"><input type="checkbox" class="sn-po" checked /> Poles</label>
+      <label class="ax-check"><input type="checkbox" class="sn-grid" checked /> 10° grid</label>
+      <label class="ax-check"><input type="checkbox" class="sn-mean" checked /> Mean pole</label>
+    </div>
+    <div class="sn-paper"><canvas class="sn-fig" role="img" aria-label="Stereonet"></canvas></div>
+    <dl class="ax-facts sn-facts"></dl>
+    <div class="dl"><span class="dl-l">Download</span><button type="button" class="btn secondary" data-f="svg">SVG</button><button type="button" class="btn secondary" data-f="png">PNG</button><button type="button" class="btn secondary sn-csv">Poles (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rose diagram</h2>
+    <div class="ax-grid"><label>Show <select class="sn-rk"><option value="strike">Strikes of the planes</option><option value="dd">Dip directions of the planes</option><option value="trend">Trends of the lines</option></select></label>
+      <label>Petal width <select class="sn-bw"><option>5</option><option selected>10</option><option>15</option><option>20</option><option>30</option></select></label></div>
+    <div class="sn-paper"><canvas class="sn-rose" role="img" aria-label="Rose diagram"></canvas></div>
+    <p class="ax-help">Petal area is in proportion to the count (the radius grows with its square root), so big petals do not look bigger than they are. Strikes are plotted both ways round (a strike of 030 is also 210).</p>
+  </div>
+</div>
+
+<style is:global>
+  .sn-paper { background: #fff; border: 1px solid var(--line); border-radius: 8px; max-width: 520px; margin: 12px auto 0; }
+  .sn-paper canvas { display: block; width: 100%; height: auto; }
+  html.red-mode .sn-paper { background: #000; }
+</style>
+
+<script>
+  import { sig, csv } from '../../lib/sci/num';
+  import { readPairs, pole, project, greatCircle, fisher, roseBins, planeFromPole, line, type Line, type Plane, type Net } from '../../lib/sci/stereonet';
+  import { canvasPainter, svgPainter, type Painter } from '../../lib/sci/plot';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const on = (c: string) => q<HTMLInputElement>(c).checked;
+  const S = 520, C = S / 2, RAD = 220;
+  const pad3 = (a: number) => String(Math.round(((a % 360) + 360) % 360)).padStart(3, '0');
+  let planes: Plane[] = [], lines: Line[] = [];
+
+  function read() {
+    const err: string[] = [];
+    const p = readPairs(q<HTMLTextAreaElement>('.sn-planes').value), l = readPairs(q<HTMLTextAreaElement>('.sn-lines').value);
+    const dd = q<HTMLSelectElement>('.sn-pf').value === 'dd', pt = q<HTMLSelectElement>('.sn-lf').value === 'pt';
+    planes = []; lines = [];
+    p.pairs.forEach(([a, b], i) => { if (b < 0 || b > 90) err.push(`plane ${i + 1}: dip must be 0 to 90`); else planes.push({ strike: dd ? a - 90 : a, dip: b }); });
+    l.pairs.forEach(([a, b], i) => { const [pl, tr] = pt ? [a, b] : [b, a]; if (pl < 0 || pl > 90) err.push(`line ${i + 1}: plunge must be 0 to 90`); else lines.push({ trend: tr, plunge: pl }); });
+    if (p.bad.length) err.push(`planes text, line ${p.bad.join(', ')}: not two numbers`);
+    if (l.bad.length) err.push(`lines text, line ${l.bad.join(', ')}: not two numbers`);
+    const e = q('.sn-err'); e.hidden = !err.length; e.textContent = err.length ? `Skipped: ${err.slice(0, 4).join('; ')}${err.length > 4 ? ` and ${err.length - 4} more` : ''}.` : '';
+  }
+
+  function net(P: Painter, pal: { ink: string; grid: string; c: string[] }) {
+    const N = q<HTMLSelectElement>('.sn-net').value as Net;
+    const xy = ([x, y]: [number, number]): [number, number] => [C + x * RAD, C - y * RAD];
+    if (on('.sn-grid')) {
+      for (let d = 10; d < 90; d += 10) for (const s of [0, 180]) P.line(greatCircle({ strike: s, dip: d }, N, 60).map(xy), pal.grid, 0.8);
+      for (let b = 10; b < 180; b += 10) {
+        if (b === 90) continue;
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= 60; i++) { const f = (i / 60) * Math.PI, br = (b * Math.PI) / 180; pts.push(xy(project(line([Math.cos(br), Math.sin(br) * Math.cos(f), Math.sin(br) * Math.sin(f) + 1e-12]), N))); }
+        P.line(pts, pal.grid, 0.8);
+      }
+      P.line([xy([0, 1]), xy([0, -1])], pal.grid, 0.8); P.line([xy([-1, 0]), xy([1, 0])], pal.grid, 0.8);
+    }
+    P.circle(C, C, RAD, null, pal.ink, 1.4);
+    for (let a = 0; a < 360; a += 10) { const t = (a * Math.PI) / 180, k = a % 90 ? 5 : 9; P.line([[C + Math.sin(t) * RAD, C - Math.cos(t) * RAD], [C + Math.sin(t) * (RAD + k), C - Math.cos(t) * (RAD + k)]], pal.ink, 1); }
+    P.text(C, C - RAD - 12, 'N', 15, pal.ink, 'middle', 'bottom', 0, true);
+    P.line([[C - 5, C], [C + 5, C]], pal.ink, 1); P.line([[C, C - 5], [C, C + 5]], pal.ink, 1);
+    if (on('.sn-gc')) for (const p of planes) P.line(greatCircle(p, N).map(xy), pal.c[0], 1.4);
+    if (on('.sn-po')) for (const p of planes) { const [x, y] = xy(project(pole(p), N)); P.circle(x, y, 4, pal.c[0], '#ffffff', 0.8); }
+    for (const l of lines) { const [x, y] = xy(project(l, N)); P.poly([[x, y - 5.5], [x + 5, y + 3.5], [x - 5, y + 3.5]], pal.c[1], '#ffffff', 0.8); }
+    const f = planes.length >= 2 ? fisher(planes.map(pole)) : null;
+    if (f && on('.sn-mean')) {
+      const [x, y] = xy(project(f.mean, N));
+      P.poly([[x - 7, y - 7], [x + 7, y - 7], [x + 7, y + 7], [x - 7, y + 7]], null, pal.c[2], 2);
+      P.line(greatCircle(planeFromPole(f.mean), N).map(xy), pal.c[2], 1.6, [6, 4]);
+    }
+    // Legend
+    let ly = S - 14;
+    const leg: [string, string][] = [];
+    if (planes.length) leg.push([pal.c[0], `${planes.length} plane${planes.length > 1 ? 's' : ''}`]);
+    if (lines.length) leg.push([pal.c[1], `${lines.length} line${lines.length > 1 ? 's' : ''}`]);
+    if (f && on('.sn-mean')) leg.push([pal.c[2], 'Mean pole']);
+    for (const [c, t] of leg.reverse()) { P.circle(14, ly, 4, c, null); P.text(24, ly, t, 12, pal.ink, 'start', 'middle'); ly -= 18; }
+    P.text(S - 10, S - 14, N === 'equal-area' ? 'Equal area, lower hemisphere' : 'Equal angle, lower hemisphere', 11, pal.ink, 'end', 'middle');
+    return f;
+  }
+
+  function rose(P: Painter, pal: { ink: string; grid: string; c: string[] }) {
+    const kind = q<HTMLSelectElement>('.sn-rk').value, w = Number(q<HTMLSelectElement>('.sn-bw').value);
+    const az = kind === 'strike' ? planes.map((p) => p.strike) : kind === 'dd' ? planes.map((p) => p.strike + 90) : lines.map((l) => l.trend);
+    const bins = roseBins(az, w, kind === 'strike'), max = Math.max(1, ...bins);
+    for (const r of [0.25, 0.5, 0.75, 1]) P.circle(C, C, RAD * Math.sqrt(r), null, pal.grid, 0.8);
+    P.circle(C, C, RAD, null, pal.ink, 1.2);
+    P.text(C, C - RAD - 12, 'N', 15, pal.ink, 'middle', 'bottom', 0, true);
+    bins.forEach((n, i) => {
+      if (!n) return;
+      const r = RAD * Math.sqrt(n / max), a0 = (i * w * Math.PI) / 180, a1 = ((i + 1) * w * Math.PI) / 180, pts: [number, number][] = [[C, C]];
+      for (let k = 0; k <= 8; k++) { const a = a0 + ((a1 - a0) * k) / 8; pts.push([C + Math.sin(a) * r, C - Math.cos(a) * r]); }
+      P.poly(pts, pal.c[0], pal.ink, 0.6);
+    });
+    P.text(S - 10, S - 14, az.length ? `${az.length} values, ${w}° petals, outer ring = ${max}` : 'No data for this choice', 11, pal.ink, 'end', 'middle');
+  }
+
+  const PAL = () => document.documentElement.classList.contains('red-mode') ? { ink: '#a30000', grid: '#2a0000', c: ['#a30000', '#c00000', '#7a0000'] } : { ink: '#000000', grid: '#d9d9d9', c: ['#0072B2', '#D55E00', '#CC3311'] };
+  function paintTo(cv: HTMLCanvasElement, fn: (P: Painter, pal: any) => any) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = S * dpr; cv.height = S * dpr;
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, S, S);
+    return fn(canvasPainter(ctx), PAL());
+  }
+
+  function draw() {
+    read();
+    const f = paintTo(q<HTMLCanvasElement>('.sn-fig'), net);
+    paintTo(q<HTMLCanvasElement>('.sn-rose'), rose);
+    const facts: [string, string, string?][] = [['Data', `${planes.length} planes, ${lines.length} lines`]];
+    if (f) {
+      const mp = planeFromPole(f.mean);
+      facts.push(['Mean pole', `${sig(f.mean.plunge, 3)}° → ${pad3(f.mean.trend)}`, 'plunge → trend'], ['Mean plane', `${pad3(mp.strike)} / ${sig(mp.dip, 3)}`, `strike / dip, right-hand rule; dip direction ${pad3(mp.strike + 90)}`],
+        ['Clustering', `R̄ = ${f.rbar.toFixed(3)}, k = ${Number.isFinite(f.k) ? sig(f.k, 3) : '∞'}`, 'Fisher: R̄ near 1 and a large k mean tightly clustered'], ['95 % cone of confidence', `α95 = ${sig(f.a95, 3)}°`]);
+    }
+    if (lines.length >= 2) { const g = fisher(lines)!; facts.push(['Mean line', `${sig(g.mean.plunge, 3)}° → ${pad3(g.mean.trend)}`, `α95 = ${sig(g.a95, 3)}°`]); }
+    q('.sn-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.dl [data-f]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.f === 'svg') { const P = svgPainter(S, S); P.poly([[0, 0], [S, 0], [S, S], [0, S]], '#ffffff', null); net(P, { ink: '#000000', grid: '#d9d9d9', c: ['#0072B2', '#D55E00', '#CC3311'] }); save(new Blob([P.toString()], { type: 'image/svg+xml' }), 'stereonet.svg', 'image/svg+xml'); }
+    else { const cv = document.createElement('canvas'); cv.width = cv.height = S * 4; const ctx = cv.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.scale(4, 4); net(canvasPainter(ctx), { ink: '#000000', grid: '#d9d9d9', c: ['#0072B2', '#D55E00', '#CC3311'] }); cv.toBlob((bl) => bl && save(bl, 'stereonet.png', 'image/png')); }
+  }));
+  q('.sn-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['strike', 'dip', 'dip_direction', 'pole_trend', 'pole_plunge'], ...planes.map((p) => { const o = pole(p); return [pad3(p.strike), p.dip, pad3(p.strike + 90), pad3(o.trend), +o.plunge.toFixed(2)]; })])), 'poles.csv', 'text/csv'));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(draw, 200); });
+  root.addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  draw();
+</script>

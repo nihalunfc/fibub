@@ -10,6 +10,13 @@ import { parse, variables, compile, splitName } from '../src/lib/sci/expr.ts';
 import { makeMap, traceLine, findMarkers } from '../src/lib/sci/digitize.ts';
 import { pngWithDpi, niceTicks } from '../src/lib/sci/plot.ts';
 
+import { powerT, powerProp, solveN, surveyN } from '../src/lib/sci/power.ts';
+import { pws, air, heatIndexF, humidex, pressureAt } from '../src/lib/sci/psychro.ts';
+import { pole, project, greatCircle, fisher, planeFromPole, roseBins } from '../src/lib/sci/stereonet.ts';
+import { layout, names, order, wellName } from '../src/lib/sci/plate.ts';
+import { c1v1, serial, toGperL, fromGperL } from '../src/lib/sci/solution.ts';
+import { masterMix } from '../src/lib/sci/mastermix.ts';
+
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
   const ok = Number.isFinite(got) && Math.abs(got - want) <= tol;
@@ -122,6 +129,74 @@ check('nice ticks', niceTicks(0, 1.35, 5).join() === '0,0.5,1');
   const out = pngWithDpi(png, 300), dv = new DataView(out.buffer);
   check('pHYs placed', String.fromCharCode(...out.subarray(37, 41)) === 'pHYs' && dv.getUint32(41) === 11811 && out[49] === 1);
   check('pHYs CRC', dv.getUint32(50) === zlib.crc32(out.subarray(37, 50)));
+}
+
+// ---- Power: R power.t.test(delta = .5, power = .8) n = 63.77; power.t.test(n = 64, delta = .5) = 0.8015; power.prop.test(p1 = .5, p2 = .75, power = .9) n = 76.7.
+near('t test n', solveN((n) => powerT(n, 0.5), 0.8), 63.766, 0.002);
+near('t test power', powerT(64, 0.5), 0.80146, 1e-4);
+near('paired power (SciPy nct)', powerT(10, 1, 0.05, 'paired'), 0.80310, 1e-4);
+near('small df power (SciPy nct)', powerT(3, 2), 0.46261, 1e-4);
+near('two proportions n', solveN((n) => powerProp(n, 0.5, 0.75), 0.9, 1), 76.7, 0.05);
+near('survey n', surveyN(0.05), 384.15, 0.01);
+near('survey n, N = 1000', surveyN(0.05, 0.95, 0.5, 1000), 277.7, 0.1);
+
+// ---- Psychrometrics: ASHRAE Fundamentals 2017 ch. 1 (table 3 saturation pressures, example of 40 °C / 20 °C wet bulb).
+near('pws 20 °C', pws(20), 2338.8, 1); near('pws 0 °C', pws(0), 611.2, 0.2); near('pws −10 °C (ice)', pws(-10), 259.9, 0.2);
+{
+  const a = air(40, 101325, { tw: 20 });
+  near('ASHRAE W', a.W, 0.0064, 0.00002); near('ASHRAE h', a.h, 56.7, 0.05); near('ASHRAE RH', a.rh, 0.14, 0.002); near('ASHRAE v', a.v, 0.896, 0.001); near('ASHRAE dew point', a.td, 7.4, 0.1);
+  const b = air(25, 101325, { rh: 0.5 });
+  near('25/50 dew point', b.td, 13.86, 0.02); near('25/50 wet bulb', b.tw, 17.89, 0.02);
+  near('round trip via dew point', air(25, 101325, { td: b.td }).rh, 0.5, 1e-9);
+  near('round trip via wet bulb', air(25, 101325, { tw: b.tw }).rh, 0.5, 1e-6);
+  throws('dew point above air', () => air(20, 101325, { td: 25 }));
+}
+near('NWS heat index 90 °F 70 %', heatIndexF(90, 70), 106, 0.5);
+near('humidex 30 °C, dew point 15', humidex(30, 15), 34, 0.1);
+near('pressure at 1500 m', pressureAt(1500), 84556, 5);
+
+// ---- Stereonet geometry.
+{
+  const p = pole({ strike: 30, dip: 40 });
+  check('pole of 030/40 is 50 → 300', Math.abs(p.trend - 300) < 1e-9 && Math.abs(p.plunge - 50) < 1e-9);
+  const q2 = planeFromPole(p); check('plane from pole', Math.abs(q2.strike - 30) < 1e-9 && Math.abs(q2.dip - 40) < 1e-9);
+  near('equal-angle radius of dip 30', Math.hypot(...greatCircle({ strike: 0, dip: 30 }, 'equal-angle', 2)[1]), Math.tan(Math.PI / 6), 1e-9);
+  near('equal-area horizontal line on the edge', Math.hypot(...project({ trend: 123, plunge: 0 }, 'equal-area')), 1, 1e-12);
+  const f = fisher([[30, 40], [25, 45], [35, 38], [28, 50]].map(([s, d]) => pole({ strike: s, dip: d })));
+  near('Fisher mean trend', f.mean.trend, 299.27, 0.01); near('Fisher α95', f.a95, 6.90, 0.01);
+  const g = fisher([{ trend: 10, plunge: 0 }, { trend: 190, plunge: 0 }]);
+  near('axial: opposite ends are one line', g.rbar, 1, 1e-12);
+  check('rose counts strikes both ways', roseBins([5, 15, 185], 30).join() === '3,0,0,0,0,0,3,0,0,0,0,0');
+}
+
+// ---- Plate layouts.
+{
+  const o = { size: 96, byColumn: false, repsAcross: true, skipEdge: false, skip: new Set() };
+  check('well names', wellName(0, 0) === 'A1' && wellName(31, 47) === 'AF48');
+  check('96 inner wells', order({ ...o, skipEdge: true }).length === 60);
+  check('1536 wells', order({ ...o, size: 1536 }).length === 1536);
+  check('name runs', names('S1-S3, Blank').join() === 'S1,S2,S3,Blank');
+  const r = layout([{ kind: 'sample', names: ['S1', 'S2'], reps: 3 }], o);
+  const at = (n) => r.wells.find((w) => w.name === n).content;
+  check('replicates in a column block', at('A1') === 'S1' && at('B1') === 'S1' && at('C1') === 'S1' && at('A2') === 'S2');
+  const full = layout([{ kind: 'sample', names: names('S1-S40'), reps: 3 }], o);
+  check('a plate too small says so', full.placed < full.needed && full.needed === 120);
+}
+
+// ---- Solutions, dilutions and master mix (NEB Taq M0273 standard 50 µL reaction).
+near('0.5 M NaCl, 250 mL', toGperL(0.5, 'M', 58.44) * 0.25, 7.305, 1e-9);
+near('mg/mL to M', fromGperL(9, 'M', 180.16), 0.049956, 1e-6);
+near('% w/v is g per 100 mL', toGperL(0.9, '% w/v'), 9, 1e-12);
+{ const r = c1v1(10, NaN, 1, 50); near('C1V1 stock volume', r.v1, 5, 1e-12); near('C1V1 diluent', r.diluent, 45, 1e-12); }
+throws('cannot dilute up', () => c1v1(1, NaN, 10, 50));
+{ const s = serial(1000, 10, 6, 900); near('serial transfer', s.transfer, 100, 1e-12); near('serial last tube', s.tubes[5].conc, 0.001, 1e-15); }
+{
+  const C = [{ name: 'Buffer', stock: 10, stockUnit: 'X', final: 1, finalUnit: 'X', inMix: true }, { name: 'dNTPs', stock: 10, stockUnit: 'mM', final: 200, finalUnit: 'µM', inMix: true },
+    { name: 'F', stock: 10, stockUnit: 'µM', final: 0.2, finalUnit: 'µM', inMix: true }, { name: 'R', stock: 10, stockUnit: 'µM', final: 0.2, finalUnit: 'µM', inMix: true },
+    { name: 'Taq', stock: 5, stockUnit: 'U/µL', final: 1.25, finalUnit: 'U', inMix: true }, { name: 'Template', stock: 0, stockUnit: 'ng/µL', final: 1, finalUnit: 'µL', inMix: false }];
+  const m = masterMix(C, 50, 10, 10);
+  near('NEB water per reaction', m.water.one, 40.75, 1e-9); near('mix per tube', m.mixPerTube, 49, 1e-9); near('mix total', m.mixTotal, 539, 1e-9);
+  throws('units that do not match', () => masterMix([{ name: 'x', stock: 10, stockUnit: 'X', final: 1, finalUnit: 'µM', inMix: true }], 50, 1, 0));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
