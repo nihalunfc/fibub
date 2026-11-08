@@ -48,7 +48,7 @@ import Downloads from '../../components/Downloads.astro';
   import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
 
-  const sg = (x: number, d = 3) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-9) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
   const root = document.querySelector<HTMLElement>('.amb')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const val = (c: string) => num(q<HTMLInputElement>(c).value);

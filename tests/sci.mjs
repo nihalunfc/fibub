@@ -130,6 +130,7 @@ import * as ET from '../src/lib/sci/et0.ts';
 import * as RC from '../src/lib/sci/rating.ts';
 import * as AMB from '../src/lib/sci/amband.ts';
 import * as AHE from '../src/lib/sci/ahe.ts';
+import * as SSC from '../src/lib/sci/sscond.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2598,6 +2599,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   { const a = run('nias', [1, -1, 0]).dirs, b = run('nias', [-1, 1, 0]).dirs; check('ahe: −n gives the same allowed directions', a === b); }
   check('ahe: components named', AHE.components([[0, 0, 1]]).join() === 'σxy (Hall vector along z)');
   { const s = AHE.scanSphere(AHE.prepare(cr('rutile')), 12); check('ahe: sphere scan pole is forbidden, most directions allowed', s[0].rank === 0 && s.filter((x) => x.rank === 3).length > s.length / 2); }
+}
+
+// #147 spin splitter conductivity: Boltzmann tensors checked against an independent NumPy calculation (eigvalsh, 400², kT 0.1)
+{
+  const two = { kind: 'two', t1: 1, ta: 0.3, tb: -0.1, J: 0.8, mu: 0.2 }, one = (form, J = 0.3) => ({ kind: 'one', t: 1, tp: 0.2, J, mu: -0.5, form });
+  const ref = { two: [[0.003935, 0, 0.15401], [0.15401, 0, 0.003935]], d: [[0.218053, 0, 0.606105], [0.606105, 0, 0.218053]], dxy: [[0.417628, -0.021293, 0.417628], [0.417628, 0.021293, 0.417628]], g: [[0.42329, 0, 0.42329], [0.42329, 0, 0.42329]] };
+  const res = { two: SSC.tensors(two), d: SSC.tensors(one('dx2y2')), dxy: SSC.tensors(one('dxy')), g: SSC.tensors(one('g')) };
+  for (const k of Object.keys(ref)) ['up', 'dn'].forEach((s, i) => ['xx', 'xy', 'yy'].forEach((c, j) => near(`ssc: ${k} σ${s}_${c}`, res[k][s][c], ref[k][i][j], 2e-6)));
+  const d = res.d, b = SSC.bestAngle(d.up, d.dn);
+  near('ssc: d-wave best field angle 45°', (b.angle * 180) / Math.PI, 45, 0.06);
+  near('ssc: d-wave splitter ratio at 45°', SSC.atAngle(d.up, d.dn, Math.PI / 4).splitter, (0.606105 - 0.218053) / 0.824158, 2e-5);
+  near('ssc: d-wave current along x is spin polarised', SSC.atAngle(d.up, d.dn, 0).polar, (0.218053 - 0.606105) / 0.824158, 2e-5);
+  near('ssc: d-wave no transverse spin current along x', SSC.atAngle(d.up, d.dn, 0).splitter, 0, 1e-9);
+  near('ssc: d-wave no transverse charge current', SSC.atAngle(d.up, d.dn, 0.3).hallLike, 0, 1e-9);
+  near('ssc: dxy best field angle 0°', SSC.bestAngle(res.dxy.up, res.dxy.dn).angle, 0, 1e-9);
+  near('ssc: g-wave has no spin splitter effect', Math.abs(SSC.atAngle(res.g.up, res.g.dn, Math.PI / 4).splitter) + Math.abs(SSC.atAngle(res.g.up, res.g.dn, 0).polar), 0, 1e-9);
+  { const r0 = SSC.tensors(one('dx2y2', 0), 200); near('ssc: J = 0 gives no spin current', SSC.atAngle(r0.up, r0.dn, Math.PI / 4).splitter, 0, 1e-12); }
+  { const rm = SSC.tensors(one('dx2y2', -0.3), 200), rp = SSC.tensors(one('dx2y2', 0.3), 200); near('ssc: reversing J reverses the spin current', SSC.atAngle(rm.up, rm.dn, Math.PI / 4).splitter, -SSC.atAngle(rp.up, rp.dn, Math.PI / 4).splitter, 1e-12); }
+  // Plain antiferromagnet limit (ta = tb): the spins are degenerate, so no spin current at all.
+  { const tw = SSC.tensors({ ...two, ta: 0.2, tb: 0.2 }, 200); near('ssc: ta = tb gives no spin current', Math.abs(SSC.atAngle(tw.up, tw.dn, Math.PI / 4).splitter) + Math.abs(SSC.atAngle(tw.up, tw.dn, 0).polar), 0, 1e-9); }
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
