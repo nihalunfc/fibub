@@ -1,5 +1,14 @@
 [
  {
+  "sha": "f652b3ef28db",
+  "date": "2026-11-08T12:10:07+00:00",
+  "title": "Add the 18-electron rule and oxidation state checker (#107)",
+  "tools": [
+   "electron-count-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "0e0c1102ec79",
   "date": "2026-11-08T12:02:48+00:00",
   "title": "Add the NMR solvent and impurity peak checker (#106)",
