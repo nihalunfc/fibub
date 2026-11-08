@@ -1,5 +1,14 @@
 [
  {
+  "sha": "a370033e11f4",
+  "date": "2026-11-08T11:16:52+00:00",
+  "title": "Add the DSC and TGA curve analyser (#103)",
+  "tools": [
+   "dsc-tga-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "f916447fef7c",
   "date": "2026-11-08T11:06:47+00:00",
   "title": "Add the glass transition (Tg) calculator (#102)",
