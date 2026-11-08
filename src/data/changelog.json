@@ -1,5 +1,14 @@
 [
  {
+  "sha": "3fb13a3d773f",
+  "date": "2026-11-08T15:27:11+00:00",
+  "title": "Add the molecular point group finder (#110)",
+  "tools": [
+   "point-group-finder"
+  ],
+  "site": false
+ },
+ {
   "sha": "24be9e68accd",
   "date": "2026-11-08T15:11:27+00:00",
   "title": "Add the IR spectrum band finder (#109)",
