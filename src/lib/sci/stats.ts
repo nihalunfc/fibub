@@ -112,3 +112,22 @@ export function quantileSorted(s: ArrayLike<number>, p: number) {
   const h = (n - 1) * p, i = Math.floor(h);
   return i + 1 < n ? s[i] + (h - i) * (s[i + 1] - s[i]) : s[n - 1];
 }
+
+/** F distribution P(F <= x) with d1 and d2 degrees of freedom. */
+export function fCdf(x: number, d1: number, d2: number): number {
+  if (!(x > 0)) return 0;
+  return ibeta((d1 * x) / (d1 * x + d2), d1 / 2, d2 / 2);
+}
+/** Quantile of the F distribution, by bisection on log x. */
+export function fInv(p: number, d1: number, d2: number): number {
+  if (!(d1 > 0 && d2 > 0) || !(p > 0 && p < 1)) return NaN;
+  let lo = 1e-12, hi = 1;
+  while (fCdf(hi, d1, d2) < p && hi < 1e12) hi *= 2;
+  for (let i = 0; i < 200 && hi / lo > 1 + 1e-13; i++) {
+    const mid = Math.sqrt(lo * hi);
+    if (fCdf(mid, d1, d2) < p) lo = mid; else hi = mid;
+  }
+  return Math.sqrt(lo * hi);
+}
+/** Upper tail P(F > x). */
+export const fSf = (x: number, d1: number, d2: number) => (x > 0 ? ibeta(d2 / (d2 + d1 * x), d2 / 2, d1 / 2) : 1);

@@ -1,0 +1,164 @@
+---
+// CSV profiler and SQL playground: SQLite (WebAssembly) in a worker. Files never leave the device.
+import '../../styles/astro.css';
+---
+<div class="ax sqp">
+  <div class="ax-card">
+    <h2>1. Open your data</h2>
+    <label class="sqp-drop">
+      <input type="file" class="sqp-file" accept=".csv,.tsv,.txt,.xlsx" multiple />
+      <b>Choose CSV, TSV or Excel files</b> or drop them here. Each becomes a table.
+    </label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sqp-sample">Try it with sample data (penguins)</button></div>
+    <p class="ax-err sqp-err" hidden></p>
+    <div class="sqp-tables"></div>
+  </div>
+
+  <div class="ax-card sqp-q" hidden>
+    <h2>2. Ask a question in SQL</h2>
+    <textarea class="sqp-sql" rows="6" spellcheck="false" aria-label="SQL query"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small sqp-run">Run (Ctrl+Enter)</button>
+      <button type="button" class="btn secondary small sqp-stop" hidden>Stop</button>
+      <span class="ax-help sqp-info" style="margin:0"></span>
+    </div>
+    <p class="ax-err sqp-qerr" hidden></p>
+    <div class="ax-scroll sqp-res"><table class="sqp-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sqp-csv" disabled>Download result (CSV)</button>
+      <button type="button" class="btn secondary small sqp-copy" disabled>Copy result (for Excel)</button>
+    </div>
+    <details class="sqp-help"><summary>SQL in one minute</summary>
+      <p><code>SELECT species, COUNT(*) AS n, AVG(body_mass_g) FROM penguins GROUP BY species ORDER BY n DESC</code> counts and averages per group. <code>WHERE island = 'Dream'</code> filters rows. <code>JOIN other ON penguins.id = other.id</code> combines two files. Text goes in single quotes; column names with spaces go in double quotes: <code>"body mass"</code>. This is SQLite: <a href="https://www.sqlite.org/lang.html" rel="noopener">its manual</a> lists every function.</p>
+    </details>
+  </div>
+</div>
+
+<style is:global>
+  .sqp-drop { display: block; padding: 24px 16px; border: 2px dashed var(--line); border-radius: 12px; text-align: center; cursor: pointer; color: var(--muted) !important; }
+  .sqp-drop b { color: var(--ink); }
+  .sqp-drop.over { border-color: var(--ink); }
+  .sqp-drop input { display: block; margin: 0 auto 10px; }
+  .sqp-t { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .sqp-t h3 { margin: 0 0 4px; font-size: 17px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .sqp-t h3 code { font-size: 16px; }
+  .sqp-t h3 small { font-weight: 400; color: var(--muted); font-size: 14px; }
+  .sqp-t h3 button { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 14px; text-decoration: underline; }
+  .sqp textarea.sqp-sql { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
+  .sqp-res { max-height: 480px; margin-top: 10px; }
+  .sqp-t td, .sqp-t th { white-space: nowrap; }
+  .sqp-tab td, .sqp-tab th { white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  .sqp-tab td.null { color: var(--muted); font-style: italic; }
+  .sqp-help { margin-top: 12px; } .sqp-help summary { cursor: pointer; font-weight: 600; }
+  .sqp-help code { font-size: 13px; }
+</style>
+
+<script>
+  import { parseCsv, toCsv, xlsxToTables } from '../../lib/convert/table';
+  import { profile, cell, tableName, columnNames, type ColProfile } from '../../lib/sci/profile';
+  import { sig } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sqp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAX = 150 * 1024 * 1024, SHOW = 1000;
+  const tables = new Map<string, { file: string; rows: number; cols: ColProfile[]; data: (string | number | null)[][] }>();
+  let worker: Worker | null = null, seq = 0, result: { columns: string[]; values: unknown[][] } | null = null;
+  const pending = new Map<number, (m: any) => void>();
+
+  function start() {
+    worker = new Worker(new URL('../../lib/sci/sqlworker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e) => { pending.get(e.data.id)?.(e.data); pending.delete(e.data.id); };
+  }
+  const call = (msg: object) => new Promise<any>((res) => { if (!worker) start(); const id = ++seq; pending.set(id, res); worker!.postMessage({ ...msg, id }); });
+  const err = (m: string) => { const e = q('.sqp-err'); e.textContent = m; e.hidden = !m; };
+
+  async function addTable(file: string, t: string[][]) {
+    const body = t.slice(1).filter((r) => r.some((v) => v.trim() !== ''));
+    if (!t.length || !t[0].length) throw new Error(`${file}: no columns found`);
+    const head = columnNames(t[0]), cols = profile(head, body);
+    const name = tableName(file, new Set(tables.keys()));
+    const data = body.map((row) => cols.map((c, j) => cell(row[j], c.type)));
+    const r = await call({ type: 'load', name, cols: cols.map((c) => ({ name: c.name, type: c.type })), rows: data });
+    if (!r.ok) throw new Error(`${file}: ${r.error}`);
+    tables.set(name, { file, rows: body.length, cols, data });
+  }
+
+  function drawTables() {
+    const box = q('.sqp-tables');
+    box.replaceChildren(...[...tables].map(([name, t]) => {
+      const d = document.createElement('div'); d.className = 'sqp-t';
+      d.innerHTML = `<h3><code></code><small></small><button type="button">Remove</button></h3><div class="ax-scroll"><table><thead><tr><th>Column</th><th>Type</th><th class="r">Filled</th><th class="r">Missing</th><th class="r">Distinct</th><th class="r">Min</th><th class="r">Max</th><th class="r">Mean</th><th>Most common</th></tr></thead><tbody></tbody></table></div>`;
+      d.querySelector('code')!.textContent = name;
+      d.querySelector('small')!.textContent = `${t.rows.toLocaleString('en')} rows, ${t.cols.length} columns, from ${t.file}`;
+      d.querySelector('h3 button')!.addEventListener('click', async () => { await call({ type: 'drop', name }); tables.delete(name); drawTables(); });
+      const tb = d.querySelector('tbody')!;
+      for (const c of t.cols) {
+        const tr = tb.insertRow();
+        const f = (v: number | string | undefined) => (v == null ? '–' : typeof v === 'number' ? sig(v, 5) : v.length > 24 ? v.slice(0, 24) + '…' : v);
+        [c.name, c.type === 'TEXT' ? 'text' : c.type === 'INTEGER' ? 'whole number' : 'number', c.count.toLocaleString('en'), c.missing ? c.missing.toLocaleString('en') : '0', c.distinct.toLocaleString('en'), f(c.min), f(c.max), c.mean == null ? '–' : sig(c.mean, 5), c.top.map(([v, n]) => `${v.length > 18 ? v.slice(0, 18) + '…' : v} (${n})`).join(', ')]
+          .forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i >= 2 && i <= 7) td.className = 'r'; });
+      }
+      return d;
+    }));
+    q('.sqp-q').hidden = !tables.size;
+    const sql = q<HTMLTextAreaElement>('.sqp-sql');
+    if (tables.size && (!sql.value.trim() || sql.dataset.auto === '1')) {
+      const [name, t] = [...tables][0], cat = t.cols.find((c) => c.type === 'TEXT' && c.distinct > 1 && c.distinct <= 50), num = t.cols.find((c) => c.type !== 'TEXT');
+      sql.value = cat && num ? `SELECT ${qi(cat.name)}, COUNT(*) AS n, ROUND(AVG(${qi(num.name)}), 2) AS mean_${num.name.replace(/\W+/g, '_')}\nFROM ${name}\nGROUP BY ${qi(cat.name)}\nORDER BY n DESC;` : `SELECT *\nFROM ${name}\nLIMIT 100;`;
+      sql.dataset.auto = '1';
+    }
+  }
+  const qi = (s: string) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(s) ? s : `"${s.replace(/"/g, '""')}"`);
+
+  async function open(files: File[]) {
+    err('');
+    for (const f of files) {
+      try {
+        if (f.size > MAX) throw new Error(`${f.name} is over 150 MB. Split it or filter it first.`);
+        if (/\.xlsx$/i.test(f.name)) { for (const s of xlsxToTables(new Uint8Array(await f.arrayBuffer()))) await addTable(`${f.name.replace(/\.xlsx$/i, '')}_${s.name}`, s.table); }
+        else await addTable(f.name, parseCsv(await f.text()));
+      } catch (e) { err((e as Error).message); }
+    }
+    drawTables();
+  }
+  q<HTMLInputElement>('.sqp-file').addEventListener('change', (e) => { const fs = [...((e.target as HTMLInputElement).files ?? [])]; if (fs.length) open(fs); (e.target as HTMLInputElement).value = ''; });
+  const drop = q('.sqp-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const fs = [...(e.dataTransfer?.files ?? [])]; if (fs.length) open(fs); });
+  q('.sqp-sample').addEventListener('click', async () => { const text = (await import('../../data/penguins.csv?raw')).default; await addTable('penguins.csv', parseCsv(text)); drawTables(); });
+
+  async function run() {
+    const sql = q<HTMLTextAreaElement>('.sqp-sql').value.trim(); if (!sql) return;
+    const qe = q('.sqp-qerr'); qe.hidden = true;
+    q('.sqp-stop').hidden = false; q<HTMLButtonElement>('.sqp-run').disabled = true; q('.sqp-info').textContent = 'Running…';
+    const r = await call({ type: 'exec', sql });
+    q('.sqp-stop').hidden = true; q<HTMLButtonElement>('.sqp-run').disabled = false;
+    if (r.stopped) return;
+    if (!r.ok) { qe.textContent = r.error; qe.hidden = false; q('.sqp-info').textContent = ''; return; }
+    result = { columns: r.columns, values: r.values };
+    const tb = q<HTMLTableElement>('.sqp-tab'); tb.innerHTML = '';
+    if (r.columns.length) {
+      const hr = tb.createTHead().insertRow(); r.columns.forEach((c: string, j: number) => { const th = document.createElement('th'); th.textContent = c; if (r.values.length && r.values.every((row: unknown[]) => row[j] == null || typeof row[j] === 'number')) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody();
+      for (const row of r.values.slice(0, SHOW)) { const tr = body.insertRow(); row.forEach((v: unknown) => { const td = tr.insertCell(); if (v == null) { td.textContent = 'null'; td.className = 'null'; } else { td.textContent = typeof v === 'number' ? String(+v.toPrecision(12)) : String(v); if (typeof v === 'number') td.className = 'r'; } }); }
+    }
+    const n = r.values.length;
+    q('.sqp-info').textContent = r.columns.length ? `${n.toLocaleString('en')} row${n === 1 ? '' : 's'}${n > SHOW ? ` (showing the first ${SHOW}; the download has all)` : ''} in ${sig(r.ms, 2)} ms` : `Done in ${sig(r.ms, 2)} ms, ${r.changes} row${r.changes === 1 ? '' : 's'} changed`;
+    q<HTMLButtonElement>('.sqp-csv').disabled = q<HTMLButtonElement>('.sqp-copy').disabled = !r.columns.length;
+  }
+  q('.sqp-run').addEventListener('click', run);
+  q('.sqp-sql').addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); } });
+  q('.sqp-sql').addEventListener('input', () => (q<HTMLTextAreaElement>('.sqp-sql').dataset.auto = '0'));
+  q('.sqp-stop').addEventListener('click', async () => {
+    // SQLite cannot be interrupted mid-query from outside: end the worker, then load the tables into a fresh one.
+    worker?.terminate(); worker = null; pending.forEach((res) => res({ stopped: true })); pending.clear();
+    q('.sqp-stop').hidden = true; q('.sqp-info').textContent = 'Stopped. Reloading your tables…';
+    for (const [name, t] of tables) await call({ type: 'load', name, cols: t.cols.map((c) => ({ name: c.name, type: c.type })), rows: t.data });
+    q<HTMLButtonElement>('.sqp-run').disabled = false; q('.sqp-info').textContent = 'Stopped. Your tables are ready again.';
+  });
+  const textResult = (sep: string) => result ? (sep === ',' ? toCsv([result.columns, ...result.values.map((r) => r.map((v) => (v == null ? '' : String(v))))]) : [result.columns, ...result.values.map((r) => r.map((v) => (v == null ? '' : String(v))))].map((r) => r.join('\t')).join('\n')) : '';
+  q('.sqp-csv').addEventListener('click', () => save(new TextEncoder().encode(textResult(',')), 'query-result.csv', 'text/csv'));
+  q('.sqp-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(textResult('\t')); q('.sqp-copy').textContent = 'Copied'; setTimeout(() => (q('.sqp-copy').textContent = 'Copy result (for Excel)'), 1500); } catch { /* clipboard blocked */ } });
+</script>

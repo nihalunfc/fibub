@@ -1,0 +1,128 @@
+---
+// Cosmology calculator: ages, lookback time and distances for a redshift and a chosen cosmology.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cz">
+  <div class="ax-card">
+    <h2>Redshift and cosmology</h2>
+    <div class="ax-grid">
+      <label>Redshift z <input class="cz-z" inputmode="decimal" value="3" /></label>
+      <label>Cosmology <select class="cz-pre">
+        <option value="planck18" selected>Planck 2018 (flat)</option>
+        <option value="wmap9">WMAP 9-year (flat)</option>
+        <option value="round">H0 = 70, Ωm = 0.3 (flat)</option>
+        <option value="custom">My own values</option>
+      </select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>H0 (km/s/Mpc) <input class="cz-h0" inputmode="decimal" value="67.66" /></label>
+      <label>Ωm (matter) <input class="cz-om" inputmode="decimal" value="0.3111" /></label>
+      <div class="cz-olw"><label for="cz-ol">ΩΛ (dark energy)</label><input id="cz-ol" class="cz-ol" inputmode="decimal" value="" disabled /></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="cz-flat" checked /> Flat universe (ΩΛ = 1 − Ωm − Ωr)</label>
+      <label class="ax-check"><input type="checkbox" class="cz-rad" checked /> Include radiation</label>
+    </div>
+    <p class="ax-help cz-note"></p>
+    <p class="ax-err cz-err" hidden></p>
+  </div>
+
+  <div class="ax-card cz-out" hidden>
+    <h2>At this redshift</h2>
+    <p class="ax-big cz-big"></p>
+    <dl class="ax-facts cz-facts"></dl>
+    <canvas class="ax-fig cz-fig" style="margin-top:14px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cz .cz-olw { display: grid; gap: 6px; }
+  .cz .cz-olw label { font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { cosmology, omegaR, presets } from '../../lib/sci/cosmo';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let fig: Figure | null = null, report: Section[] = [];
+  const gyr = (x: number) => `${x.toFixed(x < 1 ? 4 : 3)} Gyr`;
+  const mpc = (x: number) => `${Math.round(x).toLocaleString('en')} Mpc (${sig(x * 3.26156e-3, 4)} billion light years)`;
+
+  function params() {
+    const H0 = num(inp('.cz-h0').value), Om = num(inp('.cz-om').value);
+    if (!(H0 > 0 && H0 < 1000)) throw new Error('Type a Hubble constant H0 in km/s/Mpc, such as 70.');
+    if (!(Om >= 0 && Om <= 5)) throw new Error('Ωm is the matter density as a fraction, such as 0.3.');
+    const Or = inp('.cz-rad').checked ? omegaR(H0) : 0;
+    let OL: number;
+    if (inp('.cz-flat').checked) { OL = 1 - Om - Or; inp('.cz-ol').value = OL.toFixed(4); }
+    else { OL = num(inp('.cz-ol').value); if (!Number.isFinite(OL)) throw new Error('Type ΩΛ, or tick "Flat universe".'); }
+    return { H0, Om, OL, Or };
+  }
+
+  function calc() {
+    const err = q('.cz-err');
+    try {
+      const c = params(), z = num(inp('.cz-z').value);
+      if (!(z >= 0)) throw new Error('Type a redshift of 0 or more, such as 0.5 or 3.');
+      if (z > 1e5) throw new Error('Redshifts above 100,000 are before the hot Big Bang ended; this calculator stops there.');
+      const r = cosmology(c, z);
+      err.hidden = true; q('.cz-out').hidden = false;
+      q('.cz-big').textContent = z > 0 ? `Light left ${gyr(r.lookback).replace(' Gyr', ' billion years')} ago` : `The universe is ${gyr(r.age0).replace(' Gyr', ' billion years')} old`;
+      const facts: [string, string, string?][] = [
+        ['Age of the universe now', gyr(r.age0)],
+        ['Age at redshift z', gyr(r.ageZ)],
+        ['Lookback (light travel) time', gyr(r.lookback)],
+        ['Comoving distance (line of sight)', mpc(r.dc), 'how far away the object is now'],
+        ...(Math.abs(r.Ok) > 1e-9 ? [['Transverse comoving distance', mpc(r.dm)] as [string, string]] : []),
+        ['Angular diameter distance', mpc(r.da), 'turns angle into physical size'],
+        ['Luminosity distance', mpc(r.dl), 'turns flux into luminosity'],
+        ['Scale', `${sig(r.kpcPerArcsec, 4)} kpc per arcsecond`],
+        ...(z > 0 ? [['Distance modulus', `${r.distMod.toFixed(3)} mag`] as [string, string]] : []),
+        ['Comoving volume to z', `${sig(r.vcGpc3, 4)} Gpc³`],
+        ['Hubble rate H(z)', `${sig(r.Hz, 5)} km/s/Mpc`],
+        ['CMB temperature then', `${sig(r.T, 5)} K`],
+        ['Recession velocity', `${Math.round(r.vCz).toLocaleString('en')} km/s as cz; ${Math.round(r.vRel).toLocaleString('en')} km/s as a special-relativity Doppler shift`, 'only cz is meaningful at small z'],
+        ['Densities', `Ωm ${c.Om.toFixed(4)}, ΩΛ ${c.OL.toFixed(4)}, Ωr ${c.Or.toExponential(2)}, Ωk ${Math.abs(r.Ok) < 1e-9 ? '0' : r.Ok.toFixed(4)}`],
+      ];
+      q('.cz-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      // Distances against redshift, on a log axis from z = 0.01 to past the chosen z.
+      const zMax = Math.max(10, z * 1.5), xs: number[] = [];
+      for (let i = 0; i <= 80; i++) xs.push(10 ** (-2 + (Math.log10(zMax) + 2) * (i / 80)));
+      const rs = xs.map((x) => cosmology(c, x));
+      fig = chartFigure({ h: 340, xLog: true, yLog: true, xLabel: 'Redshift z', yLabel: 'Distance (Mpc)', series: [
+        { name: 'Luminosity', x: xs, y: rs.map((v) => v.dl), mode: 'line' },
+        { name: 'Comoving', x: xs, y: rs.map((v) => v.dm), mode: 'line' },
+        { name: 'Angular diameter', x: xs, y: rs.map((v) => v.da), mode: 'line' },
+      ], marks: z > 0 ? [{ kind: 'vline', at: z, label: `z = ${sig(z, 4)}` }] : [] }, 'Cosmological distances against redshift');
+      paint(q<HTMLCanvasElement>('.cz-fig'), fig);
+      report = [{ title: `Redshift z = ${sig(z, 6)}`, facts: [['Cosmology', `H0 = ${c.H0}, Ωm = ${c.Om}, ΩΛ = ${c.OL.toFixed(4)}${c.Or ? `, Ωr = ${c.Or.toExponential(2)}` : ''}`], ...facts.map(([k, v]) => [k, v] as [string, string])] }, { title: 'Distances against redshift', figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.cz-out').hidden = true; report = []; }
+  }
+
+  function preset() {
+    const p = presets[q<HTMLSelectElement>('.cz-pre').value];
+    if (p) { inp('.cz-h0').value = String(p.H0); inp('.cz-om').value = String(p.Om); inp('.cz-flat').checked = true; }
+    q('.cz-note').textContent = p ? `${p.name}: ${p.note}.` : 'Your own values. Untick "Flat universe" to set ΩΛ freely; then Ωk = 1 − Ωm − ΩΛ − Ωr.';
+    sync(); calc();
+  }
+  function sync() { inp('.cz-ol').disabled = inp('.cz-flat').checked; }
+  q('.cz-pre').addEventListener('change', preset);
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.matches('.cz-h0, .cz-om, .cz-ol')) q<HTMLSelectElement>('.cz-pre').value = 'custom';
+    if (t.matches('.cz-flat')) { q<HTMLSelectElement>('.cz-pre').value = 'custom'; sync(); }
+    if (t.matches('.cz-h0, .cz-om, .cz-ol, .cz-flat')) q('.cz-note').textContent = 'Your own values. Untick "Flat universe" to set ΩΛ freely; then Ωk = 1 − Ωm − ΩΛ − Ωr.';
+    calc();
+  });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('input[type=checkbox]')) { sync(); calc(); } });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.cz-fig'), fig));
+  preset();
+  wireDownloads(q('.dl'), () => ({ title: 'Cosmology calculator', file: 'cosmology', sections: report }));
+</script>

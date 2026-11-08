@@ -1,0 +1,137 @@
+---
+// Dark-sky calendar: a year of nights at a glance, with hours of true darkness and Moon-free dark time.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dk">
+  <SkyPlace date={false} />
+  <div class="ax-card">
+    <div class="dk-nav">
+      <button type="button" class="btn secondary small dk-prev" aria-label="Previous year">‹</button>
+      <h2 class="dk-title" aria-live="polite"></h2>
+      <button type="button" class="btn secondary small dk-next" aria-label="Next year">›</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>The Moon spoils the dark when it is <select class="dk-moon"><option value="0" selected>above the horizon</option><option value="0.1">up and over 10 % lit</option><option value="0.25">up and over 25 % lit</option></select></label>
+    </div>
+    <p class="ax-help dk-status" aria-live="polite"></p>
+    <canvas class="ax-fig dk-fig"></canvas>
+    <p class="ax-help">Each row is one night, January at the top. Time runs left to right in local solar time, so midnight is when the Sun is lowest, whatever the clocks say. Black is true darkness with no Moon: the time for faint galaxies and nebulae.</p>
+  </div>
+  <div class="ax-card dk-out" hidden>
+    <h2>Month by month</h2>
+    <p class="ax-big dk-big"></p>
+    <div class="ax-scroll"><table class="dk-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dk-csv">Every night (CSV)</button><span class="ax-help dk-tz"></span></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dk-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .dk-nav h2 { margin: 0; font-size: 19px; text-align: center; }
+  .dk .dk-tab td, .dk .dk-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { darkNight, yearDates, SLOTS, STEP_MIN, STATE_NAMES, type DarkNight } from '../../lib/astro/darkness';
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { localTime, localDate, tzLabel } from '../../lib/astro/place';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let year = new Date().getFullYear();
+  const qy = new URLSearchParams(location.search).get('year');
+  if (qy && /^\d{4}$/.test(qy)) year = Number(qy);
+  let nights: DarkNight[] = [], fig: Figure | null = null, run = 0, report: Section[] = [];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function colours(p: Palette) {
+    if (p.red) return ['#300000', '#1e0000', '#140000', '#0c0000', '#5a0000', '#000000'];
+    if (p.bg !== '#ffffff') return ['#3a3a3a', '#30343d', '#232733', '#171a24', '#6b5d2a', '#000000'];
+    return ['#f1f1f1', '#cdd2db', '#9aa1b0', '#5e6678', '#d8c27a', '#0b0f19'];
+  }
+  const fmtH = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')} min`.replace(' h 60 min', ' h 59 min');
+
+  function figure(): Figure {
+    let lo = SLOTS, hi = 0;
+    for (const n of nights) for (let i = 0; i < SLOTS; i++) if (n.states[i]) { if (i < lo) lo = i; if (i > hi) hi = i; }
+    if (lo > hi) { lo = 0; hi = SLOTS - 1; }
+    lo = Math.max(0, lo - 3); hi = Math.min(SLOTS - 1, hi + 3);
+    const rowH = 1.2, top = 26, left = 36, plotH = nights.length * rowH;
+    return {
+      w: 480, h: top + plotH + 78, alt: `Darkness and Moon through every night of ${year}`,
+      draw(ctx, w, _h, pal) {
+        const col = colours(pal), cw = (w - left - 8) / (hi - lo + 1);
+        nights.forEach((n, r) => { for (let i = lo; i <= hi; i++) { ctx.fillStyle = col[n.states[i]]; ctx.fillRect(left + (i - lo) * cw, top + r * rowH, cw + 0.6, rowH + 0.6); } });
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(left, top, (hi - lo + 1) * cw, plotH);
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        // Hour labels: slot i covers local solar time 12:00 + i × step.
+        for (let i = lo; i <= hi + 1; i++) { const mins = 12 * 60 + i * STEP_MIN; if (mins % 120) continue; const x = left + (i - lo) * cw; if (x > w - 18) continue; ctx.fillText(`${String((mins / 60) % 24).padStart(2, '0')}:00`, x, top - 6); ctx.fillStyle = pal.line; ctx.fillRect(x, top - 4, 1, 4); ctx.fillStyle = pal.muted; }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        nights.forEach((n, r) => { if (n.date.endsWith('-01')) { const y0 = top + r * rowH; ctx.fillText(MONTHS[Number(n.date.slice(5, 7)) - 1], left - 6, y0 + 15 * rowH); ctx.fillStyle = pal.line; ctx.fillRect(left - 4, y0, 4, 1); ctx.fillStyle = pal.muted; } });
+        // Legend.
+        ctx.textAlign = 'left'; let x = left, y = top + plotH + 22;
+        STATE_NAMES.forEach((name, k) => { const tw = ctx.measureText(name).width + 30; if (x + tw > w - 8) { x = left; y += 22; } ctx.fillStyle = col[k]; ctx.fillRect(x, y - 7, 14, 14); ctx.strokeStyle = pal.line; ctx.strokeRect(x + 0.5, y - 6.5, 13, 13); ctx.fillStyle = pal.ink; ctx.fillText(name, x + 20, y); x += tw; });
+      },
+    };
+  }
+
+  function summary() {
+    const { place } = getSky(), tz = place.tz;
+    const rows: string[][] = [];
+    let tDark = 0, tFree = 0;
+    for (let m = 1; m <= 12; m++) {
+      const ns = nights.filter((n) => Number(n.date.slice(5, 7)) === m);
+      const dark = ns.reduce((s, n) => s + n.darkH, 0), free = ns.reduce((s, n) => s + n.moonFreeH, 0);
+      tDark += dark; tFree += free;
+      const best = ns.reduce((a, b) => (b.moonFreeH > a.moonFreeH ? b : a), ns[0]);
+      const good = ns.filter((n) => n.moonFreeH >= 4).length;
+      rows.push([MONTHS[m - 1], `${Math.round(dark)} h`, `${Math.round(free)} h`, String(good), best && best.moonFreeH > 0 ? `${Number(best.date.slice(8))} ${MONTHS[m - 1]} (${fmtH(best.moonFreeH)})` : '–']);
+    }
+    q('.dk-big').textContent = tFree > 0 ? `${Math.round(tFree).toLocaleString('en')} hours of Moon-free darkness in ${year}` : `No true darkness at this latitude in ${year}`;
+    const head = ['Month', 'Dark', 'Moon-free dark', 'Nights with 4 h+', 'Best night'];
+    const t = q<HTMLTableElement>('.dk-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i && i < 4) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i && i < 4) td.className = 'r'; }); });
+    const tot = b.insertRow(); ['Year', `${Math.round(tDark).toLocaleString('en')} h`, `${Math.round(tFree).toLocaleString('en')} h`, String(nights.filter((n) => n.moonFreeH >= 4).length), ''].forEach((x, i) => { const td = tot.insertCell(); td.textContent = x; td.style.fontWeight = '650'; if (i && i < 4) td.className = 'r'; });
+    q('.dk-tz').textContent = `CSV times in ${tz.replace(/_/g, ' ')} (${tzLabel(tz, new Date(Date.UTC(year, 6, 1)))}).`;
+    report = [{ title: `${place.name}, ${year}`, text: [q('.dk-big').textContent!], figure: fig! }, { title: 'Month by month', table: { head, rows, align: ['l', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  function compute() {
+    const id = ++run, { place } = getSky(), minIllum = Number(q<HTMLSelectElement>('.dk-moon').value);
+    q('.dk-title').textContent = String(year);
+    const dates = yearDates(year), out: DarkNight[] = [];
+    q('.dk-status').textContent = 'Working out every night…';
+    const step = () => {
+      if (id !== run) return;
+      const t0 = performance.now();
+      while (out.length < dates.length && performance.now() - t0 < 30) out.push(darkNight(place, dates[out.length], minIllum));
+      if (out.length < dates.length) { q('.dk-status').textContent = `Working out every night… ${Math.round((out.length / dates.length) * 100)} %`; setTimeout(step, 0); return; }
+      nights = out; fig = figure();
+      paint(q<HTMLCanvasElement>('.dk-fig'), fig);
+      q('.dk-status').textContent = `${place.name} (${place.lat.toFixed(2)}°, ${place.lon.toFixed(2)}°). Dark means the Sun more than 18° below the horizon.`;
+      q('.dk-out').hidden = false;
+      summary();
+    };
+    step();
+  }
+
+  q('.dk-prev').addEventListener('click', () => { year--; compute(); });
+  q('.dk-next').addEventListener('click', () => { year++; compute(); });
+  q('.dk-moon').addEventListener('change', compute);
+  q('.dk-csv').addEventListener('click', () => {
+    const tz = getSky().place.tz, t = (d: Date | null) => (d ? `${localDate(d, tz)} ${localTime(d, tz)}` : '');
+    const rows: (string | number)[][] = [['evening', 'astronomical_dusk', 'astronomical_dawn', 'dark_hours', 'moon_free_dark_hours', 'moon_lit_percent']];
+    for (const n of nights) rows.push([n.date, t(n.dusk), t(n.dawn), n.darkH.toFixed(2), n.moonFreeH.toFixed(2), Math.round(n.illum * 100)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `dark-sky-${year}.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.dk-fig'), fig));
+  onSky(compute);
+  compute();
+  wireDownloads(q('.dl'), () => ({ title: 'Dark-sky calendar', file: `dark-sky-${year}`, sections: report }));
+</script>

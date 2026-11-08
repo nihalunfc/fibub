@@ -13,3 +13,8 @@ of the License requires.
 The star and deep-sky catalogue in src/lib/astro/catalog.json comes from
 OpenNGC by Mattia Verga and is shared under CC BY-SA 4.0, not the Apache
 License.
+
+The radiocarbon calibration curve in src/data/intcal20.txt is IntCal20:
+P. J. Reimer et al. (2020), "The IntCal20 Northern Hemisphere radiocarbon age
+calibration curve (0-55 cal kBP)", Radiocarbon 62(4): 725-757,
+doi:10.1017/RDC.2020.41, published under CC BY 4.0.

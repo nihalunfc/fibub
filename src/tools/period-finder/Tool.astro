@@ -1,0 +1,138 @@
+---
+// Light curve period finder: Lomb-Scargle periodogram, false alarm probability and phase folding.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lsq">
+  <div class="ax-card">
+    <h2>Measurements</h2>
+    <label>Paste time, value and (optional) error columns, one measurement per line. A header row is fine.
+      <textarea class="lsq-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small lsq-sample">Load the example</button>
+      <label class="ax-check"><input type="checkbox" class="lsq-mag" checked /> Values are magnitudes (brighter is up)</label>
+      <label class="ax-check"><input type="checkbox" class="lsq-err" checked /> Weight by the errors</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Shortest period <input class="lsq-pmin" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Longest period <input class="lsq-pmax" inputmode="decimal" placeholder="automatic" /></label>
+    </div>
+    <p class="ax-help">Periods are in the same unit as your times (usually days). Leave them blank for an automatic range: up to the whole time span, and down to five times the average Nyquist limit, as astropy does.</p>
+    <p class="ax-err lsq-errmsg" hidden></p>
+  </div>
+
+  <div class="ax-card lsq-out" hidden>
+    <h2>Periodogram</h2>
+    <p class="ax-big lsq-big"></p>
+    <p class="ax-help lsq-info"></p>
+    <canvas class="ax-fig lsq-pg"></canvas>
+    <h3>Strongest peaks</h3>
+    <div class="ax-scroll"><table class="lsq-tab"></table></div>
+    <p class="ax-help">Tap a peak to fold the data at its period. Gaps in the observing, such as one night apart, make extra "alias" peaks at related periods: the true one usually gives the cleanest fold. Eclipsing binaries often show their strongest peak at half the true period, so try twice the period too.</p>
+    <h3>Folded light curve</h3>
+    <div class="ax-grid">
+      <label>Fold at <select class="lsq-mult"><option value="1" selected>the peak period</option><option value="2">twice the peak period</option><option value="0.5">half the peak period</option></select></label>
+    </div>
+    <canvas class="ax-fig lsq-fold" style="margin-top:10px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lsq .lsq-tab tbody tr { cursor: pointer; }
+  .lsq .lsq-tab tr.lsq-on td { font-weight: 650; }
+  .lsq .lsq-tab td, .lsq .lsq-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { lombScargle, falseAlarm, peaks, phase, type Periodogram } from '../../lib/sci/lombscargle';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+  import SAMPLE from '../../data/variable-star-sim.tsv?raw';
+
+  const root = document.querySelector<HTMLElement>('.lsq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.lsq-in');
+  box.value = SAMPLE.trim();
+  let data: { t: number[]; y: number[]; e: number[] | null } | null = null, pg: Periodogram | null = null;
+  let found: { freq: number; power: number; fap: number }[] = [], pick = 0;
+  let figPg: Figure | null = null, figFold: Figure | null = null, report: Section[] = [];
+  const fapTxt = (f: number) => (f < 1e-6 ? '< 0.000001' : f < 0.001 ? f.toExponential(1) : f.toFixed(3));
+
+  function read() {
+    const rows = parseTable(box.value).filter((r) => r.length >= 2);
+    const body = rows.filter((r) => Number.isFinite(num(r[0])) && Number.isFinite(num(r[1])));
+    if (body.length < 5) throw new Error('Paste at least 5 rows of time and value.');
+    body.sort((a, b) => num(a[0]) - num(b[0]));
+    const t = body.map((r) => num(r[0])), y = body.map((r) => num(r[1]));
+    const hasErr = q<HTMLInputElement>('.lsq-err').checked && body.every((r) => num(r[2] ?? '') > 0);
+    return { t, y, e: hasErr ? body.map((r) => num(r[2])) : null };
+  }
+
+  function run() {
+    const err = q('.lsq-errmsg');
+    try {
+      data = read();
+      const { t, y, e } = data, N = t.length, span = t[N - 1] - t[0];
+      if (!(span > 0)) throw new Error('The times must not all be the same.');
+      const pminIn = num(q<HTMLInputElement>('.lsq-pmin').value), pmaxIn = num(q<HTMLInputElement>('.lsq-pmax').value);
+      const pmax = pmaxIn > 0 ? pmaxIn : span, pmin = pminIn > 0 ? pminIn : 1 / (5 * 0.5 * N / span);
+      if (!(pmax > pmin)) throw new Error('The shortest period must be below the longest.');
+      const fmin = 1 / pmax, fmax = 1 / pmin;
+      let nf = Math.ceil(5 * span * (fmax - fmin)) + 1;
+      const capped = nf > 400000; nf = Math.min(nf, 400000);
+      pg = lombScargle(t, y, e, fmin, fmax, Math.max(nf, 50));
+      found = peaks(pg, 6).map((p) => ({ ...p, fap: falseAlarm(p.power, N, fmax, t, e) }));
+      pick = 0;
+      err.hidden = true; q('.lsq-out').hidden = false;
+      q('.lsq-info').textContent = `${N} measurements over ${sig(span, 4)}, searched from ${sig(pmin, 3)} to ${sig(pmax, 3)} at ${nf.toLocaleString('en')} frequencies${e ? ', weighted by the errors' : ''}.${capped ? ' The range was too wide for full detail: narrow it for a finer search.' : ''}`;
+      figPg = chartFigure({ h: 260, xLog: true, xLabel: 'Period', yLabel: 'Power', yMin: 0, yMax: 1, legend: 'none',
+        series: [{ name: 'Power', x: Array.from(pg.freq, (f) => 1 / f).reverse(), y: Array.from(pg.power).reverse(), mode: 'line', width: 1 }] }, 'Lomb-Scargle periodogram');
+      paint(q<HTMLCanvasElement>('.lsq-pg'), figPg);
+      drawPeaks(); fold();
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lsq-out').hidden = true; report = []; }
+  }
+
+  function drawPeaks() {
+    const t = q<HTMLTableElement>('.lsq-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); ['', 'Period', 'Frequency', 'Power', 'False alarm'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    found.forEach((p, i) => {
+      const tr = b.insertRow(); if (i === pick) tr.className = 'lsq-on';
+      [String(i + 1), sig(1 / p.freq, 6), sig(p.freq, 5), p.power.toFixed(3), fapTxt(p.fap)].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j > 1) td.className = 'r'; });
+      tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-label', `Fold at period ${sig(1 / p.freq, 6)}`);
+      const go = () => { pick = i; drawPeaks(); fold(); };
+      tr.addEventListener('click', go); tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
+    });
+    const best = found[0];
+    q('.lsq-big').textContent = best ? `Best period ${sig(1 / best.freq, 6)}` + (best.fap < 0.01 ? '' : ' (not significant)') : 'No peak found';
+  }
+
+  function fold() {
+    if (!data || !found.length) return;
+    const P = (1 / found[pick].freq) * Number(q<HTMLSelectElement>('.lsq-mult').value), mag = q<HTMLInputElement>('.lsq-mag').checked;
+    // Phase 0 at the brightest measurement, as variable-star observers draw it.
+    const { t, y } = data, ph = phase(t, P, t[y.indexOf(mag ? Math.min(...y) : Math.max(...y))]);
+    // Two cycles so the shape at the join is easy to see.
+    const x = [...ph, ...ph.map((v) => v + 1)], yy = [...y, ...y];
+    const lo = Math.min(...y), hi = Math.max(...y), pad = (hi - lo) * 0.08 || 0.1;
+    figFold = chartFigure({ h: 280, xLabel: `Phase (period ${sig(P, 6)})`, yLabel: mag ? 'Magnitude' : 'Value', xMin: 0, xMax: 2, legend: 'none',
+      yMin: lo - pad, yMax: hi + pad, yReverse: mag,
+      series: [{ name: 'Data', x, y: yy, mode: 'points', size: 3 }] }, `Light curve folded at ${sig(P, 6)}`);
+    paint(q<HTMLCanvasElement>('.lsq-fold'), figFold);
+    const head = ['Period', 'Frequency', 'Power', 'False alarm probability'];
+    report = [{ title: 'Periodogram', text: [q('.lsq-info').textContent!], figure: figPg! }, { title: 'Strongest peaks', table: { head, rows: found.map((p) => [sig(1 / p.freq, 6), sig(p.freq, 5), p.power.toFixed(3), fapTxt(p.fap)]), align: ['r', 'r', 'r', 'r'] } }, { title: `Folded at ${sig(P, 6)}`, figure: figFold }];
+  }
+
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 400); });
+  for (const c of ['.lsq-pmin', '.lsq-pmax']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 400); });
+  q('.lsq-err').addEventListener('change', run);
+  q('.lsq-mag').addEventListener('change', fold);
+  q('.lsq-mult').addEventListener('change', fold);
+  q('.lsq-sample').addEventListener('click', () => { box.value = SAMPLE.trim(); q<HTMLInputElement>('.lsq-pmin').value = ''; q<HTMLInputElement>('.lsq-pmax').value = ''; run(); });
+  document.addEventListener('fibub:theme', () => { if (figPg) paint(q<HTMLCanvasElement>('.lsq-pg'), figPg); if (figFold) paint(q<HTMLCanvasElement>('.lsq-fold'), figFold); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Period finder', file: 'periodogram', sections: report }));
+</script>

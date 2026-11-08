@@ -1,0 +1,159 @@
+---
+// Mosaic planner: panels needed to cover a target, with each panel's centre.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mo">
+  <div class="ax-card">
+    <h2>Target</h2>
+    <div class="ax-grid">
+      <label>Object <input class="mo-t" list="mo-list" value="M31 Andromeda Galaxy" autocomplete="off" /></label>
+      <label>RA (h m s) <input class="mo-ra" value="00 42 44.3" /></label>
+      <label>Dec (° ′ ″) <input class="mo-dec" value="+41 16 09" /></label>
+    </div>
+    <datalist id="mo-list"></datalist>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Width to cover (arcmin) <input class="mo-tw" inputmode="decimal" value="190" /></label>
+      <label>Height to cover (arcmin) <input class="mo-th" inputmode="decimal" value="70" /></label>
+      <label>Angle of the width (° east of north) <input class="mo-pa" inputmode="decimal" value="35" /></label>
+    </div>
+    <p class="ax-help mo-thelp">Pick an object to fill in its position and catalogue size. Catalogues give only the long side, so set the height yourself. The angle is the galaxy's position angle: 90° means the width runs east to west.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Telescope and camera</h2>
+    <div class="ax-grid">
+      <label>Focal length (mm) <input class="mo-fl" inputmode="decimal" value="480" /></label>
+      <label>Camera <select class="mo-cam"></select></label>
+      <label>Overlap between panels (%) <input class="mo-ov" inputmode="decimal" value="15" /></label>
+    </div>
+    <div class="ax-grid mo-custom" style="margin-top:10px" hidden>
+      <label>Sensor width (mm) <input class="mo-sw" inputmode="decimal" value="23.5" /></label>
+      <label>Sensor height (mm) <input class="mo-sh" inputmode="decimal" value="15.7" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="mo-turn" /> Turn the camera 90° (long side across the height)</label>
+    </div>
+    <p class="ax-help">Include any reducer or flattener in the focal length. 10 to 20 % overlap gives stacking software enough shared stars to join the panels.</p>
+    <p class="ax-err mo-err" hidden></p>
+  </div>
+
+  <div class="ax-card mo-out" hidden>
+    <h2>Mosaic</h2>
+    <p class="ax-big mo-big"></p>
+    <dl class="ax-facts mo-facts"></dl>
+    <canvas class="ax-fig mo-fig" style="margin-top:12px"></canvas>
+    <h3>Panel centres (J2000)</h3>
+    <div class="ax-scroll"><table class="mo-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mo-csv">Panel centres (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .mo .mo-tab td, .mo .mo-tab th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { mosaic, fovArcmin, type Panel } from '../../lib/sci/mosaic';
+  import { SENSORS } from '../../lib/astro/optics';
+  import { OBJECTS, dsoLabel } from '../../lib/astro/sky';
+  import { sexa, parseAngle } from '../../lib/astro/place';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const cam = q<HTMLSelectElement>('.mo-cam');
+  cam.replaceChildren(...SENSORS.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: s.name })), Object.assign(document.createElement('option'), { value: 'custom', textContent: 'Another sensor (type its size)' }));
+  cam.value = String(SENSORS.findIndex((s) => s.name.startsWith('IMX571')));
+  let panels: Panel[] = [], fig: Figure | null = null, report: Section[] = [];
+
+  q('.mo-t').addEventListener('input', () => {
+    const text = q<HTMLInputElement>('.mo-t').value.trim().toLowerCase(), nq = text.replace(/\s+/g, '');
+    const hits = text ? OBJECTS.filter((o) => o.id.toLowerCase().replace(/\s+/g, '').split('/').some((x) => x.startsWith(nq)) || o.name.toLowerCase().includes(text)).slice(0, 8) : [];
+    q('#mo-list').replaceChildren(...hits.map((o) => Object.assign(document.createElement('option'), { value: dsoLabel(o) })));
+    const exact = OBJECTS.find((o) => dsoLabel(o).toLowerCase() === text || o.id.toLowerCase().replace(/\s+/g, '').split('/').includes(nq));
+    if (exact) {
+      q<HTMLInputElement>('.mo-ra').value = sexa(exact.ra / 15, 'h', 1).replace(/[hms]/g, ' ').replace(/\s+/g, ' ').trim();
+      q<HTMLInputElement>('.mo-dec').value = sexa(exact.dec, 'd', 0).replace(/[°′″'"]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (exact.size) { q<HTMLInputElement>('.mo-tw').value = String(Math.round(exact.size)); q<HTMLInputElement>('.mo-th').value = String(Math.round(exact.size)); }
+      q<HTMLInputElement>('.mo-pa').value = '90';
+      calc();
+    }
+  });
+
+  function figure(r: ReturnType<typeof mosaic>, o: { tw: number; th: number; fw: number; fh: number; pa: number }): Figure {
+    return {
+      w: 520, h: 420, alt: `Mosaic of ${r.cols} by ${r.rows} panels`,
+      draw(ctx, w, h, pal) {
+        // Sky view: north up, east to the left.
+        const R = Math.max(...r.panels.map((p) => Math.hypot(p.xi, p.eta))) + Math.hypot(o.fw, o.fh) / 2, s = (Math.min(w, h - 30) / 2 - 10) / Math.max(R, Math.hypot(o.tw, o.th) / 2);
+        const cx = w / 2, cy = (h + 20) / 2, a = (o.pa * Math.PI) / 180;
+        const P = (xi: number, eta: number): [number, number] => [cx - xi * s, cy - eta * s];
+        const W = (u: number, vv: number): [number, number] => P(u * Math.sin(a) - vv * Math.cos(a), u * Math.cos(a) + vv * Math.sin(a));
+        // Target: an ellipse with the given width and height.
+        ctx.beginPath(); for (let i = 0; i <= 72; i++) { const t = (i / 72) * Math.PI * 2, [x, y] = W((o.tw / 2) * Math.cos(t), (o.th / 2) * Math.sin(t)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.fillStyle = pal.grid; ctx.fill(); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.stroke();
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        r.panels.forEach((p, i) => {
+          const u0 = p.xi * Math.sin(a) + p.eta * Math.cos(a), v0 = -p.xi * Math.cos(a) + p.eta * Math.sin(a);
+          const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([du, dv]) => W(u0 + (du * o.fw) / 2, v0 + (dv * o.fh) / 2));
+          ctx.beginPath(); c.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+          ctx.strokeStyle = i % 2 ? pal.accent2 : pal.accent; ctx.lineWidth = 1.6; ctx.stroke();
+          const [x, y] = P(p.xi, p.eta); ctx.fillStyle = pal.ink; ctx.fillText(String(i + 1), x, y);
+        });
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('N ↑   E ←   (as seen on the sky)', 8, 6);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.mo-err');
+    q('.mo-custom').hidden = cam.value !== 'custom';
+    try {
+      const ra = parseAngle(q<HTMLInputElement>('.mo-ra').value, true), dec = parseAngle(q<HTMLInputElement>('.mo-dec').value);
+      if (ra == null || dec == null || Math.abs(dec) > 90) throw new Error('Type the RA as hours (such as 00 42 44) and the Dec in degrees (such as +41 16 09), or pick an object.');
+      const fl = v('.mo-fl');
+      if (!(fl > 0)) throw new Error('Type the focal length in mm.');
+      const sensor = cam.value === 'custom' ? { w: v('.mo-sw'), h: v('.mo-sh') } : SENSORS[Number(cam.value)];
+      if (!(sensor.w > 0 && sensor.h > 0)) throw new Error('Type the sensor size in mm.');
+      let fw = fovArcmin(sensor.w, fl), fh = fovArcmin(sensor.h, fl);
+      if (q<HTMLInputElement>('.mo-turn').checked) [fw, fh] = [fh, fw];
+      const tw = v('.mo-tw'), th = v('.mo-th'), pa = v('.mo-pa') || 0, ov = (v('.mo-ov') || 0) / 100;
+      if (!(tw > 0 && th > 0)) throw new Error('Type the width and height to cover, in arcminutes.');
+      const r = mosaic({ ra: ra * 15, dec, tw, th, fw, fh, overlap: ov, pa });
+      panels = r.panels;
+      err.hidden = true; q('.mo-out').hidden = false;
+      const n = r.cols * r.rows;
+      q('.mo-big').textContent = n === 1 ? 'One frame covers it' : `${r.cols} × ${r.rows} = ${n} panels`;
+      const facts: [string, string][] = [
+        ['One frame covers', `${sig(fw, 4)}′ × ${sig(fh, 4)}′ (${sig(fw / 60, 3)}° × ${sig(fh / 60, 3)}°)`],
+        ['Mosaic covers', `${sig(r.coverW, 4)}′ × ${sig(r.coverH, 4)}′`],
+        ['Camera angle', `${(((pa % 180) + 180) % 180).toFixed(0)}° east of north for the frame's ${q<HTMLInputElement>('.mo-turn').checked ? 'short' : 'long'} side`],
+        ['Imaging time', n > 1 ? `${n} × your per-panel time, for the same depth in every panel` : 'as for a single frame'],
+      ];
+      q('.mo-facts').replaceChildren(...facts.map(([k, val]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; return d; }));
+      const head = ['Panel', 'Row', 'Column', 'RA', 'Dec'];
+      const rows = r.panels.map((p, i) => [String(i + 1), String(p.row), String(p.col), sexa(p.ra / 15, 'h', 1), sexa(p.dec, 'd', 0)]);
+      const t = q<HTMLTableElement>('.mo-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h) => { const th2 = document.createElement('th'); th2.textContent = h; hr.append(th2); });
+      const b = t.createTBody(); rows.slice(0, 400).forEach((row) => { const tr = b.insertRow(); row.forEach((x) => (tr.insertCell().textContent = x)); });
+      fig = figure(r, { tw, th, fw, fh, pa });
+      paint(q<HTMLCanvasElement>('.mo-fig'), fig);
+      report = [{ title: q<HTMLInputElement>('.mo-t').value || 'Mosaic', facts: [['Panels', q('.mo-big').textContent!], ...facts], figure: fig }, { title: 'Panel centres (J2000)', table: { head, rows, align: ['l', 'l', 'l', 'l', 'l'] } }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.mo-out').hidden = true; report = []; }
+  }
+  q('.mo-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['panel', 'row', 'column', 'ra_deg', 'dec_deg', 'ra_hms', 'dec_dms']];
+    panels.forEach((p, i) => rows.push([i + 1, p.row, p.col, p.ra.toFixed(5), p.dec.toFixed(5), sexa(p.ra / 15, 'h', 1), sexa(p.dec, 'd', 0)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'mosaic-panels.csv', 'text/csv');
+  });
+  root.addEventListener('input', (e) => { if (!(e.target as HTMLElement).matches('.mo-t')) calc(); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.mo-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Mosaic plan', file: 'mosaic', sections: report }));
+</script>

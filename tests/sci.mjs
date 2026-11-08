@@ -16,6 +16,23 @@ import { pole, project, greatCircle, fisher, planeFromPole, roseBins } from '../
 import { layout, names, order, wellName } from '../src/lib/sci/plate.ts';
 import { c1v1, serial, toGperL, fromGperL } from '../src/lib/sci/solution.ts';
 import { masterMix } from '../src/lib/sci/mastermix.ts';
+import { readCurve, calibrate as calibrate14, calYear } from '../src/lib/sci/radiocarbon.ts';
+import { diversity, rarefy, compare } from '../src/lib/sci/diversity.ts';
+import { cronbach, cohen, fleiss, icc } from '../src/lib/sci/reliability.ts';
+import { cellCount, seeding } from '../src/lib/sci/cells.ts';
+import { profile, tableName, columnNames } from '../src/lib/sci/profile.ts';
+import { fInv, fCdf } from '../src/lib/sci/stats.ts';
+import { readFileSync } from 'node:fs';
+import { cosmology, omegaR } from '../src/lib/sci/cosmo.ts';
+import { skyFromFrame, skyFromSqm, subLength, efficiency } from '../src/lib/sci/subexp.ts';
+import { filterShift, readSpacers, solveSpacers } from '../src/lib/sci/backfocus.ts';
+import { BANDS, toJy, fromJy } from '../src/lib/sci/photometry.ts';
+import { darkNight, yearDates } from '../src/lib/astro/darkness.ts';
+import * as Astro from 'astronomy-engine';
+import { staging, propellantFor, BODIES, AU, hohmann, biElliptic } from '../src/lib/sci/orbit.ts';
+import { lombScargle, falseAlarm, peaks, phase } from '../src/lib/sci/lombscargle.ts';
+import { fovArcmin, framesAlong, offsetToRaDec, mosaic } from '../src/lib/sci/mosaic.ts';
+import { hourlyRate } from '../src/lib/sci/meteorrate.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -198,6 +215,179 @@ throws('cannot dilute up', () => c1v1(1, NaN, 10, 50));
   near('NEB water per reaction', m.water.one, 40.75, 1e-9); near('mix per tube', m.mixPerTube, 49, 1e-9); near('mix total', m.mixTotal, 539, 1e-9);
   throws('units that do not match', () => masterMix([{ name: 'x', stock: 10, stockUnit: 'X', final: 1, finalUnit: 'µM', inMix: true }], 50, 1, 0));
 }
+
+// ---- F distribution (standard tables).
+near('F 95 % (5, 10)', fInv(0.95, 5, 10), 3.3258, 1e-3);
+near('F 99 % (3, 20)', fInv(0.99, 3, 20), 4.9382, 1e-3);
+near('F cdf round trip', fCdf(fInv(0.3, 7, 4), 7, 4), 0.3, 1e-9);
+
+// ---- Radiocarbon calibration against IntCal20 (OxCal 4.4 gives the same ranges to within a year or two).
+{
+  const curve = readCurve(readFileSync(new URL('../src/data/intcal20.txt', import.meta.url), 'utf8'));
+  check('IntCal20 rows', curve.cal.length === 9501);
+  const r = calibrate14(curve, 3000, 30), r95 = r.hpd.find((h) => h.level === 0.954).ranges;
+  const bc = (bp) => { const y = calYear(bp); return y.era === 'BC' ? -y.year : y.year; };
+  check('3000 ± 30 has two 95 % ranges', r95.length === 2);
+  near('3000 ± 30 main range from', bc(r95[1][0]), -1304, 3); near('3000 ± 30 main range to', bc(r95[1][1]), -1125, 3);
+  near('3000 ± 30 main range share', r95[1][2], 0.86, 0.01);
+  near('3000 ± 30 median', bc(r.median), -1239, 3);
+  near('probabilities add to 1', Array.from(r.p).reduce((a, b) => a + b, 0), 1, 1e-6);
+  throws('an age far outside the curve', () => calibrate14(curve, -5000, 20));
+  check('an age near the end is flagged', calibrate14(curve, 54500, 300).outside);
+}
+
+// ---- Biodiversity: Shannon, Simpson, Chao1, rarefaction.
+{
+  const even = diversity([5, 5, 5, 5]);
+  near('Shannon of 4 equal species', even.H, Math.log(4), 1e-12); near('evenness of equal species', even.pielou, 1, 1e-12); near('1/D of 4 equal', even.invSimpson, 4, 1e-12);
+  near('Chao1 with all singletons', diversity([1, 1, 1, 1]).chao1, 8.5, 1e-12);
+  const meadow = [12, 35, 8, 0, 21, 5, 1, 2, 1, 0], hedge = [4, 18, 22, 15, 2, 0, 3, 1, 0, 1];
+  const d = diversity(meadow);
+  near('meadow H', d.H, 1.569, 1e-3); near('meadow 1-D', d.simpson, 0.736, 1e-3); near('meadow Chao1', d.chao1, 8.49, 0.01);
+  near('rarefy to N gives S', rarefy(meadow, 85).s, 8, 1e-9); near('rarefy to 1 gives 1', rarefy(meadow, 1).s, 1, 1e-9);
+  near('meadow rarefied to 66', rarefy(meadow, 66).s, 7.50, 0.01);
+  const c = compare(meadow, hedge); near('Bray-Curtis', c.brayCurtis, 0.550, 1e-3); near('Jaccard', c.jaccard, 0.6, 1e-12);
+}
+
+// ---- Reliability: Shrout and Fleiss (1979) Table 2, Cohen, Fleiss (Wikipedia worked example).
+{
+  const SF = [[9, 2, 5, 8], [6, 1, 3, 2], [8, 4, 6, 8], [7, 1, 2, 6], [10, 5, 6, 9], [6, 2, 4, 7]];
+  const r = icc(SF);
+  near('ICC(1,1)', r.icc1, 0.1657, 1e-4); near('ICC(1,k)', r.icc1k, 0.4428, 1e-4); near('ICC(2,1)', r.icc2, 0.2898, 1e-4);
+  near('ICC(2,k)', r.icc2k, 0.6201, 1e-4); near('ICC(3,1)', r.icc3, 0.7148, 1e-4); near('ICC(3,k)', r.icc3k, 0.9093, 1e-4);
+  // R psych::ICC(sf) bounds.
+  near('ICC(2,1) lower', r.ci.icc2[0], 0.019, 2e-3); near('ICC(2,1) upper', r.ci.icc2[1], 0.761, 2e-3);
+  near('ICC(1,1) lower', r.ci.icc1[0], -0.133, 2e-3); near('ICC(3,k) lower', r.ci.icc3k[0], 0.676, 2e-3);
+  near('ICC F test p', r.test.icc3.p, 0.00013, 2e-5);
+  const a = cronbach(SF); near('alpha = ICC(3,k)', a.alpha, 0.9093, 1e-4); near('Feldt lower = ICC(3,k) lower', a.ci[0], r.ci.icc3k[0], 1e-9);
+  near('Cohen kappa', cohen([[20, 5], [10, 15]]).kappa, 0.4, 1e-12);
+  near('quadratic kappa of perfect agreement', cohen([[5, 0, 0], [0, 5, 0], [0, 0, 5]], 'quadratic').kappa, 1, 1e-12);
+  const F = [[0,0,0,0,14],[0,2,6,4,2],[0,0,3,5,6],[0,3,9,2,0],[2,2,8,1,1],[7,7,0,0,0],[3,2,6,3,0],[2,5,3,2,2],[6,5,2,1,0],[0,2,2,3,7]];
+  near('Fleiss kappa', fleiss(F).kappa, 0.2099, 1e-4);
+  throws('Fleiss with unequal raters', () => fleiss([[1, 1], [2, 1]]));
+}
+
+// ---- Hemocytometer and seeding (guide's worked example).
+{
+  const c = cellCount([52, 47, 55, 46], [4, 3, 5, 4], 2);
+  near('live cells/mL', c.liveMl, 1e6, 1e-6); near('viability', c.viability, 200 / 216, 1e-12);
+  const s = seeding(c.liveMl, 1e5, 24, 0.5, 10);
+  near('suspension mL', s.suspensionMl, 2.64, 1e-9); near('medium mL', s.mediumMl, 10.56, 1e-9);
+  throws('too dilute to seed', () => seeding(1e5, 1e5, 24, 0.5));
+}
+
+// ---- Table profiles for the SQL playground.
+{
+  const p = profile(['zip', 'n', 'x', 'name'], [['007', '1', '1.5', 'a'], ['123', '2', 'NA', 'b'], ['045', '3', '2.5', 'a']]);
+  check('leading zeros stay text', p[0].type === 'TEXT'); check('integers', p[1].type === 'INTEGER'); check('reals', p[2].type === 'REAL');
+  check('NA is missing', p[2].missing === 1 && p[2].mean === 2); check('top value', p[3].top[0][0] === 'a' && p[3].top[0][1] === 2);
+  check('table names', tableName('My Data (2024).csv', new Set()) === 'my_data_2024' && tableName('2024.csv', new Set()) === 't_2024' && tableName('a.csv', new Set(['a'])) === 'a_2');
+  check('column names', columnNames(['a', '', 'A']).join() === 'a,column2,A_2');
+}
+
+// ---- Cosmology: exact solutions (Einstein-de Sitter, empty, flat LCDM age) and Planck 2018.
+{
+  const C = 299792.458, HG = 977.792221;
+  const eds = cosmology({ H0: 70, Om: 1, OL: 0, Or: 0 }, 3);
+  near('EdS comoving distance', eds.dc, ((2 * C) / 70) * (1 - 1 / 2), 1e-3); near('EdS age', eds.age0, ((2 / 3) * HG) / 70, 1e-4); near('EdS age at z=3', eds.ageZ, ((2 / 3) * HG) / 70 / 8, 1e-4);
+  near('empty universe luminosity distance', cosmology({ H0: 70, Om: 0, OL: 0, Or: 0 }, 2).dl, (C / 70) * 2 * 2, 1e-3);
+  near('flat LCDM age', cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 0).age0, ((2 / (3 * Math.sqrt(0.7))) * Math.asinh(Math.sqrt(0.7 / 0.3)) * HG) / 70, 1e-4);
+  const Or = omegaR(67.66), p18 = cosmology({ H0: 67.66, Om: 0.3111, OL: 1 - 0.3111 - Or, Or }, 3);
+  near('Planck 2018 age (13.787 ± 0.020 Gyr)', p18.age0, 13.787, 0.02);
+  near('Planck z=3 angular scale', p18.kpcPerArcsec, 7.883, 0.002);
+  check('angular diameter distance peaks', cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 1.6).da > cosmology({ H0: 70, Om: 0.3, OL: 0.7, Or: 0 }, 5).da);
+  throws('a universe with no Big Bang', () => cosmology({ H0: 70, Om: 0.1, OL: 2, Or: 0 }, 5));
+}
+
+// ---- Sub-exposure length: the 5 % rule is about 10 R²/S.
+{
+  const s = skyFromFrame(1250, 500, 0.25, 60);
+  near('sky e/s from a test frame', s, 3.125, 1e-12);
+  near('5 % sub length', subLength(1.5, s), 2.25 / (3.125 * 0.1025), 1e-9);
+  near('efficiency at the 5 % length', efficiency(subLength(1.5, s), 1.5, s), 1 / 1.05, 1e-12);
+  near('sky photons: 1000 per s per cm² per Å at mag 0', skyFromSqm({ sqm: 20, apertureMm: 112.8379, obstructionPct: 0, focalMm: 206265, pixelUm: 1000, bandwidthNm: 0.1, qe: 1, throughput: 1 }), 1e-3, 1e-7);
+  throws('background below offset', () => skyFromFrame(400, 500, 1, 60));
+}
+
+// ---- Backfocus and spacers.
+{
+  near('2 mm filter shift', filterShift(2), 2 / 3, 1e-12);
+  check('spacer list', readSpacers('10, 2 x3, 0.5mm').join() === '10,2,2,2,0.5');
+  const r = solveSpacers(9.17, readSpacers('10, 5, 2 x2, 1, 0.5, 0.3, 0.2, 0.1'));
+  near('spacer stack within 0.03 mm', r.error, 0.03, 1e-9); check('fewest pieces', r.pieces.length === 4);
+  check('exact stack', solveSpacers(7.3, [5, 2, 0.3, 1, 1]).pieces.join() === '5,2,0.3');
+  throws('parts longer than backfocus', () => solveSpacers(-1, [1]));
+}
+
+// ---- Magnitudes and fluxes (Bessell et al. 1998; AB 3631 Jy).
+{
+  const V = BANDS.find((b) => b.id === 'V'), K = BANDS.find((b) => b.id === 'K2');
+  near('V = 0 is 3636 Jy', toJy(0, 'vega', V.lam, V.vegaJy), 3636, 1e-9);
+  near('AB 0 is 3631 Jy', toJy(0, 'ab', 0.5, null), 3631, 1e-9);
+  near('Ks AB - Vega', fromJy(toJy(10, 'vega', K.lam, K.vegaJy), K.lam, K.vegaJy).ab - 10, 1.84, 0.01);
+  near('f_nu to f_lambda round trip', toJy(fromJy(0.1, 0.8, null).cgs_lam, 'cgs_lam', 0.8, null), 0.1, 1e-12);
+  near('photon round trip', toJy(fromJy(2, 1.2, null).phot, 'phot', 1.2, null), 2, 1e-12);
+  near('1 Jy in cgs', fromJy(1, 1, null).cgs_nu, 1e-23, 1e-35);
+}
+
+// ---- Darkness through the night against astronomy-engine's own twilight search.
+{
+  const place = { lat: 43.65, lon: -79.38, elev: 0 }, obs = new Astro.Observer(43.65, -79.38, 0);
+  for (const iso of ['2027-01-15', '2027-06-21']) {
+    const r = darkNight(place, iso);
+    const du = Astro.SearchAltitude(Astro.Body.Sun, obs, -1, r.start, 1, -18).date, da = Astro.SearchAltitude(Astro.Body.Sun, obs, +1, du, 1, -18).date;
+    near(`${iso} dusk within a minute`, (r.dusk - du) / 6e4, 0, 1); near(`${iso} dark hours`, r.darkH, (da - du) / 36e5, 0.02);
+    check(`${iso} Moon-free dark is part of the dark`, r.moonFreeH <= r.darkH + 1e-9);
+  }
+  check('no true darkness in London at midsummer', darkNight({ lat: 51.51, lon: -0.13, elev: 0 }, '2027-06-21').darkH === 0);
+  check('a leap year has 366 evenings', yearDates(2028).length === 366);
+}
+
+// ---- Rocket equation and orbit transfers (Curtis, Orbital Mechanics for Engineering Students, LEO to GEO).
+{
+  near('Tsiolkovsky, mass ratio e', staging([{ name: 'S', dry: 1, prop: Math.E - 1, isp: 300 }], 0).dv, 300 * 9.80665, 1e-9);
+  const r = staging([{ name: 'A', dry: 22000, prop: 400000, isp: 300 }, { name: 'B', dry: 4000, prop: 100000, isp: 340 }], 10000);
+  near('two-stage liftoff mass', r.liftoff, 536000, 1e-9); near('two-stage delta-v', r.dv, 11027.30, 0.01);
+  near('propellant for a delta-v', staging([{ name: 'S', dry: 1000, prop: propellantFor(3000, 320, 1000), isp: 320 }], 0).dv, 3000, 1e-6);
+  const E = BODIES.find((b) => b.id === 'earth').mu, h = hohmann(E, 6678, 42164);
+  near('LEO to GEO first burn', h.dv1, 2.426, 1e-3); near('LEO to GEO second burn', h.dv2, 1.467, 1e-3); near('LEO to GEO time (h)', h.tof / 3600, 5.27, 0.01);
+  const S = BODIES.find((b) => b.id === 'sun').mu, m = hohmann(S, AU, 1.5237 * AU);
+  near('Earth to Mars days', m.tof / 86400, 259, 1); near('Mars lead angle', (m.lead * 180) / Math.PI, 44.3, 0.3); near('Earth-Mars synodic days', m.synodic / 86400, 780, 1);
+  near('bi-elliptic beats Hohmann at ratio 20', hohmann(E, 7000, 140000).dv - biElliptic(E, 7000, 140000, 280000).dv, 0.0703, 0.002);
+  throws('bi-elliptic apoapsis too low', () => biElliptic(E, 7000, 14000, 10000));
+}
+
+// ---- Lomb-Scargle: a clean sine is found, the fast trig recurrence matches a direct sum, and noise false alarms are calibrated.
+{
+  let seed = 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const t = Array.from({ length: 120 }, () => rnd() * 50).sort((a, b) => a - b), y = t.map((x) => Math.sin((2 * Math.PI * x) / 2.345) + 0.1 * (rnd() - 0.5));
+  const P = lombScargle(t, y, null, 1 / 50, 2, 2000), best = peaks(P, 1)[0];
+  near('period of a sine', 1 / best.freq, 2.345, 0.002); check('power near 1', best.power > 0.98);
+  // Direct evaluation at one frequency.
+  const f = P.freq[777], w = 1 / t.length, Y = y.reduce((s, v) => s + v * w, 0);
+  let C = 0, Sn = 0, YC = 0, YS = 0, CC = 0, SS = 0, CS = 0, YY = 0;
+  t.forEach((x, i) => { const c = Math.cos(2 * Math.PI * f * (x - t[0])), sn = Math.sin(2 * Math.PI * f * (x - t[0])); C += w * c; Sn += w * sn; YC += w * y[i] * c; YS += w * y[i] * sn; CC += w * c * c; SS += w * sn * sn; CS += w * c * sn; YY += w * y[i] * y[i]; });
+  const yc = YC - Y * C, ys = YS - Y * Sn, cc = CC - C * C, ss = SS - Sn * Sn, cs = CS - C * Sn, D = cc * ss - cs * cs;
+  near('recurrence matches a direct sum', P.power[777], (ss * yc * yc + cc * ys * ys - 2 * cs * yc * ys) / ((YY - Y * Y) * D), 1e-9);
+  let low = 0; for (let k = 0; k < 200; k++) { const yy = t.map(() => rnd() + rnd() + rnd()); const p = lombScargle(t, yy, null, 1 / 50, 2, 1000); if (falseAlarm(Math.max(...p.power), t.length, 2, t, null) < 0.1) low++; }
+  near('noise: about 10 % of trials below FAP 0.1', low / 200, 0.1, 0.06);
+  near('phase', phase([5.5], 2, 0)[0], 0.75, 1e-12);
+}
+
+// ---- Mosaics.
+{
+  near('APS-C at 480 mm', fovArcmin(23.5, 480), 168.27, 0.01);
+  check('frames along a side', framesAlong(190, 168.27, 0.15) === 2 && framesAlong(100, 168, 0.15) === 1 && framesAlong(300, 100, 0) === 3);
+  const p = offsetToRaDec(0, 0, 60, 0); near('one degree east on the equator', p.ra, 1, 1e-3);
+  near('gnomonic north', offsetToRaDec(180, 30, 0, 60).dec, 31, 1e-3);
+  const r = mosaic({ ra: 10, dec: 0, tw: 100, th: 10, fw: 60, fh: 40, overlap: 0, pa: 90 });
+  check('pa 90: panel 1 to the east', r.panels[0].ra > 10 && Math.abs(r.panels[0].dec) < 1e-9);
+}
+
+// ---- Meteor rates (IMO formula).
+near('ZHR with radiant overhead, perfect sky', hourlyRate(100, 2.2, 6.5, 90), 100, 1e-9);
+near('Perseids at 60°, LM 6', hourlyRate(100, 2.2, 6, 60), 58.39, 0.01);
+check('no meteors with radiant below horizon', hourlyRate(100, 2.2, 6.5, -5) === 0);
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

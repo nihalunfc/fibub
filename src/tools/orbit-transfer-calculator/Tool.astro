@@ -1,0 +1,126 @@
+---
+// Orbit transfer calculator: Hohmann and bi-elliptic transfers between circular orbits.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ot">
+  <div class="ax-card">
+    <h2>Orbits</h2>
+    <div class="ax-grid">
+      <label>Around <select class="ot-body"></select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="ot-l1">Start altitude (km)</span> <input class="ot-r1" inputmode="decimal" value="300" /></label>
+      <label><span class="ot-l2">Target altitude (km)</span> <input class="ot-r2" inputmode="decimal" value="35786" /></label>
+      <label>Bi-elliptic apoapsis (optional) <input class="ot-rb" inputmode="decimal" placeholder="leave blank to skip" /></label>
+    </div>
+    <div class="ax-row ot-quick" style="margin-top:10px"></div>
+    <p class="ax-help ot-help"></p>
+    <p class="ax-err ot-err" hidden></p>
+  </div>
+  <div class="ax-card ot-out" hidden>
+    <h2>Hohmann transfer</h2>
+    <p class="ax-big ot-big"></p>
+    <dl class="ax-facts ot-facts"></dl>
+    <canvas class="ax-fig ot-fig" style="margin-top:14px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { BODIES, AU, hohmann, biElliptic } from '../../lib/sci/orbit';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ot')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = q<HTMLSelectElement>('.ot-body');
+  sel.replaceChildren(...BODIES.map((b) => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
+  let fig: Figure | null = null, report: Section[] = [];
+  const QUICK: Record<string, [string, number, number][]> = {
+    earth: [['Low orbit to GEO', 300, 35786], ['ISS to GEO', 420, 35786], ['Low orbit to Moon distance', 300, 384400 - 6378]],
+    moon: [['Low lunar orbit to 1000 km', 100, 1000]],
+    mars: [['Low Mars orbit to Deimos', 300, 23460 - 3396]],
+    venus: [['Low orbit to 10,000 km', 300, 10000]],
+    jupiter: [['Io to Europa', 421700 - 71492, 671034 - 71492], ['Europa to Ganymede', 671034 - 71492, 1070412 - 71492]],
+    sun: [['Earth to Mars', 1, 1.5237], ['Earth to Venus', 1, 0.7233], ['Earth to Jupiter', 1, 5.2034], ['Earth to Mercury', 1, 0.3871]],
+  };
+  const dur = (s: number) => s < 2 * 3600 ? `${sig(s / 60, 3)} min` : s < 3 * 86400 ? `${sig(s / 3600, 3)} h` : s < 2 * 365.25 * 86400 ? `${sig(s / 86400, 4)} days` : `${sig(s / (365.25 * 86400), 3)} years`;
+  const kms = (v: number) => `${v.toFixed(3)} km/s`;
+
+  function setBody() {
+    const sun = sel.value === 'sun';
+    q('.ot-l1').textContent = sun ? 'Start distance from the Sun (AU)' : 'Start altitude (km)';
+    q('.ot-l2').textContent = sun ? 'Target distance from the Sun (AU)' : 'Target altitude (km)';
+    const [, a, b] = QUICK[sel.value][0];
+    q<HTMLInputElement>('.ot-r1').value = String(a); q<HTMLInputElement>('.ot-r2').value = String(b); q<HTMLInputElement>('.ot-rb').value = '';
+    q('.ot-help').textContent = sun ? 'Planets move in near-circular orbits, so this gives the classic Hohmann transfer between them: the speed changes relative to each planet\'s orbit, before the planets\' own gravity is counted. The launch from Earth costs more, as the rocket must also climb out of Earth\'s gravity.' : 'Altitudes are above the mean equatorial radius. Both orbits are taken as circular and in the same plane.';
+    q('.ot-quick').replaceChildren(...QUICK[sel.value].map(([label, a1, b1]) => { const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn secondary small'; bt.textContent = label; bt.addEventListener('click', () => { q<HTMLInputElement>('.ot-r1').value = String(a1); q<HTMLInputElement>('.ot-r2').value = String(b1); calc(); }); return bt; }));
+    calc();
+  }
+
+  function figure(r1: number, r2: number, rb: number | null): Figure {
+    return {
+      w: 520, h: 420, alt: 'Start orbit, target orbit and the transfer path',
+      draw(ctx, w, h, pal) {
+        const R = Math.max(r1, r2, rb ?? 0), cx = w / 2, cy = h / 2 + 8, s = (Math.min(w, h) / 2 - 22) / R;
+        const circle = (r: number, col: string, dash: number[] = [], lw = 1.5) => { ctx.beginPath(); ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.arc(cx, cy, r * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); };
+        circle(r1, pal.muted); circle(r2, pal.ink);
+        // Half of a transfer ellipse with the central body at its focus: periapsis rp to the right, apoapsis ra to the left.
+        const half = (rp: number, ra: number, upper: boolean, col: string) => {
+          const a = (ra + rp) / 2, e = (ra - rp) / (ra + rp), p = a * (1 - e * e);
+          ctx.beginPath(); ctx.strokeStyle = col; ctx.lineWidth = 2.2;
+          for (let i = 0; i <= 120; i++) { const th = (Math.PI * i) / 120 + (upper ? 0 : Math.PI), r = p / (1 + e * Math.cos(th)); const X = cx + r * Math.cos(th) * s, Y = cy - r * Math.sin(th) * s; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+          ctx.stroke();
+        };
+        if (rb) { half(r1, rb, true, pal.accent); half(r2, rb, false, pal.accent2); }
+        else half(Math.min(r1, r2), Math.max(r1, r2), true, pal.accent);
+        ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('grey: start   black: target   colour: transfer', 10, 8);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.ot-err'), body = BODIES.find((b) => b.id === sel.value)!, sun = body.id === 'sun';
+    try {
+      const toR = (v: number) => (sun ? v * AU : v + body.radius);
+      const a1 = num(q<HTMLInputElement>('.ot-r1').value), a2 = num(q<HTMLInputElement>('.ot-r2').value), rbTxt = q<HTMLInputElement>('.ot-rb').value.trim();
+      if (!Number.isFinite(a1) || !Number.isFinite(a2)) throw new Error(sun ? 'Type both distances in AU (Earth is 1).' : 'Type both altitudes in km.');
+      const r1 = toR(a1), r2 = toR(a2);
+      if (!sun && (a1 < 0 || a2 < 0)) throw new Error('Altitudes must be zero or more.');
+      if (Math.abs(r1 - r2) < 1e-9) throw new Error('The two orbits are the same.');
+      const h = hohmann(body.mu, r1, r2);
+      err.hidden = true; q('.ot-out').hidden = false;
+      q('.ot-big').textContent = `${kms(h.dv)} in two burns, ${dur(h.tof)} apart`;
+      const facts: [string, string, string?][] = [
+        ['First burn', kms(h.dv1), `${r2 > r1 ? 'speed up' : 'slow down'} from ${kms(h.v1)} circular speed`],
+        ['Second burn', kms(h.dv2), `${r2 > r1 ? 'speed up' : 'slow down'} to ${kms(h.v2)} circular speed`],
+        ['Transfer time', dur(h.tof)],
+        ['Transfer orbit', `${sun ? `${sig(h.a / AU, 4)} AU` : `${Math.round(h.a).toLocaleString('en')} km`} semi-major axis, eccentricity ${h.e.toFixed(4)}`],
+        ['Orbital periods', `${dur(h.T1)} at the start, ${dur(h.T2)} at the target`],
+        ['Target lead angle at departure', `${(((h.lead * 180) / Math.PI) % 360).toFixed(1)}°`, 'how far ahead of you the target must be when you leave; a negative angle means behind'],
+        ['Launch windows', `every ${dur(h.synodic)}`, 'the synodic period: how often that alignment comes round'],
+      ];
+      let rb: number | null = null;
+      if (rbTxt) {
+        const rbv = num(rbTxt); if (!Number.isFinite(rbv)) throw new Error('Type the bi-elliptic apoapsis, or leave it blank.');
+        rb = toR(rbv);
+        const be = biElliptic(body.mu, r1, r2, rb);
+        facts.push(['Bi-elliptic instead', `${kms(be.dv)} in three burns over ${dur(be.tof)}`, be.dv < h.dv ? `saves ${kms(h.dv - be.dv)} but takes ${sig(be.tof / h.tof, 3)} times as long` : `costs ${kms(be.dv - h.dv)} more than Hohmann`]);
+      }
+      const ratio = Math.max(r1, r2) / Math.min(r1, r2);
+      facts.push(['Orbit size ratio', sig(ratio, 4), ratio > 15.58 ? 'above 15.58: a bi-elliptic transfer is always cheaper' : ratio > 11.94 ? 'between 11.94 and 15.58: a bi-elliptic transfer can be cheaper with a high enough apoapsis' : 'below 11.94: Hohmann is the cheapest two-impulse route']);
+      q('.ot-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      fig = figure(r1, r2, rb);
+      paint(q<HTMLCanvasElement>('.ot-fig'), fig);
+      report = [{ title: `Transfer around ${body.name}`, facts: [['Total delta-v', kms(h.dv)], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.ot-out').hidden = true; report = []; }
+  }
+  sel.addEventListener('change', setBody);
+  root.addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ot-fig'), fig));
+  setBody();
+  wireDownloads(q('.dl'), () => ({ title: 'Orbit transfer', file: 'orbit-transfer', sections: report }));
+</script>

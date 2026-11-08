@@ -1,0 +1,102 @@
+---
+// Radiocarbon calibration with IntCal20: probability of calendar ages, HPD ranges, plots.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rc">
+  <div class="ax-card">
+    <h2>Radiocarbon dates</h2>
+    <label>One date per line: a name (optional), the ¹⁴C age in years BP, and its ± error.
+      <textarea class="rc-in" rows="4" spellcheck="false">Hearth charcoal: 3000 30
+Bone collagen: 2450 25</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Show dates as <select class="rc-f"><option value="bcad">BC / AD</option><option value="bce">BCE / CE</option><option value="bp">cal BP</option></select></label>
+      <label>Plot <select class="rc-sel"></select></label>
+    </div>
+    <p class="ax-help">Use the conventional radiocarbon age your lab reports (BP = before 1950, with the ¹³C correction already made). The curve is IntCal20 for the Northern Hemisphere, on land. Samples from the Southern Hemisphere or the sea need SHCal20 or Marine20 instead.</p>
+    <p class="ax-err rc-err" hidden></p>
+  </div>
+
+  <div class="ax-card rc-out" hidden>
+    <h2>Calendar ages</h2>
+    <div class="ax-scroll"><table class="rc-tab"></table></div>
+    <canvas class="ax-fig rc-fig" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig rc-fig2" style="margin-top:14px"></canvas>
+    <p class="ax-help">The ranges are highest posterior density: the shortest set of years holding 68.3 % or 95.4 % of the probability. A wiggle in the curve can split a range in two. Quote the 95.4 % ranges, and the curve: "calibrated with IntCal20 (Reimer et al. 2020)".</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { readCurve, calibrate, calYear, at, type Curve, type Calibrated } from '../../lib/sci/radiocarbon';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let curve: Curve | null = null, figs: Figure[] = [], report: Section[] = [];
+  const curveReady = import('../../data/intcal20.txt?raw').then((m) => (curve = readCurve(m.default)));
+
+  const fmt = (bp: number) => {
+    const f = q<HTMLSelectElement>('.rc-f').value;
+    if (f === 'bp') return `${Math.round(bp)}`;
+    const y = calYear(Math.round(bp)); return `${y.year} ${f === 'bce' ? (y.era === 'AD' ? 'CE' : 'BCE') : y.era}`;
+  };
+  const range = (r: [number, number, number]) => `${fmt(r[0])} to ${fmt(r[1])}${q<HTMLSelectElement>('.rc-f').value === 'bp' ? ' cal BP' : ''} (${sig(r[2] * 100, 3)} %)`;
+
+  function read() {
+    const out: { name: string; age: number; err: number }[] = [], bad: number[] = [];
+    q<HTMLTextAreaElement>('.rc-in').value.split('\n').forEach((l, i) => {
+      if (!l.trim()) return;
+      const m = /^(.*?)[:\t]?\s*(-?[\d.,]+)\s*(?:±|\+\/-|[\s,;/])\s*([\d.,]+)\s*(?:BP)?\s*$/i.exec(l.trim());
+      if (!m) { bad.push(i + 1); return; }
+      const age = num(m[2]), err = num(m[3]);
+      if (!(age >= 0 && err > 0)) { bad.push(i + 1); return; }
+      out.push({ name: m[1].replace(/[:\s]+$/, '').trim() || `Date ${out.length + 1}`, age, err });
+    });
+    return { dates: out, bad };
+  }
+
+  async function calc() {
+    await curveReady;
+    const c = curve!, { dates, bad } = read(), e = q('.rc-err');
+    const msgs: string[] = []; if (bad.length) msgs.push(`Line ${bad.join(', ')}: type an age and an error, for example 3000 30.`);
+    const res: { name: string; age: number; err: number; r: Calibrated }[] = [];
+    for (const d of dates) {
+      if (d.age > 50100 + 3 * d.err) { msgs.push(`${d.name}: ${d.age} BP is beyond the curve, which ends at 55,000 cal BP (about 50,100 BP).`); continue; }
+      try { res.push({ ...d, r: calibrate(c, d.age, d.err) }); } catch (x) { msgs.push(`${d.name}: ${(x as Error).message}.`); }
+    }
+    e.textContent = msgs.join(' '); e.hidden = !msgs.length;
+    q('.rc-out').hidden = !res.length;
+    if (!res.length) { report = []; return; }
+    const sel = q<HTMLSelectElement>('.rc-sel'), prev = sel.value;
+    sel.replaceChildren(...res.map((d, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: d.name })));
+    sel.value = prev && Number(prev) < res.length ? prev : '0';
+    const head = ['Sample', '¹⁴C age', '68.3 % range', '95.4 % range', 'Median'];
+    const rows = res.map((d) => [d.name, `${d.age} ± ${d.err} BP`, d.r.hpd[0].ranges.map(range).join('; '), d.r.hpd[1].ranges.map(range).join('; '), fmt(d.r.median)]);
+    const tb = q<HTMLTableElement>('.rc-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = i === 2 || i === 3 ? t.split('; ').join('\n') : t; td.style.whiteSpace = i === 2 || i === 3 ? 'pre' : 'normal'; td.style.verticalAlign = 'top'; }); });
+    // Plots for the chosen date: its probability, and where it meets the curve.
+    const d = res[Number(sel.value)], { t, p } = d.r;
+    const keep: number[] = []; for (let i = 0; i < t.length; i++) if (p[i] > 1e-6 * Math.max(...p)) keep.push(i);
+    const a = Math.max(0, t[keep[0]] - 100), b = t[keep[keep.length - 1]] + 100;
+    const xs: number[] = [], ys: number[] = [];
+    for (let x = a; x <= b; x++) { const i = x - t[0]; xs.push(x); ys.push(i >= 0 && i < p.length ? p[i] : 0); }
+    const band = (s: number) => xs.map((x) => { const [m, er] = at(c, x); return m + s * er; });
+    const f1 = chartFigure({ h: 260, xLabel: 'Calendar age (cal BP, years before 1950)', yLabel: 'Probability', series: [{ name: d.name, x: xs, y: ys, mode: 'line' }], legend: 'none', yMin: 0,
+      marks: d.r.hpd[1].ranges.flatMap((r) => [{ kind: 'vline' as const, at: r[0] }, { kind: 'vline' as const, at: r[1] }]) }, `Calibrated probability for ${d.name}`);
+    const f2 = chartFigure({ h: 300, xLabel: 'Calendar age (cal BP)', yLabel: '¹⁴C age (BP)', series: [{ name: 'IntCal20', x: xs, y: band(0), mode: 'line' }, { name: 'IntCal20 ± 1σ', x: xs, y: band(1), mode: 'line', dash: [4, 3], width: 1, color: '#8a8a8a' }, { name: '', x: xs, y: band(-1), mode: 'line', dash: [4, 3], width: 1, color: '#8a8a8a' }],
+      marks: [{ kind: 'hline', at: d.age, label: `${d.age} BP` }, { kind: 'hline', at: d.age + 2 * d.err, dash: [2, 3] }, { kind: 'hline', at: d.age - 2 * d.err, dash: [2, 3] }], legend: 'none' }, `IntCal20 curve near ${d.name}`);
+    figs = [f1, f2];
+    paint(q<HTMLCanvasElement>('.rc-fig'), f1); paint(q<HTMLCanvasElement>('.rc-fig2'), f2);
+    report = [{ title: 'Radiocarbon calibration (IntCal20)', table: { head, rows, align: ['l', 'l', 'l', 'l', 'l'] }, text: ['Calibrated with IntCal20 (Reimer et al. 2020, Radiocarbon 62: 725–757), highest posterior density ranges.'] }, { title: d.name, figure: f1 }, { title: 'Curve', figure: f2 }];
+  }
+  let tm = 0;
+  q('.rc-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  q('.rc-f').addEventListener('change', calc); q('.rc-sel').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.rc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.rc-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Radiocarbon calibration', subtitle: 'IntCal20', file: 'radiocarbon', sections: report }));
+</script>
