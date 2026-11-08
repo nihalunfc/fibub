@@ -101,6 +101,7 @@ import * as CEN from '../src/lib/sci/centrifuge.ts';
 import * as AQ from '../src/lib/sci/aqi.ts';
 import * as ALT from '../src/lib/sci/altermagnet.ts';
 import * as PL from '../src/lib/sci/plume.ts';
+import * as MT from '../src/lib/sci/mccabe.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1651,6 +1652,49 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('plume: paired class averages sigmas', PL.sigmasFor(800, 'BC', 'rural').sz, (PL.sigmas(800, 'B', 'rural').sz + PL.sigmas(800, 'C', 'rural').sz) / 2, 1e-12);
   near('plume: urban A-B sigma-z', PL.sigmas(1000, 'A', 'urban').sz, 240 * Math.sqrt(2), 1e-9);
   check('plume: stable plumes spread less', PL.sigmas(2000, 'F', 'rural').sz < PL.sigmas(2000, 'D', 'rural').sz && PL.sigmas(2000, 'D', 'rural').sz < PL.sigmas(2000, 'A', 'rural').sz);
+}
+
+{
+  // McCabe-Thiele: alpha 2.5, xF 0.5 (saturated liquid), xD 0.95, xB 0.05.
+  const eq = MT.alphaEq(2.5);
+  near('mccabe: equilibrium', eq.y(0.5), 1.25 / 1.75, 1e-12);
+  near('mccabe: inverse equilibrium', eq.x(eq.y(0.3)), 0.3, 1e-12);
+  const m = MT.minReflux(eq, 0.5, 0.95, 1);
+  near('mccabe: Rmin by hand', m.Rmin, (0.95 - 1.25 / 1.75) / (1.25 / 1.75 - 0.5), 1e-9);
+  check('mccabe: no tangent pinch for constant alpha', !m.tangent);
+  // q = 0.5: q-line y = 1 - x meets the curve where 1.5x² + 2x - 1 = 0.
+  near('mccabe: q-line pinch', MT.qPinch(eq, 0.5, 0.5)[0], (-2 + Math.sqrt(10)) / 3, 1e-9);
+  near('mccabe: saturated vapour feed pinch', MT.qPinch(eq, 0.5, 0)[1], 0.5, 1e-12);
+  const spec = { xF: 0.5, xD: 0.95, xB: 0.05, q: 1, R: 1.5 * m.Rmin };
+  const st = MT.stepStages(eq, spec);
+  check('mccabe: 12 stages, feed on 6', st.N === 12 && st.feed === 6);
+  near('mccabe: operating lines meet on the q-line', st.intersect[1], (spec.R * 0.5 + 0.95) / (spec.R + 1), 1e-12);
+  near('mccabe: stripping line passes (xB, xB)', st.strip.s * 0.05 + st.strip.c, 0.05, 1e-12);
+  // Each step: y(n) on the curve with x(n); the next y on the operating line.
+  check('mccabe: steps lie on the curve', st.stages.every((s) => Math.abs(eq.y(s.x) - s.y) < 1e-9));
+  near('mccabe: Fenske', MT.fenske(0.95, 0.05, 2.5), Math.log(19 * 19) / Math.log(2.5), 1e-12);
+  const tot = MT.stepStages(eq, { ...spec, R: Infinity });
+  check('mccabe: total reflux steps close to Fenske', tot.N === 7 && Math.abs(tot.frac - MT.fenske(0.95, 0.05, 2.5)) < 0.15);
+  near('mccabe: Gilliland at R = Rmin gives infinity-like', MT.gilliland(m.Rmin, m.Rmin, 6.4268), (6.4268 + 0.75) / 0.25, 1e-9);
+  const fl = MT.flows(100, spec);
+  near('mccabe: D', fl.D, 50, 1e-9); near('mccabe: V below = V above for q = 1', fl.Vs, fl.V, 1e-9); near('mccabe: L below', fl.Ls, fl.L + 100, 1e-9);
+  near('mccabe: component balance', fl.D * 0.95 + fl.B * 0.05, 50, 1e-9);
+  let threw = false; try { MT.stepStages(eq, { ...spec, R: 0.9 * m.Rmin }); } catch { threw = true; }
+  check('mccabe: below minimum reflux refused', threw);
+  // Tangent pinch on a made-up curve that flattens near the top.
+  const tq = { y: (x) => x + 0.6 * x * (1 - x) ** 3, x: (y) => { let lo = 0, hi = 1; for (let k = 0; k < 80; k++) { const mid = (lo + hi) / 2; if (mid + 0.6 * mid * (1 - mid) ** 3 < y) lo = mid; else hi = mid; } return (lo + hi) / 2; }, label: 't' };
+  const tp = MT.minReflux(tq, 0.2, 0.9, 1);
+  let best = 0; for (let x = 0.2; x < 0.9; x += 1e-5) best = Math.max(best, (0.9 - tq.y(x)) / (0.9 - x));
+  check('mccabe: tangent pinch found', tp.tangent && tp.pinch[0] > 0.3);
+  near('mccabe: tangent pinch Rmin', tp.Rmin, best / (1 - best), 1e-5);
+  // Data curve: monotone cubic passes through the points and stays monotone.
+  const d = MT.dataEq([0.1, 0.3, 0.5, 0.7, 0.9], [0.3, 0.55, 0.7, 0.82, 0.94]);
+  near('mccabe: data curve hits a point', d.y(0.5), 0.7, 1e-12);
+  let mono = true, prev = -1; for (let x = 0; x <= 1; x += 0.001) { const y = d.y(x); if (y < prev - 1e-12) mono = false; prev = y; }
+  check('mccabe: data curve monotone', mono);
+  near('mccabe: data inverse', d.x(d.y(0.42)), 0.42, 1e-9);
+  let bad = false; try { MT.dataEq([0.2, 0.4], [0.5, 0.45]); } catch { bad = true; }
+  check('mccabe: falling data refused', bad);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
