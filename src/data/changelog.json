@@ -1,5 +1,14 @@
 [
  {
+  "sha": "e6400acb542e",
+  "date": "2026-11-08T20:13:44+00:00",
+  "title": "Add the traverse closure and area calculator (#132)",
+  "tools": [
+   "traverse-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "7dadda4082d5",
   "date": "2026-11-08T20:01:02+00:00",
   "title": "Add the drill hole composites and intercepts tool (#131)",
