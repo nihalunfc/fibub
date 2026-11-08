@@ -1,5 +1,14 @@
 [
  {
+  "sha": "f916447fef7c",
+  "date": "2026-11-08T11:06:47+00:00",
+  "title": "Add the glass transition (Tg) calculator (#102)",
+  "tools": [
+   "glass-transition-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "d7ad34b07f4a",
   "date": "2026-11-08T10:52:18+00:00",
   "title": "Add the copolymer composition and reactivity ratio calculator (#101)",
