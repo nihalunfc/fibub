@@ -1,5 +1,14 @@
 [
  {
+  "sha": "abf7d274dd3c",
+  "date": "2026-11-08T18:57:42+00:00",
+  "title": "Add the aquifer pump test analyser (#126)",
+  "tools": [
+   "pump-test-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "3da86558e8c9",
   "date": "2026-11-08T18:45:46+00:00",
   "title": "Add the Piper and Stiff diagram maker (#125)",
