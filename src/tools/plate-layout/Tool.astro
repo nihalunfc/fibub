@@ -1,0 +1,149 @@
+---
+// Plate layout designer: standards, samples, controls and blanks with replicates, on 6 to 1536 wells.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax plm">
+  <div class="ax-card">
+    <h2>Plate</h2>
+    <div class="ax-grid">
+      <label>Wells <select class="pl-size"><option>6</option><option>12</option><option>24</option><option>48</option><option selected>96</option><option>384</option><option>1536</option></select></label>
+      <label>Fill <select class="pl-dir"><option value="row">Across rows (A1, A2, …)</option><option value="col">Down columns (A1, B1, …)</option></select></label>
+      <label>Replicates <select class="pl-rep"><option value="across">Side by side, in a block</option><option value="along">One after another</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="pl-edge" /> Keep the edge wells empty</label>
+    </div>
+    <p class="ax-help">Edge wells dry out and warm up faster, which skews results ("edge effect"): many labs fill them with buffer instead. Tap any well on the map to keep it empty; tap again to use it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What goes on it</h2>
+    <div class="pl-groups">
+      <div class="pl-g" data-k="standard"><b><i class="pl-sw"></i>Standards</b><label>Names <textarea class="pl-n" rows="2" spellcheck="false">Std1-Std8</textarea></label><label>Replicates <input class="pl-r" inputmode="numeric" value="2" /></label></div>
+      <div class="pl-g" data-k="sample"><b><i class="pl-sw"></i>Samples</b><label>Names <textarea class="pl-n" rows="2" spellcheck="false">S1-S24</textarea></label><label>Replicates <input class="pl-r" inputmode="numeric" value="3" /></label></div>
+      <div class="pl-g" data-k="control"><b><i class="pl-sw"></i>Controls</b><label>Names <textarea class="pl-n" rows="2" spellcheck="false">Positive, Negative</textarea></label><label>Replicates <input class="pl-r" inputmode="numeric" value="2" /></label></div>
+      <div class="pl-g" data-k="blank"><b><i class="pl-sw"></i>Blanks</b><label>Names <textarea class="pl-n" rows="2" spellcheck="false">Blank</textarea></label><label>Replicates <input class="pl-r" inputmode="numeric" value="2" /></label></div>
+    </div>
+    <p class="ax-help">One name per line or separated by commas. "S1-S24" makes S1, S2 … S24.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Layout</h2>
+    <p class="ax-big pl-big"></p>
+    <p class="ax-err pl-err" hidden></p>
+    <div class="ax-scroll pl-wrap"><div class="pl-plate" role="grid" aria-label="Plate map"></div></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small pl-copy">Copy as a grid (for Excel)</button>
+      <button type="button" class="btn secondary small pl-csv">Download CSV (well list)</button>
+      <button type="button" class="btn secondary small pl-clear">Use all wells again</button>
+    </div>
+    <Downloads label="Plate map" />
+  </div>
+</div>
+
+<style is:global>
+  .pl-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .pl-g { display: grid; gap: 6px; }
+  .pl-g b { display: flex; align-items: center; gap: 6px; }
+  .pl-sw { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--ink); }
+  .pl-g[data-k=standard] .pl-sw, .pl-w.standard { background: #0072B2; }
+  .pl-g[data-k=sample] .pl-sw, .pl-w.sample { background: #E69F00; }
+  .pl-g[data-k=control] .pl-sw, .pl-w.control { background: #009E73; }
+  .pl-g[data-k=blank] .pl-sw, .pl-w.blank { background: #CC79A7; }
+  .pl-plate { display: grid; gap: 3px; width: max-content; padding: 2px; }
+  .pl-plate .pl-h { font-size: 11px; color: var(--muted); text-align: center; align-self: center; }
+  .pl-w { width: var(--d); height: var(--d); border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: #000; font-size: 9px; line-height: 1; padding: 0; overflow: hidden; cursor: pointer; display: grid; place-items: center; }
+  .pl-w.off { background: repeating-linear-gradient(45deg, var(--bg) 0 3px, var(--line) 3px 5px); }
+  .pl-w:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  html.red-mode .pl-w.standard, html.red-mode .pl-w.sample, html.red-mode .pl-w.control, html.red-mode .pl-w.blank { background: #5a0000; }
+</style>
+
+<script>
+  import { PLATES, layout, names, rowName, type Group, type Kind, type Well } from '../../lib/sci/plate';
+  import { csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>(".plm")!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const skip = new Set<string>();
+  let wells: Well[] = [], report: Section[] = [];
+  const COL: Record<Kind, string> = { standard: '#0072B2', sample: '#E69F00', control: '#009E73', blank: '#CC79A7' };
+  const LABEL: Record<Kind, string> = { standard: 'Standard', sample: 'Sample', control: 'Control', blank: 'Blank' };
+
+  function groups(): Group[] {
+    return [...root.querySelectorAll<HTMLElement>('.pl-g')].map((g) => ({ kind: g.dataset.k as Kind, names: names((g.querySelector('.pl-n') as HTMLTextAreaElement).value), reps: Math.min(48, Math.max(1, Math.round(Number((g.querySelector('.pl-r') as HTMLInputElement).value) || 1))) }));
+  }
+
+  function draw() {
+    const size = Number(q<HTMLSelectElement>('.pl-size').value), [R, C] = PLATES[size];
+    for (const n of [...skip]) { const m = /^([A-Z]+)(\d+)$/.exec(n)!; const r = m[1].length === 1 ? m[1].charCodeAt(0) - 65 : 26 + m[1].charCodeAt(1) - 65; if (r >= R || Number(m[2]) > C) skip.delete(n); }
+    const res = layout(groups(), { size, byColumn: q<HTMLSelectElement>('.pl-dir').value === 'col', repsAcross: q<HTMLSelectElement>('.pl-rep').value === 'across', skipEdge: q<HTMLInputElement>('.pl-edge').checked, skip });
+    wells = res.wells;
+    const free = wells.length - skip.size;
+    q('.pl-big').textContent = `${res.placed} of ${res.needed} wells placed on a ${size}-well plate`;
+    const err = q('.pl-err');
+    err.hidden = res.placed >= res.needed;
+    err.textContent = `${res.needed - res.placed} wells did not fit. Use a bigger plate, fewer replicates, or fill the edge wells.${q<HTMLSelectElement>('.pl-rep').value === 'across' ? ' Replicates in blocks also need room in one column or row; "One after another" packs tighter.' : ''}`;
+    const plate = q('.pl-plate'), d = size >= 1536 ? 14 : size >= 384 ? 22 : size >= 96 ? 34 : 54;
+    plate.style.setProperty('--d', `${d}px`);
+    plate.style.gridTemplateColumns = `auto repeat(${C}, var(--d))`;
+    const frag: HTMLElement[] = [Object.assign(document.createElement('span'), { className: 'pl-h' })];
+    for (let c = 0; c < C; c++) frag.push(Object.assign(document.createElement('span'), { className: 'pl-h', textContent: String(c + 1) }));
+    for (let r = 0; r < R; r++) {
+      frag.push(Object.assign(document.createElement('span'), { className: 'pl-h', textContent: rowName(r) }));
+      for (let c = 0; c < C; c++) {
+        const w = wells[r * C + c], b = document.createElement('button');
+        b.type = 'button'; b.className = `pl-w ${w.kind ?? ''}${skip.has(w.name) ? ' off' : ''}`;
+        b.dataset.w = w.name;
+        b.title = `${w.name}: ${skip.has(w.name) ? 'kept empty' : w.content ? `${w.content}${w.rep ? ` (replicate ${w.rep})` : ''}` : 'empty'}`;
+        b.setAttribute('aria-label', b.title);
+        if (d >= 34 && w.content) b.textContent = w.content.length > 4 ? w.content.slice(0, 4) : w.content;
+        frag.push(b);
+      }
+    }
+    plate.replaceChildren(...frag);
+    const counts = (['standard', 'sample', 'control', 'blank'] as Kind[]).map((k) => [LABEL[k], String(wells.filter((w) => w.kind === k).length)]);
+    report = [{ title: `${size}-well plate layout`, facts: [['Wells used', `${res.placed} of ${free}`], ...counts.map(([a, b]) => [a + ' wells', b] as [string, string])], figure: plateFigure(R, C) }];
+  }
+
+  function plateFigure(R: number, C: number): Figure {
+    const cell = Math.max(10, Math.min(46, Math.floor(1000 / (C + 1)))), w = (C + 1) * cell + 20, h = (R + 1) * cell + 60;
+    return { w, h, alt: 'Plate map', draw: (ctx, W, H, pal) => {
+      const s = W / w; ctx.save(); ctx.scale(s, s);
+      ctx.font = `${Math.max(7, cell * 0.32)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let c = 0; c < C; c++) { ctx.fillStyle = pal.muted; ctx.fillText(String(c + 1), cell * (c + 1.5), cell * 0.5); }
+      for (let r = 0; r < R; r++) {
+        ctx.fillStyle = pal.muted; ctx.fillText(rowName(r), cell * 0.5, cell * (r + 1.5));
+        for (let c = 0; c < C; c++) {
+          const wl = wells[r * C + c], x = cell * (c + 1.5), y = cell * (r + 1.5);
+          ctx.beginPath(); ctx.arc(x, y, cell * 0.42, 0, Math.PI * 2);
+          ctx.fillStyle = skip.has(wl.name) ? pal.grid : wl.kind ? (pal.red ? '#5a0000' : COL[wl.kind]) : pal.bg; ctx.fill();
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.stroke();
+          if (wl.content && cell >= 28) { ctx.fillStyle = pal.red ? '#a30000' : '#000'; ctx.fillText(wl.content.slice(0, 5), x, y); }
+        }
+      }
+      let lx = 10; const ly = (R + 1) * cell + 30;
+      ctx.textAlign = 'left';
+      for (const k of ['standard', 'sample', 'control', 'blank'] as Kind[]) { ctx.beginPath(); ctx.arc(lx + 7, ly, 7, 0, Math.PI * 2); ctx.fillStyle = pal.red ? '#5a0000' : COL[k]; ctx.fill(); ctx.fillStyle = pal.ink; ctx.font = '14px system-ui, sans-serif'; ctx.fillText(LABEL[k], lx + 20, ly); lx += 120; }
+      ctx.restore();
+    } };
+  }
+
+  q('.pl-plate').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.pl-w'); if (!b) return;
+    const n = b.dataset.w!; skip.has(n) ? skip.delete(n) : skip.add(n);
+    draw(); q<HTMLButtonElement>(`.pl-w[data-w="${n}"]`).focus();
+  });
+  q('.pl-clear').addEventListener('click', () => { skip.clear(); q<HTMLInputElement>('.pl-edge').checked = false; draw(); });
+  q('.pl-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['Well', 'Row', 'Column', 'Type', 'Content', 'Replicate'], ...wells.map((w) => [w.name, rowName(w.r), w.c + 1, skip.has(w.name) ? 'Empty (kept)' : w.kind ? LABEL[w.kind] : 'Empty', w.content ?? '', w.rep ?? ''])])), `plate-${q<HTMLSelectElement>('.pl-size').value}.csv`, 'text/csv'));
+  q('.pl-copy').addEventListener('click', async () => {
+    const [R, C] = PLATES[Number(q<HTMLSelectElement>('.pl-size').value)];
+    const lines = [['', ...Array.from({ length: C }, (_, c) => String(c + 1))].join('\t')];
+    for (let r = 0; r < R; r++) lines.push([rowName(r), ...Array.from({ length: C }, (_, c) => wells[r * C + c].content ?? '')].join('\t'));
+    try { await navigator.clipboard.writeText(lines.join('\n')); q('.pl-copy').textContent = 'Copied'; setTimeout(() => (q('.pl-copy').textContent = 'Copy as a grid (for Excel)'), 1500); } catch { /* clipboard blocked */ }
+  });
+  let t = 0;
+  root.querySelectorAll('.pl-g textarea, .pl-g input').forEach((el) => el.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(draw, 200); }));
+  root.querySelectorAll('.pl-size, .pl-dir, .pl-rep, .pl-edge').forEach((el) => el.addEventListener('change', draw));
+  draw();
+  wireDownloads(q('.dl'), () => ({ title: 'Plate layout', subtitle: q('.pl-big').textContent ?? '', file: 'plate-layout', sections: report }));
+</script>

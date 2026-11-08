@@ -1008,6 +1008,82 @@ try {
     await page.waitForSelector('.pm-err:not([hidden])');
     check(/two columns/.test(await page.textContent('.pm-err')), 'plot maker: one column gives a plain message');
   }
+  // Science batch B.
+  {
+    const dl = async (p, sel) => { const [d] = await Promise.all([p.waitForEvent('download'), p.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+    await page.goto(BASE + '/science/solution-calculator/');
+    check((await page.textContent('.sc-out')) === 'Weigh 7.305 g', `solutions: 0.5 M NaCl in 250 mL (${await page.textContent('.sc-out')})`);
+    await page.selectOption('.sc-solve', 'conc'); await page.fill('.sc-m', '9'); await page.selectOption('.sc-cu', 'mg/mL'); await page.fill('.sc-v', '1'); await page.selectOption('.sc-vu', 'L');
+    check((await page.textContent('.sc-out')) === '9 mg/mL', `solutions: concentration from mass (${await page.textContent('.sc-out')})`);
+    check((await page.textContent('.sc-dout')) === 'Take 5 of stock and add 45 of diluent', `solutions: C1V1 (${await page.textContent('.sc-dout')})`);
+    await page.fill('.sc-d[data-k=c2]', '20');
+    check(/cannot dilute up/.test(await page.textContent('.sc-derr')), 'solutions: diluting up is refused');
+    const ser = await page.$$eval('.sc-tab tbody tr', (rs) => rs.map((r) => r.cells[3].textContent));
+    check(ser.length === 6 && ser[5] === '0.001' && /move 100 µL/.test(await page.textContent('.sc-sout')), `solutions: serial plan (${ser.join(', ')})`);
+
+    await page.goto(BASE + '/science/pcr-master-mix/');
+    const mm = await page.$$eval('.mm-tab tbody tr, .mm-tab tfoot tr', (rs) => rs.map((r) => [...r.cells].slice(1).map((c) => c.textContent)));
+    check(mm.find((r) => /Water/.test(r[0]))?.[1] === '40.75' && mm[mm.length - 1][2] === '539', `master mix: NEB Taq recipe, water 40.75 µL, 539 µL in all`);
+    await page.click('.mm-tab tbody tr input');
+    check(await page.$eval('.mm-tab tbody tr', (r) => r.classList.contains('done')), 'master mix: a line can be ticked off');
+    await page.fill('.mm-n', '96');
+    await page.waitForFunction(() => /96 tubes/.test(document.querySelector('.mm-big').textContent));
+    check(await page.$eval('.mm-tab tbody tr', (r) => r.classList.contains('done')), 'master mix: ticks stay when the numbers change');
+    await page.locator('.mm-row').nth(1).locator('.c-fu').selectOption('X');
+    await page.waitForSelector('.mm-err:not([hidden])');
+    check(/do not match/.test(await page.textContent('.mm-err')), 'master mix: mismatched units are explained');
+    await page.locator('.mm-row').nth(1).locator('.c-fu').selectOption('µM');
+    const mmPdf = await dl(page, '.dl [data-f=pdf]');
+    check((await PDFDocument.load(readFileSync(mmPdf))).getPageCount() >= 1, 'master mix: printable PDF');
+
+    await page.goto(BASE + '/science/sample-size/');
+    check((await page.textContent('.ss-big')) === '64 per group', `sample size: d = 0.5, power 0.8 gives ${await page.textContent('.ss-big')} (R: 63.77)`);
+    await page.selectOption('.ss-k', 'prop'); await page.selectOption('.ss-pw', '0.9');
+    check((await page.textContent('.ss-big')) === '77 per group', `sample size: 50 % against 75 % (${await page.textContent('.ss-big')})`);
+    await page.selectOption('.ss-k', 'survey'); await page.fill('.ss-N', '1000');
+    await page.waitForFunction(() => document.querySelector('.ss-big').textContent === '278 responses');
+    check(true, 'sample size: survey of 1000 people needs 278');
+    await page.selectOption('.ss-k', 'two-sample'); await page.fill('.ss-diff', '0');
+    await page.waitForSelector('.ss-err:not([hidden])');
+    check(true, 'sample size: a zero difference gives a plain message');
+
+    await page.goto(BASE + '/science/stereonet/');
+    check(/8 planes, 3 lines/.test(await page.textContent('.sn-facts')), 'stereonet: reads the sample planes and lines');
+    await page.fill('.sn-planes', '030 40\n025 45\n035 38\n028 50\nN30E 40');
+    await page.waitForFunction(() => /^Data4 planes/.test(document.querySelector('.sn-facts').textContent));
+    const sf = await page.textContent('.sn-facts');
+    check(/46\.8° → 299/.test(sf) && /029 \/ 43\.2/.test(sf), `stereonet: mean pole and plane of the bedding (${sf.slice(0, 120)})`);
+    check(/line 5/.test(await page.textContent('.sn-err')), 'stereonet: a line it cannot read is named');
+    const svgN = readFileSync(await dl(page, '.sn .dl [data-f=svg]'), 'utf8');
+    check(/<svg/.test(svgN) && (svgN.match(/<circle/g) || []).length >= 5, 'stereonet: SVG download');
+    const polesCsv = readFileSync(await dl(page, '.sn-csv'), 'utf8').trim().split('\n');
+    check(polesCsv.length === 5 && polesCsv[1] === '030,40,120,300,50', `stereonet: poles CSV (${polesCsv[1]})`);
+
+    await page.goto(BASE + '/science/psychrometric-calculator/');
+    check(/50 % RH, dew point 13\.9 °C/.test(await page.textContent('.ps-big')), `psychrometrics: 25 °C 50 % (${await page.textContent('.ps-big')})`);
+    await page.fill('.ps-t', '40'); await page.selectOption('.ps-k', 'tw'); await page.fill('.ps-v', '20');
+    await page.waitForFunction(() => /^14 % RH/.test(document.querySelector('.ps-big').textContent));
+    const pf = await page.textContent('.ps-facts');
+    check(/6\.40\d g\/kg/.test(pf) && /56\.7\d? kJ\/kg/.test(pf), `psychrometrics: ASHRAE example (${pf.slice(0, 160)})`);
+    await page.selectOption('.ps-u', 'F');
+    check((await page.inputValue('.ps-t')) === '104' && /^14 % RH/.test(await page.textContent('.ps-big')), 'psychrometrics: °F keeps the same air');
+    await page.selectOption('.ps-k', 'rh'); await page.fill('.ps-t', '90'); await page.fill('.ps-v', '70');
+    await page.waitForFunction(() => /106 °F/.test(document.querySelector('.ps-heat').textContent));
+    check(/danger/.test(await page.textContent('.ps-heat')), 'psychrometrics: heat index 106 °F at 90 °F and 70 %');
+
+    await page.goto(BASE + '/science/plate-layout/');
+    check((await page.textContent('.pl-big')) === '94 of 94 wells placed on a 96-well plate' && (await page.locator('.pl-plate .pl-w').count()) === 96, `plate: ELISA example fits (${await page.textContent('.pl-big')})`);
+    check((await page.getAttribute('.pl-w[data-w=B1]', 'title')) === 'B1: Std1 (replicate 2)', 'plate: replicates sit in a block');
+    await page.check('.pl-edge');
+    check(await page.isVisible('.pl-err') && /\d+ wells did not fit/.test(await page.textContent('.pl-err')) && /^(5\d|60) of 94/.test(await page.textContent('.pl-big')), `plate: edge wells kept empty (${await page.textContent('.pl-err')})`);
+    await page.uncheck('.pl-edge');
+    await page.click('.pl-w[data-w=A1]');
+    check((await page.getAttribute('.pl-w[data-w=A1]', 'title')) === 'A1: kept empty' && (await page.getAttribute('.pl-w[data-w=A2]', 'title')) === 'A2: Std1 (replicate 1)', 'plate: tapping a well keeps it empty and the layout moves on');
+    const plCsv = readFileSync(await dl(page, '.pl-csv'), 'utf8').trim().split('\n');
+    check(plCsv.length === 97 && plCsv[1] === 'A1,A,1,Empty (kept),,', `plate: CSV lists all 96 wells (${plCsv[1]})`);
+    await page.selectOption('.pl-size', '1536');
+    check((await page.locator('.pl-plate .pl-w').count()) === 1536, 'plate: 1536-well plate draws');
+  }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
   // 9. Phone: 50 MB limit, layout fits.
@@ -1018,7 +1094,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -1042,7 +1118,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
