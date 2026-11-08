@@ -117,6 +117,8 @@ import * as DH from '../src/lib/sci/drillhole.ts';
 import * as TRV from '../src/lib/sci/traverse.ts';
 import * as LVL from '../src/lib/sci/levelling.ts';
 import * as GPS from '../src/lib/sci/gpstrack.ts';
+import * as TIF from '../src/lib/sci/tiff.ts';
+import * as SPX from '../src/lib/sci/spectral.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2116,6 +2118,54 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const noisy = [100, 102, 100, 102, 100, 102].map((ele, k) => ({ lat: 0, lon: k * 1e-4, ele, seg: 0 }));
   check('gps: height noise below the step is not climbing', GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 5, ellipsoid: false }).gain === 0 && GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 0, ellipsoid: false }).gain === 6);
   check('gps: durations', GPS.fmtDuration(3725) === '1:02:05' && GPS.fmtDuration(247) === '4:07');
+}
+
+// TIFF reader (fixtures written with Pillow/libtiff) and writer; spectral indices.
+{
+  const { readFileSync } = await import('node:fs');
+  const fx = (f) => { const b = readFileSync(new URL('./fixtures/' + f, import.meta.url)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
+  for (const f of ['u16-lzw.tif', 'u16-deflate.tif', 'u16-lzw-pred.tif']) {
+    const r = TIF.readTiff(fx(f));
+    check(`tiff: ${f}`, r.width === 37 && r.height === 23 && r.bands.length === 1 && r.bands[0][2 * 37 + 3] === 539 && r.bands[0][36] === 252);
+  }
+  const rgb = TIF.readTiff(fx('rgb-packbits.tif'));
+  check('tiff: PackBits RGB', rgb.bands.length === 3 && rgb.bands[0][77] === 77 && rgb.bands[1][5] === 15 && rgb.bands[2][400] === 200);
+  for (const f of ['f32-lzw.tif', 'f32-deflate-pred3.tif']) near(`tiff: ${f}`, TIF.readTiff(fx(f)).bands[0][2 * 37 + 3], 2.7, 1e-6);
+  const big = TIF.readTiff(fx('u8-lzw-big.tif'));
+  check('tiff: long LZW stream (12-bit codes, table resets)', big.bands[0].reduce((s, x) => s + x, 0) === 801247 && big.bands[0][100 * 160 + 57] === 24);
+  let msg = '';
+  try { TIF.readTiff(new Uint8Array([0x49, 0x49, 43, 0, 8, 0, 0, 0]).buffer); } catch (e) { msg = e.message; }
+  check('tiff: BigTIFF explained', /BigTIFF/.test(msg));
+  // Round trip with georeferencing (UTM-like, metres) and Deflate.
+  const geoTags = new Map([[33550, { type: 12, count: 3, values: [30, 30, 0] }], [33922, { type: 12, count: 6, values: [0, 0, 0, 500000, 4600000, 0] }], [34735, { type: 3, count: 12, values: [1, 1, 0, 2, 1024, 0, 1, 1, 3072, 0, 1, 32617] }]]);
+  const b1 = Float32Array.from({ length: 50 * 20 }, (_, i) => i / 7), b2 = Float32Array.from({ length: 1000 }, (_, i) => (i % 3 ? -i : NaN));
+  for (const z of [false, true]) {
+    const back = TIF.readTiff(TIF.writeTiff(50, 20, [b1, b2], geoTags, z).buffer);
+    check(`tiff: round trip${z ? ' (Deflate)' : ''}`, back.width === 50 && back.height === 20 && back.bands[0][999] === b1[999] && back.bands[1][4] === -4 && Number.isNaN(back.bands[1][3]));
+    check(`tiff: georeferencing kept${z ? ' (Deflate)' : ''}`, back.geo.model === 1 && back.geo.epsg === 32617 && back.geo.scale[0] === 30 && back.geo.tie[2] === 500000);
+  }
+  // Indices on single values.
+  const one = (v) => Float32Array.of(v);
+  const bands = { blue: one(0.04), green: one(0.08), red: one(0.05), nir: one(0.4), swir1: one(0.2), swir2: one(0.1) };
+  const get = (id) => SPX.computeIndex(SPX.INDICES.find((d) => d.id === id), bands, 1)[0];
+  near('spectral: NDVI', get('ndvi'), 0.35 / 0.45, 1e-6);
+  near('spectral: NDWI', get('ndwi'), -0.32 / 0.48, 1e-6);
+  near('spectral: MNDWI', get('mndwi'), -0.12 / 0.28, 1e-6);
+  near('spectral: NBR', get('nbr'), 0.3 / 0.5, 1e-6);
+  near('spectral: NDBI', get('ndbi'), -0.2 / 0.6, 1e-6);
+  near('spectral: EVI', get('evi'), 2.5 * 0.35 / (0.4 + 0.3 - 0.3 + 1), 1e-6);
+  near('spectral: SAVI', SPX.computeIndex(SPX.INDICES.find((d) => d.id === 'savi'), bands, 1, 1, 0, 0.5)[0], 1.5 * 0.35 / 0.95, 1e-6);
+  near('spectral: scale and offset', SPX.computeIndex(SPX.INDICES[0], { nir: one(20000), red: one(9000) }, 1, 0.0000275, -0.2)[0], (0.35 - 0.0475) / (0.35 + 0.0475), 1e-5);
+  near('spectral: custom', SPX.computeIndex('custom', { a: one(3), b: one(1) }, 1)[0], 0.5, 1e-9);
+  check('spectral: missing input gives no value', Number.isNaN(SPX.computeIndex(SPX.INDICES[0], { nir: one(NaN), red: one(1) }, 1)[0]));
+  const st = SPX.stats(Float32Array.of(1, 2, 3, 4, NaN));
+  check('spectral: stats', st.n === 4 && st.mean === 2.5 && st.median === 2.5 && st.min === 1 && Math.abs(st.sd - Math.sqrt(5 / 3)) < 1e-12);
+  const th = SPX.threshold(Float32Array.of(0.1, 0.5, 0.7, NaN), 0.3);
+  check('spectral: threshold', th.count === 2 && th.valid === 3);
+  check('spectral: histogram', SPX.histogram(Float32Array.of(0, 0.1, 0.99, 1), 0, 1, 10).map((h) => h.count).join() === '1,1,0,0,0,0,0,0,0,2');
+  check('spectral: projected pixel area', SPX.rowAreas(3, { model: 1, scale: [30, 30] })[2] === 900);
+  // A 1° × 1° cell at the equator on the sphere: R² × (π/180) × sin 1°.
+  near('spectral: geographic pixel area', SPX.rowAreas(1, { model: 2, scale: [1, 1], tie: [0, 0, 0, 1] })[0], 6371008.8 ** 2 * (Math.PI / 180) * Math.sin(Math.PI / 180), 1);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

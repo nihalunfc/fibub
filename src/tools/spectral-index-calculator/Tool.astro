@@ -1,0 +1,238 @@
+---
+// Spectral indices (NDVI, NDWI, NBR, ...) from the user's own GeoTIFF bands, read on the device. Example scene made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const BANDS = [['blue', 'Blue'], ['green', 'Green'], ['red', 'Red'], ['nir', 'Near infrared (NIR)'], ['swir1', 'Shortwave infrared 1 (SWIR1, about 1.6 µm)'], ['swir2', 'Shortwave infrared 2 (SWIR2, about 2.2 µm)']];
+---
+<div class="ax spx">
+  <div class="ax-card">
+    <h2>Image</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sp-open">Open GeoTIFF files</button>
+      <input type="file" class="sp-in" accept=".tif,.tiff,image/tiff" multiple hidden />
+      <button type="button" class="btn secondary small sp-demo">Use the example scene</button>
+    </div>
+    <p class="ax-help">One multiband GeoTIFF, or one file per band (same size). Up to 300 MB per file and 80 million values in all. Uncompressed, LZW, Deflate or PackBits; not JPEG-compressed or BigTIFF. <strong>Your files stay on this device</strong>: they are read in your browser and never uploaded.</p>
+    <p class="ax-help sp-note"></p>
+    <div class="ax-grid">
+      {BANDS.map(([id, label]) => <label>{label} <select class={`sp-b-${id}`} data-band={id}></select></label>)}
+      <label>Scale (reflectance = DN × scale + offset) <input class="sp-scale" type="text" inputmode="decimal" value="1" /></label>
+      <label>Offset <input class="sp-off" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Use the scale and offset from your product's own documentation (many surface reflectance products store whole numbers). Leave 1 and 0 if the bands already hold reflectance.</p>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Index</h2>
+    <div class="ax-grid">
+      <label>Index <select class="sp-idx"></select></label>
+      <label class="sp-Lbox">SAVI soil factor L <input class="sp-L" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="sp-cbox">Custom: band a <select class="sp-ca"></select></label>
+      <label class="sp-cbox">Custom: band b <select class="sp-cb"></select></label>
+      <label>Colours <select class="sp-ramp"><option value="auto" selected>To suit the index</option><option value="veg">Brown to green</option><option value="water">Brown to blue</option><option value="grey">Grey</option></select></label>
+      <label>Stretch <select class="sp-str"><option value="fixed" selected>−1 to +1</option><option value="pct">2 % to 98 % of the values</option></select></label>
+      <label>Threshold <input class="sp-t" type="text" inputmode="decimal" value="0.3" /></label>
+      <label>Count pixels <select class="sp-dir"><option value="above" selected>Above the threshold</option><option value="below">Below the threshold</option></select></label>
+      <label><input class="sp-mask" type="checkbox" /> Show only the counted pixels</label>
+      <label class="sp-pxbox">Pixel size (m) when the file has none <input class="sp-px" type="text" inputmode="decimal" value="" placeholder="e.g. 10 or 30" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card sp-out">
+    <h2>Result</h2>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <canvas class="ax-fig sp-fig"></canvas>
+    <canvas class="ax-fig sp-hist"></canvas>
+    <div class="ax-row" style="margin:6px 0 10px">
+      <button type="button" class="btn secondary small sp-geotiff">Index as GeoTIFF</button>
+      <button type="button" class="btn secondary small sp-csv">Sample as CSV</button>
+    </div>
+    <p class="ax-help">The GeoTIFF is 32-bit float with the same georeferencing as your file and no data as NaN. The CSV holds up to 100,000 evenly spaced pixels.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readTiff, writeTiff, type Raster, type Tag, type GeoInfo } from '../../lib/sci/tiff';
+  import { INDICES, computeIndex, stats, histogram, threshold, rowAreas, type BandName } from '../../lib/sci/spectral';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.spx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const tx = (x: number) => String(+x.toPrecision(6));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAMES: BandName[] = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'];
+  const MAX_FILE = 300e6, MAX_VALUES = 80e6;
+  type Scene = { width: number; height: number; bands: Float32Array[]; labels: string[]; geo: GeoInfo; geoTags: Map<number, Tag>; info: string };
+  let scene: Scene | null = null, index: Float32Array | null = null, figs: Record<string, Figure> = {}, report: Section[] = [];
+
+  // ---------- Example scene: made up, 200 × 150 pixels of 30 m, six reflectance bands ----------
+  function demoScene(): Scene {
+    const W = 200, H = 150, n = W * H;
+    let seed = 12345; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+    // Reflectance of each cover type in blue, green, red, NIR, SWIR1, SWIR2 (made-up typical values).
+    const C: Record<string, number[]> = { water: [0.06, 0.07, 0.04, 0.02, 0.012, 0.006], forest: [0.03, 0.06, 0.03, 0.34, 0.16, 0.07], crop: [0.05, 0.09, 0.06, 0.44, 0.22, 0.1], burn: [0.05, 0.06, 0.08, 0.12, 0.2, 0.25], town: [0.1, 0.12, 0.14, 0.2, 0.28, 0.24], soil: [0.1, 0.14, 0.2, 0.28, 0.35, 0.3] };
+    const bands = NAMES.map(() => new Float32Array(n));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      // Wavy edges so the shapes look less like boxes.
+      const u = x + 5 * Math.sin(y / 9), w = y + 4 * Math.sin(x / 11);
+      let t = 'crop';
+      if (((u - 55) / 38) ** 2 + ((w - 45) / 26) ** 2 < 1) t = 'water';
+      else if ((u - 70) ** 2 + (w - 115) ** 2 < 22 ** 2) t = 'burn';
+      else if (u < 90 && w > 80) t = 'forest';
+      else if (u > 150 && w < 60) t = 'town';
+      else if (u > 100 && ((Math.floor(u / 25) + Math.floor(w / 30)) % 2 === 0)) t = 'soil';
+      const i = y * W + x, v = C[t];
+      // Each field has its own vigour; plants get more NIR and less red as vigour rises.
+      const field = Math.floor(u / 25) * 7 + Math.floor(w / 30), vig = t === 'crop' || t === 'forest' ? 0.75 + 0.5 * ((field * 0.618) % 1) : 1;
+      for (let b = 0; b < 6; b++) { const g = b === 3 ? vig : b === 2 ? 1 / vig : 1; bands[b][i] = Math.max(0.001, v[b] * g * (1 + 0.1 * (rnd() - 0.5))); }
+    }
+    const geoTags = new Map<number, Tag>([[33550, { type: 12, count: 3, values: [30, 30, 0] }], [33922, { type: 12, count: 6, values: [0, 0, 0, 600000, 4800000, 0] }], [34735, { type: 3, count: 16, values: [1, 1, 0, 3, 1024, 0, 1, 1, 3072, 0, 1, 32617, 3076, 0, 1, 9001] }]]);
+    return { width: W, height: H, bands, labels: ['blue', 'green', 'red', 'NIR', 'SWIR1', 'SWIR2'].map((b, i) => `Band ${i + 1}: ${b} (example)`), geo: { scale: [30, 30], tie: [0, 0, 600000, 4800000], model: 1, epsg: 32617, linearUnit: 9001 }, geoTags, info: 'Example scene (made up): 200 × 150 pixels of 30 m, six bands of reflectance' };
+  }
+
+  function fillBandSelects() {
+    if (!scene) return;
+    const opts = (s: HTMLSelectElement, def: number) => { s.replaceChildren(); const o = document.createElement('option'); o.value = ''; o.textContent = '— none —'; s.append(o); scene!.labels.forEach((l, i) => { const e = document.createElement('option'); e.value = String(i); e.textContent = l; s.append(e); }); s.value = def >= 0 && def < scene!.labels.length ? String(def) : ''; };
+    // Guess from labels, else bands 1-6 in order when there are 6 or more, else leave empty.
+    NAMES.forEach((b, k) => { const re = new RegExp(b === 'nir' ? '\\bnir\\b|near' : `\\b${b}\\b`, 'i'); const hit = scene!.labels.findIndex((l) => re.test(l)); opts(q<HTMLSelectElement>(`.sp-b-${b}`), hit >= 0 ? hit : scene!.labels.length >= 6 ? k : -1); });
+    opts(q<HTMLSelectElement>('.sp-ca'), 0); opts(q<HTMLSelectElement>('.sp-cb'), Math.min(1, scene.labels.length - 1));
+  }
+
+  const RAMPS: Record<string, string[]> = { veg: ['#7a4a1d', '#d9c08c', '#f4f2ea', '#9ccf86', '#1e6b2e'], water: ['#7a4a1d', '#d9c08c', '#f4f2ea', '#8cbbe0', '#1f4f99'], grey: ['#000000', '#ffffff'] };
+  const hex = (h: string) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  function rampFn(name: string, pal: Palette) {
+    const stops = (pal.red ? ['#000000', '#c00000'] : RAMPS[name]).map(hex);
+    return (t: number) => { const u = Math.max(0, Math.min(1, t)) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(u)), f = u - i; return stops[i].map((c, k) => Math.round(c + f * (stops[i + 1][k] - c))); };
+  }
+
+  function calc() {
+    const err = q('.sp-err'), out = q('.sp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; index = null; };
+    if (!scene) return fail('Open a GeoTIFF, or use the example scene.');
+    const idSel = sel('.sp-idx'), def = idSel === 'custom' ? 'custom' as const : INDICES.find((d) => d.id === idSel)!;
+    q('.sp-Lbox').hidden = idSel !== 'savi'; root.querySelectorAll<HTMLElement>('.sp-cbox').forEach((e) => (e.hidden = idSel !== 'custom'));
+    const map: Partial<Record<BandName | 'a' | 'b', Float32Array>> = {};
+    NAMES.forEach((b) => { const v = sel(`.sp-b-${b}`); if (v !== '') map[b] = scene!.bands[+v]; });
+    if (def === 'custom') { const a = sel('.sp-ca'), b = sel('.sp-cb'); if (a === '' || b === '') return fail('Choose bands a and b for the custom index.'); map.a = scene.bands[+a]; map.b = scene.bands[+b]; }
+    else { const miss = def.needs.filter((b) => !map[b]); if (miss.length) return fail(`${def.name.split(' ')[0]} needs the ${miss.map((m) => (m === 'nir' ? 'NIR' : m.startsWith('swir') ? m.toUpperCase() : m)).join(' and ')} band${miss.length > 1 ? 's' : ''}. Choose ${miss.length > 1 ? 'them' : 'it'} above.`); }
+    const scale = val('.sp-scale'), off = val('.sp-off'), L = val('.sp-L');
+    if (!Number.isFinite(scale) || scale === 0 || !Number.isFinite(off)) return fail('Give a scale (not zero) and an offset.');
+    if (idSel === 'savi' && !(L >= 0 && L <= 1)) return fail('L is between 0 and 1 (0.5 suits most land).');
+    err.hidden = true; out.hidden = false;
+    const { width: W, height: H } = scene, n = W * H;
+    index = computeIndex(def, map, n, scale, off, L);
+    const st = stats(index);
+    const name = def === 'custom' ? 'Custom index' : def.name.split(' ')[0];
+    if (!st.n) { q('.sp-big').textContent = `${name}: no valid pixels`; q('.sp-facts').replaceChildren(); return; }
+    const t = val('.sp-t'), above = sel('.sp-dir') === 'above', th = threshold(index, Number.isFinite(t) ? t : 0, above);
+    // Area of the counted pixels.
+    let areas = rowAreas(H, scene.geo), areaNote = '';
+    q('.sp-pxbox').hidden = !!areas;
+    if (!areas) { const px = val('.sp-px'); if (px > 0) { areas = new Array(H).fill(px * px); areaNote = `from the ${sig(px, 3)} m pixel size you gave`; } }
+    else areaNote = scene.geo.model === 2 ? 'from the file’s degrees, cell by cell on a sphere' : `from the file’s ${sig(scene.geo.scale![0], 4)} × ${sig(scene.geo.scale![1], 4)} m pixels`;
+    let area = NaN;
+    if (areas && Number.isFinite(t)) { area = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = index[y * W + x]; if (Number.isFinite(v) && (above ? v > t : v < t)) area += areas[y]; } }
+    const areaTxt = (m2: number) => (m2 >= 1e6 ? `${sig(m2 / 1e6, 3)} km²` : `${sig(m2 / 1e4, 3)} ha`);
+    q('.sp-big').textContent = `Mean ${name} ${st.mean.toFixed(2)}; ${Math.round(th.share * 100)} % of pixels ${above ? 'above' : 'below'} ${tx(t)}` + (Number.isFinite(area) ? ` (${areaTxt(area)})` : '');
+    const f = [
+      fact(name, def === 'custom' ? '(a − b) ÷ (a + b)' : def.formula, def === 'custom' ? '' : def.id === 'evi' ? 'expects reflectance from 0 to 1' : ''),
+      fact('Values', `mean ${st.mean.toFixed(3)}, median ${st.median.toFixed(3)}`, `min ${st.min.toFixed(3)}, max ${st.max.toFixed(3)}, standard deviation ${st.sd.toFixed(3)}; ${st.n.toLocaleString('en')} valid pixels of ${n.toLocaleString('en')}`),
+      fact(`${above ? 'Above' : 'Below'} ${tx(t)}`, `${th.count.toLocaleString('en')} pixels (${(th.share * 100).toFixed(1)} %)`, Number.isFinite(area) ? `${areaTxt(area)}, ${areaNote}` : 'give a pixel size to get the area'),
+      fact('Image', `${W} × ${H} pixels, ${scene.bands.length} band${scene.bands.length > 1 ? 's' : ''}`, scene.info + (scene.geo.epsg ? `; EPSG:${scene.geo.epsg}` : '')),
+    ];
+    q('.sp-facts').replaceChildren(...f);
+    // Picture of the index, with a legend.
+    const lo = sel('.sp-str') === 'pct' ? st.p2 : -1, hi = sel('.sp-str') === 'pct' ? st.p98 : 1;
+    const rampName = sel('.sp-ramp') === 'auto' ? (def !== 'custom' && (def.id === 'ndwi' || def.id === 'mndwi') ? 'water' : def !== 'custom' && def.id === 'ndbi' ? 'grey' : def === 'custom' ? 'grey' : 'veg') : sel('.sp-ramp');
+    const maskOnly = q<HTMLInputElement>('.sp-mask').checked;
+    const step = Math.max(1, Math.ceil(Math.max(W / 1200, H / 1200))), dw = Math.ceil(W / step), dh = Math.ceil(H / step);
+    const cache = new Map<string, HTMLCanvasElement>(), idx = index;
+    const image = (pal: Palette) => {
+      const key = `${pal.red}${pal.bg}`;
+      if (cache.has(key)) return cache.get(key)!;
+      const c = document.createElement('canvas'); c.width = dw; c.height = dh;
+      const ctx = c.getContext('2d')!, img = ctx.createImageData(dw, dh), ramp = rampFn(rampName, pal), bg = hex(pal.bg.length === 7 ? pal.bg : '#000000');
+      for (let y = 0; y < dh; y++) for (let x = 0; x < dw; x++) {
+        const v = idx[y * step * W + x * step], o = (y * dw + x) * 4;
+        let rgb: number[];
+        if (!Number.isFinite(v)) rgb = bg; else if (maskOnly && !(above ? v > t : v < t)) rgb = pal.red ? [20, 0, 0] : pal.bg === '#ffffff' ? [225, 225, 225] : [40, 40, 40]; else rgb = ramp((v - lo) / (hi - lo || 1));
+        img.data[o] = rgb[0]; img.data[o + 1] = rgb[1]; img.data[o + 2] = rgb[2]; img.data[o + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0); cache.set(key, c); return c;
+    };
+    const fw = 380, ih = Math.round((fw - 20) * (H / W)), fh = Math.min(560, ih) + 46;
+    figs.map = { w: fw, h: fh, alt: `${name} map, ${W} × ${H} pixels, coloured from ${lo.toFixed(2)} to ${hi.toFixed(2)}`, draw: (ctx, Wc, Hc, pal) => {
+      const iw = Math.min(Wc - 20, ((Hc - 46) * W) / H), ihh = (iw * H) / W, x0 = (Wc - iw) / 2;
+      ctx.imageSmoothingEnabled = false; ctx.drawImage(image(pal), x0, 6, iw, ihh);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, 6, iw, ihh);
+      const ly = 6 + ihh + 10, lw = Math.min(260, iw), lx = (Wc - lw) / 2, ramp = rampFn(rampName, pal);
+      for (let k = 0; k < lw; k++) { const c = ramp(k / (lw - 1)); ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(lx + k, ly, 1, 10); }
+      ctx.strokeRect(lx, ly, lw, 10);
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'top';
+      ctx.textAlign = 'left'; ctx.fillText(lo.toFixed(2), lx, ly + 13); ctx.textAlign = 'right'; ctx.fillText(hi.toFixed(2), lx + lw, ly + 13); ctx.textAlign = 'center'; ctx.fillText(name, lx + lw / 2, ly + 13);
+    } };
+    paint(q<HTMLCanvasElement>('.sp-fig'), figs.map);
+    const hl = Math.min(-1, st.min), hh = Math.max(1, st.max), hg = histogram(index, hl, hh, 60);
+    figs.hist = chartFigure({ w: 380, h: 200, yMin: 0, xLabel: name, yLabel: 'Pixels', series: [{ name: 'Pixels', x: hg.map((h) => h.x), y: hg.map((h) => h.count), mode: 'line', width: 2 }], marks: Number.isFinite(t) ? [{ kind: 'vline', at: t, dash: [4, 3], label: `threshold ${tx(t)}` }] : [] }, `Histogram of ${name} values`);
+    paint(q<HTMLCanvasElement>('.sp-hist'), figs.hist);
+    report = [{ title: q('.sp-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs.map }, { title: 'Histogram', figure: figs.hist }];
+  }
+
+  function setScene(s: Scene, note: string) { scene = s; fillBandSelects(); q('.sp-note').textContent = note; calc(); }
+
+  // Index list.
+  const is = q<HTMLSelectElement>('.sp-idx');
+  INDICES.forEach((d) => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; is.append(o); });
+  { const o = document.createElement('option'); o.value = 'custom'; o.textContent = 'Custom (a − b) ÷ (a + b)'; is.append(o); }
+
+  const input = q<HTMLInputElement>('.sp-in');
+  q('.sp-open').addEventListener('click', () => input.click());
+  q('.sp-demo').addEventListener('click', () => setScene(demoScene(), 'Showing the example scene (made up).'));
+  input.addEventListener('change', async () => {
+    const files = Array.from(input.files ?? []); input.value = '';
+    if (!files.length) return;
+    const note = q('.sp-note');
+    try {
+      const big = files.find((f) => f.size > MAX_FILE);
+      if (big) throw new Error(`${big.name} is ${(big.size / 1e6).toFixed(0)} MB; the limit is 300 MB per file.`);
+      note.textContent = 'Reading on this device…';
+      const rasters: { r: Raster; name: string }[] = [];
+      let total = 0;
+      for (const f of files) { const r = readTiff(await f.arrayBuffer(), MAX_VALUES - total); total += r.width * r.height * r.bands.length; rasters.push({ r, name: f.name }); }
+      const { width, height } = rasters[0].r;
+      const odd = rasters.find((x) => x.r.width !== width || x.r.height !== height);
+      if (odd) throw new Error(`${odd.name} is ${odd.r.width} × ${odd.r.height} pixels but ${rasters[0].name} is ${width} × ${height}. Band files must match.`);
+      const bands: Float32Array[] = [], labels: string[] = [];
+      for (const { r, name } of rasters) r.bands.forEach((b, i) => { bands.push(b); labels.push(r.bands.length > 1 ? `Band ${i + 1} of ${name}` : name); });
+      const g = rasters[0].r, comp = ({ 1: 'uncompressed', 5: 'LZW', 8: 'Deflate', 32946: 'Deflate', 32773: 'PackBits' } as Record<number, string>)[g.compression] ?? '';
+      setScene({ width, height, bands, labels, geo: g.geo, geoTags: g.geoTags, info: `${files.length > 1 ? `${files.length} files` : files[0].name}: ${g.bits}-bit ${g.format === 3 ? 'float' : 'integer'}, ${comp}` }, `Opened ${files.map((f) => f.name).join(', ')} on this device.`);
+    } catch (e) { note.textContent = (e as Error).message; }
+  });
+  q('.sp-geotiff').addEventListener('click', () => { if (scene && index) save(writeTiff(scene.width, scene.height, [index], scene.geoTags, true), `${sel('.sp-idx')}.tif`, 'image/tiff'); });
+  q('.sp-csv').addEventListener('click', () => {
+    if (!scene || !index) return;
+    const { width: W, height: H, geo } = scene, k = Math.max(1, Math.ceil(Math.sqrt((W * H) / 100000)));
+    const lines = ['row,col,x,y,value'];
+    for (let y = 0; y < H; y += k) for (let x = 0; x < W; x += k) {
+      const v = index[y * W + x], gx = geo.scale && geo.tie ? geo.tie[2] + (x + 0.5 - geo.tie[0]) * geo.scale[0] : NaN, gy = geo.scale && geo.tie ? geo.tie[3] - (y + 0.5 - geo.tie[1]) * geo.scale[1] : NaN;
+      lines.push(`${y},${x},${Number.isFinite(gx) ? +gx.toFixed(6) : ''},${Number.isFinite(gy) ? +gy.toFixed(6) : ''},${Number.isFinite(v) ? +v.toFixed(5) : ''}`);
+    }
+    save(new TextEncoder().encode(lines.join('\n')), `${sel('.sp-idx')}-sample.csv`, 'text/csv');
+  });
+  root.querySelectorAll('input:not([type=file]), select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (q('.sp-out').hidden) return; paint(q<HTMLCanvasElement>('.sp-fig'), figs.map); paint(q<HTMLCanvasElement>('.sp-hist'), figs.hist); });
+  setScene(demoScene(), 'Showing the example scene (made up).');
+  wireDownloads(q('.dl'), () => ({ title: 'Spectral index', subtitle: q('.sp-big').textContent ?? '', file: 'spectral-index', sections: report }));
+</script>
+
+<style is:global>
+  .spx select, .spx input[type=text] { max-width: 100%; }
+  .spx .sp-note:empty { display: none; }
+</style>
