@@ -73,6 +73,7 @@ import * as VAL from '../src/lib/sci/validation.ts';
 import * as COL from '../src/lib/sci/colligative.ts';
 import * as EQL from '../src/lib/sci/equilibrium.ts';
 import * as CV from '../src/lib/sci/cv.ts';
+import * as TLC from '../src/lib/sci/tlc.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1047,6 +1048,15 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const v = [0.025, 0.05, 0.1, 0.2, 0.4], st = CV.scanRateStudy(v, v.map((x) => CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, x)), 1, 0.0707, 1e-3);
   near('scan-rate D', st.D, 1e-5, 1e-12);
   near('log-log slope 0.5', st.logFit.slope, 0.5, 1e-9);
+}
+{
+  // TLC: Rf from distances or pixel rows (y grows downward in photos); lanes; column volumes.
+  near('Rf from mm', TLC.rf(18, 0, 52), 0.3462, 0.0001);
+  near('Rf from photo rows', TLC.rf(387.2, 560, 80), 0.36, 1e-9);
+  near('column volumes', TLC.columnVolumes(0.25), 4, 1e-12);
+  near('ΔCV', TLC.separation(0.36, 0.58).dCV, 1.0536, 0.0001);
+  check('lanes grouped by x', TLC.lanes([130, 240, 242, 350, 352, 348], 480).join() === '0,1,1,2,2,2');
+  check('Rf advice', TLC.rfAdvice(0.05).level === 'warn' && TLC.rfAdvice(0.3).text === 'good for a flash column' && TLC.rfAdvice(1.2).level === 'bad');
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
