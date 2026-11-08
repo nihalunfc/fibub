@@ -1,5 +1,17 @@
 [
  {
+  "sha": "f1aa4c65c675",
+  "date": "2026-11-08T05:31:25+00:00",
+  "title": "Add four tools: Sun position, Jupiter's moons, porkchop plot, radial velocity fitter",
+  "tools": [
+   "jupiter-moons",
+   "porkchop-plot",
+   "radial-velocity-fitter",
+   "sun-position-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "114ed509b3c1",
   "date": "2026-11-08T05:00:25+00:00",
   "title": "Add five tools: blackbody, exoplanet mass, impact crater, link budget, radio telescope",
