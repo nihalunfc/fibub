@@ -86,6 +86,7 @@ import * as PMW from '../src/lib/sci/polymer.ts';
 import * as COP from '../src/lib/sci/copolymer.ts';
 import * as GT from '../src/lib/sci/glass.ts';
 import * as TH from '../src/lib/sci/thermal.ts';
+import * as BAT from '../src/lib/sci/battery.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1310,6 +1311,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('DTG peaks', r.steps[2].Tpeak, 735, 1);
   check('fragments matched', ['H2O', 'CO', 'CO2'].every((f, i) => TH.matchFragment(r.steps[i].loss, 146.11)?.frag === f));
   check('no match for an odd loss', TH.matchFragment(4.4, 146.11, 0.3) === null);
+}
+{
+  // Battery cycling: efficiency, retention, cycles to 80 %, and dQ/dV peaks of a two-plateau curve.
+  const e = BAT.exampleCycles(), s = BAT.cycling(e.map((r) => r[0]), e.map((r) => r[1]), e.map((r) => r[2]), 'dc', 1);
+  near('first-cycle efficiency', s.first.ce, 0.88, 0.0001);
+  near('average CE after cycle 1', s.avgCE, 0.99913, 0.00002);
+  near('retention at cycle 200', s.last.ret, 0.7892, 0.0001);
+  near('cycles to 80 %', BAT.cyclesTo(s.rows, 0.8).n, 184, 0.5);
+  check('extrapolated when not reached', BAT.cyclesTo(s.rows.slice(0, 100), 0.8).extrapolated === true);
+  const lin = BAT.cycling([1, 2, 3, 4, 5, 6], [101, 100, 99, 98, 97, 96], [100, 99, 98, 97, 96, 95], 'dc', 1);
+  near('straight-line fade 1 % per cycle', lin.fadePerCycle, 0.01, 1e-12);
+  near('cycles to 80 % on a straight line', BAT.cyclesTo(lin.rows, 0.8).n, 21, 1e-9);
+  near('irreversible capacity sum', lin.irrev, 6, 1e-12);
+  const an = BAT.cycling([1, 2], [90, 95], [100, 96], 'cd', 1);
+  near('anode CE = charge ÷ discharge', an.first.ce, 0.9, 1e-12);
+  const c = BAT.exampleCurve(), pk = BAT.peaks(BAT.dqdv(c.map((r) => r[0]), c.map((r) => r[1])));
+  check('two dQ/dV peaks', pk.length === 2);
+  near('LiMn2O4 peak 1', pk[0].V, 4.0, 0.001); near('LiMn2O4 peak 2', pk[1].V, 4.14, 0.001);
+  near('flat line has dQ/dV = slope', BAT.dqdv([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => 5 * v), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => 3 + v * 0.1), 0.01, 0.03)[20].d, 50, 1e-6);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

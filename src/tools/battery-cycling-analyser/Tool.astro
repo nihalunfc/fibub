@@ -1,0 +1,140 @@
+---
+// Battery cycling: coulombic efficiency, capacity retention and fade, cycles to a retention limit; incremental capacity
+// (dQ/dV) with its peaks from one charge or discharge curve.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleCycles, exampleCurve } from '../../lib/sci/battery';
+const cyc = 'cycle,charge_mAh_g,discharge_mAh_g\n' + exampleCycles().map((r) => r.join(',')).join('\n');
+const curve = 'capacity_mAh_g,voltage_V\n' + exampleCurve().map((r) => r.join(',')).join('\n');
+---
+<div class="ax bcy">
+  <div class="ax-card">
+    <h2>Capacity and coulombic efficiency by cycle</h2>
+    <label class="bcy-lab">Cycle number, charge capacity and discharge capacity, one cycle per line <textarea class="bcy-cyc" rows="6" spellcheck="false">{cyc}</textarea></label>
+    <DataFile target=".bcy-cyc" maxCols={3} label="Open a file (3 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Capacity unit <select class="bcy-unit"><option value="mAh/g">mAh/g</option><option value="mAh">mAh</option><option value="Ah">Ah</option><option value="mAh/cm²">mAh/cm²</option></select></label>
+      <label>Active material (mg, optional) <input class="bcy-mass" inputmode="decimal" value="" placeholder="for mAh/g" /></label>
+      <label>Coulombic efficiency is <select class="bcy-ce"><option value="dc">discharge ÷ charge (cathode, full cell)</option><option value="cd">charge ÷ discharge (anode against Li)</option></select></label>
+      <label>Reference cycle for retention <input class="bcy-ref" inputmode="numeric" value="1" /></label>
+      <label>End-of-life retention (%) <input class="bcy-eol" inputmode="decimal" value="80" /></label>
+    </div>
+    <p class="ax-help">Retention is the capacity delivered on each cycle compared with the reference cycle. Many papers use the first cycle after formation (often cycle 3) as the reference.</p>
+    <p class="ax-err bcy-err" hidden></p>
+    <div class="bcy-out">
+      <p class="ax-big bcy-big"></p>
+      <dl class="ax-facts bcy-facts"></dl>
+      <canvas class="ax-fig bcy-fig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig bcy-cefig" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Incremental capacity (dQ/dV)</h2>
+    <label class="bcy-lab">One charge or discharge curve: capacity and voltage, one pair per line <textarea class="bcy-curve" rows="6" spellcheck="false">{curve}</textarea></label>
+    <DataFile target=".bcy-curve" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Columns are <select class="bcy-order"><option value="qv">capacity, then voltage</option><option value="vq">voltage, then capacity</option></select></label>
+      <label>Voltage step (mV) <input class="bcy-step" inputmode="decimal" value="2" /></label>
+      <label>Smoothing (± mV) <input class="bcy-h" inputmode="decimal" value="6" /></label>
+    </div>
+    <p class="ax-help">Each peak is a plateau in the voltage curve: a phase change or staging step in the electrode. Peaks that shrink or move between cycles show loss of active material or rising resistance.</p>
+    <p class="ax-err bcy-derr" hidden></p>
+    <div class="bcy-dout">
+      <p class="ax-big bcy-dbig"></p>
+      <div class="ax-scroll"><table class="bcy-tab"></table></div>
+      <canvas class="ax-fig bcy-vfig" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig bcy-dfig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { cycling, cyclesTo, dqdv, peaks } from '../../lib/sci/battery';
+  import { num, sig, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bcy')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (x + 1e-9).toFixed(n);
+  const capT = (x: number) => (Math.abs(x) >= 100 ? f(x, 1) : Math.abs(x) >= 1 ? f(x, 2) : sig(x, 3));
+  let fig: Figure | null = null, cefig: Figure | null = null, vfig: Figure | null = null, dfig: Figure | null = null, ptab: string[][] = [];
+
+  function cyc() {
+    const err = (m: string) => { q('.bcy-err').textContent = m; q('.bcy-err').hidden = !m; q('.bcy-out').hidden = !!m; if (m) fig = cefig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.bcy-cyc').value);
+    if (t.cols.length < 3 || t.rows < 2) return err('Paste at least two lines of cycle number, charge capacity and discharge capacity.');
+    const [c, qc, qd] = t.cols;
+    if ([...qc, ...qd].some((x) => !(x > 0))) return err('Capacities must all be above zero (leave out cycles that failed).');
+    for (let i = 1; i < c.length; i++) if (!(c[i] > c[i - 1])) return err(`Cycle numbers must go up: line ${i + 1} repeats or goes back.`);
+    const ref = v('.bcy-ref'), eol = v('.bcy-eol') / 100, mode = q<HTMLSelectElement>('.bcy-ce').value as 'dc' | 'cd';
+    if (!(ref >= c[0] && ref <= c[c.length - 1])) return err(`The reference cycle must be between ${c[0]} and ${c[c.length - 1]}.`);
+    if (!(eol > 0 && eol < 1)) return err('End-of-life retention is between 0 and 100 %.');
+    err('');
+    const s = cycling(c, qc, qd, mode, ref), unit = q<HTMLSelectElement>('.bcy-unit').value, mass = v('.bcy-mass');
+    const to = cyclesTo(s.rows.filter((r) => r.c >= s.ref), eol), eolT = `${Math.round(eol * 100)} %`;
+    q('.bcy-big').textContent = `Retention ${f(s.last.ret * 100, 1)} % after ${s.last.c} cycles${to && !to.extrapolated ? `; ${eolT} reached at cycle ${Math.round(to.n)}` : ''}`;
+    const inT = mode === 'dc' ? 'charge' : 'discharge', outT = mode === 'dc' ? 'discharge' : 'charge';
+    const facts = [
+      fact('First cycle', `${inT} ${capT(s.first.qin)}, ${outT} ${capT(s.first.qout)} ${unit}`, `first-cycle efficiency ${f(s.first.ce * 100, 1)} %; ${capT(s.first.qin - s.first.qout)} ${unit} lost, mostly to the SEI and other side reactions`),
+      fact(`Average coulombic efficiency after cycle ${s.ref}`, Number.isFinite(s.avgCE) ? `${f(s.avgCE * 100, 2)} %` : 'needs more cycles', Number.isFinite(s.avgCE) ? `${f((1 - s.avgCE) * 100, 2)} % of the charge is lost each cycle; a full cell held at 99.9 % would keep only 37 % of its capacity after 1000 cycles (0.999¹⁰⁰⁰)` : ''),
+      fact('Capacity fade', Number.isFinite(s.fadePerCycle) ? `${f(s.fadePerCycle * 100, 3)} % per cycle` : 'needs more cycles', `straight line through retention from cycle ${s.ref} on`),
+      fact(`Cycles to ${eolT}`, to ? `${Math.round(to.n)}${to.extrapolated ? ' (extrapolated)' : ''}` : 'not reached and no downward trend', to?.extrapolated ? 'from a straight line through the last fifth of the cycles; real cells often fade faster near the end' : ''),
+      fact('Total irreversible capacity', `${capT(s.irrev)} ${unit}`, `sum over all cycles of ${inT} minus ${outT}`),
+    ];
+    if (unit === 'mAh' && mass > 0) facts.push(fact('Specific capacity', `${capT((s.first.qout / mass) * 1000)} mAh/g on cycle 1, ${capT((s.last.qout / mass) * 1000)} mAh/g on cycle ${s.last.c}`, `from ${mass} mg of active material`));
+    q('.bcy-facts').replaceChildren(...facts);
+    fig = chartFigure({ h: 230, xLabel: 'Cycle', yLabel: `Capacity (${unit})`, yMin: 0, series: [{ name: 'charge', x: c, y: qc, mode: 'points' }, { name: 'discharge', x: c, y: qd, mode: 'points' }], marks: to && !to.extrapolated ? [{ kind: 'vline', at: to.n, label: eolT, dash: [3, 3] }] : [], legend: 'below' }, 'Charge and discharge capacity against cycle number');
+    const ce = s.rows.map((r) => r.ce * 100), rest = ce.slice(1), lo = Math.min(...(rest.length ? rest : ce)), hi = Math.max(...(rest.length ? rest : ce));
+    cefig = chartFigure({ h: 200, xLabel: 'Cycle', yLabel: 'Coulombic efficiency (%)', yMin: Math.max(0, Math.floor((lo - 0.05) * 10) / 10), yMax: Math.min(100.5, Math.ceil((hi + 0.05) * 10) / 10), series: [{ name: 'CE', x: c, y: ce, mode: 'points' }], legend: 'none' }, 'Coulombic efficiency against cycle number (the first cycle may be off the scale)');
+    paint(q<HTMLCanvasElement>('.bcy-fig'), fig); paint(q<HTMLCanvasElement>('.bcy-cefig'), cefig);
+  }
+
+  function dq() {
+    const err = (m: string) => { q('.bcy-derr').textContent = m; q('.bcy-derr').hidden = !m; q('.bcy-dout').hidden = !!m; if (m) vfig = dfig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.bcy-curve').value);
+    if (t.cols.length < 2 || t.rows < 20) return err('Paste at least 20 lines of capacity and voltage.');
+    const vq = q<HTMLSelectElement>('.bcy-order').value === 'vq', V = vq ? t.cols[0] : t.cols[1], Q = vq ? t.cols[1] : t.cols[0];
+    const step = v('.bcy-step') / 1000, h = v('.bcy-h') / 1000;
+    if (!(step > 0) || !(h >= step)) return err('The voltage step is above zero and the smoothing at least one step.');
+    if (Math.max(...V) > 10 && Math.max(...Q) < 10) return err('The voltage column looks like capacity: swap the column order.');
+    const range = Math.max(...V) - Math.min(...V);
+    if (!(range > 0.02)) return err('The voltage hardly changes: check the column order.');
+    if (range / step > 20000) return err('That step gives too many points: use a larger voltage step.');
+    err('');
+    const curve = dqdv(Q, V, step, h), pk = peaks(curve), unit = q<HTMLSelectElement>('.bcy-unit').value;
+    q('.bcy-dbig').textContent = pk.length ? `${pk.length} peak${pk.length === 1 ? '' : 's'}: ${pk.map((p) => `${f(p.V, 3)} V`).join(', ')}` : 'No clear peaks: the curve has no plateau';
+    ptab = pk.map((p, i) => [String(i + 1), f(p.V, 3), sig(p.d, 4)]);
+    const tb = q<HTMLTableElement>('.bcy-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['Peak', 'Voltage (V)', `dQ/dV (${unit}/V)`].forEach((x) => { const th = document.createElement('th'); th.textContent = x; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of ptab) { const tr = bd.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.style.textAlign = 'right'; }); }
+    vfig = chartFigure({ h: 210, xLabel: `Capacity (${unit})`, yLabel: 'Voltage (V)', series: [{ name: 'curve', x: Q, y: V, mode: 'line', width: 1.5 }], legend: 'none' }, 'Voltage against capacity');
+    dfig = chartFigure({ h: 220, xLabel: 'Voltage (V)', yLabel: `dQ/dV (${unit}/V)`, series: [{ name: 'dQ/dV', x: curve.map((p) => p.V), y: curve.map((p) => p.d), mode: 'line', width: 1.5 }], marks: pk.map((p, i) => ({ kind: 'vline' as const, at: p.V, label: String(i + 1), dash: [3, 3] })), legend: 'none' }, 'Incremental capacity against voltage');
+    paint(q<HTMLCanvasElement>('.bcy-vfig'), vfig); paint(q<HTMLCanvasElement>('.bcy-dfig'), dfig);
+  }
+
+  root.querySelectorAll('.bcy-cyc, .bcy-unit, .bcy-mass, .bcy-ce, .bcy-ref, .bcy-eol').forEach((i) => { i.addEventListener('input', cyc); i.addEventListener('change', cyc); });
+  q('.bcy-unit').addEventListener('change', dq);
+  root.querySelectorAll('.bcy-curve, .bcy-order, .bcy-step, .bcy-h').forEach((i) => { i.addEventListener('input', dq); i.addEventListener('change', dq); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.bcy-fig'), fig); if (cefig) paint(q<HTMLCanvasElement>('.bcy-cefig'), cefig); if (vfig) paint(q<HTMLCanvasElement>('.bcy-vfig'), vfig); if (dfig) paint(q<HTMLCanvasElement>('.bcy-dfig'), dfig); });
+  cyc(); dq();
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Battery cycling', subtitle: 'Capacity, coulombic efficiency and incremental capacity', file: 'battery-cycling',
+    sections: [
+      ...(q('.bcy-out').hidden ? [] : [{ title: q('.bcy-big').textContent!, facts: facts('.bcy-facts'), ...(fig ? { figure: fig } : {}) }, ...(cefig ? [{ title: 'Coulombic efficiency', figure: cefig }] : [])]),
+      ...(q('.bcy-dout').hidden ? [] : [{ title: `dQ/dV: ${q('.bcy-dbig').textContent}`, table: { head: ['Peak', 'Voltage (V)', 'dQ/dV'], rows: ptab, align: ['l', 'r', 'r'] as ('l' | 'r')[] }, ...(dfig ? { figure: dfig } : {}) }, ...(vfig ? [{ title: 'Voltage curve', figure: vfig }] : [])]),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .bcy select { max-width: 100%; }
+  .bcy .bcy-lab { display: block; }
+  .bcy textarea { width: 100%; font: inherit; font-size: 14px; }
+</style>
