@@ -1,5 +1,14 @@
 [
  {
+  "sha": "9e59ef1e5ee2",
+  "date": "2026-11-09T02:07:05+00:00",
+  "title": "Add #157 activated sludge sizer (BOD removal, SRT design)",
+  "tools": [
+   "activated-sludge"
+  ],
+  "site": false
+ },
+ {
   "sha": "99079079034f",
   "date": "2026-11-09T01:54:06+00:00",
   "title": "Add #156 water quality index (CCME method, user objectives)",
