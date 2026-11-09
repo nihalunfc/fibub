@@ -1,0 +1,223 @@
+---
+// Grain size by the line-intercept method: test lines over a micrograph, boundary crossings counted from the grey
+// profile along each line (and fixed by tapping), mean lineal intercept, ASTM E112 grain size number G and a
+// confidence interval from the spread between lines. The image never leaves the browser; the example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gsi">
+  <div class="ax-card">
+    <h2>Micrograph</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mg-open">Open a micrograph</button>
+      <input type="file" class="mg-file" accept="image/png,image/jpeg,image/tiff,image/bmp,image/webp,.tif,.tiff" hidden />
+      <button type="button" class="btn secondary small gs-ex">Use the example</button>
+    </div>
+    <canvas class="mg-canvas" hidden></canvas>
+    <p class="ax-help mg-note">PNG, JPEG or TIFF (8 or 16-bit) of a polished and etched section, an optical or SEM image. The image is read on this page only and is never uploaded.</p>
+    <p class="ax-err mg-err" hidden></p>
+    <div class="mg-cal" hidden>
+      <h3>Scale and area</h3>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small mg-draw">Draw on the scale bar</button>
+        <button type="button" class="btn secondary small mg-area">Set the area to analyse</button>
+        <button type="button" class="btn secondary small mg-full">Whole image</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Scale bar length (pixels) <input class="mg-bpx" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>The bar stands for <input class="mg-blen" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>Unit <select class="mg-unit"><option>nm</option><option selected>µm</option><option>mm</option></select></label>
+        <label>Or pixel size (original image) <input class="mg-pix" type="number" min="0" step="any" inputmode="decimal" placeholder="from the microscope" /></label>
+      </div>
+      <p class="ax-help mg-calout"></p>
+      <p class="ax-help">Tap both ends of the scale bar (or drag along it), then type the length written on it. Leave the scale bar and any data strip out of the area to analyse.</p>
+    </div>
+  </div>
+
+  <div class="ax-card gs-set" hidden>
+    <h2>Test lines and boundaries</h2>
+    <div class="ax-grid">
+      <label>Test lines <select class="gs-pat">
+        <option value="h">Horizontal lines</option>
+        <option value="v">Vertical lines</option>
+        <option value="hv" selected>Horizontal and vertical</option>
+        <option value="circles">Three circles</option>
+      </select></label>
+      <label>Lines in each direction <input class="gs-n" type="number" min="1" max="40" step="1" value="5" inputmode="numeric" /></label>
+      <label>Grain boundaries are <select class="gs-mode">
+        <option value="dark" selected>Dark lines (etched)</option>
+        <option value="light">Light lines</option>
+        <option value="edge">A change of shade between grains</option>
+      </select></label>
+      <label>Threshold <input class="gs-t" type="number" min="0" max="255" step="1" placeholder="auto" inputmode="numeric" /></label>
+      <label>Join marks closer than (px) <input class="gs-gap" type="number" min="0" max="50" step="1" value="2" inputmode="numeric" /></label>
+      <label>Confidence <select class="gs-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help gs-thelp"></p>
+    <p class="ax-help"><b>Tap a test line</b> where a boundary was missed to add a mark, or tap a mark to remove it. Changing a setting above counts again from scratch.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gs-recount">Count again automatically</button> <span class="ax-help gs-edits"></span></div>
+    <div class="ax-legend"><span><i style="background:#56B4E9"></i>test line</span><span><i style="background:#D55E00"></i>counted boundary</span><span><i style="background:#009E73"></i>added by tap</span><span><i style="border:2px solid #D55E00;background:transparent"></i>half (line end)</span></div>
+  </div>
+
+  <div class="ax-card gs-out" hidden>
+    <h2>Grain size</h2>
+    <p class="ax-big gs-big"></p>
+    <dl class="ax-facts gs-facts"></dl>
+    <canvas class="ax-fig gs-fig"></canvas>
+    <div class="ax-scroll"><table class="gs-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gs-csv">Download lines (CSV)</button>
+      <button type="button" class="btn secondary small gs-mcsv">Download marks (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { testLines, profile, stepOf, crossings, gradient, interceptStats, nearestLine, toggleMark, pointAt, exampleGrains, type TLine, type Mark, type Pattern, type Stats } from '../../lib/sci/grainsize';
+  import { hist256, otsu, fmtLen } from '../../lib/sci/micro';
+  import { Micro } from '../../lib/micrograph';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gsi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  let lines: TLine[] = [], marks: Mark[][] = [], edits = 0, autoT = NaN;
+  let st: Stats | null = null, um = NaN, fig: Figure | null = null, imgFig: Figure | null = null, sections: Section[] = [], rows: string[][] = [];
+
+  const M = new Micro(root, {
+    change: () => count(),
+    cal: () => report(),
+    overlay: (ctx, lw) => {
+      lines.forEach((L, i) => {
+        ctx.strokeStyle = '#56B4E9'; ctx.lineWidth = lw; ctx.beginPath();
+        if (L.circle) ctx.arc(L.cx, L.cy, L.r, 0, 2 * Math.PI); else { ctx.moveTo(L.x0, L.y0); ctx.lineTo(L.x1, L.y1); }
+        ctx.stroke();
+        for (const m of marks[i] ?? []) {
+          const [x, y] = pointAt(L, m.s), r = lw * 3.2;
+          ctx.lineWidth = lw * 1.2;
+          if (m.manual) { ctx.fillStyle = '#009E73'; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); continue; }
+          ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI);
+          if (m.w < 1) { ctx.strokeStyle = '#D55E00'; ctx.stroke(); } else { ctx.fillStyle = '#D55E00'; ctx.fill(); }
+        }
+      });
+    },
+    tap: (x, y) => {
+      if (!lines.length || !M.img) return;
+      const tol = Math.max(8, 0.025 * Math.max(M.img.w, M.img.h)), n = nearestLine(lines, x, y);
+      if (n.i < 0 || n.d > tol) return;
+      marks[n.i] = toggleMark(marks[n.i], n.s, tol, lines[n.i]);
+      edits++; report();
+    },
+  });
+
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  /** Lays out the lines and counts the boundaries along each from scratch. */
+  function count() {
+    if (!M.grey || !M.img) return;
+    const { w, h } = M.img, R = M.rect, pat = q<HTMLSelectElement>('.gs-pat').value as Pattern, mode = q<HTMLSelectElement>('.gs-mode').value as 'dark' | 'light' | 'edge';
+    const n = Math.round(val('.gs-n'));
+    q('.gs-set').hidden = false;
+    if (pat !== 'circles' && !(n >= 1 && n <= 40)) return fail('Give between 1 and 40 lines in each direction.');
+    q<HTMLInputElement>('.gs-n').disabled = pat === 'circles';
+    lines = testLines(R, pat, n);
+    const profs = lines.map((L) => profile(M.grey!, w, h, L));
+    // Automatic threshold: Otsu on the area's grey levels, or on the shade changes along the lines in edge mode.
+    if (mode === 'edge') { const hs = new Float64Array(256); profs.forEach((p, i) => gradient(p, lines[i].circle).forEach((g) => hs[Math.min(255, Math.round(g))]++)); autoT = otsu(hs); }
+    else autoT = otsu(hist256(M.grey, w, R));
+    const tIn = q<HTMLInputElement>('.gs-t').value.trim(), t = tIn ? Number(tIn) : autoT;
+    if (!(t >= 0 && t <= 255)) return fail('The threshold is a grey level from 0 to 255 (leave it empty for automatic).');
+    const gap = Math.max(0, val('.gs-gap') || 0);
+    q('.gs-thelp').textContent = mode === 'edge'
+      ? `Edge mode counts a boundary wherever the shade changes by more than the threshold per pixel along a line. Automatic: ${autoT} grey levels per pixel (Otsu on the changes along the lines).`
+      : `A boundary is a run of pixels ${mode === 'dark' ? 'at or below' : 'above'} the threshold along a line. Automatic: ${autoT} (Otsu's method on the area's grey levels).`;
+    marks = profs.map((p, i) => crossings(p, lines[i].circle, { mode, t, gap }).map((m) => ({ ...m, s: m.s * stepOf(lines[i], p.length) })));
+    edits = 0; report();
+  }
+  function fail(m: string) { M.err(m); q('.gs-out').hidden = true; sections = []; M.draw(); }
+
+  function report() {
+    M.err(''); M.draw();
+    if (!M.img) return;
+    um = M.umpp();
+    const cal = Number.isFinite(um), unit = cal ? 'µm' : 'px', k = cal ? um : 1;
+    const conf = Number(q<HTMLSelectElement>('.gs-conf').value);
+    const data = lines.map((L, i) => ({ len: L.len * k, P: marks[i].reduce((s, m) => s + m.w, 0) }));
+    st = interceptStats(data, conf, cal ? 1e-3 : NaN);
+    q('.gs-edits').textContent = edits ? `${edits} change${edits > 1 ? 's' : ''} by tapping` : '';
+    if (!(st.PT > 0)) { q('.gs-out').hidden = true; M.err('No boundaries were found along the lines. Check whether the boundaries are dark or light, change the threshold, or tap the lines to mark them.'); sections = []; return; }
+    q('.gs-out').hidden = false;
+    const L = (x: number) => (cal ? fmtLen(x, 4) : `${sig(x, 4)} px`), pct = Math.round(conf * 100);
+    q('.gs-big').textContent = cal ? `ℓ = ${fmtLen(st.lbar, 4)}, G = ${st.G.toFixed(1)}` : `ℓ = ${sig(st.lbar, 4)} px (calibrate for G)`;
+    const ra = st.ra;
+    q('.gs-facts').replaceChildren(
+      fact('Mean lineal intercept ℓ', L(st.lbar), Number.isFinite(st.ciPL) ? `${pct} % CI ${L(st.lLo)} to ${Number.isFinite(st.lHi) ? L(st.lHi) : '∞'}` : 'one line: no interval'),
+      fact('ASTM grain size number G', cal ? st.G.toFixed(2) : '–', cal ? (Number.isFinite(st.GLo) ? `${pct} % CI ${st.GLo.toFixed(2)} to ${st.GHi.toFixed(2)}; G = −6.6457 log₁₀(ℓ mm) − 3.298` : 'G = −6.6457 log₁₀(ℓ mm) − 3.298') : 'needs the scale'),
+      fact('Boundaries counted', `${st.PT} on ${st.n} line${st.n > 1 ? 's' : ''}`, `total line length ${L(st.LT)}${edits ? `; ${edits} tap change${edits > 1 ? 's' : ''}` : ''}`),
+      fact('Relative accuracy', Number.isFinite(ra) ? `${ra.toFixed(1)} %` : '–', Number.isFinite(ra) ? (ra <= 10 ? 'within 10 %: usually enough' : 'over 10 %: add lines or fields') : 'needs 2 or more lines'),
+    );
+    let nh = 0, nv = 0;
+    const names = lines.map((Ln, i) => (Ln.circle ? `Circle ${i + 1}` : Ln.y0 === Ln.y1 ? `H${++nh}` : `V${++nv}`));
+    rows = lines.map((_, i) => {
+      const P = data[i].P, pl = P / data[i].len;
+      return [names[i], sig(data[i].len, 4), String(P), sig(pl * (cal ? 1000 : 1), 4), P > 0 ? sig(data[i].len / P, 4) : '–'];
+    });
+    const head = ['Line', `Length (${unit})`, 'Boundaries', cal ? 'Per mm' : 'Per px', `Intercept (${unit})`];
+    const t = q<HTMLTableElement>('.gs-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    const per = data.map((d) => (d.P > 0 ? +(d.len / d.P).toPrecision(6) : NaN)); // rounded, so equal lines plot as equal
+    fig = chartFigure({
+      w: 520, h: 280, xLabel: 'Test line', yLabel: `Intercept (${unit})`, legend: 'none',
+      series: [{ name: 'Lines', x: per.map((_, i) => i + 1), y: per, mode: 'points', marker: 'circle', size: 6 }],
+      marks: [{ kind: 'hline', at: +st.lbar.toPrecision(6), dash: [5, 4], label: `ℓ = ${L(st.lbar)}` }],
+    }, 'Mean intercept on each test line, with the overall mean');
+    paint(q<HTMLCanvasElement>('.gs-fig'), fig);
+    const cv = q<HTMLCanvasElement>('.mg-canvas');
+    imgFig = { w: cv.width, h: cv.height, alt: 'Micrograph with the test lines and the counted boundaries', draw: (ctx, w, h) => ctx.drawImage(cv, 0, 0, w, h) };
+    sections = [
+      { title: q('.gs-big').textContent!, facts: [...q('.gs-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: imgFig },
+      { title: 'Test lines', figure: fig, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: `Scale: ${cal ? `1 pixel = ${fmtLen(um, 4)}` : 'not calibrated (pixels)'}. ℓ = total line length ÷ boundaries counted; the interval is Student's t on the boundaries per unit length of each line. Boundaries cut by a line's end count ½.` },
+    ];
+  }
+
+  ['.gs-pat', '.gs-mode'].forEach((c) => q(c).addEventListener('change', () => { if (c === '.gs-mode') q<HTMLInputElement>('.gs-t').value = ''; count(); }));
+  q('.gs-conf').addEventListener('change', () => report());
+  let tm = 0;
+  ['.gs-n', '.gs-t', '.gs-gap'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(count, 250); }));
+  q('.gs-recount').addEventListener('click', count);
+  function loadExample() {
+    const e = exampleGrains(720, 540, 260, 853, { px: 100, label: '50 µm' });
+    q<HTMLInputElement>('.mg-bpx').value = '100'; q<HTMLInputElement>('.mg-blen').value = '50'; q<HTMLSelectElement>('.mg-unit').value = 'µm'; q<HTMLInputElement>('.mg-pix').value = '';
+    q<HTMLSelectElement>('.gs-mode').value = 'dark'; q<HTMLInputElement>('.gs-t').value = ''; q<HTMLSelectElement>('.gs-pat').value = 'hv'; q<HTMLInputElement>('.gs-n').value = '5';
+    M.load({ rgba: e.px, w: e.w, h: e.h }, 'example-grains', 1, 'Made-up grains (a random Voronoi pattern), 0.5 µm per pixel.', { x0: 0, y0: 0, x1: e.w, y1: e.h - 32 });
+    M.line = [e.w - 112, e.h - 21.5, e.w - 12, e.h - 21.5]; M.draw();
+  }
+  q('.gs-ex').addEventListener('click', loadExample);
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.gs-out').hidden) paint(q<HTMLCanvasElement>('.gs-fig'), fig); });
+  q('.gs-csv').addEventListener('click', () => {
+    if (!st) return; const cal = Number.isFinite(um), unit = cal ? 'um' : 'px';
+    const out: (string | number)[][] = [['line', `length_${unit}`, 'boundaries', `per_${cal ? 'mm' : 'px'}`, `intercept_${unit}`], ...rows,
+      [], ['total', String(st.LT), String(st.PT), '', String(st.lbar)], ['G (ASTM E112 relation)', cal ? st.G.toFixed(3) : ''], [`CI ${q<HTMLSelectElement>('.gs-conf').value} intercept_${unit}`, String(st.lLo), String(st.lHi)], ['relative accuracy %', String(st.ra)], ['scale um per px', cal ? String(um) : 'not calibrated']];
+    save(new Blob([csv(out)], { type: 'text/csv' }), `${fileSafe(M.name)}-grain-intercepts.csv`, 'text/csv');
+  });
+  q('.gs-mcsv').addEventListener('click', () => {
+    const out: (string | number)[][] = [['line', 'x_px', 'y_px', 'position_along_line_px', 'weight', 'added_by_tap']];
+    lines.forEach((L, i) => marks[i].forEach((m) => { const [x, y] = pointAt(L, m.s); out.push([rows[i]?.[0] ?? String(i + 1), x.toFixed(1), y.toFixed(1), m.s.toFixed(1), m.w, m.manual ? 'yes' : 'no']); }));
+    save(new Blob([csv(out)], { type: 'text/csv' }), `${fileSafe(M.name)}-grain-marks.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Grain size (line intercept)', subtitle: q('.gs-big').textContent ?? '', file: `${fileSafe(M.name)}-grain-size`, sections }));
+</script>
+
+<style is:global>
+  .gsi .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
+  .gsi .mg-cal { margin-top: 14px; }
+  .gsi .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }
+  .gsi .mg-warn { color: var(--warn); }
+  .gsi select { max-width: 100%; }
+  .gsi .ax-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+</style>
