@@ -132,6 +132,7 @@ import * as AMB from '../src/lib/sci/amband.ts';
 import * as AHE from '../src/lib/sci/ahe.ts';
 import * as SSC from '../src/lib/sci/sscond.ts';
 import * as AMG from '../src/lib/sci/amagnon.ts';
+import * as UH from '../src/lib/sci/uh.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2636,6 +2637,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('magnon: stable with ferro J2 and easy axis', AMG.stability(m).stable);
   check('magnon: unstable with a hard axis (K < 0)', !AMG.stability({ ...m, K: -0.05 }).stable);
   check('magnon: unstable with strong antiferro J2', !AMG.stability({ ...m, Ja: -1.5 }).stable);
+}
+
+// #149 unit hydrograph builder: checked against SciPy (gamma, gammainc, brentq, optimize.nnls)
+{
+  near('uh: PRF of gamma shape m = 3.7 is 484', UH.prfOf(3.7), 484.21107639640013, 1e-9);
+  near('uh: shape for PRF 484', UH.shapeFor(484), 3.6969129776537417, 1e-9);
+  near('uh: shape for PRF 300', UH.shapeFor(300), 1.51372956560487, 1e-9);
+  const g = UH.gammaUH(50, 3, 3.7, 0.5);
+  near('uh: gamma UH peak (A 50 km², Tp 3 h, dt 0.5 h)', g.peak, 3.4737093013330655, 1e-9);
+  check('uh: gamma UH length and peak time', g.q.length === 32 && g.tPeak === 3);
+  near('uh: gamma UH holds 1 mm', UH.impliedArea(g.q, 0.5), 50, 1e-9);
+  const n = UH.nashUH(100, 3, 2, 1, 1);
+  near('uh: Nash UH peak (n 3, k 2 h, D 1 h, 100 km²)', n.peak, 3.690663135469436, 1e-9);
+  check('uh: Nash UH length and peak time', n.q.length === 36 && n.tPeak === 5);
+  const A = [[0.085649, 0.236811, 0.801274, 0.582162, 0.094129], [0.433127, 0.479051, 0.159739, 0.734577, 0.113672], [0.391228, 0.51674, 0.430628, 0.586799, 0.737838], [0.956267, 0.284201, 0.648547, 0.696216, 0.292721], [0.00149, 0.97346, 0.298401, 0.313986, 0.891711], [0.585163, 0.47131, 0.773277, 0.030346, 0.706965], [0.374244, 0.090853, 0.6605, 0.931464, 0.207191], [0.63009, 0.298163, 0.741757, 0.722165, 0.218715], [0.829887, 0.657652, 0.682799, 0.820076, 0.428573], [0.758705, 0.87848, 0.10232, 0.849768, 0.393927], [0.479684, 0.146335, 0.698426, 0.291979, 0.871139], [0.275374, 0.56181, 0.399656, 0.612909, 0.196639]];
+  const b = [-0.119712, 0.44686, 0.452223, 0.266978, 0.62108, -0.094225, 0.550901, -0.131013, 0.664358, 0.323693, 0.306884, 0.670559];
+  UH.nnls(A, b).forEach((x, i) => near(`uh: NNLS x${i} vs SciPy`, x, [0, 0.2769954522315101, 0, 0.2828549936145783, 0.12155574685036591][i], 1e-10));
+  check('uh: convolution', UH.convolve([5, 12, 3], [0, 1.5, 4, 3, 2, 1, 0.5, 0.2]).every((v, i) => Math.abs(v - [0, 7.5, 38, 67.5, 58, 38, 20.5, 10, 3.9, 0.6][i]) < 1e-12));
+  { const d = UH.deriveUH([5, 12, 3], [0, 7.5, 38, 67.5, 58, 38, 20.5, 10, 3.9, 0.6], 8); check('uh: deconvolution recovers the unit hydrograph', d.U.every((v, i) => Math.abs(v - [0, 1.5, 4, 3, 2, 1, 0.5, 0.2][i]) < 1e-9) && Math.abs(d.nse - 1) < 1e-12); }
+  { const r = UH.phiIndex([2, 10, 6, 1], 9); near('uh: φ-index leaves the runoff depth', r.excess.reduce((s, x) => s + x, 0), 9, 1e-9); near('uh: φ-index value', r.phi, 3.5, 1e-9); }
+  check('uh: straight-line baseflow', UH.baseflow([2, 9, 7, 4], 'line').every((v, i) => Math.abs(v - [2, 2 + 2 / 3, 2 + 4 / 3, 4][i]) < 1e-12));
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
