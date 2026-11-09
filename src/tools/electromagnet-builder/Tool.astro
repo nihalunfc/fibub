@@ -1,0 +1,150 @@
+---
+// Electromagnet builder: wind turns on a nail, pick the number of cells, put the iron core in or take it out, and
+// watch the compasses swing and the paper clips get picked up. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax emb">
+  <div class="ax-card">
+    <h2>Build an electromagnet</h2>
+    <div class="ax-row">
+      <span class="ax-seg emb-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 8</button><button type="button" data-v="10" aria-pressed="false">Class 10</button></span>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <span>Cells</span>
+      <span class="ax-seg emb-cells" role="group" aria-label="Number of cells"><button type="button" data-v="1" aria-pressed="false">1</button><button type="button" data-v="2" aria-pressed="true">2</button><button type="button" data-v="3" aria-pressed="false">3</button><button type="button" data-v="4" aria-pressed="false">4</button></span>
+    </div>
+    <label class="emb-sl">Turns of wire: <b class="emb-nv">50</b><input type="range" class="emb-n" min="10" max="100" step="10" value="50" aria-label="Turns of wire" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="emb-core" checked /> Iron nail inside the coil</label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small emb-sw">Switch off</button>
+      <button type="button" class="btn secondary small emb-rev">Turn the cells round</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig emb-fig"></canvas>
+    <div class="ax-legend"><span><i class="emb-kn"></i>north end of each compass needle</span><span>north is up the screen</span></div>
+    <p class="ax-big emb-big" aria-live="polite"></p>
+    <dl class="ax-facts emb-facts" style="margin-top:8px"></dl>
+    <p class="emb-text"></p>
+    <p class="emb-f10" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="emb-try">
+      <li>Take the iron nail out. The same coil now hardly picks up anything: the iron makes it about 100 times stronger here.</li>
+      <li>Add turns, then add cells. Both make the electromagnet stronger.</li>
+      <li>Switch off: the clips drop at once. That is why electromagnets are used in cranes for scrap iron.</li>
+      <li>Turn the cells round. The clips still stick, but every compass needle swings the other way: the poles have swapped.</li>
+      <li>Look at the far compass: it hardly moves, because the field gets weak quickly as you go away.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="emb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .emb .emb-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .emb input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .emb .ax-seg button { min-height: 40px; min-width: 44px; padding: 8px 14px; }
+  .emb-fig { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .emb-kn { background: var(--bad); }
+  .emb-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .emb-text, .emb-f10 { margin: 8px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .emb-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .emb .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .emb .eq-q p { margin: 0 0 6px; }
+  .emb .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .emb .eq-ok { color: var(--good); font-weight: 600; }
+  .emb .eq-no { color: var(--bad); }
+  .emb .eq-work { margin-top: 4px; font-size: 14px; }
+  .emb .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .emb .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { current, endField, clips, needle, insideEstimate, questions, NAIL, CORE } from '../../lib/sci/electromagnet';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.emb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.emb-fig');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let level = 8, cells = 2, on = true, dir = 1;
+  const COMPASS: [number, number][] = [[0.085, 0], [0.15, 0], [0, 0.06]];
+  const st = () => { const N = +q<HTMLInputElement>('.emb-n').value, core = q<HTMLInputElement>('.emb-core').checked, I = on ? dir * current(cells, N) : 0; return { N, core, I, B: endField(N, I, core) }; };
+  const fmtB = (b: number) => (Math.abs(b) >= 1e-3 ? `${sg(b * 1e3)} mT` : `${sg(b * 1e6)} µT`);
+
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+  const W = 360, H = 270, S = 1200, CX = 120, CY = 120;
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = st();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const x0 = CX - (NAIL.L / 2) * S, x1 = CX + (NAIL.L / 2) * S;
+    // Nail (iron core) or an empty tube.
+    if (s.core) { c.fillStyle = pal.muted; c.fillRect(x0 - 14, CY - 5, x1 - x0 + 20, 10); c.beginPath(); c.moveTo(x0 - 14, CY - 9); c.lineTo(x0 - 14, CY + 9); c.lineTo(x0 - 20, CY + 9); c.lineTo(x0 - 20, CY - 9); c.closePath(); c.fill(); c.beginPath(); c.moveTo(x1 + 6, CY - 5); c.lineTo(x1 + 16, CY); c.lineTo(x1 + 6, CY + 5); c.closePath(); c.fill(); }
+    else { c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(x0, CY - 6, x1 - x0, 12); }
+    // Turns of wire.
+    const nd = Math.max(4, Math.round(s.N / 4));
+    c.strokeStyle = pal.warn; c.lineWidth = 1.6;
+    for (let k = 0; k < nd; k++) { const x = x0 + ((k + 0.5) * (x1 - x0)) / nd; c.beginPath(); c.moveTo(x - 2, CY - 10); c.lineTo(x + 2, CY + 10); c.stroke(); }
+    // Wires to the cells and switch below.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0, CY + 10); c.lineTo(x0, 220); c.lineTo(70, 220); c.moveTo(70 + 22 * cells, 220); c.lineTo(150, 220); c.moveTo(180, 220); c.lineTo(x1, 220); c.lineTo(x1, CY + 10); c.stroke();
+    for (let k = 0; k < cells; k++) { const x = 72 + 22 * k; c.beginPath(); c.moveTo(x, 208); c.lineTo(x, 232); c.moveTo(x + 8, 213); c.lineTo(x + 8, 227); c.stroke(); }
+    c.beginPath(); c.arc(150, 220, 2.5, 0, Math.PI * 2); c.arc(180, 220, 2.5, 0, Math.PI * 2); c.fill(); c.beginPath(); c.moveTo(150, 220); on ? c.lineTo(180, 220) : c.lineTo(176, 204); c.stroke();
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center';
+    c.fillText(`${cells} × 1.5 V`, 70 + 11 * cells, 250); c.fillText(on ? 'switch on' : 'switch off', 165, 250);
+    // Poles.
+    if (on && s.I !== 0) { c.fillStyle = pal.ink; c.font = '700 14px system-ui, sans-serif'; const nRight = s.I > 0; c.fillText(nRight ? 'N' : 'S', x1 + 4, CY - 16); c.fillText(nRight ? 'S' : 'N', x0 - 12, CY - 16); }
+    // Paper clips hanging from the right end.
+    const n = clips(s.B);
+    c.strokeStyle = pal.ink; c.lineWidth = 1.3;
+    for (let k = 0; k < n; k++) { const col = Math.floor(k / 7), row = k % 7, x = x1 + 10 + col * 12, y = CY + 8 + row * 13; c.beginPath(); c.roundRect(x - 3, y, 6, 12, 3); c.stroke(); }
+    if (n === 0) { c.strokeStyle = pal.muted; for (let k = 0; k < 4; k++) { const x = x1 - 6 + k * 10; c.beginPath(); c.roundRect(x - 6, 196, 12, 6, 3); c.stroke(); } }
+    // Compasses.
+    for (const [x, y] of COMPASS) {
+      const px = CX + x * S, py = CY - y * S, a = (needle(s.N, s.I, s.core, x, y) * Math.PI) / 180;
+      c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.arc(px, py, 15, 0, Math.PI * 2); c.fill(); c.stroke();
+      const ux = Math.sin(a), uy = -Math.cos(a);
+      c.fillStyle = pal.bad; c.beginPath(); c.moveTo(px + 12 * ux, py + 12 * uy); c.lineTo(px - 3 * uy, py + 3 * ux); c.lineTo(px + 3 * uy, py - 3 * ux); c.closePath(); c.fill();
+      c.fillStyle = pal.ink; c.beginPath(); c.moveTo(px - 12 * ux, py - 12 * uy); c.lineTo(px - 3 * uy, py + 3 * ux); c.lineTo(px + 3 * uy, py - 3 * ux); c.closePath(); c.fill();
+    }
+    fig.setAttribute('aria-label', `Electromagnet with ${s.N} turns and ${cells} cells, ${s.core ? 'iron core' : 'no core'}, holding ${n} paper clips`);
+  }
+  function texts() {
+    const s = st(), n = clips(s.B);
+    q('.emb-nv').textContent = String(s.N);
+    q('.emb-sw').textContent = on ? 'Switch off' : 'Switch on';
+    q('.emb-big').textContent = !on ? 'Switched off: no current, no magnet, the clips drop' : `Picks up ${n} paper clip${n === 1 ? '' : 's'}`;
+    q('.emb-facts').replaceChildren(fact('Current', `${sg(Math.abs(s.I))} A`, `${cells} cell${cells > 1 ? 's' : ''} through ${s.N} turns`), fact('Field at the end', fmtB(Math.abs(s.B)), s.core ? 'with the iron core' : 'no core'), fact('North pole', on ? (s.I > 0 ? 'right end' : 'left end') : '–'));
+    q('.emb-text').textContent = !on ? 'An electromagnet is a magnet only while current flows. Soft iron loses its magnetism as soon as the current stops.'
+      : s.core ? `The current makes the coil a magnet, and the iron nail inside makes it much stronger. More turns or more cells make it stronger still.`
+        : 'Without the iron nail the coil is still a magnet, but a weak one: the compasses barely move and no clips are picked up.';
+    const f = q('.emb-f10'); f.hidden = level !== 10;
+    f.textContent = `Class 10: inside a long coil B = μ₀ n I with n = ${s.N} / ${NAIL.L} m = ${sg(s.N / NAIL.L)} turns per metre${s.core ? `, and the iron multiplies it (by ${CORE} in this model)` : ''}: about ${fmtB(insideEstimate(s.N, Math.abs(s.I), s.core))} inside. The end of a coil gets about half of that.`;
+  }
+  const all = () => { texts(); draw(); };
+  const seg = (sel: string, fn: (v: string) => void) => q(sel).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; for (const x of q(sel).querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b)); fn(b.dataset.v!); });
+  seg('.emb-level', (v) => { level = +v; all(); });
+  seg('.emb-cells', (v) => { cells = +v; all(); });
+  q('.emb-n').addEventListener('input', all);
+  q('.emb-core').addEventListener('change', all);
+  q('.emb-sw').addEventListener('click', () => { on = !on; all(); });
+  q('.emb-rev').addEventListener('click', () => { dir = -dir; all(); });
+  new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  all();
+  quiz(q('.emb-quiz'), () => questions());
+</script>
