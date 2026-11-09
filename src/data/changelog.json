@@ -1,5 +1,14 @@
 [
  {
+  "sha": "b70d204a40f9",
+  "date": "2026-11-09T01:27:58+00:00",
+  "title": "Add #154 landfill gas estimator (first-order decay)",
+  "tools": [
+   "landfill-gas"
+  ],
+  "site": false
+ },
+ {
   "sha": "5c63cb10643c",
   "date": "2026-11-09T01:14:35+00:00",
   "title": "Add #153 non-detect statistics (Kaplan-Meier, ROS, MLE)",
