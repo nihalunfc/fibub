@@ -1,0 +1,181 @@
+---
+// Canopy gap analyser for hemispherical (fisheye) photos: circular mask, sky versus canopy from the blue channel with
+// Otsu's threshold, gap fraction by zenith ring (equidistant lens), canopy openness and effective LAI by Miller's
+// formula. The photo never leaves the browser. The example fisheye photo is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cga">
+  <div class="ax-card">
+    <h2>Fisheye photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cg-open">Open a photo</button>
+      <input type="file" class="cg-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small cg-ex">Use the example</button>
+    </div>
+    <canvas class="cg-photo" hidden></canvas>
+    <div class="cg-show" hidden>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="cg-tint" checked /> Colour the sky pixels</label>
+      <p class="ax-legend"><span><i class="cg-ks"></i>Sky (gap)</span><span><i class="cg-kc"></i>Circle and zenith rings</span></p>
+    </div>
+    <p class="ax-help cg-ph"></p>
+    <p class="ax-err cg-err" hidden></p>
+  </div>
+
+  <div class="ax-card cg-set" hidden>
+    <h2>Circle and settings</h2>
+    <div class="ax-grid">
+      <label>Centre x (px) <input class="cg-cx" type="number" step="any" inputmode="decimal" /></label>
+      <label>Centre y (px) <input class="cg-cy" type="number" step="any" inputmode="decimal" /></label>
+      <label>Radius to the horizon (px) <input class="cg-r" type="number" min="1" step="any" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cg-tap">Tap the centre, then the edge</button>
+      <button type="button" class="btn secondary small cg-fit">Centre in the photo</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Sky threshold, blue 0 to 255 (blank for automatic) <input class="cg-t" type="number" min="0" max="255" step="1" placeholder="auto (Otsu)" inputmode="numeric" /></label>
+      <label>Zenith rings <input class="cg-n" type="number" min="1" max="18" step="1" value="5" inputmode="numeric" /></label>
+      <label>Rings reach (zenith angle) <select class="cg-z"><option value="60">60°</option><option value="75" selected>75° (LAI-2000 style)</option><option value="90">90° (whole hemisphere)</option></select></label>
+    </div>
+    <p class="ax-help">The circle is the edge of the fisheye image, where the horizon is (zenith angle 90°). The lens is taken as equidistant: zenith angle grows evenly from 0° at the centre to 90° at the edge, as in most circular fisheye lenses used for canopy photos. A pixel is sky when its blue value is above the threshold.</p>
+  </div>
+
+  <div class="ax-card cg-out" hidden>
+    <h2>Canopy</h2>
+    <p class="ax-big cg-big"></p>
+    <dl class="ax-facts cg-facts"></dl>
+    <p class="ax-err cg-warn" hidden></p>
+    <canvas class="ax-fig cg-fig"></canvas>
+    <div class="ax-scroll"><table class="cg-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cg-csv">Download rings (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleFisheye, channel, histogram, otsu, threshold, hemi, dist, type Pt, type Hemi } from '../../lib/sci/plantimg';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { readPhoto, photoCanvas, tapAt, tint, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { paint, wireDownloads, save, fileSafe, type Section, type Figure } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PH = 'Open a hemispherical photo taken looking straight up from under the canopy, camera level, on an overcast day or at dawn or dusk (no direct sun). The photo stays on your device and is never uploaded.';
+
+  let px: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'fisheye', base: HTMLCanvasElement | null = null;
+  let sky: Uint8Array | null = null, res: Hemi | null = null, taps: Pt[] = [], arming = false, fig: Figure | null = null, sections: Section[] = [], T = 0;
+
+  function fitCircle() { inp('.cg-cx').value = String(W / 2); inp('.cg-cy').value = String(H / 2); inp('.cg-r').value = String(Math.min(W, H) / 2); }
+  function load(p: Uint8ClampedArray, w: number, h: number, nm: string) {
+    px = p; W = w; H = h; name = nm; base = photoCanvas(p, w, h); taps = []; arming = false; tapLabel();
+    q('.cg-photo').hidden = false; q('.cg-show').hidden = false; q('.cg-set').hidden = false;
+    fitCircle(); run();
+  }
+  function tapLabel() { q('.cg-tap').textContent = arming ? (taps.length ? 'Now tap the edge of the image circle…' : 'Tap the centre of the image circle…') : 'Tap the centre, then the edge'; }
+  function fail(m: string) { q('.cg-err').textContent = m; q('.cg-err').hidden = false; q('.cg-out').hidden = true; res = null; sections = []; draw(); }
+
+  function run() {
+    if (!px) return;
+    q('.cg-err').hidden = true;
+    const cx = Number(inp('.cg-cx').value), cy = Number(inp('.cg-cy').value), R = Number(inp('.cg-r').value);
+    const n = Number(inp('.cg-n').value), mz = Number(q<HTMLSelectElement>('.cg-z').value), tStr = inp('.cg-t').value.trim();
+    if (!(Number.isFinite(cx) && Number.isFinite(cy) && R >= 10)) return fail('Give the circle centre and a radius of at least 10 px.');
+    if (cx - R < -R * 0.05 || cy - R < -R * 0.05 || cx + R > W + R * 0.05 || cy + R > H + R * 0.05) return fail(`The circle runs off the photo (${W} × ${H} px). Make the radius smaller or move the centre.`);
+    if (!(Number.isInteger(n) && n >= 1 && n <= 18)) return fail('Use 1 to 18 zenith rings.');
+    const all = W * H, blue = channel(px, all, 2), inside = new Uint8Array(all);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) inside[y * W + x] = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= R ? 1 : 0;
+    if (tStr) { const t = Number(tStr); if (!(t >= 0 && t <= 255)) return fail('The sky threshold runs from 0 to 255.'); T = Math.round(t); }
+    else { T = otsu(histogram(blue, inside)); if (T < 0) return fail('The circle is one flat colour, so sky and canopy cannot be told apart.'); }
+    sky = threshold(blue, T, false, inside);
+    const h = hemi(sky, W, H, cx, cy, R, n, mz);
+    res = h;
+    q('.cg-out').hidden = false;
+    q('.cg-big').textContent = `Effective LAI: ${h.lai.toFixed(2)}`;
+    q('.cg-facts').replaceChildren(
+      fact('Canopy openness', `${(100 * h.openness).toFixed(1)} %`, 'sky as a share of the hemisphere, each pixel weighted by the sky area it covers'),
+      fact('Gap fraction', `${(100 * h.gapFraction).toFixed(1)} %`, 'sky pixels as a share of all pixels in the circle'),
+      fact('Canopy cover', `${(100 * (1 - h.openness)).toFixed(1)} %`, '100 % − openness'),
+      fact('Sky threshold', `blue > ${T}`, tStr ? 'typed by you' : 'Otsu\'s automatic threshold inside the circle'),
+      fact('Rings', `${n} from 0° to ${mz}°`, `${h.px.toLocaleString('en')} pixels in the circle`),
+    );
+    q('.cg-warn').textContent = h.capped ? 'At least one ring has no sky at all. Its gap fraction was set to half a pixel of sky so the logarithm stays finite, so the LAI is a lower limit. Check the threshold, or use fewer rings.' : '';
+    q('.cg-warn').hidden = !h.capped;
+    const zc = h.rings.map((r) => r.zc), gap = h.rings.map((r) => 100 * r.gap);
+    fig = chartFigure({ h: 280, xLabel: 'Zenith angle, ring centre (°)', yLabel: 'Gap fraction (%)', legend: 'none', xMin: 0, xMax: mz, yMin: 0, series: [{ name: 'Gap fraction', x: zc, y: gap, mode: 'both' }] }, `Gap fraction in each of ${n} zenith rings`);
+    paint(q<HTMLCanvasElement>('.cg-fig'), fig);
+    const head = ['Ring (°)', 'Centre (°)', 'Pixels', 'Gap fraction (%)', '−ln T'];
+    const rows = h.rings.map((r) => [`${sig(r.z0, 3)}–${sig(r.z1, 3)}`, sig(r.zc, 3), r.px.toLocaleString('en'), r.px ? (100 * r.gap).toFixed(2) : '–', r.px ? (r.gap > 0 ? (-Math.log(r.gap)).toFixed(3) : '∞') : '–']);
+    fillTable(q<HTMLTableElement>('.cg-tab'), head, rows);
+    draw();
+    sections = [
+      { title: q('.cg-big').textContent!, facts: factPairs(q('.cg-facts')), figure: fig, table: { head, rows }, note: 'Effective LAI by Miller (1967): LAI = 2 Σ −ln T(θ) cos θ sin θ Δθ ÷ Σ sin θ Δθ over the rings. It assumes leaves are spread at random (no clumping correction) and includes branches and stems.' },
+      { title: 'Photo with the circle and rings', figure: canvasFigure(q<HTMLCanvasElement>('.cg-photo'), 'The fisheye photo with sky pixels coloured and the zenith rings drawn') },
+    ];
+  }
+
+  function draw() {
+    if (!base) return;
+    const c = q<HTMLCanvasElement>('.cg-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(base, 0, 0);
+    if (sky && res && inp('.cg-tint').checked) { const s = sky; tint(ctx, W, H, (i) => (s[i] ? [240, 228, 66] : null), 0.65); }
+    const cx = Number(inp('.cg-cx').value), cy = Number(inp('.cg-cy').value), R = Number(inp('.cg-r').value), lw = Math.max(1.5, W / 400);
+    ctx.strokeStyle = '#d55e00'; ctx.lineWidth = lw;
+    if (R > 0 && Number.isFinite(cx) && Number.isFinite(cy)) {
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+      if (res) { ctx.setLineDash([lw * 3, lw * 3]); res.rings.forEach((r) => { ctx.beginPath(); ctx.arc(cx, cy, (r.z1 / 90) * R, 0, 2 * Math.PI); ctx.stroke(); }); ctx.setLineDash([]); }
+      ctx.beginPath(); ctx.moveTo(cx - lw * 5, cy); ctx.lineTo(cx + lw * 5, cy); ctx.moveTo(cx, cy - lw * 5); ctx.lineTo(cx, cy + lw * 5); ctx.stroke();
+    }
+    ctx.fillStyle = '#d55e00'; taps.forEach((p) => { ctx.beginPath(); ctx.arc(p[0], p[1], lw * 3, 0, 2 * Math.PI); ctx.fill(); });
+  }
+
+  q('.cg-open').addEventListener('click', () => inp('.cg-file').click());
+  q('.cg-file').addEventListener('change', async () => {
+    const f = inp('.cg-file').files?.[0]; if (!f) return; inp('.cg-file').value = '';
+    try {
+      const p = await readPhoto(f, 1200);
+      load(p.px, p.w, p.h, p.name);
+      q('.cg-ph').textContent = p.scaled ? `The photo was scaled down from ${p.ow} × ${p.oh} to ${p.w} × ${p.h} px to keep the page quick; the circle is in pixels of this size. It stays on your device and is never uploaded.` : PH;
+    } catch (e) { q('.cg-err').textContent = (e as Error).message; q('.cg-err').hidden = false; }
+  });
+  function loadExample() {
+    const e = exampleFisheye(2.5, 600);
+    inp('.cg-t').value = ''; inp('.cg-n').value = '5'; q<HTMLSelectElement>('.cg-z').value = '75';
+    load(e.px, e.w, e.h, 'example-fisheye');
+    inp('.cg-r').value = String(e.R); run();
+    q('.cg-ph').textContent = 'Made-up example: a fisheye view up through a canopy of randomly placed leaves drawn with a leaf area index of 2.5. ' + PH;
+  }
+  q('.cg-ex').addEventListener('click', loadExample);
+  q('.cg-fit').addEventListener('click', () => { if (!px) return; fitCircle(); run(); });
+  q('.cg-tap').addEventListener('click', () => { arming = !arming; taps = []; tapLabel(); draw(); });
+  q('.cg-photo').addEventListener('click', (ev) => {
+    if (!arming || !base) return;
+    taps.push(tapAt(ev, q<HTMLCanvasElement>('.cg-photo'), W, H));
+    if (taps.length === 2) {
+      const R = dist(taps[0], taps[1]);
+      if (R >= 10) { inp('.cg-cx').value = taps[0][0].toFixed(1); inp('.cg-cy').value = taps[0][1].toFixed(1); inp('.cg-r').value = R.toFixed(1); }
+      taps = []; arming = false; tapLabel(); run(); return;
+    }
+    tapLabel(); draw();
+  });
+  let timer = 0;
+  ['.cg-cx', '.cg-cy', '.cg-r', '.cg-t', '.cg-n'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 300); }));
+  q('.cg-z').addEventListener('change', run);
+  q('.cg-tint').addEventListener('change', () => { draw(); if (sections[1]) sections[1].figure = canvasFigure(q<HTMLCanvasElement>('.cg-photo'), sections[1].figure!.alt); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.cg-out').hidden) paint(q<HTMLCanvasElement>('.cg-fig'), fig); });
+  q('.cg-csv').addEventListener('click', () => {
+    if (!res) return;
+    save(new Blob([csv([['zenith_from_deg', 'zenith_to_deg', 'zenith_centre_deg', 'pixels', 'sky_pixels', 'gap_fraction'], ...res.rings.map((r) => [r.z0, r.z1, r.zc, r.px, r.sky, Number.isFinite(r.gap) ? r.gap.toFixed(6) : '']), [], ['effective_LAI', res.lai.toFixed(4)], ['canopy_openness', res.openness.toFixed(6)], ['gap_fraction_whole_circle', res.gapFraction.toFixed(6)], ['blue_threshold', T]])], { type: 'text/csv' }), `${fileSafe(name)}-canopy-gaps.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Canopy gap analysis', subtitle: q('.cg-big').textContent ?? '', file: `${fileSafe(name)}-canopy`, sections }));
+</script>
+
+<style is:global>
+  .cga .cg-photo { display: block; width: 100%; max-width: 640px; height: auto; margin: 10px auto 0; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
+  .cga .cg-ks { background: #f0e442; border: 1px solid #999; }
+  .cga .cg-kc { background: #d55e00; }
+  .cga select { max-width: 100%; }
+</style>
