@@ -1,10 +1,5000 @@
 [
  {
+  "sha": "2d5d8a4322b6",
+  "date": "2026-11-09T17:01:37+00:00",
+  "title": "Add #727 Memory and attention tasks",
+  "tools": [
+   "memory-attention-tasks"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eaef74b27eb5",
+  "date": "2026-11-09T15:46:08+00:00",
+  "title": "Make browser saving opt-in on #820, #827 and #856",
+  "tools": [
+   "camera-trap-tagger",
+   "data-management-plan",
+   "field-form-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "31ef0e946cf0",
+  "date": "2026-11-09T15:43:24+00:00",
+  "title": "Cross-link #757",
+  "tools": [
+   "fertility-rates"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f4d58a64480",
+  "date": "2026-11-09T15:43:24+00:00",
+  "title": "Add #757 Fertility rates",
+  "tools": [
+   "fertility-rates"
+  ],
+  "site": false
+ },
+ {
+  "sha": "301d7197cf78",
+  "date": "2026-11-09T15:43:24+00:00",
+  "title": "Cross-link #742 and #743",
+  "tools": [
+   "gini-lorenz",
+   "npv-irr-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "042a97243da0",
+  "date": "2026-11-09T15:43:24+00:00",
+  "title": "Add #742 Gini and Lorenz curve",
+  "tools": [
+   "gini-lorenz"
+  ],
+  "site": false
+ },
+ {
+  "sha": "68f140b2300a",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Add #743 NPV and IRR calculator",
+  "tools": [
+   "npv-irr-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "809cfc77605b",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Cross-link the new social science tools",
+  "tools": [
+   "catchment-buffer",
+   "corpus-concordancer",
+   "crime-rate-calculator",
+   "crosstab-chi-square",
+   "effect-size-learning-gain",
+   "factor-analysis",
+   "ipa-feature-matrix",
+   "item-analysis",
+   "leontief-multipliers",
+   "life-table",
+   "location-quotient-shift-share",
+   "neural-network-toys",
+   "population-pyramid",
+   "qualitative-coding",
+   "questionnaire-scorer",
+   "reaction-time-experiments",
+   "regression-ols-iv-panel",
+   "signal-detection-calculator",
+   "social-network-analysis",
+   "supply-demand",
+   "syntax-tree-drawer",
+   "voting-systems",
+   "vowel-formant-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "751ac541c722",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Add #749 Social network analysis",
+  "tools": [
+   "social-network-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1f1792c02794",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Add #748 Likert chart",
+  "tools": [
+   "likert-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a12786560d04",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Add #747 Cross-tab and chi-square",
+  "tools": [
+   "crosstab-chi-square"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e40f47ec9896",
+  "date": "2026-11-09T15:43:23+00:00",
+  "title": "Add #746 Unit root and cointegration tests",
+  "tools": [
+   "unit-root-cointegration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fa93d819cfea",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #737 Interlinear gloss formatter",
+  "tools": [
+   "interlinear-gloss"
+  ],
+  "site": false
+ },
+ {
+  "sha": "212985d38cdd",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #731 IPA feature matrix",
+  "tools": [
+   "ipa-feature-matrix"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1f49df849a96",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #766 Rubric grade calculator",
+  "tools": [
+   "rubric-grade-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8cea4f6bc945",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #765 Effect size and learning gain",
+  "tools": [
+   "effect-size-learning-gain"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9351309b2d78",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #756 Cohort-component projection",
+  "tools": [
+   "cohort-component-projection"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cd153c7b2b1f",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #755 Population pyramid",
+  "tools": [
+   "population-pyramid"
+  ],
+  "site": false
+ },
+ {
+  "sha": "24f30296c890",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #725 Staircase and threshold fitter",
+  "tools": [
+   "staircase-threshold-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8a52792f4ab6",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #762 Anthropometric indices",
+  "tools": [
+   "anthropometric-indices"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d29980a35c2",
+  "date": "2026-11-09T15:43:22+00:00",
+  "title": "Add #761 Kinship diagram",
+  "tools": [
+   "kinship-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d45abb77fd98",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Add #767 Crime rate calculator",
+  "tools": [
+   "crime-rate-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "87ba7b56673d",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Add #760 Catchment buffers",
+  "tools": [
+   "catchment-buffer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8e1281a2df27",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Fix #759 test",
+  "tools": [
+   "gravity-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3a290e35ab20",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Fix #758 test",
+  "tools": [
+   "location-quotient-shift-share"
+  ],
+  "site": false
+ },
+ {
+  "sha": "812a07f2a87e",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Add #741 Input-output multipliers",
+  "tools": [
+   "leontief-multipliers"
+  ],
+  "site": false
+ },
+ {
+  "sha": "16cba1116886",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Add #750 Qualitative coding",
+  "tools": [
+   "qualitative-coding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2adb5644f5e6",
+  "date": "2026-11-09T15:43:21+00:00",
+  "title": "Add #763 Field note organiser",
+  "tools": [
+   "field-note-organiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f60c645f9f2",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #759 Gravity model",
+  "tools": [
+   "gravity-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fabb876c3bb1",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #758 Location quotients and shift-share",
+  "tools": [
+   "location-quotient-shift-share"
+  ],
+  "site": false
+ },
+ {
+  "sha": "76ac69cbcc53",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #754 Life table",
+  "tools": [
+   "life-table"
+  ],
+  "site": false
+ },
+ {
+  "sha": "afd9685259e1",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #753 Polling average",
+  "tools": [
+   "polling-average"
+  ],
+  "site": false
+ },
+ {
+  "sha": "000ab49ba93c",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #752 Voting power indices",
+  "tools": [
+   "power-indices"
+  ],
+  "site": false
+ },
+ {
+  "sha": "817fb5d9949d",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #751 Voting systems compared",
+  "tools": [
+   "voting-systems"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ec3fb24d15ff",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #745 Difference-in-differences",
+  "tools": [
+   "difference-in-differences"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9dc0cba4281e",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #744 Regression (OLS, IV and panel)",
+  "tools": [
+   "regression-ols-iv-panel"
+  ],
+  "site": false
+ },
+ {
+  "sha": "90d9ae9a722b",
+  "date": "2026-11-09T15:43:20+00:00",
+  "title": "Add #740 Nash equilibrium solver",
+  "tools": [
+   "nash-equilibrium-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3e097d257771",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #739 Inflation calculator",
+  "tools": [
+   "inflation-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "758bfa2898e4",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #738 Supply and demand",
+  "tools": [
+   "supply-demand"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6fbdad0d0152",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #736 Lexical diversity and readability",
+  "tools": [
+   "lexical-diversity-readability"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4ab7193fb56",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #734 Syntax tree drawer",
+  "tools": [
+   "syntax-tree-drawer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aab47c1bff37",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #733 Corpus concordancer",
+  "tools": [
+   "corpus-concordancer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d09d55ba033e",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #732 IPA keyboard",
+  "tools": [
+   "ipa-keyboard"
+  ],
+  "site": false
+ },
+ {
+  "sha": "996c3e091bf0",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #735 Pitch contour tracker",
+  "tools": [
+   "pitch-contour-tracker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8e07a1f7fab6",
+  "date": "2026-11-09T15:43:19+00:00",
+  "title": "Add #730 Vowel formant chart",
+  "tools": [
+   "vowel-formant-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2e07eabd2dcd",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #768 Hot spot density",
+  "tools": [
+   "hotspot-density"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b12c68783120",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #729 Neural network toys",
+  "tools": [
+   "neural-network-toys"
+  ],
+  "site": false
+ },
+ {
+  "sha": "799a3b357b58",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #728 Eye-tracking heat map",
+  "tools": [
+   "eye-tracking-heatmap"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1879655dac08",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #764 Item analysis",
+  "tools": [
+   "item-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d9a7f6ad8b0a",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #726 IRT item analysis",
+  "tools": [
+   "irt-item-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a46bf1613e3",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #724 Factor analysis",
+  "tools": [
+   "factor-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "96f0feb665ef",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #723 Questionnaire scorer",
+  "tools": [
+   "questionnaire-scorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c1ecb9eca584",
+  "date": "2026-11-09T15:43:18+00:00",
+  "title": "Add #722 Reaction time experiments",
+  "tools": [
+   "reaction-time-experiments"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f5dd49a3216",
+  "date": "2026-11-09T15:43:17+00:00",
+  "title": "Add #721 Signal detection calculator",
+  "tools": [
+   "signal-detection-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "14013be9b3b6",
+  "date": "2026-11-09T14:33:21+00:00",
+  "title": "Add #511 Habitat connectivity analyser",
+  "tools": [
+   "habitat-connectivity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "33d731213b0b",
+  "date": "2026-11-09T14:33:21+00:00",
+  "title": "Add #510 CubeSat power budget",
+  "tools": [
+   "cubesat-power-budget"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d82118a98af1",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #509 Cross-section and topographic profile",
+  "tools": [
+   "cross-section-profile"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1c2e31b56e90",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #508 Proxy record stacker",
+  "tools": [
+   "proxy-stacker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "48cf4777c1d9",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Cross-link new tools with related tools already on main",
+  "tools": [
+   "age-depth-model",
+   "concentration-converter",
+   "dissolved-oxygen",
+   "gpr-viewer",
+   "snow-slope-tools"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a7e03a927da",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #515 Mineral identification key",
+  "tools": [
+   "mineral-id-key"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4d7f2e77963f",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #514 Rock mass classification (Q, RMR, RQD)",
+  "tools": [
+   "rock-mass-classification"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b19db25656e",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #513 GPR radargram viewer",
+  "tools": [
+   "gpr-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "51ac9223de3b",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #512 Snow water, snow load and slope angle",
+  "tools": [
+   "snow-slope-tools"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ee1177645be8",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #868 Seawater carbonate system calculator",
+  "tools": [
+   "carbonate-system"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7312c0a93894",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #832 Tide predictor and harmonic analyser",
+  "tools": [
+   "tide-predictor"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7ec688e1e538",
+  "date": "2026-11-09T14:33:20+00:00",
+  "title": "Add #837 Tanabe-Sugano diagram calculator",
+  "tools": [
+   "tanabe-sugano"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f27d6810f0e",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #507 Ocean currents calculator",
+  "tools": [
+   "ocean-currents"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6e2099d2ad3",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #506 Scope 1, 2 and 3 emissions calculator",
+  "tools": [
+   "scope-emissions"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b40d6e0b4018",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #505 Carbon footprint calculator",
+  "tools": [
+   "carbon-footprint"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d8146b0cba1b",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #504 UV index estimator",
+  "tools": [
+   "uv-index-estimator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d58b6e3690ce",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #884 Age-depth model",
+  "tools": [
+   "age-depth-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "02b5b2aba5fe",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #840 Insolation calculator",
+  "tools": [
+   "insolation-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "48bda22c0585",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #870 Sensor calibration",
+  "tools": [
+   "sensor-calibration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c59205bdf6ea",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #856 Camera-trap tagger",
+  "tools": [
+   "camera-trap-tagger"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e27096a11e6d",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #894 Tissot explorer",
+  "tools": [
+   "tissot-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0c60bc0d3e39",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #895 Band combiner",
+  "tools": [
+   "band-combiner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e75051062bc6",
+  "date": "2026-11-09T14:33:19+00:00",
+  "title": "Add #517 Concentration converter",
+  "tools": [
+   "concentration-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "26a6ac0f8cc2",
+  "date": "2026-11-09T14:33:18+00:00",
+  "title": "Add #516 Fume hood and lab ventilation calculator",
+  "tools": [
+   "fume-hood-ventilation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f3b8afefed50",
+  "date": "2026-11-09T14:33:18+00:00",
+  "title": "Add #899 Weather observer's log",
+  "tools": [
+   "weather-log"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0b8971e487fd",
+  "date": "2026-11-09T14:33:18+00:00",
+  "title": "Add #841 Dissolved oxygen and plankton density calculator",
+  "tools": [
+   "dissolved-oxygen"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1c2ab24627f7",
+  "date": "2026-11-09T14:33:18+00:00",
+  "title": "Add #834 Energy balance climate model",
+  "tools": [
+   "energy-balance-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "938697fe0146",
+  "date": "2026-11-09T14:33:18+00:00",
+  "title": "Add #828 Glacier mass balance and ice flow",
+  "tools": [
+   "glacier-ice"
+  ],
+  "site": false
+ },
+ {
+  "sha": "50440dd3d727",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #206 Hardy-Weinberg tester",
+  "tools": [
+   "hardy-weinberg-tester"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c3b2b4af6625",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #205 Pedigree drawing tool",
+  "tools": [
+   "pedigree-drawing-tool"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0aa56d1ecda8",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #204 Linkage map calculator",
+  "tools": [
+   "linkage-map-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5c4717bb672b",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #203 Mendelian chi-square test",
+  "tools": [
+   "mendelian-chi-square"
+  ],
+  "site": false
+ },
+ {
+  "sha": "245a29f8548f",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #353 Drake equation calculator",
+  "tools": [
+   "drake-equation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e00f74052f41",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #352 Turing pattern simulator",
+  "tools": [
+   "turing-pattern-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "534c5e0b9a1b",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #351 Embryo development timer",
+  "tools": [
+   "embryo-development-timer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "af1486f3b3be",
+  "date": "2026-11-09T13:38:15+00:00",
+  "title": "Add #350 Calcium imaging ΔF/F",
+  "tools": [
+   "calcium-imaging-dff"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0eddaa53f623",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #349 Stereotaxic coordinate helper",
+  "tools": [
+   "stereotaxic-helper"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f024d46883ee",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #348 Spike train analyser",
+  "tools": [
+   "spike-train-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4e0e61cfba59",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #347 Hodgkin-Huxley simulator",
+  "tools": [
+   "hodgkin-huxley-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7c474000a96e",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #346 Notch filter and PSD",
+  "tools": [
+   "notch-filter-psd"
+  ],
+  "site": false
+ },
+ {
+  "sha": "022e61f482ef",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #345 Membrane potential calculator",
+  "tools": [
+   "membrane-potential"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b032b3c75f52",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #344 Osmolarity calculator",
+  "tools": [
+   "osmolarity-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a5836622fa72",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #343 Fick cardiac output calculator",
+  "tools": [
+   "fick-cardiac-output"
+  ],
+  "site": false
+ },
+ {
+  "sha": "898a07ae28ce",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #342 Respirometry calculator",
+  "tools": [
+   "respirometry-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f3fbd5da78e2",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #341 Yield per recruit and MSY calculator",
+  "tools": [
+   "yield-per-recruit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "57c62adaef26",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #340 Von Bertalanffy growth fitter",
+  "tools": [
+   "von-bertalanffy-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d2482214a1a4",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #339 CPUE trend calculator",
+  "tools": [
+   "cpue-trend"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1b297011f910",
+  "date": "2026-11-09T13:38:14+00:00",
+  "title": "Add #338 Canopy gap analyser",
+  "tools": [
+   "canopy-gap-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7a20dc5a4c70",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #337 Fire Weather Index calculator",
+  "tools": [
+   "fire-weather-index"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6ecbd887fc4e",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #336 Forest inventory summary",
+  "tools": [
+   "forest-inventory-summary"
+  ],
+  "site": false
+ },
+ {
+  "sha": "94a5e95f14bd",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #335 Log scale calculator",
+  "tools": [
+   "log-scale-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1309e57fd2e0",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #334 Tree height and basal area calculator",
+  "tools": [
+   "tree-height-basal-area"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7e66e0940d7a",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #333 Zooplankton biomass",
+  "tools": [
+   "zooplankton-biomass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9cc3df89a411",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #332 Coral cover point count",
+  "tools": [
+   "coral-cover-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bf0f9afa879c",
+  "date": "2026-11-09T13:38:13+00:00",
+  "title": "Add #331 Fish length-weight",
+  "tools": [
+   "fish-length-weight"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c6b075e13f63",
+  "date": "2026-11-09T13:33:32+00:00",
+  "title": "Add #875 Grain-size statistics from sieve data",
+  "tools": [
+   "grain-size-stats"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f9837ca4fe65",
+  "date": "2026-11-09T13:33:32+00:00",
+  "title": "Add #833 Batch airmass planner",
+  "tools": [
+   "batch-airmass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "600101ba978e",
+  "date": "2026-11-09T13:33:32+00:00",
+  "title": "Add #829 Calibration frames (bias, dark, flat)",
+  "tools": [
+   "calibration-frames"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1125671c69d8",
+  "date": "2026-11-09T13:33:32+00:00",
+  "title": "Add #831 Orbital elements and state vector converter",
+  "tools": [
+   "orbit-elements"
+  ],
+  "site": false
+ },
+ {
+  "sha": "822c3fc861c7",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #830 HR diagram and colour-magnitude plotter",
+  "tools": [
+   "hr-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1a0a250e8d79",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #874 Concordia plot (U-Pb)",
+  "tools": [
+   "concordia-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c4d603ab0e5a",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #866 Phone clinometer",
+  "tools": [
+   "phone-clinometer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5e6cbeaa8baa",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #885 Phone seismometer",
+  "tools": [
+   "phone-seismometer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "90e9be8c4296",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #879 Seismogram viewer",
+  "tools": [
+   "seismogram-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a665655fa45",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #890 Stream long profile and chi analysis",
+  "tools": [
+   "stream-profile"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4bb402ab0684",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #873 Point counter for thin sections",
+  "tools": [
+   "point-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ea44d152e8b4",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #876 Stratigraphic column maker",
+  "tools": [
+   "strat-column"
+  ],
+  "site": false
+ },
+ {
+  "sha": "da41345789b6",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #838 Molecule viewer (XYZ, MOL, SDF)",
+  "tools": [
+   "molecule-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "03866e49604c",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #839 Gaussian and ORCA output reader",
+  "tools": [
+   "qc-output-parser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "140655b79084",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #836 Degree of unsaturation calculator",
+  "tools": [
+   "unsaturation-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "19361726e6e6",
+  "date": "2026-11-09T13:33:31+00:00",
+  "title": "Add #835 Interactive periodic table",
+  "tools": [
+   "periodic-table"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d08ceedab0c0",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #889 Watershed delineation",
+  "tools": [
+   "watershed-delineation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ff631de554a2",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #888 DEM slope, aspect and hillshade",
+  "tools": [
+   "dem-terrain"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c702345fad50",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #893 Vector map viewer",
+  "tools": [
+   "vector-map-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "86067dba7011",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #892 UTM and MGRS converter",
+  "tools": [
+   "utm-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "38387b710d5a",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #871 CIPW norm calculator",
+  "tools": [
+   "cipw-norm"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f59a4d6551c",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #872 Mineral formula calculator",
+  "tools": [
+   "mineral-formula"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aad56aff3f34",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #861 AFM roughness analyser",
+  "tools": [
+   "afm-roughness"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6e1ec9834d0",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #859 DLS analyser",
+  "tools": [
+   "dls-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "029d825ee0cb",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #857 Lattice FFT and d-spacing",
+  "tools": [
+   "lattice-fft"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b034746af18c",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #854 Particle size from an image",
+  "tools": [
+   "particle-size-image"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0def59142005",
+  "date": "2026-11-09T13:33:30+00:00",
+  "title": "Add #855 Phase fraction and porosity",
+  "tools": [
+   "phase-fraction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e774e178f410",
+  "date": "2026-11-09T13:33:29+00:00",
+  "title": "Add #853 Grain size by line intercept",
+  "tools": [
+   "grain-size-intercept"
+  ],
+  "site": false
+ },
+ {
+  "sha": "88ab18df20c9",
+  "date": "2026-11-09T12:56:01+00:00",
+  "title": "Cross-link the second batch of maths tools; restore viewport in the #572 test",
+  "tools": [
+   "agent-based-models",
+   "algorithm-visualiser",
+   "cellular-automata",
+   "logic-simplifier",
+   "lp-solver",
+   "polyhedron-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cd5df9b1f203",
+  "date": "2026-11-09T12:56:01+00:00",
+  "title": "Add #572 Embedding visualiser (PCA and t-SNE)",
+  "tools": [
+   "embedding-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ec5c88524809",
+  "date": "2026-11-09T12:56:01+00:00",
+  "title": "Add #589 Cellular automata explorer",
+  "tools": [
+   "cellular-automata"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9dd77eb4d17a",
+  "date": "2026-11-09T12:56:01+00:00",
+  "title": "Add #587 Agent-based model playground",
+  "tools": [
+   "agent-based-models"
+  ],
+  "site": false
+ },
+ {
+  "sha": "725e1e4bbc93",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #585 Project scheduling: CPM, PERT and Gantt",
+  "tools": [
+   "project-scheduler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ebd3f45bae02",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #584 Queueing calculator",
+  "tools": [
+   "queueing-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "938d734ecab2",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #582 Linear and integer programming solver",
+  "tools": [
+   "lp-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dd406a86e6b9",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #577 Compiler stage visualiser",
+  "tools": [
+   "toy-compiler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "05576195a8c1",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #576 Cache and memory hierarchy simulator",
+  "tools": [
+   "cache-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f1bf6a854238",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #575 Floating point inspector (IEEE 754)",
+  "tools": [
+   "float-inspector"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4808aed518ad",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #574 Big-O and runtime comparison plotter",
+  "tools": [
+   "big-o-plotter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c0e1c3a40588",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Set order of #573 to its number",
+  "tools": [
+   "algorithm-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b17cb9f38e91",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #573 Algorithm visualiser",
+  "tools": [
+   "algorithm-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "db187b4949cc",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #567 Design of experiments generator",
+  "tools": [
+   "experiment-design"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4936e6af8176",
+  "date": "2026-11-09T12:56:00+00:00",
+  "title": "Add #564 Bayesian A/B test and conjugate prior updater",
+  "tools": [
+   "bayesian-ab-test"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1e5267fccef5",
+  "date": "2026-11-09T12:55:59+00:00",
+  "title": "Add #586 Vehicle routing for small instances",
+  "tools": [
+   "vehicle-routing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "93aadea9e659",
+  "date": "2026-11-09T12:55:59+00:00",
+  "title": "Add #551 Dimensional analysis (Buckingham Pi) helper",
+  "tools": [
+   "buckingham-pi"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5e042ceb82ee",
+  "date": "2026-11-09T12:55:59+00:00",
+  "title": "Add #558 Truth table and Karnaugh map simplifier",
+  "tools": [
+   "logic-simplifier"
+  ],
+  "site": false
+ },
+ {
+  "sha": "33ac3b13d2da",
+  "date": "2026-11-09T12:55:59+00:00",
+  "title": "Add #553 Interactive geometry construction",
+  "tools": [
+   "geometry-construction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ac18ab280526",
+  "date": "2026-11-09T12:55:59+00:00",
+  "title": "Add #554 Polyhedron and tiling viewer",
+  "tools": [
+   "polyhedron-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "863942edb8de",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #692 Engineering unit converter",
+  "tools": [
+   "unit-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "51a383cb8cbb",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #691 Calibration interval and drift tracker",
+  "tools": [
+   "calibration-drift"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a30635615591",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #690 Control charts and process capability",
+  "tools": [
+   "control-charts"
+  ],
+  "site": false
+ },
+ {
+  "sha": "21f66c8134a5",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #689 Gauge R&R study",
+  "tools": [
+   "gauge-rr"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1f3c6ff3fde1",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #688 Pressure buildup analyser",
+  "tools": [
+   "well-test-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bd592ef35a30",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #687 Oil and gas PVT correlations",
+  "tools": [
+   "pvt-correlations"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a1e7629d5b6",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #686 Decline curve analysis (Arps)",
+  "tools": [
+   "decline-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6d0a192d558d",
+  "date": "2026-11-09T12:34:43+00:00",
+  "title": "Add #684 Signal timing (Webster's method)",
+  "tools": [
+   "signal-timing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "10e8055fc429",
+  "date": "2026-11-09T12:34:42+00:00",
+  "title": "Add #683 Traffic flow fundamentals",
+  "tools": [
+   "traffic-flow"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0bbff5a04492",
+  "date": "2026-11-09T12:34:42+00:00",
+  "title": "Add #682 Drug release curve fitter",
+  "tools": [
+   "drug-release-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "df015cc94d99",
+  "date": "2026-11-09T12:34:42+00:00",
+  "title": "Add #681 EMG envelope and fatigue analyser",
+  "tools": [
+   "emg-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9dc1865dbd29",
+  "date": "2026-11-09T12:34:42+00:00",
+  "title": "Add #680 ECG viewer and HRV",
+  "tools": [
+   "ecg-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "00bf91f4b848",
+  "date": "2026-11-09T12:08:38+00:00",
+  "title": "Keep #326's print rule to the herbarium page",
+  "tools": [
+   "herbarium-label-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e5239e0aff4d",
+  "date": "2026-11-09T12:08:38+00:00",
+  "title": "Add #330 Disease progress (AUDPC)",
+  "tools": [
+   "disease-progress-audpc"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f84548ad365",
+  "date": "2026-11-09T12:08:38+00:00",
+  "title": "Add #329 Spore size measurer",
+  "tools": [
+   "spore-size-measurer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7556d26147da",
+  "date": "2026-11-09T12:08:38+00:00",
+  "title": "Add #328 Leaf disease severity",
+  "tools": [
+   "leaf-disease-severity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "82a0c6c9d2ad",
+  "date": "2026-11-09T12:08:38+00:00",
+  "title": "Add #327 Stomatal density counter",
+  "tools": [
+   "stomatal-density-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "baab76703d17",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #326 Herbarium label maker",
+  "tools": [
+   "herbarium-label-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d3aa6edd518",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #325 Photosynthesis curve fitter",
+  "tools": [
+   "photosynthesis-curve-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "506215b218ce",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #324 Plant growth analysis",
+  "tools": [
+   "plant-growth-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d8f616a170a",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #323 Leaf area and canopy cover analyser",
+  "tools": [
+   "leaf-area-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "53848fd251a0",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #322 Soil texture triangle",
+  "tools": [
+   "soil-texture-triangle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "30c7241bf267",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #321 Dichotomous key builder",
+  "tools": [
+   "dichotomous-key-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e3d0b9c7a292",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #320 Trap count index",
+  "tools": [
+   "trap-count-index"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06bb45a65107",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #319 Insect degree-days",
+  "tools": [
+   "insect-degree-days"
+  ],
+  "site": false
+ },
+ {
+  "sha": "99e270c95267",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #318 Bird song spectrogram",
+  "tools": [
+   "bird-song-spectrogram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "97a0663c650d",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #317 Allometry calculator",
+  "tools": [
+   "allometry-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9fce4c6c7b59",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #316 Home range analyser",
+  "tools": [
+   "home-range-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e20b1566fcb4",
+  "date": "2026-11-09T12:08:37+00:00",
+  "title": "Add #315 Ethogram logger",
+  "tools": [
+   "ethogram-logger"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f8c36d4ac2d",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #314 Coalescent simulator",
+  "tools": [
+   "coalescent-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0cdc4e822fc0",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #313 Effective population size calculator",
+  "tools": [
+   "effective-population-size"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0cd09d2ebeb3",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #312 Allele frequency calculator",
+  "tools": [
+   "allele-frequency-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5eea585e9c26",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #311 dN/dS calculator",
+  "tools": [
+   "dnds-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a16bad298ea4",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #310 Wright-Fisher simulator",
+  "tools": [
+   "wright-fisher-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f9e9de9ecd1",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #309 Molecular clock calculator",
+  "tools": [
+   "molecular-clock"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a38d188defe1",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #308 Tree builder",
+  "tools": [
+   "tree-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "15dde9b84f9b",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #307 Occupancy estimator",
+  "tools": [
+   "occupancy-estimator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "342f9c2fa119",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #306 Community ordination",
+  "tools": [
+   "community-ordination"
+  ],
+  "site": false
+ },
+ {
+  "sha": "21189726b6ca",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #305 Distance sampling",
+  "tools": [
+   "distance-sampling"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b88b7924801c",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #304 Lotka-Volterra simulator",
+  "tools": [
+   "lotka-volterra-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e96bcfebfdaf",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #303 Population growth models",
+  "tools": [
+   "population-growth-models"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6adf1b61d262",
+  "date": "2026-11-09T12:08:36+00:00",
+  "title": "Add #302 Quadrat and transect analyser",
+  "tools": [
+   "quadrat-transect-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "480296a9773c",
+  "date": "2026-11-09T12:08:35+00:00",
+  "title": "Add #301 Mark-recapture estimator",
+  "tools": [
+   "mark-recapture"
+  ],
+  "site": false
+ },
+ {
+  "sha": "540bd1c2dc1f",
+  "date": "2026-11-09T11:55:50+00:00",
+  "title": "Bring in main: in-text links for tools #173-#500, page-weight fixes",
+  "tools": [
+   "acid-base-interpreter",
+   "anaesthesia-monitoring-log",
+   "artefact-scale-tool",
+   "audiogram",
+   "body-mass-estimator",
+   "body-measures",
+   "breeders-equation",
+   "breeding-calendar",
+   "brine-calculator",
+   "carrier-risk",
+   "cell-doubling-time",
+   "clinical-scores",
+   "colour-vision-simulator",
+   "contrast-checker",
+   "crossing-plan",
+   "cryo-em-calculator",
+   "cryovial-inventory",
+   "crystallisation-screen",
+   "daly-qaly",
+   "dendro-crossdating",
+   "dental-chart",
+   "diagnostic-test-calculator",
+   "dicom-anonymiser",
+   "dicom-viewer",
+   "energy-needs",
+   "epi-curve",
+   "epidemic-model",
+   "exposure-twa",
+   "feed-ration-balancer",
+   "fertiliser-blend-calculator",
+   "field-trial-designer",
+   "fluorescence-image-analyser",
+   "gel-densitometry",
+   "glycaemic-load",
+   "greenhouse-heating",
+   "growth-curve-tracker",
+   "haccp-plan-builder",
+   "harris-matrix-builder",
+   "herd-immunity",
+   "hydropathy-plot",
+   "ion-exchange-ph",
+   "irrigation-scheduler",
+   "kidney-function",
+   "lab-unit-converter",
+   "margin-of-exposure",
+   "media-recipe-scaler",
+   "meta-analysis",
+   "nnt-calculator",
+   "nutrient-planner",
+   "odds-risk-ratio",
+   "pdb-viewer",
+   "peptide-mass-calculator",
+   "pond-oxygen-budget",
+   "procrustes-morphometrics",
+   "protein-assay",
+   "protein-calculator",
+   "ramachandran-plot",
+   "range-chart-plotter",
+   "rate-standardisation",
+   "recipe-nutrition-calculator",
+   "roc-curve",
+   "seeding-rate-calculator",
+   "sensory-difference-test",
+   "seriation-analyser",
+   "shelf-life-estimator",
+   "soil-test-interpreter",
+   "sprayer-calibration",
+   "stocking-density-calculator",
+   "survey-weighting",
+   "survival-analysis",
+   "thermal-process-calculator",
+   "transfection-planner",
+   "tree-viewer",
+   "trench-recording-sheet",
+   "visual-acuity-converter",
+   "yield-trial-anova"
+  ],
+  "site": true
+ },
+ {
+  "sha": "1095899216a9",
+  "date": "2026-11-09T11:53:52+00:00",
+  "title": "Add #679 Decay heat estimator",
+  "tools": [
+   "decay-heat"
+  ],
+  "site": false
+ },
+ {
+  "sha": "898dd3fd238b",
+  "date": "2026-11-09T11:53:52+00:00",
+  "title": "Add #678 One-group diffusion and criticality",
+  "tools": [
+   "neutron-diffusion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "183c59b30b24",
+  "date": "2026-11-09T11:53:52+00:00",
+  "title": "Add #677 Reactor point kinetics simulator",
+  "tools": [
+   "point-kinetics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f24fb0dd2a95",
+  "date": "2026-11-09T11:53:52+00:00",
+  "title": "Add #676 Levelised cost of energy (LCOE)",
+  "tools": [
+   "lcoe-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "709cb4ea937a",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #675 Home battery storage sizing",
+  "tools": [
+   "home-battery-sizing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b047a3b08dbb",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #674 Load flow for small networks",
+  "tools": [
+   "load-flow"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fbb85f4f77c0",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #673 Wind turbine energy yield",
+  "tools": [
+   "wind-energy-yield"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0a0fbaceab64",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #672 Solar PV yield estimator",
+  "tools": [
+   "solar-pv-yield"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a93cef17cecc",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #671 Drone flight time calculator",
+  "tools": [
+   "drone-flight-time"
+  ],
+  "site": false
+ },
+ {
+  "sha": "86b178656be0",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #670 Model rocket flight simulator",
+  "tools": [
+   "model-rocket-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "87590587e10f",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #669 Propeller and rotor thrust",
+  "tools": [
+   "propeller-thrust"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2195104f7cd8",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #666 Heat of reaction and adiabatic temperature rise",
+  "tools": [
+   "adiabatic-temperature-rise"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3f306596f49c",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #665 Reactor design: CSTR, PFR and batch",
+  "tools": [
+   "reactor-design"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6342f7ec7a67",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #664 Mass and energy balance solver",
+  "tools": [
+   "mass-balance-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4f1e1bdd610e",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #648 2D truss and frame solver",
+  "tools": [
+   "truss-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "67fa0fcaea12",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #640 Path planning visualiser",
+  "tools": [
+   "path-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "37eab0ceb410",
+  "date": "2026-11-09T11:53:51+00:00",
+  "title": "Add #639 Kalman filter playground",
+  "tools": [
+   "kalman-filter-playground"
+  ],
+  "site": false
+ },
+ {
+  "sha": "498cde19aaa0",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #638 State space and pole placement",
+  "tools": [
+   "pole-placement"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ccb0268d8f1d",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #637 Inverse kinematics for 2 and 3 link arms",
+  "tools": [
+   "inverse-kinematics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ef80ba81505f",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #636 PID tuning simulator",
+  "tools": [
+   "pid-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b97e01351da0",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #634 Modulation and BER simulator",
+  "tools": [
+   "constellation-ber"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d530e7151170",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #633 Smith chart",
+  "tools": [
+   "smith-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d61b7365e4db",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #632 Antenna calculator",
+  "tools": [
+   "antenna-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ea139d52a7a",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #631 Wavelet transform viewer",
+  "tools": [
+   "wavelet-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "66fad1d66c53",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #630 Sampling and aliasing explorer",
+  "tools": [
+   "aliasing-demo"
+  ],
+  "site": false
+ },
+ {
+  "sha": "05b638ab51b5",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #629 FIR/IIR filter designer",
+  "tools": [
+   "digital-filter-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "94efe4e687a2",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #628 FFT workbench",
+  "tools": [
+   "fft-workbench"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c85b2ea0fe48",
+  "date": "2026-11-09T11:53:50+00:00",
+  "title": "Add #627 Battery runtime and solar sizing",
+  "tools": [
+   "battery-solar-sizing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "81d277b5d6f0",
+  "date": "2026-11-09T11:53:49+00:00",
+  "title": "Add #626 LED resistor calculator",
+  "tools": [
+   "led-resistor-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1aa570b45e81",
+  "date": "2026-11-09T11:51:27+00:00",
+  "title": "Allow the microphone on the harmonics analyser page only",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "20a5896cce86",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Cross-link the new maths, statistics and computing tools",
+  "tools": [
+   "confusion-matrix",
+   "entropy-calculator",
+   "fractal-explorer",
+   "function-grapher",
+   "graph-algorithms",
+   "hypothesis-tests",
+   "matrix-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c6563ba351e3",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #581 Classical cipher and hash teaching tool",
+  "tools": [
+   "cipher-teacher"
+  ],
+  "site": false
+ },
+ {
+  "sha": "938b747ab8a7",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #580 Error-correcting codes playground",
+  "tools": [
+   "error-correcting-codes"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9e96266a1178",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #579 Huffman and arithmetic coding visualiser",
+  "tools": [
+   "huffman-coding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "22360574eac7",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #578 Entropy and channel capacity calculator",
+  "tools": [
+   "entropy-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6dda4956e1a4",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #569 Small model trainer",
+  "tools": [
+   "small-model-trainer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8996389e45c9",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #571 Dataset train/test splitter and stratifier",
+  "tools": [
+   "train-test-splitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2b325ba3c886",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #570 Confusion matrix and metrics calculator",
+  "tools": [
+   "confusion-matrix"
+  ],
+  "site": false
+ },
+ {
+  "sha": "38f3a25b7f3d",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #568 CSV and Excel data profiler",
+  "tools": [
+   "csv-profiler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4ced7e32b539",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #566 Time series decomposition and ARIMA",
+  "tools": [
+   "time-series-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "18d7c0d5d8b7",
+  "date": "2026-11-09T11:35:08+00:00",
+  "title": "Add #561 Regression workbench",
+  "tools": [
+   "regression-workbench"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b0ed3efb059",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #563 Probability distribution explorer",
+  "tools": [
+   "distribution-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ac76d504c590",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #562 Bootstrap and permutation test tool",
+  "tools": [
+   "bootstrap-permutation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "03a08440a2d5",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #565 Effect size converter",
+  "tools": [
+   "effect-size-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a060606a9081",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #560 Hypothesis test chooser and runner",
+  "tools": [
+   "hypothesis-tests"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b52493410f52",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #583 Transportation and assignment problem solver",
+  "tools": [
+   "transportation-assignment"
+  ],
+  "site": false
+ },
+ {
+  "sha": "83b42624afda",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #588 Network metrics",
+  "tools": [
+   "network-metrics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "30c088ada5fd",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #556 Graph editor with algorithms",
+  "tools": [
+   "graph-algorithms"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c0ce9eaa8369",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #549 Fourier series and FFT visualiser",
+  "tools": [
+   "fourier-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "08510fee7794",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #552 Chaos explorer",
+  "tools": [
+   "chaos-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a493d9e5bbe7",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #548 ODE solver with phase portraits",
+  "tools": [
+   "ode-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aa02d30b9ebd",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #559 Finite state machine and regex visualiser",
+  "tools": [
+   "regex-fsm-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a3bf68fab162",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Add #557 Combinatorics calculator",
+  "tools": [
+   "combinatorics-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4c05dba51a57",
+  "date": "2026-11-09T11:35:07+00:00",
+  "title": "Fix styles for table rows the page builds in #544, #545 and #546",
+  "tools": [
+   "group-explorer",
+   "knot-braid-drawer",
+   "number-theory-toolkit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "131448b6e1b2",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #546 Knot and braid diagram drawer",
+  "tools": [
+   "knot-braid-drawer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "04e4622d6e1a",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #545 Group theory explorer",
+  "tools": [
+   "group-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "369ecc49c805",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #544 Number theory toolkit",
+  "tools": [
+   "number-theory-toolkit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "df2fb924ed11",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #550 Numerical methods teacher",
+  "tools": [
+   "numerical-methods"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0203dd7d4167",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #542 Symbolic algebra (lite CAS)",
+  "tools": [
+   "symbolic-algebra"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8dbb8c2f0a06",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #543 Matrix calculator",
+  "tools": [
+   "matrix-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e2db1f539638",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #555 Hyperbolic geometry drawer",
+  "tools": [
+   "poincare-disk"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4621707faf9",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Fix #541 Graphing calculator: style the curve rows and sliders built by the script",
+  "tools": [
+   "function-grapher"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f3f6879eafa1",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #547 Fractal explorer",
+  "tools": [
+   "fractal-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c5d7b67e1525",
+  "date": "2026-11-09T11:35:06+00:00",
+  "title": "Add #541 Graphing calculator",
+  "tools": [
+   "function-grapher"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b1aa26352eb5",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #988 Gillespie stochastic simulator",
+  "tools": [
+   "gillespie-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "41c0a5289999",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #987 Gene network viewer",
+  "tools": [
+   "gene-network-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "77c7703892e1",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #986 Pathway ODE builder",
+  "tools": [
+   "pathway-ode-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "10ebe612611f",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #985 Volcano plot and PCA",
+  "tools": [
+   "metabolite-volcano-pca"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d74fc9ce7873",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #984 Adduct and neutral loss calculator",
+  "tools": [
+   "adduct-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c7ddd5586a0c",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #961 PIV lite",
+  "tools": [
+   "piv-lite"
+  ],
+  "site": false
+ },
+ {
+  "sha": "79ae6c41ba1f",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #960 Flat plate boundary layer calculator",
+  "tools": [
+   "boundary-layer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0a96266e9547",
+  "date": "2026-11-09T11:33:04+00:00",
+  "title": "Add #959 Potential flow builder",
+  "tools": [
+   "potential-flow"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cb567f52a0f2",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #958 Airfoil calculator",
+  "tools": [
+   "airfoil-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "543d886ce8a7",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #957 Lattice Boltzmann wind tunnel",
+  "tools": [
+   "lattice-boltzmann"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ec516590f3ae",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #956 Dimensionless numbers calculator",
+  "tools": [
+   "dimensionless-numbers"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dea2117a364e",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #955 Paschen curve calculator",
+  "tools": [
+   "paschen-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "31b5e9de2570",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #954 Langmuir probe analyser",
+  "tools": [
+   "langmuir-probe"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f6c4c2d0405a",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #953 Particle drift simulator",
+  "tools": [
+   "particle-drifts"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5f8ce79a539c",
+  "date": "2026-11-09T11:33:03+00:00",
+  "title": "Add #952 Plasma parameter calculator",
+  "tools": [
+   "plasma-parameters"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ccb6e63c54d4",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Cross-link the new dating, digital humanities, heritage and music tools",
+  "tools": [
+   "harmonics-analyser",
+   "historic-calendar-converter",
+   "light-exposure-budget",
+   "luminescence-age-calculator",
+   "manuscript-annotator",
+   "racemisation-age"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6ed9bc9187c",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #423 Rhythm and tempo detector",
+  "tools": [
+   "tempo-detector"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8921eee70dd0",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #422 Instrument harmonics analyser",
+  "tools": [
+   "harmonics-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2453c71735c5",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #421 Tuning system and cents calculator",
+  "tools": [
+   "tuning-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b83fbe3a1ad2",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #420 Heritage climate and mould risk checker",
+  "tools": [
+   "heritage-climate-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e90afbc1b42",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #419 Light exposure budget for museum objects",
+  "tools": [
+   "colour-difference-calculator",
+   "light-exposure-budget"
+  ],
+  "site": false
+ },
+ {
+  "sha": "42d4cef739b9",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #418 Colour difference (ΔE) calculator",
+  "tools": [
+   "colour-difference-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4bf6273b8602",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #417 Correspondence network visualiser",
+  "tools": [
+   "correspondence-network"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3a1842545891",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #416 Manuscript image annotator",
+  "tools": [
+   "manuscript-annotator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c6024fd12f51",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #415 Historic calendar converter",
+  "tools": [
+   "historic-calendar-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fda4dbdef53f",
+  "date": "2026-11-09T11:28:57+00:00",
+  "title": "Add #414 Topic modelling (LDA)",
+  "tools": [
+   "topic-modeller"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9fa91a808ae7",
+  "date": "2026-11-09T11:28:56+00:00",
+  "title": "Add #413 Stylometry: Burrows' Delta",
+  "tools": [
+   "stylometry-delta"
+  ],
+  "site": false
+ },
+ {
+  "sha": "195013347a2f",
+  "date": "2026-11-09T11:28:56+00:00",
+  "title": "Add #412 Amino acid racemisation age estimator",
+  "tools": [
+   "racemisation-age"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f5a099172722",
+  "date": "2026-11-09T11:28:56+00:00",
+  "title": "Add #411 Luminescence age calculator",
+  "tools": [
+   "luminescence-age-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dc5cbbd53f34",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #887 Tephra volume and VEI from isopachs",
+  "tools": [
+   "tephra-volume"
+  ],
+  "site": false
+ },
+ {
+  "sha": "412aae99b417",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #886 Eruption column height and mass eruption rate",
+  "tools": [
+   "eruption-column"
+  ],
+  "site": false
+ },
+ {
+  "sha": "00dc870bac24",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #891 Infinite slope factor of safety",
+  "tools": [
+   "infinite-slope"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eb9b5b36dcba",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #869 Paleostress inversion (fault-slip data)",
+  "tools": [
+   "paleostress-inversion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "642d5b88d90c",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #867 Apparent dip and true thickness calculator",
+  "tools": [
+   "apparent-dip"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7260f56fb5b9",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #860 Quantum dot size (Brus equation)",
+  "tools": [
+   "quantum-dot-size"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e181a008e8b0",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #865 Thin-film thickness from fringes",
+  "tools": [
+   "thin-film-thickness"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6a0ad2f8557",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #864 Solar cell I-V analyser",
+  "tools": [
+   "solar-cell-iv"
+  ],
+  "site": false
+ },
+ {
+  "sha": "faf85edb0cbc",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #863 Tauc plot band gap",
+  "tools": [
+   "tauc-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "25d87d048405",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #862 Carrier concentration and Fermi level",
+  "tools": [
+   "carrier-concentration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f91a7a1501d",
+  "date": "2026-11-09T11:28:11+00:00",
+  "title": "Add #897 Weather station data viewer",
+  "tools": [
+   "station-data-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a419cc16ac66",
+  "date": "2026-11-09T11:28:10+00:00",
+  "title": "Add #900 Walter-Lieth climate diagram maker",
+  "tools": [
+   "walter-lieth"
+  ],
+  "site": false
+ },
+ {
+  "sha": "22c031b217af",
+  "date": "2026-11-09T11:28:10+00:00",
+  "title": "Add #898 Density altitude calculator",
+  "tools": [
+   "density-altitude"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f9ecb96575be",
+  "date": "2026-11-09T11:28:10+00:00",
+  "title": "Add #896 Wind chill and heat index calculator",
+  "tools": [
+   "wind-chill-heat-index"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6635e517de52",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #827 Field data form builder",
+  "tools": [
+   "field-form-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fbd845260aae",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #826 Lab report template and rubric",
+  "tools": [
+   "lab-report-template"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6b4f5de0ec3f",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #825 Practice problem generator",
+  "tools": [
+   "practice-problems"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0d38624d9d3c",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #883 Resistivity sounding (VES) inversion",
+  "tools": [
+   "ves-inversion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ccb7d357eaf",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #882 Seismic refraction interpreter",
+  "tools": [
+   "seismic-refraction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b9106d61b7a2",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #881 Magnetic anomaly modeller",
+  "tools": [
+   "magnetic-anomaly"
+  ],
+  "site": false
+ },
+ {
+  "sha": "11dfe7d317d9",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #880 Gravity survey corrections",
+  "tools": [
+   "gravity-corrections"
+  ],
+  "site": false
+ },
+ {
+  "sha": "df4dd417dc91",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #878 Earthquake locator and magnitude calculator",
+  "tools": [
+   "earthquake-locator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5a3ce453090e",
+  "date": "2026-11-09T11:28:01+00:00",
+  "title": "Add #858 Nanoparticle calculator",
+  "tools": [
+   "nanoparticle-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e9bd8a1e6f0a",
+  "date": "2026-11-09T11:28:00+00:00",
+  "title": "Add #852 Thermal mismatch stress calculator",
+  "tools": [
+   "thermal-mismatch-stress"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4e68c0695d8c",
+  "date": "2026-11-09T11:28:00+00:00",
+  "title": "Add #851 Diffusion calculator",
+  "tools": [
+   "diffusion-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6ebcf139e11d",
+  "date": "2026-11-09T11:28:00+00:00",
+  "title": "Add #850 Laminate calculator",
+  "tools": [
+   "laminate-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dc0aebcb9cce",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #817 data dictionary generator",
+  "tools": [
+   "data-dictionary"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2aa9ab29eb93",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #810 scientific notation formatter",
+  "tools": [
+   "scientific-notation-formatter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b55ea673c32",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #804 table converter (LaTeX, Markdown, HTML)",
+  "tools": [
+   "table-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5ca3b44df399",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #803 equation converter (LaTeX and MathML)",
+  "tools": [
+   "equation-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8c30c59a4245",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #824 Flashcards with spaced repetition",
+  "tools": [
+   "flashcards"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06d1f773b01d",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #813 Protocol timer",
+  "tools": [
+   "protocol-timer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3ef969d3a0d6",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #812 Equipment booking planner",
+  "tools": [
+   "equipment-booking"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f75277b3fd23",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #811 Reagent inventory",
+  "tools": [
+   "reagent-inventory"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1cd1e2b07e3b",
+  "date": "2026-11-09T11:00:39+00:00",
+  "title": "Add #843 CIF viewer",
+  "tools": [
+   "cif-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "30939083cc3a",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #845 Electron diffraction indexer",
+  "tools": [
+   "electron-diffraction-indexer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "29e3ff4e5167",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #844 Miller index calculator",
+  "tools": [
+   "miller-index-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a6cc98bbccc0",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #842 XRD peak calculator",
+  "tools": [
+   "xrd-peak-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "12afd6ce890b",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #849 Larson-Miller creep calculator",
+  "tools": [
+   "larson-miller-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e5f52649973c",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #848 Fracture toughness calculator",
+  "tools": [
+   "fracture-toughness-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8add869ba815",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #847 Fatigue S-N calculator",
+  "tools": [
+   "fatigue-sn-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f7a088c90143",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #846 Stress-strain curve analyser",
+  "tools": [
+   "stress-strain-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b65eab8341f3",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #823 Gantt chart and critical path",
+  "tools": [
+   "gantt-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d41d429f9a49",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #822 Grant budget builder",
+  "tools": [
+   "grant-budget"
+  ],
+  "site": false
+ },
+ {
+  "sha": "356ecfd6d807",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #821 Readability checker",
+  "tools": [
+   "readability-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cb859cd050e5",
+  "date": "2026-11-09T11:00:38+00:00",
+  "title": "Add #820 Data management plan builder",
+  "tools": [
+   "data-management-plan"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f29da594ce91",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #819 Dataset README builder",
+  "tools": [
+   "dataset-readme"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2cb213db9798",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #816 Metadata builder",
+  "tools": [
+   "metadata-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6cc0e9e7442d",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #818 Checksum checker",
+  "tools": [
+   "checksum-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9514b713ca64",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #815 Science file converter",
+  "tools": [
+   "science-file-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f958ace72fca",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #814 Sample label maker",
+  "tools": [
+   "sample-label-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d33294d340b5",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #809 Poster layout",
+  "tools": [
+   "poster-layout"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5feaa0894c4e",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #808 Science colour palette",
+  "tools": [
+   "science-colour-palette"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f75280021992",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #805 Figure checker",
+  "tools": [
+   "figure-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a6f62652428c",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #807 Response to reviewers builder",
+  "tools": [
+   "reviewer-response"
+  ],
+  "site": false
+ },
+ {
+  "sha": "630759a07997",
+  "date": "2026-11-09T11:00:37+00:00",
+  "title": "Add #806 Abstract word counter",
+  "tools": [
+   "abstract-word-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bb8abd6a62fd",
+  "date": "2026-11-09T11:00:36+00:00",
+  "title": "Add #802 BibTeX cleaner and reference formatter",
+  "tools": [
+   "bibtex-cleaner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ca575bfc31cd",
+  "date": "2026-11-09T11:00:36+00:00",
+  "title": "Add #801 Author list and affiliation formatter",
+  "tools": [
+   "author-list-formatter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2ba0ebce7141",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #202 Punnett square and pedigree probability",
+  "tools": [
+   "punnett-square"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c96e01e7ce3a",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #201 Overlapping peptide library and pool designer",
+  "tools": [
+   "peptide-overlap-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "458e0e4a9168",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #199 MOI calculator",
+  "tools": [
+   "moi-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "889463e45f2f",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #198 TCID50 and plaque assay calculator",
+  "tools": [
+   "tcid50-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d9142b17ee66",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #200 Antibody dilution and titre calculator",
+  "tools": [
+   "antibody-dilution"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c7c6507a2559",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Fix tick labels for 2.5 and 0.25 steps; scope the link cleaner output style",
+  "tools": [
+   "link-cleaner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "118917099329",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Allow local blob: media in the CSP so tools can play a video the user opens",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "470fac68151c",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #197 Gram stain and biochemical test key",
+  "tools": [
+   "gram-stain-key"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4e0c7e6fc552",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #195 CFU counter and plate count calculator",
+  "tools": [
+   "cfu-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e518fac0bd73",
+  "date": "2026-11-09T10:56:42+00:00",
+  "title": "Add #194 Growth curve and doubling time (OD600)",
+  "tools": [
+   "growth-curve-od600"
+  ],
+  "site": false
+ },
+ {
+  "sha": "33e8de7495fa",
+  "date": "2026-11-09T10:56:41+00:00",
+  "title": "Add #196 Autoclave F0 value calculator",
+  "tools": [
+   "f0-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4cc78bd2ae39",
+  "date": "2026-11-09T10:56:41+00:00",
+  "title": "Add #192 Flow cytometry FCS viewer",
+  "tools": [
+   "fcs-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cbd6ee20d866",
+  "date": "2026-11-09T10:55:21+00:00",
+  "title": "Add #979 Oscilloscope CSV viewer",
+  "tools": [
+   "oscilloscope-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "39f1940df450",
+  "date": "2026-11-09T10:55:21+00:00",
+  "title": "Add #978 Dimensional analysis checker",
+  "tools": [
+   "dimensional-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5fd9763aecd4",
+  "date": "2026-11-09T10:55:21+00:00",
+  "title": "Add #977 Physical constants",
+  "tools": [
+   "physical-constants"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ac6045ffa9bf",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #976 Curve fitter",
+  "tools": [
+   "curve-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "12f48e54996f",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #975 Significant figures checker",
+  "tools": [
+   "sig-fig-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8826407260ec",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #974 Optical tweezers calibration",
+  "tools": [
+   "optical-tweezers"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0c155347a6c0",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #973 Ultrasound calculator",
+  "tools": [
+   "ultrasound-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c0ddc41b6614",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #972 CT reconstruction demo",
+  "tools": [
+   "ct-reconstruction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "db3e7925a0d1",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #971 MRI physics simulator",
+  "tools": [
+   "mri-bloch-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0b9b7f52de51",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "#946: compute gamma attenuation from formulas instead of a bundled table",
+  "tools": [
+   "gamma-shielding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7943db53e8a6",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #951 Spectrum peak fitter",
+  "tools": [
+   "spectrum-peak-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3fea8bbeddda",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #950 Counting statistics helper",
+  "tools": [
+   "counting-statistics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d8109af9481",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #949 Feynman diagram drawer",
+  "tools": [
+   "feynman-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "675ee44ad442",
+  "date": "2026-11-09T10:55:20+00:00",
+  "title": "Add #948 Stopping power and range calculator",
+  "tools": [
+   "stopping-power"
+  ],
+  "site": false
+ },
+ {
+  "sha": "46ea07fe79c7",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #947 Relativistic kinematics calculator",
+  "tools": [
+   "relativistic-kinematics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "286d6e10c0f6",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #946 Gamma shielding calculator",
+  "tools": [
+   "gamma-shielding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b01d6be150fb",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #945 Decay chain simulator",
+  "tools": [
+   "decay-chain"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ade6687403e",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #929 Operator algebra helper",
+  "tools": [
+   "operator-algebra"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8d3bf4d6ac2c",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #928 Perturbation theory checker",
+  "tools": [
+   "perturbation-theory"
+  ],
+  "site": false
+ },
+ {
+  "sha": "041e8551b3ee",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #927 Quantum circuit simulator",
+  "tools": [
+   "quantum-circuit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "71241ec8febd",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #926 Spin and Bloch sphere",
+  "tools": [
+   "bloch-sphere"
+  ],
+  "site": false
+ },
+ {
+  "sha": "42ffe63cc5b0",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #925 Hydrogen orbital viewer",
+  "tools": [
+   "hydrogen-orbitals"
+  ],
+  "site": false
+ },
+ {
+  "sha": "589fdea99a2b",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #924 Wave packet tunnelling",
+  "tools": [
+   "wave-packet"
+  ],
+  "site": false
+ },
+ {
+  "sha": "36912d705351",
+  "date": "2026-11-09T10:55:19+00:00",
+  "title": "Add #923 1D Schrödinger solver",
+  "tools": [
+   "schrodinger-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "82f64efa73d8",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #491 Gait and cadence analyser (phone accelerometer)",
+  "tools": [
+   "gait-cadence"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f2a83f63ca94",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #488 Training load tracker (ACWR, TRIMP, monotony)",
+  "tools": [
+   "training-load"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a8b05245e52d",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #489 Jump height from flight time",
+  "tools": [
+   "jump-height"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4f15a848b90",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #487 VO2max estimator from field tests",
+  "tools": [
+   "vo2max-estimator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d7a7442558b8",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #490 Heart rate and power zone calculator",
+  "tools": [
+   "heart-rate-zones"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c83547179e57",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #475 Benchmark dose (BMD) calculator",
+  "tools": [
+   "benchmark-dose"
+  ],
+  "site": false
+ },
+ {
+  "sha": "938cf996ccd3",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #472 Drug combination synergy (Bliss, Loewe, CI)",
+  "tools": [
+   "drug-synergy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "85712835093a",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #473 Pharmacokinetics simulator (teaching)",
+  "tools": [
+   "pk-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3469b77c1e78",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #474 Non-compartmental PK analysis (NCA)",
+  "tools": [
+   "nca-pk"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6baee5ccf26c",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #503 Westgard rules QC checker",
+  "tools": [
+   "westgard-qc"
+  ],
+  "site": false
+ },
+ {
+  "sha": "38a302e17585",
+  "date": "2026-11-09T10:54:53+00:00",
+  "title": "Add #502 Reference interval calculator",
+  "tools": [
+   "reference-interval"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d46125efed33",
+  "date": "2026-11-09T10:54:52+00:00",
+  "title": "Add #470 Randomisation list generator",
+  "tools": [
+   "randomisation-list"
+  ],
+  "site": false
+ },
+ {
+  "sha": "85e849f6b850",
+  "date": "2026-11-09T10:54:52+00:00",
+  "title": "Add #471 Bland-Altman agreement plot",
+  "tools": [
+   "bland-altman"
+  ],
+  "site": false
+ },
+ {
+  "sha": "577c512ff426",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #668 Aircraft performance calculator",
+  "tools": [
+   "aircraft-performance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1cb93e1f17ec",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #667 Standard atmosphere calculator",
+  "tools": [
+   "standard-atmosphere"
+  ],
+  "site": false
+ },
+ {
+  "sha": "248e341d14f2",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #663 Room heating and cooling load",
+  "tools": [
+   "hvac-room-load"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a01f50b3a89f",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #662 Pump and system curve",
+  "tools": [
+   "pump-system-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cbdeceee4489",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #661 Steam tables and Rankine cycle",
+  "tools": [
+   "steam-tables"
+  ],
+  "site": false
+ },
+ {
+  "sha": "72039cac8c09",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #660 Pipe network pressure drop",
+  "tools": [
+   "pipe-network-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "117ab5591bbd",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #659 Atterberg limits and compaction curve",
+  "tools": [
+   "atterberg-compaction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a5ea73dc8e6e",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #658 Slope stability (Bishop simplified)",
+  "tools": [
+   "slope-stability"
+  ],
+  "site": false
+ },
+ {
+  "sha": "81dfe47d72b7",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #657 Consolidation settlement and time",
+  "tools": [
+   "consolidation-settlement"
+  ],
+  "site": false
+ },
+ {
+  "sha": "93be84fdaeaf",
+  "date": "2026-11-09T10:50:50+00:00",
+  "title": "Add #656 Bearing capacity calculator",
+  "tools": [
+   "bearing-capacity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "450a052e061a",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #655 Soil classification (USCS, AASHTO)",
+  "tools": [
+   "soil-classification"
+  ],
+  "site": false
+ },
+ {
+  "sha": "de31d8b896a9",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #654 Road gradient and curve helper",
+  "tools": [
+   "road-curve-design"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e425f2d373b7",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #653 Retaining wall stability",
+  "tools": [
+   "retaining-wall-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fa7b169cec2b",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #652 Column buckling calculator",
+  "tools": [
+   "column-buckling"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1df630a7aabd",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #651 Load combination helper",
+  "tools": [
+   "load-combination-helper"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d105bc41f651",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #650 Rebar quantity and weight",
+  "tools": [
+   "rebar-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "50db847e95a3",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #649 Concrete mix calculator",
+  "tools": [
+   "concrete-mix-design"
+  ],
+  "site": false
+ },
+ {
+  "sha": "341d9e796615",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #647 Heat exchanger sizing",
+  "tools": [
+   "heat-exchanger-sizing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e7f89f5eca15",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #646 Tolerance stack-up",
+  "tools": [
+   "tolerance-stackup"
+  ],
+  "site": false
+ },
+ {
+  "sha": "91cbb948c149",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #645 Shaft and bearing life",
+  "tools": [
+   "shaft-bearing-life"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7c2e7ffa37a6",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #644 Spring designer",
+  "tools": [
+   "spring-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b00d7474a42",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #643 Gear train and belt drive",
+  "tools": [
+   "gear-train-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4bdc51a7f03b",
+  "date": "2026-11-09T10:50:49+00:00",
+  "title": "Add #642 Bolt preload and torque",
+  "tools": [
+   "bolt-torque-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3c0c97d768a6",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #641 Beam deflection calculator",
+  "tools": [
+   "beam-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1a0fe374f034",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #635 D-H forward kinematics",
+  "tools": [
+   "dh-kinematics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8389b76f4cef",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #625 Op-amp circuit calculator",
+  "tools": [
+   "op-amp-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bccbcf0035a4",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #624 PCB trace width and impedance",
+  "tools": [
+   "pcb-trace-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9e21711b228e",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #623 Analog filter designer",
+  "tools": [
+   "filter-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "659401fb3506",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #622 Resistor colour code",
+  "tools": [
+   "resistor-colour-code"
+  ],
+  "site": false
+ },
+ {
+  "sha": "82db0f749ca8",
+  "date": "2026-11-09T10:50:48+00:00",
+  "title": "Add #621 Circuit simulator",
+  "tools": [
+   "circuit-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "66272ed46da1",
+  "date": "2026-11-09T10:49:19+00:00",
+  "title": "Add #498 Contrast and readability checker",
+  "tools": [
+   "contrast-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7a21dada4bb7",
+  "date": "2026-11-09T10:49:19+00:00",
+  "title": "Add #497 Colour vision simulator",
+  "tools": [
+   "colour-vision-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f288ec5a6132",
+  "date": "2026-11-09T10:49:19+00:00",
+  "title": "Add #483 DICOM anonymiser",
+  "tools": [
+   "dicom-anonymiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7426a18d3a0d",
+  "date": "2026-11-09T10:49:19+00:00",
+  "title": "Add #482 DICOM viewer",
+  "tools": [
+   "dicom-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0022a3b07d18",
+  "date": "2026-11-09T10:49:19+00:00",
+  "title": "Add #500 Carrier risk calculator (Bayesian)",
+  "tools": [
+   "carrier-risk"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f969be5733c9",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #499 Dental chart",
+  "tools": [
+   "dental-chart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b679a2e2f839",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #495 Audiogram plotter",
+  "tools": [
+   "audiogram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b2afda3bff3d",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #496 Visual acuity converter",
+  "tools": [
+   "visual-acuity-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "94e8c7eae6ea",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #485 Nutrient planner",
+  "tools": [
+   "nutrient-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "999e07bc81bb",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #486 Glycaemic load calculator",
+  "tools": [
+   "glycaemic-load"
+  ],
+  "site": false
+ },
+ {
+  "sha": "54d0b757d1b5",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #484 Energy needs calculator",
+  "tools": [
+   "energy-needs"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b381e13336a0",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #481 APGAR and Glasgow Coma Scale",
+  "tools": [
+   "clinical-scores"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f0f17b7a17b",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #501 Lab unit converter",
+  "tools": [
+   "lab-unit-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "91c56b044f78",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #477 Exposure TWA calculator",
+  "tools": [
+   "exposure-twa"
+  ],
+  "site": false
+ },
+ {
+  "sha": "47ad112bbe77",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #476 Margin of exposure calculator",
+  "tools": [
+   "margin-of-exposure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "10bc32d278f2",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #480 Acid-base interpreter",
+  "tools": [
+   "acid-base-interpreter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4f7af2af8e42",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #479 Kidney function calculator",
+  "tools": [
+   "kidney-function"
+  ],
+  "site": false
+ },
+ {
+  "sha": "196e12e76eff",
+  "date": "2026-11-09T10:49:18+00:00",
+  "title": "Add #478 Body measures calculator",
+  "tools": [
+   "body-measures"
+  ],
+  "site": false
+ },
+ {
+  "sha": "865effff92d6",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #469 Meta-analysis (forest and funnel plots)",
+  "tools": [
+   "meta-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "71c498721cd0",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #468 ROC curve and AUC",
+  "tools": [
+   "roc-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "56bae8ab978a",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #467 Survival analysis (Kaplan-Meier, log-rank, Cox)",
+  "tools": [
+   "survival-analysis"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2ac6104f9748",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #494 Survey weighting calculator (raking and post-stratification)",
+  "tools": [
+   "survey-weighting"
+  ],
+  "site": false
+ },
+ {
+  "sha": "131f1ef3ac51",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #492 DALY and QALY calculator with ICER",
+  "tools": [
+   "daly-qaly"
+  ],
+  "site": false
+ },
+ {
+  "sha": "afde4bc212f2",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #493 Herd immunity threshold calculator",
+  "tools": [
+   "herd-immunity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ea028b27c408",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #462 Epidemic model simulator (SIR, SEIR, SEIRS)",
+  "tools": [
+   "epidemic-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "112038c0217b",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #464 Epidemic curve and attack rates",
+  "tools": [
+   "epi-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3887ca6f7fd1",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #463 Rates and age standardisation",
+  "tools": [
+   "rate-standardisation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "779003bae9bb",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #466 Odds ratio and risk ratio calculator",
+  "tools": [
+   "odds-risk-ratio"
+  ],
+  "site": false
+ },
+ {
+  "sha": "08deabcf6b82",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #465 NNT calculator",
+  "tools": [
+   "nnt-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bd07257b9fcd",
+  "date": "2026-11-09T10:49:17+00:00",
+  "title": "Add #461 Diagnostic test calculator",
+  "tools": [
+   "diagnostic-test-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b568fca1ca08",
+  "date": "2026-11-09T10:46:34+00:00",
+  "title": "Add #962 Band structure explorer",
+  "tools": [
+   "band-structure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5ccda1043b39",
+  "date": "2026-11-09T10:46:34+00:00",
+  "title": "Add #930 Gaussian beam calculator",
+  "tools": [
+   "gaussian-beam"
+  ],
+  "site": false
+ },
+ {
+  "sha": "246dd64708c2",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #970 GPS relativity explainer",
+  "tools": [
+   "gps-relativity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8c51c4b2a9b1",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #969 Gravitational wave chirp calculator",
+  "tools": [
+   "gw-chirp"
+  ],
+  "site": false
+ },
+ {
+  "sha": "415396021487",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #968 Schwarzschild orbit plotter",
+  "tools": [
+   "schwarzschild-orbits"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9e58d9ca8f25",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #967 Spacetime diagram",
+  "tools": [
+   "spacetime-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cf4cd769cec1",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #966 Superconductor calculator",
+  "tools": [
+   "superconductor-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ae1524015b0c",
+  "date": "2026-11-09T10:46:24+00:00",
+  "title": "Add #965 Hall effect and van der Pauw analyser",
+  "tools": [
+   "hall-effect"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1831115c539d",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #964 Heat capacity fitter",
+  "tools": [
+   "heat-capacity-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d457c0fdf612",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #963 Brillouin zone viewer",
+  "tools": [
+   "brillouin-zone"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f7cc046ed800",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #937 Spectrometer calibration",
+  "tools": [
+   "spectrometer-calibration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e3730010123b",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #936 Polarisation calculator",
+  "tools": [
+   "polarisation-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "500d9ea2b593",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #935 Sellmeier fitter",
+  "tools": [
+   "sellmeier-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ddc1c957889a",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #934 Fibre optic calculator",
+  "tools": [
+   "fibre-optic-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06653fe7feb6",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #933 Diffraction pattern generator",
+  "tools": [
+   "diffraction-patterns"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fdbd2dc42c5b",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #932 Lens ray tracer",
+  "tools": [
+   "lens-ray-tracer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e3d4b38857cd",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #931 Thin-film coating simulator",
+  "tools": [
+   "thin-film-coating"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bc4fd625f1fa",
+  "date": "2026-11-09T10:46:23+00:00",
+  "title": "Add #980 Genetic circuit designer",
+  "tools": [
+   "genetic-circuit-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "db19ea5299c2",
+  "date": "2026-11-09T10:46:22+00:00",
+  "title": "Add #915 2D electrostatics solver",
+  "tools": [
+   "electrostatics-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "23e3d8796da6",
+  "date": "2026-11-09T10:46:22+00:00",
+  "title": "Add #906 Video motion tracker",
+  "tools": [
+   "video-motion-tracker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "25a116a715f7",
+  "date": "2026-11-09T10:30:24+00:00",
+  "title": "Allow the microphone on the audio spectrum analyser page only (audio stays on the device)",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "8a551733d805",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #944 Noise dose calculator",
+  "tools": [
+   "noise-dose"
+  ],
+  "site": false
+ },
+ {
+  "sha": "345eafac6f61",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #943 Doppler and beats calculator",
+  "tools": [
+   "doppler-beats"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d049269e70b4",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #942 Speaker box designer",
+  "tools": [
+   "speaker-box-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4603a425ebc2",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #941 Standing waves calculator",
+  "tools": [
+   "standing-waves"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0920d5a4e8bc",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #940 Audio spectrum analyser",
+  "tools": [
+   "audio-spectrum-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d50d07066ee2",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #939 Decibel distance calculator",
+  "tools": [
+   "decibel-distance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7f843b00d5ad",
+  "date": "2026-11-09T10:30:06+00:00",
+  "title": "Add #938 Room acoustics calculator",
+  "tools": [
+   "room-acoustics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b7c097a7fcb0",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #922 Random walk and diffusion simulator",
+  "tools": [
+   "random-walk-diffusion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c06a076a94b9",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #921 Quantum statistics plotter",
+  "tools": [
+   "quantum-statistics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b2510cdff95a",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #920 Heat conduction solver",
+  "tools": [
+   "heat-conduction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "82f0fe93d925",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #919 Partition function explorer",
+  "tools": [
+   "partition-function"
+  ],
+  "site": false
+ },
+ {
+  "sha": "422f5706c2e3",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #918 Ising model playground",
+  "tools": [
+   "ising-model"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f2c76318572a",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #917 Heat engine cycles",
+  "tools": [
+   "heat-engine-cycles"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3ba1efe50f30",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #916 Real gas calculator",
+  "tools": [
+   "real-gas-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "889e270225bb",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #914 Magnetic circuit solver",
+  "tools": [
+   "magnetic-circuit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c12ff7e6c927",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #913 Waveguide mode calculator",
+  "tools": [
+   "waveguide-modes"
+  ],
+  "site": false
+ },
+ {
+  "sha": "312bbc1c3503",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #912 Skin depth calculator",
+  "tools": [
+   "skin-depth-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b479c7e63fc4",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #911 Capacitor and inductor calculator",
+  "tools": [
+   "capacitor-inductor-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ba6d4dc9dc92",
+  "date": "2026-11-09T10:30:05+00:00",
+  "title": "Add #910 Coil field designer",
+  "tools": [
+   "coil-field-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b6bd40a063f",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #909 Electric field line plotter",
+  "tools": [
+   "field-line-plotter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d2b076c70c1c",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Allow local video and audio files in the CSP (media-src 'self' blob:)",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "b08600e44283",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #908 Lagrangian helper",
+  "tools": [
+   "lagrangian-helper"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0dbfce18abe7",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #907 Coupled oscillators and normal modes",
+  "tools": [
+   "coupled-oscillators"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9dc85e744cb7",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #905 Collision calculator",
+  "tools": [
+   "collision-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "18a0db86ba19",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #904 Moment of inertia builder",
+  "tools": [
+   "moment-of-inertia"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b64a7c8b18e7",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #903 Two-body orbit sandbox",
+  "tools": [
+   "two-body-orbit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c258326afde5",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #902 Pendulum lab analyser",
+  "tools": [
+   "pendulum-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "26ffb4eda770",
+  "date": "2026-11-09T10:30:04+00:00",
+  "title": "Add #901 Projectile and drag simulator",
+  "tools": [
+   "projectile-drag"
+  ],
+  "site": false
+ },
+ {
   "sha": "badc5366031e",
   "date": "2026-11-09T10:22:36+00:00",
   "title": "Add #193 Cryovial inventory and freezing helper",
   "tools": [
    "cryovial-inventory"
+  ],
+  "site": false
+ },
+ {
+  "sha": "29b553cd3e25",
+  "date": "2026-11-09T10:20:25+00:00",
+  "title": "Cross-link the new agriculture, food and humanities tools",
+  "tools": [
+   "body-mass-estimator",
+   "breeders-equation",
+   "dendro-crossdating",
+   "field-trial-designer",
+   "greenhouse-heating",
+   "procrustes-morphometrics",
+   "sensory-difference-test"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fad4f8301eed",
+  "date": "2026-11-09T10:20:12+00:00",
+  "title": "Add #390 Greenhouse heating and ventilation calculator",
+  "tools": [
+   "greenhouse-heating"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e803fe7ab4c4",
+  "date": "2026-11-09T10:20:12+00:00",
+  "title": "Add #389 Breeder's equation calculator",
+  "tools": [
+   "breeders-equation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ed13fa71d518",
+  "date": "2026-11-09T10:20:12+00:00",
+  "title": "Add #388 Crossing plan and pedigree tracker",
+  "tools": [
+   "crossing-plan"
+  ],
+  "site": false
+ },
+ {
+  "sha": "33401c480c4d",
+  "date": "2026-11-09T10:20:12+00:00",
+  "title": "Add #386 Yield trial ANOVA and LSD",
+  "tools": [
+   "yield-trial-anova"
+  ],
+  "site": false
+ },
+ {
+  "sha": "24a9b9664094",
+  "date": "2026-11-09T10:20:12+00:00",
+  "title": "Add #385 Field trial designer",
+  "tools": [
+   "field-trial-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0866939af89f",
+  "date": "2026-11-09T10:19:35+00:00",
+  "title": "Add #410 Dendrochronology cross-dating helper",
+  "tools": [
+   "dendro-crossdating"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5653265b2567",
+  "date": "2026-11-09T10:19:35+00:00",
+  "title": "Add #409 Range chart and diversity through time",
+  "tools": [
+   "range-chart-plotter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "10bbad607815",
+  "date": "2026-11-09T10:19:35+00:00",
+  "title": "Add #408 Landmark digitiser and Procrustes analysis",
+  "tools": [
+   "procrustes-morphometrics"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9ee06896ad13",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #407 Allometric body mass estimator",
+  "tools": [
+   "body-mass-estimator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "31f49a435ad4",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #406 Trench and grid recording sheet",
+  "tools": [
+   "trench-recording-sheet"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b01c3a3b622a",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #405 Seriation and correspondence analysis",
+  "tools": [
+   "seriation-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fe5670edcefe",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #404 Artefact measurement scale tool",
+  "tools": [
+   "artefact-scale-tool"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4377d7db2ee5",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #403 Harris matrix builder",
+  "tools": [
+   "harris-matrix-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "26f2c7855298",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #402 Pond oxygen budget estimator",
+  "tools": [
+   "pond-oxygen-budget"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9303672f010d",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #401 Stocking density and FCR calculator",
+  "tools": [
+   "stocking-density-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9e9a223fe6fc",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #400 Anaesthesia monitoring log",
+  "tools": [
+   "anaesthesia-monitoring-log"
+  ],
+  "site": false
+ },
+ {
+  "sha": "468da38ba949",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #399 Body condition and growth curve tracker",
+  "tools": [
+   "growth-curve-tracker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "69b2de403e17",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #398 Breeding calendar",
+  "tools": [
+   "breeding-calendar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "080dfd0e3909",
+  "date": "2026-11-09T10:19:31+00:00",
+  "title": "Add #397 Feed ration balancer",
+  "tools": [
+   "feed-ration-balancer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a4f8127de10",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #396 HACCP plan builder",
+  "tools": [
+   "haccp-plan-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "31ed2c409fc9",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #395 Sensory triangle and duo-trio test analyser",
+  "tools": [
+   "sensory-difference-test"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e30ec02896ca",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #394 Brine, cure and fermentation salt calculator",
+  "tools": [
+   "brine-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ba823cd4b626",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #393 Thermal processing F-value calculator",
+  "tools": [
+   "thermal-process-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "44ed0634fe67",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #392 Water activity and shelf-life estimator (Q10)",
+  "tools": [
+   "shelf-life-estimator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f9b04c77bfe",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #391 Recipe nutrition calculator",
+  "tools": [
+   "recipe-nutrition-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f908f68f8088",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #387 Sprayer calibration calculator",
+  "tools": [
+   "sprayer-calibration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cc2b0956ba2d",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #384 Seeding rate calculator",
+  "tools": [
+   "seeding-rate-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b2b60fe76eb8",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #383 Irrigation scheduler",
+  "tools": [
+   "irrigation-scheduler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7d747ff76986",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #382 Soil test interpreter",
+  "tools": [
+   "soil-test-interpreter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c51576a539ca",
+  "date": "2026-11-09T10:19:30+00:00",
+  "title": "Add #381 Fertiliser blend calculator",
+  "tools": [
+   "fertiliser-blend-calculator"
   ],
   "site": false
  },
@@ -124,6 +5114,190 @@
    "peptide-mass-calculator"
   ],
   "site": false
+ },
+ {
+  "sha": "b83bd3007198",
+  "date": "2026-11-09T09:00:15+00:00",
+  "title": "Technical SEO and faster pages: structured data, short search titles, in-text tool links, lighter pages",
+  "tools": [
+   "activated-sludge",
+   "air-quality-calculator",
+   "altermagnet-bands",
+   "altermagnet-checker",
+   "anomalous-hall-checker",
+   "astro-time",
+   "ats-resume-checker",
+   "backfocus-calculator",
+   "battery-cycling-analyser",
+   "beer-lambert-calculator",
+   "bill-calendar",
+   "binding-curve-fitter",
+   "bioaccumulation-factor",
+   "biodiversity-indices",
+   "blackbody-calculator",
+   "budget-calculator",
+   "buffer-recipe-calculator",
+   "calibration-curve",
+   "centrifuge-calculator",
+   "chiral-magnon-bands",
+   "chromatography-calculator",
+   "colligative-properties",
+   "compress-file",
+   "copolymer-composition",
+   "cosmology-calculator",
+   "crystal-field-calculator",
+   "cyclic-voltammetry",
+   "darcy-flow-calculator",
+   "dark-sky-calendar",
+   "decay-calculator",
+   "detention-pond",
+   "diatomic-spectroscopy",
+   "dose-response",
+   "double-star-calculator",
+   "drill-hole-composites",
+   "dsc-tga-analyser",
+   "eclipse-finder",
+   "electron-count-calculator",
+   "electroplating-calculator",
+   "enzyme-kinetics-fitter",
+   "equation-balancer",
+   "equilibrium-solver",
+   "et0-calculator",
+   "exoplanet-mass-calculator",
+   "fastq-inspector",
+   "field-sampling-planner",
+   "file-converter",
+   "fits-viewer",
+   "flood-frequency",
+   "gas-law-calculator",
+   "gaussian-plume-calculator",
+   "gel-band-sizer",
+   "glass-transition-calculator",
+   "gps-track-analyser",
+   "grade-tonnage-calculator",
+   "graph-digitizer",
+   "green-chemistry-metrics",
+   "habitable-zone-calculator",
+   "hemocytometer",
+   "huckel-mo-calculator",
+   "hydrogen-line-analyser",
+   "image-resizer",
+   "image-stacker",
+   "impact-crater-calculator",
+   "impedance-fitter",
+   "interval-tools",
+   "ir-band-finder",
+   "isotope-delta-converter",
+   "isotope-pattern-calculator",
+   "jupiter-moons",
+   "kmer-counter",
+   "koppen-climate",
+   "landfill-gas",
+   "lc50-probit",
+   "lca-compare",
+   "level-book-reducer",
+   "ligation-calculator",
+   "light-pollution-calculator",
+   "link-budget-calculator",
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "loan-payoff-planner",
+   "magnitude-flux-converter",
+   "manning-weir-calculator",
+   "mars-time",
+   "mccabe-thiele-calculator",
+   "meteor-shower-planner",
+   "method-validation",
+   "mixing-model-calculator",
+   "molar-mass-calculator",
+   "mosaic-planner",
+   "nernst-calculator",
+   "nmr-impurity-checker",
+   "noise-barrier",
+   "non-detects",
+   "nucleic-acid-concentration",
+   "object-altitude",
+   "observing-log",
+   "observing-session",
+   "orbit-transfer-calculator",
+   "pcr-master-mix",
+   "period-finder",
+   "phase-diagram-calculator",
+   "piper-diagram",
+   "planet-data-explorer",
+   "planner",
+   "plasmid-map",
+   "plate-layout",
+   "plot-maker",
+   "point-group-finder",
+   "polar-alignment",
+   "polymer-molar-mass",
+   "porkchop-plot",
+   "primer-checker",
+   "prompt-pruner",
+   "psychrometric-calculator",
+   "pump-test-analyser",
+   "qpcr-analyser",
+   "radial-velocity-fitter",
+   "radio-telescope-calculator",
+   "radiocarbon-calibration",
+   "radiometric-age-calculator",
+   "rain-gauge-average",
+   "rating-curve",
+   "reaction-equivalents",
+   "reaction-kinetics-fitter",
+   "redshift-calculator",
+   "reliability-analysis",
+   "restriction-digest",
+   "resume-builder",
+   "rocket-equation",
+   "rotation-curve-fitter",
+   "runoff-calculator",
+   "sample-size",
+   "satellite-tracker",
+   "sequence-alignment",
+   "sequence-tools",
+   "shift-scheduler",
+   "skew-t-sounding",
+   "sky-coordinates",
+   "sky-events-calendar",
+   "sky-tonight",
+   "slug-test-analyser",
+   "solution-calculator",
+   "species-sensitivity",
+   "spectral-index-calculator",
+   "spectral-line-identifier",
+   "spin-splitter-conductivity",
+   "sql-playground",
+   "star-fwhm-checker",
+   "star-trail-exposure",
+   "stereonet",
+   "sub-exposure-calculator",
+   "sun-position-calculator",
+   "sunspot-counter",
+   "tafel-corrosion-rate",
+   "telescope-calculator",
+   "ternary-plot-maker",
+   "thermochemistry-calculator",
+   "titration-curve",
+   "tlc-rf-calculator",
+   "transit-light-curve-fitter",
+   "transit-planner",
+   "traverse-calculator",
+   "tree-carbon",
+   "trend-analyser",
+   "uncertainty-calculator",
+   "unit-hydrograph",
+   "uv-coverage",
+   "vapour-pressure-calculator",
+   "variable-star-log",
+   "vcf-viewer",
+   "water-quality-index",
+   "wave-calculator",
+   "well-field-drawdown",
+   "zip-checker"
+  ],
+  "site": true
  },
  {
   "sha": "09573f2cc53b",
