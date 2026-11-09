@@ -1,0 +1,259 @@
+---
+// Practice problems: pick topics, get a seeded set of numeric problems, check answers (tolerance and significant
+// figures), see worked steps, and print a worksheet and answer key. Nothing is stored or sent.
+import '../../styles/astro.css';
+---
+<div class="ax ppx">
+  <div class="ax-card">
+    <h2>Topics</h2>
+    <div class="pp-topics"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pp-all">All topics</button>
+      <button type="button" class="btn secondary small pp-none">None</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Set</h2>
+    <div class="ax-grid">
+      <label>Number of problems <input class="pp-n" type="number" min="1" max="40" step="1" value="10" inputmode="numeric" /></label>
+      <label>Seed <input class="pp-seed" type="number" min="1" max="999999999" step="1" inputmode="numeric" /></label>
+      <label>Answer tolerance <select class="pp-tol">
+        <option value="0.005">0.5 %</option>
+        <option value="0.01" selected>1 %</option>
+        <option value="0.02">2 %</option>
+        <option value="0.05">5 %</option>
+      </select></label>
+    </div>
+    <p class="ax-help">The seed picks the numbers. The same seed, topics and number of problems always give the same set, on any device. Tolerance is how far a typed answer may be from the exact one (pH, kelvin and means have their own fixed allowance, shown in each answer).</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pp-new">New set (new seed)</button></div>
+    <h3 class="pp-h">Share this set</h3>
+    <p class="pp-code-line">Set code <code class="pp-code"></code></p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pp-copy">Copy code</button>
+      <button type="button" class="btn secondary small pp-link">Copy link</button>
+      <span class="ax-help pp-msg" style="margin:0" aria-live="polite"></span>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Open a set code <input class="pp-load" type="text" placeholder="48213-10-ohm.gas.ph" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pp-go">Open the set</button></div>
+    <p class="ax-err pp-cerr" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out">
+    <h2>Problems</h2>
+    <p class="pp-score" aria-live="polite"></p>
+    <ol class="pp-list"></ol>
+    <div class="ax-row"><button type="button" class="btn secondary small pp-reveal" aria-pressed="false">Show all answers</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Print</h2>
+    <div class="ax-grid">
+      <label>Worksheet title <input class="pp-title" type="text" value="Practice problems" maxlength="80" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="pp-name" checked /> Name and date lines</label>
+      <label class="ax-check"><input type="checkbox" class="pp-steps" checked /> Worked steps in the answer key</label>
+    </div>
+    <div class="dl pp-dl">
+      <span class="dl-l">Worksheet</span>
+      <button type="button" class="btn secondary" data-k="ws" data-f="pdf">PDF</button>
+      <button type="button" class="btn secondary" data-k="ws" data-f="docx">Word</button>
+    </div>
+    <div class="dl pp-dl">
+      <span class="dl-l">Answer key</span>
+      <button type="button" class="btn secondary" data-k="key" data-f="pdf">PDF</button>
+      <button type="button" class="btn secondary" data-k="key" data-f="docx">Word</button>
+    </div>
+    <p class="ax-help">Both show the set code, so you can open the same set here later. The PDF writes powers as 10^-3 and Greek letters as words (rho, lambda, ohm), because the built-in PDF fonts lack those characters; the Word file keeps them.</p>
+  </div>
+  <p class="ax-err pp-err" hidden></p>
+</div>
+
+<style is:global>
+  .ppx .pp-field { margin: 0 0 10px; }
+  .ppx .pp-field h3 { font-size: 15px; margin: 0 0 4px; }
+  .ppx .pp-tp { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 15px; cursor: pointer; }
+  .ppx .pp-tp input { margin-top: 3px; flex: none; }
+  .ppx .pp-tp small { display: block; color: var(--muted); font-size: 13px; }
+  .ppx .pp-h { font-size: 15px; margin: 16px 0 4px; }
+  .ppx .pp-code-line { margin: 0 0 8px; overflow-wrap: anywhere; }
+  .ppx .pp-code { font-size: 15px; font-weight: 600; }
+  .ppx .pp-score { font-weight: 600; margin: 0 0 10px; }
+  .ppx .pp-list { padding-left: 0; list-style: none; margin: 0 0 12px; }
+  .ppx .pp-q { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 10px; background: var(--bg); }
+  .ppx .pp-q.right { border-left: 4px solid var(--good); }
+  .ppx .pp-q.near { border-left: 4px solid var(--warn); }
+  .ppx .pp-q.wrong { border-left: 4px solid var(--bad); }
+  .ppx .pp-qt { margin: 0 0 8px; line-height: 1.5; }
+  .ppx .pp-qt b { margin-right: 4px; }
+  .ppx .pp-tag { margin-left: 6px; vertical-align: 1px; }
+  .ppx .pp-ans { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ppx .pp-ans input { flex: 1 1 140px; min-width: 0; max-width: 260px; }
+  .ppx .pp-ans .pp-unit { color: var(--muted); }
+  .ppx .pp-v { margin: 8px 0 0; font-size: 15px; }
+  .ppx .pp-v.right { color: var(--good); }
+  .ppx .pp-v.near { color: var(--warn); }
+  .ppx .pp-v.wrong { color: var(--bad); }
+  .ppx details { margin-top: 8px; }
+  .ppx summary { cursor: pointer; color: var(--accent); font-size: 15px; }
+  .ppx .pp-steps-l { margin: 6px 0 0; padding-left: 20px; font-size: 15px; line-height: 1.5; }
+  .ppx .pp-key { margin: 6px 0 0; font-weight: 600; }
+  .ppx .pp-dl { margin-top: 12px; }
+</style>
+
+<script>
+  import { TOPICS, TOPIC_IDS, makeSet, setCode, parseCode, checkAnswer, pdfPlain, type Problem, type SetSpec } from '../../lib/sci/practice';
+  import { save, fileSafe, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ppx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const FIELDS = ['Units', 'Physics', 'Chemistry', 'Statistics'] as const;
+  let probs: Problem[] = [], spec: SetSpec = { seed: 1, count: 10, topics: TOPIC_IDS };
+  const typed: string[] = [];
+  const topicName = (id: string) => TOPICS.find((t) => t.id === id)!.name;
+  const newSeed = () => 1 + Math.floor(Math.random() * 99999);
+
+  // Topic boxes, grouped by field.
+  q('.pp-topics').replaceChildren(...FIELDS.map((f) => {
+    const d = document.createElement('div'); d.className = 'pp-field';
+    const h = document.createElement('h3'); h.textContent = f; d.append(h);
+    for (const t of TOPICS.filter((x) => x.field === f)) {
+      const l = document.createElement('label'); l.className = 'pp-tp';
+      const c = document.createElement('input'); c.type = 'checkbox'; c.value = t.id; c.checked = true;
+      const s = document.createElement('span'); s.textContent = t.name;
+      const sm = document.createElement('small'); sm.textContent = t.blurb; s.append(sm);
+      l.append(c, s); d.append(l);
+    }
+    return d;
+  }));
+  const boxes = () => [...root.querySelectorAll<HTMLInputElement>('.pp-tp input')];
+
+  function readSpec(): SetSpec | string {
+    const topics = boxes().filter((b) => b.checked).map((b) => b.value);
+    const n = Number(q<HTMLInputElement>('.pp-n').value), seed = Number(q<HTMLInputElement>('.pp-seed').value);
+    if (!topics.length) return 'Tick at least one topic.';
+    if (!Number.isInteger(n) || n < 1 || n > 40) return 'Choose between 1 and 40 problems.';
+    if (!Number.isInteger(seed) || seed < 1 || seed > 999999999) return 'The seed is a whole number from 1 to 999999999.';
+    return { seed, count: n, topics };
+  }
+  const tol = () => Number(q<HTMLSelectElement>('.pp-tol').value);
+
+  function verdict(i: number) {
+    const li = root.querySelectorAll<HTMLElement>('.pp-q')[i];
+    const v = li.querySelector<HTMLElement>('.pp-v')!;
+    const t = typed[i] ?? '';
+    li.classList.remove('right', 'near', 'wrong');
+    if (!t.trim()) { v.hidden = true; return; }
+    const r = checkAnswer(t, probs[i].answer, tol());
+    const cls = r.status === 'right' ? 'right' : r.status === 'right-rounding' ? 'near' : 'wrong';
+    li.classList.add(cls); v.className = 'pp-v ' + cls; v.textContent = r.message; v.hidden = false;
+  }
+  function score() {
+    const res = probs.map((p, i) => (typed[i]?.trim() ? checkAnswer(typed[i], p.answer, tol()).status : ''));
+    const done = res.filter(Boolean).length, right = res.filter((s) => s === 'right' || s === 'right-rounding').length;
+    q('.pp-score').textContent = done ? `${right} of ${probs.length} right${done < probs.length ? `, ${probs.length - done} not tried yet` : ''}.` : `${probs.length} problem${probs.length === 1 ? '' : 's'}. Type an answer and press Check.`;
+  }
+
+  function render() {
+    const s = readSpec(), err = q('.pp-err');
+    if (typeof s === 'string') { err.textContent = s; err.hidden = false; q('.pp-out').hidden = true; return; }
+    err.hidden = true; q('.pp-out').hidden = false;
+    spec = s; probs = makeSet(s); typed.length = 0;
+    q('.pp-code').textContent = setCode(s);
+    const reveal = q('.pp-reveal').getAttribute('aria-pressed') === 'true';
+    q('.pp-list').replaceChildren(...probs.map((p, i) => {
+      const li = document.createElement('li'); li.className = 'pp-q';
+      const qt = document.createElement('p'); qt.className = 'pp-qt';
+      const b = document.createElement('b'); b.textContent = `${i + 1}.`;
+      const tag = document.createElement('span'); tag.className = 'ax-pill pp-tag'; tag.textContent = topicName(p.topic);
+      qt.append(b, document.createTextNode(p.question), tag);
+      const row = document.createElement('div'); row.className = 'pp-ans';
+      const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.autocomplete = 'off'; inp.spellcheck = false;
+      inp.setAttribute('aria-label', `Answer to problem ${i + 1}`); inp.placeholder = 'Your answer';
+      const un = document.createElement('span'); un.className = 'pp-unit'; un.textContent = p.answer.unit;
+      const go = document.createElement('button'); go.type = 'button'; go.className = 'btn secondary small pp-check'; go.textContent = 'Check';
+      const doCheck = () => { typed[i] = inp.value; verdict(i); score(); };
+      go.addEventListener('click', doCheck);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doCheck(); });
+      row.append(inp, un, go);
+      const v = document.createElement('p'); v.className = 'pp-v'; v.hidden = true; v.setAttribute('aria-live', 'polite');
+      const det = document.createElement('details');
+      const sum = document.createElement('summary'); sum.textContent = 'Show the steps';
+      const ol = document.createElement('ol'); ol.className = 'pp-steps-l';
+      for (const st of p.steps) { const x = document.createElement('li'); x.textContent = st; ol.append(x); }
+      const key = document.createElement('p'); key.className = 'pp-key'; key.textContent = `Answer: ${p.answer.text}${p.answer.unit ? ' ' + p.answer.unit : ''}`;
+      det.append(sum, ol, key); det.open = reveal;
+      li.append(qt, row, v, det);
+      return li;
+    }));
+    score();
+    try { history.replaceState(null, '', '#set=' + setCode(s)); } catch { /* not important */ }
+  }
+
+  function applySpec(s: SetSpec) {
+    q<HTMLInputElement>('.pp-seed').value = String(s.seed);
+    q<HTMLInputElement>('.pp-n').value = String(s.count);
+    for (const b of boxes()) b.checked = s.topics.includes(b.value);
+    render();
+  }
+
+  // ---------- downloads ----------
+  const full = (p: Problem) => `${p.answer.text}${p.answer.unit ? ' ' + p.answer.unit : ''}`;
+  function report(kind: 'ws' | 'key'): { title: string; subtitle: string; sections: Section[] } {
+    const title = q<HTMLInputElement>('.pp-title').value.trim() || 'Practice problems';
+    const code = setCode(spec);
+    if (kind === 'ws') {
+      const sections: Section[] = [];
+      if (q<HTMLInputElement>('.pp-name').checked) sections.push({ title: 'Name and date', text: ['Name: ______________________________     Date: ________________'] });
+      sections.push({ title: 'Instructions', text: ['Show your working. Give each answer with a unit and to a sensible number of significant figures (as many as the least precise value in the question).'] });
+      probs.forEach((p, i) => sections.push({ title: `Problem ${i + 1}`, text: [p.question, '', 'Answer: ______________________________'] }));
+      return { title, subtitle: `Set ${code} · fibub.com/science/practice-problems/`, sections };
+    }
+    const sections: Section[] = [{ title: 'Answers', table: { head: ['No.', 'Answer', 'Topic'], rows: probs.map((p, i) => [String(i + 1), full(p), topicName(p.topic)]), align: ['r', 'l', 'l'] } }];
+    if (q<HTMLInputElement>('.pp-steps').checked) probs.forEach((p, i) => sections.push({ title: `Problem ${i + 1}`, text: [p.question, ...p.steps.map((s, k) => `${k + 1}. ${s}`), `Answer: ${full(p)}`] }));
+    return { title: `${title}: answer key`, subtitle: `Set ${code} · fibub.com/science/practice-problems/`, sections };
+  }
+  const plainSections = (ss: Section[]): Section[] => ss.map((s) => ({ ...s, title: pdfPlain(s.title), text: s.text?.map(pdfPlain), table: s.table && { ...s.table, rows: s.table.rows.map((r) => r.map(pdfPlain)) } }));
+  root.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.pp-dl button[data-f]');
+    if (!b || !probs.length) return;
+    const kind = b.dataset.k as 'ws' | 'key', r = report(kind);
+    const file = fileSafe(`${r.title}-${setCode(spec).split('-')[0]}`);
+    const old = b.textContent; b.disabled = true; b.textContent = 'Making…';
+    try {
+      const { toPdf, toDocx } = await import('../../lib/report');
+      if (b.dataset.f === 'pdf') save((await toPdf(pdfPlain(r.title), plainSections(r.sections), pdfPlain(r.subtitle))).bytes, `${file}.pdf`, 'application/pdf');
+      else save(await toDocx(r.title, r.sections, r.subtitle), `${file}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } finally { b.disabled = false; b.textContent = old; }
+  });
+
+  // ---------- controls ----------
+  const msg = (t: string) => { q('.pp-msg').textContent = t; setTimeout(() => { q('.pp-msg').textContent = ''; }, 2500); };
+  for (const c of ['.pp-n', '.pp-seed']) q(c).addEventListener('change', render);
+  q('.pp-topics').addEventListener('change', render);
+  q('.pp-tol').addEventListener('change', () => { probs.forEach((_, i) => verdict(i)); score(); });
+  q('.pp-all').addEventListener('click', () => { boxes().forEach((b) => (b.checked = true)); render(); });
+  q('.pp-none').addEventListener('click', () => { boxes().forEach((b) => (b.checked = false)); render(); });
+  q('.pp-new').addEventListener('click', () => { q<HTMLInputElement>('.pp-seed').value = String(newSeed()); render(); });
+  q('.pp-reveal').addEventListener('click', () => {
+    const b = q('.pp-reveal'), on = b.getAttribute('aria-pressed') !== 'true';
+    b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Hide all answers' : 'Show all answers';
+    root.querySelectorAll<HTMLDetailsElement>('.pp-q details').forEach((d) => (d.open = on));
+  });
+  q('.pp-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(setCode(spec)); msg('Code copied.'); } catch { msg('Select the code and copy it.'); } });
+  q('.pp-link').addEventListener('click', async () => { const u = `${location.origin}${location.pathname}#set=${setCode(spec)}`; try { await navigator.clipboard.writeText(u); msg('Link copied.'); } catch { msg(u); } });
+  const openCode = () => {
+    const s = parseCode(q<HTMLInputElement>('.pp-load').value), ce = q('.pp-cerr');
+    if (!s) { ce.textContent = 'That is not a set code. It looks like 48213-10-ohm.gas.ph: the seed, the number of problems and the topics.'; ce.hidden = false; return; }
+    ce.hidden = true; applySpec(s);
+  };
+  q('.pp-go').addEventListener('click', openCode);
+  q('.pp-load').addEventListener('keydown', (e) => { if (e.key === 'Enter') openCode(); });
+
+  const fromHash = parseCode(decodeURIComponent(location.hash.replace(/^#set=/, '')));
+  if (fromHash) applySpec(fromHash);
+  else { q<HTMLInputElement>('.pp-seed').value = String(newSeed()); render(); }
+</script>
