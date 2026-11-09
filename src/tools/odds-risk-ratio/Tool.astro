@@ -1,0 +1,235 @@
+---
+// Odds ratio and risk ratio calculator: one 2 × 2 table (Woolf, exact and mid-p intervals, chi-square and Fisher
+// tests) or several strata pooled by Mantel-Haenszel with the Breslow-Day test, and a forest plot.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax orr">
+  <div class="ax-card">
+    <h2>Your study</h2>
+    <p class="orr-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <div class="ax-seg orr-mode" role="group" aria-label="Tables">
+      <button type="button" data-m="one" aria-pressed="true">One table</button><button type="button" data-m="strata" aria-pressed="false">Strata (Mantel-Haenszel)</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Study design <select class="orr-design"><option value="cc" selected>Case-control</option><option value="cohort">Cohort or trial</option></select></label>
+      <label>Confidence <select class="orr-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help orr-dhelp"></p>
+
+    <div class="orr-p" data-m="one">
+      <div class="ax-scroll">
+        <table class="orr-grid">
+          <thead><tr><th></th><th class="orr-c1">Cases</th><th class="orr-c2">Controls</th></tr></thead>
+          <tbody>
+            <tr><th>Exposed</th><td><input class="orr-a" inputmode="numeric" value="40" aria-label="Exposed cases" /></td><td><input class="orr-b" inputmode="numeric" value="60" aria-label="Exposed controls" /></td></tr>
+            <tr><th>Unexposed</th><td><input class="orr-c" inputmode="numeric" value="20" aria-label="Unexposed cases" /></td><td><input class="orr-d" inputmode="numeric" value="80" aria-label="Unexposed controls" /></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ax-help">Example numbers are made up.</p>
+    </div>
+
+    <div class="orr-p" data-m="strata" hidden>
+      <label>One row per stratum (for example an age group): name, exposed cases, exposed non-cases, unexposed cases, unexposed non-cases. A header row is optional.
+        <textarea class="orr-in" rows="6" spellcheck="false" wrap="off">Stratum	Exposed cases	Exposed non-cases	Unexposed cases	Unexposed non-cases
+Under 40	12	30	8	50
+40 to 59	20	25	10	40
+60 and over	35	15	25	30</textarea></label>
+      <DataFile target=".orr-in" maxCols={5} maxRows={500} />
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="orr-cc" /> Continuity correction in the Mantel-Haenszel test</label>
+      <p class="ax-help">Example strata are made up. The correction subtracts 0.5 before squaring, which makes the test a little more cautious.</p>
+    </div>
+    <p class="ax-err orr-err" hidden></p>
+  </div>
+
+  <div class="ax-card orr-out" hidden>
+    <h2 class="orr-h"></h2>
+    <p class="ax-big orr-big"></p>
+    <dl class="ax-facts orr-facts"></dl>
+    <h3 class="orr-t1h" style="margin:14px 0 6px;font-size:15px"></h3>
+    <div class="ax-scroll"><table class="orr-tab"></table></div>
+    <h3 class="orr-t2h" style="margin:14px 0 6px;font-size:15px"></h3>
+    <div class="ax-scroll"><table class="orr-tab2"></table></div>
+    <canvas class="ax-fig orr-fig" style="margin-top:14px" hidden></canvas>
+    <p class="ax-help orr-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small orr-csv">Results (CSV)</button><button type="button" class="btn secondary small orr-png" hidden>Forest plot (PNG)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .orr .orr-med { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+  .orr .orr-p { margin-top: 12px; }
+  .orr .orr-grid td, .orr .orr-grid th { padding: 6px 4px; border: 0; white-space: normal; }
+  .orr .orr-grid input { max-width: 120px; }
+  .orr .orr-tab td:nth-child(n+2), .orr .orr-tab2 td:nth-child(n+2) { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { single, stratified, type Stratum } from '../../lib/sci/oddsratio';
+  import { counts } from '../../lib/sci/epistat';
+  import { paint, save, wireDownloads, pagePalette, LIGHT, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.orr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'one', report: Section[] = [], csvRows: string[][] = [], fig: Figure | null = null;
+  const r3 = (x: number) => (Number.isFinite(x) ? sig(x, 3) : x > 0 ? '∞' : '–');
+  const ci = (c: number[]) => (c.every((x) => !Number.isNaN(x)) ? `${r3(c[0])} to ${r3(c[1])}` : '–');
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const pct = (x: number) => `${(x * 100).toFixed(1).replace(/^-/, '−')} %`;
+
+  function facts(list: [string, string][]) {
+    const dl = q('.orr-facts'); dl.innerHTML = '';
+    for (const [k, x] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = x; d.append(dt, dd); dl.append(d); }
+  }
+  function table(sel: string, hSel: string, title: string, head: string[], rows: string[][]) {
+    q(hSel).textContent = title; q(hSel).hidden = !rows.length;
+    const t = q<HTMLTableElement>(sel); t.innerHTML = ''; if (!rows.length) return;
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  /** Forest plot: each stratum's ratio and interval on a log scale, with the pooled value as a diamond. */
+  function forest(items: { name: string; est: number; lo: number; hi: number }[], pooled: { est: number; lo: number; hi: number }, label: string): Figure {
+    const rowH = 28, H = 70 + rowH * (items.length + 1), W = 440;
+    return {
+      w: W, h: H, alt: `Forest plot of ${label} by stratum`,
+      draw: (ctx, w, h, pal) => {
+        const left = 118, right = w - 16, top = 16, bottom = h - 40;
+        const vals = [...items.flatMap((i) => [i.lo, i.hi, i.est]), pooled.lo, pooled.hi].filter((v) => Number.isFinite(v) && v > 0);
+        let lo = Math.min(0.5, ...vals), hi = Math.max(2, ...vals);
+        lo = Math.max(lo, 1e-3); hi = Math.min(hi, 1e3);
+        const L0 = Math.log10(lo), L1 = Math.log10(hi), x = (v: number) => left + ((Math.log10(Math.min(hi, Math.max(lo, v))) - L0) / (L1 - L0)) * (right - left);
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        // Axis and ticks.
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+        const ticks = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter((t) => t >= lo * 0.999 && t <= hi * 1.001);
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        for (const t of ticks) { ctx.beginPath(); ctx.moveTo(x(t), bottom); ctx.lineTo(x(t), bottom + 4); ctx.stroke(); ctx.fillText(String(t), x(t), bottom + 14); }
+        ctx.fillText(label + ' (log scale)', (left + right) / 2, bottom + 30);
+        ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x(1), top); ctx.lineTo(x(1), bottom); ctx.stroke(); ctx.setLineDash([]);
+        items.forEach((it, i) => {
+          const yy = top + rowH * (i + 0.5);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(it.name.length > 15 ? it.name.slice(0, 14) + '…' : it.name, 8, yy);
+          if (!(it.est > 0 && Number.isFinite(it.est))) return;
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x(it.lo > 0 ? it.lo : lo), yy); ctx.lineTo(x(Number.isFinite(it.hi) ? it.hi : hi), yy); ctx.stroke();
+          ctx.fillStyle = pal.accent; ctx.fillRect(x(it.est) - 5, yy - 5, 10, 10);
+        });
+        const yp = top + rowH * (items.length + 0.5);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 13px system-ui, sans-serif'; ctx.fillText('MH pooled', 8, yp);
+        ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(x(pooled.lo), yp); ctx.lineTo(x(pooled.est), yp - 8); ctx.lineTo(x(pooled.hi), yp); ctx.lineTo(x(pooled.est), yp + 8); ctx.closePath(); ctx.fill();
+      },
+    };
+  }
+
+  function readStrata(text: string): Stratum[] {
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error('Paste one row per stratum: a name and four counts.');
+    const body = rows[0].slice(1).some((c) => c.trim() !== '' && Number.isNaN(num(c))) ? rows.slice(1) : rows;
+    const S = body.map((r, i) => {
+      const hasName = r.length >= 5 || Number.isNaN(num(r[0]));
+      const cells = hasName ? r.slice(1, 5) : r.slice(0, 4), v = cells.map(num);
+      if (v.length < 4 || !counts(...v)) throw new Error(`Row ${i + 1} needs four whole-number counts of zero or more.`);
+      return { name: hasName ? r[0] : `Stratum ${i + 1}`, a: v[0], b: v[1], c: v[2], d: v[3] };
+    });
+    if (S.length < 2) throw new Error('Give at least two strata. For a single table, use One table.');
+    return S;
+  }
+
+  function runOne(cohort: boolean, conf: number, cl: string) {
+    const v = ['.orr-a', '.orr-b', '.orr-c', '.orr-d'].map((c) => num(q<HTMLInputElement>(c).value));
+    if (!counts(...v)) throw new Error('Each box needs a whole number of people, zero or more.');
+    const [a, b, c, d] = v;
+    if (a + b === 0 || c + d === 0) throw new Error('Both the exposed and the unexposed row need at least one person.');
+    if (a + c === 0 || b + d === 0) throw new Error(`Both columns need at least one person (${cohort ? 'ill and well' : 'cases and controls'}).`);
+    const r = single(a, b, c, d, conf);
+    q('.orr-h').textContent = cohort ? 'Risk ratio and odds ratio' : 'Odds ratio';
+    q('.orr-big').textContent = cohort ? `RR ${r3(r.rr)} (${ci(r.rrCI)})` : `OR ${r3(r.or)} (${ci(r.orCI)})`;
+    const fl: [string, string][] = cohort
+      ? [['Risk if exposed', pct(r.r1)], ['Risk if unexposed', pct(r.r0)], ['Risk difference', `${pct(r.rd)} (${pct(r.rdCI[0])} to ${pct(r.rdCI[1])})`]]
+      : [['Odds of exposure, cases', r3(a / c)], ['Odds of exposure, controls', r3(b / d)]];
+    facts(fl);
+    const head = ['Measure', 'Estimate', `${cl} interval`];
+    const rows = [
+      ...(cohort ? [['Risk ratio (log method)', r3(r.rr), ci(r.rrCI)]] : []),
+      ['Odds ratio (Woolf, log method)', r3(r.or), ci(r.orCI)],
+      ['Odds ratio (exact, conditional MLE)', r3(r.cmle), ci(r.exactCI)],
+      ['Odds ratio (mid-p exact)', r3(r.cmle), ci(r.midpCI)],
+    ];
+    table('.orr-tab', '.orr-t1h', 'Ratios', head, rows);
+    const th = ['Test', 'Statistic', 'p (two-sided)'];
+    const tr = [
+      ['Pearson chi-square', `χ² = ${r.chi.chi2.toFixed(3)}`, pTxt(r.chi.p)],
+      ['Chi-square, Yates corrected', `χ² = ${r.yates.chi2.toFixed(3)}`, pTxt(r.yates.p)],
+      ["Fisher's exact test", '–', pTxt(r.fisher.p)],
+      ['Mid-p exact test', '–', pTxt(r.midP)],
+    ];
+    table('.orr-tab2', '.orr-t2h', 'Tests of no association', th, tr);
+    q('.orr-fig').hidden = true; q('.orr-png').hidden = true; fig = null;
+    const small = r.chi.minExpected < 5;
+    q('.orr-note').textContent = (small ? `The smallest expected count is ${r.chi.minExpected.toFixed(1)}, below 5: use Fisher's exact or the mid-p test and the exact intervals. ` : '') + (cohort ? 'In a cohort or trial the risk ratio is the natural measure; the odds ratio is close to it only when the outcome is rare.' : 'In a case-control study only the odds ratio can be estimated: the share of cases was set by the design, so risks cannot be.') + ' The exact estimate is the conditional maximum likelihood odds ratio, as R\'s fisher.test reports.';
+    csvRows = [head, ...rows, [], th, ...tr];
+    return [{ title: q('.orr-big').textContent!, facts: fl, table: { head, rows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }, { title: 'Tests of no association', table: { head: th, rows: tr, align: ['l', 'r', 'r'] as ('l' | 'r')[] }, note: q('.orr-note').textContent! }];
+  }
+
+  function runStrata(cohort: boolean, conf: number, cl: string) {
+    const S = readStrata(q<HTMLTextAreaElement>('.orr-in').value);
+    for (const s of S) if (s.a + s.b === 0 || s.c + s.d === 0) throw new Error(`Stratum "${s.name}" has no exposed or no unexposed people.`);
+    const m = stratified(S, conf, q<HTMLInputElement>('.orr-cc').checked);
+    if (!Number.isFinite(m.or) || m.or <= 0) throw new Error('The pooled odds ratio cannot be worked out: every stratum has a zero in the same diagonal.');
+    q('.orr-h').textContent = 'Mantel-Haenszel pooled estimate';
+    const main = cohort ? `RR ${r3(m.rr)} (${ci(m.rrCI)})` : `OR ${r3(m.or)} (${ci(m.orCI)})`;
+    q('.orr-big').textContent = main;
+    const crude = cohort ? m.crude.rr : m.crude.or, adj = cohort ? m.rr : m.or, change = (crude - adj) / adj;
+    const fl: [string, string][] = [
+      ...(cohort ? [['MH odds ratio', `${r3(m.or)} (${ci(m.orCI)})`] as [string, string]] : []),
+      [`Crude ${cohort ? 'RR' : 'OR'} (strata merged)`, `${r3(crude)} (${ci(cohort ? m.crude.rrCI : m.crude.orCI)})`],
+      ['Crude vs adjusted', `${change >= 0 ? '+' : '−'}${Math.abs(change * 100).toFixed(1)} %`],
+      ['MH chi-square (OR = 1)', `${m.mh.toFixed(3)}, p ${pTxt(m.mhP).startsWith('<') ? pTxt(m.mhP) : '= ' + pTxt(m.mhP)}`],
+      ['Breslow-Day (same OR in all strata)', `${m.bd.toFixed(3)}, df ${m.bdDf}, p = ${pTxt(m.bdP)}`],
+      ['With Tarone correction', `${m.tarone.toFixed(3)}, p = ${pTxt(m.taroneP)}`],
+    ];
+    facts(fl);
+    const per = S.map((s) => { const r = single(s.a, s.b, s.c, s.d, conf); return { s, r }; });
+    const head = ['Stratum', 'a', 'b', 'c', 'd', `OR (${cl} interval)`, ...(cohort ? [`RR (${cl} interval)`] : [])];
+    const rows = per.map(({ s, r }) => [s.name, String(s.a), String(s.b), String(s.c), String(s.d), `${r3(r.or)} (${ci(r.orCI)})`, ...(cohort ? [`${r3(r.rr)} (${ci(r.rrCI)})`] : [])]);
+    table('.orr-tab', '.orr-t1h', 'Each stratum', head, rows);
+    table('.orr-tab2', '.orr-t2h', '', [], []);
+    const items = per.map(({ s, r }) => cohort ? { name: s.name, est: r.rr, lo: r.rrCI[0], hi: r.rrCI[1] } : { name: s.name, est: r.or, lo: r.orCI[0], hi: r.orCI[1] });
+    fig = forest(items, cohort ? { est: m.rr, lo: m.rrCI[0], hi: m.rrCI[1] } : { est: m.or, lo: m.orCI[0], hi: m.orCI[1] }, cohort ? 'Risk ratio' : 'Odds ratio');
+    q('.orr-fig').hidden = false; q('.orr-png').hidden = false; paint(q<HTMLCanvasElement>('.orr-fig'), fig, pagePalette());
+    q('.orr-note').textContent = (m.bdP < 0.05 ? 'The Breslow-Day test suggests the odds ratio differs between strata (effect modification): report the strata separately rather than one pooled value. ' : 'The Breslow-Day test finds no clear difference between the strata, so one pooled value is reasonable. ') + (Math.abs(change) > 0.1 ? 'The crude and adjusted values differ by more than 10 %, a common sign that the stratifying factor confounds the association. ' : 'The crude and adjusted values differ by less than 10 %, so the stratifying factor does little confounding here. ') + 'Strata with a zero cell have no Woolf interval of their own but still count in the pooled estimate.';
+    csvRows = [head, ...rows, [], ['Measure', 'Value'], ['Pooled ' + (cohort ? 'RR' : 'OR'), main], ...fl];
+    return [{ title: main, facts: fl, figure: fig }, { title: 'Each stratum', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: q('.orr-note').textContent! }];
+  }
+
+  function calc() {
+    const err = q('.orr-err'), cohort = q<HTMLSelectElement>('.orr-design').value === 'cohort';
+    const conf = Number(q<HTMLSelectElement>('.orr-conf').value), cl = `${Math.round(conf * 100)} %`;
+    q('.orr-c1').textContent = cohort ? 'Ill (event)' : 'Cases'; q('.orr-c2').textContent = cohort ? 'Well (no event)' : 'Controls';
+    q('.orr-dhelp').textContent = cohort ? 'Cohort or trial: groups were chosen by exposure and followed up, so risks, the risk ratio and the risk difference can be worked out.' : 'Case-control: people were chosen because they had the disease (cases) or not (controls), so only the odds ratio can be worked out.';
+    try {
+      const secs = mode === 'one' ? runOne(cohort, conf, cl) : runStrata(cohort, conf, cl);
+      report = [...secs, { title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.'] }];
+      err.hidden = true; q('.orr-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.orr-out').hidden = true; report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.orr-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.orr-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.orr-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) calc(); });
+  q('.orr-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(csvRows)), 'odds-risk-ratio.csv', 'text/csv'));
+  q('.orr-png').addEventListener('click', () => { if (!fig) return; const c = document.createElement('canvas'); paint(c, fig, LIGHT); c.toBlob((b) => b && save(b, 'forest-plot.png', 'image/png')); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.orr-fig').hidden) paint(q<HTMLCanvasElement>('.orr-fig'), fig, pagePalette()); });
+  setMode('one');
+  wireDownloads(q('.dl'), () => ({ title: 'Odds and risk ratios', file: 'odds-risk-ratio', sections: report }));
+</script>
