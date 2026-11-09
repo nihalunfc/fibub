@@ -1,0 +1,160 @@
+---
+// Knot and braid diagram drawer: braid words drawn as braids and their closures, with writhe, permutation, components and the Alexander polynomial.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax kbd">
+  <div class="ax-card">
+    <h2>Braid</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="kbd-named"><option value="">Your own braid word</option></select></label>
+      <label>Strands <input class="kbd-n" inputmode="numeric" placeholder="from the word" /></label>
+    </div>
+    <label style="margin-top:10px">Braid word <input class="kbd-w" value="σ1 σ2^-1 σ1 σ2^-1" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-help">σi crosses the strands in places i and i + 1, with the left one going over; σi^-1 is the opposite crossing. You can type s1 s2^-1, σ₁σ₂⁻¹, 1 -2, or letters a B (a = σ1, B = σ2⁻¹), and powers like (σ1 σ2)^4.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="kbd-close" checked /> Draw the closure</label>
+      <label class="ax-check"><input type="checkbox" class="kbd-col" checked /> Colour each component</label>
+    </div>
+    <p class="ax-err kbd-err" hidden></p>
+  </div>
+
+  <div class="ax-card kbd-out">
+    <h2>Diagram</h2>
+    <p class="ax-big kbd-big"></p>
+    <canvas class="ax-fig kbd-fig" style="max-width:520px;margin:10px auto 0"></canvas>
+    <dl class="ax-facts kbd-facts" style="margin-top:14px"></dl>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Named knots and links</h2>
+    <p class="ax-help" style="margin:0 0 8px">Standard braid words for some well-known knots and links. Tap a row to draw it. The Alexander polynomials are worked out by this page.</p>
+    <div class="ax-scroll"><table class="kbd-tab"></table></div>
+  </div>
+</div>
+
+<style>
+  .kbd .kbd-big { font-size: clamp(20px, 4.4vw, 28px); }
+  .kbd .kbd-facts dd { font-size: 16px; overflow-wrap: anywhere; }
+  .kbd .kbd-tab tbody tr { cursor: pointer; }
+  .kbd .kbd-tab tbody tr:hover td { background: var(--bg); }
+  .kbd .kbd-tab td.w { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+</style>
+
+<script>
+  import * as B from '../../lib/sci/braids';
+  import { paint, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.kbd')!;
+  const q = <E extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as E;
+  let fig: Figure | null = null, report: Section[] = [];
+  const named = B.NAMED.map((k) => { const b = B.parseBraid(k.word); return { ...k, b, alex: B.alexander(b), comps: B.components(b).length }; });
+
+  const sel = q<HTMLSelectElement>('.kbd-named');
+  named.forEach((k) => { const o = document.createElement('option'); o.value = k.id; o.textContent = `${k.name}${k.id.startsWith('L') || k.id === '0_1' ? '' : ' ' + k.id}`.replace(/ \((\d+_\d+)\) \1$/, ' ($1)'); sel.append(o); });
+  {
+    const t = q<HTMLTableElement>('.kbd-tab'), hr = t.createTHead().insertRow();
+    ['Name', 'Braid word', 'Crossings', 'Alexander polynomial'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = t.createTBody();
+    named.forEach((k) => { const tr = tb.insertRow(); tr.dataset.id = k.id; [k.name, k.word, String(k.b.word.length), B.lpText(k.alex)].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i === 1) td.className = 'w'; }); tr.addEventListener('click', () => load(k.id)); });
+  }
+  function load(id: string) {
+    const k = named.find((x) => x.id === id); if (!k) return;
+    sel.value = id; q<HTMLInputElement>('.kbd-w').value = k.word; q<HTMLInputElement>('.kbd-n').value = '';
+    render(); q('.kbd-out').scrollIntoView({ block: 'nearest' });
+  }
+
+  const cols = (pal: Palette) => (pal.red ? ['#a30000'] : [pal.accent, pal.accent2, pal.good, pal.bad, pal.bg === '#ffffff' ? '#6b3fa0' : '#c3a6f0', pal.bg === '#ffffff' ? '#0f7b7b' : '#6fd3d3', pal.ink, pal.muted]);
+
+  function figure(b: B.Braid, closure: boolean, colour: boolean): Figure {
+    const n = b.n, rows = b.word.length, gap = 40, step = rows > 60 ? Math.max(8, 2000 / rows) : 36;
+    const left = rows <= 60 ? 58 : 24, top = closure ? 24 + n * 14 : 24, braidH = rows * step;
+    const ret = closure ? n * 22 + 10 : 0;
+    const W = Math.round(left + (n - 1) * gap + 24 + ret + 10), H = Math.round(top * 2 + braidH);
+    const X = (p: number) => left + p * gap, Y = (r: number) => top + r * step;
+    const comps = B.components(b), compOf = new Array(n); comps.forEach((c, k) => c.forEach((s) => (compOf[s] = k)));
+    return {
+      w: W, h: H, alt: `Braid ${B.wordText(b.word)} on ${n} strands${closure ? ', with its closure' : ''}`,
+      draw(ctx, w, h, pal) {
+        const C = cols(pal), lw = Math.max(2, Math.min(4, step / 8));
+        const colourOf = (strand: number) => (colour ? C[compOf[strand] % C.length] : pal.ink);
+        ctx.lineCap = 'round';
+        const seg = (x0: number, y0: number, x1: number, y1: number, c: string, over: boolean) => {
+          const path = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, (y0 + y1) / 2, x1, (y0 + y1) / 2, x1, y1); };
+          if (over) { path(); ctx.strokeStyle = pal.bg; ctx.lineWidth = lw + 7; ctx.stroke(); }
+          path(); ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.stroke();
+        };
+        // Closure arcs first, behind everything.
+        if (closure) for (let p = 0; p < n; p++) {
+          const xr = X(n - 1) + 24 + (n - p) * 22 - 8, yb = Y(rows), yt = Y(0), d = (n - p) * 14 + 4;
+          // strand ending at position p at the bottom
+          const at0 = [...Array(n).keys()]; for (const x of b.word) { const i = Math.abs(x) - 1; [at0[i], at0[i + 1]] = [at0[i + 1], at0[i]]; }
+          ctx.strokeStyle = colourOf(at0[p]); ctx.lineWidth = lw;
+          ctx.beginPath(); ctx.moveTo(X(p), yb); ctx.bezierCurveTo(X(p), yb + d, xr, yb + d, xr, yb); ctx.lineTo(xr, yt); ctx.bezierCurveTo(xr, yt - d, X(p), yt - d, X(p), yt); ctx.stroke();
+        }
+        const at = [...Array(n).keys()];
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        b.word.forEach((x, r) => {
+          const i = Math.abs(x) - 1;
+          for (let p = 0; p < n; p++) if (p !== i && p !== i + 1) seg(X(p), Y(r), X(p), Y(r + 1), colourOf(at[p]), false);
+          // σi (positive): the strand from place i (left) goes over.
+          const overFromLeft = x > 0;
+          const under = overFromLeft ? [i + 1, i] : [i, i + 1], over = overFromLeft ? [i, i + 1] : [i + 1, i];
+          seg(X(under[0]), Y(r), X(under[1]), Y(r + 1), colourOf(at[under[0]]), false);
+          seg(X(over[0]), Y(r), X(over[1]), Y(r + 1), colourOf(at[over[0]]), true);
+          if (rows <= 60) { ctx.fillStyle = pal.muted; ctx.fillText(`σ${i + 1}${x < 0 ? '⁻¹' : ''}`, 4, (Y(r) + Y(r + 1)) / 2); }
+          [at[i], at[i + 1]] = [at[i + 1], at[i]];
+        });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.font = '11px system-ui, sans-serif';
+        if (!closure) for (let p = 0; p < n; p++) ctx.fillText(String(p + 1), X(p), 12);
+        void w; void h;
+      },
+    };
+  }
+
+  function render() {
+    const err = q('.kbd-err');
+    try {
+      const ns = q<HTMLInputElement>('.kbd-n').value.trim();
+      if (ns && !/^\d+$/.test(ns)) throw new Error('Strands must be a whole number, or left empty.');
+      const b = B.parseBraid(q<HTMLInputElement>('.kbd-w').value, ns ? Number(ns) : undefined);
+      const closure = q<HTMLInputElement>('.kbd-close').checked, colour = q<HTMLInputElement>('.kbd-col').checked;
+      const comps = B.components(b), perm = B.permutation(b), wr = B.writhe(b), D = B.alexander(b);
+      const knot = comps.length === 1;
+      const red = B.freeReduce(b.word, true);
+      const match = named.filter((k) => k.comps === comps.length && B.sameUpToUnit(k.alex, D)).map((k) => k.name);
+      q('.kbd-big').textContent = knot ? 'Closure: a knot (1 component)' : `Closure: a link of ${comps.length} components`;
+      const pText = (() => { const seen = new Array(b.n).fill(false), out: string[] = []; for (let i = 0; i < b.n; i++) { if (seen[i] || perm[i] === i) { seen[i] = true; continue; } const c: number[] = []; let j = i; while (!seen[j]) { seen[j] = true; c.push(j + 1); j = perm[j]; } out.push(`(${c.join(' ')})`); } return out.join('') || 'identity'; })();
+      const facts: [string, string][] = [
+        ['Strands', String(b.n)], ['Crossings', String(b.word.length)], ['Writhe (exponent sum)', String(wr)],
+        ['Permutation', pText], ['Components', String(comps.length)],
+        ['Alexander polynomial Δ(t)', B.lpText(D) + (knot ? '' : '  (up to ±t^k)')],
+      ];
+      if (knot) {
+        const det = B.evalUnit(D, -1n), span = D.c.length - 1;
+        facts.push(['Determinant |Δ(−1)|', String(det < 0n ? -det : det)], ['Genus at least', `${span / 2} (half the span of Δ)`]);
+      } else {
+        const L = B.linking(b), pairs: string[] = [];
+        for (let a = 0; a < comps.length; a++) for (let c = a + 1; c < comps.length; c++) pairs.push(`${a + 1}–${c + 1}: ${L[a][c]}`);
+        facts.push(['Linking numbers', pairs.slice(0, 12).join(', ')]);
+      }
+      facts.push(['Same Δ as', match.length ? match.join(', ') + ' (the same Δ does not prove the same knot)' : 'none in the table below']);
+      if (red.length !== b.word.length) facts.push(['After cancelling σi σi⁻¹', `${red.length} crossings: ${red.length ? B.wordText(red.slice(0, 40)) + (red.length > 40 ? ' …' : '') : 'no crossings (the trivial braid)'}`]);
+      q('.kbd-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+      fig = figure(b, closure, colour); paint(q<HTMLCanvasElement>('.kbd-fig'), fig);
+      err.hidden = true; q('.kbd-out').hidden = false;
+      report = [{ title: `Braid ${B.wordText(b.word.slice(0, 60))}${b.word.length > 60 ? ' …' : ''}`, text: [q('.kbd-big').textContent!], facts, figure: fig }];
+      root.querySelectorAll<HTMLTableRowElement>('.kbd-tab tbody tr').forEach((tr) => tr.classList.toggle('dim', sel.value !== '' && tr.dataset.id !== sel.value));
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.kbd-out').hidden = true; report = []; }
+  }
+  sel.addEventListener('change', () => { if (sel.value) load(sel.value); });
+  let t = 0;
+  q('.kbd-w').addEventListener('input', () => { sel.value = ''; clearTimeout(t); t = window.setTimeout(render, 250); });
+  q('.kbd-n').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(render, 250); });
+  root.querySelectorAll('.kbd-close, .kbd-col').forEach((c) => c.addEventListener('change', render));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.kbd-fig'), fig));
+  sel.value = '4_1';
+  render();
+  wireDownloads(q('.dl'), () => ({ title: 'Braid and knot', subtitle: q('.kbd-big').textContent ?? '', file: 'braid', sections: report }));
+</script>
