@@ -1,0 +1,237 @@
+---
+// Readability checker: paste a consent form, information sheet or any English text and get six readability
+// scores, the counts behind them, long sentences, passive-voice hints, long words and plainer-word suggestions.
+// Everything is counted in the browser; the text is never uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rdc">
+  <div class="ax-card">
+    <h2>Your text</h2>
+    <textarea class="rd-text" rows="11" spellcheck="true" aria-label="Text to check" placeholder="Paste a consent form, an information sheet, a summary or any English text."></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rd-ex">Use the example</button>
+      <button type="button" class="btn secondary small rd-open">Open a text file</button>
+      <input type="file" class="rd-file" accept=".txt,.md,.markdown,.text,text/plain,text/markdown" hidden />
+      <button type="button" class="btn secondary small rd-clear">Clear</button>
+    </div>
+    <p class="ax-help">Plain text (.txt or .md), up to 2 MB and 200,000 characters. For a Word or PDF file, copy the text and paste it here. The text stays on your device: it is not uploaded or saved.</p>
+    <p class="ax-help rd-note" hidden></p>
+    <p class="ax-err rd-err" hidden></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Long sentence: more than (words) <input class="rd-long" type="number" min="5" max="200" step="1" value="25" inputmode="numeric" /></label>
+      <label>Mark words with at least (syllables) <input class="rd-hard" type="number" min="2" max="8" step="1" value="3" inputmode="numeric" /></label>
+      <label>Target school grade (optional) <input class="rd-target" type="number" min="1" max="20" step="0.5" value="8" inputmode="decimal" /></label>
+      <label>Your jargon words, comma separated <input class="rd-jargon" type="text" placeholder="cohort, randomised, placebo" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rd-lines" checked /> Each new line starts a new sentence</label>
+    <p class="ax-help">Keep this ticked for headings and lists. Untick it for text copied from a PDF, where lines break in the middle of sentences.</p>
+  </div>
+
+  <div class="ax-card rd-out" hidden>
+    <h2>Scores</h2>
+    <p class="ax-big rd-big"></p>
+    <p class="rd-pillrow"><span class="ax-pill rd-pill"></span></p>
+    <dl class="ax-facts rd-facts"></dl>
+    <div class="ax-scroll"><table class="rd-tab"></table></div>
+    <p class="ax-help rd-smog" hidden></p>
+    <p class="ax-help">Grade scores give the US school grade (years of school) a reader needs; add 5 for an age. Reading Ease runs from 0 (very hard) to 100 (very easy). Syllables are counted by rules, not a dictionary, so scores can differ slightly from other checkers. Use them as a guide, then ask real readers.</p>
+  </div>
+
+  <div class="ax-card rd-hints" hidden>
+    <h2>Where to make it easier</h2>
+    <div class="ax-legend rd-legend">
+      <span><i class="rd-k rx-long"></i>Long sentence</span><span><i class="rd-k rx-pv"></i>Passive voice?</span><span><i class="rd-k rx-hard"></i>Long word</span><span><i class="rd-k rx-jar"></i>Your jargon</span><span><i class="rd-k rx-pl"></i>Plainer word exists</span>
+    </div>
+    <div class="rd-view" aria-label="Your text with the hints marked"></div>
+    <h3>Long sentences</h3>
+    <ol class="rd-longlist"></ol>
+    <h3>Passive voice hints</h3>
+    <p class="ax-help" style="margin-top:0">A form of "be" or "get" followed by a past participle. Some are fine (or are adjectives, like "is tired"); active voice says who does what: "we will store your data".</p>
+    <p class="rd-pvlist"></p>
+    <h3>Plainer words</h3>
+    <div class="ax-scroll"><table class="rd-pltab"></table></div>
+    <h3>Most common long words</h3>
+    <p class="rd-hardlist"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small rd-csv">Download sentences (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Syllable counter</h2>
+    <label>Word or phrase <input class="rd-word" type="text" value="readability" /></label>
+    <p class="ax-big rd-sylout" style="margin-top:8px"></p>
+  </div>
+</div>
+
+<script>
+  import { analyse, syllables, freBand, type Analysis } from '../../lib/sci/readability';
+  import { EXAMPLE_TEXT } from '../../lib/sci/readability';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rdc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.rd-text');
+  const num = (c: string, d: number) => { const v = Number(q<HTMLInputElement>(c).value); return q<HTMLInputElement>(c).value.trim() && Number.isFinite(v) ? v : d; };
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const MAXC = 200000;
+  let A: Analysis | null = null, sections: Section[] = [], text = '';
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], right: number[] = []) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function run() {
+    text = box.value;
+    q('.rd-err').hidden = true;
+    const hide = () => { q('.rd-out').hidden = true; q('.rd-hints').hidden = true; sections = []; };
+    if (text.length > MAXC) { q('.rd-err').textContent = `The text has ${text.length.toLocaleString('en')} characters; this page checks up to ${MAXC.toLocaleString('en')}. Check it in parts.`; q('.rd-err').hidden = false; return hide(); }
+    const longN = Math.max(5, Math.round(num('.rd-long', 25))), hardN = Math.max(2, Math.round(num('.rd-hard', 3)));
+    const jargon = q<HTMLInputElement>('.rd-jargon').value.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
+    A = analyse(text, { linesEnd: q<HTMLInputElement>('.rd-lines').checked, longSentence: longN, hardSyllables: hardN, jargon });
+    if (!A) { if (text.trim()) { q('.rd-err').textContent = 'No words found. Paste some English text.'; q('.rd-err').hidden = false; } return hide(); }
+    const { counts: c, scores: s } = A;
+    const grades = [s.fk, s.fog, s.smog, s.cli, s.ari], avg = grades.reduce((a, b) => a + b, 0) / grades.length;
+    q('.rd-out').hidden = false; q('.rd-hints').hidden = false;
+    q('.rd-big').textContent = `Reading Ease ${f1(s.fre)} (${freBand(s.fre)}), about grade ${f1(avg)}`;
+    const tgt = q<HTMLInputElement>('.rd-target').value.trim() ? num('.rd-target', 8) : null, pill = q('.rd-pill');
+    pill.parentElement!.hidden = tgt == null;
+    if (tgt != null) { const ok = avg <= tgt; pill.className = `ax-pill rd-pill ${ok ? 'good' : 'warn'}`; pill.textContent = ok ? `At or below your target of grade ${tgt}` : `Above your target of grade ${tgt} by ${f1(avg - tgt)}`; }
+    q('.rd-facts').replaceChildren(
+      fact('Sentences', String(c.sentences)), fact('Words', String(c.words)), fact('Syllables', String(c.syllables)),
+      fact('Words per sentence', f1(c.words / c.sentences)), fact('Syllables per word', (c.syllables / c.words).toFixed(2)),
+      fact('Words of 3+ syllables', String(c.poly), `${f1((100 * c.poly) / c.words)} % of words`),
+      fact('Long sentences', String(A.longSentences.length), `more than ${longN} words`), fact('Passive hints', String(A.passive.length)),
+    );
+    const rows: string[][] = [
+      ['Flesch Reading Ease', f1(s.fre), `${freBand(s.fre)}; 60 to 70 is plain English`],
+      ['Flesch-Kincaid grade', f1(s.fk), 'words per sentence and syllables per word'],
+      ['Gunning Fog', f1(s.fog), 'words per sentence and "complex" words of 3+ syllables'],
+      ['SMOG', f1(s.smog), 'words of 3+ syllables per 30 sentences'],
+      ['Coleman-Liau', f1(s.cli), 'letters per 100 words and sentences per 100 words'],
+      ['Automated Readability Index', f1(s.ari), 'letters per word and words per sentence'],
+      ['Average of the five grades', f1(avg), 'a rough single number'],
+    ];
+    table(q<HTMLTableElement>('.rd-tab'), ['Score', 'Value', 'Based on'], rows, [1]);
+    q('.rd-smog').hidden = c.sentences >= 30; q('.rd-smog').textContent = `SMOG was made for samples of 30 sentences or more; this text has ${c.sentences}, so treat it as rough.`;
+
+    // Marked-up view.
+    const view = q('.rd-view'); view.replaceChildren();
+    const longSet = new Set(A.longSentences), hard = new Set(A.hard), jar = new Set(A.jargon), plain = new Map(A.plain.map((p) => [p.word, p.plain]));
+    const inPv = (pos: number) => A!.passive.some((p) => pos >= p.start && pos < p.end);
+    let pos = 0, wi = 0;
+    const W = A.words;
+    const frag = document.createDocumentFragment();
+    const addText = (parent: Node, from: number, to: number) => {
+      if (to <= from) return;
+      if (inPv(from) && inPv(to - 1)) { const sp = document.createElement('span'); sp.className = 'rx-pv'; sp.textContent = text.slice(from, to); parent.appendChild(sp); }
+      else parent.appendChild(document.createTextNode(text.slice(from, to)));
+    };
+    const addRange = (parent: Node, from: number, to: number) => {
+      pos = from;
+      while (wi < W.length && W[wi].start < to) {
+        const w = W[wi];
+        addText(parent, pos, w.start);
+        const sp = document.createElement('span');
+        const cls = [hard.has(w) ? 'rx-hard' : '', jar.has(w) ? 'rx-jar' : '', plain.has(w) ? 'rx-pl' : '', inPv(w.start) ? 'rx-pv' : ''].filter(Boolean);
+        if (cls.length) { sp.className = cls.join(' '); if (plain.has(w)) sp.title = `Plainer: ${plain.get(w)}`; else if (hard.has(w)) sp.title = `${w.syl} syllables`; sp.textContent = w.text; parent.appendChild(sp); }
+        else parent.appendChild(document.createTextNode(w.text));
+        pos = w.end; wi++;
+      }
+      addText(parent, pos, to); pos = to;
+    };
+    for (const se of A.sentences) {
+      addRange(frag, pos, se.start);
+      if (longSet.has(se)) { const sp = document.createElement('span'); sp.className = 'rx-long'; sp.title = `${se.words} words`; addRange(sp, se.start, se.end); frag.appendChild(sp); }
+      else addRange(frag, se.start, se.end);
+    }
+    addRange(frag, pos, text.length);
+    view.appendChild(frag);
+
+    const ll = q('.rd-longlist'); ll.replaceChildren();
+    if (!A.longSentences.length) { const li = document.createElement('li'); li.textContent = `None: every sentence has ${longN} words or fewer.`; ll.append(li); ll.classList.add('none'); }
+    else { ll.classList.remove('none'); A.longSentences.slice(0, 20).forEach((se) => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = `${se.words} words: `; li.append(b, text.slice(se.start, se.end)); ll.append(li); }); }
+    q('.rd-pvlist').textContent = A.passive.length ? A.passive.map((p) => `"${p.text.replace(/\s+/g, ' ')}"`).join(', ') : 'None found.';
+    const pc = new Map<string, { plain: string; n: number }>();
+    A.plain.forEach((p) => { const k = p.word.text.toLowerCase(); const e = pc.get(k) ?? { plain: p.plain, n: 0 }; e.n++; pc.set(k, e); });
+    const plRows = [...pc].map(([w, e]) => [w, e.plain, String(e.n)]);
+    table(q<HTMLTableElement>('.rd-pltab'), ['Word', 'Try', 'Times'], plRows.length ? plRows : [['None found', '', '']], [2]);
+    const hc = new Map<string, { n: number; syl: number }>();
+    A.hard.forEach((w) => { const k = w.text.toLowerCase(); const e = hc.get(k) ?? { n: 0, syl: w.syl }; e.n++; hc.set(k, e); });
+    const top = [...hc].sort((a, b) => b[1].n - a[1].n || b[1].syl - a[1].syl || a[0].localeCompare(b[0])).slice(0, 25);
+    q('.rd-hardlist').textContent = top.length ? top.map(([w, e]) => `${w} (${e.syl}${e.n > 1 ? `, ×${e.n}` : ''})`).join(', ') : `None: no words of ${hardN} or more syllables.`;
+
+    sections = [
+      { title: q('.rd-big').textContent!, facts: [...q('.rd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Score', 'Value', 'Based on'], rows, align: ['l', 'r', 'l'] }, note: tgt != null ? pill.textContent! : undefined },
+      { title: `Long sentences (more than ${longN} words)`, text: A.longSentences.length ? A.longSentences.slice(0, 20).map((se) => `${se.words} words: ${text.slice(se.start, se.end).replace(/\s+/g, ' ')}`) : ['None.'] },
+      { title: 'Passive voice hints', text: [A.passive.length ? A.passive.map((p) => p.text.replace(/\s+/g, ' ')).join(', ') : 'None found.'] },
+      { title: 'Plainer words and long words', table: plRows.length ? { head: ['Word', 'Try', 'Times'], rows: plRows, align: ['l', 'l', 'r'] } : undefined, text: [`Most common long words: ${q('.rd-hardlist').textContent}`] },
+    ];
+  }
+
+  function sylWord() {
+    const t = q<HTMLInputElement>('.rd-word').value;
+    const ws = t.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
+    q('.rd-sylout').textContent = ws.length ? ws.map((w) => `${w}: ${syllables(w)}`).join(', ') + (ws.length > 1 ? ` (total ${ws.reduce((a, w) => a + syllables(w), 0)})` : '') : '–';
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 200); };
+  box.addEventListener('input', later);
+  ['.rd-long', '.rd-hard', '.rd-target', '.rd-jargon'].forEach((c) => q(c).addEventListener('input', later));
+  q('.rd-lines').addEventListener('change', run);
+  q('.rd-word').addEventListener('input', sylWord);
+  q('.rd-ex').addEventListener('click', () => { box.value = EXAMPLE_TEXT; q('.rd-note').hidden = true; run(); });
+  q('.rd-clear').addEventListener('click', () => { box.value = ''; q('.rd-note').hidden = true; run(); });
+  q('.rd-open').addEventListener('click', () => q<HTMLInputElement>('.rd-file').click());
+  q('.rd-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.rd-file').files?.[0]; q<HTMLInputElement>('.rd-file').value = '';
+    if (!f) return;
+    const err = (m: string) => { q('.rd-err').textContent = m; q('.rd-err').hidden = false; q('.rd-note').hidden = true; };
+    if (/\.(docx?|pdf|odt|rtf|pages)$/i.test(f.name)) return err(`${f.name} is not plain text. Open it, copy the text and paste it into the box.`);
+    if (f.size > 2e6) return err(`${f.name} is larger than 2 MB. Paste the part you want to check.`);
+    let t = await f.text();
+    if (/\u0000/.test(t.slice(0, 2000))) return err(`${f.name} is not a text file. Copy the text and paste it into the box.`);
+    t = t.replace(/^﻿/, '');
+    box.value = t; q('.rd-note').textContent = `Opened ${f.name}: ${t.length.toLocaleString('en')} characters.`; q('.rd-note').hidden = false;
+    run();
+  });
+  q('.rd-csv').addEventListener('click', () => {
+    if (!A) return;
+    const cell = (c: string) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+    const rows = [['sentence', 'words', 'syllables', 'words_3plus_syllables', 'long', 'passive_hints', 'text']];
+    A.sentences.forEach((se, i) => {
+      const ws = A!.words.filter((w) => w.sentence === i);
+      const pv = A!.passive.filter((p) => p.start >= se.start && p.end <= se.end).map((p) => p.text.replace(/\s+/g, ' '));
+      rows.push([String(i + 1), String(se.words), String(ws.reduce((a, w) => a + w.syl, 0)), String(ws.filter((w) => w.syl >= 3).length), A!.longSentences.includes(se) ? 'yes' : 'no', pv.join('; '), text.slice(se.start, se.end).replace(/\s+/g, ' ')]);
+    });
+    save(new Blob(['﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n'], { type: 'text/csv' }), 'readability-sentences.csv', 'text/csv');
+  });
+  box.value = EXAMPLE_TEXT; run(); sylWord();
+  wireDownloads(q('.dl'), () => ({ title: 'Readability check', subtitle: `${A?.counts.words ?? 0} words, ${A?.counts.sentences ?? 0} sentences`, file: 'readability-check', sections }));
+</script>
+
+<style is:global>
+  .rdc .rd-text { font-family: inherit; font-size: 16px; line-height: 1.5; }
+  .rdc .rd-pillrow { margin: 4px 0 8px; }
+  .rdc .rd-view { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; font-size: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-top: 10px; max-height: 480px; overflow-y: auto; }
+  .rdc .rd-view .rx-long, .rdc .rd-k.rx-long { background: var(--warn-soft); }
+  .rdc .rd-view .rx-pv { text-decoration: underline wavy var(--accent); text-underline-offset: 3px; }
+  .rdc .rd-k.rx-pv { border-bottom: 3px solid var(--accent); }
+  .rdc .rd-view .rx-hard { font-weight: 700; }
+  .rdc .rd-k.rx-hard { background: var(--ink); }
+  .rdc .rd-view .rx-jar, .rdc .rd-k.rx-jar { background: var(--bad-soft); color: var(--bad); }
+  .rdc .rd-view .rx-pl { border-bottom: 2px dotted var(--good); }
+  .rdc .rd-k.rx-pl { border-bottom: 3px dotted var(--good); }
+  .rdc .rd-legend { margin-top: 0; }
+  .rdc h3 { font-size: 17px; margin: 18px 0 6px; }
+  .rdc .rd-longlist { margin: 0; padding-left: 22px; font-size: 15px; }
+  .rdc .rd-longlist.none { list-style: none; padding-left: 0; }
+  .rdc .rd-longlist li { margin: 4px 0; }
+  .rdc .rd-pvlist, .rdc .rd-hardlist { font-size: 15px; margin: 0; }
+</style>
