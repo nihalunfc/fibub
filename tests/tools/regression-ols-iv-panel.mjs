@@ -1,6 +1,7 @@
 // #744 Regression (OLS, IV, panel FE): example numbers (statsmodels/linearmodels), every option, downloads, errors.
 export const path = '/science/regression-ols-iv-panel/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp = page.viewportSize();
   await page.goto(BASE + path);
   await page.waitForSelector('.rg-out:not([hidden])');
   const cell = (r, c) => page.textContent(`.rg-tab tbody tr:nth-child(${r}) td:nth-child(${c})`);
@@ -75,5 +76,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.goto(BASE + path);
   await page.waitForSelector('.rg-out:not([hidden])');
   await page.screenshot({ path: OUT + 'regression-ols-iv-panel.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp);
 };
