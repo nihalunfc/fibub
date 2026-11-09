@@ -236,3 +236,62 @@ export const sectionLabel = (s: { name: string; subject?: string }, shelf = 'sci
 export type ShelfId = (typeof SHELVES)[number]['id'];
 export const SHELF_IDS = SHELVES.map((s) => s.id) as [ShelfId, ...ShelfId[]];
 export const shelfById = (id: string) => SHELVES.find((s) => s.id === id)!;
+
+// The bottom bar (phones and computers): five main tabs, each with its own colour, and a smaller bar
+// of that area's sections above it. `match` lists the path starts that belong to an area; Menu is
+// everything else (About, Contact, Privacy, ...), and its tab opens the full menu panel.
+export type AreaTab = { name: string; href: string; match?: string[] };
+export type Area = { id: 'learn' | 'tools' | 'home' | 'news' | 'menu'; name: string; href: string; blurb: string; match: string[]; tabs: AreaTab[] };
+export const AREAS: Area[] = [
+  {
+    id: 'learn', name: 'Learn', href: '/learn/', match: ['/learn/'],
+    blurb: 'For school students: tools, experiments, short courses and language practice.',
+    tabs: [
+      { name: 'Overview', href: '/learn/' },
+      { name: 'Class 8 to 12', href: '/learn/school/' },
+      { name: 'Experiments', href: '/learn/experiments/' },
+      { name: 'Courses', href: '/learn/courses/' },
+      { name: 'Languages', href: '/learn/languages/' },
+    ],
+  },
+  {
+    id: 'tools', name: 'Tools', href: '/tools/', match: ['/tools/', ...SHELVES.map((s) => `/${s.id}/`)],
+    blurb: 'Every fibub tool, shelf by shelf.',
+    tabs: [{ name: 'All', href: '/tools/' }, ...SHELVES.map((s) => ({ name: s.name, href: `/${s.id}/`, match: [`/${s.id}/`] }))],
+  },
+  {
+    id: 'home', name: 'Home', href: '/', match: [],
+    blurb: 'Search, My tools and the shelves.',
+    tabs: [{ name: 'Search', href: '/#find' }, ...SHELVES.map((s) => ({ name: s.name, href: `/#${s.id}` }))],
+  },
+  {
+    id: 'news', name: 'News', href: '/news/', match: ['/news/', '/changes/', '/stats/'],
+    blurb: 'New tools, every change to the site, and how much the tools are used.',
+    tabs: [
+      { name: 'Latest', href: '/news/' },
+      { name: 'Change log', href: '/changes/', match: ['/changes/'] },
+      { name: 'Usage stats', href: '/stats/' },
+    ],
+  },
+  {
+    id: 'menu', name: 'Menu', href: '/about/', match: [],
+    blurb: 'About fibub, contact, privacy and terms.',
+    tabs: [
+      { name: 'About', href: '/about/' },
+      { name: 'Contact', href: '/contact/' },
+      { name: 'Privacy', href: '/privacy/' },
+      { name: 'Terms', href: '/terms/' },
+    ],
+  },
+];
+
+/** The area a path belongs to: Home for /, Menu for pages outside the other areas. */
+export function areaOf(path: string): Area {
+  if (path === '/' || path === '') return AREAS.find((a) => a.id === 'home')!;
+  return AREAS.find((a) => a.match.some((m) => path.startsWith(m))) ?? AREAS.find((a) => a.id === 'menu')!;
+}
+/** The section tab that is current on a path: an exact match, or the longest `match` prefix. */
+export function currentTab(area: Area, path: string): AreaTab | undefined {
+  const p = path.endsWith('/') ? path : path + '/';
+  return area.tabs.find((t) => t.href === p) ?? area.tabs.find((t) => t.match?.some((m) => p.startsWith(m)));
+}

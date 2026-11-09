@@ -1,0 +1,14 @@
+---
+import LearnPage from '../../components/LearnPage.astro';
+const cards = [
+  { name: 'Class 8 to 12', href: '/learn/school/', text: 'Interactive tools for science and maths, chapter by chapter, so you can change a number and see what happens.' },
+  { name: 'Experiments', href: '/learn/experiments/', text: 'Virtual lab work: set up an experiment, take readings, plot them and check the result, on a phone or computer.' },
+  { name: 'Courses', href: '/learn/courses/', text: 'Short free courses on new and advanced topics, written for young learners, with something to try in every lesson.' },
+  { name: 'Languages', href: '/learn/languages/', text: 'Tools to learn and practise languages: letters and scripts, words, listening and speaking.' },
+];
+---
+<LearnPage title="Learn" description="Free learning tools for school students in Class 8 to 12: interactive science and maths, virtual experiments, short courses and language practice. Runs in your browser, no sign-up."
+  lead="Learn by doing. Interactive tools, experiments, short courses and language practice for school students in Class 8 to 12. Free, with no sign-up, and nothing about you is saved."
+  cards={cards} tools={['equation-balancer', 'molar-mass-calculator', 'gas-law-calculator', 'wave-calculator', 'sky-tonight', 'plot-maker']}>
+  <p class="ar-note">Later, Learn will also have lessons, chapters and material for university students (graduate and master's level).</p>
+</LearnPage>

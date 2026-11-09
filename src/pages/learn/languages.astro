@@ -1,0 +1,13 @@
+---
+import LearnPage from '../../components/LearnPage.astro';
+const cards = [
+  { name: 'Letters and scripts', text: 'Learn the letters of a new script, trace them and test yourself.' },
+  { name: 'Words and flash cards', text: 'Make your own word lists and practise them with flash cards and quick quizzes.' },
+  { name: 'Listening', text: "Hear words and sentences read aloud by your device's own voices, slowly or at normal speed." },
+  { name: 'Speaking and spelling', text: 'Say or type what you hear and see how close you were.' },
+  { name: 'Grammar drills', text: 'Short practice for word order, tenses and forms.' },
+];
+---
+<LearnPage title="Learn: Languages" description="Free language learning tools: scripts, word lists, flash cards, listening and speaking practice. Runs in your browser, no sign-up."
+  lead="Tools to learn and practise languages. Your word lists and progress stay on your device."
+  cardsTitle="Planned tools" cards={cards} />

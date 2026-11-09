@@ -47,8 +47,9 @@ export async function myEntries(): Promise<Entry[]> {
   return ids.map((id) => all.find((e) => e.id === id)).filter((e): e is Entry => !!e);
 }
 
-// The Tools panel: search every tool, My tools, and the shelves (Science opens to its subjects).
-const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
+// The menu panel (Menu tab in the bottom bar, or the search button in the header): search every tool,
+// My tools, then Learn, Tools (shelves, Science opens to its subjects), News and About, all folded.
+const btn = document.querySelector<HTMLButtonElement>('.tab-menu');
 const panel = document.querySelector<HTMLElement>('#all-tools');
 
 if (btn && panel) {
@@ -64,7 +65,8 @@ if (btn && panel) {
 
   const open = (show: boolean) => {
     panel.hidden = !show;
-    document.querySelectorAll('.menu-btn, .find-btn').forEach((b) => b.setAttribute('aria-expanded', String(show)));
+    document.querySelectorAll('.tab-menu, .find-btn').forEach((b) => b.setAttribute('aria-expanded', String(show)));
+    document.querySelector('.tabbar')?.classList.toggle('menu-open', show);
     if (show) { loadIndex(); renderMine(); }
   };
   btn.addEventListener('click', () => open(panel.hidden));
@@ -180,4 +182,26 @@ for (const panel of document.querySelectorAll<HTMLElement>('.dd-mega')) {
   const show = (i: number) => { subs.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); panes.forEach((p, j) => p.classList.toggle('on', i === j)); };
   subs.forEach((b, i) => { b.addEventListener('mouseenter', () => show(i)); b.addEventListener('focus', () => show(i)); b.addEventListener('click', () => { show(i); panes[i].querySelector<HTMLElement>('a')?.focus(); }); });
   show(0);
+}
+
+// The section bar above the bottom bar: bring the current section into view when the sections don't
+// all fit, and on computers start them from the left then.
+const subIn = document.querySelector<HTMLElement>('.tb-sub-in');
+if (subIn) {
+  const fit = () => {
+    subIn.classList.remove('wide');
+    const over = subIn.scrollWidth > subIn.clientWidth + 1;
+    subIn.classList.toggle('wide', over);
+    const on = subIn.querySelector<HTMLElement>('a.on');
+    if (over && on) subIn.scrollLeft = Math.max(0, on.offsetLeft - (subIn.clientWidth - on.offsetWidth) / 2);
+  };
+  fit();
+  addEventListener('resize', fit);
+}
+
+// On touch screens the bars step aside while typing, so the on-screen keyboard has room.
+if (matchMedia('(hover: none) and (pointer: coarse)').matches) {
+  const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.matches('textarea, select, [contenteditable], input:not([type=checkbox], [type=radio], [type=button], [type=submit], [type=range], [type=color], [type=file])'));
+  document.addEventListener('focusin', (e) => document.documentElement.classList.toggle('typing', typing(e.target)));
+  document.addEventListener('focusout', () => setTimeout(() => document.documentElement.classList.toggle('typing', typing(document.activeElement)), 0));
 }

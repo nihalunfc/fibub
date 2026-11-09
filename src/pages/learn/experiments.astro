@@ -1,0 +1,15 @@
+---
+import LearnPage from '../../components/LearnPage.astro';
+const cards = [
+  { name: 'Electricity', text: 'Build a circuit, change the resistance and read the meters.', items: ["Ohm's law", 'Resistors in series and parallel'] },
+  { name: 'Light', text: 'Move the object and watch the image form.', items: ['Mirrors and lenses: ray diagrams', 'Refraction through a glass slab and prism'] },
+  { name: 'Motion', text: 'Time a pendulum or a rolling ball and plot your readings.', items: ['Simple pendulum', 'Distance–time and speed–time graphs'] },
+  { name: 'Chemistry lab', text: 'Mix, measure and see the change, without the risk.', items: ['Acid–base titration', 'pH and indicators', 'Rates of reaction'] },
+  { name: 'Biology', text: 'Look, count and record.', items: ['Osmosis in potato strips', 'Counting cells and leaf stomata'] },
+  { name: 'Your own readings', text: 'Type in readings from a real school practical to plot them, find the slope and work out the error.' },
+];
+---
+<LearnPage title="Learn: Experiments" description="Virtual science experiments for Class 8 to 12: electricity, light, motion, chemistry and biology. Free, in your browser."
+  lead="Virtual experiments that follow school practicals. Set things up, take readings, draw the graph and check your answer, as many times as you like."
+  cardsTitle="Planned experiments" cards={cards}
+  toolsTitle="Lab tools you can use today" tools={['titration-curve', 'plot-maker', 'uncertainty-calculator', 'solution-calculator', 'gas-law-calculator', 'beer-lambert-calculator']} />

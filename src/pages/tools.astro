@@ -1,0 +1,47 @@
+---
+// The Tools tab: every shelf with its count and a few of its tools; Science shows its subjects.
+import Base from '../layouts/Base.astro';
+import { SHELVES, SUBJECTS } from '../site';
+import { allTools, bySubject, toolUrl } from '../lib/tools';
+import '../styles/area.css';
+const tools = await allTools();
+const live = tools.filter((t) => t.data.status === 'live');
+const shelves = SHELVES.map((s) => {
+  const mine = live.filter((t) => t.data.shelf === s.id);
+  return { shelf: s, count: mine.length, subjects: SUBJECTS[s.id] ? bySubject(s.id, live) : null, first: [...mine].sort((a, b) => (a.data.order ?? 99) - (b.data.order ?? 99)).slice(0, 5) };
+}).filter((s) => s.count);
+---
+<Base title="All tools" description={`All ${live.length} free fibub tools, shelf by shelf: money, documents, everyday tasks and science. Everything runs in your browser.`}>
+  <div class="crumbs"><a href="/">Home</a> / Tools</div>
+  <div class="ar-head">
+    <h1>All tools</h1>
+    <p class="lead">{live.length} free tools on {shelves.length} shelves. Every one runs in your browser, so your files and numbers stay on your device.</p>
+  </div>
+  <div class="ar-cards">
+    {shelves.map(({ shelf, count, subjects, first }) => (
+      <section class:list={['ar-card', { 'ar-wide': !!subjects }]}>
+        <h2><a href={`/${shelf.id}/`}>{shelf.name}</a> <span class="ar-tag">{count} tools</span></h2>
+        <p>{shelf.blurb}</p>
+        {subjects ? (
+          <ul class="ar-list ar-cols">{subjects.map((sj) => <li><a href={sj.url}>{sj.name}</a> <span>{sj.count}</span></li>)}</ul>
+        ) : (
+          <ul class="ar-list">{first.map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a> <span>#{t.data.num}</span></li>)}</ul>
+        )}
+        <a class="ar-go" href={`/${shelf.id}/`}>All {shelf.name.toLowerCase()} tools →</a>
+      </section>
+    ))}
+  </div>
+</Base>
+<style>
+  .ar-card h2 a { color: var(--ink); text-decoration: none; }
+  .ar-card h2 a:hover { color: var(--accent); }
+  .ar-wide { grid-column: 1 / -1; }
+  .ar-list { list-style: none; padding: 0 !important; margin: 4px 0 0; }
+  .ar-list li { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .ar-list li:last-child { border-bottom: 0; }
+  .ar-list a { color: var(--ink); font-weight: 600; text-decoration: none; min-width: 0; }
+  .ar-list a:hover { color: var(--accent); text-decoration: underline; }
+  .ar-list span { color: var(--muted); font-size: 13px; flex: none; }
+  .ar-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); column-gap: 28px; }
+  .ar-cols li:last-child { border-bottom: 1px solid var(--line); }
+</style>

@@ -14,7 +14,7 @@ const newest = [...live].sort((a, b) => (b.data.num ?? 0) - (a.data.num ?? 0)).s
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
 <Base title={SITE.name}>
-  <section class="hero">
+  <section class="hero" id="find">
     <div class="hero-top">
       <div>
         <h1>Free tools that never see your files</h1>
@@ -49,7 +49,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
 
   <div class="dir">
     {shelves.map(({ shelf, subjects, hasSubjects, count }) => (
-      <section class:list={['sh', { wide: hasSubjects }]} data-shelf={shelf.id}>
+      <section class:list={['sh', { wide: hasSubjects }]} data-shelf={shelf.id} id={shelf.id}>
         <h2><a href={`/${shelf.id}/`}>{shelf.name}</a> <small>{count}</small></h2>
         {hasSubjects ? (
           <ul class="subj">
