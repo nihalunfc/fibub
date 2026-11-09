@@ -1,0 +1,295 @@
+---
+// Darcy-Weisbach pipe flow with Colebrook or Swamee-Jain friction and minor losses, for one pipe or a looped
+// network with reservoirs, solved by Newton (global gradient) or Hardy Cross. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pns">
+  <div class="ax-card">
+    <h2>Liquid and friction formula</h2>
+    <div class="ax-grid">
+      <label>Liquid <select class="pn-fluid"><option value="water" selected>Water at a temperature</option><option value="own">Other liquid (type density and viscosity)</option></select></label>
+      <label class="pn-tbox">Water temperature (°C) <input class="pn-t" type="text" inputmode="decimal" value="20" /></label>
+      <label class="pn-obox" hidden>Density ρ (kg/m³) <input class="pn-rho" type="text" inputmode="decimal" value="870" /></label>
+      <label class="pn-obox" hidden>Dynamic viscosity μ (mPa·s, same as cP) <input class="pn-mu" type="text" inputmode="decimal" value="30" /></label>
+      <label>Friction factor <select class="pn-fm"><option value="colebrook" selected>Colebrook-White (solved exactly)</option><option value="swamee">Swamee-Jain (explicit approximation)</option></select></label>
+    </div>
+    <p class="ax-help pn-fluidnote"></p>
+    <p class="ax-err pn-ferr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Single pipe</h2>
+    <div class="ax-grid">
+      <label>Find <select class="pn-mode"><option value="h" selected>Head loss and pressure drop from the flow</option><option value="q">Flow from the head available</option></select></label>
+      <label class="pn-qbox">Flow Q (L/s) <input class="pn-q" type="text" inputmode="decimal" value="25" /></label>
+      <label class="pn-hbox" hidden>Head available (m), after any rise <input class="pn-h" type="text" inputmode="decimal" value="10" /></label>
+      <label>Length L (m) <input class="pn-L" type="text" inputmode="decimal" value="250" /></label>
+      <label>Inside diameter D (mm) <input class="pn-D" type="text" inputmode="decimal" value="150" /></label>
+      <label>Roughness ε (mm) <input class="pn-e" type="text" inputmode="decimal" value="0.05" /></label>
+      <label>Typical ε (approximate) <select class="pn-epick">
+        <option value="">Pick to fill in ε…</option>
+        <option value="0.0015">0.0015 mm plastic (PVC, PE), glass</option>
+        <option value="0.05">0.05 mm new steel</option>
+        <option value="0.15">0.15 mm galvanised steel</option>
+        <option value="0.25">0.25 mm cast iron</option>
+        <option value="1">1 mm concrete (average)</option>
+        <option value="2">2 mm old, scaled pipe</option>
+      </select></label>
+      <label>Minor losses ΣK (fittings, valves, entry, exit) <input class="pn-K" type="text" inputmode="decimal" value="3.5" /></label>
+      <label>Rise from inlet to outlet (m, negative for a fall) <input class="pn-dz" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">K adds up the fittings: very roughly 0.5 for a square pipe entry, 1 for the exit into a tank, 0.3 to 0.9 for a 90° bend, about 0.2 for an open gate valve and several for a globe valve. Take K values for your own fittings from the maker or a hydraulics handbook. Roughness and K values here are rounded examples.</p>
+    <p class="ax-err pn-serr" hidden></p>
+    <div class="pn-sout">
+      <p class="ax-big pn-sbig"></p>
+      <dl class="ax-facts pn-sfacts"></dl>
+      <canvas class="ax-fig pn-sfig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pipe network</h2>
+    <label>Nodes: name, ground level (m), demand (L/s), fixed head for a reservoir or tank (m, blank for a junction), then optional x, y for the sketch
+      <textarea class="pn-nodes" rows="9" spellcheck="false">Node, Level m, Demand L/s, Head m, x, y
+R, 50, 0, 60, 0, 2
+J1, 20, 0, , 1.2, 2
+J2, 18, 15, , 2.4, 3.2
+J3, 15, 20, , 2.4, 0.8
+J4, 16, 10, , 3.6, 2
+J5, 14, 15, , 3.6, -0.4
+T, 40, 0, 52, 4.8, -0.4</textarea></label>
+    <DataFile target=".pn-nodes" />
+    <label style="margin-top:12px">Pipes: name, from node, to node, length (m), diameter (mm), roughness (mm), minor loss K
+      <textarea class="pn-pipes" rows="11" spellcheck="false">Pipe, From, To, Length m, Diameter mm, Roughness mm, K
+P1, R, J1, 500, 300, 0.05, 2
+P2, J1, J2, 400, 200, 0.05, 0
+P3, J1, J3, 600, 200, 0.05, 0
+P4, J2, J4, 500, 150, 0.05, 0
+P5, J3, J4, 400, 150, 0.05, 0
+P6, J4, J5, 300, 150, 0.05, 0
+P7, J3, J5, 450, 150, 0.05, 0
+P8, J5, T, 300, 100, 0.05, 1.5</textarea></label>
+    <DataFile target=".pn-pipes" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Solve by <select class="pn-meth"><option value="newton" selected>Newton (global gradient, all nodes at once)</option><option value="cross">Hardy Cross (one loop at a time)</option></select></label>
+    </div>
+    <p class="ax-help">A positive flow runs from the "from" node to the "to" node; a negative one runs the other way. Demands are what leaves the network at a node (use a negative demand for an inflow). A reservoir or tank holds its water level (fixed head) whatever flows in or out. The example network is made up.</p>
+    <p class="ax-err pn-err" hidden></p>
+  </div>
+
+  <div class="ax-card pn-out">
+    <h2>Network results</h2>
+    <p class="ax-big pn-big"></p>
+    <dl class="ax-facts pn-facts"></dl>
+    <canvas class="ax-fig pn-fig"></canvas>
+    <h3>Pipes</h3>
+    <div class="ax-scroll"><table class="pn-ptab"></table></div>
+    <h3>Nodes</h3>
+    <div class="ax-scroll"><table class="pn-ntab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pn-pcsv">Pipes (CSV)</button>
+      <button type="button" class="btn secondary small pn-ncsv">Nodes (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { pipeFlow, flowForHead, colebrook, swameeJain, water, checkNetwork, solveNewton, solveHardyCross, G, type Fluid, type FMethod, type Node, type Pipe, type NetResult } from '../../lib/sci/pipenet';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fx = (x: number, d = 2) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
+  const root = document.querySelector<HTMLElement>('.pns')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[]) => {
+    const tr = (cells: string[], tag: string) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (right.includes(i)) e.className = 'r'; r.append(e); }); return r; };
+    el.replaceChildren(tr(head, 'th'), ...rows.map((r) => tr(r, 'td')));
+  };
+
+  let single: Section[] = [], netSec: Section[] = [], figs: [HTMLCanvasElement, Figure][] = [];
+  let pCsv: (string | number)[][] = [], nCsv: (string | number)[][] = [];
+
+  function fluid(): Fluid | string {
+    const own = sel('.pn-fluid') === 'own';
+    q('.pn-tbox').hidden = own; root.querySelectorAll<HTMLElement>('.pn-obox').forEach((e) => { e.hidden = !own; });
+    let fl: Fluid;
+    if (own) { const rho = val('.pn-rho'), mu = val('.pn-mu'); if (!(rho > 0) || !(mu > 0)) return 'Give the liquid density and viscosity.'; fl = { rho, mu: mu / 1000 }; }
+    else { const t = val('.pn-t'); if (!(t >= 0 && t <= 100)) return 'Give a water temperature from 0 to 100 °C.'; fl = water(t); }
+    q('.pn-fluidnote').textContent = `Using ρ = ${sg(fl.rho, 5)} kg/m³ and μ = ${sg(fl.mu * 1000, 4)} mPa·s (kinematic viscosity ${sg(fl.mu / fl.rho * 1e6, 4)} mm²/s).${own ? '' : ' Water properties come from smooth formulas good to about 1 %.'}`;
+    return fl;
+  }
+
+  function onePipe(fl: Fluid, m: FMethod) {
+    const err = q('.pn-serr'), out = q('.pn-sout');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; single = []; };
+    const mode = sel('.pn-mode'); q('.pn-qbox').hidden = mode !== 'h'; q('.pn-hbox').hidden = mode !== 'q';
+    const L = val('.pn-L'), D = val('.pn-D') / 1000, eps = val('.pn-e') / 1000, K = val('.pn-K'), dz = val('.pn-dz');
+    if (!(L > 0)) return fail('Give the pipe length.');
+    if (!(D > 0)) return fail('Give the inside diameter in millimetres.');
+    if (!(eps >= 0) || eps >= D / 2) return fail('Give the roughness in millimetres (0 for a perfectly smooth pipe).');
+    if (!(K >= 0)) return fail('Give the total minor loss K (0 if there are no fittings).');
+    if (!Number.isFinite(dz)) return fail('Give the rise from inlet to outlet (0 if level).');
+    const p = { L, D, eps, K };
+    let Q: number;
+    if (mode === 'h') { Q = val('.pn-q') / 1000; if (!(Q > 0)) return fail('Give the flow in litres per second.'); }
+    else { const h = val('.pn-h'); if (!(h > 0)) return fail('Give the head available to drive the flow through the pipe (more than 0).'); Q = flowForHead(p, h, fl, m); }
+    err.hidden = true; out.hidden = false;
+    const r = pipeFlow(p, Q, fl, m), dp = fl.rho * G * (r.h + dz);
+    q('.pn-sbig').textContent = mode === 'h' ? `Head loss ${sg(r.h, 4)} m, pressure drop ${sg(dp / 1000, 4)} kPa` : `Flow ${sg(Q * 1000, 4)} L/s for ${sg(r.h, 4)} m of head`;
+    const rr = eps / D, fc = r.Re > 4000 ? colebrook(r.Re, rr) : NaN, fs = r.Re > 4000 ? swameeJain(r.Re, rr) : NaN;
+    const facts = [
+      fact('Velocity', `${sg(r.V, 3)} m/s`, `area ${sg(r.A * 1e4, 4)} cm²; velocity head ${sg(r.V ** 2 / 2 / G, 3)} m`),
+      fact('Reynolds number', `${sg(r.Re, 4)}`, `${r.regime} flow; relative roughness ε/D = ${sg(rr, 3)}`),
+      fact('Friction factor f', sg(r.f, 4), r.Re > 4000 ? `Colebrook ${sg(fc, 5)}, Swamee-Jain ${sg(fs, 5)} (${sg((fs / fc - 1) * 100, 2)} % apart)` : r.Re <= 2000 ? 'laminar: f = 64/Re' : 'transition zone: blended between 64/Re at Re 2000 and the turbulent value at Re 4000'),
+      fact('Pipe friction loss', `${sg(r.hMajor, 4)} m`, `f (L/D) V²/2g; ${sg(r.hMajor / L * 1000, 3)} m per km`),
+      fact('Minor losses', `${sg(r.hMinor, 4)} m`, `ΣK V²/2g with ΣK = ${sg(K, 3)}`),
+      fact('Total head loss', `${sg(r.h, 4)} m`),
+      fact('Pressure drop inlet to outlet', `${sg(dp / 1000, 4)} kPa`, `ρg × (head loss + rise ${sg(dz, 3)} m) = ${sg(dp / 1e5, 4)} bar, ${sg(dp / 6894.757, 4)} psi`),
+      fact('Hydraulic power to push it', `${sg(fl.rho * G * Q * (r.h + dz) / 1000, 3)} kW`, 'ρ g Q × (head loss + rise); divide by the pump efficiency for the shaft power'),
+    ];
+    q('.pn-sfacts').replaceChildren(...facts);
+    const xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 60; i++) { const qq = (2 * Q * i) / 60; xs.push(qq * 1000); ys.push(pipeFlow(p, qq, fl, m).h + dz); }
+    const fig = chartFigure({ w: 380, h: 230, xLabel: 'Flow (L/s)', yLabel: 'Head needed (m)', xMin: 0, legend: 'below', series: [
+      { name: 'Rise + friction + minor losses', x: xs, y: ys, mode: 'line', width: 2 },
+      { name: 'This flow', x: [Q * 1000], y: [r.h + dz], mode: 'points', size: 4 },
+    ] }, 'Head needed against flow for this pipe (system curve)');
+    paint(q<HTMLCanvasElement>('.pn-sfig'), fig);
+    figs = figs.filter(([c]) => c !== q('.pn-sfig')); figs.push([q<HTMLCanvasElement>('.pn-sfig'), fig]);
+    single = [{ title: 'Single pipe: ' + q('.pn-sbig').textContent, facts: factsOf(facts), figure: fig }];
+  }
+
+  function parseNet(): { nodes: Node[]; pipes: Pipe[] } | string {
+    const nr = parseTable(q<HTMLTextAreaElement>('.pn-nodes').value), pr = parseTable(q<HTMLTextAreaElement>('.pn-pipes').value);
+    if (nr.length && Number.isNaN(num(nr[0][1]))) nr.shift();
+    if (pr.length && Number.isNaN(num(pr[0][3]))) pr.shift();
+    const nodes: Node[] = [], pipes: Pipe[] = [];
+    for (const r of nr) {
+      const [name, z, d, h, x, y] = [r[0], num(r[1]), num(r[2] ?? ''), num(r[3] ?? ''), num(r[4] ?? ''), num(r[5] ?? '')];
+      if (!name || !Number.isFinite(z)) return `Node row "${r.join(', ')}": give a name and a ground level in metres.`;
+      if ((r[2] ?? '').trim() && !Number.isFinite(d)) return `Node ${name}: the demand is not a number.`;
+      if ((r[3] ?? '').trim() && !Number.isFinite(h)) return `Node ${name}: the fixed head is not a number.`;
+      nodes.push({ name, z, demand: Number.isFinite(d) ? d / 1000 : 0, head: Number.isFinite(h) ? h : undefined, x: Number.isFinite(x) ? x : undefined, y: Number.isFinite(y) ? y : undefined });
+    }
+    for (const r of pr) {
+      const [name, from, to, L, D, e, K] = [r[0], r[1], r[2], num(r[3]), num(r[4]), num(r[5] ?? ''), num(r[6] ?? '')];
+      if (!name || !from || !to || !(L > 0) || !(D > 0)) return `Pipe row "${r.join(', ')}": give a name, from and to nodes, a length (m) and a diameter (mm).`;
+      if (!(e >= 0) || e / 1000 >= D / 2000) return `Pipe ${name}: give the roughness in mm (0 or more).`;
+      if ((r[6] ?? '').trim() && !(K >= 0)) return `Pipe ${name}: K must be 0 or more.`;
+      pipes.push({ name, from, to, L, D: D / 1000, eps: e / 1000, K: Number.isFinite(K) ? K : 0 });
+    }
+    if (!nodes.length) return 'List the nodes, one per line.';
+    if (!pipes.length) return 'List the pipes, one per line.';
+    if (nodes.length > 300 || pipes.length > 500) return 'This tool handles up to 300 nodes and 500 pipes.';
+    const bad = checkNetwork(nodes, pipes);
+    return bad || { nodes, pipes };
+  }
+
+  function network(fl: Fluid, m: FMethod) {
+    const err = q('.pn-err'), out = q('.pn-out');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; netSec = []; pCsv = []; nCsv = []; };
+    const net = parseNet();
+    if (typeof net === 'string') return fail(net);
+    const { nodes, pipes } = net, meth = sel('.pn-meth');
+    let r: NetResult;
+    try { r = meth === 'cross' ? solveHardyCross(nodes, pipes, fl, m) : solveNewton(nodes, pipes, fl, m); } catch { return fail('The network could not be solved. Check that every junction is joined up and the numbers are sensible.'); }
+    if (!r.converged || !r.Q.every(Number.isFinite)) return fail('The solver did not settle on an answer. Check the pipe sizes and demands; a junction may be cut off or asked for far more than its pipes can carry.');
+    err.hidden = true; out.hidden = false;
+    const low = nodes.filter((n) => n.head === undefined && r.H[n.name] - n.z < 0);
+    const supplies = Object.entries(r.supply);
+    q('.pn-big').textContent = `${supplies.map(([k, v]) => `${k} ${v >= 0 ? 'supplies' : 'takes in'} ${sg(Math.abs(v) * 1000, 4)} L/s`).join(', ')}`;
+    const facts = [
+      fact('Method', meth === 'cross' ? 'Hardy Cross loop corrections' : "Newton's method on the node heads (global gradient)", `${r.iterations} iteration${r.iterations === 1 ? '' : 's'}; ${r.loops} loop${r.loops === 1 ? '' : 's'} (counting paths between reservoirs)`),
+      fact('Continuity check', r.maxImbalance * 1000 < 1e-6 ? 'balanced (out by under 0.000001 L/s)' : `largest imbalance ${sg(r.maxImbalance * 1000, 2)} L/s`, 'flow in minus flow out minus demand, at the worst junction'),
+      fact('Total demand', `${sg(nodes.reduce((s, n) => s + n.demand, 0) * 1000, 4)} L/s`),
+      fact('Lowest pressure', (() => { const j = nodes.filter((n) => n.head === undefined); if (!j.length) return '–'; const w = j.reduce((a, b) => (r.H[a.name] - a.z < r.H[b.name] - b.z ? a : b)); return `${sg((r.H[w.name] - w.z), 4)} m (${sg(fl.rho * G * (r.H[w.name] - w.z) / 1000, 4)} kPa) at ${w.name}`; })(), low.length ? `below zero at ${low.map((n) => n.name).join(', ')}: the water would not reach there under pressure` : 'pressure head = head − ground level'),
+      fact('Fastest pipe', (() => { const i = r.pipes.reduce((a, _, k) => (Math.abs(r.pipes[k].V) > Math.abs(r.pipes[a].V) ? k : a), 0); return `${pipes[i].name}, ${sg(Math.abs(r.pipes[i].V), 3)} m/s`; })(), 'about 0.5 to 2 m/s is usual for water mains'),
+    ];
+    q('.pn-facts').replaceChildren(...facts);
+    const pHead = ['Pipe', 'From → to', 'Flow L/s', 'Velocity m/s', 'Re', 'f', 'Head loss m', 'm/km'];
+    const pRows = pipes.map((p, i) => { const s = r.pipes[i], Q = r.Q[i]; return [p.name, Q >= 0 ? `${p.from} → ${p.to}` : `${p.to} → ${p.from}`, fx(Math.abs(Q) * 1000, 2), fx(Math.abs(s.V), 3), sg(s.Re, 3), s.Re ? fx(s.f, 4) : '–', fx(Math.abs(s.h), 3), fx(Math.abs(s.hMajor) / p.L * 1000, 2)]; });
+    table(q('.pn-ptab'), pHead, pRows, [2, 3, 4, 5, 6, 7]);
+    const nHead = ['Node', 'Head m', 'Ground m', 'Pressure m', 'Pressure kPa', 'Demand L/s'];
+    const nRows = nodes.map((n) => { const H = r.H[n.name]; return [n.name + (n.head !== undefined ? ' (fixed)' : ''), fx(H, 3), fx(n.z, 2), fx(H - n.z, 3), fx(fl.rho * G * (H - n.z) / 1000, 1), n.head !== undefined ? `${fx(-r.supply[n.name] * 1000, 2)} in` : fx(n.demand * 1000, 2)]; });
+    table(q('.pn-ntab'), nHead, nRows, [1, 2, 3, 4, 5]);
+    pCsv = [['pipe', 'from', 'to', 'length_m', 'diameter_mm', 'roughness_mm', 'K', 'flow_L_per_s', 'velocity_m_per_s', 'reynolds', 'friction_factor', 'head_loss_m'], ...pipes.map((p, i) => [p.name, p.from, p.to, p.L, p.D * 1000, p.eps * 1000, p.K, sg(r.Q[i] * 1000, 6), sg(r.pipes[i].V, 6), sg(r.pipes[i].Re, 6), sg(r.pipes[i].f, 6), sg(r.pipes[i].h, 6)])];
+    nCsv = [['node', 'ground_m', 'demand_L_per_s', 'fixed', 'head_m', 'pressure_head_m', 'pressure_kPa', 'reservoir_outflow_L_per_s'], ...nodes.map((n) => [n.name, n.z, n.demand * 1000, n.head !== undefined ? 'yes' : 'no', sg(r.H[n.name], 7), sg(r.H[n.name] - n.z, 6), sg(fl.rho * G * (r.H[n.name] - n.z) / 1000, 6), n.head !== undefined ? sg(r.supply[n.name] * 1000, 6) : ''])];
+    // Sketch when every node has x and y.
+    const canvas = q<HTMLCanvasElement>('.pn-fig');
+    figs = figs.filter(([c]) => c !== canvas);
+    let fig: Figure | undefined;
+    if (nodes.every((n) => n.x !== undefined && n.y !== undefined)) {
+      const pos = new Map(nodes.map((n) => [n.name, n]));
+      const xs = nodes.map((n) => n.x!), ys = nodes.map((n) => n.y!);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      fig = { w: 380, h: 300, alt: 'Sketch of the network with flow directions and node pressures', draw: (ctx, W, H, pal) => {
+        const pad = 36, sc = Math.min((W - 2 * pad) / ((x1 - x0) || 1), (H - 2 * pad - 16) / ((y1 - y0) || 1));
+        const X = (x: number) => W / 2 + (x - (x0 + x1) / 2) * sc, Y = (y: number) => H / 2 + 4 - (y - (y0 + y1) / 2) * sc;
+        ctx.font = '10px system-ui, sans-serif';
+        pipes.forEach((p, i) => {
+          const a = pos.get(p.from)!, b = pos.get(p.to)!, Q = r.Q[i];
+          const [s, e] = Q >= 0 ? [a, b] : [b, a];
+          const ax = X(s.x!), ay = Y(s.y!), bx = X(e.x!), by = Y(e.y!);
+          ctx.strokeStyle = pal.muted; ctx.lineWidth = 1 + 4 * p.D / Math.max(...pipes.map((pp) => pp.D));
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+          const mx = (ax + bx) / 2, my = (ay + by) / 2, ang = Math.atan2(by - ay, bx - ax);
+          ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.moveTo(mx + 7 * Math.cos(ang), my + 7 * Math.sin(ang)); ctx.lineTo(mx + 6 * Math.cos(ang + 2.5), my + 6 * Math.sin(ang + 2.5)); ctx.lineTo(mx + 6 * Math.cos(ang - 2.5), my + 6 * Math.sin(ang - 2.5)); ctx.closePath(); ctx.fill();
+          // Flow label beside the pipe, on a small box so lines never run through it.
+          const lab = sg(Math.abs(Q) * 1000, 3), tw = ctx.measureText(lab).width, nx = -Math.sin(ang), ny = Math.cos(ang), lx = mx + 13 * nx, ly = my + 13 * ny;
+          ctx.fillStyle = pal.bg; ctx.fillRect(lx - tw / 2 - 2, ly - 7, tw + 4, 13);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, lx, ly);
+        });
+        nodes.forEach((n) => {
+          const x = X(n.x!), y = Y(n.y!), fixed = n.head !== undefined;
+          ctx.fillStyle = fixed ? pal.accent : pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+          if (fixed) { ctx.fillRect(x - 7, y - 7, 14, 14); ctx.strokeRect(x - 7, y - 7, 14, 14); } else { ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); ctx.stroke(); }
+          const lab = `${n.name} ${sg(r.H[n.name] - n.z, 3)} m`, tw = ctx.measureText(lab).width;
+          ctx.fillStyle = pal.bg; ctx.fillRect(x - tw / 2 - 2, y + 9, tw + 4, 13);
+          ctx.fillStyle = r.H[n.name] - n.z < 0 ? pal.bad : pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          ctx.fillText(lab, x, y + 10);
+        });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('Flows in L/s; pressure head in m; squares hold a fixed level', 6, 4);
+      } };
+      paint(canvas, fig); canvas.hidden = false; figs.push([canvas, fig]);
+    } else canvas.hidden = true;
+    netSec = [
+      { title: 'Network: ' + q('.pn-big').textContent, facts: factsOf(facts), figure: fig },
+      { title: 'Pipes', table: { head: pHead, rows: pRows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Nodes', table: { head: nHead, rows: nRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  function all() {
+    const fl = fluid(), ferr = q('.pn-ferr');
+    if (typeof fl === 'string') { ferr.textContent = fl; ferr.hidden = false; q('.pn-sout').hidden = true; q('.pn-out').hidden = true; single = []; netSec = []; return; }
+    ferr.hidden = true;
+    const m = sel('.pn-fm') as FMethod;
+    onePipe(fl, m); network(fl, m);
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(all, 250); };
+  q('.pn-epick').addEventListener('change', () => { const v = sel('.pn-epick'); if (v) q<HTMLInputElement>('.pn-e').value = v; q<HTMLSelectElement>('.pn-epick').value = ''; all(); });
+  root.querySelectorAll('input:not([type=file]), select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.pn-pcsv').addEventListener('click', () => pCsv.length > 1 && save(new TextEncoder().encode(csv(pCsv)), 'pipe-network-pipes.csv', 'text/csv'));
+  q('.pn-ncsv').addEventListener('click', () => nCsv.length > 1 && save(new TextEncoder().encode(csv(nCsv)), 'pipe-network-nodes.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => figs.forEach(([c, f]) => paint(c, f)));
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Pipe flow and network', subtitle: q('.pn-fluidnote').textContent ?? '', file: 'pipe-network', sections: [...single, ...netSec] }));
+</script>
+
+<style is:global>
+  .pns select, .pns input { max-width: 100%; }
+  .pns h3 { font-size: 16px; margin: 16px 0 6px; }
+  .pns textarea { margin-top: 4px; }
+</style>

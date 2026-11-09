@@ -1,0 +1,183 @@
+---
+// Atterberg limits (flow curve or one-point LL, PL, PI, LI, activity) and the Proctor compaction curve
+// (dry density, fitted peak, zero-air-voids). Example data are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const llDemo = 'blows\twater content (%)\n34\t41.2\n27\t43.0\n21\t44.9\n15\t47.3';
+const cpDemo = 'water content (%)\tbulk density\n10.2\t1.89\n12.4\t2.01\n14.6\t2.09\n16.8\t2.08\n19.1\t2.03';
+---
+<div class="ax atc">
+  <div class="ax-card">
+    <h2>Liquid limit</h2>
+    <label>Method <select class="at-m"><option value="multi" selected>Multipoint flow curve (Casagrande cup)</option><option value="one">One-point (one trial near 25 blows)</option></select></label>
+    <div class="at-multi">
+      <label style="margin-top:10px">Blows, then water content (%) for each trial <textarea class="at-data" rows="5" spellcheck="false">{llDemo}</textarea></label>
+      <DataFile target=".at-data" maxCols={4} maxRows={50} label="Open a file" />
+    </div>
+    <div class="at-one" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Blows N (20 to 30) <input class="at-n" type="text" inputmode="numeric" value="23" /></label>
+        <label>Water content wN (%) <input class="at-wn" type="text" inputmode="decimal" value="44.3" /></label>
+        <label>Exponent k <input class="at-k" type="text" inputmode="decimal" value="0.121" /></label>
+      </div>
+      <p class="ax-help">LL = wN × (N/25)^k. The exponent 0.121 is the commonly used average slope; it is only reliable for 20 to 30 blows.</p>
+    </div>
+    <h3>Plastic limit and natural state</h3>
+    <div class="ax-grid">
+      <label>Plastic limit PL (%) <input class="at-pl" type="text" inputmode="decimal" value="22.4" /></label>
+      <label>Natural water content w (%, optional) <input class="at-w" type="text" inputmode="decimal" value="35" /></label>
+      <label>Clay fraction finer than 2 µm (%, optional) <input class="at-clay" type="text" inputmode="decimal" value="28" /></label>
+    </div>
+    <p class="ax-help">The example values are made up.</p>
+    <p class="ax-err at-err" hidden></p>
+    <div class="at-out">
+      <p class="ax-big at-big"></p>
+      <dl class="ax-facts at-facts"></dl>
+      <canvas class="ax-fig at-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compaction curve (Proctor test)</h2>
+    <label>Water content (%), then bulk (wet) density for each point <textarea class="cp-data" rows="6" spellcheck="false">{cpDemo}</textarea></label>
+    <DataFile target=".cp-data" maxCols={4} maxRows={100} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Density unit <select class="cp-u"><option value="1" selected>Mg/m³ (g/cm³)</option><option value="1000">kg/m³</option><option value="9.81">kN/m³ (unit weight)</option></select></label>
+      <label>Specific gravity of solids Gs <input class="cp-gs" type="text" inputmode="decimal" value="2.70" /></label>
+      <label>Curve <select class="cp-deg"><option value="2" selected>Parabola (degree 2)</option><option value="3">Cubic (degree 3)</option></select></label>
+      <label>Field dry density (optional) <input class="cp-fd" type="text" inputmode="decimal" value="1.74" /></label>
+    </div>
+    <p class="ax-help">Dry density ρd = ρ / (1 + w). The zero-air-voids line ρd = Gs·ρw / (1 + w·Gs) is the densest the soil could be at each water content; real points sit below it. The example values are made up.</p>
+    <p class="ax-err cp-err" hidden></p>
+    <div class="cp-out">
+      <p class="ax-big cp-big"></p>
+      <dl class="ax-facts cp-facts"></dl>
+      <canvas class="ax-fig cp-fig"></canvas>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cp-csv">Download the points and dry densities (CSV)</button></div>
+    </div>
+    <Downloads />
+    <p class="ax-help">For study and planning. Test methods and specified compaction differ between standards; check your local code and a qualified engineer.</p>
+  </div>
+</div>
+
+<script>
+  import { llFlow, llOnePoint, indices, dryDensity, airVoids, saturation, compaction, ev } from '../../lib/sci/atterberg';
+  import { finesGroup } from '../../lib/sci/soilclass';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.atc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s ? num(s) : undefined; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const f1 = (x: number) => x.toFixed(1), f2 = (x: number) => x.toFixed(2);
+  let atFig: Figure | null = null, cpFig: Figure | null = null, S: Record<string, Section | null> = {}, csvRows: (string | number)[][] = [];
+
+  function limits() {
+    const err = q('.at-err'), out = q('.at-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.at = null; atFig = null; };
+    const multi = q<HTMLSelectElement>('.at-m').value === 'multi';
+    q('.at-multi').hidden = !multi; q('.at-one').hidden = multi;
+    let LL: number, If: number | undefined, how: string, N: number[] = [], W: number[] = [], line: number[] = [];
+    if (multi) {
+      const t = numericColumns(q<HTMLTextAreaElement>('.at-data').value);
+      if (t.cols.length < 2) return fail('Paste two columns: blows and water content (%).');
+      t.cols[0].forEach((n, i) => { const w = t.cols[1][i]; if (Number.isFinite(n) && Number.isFinite(w)) { N.push(n); W.push(w); } });
+      let r: ReturnType<typeof llFlow>;
+      try { r = llFlow(N, W); } catch (e) { return fail((e as Error).message); }
+      if (!(r.If > 0)) return fail('Water content should fall as the blow count rises. Check the columns.');
+      LL = r.LL; If = r.If; line = r.c;
+      how = `straight line of w against log N through ${N.length} trials, R² = ${r.r2.toFixed(3)}${N.some((n) => n < 15 || n > 35) ? '; some trials are outside 15 to 35 blows' : ''}`;
+    } else {
+      const n = val('.at-n'), w = val('.at-wn'), k = val('.at-k');
+      if (!(n > 0 && w > 0 && k >= 0)) return fail('Give the blows, the water content and the exponent.');
+      LL = llOnePoint(n, w, k); how = `one-point: ${w} × (${n}/25)^${k}${n < 20 || n > 30 ? '; the method is meant for 20 to 30 blows' : ''}`;
+    }
+    const PL = val('.at-pl'), w = opt('.at-w'), clay = opt('.at-clay');
+    if (!(PL >= 0)) return fail('Give the plastic limit in %.');
+    if (PL > LL) return fail(`The plastic limit is above the liquid limit (${f1(LL)} %). The soil may be non-plastic.`);
+    if (w !== undefined && !(w >= 0)) return fail('The natural water content must be 0 or more (or left blank).');
+    if (clay !== undefined && !(clay > 0 && clay <= 100)) return fail('The clay fraction must be above 0 and at most 100 % (or left blank).');
+    err.hidden = true; out.hidden = false;
+    const x = indices(LL, PL, w, clay, If), fg = finesGroup(LL, x.PI, false);
+    q('.at-big').textContent = `LL = ${f1(LL)} %, PL = ${f1(PL)} %, PI = ${f1(x.PI)} %`;
+    const fs = [fact('Liquid limit LL', `${f1(LL)} %`, how)];
+    if (If !== undefined) fs.push(fact('Flow index If', f2(If), 'drop in water content per tenfold rise in blows; toughness index PI/If = ' + f2(x.It)));
+    fs.push(fact('Plasticity index PI = LL − PL', `${f1(x.PI)} %`, `on the plasticity chart: ${fg.g} (A-line at this LL: ${f1(0.73 * (LL - 20))})`));
+    if (w !== undefined) {
+      fs.push(fact('Liquidity index LI = (w − PL)/PI', f2(x.LI), x.LI < 0 ? 'below 0: drier than the plastic limit, stiff' : x.LI < 1 ? 'between 0 and 1: plastic' : 'above 1: wetter than the liquid limit, may flow when disturbed'));
+      fs.push(fact('Consistency index CI = (LL − w)/PI', f2(x.CI)));
+    }
+    if (clay !== undefined) fs.push(fact('Activity A = PI / clay %', f2(x.A), x.A < 0.75 ? 'below 0.75: inactive clay' : x.A <= 1.25 ? '0.75 to 1.25: normal' : 'above 1.25: active clay, likely to swell'));
+    q('.at-facts').replaceChildren(...fs);
+    if (multi) {
+      const lo = Math.min(...N, 10), hi = Math.max(...N, 50), xs = [lo, hi];
+      atFig = chartFigure({ w: 380, h: 250, xLog: true, xLabel: 'Number of blows N', yLabel: 'Water content (%)', legend: 'none',
+        series: [{ name: 'Trials', x: N, y: W, mode: 'points', size: 4 }, { name: 'Flow curve', x: xs, y: xs.map((n) => line[0] + line[1] * Math.log10(n)), mode: 'line', width: 1.6 }],
+        marks: [{ kind: 'vline', at: 25, dash: [3, 3], label: '25' }, { kind: 'hline', at: LL, dash: [3, 3], label: `LL ${f1(LL)}` }] }, 'Flow curve: water content against blows on a log scale');
+      paint(q<HTMLCanvasElement>('.at-fig'), atFig);
+    } else atFig = null;
+    q<HTMLCanvasElement>('.at-fig').hidden = !multi;
+    S.at = { title: q('.at-big').textContent!, facts: pairs(fs), figure: atFig ?? undefined };
+  }
+
+  function compact() {
+    const err = q('.cp-err'), out = q('.cp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.cp = null; cpFig = null; csvRows = []; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.cp-data').value);
+    if (t.cols.length < 2) return fail('Paste two columns: water content (%) and bulk density.');
+    const U = +q<HTMLSelectElement>('.cp-u').value, unit = U === 1 ? 'Mg/m³' : U === 1000 ? 'kg/m³' : 'kN/m³';
+    const w: number[] = [], rho: number[] = [];
+    t.cols[0].forEach((x, i) => { const r = t.cols[1][i]; if (x >= 0 && r > 0) { w.push(x); rho.push(r / U); } });
+    const Gs = val('.cp-gs'), deg = +q<HTMLSelectElement>('.cp-deg').value, fd = opt('.cp-fd');
+    if (w.length < 3) return fail('Give at least three points, each with a water content and a bulk density above zero.');
+    if (rho.some((r) => r > 3.5 || r < 0.5)) return fail(`Some densities look wrong for ${unit}. Check the unit.`);
+    if (!(Gs > 1 && Gs < 5)) return fail('Gs must be between 1 and 5 (most soils are 2.6 to 2.8).');
+    if (fd !== undefined && !(fd > 0)) return fail('The field dry density must be above zero (or left blank).');
+    const rd = rho.map((r, i) => dryDensity(r, w[i]));
+    let c: ReturnType<typeof compaction>;
+    try { c = compaction(w, rd, deg); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const show = (r: number) => (U === 1000 ? (r * 1000).toFixed(0) : (r * U).toFixed(U === 1 ? 3 : 2));
+    q('.cp-big').textContent = `Maximum dry density ${show(c.rhoMax)} ${unit} at ${f1(c.wOpt)} % water`;
+    const Sopt = saturation(c.wOpt, c.rhoMax, Gs), Aopt = 1 - c.rhoMax / airVoids(c.wOpt, Gs);
+    const fs = [fact('Optimum water content', `${f1(c.wOpt)} %`, c.interior ? `peak of the fitted ${deg === 2 ? 'parabola' : 'cubic'}` : 'the curve has no peak inside your points: add points on the other side of the optimum'),
+      fact('Maximum dry density', `${show(c.rhoMax)} ${unit}`, `fit R² = ${c.r2.toFixed(4)}`),
+      fact('At the optimum', `S = ${(Sopt * 100).toFixed(0)} %, air voids ${(Aopt * 100).toFixed(1)} %`, `void ratio ${f2(Gs / c.rhoMax - 1)}, with Gs = ${Gs}`),
+      fact('Points above zero air voids', String(rd.filter((r, i) => r > airVoids(w[i], Gs) + 1e-9).length), 'should be 0; if not, check Gs or the data')];
+    if (fd !== undefined) fs.push(fact('Relative compaction', `${((fd / U / c.rhoMax) * 100).toFixed(1)} %`, `field ${fd} ${unit} ÷ maximum ${show(c.rhoMax)} ${unit}`));
+    q('.cp-facts').replaceChildren(...fs);
+    const lo = Math.min(...w), hi = Math.max(...w), span = hi - lo, ws = Array.from({ length: 61 }, (_, i) => lo + (span * i) / 60);
+    const wz = Array.from({ length: 61 }, (_, i) => lo - span * 0.15 + (span * 1.3 * i) / 60);
+    const yMin = Math.min(...rd) * U * 0.97, yMax = Math.max(Math.max(...rd), c.rhoMax) * U * 1.04;
+    cpFig = chartFigure({ w: 380, h: 280, xLabel: 'Water content (%)', yLabel: `Dry density (${unit})`, legend: 'below', yMin, yMax,
+      series: [{ name: 'Test points', x: w, y: rd.map((r) => r * U), mode: 'points', size: 4 },
+        { name: 'Fitted curve', x: ws, y: ws.map((x) => ev(c.c, x) * U), mode: 'line', width: 1.8 },
+        { name: 'Zero air voids', x: wz, y: wz.map((x) => airVoids(x, Gs) * U), mode: 'line', width: 1.4, dash: [6, 3] },
+        { name: '5 % air', x: wz, y: wz.map((x) => airVoids(x, Gs, 0.05) * U), mode: 'line', width: 1, dash: [2, 3] },
+        { name: '10 % air', x: wz, y: wz.map((x) => airVoids(x, Gs, 0.1) * U), mode: 'line', width: 1, dash: [1, 4] }],
+      marks: [{ kind: 'vline', at: c.wOpt, dash: [3, 3] }] }, 'Compaction curve with zero-air-voids and air-voids lines');
+    paint(q<HTMLCanvasElement>('.cp-fig'), cpFig);
+    csvRows = [['water_content_pct', `bulk_density_${unit === 'Mg/m³' ? 'Mg_m3' : unit === 'kg/m³' ? 'kg_m3' : 'kN_m3'}`, 'dry_density', 'fitted_dry_density', 'zero_air_voids_dry_density', 'saturation_pct'],
+      ...w.map((x, i) => [String(x), String(+(rho[i] * U).toPrecision(12)), sig(rd[i] * U, 6), sig(ev(c.c, x) * U, 6), sig(airVoids(x, Gs) * U, 6), sig(saturation(x, rd[i], Gs) * 100, 6)])];
+    S.cp = { title: q('.cp-big').textContent!, facts: pairs(fs), figure: cpFig, note: 'Example values are made up. For study and planning.' };
+  }
+
+  root.querySelectorAll('.atc > .ax-card:first-child input, .atc > .ax-card:first-child select, .atc > .ax-card:first-child textarea').forEach((i) => { i.addEventListener('input', limits); i.addEventListener('change', limits); });
+  root.querySelectorAll('.atc > .ax-card:nth-child(2) input, .atc > .ax-card:nth-child(2) select, .atc > .ax-card:nth-child(2) textarea').forEach((i) => { i.addEventListener('input', compact); i.addEventListener('change', compact); });
+  q('.cp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'compaction-curve.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (atFig && !q('.at-out').hidden) paint(q<HTMLCanvasElement>('.at-fig'), atFig); if (cpFig && !q('.cp-out').hidden) paint(q<HTMLCanvasElement>('.cp-fig'), cpFig); });
+  limits(); compact();
+  wireDownloads(q('.dl'), () => ({ title: 'Atterberg limits and compaction', subtitle: [S.at?.title, S.cp?.title].filter(Boolean).join('; '), file: 'atterberg-compaction', sections: [S.at, S.cp].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .atc select, .atc input[type=text] { max-width: 100%; }
+  .atc textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
+  .atc h3 { font-size: 15px; margin: 16px 0 6px; }
+  .atc .at-out, .atc .cp-out { margin-top: 12px; }
+</style>

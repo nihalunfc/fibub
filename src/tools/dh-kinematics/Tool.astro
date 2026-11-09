@@ -1,0 +1,341 @@
+---
+// Forward kinematics from a Denavit-Hartenberg table (standard or modified convention), with joint sliders,
+// every link transform, the end-effector pose, the Jacobian and a 3D view drawn on a plain canvas. Runs in the
+// browser; nothing is uploaded. The example arms are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dhk">
+  <div class="ax-card">
+    <h2>Arm (D-H table)</h2>
+    <div class="ax-grid">
+      <label>Example arm <select class="dh-ex"></select></label>
+      <label>Convention <select class="dh-conv"><option value="standard">Standard (distal, Denavit-Hartenberg)</option><option value="modified">Modified (proximal, Craig)</option></select></label>
+      <label>Length unit <select class="dh-unit"><option>m</option><option>mm</option><option>cm</option><option>in</option><option value="">(none)</option></select></label>
+    </div>
+    <p class="ax-help dh-convnote"></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="dh-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small dh-add">Add a joint</button>
+      <button type="button" class="btn secondary small dh-swap">Convert to the other convention</button>
+    </div>
+    <p class="ax-help">Type: R revolute (the joint value adds to θ), P prismatic (adds to d), F fixed (no joint, for a tool or base offset). Angles in degrees. Low and high set each slider's range. The example arms are made up, not any real robot.</p>
+    <p class="ax-err dh-err" hidden></p>
+  </div>
+
+  <div class="ax-card dh-jcard">
+    <h2>Joint values</h2>
+    <div class="dh-joints"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dh-zero">All joints to 0</button></div>
+  </div>
+
+  <div class="ax-card dh-out">
+    <h2>End-effector pose</h2>
+    <p class="ax-big dh-big"></p>
+    <canvas class="ax-fig dh-fig" tabindex="0" aria-label="3D view of the arm"></canvas>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Turn (azimuth, °) <input class="dh-az" type="range" min="-180" max="180" step="1" value="40" /></label>
+      <label>Tilt (elevation, °) <input class="dh-el" type="range" min="-10" max="90" step="1" value="25" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:6px">
+      <label class="ax-check"><input type="checkbox" class="dh-frames" checked /> Show every joint frame</label>
+      <button type="button" class="btn secondary small dh-reset">Reset view</button>
+    </div>
+    <p class="ax-help">Drag the picture sideways to turn it (or use the sliders). Axes: x red, y green, z blue. Ground grid at z = 0.</p>
+    <dl class="ax-facts dh-facts" style="margin-top:12px"></dl>
+    <h3>Base to end-effector transform <sup>0</sup>T<sub class="dh-n"></sub></h3>
+    <div class="ax-scroll"><table class="dh-mat dh-end"></table></div>
+    <h3>Transform of one joint</h3>
+    <label style="max-width:260px">Joint <select class="dh-pick"></select></label>
+    <div class="dh-two">
+      <div><p class="ax-help dh-al"></p><div class="ax-scroll"><table class="dh-mat dh-ai"></table></div></div>
+      <div><p class="ax-help dh-tl"></p><div class="ax-scroll"><table class="dh-mat dh-ti"></table></div></div>
+    </div>
+    <h3>Jacobian (base frame)</h3>
+    <div class="ax-scroll"><table class="dh-jac"></table></div>
+    <p class="ax-help dh-jnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dh-csv">Download all transforms (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dhk h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ax.dhk .dh-tab td input[type=text] { padding: 6px; width: 74px; min-width: 74px; }
+  .ax.dhk .dh-tab td select { padding: 6px; width: 58px; min-width: 58px; }
+  .dhk .dh-tab td { padding: 4px 4px; vertical-align: middle; }
+  .dhk .dh-tab td:first-child { font-weight: 700; padding-left: 0; }
+  .dhk .dh-tab .x { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; width: 34px; height: 34px; font-size: 18px; cursor: pointer; }
+  .dhk .dh-j { display: grid; grid-template-columns: 74px minmax(0, 1fr) 92px; gap: 10px; align-items: center; margin: 6px 0; }
+  .dhk .dh-j span { font-size: 14px; color: var(--ink); font-weight: 600; }
+  .dhk .dh-j input[type=range] { width: 100%; accent-color: var(--accent); }
+  .dhk input[type=range] { width: 100%; accent-color: var(--accent); }
+  .dhk .dh-fig { touch-action: pan-y; cursor: grab; border: 1px solid var(--line); }
+  .dhk .dh-mat { width: auto; }
+  .dhk .dh-mat td { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; padding: 4px 10px; }
+  .dhk .dh-jac td { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .dhk .dh-two { display: grid; gap: 4px 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+</style>
+
+<script>
+  import { forward, genericRank, rpy, quaternion, axisAngle, jacobian, convert, DH_EXAMPLES, type DHRow, type Convention, type FK } from '../../lib/sci/ctl-dh';
+  import { type Mat } from '../../lib/sci/ctl-linalg';
+  import { num, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dhk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f4 = (x: number) => { const s = x.toFixed(4); return s === '-0.0000' ? '0.0000' : s; };
+  const f2 = (x: number) => { const s = x.toFixed(2); return s === '-0.00' ? '0.00' : s; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const MAXJ = 10;
+
+  let rows: DHRow[] = [], qv: number[] = [], conv: Convention = 'standard', fk: FK | null = null, fig: Figure | null = null;
+  let az = 40, el = 25;
+  const unit = () => q<HTMLSelectElement>('.dh-unit').value;
+  const lu = () => (unit() ? ` ${unit()}` : '');
+
+  const exSel = q<HTMLSelectElement>('.dh-ex');
+  exSel.replaceChildren(...DH_EXAMPLES.map((e) => new Option(e.name, e.id)), new Option('My own (keep the table)', 'own'));
+
+  // ---------- table ----------
+  const hdr = () => conv === 'standard' ? ['#', 'Type', 'θ (°)', 'd', 'a', 'α (°)', 'Low', 'High', ''] : ['#', 'Type', 'α₍ᵢ₋₁₎ (°)', 'a₍ᵢ₋₁₎', 'θ (°)', 'd', 'Low', 'High', ''];
+  const cols = () => (conv === 'standard' ? ['theta', 'd', 'a', 'alpha'] : ['alpha', 'a', 'theta', 'd']) as (keyof DHRow)[];
+  function drawTable() {
+    const t = q('.dh-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of hdr()) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    rows.forEach((r, i) => {
+      const tr = t.insertRow(); tr.dataset.i = String(i);
+      tr.insertCell().textContent = String(i + 1);
+      const ty = document.createElement('select'); ty.className = 'dh-ty'; ty.setAttribute('aria-label', `Joint ${i + 1} type`);
+      ty.append(new Option('R', 'R'), new Option('P', 'P'), new Option('F', 'F')); ty.value = r.type; tr.insertCell().append(ty);
+      for (const k of [...cols(), 'lo', 'hi'] as (keyof DHRow)[]) {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.dataset.k = k; inp.className = `dh-${k}`;
+        inp.setAttribute('aria-label', `Joint ${i + 1} ${k}`);
+        const v = r[k]; inp.value = v === undefined ? '' : String(v);
+        if ((k === 'lo' || k === 'hi') && r.type === 'F') inp.disabled = true;
+        tr.insertCell().append(inp);
+      }
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x dh-del'; x.textContent = '×'; x.setAttribute('aria-label', `Remove joint ${i + 1}`); x.disabled = rows.length <= 1;
+      tr.insertCell().append(x);
+    });
+    q<HTMLButtonElement>('.dh-add').disabled = rows.length >= MAXJ;
+    q('.dh-convnote').textContent = conv === 'standard'
+      ? 'Standard: Aᵢ = Rz(θᵢ) · Tz(dᵢ) · Tx(aᵢ) · Rx(αᵢ). Joint i turns about (or slides along) the z axis of frame i−1.'
+      : 'Modified: Aᵢ = Rx(αᵢ₋₁) · Tx(aᵢ₋₁) · Rz(θᵢ) · Tz(dᵢ). Joint i turns about (or slides along) the z axis of frame i.';
+  }
+  function readTable(): string | null {
+    const out: DHRow[] = [];
+    for (const tr of q('.dh-tab').querySelectorAll<HTMLTableRowElement>('tr[data-i]')) {
+      const i = Number(tr.dataset.i), type = tr.querySelector<HTMLSelectElement>('.dh-ty')!.value as DHRow['type'];
+      const r: DHRow = { type, theta: 0, d: 0, a: 0, alpha: 0 };
+      for (const inp of tr.querySelectorAll<HTMLInputElement>('input')) {
+        const k = inp.dataset.k as keyof DHRow, s = inp.value.trim();
+        if (k === 'lo' || k === 'hi') { if (type === 'F') continue; if (!s) continue; const v = num(s); if (!Number.isFinite(v)) return `Joint ${i + 1}: "${s}" is not a number.`; (r as Record<string, unknown>)[k] = v; continue; }
+        const v = s === '' ? 0 : num(s);
+        if (!Number.isFinite(v)) return `Joint ${i + 1}: "${s}" is not a number.`;
+        (r as Record<string, unknown>)[k] = v;
+      }
+      if (r.lo !== undefined && r.hi !== undefined && !(r.hi > r.lo)) return `Joint ${i + 1}: High must be more than Low.`;
+      out.push(r);
+    }
+    rows = out; return null;
+  }
+  const range = (r: DHRow): [number, number] => [r.lo ?? (r.type === 'R' ? -180 : 0), r.hi ?? (r.type === 'R' ? 180 : 1)];
+
+  // ---------- joint sliders ----------
+  let sliderKey = '';
+  function drawSliders() {
+    const key = rows.map((r) => `${r.type}${range(r).join(',')}`).join('|');
+    while (qv.length < rows.length) qv.push(0);
+    qv.length = rows.length;
+    if (key === sliderKey) return;
+    sliderKey = key;
+    const box = q('.dh-joints'); box.replaceChildren();
+    rows.forEach((r, i) => {
+      if (r.type === 'F') return;
+      const [lo, hi] = range(r), step = r.type === 'R' ? 0.5 : (hi - lo) / 400;
+      const row = document.createElement('div'); row.className = 'dh-j'; row.dataset.i = String(i);
+      const lab = document.createElement('span'); lab.textContent = `q${i + 1} ${r.type === 'R' ? '(°)' : `(${unit() || 'length'})`}`;
+      const sl = document.createElement('input'); sl.type = 'range'; sl.min = String(lo); sl.max = String(hi); sl.step = String(step); sl.className = 'dh-sl'; sl.setAttribute('aria-label', `Joint ${i + 1} value`);
+      const nb = document.createElement('input'); nb.type = 'text'; nb.inputMode = 'decimal'; nb.className = 'dh-qv'; nb.setAttribute('aria-label', `Joint ${i + 1} value (typed)`);
+      sl.value = String(qv[i]); nb.value = String(qv[i]);
+      row.append(lab, sl, nb); box.append(row);
+    });
+    q('.dh-jcard').hidden = !rows.some((r) => r.type !== 'F');
+  }
+  function syncSliders() {
+    for (const row of q('.dh-joints').querySelectorAll<HTMLElement>('.dh-j')) {
+      const i = Number(row.dataset.i);
+      row.querySelector<HTMLInputElement>('.dh-sl')!.value = String(qv[i]);
+      const nb = row.querySelector<HTMLInputElement>('.dh-qv')!; if (document.activeElement !== nb) nb.value = String(+qv[i].toFixed(4));
+    }
+  }
+
+  // ---------- 3D view ----------
+  function view(): Figure['draw'] {
+    const f = fk!, n = rows.length;
+    const reach = Math.max(1e-6, rows.reduce((s, r) => s + Math.abs(r.a) + Math.abs(r.d) + (r.type === 'P' ? Math.max(Math.abs(range(r)[0]), Math.abs(range(r)[1])) : 0), 0));
+    return (ctx, W, H, pal) => {
+      const ra = (az * Math.PI) / 180, re = (el * Math.PI) / 180;
+      const rx = [-Math.sin(ra), Math.cos(ra), 0], ux = [-Math.sin(re) * Math.cos(ra), -Math.sin(re) * Math.sin(ra), Math.cos(re)];
+      const s = (Math.min(W, H) * 0.6) / reach, cx = W / 2, cy = H * 0.7;
+      const pr = (p: number[]): [number, number] => [cx + s * (p[0] * rx[0] + p[1] * rx[1] + p[2] * rx[2]), cy - s * (p[0] * ux[0] + p[1] * ux[1] + p[2] * ux[2])];
+      const line = (a: number[], b: number[], col: string, w: number) => { const [x1, y1] = pr(a), [x2, y2] = pr(b); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+      ctx.lineCap = 'round';
+      // ground grid
+      const g = niceStep(reach / 4), m = Math.ceil(reach / g);
+      for (let k = -m; k <= m; k++) { line([k * g, -m * g, 0], [k * g, m * g, 0], pal.grid, 1); line([-m * g, k * g, 0], [m * g, k * g, 0], pal.grid, 1); }
+      const AX = pal.red ? [pal.ink, pal.accent2, pal.muted] : pal.bg === '#ffffff' ? ['#c62828', '#1b8a3a', '#1f5fae'] : ['#f28b82', '#74d391', '#7fb2f0'];
+      const frameAt = (F: Mat, len: number, w: number) => { const o = [F[0][3], F[1][3], F[2][3]]; for (let k = 0; k < 3; k++) line(o, [o[0] + len * F[0][k], o[1] + len * F[1][k], o[2] + len * F[2][k]], AX[k], w); };
+      const len = reach * 0.14;
+      // base frame with labels
+      frameAt(f.frames[0], len * 1.3, 2);
+      ctx.font = '16px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ['x', 'y', 'z'].forEach((t, k) => { const e = [0, 0, 0]; e[k] = len * 1.55; const [x, y] = pr(e); ctx.fillStyle = AX[k]; ctx.fillText(t, x, y); });
+      // links
+      const pts = f.path;
+      for (let k = 1; k < pts.length; k++) line(pts[k - 1], pts[k], pal.ink, 5);
+      // intermediate frames
+      if (q<HTMLInputElement>('.dh-frames').checked) for (let i = 1; i < n; i++) frameAt(f.frames[i], len * 0.7, 1.5);
+      frameAt(f.end, len, 3);
+      // joints: circle for revolute, square for prismatic, at the joint's frame origin
+      rows.forEach((r, i) => {
+        if (r.type === 'F') return;
+        const F = f.frames[f.jointFrame[i]], [x, y] = pr([F[0][3], F[1][3], F[2][3]]);
+        ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5;
+        ctx.beginPath(); if (r.type === 'R') ctx.arc(x, y, 7, 0, 7); else ctx.rect(x - 6.5, y - 6.5, 13, 13); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.font = '15px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(String(i + 1), x + 9, y - 9);
+      });
+      const [ex, ey] = pr([f.end[0][3], f.end[1][3], f.end[2][3]]);
+      ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(ex, ey, 4, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`grid ${+g.toPrecision(3)}${lu()} · turn ${az}°, tilt ${el}°`, 8, H - 6);
+    };
+  }
+  const niceStep = (x: number) => { const p = 10 ** Math.floor(Math.log10(x)); return [1, 2, 5, 10].map((k) => k * p).find((k) => k >= x * 0.999)!; };
+  function drawView() {
+    if (!fk) return;
+    const c = q<HTMLCanvasElement>('.dh-fig');
+    fig = { w: 560, h: 440, alt: `3D view of a ${rows.length}-row arm, end effector at ${q('.dh-big').textContent}`, draw: view() };
+    paint(c, fig);
+  }
+
+  // ---------- results ----------
+  const matTable = (t: HTMLElement, M: Mat) => { t.replaceChildren(); for (const r of M) { const tr = (t as HTMLTableElement).insertRow(); for (const x of r) tr.insertCell().textContent = f4(x); } };
+  function run() {
+    const err = q('.dh-err');
+    const msg = readTable();
+    if (msg) { err.textContent = msg; err.hidden = false; q('.dh-out').hidden = true; return; }
+    err.hidden = true; q('.dh-out').hidden = false;
+    drawSliders();
+    rows.forEach((r, i) => { if (r.type === 'F') qv[i] = 0; });
+    fk = forward(rows, qv, conv);
+    const E = fk.end, p = [E[0][3], E[1][3], E[2][3]];
+    q('.dh-big').textContent = `x ${f4(p[0])}, y ${f4(p[1])}, z ${f4(p[2])}${lu()}`;
+    const a = rpy(E), qt = quaternion(E), aa = axisAngle(E), J = jacobian(rows, fk);
+    const G = genericRank(rows, conv), singular = J.rank < G.rank || J.posRank < G.posRank;
+    const facts = [
+      fact('Position of the tool point', `(${f4(p[0])}, ${f4(p[1])}, ${f4(p[2])})${lu()}`, `distance from the base origin ${f4(Math.hypot(...p))}${lu()}`),
+      fact('Roll, pitch, yaw', `${f2(a.roll)}°, ${f2(a.pitch)}°, ${f2(a.yaw)}°`, a.gimbal ? 'pitch is ±90°: roll and yaw are not unique (yaw set to 0)' : 'R = Rz(yaw) · Ry(pitch) · Rx(roll), fixed base axes x, y, z'),
+      fact('Quaternion (w, x, y, z)', qt.map(f4).join(', '), 'unit length, w ≥ 0'),
+      fact('Axis and angle', `${f2(aa.angle)}° about (${aa.axis.map(f4).join(', ')})`, 'one turn that takes the base axes to the tool axes'),
+      fact('Jacobian rank', `${J.rank} of ${G.rank}`, `the tool point can move in ${J.posRank} direction${J.posRank === 1 ? '' : 's'}${singular ? `; this is a singular pose (usually ${G.rank} and ${G.posRank} for this arm)` : ''}`),
+    ];
+    q('.dh-facts').replaceChildren(...facts);
+    q('.dh-n').textContent = String(rows.length);
+    matTable(q('.dh-end'), E);
+    // joint picker
+    const pick = q<HTMLSelectElement>('.dh-pick'), old = pick.value;
+    pick.replaceChildren(...rows.map((r, i) => new Option(`${i + 1} (${r.type === 'R' ? 'revolute' : r.type === 'P' ? 'prismatic' : 'fixed'})`, String(i))));
+    pick.value = Number(old) < rows.length ? old || '0' : '0';
+    showJoint();
+    // Jacobian
+    const jt = q<HTMLTableElement>('.dh-jac'); jt.replaceChildren();
+    const h = jt.insertRow(); for (const x of ['', ...J.joints.map((i) => `q${i + 1}`)]) { const th = document.createElement('th'); th.textContent = x; th.className = 'r'; h.append(th); }
+    ['vx', 'vy', 'vz', 'ωx', 'ωy', 'ωz'].forEach((nme, k) => { const tr = jt.insertRow(); const c0 = tr.insertCell(); c0.textContent = nme; c0.style.textAlign = 'left'; for (const x of J.J[k]) tr.insertCell().textContent = f4(x); });
+    q('.dh-jnote').textContent = `Each column is how fast the tool point moves (vx, vy, vz in${lu() || ' length units'} per unit of joint motion) and turns (ω, radians per unit) when that one joint moves: per radian for a revolute joint, per unit length for a prismatic one.`;
+    drawView();
+  }
+  function showJoint() {
+    if (!fk) return;
+    const i = Number(q<HTMLSelectElement>('.dh-pick').value) || 0;
+    q('.dh-al').textContent = `A${i + 1}: frame ${i} to frame ${i + 1}`;
+    q('.dh-tl').textContent = `⁰T${i + 1}: base to frame ${i + 1}`;
+    matTable(q('.dh-ai'), fk.links[i]); matTable(q('.dh-ti'), fk.frames[i + 1]);
+  }
+
+  function load(id: string) {
+    const e = DH_EXAMPLES.find((x) => x.id === id); if (!e) return;
+    rows = e.rows.map((r) => ({ ...r })); qv = e.q.slice(); conv = e.conv; sliderKey = '';
+    q<HTMLSelectElement>('.dh-conv').value = conv; exSel.value = id;
+    drawTable(); run(); syncSliders();
+  }
+
+  // ---------- events ----------
+  exSel.addEventListener('change', () => { if (exSel.value !== 'own') load(exSel.value); });
+  q('.dh-conv').addEventListener('change', () => { conv = q<HTMLSelectElement>('.dh-conv').value as Convention; readTable(); drawTable(); exSel.value = 'own'; run(); });
+  q('.dh-unit').addEventListener('change', () => { sliderKey = ''; run(); syncSliders(); });
+  q('.dh-tab').addEventListener('input', (e) => { exSel.value = 'own'; if ((e.target as HTMLElement).matches('select')) { readTable(); drawTable(); } run(); syncSliders(); });
+  q('.dh-tab').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.dh-del'); if (!b) return;
+    const i = Number(b.closest<HTMLElement>('tr')!.dataset.i); readTable(); rows.splice(i, 1); qv.splice(i, 1); exSel.value = 'own'; drawTable(); run(); syncSliders();
+  });
+  q('.dh-add').addEventListener('click', () => { readTable(); if (rows.length >= MAXJ) return; rows.push({ type: 'R', theta: 0, d: 0, a: 0.2, alpha: 0 }); qv.push(0); exSel.value = 'own'; drawTable(); run(); syncSliders(); });
+  q('.dh-swap').addEventListener('click', () => {
+    if (readTable()) return;
+    const c = convert(rows, conv); rows = c.rows; qv = c.map.map((i) => (i < 0 ? 0 : qv[i]));
+    conv = conv === 'standard' ? 'modified' : 'standard'; q<HTMLSelectElement>('.dh-conv').value = conv; exSel.value = 'own'; sliderKey = '';
+    drawTable(); run(); syncSliders();
+  });
+  q('.dh-joints').addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement, i = Number(t.closest<HTMLElement>('.dh-j')!.dataset.i);
+    const v = num(t.value); if (!Number.isFinite(v)) return;
+    qv[i] = v; run(); syncSliders();
+  });
+  q('.dh-zero').addEventListener('click', () => { qv = qv.map(() => 0); run(); syncSliders(); });
+  q('.dh-pick').addEventListener('change', showJoint);
+  q('.dh-frames').addEventListener('change', drawView);
+  const setView = () => { q<HTMLInputElement>('.dh-az').value = String(az); q<HTMLInputElement>('.dh-el').value = String(el); drawView(); };
+  q('.dh-az').addEventListener('input', () => { az = Number(q<HTMLInputElement>('.dh-az').value); drawView(); });
+  q('.dh-el').addEventListener('input', () => { el = Number(q<HTMLInputElement>('.dh-el').value); drawView(); });
+  q('.dh-reset').addEventListener('click', () => { az = 40; el = 25; setView(); });
+  const wrap = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180;
+  { // drag to turn (sideways) and tilt (up and down with a mouse)
+    const c = q<HTMLCanvasElement>('.dh-fig'); let last: [number, number] | null = null;
+    c.addEventListener('pointerdown', (e) => { last = [e.clientX, e.clientY]; c.setPointerCapture(e.pointerId); });
+    c.addEventListener('pointermove', (e) => {
+      if (!last) return;
+      const dx = e.clientX - last[0], dy = e.clientY - last[1]; last = [e.clientX, e.clientY];
+      az = wrap(Math.round(az - dx * 0.6));
+      if (e.pointerType === 'mouse') el = Math.max(-10, Math.min(90, Math.round(el + dy * 0.4)));
+      setView();
+    });
+    const up = () => { last = null; };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    c.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') az = wrap(az + 5); else if (e.key === 'ArrowRight') az = wrap(az - 5); else if (e.key === 'ArrowUp') el = Math.min(90, el + 5); else if (e.key === 'ArrowDown') el = Math.max(-10, el - 5); else return; e.preventDefault(); setView(); });
+  }
+  q('.dh-csv').addEventListener('click', () => {
+    if (!fk) return;
+    const out: (string | number)[][] = [['convention', conv], ['joint', 'type', 'theta_deg', 'd', 'a', 'alpha_deg', 'q', 'matrix', 'r11', 'r12', 'r13', 'px', 'r21', 'r22', 'r23', 'py', 'r31', 'r32', 'r33', 'pz']];
+    rows.forEach((r, i) => {
+      const base = [i + 1, r.type, r.theta, r.d, r.a, r.alpha, qv[i]];
+      out.push([...base, `A${i + 1}`, ...fk!.links[i].slice(0, 3).flat().map((x) => +x.toPrecision(10))]);
+      out.push([...base, `0T${i + 1}`, ...fk!.frames[i + 1].slice(0, 3).flat().map((x) => +x.toPrecision(10))]);
+    });
+    save(new Blob([csv(out)], { type: 'text/csv' }), `dh-transforms-${conv}.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    if (!fk) return { title: '', file: 'dh', sections: [] };
+    const mat = (M: Mat) => ({ head: ['', '', '', ''], rows: M.map((r) => r.map(f4)), align: ['r', 'r', 'r', 'r'] as ('l' | 'r')[] });
+    const sections: Section[] = [
+      { title: 'D-H table', text: [q('.dh-convnote').textContent ?? ''], table: { head: hdr().slice(0, 6).concat('Joint value'), rows: rows.map((r, i) => [String(i + 1), r.type, ...cols().map((k) => String(r[k])), r.type === 'F' ? '' : String(qv[i])]), align: ['r', 'l', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'End-effector pose', facts: [...q('.dh-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig ?? undefined },
+      { title: `Base to end-effector transform 0T${rows.length}`, table: mat(fk.end) },
+      ...fk.links.map((A, i) => ({ title: `A${i + 1} (frame ${i} to ${i + 1})`, table: mat(A) })),
+    ];
+    return { title: 'D-H forward kinematics', subtitle: q('.dh-big').textContent ?? '', file: 'dh-forward-kinematics', sections };
+  });
+  document.addEventListener('fibub:theme', drawView);
+  load('arm6');
+</script>

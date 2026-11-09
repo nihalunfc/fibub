@@ -1,0 +1,211 @@
+---
+// The 1976 US Standard Atmosphere (ISA) to 86 km from its defining constants: properties at an altitude, pressure
+// and density altitude, a table and plots. Worked out in the browser; the example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sat">
+  <div class="ax-card">
+    <h2>Altitude</h2>
+    <div class="ax-grid">
+      <label>Units <select class="sa-u"><option value="si" selected>Metric (m)</option><option value="us">Imperial (ft)</option></select></label>
+      <label><span>Altitude (<span class="sa-lu">m</span>)</span> <input class="sa-alt" type="text" inputmode="decimal" value="11000" /></label>
+      <label>Height type <select class="sa-ht"><option value="geo" selected>Geometric (tape-measure height)</option><option value="gp">Geopotential</option></select></label>
+      <label>ISA deviation ΔT (°C) <input class="sa-dt" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The standard atmosphere runs from −5 km to 86 km. Geopotential height is the height in a world with constant gravity; it is what the standard's layers are defined in and is a little less than the geometric height (11,019 m geometric is 11,000 m geopotential). ISA deviation adds the same number of degrees at every height, as on a "standard + 15" day: the pressure stays that of the standard (so the altitude is then a pressure altitude) and the density changes.</p>
+    <p class="ax-err sa-err" hidden></p>
+  </div>
+
+  <div class="ax-card sa-out">
+    <h2>Properties</h2>
+    <p class="ax-big sa-big"></p>
+    <dl class="ax-facts sa-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pressure altitude and density altitude</h2>
+    <h3>Altitude from a pressure</h3>
+    <div class="ax-grid">
+      <label>Pressure <input class="sa-p" type="text" inputmode="decimal" value="700" /></label>
+      <label>Pressure unit <select class="sa-pu"><option value="hPa" selected>hPa (mbar)</option><option value="Pa">Pa</option><option value="kPa">kPa</option><option value="inHg">inHg</option><option value="psi">psi</option></select></label>
+    </div>
+    <p class="ax-big sa-pbig"></p>
+    <p class="ax-help sa-pnote"></p>
+    <h3>Density altitude at an airfield</h3>
+    <div class="ax-grid">
+      <label><span>Field elevation (<span class="sa-lu">m</span>)</span> <input class="sa-fe" type="text" inputmode="decimal" value="1500" /></label>
+      <label>Altimeter setting QNH <input class="sa-qnh" type="text" inputmode="decimal" value="1010" /></label>
+      <label>QNH unit <select class="sa-qu"><option value="hPa" selected>hPa</option><option value="inHg">inHg</option></select></label>
+      <label>Outside air temperature <input class="sa-oat" type="text" inputmode="decimal" value="30" /></label>
+      <label>Temperature unit <select class="sa-tu"><option value="C" selected>°C</option><option value="F">°F</option></select></label>
+    </div>
+    <p class="ax-big sa-dbig"></p>
+    <dl class="ax-facts sa-dfacts"></dl>
+    <p class="ax-help">QNH is the setting that makes an altimeter read the field elevation on the ground. Dry air is assumed: humid air is a little lighter, which raises the density altitude a little more (often 50 to 150 m on a hot, humid day). The example airfield is made up. For study and planning; use your aircraft's flight manual and official tools for real flights.</p>
+    <p class="ax-err sa-derr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Table and plots</h2>
+    <div class="ax-grid">
+      <label><span>From (<span class="sa-lu">m</span>)</span> <input class="sa-from" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>To (<span class="sa-lu">m</span>)</span> <input class="sa-to" type="text" inputmode="decimal" value="86000" /></label>
+      <label><span>Step (<span class="sa-lu">m</span>)</span> <input class="sa-step" type="text" inputmode="decimal" value="2000" /></label>
+    </div>
+    <p class="ax-help">Uses the units, height type and ISA deviation from the top. Up to 5,000 rows.</p>
+    <p class="ax-err sa-terr" hidden></p>
+    <div class="sa-tout">
+      <canvas class="ax-fig sa-f1"></canvas>
+      <canvas class="ax-fig sa-f2"></canvas>
+      <div class="ax-scroll sa-tw"><table class="sa-tab"></table></div>
+      <p class="ax-help sa-tnote"></p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sa-csv">Download the table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sat h3 { margin: 4px 0 8px; font-size: 15px; }
+  .sat h3 + .ax-grid { margin-bottom: 8px; }
+  .sat .sa-pbig, .sat .sa-dbig { font-size: clamp(18px, 4.5vw, 24px); margin: 8px 0; }
+  .sat .sa-dfacts { margin-bottom: 10px; }
+  .sat .sa-pnote { margin-bottom: 18px; }
+  .sat .sa-tw { max-height: 420px; overflow-y: auto; margin-top: 10px; }
+  .sat .sa-f2 { margin-top: 10px; }
+  .sat .sa-tab th, .sat .sa-tab td { white-space: nowrap; }
+  .sat select, .sat input { max-width: 100%; }
+</style>
+
+<script>
+  import { atmosphere, pressureAltitude, densityAltitude, fieldDensity, geometric, table, stdTP, FT, INHG, PSI, SLUGFT3, H_TOP, H_BOTTOM, type AtmosPoint } from '../../lib/sci/eng-atmos';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const grp = (x: number, dp = 0) => x.toLocaleString('en', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const root = document.querySelector<HTMLElement>('.sat')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const PU: Record<string, number> = { Pa: 1, hPa: 100, kPa: 1000, inHg: INHG, psi: PSI };
+
+  let main: Section | null = null, field: Section | null = null, figs: Figure[] = [], rows: AtmosPoint[] = [];
+  const U = () => { const us = sel('.sa-u') === 'us'; return { us, k: us ? FT : 1, lu: us ? 'ft' : 'm' }; };
+  const hAlt = (m: number) => { const u = U(); return `${grp(m / u.k, Math.abs(m / u.k) < 100 ? 1 : 0)} ${u.lu}`; };
+
+  function point() {
+    const u = U(), err = q('.sa-err'), out = q('.sa-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; main = null; };
+    const alt = val('.sa-alt'), dT = val('.sa-dt'), gp = sel('.sa-ht') === 'gp';
+    if (!Number.isFinite(alt)) return fail('Give an altitude.');
+    if (!Number.isFinite(dT) || Math.abs(dT) > 60) return fail('Give an ISA deviation between −60 and +60 °C (0 for a standard day).');
+    const m = alt * u.k, H = gp ? m : (6356766 * m) / (6356766 + m);
+    if (H < H_BOTTOM - 1e-6 || H > H_TOP + 1e-6) return fail(`The standard atmosphere covers −5 km to 86 km geometric (${gp ? `${hAlt(H_BOTTOM)} to ${hAlt(H_TOP)} geopotential` : `${hAlt(geometric(H_BOTTOM))} to ${hAlt(86000)}`}).`);
+    if (dT && stdTP(H).T + dT < 120) return fail('That ISA deviation makes the air colder than 120 K here; use a smaller one.');
+    err.hidden = true; out.hidden = false;
+    const p = atmosphere(m, { geopotential: gp, dT });
+    q('.sa-big').textContent = `${sg(p.T, 5)} K (${sg(p.T - 273.15, 4)} °C), ${p.P >= 1000 ? grp(p.P, 0) : sg(p.P, 4)} Pa, ${sg(p.rho, 4)} kg/m³`;
+    const f = [
+      fact('Layer', p.layer, `${hAlt(p.z)} geometric, ${hAlt(p.H)} geopotential`),
+      fact('Temperature', `${sg(p.T, 5)} K`, `${sg(p.T - 273.15, 4)} °C, ${sg((p.T - 273.15) * 1.8 + 32, 4)} °F${dT ? `; standard ${sg(p.Tstd, 5)} K` : ''}`),
+      fact('Pressure', `${sg(p.P / 100, 5)} hPa`, `${sg(p.P, 5)} Pa, ${sg(p.P / INHG, 4)} inHg, ${sg(p.P / PSI, 4)} psi`),
+      fact('Density', `${sg(p.rho, 4)} kg/m³`, `${sg(p.rho / SLUGFT3, 4)} slug/ft³, ${sg(p.rho / 16.0185, 4)} lb/ft³`),
+      fact('Ratios to sea level', `σ = ${sg(p.sigma, 4)}`, `density σ; pressure δ = ${sg(p.delta, 4)}; temperature θ = ${sg(p.theta, 4)}`),
+      fact('Speed of sound', `${sg(p.a, 5)} m/s`, `${sg(p.a * 3.6, 5)} km/h, ${sg(p.a / 0.514444, 4)} kt, ${sg(p.a / FT, 5)} ft/s`),
+      fact('Dynamic viscosity', `${sg(p.mu * 1e5, 4)} × 10⁻⁵ Pa·s`, "Sutherland's law"),
+      fact('Kinematic viscosity', `${p.nu < 1e-3 ? `${sg(p.nu * 1e5, 4)} × 10⁻⁵` : sg(p.nu, 4)} m²/s`, 'μ / ρ, for Reynolds numbers'),
+      fact('Gravity', `${sg(p.g, 5)} m/s²`, 'falls with height (inverse square)'),
+      fact('Pressure scale height', `${sg(p.scaleHeight / 1000, 4)} km`, 'RT/g: the height for pressure to fall by e'),
+      fact('Mean free path', p.meanFreePath < 1e-3 ? `${sg(p.meanFreePath * 1e6, 3)} µm` : `${sg(p.meanFreePath * 1000, 3)} mm`, `${sg(p.numberDensity, 3)} molecules per m³`),
+    ];
+    if (dT) f.push(fact('Density altitude', hAlt(densityAltitude(p.rho)), 'geopotential height with this density on a standard day'));
+    q('.sa-facts').replaceChildren(...f);
+    main = { title: `At ${hAlt(gp ? p.H : p.z)} ${gp ? 'geopotential' : 'geometric'}${dT ? `, ISA ${dT > 0 ? '+' : ''}${sg(dT, 3)} °C` : ''}`, text: [q('.sa-big').textContent!], facts: factsOf(f) };
+  }
+
+  function altitudes() {
+    const u = U(), P = val('.sa-p') * PU[sel('.sa-pu')];
+    if (!(P > 0)) { q('.sa-pbig').textContent = ''; q('.sa-pnote').textContent = 'Give a pressure above 0.'; }
+    else {
+      const H = pressureAltitude(P);
+      if (H < H_BOTTOM - 1 || H > H_TOP + 1) { q('.sa-pbig').textContent = ''; q('.sa-pnote').textContent = `That pressure is outside the standard atmosphere (about ${sg(stdTP(H_TOP).P, 3)} Pa to ${grp(stdTP(H_BOTTOM).P)} Pa).`; }
+      else { q('.sa-pbig').textContent = `Pressure altitude ${hAlt(H)}`; q('.sa-pnote').textContent = `Geopotential height at which the standard pressure is ${sg(P / 100, 5)} hPa (${hAlt(geometric(H))} geometric). Standard temperature there: ${sg(stdTP(H).T, 5)} K.`; }
+    }
+    const err = q('.sa-derr'), fe = val('.sa-fe') * u.k, qnh = val('.sa-qnh') * (sel('.sa-qu') === 'inHg' ? INHG : 100), t = val('.sa-oat'), oat = sel('.sa-tu') === 'F' ? (t - 32) / 1.8 + 273.15 : t + 273.15;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sa-dbig').textContent = ''; q('.sa-dfacts').replaceChildren(); field = null; };
+    if (!Number.isFinite(fe) || fe < -500 || fe > 9000) return fail('Give a field elevation between −500 m and 9,000 m.');
+    if (!(qnh > 85000 && qnh < 110000)) return fail('Give the altimeter setting (QNH), for example 1013 hPa or 29.92 inHg.');
+    if (!(oat > 200 && oat < 340)) return fail('Give the outside air temperature (−70 to +65 °C).');
+    err.hidden = true;
+    const d = fieldDensity(fe, qnh, oat);
+    q('.sa-dbig').textContent = `Density altitude ${hAlt(d.densityAlt)}`;
+    const ff = [
+      fact('Pressure altitude', hAlt(d.pressureAlt), `station pressure ${sg(d.P / 100, 5)} hPa`),
+      fact('ISA deviation', `${d.isaDev >= 0 ? '+' : ''}${sg(d.isaDev, 3)} °C`, `standard temperature there ${sg(d.isaT - 273.15, 3)} °C`),
+      fact('Air density', `${sg(d.rho, 4)} kg/m³`, `${sg(d.sigma * 100, 3)} % of sea-level standard`),
+      fact('Density altitude above field', hAlt(d.densityAlt - fe), 'the aircraft performs as if this much higher'),
+    ];
+    q('.sa-dfacts').replaceChildren(...ff);
+    field = { title: q('.sa-dbig').textContent!, text: [`Field elevation ${hAlt(fe)}, QNH ${sg(qnh / 100, 5)} hPa, outside air ${sg(oat - 273.15, 3)} °C.`, q('.sa-pbig').textContent ? `${q('.sa-pbig').textContent}: ${q('.sa-pnote').textContent}` : ''].filter(Boolean), facts: factsOf(ff) };
+  }
+
+  function tab() {
+    const u = U(), err = q('.sa-terr'), out = q('.sa-tout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; rows = []; figs = []; };
+    const gp = sel('.sa-ht') === 'gp', dT = val('.sa-dt') || 0, a = val('.sa-from') * u.k, b0 = val('.sa-to') * u.k, s = val('.sa-step') * u.k;
+    const lo = gp ? H_BOTTOM : geometric(H_BOTTOM), hi = gp ? H_TOP : 86000, b = Math.min(b0, hi), cut = b0 > hi + 1e-6;
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a < lo - 1e-6 || b <= a) return fail(`Give a range inside ${hAlt(lo)} to ${hAlt(hi)}, with "To" above "From".`);
+    if (!(s > 0) || (b - a) / s > 5000) return fail('Give a step that makes no more than 5,000 rows.');
+    if (Math.abs(dT) > 60) return fail('Fix the ISA deviation at the top first.');
+    rows = table(a, b, s, { geopotential: gp, dT });
+    if (rows.some((r) => r.T < 120)) return fail('That ISA deviation makes the air colder than 120 K somewhere in the range.');
+    err.hidden = true; out.hidden = false;
+    const ku = u.us ? 1000 * FT : 1000, ylab = `${gp ? 'Geopotential' : 'Geometric'} altitude (${u.us ? '1000 ft' : 'km'})`, y = rows.map((r) => (gp ? r.H : r.z) / ku);
+    const f1 = chartFigure({ w: 380, h: 300, xLabel: 'Temperature (°C)', yLabel: ylab, legend: 'none', series: [
+      { name: 'Temperature', x: rows.map((r) => r.T - 273.15), y, mode: 'line', width: 2 },
+    ] }, 'Temperature against altitude');
+    const f2 = chartFigure({ w: 380, h: 300, xLog: true, xLabel: 'Ratio to sea level', yLabel: ylab, legend: 'below', series: [
+      { name: 'Pressure δ', x: rows.map((r) => r.delta), y, mode: 'line', width: 2 },
+      { name: 'Density σ', x: rows.map((r) => r.sigma), y, mode: 'line', width: 2, dash: [5, 4] },
+    ] }, 'Pressure and density ratios against altitude, log scale');
+    figs = [f1, f2]; paint(q<HTMLCanvasElement>('.sa-f1'), f1); paint(q<HTMLCanvasElement>('.sa-f2'), f2);
+    const t = q<HTMLTableElement>('.sa-tab'); t.replaceChildren();
+    const head = [`Altitude (${u.lu})`, 'T (K)', 'T (°C)', 'P (Pa)', 'ρ (kg/m³)', 'a (m/s)', 'μ (10⁻⁵ Pa·s)', 'ν (m²/s)'];
+    const hr = t.insertRow(); for (const h of head) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    for (const r of rows.slice(0, 1000)) { const tr = t.insertRow(); [grp(((gp ? r.H : r.z)) / u.k), sg(r.T, 5), sg(r.T - 273.15, 4), sg(r.P, 5), sg(r.rho, 4), sg(r.a, 4), sg(r.mu * 1e5, 4), sg(r.nu, 4)].forEach((x) => { const td = tr.insertCell(); td.textContent = x; td.className = 'r'; }); }
+    q('.sa-tnote').textContent = `${rows.length} rows${rows.length > 1000 ? ' (the first 1,000 are shown; the CSV has them all)' : ''}, ${gp ? 'geopotential' : 'geometric'} altitude${dT ? `, ISA ${dT > 0 ? '+' : ''}${sg(dT, 3)} °C` : ''}.${cut ? ` The table stops at the top of the standard atmosphere, ${hAlt(hi)}.` : ''}`;
+  }
+
+  function all() {
+    const u = U(); root.querySelectorAll('.sa-lu').forEach((e) => { e.textContent = u.lu; });
+    point(); altitudes(); tab();
+  }
+  let lastU = 'si';
+  q('.sa-u').addEventListener('change', () => {
+    const nu = sel('.sa-u'); if (nu === lastU) return;
+    const k = nu === 'us' ? 1 / FT : FT; lastU = nu;
+    for (const c of ['.sa-alt', '.sa-fe', '.sa-from', '.sa-to', '.sa-step']) { const i = q<HTMLInputElement>(c), v = num(i.value); if (Number.isFinite(v)) i.value = String(Math.round(v * k * (c === '.sa-alt' ? 100 : 1)) / (c === '.sa-alt' ? 100 : 1)); }
+    if (nu === 'us') { q<HTMLInputElement>('.sa-step').value = '5000'; q<HTMLInputElement>('.sa-to').value = String(Math.floor(86000 / FT / 5000) * 5000); }
+    else { q<HTMLInputElement>('.sa-step').value = '2000'; q<HTMLInputElement>('.sa-to').value = '86000'; }
+    all();
+  });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.classList.contains('sa-u')) { i.addEventListener('input', all); i.addEventListener('change', all); } });
+  q('.sa-csv').addEventListener('click', () => {
+    const u = U(), gp = sel('.sa-ht') === 'gp';
+    const head = [`${gp ? 'geopotential' : 'geometric'}_altitude_${u.lu}`, 'geometric_m', 'geopotential_m', 'temperature_K', 'pressure_Pa', 'density_kg_m3', 'speed_of_sound_m_s', 'dynamic_viscosity_Pa_s', 'kinematic_viscosity_m2_s', 'gravity_m_s2', 'pressure_ratio', 'density_ratio'];
+    save(new Blob([csv([head, ...rows.map((r) => [+(((gp ? r.H : r.z)) / u.k).toFixed(3), r.z.toFixed(3), r.H.toFixed(3), r.T.toFixed(4), r.P.toPrecision(7), r.rho.toPrecision(7), r.a.toFixed(4), r.mu.toPrecision(6), r.nu.toPrecision(6), r.g.toFixed(5), r.delta.toPrecision(7), r.sigma.toPrecision(7)])])], { type: 'text/csv' }), 'standard-atmosphere.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.sa-f1'), figs[0]); paint(q<HTMLCanvasElement>('.sa-f2'), figs[1]); } });
+  all();
+  wireDownloads(q('.dl'), () => {
+    const u = U(), gp = sel('.sa-ht') === 'gp';
+    const sections: Section[] = [...(main ? [main] : []), ...(field ? [field] : [])];
+    if (rows.length) sections.push({ title: 'Table', figure: figs[0], table: { head: [`Alt (${u.lu})`, 'T (K)', 'P (Pa)', 'rho (kg/m3)', 'a (m/s)', 'mu (1e-5 Pa s)'], rows: rows.slice(0, 200).map((r) => [grp(((gp ? r.H : r.z)) / u.k), sg(r.T, 5), sg(r.P, 5), sg(r.rho, 4), sg(r.a, 4), sg(r.mu * 1e5, 4)]), align: ['r', 'r', 'r', 'r', 'r', 'r'] }, note: rows.length > 200 ? `First 200 of ${rows.length} rows; the CSV has them all.` : undefined }, { title: 'Pressure and density', figure: figs[1] });
+    return { title: 'Standard atmosphere', subtitle: q('.sa-big').textContent ?? '', file: 'standard-atmosphere', sections };
+  });
+</script>

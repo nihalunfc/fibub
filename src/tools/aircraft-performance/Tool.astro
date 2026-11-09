@@ -1,0 +1,160 @@
+---
+// Aircraft performance from a parabolic drag polar: L/D, speeds, stall, Breguet range and endurance, ground roll.
+// Worked out in the browser. The two example aircraft are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax acp">
+  <div class="ax-card">
+    <h2>Aircraft</h2>
+    <div class="ax-grid">
+      <label>Example <select class="ap-ex"><option value="prop" selected>Small propeller aircraft (made up)</option><option value="jet">Small business jet (made up)</option><option value="">Keep my numbers</option></select></label>
+      <label>Engine <select class="ap-eng"><option value="prop" selected>Propeller (piston or turboprop)</option><option value="jet">Jet</option></select></label>
+      <label>Mass at start (kg) <input class="ap-m" type="text" inputmode="decimal" /></label>
+      <label>Wing area S (m²) <input class="ap-S" type="text" inputmode="decimal" /></label>
+      <label>Wing span b (m) <input class="ap-b" type="text" inputmode="decimal" /></label>
+      <label>Zero-lift drag CD0 <input class="ap-cd0" type="text" inputmode="decimal" /></label>
+      <label>Oswald efficiency e <input class="ap-e" type="text" inputmode="decimal" /></label>
+      <label>Maximum lift CLmax <input class="ap-clmax" type="text" inputmode="decimal" /></label>
+    </div>
+    <h3>Engine and fuel</h3>
+    <div class="ax-grid">
+      <label class="ap-jet" hidden>Take-off thrust (N) <input class="ap-T" type="text" inputmode="decimal" /></label>
+      <label class="ap-jet" hidden>TSFC (per hour, = lb/(lbf·h)) <input class="ap-tsfc" type="text" inputmode="decimal" /></label>
+      <label class="ap-prop">Take-off power (kW) <input class="ap-P" type="text" inputmode="decimal" /></label>
+      <label class="ap-prop">Propeller efficiency η <input class="ap-eta" type="text" inputmode="decimal" /></label>
+      <label class="ap-prop">BSFC (kg per kW·h) <input class="ap-bsfc" type="text" inputmode="decimal" /></label>
+      <label>Fuel burned in cruise (kg) <input class="ap-fuel" type="text" inputmode="decimal" /></label>
+      <label>Cruise altitude (m, ISA) <input class="ap-alt" type="text" inputmode="decimal" /></label>
+      <label>Speeds in <select class="ap-vu"><option value="kt" selected>knots</option><option value="kmh">km/h</option><option value="ms">m/s</option></select></label>
+    </div>
+    <h3>Take-off</h3>
+    <div class="ax-grid">
+      <label>Field elevation (m, ISA) <input class="ap-fa" type="text" inputmode="decimal" /></label>
+      <label>Rolling friction μ <input class="ap-mu" type="text" inputmode="decimal" /></label>
+      <label>Lift coefficient on the ground roll <input class="ap-clg" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">CD0 is the drag of the aircraft with no lift (typical 0.015 to 0.04); e is how close the wing comes to the ideal elliptical lift spread (about 0.7 to 0.85). TSFC is fuel mass per hour for each unit of thrust; BSFC is fuel per unit of shaft energy. Rolling friction is about 0.02 to 0.05 on paved runways and more on grass. The example aircraft are made up and not any real type. For study and planning: real aircraft use their flight manual's figures.</p>
+    <p class="ax-err ap-err" hidden></p>
+  </div>
+
+  <div class="ax-card ap-out">
+    <h2>Performance</h2>
+    <p class="ax-big ap-big"></p>
+    <dl class="ax-facts ap-facts"></dl>
+    <div class="ax-scroll"><table class="ap-tab"></table></div>
+    <canvas class="ax-fig ap-f1"></canvas>
+    <canvas class="ax-fig ap-f2"></canvas>
+    <p class="ax-help">Vertical lines: least-drag speed (long dashes) and least-power speed (short dashes). The curves start at the stall speed.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ap-csv">Download the drag curve (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .acp h3 { margin: 16px 0 8px; font-size: 15px; }
+  .acp select, .acp input { max-width: 100%; }
+  .acp .ap-tab { margin: 14px 0 6px; }
+  .acp .ap-tab th, .acp .ap-tab td { white-space: nowrap; }
+  .acp .ap-f2 { margin-top: 10px; }
+</style>
+
+<script>
+  import { performance, dragAt, EXAMPLES, type Aircraft } from '../../lib/sci/eng-aircraft';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const grp = (x: number) => Math.round(x).toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.acp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const VU: Record<string, [number, string]> = { kt: [1 / 0.514444, 'kt'], kmh: [3.6, 'km/h'], ms: [1, 'm/s'] };
+  const spd = (v: number) => { const [k, u] = VU[sel('.ap-vu')]; return `${sg(v * k, 3)} ${u}`; };
+  const hrs = (s: number) => { const h = Math.floor(s / 3600), m = Math.round((s - h * 3600) / 60); return m === 60 ? `${h + 1} h 0 min` : `${h} h ${m} min`; };
+  const FIELDS: [string, keyof Aircraft, number][] = [['.ap-m', 'mass', 1], ['.ap-S', 'S', 1], ['.ap-b', 'span', 1], ['.ap-cd0', 'CD0', 1], ['.ap-e', 'e', 1], ['.ap-clmax', 'CLmax', 1], ['.ap-T', 'thrust', 1], ['.ap-tsfc', 'tsfc', 1], ['.ap-P', 'power', 1000], ['.ap-eta', 'eta', 1], ['.ap-bsfc', 'bsfc', 1], ['.ap-fuel', 'fuel', 1], ['.ap-alt', 'alt', 1], ['.ap-fa', 'fieldAlt', 1], ['.ap-mu', 'mu', 1], ['.ap-clg', 'CLg', 1]];
+  let figs: Figure[] = [], sections: Section[] = [], curve: (string | number)[][] = [];
+
+  function load(id: string) {
+    const a = EXAMPLES[id]; if (!a) return;
+    q<HTMLSelectElement>('.ap-eng').value = a.engine;
+    for (const [c, key, f] of FIELDS) { const v = (a[key] ?? (id === 'jet' ? EXAMPLES.prop[key] : EXAMPLES.jet[key])) as number; q<HTMLInputElement>(c).value = String(+(v / f).toPrecision(6)); }
+  }
+
+  function run() {
+    const jet = sel('.ap-eng') === 'jet';
+    root.querySelectorAll<HTMLElement>('.ap-jet').forEach((e) => { e.hidden = !jet; });
+    root.querySelectorAll<HTMLElement>('.ap-prop').forEach((e) => { e.hidden = jet; });
+    const err = q('.ap-err'), out = q('.ap-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    const a = { engine: jet ? 'jet' : 'prop' } as Aircraft;
+    for (const [c, key, f] of FIELDS) (a as Record<string, unknown>)[key] = val(c) * f;
+    if (!(a.mass > 0 && a.S > 0 && a.span > 0)) return fail('Give the mass, wing area and wing span.');
+    if (!(a.CD0 > 0 && a.CD0 < 0.5)) return fail('Give CD0, the zero-lift drag coefficient (usually 0.015 to 0.04).');
+    if (!(a.e > 0 && a.e <= 1)) return fail('Give the Oswald efficiency e, between 0 and 1 (about 0.8).');
+    if (!(a.CLmax > 0 && a.CLmax < 5)) return fail('Give the maximum lift coefficient CLmax (about 1.2 to 2.5).');
+    if (jet && !(a.thrust! > 0 && a.tsfc! > 0)) return fail('Give the take-off thrust and the TSFC.');
+    if (!jet && !(a.power! > 0 && a.eta! > 0 && a.eta! <= 1 && a.bsfc! > 0)) return fail('Give the power, a propeller efficiency between 0 and 1, and the BSFC.');
+    if (!(a.fuel > 0 && a.fuel < a.mass)) return fail('Give the fuel burned, more than 0 and less than the mass.');
+    if (!(a.alt >= 0 && a.alt <= 20000) || !(a.fieldAlt! >= -400 && a.fieldAlt! <= 5000)) return fail('Give a cruise altitude from 0 to 20,000 m and a field elevation from −400 to 5,000 m.');
+    if (!(a.mu! >= 0 && a.mu! < 1) || !(a.CLg! >= 0 && a.CLg! < a.CLmax)) return fail('Give a rolling friction from 0 to 1 and a ground-roll lift coefficient below CLmax.');
+    err.hidden = true; out.hidden = false;
+    const p = performance(a), to = p.takeoff, sp = p.speeds;
+    q('.ap-big').textContent = `(L/D)max ${sg(p.LDmax, 3)}, range ${grp(p.range.R / 1000)} km, endurance ${hrs(p.endurance.E)}`;
+    const f = [
+      fact('Aspect ratio and k', `AR ${sg(p.AR, 3)}, k ${sg(p.k, 3)}`, 'k = 1 / (π e AR), drag polar CD = CD0 + k CL²'),
+      fact('Best lift-to-drag ratio', sg(p.LDmax, 4), `at CL = √(CD0/k) = ${sg(p.CLmd, 3)}`),
+      fact('Stall speed', spd(sp.stall.V), `at the cruise altitude, ${sg(a.mass, 5)} kg`),
+      fact('Least-drag speed', spd(sp.minDrag.V), jet ? 'jet best endurance' : 'propeller best range; also the best glide speed'),
+      fact('Least-power speed', spd(sp.minPower.V), `${jet ? '' : 'propeller best endurance; '}L/D ${sg(sp.minPower.LD, 3)}, ${sg(sp.minPower.P / 1000, 3)} kW needed`),
+      ...(jet ? [fact('Jet best-range speed', spd(sp.jetRange.V), `1.316 × least-drag speed; L/D ${sg(sp.jetRange.LD, 3)}`)] : []),
+      fact('Breguet range', `${grp(p.range.R / 1000)} km`, `${sg(p.range.R / 1852, 4)} nmi at ${spd(p.range.V)}${jet ? ', cruise climb' : ''}; ${p.range.note}`),
+      ...(jet ? [fact('Range holding height', `${grp(p.range.Ralt! / 1000)} km`, 'constant altitude and CL, speed falling as fuel burns')] : []),
+      fact('Endurance', hrs(p.endurance.E), `${sg(p.endurance.E / 3600, 3)} h starting at ${spd(p.endurance.V)}; ${p.endurance.note}`),
+      fact('Take-off ground roll', to.ok ? `${grp(to.s)} m` : 'does not lift off', to.ok ? `${sg(to.t, 3)} s to lift-off at ${spd(to.Vlo)} (1.2 × stall ${spd(to.Vs)}); simple 1.44 W²/(gρS CLmax T) gives ${grp(to.simple)} m` : 'the thrust is less than drag plus friction before lift-off speed'),
+      fact('Thrust-to-weight at take-off', sg(to.TW, 3), jet ? 'thrust as given' : `propeller thrust taken as η P / (0.7 V_LO) = ${grp(to.T)} N`),
+      fact('Air density', `${sg(p.rho, 4)} kg/m³`, `cruise; field ${sg(to.rho, 4)} kg/m³ (ISA)`),
+    ];
+    q('.ap-facts').replaceChildren(...f);
+    // Table of the characteristic speeds.
+    const pts = [['Stall', sp.stall], ['Least power', sp.minPower], ['Least drag', sp.minDrag], ...(jet ? [['Jet best range', sp.jetRange]] : [])] as [string, typeof sp.stall][];
+    const t = q<HTMLTableElement>('.ap-tab'); t.replaceChildren();
+    const head = ['Speed', VU[sel('.ap-vu')][1], 'CL', 'L/D', 'Drag (N)', 'Power (kW)'];
+    const hr = t.insertRow(); for (const h of head) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const trows = pts.map(([n, s]) => [n, sg(s.V * VU[sel('.ap-vu')][0], 3), sg(s.CL, 3), sg(s.LD, 3), grp(s.D), sg(s.P / 1000, 3)]);
+    for (const r of trows) { const tr = t.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); }
+    // Curves against speed.
+    const [vk, vu] = VU[sel('.ap-vu')], V0 = sp.stall.V, V1 = Math.max(sp.jetRange.V * 1.6, sp.minDrag.V * 2.2), vs: number[] = [];
+    for (let i = 0; i <= 120; i++) vs.push(V0 + ((V1 - V0) * i) / 120);
+    const d = vs.map((v) => dragAt(a, p.k, p.W0, p.rho, v));
+    curve = vs.map((v, i) => [+(v * vk).toFixed(3), +d[i].CL.toFixed(5), Math.round(d[i].Dp), Math.round(d[i].Di), Math.round(d[i].D), +(d[i].P / 1000).toFixed(3)]);
+    const marks = [{ kind: 'vline' as const, at: sp.minDrag.V * vk, dash: [4, 3] }, { kind: 'vline' as const, at: sp.minPower.V * vk, dash: [2, 3] }];
+    const f1 = chartFigure({ w: 380, h: 260, xLabel: `True airspeed (${vu})`, yLabel: 'Drag (kN)', yMin: 0, legend: 'below', marks, series: [
+      { name: 'Total drag', x: vs.map((v) => v * vk), y: d.map((x) => x.D / 1000), mode: 'line', width: 2 },
+      { name: 'Zero-lift (parasite)', x: vs.map((v) => v * vk), y: d.map((x) => x.Dp / 1000), mode: 'line', width: 1.5, dash: [5, 4] },
+      { name: 'Induced', x: vs.map((v) => v * vk), y: d.map((x) => x.Di / 1000), mode: 'line', width: 1.5, dash: [2, 3] },
+      ...(jet ? [{ name: 'Take-off thrust', x: [vs[0] * vk, vs[vs.length - 1] * vk], y: [a.thrust! / 1000, a.thrust! / 1000], mode: 'line' as const, width: 1 }] : []),
+    ] }, `Drag against airspeed at ${sg(a.alt, 4)} m, from stall speed`);
+    const f2 = chartFigure({ w: 380, h: 260, xLabel: `True airspeed (${vu})`, yLabel: 'Power (kW)', yMin: 0, legend: 'below', marks, series: [
+      { name: 'Power needed', x: vs.map((v) => v * vk), y: d.map((x) => x.P / 1000), mode: 'line', width: 2 },
+      ...(!jet ? [{ name: 'Power available (η P, sea-level)', x: [vs[0] * vk, vs[vs.length - 1] * vk], y: [a.eta! * a.power! / 1000, a.eta! * a.power! / 1000], mode: 'line' as const, width: 1 }] : []),
+    ] }, `Power needed against airspeed`);
+    figs = [f1, f2]; paint(q<HTMLCanvasElement>('.ap-f1'), f1); paint(q<HTMLCanvasElement>('.ap-f2'), f2);
+    sections = [
+      { title: q('.ap-big').textContent!, text: [`${jet ? 'Jet' : 'Propeller'} aircraft, ${sg(a.mass, 5)} kg, S ${sg(a.S, 4)} m², span ${sg(a.span, 4)} m, CD0 ${a.CD0}, e ${a.e}, CLmax ${a.CLmax}; ${sg(a.fuel, 5)} kg of fuel at ${sg(a.alt, 5)} m.`], facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Characteristic speeds', table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: f1 },
+      { title: 'Power needed', figure: f2, note: 'Breguet range and endurance assume a constant propeller efficiency or TSFC and no climb, descent, wind or reserves. For study and planning.' },
+    ];
+  }
+
+  q('.ap-ex').addEventListener('change', () => { if (sel('.ap-ex')) { load(sel('.ap-ex')); run(); } });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.classList.contains('ap-ex')) { i.addEventListener('input', run); i.addEventListener('change', run); } });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.ap-ex').value = ''; }));
+  q('.ap-csv').addEventListener('click', () => save(new Blob([csv([[`speed_${VU[sel('.ap-vu')][1].replace('/', '_')}`, 'CL', 'parasite_drag_N', 'induced_drag_N', 'drag_N', 'power_kW'], ...curve])], { type: 'text/csv' }), 'drag-curve.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ap-out').hidden) { paint(q<HTMLCanvasElement>('.ap-f1'), figs[0]); paint(q<HTMLCanvasElement>('.ap-f2'), figs[1]); } });
+  load('prop'); run();
+  wireDownloads(q('.dl'), () => ({ title: 'Aircraft performance', subtitle: q('.ap-big').textContent ?? '', file: 'aircraft-performance', sections }));
+</script>
