@@ -1,0 +1,30 @@
+// #677 point kinetics. Reference values from SciPy solve_ivp (Radau, rtol 1e-11, analytic Jacobian, restarted at
+// each reactivity jump or kink) for seven transients, and inhour roots from NumPy polynomial roots.
+import { simulate, inhourRoots, inhour, promptJump, equilibrium, rhoAt, toRho, betaTotal, U235_GROUPS } from '../../src/lib/sci/eng-pointkinetics.ts';
+const REF = {"cases": [{"name": "step 0.1$", "Lam": 0.0001, "kind": "step", "rho": 0.00065, "tend": 30, "times": [0.01, 0.1, 0.5, 1, 2, 5, 10, 20, 30], "n": [1.04923186597, 1.11397492968, 1.13052991762, 1.14682917156, 1.17410099759, 1.24228208428, 1.34113553475, 1.52293162687, 1.70586868387]}, {"name": "step 0.5$", "Lam": 0.0001, "kind": "step", "rho": 0.00325, "tend": 30, "times": [0.01, 0.1, 0.5, 1, 2, 5, 10, 20, 30], "n": [1.27759382942, 1.99633100173, 2.31694260322, 2.64766815013, 3.32496052064, 6.00531587677, 14.8080368197, 84.3286933346, 473.665498319]}, {"name": "step -1$", "Lam": 0.0001, "kind": "step", "rho": -0.0065, "tend": 30, "times": [0.01, 0.1, 0.5, 1, 2, 5, 10, 20, 30], "n": [0.636111121677, 0.491854016663, 0.461291793329, 0.433415179389, 0.392478056354, 0.314044904648, 0.24037317199, 0.166888050739, 0.126570029821]}, {"name": "step 0.2$ Lam 2e-5", "Lam": 2e-05, "kind": "step", "rho": 0.0013, "tend": 30, "times": [0.01, 0.1, 0.5, 1, 2, 5, 10, 20, 30], "n": [1.23188856895, 1.26121819443, 1.30246723905, 1.34507245486, 1.4189432815, 1.6168458917, 1.93863049707, 2.64988899482, 3.53406708033]}, {"name": "ramp 1c/s to 30c", "Lam": 0.0001, "kind": "ramp", "rate": 6.5e-05, "max": 0.00195, "tend": 60, "times": [1, 5, 10, 20, 30, 40, 60], "n": [1.01147418776, 1.08357151686, 1.23166341459, 1.83687272945, 3.49337065836, 6.34481384982, 19.321872076]}, {"name": "step 0.2$ scram -5$ at 4s", "Lam": 0.0001, "kind": "step", "rho": 0.0013, "scramAt": 4, "scramRho": -0.0325, "tend": 30, "times": [1, 3.9, 4.01, 4.5, 6, 10, 30], "n": [1.34207981929, 1.54257491957, 0.244208902159, 0.182624869298, 0.136249994696, 0.0846420451871, 0.030260864828]}, {"name": "step 1.2$ superprompt", "Lam": 0.0001, "kind": "step", "rho": 0.0078, "tend": 0.2, "times": [0.01, 0.05, 0.1, 0.2], "n": [1.83333468557, 6.55234965951, 17.688422579, 87.6262351954]}], "inh": [{"Lam": 0.0001, "rho": 0.00065, "roots": [0.0101298771622, -0.0137820045282, -0.0627361737564, -0.187233421326, -1.01145951026, -2.88195707482, -58.9578616925]}, {"Lam": 0.0001, "rho": 0.00325, "roots": [0.172417842922, -0.0130058853985, -0.0454205789556, -0.158395120199, -0.93696616723, -2.79729978831, -33.3262303028]}, {"Lam": 0.0001, "rho": -0.00325, "roots": [-0.0112802401141, -0.0212146104651, -0.0868239226395, -0.223680246204, -1.05835756591, -2.93016603235, -97.7733773823]}, {"Lam": 2e-05, "rho": 0.003, "roots": [0.141394462359, -0.0130417072869, -0.0465227579972, -0.160966630643, -0.950250167124, -2.82006222387, -175.755450975]}, {"Lam": 0.0001, "rho": 0.0078, "roots": [14.6491609472, -0.0126992048931, -0.0366428562038, -0.132482629279, -0.575467355869, -1.72561906123, -3.77114983976]}]};
+export default async (check) => {
+  const betas = U235_GROUPS.a.map((a) => a * U235_GROUPS.beta), lambdas = U235_GROUPS.lambda, beta = U235_GROUPS.beta;
+  check('kinetics: rounded U-235 abundances sum to 1 and β = 0.0065', Math.abs(U235_GROUPS.a.reduce((s, x) => s + x, 0) - 1) < 1e-12 && Math.abs(betaTotal({ betas, lambdas, Lambda: 1e-4 }) - 0.0065) < 1e-15);
+  for (const c of REF.cases) {
+    const k = { betas, lambdas, Lambda: c.Lam };
+    const r = c.kind === 'step' ? { kind: 'step', rho: c.rho, scramAt: c.scramAt, scramRho: c.scramRho } : { kind: 'ramp', rate: c.rate, max: c.max };
+    const s = simulate(k, r, c.tend, { out: 200, at: c.times });
+    const err = Math.max(...c.times.map((t, i) => { const j = s.t.findIndex((x) => Math.abs(x - t) < 1e-9); return j < 0 ? Infinity : Math.abs(s.n[j] / c.n[i] - 1); }));
+    check(`kinetics: ${c.name} matches SciPy Radau (worst ${err.toExponential(1)})`, err < 1e-6);
+  }
+  { const k = { betas, lambdas, Lambda: 1e-4 }, s = simulate(k, { kind: 'step', rho: 0 }, 100, { out: 50 });
+    check('kinetics: critical reactor stays at equilibrium', s.n.every((n) => Math.abs(n - 1) < 1e-9) && s.C[50].every((c, i) => Math.abs(c / equilibrium(k)[i + 1] - 1) < 1e-9)); }
+  for (const x of REF.inh) {
+    const r = inhourRoots({ betas, lambdas, Lambda: x.Lam }, x.rho);
+    check(`kinetics: inhour roots for ρ = ${x.rho}, Λ = ${x.Lam} match NumPy`, r.length === 7 && r.every((v, i) => Math.abs(v / x.roots[i] - 1) < 1e-9) && r.every((w) => Math.abs(inhour({ betas, lambdas, Lambda: x.Lam }, w) - x.rho) < 1e-12));
+  }
+  // The simulated asymptotic period agrees with the inhour root: 0.1 $ gives T = 1/0.01013 = 98.7 s.
+  { const k = { betas, lambdas, Lambda: 1e-4 }, s = simulate(k, { kind: 'step', rho: 0.1 * beta }, 600, { out: 600 }), n = s.n.length;
+    const w = Math.log(s.n[n - 1] / s.n[n - 2]) / (s.t[n - 1] - s.t[n - 2]);
+    check(`kinetics: late-time growth rate equals the inhour root (${(1 / w).toFixed(2)} s)`, Math.abs(w / inhourRoots(k, 0.1 * beta)[0] - 1) < 1e-4); }
+  // Prompt jump: n just after the step approaches β/(β − ρ); for 0.5 $ that is 2.
+  check('kinetics: prompt jump β/(β−ρ) = 2 for 0.5 $', promptJump(beta, 0.5 * beta) === 2 && promptJump(beta, beta) === Infinity);
+  { const s = simulate({ betas, lambdas, Lambda: 1e-5 }, { kind: 'step', rho: 0.5 * beta }, 0.03, { out: 10 }); check(`kinetics: simulation shows the prompt jump (n(0.03 s) = ${s.n[10].toFixed(4)})`, Math.abs(s.n[10] - 2) < 0.03); }
+  check('kinetics: reactivity units', Math.abs(toRho(1, 'dollar', beta) - 0.0065) < 1e-15 && Math.abs(toRho(50, 'cent', beta) - 0.00325) < 1e-15 && Math.abs(toRho(100, 'pcm', beta) - 0.001) < 1e-15 && toRho(0.002, 'dk', beta) === 0.002);
+  check('kinetics: ramp and scram reactivity', Math.abs(rhoAt({ kind: 'ramp', rate: 0.001, max: 0.003 }, 2) - 0.002) < 1e-15 && Math.abs(rhoAt({ kind: 'ramp', rate: 0.001, max: 0.003 }, 9) - 0.003) < 1e-15 && Math.abs(rhoAt({ kind: 'step', rho: 0.001, scramAt: 1, scramRho: -0.03 }, 1) + 0.029) < 1e-15);
+};
