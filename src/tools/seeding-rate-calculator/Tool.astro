@@ -1,0 +1,162 @@
+---
+// Seeding rate: seeds and kg to sow for a target plant population, seeds per metre of row and the gap between them,
+// and the reverse from stand counts. Nothing is uploaded. The example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sdr">
+  <div class="ax-card">
+    <h2>Seeds to sow</h2>
+    <div class="ax-grid">
+      <label>Units <select class="sd-u"><option value="metric" selected>Metric (kg, ha, cm)</option><option value="us">US (lb, acre, inch)</option></select></label>
+      <label><span>Target plants</span> <input class="sd-pop" type="text" inputmode="decimal" value="300" /></label>
+      <label>Plants counted <select class="sd-popu"><option value="m2" selected>per m²</option><option value="ha">per hectare</option><option value="ac">per acre</option><option value="ft2">per ft²</option></select></label>
+      <label><span>Germination (%)</span> <input class="sd-g" type="text" inputmode="decimal" value="92" /></label>
+      <label><span>Purity (%)</span> <input class="sd-pu" type="text" inputmode="decimal" value="98" /></label>
+      <label><span>Field emergence and survival (%)</span> <input class="sd-e" type="text" inputmode="decimal" value="85" /></label>
+      <label><span>Seed weight</span> <input class="sd-w" type="text" inputmode="decimal" value="42" /></label>
+      <label>Seed weight given as <select class="sd-wu"><option value="tsw" selected>g per 1,000 seeds (TSW)</option><option value="perkg">seeds per kg</option><option value="perlb">seeds per lb</option></select></label>
+      <label><span class="sd-lrow">Row spacing (cm; blank = broadcast)</span> <input class="sd-row" type="text" inputmode="decimal" value="18" /></label>
+      <label><span class="sd-larea">Field area (ha; blank = none)</span> <input class="sd-area" type="text" inputmode="decimal" value="25" /></label>
+      <label><span>Bag size (blank = no bags)</span> <input class="sd-bag" type="text" inputmode="decimal" value="25" /></label>
+      <label>Bag holds <select class="sd-bagu"><option value="mass" selected class="sd-bagm">kg of seed</option><option value="seeds">seeds (a seed-count unit)</option></select></label>
+    </div>
+    <p class="ax-help">Germination and purity are on the seed tag or test; together they give the pure live seed. Field emergence and survival is your own experience of how many live seeds become plants in your field and conditions (often lower in cold, wet or cloddy seedbeds). The example values are made up.</p>
+    <p class="ax-err sd-err" hidden></p>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check the stand</h2>
+    <div class="ax-grid">
+      <label>Count plants in <select class="sd-cm"><option value="row" selected>a length of row</option><option value="frame">a frame (quadrat)</option></select></label>
+      <label class="sd-cr"><span class="sd-llen">Length of row counted (m)</span> <input class="sd-len" type="text" inputmode="decimal" value="1" /></label>
+      <label class="sd-cf" hidden><span class="sd-lfr">Frame area (m²)</span> <input class="sd-fr" type="text" inputmode="decimal" value="0.25" /></label>
+    </div>
+    <label style="margin-top:10px">Plants counted, one number per spot (spaces, commas or new lines) <textarea class="sd-cnt" rows="3" spellcheck="false">52 49 57 55 46</textarea></label>
+    <p class="ax-help sd-chelp">Row counts use the row spacing above. Count in several places across the field.</p>
+    <p class="ax-err sd-cerr" hidden></p>
+    <p class="ax-big sd-cbig"></p>
+    <dl class="ax-facts sd-cfacts"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-ex">Use the example</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sdr textarea { width: 100%; }
+</style>
+
+<script>
+  import { seedsFor, kgPerHa, tswFromPerKg, tswFromPerLb, inRow, rowFtPerThousandthAcre, stand, M2_PER_HA, M2_PER_AC, KG_PER_LB, M_PER_FT, CM_PER_IN } from '../../lib/sci/seeding';
+  import { num } from '../../lib/sci/num';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sdr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const blank = (c: string) => q<HTMLInputElement>(c).value.trim() === '';
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const k0 = (x: number) => Math.round(x).toLocaleString('en'), f1 = (x: number) => x.toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const f2 = (x: number) => x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const LB_AC_PER_KG_HA = (1 / KG_PER_LB) * (M2_PER_AC / M2_PER_HA);
+  const PER_M2: Record<string, number> = { m2: 1, ha: 1 / M2_PER_HA, ac: 1 / M2_PER_AC, ft2: 1 / (M_PER_FT * M_PER_FT) };
+  let sown = NaN, target = NaN, sowSec: Section | null = null, standSec: Section | null = null;
+
+  function sow() {
+    const us = sel('.sd-u') === 'us';
+    q('.sd-lrow').textContent = `Row spacing (${us ? 'in' : 'cm'}; blank = broadcast)`;
+    q('.sd-larea').textContent = `Field area (${us ? 'acres' : 'ha'}; blank = none)`;
+    q('.sd-bagm').textContent = `${us ? 'lb' : 'kg'} of seed`;
+    const err = q('.sd-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sd-big').textContent = ''; q('.sd-facts').replaceChildren(); sown = NaN; target = NaN; sowSec = null; };
+    const pop = val('.sd-pop'), g = val('.sd-g'), pu = val('.sd-pu'), e = val('.sd-e'), w = val('.sd-w');
+    if (!(pop > 0)) return fail('Type the target number of plants.');
+    if (!(g > 0 && g <= 100 && pu > 0 && pu <= 100 && e > 0 && e <= 100)) return fail('Germination, purity and field emergence are percentages above 0 and up to 100.');
+    if (!(w > 0)) return fail('Type the seed weight.');
+    const row = blank('.sd-row') ? NaN : val('.sd-row'), area = blank('.sd-area') ? NaN : val('.sd-area'), bag = blank('.sd-bag') ? NaN : val('.sd-bag');
+    if (!blank('.sd-row') && !(row > 0)) return fail('Give the row spacing, or leave it blank for broadcast seed.');
+    if (!blank('.sd-area') && !(area > 0)) return fail('Give the field area, or leave it blank.');
+    if (!blank('.sd-bag') && !(bag > 0)) return fail('Give the bag size, or leave it blank.');
+    err.hidden = true;
+    const plantsM2 = pop * PER_M2[sel('.sd-popu')];
+    const tsw = sel('.sd-wu') === 'tsw' ? w : sel('.sd-wu') === 'perkg' ? tswFromPerKg(w) : tswFromPerLb(w);
+    const s = seedsFor(plantsM2, g, pu, e);
+    sown = s.seedsM2; target = plantsM2;
+    const kgHa = kgPerHa(s.seedsM2, tsw);
+    q('.sd-big').textContent = us ? `Sow ${f1(kgHa * LB_AC_PER_KG_HA)} lb/ac (${k0(s.seedsM2 * M2_PER_AC)} seeds per acre)` : `Sow ${f1(kgHa)} kg/ha (${k0(s.seedsM2)} seeds/m²)`;
+    const facts = [
+      fact('Seeds to sow', `${k0(s.seedsM2)} per m², ${k0(s.seedsM2 * M2_PER_HA)} per ha, ${k0(s.seedsM2 * M2_PER_AC)} per acre`),
+      fact('Seed rate', `${f1(kgHa)} kg/ha = ${f1(kgHa * LB_AC_PER_KG_HA)} lb/ac (TSW ${f1(tsw)} g, ${k0(1e6 / tsw)} seeds per kg)`),
+      fact('Seeds that become plants', `${f1(100 * s.survive)} % (pure live seed ${f1(100 * s.pls)} % × emergence ${f1(e)} %)`),
+      fact('Target', `${k0(plantsM2 * (us ? M2_PER_AC : M2_PER_HA))} plants per ${us ? 'acre' : 'ha'} (${f1(plantsM2)} per m²)`),
+    ];
+    if (row > 0) {
+      const rowM = us ? (row * CM_PER_IN) / 100 : row / 100, r = inRow(s.seedsM2, rowM);
+      facts.push(fact('In the row', us ? `${f2(r.perM * M_PER_FT)} seeds per foot, one every ${f2(r.gapCm / CM_PER_IN)} in` : `${f1(r.perM)} seeds per metre, one every ${f2(r.gapCm)} cm`));
+    }
+    if (area > 0) {
+      const ha = us ? (area * M2_PER_AC) / M2_PER_HA : area, kg = kgHa * ha, seeds = s.seedsM2 * M2_PER_HA * ha;
+      const mass = us ? `${k0(kg / KG_PER_LB)} lb` : `${k0(kg)} kg`;
+      let bags = '';
+      if (bag > 0) { const n = sel('.sd-bagu') === 'seeds' ? seeds / bag : (us ? kg / KG_PER_LB : kg) / bag; bags = `; ${f1(n)} bags (buy ${Math.ceil(n - 1e-9)})`; }
+      facts.push(fact('For the field', `${mass} of seed, ${k0(seeds)} seeds for ${area} ${us ? 'acres' : 'ha'}${bags}`));
+    }
+    q('.sd-facts').replaceChildren(...facts);
+    sowSec = { title: 'Seeds to sow', text: [q('.sd-big').textContent!], facts: factsOf(q('.sd-facts')) };
+  }
+
+  function check() {
+    const us = sel('.sd-u') === 'us', mode = sel('.sd-cm');
+    q('.sd-cr').hidden = mode !== 'row'; q('.sd-cf').hidden = mode !== 'frame';
+    q('.sd-llen').textContent = `Length of row counted (${us ? 'ft' : 'm'})`;
+    q('.sd-lfr').textContent = `Frame area (${us ? 'ft²' : 'm²'})`;
+    const row = blank('.sd-row') ? NaN : val('.sd-row');
+    q('.sd-chelp').textContent = mode === 'row'
+      ? `Row counts use the row spacing above.${us && row > 0 ? ` At ${row} in rows, ${f2(rowFtPerThousandthAcre(row))} ft of row is 1/1000 acre, so plants counted there × 1,000 = plants per acre.` : ''} Count in several places across the field.`
+      : 'Throw the frame at random several times across the field and count the plants inside.';
+    const err = q('.sd-cerr');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sd-cbig').textContent = ''; q('.sd-cfacts').replaceChildren(); standSec = null; };
+    const raw = q<HTMLTextAreaElement>('.sd-cnt').value.trim();
+    if (!raw) return fail('Type the plants you counted, one number per spot.');
+    const parts = raw.split(/[\s,;]+/).filter(Boolean), counts = parts.map(num);
+    if (counts.some((c) => !(c >= 0))) return fail(`"${parts[counts.findIndex((c) => !(c >= 0))]}" is not a count.`);
+    let areaM2: number;
+    if (mode === 'row') {
+      const len = val('.sd-len');
+      if (!(row > 0)) return fail('Give the row spacing above to turn row counts into plants per area.');
+      if (!(len > 0)) return fail('Give the length of row you counted.');
+      areaM2 = us ? len * M_PER_FT * (row * CM_PER_IN) / 100 : (len * row) / 100;
+    } else {
+      const fr = val('.sd-fr');
+      if (!(fr > 0)) return fail('Give the frame area.');
+      areaM2 = us ? fr * M_PER_FT * M_PER_FT : fr;
+    }
+    err.hidden = true;
+    const st = stand(counts, areaM2), per = us ? M2_PER_AC : M2_PER_HA, pu = us ? 'acre' : 'ha';
+    q('.sd-cbig').textContent = `${k0(st.mean * per)} plants per ${pu} (${f1(st.mean)} per m²)`;
+    const facts = [
+      fact('Counts', `${st.n} spot${st.n === 1 ? '' : 's'}, each ${f2(areaM2)} m²; ${k0(st.min * per)} to ${k0(st.max * per)} plants per ${pu}`),
+      ...(st.n > 1 ? [fact('Spread', `standard deviation ${k0(st.sd * per)} per ${pu}, CV ${f1(st.cv)} %`)] : []),
+      ...(target > 0 ? [fact('Against the target', `${f1((100 * st.mean) / target)} % of ${k0(target * per)} plants per ${pu}`)] : []),
+      ...(sown > 0 ? [fact('Establishment', `${f1((100 * st.mean) / sown)} % of the ${k0(sown * per)} seeds per ${pu} sown; use it as the field emergence next time`)] : []),
+    ];
+    q('.sd-cfacts').replaceChildren(...facts);
+    standSec = { title: 'Stand count', text: [q('.sd-cbig').textContent!], facts: factsOf(q('.sd-cfacts')) };
+  }
+
+  const all = () => { sow(); check(); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.sd-ex').addEventListener('click', () => {
+    const set: [string, string][] = [['.sd-pop', '300'], ['.sd-g', '92'], ['.sd-pu', '98'], ['.sd-e', '85'], ['.sd-w', '42'], ['.sd-row', '18'], ['.sd-area', '25'], ['.sd-bag', '25'], ['.sd-len', '1'], ['.sd-fr', '0.25']];
+    for (const [c, v] of set) q<HTMLInputElement>(c).value = v;
+    q<HTMLSelectElement>('.sd-u').value = 'metric'; q<HTMLSelectElement>('.sd-popu').value = 'm2'; q<HTMLSelectElement>('.sd-wu').value = 'tsw'; q<HTMLSelectElement>('.sd-bagu').value = 'mass'; q<HTMLSelectElement>('.sd-cm').value = 'row';
+    q<HTMLTextAreaElement>('.sd-cnt').value = '52 49 57 55 46';
+    all();
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Seeding rate', subtitle: q('.sd-big').textContent ?? '', file: 'seeding-rate', sections: [sowSec, standSec].filter(Boolean) as Section[] }));
+  all();
+</script>
