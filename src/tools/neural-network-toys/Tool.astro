@@ -1,0 +1,333 @@
+---
+// Neural network toys: a perceptron learning a line between two classes of points, and a Hopfield network that
+// stores small black-and-white patterns and recalls them from a noisy cue. All example patterns are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax nn">
+  <div class="ax-card">
+    <h2>Which toy?</h2>
+    <div class="ax-seg nn-mode" role="group" aria-label="Network">
+      <button type="button" data-m="perc" aria-pressed="true">Perceptron</button><button type="button" data-m="hop" aria-pressed="false">Hopfield network</button>
+    </div>
+    <p class="ax-help nn-what"></p>
+  </div>
+
+  <div class="nn-p" data-m="perc">
+    <div class="ax-card">
+      <h2>Points</h2>
+      <div class="ax-grid">
+        <label>Start from <select class="pc-pre"><option value="and" selected>AND (4 corners)</option><option value="or">OR (4 corners)</option><option value="xor">XOR (4 corners)</option><option value="clouds">Two made-up clouds</option><option value="none">Empty: click your own</option></select></label>
+        <label>Learning rate <input class="pc-rate" inputmode="decimal" value="0.1" /></label>
+        <label>Most epochs <input class="pc-max" inputmode="numeric" value="50" /></label>
+        <label>Starting weights <select class="pc-init"><option value="zero" selected>All zero</option><option value="rand">Small random</option></select></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px">
+        <span class="ax-help" style="margin:0">Click the picture to add a point of class</span>
+        <div class="ax-seg pc-cls" role="group" aria-label="Class of new points"><button type="button" data-c="1" aria-pressed="true">1 (filled)</button><button type="button" data-c="0" aria-pressed="false">0 (open)</button></div>
+        <button type="button" class="btn secondary small pc-undo">Remove last</button>
+        <button type="button" class="btn secondary small pc-clear">Clear</button>
+      </div>
+      <p class="ax-help">Each epoch goes through the points in order. For a point on the wrong side, every weight moves by learning rate × (target − output) × input, and the bias by learning rate × (target − output). Training stops after an epoch with no mistakes, or at the most epochs.</p>
+      <p class="ax-err pc-err" hidden></p>
+    </div>
+    <div class="ax-card pc-out">
+      <h2>Learning</h2>
+      <p class="ax-big pc-big"></p>
+      <canvas class="ax-fig pc-fig" style="max-width:440px;margin:0 auto;cursor:crosshair"></canvas>
+      <label style="margin-top:10px">Show epoch <span class="pc-ep-n"></span><input type="range" class="pc-ep" min="0" max="1" value="1" step="1" /></label>
+      <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small pc-back">Back one epoch</button><button type="button" class="btn secondary small pc-step">Forward one epoch</button></div>
+      <dl class="ax-facts pc-facts" style="margin-top:12px"></dl>
+      <p class="ax-help pc-note"></p>
+      <canvas class="ax-fig pc-chart" style="margin-top:12px"></canvas>
+      <h3>Epochs</h3>
+      <div class="ax-scroll nn-tw"><table class="pc-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pc-csv">Epochs (CSV)</button></div>
+      <Downloads class="pc-dl" />
+    </div>
+  </div>
+
+  <div class="nn-p" data-m="hop" hidden>
+    <div class="ax-card">
+      <h2>Store patterns</h2>
+      <div class="ax-grid">
+        <label>Grid <select class="hp-n"><option value="5">5 × 5 (25 units)</option><option value="7" selected>7 × 7 (49 units)</option><option value="10">10 × 10 (100 units)</option></select></label>
+      </div>
+      <p class="ax-help">Tap squares to draw a pattern, then store it. Each square is one unit, on (+1, dark) or off (−1, light).</p>
+      <div class="hp-ed hp-grid" style="margin-top:8px"></div>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn small hp-store">Store this pattern</button>
+        <button type="button" class="btn secondary small hp-rand">Random pattern</button>
+        <button type="button" class="btn secondary small hp-blank">Clear drawing</button>
+      </div>
+      <h3>Stored <span class="hp-count"></span></h3>
+      <div class="hp-stored"></div>
+      <p class="ax-help hp-cap"></p>
+    </div>
+    <div class="ax-card">
+      <h2>Recall from a noisy cue</h2>
+      <div class="ax-grid">
+        <label>Start from stored pattern <select class="hp-src"></select></label>
+        <label>Flip this many units <input class="hp-flip" inputmode="numeric" value="10" /></label>
+        <label>Noise seed <input class="hp-seed" inputmode="numeric" value="1" /></label>
+        <label>Update <select class="hp-upd"><option value="async" selected>One unit at a time (random order)</option><option value="sync">All units at once</option></select></label>
+      </div>
+      <p class="ax-help">The cue is the chosen pattern with that many units flipped at random; tap the cue to change it by hand. One unit at a time always settles, because each change lowers the energy. All at once can swing between two states for ever.</p>
+      <p class="ax-err hp-err" hidden></p>
+      <div class="hp-pair">
+        <div><h3>Cue</h3><div class="hp-cue hp-grid"></div></div>
+        <div><h3>Network state</h3><div class="hp-res hp-grid"></div></div>
+      </div>
+      <label style="margin-top:10px">Show sweep <span class="hp-sw-n"></span><input type="range" class="hp-sw" min="0" max="1" value="1" step="1" /></label>
+    </div>
+    <div class="ax-card hp-out">
+      <h2>Result</h2>
+      <p class="ax-big hp-big"></p>
+      <dl class="ax-facts hp-facts"></dl>
+      <canvas class="ax-fig hp-chart" style="margin-top:12px"></canvas>
+      <h3>Overlap with each stored pattern</h3>
+      <div class="ax-scroll"><table class="hp-tab"></table></div>
+      <p class="ax-help">Overlap is (1/N) Σ sᵢpᵢ: 1 means the state equals the pattern, −1 means its exact negative (which the network stores too), near 0 means unrelated.</p>
+      <Downloads class="hp-dl" />
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .nn .nn-tw { max-height: 320px; overflow-y: auto; }
+  .nn .hp-grid { display: grid; gap: 2px; width: min(100%, 280px); }
+  .nn .hp-grid button { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); cursor: pointer; }
+  .nn .hp-grid button.on { background: var(--ink); border-color: var(--ink); }
+  .nn .hp-grid button.diff { outline: 2px solid var(--bad); outline-offset: -2px; }
+  .nn .hp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 12px; margin-top: 12px; }
+  .nn .hp-pair h3 { margin: 0 0 6px; font-size: 15px; }
+  .nn .hp-stored { display: flex; flex-wrap: wrap; gap: 10px; }
+  .nn .hp-stored figure { margin: 0; display: grid; gap: 4px; justify-items: center; font-size: 13px; color: var(--muted); }
+  .nn .hp-mini { display: grid; gap: 1px; width: 56px; }
+  .nn .hp-mini i { aspect-ratio: 1; background: var(--line); }
+  .nn .hp-mini i.on { background: var(--ink); }
+  .nn .hp-stored button { font: inherit; font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; }
+</style>
+
+<script>
+  import { trainPerceptron, predict, rng, hebb, recall, addNoise, overlap, capacity, energy, type Pt, type W3, type Recall } from '../../lib/sci/nntoy';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.nn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f3 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) < 5e-13 ? 0 : x).toFixed(3).replace(/^-/, '−') : '–');
+  const WHAT: Record<string, string> = {
+    perc: 'A perceptron draws one straight line between two classes of points and nudges it after every mistake. It always finds a line when one exists (AND, OR), and never settles when none does (XOR).',
+    hop: 'A Hopfield network stores patterns in its connection weights and rebuilds a whole pattern from a damaged copy, by rolling downhill in energy to the nearest stored memory.',
+  };
+  const facts = (sel: string, list: [string, string][]) => { const dl = q(sel); dl.replaceChildren(); for (const [k, v] of list) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; dl.append(d); } };
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  // ---------- Perceptron ----------
+  const CORNERS: [number, number][] = [[0, 0], [0, 1], [1, 0], [1, 1]];
+  const PRESETS: Record<string, () => Pt[]> = {
+    and: () => CORNERS.map(([x, y]) => ({ x, y, c: (x & y) as 0 | 1 })),
+    or: () => CORNERS.map(([x, y]) => ({ x, y, c: (x | y) as 0 | 1 })),
+    xor: () => CORNERS.map(([x, y]) => ({ x, y, c: (x ^ y) as 0 | 1 })),
+    clouds: () => { const r = rng(11), out: Pt[] = []; for (let i = 0; i < 24; i++) { const c = (i % 2) as 0 | 1, cx = c ? 1.0 : 0.1, cy = c ? 0.9 : 0.2; out.push({ x: +(cx + (r() - 0.5) * 0.7).toFixed(2), y: +(cy + (r() - 0.5) * 0.7).toFixed(2), c }); } return out; },
+    none: () => [],
+  };
+  const LO = -0.5, HI = 1.5;
+  let pts: Pt[] = PRESETS.and(), newClass: 0 | 1 = 1, run: ReturnType<typeof trainPerceptron> | null = null, show = 0;
+  let pFig: Figure | null = null, pChart: Figure | null = null, pSections: Section[] = [];
+
+  function percFigure(w: W3): Figure {
+    const S = 400, M = 30, P = S - 2 * M, X = (v: number) => M + ((v - LO) / (HI - LO)) * P, Y = (v: number) => M + ((HI - v) / (HI - LO)) * P;
+    return {
+      w: S, h: S, alt: `Perceptron decision line with weights ${f3(w[0])}, ${f3(w[1])} and bias ${f3(w[2])}, on ${pts.length} points`,
+      draw: (ctx, _w, _h, pal: Palette) => {
+        // Shade the side the perceptron calls class 1.
+        const n = 80;
+        ctx.fillStyle = pal.red ? '#1c0000' : pal.bg === '#ffffff' ? '#e6eef8' : '#16233a';
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const x = LO + ((i + 0.5) / n) * (HI - LO), y = LO + ((j + 0.5) / n) * (HI - LO); if (predict(w, x, y)) ctx.fillRect(X(LO + (i / n) * (HI - LO)), Y(LO + ((j + 1) / n) * (HI - LO)), P / n + 0.5, P / n + 0.5); }
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (let v = LO; v <= HI + 1e-9; v += 0.5) { ctx.beginPath(); ctx.moveTo(X(v), Y(LO)); ctx.lineTo(X(v), Y(HI)); ctx.moveTo(X(LO), Y(v)); ctx.lineTo(X(HI), Y(v)); ctx.stroke(); }
+        ctx.strokeStyle = pal.line; ctx.strokeRect(M, M, P, P);
+        ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (const v of [0, 1]) ctx.fillText(String(v), X(v), M + P + 6);
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; for (const v of [0, 1]) ctx.fillText(String(v), M - 6, Y(v));
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('x₁', M + P / 2, M + P + 6); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('x₂', M - 6, M + P / 2);
+        // Decision line w1 x + w2 y + b = 0, clipped to the box.
+        const [a, b, c] = w, seg: [number, number][] = [];
+        if (Math.abs(b) > 1e-12) { for (const x of [LO, HI]) { const y = -(a * x + c) / b; if (y >= LO - 1e-9 && y <= HI + 1e-9) seg.push([x, y]); } }
+        if (Math.abs(a) > 1e-12) { for (const y of [LO, HI]) { const x = -(b * y + c) / a; if (x > LO + 1e-9 && x < HI - 1e-9) seg.push([x, y]); } }
+        if (seg.length >= 2) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(seg[0][0]), Y(seg[0][1])); ctx.lineTo(X(seg[1][0]), Y(seg[1][1])); ctx.stroke(); }
+        for (const p of pts) {
+          const ok = predict(w, p.x, p.y) === p.c, x = X(p.x), y = Y(p.y);
+          if (!ok) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 11, 0, 2 * Math.PI); ctx.stroke(); }
+          ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.fillStyle = p.c ? pal.ink : pal.bg;
+          ctx.beginPath(); if (p.c) ctx.arc(x, y, 6, 0, 2 * Math.PI); else ctx.rect(x - 5.5, y - 5.5, 11, 11); ctx.fill(); ctx.stroke();
+        }
+      },
+    };
+  }
+
+  function percCalc() {
+    const err = q('.pc-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pc-out').hidden = true; pSections = []; };
+    const rate = num(q<HTMLInputElement>('.pc-rate').value), max = num(q<HTMLInputElement>('.pc-max').value);
+    if (!(rate > 0 && rate <= 10)) return fail('Set a learning rate above 0 and up to 10, such as 0.1.');
+    if (!(Number.isInteger(max) && max >= 1 && max <= 1000)) return fail('Set the most epochs as a whole number from 1 to 1,000.');
+    if (!pts.length) return fail('Click the picture to add points, or pick a starting set.');
+    err.hidden = true; q('.pc-out').hidden = false;
+    const r0 = rng(5), init: W3 = q<HTMLSelectElement>('.pc-init').value === 'rand' ? [+(r0() - 0.5).toFixed(2), +(r0() - 0.5).toFixed(2), +(r0() - 0.5).toFixed(2)] : [0, 0, 0];
+    run = trainPerceptron(pts, rate, max, init);
+    const last = run.hist.length - 1, ep = q<HTMLInputElement>('.pc-ep');
+    ep.max = String(last); show = last; ep.value = String(last);
+    const n1 = pts.filter((p) => p.c === 1).length;
+    q('.pc-big').textContent = n1 === 0 || n1 === pts.length ? `Only one class: ${run.converged ? `settled after ${last} epoch${last === 1 ? '' : 's'}` : 'add points of the other class'}`
+      : run.converged ? `Converged after ${last} epoch${last === 1 ? '' : 's'}: all ${pts.length} points on the right side` : `Did not converge in ${last} epochs: ${run.hist[last].wrong} of ${pts.length} points still wrong`;
+    q('.pc-note').textContent = run.converged ? 'A line separates the two classes, so the perceptron convergence theorem promises training ends, whatever the learning rate.' : 'If no straight line can separate the two classes (as with XOR), the weights keep cycling and training never ends. A hidden layer of units, as in a multi-layer network, solves XOR.';
+    const hRows = run.hist.map((h) => [String(h.epoch), f3(h.w[0]), f3(h.w[1]), f3(h.w[2]), Number.isFinite(h.errors) ? String(h.errors) : '–', String(h.wrong)]);
+    table('.pc-tab', ['Epoch', 'w₁', 'w₂', 'Bias', 'Updates', 'Wrong after'], hRows);
+    pChart = chartFigure({ h: 260, xLabel: 'Epoch', yLabel: 'Points wrong', yMin: 0, xMin: 0, legend: 'none', series: [{ name: 'Wrong', x: run.hist.map((h) => h.epoch), y: run.hist.map((h) => h.wrong), mode: 'both', marker: 'circle', size: 3 }] }, 'Points wrong after each epoch');
+    paint(q<HTMLCanvasElement>('.pc-chart'), pChart);
+    percShow();
+  }
+  function percShow() {
+    if (!run) return;
+    const h = run.hist[show], [a, b, c] = h.w;
+    q('.pc-ep-n').textContent = `${show} of ${run.hist.length - 1}`;
+    const line = Math.abs(b) > 1e-12 ? `x₂ = ${f3(-a / b)} x₁ ${-c / b < 0 ? '−' : '+'} ${f3(Math.abs(c / b))}` : Math.abs(a) > 1e-12 ? `x₁ = ${f3(-c / a)}` : 'no line yet (weights are zero)';
+    const fl: [string, string][] = [['Weights w₁, w₂', `${f3(a)}, ${f3(b)}`], ['Bias', f3(c)], ['Decision line', line], ['Points wrong', `${h.wrong} of ${pts.length}`]];
+    facts('.pc-facts', fl);
+    pFig = percFigure(h.w); paint(q<HTMLCanvasElement>('.pc-fig'), pFig);
+    const hRows = run.hist.map((x) => [String(x.epoch), f3(x.w[0]), f3(x.w[1]), f3(x.w[2]), Number.isFinite(x.errors) ? String(x.errors) : '–', String(x.wrong)]);
+    pSections = [
+      { title: q('.pc-big').textContent!, text: [`${pts.length} points, learning rate ${q<HTMLInputElement>('.pc-rate').value}. Picture at epoch ${show}.`, q('.pc-note').textContent!], facts: fl, figure: pFig },
+      { title: 'Points wrong after each epoch', figure: pChart! },
+      { title: 'Epochs', table: { head: ['Epoch', 'w1', 'w2', 'Bias', 'Updates', 'Wrong after'], rows: hRows, align: ['r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Points', table: { head: ['x1', 'x2', 'Class'], rows: pts.map((p) => [String(p.x), String(p.y), String(p.c)]), align: ['r', 'r', 'r'] } },
+    ];
+  }
+  q('.pc-pre').addEventListener('change', () => { pts = PRESETS[q<HTMLSelectElement>('.pc-pre').value](); percCalc(); });
+  root.querySelectorAll<HTMLButtonElement>('.pc-cls button').forEach((b) => b.addEventListener('click', () => { newClass = Number(b.dataset.c) as 0 | 1; root.querySelectorAll('.pc-cls button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+  q('.pc-undo').addEventListener('click', () => { pts.pop(); percCalc(); });
+  q('.pc-clear').addEventListener('click', () => { pts = []; q<HTMLSelectElement>('.pc-pre').value = 'none'; percCalc(); q('.pc-out').hidden = false; paint(q<HTMLCanvasElement>('.pc-fig'), percFigure([0, 0, 0])); });
+  q('.pc-fig').addEventListener('click', (e) => {
+    const cv = q<HTMLCanvasElement>('.pc-fig'), r = cv.getBoundingClientRect(), S = 400, M = 30;
+    const px = ((e.clientX - r.left) / r.width) * S, py = ((e.clientY - r.top) / r.height) * S;
+    if (px < M || px > S - M || py < M || py > S - M) return;
+    pts.push({ x: +(LO + ((px - M) / (S - 2 * M)) * (HI - LO)).toFixed(2), y: +(HI - ((py - M) / (S - 2 * M)) * (HI - LO)).toFixed(2), c: newClass });
+    percCalc();
+  });
+  q('.pc-ep').addEventListener('input', () => { show = Number(q<HTMLInputElement>('.pc-ep').value); percShow(); });
+  q('.pc-step').addEventListener('click', () => { if (run && show < run.hist.length - 1) { show++; q<HTMLInputElement>('.pc-ep').value = String(show); percShow(); } });
+  q('.pc-back').addEventListener('click', () => { if (run && show > 0) { show--; q<HTMLInputElement>('.pc-ep').value = String(show); percShow(); } });
+  for (const c of ['.pc-rate', '.pc-max']) q(c).addEventListener('input', () => percCalc());
+  q('.pc-init').addEventListener('change', () => percCalc());
+  q('.pc-csv').addEventListener('click', () => { if (run) save(new TextEncoder().encode(toCsv([['epoch', 'w1', 'w2', 'bias', 'updates', 'wrong_after'], ...run.hist.map((h) => [h.epoch, h.w[0], h.w[1], h.w[2], Number.isFinite(h.errors) ? h.errors : '', h.wrong])])), 'perceptron-epochs.csv', 'text/csv'); });
+  wireDownloads(q('.pc-dl'), () => ({ title: 'Perceptron', subtitle: q('.pc-big').textContent ?? '', file: 'perceptron', sections: pSections }));
+
+  // ---------- Hopfield ----------
+  const SHAPES7 = ['#######...#......#......#......#......#......#...', '#......#......#......#......#......#......#######', '#.....##.....##.....#########.....##.....##.....#'];
+  let n = 7, stored: number[][] = SHAPES7.map((s) => [...s].map((c) => (c === '#' ? 1 : -1))), draft: number[] = new Array(49).fill(-1), cue: number[] = [];
+  let res: Recall | null = null, sweep = 0, randCount = 0, hChart: Figure | null = null, hSections: Section[] = [];
+
+  function grid(el: HTMLElement, s: number[], onTap?: (i: number) => void, ref?: number[]) {
+    el.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    if (el.children.length !== s.length) { el.replaceChildren(...s.map((_, i) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', `Unit ${i + 1}`); if (onTap) b.addEventListener('click', () => onTap(i)); else b.tabIndex = -1; return b; })); }
+    [...el.children].forEach((b, i) => { b.classList.toggle('on', s[i] > 0); b.classList.toggle('diff', !!ref && ref[i] !== s[i]); b.setAttribute('aria-pressed', String(s[i] > 0)); });
+  }
+  const mini = (p: number[]) => { const d = document.createElement('div'); d.className = 'hp-mini'; d.style.gridTemplateColumns = `repeat(${n}, 1fr)`; d.style.width = `${Math.max(42, n * 7)}px`; for (const v of p) { const i = document.createElement('i'); if (v > 0) i.className = 'on'; d.append(i); } return d; };
+
+  function drawStored() {
+    const box = q('.hp-stored'); box.replaceChildren();
+    stored.forEach((p, k) => { const f = document.createElement('figure'), cap = document.createElement('figcaption'), x = document.createElement('button'); cap.textContent = `Pattern ${k + 1}`; x.type = 'button'; x.textContent = 'Remove'; x.className = 'hp-del'; x.addEventListener('click', () => { stored.splice(k, 1); hopAll(); }); f.append(mini(p), cap, x); box.append(f); });
+    const N = n * n, cap = capacity(N);
+    q('.hp-count').textContent = `(${stored.length})`;
+    q('.hp-cap').textContent = `With ${N} units, a Hopfield network holds about 0.138 × ${N} ≈ ${sig(cap, 2)} random patterns before recall breaks down; patterns that look alike interfere sooner. ${stored.length > cap ? `You have ${stored.length}, above that limit, so expect mixed-up recall.` : ''}`;
+    const sel = q<HTMLSelectElement>('.hp-src'), old = sel.value;
+    sel.replaceChildren(...stored.map((_, k) => new Option(`Pattern ${k + 1}`, String(k))));
+    if (old && Number(old) < stored.length) sel.value = old;
+  }
+  function makeCue() {
+    const k = Number(q<HTMLSelectElement>('.hp-src').value), flips = num(q<HTMLInputElement>('.hp-flip').value), seed = num(q<HTMLInputElement>('.hp-seed').value);
+    if (!stored.length) { cue = []; return 'Store at least one pattern first.'; }
+    if (!(Number.isInteger(flips) && flips >= 0 && flips <= n * n)) return `Flip a whole number of units from 0 to ${n * n}.`;
+    if (!Number.isInteger(seed)) return 'The noise seed must be a whole number.';
+    cue = addNoise(stored[k], flips, seed);
+    return '';
+  }
+  function hopRecall() {
+    const err = q('.hp-err');
+    if (!stored.length || cue.length !== n * n) { err.textContent = 'Store at least one pattern first.'; err.hidden = false; q('.hp-out').hidden = true; res = null; hSections = []; grid(q('.hp-cue'), new Array(n * n).fill(-1)); grid(q('.hp-res'), new Array(n * n).fill(-1)); return; }
+    err.hidden = true; q('.hp-out').hidden = false;
+    const W = hebb(stored), mode = q<HTMLSelectElement>('.hp-upd').value as 'async' | 'sync';
+    res = recall(W, cue, mode, 1);
+    const sw = q<HTMLInputElement>('.hp-sw'); sw.max = String(res.sweeps); sweep = res.sweeps; sw.value = String(sweep);
+    const fin = res.states[res.sweeps], m = stored.map((p) => overlap(fin, p)), best = m.reduce((b, v, i) => (Math.abs(v) > Math.abs(m[b]) ? i : b), 0);
+    const src = Number(q<HTMLSelectElement>('.hp-src').value);
+    const what = m[best] === 1 ? `Recalled pattern ${best + 1} exactly` : m[best] === -1 ? `Settled on the negative of pattern ${best + 1}` : `Settled on a mixed (spurious) state, closest to pattern ${best + 1}`;
+    q('.hp-big').textContent = res.cycle ? `Stuck swinging between two states after ${res.sweeps} sweeps` : `${what} after ${res.sweeps} sweep${res.sweeps === 1 ? '' : 's'}`;
+    const wrong = fin.filter((v, i) => v !== stored[src][i]).length, cueWrong = cue.filter((v, i) => v !== stored[src][i]).length;
+    const fl: [string, string][] = [
+      ['Units wrong vs pattern ' + (src + 1), `${cueWrong} in the cue → ${wrong} at the end`],
+      ['Energy', `${f3(res.energies[0])} → ${f3(res.energies[res.sweeps])}`],
+      ['Energy of pattern ' + (src + 1), f3(energy(W, stored[src]))],
+      ['Units changed', String(res.flips.reduce((a, b) => a + b, 0))],
+      ['Stored, units', `${stored.length}, ${n * n}`],
+    ];
+    facts('.hp-facts', fl);
+    const rows = stored.map((p, k) => [`Pattern ${k + 1}`, f3(overlap(cue, p)), f3(m[k])]);
+    table('.hp-tab', ['Pattern', 'Cue overlap', 'Final overlap'], rows);
+    hChart = chartFigure({ h: 240, xLabel: 'Sweep (every unit updated once)', yLabel: 'Energy', xMin: 0, legend: 'none', series: [{ name: 'Energy', x: res.energies.map((_, i) => i), y: res.energies, mode: 'both', marker: 'circle', size: 3 }] }, 'Energy after each sweep');
+    paint(q<HTMLCanvasElement>('.hp-chart'), hChart);
+    grid(q('.hp-cue'), cue, (i) => { cue[i] = -cue[i]; hopRecall(); }, stored[src]);
+    hopShow();
+    const pic = (s: number[]): Figure => ({ w: 18 * n + 2, h: 18 * n + 2, alt: 'Pattern grid', draw: (ctx, _w, _h, pal) => { s.forEach((v, i) => { ctx.fillStyle = v > 0 ? pal.ink : pal.grid; ctx.fillRect(1 + (i % n) * 18, 1 + Math.floor(i / n) * 18, 16, 16); }); } });
+    hSections = [
+      { title: q('.hp-big').textContent!, text: [`Hopfield network of ${n * n} units with ${stored.length} stored patterns (Hebbian weights), updated ${mode === 'async' ? 'one unit at a time in random order' : 'all at once'}.`], facts: fl },
+      { title: 'Cue', figure: pic(cue) }, { title: 'Final state', figure: pic(fin) },
+      { title: 'Energy after each sweep', figure: hChart },
+      { title: 'Overlap with each stored pattern', table: { head: ['Pattern', 'Cue overlap', 'Final overlap'], rows, align: ['l', 'r', 'r'] } },
+    ];
+  }
+  function hopShow() {
+    if (!res) return;
+    q('.hp-sw-n').textContent = `${sweep} of ${res.sweeps}`;
+    grid(q('.hp-res'), res.states[sweep], undefined, stored[Number(q<HTMLSelectElement>('.hp-src').value)]);
+  }
+  function hopAll() {
+    drawStored();
+    const m = makeCue(), err = q('.hp-err');
+    if (m) { err.textContent = m; err.hidden = false; q('.hp-out').hidden = true; res = null; hSections = []; return; }
+    hopRecall();
+  }
+  const drawEd = () => grid(q('.hp-ed'), draft, (i) => { draft[i] = -draft[i]; drawEd(); });
+  q('.hp-n').addEventListener('change', () => {
+    n = Number(q<HTMLSelectElement>('.hp-n').value);
+    stored = n === 7 ? SHAPES7.map((s) => [...s].map((c) => (c === '#' ? 1 : -1))) : [];
+    draft = new Array(n * n).fill(-1); q('.hp-ed').replaceChildren(); q('.hp-cue').replaceChildren(); q('.hp-res').replaceChildren(); drawEd(); hopAll();
+  });
+  q('.hp-store').addEventListener('click', () => { if (draft.every((v) => v < 0)) { q('.hp-err').textContent = 'Draw a pattern first: tap some squares.'; q('.hp-err').hidden = false; return; } stored.push([...draft]); hopAll(); });
+  q('.hp-rand').addEventListener('click', () => { const r = rng(1000 + ++randCount); draft = draft.map(() => (r() < 0.5 ? 1 : -1)); drawEd(); });
+  q('.hp-blank').addEventListener('click', () => { draft = draft.map(() => -1); drawEd(); });
+  for (const c of ['.hp-flip', '.hp-seed']) q(c).addEventListener('input', hopAll);
+  q('.hp-src').addEventListener('change', hopAll);
+  q('.hp-upd').addEventListener('change', hopRecall);
+  q('.hp-sw').addEventListener('input', () => { sweep = Number(q<HTMLInputElement>('.hp-sw').value); hopShow(); });
+  wireDownloads(q('.hp-dl'), () => ({ title: 'Hopfield network', subtitle: q('.hp-big').textContent ?? '', file: 'hopfield-network', sections: hSections }));
+
+  function setMode(m: string) {
+    root.querySelectorAll<HTMLButtonElement>('.nn-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.nn-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.nn-what').textContent = WHAT[m];
+    if (m === 'hop') { if (pChart) paint(q<HTMLCanvasElement>('.pc-chart'), pChart); if (hChart) paint(q<HTMLCanvasElement>('.hp-chart'), hChart); }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.nn-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  document.addEventListener('fibub:theme', () => { if (pFig) paint(q<HTMLCanvasElement>('.pc-fig'), pFig); if (pChart) paint(q<HTMLCanvasElement>('.pc-chart'), pChart); if (hChart) paint(q<HTMLCanvasElement>('.hp-chart'), hChart); });
+  setMode('perc');
+  percCalc();
+  drawEd(); hopAll();
+</script>
