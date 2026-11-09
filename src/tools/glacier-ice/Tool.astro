@@ -1,0 +1,274 @@
+---
+// Glacier and ice: mass balance from stakes and elevation bands (ELA, AAR), Glen's flow law down a slope
+// (basal shear stress, velocity through the ice), and Stefan's active-layer thaw depth. Everything stays in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gli">
+  <div class="ax-seg gl-tab" role="group" aria-label="Part"><button type="button" data-t="mb" aria-pressed="true">Mass balance</button><button type="button" data-t="flow" aria-pressed="false">Ice flow</button><button type="button" data-t="al" aria-pressed="false">Active layer</button></div>
+
+  <section class="gl-p" data-p="mb">
+    <div class="ax-card">
+      <h2>Stakes</h2>
+      <p class="ax-help" style="margin-top:0">One stake per line: <b>name, elevation (m)</b>, then the <b>surface height change (m)</b> over the balance year (minus for melt, plus for snow left over) and the <b>density</b> of what was lost or gained (kg/m³; blank means ice, 900). Or switch below to give each stake's balance in metres of water equivalent.</p>
+      <textarea class="gl-st" rows="7" spellcheck="false" aria-label="Stakes"></textarea>
+      <DataFile target=".gl-st" maxMB={2} maxCols={10} maxRows={2000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Stake values are <select class="gl-mode"><option value="dh">Height change and density</option><option value="we">Balance in m w.e.</option></select></label>
+        <label>Balance profile <select class="gl-prof"><option value="join">Join the stakes</option><option value="linear">Straight-line fit</option></select></label>
+      </div>
+      <p class="ax-help">Point balance b = height change × density ÷ 1000 (water). "Join the stakes" draws straight lines between stakes (stakes at the same height are averaged) and carries the end lines on past the lowest and highest stake; "straight-line fit" uses one least-squares line for the whole glacier.</p>
+      <h2 style="margin-top:16px">Elevation bands</h2>
+      <p class="ax-help" style="margin-top:0">One band per line: <b>bottom (m), top (m), area (km²)</b>, from a map or a digital elevation model.</p>
+      <textarea class="gl-bd" rows="7" spellcheck="false" aria-label="Elevation bands"></textarea>
+      <DataFile target=".gl-bd" maxMB={2} maxCols={10} maxRows={2000} />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gl-ex">Use the example</button><button type="button" class="btn secondary small gl-clear">Start empty</button></div>
+      <p class="ax-help gl-mnote" hidden></p>
+      <p class="ax-err gl-merr" hidden></p>
+    </div>
+    <div class="ax-card gl-mout" style="margin-top:14px">
+      <h2>Glacier-wide balance</h2>
+      <dl class="ax-facts gl-mfacts"></dl>
+      <p class="ax-help gl-elanote" hidden></p>
+      <canvas class="ax-fig gl-mfig" style="margin-top:12px"></canvas>
+      <p class="ax-help">Dots: stakes. Line: the balance profile used. Grey steps: the area of each band, drawn from the left edge (the widest band's area is in the legend). Dashed: zero balance and the equilibrium line.</p>
+      <h3 style="margin:14px 0 6px">By band</h3>
+      <div class="ax-scroll"><table class="gl-btab"></table></div>
+      <h3 style="margin:14px 0 6px">Stakes</h3>
+      <div class="ax-scroll"><table class="gl-stab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gl-bcsv">Download bands CSV</button><button type="button" class="btn secondary small gl-scsv">Download stakes CSV</button></div>
+    </div>
+  </section>
+
+  <section class="gl-p" data-p="flow" hidden>
+    <div class="ax-card">
+      <h2>Ice slab on a slope</h2>
+      <div class="ax-grid">
+        <label>Ice thickness H (m) <input class="gl-H" inputmode="decimal" value="200" /></label>
+        <label>Surface slope α (°) <input class="gl-a" inputmode="decimal" value="3" /></label>
+        <label>Ice density ρ (kg/m³) <input class="gl-rho" inputmode="decimal" value="917" /></label>
+        <label>Gravity g (m/s²) <input class="gl-g" inputmode="decimal" value="9.81" /></label>
+        <label>Rate factor A (Pa⁻ⁿ s⁻¹) <input class="gl-A" inputmode="decimal" value="2e-24" /></label>
+        <label>Exponent n <input class="gl-n" inputmode="decimal" value="3" /></label>
+        <label>Shape factor f <input class="gl-f" inputmode="decimal" value="1" /></label>
+        <label>Sliding at the bed (m/yr) <input class="gl-ub" inputmode="decimal" value="0" /></label>
+      </div>
+      <p class="ax-help">A sets how soft the ice is: the starting value is a rounded, typical figure for ice near its melting point; colder ice is much stiffer (A ten to a hundred times smaller), so put in your own. n = 3 is the usual Glen exponent. The shape factor (1 for a wide ice sheet or slab, about 0.5 to 0.9 in a valley) takes some of the weight onto the valley walls. Sliding is added to every depth.</p>
+      <p class="ax-err gl-ferr" hidden></p>
+    </div>
+    <div class="ax-card gl-fout" style="margin-top:14px">
+      <h2>Stress and flow</h2>
+      <dl class="ax-facts gl-ffacts"></dl>
+      <canvas class="ax-fig gl-ffig" style="margin-top:12px"></canvas>
+      <p class="ax-help">Speed through the ice from the bed (0) to the surface (H). Almost all the shearing happens near the bed, where the stress is largest.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gl-fcsv">Download profile CSV</button></div>
+    </div>
+  </section>
+
+  <section class="gl-p" data-p="al" hidden>
+    <div class="ax-card">
+      <h2>Thaw season</h2>
+      <div class="ax-grid">
+        <label>Thawing index from <select class="gl-imode"><option value="months">12 monthly mean air temperatures</option><option value="value">A value I type</option></select></label>
+        <label class="gl-iw" hidden>Thawing index (°C·days) <input class="gl-I" inputmode="decimal" value="1000" /></label>
+        <label>n-factor (surface ÷ air) <input class="gl-nt" inputmode="decimal" value="1" /></label>
+        <label>Thawed soil conductivity k (W/m/K) <input class="gl-k" inputmode="decimal" value="1.2" /></label>
+        <label>Water (ice) content θ (m³/m³) <input class="gl-th" inputmode="decimal" value="0.3" /></label>
+      </div>
+      <label class="gl-mw" style="display:block;margin-top:10px">Monthly mean air temperatures, January to December (°C)
+        <input class="gl-mon" value="-28, -27, -23, -14, -3, 7, 11, 8, 2, -9, -20, -25" />
+      </label>
+      <p class="ax-help">Thawing index: the sum of the degrees above 0 °C over the thaw season (here each month's mean above 0 times its days). The n-factor turns air into ground-surface degree days (about 0.5 to 1.3 depending on cover; 1 if you already have surface values). θ is the share of the soil volume that is water when thawed. The example temperatures are made up.</p>
+      <p class="ax-err gl-aerr" hidden></p>
+    </div>
+    <div class="ax-card gl-aout" style="margin-top:14px">
+      <h2>Active-layer depth (Stefan)</h2>
+      <dl class="ax-facts gl-afacts"></dl>
+      <canvas class="ax-fig gl-afig" style="margin-top:12px"></canvas>
+      <p class="ax-help">Stefan's equation counts only the heat needed to melt the ground ice and ignores the heat stored in warming the soil, so it gives an upper estimate; real thaw depths also depend on snow, moss, slope and water flow.</p>
+    </div>
+  </section>
+
+  <div class="ax-card" style="margin-top:14px"><h2>Report</h2><p class="ax-help" style="margin-top:0">All three parts with their current values.</p><Downloads /></div>
+</div>
+
+<style is:global>
+  .gli .gl-tab { margin-bottom: 12px; }
+  .gli table td, .gli table th { white-space: nowrap; padding: 6px 7px; }
+  .gli table td:not(:first-child), .gli table th:not(:first-child) { text-align: right; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { pointBalance, massBalance, flow, velocityAt, stefanDepth, thawIndex, knots, EX_STAKES, EX_BANDS, LF, type Stake, type Band, type Profile, type MassBalance, type Flow, type FlowResult } from '../../lib/sci/glacier';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gli')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const mm = (x: string) => x.replace(/-/g, '−');
+  const f2 = (x: number, d = 2) => mm(x.toFixed(d));
+  const fact = (k: string, v: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const fill = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); } return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.append(h, b);
+  };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const dl = (text: string, name: string) => save(new Blob(['﻿' + text], { type: 'text/csv' }), name, 'text/csv');
+
+  // ---- Tabs
+  q('.gl-tab').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    for (const x of root.querySelectorAll<HTMLButtonElement>('.gl-tab button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const p of root.querySelectorAll<HTMLElement>('.gl-p')) p.hidden = p.dataset.p !== b.dataset.t;
+    repaint();
+  });
+
+  // ---- Mass balance
+  let mb: MassBalance | null = null, stakes: (Stake & { dh?: number; rho?: number })[] = [], mbFig: Figure | null = null, mbSec: Section[] = [];
+  const body = (rows: string[][], col: number) => (rows.length && !Number.isFinite(num(rows[0][col])) ? rows.slice(1) : rows);
+  function mbFail(msg: string) { const e = q('.gl-merr'); e.textContent = msg; e.hidden = false; q('.gl-mout').hidden = true; mb = null; mbSec = []; }
+  function calcMb() {
+    const mode = q<HTMLSelectElement>('.gl-mode').value, kind = q<HTMLSelectElement>('.gl-prof').value as Profile;
+    const notes: string[] = [];
+    stakes = [];
+    let bad = 0, dflt = 0;
+    for (const r of body(parseTable(q<HTMLTextAreaElement>('.gl-st').value), 1)) {
+      const z = num(r[1]), v = num(r[2]);
+      if (!Number.isFinite(z) || !Number.isFinite(v)) { bad++; continue; }
+      if (mode === 'we') { stakes.push({ name: r[0] || `Stake ${stakes.length + 1}`, z, b: v }); continue; }
+      let rho = num(r[3]);
+      if (r[3] == null || r[3] === '') { rho = 900; dflt++; }
+      if (!(rho > 0 && rho <= 1000)) { bad++; continue; }
+      stakes.push({ name: r[0] || `Stake ${stakes.length + 1}`, z, b: pointBalance(v, rho), dh: v, rho });
+    }
+    if (bad) notes.push(`${bad} stake line${bad > 1 ? 's' : ''} without a readable elevation, value or density (above 0, at most 1000) ${bad > 1 ? 'were' : 'was'} skipped.`);
+    if (dflt) notes.push(`${dflt} stake${dflt > 1 ? 's have' : ' has'} no density; ice (900 kg/m³) was used.`);
+    const bands: Band[] = [];
+    let bbad = 0;
+    for (const r of body(parseTable(q<HTMLTextAreaElement>('.gl-bd').value), 0)) {
+      const lo = num(r[0]), hi = num(r[1]), a = num(r[2]);
+      if (![lo, hi, a].every(Number.isFinite)) { bbad++; continue; }
+      bands.push({ lo, hi, area: a });
+    }
+    if (bbad) notes.push(`${bbad} band line${bbad > 1 ? 's' : ''} without three numbers ${bbad > 1 ? 'were' : 'was'} skipped.`);
+    const lo = Math.min(...bands.map((b) => b.lo)), hi = Math.max(...bands.map((b) => b.hi));
+    const out = stakes.filter((s) => s.z < lo || s.z > hi).length;
+    if (bands.length && out) notes.push(`${out} stake${out > 1 ? 's are' : ' is'} outside the bands (${lo} to ${hi} m); ${out > 1 ? 'they still shape' : 'it still shapes'} the profile.`);
+    const n = q('.gl-mnote'); n.textContent = notes.join(' '); n.hidden = !notes.length;
+    try { mb = massBalance(stakes, bands, kind); } catch (e) { return mbFail((e as Error).message); }
+    q('.gl-merr').hidden = true; q('.gl-mout').hidden = false;
+    const m = mb;
+    const facts: [string, string, string?][] = [
+      ['Glacier-wide balance', `${f2(m.B)} m w.e.`, m.B < 0 ? 'the glacier lost mass' : 'the glacier gained mass'],
+      ['Volume change', `${mm(sig(m.volume, 3))} million m³ w.e.`, `${mm(sig(m.volume, 3))} Mt of water over ${sig(m.area, 3)} km²`],
+      ['Equilibrium line (ELA)', m.ela == null ? 'none' : `${Math.round(m.ela).toLocaleString('en')} m`, 'where the profile crosses 0'],
+      ['Accumulation-area ratio', `${(100 * m.aar!).toFixed(0)} %`, 'share of the area with a positive balance'],
+      ['Balance gradient', `${f2(100 * m.grad, 2)} m w.e. per 100 m`, `straight-line fit, r² ${m.r2.toFixed(3)}`],
+      ['Stakes and bands', `${stakes.length} and ${m.bands.length}`, `${lo.toLocaleString('en')} to ${hi.toLocaleString('en')} m`],
+    ];
+    q('.gl-mfacts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const en = q('.gl-elanote'); en.textContent = m.elaNote; en.hidden = !m.elaNote;
+    fill(q('.gl-btab'), ['Band (m)', 'Area (km²)', 'Balance (m w.e.)', 'Volume (10⁶ m³ w.e.)', 'Accumulation area (km²)'], m.bands.map((b) => [`${b.lo}–${b.hi}`, b.area.toFixed(2), f2(b.b, 3), f2(b.vol, 3), b.above.toFixed(2)]));
+    fill(q('.gl-stab'), mode === 'we' ? ['Stake', 'Elevation (m)', 'Balance (m w.e.)'] : ['Stake', 'Elevation (m)', 'Change (m)', 'Density (kg/m³)', 'Balance (m w.e.)'],
+      stakes.map((s) => (mode === 'we' ? [s.name, String(s.z), f2(s.b, 3)] : [s.name, String(s.z), f2(s.dh!), String(s.rho), f2(s.b, 3)])));
+    // Figure: balance (x) against elevation (y), with band areas as bars scaled onto the balance axis.
+    const bmin = Math.min(...stakes.map((s) => s.b), ...m.bands.map((b) => b.b), 0), bmax = Math.max(...stakes.map((s) => s.b), ...m.bands.map((b) => b.b), 0);
+    const amax = Math.max(...m.bands.map((b) => b.area)), span = bmax - bmin || 1, scale = (0.35 * span) / amax;
+    const zs = [lo, ...(kind === 'join' ? knots(stakes).map((k) => k.z).filter((z) => z > lo && z < hi) : []), hi];
+    // Hypsometry as a staircase outline from the left edge: each band's area as a bar's length.
+    const hx: number[] = [bmin], hy: number[] = [m.bands[0].lo];
+    for (const b of m.bands) { hx.push(bmin + b.area * scale, bmin + b.area * scale); hy.push(b.lo, b.hi); }
+    hx.push(bmin); hy.push(m.bands[m.bands.length - 1].hi);
+    const chart = (pal: Palette) => chartFigure({
+      w: 640, h: 420, xLabel: 'Balance (m water equivalent)', yLabel: 'Elevation (m)', legend: 'below',
+      colors: pal.red ? ['#5a0000', '#c00000', '#a30000'] : pal.bg === '#ffffff' ? ['#9a9a9a', '#0072B2', '#D55E00'] : ['#6a6a6a', '#56B4E9', '#E69F00'],
+      series: [
+        { name: `Band area (widest bar ${sig(amax, 3)} km²)`, x: hx, y: hy, mode: 'line', width: 1 },
+        { name: 'Profile', x: zs.map((z) => m.prof(z)), y: zs, mode: 'line', width: 2 },
+        { name: 'Stakes', x: stakes.map((s) => s.b), y: stakes.map((s) => s.z), mode: 'points', marker: 'circle' },
+      ],
+      marks: [{ kind: 'vline', at: 0, dash: [2, 3] }, ...(m.ela != null ? [{ kind: 'hline' as const, at: m.ela, dash: [6, 4], label: `ELA ${Math.round(m.ela)} m` }] : [])],
+    }, '');
+    mbFig = { w: 640, h: 420, alt: `Mass-balance profile: glacier-wide ${f2(m.B)} m w.e., ELA ${m.ela == null ? 'none' : Math.round(m.ela) + ' m'}`, draw: (ctx, w, h, pal) => chart(pal).draw(ctx, w, h, pal) };
+    paint(q<HTMLCanvasElement>('.gl-mfig'), mbFig);
+    mbSec = [
+      { title: 'Mass balance', facts: factsOf('.gl-mfacts'), text: m.elaNote ? [m.elaNote] : undefined },
+      { title: 'Balance profile', figure: mbFig },
+      { title: 'By band', table: { head: ['Band (m)', 'Area (km²)', 'Balance (m w.e.)', 'Volume (10⁶ m³ w.e.)', 'Accumulation area (km²)'], rows: m.bands.map((b) => [`${b.lo}–${b.hi}`, b.area.toFixed(2), f2(b.b, 3), f2(b.vol, 3), b.above.toFixed(2)]) } },
+    ];
+  }
+
+  // ---- Flow
+  let fl: FlowResult | null = null, fp: Flow | null = null, flFig: Figure | null = null, flSec: Section[] = [];
+  function calcFlow() {
+    fp = { H: val('.gl-H'), slopeDeg: val('.gl-a'), rho: val('.gl-rho'), g: val('.gl-g'), A: val('.gl-A'), n: val('.gl-n'), f: val('.gl-f'), ub: val('.gl-ub') };
+    try { fl = flow(fp); } catch (e) { const er = q('.gl-ferr'); er.textContent = (e as Error).message; er.hidden = false; q('.gl-fout').hidden = true; fl = null; flSec = []; return; }
+    q('.gl-ferr').hidden = true; q('.gl-fout').hidden = false;
+    const r = fl, p = fp;
+    const facts: [string, string, string?][] = [
+      ['Basal shear stress τb', `${sig(r.tau / 1000, 4)} kPa`, 'f ρ g H sin α; most glaciers 50 to 150 kPa'],
+      ['Surface speed', `${sig(r.us, 4)} m/yr`, p.ub > 0 ? `${sig(r.usDef, 4)} from deformation + ${sig(p.ub, 4)} sliding` : 'all from deformation'],
+      ['Column mean speed', `${sig(r.umean, 4)} m/yr`, `deformation part is (n+1)/(n+2) of the surface value`],
+      ['Ice flux per metre width', `${sig(r.q, 4)} m²/yr`, 'mean speed × thickness'],
+      ['Shear strain rate at the bed', `${sig(r.strainBed, 3)} per year`, 'A τbⁿ'],
+    ];
+    q('.gl-ffacts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const zs = Array.from({ length: 81 }, (_, i) => (p.H * i) / 80), us = zs.map((z) => velocityAt(p, z));
+    flFig = chartFigure({ w: 640, h: 380, xLabel: 'Speed (m/yr)', yLabel: 'Height above the bed (m)', legend: 'none', xMin: 0, yMin: 0, yMax: p.H, series: [{ name: 'Speed', x: us, y: zs, mode: 'line', width: 2 }] }, `Velocity profile through ${sig(p.H, 4)} m of ice: ${sig(r.us, 4)} m/yr at the surface`);
+    paint(q<HTMLCanvasElement>('.gl-ffig'), flFig);
+    flSec = [{ title: 'Ice flow (Glen\'s flow law)', facts: [['Thickness, slope', `${sig(p.H, 4)} m, ${sig(p.slopeDeg, 4)}°`], ['A, n, f', `${p.A} Pa⁻ⁿ s⁻¹, ${p.n}, ${p.f}`], ...factsOf('.gl-ffacts')] }, { title: 'Velocity profile', figure: flFig }];
+  }
+
+  // ---- Active layer
+  let alFig: Figure | null = null, alSec: Section[] = [];
+  function calcAl() {
+    const mode = q<HTMLSelectElement>('.gl-imode').value;
+    q('.gl-iw').hidden = mode !== 'value'; q('.gl-mw').hidden = mode !== 'months';
+    const err = q('.gl-aerr');
+    try {
+      const mon = q<HTMLInputElement>('.gl-mon').value.split(/[,;\s]+/).filter(Boolean).map(num);
+      const I = mode === 'value' ? val('.gl-I') : thawIndex(mon);
+      const p = { I, nt: val('.gl-nt'), k: val('.gl-k'), theta: val('.gl-th') };
+      const Z = stefanDepth(p);
+      err.hidden = true; q('.gl-aout').hidden = false;
+      const facts: [string, string, string?][] = [
+        ['Active-layer depth', `${sig(Z, 3)} m`, 'deepest seasonal thaw, Stefan estimate'],
+        ['Thawing index', `${Math.round(I).toLocaleString('en')} °C·days`, mode === 'months' ? 'from the monthly means' : 'as typed'],
+        ['Surface thawing index', `${Math.round(I * p.nt).toLocaleString('en')} °C·days`, `× n-factor ${p.nt}`],
+        ['Latent heat to thaw', `${sig((1000 * LF * p.theta) / 1e6, 3)} MJ/m³`, 'water density × latent heat × θ'],
+      ];
+      q('.gl-afacts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+      const Imax = Math.max(500, Math.ceil((I * 1.6) / 500) * 500), xs = Array.from({ length: 101 }, (_, i) => (Imax * i) / 100);
+      alFig = chartFigure({ w: 640, h: 340, xLabel: 'Thawing index (°C·days)', yLabel: 'Thaw depth (m)', legend: 'none', xMin: 0, yMin: 0, series: [{ name: 'Stefan', x: xs, y: xs.map((x) => stefanDepth({ ...p, I: x })), mode: 'line', width: 2 }, { name: 'This site', x: [I], y: [Z], mode: 'points', marker: 'circle', size: 6 }] }, `Thaw depth against thawing index; this site ${sig(Z, 3)} m`);
+      paint(q<HTMLCanvasElement>('.gl-afig'), alFig);
+      alSec = [{ title: 'Active layer (Stefan)', facts: [...factsOf('.gl-afacts'), ['Conductivity, water content', `${p.k} W/m/K, ${p.theta}`]] }, { title: 'Thaw depth curve', figure: alFig }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.gl-aout').hidden = true; alSec = []; alFig = null; }
+  }
+
+  function repaint() {
+    if (mbFig && !q('.gl-mout').hidden) paint(q<HTMLCanvasElement>('.gl-mfig'), mbFig);
+    if (flFig && !q('.gl-fout').hidden) paint(q<HTMLCanvasElement>('.gl-ffig'), flFig);
+    if (alFig && !q('.gl-aout').hidden) paint(q<HTMLCanvasElement>('.gl-afig'), alFig);
+  }
+
+  let tm = 0;
+  const later = (fn: () => void) => () => { clearTimeout(tm); tm = window.setTimeout(fn, 300); };
+  for (const c of ['.gl-st', '.gl-bd']) q(c).addEventListener('input', later(calcMb));
+  for (const c of ['.gl-mode', '.gl-prof']) q(c).addEventListener('change', calcMb);
+  q('.gl-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.gl-st').value = EX_STAKES; q<HTMLTextAreaElement>('.gl-bd').value = EX_BANDS; q<HTMLSelectElement>('.gl-mode').value = 'dh'; calcMb(); });
+  q('.gl-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.gl-st').value = ''; q<HTMLTextAreaElement>('.gl-bd').value = ''; calcMb(); });
+  for (const c of ['.gl-H', '.gl-a', '.gl-rho', '.gl-g', '.gl-A', '.gl-n', '.gl-f', '.gl-ub']) q(c).addEventListener('input', later(calcFlow));
+  for (const c of ['.gl-I', '.gl-nt', '.gl-k', '.gl-th', '.gl-mon']) q(c).addEventListener('input', later(calcAl));
+  q('.gl-imode').addEventListener('change', calcAl);
+  q('.gl-bcsv').addEventListener('click', () => { if (!mb) return; dl(csv([['Bottom (m)', 'Top (m)', 'Area (km2)', 'Balance (m w.e.)', 'Volume (1e6 m3 w.e.)', 'Accumulation area (km2)'], ...mb.bands.map((b) => [b.lo, b.hi, b.area, +b.b.toFixed(4), +b.vol.toFixed(4), +b.above.toFixed(4)]), ['Glacier', '', +mb.area.toFixed(4), +mb.B.toFixed(4), +mb.volume.toFixed(4), +(mb.aar! * mb.area).toFixed(4)]]), 'glacier-bands.csv'); });
+  q('.gl-scsv').addEventListener('click', () => { if (!mb) return; dl(csv([['Stake', 'Elevation (m)', 'Change (m)', 'Density (kg/m3)', 'Balance (m w.e.)', 'Profile at stake (m w.e.)'], ...stakes.map((s) => [s.name, s.z, s.dh ?? '', s.rho ?? '', +s.b.toFixed(4), +mb!.prof(s.z).toFixed(4)])]), 'glacier-stakes.csv'); });
+  q('.gl-fcsv').addEventListener('click', () => { if (!fl || !fp) return; const p = fp; dl(csv([['Height above bed (m)', 'Depth below surface (m)', 'Shear stress (kPa)', 'Speed (m/yr)'], ...Array.from({ length: 21 }, (_, i) => { const z = (p.H * i) / 20; return [+z.toFixed(3), +(p.H - z).toFixed(3), +((p.f * p.rho * p.g * (p.H - z) * Math.sin((p.slopeDeg * Math.PI) / 180)) / 1000).toFixed(4), +velocityAt(p, z).toFixed(4)]; })]), 'ice-velocity-profile.csv'); });
+  document.addEventListener('fibub:theme', repaint);
+  q<HTMLTextAreaElement>('.gl-st').value = EX_STAKES; q<HTMLTextAreaElement>('.gl-bd').value = EX_BANDS;
+  calcMb(); calcFlow(); calcAl();
+  wireDownloads(q('.dl'), () => ({ title: 'Glacier and ice', subtitle: 'Mass balance, ice flow and active layer', file: 'glacier-ice', sections: [...mbSec, ...flSec, ...alSec] }));
+</script>
