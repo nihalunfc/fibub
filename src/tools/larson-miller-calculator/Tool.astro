@@ -1,0 +1,206 @@
+---
+// Creep: Larson-Miller master curve from rupture data (with Sherby-Dorn and Manson-Haferd for comparison),
+// rupture life and allowable stress predictions, and a Norton creep law fit from minimum creep rates.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleRupture, exampleNorton } from '../../lib/sci/creep';
+const rup = 'temperature_C\tstress_MPa\trupture_h\n' + exampleRupture().map((p) => `${p.T}\t${p.s}\t${p.t}`).join('\n');
+const nor = 'stress_MPa\ttemperature_C\tmin_creep_rate_per_h\n' + exampleNorton().map((p) => `${p.s}\t${p.T}\t${p.rate}`).join('\n');
+---
+<div class="ax lmc">
+  <div class="ax-card">
+    <h2>Creep-rupture data</h2>
+    <label class="lmc-lab">Temperature, stress and rupture time in hours, one test per line <textarea class="lmc-data" rows="7" spellcheck="false">{rup}</textarea></label>
+    <DataFile target=".lmc-data" maxCols={3} label="Open a file (3 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Temperatures in <select class="lmc-tu"><option value="C">°C</option><option value="K">K</option></select></label>
+      <label>Polynomial in log σ <select class="lmc-deg"><option value="1">straight line</option><option value="2" selected>quadratic</option><option value="3">cubic</option></select></label>
+      <label>Larson-Miller C <input class="lmc-c" inputmode="decimal" value="20" /></label>
+      <label>Sherby-Dorn Q (kJ/mol) <input class="lmc-q" inputmode="decimal" value="" placeholder="fit to my data" /></label>
+      <label>Manson-Haferd Ta (K) <input class="lmc-ta" inputmode="decimal" value="" placeholder="fit to my data" /></label>
+      <label>Manson-Haferd log ta <input class="lmc-lta" inputmode="decimal" value="" placeholder="fit to my data" /></label>
+    </div>
+    <p class="ax-help">Any stress unit works if you use it everywhere. C = 20 is the usual convention for steels; the page also finds the C that fits your data best. Leave the Sherby-Dorn and Manson-Haferd constants empty to fit them.</p>
+    <p class="ax-err lmc-err" hidden></p>
+    <div class="lmc-out">
+      <p class="ax-big lmc-big"></p>
+      <dl class="ax-facts lmc-facts"></dl>
+      <div class="ax-scroll" style="margin-top:10px"><table class="lmc-tab"></table></div>
+      <canvas class="ax-fig lmc-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lmc-csv">Download data and fits (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Predict rupture life and allowable stress</h2>
+    <div class="ax-grid">
+      <label>Temperature <input class="lmc-pt" inputmode="decimal" value="650" /></label>
+      <label>Stress <input class="lmc-ps" inputmode="decimal" value="120" /></label>
+      <label>Design life (h) <input class="lmc-pl" inputmode="decimal" value="100000" /></label>
+    </div>
+    <p class="ax-help">The temperature is in the unit chosen above. Predictions outside the range of your data are extrapolations: the three methods often disagree most there.</p>
+    <p class="ax-err lmc-perr" hidden></p>
+    <div class="lmc-pout">
+      <p class="ax-big lmc-pbig"></p>
+      <div class="ax-scroll"><table class="lmc-ptab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Norton creep law from minimum creep rates</h2>
+    <label class="lmc-lab">Stress, temperature and minimum (steady-state) creep rate, one test per line <textarea class="lmc-ndata" rows="6" spellcheck="false">{nor}</textarea></label>
+    <DataFile target=".lmc-ndata" maxCols={3} label="Open a file (3 columns)" />
+    <p class="ax-help">ε̇ = A σⁿ exp(−Q/RT). With tests at two or more temperatures the page also fits the activation energy Q; with one temperature A includes the exp(−Q/RT) term. The rate can be per hour or per second; A takes the same unit.</p>
+    <p class="ax-err lmc-nerr" hidden></p>
+    <div class="lmc-nout">
+      <p class="ax-big lmc-nbig"></p>
+      <dl class="ax-facts lmc-nfacts"></dl>
+      <canvas class="ax-fig lmc-nfig" style="margin-top:12px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitParam, bestC, bestQ, bestMH, ruptureTime, stressFor, norton, param, METHOD_NAME, type Method, type ParamFit, type Point } from '../../lib/sci/creep';
+  import { num, sig, numericColumns, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const typed = (c: string) => q<HTMLInputElement>(c).value.trim() !== '';
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (x + 1e-12).toFixed(n);
+  const hours = (t: number) => (!Number.isFinite(t) ? '–' : t >= 1e7 || t < 1 ? sig(t, 3) : Math.round(t).toLocaleString('en'));
+  const width = () => Math.round(Math.min(720, Math.max(320, root.clientWidth - 34 || 640)));
+  const table = (tb: HTMLTableElement, head: string[], rows: string[][]) => {
+    tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((x, j) => { const th = document.createElement('th'); th.textContent = x; if (j) th.className = 'r'; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); }
+  };
+  const toK = (t: number) => (q<HTMLSelectElement>('.lmc-tu').value === 'C' ? t + 273.15 : t);
+  let fits: ParamFit[] = [], pts: Point[] = [], sRange: [number, number] = [1, 1], fig: Figure | null = null, nfig: Figure | null = null;
+  let trows: string[][] = [], prows: string[][] = [];
+  const THEAD = ['Method', 'Constants', 's(log t)', 'r²'], PHEAD = ['Method', 'Rupture life (h)', 'Stress for design life'];
+
+  function fitAll() {
+    const err = (m: string) => { q('.lmc-err').textContent = m; q('.lmc-err').hidden = !m; q('.lmc-out').hidden = !!m; if (m) { fits = []; fig = null; trows = []; } };
+    const t = numericColumns(q<HTMLTextAreaElement>('.lmc-data').value);
+    if (t.cols.length < 3) return err('Paste three columns: temperature, stress and rupture time.');
+    pts = [];
+    for (let i = 0; i < t.rows; i++) {
+      const T = toK(t.cols[0][i]), s = t.cols[1][i], h = t.cols[2][i];
+      if (!(T > 0) || !(s > 0) || !(h > 0)) return err(`Line ${i + 1} needs a temperature above absolute zero, a stress and a rupture time above zero.`);
+      pts.push({ T, s, t: h });
+    }
+    const deg = Number(q<HTMLSelectElement>('.lmc-deg').value), C = v('.lmc-c');
+    if (pts.length < deg + 2) return err(`A ${deg === 1 ? 'straight line' : deg === 2 ? 'quadratic' : 'cubic'} needs at least ${deg + 2} tests.`);
+    if (!Number.isFinite(C)) return err('Give a Larson-Miller constant C (20 is usual).');
+    if (new Set(pts.map((p) => p.T.toFixed(3))).size < 2) return err('Give tests at two or more temperatures: a time-temperature parameter needs them.');
+    const Q = typed('.lmc-q') ? v('.lmc-q') * 1000 : null;
+    const mhT = typed('.lmc-ta') && typed('.lmc-lta') ? { Ta: v('.lmc-ta'), logta: v('.lmc-lta') } : null;
+    if (Q !== null && !(Q > 0)) return err('Q is an activation energy above zero, in kJ/mol.');
+    if (mhT && !(Number.isFinite(mhT.Ta) && Number.isFinite(mhT.logta))) return err('Give both Manson-Haferd constants as numbers, or leave both empty.');
+    try {
+      const k0 = { C, Q: 0, Ta: 0, logta: 0 };
+      const lm = fitParam('lm', pts, deg, k0);
+      const qq = Q ?? bestQ(pts, deg), sd = fitParam('sd', pts, deg, { ...k0, Q: qq });
+      const mm = mhT ?? bestMH(pts, deg), mh = fitParam('mh', pts, deg, { ...k0, ...mm });
+      fits = [lm, sd, mh];
+      const cb = bestC(pts, deg), lmb = fitParam('lm', pts, deg, { ...k0, C: cb });
+      err('');
+      q('.lmc-big').textContent = `Larson-Miller fit, C = ${sig(C, 4)}: scatter ${f(lm.rms, 3)} in log t`;
+      const poly = lm.c.map((c, j) => `${j ? (c < 0 ? ' − ' : ' + ') : ''}${sig(j ? Math.abs(c) : c, 5)}${j ? ` x${j > 1 ? (j === 2 ? '²' : '³') : ''}` : ''}`).join('');
+      q('.lmc-facts').replaceChildren(
+        fact('Master curve', `LMP = ${poly}`, `LMP = T (C + log10 t), T in K, t in h; x = log10 σ; ${pts.length} tests`),
+        fact('Best-fit C for your data', sig(cb, 4), `scatter ${f(lmb.rms, 3)} in log t (with C = ${sig(C, 4)}: ${f(lm.rms, 3)})`),
+        fact('Range of your data', `stress ${sig(Math.min(...pts.map((p) => p.s)), 4)} to ${sig(Math.max(...pts.map((p) => p.s)), 4)}`, `rupture times ${hours(Math.min(...pts.map((p) => p.t)))} to ${hours(Math.max(...pts.map((p) => p.t)))} h`),
+      );
+      trows = fits.map((ft) => [METHOD_NAME[ft.m], ft.m === 'lm' ? `C = ${sig(C, 4)}` : ft.m === 'sd' ? `Q = ${sig(ft.k.Q / 1000, 4)} kJ/mol${Q === null ? ' (fitted)' : ''}` : `Ta = ${sig(ft.k.Ta, 4)} K, log ta = ${sig(ft.k.logta, 4)}${mhT ? '' : ' (fitted)'}`, f(ft.rms, 3), f(ft.r2, 4)]);
+      table(q<HTMLTableElement>('.lmc-tab'), THEAD, trows);
+    } catch (e) { return err((e as Error).message); }
+    const ss = pts.map((p) => p.s); sRange = [Math.min(...ss), Math.max(...ss)];
+    const temps = [...new Set(pts.map((p) => p.T))].sort((a, b) => a - b), lm = fits[0];
+    const lo = Math.log10(sRange[0]) - 0.15, hi = Math.log10(sRange[1]) + 0.1, cx: number[] = [], cy: number[] = [];
+    for (let i = 0; i <= 100; i++) { const x = lo + ((hi - lo) * i) / 100; cx.push(lm.f(x) / 1000); cy.push(10 ** x); }
+    const tl = (T: number) => (q<HTMLSelectElement>('.lmc-tu').value === 'C' ? `${sig(T - 273.15, 4)} °C` : `${sig(T, 4)} K`);
+    const W = width();
+    fig = chartFigure({ w: W, h: W < 500 ? 300 : 360, yMin: 0, yMax: sRange[1] * 1.2, xLabel: `Larson-Miller parameter ÷ 1000 (C = ${sig(lm.k.C, 3)})`, yLabel: 'Stress', series: [
+      ...temps.map((T) => { const p = pts.filter((x) => x.T === T); return { name: tl(T), x: p.map((x) => param('lm', x.T, x.t, lm.k) / 1000), y: p.map((x) => x.s), mode: 'points' as const, size: 4 }; }),
+      { name: 'fit', x: cx, y: cy, mode: 'line', width: 1.5, color: '#555555' },
+    ], legend: 'below' }, 'Larson-Miller master curve: stress against the Larson-Miller parameter, by temperature');
+    paint(q<HTMLCanvasElement>('.lmc-fig'), fig);
+  }
+
+  function predict() {
+    const err = (m: string) => { q('.lmc-perr').textContent = m; q('.lmc-perr').hidden = !m; q('.lmc-pout').hidden = !!m; if (m) prows = []; };
+    if (!fits.length) return err('Fit the rupture data first.');
+    const T = toK(v('.lmc-pt')), s = v('.lmc-ps'), L = v('.lmc-pl');
+    if (!(T > 0) || !(s > 0) || !(L > 0)) return err('Give a temperature, a stress and a design life, all above zero (temperature above absolute zero).');
+    err('');
+    prows = fits.map((ft) => { const sd = stressFor(ft, L, T, sRange[0] / 10, sRange[1] * 10); return [METHOD_NAME[ft.m], hours(ruptureTime(ft, s, T)), sd === null ? 'out of range' : sig(sd, 4)]; });
+    table(q<HTMLTableElement>('.lmc-ptab'), PHEAD, prows);
+    const ex = s < sRange[0] || s > sRange[1];
+    q('.lmc-pbig').textContent = `Larson-Miller: ${prows[0][1]} h${ex ? ' (extrapolated)' : ''}`;
+  }
+
+  function creep() {
+    const err = (m: string) => { q('.lmc-nerr').textContent = m; q('.lmc-nerr').hidden = !m; q('.lmc-nout').hidden = !!m; if (m) nfig = null; };
+    const t = numericColumns(q<HTMLTextAreaElement>('.lmc-ndata').value);
+    if (t.cols.length < 3 || t.rows < 3) return err('Paste at least three lines of stress, temperature and creep rate.');
+    const s = t.cols[0], T = t.cols[1].map(toK), r = t.cols[2];
+    const bad = s.findIndex((x, i) => !(x > 0) || !(T[i] > 0) || !(r[i] > 0));
+    if (bad >= 0) return err(`Line ${bad + 1} needs a stress, a temperature and a creep rate above zero.`);
+    let n;
+    try { n = norton(s, T, r); } catch (e) { return err((e as Error).message); }
+    err('');
+    q('.lmc-nbig').textContent = `n = ${f(n.n, 2)}${n.Q !== null ? `, Q = ${f(n.Q / 1000, 0)} kJ/mol` : ''}`;
+    q('.lmc-nfacts').replaceChildren(
+      fact('Stress exponent n', f(n.n, 3), n.n < 2 ? 'near 1: diffusion (Nabarro-Herring or Coble) creep' : n.n <= 8 ? '3 to 8: dislocation (power-law) creep' : 'above 8: power-law breakdown, or a threshold stress'),
+      fact('Activation energy Q', n.Q !== null ? `${f(n.Q / 1000, 1)} kJ/mol` : 'needs two temperatures', n.Q !== null ? 'often close to the activation energy for self-diffusion of the metal' : ''),
+      fact('Constant A', sig(n.A, 4), n.withQ ? 'ε̇ = A σⁿ exp(−Q/RT), with σ in your unit and R = 8.314 J/(mol K)' : 'ε̇ = A σⁿ at this temperature'),
+      fact('Fit', `r² ${f(n.r2, 4)}`, `scatter ${f(n.rmsLog10, 3)} in log10 rate`),
+    );
+    const temps = [...new Set(T)].sort((a, b) => a - b), W = width();
+    const tl = (Tk: number) => (q<HTMLSelectElement>('.lmc-tu').value === 'C' ? `${sig(Tk - 273.15, 4)} °C` : `${sig(Tk, 4)} K`);
+    const groups = temps.map((Tk) => s.map((_, i) => i).filter((i) => T[i] === Tk));
+    nfig = chartFigure({ w: W, h: W < 500 ? 300 : 360, xLog: true, yLog: true, xLabel: 'Stress', yLabel: 'Minimum creep rate', series: [
+      ...groups.map((idx, j) => ({ name: tl(temps[j]), x: idx.map((i) => s[i]), y: idx.map((i) => r[i]), mode: 'points' as const, size: 4, marker: (['circle', 'square', 'triangle', 'diamond'] as const)[j % 4] })),
+      ...groups.map((idx, j) => { const sx = idx.map((i) => s[i]), a = Math.min(...sx) / 1.2, b = Math.max(...sx) * 1.2; return { name: j ? '' : 'Norton fit', x: [a, b], y: [n.rate(a, temps[j]), n.rate(b, temps[j])], mode: 'line' as const, width: 1.2, dash: [5, 3], color: '#888888' }; }),
+    ], legend: 'below' }, 'Minimum creep rate against stress on log-log axes, with the Norton fit at each temperature');
+    paint(q<HTMLCanvasElement>('.lmc-nfig'), nfig);
+  }
+
+  const all = () => { fitAll(); predict(); creep(); };
+  root.querySelectorAll('.lmc-data, .lmc-tu, .lmc-deg, .lmc-c, .lmc-q, .lmc-ta, .lmc-lta').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('.lmc-pt, .lmc-ps, .lmc-pl').forEach((i) => i.addEventListener('input', predict));
+  q('.lmc-ndata').addEventListener('input', creep);
+  q('.lmc-csv').addEventListener('click', () => {
+    if (!fits.length) return;
+    const rows: (string | number)[][] = [['temperature_K', 'stress', 'rupture_h', 'larson_miller', 'predicted_h_larson_miller', 'predicted_h_sherby_dorn', 'predicted_h_manson_haferd'], ...pts.map((p) => [p.T, p.s, p.t, +param('lm', p.T, p.t, fits[0].k).toPrecision(8), ...fits.map((ft) => +ruptureTime(ft, p.s, p.T).toPrecision(6))])];
+    save(new TextEncoder().encode(csv(rows)), 'creep-rupture-fits.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lmc-fig'), fig); if (nfig) paint(q<HTMLCanvasElement>('.lmc-nfig'), nfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (!q('.lmc-out').hidden) s.push({ title: q('.lmc-big').textContent!, facts: facts('.lmc-facts'), table: { head: THEAD, rows: trows, align: ['l', 'r', 'r', 'r'] }, ...(fig ? { figure: fig } : {}) });
+    if (!q('.lmc-pout').hidden) s.push({ title: `Prediction at ${q<HTMLInputElement>('.lmc-pt').value} ${q<HTMLSelectElement>('.lmc-tu').value === 'C' ? '°C' : 'K'} and stress ${q<HTMLInputElement>('.lmc-ps').value}; design life ${q<HTMLInputElement>('.lmc-pl').value} h`, table: { head: PHEAD, rows: prows, align: ['l', 'r', 'r'] } });
+    if (!q('.lmc-nout').hidden) s.push({ title: `Norton creep law: ${q('.lmc-nbig').textContent}`, facts: facts('.lmc-nfacts'), ...(nfig ? { figure: nfig } : {}) });
+    return { title: 'Creep rupture and creep rate', subtitle: 'Larson-Miller, Sherby-Dorn, Manson-Haferd and Norton', file: 'larson-miller', sections: s };
+  });
+</script>
+
+<style is:global>
+  .lmc select { max-width: 100%; }
+  .lmc .lmc-lab { display: block; }
+  .lmc textarea { width: 100%; font: inherit; font-size: 14px; }
+  .lmc td, .lmc th { padding-left: 5px; padding-right: 5px; }
+  .lmc td:first-child { white-space: nowrap; }
+</style>
