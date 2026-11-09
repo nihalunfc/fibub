@@ -1,0 +1,111 @@
+---
+// Glycaemic load per food and for a whole meal, from GI values the user enters.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gld">
+  <p class="note warn gld-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Foods in the meal</h2>
+    <p class="ax-help" style="margin-top:0">For each food type its GI, the carbohydrate and fibre per 100 g from the label, and how many grams are eaten. The three example foods use rough, rounded GI values for illustration only, not from any table: replace them with values for your own foods.</p>
+    <label class="ax-check"><input type="checkbox" class="gld-sub" /> My carbohydrate numbers include fibre (US and Canada style labels): subtract the fibre</label>
+    <div class="gld-foods"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gld-add">Add a food</button>
+      <button type="button" class="btn secondary small gld-reset">Back to the example</button>
+      <button type="button" class="btn secondary small gld-clear">Start empty</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The meal</h2>
+    <p class="ax-big gld-big" aria-live="polite"></p>
+    <p class="gld-pills"></p>
+    <p class="ax-err gld-err" hidden></p>
+    <div class="ax-scroll"><table class="gld-tab"></table></div>
+    <p class="ax-help">GL = GI × available carbohydrate (g) ÷ 100. The meal GI is the average of the foods' GI weighted by their carbohydrate, so the meal GL is the sum of the foods' GL. Usual bands: GI low 55 or less, medium 56 to 69, high 70 or more; GL per serving low 10 or less, medium 11 to 19, high 20 or more.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gld-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .gld-warn { margin: 0 0 12px; }
+  .gld-food { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .gld-food .gld-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .gld-food .gld-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  @media (max-width: 480px) { .gld-food .gld-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .gld-food .gld-line { margin: 8px 0 0; font-size: 15px; }
+  .gld-food .gld-line.bad { color: var(--bad); }
+  .gld .gld-pills .ax-pill { margin-right: 6px; }
+</style>
+
+<script>
+  import { meal, giBand, glBand, EXAMPLE, type Food } from '../../lib/sci/glycaemic';
+  import { num, csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gld')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const list = q('.gld-foods');
+  const p6 = (x: number) => String(Number(x.toPrecision(6)));
+  const r1 = (x: number) => (Number.isFinite(x) ? String(Math.round(x * 10) / 10) : '–');
+  let report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function addFood(f: Partial<Food> = {}) {
+    const d = document.createElement('div'); d.className = 'gld-food';
+    d.innerHTML = `<div class="gld-top"><label>Food <input class="gld-name" /></label><button type="button" class="btn secondary small gld-del">Remove</button></div>
+      <div class="gld-nums"><label>GI <input class="gld-gi" inputmode="decimal" /></label><label>Carbs per 100 g <input class="gld-c" inputmode="decimal" /></label>
+      <label>Fibre per 100 g <input class="gld-f" inputmode="decimal" /></label><label>Portion (g) <input class="gld-p" inputmode="decimal" /></label></div><p class="gld-line"></p>`;
+    const set = (c: string, v: unknown) => { (d.querySelector(c) as HTMLInputElement).value = v == null ? '' : String(v); };
+    set('.gld-name', f.name ?? ''); set('.gld-gi', f.gi); set('.gld-c', f.carbs); set('.gld-f', f.fibre); set('.gld-p', f.portion);
+    list.append(d);
+  }
+  const read = (): Food[] => [...list.querySelectorAll<HTMLElement>('.gld-food')].map((d, i) => {
+    const g = (c: string) => (d.querySelector(c) as HTMLInputElement).value;
+    return { name: g('.gld-name').trim() || `Food ${i + 1}`, gi: num(g('.gld-gi')), carbs: num(g('.gld-c')), fibre: g('.gld-f').trim() ? num(g('.gld-f')) : 0, portion: num(g('.gld-p')) };
+  });
+
+  function calc() {
+    const sub = q<HTMLInputElement>('.gld-sub').checked, foods = read(), m = meal(foods, sub), err = q('.gld-err');
+    const cards = [...list.querySelectorAll<HTMLElement>('.gld-food')];
+    m.rows.forEach((r, i) => {
+      const line = cards[i].querySelector<HTMLElement>('.gld-line')!;
+      line.classList.toggle('bad', !!r.error);
+      line.textContent = r.error ? r.error : `Available carbohydrate ${r1(r.avail)} g · GL ${r1(r.gl)} (${glBand(r.gl)})`;
+    });
+    const bad = m.rows.filter((r) => r.error).length;
+    err.hidden = !bad; err.textContent = bad ? `${bad} food${bad === 1 ? ' is' : 's are'} left out until fixed.` : '';
+    const pills = q('.gld-pills'); pills.innerHTML = '';
+    const tone = (b: string) => (b === 'low' ? 'good' : b === 'medium' ? 'warn' : 'bad');
+    if (!foods.length || m.rows.length === bad) { q('.gld-big').textContent = foods.length ? 'Fix the foods above to see the meal.' : 'Add a food to begin.'; q<HTMLTableElement>('.gld-tab').innerHTML = ''; report = []; csvRows = []; return; }
+    q('.gld-big').textContent = Number.isFinite(m.gi) ? `Meal GL ${r1(m.gl)} · GI ${r1(m.gi)} · ${r1(m.carb)} g carbohydrate` : `Meal GL 0 · no available carbohydrate`;
+    const p1 = document.createElement('span'); p1.className = `ax-pill ${tone(glBand(m.gl))}`; p1.textContent = `GL ${glBand(m.gl)}`;
+    pills.append(p1);
+    if (Number.isFinite(m.gi)) { const p2 = document.createElement('span'); p2.className = `ax-pill ${tone(giBand(m.gi))}`; p2.textContent = `GI ${giBand(m.gi)}`; pills.append(p2); }
+    const head = ['Food', 'GI', 'Carbs (g)', 'GL', 'Share of GL'];
+    const ok = m.rows.filter((r) => !r.error);
+    const rows = ok.map((r) => [r.name, r1(r.gi), r1(r.avail), r1(r.gl), m.gl > 0 ? `${Math.round((100 * r.gl) / m.gl)} %` : '–']);
+    rows.push(['Meal', Number.isFinite(m.gi) ? r1(m.gi) : '–', r1(m.carb), r1(m.gl), m.gl > 0 ? '100 %' : '–']);
+    const t = q<HTMLTableElement>('.gld-tab'); t.innerHTML = '';
+    const h = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; h.append(th); });
+    const b = t.createTBody(); rows.forEach((r, k) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; if (k === rows.length - 1) td.style.fontWeight = '700'; }); });
+    csvRows = [['food', 'GI', 'carbs_per_100g', 'fibre_per_100g', 'portion_g', 'available_carbohydrate_g', 'GL'], ...ok.map((r) => [r.name, r.gi, r.carbs, r.fibre, r.portion, p6(r.avail, 6), p6(r.gl, 6)]), ['Meal', Number.isFinite(m.gi) ? p6(m.gi, 6) : '', '', '', '', p6(m.carb, 6), p6(m.gl, 6)]];
+    report = [
+      { title: 'Meal', facts: [['Glycaemic load', `${r1(m.gl)} (${glBand(m.gl)})`], ['Meal GI', Number.isFinite(m.gi) ? `${r1(m.gi)} (${giBand(m.gi)})` : '–'], ['Available carbohydrate', `${r1(m.carb)} g`], ['Fibre', sub ? 'subtracted from carbohydrate' : 'not subtracted']] },
+      { title: 'Foods', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Note', text: ['GI values were entered by the user; example values are rough and for illustration only.', 'For study and teaching, not medical advice. Check with a qualified professional.'] },
+    ];
+  }
+
+  function reset(foods: Food[]) { list.innerHTML = ''; foods.forEach(addFood); calc(); }
+  root.addEventListener('input', calc);
+  q('.gld-sub').addEventListener('change', calc);
+  list.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.gld-del'); if (b) { b.closest('.gld-food')!.remove(); calc(); } });
+  q('.gld-add').addEventListener('click', () => { addFood({ fibre: 0 }); calc(); list.querySelector<HTMLInputElement>('.gld-food:last-child .gld-name')!.focus(); });
+  q('.gld-reset').addEventListener('click', () => reset(EXAMPLE));
+  q('.gld-clear').addEventListener('click', () => reset([]));
+  q('.gld-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'glycaemic-load.csv', 'text/csv'); });
+  reset(EXAMPLE);
+  wireDownloads(q('.dl'), () => ({ title: 'Glycaemic load', file: 'glycaemic-load', sections: report }));
+</script>

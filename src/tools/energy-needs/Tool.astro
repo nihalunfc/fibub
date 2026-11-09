@@ -1,0 +1,119 @@
+---
+// Energy needs: resting energy by four equations, times an editable activity factor, and a careful look at weight change.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { ACTIVITY } from '../../lib/sci/energy';
+---
+<div class="ax en">
+  <p class="note warn en-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>The person</h2>
+    <div class="ax-grid">
+      <label>Sex used by the equations <select class="en-sex"><option value="female">Female</option><option value="male">Male</option></select></label>
+      <label>Age (years) <input class="en-age" inputmode="decimal" value="35" /></label>
+      <label>Weight <span class="en-pair"><input class="en-w" inputmode="decimal" value="65" /><select class="en-wu" aria-label="Weight unit"><option>kg</option><option>lb</option></select></span></label>
+      <label>Height <span class="en-pair"><input class="en-h" inputmode="decimal" value="165" /><select class="en-hu" aria-label="Height unit"><option>cm</option><option>in</option></select></span></label>
+      <label>Body fat % (for Katch-McArdle; optional) <input class="en-bf" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-help">The equations were fitted separately for men and women, so they need one or the other. Body fat is only used by Katch-McArdle; leave it empty if you do not know it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Activity</h2>
+    <div class="ax-grid">
+      <label>Example level <select class="en-act">
+        {ACTIVITY.map((a, i) => <option value={a.f} selected={i === 2}>{a.label} (× {a.f})</option>)}
+        <option value="">My own factor</option>
+      </select></label>
+      <label>Activity factor <input class="en-f" inputmode="decimal" value="1.55" /></label>
+      <label>Show energy in <select class="en-u"><option value="kcal">kcal per day</option><option value="kJ">kJ per day</option></select></label>
+    </div>
+    <p class="ax-help">Total energy = resting energy × activity factor. The example factors are rounded, approximate teaching values; real needs vary a lot between people. Type your own factor if you have a better one.</p>
+  </div>
+
+  <div class="ax-card en-out">
+    <h2>Results</h2>
+    <p class="ax-err en-err" hidden></p>
+    <div class="en-res">
+      <p class="ax-big en-big" aria-live="polite"></p>
+      <div class="ax-scroll"><table class="en-tab"></table></div>
+      <p class="ax-help">Per day. Resting energy is the energy used at rest in a day. The equations disagree by a few percent, and each can be off by 10 % or more for a given person, so treat the spread as the answer, not one number.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Weight change, roughly</h2>
+    <label>Daily energy gap (kcal per day; minus for less than the total) <input class="en-gap" inputmode="decimal" value="-500" /></label>
+    <p class="en-gapout" aria-live="polite"></p>
+    <p class="ax-help">This uses the simple rule that about 7700 kcal equals 1 kg of body weight. It is only a first guess: as weight changes, the body uses less (or more) energy, so real change slows over the months and is usually smaller than this rule predicts. Large gaps, or eating less than the resting energy, should be planned with a doctor or dietitian.</p>
+  </div>
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<style>
+  .en-warn { margin: 0 0 12px; }
+  .en-pair { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .en-pair select { width: auto !important; }
+  .en-gapout { font-size: 16px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { results, kgPerWeek, lbToKg, inToCm, mifflin, KJ_PER_KCAL, type Person } from '../../lib/sci/energy';
+  import { num, sig } from '../../lib/sci/num';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.en')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  let report: Section[] = [];
+
+  function calc() {
+    const err = q('.en-err'), unit = v('.en-u'), k = unit === 'kJ' ? KJ_PER_KCAL : 1;
+    const n = (x: number) => Math.round(x * k).toLocaleString('en'), e = (x: number) => `${n(x)} ${unit}`;
+    const kg = num(v('.en-w')) * (v('.en-wu') === 'lb' ? lbToKg(1) : 1), cm = num(v('.en-h')) * (v('.en-hu') === 'in' ? inToCm(1) : 1);
+    const bfRaw = v('.en-bf').trim(), bf = bfRaw ? num(bfRaw) : undefined;
+    const p: Person = { sex: v('.en-sex') as Person['sex'], kg, cm, age: num(v('.en-age')), bodyFat: bf };
+    const f = num(v('.en-f'));
+    let rs: ReturnType<typeof results>;
+    try {
+      if (bf != null && !(bf >= 2 && bf <= 70)) throw new Error('Body fat should be between 2 and 70 %, or left empty.');
+      rs = results(p, f);
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; q('.en-res').hidden = true; q('.en-gapout').textContent = ''; report = []; return; }
+    err.hidden = true; q('.en-res').hidden = false;
+    const ok = rs.filter((r) => Number.isFinite(r.rest)), lo = Math.min(...ok.map((r) => r.total)), hi = Math.max(...ok.map((r) => r.total));
+    q('.en-big').textContent = `About ${n(lo)} to ${n(hi)} ${unit} a day in total`;
+    const t = q<HTMLTableElement>('.en-tab'); t.innerHTML = '';
+    const head = ['Equation', `Resting (${unit})`, `Total, × ${f}`];
+    const h = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; h.append(th); });
+    const body = t.createTBody(), rows: string[][] = [];
+    for (const r of rs) {
+      const row = Number.isFinite(r.rest) ? [r.name, n(r.rest), n(r.total)] : [r.name, 'needs body fat', '–'];
+      rows.push(row);
+      const tr = body.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; });
+    }
+    // Weight change against the Mifflin-St Jeor total.
+    const gap = num(v('.en-gap')), go = q('.en-gapout');
+    let gapText = '';
+    if (!Number.isFinite(gap) || Math.abs(gap) > 2000) gapText = 'Type a gap between −2000 and 2000 kcal per day.';
+    else if (gap === 0) gapText = 'No gap: weight would stay about the same, by these estimates.';
+    else {
+      const rest = mifflin(p), tot = rest * f, eat = tot + gap, w = kgPerWeek(gap);
+      gapText = `Eating about ${e(eat)} (Mifflin-St Jeor total ${e(tot)} ${gap < 0 ? '−' : '+'} ${e(Math.abs(gap))}) would mean roughly ${sig(Math.abs(w), 2)} kg (${sig(Math.abs(w) / lbToKg(1), 2)} lb) ${gap < 0 ? 'less' : 'more'} per week at first, by the 7700 kcal/kg rule.`;
+      if (eat < rest) gapText += ` That is below the resting energy (${e(rest)}): not something to do without professional advice.`;
+    }
+    go.textContent = gapText;
+    report = [
+      { title: 'Person', facts: [['Sex used', p.sex], ['Age', `${p.age} years`], ['Weight', `${sig(kg, 4)} kg`], ['Height', `${sig(cm, 4)} cm`], ['Body fat', bf != null ? `${bf} %` : 'not given'], ['Activity factor', String(f)]] },
+      { title: 'Energy per day', table: { head, rows, align: ['l', 'r', 'r'] } },
+      { title: 'Weight change, roughly', text: [gapText] },
+      { title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.', 'Mifflin-St Jeor (1990); Harris-Benedict (1919); Roza and Shizgal (1984); Katch-McArdle. Activity factors are approximate examples.'] },
+    ];
+  }
+
+  q('.en-act').addEventListener('change', () => { const x = v('.en-act'); if (x) q<HTMLInputElement>('.en-f').value = x; calc(); });
+  q('.en-f').addEventListener('input', () => { const s = q<HTMLSelectElement>('.en-act'), x = num(v('.en-f')); s.value = [...s.options].some((o) => o.value && Number(o.value) === x) ? String(x) : ''; calc(); });
+  root.addEventListener('input', (e) => { if (!(e.target as HTMLElement).matches('.en-f')) calc(); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select:not(.en-act)')) calc(); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Energy needs', file: 'energy-needs', sections: report }));
+</script>

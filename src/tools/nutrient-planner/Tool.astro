@@ -1,0 +1,217 @@
+---
+// Meal and day nutrient planner from the user's own label values. No food database is bundled.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { NUTRIENTS } from '../../lib/sci/nutrients';
+---
+<div class="ax np">
+  <p class="note warn np-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Labels</h2>
+    <div class="ax-grid">
+      <label>Energy on my labels is in <select class="np-unit"><option value="kcal">kcal (Calories)</option><option value="kJ">kJ</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="np-fib" /> Count fibre at 2 kcal per gram (for labels where carbohydrate does not include fibre, as in the UK and EU)</label>
+    <p class="ax-help">Type values from each food's nutrition label, per 100 g or per serving, then how much was eaten. There is no built-in food list: food databases are other people's data, so you bring your own numbers.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Foods</h2>
+    <div class="np-foods"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small np-add">Add a food</button>
+      <button type="button" class="btn secondary small np-reset">Back to the example</button>
+      <button type="button" class="btn secondary small np-empty">Start empty</button>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small np-fcsv">Download foods (CSV)</button>
+      <button type="button" class="btn secondary small np-open">Open a CSV file</button>
+      <input type="file" class="np-file" hidden />
+    </div>
+    <p class="ax-help np-limit"></p>
+    <p class="ax-help np-opened" hidden></p>
+    <p class="ax-err np-ferr" hidden></p>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="np-remember" /> Remember my foods and targets in this browser</label>
+    <div class="ax-row"><button type="button" class="btn secondary small np-forget">Clear what is remembered</button></div>
+    <p class="ax-help np-memo">Off by default. When on, your foods and targets are kept only in this browser on this device (localStorage), so they are here next visit. They are never sent anywhere. Clear removes them.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Day totals</h2>
+    <p class="ax-big np-big" aria-live="polite"></p>
+    <p class="ax-err np-err" hidden></p>
+    <div class="ax-scroll"><table class="np-tab">
+      <thead><tr><th>Nutrient</th><th class="r">Day</th><th class="r">Target</th><th class="r">%</th></tr></thead>
+      <tbody>
+        {NUTRIENTS.map((n) => (
+          <tr data-k={n.key}><td>{n.label} (<span class="np-u">{n.unit}</span>)</td><td class="r np-t"></td><td class="r"><input class="np-target" data-k={n.key} inputmode="decimal" aria-label={`Target for ${n.label}`} /></td><td class="r np-p"></td></tr>
+        ))}
+        <tr><td>Salt equivalent (g)</td><td class="r np-salt"></td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p class="ax-help">Targets are yours to set (from your dietitian, a course, or the official guidance for your country): the page has none built in. Salt equivalent = sodium × 2.5.</p>
+    <h3>Where the energy comes from</h3>
+    <div class="np-bar" aria-hidden="true"></div>
+    <p class="np-split"></p>
+    <p class="ax-help np-check"></p>
+    <h3>By meal</h3>
+    <div class="ax-scroll"><table class="np-meals"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small np-tcsv">Download totals (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .np-warn { margin: 0 0 12px; }
+  .np-food { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .np-food .np-top { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .np-food .np-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  @media (max-width: 480px) { .np-food .np-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .np-food .np-line { margin: 8px 0 0; font-size: 15px; }
+  .np-food .np-line.bad { color: var(--bad); }
+  .np .np-tab input { width: 5em; text-align: right; padding: 4px 6px; }
+  .np-bar { display: flex; height: 18px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); margin-top: 6px; }
+  .np-bar span { display: block; height: 100%; }
+  .np-split { margin: 8px 0 0; font-size: 15px; }
+  .np .ax-card > h3 { margin-top: 18px; }
+  .np-split i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 0; }
+</style>
+
+<script>
+  import { NUTRIENTS, MEALS, EXAMPLE, totals, eaten, macroEnergy, percentOf, saltG, toKcal, foodsCsv, readFoodsCsv, problem, KJ_PER_KCAL, type Food, type Key, type Totals } from '../../lib/sci/nutrients';
+  import { num, csv } from '../../lib/sci/num';
+  import { readDataFile, limitText } from '../../lib/datafile';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-nutrient-planner-v1';
+  const LIMITS = { maxBytes: 2e6, maxCols: 20, maxRows: 2000 };
+  const root = document.querySelector<HTMLElement>('.np')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const list = q('.np-foods');
+  const unit = () => q<HTMLSelectElement>('.np-unit').value as 'kcal' | 'kJ';
+  const r1 = (x: number) => (Number.isFinite(x) ? (Math.round(x * 10) / 10).toLocaleString('en') : '–');
+  const r0 = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en') : '–');
+  const fmtN = (k: Key, x: number) => (k === 'energy' || k === 'sodium' ? r0(x) : r1(x));
+  let report: Section[] = [], totalRows: (string | number)[][] = [];
+  q('.np-limit').textContent = `Opens our CSV, or any CSV, TSV or Excel file with columns such as food, amount, energy, protein, fat, carbohydrate. ${limitText(LIMITS)}`;
+
+  function addFood(f: Partial<Food> = {}) {
+    const d = document.createElement('div'); d.className = 'np-food';
+    d.innerHTML = `<div class="np-top"><label>Food <input class="np-name" /></label><button type="button" class="btn secondary small np-del">Remove</button></div>
+      <div class="np-grid"><label>Meal <select class="np-meal">${MEALS.map((m) => `<option>${m}</option>`).join('')}</select></label>
+      <label>Label values <select class="np-basis"><option value="100g">per 100 g</option><option value="serving">per serving</option></select></label>
+      <label><span class="np-amt-l">Grams eaten</span> <input class="np-amt" inputmode="decimal" /></label><span></span>
+      ${NUTRIENTS.map((n) => `<label><span>${n.label} (<span class="${n.key === 'energy' ? 'np-eu' : ''}">${n.unit}</span>)</span> <input class="np-n" data-k="${n.key}" inputmode="decimal" /></label>`).join('')}</div><p class="np-line"></p>`;
+    const set = (c: string, v: unknown) => { (d.querySelector(c) as HTMLInputElement).value = v == null || (typeof v === 'number' && !Number.isFinite(v)) ? '' : String(v); };
+    set('.np-name', f.name ?? ''); set('.np-amt', f.amount);
+    (d.querySelector('.np-meal') as HTMLSelectElement).value = f.meal ?? 'Snacks';
+    (d.querySelector('.np-basis') as HTMLSelectElement).value = f.basis ?? '100g';
+    for (const n of NUTRIENTS) set(`.np-n[data-k="${n.key}"]`, f[n.key]);
+    list.append(d);
+  }
+  const cards = () => [...list.querySelectorAll<HTMLElement>('.np-food')];
+  const read = (): Food[] => cards().map((d, i) => {
+    const g = (c: string) => (d.querySelector(c) as HTMLInputElement).value;
+    const f = { name: g('.np-name').trim() || `Food ${i + 1}`, meal: g('.np-meal'), basis: g('.np-basis') as Food['basis'], amount: num(g('.np-amt')) } as Food;
+    for (const n of NUTRIENTS) { const v = g(`.np-n[data-k="${n.key}"]`); f[n.key] = v.trim() ? num(v) : NaN; }
+    return f;
+  });
+  const targets = () => Object.fromEntries(NUTRIENTS.map((n) => [n.key, num(q<HTMLInputElement>(`.np-target[data-k="${n.key}"]`).value)])) as Totals;
+
+  function calc() {
+    const u = unit(), foods = read(), fib2 = q<HTMLInputElement>('.np-fib').checked;
+    root.querySelectorAll('.np-eu').forEach((e) => (e.textContent = u));
+    q('.np-tab tr[data-k="energy"] .np-u').textContent = u;
+    const probs = cards().map((d, i) => problem(foods[i]) ?? (NUTRIENTS.some((n) => Number.isNaN(foods[i][n.key]) && (d.querySelector(`.np-n[data-k="${n.key}"]`) as HTMLInputElement).value.trim()) ? 'A value is not a number.' : undefined));
+    const t = totals(foods.filter((_, i) => !probs[i])), day = t.day;
+    cards().forEach((d, i) => {
+      const f = foods[i], line = d.querySelector<HTMLElement>('.np-line')!, p = probs[i];
+      d.querySelector<HTMLElement>('.np-amt-l')!.textContent = f.basis === '100g' ? 'Grams eaten' : 'Servings eaten';
+      line.classList.toggle('bad', !!p);
+      if (p) { line.textContent = p; return; }
+      const e = eaten(f);
+      line.textContent = `Eaten: ${r0(e.energy)} ${u} · protein ${r1(e.protein)} g · fat ${r1(e.fat)} g · carbohydrate ${r1(e.carbs)} g`;
+    });
+    const bad = foods.length - t.used, err = q('.np-err');
+    err.hidden = !bad; err.textContent = bad ? `${bad} food${bad === 1 ? ' is' : 's are'} left out until fixed.` : '';
+    const tg = targets();
+    for (const n of NUTRIENTS) {
+      const tr = q(`.np-tab tr[data-k="${n.key}"]`), pc = percentOf(day[n.key], tg[n.key]);
+      tr.querySelector('.np-t')!.textContent = fmtN(n.key, day[n.key]);
+      tr.querySelector('.np-p')!.textContent = Number.isFinite(pc) ? `${Math.round(pc)} %` : '–';
+    }
+    q('.np-salt').textContent = r1(saltG(day.sodium));
+    const kcalLabel = toKcal(day.energy, u), me = macroEnergy(day, fib2);
+    q('.np-big').textContent = t.used ? `${r0(day.energy)} ${u}${u === 'kJ' ? ` (${r0(kcalLabel)} kcal)` : ''} from ${t.used} food${t.used === 1 ? '' : 's'}` : 'Add a food to begin.';
+    // Energy split.
+    const parts: [string, number, string][] = [['Protein', me.pct.protein, 'var(--accent)'], ['Fat', me.pct.fat, 'var(--warn)'], ['Carbohydrate', me.pct.carbs, 'var(--good)'], ...(fib2 ? [['Fibre', me.pct.fibre, 'var(--muted)'] as [string, number, string]] : [])];
+    const bar = q('.np-bar'); bar.innerHTML = '';
+    for (const [name, p, col] of parts) if (p > 0) { const s = document.createElement('span'); s.style.width = `${p}%`; s.style.background = col; s.title = name; bar.append(s); }
+    const splitText = me.total > 0 ? parts.map(([name, p]) => `${name} ${Math.round(p)} %`).join(' · ') : 'No protein, fat or carbohydrate entered yet.';
+    const sp = q('.np-split'); sp.textContent = '';
+    if (me.total > 0) parts.forEach(([name, p, col], i) => { const k = document.createElement('i'); k.style.background = col; sp.append(...(i ? [' · '] : []), k, `${name} ${Math.round(p)} %`); });
+    else sp.textContent = splitText;
+    const diff = kcalLabel > 0 ? (100 * (me.total - kcalLabel)) / kcalLabel : NaN;
+    const checkText = me.total > 0 ? `From the macronutrients (protein 4, fat 9, carbohydrate 4${fib2 ? ', fibre 2' : ''} kcal per gram): ${r0(me.total)} kcal${u === 'kJ' ? ` (${r0(me.total * KJ_PER_KCAL)} kJ)` : ''}. The labels add up to ${r0(kcalLabel)} kcal${Number.isFinite(diff) ? `, ${Math.abs(diff) < 0.5 ? 'the same' : `${r1(Math.abs(diff))} % ${diff > 0 ? 'less' : 'more'}`}` : ''}. Small gaps are normal: labels round, and alcohol and polyols are not counted here.` : '';
+    q('.np-check').textContent = checkText;
+    // By meal.
+    const mt = q<HTMLTableElement>('.np-meals'); mt.innerHTML = '';
+    const head = ['Meal', u, 'Protein g', 'Fat g', 'Carbs g'];
+    const h = mt.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; h.append(th); });
+    const b = mt.createTBody(), mealRows: string[][] = [];
+    for (const m of MEALS) { const x = t.byMeal.get(m); if (!x) continue; mealRows.push([m, r0(x.energy), r1(x.protein), r1(x.fat), r1(x.carbs)]); }
+    for (const r of mealRows) { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); }
+    totalRows = [['nutrient', 'unit', 'day_total', 'target', 'percent_of_target'], ...NUTRIENTS.map((n) => [n.label, n.key === 'energy' ? u : n.unit, String(Math.round(day[n.key] * 100) / 100), Number.isFinite(tg[n.key]) ? String(tg[n.key]) : '', Number.isFinite(percentOf(day[n.key], tg[n.key])) ? String(Math.round(percentOf(day[n.key], tg[n.key]))) : '']), ['Salt equivalent', 'g', String(Math.round(saltG(day.sodium) * 100) / 100), '', ''], ['Energy from macronutrients', 'kcal', String(Math.round(me.total * 10) / 10), '', '']];
+    report = t.used ? [
+      { title: 'Day totals', table: { head: ['Nutrient', 'Day', 'Target', '% of target'], rows: NUTRIENTS.map((n) => [`${n.label} (${n.key === 'energy' ? u : n.unit})`, fmtN(n.key, day[n.key]), Number.isFinite(tg[n.key]) ? String(tg[n.key]) : '–', Number.isFinite(percentOf(day[n.key], tg[n.key])) ? `${Math.round(percentOf(day[n.key], tg[n.key]))} %` : '–']), align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Energy split', text: [splitText, checkText] },
+      { title: 'By meal', table: { head, rows: mealRows, align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Foods', table: { head: ['Meal', 'Food', 'Amount', u], rows: foods.filter((_, i) => !probs[i]).map((f) => [f.meal, f.name, f.basis === '100g' ? `${f.amount} g` : `${f.amount} serving${f.amount === 1 ? '' : 's'}`, r0(eaten(f).energy)]), align: ['l', 'l', 'r', 'r'] } },
+      { title: 'Note', text: ['Values from the user\'s own food labels. For study and teaching, not medical advice. Check with a qualified professional.'] },
+    ] : [];
+    store();
+  }
+
+  // Remember (off by default; this browser only).
+  const remember = () => q<HTMLInputElement>('.np-remember').checked;
+  function store() {
+    if (!remember()) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ unit: unit(), fibre2: q<HTMLInputElement>('.np-fib').checked, foods: read().map((f) => ({ ...f, ...Object.fromEntries(NUTRIENTS.map((n) => [n.key, Number.isFinite(f[n.key]) ? f[n.key] : null])), amount: Number.isFinite(f.amount) ? f.amount : null })), targets: Object.fromEntries(NUTRIENTS.map((n) => [n.key, q<HTMLInputElement>(`.np-target[data-k="${n.key}"]`).value])) })); } catch {}
+  }
+  function reset(foods: Partial<Food>[]) { list.innerHTML = ''; foods.forEach(addFood); calc(); }
+
+  root.addEventListener('input', (e) => { if (!(e.target as HTMLElement).matches('.np-file')) calc(); });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLElement; if (el.matches('select, .np-fib')) calc(); });
+  list.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.np-del'); if (b) { b.closest('.np-food')!.remove(); calc(); } });
+  q('.np-add').addEventListener('click', () => { addFood({}); calc(); list.querySelector<HTMLInputElement>('.np-food:last-child .np-name')!.focus(); });
+  q('.np-reset').addEventListener('click', () => reset(EXAMPLE));
+  q('.np-empty').addEventListener('click', () => reset([]));
+  q('.np-fcsv').addEventListener('click', () => save(new TextEncoder().encode(foodsCsv(read(), unit())), 'my-foods.csv', 'text/csv'));
+  q('.np-tcsv').addEventListener('click', () => { if (totalRows.length) save(new TextEncoder().encode(csv(totalRows)), 'nutrient-totals.csv', 'text/csv'); });
+  const file = q<HTMLInputElement>('.np-file');
+  q('.np-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; file.value = ''; if (!f) return;
+    const ferr = q('.np-ferr'), note = q('.np-opened');
+    try {
+      const r = readFoodsCsv((await readDataFile(f, LIMITS)).text);
+      if (!r.foods.length) throw new Error('No foods found in the file.');
+      q<HTMLSelectElement>('.np-unit').value = r.unit;
+      reset(r.foods);
+      note.textContent = `Opened ${f.name}: ${r.foods.length} food${r.foods.length === 1 ? '' : 's'}${r.skipped ? `, ${r.skipped} row${r.skipped === 1 ? '' : 's'} without a name skipped` : ''}.`; note.hidden = false; ferr.hidden = true;
+    } catch (x) { ferr.textContent = (x as Error).message; ferr.hidden = false; note.hidden = true; }
+  });
+  q('.np-remember').addEventListener('change', () => { if (remember()) store(); else { try { localStorage.removeItem(KEY); } catch {} } });
+  q('.np-forget').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.np-remember').checked = false; q('.np-memo').textContent = 'Cleared: nothing from this page is kept in this browser now. Remembering is off.'; });
+
+  let saved: { unit?: string; fibre2?: boolean; foods?: Partial<Food>[]; targets?: Record<string, string> } | null = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved && Array.isArray(saved.foods)) {
+    q<HTMLInputElement>('.np-remember').checked = true;
+    q<HTMLSelectElement>('.np-unit').value = saved.unit === 'kJ' ? 'kJ' : 'kcal';
+    q<HTMLInputElement>('.np-fib').checked = !!saved.fibre2;
+    for (const n of NUTRIENTS) q<HTMLInputElement>(`.np-target[data-k="${n.key}"]`).value = saved.targets?.[n.key] ?? '';
+    reset(saved.foods.map((f) => ({ ...f, ...Object.fromEntries(NUTRIENTS.map((n) => [n.key, f[n.key] ?? NaN])), amount: f.amount ?? NaN })));
+  } else reset(EXAMPLE);
+  wireDownloads(q('.dl'), () => ({ title: 'Nutrient planner', file: 'nutrient-planner', sections: report }));
+</script>

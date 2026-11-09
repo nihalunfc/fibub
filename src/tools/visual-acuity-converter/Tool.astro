@@ -1,0 +1,130 @@
+---
+// Visual acuity converter: Snellen (20/x, 6/x), decimal, logMAR, MAR, VAS and ETDRS letters, for many values at once.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax va">
+  <p class="va-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Acuity values</h2>
+    <label>One or more values, one per line (or separated by commas). A name before the value is optional.
+      <textarea class="va-in" rows="7" spellcheck="false">Right eye, 20/40
+Left eye, 6/9+2
+Last visit, 0.8
+logMAR 0.12
+VAS 76
+letters 55</textarea></label>
+    <DataFile target=".va-in" maxCols={10} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Numbers without a slash are <select class="va-plain">
+        <option value="decimal">Decimal (0.5)</option>
+        <option value="logmar">logMAR (0.3)</option>
+        <option value="mar">MAR, minutes (2)</option>
+        <option value="vas">VAS (85)</option>
+        <option value="letters">ETDRS letters (70)</option>
+      </select></label>
+      <label>Letters per line (for +2 or −1) <input class="va-per" inputmode="numeric" value="5" /></label>
+    </div>
+    <p class="ax-help">Write Snellen as a fraction: 20/40 (feet), 6/12 (metres) or any distance such as 4/10. "20/40+2" means the 20/40 line plus 2 letters of the next line; each letter counts as 0.1 ÷ letters per line in logMAR. A word in front (logMAR, MAR, VAS, letters, decimal) overrides the setting.</p>
+    <p class="ax-err va-err" hidden></p>
+  </div>
+
+  <div class="ax-card va-out">
+    <h2>Result</h2>
+    <p class="ax-big va-big"></p>
+    <dl class="ax-facts va-facts"></dl>
+    <div class="ax-scroll" style="margin-top:14px"><table class="va-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small va-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Chart lines</h2>
+    <p class="ax-help" style="margin:0 0 8px">Each line is 0.1 logMAR (5 letters) apart. Snellen and decimal are the rounded labels printed on charts; MAR, VAS and letters come from the formulas.</p>
+    <div class="ax-scroll"><table class="va-lines"></table></div>
+  </div>
+</div>
+
+<style is:global>
+  .va-warn { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; background: var(--surface); }
+  .va .va-tab td:first-child, .va .va-tab th:first-child { white-space: nowrap; }
+  .va tr.va-hit td { font-weight: 700; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseMany, fromLogMAR, lines, nearestLine, meanAcuity, type Kind, type Parsed, KIND_NAMES } from '../../lib/sci/acuity';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.va')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.va-err');
+  let report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  const ft = (x: number) => `20/${sig(x, 3)}`, m6 = (x: number) => `6/${sig(x, 3)}`;
+  const lm = (x: number) => (Math.abs(x) < 0.005 ? '0.00' : x.toFixed(2).replace('-', '−'));
+  const near = (L: number) => { const n = nearestLine(L); return n.line ? `20/${n.line.feet}${n.letters ? (n.letters > 0 ? ` +${n.letters}` : ` −${-n.letters}`) : ''}` : 'off the chart'; };
+  const SHORT: Record<Kind, string> = { snellen: 'Snellen', decimal: 'Decimal', logmar: 'logMAR', mar: 'MAR', vas: 'VAS', letters: 'Letters' };
+  const HEAD = ['Name', 'Entered', 'Read as', 'Snellen (ft)', 'Snellen (m)', 'Decimal', 'logMAR', 'MAR (′)', 'VAS', 'ETDRS letters', 'Nearest line'];
+
+  function table(el: HTMLTableElement, head: string[], rows: string[][], right: (i: number) => boolean, hit?: (r: number) => boolean) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right(i)) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody();
+    rows.forEach((r, k) => { const tr = b.insertRow(); if (hit?.(k)) tr.className = 'va-hit'; r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (right(i)) td.className = 'r'; }); });
+  }
+
+  const LINES = lines();
+  let hits = new Set<number>();
+  function drawLines() {
+    table(q('.va-lines'), ['logMAR', 'Snellen (ft)', 'Snellen (m)', 'Decimal', 'MAR (′)', 'VAS', 'ETDRS letters'],
+      LINES.map((l) => [lm(l.logmar), `20/${l.feet}`, `6/${l.metres}`, l.decimal, sig(l.mar, 3), String(Math.round(l.vas)), String(Math.round(l.letters))]),
+      () => true, (k) => hits.has(LINES[k].step));
+  }
+
+  function calc() {
+    err.hidden = true;
+    const per = num(q<HTMLInputElement>('.va-per').value);
+    const plain = q<HTMLSelectElement>('.va-plain').value as Kind;
+    const out = q('.va-out');
+    if (!(per >= 1 && per <= 10 && Number.isInteger(per))) { err.textContent = 'Letters per line must be a whole number from 1 to 10 (5 on most charts).'; err.hidden = false; out.hidden = true; report = []; return; }
+    const text = q<HTMLTextAreaElement>('.va-in').value;
+    const all: Parsed[] = parseMany(text, plain, 0.1 / per);
+    const bad = all.filter((p) => 'error' in p) as { error: string }[];
+    const ok = all.filter((p) => !('error' in p)) as Extract<Parsed, { kind: Kind }>[];
+    if (all.length > 5000) { err.textContent = 'That is more than 5,000 values. Is this the right data?'; err.hidden = false; out.hidden = true; report = []; return; }
+    if (bad.length) { err.textContent = `${bad.length === 1 ? 'One value was' : `${bad.length} values were`} left out. ${bad.slice(0, 3).map((b) => b.error).join('. ')}.`; err.hidden = false; }
+    if (!ok.length) { if (!bad.length) { err.textContent = 'Type an acuity value, such as 20/40, 6/12, 0.5 or logMAR 0.3.'; err.hidden = false; } out.hidden = true; report = []; hits = new Set(); drawLines(); return; }
+    out.hidden = false;
+    const rows = ok.map((p, i) => { const a = fromLogMAR(p.logmar); return [p.label || `#${i + 1}`, p.text, SHORT[p.kind], ft(a.feet), m6(a.metres), sig(a.decimal, 2), lm(a.logmar), sig(a.mar, 3), String(Math.round(a.vas)), String(Math.round(a.letters)), near(p.logmar) + (p.note ? ' (check)' : '')]; });
+    table(q('.va-tab'), HEAD, rows, (i) => i >= 3 && i <= 9);
+    const f = fromLogMAR(ok[0].logmar);
+    q('.va-big').textContent = (ok[0].label ? `${ok[0].label}: ` : '') + [...new Set([ok[0].text.replace(/\s+/g, ''), ft(f.feet), m6(f.metres), `decimal ${sig(f.decimal, 2)}`, `logMAR ${lm(f.logmar)}`])].join(' = ');
+    const facts: [string, string, string?][] = [
+      ['MAR', `${sig(f.mar, 3)} ′`, 'minimum angle of resolution'],
+      ['VAS', sig(f.vas, 3), 'Visual Acuity Score, 100 = 20/20'],
+      ['ETDRS letters', sig(f.letters, 3), '85 = 20/20'],
+      ['Nearest chart line', near(f.logmar)],
+    ];
+    if (ok[0].note) facts.push(['Check', ok[0].note]);
+    if (ok.length > 1) { const m = meanAcuity(ok.map((p) => p.logmar))!; facts.push([`Average of ${ok.length} values`, `logMAR ${lm(m.logmar)}`, `${ft(m.feet)}, decimal ${sig(m.decimal, 2)} (averaged in logMAR)`]); }
+    q('.va-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+    hits = new Set(ok.map((p) => Math.round(p.logmar * 10 + 1e-9)));
+    drawLines();
+    csvRows = [['name', 'entered', 'read_as', 'snellen_feet', 'snellen_metres', 'decimal', 'logmar', 'mar_arcmin', 'vas', 'etdrs_letters', 'nearest_line'],
+      ...ok.map((p, i) => { const a = fromLogMAR(p.logmar); return [p.label || `#${i + 1}`, p.text, KIND_NAMES[p.kind], `20/${+a.feet.toFixed(2)}`, `6/${+a.metres.toFixed(2)}`, +a.decimal.toFixed(4), +a.logmar.toFixed(4), +a.mar.toFixed(4), +a.vas.toFixed(2), +a.letters.toFixed(2), near(p.logmar)]; })];
+    report = [
+      { title: 'Converted values', text: ['logMAR = log10(MAR); decimal = 1/MAR; Snellen 20/(20 × MAR) and 6/(6 × MAR); VAS = 100 − 50 × logMAR; ETDRS letters = 85 − 50 × logMAR.'], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), table: { head: HEAD.slice(0, 10), rows: rows.map((r) => r.slice(0, 10)), align: HEAD.slice(0, 10).map((_, i) => (i >= 3 ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: 'Chart lines', table: { head: ['logMAR', 'Snellen (ft)', 'Snellen (m)', 'Decimal', 'VAS', 'Letters'], rows: LINES.map((l) => [lm(l.logmar), `20/${l.feet}`, `6/${l.metres}`, l.decimal, String(Math.round(l.vas)), String(Math.round(l.letters))]), align: ['r', 'r', 'r', 'r', 'r', 'r'] }, note: 'For study and teaching, not medical advice.' },
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  q('.va-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'visual-acuity.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Visual acuity conversions', subtitle: q('.va-big').textContent ?? '', file: 'visual-acuity', sections: report }));
+</script>

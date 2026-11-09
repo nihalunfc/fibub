@@ -1,0 +1,208 @@
+---
+// Outbreak epidemic curve from onset dates, and a food-history attack-rate table.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax epc">
+  <div class="ax-card">
+    <h2>Onset dates</h2>
+    <p class="epc-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <label>One case per line as a date (YYYY-MM-DD, with a time such as 14:30 if you have it), or a date and a number of cases. A header row is optional.
+      <textarea class="epc-in" rows="8" spellcheck="false" wrap="off">Onset date,Cases
+2026-06-08,1
+2026-06-09,2
+2026-06-10,5
+2026-06-11,9
+2026-06-12,12
+2026-06-13,8
+2026-06-14,4
+2026-06-15,2
+2026-06-17,1</textarea></label>
+    <DataFile target=".epc-in" maxCols={2} maxRows={20000} />
+    <p class="ax-help">The example outbreak is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Bars of <select class="epc-bin">
+        <option value="hours:1">1 hour</option><option value="hours:6">6 hours</option><option value="hours:12">12 hours</option>
+        <option value="days:1" selected>1 day</option><option value="days:2">2 days</option><option value="days:3">3 days</option>
+        <option value="week-mon:7">1 week (from Monday)</option><option value="week-sun:7">1 week (from Sunday)</option></select></label>
+      <label>Shared exposure (optional) <input class="epc-exp" placeholder="2026-06-07 19:00" value="2026-06-07" /></label>
+      <label>Chart title <input class="epc-title" value="Cases by date of onset" /></label>
+    </div>
+    <p class="ax-help">A bar a quarter to a third of the usual incubation period wide shows the shape best. With a shared exposure (a meal or event), the page works out the incubation periods.</p>
+    <p class="ax-err epc-err" hidden></p>
+  </div>
+
+  <div class="ax-card epc-out" hidden>
+    <h2>Epidemic curve</h2>
+    <p class="ax-big epc-big"></p>
+    <dl class="ax-facts epc-facts"></dl>
+    <p class="ax-help epc-warn" hidden></p>
+    <canvas class="ax-fig epc-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help epc-shape"></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small epc-png">Curve (PNG)</button>
+      <button type="button" class="btn secondary small epc-csv">Counts (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Attack rates by food or exposure</h2>
+    <label>One row per item: name, ate and ill, ate and well, did not eat and ill, did not eat and well. A header row is optional.
+      <textarea class="epc-ar" rows="6" spellcheck="false" wrap="off">Item	Ate, ill	Ate, well	Not eaten, ill	Not eaten, well
+Chicken salad	38	20	6	36
+Rice	30	35	14	21
+Fruit	15	30	29	26
+Ice cream	22	28	22	28</textarea></label>
+    <DataFile target=".epc-ar" maxCols={5} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Confidence <select class="epc-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-err epc-arerr" hidden></p>
+    <div class="epc-arout" hidden>
+      <div class="ax-scroll" style="margin-top:12px"><table class="epc-artab"></table></div>
+      <p class="ax-help epc-arnote"></p>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small epc-arcsv">Attack rates (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .epc .epc-med { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+  .epc .epc-artab td:nth-child(n+2) { white-space: nowrap; }
+  .epc .epc-artab tr.epc-top td { font-weight: 650; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { parseOnsets, parseDate, epiCurve, summary, attackRates, fmtDate, binWidth, type Bin } from '../../lib/sci/epicurve';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { counts } from '../../lib/sci/epistat';
+  import { paint, save, wireDownloads, pagePalette, LIGHT, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.epc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const DAY = 86400000, HOUR = 3600000;
+  let fig: Figure | null = null, curveRows: string[][] = [], arRows: string[][] = [], curveSec: Section[] = [], arSec: Section[] = [];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const short = (t: number, hours: boolean) => { const d = new Date(t); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}${hours ? ' ' + d.toISOString().slice(11, 16) : ''}`; };
+  const pct = (x: number) => (Number.isFinite(x) ? `${(x * 100).toFixed(1)} %` : '–');
+  const r3 = (x: number) => (Number.isFinite(x) ? sig(x, 3) : x > 0 ? '∞' : '–');
+  const pTxt = (p: number) => (p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const dur = (ms: number, timed: boolean) => (timed ? `${sig(ms / HOUR, 3)} h` : `${Math.round(ms / DAY)} d`);
+
+  function facts(list: [string, string][]) {
+    const dl = q('.epc-facts'); dl.innerHTML = '';
+    for (const [k, x] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = x; d.append(dt, dd); dl.append(d); }
+  }
+
+  function curveFigure(bins: { start: number; count: number }[], hours: boolean, title: string, exposure: number | null, binW: number): Figure {
+    const W = 440, H = 300;
+    return {
+      w: W, h: H, alt: `${title}: ${bins.length} bars`,
+      draw: (ctx, w, h, pal) => {
+        const left = 44, right = w - 12, top = title ? 34 : 14, bottom = h - 46;
+        const maxC = Math.max(1, ...bins.map((b) => b.count)), ticks = niceTicks(0, maxC, 6).filter((t) => Number.isInteger(t) && t >= 0);
+        const yMax = Math.max(maxC, ticks.at(-1) ?? maxC), y = (v: number) => bottom - (v / yMax) * (bottom - top);
+        const bw = (right - left) / bins.length;
+        ctx.font = '600 15px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        if (title) ctx.fillText(title, left, 20);
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+        for (const t of ticks) { ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(left, y(t)); ctx.lineTo(right, y(t)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(String(t), left - 6, y(t)); }
+        bins.forEach((b, i) => { if (!b.count) return; ctx.fillStyle = pal.accent; ctx.fillRect(left + i * bw, y(b.count), bw, bottom - y(b.count)); ctx.strokeStyle = pal.bg; ctx.lineWidth = bw > 6 ? 1 : 0.3; ctx.strokeRect(left + i * bw, y(b.count), bw, bottom - y(b.count)); });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+        // Date labels: as many as fit without overlapping.
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const lw = (hours ? 82 : 46), step = Math.max(1, Math.ceil(lw / bw));
+        for (let i = 0; i < bins.length; i += step) { const x = left + (i + 0.5) * bw; ctx.beginPath(); ctx.moveTo(x, bottom); ctx.lineTo(x, bottom + 4); ctx.stroke(); ctx.fillText(short(bins[i].start, hours), x, bottom + 7); }
+        ctx.fillStyle = pal.muted; ctx.fillText('Date of onset' + (hours ? ' (bar start)' : ''), (left + right) / 2, bottom + 26);
+        ctx.save(); ctx.translate(12, (top + bottom) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Cases', 0, 0); ctx.restore();
+        if (exposure !== null && bins.length) {
+          const w0 = binW, x = left + ((exposure - bins[0].start) / w0) * bw;
+          if (x >= left - 1 && x <= right) { ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = pal.accent2; ctx.textAlign = x > right - 70 ? 'right' : 'left'; ctx.fillText('Exposure', x + (x > right - 70 ? -4 : 4), top); }
+        }
+      },
+    };
+  }
+
+  function draw() { if (fig) paint(q<HTMLCanvasElement>('.epc-fig'), fig, pagePalette()); }
+
+  function calcCurve() {
+    const err = q('.epc-err');
+    try {
+      const p = parseOnsets(q<HTMLTextAreaElement>('.epc-in').value);
+      if (!p.onsets.some((o) => o.n > 0)) throw new Error(p.errors[0] ?? 'Type or paste at least one onset date (YYYY-MM-DD).');
+      const [kind, size] = q<HTMLSelectElement>('.epc-bin').value.split(':'), bin: Bin = { kind: kind as Bin['kind'], size: Number(size) };
+      const hours = kind === 'hours';
+      if (hours && !p.timed) throw new Error('Hour bars need onset times, such as 2026-06-10 14:30. Choose bars of a day or more, or add times.');
+      const expTxt = q<HTMLInputElement>('.epc-exp').value.trim();
+      let exposure: number | null = null;
+      if (expTxt) { exposure = parseDate(expTxt); if (!Number.isFinite(exposure)) throw new Error('The exposure must be a date (YYYY-MM-DD), with a time if you have one.'); if (!p.timed) exposure = Math.floor(exposure / DAY) * DAY; }
+      const c = epiCurve(p.onsets, bin, 2000, exposure ?? undefined), s = summary(p.onsets, exposure ?? undefined);
+      const peak = c.bins.reduce((m, b) => (b.count > m.count ? b : m), c.bins[0]);
+      const binTxt = q<HTMLSelectElement>('.epc-bin').selectedOptions[0].textContent!;
+      q('.epc-big').textContent = `${s.total} case${s.total === 1 ? '' : 's'}, ${fmtDate(s.first, p.timed)} to ${fmtDate(s.last, p.timed)}`;
+      const fl: [string, string][] = [
+        ['Peak bar', `${fmtDate(peak.start, hours)}${binWidth(bin) > DAY ? ` to ${fmtDate(peak.end - DAY)}` : ''}: ${peak.count} cases`],
+        ['Median onset', fmtDate(s.median, p.timed)],
+        ['Bars', `${c.bins.length} × ${binTxt}`],
+      ];
+      if (s.incubation) {
+        fl.push(['Incubation, median (range)', `${dur(s.incubation.median, p.timed)} (${dur(s.incubation.min, p.timed)} to ${dur(s.incubation.max, p.timed)})`]);
+        if (s.incubation.before) fl.push(['Onsets before the exposure', String(s.incubation.before)]);
+      }
+      facts(fl);
+      const warn = q('.epc-warn'); warn.hidden = !p.errors.length;
+      warn.textContent = p.errors.length ? `${p.errors.length} line${p.errors.length > 1 ? 's were' : ' was'} left out. ${p.errors.slice(0, 3).join(' ')}` : '';
+      const title = q<HTMLInputElement>('.epc-title').value.trim();
+      fig = curveFigure(c.bins, hours, title, exposure, binWidth(bin)); draw();
+      const spanDays = (s.last - s.first) / DAY;
+      q('.epc-shape').textContent = `Cases span ${sig(spanDays, 3)} days. A sharp rise and slower fall within about one incubation period suggests a point source (one shared exposure); a plateau suggests a continuing source; peaks a generation apart suggest spread from person to person.` + (s.incubation && !p.timed ? ' With dates only, incubation is counted in whole days.' : '');
+      curveRows = [['bin_start', 'bin_end', 'cases'], ...c.bins.map((b) => [fmtDate(b.start, hours), fmtDate(b.end, hours), String(b.count)])];
+      curveSec = [{ title: title || 'Epidemic curve', text: [q('.epc-big').textContent!], facts: fl, figure: fig, note: q('.epc-shape').textContent! }];
+      err.hidden = true; q('.epc-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.epc-out').hidden = true; curveSec = []; fig = null; }
+  }
+
+  function calcAR() {
+    const err = q('.epc-arerr');
+    try {
+      const rows = parseTable(q<HTMLTextAreaElement>('.epc-ar').value);
+      if (!rows.length) { q('.epc-arout').hidden = true; err.hidden = true; arSec = []; return; }
+      const body = rows.length > 1 && Number.isNaN(num(rows[0][1] ?? '')) ? rows.slice(1) : rows;
+      const items = body.map((r, i) => {
+        const v = r.slice(1, 5).map(num);
+        if (v.length < 4 || !counts(...v)) throw new Error(`Row ${i + 1} ("${r[0]}") needs four whole-number counts: ate and ill, ate and well, did not eat and ill, did not eat and well.`);
+        if (v[0] + v[1] === 0 || v[2] + v[3] === 0) throw new Error(`Row ${i + 1} ("${r[0]}"): both the people who ate it and those who did not need at least one person.`);
+        return { name: r[0], ateIll: v[0], ateWell: v[1], notIll: v[2], notWell: v[3] };
+      });
+      const conf = Number(q<HTMLSelectElement>('.epc-conf').value), cl = `${Math.round(conf * 100)} %`;
+      const res = attackRates(items, conf);
+      const head = ['Item', 'Ate: ill / total', 'Attack rate', 'Not eaten: ill / total', 'Attack rate', 'Ratio', `${cl} interval`, 'p (Fisher)'];
+      arRows = res.map((r) => [r.name, `${r.ateIll} / ${r.ate}`, pct(r.arAte), `${r.notIll} / ${r.not}`, pct(r.arNot), r3(r.rr), r.rrCI.every(Number.isFinite) ? `${r3(r.rrCI[0])} to ${r3(r.rrCI[1])}` : '–', pTxt(r.p)]);
+      const t = q<HTMLTableElement>('.epc-artab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const finite = res.map((r) => (Number.isFinite(r.rr) ? r.rr : 0)), best = res.length > 1 ? finite.indexOf(Math.max(...finite)) : -1;
+      const tb = t.createTBody(); arRows.forEach((row, ri) => { const tr = tb.insertRow(); if (ri === best) tr.className = 'epc-top'; row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      const top = best >= 0 ? res[best] : null;
+      q('.epc-arnote').textContent = (top ? `${top.name} has the highest attack-rate ratio (${r3(top.rr)}). ` : '') + 'Look for the item with a high attack rate among those who ate it, a low rate among those who did not, and most of the ill people having eaten it. Testing many items will throw up chance findings, so treat p-values as a guide.';
+      arSec = [{ title: 'Attack rates by item', table: { head, rows: arRows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: q('.epc-arnote').textContent! }];
+      err.hidden = true; q('.epc-arout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.epc-arout').hidden = true; arSec = []; }
+  }
+
+  let t1 = 0, t2 = 0;
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('.ax-card')?.querySelector('.epc-ar')) { clearTimeout(t2); t2 = window.setTimeout(calcAR, 250); } else { clearTimeout(t1); t1 = window.setTimeout(calcCurve, 250); }
+  });
+  q('.epc-bin').addEventListener('change', calcCurve);
+  q('.epc-conf').addEventListener('change', calcAR);
+  q('.epc-png').addEventListener('click', () => { if (!fig) return; const c = document.createElement('canvas'); paint(c, fig, LIGHT); c.toBlob((b) => b && save(b, 'epi-curve.png', 'image/png')); });
+  q('.epc-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(curveRows)), 'epi-curve.csv', 'text/csv'));
+  q('.epc-arcsv').addEventListener('click', () => save(new TextEncoder().encode(csv([['Item', 'Ate ill', 'Ate total', 'Attack rate ate', 'Not eaten ill', 'Not eaten total', 'Attack rate not eaten', 'Ratio', 'Interval', 'p Fisher'], ...arRows.map((r) => [r[0], ...r[1].split(' / '), r[2], ...r[3].split(' / '), r[4], r[5], r[6], r[7]])])), 'attack-rates.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', draw);
+  calcCurve(); calcAR();
+  wireDownloads(q('.dl'), () => ({ title: 'Outbreak epidemic curve', file: 'epi-curve', sections: [...curveSec, ...arSec, { title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.'] }] }));
+</script>
