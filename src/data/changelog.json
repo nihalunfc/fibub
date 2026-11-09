@@ -1,5 +1,48 @@
 [
  {
+  "sha": "268a0eef3784",
+  "date": "2026-11-09T09:35:05+00:00",
+  "title": "Add #180 gel and western blot densitometry; per-tool test files",
+  "tools": [
+   "gel-densitometry"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ca68e5d6534",
+  "date": "2026-11-09T09:14:46+00:00",
+  "title": "Add #179 peptide mass and fragment ion calculator",
+  "tools": [
+   "peptide-mass-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "09573f2cc53b",
+  "date": "2026-11-09T08:56:51+00:00",
+  "title": "Add #178 protein parameter calculator",
+  "tools": [
+   "protein-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4eed7f76da37",
+  "date": "2026-11-09T08:39:38+00:00",
+  "title": "Add #177 phylogenetic tree viewer (Newick and NEXUS)",
+  "tools": [
+   "tree-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dd18115fc51c",
+  "date": "2026-11-09T08:10:31+00:00",
+  "title": "Count views per page by day, publish counts to the repo daily",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "92dae82478fc",
   "date": "2026-11-09T08:09:01+00:00",
   "title": "Add a bottom bar (Learn, Tools, Home, News, Menu) with area colours, plus Learn, Tools and News pages",

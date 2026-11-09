@@ -1,0 +1,207 @@
+---
+// Peptide masses from an in-silico digest, peptide mass fingerprint matching and b/y fragment ions, worked out in
+// the browser. Nothing is uploaded. The example protein and peaks are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pep">
+  <div class="ax-card">
+    <h2>Protein and digest</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pe-open">Open a FASTA file</button>
+      <input type="file" class="pe-file" accept=".fa,.fasta,.faa,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small pe-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Protein sequence (one-letter codes, FASTA is fine) <textarea class="pe-in" rows="4" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Enzyme <select class="pe-enz"></select></label>
+      <label>Missed cleavages <select class="pe-mc"><option>0</option><option selected>1</option><option>2</option><option>3</option></select></label>
+      <label>Shortest peptide <input class="pe-min" type="number" min="1" step="1" value="4" inputmode="numeric" /></label>
+      <label>Longest peptide <input class="pe-max" type="number" min="1" step="1" value="40" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pe-cam" checked /> Cysteines carbamidomethylated (alkylated with iodoacetamide)</label>
+    <label class="ax-check"><input type="checkbox" class="pe-ox" /> All methionines oxidised</label>
+    <p class="ax-help">Masses are monoisotopic unless marked average. Up to 5 MB of sequence; only the first protein in a file is used.</p>
+    <p class="ax-err pe-err" hidden></p>
+  </div>
+
+  <div class="ax-card pe-out" hidden>
+    <h2>Peptides</h2>
+    <p class="ax-big pe-big"></p>
+    <div class="ax-scroll pe-tw"><table class="pe-tab"></table></div>
+    <p class="ax-help pe-tnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pe-csv">Download peptides (CSV)</button></div>
+
+    <h3>Match measured peaks (peptide mass fingerprint)</h3>
+    <label>Measured m/z values, one per line (the first number on each line is used) <textarea class="pe-peaks" rows="5" spellcheck="false" placeholder="1083.4749&#10;1173.5786"></textarea></label>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Tolerance (ppm) <input class="pe-ppm" type="number" min="0.1" step="1" value="10" inputmode="decimal" /></label>
+      <label>Charges <select class="pe-z"><option value="1">1+ only</option><option value="1,2">1+ and 2+</option><option value="1,2,3">1+ to 3+</option></select></label>
+    </div>
+    <p class="ax-help pe-fp" aria-live="polite">Paste peaks to match them to the peptides above.</p>
+    <div class="ax-scroll"><table class="pe-fptab"></table></div>
+    <div class="pe-cov" aria-label="Sequence coverage"></div>
+
+    <h3>Fragment ions</h3>
+    <div class="ax-grid">
+      <label>Peptide <input class="pe-frag" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. DFSLQGECK" /></label>
+      <label>Fragment charge <select class="pe-fz"><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="pe-loss" /> Show water and ammonia losses (b−H₂O, y−NH₃)</label>
+    <p class="ax-help pe-fnote">Type a peptide, or tap one in the table above.</p>
+    <canvas class="ax-fig pe-fig" hidden></canvas>
+    <div class="ax-scroll"><table class="pe-ftab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pe-fcsv" disabled>Download fragment ions (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pep h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pep .pe-tw { max-height: 420px; overflow-y: auto; }
+  .pep table td.seq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; }
+  .pep .pe-tab tr[data-i] { cursor: pointer; }
+  .pep .pe-tab tr.on td { background: var(--accent-soft); }
+  .pep .pe-cov { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.8; word-break: break-all; margin-top: 10px; }
+  .pep .pe-cov mark { background: var(--accent-soft); color: var(--accent); font-weight: 700; border-radius: 2px; }
+  .pep .pe-cov span.n { color: var(--muted); margin-right: 6px; }
+</style>
+
+<script>
+  import { digest, fingerprint, fragments, mz, ENZYMES, EXAMPLE_PROTEIN, EXAMPLE_PEAKS, type EnzymeId, type ModId, type Peptide } from '../../lib/sci/peptide';
+  import { readProtein } from '../../lib/sci/protparam';
+  import { wireDownloads, save, fileSafe, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pep')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f4 = (x: number) => x.toFixed(4);
+  const enz = q<HTMLSelectElement>('.pe-enz');
+  enz.replaceChildren(...Object.entries(ENZYMES).map(([k, e]) => new Option(e.name, k)));
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+
+  let seq = '', name = 'protein', peps: Peptide[] = [], mods: ModId[] = [], sections: Section[] = [], fragRows: ReturnType<typeof fragments> = [], fragSeq = '', fig: Figure | null = null;
+  const MAX_ROWS = 2000;
+
+  function run() {
+    const err = q('.pe-err'); err.hidden = true;
+    const r = readProtein(q<HTMLTextAreaElement>('.pe-in').value)[0];
+    if (!r || !r.seq) { q('.pe-out').hidden = true; if (q<HTMLTextAreaElement>('.pe-in').value.trim()) { err.textContent = 'No amino acids found. Paste a protein sequence in one-letter codes.'; err.hidden = false; } return; }
+    seq = r.seq; name = r.name;
+    mods = [...(q<HTMLInputElement>('.pe-cam').checked ? ['carbamidomethyl' as ModId] : []), ...(q<HTMLInputElement>('.pe-ox').checked ? ['oxidation' as ModId] : [])];
+    const minLen = Math.max(1, Number(q<HTMLInputElement>('.pe-min').value) || 1), maxLen = Math.max(minLen, Number(q<HTMLInputElement>('.pe-max').value) || 1e9);
+    peps = digest(seq, enz.value as EnzymeId, { missed: Number(q<HTMLSelectElement>('.pe-mc').value), mods, minLen, maxLen });
+    q('.pe-out').hidden = false;
+    const full = peps.filter((p) => p.missed === 0).length;
+    q('.pe-big').textContent = `${peps.length.toLocaleString('en')} peptides (${full.toLocaleString('en')} with no missed cleavage) from ${seq.length.toLocaleString('en')} amino acids`;
+    const t = q('.pe-tab');
+    table(t, ['Position', 'Missed', 'Peptide', 'Mass', '[M+H]⁺', '[M+2H]²⁺'], peps.slice(0, MAX_ROWS).map((p) => [`${p.start}–${p.end}`, p.missed, p.seq, f4(p.mono), f4(mz(p.mono, 1)), f4(mz(p.mono, 2))]), ['', 'r', 'seq', 'r', 'r', 'r']);
+    [...t.querySelectorAll('tr')].slice(1).forEach((tr, k) => { tr.dataset.i = String(k); tr.tabIndex = 0; });
+    q('.pe-tnote').textContent = `${peps.length > MAX_ROWS ? `The first ${MAX_ROWS} of ${peps.length.toLocaleString('en')} peptides are shown; the CSV has them all. ` : ''}Tap a peptide to see its fragment ions. Mass is the neutral monoisotopic mass; ${mods.length ? `modifications: ${mods.map((m) => (m === 'carbamidomethyl' ? 'carbamidomethyl Cys' : 'oxidised Met')).join(', ')}.` : 'no modifications.'}`;
+    match(); frag();
+  }
+
+  function match() {
+    const peaks = q<HTMLTextAreaElement>('.pe-peaks').value.split(/\r?\n/).map((l) => Number((/[-+]?\d+(\.\d+)?/.exec(l) ?? [''])[0])).filter((x) => x > 0);
+    const out = q('.pe-fp'), cov = q('.pe-cov'), tab = q('.pe-fptab');
+    if (!peaks.length || !seq) { out.textContent = 'Paste peaks to match them to the peptides above.'; cov.replaceChildren(); tab.replaceChildren(); return null; }
+    const ppm = Math.max(0.1, Number(q<HTMLInputElement>('.pe-ppm').value) || 10), charges = q<HTMLSelectElement>('.pe-z').value.split(',').map(Number);
+    const fp = fingerprint(seq, peps, peaks, { ppm, charges });
+    out.textContent = `${fp.matched} of ${peaks.length} peaks match a peptide within ${ppm} ppm. Sequence coverage: ${(100 * fp.coverage).toFixed(1)} %.`;
+    table(tab, ['Measured m/z', 'Peptide', 'Position', 'z', 'Calculated', 'Error (ppm)'], fp.hits.flatMap((h) => h.matches.length ? h.matches.slice(0, 3).map((m, k) => [k ? '' : f4(h.obs), m.pep.seq, `${m.pep.start}–${m.pep.end}`, `${m.z}+`, f4(m.calc), m.err.toFixed(1)]) : [[f4(h.obs), 'no match', '', '', '', '']]), ['r', 'seq', '', 'r', 'r', 'r']);
+    cov.replaceChildren();
+    for (let i = 0; i < seq.length; i += 10) {
+      if (i % 50 === 0) { if (i) cov.append(document.createElement('br')); const n = document.createElement('span'); n.className = 'n'; n.textContent = String(i + 1).padStart(String(seq.length).length, ' '); cov.append(n); }
+      for (let j = i; j < Math.min(seq.length, i + 10); j++) { if (fp.covered[j]) { const m = document.createElement('mark'); m.textContent = seq[j]; cov.append(m); } else cov.append(seq[j]); }
+      cov.append(' ');
+    }
+    return { fp, ppm, peaks };
+  }
+
+  function frag() {
+    const raw = q<HTMLInputElement>('.pe-frag').value.toUpperCase().replace(/[^A-Z]/g, '');
+    const z = Number(q<HTMLSelectElement>('.pe-fz').value), loss = q<HTMLInputElement>('.pe-loss').checked;
+    const tab = q('.pe-ftab'), canvas = q<HTMLCanvasElement>('.pe-fig'), note = q('.pe-fnote');
+    const bad = raw.replace(/[ACDEFGHIKLMNPQRSTVWYUO]/g, '');
+    if (raw.length < 2 || bad) { tab.replaceChildren(); canvas.hidden = true; fragRows = []; q<HTMLButtonElement>('.pe-fcsv').disabled = true; note.textContent = bad ? `"${bad[0]}" is not an amino acid code.` : 'Type a peptide, or tap one in the table above.'; return; }
+    fragSeq = raw; fragRows = fragments(raw, { mods, charge: z, losses: loss });
+    const n = raw.length;
+    const head = ['#', 'a', 'b', ...(loss ? ['b−H₂O'] : []), 'Residue', 'y', ...(loss ? ['y−NH₃'] : []), '#'];
+    table(tab, head, fragRows.map((r, k) => [r.i, k < n - 1 ? f4(r.a) : '', k < n - 1 ? f4(r.b) : '', ...(loss ? [k < n - 1 ? f4(r.bH2O!) : ''] : []), r.aa, k > 0 ? f4(r.y) : '', ...(loss ? [k > 0 ? f4(r.yNH3!) : ''] : []), r.yi]), ['r', 'r', 'r', ...(loss ? ['r'] : []), '', 'r', ...(loss ? ['r'] : []), 'r']);
+    note.textContent = `${n} residues, ${z}+ fragments. b and a ions count from the N-terminus (left), y ions from the C-terminus (right).`;
+    q<HTMLButtonElement>('.pe-fcsv').disabled = false;
+    // Stick picture of b (accent) and y (second colour) ions.
+    const ions = [...fragRows.slice(0, n - 1).map((r) => ({ m: r.b, t: `b${r.i}`, k: 0 })), ...fragRows.slice(1).map((r) => ({ m: r.y, t: `y${r.yi}`, k: 1 }))];
+    const lo = Math.min(...ions.map((i) => i.m)), hi = Math.max(...ions.map((i) => i.m)), span = Math.max(1, hi - lo);
+    fig = {
+      w: 560, h: 220, alt: `Theoretical b and y ions of ${raw} (${z}+), m/z ${lo.toFixed(0)} to ${hi.toFixed(0)}`,
+      draw: (ctx, W, H, pal) => {
+        const L = 34, R = 14, T = 28, B = 30, X = (m: number) => L + ((m - (lo - span * 0.04)) / (span * 1.08)) * (W - L - R);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, H - B); ctx.lineTo(W - R, H - B); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.font = '11px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let k = 0; k <= 4; k++) { const m = lo - span * 0.04 + (k * span * 1.08) / 4; ctx.fillText(m.toFixed(0), X(m), H - B + 6); }
+        ctx.fillText('m/z', W / 2, H - 13);
+        ions.forEach((ion, k) => {
+          const x = X(ion.m), top = T + (ion.k ? 22 : 0) + (k % 2) * 12;
+          ctx.strokeStyle = ion.k ? pal.accent2 : pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, H - B); ctx.lineTo(x, top); ctx.stroke();
+          ctx.fillStyle = ion.k ? pal.accent2 : pal.accent; ctx.textBaseline = 'bottom'; ctx.fillText(ion.t, x, top - 2);
+        });
+      },
+    };
+    canvas.hidden = false; paint(canvas, fig);
+  }
+
+  const build = () => {
+    const m = match();
+    sections = [
+      { title: 'Digest', facts: [['Protein', name], ['Length', `${seq.length} amino acids`], ['Enzyme', ENZYMES[enz.value as EnzymeId].name], ['Missed cleavages', q<HTMLSelectElement>('.pe-mc').value], ['Modifications', mods.join(', ') || 'none'], ['Peptides', String(peps.length)]] },
+      { title: 'Peptides', table: { head: ['Position', 'Missed', 'Peptide', 'Mass', '[M+H]+', '[M+2H]2+'], rows: peps.slice(0, 500).map((p) => [`${p.start}-${p.end}`, String(p.missed), p.seq, f4(p.mono), f4(mz(p.mono, 1)), f4(mz(p.mono, 2))]), align: ['l', 'r', 'l', 'r', 'r', 'r'] }, note: peps.length > 500 ? `First 500 of ${peps.length}.` : undefined },
+      ...(m ? [{ title: 'Peptide mass fingerprint', text: [q('.pe-fp').textContent ?? ''], table: { head: ['Measured', 'Peptide', 'z', 'Calculated', 'ppm'], rows: m.fp.hits.map((h) => h.matches[0] ? [f4(h.obs), h.matches[0].pep.seq, `${h.matches[0].z}+`, f4(h.matches[0].calc), h.matches[0].err.toFixed(1)] : [f4(h.obs), 'no match', '', '', '']), align: ['r', 'l', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      ...(fragRows.length ? [{ title: `Fragment ions of ${fragSeq}`, figure: fig ?? undefined, table: { head: ['#', 'b', 'Residue', 'y', '#'], rows: fragRows.map((r, k) => [String(r.i), k < fragRows.length - 1 ? f4(r.b) : '', r.aa, k > 0 ? f4(r.y) : '', String(r.yi)]), align: ['r', 'r', 'l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+    ];
+  };
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 250); };
+  q('.pe-in').addEventListener('input', () => later(run));
+  for (const c of ['.pe-enz', '.pe-mc', '.pe-cam', '.pe-ox']) q(c).addEventListener('change', run);
+  for (const c of ['.pe-min', '.pe-max']) q(c).addEventListener('input', () => later(run));
+  q('.pe-peaks').addEventListener('input', () => later(match));
+  q('.pe-ppm').addEventListener('input', () => later(match));
+  q('.pe-z').addEventListener('change', match);
+  q('.pe-frag').addEventListener('input', () => later(frag));
+  q('.pe-fz').addEventListener('change', frag);
+  q('.pe-loss').addEventListener('change', frag);
+  q('.pe-tab').addEventListener('click', (e) => {
+    const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-i]'); if (!tr) return;
+    q('.pe-tab').querySelectorAll('tr.on').forEach((x) => x.classList.remove('on')); tr.classList.add('on');
+    q<HTMLInputElement>('.pe-frag').value = peps[Number(tr.dataset.i)].seq; frag();
+    q('.pe-frag').scrollIntoView({ block: 'nearest' });
+  });
+  q('.pe-tab').addEventListener('keydown', (e) => { if (e.key === 'Enter') (e.target as HTMLElement).click(); });
+  q('.pe-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.pe-in').value = EXAMPLE_PROTEIN; q<HTMLTextAreaElement>('.pe-peaks').value = EXAMPLE_PEAKS;
+    enz.value = 'trypsin'; q<HTMLSelectElement>('.pe-mc').value = '1'; q<HTMLInputElement>('.pe-cam').checked = true; q<HTMLInputElement>('.pe-ox').checked = false;
+    q<HTMLInputElement>('.pe-frag').value = 'DFSLQGECK'; run();
+  });
+  q('.pe-open').addEventListener('click', () => q<HTMLInputElement>('.pe-file').click());
+  q('.pe-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pe-file').files?.[0]; if (!f) return;
+    if (f.size > 5e6) { q('.pe-err').textContent = 'That file is over 5 MB.'; q('.pe-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.pe-in').value = await f.text(); run(); q<HTMLInputElement>('.pe-file').value = '';
+  });
+  q('.pe-csv').addEventListener('click', () => {
+    const lines = ['start,end,missed_cleavages,peptide,mono_mass,avg_mass,mz_1,mz_2,mz_3', ...peps.map((p) => [p.start, p.end, p.missed, p.seq, f4(p.mono), p.avg.toFixed(3), f4(mz(p.mono, 1)), f4(mz(p.mono, 2)), f4(mz(p.mono, 3))].join(','))];
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-${enz.value}-peptides.csv`, 'text/csv');
+  });
+  q('.pe-fcsv').addEventListener('click', () => {
+    const n = fragRows.length;
+    const lines = ['number,a,b,residue,y,y_number', ...fragRows.map((r, k) => [r.i, k < n - 1 ? f4(r.a) : '', k < n - 1 ? f4(r.b) : '', r.aa, k > 0 ? f4(r.y) : '', r.yi].join(','))];
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(fragSeq)}-fragments.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => { build(); return { title: 'Peptide masses', subtitle: q('.pe-big').textContent ?? '', file: `${fileSafe(name)}-peptides`, sections }; });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.pe-fig').hidden) paint(q<HTMLCanvasElement>('.pe-fig'), fig); });
+</script>
