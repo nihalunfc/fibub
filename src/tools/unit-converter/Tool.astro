@@ -1,0 +1,110 @@
+---
+// Engineering unit converter: free-form expressions with dimension checks, and tables per quantity.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { CATEGORIES, pretty } from '../../lib/sci/eng-units';
+const examples = ['3 kN*m to lbf*ft', '100 °C to °F', '450 bbl/d to m^3/h', '1 W/(m*K) to Btu/(h*ft*°F)', '25 MPa to psi', '5 m/s to N'];
+---
+<div class="ax ucv">
+  <div class="ax-card">
+    <h2>Convert anything</h2>
+    <label>Quantity, then "to" and the unit you want <input class="uc-expr" type="text" value="3 kN*m to lbf*ft" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    <div class="ax-row uc-chips" style="margin-top:8px">
+      {examples.map((e) => <button type="button" class="btn secondary small uc-chip" data-e={e}>{e}</button>)}
+    </div>
+    <p class="ax-help">Multiply with * or a space, divide with /, powers with ^ or digits (m^2, m2, m², s-1), and use brackets: W/(m*K). Without "to" you get SI base units. Units are case-sensitive where it matters (mm and Mm, t and T). °C and °F are absolute on their own and temperature differences inside compound units.</p>
+    <p class="ax-big uc-big" aria-live="polite"></p>
+    <dl class="ax-facts uc-facts"></dl>
+    <p class="ax-err uc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Unit tables</h2>
+    <div class="ax-grid">
+      <label>Quantity <select class="uc-cat">{CATEGORIES.map((c, i) => <option value={c.id} selected={i === 8}>{c.name}</option>)}</select></label>
+      <label>Value <input class="uc-val" type="text" inputmode="decimal" value="1" /></label>
+      <label>From <select class="uc-from"></select></label>
+    </div>
+    <p class="ax-err uc-terr" hidden></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="uc-tab"></table></div>
+    <p class="ax-help">Every factor is an exact definition: the 1959 international inch, foot and pound, standard gravity 9.80665 m/s², the US gallon of 231 in³, the imperial gallon of 4.54609 L, the 42-gallon oil barrel, the thermochemical calorie (4.184 J), the international table calorie and Btu, and the conventional mercury and water densities for mmHg, inHg and inH₂O. Values are shown to 10 significant figures.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small uc-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { convert, quick, CATEGORIES, pretty, unitName, dimText, dimName, siText } from '../../lib/sci/eng-units';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { num, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ucv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  /** Up to 10 significant figures, plain for everyday sizes, × 10ⁿ otherwise. */
+  const fmt = (x: number) => {
+    if (!Number.isFinite(x)) return '–';
+    if (x === 0) return '0';
+    const a = Math.abs(x);
+    if (a >= 1e-4 && a < 1e10) { const t = String(+x.toPrecision(10)); return (a >= 1e4 ? Number(t).toLocaleString('en', { maximumSignificantDigits: 10 }) : t).replace('-', '−'); }
+    const [m, e] = x.toExponential(9).split('e');
+    return `${String(+m).replace('-', '−')} × 10${String(+e).split('').map((c) => SUP[c] ?? c).join('')}`;
+  };
+  const stripNum = (t: string) => t.replace(/^[-+]?(\d[\d,]*\.?\d*|\.\d+)([eE][-+]?\d+)?\s*/, '').trim();
+  let tableRows: string[][] = [], tableRaw: (string | number)[][] = [], exprLine = '';
+
+  function doExpr() {
+    const err = q('.uc-err'), big = q('.uc-big'), facts = q('.uc-facts');
+    const s = val('.uc-expr').trim();
+    if (!s) { big.textContent = ''; facts.replaceChildren(); err.hidden = true; exprLine = ''; return; }
+    try {
+      const r = convert(s);
+      const target = r.to.units ? pretty(stripNum(r.to.text)) : siText(r.from.d).replace(/\^(-?\d+)/g, (_, e: string) => e.split('').map((c) => SUP[c] ?? c).join(''));
+      big.textContent = `${fmt(r.value)} ${target}`;
+      exprLine = `${pretty(r.from.text)} = ${big.textContent}`;
+      const items = [fact('Dimension', dimText(r.from.d), dimName(r.from.d)), fact('In SI base units', `${fmt(r.from.v)} ${siText(r.from.d).replace(/\^(-?\d+)/g, (_, e: string) => e.split('').map((c) => SUP[c] ?? c).join(''))}`)];
+      const one = r.to.units === 1 ? unitName(stripNum(r.to.text).trim()) : '';
+      if (one) items.push(fact('Target unit', one));
+      if (r.note) items.push(fact('Note', r.absolute ? 'absolute temperature' : 'temperature difference', r.note));
+      facts.replaceChildren(...items); err.hidden = true;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; big.textContent = ''; facts.replaceChildren(); exprLine = ''; }
+  }
+
+  function fillFrom() {
+    const cat = CATEGORIES.find((c) => c.id === val('.uc-cat'))!, sel = q<HTMLSelectElement>('.uc-from');
+    sel.replaceChildren(...cat.units.map((u) => { const o = document.createElement('option'); o.value = u; const nm = unitName(u); o.textContent = pretty(u) + (nm && nm !== u ? ` – ${nm}` : ''); return o; }));
+  }
+  function doTable() {
+    const cat = CATEGORIES.find((c) => c.id === val('.uc-cat'))!, from = val('.uc-from'), v = num(val('.uc-val'));
+    const terr = q('.uc-terr'), tab = q<HTMLTableElement>('.uc-tab');
+    if (!Number.isFinite(v)) { terr.textContent = 'Type a number to convert.'; terr.hidden = false; tab.replaceChildren(); tableRows = []; tableRaw = []; return; }
+    terr.hidden = true;
+    tableRaw = cat.units.map((u) => [u, unitName(u) || '', +quick(v, from, u).toPrecision(12)]);
+    tableRows = tableRaw.map((r) => [pretty(String(r[0])), String(r[1]), fmt(Number(r[2]))]);
+    tab.replaceChildren();
+    const hr = tab.insertRow(); ['Unit', 'Name', `${fmt(v)} ${pretty(from)} is`].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 2) th.className = 'r'; hr.append(th); });
+    tableRows.forEach((r, k) => { const tr = tab.insertRow(); if (cat.units[k] === from) tr.className = 'dim'; r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i === 2) td.className = 'r'; }); });
+  }
+
+  q('.uc-expr').addEventListener('input', doExpr);
+  root.querySelectorAll<HTMLButtonElement>('.uc-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.uc-expr').value = b.dataset.e!; doExpr(); }));
+  q('.uc-cat').addEventListener('change', () => { fillFrom(); doTable(); });
+  q('.uc-from').addEventListener('change', doTable);
+  q('.uc-val').addEventListener('input', doTable);
+  q('.uc-csv').addEventListener('click', () => tableRaw.length && save(new TextEncoder().encode(csv([['unit', 'name', `value (from ${val('.uc-val')} ${val('.uc-from')})`], ...tableRaw])), `units-${val('.uc-cat')}.csv`, 'text/csv'));
+  fillFrom(); q<HTMLSelectElement>('.uc-from').value = 'bar'; doTable(); doExpr();
+  wireDownloads(q('.dl'), () => {
+    const cat = CATEGORIES.find((c) => c.id === val('.uc-cat'))!;
+    const sections: Section[] = [{ title: `${cat.name}: ${fmt(num(val('.uc-val')))} ${pretty(val('.uc-from'))}`, table: { head: ['Unit', 'Name', 'Value'], rows: tableRows, align: ['l', 'l', 'r'] } }];
+    if (exprLine) sections.unshift({ title: 'Expression', text: [exprLine] });
+    return { title: 'Unit conversion', subtitle: exprLine, file: `units-${cat.id}`, sections: tableRows.length ? sections : [] };
+  });
+</script>
+
+<style is:global>
+  .ucv .uc-chips .btn { font-size: 13px; padding: 6px 10px; }
+  .ucv .uc-big { margin: 12px 0 8px; overflow-wrap: anywhere; }
+  .ucv .uc-expr { font: 16px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
+</style>
