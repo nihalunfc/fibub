@@ -142,6 +142,7 @@ import * as POND from '../src/lib/sci/pond.ts';
 import * as WQI from '../src/lib/sci/wqi.ts';
 import * as ASL from '../src/lib/sci/asludge.ts';
 import * as SMP from '../src/lib/sci/sampling.ts';
+import * as BIO from '../src/lib/sci/bioacc.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2820,6 +2821,28 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('tri grid mean count', g2 / 200, A / SMP.cellArea(30, 'tri'), 0.5);
   const rp = SMP.randomPoints(poly, 50, 7);
   check('random points', rp.length === 50 && rp.every((q) => SMP.inside(poly, q)) && allIn);
+}
+{
+  // Bioaccumulation: kinetic BCF against SciPy curve_fit (ln and raw), TMF against scipy.stats.linregress. Made-up test data.
+  const t = [1, 3, 7, 14, 21, 28, 29, 31, 35, 42, 49, 56], c = [153, 351, 746, 976, 1195, 1170, 1092, 800, 557, 211, 103, 41];
+  const L = BIO.fitKinetic(t, c, 1, 28, true);
+  near('bcf ln k1', L.k1, 150.81758385304565, 1e-5); near('bcf ln k2', L.k2, 0.12024114347069645, 1e-8);
+  near('bcf ln se k1', L.se1, 3.7858978116694186, 1e-5); near('bcf ln se k2', L.se2, 0.0015831102773930842, 1e-8);
+  near('bcf ln BCF', L.bcf, 1254.2926613950647, 1e-4); near('bcf ln se BCF', L.seBcf, 22.123009923053544, 1e-4);
+  const R = BIO.fitKinetic(t, c, 1, 28, false);
+  near('bcf raw k1', R.k1, 149.64562591457783, 1e-5); near('bcf raw k2', R.k2, 0.11992791849408492, 1e-8);
+  near('bcf raw se k2', R.se2, 0.00437348291681905, 1e-8); near('bcf raw BCF', R.bcf, 1247.7964079895096, 1e-4);
+  check('bcf converged', L.converged && R.converged);
+  // The model: steady state k1/k2·Cw, continuity at the end of uptake, and a start value that decays.
+  near('bcf model plateau', BIO.model(1e4 - 1, 100, 0.5, 2, 1e4), 400, 1e-9);
+  near('bcf model continuity', BIO.model(28, 150, 0.12, 1, 28), BIO.model(28 + 1e-12, 150, 0.12, 1, 28), 1e-6);
+  near('bcf model c0', BIO.model(10, 0, 0.1, 1, 28, 50), 50 * Math.exp(-1), 1e-9);
+  near('growth rate', BIO.growthRate(10, 20, 14), Math.LN2 / 14, 1e-15);
+  near('lipid norm', BIO.lipidNorm(1000, 10), 500, 1e-12);
+  const T = BIO.tmf([2.0, 2.3, 2.6, 3.0, 3.1, 3.4, 3.8, 4.0, 4.2, 4.5], [12, 18, 15, 30, 41, 36, 70, 95, 82, 160]);
+  near('tmf slope', T.slope, 0.4348981085880527, 1e-12); near('tmf se', T.se, 0.034171602655777074, 1e-12);
+  near('tmf', T.tmf, 2.7220626001240946, 1e-12); near('tmf lo', T.lo, 2.270378427336983, 1e-9); near('tmf hi', T.hi, 3.263607824042527, 1e-9);
+  near('tmf r2', T.r2, 0.952933878462072, 1e-12); near('tmf p', T.p, 1.3678427349225121e-06, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
