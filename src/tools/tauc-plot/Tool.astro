@@ -1,0 +1,254 @@
+---
+// Tauc plot: optical band gap from an absorbance, transmittance or diffuse reflectance (Kubelka-Munk) spectrum.
+// (αhν)^n against hν for direct or indirect transitions, an automatic or chosen linear region, the gap where the
+// line meets zero or a sub-gap baseline, with its fitting error and window spread, and the Urbach energy.
+// Nothing is uploaded. The example spectrum is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax taucp">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Spectrum</h2>
+      <button type="button" class="btn secondary small tp-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Two columns: wavelength (or energy), then the reading <textarea class="tp-data" rows="5" spellcheck="false" wrap="off" placeholder="400&#9;0.562&#10;401&#9;0.559"></textarea></label>
+    <DataFile target=".tp-data" maxCols={6} maxRows={100000} label="Open a spectrum" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>First column <select class="tp-x"><option value="nm" selected>Wavelength (nm)</option><option value="ev">Photon energy (eV)</option><option value="cm1">Wavenumber (cm⁻¹)</option></select></label>
+      <label>Second column <select class="tp-y">
+        <option value="abs" selected>Absorbance (A)</option>
+        <option value="tpct">Transmittance (%)</option>
+        <option value="tfrac">Transmittance (0 to 1)</option>
+        <option value="rpct">Diffuse reflectance (%), Kubelka-Munk</option>
+        <option value="rfrac">Diffuse reflectance (0 to 1), Kubelka-Munk</option>
+        <option value="alpha">Absorption coefficient α (cm⁻¹)</option>
+      </select></label>
+      <label>Film thickness (nm, optional) <input class="tp-d" inputmode="decimal" placeholder="for α in cm⁻¹" /></label>
+      <label>Transition <select class="tp-n">
+        <option value="da" selected>Direct allowed, n = 2</option>
+        <option value="ia">Indirect allowed, n = ½</option>
+        <option value="df">Direct forbidden, n = ⅔</option>
+        <option value="if">Indirect forbidden, n = ⅓</option>
+      </select></label>
+    </div>
+    <p class="ax-help">A header row is fine. Absorbance becomes α = 2.303 A / d and transmittance α = −ln T / d (no correction for reflection at the surfaces). Without a thickness α is in relative units, which gives the same gap. A powder measured in diffuse reflectance goes through the Kubelka-Munk function F(R) = (1 − R)²/2R, which is proportional to α. The transition sets the power n in (αhν)^n.</p>
+    <p class="ax-err tp-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Linear region</h2>
+    <div class="ax-grid">
+      <label>Choose the region <select class="tp-mode"><option value="auto" selected>Automatically</option><option value="manual">Between two energies</option></select></label>
+      <label class="tp-auto">Stop at points this far off (× SD) <input class="tp-sd" inputmode="decimal" value="3" /></label>
+      <label class="tp-man" hidden>From (eV) <input class="tp-e0" inputmode="decimal" /></label>
+      <label class="tp-man" hidden>To (eV) <input class="tp-e1" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="tp-base" /> Cross a sub-gap baseline instead of zero</label>
+    <div class="ax-grid tp-bb" hidden>
+      <label>Baseline from (eV) <input class="tp-b0" inputmode="decimal" /></label>
+      <label>Baseline to (eV) <input class="tp-b1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Automatically: the page finds the steepest straight stretch of the edge, then adds neighbouring points while each lies within the set number of standard deviations of the line. Or give the energies yourself. When the sample absorbs below the gap (scattering, defects, or an indirect gap under a direct one), the line can meet a straight baseline fitted to the flat part below the edge instead of zero.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Urbach tail</h2>
+    <label class="ax-check"><input type="checkbox" class="tp-urb" checked /> Work out the Urbach energy</label>
+    <div class="ax-grid tp-ub">
+      <label>Tail region <select class="tp-umode"><option value="auto" selected>Automatically</option><option value="manual">Between two energies</option></select></label>
+      <label class="tp-uman" hidden>From (eV) <input class="tp-u0" inputmode="decimal" /></label>
+      <label class="tp-uman" hidden>To (eV) <input class="tp-u1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Below the gap α falls off as e^(E/Eu). The slope of ln α against E is 1/Eu, so a steep tail (small Eu) means an ordered material and a long one (large Eu) disorder or defects.</p>
+  </div>
+
+  <div class="ax-card tp-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big tp-big"></p>
+    <dl class="ax-facts tp-facts"></dl>
+    <p class="ax-help tp-note"></p>
+    <h3>Tauc plot</h3>
+    <canvas class="ax-fig tp-fig1"></canvas>
+    <h3 class="tp-uh">Urbach plot</h3>
+    <canvas class="ax-fig tp-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tp-csv">Download the Tauc data (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { toSpectrum, taucY, autoWindow, rangeIdx, gapFit, windowSpread, urbachFit, autoUrbach, exampleSpectrum, EXPONENT, HC, type XUnit, type YKind, type Transition, type GapFit, type UrbachFit, type Spectrum } from '../../lib/sci/tauc';
+  import { num, sig, parseTable, pm } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.taucp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAMES: Record<Transition, string> = { da: 'Direct allowed', ia: 'Indirect allowed', df: 'Direct forbidden', if: 'Indirect forbidden' };
+  const NSYM: Record<Transition, string> = { da: '²', ia: '½', df: '⅔', if: '⅓' };
+
+  let sections: Section[] = [], figs: (Figure | null)[] = [null, null], name = 'spectrum';
+  let last: { s: Spectrum; y: number[]; g: GapFit } | null = null;
+
+  function show() {
+    const man = sel('.tp-mode') === 'manual';
+    root.querySelectorAll<HTMLElement>('.tp-man').forEach((e) => (e.hidden = !man)); q('.tp-auto').hidden = man;
+    q('.tp-bb').hidden = !inp('.tp-base').checked;
+    q('.tp-ub').hidden = !inp('.tp-urb').checked;
+    root.querySelectorAll<HTMLElement>('.tp-uman').forEach((e) => (e.hidden = sel('.tp-umode') !== 'manual'));
+  }
+
+  function run() {
+    show();
+    const err = q('.tp-err'), out = q('.tp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = !m; out.hidden = true; sections = []; last = null; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.tp-data').value);
+    if (!rows.length) return fail('');
+    const xs: number[] = [], ys: number[] = [];
+    for (const r of rows) { const a = num(r[0]), b = num(r[1]); if (Number.isFinite(a) && Number.isFinite(b)) { xs.push(a); ys.push(b); } }
+    if (xs.length < 10) return fail('The spectrum needs at least 10 lines, each with a wavelength (or energy) and a reading.');
+    if (xs.some((x) => !(x > 0))) return fail('Wavelengths, energies and wavenumbers must all be positive.');
+    const xu = sel('.tp-x') as XUnit, yk = sel('.tp-y') as YKind, tr = sel('.tp-n') as Transition, n = EXPONENT[tr];
+    const dRaw = inp('.tp-d').value.trim(), d = dRaw === '' ? undefined : v('.tp-d');
+    if (d !== undefined && !(d > 0)) return fail('The thickness is a positive number of nanometres, or leave it empty.');
+    if ((yk === 'rpct' && ys.some((y) => y > 100.5)) || (yk === 'rfrac' && ys.some((y) => y > 1.005))) return fail('Reflectance above 100 %: check the second column setting (per cent or 0 to 1).');
+    if (yk === 'tfrac' && ys.some((y) => y > 1.5)) return fail('Transmittance above 1: is it in per cent? Pick "Transmittance (%)".');
+    const s = toSpectrum(xs, ys, xu, yk, d);
+    if (s.E.length < 10) return fail('Fewer than 10 usable points: transmittance and reflectance must be above zero.');
+    if (s.E.some((e, i) => i && e === s.E[i - 1])) return fail('Two lines have the same wavelength or energy. Remove the repeat.');
+    const y = taucY(s, n);
+    let w: [number, number] | null;
+    if (sel('.tp-mode') === 'manual') {
+      const e0 = v('.tp-e0'), e1 = v('.tp-e1');
+      if (!(e0 > 0 && e1 > e0)) return fail('Give the linear region as two energies in eV, the lower one first.');
+      w = rangeIdx(s.E, e0, e1);
+      if (!w) return fail(`At least 3 points are needed between ${e0} and ${e1} eV (the spectrum covers ${s.E[0].toFixed(3)} to ${s.E[s.E.length - 1].toFixed(3)} eV).`);
+    } else {
+      const sd = v('.tp-sd');
+      if (!(sd >= 1 && sd <= 20)) return fail('The stopping distance is between 1 and 20 standard deviations (3 is usual).');
+      w = autoWindow(s.E, y, 0.99, undefined, sd);
+      if (!w) return fail('No straight rising stretch found. Check the transition and the column settings, or give the region yourself.');
+    }
+    let base: [number, number] | null = null;
+    if (inp('.tp-base').checked) {
+      const b0 = v('.tp-b0'), b1 = v('.tp-b1');
+      if (!(b0 > 0 && b1 > b0)) return fail('Give the baseline region as two energies in eV below the edge, the lower one first.');
+      base = rangeIdx(s.E, b0, b1);
+      if (!base) return fail('At least 3 points are needed in the baseline region.');
+    }
+    const g = gapFit(s.E, y, w[0], w[1], base);
+    if (!(g.fit.slope > 0) || !Number.isFinite(g.Eg)) return fail('The line over this region does not rise with energy, so it gives no gap. Choose the steep part of the edge.');
+    const spread = windowSpread(s.E, y, w[0], w[1], base);
+    err.hidden = true; out.hidden = false;
+    last = { s, y, g };
+
+    // Urbach.
+    let u: UrbachFit | null = null, uMsg = '';
+    if (inp('.tp-urb').checked) {
+      let r: [number, number] | null = null;
+      if (sel('.tp-umode') === 'manual') {
+        const u0 = v('.tp-u0'), u1 = v('.tp-u1');
+        if (!(u0 > 0 && u1 > u0)) uMsg = 'Give the tail region as two energies in eV, the lower one first.';
+        else if (!(r = rangeIdx(s.E, u0, u1))) uMsg = 'At least 3 points are needed in the tail region.';
+      } else if (!(r = autoUrbach(s.E, s.alpha, g.Eg))) uMsg = 'No straight exponential tail found below the gap. Give the region yourself.';
+      if (r) { u = urbachFit(s.E, s.alpha, r[0], r[1]); if (!u) uMsg = 'ln α does not rise over that region, so it gives no Urbach energy.'; }
+    }
+
+    const rel = yk === 'rpct' || yk === 'rfrac' ? 'F(R)' : 'α';
+    q('.tp-big').textContent = `${NAMES[tr]} gap Eg = ${pm(g.Eg, g.se)} eV${u ? `; Urbach energy ${pm(u.Eu * 1000, u.se * 1000)} meV` : ''}`;
+    const facts = [
+      fact('Band gap Eg', `${pm(g.Eg, g.se)} eV`, `± is 1 standard error of the fit; ${sig(HC / g.Eg, 4)} nm`),
+      fact('Window spread', Number.isFinite(spread.lo) ? `${spread.lo.toFixed(3)} to ${spread.hi.toFixed(3)} eV` : '–', 'the gap with each end of the region moved by about 10 %'),
+      fact('Linear region', `${s.E[g.i0].toFixed(3)} to ${s.E[g.i1].toFixed(3)} eV`, `${g.i1 - g.i0 + 1} points, R² = ${g.fit.r2.toFixed(4)}`),
+      fact('Line', `(${rel}hν)${NSYM[tr]} = ${sig(g.fit.slope, 4)} × (hν − ${g.Eg.toFixed(3)})`, base ? 'crossing the baseline, not zero' : 'meets zero at Eg'),
+    ];
+    if (g.baseline) facts.push(fact('Baseline', `${s.E[base![0]].toFixed(3)} to ${s.E[base![1]].toFixed(3)} eV`, `slope ${sig(g.baseline.slope, 3)}, ${base![1] - base![0] + 1} points`));
+    if (u) facts.push(fact('Urbach energy Eu', `${pm(u.Eu * 1000, u.se * 1000)} meV`, `ln ${rel} from ${s.E[u.i0].toFixed(3)} to ${s.E[u.i1].toFixed(3)} eV, R² = ${u.fit.r2.toFixed(4)}`));
+    else if (uMsg) facts.push(fact('Urbach energy', '–', uMsg));
+    facts.push(fact('Points', `${s.E.length}`, `${s.E[0].toFixed(3)} to ${s.E[s.E.length - 1].toFixed(3)} eV`));
+    q('.tp-facts').replaceChildren(...facts);
+    const notes: string[] = [];
+    if (spread.hi - spread.lo > 4 * g.se) notes.push('The window spread is much larger than the fitting error: quote the spread, or explain how the region was chosen.');
+    if (g.i1 === s.E.length - 1) notes.push('The region runs to the last point: the spectrum may stop before the edge levels off. Strong absorbance (above about 2.5) is often noise and may bend the line.');
+    if (g.i0 === 0) notes.push('The region starts at the first point: the spectrum may not reach below the gap.');
+    notes.push(rel === 'F(R)' ? 'Kubelka-Munk assumes a thick, scattering powder whose scattering does not change across the edge.' : d ? 'α is in cm⁻¹ from the thickness given.' : 'With no thickness α is in relative units; the gap does not depend on it.');
+    q('.tp-note').textContent = notes.join(' ');
+
+    // Figures.
+    const yu = d || yk === 'alpha' ? (tr === 'da' ? ' (eV² cm⁻²)' : '') : ' (relative)';
+    const yl = `(${rel}hν)${NSYM[tr]}${yu}`;
+    const top = s.E[g.i1], xLine = [g.Eg, top + (top - g.Eg) * 0.08];
+    const inW = s.E.map((_, i) => i >= g.i0 && i <= g.i1);
+    const f1 = chartFigure({
+      h: 340, xLabel: 'Photon energy hν (eV)', yLabel: yl, legend: 'below', yMin: 0,
+      yMax: Math.max(...y.filter((_, i) => i <= Math.min(s.E.length - 1, g.i1 + Math.round((g.i1 - g.i0) * 0.6)))) * 1.1,
+      series: [
+        { name: 'Spectrum', x: s.E.filter((_, i) => !inW[i]), y: y.filter((_, i) => !inW[i]), mode: 'points', marker: 'circle', size: 1.8 },
+        { name: 'Linear region', x: s.E.filter((_, i) => inW[i]), y: y.filter((_, i) => inW[i]), mode: 'points', marker: 'circle', size: 2.6 },
+        { name: `Fit, Eg = ${g.Eg.toFixed(3)} eV`, x: xLine, y: xLine.map((e) => g.fit.intercept + g.fit.slope * e), mode: 'line', width: 2 },
+        ...(g.baseline ? [{ name: 'Baseline', x: [s.E[0], g.Eg + 0.05], y: [s.E[0], g.Eg + 0.05].map((e) => g.baseline!.intercept + g.baseline!.slope * e), mode: 'line' as const, dash: [5, 3], width: 1.2 }] : []),
+      ],
+      marks: [{ kind: 'vline', at: g.Eg, dash: [2, 3] }],
+    }, `Tauc plot of (${rel}hν)^n against photon energy with the fitted line meeting the axis at ${g.Eg.toFixed(3)} eV`);
+    paint(q<HTMLCanvasElement>('.tp-fig1'), f1);
+    let f2: Figure | null = null;
+    q('.tp-uh').hidden = q('.tp-fig2').hidden = !u;
+    if (u) {
+      const pts = s.E.map((e, i) => [e, s.alpha[i]]).filter(([e, a]) => a > 0 && e < g.Eg + 0.3);
+      f2 = chartFigure({
+        h: 300, xLabel: 'Photon energy hν (eV)', yLabel: `ln ${rel}`, legend: 'below',
+        series: [
+          { name: 'ln ' + rel, x: pts.map((p) => p[0]), y: pts.map((p) => Math.log(p[1])), mode: 'points', marker: 'circle', size: 1.8 },
+          { name: `Fit, Eu = ${(u.Eu * 1000).toFixed(1)} meV`, x: [s.E[u.i0], s.E[u.i1]], y: [s.E[u.i0], s.E[u.i1]].map((e) => u!.fit.intercept + u!.fit.slope * e), mode: 'line', width: 2 },
+        ],
+      }, `Urbach plot: ln ${rel} against photon energy below the gap with a fitted line`);
+      paint(q<HTMLCanvasElement>('.tp-fig2'), f2);
+    }
+    figs = [f1, f2];
+    sections = [
+      { title: q('.tp-big').textContent!, facts: [...q('.tp-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.tp-note').textContent!, figure: f1 },
+      ...(f2 ? [{ title: 'Urbach plot', figure: f2 }] : []),
+    ];
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 250)); };
+  q('.tp-data').addEventListener('input', () => { name = 'spectrum'; later(run); });
+  ['.tp-d', '.tp-sd', '.tp-e0', '.tp-e1', '.tp-b0', '.tp-b1', '.tp-u0', '.tp-u1'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  ['.tp-x', '.tp-y', '.tp-n', '.tp-umode', '.tp-base', '.tp-urb'].forEach((c) => q(c).addEventListener('change', run));
+  q('.tp-mode').addEventListener('change', () => {
+    // Start a manual region from the automatic one.
+    if (sel('.tp-mode') === 'manual' && last && inp('.tp-e0').value === '' && inp('.tp-e1').value === '') { inp('.tp-e0').value = last.s.E[last.g.i0].toFixed(3); inp('.tp-e1').value = last.s.E[last.g.i1].toFixed(3); }
+    run();
+  });
+  q('.tp-ex').addEventListener('click', () => {
+    const e = exampleSpectrum();
+    q<HTMLTextAreaElement>('.tp-data').value = 'wavelength_nm\tabsorbance\n' + e.nm.map((x, i) => `${x}\t${e.A[i]}`).join('\n');
+    q<HTMLSelectElement>('.tp-x').value = 'nm'; q<HTMLSelectElement>('.tp-y').value = 'abs'; q<HTMLSelectElement>('.tp-n').value = 'da';
+    inp('.tp-d').value = '400'; q<HTMLSelectElement>('.tp-mode').value = 'auto'; inp('.tp-sd').value = '3';
+    inp('.tp-base').checked = false; inp('.tp-b0').value = '1.8'; inp('.tp-b1').value = '2.2'; inp('.tp-urb').checked = true; q<HTMLSelectElement>('.tp-umode').value = 'auto';
+    name = 'example-film'; run();
+  });
+  document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.tp-out').hidden) paint(q<HTMLCanvasElement>('.tp-fig1'), figs[0]); if (figs[1] && !q('.tp-fig2').hidden) paint(q<HTMLCanvasElement>('.tp-fig2'), figs[1]); });
+  q('.tp-csv').addEventListener('click', () => {
+    if (!last) return;
+    const { s, y, g } = last;
+    const head = ['photon_energy_eV', 'wavelength_nm', 'alpha', 'tauc_y', 'in_linear_region', 'fit_line'];
+    const body = s.E.map((e, i) => [String(+e.toPrecision(10)), String(+(HC / e).toPrecision(8)), String(+s.alpha[i].toPrecision(8)), String(+y[i].toPrecision(8)), i >= g.i0 && i <= g.i1 ? '1' : '0', String(+(g.fit.intercept + g.fit.slope * e).toPrecision(8))]);
+    save(new Blob([[head, ...body].map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-tauc.csv`, 'text/csv');
+  });
+  (q('.tp-ex') as HTMLButtonElement).click();
+  wireDownloads(q('.dl'), () => ({ title: 'Tauc plot', subtitle: q('.tp-big').textContent ?? '', file: `${fileSafe(name)}-tauc`, sections }));
+</script>
+
+<style is:global>
+  .taucp h3 { margin: 20px 0 8px; font-size: 15px; }
+  .taucp select { max-width: 100%; }
+  .taucp .tp-bb, .taucp .tp-ub { margin-top: 8px; }
+</style>

@@ -1,0 +1,284 @@
+---
+// Error-correcting codes playground: parity and Hamming (with SECDED), CRC (presets and long division) and
+// Reed-Solomon over GF(2^8). Encode, add errors by tapping, decode with every step shown. All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ecx">
+  <div class="ax-card">
+    <h2>Code</h2>
+    <div class="ax-seg ec-mode" role="group" aria-label="Which code">
+      <button type="button" data-m="block" aria-pressed="true">Parity and Hamming</button>
+      <button type="button" data-m="crc" aria-pressed="false">CRC</button>
+      <button type="button" data-m="rs" aria-pressed="false">Reed-Solomon</button>
+    </div>
+
+    <div class="ec-p" data-p="block">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Code <select class="ec-code">
+          <option value="parity">Single parity bit</option>
+          <option value="h7" selected>Hamming (7,4)</option>
+          <option value="h8">Hamming (8,4) SECDED</option>
+          <option value="h15">Hamming (15,11)</option>
+          <option value="h16">Hamming (16,11) SECDED</option>
+        </select></label>
+        <label>Data bits <input class="ec-data" spellcheck="false" autocomplete="off" inputmode="numeric" value="1011" /></label>
+        <label class="ec-oddw" hidden>Parity <select class="ec-odd"><option value="0">even</option><option value="1">odd</option></select></label>
+      </div>
+      <p class="ax-help ec-bhelp"></p>
+    </div>
+
+    <div class="ec-p" data-p="crc" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>CRC <select class="ec-crc"></select></label>
+        <label>Input is <select class="ec-cin"><option value="text">text (UTF-8)</option><option value="hex">hex bytes</option></select></label>
+      </div>
+      <label style="margin-top:10px">Message <textarea class="ec-cmsg" rows="2" spellcheck="false">123456789</textarea></label>
+    </div>
+
+    <div class="ec-p" data-p="rs" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Check bytes <select class="ec-nsym"><option>2</option><option selected>4</option><option>6</option><option>8</option><option>10</option><option>16</option><option>32</option></select></label>
+        <label>Input is <select class="ec-rin"><option value="text">text (UTF-8)</option><option value="hex">hex bytes</option></select></label>
+      </div>
+      <label style="margin-top:10px">Message (up to 255 bytes with the check bytes) <textarea class="ec-rmsg" rows="2" spellcheck="false">Hello, fibub!</textarea></label>
+      <p class="ax-help">GF(2⁸) with the primitive polynomial x⁸ + x⁴ + x³ + x² + 1 (0x11d), generator roots α⁰ … α^(n−1), as in QR codes' field and the reedsolo package.</p>
+    </div>
+    <p class="ax-err ec-err" hidden></p>
+  </div>
+
+  <div class="ax-card ec-out ec-bo" data-o="block">
+    <h2>Send, damage, decode</h2>
+    <p class="ax-help">Sent codeword (<b>p</b> = parity bit, <b>d</b> = data bit):</p>
+    <div class="ec-row ec-sent" aria-label="Sent codeword"></div>
+    <p class="ax-help">Received: tap bits to flip them, as noise would.</p>
+    <div class="ec-row ec-recv" aria-label="Received word, tap to flip"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ec-bclear">Clear errors</button></div>
+    <p class="ax-big ec-bbig"></p>
+    <dl class="ax-facts ec-bfacts"></dl>
+    <div class="ax-scroll"><table class="ec-btab"></table></div>
+  </div>
+
+  <div class="ax-card ec-out" data-o="crc" hidden>
+    <h2>CRC</h2>
+    <p class="ax-big ec-cbig"></p>
+    <dl class="ax-facts ec-cfacts"></dl>
+    <h3>By hand: polynomial long division</h3>
+    <div class="ax-grid">
+      <label>Message bits <input class="ec-dmsg" spellcheck="false" autocomplete="off" inputmode="numeric" value="11010011101100" /></label>
+      <label>Generator bits <input class="ec-dgen" spellcheck="false" autocomplete="off" inputmode="numeric" value="1011" /></label>
+    </div>
+    <p class="ax-help ec-dnote"></p>
+    <pre class="ec-div" aria-label="Long division steps"></pre>
+    <label>Received bits to check <input class="ec-drx" spellcheck="false" autocomplete="off" inputmode="numeric" /></label>
+    <p class="ax-help ec-drxout" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card ec-out" data-o="rs" hidden>
+    <h2>Reed-Solomon</h2>
+    <p class="ax-help ec-rsize"></p>
+    <p class="ax-help">Codeword bytes in hex, message first, then <b>check bytes</b>. Tap a byte to damage it (it changes to a different value), or add random errors.</p>
+    <div class="ec-grid ec-rcells" aria-label="Received bytes, tap to damage"></div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ec-rrand">Add a random error</button>
+      <button type="button" class="btn secondary small ec-rclear">Clear errors</button>
+    </div>
+    <p class="ax-big ec-rbig"></p>
+    <dl class="ax-facts ec-rfacts"></dl>
+    <h3>Berlekamp-Massey</h3>
+    <div class="ax-scroll"><table class="ec-bm"></table></div>
+    <p class="ax-help">At each step the discrepancy d is how far the current error locator is from explaining the next syndrome; L is its length, the number of errors it assumes.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ec-rcsv">Download the bytes (CSV)</button></div>
+  </div>
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<style is:global>
+  .ecx h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ecx .ec-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .ecx .ec-row span, .ecx .ec-row button { display: grid; justify-items: center; min-width: 30px; padding: 3px 2px; border: 1px solid var(--line); border-radius: 6px; font: 600 16px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); color: var(--ink); }
+  .ecx .ec-row small { font: 400 10px system-ui, sans-serif; color: var(--muted); }
+  .ecx .ec-row .p { background: var(--accent-soft); }
+  .ecx .ec-row button { cursor: pointer; }
+  .ecx .ec-row button.bad, .ecx .ec-grid button.bad { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+  .ecx .ec-row button.fix, .ecx .ec-grid button.fix { outline: 2px solid var(--good); outline-offset: 1px; }
+  .ecx .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 3px; }
+  .ecx .ec-grid button { padding: 5px 0; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; cursor: pointer; }
+  .ecx .ec-grid button.ck { background: var(--accent-soft); }
+  .ecx pre.ec-div { font: 13px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 360px; }
+</style>
+
+<script>
+  import { parityBit, hammingEncode, hammingDecode, isParityPos, crc, CRCS, crcDivide, rsEncode, rsDecode, readHex, hex, readBits } from '../../lib/sci/ecc';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ecx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'block', sections: Section[] = [], rsRows: (string | number)[][] = [];
+  let flips = new Set<number>(), damage = new Map<number, number>();
+  q<HTMLSelectElement>('.ec-crc').replaceChildren(...CRCS.map((s, i) => new Option(s.name, String(i))));
+  q<HTMLSelectElement>('.ec-crc').value = '6';
+
+  const facts = (el: HTMLElement, f: [string, string][]) => el.replaceChildren(...f.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][]) => {
+    t.replaceChildren(); const hr = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; hr.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); for (const x of r) tr.insertCell().textContent = String(x); }
+  };
+  const fail = (m: string) => { const e = q('.ec-err'); e.textContent = m; e.hidden = false; };
+  const showOut = () => { for (const o of root.querySelectorAll<HTMLElement>('.ec-out')) o.hidden = o.dataset.o !== mode; };
+
+  // ---------- Parity and Hamming ----------
+  const CODES: Record<string, { r: number; ext: boolean; name: string; k?: number }> = {
+    parity: { r: 0, ext: false, name: 'single parity bit' }, h7: { r: 3, ext: false, name: 'Hamming (7,4)' }, h8: { r: 3, ext: true, name: 'Hamming (8,4) SECDED' },
+    h15: { r: 4, ext: false, name: 'Hamming (15,11)' }, h16: { r: 4, ext: true, name: 'Hamming (16,11) SECDED' },
+  };
+  function block() {
+    const code = q<HTMLSelectElement>('.ec-code').value, C = CODES[code];
+    q('.ec-oddw').hidden = code !== 'parity';
+    const data = readBits(q<HTMLInputElement>('.ec-data').value);
+    let sent: number[], labels: string[], isP: boolean[];
+    if (code === 'parity') {
+      if (!data.length || data.length > 64) throw new Error('Type between 1 and 64 data bits.');
+      const odd = q<HTMLSelectElement>('.ec-odd').value === '1';
+      sent = [...data, parityBit(data, odd)]; labels = [...data.map((_, i) => `d${i + 1}`), 'p']; isP = sent.map((_, i) => i === data.length);
+      q('.ec-bhelp').textContent = `One extra bit makes the number of 1s ${odd ? 'odd' : 'even'}. Any odd number of flipped bits is detected; an even number slips through. Nothing can be corrected.`;
+    } else {
+      const k = 2 ** C.r - 1 - C.r;
+      if (data.length !== k) throw new Error(`${C.name} takes exactly ${k} data bits; you typed ${data.length}.`);
+      sent = hammingEncode(data, C.r, C.ext);
+      const pos = sent.map((_, i) => (C.ext ? i : i + 1));
+      let dn = 0; labels = pos.map((p) => (p === 0 ? 'p0' : isParityPos(p) ? `p${p}` : `d${++dn}`)); isP = pos.map((p) => p === 0 || isParityPos(p));
+      q('.ec-bhelp').textContent = C.ext ? 'Hamming bits sit at positions 1, 2, 4, 8; the extra bit p0 makes the whole word even. One error is corrected; two are detected but not corrected (SECDED).' : 'Parity bits sit at positions 1, 2, 4 and 8. Each checks the positions whose number contains it in binary, so the failed checks add up to the position of a single error.';
+    }
+    for (const f of [...flips]) if (f >= sent.length) flips.delete(f);
+    const recv = sent.map((b, i) => (flips.has(i) ? b ^ 1 : b));
+    const cell = (b: number, i: number, btn: boolean) => { const el = document.createElement(btn ? 'button' : 'span'); if (btn) { (el as HTMLButtonElement).type = 'button'; el.dataset.i = String(i); el.setAttribute('aria-label', `${labels[i]}: ${b}, tap to flip`); } el.innerHTML = '<b></b><small></small>'; el.querySelector('b')!.textContent = String(b); el.querySelector('small')!.textContent = labels[i]; if (isP[i]) el.classList.add('p'); if (btn && flips.has(i)) el.classList.add('bad'); return el; };
+    q('.ec-sent').replaceChildren(...sent.map((b, i) => cell(b, i, false)));
+    q('.ec-recv').replaceChildren(...recv.map((b, i) => cell(b, i, true)));
+    let big = '', f: [string, string][] = [], head: string[] = [], rows: (string | number)[][] = [];
+    const nErr = flips.size;
+    if (code === 'parity') {
+      const ok = parityBit(recv, q<HTMLSelectElement>('.ec-odd').value === '1') === 0;
+      big = ok ? (nErr ? `Check passes, but ${nErr} bits are wrong: undetected` : 'Check passes: no error seen') : `Check fails: error detected (${nErr} flipped)`;
+      f = [['Ones in the received word', String(recv.reduce((a, b) => a + b, 0))], ['Bits flipped', String(nErr)], ['Can correct', 'no, only detect']];
+    } else {
+      const d = hammingDecode(recv, C.r, C.ext);
+      const right = d.data.join('') === data.join('');
+      const posName = (p: number) => labels[C.ext ? p : p - 1];
+      if (d.status === 'ok') big = nErr ? `No error seen, but ${nErr} bits are wrong: undetected` : 'Syndrome 0: no error';
+      else if (d.status === 'double') big = 'Two errors detected: cannot correct, ask again';
+      else if (d.status === 'parity-bit') big = 'Error in p0 only: corrected';
+      else big = right ? `Error at position ${d.position} (${posName(d.position!)}): corrected` : `Decoder flipped position ${d.position} (${posName(d.position!)}), but the data is now wrong`;
+      f = [['Syndrome', `${d.syndrome.toString(2).padStart(C.r, '0')} = ${d.syndrome}`], ...(C.ext ? [['Overall parity', d.overall ? 'fails' : 'passes'] as [string, string]] : []), ['Decoded data', d.data.join('')], ['Matches what was sent', right ? 'yes' : 'no'], ['Bits flipped', String(nErr)]];
+      head = ['Check', 'Covers positions', 'Result']; rows = d.checks.map((c) => [`p${c.bit}`, c.covers.join(', '), c.value ? '1 (fails)' : '0 (passes)']);
+      if (C.ext) rows.push(['p0', 'all', d.overall ? '1 (fails)' : '0 (passes)']);
+      if (d.position != null && d.status !== 'double') for (const el of q('.ec-recv').querySelectorAll('button')) if (Number((el as HTMLElement).dataset.i) === (C.ext ? d.position : d.position - 1)) el.classList.add('fix');
+    }
+    q('.ec-bbig').textContent = big; facts(q('.ec-bfacts'), f); table(q('.ec-btab'), head, rows); if (!head.length) q('.ec-btab').replaceChildren();
+    sections = [{ title: `${C.name}`, facts: [['Data', data.join('')], ['Sent', sent.join('')], ['Received', recv.join('')], ['Result', big], ...f], table: head.length ? { head, rows: rows.map((r) => r.map(String)) } : undefined }];
+  }
+
+  // ---------- CRC ----------
+  const bytesOf = (sel: string, kind: string) => { const t = q<HTMLTextAreaElement>(sel).value; return kind === 'hex' ? Uint8Array.from(readHex(t)) : new TextEncoder().encode(t); };
+  function crcRun() {
+    const s = CRCS[Number(q<HTMLSelectElement>('.ec-crc').value)];
+    const b = bytesOf('.ec-cmsg', q<HTMLSelectElement>('.ec-cin').value);
+    const v = crc(b, s), hw = s.width / 4;
+    q('.ec-cbig').textContent = `${s.name} = 0x${v.toString(16).toUpperCase().padStart(hw, '0')}`;
+    const f: [string, string][] = [['Bytes', b.length.toLocaleString('en')], ['Decimal', String(v)], ['Binary', v.toString(2).padStart(s.width, '0')], ['Polynomial', `0x${s.poly.toString(16).toUpperCase().padStart(hw, '0')}`], ['Start value', `0x${s.init.toString(16).toUpperCase().padStart(hw, '0')}`], ['Bits reflected', s.refin ? 'yes (least significant first)' : 'no'], ['Final XOR', `0x${s.xorout.toString(16).toUpperCase().padStart(hw, '0')}`], ['Standard check ("123456789")', `0x${s.check.toString(16).toUpperCase().padStart(hw, '0')}`]];
+    facts(q('.ec-cfacts'), f);
+    let divText = '', rem = '';
+    try {
+      const d = crcDivide(q<HTMLInputElement>('.ec-dmsg').value.replace(/\s+/g, ''), q<HTMLInputElement>('.ec-dgen').value.replace(/\s+/g, ''));
+      if (d.padded.length > 200) throw new Error('For the long division, up to 200 bits, please.');
+      const lines = [d.padded + '   message with zeros added'];
+      for (const st of d.steps) { lines.push(st.xorWith + '   XOR generator'); lines.push(st.after.replace(/^0*(?=.)/, (z) => ' '.repeat(z.length))); }
+      lines.push(`remainder ${d.remainder}`);
+      divText = lines.join('\n'); rem = d.remainder;
+      q('.ec-dnote').textContent = `Degree ${q<HTMLInputElement>('.ec-dgen').value.trim().length - 1}: add that many zeros, divide with XOR in place of subtraction, and send the remainder after the message. Codeword: ${d.codeword}.`;
+      const rx = q<HTMLInputElement>('.ec-drx');
+      if (!rx.value.trim() || rx.dataset.auto === '1') { rx.value = d.codeword; rx.dataset.auto = '1'; }
+      const rxb = rx.value.replace(/\s+/g, '');
+      if (rxb) { try { const rr = divideRaw(rxb, q<HTMLInputElement>('.ec-dgen').value.replace(/\s+/g, '')); q('.ec-drxout').textContent = /^0+$/.test(rr) ? `Remainder ${rr}: the bits pass the check.` : `Remainder ${rr}: error detected.`; } catch (e) { q('.ec-drxout').textContent = (e as Error).message; } } else q('.ec-drxout').textContent = '';
+    } catch (e) { divText = (e as Error).message; q('.ec-dnote').textContent = ''; }
+    q('.ec-div').textContent = divText;
+    sections = [{ title: s.name, facts: [['CRC', q('.ec-cbig').textContent!], ...f] }, { title: 'Long division', text: divText.split('\n'), facts: rem ? [['Remainder', rem]] : undefined }];
+  }
+  /** Remainder of received bits divided by the generator (no zeros appended): all zeros means the check passes. */
+  function divideRaw(bits: string, gen: string): string {
+    if (!/^[01]+$/.test(bits)) throw new Error('Received bits must be 0s and 1s.');
+    const d = gen.length - 1, a = bits.split('').map(Number), g = gen.split('').map(Number);
+    if (a.length < gen.length) throw new Error('The received bits are shorter than the generator.');
+    for (let i = 0; i + d < a.length; i++) if (a[i]) for (let j = 0; j <= d; j++) a[i + j] ^= g[j];
+    return a.slice(a.length - d).join('');
+  }
+
+  // ---------- Reed-Solomon ----------
+  function rs() {
+    const nsym = Number(q<HTMLSelectElement>('.ec-nsym').value);
+    const msg = [...bytesOf('.ec-rmsg', q<HTMLSelectElement>('.ec-rin').value)];
+    if (!msg.length) throw new Error('Type a message to encode.');
+    const cw = rsEncode(msg, nsym), n = cw.length;
+    for (const k of [...damage.keys()]) if (k >= n) damage.delete(k);
+    const recv = cw.map((b, i) => b ^ (damage.get(i) ?? 0));
+    const d = rsDecode(recv, nsym);
+    q('.ec-rsize').textContent = `RS(${n}, ${msg.length}): ${msg.length} message bytes and ${nsym} check bytes. It can correct up to ${Math.floor(nsym / 2)} damaged bytes anywhere in the block.`;
+    const fixed = new Set(d.ok ? d.positions : []);
+    q('.ec-rcells').replaceChildren(...recv.map((b, i) => { const el = document.createElement('button'); el.type = 'button'; el.dataset.i = String(i); el.textContent = b.toString(16).padStart(2, '0'); if (i >= n - nsym) el.classList.add('ck'); if (damage.has(i)) el.classList.add('bad'); if (fixed.has(i)) el.classList.add('fix'); el.setAttribute('aria-label', `Byte ${i}: ${el.textContent}${damage.has(i) ? ', damaged' : ''}`); return el; }));
+    const right = d.ok && d.corrected.join() === cw.join();
+    const ne = damage.size;
+    q('.ec-rbig').textContent = !ne && d.ok ? 'All syndromes are zero: no errors' : d.ok ? (right ? `${d.positions.length} error${d.positions.length === 1 ? '' : 's'} found and corrected` : `Decoded to a different codeword: ${ne} errors were too many`) : 'Too many errors: detected, not corrected';
+    const txt = (bytes: number[]) => { try { return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes)); } catch { return hex(bytes); } };
+    const f: [string, string][] = [['Syndromes S₀…', d.syndromes.map((s) => s.toString(16).padStart(2, '0')).join(' ')], ['Error locator Λ(x) coefficients', d.locator.map((c) => c.toString(16).padStart(2, '0')).join(' ')], ['Error positions (byte numbers)', d.ok ? (d.positions.join(', ') || 'none') : '–'], ['Error values (XOR)', d.ok ? (d.magnitudes.map((m) => m.toString(16).padStart(2, '0')).join(' ') || 'none') : '–'], ['Bytes damaged', String(ne)], ['Decoded message', d.ok ? txt(d.message) : '–']];
+    if (!d.ok) f.push(['Why', d.reason!]);
+    facts(q('.ec-rfacts'), f);
+    table(q('.ec-bm'), ['Step', 'Discrepancy d', 'L (errors assumed)'], d.bmSteps.map((s) => [s.n + 1, s.d.toString(16).padStart(2, '0'), s.L]));
+    if (!d.bmSteps.length) q('.ec-bm').replaceChildren();
+    rsRows = [['byte', 'kind', 'sent', 'received', 'decoded'], ...cw.map((b, i) => [i, i < n - nsym ? 'message' : 'check', b.toString(16).padStart(2, '0'), recv[i].toString(16).padStart(2, '0'), d.ok ? d.corrected[i].toString(16).padStart(2, '0') : ''])];
+    sections = [{ title: `Reed-Solomon RS(${n}, ${msg.length})`, facts: [['Result', q('.ec-rbig').textContent!], ['Sent', hex(cw)], ['Received', hex(recv)], ...f], table: d.bmSteps.length ? { head: ['Step', 'd', 'L'], rows: d.bmSteps.map((s) => [String(s.n + 1), s.d.toString(16), String(s.L)]) } : undefined }];
+  }
+
+  function run() {
+    q('.ec-err').hidden = true; showOut();
+    try { if (mode === 'block') block(); else if (mode === 'crc') crcRun(); else rs(); }
+    catch (e) { fail((e as Error).message); for (const o of root.querySelectorAll<HTMLElement>('.ec-out')) o.hidden = true; sections = []; }
+  }
+
+  q('.ec-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!;
+    for (const x of q('.ec-mode').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const p of root.querySelectorAll<HTMLElement>('.ec-p')) p.hidden = p.dataset.p !== mode;
+    run();
+  });
+  q('.ec-code').addEventListener('change', () => {
+    const v = q<HTMLSelectElement>('.ec-code').value, k = v === 'parity' ? 7 : v.startsWith('h1') ? 11 : 4;
+    q<HTMLInputElement>('.ec-data').value = { 4: '1011', 7: '1011001', 11: '10110011101' }[k]!;
+    flips.clear(); run();
+  });
+  q('.ec-recv').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; const i = Number(b.dataset.i); if (flips.has(i)) flips.delete(i); else flips.add(i); run(); });
+  q('.ec-bclear').addEventListener('click', () => { flips.clear(); run(); });
+  q('.ec-rcells').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; const i = Number(b.dataset.i); if (damage.has(i)) damage.delete(i); else damage.set(i, 0x5a); run(); });
+  q('.ec-rrand').addEventListener('click', () => {
+    const n = q('.ec-rcells').children.length, free = Array.from({ length: n }, (_, i) => i).filter((i) => !damage.has(i));
+    if (!free.length) return;
+    damage.set(free[Math.floor(Math.random() * free.length)], 1 + Math.floor(Math.random() * 255)); run();
+  });
+  q('.ec-rclear').addEventListener('click', () => { damage.clear(); run(); });
+  q('.ec-rcsv').addEventListener('click', () => save(new Blob([csv(rsRows)], { type: 'text/csv' }), 'reed-solomon.csv', 'text/csv'));
+  let t = 0;
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.classList.contains('ec-drx')) (el as HTMLInputElement).dataset.auto = '0';
+    else if (el.classList.contains('ec-dmsg') || el.classList.contains('ec-dgen')) q<HTMLInputElement>('.ec-drx').dataset.auto = '1';
+    if (el.classList.contains('ec-data')) flips.clear();
+    if (el.classList.contains('ec-rmsg')) damage.clear();
+    clearTimeout(t); t = window.setTimeout(run, 250);
+  });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLElement; if (el.matches('select') && !el.classList.contains('ec-code')) { if (el.classList.contains('ec-nsym') || el.classList.contains('ec-rin')) damage.clear(); run(); } });
+  q<HTMLInputElement>('.ec-drx').dataset.auto = '1';
+  flips.add(4);
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Error-correcting codes', subtitle: mode === 'block' ? q('.ec-bbig').textContent ?? '' : mode === 'crc' ? q('.ec-cbig').textContent ?? '' : q('.ec-rbig').textContent ?? '', file: 'error-correcting-codes', sections }));
+</script>

@@ -1,0 +1,196 @@
+---
+// Burrows' Delta stylometry in the browser: texts are pasted or opened from local .txt files, nothing is uploaded.
+// The example texts are made up for fibub in three invented voices.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sty">
+  <div class="ax-card">
+    <h2>Texts</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sy-open">Open text files</button>
+      <input type="file" class="sy-file" accept=".txt,.text,.md,text/plain" multiple hidden />
+      <button type="button" class="btn secondary small sy-ex">Use the example</button>
+      <button type="button" class="btn secondary small sy-clear">Clear</button>
+    </div>
+    <label style="margin-top:10px"><span>Start each text with a line <code>### Author_title</code>; the part before the "_" is the author</span> <textarea class="sy-in" rows="9" spellcheck="false" placeholder="### Austen_Emma&#10;Emma Woodhouse, handsome, clever, and rich...&#10;&#10;### Unknown_letter&#10;..."></textarea></label>
+    <p class="ax-help">Opening files adds each one as a text named after the file (plain .txt, UTF-8). Up to 60 texts and 20 MB in all. Delta is far more reliable with texts of 2,000 words or more.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Most frequent words used <input class="sy-mfw" type="number" min="5" max="5000" step="1" value="100" inputmode="numeric" /></label>
+      <label>Disputed text <select class="sy-dis"><option value="-1">None (compare all)</option></select></label>
+    </div>
+    <p class="ax-help">With a disputed text, the means and spreads of each word come from the other texts only (Burrows' method), and the closest author is shown.</p>
+    <p class="ax-err sy-err" hidden></p>
+  </div>
+
+  <div class="ax-card sy-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big sy-big"></p>
+    <dl class="ax-facts sy-facts"></dl>
+    <div class="sy-att">
+      <h3>Closest authors to the disputed text</h3>
+      <div class="ax-scroll"><table class="sy-atab"></table></div>
+      <p class="ax-help">Mean Delta to each author's texts; lower is closer. Delta always names someone: if the true author is not in your set, the "closest" one is still wrong.</p>
+    </div>
+    <h3>Delta between texts, clustered</h3>
+    <canvas class="ax-fig sy-fig"></canvas>
+    <p class="ax-help">Darker cells are closer texts. The tree on the left joins texts by average Delta (UPGMA).</p>
+    <div class="ax-scroll"><table class="sy-mtab"></table></div>
+    <h3>Texts</h3>
+    <div class="ax-scroll"><table class="sy-ttab"></table></div>
+    <h3>Most frequent words</h3>
+    <p class="ax-help sy-wnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sy-csv">Delta matrix (CSV)</button>
+      <button type="button" class="btn secondary small sy-zcsv">Word frequencies and z-scores (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sty h3 { margin: 22px 0 8px; font-size: 15px; }
+  .sty .sy-mtab td, .sty .sy-mtab th { white-space: nowrap; }
+  .sty .sy-mtab td.me { font-weight: 700; }
+  .sty code { font-size: 13px; }
+</style>
+
+<script>
+  import { burrowsDelta, splitTexts, upgma, attribute, EXAMPLE, type DeltaResult } from '../../lib/sci/stylometry';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sty')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.sy-in'), dis = q<HTMLSelectElement>('.sy-dis');
+  const MAX_TEXTS = 60, MAX_BYTES = 20e6;
+  let res: DeltaResult | null = null, order: number[] = [], fig: Figure | null = null, disputed = -1;
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  const hex = (s: string) => { const m = /^#?([0-9a-f]{6})$/i.exec(s); const n = m ? parseInt(m[1], 16) : 0; return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const mix = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+
+  function heat(r: DeltaResult, ord: number[], merges: ReturnType<typeof upgma>['merges']): Figure {
+    const n = r.names.length, treeW = 55, labW = 125, top = 10;
+    const cell = Math.max(6, Math.min(36, (440 - treeW - labW - 6) / n)), W = Math.max(440, Math.ceil(treeW + labW + n * cell + 6));
+    const H = top + n * cell + 50;
+    const off = r.dist.flatMap((row, a) => row.filter((_, b) => b !== a));
+    const lo = Math.min(...off), hi = Math.max(...off), span = hi - lo || 1;
+    const maxH = Math.max(...merges.map((m) => m.height), 1e-9);
+    return {
+      w: W, h: H, alt: `Heat map of Burrows' Delta between ${n} texts, from ${lo.toFixed(2)} to ${hi.toFixed(2)}, with an average-linkage tree`,
+      draw: (ctx, _W, _H, pal: Palette) => {
+        const x0 = treeW + labW, rowY = new Map<number, number>();
+        ord.forEach((t, k) => rowY.set(t, top + (k + 0.5) * cell));
+        const fill = (d: number) => mix(pal.accent, pal.bg, Math.min(1, Math.max(0, (d - lo) / span)) * 0.92);
+        ctx.font = `${Math.min(12, Math.max(7, cell * 0.36))}px Arial, Helvetica, sans-serif`;
+        ord.forEach((a, i) => ord.forEach((b, j) => {
+          ctx.fillStyle = a === b ? pal.grid : fill(r.dist[a][b]); ctx.fillRect(x0 + j * cell, top + i * cell, cell - 1, cell - 1);
+          if (n <= 12 && a !== b) { const t = (r.dist[a][b] - lo) / span; ctx.fillStyle = t < 0.45 ? pal.bg : pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(r.dist[a][b].toFixed(2), x0 + (j + 0.5) * cell, top + (i + 0.5) * cell); }
+        }));
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ord.forEach((t, k) => {
+          let s = r.names[t]; while (s.length > 3 && ctx.measureText(s).width > labW - 8) s = s.slice(0, -2);
+          if (s !== r.names[t]) s = s.slice(0, -1) + '…';
+          ctx.fillStyle = t === disputed ? pal.accent : pal.ink; ctx.fillText(s, x0 - 6, top + (k + 0.5) * cell);
+        });
+        // Tree: leaves at the right edge of the tree area, root to the left.
+        const X = (h: number) => treeW - 4 - (h / maxH) * (treeW - 10);
+        const pos = new Map<number, [number, number]>(); for (const t of ord) pos.set(t, [X(0), rowY.get(t)!]);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2;
+        merges.forEach((m, k) => {
+          const [xa, ya] = pos.get(m.a)!, [xb, yb] = pos.get(m.b)!, x = X(m.height);
+          ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(x, ya); ctx.lineTo(x, yb); ctx.lineTo(xb, yb); ctx.stroke();
+          pos.set(n + k, [x, (ya + yb) / 2]);
+        });
+        // Colour key.
+        const ky = top + n * cell + 14, kw = Math.min(220, W - x0 - 6);
+        for (let i = 0; i < kw; i++) { ctx.fillStyle = fill(lo + (i / kw) * span); ctx.fillRect(x0 + i, ky, 1, 10); }
+        ctx.fillStyle = pal.muted; ctx.font = '11px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText(`${lo.toFixed(2)} closer`, x0, ky + 14);
+        ctx.textAlign = 'right'; ctx.fillText(`${hi.toFixed(2)} further`, x0 + kw, ky + 14);
+        ctx.textAlign = 'left'; ctx.fillText('Delta', 4, ky + 14);
+      },
+    };
+  }
+
+  function syncDisputed(names: string[]) {
+    const keep = dis.value === '-1' ? '' : dis.options[dis.selectedIndex]?.text ?? '';
+    dis.replaceChildren(new Option('None (compare all)', '-1'), ...names.map((n, i) => new Option(n, String(i))));
+    const k = names.indexOf(keep); dis.value = String(k);
+  }
+
+  function run() {
+    const err = q('.sy-err'); err.hidden = true;
+    const texts = splitTexts(box.value).filter((t) => t.text.trim());
+    syncDisputed(texts.map((t) => t.name));
+    const fail = (m: string) => { q('.sy-out').hidden = true; res = null; if (m) { err.textContent = m; err.hidden = false; } };
+    if (!box.value.trim()) return fail('');
+    if (texts.length < 3) return fail(`Delta needs at least 3 texts; found ${texts.length}. Start each text with a line "### Author_title".`);
+    if (texts.length > MAX_TEXTS) return fail(`That is ${texts.length} texts; the limit is ${MAX_TEXTS}.`);
+    const mfw = Math.floor(Number(q<HTMLInputElement>('.sy-mfw').value));
+    if (!(mfw >= 5 && mfw <= 5000)) return fail('Choose between 5 and 5000 most frequent words.');
+    disputed = Number(dis.value);
+    const r = burrowsDelta(texts, mfw, disputed);
+    const short = r.names.filter((_, i) => r.tokens[i] < 20);
+    if (short.length) return fail(`These texts have fewer than 20 words: ${short.join(', ')}.`);
+    if (r.words.length < 2) return fail('Fewer than 2 words vary between the texts. Add more text or more texts.');
+    res = r;
+    const u = upgma(r.dist); order = u.order;
+    q('.sy-out').hidden = false;
+    const n = r.names.length, authors = new Set(r.authors).size;
+    const at = disputed >= 0 ? attribute(r, disputed) : null;
+    q('.sy-big').textContent = at ? `${r.names[disputed]} is closest to ${at.authors[0].author} (mean Delta ${at.authors[0].delta.toFixed(3)})` : `${n} texts by ${authors} author${authors === 1 ? '' : 's'}, compared on ${r.words.length} words`;
+    const facts: [string, string][] = [['Texts', String(n)], ['Authors', String(authors)], ['Words used', `${r.words.length} of ${mfw}`], ['Shortest text', `${Math.min(...r.tokens).toLocaleString('en')} words`]];
+    if (at) facts.push(['Nearest single text', `${at.texts[0].name} (${at.texts[0].delta.toFixed(3)})`]);
+    q('.sy-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; }));
+    q('.sy-att').hidden = !at;
+    if (at) table(q('.sy-atab'), ['Rank', 'Author', 'Texts', 'Mean Delta', 'Closest text'], at.authors.map((a, k) => [k + 1, a.author, a.texts, a.delta.toFixed(3), a.min.toFixed(3)]), ['r', '', 'r', 'r', 'r']);
+    table(q('.sy-mtab'), ['', ...order.map((i) => String(i + 1))], order.map((a) => [`${a + 1}. ${r.names[a]}`, ...order.map((b) => (a === b ? '·' : r.dist[a][b].toFixed(3)))]), ['', ...order.map(() => 'r')]);
+    table(q('.sy-ttab'), ['#', 'Text', 'Author', 'Words', ...(at ? ['Delta to disputed'] : [])], r.names.map((nm, i) => [i + 1, nm + (i === disputed ? ' (disputed)' : ''), r.authors[i], r.tokens[i].toLocaleString('en'), ...(at ? [i === disputed ? '' : r.dist[disputed][i].toFixed(3)] : [])]), ['r', '', '', 'r', 'r']);
+    q('.sy-wnote').textContent = `Top words: ${r.words.slice(0, 30).join(', ')}${r.words.length > 30 ? ', …' : ''}.${r.flat.length ? ` Left out because they had the same frequency in every reference text: ${r.flat.slice(0, 10).join(', ')}${r.flat.length > 10 ? ', …' : ''}.` : ''}`;
+    fig = heat(r, order, u.merges); paint(q<HTMLCanvasElement>('.sy-fig'), fig);
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  box.addEventListener('input', later);
+  q('.sy-mfw').addEventListener('input', later);
+  dis.addEventListener('change', run);
+  q('.sy-ex').addEventListener('click', () => { box.value = EXAMPLE; q<HTMLInputElement>('.sy-mfw').value = '100'; run(); dis.value = '6'; run(); });
+  q('.sy-clear').addEventListener('click', () => { box.value = ''; run(); });
+  q('.sy-open').addEventListener('click', () => q<HTMLInputElement>('.sy-file').click());
+  q('.sy-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.sy-file'), files = [...(inp.files ?? [])]; inp.value = '';
+    if (!files.length) return;
+    const size = files.reduce((a, f) => a + f.size, 0) + box.value.length;
+    if (size > MAX_BYTES) { q('.sy-err').textContent = 'Those files come to more than 20 MB.'; q('.sy-err').hidden = false; return; }
+    const parts = await Promise.all(files.map(async (f) => `### ${f.name.replace(/\.[^.]+$/, '')}\n${(await f.text()).replace(/^\s*###/gm, '#')}\n`));
+    box.value = (box.value.trim() ? box.value.replace(/\s*$/, '\n\n') : '') + parts.join('\n'); run();
+  });
+  const name = () => (disputed >= 0 && res ? `delta-${res.names[disputed]}` : 'burrows-delta').replace(/[^\p{L}\p{N}]+/gu, '-');
+  q('.sy-csv').addEventListener('click', () => {
+    if (!res) return; const r = res;
+    save(new Blob([csv([['text', ...r.names], ...r.names.map((nm, a) => [nm, ...r.dist[a].map((v) => v.toFixed(6))])])], { type: 'text/csv' }), `${name()}-matrix.csv`, 'text/csv');
+  });
+  q('.sy-zcsv').addEventListener('click', () => {
+    if (!res) return; const r = res;
+    const rows: (string | number)[][] = [['word', 'corpus_count', 'mean_pct', 'sd_pct', ...r.names.flatMap((nm) => [`${nm} pct`, `${nm} z`])]];
+    r.words.forEach((w, j) => rows.push([w, r.counts[j], r.mean[j].toFixed(6), r.sd[j].toFixed(6), ...r.names.flatMap((_, t) => [r.freq[t][j].toFixed(6), r.z[t][j].toFixed(6)])]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${name()}-words.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const r = res!, at = disputed >= 0 ? attribute(r, disputed) : null;
+    const sections: Section[] = [
+      { title: 'Summary', facts: [['Texts', String(r.names.length)], ['Words used', String(r.words.length)], ...(at ? [['Disputed text', r.names[disputed]] as [string, string], ['Closest author', `${at.authors[0].author} (${at.authors[0].delta.toFixed(3)})`] as [string, string]] : [])] },
+      ...(at ? [{ title: 'Closest authors', table: { head: ['Rank', 'Author', 'Texts', 'Mean Delta'], rows: at.authors.map((a, k) => [String(k + 1), a.author, String(a.texts), a.delta.toFixed(3)]), align: ['r', 'l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      { title: "Burrows' Delta", figure: fig ?? undefined, table: { head: ['Text', ...order.map((i) => String(i + 1))], rows: order.map((a) => [`${a + 1}. ${r.names[a]}`, ...order.map((b) => (a === b ? '' : r.dist[a][b].toFixed(3)))]), align: ['l', ...order.map(() => 'r' as const)] } },
+      { title: 'Words', text: [r.words.join(', ')] },
+    ];
+    return { title: "Burrows' Delta", subtitle: q('.sy-big').textContent ?? '', file: name(), sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && res) paint(q<HTMLCanvasElement>('.sy-fig'), fig); });
+</script>

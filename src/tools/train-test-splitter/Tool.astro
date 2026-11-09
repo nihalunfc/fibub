@@ -1,0 +1,181 @@
+---
+// Dataset splitter: random, stratified, grouped or time-ordered train/test (and validation) splits, or k-fold
+// assignment, with a seed, a class balance table and CSV downloads. Everything runs in the browser.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax tts">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>Paste a table (first row = column names), or open a file
+      <textarea class="tts-in" rows="8" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".tts-in" maxMB={20} maxCols={100} maxRows={200000} />
+    <p class="ax-help">The example of 40 fruit from 8 farms is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How to split</h2>
+    <div class="ax-grid">
+      <label>Method <select class="tts-m">
+        <option value="random">Random</option>
+        <option value="stratified" selected>Stratified (keep class shares)</option>
+        <option value="group">Grouped (whole groups stay together)</option>
+        <option value="time">Time-ordered (latest rows for testing)</option>
+        <option value="kfold">k-fold: a fold number for every row</option>
+      </select></label>
+      <label class="tts-kk-w">Folds made <select class="tts-kk">
+        <option value="plain">Shuffled</option>
+        <option value="stratified" selected>Stratified</option>
+        <option value="group">Grouped</option>
+        <option value="blocks">In order (blocks)</option>
+      </select></label>
+      <label class="tts-cls-w">Class column <select class="tts-cls"></select></label>
+      <label class="tts-grp-w">Group column <select class="tts-grp"></select></label>
+      <label class="tts-time-w">Time column <select class="tts-time"></select></label>
+      <label class="tts-test-w">Test (%) <input class="tts-test" inputmode="decimal" value="20" /></label>
+      <label class="tts-val-w">Validation (%) <input class="tts-val" inputmode="decimal" value="0" /></label>
+      <label class="tts-k-w">Number of folds k <input class="tts-k" inputmode="numeric" value="5" /></label>
+      <label class="tts-seed-w">Seed <input class="tts-seed" inputmode="numeric" value="42" /></label>
+    </div>
+    <p class="ax-help tts-help"></p>
+    <p class="ax-err tts-err" hidden></p>
+  </div>
+
+  <div class="ax-card tts-out">
+    <h2>Result</h2>
+    <p class="ax-big tts-big"></p>
+    <dl class="ax-facts tts-facts"></dl>
+    <p class="ax-help tts-warn" hidden></p>
+    <h3 class="tts-h3 tts-bal-h">Class balance</h3>
+    <div class="ax-scroll"><table class="tts-bal"></table></div>
+    <h3 class="tts-h3">Downloads (CSV)</h3>
+    <div class="ax-row tts-dl"></div>
+  </div>
+</div>
+
+<style is:global>
+  .tts .tts-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .tts .tts-bal td { white-space: nowrap; }
+</style>
+
+<script>
+  import { readTable, isMissing, toCsvText, type Table } from '../../lib/sci/dataset';
+  import { randomSplit, stratifiedSplit, groupSplit, timeSplit, kfold, stratifiedKfold, groupKfold, timeOrder, balance, EXAMPLE } from '../../lib/sci/split';
+  import { num } from '../../lib/sci/num';
+  import { save, fileSafe } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tts')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.tts-in');
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let table: Table | null = null, part: ArrayLike<number> | null = null, parts: string[] = [], isFold = false, fileName = 'data';
+  const HELP: Record<string, string> = {
+    random: 'Rows are shuffled with the seed, then the test (and validation) share is taken. The same seed always gives the same split.',
+    stratified: 'Each class keeps (as nearly as whole rows allow) the same share in every part, as scikit-learn does. Use it for classification, above all when a class is rare.',
+    group: 'All rows of a group (a patient, a farm, a school) go to the same part, so the model is tested on groups it has never seen. The percentages are of groups, not rows.',
+    time: 'Rows are sorted by the time column; the latest rows are the test part and the ones just before them the validation part. Use it for forecasting, so the model never trains on the future.',
+    kfold: 'Every row gets a fold number from 1 to k. Train on k − 1 folds and test on the one left out, k times. Stratified folds keep class shares; grouped folds keep groups whole (biggest groups first, into the lightest fold); blocks keep rows in order.',
+  };
+  const pct = (a: number, b: number) => (b ? `${(100 * a / b).toFixed(1)} %` : '–');
+
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = ''): HTMLElementTagNameMap[K] { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+  function columns(head: string[]) {
+    const guess: Record<string, RegExp> = { '.tts-cls': /^(class|label|kind|type|target|y|species|outcome|category)$/i, '.tts-grp': /(group|farm|patient|subject|site|school|id_group|cluster|family)/i, '.tts-time': /(date|time|day|year|month|picked|timestamp)/i };
+    for (const c of ['.tts-cls', '.tts-grp', '.tts-time']) {
+      const s = sel(c), old = s.value;
+      if ([...s.options].map((o) => o.value).join('\u0000') === head.join('\u0000')) continue;
+      s.replaceChildren(...head.map((h) => { const o = el('option', h); o.value = h; return o; }));
+      const g = head.findIndex((h) => guess[c].test(h));
+      s.value = head.includes(old) ? old : head[g >= 0 ? g : c === '.tts-cls' ? head.length - 1 : 0];
+    }
+  }
+  const frac = (c: string, name: string) => { const v = num(q<HTMLInputElement>(c).value || '0'); if (!(v >= 0 && v < 100)) throw new Error(`${name} must be a percentage from 0 to below 100.`); return v / 100; };
+  const labelsOf = (t: Table, col: string) => { const j = t.head.indexOf(col); return t.rows.map((r) => (isMissing(r[j]) ? '(missing)' : r[j].trim())); };
+
+  function calc() {
+    const m = sel('.tts-m').value, kk = sel('.tts-kk').value, err = q('.tts-err');
+    const fold = m === 'kfold';
+    const needCls = m === 'stratified' || (fold && kk === 'stratified'), needGrp = m === 'group' || (fold && kk === 'group');
+    q('.tts-kk-w').hidden = !fold; q('.tts-k-w').hidden = !fold; q('.tts-test-w').hidden = fold; q('.tts-val-w').hidden = fold;
+    q('.tts-grp-w').hidden = !needGrp; q('.tts-time-w').hidden = m !== 'time';
+    q('.tts-seed-w').hidden = m === 'time' || (fold && (kk === 'group' || kk === 'blocks'));
+    q('.tts-help').textContent = HELP[m];
+    try {
+      const t = readTable(box.value);
+      if (t.head.length < 1 || t.rows.length < 2) throw new Error('Paste a table with a row of column names and at least two rows of data.');
+      table = t; columns(t.head);
+      const n = t.rows.length, seed = Math.round(num(q<HTMLInputElement>('.tts-seed').value));
+      if (!Number.isFinite(seed)) throw new Error('The seed must be a whole number.');
+      const warn: string[] = [];
+      // The class column is optional for the balance table, but always offered.
+      const clsLabels = labelsOf(t, sel('.tts-cls').value);
+      if (fold) {
+        const k = num(q<HTMLInputElement>('.tts-k').value);
+        if (!(Number.isInteger(k) && k >= 2 && k <= Math.min(50, n))) throw new Error(`The number of folds must be a whole number from 2 to ${Math.min(50, n)}.`);
+        if (kk === 'stratified') {
+          const small = balance(clsLabels, new Int8Array(n), 1).counts.filter((c) => c[0] < k).length;
+          if (small) warn.push(`${small} class${small === 1 ? ' has' : 'es have'} fewer than ${k} rows, so some folds will lack ${small === 1 ? 'it' : 'them'} (scikit-learn warns about this too).`);
+          part = stratifiedKfold(clsLabels, k, seed);
+        } else if (kk === 'group') part = groupKfold(labelsOf(t, sel('.tts-grp').value), k);
+        else part = kfold(n, k, kk === 'blocks' ? null : seed);
+        parts = Array.from({ length: k }, (_, i) => `Fold ${i + 1}`);
+      } else {
+        const tf = frac('.tts-test', 'Test'), vf = frac('.tts-val', 'Validation');
+        if (tf === 0) throw new Error('Set a test percentage above 0.');
+        if (m === 'random') part = randomSplit(n, tf, vf, seed);
+        else if (m === 'stratified') {
+          const one = balance(clsLabels, new Int8Array(n), 1).counts.filter((c) => c[0] < 2).length;
+          if (one) warn.push(`${one} class${one === 1 ? ' has' : 'es have'} only one row; scikit-learn refuses to stratify this, here such a row goes wherever the rounding puts it.`);
+          part = stratifiedSplit(clsLabels, tf, vf, seed);
+        } else if (m === 'group') part = groupSplit(labelsOf(t, sel('.tts-grp').value), tf, vf, seed);
+        else part = timeSplit(timeOrder(labelsOf(t, sel('.tts-time').value)), tf, vf);
+        parts = vf > 0 ? ['Train', 'Test', 'Validation'] : ['Train', 'Test'];
+      }
+      isFold = fold;
+      err.hidden = true; q('.tts-out').hidden = false;
+      const P = part!, sizes = parts.map((_, p) => Array.from(P).filter((x) => x === p).length);
+      q('.tts-big').textContent = parts.map((p, i) => `${p} ${sizes[i].toLocaleString('en')}`).join(' · ');
+      const facts: [string, string][] = [['Rows', n.toLocaleString('en')], ...parts.map((p, i) => [p, `${sizes[i].toLocaleString('en')} rows (${pct(sizes[i], n)})`] as [string, string])];
+      if (needGrp) {
+        const g = labelsOf(t, sel('.tts-grp').value), gs = parts.map((_, p) => new Set(g.filter((_, i) => P[i] === p)).size);
+        facts.push(['Groups', parts.map((p, i) => `${p.toLowerCase()} ${gs[i]}`).join(', ')]);
+      }
+      if (m === 'time') { const tv = labelsOf(t, sel('.tts-time').value), test = tv.filter((_, i) => P[i] === 1), train = tv.filter((_, i) => P[i] === 0), o = timeOrder(test), ot = timeOrder(train); facts.push(['Training ends', train[ot[ot.length - 1]] ?? ''], ['Test starts', test[o[0]] ?? '']); }
+      q('.tts-facts').replaceChildren(...facts.map(([k, v]) => { const d = el('div'); d.append(el('dt', k), el('dd', v)); return d; }));
+      q('.tts-warn').textContent = warn.join(' '); q('.tts-warn').hidden = !warn.length;
+      // Class balance in each part.
+      const b = balance(clsLabels, P, parts.length);
+      q('.tts-bal-h').textContent = `Class balance (${sel('.tts-cls').value})`;
+      const tr = el('tr'); ['Class', 'All', ...parts].forEach((h, j) => tr.append(el('th', h, j ? 'r' : '')));
+      const tb = el('tbody');
+      const shown = b.classes.length > 30 ? 30 : b.classes.length;
+      b.classes.slice(0, shown).forEach((c, i) => { const row = el('tr'); const tot = b.counts[i].reduce((s, x) => s + x, 0); row.append(el('td', c), el('td', `${tot} (${pct(tot, n)})`, 'r'), ...b.counts[i].map((x, p) => el('td', `${x} (${pct(x, sizes[p])})`, 'r'))); tb.append(row); });
+      if (b.classes.length > shown) { const row = el('tr', '', 'dim'); const td = el('td', `… and ${b.classes.length - shown} more classes (choose the class column)`); td.colSpan = parts.length + 2; row.append(td); tb.append(row); }
+      const th = el('thead'); th.append(tr); q('.tts-bal').replaceChildren(th, tb);
+      // Download buttons.
+      const mk = (label: string, cls: string, p = '') => { const bt = el('button', label, 'btn secondary small ' + cls); bt.type = 'button'; if (p) bt.dataset.p = p; return bt; };
+      const btns = [mk(isFold ? 'Table with a fold column' : 'Table with a split column', 'tts-all'), ...(isFold ? [] : parts.map((p, i) => mk(`${p} rows`, 'tts-p', String(i))))];
+      q('.tts-dl').replaceChildren(...btns);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.tts-out').hidden = true; part = null; }
+  }
+
+  q('.tts-dl').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b || !table || !part) return;
+    const t = table, P = part, base = fileSafe(fileName);
+    if (b.classList.contains('tts-all')) {
+      const name = isFold ? 'fold' : 'split';
+      const rows = t.rows.map((r, i) => [...r, isFold ? P[i] + 1 : parts[P[i]].toLowerCase()]);
+      save(new Blob([toCsvText([...t.head, name], rows)], { type: 'text/csv' }), `${base}-${isFold ? 'folds' : 'split'}.csv`, 'text/csv');
+    } else {
+      const p = Number(b.dataset.p);
+      save(new Blob([toCsvText(t.head, t.rows.filter((_, i) => P[i] === p))], { type: 'text/csv' }), `${base}-${parts[p].toLowerCase()}.csv`, 'text/csv');
+    }
+  });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.classList?.contains('dfb-in') && t.files?.[0]) fileName = t.files[0].name.replace(/\.[^.]+$/, ''); }, true);
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('select, .dfb-in')) return; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  box.value = EXAMPLE; fileName = 'fruit';
+  calc();
+</script>

@@ -1,0 +1,214 @@
+---
+// Pump curve fitted from points, system curve (static + friction), operating point, parallel/series pumps,
+// affinity laws and NPSH available. Example pump and system made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pss">
+  <div class="ax-card">
+    <h2>Pump curve</h2>
+    <div class="ax-grid">
+      <label>Flow unit <select class="ps-qu"><option value="0.001" selected>L/s</option><option value="0.000277777777777778">m³/h</option><option value="0.0000630901964">US gal/min</option></select></label>
+    </div>
+    <label class="ps-lab">Points read off the maker's curve: flow, head (m), then optional efficiency (%) and NPSH required (m)
+      <textarea class="ps-pts" rows="8" spellcheck="false">Flow, Head m, Efficiency %, NPSHr m
+0, 42, 0,
+10, 41, 45, 1.5
+20, 38.5, 66, 2
+30, 34, 75, 2.8
+40, 27.5, 72, 4
+50, 19, 60, 5.5</textarea></label>
+    <DataFile target=".ps-pts" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Pumps <select class="ps-arr"><option value="single" selected>One pump</option><option value="parallel">Identical pumps in parallel</option><option value="series">Identical pumps in series</option></select></label>
+      <label class="ps-nbox" hidden>How many <input class="ps-n" type="text" inputmode="numeric" value="2" /></label>
+      <label>Change <select class="ps-chg"><option value="none" selected>None (as on the curve)</option><option value="speed">Speed (affinity laws)</option><option value="dia">Impeller diameter (trim)</option></select></label>
+      <label class="ps-cbox" hidden><span class="ps-c1l">Speed on the curve (rpm)</span> <input class="ps-c1" type="text" inputmode="decimal" value="1450" /></label>
+      <label class="ps-cbox" hidden><span class="ps-c2l">New speed (rpm)</span> <input class="ps-c2" type="text" inputmode="decimal" value="1300" /></label>
+    </div>
+    <p class="ax-help">Head is fitted with a quadratic, H = a + bQ + cQ², efficiency with a quadratic (3 or 4 points) or cubic (5 or more) and NPSH required with a quadratic. Affinity laws: flow scales with the speed or diameter ratio, head with its square and power with its cube. Trimming more than about 10 to 20 % of the impeller makes the diameter rule less accurate. The example pump is made up.</p>
+    <p class="ax-err ps-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>System curve</h2>
+    <div class="ax-grid">
+      <label>Static head (m): outlet level minus suction level, plus any pressure difference as head <input class="ps-hs" type="text" inputmode="decimal" value="15" /></label>
+      <label>Friction from <select class="ps-fm"><option value="known" selected>A known loss at one flow</option><option value="pipe">A pipe (Darcy-Weisbach)</option></select></label>
+      <label class="ps-kbox"><span>Friction loss (m)</span> <input class="ps-hr" type="text" inputmode="decimal" value="12" /></label>
+      <label class="ps-kbox"><span>at flow (<span class="ps-qul">L/s</span>)</span> <input class="ps-qr" type="text" inputmode="decimal" value="40" /></label>
+      <label class="ps-pbox" hidden>Pipe length (m) <input class="ps-L" type="text" inputmode="decimal" value="300" /></label>
+      <label class="ps-pbox" hidden>Inside diameter (mm) <input class="ps-D" type="text" inputmode="decimal" value="150" /></label>
+      <label class="ps-pbox" hidden>Roughness (mm) <input class="ps-e" type="text" inputmode="decimal" value="0.05" /></label>
+      <label class="ps-pbox" hidden>Minor losses ΣK <input class="ps-K" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">With a known loss the friction grows with the square of the flow, h = k Q². With a pipe, the friction factor comes from Colebrook-White for water at the temperature below.</p>
+    <p class="ax-err ps-serr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Suction (NPSH available)</h2>
+    <div class="ax-grid">
+      <label>Pressure on the liquid surface (kPa absolute) <input class="ps-ps" type="text" inputmode="decimal" value="101.325" /></label>
+      <label>Water temperature (°C) <input class="ps-t" type="text" inputmode="decimal" value="20" /></label>
+      <label>Static suction head (m): + liquid above the pump, − suction lift <input class="ps-zs" type="text" inputmode="decimal" value="-3" /></label>
+      <label><span>Suction pipe loss (m) at <span class="ps-qul">L/s</span> below</span> <input class="ps-hl" type="text" inputmode="decimal" value="0.5" /></label>
+      <label><span>…measured or worked out at (<span class="ps-qul">L/s</span>)</span> <input class="ps-hlq" type="text" inputmode="decimal" value="40" /></label>
+    </div>
+    <p class="ax-help">Sea-level air is 101.325 kPa; an open tank at altitude has less. Vapour pressure and density of water come from IAPWS-IF97. The suction loss is scaled with the square of the flow to the operating point.</p>
+    <p class="ax-err ps-nerr" hidden></p>
+  </div>
+
+  <div class="ax-card ps-out">
+    <h2>Operating point</h2>
+    <p class="ax-big ps-big"></p>
+    <dl class="ax-facts ps-facts"></dl>
+    <canvas class="ax-fig ps-fig"></canvas>
+    <canvas class="ax-fig ps-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ps-csv">Curves (CSV)</button></div>
+    <Downloads />
+  </div>
+  <p class="ax-err ps-err" hidden></p>
+</div>
+
+<script>
+  import { fitPump, polyval, r2, setHead, setEff, setNpshr, maxFlow, operatingPoint, quadSystem, power, npsha, type Modified, type PumpFit } from '../../lib/sci/pumpsys';
+  import { pipeFlow, water } from '../../lib/sci/pipenet';
+  import { psat, pT } from '../../lib/sci/if97';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.pss')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function show(err: HTMLElement, m: string) { err.textContent = m; err.hidden = false; }
+  function all() {
+    const qf = +sel('.ps-qu'), qu = q<HTMLSelectElement>('.ps-qu').selectedOptions[0].textContent!;
+    root.querySelectorAll('.ps-qul').forEach((e) => { e.textContent = qu; });
+    const out = q('.ps-out');
+    ['.ps-perr', '.ps-serr', '.ps-nerr', '.ps-err'].forEach((c) => { q(c).hidden = true; });
+    const stop = (c: string, m: string) => { show(q(c), m); out.hidden = true; report = []; rows = []; };
+    // Pump points.
+    const tab = parseTable(q<HTMLTextAreaElement>('.ps-pts').value);
+    if (tab.length && Number.isNaN(num(tab[0][0]))) tab.shift();
+    const Qp: number[] = [], Hp: number[] = [], Ep: (number | undefined)[] = [], Np: (number | undefined)[] = [];
+    for (const r of tab) {
+      const a = num(r[0]), b = num(r[1]), e = num(r[2] ?? ''), n = num(r[3] ?? '');
+      if (!(a >= 0) || !Number.isFinite(b)) return stop('.ps-perr', `Row "${r.join(', ')}": give a flow (0 or more) and a head.`);
+      if ((r[2] ?? '').trim() && !(e >= 0 && e <= 100)) return stop('.ps-perr', `Row "${r.join(', ')}": efficiency must be a percentage from 0 to 100.`);
+      Qp.push(a * qf); Hp.push(b); Ep.push(Number.isFinite(e) ? e : undefined); Np.push(Number.isFinite(n) ? n : undefined);
+    }
+    if (Qp.length < 3 || new Set(Qp).size < 3) return stop('.ps-perr', 'Give at least three points at different flows from the pump curve.');
+    const fit: PumpFit = fitPump(Qp, Hp, Ep, Np);
+    if (!(fit.head[0] > 0) || !(fit.head[2] < 0)) return stop('.ps-perr', 'These points do not look like a pump curve: the head should fall as the flow rises.');
+    const arrMode = sel('.ps-arr') as 'single' | 'parallel' | 'series', chg = sel('.ps-chg');
+    q('.ps-nbox').hidden = arrMode === 'single';
+    root.querySelectorAll<HTMLElement>('.ps-cbox').forEach((e) => { e.hidden = chg === 'none'; });
+    q('.ps-c1l').textContent = chg === 'dia' ? 'Impeller diameter on the curve (mm)' : 'Speed on the curve (rpm)';
+    q('.ps-c2l').textContent = chg === 'dia' ? 'New impeller diameter (mm)' : 'New speed (rpm)';
+    const n = arrMode === 'single' ? 1 : val('.ps-n');
+    if (!(Number.isInteger(n) && n >= 1 && n <= 10)) return stop('.ps-perr', 'Give a whole number of pumps from 1 to 10.');
+    let r = 1;
+    if (chg !== 'none') { const c1 = val('.ps-c1'), c2 = val('.ps-c2'); if (!(c1 > 0 && c2 > 0)) return stop('.ps-perr', chg === 'dia' ? 'Give both impeller diameters.' : 'Give both speeds.'); r = c2 / c1; if (r > 2 || r < 0.3) return stop('.ps-perr', 'Keep the change between 30 % and 200 % of the curve value; the affinity laws are not reliable beyond that.'); }
+    const m: Modified = { fit, r, arr: { n, mode: arrMode } }, base: Modified = { fit, r: 1, arr: { n: 1, mode: 'single' } };
+    // System.
+    const hs = val('.ps-hs'), fm = sel('.ps-fm'), t = val('.ps-t');
+    root.querySelectorAll<HTMLElement>('.ps-kbox').forEach((e) => { e.hidden = fm !== 'known'; });
+    root.querySelectorAll<HTMLElement>('.ps-pbox').forEach((e) => { e.hidden = fm !== 'pipe'; });
+    if (!Number.isFinite(hs)) return stop('.ps-serr', 'Give the static head in metres (0 for a closed loop; negative if the outlet is lower).');
+    if (!(t >= 0 && t <= 100)) return stop('.ps-nerr', 'Give a water temperature from 0 to 100 °C.');
+    let sys: (Q: number) => number, sysNote: string;
+    if (fm === 'known') {
+      const hr = val('.ps-hr'), qr = val('.ps-qr') * qf;
+      if (!(hr >= 0) || !(qr > 0)) return stop('.ps-serr', 'Give the friction loss (m) at a known flow above 0.');
+      sys = quadSystem(hs, hr, qr); sysNote = `H = ${sg(hs, 4)} + ${sg(hr / (qr / qf) ** 2, 4)} × Q² (Q in ${qu})`;
+    } else {
+      const L = val('.ps-L'), D = val('.ps-D') / 1000, e = val('.ps-e') / 1000, K = val('.ps-K');
+      if (!(L > 0 && D > 0 && e >= 0 && e < D / 2 && K >= 0)) return stop('.ps-serr', 'Give the pipe length, diameter, roughness and ΣK (0 or more).');
+      const fl = water(t), p = { L, D, eps: e, K };
+      sys = (Q: number) => hs + pipeFlow(p, Q, fl).h; sysNote = `static ${sg(hs, 4)} m + Darcy-Weisbach friction in ${sg(L, 4)} m of ${sg(D * 1000, 4)} mm pipe with ΣK ${sg(K, 3)}`;
+    }
+    const op = operatingPoint(m, sys);
+    if (!op) return stop('.ps-err', `The pump${n > 1 ? 's' : ''} cannot overcome the system: the shut-off head (${sg(setHead(m, 0), 4)} m) is below the static head. Use more head (series pumps, higher speed) or less static lift.`);
+    out.hidden = false;
+    const Qo = op.Q, Ho = op.H, eta = setEff(m, Qo), npshr = setNpshr(m, Qo);
+    const rho = pT(0.101325 > psat(t + 273.15) ? 0.101325 : psat(t + 273.15) + 0.01, t + 273.15).rho;
+    q('.ps-big').textContent = `${sg(Qo / qf, 4)} ${qu} at ${sg(Ho, 4)} m head`;
+    const facts: HTMLElement[] = [];
+    const qEach = arrMode === 'parallel' ? Qo / n : Qo, hEach = arrMode === 'series' ? Ho / n : Ho;
+    if (n > 1) facts.push(fact('Each pump', `${sg(qEach / qf, 4)} ${qu} at ${sg(hEach, 4)} m`, arrMode === 'parallel' ? 'pumps in parallel share the flow at the same head' : 'pumps in series carry the same flow and add their heads'));
+    const one = operatingPoint(base, sys);
+    if (n > 1 && one) facts.push(fact('One pump alone on this system', `${sg(one.Q / qf, 4)} ${qu} at ${sg(one.H, 4)} m`, `adding pumps gives ${sg((Qo / one.Q - 1) * 100, 3)} % more flow, not ${n}×, because the system head rises too`));
+    if (r !== 1) facts.push(fact(chg === 'dia' ? 'Diameter ratio' : 'Speed ratio', sg(r, 4), `flow × ${sg(r, 4)}, head × ${sg(r * r, 4)}, power × ${sg(r ** 3, 4)} at matching points`));
+    if (Number.isFinite(eta) && eta > 0) {
+      const pw = power(rho, Qo, Ho, eta);
+      facts.push(fact('Pump efficiency', `${sg(eta * 100, 3)} %`, 'from the fitted efficiency curve'));
+      facts.push(fact('Power', `${sg(pw.shaft / 1000, 4)} kW shaft${n > 1 ? ' in total' : ''}`, `hydraulic ρgQH = ${sg(pw.hyd / 1000, 4)} kW; choose a motor with a margin above the shaft power`));
+      // Best efficiency point of one pump (curve as given, then scaled).
+      let bq = 0, be = -1; for (let i = 0; i <= 400; i++) { const qq = (fit.qMax * i) / 400, e = polyval(fit.eff!, qq); if (e > be) { be = e; bq = qq; } }
+      const bep = bq * r;
+      facts.push(fact('Best efficiency point', `${sg(bep / qf, 4)} ${qu} per pump (${sg(be, 3)} %)`, `running at ${sg((qEach / bep) * 100, 3)} % of the best-efficiency flow; about 70 to 120 % is the comfortable range`));
+    }
+    facts.push(fact('System curve', sysNote));
+    facts.push(fact('Head fit', `H = ${sg(fit.head[0], 5)} + ${sg(fit.head[1] * qf, 4)} Q ${fit.head[2] < 0 ? '−' : '+'} ${sg(Math.abs(fit.head[2] * qf * qf), 4)} Q²`, `Q in ${qu}; R² = ${sg(r2(fit.head, Qp, Hp), 5)} for the curve as given`));
+    // NPSH.
+    const pS = val('.ps-ps') * 1000, zs = val('.ps-zs'), hl = val('.ps-hl'), hlq = val('.ps-hlq') * qf;
+    let nA = NaN;
+    if (!(pS > 0) || !Number.isFinite(zs) || !(hl >= 0) || !(hlq > 0)) show(q('.ps-nerr'), 'Give the surface pressure, the static suction head, and the suction loss at a known flow, for NPSH available.');
+    else {
+      const pv = psat(t + 273.15) * 1e6, loss = hl * (qEach / hlq) ** 2;
+      nA = npsha(pS, pv, rho, zs, loss);
+      facts.push(fact('NPSH available', `${sg(nA, 4)} m`, `(${sg(pS / 1000, 5)} − ${sg(pv / 1000, 4)} kPa vapour pressure) / ρg ${zs < 0 ? '−' : '+'} ${sg(Math.abs(zs), 4)} m static − ${sg(loss, 3)} m suction loss`));
+      if (Number.isFinite(npshr)) {
+        const mar = nA - npshr;
+        facts.push(fact('NPSH required', `${sg(npshr, 4)} m`, mar < 0 ? `short by ${sg(-mar, 3)} m: the pump will cavitate. Lower the pump, raise the tank, shorten the suction line or slow down` : mar < 1 || nA / npshr < 1.3 ? `margin only ${sg(mar, 3)} m; a margin of 1 m or 30 % (whichever is larger) is a common rule` : `margin ${sg(mar, 3)} m (ratio ${sg(nA / npshr, 3)}): comfortable`));
+      }
+    }
+    q('.ps-facts').replaceChildren(...facts);
+    // Charts.
+    const qMaxPlot = Math.max(Qo * 1.4, Math.min(maxFlow(m), Qo * 2.2)), N = 80, xs: number[] = [];
+    for (let i = 0; i <= N; i++) xs.push((qMaxPlot * i) / N);
+    const series = [
+      { name: n > 1 || r !== 1 ? (arrMode === 'single' ? 'Pump at new ' + (chg === 'dia' ? 'diameter' : 'speed') : `${n} pumps in ${arrMode}`) : 'Pump (fitted)', x: xs.map((x) => x / qf), y: xs.map((x) => setHead(m, x)), mode: 'line' as const, width: 2 },
+      { name: 'System', x: xs.map((x) => x / qf), y: xs.map((x) => sys(x)), mode: 'line' as const, width: 2 },
+      { name: 'Curve points', x: Qp.map((x) => x / qf), y: Hp, mode: 'points' as const, size: 3 },
+      { name: 'Operating point', x: [Qo / qf], y: [Ho], mode: 'points' as const, size: 5 },
+    ];
+    if (n > 1 || r !== 1) series.splice(1, 0, { name: 'One pump as on the curve', x: xs.filter((x) => x <= maxFlow(base)).map((x) => x / qf), y: xs.filter((x) => x <= maxFlow(base)).map((x) => setHead(base, x)), mode: 'line' as const, width: 1 });
+    const f1 = chartFigure({ w: 380, h: 270, xLabel: `Flow (${qu})`, yLabel: 'Head (m)', xMin: 0, yMin: 0, legend: 'below', series }, 'Pump and system curves with the operating point');
+    figs = [['.ps-fig', f1]];
+    const f2s: { name: string; x: number[]; y: number[]; mode: 'line' | 'points'; width?: number; size?: number }[] = [];
+    const qData = fit.qMax * r * (arrMode === 'parallel' ? n : 1), xd = xs.filter((x) => x <= qData * 1.0001); // fitted range only
+    if (fit.eff) f2s.push({ name: 'Efficiency (%)', x: xd.map((x) => x / qf), y: xd.map((x) => setEff(m, x) * 100), mode: 'line' as const, width: 2 });
+    if (fit.npsh) f2s.push({ name: 'NPSH required (m)', x: xd.map((x) => x / qf), y: xd.map((x) => setNpshr(m, x)), mode: 'line' as const, width: 2 });
+    if (f2s.length && Number.isFinite(nA)) f2s.push({ name: 'NPSH available (m)', x: [Qo / qf], y: [nA], mode: 'points' as const, size: 5 });
+    let f2: Figure | undefined;
+    if (f2s.length) { f2 = chartFigure({ w: 380, h: 230, xLabel: `Flow (${qu})`, yLabel: 'Efficiency % / NPSH m', xMin: 0, yMin: 0, legend: 'below', series: f2s, marks: [{ kind: 'vline', at: Qo / qf, dash: [4, 3], label: 'operating' }] }, 'Efficiency and NPSH against flow, over the range of the curve points'); figs.push(['.ps-fig2', f2]); }
+    q('.ps-fig2').hidden = !f2;
+    figs.forEach(([c, f]) => paint(q<HTMLCanvasElement>(c), f));
+    rows = [[`flow_${qu.replace(/[^\w]+/g, '_')}`, 'pump_set_head_m', 'system_head_m', 'efficiency_pct', 'npsh_required_m'], ...xs.map((x) => [sg(x / qf, 6), sg(setHead(m, x), 6), sg(sys(x), 6), fit.eff ? sg(setEff(m, x) * 100, 5) : '', fit.npsh ? sg(setNpshr(m, x), 5) : ''])];
+    report = [{ title: `Operating point: ${q('.ps-big').textContent}`, facts: factsOf(facts), figure: f1 }, ...(f2 ? [{ title: 'Efficiency and NPSH', figure: f2 }] : [])];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(all, 250); };
+  root.querySelectorAll('input:not([type=file]), select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ps-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'pump-system-curves.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.ps-out').hidden) figs.forEach(([c, f]) => paint(q<HTMLCanvasElement>(c), f)); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Pump and system curve', subtitle: q('.ps-big').textContent ?? '', file: 'pump-system-curve', sections: report }));
+</script>
+
+<style is:global>
+  .pss select, .pss input { max-width: 100%; }
+  .pss .ps-lab { margin-top: 12px; }
+  .pss textarea { margin-top: 4px; }
+</style>

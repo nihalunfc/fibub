@@ -1,0 +1,159 @@
+---
+// Rebar quantities for a rectangular slab, wall or footing mesh. Laps and covers are entered by the user; the example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const sizes = [6, 8, 10, 12, 16, 20, 25, 28, 32, 36, 40];
+---
+<div class="ax rbc">
+  <div class="ax-card">
+    <h2>Element</h2>
+    <div class="ax-grid">
+      <label>Type <select class="rb-type"><option value="slab" selected>Slab</option><option value="wall">Wall</option><option value="footing">Footing or pad</option></select></label>
+      <label>Length (m) <input class="rb-L" type="text" inputmode="decimal" value="6" /></label>
+      <label><span class="rb-wl">Width (m)</span> <input class="rb-W" type="text" inputmode="decimal" value="4.5" /></label>
+      <label>Cover to bar ends and edges (mm) <input class="rb-c" type="text" inputmode="decimal" value="40" /></label>
+      <label><span class="rb-ll">Layers (bottom and top mats)</span> <select class="rb-lay"><option value="1">1</option><option value="2" selected>2</option></select></label>
+      <label>How many identical elements <input class="rb-n" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Bars</h2>
+    <div class="ax-grid">
+      <label><span class="rb-al">Bars along the length: size (mm)</span> <select class="rb-da">{sizes.map((d) => <option value={d} selected={d === 12}>{d}</option>)}</select></label>
+      <label>Spacing (mm) <input class="rb-sa" type="text" inputmode="decimal" value="150" /></label>
+      <label>Extra per bar end, hook or bend (mm) <input class="rb-ha" type="text" inputmode="decimal" value="0" /></label>
+      <label><span class="rb-bl">Bars along the width: size (mm)</span> <select class="rb-db">{sizes.map((d) => <option value={d} selected={d === 10}>{d}</option>)}</select></label>
+      <label>Spacing (mm) <input class="rb-sb" type="text" inputmode="decimal" value="200" /></label>
+      <label>Extra per bar end, hook or bend (mm) <input class="rb-hb" type="text" inputmode="decimal" value="0" /></label>
+      <label>Stock bar length (m) <input class="rb-stock" type="text" inputmode="decimal" value="12" /></label>
+      <label>Lap length (mm) <input class="rb-lap" type="text" inputmode="decimal" value="600" /></label>
+      <label>Waste allowance (%) <input class="rb-waste" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The lap length is where two bars overlap when one stock length is too short; take it from your drawings or code (it depends on bar size, concrete and position). Hooks add length at each end. The example values are made up.</p>
+    <p class="ax-err rb-err" hidden></p>
+  </div>
+
+  <div class="ax-card rb-out">
+    <h2>Quantities</h2>
+    <p class="ax-big rb-big"></p>
+    <dl class="ax-facts rb-facts"></dl>
+    <h3 class="rb-h3">Cut list</h3>
+    <div class="ax-scroll"><table class="rb-tab"></table></div>
+    <canvas class="ax-fig rb-fig"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer, and order from the approved bar schedule.</p>
+    <div class="ax-row rb-row"><button type="button" class="btn secondary small rb-csv">Download cut list (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Mass per metre</h2>
+    <div class="ax-scroll"><table class="rb-mtab"></table></div>
+    <p class="ax-help">Mass = 7850 kg/m³ × π d² / 4, about d² / 162 kg/m with d in mm. Real bars are rolled to tolerances, so weighed mass can differ by a few per cent.</p>
+  </div>
+</div>
+
+<script>
+  import { massPerM, area, meshDirection, stockBars, type DirResult } from '../../lib/sci/eng-rebar';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.rbc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLTableElement, head: string[], rows: string[][]) => {
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (i) e.className = 'r'; r.append(e); }); return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.replaceChildren(h, b);
+  };
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  let lastType = 'slab';
+
+  function run() {
+    const err = q('.rb-err'), out = q('.rb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const type = sel('.rb-type');
+    if (type !== lastType) { q<HTMLSelectElement>('.rb-lay').value = type === 'footing' ? '1' : '2'; lastType = type; }
+    const wall = type === 'wall';
+    q('.rb-wl').textContent = wall ? 'Height (m)' : 'Width (m)';
+    q('.rb-ll').textContent = wall ? 'Faces (one or both)' : 'Layers (bottom and top mats)';
+    q('.rb-al').textContent = wall ? 'Horizontal bars (along the length): size (mm)' : 'Bars along the length: size (mm)';
+    q('.rb-bl').textContent = wall ? 'Vertical bars (up the height): size (mm)' : 'Bars along the width: size (mm)';
+    const L = val('.rb-L') * 1000, W = val('.rb-W') * 1000, c = val('.rb-c'), layers = +sel('.rb-lay'), n = val('.rb-n');
+    const da = +sel('.rb-da'), sa = val('.rb-sa'), ha = val('.rb-ha'), db = +sel('.rb-db'), sb = val('.rb-sb'), hb = val('.rb-hb');
+    const stock = val('.rb-stock') * 1000, lap = val('.rb-lap'), waste = val('.rb-waste');
+    if (!(L > 0) || !(W > 0)) return fail(`Give the length and ${wall ? 'height' : 'width'} in metres.`);
+    if (!(c >= 0) || 2 * c >= Math.min(L, W)) return fail('Give a cover that leaves room for the bars (0 or more, less than half the size).');
+    if (!(n >= 1 && Number.isInteger(n))) return fail('Give how many identical elements (a whole number, 1 or more).');
+    if (!(sa > 0) || !(sb > 0)) return fail('Give both bar spacings in mm.');
+    if (sa < da || sb < db) return fail('A spacing is smaller than the bar itself.');
+    if (!(ha >= 0) || !(hb >= 0)) return fail('Give the extra length per end (0 if straight).');
+    if (!(stock > 0)) return fail('Give the stock bar length in metres.');
+    if (!(lap >= 0)) return fail('Give the lap length in mm (0 if no laps).');
+    if (!(waste >= 0 && waste < 50)) return fail('Give a waste allowance between 0 and 50 %.');
+    const A = meshDirection({ d: da, spacing: sa, along: L, across: W, cover: c, hook: ha }, stock, lap, layers, n);
+    const B = meshDirection({ d: db, spacing: sb, along: W, across: L, cover: c, hook: hb }, stock, lap, layers, n);
+    if (!A.pieces.length || !B.pieces.length) return fail('The lap is as long as the stock bar, so long bars cannot be joined. Shorten the lap or use longer stock bars.');
+    err.hidden = true; out.hidden = false;
+    const wf = 1 + waste / 100, mass = (A.mass + B.mass) * wf, len = (A.total + B.total) * wf;
+    const stockA = stockBars(Array(A.count).fill(0).flatMap(() => A.pieces), stock), stockB = stockBars(Array(B.count).fill(0).flatMap(() => B.pieces), stock);
+    q('.rb-big').textContent = `${sg(mass, 4)} kg of steel, ${sg(len, 4)} m of bar`;
+    const dirName = wall ? ['Horizontal', 'Vertical'] : ['Along length', 'Along width'];
+    const df = (nm: string, d: number, s: number, r: DirResult, st: { bars: number }) => fact(`${nm}: ${d} mm at ${sg(s)} mm`, `${r.count} bars, ${sg(r.mass * wf, 4)} kg`, `${sg(r.length / 1000, 4)} m each${r.laps ? ` with ${r.laps} lap${r.laps > 1 ? 's' : ''}` : ''}; ${st.bars} stock bars of ${sg(stock / 1000)} m`);
+    const facts = [
+      df(dirName[0], da, sa, A, stockA), df(dirName[1], db, sb, B, stockB),
+      fact('Stock bars to order', `${stockA.bars + stockB.bars}`, `cut by first fit; offcuts ${sg((stockA.waste + stockB.waste) / 1000, 4)} m`),
+      fact(`Steel per m² of ${wall ? 'wall' : type}`, `${sg(mass / (n * L * W / 1e6), 3)} kg/m²`, `${sg((A.mass + B.mass) * wf / (n * L * W / 1e6) / layers, 3)} kg/m² per ${wall ? 'face' : 'layer'}`),
+      fact('Steel area', `${sg(area(da) * 1000 / sa, 4)} / ${sg(area(db) * 1000 / sb, 4)} mm²/m`, `per ${wall ? 'face' : 'layer'}, each direction (A = π d²/4 × 1000 / spacing)`),
+    ];
+    if (waste) facts.push(fact('Waste allowance', `${sg(waste)} %`, 'added to the totals'));
+    q('.rb-facts').replaceChildren(...facts);
+    // Cut list: one line per piece length per direction.
+    const rows: string[][] = []; csvRows = [['mark', 'bar_mm', 'direction', 'piece_length_mm', 'number', 'total_m', 'mass_kg']];
+    ([[1, da, dirName[0], A], [2, db, dirName[1], B]] as [number, number, string, DirResult][]).forEach(([mk, d, nm, r]) => {
+      const groups = new Map<number, number>(); r.pieces.forEach((p) => groups.set(p, (groups.get(p) ?? 0) + r.count));
+      [...groups].forEach(([p, cnt], i) => {
+        const mark = `${mk}${groups.size > 1 ? String.fromCharCode(97 + i) : ''}`, tm = (p * cnt) / 1000;
+        rows.push([mark, `${d}`, nm, `${Math.round(p)}`, `${cnt}`, sg(tm, 4), sg(tm * massPerM(d), 4)]);
+        csvRows.push([mark, d, nm, Math.round(p), cnt, +tm.toFixed(3), +(tm * massPerM(d)).toFixed(3)]);
+      });
+    });
+    const head = ['Mark', 'Ø mm', 'Direction', 'Length mm', 'No.', 'Total m', 'kg'];
+    table(q<HTMLTableElement>('.rb-tab'), head, rows);
+    // Plan drawing.
+    fig = { w: 380, h: 260, alt: `Plan of the ${type} ${sg(L / 1000)} × ${sg(W / 1000)} m with ${A.count / layers / n} by ${B.count / layers / n} bars`, draw: (ctx, Wc, Hc, pal) => {
+      const m = 34, sc = Math.min((Wc - 2 * m) / L, (Hc - 2 * m) / W), w = L * sc, h = W * sc, x0 = (Wc - w) / 2, y0 = (Hc - h) / 2;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, w, h);
+      const nA = A.count / layers / n, nB = B.count / layers / n;
+      ctx.lineWidth = 1; ctx.strokeStyle = pal.accent;
+      for (let i = 0; i < nA; i++) { const y = y0 + (c + Math.min(i * sa, W - 2 * c)) * sc; ctx.beginPath(); ctx.moveTo(x0 + c * sc, y); ctx.lineTo(x0 + w - c * sc, y); ctx.stroke(); }
+      ctx.strokeStyle = pal.red ? pal.muted : pal.accent2;
+      for (let i = 0; i < nB; i++) { const x = x0 + (c + Math.min(i * sb, L - 2 * c)) * sc; ctx.beginPath(); ctx.moveTo(x, y0 + c * sc); ctx.lineTo(x, y0 + h - c * sc); ctx.stroke(); }
+      ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${sg(L / 1000)} m · ${nA} × ${da} mm at ${sg(sa)}`, Wc / 2, y0 - 6);
+      ctx.save(); ctx.translate(x0 - 8, Hc / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(`${sg(W / 1000)} m · ${nB} × ${db} mm at ${sg(sb)}`, 0, 0); ctx.restore();
+      ctx.textBaseline = 'top'; ctx.fillStyle = pal.muted; ctx.fillText(`one ${wall ? 'face' : 'layer'} shown`, Wc / 2, y0 + h + 6);
+    } };
+    paint(q<HTMLCanvasElement>('.rb-fig'), fig);
+    report = [
+      { title: q('.rb-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Cut list', table: { head, rows, align: ['l', 'r', 'l', 'r', 'r', 'r', 'r'] }, note: 'Example inputs are made up. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.' },
+    ];
+  }
+  table(q<HTMLTableElement>('.rb-mtab'), ['Bar Ø mm', 'Area mm²', 'kg/m', 'kg per 12 m'], [6, 8, 10, 12, 16, 20, 25, 28, 32, 36, 40].map((d) => [`${d}`, sg(area(d), 4), massPerM(d).toFixed(3), sg(massPerM(d) * 12, 4)]));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.rb-out').hidden) paint(q<HTMLCanvasElement>('.rb-fig'), fig); });
+  q('.rb-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'rebar-cut-list.csv', 'text/csv'); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Rebar quantities', subtitle: q('.rb-big').textContent ?? '', file: 'rebar-quantities', sections: report }));
+</script>
+
+<style is:global>
+  .rbc .rb-row { margin-top: 10px; }
+  .rbc .rb-tab, .rbc .rb-mtab { margin: 8px 0 12px; }
+  .rbc .rb-h3 { font-size: 15px; margin: 16px 0 0; }
+  .rbc .rb-tab th { white-space: normal; }
+  .rbc .rb-tab th, .rbc .rb-tab td { padding: 7px 4px; }
+</style>

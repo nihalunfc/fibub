@@ -1,0 +1,247 @@
+---
+// Confusion matrix and classification metrics: from four counts, a pasted matrix, or columns of actual and predicted
+// classes. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cfm">
+  <div class="ax-card">
+    <h2>Your results</h2>
+    <label>Start from <select class="cfm-mode">
+      <option value="binary">Four counts (two classes)</option>
+      <option value="matrix">A matrix of counts (any number of classes)</option>
+      <option value="pairs">Columns of actual and predicted classes</option>
+    </select></label>
+    <div class="cfm-binary" style="margin-top:10px">
+      <div class="ax-grid">
+        <label>Positive class name <input class="cfm-pn" value="Disease" /></label>
+        <label>Negative class name <input class="cfm-nn" value="Healthy" /></label>
+        <label>True positives (TP) <input class="cfm-tp" inputmode="numeric" value="42" /></label>
+        <label>False negatives (FN) <input class="cfm-fn" inputmode="numeric" value="8" /></label>
+        <label>False positives (FP) <input class="cfm-fp" inputmode="numeric" value="6" /></label>
+        <label>True negatives (TN) <input class="cfm-tn" inputmode="numeric" value="44" /></label>
+      </div>
+      <p class="ax-help">TP: positive and predicted positive. FN: positive but predicted negative (missed). FP: negative but predicted positive (false alarm). TN: negative and predicted negative.</p>
+    </div>
+    <div class="cfm-matrix" hidden style="margin-top:10px">
+      <label>Matrix: one row per <b>actual</b> class, one column per <b>predicted</b> class; class names in the first row and column are optional
+        <textarea class="cfm-mx" rows="5" spellcheck="false"></textarea>
+      </label>
+    </div>
+    <div class="cfm-pairs" hidden style="margin-top:10px">
+      <label>Table with a column of actual classes and a column of predicted classes (first row = names)
+        <textarea class="cfm-pt" rows="7" spellcheck="false"></textarea>
+      </label>
+      <DataFile target=".cfm-pt" maxMB={10} maxCols={40} maxRows={200000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Actual class <select class="cfm-ca"></select></label>
+        <label>Predicted class <select class="cfm-cp"></select></label>
+      </div>
+    </div>
+    <p class="ax-help">The examples are made up.</p>
+    <p class="ax-err cfm-err" hidden></p>
+  </div>
+
+  <div class="cfm-out ax" style="margin:0">
+    <div class="ax-card">
+      <h2>Overall</h2>
+      <p class="ax-big cfm-big"></p>
+      <dl class="ax-facts cfm-facts"></dl>
+      <p class="ax-help cfm-note"></p>
+    </div>
+    <div class="ax-card">
+      <h2>Confusion matrix</h2>
+      <canvas class="ax-fig cfm-fig"></canvas>
+      <p class="ax-help">Rows: actual class. Columns: predicted class. Each cell shows the count and its share of the row; the diagonal holds the correct predictions.</p>
+    </div>
+    <div class="ax-card cfm-bin-card">
+      <h2>Two-class measures</h2>
+      <label class="cfm-pos-w">Positive class <select class="cfm-pos"></select></label>
+      <div class="ax-scroll" style="margin-top:10px"><table class="cfm-bin"></table></div>
+    </div>
+    <div class="ax-card">
+      <h2>Per class</h2>
+      <div class="ax-scroll"><table class="cfm-cls"></table></div>
+      <h3 class="cfm-h3">Averages</h3>
+      <div class="ax-scroll"><table class="cfm-avg"></table></div>
+      <p class="ax-help">Macro: every class counts the same. Weighted: classes count by their number of actual cases. Micro: pools every prediction (equal to accuracy when every class is included). A class never predicted gets precision 0, as scikit-learn does.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cfm-csv">Download metrics (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .cfm .cfm-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .cfm .cfm-cls td, .cfm .cfm-avg td, .cfm .cfm-bin td.r { white-space: nowrap; }
+  .cfm .cfm-bin td:first-child { min-width: 110px; }
+  .cfm .cfm-bin th { white-space: normal; }
+  .cfm .cfm-bin td, .cfm .cfm-bin th { padding-left: 5px; padding-right: 5px; }
+</style>
+
+<script>
+  import { parseCsv } from '../../lib/convert/table';
+  import { readTable, toCsvText, isMissing } from '../../lib/sci/dataset';
+  import { metrics, fromPairs, binary, parseMatrix, EXAMPLE_MATRIX, EXAMPLE_PAIRS, type Metrics } from '../../lib/sci/confusion';
+  import { num } from '../../lib/sci/num';
+  import { canvasPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cfm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const mode = q<HTMLSelectElement>('.cfm-mode');
+  q<HTMLTextAreaElement>('.cfm-mx').value = EXAMPLE_MATRIX;
+  q<HTMLTextAreaElement>('.cfm-pt').value = EXAMPLE_PAIRS;
+  const MAX_CLASSES = 40;
+  let M: Metrics | null = null, fig: Figure | null = null, sections: Section[] = [], binRows: string[][] = [];
+  const p1 = (x: number) => (Number.isFinite(x) ? `${(100 * x).toFixed(1)} %` : '–');
+  const ci = (c: [number, number]) => (Number.isFinite(c[0]) ? `${(100 * c[0]).toFixed(1)} to ${(100 * c[1]).toFixed(1)} %` : '–');
+  const ciS = (c: [number, number]) => (Number.isFinite(c[0]) ? `${(100 * c[0]).toFixed(1)}–${(100 * c[1]).toFixed(1)} %` : '–');
+  const ciD = (c: [number, number]) => (Number.isFinite(c[0]) ? `${c[0].toFixed(3)} to ${c[1].toFixed(3)}` : '–');
+  const d3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace('-', '−') : x === Infinity ? '∞' : '–');
+
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = ''): HTMLElementTagNameMap[K] { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+  function fillTable(t: HTMLTableElement, head: string[], rows: string[][], right: boolean[]) {
+    const tr = el('tr'); head.forEach((h, j) => tr.append(el('th', h, right[j] ? 'r' : '')));
+    const tb = el('tbody'); for (const r of rows) { const row = el('tr'); r.forEach((c, j) => row.append(el('td', c, right[j] ? 'r' : ''))); tb.append(row); }
+    const th = el('thead'); th.append(tr); t.replaceChildren(th, tb);
+  }
+  const count = (c: string, name: string) => { const v = num(q<HTMLInputElement>(c).value); if (!(Number.isInteger(v) && v >= 0)) throw new Error(`${name} must be a whole number, 0 or more.`); return v; };
+
+  /** Columns of the pasted table for the two drop-downs, keeping the user's choice when the names stay. */
+  function columnChoices(head: string[]) {
+    for (const [c, def] of [['.cfm-ca', 0], ['.cfm-cp', 1]] as const) {
+      const s = q<HTMLSelectElement>(c), old = s.value;
+      if ([...s.options].map((o) => o.value).join('\u0000') === head.join('\u0000')) continue;
+      s.replaceChildren(...head.map((h) => { const o = el('option', h); o.value = h; return o; }));
+      const guess = head.findIndex((h) => (def === 0 ? /actual|true|truth|label|observed|y_true/i : /pred|y_pred|guess|model/i).test(h));
+      s.value = head.includes(old) ? old : head[guess >= 0 ? guess : Math.min(def, head.length - 1)];
+    }
+  }
+
+  function matrixFigure(m: Metrics): Figure {
+    const k = m.labels.length, names = m.labels.map((s) => (s.length > 12 ? s.slice(0, 11) + '…' : s));
+    const left = 110, top = 70, cell = Math.max(26, Math.min(96, Math.floor(520 / k)));
+    const w = Math.max(360, left + k * cell + 12), h = top + k * cell + 12;
+    const rowS = m.m.map((r) => r.reduce((s, x) => s + x, 0));
+    return {
+      w, h, alt: `Confusion matrix of ${k} classes, ${m.n} cases, accuracy ${p1(m.accuracy)}`,
+      draw: (ctx, _W, _H, pal: Palette) => {
+        const P = canvasPainter(ctx);
+        P.text(left + (k * cell) / 2, 4, 'Predicted', 13, pal.muted, 'middle', 'top', 0, true);
+        P.text(12, top + (k * cell) / 2, 'Actual', 13, pal.muted, 'middle', 'top', -90, true);
+        for (let i = 0; i < k; i++) {
+          P.text(left - 6, top + i * cell + cell / 2, names[i], 12, pal.ink, 'end', 'middle');
+          P.text(left + i * cell + cell / 2, top - 6, names[i], 12, pal.ink, k > 6 ? 'start' : 'middle', k > 6 ? 'middle' : 'bottom', k > 6 ? -55 : 0);
+          for (let j = 0; j < k; j++) {
+            const v = m.m[i][j], share = rowS[i] ? v / rowS[i] : 0, x = left + j * cell, y = top + i * cell;
+            const base = pal.red ? [160, 0, 0] : i === j ? (pal.bg === '#ffffff' ? [0, 114, 178] : [86, 180, 233]) : (pal.bg === '#ffffff' ? [213, 94, 0] : [240, 160, 80]);
+            const bg = pal.bg === '#ffffff' ? [255, 255, 255] : [10, 10, 10];
+            const col = `rgb(${base.map((b, t) => Math.round(bg[t] + (b - bg[t]) * Math.min(1, share) * 0.8)).join(',')})`;
+            P.poly([[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell]], col, pal.bg, 1.5);
+            const strong = share > 0.55 && !pal.red;
+            const ink = strong ? (pal.bg === '#ffffff' ? '#ffffff' : '#000000') : pal.ink;
+            if (cell >= 40) { P.text(x + cell / 2, y + cell / 2 - 7, String(v), cell >= 60 ? 15 : 12, ink, 'middle', 'middle', 0, true); P.text(x + cell / 2, y + cell / 2 + 10, rowS[i] ? `${Math.round(100 * share)} %` : '', 11, ink, 'middle', 'middle'); }
+            else P.text(x + cell / 2, y + cell / 2, String(v), 10, ink, 'middle', 'middle');
+          }
+        }
+      },
+    };
+  }
+
+  function calc() {
+    const md = mode.value, err = q('.cfm-err');
+    q('.cfm-binary').hidden = md !== 'binary'; q('.cfm-matrix').hidden = md !== 'matrix'; q('.cfm-pairs').hidden = md !== 'pairs';
+    try {
+      let labels: string[], m: number[][], note = '';
+      if (md === 'binary') {
+        const pn = q<HTMLInputElement>('.cfm-pn').value.trim() || 'Positive', nn = q<HTMLInputElement>('.cfm-nn').value.trim() || 'Negative';
+        if (pn === nn) throw new Error('Give the two classes different names.');
+        labels = [pn, nn]; m = [[count('.cfm-tp', 'TP'), count('.cfm-fn', 'FN')], [count('.cfm-fp', 'FP'), count('.cfm-tn', 'TN')]];
+      } else if (md === 'matrix') {
+        ({ labels, m } = parseMatrix(parseCsv(q<HTMLTextAreaElement>('.cfm-mx').value.trim())));
+      } else {
+        const t = readTable(q<HTMLTextAreaElement>('.cfm-pt').value);
+        if (t.head.length < 2 || !t.rows.length) throw new Error('Paste a table with at least two columns (actual and predicted) and a row of names.');
+        columnChoices(t.head);
+        const a = t.head.indexOf(q<HTMLSelectElement>('.cfm-ca').value), b = t.head.indexOf(q<HTMLSelectElement>('.cfm-cp').value);
+        if (a === b) throw new Error('Choose two different columns for actual and predicted.');
+        const keep = t.rows.filter((r) => !isMissing(r[a]) && !isMissing(r[b]));
+        const dropped = t.rows.length - keep.length;
+        if (!keep.length) throw new Error('No row has both an actual and a predicted class.');
+        ({ labels, m } = fromPairs(keep.map((r) => r[a].trim()), keep.map((r) => r[b].trim())));
+        note = `${keep.length.toLocaleString('en')} rows used${dropped ? `; ${dropped} with a missing class left out` : ''}.`;
+        const onlyPred = labels.filter((_, i) => m[i].every((v) => v === 0));
+        if (onlyPred.length) note += ` ${onlyPred.join(', ')} ${onlyPred.length === 1 ? 'appears' : 'appear'} only among the predictions.`;
+      }
+      if (labels.length > MAX_CLASSES) throw new Error(`There are ${labels.length} classes; this tool shows up to ${MAX_CLASSES}. Check that you chose the class columns, not a number column.`);
+      M = metrics(labels, m);
+      err.hidden = true; q('.cfm-out').hidden = false;
+      show(note);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cfm-out').hidden = true; M = null; sections = []; }
+  }
+
+  function show(note: string) {
+    const R = M!;
+    q('.cfm-big').textContent = `Accuracy ${p1(R.accuracy)} (95 % CI ${ci(R.accuracyCI)})`;
+    const facts: [string, string][] = [['Cases', R.n.toLocaleString('en')], ['Classes', String(R.labels.length)], ['Balanced accuracy', p1(R.balancedAccuracy)], ["Cohen's kappa", `${d3(R.kappa)} (95 % CI ${d3(R.kappaCI[0])} to ${d3(R.kappaCI[1])})`], ['Matthews correlation (MCC)', d3(R.mcc)], ['Macro F1', d3(R.macro.f1)], ['Weighted F1', d3(R.weighted.f1)], ['Micro F1', d3(R.micro.f1)]];
+    q('.cfm-facts').replaceChildren(...facts.map(([k, v]) => { const d = el('div'); d.append(el('dt', k), el('dd', v)); return d; }));
+    q('.cfm-note').textContent = `${note ? note + ' ' : ''}Kappa and MCC run from −1 to 1: 0 is no better than chance, 1 is perfect. Balanced accuracy is the mean recall of the classes, so a large class cannot hide a weak one.`;
+    fig = matrixFigure(R); paint(q<HTMLCanvasElement>('.cfm-fig'), fig);
+    const clsRows = R.classes.map((c) => [c.label, String(c.support), String(c.predicted), `${d3(c.precision)} (${ciD(c.precisionCI)})`, `${d3(c.recall)} (${ciD(c.recallCI)})`, d3(c.f1), `${d3(c.specificity)} (${ciD(c.specificityCI)})`]);
+    fillTable(q<HTMLTableElement>('.cfm-cls'), ['Class', 'Actual', 'Predicted', 'Precision (95 % CI)', 'Recall (95 % CI)', 'F1', 'Specificity (95 % CI)'], clsRows, [false, true, true, true, true, true, true]);
+    const avgRows = (['macro', 'weighted', 'micro'] as const).map((k) => [k[0].toUpperCase() + k.slice(1), d3(R[k].precision), d3(R[k].recall), d3(R[k].f1)]);
+    fillTable(q<HTMLTableElement>('.cfm-avg'), ['Average', 'Precision', 'Recall', 'F1'], avgRows, [false, true, true, true]);
+    // Two classes: the clinical-style measures for the chosen positive class.
+    const two = R.labels.length === 2;
+    q('.cfm-bin-card').hidden = !two; binRows = [];
+    if (two) {
+      const s = q<HTMLSelectElement>('.cfm-pos'), old = s.value;
+      if ([...s.options].map((o) => o.value).join('\u0000') !== R.labels.join('\u0000')) { s.replaceChildren(...R.labels.map((l) => { const o = el('option', l); o.value = l; return o; })); s.value = R.labels.includes(old) ? old : R.labels[mode.value === 'binary' ? 0 : guessPositive(R.labels)]; }
+      q('.cfm-pos-w').hidden = mode.value === 'binary';
+      const pi = R.labels.indexOf(s.value), ni = 1 - pi;
+      const tp = R.m[pi][pi], fn = R.m[pi][ni], fp = R.m[ni][pi], tn = R.m[ni][ni], b = binary(tp, fn, fp, tn);
+      binRows = [
+        [`Counts: TP, FN, FP, TN (positive: ${s.value})`, `${tp}, ${fn}, ${fp}, ${tn}`, ''],
+        ['Sensitivity (recall, true positive rate)', p1(b.sensitivity), ciS(b.sensitivityCI)],
+        ['Specificity (true negative rate)', p1(b.specificity), ciS(b.specificityCI)],
+        ['Precision (positive predictive value)', p1(b.ppv), ciS(b.ppvCI)],
+        ['Negative predictive value', p1(b.npv), ciS(b.npvCI)],
+        ['False positive rate', p1(b.fpr), ''], ['False negative rate (miss rate)', p1(b.fnr), ''],
+        ['Prevalence in this data', p1(b.prevalence), ''],
+        ['F1 (positive class)', d3(b.f1), ''], ["Youden's J", d3(b.youden), ''],
+        ['Positive likelihood ratio', d3(b.lrPlus), ''], ['Negative likelihood ratio', d3(b.lrMinus), ''],
+      ];
+      fillTable(q<HTMLTableElement>('.cfm-bin'), ['Measure', 'Value', '95 % CI (Wilson)'], binRows, [false, true, true]);
+    }
+    sections = [
+      { title: 'Overall', facts: [['Accuracy', `${p1(R.accuracy)} (95 % CI ${ci(R.accuracyCI)})`], ...facts], figure: fig, note: q('.cfm-note').textContent ?? '' },
+      ...(two ? [{ title: 'Two-class measures', table: { head: ['Measure', 'Value', '95 % CI'], rows: binRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      { title: 'Per class', table: { head: ['Class', 'Actual', 'Predicted', 'Precision (95 % CI)', 'Recall (95 % CI)', 'F1', 'Specificity (95 % CI)'], rows: clsRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Averages', table: { head: ['Average', 'Precision', 'Recall', 'F1'], rows: avgRows, align: ['l', 'r', 'r', 'r'] } },
+    ];
+  }
+  /** Pick the likely "positive" label of two: 1, yes, true, positive, spam, disease... otherwise the second. */
+  function guessPositive(ls: string[]) {
+    const i = ls.findIndex((l) => /^(1|yes|y|true|t|pos|positive|spam|disease|case|fraud|default|churn)$/i.test(l));
+    return i >= 0 ? i : 1;
+  }
+
+  q('.cfm-csv').addEventListener('click', () => {
+    if (!M) return;
+    const rows: (string | number)[][] = M.classes.map((c) => [c.label, c.support, c.predicted, c.tp, c.fp, c.fn, c.tn, c.precision, c.recall, c.f1, c.specificity, c.precisionCI[0], c.precisionCI[1], c.recallCI[0], c.recallCI[1]].map((v) => (typeof v === 'number' && !Number.isInteger(v) ? +v.toPrecision(8) : v)));
+    for (const k of ['macro', 'weighted', 'micro'] as const) rows.push([`${k} average`, M.n, '', '', '', '', '', +M[k].precision.toPrecision(8), +M[k].recall.toPrecision(8), +M[k].f1.toPrecision(8), '', '', '', '', '']);
+    const head = ['class', 'actual', 'predicted', 'tp', 'fp', 'fn', 'tn', 'precision', 'recall', 'f1', 'specificity', 'precision_ci_low', 'precision_ci_high', 'recall_ci_low', 'recall_ci_high'];
+    const mx = [[], ['confusion matrix (rows actual, columns predicted)'], ['', ...M.labels], ...M.labels.map((l, i) => [l, ...M!.m[i]])];
+    save(new Blob([toCsvText(head, rows) + toCsvText(['accuracy', 'accuracy_ci_low', 'accuracy_ci_high', 'balanced_accuracy', 'kappa', 'kappa_se', 'kappa_ci_low', 'kappa_ci_high', 'mcc'], [[M.accuracy, M.accuracyCI[0], M.accuracyCI[1], M.balancedAccuracy, M.kappa, M.kappaSE, M.kappaCI[0], M.kappaCI[1], M.mcc].map((v) => +v.toPrecision(8))]) + mx.map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'classification-metrics.csv', 'text/csv');
+  });
+  mode.addEventListener('change', calc);
+  q('.cfm-pos').addEventListener('change', (e) => { e.stopPropagation(); calc(); });
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('select')) return; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('.cfm-ca, .cfm-cp')) calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.cfm-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Classification metrics', subtitle: q('.cfm-big').textContent ?? '', file: 'classification-metrics', sections }));
+</script>

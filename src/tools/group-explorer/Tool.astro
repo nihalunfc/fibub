@@ -1,0 +1,231 @@
+---
+// Group theory explorer: Cayley tables, element orders, subgroups, normal subgroups, centre, cosets and quotients of small groups.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gex">
+  <div class="ax-card">
+    <h2>Group</h2>
+    <div class="ax-grid">
+      <label>Group <select class="gex-k">
+        <option value="Z">Cyclic Z_n</option>
+        <option value="D" selected>Dihedral D_n (order 2n)</option>
+        <option value="S3">Symmetric S3</option>
+        <option value="S4">Symmetric S4</option>
+        <option value="A4">Alternating A4</option>
+        <option value="A5">Alternating A5</option>
+        <option value="V">Klein four-group V4</option>
+        <option value="Q">Quaternion Q8</option>
+        <option value="U">Units mod n, Z_n^×</option>
+      </select></label>
+      <label class="gex-nl">n <input class="gex-n" inputmode="numeric" value="4" /></label>
+    </div>
+    <p class="ax-help gex-note"></p>
+    <p class="ax-err gex-err" hidden></p>
+  </div>
+
+  <div class="gex-out ax">
+    <div class="ax-card">
+      <h2 class="gex-h">Summary</h2>
+      <p class="ax-big gex-big"></p>
+      <dl class="ax-facts gex-facts"></dl>
+      <Downloads />
+    </div>
+
+    <div class="ax-card">
+      <h2>Cayley table</h2>
+      <p class="ax-help" style="margin:0 0 8px">Row × column. Each element has its own colour, so patterns show at a glance: a cyclic group gives diagonal stripes, and blocks show subgroups and cosets.</p>
+      <canvas class="ax-fig gex-cay"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gex-csv">Cayley table as CSV</button></div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Elements</h2>
+      <div class="ax-scroll gex-elw"><table class="gex-el"></table></div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Subgroups</h2>
+      <p class="ax-help gex-subn" style="margin:0 0 8px"></p>
+      <canvas class="ax-fig gex-lat"></canvas>
+      <div class="ax-legend"><span><i class="gex-kn"></i>Normal subgroup</span><span><i class="gex-ko"></i>Not normal</span><span><i class="gex-ks"></i>Chosen below</span></div>
+      <div class="ax-scroll gex-subw" style="margin-top:10px"><table class="gex-sub"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gex-scsv">Subgroups as CSV</button></div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Cosets and quotient</h2>
+      <label>Subgroup H <select class="gex-h-sel"></select></label>
+      <dl class="ax-facts gex-cf" style="margin-top:10px"></dl>
+      <div class="gex-cos"></div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .gex .gex-big { font-size: clamp(20px, 4.4vw, 28px); }
+  .gex .gex-facts dd, .gex .gex-cf dd { font-size: 16px; }
+  .gex table td.lab { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  .gex .gex-cos h3 { font-size: 15px; margin: 14px 0 6px; }
+  .gex .gex-cos ol { margin: 0; padding-left: 22px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .gex .gex-kn { background: var(--accent); }
+  .gex .gex-ko { background: var(--bg); border: 1.5px solid var(--muted); box-sizing: border-box; }
+  .gex .gex-ks { background: transparent; border: 3px solid #c26a00; box-sizing: border-box; }
+  .gex .gex-out { margin: 0; }
+</style>
+
+<script>
+  import * as G from '../../lib/sci/groups';
+  import { paint, save, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gex')!;
+  const q = <E extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as E;
+  let g: G.Group | null = null, subs: G.Subgroup[] = [], normal: boolean[] = [], chosen = 0, cay: Figure | null = null, lat: Figure | null = null, report: Section[] = [];
+  const set = (s: Iterable<number>) => `{${[...s].map((x) => g!.labels[x]).join(', ')}}`;
+  const short = (els: number[], max = 12) => (els.length > max ? `{${els.slice(0, max).map((x) => g!.labels[x]).join(', ')}, … (${els.length})}` : set(els));
+  const facts = (el: HTMLElement, fs: [string, string][]) => el.replaceChildren(...fs.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+  function table(el: HTMLTableElement, head: string[], rows: string[][], right: number[] = [], mono: number[] = []) {
+    el.replaceChildren();
+    const hr = el.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const tb = el.createTBody();
+    for (const r of rows) { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = right.includes(i) ? 'r' : mono.includes(i) ? 'lab' : ''; }); }
+  }
+  const colour = (i: number, n: number, pal: Palette) => (pal.red ? `rgba(163,0,0,${0.15 + 0.85 * (i / Math.max(1, n - 1))})` : `hsl(${Math.round((360 * i) / n)} ${pal.bg === '#ffffff' ? 62 : 45}% ${pal.bg === '#ffffff' ? (i % 2 ? 78 : 66) : (i % 2 ? 30 : 40)}%)`);
+
+  function cayleyFigure(gr: G.Group): Figure {
+    const n = gr.mul.length, labels = n <= 24, inCell = n <= 12;
+    const head = labels ? Math.min(64, 10 + 7 * Math.max(...gr.labels.map((l) => l.length))) : 0;
+    const W = 640, cell = (W - head) / n, H = Math.round(head + cell * n);
+    return {
+      w: W, h: H, alt: `Cayley table of ${gr.name}, ${n} by ${n}`,
+      draw(ctx, w, h, pal) {
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const fs = Math.max(8, Math.min(15, cell * 0.38));
+        for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+          const v = gr.mul[a][b];
+          ctx.fillStyle = colour(v, n, pal); ctx.fillRect(head + b * cell, head + a * cell, cell + 0.5, cell + 0.5);
+          if (inCell) { ctx.fillStyle = pal.red ? '#000' : pal.bg === '#ffffff' ? '#0a0a0a' : '#f5f5f5'; ctx.font = `${fs}px system-ui, sans-serif`; ctx.fillText(gr.labels[v], head + (b + 0.5) * cell, head + (a + 0.5) * cell); }
+        }
+        if (labels) {
+          ctx.fillStyle = pal.ink; ctx.font = `600 ${Math.max(8, Math.min(13, cell * 0.5))}px system-ui, sans-serif`;
+          for (let i = 0; i < n; i++) { ctx.fillText(gr.labels[i], head + (i + 0.5) * cell, head / 2); ctx.fillText(gr.labels[i], head / 2, head + (i + 0.5) * cell); }
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(head, head, cell * n, cell * n);
+        }
+        if (n <= 40) { ctx.strokeStyle = pal.bg; ctx.lineWidth = 1; for (let i = 1; i < n; i++) { ctx.beginPath(); ctx.moveTo(head + i * cell, head); ctx.lineTo(head + i * cell, h); ctx.moveTo(head, head + i * cell); ctx.lineTo(w, head + i * cell); ctx.stroke(); } }
+      },
+    };
+  }
+
+  function latticeFigure(): Figure {
+    const orders = [...new Set(subs.map((s) => s.els.length))].sort((a, b) => a - b);
+    const edges = G.hasse(subs), W = 640, rowH = 64, H = 40 + rowH * (orders.length - 1) + 40;
+    const pos = subs.map((s) => {
+      const lev = orders.indexOf(s.els.length), same = subs.filter((t) => t.els.length === s.els.length), i = same.indexOf(s);
+      return [((i + 0.5) / same.length) * (W - 40) + 20, H - 40 - lev * rowH] as [number, number];
+    });
+    const r = Math.max(4, Math.min(12, (W - 40) / Math.max(...orders.map((o) => subs.filter((s) => s.els.length === o).length)) / 2.6));
+    return {
+      w: W, h: H, alt: `Subgroup lattice of ${g!.name}: ${subs.length} subgroups`,
+      draw(ctx, _w, _h, pal) {
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+        for (const [a, b] of edges) { ctx.beginPath(); ctx.moveTo(...pos[a]); ctx.lineTo(...pos[b]); ctx.stroke(); }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+        subs.forEach((s, i) => {
+          const [x, y] = pos[i];
+          ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI);
+          ctx.fillStyle = normal[i] ? pal.accent : pal.bg; ctx.fill();
+          ctx.strokeStyle = normal[i] ? pal.accent : pal.muted; ctx.lineWidth = 1.5; ctx.stroke();
+          if (i === chosen) { ctx.beginPath(); ctx.arc(x, y, r + 4, 0, 2 * Math.PI); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 3; ctx.stroke(); }
+        });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left';
+        orders.forEach((o, lev) => ctx.fillText(`order ${o}`, 2, H - 40 - lev * rowH - r - 9));
+      },
+    };
+  }
+
+  function cosetsPart() {
+    const H = subs[chosen].els, gr = g!, n = gr.mul.length;
+    const L = G.cosets(gr, H, 'left'), R = G.cosets(gr, H, 'right');
+    const same = JSON.stringify([...L].map(String).sort()) === JSON.stringify([...R].map(String).sort());
+    const fs: [string, string][] = [['H', short(H)], ['Order of H', String(H.length)], ['Index [G : H]', `${n / H.length} (Lagrange: ${n} = ${H.length} × ${n / H.length})`], ['Normal?', normal[chosen] ? 'Yes: every left coset is a right coset' : 'No: some left and right cosets differ']];
+    let qInfo = '';
+    if (normal[chosen]) {
+      const Q = G.quotient(gr, H), s = G.summary(Q);
+      qInfo = `G/H has order ${s.order}, ${s.cyclic ? 'cyclic' : s.abelian ? 'abelian, not cyclic' : 'not abelian'}`;
+      fs.push(['Quotient G/H', qInfo]);
+    }
+    facts(q('.gex-cf'), fs);
+    const box = q('.gex-cos'); box.replaceChildren();
+    const list = (title: string, cs: number[][], side: 'left' | 'right') => {
+      const h = document.createElement('h3'); h.textContent = title;
+      const ol = document.createElement('ol');
+      cs.slice(0, 60).forEach((c) => { const li = document.createElement('li'); li.textContent = `${side === 'left' ? gr.labels[c[0]] + 'H' : 'H' + gr.labels[c[0]]} = ${short(c, 16)}`; ol.append(li); });
+      box.append(h, ol);
+      if (cs.length > 60) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = `First 60 of ${cs.length} cosets.`; box.append(p); }
+    };
+    list(`Left cosets xH (${L.length})`, L, 'left');
+    if (!same) list(`Right cosets Hx (${R.length})`, R, 'right');
+    else { const p = document.createElement('p'); p.className = 'ax-help gex-same'; p.textContent = 'The right cosets Hx are the same sets, because H is normal.'; box.append(p); }
+    return { fs, L, R, same };
+  }
+
+  function drawLattice() { lat = latticeFigure(); paint(q<HTMLCanvasElement>('.gex-lat'), lat); }
+
+  function build() {
+    const k = q<HTMLSelectElement>('.gex-k').value, err = q('.gex-err');
+    q('.gex-nl').hidden = !['Z', 'D', 'U'].includes(k);
+    try {
+      const nv = q<HTMLInputElement>('.gex-n').value.trim(), n = /^\d+$/.test(nv) ? Number(nv) : NaN;
+      g = k === 'Z' ? G.cyclic(n) : k === 'D' ? G.dihedral(n) : k === 'U' ? G.units(n) : k === 'S3' ? G.symmetric(3) : k === 'S4' ? G.symmetric(4) : k === 'A4' ? G.alternating(4) : k === 'A5' ? G.alternating(5) : k === 'V' ? G.klein() : G.quaternion();
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.gex-out').hidden = true; report = []; return; }
+    err.hidden = true; q('.gex-out').hidden = false;
+    const gr = g, n = gr.mul.length;
+    q('.gex-note').textContent = gr.note;
+    const s = G.summary(gr);
+    subs = G.subgroups(gr); normal = subs.map((h) => G.isNormal(gr, h.els));
+    const Z = G.centre(gr), D = G.derived(gr), classes = G.conjugacyClasses(gr);
+    q('.gex-h').textContent = `${gr.name}`;
+    q('.gex-big').textContent = `${gr.name}: order ${n}, ${s.cyclic ? 'cyclic' : s.abelian ? 'abelian' : 'not abelian'}`;
+    const prof = s.profile.map(([o, c]) => `${c} of order ${o}`).join(', ');
+    const simple = n > 1 && s.normal === 2;
+    const fsum: [string, string][] = [['Order', String(n)], ['Abelian?', s.abelian ? 'Yes' : 'No'], ['Cyclic?', s.cyclic ? 'Yes' : 'No'], ['Exponent', String(s.exponent)], ['Centre Z(G)', short(Z)], ['Commutator subgroup', `order ${D.length}: ${short(D, 8)}`], ['Conjugacy classes', `${classes.length}, sizes ${classes.map((c) => c.length).join(', ')}`], ['Element orders', prof], ['Subgroups', String(subs.length)], ['Normal subgroups', `${s.normal}${simple ? ' (only 1 and G: a simple group)' : ''}`]];
+    facts(q('.gex-facts'), fsum);
+    cay = cayleyFigure(gr); paint(q<HTMLCanvasElement>('.gex-cay'), cay);
+    const clsOf = new Array(n); classes.forEach((c) => c.forEach((x) => (clsOf[x] = c.length)));
+    const inZ = new Set(Z);
+    const elRows = gr.labels.map((l, a) => [l, String(G.order(gr, a)), gr.labels[G.inverse(gr, a)], String(clsOf[a]), String(n / clsOf[a]), inZ.has(a) ? 'yes' : '']);
+    table(q<HTMLTableElement>('.gex-el'), ['Element', 'Order', 'Inverse', 'Class size', 'Centraliser', 'In centre'], elRows, [1, 3, 4], [0, 2]);
+    q('.gex-subn').textContent = `${subs.length} subgroups, ${s.normal} of them normal. In the lattice each dot is a subgroup, placed by its order, joined to the subgroups just above it that contain it. By Lagrange's theorem every order divides ${n}.`;
+    const subRows = subs.map((h, i) => [String(i + 1), String(h.els.length), String(n / h.els.length), h.gens.length ? `⟨${h.gens.map((x) => gr.labels[x]).join(', ')}⟩` : '⟨e⟩', normal[i] ? 'yes' : 'no', short(h.els, 8)]);
+    table(q<HTMLTableElement>('.gex-sub'), ['#', 'Order', 'Index', 'Generated by', 'Normal', 'Elements'], subRows, [0, 1, 2], [3, 5]);
+    const sel = q<HTMLSelectElement>('.gex-h-sel');
+    sel.replaceChildren(...subs.map((h, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `#${i + 1}: order ${h.els.length}, ${h.gens.length ? '⟨' + h.gens.map((x) => gr.labels[x]).join(', ') + '⟩' : '⟨e⟩'}${normal[i] ? ', normal' : ''}`; return o; }));
+    chosen = subs.findIndex((h, i) => !normal[i]);
+    if (chosen < 0) chosen = subs.length > 2 ? 1 : 0;
+    sel.value = String(chosen);
+    drawLattice();
+    const cs = cosetsPart();
+    report = [
+      { title: `${gr.name}: summary`, text: [gr.note], facts: fsum, figure: cay },
+      { title: 'Elements', table: { head: ['Element', 'Order', 'Inverse', 'Class size', 'Centraliser', 'In centre'], rows: elRows.slice(0, 150), align: ['l', 'r', 'l', 'r', 'r', 'l'] } },
+      { title: 'Subgroups', figure: lat!, table: { head: ['#', 'Order', 'Index', 'Generated by', 'Normal', 'Elements'], rows: subRows.slice(0, 200), align: ['r', 'r', 'r', 'l', 'l', 'l'] } },
+      { title: `Cosets of subgroup #${chosen + 1}`, facts: cs.fs, text: cs.L.slice(0, 40).map((c) => `${gr.labels[c[0]]}H = ${short(c, 16)}`) },
+    ];
+  }
+  function choose() {
+    chosen = Number(q<HTMLSelectElement>('.gex-h-sel').value);
+    drawLattice(); const cs = cosetsPart();
+    if (report.length === 4) { report[2].figure = lat!; report[3] = { title: `Cosets of subgroup #${chosen + 1}`, facts: cs.fs, text: cs.L.slice(0, 40).map((c) => `${g!.labels[c[0]]}H = ${short(c, 16)}`) }; }
+  }
+  const csv = (rows: string[][], name: string) => save(new Blob([rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'], { type: 'text/csv' }), name, 'text/csv');
+  q('.gex-csv').addEventListener('click', () => { if (g) csv([['×', ...g.labels], ...g.labels.map((l, a) => [l, ...g!.mul[a].map((v) => g!.labels[v])])], `cayley-${g.name.replace('^×', 'x')}.csv`); });
+  q('.gex-scsv').addEventListener('click', () => { if (g) csv([['#', 'order', 'index', 'generators', 'normal', 'elements'], ...subs.map((h, i) => [String(i + 1), String(h.els.length), String(g!.mul.length / h.els.length), h.gens.map((x) => g!.labels[x]).join(' '), normal[i] ? 'yes' : 'no', h.els.map((x) => g!.labels[x]).join(' ')])], `subgroups-${g.name.replace('^×', 'x')}.csv`); });
+  q('.gex-k').addEventListener('change', () => { const k = q<HTMLSelectElement>('.gex-k').value, ni = q<HTMLInputElement>('.gex-n'); if (k === 'U' && Number(ni.value) < 3) ni.value = '15'; build(); });
+  let t = 0;
+  q('.gex-n').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(build, 300); });
+  q('.gex-h-sel').addEventListener('change', choose);
+  document.addEventListener('fibub:theme', () => { if (cay) paint(q<HTMLCanvasElement>('.gex-cay'), cay); if (lat) paint(q<HTMLCanvasElement>('.gex-lat'), lat); });
+  build();
+  wireDownloads(q('.dl'), () => ({ title: 'Group theory explorer', subtitle: q('.gex-big').textContent ?? '', file: `group-${g?.name.replace('^×', 'x') ?? 'group'}`, sections: report }));
+</script>

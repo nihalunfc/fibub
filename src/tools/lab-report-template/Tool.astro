@@ -1,0 +1,272 @@
+---
+// Lab report template and marking rubric: build a report skeleton (sections with prompts, a figure and table
+// checklist) and a rubric (criteria × levels with weights), mark a report, and download either as Word, PDF or
+// Markdown. Nothing is stored or sent; a rubric can be saved as a .json file and opened again.
+import '../../styles/astro.css';
+---
+<div class="ax lrt">
+  <div class="ax-card">
+    <h2>Report</h2>
+    <div class="ax-seg lr-preset" role="group" aria-label="Kind of report"></div>
+    <p class="ax-help">Choosing a kind of report replaces the sections below with its own.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Experiment title <input class="lr-title" type="text" value="Rate of reaction and temperature" maxlength="160" /></label>
+      <label>Author or group <input class="lr-author" type="text" maxlength="160" /></label>
+      <label>Course <input class="lr-course" type="text" maxlength="160" /></label>
+      <label>Date <input class="lr-date" type="text" maxlength="40" placeholder="2026-11-09" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Sections</h2>
+    <p class="ax-help" style="margin-top:0">Untick a section to leave it out. Edit the name and the prompts (one per line); the arrows move a section.</p>
+    <div class="lr-secs"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lr-add-sec">Add a section</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Figures and tables</h2>
+    <label>Planned figures and tables, one per line <textarea class="lr-figs" rows="3">Table 1: Time for the cross to disappear at five temperatures (three repeats each)
+Figure 1: Rate (1/time) against temperature, with error bars</textarea></label>
+    <h3 class="lr-h">Checklist</h3>
+    <div class="lr-checks"></div>
+    <div class="dl lr-dl" data-doc="template">
+      <span class="dl-l">Report template</span>
+      <button type="button" class="btn secondary" data-f="docx">Word</button>
+      <button type="button" class="btn secondary" data-f="pdf">PDF</button>
+      <button type="button" class="btn secondary" data-f="md">Markdown</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Marking rubric</h2>
+    <label>Rubric title <input class="lr-rtitle" type="text" maxlength="120" /></label>
+    <h3 class="lr-h">Levels</h3>
+    <p class="ax-help" style="margin-top:0">From best to weakest. Points set each level's share of a criterion: with 4 points at the top, a level worth 3 gives 75 % of that criterion's weight.</p>
+    <div class="lr-levels"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lr-add-lv">Add a level</button></div>
+    <h3 class="lr-h">Criteria</h3>
+    <p class="ax-help" style="margin-top:0">Weights are scaled to add up to 100 %, so 2 and 1 work as well as 20 and 10. Choose a mark for each criterion to score a report.</p>
+    <div class="lr-crits"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lr-add-cr">Add a criterion</button></div>
+    <p class="ax-err lr-rerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Score</h2>
+    <div class="ax-grid">
+      <label>Marks for the whole report <input class="lr-outof" type="number" min="0" step="any" value="50" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-big lr-big"></p>
+    <div class="ax-scroll"><table class="lr-tab"><thead><tr><th>Criterion</th><th>Weight</th><th>Mark</th><th>Points</th><th>Adds</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lr-clear">Clear the marks</button></div>
+    <div class="dl lr-dl" data-doc="rubric">
+      <span class="dl-l">Rubric</span>
+      <button type="button" class="btn secondary" data-f="docx">Word</button>
+      <button type="button" class="btn secondary" data-f="pdf">PDF</button>
+      <button type="button" class="btn secondary" data-f="md">Markdown</button>
+    </div>
+    <p class="ax-help">When marks are chosen, the rubric downloads include a Mark column and the score.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small lr-save">Save rubric (.json)</button>
+      <button type="button" class="btn secondary small lr-open">Open a rubric (.json)</button>
+      <input type="file" class="lr-file" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small lr-reset">Start again from the example</button>
+    </div>
+    <p class="ax-help">Save your rubric to use it again; it is a small file on your device. JSON, up to 200 KB, 8 levels and 30 criteria.</p>
+    <p class="ax-err lr-ferr" hidden></p>
+  </div>
+</div>
+
+<style is:global>
+  .lrt .lr-h { font-size: 15px; margin: 16px 0 6px; }
+  .lrt .lr-sec, .lrt .lr-cr { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 0 0 10px; background: var(--bg); }
+  .lrt .lr-sec.off { opacity: .6; }
+  .lrt .lr-top { display: flex; gap: 6px; align-items: center; }
+  .ax.lrt .lr-top input[type=text] { flex: 1 1 auto; width: auto; min-width: 0; font-weight: 600; }
+  .ax.lrt .lr-top input[type=number], .ax.lrt .lr-lv input[type=number] { width: 80px; flex: none; }
+  .ax.lrt textarea { font-family: inherit; font-size: 15px; }
+  .lrt .lr-wrow { margin-top: 6px; }
+  .lrt .lr-wl { font-size: 14px; color: var(--muted); }
+  .lrt .lr-sp { flex: 1 1 auto; }
+  .lrt .lr-top .btn { padding: 6px 9px; flex: none; }
+  .lrt .lr-sec textarea, .lrt .lr-cr textarea { margin-top: 6px; font-size: 15px; }
+  .lrt .lr-lv { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; }
+  .ax.lrt .lr-lv input[type=text] { flex: 1 1 auto; width: auto; min-width: 0; }
+  .lrt .lr-lv .btn { padding: 6px 9px; }
+  .lrt .lr-cr label { margin-top: 6px; font-size: 14px; }
+  .lrt .lr-mark { margin-top: 8px; }
+  .lrt .lr-checks label { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; padding: 3px 0; }
+  .lrt .lr-checks input { margin-top: 3px; flex: none; }
+  .lrt .lr-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .lrt .lr-tab th, .lrt .lr-tab td { border-bottom: 1px solid var(--line); padding: 6px 8px 6px 0; text-align: left; vertical-align: top; }
+  .lrt .lr-tab td:nth-child(n+2), .lrt .lr-tab th:nth-child(n+2) { text-align: right; white-space: nowrap; }
+  .lrt .lr-tab td:nth-child(3), .lrt .lr-tab th:nth-child(3) { text-align: left; }
+  .lrt .lr-dl { margin-top: 14px; }
+</style>
+
+<script>
+  import { PRESETS, CHECKLIST, DEFAULT_RUBRIC, clone, score, rubricProblems, readRubric, rubricJson, rubricMarkdown, templateMarkdown, scoreLine, fmt, type RSection, type Rubric, type Meta } from '../../lib/sci/labreport';
+  import { save, fileSafe, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lrt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+  const btn = (text: string, label: string, on: () => void) => { const b = el('button', { type: 'button', className: 'btn secondary small', textContent: text }); b.setAttribute('aria-label', label); b.addEventListener('click', on); return b; };
+
+  let preset = 'school', secs: RSection[] = clone(PRESETS[0].sections), R: Rubric = clone(DEFAULT_RUBRIC), picks: number[] = R.criteria.map(() => -1);
+  const checks = CHECKLIST.map(() => true);
+
+  // ---------- report ----------
+  function presetButtons() {
+    q('.lr-preset').replaceChildren(...PRESETS.map((p) => {
+      const b = el('button', { type: 'button', textContent: p.name });
+      b.setAttribute('aria-pressed', String(p.id === preset)); b.dataset.p = p.id;
+      b.addEventListener('click', () => { preset = p.id; secs = clone(p.sections); presetButtons(); drawSecs(); });
+      return b;
+    }));
+  }
+  function drawSecs() {
+    q('.lr-secs').replaceChildren(...secs.map((s, i) => {
+      const box = el('div', { className: 'lr-sec' + (s.on ? '' : ' off') });
+      const on = el('input', { type: 'checkbox', checked: s.on }); on.setAttribute('aria-label', `Include ${s.name}`);
+      on.addEventListener('change', () => { s.on = on.checked; box.classList.toggle('off', !s.on); });
+      const name = el('input', { type: 'text', value: s.name, maxLength: 80 }); name.setAttribute('aria-label', 'Section name');
+      name.addEventListener('input', () => { s.name = name.value; });
+      const move = (d: number) => { const j = i + d; if (j < 0 || j >= secs.length) return; [secs[i], secs[j]] = [secs[j], secs[i]]; drawSecs(); };
+      const ta = el('textarea', { rows: Math.max(3, s.prompts.length * 2), value: s.prompts.join('\n') }); ta.setAttribute('aria-label', `Prompts for ${s.name}`);
+      ta.addEventListener('input', () => { s.prompts = ta.value.split('\n'); });
+      box.append(el('div', { className: 'lr-top' }, on, name, btn('↑', `Move ${s.name} up`, () => move(-1)), btn('↓', `Move ${s.name} down`, () => move(1)), btn('×', `Remove ${s.name}`, () => { secs.splice(i, 1); drawSecs(); })), ta);
+      return box;
+    }));
+  }
+  q('.lr-checks').replaceChildren(...CHECKLIST.map((c, i) => {
+    const b = el('input', { type: 'checkbox', checked: true }); b.addEventListener('change', () => { checks[i] = b.checked; });
+    return el('label', {}, b, el('span', { textContent: c }));
+  }));
+  q('.lr-add-sec').addEventListener('click', () => { secs.push({ id: 'custom-' + Date.now(), name: 'New section', prompts: ['What should go here?'], on: true }); drawSecs(); const all = root.querySelectorAll<HTMLInputElement>('.lr-sec .lr-top input[type=text]'); all[all.length - 1]?.select(); });
+
+  const meta = (): Meta => ({ title: q<HTMLInputElement>('.lr-title').value, author: q<HTMLInputElement>('.lr-author').value, course: q<HTMLInputElement>('.lr-course').value, date: q<HTMLInputElement>('.lr-date').value });
+  const figures = () => q<HTMLTextAreaElement>('.lr-figs').value.split('\n').map((x) => x.trim()).filter(Boolean);
+  const chosenChecks = () => CHECKLIST.filter((_, i) => checks[i]);
+
+  // ---------- rubric ----------
+  function drawLevels() {
+    q('.lr-levels').replaceChildren(...R.levels.map((l, k) => {
+      const name = el('input', { type: 'text', value: l.name, maxLength: 60 }); name.setAttribute('aria-label', `Level ${k + 1} name`);
+      name.addEventListener('input', () => { l.name = name.value; drawCrits(); });
+      const pts = el('input', { type: 'number', value: String(l.points), min: '0', step: 'any', inputMode: 'decimal' }); pts.setAttribute('aria-label', `Level ${k + 1} points`);
+      pts.addEventListener('input', () => { l.points = pts.value.trim() === '' ? NaN : Number(pts.value); drawScore(); });
+      return el('div', { className: 'lr-lv' }, name, pts, el('span', { className: 'ax-help', textContent: 'points' }), btn('×', `Remove level ${l.name}`, () => {
+        if (R.levels.length <= 2) return;
+        R.levels.splice(k, 1); R.criteria.forEach((c) => c.desc.splice(k, 1)); picks = picks.map((p) => (p === k ? -1 : p > k ? p - 1 : p)); drawLevels(); drawCrits();
+      }));
+    }));
+  }
+  function drawCrits() {
+    q('.lr-crits').replaceChildren(...R.criteria.map((c, i) => {
+      const name = el('input', { type: 'text', value: c.name, maxLength: 120 }); name.setAttribute('aria-label', `Criterion ${i + 1} name`);
+      name.addEventListener('input', () => { c.name = name.value; drawScore(); });
+      const w = el('input', { type: 'number', value: String(c.weight), min: '0', step: 'any', inputMode: 'decimal' }); w.setAttribute('aria-label', `Weight of criterion ${i + 1}`);
+      w.addEventListener('input', () => { c.weight = w.value.trim() === '' ? NaN : Number(w.value); drawScore(); });
+      const move = (d: number) => { const j = i + d; if (j < 0 || j >= R.criteria.length) return; [R.criteria[i], R.criteria[j]] = [R.criteria[j], R.criteria[i]]; [picks[i], picks[j]] = [picks[j], picks[i]]; drawCrits(); };
+      const box = el('div', { className: 'lr-cr' }, el('div', { className: 'lr-top' }, name),
+        el('div', { className: 'lr-top lr-wrow' }, el('span', { className: 'lr-wl', textContent: 'Weight' }), w, el('span', { className: 'lr-sp' }), btn('↑', `Move ${c.name} up`, () => move(-1)), btn('↓', `Move ${c.name} down`, () => move(1)), btn('×', `Remove ${c.name}`, () => { R.criteria.splice(i, 1); picks.splice(i, 1); drawCrits(); })));
+      R.levels.forEach((l, k) => {
+        const ta = el('textarea', { rows: 3, value: c.desc[k] ?? '' });
+        ta.addEventListener('input', () => { c.desc[k] = ta.value; });
+        box.append(el('label', {}, `${l.name || 'Level ' + (k + 1)}`, ta));
+      });
+      const sel = el('select', { className: 'lr-pick' });
+      sel.append(el('option', { value: '-1', textContent: 'Not marked' }), ...R.levels.map((l, k) => el('option', { value: String(k), textContent: `${l.name} (${l.points})` })));
+      sel.value = String(picks[i] ?? -1);
+      sel.addEventListener('change', () => { picks[i] = Number(sel.value); drawScore(); });
+      box.append(el('label', { className: 'lr-mark' }, 'Mark', sel));
+      return box;
+    }));
+    drawScore();
+  }
+  const outOf = () => { const v = Number(q<HTMLInputElement>('.lr-outof').value); return Number.isFinite(v) && v > 0 ? v : 0; };
+  function drawScore() {
+    const probs = rubricProblems(R), re = q('.lr-rerr');
+    re.textContent = probs.join(' '); re.hidden = !probs.length;
+    root.querySelectorAll<HTMLSelectElement>('.lr-pick').forEach((s) => [...s.options].slice(1).forEach((o, k) => (o.textContent = `${R.levels[k].name} (${R.levels[k].points})`)));
+    if (probs.length) { q('.lr-big').textContent = 'Fix the rubric to see a score.'; q('.lr-tab tbody').replaceChildren(); return; }
+    const sc = score(R, picks);
+    q('.lr-big').textContent = sc.marked ? scoreLine(sc, outOf()) : 'Choose a mark for each criterion.';
+    q('.lr-tab tbody').replaceChildren(...sc.parts.map((p) => el('tr', {}, el('td', { textContent: p.name }), el('td', { textContent: `${fmt(p.share)} %` }), el('td', { textContent: p.level || '–' }), el('td', { textContent: p.level ? `${fmt(p.points, 2)} / ${fmt(p.max, 2)}` : '–' }), el('td', { textContent: p.level ? `${fmt(p.contrib)} %` : '–' }))));
+  }
+  q('.lr-add-lv').addEventListener('click', () => { if (R.levels.length >= 8) return; R.levels.push({ name: 'Not shown', points: 0 }); R.criteria.forEach((c) => c.desc.push('')); drawLevels(); drawCrits(); });
+  q('.lr-add-cr').addEventListener('click', () => { if (R.criteria.length >= 30) return; R.criteria.push({ name: 'New criterion', weight: 10, desc: R.levels.map(() => '') }); picks.push(-1); drawCrits(); });
+  q('.lr-outof').addEventListener('input', drawScore);
+  q('.lr-clear').addEventListener('click', () => { picks = R.criteria.map(() => -1); drawCrits(); });
+  q<HTMLInputElement>('.lr-rtitle').addEventListener('input', (e) => { R.title = (e.target as HTMLInputElement).value; });
+  const loadRubric = (r: Rubric) => { R = r; picks = R.criteria.map(() => -1); q<HTMLInputElement>('.lr-rtitle').value = R.title; drawLevels(); drawCrits(); };
+  q('.lr-reset').addEventListener('click', () => loadRubric(clone(DEFAULT_RUBRIC)));
+  q('.lr-save').addEventListener('click', () => save(new Blob([rubricJson(R)], { type: 'application/json' }), `${fileSafe(R.title)}.json`, 'application/json'));
+  q('.lr-open').addEventListener('click', () => q<HTMLInputElement>('.lr-file').click());
+  q<HTMLInputElement>('.lr-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; inp.value = '';
+    const fe = q('.lr-ferr'); fe.hidden = true;
+    if (!f) return;
+    try {
+      if (f.size > 200_000) throw new Error(`${f.name} is ${(f.size / 1000).toFixed(0)} KB; a rubric file is at most 200 KB.`);
+      loadRubric(readRubric(await f.text()));
+    } catch (err) { fe.textContent = (err as Error).message; fe.hidden = false; }
+  });
+
+  // ---------- downloads ----------
+  function templateReport(): { title: string; subtitle: string; sections: Section[] } {
+    const m = meta();
+    const facts = ([['Author', m.author], ['Course', m.course], ['Date', m.date]] as [string, string][]).filter(([, v]) => v.trim());
+    const sections: Section[] = [];
+    if (facts.length) sections.push({ title: 'Details', facts });
+    for (const s of secs.filter((x) => x.on)) sections.push({ title: s.name || 'Section', text: [...s.prompts.filter((p) => p.trim()).map((p) => `• ${p.trim()}`), '', 'Write here.'] });
+    const figs = figures(), cl = chosenChecks();
+    if (figs.length || cl.length) sections.push({ title: 'Figures and tables checklist', text: [...(figs.length ? ['Planned figures and tables:', ...figs.map((f) => `• ${f}`), ''] : []), ...cl.map((c) => `[  ] ${c}`)] });
+    return { title: m.title.trim() || 'Lab report', subtitle: 'Report template · prompts in each section are guidance; replace them with your own writing.', sections };
+  }
+  // Word gets the usual grid (criteria × levels). A4 PDF pages are too narrow for that, so the PDF lists the
+  // criteria with their weights and marks, then one small table of levels per criterion.
+  function rubricReport(pdf: boolean): { title: string; subtitle: string; sections: Section[] } {
+    const sc = score(R, picks), marking = sc.marked > 0 && !rubricProblems(R).length;
+    const markOf = (i: number) => (sc.parts[i].level ? `${sc.parts[i].level} (${sc.parts[i].points})` : 'not marked');
+    let sections: Section[];
+    if (pdf) {
+      sections = [{ title: 'Criteria', table: { head: ['Criterion', 'Weight', ...(marking ? ['Mark'] : [])], rows: R.criteria.map((c, i) => [c.name, `${fmt(sc.parts[i].share)} %`, ...(marking ? [markOf(i)] : [])]), align: ['l', 'r', 'l'] } },
+        ...R.criteria.map((c, i): Section => ({ title: `${c.name} (${fmt(sc.parts[i].share)} %)`, table: { head: ['Level', 'Points', 'Description'], rows: R.levels.map((l, k) => [l.name + (marking && picks[i] === k ? ' (marked)' : ''), fmt(l.points, 2), c.desc[k] ?? '']), align: ['l', 'r', 'l'] } }))];
+    } else {
+      const head = ['Criterion', 'Weight', ...R.levels.map((l) => `${l.name} (${l.points})`), ...(marking ? ['Mark'] : [])];
+      const rows = R.criteria.map((c, i) => [c.name, `${fmt(sc.parts[i].share)} %`, ...R.levels.map((_, k) => c.desc[k] ?? ''), ...(marking ? [sc.parts[i].level || 'not marked'] : [])]);
+      sections = [{ title: 'Rubric', table: { head, rows, align: head.map((_, j) => (j === 1 ? 'r' : 'l')) } }];
+    }
+    if (marking) {
+      const m = meta();
+      sections.push({ title: 'Score', facts: [['Report', m.title || '–'], ['Author', m.author || '–'], ['Score', scoreLine(sc, outOf())]] });
+    }
+    return { title: R.title || 'Marking rubric', subtitle: `Weights scaled to 100 %; a level's share is its points over ${fmt(Math.max(...R.levels.map((l) => l.points)), 2)}.`, sections };
+  }
+  root.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.lr-dl button[data-f]');
+    if (!b) return;
+    const doc = b.closest<HTMLElement>('.lr-dl')!.dataset.doc;
+    const f = b.dataset.f;
+    if (doc === 'rubric' && rubricProblems(R).length) { drawScore(); return; }
+    const r = doc === 'template' ? templateReport() : rubricReport(f === 'pdf');
+    const file = fileSafe(doc === 'template' ? `${r.title}-template` : r.title);
+    if (f === 'md') {
+      const md = doc === 'template' ? templateMarkdown(meta(), secs, figures(), chosenChecks()) : rubricMarkdown(R, picks, outOf());
+      save(new Blob([md], { type: 'text/markdown' }), `${file}.md`, 'text/markdown'); return;
+    }
+    const old = b.textContent; b.disabled = true; b.textContent = 'Making…';
+    try {
+      const { toPdf, toDocx } = await import('../../lib/report');
+      if (f === 'pdf') save((await toPdf(r.title, r.sections, r.subtitle)).bytes, `${file}.pdf`, 'application/pdf');
+      else save(await toDocx(r.title, r.sections, r.subtitle), `${file}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } finally { b.disabled = false; b.textContent = old; }
+  });
+
+  presetButtons(); drawSecs();
+  q<HTMLInputElement>('.lr-rtitle').value = R.title;
+  drawLevels(); drawCrits();
+</script>

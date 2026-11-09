@@ -1,0 +1,227 @@
+---
+// Wind chill (JAG/TI 2001), heat index (NWS), humidex (Environment Canada) and apparent temperature (Steadman/BoM),
+// with their valid ranges, a chart against temperature and a table mode for a range. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wch">
+  <div class="ax-card">
+    <h2>Weather</h2>
+    <div class="ax-grid">
+      <label>Temperatures in <select class="wc-tu"><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label>Wind in <select class="wc-vu"><option value="kmh">km/h</option><option value="mph">mph</option><option value="ms">m/s</option><option value="kn">knots</option></select></label>
+      <label>Air temperature <input class="wc-t" inputmode="decimal" value="-10" /></label>
+      <label>Humidity as <select class="wc-hk"><option value="rh">Relative humidity (%)</option><option value="td">Dew point</option></select></label>
+      <label><span class="wc-hl">Relative humidity (%)</span> <input class="wc-h" inputmode="decimal" value="70" /></label>
+      <label>Wind speed <input class="wc-v" inputmode="decimal" value="20" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="wc-face" /> Wind measured at face height, not 10 m</label>
+    </div>
+    <p class="ax-help">The formulas expect the wind at the standard 10 m height used by weather stations. A hand-held meter reads lower: tick the box and the speed is multiplied by 1.5 first, as MetPy does.</p>
+    <p class="ax-help"><b>Not a safety forecast.</b> These are the published formulas worked out for the numbers you type. For warnings, check your national weather service.</p>
+    <p class="ax-err wc-err" hidden></p>
+  </div>
+
+  <div class="ax-card wc-out">
+    <h2>Feels like</h2>
+    <p class="ax-big wc-big"></p>
+    <p class="wc-why"></p>
+    <dl class="ax-facts wc-facts"></dl>
+    <h3 style="margin-top:16px">Where each index applies</h3>
+    <ul class="wc-rng"></ul>
+    <canvas class="ax-fig wc-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help">Each index against air temperature, at the humidity and wind above, drawn only where it applies (apparent temperature everywhere).</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Table for a range</h2>
+    <div class="ax-grid">
+      <label>Index <select class="wc-k"><option value="wc">Wind chill (temperature × wind)</option><option value="hi">Heat index (temperature × humidity)</option><option value="hx">Humidex (temperature × humidity)</option><option value="at">Apparent temperature (temperature × wind)</option></select></label>
+      <label>Temperature from <input class="wc-a" inputmode="decimal" value="-40" /></label>
+      <label>to <input class="wc-b" inputmode="decimal" value="5" /></label>
+      <label>step <input class="wc-s" inputmode="decimal" value="5" /></label>
+      <label><span class="wc-cl">Wind speeds</span> <input class="wc-cols" value="5, 10, 20, 30, 40, 50, 60, 70, 80" /></label>
+      <label class="wc-fixw" hidden>At relative humidity (%) <input class="wc-fix" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">Up to 61 temperatures and 20 columns. A dash marks a cell outside the range where the index applies. Shading follows the warning bands listed below the table.</p>
+    <p class="ax-err wc-terr" hidden></p>
+    <div class="ax-scroll"><table class="wc-tab"></table></div>
+    <div class="ax-legend wc-leg"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wc-csv">Download CSV</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .wch .wc-tab td, .wch .wc-tab th { text-align: right; white-space: nowrap; padding: 5px 7px; }
+  .wch .wc-tab th:first-child, .wch .wc-tab td:first-child { text-align: left; font-weight: 600; }
+  .wch .wc-tab td.b1, .wch .wc-leg i.b1 { background: var(--warn-soft); }
+  .wch .wc-tab td.b2, .wch .wc-leg i.b2 { background: var(--bad-soft); }
+  .wch .wc-tab td.b3, .wch .wc-leg i.b3 { background: var(--bad); color: var(--bg); }
+  .wch .wc-tab td.na { color: var(--muted); }
+  .wch .wc-rng { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 6px; }
+  .wch .wc-why { margin: 4px 0 12px; color: var(--muted); }
+  .wch .wc-leg i { border: 1px solid var(--line); }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { windChill, windChillOk, heatIndex, heatIndexOk, humidexC, humidexOk, apparentTemp, feelsLike, dewPoint, relHum, toKmh, fromKmh, wcBand, hiBand, hxBand, grid, range, F2C, C2F, WC_VMIN, type WindUnit, type Kind } from '../../lib/sci/feelslike';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.wch')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let fig: Figure | null = null, report: Section[] = [], tableCsv = '';
+  // Wind speeds typed for the table, kept in km/h so switching units back and forth does not drift.
+  let mem: { text: string; vu: WindUnit; kmh: number[] } | null = null, memV: { text: string; vu: WindUnit; kmh: number } | null = null;
+  const VU: Record<WindUnit, string> = { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'knots' };
+
+  function units() {
+    const F = q<HTMLSelectElement>('.wc-tu').value === 'F', vu = q<HTMLSelectElement>('.wc-vu').value as WindUnit;
+    const toC = (x: number) => (F ? F2C(x) : x), fromC = (x: number) => (F ? C2F(x) : x), U = F ? '°F' : '°C';
+    return { F, vu, toC, fromC, U, fT: (c: number) => `${sig(fromC(c), 3)} ${U}`, r1: (c: number) => (Math.round(fromC(c) * 10) / 10).toFixed(1) };
+  }
+  const dl = (el: HTMLElement, rows: [string, string, string?][]) => el.replaceChildren(...rows.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  const table = (el: HTMLElement, head: string[], rows: string[][], cls?: string[][]) => {
+    el.replaceChildren();
+    const tr = (cells: string[], th: boolean, c?: string[]) => { const r = document.createElement('tr'); cells.forEach((x, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; if (c?.[i]) e.className = c[i]; r.append(e); }); return r; };
+    const thead = document.createElement('thead'); thead.append(tr(head, true)); const tb = document.createElement('tbody'); rows.forEach((r, i) => tb.append(tr(r, false, cls?.[i]))); el.append(thead, tb);
+  };
+
+  function calc() {
+    const u = units(), hk = q<HTMLSelectElement>('.wc-hk').value;
+    q('.wc-hl').textContent = hk === 'rh' ? 'Relative humidity (%)' : `Dew point (${u.U})`;
+    const err = q('.wc-err');
+    let t: number, rh: number, td: number, v: number;
+    try {
+      t = u.toC(val('.wc-t')); const h = val('.wc-h'), vIn = val('.wc-v');
+      if (!Number.isFinite(t)) throw new Error('Type the air temperature.');
+      if (t < -60 || t > 60) throw new Error(`Air temperature must be between ${u.fT(-60)} and ${u.fT(60)}.`);
+      if (!Number.isFinite(h)) throw new Error(hk === 'rh' ? 'Type the relative humidity.' : 'Type the dew point.');
+      if (!Number.isFinite(vIn) || vIn < 0) throw new Error('Type the wind speed (0 or more).');
+      if (hk === 'rh') { if (!(h > 0 && h <= 100)) throw new Error('Relative humidity must be above 0 and at most 100 %.'); rh = h; td = dewPoint(t, rh); }
+      else { td = u.toC(h); if (td > t + 1e-9) throw new Error('The dew point cannot be above the air temperature.'); rh = relHum(t, td); }
+      const vt = q<HTMLInputElement>('.wc-v').value;
+      if (!(memV && memV.text === vt && memV.vu === u.vu)) memV = { text: vt, vu: u.vu, kmh: toKmh(vIn, u.vu) };
+      v = memV.kmh * (q<HTMLInputElement>('.wc-face').checked ? 1.5 : 1);
+      if (v > 400) throw new Error('That wind speed is too high.');
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.wc-out').hidden = true; report = []; return; }
+    err.hidden = true; q('.wc-out').hidden = false;
+    const fl = feelsLike(t, rh, v), vs = `${sig(fromKmh(v, u.vu), 3)} ${VU[u.vu]}`;
+    q('.wc-big').textContent = `Feels like ${u.fT(fl.c)}`;
+    q('.wc-why').textContent = fl.from === 'air temperature' ? 'Neither wind chill nor the heat index applies, so the US National Weather Service "feels like" is the air temperature itself.' : `From the ${fl.from}, as the US National Weather Service picks it.`;
+    const wcOk = windChillOk(t, v), hiOk = heatIndexOk(t), hxOk = humidexOk(t), hi = heatIndex(t, rh), hx = humidexC(t, td), at = apparentTemp(t, rh, v), wc = windChill(t, v);
+    const HM: Record<string, string> = { simple: "Steadman's simple formula", rothfusz: 'Rothfusz regression', dry: 'Rothfusz, dry-air adjustment', humid: 'Rothfusz, humid-air adjustment' };
+    const facts: [string, string, string?][] = [
+      ['Wind chill', wcOk ? u.fT(wc) : 'does not apply', wcOk ? wcBand(wc)[1] : t > 10 ? `air warmer than ${u.fT(10)}` : `wind ${sig(fromKmh(WC_VMIN, u.vu), 2)} ${VU[u.vu]} or less`],
+      ['Heat index', hiOk ? u.fT(hi.c) : 'does not apply', hiOk ? `${hiBand(hi.c)[1]} (${HM[hi.method]})` : `air cooler than ${u.fT(F2C(80))}`],
+      ['Humidex', hxOk ? sig(hx, 3) : 'does not apply', hxOk ? hxBand(hx)[1] : `air cooler than ${u.fT(20)}`],
+      ['Apparent temperature', u.fT(at), 'Steadman, in the shade, as the Australian Bureau of Meteorology uses it'],
+      [hk === 'rh' ? 'Dew point' : 'Relative humidity', hk === 'rh' ? u.fT(td) : `${sig(rh, 3)} %`],
+      ['Wind used', vs, q<HTMLInputElement>('.wc-face').checked ? 'face height × 1.5' : 'at 10 m'],
+    ];
+    dl(q('.wc-facts'), facts);
+    const rng = [
+      ['Wind chill', 'JAG/TI (2001), NWS and Environment Canada', `air ≤ ${u.fT(10)}, wind > ${sig(fromKmh(WC_VMIN, u.vu), 2)} ${VU[u.vu]}`, wcOk ? 'applies' : 'no'],
+      ['Heat index', 'NWS: Steadman simple, Rothfusz above 80 °F', `air ≥ ${u.fT(F2C(80))}; Rothfusz error about ±1.3 °F`, hiOk ? 'applies' : 'no'],
+      ['Humidex', 'Environment Canada, from the dew point', `warm weather, air ≥ ${u.fT(20)}`, hxOk ? 'applies' : 'no'],
+      ['Apparent temperature', 'Steadman (1994), Bureau of Meteorology', 'any weather; shade, no sunshine', 'applies'],
+    ];
+    q('.wc-rng').replaceChildren(...rng.map(([k, f, r, h]) => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = k; const pill = document.createElement('span'); pill.className = `ax-pill ${h === 'applies' ? 'good' : ''}`; pill.textContent = h === 'applies' ? 'applies here' : 'not here'; li.append(b, ' ', pill, document.createElement('br'), `${r}. ${f}.`); return li; }));
+    // Chart: each index against temperature at this humidity (same RH) and wind.
+    const xs: number[] = []; for (let x = -40; x <= 45; x += 0.5) xs.push(x);
+    const ser = (name: string, f: (x: number) => number | null) => ({ name, x: xs.map(u.fromC), y: xs.map((x) => { const y = f(x); return y == null ? NaN : u.fromC(y); }), mode: 'line' as const, width: 2 });
+    fig = chartFigure({ w: 560, h: 380, xMin: u.fromC(-40), xMax: u.fromC(45), yMin: u.fromC(-60), yMax: u.fromC(65), xLabel: `Air temperature (${u.U})`, yLabel: `Feels like (${u.U})`, legend: 'below', series: [
+      ser('Wind chill', (x) => (windChillOk(x, v) ? windChill(x, v) : null)),
+      ser('Heat index', (x) => (heatIndexOk(x) ? heatIndex(x, rh).c : null)),
+      ser('Humidex', (x) => (humidexOk(x) ? humidexC(x, dewPoint(x, rh)) : null)),
+      ser('Apparent temperature', (x) => apparentTemp(x, rh, v)),
+      { name: 'Air temperature', x: xs.map(u.fromC), y: xs.map(u.fromC), mode: 'line' as const, width: 1, dash: [4, 4], color: '#888888' },
+      { name: 'This weather', x: [u.fromC(t)], y: [u.fromC(fl.c)], marker: 'circle' as const, size: 5 },
+    ] }, `Wind chill, heat index, humidex and apparent temperature against air temperature at ${sig(rh, 3)} % humidity and ${vs} wind`);
+    paint(q<HTMLCanvasElement>('.wc-fig'), fig);
+    report = [
+      { title: `Feels like ${u.fT(fl.c)}`, text: [`Air ${u.fT(t)}, ${sig(rh, 3)} % relative humidity (dew point ${u.fT(td)}), wind ${vs}. ${q('.wc-why').textContent}`], facts: facts.map(([k, x, s]) => [k, s ? `${x} (${s})` : x]), figure: fig },
+      { title: 'Where each index applies', table: { head: ['Index', 'Formula', 'Used for', 'Here'], rows: rng }, note: 'Not a safety forecast. Formulas checked 2026-11-09; check the official source (your national weather service) for warnings.' },
+    ];
+  }
+
+  const KIND: Record<Kind, { col: string; cols: string; t: [number, number, number] }> = {
+    wc: { col: 'Wind speeds', cols: '5, 10, 20, 30, 40, 50, 60, 70, 80', t: [-40, 5, 5] },
+    hi: { col: 'Relative humidities (%)', cols: '40, 50, 60, 70, 80, 90, 100', t: [27, 43, 1] },
+    hx: { col: 'Relative humidities (%)', cols: '30, 40, 50, 60, 70, 80, 90', t: [20, 40, 2] },
+    at: { col: 'Wind speeds', cols: '0, 10, 20, 30, 40', t: [-10, 40, 5] },
+  };
+  const BANDS: Record<string, string[]> = {
+    wc: ['moderate risk (−10 to −27)', 'high risk (−28 to −39): skin can freeze in 10 to 30 min', 'very high to extreme (−40 or colder)'],
+    hi: ['caution (80 to 90 °F)', 'extreme caution (91 to 103 °F)', 'danger (103 °F and up)'],
+    hx: ['some discomfort (30 to 39)', 'great discomfort (40 to 45)', 'dangerous (46 and up)'],
+  };
+
+  function tab() {
+    const u = units(), kind = q<HTMLSelectElement>('.wc-k').value as Kind, wind = kind === 'wc' || kind === 'at';
+    q('.wc-cl').textContent = wind ? `Wind speeds (${VU[u.vu]})` : 'Relative humidities (%)';
+    q('.wc-fixw').hidden = kind !== 'at';
+    const err = q('.wc-terr'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.wc-tab').replaceChildren(); q('.wc-leg').replaceChildren(); tableCsv = ''; };
+    const ts = range(val('.wc-a'), val('.wc-b'), val('.wc-s'));
+    if (!ts) return fail('Give a temperature range with "from" below "to", a step above 0 and at most 61 rows.');
+    const colsIn = q<HTMLInputElement>('.wc-cols').value.split(/[,;\s]+/).filter(Boolean).map(num);
+    if (!colsIn.length || colsIn.length > 20 || colsIn.some((x) => !Number.isFinite(x) || x < 0)) return fail(`List 1 to 20 ${wind ? 'wind speeds' : 'humidities'} of 0 or more, separated by commas.`);
+    if (!wind && colsIn.some((x) => x > 100)) return fail('Relative humidity must be at most 100 %.');
+    const fix = val('.wc-fix');
+    if (kind === 'at' && !(fix >= 0 && fix <= 100)) return fail('Relative humidity must be 0 to 100 %.');
+    err.hidden = true;
+    const txt = q<HTMLInputElement>('.wc-cols').value;
+    if (wind && !(mem && mem.text === txt && mem.vu === u.vu)) mem = { text: txt, vu: u.vu, kmh: colsIn.map((x) => toKmh(x, u.vu)) };
+    const cols = wind ? mem!.kmh : colsIn;
+    const g = grid(kind, ts.map(u.toC), cols, fix);
+    const isT = kind !== 'hx', show = (c: number | null) => (c == null ? '–' : isT ? String(Math.round(u.fromC(c))) : String(Math.round(c)));
+    const band = (c: number | null) => (c == null ? 'na' : kind === 'wc' ? wcBand(c)[0] : kind === 'hi' ? hiBand(c)[0] : kind === 'hx' ? hxBand(c)[0] : 0);
+    const head = [`Air (${u.U})`, ...colsIn.map((x) => wind ? `${x} ${VU[u.vu]}` : `${x} %`)];
+    const mn = (x: string) => x.replace(/^-/, '−');
+    table(q('.wc-tab'), head, g.map((r, i) => [mn(String(ts[i])), ...r.map((c) => mn(show(c)))]), g.map((r) => ['', ...r.map((c) => { const b = band(c); return b === 'na' ? 'na' : b ? `b${b}` : ''; })]));
+    q('.wc-leg').replaceChildren(...(BANDS[kind] ?? []).map((s, i) => { const e = document.createElement('span'); e.innerHTML = `<i class="b${i + 1}"></i>`; e.append(s); return e; }));
+    const name = q<HTMLSelectElement>('.wc-k').selectedOptions[0].textContent!.replace(/ \(.*/, '');
+    tableCsv = csv([[`${name} (${isT ? u.U : 'humidex'})${kind === 'at' ? ` at ${fix} % RH` : ''}`, ...head.slice(1)], ...g.map((r, i) => [ts[i], ...r.map((c) => (c == null ? '' : isT ? +u.fromC(c).toFixed(2) : +c.toFixed(2)))])]);
+  }
+
+  q('.wc-k').addEventListener('change', () => {
+    const k = KIND[q<HTMLSelectElement>('.wc-k').value as Kind], u = units();
+    q<HTMLInputElement>('.wc-cols').value = (k === KIND.wc || k === KIND.at) && u.vu !== 'kmh' ? k.cols.split(', ').map((x) => +fromKmh(+x, u.vu).toFixed(0)).join(', ') : k.cols;
+    const [a, b, s] = k.t;
+    q<HTMLInputElement>('.wc-a').value = String(Math.round(u.fromC(a))); q<HTMLInputElement>('.wc-b').value = String(Math.round(u.fromC(b))); q<HTMLInputElement>('.wc-s').value = String(u.F ? Math.max(1, Math.round(s * 1.8)) : s);
+    tab();
+  });
+  q('.wc-tu').addEventListener('change', () => {
+    // Keep the same weather when switching units: convert the typed temperatures.
+    const F = q<HTMLSelectElement>('.wc-tu').value === 'F', cv = (x: number) => (F ? C2F(x) : F2C(x));
+    for (const c of ['.wc-t', ...(q<HTMLSelectElement>('.wc-hk').value === 'td' ? ['.wc-h'] : []), '.wc-a', '.wc-b']) { const el = q<HTMLInputElement>(c), x = num(el.value); if (Number.isFinite(x)) el.value = String(+cv(x).toFixed(1)); }
+    const s = q<HTMLInputElement>('.wc-s'), sv = num(s.value); if (sv > 0) s.value = String(+(F ? sv * 1.8 : sv / 1.8).toFixed(1));
+    calc(); tab();
+  });
+  let prevVu = q<HTMLSelectElement>('.wc-vu').value as WindUnit;
+  q('.wc-vu').addEventListener('change', () => {
+    const vu = q<HTMLSelectElement>('.wc-vu').value as WindUnit, cv = (x: number) => +fromKmh(toKmh(x, prevVu), vu).toFixed(1);
+    const v = q<HTMLInputElement>('.wc-v');
+    if (memV && memV.text === v.value) { v.value = String(+fromKmh(memV.kmh, vu).toFixed(1)); memV = { ...memV, text: v.value, vu }; }
+    else { const x = num(v.value); if (Number.isFinite(x)) v.value = String(cv(x)); }
+    const k = q<HTMLSelectElement>('.wc-k').value;
+    if ((k === 'wc' || k === 'at') && mem) { const c = q<HTMLInputElement>('.wc-cols'); if (c.value === mem.text) { c.value = mem.kmh.map((x) => String(+fromKmh(x, vu).toFixed(1))).join(', '); mem = { ...mem, text: c.value, vu }; } }
+    prevVu = vu; calc(); tab();
+  });
+  q('.wc-hk').addEventListener('change', () => {
+    const u = units(), h = q<HTMLInputElement>('.wc-h'), t = u.toC(val('.wc-t')), x = num(h.value);
+    if (Number.isFinite(t) && Number.isFinite(x)) h.value = q<HTMLSelectElement>('.wc-hk').value === 'td' ? String(+u.fromC(dewPoint(t, x)).toFixed(1)) : String(+relHum(t, u.toC(x)).toFixed(0));
+    calc();
+  });
+  let tm = 0;
+  root.addEventListener('input', (e) => { const el = e.target as HTMLElement; if (el.tagName === 'SELECT') return; clearTimeout(tm); tm = window.setTimeout(() => { calc(); tab(); }, 200); });
+  q('.wc-face').addEventListener('change', calc);
+  q('.wc-csv').addEventListener('click', () => { if (tableCsv) save(new Blob(['﻿' + tableCsv], { type: 'text/csv' }), `${q<HTMLSelectElement>('.wc-k').value === 'wc' ? 'wind-chill' : q<HTMLSelectElement>('.wc-k').value === 'hi' ? 'heat-index' : q<HTMLSelectElement>('.wc-k').value === 'hx' ? 'humidex' : 'apparent-temperature'}-table.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.wc-fig'), fig));
+  calc(); tab();
+  wireDownloads(q('.dl'), () => ({ title: 'Wind chill, heat index and feels-like temperature', subtitle: q('.wc-big').textContent ?? '', file: 'feels-like', sections: report }));
+</script>

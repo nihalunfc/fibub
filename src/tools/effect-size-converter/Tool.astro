@@ -1,0 +1,153 @@
+---
+// Effect size converter: d, g, r, odds ratio, eta squared, Cohen's f and w, Cliff's delta, from an effect size or a test statistic.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax es">
+  <div class="ax-card">
+    <h2>What do you have?</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="es-from">
+        <option value="t-ind" selected>t statistic, two separate groups</option>
+        <option value="t-paired">t statistic, paired or one group</option>
+        <option value="f-stat">F statistic (ANOVA)</option>
+        <option value="chi2">Chi-square statistic</option>
+        <option value="d">Cohen's d</option>
+        <option value="g">Hedges' g</option>
+        <option value="r">Correlation r</option>
+        <option value="or">Odds ratio</option>
+        <option value="logor">Log odds ratio</option>
+        <option value="eta2">Eta squared (η²)</option>
+        <option value="cohen-f">Cohen's f</option>
+        <option value="cliff">Cliff's delta</option>
+      </select></label>
+      <label><span class="es-vl">Value</span> <input class="es-v" inputmode="decimal" value="2.5" /></label>
+      <label class="es-f es-n12">Group 1 size <input class="es-n1" inputmode="numeric" value="20" /></label>
+      <label class="es-f es-n12">Group 2 size <input class="es-n2" inputmode="numeric" value="25" /></label>
+      <label class="es-f es-nl" hidden><span class="es-nt">Sample size</span> <input class="es-n" inputmode="numeric" /></label>
+      <label class="es-f es-dfl" hidden>df1 (effect) <input class="es-df1" inputmode="numeric" /></label>
+      <label class="es-f es-dfl" hidden>df2 (error) <input class="es-df2" inputmode="numeric" /></label>
+      <label class="es-f es-chil" hidden>Degrees of freedom <input class="es-cdf" inputmode="numeric" value="1" /></label>
+      <label class="es-f es-dim" hidden>Smaller table side (rows or columns) <input class="es-m" inputmode="numeric" value="2" /></label>
+      <label class="es-f es-kl" hidden>Number of groups <input class="es-k" inputmode="numeric" value="2" /></label>
+      <label>Confidence level <select class="es-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help es-help"></p>
+    <p class="ax-err es-err" hidden></p>
+  </div>
+
+  <div class="ax-card es-out" hidden>
+    <h2>Converted effect sizes</h2>
+    <p class="ax-big es-big"></p>
+    <div class="ax-scroll"><table class="es-tab"></table></div>
+    <ul class="ax-help es-notes"></ul>
+    <canvas class="ax-fig es-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small es-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .es .es-tab td small { display: block; color: var(--muted); font-size: 12px; min-width: 110px; }
+  .es .es-tab td, .es .es-tab th { padding: 7px 5px; }
+  .es .es-tab td:nth-child(2) { white-space: nowrap; }
+  .es .es-tab td:nth-child(3) { min-width: 80px; }
+  .es .es-notes { padding-left: 18px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { convert, sizeLabel, type From, type Row } from '../../lib/sci/effsize';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.es')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const opt = (c: string) => { const s = inp(c).value.trim(); return s === '' ? undefined : num(s); };
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  // Example values for each starting point (made up), and which boxes it needs.
+  const EX: Record<From, { v: string; show: string[]; set?: Record<string, string>; help: string; label: string; nLabel?: string }> = {
+    't-ind': { v: '2.5', show: ['.es-n12'], set: { '.es-n1': '20', '.es-n2': '25' }, label: 't', help: "The t from an independent-samples t test (Student's) and both group sizes." },
+    't-paired': { v: '3.1', show: ['.es-nl'], set: { '.es-n': '16' }, label: 't', nLabel: 'Number of pairs', help: 'The t from a paired (or one-sample) t test and the number of pairs. Gives dz, the mean change in units of the SD of the changes.' },
+    'f-stat': { v: '5.2', show: ['.es-dfl', '.es-n12'], set: { '.es-df1': '2', '.es-df2': '27', '.es-n1': '', '.es-n2': '' }, label: 'F', help: 'F with its two degrees of freedom, as in F(2, 27) = 5.2. With df1 = 1 (two groups) d is worked out too; group sizes are optional.' },
+    chi2: { v: '6', show: ['.es-nl', '.es-chil', '.es-dim'], set: { '.es-n': '120', '.es-cdf': '1', '.es-m': '2' }, label: 'χ²', nLabel: 'Total N', help: 'The chi-square statistic and the total count N. With 1 degree of freedom (a 2 × 2 table) phi is converted to d, r and the odds ratio.' },
+    d: { v: '0.5', show: ['.es-n12'], set: { '.es-n1': '50', '.es-n2': '50' }, label: 'd', help: 'Group sizes are optional: they give confidence intervals and Hedges\' g.' },
+    g: { v: '0.5', show: ['.es-n12'], set: { '.es-n1': '50', '.es-n2': '50' }, label: 'g', help: 'Group sizes are needed to undo the small-sample correction exactly.' },
+    r: { v: '0.3', show: ['.es-nl', '.es-n12'], set: { '.es-n': '100', '.es-n1': '', '.es-n2': '' }, label: 'r', nLabel: 'Total N (for the interval)', help: 'A point-biserial correlation (a group variable against a measurement). Total N gives the Fisher z interval; group sizes make the r-to-d step exact.' },
+    or: { v: '2.5', show: ['.es-n12'], set: { '.es-n1': '40', '.es-n2': '60' }, label: 'OR', help: 'Converted with the logistic approximation ln OR = d π / √3, which assumes an underlying continuous, logistic outcome.' },
+    logor: { v: '0.9', show: ['.es-n12'], set: { '.es-n1': '40', '.es-n2': '60' }, label: 'ln OR', help: 'The natural log of the odds ratio.' },
+    eta2: { v: '0.1', show: ['.es-kl', '.es-n12'], set: { '.es-k': '3', '.es-n1': '', '.es-n2': '' }, label: 'η²', help: 'With 2 groups, eta squared equals r², so d and r follow too.' },
+    'cohen-f': { v: '0.25', show: ['.es-kl', '.es-n12'], set: { '.es-k': '3', '.es-n1': '', '.es-n2': '' }, label: 'f', help: "Cohen's f, as used in ANOVA power analysis: 0.1 small, 0.25 medium, 0.4 large." },
+    cliff: { v: '0.4', show: ['.es-n12'], set: { '.es-n1': '30', '.es-n2': '30' }, label: 'δ', help: "Cliff's delta: P(group 1 > group 2) − P(group 1 < group 2). Converted assuming normal groups with equal spread." },
+  };
+  const trim = (t: string) => (/[.]/.test(t) && !/×/.test(t) ? t.replace(/0+$/, '').replace(/[.]$/, '') : t);
+  const fmt = (x: number) => (Number.isFinite(x) ? trim(sig(x, 4)) : x > 0 ? '∞' : '–');
+  const ciTxt = (c?: [number, number]) => (c ? `${fmt(Math.min(c[0], c[1]))} to ${fmt(Math.max(c[0], c[1]))}` : '–');
+
+  function setup(from: From) {
+    const e = EX[from];
+    root.querySelectorAll<HTMLElement>('.es-f').forEach((el) => { el.hidden = !e.show.some((s) => el.matches(s)); });
+    inp('.es-v').value = e.v;
+    for (const [s, v] of Object.entries(e.set ?? {})) inp(s).value = v;
+    q('.es-vl').textContent = `Value of ${e.label}`;
+    if (e.nLabel) q('.es-nt').textContent = e.nLabel;
+    q('.es-help').textContent = e.help;
+  }
+
+  function calc() {
+    const from = q<HTMLSelectElement>('.es-from').value as From, err = q('.es-err');
+    const shown = (s: string) => !q(s).hidden;
+    try {
+      const vs = inp('.es-v').value.trim();
+      if (!vs) throw new Error('Type the value to convert.');
+      const v = num(vs);
+      if (!Number.isFinite(v)) throw new Error(`"${vs}" is not a number.`);
+      const chk = (x: number | undefined, what: string) => { if (x !== undefined && !Number.isFinite(x)) throw new Error(`${what} is not a number.`); return x; };
+      const r = convert({
+        from, value: v, conf: Number(q<HTMLSelectElement>('.es-conf').value),
+        n1: shown('.es-n12') ? chk(opt('.es-n1'), 'Group 1 size') : undefined, n2: shown('.es-n12') ? chk(opt('.es-n2'), 'Group 2 size') : undefined,
+        n: shown('.es-nl') ? chk(opt('.es-n'), 'The sample size') : undefined,
+        df1: shown('.es-dfl') ? chk(opt('.es-df1'), 'df1') : undefined, df2: shown('.es-dfl') ? chk(opt('.es-df2'), 'df2') : undefined,
+        chiDf: shown('.es-chil') ? chk(opt('.es-cdf'), 'The degrees of freedom') : undefined, minDim: shown('.es-dim') ? chk(opt('.es-m'), 'The smaller table side') : undefined,
+        k: shown('.es-kl') ? (chk(opt('.es-k'), 'The number of groups') ?? 2) : undefined,
+      });
+      err.hidden = true; q('.es-out').hidden = false;
+      const pick = (k: string) => r.rows.find((x) => x.key === k);
+      const head = ['d', 'r', 'or', 'eta2', 'f', 'w'].map(pick).filter(Boolean).slice(0, 3) as Row[];
+      q('.es-big').textContent = head.map((x) => `${x.name.replace(/ \(.*\)$/, '')} = ${fmt(x.value)}`).join(' ≈ ');
+      const conf = `${Math.round(Number(q<HTMLSelectElement>('.es-conf').value) * 100)} % CI`;
+      const t = q<HTMLTableElement>('.es-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); ['Measure', 'Value', conf, 'Size'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const b = t.createTBody();
+      for (const x of r.rows) {
+        const tr = b.insertRow(), c0 = tr.insertCell();
+        c0.textContent = x.name; if (x.note) { const s = document.createElement('small'); s.textContent = x.note; c0.append(s); }
+        tr.insertCell().textContent = fmt(x.value); tr.insertCell().textContent = ciTxt(x.ci); tr.insertCell().textContent = sizeLabel(x.key, x.value);
+      }
+      const notes = [...r.notes, 'Size labels are Cohen\'s rough guides (Romano et al. for Cliff\'s delta); what counts as large depends on the field.', 'Intervals use the usual large-sample standard errors (Borenstein et al. 2009), carried through each conversion.'];
+      q('.es-notes').replaceChildren(...notes.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+      fig = null;
+      if (r.d !== undefined) {
+        const d = r.d, xs: number[] = []; for (let i = 0; i <= 160; i++) xs.push(-4 + Math.min(0, d) + ((8 + Math.abs(d)) * i) / 160);
+        const pdf = (x: number, m: number) => Math.exp(-0.5 * (x - m) ** 2) / Math.sqrt(2 * Math.PI);
+        fig = chartFigure({ h: 300, xLabel: 'Standard deviations', yLabel: 'Density', yMin: 0, series: [{ name: 'Group 2', x: xs, y: xs.map((x) => pdf(x, 0)), mode: 'line' }, { name: 'Group 1', x: xs, y: xs.map((x) => pdf(x, d)), mode: 'line' }] }, `Two normal curves ${sig(d, 3)} standard deviations apart`);
+      }
+      q('.es-fig').hidden = !fig;
+      if (fig) paint(q<HTMLCanvasElement>('.es-fig'), fig);
+      const rows = r.rows.map((x) => [x.name, fmt(x.value), ciTxt(x.ci), sizeLabel(x.key, x.value)]);
+      report = [{ title: 'Converted effect sizes', text: [q('.es-big').textContent ?? '', ...notes], table: { head: ['Measure', 'Value', conf, 'Size'], rows }, figure: fig ?? undefined }];
+      csvRows = [['measure', 'value', 'ci_low', 'ci_high', 'size', 'how'], ...r.rows.map((x) => [x.name, x.value, x.ci ? Math.min(...x.ci) : '', x.ci ? Math.max(...x.ci) : '', sizeLabel(x.key, x.value), x.note ?? ''])];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.es-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  q('.es-from').addEventListener('change', () => { setup(q<HTMLSelectElement>('.es-from').value as From); calc(); });
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 200); });
+  q('.es-conf').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.es-fig'), fig));
+  q('.es-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'effect-sizes.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Effect sizes', subtitle: q('.es-big').textContent ?? '', file: 'effect-sizes', sections: report }));
+  setup('t-ind'); calc();
+</script>

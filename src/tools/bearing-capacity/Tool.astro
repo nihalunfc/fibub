@@ -1,0 +1,125 @@
+---
+// Bearing capacity of a shallow footing by Terzaghi, Meyerhof and Hansen, with shape and depth factors,
+// the water table correction and the allowable pressure and load. Example values are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bcp">
+  <div class="ax-card">
+    <h2>Footing and soil</h2>
+    <div class="ax-grid">
+      <label>Method <select class="bc-m"><option value="terzaghi">Terzaghi (1943)</option><option value="meyerhof" selected>Meyerhof (1963)</option><option value="hansen">Hansen (1970)</option></select></label>
+      <label>Footing shape <select class="bc-shape"><option value="strip">Strip (long wall footing)</option><option value="square" selected>Square</option><option value="circle">Circular</option><option value="rectangle">Rectangular</option></select></label>
+      <label><span class="bc-bl">Width B (m)</span> <input class="bc-b" type="text" inputmode="decimal" value="2" /></label>
+      <label class="bc-lw" hidden>Length L (m) <input class="bc-l" type="text" inputmode="decimal" value="3" /></label>
+      <label>Depth to footing base Df (m) <input class="bc-df" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>Cohesion c′ (kPa) <input class="bc-c" type="text" inputmode="decimal" value="10" /></label>
+      <label>Friction angle φ′ (°) <input class="bc-phi" type="text" inputmode="decimal" value="30" /></label>
+      <label>Unit weight above water γ (kN/m³) <input class="bc-g" type="text" inputmode="decimal" value="18" /></label>
+      <label>Saturated unit weight γsat (kN/m³) <input class="bc-gs" type="text" inputmode="decimal" value="20" /></label>
+      <label>Water table depth below ground (m) <input class="bc-dw" type="text" inputmode="decimal" value="2" placeholder="blank = deep" /></label>
+      <label>Factor of safety <input class="bc-fs" type="text" inputmode="decimal" value="3" /></label>
+      <label>Apply the factor of safety to <select class="bc-fson"><option value="gross" selected>gross pressure qu</option><option value="net">net pressure qu − q</option></select></label>
+    </div>
+    <label class="ax-check bc-locw" style="margin-top:10px"><input type="checkbox" class="bc-local" /> Local shear (loose sand or soft clay: Terzaghi's ⅔ c′ and tan φ′)</label>
+    <p class="ax-help">Use drained (effective) c′ and φ′ for long-term loading, or c = undrained strength with φ = 0 for a quick check on clay just after building. The example values are made up. Leave the water table blank if it is deeper than Df + B.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-err bc-err" hidden></p>
+    <div class="bc-out">
+      <p class="ax-big bc-big"></p>
+      <p class="bc-sub"></p>
+      <dl class="ax-facts bc-facts"></dl>
+      <h3>All three methods</h3>
+      <div class="ax-scroll"><table class="bc-tab"></table></div>
+      <h3>Bearing capacity factors</h3>
+      <canvas class="ax-fig bc-fig"></canvas>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small bc-csv">Download the factors 0 to 50° (CSV)</button></div>
+      <Downloads />
+    </div>
+    <p class="ax-help"><strong>For study and planning, not a substitute for professional judgement.</strong> Bearing capacity is only half the check: settlement often decides the size of a footing. Check your local code and a qualified engineer.</p>
+  </div>
+</div>
+
+<script>
+  import { bearing, factorsFor, terzaghiN, meyerhofN, hansenN, type Method, type Shape, type Result } from '../../lib/sci/bearing';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.bcp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAME: Record<Method, string> = { terzaghi: 'Terzaghi', meyerhof: 'Meyerhof', hansen: 'Hansen' };
+  const s3 = (x: number) => sig(x, 3);
+  let fig: Figure | null = null, sections: Section[] = [];
+
+  function run() {
+    const err = q('.bc-err'), out = q('.bc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; fig = null; };
+    const method = sel('.bc-m') as Method, shape = sel('.bc-shape') as Shape;
+    q('.bc-lw').hidden = shape !== 'rectangle';
+    q('.bc-bl').textContent = shape === 'circle' ? 'Diameter B (m)' : 'Width B (m)';
+    q('.bc-locw').hidden = method !== 'terzaghi';
+    const dwText = q<HTMLInputElement>('.bc-dw').value.trim();
+    const inp = { method, shape, B: val('.bc-b'), L: val('.bc-l'), Df: val('.bc-df'), c: val('.bc-c'), phi: val('.bc-phi'), gamma: val('.bc-g'), gammaSat: val('.bc-gs'),
+      Dw: dwText ? num(dwText) : undefined, FS: val('.bc-fs'), local: method === 'terzaghi' && q<HTMLInputElement>('.bc-local').checked, fsOn: sel('.bc-fson') as 'gross' | 'net' };
+    if (dwText && !Number.isFinite(inp.Dw!)) return fail('The water table depth must be a number, or left blank.');
+    let r: Result;
+    try { r = bearing(inp); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const unitQ = r.perMetre ? 'kN per metre run' : 'kN';
+    const qaUsed = inp.fsOn === 'net' ? r.qaNet : r.qa;
+    q('.bc-big').textContent = `Allowable ${s3(qaUsed)} kPa, load ${s3(r.Q)} ${unitQ}`;
+    q('.bc-sub').textContent = `${NAME[method]}${inp.local ? ' (local shear)' : ''}: ultimate bearing capacity qu = ${s3(r.qu)} kPa; ${inp.fsOn === 'net' ? `net qu − q = ${s3(r.qnet)} kPa` : 'gross'} ÷ ${inp.FS}.`;
+    const wtext = ['the water table is deep (no effect)', 'the water table is above the footing base: q uses γ′ below the water, and the Nγ term uses γ′', 'the water table is within B below the base: the Nγ term uses a γ between γ′ and γ', 'the water table is more than B below the base (no effect)'][r.waterCase];
+    const f = [
+      fact('Ultimate qu', `${s3(r.qu)} kPa`, `= c′Nc·sc·dc + q·Nq·sq·dq + ½γB·Nγ·sγ·dγ = ${s3(r.terms[0])} + ${s3(r.terms[1])} + ${s3(r.terms[2])}`),
+      fact('Net ultimate qu − q', `${s3(r.qnet)} kPa`, 'the pressure above what the removed soil already applied'),
+      fact('Allowable (gross) qu/FS', `${s3(r.qa)} kPa`), fact('Allowable (net) (qu − q)/FS', `${s3(r.qaNet)} kPa`),
+      fact('Footing area', r.perMetre ? `${s3(r.area)} m² per metre` : `${s3(r.area)} m²`, `allowable load = allowable ${inp.fsOn} pressure × area`),
+      fact('Nc, Nq, Nγ', `${s3(r.N.Nc)}, ${s3(r.N.Nq)}, ${s3(r.N.Ng)}`, `at φ′ = ${sig(r.phi, 4)}°${inp.local ? ` and c′ = ${s3(r.c)} kPa after the local-shear reduction` : ''}`),
+      fact('Shape sc, sq, sγ', r.s.map((v) => v.toFixed(2)).join(', '), shape === 'strip' ? 'a strip needs no shape correction' : `B/L = ${s3(r.BL)}`),
+      fact('Depth dc, dq, dγ', r.d.map((v) => v.toFixed(2)).join(', '), method === 'terzaghi' ? 'Terzaghi ignores the strength of the soil above the base' : `Df/B = ${s3(inp.Df / inp.B)}`),
+      fact('Overburden q at the base', `${s3(r.q)} kPa`, `γ in the Nγ term = ${s3(r.gEff)} kN/m³; ${wtext}`),
+    ];
+    q('.bc-facts').replaceChildren(...f);
+    // Compare methods.
+    const head = ['', 'Nc', 'Nq', 'Nγ', 'qu (kPa)', 'Allowable (kPa)', `Load (${r.perMetre ? 'kN/m' : 'kN'})`];
+    const rows = (['terzaghi', 'meyerhof', 'hansen'] as Method[]).map((m) => { const x = bearing({ ...inp, method: m, local: m === 'terzaghi' && inp.local }); return [NAME[m] + (m === 'terzaghi' && inp.local ? ' (local)' : ''), s3(x.N.Nc), s3(x.N.Nq), s3(x.N.Ng), s3(x.qu), s3(inp.fsOn === 'net' ? x.qaNet : x.qa), s3(x.Q)]; });
+    const tab = q<HTMLTableElement>('.bc-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; e.append(d); }); return e; };
+    tab.append(tr(head, true), ...rows.map((rw) => tr(rw)));
+    // Factors chart.
+    const ph = Array.from({ length: 51 }, (_, i) => i), F = ph.map((p) => factorsFor(method, p));
+    fig = chartFigure({ w: 380, h: 270, yLog: true, yMin: 0.1, xMin: 0, xMax: 50, xLabel: 'Friction angle φ′ (°)', yLabel: 'Factor', legend: 'inside',
+      series: [{ name: 'Nc', x: ph, y: F.map((v) => v.Nc), mode: 'line', width: 1.8 }, { name: 'Nq', x: ph, y: F.map((v) => v.Nq), mode: 'line', width: 1.8, dash: [6, 3] }, { name: 'Nγ', x: ph.slice(1), y: F.slice(1).map((v) => v.Ng), mode: 'line', width: 1.8, dash: [2, 3] }],
+      marks: [{ kind: 'vline', at: r.phi, dash: [3, 3], label: `${sig(r.phi, 3)}°` }] }, `${NAME[method]} bearing capacity factors against friction angle`);
+    paint(q<HTMLCanvasElement>('.bc-fig'), fig);
+    const facts = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+    sections = [{ title: q('.bc-big').textContent!, text: [q('.bc-sub').textContent!], facts: facts(f) },
+      { title: 'All three methods', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: `${NAME[method]} factors`, figure: fig, note: 'For study and planning, not a substitute for professional judgement. Example values are made up.' }];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.bc-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['phi_deg', 'terzaghi_Nc', 'terzaghi_Nq', 'terzaghi_Ngamma', 'meyerhof_Nc', 'meyerhof_Nq', 'meyerhof_Ngamma', 'hansen_Nc', 'hansen_Nq', 'hansen_Ngamma']];
+    for (let p = 0; p <= 50; p++) { const t = terzaghiN(p), m = meyerhofN(p), h = hansenN(p); rows.push([p, ...[t, m, h].flatMap((v) => [v.Nc, v.Nq, v.Ng].map((x) => sig(x, 6)))]); }
+    save(new TextEncoder().encode(toCsv(rows)), 'bearing-capacity-factors.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.bc-out').hidden) paint(q<HTMLCanvasElement>('.bc-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Bearing capacity', subtitle: q('.bc-big').textContent ?? '', file: 'bearing-capacity', sections }));
+</script>
+
+<style is:global>
+  .bcp select, .bcp input[type=text] { max-width: 100%; }
+  .bcp h3 { font-size: 15px; margin: 16px 0 6px; }
+  .bcp .bc-sub { margin: 4px 0 12px; }
+  .bcp td:not(:first-child), .bcp th:not(:first-child) { text-align: right; }
+</style>

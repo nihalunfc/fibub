@@ -1,0 +1,169 @@
+---
+// Earthquake locator: S−P distances, a least-squares epicentre (Geiger's method) from P and S times, local
+// magnitude ML and moment magnitude Mw. The example earthquake and stations are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up event: 45.083° N, 10.217° E, 10 km deep, origin 12:00:05.00, Vp 6.0 km/s, Vp/Vs 1.73, ML 3.4, small timing errors added.
+const demo = 'station\tlatitude\tlongitude\tP\tS\tamplitude\nSTA1\t45.312\t10.105\t12:00:09.79\t12:00:13.30\t12.97\nSTB2\t44.861\t10.592\t12:00:11.59\t12:00:16.43\t7.56\nSTC3\t45.044\t9.512\t12:00:14.41\t12:00:21.35\t5.22\nSTD4\t45.598\t10.044\t12:00:14.92\t12:00:22.24\t5.66\nSTE5\t44.702\t9.881\t12:00:13.50\t12:00:19.63\t6.52\nSTF6\t45.21\t10.788\t12:00:13.03\t12:00:18.76\t6.52';
+---
+<div class="ax eql">
+  <div class="ax-card">
+    <h2>Stations and arrival times</h2>
+    <div class="ax-grid">
+      <label>Station positions <select class="eq-crd"><option value="geo" selected>latitude, longitude (°)</option><option value="km">x east, y north (km, flat)</option></select></label>
+      <label>P-wave speed Vp (km/s) <input class="eq-vp" type="text" inputmode="decimal" value="6.0" /></label>
+      <label>S speed given as <select class="eq-sk"><option value="ratio" selected>Vp/Vs ratio</option><option value="vs">Vs (km/s)</option></select></label>
+      <label><span class="eq-skl">Vp/Vs ratio</span> <input class="eq-sv" type="text" inputmode="decimal" value="1.73" /></label>
+      <label>Depth (km) <input class="eq-z" type="text" inputmode="decimal" value="10" /></label>
+      <label>Amplitudes are <select class="eq-au"><option value="mm" selected>Wood-Anderson trace, mm</option><option value="nm">ground displacement, nm</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="eq-free" /> Solve for depth too (needs 4 or more times; depth is often poorly fixed)</label>
+    <label style="margin-top:10px">Station, position (2 columns), P time, S time, amplitude (optional). Times in seconds or hh:mm:ss.ss; leave a time blank or "-" if not picked.
+      <textarea class="eq-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".eq-data" maxCols={8} maxRows={2000} label="Open a file" />
+    <p class="ax-help">The model is one uniform layer with straight rays, which suits shallow, local events. The example earthquake and stations are made up.</p>
+    <p class="ax-err eq-err" hidden></p>
+  </div>
+
+  <div class="ax-card eq-out">
+    <h2>Location</h2>
+    <p class="ax-big eq-big"></p>
+    <dl class="ax-facts eq-facts"></dl>
+    <canvas class="ax-fig eq-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">Triangles are stations; dashed circles are the epicentral distances from each station's S−P time; the diamond is the least-squares epicentre.</p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="eq-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small eq-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Moment magnitude Mw</h2>
+    <div class="ax-grid">
+      <label>Work from <select class="eq-mk"><option value="m0" selected>seismic moment M0</option><option value="fault">fault size and slip</option></select></label>
+      <label class="eq-m0w">Seismic moment M0 (N·m) <input class="eq-m0" type="text" inputmode="decimal" value="1.5e15" /></label>
+      <label class="eq-fw" hidden>Fault length (km) <input class="eq-fl" type="text" inputmode="decimal" value="10" /></label>
+      <label class="eq-fw" hidden>Fault width (km) <input class="eq-fwid" type="text" inputmode="decimal" value="5" /></label>
+      <label class="eq-fw" hidden>Average slip (m) <input class="eq-slip" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="eq-fw" hidden>Rigidity μ (GPa) <input class="eq-mu" type="text" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-big eq-mw" style="margin-top:12px"></p>
+    <p class="ax-help eq-mwh"></p>
+  </div>
+</div>
+
+<script>
+  import { locate, spDistance, circleEN, toEN, localMagnitude, momentMagnitude, seismicMoment, parseTime, fmtTime, type Station } from '../../lib/sci/quake';
+  import { equalFigure } from '../../lib/sci/geomap';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv, sup } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.eql')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const deg = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
+  const sgn = (v: number | undefined, d = 2) => (v === undefined || !Number.isFinite(v) ? '' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d));
+  const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+  let fig: Figure | null = null, report: Section[] = [], table: string[][] = [];
+
+  function calc() {
+    const err = q('.eq-err'), out = q('.eq-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const geo = sel('.eq-crd') === 'geo', vp = val('.eq-vp'), sv = val('.eq-sv'), ratio = sel('.eq-sk') === 'ratio';
+    q('.eq-skl').textContent = ratio ? 'Vp/Vs ratio' : 'Vs (km/s)';
+    const vs = ratio ? vp / sv : sv, z = val('.eq-z'), free = q<HTMLInputElement>('.eq-free').checked, au = sel('.eq-au') as 'mm' | 'nm';
+    if (!(vp > 0 && vs > 0)) return fail('Enter the P speed and the S speed (or the Vp/Vs ratio), above zero.');
+    if (!(vp > vs)) return fail('P waves must be faster than S waves: Vp/Vs above 1.');
+    if (!(z >= 0)) return fail('Enter the depth in km (0 or more). With "Solve for depth" it is the starting guess.');
+    const rows = parseTable(q<HTMLTextAreaElement>('.eq-data').value).filter((r) => r.some((c) => c.trim()));
+    const st: Station[] = []; let clock = false;
+    for (const r of rows) {
+      const a = num(r[1] ?? ''), b = num(r[2] ?? '');
+      if (!Number.isFinite(a) || !Number.isFinite(b)) continue; // header or note line
+      if (geo && (Math.abs(a) > 90 || Math.abs(b) > 360)) return fail(`Station ${r[0]}: latitude must be within ±90° and longitude within ±360°.`);
+      const tp = parseTime(r[3] ?? ''), ts = parseTime(r[4] ?? ''), amp = num(r[5] ?? '');
+      if ((r[3] ?? '').includes(':') || (r[4] ?? '').includes(':')) clock = true;
+      if (Number.isFinite(tp) && Number.isFinite(ts) && ts <= tp) return fail(`Station ${r[0]}: the S time must come after the P time.`);
+      st.push({ name: (r[0] ?? '').trim() || `Station ${st.length + 1}`, a, b, tp, ts, amp });
+    }
+    if (st.length < 3) return fail('Enter at least three stations: name, two position columns, then P and S times.');
+    let L: ReturnType<typeof locate>;
+    try { L = locate(st, { vp, vs, spherical: geo, depth: z, freeDepth: free }); } catch (e) { return fail((e as Error).message); }
+    if (!L.converged) return fail('The location did not settle. Check the positions, times and speeds.');
+    err.hidden = true; out.hidden = false;
+    const where = geo ? `${deg(L.a, 'N', 'S')}, ${deg(L.b, 'E', 'W')}` : `x ${L.a.toFixed(2)} km, y ${L.b.toFixed(2)} km`;
+    // Magnitudes from each station's amplitude and its hypocentral distance.
+    const mls = st.map((s, i) => localMagnitude(s.amp ?? NaN, L.rows[i].hypo, au));
+    const okMl = mls.filter(Number.isFinite);
+    const mlMean = okMl.length ? mean(okMl) : NaN, mlSd = okMl.length > 1 ? Math.sqrt(okMl.reduce((s, v) => s + (v - mlMean) ** 2, 0) / (okMl.length - 1)) : NaN;
+    q('.eq-big').textContent = `${where}, depth ${L.depth.toFixed(1)} km${free ? '' : ' (fixed)'}${okMl.length ? `, ML ${mlMean.toFixed(1)}` : ''}`;
+    const fs = [
+      fact('Origin time', fmtTime(L.t0, clock), Number.isFinite(L.seT) ? `± ${L.seT.toFixed(2)} s (1 standard error)` : 'no spare times for an error'),
+      fact('Epicentre error (1 s.e.)', Number.isFinite(L.seE) ? `± ${sig(L.seE, 2)} km E, ± ${sig(L.seN, 2)} km N` : 'needs more times', `${L.n} times for ${L.nPar} unknowns`),
+      fact('RMS residual', `${L.rms.toFixed(3)} s`, `${L.iterations} iterations`),
+    ];
+    if (free) fs.push(fact('Depth', `${L.depth.toFixed(1)} ± ${Number.isFinite(L.seZ) ? sig(L.seZ, 2) : '?'} km`, L.seZ > L.depth / 2 ? 'poorly fixed: the nearest station should be closer than about the depth' : 'solved with the epicentre'));
+    if (okMl.length) fs.push(fact('Local magnitude ML', mlMean.toFixed(2), `mean of ${okMl.length} station${okMl.length > 1 ? 's' : ''}${Number.isFinite(mlSd) ? `, standard deviation ${mlSd.toFixed(2)}` : ''}; Hutton and Boore (IASPEI) scale`));
+    fs.push(fact('Speeds', `Vp ${sig(vp, 3)}, Vs ${sig(vs, 3)} km/s`, `Vp/Vs ${(vp / vs).toFixed(3)}; S−P distance = Δt × ${sig((vp * vs) / (vp - vs), 4)} km/s`));
+    const gap = (() => { const az = L.rows.map((r) => r.az).sort((x, y) => x - y); let g = 0; az.forEach((v, i) => { g = Math.max(g, (i ? v - az[i - 1] : v + 360 - az[az.length - 1])); }); return g; })();
+    fs.push(fact('Azimuthal gap', `${gap.toFixed(0)}°`, gap > 180 ? 'above 180°: the epicentre is outside the network and less certain' : 'largest angle between stations seen from the epicentre'));
+    q('.eq-facts').replaceChildren(...fs);
+    // Table.
+    const head = ['Station', 'S−P (s)', 'S−P distance (km)', 'Epicentral (km)', 'Hypocentral (km)', 'Azimuth (°)', 'P residual (s)', 'S residual (s)', 'ML'];
+    table = st.map((s, i) => {
+      const r = L.rows[i], tsp = Number.isFinite(s.tp) && Number.isFinite(s.ts) ? s.ts! - s.tp! : NaN;
+      return [s.name, Number.isFinite(tsp) ? tsp.toFixed(2) : '', Number.isFinite(tsp) ? spDistance(tsp, vp, vs).toFixed(1) : '', r.epi.toFixed(1), r.hypo.toFixed(1), r.az.toFixed(0), sgn(r.resP), sgn(r.resS), Number.isFinite(mls[i]) ? mls[i].toFixed(2) : ''];
+    });
+    const tb = q<HTMLTableElement>('.eq-tab'); tb.replaceChildren();
+    const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (j) d.className = 'r'; e.append(d); }); return e; };
+    tb.append(tr(head, true), ...table.map((r) => tr(r)));
+    // Map: stations, S−P circles and the epicentre, in km from the stations' middle.
+    const en = st.map((s) => toEN(geo, L.a0, L.b0, s.a, s.b)), ep = toEN(geo, L.a0, L.b0, L.a, L.b);
+    const series: any[] = [
+      { name: 'Stations', x: en.map((p) => p[0]), y: en.map((p) => p[1]), mode: 'points', marker: 'triangle', size: 5, labels: st.map((s) => s.name) },
+      { name: 'Epicentre', x: [ep[0]], y: [ep[1]], mode: 'points', marker: 'diamond', size: 7 },
+    ];
+    st.forEach((s) => {
+      if (!(Number.isFinite(s.tp) && Number.isFinite(s.ts))) return;
+      const D = spDistance(s.ts! - s.tp!, vp, vs), rad = Math.sqrt(Math.max(0, D * D - L.depth * L.depth));
+      const [x, y] = circleEN(geo, L.a0, L.b0, s.a, s.b, rad); series.push({ name: '', x, y, mode: 'line', dash: [4, 3], width: 1.2, color: '#8a8a8a' });
+    });
+    fig = equalFigure({ w: 440, h: 420, font: 14, xLabel: 'East (km)', yLabel: 'North (km)', legend: 'none', series }, 'Map of stations, S−P distance circles and the located epicentre');
+    paint(q<HTMLCanvasElement>('.eq-fig'), fig);
+    report = [{ title: q('.eq-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: table, align: head.map((_, j) => (j ? 'r' : 'l')) } }];
+  }
+
+  function mw() {
+    const fault = sel('.eq-mk') === 'fault';
+    q('.eq-m0w').hidden = fault; root.querySelectorAll<HTMLElement>('.eq-fw').forEach((e) => { e.hidden = !fault; });
+    let M0: number, how: string;
+    if (fault) {
+      const L = val('.eq-fl'), W = val('.eq-fwid'), D = val('.eq-slip'), mu = val('.eq-mu');
+      if (!(L > 0 && W > 0 && D > 0 && mu > 0)) { q('.eq-mw').textContent = 'Enter length, width, slip and rigidity, all above zero.'; q('.eq-mwh').textContent = ''; return; }
+      M0 = seismicMoment(mu * 1e9, L * W * 1e6, D);
+      how = `M0 = μ × area × slip = ${sig(mu, 3)} GPa × ${sig(L * W, 4)} km² × ${sig(D, 3)} m. `;
+    } else {
+      M0 = val('.eq-m0');
+      if (!(M0 > 0)) { q('.eq-mw').textContent = 'Enter the seismic moment in N·m, for example 1.5e15.'; q('.eq-mwh').textContent = ''; return; }
+      how = '';
+    }
+    const e = Math.floor(Math.log10(M0)), m = M0 / 10 ** e;
+    q('.eq-mw').textContent = `Mw ${momentMagnitude(M0).toFixed(2)} (M0 = ${m.toFixed(2)} × 10${sup(e)} N·m)`;
+    q('.eq-mwh').textContent = `${how}Mw = (2/3)(log10 M0 − 9.1), the IASPEI standard formula with M0 in N·m. Each step of 1 in Mw is about 32 times the moment.`;
+  }
+
+  root.querySelectorAll('.ax-card:not(:last-child) input, .ax-card:not(:last-child) textarea, .ax-card:not(:last-child) select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.ax-card:last-child input, .ax-card:last-child select').forEach((i) => { i.addEventListener('input', mw); i.addEventListener('change', mw); });
+  q('.eq-sk').addEventListener('change', () => { q<HTMLInputElement>('.eq-sv').value = sel('.eq-sk') === 'ratio' ? (val('.eq-vp') / val('.eq-sv')).toFixed(3) : sig(val('.eq-vp') / val('.eq-sv'), 4); calc(); });
+  q('.eq-csv').addEventListener('click', () => save(new Blob([csv([['station', 's_minus_p_s', 'sp_distance_km', 'epicentral_km', 'hypocentral_km', 'azimuth_deg', 'p_residual_s', 's_residual_s', 'ML'], ...table.map((r) => r.map((c) => c.replace('−', '-')))])], { type: 'text/csv' }), 'earthquake-location.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.eq-fig'), fig));
+  calc(); mw();
+  wireDownloads(q('.dl'), () => ({ title: 'Earthquake location', subtitle: q('.eq-big').textContent ?? '', file: 'earthquake-location', sections: report }));
+</script>
+
+<style is:global>
+  .eql select, .eql input { max-width: 100%; }
+  .eql textarea { width: 100%; }
+</style>

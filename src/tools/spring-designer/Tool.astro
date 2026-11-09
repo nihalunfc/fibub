@@ -1,0 +1,179 @@
+---
+// Helical compression, extension and torsion springs (src/lib/sci/eng-spring.ts). Material values are examples.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spd">
+  <div class="ax-card">
+    <h2>Spring</h2>
+    <div class="ax-seg sp-type" role="group" aria-label="Spring type">
+      <button type="button" data-t="comp" aria-pressed="true">Compression</button><button type="button" data-t="ext" aria-pressed="false">Extension</button><button type="button" data-t="tor" aria-pressed="false">Torsion</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Wire diameter d (mm) <input class="sp-d" type="text" inputmode="decimal" value="2" /></label>
+      <label>Mean coil diameter D (mm) <input class="sp-D" type="text" inputmode="decimal" value="20" /></label>
+      <label class="sp-c"><span>Active coils</span> <input class="sp-na" type="text" inputmode="decimal" value="8" /></label>
+      <label class="sp-et">Body coils <input class="sp-nb" type="text" inputmode="decimal" value="20" /></label>
+      <label class="sp-c">Ends <select class="sp-ends"><option value="squared-ground" selected>Squared and ground</option><option value="squared">Squared (closed), not ground</option><option value="plain-ground">Plain, ground</option><option value="plain">Plain (open)</option></select></label>
+      <label class="sp-c">Free length L0 (mm) <input class="sp-L0" type="text" inputmode="decimal" value="50" /></label>
+      <label class="sp-c">Load given as <select class="sp-by"><option value="F" selected>Force (N)</option><option value="y">Deflection (mm)</option></select></label>
+      <label class="sp-c sp-fbox">Working force (N) <input class="sp-F" type="text" inputmode="decimal" value="30" /></label>
+      <label class="sp-c sp-ybox" hidden>Deflection (mm) <input class="sp-y" type="text" inputmode="decimal" value="10" /></label>
+      <label class="sp-c">Ends on <select class="sp-alpha"><option value="0.5" selected>Flat parallel plates (fixed)</option><option value="0.707">One plate, one pivot</option><option value="1">Two pivots</option><option value="2">One end free</option></select></label>
+      <label class="sp-e" hidden>Initial tension (N) <input class="sp-Fi" type="text" inputmode="decimal" value="5" /></label>
+      <label class="sp-e" hidden>Working force (N) <input class="sp-Fe" type="text" inputmode="decimal" value="25" /></label>
+      <label class="sp-e" hidden>Hook bend radius r2 (mm) <input class="sp-r2" type="text" inputmode="decimal" value="4" /></label>
+      <label class="sp-t" hidden>Leg 1 length (mm) <input class="sp-l1" type="text" inputmode="decimal" value="20" /></label>
+      <label class="sp-t" hidden>Leg 2 length (mm) <input class="sp-l2" type="text" inputmode="decimal" value="25" /></label>
+      <label class="sp-t" hidden>Moment (N·mm) <input class="sp-M" type="text" inputmode="decimal" value="500" /></label>
+    </div>
+    <p class="ax-help sp-help"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Material (your values)</h2>
+    <div class="ax-grid">
+      <label class="sp-g">Shear modulus G (GPa) <input class="sp-G" type="text" inputmode="decimal" value="79" /></label>
+      <label class="sp-em" hidden>Young's modulus E (GPa) <input class="sp-E" type="text" inputmode="decimal" value="200" /></label>
+      <label class="sp-g">Allowed shear stress (MPa) <input class="sp-tau" type="text" inputmode="decimal" value="600" /></label>
+      <label class="sp-bend" hidden>Allowed bending stress (MPa) <input class="sp-sig" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Density (kg/m³) <input class="sp-rho" type="text" inputmode="decimal" value="7850" /></label>
+    </div>
+    <p class="ax-help">Example values for a carbon spring steel: G 79 GPa, E 200 GPa, density 7850 kg/m³. The allowed stresses (600 MPa shear, 1000 MPa bending) are only placeholders: the right figure depends on the wire grade, its diameter, and whether the load is static or cycling, so take it from the wire maker or a spring design handbook.</p>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card sp-out">
+    <h2>Results</h2>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <p class="ax-help sp-warn" hidden></p>
+    <canvas class="ax-fig sp-fig"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement. Fatigue (cycling loads), set, temperature and tolerances need checking against your wire maker's data.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { compression, extension, torsion, type Ends } from '../../lib/sci/eng-spring';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.spd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let type = 'comp', fig: Figure | null = null, report: Section[] = [];
+  const HELP: Record<string, string> = {
+    comp: 'Active coils are the ones free to deflect; the end type adds the inactive coils and sets the solid height. The spring index C = D/d is best between about 4 and 12.',
+    ext: 'Body coils are all the coils between the hooks. Initial tension is the force wound into a close-coiled spring: it does not stretch until that force is passed. Full-loop hooks with the loop the same size as the coils are assumed; r2 is the small bend where the hook leaves the body.',
+    tor: 'Body coils are the coils in the helix. The legs add a little flexibility, counted as extra coils. The moment winds the spring tighter, which is the usual way to load it.',
+  };
+
+  function run() {
+    root.querySelectorAll<HTMLElement>('.sp-c').forEach((e) => { e.hidden = type !== 'comp'; });
+    root.querySelectorAll<HTMLElement>('.sp-e').forEach((e) => { e.hidden = type !== 'ext'; });
+    root.querySelectorAll<HTMLElement>('.sp-t').forEach((e) => { e.hidden = type !== 'tor'; });
+    q('.sp-et').hidden = type === 'comp';
+    root.querySelectorAll<HTMLElement>('.sp-g').forEach((e) => { e.hidden = type === 'tor'; });
+    q('.sp-em').hidden = type === 'comp'; q('.sp-bend').hidden = type === 'comp';
+    if (type === 'comp') { const by = q<HTMLSelectElement>('.sp-by').value; q('.sp-fbox').hidden = by !== 'F'; q('.sp-ybox').hidden = by !== 'y'; }
+    q('.sp-help').textContent = HELP[type];
+    const err = q('.sp-err'), out = q('.sp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const d = val('.sp-d'), D = val('.sp-D'), G = val('.sp-G') * 1000, E = val('.sp-E') * 1000, tauA = val('.sp-tau'), sigA = val('.sp-sig'), rho = val('.sp-rho');
+    if (!(d > 0 && D > d)) return fail('Give the wire diameter and a larger mean coil diameter.');
+    if (!(rho > 0)) return fail('Give the density of the wire.');
+    if (type !== 'tor' && !(G > 0 && tauA > 0)) return fail('Give the shear modulus and the allowed shear stress.');
+    if (type !== 'comp' && !(E > 0 && sigA > 0)) return fail("Give Young's modulus and the allowed bending stress.");
+    const C = D / d, warns: string[] = [];
+    if (C < 4) warns.push(`The spring index C = ${sg(C, 3)} is below 4: hard to coil, and the stress formulas are less accurate.`);
+    if (C > 12) warns.push(`The spring index C = ${sg(C, 3)} is above 12: the spring may tangle and buckle easily.`);
+    let facts: HTMLElement[] = [], series: Parameters<typeof chartFigure>[0]['series'] = [], xl = '', yl = '';
+    try {
+      if (type === 'comp') {
+        const by = q<HTMLSelectElement>('.sp-by').value, Na = val('.sp-na'), L0 = val('.sp-L0');
+        if (!(Na > 0)) return fail('Give the number of active coils.');
+        if (!(L0 > 0)) return fail('Give the free length.');
+        const F = val('.sp-F'), y = val('.sp-y');
+        if (by === 'F' ? !(F >= 0) : !(y >= 0)) return fail(by === 'F' ? 'Give the working force.' : 'Give the deflection.');
+        const r = compression({ d, D, Na, G, ends: q<HTMLSelectElement>('.sp-ends').value as Ends, L0, ...(by === 'F' ? { F } : { y }), tauAllow: tauA, alpha: val('.sp-alpha') || 0.5, rho });
+        q('.sp-big').textContent = `Rate ${sg(r.k, 4)} N/mm; ${sg(r.F, 4)} N compresses it ${sg(r.y, 4)} mm`;
+        facts = [
+          fact('Spring index C', sg(r.C, 4), `Wahl factor Kw = ${sg(r.Kw, 4)} (Bergsträsser ${sg(r.KB, 4)})`),
+          fact('Shear stress at the working load', `${sg(r.tau, 4)} MPa`, `τ = Kw 8FD / πd³; factor ${sg(r.nWork, 3)} on the allowed ${sg(tauA, 4)} MPa`),
+          fact('Length at the working load', `${sg(r.L, 4)} mm`, r.clash ? 'below the solid height: the coils would touch' : `free ${sg(val('.sp-L0'), 4)} mm, pitch ${sg(r.pitch, 3)} mm`),
+          fact('Solid height', `${sg(r.Ls, 4)} mm`, `${sg(r.Nt, 4)} total coils; force to solid ${sg(r.Fs, 4)} N`),
+          fact('Stress at solid', `${sg(r.tauS, 4)} MPa`, r.nSolid >= 1 ? `factor ${sg(r.nSolid, 3)}: safe to close solid` : `factor ${sg(r.nSolid, 3)}: closing it solid would overstress it (set)`),
+          fact('Buckling', r.stable ? 'stable' : 'may buckle', `free length ${sg(L0, 4)} mm against the steel limit 2.63 D / α = ${sg(r.Lcrit, 4)} mm${r.stable ? '' : '; guide it in a tube or over a rod'}`),
+          fact('Surge frequency', `${sg(r.fn, 4)} Hz`, 'lowest natural frequency between flat plates; keep the drive frequency well below it'),
+          fact('Wire', `${sg(r.wireLength, 4)} mm long`, `mass about ${sg(r.mass * 1000, 3)} g`),
+        ];
+        if (r.clash) warns.push('The deflection is more than the spring can travel before it goes solid.');
+        if (r.tau > tauA) warns.push('The working stress is above the allowed stress.');
+        xl = 'Deflection (mm)'; yl = 'Force (N)';
+        series = [{ name: 'Force', x: [0, val('.sp-L0') - r.Ls], y: [0, r.Fs], mode: 'line', width: 2 }, { name: 'Working point', x: [r.y], y: [r.F], mode: 'points', size: 5 }];
+      } else if (type === 'ext') {
+        const Nb = val('.sp-nb'), Fi = val('.sp-Fi'), F = val('.sp-Fe'), r2 = val('.sp-r2');
+        if (!(Nb > 0)) return fail('Give the number of body coils.');
+        if (!(r2 > 0)) return fail('Give the hook bend radius r2.');
+        if (!(F > 0)) return fail('Give the working force.');
+        const r = extension({ d, D, Nb, G, E, Fi, F, r2, tauAllow: tauA, sigmaAllow: sigA, rho });
+        q('.sp-big').textContent = `Rate ${sg(r.k, 4)} N/mm; ${sg(F, 4)} N stretches it ${sg(r.y, 4)} mm`;
+        facts = [
+          fact('Active coils', sg(r.Na, 4), 'body coils + G/E for the hooks'),
+          fact('Lengths', `free ${sg(r.L0, 4)} mm, loaded ${sg(r.L, 4)} mm`, `body ${sg(r.Lb, 4)} mm; hooks 2 × (D − d)`),
+          fact('Body shear stress', `${sg(r.tau, 4)} MPa`, `Kw = ${sg(r.Kw, 4)}; factor ${sg(r.nBody, 3)}; initial tension alone gives ${sg(r.tauI, 4)} MPa`),
+          fact('Hook bending at A', `${sg(r.sigmaA, 4)} MPa`, `factor ${sg(r.nHookA, 3)} on the allowed bending stress; K = ${sg(r.KA, 4)}`),
+          fact('Hook torsion at B', `${sg(r.tauB, 4)} MPa`, `factor ${sg(r.nHookB, 3)}; K = ${sg(r.KBh, 4)} with C2 = 2r2/d = ${sg((2 * r2) / d, 3)}`),
+          fact('Surge frequency', `${sg(r.fn, 4)} Hz`, 'estimate from the active coils'),
+        ];
+        if (r.tau > tauA || r.tauB > tauA || r.sigmaA > sigA) warns.push('A stress is above its allowed value. The hooks are usually the weak point.');
+        xl = 'Extension (mm)'; yl = 'Force (N)';
+        series = [{ name: 'Force', x: [0, 0, r.y * 1.3], y: [0, Fi, Fi + r.k * r.y * 1.3], mode: 'line', width: 2 }, { name: 'Working point', x: [r.y], y: [F], mode: 'points', size: 5 }];
+      } else {
+        const Nb = val('.sp-nb'), l1 = val('.sp-l1'), l2 = val('.sp-l2'), M = val('.sp-M');
+        if (!(Nb > 0)) return fail('Give the number of body coils.');
+        if (!(M > 0)) return fail('Give the moment.');
+        const r = torsion({ d, D, Nb, E, l1, l2, M, sigmaAllow: sigA });
+        q('.sp-big').textContent = `Rate ${sg(r.kTurn / 360, 4)} N·mm per degree; ${sg(M, 4)} N·mm turns it ${sg(r.deg, 4)}°`;
+        facts = [
+          fact('Rate', `${sg(r.kTurn, 4)} N·mm per turn`, `d⁴E / (10.8 D Na), allowing for coil friction; theory without friction ${sg(r.kRad * 2 * Math.PI, 4)} per turn (${sg(r.kRad, 4)} per radian)`),
+          fact('Active coils', sg(r.Na, 4), 'body coils + (l1 + l2) / 3πD for the legs'),
+          fact('Bending stress', `${sg(r.sigma, 4)} MPa`, `Ki 32M / πd³ at the inside of the coil, Ki = ${sg(r.Ki, 4)}; factor ${sg(r.n, 3)} on the allowed ${sg(sigA, 4)} MPa`),
+          fact('Coil diameter under load', `${sg(r.Dp, 4)} mm`, `inside ${sg(r.Dinner, 4)} mm: leave clearance over any arbor (rod) through the middle`),
+        ];
+        if (r.sigma > sigA) warns.push('The bending stress is above the allowed stress.');
+        xl = 'Angle (°)'; yl = 'Moment (N·mm)';
+        series = [{ name: 'Moment', x: [0, r.deg * 1.3], y: [0, M * 1.3], mode: 'line', width: 2 }, { name: 'Working point', x: [r.deg], y: [M], mode: 'points', size: 5 }];
+      }
+    } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    q('.sp-facts').replaceChildren(...facts);
+    const warn = q('.sp-warn'); warn.textContent = warns.join(' '); warn.hidden = !warns.length;
+    fig = chartFigure({ w: 380, h: 220, xLabel: xl, yLabel: yl, xMin: 0, yMin: 0, legend: 'below', series }, `${yl} against ${xl.toLowerCase()}`);
+    paint(q<HTMLCanvasElement>('.sp-fig'), fig);
+    report = [{ title: q('.sp-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note: 'For study and planning, not a substitute for professional judgement.' }];
+  }
+
+  q('.sp-type').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-t]'); if (!b) return;
+    type = b.dataset.t!; q('.sp-type').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    // Example sizes for each type.
+    const set = (c: string, v: string) => { q<HTMLInputElement>(c).value = v; };
+    if (type === 'comp') { set('.sp-d', '2'); set('.sp-D', '20'); }
+    if (type === 'ext') { set('.sp-d', '1.5'); set('.sp-D', '12'); set('.sp-nb', '20'); }
+    if (type === 'tor') { set('.sp-d', '2'); set('.sp-D', '16'); set('.sp-nb', '6'); }
+    run();
+  });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.sp-out').hidden) paint(q<HTMLCanvasElement>('.sp-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Spring design', subtitle: q('.sp-big').textContent ?? '', file: 'spring', sections: report }));
+</script>
+
+<style is:global>
+  .spd select, .spd input { max-width: 100%; }
+</style>

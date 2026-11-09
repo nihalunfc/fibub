@@ -1,0 +1,302 @@
+---
+// CSV and Excel profiler: every column's type, gaps, unique values, statistics, histogram and common values, plus a
+// correlation heatmap of the number columns, with a report to download. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cpf">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>Paste a table (first row = column names), or open a file
+      <textarea class="cpf-in" rows="9" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".cpf-in" maxMB={15} maxCols={60} maxRows={50000} label="Open a CSV or Excel file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Correlation <select class="cpf-corr">
+        <option value="pearson">Pearson (straight-line)</option>
+        <option value="spearman">Spearman (rank, any rising trend)</option>
+      </select></label>
+      <label>Histogram bins <select class="cpf-bins">
+        <option value="auto">Automatic (numpy rule)</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Empty cells and NA, N/A, NaN, null, None, #N/A, ?, - and . count as missing. Dates must be written year first (2026-03-01). The example is made up.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cpf-ex">Load the example</button></div>
+    <p class="ax-err cpf-err" hidden></p>
+  </div>
+
+  <div class="cpf-out ax" style="margin:0">
+    <div class="ax-card">
+      <h2>Overview</h2>
+      <p class="ax-big cpf-big"></p>
+      <dl class="ax-facts cpf-facts"></dl>
+      <div class="cpf-notes-w" hidden>
+        <h3 class="cpf-h3">Things to check</h3>
+        <ul class="cpf-notes"></ul>
+      </div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Columns</h2>
+      <div class="ax-scroll"><table class="cpf-sum"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cpf-csv">Download column statistics (CSV)</button></div>
+    </div>
+
+    <div class="ax-card">
+      <h2>One column in detail</h2>
+      <label>Column <select class="cpf-col"></select></label>
+      <dl class="ax-facts cpf-cfacts" style="margin-top:12px"></dl>
+      <canvas class="ax-fig cpf-hist" style="margin-top:12px"></canvas>
+      <h3 class="cpf-h3">Most common values</h3>
+      <div class="ax-scroll"><table class="cpf-top"></table></div>
+    </div>
+
+    <div class="ax-card cpf-corr-card">
+      <h2>Correlation heatmap</h2>
+      <p class="ax-help cpf-corr-help" style="margin-top:0"></p>
+      <canvas class="ax-fig cpf-heat" style="margin-top:8px"></canvas>
+      <div class="ax-scroll" style="margin-top:10px"><table class="cpf-pairs"></table></div>
+    </div>
+
+    <div class="ax-card">
+      <h2>Report</h2>
+      <p class="ax-help" style="margin-top:0">The whole profile: overview, every column with its chart, and the correlations.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cpf-html">Download web page (HTML)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .cpf .cpf-cfacts, .cpf .cpf-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .cpf .cpf-top td:last-child { width: 35%; min-width: 60px; vertical-align: middle; }
+  .cpf .cpf-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .cpf .cpf-notes { margin: 0; padding-left: 20px; font-size: 14px; }
+  .cpf .cpf-notes li { margin: 4px 0; }
+  .cpf .cpf-bar { display: block; height: 8px; border-radius: 4px; background: var(--accent); min-width: 2px; }
+  .cpf td.cpf-name { font-weight: 600; max-width: 180px; overflow-wrap: anywhere; }
+  .cpf .cpf-sum td, .cpf .cpf-sum th { white-space: nowrap; }
+</style>
+
+<script>
+  import { readTable, cellNumber, toCsvText, isMissing } from '../../lib/sci/dataset';
+  import { profileTable, correlation, EXAMPLE, type Profile, type ColumnProfile } from '../../lib/sci/csvprofile';
+  import { sig } from '../../lib/sci/num';
+  import { drawChart, canvasPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cpf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.cpf-in');
+  const KIND: Record<string, string> = { number: 'number', boolean: 'yes/no', date: 'date', text: 'text', empty: 'empty' };
+  const MAX_HEAT = 25;
+  let prof: Profile | null = null, numCols: ColumnProfile[] = [], corr: { r: number[][]; n: number[][] } | null = null;
+  let histFig: Figure | null = null, heatFig: Figure | null = null, fileName = 'data';
+  /** n significant figures without padding zeros (29.8, not 29.80); powers of ten for very large or small. */
+  const f = (x: number | undefined, n = 4) => (x == null || !Number.isFinite(x) ? '' : x !== 0 && (Math.abs(x) >= 1e6 || Math.abs(x) < 1e-4) ? sig(x, n) : String(+x.toPrecision(n)).replace('-', '−'));
+  const pct = (a: number, b: number) => (b ? `${f((100 * a) / b, 3)} %` : "0 %");
+
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = ''): HTMLElementTagNameMap[K] { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+  function fillTable(t: HTMLTableElement, head: string[], rows: (string | Node)[][], right: boolean[] = []) {
+    const thead = el('thead'), tr = el('tr');
+    head.forEach((h, j) => tr.append(el('th', h, right[j] ? 'r' : '')));
+    thead.append(tr);
+    const tb = el('tbody');
+    for (const r of rows) { const row = el('tr'); r.forEach((c, j) => { const td = el('td', '', right[j] ? 'r' : ''); if (typeof c === 'string') td.textContent = c; else td.append(c); row.append(td); }); tb.append(row); }
+    t.replaceChildren(thead, tb);
+  }
+  function facts(dl: HTMLElement, items: [string, string][]) {
+    dl.replaceChildren(...items.map(([k, v]) => { const d = el('div'); d.append(el('dt', k), el('dd', v)); return d; }));
+  }
+
+  /** Facts for one column, in the order a reader wants them. */
+  function colFacts(c: ColumnProfile, rows: number): [string, string][] {
+    const out: [string, string][] = [['Type', KIND[c.kind]], ['Present', `${c.count.toLocaleString('en')}`], ['Missing', `${c.missing.toLocaleString('en')} (${pct(c.missing, rows)})`], ['Unique values', c.unique.toLocaleString('en')]];
+    if (c.num) {
+      const s = c.num;
+      out.push(['Mean', f(s.mean)], ['Standard deviation', f(s.sd)], ['Minimum', f(s.min, 6)], ['Lower quartile', f(s.q1)], ['Median', f(s.median)], ['Upper quartile', f(s.q3)], ['Maximum', f(s.max, 6)], ['Skewness', f(s.skew, 3)], ['Excess kurtosis', f(s.kurt, 3)], ['Zeros', String(s.zeros)], ['Negative', String(s.negatives)], ['Possible outliers', `${s.outliersLow} low, ${s.outliersHigh} high`]);
+    } else if (c.minText != null) out.push([c.kind === 'date' ? 'First' : 'First (A to Z)', c.minText], [c.kind === 'date' ? 'Last' : 'Last (A to Z)', c.maxText ?? '']);
+    return out;
+  }
+
+  function histFigure(c: ColumnProfile): Figure | null {
+    const h = c.hist;
+    if (!h || !h.counts.length) return null;
+    const maxC = Math.max(...h.counts);
+    return {
+      w: 480, h: 280, alt: `Histogram of ${c.name}: ${h.counts.length} bins from ${f(h.edges[0])} to ${f(h.edges.at(-1))}`,
+      draw: (ctx, W, H, pal) => {
+        const P = canvasPainter(ctx);
+        const m = drawChart(P, { w: W, h: H, xLabel: c.name, yLabel: 'Count', yMin: 0, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, legend: 'none',
+          series: [{ name: '', x: [h.edges[0], h.edges.at(-1)!], y: [0, maxC], marker: 'none' }] });
+        h.counts.forEach((n, i) => {
+          if (!n) return;
+          const x0 = m.X(h.edges[i]), x1 = m.X(h.edges[i + 1]), y = m.Y(n);
+          P.poly([[x0, m.Y(0)], [x0, y], [x1, y], [x1, m.Y(0)]], pal.accent, pal.bg, 1);
+        });
+      },
+    };
+  }
+  function topFigure(c: ColumnProfile): Figure | null {
+    const top = c.top.slice(0, 8);
+    if (!top.length) return null;
+    const maxC = top[0][1];
+    return {
+      w: 480, h: 40 + top.length * 30, alt: `Most common values of ${c.name}`,
+      draw: (ctx, W, _H, pal) => {
+        const P = canvasPainter(ctx), lw = 150;
+        P.text(0, 6, `Most common values of ${c.name}`, 13, pal.ink, 'start', 'top', 0, true);
+        top.forEach(([v, n], i) => {
+          const y = 34 + i * 30, w = ((W - lw - 70) * n) / maxC;
+          const label = v.length > 20 ? v.slice(0, 19) + '…' : v;
+          P.text(lw - 8, y + 10, label, 13, pal.ink, 'end', 'middle');
+          P.poly([[lw, y], [lw + w, y], [lw + w, y + 20], [lw, y + 20]], pal.accent, null);
+          P.text(lw + w + 6, y + 10, `${n} (${pct(n, c.count)})`, 12, pal.muted, 'start', 'middle');
+        });
+      },
+    };
+  }
+  const colFigure = (c: ColumnProfile) => (c.kind === 'number' ? histFigure(c) : topFigure(c));
+
+  /** Blue for negative, orange for positive, stronger with |r|; red-only shades in night mode. */
+  function heatColour(r: number, pal: Palette): string {
+    if (!Number.isFinite(r)) return pal.grid;
+    const a = Math.min(1, Math.abs(r));
+    const mix = (c: [number, number, number]) => { const bg = pal.bg === '#ffffff' ? [255, 255, 255] : [10, 10, 10]; return `rgb(${c.map((v, i) => Math.round(bg[i] + (v - bg[i]) * a * 0.85)).join(',')})`; };
+    if (pal.red) return `rgb(${Math.round(40 + 140 * a)},0,0)`;
+    return mix(r < 0 ? (pal.bg === '#ffffff' ? [0, 114, 178] : [86, 180, 233]) : (pal.bg === '#ffffff' ? [213, 94, 0] : [240, 160, 80]));
+  }
+  function heatFigure(cols: ColumnProfile[], r: number[][], method: string): Figure {
+    const k = cols.length, names = cols.map((c) => (c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name));
+    const left = 120, top = 96, cell = Math.max(18, Math.min(64, Math.floor((640 - left) / k)));
+    const w = Math.max(360, left + k * cell + 10), h = top + k * cell + 40;
+    return {
+      w, h, alt: `${method} correlation heatmap of ${k} number columns`,
+      draw: (ctx, _W, _H, pal) => {
+        const P = canvasPainter(ctx);
+        for (let i = 0; i < k; i++) {
+          P.text(left - 6, top + i * cell + cell / 2, names[i], 12, pal.ink, 'end', 'middle');
+          P.text(left + i * cell + cell / 2, top - 6, names[i], 12, pal.ink, 'start', 'middle', -55);
+          for (let j = 0; j < k; j++) {
+            const v = r[i][j], x = left + j * cell, y = top + i * cell;
+            P.poly([[x, y], [x + cell, y], [x + cell, y + cell], [x, y + cell]], heatColour(v, pal), pal.bg, 1);
+            if (cell >= 30) P.text(x + cell / 2, y + cell / 2, Number.isFinite(v) ? v.toFixed(2).replace('-', '−') : '–', cell >= 44 ? 12 : 10, pal.ink, 'middle', 'middle');
+          }
+        }
+        // Colour key from −1 to +1.
+        const ky = top + k * cell + 14, kw = Math.min(260, k * cell);
+        for (let i = 0; i < 40; i++) { const v = -1 + (2 * i) / 39; P.poly([[left + (i * kw) / 40, ky], [left + ((i + 1) * kw) / 40, ky], [left + ((i + 1) * kw) / 40, ky + 10], [left + (i * kw) / 40, ky + 10]], heatColour(v, pal), null); }
+        P.text(left, ky + 13, '−1', 11, pal.muted, 'middle', 'top'); P.text(left + kw / 2, ky + 13, '0', 11, pal.muted, 'middle', 'top'); P.text(left + kw, ky + 13, '+1', 11, pal.muted, 'middle', 'top');
+      },
+    };
+  }
+
+  function showColumn() {
+    if (!prof) return;
+    const c = prof.columns[Number(q<HTMLSelectElement>('.cpf-col').value) || 0];
+    facts(q('.cpf-cfacts'), colFacts(c, prof.rows));
+    histFig = colFigure(c);
+    const cv = q<HTMLCanvasElement>('.cpf-hist');
+    cv.hidden = !histFig; if (histFig) paint(cv, histFig);
+    const bar = (n: number) => { const s = el('span', '', 'cpf-bar'); s.style.width = `${Math.max(2, (100 * n) / (c.top[0]?.[1] || 1))}%`; return s; };
+    fillTable(q<HTMLTableElement>('.cpf-top'), ['Value', 'Count', 'Share', ''], c.top.map(([v, n]) => [v, n.toLocaleString('en'), pct(n, c.count), bar(n)]), [false, true, true, false]);
+  }
+
+  function calc() {
+    const err = q('.cpf-err'), out = q('.cpf-out');
+    try {
+      const text = box.value;
+      if (!text.trim()) throw new Error('Paste a table or open a file to profile it.');
+      const t = readTable(text);
+      if (!t.rows.length) throw new Error('The table needs a row of column names and at least one row of data.');
+      const bins = q<HTMLSelectElement>('.cpf-bins').value;
+      prof = profileTable(t, bins === 'auto' ? 'auto' : Number(bins));
+      const p = prof, method = q<HTMLSelectElement>('.cpf-corr').value as 'pearson' | 'spearman';
+      err.hidden = true; out.hidden = false;
+      q('.cpf-big').textContent = `${p.rows.toLocaleString('en')} rows × ${p.cols} columns`;
+      const byKind = (['number', 'date', 'boolean', 'text', 'empty'] as const).map((k) => [k, p.columns.filter((c) => c.kind === k).length] as const).filter(([, n]) => n).map(([k, n]) => `${n} ${KIND[k]}`).join(', ');
+      facts(q('.cpf-facts'), [['Missing cells', `${p.missingCells.toLocaleString('en')} (${pct(p.missingCells, p.rows * p.cols)})`], ['Rows with a gap', t.rows.filter((r) => r.some((v) => isMissing(v))).length.toLocaleString('en')], ['Duplicate rows', p.duplicateRows.toLocaleString('en')], ['Columns by type', byKind], ['Column names', t.headerGuessed ? 'none in the first row (named Column 1, 2, …)' : 'from the first row']]);
+      const notes = p.columns.flatMap((c) => c.notes.map((n) => `${c.name}: ${n}`));
+      if (p.duplicateRows) notes.unshift(`${p.duplicateRows} row${p.duplicateRows === 1 ? ' is an exact copy' : 's are exact copies'} of an earlier row.`);
+      q('.cpf-notes-w').hidden = !notes.length;
+      q('.cpf-notes').replaceChildren(...notes.map((n) => el('li', n)));
+      fillTable(q<HTMLTableElement>('.cpf-sum'), ['Column', 'Type', 'Missing', 'Unique', 'Mean', 'SD', 'Min', 'Median', 'Max'],
+        p.columns.map((c) => { const nm = el('span', c.name); const s = c.num; return [nm, KIND[c.kind], c.missing ? `${c.missing} (${pct(c.missing, p.rows)})` : '0', c.unique.toLocaleString('en'), f(s?.mean), f(s?.sd), s ? f(s.min, 6) : c.kind === 'date' ? c.minText ?? '' : '', f(s?.median), s ? f(s.max, 6) : c.kind === 'date' ? c.maxText ?? '' : '']; }),
+        [false, false, true, true, true, true, true, true, true]);
+      root.querySelectorAll('.cpf-sum tbody td:first-child').forEach((td) => td.classList.add('cpf-name'));
+      const sel = q<HTMLSelectElement>('.cpf-col'), old = sel.value;
+      sel.replaceChildren(...p.columns.map((c, i) => { const o = el('option', `${c.name} (${KIND[c.kind]})`); o.value = String(i); return o; }));
+      const firstNum = p.columns.findIndex((c) => c.kind === 'number');
+      sel.value = old && Number(old) < p.columns.length ? old : String(Math.max(0, firstNum));
+      showColumn();
+      // Correlations of the number columns.
+      numCols = p.columns.filter((c) => c.kind === 'number' && c.unique > 1).slice(0, MAX_HEAT);
+      const card = q('.cpf-corr-card');
+      if (numCols.length < 2) { card.hidden = true; corr = null; heatFig = null; }
+      else {
+        card.hidden = false;
+        corr = correlation(numCols.map((c) => t.rows.map((r) => cellNumber(r[c.index]))), method);
+        const totalNum = p.columns.filter((c) => c.kind === 'number' && c.unique > 1).length;
+        q('.cpf-corr-help').textContent = `${method === 'pearson' ? 'Pearson' : 'Spearman'} correlation of ${numCols.length} number columns${totalNum > MAX_HEAT ? ` (the first ${MAX_HEAT} of ${totalNum})` : ''}, each pair using the rows where both are present. Orange: rise together; blue: one rises as the other falls. Correlation is not cause.`;
+        heatFig = heatFigure(numCols, corr.r, method === 'pearson' ? 'Pearson' : 'Spearman');
+        paint(q<HTMLCanvasElement>('.cpf-heat'), heatFig);
+        fillTable(q<HTMLTableElement>('.cpf-pairs'), ['Strongest pairs', 'r', 'Rows used'], pairs().slice(0, 8).map(([a, b, r, n]) => [`${a} and ${b}`, r.toFixed(3).replace('-', '−'), String(n)]), [false, true, true]);
+      }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; prof = null; }
+  }
+  function pairs(): [string, string, number, number][] {
+    if (!corr) return [];
+    const out: [string, string, number, number][] = [];
+    for (let i = 0; i < numCols.length; i++) for (let j = i + 1; j < numCols.length; j++) if (Number.isFinite(corr.r[i][j])) out.push([numCols[i].name, numCols[j].name, corr.r[i][j], corr.n[i][j]]);
+    return out.sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
+  }
+
+  function report(): Section[] {
+    if (!prof) return [];
+    const p = prof;
+    const secs: Section[] = [{ title: 'Overview', facts: [['Rows', p.rows.toLocaleString('en')], ['Columns', String(p.cols)], ['Missing cells', `${p.missingCells} (${pct(p.missingCells, p.rows * p.cols)})`], ['Duplicate rows', String(p.duplicateRows)]], text: [...root.querySelectorAll('.cpf-notes li')].map((li) => li.textContent ?? '') }];
+    secs.push({ title: 'Columns', table: { head: ['Column', 'Type', 'Missing', 'Unique', 'Mean', 'SD', 'Min', 'Median', 'Max'], rows: p.columns.map((c) => [c.name, KIND[c.kind], String(c.missing), String(c.unique), f(c.num?.mean), f(c.num?.sd), c.num ? f(c.num.min, 6) : '', f(c.num?.median), c.num ? f(c.num.max, 6) : '']), align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } });
+    for (const c of p.columns) {
+      const s: Section = { title: `${c.name} (${KIND[c.kind]})`, facts: colFacts(c, p.rows) };
+      const fig = colFigure(c); if (fig) s.figure = fig;
+      if (c.kind !== 'number' && c.top.length) s.table = { head: ['Value', 'Count', 'Share'], rows: c.top.map(([v, n]) => [v, String(n), pct(n, c.count)]), align: ['l', 'r', 'r'] };
+      if (c.notes.length) s.note = c.notes.join(' ');
+      secs.push(s);
+    }
+    if (heatFig && corr) secs.push({ title: 'Correlations', text: [q('.cpf-corr-help').textContent ?? ''], figure: heatFig, table: { head: ['Pair', 'r', 'Rows used'], rows: pairs().slice(0, 15).map(([a, b, r, n]) => [`${a} and ${b}`, r.toFixed(3), String(n)]), align: ['l', 'r', 'r'] } });
+    return secs;
+  }
+
+  /** A self-contained web page of the report: no scripts, pictures embedded. */
+  function toHtml(title: string, subtitle: string, secs: Section[]): string {
+    const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const img = (fig: Figure) => { const c = document.createElement('canvas'); c.width = fig.w * 2; c.height = fig.h * 2; const x = c.getContext('2d')!; x.scale(2, 2); x.fillStyle = '#fff'; x.fillRect(0, 0, fig.w, fig.h); fig.draw(x, fig.w, fig.h, LIGHT); return `<img src="${c.toDataURL('image/png')}" alt="${esc(fig.alt)}" width="${fig.w}">`; };
+    const body = secs.map((s) => `<section><h2>${esc(s.title)}</h2>${(s.text ?? []).filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('')}${s.facts?.length ? `<dl>${s.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}${s.figure ? img(s.figure) : ''}${s.table ? `<div class="t"><table><thead><tr>${s.table.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((r) => `<tr>${r.map((v, j) => `<td${s.table!.align?.[j] === 'r' ? ' class="r"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}${s.note ? `<p class="n">${esc(s.note)}</p>` : ''}</section>`).join('\n');
+    return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#0a0a0a;background:#fff;max-width:900px;margin:0 auto;padding:24px 16px}h1{font-size:26px;margin:0}h2{font-size:19px;border-top:1px solid #ccc;padding-top:14px;margin-top:28px}.s{color:#5c5c5c}dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:0}dt{color:#5c5c5c;font-size:13px}dd{margin:0;font-weight:700}img{max-width:100%;height:auto;display:block;margin:12px 0}.t{overflow-x:auto}table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;margin-top:10px}th,td{padding:5px 8px;border-bottom:1px solid #e3e3e3;text-align:left}th{color:#5c5c5c;font-size:12.5px}td.r{text-align:right}.n{color:#5c5c5c;font-size:13px}</style></head><body><h1>${esc(title)}</h1><p class="s">${esc(subtitle)}</p>\n${body}\n<p class="s">Made with fibub.com: free tools that run in your browser.</p></body></html>\n`;
+  }
+  const subtitle = () => `${fileName}: ${q('.cpf-big').textContent ?? ''}`;
+
+  q('.cpf-csv').addEventListener('click', () => {
+    if (!prof) return;
+    const head = ['column', 'type', 'present', 'missing', 'unique', 'mean', 'sd', 'min', 'q1', 'median', 'q3', 'max', 'skew', 'excess_kurtosis', 'zeros', 'negative', 'outliers_low', 'outliers_high', 'most_common', 'most_common_count'];
+    const rows = prof.columns.map((c) => { const s = c.num; const n = (x: number | undefined) => (x == null || !Number.isFinite(x) ? '' : String(+x.toPrecision(10))); return [c.name, c.kind, c.count, c.missing, c.unique, n(s?.mean), n(s?.sd), s ? n(s.min) : c.minText ?? '', n(s?.q1), n(s?.median), n(s?.q3), s ? n(s.max) : c.maxText ?? '', n(s?.skew), n(s?.kurt), s ? s.zeros : '', s ? s.negatives : '', s ? s.outliersLow : '', s ? s.outliersHigh : '', c.top[0]?.[0] ?? '', c.top[0]?.[1] ?? '']; });
+    save(new Blob([toCsvText(head, rows)], { type: 'text/csv' }), `${fileSafe(fileName)}-profile.csv`, 'text/csv');
+  });
+  q('.cpf-html').addEventListener('click', () => { const s = report(); if (s.length) save(new Blob([toHtml('Data profile', subtitle(), s)], { type: 'text/html' }), `${fileSafe(fileName)}-profile.html`, 'text/html'); });
+  q('.cpf-ex').addEventListener('click', () => { box.value = EXAMPLE; fileName = 'example'; calc(); });
+  q('.cpf-col').addEventListener('change', (e) => { e.stopPropagation(); showColumn(); });
+  // Capture phase: runs before the file box reads (and clears) the picked file.
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.classList?.contains('dfb-in') && t.files?.[0]) fileName = t.files[0].name.replace(/\.[^.]+$/, ''); }, true);
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  q('.cpf-corr').addEventListener('change', calc);
+  q('.cpf-bins').addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => { if (histFig) paint(q<HTMLCanvasElement>('.cpf-hist'), histFig); if (heatFig) paint(q<HTMLCanvasElement>('.cpf-heat'), heatFig); });
+  box.value = EXAMPLE; fileName = 'example';
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Data profile', subtitle: subtitle(), file: `${fileSafe(fileName)}-profile`, sections: report() }));
+</script>

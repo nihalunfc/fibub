@@ -32,6 +32,6 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   writeFileSync(OUT + 'sl.csv', 'Temperature,Days\n20,100\n30,50\n40,25\n');
   await page.setInputFiles(S + '.dfb-in', OUT + 'sl.csv'); await page.waitForTimeout(400);
   check((await page.textContent(S + '.sl-facts')).includes('Fitted Q102'), 'shelf life: open a CSV file with a header');
-  await page.click(S + '.sl-ex'); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.locator('.shelf').screenshot({ path: OUT + 'shelf-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click(S + '.sl-ex'); const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.locator('.shelf').screenshot({ path: OUT + 'shelf-375.png' }); await page.setViewportSize(vp0);
 };

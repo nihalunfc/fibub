@@ -30,6 +30,6 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.br-csv')]); const f = OUT + 'brine.csv'; await d.saveAs(f); const t = readFileSync(f, 'utf8'); check(t.startsWith('section,item,value') && t.includes('Curing salt,Cure needed (g),2.00') && t.includes('Dry cure,Salt (g),50.0') && t.includes('Vegetable ferment,Salt (g),30.0'), 'brine: CSV'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.dl [data-f=pdf]')]); check((await d.suggestedFilename()) === 'brine-and-cure.pdf', 'brine: PDF download'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.dl [data-f=png]')]); check((await d.suggestedFilename()) === 'brine-and-cure.png', 'brine: PNG download'); }
-  await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.locator('.brin').screenshot({ path: OUT + 'brine-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.locator('.brin').screenshot({ path: OUT + 'brine-375.png' }); await page.setViewportSize(vp0);
 };

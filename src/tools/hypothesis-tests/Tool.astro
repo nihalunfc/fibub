@@ -1,0 +1,501 @@
+---
+// Hypothesis test chooser and runner: picks the test from a few questions, runs it, explains the result in
+// plain English with effect sizes and assumption checks.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ht">
+  <div class="ax-card">
+    <h2>1. Choose the test</h2>
+    <div class="ax-grid">
+      <label>What did you measure? <select class="ht-kind">
+        <option value="numbers">Numbers (weights, scores, times)</option>
+        <option value="counts">Counts in categories</option>
+      </select></label>
+      <label class="ht-dl">What are you comparing? <select class="ht-design">
+        <option value="one">One group against a fixed value</option>
+        <option value="two" selected>Two separate groups</option>
+        <option value="paired">Two measurements on the same subjects</option>
+        <option value="many">Three or more separate groups</option>
+        <option value="normal">Just check if data look normal</option>
+      </select></label>
+      <label class="ht-cl" hidden>What are you comparing? <select class="ht-cdesign">
+        <option value="gof">One variable against expected shares</option>
+        <option value="table">Two variables in a table</option>
+      </select></label>
+      <label class="ht-nl">Roughly bell-shaped (normal)? <select class="ht-normal">
+        <option value="unsure" selected>Not sure: check my data</option>
+        <option value="yes">Yes, or 30+ values per group</option>
+        <option value="no">No, or ranks and ratings</option>
+      </select></label>
+      <label>Test <select class="ht-test">
+        <option value="auto" selected>Chosen from your answers</option>
+        <option value="one-t">One-sample t test</option>
+        <option value="welch">Welch's t test (two groups)</option>
+        <option value="student">Student's t test (two groups, equal spread)</option>
+        <option value="paired-t">Paired t test</option>
+        <option value="anova">One-way ANOVA + Tukey HSD</option>
+        <option value="wilcoxon-1">Wilcoxon signed-rank (one group)</option>
+        <option value="mw">Mann-Whitney U</option>
+        <option value="wilcoxon">Wilcoxon signed-rank (paired)</option>
+        <option value="kw">Kruskal-Wallis</option>
+        <option value="chi-gof">Chi-square goodness of fit</option>
+        <option value="chi-indep">Chi-square test of independence</option>
+        <option value="fisher">Fisher's exact test (2 × 2)</option>
+        <option value="shapiro">Shapiro-Wilk normality test</option>
+      </select></label>
+    </div>
+    <p class="ax-help ht-rec"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Your data</h2>
+    <label><span class="ht-how"></span>
+      <textarea class="ht-data" rows="10" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".ht-data" maxCols={20} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="ht-mul">Compare the mean with <input class="ht-mu" inputmode="decimal" value="250" /></label>
+      <label class="ht-altl">Alternative <select class="ht-alt">
+        <option value="two-sided" selected>Two-sided (any difference)</option>
+        <option value="greater">First is greater</option>
+        <option value="less">First is less</option>
+      </select></label>
+      <label class="ht-confl">Confidence level <select class="ht-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Significance level α <select class="ht-alpha"><option>0.01</option><option selected>0.05</option><option>0.1</option></select></label>
+    </div>
+    <label class="ax-check ht-yl" style="margin-top:10px"><input type="checkbox" class="ht-yates" checked /> Yates continuity correction (2 × 2 tables only)</label>
+    <p class="ax-err ht-err" hidden></p>
+  </div>
+
+  <div class="ax-card ht-out" hidden>
+    <h2 class="ht-name"></h2>
+    <p class="ax-big ht-big"></p>
+    <div class="ht-say"></div>
+    <dl class="ax-facts ht-facts"></dl>
+    <div class="ht-tables"></div>
+    <h3>Assumptions</h3>
+    <ul class="ht-assume"></ul>
+    <canvas class="ax-fig ht-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ht-csv">Download the results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ht .ht-say p { margin: 10px 0 0; }
+  .ht .ht-tables h3 { margin: 16px 0 6px; font-size: 15px; }
+  .ht .ht-assume { margin: 6px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+  .ht .ht-assume li { display: flex; gap: 8px; align-items: baseline; }
+  .ht .ht-assume .ax-pill { flex: none; }
+  .ht td.ht-sig { font-weight: 650; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { normInv, tInv } from '../../lib/sci/stats';
+  import * as H from '../../lib/sci/hyptest';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ht')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+
+  const EX: Record<string, string> = {
+    one: 'Reaction time (ms)\n262\n248\n271\n255\n280\n259\n244\n266\n275\n251\n269\n258',
+    two: 'Control\tFertiliser\n21.4\t24.9\n19.8\t23.1\n22.6\t26.4\n20.1\t22.8\n23.0\t25.7\n18.9\t24.2\n21.7\t27.0\n20.5\t23.6\n22.2\t25.1\n19.6\t21.9',
+    paired: 'Before\tAfter\n142\t135\n128\t126\n150\t139\n137\t136\n161\t148\n133\t130\n145\t141\n139\t140\n155\t144\n147\t138',
+    many: 'Diet A\tDiet B\tDiet C\n4.2\t5.8\t6.1\n3.9\t6.3\t7.0\n5.1\t5.2\t6.6\n4.6\t6.9\t7.4\n3.7\t5.5\t5.9\n4.9\t6.0\t6.8\n4.4\t6.6\t7.2\n5.0\t5.9\t',
+    normal: 'Fill time (s)\n12.1\n11.8\n12.6\n13.0\n11.5\n12.2\n12.4\n14.9\n11.9\n12.0\n12.7\n12.3\n11.7\n15.6\n12.5\n12.2\n12.9\n11.6\n12.8\n13.4',
+    gof: 'Seed type\tCount\tExpected share\nRound yellow\t290\t9\nRound green\t105\t3\nWrinkled yellow\t98\t3\nWrinkled green\t35\t1',
+    table: '\tLow\tMedium\tHigh\nUrban\t20\t15\t5\nRural\t10\t25\t25',
+    fisher: '\tImproved\tNot improved\nNew treatment\t12\t5\nPlacebo\t3\t10',
+  };
+  const HOW: Record<string, string> = {
+    one: 'One column of numbers (a header row is optional).',
+    two: 'Two columns, one per group, with optional names in the first row. Or two columns of group name and value.',
+    paired: 'Two columns, one row per subject: the first and second measurement.',
+    many: 'One column per group (names in the first row; groups can have different lengths). Or two columns of group name and value.',
+    normal: 'One or more columns of numbers. Each column is checked on its own.',
+    gof: 'One row per category: a name, the count, and (optional) the expected share as a ratio or percentage. Without shares, all categories are expected to be equal.',
+    table: 'A table of counts: categories of one variable down the side, the other across the top. Labels are optional.',
+    fisher: 'A 2 × 2 table of counts, labels optional.',
+  };
+  const NAME: Record<string, string> = {
+    'one-t': 'One-sample t test', welch: "Welch's t test", student: "Student's t test", 'paired-t': 'Paired t test', anova: 'One-way ANOVA',
+    'wilcoxon-1': 'Wilcoxon signed-rank test (one group)', mw: 'Mann-Whitney U test', wilcoxon: 'Wilcoxon signed-rank test (paired)', kw: 'Kruskal-Wallis test',
+    'chi-gof': 'Chi-square goodness of fit', 'chi-indep': 'Chi-square test of independence', fisher: "Fisher's exact test", shapiro: 'Shapiro-Wilk normality test',
+  };
+  const KEY: Record<string, string> = { 'one-t': 'one', 'wilcoxon-1': 'one', welch: 'two', student: 'two', mw: 'two', 'paired-t': 'paired', wilcoxon: 'paired', anova: 'many', kw: 'many', 'chi-gof': 'gof', 'chi-indep': 'table', fisher: 'fisher', shapiro: 'normal' };
+  const PARAM = new Set(['one-t', 'welch', 'student', 'paired-t', 'anova']);
+
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const box = q<HTMLTextAreaElement>('.ht-data');
+  let shownKey = '';
+
+  // ---------- formatting ----------
+  const trim = (t: string) => (/[.]/.test(t) && !/×/.test(t) ? t.replace(/0+$/, '').replace(/[.]$/, '') : t);
+  const f3 = (x: number) => (Number.isFinite(x) ? trim(sig(x, 4)) : '–');
+  const pBig = (p: number) => (p < 0.001 ? 'p < 0.001' : `p = ${p.toFixed(3)}`);
+  const pFull = (p: number) => (p < 1e-15 ? '< 10⁻¹⁵' : trim(sig(p, 3)));
+  const ciTxt = (c: [number, number]) => `${Number.isFinite(c[0]) ? sig(c[0], 4) : '−∞'} to ${Number.isFinite(c[1]) ? sig(c[1], 4) : '∞'}`;
+  const confTxt = () => `${Math.round(Number(sel('.ht-conf')) * 100)} %`;
+  const band = (x: number, cuts: number[]) => { const a = Math.abs(x); return a < cuts[0] ? 'negligible' : a < cuts[1] ? 'small' : a < cuts[2] ? 'medium' : 'large'; };
+  const dBand = (d: number) => band(d, [0.2, 0.5, 0.8]), rBand = (r: number) => band(r, [0.1, 0.3, 0.5]), eBand = (e: number) => band(e, [0.01, 0.06, 0.14]);
+
+  // ---------- parsing ----------
+  type Groups = { names: string[]; groups: number[][]; note: string };
+  const isNum = (c: string) => Number.isFinite(num(c));
+  function rowsOf(text: string) {
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error('Paste your data first, or open a file.');
+    return rows;
+  }
+  function groupsOf(text: string): Groups {
+    const rows = rowsOf(text);
+    const head = rows[0].some((c) => c !== '' && !isNum(c)), body = head ? rows.slice(1) : rows;
+    if (!body.length) throw new Error('There are no numbers under the header row.');
+    // Long format: group name, value.
+    const long = body.every((r) => r.length >= 2) && body.some((r) => r[0] !== '' && !isNum(r[0])) && body.every((r) => r[1] === '' || isNum(r[1]));
+    if (long) {
+      const names: string[] = [], groups: number[][] = [];
+      for (const r of body) {
+        if (r[1] === '') continue;
+        let i = names.indexOf(r[0]); if (i < 0) { names.push(r[0]); groups.push([]); i = names.length - 1; }
+        groups[i].push(num(r[1]));
+      }
+      return { names, groups, note: 'Read as group name and value.' };
+    }
+    const width = Math.max(...body.map((r) => r.length));
+    const names = Array.from({ length: width }, (_, j) => (head && rows[0][j]) || `Column ${j + 1}`);
+    const groups = names.map(() => [] as number[]);
+    body.forEach((r, i) => r.forEach((c, j) => {
+      if (c === '') return;
+      const v = num(c);
+      if (!Number.isFinite(v)) throw new Error(`"${c}" in row ${i + 1} of ${names[j]} is not a number.`);
+      groups[j].push(v);
+    }));
+    const keep = groups.map((g, j) => j).filter((j) => groups[j].length);
+    return { names: keep.map((j) => names[j]), groups: keep.map((j) => groups[j]), note: '' };
+  }
+  function pairsOf(text: string) {
+    const rows = rowsOf(text);
+    const head = rows[0].some((c) => c !== '' && !isNum(c)), body = head ? rows.slice(1) : rows;
+    const a: number[] = [], b: number[] = []; let dropped = 0;
+    body.forEach((r, i) => {
+      if (r.length < 2) { dropped++; return; }
+      const [c1, c2] = r;
+      if (c1 === '' || c2 === '') { dropped++; return; }
+      if (!isNum(c1) || !isNum(c2)) throw new Error(`Row ${i + 1} ("${r.join(', ')}") is not two numbers.`);
+      a.push(num(c1)); b.push(num(c2));
+    });
+    if (!a.length) throw new Error('Paste two columns of numbers: the first and second measurement for each subject.');
+    return { names: [head ? rows[0][0] || 'First' : 'First', head ? rows[0][1] || 'Second' : 'Second'], a, b, dropped };
+  }
+  function gofOf(text: string) {
+    let rows = rowsOf(text);
+    if (rows[0].every((c) => !isNum(c))) rows = rows.slice(1);
+    if (rows.length === 1 && rows[0].length > 1 && rows[0].every(isNum)) rows = rows[0].map((c) => [c]);
+    const labelled = rows.every((r) => !isNum(r[0]));
+    const names = rows.map((r, i) => (labelled ? r[0] : `Category ${i + 1}`)), cells = rows.map((r) => (labelled ? r.slice(1) : r));
+    const obs = cells.map((r, i) => { const v = num(r[0]); if (!(v >= 0)) throw new Error(`The count for ${names[i]} is not a number of zero or more.`); return v; });
+    const hasExp = cells.some((r) => (r[1] ?? '') !== '');
+    let exp: number[] | undefined;
+    if (hasExp) exp = cells.map((r, i) => { const v = num((r[1] ?? '').replace('%', '')); if (!(v > 0)) throw new Error(`The expected share for ${names[i]} must be a number above zero.`); return v; });
+    return { names, obs, exp };
+  }
+  function tableOf(text: string) {
+    const rows = rowsOf(text);
+    const head = rows[0].slice(1).some((c) => c !== '' && !isNum(c)) || (rows[0][0] === '' && rows[0].length > 1) ? rows[0] : null;
+    let body = head ? rows.slice(1) : rows;
+    const labelled = body.every((r) => !isNum(r[0]));
+    const rowNames = body.map((r, i) => (labelled ? r[0] : `Row ${i + 1}`));
+    body = labelled ? body.map((r) => r.slice(1)) : body;
+    const T = body.map((r, i) => r.map((c) => { const v = num(c); if (!(v >= 0)) throw new Error(`"${c}" in ${rowNames[i]} is not a count.`); return v; }));
+    const c = Math.max(...T.map((r) => r.length));
+    const hs = head ? (labelled || head[0] === '' ? head.slice(1) : head) : [];
+    const colNames = Array.from({ length: c }, (_, j) => hs[j] || `Column ${j + 1}`);
+    return { T, rowNames, colNames };
+  }
+
+  // ---------- chooser ----------
+  /** The test the answers point to, given the data (for "not sure", Shapiro-Wilk on each group decides). */
+  function recommend(): { test: string; why: string } {
+    if (sel('.ht-kind') === 'counts') {
+      if (sel('.ht-cdesign') === 'gof') return { test: 'chi-gof', why: 'Counts in categories of one variable, compared with expected shares: chi-square goodness of fit.' };
+      try {
+        const { T } = tableOf(box.value);
+        if (T.length === 2 && T.every((r) => r.length === 2)) {
+          const r = H.chiIndep(T, false);
+          if (r.minExp < 5) return { test: 'fisher', why: `A 2 × 2 table with an expected count below 5 (${sig(r.minExp, 3)}): Fisher's exact test, which does not rely on large counts.` };
+        }
+      } catch { /* fall through */ }
+      return { test: 'chi-indep', why: 'Two category variables in a table: the chi-square test of independence (Fisher\'s exact test is picked instead for a 2 × 2 table with small counts).' };
+    }
+    const d = sel('.ht-design'), nm = sel('.ht-normal');
+    if (d === 'normal') return { test: 'shapiro', why: 'Shapiro-Wilk checks whether numbers could come from a normal (bell-shaped) distribution.' };
+    const P: Record<string, [string, string]> = { one: ['one-t', 'wilcoxon-1'], two: ['welch', 'mw'], paired: ['paired-t', 'wilcoxon'], many: ['anova', 'kw'] };
+    const [para, non] = P[d];
+    if (nm === 'yes') return { test: para, why: `Normal data: ${NAME[para]}${d === 'two' ? ", which does not need equal spread (pick Student's t below if you know the spreads are equal)" : ''}.` };
+    if (nm === 'no') return { test: non, why: `Not normal, or ranks: ${NAME[non]}, which works on ranks.` };
+    // Not sure: look at the data.
+    try {
+      let sets: number[][];
+      if (d === 'paired') { const p = pairsOf(box.value); sets = [p.a.map((v, i) => v - p.b[i])]; }
+      else if (d === 'one') sets = [groupsOf(box.value).groups[0]];
+      else sets = groupsOf(box.value).groups;
+      const ps = sets.filter((s) => s.length >= 3 && s.length <= 5000).map((s) => { try { return H.shapiroWilk(s).p; } catch { return NaN; } }).filter(Number.isFinite);
+      const big = sets.every((s) => s.length >= 30);
+      if (!ps.length) return { test: non, why: `Too few values to check normality, so the safer rank test: ${NAME[non]}.` };
+      const minP = Math.min(...ps);
+      if (minP < 0.05 && !big) return { test: non, why: `Shapiro-Wilk finds ${d === 'paired' ? 'the differences' : sets.length > 1 ? 'at least one group' : 'the data'} not normal (p = ${sig(minP, 2)}), so: ${NAME[non]}.` };
+      return { test: para, why: `${minP < 0.05 ? 'Every group has 30 or more values, so means are close to normal anyway' : `Shapiro-Wilk finds no clear departure from normal (smallest p = ${sig(minP, 2)})`}, so: ${NAME[para]}.` };
+    } catch { return { test: para, why: `${NAME[para]} (the data could not be read yet).` }; }
+  }
+
+  // ---------- running ----------
+  type Out = { big: string; say: string[]; facts: [string, string][]; tables: { title: string; head: string[]; rows: string[][]; sig?: (r: number) => boolean }[]; assume: [string, 'good' | 'warn' | 'info', string][]; fig: Figure | null };
+  const swCheck = (name: string, xs: number[]): [string, 'good' | 'warn' | 'info', string] => {
+    if (xs.length < 3) return ['Normal', 'info', `${name}: too few values (${xs.length}) to check.`];
+    if (xs.length > 5000) return ['Normal', 'info', `${name}: over 5,000 values; with this many, means are close to normal.`];
+    const r = H.shapiroWilk(xs);
+    if (r.p >= 0.05) return ['Normal', 'good', `${name}: Shapiro-Wilk W = ${sig(r.W, 4)}, p = ${sig(r.p, 3)}, no clear departure from normal.`];
+    return ['Normal', xs.length >= 30 ? 'info' : 'warn', `${name}: Shapiro-Wilk W = ${sig(r.W, 4)}, p = ${sig(r.p, 3)}, not normal.${xs.length >= 30 ? ' With 30 or more values the t test is usually still fine.' : ' Consider the rank-based test.'}`];
+  };
+  const verdict = (p: number, a: number, h1: string, h0: string) => p < a
+    ? `The p-value (${pFull(p)}) is below your significance level of ${a}, so the data give evidence that ${h1}.`
+    : `The p-value (${pFull(p)}) is not below your significance level of ${a}, so the data do not give clear evidence that ${h1}. That does not prove ${h0}: a small study can miss a real effect.`;
+  const pMeaning = (p: number) => `A p-value of ${pFull(p)} means: if there were really no effect, results at least this extreme would turn up ${p < 0.001 ? 'less than 1 time in 1,000' : `about ${sig(p * 100, 2)} % of the time`}.`;
+  const altWord = (alt: H.Alt, a: string, b: string, noun: string) => alt === 'greater' ? `${a} has a larger ${noun} than ${b}` : alt === 'less' ? `${a} has a smaller ${noun} than ${b}` : `the ${noun} of ${a} differs from ${b}`;
+
+  function strip(names: string[], groups: number[][], yLabel: string, marks: any[] = [], withCi = true): Figure {
+    const series: any[] = groups.map((g, i) => ({ name: names[i], x: g.map((_, j) => i + 1 + ((((j * 0.618034) % 1) - 0.5) * 0.36)), y: g, mode: 'points', marker: 'open-circle', size: 4 }));
+    if (withCi) {
+      const conf = Number(sel('.ht-conf'));
+      const m = groups.map((g) => H.meanOf(g)), e = groups.map((g) => (g.length > 1 ? tInv(1 - (1 - conf) / 2, g.length - 1) * Math.sqrt(H.varOf(g) / g.length) : 0));
+      series.push({ name: `Mean and ${confTxt()} CI`, x: groups.map((_, i) => i + 1), y: m, yErr: e, mode: 'points', marker: 'diamond', size: 6, labels: names });
+    }
+    return chartFigure({ h: 340, xLabel: 'Group', yLabel, series, marks, xMin: 0.4, xMax: groups.length + 0.8 }, `Values of each group with the mean and ${confTxt()} confidence interval`);
+  }
+
+  function run(test: string): Out {
+    const alt = sel('.ht-alt') as H.Alt, conf = Number(sel('.ht-conf')), a = Number(sel('.ht-alpha'));
+    const o: Out = { big: '', say: [], facts: [], tables: [], assume: [], fig: null };
+    const indep: [string, 'good' | 'warn' | 'info', string] = ['Independent', 'info', 'Each value comes from a different subject and does not influence the others (this depends on how the data were collected).'];
+    if (test === 'one-t' || test === 'wilcoxon-1') {
+      const g = groupsOf(box.value), x = g.groups[0], name = g.names[0], mu = num(q<HTMLInputElement>('.ht-mu').value);
+      if (!x) throw new Error('Paste a column of numbers.');
+      if (!Number.isFinite(mu)) throw new Error('Type the value to compare the mean with.');
+      const extra = g.groups.length > 1 ? `Only the first column (${name}) is used.` : '';
+      const lab = alt === 'two-sided' ? `differs from ${sig(mu, 6)}` : alt === 'greater' ? `is greater than ${sig(mu, 6)}` : `is less than ${sig(mu, 6)}`;
+      if (test === 'one-t') {
+        const r = H.tOne(x, mu, alt, conf);
+        o.big = `t(${r.df}) = ${f3(r.t)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, `the mean ${lab}`, `the mean equals ${sig(mu, 6)}`), `The mean is ${sig(r.means[0], 5)} (SD ${sig(r.sds[0], 4)}, n = ${x.length}), ${sig(Math.abs(r.est), 4)} ${r.est >= 0 ? 'above' : 'below'} ${sig(mu, 6)}. Effect size d = ${f3(r.d)}: ${dBand(r.d)} by Cohen's guide.`, pMeaning(r.p)];
+        o.facts = [['t', f3(r.t)], ['Degrees of freedom', String(r.df)], ['p-value', pFull(r.p)], ['Mean', sig(r.means[0], 5)], ['Mean − value', f3(r.est)], [`${confTxt()} CI of the mean`, ciTxt(r.ci)], ["Cohen's d", `${f3(r.d)} (${ciTxt(r.dCi)})`], ["Hedges' g", f3(r.g)]];
+        o.assume = [indep, swCheck(name, x)];
+      } else {
+        const r = H.wilcoxon(x.map((v) => v - mu), alt);
+        o.big = `W = ${f3(r.W)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, `the values tend to be ${alt === 'greater' ? 'above' : alt === 'less' ? 'below' : 'above or below'} ${sig(mu, 6)}`, `the median equals ${sig(mu, 6)}`), `The median is ${sig(H.medianOf(x), 5)}. Rank-biserial r = ${f3(r.rbc)}: ${rBand(r.rbc)}.`, pMeaning(r.p)];
+        o.facts = wxFacts(r);
+        o.assume = [indep, ['Symmetric', 'info', 'The differences from the value should be roughly symmetric; then the test is about the median.']];
+        if (r.zeros) o.assume.push(['Zeros', 'info', `${r.zeros} value${r.zeros > 1 ? 's' : ''} equal to ${sig(mu, 6)} left out, as scipy does by default.`]);
+      }
+      if (extra) o.say.push(extra);
+      o.tables = [{ title: 'Summary', head: ['', 'n', 'Mean', 'SD', 'Median'], rows: [[name, String(x.length), sig(H.meanOf(x), 5), x.length > 1 ? sig(Math.sqrt(H.varOf(x)), 4) : '–', sig(H.medianOf(x), 5)]] }];
+      o.fig = strip([name], [x], name, [{ kind: 'hline', at: mu, label: `value ${sig(mu, 6)}` }]);
+      return o;
+    }
+    if (['welch', 'student', 'mw'].includes(test)) {
+      const g = groupsOf(box.value);
+      if (g.groups.length < 2) throw new Error('Paste two groups: two columns, or a column of group names next to the values.');
+      const [x, y] = g.groups, [A, B] = g.names;
+      const extra = [g.note, g.groups.length > 2 ? `Only the first two groups (${A} and ${B}) are compared; use ANOVA or Kruskal-Wallis for more.` : ''].filter(Boolean).join(' ');
+      if (test !== 'mw') {
+        const r = H.tTwo(x, y, test === 'welch', alt, conf);
+        o.big = `t(${test === 'welch' ? sig(r.df, 4) : r.df}) = ${f3(r.t)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, altWord(alt, A, B, 'mean'), 'the means are equal'), `${A} averages ${sig(r.means[0], 5)} and ${B} ${sig(r.means[1], 5)}: a difference of ${f3(r.est)} (${confTxt()} CI ${ciTxt(r.ci)}). Effect size d = ${f3(r.d)}: ${dBand(r.d)} by Cohen's guide.`, pMeaning(r.p)];
+        o.facts = [['t', f3(r.t)], ['Degrees of freedom', sig(r.df, 5)], ['p-value', pFull(r.p)], [`Difference (${A} − ${B})`, f3(r.est)], [`${confTxt()} CI of the difference`, ciTxt(r.ci)], ["Cohen's d (pooled SD)", `${f3(r.d)} (${ciTxt(r.dCi)})`], ["Hedges' g", f3(r.g)], ['Standard error', f3(r.se)]];
+        const lv = H.levene([x, y]);
+        o.assume = [indep, swCheck(A, x), swCheck(B, y), test === 'welch'
+          ? ['Equal spread', 'good', `Not needed for Welch's test. (Levene, median: p = ${sig(lv.p, 3)}.)`]
+          : lv.p >= 0.05 ? ['Equal spread', 'good', `Levene's test (median) p = ${sig(lv.p, 3)}: no clear difference in spread.`] : ['Equal spread', 'warn', `Levene's test (median) p = ${sig(lv.p, 3)}: the spreads differ, so Welch's t test is safer.`]];
+      } else {
+        const r = H.mannWhitney(x, y, alt);
+        o.big = `U = ${f3(r.U1)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, alt === 'greater' ? `values in ${A} tend to be larger than in ${B}` : alt === 'less' ? `values in ${A} tend to be smaller than in ${B}` : `values in one group tend to be larger than in the other`, 'the groups are alike'), `Medians: ${A} ${sig(r.medians[0], 5)}, ${B} ${sig(r.medians[1], 5)}. A value from ${A} is larger than one from ${B} ${sig(r.cles * 100, 3)} % of the time (ties count half). Rank-biserial r = ${f3(r.rbc)}: ${rBand(r.rbc)}.`, pMeaning(r.p)];
+        o.facts = [[`U (for ${A})`, f3(r.U1)], [`U (for ${B})`, f3(r.U2)], ['p-value', pFull(r.p)], ['Method', r.exact ? 'Exact (no ties, 50 or fewer per group)' : 'Normal approximation, tie and continuity corrected'], ['Rank-biserial r', f3(r.rbc)], ['P(' + A + ' > ' + B + ')', sig(r.cles, 3)], ['Hodges-Lehmann shift', f3(r.hl)]];
+        if (!r.exact) o.facts.push(['z', f3(r.z)]);
+        o.assume = [indep, ['Shape', 'info', 'To read the result as a difference in medians, both groups should have a similar shape and spread; otherwise it compares the whole distributions.']];
+      }
+      if (extra) o.say.push(extra);
+      o.tables = [summary([A, B], [x, y])];
+      o.fig = strip([A, B], [x, y], 'Value');
+      return o;
+    }
+    if (test === 'paired-t' || test === 'wilcoxon') {
+      const p = pairsOf(box.value), [A, B] = p.names, dd = p.a.map((v, i) => v - p.b[i]);
+      const extra = p.dropped ? `${p.dropped} row${p.dropped > 1 ? 's' : ''} with a missing value left out.` : '';
+      if (test === 'paired-t') {
+        const r = H.tPaired(p.a, p.b, alt, conf);
+        o.big = `t(${r.df}) = ${f3(r.t)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, alt === 'greater' ? `${A} is higher than ${B}` : alt === 'less' ? `${A} is lower than ${B}` : `${A} and ${B} differ on average`, 'there is no change'), `The mean difference (${A} − ${B}) is ${f3(r.est)} (${confTxt()} CI ${ciTxt(r.ci)}), over ${dd.length} pairs. Effect size dz = ${f3(r.d)}: ${dBand(r.d)} by Cohen's guide.`, pMeaning(r.p)];
+        o.facts = [['t', f3(r.t)], ['Degrees of freedom', String(r.df)], ['p-value', pFull(r.p)], ['Mean difference', f3(r.est)], [`${confTxt()} CI`, ciTxt(r.ci)], ['SD of differences', f3(r.sds[2])], ['Cohen\'s dz', `${f3(r.d)} (${ciTxt(r.dCi)})`], ["Hedges' gz", f3(r.g)]];
+        o.assume = [['Pairs', 'info', 'Each row is one subject (or matched pair); different rows are independent.'], swCheck('Differences', dd)];
+      } else {
+        const r = H.wilcoxon(dd, alt);
+        o.big = `W = ${f3(r.W)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, alt === 'greater' ? `${A} tends to be higher than ${B}` : alt === 'less' ? `${A} tends to be lower than ${B}` : `${A} and ${B} differ`, 'there is no change'), `The median difference (${A} − ${B}) is ${f3(r.median)}. Matched-pairs rank-biserial r = ${f3(r.rbc)}: ${rBand(r.rbc)}.`, pMeaning(r.p)];
+        o.facts = wxFacts(r);
+        o.assume = [['Pairs', 'info', 'Each row is one subject (or matched pair); different rows are independent.'], ['Symmetric', 'info', 'The differences should be roughly symmetric about their median.']];
+        if (r.zeros) o.assume.push(['Zeros', 'info', `${r.zeros} pair${r.zeros > 1 ? 's' : ''} with no change left out, as scipy does by default.`]);
+      }
+      if (extra) o.say.push(extra);
+      o.tables = [summary([A, B, `${A} − ${B}`], [p.a, p.b, dd])];
+      o.fig = strip([`${A} − ${B}`], [dd], `Difference (${A} − ${B})`, [{ kind: 'hline', at: 0, label: 'no change' }]);
+      return o;
+    }
+    if (test === 'anova' || test === 'kw') {
+      const g = groupsOf(box.value);
+      if (g.groups.length < 2) throw new Error('Paste at least two groups: one column per group, or group names next to the values.');
+      const { names, groups } = g;
+      if (test === 'anova') {
+        const r = H.anova(groups), tk = H.tukey(groups, conf), lv = H.levene(groups);
+        o.big = `F(${r.df1}, ${r.df2}) = ${f3(r.F)}, ${pBig(r.p)}`;
+        const sigPairs = tk.rows.filter((t) => t.p < a).map((t) => `${names[t.j]} − ${names[t.i]} = ${f3(t.diff)} (p = ${pFull(t.p)})`);
+        o.say = [verdict(r.p, a, 'at least one group mean differs from the others', 'all the means are equal'), `η² = ${f3(r.eta2)}: the groups explain ${sig(r.eta2 * 100, 3)} % of the variation (${eBand(r.eta2)} by Cohen's guide). ω² = ${f3(r.omega2)} is the less biased version.`,
+          sigPairs.length ? `Tukey's HSD finds these pairs differ: ${sigPairs.join('; ')}.` : `Tukey's HSD finds no pair that differs at α = ${a}.`, pMeaning(r.p)];
+        o.facts = [['F', f3(r.F)], ['Degrees of freedom', `${r.df1}, ${r.df2}`], ['p-value', pFull(r.p)], ['η² (eta squared)', f3(r.eta2)], ['ω² (omega squared)', f3(r.omega2)], ["Cohen's f", f3(r.f)], ['Mean square error', f3(r.msw)], ['Tukey critical q', f3(tk.qcrit)]];
+        o.tables = [summary(names, groups), { title: `Tukey HSD (${confTxt()} family-wise intervals)`, head: ['Pair', 'Difference', 'Lower', 'Upper', 'p (adjusted)', `Differ at ${a}?`], rows: tk.rows.map((t) => [`${names[t.j]} − ${names[t.i]}`, f3(t.diff), f3(t.lo), f3(t.hi), pFull(t.p), t.p < a ? 'yes' : 'no']), sig: (i) => tk.rows[i].p < a },
+          { title: 'ANOVA table', head: ['Source', 'Sum of squares', 'df', 'Mean square', 'F', 'p'], rows: [['Between groups', f3(r.ssb), String(r.df1), f3(r.ssb / r.df1), f3(r.F), pFull(r.p)], ['Within groups', f3(r.ssw), String(r.df2), f3(r.msw), '', ''], ['Total', f3(r.ssb + r.ssw), String(r.df1 + r.df2), '', '', '']] }];
+        o.assume = [indep, ...groups.map((x, i) => swCheck(names[i], x)), lv.p >= 0.05 || !Number.isFinite(lv.p) ? ['Equal spread', 'good', `Levene's test (median) p = ${sig(lv.p, 3)}: no clear difference in spread.`] : ['Equal spread', 'warn', `Levene's test (median) p = ${sig(lv.p, 3)}: the spreads differ; treat the result with care or use Kruskal-Wallis.`]];
+      } else {
+        const r = H.kruskal(groups);
+        o.big = `H(${r.df}) = ${f3(r.H)}, ${pBig(r.p)}`;
+        o.say = [verdict(r.p, a, 'at least one group tends to have larger values than another', 'the groups are alike'), `ε² = ${f3(r.eps2)} (${eBand(r.eps2)}). To find which groups differ, compare pairs with the Mann-Whitney test and adjust for several comparisons (for example Bonferroni: α divided by the number of pairs).`, pMeaning(r.p)];
+        o.facts = [['H (tie corrected)', f3(r.H)], ['Degrees of freedom', String(r.df)], ['p-value', pFull(r.p)], ['ε² (epsilon squared)', f3(r.eps2)], ['η²H', f3(r.eta2H)]];
+        o.tables = [{ ...summary(names, groups), head: ['Group', 'n', 'Median', 'Mean rank', 'Mean', 'SD'], rows: groups.map((x, i) => [names[i], String(x.length), sig(r.medians[i], 5), sig(r.meanRanks[i], 4), sig(H.meanOf(x), 5), x.length > 1 ? sig(Math.sqrt(H.varOf(x)), 4) : '–']) }];
+        o.assume = [indep, ['Shape', 'info', 'Read as a difference in medians only when the groups have similar shapes; otherwise it compares whole distributions.']];
+      }
+      if (g.note) o.say.push(g.note);
+      o.fig = strip(names, groups, 'Value', [], test === 'anova');
+      return o;
+    }
+    if (test === 'chi-gof') {
+      const g = gofOf(box.value), r = H.chiGof(g.obs, g.exp);
+      o.big = `χ²(${r.df}) = ${f3(r.chi2)}, ${pBig(r.p)}`;
+      o.say = [verdict(r.p, a, 'the counts do not follow the expected shares', 'the counts follow them'), `Cohen's w = ${f3(r.w)} (${rBand(r.w)}). ${g.exp ? '' : 'No expected shares were given, so every category is expected to be equal. '}The table shows where the counts are furthest from expected: residuals beyond ±2 stand out.`, pMeaning(r.p)];
+      o.facts = [['χ²', f3(r.chi2)], ['Degrees of freedom', String(r.df)], ['p-value', pFull(r.p)], ['Total count', sig(r.N, 8)], ["Cohen's w", f3(r.w)], ['Smallest expected count', f3(r.minExp)]];
+      o.tables = [{ title: 'Observed and expected', head: ['Category', 'Observed', 'Expected', 'Expected share', 'Residual'], rows: g.names.map((n, i) => [n, sig(g.obs[i], 8), f3(r.exp[i]), `${sig((r.exp[i] / r.N) * 100, 3)} %`, f3(r.resid[i])]), sig: (i) => Math.abs(r.resid[i]) > 2 }];
+      o.assume = [['Independent', 'info', 'Each count is a separate subject or event, and each falls in exactly one category. Use counts, not percentages.'], r.minExp >= 5 ? ['Expected ≥ 5', 'good', `Every expected count is at least 5 (smallest ${f3(r.minExp)}).`] : ['Expected ≥ 5', 'warn', `An expected count is below 5 (${f3(r.minExp)}): the p-value may be off. Merge small categories if it makes sense.`]];
+      const xs = g.names.map((_, i) => i + 1);
+      o.fig = chartFigure({ h: 320, xLabel: 'Category', yLabel: 'Count', series: [{ name: 'Observed', x: xs, y: g.obs, mode: 'both', marker: 'circle', labels: g.names }, { name: 'Expected', x: xs, y: r.exp, mode: 'both', marker: 'open-square', dash: [5, 4] }], xMin: 0.5, xMax: g.names.length + 0.9, yMin: 0 }, 'Observed and expected counts per category');
+      return o;
+    }
+    if (test === 'chi-indep' || test === 'fisher') {
+      const t = tableOf(box.value), { T, rowNames, colNames } = t;
+      const r = H.chiIndep(T, q<HTMLInputElement>('.ht-yates').checked);
+      const tableRows = T.map((row, i) => [rowNames[i], ...row.map((v, j) => `${sig(v, 8)} (${sig(r.E[i][j], 3)})`)]);
+      o.tables = [{ title: 'Observed (expected) counts', head: ['', ...colNames], rows: tableRows }, { title: 'Adjusted residuals (beyond ±2 stand out)', head: ['', ...colNames], rows: r.adj.map((row, i) => [rowNames[i], ...row.map(f3)]) }];
+      const rowPct = T.map((row, i) => row.map((v) => (100 * v) / row.reduce((s, x) => s + x, 0)));
+      o.fig = chartFigure({ h: 320, xLabel: `${colNames.join(', ')} (columns 1 to ${colNames.length})`, yLabel: 'Row percentage (%)', series: rowPct.map((row, i) => ({ name: rowNames[i], x: row.map((_, j) => j + 1), y: row, mode: 'both' as const, labels: i === 0 ? colNames : undefined })), xMin: 0.6, xMax: colNames.length + 0.9, yMin: 0 }, 'Row percentages across the columns');
+      if (test === 'fisher') {
+        if (!(T.length === 2 && T.every((row) => row.length === 2))) throw new Error("Fisher's exact test here needs a 2 × 2 table. For bigger tables use the chi-square test.");
+        const f = H.fisher2x2(T, alt, conf);
+        o.big = `Odds ratio = ${f3(f.or)}, ${pBig(f.p)}`;
+        o.say = [verdict(f.p, a, alt === 'two-sided' ? `${colNames[0]} is more common in one row than the other` : alt === 'greater' ? `the odds of ${colNames[0]} are higher for ${rowNames[0]}` : `the odds of ${colNames[0]} are lower for ${rowNames[0]}`, 'the rows are alike'),
+          `${rowNames[0]}: ${sig(rowPct[0][0], 3)} % ${colNames[0]}; ${rowNames[1]}: ${sig(rowPct[1][0], 3)} %. The odds ratio is ${f3(f.or)} (${confTxt()} CI ${ciTxt(f.orCi)}${f.haldane ? ', with 0.5 added to every cell because one is zero' : ''}).`, pMeaning(f.p)];
+        o.facts = [['p-value', pFull(f.p)], ['Odds ratio', f3(f.or)], [`${confTxt()} CI (Woolf)`, ciTxt(f.orCi)], ['Total', sig(f.N, 8)], ['Alternative', alt === 'two-sided' ? 'two-sided' : `odds ratio ${alt === 'greater' ? '> 1' : '< 1'}`]];
+        o.assume = [['Independent', 'info', 'Each subject is counted once, in one cell.'], ['Small counts', 'good', 'Exact: fine for small counts. It treats the row and column totals as fixed, which makes it a little conservative.']];
+        return o;
+      }
+      o.big = `χ²(${r.df}) = ${f3(r.chi2)}, ${pBig(r.p)}`;
+      const dfm = Math.min(T.length, T[0].length) - 1;
+      o.say = [verdict(r.p, a, 'the two variables are related (the row percentages differ between rows)', 'they are unrelated'), `Cramér's V = ${f3(r.V)} (${band(r.V * Math.sqrt(dfm), [0.1, 0.3, 0.5])} for a table this size). ${r.yates ? 'Yates continuity correction is on, as scipy does for a 2 × 2 table.' : ''}`.trim(), pMeaning(r.p)];
+      o.facts = [['χ²', f3(r.chi2)], ['Degrees of freedom', String(r.df)], ['p-value', pFull(r.p)], ["Cramér's V", f3(r.V)], ['Total', sig(r.N, 8)], ['Smallest expected count', f3(r.minExp)]];
+      if (r.yates) o.facts.push(['χ² without correction', f3(r.chi2Pearson)]);
+      const lowOk = r.minExp >= 1 && r.lowExp <= 0.2;
+      o.assume = [['Independent', 'info', 'Each subject is counted once, in one cell. Use counts, not percentages.'], lowOk ? ['Expected counts', 'good', `At most 20 % of expected counts are below 5 and none below 1 (smallest ${f3(r.minExp)}).`] : ['Expected counts', 'warn', `Some expected counts are small (smallest ${f3(r.minExp)}): ${T.length === 2 && T[0].length === 2 ? "use Fisher's exact test" : 'merge categories'}.`]];
+      return o;
+    }
+    // Shapiro-Wilk on each column.
+    const g = groupsOf(box.value), rows: string[][] = [], res = g.groups.map((x) => H.shapiroWilk(x));
+    res.forEach((r, i) => rows.push([g.names[i], String(r.n), sig(r.W, 4), pFull(r.p), r.p < a ? 'not normal' : 'no clear departure']));
+    const r0 = res[0];
+    o.big = g.groups.length === 1 ? `W = ${f3(r0.W)}, ${pBig(r0.p)}` : `${res.filter((r) => r.p < a).length} of ${res.length} columns not normal`;
+    o.say = [g.groups.length === 1 ? verdict(r0.p, a, 'the data do not come from a normal distribution', 'they are normal') : `Each column is tested on its own. ${rows.filter((r) => r[4] === 'not normal').map((r) => r[0]).join(', ') || 'None'} ${res.filter((r) => r.p < a).length === 1 ? 'looks' : 'look'} not normal at α = ${a}.`,
+      'Read this with the Q-Q plot: points near the straight line mean normal. With small samples the test misses real departures; with thousands of values it flags tiny ones that do not matter for a t test.'];
+    o.facts = [['W', f3(r0.W)], ['p-value', pFull(r0.p)], ['n', String(r0.n)], ['Method', 'Royston (1995), as scipy and R']];
+    o.tables = [{ title: 'Shapiro-Wilk per column', head: ['Column', 'n', 'W', 'p', `At α = ${a}`], rows, sig: (i) => res[i].p < a }];
+    o.assume = [['Independent', 'info', 'Values are independent of each other.'], ['Size', 'info', 'Works for 3 to 5,000 values.']];
+    const series = g.groups.map((x, i) => { const s = [...x].sort((u, v) => u - v), n = s.length; return { name: g.names[i], x: s.map((_, j) => normInv((j + 1 - 0.375) / (n + 0.25))), y: s, mode: 'points' as const }; });
+    const x0 = g.groups[0], m0 = H.meanOf(x0), s0 = Math.sqrt(H.varOf(x0)), zl = series[0].x;
+    series.push({ name: `Normal line (${g.names[0]})`, x: [zl[0], zl[zl.length - 1]], y: [m0 + s0 * zl[0], m0 + s0 * zl[zl.length - 1]], mode: 'line' as any } as any);
+    o.fig = chartFigure({ h: 340, xLabel: 'Normal quantile', yLabel: 'Value', series }, 'Normal Q-Q plot');
+    return o;
+  }
+  function wxFacts(r: ReturnType<typeof H.wilcoxon>): [string, string][] {
+    const f: [string, string][] = [['W (smaller rank sum)', f3(r.W)], ['p-value', pFull(r.p)], ['Positive rank sum T+', f3(r.Tp)], ['Negative rank sum T−', f3(r.Tm)], ['Non-zero differences', String(r.n)], ['Method', r.exact ? 'Exact (no ties, 50 or fewer)' : 'Normal approximation, tie corrected'], ['Rank-biserial r', f3(r.rbc)]];
+    if (!r.exact) f.push(['z', f3(r.z)]);
+    return f;
+  }
+  function summary(names: string[], groups: number[][]) {
+    return { title: 'Summary', head: ['Group', 'n', 'Mean', 'SD', 'Median', 'Min', 'Max'], rows: groups.map((x, i) => [names[i], String(x.length), sig(H.meanOf(x), 5), x.length > 1 ? sig(Math.sqrt(H.varOf(x)), 4) : '–', sig(H.medianOf(x), 5), sig(Math.min(...x), 5), sig(Math.max(...x), 5)]) };
+  }
+
+  function show(o: Out, test: string) {
+    q('.ht-name').textContent = NAME[test];
+    q('.ht-big').textContent = o.big;
+    q('.ht-say').replaceChildren(...o.say.map((s) => { const p = document.createElement('p'); p.textContent = s; return p; }));
+    q('.ht-facts').replaceChildren(...o.facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+    q('.ht-tables').replaceChildren(...o.tables.map((t) => {
+      const wrap = document.createElement('div'), h = document.createElement('h3'), sc = document.createElement('div'), tb = document.createElement('table');
+      h.textContent = t.title; sc.className = 'ax-scroll'; tb.className = 'ht-tab';
+      const hr = tb.createTHead().insertRow(); t.head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; hr.append(th); });
+      const b = tb.createTBody(); t.rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x) => { const td = tr.insertCell(); td.textContent = x; if (t.sig?.(ri)) td.className = 'ht-sig'; }); });
+      sc.append(tb); wrap.append(h, sc); return wrap;
+    }));
+    q('.ht-assume').replaceChildren(...o.assume.map(([k, c, t]) => { const li = document.createElement('li'), s = document.createElement('span'), x = document.createElement('span'); s.className = `ax-pill ${c === 'info' ? '' : c}`; s.textContent = k; x.textContent = t; li.append(s, x); return li; }));
+    fig = o.fig;
+    q('.ht-fig').hidden = !fig;
+    if (fig) paint(q<HTMLCanvasElement>('.ht-fig'), fig);
+    report = [{ title: NAME[test], text: [o.big, ...o.say], facts: o.facts, figure: fig ?? undefined }, ...o.tables.map((t) => ({ title: t.title, table: { head: t.head, rows: t.rows } })), { title: 'Assumptions', facts: o.assume.map(([k, , t]) => [k, t] as [string, string]) }];
+    csvRows = [['Test', NAME[test]], ['Result', o.big], ...o.facts, ...o.tables.flatMap((t) => [[], [t.title], t.head, ...t.rows])];
+  }
+
+  function calc() {
+    const counts = sel('.ht-kind') === 'counts';
+    q('.ht-dl').hidden = counts; q('.ht-cl').hidden = !counts; q('.ht-nl').hidden = counts || sel('.ht-design') === 'normal';
+    const picked = sel('.ht-test');
+    // Swap in the matching example while the box still holds an untouched example.
+    const designKey = counts ? sel('.ht-cdesign') : sel('.ht-design');
+    const wantKey = picked === 'auto' ? designKey : KEY[picked];
+    if (wantKey !== shownKey && (box.value.trim() === '' || Object.values(EX).includes(box.value))) {
+      box.value = EX[wantKey]; shownKey = wantKey;
+      if (wantKey === 'one') q<HTMLInputElement>('.ht-mu').value = '250';
+    }
+    const rec = recommend(), test = picked === 'auto' ? rec.test : picked;
+    q('.ht-rec').textContent = picked === 'auto' ? `Recommended: ${rec.why}` : test === rec.test ? `You picked ${NAME[test]}, which matches your answers.` : `You picked ${NAME[test]}. Your answers point to ${NAME[rec.test]}: ${rec.why}`;
+    q('.ht-how').textContent = HOW[KEY[test]];
+    q('.ht-mul').hidden = !['one-t', 'wilcoxon-1'].includes(test);
+    q('.ht-altl').hidden = ['anova', 'kw', 'chi-gof', 'chi-indep', 'shapiro'].includes(test);
+    q('.ht-confl').hidden = ['kw', 'chi-gof', 'chi-indep', 'shapiro', 'mw', 'wilcoxon', 'wilcoxon-1'].includes(test);
+    q('.ht-yl').hidden = test !== 'chi-indep';
+    const err = q('.ht-err');
+    try {
+      const o = run(test);
+      err.hidden = true; q('.ht-out').hidden = false;
+      show(o, test);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ht-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  let tmr = 0;
+  root.addEventListener('input', () => { clearTimeout(tmr); tmr = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if (!(e.target as HTMLElement).matches('.ht-data')) calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ht-fig'), fig));
+  q('.ht-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'hypothesis-test.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: q('.ht-name').textContent ?? 'Hypothesis test', subtitle: q('.ht-big').textContent ?? '', file: 'hypothesis-test', sections: report }));
+  calc();
+</script>

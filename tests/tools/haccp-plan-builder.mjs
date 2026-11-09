@@ -43,6 +43,6 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(S + '.hc-big')) === '0 steps, 0 hazards, 0 CCPs' && (await page.inputValue(S + '.hc-p[data-k=name]')) === '', 'haccp: start again');
   await page.reload(); await page.waitForTimeout(400);
   check((await page.inputValue(S + '.hc-p[data-k=name]')) === '', 'haccp: nothing comes back after clearing');
-  await page.click(S + '.hc-ex'); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.locator('.hacc').screenshot({ path: OUT + 'haccp-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click(S + '.hc-ex'); const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.locator('.hacc').screenshot({ path: OUT + 'haccp-375.png' }); await page.setViewportSize(vp0);
 };

@@ -1,0 +1,442 @@
+---
+// Graph editor with algorithms: draw a graph or paste an edge list, then run shortest paths, searches, spanning
+// trees, maximum flow, colouring, centrality or a topological order, highlighted on the drawing. All in the
+// browser; the maths is in src/lib/sci/graph.ts. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gra">
+  <div class="ax-card">
+    <h2>Graph</h2>
+    <div class="ax-grid">
+      <label>Example <select class="ga-ex">
+        <option value="road">Road network (weighted)</option>
+        <option value="flow">Pipe network (directed, capacities)</option>
+        <option value="dag">Task plan (directed)</option>
+        <option value="empty">Start empty</option>
+      </select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ga-dir" /> Directed (each edge goes one way: from → to)</label>
+    <label style="margin-top:10px">Edge list: one edge per line as <i>from to weight</i> (weight optional, 1 if left out) <textarea class="ga-in" rows="6" spellcheck="false" autocomplete="off"></textarea></label>
+    <DataFile target=".ga-in" maxMB={2} maxCols={3} maxRows={20000} label="Open an edge list file" />
+    <p class="ax-help">A line with one name adds a node with no edges. Spaces, tabs, commas or "A -> B" all work. Up to 2,000 nodes and 20,000 edges; the drawing shows up to 300 nodes.</p>
+    <p class="ax-err ga-err" hidden></p>
+    <p class="ax-help ga-note" hidden></p>
+
+    <h3>Drawing</h3>
+    <div class="ax-row">
+      <div class="ax-seg ga-mode" role="group" aria-label="What a tap on the drawing does">
+        <button type="button" data-m="move" aria-pressed="true">Move</button>
+        <button type="button" data-m="node" aria-pressed="false">Add node</button>
+        <button type="button" data-m="edge" aria-pressed="false">Add edge</button>
+        <button type="button" data-m="del" aria-pressed="false">Delete</button>
+      </div>
+      <label class="ga-wl">New edge weight <input class="ga-w" type="number" step="any" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help ga-hint">Move: drag a node to tidy the picture.</p>
+    <div class="ga-wrap"><canvas class="ax-fig ga-cv"></canvas></div>
+    <div class="ax-legend ga-leg"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ga-tidy">Tidy the layout</button></div>
+  </div>
+
+  <div class="ax-card ga-out" hidden>
+    <h2>Algorithm</h2>
+    <div class="ax-grid">
+      <label>Run <select class="ga-alg">
+        <option value="dijkstra">Shortest path (Dijkstra)</option>
+        <option value="bellman">Shortest path (Bellman-Ford, negative weights)</option>
+        <option value="bfs">Breadth-first search</option>
+        <option value="dfs">Depth-first search</option>
+        <option value="kruskal">Minimum spanning tree (Kruskal)</option>
+        <option value="prim">Minimum spanning tree (Prim)</option>
+        <option value="flow">Maximum flow and minimum cut</option>
+        <option value="largest">Colouring (greedy, largest degree first)</option>
+        <option value="dsatur">Colouring (DSatur)</option>
+        <option value="central">Centrality (degree, betweenness, closeness)</option>
+        <option value="topo">Topological order</option>
+      </select></label>
+      <label class="ga-sl"><span class="ga-sn">Start</span> <select class="ga-s"></select></label>
+      <label class="ga-tl"><span class="ga-tn">End</span> <select class="ga-t"></select></label>
+      <label class="ga-ml">Highlight <select class="ga-m">
+        <option value="btw">Betweenness</option>
+        <option value="clo">Closeness</option>
+        <option value="deg">Degree</option>
+      </select></label>
+    </div>
+    <p class="ax-help ga-about"></p>
+    <p class="ax-big ga-big" aria-live="polite"></p>
+    <p class="ax-err ga-aerr" hidden></p>
+    <dl class="ax-facts ga-facts"></dl>
+    <div class="ax-scroll ga-tw" style="margin-top:12px"><table class="ga-tab"></table></div>
+    <p class="ax-help ga-tnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ga-csv">Download the table (CSV)</button><button type="button" class="btn secondary small ga-txt">Download the edge list</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .gra h3 { margin: 18px 0 8px; font-size: 15px; }
+  .gra .ga-wl { grid-auto-flow: column; align-items: center; gap: 8px; }
+  .gra .ga-wl input { width: 90px; }
+  .gra .ga-wrap { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .gra .ga-cv { touch-action: none; cursor: grab; border-radius: 0; }
+  .gra .ga-cv.add { cursor: crosshair; }
+  .gra .ga-tw { max-height: 460px; overflow-y: auto; }
+</style>
+
+<script>
+  import * as G from '../../lib/sci/graph';
+  import { sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, pagePalette, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gra')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.ga-in'), cv = q<HTMLCanvasElement>('.ga-cv');
+  const MAX_DRAW = 300, MAX_ROWS = 500;
+  const COLS_LIGHT = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#F0E442'];
+  const COLS_DARK = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+  const EXAMPLES: Record<string, { text: string; dir: boolean; alg: string; s: string; t: string }> = {
+    road: { text: G.EXAMPLE, dir: false, alg: 'dijkstra', s: 'A', t: 'G' },
+    flow: { text: G.EXAMPLE_FLOW, dir: true, alg: 'flow', s: 'S', t: 'T' },
+    dag: { text: G.EXAMPLE_DAG, dir: true, alg: 'topo', s: 'Plan', t: 'Release' },
+    empty: { text: '', dir: false, alg: 'dijkstra', s: '', t: '' },
+  };
+  const NEEDS: Record<string, [string, string] | [string] | []> = {
+    dijkstra: ['Start', 'End'], bellman: ['Start', 'End'], bfs: ['Start'], dfs: ['Start'], prim: ['Start'], flow: ['Source', 'Sink'],
+    kruskal: [], largest: [], dsatur: [], central: [], topo: [],
+  };
+  const ABOUT: Record<string, string> = {
+    dijkstra: 'The shortest route from the start to every node, adding up edge weights (weights must be 0 or more).',
+    bellman: 'Shortest routes that may use negative weights; it also finds a negative cycle, where no shortest route exists.',
+    bfs: 'Visits nodes in rings: first the start’s neighbours, then theirs. Level = number of edges from the start.',
+    dfs: 'Goes as deep as it can before backing up. Discovered and finished are the steps when a node is first reached and left.',
+    kruskal: 'The cheapest set of edges that joins every node, adding the lightest edges first and skipping any that make a loop.',
+    prim: 'The cheapest set of edges that joins every node, grown outwards from the start by the lightest edge each time.',
+    flow: 'The most that can flow from source to sink when each edge’s weight is its capacity. The minimum cut is the weakest set of edges that, if removed, stops all flow; its capacity equals the maximum flow.',
+    largest: 'Gives each node the lowest colour its neighbours do not use, starting with the nodes with most neighbours.',
+    dsatur: 'Colours next the node whose neighbours already use the most colours (ties: most neighbours). Often needs fewer colours.',
+    central: 'Degree: share of other nodes it touches. Betweenness: share of shortest routes passing through it. Closeness: how near it is to the rest.',
+    topo: 'An order of the nodes where every edge points forwards, such as tasks after the tasks they depend on.',
+  };
+
+  type Hl = { edges: Map<number, 'path' | 'tree' | 'cut' | 'cycle' | 'flow'>; edgeText?: string[]; tag?: (string | null)[]; fill?: (number | null)[]; size?: number[]; side?: boolean[]; s?: number; t?: number; leg: [string, string][] };
+  type Res = { big: string; facts: [string, string][]; head: string[]; rows: string[][]; note?: string; hl: Hl; err?: string };
+
+  let g: G.Graph | null = null, res: Res | null = null, mode = 'move', sel = -1, drag = -1, dragMoved = false;
+  const pos = new Map<string, [number, number]>();
+
+  const pal = () => pagePalette();
+  const fmt = (x: number) => (Number.isFinite(x) ? sig(x, 6) : 'unreachable');
+  const name = (i: number) => g!.names[i];
+
+  // ---------- reading and laying out ----------
+  function read(): boolean {
+    const err = q('.ga-err'), note = q('.ga-note'); err.hidden = true; note.hidden = true;
+    try { g = G.parseGraph(box.value, q<HTMLInputElement>('.ga-dir').checked, 2000, 20000); }
+    catch (e) { g = null; err.textContent = (e as Error).message; err.hidden = false; return false; }
+    if (g.notes.length) { note.textContent = g.notes.join(' '); note.hidden = false; }
+    // Place nodes that have no position yet, around the ones that do.
+    const n = g.names.length;
+    if (n <= MAX_DRAW && g.names.some((s) => !pos.has(s))) {
+      const fixed = g.names.map((s) => pos.get(s) ?? null);
+      const out = G.layout(n, g.edges, fixed.some(Boolean) ? fixed : []);
+      g.names.forEach((s, i) => { if (!pos.has(s)) pos.set(s, out[i]); });
+    }
+    return true;
+  }
+
+  function fillSelect(sel: HTMLSelectElement, want: string) {
+    const names = g?.names ?? [], keep = names.includes(sel.value) ? sel.value : names.includes(want) ? want : '';
+    sel.replaceChildren(...names.slice(0, 2000).map((s) => new Option(s, s)));
+    if (keep) sel.value = keep;
+  }
+
+  // ---------- running the chosen algorithm ----------
+  function compute(): Res {
+    const gr = g!, n = gr.names.length, alg = q<HTMLSelectElement>('.ga-alg').value;
+    const s = Math.max(0, gr.names.indexOf(q<HTMLSelectElement>('.ga-s').value)), t = Math.max(0, gr.names.indexOf(q<HTMLSelectElement>('.ga-t').value));
+    const hl: Hl = { edges: new Map(), leg: [] };
+    const base = (big: string, facts: [string, string][], head: string[], rows: string[][], note?: string): Res => ({ big, facts, head, rows, note, hl });
+    const fail = (msg: string): Res => ({ big: '', facts: [], head: [], rows: [], hl, err: msg });
+    if (!n) return fail('Add some nodes and edges first.');
+    const ignoreDir = gr.directed ? ' Direction is ignored for this one.' : '';
+    switch (alg) {
+      case 'dijkstra': case 'bellman': {
+        let p: G.Paths & { cycle?: number[] | null };
+        try { p = alg === 'dijkstra' ? G.dijkstra(gr, s) : G.bellmanFord(gr, s); } catch (e) { return fail((e as Error).message); }
+        hl.s = s; hl.t = t;
+        if (p.cycle) {
+          const cyc = p.cycle;
+          cyc.forEach((u, i) => { const v = cyc[(i + 1) % cyc.length]; const k = gr.edges.findIndex((e) => (e.u === u && e.v === v) || (!gr.directed && e.u === v && e.v === u)); if (k >= 0) hl.edges.set(k, 'cycle'); });
+          hl.leg = [['bad', 'Negative cycle']];
+          const len = cyc.reduce((sum, u, i) => { const v = cyc[(i + 1) % cyc.length]; const e = gr.edges.find((e) => (e.u === u && e.v === v) || (!gr.directed && e.u === v && e.v === u)); return sum + (e?.w ?? 0); }, 0);
+          return { ...fail(`There is a negative cycle (${cyc.map(name).join(' → ')} → ${name(cyc[0])}, total ${sig(gr.directed ? len : 2 * len, 6)}${gr.directed ? '' : ', there and back'}), so going round it again and again makes any route shorter: no shortest path exists.${gr.directed ? '' : ' In an undirected graph every negative edge is such a cycle.'}`), hl };
+        }
+        const path = G.pathTo(p, s, t);
+        p.prevEdge.forEach((k) => { if (k >= 0) hl.edges.set(k, 'tree'); });
+        for (let i = 0; i + 1 < path.length; i++) hl.edges.set(p.prevEdge[path[i + 1]], 'path');
+        hl.tag = p.dist.map((d) => (Number.isFinite(d) ? sig(d, 5) : '∞'));
+        hl.leg = [['accent', `Shortest path ${name(s)} → ${name(t)}`], ['line', 'Shortest-path tree'], ['tag', 'Distance from ' + name(s)]];
+        const reach = p.dist.filter(Number.isFinite).length;
+        const big = s === t ? `Start and end are both ${name(s)}: distance 0` : path.length ? `Shortest path ${name(s)} → ${name(t)}: ${sig(p.dist[t], 6)} (${path.map(name).join(' → ')})` : `${name(t)} cannot be reached from ${name(s)}`;
+        const rows = gr.names.map((_, i) => i).sort((a, b) => p.dist[a] - p.dist[b] || a - b).map((i) => [name(i), fmt(p.dist[i]), p.prev[i] >= 0 ? name(p.prev[i]) : '', Number.isFinite(p.dist[i]) ? G.pathTo(p, s, i).map(name).join(' → ') : '']);
+        return base(big, [['Edges on the path', path.length ? String(path.length - 1) : '–'], ['Reached from ' + name(s), `${reach} of ${n} nodes`], ['Method', alg === 'dijkstra' ? 'Dijkstra' : 'Bellman-Ford']], ['Node', 'Distance', 'Previous', 'Path from ' + name(s)], rows, gr.weighted ? undefined : 'No weights were given, so each edge counts 1.');
+      }
+      case 'bfs': case 'dfs': {
+        hl.s = s;
+        if (alg === 'bfs') {
+          const r = G.bfs(gr, s); r.treeEdges.forEach((k) => hl.edges.set(k, 'path'));
+          const ord = new Array(n).fill(null); r.order.forEach((v, k) => (ord[v] = String(k + 1))); hl.tag = ord;
+          hl.leg = [['accent', 'Search tree'], ['tag', 'Visit order']];
+          return base(`Breadth-first order from ${name(s)}: ${r.order.map(name).join(', ')}`, [['Reached', `${r.order.length} of ${n} nodes`], ['Levels', String(Math.max(...r.level))]], ['Order', 'Node', 'Level', 'Reached from'], r.order.map((v, k) => [String(k + 1), name(v), String(r.level[v]), r.parent[v] >= 0 ? name(r.parent[v]) : '']), r.order.length < n ? `${n - r.order.length} node(s) cannot be reached from ${name(s)}.` : undefined);
+        }
+        const r = G.dfs(gr, s); r.treeEdges.forEach((k) => hl.edges.set(k, 'path'));
+        const ord = new Array(n).fill(null); r.order.forEach((v, k) => (ord[v] = String(k + 1))); hl.tag = ord;
+        hl.leg = [['accent', 'Search tree'], ['tag', 'Visit order']];
+        return base(`Depth-first order from ${name(s)}: ${r.order.map(name).join(', ')}`, [['Reached', `${r.order.length} of ${n} nodes`], ['Finishing order', r.post.slice(0, 30).map(name).join(', ') + (r.post.length > 30 ? ' …' : '')]], ['Order', 'Node', 'Discovered', 'Finished', 'Reached from'], r.order.map((v, k) => [String(k + 1), name(v), String(r.disc[v]), String(r.fin[v]), r.parent[v] >= 0 ? name(r.parent[v]) : '']), r.order.length < n ? `${n - r.order.length} node(s) cannot be reached from ${name(s)}.` : undefined);
+      }
+      case 'kruskal': case 'prim': {
+        const r = alg === 'kruskal' ? G.kruskal(gr) : G.prim(gr, s);
+        if (alg === 'prim') hl.s = s;
+        const key = (e: G.Edge) => (e.u < e.v ? `${e.u} ${e.v}` : `${e.v} ${e.u}`), inTree = new Set(r.edges.map(key));
+        gr.edges.forEach((e, k) => { if (inTree.has(key(e))) hl.edges.set(k, 'path'); });
+        hl.leg = [['accent', 'Spanning tree edges']];
+        const forest = r.components > 1 ? ` The graph has ${r.components} separate pieces, so this is a spanning forest (one tree per piece).` : '';
+        return base(`Minimum spanning ${r.components > 1 ? 'forest' : 'tree'}: total weight ${sig(r.total, 8)} (${r.edges.length} edges)`, [['Total weight', sig(r.total, 8)], ['Edges', String(r.edges.length)], ['Pieces', String(r.components)]], ['Added', 'Edge', 'Weight'], r.edges.map((e, k) => [String(k + 1), `${name(e.u)} – ${name(e.v)}`, sig(e.w, 8)]), (forest + ignoreDir).trim() || undefined);
+      }
+      case 'flow': {
+        if (s === t) return fail('Choose a different source and sink.');
+        let r: ReturnType<typeof G.maxFlow>;
+        try { r = G.maxFlow(gr, s, t); } catch (e) { return fail((e as Error).message); }
+        hl.s = s; hl.t = t; hl.side = r.source;
+        const cut = new Set(r.cut);
+        hl.edgeText = gr.edges.map((e, k) => `${sig(Math.abs(r.edgeFlow[k]), 5)}/${sig(e.w, 5)}`);
+        gr.edges.forEach((_, k) => { if (cut.has(k)) hl.edges.set(k, 'cut'); else if (Math.abs(r.edgeFlow[k]) > 1e-12) hl.edges.set(k, 'flow'); });
+        hl.leg = [['accent', 'Carries flow (flow/capacity)'], ['bad', 'Minimum cut'], ['soft', 'Source side of the cut']];
+        const dirText = (k: number) => { const e = gr.edges[k], f = r.edgeFlow[k]; return f < 0 ? `${name(e.v)} → ${name(e.u)}` : gr.directed ? `${name(e.u)} → ${name(e.v)}` : f > 0 ? `${name(e.u)} → ${name(e.v)}` : `${name(e.u)} – ${name(e.v)}`; };
+        return base(`Maximum flow ${name(s)} → ${name(t)}: ${sig(r.value, 8)}`, [['Minimum cut capacity', sig(r.cutCapacity, 8)], ['Cut edges', r.cut.map((k) => `${name(gr.edges[k].u)}–${name(gr.edges[k].v)}`).join(', ') || 'none'], ['Source side', gr.names.filter((_, i) => r.source[i]).slice(0, 40).join(', ')]], ['Edge', 'Capacity', 'Flow', 'In the minimum cut'], gr.edges.map((e, k) => [dirText(k), sig(e.w, 8), sig(Math.abs(r.edgeFlow[k]), 8), cut.has(k) ? 'yes' : '']), gr.directed ? 'Edge weights are capacities.' : 'Edge weights are capacities; an undirected edge can carry flow either way.');
+      }
+      case 'largest': case 'dsatur': {
+        const r = G.colour(gr, alg), deg = G.undirected(gr).adj.map((a) => a.length);
+        hl.fill = r.colour; hl.tag = r.colour.map((c) => `c${c + 1}`);
+        hl.leg = Array.from({ length: Math.min(r.count, 8) }, (_, c) => [`col${c}`, `Colour ${c + 1}`] as [string, string]);
+        const step = new Array(n); r.order.forEach((v, k) => (step[v] = k + 1));
+        return base(`${r.count} colour${r.count === 1 ? '' : 's'}: no two neighbours share a colour`, [['Colours used', String(r.count)], ['Method', alg === 'largest' ? 'Greedy, largest degree first' : 'DSatur'], ['Most neighbours', String(Math.max(0, ...deg))]], ['Node', 'Neighbours', 'Colour', 'Coloured at step'], gr.names.map((_, i) => [name(i), String(deg[i]), String(r.colour[i] + 1), String(step[i])]), `Greedy methods give a valid colouring, not always the fewest colours possible.${ignoreDir}`);
+      }
+      case 'central': {
+        let bw: number[], cl: number[];
+        try { bw = G.betweenness(gr); cl = G.closeness(gr); } catch (e) { return fail((e as Error).message); }
+        const dc = G.degreeCentrality(gr), m = q<HTMLSelectElement>('.ga-m').value, v = m === 'btw' ? bw : m === 'clo' ? cl : dc;
+        const mx = Math.max(...v), best = v.indexOf(mx), label = m === 'btw' ? 'betweenness' : m === 'clo' ? 'closeness' : 'degree';
+        hl.size = v.map((x) => (mx > 0 ? x / mx : 0)); hl.tag = v.map((x) => sig(x, 3));
+        hl.leg = [['soft', `Darker and larger: higher ${label}`]];
+        const deg = gr.names.map((_, i) => (gr.directed ? `${gr.radj[i].length} in, ${gr.adj[i].length} out` : String(gr.adj[i].length)));
+        const order = gr.names.map((_, i) => i).sort((a, b) => v[b] - v[a] || a - b);
+        return base(`Most central by ${label}: ${name(best)} (${sig(mx, 4)})`, [['Highest degree', name(dc.indexOf(Math.max(...dc)))], ['Highest betweenness', name(bw.indexOf(Math.max(...bw)))], ['Highest closeness', name(cl.indexOf(Math.max(...cl)))]], ['Node', 'Edges', 'Degree', 'Betweenness', 'Closeness'], order.map((i) => [name(i), deg[i], sig(dc[i], 4), sig(bw[i], 4), sig(cl[i], 4)]), `All three are normalised to 0–1 as in networkx. ${gr.weighted ? 'Edge weights are used as lengths for betweenness and closeness.' : 'Every edge has length 1.'}${gr.directed ? ' For a directed graph, closeness counts routes into the node.' : ''}`);
+      }
+      case 'topo': {
+        if (!gr.directed) return fail('A topological order needs a directed graph: tick Directed above.');
+        const r = G.topoSort(gr);
+        if (r.cycle) {
+          const cyc = r.cycle;
+          cyc.forEach((u, i) => { const v = cyc[(i + 1) % cyc.length]; const k = gr.edges.findIndex((e) => e.u === u && e.v === v); if (k >= 0) hl.edges.set(k, 'cycle'); });
+          hl.leg = [['bad', 'Cycle']];
+          return { ...fail(`No topological order: the graph has a cycle (${cyc.map(name).join(' → ')} → ${name(cyc[0])}).`), hl };
+        }
+        const ord = new Array(n).fill(null); r.order.forEach((v, k) => (ord[v] = String(k + 1))); hl.tag = ord;
+        gr.edges.forEach((_, k) => hl.edges.set(k, 'path'));
+        hl.leg = [['tag', 'Position in the order']];
+        return base(`Topological order: ${r.order.map(name).join(' → ')}`, [['Nodes', String(n)], ['Edges', String(gr.edges.length)], ['Starts (nothing before them)', gr.names.filter((_, i) => !gr.radj[i].length).slice(0, 20).join(', ')]], ['Position', 'Node', 'Comes after'], r.order.map((v, k) => [String(k + 1), name(v), gr.radj[v].map((a) => name(a.to)).join(', ')]), 'When several nodes are ready, the one listed first in the edge list goes first.');
+      }
+    }
+    return fail('Unknown method.');
+  }
+
+  // ---------- drawing ----------
+  const legendColour = (k: string, p: Palette) => (k === 'accent' ? p.accent : k === 'bad' ? p.bad : k === 'line' ? p.muted : k === 'soft' ? p.accent : k === 'tag' ? p.accent2 : (p.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : p.bg === '#ffffff' ? COLS_LIGHT : COLS_DARK)[Number(k.slice(3)) % 8]);
+
+  function drawGraph(ctx: CanvasRenderingContext2D, W: number, H: number, p: Palette, interactive: boolean) {
+    const gr = g; if (!gr) return;
+    const n = gr.names.length;
+    if (n > MAX_DRAW) { ctx.fillStyle = p.muted; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${n} nodes: too many to draw (the drawing shows up to ${MAX_DRAW}).`, W / 2, H / 2); return; }
+    const pad = 28, X = (s: string) => pad + (pos.get(s)![0]) * (W - 2 * pad), Y = (s: string) => pad + (pos.get(s)![1]) * (H - 2 * pad);
+    const hl = res?.hl, cols = p.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : p.bg === '#ffffff' ? COLS_LIGHT : COLS_DARK;
+    const font = n > 60 ? 10 : 12;
+    ctx.font = `600 ${font}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const rad = gr.names.map((s, i) => { const base = Math.min(26, Math.max(n > 60 ? 7 : 12, ctx.measureText(s).width / 2 + 5)); return base + (hl?.size ? 8 * hl.size[i] : 0); });
+    const has = new Set(gr.edges.map((e) => `${e.u} ${e.v}`));
+    // Edges.
+    gr.edges.forEach((e, k) => {
+      let x1 = X(gr.names[e.u]), y1 = Y(gr.names[e.u]), x2 = X(gr.names[e.v]), y2 = Y(gr.names[e.v]);
+      const L = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+      if (gr.directed && has.has(`${e.v} ${e.u}`)) { x1 += -uy * 5; y1 += ux * 5; x2 += -uy * 5; y2 += ux * 5; }
+      const kind = hl?.edges.get(k);
+      const col = kind === 'path' || kind === 'flow' ? p.accent : kind === 'cut' || kind === 'cycle' ? p.bad : kind === 'tree' ? p.muted : p.line;
+      ctx.strokeStyle = col; ctx.lineWidth = kind === 'path' || kind === 'cut' || kind === 'cycle' ? 3.5 : kind === 'flow' ? 2.5 : kind === 'tree' ? 2 : 1.5;
+      ctx.setLineDash(kind === 'cut' ? [7, 4] : []);
+      const ex = x2 - ux * (rad[e.v] + 2), ey = y2 - uy * (rad[e.v] + 2), sx = x1 + ux * rad[e.u], sy = y1 + uy * rad[e.u];
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+      if (gr.directed) { const a = 9; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * a - uy * a * 0.5, ey - uy * a + ux * a * 0.5); ctx.lineTo(ex - ux * a + uy * a * 0.5, ey - uy * a - ux * a * 0.5); ctx.closePath(); ctx.fill(); }
+      const text = hl?.edgeText ? hl.edgeText[k] : gr.weighted ? sig(e.w, 4) : '';
+      if (text && n <= 80) {
+        const mx = (sx + ex) / 2 + (gr.directed && has.has(`${e.v} ${e.u}`) ? -uy * 7 : 0), my = (sy + ey) / 2 + (gr.directed && has.has(`${e.v} ${e.u}`) ? ux * 7 : 0);
+        ctx.font = `${font - 1}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+        const tw = ctx.measureText(text).width + 6;
+        ctx.fillStyle = p.bg; ctx.fillRect(mx - tw / 2, my - 8, tw, 16);
+        ctx.fillStyle = kind ? col : p.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, mx, my);
+      }
+    });
+    // Nodes.
+    gr.names.forEach((s, i) => {
+      const x = X(s), y = Y(s), r = rad[i];
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = p.bg; ctx.fill();
+      if (hl?.side?.[i] || hl?.size) { ctx.globalAlpha = hl?.size ? 0.12 + 0.55 * hl.size[i] : 0.22; ctx.fillStyle = p.accent; ctx.fill(); ctx.globalAlpha = 1; }
+      const c = hl?.fill?.[i];
+      ctx.lineWidth = c != null ? 5 : i === hl?.s || i === hl?.t || (interactive && i === sel) ? 3.5 : 1.5;
+      ctx.strokeStyle = c != null ? cols[c % 8] : interactive && i === sel ? p.accent2 : i === hl?.s || i === hl?.t ? p.accent : p.ink;
+      ctx.stroke();
+      ctx.fillStyle = p.ink; ctx.font = `600 ${font}px system-ui, -apple-system, "Segoe UI", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(s, x, y + 0.5);
+      const tag = hl?.tag?.[i];
+      if (tag && n <= 120) {
+        ctx.font = `700 ${font - 1}px system-ui, -apple-system, "Segoe UI", sans-serif`; ctx.fillStyle = p.accent2; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        const tx = Math.min(W - ctx.measureText(tag).width - 2, x + r * 0.7), ty = Math.max(12, y - r * 0.7);
+        ctx.fillText(tag, tx, ty);
+      }
+    });
+  }
+
+  const figure = (W: number, H: number, interactive: boolean): Figure => ({ w: W, h: H, alt: g ? `Graph of ${g.names.length} nodes and ${g.edges.length} edges${res?.big ? ': ' + res.big : ''}` : 'Empty graph', draw: (ctx, w, h, p) => drawGraph(ctx, w, h, p, interactive) });
+  const size = () => { const W = Math.max(280, Math.round(q('.ga-wrap').clientWidth || 600)); return [W, Math.round(Math.min(520, Math.max(280, W * 0.66)))]; };
+  function redraw() {
+    const [W, H] = size(); paint(cv, figure(W, H, true));
+    const p = pal(), leg = q('.ga-leg'); leg.replaceChildren();
+    for (const [k, txt] of res?.hl.leg ?? []) { const s = document.createElement('span'), i = document.createElement('i'); i.style.background = legendColour(k, p); if (k === 'soft') i.style.opacity = '0.45'; s.append(i, txt); leg.append(s); }
+  }
+
+  // ---------- table and results ----------
+  function show() {
+    const out = q('.ga-out');
+    if (!g) { out.hidden = true; res = null; redraw(); return; }
+    out.hidden = false;
+    const alg = q<HTMLSelectElement>('.ga-alg').value, need = NEEDS[alg];
+    q('.ga-sl').hidden = need.length < 1; q('.ga-tl').hidden = need.length < 2; q('.ga-ml').hidden = alg !== 'central';
+    if (need[0]) q('.ga-sn').textContent = need[0]; if (need[1]) q('.ga-tn').textContent = need[1];
+    q('.ga-about').textContent = ABOUT[alg];
+    const t0 = performance.now();
+    res = compute();
+    const aerr = q('.ga-aerr'); aerr.hidden = !res.err; aerr.textContent = res.err ?? '';
+    q('.ga-big').textContent = res.big; q('.ga-big').hidden = !res.big;
+    const dl = q('.ga-facts'); dl.replaceChildren();
+    for (const [k, v] of [...res.facts, ['Graph', `${g.names.length} nodes, ${g.edges.length} edges, ${g.directed ? 'directed' : 'undirected'}${g.weighted ? ', weighted' : ''}`] as [string, string]]) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    const tab = q('.ga-tab'); tab.replaceChildren();
+    if (res.head.length) {
+      const h = tab.insertRow(); for (const x of res.head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+      for (const r of res.rows.slice(0, MAX_ROWS)) { const tr = tab.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); }
+    }
+    q('.ga-tnote').textContent = [res.rows.length > MAX_ROWS ? `The first ${MAX_ROWS} of ${res.rows.length} rows are shown; the CSV has them all.` : '', res.note ?? ''].filter(Boolean).join(' ');
+    q<HTMLButtonElement>('.ga-csv').disabled = !res.head.length;
+    void t0;
+    redraw();
+  }
+
+  function update() { if (!read()) { show(); return; } fillSelect(q<HTMLSelectElement>('.ga-s'), q<HTMLSelectElement>('.ga-s').dataset.want ?? ''); fillSelect(q<HTMLSelectElement>('.ga-t'), q<HTMLSelectElement>('.ga-t').dataset.want ?? ''); show(); }
+
+  function load(key: string) {
+    const ex = EXAMPLES[key]; pos.clear(); sel = -1;
+    box.value = ex.text; q<HTMLInputElement>('.ga-dir').checked = ex.dir; q<HTMLSelectElement>('.ga-alg').value = ex.alg;
+    for (const [c, v] of [['.ga-s', ex.s], ['.ga-t', ex.t]] as const) { const el = q<HTMLSelectElement>(c); el.dataset.want = v; el.replaceChildren(); }
+    update();
+  }
+
+  // ---------- editing on the drawing ----------
+  const setText = () => { box.value = G.toText(g!); update(); };
+  function point(e: PointerEvent): [number, number] { const r = cv.getBoundingClientRect(), [W, H] = size(); return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H]; }
+  function toUnit(x: number, y: number): [number, number] { const [W, H] = size(), pad = 28; return [Math.min(1, Math.max(0, (x - pad) / (W - 2 * pad))), Math.min(1, Math.max(0, (y - pad) / (H - 2 * pad)))]; }
+  function hitNode(x: number, y: number): number {
+    if (!g || g.names.length > MAX_DRAW) return -1;
+    const [W, H] = size(), pad = 28; let best = -1, bd = 22;
+    g.names.forEach((s, i) => { const p = pos.get(s)!, d = Math.hypot(pad + p[0] * (W - 2 * pad) - x, pad + p[1] * (H - 2 * pad) - y); if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+  function hitEdge(x: number, y: number): number {
+    if (!g) return -1;
+    const [W, H] = size(), pad = 28, P = (s: string) => { const p = pos.get(s)!; return [pad + p[0] * (W - 2 * pad), pad + p[1] * (H - 2 * pad)]; };
+    let best = -1, bd = 9;
+    g.edges.forEach((e, k) => {
+      const [x1, y1] = P(g!.names[e.u]), [x2, y2] = P(g!.names[e.v]), L2 = (x2 - x1) ** 2 + (y2 - y1) ** 2 || 1;
+      const t = Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / L2)), d = Math.hypot(x - (x1 + t * (x2 - x1)), y - (y1 + t * (y2 - y1)));
+      if (d < bd) { bd = d; best = k; }
+    });
+    return best;
+  }
+  function freeName(): string {
+    const used = new Set(g?.names ?? []);
+    for (let k = 0; k < 26; k++) { const s = String.fromCharCode(65 + k); if (!used.has(s)) return s; }
+    for (let k = 1; ; k++) if (!used.has(`N${k}`)) return `N${k}`;
+  }
+  const HINTS: Record<string, string> = {
+    move: 'Move: drag a node to tidy the picture.',
+    node: 'Add node: tap an empty spot to add a node there.',
+    edge: 'Add edge: tap one node, then another, to join them with the weight above.',
+    del: 'Delete: tap a node (and its edges) or an edge to remove it.',
+  };
+  q('.ga-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m!; sel = -1;
+    q('.ga-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ga-hint').textContent = HINTS[mode]; cv.classList.toggle('add', mode !== 'move'); redraw();
+  });
+  cv.addEventListener('pointerdown', (e) => {
+    if (!g && mode !== 'node') return;
+    if (!g) { g = G.parseGraph('', q<HTMLInputElement>('.ga-dir').checked); }
+    const [x, y] = point(e), hit = hitNode(x, y);
+    if (mode === 'move') { if (hit >= 0) { drag = hit; dragMoved = false; cv.setPointerCapture(e.pointerId); } return; }
+    if (mode === 'node') {
+      if (hit >= 0 || g.names.length >= MAX_DRAW) return;
+      const s = freeName(); pos.set(s, toUnit(x, y)); box.value = (box.value.trim() ? box.value.replace(/\s*$/, '\n') : '') + s; update(); return;
+    }
+    if (mode === 'edge') {
+      if (hit < 0) { sel = -1; redraw(); return; }
+      if (sel < 0 || sel === hit) { sel = hit; redraw(); return; }
+      const w = Number(q<HTMLInputElement>('.ga-w').value);
+      if (!Number.isFinite(w)) { q('.ga-hint').textContent = 'Type a number for the new edge weight.'; return; }
+      const line = `${g.names[sel]} ${g.names[hit]}${w !== 1 || g.weighted ? ' ' + w : ''}`;
+      if (w !== 1 && !g.weighted) { g.weighted = true; box.value = G.toText(g); }
+      box.value = (box.value.trim() ? box.value.replace(/\s*$/, '\n') : '') + line; sel = -1; update(); return;
+    }
+    if (mode === 'del') {
+      if (hit >= 0) { const gone = hit; g = G.build(g.names.filter((_, i) => i !== gone), g.edges.filter((ed) => ed.u !== gone && ed.v !== gone).map((ed) => ({ u: ed.u - (ed.u > gone ? 1 : 0), v: ed.v - (ed.v > gone ? 1 : 0), w: ed.w })), g.directed, g.weighted); setText(); return; }
+      const k = hitEdge(x, y); if (k >= 0) { g = G.build(g.names, g.edges.filter((_, j) => j !== k), g.directed, g.weighted); setText(); }
+    }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (drag < 0 || !g) return;
+    const [x, y] = point(e); pos.set(g.names[drag], toUnit(x, y)); dragMoved = true; redraw();
+  });
+  const endDrag = () => { drag = -1; void dragMoved; };
+  cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+
+  // ---------- wiring ----------
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 300); };
+  box.addEventListener('input', () => later(update));
+  q('.ga-dir').addEventListener('change', update);
+  q('.ga-ex').addEventListener('change', () => load(q<HTMLSelectElement>('.ga-ex').value));
+  for (const c of ['.ga-alg', '.ga-s', '.ga-t', '.ga-m']) q(c).addEventListener('change', () => { for (const k of ['.ga-s', '.ga-t']) q<HTMLSelectElement>(k).dataset.want = q<HTMLSelectElement>(k).value; show(); });
+  q('.ga-tidy').addEventListener('click', () => { pos.clear(); update(); });
+  q('.ga-csv').addEventListener('click', () => { if (res?.head.length) save(new Blob([csv([res.head, ...res.rows])], { type: 'text/csv' }), `graph-${q<HTMLSelectElement>('.ga-alg').value}.csv`, 'text/csv'); });
+  q('.ga-txt').addEventListener('click', () => { if (g) save(new Blob([G.toText(g) + '\n'], { type: 'text/plain' }), 'graph-edges.txt', 'text/plain'); });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: 'Graph', facts: [['Nodes', String(g?.names.length ?? 0)], ['Edges', String(g?.edges.length ?? 0)], ['Type', `${g?.directed ? 'directed' : 'undirected'}${g?.weighted ? ', weighted' : ''}`], ['Method', q<HTMLSelectElement>('.ga-alg').selectedOptions[0].text]], figure: figure(720, 480, false) },
+      { title: 'Result', text: [res?.err ?? res?.big ?? '', ABOUT[q<HTMLSelectElement>('.ga-alg').value]], facts: res?.facts, table: res?.head.length ? { head: res.head, rows: res.rows.slice(0, 300) } : undefined, note: res?.note },
+    ];
+    return { title: 'Graph algorithms', subtitle: res?.big || res?.err || '', file: `graph-${q<HTMLSelectElement>('.ga-alg').value}`, sections };
+  });
+  document.addEventListener('fibub:theme', redraw);
+  if ('ResizeObserver' in window) { let lastW = 0; new ResizeObserver(() => { const w = q('.ga-wrap').clientWidth; if (w !== lastW) { lastW = w; redraw(); } }).observe(q('.ga-wrap')); }
+  load('road');
+</script>

@@ -1,0 +1,129 @@
+---
+// Walter-Lieth climate diagram from 12 monthly means: temperature and precipitation curves on the 10 °C = 20 mm scale,
+// dry (dotted) and humid (hatched) seasons, >100 mm compressed and solid, frost bars, extremes. SVG, PNG, PDF, Word.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax wlt">
+  <div class="ax-card">
+    <h2>Monthly climate</h2>
+    <div class="ax-grid">
+      <label>Example <select class="wl-ex"><option value="med">Dry summer (made up)</option><option value="mon">Monsoon (made up)</option><option value="con">Continental (made up)</option><option value="sth">Southern hemisphere (made up)</option></select></label>
+      <label>Station name <input class="wl-name" maxlength="60" /></label>
+      <label>Elevation (m) <input class="wl-z" inputmode="decimal" /></label>
+      <label>Period <input class="wl-yrs" maxlength="30" placeholder="such as 1991–2020" /></label>
+      <label>Units <select class="wl-u"><option value="si">°C and mm</option><option value="us">°F and inches</option></select></label>
+      <label>Hemisphere <select class="wl-h"><option value="n">Northern (January first)</option><option value="s">Southern (July first)</option></select></label>
+    </div>
+    <p class="ax-help" style="margin-top:12px">One row per month, January to December: <b>mean temperature, precipitation</b>, and if you have them, the <b>mean daily maximum, mean daily minimum and absolute minimum</b>. A month name first is fine; a header row and a year row are skipped.</p>
+    <textarea class="wl-text" rows="13" spellcheck="false" aria-label="Monthly data"></textarea>
+    <DataFile target=".wl-text" maxMB={1} maxCols={10} maxRows={40} />
+    <p class="ax-help wl-note" hidden></p>
+    <p class="ax-err wl-err" hidden></p>
+  </div>
+
+  <div class="ax-card wl-out">
+    <h2>Climate diagram</h2>
+    <canvas class="ax-fig wl-fig"></canvas>
+    <div class="ax-legend"><span><i class="wl-k t"></i>Temperature (left)</span><span><i class="wl-k p"></i>Precipitation (right)</span><span><i class="wl-k dry"></i>Dry season</span><span><i class="wl-k hum"></i>Humid season</span><span><i class="wl-k sol"></i>Over 100 mm (scale ÷ 10)</span><span><i class="wl-k fs"></i>Sure frost</span><span><i class="wl-k fp"></i>Probable frost</span></div>
+    <dl class="ax-facts wl-facts" style="margin-top:14px"></dl>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small wl-svg">Download SVG</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .wlt .wl-k { border: 1px solid var(--line); }
+  .wlt .wl-k.t { background: #D55E00; }
+  .wlt .wl-k.p, .wlt .wl-k.sol { background: #0072B2; }
+  .wlt .wl-k.dry { background: repeating-linear-gradient(90deg, #D55E00 0 2px, transparent 2px 4px); }
+  .wlt .wl-k.hum { background: repeating-linear-gradient(90deg, #0072B2 0 1px, transparent 1px 3px); }
+  .wlt .wl-k.fs { background: #56B4E9; }
+  .wlt .wl-k.fp { background: repeating-linear-gradient(135deg, #56B4E9 0 1px, transparent 1px 4px); }
+</style>
+
+<script>
+  import { num, parseTable, sig } from '../../lib/sci/num';
+  import { layout, draw, parseMonthly, periodText, type Layout, type Colors, type Header, type Monthly } from '../../lib/sci/walterlieth';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.wlt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.wl-text');
+  const W = 420, H = 420;
+  let fig: Figure | null = null, report: Section[] = [], cur: { L: Layout; hd: Header } | null = null;
+
+  // Made-up example stations (not real places): rounded, invented numbers to show each kind of diagram.
+  const EX: Record<string, { name: string; z: string; yrs: string; h: 'n' | 's'; rows: number[][] }> = {
+    med: { name: 'Example A (made up)', z: '120', yrs: 'invented data', h: 'n', rows: [[9.5, 88, 15.5, 4.5, -2.5], [10.4, 71, 16.4, 5.4, -1.6], [12.6, 56, 18.6, 7.6, 0.6], [15, 42, 21, 10, 3], [18.9, 23, 24.9, 13.9, 6.9], [23.2, 8, 29.2, 18.2, 11.2], [26.3, 2, 32.3, 21.3, 14.3], [26.4, 4, 32.4, 21.4, 14.4], [23.1, 21, 29.1, 18.1, 11.1], [18.8, 64, 24.8, 13.8, 6.8], [13.9, 104, 19.9, 8.9, 1.9], [10.6, 118, 16.6, 5.6, -1.4]] },
+    mon: { name: 'Example B (made up)', z: '40', yrs: 'invented data', h: 'n', rows: [[18, 10, 25, 11, 6], [20, 15, 27, 13, 8], [24, 20, 31, 17, 12], [28, 35, 35, 21, 16], [30, 120, 36, 24, 19], [29, 380, 33, 25, 21], [27, 620, 31, 24, 21], [27, 540, 31, 24, 21], [27, 300, 32, 23, 20], [26, 90, 32, 21, 16], [22, 20, 29, 16, 10], [19, 8, 26, 12, 7]] },
+    con: { name: 'Example C (made up)', z: '310', yrs: 'invented data', h: 'n', rows: [[-8, 30, -3, -14, -32], [-6, 28, -1, -12, -30], [0, 32, 5, -6, -22], [8, 40, 14, 2, -9], [14, 55, 20, 8, -3], [18, 75, 24, 12, 2], [20, 80, 26, 14, 5], [19, 70, 25, 13, 3], [14, 55, 20, 8, -3], [7, 45, 12, 2, -10], [0, 40, 4, -5, -20], [-5, 35, 0, -11, -28]] },
+    sth: { name: 'Example D (made up)', z: '650', yrs: 'invented data', h: 's', rows: [[24, 105, 31, 17, 9], [23.5, 95, 30.5, 16.5, 8], [21, 80, 28, 14, 5], [17, 45, 24, 10, 1], [13, 20, 21, 5, -3], [10, 8, 18, 2, -6], [10, 6, 18, 2, -6], [13, 9, 21, 5, -3], [17, 25, 25, 9, 0], [20, 60, 27, 13, 4], [22, 90, 29, 15, 7], [23.5, 110, 30.5, 16.5, 8]] },
+  };
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function loadExample() {
+    const e = EX[q<HTMLSelectElement>('.wl-ex').value];
+    q<HTMLInputElement>('.wl-name').value = e.name; q<HTMLInputElement>('.wl-z').value = e.z; q<HTMLInputElement>('.wl-yrs').value = e.yrs;
+    q<HTMLSelectElement>('.wl-h').value = e.h; q<HTMLSelectElement>('.wl-u').value = 'si';
+    box.value = 'Month, T mean, P, T max, T min, Abs min\n' + e.rows.map((r, i) => [MON[i], ...r].join(', ')).join('\n');
+    calc();
+  }
+
+  const colors = (pal: Palette): Colors => pal.red
+    ? { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, t: pal.ink, p: pal.muted, dry: pal.ink, wet: pal.muted, solid: pal.muted, frost: pal.ink }
+    : pal.bg === '#ffffff'
+      ? { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, t: '#D55E00', p: '#0072B2', dry: '#D55E00', wet: '#0072B2', solid: '#0072B2', frost: '#56B4E9' }
+      : { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, t: '#ff8a5c', p: '#56B4E9', dry: '#ff8a5c', wet: '#56B4E9', solid: '#3d8fd1', frost: '#9ecae1' };
+  const fact = (k: string, v: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const f1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1).replace('-', '−');
+
+  function calc() {
+    const err = q('.wl-err'), note = q('.wl-note');
+    const res = parseMonthly(parseTable(box.value), num);
+    if ('error' in res) { err.textContent = res.error; err.hidden = false; note.hidden = true; q('.wl-out').hidden = true; report = []; cur = null; return; }
+    let m: Monthly = res.m;
+    const us = q<HTMLSelectElement>('.wl-u').value === 'us', south = q<HTMLSelectElement>('.wl-h').value === 's';
+    if (us) { const c = (a?: number[]) => a?.map((f) => (f - 32) / 1.8); m = { T: c(m.T)!, P: m.P.map((x) => x * 25.4), tmax: c(m.tmax), tmin: c(m.tmin), amin: c(m.amin) }; }
+    if (m.T.some((v) => v < -70 || v > 50) || m.P.some((v) => v > 3000)) { err.textContent = 'Some values are out of range for this unit. Check the Units setting.'; err.hidden = false; q('.wl-out').hidden = true; report = []; cur = null; return; }
+    err.hidden = true; q('.wl-out').hidden = false;
+    note.textContent = [...res.notes, ...(us ? ['Converted to °C and mm: the diagram is always drawn in metric units.'] : [])].join(' '); note.hidden = !note.textContent;
+    const L = layout(m, south), s = L.stats;
+    const name = q<HTMLInputElement>('.wl-name').value.trim() || 'Climate diagram', z = num(q<HTMLInputElement>('.wl-z').value), yrs = q<HTMLInputElement>('.wl-yrs').value.trim();
+    const hd: Header = { name: Number.isFinite(z) ? `${name} (${Math.round(z)} m)` : name, sub: yrs, right: `${f1(s.annualT)} °C`, right2: `${Math.round(s.annualP)} mm` };
+    cur = { L, hd };
+    fig = { w: W, h: H, alt: `Walter-Lieth climate diagram for ${name}: annual mean ${f1(s.annualT)} °C, ${Math.round(s.annualP)} mm, ${s.dryMonths} dry months`, draw: (ctx, w, h, pal) => draw(canvasPainter(ctx), L, w, h, colors(pal), hd) };
+    paint(q<HTMLCanvasElement>('.wl-fig'), fig);
+    const names = south ? [...MON.slice(6), ...MON.slice(0, 6)] : MON;
+    const list = (flags: boolean[]) => names.filter((_, i) => flags[i]).join(', ');
+    const facts: [string, string, string?][] = [
+      ['Annual mean temperature', `${f1(s.annualT)} °C`],
+      ['Annual precipitation', `${Math.round(s.annualP)} mm`],
+      ['Dry season', s.dryLength ? `${sig(s.dryLength, 2)} months` : 'none', s.dryLength ? s.periods.map(([a, b]) => periodText(a, b, south)).join('; ') : 'precipitation stays above twice the temperature'],
+      ['Dry months (P < 2T)', String(s.dryMonths), s.dryMonths ? list(L.T.map((t, i) => L.P[i] < 2 * t)) : undefined],
+      ['Very wet months (> 100 mm)', String(s.wetMonths), s.wetMonths ? list(L.P.map((p) => p > 100)) : undefined],
+      ['Frost', m.tmin || m.amin ? `${s.frostSure} sure, ${s.frostProb} probable` : 'not shown', m.tmin || m.amin ? [s.frostSure ? `sure: ${list(L.frostSure)}` : '', s.frostProb ? `probable: ${list(L.frostProb)}` : ''].filter(Boolean).join('; ') || 'no month below 0 °C' : 'add the minimum columns to mark frost months'],
+    ];
+    if (s.warmMax != null) facts.push(['Warmest month, mean daily max', `${f1(s.warmMax)} °C`]);
+    if (s.coldMin != null) facts.push(['Coldest month, mean daily min', `${f1(s.coldMin)} °C`]);
+    if (s.absMin != null) facts.push(['Absolute minimum', `${f1(s.absMin)} °C`]);
+    q('.wl-facts').replaceChildren(...facts.map(([k, v, x]) => fact(k, v, x)));
+    const head = ['Month', 'T (°C)', 'P (mm)', ...(m.tmax ? ['Max'] : []), ...(m.tmin ? ['Min'] : []), ...(m.amin ? ['Abs min'] : []), 'Dry'];
+    report = [{ title: hd.name, text: [yrs ? `Period: ${yrs}.` : '', 'Walter-Lieth layout: 10 °C on the left matches 20 mm on the right; above 100 mm the scale is a tenth and drawn solid. Dotted: dry season (temperature above precipitation). Hatched: humid season. Bars under the months: sure frost (mean daily minimum below 0 °C, solid) and probable frost (absolute minimum below 0 °C, hatched).'].filter(Boolean), figure: fig, facts: facts.map(([k, v, x]) => [k, x ? `${v} (${x})` : v]),
+      table: { head, rows: MON.map((mo, i) => [mo, f1(m.T[i]), String(Math.round(m.P[i] * 10) / 10), ...(m.tmax ? [f1(m.tmax[i])] : []), ...(m.tmin ? [f1(m.tmin[i])] : []), ...(m.amin ? [f1(m.amin[i])] : []), m.P[i] < 2 * m.T[i] ? 'yes' : '']), align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } }];
+  }
+
+  q('.wl-ex').addEventListener('change', loadExample);
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('wl-ex')) return; clearTimeout(t); t = window.setTimeout(calc, 250); });
+  for (const c of ['.wl-u', '.wl-h']) q(c).addEventListener('change', calc);
+  q('.wl-svg').addEventListener('click', () => {
+    if (!cur) return;
+    const P = svgPainter(W, H); draw(P, cur.L, W, H, colors(LIGHT), cur.hd);
+    save(new Blob([P.toString()], { type: 'image/svg+xml' }), `${fileSafe(q<HTMLInputElement>('.wl-name').value || 'climate')}-walter-lieth.svg`, 'image/svg+xml');
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.wl-fig'), fig));
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Walter-Lieth climate diagram', subtitle: cur?.hd.name ?? '', file: `${fileSafe(q<HTMLInputElement>('.wl-name').value || 'climate')}-walter-lieth`, sections: report }));
+</script>

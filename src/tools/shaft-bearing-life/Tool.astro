@@ -1,0 +1,160 @@
+---
+// Rolling bearing life and shaft diameter for combined bending and torsion (src/lib/sci/eng-shaft.ts).
+// Every bearing and material number here is a made-up example; the user enters catalogue and material data.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sbl">
+  <div class="ax-card">
+    <h2>Bearing life</h2>
+    <div class="ax-grid">
+      <label>Bearing type <select class="sb-p"><option value="3" selected>Ball (exponent 3)</option><option value="3.3333333333">Roller (exponent 10/3)</option></select></label>
+      <label>Find <select class="sb-mode"><option value="L" selected>Life from the rating C</option><option value="C">C needed for a life</option></select></label>
+      <label class="sb-cbox">Dynamic load rating C (kN) <input class="sb-C" type="text" inputmode="decimal" value="30" /></label>
+      <label class="sb-hbox" hidden>Life wanted (hours) <input class="sb-H" type="text" inputmode="decimal" value="20000" /></label>
+      <label>Radial load Fr (kN) <input class="sb-fr" type="text" inputmode="decimal" value="3.5" /></label>
+      <label>Axial load Fa (kN) <input class="sb-fa" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>e (from the catalogue) <input class="sb-e" type="text" inputmode="decimal" value="0.3" /></label>
+      <label>X <input class="sb-x" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Y <input class="sb-y" type="text" inputmode="decimal" value="1.6" /></label>
+      <label>Load factor fa <input class="sb-fa2" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>Speed (rpm) <input class="sb-n" type="text" inputmode="decimal" value="1200" /></label>
+      <label>Reliability (%) <input class="sb-R" type="text" inputmode="decimal" value="95" /></label>
+      <label>Weibull slope <input class="sb-b" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Life modification factor aISO <input class="sb-aiso" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Take C, e, X and Y for your bearing from its maker's catalogue: the values here are made up to show the method. When Fa/Fr is at most e, P = Fr; above it, P = X Fr + Y Fa. The load factor allows for shocks (1 for smooth running, more for rough machinery). L10 is the life that 90 % of bearings reach; higher reliability scales it by a factor from a Weibull spread (slope about 1.5 is an example). aISO covers lubrication and cleanliness (1 if unknown).</p>
+    <p class="ax-err sb-err" hidden></p>
+    <div class="sb-out">
+      <p class="ax-big sb-big"></p>
+      <dl class="ax-facts sb-facts"></dl>
+      <canvas class="ax-fig sb-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Shaft diameter</h2>
+    <div class="ax-grid">
+      <label>Find <select class="sh-mode"><option value="d" selected>Diameter for a safety factor</option><option value="n">Safety factors for a diameter</option></select></label>
+      <label class="sh-nbox">Safety factor n <input class="sh-n" type="text" inputmode="decimal" value="1.5" /></label>
+      <label class="sh-dbox" hidden>Diameter (mm) <input class="sh-d" type="text" inputmode="decimal" value="30" /></label>
+      <label>Alternating bending Ma (N·m) <input class="sh-ma" type="text" inputmode="decimal" value="150" /></label>
+      <label>Mean bending Mm (N·m) <input class="sh-mm" type="text" inputmode="decimal" value="0" /></label>
+      <label>Alternating torque Ta (N·m) <input class="sh-ta" type="text" inputmode="decimal" value="0" /></label>
+      <label>Mean torque Tm (N·m) <input class="sh-tm" type="text" inputmode="decimal" value="120" /></label>
+      <label>Bending fatigue factor Kf <input class="sh-kf" type="text" inputmode="decimal" value="1.7" /></label>
+      <label>Torsion fatigue factor Kfs <input class="sh-kfs" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Endurance limit Se (MPa) <input class="sh-se" type="text" inputmode="decimal" value="210" /></label>
+      <label>Tensile strength Sut (MPa) <input class="sh-sut" type="text" inputmode="decimal" value="700" /></label>
+      <label>Yield strength Sy (MPa) <input class="sh-sy" type="text" inputmode="decimal" value="560" /></label>
+    </div>
+    <p class="ax-help">A shaft turning under a steady load sees fully reversed bending (Ma) and a steady torque (Tm), the usual case. Kf and Kfs raise the stress at a shoulder, groove or keyway (1 for a plain shaft). Se is the fully corrected endurance limit of your part (surface, size, load, temperature and reliability already applied); it is yours to supply. All the strengths here are made-up examples.</p>
+    <p class="ax-err sh-err" hidden></p>
+    <div class="sh-out">
+      <p class="ax-big sh-big"></p>
+      <dl class="ax-facts sh-facts"></dl>
+      <canvas class="ax-fig sh-fig"></canvas>
+      <p class="ax-help">For study and planning, not a substitute for professional judgement. Solid round shafts only; deflection, critical speed and keyway or bearing seat details are not checked.</p>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { equivalentLoad, L10, hours, reliabilityFactor, requiredC, shaftStresses, goodmanN, goodmanD, trescaD, misesD } from '../../lib/sci/eng-shaft';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.sbl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const facts2 = (el: HTMLElement) => [...el.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  let sbSec: Section | null = null, shSec: Section | null = null, sbFig: Figure | null = null, shFig: Figure | null = null;
+
+  function bearing() {
+    const mode = sel('.sb-mode'); q('.sb-cbox').hidden = mode !== 'L'; q('.sb-hbox').hidden = mode !== 'C';
+    const err = q('.sb-err'), out = q('.sb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sbSec = null; };
+    const p = +sel('.sb-p'), Fr = val('.sb-fr'), Fa = val('.sb-fa'), e = val('.sb-e'), X = val('.sb-x'), Y = val('.sb-y'), fa = val('.sb-fa2'), n = val('.sb-n'), R = val('.sb-R') / 100, b = val('.sb-b'), aiso = val('.sb-aiso');
+    if (!(Fr >= 0 && Fa >= 0 && Fr + Fa > 0)) return fail('Give the radial and axial loads (0 or more, not both 0).');
+    if (!(e >= 0 && X >= 0 && Y >= 0)) return fail('Give e, X and Y from the bearing catalogue.');
+    if (!(fa >= 1)) return fail('Give a load factor of 1 or more.');
+    if (!(n > 0)) return fail('Give the speed in rpm.');
+    if (!(R >= 0.5 && R < 1)) return fail('Give the reliability as a percentage from 50 to just under 100.');
+    if (!(b > 0)) return fail('Give a positive Weibull slope.');
+    if (!(aiso > 0)) return fail('Give aISO (1 if unknown).');
+    const eq = equivalentLoad(Fr, Fa, X, Y, e, fa), P = eq.P;
+    if (!(P > 0)) return fail('The equivalent load comes out as zero: check X and Y.');
+    const a1 = reliabilityFactor(R, b), roller = p > 3, pl = roller ? '10/3' : '3';
+    let C: number;
+    if (mode === 'L') { C = val('.sb-C'); if (!(C > 0)) return fail('Give the dynamic load rating C.'); }
+    else { const H = val('.sb-H'); if (!(H > 0)) return fail('Give the life wanted in hours.'); C = requiredC(P, (H * 60 * n) / 1e6 / (a1 * aiso), p); }
+    err.hidden = true; out.hidden = false;
+    const L = L10(C, P, p), Lh = hours(L, n), Ln = a1 * aiso * L, Lnh = hours(Ln, n);
+    q('.sb-big').textContent = mode === 'L' ? `L10 life ${sg(Lh, 4)} hours; ${sg(Lnh, 4)} hours at ${sg(R * 100, 3)} % reliability` : `Choose a bearing with C of at least ${sg(C, 4)} kN`;
+    const f = [
+      fact('Equivalent load P', `${sg(P, 4)} kN`, eq.useXY ? `Fa/Fr = ${sg(Fr ? Fa / Fr : Infinity, 3)} > e, so P = fa (X Fr + Y Fa)` : `Fa/Fr = ${sg(Fr ? Fa / Fr : 0, 3)} ≤ e, so P = fa Fr`),
+      fact('Basic life L10', `${sg(L, 4)} million revolutions`, `(C/P)^${pl} = (${sg(C, 4)} / ${sg(P, 4)})^${pl}; ${sg(Lh, 4)} hours at ${sg(n, 5)} rpm`),
+      fact('Reliability factor a1', sg(a1, 4), `(ln(1/R) / ln(1/0.9))^(1/${sg(b, 3)}) for ${sg(R * 100, 3)} %`),
+      fact('Adjusted life', `${sg(Ln, 4)} million revolutions`, `a1 × aISO × L10 = ${sg(Lnh, 4)} hours, about ${sg(Lnh / 24 / 365, 3)} years running non-stop`),
+      fact('C/P', sg(C / P, 4), 'load ratio; doubling the load cuts the life by 8 (ball) or about 10 (roller)'),
+    ];
+    q('.sb-facts').replaceChildren(...f);
+    const Ps: number[] = []; for (let i = 0; i <= 60; i++) Ps.push(P * 0.25 * 16 ** (i / 60));
+    sbFig = chartFigure({ w: 380, h: 220, xLabel: 'Equivalent load P (kN)', yLabel: 'Adjusted life (hours)', xLog: true, yLog: true, legend: 'below', series: [
+      { name: `Life for C = ${sg(C, 4)} kN`, x: Ps, y: Ps.map((x) => hours(a1 * aiso * L10(C, x, p), n)), mode: 'line', width: 2 },
+      { name: 'This load', x: [P], y: [Lnh], mode: 'points', size: 5 },
+    ] }, 'Bearing life against load, log scales');
+    paint(q<HTMLCanvasElement>('.sb-fig'), sbFig);
+    sbSec = { title: q('.sb-big').textContent!, facts: facts2(q('.sb-facts')), figure: sbFig };
+  }
+
+  function shaft() {
+    const mode = sel('.sh-mode'); q('.sh-nbox').hidden = mode !== 'd'; q('.sh-dbox').hidden = mode !== 'n';
+    const err = q('.sh-err'), out = q('.sh-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; shSec = null; };
+    const L = { Ma: val('.sh-ma'), Mm: val('.sh-mm'), Ta: val('.sh-ta'), Tm: val('.sh-tm'), Kf: val('.sh-kf'), Kfs: val('.sh-kfs') };
+    const Se = val('.sh-se'), Sut = val('.sh-sut'), Sy = val('.sh-sy');
+    if (![L.Ma, L.Mm, L.Ta, L.Tm].every((v) => v >= 0) || L.Ma + L.Mm + L.Ta + L.Tm === 0) return fail('Give the moments and torques in N·m (0 or more, not all 0).');
+    if (!(L.Kf >= 1 && L.Kfs >= 1)) return fail('The fatigue factors Kf and Kfs are 1 or more.');
+    if (!(Se > 0 && Sut > 0 && Sy > 0)) return fail('Give Se, Sut and Sy in MPa.');
+    if (Sy > Sut) return fail('The yield strength cannot be above the tensile strength.');
+    let d: number, n: number;
+    if (mode === 'd') { n = val('.sh-n'); if (!(n > 0)) return fail('Give the safety factor.'); d = goodmanD(n, L, Se, Sut); }
+    else { d = val('.sh-d'); if (!(d > 0)) return fail('Give the diameter.'); n = goodmanN(d, L, Se, Sut); }
+    err.hidden = true; out.hidden = false;
+    const s = shaftStresses(d, L), ny = Sy / s.smax;
+    const Mpk = L.Ma + L.Mm, Tpk = L.Ta + L.Tm, nst = mode === 'd' ? n : ny;
+    q('.sh-big').textContent = mode === 'd' ? `Fatigue (DE-Goodman) diameter ${sg(d, 4)} mm for n = ${sg(n, 3)}` : `Fatigue safety factor ${sg(n, 3)} at ${sg(d, 4)} mm`;
+    const f = [
+      fact('Stresses at that diameter', `σa′ ${sg(s.sa, 4)}, σm′ ${sg(s.sm, 4)} MPa`, 'von Mises alternating and mean stresses, with Kf and Kfs'),
+      fact('Goodman check', `${sg(s.sa / Se + s.sm / Sut, 4)} = 1/n`, `σa′/Se + σm′/Sut; n = ${sg(goodmanN(d, L, Se, Sut), 4)}`),
+      fact('First-cycle yield', `n = ${sg(ny, 3)}`, `Sy / peak von Mises stress ${sg(s.smax, 4)} MPa${ny < 1 ? ': yields on the first cycle' : ''}`),
+      fact('Static diameters', `${sg(misesD(Mpk, Tpk, Sy, nst), 4)} mm (von Mises), ${sg(trescaD(Mpk, Tpk, Sy, nst), 4)} mm (max shear)`, `peak M ${sg(Mpk, 4)} and T ${sg(Tpk, 4)} N·m, no stress raisers, n = ${sg(nst, 3)}`),
+    ];
+    q('.sh-facts').replaceChildren(...f);
+    const ds: number[] = []; for (let i = 0; i <= 60; i++) ds.push(d * (0.6 + (i / 60) * 1.0));
+    shFig = chartFigure({ w: 380, h: 220, xLabel: 'Diameter (mm)', yLabel: 'Safety factor', yMin: 0, legend: 'below', series: [
+      { name: 'Fatigue (DE-Goodman)', x: ds, y: ds.map((x) => goodmanN(x, L, Se, Sut)), mode: 'line', width: 2 },
+      { name: 'First-cycle yield', x: ds, y: ds.map((x) => Sy / shaftStresses(x, L).smax), mode: 'line', width: 2, dash: [5, 4] },
+      { name: 'This shaft', x: [d], y: [n], mode: 'points', size: 5 },
+    ], marks: [{ kind: 'hline', at: 1 }] }, 'Safety factor against shaft diameter');
+    paint(q<HTMLCanvasElement>('.sh-fig'), shFig);
+    shSec = { title: q('.sh-big').textContent!, facts: facts2(q('.sh-facts')), figure: shFig, note: 'For study and planning, not a substitute for professional judgement.' };
+  }
+
+  const all = () => { bearing(); shaft(); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (sbFig && !q('.sb-out').hidden) paint(q<HTMLCanvasElement>('.sb-fig'), sbFig); if (shFig && !q('.sh-out').hidden) paint(q<HTMLCanvasElement>('.sh-fig'), shFig); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Shaft and bearing life', subtitle: q('.sb-big').textContent ?? '', file: 'shaft-bearing', sections: [sbSec, shSec].filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .sbl select, .sbl input { max-width: 100%; }
+  .sbl .sb-out, .sbl .sh-out { margin-top: 12px; }
+</style>
