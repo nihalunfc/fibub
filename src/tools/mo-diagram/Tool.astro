@@ -1,0 +1,205 @@
+---
+// MO diagram for homonuclear diatomics H₂ to Ne₂ and their ions: fill the MOs one electron at a time, bond
+// order, magnetism, s–p mixing switch, a table across the period, and Check yourself.
+import '../../styles/astro.css';
+import { ELEMENTS } from '../../lib/sci/modiagram';
+---
+<div class="ax mod">
+  <div class="ax-card">
+    <h2>Build the MO diagram</h2>
+    <div class="ax-grid">
+      <label>Element <select class="mo-el">{ELEMENTS.map((e) => <option selected={e === 'O'}>{e}</option>)}</select></label>
+      <label>Charge <select class="mo-q"><option value="-2">2− (add 2 electrons)</option><option value="-1">1− (add 1)</option><option value="0" selected>0 (neutral)</option><option value="1">1+ (remove 1)</option><option value="2">2+ (remove 2)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><span class="ax-help" style="margin:0">s–p mixing</span><span class="ax-seg mo-mix" role="group" aria-label="s–p mixing"><button type="button" data-m="auto" aria-pressed="true">Auto</button><button type="button" data-m="on" aria-pressed="false">On</button><button type="button" data-m="off" aria-pressed="false">Off</button></span></div>
+    <p class="ax-help mo-mixhelp"></p>
+    <p class="ax-err mo-err" hidden></p>
+    <p class="ax-big mo-big"></p>
+    <label class="mo-fillw">Electrons filled: <b class="mo-fv"></b><input type="range" class="mo-fill" min="0" max="16" step="1" value="16" /></label>
+    <canvas class="ax-fig mo-fig"></canvas>
+    <p class="mo-formula"></p>
+    <dl class="ax-facts mo-facts"></dl>
+    <p class="mo-config"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Across the period</h2>
+    <p class="ax-help mo-thelp" style="margin-top:0"></p>
+    <div class="ax-scroll"><table class="mo-table"><thead><tr><th>Molecule</th><th class="r">Electrons</th><th class="r">Bond order</th><th class="r">Unpaired</th><th>Magnetic</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mo-try">
+      <li>Pick O₂ and drag the slider to fill electrons one at a time. Watch the last two go into the two π* orbitals separately: that is why oxygen sticks to a magnet.</li>
+      <li>Go from O₂ to O₂⁺, O₂⁻ and O₂²⁻. Removing an antibonding electron makes the bond stronger.</li>
+      <li>Pick B₂ and switch s–p mixing <b>Off</b>: B₂ would be diamagnetic. Experiments show it is paramagnetic, which is evidence for mixing.</li>
+      <li>Why does He₂ not exist? Count the bonding and antibonding electrons.</li>
+      <li>N₂ has bond order 3: compare with its Lewis structure N≡N.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card mo-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Write a half as 2.5 or 2½. New questions every time; nothing is saved.</p>
+    <div class="mo-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small mo-check">Check</button><button type="button" class="btn secondary small mo-new">New questions</button><span class="mo-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mo-fillw { margin: 6px 0 8px; }
+  .mo-fillw input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mo-fig { max-width: 440px; margin: 0 auto; border: 1px solid var(--line); }
+  .mo-formula, .mo-config { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .mo-config { font-size: 14px; }
+  .mo-table tr.cur td { font-weight: 700; }
+  .mo-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .mo-qs { display: grid; gap: 12px; }
+  .mo-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .mo-q1 input, .mo-q1 select { max-width: 200px; }
+  .mo-ans { font-size: 14px; margin: 0; }
+  .mo-ans.ok { color: var(--good); } .mo-ans.no { color: var(--bad); }
+  .mo-score { font-weight: 700; }
+</style>
+
+<script>
+  import { ELEMENTS, Z, fillMO, speciesName, boText, autoMixing, type Result } from '../../lib/sci/modiagram';
+  import { paint, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mod')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.mo-fig');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mixMode = 'auto', lastKey = '';
+  const mixing = (el: string) => (mixMode === 'auto' ? autoMixing(el) : mixMode === 'on');
+
+  // Atomic orbital filling for one atom (1s, 2s, then the three 2p with Hund's rule).
+  function atomFill(n: number) {
+    const s1 = Math.min(2, n), s2 = Math.min(2, Math.max(0, n - 2)), p = Math.max(0, n - 4);
+    const pp = [0, 0, 0]; for (let k = 0; k < p; k++) pp[k % 3]++;
+    return { s1, s2, p: pp };
+  }
+
+  function figure(r: Result, el: string, charge: number): Figure {
+    return { w: 400, h: 470, alt: `MO energy diagram of ${speciesName(el, charge)} with ${r.electrons} electrons filled`, draw: (ctx, W, H, pal) => {
+      const xa = 58, xm = W / 2, xb = W - 58, lw = 34;
+      const total = 2 * Z[el] - charge, na = Math.ceil(total / 2), nb = total - na;
+      // Schematic energies (not to scale).
+      const Y: Record<string, number> = { s1s: 440, 's1s*': 405, s2s: 360, 's2s*': 315, s2pz: r.mixing ? 210 : 248, p2p: r.mixing ? 238 : 218, 'p2p*': 158, 's2pz*': 112 };
+      const AO = { s1: 422, s2: 338, p: 190 };
+      ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      // Energy arrow.
+      ctx.strokeStyle = pal.muted; ctx.fillStyle = pal.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(12, H - 20); ctx.lineTo(12, 40); ctx.stroke(); ctx.beginPath(); ctx.moveTo(12, 34); ctx.lineTo(8, 44); ctx.lineTo(16, 44); ctx.fill();
+      ctx.save(); ctx.translate(24, 60); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'right'; ctx.fillText('energy (not to scale)', 0, 0); ctx.restore();
+      ctx.textAlign = 'center'; ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif';
+      ctx.fillText(`${el} atom`, xa, 18); ctx.fillText(speciesName(el, charge), xm, 18); ctx.fillText(`${el} atom`, xb, 18);
+      const arrow = (x: number, y: number, up: boolean) => { ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x, y + 8); ctx.lineTo(x, y - 8); ctx.stroke(); const tip = up ? y - 11 : y + 11; ctx.beginPath(); ctx.moveTo(x, tip); ctx.lineTo(x - 4, tip + (up ? 6 : -6)); ctx.lineTo(x + 4, tip + (up ? 6 : -6)); ctx.fill(); };
+      const level = (x: number, y: number, n: number, label: string, side: 'l' | 'r' | 'c', anti = false) => {
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.2; ctx.setLineDash(anti ? [5, 3] : []); ctx.beginPath(); ctx.moveTo(x - lw / 2, y); ctx.lineTo(x + lw / 2, y); ctx.stroke(); ctx.setLineDash([]);
+        if (n >= 1) arrow(x - (n === 2 ? 6 : 0), y - 1, true);
+        if (n >= 2) arrow(x + 6, y - 1, false);
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = side === 'l' ? 'right' : 'left';
+        if (label) ctx.fillText(label, side === 'l' ? x - lw / 2 - 4 : x + lw / 2 + 4, y + (side === 'c' ? 0 : 0));
+      };
+      const conn = (x1: number, y1: number, x2: number, y2: number) => { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]); };
+      // Connections from AOs to MOs.
+      const pairs: [number, string][] = [[AO.s1, 's1s'], [AO.s1, 's1s*'], [AO.s2, 's2s'], [AO.s2, 's2s*'], [AO.p, 's2pz'], [AO.p, 'p2p'], [AO.p, 'p2p*'], [AO.p, 's2pz*']];
+      for (const [ya, g] of pairs) { const off = g.startsWith('p') ? 46 : 18; conn(xa + (ya === AO.p ? 48 : lw / 2), ya, xm - off, Y[g]); conn(xb - (ya === AO.p ? 48 : lw / 2), ya, xm + off, Y[g]); }
+      // Atom AOs.
+      for (const [x, n, side] of [[xa, na, 'l'], [xb, nb, 'r']] as [number, number, 'l' | 'r'][]) {
+        const f = atomFill(n);
+        level(x, AO.s1, f.s1, '1s', side); level(x, AO.s2, f.s2, '2s', side);
+        for (let k = 0; k < 3; k++) level(x + (k - 1) * 38, AO.p, f.p[k], '', side);
+        ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('2p', x, AO.p + 22);
+      }
+      // MOs.
+      r.mos.forEach((m, i) => {
+        const y = Y[m.group], isPi = m.group.startsWith('p');
+        const x = isPi ? xm + (m.id.includes('px') ? -22 : 22) : xm;
+        level(x, y, r.fill[i], isPi ? (m.id.includes('py') ? m.label.replace('py', 'p') : '') : m.label, 'r', !m.bonding);
+      });
+      ctx.fillStyle = pal.muted; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('solid = bonding, dashed = antibonding', 8, H - 8);
+    } };
+  }
+
+  function table(charge: number, el: string) {
+    const rows = ELEMENTS.map((e) => {
+      const r = fillMO(e, charge, mixing(e));
+      const tr = document.createElement('tr'); if (e === el) tr.className = 'cur';
+      const cells = typeof r === 'string' ? [speciesName(e, charge), '–', '–', '–', 'not possible'] : [speciesName(e, charge), String(r.electrons), boText(r.bondOrder), String(r.unpaired), r.exists ? r.magnetic : `${r.magnetic}; bond order 0, not stable`];
+      cells.forEach((c, k) => { const td = document.createElement('td'); td.textContent = c; if (k > 0 && k < 4) td.className = 'r'; tr.append(td); });
+      return tr;
+    });
+    q('.mo-table tbody').replaceChildren(...rows);
+    q('.mo-thelp').textContent = `All ten homonuclear diatomics with charge ${charge === 0 ? '0' : charge > 0 ? `${charge}+` : `${-charge}−`}, using the s–p mixing setting above.`;
+  }
+
+  function update() {
+    const el = q<HTMLSelectElement>('.mo-el').value, charge = Number(q<HTMLSelectElement>('.mo-q').value), mix = mixing(el), err = q('.mo-err');
+    const key = `${el}|${charge}|${mix}`, slider = q<HTMLInputElement>('.mo-fill');
+    const full = fillMO(el, charge, mix);
+    q('.mo-mixhelp').textContent = `${mix ? 'On' : 'Off'}${mixMode === 'auto' ? ' (auto)' : ''}: ${mix ? 'π2p lies below σ2pz, as for B₂, C₂ and N₂ (2s and 2p are close in energy and mix).' : 'σ2pz lies below π2p, as for O₂, F₂ and Ne₂.'}`;
+    table(charge, el);
+    if (typeof full === 'string') { err.textContent = full; err.hidden = false; for (const c of ['.mo-big', '.mo-formula', '.mo-config']) q(c).textContent = ''; q('.mo-facts').replaceChildren(); return; }
+    err.hidden = true;
+    if (key !== lastKey) { slider.max = String(full.electrons); slider.value = String(full.electrons); lastKey = key; }
+    const n = Number(slider.value), r = fillMO(el, charge, mix, n) as Result;
+    q('.mo-fv').textContent = `${n} of ${full.electrons}`;
+    const name = speciesName(el, charge), done = n === full.electrons;
+    q('.mo-big').textContent = done ? `${name}: bond order ${boText(r.bondOrder)}, ${r.exists ? r.magnetic : 'does not exist'}` : `${name}: ${n} of ${full.electrons} electrons placed`;
+    q('.mo-formula').textContent = `Bond order = ½ (bonding − antibonding) = ½ (${r.bonding} − ${r.antibonding}) = ${boText(r.bondOrder)}`;
+    q('.mo-facts').replaceChildren(
+      fact('Electrons', String(full.electrons), `${Z[el]} from each ${el} atom${charge ? `, ${charge > 0 ? `minus ${charge}` : `plus ${-charge}`} for the charge` : ''}`),
+      fact('Bond order', boText(r.bondOrder), r.bondOrder === 0 ? 'no net bond: the molecule is not stable' : r.bondOrder >= 2.5 ? 'strong, short bond' : 'higher bond order = shorter, stronger bond'),
+      fact('Unpaired electrons', String(r.unpaired)),
+      fact('Magnetic', r.magnetic, r.unpaired ? 'pulled into a magnetic field' : 'pushed weakly out of a magnetic field'),
+    );
+    q('.mo-config').textContent = `Configuration: ${r.config || '(empty)'}`;
+    paint(cv, figure(r, el, charge));
+  }
+  for (const c of ['.mo-el', '.mo-q']) q(c).addEventListener('change', update);
+  q('.mo-fill').addEventListener('input', update);
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.mo-mix button')) b.addEventListener('click', () => { mixMode = b.dataset.m!; for (const x of root.querySelectorAll('.mo-mix button')) x.setAttribute('aria-pressed', String(x === b)); update(); });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  // Check yourself.
+  type Q = { text: string; kind: 'bo' | 'mag'; answer: number | string; why: string };
+  let quiz: Q[] = [];
+  function newQuiz() {
+    quiz = []; const seen = new Set<string>();
+    while (quiz.length < 4) {
+      const el = ['H', 'He', 'Li', 'B', 'C', 'N', 'O', 'F'][Math.floor(Math.random() * 8)], ch = [-1, 0, 1, 0, 1, -1, 2, -2][Math.floor(Math.random() * 8)];
+      const r = fillMO(el, ch); const name = speciesName(el, ch);
+      if (typeof r === 'string' || seen.has(name)) continue; seen.add(name);
+      const why = `${name} has ${r.electrons} electrons: ${r.config}. Bonding ${r.bonding}, antibonding ${r.antibonding}, bond order ½ (${r.bonding} − ${r.antibonding}) = ${boText(r.bondOrder)}; ${r.unpaired} unpaired, so ${r.magnetic}.`;
+      quiz.push(quiz.length % 2 === 0 ? { text: `What is the bond order of ${name}?`, kind: 'bo', answer: r.bondOrder, why } : { text: `Is ${name} paramagnetic or diamagnetic?`, kind: 'mag', answer: r.magnetic, why });
+    }
+    q('.mo-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'mo-q1';
+      const lab = document.createElement('label'); lab.textContent = `${i + 1}. ${x.text}`;
+      let inp: HTMLElement;
+      if (x.kind === 'bo') { const e = document.createElement('input'); e.inputMode = 'decimal'; e.autocomplete = 'off'; inp = e; }
+      else { const s = document.createElement('select'); s.innerHTML = '<option value="">Choose</option><option>paramagnetic</option><option>diamagnetic</option>'; inp = s; }
+      inp.className = 'mo-qa'; lab.append(inp);
+      const p = document.createElement('p'); p.className = 'mo-ans'; p.hidden = true; d.append(lab, p); return d;
+    }));
+    q('.mo-score').textContent = '';
+  }
+  const parseBO = (s: string) => { const t = s.trim().replace(',', '.').replace(/\s+/g, ''); if (/^\d*½$/.test(t)) return (t.length > 1 ? Number(t.slice(0, -1)) : 0) + 0.5; if (/^\d+\/2$/.test(t)) return Number(t.split('/')[0]) / 2; return /^\d+(\.\d+)?$/.test(t) ? Number(t) : NaN; };
+  q('.mo-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.mo-q1').forEach((d, i) => {
+      const x = quiz[i], v = (d.querySelector('.mo-qa') as HTMLInputElement).value, p = d.querySelector<HTMLElement>('.mo-ans')!;
+      const ok = x.kind === 'bo' ? Math.abs(parseBO(v) - (x.answer as number)) < 1e-9 : v === x.answer; if (ok) right++;
+      p.hidden = false; p.className = 'mo-ans ' + (ok ? 'ok' : 'no');
+      p.textContent = `${ok ? '✓ Right.' : v.trim() === '' ? '✗ No answer yet.' : `✗ The answer is ${x.kind === 'bo' ? boText(x.answer as number) : x.answer}.`} ${x.why}`;
+    });
+    q('.mo-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.mo-new').addEventListener('click', newQuiz);
+
+  update(); newQuiz();
+</script>
