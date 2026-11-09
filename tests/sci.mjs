@@ -159,6 +159,7 @@ import * as FQ from '../src/lib/sci/fastq.ts';
 import * as AL from '../src/lib/sci/align.ts';
 import * as VC from '../src/lib/sci/vcf.ts';
 import * as SR from '../src/lib/roster.ts';
+import * as IV from '../src/lib/sci/intervals.ts';
 import * as RX from '../src/lib/rosterExport.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
@@ -3288,6 +3289,49 @@ ORIGIN
   const { PDFDocument } = await import('pdf-lib');
   const pd = await PDFDocument.load(pdf.bytes), pg = pd.getPage(0).getSize();
   check('roster: PDF', pd.getPageCount() === 2 && Math.round(pg.width) === 842 && Math.round(pg.height) === 595 && pdf.lost.length === 0);
+}
+// #175 interval tools: BED/GFF3/GTF reading and bedtools-style merge, intersect, -u, -v and subtract, checked
+// against a brute-force base-by-base version on the made-up example and on random intervals. The example results
+// also matched a separate plain-Python brute-force script.
+{
+  const ex = IV.exampleFiles(), A = IV.parseIntervals(ex.gff), B = IV.parseIntervals(ex.bed);
+  check('intervals: example files', A.format === 'gff' && B.format === 'bed' && A.items.length === 287 && B.items.length === 38 && !A.errors.length && !B.errors.length && ex.gff === IV.exampleFiles().gff);
+  const exon = A.items.filter((x) => x.type === 'exon'), genes = A.items.filter((x) => x.type === 'gene');
+  check('intervals: GFF is converted to BED positions', A.items[0].start === 516 && A.items[0].end === 4572 && A.items[0].name === 'DEMO1' && A.items[0].strand === '+');
+  check('intervals: example results', IV.merge(exon).length === 100 && IV.coveredBases(exon) === 37272 && IV.intersect(B.items, exon).length === 25 && IV.overlapping(B.items, genes).length === 25 && IV.notOverlapping(B.items, genes).length === 13 && IV.subtract(B.items, exon).length === 39 && IV.notOverlapping(genes, B.items).length === 10);
+  // Brute force on bases: a different method from the sweep in the library.
+  const bases = (v) => { const m = new Map(); for (const x of v) { const s = m.get(x.chrom) ?? new Set(); for (let i = x.start; i < x.end; i++) s.add(i); m.set(x.chrom, s); } return m; };
+  const ov = (x, y, st) => x.chrom === y.chrom && x.start < y.end && y.start < x.end && (!st || (x.strand === y.strand && x.strand !== '.'));
+  const key = (v) => v.map((x) => `${x.chrom}:${x.start}-${x.end}`).sort().join(',');
+  let rs = 12345; const rnd = () => { rs = (rs * 1103515245 + 12345) % 2147483648; return rs / 2147483648; };
+  const randIv = (n) => Array.from({ length: n }, () => { const s = Math.floor(rnd() * 2000), l = 1 + Math.floor(rnd() * 120); return { chrom: rnd() < 0.7 ? 'c1' : 'c2', start: s, end: s + l, name: '', score: '', strand: rnd() < 0.5 ? '+' : '-', type: '', attrs: {} }; });
+  let good = true;
+  for (let t = 0; t < 25 && good; t++) {
+    const a = randIv(40), b = randIv(30), st = t % 2 === 1;
+    const bruteInt = []; for (const x of a) for (const y of b) if (ov(x, y, st)) bruteInt.push({ chrom: x.chrom, start: Math.max(x.start, y.start), end: Math.min(x.end, y.end) });
+    const bruteU = a.filter((x) => b.some((y) => ov(x, y, st))), bruteV = a.filter((x) => !b.some((y) => ov(x, y, st)));
+    const bruteSub = []; for (const x of a) { const cov = new Set(); for (const y of b) if (ov(x, y, st)) for (let i = Math.max(x.start, y.start); i < Math.min(x.end, y.end); i++) cov.add(i); let run = null; for (let i = x.start; i <= x.end; i++) { if (i < x.end && !cov.has(i)) { if (run) run.end = i + 1; else run = { chrom: x.chrom, start: i, end: i + 1 }; } else if (run) { bruteSub.push(run); run = null; } } }
+    // Merge: the covered bases must match, regions must not touch, and every input must sit inside one region.
+    const m = IV.merge(a, 0, false), bm = bases(m), ba = bases(a);
+    const sameBases = [...ba].every(([c, s]) => s.size === bm.get(c)?.size && [...s].every((i) => bm.get(c).has(i)));
+    const apart = IV.sortIv(m).every((x, i, v) => i === 0 || v[i - 1].chrom !== x.chrom || v[i - 1].end < x.start);
+    const counted = m.reduce((s, x) => s + x.count, 0) === a.length;
+    const d = IV.merge(a, 25), apart25 = IV.sortIv(d).every((x, i, v) => i === 0 || v[i - 1].chrom !== x.chrom || v[i - 1].end + 25 < x.start);
+    good = key(IV.intersect(a, b, st)) === key(bruteInt) && key(IV.overlapping(a, b, st)) === key(bruteU) && key(IV.notOverlapping(a, b, st)) === key(bruteV) && key(IV.subtract(a, b, st)) === key(bruteSub) && sameBases && apart && counted && apart25;
+  }
+  check('intervals: random cases match brute force (merge, gap merge, intersect, -u, -v, subtract, with and without strand)', good);
+  check('intervals: touching intervals merge but do not overlap', IV.merge([{ chrom: 'c', start: 0, end: 100 }, { chrom: 'c', start: 100, end: 200 }]).length === 1 && IV.intersect([{ chrom: 'c', start: 0, end: 100 }], [{ chrom: 'c', start: 100, end: 200 }]).length === 0);
+  check('intervals: zero-length insertion point', IV.overlapping([{ chrom: 'c', start: 50, end: 50 }], [{ chrom: 'c', start: 40, end: 60 }]).length === 1 && IV.overlapping([{ chrom: 'c', start: 60, end: 60 }], [{ chrom: 'c', start: 40, end: 60 }]).length === 0);
+  const gtf = 'chr2\tsrc\texon\t11\t20\t.\t-\t.\tgene_id "G1"; transcript_id "T1"; gene_name "ABC";\nchr10\tsrc\tCDS\t5\t9\t3.5\t+\t0\tgene_id "G2"; tag "a"; tag "b";\n';
+  const g = IV.parseIntervals(gtf);
+  check('intervals: GTF', g.format === 'gtf' && g.items[0].start === 10 && g.items[0].end === 20 && g.items[0].name === 'ABC' && g.items[0].strand === '-' && g.items[1].attrs.tag === 'a,b' && g.items[1].score === '3.5');
+  const bed = IV.parseIntervals('browser position x\ntrack name=t\n# c\nchr1 5 10\nchr1\t20\t10\nchr1\tx\t5\nchrX\t1\t2\tn\t0\t-\n');
+  check('intervals: BED with spaces, bad lines reported', bed.format === 'bed' && bed.items.length === 2 && bed.skipped === 2 && bed.errors[0].includes('Line 5') && bed.items[1].strand === '-');
+  check('intervals: GFF percent codes and ##FASTA', IV.parseIntervals('##gff-version 3\nc\ts\tgene\t1\t9\t.\t+\t.\tID=g1;Name=a%3Bb\n##FASTA\n>c\nACGT\n').items[0].name === 'a;b');
+  check('intervals: chromosome order', ['chr10', 'chrX', 'chr2', 'chrM', 'scaffold1', 'chr1'].sort(IV.chromCompare).join() === 'chr1,chr2,chr10,chrX,chrM,scaffold1');
+  const s = IV.summary(exon);
+  check('intervals: summary', s.count === 125 && s.covered === 37272 && s.chroms.length === 2 && s.strands.plus + s.strands.minus === 125 && s.total > s.covered);
+  check('intervals: BED out and lanes', IV.toBed([{ chrom: 'c', start: 1, end: 5, name: '', score: '', strand: '.' }]) === 'c\t1\t5\t.\t0\t.\n' && IV.pack([{ start: 0, end: 10 }, { start: 5, end: 20 }, { start: 12, end: 30 }]).lanes === 2);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
