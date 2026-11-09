@@ -155,6 +155,7 @@ import * as DG from '../src/lib/sci/digest.ts';
 import * as GS from '../src/lib/sci/gelsize.ts';
 import * as GB from '../src/lib/sci/genbank.ts';
 import * as PM from '../src/lib/sci/plasmidmap.ts';
+import * as FQ from '../src/lib/sci/fastq.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3110,6 +3111,43 @@ ORIGIN
   check('pm: linear map stacks overlapping features', l.prims.filter((p) => p.k === 'text' && (p.s === 'a<b' || p.s === 'wrap')).map((p) => p.y).reduce((a, b) => a !== b));
   const svg = PM.toSvg(c, { bg: '#fff', ink: '#000', muted: '#555', line: '#ccc' });
   check('pm: SVG escapes text', svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"') && svg.includes('>a&lt;b</text>') && !svg.includes('a<b'));
+}
+// #171 FASTA/FASTQ inspector: the made-up example read in odd-sized chunks, checked against Biopython 1.88 SeqIO and
+// NumPy (percentiles with method='inverted_cdf') on the same reads, as Phred+33, Phred+64 and FASTA.
+{
+  const run = (txt, step) => { const st = new FQ.SeqStats(); for (let i = 0, k = 0; i < txt.length; k++) { const n = step(k); st.push(txt.slice(i, i + n)); i += n; } st.end(); return st.result(); };
+  const fq = FQ.exampleFastq(500, 100, 7);
+  check('fq: example is the same every time', fq === FQ.exampleFastq(500, 100, 7) && fq.startsWith('@demo_read_1\n'));
+  const r = run(fq, (k) => 1 + ((k * 7919) % 613));
+  check('fq: reads, bases, lengths, N50', r.format === 'fastq' && r.reads === 500 && r.bases === 49226 && r.minLen === 70 && r.maxLen === 100 && r.n50 === 100);
+  near('fq: GC', r.gc, 0.4961633185, 1e-9);
+  check('fq: base counts', r.counts.A === 12539 && r.counts.C === 12277 && r.counts.G === 12100 && r.counts.T === 12215 && r.counts.N === 95 && r.counts.other === 0);
+  check('fq: Phred+33 found', r.offset === 33 && r.errors.length === 0);
+  near('fq: share of bases Q30+', r.q30, 0.5169828952, 1e-9);
+  near('fq: mean base quality', r.meanQ, 29.3258847, 1e-6);
+  check('fq: reads by mean quality', r.readQ[28] === 35 && r.readQ[29] === 291 && r.readQ[30] === 152);
+  check('fq: GC per read', r.gcHist[33] === 1 && r.gcHist[35] === 1 && r.gcHist.reduce((a, b) => a + b, 0) === 500);
+  const bx = FQ.qualityBoxes(r, 1000);
+  check('fq: quality box at base 1', bx[0].mean.toFixed(6) === '35.856000' && [bx[0].p10, bx[0].p25, bx[0].med, bx[0].p75, bx[0].p90].join() === '32,33,37,40,41');
+  check('fq: quality box at base 50', bx[49].mean.toFixed(6) === '29.238000' && [bx[49].p10, bx[49].p25, bx[49].med, bx[49].p75, bx[49].p90].join() === '25,26,30,33,35');
+  check('fq: quality box at base 100', bx[99].mean.toFixed(6) === '22.788889' && [bx[99].p10, bx[99].p25, bx[99].med, bx[99].p75, bx[99].p90].join() === '18,20,23,26,28');
+  check('fq: grouped boxes', FQ.qualityBoxes(r, 20).length === 20 && FQ.qualityBoxes(r, 20)[0].from === 1 && FQ.qualityBoxes(r, 20)[0].to === 5);
+  const cp = FQ.composition(r, 1000);
+  check('fq: composition per position', cp[0].A.toFixed(6) === '26.600000' && cp[99].N === 0 && Math.abs(cp[10].A + cp[10].C + cp[10].G + cp[10].T + cp[10].N - 100) < 1e-9);
+  check('fq: duplicates', r.distinct === 487 && r.top[0].count === 14 && r.top[0].seq.startsWith('GATTACAGAT'));
+  const r64 = run(fq.split('\n').map((l, i) => (i % 4 === 3 ? [...l].map((c) => String.fromCharCode(c.charCodeAt(0) + 31)).join('') : l)).join('\n'), () => 4096);
+  check('fq: Phred+64 found and read the same', r64.offset === 64 && Math.abs(r64.meanQ - 29.3258847) < 1e-6 && r64.readQ[29] === 291 && FQ.qualityBoxes(r64, 1000)[0].p90 === 41);
+  const fa = fq.split('\n').reduce((a, l, i) => (i % 4 === 0 && l ? a + '>' + l.slice(1) + '\n' : i % 4 === 1 ? a + l.slice(0, 40) + '\n' + l.slice(40) + '\n' : a), '');
+  const rf = run(fa.replace(/\n/g, '\r\n'), (k) => 3 + (k % 50));
+  check('fq: FASTA with wrapped lines and CRLF', rf.format === 'fasta' && rf.reads === 500 && rf.bases === 49226 && Math.abs(rf.gc - 0.4961633185) < 1e-9 && rf.distinct === 487 && Number.isNaN(rf.q30));
+  const plain = run('ACGTNNACGT\n', () => 100);
+  check('fq: plain sequence', plain.reads === 1 && plain.bases === 10 && plain.counts.N === 2 && plain.gc === 0.5);
+  const bad = run('@r1\nACGT\n+\nIII\n@r2\nACGT\n+\nIIII\n', () => 5);
+  check('fq: quality length mismatch skipped', bad.reads === 1 && bad.errors[0].includes('4 bases but 3 quality'));
+  const cut = run('@r1\nACGT\n+\nIIII\n@r2\nAC', () => 64);
+  check('fq: file cut short', cut.reads === 1 && cut.errors.some((e) => e.includes('ends in the middle of read 2')));
+  check('fq: histogram quantile', FQ.histQuantile([0, 2, 0, 2], 0.5) === 1 && FQ.histQuantile([0, 2, 0, 2], 0.51) === 3 && Number.isNaN(FQ.histQuantile([0, 0], 0.5)));
+  check('fq: seeded random', (() => { const a = FQ.rng(1), b = FQ.rng(1); return a() === b() && a() !== a(); })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

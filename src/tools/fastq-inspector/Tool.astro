@@ -1,0 +1,208 @@
+---
+// FASTA / FASTQ inspector: reads a file piece by piece in the browser (gzip too) and shows read lengths, GC, quality by
+// position and per read, base composition and repeated sequences. Nothing is uploaded. The example reads are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { exampleFastq } from '../../lib/sci/fastq';
+const example = exampleFastq(500, 100, 7);
+---
+<div class="ax fqi">
+  <div class="ax-card">
+    <h2>Reads</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small fq-open">Open a FASTQ or FASTA file</button>
+      <input type="file" class="fq-file" accept=".fastq,.fq,.fasta,.fa,.fna,.fas,.gz,.txt,text/plain,application/gzip" hidden />
+      <button type="button" class="btn secondary small fq-stop" hidden>Stop</button>
+    </div>
+    <p class="ax-help fq-prog" aria-live="polite"></p>
+    <label style="margin-top:10px">Or paste reads (FASTQ or FASTA, up to 5 MB) <textarea class="fq-in" rows="6" spellcheck="false">{example}</textarea></label>
+    <p class="ax-help">Files of any size are read piece by piece on your device, including .gz files; nothing is uploaded. Expect roughly 30 to 80 MB a second on a laptop, slower on phones; Stop shows what has been read so far. Quality letters are read as Phred+33, or Phred+64 when no letter below @ appears. The example is 500 made-up reads of up to 100 bases.</p>
+    <p class="ax-err fq-err" hidden></p>
+  </div>
+
+  <div class="ax-card fq-out">
+    <h2>Summary</h2>
+    <p class="ax-big fq-big"></p>
+    <dl class="ax-facts fq-facts"></dl>
+    <h3 class="fq-qh">Quality by position</h3>
+    <canvas class="ax-fig fq-qual"></canvas>
+    <h3 class="fq-rqh">Reads by mean quality</h3>
+    <canvas class="ax-fig fq-rq"></canvas>
+    <h3>GC content per read</h3>
+    <canvas class="ax-fig fq-gc"></canvas>
+    <h3>Bases by position</h3>
+    <canvas class="ax-fig fq-comp"></canvas>
+    <h3>Read lengths</h3>
+    <canvas class="ax-fig fq-len"></canvas>
+    <h3>Most repeated sequences</h3>
+    <p class="ax-help fq-toph"></p>
+    <div class="ax-scroll"><table class="fq-top"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fq-csv">Download per-position table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SeqStats, qualityBoxes, composition, type Result } from '../../lib/sci/fastq';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fqi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const pc = (x: number, d = 1) => `${(x * 100).toFixed(d)}\u00a0%`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: { sel: string; fig: Figure }[] = [], sections: Section[] = [], csvRows: string[][] = [], stopFlag = false, busy = false, name = 'reads';
+
+  const err = (m: string) => { q('.fq-err').textContent = m; q('.fq-err').hidden = !m; };
+
+  function boxFigure(r: Result): Figure {
+    const bx = qualityBoxes(r, 100), top = Math.max(41, ...bx.map((b) => b.p90)) + 1;
+    return {
+      w: 640, h: 420, alt: `Quality by position: box per ${bx.length > 1 && bx[0].to > bx[0].from ? `${bx[0].to - bx[0].from + 1} bases` : 'base'}, from base 1 to ${tn(r.positions)}`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640), L = fs * 3, R = fs * 0.8, T = fs * 0.8, B = fs * 3.9, pw = W - L - R, ph = H - T - B;
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        const X = (p: number) => L + (pw * (p - 0.5)) / r.positions, Y = (v: number) => T + ph * (1 - v / top);
+        // Bands: 28 and up good, 20 to 28 fair, below 20 poor.
+        for (const [a, b, c] of [[28, top, pal.good], [20, 28, pal.warn], [0, 20, pal.bad]] as [number, number, string][]) { ctx.globalAlpha = pal.red ? 0.08 : 0.1; ctx.fillStyle = c; ctx.fillRect(L, Y(b), pw, Y(a) - Y(b)); }
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2 * (W / 640); ctx.strokeRect(L, T, pw, ph);
+        ctx.font = `${fs * 0.8}px system-ui, sans-serif`; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let v = 0; v <= top; v += 10) { ctx.fillText(String(v), L - fs * 0.3, Y(v)); ctx.beginPath(); ctx.moveTo(L - fs * 0.2, Y(v)); ctx.lineTo(L, Y(v)); ctx.stroke(); }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const step = Math.max(1, Math.ceil(r.positions / 8 / 10) * 10);
+        for (const p of [1, ...Array.from({ length: Math.floor(r.positions / step) }, (_, i) => (i + 1) * step)]) ctx.fillText(tn(p), X(p), T + ph + fs * 0.3);
+        ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.85}px system-ui, sans-serif`;
+        ctx.fillText('Position in read (base)', L + pw / 2, H - fs * 2.3);
+        ctx.save(); ctx.translate(fs * 0.7, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Quality (Phred)', 0, 0); ctx.restore();
+        for (const b of bx) {
+          const x0 = X(b.from - 0.4), x1 = X(b.to + 0.4), xm = (x0 + x1) / 2;
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = Math.max(1, 1 * (W / 640));
+          ctx.beginPath(); ctx.moveTo(xm, Y(b.p10)); ctx.lineTo(xm, Y(b.p90)); ctx.stroke();
+          ctx.fillStyle = pal.red ? pal.muted : '#E69F00'; ctx.fillRect(x0, Y(b.p75), x1 - x0, Math.max(1, Y(b.p25) - Y(b.p75)));
+          ctx.strokeStyle = pal.bg === '#ffffff' ? '#a30000' : pal.ink; ctx.lineWidth = Math.max(1, 1.5 * (W / 640));
+          ctx.beginPath(); ctx.moveTo(x0, Y(b.med)); ctx.lineTo(x1, Y(b.med)); ctx.stroke();
+        }
+        ctx.strokeStyle = pal.red ? pal.ink : '#0072B2'; ctx.lineWidth = 2 * (W / 640); ctx.beginPath();
+        bx.forEach((b, i) => { const x = X((b.from + b.to) / 2), y = Y(b.mean); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+        ctx.font = `${fs * 0.75}px system-ui, sans-serif`; ctx.textAlign = 'left'; ctx.fillStyle = pal.muted; ctx.textBaseline = 'middle';
+        ctx.fillText('box: middle half · whiskers: 10th to 90th percentile · line: mean', L + fs * 0.3, H - fs * 0.45);
+      },
+    };
+  }
+
+  function show(r: Result, partial: boolean) {
+    q('.fq-out').hidden = false;
+    const fq = r.format === 'fastq' && r.maxCode >= 0;
+    q('.fq-big').textContent = `${tn(r.reads)} ${r.format === 'fastq' ? 'read' : 'sequence'}${r.reads === 1 ? '' : 's'}, ${tn(r.bases)} bases${fq ? `, ${pc(r.q30)} at Q30+` : ''}${partial ? ' (stopped early)' : ''}`;
+    const dupShare = r.sampled ? 1 - r.distinct / r.sampled : 0;
+    const bx = fq ? qualityBoxes(r, 100) : [];
+    const low = bx.find((b) => b.mean < 20);
+    q('.fq-facts').replaceChildren(
+      fact('Format', r.format === 'fastq' ? `FASTQ, Phred+${r.offset}` : 'FASTA (no qualities)', fq ? `quality from ${r.minCode} to ${r.maxCode}` : ''),
+      fact('Lengths', r.minLen === r.maxLen ? `all ${tn(r.minLen)}` : `${tn(r.minLen)} to ${tn(r.maxLen)}`, `mean ${r.meanLen.toFixed(1)}, N50 ${tn(r.n50)}`),
+      fact('GC content', Number.isFinite(r.gc) ? pc(r.gc) : '–', 'G + C out of A, C, G and T'),
+      fact('N (unknown bases)', pc(r.bases ? r.counts.N / r.bases : 0, 2), `${tn(r.counts.N)} bases${r.counts.other ? `; ${tn(r.counts.other)} other letters` : ''}`),
+      ...(fq ? [fact('Mean base quality', r.meanQ.toFixed(1), low ? `mean drops below 20 from base ${tn(low.from)}` : 'mean stays at 20 or above along the read')] : []),
+      fact('Repeated reads', pc(dupShare), `${tn(r.sampled - r.distinct)} repeats among the first ${tn(r.sampled)}${r.reads > r.sampled ? '' : ' (all)'} reads`),
+      ...(r.errors.length ? [fact('Problems', r.errors[0], r.errors.length > 1 ? `and ${r.errors.length - 1} more` : '')] : []),
+    );
+    figs = [];
+    if (fq) figs.push({ sel: '.fq-qual', fig: boxFigure(r) });
+    q('.fq-qual').hidden = q('.fq-qh').hidden = !fq; q('.fq-rq').hidden = q('.fq-rqh').hidden = !fq;
+    if (fq) {
+      let hi = 41; r.readQ.forEach((v, i) => { if (v > 0 && i > hi) hi = i; });
+      const xs = Array.from({ length: hi + 1 }, (_, i) => i);
+      figs.push({ sel: '.fq-rq', fig: chartFigure({ w: 560, h: 360, xLabel: 'Mean quality of the read (Phred)', yLabel: 'Reads', legend: 'none', yMin: 0, series: [{ name: 'Reads', x: xs, y: xs.map((i) => r.readQ[i]), mode: 'line', width: 2 }] }, 'Number of reads by their mean quality') });
+    }
+    {
+      const n = r.gcHist.reduce((a, b) => a + b, 0), xs = Array.from({ length: 101 }, (_, i) => i);
+      const m = xs.reduce((a, i) => a + i * r.gcHist[i], 0) / Math.max(1, n), sd = Math.sqrt(xs.reduce((a, i) => a + (i - m) ** 2 * r.gcHist[i], 0) / Math.max(1, n));
+      const norm = xs.map((i) => (sd > 0 ? (n / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((i - m) / sd) ** 2) : 0));
+      figs.push({ sel: '.fq-gc', fig: chartFigure({ w: 560, h: 360, xLabel: 'GC content of the read (%)', yLabel: 'Reads', legend: 'below', xMin: 0, xMax: 100, yMin: 0, series: [{ name: 'Your reads', x: xs, y: r.gcHist, mode: 'line', width: 2 }, { name: 'Bell curve with the same mean and spread', x: xs, y: norm, mode: 'line', dash: [6, 4], width: 1.5 }] }, 'Reads by GC content, with a bell curve of the same mean and spread for comparison') });
+    }
+    {
+      const cp = composition(r, 150), xs = cp.map((c) => c.pos);
+      figs.push({ sel: '.fq-comp', fig: chartFigure({ w: 560, h: 360, xLabel: 'Position in read (base)', yLabel: 'Share of bases (%)', legend: 'below', yMin: 0, series: (['A', 'C', 'G', 'T', 'N'] as const).map((b) => ({ name: b, x: xs, y: cp.map((c) => c[b]), mode: 'line' as const, width: 1.8 })) }, 'Share of A, C, G, T and N at each position') });
+    }
+    {
+      const ls = r.lengths, few = ls.length <= 1;
+      figs.push({ sel: '.fq-len', fig: chartFigure({ w: 560, h: 320, xLabel: 'Read length (bases)', yLabel: 'Reads', legend: 'none', yMin: 0, ...(few ? { xMin: ls[0][0] - 5, xMax: ls[0][0] + 5 } : {}), series: [{ name: 'Reads', x: ls.map((l) => l[0]), y: ls.map((l) => l[1]), mode: ls.length > 60 ? 'line' : 'both', width: 1.8 }] }, 'Number of reads by length') });
+    }
+    for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig);
+    const top = r.top.slice(0, 8);
+    q('.fq-toph').textContent = top.length ? `Sequences seen more than once among the first ${tn(r.sampled)} reads. A sequence that makes up more than about 1 % of reads is often an adapter, primer or contaminant worth checking.` : `No sequence appears twice among the first ${tn(r.sampled)} reads.`;
+    const topRows = top.map((t) => [t.seq.length > 60 ? t.seq.slice(0, 58) + '…' : t.seq, tn(t.count), pc(t.count / r.sampled, 2)]);
+    const tb = q<HTMLTableElement>('.fq-top'); tb.replaceChildren();
+    if (topRows.length) {
+      const hr = tb.createTHead().insertRow(); ['Sequence', 'Times', 'Share'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+      const b = tb.createTBody(); topRows.forEach((row) => { const tr = b.insertRow(); row.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; else td.className = 'fq-seq'; }); });
+    }
+    const cpAll = composition(r, 1e9), bxAll = fq ? qualityBoxes(r, 1e9) : [];
+    csvRows = [['position', ...(fq ? ['mean_quality', 'p10', 'p25', 'median', 'p75', 'p90'] : []), 'pct_A', 'pct_C', 'pct_G', 'pct_T', 'pct_N'],
+      ...cpAll.map((c, i) => [String(c.pos), ...(fq && bxAll[i] ? [bxAll[i].mean.toFixed(2), bxAll[i].p10, bxAll[i].p25, bxAll[i].med, bxAll[i].p75, bxAll[i].p90].map(String) : fq ? ['', '', '', '', '', ''] : []), ...[c.A, c.C, c.G, c.T, c.N].map((v) => v.toFixed(3))])];
+    sections = [{ title: q('.fq-big').textContent!, facts: [...q('.fq-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      ...figs.map((f) => ({ title: f.fig.alt, figure: f.fig })),
+      ...(topRows.length ? [{ title: 'Most repeated sequences', table: { head: ['Sequence', 'Times', 'Share'], rows: topRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : [])];
+  }
+
+  function fromText(text: string) {
+    err('');
+    if (!text.trim()) { q('.fq-out').hidden = true; sections = []; return; }
+    if (text.length > 5e6) return err('Pasted text is limited to 5 MB. Open bigger files with the button instead.');
+    const st = new SeqStats(); st.push(text); st.end();
+    const r = st.result();
+    if (!r.reads || !r.bases || r.counts.other === r.bases) { q('.fq-out').hidden = true; sections = []; return err(r.errors[0] ?? 'No DNA or RNA letters found. FASTQ reads start with @, FASTA records with >.'); }
+    name = 'pasted-reads'; show(r, false);
+  }
+
+  async function fromFile(f: File) {
+    if (busy) return;
+    busy = true; stopFlag = false; err(''); q('.fq-stop').hidden = false;
+    const st = new SeqStats();
+    let done = 0, partial = false;
+    const prog = (msg: string) => (q('.fq-prog').textContent = msg);
+    try {
+      const head = new Uint8Array(await f.slice(0, 2).arrayBuffer()), gz = head[0] === 0x1f && head[1] === 0x8b;
+      if (gz && typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, or try another browser.');
+      let stream: ReadableStream<Uint8Array> = f.stream().pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ transform(c, ctl) { done += c.byteLength; ctl.enqueue(c); } }));
+      if (gz) stream = stream.pipeThrough(new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>);
+      const reader = stream.pipeThrough(new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>).getReader();
+      let last = 0;
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end) break;
+        st.push(value);
+        if (stopFlag) { partial = true; await reader.cancel(); break; }
+        const now = performance.now();
+        if (now - last > 200) { last = now; prog(`Reading ${f.name}: ${(100 * done / Math.max(1, f.size)).toFixed(0)} % (${tn(st.reads)} reads so far)`); await new Promise((r) => setTimeout(r, 0)); }
+      }
+      st.end();
+      const r = st.result();
+      if (!r.reads || r.counts.other === r.bases) throw new Error(r.errors[0] ?? 'No reads found in this file. FASTQ reads start with @, FASTA records with >.');
+      name = f.name.replace(/\.(gz)$/i, '').replace(/\.[^.]+$/, '') || 'reads';
+      prog(`${partial ? 'Stopped' : 'Finished'}: ${f.name}, ${(f.size / 1e6).toFixed(1)} MB${gz ? ' compressed' : ''}.`);
+      show(r, partial);
+    } catch (e) {
+      err(`Could not read the file: ${(e as Error).message}`); prog('');
+    } finally { busy = false; q('.fq-stop').hidden = true; }
+  }
+
+  q('.fq-open').addEventListener('click', () => q<HTMLInputElement>('.fq-file').click());
+  q('.fq-file').addEventListener('change', () => { const f = q<HTMLInputElement>('.fq-file').files?.[0]; q<HTMLInputElement>('.fq-file').value = ''; if (f) fromFile(f); });
+  q('.fq-stop').addEventListener('click', () => { stopFlag = true; });
+  let timer = 0;
+  q('.fq-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { q('.fq-prog').textContent = ''; fromText(q<HTMLTextAreaElement>('.fq-in').value); }, 400); });
+  q('.fq-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([toCsv(csvRows)], { type: 'text/csv' }), `${name}-per-position.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig); });
+  fromText(q<HTMLTextAreaElement>('.fq-in').value);
+  wireDownloads(q('.dl'), () => ({ title: 'Read quality report', subtitle: q('.fq-big').textContent ?? '', file: `${name}-qc`, sections }));
+</script>
+
+<style is:global>
+  .fqi h3 { margin: 18px 0 4px; font-size: 1rem; }
+  .fqi .fq-seq { font-family: ui-monospace, monospace; overflow-wrap: anywhere; word-break: break-all; }
+  .fqi textarea { font-family: ui-monospace, monospace; }
+</style>
