@@ -1,5 +1,15 @@
 [
  {
+  "sha": "85c672ebcc52",
+  "date": "2026-11-09T00:41:34+00:00",
+  "title": "Add #151 LC50 / EC50 probit and logit analysis (first environmental science tool)",
+  "tools": [
+   "dose-response",
+   "lc50-probit"
+  ],
+  "site": false
+ },
+ {
   "sha": "a094da5d6844",
   "date": "2026-11-09T00:26:49+00:00",
   "title": "Add the rain gauge network average (#150)",
