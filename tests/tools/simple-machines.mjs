@@ -5,6 +5,7 @@ export default async ({ page, check, BASE }) => {
   const facts = () => page.textContent('.sm .sm-facts'), eq = () => page.textContent('.sm .sm-eq');
   const setR = async (sel, v) => { await page.$eval(sel, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, String(v)); await page.waitForTimeout(120); };
   { const f = await facts(); check(f.includes('Effort needed196 N') && f.includes('Mechanical advantage3') && f.includes('Velocity ratio3') && f.includes('Efficiency100 %') && (await eq()).includes('588 × 0.5 ÷ 1.5 = 196 N'), 'simple-machines: class 1 lever, 588 N at 0.5 m, effort at 1.5 m: 196 N'); }
+  check((await page.textContent('.sm .sm-leffv')) === '100 %', 'simple-machines: whole-number labels keep their zeros (100 %)');
   check(await page.$eval('.sm .sm-c', (c) => { const x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < x.length; i += 4) if (x[i] < 100) n++; return n > 300; }), 'simple-machines: picture drawn');
   { const f = await facts(), wi = parseFloat(f.split('Work in')[1]), wo = parseFloat(f.split('Work out')[1]); check(Math.abs(wi - wo) < 0.2 && wi > 0, `simple-machines: ideal lever: work in = work out (${wi} J, ${wo} J)`); }
   await setR('.sm .sm-leff', 0.8);

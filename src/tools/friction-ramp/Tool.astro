@@ -65,7 +65,7 @@ import '../../styles/astro.css';
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const inp = (c: string) => q<HTMLInputElement>(c);
   const val = (c: string) => Number(inp(c).value);
-  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
   // Made-up, rounded teaching values: [static, kinetic, name].
   const SURF: Record<string, [number, number, string]> = { wood: [0.5, 0.3, 'wood on wood'], rubber: [0.9, 0.7, 'rubber on concrete'], ice: [0.1, 0.05, 'ice on ice'], sand: [1.0, 0.8, 'sandpaper'] };
   const H = 260, LEN = 4; // ramp length in metres

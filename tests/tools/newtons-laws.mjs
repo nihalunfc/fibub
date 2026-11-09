@@ -46,6 +46,7 @@ export default async ({ page, check, BASE }) => {
   // catch
   await page.click('.nl .nl-mode [data-m="catch"]'); await page.waitForTimeout(150);
   { const f = await facts(); check(f.includes('Impulse (change in momentum)4 N s') && f.includes('Average force on the hands40 N'), 'newtons-laws: 160 g at 25 m/s in 0.1 s: 4 N s, 40 N'); }
+  check((await page.textContent('.nl .nl-bmv')) === '160 g' && (await page.textContent('.nl .nl-bvv')) === '25 m/s (90 km/h)', 'newtons-laws: ball labels 160 g, 90 km/h');
   await setR('.nl .nl-bt', 0.4);
   check((await facts()).includes('Average force on the hands10 N') && (await facts()).includes('4 N s'), 'newtons-laws: four times the time, a quarter of the force');
   await setR('.nl .nl-bt', 0.02); await setR('.nl .nl-bm', 0.5); await setR('.nl .nl-bv', 40);

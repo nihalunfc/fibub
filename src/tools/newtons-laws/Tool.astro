@@ -82,7 +82,7 @@ import '../../styles/astro.css';
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const inp = (c: string) => q<HTMLInputElement>(c);
   const val = (c: string) => Number(inp(c).value);
-  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
   // Made-up, rounded friction coefficients for the teaching surfaces: [static, kinetic].
   const SURF: Record<string, [number, number, string]> = { ice: [0, 0, 'ice'], floor: [0.15, 0.1, 'smooth floor'], carpet: [0.4, 0.3, 'carpet'] };
   const DT = 1 / 120, H = 200;

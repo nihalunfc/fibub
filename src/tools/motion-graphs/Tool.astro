@@ -87,7 +87,7 @@ import '../../styles/astro.css';
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const rng = (c: string) => q<HTMLInputElement>(c);
   const T_END = 12, DT = 0.05;
-  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
 
   let level: 9 | 11 = 9, mode: 'story' | 'drive' | 'match' = 'story';
   // The track being shown: samples every DT seconds (recorded while driving), or an exact story.
