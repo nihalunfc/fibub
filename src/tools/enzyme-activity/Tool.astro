@@ -1,0 +1,306 @@
+---
+// Enzyme activity lab: digest starch (amylase) or egg white (pepsin, trypsin) at different temperatures, pH values,
+// substrate amounts and inhibitors, and time it with a spot tile. Teaching model with made-up round numbers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax enz">
+  <p class="ax-help enz-note">A teaching model: the enzymes' numbers are made-up round values, so a real practical will give different times.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="enz-lab">Level</span>
+      <div class="ax-seg enz-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row enz-gap"><span class="enz-lab">Enzyme</span>
+      <div class="ax-seg enz-enz" role="group" aria-label="Enzyme"><button type="button" data-v="0" aria-pressed="true">Amylase</button><button type="button" data-v="1" aria-pressed="false">Pepsin</button><button type="button" data-v="2" aria-pressed="false">Trypsin</button></div></div>
+    <label class="enz-gap">Temperature: <b class="enz-tv"></b>
+      <input type="range" class="enz-t" min="0" max="80" step="1" value="37" aria-label="Temperature in degrees Celsius" /></label>
+    <label class="enz-gap">pH: <b class="enz-pv"></b>
+      <input type="range" class="enz-p" min="1" max="12" step="0.1" value="6.8" aria-label="pH" /></label>
+    <div class="enz-c11" hidden>
+      <label class="enz-gap">Substrate concentration: <b class="enz-sv"></b>
+        <input type="range" class="enz-s" min="0" max="20" step="0.5" value="10" aria-label="Substrate concentration in millimoles per litre" /></label>
+      <div class="ax-row enz-gap"><span class="enz-lab">Inhibitor</span>
+        <div class="ax-seg enz-inh" role="group" aria-label="Inhibitor"><button type="button" data-v="none" aria-pressed="true">None</button><button type="button" data-v="competitive" aria-pressed="false">Competitive</button><button type="button" data-v="noncompetitive" aria-pressed="false">Non-competitive</button></div></div>
+      <label class="enz-gap enz-iw" hidden>Inhibitor concentration: <b class="enz-iv"></b>
+        <input type="range" class="enz-i" min="0" max="5" step="0.5" value="2" aria-label="Inhibitor concentration in millimoles per litre" /></label>
+    </div>
+    <label class="ax-check enz-gap"><input type="checkbox" class="enz-boil" /> Boil the enzyme first, then cool it to the temperature above</label>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig enz-fig"></canvas>
+    <p class="ax-big enz-big" aria-live="polite"></p>
+    <p class="enz-say"></p>
+    <dl class="ax-facts enz-facts"></dl>
+    <p class="enz-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Record your runs</h2>
+    <p class="ax-help">Like the real practical: change one thing at a time, note when the spot test shows the substrate has gone, and compare. Rate = 1 ÷ time.</p>
+    <div class="ax-row"><button type="button" class="btn small enz-rec">Record this run</button><button type="button" class="btn secondary small enz-csv" disabled>Download results (CSV)</button><button type="button" class="btn secondary small enz-clear" disabled>Clear</button></div>
+    <div class="ax-scroll"><table class="enz-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rate graph</h2>
+    <div class="ax-row"><span class="enz-lab">Across</span>
+      <div class="ax-seg enz-axis" role="group" aria-label="What changes along the graph"><button type="button" data-v="t" aria-pressed="true">Temperature</button><button type="button" data-v="ph" aria-pressed="false">pH</button><button type="button" data-v="s" aria-pressed="false">Substrate</button></div></div>
+    <canvas class="ax-fig enz-graph"></canvas>
+    <p class="ax-help enz-gnote"></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="enz-try">
+      <li>Run amylase at 20 °C, 37 °C and 60 °C. Which is fastest, and why is 60 °C so slow?</li>
+      <li>Put pepsin at pH 6.8 (like saliva), then at pH 2 (like the stomach). What happens to the time?</li>
+      <li>Tick "Boil the enzyme first" and set 37 °C. Why does cooling not bring the enzyme back?</li>
+      <li>Class 11: add a competitive inhibitor, then push the substrate up to 20. Does the rate come back? Try the same with a non-competitive one.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="enz-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small enz-check">Check answers</button><button type="button" class="btn secondary small enz-new">New questions</button></div>
+    <p class="enz-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { ENZYMES, tempFactor, pHFactor, rate, bestTemp, starchLeft, spotTime, apparent, type Inhibitor } from '../../lib/sci/enzlab';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.enz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fx = (x: number, d = 1) => x.toFixed(d).replace('-', '−');
+  const BEST = bestTemp();
+  const SHORT = ['Amylase', 'Pepsin', 'Trypsin'];
+  const INH: Record<Inhibitor, string> = { none: 'none', competitive: 'competitive', noncompetitive: 'non-competitive' };
+  let level = 10, ei = 0, inh: Inhibitor = 'none', axis = 't', graph: Figure | null = null;
+  type Run = { e: string; t: number; p: number; s: number; inh: string; i: number; boil: boolean; time: number };
+  let runs: Run[] = [];
+
+  function state() {
+    const e = ENZYMES[ei], t = v('.enz-t'), p = v('.enz-p'), boil = q<HTMLInputElement>('.enz-boil').checked;
+    const s = level === 11 ? v('.enz-s') : 10, kind: Inhibitor = level === 11 ? inh : 'none', i = kind === 'none' ? 0 : v('.enz-i');
+    const r = boil ? 0 : rate(e, s, t, p, kind, i);
+    return { e, t, p, s, kind, i, boil, r, spot: spotTime(r) };
+  }
+  const timeText = (m: number) => (Number.isFinite(m) ? `${fx(m, 1).replace(/\.0$/, '')} min` : 'over 20 min');
+
+  // ---------- the spot tile ----------
+  const W = 480, H = 350, COLS = 5, ROWS = 4;
+  function mix(a: string, b: string, k: number) {
+    const h = (c: string, j: number) => parseInt(c.slice(1 + 2 * j, 3 + 2 * j), 16);
+    return '#' + [0, 1, 2].map((j) => Math.round(h(a, j) * k + h(b, j) * (1 - k)).toString(16).padStart(2, '0')).join('');
+  }
+  function drawTile(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    const st = state(), starch = st.e.substrate === 'starch';
+    ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillStyle = pal.ink; ctx.font = '600 15px system-ui, sans-serif';
+    ctx.fillText(starch ? 'Spot tile: a drop of the mixture in iodine' : 'Tubes of cloudy egg white', 12, 20);
+    ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+    ctx.fillText(starch ? 'blue-black = starch still there; orange-brown = all digested' : 'cloudy = protein still there; clear = all digested', 12, 42);
+    // tile
+    const x0 = 24, y0 = 62, cw = (w - 48) / COLS, ch = 64;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.fillStyle = pal.bg;
+    ctx.beginPath(); ctx.roundRect(x0 - 10, y0 - 6, w - 28, ROWS * ch + 6, 12); ctx.fill(); ctx.stroke();
+    const full = starch ? '#1d1b3f' : '#d8d8d8', none = starch ? '#c98a2b' : pal.bg;
+    for (let k = 0; k < COLS * ROWS; k++) {
+      const m = (k + 1) * 0.5, left = starchLeft(st.r, m), cx = x0 + cw * (k % COLS) + cw / 2 - 5, cy = y0 + ch * Math.floor(k / COLS) + 22;
+      ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+      if (pal.red) { ctx.globalAlpha = 0.15 + 0.85 * left; ctx.fillStyle = pal.ink; ctx.fill(); ctx.globalAlpha = 1; }
+      else if (starch) { ctx.fillStyle = mix(full, none, Math.min(1, Math.sqrt(left))); ctx.fill(); }
+      else { ctx.globalAlpha = 0.1 + 0.9 * left; ctx.fillStyle = full; ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.lineWidth = m === st.spot ? 4 : 1.5; ctx.strokeStyle = m === st.spot ? pal.good : pal.muted; ctx.stroke();
+      ctx.fillStyle = m === st.spot ? pal.ink : pal.muted; ctx.textAlign = 'center';
+      ctx.font = m === st.spot ? '600 12px system-ui, sans-serif' : '12px system-ui, sans-serif';
+      ctx.fillText(`${fx(m, 1).replace(/\.0$/, '')} min`, cx, cy + 30);
+    }
+    ctx.textAlign = 'left'; ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif';
+    ctx.fillText(Number.isFinite(st.spot) ? (st.spot <= 10 ? `Ringed: first drop with no ${st.e.substrate} left (${timeText(st.spot)})` : `Still ${st.e.substrate} after 10 min; gone at ${timeText(st.spot)}`) : `Still ${st.e.substrate} after 20 minutes`, 12, H - 12);
+  }
+  const picture: Figure = { w: W, h: H, alt: 'Spot tile showing how much substrate is left every half minute', draw: drawTile };
+
+  function facts(list: [string, string, string?][]) {
+    return list.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; });
+  }
+  let factList: [string, string, string?][] = [];
+  function update() {
+    const st = state(), { e, t, p } = st;
+    q('.enz-tv').textContent = `${t} °C`; q('.enz-pv').textContent = fx(p);
+    q('.enz-sv').textContent = `${fx(st.s)} mM`; q('.enz-iv').textContent = `${fx(v('.enz-i'))} mM`;
+    q('.enz-iw').hidden = inh === 'none';
+    q('.enz-big').textContent = `Rate ${fx(st.r)} units a minute: ${Number.isFinite(st.spot) ? `the ${e.substrate} is gone after ${timeText(st.spot)}` : `${e.substrate} is still there after 20 minutes`}`;
+    const tf = tempFactor(t), pf = pHFactor(e, p);
+    let say = '';
+    if (st.boil) say = 'Boiled: heat has changed the shape of the active site for good (denatured). Cooling does not bring it back, so nothing happens.';
+    else if (pf < 0.3) say = `The pH is far from this enzyme's best (pH ${e.pHopt}). The active site changes shape, so the ${e.substrate} no longer fits well.`;
+    else if (t > BEST + 3) say = `Too hot: above about ${fx(BEST, 0)} °C the enzyme starts to lose its shape (denature), so it gets slower, not faster.`;
+    else if (t < BEST - 10) say = 'Cool: the molecules move slowly and meet less often, so the reaction is slow. The enzyme is not damaged; warming it speeds it up.';
+    else say = `Near the best temperature (about ${fx(BEST, 0)} °C in this model) and a good pH: the enzyme works fast.`;
+    q('.enz-say').textContent = say;
+    factList = [
+      ['Enzyme', e.name, `works on ${e.substrate}; best pH ${e.pHopt}`],
+      ['Temperature effect', `× ${fx(tf, 2)}`, `best near ${fx(BEST, 1)} °C`],
+      ['pH effect', `× ${fx(pf, 2)}`, `1 at pH ${e.pHopt}`],
+      ['Time for the spot test to change', timeText(st.spot), 'tested every half minute'],
+    ];
+    const ap = apparent(e, t, p, st.kind, st.i);
+    if (level === 11) factList.push(
+      ['Vmax (top rate)', `${fx(st.boil ? 0 : ap.vmax)} units/min`, st.kind === 'noncompetitive' ? 'lowered by the inhibitor' : 'set by temperature and pH'],
+      ['Km', `${fx(ap.km)} mM`, st.kind === 'competitive' ? 'raised by the inhibitor' : 'substrate for half the top rate'],
+    );
+    q('.enz-facts').replaceChildren(...facts(factList));
+    q('.enz-formula').textContent = level === 10
+      ? `Rate = 1 ÷ time = 1 ÷ ${Number.isFinite(st.spot) ? fx(st.spot, 1) : '∞'} = ${Number.isFinite(st.spot) ? fx(1 / st.spot, 2) : '0'} per minute`
+      : `v = Vmax × S ÷ (Km + S) = ${fx(st.boil ? 0 : ap.vmax)} × ${fx(st.s)} ÷ (${fx(ap.km)} + ${fx(st.s)}) = ${fx(st.r)} units/min`;
+    paint(q<HTMLCanvasElement>('.enz-fig'), picture, pagePalette());
+    drawGraph();
+  }
+
+  function drawGraph() {
+    const st = state(), series: any[] = [];
+    const grid = (n: number, lo: number, hi: number) => Array.from({ length: n + 1 }, (_, j) => lo + (j / n) * (hi - lo));
+    const R = (e: typeof st.e, s: number, t: number, p: number, kind: Inhibitor = st.kind) => (st.boil ? 0 : rate(e, s, t, p, kind, st.i));
+    let xLabel = '', xMin = 0, xMax = 80, here = 0, note = '';
+    if (axis === 't') {
+      const xs = grid(320, 0, 80); xLabel = 'Temperature (°C)'; here = st.t;
+      series.push({ name: `${SHORT[ei]}, pH ${fx(st.p)}`, x: xs, y: xs.map((x) => R(st.e, st.s, x, st.p)), mode: 'line', width: 2.2 });
+      note = `Faster as it warms (about twice as fast for every 10 °C), fastest near ${fx(BEST, 0)} °C, then the enzyme denatures and the rate falls fast.`;
+    } else if (axis === 'ph') {
+      const xs = grid(220, 1, 12); xLabel = 'pH'; xMin = 1; xMax = 12; here = st.p;
+      ENZYMES.forEach((e, k) => series.push({ name: SHORT[k], x: xs, y: xs.map((x) => R(e, st.s, st.t, x)), mode: 'line', width: 2.2 }));
+      note = 'Each enzyme has its own best pH: pepsin in the acid stomach, amylase in neutral saliva, trypsin in the alkaline small intestine.';
+    } else {
+      const xs = grid(200, 0, 20); xLabel = 'Substrate concentration (mM)'; xMax = 20; here = st.s;
+      series.push({ name: 'No inhibitor', x: xs, y: xs.map((x) => R(st.e, x, st.t, st.p, 'none')), mode: 'line', width: 2.2 });
+      if (st.kind !== 'none') series.push({ name: `${INH[st.kind]} inhibitor ${fx(st.i)} mM`, x: xs, y: xs.map((x) => R(st.e, x, st.t, st.p)), mode: 'line', width: 2, dash: [6, 3] });
+      note = st.kind === 'competitive' ? 'A competitive inhibitor blocks the active site, so more substrate can push it out: the curve catches up.'
+        : st.kind === 'noncompetitive' ? 'A non-competitive inhibitor binds elsewhere and changes the shape: more substrate cannot win back the top rate.'
+        : 'More substrate helps until every active site is busy; then the rate levels off at Vmax.';
+    }
+    const hy = st.r;
+    series.push({ name: 'Now', x: [here], y: [hy], marker: 'circle', size: 8 });
+    graph = chartFigure({ w: 480, h: 320, font: 14, xLabel, yLabel: 'Rate (units per minute)', xMin, xMax, yMin: 0, legend: 'below', series }, `Enzyme rate against ${xLabel.toLowerCase()}`);
+    paint(q<HTMLCanvasElement>('.enz-graph'), graph);
+    q('.enz-gnote').textContent = note;
+  }
+
+  const HEAD = ['Enzyme', 'Temp (°C)', 'pH', 'Substrate (mM)', 'Inhibitor', 'Boiled', 'Time', 'Rate (1/min)'];
+  const row = (r: Run) => [r.e, String(r.t), fx(r.p), fx(r.s), r.inh === 'none' ? 'none' : `${r.inh} ${fx(r.i)} mM`, r.boil ? 'yes' : 'no', timeText(r.time), Number.isFinite(r.time) ? fx(1 / r.time, 3) : '0'];
+  function drawRuns() {
+    const tb = q<HTMLTableElement>('.enz-tab'); tb.innerHTML = '';
+    if (!runs.length) return;
+    const hr = tb.createTHead().insertRow();
+    HEAD.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j && j !== 4 && j !== 5) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    runs.forEach((r) => { const tr = b.insertRow(); row(r).forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j && j !== 4 && j !== 5) td.className = 'r'; }); });
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const tm = pick([2, 4, 5, 8]), r20 = pick([4, 6, 10, 12]), e = pick(ENZYMES);
+    const place = e.id === 'pepsin' ? 'the stomach (acid)' : e.id === 'trypsin' ? 'the small intestine (alkaline)' : 'the mouth (saliva, about neutral)';
+    qs = [
+      { text: `The iodine stops turning blue-black after ${tm} minutes. Using rate = 1 ÷ time, what is the rate (per minute)?`, answer: 1 / tm, tol: 0.005, worked: `1 ÷ ${tm} = ${fx(1 / tm, 3)} per minute.` },
+      { text: `Which enzyme works best in ${place}?`, options: ENZYMES.map((x) => x.name), answer: e.name, worked: `${e.name} has its best pH near ${e.pHopt}, matching ${place.split(' (')[0]}.` },
+      { text: 'Amylase is boiled, then cooled back to 37 °C. Does it digest starch again?', options: ['no', 'yes'], answer: 'no', worked: 'Boiling denatures the enzyme: its active site loses its shape for good, so cooling does not bring it back.' },
+    ];
+    if (level === 10) {
+      qs.push({ text: `Well below its best temperature, an enzyme's rate roughly doubles for every 10 °C. If the rate at 20 °C is ${r20} units a minute, what is it at 30 °C?`, answer: 2 * r20, tol: 0.01, worked: `Doubling: 2 × ${r20} = ${2 * r20} units a minute.` });
+    } else {
+      const V = pick([50, 80, 100, 120]), K = pick([1, 2, 4, 5]), S = pick([1, 2, 3, 6, 10]);
+      const vv = (V * S) / (K + S);
+      qs.push({ text: `An enzyme has Vmax = ${V} units/min and Km = ${K} mM. What is the rate when the substrate is ${S} mM? (v = Vmax × S ÷ (Km + S))`, answer: +vv.toFixed(2), tol: 0.06, worked: `${V} × ${S} ÷ (${K} + ${S}) = ${fx(vv, 2)} units/min.` });
+      const comp = Math.random() < 0.5;
+      qs.push({ text: `What does a ${comp ? 'competitive' : 'non-competitive'} inhibitor do to Vmax and Km?`, options: ['same Vmax, higher Km', 'lower Vmax, same Km', 'both unchanged'], answer: comp ? 'same Vmax, higher Km' : 'lower Vmax, same Km', worked: comp ? 'It competes for the active site, so more substrate is needed for half speed (Km up), but enough substrate still reaches the same top rate.' : 'It binds away from the active site and stops some enzyme working, so the top rate falls; the substrate still binds as well as before.' });
+    }
+    const ol = q('.enz-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(qq.answer);
+      const p = document.createElement('p'); p.textContent = qq.text; li.append(p);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'enz-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'enz-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'enz-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.enz-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.enz-qs li').forEach((li, j) => {
+      const qq = qs[j], el = li.querySelector('.enz-ans') as HTMLInputElement;
+      const ok = qq.options ? el.value === qq.answer : el.value.trim() !== '' && Math.abs(Number(el.value.trim().replace(',', '.').replace('−', '-')) - Number(qq.answer)) <= (qq.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.enz-worked')!; w.hidden = false; w.className = `enz-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.enz-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  function seg(sel: string, on: (val: string) => void) {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o === b))); on(b.dataset.v!);
+    }));
+  }
+  seg('.enz-level', (val) => { level = Number(val); q('.enz-c11').hidden = level !== 11; update(); makeQuiz(); });
+  seg('.enz-enz', (val) => { ei = Number(val); update(); });
+  seg('.enz-inh', (val) => { inh = val as Inhibitor; update(); });
+  seg('.enz-axis', (val) => { axis = val; drawGraph(); });
+  root.querySelectorAll('input[type=range], .enz-boil').forEach((el) => el.addEventListener('input', update));
+  q('.enz-boil').addEventListener('change', update);
+  q('.enz-rec').addEventListener('click', () => {
+    const st = state();
+    runs.push({ e: SHORT[ei], t: st.t, p: st.p, s: st.s, inh: INH[st.kind], i: st.i, boil: st.boil, time: st.spot });
+    q<HTMLButtonElement>('.enz-csv').disabled = false; q<HTMLButtonElement>('.enz-clear').disabled = false; drawRuns();
+  });
+  q('.enz-clear').addEventListener('click', () => { runs = []; q<HTMLButtonElement>('.enz-csv').disabled = true; q<HTMLButtonElement>('.enz-clear').disabled = true; drawRuns(); });
+  q('.enz-csv').addEventListener('click', () => runs.length && save(new TextEncoder().encode(csv([['enzyme', 'temperature_C', 'pH', 'substrate_mM', 'inhibitor', 'inhibitor_mM', 'boiled', 'time_min', 'rate_per_min'],
+    ...runs.map((r) => [r.e, r.t, r.p, r.s, r.inh, r.i, r.boil ? 'yes' : 'no', Number.isFinite(r.time) ? r.time : '', Number.isFinite(r.time) ? +(1 / r.time).toFixed(4) : 0])])), 'enzyme-runs.csv', 'text/csv'));
+  q('.enz-check').addEventListener('click', checkQuiz);
+  q('.enz-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', update);
+  update(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Enzyme activity lab', subtitle: q('.enz-big').textContent ?? '', file: 'enzyme-activity',
+    sections: [
+      { title: 'Set-up', text: [q('.enz-say').textContent ?? '', q('.enz-formula').textContent ?? '', 'Teaching model with made-up round numbers.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: picture },
+      { title: 'Rate graph', figure: graph ?? undefined, ...(runs.length ? { table: { head: HEAD, rows: runs.map(row), align: ['l', 'r', 'r', 'r', 'l', 'l', 'r', 'r'] as ('l' | 'r')[] } } : {}) },
+    ] as Section[],
+  }));
+</script>
+
+<style is:inline>
+  .enz .enz-note { margin: 0; }
+  .enz .enz-lab { font-size: 14px; color: var(--muted); min-width: 56px; }
+  .enz .enz-gap { margin-top: 12px; display: block; }
+  .enz .ax-row.enz-gap { display: flex; }
+  .enz .ax-seg { flex-wrap: wrap; }
+  .enz .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .enz input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .enz input[type=checkbox] { width: 22px; height: 22px; }
+  .enz .ax-check { min-height: 44px; align-items: center; }
+  .enz label b { color: var(--ink); }
+  .enz .btn.small { min-height: 44px; }
+  .enz .enz-say { margin: 6px 0 12px; }
+  .enz .enz-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; margin: 12px 0 0; }
+  .enz .enz-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .enz .enz-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .enz .enz-qs p { margin: 0 0 6px; }
+  .enz .enz-qs select, .enz .enz-qs input { max-width: 260px; min-height: 44px; }
+  .enz .enz-worked.ok { color: var(--good); }
+  .enz .enz-worked.no { color: var(--bad); }
+  .enz .enz-score { font-weight: 700; }
+  .enz [hidden] { display: none !important; }
+</style>
