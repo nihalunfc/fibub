@@ -1,0 +1,157 @@
+---
+// Stereotaxic helper: scale atlas coordinates by bregma-lambda distance, angled approach, skull-flat check.
+// The target and distances filled in are made-up examples, not atlas values.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax stx">
+  <div class="ax-card">
+    <h2>Target from the atlas</h2>
+    <div class="ax-grid">
+      <label>AP from bregma (mm, + anterior) <input class="sx-ap" inputmode="decimal" value="-2.0" /></label>
+      <label>ML from midline (mm) <input class="sx-ml" inputmode="decimal" value="1.5" /></label>
+      <label>Depth below bregma skull (mm) <input class="sx-dv" inputmode="decimal" value="1.8" /></label>
+    </div>
+    <p class="ax-help">The made-up example target is not from any atlas; type the coordinates from your own atlas. Depth is measured down from the skull surface at bregma with the skull flat.</p>
+    <h3 style="margin:14px 0 6px">Scale to this animal</h3>
+    <div class="ax-grid">
+      <label>Reference bregma–lambda (mm) <input class="sx-ref" inputmode="decimal" value="4.0" /></label>
+      <label>Measured bregma–lambda (mm) <input class="sx-meas" inputmode="decimal" value="3.8" /></label>
+      <label>Scale <select class="sx-mode"><option value="ap" selected>AP only</option><option value="all">AP, ML and depth</option><option value="none">Do not scale</option></select></label>
+    </div>
+    <p class="ax-help">Reference: the bregma–lambda distance of the reference brain in your atlas (4.0 is only an editable example; type your atlas's value). The target is multiplied by measured ÷ reference. Many labs scale AP only; scaling all three assumes the whole brain is proportionally smaller or larger.</p>
+    <h3 style="margin:14px 0 6px">Angled approach</h3>
+    <div class="ax-grid">
+      <label>Arm angle from vertical (°) <input class="sx-ang" inputmode="decimal" value="10" /></label>
+      <label>Tilt in <select class="sx-plane"><option value="ml" selected>Coronal plane (ML)</option><option value="ap">Sagittal plane (AP)</option></select></label>
+      <label>Tip points <select class="sx-tow"></select></label>
+    </div>
+    <p class="ax-help">An angled track avoids a vessel, a sinus or another implant. The tool gives the point where the track crosses the skull plane and how far to lower along the arm. Use 0° for a vertical approach. For study and teaching, not for clinical use.</p>
+    <p class="ax-err sx-err" hidden></p>
+  </div>
+
+  <div class="ax-card sx-out">
+    <h2>Coordinates for this animal</h2>
+    <p class="ax-big sx-big"></p>
+    <dl class="ax-facts sx-facts"></dl>
+    <canvas class="ax-fig sx-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sx-csv">Download coordinates (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Skull-flat check</h2>
+    <div class="ax-grid">
+      <label>DV reading at bregma (mm) <input class="sx-b" inputmode="decimal" value="4.50" /></label>
+      <label>DV reading at lambda (mm) <input class="sx-l" inputmode="decimal" value="4.62" /></label>
+      <label>DV reading left (mm, optional) <input class="sx-left" inputmode="decimal" value="" /></label>
+      <label>DV reading right (mm, optional) <input class="sx-right" inputmode="decimal" value="" /></label>
+      <label>Left and right are each (mm from midline) <input class="sx-lr" inputmode="decimal" value="2" /></label>
+      <label>Reading gets bigger as the arm goes <select class="sx-dir"><option value="down" selected>Down</option><option value="up">Up</option></select></label>
+      <label>Flat within (mm) <input class="sx-tol" inputmode="decimal" value="0.1" /></label>
+    </div>
+    <p class="ax-help">Touch the skull at bregma and at lambda and type the two DV readings from the frame. The distance between them is the measured bregma–lambda distance above. The tolerance of 0.1 mm is an example: use your lab's.</p>
+    <p class="ax-err sx-ferr" hidden></p>
+    <dl class="ax-facts sx-flat" style="margin-top:10px"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { scaleTarget, angled, flatness, type Plane, type Toward, type ScaleMode } from '../../lib/sci/stereo';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.stx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const mm = (x: number) => `${x < -5e-4 ? '−' : x > 5e-4 ? '+' : ''}${Math.abs(x).toFixed(2)} mm`;
+  const mmu = (x: number) => `${Math.abs(x).toFixed(2)} mm`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const TOW: Record<Plane, [Toward, string][]> = { ml: [['medial', 'Toward the midline'], ['lateral', 'Away from the midline']], ap: [['posterior', 'Backward (posterior)'], ['anterior', 'Forward (anterior)']] };
+  let fig: Figure | null = null, csvRows: string[][] = [];
+
+  function towards() {
+    const plane = q<HTMLSelectElement>('.sx-plane').value as Plane, s = q<HTMLSelectElement>('.sx-tow');
+    s.replaceChildren(...TOW[plane].map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.sx-err').textContent = m; q('.sx-err').hidden = false; q('.sx-out').hidden = true; fig = null; csvRows = []; };
+    q('.sx-err').hidden = true;
+    const ap = val('.sx-ap'), ml = val('.sx-ml'), dv = val('.sx-dv'), ref = val('.sx-ref'), meas = val('.sx-meas'), ang = val('.sx-ang');
+    const sm = q<HTMLSelectElement>('.sx-mode').value, plane = q<HTMLSelectElement>('.sx-plane').value as Plane, tow = q<HTMLSelectElement>('.sx-tow').value as Toward;
+    if (!Number.isFinite(ap) || Math.abs(ap) > 30) return fail('Type the AP coordinate in mm (positive in front of bregma).');
+    if (!(ml >= 0 && ml <= 30)) return fail('Type the ML distance from the midline in mm (0 or more).');
+    if (!(dv > 0 && dv <= 40)) return fail('Type the depth as a positive number of mm below the skull at bregma.');
+    if (sm !== 'none' && (!(ref > 0) || !(meas > 0))) return fail('Type both bregma–lambda distances in mm: your atlas reference and the one you measured.');
+    if (!(ang >= 0 && ang < 80)) return fail('Type an arm angle from 0 to below 80 degrees.');
+    const sc = sm === 'none' ? { ap, ml, dv, s: 1 } : scaleTarget({ ap, ml, dv }, ref, meas, sm as ScaleMode);
+    const a = angled(sc, ang, plane, tow);
+    q('.sx-out').hidden = false;
+    q('.sx-big').textContent = `AP ${mm(sc.ap)}, ML ${mmu(sc.ml)}, depth ${mmu(sc.dv)}`;
+    const facts = [
+      fact('Scale factor', sm === 'none' ? 'not scaled' : String(+sc.s.toPrecision(4)), sm === 'none' ? 'atlas coordinates used as they are' : `${+meas.toPrecision(4)} ÷ ${+ref.toPrecision(4)} mm, applied to ${sm === 'ap' ? 'AP only' : 'AP, ML and depth'}`),
+    ];
+    if (ang > 0) {
+      facts.push(
+        fact('Entry point on the skull', `AP ${mm(a.entry.ap)}, ML ${a.entry.ml < 0 ? `${mmu(a.entry.ml)} across the midline` : mmu(a.entry.ml)}`, 'where the angled track crosses the skull plane, from bregma'),
+        fact('Lower along the arm', mmu(a.length), `from the skull plane; ${sig(a.length - sc.dv, 3)} mm more than a vertical track`),
+        fact('Horizontal offset', mmu(a.offset), `depth × tan ${sig(ang, 3)}°, ${plane === 'ml' ? (tow === 'medial' ? 'lateral' : 'medial') : tow === 'posterior' ? 'anterior' : 'posterior'} of the target`),
+      );
+      if (a.entry.ml < 0) facts.push(fact('Warning', 'entry crosses the midline', 'the track passes over the sagittal sinus; check the angle and side'));
+    } else facts.push(fact('Approach', 'vertical', `lower ${mmu(sc.dv)} straight down`));
+    facts.push(fact('Zeroed at bregma', ang > 0 ? 'with the arm already tilted' : 'arm vertical', `move AP ${mm(a.entry.ap)}, ML ${mmu(a.entry.ml)}, touch the skull, then lower ${mmu(a.length)}`));
+    q('.sx-facts').replaceChildren(...facts);
+
+    const h = plane === 'ml' ? sc.ml : sc.ap, e = plane === 'ml' ? a.entry.ml : a.entry.ap, lo = Math.min(h, e, 0) - 1, hi = Math.max(h, e, 0) + 1;
+    fig = chartFigure({ h: 260, xLabel: plane === 'ml' ? 'ML (mm from midline)' : 'AP (mm from bregma)', yLabel: 'Depth (mm)', yReverse: true, legend: 'below', yMin: -0.5, yMax: Math.ceil(sc.dv + 0.5), xMin: lo, xMax: hi, series: [
+      { name: 'Skull plane', x: [lo, hi], y: [0, 0], mode: 'line', color: '#888888' },
+      { name: 'Track', x: [e, h], y: [0, sc.dv], mode: 'line', width: 2 },
+      { name: 'Target', x: [h], y: [sc.dv], mode: 'points', marker: 'circle' },
+    ], marks: [{ kind: 'vline', at: 0, dash: [3, 3], label: plane === 'ml' ? 'midline' : 'bregma' }] }, `${plane === 'ml' ? 'Coronal' : 'Sagittal'} view of the track from entry to target`);
+    paint(q<HTMLCanvasElement>('.sx-fig'), fig);
+    const c = (x: number) => String(+x.toFixed(4));
+    csvRows = [['Quantity', 'Value'], ['Atlas AP (mm)', c(ap)], ['Atlas ML (mm)', c(ml)], ['Atlas depth (mm)', c(dv)], ['Reference bregma-lambda (mm)', sm === 'none' ? '' : c(ref)], ['Measured bregma-lambda (mm)', sm === 'none' ? '' : c(meas)], ['Scale factor', c(sc.s)], ['Scaled', sm], ['Target AP (mm)', c(sc.ap)], ['Target ML (mm)', c(sc.ml)], ['Target depth (mm)', c(sc.dv)], ['Arm angle (deg)', c(ang)], ['Tilt plane', plane], ['Tip points', tow], ['Entry AP (mm)', c(a.entry.ap)], ['Entry ML (mm)', c(a.entry.ml)], ['Length along the arm (mm)', c(a.length)]];
+  }
+
+  function flat() {
+    const out = q('.sx-flat'), err = q('.sx-ferr');
+    const fail = (m: string) => { err.textContent = m; err.hidden = !m; out.hidden = !!m; };
+    const b = val('.sx-b'), l = val('.sx-l'), tol = val('.sx-tol'), meas = val('.sx-meas'), down = q<HTMLSelectElement>('.sx-dir').value === 'down';
+    if (!Number.isFinite(b) || !Number.isFinite(l)) return fail('Type the DV readings at bregma and lambda.');
+    if (!(tol >= 0)) return fail('Type the tolerance in mm (0 or more).');
+    if (!(meas > 0)) return fail('Type the measured bregma–lambda distance above; it is the distance between the two points.');
+    const f = flatness(b, l, meas, tol, down), facts: HTMLElement[] = [];
+    const fix = f.diff > 0 ? 'lambda is lower: lower the incisor (nose) bar' : 'lambda is higher: raise the incisor (nose) bar';
+    facts.push(fact('Bregma to lambda', f.flat ? 'flat' : 'not flat', `${f.diff === 0 ? 'same height' : `lambda ${mmu(f.diff)} ${f.diff > 0 ? 'lower' : 'higher'}`}, ${sig(Math.abs(f.angle), 3)}°${f.flat ? '' : `; ${fix}`}`));
+    const lt = q<HTMLInputElement>('.sx-left').value.trim(), rt = q<HTMLInputElement>('.sx-right').value.trim();
+    if (lt || rt) {
+      const L = num(lt), R = num(rt), off = val('.sx-lr');
+      if (!Number.isFinite(L) || !Number.isFinite(R)) return fail('Type both the left and right DV readings, or leave both empty.');
+      if (!(off > 0)) return fail('Type how far the left and right points are from the midline, in mm.');
+      const g = flatness(L, R, 2 * off, tol, down);
+      facts.push(fact('Left to right', g.flat ? 'level' : 'not level', `${g.diff === 0 ? 'same height' : `right side ${mmu(g.diff)} ${g.diff > 0 ? 'lower' : 'higher'}`}, ${sig(Math.abs(g.angle), 3)}°${g.flat ? '' : '; re-seat the ear bars'}`));
+    }
+    fail('');
+    out.replaceChildren(...facts);
+  }
+
+  q('.sx-plane').addEventListener('change', () => { towards(); calc(); });
+  root.querySelectorAll('.ax-card:first-child input, .ax-card:first-child select').forEach((i) => { i.addEventListener('input', () => { calc(); flat(); }); i.addEventListener('change', () => { calc(); flat(); }); });
+  root.querySelectorAll('.ax-card:last-child input, .ax-card:last-child select').forEach((i) => { i.addEventListener('input', flat); i.addEventListener('change', flat); });
+  q('.sx-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'stereotaxic-coordinates.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sx-fig'), fig); });
+  towards(); calc(); flat();
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (csvRows.length) sections.push({ title: q('.sx-big').textContent!, text: ['Stereotaxic target scaled to this animal. For study and teaching, not for clinical use.'], facts: factsOf('.sx-facts'), ...(fig ? { figure: fig } : {}) });
+    if (!q('.sx-flat').hidden) sections.push({ title: 'Skull-flat check', facts: factsOf('.sx-flat') });
+    return { title: 'Stereotaxic coordinates', subtitle: q('.sx-big').textContent ?? '', file: 'stereotaxic', sections };
+  });
+</script>
+
+<style is:global>
+  .stx select { max-width: 100%; }
+</style>
