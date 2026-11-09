@@ -11,7 +11,7 @@ order: 23
 icon: lock
 works: offline
 updated: 2026-11-09
-related: [dicom-viewer, zip-checker, compress-file, file-converter, fits-viewer]
+related: [dicom-viewer, zip-checker, compress-file, file-converter, fits-viewer, checksum-checker, metadata-builder]
 sources:
   - "Rules written by fibub after the principles of the DICOM basic application level confidentiality profile (NEMA PS3.15 Annex E). The tag list and its wording are our own selection, not a copy of the standard's table."
   - "DICOM reading and writing written by fibub (see the DICOM viewer). Checked in the tests by re-reading every cleaned file in pydicom 3.0.2 in strict mode: 1157 checks over 14 synthetic files and three date options."

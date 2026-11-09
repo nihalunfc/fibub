@@ -11,7 +11,7 @@ order: 2
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [protein-calculator, peptide-mass-calculator, sequence-tools, sequence-alignment]
+related: [protein-calculator, peptide-mass-calculator, sequence-tools, sequence-alignment, pdb-viewer, cryo-em-calculator, hydropathy-plot]
 sources:
   - "The PDB and mmCIF readers, the dihedral angle maths and the guide regions are written by fibub. The angles are checked in the tests against Biopython (Bio.PDB internal coordinates and MMCIFParser) and an independent NumPy dihedral on the example and on a noisy copy with a chain break, an insertion code and alternative locations, to 0.001°."
   - "The guide regions are broad ovals drawn by fibub around the textbook helix, sheet and left-handed helix areas. They are not published contour data and can be changed on the page."

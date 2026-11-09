@@ -11,7 +11,7 @@ order: 575
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [big-o-plotter, algorithm-visualiser, uncertainty-calculator]
+related: [big-o-plotter, algorithm-visualiser, uncertainty-calculator, cache-simulator, toy-compiler, sig-fig-checker, scientific-notation-formatter, number-theory-toolkit]
 sources:
   - "The IEEE 754 binary16, binary32 and binary64 formats and round-to-nearest, ties-to-even rounding (general computer science)."
   - "Checked against Python for 62 numbers in each format, including overflow, subnormal and halfway cases: bit patterns from numpy and struct, the correctly rounded float of each exact decimal (fractions.Fraction), exact stored values and rounding errors (Fraction), next up and down (np.nextafter), ULP (np.spacing) and the shortest round-trip decimal (numpy's repr)."
@@ -33,6 +33,8 @@ Computers store most numbers as binary floating point, defined by the IEEE 754 s
 - The **rounding error**: stored value minus what you typed, exactly, relative to the number, and in ULPs.
 - The **ULP** (unit in the last place), the gap to the next larger float, and the **next float up and down**.
 - A table of the same number in all three formats.
+
+See how rounding adds up in a measured result with the [[uncertainty-calculator]], and count significant figures with the [[sig-fig-checker]].
 
 ## How to use it
 

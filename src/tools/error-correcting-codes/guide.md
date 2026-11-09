@@ -11,7 +11,7 @@ order: 580
 icon: check
 works: offline
 updated: 2026-11-09
-related: [huffman-coding, entropy-calculator, link-budget-calculator]
+related: [huffman-coding, entropy-calculator, link-budget-calculator, cipher-teacher, checksum-checker, constellation-ber]
 sources:
   - "Methods: Hamming (1950); CRC parameters in the Rocksoft model with the standard check values; Reed-Solomon (1960) decoded with Berlekamp-Massey and Forney as in common textbooks (general methods)."
   - "Checked against the reedsolo Python package (encodings, error positions and decodings of ten random blocks with up to nsym/2 errors, and a block with too many errors), crcmod and zlib (eight CRCs on three inputs), and exhaustive single and double error tests of every Hamming code."
@@ -32,6 +32,8 @@ Every phone call, QR code, hard disk and space probe relies on codes that add a 
 - **SECDED (8,4) and (16,11)**: Hamming plus one overall parity bit. It still corrects one error, and now also detects two (single error correction, double error detection), as in computer memory.
 - **CRC**: CRC-8, CRC-16 (ARC, CCITT, XMODEM, Modbus) and CRC-32 (zip, PNG, Ethernet) and CRC-32C of any text or bytes, with the polynomial long division worked out by hand for short bit strings.
 - **Reed-Solomon** over GF(2⁸), the code in QR codes, CDs and deep-space links: choose the number of check bytes, tap bytes to damage them, and see the syndromes, the Berlekamp-Massey steps, the error locator, the positions from a Chien search and the error values from Forney's formula.
+
+Work out how much a noisy channel can carry with the [[entropy-calculator]], and make CRC and SHA checksums for real files with the [[checksum-checker]].
 
 ## How to use it
 

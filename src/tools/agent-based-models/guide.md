@@ -11,7 +11,7 @@ order: 587
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [cellular-automata, network-metrics, ode-solver, queueing-calculator, plot-maker]
+related: [cellular-automata, network-metrics, ode-solver, queueing-calculator, plot-maker, epidemic-model, lotka-volterra-simulator, random-walk-diffusion]
 sources:
   - "Models: Reynolds' boids (1987), Schelling's segregation model (1971) and the SIR epidemic model on a lattice, written for fibub from their published descriptions."
   - "Checked against an independent Python implementation of the Schelling and grid-SIR rules fed the same random number stream (identical grids after every test run), and by deterministic unit tests of each rule."
@@ -29,6 +29,8 @@ An agent-based model gives each individual, a bird, a household or a person, a f
 - **Boids**: birds that steer away from neighbours that are too close (**separation**), turn towards their neighbours' average heading (**alignment**) and move towards their neighbours' centre (**cohesion**). Flocks form from these three rules alone. The chart shows the **polarisation**, from about 0 when the birds head every which way to 1 when they all fly the same way.
 - **Schelling segregation**: two groups on a grid. An agent is unhappy if fewer than a set share of its neighbours belong to its own group, and unhappy agents move to random empty cells. The chart shows the average share of alike neighbours and the share of unhappy agents.
 - **SIR epidemic on a grid**: every cell is a person who is susceptible, infected or recovered. Infected people infect each susceptible neighbour with chance β per step, and recover with chance γ per step. The chart shows the three groups over time.
+
+Compare the grid epidemic with the smooth equations of the [[epidemic-model|epidemic model simulator]], and try simpler grid rules in the [[cellular-automata|cellular automata explorer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 396
 icon: check
 works: offline
 updated: 2026-11-09
-related: [shelf-life-estimator, thermal-process-calculator, brine-calculator, recipe-nutrition-calculator]
+related: [shelf-life-estimator, thermal-process-calculator, brine-calculator, recipe-nutrition-calculator, f0-calculator, control-charts]
 sources:
   - "The seven HACCP principles and the decision-tree approach to finding critical control points are general food-safety knowledge (Codex Alimentarius General Principles of Food Hygiene). The questions on this page are written in fibub's own words; no regulatory text is copied."
   - "The decision logic was checked on all 243 combinations of answers against an independent Python version; the plan tables, CSV and saved-plan reading have their own checks."

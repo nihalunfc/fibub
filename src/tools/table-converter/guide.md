@@ -11,7 +11,7 @@ order: 804
 icon: table
 works: offline
 updated: 2026-11-09
-related: [equation-converter, plot-maker, sql-playground, file-converter]
+related: [equation-converter, plot-maker, sql-playground, file-converter, bibtex-cleaner, scientific-notation-formatter, data-cleaner, science-file-converter, csv-profiler]
 sources:
   - "The table reader, rounding and the LaTeX, Markdown and HTML writers are written by fibub. Rounding is checked in the tests against Python's decimal module on 3,000 random numbers; the LaTeX output is compiled with pdflatex (booktabs and siunitx packages) and the HTML and Markdown are read back with pandas and python-markdown."
   - "The example table is made up."
@@ -31,6 +31,8 @@ Typing a table into LaTeX by hand means an ampersand between every cell, a doubl
 - **Numbers.** A column counts as numeric when every filled cell in it is a number (a % sign and e-notation such as `1.2e-3` are fine). Numbers in e-notation become proper powers of ten: $1.2 \times 10^{-3}$, 1.2 × 10⁻³.
 - **Rounding.** Round to a number of decimal places or significant figures, digit by digit as on paper: 1.005 to two places is 1.01, not the 1.00 that many programs give. Trailing zeros that count are kept, so 2.5 to three figures is 2.50.
 - **Alignment.** Text left and numbers right by default, or all left, centred or right. *On the decimal point* uses siunitx `S` columns in LaTeX (with a `table-format` worked out from your numbers) and pads with figure spaces in Markdown and HTML.
+
+Check the numbers for gaps and odd values first in the [[csv-profiler]], and format the equations in the same paper with the [[equation-converter]].
 
 ## How to use it
 

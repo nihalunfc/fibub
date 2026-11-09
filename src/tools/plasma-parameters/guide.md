@@ -11,7 +11,7 @@ order: 1
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [blackbody-calculator, gas-law-calculator, uncertainty-calculator]
+related: [blackbody-calculator, gas-law-calculator, uncertainty-calculator, particle-drifts, langmuir-probe, paschen-curve, physical-constants, skin-depth-calculator]
 sources:
   - "Formulas: standard plasma physics results, for example Chen, F. F., Introduction to Plasma Physics and Controlled Fusion, and the NRL Plasma Formulary (US Naval Research Laboratory, public domain), which also gives the Coulomb logarithm used here."
   - "Collision times: Braginskii, S. I. (1965), Transport processes in a plasma, Reviews of Plasma Physics 1. Spitzer resistivity coefficient 0.51 for Z = 1."
@@ -27,6 +27,8 @@ flow:
 ## What it does
 
 A plasma is a gas hot enough that its atoms have lost electrons, so it is full of free charges. Whether it behaves like a plasma at all, and which physics matters, depends on a handful of numbers that all follow from the density, the temperatures and the magnetic field. This calculator works them all out at once, in SI units, and says in plain words what they mean.
+
+Measure the temperature and density with the [[langmuir-probe|Langmuir probe analyser]], and follow single particles in fields with the [[particle-drifts|particle drift simulator]].
 
 ## How to use it
 

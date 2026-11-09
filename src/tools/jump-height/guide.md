@@ -11,7 +11,7 @@ order: 29
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [vo2max-estimator, heart-rate-zones, uncertainty-calculator, plot-maker]
+related: [vo2max-estimator, heart-rate-zones, uncertainty-calculator, plot-maker, training-load, gait-cadence, video-motion-tracker, projectile-drag]
 sources:
   - "Bosco C, Luhtanen P, Komi PV (1983). A simple method for measurement of mechanical power in jumping. Eur J Appl Physiol 50: 273–282 (jump height from flight time)."
   - "Young W (1995). Laboratory strength assessment of athletes. New Stud Athlet 10: 89–96 (reactive strength index)."
@@ -27,6 +27,8 @@ flow:
 ## What it does
 
 Jump mats, force plates and phone apps all measure a vertical jump the same way: they time how long the feet are off the ground and turn that **flight time** into a height. This page does the same sum, for free and in your browser. Type flight times you already have, or open a slow-motion video of the jump on your own device and mark the take-off and landing frames. Add the **ground contact time** of a drop jump or a rebound jump and you also get the **reactive strength index (RSI)**.
+
+Track the whole jump frame by frame with the [[video-motion-tracker]], and log the training around it with the [[training-load|training load tracker]].
 
 ## How to use it
 

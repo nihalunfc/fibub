@@ -11,7 +11,7 @@ order: 2
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [unit-hydrograph, rain-gauge-average, landfill-gas]
+related: [unit-hydrograph, rain-gauge-average, landfill-gas, runoff-calculator, manning-weir-calculator, flood-frequency, watershed-delineation]
 sources:
   - "Level-pool (storage) routing, the modified rational method, and the orifice and weir equations: standard hydrology and hydraulics textbook methods. Written by fibub; no design-manual tables are copied."
   - "Checked in the tests against SciPy solve_ivp (DOP853, relative tolerance 1e-11) with the same outlet equations, and storage against the integral of the surface area."

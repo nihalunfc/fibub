@@ -11,7 +11,7 @@ order: 631
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [fft-workbench, digital-filter-designer, aliasing-demo, period-finder]
+related: [fft-workbench, digital-filter-designer, aliasing-demo, period-finder, fourier-visualiser, seismogram-viewer, time-series-analyser, bird-song-spectrogram]
 sources:
   - "Continuous wavelet transform with the Morlet wavelet and the cone of influence: Torrence and Compo (1998), A practical guide to wavelet analysis, Bulletin of the American Meteorological Society 79, 61 to 78. Discrete wavelet transform and the Daubechies filters: Daubechies (1992), Ten Lectures on Wavelets; Mallat (1989)."
   - "Computed the same way as the open-source PyWavelets library (MIT licence) and checked against PyWavelets 1.8 (pywt.cwt, central_frequency, wavedec, dwt_max_level), used only for testing; the filter coefficients are the wavelets' defining mathematical constants."
@@ -32,6 +32,8 @@ A Fourier spectrum tells you which frequencies a signal contains, but not **when
 - A **multilevel discrete wavelet transform** (DWT) with the **Haar** or **Daubechies** wavelets: the signal split into detail levels D1, D2, … (each an octave of frequencies, fastest first) and a final smooth approximation. This is the transform behind denoising, compression (JPEG 2000) and many feature-extraction methods.
 
 Everything runs in your browser; the numbers match the PyWavelets library.
+
+Compare with a plain spectrum in the [[fft-workbench]], and for a time series with a trend and seasons try [[time-series-analyser|time series decomposition]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 514
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [drill-hole-composites, stereonet, infinite-slope]
+related: [drill-hole-composites, stereonet, infinite-slope, slope-stability, phone-clinometer, bearing-capacity, grade-tonnage-calculator]
 sources:
   - "Deere (1964), Deere and Deere (1988): rock quality designation, RQD = sum of sound core pieces 10 cm or longer ÷ run length × 100 (definition only)."
   - "Barton, Lien and Lunde (1974), Engineering classification of rock masses for the design of tunnel support, Rock Mechanics 6: the Q formula (the rating tables are not reproduced; use the published tables)."
@@ -35,6 +35,8 @@ Rock mass classifications put numbers on how blocky, rough, weathered, wet and s
 - **Correlation and GSI**: RMR = A ln Q + B with A and B you can change (Bieniawski's 9 and 44 to start), both ways, with a chart; GSI ≈ RMR89 with dry groundwater − 5, and GSI ≈ A ln Q′ + B.
 
 **The rating tables are not included.** Each input has a one-line reminder of what it describes; take the value from the original papers or a rock mechanics textbook. This page is arithmetic, not a design.
+
+Measure joint orientations with the [[phone-clinometer|phone clinometer]] and plot them on the [[stereonet|stereonet]], then check a cut with the [[slope-stability|slope stability tool]].
 
 ## How to use it
 

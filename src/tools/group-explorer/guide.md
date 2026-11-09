@@ -11,7 +11,7 @@ order: 545
 icon: table
 works: offline
 updated: 2026-11-09
-related: [number-theory-toolkit]
+related: [number-theory-toolkit, matrix-calculator, polyhedron-viewer, point-group-finder, knot-braid-drawer, combinatorics-calculator]
 sources:
   - "Standard group theory (Cayley, Lagrange, Galois). The groups are built from their definitions; the tool works everything out from the multiplication table."
   - "Checked against sympy.combinatorics (named permutation groups, centre, conjugacy classes, derived subgroup, is_normal and all subgroups by closure) on 22 groups up to order 64, and against the textbook counts (S4 has 30 subgroups, A5 has 59 and is simple)."
@@ -33,6 +33,8 @@ Group theory is easier to learn when you can see the groups. This explorer build
 - **Cosets** of any subgroup you choose, left and right, and the **quotient group** G/H when H is normal.
 
 The groups: cyclic Z_n (n up to 100), dihedral D_n of order 2n (n up to 32), symmetric S3 and S4, alternating A4 and A5, the Klein four-group V4, the quaternion group Q8, and the unit group Z_n^× of the numbers coprime to n under multiplication mod n (n up to 150).
+
+See symmetry groups as solid shapes in the [[polyhedron-viewer]], and find the point group of a molecule with the [[point-group-finder]].
 
 ## How to use it
 

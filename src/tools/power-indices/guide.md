@@ -11,7 +11,7 @@ order: 752
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, uncertainty-calculator]
+related: [sample-size, plot-maker, uncertainty-calculator, voting-systems, polling-average, nash-equilibrium-solver, combinatorics-calculator]
 sources:
   - "Formulas only: Shapley and Shubik (1954), Banzhaf (1965), Deegan and Packel (1978), Holler (1982), Johnston (1978); exact counting by generating functions (Brams and Affuso 1976). Example weights are made up."
 flow:
@@ -30,6 +30,8 @@ In a council, shareholder meeting or coalition where members cast blocks of vote
 - **Deegan-Packel** and **Holler (public good)** look only at *minimal* winning coalitions, where every member is needed. **Johnston** splits each winning coalition equally among its swing players.
 
 Shapley-Shubik and Banzhaf are counted **exactly**, not sampled: the tool builds the generating function that counts coalitions by size and total weight, then removes each player in turn, so a 50-player game takes a fraction of a second. The three minimal-coalition indices list all 2ⁿ coalitions, so they appear for up to 20 players.
+
+Count the ballots that elect the members with [[voting-systems|voting systems compared]], and explore strategic choices with the [[nash-equilibrium-solver]].
 
 ## How to use it
 

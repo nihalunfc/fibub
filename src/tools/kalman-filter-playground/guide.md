@@ -11,7 +11,7 @@ order: 639
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, uncertainty-calculator]
+related: [trend-analyser, uncertainty-calculator, pid-simulator, pole-placement, path-planner, digital-filter-designer, gps-track-analyser, time-series-analyser]
 sources:
   - "Kalman filter equations (predict x = Fx, P = FPFᵀ + Q; update K = PHᵀ(HPHᵀ + R)⁻¹, x += K(z − Hx), P = (I − KH)P): Kalman (1960) and standard estimation texts."
   - "Constant-velocity process noise for white acceleration of spectral density q: Q = q·[[Δt³/3, Δt²/2], [Δt²/2, Δt]], standard tracking practice."
@@ -31,6 +31,8 @@ A **Kalman filter** combines a model of how something moves with noisy measureme
 - **Two models**: a **constant level** (the value wanders slowly, a random walk) or **constant velocity** (the value moves at a speed that changes slowly). The constant-velocity filter also estimates the speed.
 - **Two kinds of data**: a **simulated sensor** with a known truth and a **random seed**, so the same noise comes back every time, or **your own measurements** (time and value, and optionally the true value).
 - **Two knobs**: **Q**, how much the filter expects the state to wander between steps, and **R**, the variance of the sensor noise.
+
+Feed the estimate to a controller in the [[pid-simulator|PID tuning simulator]], or compare it with a plain smoothing filter from the [[digital-filter-designer|FIR/IIR filter designer]].
 
 ## How to use it
 

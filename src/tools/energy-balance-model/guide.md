@@ -11,7 +11,7 @@ order: 834
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [glacier-ice, blackbody-calculator, habitable-zone-calculator, trend-analyser]
+related: [glacier-ice, blackbody-calculator, habitable-zone-calculator, trend-analyser, koppen-climate, insolation-calculator, walter-lieth, carbon-footprint, proxy-stacker]
 sources:
   - "CO₂ forcing ΔF = 5.35 ln(C/C₀) W/m²: Myhre, G., Highwood, E. J., Shine, K. P. and Stordal, F. (1998), New estimates of radiative forcing due to well mixed greenhouse gases, Geophysical Research Letters 25, 2715–2718."
   - "Zero-dimensional and one-layer models and the ice-albedo feedback as in Budyko (1969) and Sellers (1969), and in textbooks such as Hartmann, D. L., Global Physical Climatology; written into code by fibub with a smooth albedo step of its own choosing."
@@ -32,6 +32,8 @@ A **zero-dimensional energy balance model** treats the whole Earth as one point 
 - **Warming over time**: two models side by side. The **radiative model** (C dT/dt = S(1 − α)/4 + F − ε σ T⁴) has only the Planck response (and ice if ticked). The **linear model** (C dΔT/dt = F − λΔT) uses your **climate feedback parameter λ**, which stands for all the feedbacks together (water vapour, clouds, lapse rate, ice). The ocean's mixed layer gives the heat capacity C, which sets how slowly the planet warms.
 - **Ice-albedo feedback**: the albedo rises smoothly from the ice-free value to the ice-covered value as the planet cools. The page finds every equilibrium, says which are stable, and draws the **equilibrium curve against the solar constant**, with the two **tipping points** (the warm planet freezing, the frozen planet thawing) and the range where both climates are possible (**hysteresis**).
 - **One-layer greenhouse model**: an atmosphere that lets sunlight through but absorbs a share εₐ of the surface's infrared. It gives the surface, atmosphere and emission temperatures and every flux.
+
+See how orbital changes alter sunlight with the [[insolation-calculator|insolation calculator]], and compare model warming with real records in the [[trend-analyser|trend analyser]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 14
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, plate-layout, plot-maker, gel-densitometry]
+related: [hemocytometer, plate-layout, plot-maker, gel-densitometry, fluorescence-image-analyser, transfection-planner, cell-doubling-time, antibody-dilution]
 sources:
   - "File reading follows the FCS 3.1 data file standard (International Society for Advancement of Cytometry): HEADER, TEXT and DATA segments, $PnB, $PnR, $PnE, $BYTEORD, $DATATYPE and $SPILLOVER. The code is written by fibub."
   - "Reading, compensation, arcsinh scales, binning and gating are checked in the tests against FlowIO (an independent Python FCS reader), NumPy and matplotlib on test files built byte by byte."
@@ -33,6 +33,8 @@ A flow cytometer measures thousands of single cells, one after another, and save
 - **Plot.** A density plot of any two channels, coloured by how many events fall on each spot, or a histogram of one channel. Each channel has its own scale: *Linear* for scatter, *Log* for old log-amplified data, and *Arcsinh* for fluorescence. Arcsinh(value ÷ cofactor) behaves like a log scale for bright events but stays linear around zero, so negative values after compensation are shown rather than piled on the axis. A cofactor of about 150 suits most flow cytometers; mass cytometry data usually uses 5.
 - **Gate.** Press *Rectangle gate*, *Polygon gate* or *Quadrants* and tap the plot; on a histogram, press *Range gate* and tap the two ends. Each new gate goes inside the population shown in *Show events in*, so gates can be nested as deep as you like.
 - **Count.** The table lists every gate with its events, the percentage of its parent and the percentage of all events. Download the gate stats (with the median and mean of every channel inside each gate), the events in the shown gate, or a PNG, PDF or Word report.
+
+Count and seed the cells first with the [[hemocytometer]], and compare the result with your images in the [[fluorescence-image-analyser]].
 
 ## How to use it
 

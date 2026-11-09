@@ -11,7 +11,7 @@ order: 5
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [relativistic-kinematics, plot-maker, decay-chain]
+related: [relativistic-kinematics, plot-maker, decay-chain, spacetime-diagram, physical-constants, equation-converter]
 sources:
   - "Line styles and LaTeX output follow the tikz-feynman package conventions: Ellis, J. P. (2017), TikZ-Feynman: Feynman diagrams with TikZ, Computer Physics Communications 210, 103 to 123 (style names only; no code copied)."
   - "Example diagrams are standard textbook processes (QED scattering, Compton scattering, beta and muon decay, gluon fusion), drawn with our own coordinates."
@@ -28,6 +28,8 @@ flow:
 A Feynman diagram is a picture of a particle interaction: straight lines with arrows for electrons, quarks and other fermions, wavy lines for photons and W or Z bosons, curly lines for gluons and dashed lines for the Higgs and other scalars. This page draws one from a short text description, so you can change it quickly and get the same result every time.
 
 You get the drawing on the page, an **SVG** (vector, for posters, slides and papers), a **PNG** at four times screen resolution, and **TikZ-Feynman** code to paste into a LaTeX document.
+
+Check the energies and masses at each vertex with the [[relativistic-kinematics|relativistic kinematics calculator]], and plot what your data show with the [[plot-maker|plot maker]].
 
 ## How to use it
 

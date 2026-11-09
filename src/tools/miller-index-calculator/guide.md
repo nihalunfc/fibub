@@ -11,7 +11,7 @@ order: 844
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [xrd-peak-calculator, point-group-finder, crystal-field-calculator]
+related: [xrd-peak-calculator, point-group-finder, crystal-field-calculator, cif-viewer, electron-diffraction-indexer, lattice-fft, brillouin-zone, stereonet]
 sources:
   - "The metric tensor formulas for d-spacings and angles, the zone law and the Miller-Bravais rules are standard crystallography; the code is written by fibub and checked in the tests against NumPy, which builds the reciprocal cell a different way (a* = b × c / V)."
   - "The example cells are round made-up numbers; type your own."
@@ -33,6 +33,8 @@ Miller indices (hkl) name a family of parallel planes in a crystal by where one 
 - **Miller-Bravais.** Hexagonal crystals are often written with four indices: planes (hkil) with i = −(h + k), and directions [uvtw]. Type either form in the boxes, or use the converter.
 - **The picture.** The unit cell drawn to scale with every plane of family 1 that crosses it, the first plane of family 2 and the zone axis. Turn it with the sliders or by dragging, and download it as SVG.
 - **Reflection list.** Every plane up to a chosen index, grouped by spacing, with d and 2θ, as a table or CSV.
+
+See which planes give peaks in the [[xrd-peak-calculator|XRD peak calculator]], and index electron diffraction spots with the [[electron-diffraction-indexer|electron diffraction indexer]].
 
 ## How to use it
 

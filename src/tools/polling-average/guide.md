@@ -11,7 +11,7 @@ order: 753
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [sample-size, trend-analyser, uncertainty-calculator, plot-maker]
+related: [sample-size, trend-analyser, uncertainty-calculator, plot-maker, voting-systems, power-indices, survey-weighting, time-series-analyser]
 sources:
   - "Formulas only: binomial and multinomial sampling variance, Kish design effect, Cleveland (1979) LOESS. Example polls are made up."
 flow:
@@ -31,6 +31,8 @@ Single polls bounce around. This tool pools them. Paste a table of polls and it 
 - a short explanation of what the MoE covers and, more importantly, what it does not.
 
 Nothing is uploaded; the page works offline.
+
+Weight a poll's sample to the population with [[survey-weighting]], and see how the votes turn into a winner with [[voting-systems|voting systems compared]].
 
 ## How to use it
 

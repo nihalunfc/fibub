@@ -10,6 +10,7 @@ order: 18
 icon: scissors
 works: offline
 updated: 2026-11-06
+related: [file-converter, compress-file, readability-checker, table-converter]
 flow:
   - { icon: file, label: "Drop a file" }
   - { icon: search, label: "Find clutter" }

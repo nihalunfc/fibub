@@ -11,7 +11,7 @@ order: 576
 icon: table
 works: offline
 updated: 2026-11-09
-related: [float-inspector, big-o-plotter, algorithm-visualiser]
+related: [float-inspector, big-o-plotter, algorithm-visualiser, toy-compiler]
 sources:
   - "Cache organisation, LRU and FIFO replacement, the compulsory/capacity/conflict classification (Hill) and the AMAT formula are standard computer architecture, as in Hennessy and Patterson's textbooks."
   - "Checked against a separate Python simulator written for this tool: hits, the three kinds of miss, level 2 hits and misses and total cycles agree on 56 runs (7 traces × 8 one- and two-level designs covering direct-mapped, 2, 4 and 8-way and fully associative caches with LRU, FIFO and random replacement), plus hand-worked cases."
@@ -34,6 +34,8 @@ A processor's caches keep recently used memory close by, and whether a program r
 - **Kinds of miss** (the "three Cs"): compulsory (the first time a block is used), capacity (a fully associative LRU cache of the same size would have missed too) and conflict (the rest: caused by blocks fighting over the same set).
 - **AMAT**, the average memory access time, from the simulation and from the textbook formula.
 - **Cache contents** after any access, and a table of the **same trace on other level 1 designs**.
+
+Compare how whole algorithms grow with the [[big-o-plotter|Big-O plotter]], and see how numbers are stored in memory with the [[float-inspector|floating point inspector]].
 
 ## How to use it
 

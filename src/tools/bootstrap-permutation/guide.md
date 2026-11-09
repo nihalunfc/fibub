@@ -11,7 +11,7 @@ order: 562
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [hypothesis-tests, effect-size-converter, uncertainty-calculator, plot-maker, data-cleaner]
+related: [hypothesis-tests, effect-size-converter, uncertainty-calculator, plot-maker, data-cleaner, distribution-explorer, bayesian-ab-test, regression-workbench, sample-size]
 sources:
   - "Methods: Efron and Tibshirani (1993), An Introduction to the Bootstrap; as in scipy.stats.bootstrap and scipy.stats.permutation_test. Example data made up."
 flow:
@@ -29,6 +29,8 @@ You can estimate:
 - **One sample:** the mean, median or standard deviation.
 - **Two separate groups:** the difference in means or medians (each group is resampled on its own), with a permutation test that shuffles the group labels.
 - **Pairs:** Pearson or Spearman correlation (pairs are resampled together; the test shuffles y against x) or the mean of paired differences (the test flips the sign of each difference).
+
+Compare it with the classic tests in the [[hypothesis-tests|hypothesis test chooser]], and turn the difference into a standard effect size with the [[effect-size-converter]].
 
 ## How to use it
 

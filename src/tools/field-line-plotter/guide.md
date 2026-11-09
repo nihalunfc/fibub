@@ -11,7 +11,7 @@ order: 1
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker]
+related: [uncertainty-calculator, plot-maker, electrostatics-solver, coil-field-designer, capacitor-inductor-calculator, particle-drifts]
 sources:
   - "Coulomb's law, superposition, the fields of an infinite line charge and of a point dipole, and Gauss's law: standard results, for example Griffiths, D. J., Introduction to Electrodynamics, chapters 2 and 3."
   - "ε₀ = 8.8541878188 × 10⁻¹² F/m (CODATA 2022 recommended value)."
@@ -32,6 +32,8 @@ Three kinds of source are offered:
 - **Point charges** (in nanocoulombs), the usual Coulomb field E = kq/r².
 - **Line charges** (in nanocoulombs per metre): long straight wires running through the screen at right angles. Their field falls off as 1/r, and their potential has no zero at infinity, so the page takes it as zero 1 m from each line.
 - **Point dipoles** (in nC·cm, so 1 nC·cm is +1 nC and −1 nC 1 cm apart) with an angle you choose, drawn as an arrow from − to +.
+
+For real electrode shapes solve the potential with the [[electrostatics-solver]], and see the magnetic side with the [[coil-field-designer]].
 
 ## How to use it
 

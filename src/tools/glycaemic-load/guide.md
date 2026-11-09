@@ -11,7 +11,7 @@ order: 26
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [energy-needs, lab-unit-converter, clinical-scores, uncertainty-calculator]
+related: [energy-needs, lab-unit-converter, clinical-scores, uncertainty-calculator, nutrient-planner, recipe-nutrition-calculator, body-measures]
 sources:
   - "Glycaemic index: Jenkins D.J.A. et al. (1981), American Journal of Clinical Nutrition 34:362-366."
   - "Glycaemic load: Salmerón J. et al. (1997), JAMA 277:472-477; Foster-Powell K., Holt S.H.A., Brand-Miller J.C. (2002), American Journal of Clinical Nutrition 76:5-56 (formula only)."

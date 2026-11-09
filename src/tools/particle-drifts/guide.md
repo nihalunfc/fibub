@@ -11,7 +11,7 @@ order: 2
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [plasma-parameters, orbit-transfer-calculator, uncertainty-calculator]
+related: [plasma-parameters, orbit-transfer-calculator, uncertainty-calculator, langmuir-probe, paschen-curve, coil-field-designer, field-line-plotter, relativistic-kinematics]
 sources:
   - "Boris, J. P. (1970), Relativistic plasma simulation: optimization of a hybrid code, Proceedings of the Fourth Conference on Numerical Simulation of Plasmas (the Boris pusher, non-relativistic form here)."
   - "Guiding-centre drift formulas: standard results, for example Chen, F. F., Introduction to Plasma Physics and Controlled Fusion, chapter 2."
@@ -28,6 +28,8 @@ flow:
 A charged particle in a magnetic field circles around the field lines. If anything else acts on it, an electric field, a change in field strength, a bend in the field lines or a steady force such as gravity, the circle does not close and the particle walks sideways. These **drifts** explain why plasmas leak out of simple magnetic bottles, how the Earth's ring current forms, and why a tokamak needs a twisted field.
 
 This page follows a single particle step by step with the **Boris pusher**, the standard method in plasma simulation codes, and animates its path. It then measures the drift of the **guiding centre** (the centre of the circle) and compares it with the textbook formula.
+
+Get the gyroradius and plasma frequency with the [[plasma-parameters|plasma parameter calculator]], and design the magnetic field with the [[coil-field-designer]].
 
 ## How to use it
 

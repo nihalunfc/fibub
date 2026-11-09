@@ -11,7 +11,7 @@ order: 676
 icon: currency
 works: offline
 updated: 2026-11-09
-related: [home-battery-sizing, load-flow, lca-compare]
+related: [home-battery-sizing, load-flow, lca-compare, solar-pv-yield, wind-energy-yield, npv-irr-calculator, inflation-calculator, carbon-footprint]
 sources:
   - "Own code: the standard LCOE definition (present value of lifetime costs divided by present value of lifetime energy) and the capital recovery factor, as found in energy economics textbooks."
   - "Checked against a separate NumPy calculation on the three example plants and five random input sets (agreement to 1 part in 10 billion), and against the annuity formula when there is no output loss or cost rise."
@@ -35,6 +35,8 @@ This calculator gives:
 - how it splits into **capital, fixed O&M, variable O&M and fuel**;
 - a **tornado chart**: the LCOE when each input moves up and down by the same share, biggest effect at the top;
 - the **cash flow** year by year (energy, each cost, discount factor and present values), as a table and a CSV.
+
+Get the yearly energy from the [[solar-pv-yield|solar PV yield estimator]] or the [[wind-energy-yield|wind turbine yield calculator]], and test the investment with the [[npv-irr-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 314
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sequence-alignment, vcf-viewer]
+related: [tree-viewer, sequence-alignment, vcf-viewer, tree-builder, effective-population-size, allele-frequency-calculator, wright-fisher-simulator, molecular-clock]
 sources:
   - "Theory: J. F. C. Kingman (1982), Stoch. Proc. Appl. 13: 235-248 (the coalescent); G. A. Watterson (1975), Theor. Pop. Biol. 7: 256-276 (θ from segregating sites, E[S] = θ Σ 1/i); F. Tajima (1983), Genetics 105: 437-460 (Var[S] = θa + θ²b). Formulas only; no tables are copied."
   - "Checked in the tests: the expectations against exact values for n = 10, and 20,000 simulated genealogies against them. Cross-checked once against msprime 1.4.5 (20,000 genealogies of n = 10, ploidy 1, binary infinite-sites mutations, θ = 5): two-sample Kolmogorov-Smirnov p-values 0.20 for the TMRCA, 0.31 for the total branch length and 0.99 for the number of segregating sites."
@@ -28,6 +28,8 @@ flow:
 Take a sample of n copies of a gene from a population and follow them back in time. Every so often two copies turn out to come from the same parent copy: their lines **coalesce**. Eventually all of them meet in a single **most recent common ancestor (MRCA)**. The **Kingman coalescent** describes this random family tree for a neutral gene in a population of constant effective size N.
 
 This simulator draws such a genealogy, scatters neutral mutations on its branches, and then repeats the process thousands of times to compare the averages with the textbook formulas.
+
+Pick a realistic population size with the [[effective-population-size|effective population size calculator]], and view the simulated trees in the [[tree-viewer|tree viewer]].
 
 ## How to use it
 

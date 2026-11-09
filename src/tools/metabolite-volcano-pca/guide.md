@@ -11,7 +11,7 @@ order: 2
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [adduct-calculator, trend-analyser, plot-maker]
+related: [adduct-calculator, trend-analyser, plot-maker, embedding-visualiser, hypothesis-tests, csv-profiler]
 sources:
   - "Welch's t-test (Welch, 1947) with the Welch–Satterthwaite degrees of freedom; false discovery rate by Benjamini, Y. and Hochberg, Y. (1995), J. R. Stat. Soc. B 57, 289 to 300; principal component analysis with autoscaling or Pareto scaling as used in metabolomics (van den Berg et al., 2006, BMC Genomics 7, 142): used as methods, written by fibub."
   - "Checked against SciPy (scipy.stats.ttest_ind with equal_var=False and scipy.stats.false_discovery_control) and NumPy (SVD for the PCA scores, loadings and explained variance) on the example table. The example data are made up."
@@ -30,6 +30,8 @@ A metabolomics experiment gives a big table: hundreds of metabolites measured in
 - The **PCA** asks whether the samples separate at all. It squeezes all the metabolites into a few **principal components**; samples that are alike sit together on the scores plot, and the **loadings** show which metabolites drive the separation.
 
 The page uses **Welch's t-test**, which does not assume the groups have equal spread, and the **Benjamini–Hochberg** false discovery rate, which keeps the share of false hits under control when hundreds of tests are run. Everything runs in your browser; the table is never uploaded.
+
+Check the table for gaps and odd values first with the [[csv-profiler|data profiler]], and put names to the significant features with the [[adduct-calculator|adduct and neutral loss calculator]].
 
 ## How to use it
 

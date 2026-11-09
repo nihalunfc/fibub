@@ -11,7 +11,7 @@ order: 565
 icon: convert
 works: offline
 updated: 2026-11-09
-related: [hypothesis-tests, sample-size, reliability-analysis, uncertainty-calculator]
+related: [hypothesis-tests, sample-size, reliability-analysis, uncertainty-calculator, bootstrap-permutation, meta-analysis, effect-size-learning-gain, odds-risk-ratio, bayesian-ab-test]
 sources:
   - "Formulas: Borenstein, Hedges, Higgins and Rothstein (2009), Introduction to Meta-Analysis; Lakens (2013), Frontiers in Psychology 4:863; McGraw and Wong (1992) for the common-language effect size."
 flow:
@@ -23,6 +23,8 @@ flow:
 ## What it does
 
 Papers report effects in many ways: a t or F statistic, Cohen's d, a correlation, an odds ratio or eta squared. To compare studies, pool them in a meta-analysis or plan a sample size, you need them on one scale. Type what you have and this tool shows every effect size it can be converted to, with confidence intervals where a standard one exists and a rough size label for each.
+
+Get the test result first from the [[hypothesis-tests|hypothesis test chooser]], and pool effect sizes from several studies in the [[meta-analysis]] tool.
 
 ## How to use it
 

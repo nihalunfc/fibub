@@ -11,7 +11,7 @@ order: 628
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, plot-maker, data-cleaner]
+related: [period-finder, plot-maker, data-cleaner, digital-filter-designer, aliasing-demo, wavelet-viewer, fourier-visualiser, audio-spectrum-analyser, oscilloscope-viewer, notch-filter-psd]
 sources:
   - "Discrete Fourier transform (radix-2 FFT and Bluestein's chirp-z method for other lengths) and the Hann, Hamming and Blackman windows: standard textbook definitions, for example Oppenheim and Schafer, Discrete-Time Signal Processing; Harris (1978), Proceedings of the IEEE 66, 51 to 83."
   - "Checked against numpy.fft (fft, rfft, irfft) and scipy.signal (periodogram, get_window), used only for testing; no code copied."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 A fast Fourier transform (FFT) splits a signal into the sine waves it is made of. This workbench takes a signal you paste or open (a vibration record, a voltage from a data logger, an audio clip saved as numbers, a sensor reading) and shows its **spectrum**: how strong each frequency is. It lists the strongest **peaks**, lets you choose the **window** that tapers the record, and can **filter** the signal by keeping only some frequencies and transforming back to time. Everything runs in your browser; the signal never leaves your device.
+
+Design a proper filter for the noise you find with the [[digital-filter-designer|FIR/IIR filter designer]], and check your sample rate is high enough with the [[aliasing-demo|sampling and aliasing explorer]].
 
 ## How to use it
 

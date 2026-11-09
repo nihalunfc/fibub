@@ -11,7 +11,7 @@ order: 872
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [ternary-plot-maker, molar-mass-calculator, stereonet]
+related: [ternary-plot-maker, molar-mass-calculator, stereonet, cipw-norm, mineral-id-key, point-counter, xrd-peak-calculator]
 sources:
   - "Oxygen-basis normalisation is the standard mineral formula recalculation; Fe³⁺ by charge balance follows Droop (1987), Mineralogical Magazine 51, 431 (F = 2X(1 − T/S)); pyroxene Wo-En-Fs with Fe²⁺ + Fe³⁺ + Mn as Fs follows Morimoto (1988). Oxide molar masses from standard atomic weights. fibub's code is its own, checked in the tests against pyrolite and an independent NumPy script."
   - "The example analyses are made up and rounded. Nothing you paste or open is sent or stored."
@@ -31,6 +31,8 @@ An electron microprobe reports a mineral as oxide weight percentages, but a mine
 - **End-members and ratios**: Fo-Fa-Tep for olivine, Wo-En-Fs for pyroxene (Fs from Fe²⁺ + Fe³⁺ + Mn), An-Ab-Or for feldspar, Alm-Prp-Sps-Grs for garnet with the andradite and uvarovite shares of the Y-site, Cr# for spinel, and Mg# for all.
 - **Checks**: cation and oxygen sums, the total charge, oxide totals outside 98 to 102 %, and analyses where charge balance asks for more Fe³⁺ than there is iron.
 - A **ternary plot** for pyroxene and feldspar, a CSV of every number, and a report as an image, PDF or Word file.
+
+Check the mineral by its properties with the [[mineral-id-key|mineral identification key]], and turn a whole-rock analysis into minerals with the [[cipw-norm|CIPW norm calculator]].
 
 ## How to use it
 

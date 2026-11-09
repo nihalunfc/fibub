@@ -7,6 +7,9 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await page.textContent(E + '.eb-list')).includes('No bookings yet') && (await page.textContent(E + '.eb-store')).includes('never sent to fibub'), 'booking: empty week and the plain storage statement');
   { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 1500 }).catch(() => null), page.click(E + '.eb-ics')]); check(!d && (await page.textContent(E + '.eb-bmsg')).includes('No bookings'), 'booking: no .ics with nothing booked'); }
   await page.click(E + '.eb-ex'); await page.waitForTimeout(200);
+  check(!(await page.isChecked(E + '.eb-keep')) && (await page.evaluate(() => localStorage.getItem('fibub-bookings-v1'))) === null, 'booking: nothing stored before the remember box is ticked');
+  await page.check(E + '.eb-keep'); await page.waitForTimeout(100);
+  check(JSON.parse(await page.evaluate(() => localStorage.getItem('fibub-bookings-v1'))) !== null, 'booking: ticking the box saves the bookings now');
   const facts = async () => (await page.textContent(E + '.eb-facts')).replace(/\s+/g, '');
   check((await facts()) === 'Bookings9Hoursbooked26.25hInstrumentclashes1Overlaps1', `booking: example week summary (${await facts()})`);
   check((await page.$$eval(E + '.eb-ev.bad', (e) => e.length)) === 2 && (await page.$$eval(E + '.eb-ev.you', (e) => e.length)) === 2 && (await page.$$eval(E + '.eb-ev', (e) => e.length)) === 10, 'booking: grid has 10 blocks (overnight run on two days), 2 red, 2 amber');
@@ -55,7 +58,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(E + '.dl button[data-f=pdf]')]); const f = OUT + 'book.pdf'; await d.saveAs(f); check(readFileSync(f).slice(0, 5).toString() === '%PDF-', 'booking: week as PDF'); }
   // Kept after reload, backup, clear, restore, delete.
   await page.reload(); await page.waitForTimeout(400);
-  check((await facts()).startsWith('Bookings11'), 'booking: kept in this browser after reload');
+  check((await facts()).startsWith('Bookings11') && await page.isChecked(E + '.eb-keep'), 'booking: kept in this browser after reload, box ticked');
   const [dj] = await Promise.all([page.waitForEvent('download'), page.click(E + '.eb-json')]); const jf = OUT + 'book.json'; await dj.saveAs(jf);
   page.once('dialog', (d) => d.accept()); await page.click(E + '.eb-clear'); await page.waitForTimeout(150);
   check((await facts()).startsWith('Bookings0') && (await page.evaluate(() => localStorage.getItem('fibub-bookings-v1'))) === null, 'booking: clear all');

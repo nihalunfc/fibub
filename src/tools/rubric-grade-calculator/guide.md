@@ -11,7 +11,7 @@ order: 766
 icon: check
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, plot-maker, data-cleaner, sample-size]
+related: [reliability-analysis, plot-maker, data-cleaner, sample-size, item-analysis, effect-size-learning-gain]
 sources:
   - "Method: weighted analytic rubric scoring (weighted mean of level points over top points); grade bands set by the user."
   - "Example rubric and marks: made up for this page."
@@ -27,6 +27,8 @@ flow:
 An analytic rubric breaks an assignment into criteria (such as content, organisation, evidence and language) and describes a few levels of quality for each. This calculator turns the levels you pick into a fair, weighted mark. You set the criteria, their weights, the levels and their points, and the grade cut-offs your school uses. Then you mark each student by choosing a level for each criterion. The tool works out each student's percentage and grade at once, and summarises the class: mean, median, spread, how many got each grade and which criterion was weakest on average.
 
 Everything happens in your browser. Student names and marks are not sent anywhere. If you want to come back to a class later, you can tick **Remember this rubric and these marks on this device**; it is off by default, keeps the data only in this browser, and **Clear saved data** deletes it.
+
+Check that two markers agree with [[reliability-analysis|reliability and agreement]], and analyse a multiple-choice test with the [[item-analysis|item analysis]].
 
 ## How to use it
 

@@ -8,6 +8,9 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await facts()) === 'Duetoday0Newtoday10Cards10Mature0' && (await page.textContent(F + '.fc-study')) === 'Study now (10 cards)' && (await page.textContent(F + '.fc-store')).includes('Nothing is sent to fibub'), 'flashcards: example deck, facts and storage statement');
   await page.fill(F + '.fc-newday', '4'); await page.dispatchEvent(F + '.fc-newday', 'change'); await page.waitForTimeout(100);
   check((await page.textContent(F + '.fc-study')) === 'Study now (4 cards)', 'flashcards: new cards per day');
+  check(!(await page.isChecked(F + '.fc-keep')) && (await page.evaluate(() => localStorage.getItem('fibub-flashcards-v1'))) === null, 'flashcards: nothing stored before the remember box is ticked');
+  await page.check(F + '.fc-keep'); await page.waitForTimeout(100);
+  check(JSON.parse(await page.evaluate(() => localStorage.getItem('fibub-flashcards-v1'))).decks[0].newPerDay === 4, 'flashcards: ticking the box saves decks now');
   await page.click(F + '.fc-study'); await page.waitForTimeout(200);
   check((await page.textContent(F + '.fc-front')) === 'SI unit of force' && await page.isHidden(F + '.fc-back') && await page.isHidden(F + '.fc-grades') && (await page.textContent(F + '.fc-left')).startsWith('4 to go'), 'flashcards: session shows the first front');
   await page.keyboard.press('Space'); await page.waitForTimeout(100);
@@ -67,7 +70,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check(JSON.parse(readFileSync(jf, 'utf8')).decks.length === 2, 'flashcards: JSON backup of all decks');
   // Kept after reload.
   await page.reload(); await page.waitForTimeout(400);
-  check((await page.$eval(F + '.fc-deck', (s) => s.options[s.selectedIndex].text)) === 'Elements (3)' && (await page.$$eval(F + '.fc-deck option', (o) => o.length)) === 2, 'flashcards: decks kept after reload');
+  check((await page.$eval(F + '.fc-deck', (s) => s.options[s.selectedIndex].text)) === 'Elements (3)' && (await page.$$eval(F + '.fc-deck option', (o) => o.length)) === 2 && await page.isChecked(F + '.fc-keep'), 'flashcards: decks kept after reload, box ticked');
   page.once('dialog', (d) => d.accept()); await page.click(F + '.fc-deldeck'); await page.waitForTimeout(100);
   check((await page.$$eval(F + '.fc-deck option', (o) => o.length)) === 1 && (await facts()).includes('Duetoday0'), 'flashcards: delete a deck');
   page.once('dialog', (d) => d.accept()); await page.click(F + '.fc-clear'); await page.waitForTimeout(100);

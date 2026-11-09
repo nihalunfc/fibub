@@ -11,7 +11,7 @@ order: 4
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [airfoil-calculator, lattice-boltzmann, dimensionless-numbers]
+related: [airfoil-calculator, lattice-boltzmann, dimensionless-numbers, boundary-layer, piv-lite, field-line-plotter, electrostatics-solver]
 sources:
   - "Elementary potential flows, superposition, Rankine bodies, flow past a (spinning) cylinder, Blasius's theorem and the Kutta-Joukowski theorem: standard results, for example Anderson, J. D., Fundamentals of Aerodynamics, chapter 3, and Milne-Thomson, L. M., Theoretical Hydrodynamics."
   - "Checked against SymPy: exact stagnation points (roots of dW/dz) for the presets and the Blasius force from the residue of (dW/dz)²."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 In an ideal fluid (no viscosity, no compression) flows add up: the flow round a cylinder is just a uniform stream plus a **doublet**, a spinning cylinder adds a **vortex**, and a **source** in a stream makes the nose of a long body. This page lets you build such flows and see them at once. Streamlines are drawn as contours of the stream function ψ, the heavy line is the dividing streamline ψ = 0 (in the presets, the surface of the body), red dots mark **stagnation points** where the fluid stops, and the shading shows the speed.
+
+Add the viscous effects near the wall with the [[boundary-layer|boundary layer calculator]], and see the full flow, wake and all, in the [[lattice-boltzmann|lattice Boltzmann wind tunnel]].
 
 ## How to use it
 

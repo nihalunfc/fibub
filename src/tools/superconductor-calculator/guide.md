@@ -11,7 +11,7 @@ order: 10
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [band-structure, heat-capacity-fitter, hall-effect]
+related: [band-structure, heat-capacity-fitter, hall-effect, physical-constants, coil-field-designer, quantum-statistics]
 sources:
   - "BCS theory (Bardeen, Cooper and Schrieffer, 1957): the weak-coupling gap equation, Δ₀ = 1.764 k_BT_c and the coherence length ħv_F/πΔ₀; London penetration depth; Pippard's mean free path correction; Ginzburg-Landau relations for κ, B_c, B_c1, B_c2 and the depairing current; Clogston-Chandrasekhar Pauli limit. Standard textbook results, for example Tinkham, M., Introduction to Superconductivity (1996)."
   - "Two-fluid (Gorter-Casimir) λ(T) and the empirical (1 − t²) law for critical fields: standard approximations, labelled as such on the page."
@@ -34,6 +34,8 @@ Below its critical temperature T_c a superconductor carries current with no resi
 - their ratio, the **Ginzburg-Landau parameter κ = λ/ξ**. Below 1/√2 the material is **type I** and expels field until it goes normal at B_c; above, it is **type II** and lets field in as **vortices** between B_c1 and B_c2.
 
 This calculator gives the gap (solving the BCS gap equation at your temperature), the **gap frequency** (the photon frequency that breaks pairs, useful for detectors), λ(T), κ and the type, the critical fields and their temperature dependence, the **Pauli limit** set by spin splitting, the **depairing current density**, and a field-temperature phase diagram.
+
+Fit the jump in specific heat at Tc with the [[heat-capacity-fitter|heat capacity fitter]], and design the magnet for your field sweeps with the [[coil-field-designer|coil field designer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 850
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [stress-strain-analyser, fracture-toughness-calculator, fatigue-sn-calculator]
+related: [stress-strain-analyser, fracture-toughness-calculator, fatigue-sn-calculator, beam-calculator, glass-transition-calculator]
 sources:
   - "Rule of mixtures, Halpin-Tsai (Halpin and Kardos, 1976) and classical lamination theory with the maximum stress and Tsai-Wu (1971) criteria, in the textbook forms of Jones, Mechanics of Composite Materials, and Daniel and Ishai, Engineering Mechanics of Composite Materials. fibub's code is checked in the tests against an independent NumPy implementation."
   - "The example fibre, matrix and strength values are made-up round numbers, not data for any real material."
@@ -30,6 +30,8 @@ A fibre-reinforced laminate is a stack of thin plies, each much stiffer and stro
 1. **Ply properties.** From the fibre and matrix moduli, Poisson's ratios and the fibre volume fraction Vf, the **rule of mixtures** gives E₁ = Vf Ef + (1 − Vf) Em and ν₁₂. Across the fibres you choose the **inverse rule of mixtures** (Reuss, a lower bound) or **Halpin-Tsai** (ξ = 2 for E₂, ξ = 1 for G₁₂), which is usually much closer to tests. Or type measured ply properties.
 2. **Stacking.** For a sequence such as [0/±45/90]s it builds the ply stiffness **Q**, the turned stiffness **Q-bar** for each angle, and the **A, B and D matrices**: A links in-plane forces to stretching, D links moments to bending, and B couples the two (B = 0 for a symmetric stack). It then gives the effective laminate moduli Ex, Ey, Gxy, νxy and the bending moduli, from the inverse of the full ABD matrix.
 3. **Loads and failure.** For in-plane forces N and moments M per unit width it solves for the mid-plane strains and curvatures, and gives the strains and stresses at the bottom and top face of every ply, in laminate axes and in ply axes. Each point gets a **strength ratio R**: the factor on all the loads at which that point fails by **maximum stress** (with the failure mode) and by **Tsai-Wu**. The smallest R is **first-ply failure**.
+
+Get each ply's strength from a coupon test with the [[stress-strain-analyser|stress-strain curve analyser]], and use the laminate's stiffness in a [[beam-calculator|beam deflection]] check.
 
 ## How to use it
 

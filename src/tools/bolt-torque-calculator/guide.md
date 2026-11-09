@@ -11,7 +11,7 @@ order: 642
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [beam-calculator, uncertainty-calculator]
+related: [beam-calculator, uncertainty-calculator, tolerance-stackup, spring-designer, fatigue-sn-calculator, thermal-mismatch-stress, stress-strain-analyser]
 sources:
   - "Tensile stress area from the mean of the pitch and minor diameters of the basic 60° thread profile, as defined for ISO metric threads (ISO 898-1) and unified inch threads (ASME B1.1); formulas only, no size tables."
   - "Torque T = K F d and the long-form torque split into pitch, thread friction and under-head friction terms, as in ISO 16047 and VDI 2230 and in Shigley's Mechanical Engineering Design (Budynas and Nisbett); equations only."
@@ -34,6 +34,8 @@ A bolt holds a joint together by being stretched like a stiff spring. That stret
 - the **torque** from the short formula T = K F d, or from thread and under-head friction coefficients,
 - the **stiffness** of the bolt and of the clamped parts, and the **joint constant** C, the share of an external load the bolt actually feels,
 - the **separation load** that would open the joint, the bolt load and remaining clamp under your load, and safety factors.
+
+Check how the joined parts fit together with the [[tolerance-stackup|tolerance stack-up]], and see how a bolt copes with repeated loads in the [[fatigue-sn-calculator]].
 
 ## How to use it
 

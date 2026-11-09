@@ -11,7 +11,7 @@ order: 543
 icon: table
 works: offline
 updated: 2026-11-09
-related: [numerical-methods, symbolic-algebra, uncertainty-calculator, plot-maker]
+related: [numerical-methods, symbolic-algebra, uncertainty-calculator, plot-maker, function-grapher, group-explorer, graph-algorithms, leontief-multipliers, lp-solver, operator-algebra]
 sources:
   - "Methods: Gauss-Jordan elimination and LU in exact fractions, the Faddeev-LeVerrier characteristic polynomial, Householder QR, shifted QR iteration for eigenvalues, one-sided Jacobi SVD (standard textbook linear algebra)."
   - "Checked against numpy, scipy and sympy on 11 matrices (square, singular, rectangular, complex eigenvalues, a Jordan block) and a random 10 × 10."
@@ -32,6 +32,8 @@ A matrix calculator for homework, lab work and checking your own working. Type a
 - **Products and powers**: A × B, A + B, A − B, the transpose and Aⁿ (negative n uses the inverse).
 - **Eigenvalues and eigenvectors**, including complex ones, with the characteristic polynomial and each eigenvalue's algebraic and geometric multiplicity (so you can see whether A is diagonalisable).
 - **Decompositions**: LU (P A = L U), QR, Cholesky (A = L Lᵀ) and the singular value decomposition (A = U Σ Vᵀ) with the rank, 2-norm and condition number.
+
+Work the algebra by hand in [[symbolic-algebra]], and put matrices to work on real problems in the [[lp-solver]] or the [[leontief-multipliers]].
 
 ## How to use it
 

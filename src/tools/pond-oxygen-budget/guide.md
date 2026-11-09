@@ -11,7 +11,7 @@ order: 402
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [stocking-density-calculator, water-quality-index, activated-sludge]
+related: [stocking-density-calculator, water-quality-index, activated-sludge, dissolved-oxygen]
 sources:
   - "DO saturation: Benson, B. B. and Krause, D. (1984), The concentration and isotopic fractionation of oxygen dissolved in freshwater and seawater in equilibrium with the atmosphere, Limnology and Oceanography 29, 620–632, with their pressure correction, in the form used by Standard Methods and the USGS (formulas only)."
   - "Air pressure from altitude: the international standard atmosphere."

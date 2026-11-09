@@ -11,7 +11,7 @@ order: 345
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [nernst-calculator, colligative-properties, plot-maker]
+related: [nernst-calculator, colligative-properties, plot-maker, hodgkin-huxley-simulator, osmolarity-calculator, spike-train-analyser]
 sources:
   - "Nernst equation (W. Nernst, 1889); Goldman-Hodgkin-Katz voltage and current equations (D. E. Goldman 1943; A. L. Hodgkin and B. Katz 1949). Constants F and R from CODATA (NIST). Equations only."
   - "Checked in the tests against an independent NumPy implementation, with SciPy brentq for the zero-current potential. The example concentrations are illustrative textbook-style values, made up and rounded."
@@ -32,6 +32,8 @@ A nerve cell is negative inside because its membrane lets some ions through more
 - **GHK current-voltage curves** for each ion and their total.
 
 For electrodes and batteries, use the Nernst and cell potential calculator instead; this page is about cells and ion gradients. For study and teaching, not for clinical use.
+
+Once you have the resting potential, watch it turn into an action potential in the [[hodgkin-huxley-simulator]], and make up your ion solutions with the [[osmolarity-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 650
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [concrete-mix-design, traverse-calculator, uncertainty-calculator]
+related: [concrete-mix-design, traverse-calculator, uncertainty-calculator, load-combination-helper, column-buckling, retaining-wall-check, beam-calculator, unit-converter]
 sources:
   - "Bar mass from the density of steel, 7850 kg/m³, times the area of a circle π d² / 4 (general engineering fact). Bar counting, laps and first-fit-decreasing cutting are fibub's own arithmetic."
   - "No values are copied from any design code or bar schedule standard (ACI, Eurocode, IS, BS or others): cover, spacing, lap length and hooks are all entered by the user, and the example values are made up."
@@ -35,6 +35,8 @@ Reinforced concrete slabs, walls and footings usually carry a **mesh** of steel 
 - a **cut list** (marks, sizes, lengths and numbers) as a table, CSV, image, PDF or Word file, and a plan drawing of the mesh.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer, and always order from the approved bar schedule.
+
+Get the design loads from the [[load-combination-helper|load combination helper]], and choose the concrete with the [[concrete-mix-design|concrete mix design tool]].
 
 ## How to use it
 

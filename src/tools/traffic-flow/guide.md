@@ -11,7 +11,7 @@ order: 683
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, plot-maker]
+related: [gps-track-analyser, plot-maker, signal-timing, queueing-calculator, road-curve-design, curve-fitter, vehicle-routing]
 sources:
   - "Models and their regressions as given in transportation engineering textbooks: Greenshields (1935) linear speed-density, Greenberg (1959) logarithmic, Underwood (1961) exponential; q = k·v and the capacity of each model follow from the formulas (general traffic flow theory)."
   - "Checked against NumPy (numpy.polyfit for all three regressions and their R²), SciPy (scipy.optimize.brentq for the two densities that carry a given flow) and a hand-worked Greenshields example (v_f = 100 km/h, k_j = 120 veh/km gives 3000 veh/h at 60 veh/km)."
@@ -32,6 +32,8 @@ Traffic on a road can be described by three numbers: **flow** q (vehicles per ho
 - **Underwood**: v = v_f·e^(−k/k_m). It fits light traffic well, but speed never reaches zero. Capacity is v_f·k_m/e at density k_m.
 
 You get each model's free-flow speed, jam density, optimum density, speed at capacity and capacity, how well it fits, and the three **fundamental diagrams** (speed-density, flow-density and speed-flow). An **operating point** panel gives speed, flow, spacing and headway for a density, flow or speed, and a **level of service** letter from density limits you enter.
+
+Time the lights at a junction with [[signal-timing|Webster's method]], and model a single queue with the [[queueing-calculator]].
 
 ## How to use it
 

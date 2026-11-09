@@ -11,7 +11,7 @@ order: 13
 icon: book
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, sig-fig-checker, curve-fitter]
+related: [uncertainty-calculator, sig-fig-checker, curve-fitter, dimensional-analysis, unit-converter, periodic-table, scientific-notation-formatter]
 sources:
   - "CODATA Recommended Values of the Fundamental Physical Constants: 2018 (Tiesinga, E. et al., Rev. Mod. Phys. 93, 025010, 2021) and 2022 (Mohr, P. J. et al., 2024), published by NIST (public domain, physics.nist.gov/constants)."
   - "Every value and uncertainty was compared with the CODATA 2018 and 2022 tables in scipy.constants (no differences), and the tests check the published values against the relations that link them (α, a₀, R∞, E_h, K_J, R_K, σ and more)."
@@ -26,6 +26,8 @@ flow:
 This is a quick, offline reference for the fundamental physical constants: the **CODATA recommended values**, the internationally agreed set published by NIST and used in textbooks, papers and software. It lists 70 of the most used constants in five groups: universal (c, h, ħ, G, μ₀, ε₀), electromagnetic (e, flux and conductance quanta, Josephson and von Klitzing constants, magnetons), atomic and nuclear (α, R∞, a₀, particle masses in kg, MeV and u, g factors), physico-chemical (N_A, k, R, F, σ, Wien and radiation constants) and adopted values (g_n, atm, eV).
 
 You can switch between the **2022** adjustment (the current one) and the **2018** adjustment, which many textbooks, lab manuals and older papers use. Constants whose value changed are marked "updated since 2018".
+
+Check that a formula with these constants balances with the [[dimensional-analysis|dimensional analysis checker]], and convert your results with the [[unit-converter|unit converter]].
 
 ## How to use it
 

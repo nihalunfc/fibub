@@ -11,7 +11,7 @@ order: 506
 icon: table
 works: offline
 updated: 2026-11-09
-related: [carbon-footprint, lca-compare, tree-carbon]
+related: [carbon-footprint, lca-compare, tree-carbon, solar-pv-yield, lcoe-calculator, unit-converter, landfill-gas]
 sources:
   - "Structure and scope definitions after the GHG Protocol Corporate Accounting and Reporting Standard (WRI/WBCSD, revised 2004), the GHG Protocol Scope 2 Guidance (2015) and the Corporate Value Chain (Scope 3) Standard (2011). The page uses the general definitions and category names only."
   - "No emission factors or GWP tables are built in. The example company and every number in it are made up, with rounded factors chosen only to show the sums."
@@ -34,6 +34,8 @@ The **GHG Protocol** is the most widely used way for organisations to count thei
 This page does the inventory arithmetic for a small business. Each **activity row** is amount × factor = kg CO₂e; for a refrigerant leak, the factor is the gas's global warming potential (GWP). It adds the rows up by year, scope and category, shows both Scope 2 totals, works out **intensity** (tonnes per employee and per million of revenue) and the **change from the year before**, and gives CSV and report downloads.
 
 No factors are built in. Use the ones from your country's official sources, your supplier and the GWP values your rules name.
+
+Estimate a household's share with the [[carbon-footprint|carbon footprint calculator]], and weigh up two products over their whole life with the [[lca-compare|life cycle comparison]].
 
 ## How to use it
 

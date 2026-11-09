@@ -11,7 +11,7 @@ order: 308
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sequence-alignment, sequence-tools, kmer-counter]
+related: [tree-viewer, sequence-alignment, sequence-tools, kmer-counter, molecular-clock, dnds-calculator, coalescent-simulator]
 sources:
   - "Methods: Jukes and Cantor (1969); Kimura (1980); Sokal and Michener (1958) for UPGMA; Saitou and Nei (1987) with Studier and Keppler (1988) for neighbour joining; Fitch (1971) for parsimony scores; Hendy and Penny (1982) for branch and bound. Textbook: Felsenstein, Inferring Phylogenies (2004)."
   - "Code written by fibub. Checked in the tests against an independent Python version of the three distances, Biopython 1.88 (identity distances, neighbour joining tip-to-tip lengths, and its ParsimonyScorer run on all 10,395 unrooted trees of the 8-sequence example to confirm the best score and that it is unique) and SciPy 1.18 average linkage for UPGMA."
@@ -32,6 +32,8 @@ A phylogenetic tree shows how a set of sequences are related: which share a more
 - **Maximum parsimony (MP)**: the tree that needs the fewest base changes. With up to 12 sequences, an exact **branch and bound** search guarantees the best tree and lists any ties; above that a fast search (stepwise addition, then subtree pruning and regrafting) finds a good tree.
 
 You see the tree, the distance matrix, the Newick text, and can download them. Nothing is uploaded.
+
+Line up your sequences first with [[sequence-alignment|pairwise sequence alignment]], then root and style the tree in the [[tree-viewer|phylogenetic tree viewer]] and date its splits with the [[molecular-clock|molecular clock calculator]].
 
 ## How to use it
 

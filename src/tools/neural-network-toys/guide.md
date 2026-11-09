@@ -11,7 +11,7 @@ order: 729
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [plot-maker, sample-size, factor-analysis]
+related: [plot-maker, sample-size, factor-analysis, memory-attention-tasks, small-model-trainer, confusion-matrix, embedding-visualiser, hodgkin-huxley-simulator]
 sources:
   - "Perceptron learning rule: Rosenblatt (1958); limits on XOR: Minsky and Papert (1969). Hopfield network with Hebbian weights and energy: Hopfield (1982); storage limit about 0.138 N: Amit, Gutfreund and Sompolinsky (1985). Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against an independent NumPy implementation with the same update order and the same seeded random numbers."
@@ -29,6 +29,8 @@ This page holds two of the oldest ideas in neural networks, small enough to watc
 
 - **Perceptron.** One artificial neuron adds up its two inputs, each times a weight, plus a bias, and outputs 1 when the sum is above zero and 0 otherwise. That rule draws a straight line through the plane. Training nudges the line after every mistake.
 - **Hopfield network.** A set of on/off units, every one connected to every other. Storing a pattern strengthens the connections between units that agree (Hebb's rule, "cells that fire together wire together"). Given a damaged copy, each unit follows the vote of the others until the network settles into a stored memory.
+
+Train a real small model on your own data with the [[small-model-trainer]], and see how a single brain cell fires in the [[hodgkin-huxley-simulator]].
 
 ## Perceptron: how to use it
 

@@ -11,7 +11,7 @@ order: 5
 icon: target
 works: offline
 updated: 2026-11-09
-related: [moment-of-inertia, projectile-drag, two-body-orbit, uncertainty-calculator]
+related: [moment-of-inertia, projectile-drag, two-body-orbit, uncertainty-calculator, video-motion-tracker, relativistic-kinematics, pendulum-analyser]
 sources:
   - "Conservation of momentum, Newton's experimental law of restitution and the oblique impact of smooth spheres: standard classical mechanics."
   - "Checked against SymPy solutions of the momentum and restitution equations in 1D, and in 2D with the impulse along the line of centres, plus closed-form special cases (equal masses swapping speeds, 90° separation, perfectly inelastic energy loss)."
@@ -34,6 +34,8 @@ This calculator has three modes:
 - **Find e from a lab run:** type the speeds you measured before and after on an air track and get e, how well momentum was conserved, and the energy lost.
 
 Each mode draws a **momentum diagram**: the two momentum arrows added tip to tail, before and after. The dashed total arrow is the same in both, which is conservation of momentum made visible.
+
+Measure the speeds before and after from a video with the [[video-motion-tracker]], and for particles near the speed of light switch to the [[relativistic-kinematics|relativistic kinematics calculator]].
 
 ## How to use it
 

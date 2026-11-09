@@ -11,7 +11,7 @@ order: 2
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [spacetime-diagram, orbit-transfer-calculator, cosmology-calculator]
+related: [spacetime-diagram, orbit-transfer-calculator, cosmology-calculator, gw-chirp, gps-relativity, two-body-orbit, orbit-elements]
 sources:
   - "Schwarzschild geodesics, effective potential, circular orbits, ISCO at 6M, photon sphere at 3M, critical impact parameter 3√3 M, periapsis advance and light deflection: standard results of general relativity, for example Hartle, J. B., Gravity: An Introduction to Einstein's General Relativity (2003), chapters 9 and 15, and Misner, Thorne and Wheeler, Gravitation (1973)."
   - "Periapsis advance in closed form with the complete elliptic integral K (the cubic-root form of the orbit equation), checked by fibub against SciPy solve_ivp integrations; light deflection checked against SciPy quad. GM☉/c² = 1.4766 km is the IAU nominal value, rounded."
@@ -32,6 +32,8 @@ This plotter uses the exact equations for a non-spinning (Schwarzschild) black h
 - the **key radii** for your mass in kilometres, and the ISCO orbital period;
 - for a **particle** with chosen closest and farthest distances: the **periapsis advance** per orbit (exact, compared with the weak-field formula used for Mercury), energy and angular momentum per unit mass, the orbit drawn for several turns, and the **effective potential**;
 - for a **light ray** with impact parameter b: whether it is **captured**, how much it is **bent**, and its closest approach, drawn among a fan of other rays.
+
+Compare with Newton's orbits in the [[two-body-orbit]], and follow two black holes as they spiral together with the [[gw-chirp|gravitational wave chirp calculator]].
 
 ## How to use it
 

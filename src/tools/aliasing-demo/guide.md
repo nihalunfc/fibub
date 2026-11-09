@@ -11,7 +11,7 @@ order: 630
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [fft-workbench, digital-filter-designer]
+related: [fft-workbench, digital-filter-designer, wavelet-viewer, fourier-visualiser, audio-spectrum-analyser, oscilloscope-viewer, filter-designer]
 sources:
   - "Sampling theorem and aliasing: Shannon (1949), Communication in the presence of noise; Whittaker-Shannon interpolation; standard textbook treatment, for example Oppenheim and Schafer, Discrete-Time Signal Processing."
   - "Apparent frequencies checked against the peak of numpy.fft.rfft of the sampled sine (test use only)."
@@ -27,6 +27,8 @@ flow:
 When a signal is sampled, only its values at evenly spaced instants are kept. A frequency above half the sample rate does not disappear: it shows up disguised as a lower one. That disguise is **aliasing**, and it is behind wagon wheels that turn backwards in films, moiré stripes in photos of fabric, false tones in cheap audio and wrong readings from a data logger set to sample too slowly.
 
 This explorer shows it directly. Type a signal frequency and a sample rate (or drag the slider), and it draws the real signal, the samples, and the **alias**: the slowest sine that goes through every sample. It tells you the **apparent frequency**, which **Nyquist zone** the signal is in, whether the alias is mirrored, and the sample rate you would need. A **folding diagram** shows where every input frequency ends up.
+
+Design the anti-aliasing filter with the [[filter-designer|analog filter designer]], and look at a real recording's spectrum with the [[fft-workbench]].
 
 ## How to use it
 

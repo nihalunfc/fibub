@@ -11,7 +11,7 @@ order: 879
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [earthquake-locator, seismic-refraction, science-file-converter]
+related: [earthquake-locator, seismic-refraction, science-file-converter, phone-seismometer, fft-workbench, digital-filter-designer]
 sources:
   - "SAC binary header layout from the SAC user manual (IRIS); miniSEED 2 record layout, blockettes 1000 and 1001 and the Steim-1 and Steim-2 compression from the SEED Reference Manual 2.4 (FDSN). Readers written by fibub and checked against ObsPy 1.5 reading the same files."
   - "Butterworth filters by the bilinear transform with prewarped corners, zero-phase filtering with odd extension and steady-state start, Tukey taper, linear detrend and Hann-window spectrogram: standard signal processing, checked against SciPy 1.18 (butter, sosfilt, sosfiltfilt, detrend, tukey, spectrogram) and NumPy's FFT."
@@ -34,6 +34,8 @@ A seismogram is a record of ground motion against time. Seismometers and data ce
 - **Pick P and S arrivals** by tapping, get the S − P time and the distance it implies, and download picks and the traces in view as CSV.
 
 Files are read in your browser and never uploaded. miniSEED files with several channels, or with gaps, are split into one trace per channel and continuous piece.
+
+Record your own traces with the [[phone-seismometer]], and send your P and S picks on to the [[earthquake-locator]] to find where the earthquake was.
 
 ## How to use it
 

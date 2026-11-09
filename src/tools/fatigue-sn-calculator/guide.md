@@ -11,7 +11,7 @@ order: 847
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [stress-strain-analyser, reliability-analysis, plot-maker]
+related: [stress-strain-analyser, reliability-analysis, plot-maker, fracture-toughness-calculator, shaft-bearing-life, bolt-torque-calculator, larson-miller-calculator, spring-designer]
 sources:
   - "Basquin's law, the mean-stress lines, the load-line safety factors and Miner's rule follow the usual textbook forms (Shigley's Mechanical Engineering Design, chapter 6; Dowling, Mechanical Behavior of Materials, chapters 9 and 10), written by fibub and checked in the tests against SciPy."
   - "The example S-N data and load spectrum are made up by the page (σa = 900 N^−0.09 with random scatter); they are not data for any real material."
@@ -30,6 +30,8 @@ Metal parts that see a load go up and down can crack and break far below their t
 1. **Basquin fit.** Paste stress amplitude and cycles to failure from fatigue tests. The page fits a straight line on log-log axes, σa = A·N^b, and also gives it in the reversals form σa = σf'(2N)^b that strain-life books use. Specimens marked as run-outs (they did not break) are plotted with an open triangle and left out of the fit.
 2. **Mean stress correction.** Most test data is fully reversed (mean stress zero), but real parts often carry a steady load as well. A tensile mean stress shortens life. The page turns your amplitude and mean stress into an equivalent fully reversed amplitude σar with four classic lines, gives the life from your fit and a safety factor, and draws them on a Haigh diagram.
 3. **Miner's rule.** For a spectrum of load blocks, each block uses up a fraction n/N of the life. When the fractions add up to 1, the part is expected to fail.
+
+Get the ultimate strength from a tensile test with the [[stress-strain-analyser|stress-strain curve analyser]], and follow a crack once it starts with the [[fracture-toughness-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 632
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [link-budget-calculator, radio-telescope-calculator, wave-calculator]
+related: [link-budget-calculator, radio-telescope-calculator, wave-calculator, smith-chart, constellation-ber, waveguide-modes, skin-depth-calculator, pcb-trace-calculator]
 sources:
   - "Dipole and monopole: standard antenna theory (resonant half-wave dipole, image theory), for example Balanis, Antenna Theory: Analysis and Design, chapter 4."
   - "Microstrip patch: transmission-line model with Hammerstad's fringing extension, radiating-slot and mutual conductances and inset feed, as described in Balanis, Antenna Theory, chapter 14; checked against Balanis's worked examples and an independent scipy implementation."
@@ -33,6 +33,8 @@ Most antennas are sized from the wavelength, λ = c / f. This calculator turns a
 - **Yagi-Uda beam**: a driven element with a reflector and directors, laid out from common rules of thumb as a starting point.
 
 All the arithmetic happens in your browser.
+
+Match the antenna to its feed line with the [[smith-chart]], and check the whole radio path with the [[link-budget-calculator]].
 
 ## How to use it
 

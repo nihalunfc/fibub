@@ -11,7 +11,7 @@ order: 2
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [dimensionless-numbers, wave-calculator, plot-maker]
+related: [dimensionless-numbers, wave-calculator, plot-maker, airfoil-calculator, potential-flow, boundary-layer, piv-lite]
 sources:
   - "Lattice Boltzmann method (D2Q9, BGK collision, halfway bounce-back, Guo forcing): Krüger, T. et al. (2017), The Lattice Boltzmann Method: Principles and Practice (Springer). Momentum-exchange force: Ladd, A. J. C. (1994), Journal of Fluid Mechanics 271, 285 to 309."
   - "NACA 4-digit thickness formula: Jacobs, Ward and Pinkerton (1933), NACA Report 460 (public domain)."
@@ -28,6 +28,8 @@ flow:
 This is a small computational wind tunnel. Instead of solving the Navier-Stokes equations directly, the **lattice Boltzmann method** moves packets of "fluid particles" between the cells of a grid along nine directions and lets them collide. Averaged over a cell, the result behaves like a real viscous fluid, and the method is simple enough to run live in a browser.
 
 Fluid enters from the left. Put a body in the stream and watch: at low Reynolds numbers the flow wraps smoothly round it; above about 47 for a cylinder the wake starts to swing and sheds a **Kármán vortex street**, alternating swirls that make flags flutter and power lines hum. The page measures the **drag** and **lift** forces on the body and, once it sheds, the **Strouhal number**, the shedding frequency in dimensionless form.
+
+Pick a Reynolds number with the [[dimensionless-numbers|dimensionless numbers calculator]], and compare with ideal flow in the [[potential-flow|potential flow builder]].
 
 ## How to use it
 

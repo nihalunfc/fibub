@@ -11,7 +11,7 @@ order: 4
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [protein-calculator, peptide-mass-calculator, telescope-calculator, centrifuge-calculator]
+related: [protein-calculator, peptide-mass-calculator, telescope-calculator, centrifuge-calculator, pdb-viewer, ramachandran-plot, crystallisation-screen, lattice-fft]
 sources:
   - "Physical constants are CODATA 2018 values (general science facts). The wavelength, CTF, delocalisation and Rosenthal-Henderson formulas are standard textbook physics, written by fibub."
   - "Checked in the tests against an independent Python and NumPy script: the wavelength from the electron's total energy and momentum, CTF zeros found by scanning and bisecting the curve, a brute-force box size search, and a line fit that gives the B-factor back."

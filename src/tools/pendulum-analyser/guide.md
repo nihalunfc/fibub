@@ -11,7 +11,7 @@ order: 2
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [projectile-drag, uncertainty-calculator, calibration-curve, plot-maker, trend-analyser]
+related: [projectile-drag, uncertainty-calculator, calibration-curve, plot-maker, trend-analyser, video-motion-tracker, coupled-oscillators, moment-of-inertia, lagrangian-helper]
 sources:
   - "Simple pendulum period, the exact large-amplitude period 4√(L/g) K(sin(θ₀/2)) and its series 1 + θ₀²/16 + 11θ₀⁴/3072: standard classical mechanics results. Complete elliptic integral by the arithmetic-geometric mean (Abramowitz and Stegun, 17.6)."
   - "Least squares with and without an intercept, standard errors and Student t intervals: standard statistics."
@@ -32,6 +32,8 @@ It also handles the two things that most often spoil a pendulum result:
 
 - **Large swings.** The small-angle formula is only approximate: at 15° the true period is 0.43 % longer, at 30° 1.74 %. If you give the amplitude, each period is corrected with the exact formula (the complete elliptic integral) before fitting.
 - **An unknown length offset.** If you measured to the top of the bob, or the pivot point is uncertain, choose the fit with an extra length δ. It fits T² = 4π²(L + δ)/g, so the offset no longer biases g, and it tells you δ.
+
+Get your swing times from a phone video with the [[video-motion-tracker]], and for a physical pendulum work out its inertia with the [[moment-of-inertia|moment of inertia calculator]].
 
 ## How to use it
 

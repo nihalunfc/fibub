@@ -11,7 +11,7 @@ order: 740
 icon: target
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, uncertainty-calculator, sql-playground]
+related: [reliability-analysis, uncertainty-calculator, sql-playground, supply-demand, lp-solver, power-indices, voting-systems]
 sources:
   - "Methods: Nash (1950) equilibrium; support and vertex enumeration as in Nisan, Roughgarden, Tardos and Vazirani (eds.), Algorithmic Game Theory (2007), chapter 3; von Neumann's minimax theorem solved as a linear programme. Classic textbook games (prisoner's dilemma, battle of the sexes, chicken, stag hunt, matching pennies, rock-paper-scissors) are common knowledge; no tables copied."
   - "Written by fibub. Checked in the tests against nashpy 0.0.43 (vertex enumeration) on textbook and random games up to 6 × 6, including degenerate ones, and against SciPy linprog for zero-sum values."
@@ -32,6 +32,8 @@ In game theory a **Nash equilibrium** is a choice of strategies where no player 
 - for **zero-sum** games (one player's gain is the other's loss), gives the **value** of the game and each player's safest (maximin) mix, by linear programming.
 
 Everything runs in your browser.
+
+Zero-sum games are linear programmes, so try the same numbers in the [[lp-solver]], and for voting power in committees use the [[power-indices]] tool.
 
 ## How to use it
 

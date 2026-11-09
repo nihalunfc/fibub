@@ -11,7 +11,7 @@ order: 859
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [nanoparticle-calculator, diffusion-calculator, polymer-molar-mass, centrifuge-calculator]
+related: [nanoparticle-calculator, diffusion-calculator, polymer-molar-mass, centrifuge-calculator, quantum-dot-size, particle-size-image, afm-roughness]
 sources:
   - "Cumulant method (Koppel 1972, J. Chem. Phys. 57, 4814; ISO 22412), Stokes–Einstein relation and the scattering vector q = 4πn sin(θ/2)/λ are standard physics. The distribution fit is a non-negative least-squares fit (Lawson and Hanson 1974) with a second-difference smoothing penalty, in the spirit of Provencher's CONTIN (1982); fibub's code is its own."
   - "Viscosity of water from the Kestin, Sokolov and Wakeham (1978) correlation, J. Phys. Chem. Ref. Data 7, 941 (a formula); checked in the tests against IAPWS 2008 to within 0.3 %."
@@ -30,6 +30,8 @@ Dynamic light scattering (DLS) measures how fast the speckle of laser light scat
 - **Cumulants.** It fits ln(g2 − B) with a polynomial in τ (2nd or 3rd order). The first cumulant Γ is the mean decay rate; the Stokes–Einstein relation turns it into the **z-average diameter**. The second cumulant divided by Γ² is the **polydispersity index (PDI)**.
 - **Size distribution.** It splits the decay into many sizes on a log grid, none allowed to be negative, with a penalty on rough shapes, like the CONTIN program. You get the distribution by **intensity**, and converted to **volume** and **number**.
 - **Peaks.** Each peak's mean, mode, width and share, for the distribution you pick, and a check that the intensity harmonic mean matches the z-average.
+
+Turn the size into surface area and particle counts with the [[nanoparticle-calculator]], and compare it with sizes measured from images in the [[particle-size-image]] tool.
 
 ## How to use it
 

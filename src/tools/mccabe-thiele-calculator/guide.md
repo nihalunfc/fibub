@@ -11,7 +11,7 @@ order: 1
 icon: curve
 works: offline
 updated: 2026-11-08
-related: [phase-diagram-calculator, gas-law-calculator, thermochemistry-calculator]
+related: [phase-diagram-calculator, gas-law-calculator, thermochemistry-calculator, vapour-pressure-calculator, mass-balance-solver, reactor-design]
 sources:
   - "McCabe-Thiele method (McCabe and Thiele, 1925), Fenske equation (1932) and Gilliland correlation in Eduljee's fitted form (1975): standard chemical engineering methods, written from the equations; no tables copied."
   - "Example equilibrium data on the page are made up by fibub for illustration; they are not measured values for any real mixture."

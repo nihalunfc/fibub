@@ -11,7 +11,7 @@ order: 672
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [sun-position-calculator, standard-atmosphere, uncertainty-calculator]
+related: [sun-position-calculator, standard-atmosphere, uncertainty-calculator, wind-energy-yield, home-battery-sizing, lcoe-calculator, battery-solar-sizing, solar-cell-iv, insolation-calculator, carbon-footprint]
 sources:
   - "Sun position: the NOAA solar calculator equations, after Meeus, J., Astronomical Algorithms (equations only)."
   - "Clear-sky global irradiance: Haurwitz, B. (1945), 'Insolation in relation to cloudiness and cloud density', Journal of Meteorology 2 (formula only)."
@@ -37,6 +37,8 @@ This estimator builds a **clear-sky year**, hour by hour, for any place between 
 It adds up the energy for each month, multiplies by your **sunshine factor** (how much of the clear-sky light your climate really gets), your **system size** and **(1 − losses)**, and also searches every tilt from 0° to 90° for the best one for your panel direction.
 
 **Clear sky is an upper bound.** On cloudless days a place cannot get much more than this; clouds take a share away. The sunshine factor is your own estimate: from long-term weather records, a local installer, or comparing with a neighbour's system.
+
+Size a battery to store the extra power with the [[home-battery-sizing|home battery calculator]], and work out the cost per kWh with the [[lcoe-calculator|LCOE calculator]].
 
 ## How to use it
 

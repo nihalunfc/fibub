@@ -11,7 +11,7 @@ order: 6
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [thin-film-coating, lens-ray-tracer, fibre-optic-calculator, plot-maker]
+related: [thin-film-coating, lens-ray-tracer, fibre-optic-calculator, plot-maker, spectrometer-calibration, polarisation-calculator, gaussian-beam, curve-fitter, uncertainty-calculator]
 sources:
   - "Sellmeier and Cauchy dispersion equations, Abbe number with the d, F and C Fraunhofer lines (587.5618, 486.1327 and 656.2725 nm, general spectroscopic constants), group index and group-velocity dispersion: standard textbook results, for example Born and Wolf, Principles of Optics, and Agrawal, Nonlinear Fiber Optics, chapter 1."
   - "Fitting: separable (variable projection) linear least squares for the B coefficients, Nelder-Mead for the resonances, then Levenberg-Marquardt on the index residuals."
@@ -31,6 +31,8 @@ The refractive index of glass, crystals and liquids changes with wavelength: tha
 - **Cauchy:** n = A + B/λ² + C/λ⁴. Simple and fine across visible light, but it goes wrong further out.
 
 From the fitted curve it gives the index at any wavelength, the **Abbe number**, the **group index**, the **group-velocity dispersion** β₂ and the fibre-optics **dispersion parameter D**.
+
+Use your fitted indices to design a coating in the [[thin-film-coating|thin-film coating calculator]] or to trace rays through a lens in the [[lens-ray-tracer|lens ray tracer]].
 
 ## How to use it
 

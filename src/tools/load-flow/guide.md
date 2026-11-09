@@ -11,7 +11,7 @@ order: 674
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: []
+related: [solar-pv-yield, wind-energy-yield, home-battery-sizing, lcoe-calculator, circuit-simulator, matrix-calculator, numerical-methods]
 sources:
   - "Own code: bus admittance matrix, polar Newton-Raphson with the full Jacobian, and Gauss-Seidel with acceleration, as set out in standard power system analysis textbooks (general engineering methods)."
   - "Checked against an independent NumPy Newton-Raphson written for this tool (complex admittance matrix, MATPOWER-style dS/dV Jacobian) on the example and on random networks: voltages to 1e-7 pu, angles to 1e-5°, flows to 1e-4 MW."
@@ -35,6 +35,8 @@ This tool solves it in **per unit** for small networks (up to 300 buses), entire
 - draws a **single-line diagram** with power-flow arrows and a convergence chart, and gives CSV, PNG, PDF and Word downloads.
 
 For study and planning, not a substitute for professional judgement.
+
+Estimate what your solar and wind sources make with the [[solar-pv-yield|solar PV yield estimator]] and the [[wind-energy-yield|wind turbine yield calculator]], and solve small circuits in the [[circuit-simulator]].
 
 ## How to use it
 

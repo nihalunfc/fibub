@@ -11,7 +11,7 @@ order: 891
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [apparent-dip]
+related: [apparent-dip, slope-stability, dem-terrain, soil-classification, snow-slope-tools, atterberg-compaction]
 sources:
   - "Formula: the standard infinite slope model with a water table parallel to the slope (as in soil mechanics and geomorphology textbooks)."
   - "Example soil and slope values: made up and rounded by fibub."
@@ -27,6 +27,8 @@ flow:
 The infinite slope model is the classic first look at shallow landslides: a layer of soil sliding on a surface parallel to the ground, much longer than it is deep. This calculator gives its **factor of safety (FS)**, the strength of the soil on the slip surface divided by the shear stress pulling it downhill. Above 1 the model slope stands; below 1 it slides. It handles **dry** soil, a **water table at any height** above the slip surface with water seeping parallel to the slope, and soil **saturated to the surface**, with **effective cohesion** and **root cohesion**.
 
 **For study, not a slope stability assessment.** Real slopes need site investigation, laboratory strength tests and a qualified engineer or engineering geologist.
+
+Find the steepest slopes on a map with the [[dem-terrain|DEM slope tool]], and for deeper, curved slips use [[slope-stability|slope stability by Bishop's method]].
 
 ## How to use it
 

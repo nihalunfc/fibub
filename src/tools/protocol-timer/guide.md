@@ -11,7 +11,7 @@ order: 813
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [reagent-inventory, equipment-booking, centrifuge-calculator]
+related: [reagent-inventory, equipment-booking, centrifuge-calculator, plate-layout, pcr-master-mix, solution-calculator]
 sources:
   - "Durations, step lists and the timer logic are written by fibub. The tests replay 120 random runs (pauses, skips, restarts, added and removed time, long gaps) against an independent Python model that counts down every 10 ms, and the alarms and countdowns match."
   - "The example protocols are made up to show the format; use the times from your own method."
@@ -32,6 +32,8 @@ Many bench methods are a string of timed steps: block, wash three times, antibod
 - **Ring an alarm.** A short beep at the end of each step (a longer one at the very end), and a notification if you allow them, so you know even when the tab is out of sight.
 - **Wait for you, or run on.** With *Start each step by itself* ticked, the next step begins the moment the last one ends (good for incubations that follow each other). Untick it for steps that need your hands: the timer stops at the end of each step, repeats the alarm every 30 seconds for 5 minutes, and shows how long you are over until you tap *Start* for the next step.
 - **Keep correct time.** Each timer stores the moment its step started, not a counter that ticks. Browsers slow down pages in background tabs, and phones pause them when the screen is off, but when the page looks again the time left is worked out from the clock, so it is always right. The alarm sounds are booked ahead on the browser's audio clock, which keeps running in a background tab.
+
+Make up the solutions beforehand with the [[solution-calculator]], and book the instruments you need with the [[equipment-booking|equipment booking planner]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 27
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [heart-rate-zones, uncertainty-calculator, plot-maker, sample-size]
+related: [heart-rate-zones, uncertainty-calculator, plot-maker, sample-size, training-load, jump-height, gait-cadence, respirometry-calculator, energy-needs]
 sources:
   - "Cooper KH (1968). A means of assessing maximal oxygen intake. JAMA 203: 201–204."
   - "1.5-mile run equation VO2max = 3.5 + 483 / time: as given in common university physiology lab manuals and fitness-testing texts; the original source is not clearly recorded."
@@ -29,6 +29,8 @@ flow:
 ## What it does
 
 VO2max is the most oxygen your body can use per minute during hard exercise, per kilogram of body mass (mL/kg/min). It is the classic measure of aerobic fitness. A laboratory measures it with a mask on a treadmill or bike. Schools, teams and the armed forces use simpler field tests that estimate it from a run time, a distance or a heart rate. This page works out the estimate for six such tests, shows the working, and puts all six side by side so students can see how much the equations disagree.
+
+Set your training zones from the result with the [[heart-rate-zones|heart rate zone calculator]], and log the sessions that follow in the [[training-load|training load tracker]].
 
 ## How to use it
 

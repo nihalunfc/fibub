@@ -11,7 +11,7 @@ order: 759
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, trend-analyser, plot-maker, data-cleaner]
+related: [gps-track-analyser, trend-analyser, plot-maker, data-cleaner, location-quotient-shift-share, catchment-buffer, regression-workbench, transportation-assignment]
 sources:
   - "Formulas: gravity model of spatial interaction (Tinbergen 1962; Zipf 1946); PPML estimator (Santos Silva and Tenreyro 2006); haversine great-circle distance; Earth mean radius 6,371.0088 km (IUGG)."
   - "Example data: made-up towns, coordinates and flows."
@@ -34,6 +34,8 @@ where Mo and Md are the "masses" of the origin and destination (population, GDP,
 - **Predict flows:** with parameters you type in (or the ones you just fitted), it predicts the flow for every pair in your table, or for every pair of places in both directions.
 
 Distances are worked out from latitude and longitude as great-circle distances in km (haversine formula), or you can give your own distances, such as road kilometres or travel times, in a fourth column of the flows table. Nothing is uploaded.
+
+Map how far each place's pull reaches with [[catchment-buffer|catchment buffers]], and compare the places' economies with [[location-quotient-shift-share|location quotients and shift-share]].
 
 ## How to use it
 

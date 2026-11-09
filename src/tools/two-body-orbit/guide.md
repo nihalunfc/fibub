@@ -11,7 +11,7 @@ order: 3
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [projectile-drag, orbit-transfer-calculator, rocket-equation, exoplanet-mass-calculator, radial-velocity-fitter]
+related: [projectile-drag, orbit-transfer-calculator, rocket-equation, exoplanet-mass-calculator, radial-velocity-fitter, orbit-elements, schwarzschild-orbits, lagrangian-helper]
 sources:
   - "Two-body problem, reduced mass, orbital energy, angular momentum, eccentricity vector and Kepler's third law: standard classical mechanics."
   - "Universal-variable Kepler solution with Stumpff functions: as set out in Curtis, H. D., Orbital Mechanics for Engineering Students, chapter 3 (method only, own code)."
@@ -29,6 +29,8 @@ flow:
 Two bodies pulling on each other by gravity, and nothing else, is the one orbit problem with an exact answer. Both bodies circle their shared **centre of mass**, each tracing the same shape (a circle, an ellipse, a parabola or a hyperbola) scaled by the other body's share of the mass. This sandbox lets you set up any two bodies in a plane and see what they do.
 
 You give each body a **mass**, a **starting position** and a **velocity**. The page shows the orbit **animated** around the centre of mass and works out the **shape** and **eccentricity**, the **semi-major axis**, the **closest and farthest separation**, the **period** (Kepler's third law), the escape speed, and the orbital **energy** and **angular momentum**.
+
+Turn the orbit into the elements used for spacecraft with the [[orbit-elements|orbital elements converter]], and plan a move between two orbits with the [[orbit-transfer-calculator]].
 
 ## How it checks itself
 

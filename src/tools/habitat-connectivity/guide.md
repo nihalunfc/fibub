@@ -11,7 +11,7 @@ order: 511
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices]
+related: [biodiversity-indices, camera-trap-tagger, home-range-analyser, vector-map-viewer, spectral-index-calculator, network-metrics, occupancy-estimator]
 sources:
   - "Integral Index of Connectivity (IIC): Pascual-Hortal, L. and Saura, S. (2006), Landscape Ecology 21, 959 to 967. Probability of Connectivity (PC) and patch importance (dI): Saura, S. and Pascual-Hortal, L. (2007), Landscape and Urban Planning 83, 91 to 103. Formulas only; no data copied."
   - "Least-cost distances (Dijkstra on the 8-neighbour grid, each step costing its length times the mean resistance of the two cells) are written by fibub and checked in the tests against scikit-image's MCP_Geometric; patches against scipy.ndimage.label; IIC, PC, dIIC and dPC against networkx."
@@ -35,6 +35,8 @@ Animals and plants need to move between patches of habitat to find mates, food a
 - **PC** (Probability of Connectivity) adds up aᵢ·aⱼ·p*ᵢⱼ, where p*ᵢⱼ is the best chance of getting from i to j through any chain of patches, each step having chance exp(−k·d).
 - **Patch importance.** dIIC and dPC: the drop in each index (%) when one patch is removed. High values mark the patches to protect first.
 - **Least-cost path.** The cheapest route between any two patches, drawn on the map.
+
+Map land cover for the resistance values with the [[spectral-index-calculator]], and see how far animals actually range with the [[home-range-analyser]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 6
 icon: image
 works: offline
 updated: 2026-11-09
-related: [lattice-boltzmann, potential-flow, dimensionless-numbers, image-stacker]
+related: [lattice-boltzmann, potential-flow, dimensionless-numbers, image-stacker, boundary-layer, video-motion-tracker, plot-maker, uncertainty-calculator]
 sources:
   - "Cross-correlation PIV, Gaussian three-point sub-pixel estimator and window offset: Raffel, M. et al., Particle Image Velocimetry: A Practical Guide (Springer); Westerweel, J. (1997), Measurement Science and Technology 8, 1379 to 1392."
   - "Normalised median test: Westerweel, J. and Scarano, F. (2005), Experiments in Fluids 39, 1096 to 1100."
@@ -29,6 +29,8 @@ flow:
 **Particle image velocimetry** (PIV) measures a whole flow at once. Tiny particles are mixed into the fluid and photographed twice, a short time apart. Cut both pictures into small **interrogation windows**: the particle pattern in each window has moved a little between the frames, and the peak of the **cross-correlation** of the two windows says by how much. One window gives one velocity vector; the whole image gives a vector field.
 
 This page does that in your browser. It uses the FFT to correlate each window, a three-point Gaussian fit to find the peak to a fraction of a pixel, a **second pass** that shifts each window in frame B by the first estimate (which removes the bias towards small displacements), and the **normalised median test** to find and replace bad vectors.
+
+Compare your measured field with a simulated one in the [[lattice-boltzmann|lattice Boltzmann wind tunnel]], and follow single objects frame by frame with the [[video-motion-tracker]].
 
 ## How to use it
 

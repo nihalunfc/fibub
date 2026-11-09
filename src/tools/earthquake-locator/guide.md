@@ -11,7 +11,7 @@ order: 878
 icon: target
 works: offline
 updated: 2026-11-09
-related: [stereonet, uncertainty-calculator, traverse-calculator]
+related: [stereonet, uncertainty-calculator, traverse-calculator, seismogram-viewer, phone-seismometer, seismic-refraction, utm-converter]
 sources:
   - "S−P distance, straight-ray travel times in a uniform half-space and Geiger's (1910) least-squares location with Marquardt damping are standard seismology, written by fibub and checked against SciPy's least_squares on the same data."
   - "Local magnitude: Hutton and Boore (1987), as adopted in the IASPEI (2013) magnitude standards: ML = log10 A + 1.11 log10 R + 0.00189 R − 2.09 (A in nm)."
@@ -34,6 +34,8 @@ When an earthquake happens, the fast P wave reaches each seismometer first and t
 - **A map** with each station, a dashed circle at its S−P distance, and the located epicentre. The circles should cross near the diamond.
 - **Local magnitude ML** for every station that has an amplitude, using its distance from the located earthquake, and the network mean.
 - **Moment magnitude Mw** from a seismic moment, or from the fault length, width, slip and rock rigidity.
+
+Pick the P and S arrival times in the [[seismogram-viewer]] first, and compare the fault plane with your field measurements on the [[stereonet]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 3
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [schwarzschild-orbits, spacetime-diagram, cosmology-calculator, redshift-calculator]
+related: [schwarzschild-orbits, spacetime-diagram, cosmology-calculator, redshift-calculator, two-body-orbit, wavelet-viewer]
 sources:
   - "Leading-order (quadrupole) inspiral: chirp mass, frequency evolution, time to coalescence, number of cycles, phase and strain amplitude (Peters and Mathews, 1963); standard results as in Maggiore, M., Gravitational Waves, Volume 1 (2008), chapter 4."
   - "ISCO frequency of a Schwarzschild black hole of the total mass, and the characteristic strain h√(2f²/ḟ): standard approximations."
@@ -36,6 +36,8 @@ This calculator gives, for your binary:
 - the **chirp rate** df/dt, the **orbit size** and orbital period at the start;
 - the **strain** h for a face-on binary, and the **characteristic strain**, which is what is compared with detector noise;
 - charts of the frequency sweep, a sample of the waveform over the final cycles, and strain against frequency.
+
+See orbits close to a black hole with the [[schwarzschild-orbits|Schwarzschild orbit plotter]], and turn a redshift into a distance with the [[cosmology-calculator]].
 
 ## How to use it
 

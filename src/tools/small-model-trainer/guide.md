@@ -11,7 +11,7 @@ order: 569
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [csv-profiler, train-test-splitter, confusion-matrix]
+related: [csv-profiler, train-test-splitter, confusion-matrix, embedding-visualiser, regression-workbench, neural-network-toys, roc-curve, sql-playground]
 sources:
   - "Algorithms as defined in scikit-learn (DecisionTreeClassifier, LogisticRegression, KNeighborsClassifier, KMeans with greedy k-means++, silhouette_score, StandardScaler); checked against scikit-learn 1.9 on the example and two make_classification data sets."
   - "The example of 150 seedlings of three varieties is made up for this tool."
@@ -32,6 +32,8 @@ Try machine learning on your own table without installing anything. Open a CSV o
 - **k-means clustering**: no class needed. k-means++ starts with a seed, the best of 10 runs, an elbow plot of inertia for k = 1 to 10, the silhouette score, the cluster centres and a scatter plot of the clusters on any two features.
 
 For the three classifiers the rows are split into training and test sets (stratified by class, with a seed), and you get training and test accuracy, the test accuracy's 95 % interval, balanced accuracy, macro F1, Cohen's kappa, the test confusion matrix and precision, recall and F1 per class.
+
+Prepare fair training and test sets with the [[train-test-splitter|train/test splitter]], and judge the predictions with the [[confusion-matrix|confusion matrix tool]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 733
 icon: search
 works: offline
 updated: 2026-11-09
-related: [kmer-counter, plot-maker, data-cleaner, lexical-diversity-readability, interlinear-gloss, qualitative-coding]
+related: [kmer-counter, plot-maker, data-cleaner, lexical-diversity-readability, interlinear-gloss, qualitative-coding, stylometry-delta, topic-modeller]
 sources:
   - "Formulas: Church and Hanks (1990) for mutual information; Dunning (1993) for log-likelihood G²; t-score as in Church et al. (1991); window counts as described by Evert (2008). Example text written for this tool."
 flow:
@@ -31,6 +31,8 @@ It has four views:
 - **Word list**: how often each word appears, its share of all words, and (with several files) in how many files it appears.
 - **N-grams**: repeated sequences of 2 to 5 words, such as "at the end of".
 - **Collocations**: words that turn up near your search word more often than chance would give, scored three ways.
+
+Measure how varied the vocabulary is with [[lexical-diversity-readability|lexical diversity and readability]], and compare authors with [[stylometry-delta]].
 
 ## How to use it
 

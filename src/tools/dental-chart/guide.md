@@ -11,7 +11,7 @@ order: 39
 icon: table
 works: offline
 updated: 2026-11-09
-related: [audiogram, visual-acuity-converter, reliability-analysis, plate-layout]
+related: [audiogram, visual-acuity-converter, reliability-analysis, plate-layout, clinical-scores, body-measures]
 sources:
   - "FDI two-digit notation: FDI World Dental Federation, adopted as ISO 3950 (Dentistry: designation system for teeth and areas of the oral cavity). Universal numbering: American Dental Association. Palmer notation: Palmer C (1891) and Zsigmondy A (1861)."
   - "DMFT index: Klein H, Palmer CE, Knutson JW (1938) Studies on dental caries I, Public Health Rep 53:751; as used in WHO Oral health surveys: basic methods (5th ed., 2013)."

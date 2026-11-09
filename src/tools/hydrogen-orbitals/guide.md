@@ -11,7 +11,7 @@ order: 3
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [schrodinger-solver, huckel-mo-calculator, crystal-field-calculator, spectral-line-identifier]
+related: [schrodinger-solver, huckel-mo-calculator, crystal-field-calculator, spectral-line-identifier, operator-algebra, periodic-table, molecule-viewer]
 sources:
   - "Hydrogen-like wavefunctions (associated Laguerre radial functions and spherical harmonics with the Condon–Shortley phase), energies and the closed forms for ⟨r⟩, ⟨r²⟩ and ⟨1/r⟩: standard textbook results, for example Griffiths, D. J., Introduction to Quantum Mechanics, and Bransden, B. H. and Joachain, C. J., Physics of Atoms and Molecules."
   - "Rydberg energy and Bohr radius: CODATA 2018 values, rounded."
@@ -32,6 +32,8 @@ It shows three pictures:
 - **A slice** through the nucleus (the xz, xy or yz plane), coloured by the sign of ψ: one colour where ψ is positive, another where it is negative, brighter where |ψ| is larger. The dark lines and circles between lobes are the **nodes**, where the electron is never found.
 - **A probability cloud** of up to 10,000 dots, each a random position drawn from |ψ|² in three dimensions. Turn and tilt it with the sliders. The dots are the same every time you open the same orbital.
 - **Radial plots** of R(r) and the radial probability r²R²(r), which says how likely the electron is to be at distance r whatever the direction.
+
+Solve other potentials with the [[schrodinger-solver|1D Schrödinger solver]], and see how orbitals combine in molecules with the [[huckel-mo-calculator]].
 
 ## How to use it
 

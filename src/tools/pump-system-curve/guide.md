@@ -11,7 +11,7 @@ order: 662
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [pipe-network-solver, steam-tables, trend-analyser]
+related: [pipe-network-solver, steam-tables, trend-analyser, hvac-room-load, manning-weir-calculator, dimensionless-numbers, unit-converter, curve-fitter]
 sources:
   - "Pump and system curves, operating point, affinity (similarity) laws, parallel and series operation and net positive suction head: standard pump hydraulics, for example Karassik et al., Pump Handbook, and fluid mechanics textbooks such as White, Fluid Mechanics (methods only)."
   - "Pipe friction by Darcy-Weisbach with Colebrook-White, shared with fibub's pipe network tool. Water density and vapour pressure from IAPWS-IF97 (IAPWS release, 2007)."
@@ -33,6 +33,8 @@ A centrifugal pump does not deliver a fixed flow. It runs where its **pump curve
 - what happens with **two or more identical pumps in parallel** (more flow) or **in series** (more head);
 - the **affinity laws** for a new speed (for example with a variable speed drive) or a trimmed impeller: flow scales with the ratio, head with its square and power with its cube;
 - **NPSH available** at the suction, compared with the pump's **NPSH required**, to warn of cavitation.
+
+Get the friction losses of the pipes from the [[pipe-network-solver|pipe network solver]], and check water properties at your temperature in the [[steam-tables|steam tables]].
 
 ## How to use it
 

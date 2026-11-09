@@ -11,7 +11,7 @@ order: 4
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [protein-calculator, buffer-recipe-calculator, peptide-mass-calculator]
+related: [protein-calculator, buffer-recipe-calculator, peptide-mass-calculator, hydropathy-plot, protein-assay, chromatography-calculator, gel-densitometry]
 sources:
   - "Net charge and pI come from fibub's protein calculator code (Henderson–Hasselbalch for each ionisable group). Checked against pyteomics (electrochem.charge and pI with the same pKa values typed in): pI and charges agree to better than 1 part in a million."
   - "The best-separation scan and the IEF positions are written by fibub (a linear gradient is a straight line from the + end to the − end) and checked against an independent NumPy scan and by hand."

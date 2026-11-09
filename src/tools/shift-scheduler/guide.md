@@ -10,7 +10,7 @@ order: 4
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [planner, time-zone-planner]
+related: [planner, time-zone-planner, gantt-chart, equipment-booking]
 sources:
   - "Scheduling rules and the fill method are fibub's own: fewest hours first, no work on days off, weekly hour limits and an 11-hour rest between shifts. 11 hours is a common default, not the law where you are; check the official source for your area."
   - "Example teams are made up: invented first names, departments and hours."

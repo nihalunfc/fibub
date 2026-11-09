@@ -11,7 +11,7 @@ order: 322
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [ternary-plot-maker, darcy-flow-calculator, et0-calculator, field-sampling-planner, runoff-calculator]
+related: [ternary-plot-maker, darcy-flow-calculator, et0-calculator, field-sampling-planner, runoff-calculator, soil-test-interpreter, soil-classification, irrigation-scheduler, grain-size-stats]
 sources:
   - "Class boundaries: the public USDA soil texture definitions (Soil Survey Division Staff, Soil Survey Manual, USDA Handbook 18, and the same rules used by the NRCS soil texture calculator). Rules only; the triangle is drawn by fibub from them."
   - "Checked in the tests against an independent Python implementation of the NRCS rule set (each class written as its full condition) on 5,050 grid points, and against the class polygons drawn on the page."
@@ -28,6 +28,8 @@ flow:
 Soil **texture** is the mix of mineral particle sizes in a soil: **sand** (0.05 to 2 mm), **silt** (0.002 to 0.05 mm) and **clay** (finer than 0.002 mm). It controls how much water a soil holds, how fast it drains, how easily it is worked and how well it holds nutrients. The **USDA texture triangle** splits every possible mix into 12 named classes, from sand and loamy sand through loam to silty clay and clay.
 
 This tool gives the class for one sample as you type, and for a whole table of samples at once. It plots every sample on the triangle with the 12 class boundaries, counts how many samples fall in each class, and lets you download the table with the class added.
+
+Get the sand, silt and clay percentages from a sieve analysis with the [[grain-size-stats|grain size statistics tool]], and see what your soil needs in the [[soil-test-interpreter|soil test interpreter]].
 
 ## How to use it
 

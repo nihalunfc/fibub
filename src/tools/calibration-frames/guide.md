@@ -11,7 +11,7 @@ order: 829
 icon: camera
 works: offline
 updated: 2026-11-09
-related: [image-stacker, fits-viewer, star-fwhm-checker, sub-exposure-calculator, telescope-calculator]
+related: [image-stacker, fits-viewer, star-fwhm-checker, sub-exposure-calculator, telescope-calculator, star-trail-exposure, backfocus-calculator, observing-log]
 sources:
   - "Image calibration with bias, dark and flat frames, sigma clipping and the MAD σ are standard methods; the code is written by fibub and checked in the tests against ccdproc 2.5 (Combiner, subtract_bias, subtract_dark, flat_correct) and astropy's sigma_clip and mad_std."
   - "The demo frames are made up by the page (a pretend camera); they are not real data. FITS reading uses fibub's own reader."
@@ -35,6 +35,8 @@ This page combines each kind into a **master** and calibrates each light:
 calibrated = (L − D) / [(F − B) / mean(F − B)]
 
 Dividing by the normalised flat lifts the vignetted corners and the dust shadows back to the level of the centre. If your darks have a different exposure from the lights, the page can scale them: it subtracts the bias first and scales the dark current, (D − B) × t<sub>L</sub>/t<sub>D</sub>. That needs bias frames and assumes the dark current grows in step with time.
+
+Plan how long each light frame should be with the [[sub-exposure-calculator]], and stack the calibrated frames with the [[image-stacker]].
 
 ## Combining frames
 

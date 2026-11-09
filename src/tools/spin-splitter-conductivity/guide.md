@@ -11,7 +11,7 @@ order: 4
 icon: flask
 works: offline
 updated: 2026-11-08
-related: [altermagnet-bands, altermagnet-checker, anomalous-hall-checker]
+related: [altermagnet-bands, altermagnet-checker, anomalous-hall-checker, chiral-magnon-bands, band-structure, hall-effect, brillouin-zone]
 sources:
   - "Method: semiclassical Boltzmann transport in the constant relaxation-time approximation, σij = e²τ ∫ vi vj (−∂f/∂E) d²k/(2π)² for each spin (standard solid-state textbook result). The spin splitter effect itself was proposed for altermagnets in the literature from 2021 onwards; it is cited here for the idea only."
   - "Models: the same made-up two-sublattice and one-band models as the Altermagnet band explorer, written and solved by fibub. No paper's parameters or numbers are used."

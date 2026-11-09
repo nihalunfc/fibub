@@ -1,0 +1,287 @@
+---
+// Galaxy morphology practice: the page draws made-up galaxies (Sérsic ellipticals, lenticulars, spirals with and
+// without bars, irregulars) from a seed, quizzes you on their Hubble type and explains the cues, and has an explorer
+// with a slider for every setting. Scores live only while the page is open. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const sliders: [string, string, number, number, number, string][] = [
+  ['q', 'Axis ratio b/a (how round it looks)', 0.3, 1, 0.01, 'E'],
+  ['n', 'Sérsic index n (how steeply the light fades)', 0.5, 8, 0.1, 'E S0 S'],
+  ['re', 'Effective radius (share of half the picture)', 0.02, 0.3, 0.005, 'E S0 S'],
+  ['bt', 'Bulge-to-total light', 0, 0.9, 0.01, 'S0 S'],
+  ['h', 'Disc scale length (share of half the picture)', 0.05, 0.25, 0.005, 'S0 S Irr'],
+  ['pitch', 'Arm pitch angle (°)', 4, 40, 1, 'S'],
+  ['arms', 'Number of arms', 1, 4, 1, 'S'],
+  ['arm', 'Arm strength', 0, 1, 0.01, 'S'],
+  ['bar', 'Bar strength (0 = no bar)', 0, 1, 0.01, 'S0 S'],
+  ['barLen', 'Bar half-length (disc scale lengths)', 0.8, 3.5, 0.1, 'S0 S'],
+  ['clumps', 'Knots of young stars', 0, 1, 0.01, 'S Irr'],
+  ['incl', 'Tilt from face-on (°)', 0, 85, 1, 'S0 S Irr'],
+  ['pa', 'Turn (° anticlockwise)', 0, 180, 1, 'E S0 S Irr'],
+  ['noise', 'Sky noise', 0, 1, 0.01, 'E S0 S Irr'],
+];
+---
+<div class="ax gmp">
+  <div class="ax-card">
+    <div class="ax-seg gm-mode" role="group" aria-label="Mode">
+      <button type="button" data-m="quiz" aria-pressed="true">Quiz</button>
+      <button type="button" data-m="explore" aria-pressed="false">Explore</button>
+    </div>
+    <p class="ax-help">Every galaxy here is drawn by the page from made-up settings, not a photo of a real galaxy. The quiz shows one, you pick its Hubble type, and the page explains the cues. Explore lets you move each setting and watch the picture change.</p>
+  </div>
+
+  <div class="gm-quiz">
+    <div class="ax-card">
+      <h2>Which type is this?</h2>
+      <div class="ax-grid">
+        <label>Answers <select class="gm-level"><option value="broad" selected>Main types: E, S0, S, SB, Irr</option><option value="detail">Detailed: E0 to E7, Sa to SBc</option></select></label>
+        <label>Round number <input class="gm-round" type="number" min="1" max="999999" step="1" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-help">The same round number always shows the same galaxies in the same order, so a class can practise one set together. Changing the round or the answers starts the score again.</p>
+      <p class="gm-qn"></p>
+      <canvas class="photo gm-img gm-qimg" width="320" height="320"></canvas>
+      <div class="gm-ans" role="group" aria-label="Your answer"></div>
+      <div class="gm-fb" hidden>
+        <p class="ax-big gm-verdict"></p>
+        <ul class="gm-cues gm-qcues"></ul>
+      </div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small gm-next">Next galaxy</button>
+        <button type="button" class="btn secondary small gm-qpng">Download this picture (PNG)</button>
+      </div>
+    </div>
+    <div class="ax-card">
+      <h2>Your score</h2>
+      <p class="ax-big gm-score">No answers yet</p>
+      <div class="ax-scroll"><table class="gm-conf"></table></div>
+      <p class="ax-help">Rows are the true types, columns your answers; the diagonal counts the right ones. The score lives only while this page is open: nothing is saved or sent.</p>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small gm-qcsv">Download answers (CSV)</button>
+        <button type="button" class="btn secondary small gm-reset">Start the score again</button>
+      </div>
+      <Downloads label="Score report" class="gm-qdl" />
+    </div>
+  </div>
+
+  <div class="gm-exp" hidden>
+    <div class="ax-card">
+      <p class="ax-big gm-ecls"></p>
+      <canvas class="photo gm-img gm-eimg" width="320" height="320"></canvas>
+    </div>
+    <div class="ax-card">
+      <h2>Explore the settings</h2>
+      <div class="ax-grid">
+        <label>Start from a type <select class="gm-pre">
+          <option>E0</option><option>E1</option><option>E2</option><option>E3</option><option>E4</option><option>E5</option><option>E6</option><option>E7</option>
+          <option>S0</option><option>SB0</option><option>Sa</option><option selected>Sb</option><option>Sc</option><option>SBa</option><option>SBb</option><option>SBc</option><option>Irr</option>
+        </select></label>
+        <label>Kind of galaxy <select class="gm-fam"><option value="E">Elliptical</option><option value="S0">Lenticular (disc, no arms)</option><option value="S" selected>Spiral</option><option value="Irr">Irregular</option></select></label>
+        <label>Seed (random details) <input class="gm-seed" type="number" min="1" max="999999" step="1" value="7" inputmode="numeric" /></label>
+      </div>
+      <div class="gm-sl">
+        {sliders.map(([k, l, lo, hi, st, fam]) => (
+          <label class="gm-s" data-fam={fam}><span><span>{l}</span> <output class={`gm-o-${k}`}></output></span><input type="range" data-k={k} min={lo} max={hi} step={st} /></label>
+        ))}
+      </div>
+      <p class="ax-err gm-err" hidden></p>
+    </div>
+    <div class="ax-card">
+      <h2>Why it is this type</h2>
+      <dl class="ax-facts gm-efacts"></dl>
+      <ul class="gm-cues gm-ecues"></ul>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small gm-newseed">New seed</button>
+        <button type="button" class="btn secondary small gm-epng">Download this picture (PNG)</button>
+      </div>
+      <Downloads label="Report" class="gm-edl" />
+    </div>
+  </div>
+</div>
+
+<script>
+  import { renderGalaxy, toRGBA, classify, broad, cues, preset, quizItem, moments, edgeFloor, sersicB, apparentQ, ellipClass, CLASSES, BROAD, type GalaxyParams, type Family } from '../../lib/sci/galaxy';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gmp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const SIZE = 320;
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const f2 = (x: number) => x.toFixed(2);
+  const BROADNAME: Record<string, string> = { E: 'Elliptical (E)', S0: 'Lenticular (S0)', S: 'Spiral (S)', SB: 'Barred spiral (SB)', Irr: 'Irregular (Irr)' };
+
+  function draw(c: HTMLCanvasElement, p: GalaxyParams) {
+    const rd = renderGalaxy(p, SIZE);
+    c.width = SIZE; c.height = SIZE;
+    c.getContext('2d')!.putImageData(new ImageData(toRGBA(rd), SIZE, SIZE), 0, 0);
+    return rd;
+  }
+  const png = (c: HTMLCanvasElement, name: string) => c.toBlob((b) => b && save(b, name, 'image/png'), 'image/png');
+  const imgFig = (c: HTMLCanvasElement, alt: string): Figure => ({ w: 320, h: 320, alt, draw: (ctx, w, h) => ctx.drawImage(c, 0, 0, w, h) });
+  const list = (ul: HTMLElement, items: string[]) => ul.replaceChildren(...items.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+
+  // ---------- mode ----------
+  let mode = 'quiz';
+  root.querySelectorAll<HTMLButtonElement>('.gm-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!;
+    root.querySelectorAll<HTMLButtonElement>('.gm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.gm-quiz').hidden = mode !== 'quiz'; q('.gm-exp').hidden = mode !== 'explore';
+    if (mode === 'explore' && !shown) explore();
+  }));
+
+  // ---------- quiz ----------
+  type Ans = { k: number; truth: string; said: string; right: boolean; cls: string };
+  let round = 1, k = 1, answered = false, level = 'broad', answers: Ans[] = [];
+  let cur = quizItem(1, 1);
+  const truthOf = (cls: string) => (level === 'broad' ? broad(cls) : cls);
+  const choices = () => (level === 'broad' ? [...BROAD] : [...CLASSES]);
+
+  function buttons() {
+    const box = q('.gm-ans'); box.replaceChildren();
+    for (const c of choices()) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.dataset.c = c;
+      b.textContent = level === 'broad' ? BROADNAME[c] : c;
+      b.addEventListener('click', () => answer(c));
+      box.append(b);
+    }
+  }
+  function show() {
+    cur = quizItem(round, k); answered = false;
+    draw(q<HTMLCanvasElement>('.gm-qimg'), cur.params);
+    q('.gm-qimg').setAttribute('aria-label', `Galaxy ${k} of round ${round}, drawn by the page. Pick its type below.`);
+    q('.gm-qn').textContent = `Round ${round}, galaxy ${k}`;
+    q('.gm-fb').hidden = true;
+    root.querySelectorAll<HTMLButtonElement>('.gm-ans button').forEach((b) => { b.disabled = false; b.classList.remove('gm-right', 'gm-wrong'); });
+  }
+  function answer(said: string) {
+    if (answered) return;
+    answered = true;
+    const truth = truthOf(cur.cls), right = said === truth;
+    answers.push({ k, truth, said, right, cls: cur.cls });
+    root.querySelectorAll<HTMLButtonElement>('.gm-ans button').forEach((b) => { b.disabled = true; if (b.dataset.c === truth) b.classList.add('gm-right'); else if (b.dataset.c === said) b.classList.add('gm-wrong'); });
+    const name = (c: string) => (level === 'broad' ? BROADNAME[c] : c);
+    let v = right ? `Right: ${name(truth)}` : `Not quite: you said ${name(said)}, it is ${name(truth)}`;
+    if (!right && level === 'detail' && truth[0] === 'E' && said[0] === 'E' && said.length === 2 && Math.abs(Number(said[1]) - Number(truth[1])) === 1) v += ' (one class off)';
+    if (level === 'broad' && truth !== cur.cls) v += ` (in detail ${cur.cls})`;
+    q('.gm-verdict').textContent = v + '.';
+    q('.gm-verdict').classList.toggle('gm-good', right); q('.gm-verdict').classList.toggle('gm-bad', !right);
+    list(q('.gm-qcues'), cues(cur.params));
+    q('.gm-fb').hidden = false;
+    score();
+  }
+  let qSections: Section[] = [];
+  function score() {
+    const n = answers.length, r = answers.filter((a) => a.right).length;
+    q('.gm-score').textContent = n ? `${r} of ${n} right (${Math.round((100 * r) / n)} %)` : 'No answers yet';
+    const t = q<HTMLTableElement>('.gm-conf'); t.replaceChildren();
+    if (!n) { qSections = []; return; }
+    const order = choices();
+    const rowsC = order.filter((c) => answers.some((a) => a.truth === c)), colsC = order.filter((c) => answers.some((a) => a.said === c));
+    const head = ['True type', ...colsC.map((c) => `said ${c}`), 'Right'];
+    const rows = rowsC.map((tc) => { const mine = answers.filter((a) => a.truth === tc); return [tc, ...colsC.map((c) => String(mine.filter((a) => a.said === c).length)), `${mine.filter((a) => a.right).length} of ${mine.length}`]; });
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((row, ri) => { const tr = b.insertRow(); row.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; if (i > 0 && i <= colsC.length && colsC[i - 1] === rowsC[ri] && c !== '0') td.className = 'gm-diag'; }); });
+    qSections = [
+      { title: q('.gm-score').textContent!, facts: [['Round', String(round)], ['Answers', level === 'broad' ? 'main types' : 'detailed types'], ['Galaxies answered', String(n)]], table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: `Galaxy ${k}${answered ? `: ${cur.cls}` : ''}`, figure: imgFig(q<HTMLCanvasElement>('.gm-qimg'), 'The current quiz galaxy, drawn by the page'), text: answered ? cues(cur.params) : [] },
+    ];
+  }
+  function restart() {
+    level = q<HTMLSelectElement>('.gm-level').value;
+    const rv = Math.round(Number(q<HTMLInputElement>('.gm-round').value));
+    round = rv >= 1 && rv <= 999999 ? rv : round;
+    q<HTMLInputElement>('.gm-round').value = String(round);
+    k = 1; answers = []; buttons(); show(); score();
+  }
+  q('.gm-level').addEventListener('change', restart);
+  q('.gm-round').addEventListener('change', restart);
+  q('.gm-next').addEventListener('click', () => { k++; show(); score(); });
+  q('.gm-reset').addEventListener('click', () => { answers = []; score(); });
+  q('.gm-qpng').addEventListener('click', () => png(q<HTMLCanvasElement>('.gm-qimg'), `galaxy-round-${round}-${k}${answered ? '-' + cur.cls : ''}.png`));
+  q('.gm-qcsv').addEventListener('click', () => {
+    const rows = [['galaxy', 'true_type', 'detailed_type', 'your_answer', 'right'], ...answers.map((a) => [String(a.k), a.truth, a.cls, a.said, a.right ? 'yes' : 'no'])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `galaxy-quiz-round-${round}.csv`, 'text/csv');
+  });
+  wireDownloads(q('.gm-qdl'), () => ({ title: 'Galaxy morphology practice', subtitle: `Round ${round}`, file: `galaxy-quiz-round-${round}`, sections: qSections.length ? qSections : [{ title: 'No answers yet', text: ['Answer a galaxy first.'] }] }));
+
+  // ---------- explore ----------
+  let P: GalaxyParams = preset('Sb', 7), shown = false, eSections: Section[] = [];
+  const ranges = [...root.querySelectorAll<HTMLInputElement>('.gm-sl input[type=range]')];
+  const fmt = (key: string, v: number) => (['pitch', 'arms', 'incl', 'pa'].includes(key) ? String(Math.round(v)) + (key === 'arms' ? '' : '°') : key === 'n' || key === 'barLen' ? v.toFixed(1) : key === 're' || key === 'h' ? v.toFixed(3) : f2(v));
+  function toInputs() {
+    q<HTMLSelectElement>('.gm-fam').value = P.family; q<HTMLInputElement>('.gm-seed').value = String(P.seed);
+    for (const r of ranges) { const key = r.dataset.k as keyof GalaxyParams; r.value = String(P[key]); }
+  }
+  function fromInputs(): string | null {
+    const seed = Math.round(Number(q<HTMLInputElement>('.gm-seed').value));
+    if (!(seed >= 1 && seed <= 999999)) return 'The seed is a whole number from 1 to 999999.';
+    P = { ...P, family: q<HTMLSelectElement>('.gm-fam').value as Family, seed };
+    for (const r of ranges) (P as unknown as Record<string, number>)[r.dataset.k!] = Number(r.value);
+    return null;
+  }
+  function explore() {
+    shown = true;
+    const err = fromInputs();
+    q('.gm-err').hidden = !err; if (err) { q('.gm-err').textContent = err; return; }
+    root.querySelectorAll<HTMLElement>('.gm-s').forEach((s) => (s.hidden = !s.dataset.fam!.split(' ').includes(P.family)));
+    for (const r of ranges) root.querySelector(`.gm-o-${r.dataset.k}`)!.textContent = fmt(r.dataset.k!, Number(r.value));
+    const c = q<HTMLCanvasElement>('.gm-eimg'), rd = draw(c, P), cls = classify(P), S = rd.sums, tot = S.bulge + S.disc + S.bar + S.arms + S.knots;
+    q('.gm-ecls').textContent = `Looks like ${cls}`;
+    c.setAttribute('aria-label', `A made-up ${cls} galaxy drawn by the page`);
+    const facts: [string, string][] = [];
+    if (P.family === 'E') {
+      const m = moments(rd.old, SIZE, edgeFloor(rd.old, SIZE));
+      facts.push(['Ellipticity', `10 × (1 − ${f2(P.q)}) = ${(10 * (1 - P.q)).toFixed(1)} → E${ellipClass(P.q)}`]);
+      facts.push(['b/a measured from the light', `${f2(m.q)} at ${Math.round(m.pa) % 180}°`]);
+      facts.push(['Sérsic b for this n', sersicB(P.n).toFixed(3)]);
+      facts.push(['Light inside the picture', `${(100 * tot).toFixed(1)} %`]);
+    } else if (P.family === 'Irr') {
+      facts.push(['Light in knots', `${(100 * S.knots / tot).toFixed(0)} %`]);
+      facts.push(['Light inside the picture', `${(100 * tot).toFixed(1)} %`]);
+    } else {
+      facts.push(['Bulge-to-total', `${f2(P.bt)} set, ${f2(S.bulge / tot)} in the picture`]);
+      if (P.family === 'S' && P.arm > 0) facts.push(['Light in arms and knots', `${(100 * (S.arms + S.knots) / tot).toFixed(0)} %`]);
+      if (P.bar > 0) facts.push(['Light in the bar', `${(100 * S.bar / tot).toFixed(0)} %`]);
+      facts.push(['Disc looks', `b/a ${f2(apparentQ(P.incl, 0.12))} at ${Math.round(P.incl)}° tilt`]);
+      facts.push(['Sérsic b for the bulge', sersicB(P.n).toFixed(3)]);
+    }
+    q('.gm-efacts').replaceChildren(...facts.map(([a, b]) => fact(a, b)));
+    const cu = cues(P); list(q('.gm-ecues'), cu);
+    eSections = [{ title: `Looks like ${cls}`, facts, figure: imgFig(c, `A made-up ${cls} galaxy drawn by the page`), text: cu, note: 'Drawn by fibub from made-up settings, not a photo of a real galaxy.' }];
+  }
+  let pend = 0;
+  const later = () => { if (pend) return; pend = requestAnimationFrame(() => { pend = 0; explore(); }); };
+  ranges.forEach((r) => r.addEventListener('input', later));
+  q('.gm-fam').addEventListener('change', () => { const f = q<HTMLSelectElement>('.gm-fam').value; P = preset(f === 'E' ? 'E3' : f === 'S0' ? 'S0' : f === 'Irr' ? 'Irr' : 'Sb', P.seed); toInputs(); explore(); });
+  q('.gm-pre').addEventListener('change', () => { P = preset(q<HTMLSelectElement>('.gm-pre').value, P.seed); toInputs(); explore(); });
+  q('.gm-seed').addEventListener('change', explore);
+  q('.gm-newseed').addEventListener('click', () => { q<HTMLInputElement>('.gm-seed').value = String(1 + Math.floor(Math.random() * 999999)); explore(); });
+  q('.gm-epng').addEventListener('click', () => png(q<HTMLCanvasElement>('.gm-eimg'), `galaxy-${classify(P)}-seed-${P.seed}.png`));
+  wireDownloads(q('.gm-edl'), () => ({ title: 'Galaxy morphology practice', subtitle: q('.gm-ecls').textContent ?? '', file: `galaxy-${classify(P)}-seed-${P.seed}`, sections: eSections }));
+
+  // A fresh round each visit (any whole number works; type one to share a round).
+  { const a = new Uint32Array(1); crypto.getRandomValues(a); q<HTMLInputElement>('.gm-round').value = String(1 + (a[0] % 9999)); }
+  toInputs();
+  restart();
+</script>
+
+<style is:inline>
+  .gmp .gm-img { display: block; width: 100%; max-width: 360px; height: auto; aspect-ratio: 1; margin: 10px auto 0; background: #000; border-radius: 6px; }
+  .gmp .gm-qn { margin: 10px 0 0; font-weight: 600; }
+  .gmp .gm-ans { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .gmp .gm-ans .btn { min-width: 52px; }
+  .gmp .gm-ans .btn:disabled { opacity: 1; cursor: default; }
+  .gmp .gm-ans .gm-right { outline: 3px solid var(--good); outline-offset: -3px; color: var(--good); font-weight: 700; }
+  .gmp .gm-ans .gm-wrong { outline: 3px solid var(--bad); outline-offset: -3px; color: var(--bad); }
+  .gmp .gm-fb { margin-top: 12px; }
+  .gmp .gm-verdict.gm-good { color: var(--good); }
+  .gmp .gm-verdict.gm-bad { color: var(--bad); }
+  .gmp .gm-cues { margin: 8px 0 0; padding-left: 20px; }
+  .gmp .gm-cues li { margin: 4px 0; }
+  .gmp .gm-diag { font-weight: 700; color: var(--good); }
+  .gmp .gm-sl { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 18px; margin-top: 12px; }
+  .gmp .gm-s > span { display: flex; justify-content: space-between; gap: 8px; }
+  .gmp .gm-s output { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .gmp .gm-s input[type=range] { width: 100%; accent-color: var(--accent); }
+  .gmp select { max-width: 100%; }
+</style>

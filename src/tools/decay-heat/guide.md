@@ -11,7 +11,7 @@ order: 679
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [point-kinetics, neutron-diffusion, decay-calculator]
+related: [point-kinetics, neutron-diffusion, decay-calculator, decay-chain, gamma-shielding, heat-conduction, steam-tables]
 sources:
   - "Way-Wigner approximation P/P0 = 0.0622 [t^−0.2 − (t + T)^−0.2] for fission-product decay heat, as given in standard reactor physics and nuclear engineering textbooks (a published formula); its integral worked out by fibub."
   - "Checked against SciPy: the formula at 24 points, the energy integral by adaptive quadrature at 16 intervals (agreement to 1 part in a billion), and the time to fall below a level by brentq, for four operating times."
@@ -39,6 +39,8 @@ where t is the time since shutdown and T the time the reactor ran at power P₀ 
 - a log-log chart of the heat (against a very long operating history) and the energy released since shutdown, with a CSV of the curve.
 
 **It is an approximation, for study.** It is usually quoted as fair (within tens of percent) from about 10 seconds to a few months after shutdown. Real decay heat depends on the fuel type, enrichment, burnup and power history, and also includes actinides such as U-239 and Np-239; safety work uses detailed codes and standards.
+
+Follow the individual nuclides with the [[decay-chain|decay chain calculator]], and check how fast the heat leaves the fuel with [[heat-conduction|heat conduction]].
 
 ## Worked example
 

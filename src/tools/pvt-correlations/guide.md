@@ -11,7 +11,7 @@ order: 687
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [decline-curve, gas-law-calculator, phase-diagram-calculator, vapour-pressure-calculator]
+related: [decline-curve, gas-law-calculator, phase-diagram-calculator, vapour-pressure-calculator, well-test-analyser, real-gas-calculator, unit-converter]
 sources:
   - "Standing, M. B. (1947), A pressure-volume-temperature correlation for mixtures of California oils and gases, Drilling and Production Practice, API: bubble point, solution GOR and Bo."
   - "Vasquez, M. and Beggs, H. D. (1980), Correlations for fluid physical property prediction, Journal of Petroleum Technology 32(6): Rs, Bo, pb, oil compressibility and undersaturated viscosity. Beggs, H. D. and Robinson, J. R. (1975), Journal of Petroleum Technology 27(9): dead and live oil viscosity."
@@ -32,6 +32,8 @@ Reservoir engineers need the properties of oil and gas at reservoir pressure and
 **Oil**: bubble point pressure, solution GOR (Rs) and formation volume factor (Bo) by **Standing** or **Vasquez-Beggs**; compressibility of undersaturated oil (Vasquez-Beggs); dead and live oil viscosity by **Beggs-Robinson**, with the Vasquez-Beggs rise above the bubble point; and oil density from a mass balance.
 
 **Gas**: pseudo-critical properties from gas gravity (**Sutton**), with the **Wichert-Aziz** correction for CO₂ and H₂S; the **Z-factor** by **Dranchuk-Abou-Kassem** or **Hall-Yarborough** (both fitted to the Standing-Katz chart, solved here by root finding); gas formation volume factor Bg, density, compressibility and viscosity (**Lee-Gonzalez-Eakin**).
+
+Use these properties in the [[well-test-analyser]] and the [[decline-curve|decline curve analysis]] for the same well.
 
 ## How to use it
 

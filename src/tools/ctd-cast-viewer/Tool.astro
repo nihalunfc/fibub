@@ -1,0 +1,225 @@
+---
+// CTD cast viewer: profiles, a T-S diagram with density lines, mixed layer depth, N² and the thermocline from a cast
+// pasted or opened as CSV. Density comes from a simple linear equation of state with editable round values (not
+// TEOS-10). Nothing leaves the browser. The example cast is made up and built by the script.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ctd">
+  <div class="ax-card">
+    <h2>Cast data</h2>
+    <label>One row per scan: pressure (dbar) or depth (m), temperature (°C), salinity, and oxygen and fluorescence if you have them. A header row lets the page find the columns by name.
+      <textarea class="ctd-in" rows="8" spellcheck="false"></textarea></label>
+    <DataFile target=".ctd-in" maxMB={30} maxCols={40} maxRows={300000} label="Open a cast file" />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ctd-ex">Use the example cast</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>With no header, the first column is <select class="ctd-zis"><option value="pressure">Pressure (dbar)</option><option value="depth">Depth (m)</option></select></label>
+    </div>
+    <p class="ax-help">Export your CTD file as CSV or text with a header (for example from the instrument software, after its own cleaning steps). Pressure is turned into depth with z = p × 10⁴ / (ρ₀ g), using ρ₀ below and g = 9.81 m/s², which ignores compression and latitude (well under 1 % in the upper ocean). The example cast is made up. Your file stays on your device and is never uploaded.</p>
+    <p class="ax-help ctd-note" hidden></p>
+    <p class="ax-err ctd-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Use <select class="ctd-half"><option value="down" selected>Downcast</option><option value="up">Upcast</option><option value="all">All scans</option></select></label>
+      <label>Bin size (m) <input class="ctd-bin" type="number" min="0.1" max="50" step="0.5" value="1" inputmode="decimal" /></label>
+      <label>Gradients over (m) <input class="ctd-win" type="number" min="0.1" max="100" step="1" value="4" inputmode="decimal" /></label>
+      <label>Mixed layer from <select class="ctd-by"><option value="T" selected>Temperature</option><option value="rho">Density</option></select></label>
+      <label>Reference depth (m) <input class="ctd-ref" type="number" min="0" step="1" value="10" inputmode="decimal" /></label>
+      <label>Temperature step (°C) <input class="ctd-dt" type="number" min="0" step="0.05" value="0.2" inputmode="decimal" /></label>
+      <label>Density step (kg/m³) <input class="ctd-dr" type="number" min="0" step="0.01" value="0.03" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ctd-other" /> Also draw the other half of the cast (dashed)</label>
+    <p class="ax-help">The <b>downcast</b> runs from the first scan to the deepest one, the <b>upcast</b> from there back up. Scans are averaged into depth bins. The <b>mixed layer</b> ends where temperature first differs from its value at the reference depth by more than the temperature step (warmer or colder), or where density first rises by more than the density step. Gradients, N² and the thermocline use the difference between bins this far apart, so noise matters less.</p>
+    <h3 class="ctd-h3">Linear equation of state</h3>
+    <div class="ax-grid">
+      <label>ρ₀ (kg/m³) <input class="ctd-rho0" type="number" step="0.5" value="1027" inputmode="decimal" /></label>
+      <label>α, per °C <input class="ctd-a" type="number" step="0.00001" value="0.0002" inputmode="decimal" /></label>
+      <label>β, per g/kg <input class="ctd-b" type="number" step="0.00001" value="0.0008" inputmode="decimal" /></label>
+      <label>T₀ (°C) <input class="ctd-t0" type="number" step="0.5" value="10" inputmode="decimal" /></label>
+      <label>S₀ <input class="ctd-s0" type="number" step="0.5" value="35" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Density ρ = ρ₀ (1 − α (T − T₀) + β (S − S₀)). This is a simple straight-line approximation, <b>not TEOS-10</b>: α (how much warming lightens water) and β (how much salt makes it heavier) are rounded values that hold near T₀ and S₀; real α changes a lot with temperature. It has no pressure term, so it acts like a potential density. Use it to see the shape of the profile and compare casts, not for exact densities. σ is ρ − 1000.</p>
+    <p class="ax-err ctd-serr" hidden></p>
+  </div>
+
+  <div class="ax-card ctd-out" hidden>
+    <h2>The cast</h2>
+    <p class="ax-big ctd-big"></p>
+    <dl class="ax-facts ctd-facts"></dl>
+    <h3 class="ctd-h3">Profiles</h3>
+    <div class="ctd-profs"></div>
+    <h3 class="ctd-h3">T-S diagram</h3>
+    <canvas class="ax-fig ctd-ts"></canvas>
+    <p class="ax-help">Dashed lines join water of equal density (σ, from the linear equation above). Water masses show up as lines or bends in the cloud of points.</p>
+    <h3 class="ctd-h3">Binned profile</h3>
+    <div class="ax-scroll ctd-tw"><table class="ctd-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small ctd-csv">Binned profile (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import * as C from '../../lib/sci/ctd';
+  import { sig, csv } from '../../lib/sci/num';
+  import { chartFigure, drawChart, canvasPainter, niceRange, niceTicks, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, save, fileSafe, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ctd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const n = (c: string) => (v(c) === '' ? NaN : Number(v(c)));
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f = (x: number, d: number) => (Number.isFinite(x) ? x.toFixed(d).replace('-', '−') : '–');
+  let name = 'example-cast', figs: { fig: Figure; el: HTMLCanvasElement }[] = [], sections: Section[] = [], csvRows: (string | number)[][] = [], runs = 0;
+
+  function eos(): C.EOS | string {
+    const e = { rho0: n('.ctd-rho0'), alpha: n('.ctd-a'), beta: n('.ctd-b'), T0: n('.ctd-t0'), S0: n('.ctd-s0') };
+    if (!(e.rho0 >= 900 && e.rho0 <= 1100)) return 'ρ₀ should be between 900 and 1100 kg/m³.';
+    if (!(e.alpha > 0 && e.alpha < 0.01)) return 'α should be above 0 and below 0.01 per °C (seawater is about 0.0001 to 0.0003).';
+    if (!(e.beta > 0 && e.beta < 0.01)) return 'β should be above 0 and below 0.01 per g/kg (seawater is about 0.0008).';
+    if (!Number.isFinite(e.T0) || !Number.isFinite(e.S0)) return 'Type a reference temperature T₀ and salinity S₀.';
+    return e;
+  }
+
+  function profileFig(title: string, unit: string, z: number[], x: number[], marks: { at: number; label: string }[], other?: { z: number[]; x: number[] }, h = 420): Figure {
+    const series = [{ name: other ? 'This half' : '', x, y: z, mode: 'line' as const, width: 1.6 }];
+    if (other) series.push({ name: 'Other half', x: other.x, y: other.z, mode: 'line' as const, width: 1.2, dash: [4, 3] } as any);
+    return chartFigure({ w: 340, h, xLabel: `${title}${unit ? ` (${unit})` : ''}`, yLabel: 'Depth (m)', yReverse: true, legend: other ? 'below' : 'none', series, marks: marks.filter((m) => Number.isFinite(m.at)).map((m) => ({ kind: 'hline' as const, at: m.at, label: m.label, dash: [5, 4] })) }, `${title} against depth`);
+  }
+
+  function tsFig(T: number[], S: number[], e: C.EOS, other?: { T: number[]; S: number[] }): Figure {
+    const allS = [...S, ...(other?.S ?? [])].filter(Number.isFinite), allT = [...T, ...(other?.T ?? [])].filter(Number.isFinite);
+    const [Sa, Sb] = niceRange(Math.min(...allS), Math.max(...allS)), [Ta, Tb] = niceRange(Math.min(...allT), Math.max(...allT));
+    const corners = [C.density(Ta, Sa, e), C.density(Ta, Sb, e), C.density(Tb, Sa, e), C.density(Tb, Sb, e)].map((r) => r - 1000);
+    const levels = niceTicks(Math.min(...corners), Math.max(...corners), 6);
+    return {
+      w: Math.round(Math.min(640, Math.max(360, q('.ctd-ts').parentElement!.clientWidth || 640))), h: 440, alt: 'Temperature-salinity diagram with lines of equal density',
+      draw: (ctx, W, H, pal) => {
+        const lines = levels.map((sg) => {
+          const rho = sg + 1000, TatS = (s: number) => C.isoT(rho, s, e);
+          // Label near the top-right end of the part inside the box.
+          const sHi = Math.min(Sb, Sa + ((Tb - TatS(Sa)) / (TatS(Sb) - TatS(Sa) || 1)) * (Sb - Sa));
+          const sLab = Math.max(Sa, sHi - 0.2 * (Sb - Sa));
+          return { name: '', x: [Sa - (Sb - Sa), sLab, Sb + (Sb - Sa)], y: [TatS(Sa - (Sb - Sa)), TatS(sLab), TatS(Sb + (Sb - Sa))], mode: 'line' as const, width: 1, dash: [4, 4], color: pal.muted, labels: ['', `σ ${sg}`, ''], size: 0 };
+        });
+        const ac = pal.red ? pal.accent : pal.bg === '#ffffff' ? OKABE_ITO[0] : '#56B4E9', oc = pal.red ? pal.accent2 : pal.bg === '#ffffff' ? OKABE_ITO[1] : '#E69F00';
+        const data = [{ name: other ? 'This half' : '', x: S, y: T, mode: 'both' as const, marker: 'circle' as const, size: 2.2, width: 1, color: ac }];
+        if (other) data.push({ name: 'Other half', x: other.S, y: other.T, mode: 'both' as const, marker: 'circle' as const, size: 1.6, width: 1, color: oc });
+        drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: 'Salinity', yLabel: 'Temperature (°C)', xMin: Sa, xMax: Sb, yMin: Ta, yMax: Tb, series: [...lines, ...data], legend: other ? 'below' : 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.ctd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function run() {
+    const err = q('.ctd-err'), serr = q('.ctd-serr'), out = q('.ctd-out'), note = q('.ctd-note');
+    const stop = (el: HTMLElement, m: string) => { el.textContent = m; el.hidden = false; out.hidden = true; sections = []; root.dataset.runs = String(++runs); };
+    err.hidden = true; serr.hidden = true;
+    const e = eos();
+    if (typeof e === 'string') return stop(serr, e);
+    const bin = n('.ctd-bin'), win = n('.ctd-win'), ref = n('.ctd-ref'), dT = n('.ctd-dt'), dR = n('.ctd-dr');
+    if (!(bin >= 0.1 && bin <= 50)) return stop(serr, 'The bin size is from 0.1 to 50 m.');
+    if (!(win > 0 && win <= 100)) return stop(serr, 'Gradients over: above 0 and up to 100 m.');
+    if (!(ref >= 0)) return stop(serr, 'The reference depth is 0 m or deeper.');
+    if (!(dT > 0) || !(dR > 0)) return stop(serr, 'The temperature and density steps must be above 0.');
+    const p = C.parseCast(q<HTMLTextAreaElement>('.ctd-in').value, e.rho0, q<HTMLSelectElement>('.ctd-zis').value as 'pressure' | 'depth');
+    if (p.error) return stop(err, p.error);
+    const found = `Columns used: ${p.names.z} (${p.zFrom === 'pressure' ? 'pressure, turned into depth' : 'depth'}), ${p.names.T}, ${p.names.S}${p.names.O ? `, ${p.names.O}` : ''}${p.names.F ? `, ${p.names.F}` : ''}.`;
+    note.textContent = found + (p.skipped.length ? ` Skipped ${p.skipped.length} row${p.skipped.length > 1 ? 's' : ''} without numbers for all three (data row ${p.skipped.slice(0, 6).join(', ')}${p.skipped.length > 6 ? ' …' : ''}).` : '');
+    note.hidden = false;
+    const sp = C.splitCast(p.cast), half = q<HTMLSelectElement>('.ctd-half').value;
+    const use = half === 'down' ? sp.down : half === 'up' ? sp.up : p.cast;
+    if (use.z.length < 3) return stop(err, half === 'up' ? 'This cast has no upcast: the deepest scan is the last one. Pick the downcast.' : 'The downcast has fewer than three scans: the deepest scan comes almost first. Pick the upcast.');
+    const b = C.binCast(use, bin);
+    if (b.z.length < 3) return stop(err, 'Fewer than three depth bins. Use a smaller bin size.');
+    if (b.z.length > 20000) return stop(serr, `That bin size gives ${b.z.length.toLocaleString('en')} bins; use a larger bin.`);
+    const k = Math.max(1, Math.round(win / bin));
+    const rho = b.T.map((t, i) => C.density(t, b.S[i], e)), sg = rho.map((r) => r - 1000);
+    const mT = C.mixedLayer(b.z, b.T, ref, dT, 'abs'), mR = C.mixedLayer(b.z, rho, ref, dR, 'up');
+    const th = C.thermocline(b.z, b.T, k), N = C.buoyancy(b.z, rho, e.rho0, k), pc = C.pycnocline(N.z, N.n2);
+    const by = q<HTMLSelectElement>('.ctd-by').value, m = by === 'T' ? mT : mR;
+    const showOther = q<HTMLInputElement>('.ctd-other').checked && half !== 'all';
+    const o = showOther ? C.binCast(half === 'down' ? sp.up : sp.down, bin) : null;
+    const oth = o && o.z.length >= 2 ? o : null;
+    const oRho = oth ? oth.T.map((t, i) => C.density(t, oth.S[i], e)) : [];
+
+    const mTxt = (x: C.MLD) => (x.found ? `${f(x.depth, 1)} m` : `deeper than ${f(x.depth, 1)} m`);
+    q('.ctd-big').textContent = `Mixed layer ${mTxt(m)} (${by === 'T' ? 'temperature' : 'density'}), thermocline at ${f(th.depth, 1)} m`;
+    const Nmax = Math.sqrt(Math.max(0, pc.n2));
+    const halfTxt = half === 'down' ? 'downcast' : half === 'up' ? 'upcast' : 'all scans';
+    q('.ctd-facts').replaceChildren(
+      fact('Cast', `${p.cast.z.length.toLocaleString('en')} scans to ${f(p.cast.z[sp.iMax], 1)} m`, `downcast ${sp.down.z.length.toLocaleString('en')}, upcast ${sp.up.z.length > 1 ? sp.up.z.length.toLocaleString('en') : 'none'}; using ${half === 'all' ? 'all scans' : `the ${halfTxt}`}, ${b.z.length} bins of ${sig(bin, 3)} m`),
+      fact('Mixed layer (temperature)', mTxt(mT), `first ${sig(dT, 3)} °C away from ${f(mT.refValue, 3)} °C at ${sig(mT.refDepth, 4)} m`),
+      fact('Mixed layer (density)', mTxt(mR), `first ${sig(dR, 3)} kg/m³ above σ ${f(mR.refValue - 1000, 3)} at ${sig(mR.refDepth, 4)} m`),
+      fact('Thermocline', `${f(th.depth, 1)} m`, `steepest fall ${sig(th.grad, 3)} °C per m (over ${sig(k * bin, 3)} m)`),
+      fact('Strongest stratification', `N² ${sig(pc.n2 * 1e4, 3)} × 10⁻⁴ s⁻²`, `at ${f(pc.depth, 1)} m; N = ${sig((Nmax / (2 * Math.PI)) * 3600, 3)} cycles per hour, buoyancy period ${sig((2 * Math.PI) / Nmax / 60, 3)} min`),
+      fact('Top and bottom bins', `σ ${f(sg[0], 2)} to ${f(sg[sg.length - 1], 2)}`, `${f(b.T[0], 2)} to ${f(b.T[b.T.length - 1], 2)} °C, salinity ${f(b.S[0], 3)} to ${f(b.S[b.S.length - 1], 3)}`),
+    );
+
+    // Profiles: one small chart per variable.
+    const marks = [{ at: m.found ? m.depth : NaN, label: 'MLD' }, { at: th.depth, label: 'Thermocline' }];
+    const box = q('.ctd-profs'); box.replaceChildren(); figs = [];
+    const add = (fig: Figure) => { const c = document.createElement('canvas'); c.className = 'ax-fig'; box.append(c); figs.push({ fig, el: c }); paint(c, fig); return fig; };
+    const fT = add(profileFig('Temperature', '°C', b.z, b.T, marks, oth ? { z: oth.z, x: oth.T } : undefined));
+    const fS = add(profileFig('Salinity', '', b.z, b.S, marks, oth ? { z: oth.z, x: oth.S } : undefined));
+    const fR = add(profileFig('Density σ', 'kg/m³', b.z, sg, marks, oth ? { z: oth.z, x: oRho.map((r) => r - 1000) } : undefined));
+    const fN = add(profileFig('N²', '10⁻⁴ s⁻²', N.z, N.n2.map((x) => x * 1e4), marks));
+    const fO = b.O ? add(profileFig('Oxygen', /^oxygen$/i.test(p.names.O ?? '') ? '' : p.names.O ?? '', b.z, b.O, marks, oth?.O ? { z: oth.z, x: oth.O } : undefined)) : null;
+    const fF = b.F ? add(profileFig('Fluorescence', /^fluorescence$/i.test(p.names.F ?? '') ? '' : p.names.F ?? '', b.z, b.F, marks, oth?.F ? { z: oth.z, x: oth.F } : undefined)) : null;
+    const fTS = tsFig(b.T, b.S, e, oth ? { T: oth.T, S: oth.S } : undefined);
+    figs.push({ fig: fTS, el: q<HTMLCanvasElement>('.ctd-ts') });
+    out.hidden = false;
+    paint(q<HTMLCanvasElement>('.ctd-ts'), fTS);
+
+    const n2At = b.z.map((z) => C.interpAt(N.z, N.n2, z));
+    const head = ['Depth (m)', 'Scans', 'T (°C)', 'Salinity', 'σ (kg/m³)', 'N² (10⁻⁴ s⁻²)', ...(b.O ? ['Oxygen'] : []), ...(b.F ? ['Fluor.'] : [])];
+    const rows = b.z.map((z, i) => [sig(z, 6), String(b.n[i]), f(b.T[i], 3), f(b.S[i], 3), f(sg[i], 3), Number.isFinite(n2At[i]) ? sig(n2At[i] * 1e4, 3) : '–', ...(b.O ? [f(b.O[i], 2)] : []), ...(b.F ? [f(b.F[i], 3)] : [])]);
+    table(head, rows);
+    csvRows = [['depth_m', 'scans', 'temperature_C', 'salinity', 'density_linear_kg_m3', 'sigma_kg_m3', 'N2_per_s2', ...(b.O ? ['oxygen'] : []), ...(b.F ? ['fluorescence'] : [])],
+      ...b.z.map((z, i) => [z, b.n[i], b.T[i].toFixed(5), b.S[i].toFixed(5), rho[i].toFixed(5), sg[i].toFixed(5), Number.isFinite(n2At[i]) ? n2At[i].toExponential(5) : '', ...(b.O ? [Number.isFinite(b.O[i]) ? b.O[i].toFixed(4) : ''] : []), ...(b.F ? [Number.isFinite(b.F[i]) ? b.F[i].toFixed(5) : ''] : [])])];
+    const every = Math.max(1, Math.ceil(rows.length / 60));
+    const facts = [...q('.ctd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [
+      { title: q('.ctd-big').textContent!, facts, figure: fT, text: [`Linear equation of state (a simple approximation, not TEOS-10): ρ = ${e.rho0} (1 − ${e.alpha} (T − ${e.T0}) + ${e.beta} (S − ${e.S0})) kg/m³.`] },
+      { title: 'Salinity', figure: fS }, { title: 'Density σ', figure: fR }, { title: 'Buoyancy frequency N²', figure: fN },
+      ...(fO ? [{ title: 'Oxygen', figure: fO }] : []), ...(fF ? [{ title: 'Fluorescence', figure: fF }] : []),
+      { title: 'T-S diagram', figure: fTS, note: 'Dashed lines: equal density σ from the linear equation of state.' },
+      { title: every > 1 ? `Binned profile (every ${every}th bin; the CSV has all)` : 'Binned profile', table: { head, rows: rows.filter((_, i) => i % every === 0), align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+    ];
+    root.dataset.runs = String(++runs);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  q('.ctd-in').addEventListener('input', () => { name = 'cast'; later(); });
+  q('.ctd-in').addEventListener('change', () => { const fn = root.querySelector('.dfb-note')?.textContent?.match(/^Opened (.+?): /)?.[1]; if (fn) name = fn.replace(/\.[^.]+$/, ''); });
+  ['.ctd-bin', '.ctd-win', '.ctd-ref', '.ctd-dt', '.ctd-dr', '.ctd-rho0', '.ctd-a', '.ctd-b', '.ctd-t0', '.ctd-s0'].forEach((c) => q(c).addEventListener('input', later));
+  ['.ctd-half', '.ctd-by', '.ctd-zis', '.ctd-other'].forEach((c) => q(c).addEventListener('change', run));
+  const example = () => { q<HTMLTextAreaElement>('.ctd-in').value = C.exampleCast(); name = 'example-cast'; run(); };
+  q('.ctd-ex').addEventListener('click', example);
+  q('.ctd-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${fileSafe(name)}-binned.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.ctd-out').hidden) figs.forEach((x) => paint(x.el, x.fig)); });
+  wireDownloads(q('.dl'), () => ({ title: 'CTD cast', subtitle: q('.ctd-big').textContent ?? '', file: `${fileSafe(name)}-ctd`, sections }));
+  example();
+</script>
+
+<style is:inline>
+  .ctd .ctd-h3 { margin: 18px 0 8px; font-size: 15px; }
+  .ctd .ctd-profs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .ctd .ctd-tw { max-height: 360px; overflow-y: auto; }
+  .ctd .ctd-tab td, .ctd .ctd-tab th { white-space: nowrap; }
+  .ctd select { max-width: 100%; }
+</style>

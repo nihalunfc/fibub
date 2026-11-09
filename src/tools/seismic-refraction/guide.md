@@ -11,7 +11,7 @@ order: 882
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [earthquake-locator, gravity-corrections, level-book-reducer, plot-maker]
+related: [earthquake-locator, gravity-corrections, level-book-reducer, plot-maker, seismogram-viewer, ves-inversion, gpr-viewer, cross-section-profile]
 sources:
   - "Straight-line travel times of direct and head waves, the intercept-time and crossover-distance depth formulas and the two-shot dipping-layer solution are standard refraction seismology (for example Telford, Geldart and Sheriff, Applied Geophysics; Kearey, Brooks and Hill, An Introduction to Geophysical Exploration), written by fibub from the formulas."
   - "Checked against first-arrival times found independently by Fermat's principle (SciPy minimisation over the ray path) for flat and dipping layers."
@@ -34,6 +34,8 @@ In a refraction survey you set off a small source (a hammer on a plate, a weight
 - **Dipping layer.** With a reverse shot at the far end, the slower apparent speed is shot down-dip and the faster one up-dip. The page gives the true refractor speed, the dip, and the depth under each shot (vertical and at right angles to the layer).
 - **Reciprocal times.** The time from one shot to the other should be the same both ways, a good check on picks and on the shot positions.
 - **Forward model.** Type speeds and thicknesses of flat layers to get intercepts, critical distances, crossover offsets, the travel-time curve on the plot and its RMS difference from your forward picks.
+
+Pick your first arrivals in the [[seismogram-viewer]], and check the layers against a [[ves-inversion|resistivity sounding]] over the same line.
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 8
 icon: camera
 works: offline
 updated: 2026-11-09
-related: [spectral-line-identifier, diffraction-patterns, sellmeier-fitter, beer-lambert-calculator]
+related: [spectral-line-identifier, diffraction-patterns, sellmeier-fitter, beer-lambert-calculator, calibration-curve, curve-fitter, uncertainty-calculator, spectrum-peak-fitter, lens-ray-tracer]
 sources:
   - "Emission line wavelengths (mercury 404.7, 435.8, 546.1, 577.0 and 579.1 nm; the brightest neon lines; hydrogen Balmer lines; sodium D lines) are general, well-known spectroscopy facts, rounded to 0.1 nm. Fluorescent-lamp phosphor lines (terbium near 487.7 and 542.4 nm, europium near 611.6 nm) are approximate band peaks."
   - "Peak finding with parabolic interpolation and least-squares polynomial calibration: standard methods."
@@ -28,6 +28,8 @@ flow:
 A home-made spectrometer (a diffraction grating or a piece of DVD in front of a phone camera) turns light into a rainbow on the photo. The photo only knows **pixels**; this tool turns them into **wavelengths**.
 
 It averages a strip of the photo into a brightness profile, finds the bright lines with sub-pixel precision, matches them to emission lines whose wavelengths are known, and fits a polynomial λ = a₀ + a₁x + a₂x² (+ a₃x³) through them. The result is a formula you can reuse for every later photo taken with the same set-up, and a calibrated spectrum you can download.
+
+Identify the lines in your calibrated spectrum with the [[spectral-line-identifier|spectral line identifier]], and check the grating's angles in the [[diffraction-patterns|diffraction pattern tool]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 4
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plasma-parameters, langmuir-probe, gas-law-calculator]
+related: [plasma-parameters, langmuir-probe, gas-law-calculator, particle-drifts, unit-converter]
 sources:
   - "Paschen, F. (1889); Townsend breakdown theory as given in Raizer, Y. P., Gas Discharge Physics (Springer, 1991), chapter 7, and Lieberman and Lichtenberg, Principles of Plasma Discharges."
   - "A and B for each gas are rounded textbook values of the Townsend fit (orders of magnitude widely quoted in teaching texts), each valid only over a limited E/p range; they are editable on the page."
@@ -30,6 +30,8 @@ When the voltage across a gas gap is high enough, a few free electrons gain enou
 V = B p d / (ln(A p d) − ln(ln(1 + 1/γ)))
 
 where A and B describe how the gas is ionised and γ is how many electrons each ion knocks out of the cathode. The curve has a **minimum**: below it, no DC voltage can break the gas down at any gap. To the left of the minimum, the gas is so thin that electrons rarely hit anything, so a *wider* gap breaks down more easily, which is why vacuum gaps and neon signs behave so differently from air gaps.
+
+Once the discharge is lit, measure it with the [[langmuir-probe|Langmuir probe analyser]], and work out its basic numbers in the [[plasma-parameters|plasma parameter calculator]].
 
 ## How to use it
 

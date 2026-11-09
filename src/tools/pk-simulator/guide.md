@@ -11,7 +11,7 @@ order: 13
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [nca-pk, dose-response, decay-calculator, reaction-kinetics-fitter, enzyme-kinetics-fitter, binding-curve-fitter, plot-maker]
+related: [nca-pk, dose-response, decay-calculator, reaction-kinetics-fitter, enzyme-kinetics-fitter, binding-curve-fitter, plot-maker, drug-release-fitter]
 sources:
   - "Models and closed forms: M. Gibaldi and D. Perrier, Pharmacokinetics (2nd ed., Marcel Dekker 1982): one- and two-compartment models, the Bateman function for first-order absorption, superposition and steady state by geometric series; M. Rowland and T. N. Tozer, Clinical Pharmacokinetics and Pharmacodynamics (Lippincott Williams and Wilkins): accumulation ratio and time to steady state. Formulas only; no tables copied."
   - "Calculations written by fibub. Checked in the tests against SciPy solve_ivp (LSODA) on 24 random regimens (agreement to 3 × 10⁻¹¹), against 30-half-life ODE runs for steady state (10⁻⁹), and against the closed forms for one-compartment oral, bolus and infusion and two-compartment bolus steady state."
@@ -28,6 +28,8 @@ flow:
 This page is a teaching simulator. You describe an **invented drug** with a few pharmacokinetic numbers, type a regimen (how much, how often, by which route, how many times), and it draws the concentration in plasma over time. It shows how levels build up with each administration until they settle into a repeating pattern, the **steady state**, and gives the peak and trough there, the average level and the accumulation ratio.
 
 It is for study and teaching, not medical advice. It only goes one way, from a regimen you enter to the curve it produces for a made-up drug. It has no feature that works out an amount to give, and it must not be used for real patients.
+
+Analyse a measured profile with the [[nca-pk|non-compartmental analysis tool]], and model how a formulation lets the drug out with the [[drug-release-fitter|drug release fitter]].
 
 ## How to use it
 

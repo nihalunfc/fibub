@@ -11,7 +11,7 @@ order: 309
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [sequence-alignment, tree-viewer, sequence-tools, radiometric-age-calculator]
+related: [sequence-alignment, tree-viewer, sequence-tools, radiometric-age-calculator, tree-builder, dnds-calculator, coalescent-simulator]
 sources:
   - "Methods: Zuckerkandl and Pauling (1965) for the molecular clock; Jukes and Cantor (1969) and Kimura (1980) for the distances and their variances, as given in Nei and Kumar, Molecular Evolution and Phylogenetics (2000); Tajima (1993) for the relative rate test."
   - "Code written by fibub. Checked in the tests against Python: the distances, their standard errors by an independent numerical delta method, Tajima's counts, and SciPy 1.18's chi-square p-value."
@@ -35,6 +35,8 @@ where **d** is the genetic distance (substitutions per site) and **r** is the su
 - **The rate**, from a distance and a split dated some other way (a fossil, a dated island, a known event): r = d / 2T.
 
 It gets the distance from two aligned sequences, from site counts, or from a number you type, corrects it for sites that changed more than once, and gives an error range. Add a third sequence as an outgroup and it also runs **Tajima's relative rate test**, a quick check of whether the two lineages really changed at the same rate. Nothing is uploaded.
+
+Build the tree first with the [[tree-builder]], and check whether selection is changing the rate with the [[dnds-calculator|dN/dS calculator]].
 
 ## How to use it
 

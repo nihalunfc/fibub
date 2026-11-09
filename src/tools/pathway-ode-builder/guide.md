@@ -11,7 +11,7 @@ order: 1
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [enzyme-kinetics-fitter, reaction-kinetics-fitter]
+related: [enzyme-kinetics-fitter, reaction-kinetics-fitter, gillespie-simulator, gene-network-viewer, ode-solver, genetic-circuit-designer, binding-curve-fitter]
 sources:
   - "Mass-action, Michaelis-Menten and Hill rate laws as in standard biochemistry and systems biology texts; the Dormand-Prince 5(4) Runge-Kutta pair (Dormand, J. R. and Prince, P. J., 1980, J. Comput. Appl. Math. 6, 19 to 26); Levenberg-Marquardt least squares: used as methods, written by fibub."
   - "Checked against SciPy (scipy.integrate.solve_ivp with DOP853 at rtol 1e-12, and scipy.optimize.curve_fit for the fitted values, standard errors and sum of squares). The example model and data are made up."
@@ -26,6 +26,8 @@ flow:
 Many questions in biochemistry and systems biology come down to "how do the amounts change over time?" Write a pathway as a list of reactions and this page turns it into a set of **ordinary differential equations** (ODEs), one per species, solves them, and draws the time course. If you have measurements, it can also **fit** chosen rate constants so the model passes as close as possible to your data.
 
 Everything runs in your browser. Nothing you type or paste is sent anywhere.
+
+Add the noise of small molecule numbers with the [[gillespie-simulator|Gillespie stochastic simulator]], and draw the regulation behind the pathway with the [[gene-network-viewer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 624
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [circuit-simulator, filter-designer, link-budget-calculator]
+related: [circuit-simulator, filter-designer, link-budget-calculator, skin-depth-calculator, smith-chart, op-amp-calculator]
 sources:
   - "Trace current capacity: the curve-fit formula for the IPC-2221 design chart, I = k ΔT^0.44 A^0.725 (as widely published; the formula only, no chart data)."
   - "Microstrip: Hammerstad, E. and Jensen, O. (1980), Accurate models for microstrip computer-aided design, IEEE MTT-S Digest, with their strip-thickness correction. Stripline: Wheeler, H. A. (1978), Transmission-line properties of a strip line between parallel planes, IEEE Trans. MTT 26 (equations only)."
@@ -32,6 +32,8 @@ Two everyday sums for circuit board layout:
 - **Impedance.** Fast signals (USB, Ethernet, RF, fast clocks) need traces of a set characteristic impedance, often 50 Ω single-ended. Give the stack-up and width to get Z0, or the impedance to get the width, for a **microstrip** (outer layer over a plane) or a **stripline** (inner layer centred between two planes).
 
 These formulas are approximations. They are good for planning and checking, but for a board that must hit an impedance, ask the board maker to calculate it with their field solver and real materials. For study and planning, not a substitute for professional judgement.
+
+Simulate the circuit before you lay it out with the [[circuit-simulator]], and match an RF trace to its load on the [[smith-chart]].
 
 ## How to use it
 

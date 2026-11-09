@@ -11,7 +11,7 @@ order: 656
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [soil-classification, darcy-flow-calculator]
+related: [soil-classification, darcy-flow-calculator, consolidation-settlement, slope-stability, atterberg-compaction, retaining-wall-check, load-combination-helper]
 sources:
   - "Terzaghi's bearing capacity equation and factors Nq = a²/(2cos²(45° + φ/2)), a = e^((0.75π − φ/2)tanφ), Nc = (Nq − 1)cot φ, with shape factors 1.3/0.8 (square) and 1.3/0.6 (circle): general soil mechanics."
   - "Nγ for Terzaghi from the closed-form approximation 2(Nq + 1)tan φ/(1 + 0.4 sin 4φ) given by Coduto (Foundation Design), since Terzaghi published Nγ only as a chart."
@@ -33,6 +33,8 @@ A footing spreads a building's weight into the ground. If the pressure is too hi
 - **Meyerhof (1963)** and **Hansen (1970)**: the same idea with the Prandtl–Reissner Nq and Nc, their own Nγ, and shape and depth factors that grow with B/L and Df/B.
 
 All three use qu = c′·Nc·sc·dc + q·Nq·sq·dq + ½·γ·B·Nγ·sγ·dγ, where q is the effective overburden pressure at the footing base.
+
+Check how much the footing will settle with the [[consolidation-settlement|consolidation settlement]] tool, and work out the loads it carries with the [[load-combination-helper]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 666
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [thermochemistry-calculator, gas-law-calculator, uncertainty-calculator]
+related: [thermochemistry-calculator, gas-law-calculator, uncertainty-calculator, reactor-design, mass-balance-solver, dsc-tga-analyser, heat-exchanger-sizing]
 sources:
   - "Hess's law, Kirchhoff's law with a polynomial heat capacity, and the adiabatic energy balance of a reactor: standard chemical engineering thermodynamics, for example Smith, Van Ness and Abbott, Introduction to Chemical Engineering Thermodynamics, and Felder and Rousseau, Elementary Principles of Chemical Processes (equations only)."
   - "Example: standard heats of formation rounded to one decimal (general chemistry values); the heat-capacity lines are rough, made-up straight-line fits for illustration, not taken from any table."
@@ -32,6 +32,8 @@ When a reaction gives out heat and nothing carries it away, everything leaving t
 - The **adiabatic outlet temperature** for a feed at any temperature and any **conversion** of the key reactant. Excess reactants and inerts (nitrogen, a solvent, steam) take up heat too. The tool cools the feed to 298.15 K, lets the reaction happen there, and heats the outlet mixture until the energy balances. It finds that temperature by bisection and Newton steps. At full conversion of a fuel this is the **adiabatic flame temperature** (without dissociation).
 - A **quick estimate** ΔT = −ΔrH ξ / Σ n cp of the feed, the form used in reactor safety screening.
 - **Heat released** per kg of feed and per kg of the key reactant, and the outlet composition.
+
+Get the heat of reaction from the [[thermochemistry-calculator]], and see how the reactor behaves in the [[reactor-design|reactor design calculator]].
 
 ## How to use it
 

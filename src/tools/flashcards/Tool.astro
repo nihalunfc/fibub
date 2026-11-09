@@ -1,6 +1,6 @@
 ---
 // Flashcards with SM-2 spaced repetition: decks, study sessions, import from CSV, TSV or an Anki plain-text export,
-// statistics, and export. All decks are kept only in this browser.
+// statistics, and export. Decks are kept in this browser only if the visitor ticks the box.
 import '../../styles/astro.css';
 import DataFile from '../../components/DataFile.astro';
 ---
@@ -95,7 +95,8 @@ import DataFile from '../../components/DataFile.astro';
       <button type="button" class="btn secondary small fc-anki">Deck for Anki (.txt)</button>
       <button type="button" class="btn secondary small fc-csv">Deck with schedule (CSV)</button>
     </div>
-    <p class="ax-help fc-store">Your decks and your progress are saved automatically in this browser on this device, so they are here next time. Nothing is sent to fibub or anyone else. Clearing your browser data removes them, so download a backup now and then; it also moves your decks to another device. Browsers keep about 5 MB per site, room for tens of thousands of cards.</p>
+    <label class="ax-check"><input type="checkbox" class="fc-keep" /> Remember my decks and progress in this browser</label>
+    <p class="ax-help fc-store">Nothing is saved until you tick the box. Ticked, your decks and progress stay in this browser on this device so they are here next time; untick it to remove the saved copy. Nothing is sent to fibub or anyone else. Clearing your browser data removes them, so download a backup now and then; it also moves your decks to another device. Browsers keep about 5 MB per site, room for tens of thousands of cards.</p>
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn secondary small fc-json">Download backup (JSON)</button>
       <button type="button" class="btn secondary small fc-jopen">Open a backup</button>
@@ -125,11 +126,13 @@ import DataFile from '../../components/DataFile.astro';
   let sess: S.Session | null = null;
   let shown = false;
 
+  const keeping = () => inp('.fc-keep').checked;
   const persist = () => {
+    if (!keeping()) return;
     try { localStorage.setItem(KEY, JSON.stringify({ ...JSON.parse(S.toJson(decks)), current: cur })); }
     catch { msg('.fc-bmsg', 'Could not save in this browser (storage full or blocked). Download a backup so you do not lose your progress.'); }
   };
-  try { const raw = localStorage.getItem(KEY); if (raw) { decks = S.fromJson(raw); cur = JSON.parse(raw).current ?? ''; } } catch { decks = []; }
+  try { const raw = localStorage.getItem(KEY); if (raw) { inp('.fc-keep').checked = true; decks = S.fromJson(raw); cur = JSON.parse(raw).current ?? ''; } } catch { decks = []; }
   if (!decks.length) decks = [S.exampleDeck()];
   if (!decks.some((d) => d.id === cur)) cur = decks[0].id;
   const deck = () => decks.find((d) => d.id === cur)!;
@@ -338,8 +341,13 @@ import DataFile from '../../components/DataFile.astro';
   q('.fc-clear').addEventListener('click', () => {
     if (!confirm('Remove every deck and all progress from this browser? Download a backup first if you may need it.')) return;
     try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    inp('.fc-keep').checked = false;
     decks = [{ id: S.randomId(), name: 'My deck', cards: [], newPerDay: 20 }]; cur = decks[0].id; endSession(); closeEdit(); render();
     msg('.fc-bmsg', 'Cleared. Nothing is kept in this browser now.');
+  });
+  inp('.fc-keep').addEventListener('change', () => {
+    if (keeping()) { persist(); msg('.fc-bmsg', 'Your decks and progress are now kept in this browser.'); }
+    else { try { localStorage.removeItem(KEY); } catch { /* blocked */ } msg('.fc-bmsg', 'Not kept: the saved copy is removed from this browser.'); }
   });
 
   render();

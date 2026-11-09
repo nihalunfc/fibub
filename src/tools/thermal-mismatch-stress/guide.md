@@ -11,7 +11,7 @@ order: 852
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [diffusion-calculator, laminate-calculator, stress-strain-analyser]
+related: [diffusion-calculator, laminate-calculator, stress-strain-analyser, thin-film-thickness, fracture-toughness-calculator, fatigue-sn-calculator, beam-calculator]
 sources:
   - "Thin-film biaxial stress, Stoney's equation (Stoney 1909) and Timoshenko's bimetal formula (Timoshenko 1925, J. Opt. Soc. Am. 11, 233) in the textbook forms of Freund and Suresh, Thin Film Materials, ch. 2. fibub's code is checked in the tests against SciPy (integrate.quad, brentq) and a NumPy multilayer beam solution."
   - "The example moduli, expansion coefficients, thicknesses and temperatures are made-up round values, not data for any real material."
@@ -33,6 +33,8 @@ When two bonded materials expand by different amounts as the temperature changes
 - **Bar held between walls.** A bar with fixed ends gets σ = −E ∫α dT. With a gap it is stress-free until the gap closes; the page gives the closing temperature and compares the stress with the yield strength.
 
 Tick **CTE changes with temperature** to use α(T) = α + slope × (T − T_ref) for every material; the thermal strain is then integrated exactly.
+
+Check whether the stress will crack the part with the [[fracture-toughness-calculator]], and measure the film you put down with the [[thin-film-thickness]] tool.
 
 ## How to use it
 

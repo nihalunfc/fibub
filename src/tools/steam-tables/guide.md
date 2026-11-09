@@ -11,7 +11,7 @@ order: 661
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [pipe-network-solver, thermochemistry-calculator, psychrometric-calculator, gas-law-calculator]
+related: [pipe-network-solver, thermochemistry-calculator, psychrometric-calculator, gas-law-calculator, pump-system-curve, hvac-room-load, heat-engine-cycles, heat-exchanger-sizing, real-gas-calculator]
 sources:
   - "IAPWS (2007), Revised Release on the IAPWS Industrial Formulation 1997 for the Thermodynamic Properties of Water and Steam (IAPWS-IF97), International Association for the Properties of Water and Steam, www.iapws.org. Equations and coefficients of regions 1, 2, 3 and 4 and the B23 boundary are used as published in the release, a public international standard formulation."
   - "Rankine cycle analysis with isentropic efficiencies: standard engineering thermodynamics, for example Çengel and Boles, Thermodynamics: An Engineering Approach (method only)."
@@ -36,6 +36,8 @@ This is a steam table you never have to interpolate in. It works out the propert
 You get specific volume, density, enthalpy, internal energy, entropy, cp, cv and the speed of sound, the IF97 region used, and the superheat or subcooling.
 
 **Rankine cycle.** Give the boiler pressure, turbine inlet temperature, condenser pressure and the turbine and pump efficiencies. The tool follows the water round: pump (1 to 2), boiler (2 to 3), turbine (3 to 4) and condenser (back to 1), with an optional **reheat** stage. It reports the net work, heat in and out, thermal efficiency, back work ratio, turbine exit quality, steam rate, the Carnot limit and the steam flow for a given power, with a T-s diagram and a table of states.
+
+Use the properties in a power cycle with [[heat-engine-cycles|heat engine cycles]], or size a heater with the [[heat-exchanger-sizing|heat exchanger sizing tool]].
 
 ## How to use it
 

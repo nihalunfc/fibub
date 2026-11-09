@@ -11,7 +11,7 @@ order: 5
 icon: curve
 works: offline
 updated: 2026-11-08
-related: [altermagnet-bands, altermagnet-checker, spin-splitter-conductivity]
+related: [altermagnet-bands, altermagnet-checker, spin-splitter-conductivity, anomalous-hall-checker, band-structure, brillouin-zone]
 sources:
   - "Method: linear spin-wave theory with Holstein–Primakoff bosons and a Bogoliubov transformation for a collinear two-sublattice magnet (standard textbook treatment). The closed-form energies are worked out by fibub for this model."
   - "Model: a made-up square-checkerboard Heisenberg model in which same-sublattice couplings are anisotropic in opposite ways on the two sublattices, the simplest way to make an altermagnet. The idea that altermagnet magnons are chirality-split comes from the literature since 2023 and is cited for the concept only; no paper's parameters or figures are used."

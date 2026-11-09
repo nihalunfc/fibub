@@ -11,7 +11,7 @@ order: 835
 icon: table
 works: offline
 updated: 2026-11-09
-related: [molar-mass-calculator, electron-count-calculator, crystal-field-calculator, isotope-pattern-calculator]
+related: [molar-mass-calculator, electron-count-calculator, crystal-field-calculator, isotope-pattern-calculator, equation-balancer, concentration-converter, physical-constants, hydrogen-orbitals]
 sources:
   - "Names, symbols and standard atomic weights: IUPAC/CIAAW abridged values, as in fibub's molar mass calculator. Radioactive elements show the mass number of their longest-lived isotope in brackets."
   - "Electron configurations are worked out by fibub from the Aufbau (Madelung) rule; the 20 neutral atoms that differ (chromium, copper, palladium, gadolinium, uranium and others) use the measured ground states listed in the NIST Atomic Spectra Database. From rutherfordium on they are predictions."
@@ -36,6 +36,8 @@ This is a periodic table you can tap. Choose an element, from the grid or by typ
 - **Common oxidation states, Pauling electronegativity, first ionisation energy** (in eV and kJ/mol), unpaired electrons in the free atom and the natural isotopes with their abundances.
 
 The **Colour by** menu paints the whole table by category, block, electronegativity, ionisation energy, atomic weight, unpaired electrons or the highest common oxidation state, so trends jump out. The chart at the bottom plots the same property against atomic number, with the chosen element in red.
+
+Add up the masses in a formula with the [[molar-mass-calculator]], and see the shapes of the orbitals in [[hydrogen-orbitals]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 513
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [seismic-refraction, ves-inversion, magnetic-anomaly]
+related: [seismic-refraction, ves-inversion, magnetic-anomaly, gravity-corrections, seismogram-viewer, digital-filter-designer, cross-section-profile]
 sources:
   - "SEG-Y rev 1 data exchange format (SEG Technical Standards Committee, 2002) and rev 0 (1975): header byte positions and sample formats; IBM System/360 floating point format."
   - "GSSI DZT header layout as read by the open-source readgssi package (Nesbitt, GPL-3.0; layout facts only, no code copied)."
@@ -38,6 +38,8 @@ Ground-penetrating radar (GPR) sends short radio pulses into the ground and reco
 - **Trace view** for any trace, and downloads: radargram PNG, trace CSV, and a PNG, PDF or Word report.
 
 Nothing is uploaded: the file is read in this page.
+
+Compare what the radar shows with deeper layers from the [[seismic-refraction|seismic refraction interpreter]] or a [[ves-inversion|resistivity sounding]], and clean up noisy traces with the [[digital-filter-designer]].
 
 ## How to use it
 

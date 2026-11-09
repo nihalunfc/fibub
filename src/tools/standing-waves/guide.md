@@ -11,7 +11,7 @@ order: 4
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [audio-spectrum-analyser, room-acoustics, wave-calculator]
+related: [audio-spectrum-analyser, room-acoustics, wave-calculator, doppler-beats, tuning-calculator, harmonics-analyser, coupled-oscillators, waveguide-modes]
 sources:
   - "String vibration f = (n/2L)·√(T/μ) (Mersenne's laws) and air-column resonances f = n·c/2L′ or n·c/4L′: standard physics."
   - "End corrections 0.6133 × radius for an unflanged open end (Levine, H. and Schwinger, J. (1948), Physical Review 73, 383) and 0.8216 × radius for a flanged end (Rayleigh's value, refined by later authors): used as formulas."
@@ -31,6 +31,8 @@ A guitar string, a flute or a bottle you blow across all make sound the same way
 - **Pipes open at both ends** (a flute) also play every harmonic, f = n·c / 2L′. **Pipes closed at one end** (a clarinet, a bottle) play only the odd ones, f = n·c / 4L′, an octave lower for the same length. L′ is the **acoustic length**: air vibrates a little beyond each open end, about 0.61 of the radius for a plain tube end.
 
 The page lists the harmonics with the nearest **note name and cents** (hundredths of a semitone), the wavelengths, and draws the first three standing waves. In the other direction, it finds the **tension** for a string, or the **pipe length**, that gives a target note.
+
+Check the notes you actually hear with the [[audio-spectrum-analyser]], and compare them with a tuning system in the [[tuning-calculator|tuning and cents calculator]].
 
 ## How to use it
 

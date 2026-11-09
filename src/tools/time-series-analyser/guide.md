@@ -11,7 +11,7 @@ order: 566
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, distribution-explorer, regression-workbench, plot-maker, period-finder]
+related: [trend-analyser, distribution-explorer, regression-workbench, plot-maker, period-finder, fft-workbench, unit-root-cointegration, control-charts, data-cleaner, csv-profiler]
 sources:
   - "Methods: STL as in Cleveland, Cleveland, McRae and Terpenning (1990), ported line by line from their published Fortran; classical decomposition as statsmodels' seasonal_decompose; Bartlett's formula for the ACF band; Durbin–Levinson for the PACF; the Ljung–Box test; exact ARMA likelihood by the Kalman filter."
   - "Checked against statsmodels 0.15.0 (seasonal_decompose, STL, acf, pacf, acorr_ljungbox, ARIMA and SARIMAX fits, log-likelihoods and forecasts) on all three example series."
@@ -31,6 +31,8 @@ A time series is a set of measurements in time order: monthly sales, daily visit
 - **Autocorrelation**: the ACF and PACF with their 95 % bands, after any differencing you choose, and the **Ljung–Box test** of whether the values are related to earlier ones at all.
 - **ARIMA(p, d, q)**: fitted by exact maximum likelihood, with standard errors, AIC, AICc and BIC. A button tries every p and q from 0 to 3 and keeps the lowest AICc.
 - **Forecasts** with 80 % and 95 % intervals, a residual ACF and a Ljung–Box check of the residuals.
+
+Find gaps and odd values first in the [[csv-profiler]], and look for hidden cycles with the [[period-finder]] or the [[fft-workbench]].
 
 ## How to use it
 

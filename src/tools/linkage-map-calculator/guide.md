@@ -11,7 +11,7 @@ order: 3
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [sequence-tools, sample-size, tree-viewer, plot-maker]
+related: [sequence-tools, sample-size, tree-viewer, plot-maker, mendelian-chi-square, punnett-square, crossing-plan]
 sources:
   - "Methods: Haldane (1919) and Kosambi (1944) mapping functions; Sturtevant (1913) and standard genetics textbooks for three-point mapping, coincidence and interference; ordering by the sum of adjacent recombination frequencies (SARF) as used in linkage mapping software."
   - "Code written by fibub. Checked in the tests against an independent Python implementation (the mapping functions and their inverses, every order of the 5-locus example scored by SARF and by summed Haldane distances, and the three-point classes counted again) and a made-up textbook-style testcross worked by hand."
@@ -32,6 +32,8 @@ Genes that sit close together on a chromosome tend to be inherited together. Cro
 3. **Solve a three-point testcross** from the counts of the 8 progeny classes: gene order, the two recombination frequencies, map distances, the **coefficient of coincidence** and **interference**.
 
 Nothing is uploaded: everything is worked out in your browser.
+
+Check first whether the counts depart from independent assortment with the [[mendelian-chi-square|Mendelian chi-square test]], and plan the crosses with the [[crossing-plan]].
 
 ## Mapping functions
 

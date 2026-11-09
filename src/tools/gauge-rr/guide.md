@@ -11,7 +11,7 @@ order: 689
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, method-validation, reliability-analysis, calibration-curve]
+related: [uncertainty-calculator, method-validation, reliability-analysis, calibration-curve, control-charts, calibration-drift, tolerance-stackup, bland-altman, westgard-qc]
 sources:
   - "ANOVA gauge R&R: two-way random-effects analysis of variance with interaction (Montgomery, D. C., Design and Analysis of Experiments; Burdick, Borror and Montgomery (2005), Design and Analysis of Gauge R&R Studies), with the interaction pooled when not significant."
   - "Average and range method and the acceptance guidelines as described in the AIAG Measurement Systems Analysis reference manual; the K1, K2 and K3 constants are computed by fibub from d2 and d3 (integrals of the normal distribution of the range, Tippett 1925) and Patnaik's d2* approximation, not copied from tables."
@@ -33,6 +33,8 @@ This tool analyses a **crossed** study (every operator measures every part the s
 - **Average and range method** (the classic form from the AIAG MSA manual): EV from the average range, AV from the spread of operator averages, PV from the range of part averages. Its K1, K2 and K3 factors are worked out from d2 and d3, which this tool computes by numerical integration of the normal distribution rather than reading a table.
 
 For both it reports **%GRR** of the study variation and of the tolerance, **% contribution** (share of the variance), and the **number of distinct categories (ndc)**, with an R chart, an X̄ chart and an interaction plot.
+
+Once the gauge is good enough, watch the process with [[control-charts|control charts]], and follow the instrument over time with the [[calibration-drift|calibration drift tracker]].
 
 ## How to use it
 

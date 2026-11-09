@@ -11,7 +11,7 @@ order: 320
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, trend-analyser, plot-maker]
+related: [biodiversity-indices, field-sampling-planner, trend-analyser, plot-maker, insect-degree-days, cpue-trend, dichotomous-key-builder, occupancy-estimator, time-series-analyser]
 sources:
   - "Catch per unit effort (catch per trap per day) and centred moving averages: standard monitoring arithmetic, as described in general entomology and pest-monitoring texts."
   - "ISO 8601 week numbers."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 Pheromone traps, light traps, sticky cards and pitfall traps are checked again and again through a season, but raw counts are hard to compare: a trap left out for ten days catches more than one left out for seven, and a site with four traps catches more than a site with two. This tool turns trap checks into a **population index**, the catch per trap per day (or per night, or per week), so every check, site and week can be compared fairly. It smooths the series, finds the flight peaks, compares sites and weeks side by side, and flags checks at or above a level you choose. Everything is worked out in your browser.
+
+Time your trapping against insect development with the [[insect-degree-days|insect degree-day calculator]], and turn catches into diversity scores with the [[biodiversity-indices|biodiversity indices calculator]].
 
 ## How to use it
 

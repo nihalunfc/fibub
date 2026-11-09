@@ -11,7 +11,7 @@ order: 1
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [cell-doubling-time, calibration-curve, plot-maker, hemocytometer, beer-lambert-calculator]
+related: [cell-doubling-time, calibration-curve, plot-maker, hemocytometer, beer-lambert-calculator, cfu-counter, media-recipe-scaler, curve-fitter, population-growth-models]
 sources:
   - "Exponential growth, the least-squares fit of ln OD against time, doubling time = ln 2 ÷ growth rate and the tangent (Lag = where the steepest line meets the starting OD) are general science knowledge, written by fibub."
   - "The logistic and Gompertz curves are used in the form of M. H. Zwietering, I. Jongenburger, F. M. Rombouts and K. van 't Riet, Modeling of the bacterial growth curve, Applied and Environmental Microbiology 56 (1990) 1875–1881 (the formulas only; no data)."
@@ -36,6 +36,8 @@ A batch culture grows in phases: a **lag** while the cells adjust, an **exponent
 - **Cells/mL** from an OD, using a factor you type.
 
 Several cultures can be analysed at once: one column each, straight from a plate reader export.
+
+Turn OD into live cell counts with the [[cfu-counter|CFU counter]], and make up your broth with the [[media-recipe-scaler]].
 
 ## How to use it
 

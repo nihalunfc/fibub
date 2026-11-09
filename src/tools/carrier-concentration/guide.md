@@ -11,7 +11,7 @@ order: 862
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [blackbody-calculator, altermagnet-bands, plot-maker]
+related: [blackbody-calculator, altermagnet-bands, plot-maker, band-structure, hall-effect, tauc-plot, solar-cell-iv, physical-constants]
 sources:
   - "Varshni's band-gap formula, the effective density of states, the Fermi-Dirac integral F½ and charge neutrality with partly ionised dopants are standard semiconductor physics; the code is written by fibub and checked in the tests against mpmath (polylog) and SciPy (quad, brentq, physical constants)."
   - "The example materials (silicon-like, germanium-like, GaAs-like) use rounded values made up to behave like those materials. They are not reference data; type your own."
@@ -32,6 +32,8 @@ How many free electrons and holes does a piece of semiconductor have, and where 
 - **Fermi level from charge neutrality.** n + NA⁻ = p + ND⁺ is solved exactly. Donors at a depth Ed below the conduction band are ionised by ND⁺ = ND / (1 + g_D e^((EF − Ed)/kT)), and acceptors the same way. So the page shows freeze-out at low temperature, where the dopants keep their carriers, and compensation when both kinds are present.
 - **Degenerate doping.** n = Nc F½(η) with the Fermi-Dirac integral, so the numbers stay right when the Fermi level reaches a band. Switch to Boltzmann statistics to see the textbook shortcut and how far it is off.
 - **Temperature sweep.** Plots of n, p and nᵢ, and of EF between the band edges, mark where freeze-out ends (90 % of the net doping ionised) and where the material turns intrinsic (nᵢ passes the net doping).
+
+Get the band gap from an absorption spectrum with the [[tauc-plot|Tauc plot tool]], and check your doping against measurements with the [[hall-effect|Hall effect calculator]].
 
 ## How to use it
 

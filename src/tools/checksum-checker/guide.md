@@ -11,7 +11,7 @@ order: 818
 icon: check
 works: offline
 updated: 2026-11-09
-related: [science-file-converter, zip-checker]
+related: [science-file-converter, zip-checker, dataset-readme, metadata-builder, data-management-plan, compress-file, cipher-teacher]
 sources:
   - "SHA-1, SHA-256 and SHA-512 come from the browser's Web Crypto API. MD5 (RFC 1321) and CRC-32 (the zlib / ZIP polynomial) are written by fibub."
   - "Manifest formats: GNU coreutils sha256sum (including its escaping of unusual file names), the BSD tag format, and BagIt payload manifests (RFC 8493)."
@@ -31,6 +31,8 @@ A checksum is a short fingerprint of a file. If even one byte of the file change
 - makes **SHA-256, SHA-512, SHA-1, MD5 and CRC32** checksums for as many files as you like (up to 5,000 at a time), including whole folders;
 - writes a **manifest**, the list of checksums and file names, in the format your tools expect;
 - **checks files against a manifest** and tells you, file by file, whether each one matches, does not match, is missing or is not in the manifest.
+
+List the files and their checksums in a [[dataset-readme|dataset README]], and see how SHA-256 works inside with the [[cipher-teacher|cipher and hash teaching tool]].
 
 ## How to use it
 

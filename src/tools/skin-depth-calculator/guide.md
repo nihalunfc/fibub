@@ -11,7 +11,7 @@ order: 4
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [capacitor-inductor-calculator, coil-field-designer, link-budget-calculator]
+related: [capacitor-inductor-calculator, coil-field-designer, link-budget-calculator, waveguide-modes, pcb-trace-calculator, antenna-calculator, magnetic-circuit]
 sources:
   - "Skin depth from the exact attenuation constant of a plane wave in a conducting medium, surface resistance, the AC impedance of a round wire with Bessel functions, a conducting slab and the conductor loss of a coaxial line: standard results, for example Ramo, Whinnery and Van Duzer, Fields and Waves in Communication Electronics, and Pozar, D. M., Microwave Engineering."
   - "Bessel function ratio by its continued fraction, evaluated with the modified Lentz method (Press et al., Numerical Recipes, section 5.2)."
@@ -35,6 +35,8 @@ This calculator gives the skin depth for any material and frequency and then wor
 - **Coax line:** the conductor (copper) loss in dB per metre for your inner and outer diameters.
 
 For poor conductors such as sea water, it uses the exact formula, which includes the dielectric behaviour that the simple √(2ρ/ωμ) formula leaves out.
+
+Carry the loss into a transmission line or guide with the [[waveguide-modes|waveguide mode calculator]], or size copper tracks with the [[pcb-trace-calculator]].
 
 ## How to use it
 

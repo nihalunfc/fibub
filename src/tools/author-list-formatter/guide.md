@@ -11,7 +11,7 @@ order: 801
 icon: resume
 works: offline
 updated: 2026-11-09
-related: [plot-maker, graph-digitizer]
+related: [plot-maker, graph-digitizer, bibtex-cleaner, abstract-word-counter, reviewer-response, table-converter, figure-checker]
 sources:
   - "The output follows the author and affiliation commands in the public author templates of each LaTeX class (AASTeX, mnras.cls, aa.cls, REVTeX 4.2, elsarticle) as general knowledge; no template text is copied. Check the journal's current template."
   - "The ORCID check digit is the ISO 7064 MOD 11-2 rule that ORCID documents."
@@ -31,6 +31,8 @@ Every journal wants the author list written its own way. AAS journals repeat the
 - **ORCID iDs are checked** with the check digit that ORCID uses, so a typo in the last digits is caught before submission.
 - **The corresponding author** gets the right command: `\correspondingauthor` and `\email` for AASTeX, `\thanks{E-mail: ...}` for MNRAS, `\corref` and `\cortext` for elsarticle, and a star in the Word list.
 - **Special characters are escaped** (an & or % in an address would break LaTeX), and accents can be written as LaTeX commands for old templates.
+
+Tidy the reference list with the [[bibtex-cleaner]], and check the abstract's length with the [[abstract-word-counter]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 893
 icon: image
 works: offline
 updated: 2026-11-09
-related: [spectral-index-calculator, utm-converter, gps-track-analyser]
+related: [spectral-index-calculator, utm-converter, gps-track-analyser, tissot-explorer, band-combiner, catchment-buffer, hotspot-density, watershed-delineation, dem-terrain]
 sources:
   - "Shapefile and dBASE layouts: the ESRI Shapefile Technical Description (1998), an open specification; reader written by fibub. Zip files are opened with the fflate library (MIT)."
   - "GeoJSON (RFC 7946), KML 2.2 (OGC) and WKT (OGC Simple Features): open standards; readers and writers written by fibub."
@@ -35,6 +35,8 @@ GIS layers arrive in many formats: a shapefile from a government portal, a KML f
 - tells you the extent, the number of vertices, the coordinate system and anything odd it found (no .prj file, heights, text encoding);
 - **converts** the layer to GeoJSON, KML or CSV with WKT, optionally with the area, perimeter and length as new columns;
 - makes a small **report** (image, PDF or Word) with the map and the table.
+
+Convert coordinates with the [[utm-converter]], and draw distance zones around your points with the [[catchment-buffer]].
 
 ## How to use it
 

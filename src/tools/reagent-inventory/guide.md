@@ -11,11 +11,11 @@ order: 811
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [plate-layout, solution-calculator, buffer-recipe-calculator]
+related: [plate-layout, solution-calculator, buffer-recipe-calculator, equipment-booking, protocol-timer, sample-label-maker, cryovial-inventory]
 sources:
   - "Date handling, the expiry and low-stock rules, searching and the spreadsheet import are written by fibub and checked in the tests against Python's datetime on random dates and date formats."
   - "The example list is made up: no real supplier, lot or price. Its dates are set around today's date."
-  - "Your list is saved only in this browser (localStorage). It is never uploaded."
+  - "Your list is saved only in this browser (localStorage), and only if you tick the box. It is never uploaded."
 flow:
   - { icon: pencil, label: "Add" }
   - { icon: calendar, label: "Expiry" }
@@ -33,6 +33,8 @@ A shared fridge fills up with half-used bottles, and nobody knows which lot of t
 - **Use within N days of opening**: media, peroxide-forming ethers, some antibodies and kits must be used within a set time after opening. Give the opening date and the number of days, and the use-by date becomes the opening date plus those days, whenever that comes before the date on the label. The table marks such dates "(opened + rule)".
 
 You can search by any word (name, CAS or catalogue number, location, lot, supplier or notes), show only what needs attention, and sort by use-by date, name, location, or by how close each item is to its reorder level.
+
+Print labels for new bottles with the [[sample-label-maker]], and keep frozen stocks in order with the [[cryovial-inventory]].
 
 ## How to use it
 
@@ -54,7 +56,7 @@ Set *Expiring soon* to 7 days and only the expired one is left needing attention
 
 ## Your data
 
-The list is saved automatically in this browser on this device, so it is there the next time you open the page. Nothing is sent to fibub or anyone else, and the page works offline. Clearing your browser data removes the list, and another device will not see it, so use *Download backup (JSON)* now and then and *Open a backup* to restore it or move it. *Clear all* removes everything from this browser.
+Nothing is saved until you tick *Remember my list in this browser*. Ticked, the list stays in this browser on this device, so it is there the next time you open the page; untick it to remove the saved copy. Nothing is sent to fibub or anyone else, and the page works offline. Clearing your browser data removes the list, and another device will not see it, so use *Download backup (JSON)* now and then and *Open a backup* to restore it or move it. *Clear all* removes everything from this browser.
 
 ## Tips
 

@@ -11,7 +11,7 @@ order: 808
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [figure-checker, plot-maker, graph-digitizer]
+related: [figure-checker, plot-maker, graph-digitizer, colour-vision-simulator, contrast-checker, poster-layout, colour-difference-calculator]
 sources:
   - "OKLab and OKLCH follow Björn Ottosson's published definition (2020); CIELAB uses the D65 white and CIEDE2000 the standard formula. The tests check them against colour-science on random colours."
   - "Colour-blind views use the Viénot, Brettel and Mollon (1999) method, shared with the figure checker and tested there against DaltonLens-Python. Contrast is the WCAG 2 ratio."
@@ -31,6 +31,8 @@ A good science palette does three things: equal steps in the data look like equa
 - **Diverging** palettes have two hues meeting at a light middle, for values either side of a meaningful centre (change from control, correlation, anomalies). Both sides get the same lightness at the same distance from the middle, so neither side looks stronger.
 - **Qualitative** palettes are for groups with no order. Hues are spread evenly around the colour wheel at the lightness you choose, with a small lightness change so colours also differ in brightness. Leave the first hue blank and the page turns the wheel (in 1° steps) to the position where the closest pair is furthest apart for colour-blind viewers.
 - **Check my colours** takes any list of hex codes you already use.
+
+Check how the colours look to people with colour blindness in the [[colour-vision-simulator]], and test text against its background with the [[contrast-checker]].
 
 ## The checks
 

@@ -11,7 +11,7 @@ order: 895
 icon: image
 works: offline
 updated: 2026-11-09
-related: [spectral-index-calculator, fits-viewer, image-stacker, figure-checker]
+related: [spectral-index-calculator, fits-viewer, image-stacker, figure-checker, vector-map-viewer, tissot-explorer, dem-terrain, science-colour-palette]
 sources:
   - "Stretches, histogram equalisation, gamma and the composite are written by fibub. The tests check them against NumPy (percentile, mean, standard deviation, histogram) and scikit-image 0.26 (exposure.rescale_intensity, equalize_hist with and without a mask, adjust_gamma) on made-up bands."
   - "Band combinations (true colour, colour infrared, SWIR, agriculture, land and water) and the Sentinel-2 and Landsat 8/9 band numbers are general remote sensing knowledge."
@@ -30,6 +30,8 @@ flow:
 A satellite or drone camera records several **bands**, each one a grey picture of how much light of one colour (or of invisible near and shortwave infrared) the ground reflects. A screen has only three colours. A **band combination** puts any three bands on the screen's red, green and blue, which is how analysts read land cover, crops, water, burn scars and towns at a glance.
 
 Raw bands are usually dark and flat, because most pixels use a small part of the possible values. A **stretch** spreads each band's useful values over the full range from black to full colour. This page does both, from **your own files, on your own device**: nothing is uploaded and the page works offline once loaded.
+
+Turn the bands into vegetation and water indices with the [[spectral-index-calculator]], and lay map features over the scene in the [[vector-map-viewer]].
 
 ## How to use it
 

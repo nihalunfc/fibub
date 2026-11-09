@@ -11,7 +11,7 @@ order: 558
 icon: table
 works: offline
 updated: 2026-11-09
-related: [regex-fsm-visualiser, combinatorics-calculator, symbolic-algebra, matrix-calculator]
+related: [regex-fsm-visualiser, combinatorics-calculator, symbolic-algebra, matrix-calculator, graph-algorithms, circuit-simulator, error-correcting-codes]
 sources:
   - "Methods: Quine-McCluskey prime implicants with an exact minimum cover (fewest terms, then fewest literals), De Morgan for the product of sums, Karnaugh maps in Gray code order (standard digital logic)."
   - "Checked against sympy.logic SOPform and POSform on 160 random functions of 2 to 6 variables with don't-cares (always as small, sometimes smaller), sympy truth tables of 11 expressions, and a brute-force search over all 256 functions of 3 variables."
@@ -32,6 +32,8 @@ For digital electronics, computer science and discrete maths courses. Give it a 
 - a **Karnaugh map** for 2, 3 or 4 variables, with each group of the minimal SOP drawn as a coloured loop (loops wrap round the edges where needed);
 - the **prime implicant chart**, marking the essential prime implicants and those used, and the **Quine-McCluskey combining steps**;
 - a **logic gate diagram**: AND gates into an OR gate for the SOP, or OR gates into an AND gate for the POS, with NOT gates on complemented inputs.
+
+Build and test the simplified gates in the [[circuit-simulator]], and see how state machines read text in the [[regex-fsm-visualiser]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 7
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [field-line-plotter, capacitor-inductor-calculator, plot-maker]
+related: [field-line-plotter, capacitor-inductor-calculator, plot-maker, coil-field-designer, potential-flow, heat-conduction, numerical-methods]
 sources:
   - "Laplace's equation solved by finite differences with successive over-relaxation (optimal factor 2/(1 + sin(π/(n − 1)))): standard numerical method, for example Press et al., Numerical Recipes, section 19.5, and Sadiku, M. N. O., Numerical Techniques in Electromagnetics."
   - "Charge from the discrete form of Gauss's law and capacitance from the field energy 2W/V²; coaxial capacitance 2πε₀/ln(b/a) for comparison: standard results."
@@ -33,6 +33,8 @@ Between conductors held at fixed voltages, the potential in empty space obeys **
 3. From the potential it draws a colour map, equipotential lines and field arrows, and works out the field at any point, the charge on each electrode (from Gauss's law on the grid), the field energy, and, when there are just two voltages, the **capacitance per metre**.
 
 The problem is two-dimensional: every shape runs on unchanged into and out of the screen, like a long cable or a pair of long plates.
+
+Draw a quick picture of point charges with the [[field-line-plotter|electric field line plotter]] first, and turn the result into a capacitance with the [[capacitor-inductor-calculator]].
 
 ## How to use it
 

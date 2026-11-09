@@ -11,7 +11,7 @@ order: 336
 icon: table
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, biodiversity-indices, field-sampling-planner, sample-size]
+related: [tree-carbon, biodiversity-indices, field-sampling-planner, sample-size, tree-height-basal-area, log-scale-calculator, quadrat-transect-analyser, canopy-gap-analyser, plot-maker]
 sources:
   - "Fixed-area plot expansion, basal area, quadratic mean diameter, Lorey's mean height and the standard error of the mean across plots (simple random sampling): standard forest inventory methods, as in Husch, Beers and Kershaw, Forest Mensuration, and Avery and Burkhart, Forest Measurements. Method only."
   - "Checked in the tests against an independent pandas and SciPy calculation. The example tally is made up."
@@ -33,6 +33,8 @@ In a forest inventory you measure every tree in a number of small plots of the s
 - **Lorey's mean height**: the mean height weighted by basal area, from the trees you measured heights for.
 - A **table by species**: stems, basal area with its standard error, share of basal area, QMD and Lorey's height.
 - A **diameter distribution**: stems per hectare in each DBH class, stacked by species.
+
+Measure heights and basal area in the field with the [[tree-height-basal-area|tree height and basal area calculator]], and turn the stand into carbon with the [[tree-carbon|tree carbon calculator]].
 
 ## How to use it
 

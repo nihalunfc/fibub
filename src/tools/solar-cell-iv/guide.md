@@ -11,7 +11,7 @@ order: 864
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [carrier-concentration, tauc-plot, impedance-fitter, plot-maker]
+related: [carrier-concentration, tauc-plot, impedance-fitter, plot-maker, solar-pv-yield, curve-fitter, battery-solar-sizing]
 sources:
   - "Isc, Voc, fill factor, efficiency and the single-diode model with its explicit Lambert W solution are standard photovoltaics; the code is written by fibub and checked in the tests against scipy.special.lambertw, pvlib (i_from_v and singlediode), NumPy and scipy.optimize.least_squares."
   - "The example curve is made up by the page from a single-diode model (Iph 150 mA, I0 1 nA, n 1.3, Rs 0.5 Ω, Rsh 300 Ω, 4 cm², 25 °C) with a little made-up noise."
@@ -32,6 +32,8 @@ A solar cell's current-voltage (I-V) curve under light holds most of what there 
 - **Fill factor** FF = Pmax / (Voc · Isc), and **efficiency** η = Pmax / (irradiance × area).
 - **Series and shunt resistance from the slopes**: −dV/dI through the points nearest Voc and nearest 0 V. Quick, but the Voc slope also contains the diode's own slope, so it is an upper limit for Rs.
 - **Single-diode model fit.** The model I = Iph − I0[exp((V + IRs)/(n·Ns·kT/q)) − 1] − (V + IRs)/Rsh is solved for I exactly with the Lambert W function and fitted to every point by least squares. It gives the photocurrent, saturation current, ideality factor, series and shunt resistance, each with a standard error, and the model's own Voc, Isc, Pmax and FF.
+
+Find the absorber's band gap with the [[tauc-plot|Tauc plot tool]], and estimate what a full panel gives over a year with the [[solar-pv-yield|solar PV yield calculator]].
 
 ## How to use it
 

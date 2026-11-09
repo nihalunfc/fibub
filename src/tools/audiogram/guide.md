@@ -11,7 +11,7 @@ order: 35
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [visual-acuity-converter, plot-maker, reliability-analysis, sample-size]
+related: [visual-acuity-converter, plot-maker, reliability-analysis, sample-size, noise-dose, decibel-distance]
 sources:
   - "Symbols: American Speech-Language-Hearing Association (1990) Guidelines for audiometric symbols, ASHA 32(Suppl 2):25–30."
   - "Degree cutoffs (formula-style boundaries, editable): World Health Organization (2021) World report on hearing, Geneva, from Humes LE (2019) The World Health Organization's hearing-impairment grading system: an evaluation for unaided communication in age-related hearing loss, Int J Audiol 58:12; Clark JG (1981) Uses and abuses of hearing loss classification, ASHA 23(7):493–500. Checked 2026-11-09."

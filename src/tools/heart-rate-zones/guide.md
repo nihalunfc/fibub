@@ -11,7 +11,7 @@ order: 30
 icon: target
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker, sample-size]
+related: [uncertainty-calculator, plot-maker, sample-size, vo2max-estimator, training-load, gait-cadence, ecg-viewer, energy-needs]
 sources:
   - "Fox SM, Naughton JP, Haskell WL (1971). Physical activity and the prevention of coronary heart disease. Ann Clin Res 3: 404–432 (the 220 − age rule)."
   - "Tanaka H, Monahan KD, Seals DR (2001). Age-predicted maximal heart rate revisited. J Am Coll Cardiol 37: 153–156."
@@ -31,6 +31,8 @@ flow:
 Training plans talk in zones: "an easy zone 2 ride", "intervals in zone 4". This page turns your age, or a maximum heart rate you have measured, into heart rate zones in beats per minute. It also turns a cyclist's functional threshold power (FTP) into power zones in watts. You get a table, a bar picture of the zones and a CSV file to load into a spreadsheet or a training app.
 
 It is a teaching tool. Age equations only estimate maximum heart rate: real maxima of people the same age spread by about ±10 beats/min or more. A maximum measured in a supervised test beats any equation.
+
+Estimate fitness from a field test with the [[vo2max-estimator|VO2max estimator]], and add up the sessions done in each zone with the [[training-load|training load tracker]].
 
 ## How to use it
 

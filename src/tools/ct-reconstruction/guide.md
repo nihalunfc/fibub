@@ -11,7 +11,7 @@ order: 2
 icon: target
 works: offline
 updated: 2026-11-09
-related: [mri-bloch-simulator, decay-calculator]
+related: [mri-bloch-simulator, decay-calculator, ultrasound-calculator, dicom-viewer, gamma-shielding, fourier-visualiser]
 sources:
   - "Radon transform, parallel-beam projections of ellipses and filtered back-projection with the discrete ramp kernel: Kak, A. C. and Slaney, M. (1988), Principles of Computerized Tomographic Imaging, chapter 3 (also free from the authors). Window shapes (sinc, cosine, Hann): standard signal processing."
   - "Checked against an independent numpy implementation (numeric line integrals of the object, numpy.fft filtering, numpy.interp back-projection) written for the tests; they agree to 1e-13."
@@ -28,6 +28,8 @@ flow:
 A CT scanner never sees the slice it shows you. It measures how much an X-ray beam is weakened along thousands of straight lines through the body, from many directions. Stacking those **projections**, one row per angle, gives the **sinogram** (every point in the body traces a sine wave across it). Turning the sinogram back into an image is called **reconstruction**, and the classic method is **filtered back-projection**: sharpen each projection with a filter, then smear it back across the image along the direction it was taken, and add up all the angles.
 
 This page does all of it in your browser. It works out the projections of a made-up object **exactly** (each part of the object is an ellipse, whose line integrals have a closed formula), reconstructs it with the filter you choose, and compares the result with the true object.
+
+Look at real CT slices with the [[dicom-viewer]], and work out how much radiation a material stops with the [[gamma-shielding|gamma shielding calculator]].
 
 ## How to use it
 

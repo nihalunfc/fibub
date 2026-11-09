@@ -11,7 +11,7 @@ order: 414
 icon: book
 works: offline
 updated: 2026-11-09
-related: [stylometry-delta, kmer-counter]
+related: [stylometry-delta, kmer-counter, correspondence-network, corpus-concordancer, lexical-diversity-readability, qualitative-coding, embedding-visualiser]
 sources:
   - "Model: D. Blei, A. Ng and M. Jordan (2003), \"Latent Dirichlet allocation\", Journal of Machine Learning Research 3, 993-1022. Sampler: T. Griffiths and M. Steyvers (2004), \"Finding scientific topics\", PNAS 101 (suppl. 1), 5228-5235."
   - "Checked against a line-by-line Python port of the sampler (same random numbers, identical topic for every word after 30 sweeps) and against scikit-learn's LatentDirichletAllocation on a corpus with 4 planted topics: both recover all 4 and give the same perplexity, 16.5454919306."
@@ -28,6 +28,8 @@ flow:
 A topic model reads a collection of documents and finds groups of words that tend to turn up together, such as *harbour, sailors, cargo* or *choir, organ, hymn*. Each group is a **topic**, and every document gets a **mix of topics**. Historians use it to map what a run of letters, sermons, newspapers or minutes talks about, and how that changes.
 
 This tool fits latent Dirichlet allocation (LDA) with **collapsed Gibbs sampling**, the method of Griffiths and Steyvers (2004), in your browser. It is meant for small collections: from a dozen to a couple of thousand short documents. Nothing is uploaded and it works offline.
+
+Compare the authors' styles with [[stylometry-delta|stylometry (Burrows's Delta)]], and see who wrote to whom with the [[correspondence-network|correspondence network]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 567
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, regression-workbench, distribution-explorer, plot-maker]
+related: [sample-size, regression-workbench, distribution-explorer, plot-maker, hypothesis-tests, field-trial-designer, randomisation-list, yield-trial-anova, effect-size-converter]
 sources:
   - "Methods: 2^(k−p) fractions by minimum aberration (Fries and Hunter, 1980), searched exhaustively here; Plackett and Burman (1946) designs from the Paley construction and Sylvester doubling; central composite designs (Box and Wilson, 1951) with rotatable and orthogonal-block α; Box–Behnken designs (1960); Lenth's pseudo standard error (1989) for unreplicated designs."
   - "Checked against independent Python implementations: exhaustive minimum-aberration word-length patterns, Lenth's method, and statsmodels OLS and ANOVA fits for factorial, central composite and Box–Behnken analyses. Plackett–Burman generating rows for 12, 20 and 24 runs checked against the published ones."
@@ -31,6 +31,8 @@ Design of experiments (DOE) plans which combinations of settings to try, so that
 - **Fractional factorial 2^(k−p)**: a balanced part of the 2-level design. The tool picks the generators with **minimum aberration** (the fewest short aliases), or you type your own, and it shows the defining relation, the word-length pattern, the **resolution** and an alias table.
 - **Plackett–Burman**: screening up to 25 factors in 8, 12, 16, 20, 24 … runs. The spare columns become dummy factors that show the size of the noise.
 - **Central composite (CCD)** and **Box–Behnken (BBD)**: response-surface designs for fitting a curved (quadratic) model and finding an optimum.
+
+Work out how many runs you can afford with the [[sample-size|sample size calculator]], then analyse the results in the [[regression-workbench]].
 
 ## How to use it
 

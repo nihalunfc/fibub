@@ -11,7 +11,7 @@ order: 550
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [symbolic-algebra, matrix-calculator, plot-maker]
+related: [symbolic-algebra, matrix-calculator, plot-maker, ode-solver, fourier-visualiser, function-grapher, float-inspector, curve-fitter]
 sources:
   - "Methods: the standard textbook algorithms (bisection, regula falsi, Newton-Raphson, secant; composite trapezoid, midpoint and Simpson rules, Gauss-Legendre by Newton iteration on Legendre polynomials, Romberg extrapolation; Lagrange in barycentric form, Newton divided differences, natural cubic spline)."
   - "Checked against scipy 1.18: optimize.brentq and optimize.newton, integrate.trapezoid, integrate.simpson, integrate.quad and special.roots_legendre, interpolate.lagrange, BarycentricInterpolator and CubicSpline (natural), on several functions, plus the textbook iterates worked in plain Python."
@@ -30,6 +30,8 @@ A teaching tool for a first course in numerical methods or numerical analysis. T
 - **Roots**: solve f(x) = 0 by **bisection**, **false position** (regula falsi), **Newton-Raphson** (the derivative is worked out for you) or the **secant** method. You get the full iteration table, why it stopped, the estimated order of convergence, a graph of f with the numbered iterates, and a log-scale plot of the error of all four methods side by side.
 - **Integrals**: the **midpoint**, **trapezoid** and **Simpson** rules with n intervals, **Gauss-Legendre** with 2 to 20 points and the **Romberg** table, each with its error against an exact value (worked out symbolically when possible) or a high-accuracy reference. A log-log plot shows the error against the number of function values, so you can read off the orders h² and h⁴.
 - **Interpolation**: through points you type, or points sampled from a function (equal or Chebyshev spacing): the **Lagrange** polynomial (by the barycentric formula), the **Newton divided-difference** table with the Newton and expanded forms, and the **natural cubic spline** with each piece's coefficients. When a function is given, an error plot compares the polynomial and the spline.
+
+Plot the function first in the [[function-grapher|graphing calculator]], and solve differential equations with the [[ode-solver|ODE solver]].
 
 ## How to use it
 

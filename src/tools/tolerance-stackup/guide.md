@@ -11,7 +11,7 @@ order: 646
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, shaft-bearing-life, bolt-torque-calculator]
+related: [uncertainty-calculator, shaft-bearing-life, bolt-torque-calculator, gear-train-calculator, spring-designer, gauge-rr, control-charts, thermal-mismatch-stress]
 sources:
   - "Worst-case and root-sum-square (RSS) tolerance analysis and Monte Carlo tolerance simulation as described in standard texts on dimensioning and tolerancing (for example Fischer, Mechanical Tolerance Stackup and Analysis), methods only."
   - "Standard deviations of uniform (h/√3) and triangular (h/√6) distributions, the normal tail probability, and the process capability indices Cp and Cpk are standard statistics."
@@ -33,6 +33,8 @@ When parts are put together, their size variations add up. A **tolerance stack-u
 - **Monte Carlo:** builds 10,000 to 500,000 virtual assemblies with each part drawn from its distribution, and counts how many fall outside your gap limits.
 
 It also shows each part's **share of the variance** (what to tighten first), the **fraction outside** the limits, simulated and from a normal model, and the capability indices **Cp and Cpk**.
+
+Check that your measuring system can be trusted with the [[gauge-rr]], and watch the parts you make over time with [[control-charts]].
 
 ## How to use it
 

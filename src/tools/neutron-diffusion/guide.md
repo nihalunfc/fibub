@@ -11,7 +11,7 @@ order: 678
 icon: target
 works: offline
 updated: 2026-11-09
-related: [point-kinetics, decay-calculator]
+related: [point-kinetics, decay-calculator, decay-heat, decay-chain, gamma-shielding, numerical-methods, heat-conduction]
 sources:
   - "One-group and two-group bare-reactor diffusion theory (buckling, k_eff = k∞/(1 + L²B²), critical size, flux shapes) as set out in standard reactor physics textbooks (general physics); J0 by its power series."
   - "Checked against SciPy (Bessel zero and J0, root-finding of k_eff = 1 in the physical size, two-group roots) to 1e-10, and the tool's finite-volume power iteration against the formulas (k within 1e-5, flux within 1e-3, second-order convergence) and against a separate node-based SciPy eigenvalue solve."
@@ -38,6 +38,8 @@ This calculator, for a bare (unreflected) homogeneous core:
 - offers a **two-group** model (fast and thermal), with k_eff = k∞ / ((1 + L₁²B²)(1 + L₂²B²)).
 
 It is for study: real cores have reflectors, many materials and many energy groups.
+
+See how the power then changes over time with [[point-kinetics|point kinetics]], and plan the shielding around the core with the [[gamma-shielding|gamma shielding calculator]].
 
 ## Worked example
 

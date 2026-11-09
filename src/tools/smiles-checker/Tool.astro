@@ -1,0 +1,157 @@
+---
+// Drug-likeness checker: SMILES in, formula, masses, H-bond counts, rotatable bonds, and the Lipinski rule of five and
+// Veber rules out. One molecule or a whole list. Works in the browser; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax smc">
+  <div class="ax-card">
+    <h2>Molecule</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small smc-ex">Use the example (aspirin)</button>
+    </div>
+    <label style="margin-top:10px">SMILES <input class="smc-in" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O" /></label>
+    <label style="margin-top:10px">Name (optional) <input class="smc-name" type="text" autocomplete="off" placeholder="e.g. Aspirin" /></label>
+    <details class="smc-opts">
+      <summary>Options</summary>
+      <label class="ax-check"><input type="checkbox" class="smc-big" checked /> Use only the largest part (drops salts and water written after a dot)</label>
+      <label class="ax-check"><input type="checkbox" class="smc-amide" /> Count amide C–N bonds as rotatable (Veber did not)</label>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Your logP (optional) <input class="smc-logp" type="number" step="0.1" inputmode="decimal" placeholder="from another program" /></label>
+        <label>Your polar surface area, Å² (optional) <input class="smc-tpsa" type="number" min="0" step="1" inputmode="decimal" placeholder="from another program" /></label>
+      </div>
+      <p class="ax-help">This tool does not work out logP or polar surface area: both need published tables of atom contributions. If you have values from elsewhere, type them here and they join the rules. Without a polar surface area, Veber's other test (donors + acceptors ≤ 12) is used.</p>
+    </details>
+    <p class="ax-err smc-err" hidden></p>
+  </div>
+
+  <div class="ax-card smc-out" hidden>
+    <h2>Properties</h2>
+    <p class="ax-big smc-head"></p>
+    <p class="smc-verdict"></p>
+    <dl class="ax-facts smc-facts"></dl>
+    <p class="ax-help smc-note"></p>
+    <h3>Rules</h3>
+    <div class="ax-scroll"><table class="smc-rules"></table></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Many molecules</h2>
+    <p class="ax-help">One molecule per line: the SMILES, then a space, tab or comma, then a name (a .smi file works as it is). Lines starting with # are skipped. The options above apply.</p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small smc-bex">Use the example list</button>
+      <button type="button" class="btn secondary small smc-open">Open a .smi, .csv or .txt file</button>
+      <input type="file" class="smc-file" accept=".smi,.csv,.txt,.tsv,text/plain" hidden />
+    </div>
+    <label style="margin-top:10px">SMILES list <textarea class="smc-batch" rows="6" spellcheck="false" placeholder="CC(=O)Oc1ccccc1C(=O)O Aspirin&#10;CC(=O)Nc1ccc(O)cc1 Paracetamol"></textarea></label>
+    <p class="ax-help smc-bsum" aria-live="polite"></p>
+    <div class="ax-scroll smc-bw"><table class="smc-btab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small smc-csv" disabled>Download the table (CSV)</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .smc h3 { margin: 22px 0 8px; font-size: 15px; }
+  .smc .smc-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .smc .smc-opts { margin-top: 12px; }
+  .smc .smc-opts summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .smc .smc-opts .ax-check { margin-top: 6px; }
+  .smc .smc-in, .smc .smc-batch { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .smc .smc-head { overflow-wrap: anywhere; }
+  .smc .smc-verdict .ax-pill { margin: 0 6px 6px 0; font-size: 13px; }
+  .smc .smc-bw { max-height: 460px; overflow-y: auto; }
+  .smc table td.smi { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; min-width: 120px; }
+  .smc table td.ok { color: var(--good); font-weight: 700; }
+  .smc table td.no { color: var(--bad); font-weight: 700; }
+</style>
+
+<script>
+  import { check, readBatch, toCsv, EXAMPLE_BATCH, type Row } from '../../lib/sci/druglike';
+  import { hill } from '../../lib/sci/chem';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.smc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = q<HTMLInputElement>('.smc-in'), nameIn = q<HTMLInputElement>('.smc-name');
+  const opt = () => {
+    const lp = q<HTMLInputElement>('.smc-logp').value.trim(), tp = q<HTMLInputElement>('.smc-tpsa').value.trim();
+    return { largestPart: q<HTMLInputElement>('.smc-big').checked, countAmides: q<HTMLInputElement>('.smc-amide').checked, logP: lp !== '' && Number.isFinite(Number(lp)) ? Number(lp) : null, tpsa: tp !== '' && Number.isFinite(Number(tp)) ? Number(tp) : null };
+  };
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[][] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    rows.forEach((r, i) => { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); const c = cls[i]?.[k]; if (c) td.className = c; }); });
+  };
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = 'ax-pill ' + cls; s.textContent = t; return s; };
+  const fmt = (v: number | null, unit?: string) => (v === null ? 'not given' : `${Number.isInteger(v) ? v : v.toFixed(unit === 'g/mol' ? 2 : 1)}${unit ? ' ' + unit : ''}`);
+  const verdictText = (r: Row) => `Lipinski: ${r.lip!.pass ? 'passes' : 'fails'} (${r.lip!.broken} of ${r.lip!.checked} broken). Veber: ${r.veb!.pass ? 'passes' : 'fails'} (${r.veb!.broken} of ${r.veb!.checked} broken).`;
+
+  let one: Row | null = null, batch: Row[] = [];
+
+  function run() {
+    const err = q('.smc-err'), s = inp.value.trim(); err.hidden = true;
+    if (!s) { q('.smc-out').hidden = true; one = null; return; }
+    const r = check(s, { ...opt(), name: nameIn.value.trim() });
+    if (r.error) { q('.smc-out').hidden = true; one = null; err.textContent = r.error; err.hidden = false; return; }
+    one = r; const p = r.props!;
+    q('.smc-out').hidden = false;
+    q('.smc-head').textContent = `${r.name ? r.name + ': ' : ''}${hill(p.formula, true)}, ${p.mw.toFixed(2)} g/mol`;
+    const v = q('.smc-verdict'); v.replaceChildren(
+      pill(`Lipinski ${r.lip!.pass ? 'pass' : 'fail'}: ${r.lip!.broken} of ${r.lip!.checked} broken`, r.lip!.pass ? (r.lip!.broken ? 'warn' : 'good') : 'bad'),
+      pill(`Veber ${r.veb!.pass ? 'pass' : 'fail'}: ${r.veb!.broken} of ${r.veb!.checked} broken`, r.veb!.pass ? 'good' : 'bad'));
+    const facts: [string, string, string?][] = [
+      ['Formula', hill(p.formula, true)], ['Average mass', `${p.mw.toFixed(3)}`, 'g/mol'], ['Monoisotopic mass', p.mono.toFixed(4), 'u (Da)'],
+      ['Heavy atoms', String(p.heavy), `${p.atoms} with hydrogens`], ['Rings', String(p.rings)], ['H-bond donors', String(p.hbd), 'N–H and O–H'],
+      ['H-bond acceptors', String(p.hba), 'N and O atoms'], ['Rotatable bonds', String(p.rotatable)], ['Formal charge', p.charge > 0 ? `+${p.charge}` : String(p.charge)],
+    ];
+    const dl = q('.smc-facts'); dl.replaceChildren(...facts.map(([k, val, small]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = val; if (small) { const sm = document.createElement('small'); sm.textContent = small; dd.append(sm); } d.append(dt, dd); return d; }));
+    q('.smc-note').textContent = `${r.salt ? `Left out (smaller parts after a dot): ${r.salt}. ` : p.parts > 1 ? `${p.parts} parts, all counted. ` : ''}${p.aromaticAtoms ? `${p.aromaticAtoms} aromatic atoms. ` : ''}Average mass uses standard atomic weights; monoisotopic mass uses the most common isotope of each element.`;
+    const rules = [...r.lip!.rules.map((x) => ['Lipinski', x] as const), ...r.veb!.rules.map((x) => ['Veber', x] as const)];
+    table(q('.smc-rules'), ['Rule set', 'Rule', 'Value', 'Result'], rules.map(([set, x]) => [set, x.label, fmt(x.value, x.unit), x.ok === null ? 'not checked' : x.ok ? 'yes' : 'no']), rules.map(([, x]) => ['', '', 'r', x.ok === null ? '' : x.ok ? 'ok' : 'no']));
+  }
+
+  function runBatch() {
+    const lines = readBatch(q<HTMLTextAreaElement>('.smc-batch').value), sum = q('.smc-bsum'), o = opt();
+    if (!lines.length) { batch = []; q('.smc-btab').replaceChildren(); sum.textContent = ''; q<HTMLButtonElement>('.smc-csv').disabled = true; return; }
+    if (lines.length > 5000) { sum.textContent = 'Up to 5000 molecules at a time, please.'; return; }
+    batch = lines.map((l) => { const r = check(l.smiles, { ...o, name: l.name }); if (r.error) r.error = `Line ${l.line}: ${r.error}`; return r; });
+    const good = batch.filter((r) => !r.error), lp = good.filter((r) => r.lip!.pass).length, vb = good.filter((r) => r.veb!.pass).length;
+    sum.textContent = `${batch.length} molecule${batch.length === 1 ? '' : 's'}: ${lp} pass Lipinski, ${vb} pass Veber, ${good.filter((r) => r.lip!.pass && r.veb!.pass).length} pass both.${batch.length - good.length ? ` ${batch.length - good.length} could not be read.` : ''}`;
+    const show = batch.slice(0, 1000);
+    table(q('.smc-btab'), ['Name', 'Formula', 'Mass', 'HBD', 'HBA', 'Rot.', 'Rings', 'Lipinski', 'Veber'],
+      show.map((r) => r.error ? [r.name, r.error, '', '', '', '', '', '', ''] : [r.name, hill(r.props!.formula, true), r.props!.mw.toFixed(2), r.props!.hbd, r.props!.hba, r.props!.rotatable, r.props!.rings, `${r.lip!.pass ? 'pass' : 'fail'} (${r.lip!.broken})`, `${r.veb!.pass ? 'pass' : 'fail'} (${r.veb!.broken})`]),
+      show.map((r) => r.error ? ['', 'no'] : ['', '', 'r', 'r', 'r', 'r', 'r', r.lip!.pass ? 'ok' : 'no', r.veb!.pass ? 'ok' : 'no']));
+    q<HTMLButtonElement>('.smc-csv').disabled = false;
+  }
+
+  const sections = (): Section[] => {
+    const out: Section[] = [];
+    if (one?.props) {
+      const p = one.props;
+      out.push({ title: one.name || one.smiles, facts: [['SMILES', one.smiles], ['Formula', p.formulaText], ['Average mass', `${p.mw.toFixed(3)} g/mol`], ['Monoisotopic mass', p.mono.toFixed(4)], ['Heavy atoms', String(p.heavy)], ['Rings', String(p.rings)], ['H-bond donors (NH + OH)', String(p.hbd)], ['H-bond acceptors (N + O)', String(p.hba)], ['Rotatable bonds', String(p.rotatable)], ['Formal charge', String(p.charge)], ['Result', verdictText(one)]] });
+      out.push({ title: 'Rules', table: { head: ['Rule set', 'Rule', 'Value', 'Holds'], rows: [...one.lip!.rules.map((x) => ['Lipinski', x.label, fmt(x.value, x.unit), x.ok === null ? 'not checked' : x.ok ? 'yes' : 'no']), ...one.veb!.rules.map((x) => ['Veber', x.label, fmt(x.value, x.unit), x.ok ? 'yes' : 'no'])], align: ['l', 'l', 'r', 'l'] } });
+    }
+    if (batch.length) out.push({ title: 'Many molecules', text: [q('.smc-bsum').textContent ?? ''], table: { head: ['Name', 'Formula', 'Mass', 'HBD', 'HBA', 'Rot.', 'Lipinski', 'Veber'], rows: batch.slice(0, 300).map((r) => r.error ? [r.name, 'not read', '', '', '', '', '', ''] : [r.name, r.props!.formulaText, r.props!.mw.toFixed(2), String(r.props!.hbd), String(r.props!.hba), String(r.props!.rotatable), `${r.lip!.pass ? 'pass' : 'fail'} (${r.lip!.broken})`, `${r.veb!.pass ? 'pass' : 'fail'} (${r.veb!.broken})`]), align: ['l', 'l', 'r', 'r', 'r', 'r', 'l', 'l'] }, note: batch.length > 300 ? `First 300 of ${batch.length}; the CSV has them all.` : undefined });
+    return out;
+  };
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 250); };
+  const all = () => { run(); runBatch(); };
+  inp.addEventListener('input', () => later(run));
+  nameIn.addEventListener('input', () => later(run));
+  for (const c of ['.smc-big', '.smc-amide']) q(c).addEventListener('change', all);
+  for (const c of ['.smc-logp', '.smc-tpsa']) q(c).addEventListener('input', () => later(all));
+  q('.smc-batch').addEventListener('input', () => later(runBatch));
+  q('.smc-ex').addEventListener('click', () => { inp.value = 'CC(=O)Oc1ccccc1C(=O)O'; nameIn.value = 'Aspirin'; run(); });
+  q('.smc-bex').addEventListener('click', () => { q<HTMLTextAreaElement>('.smc-batch').value = EXAMPLE_BATCH; runBatch(); });
+  q('.smc-open').addEventListener('click', () => q<HTMLInputElement>('.smc-file').click());
+  q('.smc-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.smc-file').files?.[0]; if (!f) return;
+    if (f.size > 2e6) { q('.smc-bsum').textContent = 'That file is over 2 MB.'; return; }
+    q<HTMLTextAreaElement>('.smc-batch').value = await f.text(); runBatch(); q<HTMLInputElement>('.smc-file').value = '';
+  });
+  q('.smc-csv').addEventListener('click', () => save(new Blob([toCsv(batch)], { type: 'text/csv' }), 'drug-likeness.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: 'Drug-likeness check', subtitle: one ? `${one.name ? one.name + ': ' : ''}${verdictText(one)}` : '', file: fileSafe(one?.name || 'drug-likeness'), sections: sections() }));
+</script>

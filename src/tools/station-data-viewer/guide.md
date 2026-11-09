@@ -11,7 +11,7 @@ order: 897
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [wind-chill-heat-index, density-altitude, walter-lieth, psychrometric-calculator]
+related: [wind-chill-heat-index, density-altitude, walter-lieth, psychrometric-calculator, weather-log, rain-gauge-average, et0-calculator, trend-analyser, data-cleaner]
 sources:
   - "Methods (written by fibub): calendar-day and calendar-month summaries, gaps from the most common time step, wind rose with sectors centred on north and calms counted apart, vector-mean wind direction."
   - "Checked 2026-11-09 against pandas 3.1 (resample, diff) and the windrose Python package (sector and speed-class binning)."
@@ -34,6 +34,8 @@ Home weather stations, school stations, farm sensors and research data loggers a
 - **Daily and monthly summaries**: records, completeness, the minimum, mean and maximum temperature, humidity and pressure, mean and highest wind speed, the vector-mean wind direction and the rain total.
 
 The file never leaves your device: it is read and worked on in your browser.
+
+Keep your daily notes alongside it in the [[weather-log]], and draw a yearly climate chart with the [[walter-lieth]] tool.
 
 ## How to use it
 

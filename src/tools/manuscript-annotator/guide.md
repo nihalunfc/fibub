@@ -11,7 +11,7 @@ order: 416
 icon: image
 works: offline
 updated: 2026-11-09
-related: [graph-digitizer, image-resizer, stylometry-delta, colour-difference-calculator]
+related: [graph-digitizer, image-resizer, stylometry-delta, colour-difference-calculator, historic-calendar-converter, correspondence-network, topic-modeller, artefact-scale-tool, light-exposure-budget]
 sources:
   - "Formats: W3C Web Annotation Data Model (W3C Recommendation, 23 February 2017), W3C Media Fragments URI 1.0 (xywh=), IIIF Presentation API 2.1 and 3.0."
   - "Checked by round trips in tests (export then re-import gives the same regions, including scaling to IIIF canvas pixels, quotes, line breaks and special characters) and by reading annotations written in other common shapes (#xywh targets, SVG rect and path selectors, IIIF 2 annotation lists)."
@@ -34,6 +34,8 @@ Transcribing a manuscript, a charter or an account book usually means linking ea
 - **Re-open** an exported file later to keep working, or open annotations made elsewhere.
 
 Your images and transcriptions never leave your device. The page does not fetch anything, not even the images a manifest points to.
+
+Convert any old dates you find with the [[historic-calendar-converter|historic calendar converter]], and compare the style of the texts with [[stylometry-delta|stylometry]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 11
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [method-validation, calibration-curve, reliability-analysis, sample-size, uncertainty-calculator, plot-maker]
+related: [method-validation, calibration-curve, reliability-analysis, sample-size, uncertainty-calculator, plot-maker, roc-curve, gauge-rr, diagnostic-test-calculator]
 sources:
   - "Bias and limits of agreement: Bland JM and Altman DG (1986), The Lancet 327:307-310; approximate intervals of the limits: Bland and Altman (1999), Statistical Methods in Medical Research 8:135-160."
   - "Exact intervals of the limits by the noncentral t distribution: Carkeet A (2015), Optometry and Vision Science 92:e71-e80."
@@ -29,6 +29,8 @@ flow:
 When a new meter, a point-of-care device or a cheaper lab method is compared with an established one, a correlation coefficient is the wrong question: two methods can correlate almost perfectly and still disagree by a clinically important amount. The **Bland-Altman** method asks the right one: how far apart are the two results for the same sample, and how far apart could they be for most samples? This tool works it out from your paired results and draws the plot, all in your browser.
 
 You get the **bias** (the mean difference, method A minus method B) with its confidence interval, the **limits of agreement** (bias ± 1.96 standard deviations of the differences, the range that should hold 95 % of differences) with exact or approximate confidence intervals for each limit, a test for **proportional bias** (do the differences grow with the size of the result?), and **Lin's concordance correlation coefficient** (CCC), which measures agreement with the line of equality.
+
+Fit a calibration line for each method first with the [[calibration-curve]], and for a full validation of a new lab method use [[method-validation]].
 
 ## How to use it
 

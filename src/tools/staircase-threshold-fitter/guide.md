@@ -11,7 +11,7 @@ order: 725
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, dose-response]
+related: [reliability-analysis, sample-size, plot-maker, dose-response, signal-detection-calculator, reaction-time-experiments, memory-attention-tasks, curve-fitter]
 sources:
   - "Methods: Levitt (1971) transformed up-down rules; Kaernbach (1991) weighted up-down; Wichmann and Hill (2001) maximum likelihood fitting with lapse rate and parametric bootstrap."
   - "All example data are made up or simulated in the page."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 In psychophysics a **threshold** is the stimulus level a person detects or discriminates on a set share of trials, such as 75 % correct. **Adaptive staircases** find it quickly by making the task harder after correct answers and easier after mistakes. A **psychometric function** fitted to the trials then gives the threshold and the slope with proper error bars. This tool does both: it simulates staircases so you can see how the rules behave, lets you run a real brightness staircase on yourself, and fits any trial data you paste. Nothing is uploaded.
+
+Turn yes/no answers into sensitivity with the [[signal-detection-calculator|signal detection calculator]], and fit other S-shaped curves with the [[dose-response|dose-response fitter]].
 
 ## How to use it
 

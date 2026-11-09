@@ -7,7 +7,7 @@ summary: "Add bold, italic, underline and bullet lists to LinkedIn posts, see wh
 status: live
 ads: true
 order: 9
-related: [resume-builder]
+related: [resume-builder, link-cleaner, ats-resume-checker, readability-checker, abstract-word-counter]
 icon: bold
 works: offline
 updated: 2026-11-06

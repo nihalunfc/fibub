@@ -11,7 +11,7 @@ order: 686
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, pump-test-analyser, plot-maker, reaction-kinetics-fitter]
+related: [trend-analyser, pump-test-analyser, plot-maker, reaction-kinetics-fitter, pvt-correlations, well-test-analyser, npv-irr-calculator, curve-fitter]
 sources:
   - "Arps, J. J. (1945), Analysis of decline curves, Transactions of the AIME 160, 228 to 247: the exponential, hyperbolic and harmonic rate equations and their cumulative forms, written by fibub from the equations."
   - "Terminal (modified hyperbolic) decline: the common industry practice of switching to exponential decline at a minimum decline rate, as described in petroleum engineering textbooks."
@@ -33,6 +33,8 @@ Oil and gas wells produce less every month as the reservoir pressure near the we
 - **Harmonic** (b = 1): a special hyperbolic case, often an upper bound for conventional wells.
 
 This tool fits all three by **nonlinear least squares**, gives each parameter with its standard error, forecasts to your **economic limit** (the rate below which the well no longer pays), and reports **EUR** (estimated ultimate recovery), production so far and **remaining reserves**. It plots the fit on a linear and a log rate axis. Everything runs in your browser; your data never leave the device.
+
+Check the reservoir's flow from a shut-in test in the [[well-test-analyser]], and value the forecast with the [[npv-irr-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 2
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, cell-doubling-time, transfection-planner, plate-layout]
+related: [hemocytometer, cell-doubling-time, transfection-planner, plate-layout, tcid50-calculator, solution-calculator, counting-statistics]
 sources:
   - "The arithmetic (MOI = infectious units ÷ cells, volume = MOI × cells ÷ titre) and the Poisson shares are standard formulas, written by fibub and checked in the tests against hand working and an independent Python script."
   - "The TCID₅₀ conversion uses ln 2 = 0.693 infectious units per TCID₅₀, which follows from the Poisson distribution itself (a dose infecting half the wells holds ln 2 particles on average). The factor is editable."
@@ -34,6 +34,8 @@ MOI, the multiplicity of infection, is the number of infectious particles you ad
 - **MOI for a target % infected.** Say you want 90 % of cells to get at least one particle, and it gives the MOI.
 - **A plate plan.** List several MOIs and get one mix per MOI: how much stock (or predilution) and how much medium, the working titre, the units per well, and the predilution to make first when the volume of stock would be too small to pipette.
 - **Downloads.** The Poisson table and the plate plan as CSV, and the whole lot as an image, PDF or Word report.
+
+Find the virus titre first with the [[tcid50-calculator|TCID50 and plaque assay calculator]], and count your cells with the [[hemocytometer]].
 
 ## How to use it
 

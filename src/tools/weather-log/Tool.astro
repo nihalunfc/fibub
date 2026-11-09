@@ -9,7 +9,8 @@ const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'S
 <div class="ax wlg">
   <div class="ax-card">
     <h2>Your log stays on this device</h2>
-    <p class="ax-help" style="margin-top:0">Every day you save is kept in this browser's own storage (localStorage) so it is here next time. It is never sent anywhere, other browsers and devices cannot see it, and clearing your browser data deletes it. Download a CSV now and then as a backup.</p>
+    <label class="ax-check" style="margin-top:0"><input type="checkbox" class="wl-keep" /> Remember my log in this browser</label>
+    <p class="ax-help">Nothing is kept until you tick the box. Ticked, your log stays in this browser's own storage (localStorage) so it is here next time; untick it to remove the saved copy. It is never sent anywhere, other browsers and devices cannot see it, and clearing your browser data deletes it. Download a CSV now and then as a backup.</p>
     <p class="wl-count ax-help" style="font-weight:600;color:var(--ink)"></p>
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn secondary small wl-ex">Load a made-up example</button>
@@ -117,12 +118,13 @@ const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'S
 
   // ---- Storage (this browser only).
   function load() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (Array.isArray(d.log)) log = d.log; if (d.units) units = { ...DEFAULT_UNITS, ...d.units }; if (d.rainDay != null) inp('.wl-rd').value = String(d.rainDay); } } catch { /* storage blocked: the log lives for this visit only */ }
+    try { const raw = localStorage.getItem(KEY); if (raw) { inp('.wl-keep').checked = true; const d = JSON.parse(raw); if (Array.isArray(d.log)) log = d.log; if (d.units) units = { ...DEFAULT_UNITS, ...d.units }; if (d.rainDay != null) inp('.wl-rd').value = String(d.rainDay); } } catch { /* storage blocked: the log lives for this visit only */ }
   }
+  const keeping = () => inp('.wl-keep').checked;
   function store() {
     const n = q('.wl-snote');
     try {
-      if (log.length) localStorage.setItem(KEY, JSON.stringify({ log, units, rainDay: num(inp('.wl-rd').value) })); else localStorage.removeItem(KEY);
+      if (log.length && keeping()) localStorage.setItem(KEY, JSON.stringify({ log, units, rainDay: num(inp('.wl-rd').value) })); else localStorage.removeItem(KEY);
       n.hidden = true;
     } catch { n.textContent = 'This browser is not letting the page save, so the log will be lost when you close it. Download a CSV to keep it.'; n.hidden = false; }
   }
@@ -260,7 +262,8 @@ const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'S
     });
   }
   twoTap(q<HTMLButtonElement>('.wl-ex'), 'Tap again to replace your log', () => { units = { ...DEFAULT_UNITS }; log = example(); store(); render(); });
-  twoTap(q<HTMLButtonElement>('.wl-wipe'), 'Tap again to delete every day', () => { log = []; store(); render(); });
+  twoTap(q<HTMLButtonElement>('.wl-wipe'), 'Tap again to delete every day', () => { log = []; inp('.wl-keep').checked = false; store(); render(); });
+  inp('.wl-keep').addEventListener('change', () => store());
   twoTap(q<HTMLButtonElement>('.wl-replace'), 'Tap again to replace your log', () => doImport(true));
 
   // ---- Units: converting the whole log.

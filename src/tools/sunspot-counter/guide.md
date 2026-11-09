@@ -11,7 +11,7 @@ order: 21
 icon: target
 works: offline
 updated: 2026-11-08
-related: [sun-position-calculator, eclipse-finder, telescope-calculator, fits-viewer, observing-log]
+related: [sun-position-calculator, eclipse-finder, telescope-calculator, fits-viewer, observing-log, image-stacker, time-series-analyser]
 flow:
   - { icon: image, label: "Sun photo" }
   - { icon: search, label: "Find spots" }

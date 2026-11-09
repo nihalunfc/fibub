@@ -11,7 +11,7 @@ order: 660
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [manning-weir-calculator, darcy-flow-calculator, uncertainty-calculator]
+related: [manning-weir-calculator, darcy-flow-calculator, uncertainty-calculator, pump-system-curve, steam-tables, hvac-room-load, dimensionless-numbers, unit-converter]
 sources:
   - "Darcy-Weisbach equation, Colebrook-White (1939) friction factor and the Swamee and Jain (1976) explicit approximation: standard fluid mechanics, for example White, F. M., Fluid Mechanics, and Streeter and Wylie, Fluid Mechanics (equations only)."
   - "Hardy Cross (1936) method of balancing loop heads, and the global gradient (Newton) method of Todini and Pilati (1988), as described in hydraulics textbooks (methods only)."
@@ -36,6 +36,8 @@ h = (f L / D + ΣK) × V² / 2g
 where f is the friction factor, L the length, D the inside diameter, V the mean velocity and ΣK the sum of the minor-loss coefficients of the fittings. The friction factor comes from the **Colebrook-White** equation (solved exactly by iteration) or the **Swamee-Jain** formula, an explicit approximation within about 1 % of Colebrook. Laminar flow (Reynolds number below 2,000) uses f = 64/Re; between 2,000 and 4,000 the tool blends the two, because real flow there is unpredictable. You get the velocity, Reynolds number, friction factor, the friction and fitting losses, the pressure drop including any rise, the hydraulic power, and a system curve of head against flow. Or give the head you have and it finds the flow.
 
 **Pipe network.** List the nodes (junctions, reservoirs and tanks) and the pipes joining them. The tool finds the flow in every pipe and the head and pressure at every junction, so that flow balances at each junction and head losses balance around each loop. Two solvers are offered: **Newton's method** on the node heads (the global gradient method used in modern network software, usually 5 to 10 iterations) and the classic **Hardy Cross** method, which corrects one loop at a time. They give the same answer.
+
+Pick a pump that meets the network's flow and head with the [[pump-system-curve|pump and system curve tool]], and check the flow regime with the [[dimensionless-numbers|dimensionless numbers calculator]].
 
 ## How to use it
 
