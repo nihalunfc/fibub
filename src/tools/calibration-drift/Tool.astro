@@ -1,0 +1,133 @@
+---
+// Calibration drift and interval. The example history is made up (lib EXAMPLE).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE } from '../../lib/sci/eng-drift';
+const demo = 'date\tas-found error\tU (k=2)\n' + EXAMPLE.map((r) => r.join('\t')).join('\n');
+---
+<div class="ax cdr">
+  <div class="ax-card">
+    <h2>Calibration history</h2>
+    <label>Date, as-found error and its uncertainty <textarea class="cd-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".cd-data" maxCols={20} maxRows={5000} label="Open a file" />
+    <p class="ax-help">One row per calibration: the date (2024-02-21), the as-found error (instrument reading minus reference value, before any adjustment) and, optionally, the expanded uncertainty U of that calibration. A header row is skipped. The example, a pressure transmitter in kPa, is made up. Nothing is saved: your data stay on this page only.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Lower tolerance limit <input class="cd-lo" type="text" inputmode="decimal" value="-0.25" placeholder="none" /></label>
+      <label>Upper tolerance limit <input class="cd-hi" type="text" inputmode="decimal" value="0.25" placeholder="none" /></label>
+      <label>Error unit (for labels) <input class="cd-unit" type="text" value="kPa" /></label>
+      <label>Reliability target <select class="cd-rel"><option value="0.9">90 % in tolerance</option><option value="0.95" selected>95 % in tolerance</option><option value="0.99">99 % in tolerance</option></select></label>
+      <label>Confidence for intervals <select class="cd-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Check an interval of (months) <input class="cd-chk" type="text" inputmode="decimal" value="12" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="cd-gb" /> Guard band: pull the limits in by the latest U</label>
+    <p class="ax-help">The reliability target is the chance you want that the instrument is still in tolerance when it next comes in. Guard banding makes the decision safer when the calibration uncertainty is a large part of the tolerance.</p>
+    <p class="ax-err cd-err" hidden></p>
+  </div>
+
+  <div class="ax-card cd-out">
+    <h2>Drift and interval</h2>
+    <p class="ax-big cd-big"></p>
+    <dl class="ax-facts cd-facts"></dl>
+    <canvas class="ax-fig cd-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">The tool fits a straight line to the as-found errors and assumes the drift carries on at the same rate and the instrument is not adjusted. If you adjust it at calibration, the next as-found error starts from the as-left value, so use the errors measured since the last adjustment. A line through a handful of points is a guide, not a guarantee; set intervals together with the maker's advice, your quality system and the cost of an out-of-tolerance result.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cd-csv">Download forecast (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { driftFit, predict, predInterval, probOut, firstTime, lineCrossing, parseDate, isoDate } from '../../lib/sci/eng-drift';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cdr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g4 = (x: number) => String(+x.toPrecision(4)).replace('-', '−');
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.cd-err'), out = q('.cd-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const pts: { d: number; e: number; U: number }[] = []; let skipped = 0;
+    for (const [i, r] of parseTable(val('.cd-data')).entries()) {
+      const d = parseDate(r[0] ?? ''), e = num(r[1] ?? ''), U = num(r[2] ?? '');
+      if (!Number.isFinite(d) || !Number.isFinite(e)) { if (i > 0 || Number.isFinite(d)) skipped++; continue; }
+      pts.push({ d, e, U: U >= 0 ? U : NaN });
+    }
+    pts.sort((a, b) => a.d - b.d);
+    if (pts.length > 1000) return fail('The limit is 1,000 calibrations.');
+    if (pts.length < 3) return fail('Give at least 3 calibrations with a date (YYYY-MM-DD) and an as-found error; 5 or more is better.');
+    if (pts[pts.length - 1].d - pts[0].d < 30) return fail('The calibrations need to span at least a month to show drift.');
+    const unit = val('.cd-unit').trim(), u = unit ? ` ${unit}` : '';
+    const loS = val('.cd-lo').trim(), hiS = val('.cd-hi').trim(); let lo = loS ? num(loS) : NaN, hi = hiS ? num(hiS) : NaN;
+    if ((loS && !Number.isFinite(lo)) || (hiS && !Number.isFinite(hi))) return fail('Tolerance limits must be numbers, or empty.');
+    if (!Number.isFinite(lo) && !Number.isFinite(hi)) return fail('Give at least one tolerance limit.');
+    if (Number.isFinite(lo) && Number.isFinite(hi) && !(hi > lo)) return fail('The upper tolerance limit must be above the lower one.');
+    const chkM = num(val('.cd-chk')); if (!(chkM > 0 && chkM <= 600)) return fail('The interval to check must be between 0 and 600 months.');
+    const lastU = [...pts].reverse().find((p) => Number.isFinite(p.U))?.U ?? NaN;
+    const gb = q<HTMLInputElement>('.cd-gb').checked;
+    if (gb) {
+      if (!Number.isFinite(lastU)) return fail('Guard banding needs an uncertainty U in the third column.');
+      lo += lastU; hi -= lastU;
+      if (Number.isFinite(lo) && Number.isFinite(hi) && !(hi > lo)) return fail('The guard band (latest U) is wider than half the tolerance, so nothing is left. Untick guard banding or improve the calibration.');
+    }
+    const d0 = pts[0].d, t = pts.map((p) => (p.d - d0) / 365.25), e = pts.map((p) => p.e), tl = t[t.length - 1];
+    const conf = +val('.cd-conf'), rel = +val('.cd-rel');
+    const f = driftFit(t, e, conf);
+    err.hidden = true; out.hidden = false;
+    const dateOf = (yr: number) => isoDate(d0 + yr * 365.25);
+    const tRel = firstTime((x) => probOut(f, x, lo, hi) > 1 - rel, tl, 50);
+    const tPI = firstTime((x) => { const [a, b] = predInterval(f, x, conf); return (Number.isFinite(hi) && b > hi) || (Number.isFinite(lo) && a < lo); }, tl, 50);
+    const tLine = lineCrossing(f, lo, hi, tl);
+    const per = (x: number) => `${x >= 0 ? '+' : '−'}${sig(Math.abs(x), 3)}`;
+    const ivl = tRel - tl, mo = ivl * 12;
+    q('.cd-big').textContent = !Number.isFinite(tRel) ? `No calibration due within 50 years at ${Math.round(rel * 100)} % reliability (drift ${per(f.slope)}${u} per year)` : ivl <= 0 ? `Out of tolerance risk is already above ${Math.round((1 - rel) * 100)} %: calibrate now` : `Next calibration by ${dateOf(tRel)}: ${mo < 24 ? `${sig(mo, 3)} months` : `${sig(ivl, 3)} years`} after the last, for ${Math.round(rel * 100)} % reliability`;
+    const pChk = probOut(f, tl + chkM / 12, lo, hi), pr = predict(f, tl + chkM / 12);
+    const lim = `${Number.isFinite(lo) ? g4(lo) : '−∞'} to ${Number.isFinite(hi) ? g4(hi) : '+∞'}${u}${gb ? ' (guard-banded)' : ''}`;
+    const facts = [
+      fact('Calibrations', `${pts.length}`, `${isoDate(pts[0].d)} to ${isoDate(pts[pts.length - 1].d)}${skipped ? `; ${skipped} row${skipped === 1 ? '' : 's'} not read` : ''}`),
+      fact('Drift rate', `${per(f.slope)}${u} per year`, `${Math.round(conf * 100)} % CI ${per(f.slopeCI[0])} to ${per(f.slopeCI[1])}; ${per(f.slope / 12)}${u} per month`),
+      fact('Is the drift real?', f.pSlope < 1 - conf ? 'yes, significant' : 'not significant', `${f.pSlope < 0.001 ? 'p < 0.001' : `p = ${f.pSlope.toFixed(3)}`}${f.pSlope < 1 - conf ? '' : '; the interval is set by the scatter, not by a trend'}`),
+      fact('Scatter about the line', `s = ${sig(f.s, 3)}${u}`, `R² = ${f.r2.toFixed(3)}${Number.isFinite(lastU) ? `; latest U = ${g4(lastU)}${u}` : ''}`),
+      fact('Tolerance used', lim),
+      fact('Line reaches the limit', Number.isFinite(tLine) ? dateOf(tLine) : 'never (drifting away or flat)', Number.isFinite(tLine) ? `${sig((tLine - tl) * 12, 3)} months after the last calibration` : ''),
+      fact(`${Math.round(conf * 100)} % prediction band reaches the limit`, Number.isFinite(tPI) ? dateOf(tPI) : 'not within 50 years', Number.isFinite(tPI) ? `${sig((tPI - tl) * 12, 3)} months after the last calibration` : ''),
+      fact(`After ${sig(chkM, 3)} months`, `${(100 * (1 - pChk)).toFixed(1)} % chance in tolerance`, `predicted error ${sig(pr.y, 3)}${u} on ${dateOf(tl + chkM / 12)}`),
+    ];
+    if (f.n < 5) facts.push(fact('Caution', 'few calibrations', 'with fewer than 5 points the prediction is very uncertain'));
+    q('.cd-facts').replaceChildren(...facts);
+    // Chart in calendar years.
+    const yr = (x: number) => 1970 + (d0 / 365.25) + x;
+    const tEnd = Math.max(tl + 1, Math.min(tl + 10, (Number.isFinite(tRel) ? tRel : tl) + 0.5, Number.isFinite(tLine) ? tLine + 0.5 : Infinity));
+    const ts = Array.from({ length: 101 }, (_, i) => (tEnd * i) / 100), band = ts.map((x) => predInterval(f, x, conf));
+    const marks = [...(Number.isFinite(hi) ? [{ kind: 'hline' as const, at: hi, label: 'upper limit' }] : []), ...(Number.isFinite(lo) ? [{ kind: 'hline' as const, at: lo, label: 'lower limit' }] : []), ...(Number.isFinite(tRel) && tRel > tl ? [{ kind: 'vline' as const, at: yr(tRel), dash: [2, 3], label: 'due' }] : [])];
+    const alt = `As-found errors with the drift line, the prediction band and the tolerance limits; ${q('.cd-big').textContent}`;
+    const series = [
+      { name: 'As-found error ± U', x: t.map(yr), y: e, yErr: pts.map((p) => (Number.isFinite(p.U) ? p.U : undefined)), mode: 'points' as const, size: 2.8 },
+      { name: 'Drift line', x: [0, tEnd].map(yr), y: [0, tEnd].map((x) => f.intercept + f.slope * x), mode: 'line' as const, width: 1.8 },
+      { name: `${Math.round(conf * 100)} % prediction band`, x: ts.map(yr), y: band.map((b) => b[1]), mode: 'line' as const, width: 1, dash: [4, 3] },
+      { name: '', x: ts.map(yr), y: band.map((b) => b[0]), mode: 'line' as const, width: 1, dash: [4, 3] },
+    ];
+    // Colours follow the page palette: tolerance limits in the warning colour, the band muted.
+    const fg: Figure = { w: 380, h: 250, alt, draw: (ctx, W, H, pal) => chartFigure({ w: 380, h: 250, xLabel: 'Year', yLabel: `As-found error${unit ? ` (${unit})` : ''}`, legend: 'below', colors: [pal.ink, pal.accent, pal.muted, pal.muted], series, marks: marks.map((m) => ({ ...m, color: m.kind === 'hline' ? pal.bad : undefined })) }, alt).draw(ctx, W, H, pal) };
+    paint(q<HTMLCanvasElement>('.cd-fig'), fg); figs = [fg];
+    csvRows = [['date', 'years from first', 'as-found error', 'U', 'fitted', `PI low (${Math.round(conf * 100)}%)`, 'PI high', 'probability out of tolerance', 'kind'],
+      ...pts.map((p, i) => { const b = predInterval(f, t[i], conf); return [isoDate(p.d), +t[i].toFixed(4), p.e, Number.isFinite(p.U) ? p.U : '', +predict(f, t[i]).y.toPrecision(6), +b[0].toPrecision(6), +b[1].toPrecision(6), +probOut(f, t[i], lo, hi).toPrecision(4), 'calibration']; }),
+      ...Array.from({ length: Math.ceil((tEnd - tl) * 12) }, (_, m) => { const x = tl + (m + 1) / 12, b = predInterval(f, x, conf); return [dateOf(x), +x.toFixed(4), '', '', +predict(f, x).y.toPrecision(6), +b[0].toPrecision(6), +b[1].toPrecision(6), +probOut(f, x, lo, hi).toPrecision(4), 'forecast']; })];
+    report = [{ title: q('.cd-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small')?.textContent ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), figure: fg }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cd-out').hidden) paint(q<HTMLCanvasElement>('.cd-fig'), figs[0]); });
+  q('.cd-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'calibration-drift.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Calibration drift and interval', subtitle: q('.cd-big').textContent ?? '', file: 'calibration-drift', sections: report }));
+</script>
+
+<style is:global>
+  .cdr textarea { width: 100%; }
+</style>
