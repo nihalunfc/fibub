@@ -1,0 +1,224 @@
+---
+// Checksum checker: hash many files (SHA-256, SHA-1, SHA-512 by Web Crypto; MD5 and CRC32 in src/lib/sci/checksum.ts,
+// read in chunks), make a manifest (sha256sum, BSD tag or BagIt) and check files against a manifest.
+// Files are read on the page only.
+import '../../styles/astro.css';
+---
+<div class="ax ckc">
+  <div class="ax-card">
+    <h2>Files</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small ck-pick">Choose files</button>
+      <input type="file" class="ck-files" multiple hidden />
+      <button type="button" class="btn secondary small ck-pickdir">Choose a folder</button>
+      <input type="file" class="ck-dir" webkitdirectory multiple hidden />
+      <button type="button" class="btn secondary small ck-ex">Try the example files</button>
+      <button type="button" class="btn secondary small ck-clear">Clear</button>
+    </div>
+    <p class="ax-help">Or drop files on this page. Up to 5,000 files. Files are read on this page only and never uploaded.</p>
+    <fieldset class="ck-algs">
+      <legend>Checksums to make</legend>
+      <label class="ax-check"><input type="checkbox" value="sha256" checked /> <span><b>SHA-256</b> <small>the usual choice for data and downloads</small></span></label>
+      <label class="ax-check"><input type="checkbox" value="sha512" /> <span><b>SHA-512</b> <small>longer, as strong; some archives ask for it</small></span></label>
+      <label class="ax-check"><input type="checkbox" value="sha1" /> <span><b>SHA-1</b> <small>older manifests and Git; not for security</small></span></label>
+      <label class="ax-check"><input type="checkbox" value="md5" /> <span><b>MD5</b> <small>many repositories and old manifests; catches damage, not tampering</small></span></label>
+      <label class="ax-check"><input type="checkbox" value="crc32" /> <span><b>CRC32</b> <small>the quick check in ZIP files; catches damage only</small></span></label>
+    </fieldset>
+    <p class="ax-help">SHA checksums are made by your browser and need the whole file in memory, so they work for files up to 2 GB each. MD5 and CRC32 are read in 8 MB pieces and work for any size.</p>
+    <p class="ax-help ck-prog" aria-live="polite"></p>
+    <p class="ax-err ck-err" hidden></p>
+    <div class="ax-scroll ck-tabwrap" hidden><table class="ck-tab"></table></div>
+  </div>
+
+  <div class="ax-card ck-make" hidden>
+    <h2>Make a manifest</h2>
+    <div class="ax-grid">
+      <label>Checksum <select class="ck-malg"></select></label>
+      <label>Format <select class="ck-style">
+        <option value="gnu" selected>sha256sum / md5sum (Linux, macOS)</option>
+        <option value="bsd">BSD tag: SHA256 (file) = …</option>
+        <option value="bagit">BagIt payload manifest (data/…)</option>
+      </select></label>
+    </div>
+    <textarea class="ck-man" rows="6" readonly spellcheck="false" aria-label="Manifest"></textarea>
+    <p class="ax-help ck-mhelp"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small ck-mdl">Download the manifest</button>
+      <button type="button" class="btn secondary small ck-mcopy">Copy</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check against a manifest</h2>
+    <label>Paste a manifest or a single checksum <textarea class="ck-paste" rows="5" spellcheck="false" placeholder="e3b0c442…  data.csv"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ck-mopen">Open a manifest file</button>
+      <input type="file" class="ck-mfile" hidden accept=".txt,.sha256,.sha1,.sha512,.md5,.sum,.sums,.crc,text/plain" />
+    </div>
+    <p class="ax-help">Results show the start and end of each checksum; the CSV has them in full. Reads sha256sum and md5sum files (also the * binary marker), BSD tag lines and BagIt manifests. The checksum type is read from the lines; a file named manifest-md5.txt is taken as MD5. A single checksum is compared with the one file you chose.</p>
+    <p class="ax-err ck-verr" hidden></p>
+    <div class="ck-vout" hidden>
+      <p class="ax-big ck-vbig"></p>
+      <p class="ax-help ck-vnote"></p>
+      <div class="ax-scroll"><table class="ck-vtab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ck-vcsv">Download the results (CSV)</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { hashBlob, makeManifest, parseManifest, verify, manifestName, payloadOxum, ALGS, ALG_NAME, HEX_LEN, SHA_MAX, type Alg, type Style, type Row } from '../../lib/sci/checksum';
+  import { save } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ckc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAXF = 5000;
+  type F = { path: string; blob: Blob; size: number; h: Partial<Record<Alg, string>>; err?: string };
+  let files: F[] = [], run = 0, lastRows: Row[] = [], manName = '';
+
+  const size = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(2)} GB` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(1)} kB` : `${n} B`);
+  const short = (h: string) => (h.length > 20 ? `${h.slice(0, 10)}…${h.slice(-6)}` : h);
+  const chosen = (): Alg[] => [...root.querySelectorAll<HTMLInputElement>('.ck-algs input:checked')].map((i) => i.value as Alg);
+  const needed = (): Alg[] => { const s = new Set(chosen()); const p = parseManifest(q<HTMLTextAreaElement>('.ck-paste').value, manName); if (p.entries.length && p.alg) s.add(p.alg); return ALGS.filter((a) => s.has(a)); };
+
+  function setFiles(list: File[], replace = true) {
+    const add = list.map((f) => ({ path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, blob: f as Blob, size: f.size, h: {} }));
+    files = replace ? add : [...files, ...add];
+    q('.ck-err').hidden = true;
+    if (files.length > MAXF) { q('.ck-err').textContent = `You chose ${files.length.toLocaleString('en')} files; this page takes up to ${MAXF.toLocaleString('en')} at a time. Only the first ${MAXF.toLocaleString('en')} are used.`; q('.ck-err').hidden = false; files = files.slice(0, MAXF); }
+    files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    hashAll();
+  }
+
+  async function hashAll() {
+    const me = ++run, algs = needed();
+    const todo = files.filter((f) => algs.some((a) => !f.h[a]) && !f.err);
+    const total = todo.reduce((s, f) => s + f.size, 0);
+    let done = 0;
+    table();
+    for (const f of todo) {
+      const miss = algs.filter((a) => !f.h[a]);
+      try {
+        const shaOk = f.size <= SHA_MAX, use = shaOk ? miss : miss.filter((a) => a === 'md5' || a === 'crc32');
+        if (!shaOk && use.length < miss.length) f.err = 'SHA needs files up to 2 GB; use MD5 or CRC32';
+        const h = await hashBlob(f.blob, use, (d) => { if (me === run) q('.ck-prog').textContent = `Reading ${f.path}: ${size(done + d)} of ${size(total)}…`; });
+        Object.assign(f.h, h);
+      } catch (e) { f.err = (e as Error).message; }
+      if (me !== run) return;
+      done += f.size;
+    }
+    if (me !== run) return;
+    q('.ck-prog').textContent = files.length ? `${files.length.toLocaleString('en')} file${files.length === 1 ? '' : 's'}, ${size(files.reduce((s, f) => s + f.size, 0))} in all. Done.` : '';
+    table(); manifest(); check();
+  }
+
+  function table() {
+    const t = q<HTMLTableElement>('.ck-tab'), algs = chosen();
+    q('.ck-tabwrap').hidden = !files.length; q('.ck-make').hidden = !files.length;
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    ['File', 'Size', ...algs.map((a) => ALG_NAME[a])].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = t.createTBody();
+    for (const f of files.slice(0, 500)) {
+      const r = b.insertRow(); r.insertCell().textContent = f.path; r.insertCell().textContent = size(f.size);
+      for (const a of algs) { const c = r.insertCell(); c.className = 'ck-hash'; c.textContent = f.h[a] ?? (f.err ? '–' : '…'); if (f.err) c.title = f.err; }
+    }
+    if (files.length > 500) { const r = b.insertRow(), c = r.insertCell(); c.colSpan = 2 + algs.length; c.textContent = `…and ${(files.length - 500).toLocaleString('en')} more (all are in the manifest).`; }
+    const errs = files.filter((f) => f.err);
+    if (errs.length) { q('.ck-err').textContent = `${errs[0].path}: ${errs[0].err}.${errs.length > 1 ? ` (${errs.length - 1} more)` : ''}`; q('.ck-err').hidden = false; }
+    const sel = q<HTMLSelectElement>('.ck-malg'), was = sel.value;
+    sel.replaceChildren(...algs.map((a) => new Option(ALG_NAME[a], a)));
+    if (algs.includes(was as Alg)) sel.value = was;
+  }
+
+  function manifest() {
+    const alg = q<HTMLSelectElement>('.ck-malg').value as Alg, style = q<HTMLSelectElement>('.ck-style').value as Style;
+    if (!alg) { q<HTMLTextAreaElement>('.ck-man').value = ''; return; }
+    const ok = files.filter((f) => f.h[alg]);
+    q<HTMLTextAreaElement>('.ck-man').value = makeManifest(ok.map((f) => ({ path: f.path, hash: f.h[alg]! })), alg, style);
+    const skipped = files.length - ok.length;
+    q('.ck-mhelp').textContent = (style === 'bagit'
+      ? `Save as ${manifestName(alg, style)} next to the data/ folder. A bag also needs bagit.txt ("BagIt-Version: 1.0" and "Tag-File-Character-Encoding: UTF-8"); for bag-info.txt, Payload-Oxum is ${payloadOxum(ok.map((f) => f.size))}.`
+      : style === 'gnu' ? `Check it later with: ${alg === 'crc32' ? 'this page (there is no crc32sum -c)' : `${alg}sum -c ${manifestName(alg, style)}`}, run in the folder that holds the files.`
+      : `The format of ${alg === 'crc32' ? 'BSD' : `${alg}sum --tag`} and of macOS's shasum; this page reads it back too.`) + (skipped ? ` ${skipped} file${skipped > 1 ? 's are' : ' is'} left out (see the message above).` : '');
+  }
+
+  function check() {
+    const text = q<HTMLTextAreaElement>('.ck-paste').value;
+    q('.ck-verr').hidden = true;
+    if (!text.trim()) { q('.ck-vout').hidden = true; return; }
+    const p = parseManifest(text, manName);
+    const fail = (m: string) => { q('.ck-verr').textContent = m; q('.ck-verr').hidden = false; q('.ck-vout').hidden = true; };
+    if (!p.entries.length) return fail('No checksum lines found. A line looks like "e3b0c442…  data.csv" (sha256sum), "SHA256 (data.csv) = e3b0…" or a bare checksum.');
+    if (!files.length) return fail('Now choose the files to check (or the folder that holds them).');
+    const alg = p.alg!;
+    if (files.some((f) => !f.h[alg] && !f.err)) { hashAll(); return; }
+    lastRows = verify(p.entries.filter((e) => e.hash.length === HEX_LEN[alg]), files.map((f) => ({ path: f.path, hash: f.h[alg] ?? '' })));
+    const n = (s: string) => lastRows.filter((r) => r.status === s).length;
+    const parts = [`${n('match')} match`, n('mismatch') && `${n('mismatch')} do not match`, n('missing') && `${n('missing')} missing`, n('extra') && `${n('extra')} not in the manifest`].filter(Boolean);
+    q('.ck-vbig').textContent = (n('mismatch') || n('missing') ? '✗ ' : '✓ ') + parts.join(', ');
+    q('.ck-vbig').className = `ax-big ck-vbig ${n('mismatch') || n('missing') ? 'ck-bad' : 'ck-good'}`;
+    q('.ck-vnote').textContent = `Checked with ${ALG_NAME[alg]} (${p.style === 'bare' ? 'a single checksum' : p.style === 'bagit' ? 'BagIt manifest' : p.style === 'bsd' ? 'BSD tag lines' : 'sha256sum-style lines'}).${p.algs.length > 1 ? ` The manifest mixes ${p.algs.map((a) => ALG_NAME[a]).join(' and ')}; only the ${ALG_NAME[alg]} lines are checked.` : ''}${p.bad.length ? ` Line${p.bad.length > 1 ? 's' : ''} ${p.bad.slice(0, 8).join(', ')}${p.bad.length > 8 ? '…' : ''} could not be read and ${p.bad.length > 1 ? 'were' : 'was'} skipped.` : ''}`;
+    const t = q<HTMLTableElement>('.ck-vtab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); ['Result', 'File', 'Expected', 'Found'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const LAB = { match: ['Match', 'good'], mismatch: ['Does not match', 'bad'], missing: ['Missing', 'warn'], extra: ['Not in manifest', ''] } as const;
+    const order = { mismatch: 0, missing: 1, extra: 2, match: 3 };
+    const b = t.createTBody();
+    for (const r of [...lastRows].sort((x, y) => order[x.status] - order[y.status]).slice(0, 1000)) {
+      const tr = b.insertRow(), c = tr.insertCell(), pill = document.createElement('span');
+      pill.className = `ax-pill ${LAB[r.status][1]}`; pill.textContent = LAB[r.status][0]; c.append(pill);
+      tr.insertCell().textContent = r.path; const e = tr.insertCell(); e.textContent = short(r.expected); e.title = r.expected; e.className = 'ck-hash'; const a = tr.insertCell(); a.textContent = short(r.actual); a.title = r.actual; a.className = 'ck-hash';
+    }
+    q('.ck-vout').hidden = false;
+  }
+
+  // Wiring.
+  q('.ck-pick').addEventListener('click', () => q<HTMLInputElement>('.ck-files').click());
+  q('.ck-pickdir').addEventListener('click', () => q<HTMLInputElement>('.ck-dir').click());
+  for (const c of ['.ck-files', '.ck-dir']) q(c).addEventListener('change', () => { const i = q<HTMLInputElement>(c), l = [...(i.files ?? [])]; i.value = ''; if (l.length) setFiles(l); });
+  root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  root.addEventListener('drop', (e) => { const l = [...(e.dataTransfer?.files ?? [])]; if (l.length) { e.preventDefault(); setFiles(l); } });
+  q('.ck-clear').addEventListener('click', () => { run++; files = []; q('.ck-prog').textContent = ''; q('.ck-err').hidden = true; q<HTMLTextAreaElement>('.ck-paste').value = ''; manName = ''; table(); check(); });
+  root.querySelectorAll('.ck-algs input').forEach((i) => i.addEventListener('change', () => { if (!chosen().length) (i as HTMLInputElement).checked = true; files.forEach((f) => { if (f.err && f.err.startsWith('SHA')) delete f.err; }); hashAll(); }));
+  q('.ck-malg').addEventListener('change', manifest); q('.ck-style').addEventListener('change', manifest);
+  q('.ck-mdl').addEventListener('click', () => save(new Blob([q<HTMLTextAreaElement>('.ck-man').value], { type: 'text/plain' }), manifestName(q<HTMLSelectElement>('.ck-malg').value as Alg, q<HTMLSelectElement>('.ck-style').value as Style), 'text/plain'));
+  q('.ck-mcopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(q<HTMLTextAreaElement>('.ck-man').value); q('.ck-mcopy').textContent = 'Copied'; setTimeout(() => { q('.ck-mcopy').textContent = 'Copy'; }, 1500); } catch { q<HTMLTextAreaElement>('.ck-man').select(); } });
+  let timer = 0;
+  q('.ck-paste').addEventListener('input', () => { manName = ''; clearTimeout(timer); timer = window.setTimeout(() => { const p = parseManifest(q<HTMLTextAreaElement>('.ck-paste').value); if (p.alg && files.some((f) => !f.h[p.alg!])) hashAll(); else check(); }, 300); });
+  q('.ck-mopen').addEventListener('click', () => q<HTMLInputElement>('.ck-mfile').click());
+  q('.ck-mfile').addEventListener('change', async () => {
+    const i = q<HTMLInputElement>('.ck-mfile'), f = i.files?.[0]; i.value = ''; if (!f) return;
+    if (f.size > 20e6) { q('.ck-verr').textContent = 'That manifest is over 20 MB; is it the right file?'; q('.ck-verr').hidden = false; return; }
+    q<HTMLTextAreaElement>('.ck-paste').value = await f.text(); manName = f.name;
+    const p = parseManifest(q<HTMLTextAreaElement>('.ck-paste').value, manName);
+    if (p.alg && files.some((x) => !x.h[p.alg!])) hashAll(); else check();
+  });
+  q('.ck-vcsv').addEventListener('click', () => save(new Blob([csv([['result', 'file', 'expected', 'found'], ...lastRows.map((r) => [r.status, r.path, r.expected, r.actual])])], { type: 'text/csv' }), 'checksum-results.csv', 'text/csv'));
+
+  // Example: three made-up small files and a manifest with one wrong line and one file that is not there.
+  q('.ck-ex').addEventListener('click', async () => {
+    const mk = (name: string, text: string) => new File([text], name, { type: 'text/plain' });
+    const ex = [mk('readings.csv', 'site,depth_m,temp_c\nA,0.5,12.1\nA,1.0,11.4\nB,0.5,13.0\n'), mk('notes.txt', 'Made-up example notes for the checksum checker.\n'), mk('photo-log.txt', 'IMG_0001 site A\nIMG_0002 site B\n')];
+    const h = await Promise.all(ex.map((f) => hashBlob(f, ['sha256'])));
+    const wrong = h[1].sha256!.replace(/^./, (c) => (c === '0' ? '1' : '0'));
+    manName = '';
+    q<HTMLTextAreaElement>('.ck-paste').value = `${h[0].sha256}  readings.csv\n${wrong}  notes.txt\n${'5'.repeat(64)}  calibration.csv\n`;
+    setFiles(ex);
+  });
+</script>
+
+<style is:global>
+  .ckc fieldset { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 4px; }
+  .ckc legend { font-weight: 600; margin-bottom: 4px; }
+  .ckc .ck-algs b { white-space: nowrap; }
+  .ckc .ck-algs small { color: var(--muted); font-size: 13px; }
+  .ckc .ax-pill { white-space: nowrap; }
+  .ckc .ck-vtab .ck-hash { word-break: normal; white-space: nowrap; min-width: 0; }
+  .ckc .ck-hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; min-width: 16ch; }
+  .ckc textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+  .ckc .ck-tab td:first-child, .ckc .ck-vtab td:nth-child(2) { overflow-wrap: anywhere; min-width: 10ch; }
+  .ckc .ck-good { color: var(--good); }
+  .ckc .ck-bad { color: var(--bad); }
+  .ckc select { max-width: 100%; }
+</style>

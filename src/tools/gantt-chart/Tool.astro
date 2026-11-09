@@ -1,0 +1,135 @@
+---
+// Gantt chart with critical path: tasks with starts, durations and finish-to-start dependencies (with lags),
+// milestones and work packages. Forward and backward passes find float and the critical path. SVG, PNG, PDF,
+// Word and CSV out; CSV or Excel in. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gnt">
+  <div class="ax-card">
+    <h2>Tasks</h2>
+    <p class="ax-help" style="margin-top:0">One task per line: <b>ID, task, work package, start, duration, depends on</b>, and an optional <b>end</b>. Start is a period number (1 = the first) or a date such as 2027-03-01; leave it empty to start as soon as the tasks before it finish. A duration of <b>0</b> makes a milestone. List the IDs a task waits for, separated by spaces, with an optional lag in periods: <code>F+2</code> starts 2 periods after F finishes, <code>E-1</code> one period before.</p>
+    <textarea class="gt-text" rows="12" spellcheck="false" aria-label="Tasks"></textarea>
+    <DataFile target=".gt-text" maxMB={1} maxCols={20} maxRows={500} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small gt-ex">Use the example</button>
+      <button type="button" class="btn secondary small gt-empty">Start empty</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Periods are <select class="gt-unit"><option value="month" selected>Months</option><option value="week">Weeks</option><option value="day">Days</option></select></label>
+      <label>Project start date (optional) <input class="gt-date" type="date" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="gt-deps" checked /> Dependency arrows</label>
+      <label class="ax-check"><input type="checkbox" class="gt-float" checked /> Show float</label>
+    </div>
+    <p class="ax-help">Days count every calendar day (weekends too). With a start date, the chart and CSV show dates, and starts and ends can be typed as dates.</p>
+    <p class="ax-err gt-err" hidden></p>
+  </div>
+
+  <div class="ax-card gt-out" hidden>
+    <h2>Chart and critical path</h2>
+    <p class="ax-big gt-big"></p>
+    <p class="gt-path"></p>
+    <dl class="ax-facts gt-facts"></dl>
+    <div class="ax-legend"><span><i class="gt-k crit"></i>Critical task</span><span><i class="gt-k bar"></i>Other task</span><span><i class="gt-k ms"></i>Milestone</span><span><i class="gt-k fl"></i>Float</span><span><i class="gt-k wp"></i>Work package</span></div>
+    <div class="ax-scroll gt-scroll"><canvas class="gt-fig"></canvas></div>
+    <p class="ax-help gt-hint">On a narrow screen, scroll the chart sideways.</p>
+    <div class="ax-scroll"><table class="gt-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gt-svg">Download SVG</button>
+      <button type="button" class="btn secondary small gt-csv">Download CSV</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseTasks, schedule, layout, toSvg, drawShapes, toCsv, dateAt, iso, EXAMPLE, type Schedule, type Unit, type Colors } from '../../lib/sci/gantt';
+  import { paint, pagePalette, LIGHT, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gnt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.gt-text');
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const UNIT: Record<Unit, [string, string]> = { month: ['month', 'months'], week: ['week', 'weeks'], day: ['day', 'days'] };
+  let S: Schedule | null = null, fig: Figure | null = null, sections: Section[] = [], unit: Unit = 'month', start = '';
+
+  const colors = (pal: Palette): Colors => pal.red
+    ? { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, bar: pal.muted, crit: pal.accent, wp: pal.ink, arrow: pal.muted }
+    : pal.bg === '#ffffff'
+      ? { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, bar: '#0072B2', crit: '#D55E00', wp: '#333333', arrow: '#6b6b6b' }
+      : { bg: pal.bg, ink: pal.ink, muted: pal.muted, grid: pal.grid, bar: '#56B4E9', crit: '#f0a35e', wp: '#d0d0d0', arrow: '#9a9a9a' };
+  const opts = () => ({ unit, startDate: start || undefined, showDeps: q<HTMLInputElement>('.gt-deps').checked, showFloat: q<HTMLInputElement>('.gt-float').checked });
+  const width = (s: Schedule) => Math.round(Math.min(1600, Math.max(720, 240 + Math.ceil(s.end) * 26)));
+
+  function run() {
+    const fail = (m: string) => { q('.gt-err').textContent = m; q('.gt-err').hidden = false; q('.gt-out').hidden = true; S = null; sections = []; };
+    q('.gt-err').hidden = true;
+    unit = q<HTMLSelectElement>('.gt-unit').value as Unit; start = q<HTMLInputElement>('.gt-date').value;
+    const p = parseTasks(box.value, unit, start);
+    if (p.errors.length) return fail(p.errors.slice(0, 3).join(' ') + (p.errors.length > 3 ? ` (and ${p.errors.length - 3} more)` : ''));
+    if (!p.tasks.length) return fail('Add at least one task, or press "Use the example".');
+    const s = schedule(p.tasks);
+    if ('cycle' in s) return fail(`These tasks wait for each other in a loop, so none can start: ${s.cycle.slice(0, 8).join(', ')}${s.cycle.length > 8 ? '…' : ''}. Remove one of the dependencies.`);
+    S = s;
+    const [u1, uN] = UNIT[unit], per = (x: number) => `${+x.toFixed(2)} ${x === 1 ? u1 : uN}`;
+    const endDate = start ? iso(new Date(dateAt(s.end, start, unit)!.getTime() - 86400000)) : '';
+    q('.gt-big').textContent = `${per(s.end)}${endDate ? `, ending ${endDate}` : ''}`;
+    q('.gt-path').textContent = s.path.length ? `Critical path: ${s.path.join(' → ')}` : 'No critical path (no tasks take time).';
+    const wps = new Set(s.rows.map((r) => r.wp).filter(Boolean));
+    q('.gt-facts').replaceChildren(
+      fact('Tasks', String(s.rows.filter((r) => !r.milestone).length)), fact('Milestones', String(s.rows.filter((r) => r.milestone).length)),
+      fact('Work packages', String(wps.size)), fact('Critical tasks', String(s.rows.filter((r) => r.critical).length)),
+      fact('Most float', (() => { const m = s.rows.reduce((a, r) => (r.float > a.float ? r : a), s.rows[0]); return m.float > 0 ? `${m.id}: ${per(m.float)}` : 'none'; })()),
+    );
+    const w = width(s);
+    fig = { w, h: layout(s, { ...opts(), width: w, colors: colors(pagePalette()) }).h, alt: `Gantt chart of ${s.rows.length} tasks over ${per(s.end)}, critical tasks highlighted`,
+      draw: (ctx, fw, _h, pal) => drawShapes(ctx, layout(s, { ...opts(), width: fw, colors: colors(pal) })) };
+    q('.gt-out').hidden = false;
+    const cv = q<HTMLCanvasElement>('.gt-fig'); cv.style.width = `${w}px`; paint(cv, fig);
+    const head = ['ID', 'Task', 'Work package', 'Starts', 'Ends', 'Length', 'Float', 'Critical'];
+    const lab = (t: number, endOf: boolean) => (start ? iso(new Date(dateAt(t, start, unit)!.getTime() - (endOf ? 86400000 : 0))) : `${unit === 'month' ? 'M' : unit === 'week' ? 'W' : 'D'}${+(endOf ? t : t + 1).toFixed(2)}`);
+    const rows = s.rows.map((r) => [r.id, r.name, r.wp, r.milestone ? lab(r.ef, true) : lab(r.es, false), lab(r.ef, true), r.milestone ? 'milestone' : per(r.dur), r.float ? per(r.float) : '0', r.critical ? 'yes' : '']);
+    const t = q<HTMLTableElement>('.gt-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r, k) => { const tr = tb.insertRow(); if (s.rows[k].critical) tr.className = 'gt-crit'; r.forEach((c) => { const td = tr.insertCell(); td.textContent = c; }); });
+    sections = [
+      { title: `Project length ${q('.gt-big').textContent}`, text: [q('.gt-path').textContent!], facts: [...q('.gt-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig },
+      { title: 'Schedule', table: { head, rows, align: head.map(() => 'l') as ('l' | 'r')[] }, note: 'Earliest starts and finishes. Float is how far a task can slip without delaying the end of the project; critical tasks have none.' },
+    ];
+  }
+
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 300); });
+  ['.gt-unit', '.gt-date', '.gt-deps', '.gt-float'].forEach((c) => q(c).addEventListener('change', run));
+  q('.gt-ex').addEventListener('click', () => { box.value = EXAMPLE; q<HTMLSelectElement>('.gt-unit').value = 'month'; run(); });
+  q('.gt-empty').addEventListener('click', () => { box.value = 'ID, Task, Work package, Start, Duration, Depends on\n'; run(); });
+  q('.gt-svg').addEventListener('click', () => { if (S) save(new Blob([toSvg(layout(S, { ...opts(), width: width(S), colors: colors(LIGHT) }))], { type: 'image/svg+xml' }), 'gantt-chart.svg', 'image/svg+xml'); });
+  q('.gt-csv').addEventListener('click', () => {
+    if (!S) return;
+    const cell = (c: string) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+    save(new Blob(['﻿' + toCsv(S, unit, start).map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n'], { type: 'text/csv' }), 'gantt-chart.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.gt-out').hidden) paint(q<HTMLCanvasElement>('.gt-fig'), fig); });
+  box.value = EXAMPLE; run();
+  wireDownloads(q('.dl'), () => ({ title: 'Gantt chart', subtitle: q('.gt-path').textContent ?? '', file: 'gantt-chart', sections }));
+</script>
+
+<style is:global>
+  .gnt .gt-text { white-space: pre; overflow-x: auto; }
+  .gnt .gt-path { font-size: 16px; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .gnt .gt-scroll canvas { display: block; max-width: none; }
+  .gnt .gt-k.crit { background: #D55E00; }
+  .gnt .gt-k.bar { background: #0072B2; }
+  .gnt .gt-k.ms { background: var(--ink); transform: rotate(45deg) scale(0.8); }
+  .gnt .gt-k.fl { height: 0 !important; border-top: 2px dashed var(--muted); border-radius: 0 !important; }
+  .gnt .gt-k.wp { background: #333; height: 6px !important; }
+  html[data-theme=dark] .gnt .gt-k.crit { background: #f0a35e; }
+  html[data-theme=dark] .gnt .gt-k.bar { background: #56B4E9; }
+  html[data-theme=dark] .gnt .gt-k.wp { background: #d0d0d0; }
+  html.red-mode .gnt .gt-k.crit, html.red-mode .gnt .gt-k.wp { background: var(--accent); }
+  html.red-mode .gnt .gt-k.bar { background: var(--muted); }
+  .gnt tr.gt-crit td { font-weight: 600; }
+</style>

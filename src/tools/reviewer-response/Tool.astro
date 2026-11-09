@@ -1,0 +1,168 @@
+---
+// Response to reviewers: paste the reports, the page splits them into numbered points per reviewer, you write a
+// response (and the change made) under each, and download the letter as Word, PDF, LaTeX or Markdown. The draft is
+// kept in this browser only if the visitor ticks the box.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rvr">
+  <div class="ax-card">
+    <h2>Reviewer comments</h2>
+    <textarea class="rr-in" rows="10" aria-label="Reviewer comments"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rr-ex">Use the example</button>
+      <button type="button" class="btn secondary small rr-open">Open a text file</button>
+      <input type="file" class="rr-file" accept=".txt,.md,text/plain" hidden />
+      <span class="ax-help" style="margin:0">Plain text (.txt or .md), up to 1 MB.</span>
+    </div>
+    <p class="ax-err rr-ferr" hidden></p>
+    <p class="ax-help">Paste the decision letter or reports as they came. A line such as <b>Reviewer 1</b>, <b>Referee #2:</b>, <b>Comments from Reviewer 3</b> or <b>Editor</b> starts a new reviewer. Numbered lines (1. 2) (a) [3] Comment 4:) and bullets start new points, keeping the reviewer's numbers; text before the first numbered line becomes point 0. If nothing is numbered, each paragraph is a point. Lines such as <b>Major comments</b> group the points that follow.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Letter</h2>
+    <div class="ax-grid">
+      <label>Manuscript title <input class="rr-title" type="text" /></label>
+      <label>Manuscript ID <input class="rr-id" type="text" /></label>
+    </div>
+    <label style="margin-top:10px">Opening <textarea class="rr-open-t" rows="5"></textarea></label>
+    <label style="margin-top:10px">Closing <textarea class="rr-close-t" rows="3"></textarea></label>
+  </div>
+
+  <div class="ax-card rr-out" hidden>
+    <h2>Your responses</h2>
+    <p class="rr-prog"></p>
+    <div class="rr-list"></div>
+  </div>
+
+  <div class="ax-card rr-exp" hidden>
+    <h2>Draft and download</h2>
+    <label class="ax-check"><input type="checkbox" class="rr-keep" /> Keep my draft in this browser</label>
+    <p class="ax-help">Off by default. When on, the comments, your responses and the letter are saved only in this browser on this device, so they are here when you come back. They never leave the device. <b>Clear draft</b> deletes them.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rr-clear">Clear draft</button><span class="ax-help rr-saved" style="margin:0" aria-live="polite"></span></div>
+    <Downloads label="Response letter" />
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small rr-tex">LaTeX (.tex)</button>
+      <button type="button" class="btn secondary small rr-md">Markdown (.md)</button>
+      <button type="button" class="btn secondary small rr-copy">Copy LaTeX</button>
+      <span class="ax-help rr-msg" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help">Points without a response are marked "[Response to be written.]" in every download, so none is missed.</p>
+  </div>
+  <p class="ax-err rr-err" hidden></p>
+</div>
+
+<style is:global>
+  .rvr .rr-rev { font-size: 17px; margin: 18px 0 6px; }
+  .rvr .rr-rev:first-child { margin-top: 0; }
+  .rvr .rr-grp { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin: 12px 0 6px; }
+  .rvr .rr-pt { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 10px; background: var(--bg); }
+  .rvr .rr-pt.done { border-left: 4px solid var(--good); }
+  .rvr .rr-pt blockquote { margin: 0 0 10px; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); font-size: 15px; }
+  .rvr .rr-pt b.rr-id { display: inline-block; font-style: normal; margin-right: 6px; }
+  .rvr .rr-pt textarea { font: inherit; font-size: 15px; }
+  .rvr .rr-pt label + label { margin-top: 8px; }
+  .rvr .rr-prog { margin: 0 0 12px; font-weight: 600; }
+</style>
+
+<script>
+  import { splitComments, toLatex, toMarkdown, toSections, progress, EXAMPLE, OPENING, CLOSING, type Reviewer, type Answer, type Letter } from '../../lib/sci/reviewers';
+  import { save, wireDownloads, fileSafe } from '../../lib/report';
+
+  const KEY = 'fibub-reviewer-response-v1';
+  const root = document.querySelector<HTMLElement>('.rvr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = q<HTMLTextAreaElement>('.rr-in');
+  let R: Reviewer[] = [], A: Record<string, Answer> = {}, shape = '';
+
+  const letter = (): Letter => ({ title: q<HTMLInputElement>('.rr-title').value, msId: q<HTMLInputElement>('.rr-id').value, opening: q<HTMLTextAreaElement>('.rr-open-t').value, closing: q<HTMLTextAreaElement>('.rr-close-t').value });
+  const keeping = () => q<HTMLInputElement>('.rr-keep').checked;
+  function store() {
+    if (!keeping()) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ comments: inp.value, answers: A, letter: letter() })); q('.rr-saved').textContent = 'Saved in this browser.'; } catch { q('.rr-saved').textContent = 'This browser would not save the draft.'; }
+  }
+
+  function prog() {
+    const p = progress(R, A);
+    q('.rr-prog').textContent = `${p.done} of ${p.total} points answered${p.missing.length ? `. Still to answer: ${p.missing.slice(0, 12).join(', ')}${p.missing.length > 12 ? ', …' : ''}` : '. All answered.'}`;
+    for (const el of root.querySelectorAll<HTMLElement>('.rr-pt')) el.classList.toggle('done', !!A[el.dataset.id!]?.response.trim());
+  }
+
+  function render() {
+    const list = q('.rr-list'); list.replaceChildren();
+    for (const r of R) {
+      const h = document.createElement('h3'); h.className = 'rr-rev'; h.textContent = `${r.name} (${r.points.length} point${r.points.length === 1 ? '' : 's'})`; list.append(h);
+      let g = '';
+      for (const p of r.points) {
+        if (p.group && p.group !== g) { const gh = document.createElement('p'); gh.className = 'rr-grp'; gh.textContent = p.group; list.append(gh); g = p.group; }
+        const box = document.createElement('div'); box.className = 'rr-pt'; box.dataset.id = p.id;
+        const bq = document.createElement('blockquote'); const id = document.createElement('b'); id.className = 'rr-id'; id.textContent = p.id; bq.append(id, document.createTextNode(p.text));
+        const l1 = document.createElement('label'); l1.textContent = 'Response'; const t1 = document.createElement('textarea'); t1.rows = 3; t1.className = 'rr-resp'; t1.value = A[p.id]?.response ?? ''; l1.append(t1);
+        const l2 = document.createElement('label'); l2.textContent = 'Change in the manuscript (optional)'; const t2 = document.createElement('textarea'); t2.rows = 1; t2.className = 'rr-chg'; t2.value = A[p.id]?.changes ?? ''; t2.placeholder = 'Such as: Methods, lines 80 to 85'; l2.append(t2);
+        const upd = () => { A[p.id] = { response: t1.value, changes: t2.value }; prog(); store(); };
+        t1.addEventListener('input', upd); t2.addEventListener('input', upd);
+        box.append(bq, l1, l2); list.append(box);
+      }
+    }
+    prog();
+  }
+
+  function split() {
+    const err = q('.rr-err'); err.hidden = true;
+    R = splitComments(inp.value);
+    const s = JSON.stringify(R);
+    const any = R.length > 0;
+    q('.rr-out').hidden = !any; q('.rr-exp').hidden = !any;
+    if (!any) { if (inp.value.trim()) { err.textContent = 'No comments found. Paste the reviewers\' text.'; err.hidden = false; } shape = ''; return; }
+    if (s !== shape) { shape = s; render(); }
+    store();
+  }
+
+  let timer = 0;
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(split, 300); });
+  for (const c of ['.rr-title', '.rr-id', '.rr-open-t', '.rr-close-t']) q(c).addEventListener('input', store);
+  q('.rr-ex').addEventListener('click', () => { inp.value = EXAMPLE; A = {}; shape = ''; split(); });
+  q('.rr-keep').addEventListener('change', () => { if (keeping()) store(); else { try { localStorage.removeItem(KEY); } catch {} q('.rr-saved').textContent = 'Not saved; the draft is gone when you close the page.'; } });
+  q('.rr-clear').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY); } catch {}
+    inp.value = ''; A = {}; R = []; shape = '';
+    q<HTMLInputElement>('.rr-title').value = ''; q<HTMLInputElement>('.rr-id').value = '';
+    q<HTMLTextAreaElement>('.rr-open-t').value = OPENING; q<HTMLTextAreaElement>('.rr-close-t').value = CLOSING;
+    q<HTMLInputElement>('.rr-keep').checked = false; q('.rr-saved').textContent = 'Draft cleared.';
+    split(); inp.focus();
+  });
+  const file = () => fileSafe(`response-${letter().msId || letter().title || 'reviewers'}`);
+  const msg = (m: string) => { q('.rr-msg').textContent = m; };
+  q('.rr-tex').addEventListener('click', () => save(new Blob([toLatex(R, A, letter())], { type: 'text/x-tex;charset=utf-8' }), `${file()}.tex`, 'text/x-tex'));
+  q('.rr-md').addEventListener('click', () => save(new Blob([toMarkdown(R, A, letter())], { type: 'text/markdown;charset=utf-8' }), `${file()}.md`, 'text/markdown'));
+  q('.rr-copy').addEventListener('click', async () => {
+    const t = toLatex(R, A, letter());
+    try { await navigator.clipboard.writeText(t); } catch { const ta = document.createElement('textarea'); ta.value = t; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    msg('Copied.');
+  });
+  wireDownloads(q('.rr-exp'), () => ({ title: 'Response to the reviewers', sections: R.length ? toSections(R, A, letter()) : [], file: file() }));
+  q('.rr-open').addEventListener('click', () => q<HTMLInputElement>('.rr-file').click());
+  q<HTMLInputElement>('.rr-file').addEventListener('change', async (e) => {
+    const el = e.target as HTMLInputElement, f = el.files?.[0]; el.value = '';
+    const fe = q('.rr-ferr'); fe.hidden = true;
+    if (!f) return;
+    if (f.size > 1e6) { fe.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes text files up to 1 MB.`; fe.hidden = false; return; }
+    const t = (await f.text()).replace(/^﻿/, '');
+    if (/\u0000/.test(t.slice(0, 2000))) { fe.textContent = `${f.name} is not a text file. Copy the comments from the email or PDF and paste them here.`; fe.hidden = false; return; }
+    inp.value = t; A = {}; shape = ''; split();
+  });
+
+  // Start: a saved draft if the visitor chose to keep one, otherwise the example.
+  let saved: { comments: string; answers: Record<string, Answer>; letter: Letter } | null = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved && typeof saved.comments === 'string') {
+    q<HTMLInputElement>('.rr-keep').checked = true;
+    inp.value = saved.comments; A = saved.answers ?? {};
+    q<HTMLInputElement>('.rr-title').value = saved.letter?.title ?? ''; q<HTMLInputElement>('.rr-id').value = saved.letter?.msId ?? '';
+    q<HTMLTextAreaElement>('.rr-open-t').value = saved.letter?.opening ?? OPENING; q<HTMLTextAreaElement>('.rr-close-t').value = saved.letter?.closing ?? CLOSING;
+  } else {
+    inp.value = EXAMPLE; q<HTMLTextAreaElement>('.rr-open-t').value = OPENING; q<HTMLTextAreaElement>('.rr-close-t').value = CLOSING;
+  }
+  split();
+  if (saved && typeof saved.comments === 'string') q('.rr-saved').textContent = 'Your saved draft was loaded.';
+</script>

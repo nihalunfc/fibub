@@ -1,0 +1,160 @@
+---
+// Table converter: spreadsheet cells or a CSV file to LaTeX (booktabs, siunitx), Markdown or HTML, with escaping,
+// alignment and rounding done digit by digit (src/lib/sci/tableconv.ts, decimal.ts). Nothing leaves the page.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax tbc">
+  <div class="ax-card">
+    <h2>Your table</h2>
+    <label>Paste cells from Excel, Google Sheets, LibreOffice or a CSV file
+      <textarea class="tbc-in" rows="7" wrap="off" spellcheck="false" autocapitalize="off" placeholder="Copy cells in your spreadsheet and paste them here"></textarea>
+    </label>
+    <DataFile target=".tbc-in" maxMB={5} maxCols={50} maxRows={5000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small tbc-ex">Use the example table</button>
+      <button type="button" class="btn secondary small tbc-clear">Clear</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Cells are split by <select class="tbc-sep"><option value="auto" selected>Find out (tabs, commas or semicolons)</option><option value="tab">Tabs (pasted from a spreadsheet)</option><option value="comma">Commas (CSV)</option><option value="semicolon">Semicolons</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="tbc-head" checked /> First row is the header</label>
+    </div>
+    <p class="ax-help tbc-info"></p>
+    <p class="ax-err tbc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Output</h2>
+    <div class="ax-seg tbc-fmt" role="group" aria-label="Output format">
+      <button type="button" data-f="latex" aria-pressed="true">LaTeX</button>
+      <button type="button" data-f="md" aria-pressed="false">Markdown</button>
+      <button type="button" data-f="html" aria-pressed="false">HTML</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Column alignment <select class="tbc-align"><option value="auto" selected>Auto: numbers right, text left</option><option value="left">All left</option><option value="center">All centred</option><option value="right">All right</option></select></label>
+      <label>Numbers line up <select class="tbc-num"><option value="right" selected>On the right edge</option><option value="decimal">On the decimal point</option></select></label>
+      <label>Round numbers <select class="tbc-round"><option value="asis" selected>No, keep them as typed</option><option value="dp">To decimal places</option><option value="sig">To significant figures</option></select></label>
+      <label class="tbc-nl" hidden>How many <input class="tbc-n" type="number" min="0" max="12" step="1" value="2" inputmode="numeric" /></label>
+    </div>
+    <div class="tbc-tex">
+      <div class="ax-grid" style="margin-top:12px">
+        <label class="ax-check"><input type="checkbox" class="tbc-booktabs" checked /> booktabs rules</label>
+        <label class="ax-check"><input type="checkbox" class="tbc-float" checked /> Table float with caption</label>
+        <label class="ax-check"><input type="checkbox" class="tbc-minus" checked /> True minus signs ($-$)</label>
+      </div>
+    </div>
+    <div class="ax-grid tbc-cap" style="margin-top:12px">
+      <label>Caption (optional) <input class="tbc-caption" type="text" placeholder="Yields of the four test reactions" /></label>
+      <label><span class="tbc-labeltext">Label for \ref (optional)</span> <input class="tbc-label" type="text" placeholder="tab:yields" /></label>
+    </div>
+    <p class="ax-help tbc-ohelp"></p>
+
+    <h3 class="tbc-ph">Preview</h3>
+    <div class="ax-scroll tbc-prev"></div>
+    <h3 class="tbc-ch">Code</h3>
+    <textarea class="tbc-out" rows="10" readonly spellcheck="false"></textarea>
+    <p class="ax-help tbc-pkg"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small tbc-copy">Copy</button>
+      <button type="button" class="btn secondary small tbc-dl">Download .tex</button>
+      <span class="ax-help tbc-done" style="margin:0" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .tbc h3 { font-size: 15px; margin: 16px 0 6px; }
+  .tbc-prev { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--bg); }
+  .tbc-prev table caption { caption-side: top; text-align: left; font-size: 14px; color: var(--muted); padding: 4px 0 6px; }
+  .tbc-prev td, .tbc-prev th { white-space: nowrap; }
+  .tbc-prev thead th { color: var(--ink); border-bottom: 2px solid var(--ink); }
+  .tbc .tbc-out { font-size: 13px; white-space: pre; overflow-x: auto; }
+</style>
+
+<script>
+  import { readTable, prepare, toLatex, toMarkdown, toHtml, type TableOpts, type Sep } from '../../lib/sci/tableconv';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tbc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLTextAreaElement>('.tbc-in'), out = q<HTMLTextAreaElement>('.tbc-out');
+  // Made-up example: four reactions with a mass, a yield and a rate constant.
+  const EX = ['Reaction\tProduct mass (g)\tYield (%)\tRate constant (s^-1)', 'A_1 (control)\t12.5\t85.2\t1.2e-3', 'B & C\t3.25\t100\t4.56e-4', 'D, heated\t1.005\t7.05\t2.675e-5', 'E (50 °C)\t-0.4\t62.375\t9.995e-4'].join('\n');
+  const SEP_NAME = { tab: 'tabs', comma: 'commas', semicolon: 'semicolons' };
+  const EXT = { latex: ['tex', 'text/x-tex'], md: ['md', 'text/markdown'], html: ['html', 'text/html'] } as const;
+  let fmt: 'latex' | 'md' | 'html' = 'latex', result = '';
+
+  function opts(): TableOpts {
+    const mode = q<HTMLSelectElement>('.tbc-round').value, n = Math.round(Number(q<HTMLInputElement>('.tbc-n').value));
+    return {
+      header: q<HTMLInputElement>('.tbc-head').checked, align: q<HTMLSelectElement>('.tbc-align').value as TableOpts['align'],
+      numAlign: q<HTMLSelectElement>('.tbc-num').value as TableOpts['numAlign'],
+      round: mode === 'dp' ? { mode: 'dp', n } : mode === 'sig' ? { mode: 'sig', n } : { mode: 'asis' },
+      booktabs: q<HTMLInputElement>('.tbc-booktabs').checked, float: q<HTMLInputElement>('.tbc-float').checked, mathMinus: q<HTMLInputElement>('.tbc-minus').checked,
+      caption: q<HTMLInputElement>('.tbc-caption').value, label: q<HTMLInputElement>('.tbc-label').value,
+    };
+  }
+
+  function fail(msg: string) {
+    q('.tbc-err').textContent = msg; q('.tbc-err').hidden = false;
+    out.value = ''; result = ''; q('.tbc-prev').replaceChildren(); q('.tbc-pkg').textContent = '';
+    q<HTMLButtonElement>('.tbc-copy').disabled = true; q<HTMLButtonElement>('.tbc-dl').disabled = true;
+  }
+
+  function run() {
+    q('.tbc-err').hidden = true; q('.tbc-done').textContent = '';
+    const mode = q<HTMLSelectElement>('.tbc-round').value;
+    q('.tbc-nl').hidden = mode === 'asis';
+    q('.tbc-tex').hidden = fmt !== 'latex';
+    q('.tbc-labeltext').textContent = fmt === 'latex' ? 'Label for \\ref (optional)' : fmt === 'html' ? 'id for links (optional)' : 'Label (not used in Markdown)';
+    q<HTMLInputElement>('.tbc-label').disabled = fmt === 'md';
+    q<HTMLInputElement>('.tbc-caption').disabled = fmt === 'latex' && !q<HTMLInputElement>('.tbc-float').checked;
+    q('.tbc-ohelp').textContent = fmt === 'latex' ? 'booktabs draws three clean rules instead of \\hline lines. The float adds \\caption and \\label above the table. True minus signs set negative numbers as $-$ instead of a hyphen.'
+      : fmt === 'md' ? 'GitHub-style pipe table. Markdown needs a header row; without one the header is left blank. The caption goes above in bold.'
+      : 'A plain table with a header row, scope on header cells for screen readers, and alignment as inline styles.';
+    const src = input.value;
+    if (!src.trim()) { fail('Paste some cells or open a file first.'); q('.tbc-info').textContent = ''; return; }
+    const { rows, sep } = readTable(src, q<HTMLSelectElement>('.tbc-sep').value as Sep);
+    const cols = rows.length ? rows[0].length : 0;
+    q('.tbc-info').textContent = `Read ${rows.length} row${rows.length === 1 ? '' : 's'} and ${cols} column${cols === 1 ? '' : 's'}, split by ${SEP_NAME[sep]}.`;
+    if (rows.length > 5001) return fail(`That is ${rows.length.toLocaleString('en')} rows; this page takes up to 5,000. A table that long is better as a CSV supplement.`);
+    if (cols > 50) return fail(`That is ${cols} columns; this page takes up to 50.`);
+    if (cols < 1 || (q<HTMLInputElement>('.tbc-head').checked && rows.length < 2 && cols < 1)) return fail('No cells found.');
+    const o = opts();
+    if (o.round.mode !== 'asis' && !(o.round.n >= (o.round.mode === 'sig' ? 1 : 0) && o.round.n <= 12)) return fail(o.round.mode === 'sig' ? 'Give 1 to 12 significant figures.' : 'Give 0 to 12 decimal places.');
+    const p = prepare(rows, o);
+    let pkg = '';
+    if (fmt === 'latex') { const r = toLatex(p, o); result = r.text; if (r.packages.length) pkg = `Add to your preamble: \\usepackage{${r.packages.join(', ')}}`; }
+    else if (fmt === 'md') result = toMarkdown(p, o);
+    else result = toHtml(p, o);
+    const numCols = p.numeric.filter(Boolean).length;
+    q('.tbc-pkg').textContent = [pkg, `${numCols} of ${p.width} columns are numbers${numCols ? ' (every filled cell is a number)' : ''}.`].filter(Boolean).join(' ');
+    out.value = result;
+    // The preview is our own HTML output, with every cell escaped.
+    q('.tbc-prev').innerHTML = toHtml(p, { ...o, numAlign: o.numAlign });
+    q<HTMLButtonElement>('.tbc-copy').disabled = false; q<HTMLButtonElement>('.tbc-dl').disabled = false;
+    q('.tbc-dl').textContent = `Download .${EXT[fmt][0]}`;
+  }
+
+  let timer = 0;
+  input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 150); });
+  for (const c of ['.tbc-sep', '.tbc-head', '.tbc-align', '.tbc-num', '.tbc-round', '.tbc-n', '.tbc-booktabs', '.tbc-float', '.tbc-minus']) q(c).addEventListener('change', run);
+  for (const c of ['.tbc-n', '.tbc-caption', '.tbc-label']) q(c).addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 150); });
+  root.querySelectorAll<HTMLButtonElement>('.tbc-fmt button').forEach((b) => b.addEventListener('click', () => {
+    fmt = b.dataset.f as typeof fmt;
+    root.querySelectorAll<HTMLButtonElement>('.tbc-fmt button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    run();
+  }));
+  q('.tbc-ex').addEventListener('click', () => { input.value = EX; q<HTMLSelectElement>('.tbc-sep').value = 'auto'; q<HTMLInputElement>('.tbc-head').checked = true; run(); });
+  q('.tbc-clear').addEventListener('click', () => { input.value = ''; run(); input.focus(); });
+  q('.tbc-copy').addEventListener('click', async () => {
+    if (!result) return;
+    let ok = true;
+    try { await navigator.clipboard.writeText(result); } catch { ok = false; out.select(); }
+    q('.tbc-done').textContent = ok ? 'Copied.' : 'Your browser blocked copying; the text is selected, press Ctrl+C (⌘+C).';
+  });
+  q('.tbc-dl').addEventListener('click', () => { if (result) save(new Blob([result], { type: EXT[fmt][1] }), `table.${EXT[fmt][0]}`, EXT[fmt][1]); });
+
+  input.value = EX;
+  run();
+</script>

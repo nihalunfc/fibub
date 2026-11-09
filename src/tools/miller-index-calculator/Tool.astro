@@ -1,0 +1,273 @@
+---
+// Miller index calculator: d-spacings in all seven crystal systems from the metric tensor, the angle between two
+// planes, their zone axis, Miller-Bravais (four-index) conversion, a reflection list, and the planes drawn in the
+// unit cell (turn it to look). Everything is worked out on the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mic">
+  <div class="ax-card">
+    <h2>Crystal</h2>
+    <div class="ax-grid">
+      <label class="mi-wide">Crystal system <select class="mi-sys"></select></label>
+      <label data-p="a">a (Å) <input class="mi-a" inputmode="decimal" value="4.05" /></label>
+      <label data-p="b">b (Å) <input class="mi-b" inputmode="decimal" value="5" /></label>
+      <label data-p="c">c (Å) <input class="mi-c" inputmode="decimal" value="6" /></label>
+      <label data-p="alpha">α (°) <input class="mi-alpha" inputmode="decimal" value="90" /></label>
+      <label data-p="beta">β (°) <input class="mi-beta" inputmode="decimal" value="100" /></label>
+      <label data-p="gamma">γ (°) <input class="mi-gamma" inputmode="decimal" value="90" /></label>
+    </div>
+    <p class="ax-help mi-rule"></p>
+    <p class="ax-err mi-cerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Planes and directions</h2>
+    <div class="ax-grid">
+      <label>Plane 1 (hkl) <input class="mi-h1" value="1 1 1" autocomplete="off" spellcheck="false" /></label>
+      <label>Plane 2 (hkl) <input class="mi-h2" value="1 0 0" autocomplete="off" spellcheck="false" /></label>
+      <label>Direction [uvw] (optional) <input class="mi-u" value="" placeholder="e.g. 1 1 0" autocomplete="off" spellcheck="false" /></label>
+      <label>Wavelength for 2θ (Å) <input class="mi-lam" inputmode="decimal" value="1.5406" /></label>
+    </div>
+    <p class="ax-help">Type indices with spaces or commas ("1 −1 0", "10 0 1"), or run single digits together ("1-10"). For hexagonal cells you may type four indices (hkil or uvtw). The wavelength (Cu Kα1 by default) only sets the 2θ shown next to each d.</p>
+    <p class="ax-err mi-err" hidden></p>
+  </div>
+
+  <div class="ax-card mi-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big mi-big"></p>
+    <dl class="ax-facts mi-facts"></dl>
+    <h3>In the unit cell</h3>
+    <canvas class="ax-fig mi-fig"></canvas>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Turn <input class="mi-yaw" type="range" min="-180" max="180" step="1" value="-110" /></label>
+      <label>Tilt <input class="mi-tilt" type="range" min="-90" max="90" step="1" value="22" /></label>
+    </div>
+    <div class="ax-legend mi-leg"></div>
+    <p class="ax-help">Drag the picture sideways or use the sliders to turn it. The solid outline is the unit cell from its origin O. Every plane of family 1 that crosses the cell is shaded (hx + ky + lz = n for whole n), with the one nearest the origin darker; the space between neighbouring planes is d.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mi-reset">Reset view</button>
+      <button type="button" class="btn secondary small mi-svg">Download picture (SVG)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Miller-Bravais converter (hexagonal)</h2>
+    <div class="ax-grid">
+      <label>Indices <input class="mi-mb" value="2 -1 -1 0" autocomplete="off" spellcheck="false" /></label>
+      <label>They are <select class="mi-mbk"><option value="dir" selected>a direction [ ]</option><option value="plane">a plane ( )</option></select></label>
+    </div>
+    <p class="ax-big mi-mbo" aria-live="polite"></p>
+    <p class="ax-help">Planes: i = −(h + k). Directions: u = (2U − V)/3, v = (2V − U)/3, t = −(u + v), w = W, cleared to whole numbers; back again U = u − t, V = v − t, W = w. Type three indices to get four, or four to get three.</p>
+  </div>
+
+  <div class="ax-card mi-rl" hidden>
+    <h2>Reflection list</h2>
+    <div class="ax-grid">
+      <label>Largest index <select class="mi-max"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+    </div>
+    <p class="ax-help">Every plane with indices up to this size, grouped when the spacing is the same. "Planes" counts the hkl with that d, signs included. No symmetry absences are applied: a centred lattice or a glide removes some of these from a real pattern.</p>
+    <div class="ax-scroll mi-rlw"><table class="mi-rtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mi-csv">Download list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SYSTEMS, cellFor, cellProblem, volume, dSpacing, planeAngle, dirLength, dirAngle, dirPlaneAngle, zoneAxis, toBravaisPlane, fromBravaisPlane, toBravaisDir, fromBravaisDir, parseIndices, fmtIdx, cartesian, toCart, corners, EDGES, planePolygons, mainPlane, reflections, type Cell, type System, type Vec3, type Mat3 } from '../../lib/sci/miller';
+  import { num, sig } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mic')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const RAD = Math.PI / 180;
+  const sysSel = q<HTMLSelectElement>('.mi-sys');
+  sysSel.replaceChildren(...SYSTEMS.map((s) => new Option(s.name, s.id, false, s.id === 'cubic')));
+
+  let cell: Cell | null = null, sys: System = 'cubic', h1: number[] = [], h2: number[] = [], uvw: number[] | null = null, zone: number[] = [];
+  let fig: Figure | null = null, sections: Section[] = [], rl: { d: number; hkl: number[]; count: number }[] = [];
+  const isHex = () => sys === 'hexagonal';
+
+  function showFields() {
+    const free = SYSTEMS.find((s) => s.id === sys)!.free;
+    root.querySelectorAll<HTMLElement>('[data-p]').forEach((l) => { l.hidden = !free.includes(l.dataset.p as keyof Cell); });
+    q('.mi-rule').textContent = `${SYSTEMS.find((s) => s.id === sys)!.name}: ${SYSTEMS.find((s) => s.id === sys)!.rule}.`;
+  }
+
+  /** Three- or four-index input as three indices; four are allowed only for hexagonal cells. */
+  function idx(c: string, label: string, kind: 'plane' | 'dir', optional = false): number[] | null | string {
+    const t = inp(c).value.trim();
+    if (!t) return optional ? null : `Type ${label}.`;
+    const v = parseIndices(t);
+    if (!v) return `${label}: type three whole numbers, such as 1 1 0 or 1-10.`;
+    if (v.length === 4) {
+      if (!isHex()) return `${label}: four indices are for hexagonal cells only.`;
+      const r = kind === 'plane' ? fromBravaisPlane(v) : fromBravaisDir(v);
+      if (!r) return `${label}: in four-index form the third index must be −(first + second).`;
+      return r;
+    }
+    if (v.every((x) => x === 0)) return `${label}: 0 0 0 is not a ${kind === 'plane' ? 'plane' : 'direction'}.`;
+    return v;
+  }
+
+  const two = (d: number) => { const lam = num(inp('.mi-lam').value); const s = lam / (2 * d); return lam > 0 && s <= 1 ? `2θ = ${((2 * Math.asin(s)) / RAD).toFixed(3)}° at λ = ${lam} Å` : lam > 0 ? 'not reachable at this wavelength' : ''; };
+  const P = (v: number[]) => `(${fmtIdx(v)})`, D = (v: number[]) => `[${fmtIdx(v)}]`;
+  const P4 = (v: number[]) => (isHex() ? ` = (${fmtIdx(toBravaisPlane(v))})` : ''), D4 = (v: number[]) => (isHex() ? ` = [${fmtIdx(toBravaisDir(v))}]` : '');
+
+  function run() {
+    sys = sysSel.value as System; showFields();
+    const ce = q('.mi-cerr'), er = q('.mi-err'), out = q('.mi-out');
+    ce.hidden = er.hidden = true;
+    const p: Partial<Cell> = {};
+    (['a', 'b', 'c', 'alpha', 'beta', 'gamma'] as (keyof Cell)[]).forEach((k) => { p[k] = num(inp('.mi-' + k).value); });
+    const c = cellFor(sys, p), prob = cellProblem(c);
+    const stop = () => { out.hidden = true; q('.mi-rl').hidden = true; sections = []; };
+    if (prob) { ce.textContent = prob; ce.hidden = false; cell = null; return stop(); }
+    cell = c;
+    const a = idx('.mi-h1', 'Plane 1', 'plane'), b = idx('.mi-h2', 'Plane 2', 'plane'), u = idx('.mi-u', 'The direction', 'dir', true);
+    const bad = [a, b, u].find((x) => typeof x === 'string') as string | undefined;
+    if (bad) { er.textContent = bad; er.hidden = false; return stop(); }
+    h1 = a as number[]; h2 = b as number[]; uvw = u as number[] | null;
+    out.hidden = false; q('.mi-rl').hidden = false;
+    const d1 = dSpacing(c, h1), d2 = dSpacing(c, h2), ang = planeAngle(c, h1, h2);
+    zone = zoneAxis(h1, h2);
+    const par = zone.every((x) => x === 0);
+    q('.mi-big').textContent = `d${P(h1)} = ${d1.toFixed(4)} Å`;
+    const facts = [
+      fact(`d${P(h1)}${P4(h1)}`, `${d1.toFixed(4)} Å`, two(d1)),
+      fact(`d${P(h2)}${P4(h2)}`, `${d2.toFixed(4)} Å`, two(d2)),
+      fact('Angle between the planes', `${ang.toFixed(2)}°`, 'between their normals'),
+      fact('Zone axis', par ? 'none' : `${D(zone)}${D4(zone)}`, par ? 'the planes are parallel' : 'the direction both planes contain: h₁ × h₂'),
+      fact('Cell volume', `${sig(volume(c), 5)} Å³`, `a b c = ${sig(c.a, 4)}, ${sig(c.b, 4)}, ${sig(c.c, 4)} Å; α β γ = ${sig(c.alpha, 4)}, ${sig(c.beta, 4)}, ${sig(c.gamma, 4)}°`),
+    ];
+    if (uvw) {
+      const inPlane = Math.abs(h1[0] * uvw[0] + h1[1] * uvw[1] + h1[2] * uvw[2]) === 0;
+      facts.push(fact(`Direction ${D(uvw)}${D4(uvw)}`, `${dirLength(c, uvw).toFixed(4)} Å long`, `${dirPlaneAngle(c, uvw, h1).toFixed(2)}° from the normal of ${P(h1)}${inPlane ? ', so it lies in that plane (hu + kv + lw = 0)' : ''}; ${par ? '' : `${dirAngle(c, uvw, zone).toFixed(2)}° from the zone axis`}`));
+    }
+    q('.mi-facts').replaceChildren(...facts);
+    draw();
+    // Reflection list.
+    const lam = num(inp('.mi-lam').value);
+    rl = reflections(c, Number(q<HTMLSelectElement>('.mi-max').value));
+    const head = ['hkl', 'd (Å)', `2θ (°)`, 'Planes'];
+    const rows = rl.map((r) => { const s = lam / (2 * r.d); return [P(r.hkl) + (isHex() ? ` (${fmtIdx(toBravaisPlane(r.hkl))})` : ''), r.d.toFixed(4), lam > 0 && s <= 1 ? ((2 * Math.asin(s)) / RAD).toFixed(3) : '–', String(r.count)]; });
+    const t = q<HTMLTableElement>('.mi-rtab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    sections = [
+      { title: q('.mi-big').textContent!, facts: [...q('.mi-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!.replace(d.querySelector('small')?.textContent ?? '', '') + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), figure: fig! },
+      { title: 'Reflection list', table: { head, rows, align: ['l', 'r', 'r', 'r'] }, note: 'Planes with equal d grouped; no systematic absences applied.' },
+    ];
+  }
+
+  // ---- The picture ----
+  type Prim = { kind: 'poly'; pts: [number, number][]; fill: string; alpha: number; stroke: string } | { kind: 'line'; a: [number, number]; b: [number, number]; color: string; width: number; dash?: number[] } | { kind: 'text'; at: [number, number]; s: string; color: string; bold?: boolean };
+  function scene(w: number, h: number, pal: Palette): Prim[] {
+    if (!cell) return [];
+    const M: Mat3 = cartesian(cell), cen = toCart(M, [0.5, 0.5, 0.5]);
+    const yaw = Number(inp('.mi-yaw').value) * RAD, tilt = Number(inp('.mi-tilt').value) * RAD;
+    const rot = (v: Vec3): Vec3 => {
+      const x = v[0] - cen[0], y = v[1] - cen[1], z = v[2] - cen[2];
+      const x1 = x * Math.cos(yaw) - y * Math.sin(yaw), y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+      return [x1, y1 * Math.cos(tilt) - z * Math.sin(tilt), y1 * Math.sin(tilt) + z * Math.cos(tilt)];
+    };
+    const R = Math.max(...corners().map((f) => { const p = toCart(M, f); return Math.hypot(p[0] - cen[0], p[1] - cen[1], p[2] - cen[2]); }));
+    const sc = (Math.min(w, h) / 2 - 26) / R;
+    const pr = (f: number[]): [number, number] => { const r = rot(toCart(M, f)); return [w / 2 + r[0] * sc, h / 2 - r[2] * sc]; };
+    const dark = pal.bg !== '#ffffff';
+    const C1 = pal.red ? pal.accent : dark ? '#56B4E9' : '#0072B2', C2 = pal.red ? pal.accent2 : dark ? '#E69F00' : '#D55E00', C3 = pal.red ? pal.accent : dark ? '#5fd3a8' : '#009E73';
+    const out: Prim[] = [];
+    const fam = planePolygons(h1, cell), main = mainPlane(fam);
+    for (const p of fam.length <= 12 ? fam : [main]) out.push({ kind: 'poly', pts: p.pts.map(pr), fill: C1, alpha: p === main ? 0.42 : 0.14, stroke: C1 });
+    const m2 = mainPlane(planePolygons(h2, cell));
+    if (m2) out.push({ kind: 'poly', pts: m2.pts.map(pr), fill: C2, alpha: 0.3, stroke: C2 });
+    const cs = corners();
+    for (const [i, j] of EDGES) out.push({ kind: 'line', a: pr(cs[i]), b: pr(cs[j]), color: pal.ink, width: 1.4 });
+    if (!zone.every((x) => x === 0)) {
+      const z = toCart(M, zone), L = Math.hypot(...z), k = (R * 1.05) / L;
+      // Through the centre of the cell, along the zone axis, in fractional steps.
+      const zf = zone.map((x) => x * k), p0 = [0.5 - zf[0], 0.5 - zf[1], 0.5 - zf[2]], p1 = [0.5 + zf[0], 0.5 + zf[1], 0.5 + zf[2]];
+      out.push({ kind: 'line', a: pr(p0), b: pr(p1), color: C3, width: 2, dash: [6, 4] });
+      out.push({ kind: 'text', at: pr(p1), s: `[${fmtIdx(zone)}]`, color: C3, bold: true });
+    }
+    const o = pr([0, 0, 0]);
+    out.push({ kind: 'text', at: [o[0] - 12, o[1] + 4], s: 'O', color: pal.ink, bold: true });
+    (['a', 'b', 'c'] as const).forEach((n, i) => { const e = [0, 0, 0]; e[i] = 1.12; out.push({ kind: 'text', at: pr(e), s: n, color: pal.muted, bold: true }); });
+    return out;
+  }
+  function drawPrims(ctx: CanvasRenderingContext2D, prims: Prim[]) {
+    ctx.lineJoin = 'round';
+    for (const p of prims) {
+      if (p.kind === 'poly') { ctx.beginPath(); p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.fill; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = p.stroke; ctx.lineWidth = 1; ctx.stroke(); }
+      else if (p.kind === 'line') { ctx.beginPath(); ctx.setLineDash(p.dash ?? []); ctx.moveTo(...p.a); ctx.lineTo(...p.b); ctx.strokeStyle = p.color; ctx.lineWidth = p.width; ctx.stroke(); ctx.setLineDash([]); }
+      else { ctx.font = `${p.bold ? '600 ' : ''}14px system-ui, sans-serif`; ctx.fillStyle = p.color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.s, p.at[0], p.at[1]); }
+    }
+  }
+  function draw() {
+    const W = 560, H = 420;
+    fig = { w: W, h: H, alt: `Unit cell with the ${P(h1)} planes${zone.some(Boolean) ? `, the ${P(h2)} plane and the zone axis ${D(zone)}` : ''}`, draw: (ctx, w, h, pal) => drawPrims(ctx, scene(w, h, pal)) };
+    paint(q<HTMLCanvasElement>('.mi-fig'), fig);
+    const dark = document.documentElement.dataset.theme === 'dark';
+    const leg = q('.mi-leg'); leg.replaceChildren();
+    const item = (col: string, t: string) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = col; s.append(i, t); leg.append(s); };
+    item(dark ? '#56B4E9' : '#0072B2', `${P(h1)} planes`); item(dark ? '#E69F00' : '#D55E00', `${P(h2)} plane`);
+    if (zone.some(Boolean)) item(dark ? '#5fd3a8' : '#009E73', `zone axis ${D(zone)}`);
+  }
+  function svgText(): string {
+    const W = 560, H = 420, pr = scene(W, H, LIGHT), esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const body = pr.map((p) => p.kind === 'poly' ? `<polygon points="${p.pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ')}" fill="${p.fill}" fill-opacity="${p.alpha}" stroke="${p.stroke}" stroke-width="1"/>`
+      : p.kind === 'line' ? `<line x1="${p.a[0].toFixed(2)}" y1="${p.a[1].toFixed(2)}" x2="${p.b[0].toFixed(2)}" y2="${p.b[1].toFixed(2)}" stroke="${p.color}" stroke-width="${p.width}"${p.dash ? ` stroke-dasharray="${p.dash.join(' ')}"` : ''}/>`
+      : `<text x="${p.at[0].toFixed(2)}" y="${p.at[1].toFixed(2)}" fill="${p.color}" font-family="Helvetica, Arial, sans-serif" font-size="14"${p.bold ? ' font-weight="600"' : ''} text-anchor="middle" dominant-baseline="middle">${esc(p.s)}</text>`).join('\n');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">\n<rect width="100%" height="100%" fill="#ffffff"/>\n${body}\n</svg>\n`;
+  }
+
+  // Drag to turn.
+  let drag: { x: number; y: number; yaw: number; tilt: number } | null = null;
+  const cv = q<HTMLCanvasElement>('.mi-fig');
+  cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, yaw: Number(inp('.mi-yaw').value), tilt: Number(inp('.mi-tilt').value) }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const yaw = ((drag.yaw - (e.clientX - drag.x) * 0.6 + 540) % 360) - 180, tilt = Math.max(-90, Math.min(90, drag.tilt + (e.clientY - drag.y) * 0.4));
+    inp('.mi-yaw').value = String(Math.round(yaw)); inp('.mi-tilt').value = String(Math.round(tilt)); if (cell) draw();
+  });
+  ['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => { drag = null; }));
+  ['.mi-yaw', '.mi-tilt'].forEach((c) => inp(c).addEventListener('input', () => { if (cell) draw(); }));
+  q('.mi-reset').addEventListener('click', () => { inp('.mi-yaw').value = '-110'; inp('.mi-tilt').value = '22'; if (cell) draw(); });
+  q('.mi-svg').addEventListener('click', () => save(new Blob([svgText()], { type: 'image/svg+xml' }), `miller-${fileSafe(fmtIdx(h1))}.svg`, 'image/svg+xml'));
+
+  // Miller-Bravais converter.
+  function mb() {
+    const o = q('.mi-mbo'), v = parseIndices(inp('.mi-mb').value), dir = q<HTMLSelectElement>('.mi-mbk').value === 'dir';
+    if (!v) { o.textContent = 'Type three or four whole numbers.'; return; }
+    if (v.length === 3) o.textContent = dir ? `[${fmtIdx(v)}] = [${fmtIdx(toBravaisDir(v))}]` : `(${fmtIdx(v)}) = (${fmtIdx(toBravaisPlane(v))})`;
+    else { const r = dir ? fromBravaisDir(v) : fromBravaisPlane(v); o.textContent = r ? (dir ? `[${fmtIdx(v)}] = [${fmtIdx(r)}]` : `(${fmtIdx(v)}) = (${fmtIdx(r)})`) : `The third index must be −(first + second); here it would be ${-(v[0] + v[1])}.`; }
+  }
+  inp('.mi-mb').addEventListener('input', mb); q('.mi-mbk').addEventListener('change', mb);
+
+  const csv = (r: string[][]) => r.map((x) => x.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.mi-csv').addEventListener('click', () => {
+    const lam = num(inp('.mi-lam').value);
+    const rows = [['h', 'k', 'l', 'd_angstrom', 'two_theta_deg', 'planes_with_this_d'], ...rl.map((r) => { const s = lam / (2 * r.d); return [...r.hkl.map(String), String(r.d), lam > 0 && s <= 1 ? String((2 * Math.asin(s)) / RAD) : '', String(r.count)]; })];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `reflections-${sys}.csv`, 'text/csv');
+  });
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 200); };
+  root.querySelectorAll<HTMLInputElement>('.mi-a, .mi-b, .mi-c, .mi-alpha, .mi-beta, .mi-gamma, .mi-h1, .mi-h2, .mi-u, .mi-lam').forEach((e) => e.addEventListener('input', later));
+  sysSel.addEventListener('change', run); q('.mi-max').addEventListener('change', run);
+  document.addEventListener('fibub:theme', () => { if (cell && fig) draw(); });
+  run(); mb();
+  wireDownloads(q('.dl'), () => ({ title: 'Miller index calculator', subtitle: q('.mi-big').textContent ?? '', file: `miller-${fileSafe(fmtIdx(h1))}`, sections }));
+</script>
+
+<style is:global>
+  .mic h3 { margin: 20px 0 8px; font-size: 15px; }
+  .mic select { max-width: 100%; }
+  .mic .mi-wide { grid-column: 1 / -1; }
+  .mic label[hidden] { display: none; }
+  .mic .mi-fig { touch-action: pan-y; cursor: grab; border: 1px solid var(--line); }
+  .mic .mi-rlw { max-height: 420px; overflow-y: auto; }
+  .mic input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
