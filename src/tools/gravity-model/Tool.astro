@@ -1,0 +1,305 @@
+---
+// Gravity model of trade or migration: fit k, mass and distance exponents by log-linear OLS and PPML, or predict flows.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gm">
+  <div class="ax-card">
+    <h2>What do you want to do?</h2>
+    <div class="ax-seg gm-mode" role="group" aria-label="Mode">
+      <button type="button" data-m="fit" aria-pressed="true">Fit from flows</button><button type="button" data-m="predict" aria-pressed="false">Predict flows</button>
+    </div>
+    <p class="ax-help gm-what"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Places</h2>
+    <label>One row per place: name, mass (population, GDP, jobs…), then latitude and longitude in decimal degrees if you want distances worked out. A header row is optional.
+      <textarea class="gm-places" rows="8" spellcheck="false" wrap="off">Place	Population (thousands)	Lat	Lon
+Ashford Bay	820	46.20	3.10
+Brimley	310	46.95	4.40
+Coldwater	145	45.60	4.95
+Dunmore	560	47.40	2.30
+Elmstead	95	46.70	5.80
+Fairhaven	230	45.35	2.60
+Greywick	60	47.85	4.10</textarea></label>
+    <DataFile target=".gm-places" maxCols={4} maxRows={2000} />
+    <p class="ax-help">Made-up example towns and flows. Distances from coordinates are great-circle distances in km (haversine, Earth radius 6,371 km).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Flows</h2>
+    <label>One row per pair: origin, destination, flow, and optionally the distance (any unit). With a distance column, coordinates are not needed.
+      <textarea class="gm-flows" rows="9" spellcheck="false" wrap="off">Origin	Destination	Movers
+Ashford Bay	Brimley	371
+Ashford Bay	Coldwater	94
+Ashford Bay	Dunmore	485
+Ashford Bay	Elmstead	44
+Ashford Bay	Fairhaven	408
+Ashford Bay	Greywick	53
+Brimley	Ashford Bay	165
+Brimley	Coldwater	54
+Brimley	Dunmore	152
+Brimley	Elmstead	53
+Brimley	Fairhaven	64
+Brimley	Greywick	66
+Coldwater	Ashford Bay	120
+Coldwater	Brimley	61
+Coldwater	Dunmore	45
+Coldwater	Elmstead	53
+Coldwater	Fairhaven	30
+Coldwater	Greywick	10
+Dunmore	Ashford Bay	628
+Dunmore	Brimley	224
+Dunmore	Coldwater	46
+Dunmore	Elmstead	21
+Dunmore	Fairhaven	61
+Dunmore	Greywick	53
+Elmstead	Ashford Bay	36
+Elmstead	Brimley	63
+Elmstead	Coldwater	39
+Elmstead	Dunmore	14
+Elmstead	Fairhaven	21
+Elmstead	Greywick	6
+Fairhaven	Ashford Bay	372
+Fairhaven	Brimley	39
+Fairhaven	Coldwater	40
+Fairhaven	Dunmore	30
+Fairhaven	Elmstead	0
+Fairhaven	Greywick	9
+Greywick	Ashford Bay	19
+Greywick	Brimley	60
+Greywick	Coldwater	0
+Greywick	Dunmore	40
+Greywick	Elmstead	8
+Greywick	Fairhaven	10</textarea></label>
+    <DataFile target=".gm-flows" maxCols={4} maxRows={50000} />
+
+    <div class="gm-p" data-m="fit">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Mass exponents <select class="gm-same"><option value="0" selected>Separate for origin and destination</option><option value="1">One for both (Mo × Md)</option></select></label>
+      </div>
+      <p class="ax-help">Separate exponents let senders and receivers pull differently, as with emigration and immigration. One exponent fits the classic F = k(Mo·Md)<sup>a</sup>/d<sup>c</sup>.</p>
+    </div>
+    <div class="gm-p" data-m="predict" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Constant k <input class="gm-k" inputmode="decimal" value="1" /></label>
+        <label>Origin mass exponent a <input class="gm-a" inputmode="decimal" value="1" /></label>
+        <label>Destination mass exponent b <input class="gm-b" inputmode="decimal" value="1" /></label>
+        <label>Distance exponent c <input class="gm-c" inputmode="decimal" value="2" /></label>
+        <label>Pairs <select class="gm-pairs"><option value="flows">The pairs in the flows table</option><option value="all">Every pair of places, both ways</option></select></label>
+      </div>
+      <p class="ax-help">F = k · Mo<sup>a</sup> · Md<sup>b</sup> / d<sup>c</sup>. Newton's version is a = b = 1, c = 2; fitted values for migration and trade are often lower. Flows in the table are shown next to the prediction for comparison.</p>
+    </div>
+    <p class="ax-err gm-err" hidden></p>
+  </div>
+
+  <div class="ax-card gm-out" hidden>
+    <h2 class="gm-h"></h2>
+    <p class="ax-big gm-big"></p>
+    <dl class="ax-facts gm-facts"></dl>
+    <div class="gm-cw"><h3>Parameters</h3><div class="ax-scroll"><table class="gm-coef"></table></div></div>
+    <div class="ax-row gm-use-row" style="margin-top:10px"><button type="button" class="btn secondary small gm-use">Predict with the PPML estimates</button></div>
+    <h3 class="gm-fh"></h3>
+    <canvas class="ax-fig gm-fig"></canvas>
+    <h3>Pairs</h3>
+    <div class="ax-scroll gm-tw"><table class="gm-tab"></table></div>
+    <p class="ax-help gm-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gm-csv">Download pairs (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .gm h3 { font-size: 15px; margin: 16px 0 8px; }
+  .gm .gm-tw { max-height: 420px; overflow-y: auto; }
+  .gm .gm-coef td.r, .gm .gm-tab td.r { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { haversine, predict, fitGravity, type Pair, type Coef } from '../../lib/sci/gravitymodel';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'fit', report: Section[] = [], csvRows: (string | number)[][] = [], lastPpml: { k: number; a: number; b: number; c: number } | null = null;
+  const WHAT: Record<string, string> = {
+    fit: 'Estimate k, the mass exponents and the distance decay from observed flows, by log-linear least squares and by Poisson pseudo-maximum likelihood (PPML).',
+    predict: 'Predict the flow between places from their masses and distance with parameters you choose.',
+  };
+  const isNum = (c: string) => Number.isFinite(num(c));
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const pTxt = (p: number) => (p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const flowTxt = (x: number) => (!Number.isFinite(x) ? '–' : x >= 100 ? Math.round(x).toLocaleString('en') : sig(x, 3));
+
+  function readPlaces() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.gm-places').value);
+    const body = rows.length && !isNum(rows[0][1] ?? '') ? rows.slice(1) : rows;
+    const map = new Map<string, { m: number; lat: number; lon: number }>();
+    body.forEach((r, i) => {
+      const name = (r[0] ?? '').trim(), m = num(r[1]);
+      if (!name) return;
+      if (!(m > 0)) throw new Error(`Places row ${i + 1}: the mass of ${name} must be a number above zero.`);
+      const lat = r[2] === undefined || r[2] === '' ? NaN : num(r[2]), lon = r[3] === undefined || r[3] === '' ? NaN : num(r[3]);
+      if (Number.isFinite(lat) && (Math.abs(lat) > 90 || !(Math.abs(lon) <= 180))) throw new Error(`Places row ${i + 1}: latitude must be −90 to 90 and longitude −180 to 180.`);
+      if (map.has(name.toLowerCase())) throw new Error(`${name} is listed twice in places.`);
+      map.set(name.toLowerCase(), { m, lat, lon });
+    });
+    if (map.size < 2) throw new Error('List at least two places with their masses.');
+    return map;
+  }
+  function distance(P: ReturnType<typeof readPlaces>, o: string, d: string) {
+    const a = P.get(o.toLowerCase())!, b = P.get(d.toLowerCase())!;
+    if (!Number.isFinite(a.lat) || !Number.isFinite(b.lat)) throw new Error(`No coordinates for ${!Number.isFinite(a.lat) ? o : d}: add latitude and longitude in places, or a distance column in flows.`);
+    return haversine(a.lat, a.lon, b.lat, b.lon);
+  }
+  function readFlows(P: ReturnType<typeof readPlaces>, needFlow: boolean): { pairs: Pair[]; given: boolean } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.gm-flows').value);
+    // A header row: its origin is not a place and its third cell (if any) is not a number.
+    const body = rows.length && !P.has((rows[0][0] ?? '').trim().toLowerCase()) && !isNum(rows[0][2] ?? '') ? rows.slice(1) : rows;
+    const given = body.some((r) => (r[3] ?? '').trim() !== '');
+    const pairs = body.filter((r) => r.length >= 2 && r[0] && r[1]).map((r, i) => {
+      const [o, d] = [r[0].trim(), r[1].trim()];
+      for (const n of [o, d]) if (!P.has(n.toLowerCase())) throw new Error(`Flows row ${i + 1}: "${n}" is not in the places list.`);
+      if (o.toLowerCase() === d.toLowerCase()) throw new Error(`Flows row ${i + 1}: ${o} to itself has no distance; leave flows within one place out.`);
+      const flow = (r[2] ?? '').trim() === '' ? NaN : num(r[2]);
+      if (needFlow && !(flow >= 0)) throw new Error(`Flows row ${i + 1}: the flow from ${o} to ${d} must be a number of zero or more.`);
+      if (!needFlow && (r[2] ?? '').trim() !== '' && !(flow >= 0)) throw new Error(`Flows row ${i + 1}: "${r[2]}" is not a flow.`);
+      let dist: number;
+      if (given) { dist = num(r[3]); if (!(dist > 0)) throw new Error(`Flows row ${i + 1}: the distance must be a number above zero.`); } else dist = distance(P, o, d);
+      return { o, d, mo: P.get(o.toLowerCase())!.m, md: P.get(d.toLowerCase())!.m, dist, flow };
+    });
+    return { pairs, given };
+  }
+
+  function facts(list: [string, string][]) {
+    const dl = q('.gm-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1 || (sel === '.gm-coef' && i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i > 1 || (sel === '.gm-coef' && i)) td.className = 'r'; }); });
+    return t;
+  }
+  const plotW = () => Math.round(Math.max(330, Math.min(720, q('.gm-out').clientWidth - 34)));
+
+  function runFit(): Section[] {
+    const P = readPlaces(), { pairs, given } = readFlows(P, true);
+    if (pairs.length < 6) throw new Error('Give at least 6 flows to fit the model.');
+    const same = q<HTMLSelectElement>('.gm-same').value === '1';
+    const f = fitGravity(pairs, same);
+    lastPpml = f.ppml.params;
+    q('.gm-h').textContent = 'Fitted gravity model';
+    q('.gm-big').textContent = `Distance exponent c = ${f.ppml.params.c.toFixed(2)} (PPML)`;
+    const fl: [string, string][] = [
+      ['Pairs', `${pairs.length}${f.ols.dropped ? ` (${f.ols.dropped} zero)` : ''}`],
+      ['Distances', given ? 'From the flows table' : 'Great circle from coordinates (km)'],
+      ['OLS R² (log flows)', f3(f.ols.r2)],
+      ['PPML pseudo R²', f3(f.ppml.pseudoR2)],
+      ['OLS distance exponent', f.ols.params.c.toFixed(2)],
+    ];
+    facts(fl);
+    const label: Record<string, string> = { 'ln k': 'ln k (constant)', 'ln Mo': 'a: origin mass', 'ln Md': 'b: destination mass', 'ln(Mo·Md)': 'a: mass (Mo × Md)', 'ln d': 'ln d coefficient (= −c)' };
+    const cell = (c: Coef) => `${f3(c.est)} (${f3(c.se)})`;
+    const crow = f.names.map((n, i) => [label[n] ?? n, cell(f.ols.coefs[i]), pTxt(f.ols.coefs[i].p), cell(f.ppml.coefs[i]), pTxt(f.ppml.coefs[i].p)]);
+    crow.push(['k', sig(f.ols.params.k, 4), '', sig(f.ppml.params.k, 4), '']);
+    const chead = ['Parameter', 'OLS (SE)', 'p', 'PPML (robust SE)', 'p'];
+    table('.gm-coef', chead, crow);
+    q('.gm-cw').hidden = false; q('.gm-use-row').hidden = false;
+
+    const pos = pairs.map((p, i) => i).filter((i) => pairs[i].flow > 0);
+    const all = pos.flatMap((i) => [pairs[i].flow, f.ppml.predicted[i], f.ols.predicted[i]]), lo = Math.min(...all), hi = Math.max(...all);
+    const spec = (w?: number) => chartFigure({ w, h: w && w < 500 ? 340 : 420, xLabel: 'Observed flow', yLabel: 'Predicted flow', xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'PPML', x: pos.map((i) => pairs[i].flow), y: pos.map((i) => f.ppml.predicted[i]), mode: 'points', marker: 'circle' },
+      { name: 'OLS', x: pos.map((i) => pairs[i].flow), y: pos.map((i) => f.ols.predicted[i]), mode: 'points', marker: 'open-square' },
+      { name: 'Perfect fit', x: [lo, hi], y: [lo, hi], mode: 'line', dash: [5, 4], color: '#888888' },
+    ] }, 'Observed against predicted flows, log scales');
+    q('.gm-fh').textContent = 'Observed and predicted flows';
+    paint(q<HTMLCanvasElement>('.gm-fig'), spec(plotW()));
+
+    const head = ['Origin', 'Destination', given ? 'Distance' : 'Distance (km)', 'Observed', 'OLS', 'PPML'];
+    const rows = pairs.map((p, i) => [p.o, p.d, sig(p.dist, 4), flowTxt(p.flow), flowTxt(f.ols.predicted[i]), flowTxt(f.ppml.predicted[i])]);
+    table('.gm-tab', head, rows);
+    csvRows = [['Origin', 'Destination', given ? 'Distance' : 'Distance_km', 'Mass_origin', 'Mass_destination', 'Observed', 'Predicted_OLS', 'Predicted_PPML'], ...pairs.map((p, i) => [p.o, p.d, +p.dist.toPrecision(8), p.mo, p.md, p.flow, +f.ols.predicted[i].toPrecision(8), +f.ppml.predicted[i].toPrecision(8)])];
+    q('.gm-note').textContent = `F = k · Mo^a · Md^b / d^c. A distance exponent of ${f.ppml.params.c.toFixed(2)} means doubling the distance divides the flow by ${(2 ** f.ppml.params.c).toFixed(2)}. ` +
+      `OLS fits log(flow), so it must drop zero flows${f.ols.dropped ? ` (${f.ols.dropped} here)` : ''} and is biased when the scatter grows with the flow; PPML keeps the zeros and is the usual choice for trade and migration (Santos Silva and Tenreyro 2006). PPML standard errors are robust (sandwich). ` +
+      'OLS predictions are exp(fitted log flow), without a retransformation correction.' + (f.ppml.converged ? '' : ' Warning: PPML did not fully converge.');
+    return [
+      { title: 'Fitted gravity model', facts: [['Distance exponent c (PPML)', f.ppml.params.c.toFixed(3)], ...fl] },
+      { title: 'Parameters', table: { head: chead, rows: crow, align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Observed and predicted flows', figure: spec() },
+      { title: 'Pairs', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r'] }, note: q('.gm-note').textContent! },
+    ];
+  }
+
+  function param(c: string, label: string) { const v = num(q<HTMLInputElement>(c).value); if (!Number.isFinite(v)) throw new Error(`${label} must be a number.`); return v; }
+  function runPredict(): Section[] {
+    const P = readPlaces();
+    const p = { k: param('.gm-k', 'Constant k'), a: param('.gm-a', 'Origin mass exponent a'), b: param('.gm-b', 'Destination mass exponent b'), c: param('.gm-c', 'Distance exponent c') };
+    if (!(p.k > 0)) throw new Error('Constant k must be above zero.');
+    let pairs: Pair[], given = false;
+    if (q<HTMLSelectElement>('.gm-pairs').value === 'all') {
+      const names = parseTable(q<HTMLTextAreaElement>('.gm-places').value).map((r) => (r[0] ?? '').trim()).filter((n) => P.has(n.toLowerCase()));
+      if (names.length > 300) throw new Error('Every pair of more than 300 places is too many to list; use the flows table instead.');
+      pairs = names.flatMap((o) => names.filter((d) => d !== o).map((d) => ({ o, d, mo: P.get(o.toLowerCase())!.m, md: P.get(d.toLowerCase())!.m, dist: distance(P, o, d), flow: NaN })));
+    } else ({ pairs, given } = readFlows(P, false));
+    if (!pairs.length) throw new Error('No pairs: fill in the flows table or choose every pair of places.');
+    const pred = pairs.map((x) => predict(p, x.mo, x.md, x.dist));
+    const hasObs = pairs.some((x) => Number.isFinite(x.flow));
+    q('.gm-h').textContent = 'Predicted flows';
+    const total = pred.reduce((s, x) => s + x, 0), top = pairs[pred.indexOf(Math.max(...pred))];
+    q('.gm-big').textContent = `Total ${flowTxt(total)}`;
+    const fl: [string, string][] = [['Pairs', String(pairs.length)], ['Largest flow', `${top.o} → ${top.d}`], ['Model', `F = ${sig(p.k, 4)} · Mo^${p.a} · Md^${p.b} / d^${p.c}`]];
+    if (hasObs) { const obs = pairs.reduce((s, x) => s + (Number.isFinite(x.flow) ? x.flow : 0), 0); fl.push(['Observed total', flowTxt(obs)]); }
+    facts(fl);
+    q('.gm-cw').hidden = true; q('.gm-use-row').hidden = true;
+    const spec = (w?: number) => chartFigure({ w, h: w && w < 500 ? 340 : 420, xLabel: given ? 'Distance' : 'Distance (km)', yLabel: 'Flow', xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'Predicted', x: pairs.map((x) => x.dist), y: pred, mode: 'points', marker: 'circle' },
+      ...(hasObs ? [{ name: 'Observed', x: pairs.filter((x) => x.flow > 0).map((x) => x.dist), y: pairs.filter((x) => x.flow > 0).map((x) => x.flow), mode: 'points' as const, marker: 'open-square' as const }] : []),
+    ] }, 'Flow against distance, log scales');
+    q('.gm-fh').textContent = 'Flow against distance';
+    paint(q<HTMLCanvasElement>('.gm-fig'), spec(plotW()));
+    const head = ['Origin', 'Destination', given ? 'Distance' : 'Distance (km)', 'Predicted', ...(hasObs ? ['Observed'] : [])];
+    const rows = pairs.map((x, i) => [x.o, x.d, sig(x.dist, 4), flowTxt(pred[i]), ...(hasObs ? [flowTxt(x.flow)] : [])]);
+    table('.gm-tab', head, rows);
+    csvRows = [['Origin', 'Destination', given ? 'Distance' : 'Distance_km', 'Mass_origin', 'Mass_destination', 'Predicted', ...(hasObs ? ['Observed'] : [])], ...pairs.map((x, i) => [x.o, x.d, +x.dist.toPrecision(8), x.mo, x.md, +pred[i].toPrecision(8), ...(hasObs ? [Number.isFinite(x.flow) ? x.flow : ''] : [])])];
+    q('.gm-note').textContent = `Each flow is k · Mo^a · Md^b / d^c. With c = ${p.c}, doubling the distance divides the flow by ${sig(2 ** p.c, 3)}. The constant k only scales every flow; it depends on the units of mass, distance and flow.`;
+    return [
+      { title: 'Predicted flows', facts: [['Total predicted', flowTxt(total)], ...fl] },
+      { title: 'Flow against distance', figure: spec() },
+      { title: 'Pairs', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r'] }, note: q('.gm-note').textContent! },
+    ];
+  }
+
+  function calc() {
+    const err = q('.gm-err');
+    try {
+      err.hidden = true; q('.gm-out').hidden = false;
+      report = mode === 'fit' ? runFit() : runPredict();
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.gm-out').hidden = true; report = []; csvRows = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.gm-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.gm-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.gm-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.gm-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  q('.gm-use').addEventListener('click', () => {
+    if (!lastPpml) return;
+    q<HTMLInputElement>('.gm-k').value = sig(lastPpml.k, 5); q<HTMLInputElement>('.gm-a').value = lastPpml.a.toFixed(4);
+    q<HTMLInputElement>('.gm-b').value = lastPpml.b.toFixed(4); q<HTMLInputElement>('.gm-c').value = lastPpml.c.toFixed(4);
+    setMode('predict');
+  });
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.gm-csv').addEventListener('click', () => csvRows.length > 1 && save(new Blob([csv(csvRows)], { type: 'text/csv' }), `gravity-${mode === 'fit' ? 'fit' : 'prediction'}.csv`, 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: mode === 'fit' ? 'Gravity model fit' : 'Gravity model prediction', file: `gravity-${mode === 'fit' ? 'fit' : 'prediction'}`, sections: report }));
+  setMode('fit');
+</script>
