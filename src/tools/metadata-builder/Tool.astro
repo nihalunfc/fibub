@@ -1,0 +1,147 @@
+---
+// Metadata builder: forms for Dublin Core, DataCite 4.5 and Darwin Core occurrence records, with checks, exported as
+// XML, JSON or CSV. The schemas, checks and writers are in src/lib/sci/metadata.ts. Nothing is sent or stored.
+import '../../styles/astro.css';
+---
+<div class="ax mdb">
+  <div class="ax-card">
+    <h2>Standard</h2>
+    <div class="ax-seg md-std" role="group" aria-label="Metadata standard">
+      <button type="button" data-s="datacite" aria-pressed="true">DataCite</button><button type="button" data-s="dc" aria-pressed="false">Dublin Core</button><button type="button" data-s="dwc" aria-pressed="false">Darwin Core</button>
+    </div>
+    <p class="ax-help md-ref"></p>
+    <p class="ax-help md-note"></p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small md-ex">Fill in the example</button>
+      <button type="button" class="btn secondary small md-clear">Clear the form</button>
+    </div>
+    <p class="ax-help">What you type stays on this page and is not saved; download the record before you leave. The example is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fields</h2>
+    <div class="md-form"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check</h2>
+    <p class="ax-big md-big" aria-live="polite"></p>
+    <ul class="md-issues"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Record</h2>
+    <div class="ax-seg md-fmt" role="group" aria-label="Format">
+      <button type="button" data-f="xml" aria-pressed="true">XML</button><button type="button" data-f="json" aria-pressed="false">JSON</button><button type="button" data-f="csv" aria-pressed="false">CSV</button>
+    </div>
+    <p class="ax-help md-fhelp"></p>
+    <pre class="md-out" tabindex="0"></pre>
+    <div class="ax-row">
+      <button type="button" class="btn small md-dl">Download</button>
+      <button type="button" class="btn secondary small md-copy">Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { SCHEMAS, EXAMPLES, LICENCES, validate, toXml, toJson, toCsv, type SchemaId, type Values } from '../../lib/sci/metadata';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mdb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let schema: SchemaId = 'datacite', fmt: 'xml' | 'json' | 'csv' = 'xml';
+  const values: Record<SchemaId, Values> = { dc: {}, datacite: {}, dwc: {} };
+  const FHELP: Record<SchemaId, Record<string, string>> = {
+    datacite: { xml: 'DataCite XML (kernel-4, schema 4.5), as repositories and the DataCite Fabrica form accept.', json: 'DataCite JSON, the same properties as the DataCite REST API uses.', csv: 'One row per property, with paths such as creators[0].name.' },
+    dc: { xml: 'An oai_dc record (the Dublin Core format of OAI-PMH, which repositories harvest).', json: 'Each element with its value, or a list for repeated ones.', csv: 'One row per element and value.' },
+    dwc: { xml: 'Simple Darwin Core XML: one SimpleDarwinRecord.', json: 'Term names as keys, as biodiversity portals use.', csv: 'An occurrence-core table: term names across the top, this record below. Add rows for more records.' },
+  };
+
+  function build() {
+    const S = SCHEMAS[schema], form = q('.md-form');
+    form.replaceChildren();
+    q('.md-ref').textContent = `Term names follow ${S.ref}.`;
+    q('.md-note').textContent = S.note;
+    let group = '';
+    for (const f of S.fields) {
+      if (f.group && f.group !== group) { group = f.group; const h = document.createElement('h3'); h.textContent = f.group; form.append(h); }
+      const lab = document.createElement('label'); lab.className = 'md-f'; lab.dataset.id = f.id;
+      const top = document.createElement('span'); top.className = 'md-lab';
+      const name = document.createElement('span'); name.textContent = f.label; top.append(name);
+      const tag = document.createElement('span'); tag.className = `ax-pill ${f.req === 'required' ? 'warn' : ''}`; tag.textContent = f.req; top.append(' ', tag);
+      lab.append(top);
+      let input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      if (f.kind === 'select') {
+        input = document.createElement('select');
+        for (const o of f.options!) input.append(new Option(o === '' ? '(none)' : f.id === 'rights' || f.id === 'license' ? `${o} (${LICENCES.find((l) => l.id === o)?.name ?? ''})` : o, o));
+      } else if (f.kind === 'long' || f.kind === 'lines') { input = document.createElement('textarea'); input.rows = f.kind === 'long' ? 4 : 3; }
+      else {
+        input = document.createElement('input'); input.type = 'text';
+        if (['lat', 'lon', 'num', 'int', 'year'].includes(f.kind)) input.inputMode = f.kind === 'int' || f.kind === 'year' ? 'numeric' : 'decimal';
+        if (f.options) { const dl = document.createElement('datalist'); dl.id = `md-dl-${f.id}`; f.options.filter(Boolean).forEach((o) => dl.append(new Option(o))); lab.append(dl); input.setAttribute('list', dl.id); }
+      }
+      input.className = 'md-in'; input.dataset.id = f.id;
+      if (f.placeholder) (input as HTMLInputElement).placeholder = f.placeholder;
+      input.value = values[schema][f.id] ?? (f.kind === 'select' ? (f.options![0] ?? '') : '');
+      if (f.kind === 'select' && !values[schema][f.id]) values[schema][f.id] = input.value;
+      const help = document.createElement('small'); help.className = 'md-help'; help.textContent = f.help;
+      const msg = document.createElement('small'); msg.className = 'md-msg'; msg.hidden = true;
+      lab.append(input, help, msg);
+      form.append(lab);
+    }
+    update();
+  }
+
+  function update() {
+    const v = values[schema], iss = validate(schema, v);
+    const errs = iss.filter((i) => i.level === 'error'), warns = iss.filter((i) => i.level === 'warn');
+    q('.md-big').textContent = errs.length ? `${errs.length} problem${errs.length > 1 ? 's' : ''} to fix${warns.length ? `, ${warns.length} to look at` : ''}` : warns.length ? `Valid, ${warns.length} thing${warns.length > 1 ? 's' : ''} to look at` : 'Valid: all checks pass';
+    q('.md-big').className = `ax-big md-big ${errs.length ? 'md-bad' : 'md-good'}`;
+    const ul = q('.md-issues'), key = JSON.stringify(iss);
+    if (ul.dataset.key !== key) { ul.dataset.key = key; ul.replaceChildren(); }
+    if (!ul.children.length) for (const i of iss) { const li = document.createElement('li'); li.className = `md-${i.level}`; const a = document.createElement('a'); a.href = '#'; a.dataset.id = i.id; a.textContent = i.msg; li.append(a); ul.append(li); }
+    root.querySelectorAll<HTMLElement>('.md-f').forEach((l) => {
+      const mine = iss.filter((i) => i.id === l.dataset.id), m = l.querySelector<HTMLElement>('.md-msg')!;
+      l.classList.toggle('md-has-err', mine.some((i) => i.level === 'error'));
+      m.hidden = !mine.length; m.textContent = mine.map((i) => i.msg).join(' ');
+    });
+    q('.md-fhelp').textContent = FHELP[schema][fmt];
+    q('.md-out').textContent = text();
+  }
+  const text = () => (fmt === 'xml' ? toXml(schema, values[schema]) : fmt === 'json' ? JSON.stringify(toJson(schema, values[schema]), null, 2) + '\n' : toCsv(schema, values[schema]));
+
+  q('.md-form').addEventListener('input', (e) => { const t = e.target as HTMLInputElement; if (t.dataset.id) { values[schema][t.dataset.id] = t.value; update(); } });
+  // Text boxes also fire "change" when they lose focus; only update when the value really changed, so a tap on a
+  // message in the Check list is not lost while the list is redrawn.
+  q('.md-form').addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.dataset.id && values[schema][t.dataset.id] !== t.value) { values[schema][t.dataset.id] = t.value; update(); } });
+  q('.md-issues').addEventListener('click', (e) => { const a = (e.target as HTMLElement).closest('a'); if (!a) return; e.preventDefault(); const i = root.querySelector<HTMLElement>(`.md-in[data-id="${a.dataset.id}"]`); i?.scrollIntoView({ block: 'center' }); i?.focus(); });
+  q('.md-std').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; schema = b.dataset.s as SchemaId; q('.md-std').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); build(); });
+  q('.md-fmt').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; fmt = b.dataset.f as typeof fmt; q('.md-fmt').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update(); });
+  q('.md-ex').addEventListener('click', () => { values[schema] = { ...EXAMPLES[schema] }; build(); });
+  q('.md-clear').addEventListener('click', () => { values[schema] = {}; build(); });
+  const NAMES: Record<SchemaId, string> = { datacite: 'datacite', dc: 'dublin-core', dwc: 'darwin-core' };
+  const TYPES = { xml: 'application/xml', json: 'application/json', csv: 'text/csv' };
+  q('.md-dl').addEventListener('click', () => save(new Blob([text()], { type: TYPES[fmt] }), `${NAMES[schema]}-metadata.${fmt}`, TYPES[fmt]));
+  q('.md-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(text()); q('.md-copy').textContent = 'Copied'; setTimeout(() => { q('.md-copy').textContent = 'Copy'; }, 1500); } catch { /* the text is on the page to select */ } });
+  values.datacite = { ...EXAMPLES.datacite };
+  build();
+</script>
+
+<style is:global>
+  .mdb h3 { font-size: 15px; margin: 18px 0 4px; }
+  .mdb .md-f { display: block; margin-top: 12px; }
+  .mdb .md-lab { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 600; overflow-wrap: anywhere; }
+  .mdb .md-in { width: 100%; margin-top: 4px; }
+  .mdb textarea.md-in { font: inherit; }
+  .mdb select.md-in { max-width: 100%; }
+  .mdb .md-help { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .mdb .md-msg { display: block; color: var(--bad); font-size: 13px; margin-top: 2px; }
+  .mdb .md-has-err .md-in { border-color: var(--bad); }
+  .mdb .md-good { color: var(--good); }
+  .mdb .md-bad { color: var(--bad); }
+  .mdb .md-issues { padding-left: 18px; margin: 0; }
+  .mdb .md-issues li { margin: 4px 0; }
+  .mdb .md-issues .md-error a { color: var(--bad); }
+  .mdb .md-issues .md-warn a { color: var(--warn); }
+  .mdb .md-out { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; max-height: 420px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0; }
+</style>
