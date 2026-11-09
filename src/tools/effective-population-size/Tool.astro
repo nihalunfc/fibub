@@ -1,0 +1,199 @@
+---
+// Effective population size: sex ratio, fluctuating size, variance in family size and the temporal method.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const temporal = 'Locus\tAt start\tAfter t\nL1\t0.42\t0.35\nL2\t0.18\t0.27\nL3\t0.55\t0.61\nL4\t0.30\t0.22\nL5\t0.71\t0.80\nL6\t0.12\t0.05\nL7\t0.48\t0.40\nL8\t0.36\t0.44\nL9\t0.65\t0.58\nL10\t0.24\t0.31\nL11 a1\t0.50\t0.42\nL11 a2\t0.30\t0.38\nL11 a3\t0.20\t0.20';
+---
+<div class="ax nes">
+  <div class="ax-card">
+    <h2>Estimator</h2>
+    <div class="ax-seg ne-mode" role="group" aria-label="Estimator">
+      <button type="button" data-m="sex" aria-pressed="true">Sex ratio</button>
+      <button type="button" data-m="fluct" aria-pressed="false">Changing size</button>
+      <button type="button" data-m="family" aria-pressed="false">Family size</button>
+      <button type="button" data-m="temporal" aria-pressed="false">Temporal</button>
+    </div>
+
+    <div class="ne-p" data-p="sex">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Breeding males <input class="ne-nm" inputmode="numeric" value="10" /></label>
+        <label>Breeding females <input class="ne-nf" inputmode="numeric" value="90" /></label>
+      </div>
+      <p class="ax-help">Ne = 4 Nm Nf / (Nm + Nf) (Wright 1931). When few males father all the young, the population loses diversity as if it were much smaller.</p>
+    </div>
+
+    <div class="ne-p" data-p="fluct" hidden>
+      <label style="margin-top:12px">Breeding population size in each generation (commas, spaces or one per line)
+        <textarea class="ne-sizes" rows="3" spellcheck="false">500, 40, 600, 800, 1000</textarea></label>
+      <p class="ax-help">Ne over these generations is the harmonic mean, which the smallest sizes (bottlenecks) dominate. Up to 10,000 generations.</p>
+    </div>
+
+    <div class="ne-p" data-p="family" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Enter <select class="ne-fsrc"><option value="vk" selected>N and the variance Vk</option><option value="list">Offspring of each parent</option></select></label>
+        <label class="ne-vkbox">Parents N <input class="ne-fn" inputmode="numeric" value="100" /></label>
+        <label class="ne-vkbox">Variance in offspring number Vk <input class="ne-vk" inputmode="decimal" value="6" /></label>
+      </div>
+      <label class="ne-listbox" hidden>Number of offspring that survived to breed, one value per parent
+        <textarea class="ne-klist" rows="3" spellcheck="false">0, 1, 1, 2, 2, 2, 3, 3, 4, 6, 0, 2</textarea></label>
+      <p class="ax-help">Ne = (4N − 2) / (Vk + 2) for a population of stable size, where each parent leaves 2 offspring on average. Random (Poisson) family sizes have Vk = 2, giving Ne close to N; uneven breeding success (large Vk) lowers Ne. From a list, Vk is the variance over all parents listed (dividing by N).</p>
+    </div>
+
+    <div class="ne-p" data-p="temporal" hidden>
+      <label style="margin-top:12px">Allele frequencies at the start and t generations later: one row per locus (locus, frequency, frequency), or one row per allele with a shared locus name before a space (as L11 below).
+        <textarea class="ne-tdata" rows="8" spellcheck="false" wrap="off">{temporal}</textarea></label>
+      <DataFile target=".ne-tdata" maxCols={10} maxRows={20000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Individuals sampled at the start S₀ <input class="ne-s0" inputmode="numeric" value="100" /></label>
+        <label>Individuals sampled later S<sub>t</sub> <input class="ne-st" inputmode="numeric" value="100" /></label>
+        <label>Generations between t <input class="ne-t" inputmode="decimal" value="5" /></label>
+        <label>Sampling <select class="ne-plan"><option value="1" selected>Plan I: after breeding, or returned</option><option value="2">Plan II: before breeding, not returned</option></select></label>
+        <label class="ne-nbox" hidden>Census size N at the start <input class="ne-cn" inputmode="numeric" value="500" /></label>
+        <label>Interval <select class="ne-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      </div>
+      <p class="ax-help">Nei and Tajima's Fc measures how far the frequencies moved; Waples (1989) removes the part due to sampling only S individuals and turns the rest into Ne = t / (2 (Fc − 1/(2S₀) − 1/(2S<sub>t</sub>))). Plan II (individuals taken before they breed, and not put back) adds 1/N. A locus with one row is taken as two alleles. The example frequencies are made up.</p>
+    </div>
+    <p class="ax-err ne-err" hidden></p>
+  </div>
+
+  <div class="ax-card ne-out">
+    <h2>Result</h2>
+    <p class="ax-big ne-big"></p>
+    <dl class="ax-facts ne-facts"></dl>
+    <canvas class="ax-fig ne-fig"></canvas>
+    <div class="ne-tabw" hidden><h3>Each locus</h3><div class="ax-scroll"><table class="ne-tab"></table></div></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ne-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { neSexRatio, neHarmonic, neFamily, offspringStats, neTemporal, lociFromRows } from '../../lib/sci/nesize';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.nes')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const ne = (x: number) => (Number.isFinite(x) ? String(+x.toPrecision(4)).replace('-', '−') : 'infinite');
+  const f3 = (x: number) => String(+x.toPrecision(3));
+  const numbers = (s: string) => s.split(/[\s,;]+/).filter(Boolean).map(num);
+  let mode = 'sex', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.ne-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.ne-err').textContent = m; q('.ne-err').hidden = false; q('.ne-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.ne-err').hidden = true;
+    root.querySelectorAll<HTMLElement>('.ne-p').forEach((p) => (p.hidden = p.dataset.p !== mode));
+    let big = '', facts: [string, string, string][] = [], text = '', tab: { head: string[]; rows: string[][] } | null = null;
+    fig = null;
+    if (mode === 'sex') {
+      const Nm = val('.ne-nm'), Nf = val('.ne-nf');
+      if (!(Nm > 0 && Nf > 0)) return fail('Give at least one breeding male and one breeding female.');
+      const N = Nm + Nf, v = neSexRatio(Nm, Nf);
+      big = `Ne = ${ne(v)}`;
+      facts = [['Census of breeders N', sig(N, 6), `${sig(Nm, 6)} males, ${sig(Nf, 6)} females`], ['Ne / N', sig(v / N, 3), 'equal numbers give 1'], ['Share of males', `${sig((100 * Nm) / N, 3)} %`, '']];
+      text = 'Ne = 4 Nm Nf / (Nm + Nf) (Wright 1931).';
+      const xs = Array.from({ length: 99 }, (_, i) => (i + 1) / 100);
+      fig = chartFigure({ h: 300, xMin: 0, xMax: 100, yMin: 0, yMax: 1, xLabel: 'Males among breeders (%)', yLabel: 'Ne / N', legend: 'none', series: [
+        { name: 'Ne / N', x: xs.map((x) => 100 * x), y: xs.map((x) => 4 * x * (1 - x)), mode: 'line' },
+        { name: 'This population', x: [(100 * Nm) / N], y: [v / N], mode: 'points', size: 5 },
+      ] }, 'Ne as a share of breeders against the share of males');
+    } else if (mode === 'fluct') {
+      const s = numbers(q<HTMLTextAreaElement>('.ne-sizes').value);
+      if (s.length < 1 || s.some((v) => !(v > 0))) return fail('Give one size above zero for each generation, separated by commas or spaces.');
+      if (s.length > 10000) return fail('Up to 10,000 generations, please.');
+      const h = neHarmonic(s);
+      big = `Ne = ${ne(h.Ne)}`;
+      facts = [['Generations', String(h.t), ''], ['Arithmetic mean size', sig(h.arithmetic, 4), 'the plain average, for comparison'], ['Smallest size', sig(Math.min(...s), 4), 'bottlenecks weigh most'], ['Ne / mean size', sig(h.Ne / h.arithmetic, 3), '']];
+      text = 'Ne over the generations is the harmonic mean of the sizes: t / Σ(1/Nᵢ).';
+      fig = chartFigure({ h: 300, yMin: 0, xLabel: 'Generation', yLabel: 'Population size', legend: 'none', series: [{ name: 'Size', x: s.map((_, i) => i + 1), y: s, mode: s.length > 60 ? 'line' : 'both' }],
+        marks: [{ kind: 'hline', at: h.arithmetic, label: 'arithmetic mean' }, { kind: 'hline', at: h.Ne, label: 'Ne (harmonic)', dash: [2, 3] }] }, 'Population size by generation with the harmonic and arithmetic means');
+    } else if (mode === 'family') {
+      const list = q<HTMLSelectElement>('.ne-fsrc').value === 'list';
+      root.querySelectorAll<HTMLElement>('.ne-vkbox').forEach((e) => (e.hidden = list)); q('.ne-listbox').hidden = !list;
+      let N: number, Vk: number, mean = 2;
+      if (list) {
+        const k = numbers(q<HTMLTextAreaElement>('.ne-klist').value);
+        if (k.length < 2 || k.some((v) => !(Number.isInteger(v) && v >= 0))) return fail('List at least two parents, each with a whole number of offspring (0 or more).');
+        if (k.length > 100000) return fail('Up to 100,000 parents, please.');
+        ({ N, Vk, mean } = offspringStats(k));
+      } else {
+        N = val('.ne-fn'); Vk = val('.ne-vk');
+        if (!(Number.isInteger(N) && N >= 2)) return fail('The number of parents N must be a whole number of 2 or more.');
+        if (!(Vk >= 0)) return fail('The variance Vk must be zero or more.');
+      }
+      const v = neFamily(N, Vk);
+      big = `Ne = ${ne(v)}`;
+      facts = [['Parents N', sig(N, 6), ''], ['Variance Vk', sig(Vk, 4), Vk < 2 ? 'below Poisson (2): more even than random, Ne above N' : Vk > 2 ? 'above Poisson (2): uneven success lowers Ne' : 'Poisson'], ['Ne / N', sig(v / N, 3), ''],
+        ...(list ? [['Mean offspring k̄', sig(mean, 4), Math.abs(mean - 2) > 0.2 ? 'not 2: the formula assumes a stable population, so read Ne as a rough guide' : 'close to 2, as the formula assumes'] as [string, string, string]] : [])];
+      text = 'Ne = (4N − 2) / (Vk + 2) (Crow and Kimura 1970), for a population of stable size.';
+      const xs = Array.from({ length: 101 }, (_, i) => (i * Math.max(10, Vk * 1.5)) / 100);
+      fig = chartFigure({ h: 300, yMin: 0, xLabel: 'Variance in offspring number Vk', yLabel: 'Ne', legend: 'none', series: [
+        { name: 'Ne', x: xs, y: xs.map((x) => neFamily(N, x)), mode: 'line' }, { name: 'This population', x: [Vk], y: [v], mode: 'points', size: 5 },
+      ], marks: [{ kind: 'vline', at: 2, label: 'Poisson' }] }, `Ne against the variance in family size for N = ${N}`);
+    } else {
+      const S0 = val('.ne-s0'), St = val('.ne-st'), t = val('.ne-t'), plan = Number(q<HTMLSelectElement>('.ne-plan').value) as 1 | 2, conf = Number(q<HTMLSelectElement>('.ne-conf').value);
+      q('.ne-nbox').hidden = plan !== 2;
+      const rows: { locus: string; x: number; y: number }[] = [];
+      for (const r of parseTable(q<HTMLTextAreaElement>('.ne-tdata').value)) {
+        const c = r.filter((x) => x.trim() !== '');
+        if (c.length < 3 || !Number.isFinite(num(c[c.length - 1])) || !Number.isFinite(num(c[c.length - 2]))) { if (rows.length) return fail(`Each row needs a locus name and two frequencies. Check "${r.join(' ').slice(0, 30)}".`); continue; }
+        const x = num(c[c.length - 2]), y = num(c[c.length - 1]);
+        if (!(x >= 0 && x <= 1 && y >= 0 && y <= 1)) return fail(`Frequencies must be between 0 and 1 (locus ${c[0]}).`);
+        rows.push({ locus: c[0].trim().split(/\s+/)[0], x, y });
+      }
+      if (!rows.length) return fail('Paste at least one locus: a name, the allele frequency at the start, and t generations later.');
+      if (!(Number.isInteger(S0) && S0 >= 1 && Number.isInteger(St) && St >= 1)) return fail('The numbers of individuals sampled must be whole numbers of 1 or more.');
+      if (!(t > 0)) return fail('The generations between samples must be above zero.');
+      const N = plan === 2 ? val('.ne-cn') : Infinity;
+      if (plan === 2 && !(N >= Math.max(S0, St))) return fail('For plan II give the census size N, at least as large as the samples.');
+      const loci = lociFromRows(rows);
+      const bad = loci.find((l) => Math.abs(l.x.reduce((a, b) => a + b, 0) - 1) > 0.01 || Math.abs(l.y.reduce((a, b) => a + b, 0) - 1) > 0.01);
+      if (bad) return fail(`The allele frequencies at locus ${bad.name} add up to more than 1.`);
+      const r = neTemporal(loci, S0, St, t, plan, N, conf), cl = `${Math.round(conf * 100)} %`;
+      big = `Ne = ${ne(r.Ne)}` + (Number.isFinite(r.Ne) ? ` (${cl} interval ${ne(r.lo)} to ${ne(r.hi)})` : '');
+      facts = [['Fc', sig(r.Fc, 4), `Nei and Tajima, mean over ${loci.length} loci weighted by alleles − 1`], ['Sampling part', sig(r.corr, 4), plan === 2 ? '1/(2S₀) + 1/(2Sₜ) − 1/N' : '1/(2S₀) + 1/(2Sₜ)'],
+        ['Drift part Fc − sampling', sig(r.Fdrift, 4), r.Fdrift <= 0 ? 'zero or less: the change is no bigger than sampling alone makes, so Ne is too large to measure' : ''], ['Independent alleles n′', String(r.nprime), `the interval uses chi-square with ${r.nprime} df`],
+        [`Ne ${cl} interval`, `${ne(r.lo)} to ${ne(r.hi)}`, 'Waples (1989)']];
+      text = `Temporal method: Ne = t / (2 (Fc − 1/(2S₀) − 1/(2Sₜ)${plan === 2 ? ' + 1/N' : ''})), t = ${t}, S₀ = ${S0}, Sₜ = ${St}${plan === 2 ? `, N = ${N}` : ''}.`;
+      tab = { head: ['Locus', 'Alleles', 'Start', 'Later', 'Fc'], rows: loci.map((l, i) => [l.name, String(l.x.length), l.x.map(f3).join(' / '), l.y.map(f3).join(' / '), sig(r.per[i].Fc, 4)]) };
+      const xs = loci.flatMap((l) => (l.x.length === 2 ? [l.x[0]] : l.x)), ys = loci.flatMap((l) => (l.y.length === 2 ? [l.y[0]] : l.y));
+      fig = chartFigure({ h: 340, xMin: 0, xMax: 1, yMin: 0, yMax: 1, xLabel: 'Frequency at the start', yLabel: `Frequency after ${t} generations`, legend: 'none', series: [
+        { name: 'No change', x: [0, 1], y: [0, 1], mode: 'line', dash: [4, 4] }, { name: 'Alleles', x: xs, y: ys, mode: 'points' },
+      ] }, 'Allele frequencies at the start against later; distance from the diagonal is the change');
+    }
+    q('.ne-out').hidden = false;
+    q('.ne-big').textContent = big;
+    q('.ne-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    if (fig) paint(q<HTMLCanvasElement>('.ne-fig'), fig);
+    q('.ne-tabw').hidden = !tab;
+    if (tab) table(tab.head, tab.rows);
+    csvRows = [['Quantity', 'Value'], ['Ne', big.replace(/^Ne = /, '')], ...facts.map(([k, v]) => [k, v]), ...(tab ? [[], tab.head, ...tab.rows] : [])];
+    sections = [{ title: big, text: [text], facts: facts.map(([k, v]) => [k, v] as [string, string]), ...(fig ? { figure: fig } : {}), ...(tab ? { table: { ...tab, align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } } : {}) }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ne-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m!; q('.ne-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc();
+  });
+  q('.ne-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), `effective-size-${mode}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ne-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Effective population size', subtitle: q('.ne-big').textContent ?? '', file: `effective-size-${mode}`, sections }));
+</script>
+
+<style is:global>
+  .nes select { max-width: 100%; }
+</style>
