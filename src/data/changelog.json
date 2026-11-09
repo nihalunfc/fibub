@@ -1,5 +1,14 @@
 [
  {
+  "sha": "268a0eef3784",
+  "date": "2026-11-09T09:35:05+00:00",
+  "title": "Add #180 gel and western blot densitometry; per-tool test files",
+  "tools": [
+   "gel-densitometry"
+  ],
+  "site": false
+ },
+ {
   "sha": "8ca68e5d6534",
   "date": "2026-11-09T09:14:46+00:00",
   "title": "Add #179 peptide mass and fragment ion calculator",
