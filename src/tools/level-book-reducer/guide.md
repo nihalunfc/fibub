@@ -29,6 +29,8 @@ Levelling finds heights. A level is set up, a staff is read on a point of known 
 
 This tool reduces a whole book by both classic methods, **height of collimation** and **rise and fall**. It runs every arithmetic check, compares the end with a known benchmark or with the start of a loop, tests the misclosure against a limit you set, shares the error out and draws the profile. Nothing leaves your browser.
 
+For horizontal positions from a survey, use the [[traverse-calculator]]; to turn well levels into a groundwater gradient, the [[darcy-flow-calculator]].
+
 ## How to use it
 
 1. Paste or open the book: one row per reading with **station, BS, IS, FS**, and optionally **distance** and **remarks**. Separate the columns with tabs or commas and leave empty cells blank. A change point has its FS and BS on the same row.

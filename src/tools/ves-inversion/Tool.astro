@@ -146,7 +146,7 @@ const demo = 'AB/2\tMN/2\tdV_mV\tI_mA\n1\t0.5\t4992\t100\n1.5\t0.5\t1832\t100\n2
   wireDownloads(q('.dl'), () => ({ title: 'Resistivity sounding', subtitle: q('.vs-big').textContent ?? '', file: 'ves-sounding', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ves select, .ves input { max-width: 100%; }
   .ves textarea { width: 100%; }
   .ves td { white-space: nowrap; }

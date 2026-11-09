@@ -24,6 +24,8 @@ flow:
 
 A link budget adds up every gain and loss between a transmitter and a receiver to see whether enough signal arrives to decode the data. It is the first sum in any satellite, CubeSat or long-range radio design. This calculator works it through line by line, from transmit power and antenna gains to free-space loss, noise and the energy per bit. It gives the margin left over, the fastest data rate that would still work, and a chart of the margin through a satellite pass from horizon to overhead.
 
+To see when the satellite passes over your station, use the [[satellite-tracker]]; for the receiving dish itself, the [[radio-telescope-calculator]].
+
 ## How to use it
 
 1. Pick an **example** or type your own **frequency**.

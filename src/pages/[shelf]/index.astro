@@ -4,10 +4,12 @@ import ToolCard from '../../components/ToolCard.astro';
 import SoonList from '../../components/SoonList.astro';
 import { SHELVES, SECTIONS, SUBJECTS } from '../../site';
 import { allTools, bySection, bySubject } from '../../lib/tools';
+import { collectionLd } from '../../lib/seo';
 export function getStaticPaths() {
   return SHELVES.map((s) => ({ params: { shelf: s.id }, props: { shelf: s } }));
 }
 const { shelf } = Astro.props;
+const desc = `Free ${shelf.name.toLowerCase()} tools that run in your browser. ${shelf.blurb}`;
 const tools = await allTools();
 const live = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'live');
 const soon = tools.filter((t) => t.data.shelf === shelf.id && t.data.status === 'soon');
@@ -16,7 +18,7 @@ const groups = bySection(shelf.id, live);
 // Science: a grid of subjects, each with its sections; the tools are one click away on the subject's page.
 const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live) : null;
 ---
-<Base title={`${shelf.name} tools`} description={`Free ${shelf.name.toLowerCase()} tools that run in your browser. ${shelf.blurb}`} shelf={shelf.id}>
+<Base title={`${shelf.name} tools`} docTitle={`Free ${shelf.name.toLowerCase()} tools and calculators | fibub`} description={desc} ld={collectionLd(`${shelf.name} tools`, desc, `/${shelf.id}/`, [{ name: 'Home', url: '/' }, { name: shelf.name, url: `/${shelf.id}/` }])} shelf={shelf.id}>
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, with no sign-up.</p>

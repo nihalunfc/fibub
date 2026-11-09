@@ -22,6 +22,8 @@ flow:
 
 Most money stress is about timing, not totals. Your pay might cover the month, but if rent, the phone bill and the credit card all land before your next pay day, the account can still dip below zero. This calendar puts every bill and every pay day on the day it happens, so you can see the gaps coming.
 
+To set the totals behind the calendar, use the [[budget-calculator|budget planner]], and to see how extra payments shorten a loan, the [[loan-payoff-planner]].
+
 ## How to use it
 
 1. Press **+ Add** (or **Try it with sample data** to see how it works first).

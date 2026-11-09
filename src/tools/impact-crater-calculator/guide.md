@@ -25,6 +25,8 @@ flow:
 
 When a body from space hits a planet, it digs a hole far bigger than itself, typically 20 times its own diameter. This calculator works out how big the crater would be and how much energy the impact releases. Craters on the Earth, the Moon and Mars are covered. It can also work backwards from a crater you have measured, on a photo of the Moon or on a map, to the size of the impactor. It uses the scaling laws of Collins, Melosh and Marcus (2005), the same ones behind the Earth Impact Effects Program, and draws how crater size grows with impactor size.
 
+For the impactor's path and speed before it hits, use the [[orbit-transfer-calculator]]; for the world it hits, the [[planet-data-explorer]].
+
 ## How to use it
 
 1. Choose **Crater from impactor** or **Impactor from crater**.

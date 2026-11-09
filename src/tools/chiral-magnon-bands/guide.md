@@ -31,6 +31,8 @@ In an **altermagnet** they do not. Their energies split, and the splitting chang
 
 This tool solves the simplest spin model that shows this, using linear spin-wave theory.
 
+The electron side of the same material is in the [[altermagnet-bands|altermagnet band explorer]], and the symmetry check is in the [[altermagnet-checker]].
+
 ## The model
 
 Spins of length S sit on a square checkerboard with two sublattices: A (up) and B (down).

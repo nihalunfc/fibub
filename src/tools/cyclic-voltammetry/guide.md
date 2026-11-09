@@ -39,6 +39,8 @@ ip = 0.4463 nFAC √(nFvD/RT), or 2.69 × 10⁵ n^1.5 A √D C √v at 25 °C. F
 
 Peak currents at several scan rates are fitted against √v. A straight line through the origin means diffusion control, and its slope gives D. The slope of log ip against log v is 0.5 for a diffusing species and 1 for one adsorbed on the electrode.
 
+For the equilibrium potential behind the peaks, use the [[nernst-calculator]]; for the same electrode's impedance, the [[impedance-fitter|impedance (EIS) fitter]].
+
 ## How to use it
 
 1. Paste potential and current in two columns, or open a CSV or Excel file (up to 10 MB). Say whether the potential is in V or mV, the current unit, and the sign convention: IUPAC (anodic positive) or the older US one (cathodic positive).

@@ -29,6 +29,8 @@ A woman whose brother has Duchenne muscular dystrophy wants to know her chance o
 
 For study and teaching, not medical advice. Check with a qualified professional such as a genetic counsellor.
 
+To look for the variant in a sequencing file, use the [[vcf-viewer]]; to check a stretch of sequence by hand, the [[sequence-tools|DNA sequence tools]].
+
 ## How to use it
 
 1. Choose the **pattern**: X-linked recessive or autosomal recessive.

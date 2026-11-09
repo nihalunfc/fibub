@@ -34,6 +34,8 @@ where A is the flow area, R the hydraulic radius (area ÷ wetted perimeter), S t
 
 The second card handles **weirs**, the simple structures used to measure flow in channels and streams: give the head over the crest to get the discharge, or the discharge to find the head.
 
+To fit flows to measured levels instead, use the [[rating-curve]]; for the peak flow arriving from the catchment, the [[runoff-calculator]].
+
 ## How to use it
 
 1. Choose **SI** (metres, m³/s) or **US** (feet, ft³/s).

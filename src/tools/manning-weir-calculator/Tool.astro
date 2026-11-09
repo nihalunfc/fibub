@@ -199,6 +199,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Open-channel flow', subtitle: q('.mw-big').textContent ?? '', file: 'channel-flow', sections: weirReport ? [...report, weirReport] : report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .mwc select, .mwc input { max-width: 100%; }
 </style>

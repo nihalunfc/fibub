@@ -469,7 +469,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Flow cytometry gates', subtitle: q('.fc-big').textContent ?? '', file: `${fileSafe(name)}-gates`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fcs .fc-plot { touch-action: manipulation; cursor: crosshair; max-width: 680px; }
   .fcs select { max-width: 100%; }
   .fcs .fc-det { margin-top: 10px; }

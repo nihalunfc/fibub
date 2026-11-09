@@ -3,8 +3,6 @@
 // position and per read, base composition and repeated sequences. Nothing is uploaded. The example reads are made up.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
-import { exampleFastq } from '../../lib/sci/fastq';
-const example = exampleFastq(500, 100, 7);
 ---
 <div class="ax fqi">
   <div class="ax-card">
@@ -15,7 +13,7 @@ const example = exampleFastq(500, 100, 7);
       <button type="button" class="btn secondary small fq-stop" hidden>Stop</button>
     </div>
     <p class="ax-help fq-prog" aria-live="polite"></p>
-    <label style="margin-top:10px">Or paste reads (FASTQ or FASTA, up to 5 MB) <textarea class="fq-in" rows="6" spellcheck="false">{example}</textarea></label>
+    <label style="margin-top:10px">Or paste reads (FASTQ or FASTA, up to 5 MB) <textarea class="fq-in" rows="6" spellcheck="false"></textarea></label>
     <p class="ax-help">Files of any size are read piece by piece on your device, including .gz files; nothing is uploaded. Expect roughly 30 to 80 MB a second on a laptop, slower on phones; Stop shows what has been read so far. Quality letters are read as Phred+33, or Phred+64 when no letter below @ appears. The example is 500 made-up reads of up to 100 bases.</p>
     <p class="ax-err fq-err" hidden></p>
   </div>
@@ -43,7 +41,7 @@ const example = exampleFastq(500, 100, 7);
 </div>
 
 <script>
-  import { SeqStats, qualityBoxes, composition, type Result } from '../../lib/sci/fastq';
+  import { SeqStats, qualityBoxes, composition, exampleFastq, type Result } from '../../lib/sci/fastq';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { csv as toCsv } from '../../lib/sci/num';
@@ -197,11 +195,13 @@ const example = exampleFastq(500, 100, 7);
   q('.fq-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { q('.fq-prog').textContent = ''; fromText(q<HTMLTextAreaElement>('.fq-in').value); }, 400); });
   q('.fq-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([toCsv(csvRows)], { type: 'text/csv' }), `${name}-per-position.csv`, 'text/csv'); });
   document.addEventListener('fibub:theme', () => { for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig); });
+  // The example reads are made here rather than sent in the page, which keeps the page small.
+  if (!q<HTMLTextAreaElement>('.fq-in').value) q<HTMLTextAreaElement>('.fq-in').value = exampleFastq(500, 100, 7);
   fromText(q<HTMLTextAreaElement>('.fq-in').value);
   wireDownloads(q('.dl'), () => ({ title: 'Read quality report', subtitle: q('.fq-big').textContent ?? '', file: `${name}-qc`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fqi h3 { margin: 18px 0 4px; font-size: 1rem; }
   .fqi .fq-seq { font-family: ui-monospace, monospace; overflow-wrap: anywhere; word-break: break-all; }
   .fqi textarea { font-family: ui-monospace, monospace; }

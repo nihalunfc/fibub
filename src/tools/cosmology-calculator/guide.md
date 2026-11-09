@@ -25,6 +25,8 @@ flow:
 
 In an expanding universe, "how far away" has several answers. A galaxy's light set off long ago, the galaxy is much further away now, and the distance you need depends on whether you are turning a flux into a luminosity or an angle into a size. This calculator works them all out from one redshift: the age of the universe now and when the light left, the lookback time, the comoving, angular diameter and luminosity distances, the physical scale in kpc per arcsecond, the distance modulus, the comoving volume, the Hubble rate and the CMB temperature at that redshift. A chart shows how the distances grow with redshift.
 
+To turn a velocity or a spectral line into a redshift first, use the [[redshift-calculator]]; to fit how fast a galaxy spins, the [[rotation-curve-fitter]].
+
 ## How to use it
 
 1. Type the **redshift z**, for example 0.05 for a nearby galaxy cluster or 3 for a distant galaxy.

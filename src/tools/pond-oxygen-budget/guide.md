@@ -32,6 +32,8 @@ In a fish pond, plants and plankton make oxygen in daylight, but at night everyt
 - **Night budget**: oxygen used by the fish, by plankton and bacteria in the water, and by the pond bottom (sediment), minus the oxygen that diffuses in through the surface and any aeration already running.
 - **Aeration needed**: the extra oxygen per hour that keeps the DO at or above your chosen minimum at dawn, in kg O₂ per hour and, if you give your aerator's field transfer rate, in kW.
 
+Set the stocking that the oxygen can carry with the [[stocking-density-calculator]], and score the pond water with the [[water-quality-index]].
+
 ## How to use it
 
 1. Type the water temperature, salinity (0 for fresh water) and altitude. The saturation appears at once.

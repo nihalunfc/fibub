@@ -245,7 +245,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Road curve design', subtitle: 'Example values made up. For study and planning: check your local code and a qualified engineer.', file: 'road-curves', sections: [...hSec, ...(sSec ? [sSec] : []), ...vSec, ...(gSec ? [gSec] : [])] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rdc .rd-row { margin-top: 10px; }
   .rdc .rd-h3 { font-size: 15px; margin: 16px 0 0; }
   .rdc .rd-stab, .rdc .rd-vtab { margin: 8px 0 4px; }

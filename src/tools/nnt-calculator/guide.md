@@ -35,6 +35,8 @@ From the number of people with the event and the size of each group, the calcula
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+For odds and risk ratios from the same table, use the [[odds-risk-ratio|odds ratio and risk ratio calculator]]; to pool several trials, the [[meta-analysis]] tool.
+
 ## How to use it
 
 1. Type the people with the event and the people in each group, and name the groups if you like.

@@ -163,7 +163,7 @@ const demo = 'station\tlatitude\tlongitude\tP\tS\tamplitude\nSTA1\t45.312\t10.10
   wireDownloads(q('.dl'), () => ({ title: 'Earthquake location', subtitle: q('.eq-big').textContent ?? '', file: 'earthquake-location', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .eql select, .eql input { max-width: 100%; }
   .eql textarea { width: 100%; }
 </style>

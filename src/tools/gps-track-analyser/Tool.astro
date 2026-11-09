@@ -209,7 +209,7 @@ const demo = 'time,lat,lon,ele\n2026-06-14T07:30:00Z,44.249997,-78.600003,182.2\
   wireDownloads(q('.dl'), () => ({ title: 'GPS track', subtitle: q('.gp-big').textContent ?? '', file: 'gps-track', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gpa select, .gpa input { max-width: 100%; }
   .gpa textarea { width: 100%; }
   .gpa h3 { margin: 14px 0 6px; font-size: 1rem; }

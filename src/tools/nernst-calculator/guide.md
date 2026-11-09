@@ -38,6 +38,8 @@ The tool works in two ways:
 
 A plot shows the voltage against log₁₀ Q with your conditions marked. A second card converts any potential between SHE, SCE, Ag/AgCl (saturated or 3 M KCl) and the reversible hydrogen electrode at your pH.
 
+To compare with a measured voltammogram, use the [[cyclic-voltammetry]]; for the equilibrium behind the potential, the [[equilibrium-solver]].
+
 ## How to use it
 
 1. Choose the half-reactions from the lists. Each is written as a reduction with its standard potential at 25 °C. For a couple that is not in the table, choose "Your own half-reaction" and type E°, the number of electrons and Q.

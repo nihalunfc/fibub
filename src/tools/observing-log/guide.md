@@ -27,6 +27,8 @@ flow:
 
 Keeping a log is how observers improve. You learn what your telescope can show, which nights are worth it, and how many Messier objects you have ticked off. Most logging apps want an account and keep your notes on their servers. This one keeps your log in a plain **CSV file on your own device**: one row per observation, with clear column names. It opens in Excel, Google Sheets, LibreOffice, Python or any database, and nothing is ever uploaded.
 
+Plan the session with the [[observing-session|observing session planner]], and keep variable star estimates in the [[variable-star-log]].
+
 ## How to use it
 
 1. **Set your place** at the top. It is written into each observation along with the latitude and longitude. Your location stays on your device.

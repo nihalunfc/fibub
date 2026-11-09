@@ -33,6 +33,8 @@ Some parts of a protein like water and sit on the outside; others repel water an
 
 This is the method Kyte and Doolittle described in 1982. Everything runs in your browser; the sequence is never uploaded.
 
+For the protein's mass, pI and extinction coefficient, use the [[protein-calculator|protein parameter calculator]]; to see the helices in 3D, the [[pdb-viewer]].
+
 ## How to use it
 
 1. Paste a protein in one-letter codes, open a FASTA file, or tap **Use the example**. FASTA headers, numbers and spaces are ignored; only the first protein is used.

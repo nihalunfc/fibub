@@ -29,6 +29,8 @@ This calculator adds up the nutrition of a recipe from the labels of the things 
 
 There is no built-in food database. Every number comes from you, so the result is only as good as the labels you typed.
 
+For brines and cures, use the [[brine-calculator]]; to plan a whole day's eating, the [[nutrient-planner]].
+
 ## How to use it
 
 1. Press **Start a blank table**, or paste rows from a spreadsheet, or open a CSV or Excel file. Each line is one ingredient: name, amount in grams, then the values per 100 g. Columns are found by their header names, so the order can change and you can leave out any you do not have. A column of energy in kJ or of sodium is converted for you.

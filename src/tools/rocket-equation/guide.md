@@ -25,6 +25,8 @@ flow:
 
 Every rocket, from a model to an orbital launcher, obeys the same rule: the change in speed it can make, its delta-v, depends only on how fast its exhaust leaves and how much of its mass is propellant. This calculator applies the Tsiolkovsky rocket equation stage by stage, carrying the upper stages and payload as dead weight for the stages below, and tells you the total delta-v. It compares the result with a typical delta-v budget for reaching orbit, the Moon or Mars, and draws how delta-v falls as the payload grows.
 
+For the delta-v a mission needs, use the [[orbit-transfer-calculator]]; for launch windows between planets, the [[porkchop-plot]].
+
 ## How to use it
 
 1. Type one stage per line, **the stage that fires first at the top**: a name, the **dry mass** (empty stage with engines and tanks) in kg, the **propellant** mass in kg, and the engine's **specific impulse (Isp)** in seconds. Pasting from a spreadsheet works.

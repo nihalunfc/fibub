@@ -181,7 +181,7 @@ const readings = 'sample,A260,A280,A230,A320\nPrep 1,7.40,3.98,3.45,0.02\nPrep 2
   wireDownloads(q('.dl'), () => ({ title: 'Nucleic acid and protein concentration', subtitle: q('.nc-big').textContent ?? '', file: 'concentration', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .nac select { max-width: 100%; }
   .nac .nc-tab td:last-child { min-width: 12em; }
 </style>

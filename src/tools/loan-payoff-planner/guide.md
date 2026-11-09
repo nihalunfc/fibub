@@ -22,6 +22,8 @@ flow:
 
 Each monthly payment (often called the EMI) is part interest and part repayment. Interest is charged on what you still owe, so in the early years most of your payment goes on interest. Any extra amount you pay goes straight to reducing what you owe. From then on, every month's interest is a little smaller, and more of each payment goes to repaying the loan. That is why even small, regular extra payments can take years off a long loan.
 
+To find the money for extra payments, use the [[budget-calculator|budget planner]]; to keep each payment on its date, the [[bill-calendar]].
+
 ## How to use the planner
 
 1. **Your loan:** enter the amount you still owe, the yearly interest rate and the time left. The planner works out your monthly payment. If your actual payment is different, type it in **Monthly payment** and the planner uses that instead. **Next payment** sets the month the dates start from.

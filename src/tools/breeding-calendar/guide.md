@@ -33,6 +33,8 @@ For each mating you get:
 - **Pregnancy check**: the day after mating you choose for a scan, palpation or test.
 - **Heat dates**: the dates one, two or three cycles after mating, to watch for a return to heat if she is not pregnant.
 
+Feed the animals through pregnancy with the [[feed-ration-balancer]], and follow the young with the [[growth-curve-tracker|growth curve tracker]].
+
 ## How to use it
 
 1. Pick the species. Its typical, rounded figures fill the boxes: gestation, the window either side of the due date, the length of the heat cycle and the day for the pregnancy check. Change any of them to suit your breed or your vet's advice; **Back to the typical figures** undoes your changes.

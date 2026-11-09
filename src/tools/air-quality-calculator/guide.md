@@ -38,6 +38,8 @@ The tool also turns your readings into three official indices:
 
 Each index is the highest of its pollutant sub-indices, and the tool names the pollutant behind it.
 
+To check the gas behaviour behind the unit change, use the [[gas-law-calculator]]; to see how a chimney's emissions spread downwind, try the [[gaussian-plume-calculator]].
+
 ## How to use it
 
 1. **Units.** Choose a gas or type any formula, enter the value and unit, and set the temperature and pressure. You get all four units, the molar mass and the molar volume.

@@ -34,6 +34,8 @@ Differential scanning calorimetry (DSC) and thermogravimetric analysis (TGA) are
 
 **TGA card.** Paste or open temperature and mass. The tool works out the derivative curve (DTG), splits the run into steps at the DTG minima, and gives each step's onset, DTG peak, end set and mass loss, plus the temperatures at 5 % and 10 % loss and the final residue. With a starting formula, each step is matched to the loss of a common small molecule.
 
+To compare a measured Tg with a prediction, use the [[glass-transition-calculator]]; for the chain lengths behind it, the [[polymer-molar-mass|polymer molar mass calculator]].
+
 ## How to use it
 
 1. Export the scan from your instrument as text or Excel with two columns: temperature in °C and heat flow (or mass). Paste it, or press "Open a file".

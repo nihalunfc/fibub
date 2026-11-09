@@ -34,6 +34,8 @@ Genome annotations and experiment results usually come as lists of intervals: a 
 
 Tick *Same strand only* to compare + with + and − with −. Use *Feature type* to work on exons only, or genes only, and *Chromosome* to look at one.
 
+For the variants that fall in the intervals, use the [[vcf-viewer]]; for the sequences under them, the [[sequence-tools|DNA sequence tools]].
+
 ## The view and the downloads
 
 The view draws A, B and the result as boxes in rows for any stretch of a chromosome, with arrows for strand. Type the range you want; positions in the view and the tables count from 1, as genome browsers do. **Download as BED** gives the whole result in BED positions (merge adds the count as a fourth column), and the Image, PDF and Word buttons give a short report with the summary, view, length chart and the first 200 intervals.

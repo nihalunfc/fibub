@@ -24,6 +24,8 @@ A master mix saves pipetting and keeps every reaction the same: you mix everythi
 
 It starts with New England Biolabs' standard 50 µL Taq protocol: 1X buffer, 200 µM of each dNTP, 0.2 µM of each primer, 1.25 units of Taq, and the template added to each tube. Change any line to match your kit's manual.
 
+Check the primers first with the [[primer-checker]], and lay out the wells with the [[plate-layout]].
+
 ## How to use it
 
 1. Set the **reaction volume**, the **number of reactions** (samples plus controls) and the **spare** percentage.

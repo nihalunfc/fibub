@@ -36,6 +36,8 @@ The tool builds the Hückel matrix, diagonalises it exactly and reports:
 
 Heteroatoms use Streitwieser's parameters: α_X = α + hβ and β_CX = kβ. Pyridine-like N, pyrrole-like N, carbonyl O and furan O are built in, and you can give any h, k and electron count.
 
+For orbitals on a metal centre rather than a π system, use the [[crystal-field-calculator]]; for the molecule's symmetry, the [[point-group-finder]].
+
 ## How to use it
 
 1. Choose a molecule, or **My own**.

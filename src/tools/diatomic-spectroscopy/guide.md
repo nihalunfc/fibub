@@ -34,6 +34,8 @@ The infrared spectrum of a gas such as HCl or CO is a comb of lines either side 
 - **Isotopes**: type 2H, 37Cl or 13C and the constants are rescaled with the reduced mass, so you can see the shift from HCl to DCl.
 - **Fit**: paste band origins (fundamental and overtones) to get ωe and ωexe with their standard errors and a Birge–Sponer estimate of the dissociation energy.
 
+For absorbance and concentration from the same spectrum, use the [[beer-lambert-calculator]]; to match lines against known ones, the [[spectral-line-identifier]].
+
 ## How to use it
 
 1. Choose a molecule. The constants (Huber and Herzberg, via the NIST Chemistry WebBook) fill in.

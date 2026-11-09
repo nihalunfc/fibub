@@ -33,6 +33,8 @@ A greenhouse loses heat in two ways: through the cover (glass or plastic) and th
 
 **Ventilation.** The sunlight that gets through the cover, minus the share the crop uses to evaporate water, warms the air. To keep the inside only a few degrees above outside, that heat must leave with outside air: flow = heat ÷ (air density × heat capacity × allowed rise). You get the flow in m³/s, m³/h and CFM, the air changes per minute, and the number of fans.
 
+For the humidity and dew point inside, use the [[psychrometric-calculator]]; for the water the crop uses, the [[irrigation-scheduler]].
+
 ## How to use it
 
 1. Enter the greenhouse size and pick the cover. The listed U values are rounded examples; type your own if you know it.

@@ -247,7 +247,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Tauc plot', subtitle: q('.tp-big').textContent ?? '', file: `${fileSafe(name)}-tauc`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .taucp h3 { margin: 20px 0 8px; font-size: 15px; }
   .taucp select { max-width: 100%; }
   .taucp .tp-bb, .taucp .tp-ub { margin-top: 8px; }

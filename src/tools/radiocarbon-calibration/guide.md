@@ -24,6 +24,8 @@ flow:
 
 A radiocarbon lab reports an age such as 3000 ± 30 BP. It is not a calendar date, because the amount of carbon-14 in the air has changed over time. Calibration converts it to calendar years using a curve built from tree rings, corals, cave formations and lake sediments. This tool uses IntCal20, the internationally agreed curve for the Northern Hemisphere (Reimer et al. 2020). It gives the same kind of result as OxCal and the R package rintcal: the probability of every calendar year, and the ranges that hold 68.3 % and 95.4 % of it.
 
+For activity and half-life sums, use the [[decay-calculator]]; for rocks too old for carbon-14, the [[radiometric-age-calculator]].
+
 ## How to use it
 
 1. Type one date per line: an optional name, the radiocarbon age in years BP, and its ± error. For example `Hearth charcoal: 3000 30`.

@@ -25,6 +25,8 @@ flow:
 
 Field surveys, pitfall traps, quadrats, plankton tows and sequencing runs all end with the same thing: a table of species and how many individuals of each you found at each site. This calculator turns that table into the diversity numbers ecologists report, side by side for every site: richness, Chao1, Shannon, Simpson, evenness and dominance. It draws rarefaction curves so sites with different sample sizes can be compared fairly, and gives Bray-Curtis and Jaccard values for every pair of sites. Nothing is uploaded.
 
+To plan how many plots or traps you need, use the [[sample-size]]; to make a figure of the results, the [[plot-maker]].
+
 ## How to use it
 
 1. Put **species in the first column** and **one column of counts per site** after it. The first row holds the site names. Copying a block straight from Excel or Google Sheets works; tabs, commas and semicolons are all understood.

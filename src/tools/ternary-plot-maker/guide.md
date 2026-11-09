@@ -30,6 +30,8 @@ Many things in science are **parts of a whole**. A sandstone is so much quartz, 
 
 The second card draws a **spider diagram**: many elements along the bottom, each sample's values divided by a reference composition and plotted on a log scale. Geochemists use it for rare earth elements and trace element patterns, because the shape of the line tells a story about where a rock came from.
 
+To unmix samples into their end members, use the [[mixing-model-calculator]]; for water chemistry, the [[piper-diagram]].
+
 ## How to use it
 
 1. Paste or open a table with a header row. The first column is the sample name. Any three number columns can go on the corners, in any unit: counts, percent, ppm or moles. Each row is scaled so its three values add to 100 %.

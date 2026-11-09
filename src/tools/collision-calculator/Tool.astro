@@ -164,7 +164,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Collision', subtitle: q('.cc-big').textContent || '', file: 'collision', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cco select, .cco input[type=text] { max-width: 100%; }
   .cco label[hidden], .cco .ax-row[hidden] { display: none; }
 </style>

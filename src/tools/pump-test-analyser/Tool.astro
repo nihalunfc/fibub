@@ -193,7 +193,7 @@ const ddDemo = 'distance\tdrawdown\n10\t1.572\n30\t1.233\n60\t1.011\n120\t0.783'
   wireDownloads(q('.dl'), () => ({ title: 'Pumping test analysis', subtitle: q('.pt-big').textContent ?? '', file: 'pumping-test', sections: [sections.main, sections.cj, sections.rec, sections.dd].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pta select, .pta input { max-width: 100%; }
   .pta textarea { width: 100%; }
 </style>

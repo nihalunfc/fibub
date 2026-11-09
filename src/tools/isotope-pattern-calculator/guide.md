@@ -32,6 +32,8 @@ A mass spectrometer weighs ions, not molecules, and it sees every isotope separa
 - **A comparison with your measured peaks**: the ppm error of each, and how well the heights match.
 - **Every common ion** of the molecule in one table, handy when you are hunting for your compound in a spectrum.
 
+Get the formula's average mass with the [[molar-mass-calculator]], and check the formula is balanced in a reaction with the [[equation-balancer]].
+
 ## How to use it
 
 1. Type the neutral formula, such as C17H19NO3. Capitals matter; brackets, isotope labels like [13C] and D for deuterium work.

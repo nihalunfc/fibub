@@ -169,7 +169,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Quantum dot size', subtitle: q('.qd-big').textContent ?? '', file: 'quantum-dot-size', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .qdots h3 { margin: 20px 0 8px; font-size: 15px; }
   .qdots select { max-width: 100%; }
 </style>

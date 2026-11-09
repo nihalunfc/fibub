@@ -34,6 +34,8 @@ At equilibrium, a reaction still runs both ways but the amounts stop changing, a
 - **pH** when H⁺, H₃O⁺ or OH⁻ appears.
 - **Le Chatelier**: add or remove any species, change the volume, or change the temperature (with ΔH°, through the van 't Hoff equation), and see the new equilibrium next to the old one.
 
+Balance the reaction first with the [[equation-balancer]]; for acid and base equilibria along a titration, use the [[titration-curve]].
+
 ## How to use it
 
 1. Type the reaction, or load an example.

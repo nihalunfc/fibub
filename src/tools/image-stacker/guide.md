@@ -30,6 +30,8 @@ One long exposure of a faint galaxy is ruined by a single passing plane, and it 
 
 The result shows how much the background noise dropped (ideally √N for N frames), a histogram of one frame before and after calibration, and each frame's shift, rotation and alignment quality. You can download the stack as a 32-bit floating-point FITS file for further processing, or as a stretched PNG.
 
+Check the frames with the [[star-fwhm-checker]] before stacking, and choose the exposure length with the [[sub-exposure-calculator]].
+
 ## How to use it
 
 1. Choose your light frames and, if you have them, darks, flats and bias frames. FITS is best because its values are linear. JPEG and PNG work for a quick result, but they have already been stretched, so calibration is only approximate.

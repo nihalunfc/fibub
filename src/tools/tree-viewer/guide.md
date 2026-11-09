@@ -26,6 +26,8 @@ flow:
 
 A phylogenetic tree shows how sequences, genes or species are related. Programs such as tree-building software save trees as **Newick** text, like `((A:0.1,B:0.2)95:0.05,C:0.3);`, or inside a **NEXUS** file. This tool reads that text and draws the tree, so you can look at it, tidy it up for a figure and save it, without installing anything. The file never leaves your device.
 
+Compare two of the sequences in detail with [[sequence-alignment|pairwise sequence alignment]], or the whole set by word counts with the [[kmer-counter|k-mer counter]].
+
 ## How to use it
 
 1. **Open a tree file**, paste the Newick text, or press **Use the example**. If the file holds several trees (for example bootstrap trees, or several trees in a NEXUS TREES block), pick one from the list.

@@ -33,6 +33,8 @@ Sowing by weight alone gives very different stands, because seed lots differ in 
 
 The calculator also gives seeds per metre (or foot) of row and the gap between seeds, for setting a drill or planter, and the seed and bags for the whole field.
 
+Set the fertiliser for the same field with the [[fertiliser-blend-calculator]], and check the sprayer with the [[sprayer-calibration|sprayer calibration calculator]].
+
 ## How to use it
 
 1. Choose metric or US units, and type the **target plants** per m², hectare, acre or square foot.

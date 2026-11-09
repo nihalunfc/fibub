@@ -128,6 +128,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Water waves', subtitle: `T = ${q<HTMLInputElement>('.wv-T').value} s, H = ${q<HTMLInputElement>('.wv-H').value} ${sel('.wv-u')}`, file: 'waves', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wvc select, .wvc input { max-width: 100%; }
 </style>

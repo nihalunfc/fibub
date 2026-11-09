@@ -36,6 +36,8 @@ D* is the **radiogenic** daughter, made by decay since the mineral formed, and P
 2. **Isochron**: when samples started with some daughter already, plot daughter against parent, both divided by a stable isotope of the daughter. Samples of the same age fall on a line. Its slope gives the age and its intercept the starting ratio. The tool fits the line with **York regression**, which allows for errors in both x and y and their correlation, and reports the **MSWD**.
 3. **U-Pb**: the three ages from ²⁰⁶Pb/²³⁸U, ²⁰⁷Pb/²³⁵U and the ²⁰⁷Pb/²⁰⁶Pb ratio, and how **concordant** they are, plotted on a concordia diagram.
 
+For organic material from the last 50,000 years, use [[radiocarbon-calibration]]; for stable isotope ratios, the [[isotope-delta-converter]].
+
 ## How to use it
 
 - In **Age from a ratio**, pick the method. For a decay system, the decay constant fills in; change it if your lab uses another value. Enter the radiogenic daughter/parent atom ratio and its error.

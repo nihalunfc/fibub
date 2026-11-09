@@ -35,6 +35,8 @@ The difference is **symmetry**: which operation turns the spin-up atoms into the
 
 This tool runs that test. It finds every symmetry operation of the crystal and sorts them into those that keep each spin and those that swap up and down. It then gives the verdict, names the operation that decides it, and works out the lowest-order form of the spin splitting Δ(k) that the symmetry allows. Finally it draws Δ(k) on the plane through the zone centre where it varies most.
 
+Once a crystal passes, see its spin-split bands in the [[altermagnet-bands|altermagnet band explorer]] and which Hall signals it allows with the [[anomalous-hall-checker]].
+
 ## How to use it
 
 1. Start from an example, or type your own structure: a `cell` line with a, b, c in ångströms and α, β, γ in degrees, then one line per atom with its element, fractional coordinates and spin (`up`, `down`, or a signed moment). Leave the spin off for non-magnetic atoms.

@@ -32,6 +32,8 @@ DNA runs through an agarose gel at a speed that falls with the logarithm of its 
 - **Outside the ladder.** A band that ran further or shorter than any ladder band is flagged, because the size there is a guess beyond your data.
 - **Photo mode.** Open a gel picture, tap the well, then the ladder bands from the top down (they take the sizes in the ladder box, largest first), then your bands. The distances (in pixels from the well) are typed into the boxes for you. The photo never leaves your device.
 
+To predict the bands before you run the gel, use the [[restriction-digest]]; to check the DNA concentration loaded, [[nucleic-acid-concentration|DNA, RNA and protein concentration]].
+
 ## How to use it
 
 1. **Ladder.** One line per ladder band: size in bp, a comma, and how far it ran (mm, cm or pixels, as long as you use the same unit throughout). Paste from a spreadsheet or open a CSV or Excel file (2 columns, up to 200 rows).

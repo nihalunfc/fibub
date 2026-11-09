@@ -30,6 +30,8 @@ A wave's **period** (the time between crests) hardly changes as it crosses the o
 
 This calculator solves the linear wave **dispersion relation**, ω² = g k tanh(k h), exactly by Newton's method for any period and depth, and gives everything that follows from it. It then carries the wave towards the shore over straight, parallel depth contours, applying **shoaling** (the slowing wave bunches its energy into a taller wave) and **refraction** (crests turn to line up with the contours), and finds where it **breaks**.
 
+For flow in rivers and channels rather than waves, use the [[manning-weir-calculator]]; to test a record of wave heights for a trend, the [[trend-analyser]].
+
 ## How to use it
 
 1. Choose **metres or feet**.

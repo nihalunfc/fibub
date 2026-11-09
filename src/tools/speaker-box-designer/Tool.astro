@@ -142,6 +142,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Speaker box', subtitle: q('.sb-big').textContent ?? '', file: 'speaker-box', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .spb select, .spb input { max-width: 100%; }
 </style>

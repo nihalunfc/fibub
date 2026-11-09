@@ -34,6 +34,8 @@ A food with a high GI but little carbohydrate per portion can have a low GL, and
 
 This calculator does those sums for each food and for the whole meal. It does not come with a GI table: you type the GI values from a source you trust, and the carbohydrate from the food label.
 
+Set the day's energy target with the [[energy-needs]] calculator, and plan the rest of the meal with the [[nutrient-planner]].
+
 ## How to use it
 
 1. For each food type a **name**, its **GI**, the **carbohydrate per 100 g** and **fibre per 100 g** from the label, and the **portion** eaten in grams. **Add a food** adds a row; **Remove** deletes one.

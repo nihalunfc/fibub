@@ -148,7 +148,7 @@ const comps = [{ k: '1', pick: 'Benzene' }, { k: '2', pick: 'Toluene' }];
   wireDownloads(q('.dl'), () => ({ title: 'Vapour pressure and VLE', subtitle: q('.vp-big').textContent ?? '', file: 'vapour-pressure', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .vp fieldset.vp-comp { border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; min-width: 0; }
   .vp fieldset.vp-comp legend { font-weight: 600; padding: 0 4px; }
   .vp select { max-width: 100%; }

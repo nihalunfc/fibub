@@ -23,6 +23,8 @@ Most employers send applications through an applicant tracking system (ATS) befo
 
 This builder makes the kind of resume ATS software reads best. It uses one column, standard section headings (Summary, Skills, Experience, Projects, Education, Certifications), contact details in the main text rather than the page header, real bullet points, consistent dates, and fonts every system has. It still looks clean and professional to the person who reads it next.
 
+Already have a resume? Score it with the [[ats-resume-checker]]; to share your news, the [[linkedin-post-formatter]].
+
 ## How to use it
 
 1. **Contact details:** your name, the job title you're aiming for, email, phone, city and links such as LinkedIn or a portfolio. Leave out your full street address, photo and date of birth: they aren't needed, and in Canada, the US and the UK photos are discouraged.

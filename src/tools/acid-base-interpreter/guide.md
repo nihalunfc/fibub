@@ -27,6 +27,8 @@ flow:
 
 Reading an arterial blood gas is a fixed sequence of steps that students learn by repetition. This page walks through that sequence for any set of numbers and shows every step with its arithmetic: whether the numbers agree with each other, whether the blood is too acid or too alkaline, which system (metabolic or respiratory) caused it, whether the other system has compensated as much as expected, and what the anion gap, delta ratio, lactate and osmolar gap add. It ends with a list of the disorders found and an acid-base map. It is for study and teaching, not medical advice.
 
+For the kidney side of a metabolic acidosis, use the [[kidney-function|kidney function calculator]]; to convert results between mmol/L and mg/dL, the [[lab-unit-converter]].
+
 ## How to use it
 
 1. Type **pH, pCO2 and HCO3** from the gas, and **sodium, chloride and albumin** from the chemistry. pCO2 can be in mmHg or kPa and albumin in g/dL or g/L; switching a unit converts the number in its box.

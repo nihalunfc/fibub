@@ -165,7 +165,7 @@ Condition Y (made up), 3, 62.5, 12000, 0.05, 0.5</textarea></label>
   wireDownloads(q('.dl'), () => ({ title: 'DALYs, QALYs and cost-effectiveness', subtitle: q('.dq-abig').textContent ?? '', file: 'daly-qaly', sections: [setSec, bSec, aSec].filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dqy .dq-warn { margin: 0; font-size: 14px; color: var(--ink); }
   .dqy .dq-arms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
   .dqy fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }

@@ -29,6 +29,8 @@ A soil test or a nutrient plan tells you how much **nitrogen (N), phosphate (P�
 
 This calculator works out how much of each product to spread so the field gets what it needs. Because one product often carries two nutrients (DAP brings N as well as P₂O₅), the sums are a small system of equations, and the tool solves it for you.
 
+Find what the field needs first with the [[soil-test-interpreter]], and set the sowing rate with the [[seeding-rate-calculator]].
+
 ## How to use it
 
 1. Choose **kg per hectare** or **lb per acre**, and whether your needs are written as oxides (P₂O₅, K₂O, as on the bag) or as the elements P and K. Element needs are converted with P × 2.2913 = P₂O₅ and K × 1.2046 = K₂O.

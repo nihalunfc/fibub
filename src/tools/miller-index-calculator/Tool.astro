@@ -262,7 +262,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Miller index calculator', subtitle: q('.mi-big').textContent ?? '', file: `miller-${fileSafe(fmtIdx(h1))}`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .mic h3 { margin: 20px 0 8px; font-size: 15px; }
   .mic select { max-width: 100%; }
   .mic .mi-wide { grid-column: 1 / -1; }

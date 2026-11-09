@@ -34,6 +34,8 @@ A **range chart** draws each fossil taxon (a species, genus or family) as a bar 
 
 From these come the **range-through diversity** (every taxon present: FL + bL + Ft + bt), the diversity at the base (bL + bt) and the top (Ft + bt) of the bin, the **mean standing diversity** ((bL + Ft) / 2 + bt), and Foote's **per-capita rates**: origination p = −ln(bt / (Ft + bt)) and extinction q = −ln(bt / (bL + bt)). The rates leave out singletons, which mostly reflect how well a bin was sampled.
 
+For diversity within one sample, use [[biodiversity-indices]]; for the dates of the beds, the [[radiometric-age-calculator]].
+
 ## How to use it
 
 1. Paste one taxon per row: name, first appearance, last appearance. Leave the last out for a taxon found at one level only. A header row is fine. You can also open a CSV, TSV, TXT or Excel file.

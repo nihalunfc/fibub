@@ -33,6 +33,8 @@ Brining, fermenting and curing all come down to weighing salt as a percentage of
 - **Dry cure**: salt and sugar as percentages of the meat's weight.
 - **Curing salt (nitrite)**: grams of cure for a nitrite target **you** enter, from the sodium nitrite percentage on your cure's label, or the level a planned amount of cure gives.
 
+For the nutrition label of the finished product, use the [[recipe-nutrition-calculator]]; for how long it keeps, the [[shelf-life-estimator|water activity and shelf-life estimator]].
+
 ## How to use it
 
 Weigh everything in grams; 1 ml of water is about 1 g. Fill in the boxes of the calculator you need; results update as you type. Download all results as CSV, or as an image, PDF or Word file.

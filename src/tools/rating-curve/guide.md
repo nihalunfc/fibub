@@ -35,6 +35,8 @@ where h0 is the stage at which flow stops, a scales the curve and b describes th
 
 This tool fits the curve to your gaugings, shows how well they agree, and turns stages into discharges.
 
+To estimate flow from the channel shape instead, use the [[manning-weir-calculator]]; to find how often a flood comes, the [[flood-frequency]] tool.
+
 ## How to use it
 
 1. Paste or open your **gaugings**: stage and discharge per row. Columns named stage, level or gauge height and discharge, flow or Q are found by name; dates and notes are ignored.

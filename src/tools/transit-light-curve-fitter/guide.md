@@ -27,6 +27,8 @@ When a planet passes in front of its star, the star dims for a few hours by a fr
 
 This tool fits the standard model to your measured light curve: a dark disc crossing a star whose edge is dimmer than its centre (**limb darkening**, with the quadratic law), on a circular orbit. It gives the radius ratio R<sub>p</sub>/R<sub>*</sub>, the depth, the total and flat-bottom durations, the impact parameter, the inclination, the orbit's size in star radii and the mid-transit time, each with an uncertainty. From a/R<sub>*</sub> and the period alone it also gives the **star's mean density**, a neat check from Kepler's third law: a planet round a giant star cannot make the same transit as one round a red dwarf. Type the star's radius and you get the planet's radius in Earth and Jupiter radii.
 
+Predict the next transits with the [[transit-planner]], and get the planet's mass from its star's wobble with the [[exoplanet-mass-calculator]].
+
 ## How to use it
 
 1. Paste the light curve: time in days (JD, BJD or any day count), brightness and, if you have them, errors. Several transits are folded on the period automatically. Tick **magnitudes** if the brightness column is in magnitudes, as from most amateur photometry software.

@@ -217,7 +217,7 @@ const site = 'x (m),y (m)\n0,0\n180,-10\n240,90\n200,170\n90,150\n40,190\n-30,11
   wireDownloads(q('.dl'), () => ({ title: 'Field sampling plan', subtitle: q('.fs-big').textContent ?? '', file: 'sampling-plan', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fsp select { max-width: 100%; }
   .fsp .fs-sd2 { margin-top: 14px; }
   .fsp .fs-sd2 summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

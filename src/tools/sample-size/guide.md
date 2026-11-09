@@ -30,6 +30,8 @@ Too few subjects and a real effect is missed. Too many wastes money and, in anim
 - **Two proportions:** percentages such as cure rates.
 - **Survey:** how many responses give a percentage within a chosen margin of error.
 
+Once the data are in, put error bars on the results with the [[uncertainty-calculator]], and draw them with the [[plot-maker]].
+
 ## How to use it
 
 1. Choose what you are comparing.

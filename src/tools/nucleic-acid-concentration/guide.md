@@ -33,6 +33,8 @@ A spectrophotometer gives absorbance; you need concentration, a purity check and
 - **Molarity and copies** from the length (average base mass) or the exact sequence, for linear or circular DNA.
 - **Dilution:** stock and diluent volumes to reach a target in ng/µL, nM or copies/µL (mg/mL or µM for protein).
 
+To dilute the sample to a working stock, use the [[solution-calculator]]; to check the sequence it came from, the [[sequence-tools|DNA sequence tools]].
+
 ## How to use it
 
 1. **Sample type.** Choose double-stranded DNA, single-stranded DNA, RNA or protein. Set the dilution if you diluted before measuring, and the path length (leave 1 cm for microvolume readers, which already scale to 1 cm).

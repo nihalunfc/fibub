@@ -34,6 +34,8 @@ Health economists and public-health teams count health in years. A **DALY** (dis
 
 The tool ships **no disability weights or utilities** from published tables. Every example number is made up; type the weights and utilities from your own source.
 
+To see how many cases a vaccine could prevent, use the [[herd-immunity|herd immunity calculator]] or the [[epidemic-model|epidemic model simulator]].
+
 ## How to use it
 
 1. Set the **discount rate**. 0 % means no discounting. Discounting is continuous: a stretch of L years starting at year s counts as (e^(−rs) − e^(−r(s+L))) / r years, so 30 years from now at 3 % counts as 19.78 years.

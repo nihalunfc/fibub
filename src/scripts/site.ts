@@ -47,6 +47,28 @@ export async function myEntries(): Promise<Entry[]> {
   return ids.map((id) => all.find((e) => e.id === id)).filter((e): e is Entry => !!e);
 }
 
+// The tool lists in the menus are not part of each page (that keeps pages small and fast): they come
+// from /nav/ the first time someone points at the header menu or opens the menu panel, then stay.
+let navLoad: Promise<void> | null = null;
+export function loadNav() {
+  navLoad ??= fetch('/nav/')
+    .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
+    .then((html) => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      for (const el of document.querySelectorAll<HTMLElement>('[data-fill]')) {
+        const part = doc.querySelector(`[data-part="${el.dataset.fill}"]`);
+        if (part) el.replaceChildren(...[...part.childNodes].map((n) => document.importNode(n, true)));
+      }
+      bindMega();
+      document.dispatchEvent(new CustomEvent('fibub:nav'));
+    })
+    .catch(() => {
+      navLoad = null; // try again next time
+      document.querySelectorAll('.nav-wait').forEach((p) => { p.innerHTML = 'The list did not load. <a href="/tools/">See all tools</a>.'; });
+    });
+  return navLoad;
+}
+
 // The menu panel (Menu tab in the bottom bar, or the search button in the header): search every tool,
 // My tools, then Learn, Tools (shelves, Science opens to its subjects), News and About, all folded.
 const btn = document.querySelector<HTMLButtonElement>('.tab-menu');
@@ -67,7 +89,7 @@ if (btn && panel) {
     panel.hidden = !show;
     document.querySelectorAll('.tab-menu, .find-btn').forEach((b) => b.setAttribute('aria-expanded', String(show)));
     document.querySelector('.tabbar')?.classList.toggle('menu-open', show);
-    if (show) { loadIndex(); renderMine(); }
+    if (show) { loadNav(); loadIndex(); renderMine(); }
   };
   btn.addEventListener('click', () => open(panel.hidden));
   document.querySelector('.find-btn')?.addEventListener('click', () => { open(panel.hidden); if (!panel.hidden) search.focus(); });
@@ -177,11 +199,21 @@ if (bm) {
 }
 
 // Two-level header menu (Science): pointing at or focusing a subject shows its sections and tools.
-for (const panel of document.querySelectorAll<HTMLElement>('.dd-mega')) {
-  const subs = [...panel.querySelectorAll<HTMLButtonElement>('.dd-subj')], panes = [...panel.querySelectorAll<HTMLElement>('.dd-pane')];
-  const show = (i: number) => { subs.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); panes.forEach((p, j) => p.classList.toggle('on', i === j)); };
-  subs.forEach((b, i) => { b.addEventListener('mouseenter', () => show(i)); b.addEventListener('focus', () => show(i)); b.addEventListener('click', () => { show(i); panes[i].querySelector<HTMLElement>('a')?.focus(); }); });
-  show(0);
+function bindMega() {
+  for (const panel of document.querySelectorAll<HTMLElement>('.dd-mega')) {
+    if (panel.dataset.bound || !panel.querySelector('.dd-subj')) continue;
+    panel.dataset.bound = '1';
+    const subs = [...panel.querySelectorAll<HTMLButtonElement>('.dd-subj')], panes = [...panel.querySelectorAll<HTMLElement>('.dd-pane')];
+    const show = (i: number) => { subs.forEach((b, j) => b.setAttribute('aria-expanded', String(i === j))); panes.forEach((p, j) => p.classList.toggle('on', i === j)); };
+    subs.forEach((b, i) => { b.addEventListener('mouseenter', () => show(i)); b.addEventListener('focus', () => show(i)); b.addEventListener('click', () => { show(i); panes[i].querySelector<HTMLElement>('a')?.focus(); }); });
+    show(0);
+  }
+}
+bindMega();
+{
+  const main = document.querySelector('nav.main');
+  main?.addEventListener('pointerover', loadNav, { once: true });
+  main?.addEventListener('focusin', loadNav, { once: true });
 }
 
 // The section bar above the bottom bar: bring the current section into view when the sections don't

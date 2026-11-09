@@ -345,7 +345,7 @@ import DataFile from '../../components/DataFile.astro';
   render();
 </script>
 
-<style is:global>
+<style is:inline>
   .fcd .fc-facts, .fcd .fc-sfacts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
   .fcd .fc-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
   .fcd .fc-card { margin: 14px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); padding: 22px 16px; min-height: 140px; display: grid; align-content: center; gap: 14px; text-align: center; }

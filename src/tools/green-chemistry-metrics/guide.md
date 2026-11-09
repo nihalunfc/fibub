@@ -40,6 +40,8 @@ From the masses you actually used:
 
 A table shows each material's share of the total input, so you can see at once whether solvents dominate (they usually do).
 
+Balance the reaction first with the [[equation-balancer]], and work out the amounts with the [[reaction-equivalents]].
+
 ## How to use it
 
 1. Type the reaction with formulas, such as `CH3COOH + C2H5OH → CH3COOC2H5 + H2O`. The coefficients are found for you; any you type are ignored.

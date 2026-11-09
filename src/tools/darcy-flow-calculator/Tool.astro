@@ -183,7 +183,7 @@ const sieveDemo = 'size (mm)\tpassing (%)\n4.75\t100\n2\t96\n0.85\t82\n0.425\t55
   wireDownloads(q('.dl'), () => ({ title: 'Darcy flow', subtitle: q('.dc-big').textContent ?? '', file: 'darcy-flow', sections: [S.dc, S.gw, S.gs].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dfc select, .dfc input { max-width: 100%; }
   .dfc textarea { width: 100%; }
 </style>

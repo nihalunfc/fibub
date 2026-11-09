@@ -35,6 +35,8 @@ An audiogram is the chart an audiologist draws after a pure-tone hearing test: t
 
 For study and teaching, not medical advice. Check with a qualified professional. **This is not a hearing test.** It only plots thresholds that were measured with a calibrated audiometer in a quiet room.
 
+For eyesight rather than hearing, use the [[visual-acuity-converter]]; to plan how many people a hearing study needs, the [[sample-size|sample size calculator]].
+
 ## How to use it
 
 1. Type or paste one row per frequency: frequency, right air, left air, right bone, left bone. Leave a cell empty if it was not tested. Add **m** for a masked threshold (35m) and **NR** for no response at the highest level tried (95NR). You can open a CSV, TSV or Excel file instead.

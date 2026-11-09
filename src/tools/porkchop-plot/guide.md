@@ -27,6 +27,8 @@ A spacecraft cannot leave for Mars whenever it likes. The planets must line up s
 
 This tool draws that plot for any pair of Mercury, Venus, Earth, Mars, Jupiter and Saturn. For each of 3,600 combinations of launch date and flight time it solves **Lambert's problem**: which orbit round the Sun joins two positions in a given time. It then gives the **launch energy C3**, the excess speed when leaving and arriving, and the burns needed from a low parking orbit. It marks the cheapest trip and repeats the best flight for a dozen launch dates in a table.
 
+For a single transfer worked burn by burn, use the [[orbit-transfer-calculator]]; for the rocket that has to fly it, the [[rocket-equation]].
+
 ## How to use it
 
 1. Pick the planet you leave **from** and the one you go **to**. The tool jumps to their next launch window.

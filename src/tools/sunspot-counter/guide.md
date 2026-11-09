@@ -26,6 +26,8 @@ This tool does the counting on your own white-light image. It finds the solar di
 
 Automatic counts are a starting point. Tap any marked spot to leave it out (dust on the sensor, a cloud edge), or tap the disc to add a spot it missed.
 
+To see where the Sun is in the sky when you take the photo, use the [[sun-position-calculator]]; for the next solar eclipse, the [[eclipse-finder]].
+
 ## How to use it
 
 1. **Safety first.** Only image the Sun through a certified full-aperture solar filter, or by projection. Never look through an unfiltered instrument.

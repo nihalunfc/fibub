@@ -161,7 +161,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Standing waves', subtitle: q('.sw-big').textContent ?? '', file: 'standing-waves', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .stw select { max-width: 100%; }
   .stw [hidden] { display: none !important; }
   .stw .sw-tab td { white-space: nowrap; }

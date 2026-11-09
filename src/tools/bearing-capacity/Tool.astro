@@ -117,7 +117,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Bearing capacity', subtitle: q('.bc-big').textContent ?? '', file: 'bearing-capacity', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bcp select, .bcp input[type=text] { max-width: 100%; }
   .bcp h3 { font-size: 15px; margin: 16px 0 6px; }
   .bcp .bc-sub { margin: 4px 0 12px; }

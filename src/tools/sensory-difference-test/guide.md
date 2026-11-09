@@ -41,6 +41,8 @@ For your result it gives:
 - **Power and sample size** for a difference you want to be able to find, given as distinguishers or as d′.
 - A **table of critical values** for any range of n, worked out exactly on the page.
 
+Plan how many tasters you need with the [[sample-size|sample size calculator]], and the label of the recipe with the [[recipe-nutrition-calculator]].
+
 ## Worked example
 
 Press **Use the example**: a made-up triangle test with 36 answers, 18 correct, at α = 0.05. The page shows **Significant: 18 of 36 correct, p = 0.0283**. 18 is exactly the fewest needed with 36 answers. The proportion correct is 50.0 %, the proportion of distinguishers 25.0 ± 12.5 %, and d′ = 1.47 ± 0.44.

@@ -143,7 +143,7 @@ const demo = 'year\tmean temperature (°C)\n' + vals.map((v, i) => `${1975 + i}\
   wireDownloads(q('.dl'), () => ({ title: 'Trend analysis', subtitle: q('.tr-big').textContent ?? '', file: 'trend', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .trn select, .trn input { max-width: 100%; }
   .trn textarea { width: 100%; }
 </style>

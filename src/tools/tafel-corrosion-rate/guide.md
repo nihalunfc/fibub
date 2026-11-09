@@ -36,6 +36,8 @@ The corrosion rate then follows from Faraday's law as written in **ASTM G102**: 
 
 The second card does the same for a **weight-loss coupon** test (ASTM G1 and G31).
 
+For the equilibrium potential of the metal, use the [[nernst-calculator]]; for the same electrode's impedance, the [[impedance-fitter|impedance (EIS) fitter]].
+
 ## How to use it
 
 1. Export the scan (potential and current) from your potentiostat, then paste it or press "Open a file". Choose the units; if the current is not per area, type the electrode area.

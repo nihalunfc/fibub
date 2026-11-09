@@ -32,6 +32,8 @@ Before an organic reaction, chemists write a reagent table: every substance, its
 - **Scale** by mmol, by the mass of any reagent, or by the volume of a liquid one: "I have 1.20 g of this, how much of everything else?"
 - **Yield**: the theoretical yield of your product and the percent yield from what you isolated.
 
+Get each molar mass from the [[molar-mass-calculator]], and balance the reaction first with the [[equation-balancer]].
+
 ## How to use it
 
 1. Press **Example** to see a filled-in table, or **Start empty**.

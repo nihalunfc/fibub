@@ -239,7 +239,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Beam calculation', subtitle: q('.bm-big').textContent ?? '', file: 'beam', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bmc select, .bmc input { max-width: 100%; }
   .bmc .bm-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .bmc .bm-row:first-child { padding-top: 0; }

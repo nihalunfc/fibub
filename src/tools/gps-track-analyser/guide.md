@@ -30,6 +30,8 @@ A GPS watch, phone or handheld logger records a **track**: a point every few sec
 
 **Your file stays on this device.** The page reads it in your browser. Nothing is uploaded, saved or sent anywhere, and it works offline once the page has loaded.
 
+For survey traverses measured with instruments rather than GPS, use the [[traverse-calculator]]; for heights from a levelling run, the [[level-book-reducer]].
+
 ## How to use it
 
 1. Press **Open a GPX or CSV file**, or paste a table with a header row naming **time, lat, lon** and **ele** (any order; elevation and time are optional). GPX text can be pasted too.

@@ -29,6 +29,8 @@ When a field becomes roofs and roads, rain runs off faster and in greater volume
 
 It **routes** the storm through the pond. At each moment the water in the pond changes by inflow minus outflow, and the outflow depends on how deep the water is. Solving this step by step (level-pool routing, the same idea as the classic Modified Puls method) gives the outflow hydrograph, the highest water level and the storage used.
 
+To build the inflow from a design storm, use the [[unit-hydrograph]]; to turn several rain gauges into one rainfall figure, the [[rain-gauge-average|rain gauge average]] tool.
+
 ## How to use it
 
 1. **Inflow.** Either use the **modified rational method**: catchment area, runoff coefficient C, rain intensity, storm duration and time of concentration. Or paste a hydrograph (time in minutes, flow in m³/s) from another model, such as the [unit hydrograph builder](/science/unit-hydrograph/).

@@ -154,7 +154,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Shaft and bearing life', subtitle: q('.sb-big').textContent ?? '', file: 'shaft-bearing', sections: [sbSec, shSec].filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .sbl select, .sbl input { max-width: 100%; }
   .sbl .sb-out, .sbl .sh-out { margin-top: 12px; }
 </style>

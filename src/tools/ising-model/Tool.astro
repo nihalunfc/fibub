@@ -179,7 +179,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Ising model', subtitle: `${scanL} × ${scanL} lattice, Metropolis Monte Carlo`, file: 'ising-model', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .isg select, .isg input { max-width: 100%; }
   .isg .is-lat { display: block; width: min(100%, 420px); aspect-ratio: 1; height: auto; margin-top: 12px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 6px; }
 </style>

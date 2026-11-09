@@ -28,6 +28,8 @@ A stream after rain is a blend of rainwater, water from the soil and groundwater
 
 For simple tracers the mass balance is linear: the sample's value is the fraction-weighted average of the sources. Isotope δ values are different. They mix in proportion to how much of the element each source carries, so a source rich in carbon pulls δ¹³C towards itself and the mixing line curves. This tool handles both kinds together.
 
+Convert isotope ratios into δ values first with the [[isotope-delta-converter]]; to plot three end members, use the [[ternary-plot-maker]].
+
 ## How to use it
 
 1. Paste or open the **sources**: a header row of tracer names, then one row per source with its name and values. Use two or three sources.

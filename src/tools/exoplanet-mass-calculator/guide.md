@@ -25,6 +25,8 @@ flow:
 
 A planet and its star both orbit their shared centre of mass, so the star moves towards and away from us. Spectrographs see that as a tiny Doppler shift, measured as the velocity semi-amplitude K. Together with the period and the star's mass, K gives the planet's mass. This calculator does that, or the reverse: how big a wobble a planet of a given mass would cause, to see whether an instrument could find it. If the planet also transits, the transit depth gives its radius, so you also get its density and surface gravity, which hint at what it is made of. The star's velocity curve over one orbit is drawn for any eccentricity.
 
+Fit the velocity curve itself with the [[radial-velocity-fitter]], and the transit depth with the [[transit-light-curve-fitter]].
+
 ## How to use it
 
 1. Choose **Mass from the wobble** or **Wobble from the mass**.

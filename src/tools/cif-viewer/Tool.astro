@@ -223,7 +223,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'CIF viewer', subtitle: q('.cv-big').textContent ?? '', file: `${fileSafe(name)}-structure`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cvw h3 { margin: 20px 0 8px; font-size: 15px; }
   .cvw .cv-exl { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
   .cvw .cv-exl select { width: auto; }

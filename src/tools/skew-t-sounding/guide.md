@@ -31,6 +31,8 @@ Twice a day, weather services around the world launch balloons that carry a **ra
 
 This tool draws the diagram, lifts the parcel for you, and works out the numbers forecasters look at first: **CAPE**, **CIN**, the **LCL**, **LFC** and **EL**, the classic stability indices, precipitable water, the freezing level and wind shear. It all runs in your browser; the sounding never leaves your device.
 
+For moist air at the surface, use the [[psychrometric-calculator]]; to see how a plume spreads in the same air, the [[gaussian-plume-calculator]].
+
 ## How to use it
 
 1. **Paste the sounding.** The easiest form is a table with a header row: pressure (hPa), temperature (°C), dew point (°C), and if you have them, height (m), wind direction (degrees) and wind speed (knots, or m/s if the header says so). Columns can be separated by tabs, commas or spaces. You can also paste the **text list from the University of Wyoming upper-air archive** exactly as it appears, with its fixed-width columns (PRES, HGHT, TEMP, DWPT, ... DRCT, SKNT); missing values at the top are handled.

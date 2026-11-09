@@ -193,7 +193,7 @@ const web = 'organism,trophic level,concentration (ng/g lipid)\nAlgae,2.0,12\nZo
   wireDownloads(q('.dl'), () => ({ title: 'Bioaccumulation', subtitle: q('.bi-big').textContent ?? '', file: 'bioaccumulation', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bioa select { max-width: 100%; }
   .bioa .bi-sd { margin-top: 14px; }
   .bioa .bi-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

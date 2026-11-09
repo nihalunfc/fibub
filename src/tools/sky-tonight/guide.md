@@ -27,6 +27,8 @@ flow:
 
 Before you carry a telescope outside, or just step out with binoculars, you want to know a few things. When does it get dark? Is the Moon going to wash out the sky? Which planets are up, and when are they highest? What's worth pointing at? Sky tonight answers all of these for your exact place and date. It works it out on your device from accurate orbits, and it keeps working without an internet connection.
 
+Plan your targets through the night with the [[object-altitude|target altitude planner]], and write down what you saw in the [[observing-log]].
+
 ## How to use it
 
 1. **Set your place.** Pick a city, type your latitude and longitude, or press **Use my location**. Your location stays on your device. Tick **Remember my place** to keep it for next time.

@@ -232,7 +232,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Fluorescence image analysis', subtitle: q('.fi-big').textContent ?? '', file: `${fileSafe(name)}-objects`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fia .fi-view { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); image-rendering: auto; }
   .fia select { max-width: 100%; }
   .fia .fi-showrow { margin-top: 10px; align-items: end; }

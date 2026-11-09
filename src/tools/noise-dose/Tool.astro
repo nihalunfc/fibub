@@ -130,7 +130,7 @@ const example = 'Task, level dB(A), minutes\nGrinding, 95, 60\nAssembly line, 85
   wireDownloads(q('.dl'), () => ({ title: 'Noise dose', subtitle: q('.nd-big').textContent ?? '', file: 'noise-dose', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .nds select { max-width: 100%; }
   .nds .nd-tab td.r { white-space: nowrap; }
 </style>

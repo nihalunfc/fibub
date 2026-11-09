@@ -116,6 +116,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Projectile with drag', subtitle: `${inp('.pj-v').value} m/s at ${inp('.pj-a').value}°`, file: 'projectile', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pjd select, .pjd input { max-width: 100%; }
 </style>

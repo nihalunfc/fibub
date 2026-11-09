@@ -138,7 +138,7 @@ const example = 'year\twaste (t)\n' + Array.from({ length: 20 }, (_, i) => `${20
   wireDownloads(q('.dl'), () => ({ title: 'Landfill gas generation', subtitle: q('.lf-big').textContent ?? '', file: 'landfill-gas', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lfg select { max-width: 100%; }
   .lfg .lf-yby { margin-top: 14px; }
   .lfg .lf-yby summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

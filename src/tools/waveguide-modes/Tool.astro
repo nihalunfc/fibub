@@ -112,6 +112,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Waveguide modes', subtitle: `${q<HTMLInputElement>('.wg-f').value} GHz`, file: 'waveguide-modes', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wgm select, .wgm input { max-width: 100%; }
 </style>

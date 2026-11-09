@@ -148,6 +148,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Heat exchanger', subtitle: q('.hx-big').textContent ?? '', file: 'heat-exchanger', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hxs select, .hxs input { max-width: 100%; }
 </style>

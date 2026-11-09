@@ -34,6 +34,8 @@ where k1 is the uptake rate (L/kg per day), k2 the depuration rate (per day) and
 
 It also works out the **trophic magnification factor (TMF)**: how much a chemical's concentration goes up with each step in a food web.
 
+Toxicity results from the same fish can go into the [[lc50-probit|LC50 probit analysis]], and values for many species into a [[species-sensitivity|species sensitivity distribution]].
+
 ## How to use it
 
 **Bioconcentration factor.** Paste or open the time (days) and fish concentration, one row per fish or pooled sample. Give the water concentration during uptake (in matching units, such as µg/L for µg/kg fish) and the day uptake ended. Choose to fit on **log** concentrations (usual, as scatter tends to grow with the level) or **raw** ones. Optional: the fish lipid content to normalise the BCF to 5 % lipid, and the fish weight at the end of uptake and at the end of the test to correct for growth (growing fish dilute the chemical, which looks like faster depuration).

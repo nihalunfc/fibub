@@ -25,6 +25,8 @@ flow:
 
 When an exoplanet crosses in front of its star, the star dims by a percent or so for an hour or a few. Amateurs with a small telescope and a camera can record it, and their timings help keep ephemerides up to date. The hard part is planning: transits happen at fixed moments, so you need the ones that fall in your night with the star high in the sky. This planner lists every transit in the coming weeks or months. Each one shows ingress, middle and egress on your clock, the star's altitude at each point, the Sun's depth and the Moon. It says whether you can see the whole event with baseline on each side, part of it, or none, and how far off the prediction could be.
 
+To check that the target is high enough during the transit, use the [[object-altitude|target altitude planner]]; to fit the light curve you record, the [[transit-light-curve-fitter]].
+
 ## How to use it
 
 1. Set your **place** at the top. Times show in the zone chosen there.

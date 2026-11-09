@@ -161,7 +161,7 @@ const demo = '225 30 128\n081 73 7\n002 38 100\n168 73 165\n092 65 33\n199 16 13
   wireDownloads(q('.ps-out > .dl:last-child'), () => ({ title: 'Paleostress inversion', subtitle: q('.ps-big').textContent ?? '', file: 'paleostress-inversion', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pst textarea { width: 100%; font-family: ui-monospace, monospace; }
   .pst .ps-paper { max-width: 520px; margin: 12px auto 0; }
   .pst .ps-paper canvas { display: block; width: 100%; height: auto; }

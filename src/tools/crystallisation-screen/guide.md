@@ -34,6 +34,8 @@ Finding crystallisation conditions for a protein usually starts with a broad com
 - **Water** tops every well up to the volume you chose. A well whose stocks alone add up to more than the well volume gets a red ring and a warning.
 - **Totals.** The volume of each stock and water for the whole plate, plus a spare percentage for what is lost in tips and tubes.
 
+Make up each stock with the [[solution-calculator]] and the buffers with the [[buffer-recipe-calculator]].
+
 ## How to use it
 
 1. **Plate.** Choose 24 or 96 wells and the volume per well (the reservoir). Pick how finely to round volumes, the smallest volume your pipette handles, and the spare.

@@ -30,6 +30,8 @@ A **slug test** is the quickest way to measure how permeable the ground is aroun
 
 This tool takes those readings and gives the **hydraulic conductivity K**: how easily water moves through the ground, in m/s or m/day.
 
+For a longer test with a pumping well, use the [[pump-test-analyser]]; to use the K you find, the [[darcy-flow-calculator]].
+
 ## How to use it
 
 1. Choose the length and time units.

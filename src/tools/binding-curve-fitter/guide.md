@@ -38,6 +38,8 @@ It fits five models:
 
 The best model is chosen as the simplest one within 2 AICc units of the lowest score whose values are all well defined. The comparison table shows how strongly the data support each one.
 
+For enzyme rates rather than binding, use the [[enzyme-kinetics-fitter]]; for a four-parameter curve with an IC50, the [[dose-response|dose-response fitter]].
+
 ## How to use it
 
 1. Paste two columns (ligand, bound) or three (ligand, total, non-specific), or open a CSV, TSV or Excel file. With three columns, specific binding is total minus non-specific.

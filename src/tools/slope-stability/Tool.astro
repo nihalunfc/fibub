@@ -205,7 +205,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Slope stability', subtitle: q('.ss-big').textContent ?? '', file: 'slope-stability', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ssb select, .ssb input[type=text] { max-width: 100%; }
   .ssb h3 { font-size: 15px; margin: 14px 0 6px; }
   .ssb .ss-sub { margin: 4px 0 12px; }

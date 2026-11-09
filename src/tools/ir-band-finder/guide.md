@@ -38,6 +38,8 @@ The second card **picks the peaks from a whole spectrum**. Paste or open it as t
 
 The third card is the **band table**. Search it by group, by bond or by a wavenumber, and convert cm⁻¹ to µm and nm.
 
+To check an NMR spectrum of the same sample for solvent peaks, use the [[nmr-impurity-checker]]; for the mass spectrum, the [[isotope-pattern-calculator]].
+
 ## How to use it
 
 1. Type your peaks in cm⁻¹, separated by commas or one per line. Copy them straight from a characterisation line such as "3350 (br), 2960, 1715 (s)". Write "br" after a broad band. A range such as "3300–2500 br" counts as one broad band.

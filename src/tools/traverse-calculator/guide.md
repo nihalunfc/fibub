@@ -29,6 +29,8 @@ A **traverse** is a chain of survey lines: from each station you measure the dir
 
 This tool works out the misclosure and the precision, spreads the error back through the traverse by the Bowditch or transit rule, gives adjusted coordinates and bearings, and finds the area inside a loop. A second card does everyday coordinate geometry: the bearing and distance between two points, and where two bearings or two distances meet.
 
+For heights along the same line, use the [[level-book-reducer]]; for a GPS track, the [[gps-track-analyser]].
+
 ## How to use it
 
 1. Choose what you measured: **bearings and distances**, or **angles and distances** around a closed loop.

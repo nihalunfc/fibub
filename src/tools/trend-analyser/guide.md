@@ -30,6 +30,8 @@ Is a river's flow falling? Are summers getting warmer at your station? Did air p
 
 This tool runs the test, estimates how fast the values change with a confidence interval, looks for a single sudden **change point** (Pettitt test), and shows each value as an **anomaly** from a baseline period, like the warming stripes and bar charts in climate reports. Everything runs in your browser.
 
+Classify the same station's climate with the [[koppen-climate|Köppen climate classifier]], and find how often extremes come with [[flood-frequency]].
+
 ## How to use it
 
 1. **Paste or open your series:** a time column and a value column. Times can be years (1990), decimal years (1990.5), or dates such as 1990-07 or 1990-07-15. A single column of values works too. Gaps are fine; rows without a number are skipped.

@@ -216,7 +216,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Readability check', subtitle: `${A?.counts.words ?? 0} words, ${A?.counts.sentences ?? 0} sentences`, file: 'readability-check', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rdc .rd-text { font-family: inherit; font-size: 16px; line-height: 1.5; }
   .rdc .rd-pillrow { margin: 4px 0 8px; }
   .rdc .rd-view { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; font-size: 16px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-top: 10px; max-height: 480px; overflow-y: auto; }

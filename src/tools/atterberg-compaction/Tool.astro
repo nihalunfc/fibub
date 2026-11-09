@@ -175,7 +175,7 @@ const cpDemo = 'water content (%)\tbulk density\n10.2\t1.89\n12.4\t2.01\n14.6\t2
   wireDownloads(q('.dl'), () => ({ title: 'Atterberg limits and compaction', subtitle: [S.at?.title, S.cp?.title].filter(Boolean).join('; '), file: 'atterberg-compaction', sections: [S.at, S.cp].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .atc select, .atc input[type=text] { max-width: 100%; }
   .atc textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
   .atc h3 { font-size: 15px; margin: 16px 0 6px; }

@@ -262,7 +262,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Electric field lines', subtitle: `${rows.length} sources, view ${q<HTMLInputElement>('.fl-w').value} cm either side`, file: 'field-lines', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .flp .fl-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); }
   .flp .fl-src input { padding: 6px 8px; }
   .flp .fl-kp { background: var(--bad); }

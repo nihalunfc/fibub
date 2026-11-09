@@ -173,7 +173,7 @@ const wellDemo = 'well\tx (m)\ty (m)\tQ (m³/day)\tstart (day)\nPW1\t0\t0\t800\t
   wireDownloads(q('.dl'), () => ({ title: 'Well field drawdown', subtitle: q('.wf-big').textContent ?? '', file: 'well-field', sections: [S.wf, S.wt, S.cz].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wfd select, .wfd input { max-width: 100%; }
   .wfd textarea { width: 100%; }
 </style>

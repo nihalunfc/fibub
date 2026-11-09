@@ -25,6 +25,8 @@ flow:
 
 Many biological responses follow an S-shaped curve against the log of the dose. Examples include enzyme inhibition, cell viability, receptor binding, herbicide or antibiotic response, and ELISA signal against antigen concentration. The standard model for this curve is the **four-parameter logistic (4PL)**. Labs usually fit it with paid software. This page fits it for free in your browser, gives the same numbers as the standard packages, and reads unknown ELISA samples off the curve.
 
+For a straight-line assay with LOD and LOQ, use the [[calibration-curve|calibration curve]] tool; for deaths out of a number of organisms, the [[lc50-probit|LC50 probit analysis]].
+
 ## How to use it
 
 1. **Paste your data:** the dose or concentration in the first column, then one or more response columns (replicates). Copy them straight from your plate reader export or spreadsheet. Blank cells are skipped, and a header row is fine. Doses of zero (controls) are used in the fit.

@@ -111,7 +111,7 @@ const demo = 'thickness (cm)\tarea (km²)\n128\t1.5\n64\t10.7\n32\t31.3\n16\t51.
   wireDownloads(q('.tv-out > .dl:last-child'), () => ({ title: 'Tephra volume', subtitle: q('.tv-big').textContent ?? '', file: 'tephra-volume', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .tpv textarea { width: 100%; font-family: ui-monospace, monospace; }
   .tpv .tv-tab td, .tpv .tv-tab th { white-space: nowrap; }
 </style>

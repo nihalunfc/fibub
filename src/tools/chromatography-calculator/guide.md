@@ -36,6 +36,8 @@ In HPLC and GC, two numbers decide whether a method works: how far apart two pea
 
 Going from a 250 × 4.6 mm, 5 µm column to a 100 × 2.1 mm, 1.8 µm one can save 90 % of the time and solvent. The flow, injection volume and every gradient time must be scaled together so the separation stays the same. The tool does that, as in USP chapter <621>, and checks the change in column length to particle size (L/dp) against the −25 % to +50 % window.
 
+To turn peak areas into concentrations, use the [[calibration-curve|calibration curve]] tool; for spots on a TLC plate, the [[tlc-rf-calculator]].
+
 ## How to use it
 
 1. Enter t₀, the two retention times and the two peak widths, and say how the widths were measured (most software reports W½).

@@ -36,6 +36,8 @@ A lab's frozen cell stocks are usually spread over several freezers and tanks, i
 - **Thaw log.** Every vial marked thawed, newest first, with where it came from, who thawed it and a note. Undo puts a vial back if its place is still free.
 - **Freezing helper.** For a new batch, the cells to spin down, the freezing medium to make (DMSO, serum and medium in mL), how much of your suspension to spin, how many vials your cells would fill, how long cooling to −80 °C takes, and the dates for moving the vials to storage and for a test thaw.
 
+Before freezing, count the cells with the [[hemocytometer]] and plan passages with the [[cell-doubling-time|cell doubling time calculator]].
+
 ## How to use it
 
 1. **Box map.** Press **Start empty**, then **Add a box**. Add as many boxes as you have; pick one from the **Box** list to see it.

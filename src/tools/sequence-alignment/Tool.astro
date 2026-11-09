@@ -194,7 +194,7 @@ const exA = `>made-up gene, copy 1\n${wrap(a)}`, exB = `>made-up gene, copy 2\n$
   wireDownloads(q('.dl'), () => ({ title: 'Sequence alignment', subtitle: q('.sa-big').textContent ?? '', file: 'alignment', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .sqa .sa-aln { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.35; white-space: pre; overflow-x: auto; max-height: 520px; overflow-y: auto; padding: 8px; border: 1px solid var(--line, #ddd); border-radius: 6px; }
   .sqa h3 { margin: 16px 0 4px; font-size: 1rem; }
 </style>

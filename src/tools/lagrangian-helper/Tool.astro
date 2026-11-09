@@ -166,7 +166,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Lagrangian mechanics', subtitle: q('.lg-big').textContent || '', file: 'lagrangian', sections: [...eqReport, ...simReport] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lgh select, .lgh input[type=text], .lgh textarea { max-width: 100%; }
   .lgh textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
   .lgh .lg-eqs { grid-template-columns: 1fr; }

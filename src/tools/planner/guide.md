@@ -29,6 +29,8 @@ Type what you want to do into the quick-add box and press Enter. The planner rea
 
 Each day is its own column, and you can put as many plans in a day as you like. They sort themselves by time, with untimed plans (like "Pay rent") at the top. Click **+ Add** under any day to add a plan with the full form, or click a plan to change its text, day, time or colour, or delete it. The small circle in front of each plan ticks it off as done.
 
+To plan a team's shifts rather than your own week, use the [[shift-scheduler]]; for bills and pay days, the [[bill-calendar]].
+
 ## Week and month views
 
 **Week** shows seven columns side by side on a computer or tablet, and one day under another on a phone. **Month** shows the whole month as a grid with the first few plans of each day. Tap any day in the month to jump to its week. Use the arrows to move back and forward, and **Today** to come back to now.

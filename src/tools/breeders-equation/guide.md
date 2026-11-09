@@ -40,6 +40,8 @@ The second card estimates heritability from your own data:
 - **Offspring on parent regression**: the slope b of offspring values on mid-parent values is h²; on one parent, h² = 2b. You get the standard error, a 95 % interval and a p-value.
 - **Variance components**: plants measured in groups. For lines or clones the between-group variance is genetic, giving broad-sense H² (on a single-plant and a line-mean basis). Half-sib families give h² = 4σ²f ÷ σ²P; full-sib families give 2σ²f ÷ σ²P, an upper limit.
 
+Plan the crosses themselves with the [[crossing-plan|crossing plan and pedigree tracker]], and lay out the selection trial with the [[field-trial-designer]].
+
 ## How to use it
 
 1. Enter h², and either the proportion selected and σP, or S directly.

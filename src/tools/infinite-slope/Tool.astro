@@ -110,7 +110,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.is-out > .dl:last-child'), () => ({ title: 'Infinite slope factor of safety', subtitle: 'For study, not a slope stability assessment', file: 'infinite-slope', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ifs .ifs-note { border: 1px solid var(--warn); color: var(--ink); border-radius: 10px; padding: 10px 12px; margin: 0; font-size: 15px; }
   .ifs h3 { margin: 16px 0 6px; font-size: 1rem; }
   .ifs .is-pill { margin: 4px 0 12px; }

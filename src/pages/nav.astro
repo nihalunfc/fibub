@@ -1,0 +1,98 @@
+---
+// The tool lists for the menus, kept out of every page so pages stay small. The header script
+// (src/scripts/site.ts) fetches this page once, the first time someone reaches for a menu, and moves
+// each part into the element with the matching data-fill. Not a page for people or search engines:
+// it is noindex and left out of the sitemap.
+import { SHELVES, SUBJECTS } from '../site';
+import { ICONS } from '../lib/icons';
+import { allTools, bySection, bySubject, toolUrl } from '../lib/tools';
+const liveTools = (await allTools()).filter((t) => t.data.status === 'live');
+const menus = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, liveTools), subjects: bySubject(s.id, liveTools), hasSubjects: !!SUBJECTS[s.id] }));
+const PER_SECTION = 3;
+---
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="robots" content="noindex" /><title>fibub menu</title></head>
+<body>
+{menus.map(({ shelf: s, groups, subjects, hasSubjects }) => (
+  <>
+  <div data-part={`dd-${s.id}`}>
+    {hasSubjects ? (
+      <>
+                  <div class="dd-subjects" role="none">
+                    <b class="dd-h">Subjects</b>
+                    {subjects.map((sj, i) => (
+                      <button type="button" class="dd-subj" data-i={i} role="menuitem" aria-haspopup="true">
+                        <span>{sj.name}</span><small>{sj.count}</small>
+                      </button>
+                    ))}
+                  </div>
+                  {subjects.map((sj, i) => (
+                    <div class="dd-pane" data-i={i} role="group" aria-label={`${sj.name} tools`}>
+                      <div class="dd-cols">
+                        {sj.groups.map((g) => (
+                          <div class="dd-group">
+                            <a class="dd-h dd-sec" href={`${sj.url}#${g.id}`}>{g.name}</a>
+                            {g.tools.slice(0, PER_SECTION).map((t) => (
+                              <a class="dd-item" role="menuitem" href={toolUrl(t)}>
+                                <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
+                              </a>
+                            ))}
+                            {g.tools.length > PER_SECTION && <a class="dd-more" href={`${sj.url}#${g.id}`}>{g.tools.length - PER_SECTION} more</a>}
+                          </div>
+                        ))}
+                      </div>
+                      <a class="dd-all" href={sj.url}>All {sj.count} {sj.name.toLowerCase()} tools →</a>
+                    </div>
+                  ))}
+      </>
+    ) : (
+      <>
+                  <div class="dd-cols" style={`--cols:${Math.min(2, Math.ceil(groups.reduce((n, g) => n + g.tools.length, 0) / 7))}`}>
+                    {groups.map((g) => (
+                      <div class="dd-group">
+                        {g.label && <b class="dd-h">{g.label}</b>}
+                        {g.tools.map((t) => (
+                          <a class="dd-item" role="menuitem" href={toolUrl(t)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
+                            <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
+                          </a>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <a class="dd-all" href={`/${s.id}/`}>All {s.name.toLowerCase()} tools →</a>
+      </>
+    )}
+  </div>
+  <div data-part={`at-${s.id}`}>
+              {hasSubjects ? (
+                <div class="at-group">
+                  {subjects.map((sj) => (
+                    <details class="at-sj">
+                      <summary><span>{sj.name}</span><small>{sj.count}</small></summary>
+                      {sj.groups.map((g) => (
+                        <div class="at-group">
+                          <b class="at-sub">{g.name}</b>
+                          {g.tools.map((t) => <a class="at-item" href={toolUrl(t)} data-id={t.id}><span>{t.data.name}</span><small class="num">#{t.data.num}</small></a>)}
+                        </div>
+                      ))}
+                      <a class="at-all" href={sj.url}>{sj.name} page →</a>
+                    </details>
+                  ))}
+                </div>
+              ) : groups.map((g) => (
+                <div class="at-group">
+                  {g.tools.map((t) => (
+                    <a class="at-item" href={toolUrl(t)} data-id={t.id}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
+                      <span>{t.data.name}</span><small class="num">#{t.data.num}</small>
+                    </a>
+                  ))}
+                </div>
+              ))}
+  </div>
+  </>
+))}
+</body>
+</html>

@@ -155,6 +155,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Skin depth and conductor loss', subtitle: `${q<HTMLSelectElement>('.sk-mat').selectedOptions[0].text}, ${q<HTMLInputElement>('.sk-f').value} ${q<HTMLSelectElement>('.sk-fu').selectedOptions[0].text}`, file: 'skin-depth', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .skd select, .skd input { max-width: 100%; }
 </style>

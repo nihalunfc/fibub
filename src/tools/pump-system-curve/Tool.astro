@@ -207,7 +207,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Pump and system curve', subtitle: q('.ps-big').textContent ?? '', file: 'pump-system-curve', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pss select, .pss input { max-width: 100%; }
   .pss .ps-lab { margin-top: 12px; }
   .pss textarea { margin-top: 4px; }

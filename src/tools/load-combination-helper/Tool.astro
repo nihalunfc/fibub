@@ -127,7 +127,7 @@ const loads = 'Load\tN (kN)\tM (kN·m)\tV (kN)\nD\t400\t35\t18\nL\t220\t28\t12\n
   wireDownloads(q('.dl'), () => ({ title: 'Load combinations', subtitle: q('.lc-big').textContent ?? '', file: 'load-combinations', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lch .lc-row { margin-top: 10px; }
   .lch .lc-tab { margin: 12px 0; }
   .lch .lc-tab td.lc-gov { font-weight: 700; color: var(--bad); }

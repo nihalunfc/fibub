@@ -154,7 +154,7 @@ const results = 'sample\tpH\tDissolved oxygen (mg/L)\tTotal phosphorus (mg/L)\tN
   wireDownloads(q('.dl'), () => ({ title: 'Water quality index', subtitle: q('.wq-big').textContent ?? '', file: 'water-quality-index', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wqx .wq-det { margin-top: 14px; }
   .wqx .wq-det summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 </style>

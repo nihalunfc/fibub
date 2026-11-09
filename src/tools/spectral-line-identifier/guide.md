@@ -28,6 +28,8 @@ For galaxies and quasars the lines are all shifted to longer wavelengths by the 
 
 Some lines never shift: the oxygen and water bands of **Earth's atmosphere**, lines of **calibration lamps** (neon, argon, mercury) and of **light pollution** (mercury and sodium street lights, the green airglow line at 5577 Å). The tool matches those at zero redshift and leaves them out of the redshift search, so they cannot fool it.
 
+Turn the line shifts into velocities with the [[redshift-calculator]], and the velocities into an orbit with the [[radial-velocity-fitter]].
+
 ## How to use it
 
 1. Paste a spectrum as two columns, wavelength and flux, or open a text or CSV file. The tool picks out the lines that stand at least five times the noise above (or below) a running-median continuum. Or paste a short list of wavelengths you have measured yourself, one per line.

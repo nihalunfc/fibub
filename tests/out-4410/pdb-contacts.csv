@@ -1,0 +1,5 @@
+chain_1,residue_1,number_1,chain_2,residue_2,number_2,closest_distance_A,atom_1,atom_2,atom_pairs_within_cutoff,type
+A,GLU,23,A,HOH,201,2.799,O,O,1,water
+A,TYR,29,A,LIG,101,3.356,CB,C5,2,ligand
+A,SER,33,A,HOH,202,2.800,O,O,1,water
+B,LEU,12,A,HOH,203,2.800,O,O,1,water

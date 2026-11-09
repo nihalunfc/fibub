@@ -28,6 +28,8 @@ flow:
 
 Most people see colour with three kinds of cone cell in the eye, sensitive to long (red), medium (green) and short (blue) wavelengths. About 1 man in 12 and 1 woman in 200 has a red-green colour vision deficiency, and blue-yellow and complete colour loss are much rarer. This tool shows roughly how an image looks with each of them, so you can check that a chart, map, slide, website or teaching material still works for everyone. Your image is processed in the page and never uploaded.
 
+To check that text on your design is readable, use the [[contrast-checker|contrast and readability checker]]; to resize the image first, the [[image-resizer]].
+
 ## How to use it
 
 1. **Choose an image** or drop it on the box (PNG, JPEG, WebP, GIF or BMP, up to 40 MB). Large images are scaled so the long side is at most 2000 pixels. Or keep the **sample picture**.

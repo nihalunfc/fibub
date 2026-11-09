@@ -34,6 +34,8 @@ This tool does three things:
 2. **Turns excess rain into a storm hydrograph.**
 3. **Derives the unit hydrograph from a storm you measured**, so you can see how your own catchment really responds.
 
+For a quick peak flow without a hydrograph, use the [[runoff-calculator]]; to store the flood, the [[detention-pond]].
+
 ## How to use it
 
 **Catchment and unit hydrograph.** Give the catchment area and the rain step D. Then choose a shape:

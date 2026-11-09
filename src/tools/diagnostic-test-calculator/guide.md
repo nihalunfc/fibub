@@ -35,6 +35,8 @@ It then uses Bayes' theorem to turn a **pre-test probability** into the **post-t
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+To choose the cut-off behind the test, draw a [[roc-curve|ROC curve]]; to turn a treatment effect into a number needed to treat, use the [[nnt-calculator]].
+
 ## How to use it
 
 1. Choose **2 × 2 table** and type the four counts, or choose **Sensitivity and specificity** to start from published figures and a prevalence.

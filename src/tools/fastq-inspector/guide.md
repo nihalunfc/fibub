@@ -34,6 +34,8 @@ Before you align or assemble sequencing reads, it pays to check that they look h
 - **Bases by position.** The share of A, C, G, T and N at each position. Random libraries give flat lines; the first few bases often wobble.
 - **Repeated reads.** The share of reads seen before, among the first 100,000 reads, and the most repeated sequences.
 
+To look inside the sequences themselves, use the [[sequence-tools|DNA sequence tools]]; to count repeated words across reads, the [[kmer-counter|k-mer counter]].
+
 ## How to use it
 
 1. **Open** a .fastq, .fq, .fasta or .fa file, gzip-compressed or not, or paste a few reads into the box.

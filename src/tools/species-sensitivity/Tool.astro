@@ -148,6 +148,6 @@ const example = 'species\tgroup\tEC10 (µg/L)\nWater flea\tcrustacean\t12\nWater
   wireDownloads(q('.dl'), () => ({ title: 'Species sensitivity distribution', subtitle: q('.sd-big').textContent ?? '', file: 'species-sensitivity', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ssd select { max-width: 100%; }
 </style>

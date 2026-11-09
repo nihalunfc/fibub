@@ -132,6 +132,6 @@ import { GASES } from '../../lib/sci/phrealgas';
   wireDownloads(q('.dl'), () => ({ title: 'Real gas', subtitle: `${q<HTMLSelectElement>('.rg-gas').selectedOptions[0].textContent}, ${inp('.rg-t').value} ${sel('.rg-tu')}, ${inp('.rg-p').value} ${q<HTMLSelectElement>('.rg-pu').selectedOptions[0].textContent}`, file: 'real-gas', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rgc select, .rgc input { max-width: 100%; }
 </style>

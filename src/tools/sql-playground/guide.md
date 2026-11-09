@@ -24,6 +24,8 @@ flow:
 
 Spreadsheets struggle once data has more than a few thousand rows, or when you need to combine two files. SQL handles both easily, but setting up a database just to ask a few questions takes time. This tool gives you a full SQLite database inside the browser tab. Open your files and each one becomes a table. You see a profile of every column straight away, and you can then ask questions in SQL. Your files are read on your device and never uploaded. The database disappears when you close the tab.
 
+Draw the results with the [[plot-maker]], or turn the file into another format with the [[file-converter]].
+
 ## How to use it
 
 1. **Open** one or more CSV, TSV or Excel (.xlsx) files, or drop them on the box. Each sheet of an Excel file becomes its own table. The table name comes from the file name, for example `sales_2025`.

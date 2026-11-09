@@ -26,6 +26,8 @@ flow:
 
 Anything warm glows, and a perfect absorber, a black body, glows with a spectrum set only by its temperature. Stars, light bulb filaments, your skin and the afterglow of the Big Bang all come close. This calculator draws that spectrum (Planck's law) for any temperature. It gives the peak wavelength and peak frequency, the power from each square metre, and how the light splits into ultraviolet, visible and infrared. For a star, add its radius and it gives the luminosity, the bolometric and visual absolute magnitudes, and the bolometric correction. Add a distance and it gives how bright the star looks from Earth.
 
+To turn the spectrum into magnitudes, use the [[magnitude-flux-converter]]; to see where a planet around the same star would stay temperate, the [[habitable-zone-calculator]].
+
 ## How to use it
 
 1. Pick an **example**, or choose what you know: a **temperature** in kelvin, a star's **B − V colour**, or the **peak wavelength**.

@@ -180,7 +180,7 @@ import Downloads from '../../components/Downloads.astro';
   const ex0 = EXAMPLES[0]; load(ex0.name, ex0.rows.map((r) => ({ ...r })));
 </script>
 
-<style is:global>
+<style is:inline>
   .mrs .mr-namel { margin-top: 12px; }
   .mrs .mr-rows { display: grid; gap: 10px; margin: 12px 0; }
   .mrs .mr-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 84px), 1fr)); gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); align-items: end; }

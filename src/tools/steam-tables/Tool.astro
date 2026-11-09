@@ -210,7 +210,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Steam properties and Rankine cycle', subtitle: 'IAPWS-IF97', file: 'steam-rankine', sections: [...(propSec ? [propSec] : []), ...cycSec] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .sts select, .sts input { max-width: 100%; }
   .sts label.st-chk { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; color: var(--ink); }
   .sts .st-chk input { width: auto; }

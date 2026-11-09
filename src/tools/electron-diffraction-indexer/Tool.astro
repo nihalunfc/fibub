@@ -249,7 +249,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Electron diffraction indexer', subtitle: q('.ed-big').textContent ?? '', file: 'electron-diffraction', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .edi h3 { margin: 20px 0 8px; font-size: 15px; }
   .edi select { max-width: 100%; }
   .edi label[hidden], .edi .ax-card[hidden] { display: none; }

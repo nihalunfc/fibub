@@ -378,7 +378,7 @@ Brick, 100, 0.7</textarea></label>
   wireDownloads(q('.dl'), () => ({ title: 'Heat conduction', subtitle: q('.hc-oh').textContent ?? '', file: `heat-conduction-${csvName}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hcd select, .hcd input { max-width: 100%; }
   .hcd .hc-p[hidden], .hcd label[hidden], .hcd canvas[hidden] { display: none; }
 </style>

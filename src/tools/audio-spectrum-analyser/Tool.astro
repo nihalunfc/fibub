@@ -260,7 +260,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Audio spectrum', subtitle: q('.as-big').textContent ?? '', file: 'audio-spectrum', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .asa select { max-width: 100%; }
   .asa .as-status { margin: 8px 0 0; font-size: 14px; }
   .asa [hidden] { display: none !important; }

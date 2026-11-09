@@ -160,7 +160,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Concrete mix', subtitle: q('.cm-big').textContent ?? '', file: 'concrete-mix', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cmx .cm-row { margin-top: 10px; }
   .cmx .cm-tab { margin: 12px 0; }
   .cmx .cm-tab th { white-space: normal; }

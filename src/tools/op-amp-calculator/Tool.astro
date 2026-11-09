@@ -195,6 +195,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Op-amp circuit', subtitle: q('.op-big').textContent ?? '', file: 'op-amp', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .opa select, .opa input { max-width: 100%; }
 </style>

@@ -30,6 +30,8 @@ Every groundwater, river or spring sample carries a handful of **major ions**: c
 
 A **Piper diagram** shows many samples at once. Each sample appears three times: once in the cation triangle, once in the anion triangle, and once in the diamond above, where the two are combined. Samples of the same kind of water cluster together. A **Stiff diagram** turns each sample into a small shape, so you can compare waters at a glance.
 
+To unmix the waters into their sources, use the [[mixing-model-calculator]]; for any other three-part plot, the [[ternary-plot-maker]].
+
 ## How to use it
 
 1. Paste or open a table with a header row. Name the ion columns Ca, Mg, Na, K, HCO3, CO3, SO4 and Cl (Ca2+, Calcium or Sulfate also work). K, CO3 and NO3 are optional.

@@ -29,6 +29,8 @@ In an acute toxicity test, groups of organisms (fish, water fleas, insects, seed
 
 It fits the classic **probit** model (or the **logit** model): the share responding follows a normal (or logistic) S-curve against the logarithm of concentration. The fit is by **maximum likelihood**, which treats each count as binomial, so groups of different sizes and concentrations where none or all responded are handled properly.
 
+For a continuous response such as growth, use the [[dose-response|dose-response fitter]]; to combine LC50s from many species, the [[species-sensitivity|species sensitivity distribution]].
+
 ## How to use it
 
 1. **Enter the test results**: one row per concentration, with the concentration, the number exposed and the number that responded. Add the control as a row with concentration 0. Paste from a spreadsheet or open a CSV, TXT or Excel file.

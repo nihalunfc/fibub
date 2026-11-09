@@ -32,6 +32,8 @@ After harvest, every plot of a trial has a yield. The question is whether the tr
 - **LSD**: the least significant difference at 5 % or 1 %, LSD = t × √(2 × error mean square ÷ replicates), with t from Student's distribution on the error degrees of freedom. Two means further apart than the LSD differ significantly.
 - **Letters**: means that share a letter are not significantly different. The highest mean's group is "a".
 
+Lay out the next trial with the [[field-trial-designer]], and plan its replicates with the [[sample-size|sample size calculator]].
+
 ## Designs
 
 - **Randomised complete block (RCBD)**: needs a block column, and every treatment exactly once in every block.

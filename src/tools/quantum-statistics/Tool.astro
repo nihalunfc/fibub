@@ -145,6 +145,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Quantum statistics', subtitle: `${inp('.qs-T').value} K`, file: 'quantum-statistics', sections: [...dist, ...gas] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .qst select, .qst input { max-width: 100%; }
 </style>

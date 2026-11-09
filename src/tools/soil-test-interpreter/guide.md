@@ -31,6 +31,8 @@ A soil test report gives a pH and a list of nutrient results. This page helps yo
 
 **Nutrients.** Type each result with the bottom and top of the range your lab or adviser gives, and the page marks it low, in range or high, with a picture of where it sits.
 
+Turn the results into a fertiliser mix with the [[fertiliser-blend-calculator]], and plan watering with the [[irrigation-scheduler]].
+
 ## Three ways to work out lime
 
 - **CEC and base saturation**: the charge to neutralise is CEC × (target − present base saturation) ÷ 100, in cmol(+)/kg.

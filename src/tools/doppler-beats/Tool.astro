@@ -235,7 +235,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Doppler and beats', subtitle: q('.dp-big').textContent ?? '', file: 'doppler-beats', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dpb select { max-width: 100%; }
   .dpb [hidden] { display: none !important; }
 </style>

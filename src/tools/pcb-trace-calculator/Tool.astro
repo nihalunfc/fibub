@@ -141,6 +141,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'PCB trace calculator', subtitle: [q('.pc-big1').textContent, q('.pc-big2').textContent].filter(Boolean).join('; '), file: 'pcb-trace', sections: sec.filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pcbt select, .pcbt input { max-width: 100%; }
 </style>

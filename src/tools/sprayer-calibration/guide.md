@@ -31,6 +31,8 @@ A boom sprayer puts down a spray volume (litres per hectare or gallons per acre)
 
 or, in US units, gal/acre = 5940 × gal/min ÷ (mph × spacing in inches). This page does those sums both ways and the checks that go with them.
 
+For the seed drill, use the [[seeding-rate-calculator]]; for granular fertiliser, the [[fertiliser-blend-calculator]].
+
 ## How to use it
 
 1. **Application rate.** Pick the units, then either work out the spray volume from the nozzle flow, or the nozzle flow you need for a spray volume. Add the nozzle's rated flow and pressure from the nozzle or its chart to see the pressure that gives your flow (flow rises with the square root of pressure).

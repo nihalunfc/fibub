@@ -401,7 +401,7 @@ import Downloads from '../../components/Downloads.astro';
   loadPRows(EXAMPLE_PLATES);
 </script>
 
-<style is:global>
+<style is:inline>
   .tcd [hidden] { display: none !important; }
   .tcd .tc-rows, .tcd .tc-prows { display: grid; gap: 6px; margin: 12px 0; }
   .tcd .tc-row, .tcd .tc-prow { display: grid; gap: 8px; align-items: end; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }

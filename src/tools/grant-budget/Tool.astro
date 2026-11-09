@@ -223,7 +223,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Grant budget', subtitle: q('.gb-big').textContent ?? '', file: 'grant-budget', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gbt textarea { white-space: pre; overflow-x: auto; }
   .gbt .gb-excl { gap: 6px 16px; }
   .gbt tr.gb-sub td { font-weight: 600; }

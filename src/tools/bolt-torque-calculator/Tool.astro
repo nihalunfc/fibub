@@ -160,6 +160,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Bolt preload and torque', subtitle: q('.bt-big').textContent ?? '', file: 'bolt-torque', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .btq select, .btq input { max-width: 100%; }
 </style>

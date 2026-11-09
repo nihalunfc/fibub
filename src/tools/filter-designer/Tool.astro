@@ -176,7 +176,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Analog filter design', subtitle: q('.fd-big').textContent ?? '', file: 'filter-design', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fdz select, .fdz input { max-width: 100%; }
   .fdz .fd-tab td { white-space: nowrap; }
   .fdz .fd-net { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }

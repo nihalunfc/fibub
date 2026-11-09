@@ -185,7 +185,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Resistor colour code', subtitle: q('.rc-big1').textContent ?? '', file: 'resistor', sections: sec.filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rcc select, .rcc input { max-width: 100%; }
   .rcc .rc-near td, .rcc .rc-div td { white-space: nowrap; }
 </style>

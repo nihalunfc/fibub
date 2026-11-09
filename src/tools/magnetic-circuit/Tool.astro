@@ -138,7 +138,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Magnetic circuit', subtitle: `N = ${q<HTMLInputElement>('.mc-N').value}, I = ${q<HTMLInputElement>('.mc-I').value} A`, file: 'magnetic-circuit', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .mgc select, .mgc input { max-width: 100%; }
   .mgc code { font-size: 13px; }
   .mgc .mc-bad { color: var(--warn); }

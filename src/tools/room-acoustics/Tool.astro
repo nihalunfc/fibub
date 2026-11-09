@@ -172,7 +172,7 @@ const show = (a: number[]) => a.join(', ');
   wireDownloads(q('.dl'), () => ({ title: 'Room acoustics', subtitle: q('.rm-big').textContent ?? '', file: 'room-acoustics', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rma select { max-width: 100%; }
   .rma .rm-surf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-bottom: 10px; }
   @media (min-width: 640px) { .rma .rm-surf { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; } }

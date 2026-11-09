@@ -33,6 +33,8 @@ Planning a cryo-EM data collection, or checking one, means doing the same sums a
 - **Box size.** The microscope spreads high-resolution detail out from each particle, by up to λΔf ÷ d + Cs λ³ ÷ d³ at resolution d. The page suggests a box that holds the particle plus that spread on both sides, next to the common 1.5 to 2 times the diameter. Sizes are rounded up to even numbers with only 2, 3 and 5 as factors, which Fourier transforms handle quickly.
 - **Particles and resolution.** Rosenthal and Henderson showed that ln N = B ÷ (2d²) + constant: each doubling of the particles gives a smaller gain. From one known point and a B-factor, the page estimates the resolution with more particles and the particles for your target resolution, as a table and a plot.
 
+For the protein's mass and size, use the [[protein-calculator|protein parameter calculator]]; to look at a model built from your map, the [[pdb-viewer]].
+
 ## How to use it
 
 1. Type the camera pixel size (in µm) and the magnification, or switch to a calibrated pixel size. Tick super-resolution and choose the binning you process at.

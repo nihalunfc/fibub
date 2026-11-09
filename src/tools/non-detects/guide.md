@@ -35,6 +35,8 @@ This tool uses the methods recommended for environmental data instead:
 
 The substitution results (0, half the limit, the limit) are shown next to them, so you can see how much the choice matters.
 
+To find how many samples you need, use the [[sample-size]]; to set the detection limit from a calibration, the [[calibration-curve|calibration curve]] tool.
+
 ## How to use it
 
 1. **Paste or open the results**, one per row, with an optional sample name first. Write non-detects as "<1" or "ND 1", or put a flag ("<", "ND", "U") in the column after the value. Rows with several values and no names are also read, one result per value.

@@ -140,7 +140,7 @@ const EX = `length, period, amplitude
   wireDownloads(q('.dl'), () => ({ title: 'Pendulum: g from period and length', subtitle: q('.pn-big').textContent || '', file: 'pendulum', sections: corr ? [...report, corr] : report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pna select, .pna input, .pna textarea { max-width: 100%; }
   .pna textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
   .pna .pn-tab, .pna .pn-ctab { margin-top: 12px; }

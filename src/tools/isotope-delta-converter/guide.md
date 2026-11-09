@@ -37,6 +37,8 @@ A seawater-like sample is near 0 ‰ for δ¹⁸O. Rain in cold places is strong
 4. **Triple oxygen**: Δ′¹⁷O from δ¹⁷O and δ¹⁸O with your choice of reference slope λ.
 5. **Mixing**: the δ of a mixture of two sources that carry different amounts of the element, and the fraction needed for a target δ, with the mixing curve.
 
+To unmix samples into their sources using these values, use the [[mixing-model-calculator]]; for ages from radioactive isotopes, the [[radiometric-age-calculator]].
+
 ## How to use it
 
 - Pick the isotope and standard, then type either δ or the sample ratio; the other fills in. Choose "Other" and type the standard's ratio for anything not listed.

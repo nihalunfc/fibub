@@ -32,6 +32,8 @@ The ideal gas law, PV = nRT, links the pressure, volume, amount and temperature 
 - **Critical point.** When the gas is below its critical temperature, the tool says that enough pressure would liquefy it.
 - **Change of state.** The combined gas law, P₁V₁/T₁ = P₂V₂/T₂, finds the new pressure, volume or temperature when a fixed amount of gas is compressed, heated or cooled.
 
+For moist air and dew point, use the [[psychrometric-calculator]]; to convert a gas reading between ppm and µg/m³, the [[air-quality-calculator]].
+
 ## How to use it
 
 1. Type three of the four values and choose their units. Leave the one you want empty.

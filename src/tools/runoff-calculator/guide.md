@@ -33,6 +33,8 @@ When rain falls on a catchment, some soaks in and some runs off to the nearest d
 
 Both start from the same catchment: split it into parts by land use, give each an area, a runoff coefficient C and a curve number CN, and the tool works out the area-weighted values.
 
+For the flow a channel can carry, use the [[manning-weir-calculator]]; for a full hydrograph over time, the [[unit-hydrograph]].
+
 ## How to use it
 
 1. Choose **SI** (hectares, millimetres, metres) or **US** (acres, inches, feet).

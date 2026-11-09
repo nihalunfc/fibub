@@ -145,7 +145,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Column buckling', subtitle: q('.ck-big').textContent ?? '', file: 'column-buckling', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ckb .ck-ok { color: var(--good); }
   .ckb .ck-bad { color: var(--bad); }
 </style>

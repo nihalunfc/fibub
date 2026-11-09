@@ -26,6 +26,8 @@ flow:
 
 A meta-analysis combines the results of several studies of the same question into one overall estimate, weighting each study by how precise it is. This tool works out each study's effect, pools them with a **fixed-effect** and a **random-effects** model, measures how much the studies disagree (**Q**, **I²**, **tau²** and the **prediction interval**), draws a **forest plot** and a **funnel plot**, and runs **Egger's test** for small-study effects. It all runs in your browser and nothing is uploaded.
 
+For time-to-event studies, use [[survival-analysis]]; to plan the size of a new trial, the [[sample-size|sample size calculator]].
+
 ## How to use it
 
 1. Choose what each study gives you:

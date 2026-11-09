@@ -25,6 +25,8 @@ flow:
 
 Redshift z tells you how much a source's light has been stretched: every wavelength arrives 1 + z times longer than it left. It is the first number you measure from a galaxy spectrum and the way radio astronomers find hydrogen and molecules. Turning it into a velocity is less simple than it looks. There are three conventions in common use, and they disagree badly at high z. This calculator converts between redshift, velocity in each convention, and the observed wavelength or frequency of a spectral line. It lists where all the common lines land, and gives the recession velocity and distance if the redshift comes from cosmic expansion.
 
+For distances and ages at that redshift, use the [[cosmology-calculator]]; to match lines in a spectrum first, the [[spectral-line-identifier]].
+
 ## How to use it
 
 1. Choose what you know: the **redshift**, a **velocity**, or where you measured a line, as a **wavelength** or a **frequency**.

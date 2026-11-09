@@ -192,7 +192,7 @@ const first = EXAMPLES.rc;
   wireDownloads(q('.dl'), () => ({ title: 'Circuit simulation', subtitle: q('.cs-big').textContent ?? '', file: `${fileTag}-simulation`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .csim select, .csim input { max-width: 100%; }
   .csim .cs-net { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; width: 100%; }
   .csim .cs-tab { margin-top: 10px; }

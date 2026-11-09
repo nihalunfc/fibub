@@ -196,7 +196,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Solar cell I-V', subtitle: q('.sv-big').textContent ?? '', file: `${fileSafe(name)}-iv`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .solariv h3 { margin: 20px 0 8px; font-size: 15px; }
   .solariv select { max-width: 100%; }
 </style>

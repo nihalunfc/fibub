@@ -28,6 +28,8 @@ flow:
 
 Clinical teaching uses a handful of body size measures again and again: **body mass index (BMI)**, **body surface area (BSA)**, **ideal body weight (IBW)**, **adjusted body weight (ABW)** and **lean body weight (LBW)**. Each has more than one published formula, and the formulas give slightly different answers. This page works them all out side by side from one height and weight, shows each formula next to its result, and places the person on a weight-for-height chart with the WHO BMI lines. It is for study and teaching, not medical advice.
 
+Body surface area and weight feed into the [[kidney-function|kidney function calculator]] and the [[energy-needs]] calculator.
+
 ## How to use it
 
 1. Choose **Metric** (cm and kg) or **US** (feet, inches and pounds). Switching carries your numbers across.

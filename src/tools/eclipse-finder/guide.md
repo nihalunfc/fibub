@@ -27,6 +27,8 @@ Eclipses are rare where you live, and the lists in news stories are usually for 
 
 Tap any eclipse for its full timeline and a picture. For a solar eclipse you see the Moon's disc crossing the Sun as it looks from your place. For a lunar eclipse you see the Moon's path through Earth's grey penumbra and dark umbra. A slider moves through the eclipse from first contact to last.
 
+For the Sun's position at any moment of an eclipse, use the [[sun-position-calculator]]; for every other sky event in the month, the [[sky-events-calendar]].
+
 ## How to use it
 
 1. Set your **place** at the top: pick a city, type coordinates, or use your device's location. "Times in" picks the clock for every time.

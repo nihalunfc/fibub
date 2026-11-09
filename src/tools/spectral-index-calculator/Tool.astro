@@ -232,7 +232,7 @@ const BANDS = [['blue', 'Blue'], ['green', 'Green'], ['red', 'Red'], ['nir', 'Ne
   wireDownloads(q('.dl'), () => ({ title: 'Spectral index', subtitle: q('.sp-big').textContent ?? '', file: 'spectral-index', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .spx select, .spx input[type=text] { max-width: 100%; }
   .spx .sp-note:empty { display: none; }
 </style>

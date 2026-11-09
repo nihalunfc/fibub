@@ -163,7 +163,7 @@ const bands = 'band,distance\nLane 2 upper,20.5\nLane 2 lower,31.0\nLane 3,47.2'
   wireDownloads(q('.dl'), () => ({ title: 'Gel band sizes', subtitle: q('.gb-big').textContent ?? '', file: 'gel-band-sizes', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gbs .gb-photo { display: block; width: 100%; height: auto; margin-top: 10px; cursor: crosshair; border: 1px solid var(--line, #ddd); }
   .gbs .gb-sd { margin-top: 14px; }
   .gbs .gb-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

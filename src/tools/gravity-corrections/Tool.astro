@@ -138,7 +138,7 @@ const rings = '2 20 3 1 0 2 4 1\n20 60 6 2 8 5 3 1\n60 200 25 10 30 15 12 20\n20
   wireDownloads(q('.dl'), () => ({ title: 'Gravity anomalies', subtitle: q('.gr-big').textContent ?? '', file: 'gravity-anomalies', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .grv select, .grv input { max-width: 100%; }
   .grv textarea { width: 100%; }
 </style>

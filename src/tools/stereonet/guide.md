@@ -24,6 +24,8 @@ flow:
 
 A stereonet shows the orientation of planes (bedding, joints, foliation, faults) and lines (lineations, fold axes) in three dimensions on a flat circle. This plotter draws them on a lower-hemisphere net, the standard in structural geology, works out the average orientation, and draws a rose diagram. It is made for field courses and quick checks in the field or lab.
 
+For structures logged in drill core, use [[drill-hole-composites]]; for a survey traverse on the surface, the [[traverse-calculator]].
+
 ## How to use it
 
 1. Type your **planes**, one per line, as **strike and dip** using the right-hand rule, or as **dip direction and dip**. Pick the format at the top.

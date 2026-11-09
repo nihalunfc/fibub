@@ -27,6 +27,8 @@ flow:
 
 Some nights matter more than others. A new Moon means dark skies for faint galaxies. A meteor shower peak with no Moon is worth staying up for. A planet at opposition is at its closest and brightest. An eclipse might be visible only from your side of the world. This calendar collects them month by month and works out the exact times in your own time zone. It also checks whether eclipses can be seen from your place.
 
+For tonight in detail, open [[sky-tonight]]; for a whole year of dark nights, the [[dark-sky-calendar]].
+
 ## How to use it
 
 1. **Set your place** at the top. Eclipse visibility and local times depend on where you are. Your location stays on your device.

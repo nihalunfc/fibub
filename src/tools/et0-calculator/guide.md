@@ -35,6 +35,8 @@ The standard starting point is the **reference evapotranspiration ET0**: the wat
 
 Multiply ET0 by a **crop coefficient Kc** to get the crop's own water use, ETc.
 
+To compare evaporation with rain falling on the same catchment, use the [[rain-gauge-average|rain gauge average]] tool; to classify the climate from monthly means, the [[koppen-climate|Köppen climate classifier]].
+
 ## How to use it
 
 1. Give the **latitude** (south negative), the **elevation** and the **height of the wind reading** (weather stations often measure at 10 m; it is converted to 2 m).

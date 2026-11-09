@@ -27,6 +27,8 @@ flow:
 
 When enough people are immune, each case passes the infection to fewer than one other person on average, and outbreaks shrink. That share is the **herd immunity threshold**. This calculator works it out from R0, shows how much of the population must be **vaccinated** when the vaccine does not protect everyone, and tells you the **effective R** at the coverage you choose. A table and chart compare several R0 values at once.
 
+To see the whole outbreak over time, use the [[epidemic-model|epidemic model simulator]]; to weigh the health gained, the [[daly-qaly|DALY and QALY calculator]].
+
 ## How to use it
 
 1. Type **R0**, the basic reproduction number: how many people one case infects when nobody is immune.

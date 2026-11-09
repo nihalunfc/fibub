@@ -25,6 +25,8 @@ flow:
 
 Faint galaxies and nebulae need a sky that is truly dark, with the Sun well below the horizon and no Moon. How much of that you get changes through the year and with your latitude: in summer at northern latitudes it can vanish completely, and the Moon takes away a week or two of every month. This calendar draws every night of a year as one row of a picture, so you can see the dark windows at a glance and plan trips, imaging projects and star parties months ahead.
 
+For one night in detail, open [[sky-tonight]]; for the Moon phases, eclipses and showers in a month, the [[sky-events-calendar]].
+
 ## How to use it
 
 1. Set **your place** at the top. A nearby city is close enough; your choice is shared with the other astronomy tools.

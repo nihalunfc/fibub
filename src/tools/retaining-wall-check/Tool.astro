@@ -167,7 +167,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Retaining wall stability', subtitle: q('.rw-big').textContent ?? '', file: 'retaining-wall', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rwc .rw-pills { margin: 4px 0 12px; }
   .rwc .rw-fig { margin-top: 12px; }
   .rwc .rw-tab { margin: 12px 0; }

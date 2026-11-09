@@ -33,6 +33,8 @@ Trees in one region lay down wide rings in good years and narrow rings in bad on
 
 With several series in the master, each is standardised on its own and the indices are averaged year by year.
 
+For dates beyond the ring record, use [[radiocarbon-calibration]]; to test ring widths for a trend, the [[trend-analyser]].
+
 ## How to use it
 
 1. Paste or open the **master**: Tucson decadal format (`.rwl`, with 999 or −9999 end markers; widths in 0.01 or 0.001 mm) or a table with a year column and one column per series.

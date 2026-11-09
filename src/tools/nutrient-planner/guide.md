@@ -29,6 +29,8 @@ Students of nutrition and dietetics, and anyone keeping a food diary, spend a lo
 
 There is **no built-in food list**. Food composition databases are other people's data, and fibub does not copy them; your own labels are also the most accurate numbers for the foods you actually eat.
 
+Set the daily target with the [[energy-needs]] calculator, and check the carbohydrates with the [[glycaemic-load|glycaemic load calculator]].
+
 ## How to use it
 
 1. Choose whether the energy on your labels is in **kcal** or **kJ**.

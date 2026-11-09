@@ -29,6 +29,8 @@ Is a reusable bottle really better than single-use ones? A **life cycle assessme
 
 For each input, impact = amount × factor. An input is counted either **once** per product made (materials, manufacturing, transport, end of life) or **every use** (washing, electricity while running). When a product wears out after a set number of uses, a new one is made and its once-only inputs count again.
 
+For carbon taken up by trees on site, use the [[tree-carbon]]; for methane from waste sent to landfill, the [[landfill-gas]].
+
 ## How to use it
 
 1. **Products.** Name A and B, say how many uses each lasts before it is replaced, and choose how many uses to compare over (the job both must do, such as 365 drinks).

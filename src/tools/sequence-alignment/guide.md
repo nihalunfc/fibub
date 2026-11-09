@@ -32,6 +32,8 @@ An alignment lines up two sequences so that matching letters sit in the same col
 - **DNA or protein.** DNA scores a match and a mismatch. Protein scores the same amino acid, the same side-chain group, or a different group.
 - **Results.** Score, identical and similar columns, gaps, the aligned part of each sequence, the alignment in blocks that fit your screen, and a dot plot.
 
+Check reads before aligning them with the [[fastq-inspector]], and design primers on the aligned region with the [[primer-checker]].
+
 ## How to use it
 
 1. **Sequences.** Paste two sequences or open two FASTA files. The first record of each is used.

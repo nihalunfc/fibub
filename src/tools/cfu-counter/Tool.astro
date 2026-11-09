@@ -290,7 +290,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'CFU count', subtitle: q('.cf-big').textContent ?? '', file: `${fileSafe(name)}-cfu`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cfu .cf-photo { display: block; width: 100%; max-width: 640px; height: auto; margin: 10px auto 0; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
   .cfu .cf-prow { margin-top: 8px; }
   .cfu select { max-width: 100%; }

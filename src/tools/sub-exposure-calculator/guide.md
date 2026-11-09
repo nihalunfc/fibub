@@ -22,6 +22,8 @@ flow:
 
 Deep-sky images are stacks of many shorter exposures ("subs"). Each sub carries the camera's read noise once, so very short subs add a lot of it, while very long subs risk satellites, wind and saturated stars and gain almost nothing. The sweet spot is the shortest sub in which the noise from the sky background is large enough to "swamp" the read noise. This calculator finds it for your camera, sky and filter, and draws how much signal-to-noise every other sub length would give you in the same total time.
 
+Check your sampling first with the [[telescope-calculator]], and then stack the subs with the [[image-stacker]].
+
 ## How to use it
 
 1. Type the **read noise** of your camera at the gain you use. Makers publish a chart of read noise against gain. Leave **dark current** at 0 for a cooled camera.

@@ -39,6 +39,8 @@ Labs use this all day: to know what a vial of F-18 will read at injection time o
 
 The list holds 33 nuclides used in research, imaging, teaching sources and natural radioactivity, with half-lives from the NNDC and DDEP evaluations. Choose "Your own half-life" for anything else.
 
+To date organic material from its carbon-14, use [[radiocarbon-calibration]]; to date rocks, the [[radiometric-age-calculator]].
+
 ## How to use it
 
 1. Pick the nuclide.

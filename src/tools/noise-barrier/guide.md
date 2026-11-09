@@ -29,6 +29,8 @@ A wall, fence or earth bank between a road (or machine) and a house works by mak
 
 For each octave band from 63 Hz to 8 kHz it works out the wavelength λ, the **Fresnel number** N = 2δ/λ and the **insertion loss** (how much quieter the band gets). It then adds up the A-weighted bands to give the overall level in dB(A) with and without the barrier.
 
+For the air side of the same site, the [[gaussian-plume-calculator]] estimates how a chimney plume spreads.
+
 ## How to use it
 
 1. **Cross-section.** Heights of the source, barrier top and receiver, measured from the same ground level, and the distances along the ground from source to barrier and barrier to receiver. For a road use the middle of the near lane, about 0.5 m up for tyre noise. For a window, use its height.

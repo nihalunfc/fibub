@@ -29,6 +29,8 @@ In an **activated sludge** plant, bacteria eat the dissolved organic matter (mea
 
 The key design choice is the **sludge age**, or solids retention time (SRT): the average number of days the bacteria stay in the system. From it, Monod growth kinetics give the effluent soluble BOD; the yield and decay rates give how much sludge is made each day; and the sludge made times the SRT is the mass of solids the tank must hold. Divide that by the MLSS you want to run at and you have the tank volume.
 
+For the rest of a treatment works, the [[detention-pond]] sizes stormwater storage, and the [[water-quality-index]] scores what the river looks like downstream.
+
 ## How to use it
 
 1. **Wastewater and plant.** Flow in m³/day, BOD after primary settling, influent solids that bacteria cannot break down (non-biodegradable VSS and inert inorganic solids), the sludge age, the MLSS, the return sludge concentration from the clarifier, and the field oxygen transfer efficiency of your diffusers.

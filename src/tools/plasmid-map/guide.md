@@ -33,6 +33,8 @@ A plasmid map shows at a glance where the genes, promoters, origin and handy cut
 - **Edit.** Rename, retype, recolour, move or hide any feature, add new ones, and move the origin so any base becomes base 1.
 - **Download.** The map as SVG (for posters and papers, sharp at any size) or in a PNG, PDF or Word report with a feature table, and the edited plasmid as a GenBank file.
 
+To see which enzymes cut it and where, use the [[restriction-digest]]; to design primers on it, the [[primer-checker]].
+
 ## How to use it
 
 1. **Open.** Open a .gb or .gbk file, or paste the text. The first record is used.

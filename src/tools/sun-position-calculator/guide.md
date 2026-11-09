@@ -27,6 +27,8 @@ This calculator tells you where the Sun is in the sky from any place on Earth at
 
 Three pictures help with planning. The first shows the Sun's height through the day. The second is a **sun path diagram**, the kind architects, gardeners and solar panel installers use: a map of the sky seen from above, with the Sun's track on your date and on the longest and shortest days. The third shows the day length through the year. A table gives sunrise, sunset and noon height on the 21st of every month, and another lists the equinoxes and solstices. Everything is worked out in your browser; your place never leaves your device.
 
+For darkness and the Moon tonight, open [[sky-tonight]]; for eclipses at your place, the [[eclipse-finder]].
+
 ## How to use it
 
 1. Set your **place** in the bar at the top: pick a city, type latitude and longitude, or use your device's location. "Times in" picks the clock every time is shown on.

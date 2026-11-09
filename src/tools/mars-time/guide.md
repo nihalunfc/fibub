@@ -25,6 +25,8 @@ flow:
 
 A day on Mars, called a sol, lasts 24 hours 39 minutes 35 seconds, and its year runs 687 Earth days. Rover teams live on Mars time, NASA posts images by sol, and scientists describe the season by solar longitude, Ls. This tool turns any Earth moment into all of these. It gives the Mars Sol Date, Coordinated Mars Time on the prime meridian, the local mean and true solar time at a rover or any longitude, the mission sol, the season and Mars Year. It also shows how far Mars is from the Sun and from Earth, and the dates of this Mars year's equinoxes, solstices, perihelion and aphelion.
 
+For Earth's own time scales, use the [[astro-time|astronomy time converter]]; for when to launch to Mars, the [[porkchop-plot]].
+
 ## How to use it
 
 1. Choose **Now** for a live clock, **Earth date** to convert a moment on your own clock, or **Mission sol** to find when a rover's sol happened.

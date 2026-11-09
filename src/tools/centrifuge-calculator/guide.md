@@ -34,6 +34,8 @@ It also does two things that are hard to do by hand.
 - **k-factor and pelleting time.** The k-factor sums up how quickly a rotor pellets at a given speed. The time in hours to pellet particles with a sedimentation coefficient S, in svedbergs, is roughly k / S. It applies to particles that start spread through the tube and must travel from the minimum radius to the maximum.
 - **Moving a protocol to another rotor.** If a protocol says "60 min in rotor A", the same separation in rotor B takes 60 × kB / kA minutes. This is more accurate than matching × g, because it also counts how far the particles must travel.
 
+Make up the buffers for the run with the [[buffer-recipe-calculator]], and count the cells in the pellet afterwards with the [[hemocytometer]].
+
 ## How to use it
 
 1. **rpm and × g.** Enter the radius and choose its unit. Type a speed to get the force, or type a force to get the speed. Use the maximum radius (to the tube bottom) unless a protocol names another. The facts show the speed that gives the same force on a 7 cm and a 15 cm rotor.

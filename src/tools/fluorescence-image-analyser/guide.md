@@ -35,6 +35,8 @@ Counting nuclei and measuring how bright they are is one of the most common jobs
 - **Size limits.** Objects smaller than the smallest size (dust, debris) or bigger than the largest (clumps) are left out of the count. You can also leave out objects cut off by the edge of the image.
 - **Measurements.** For every object: centre, area (in µm² if you give the pixel size), mean, integrated (sum) and maximum intensity after background. A log-scale histogram shows where the threshold falls.
 
+For bands on a gel or blot rather than cells, use [[gel-densitometry|gel and western blot densitometry]]; to count cells by hand, the [[hemocytometer]].
+
 ## How to use it
 
 1. **Image.** Open the original image from the microscope (a PNG or JPEG export is fine; a TIFF works if your browser can show it). Avoid screenshots and do not change contrast first. Large images are scaled to 1000 px on the long side.

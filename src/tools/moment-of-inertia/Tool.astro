@@ -147,7 +147,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Moment of inertia', subtitle: q('.mi-big').textContent || '', file: 'moment-of-inertia', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .moi select, .moi input[type=text] { max-width: 100%; }
   .moi .mi-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin-top: 12px; }
   .moi .mi-row { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; min-width: 0; display: grid; gap: 8px; }

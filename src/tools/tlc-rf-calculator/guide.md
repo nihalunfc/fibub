@@ -30,6 +30,8 @@ Thin-layer chromatography (TLC) is the quickest check in an organic lab: has the
 - **Same compound?** Spots within 0.02 of each other in different lanes are pointed out, which is what a co-spot lane is for.
 - **Advice per spot**: barely moved (more polar eluent), near the front (less polar eluent), or good for a column.
 
+For column and HPLC peaks, use the [[chromatography-calculator]]; to get points off any other picture of a graph, the [[graph-digitizer|graph digitiser]].
+
 ## How to use it
 
 1. Press **Example plate** to see how it works, or open your own photo. Hold the plate upright in the picture, baseline at the bottom, so distances are measured straight up the plate.

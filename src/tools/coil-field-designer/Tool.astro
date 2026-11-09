@@ -219,7 +219,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Coil field design', subtitle: q<HTMLSelectElement>('.cf-set').selectedOptions[0].text, file: 'coil-field', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cfd select, .cfd input { max-width: 100%; }
   .cfd .cf-c0 { background: #08519c; } .cfd .cf-c1 { background: #4292c6; } .cfd .cf-c2 { background: #9ecae1; } .cfd .cf-c3 { background: #deebf7; } .cfd .cf-c4 { background: #ffffff; border: 1px solid var(--line); }
   html[data-theme=dark] .cfd .cf-c0 { background: #6baed6; } html[data-theme=dark] .cfd .cf-c1 { background: #3c7fb5; } html[data-theme=dark] .cfd .cf-c2 { background: #21507a; } html[data-theme=dark] .cfd .cf-c3 { background: #14304a; } html[data-theme=dark] .cfd .cf-c4 { background: #0a0a0a; }

@@ -224,7 +224,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Gear train and belt drive', subtitle: q('.gt-big').textContent ?? '', file: 'gear-train', sections: [gtSec, plSec, bdSec].filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gtc select, .gtc input { max-width: 100%; }
   .gtc .gt-meshes { margin-top: 12px; }
   .gtc .gt-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }

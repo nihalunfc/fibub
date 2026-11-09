@@ -34,6 +34,8 @@ The **Likely impurities** table ranks each compound by how many of its signals a
 
 The second card lists all signals for the chosen solvent, sorted by shift, with a search by name or by shift.
 
+Check the same compound's IR bands with the [[ir-band-finder]], and its exact mass with the [[isotope-pattern-calculator]].
+
 ## How to use it
 
 1. Choose the solvent and ¹H or ¹³C.

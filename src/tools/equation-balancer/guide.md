@@ -29,6 +29,8 @@ A balanced equation says how many molecules of each substance react, and atoms a
 - **Amounts** take the mass or moles of each reactant you start with. The tool finds the **limiting reagent** (the one that runs out first), how much of every substance reacts or forms, and what is **left over**.
 - **Percent yield** compares the mass you actually collected with the most you could have made.
 
+Once the equation is balanced, the [[reaction-equivalents]] works out the amounts to weigh, and the [[thermochemistry-calculator]] gives its enthalpy.
+
 ## How to use it
 
 1. Type the reaction with + between substances and an arrow (->, = or →) between the sides, such as `Fe + O2 -> Fe2O3`. Capitals matter (Co is cobalt, CO is carbon monoxide), brackets nest, and ions take a caret: `Fe^2+`, `MnO4^-`. Coefficients and state symbols you type, such as 2 or (aq), are ignored.

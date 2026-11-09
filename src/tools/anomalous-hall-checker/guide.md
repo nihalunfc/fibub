@@ -31,6 +31,8 @@ Whether a Hall effect is allowed is a question of **symmetry**, and with spin–
 
 It describes the Hall effect by the **Hall vector** σH = (σzy, σxz, σyx). The Hall current flows at right angles to both the applied electric field and σH, so a Hall vector along z means a Hall voltage in the xy plane (the σxy component).
 
+The [[altermagnet-checker]] works out whether the same crystal is an altermagnet, and the [[spin-splitter-conductivity]] tool estimates the spin current it can carry.
+
 ## How to use it
 
 1. **Pick an example or type your own crystal.** The format is the same as the Altermagnet checker: one `cell a b c α β γ` line, then one line per atom with its fractional coordinates and `up`, `down` or a signed moment. List every atom in the magnetic cell. You can also open a text file (up to 200 kB and 200 atoms). It stays in your browser.

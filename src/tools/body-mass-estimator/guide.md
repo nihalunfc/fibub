@@ -33,6 +33,8 @@ Body mass of an extinct animal is usually estimated from a bone measurement (a l
 - **Prediction intervals** for each fossil (90, 95 or 99 %), and a warning when a fossil lies outside the range of the references, where the estimate is an extrapolation.
 - **Type an equation** instead: enter a and b from a paper (log₁₀ or ln, with any correction factor it gives). The tool does not include any published equations; use the source's own error figures with the result.
 
+For an ordinary straight-line fit with limits, use the [[calibration-curve|calibration curve]] tool; to carry the errors through, the [[uncertainty-calculator]].
+
 ## How to use it
 
 Paste the reference specimens as three columns: name, X, mass (or open a CSV or Excel file). Use the same measurement and units for the fossils, as two columns: name and X. Any units work, as long as they match; type them in so the tables and plot are labelled.

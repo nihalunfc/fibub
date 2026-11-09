@@ -130,7 +130,7 @@ const demo = 'year\tannual peak flow (m³/s)\n' + vals.map((v, i) => `${1985 + i
   wireDownloads(q('.dl'), () => ({ title: 'Flood frequency', subtitle: q('.ff-big').textContent ?? '', file: 'flood-frequency', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ffa select, .ffa input { max-width: 100%; }
   .ffa textarea { width: 100%; }
   .ffa .ff-tab td, .ffa .ff-tab th { text-align: right; white-space: nowrap; }

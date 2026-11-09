@@ -131,7 +131,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: `${CYCLE_NAMES[kind]} cycle`, subtitle: `T1 = ${inp('.he-T1').value} K, P1 = ${inp('.he-P1').value} kPa`, file: `${kind}-cycle`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hec select, .hec input { max-width: 100%; }
   .hec label[hidden] { display: none; }
 </style>

@@ -157,7 +157,7 @@ const demo = 'stage (m),discharge (m³/s)\n' + rows.join('\n');
   wireDownloads(q('.dl'), () => ({ title: 'Rating curve', subtitle: q('.rc-big').textContent ?? '', file: 'rating-curve', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rcf select, .rcf input { max-width: 100%; }
   .rcf textarea { width: 100%; }
   .rcf .rc-tab td, .rcf .rc-tab th { text-align: right; white-space: nowrap; }

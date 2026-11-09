@@ -117,7 +117,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Gantt chart', subtitle: q('.gt-path').textContent ?? '', file: 'gantt-chart', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gnt .gt-text { white-space: pre; overflow-x: auto; }
   .gnt .gt-path { font-size: 16px; margin: 0 0 10px; overflow-wrap: anywhere; }
   .gnt .gt-scroll canvas { display: block; max-width: none; }

@@ -197,7 +197,7 @@ const spiDemo = 'sample\tLa\tCe\tPr\tNd\tSm\tEu\tGd\tTb\tDy\tHo\tEr\tTm\tYb\tLu\
   wireDownloads(q('.dl'), () => ({ title: 'Ternary and spider diagrams', subtitle: q('.tr-big').textContent ?? '', file: 'ternary-spider', sections: [tReport, sReport].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ter select { max-width: 100%; }
   .ter textarea { width: 100%; }
   .ter .tr-tab caption { font-size: 13px; color: var(--muted, #666); padding-bottom: 4px; }

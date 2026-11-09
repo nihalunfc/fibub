@@ -29,6 +29,8 @@ A DICOM file carries more than a picture. Its header can hold the patient's name
 
 It follows the principles of the DICOM standard's basic confidentiality profile (PS3.15 Annex E): remove or blank what identifies a person, replace UIDs, remove private tags and record that it was done. It is a careful helper, not a guarantee. Your organisation's rules come first.
 
+Look through the scans first with the [[dicom-viewer]], and make the shared folder smaller with the [[compress-file|file compressor]].
+
 ## How to use it
 
 1. **Choose DICOM files** or drop them on the box: one file, a series or a whole study. Files that are not DICOM are listed and skipped.

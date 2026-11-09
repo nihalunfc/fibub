@@ -25,6 +25,8 @@ flow:
 
 Every lab report needs it: you measured some quantities, each with an uncertainty, and you combined them in a formula. How uncertain is the answer? This calculator follows the international rules for it, the *Guide to the Expression of Uncertainty in Measurement* (GUM, JCGM 100:2008). It then checks the answer with a Monte Carlo simulation, as the GUM's Supplement 1 (JCGM 101:2008) recommends. It works for any field: physics, chemistry, biology, engineering or metrology.
 
+For the uncertainty of a result read from a calibration line, use the [[calibration-curve|calibration curve]] tool; to show the error bars, the [[plot-maker]].
+
 ## How to use it
 
 1. **Type the formula**, for example `g = 4 pi^2 L / T^2`. You can use + − * / ^, brackets, `pi`, and the functions sin, cos, tan, asin, acos, atan, exp, ln (natural log), log (base 10), sqrt and abs. You can leave out the * (`2 pi r` works). Tick **Angles in degrees** if your angles are in degrees.

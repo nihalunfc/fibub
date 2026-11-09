@@ -26,6 +26,8 @@ flow:
 
 An equatorial mount tracks the stars by turning around an axis that must point at the **celestial pole**. In the north, Polaris is close to the pole but not on it. It sits about 37 arcminutes away, more than the width of the full Moon. Polaris circles the pole once a sidereal day, so the right spot for it changes all night. A polar scope has a small circle on its reticle for this. This page tells you where on that circle Polaris belongs right now.
 
+Check the time standards with the [[astro-time|astronomy time converter]], and then the longest exposure before trailing with the [[star-trail-exposure]].
+
 ## How to use it
 
 1. **Set your place.** The position depends on your longitude (and your latitude for the mount's altitude). Your location stays on your device.

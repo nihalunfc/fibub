@@ -205,6 +205,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Capacitance and inductance', subtitle: q<HTMLSelectElement>('.ci-g').selectedOptions[0].text, file: 'capacitor-inductor', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cic select, .cic input { max-width: 100%; }
 </style>

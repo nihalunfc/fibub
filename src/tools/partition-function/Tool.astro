@@ -127,6 +127,6 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Partition function', subtitle: `${inp('.pf-T').value} K`, file: 'partition-function', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pfx select, .pfx input { max-width: 100%; }
 </style>

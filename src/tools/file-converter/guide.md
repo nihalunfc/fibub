@@ -26,6 +26,8 @@ flow:
 
 Your file is converted in your browser and never uploaded. The page keeps working with no internet once it is open.
 
+To make the converted file smaller, use the [[compress-file|file compressor]]; to tidy text from a PDF before pasting it into an AI chat, the [[prompt-pruner]].
+
 ## What it can convert
 
 | From | To |

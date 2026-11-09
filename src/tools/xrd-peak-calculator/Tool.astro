@@ -298,7 +298,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'XRD peak calculator', subtitle: q('.xr-big').textContent ?? '', file: `${fileSafe(scanName)}-xrd`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .xrd h3 { margin: 20px 0 8px; font-size: 15px; }
   .xrd select { max-width: 100%; }
   .xrd .xr-sfig { margin-top: 12px; }

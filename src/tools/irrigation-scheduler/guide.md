@@ -32,6 +32,8 @@ Think of the root zone as a tank. It is full at **field capacity** and empty, fo
 - **Crop water use**: ETc = Kc × ET0. Once depletion passes RAW, use falls by the stress factor Ks = (TAW − depletion) ÷ ((1 − p) × TAW).
 - Rain or irrigation that would fill the tank above field capacity **drains below the roots** (deep percolation).
 
+Work out the ET0 for each day with the [[et0-calculator|evapotranspiration calculator]], and the soil's needs with the [[soil-test-interpreter]].
+
 ## How to use it
 
 1. Type the soil's **field capacity** and **wilting point** (% water by volume), the **root depth**, the crop's **p** and **Kc**, and how dry the soil is on the first day (0 mm = at field capacity).

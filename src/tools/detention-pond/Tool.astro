@@ -164,7 +164,7 @@ const hydro = 'time (min)\tflow (m³/s)\n0\t0\n10\t0.4\n20\t1.1\n30\t1.3\n40\t0.
   wireDownloads(q('.dl'), () => ({ title: 'Detention pond routing', subtitle: q('.dp-big').textContent ?? '', file: 'detention-pond', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dpd select { max-width: 100%; }
   .dpd .dp-ssd { margin-top: 14px; }
   .dpd .dp-ssd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
