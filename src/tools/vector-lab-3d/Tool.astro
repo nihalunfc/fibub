@@ -1,0 +1,164 @@
+---
+// 3D vector lab: vectors in space you can turn round, with a + b, the dot product as a projection, the
+// cross product as a parallelogram, and lines in space with the shortest distance between them.
+// Class 12 maths, vector algebra and three-dimensional geometry.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax v3l">
+  <div class="ax-card">
+    <div class="ax-seg v3-op" role="group" aria-label="What to show"><button type="button" data-o="sum" aria-pressed="true">a + b</button><button type="button" data-o="dot" aria-pressed="false">a · b</button><button type="button" data-o="cross" aria-pressed="false">a × b</button><button type="button" data-o="lines" aria-pressed="false">Lines in space</button></div>
+    <div class="v3-vecs">
+      <div class="v3-row"><b class="v3-na">a</b> = (<input class="v3-a0" value="2" /><input class="v3-a1" value="1" /><input class="v3-a2" value="-2" />)</div>
+      <div class="v3-row"><b class="v3-nb">b</b> = (<input class="v3-b0" value="1" /><input class="v3-b1" value="3" /><input class="v3-b2" value="1" />)</div>
+      <div class="v3-row v3-l" hidden><b>p₁</b> = (<input class="v3-p0" value="1" /><input class="v3-p1" value="2" /><input class="v3-p2" value="3" />)</div>
+      <div class="v3-row v3-l" hidden><b>p₂</b> = (<input class="v3-q0" value="4" /><input class="v3-q1" value="5" /><input class="v3-q2" value="6" />)</div>
+    </div>
+    <p class="ax-help v3-help"></p>
+    <p class="ax-err v3-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="v3-title"></h2>
+    <canvas class="ax-fig v3-fig" role="img"></canvas>
+    <p class="ax-help">Drag the picture to turn it round. The x-axis is red, y green and z grey, pointing up.</p>
+    <div class="ax-row"><button type="button" class="btn small secondary v3-view" data-v="iso">Tilted view</button><button type="button" class="btn small secondary v3-view" data-v="top">From above</button><button type="button" class="btn small secondary v3-view" data-v="front">From the front</button></div>
+    <p class="v3-formula"></p>
+    <dl class="ax-facts v3-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="v3-try">
+      <li>a · b: make b square to a, for example a = (1, 0, 0), b = (0, 2, 5). The dot product is 0 and the projection shrinks to nothing.</li>
+      <li>a × b: swap a and b. The cross product flips to point the other way (right-hand rule), with the same length.</li>
+      <li>a × b with b a multiple of a: the parallelogram is flat, so the area and the cross product are 0.</li>
+      <li>Lines in space: make the second direction a multiple of the first. The lines are parallel, and the distance formula changes.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="v3-quiz" />
+</div>
+
+<script>
+  import { add, sub, scale, dot, cross, norm, angle, projection, dirCos, lines, type V3 } from '../../lib/sci/school-vectors';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { pointer, fmt, FONT } from '../../lib/sm-graph';
+  import { readAnswer, quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.v3l')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 340;
+  let op = 'sum', yaw = -35, pitch = 25, drag: { X: number; Y: number } | null = null;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const vs = (v: V3) => `(${v.map((x) => fmt(x, 3)).join(', ')})`;
+  const vec = (p: string): V3 => [0, 1, 2].map((i) => readAnswer(q<HTMLInputElement>(`.v3-${p}${i}`).value)) as V3;
+  root.querySelectorAll<HTMLInputElement>('.v3-vecs input').forEach((i) => { i.type = 'text'; i.inputMode = 'decimal'; i.setAttribute('aria-label', `${i.className.slice(3, 4)} component ${+i.className.slice(4) + 1}`); });
+
+  function draw(items: { from: V3; to: V3; col: string; name?: string; w?: number; dash?: number[]; head?: boolean }[], polys: { pts: V3[]; col: string }[], extent: number) {
+    const D = Math.PI / 180, cy = Math.cos(yaw * D), sy = Math.sin(yaw * D), cp = Math.cos(pitch * D), sp = Math.sin(pitch * D);
+    const s = (Math.min(W, H) * 0.44) / Math.max(1, extent);
+    const P = ([x, y, z]: V3): [number, number] => { const X = x * cy - y * sy, Yd = x * sy + y * cy; return [W / 2 + s * X, H / 2 - s * (z * cp - Yd * sp)]; };
+    const fig: Figure = { w: W, h: H, alt: q('.v3-title').textContent ?? 'Vectors in 3D', draw: (ctx, w, h, pl: Palette) => {
+      const ax = Math.max(1, extent) * 1.15;
+      const C = (c: string) => (pl as unknown as Record<string, string>)[c] ?? c;
+      ([[[ax, 0, 0], pl.bad, 'x'], [[0, ax, 0], pl.good, 'y'], [[0, 0, ax], pl.muted, 'z']] as [V3, string, string][]).forEach(([e, c, n]) => {
+        const [x0, y0] = P(scale(e, -1)), [x1, y1] = P(e); ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = FONT; ctx.fillStyle = c; ctx.fillText(n, x1 + 4, y1);
+      });
+      for (const p of polys) { ctx.beginPath(); p.pts.forEach((v, i) => { const [x, y] = P(v); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath(); ctx.fillStyle = C(p.col); ctx.globalAlpha = 0.22; ctx.fill(); ctx.globalAlpha = 1; }
+      for (const it of items) {
+        const [x0, y0] = P(it.from), [x1, y1] = P(it.to);
+        ctx.strokeStyle = C(it.col); ctx.lineWidth = it.w ?? 3; ctx.setLineDash(it.dash ?? []); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+        if (it.head !== false && Math.hypot(x1 - x0, y1 - y0) > 10) { const a = Math.atan2(y1 - y0, x1 - x0); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 11 * Math.cos(a - 0.4), y1 - 11 * Math.sin(a - 0.4)); ctx.lineTo(x1 - 11 * Math.cos(a + 0.4), y1 - 11 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fillStyle = C(it.col); ctx.fill(); }
+        if (it.name) { ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = C(it.col); ctx.fillText(it.name, x1 + 6, y1 - 4); }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.v3-fig'), fig);
+  }
+
+  function run() {
+    const err = q('.v3-err'); err.hidden = true;
+    root.querySelectorAll<HTMLElement>('.v3-l').forEach((e) => { e.hidden = op !== 'lines'; });
+    q('.v3-na').textContent = op === 'lines' ? 'd₁' : 'a'; q('.v3-nb').textContent = op === 'lines' ? 'd₂' : 'b';
+    q('.v3-help').textContent = op === 'lines' ? 'Line 1: r = p₁ + s d₁. Line 2: r = p₂ + t d₂. Type each point and direction.' : 'Type the x, y and z parts of each vector.';
+    const a = vec('a'), b = vec('b'), O: V3 = [0, 0, 0];
+    const vals = [...a, ...b, ...(op === 'lines' ? [...vec('p'), ...vec('q')] : [])];
+    if (!vals.every(Number.isFinite)) { err.textContent = 'Type a number in every box.'; err.hidden = false; return; }
+    if (vals.some((v) => Math.abs(v) > 100)) { err.textContent = 'Keep the numbers between −100 and 100.'; err.hidden = false; return; }
+    const ext = Math.max(...[...a, ...b, ...(op === 'sum' ? add(a, b) : [])].map(Math.abs)) || 1;
+    let facts: HTMLElement[] = [fact('|a|', fmt(norm(a), 4), `√(${a.map((x) => fmt(x * x, 3)).join(' + ')})`), fact('|b|', fmt(norm(b), 4))];
+    if (op === 'sum') {
+      const s = add(a, b); q('.v3-title').textContent = 'a + b: put b on the end of a';
+      q('.v3-formula').textContent = `a + b = ${vs(a)} + ${vs(b)} = ${vs(s)}`;
+      draw([{ from: O, to: a, col: 'accent', name: 'a' }, { from: a, to: s, col: 'accent2', name: 'b', dash: [6, 4] }, { from: O, to: b, col: 'accent2', name: 'b', w: 1.5 }, { from: O, to: s, col: 'good', name: 'a + b' }], [], ext);
+      facts.push(fact('a + b', vs(s), `length ${fmt(norm(s), 4)}`), fact('Direction cosines of a', vs(dirCos(a)), 'l² + m² + n² = 1'));
+    } else if (op === 'dot') {
+      const d = dot(a, b), p = projection(b, a), th = angle(a, b);
+      q('.v3-title').textContent = 'a · b: how much of b lies along a';
+      q('.v3-formula').textContent = `a · b = ${a.map((x, i) => `(${fmt(x, 3)})(${fmt(b[i], 3)})`).join(' + ')} = ${fmt(d, 4)} = |a||b| cos θ`;
+      draw([{ from: O, to: a, col: 'accent', name: 'a' }, { from: O, to: b, col: 'accent2', name: 'b' }, { from: b, to: p.vector, col: 'muted', w: 1.2, dash: [3, 3], head: false }, { from: O, to: p.vector, col: 'good', name: 'projection', w: 4 }], [], ext);
+      facts.push(fact('a · b', fmt(d, 4), d === 0 ? 'zero: a and b are perpendicular' : d > 0 ? 'positive: angle under 90°' : 'negative: angle over 90°'), fact('Angle θ', Number.isNaN(th) ? 'undefined' : `${fmt(th, 2)}°`, 'cos θ = a · b / (|a||b|)'), fact('Projection of b on a', fmt(p.length, 4), 'a · b / |a| (green)'));
+    } else if (op === 'cross') {
+      const c = cross(a, b), area = norm(c);
+      q('.v3-title').textContent = 'a × b: square to both, as long as the parallelogram is big';
+      q('.v3-formula').textContent = `a × b = (${fmt(a[1])}·${fmt(b[2])} − ${fmt(a[2])}·${fmt(b[1])}, ${fmt(a[2])}·${fmt(b[0])} − ${fmt(a[0])}·${fmt(b[2])}, ${fmt(a[0])}·${fmt(b[1])} − ${fmt(a[1])}·${fmt(b[0])}) = ${vs(c)}`;
+      const cs = area ? scale(c, Math.min(1, ext / area) ) : c;
+      draw([{ from: O, to: a, col: 'accent', name: 'a' }, { from: O, to: b, col: 'accent2', name: 'b' }, { from: O, to: cs, col: 'good', name: area && Math.abs(norm(cs) - area) > 1e-9 ? 'a × b (shortened)' : 'a × b' }], [{ pts: [O, a, add(a, b), b], col: 'accent' }], ext);
+      facts.push(fact('a × b', vs(c)), fact('Area of the parallelogram', fmt(area, 4), '|a × b| = |a||b| sin θ'), fact('Area of the triangle', fmt(area / 2, 4), 'half the parallelogram'), fact('Check: (a × b) · a', fmt(dot(c, a), 4), 'always 0: a × b is square to a'));
+    } else {
+      const p1 = vec('p'), p2 = vec('q');
+      if (norm(a) === 0 || norm(b) === 0) { err.textContent = 'A direction cannot be (0, 0, 0).'; err.hidden = false; return; }
+      const L = lines(p1, a, p2, b), e2 = Math.max(...[...p1, ...p2].map(Math.abs), 1) + 2;
+      const span = (p: V3, d: V3) => { const k = (e2 * 1.2) / norm(d); return { from: sub(p, scale(d, k)), to: add(p, scale(d, k)) }; };
+      const items: Parameters<typeof draw>[0] = [{ ...span(p1, a), col: 'accent', name: 'line 1', head: false, w: 2 }, { ...span(p2, b), col: 'accent2', name: 'line 2', head: false, w: 2 }];
+      if (L.kind === 'skew' || L.kind === 'meet') { const A = add(p1, scale(a, L.s)), B = add(p2, scale(b, L.t)); items.push({ from: A, to: B, col: 'good', w: 3, head: false, name: L.kind === 'skew' ? 'shortest' : '' }); }
+      q('.v3-title').textContent = { skew: 'Skew lines: never meet, not parallel', parallel: 'Parallel lines', meet: 'The lines meet', same: 'These are the same line' }[L.kind];
+      q('.v3-formula').textContent = L.kind === 'parallel' || L.kind === 'same' ? `Parallel: d = |(p₂ − p₁) × d₁| / |d₁| = ${fmt(L.dist, 4)}` : `d = |(p₂ − p₁) · (d₁ × d₂)| / |d₁ × d₂| = |${vs(sub(p2, p1))} · ${vs(cross(a, b))}| / ${fmt(norm(cross(a, b)), 4)} = ${fmt(L.dist, 4)}`;
+      draw(items, [], e2);
+      facts = [fact('Shortest distance', fmt(L.dist, 4)), fact('Angle between the lines', `${fmt(L.angle, 2)}°`, 'cos θ = |d₁ · d₂| / (|d₁||d₂|)')];
+      if (L.kind === 'meet') facts.push(fact('They meet at', vs(add(p1, scale(a, L.s)))));
+      if (L.kind === 'skew') facts.push(fact('Closest points', `${vs(add(p1, scale(a, L.s)))} and ${vs(add(p2, scale(b, L.t)))}`));
+    }
+    q('.v3-facts').replaceChildren(...facts);
+  }
+
+  const cv = q<HTMLCanvasElement>('.v3-fig');
+  cv.addEventListener('pointerdown', (e) => { drag = pointer(cv, e, W, H); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (!drag) return; const p = pointer(cv, e, W, H); yaw += (p.X - drag.X) * 0.6; pitch = Math.max(-89, Math.min(89, pitch + (p.Y - drag.Y) * 0.4)); drag = p; run(); });
+  const stop = () => { drag = null; }; cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  root.querySelectorAll<HTMLButtonElement>('.v3-view').forEach((b) => b.addEventListener('click', () => { [yaw, pitch] = b.dataset.v === 'top' ? [0, 89] : b.dataset.v === 'front' ? [0, 0] : [-35, 25]; run(); }));
+  root.querySelectorAll<HTMLButtonElement>('.v3-op button').forEach((b) => b.addEventListener('click', () => {
+    const was = op; op = b.dataset.o!; root.querySelectorAll('.v3-op button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if ((op === 'lines') !== (was === 'lines')) { const v = op === 'lines' ? [[1, -3, 2], [2, 3, 1]] : [[2, 1, -2], [1, 3, 1]]; ['a', 'b'].forEach((n, k) => [0, 1, 2].forEach((i) => { q<HTMLInputElement>(`.v3-${n}${i}`).value = String(v[k][i]); })); }
+    run();
+  }));
+  root.querySelectorAll('.v3-vecs input').forEach((e) => e.addEventListener('input', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.v3-quiz'), (): Question[] => {
+    const r = () => rint(-4, 4);
+    const a: V3 = [r(), r(), r()], b: V3 = [r(), r(), r()], [x, y, z] = pick([[1, 2, 2], [2, 3, 6], [2, 6, 9], [1, 4, 8], [4, 4, 7]]);
+    const c = cross(a, b), u: V3 = [rint(1, 3), 0, 0], v: V3 = [rint(0, 3), rint(1, 3), 0];
+    return [
+      { text: `a = ${vs(a)}, b = ${vs(b)}. What is a · b?`, answer: dot(a, b), worked: `Multiply matching parts and add: ${a.map((t, i) => `(${t})(${b[i]})`).join(' + ')} = ${dot(a, b)}.` },
+      { text: `What is the length of (${x}, ${y}, ${z})?`, answer: Math.hypot(x, y, z), worked: `√(${x * x} + ${y * y} + ${z * z}) = √${x * x + y * y + z * z} = ${Math.hypot(x, y, z)}.` },
+      { text: `a = ${vs(a)}, b = ${vs(b)}. What is the z part (k component) of a × b?`, answer: c[2], worked: `k part = a₁b₂ − a₂b₁ = (${a[0]})(${b[1]}) − (${a[1]})(${b[0]}) = ${c[2]}. The whole cross product is ${vs(c)}.` },
+      { text: `What is the area of the parallelogram on ${vs(u)} and ${vs(v)}?`, answer: norm(cross(u, v)), worked: `${vs(u)} × ${vs(v)} = ${vs(cross(u, v))}, of length ${fmt(norm(cross(u, v)), 4)}. (Base ${u[0]} along x times height ${v[1]}.)` },
+      { text: 'If a · b = 0 for two non-zero vectors, what is the angle between them?', choices: ['0°', '90°', '180°'], correct: 1, worked: 'a · b = |a||b| cos θ = 0 with |a|, |b| not 0 means cos θ = 0, so θ = 90°: the vectors are perpendicular.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .v3l .ax-seg button { min-height: 44px; }
+  .v3l .v3-vecs { display: grid; gap: 8px; margin-top: 12px; }
+  .v3l .v3-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 18px; }
+  .v3l .v3-row b { min-width: 28px; }
+  .v3l .v3-row input { width: 58px !important; text-align: center; min-height: 44px; }
+  .v3l canvas.v3-fig { touch-action: none; cursor: grab; max-width: 520px; margin: 0 auto; }
+  .v3l .v3-formula { overflow-wrap: anywhere; margin: 10px 0; }
+  .v3l .ax-row { margin-top: 8px; }
+  .v3l .v3-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
