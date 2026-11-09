@@ -1,0 +1,180 @@
+---
+// Anthropometric and skeletal indices: BMI, waist ratios, cephalic, nasal, Cormic, limb indices; one person or a batch.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax an">
+  <div class="ax-card">
+    <h2>Measurements</h2>
+    <div class="ax-seg an-mode" role="group" aria-label="Mode">
+      <button type="button" data-m="one" aria-pressed="true">One person or skeleton</button><button type="button" data-m="batch" aria-pressed="false">A table (batch)</button>
+    </div>
+    <p class="ax-help">For study and teaching, not a medical or growth assessment. Leave out what you did not measure: each index appears when its measurements are filled in. The example values are made up.</p>
+
+    <div class="an-p" data-m="one">
+      <h3>Body</h3>
+      <div class="ax-grid">
+        <label>Weight (kg) <input class="an-v" data-k="weight" inputmode="decimal" value="68" /></label>
+        <label>Height / stature (cm) <input class="an-v" data-k="height" inputmode="decimal" value="172" /></label>
+        <label>Waist (cm) <input class="an-v" data-k="waist" inputmode="decimal" value="81" /></label>
+        <label>Hip (cm) <input class="an-v" data-k="hip" inputmode="decimal" value="96" /></label>
+        <label>Sitting height (cm) <input class="an-v" data-k="sittingHeight" inputmode="decimal" value="90" /></label>
+      </div>
+      <h3>Head and face (mm)</h3>
+      <div class="ax-grid">
+        <label>Head length <input class="an-v" data-k="headLength" inputmode="decimal" value="190" /></label>
+        <label>Head breadth <input class="an-v" data-k="headBreadth" inputmode="decimal" value="150" /></label>
+        <label>Nasal height <input class="an-v" data-k="nasalHeight" inputmode="decimal" value="52" /></label>
+        <label>Nasal breadth <input class="an-v" data-k="nasalBreadth" inputmode="decimal" value="36" /></label>
+      </div>
+      <h3>Long bones (any one unit)</h3>
+      <div class="ax-grid">
+        <label>Humerus <input class="an-v" data-k="humerus" inputmode="decimal" value="" placeholder="e.g. 315" /></label>
+        <label>Radius <input class="an-v" data-k="radius" inputmode="decimal" value="" placeholder="e.g. 238" /></label>
+        <label>Femur <input class="an-v" data-k="femur" inputmode="decimal" value="" placeholder="e.g. 445" /></label>
+        <label>Tibia <input class="an-v" data-k="tibia" inputmode="decimal" value="" placeholder="e.g. 362" /></label>
+      </div>
+      <p class="ax-help">Head length is glabella to opisthocranion and head breadth the widest side-to-side measurement, both with spreading calipers. Long bones are maximum lengths; use the same side for all four.</p>
+    </div>
+
+    <div class="an-p" data-m="batch" hidden>
+      <label>One row per person or skeleton, with a header row naming the measurements (such as Weight (kg), Height (cm), Waist, Hip, Head length, Head breadth, Nasal height, Nasal breadth, Sitting height, Humerus, Radius, Femur, Tibia). Other columns, such as an ID, are kept as labels.
+        <textarea class="an-in" rows="10" spellcheck="false" wrap="off">ID,Weight (kg),Height (cm),Waist (cm),Hip (cm),Head length (mm),Head breadth (mm),Sitting height (cm)
+S01,73.5,168.3,62.7,100.8,192,146,87.2
+S02,64.5,180.2,72.7,104.3,183,153,95.1
+S03,61.8,179.0,75.8,95.6,198,145,95.8
+S04,71.1,163.4,,91.3,194,148,88.5
+S05,75.1,165.3,66.6,99.4,192,150,82.8
+S06,63.8,163.3,80.3,98.7,191,143,86.6
+S07,64.3,173.1,88.1,104.7,195,152,91.0
+S08,73.5,167.5,77.9,88.0,179,147,86.9
+S09,56.4,174.7,73.3,92.4,192,151,88.7
+S10,49.3,151.4,83.5,91.1,192,145,81.0
+S11,70.3,182.1,86.5,84.9,176,155,91.9
+S12,58.6,167.1,77.3,97.9,190,152,88.0</textarea></label>
+      <DataFile target=".an-in" maxCols={30} maxRows={20000} />
+      <p class="ax-help an-cols"></p>
+    </div>
+    <p class="ax-err an-err" hidden></p>
+  </div>
+
+  <div class="ax-card an-out" hidden>
+    <h2 class="an-h">Indices</h2>
+    <div class="an-one">
+      <div class="ax-scroll"><table class="an-tab"></table></div>
+    </div>
+    <div class="an-batch" hidden>
+      <h3>Summary</h3>
+      <div class="ax-scroll"><table class="an-sum"></table></div>
+      <p class="ax-help an-classes"></p>
+      <h3>Each row</h3>
+      <div class="ax-scroll an-rw"><table class="an-rows"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small an-csv">Download results (CSV)</button></div>
+    </div>
+    <p class="ax-help an-note">Class names are given only for adult BMI (WHO bands) and the cephalic index (the three classic textbook bands; finer schemes exist). The other indices are shown as values: their old class names vary between sources, and indices such as the nasal and cephalic index were once misused in racial typology. They describe shape, not ancestry or worth.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .an h3 { font-size: 15px; margin: 14px 0 8px; }
+  .an .an-p { margin-top: 10px; }
+  .an .an-tab td small { display: block; color: var(--muted); font-size: 12px; }
+  .an .an-rw { max-height: 420px; overflow-y: auto; }
+  .an .an-sum td, .an .an-sum th, .an .an-rows td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { indices, summary, matchColumn, check, INDICES, MEASURES, type Measures, type MeasureKey } from '../../lib/sci/anthro';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.an')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'one', report: Section[] = [], csvRows: (string | number)[][] = [];
+  const fmt = (v: number, d: number) => (Number.isFinite(v) ? v.toFixed(d) : '–');
+
+  function table(sel: string, head: string[], rows: string[][], right: (i: number) => boolean) {
+    const t = q<HTMLTableElement>(sel); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (right(i)) td.className = 'r'; }); });
+    return t;
+  }
+
+  function runOne(): Section[] {
+    const m: Measures = {};
+    root.querySelectorAll<HTMLInputElement>('.an-v').forEach((i) => {
+      const t = i.value.trim(); if (!t) return;
+      const v = num(t); if (!Number.isFinite(v)) throw new Error(`${MEASURES[i.dataset.k as MeasureKey].replace(/ \(.*\)$/, '')}: "${t}" is not a number.`);
+      m[i.dataset.k as MeasureKey] = v;
+    });
+    const bad = check(m); if (bad.length) throw new Error(bad[0]);
+    const res = indices(m);
+    if (!res.length) throw new Error('Fill in at least one pair of measurements, such as weight and height.');
+    const head = ['Index', 'Value', 'Class', 'Formula'];
+    const rows = res.map((r) => [r.def.name, fmt(r.value, r.def.digits), r.cls || '–', r.def.formula]);
+    const t = table('.an-tab', head.slice(0, 3), rows.map((r) => r.slice(0, 3)), (i) => i === 1);
+    [...t.tBodies[0].rows].forEach((tr, i) => { const s = document.createElement('small'); s.textContent = rows[i][3]; tr.cells[0].append(s); });
+    q('.an-h').textContent = `${res.length} ${res.length === 1 ? 'index' : 'indices'}`;
+    return [{ title: 'Anthropometric indices', table: { head, rows, align: ['l', 'r', 'l', 'l'] }, note: 'For study, not a medical assessment. Classes only for adult BMI (WHO bands) and the cephalic index.' }];
+  }
+
+  function runBatch(): Section[] {
+    const rows = parseTable(q<HTMLTextAreaElement>('.an-in').value);
+    if (rows.length < 2) throw new Error('Paste a header row and at least one row of measurements.');
+    const head = rows[0], keys = head.map(matchColumn);
+    const found = keys.filter(Boolean) as MeasureKey[];
+    if (new Set(found).size !== found.length) throw new Error('Two columns are read as the same measurement: rename one of them.');
+    if (!found.length) throw new Error('No measurement columns recognised. Name them like Weight (kg), Height (cm), Waist, Hip, Head length, Head breadth, Sitting height, Humerus, Radius, Femur, Tibia.');
+    const labelCol = keys.findIndex((k) => !k);
+    q('.an-cols').textContent = `Read as: ${head.map((h, i) => (keys[i] ? `${h} → ${MEASURES[keys[i]!].replace(/ \(.*\)$/, '').toLowerCase()}` : '')).filter(Boolean).join('; ')}.` + (keys.some((k, i) => !k && i !== labelCol) ? ` Not used: ${head.filter((_, i) => !keys[i] && i !== labelCol).join(', ')}.` : '');
+    const body = rows.slice(1), notes: string[] = [];
+    const per = body.map((r, ri) => {
+      const m: Measures = {};
+      keys.forEach((k, i) => { if (!k) return; const c = (r[i] ?? '').trim(); if (!c) return; const v = num(c); if (!Number.isFinite(v)) throw new Error(`Row ${ri + 1}: "${c}" in ${head[i]} is not a number.`); m[k] = v; });
+      const bad = check(m); if (bad.length) { notes.push(`Row ${ri + 1}: ${bad[0].toLowerCase()}.`); for (const k of Object.keys(m) as MeasureKey[]) if (!((m[k] as number) > 0)) delete m[k]; }
+      return { label: labelCol >= 0 ? r[labelCol] || `Row ${ri + 1}` : `Row ${ri + 1}`, res: indices(m) };
+    });
+    const used = INDICES.filter((d) => per.some((p) => p.res.some((r) => r.def.key === d.key)));
+    if (!used.length) throw new Error('No index can be worked out: each needs a pair of measurements, such as weight and height.');
+    const val = (p: (typeof per)[number], key: string) => p.res.find((r) => r.def.key === key)?.value ?? NaN;
+    const sHead = ['Index', 'n', 'Mean', 'SD', 'Min', 'Q1', 'Median', 'Q3', 'Max'];
+    const sRows = used.map((d) => { const s = summary(per.map((p) => val(p, d.key))); const dd = d.digits + 1; return [d.name, String(s.n), fmt(s.mean, dd), fmt(s.sd, dd), fmt(s.min, dd), fmt(s.q1, dd), fmt(s.median, dd), fmt(s.q3, dd), fmt(s.max, dd)]; });
+    table('.an-sum', sHead, sRows, (i) => i > 0);
+    const counts = used.filter((d) => d.classify).map((d) => { const c = new Map<string, number>(); per.forEach((p) => { const r = p.res.find((x) => x.def.key === d.key); if (r) c.set(r.cls, (c.get(r.cls) ?? 0) + 1); }); return `${d.name}: ${[...c].map(([k, n]) => `${k} ${n}`).join(', ')}`; });
+    q('.an-classes').textContent = [counts.join('. '), notes.length ? `Check: ${notes.slice(0, 5).join(' ')}${notes.length > 5 ? ` and ${notes.length - 5} more` : ''}` : ''].filter(Boolean).join('. ') + (counts.length || notes.length ? '.' : '');
+    const rHead = [labelCol >= 0 ? head[labelCol] || 'Row' : 'Row', ...used.map((d) => d.name.replace(/ \(.*\)$/, '')), ...used.filter((d) => d.classify).map((d) => `${d.name.replace(/ \(.*\)$/, '')} class`)];
+    const rRows = per.map((p) => [p.label, ...used.map((d) => fmt(val(p, d.key), d.digits)), ...used.filter((d) => d.classify).map((d) => p.res.find((r) => r.def.key === d.key)?.cls ?? '–')]);
+    table('.an-rows', rHead, rRows, (i) => i > 0 && i <= used.length);
+    csvRows = [[rHead[0], ...used.map((d) => d.key), ...used.filter((d) => d.classify).map((d) => `${d.key}_class`)], ...per.map((p) => [p.label, ...used.map((d) => { const v = val(p, d.key); return Number.isFinite(v) ? +v.toPrecision(10) : ''; }), ...used.filter((d) => d.classify).map((d) => p.res.find((r) => r.def.key === d.key)?.cls ?? '')])];
+    q('.an-h').textContent = `${per.length} rows, ${used.length} indices`;
+    return [
+      { title: 'Summary', table: { head: sHead, rows: sRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: q('.an-classes').textContent || undefined },
+      { title: 'Each row', table: { head: rHead, rows: rRows, align: rHead.map((_, i) => (i > 0 && i <= used.length ? 'r' : 'l')) }, note: 'For study, not a medical assessment. Quartiles by linear interpolation; SD with n − 1.' },
+    ];
+  }
+
+  function calc() {
+    const err = q('.an-err');
+    try {
+      report = mode === 'one' ? runOne() : runBatch();
+      err.hidden = true; q('.an-out').hidden = false;
+      q('.an-one').hidden = mode !== 'one'; q('.an-batch').hidden = mode !== 'batch';
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.an-out').hidden = true; report = []; csvRows = []; }
+    // For tests: how many times the result was worked out, and whether an update is still waiting.
+    root.dataset.runs = String(Number(root.dataset.runs || 0) + 1); delete root.dataset.busy;
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.an-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.an-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.an-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  root.addEventListener('input', () => { root.dataset.busy = '1'; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  q('.an-csv').addEventListener('click', () => csvRows.length > 1 && save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'anthropometric-indices.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: 'Anthropometric indices', file: 'anthropometric-indices', sections: report }));
+  setMode('one');
+</script>
