@@ -1,0 +1,144 @@
+---
+// Life table: period life table (abridged or complete) from death rates, or deaths and population.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax lt">
+  <div class="ax-card">
+    <h2>Deaths and population by age</h2>
+    <label>One row per age group, youngest first; the last group is open-ended (85+). Columns: Age, Deaths, Population, or Age and a death-rate column headed "Mx". An "ax" column is optional. Made-up example.
+      <textarea class="lt-in" rows="9" spellcheck="false" wrap="off">Age	Deaths	Population
+0	27	5200
+1-4	6	21400
+5-9	7	27000
+10-14	7	26500
+15-19	9	25800
+20-24	11	27900
+25-29	16	30100
+30-34	23	31200
+35-39	33	30500
+40-44	48	29400
+45-49	71	28700
+50-54	107	27600
+55-59	159	26100
+60-64	230	23800
+65-69	315	20400
+70-74	400	16200
+75-79	467	11800
+80-84	502	7900
+85+	673	4300</textarea></label>
+    <DataFile target=".lt-in" maxMB={2} maxCols={10} maxRows={200} />
+    <div class="ax-grid" style="margin-top:12px">
+      <label>nax (years lived by those dying) <select class="lt-ax"><option value="mid">Half the interval</option><option value="cd" selected>Coale-Demeny for a0 and 4a1</option><option value="ak">Andreev-Kingkade for a0</option><option value="given">From my "ax" column</option></select></label>
+      <label>Sex (for a0 formulas) <select class="lt-sex"><option value="female" selected>Female</option><option value="male">Male</option></select></label>
+      <label>Rates in my Mx column are per <select class="lt-per"><option value="1" selected>Person (0.0052)</option><option value="1000">1,000 people</option><option value="100000">100,000 people</option></select></label>
+      <label>Radix (l0) <input class="lt-radix" type="number" min="1" step="1" value="100000" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">nax: the average years lived in the age group by those who die in it. Half the interval is fine above age 5; in infancy most deaths come early, so a0 is much less than 0.5. The open group uses 1 ÷ M. Radix: the number of births the table starts with.</p>
+    <p class="ax-err lt-err" hidden></p>
+  </div>
+
+  <div class="ax-card lt-out" hidden>
+    <h2>Life table</h2>
+    <p class="ax-big lt-big"></p>
+    <dl class="ax-facts lt-facts"></dl>
+    <div class="ax-row" style="margin-top:14px"><div class="ax-seg lt-ch" role="group" aria-label="Chart"><button type="button" data-c="lx" aria-pressed="true">Survivors lx</button><button type="button" data-c="mx" aria-pressed="false">Death rate (log)</button><button type="button" data-c="ex" aria-pressed="false">Life expectancy</button></div></div>
+    <canvas class="ax-fig lt-fig" style="margin-top:10px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="lt-tab"></table></div>
+    <p class="ax-help lt-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small lt-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lt table th, .lt table td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { lifeTable, ageOf, type AxMethod, type Sex, type LTRow } from '../../lib/sci/lifetable';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], rows: LTRow[] = [], chart = 'lx', fig: Figure | null = null, head: string[] = [], body: string[][] = [];
+  const f = (x: number, d: number) => (Number.isFinite(x) ? x.toFixed(d) : '–');
+
+  function read() {
+    const t = parseTable(q<HTMLTextAreaElement>('.lt-in').value);
+    if (t.length < 3) throw new Error('Paste a header row and at least two age groups');
+    const h = t[0].map((c) => c.trim().toLowerCase());
+    const col = (re: RegExp) => h.findIndex((c) => re.test(c));
+    const ai = Math.max(0, col(/^age/)), di = col(/^deaths?$|^d$|^dx$/), pi = col(/^pop|^exposure|^person|^p$/), mi = col(/^n?mx$|^m$|rate/), xi = col(/^n?ax$/);
+    if (mi < 0 && (di < 0 || pi < 0)) throw new Error('Head the columns Age, Deaths and Population, or Age and Mx');
+    const per = Number(q<HTMLSelectElement>('.lt-per').value);
+    const labels: string[] = [], ages: number[] = [], mx: number[] = [], ax: number[] = [];
+    t.slice(1).forEach((r, i) => {
+      const a = ageOf(r[ai] ?? '');
+      if (!Number.isFinite(a)) throw new Error(`Row ${i + 2}: "${r[ai] ?? ''}" is not an age`);
+      labels.push((r[ai] ?? '').trim()); ages.push(a);
+      if (mi >= 0) { const m = num(r[mi]); if (!Number.isFinite(m)) throw new Error(`Row ${i + 2}: the death rate "${r[mi] ?? ''}" is not a number`); mx.push(m / per); }
+      else {
+        const d = num(r[di]), p = num(r[pi]);
+        if (!(d >= 0)) throw new Error(`Row ${i + 2}: deaths "${r[di] ?? ''}" must be a number of 0 or more`);
+        if (!(p > 0)) throw new Error(`Row ${i + 2}: population "${r[pi] ?? ''}" must be more than 0`);
+        mx.push(d / p);
+      }
+      if (xi >= 0) ax.push(num(r[xi]));
+    });
+    return { labels, ages, mx, ax: xi >= 0 ? ax : undefined, fromDeaths: mi < 0 };
+  }
+
+  function draw() {
+    if (!rows.length) return;
+    const x = rows.map((r) => r.age);
+    const c = chart === 'lx' ? { y: rows.map((r) => r.lx), yLabel: 'Survivors lx', yLog: false } : chart === 'mx' ? { y: rows.map((r) => r.mx), yLabel: 'Death rate nMx', yLog: true } : { y: rows.map((r) => r.ex), yLabel: 'Life expectancy ex (years)', yLog: false };
+    fig = chartFigure({ w: 600, h: 380, xLabel: 'Age', yLabel: c.yLabel, yLog: c.yLog, yMin: c.yLog ? undefined : 0, series: [{ name: c.yLabel, x, y: c.y, mode: 'both', marker: 'circle', size: 3 }] }, `${c.yLabel} by age.`);
+    paint(q<HTMLCanvasElement>('.lt-fig'), fig);
+  }
+
+  function calc() {
+    const err = q('.lt-err');
+    try {
+      const d = read();
+      const radix = Number(q<HTMLInputElement>('.lt-radix').value);
+      if (!(radix > 0)) throw new Error('The radix must be more than 0');
+      const method = q<HTMLSelectElement>('.lt-ax').value as AxMethod, sex = q<HTMLSelectElement>('.lt-sex').value as Sex;
+      rows = lifeTable(d.ages, d.mx, { method, sex, radix, ax: d.ax, labels: d.labels });
+      const abridged = rows.some((r) => r.n > 1 && Number.isFinite(r.n));
+      const at = (a: number) => rows.find((r) => r.age === a);
+      q('.lt-big').textContent = `Life expectancy at birth: ${f(rows[0].ex, 2)} years`;
+      const fl: [string, string][] = [
+        ['Table', `${abridged ? 'Abridged' : 'Complete'}, ${rows.length} age groups, last ${rows[rows.length - 1].label}`],
+        ...([1, 15, 65].map((a) => at(a)).filter(Boolean).map((r) => [`e at age ${r!.age}`, `${f(r!.ex, 2)} years`] as [string, string])),
+        ...(at(65) ? [['Chance of reaching 65', `${f((at(65)!.lx / rows[0].lx) * 100, 1)} %`] as [string, string]] : []),
+        ['Infant death chance 1q0', rows[0].n === 1 ? `${f(rows[0].qx * 1000, 2)} per 1,000` : '–'],
+        ['a0 used', f(rows[0].ax, 3)],
+      ];
+      const dl = q('.lt-facts'); dl.innerHTML = '';
+      for (const [k, v] of fl) { const e = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; e.append(dt, dd); dl.append(e); }
+      head = ['Age', 'n', 'nMx', 'nax', 'nqx', 'lx', 'ndx', 'nLx', 'Tx', 'ex'];
+      body = rows.map((r) => [r.label, Number.isFinite(r.n) ? String(r.n) : '∞', sig(r.mx, 5), f(r.ax, 3), f(r.qx, 6), f(r.lx, 0), f(r.dx, 0), f(r.Lx, 0), f(r.Tx, 0), f(r.ex, 2)]);
+      const t = q<HTMLTableElement>('.lt-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); body.forEach((r) => { const tr = tb.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      const axText = method === 'mid' ? 'nax = n/2 in every closed group' : method === 'cd' ? `a0${rows[1]?.age === 1 && rows[1]?.n === 4 ? ' and 4a1' : ''} from Coale-Demeny (${sex}), n/2 elsewhere` : method === 'ak' ? `a0 from Andreev-Kingkade (${sex}), n/2 elsewhere` : 'nax from your column';
+      const note = `${d.fromDeaths ? 'nMx = deaths ÷ population. ' : ''}nqx = n·nMx ÷ (1 + (n − nax)·nMx); lx+n = lx(1 − nqx); ndx = lx·nqx; nLx = n·lx+n + nax·ndx; Tx = sum of nLx from x up; ex = Tx ÷ lx. Open group: q = 1, a = 1/M, L = l/M. ${axText}. A period table describes a made-up group living their whole lives at this period's death rates; it is not a forecast.`;
+      q('.lt-note').textContent = note;
+      draw();
+      report = [{ title: 'Life table', facts: [['Life expectancy at birth', `${f(rows[0].ex, 2)} years`], ...fl] }, { title: chart === 'lx' ? 'Survivors' : chart === 'mx' ? 'Death rates' : 'Life expectancy', figure: fig! }, { title: 'Table', table: { head, rows: body, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note }];
+      err.hidden = true; q('.lt-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lt-out').hidden = true; report = []; rows = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  root.querySelectorAll<HTMLButtonElement>('.lt-ch button').forEach((b) => b.addEventListener('click', () => { chart = b.dataset.c!; root.querySelectorAll('.lt-ch button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc(); }));
+  q('.lt-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv([head, ...rows.map((r) => [r.label, Number.isFinite(r.n) ? r.n : '', r.mx, r.ax, r.qx, r.lx, r.dx, r.Lx, r.Tx, r.ex].map(String))])], { type: 'text/csv' }), 'life-table.csv', 'text/csv'); });
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Life table', file: 'life-table', sections: report }));
+</script>
