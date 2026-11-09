@@ -1,0 +1,280 @@
+---
+// Antibody dilution and titre calculator: a working dilution from a stock (1:N or a µg/mL target), a serial dilution
+// series for titration, the endpoint titre of an ELISA-style dilution series, and the antibody a run of blots or
+// plates needs. The example numbers are made up by fibub. Nothing leaves the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax abd">
+  <div class="ax-card">
+    <h2>1. Working dilution</h2>
+    <div class="ax-row" style="margin-bottom:10px">
+      <div class="ax-seg ab-mode" role="group" aria-label="Dilute to">
+        <button type="button" data-m="ratio" aria-pressed="true">A dilution 1:N</button><button type="button" data-m="conc" aria-pressed="false">A concentration</button>
+      </div>
+      <button type="button" class="btn secondary small ab-ex">Use the example</button>
+    </div>
+    <div class="ax-grid">
+      <label>Stock (mg/mL) <input class="ab-stock" type="text" inputmode="decimal" value="0.8" /></label>
+      <label class="ab-l-ratio">Dilution 1: <input class="ab-ratio" type="text" inputmode="decimal" value="2000" /></label>
+      <label class="ab-l-target" hidden>Target (µg/mL) <input class="ab-target" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Final volume <input class="ab-vol" type="text" inputmode="decimal" value="10" /></label>
+      <label>Unit <select class="ab-vunit"><option value="1000" selected>mL</option><option value="1">µL</option></select></label>
+    </div>
+    <p class="ax-help">The stock concentration is on the vial or data sheet; leave it empty if it is not given (only 1:N then works). <b>1:N</b> means 1 part antibody in N parts in total, so 1:1000 is 1 µL in 1 mL.</p>
+    <p class="ax-err ab-werr" hidden></p>
+    <div class="ab-wout">
+      <p class="ax-big ab-wbig"></p>
+      <dl class="ax-facts ab-wfacts"></dl>
+      <p class="ab-inter" hidden></p>
+      <ul class="ab-warn ab-wwarn" hidden></ul>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Serial dilution for titration</h2>
+    <div class="ax-grid">
+      <label>First tube 1: <input class="ab-start" type="text" inputmode="decimal" value="100" /></label>
+      <label>Each step <select class="ab-fold"><option value="2" selected>2-fold</option><option value="3">3-fold</option><option value="4">4-fold</option><option value="5">5-fold</option><option value="10">10-fold</option><option value="custom">Custom</option></select></label>
+      <label class="ab-l-cfold" hidden>Custom fold <input class="ab-cfold" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Tubes <input class="ab-tubes" type="number" min="2" max="48" step="1" value="8" inputmode="numeric" /></label>
+      <label>Volume in each tube (µL) <input class="ab-svol" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help">Tube 1 is made from the stock. Every other tube gets the diluent first, then a transfer from the tube before; mix well and change tips each time. The concentrations use the stock above.</p>
+    <p class="ax-err ab-serr" hidden></p>
+    <div class="ab-sout">
+      <p class="ax-big ab-sbig"></p>
+      <ul class="ab-warn ab-swarn" hidden></ul>
+      <div class="ax-scroll"><table class="ab-stab"></table></div>
+      <p class="ax-help ab-snote"></p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ab-scsv">Download series (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Titre from a dilution series</h2>
+    <label>Dilution and OD readings, one dilution per line (replicates side by side) <textarea class="ab-series" rows="8" spellcheck="false"></textarea></label>
+    <label style="margin-top:10px">Blank (no antibody) ODs <input class="ab-blanks" type="text" inputmode="decimal" spellcheck="false" /></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Cutoff <select class="ab-cut"><option value="sd" selected>Blank mean + k × SD</option><option value="times">k × blank mean</option><option value="fixed">A fixed OD</option></select></label>
+      <label><span class="ab-kl">k</span> <input class="ab-k" type="text" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="ax-help">Paste from a spreadsheet: the first number on each line is the dilution (100, 1:100 or 1/100), the rest are ODs. The <b>endpoint titre</b> is the dilution where the mean OD falls to the cutoff, read on a straight line between the last dilution above the cutoff and the next one, on a log scale.</p>
+    <p class="ax-err ab-terr" hidden></p>
+    <div class="ab-tout">
+      <p class="ax-big ab-tbig"></p>
+      <dl class="ax-facts ab-tfacts"></dl>
+      <ul class="ab-warn ab-twarn" hidden></ul>
+      <canvas class="ax-fig ab-fig"></canvas>
+      <div class="ax-scroll"><table class="ab-ttab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ab-tcsv">Download titre table (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Antibody for a run of blots or plates</h2>
+    <div class="ax-grid">
+      <label>For <select class="ab-kind"><option value="blot" selected>Blots</option><option value="plate">Plates</option></select></label>
+      <label><span class="ab-nl">How many blots</span> <input class="ab-n" type="number" min="1" step="1" value="6" inputmode="numeric" /></label>
+      <label class="ab-l-ml">mL per blot <input class="ab-ml" type="text" inputmode="decimal" value="10" /></label>
+      <label class="ab-l-wells" hidden>Wells per plate <input class="ab-wells" type="number" min="1" step="1" value="96" inputmode="numeric" /></label>
+      <label class="ab-l-well" hidden>µL per well <input class="ab-well" type="text" inputmode="decimal" value="100" /></label>
+      <label>Dilution 1: <input class="ab-nratio" type="text" inputmode="decimal" value="2000" /></label>
+      <label>Spare (%) <input class="ab-spare" type="text" inputmode="decimal" value="10" /></label>
+      <label>Vial (µL, optional) <input class="ab-vial" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help"><b>Spare</b> makes a little extra so the last blot or plate is not short. The µg use the stock concentration in part 1.</p>
+    <p class="ax-err ab-nerr" hidden></p>
+    <div class="ab-nout">
+      <p class="ax-big ab-nbig"></p>
+      <dl class="ax-facts ab-nfacts"></dl>
+    </div>
+    <Downloads label="All four parts" />
+  </div>
+</div>
+
+<style is:global>
+  .abd .ab-warn { margin: 10px 0 0; padding: 8px 12px 8px 28px; background: var(--warn-soft); border-left: 3px solid var(--warn); border-radius: 6px; font-size: 14px; }
+  .abd .ab-inter { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; }
+  .abd .ax-big { margin: 12px 0 10px; }
+  .abd .ab-fig { margin-top: 14px; }
+  .abd .ab-stab td, .abd .ab-ttab td { white-space: nowrap; }
+  .abd .ab-ttab td:nth-child(2) { white-space: normal; }
+  @media (max-width: 420px) { .abd .ab-stab th, .abd .ab-stab td, .abd .ab-ttab th, .abd .ab-ttab td { padding: 7px 4px; font-size: 13px; } }
+  .abd .ab-ttab tr.on td { font-weight: 700; }
+</style>
+
+<script>
+  import { working, serial, cutoff, titre, readSeries, needed, factorFor, fmtUl, fmtConc, EXAMPLE_SERIES, EXAMPLE_BLANKS, type Cut, type Titre, type Serial, type Working, type Need, type Cutoff } from '../../lib/sci/antibody';
+  import { num, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.abd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const ratio = (n: number) => `1:${Math.round(n * 100) / 100 >= 100 ? Math.round(n).toLocaleString('en') : String(Math.round(n * 100) / 100)}`;
+  const facts = (dl: HTMLElement, items: [string, string, string?][]) => dl.replaceChildren(...items.map(([t, v, s]) => {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = t; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); }
+    d.append(dt, dd); return d;
+  }));
+  const warns = (ul: HTMLElement, w: string[]) => { ul.replaceChildren(...w.map((x) => { const li = document.createElement('li'); li.textContent = x; return li; })); ul.hidden = !w.length; };
+  const table = (t: HTMLElement, head: string[], rows: string[][], right: boolean[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right[k]) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (right[k]) td.className = 'r'; }); }
+  };
+  const fail = (err: string, out: string, e: unknown) => { q(err).textContent = (e as Error).message; q(err).hidden = false; q(out).hidden = true; };
+  const ok = (err: string, out: string) => { q(err).hidden = true; q(out).hidden = false; };
+
+  let mode: 'ratio' | 'conc' = 'ratio';
+  let W: Working | null = null, S: Serial | null = null, T: Titre | null = null, C: Cutoff | null = null, N: Need | null = null, fig: Figure | null = null;
+  const stock = () => { const s = q<HTMLInputElement>('.ab-stock').value.trim(), v = num(s); return s && Number.isFinite(v) ? v : undefined; };
+
+  function runWorking() {
+    W = null;
+    try {
+      if (q<HTMLInputElement>('.ab-stock').value.trim() && stock() === undefined) throw new Error('The stock concentration must be a number in mg/mL, or leave it empty.');
+      const finalUl = val('.ab-vol') * Number(q<HTMLSelectElement>('.ab-vunit').value);
+      W = working({ mode, stockMgMl: stock(), ratio: val('.ab-ratio'), targetUgMl: val('.ab-target'), finalUl });
+      ok('.ab-werr', '.ab-wout');
+      q('.ab-wbig').textContent = `${fmtUl(W.stockUl)} of stock + ${fmtUl(W.diluentUl)} of diluent`;
+      facts(q('.ab-wfacts'), [
+        ['Dilution', ratio(W.factor), `${fmtUl(W.finalUl)} in all`],
+        ['Final concentration', Number.isFinite(W.ugMl) ? fmtConc(W.ugMl) : '–', Number.isFinite(W.ugMl) ? undefined : 'give the stock to see it'],
+        ['Antibody used', Number.isFinite(W.ug) ? `${+W.ug.toPrecision(3)} µg` : '–'],
+      ]);
+      const it = q('.ab-inter');
+      if (W.inter) { it.textContent = `Easier: first mix ${fmtUl(W.inter.stockUl)} of stock with ${fmtUl(W.inter.totalUl - W.inter.stockUl)} of diluent (1:${W.inter.factor}), then take ${fmtUl(W.inter.useUl)} of that + ${fmtUl(W.inter.diluentUl)} of diluent.`; it.hidden = false; } else it.hidden = true;
+      warns(q('.ab-wwarn'), W.warn);
+    } catch (e) { fail('.ab-werr', '.ab-wout', e); }
+  }
+
+  function fold() { const f = q<HTMLSelectElement>('.ab-fold').value; return f === 'custom' ? val('.ab-cfold') : Number(f); }
+  function runSerial() {
+    S = null;
+    try {
+      const s = stock();
+      S = serial({ start: val('.ab-start'), fold: fold(), tubes: Math.round(val('.ab-tubes')), volUl: val('.ab-svol'), stockMgMl: s });
+      ok('.ab-serr', '.ab-sout');
+      const last = S.rows[S.rows.length - 1];
+      q('.ab-sbig').textContent = `${ratio(S.rows[0].factor)} to ${ratio(last.factor)}, move ${fmtUl(S.transferUl)} each step`;
+      const hasC = S.rows.some((r) => Number.isFinite(r.ugMl));
+      table(q('.ab-stab'), ['#', 'Dilution', ...(hasC ? ['Conc.'] : []), 'Diluent', 'Then add'],
+        S.rows.map((r) => [String(r.tube), ratio(r.factor), ...(hasC ? [fmtConc(r.ugMl)] : []), fmtUl(r.diluentUl), `${fmtUl(r.fromUl)} of ${r.from.replace('tube ', '#')}`]), [true, true, ...(hasC ? [true] : []), true, false]);
+      q('.ab-snote').textContent = `"of #1" means from tube 1. Every tube ends with ${fmtUl(S.rows[0].keepUl)}: take ${fmtUl(S.transferUl)} out of tube 1 into tube 2, and so on; throw ${fmtUl(S.transferUl)} away from tube ${S.rows.length}.`;
+      warns(q('.ab-swarn'), S.warn);
+    } catch (e) { fail('.ab-serr', '.ab-sout', e); }
+  }
+
+  function runTitre() {
+    T = null; C = null;
+    const kind = q<HTMLSelectElement>('.ab-cut').value as Cut['kind'];
+    q('.ab-kl').textContent = kind === 'fixed' ? 'Cutoff OD' : 'k';
+    try {
+      const blanks = q<HTMLInputElement>('.ab-blanks').value.split(/[\s,;\t]+/).filter(Boolean).map(num);
+      if (blanks.some((b) => !Number.isFinite(b))) throw new Error('The blank ODs must be numbers, separated by spaces or commas.');
+      const k = val('.ab-k');
+      C = cutoff(blanks, kind === 'fixed' ? { kind, od: k } : { kind, k });
+      const rows = readSeries(q<HTMLTextAreaElement>('.ab-series').value);
+      T = titre(rows, C.value);
+      ok('.ab-terr', '.ab-tout');
+      const t = T;
+      q('.ab-tbig').textContent = t.status === 'ok' ? `Endpoint titre 1:${Math.round(t.titre).toLocaleString('en')}` : t.status === 'above' ? `Titre above 1:${Math.round(t.last).toLocaleString('en')}` : `Titre below 1:${Math.round(t.points[0].dil).toLocaleString('en')}`;
+      facts(q('.ab-tfacts'), [
+        ['Cutoff OD', C.value.toFixed(3), C.text],
+        ['Blank', Number.isFinite(C.mean) ? `${C.mean.toFixed(3)}${Number.isFinite(C.sd) ? ` ± ${C.sd.toFixed(4)}` : ''}` : '–', `mean${Number.isFinite(C.sd) ? ' ± SD' : ''} of ${C.n}`],
+        ['Last dilution above', Number.isFinite(t.last) ? ratio(t.last) : 'none'],
+        ['log₁₀ titre', t.status === 'ok' ? t.log10.toFixed(2) : '–'],
+      ]);
+      warns(q('.ab-twarn'), t.warn);
+      table(q('.ab-ttab'), ['Dilution', 'ODs', 'Mean', 'SD', 'Above'], t.points.map((p) => [ratio(p.dil), p.ods.map((x) => x.toFixed(3)).join(', '), p.mean.toFixed(3), Number.isFinite(p.sd) ? p.sd.toFixed(3) : '–', p.above ? 'yes' : 'no']), [true, false, true, true, false]);
+      [...q('.ab-ttab').querySelectorAll('tr')].slice(1).forEach((tr, i) => tr.classList.toggle('on', t.points[i].dil === t.last));
+      const marks: NonNullable<Parameters<typeof chartFigure>[0]['marks']> = [{ kind: 'hline', at: C.value, dash: [5, 4], label: 'cutoff' }];
+      if (t.status === 'ok') marks.push({ kind: 'vline', at: t.titre, dash: [2, 3], label: `1:${Math.round(t.titre).toLocaleString('en')}` });
+      fig = chartFigure({ w: 520, h: 340, xLog: true, yMin: 0, xLabel: 'Dilution (1 in …)', yLabel: 'OD', legend: 'none', series: [{ name: 'Mean OD', x: t.points.map((p) => p.dil), y: t.points.map((p) => p.mean), yErr: t.points.map((p) => (Number.isFinite(p.sd) ? p.sd : undefined)), mode: 'both', marker: 'circle' }], marks },
+        `Mean OD against dilution on a log scale, with the cutoff at OD ${C.value.toFixed(3)}${t.status === 'ok' ? ` and the endpoint titre at 1:${Math.round(t.titre)}` : ''}`);
+      paint(q<HTMLCanvasElement>('.ab-fig'), fig);
+    } catch (e) { fig = null; fail('.ab-terr', '.ab-tout', e); }
+  }
+
+  function runNeed() {
+    N = null;
+    const plate = q<HTMLSelectElement>('.ab-kind').value === 'plate';
+    q('.ab-nl').textContent = plate ? 'How many plates' : 'How many blots';
+    q('.ab-l-ml').hidden = plate; q('.ab-l-wells').hidden = !plate; q('.ab-l-well').hidden = !plate;
+    try {
+      const per = plate ? Math.round(val('.ab-wells')) * val('.ab-well') : val('.ab-ml') * 1000;
+      const vs = q<HTMLInputElement>('.ab-vial').value.trim();
+      N = needed({ units: Math.round(val('.ab-n')), perUnitUl: per, factor: val('.ab-nratio'), sparePct: val('.ab-spare'), stockMgMl: stock(), vialUl: vs ? num(vs) : undefined });
+      ok('.ab-nerr', '.ab-nout');
+      const unit = plate ? 'plates' : 'blots';
+      q('.ab-nbig').textContent = `${fmtUl(N.stockUl)} of antibody in ${fmtUl(N.workingUl)}`;
+      facts(q('.ab-nfacts'), [
+        ['Working dilution', fmtUl(N.workingUl), `${fmtUl(N.perUnitUl)} per ${unit.slice(0, -1)} + spare`],
+        ['Stock antibody', fmtUl(N.stockUl), ratio(val('.ab-nratio'))],
+        ['Antibody mass', Number.isFinite(N.ug) ? `${+N.ug.toPrecision(3)} µg` : '–', Number.isFinite(N.ug) ? undefined : 'give the stock in part 1'],
+        ...(Number.isFinite(N.unitsPerVial) ? [['The vial covers', `${N.unitsPerVial} ${unit}`, N.enough ? `${fmtUl(N.vialLeftUl)} left after this run` : `${fmtUl(-N.vialLeftUl)} short for this run`] as [string, string, string]] : []),
+      ]);
+    } catch (e) { fail('.ab-nerr', '.ab-nout', e); }
+  }
+
+  const all = () => { runWorking(); runSerial(); runTitre(); runNeed(); };
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 200); };
+  q('.ab-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m as 'ratio' | 'conc';
+    q('.ab-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ab-l-ratio').hidden = mode !== 'ratio'; q('.ab-l-target').hidden = mode !== 'conc';
+    runWorking();
+  });
+  q('.ab-stock').addEventListener('input', () => later(all));
+  for (const c of ['.ab-ratio', '.ab-target', '.ab-vol']) q(c).addEventListener('input', () => later(runWorking));
+  q('.ab-vunit').addEventListener('change', runWorking);
+  q('.ab-fold').addEventListener('change', () => { q('.ab-l-cfold').hidden = q<HTMLSelectElement>('.ab-fold').value !== 'custom'; runSerial(); });
+  for (const c of ['.ab-start', '.ab-cfold', '.ab-tubes', '.ab-svol']) q(c).addEventListener('input', () => later(runSerial));
+  for (const c of ['.ab-series', '.ab-blanks', '.ab-k']) q(c).addEventListener('input', () => later(runTitre));
+  q('.ab-cut').addEventListener('change', () => {
+    const k = q<HTMLInputElement>('.ab-k'), kind = q<HTMLSelectElement>('.ab-cut').value;
+    k.value = kind === 'sd' ? '3' : kind === 'times' ? '2' : '0.1'; runTitre();
+  });
+  q('.ab-kind').addEventListener('change', runNeed);
+  for (const c of ['.ab-n', '.ab-ml', '.ab-wells', '.ab-well', '.ab-nratio', '.ab-spare', '.ab-vial']) q(c).addEventListener('input', () => later(runNeed));
+
+  const set = (c: string, v: string) => { q<HTMLInputElement>(c).value = v; };
+  function example() {
+    q<HTMLButtonElement>('.ab-mode button[data-m="ratio"]').click();
+    set('.ab-stock', '0.8'); set('.ab-ratio', '2000'); set('.ab-target', '0.5'); set('.ab-vol', '10'); set('.ab-vunit', '1000');
+    set('.ab-start', '100'); set('.ab-fold', '2'); q('.ab-l-cfold').hidden = true; set('.ab-tubes', '8'); set('.ab-svol', '100');
+    set('.ab-series', EXAMPLE_SERIES); set('.ab-blanks', EXAMPLE_BLANKS); set('.ab-cut', 'sd'); set('.ab-k', '3');
+    set('.ab-kind', 'blot'); set('.ab-n', '6'); set('.ab-ml', '10'); set('.ab-wells', '96'); set('.ab-well', '100'); set('.ab-nratio', '2000'); set('.ab-spare', '10'); set('.ab-vial', '100');
+    all();
+  }
+  q('.ab-ex').addEventListener('click', example);
+
+  q('.ab-scsv').addEventListener('click', () => {
+    if (!S) return;
+    save(new Blob([csv([['tube', 'dilution_1_in', 'concentration_ug_per_mL', 'diluent_uL', 'add_uL', 'from', 'volume_left_uL'], ...S.rows.map((r) => [r.tube, +r.factor.toPrecision(10), Number.isFinite(r.ugMl) ? +r.ugMl.toPrecision(6) : '', +r.diluentUl.toPrecision(6), +r.fromUl.toPrecision(6), r.from, r.keepUl])])], { type: 'text/csv' }), 'serial-dilution.csv', 'text/csv');
+  });
+  q('.ab-tcsv').addEventListener('click', () => {
+    if (!T || !C) return;
+    const reps = Math.max(...T.points.map((p) => p.ods.length));
+    const rows: (string | number)[][] = [['dilution_1_in', ...Array.from({ length: reps }, (_, i) => `od_${i + 1}`), 'mean', 'sd', 'above_cutoff'], ...T.points.map((p) => [p.dil, ...Array.from({ length: reps }, (_, i) => p.ods[i] ?? ''), +p.mean.toFixed(4), Number.isFinite(p.sd) ? +p.sd.toFixed(4) : '', p.above ? 'yes' : 'no'])];
+    rows.push([], ['cutoff', +C.value.toFixed(4), C.text], ['endpoint_titre', T.status === 'ok' ? Math.round(T.titre) : T.status === 'above' ? `>${T.last}` : `<${T.points[0].dil}`]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'antibody-titre.csv', 'text/csv');
+  });
+
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (W) sections.push({ title: 'Working dilution', facts: [['Dilution', ratio(W.factor)], ['Final volume', fmtUl(W.finalUl)], ['Stock', fmtUl(W.stockUl)], ['Diluent', fmtUl(W.diluentUl)], ['Final concentration', fmtConc(W.ugMl)]], text: W.inter ? [q('.ab-inter').textContent ?? ''] : undefined });
+    if (S) sections.push({ title: 'Serial dilution', text: [q('.ab-sbig').textContent ?? ''], table: { head: ['Tube', 'Dilution', 'Concentration', 'Diluent', 'Then add', 'From'], rows: S.rows.map((r) => [String(r.tube), ratio(r.factor), fmtConc(r.ugMl), fmtUl(r.diluentUl), fmtUl(r.fromUl), r.from]), align: ['r', 'r', 'r', 'r', 'r', 'l'] }, note: q('.ab-snote').textContent ?? '' });
+    if (T && C) sections.push({ title: 'Titre', text: [q('.ab-tbig').textContent ?? '', `Cutoff OD ${C.value.toFixed(3)} (${C.text}).`], figure: fig ?? undefined, table: { head: ['Dilution', 'ODs', 'Mean', 'SD', 'Above'], rows: T.points.map((p) => [ratio(p.dil), p.ods.map((x) => x.toFixed(3)).join(', '), p.mean.toFixed(3), Number.isFinite(p.sd) ? p.sd.toFixed(3) : '', p.above ? 'yes' : 'no']), align: ['r', 'l', 'r', 'r', 'l'] } });
+    if (N) sections.push({ title: 'Antibody for the run', text: [q('.ab-nbig').textContent ?? ''], facts: [...q('.ab-nfacts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.firstChild?.textContent ?? '']) });
+    return { title: 'Antibody dilution and titre', subtitle: 'Worked out on fibub.com', file: 'antibody-dilution', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ab-tout').hidden) paint(q<HTMLCanvasElement>('.ab-fig'), fig); });
+  set('.ab-series', EXAMPLE_SERIES); set('.ab-blanks', EXAMPLE_BLANKS);
+  all();
+</script>
