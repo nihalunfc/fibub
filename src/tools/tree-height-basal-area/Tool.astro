@@ -1,0 +1,322 @@
+---
+// Tree height by clinometer (tangent and sine methods, level or sloped ground) and basal area from DBH (one tree, a
+// fixed-area plot, or a prism / angle-gauge sweep). The example readings and trees are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const dbhs = 'tree,DBH (cm)\n1,12.5\n2,18.2\n3,24.0\n4,31.7\n5,9.8\n6,15.1\n7,27.3\n8,40.2\n9,21.6\n10,13.4';
+const points = 'point,in trees\nP1,7\nP2,9.5\nP3,6\nP4,11\nP5,8';
+---
+<div class="ax thb">
+  <div class="ax-card">
+    <h2>Units</h2>
+    <div class="ax-grid">
+      <label>Units <select class="th-u">
+        <option value="metric" selected>Metric: m, cm, m²/ha</option>
+        <option value="imperial">Imperial: ft, inches, ft²/acre</option>
+      </select></label>
+      <label>Clinometer reads in <select class="th-ang">
+        <option value="deg" selected>Degrees</option>
+        <option value="pct">Percent</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Percent is the rise over the horizontal distance × 100 (the percent scale of a clinometer); 100 % is 45°. Read angles above eye level as positive and below eye level as negative.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Tree height</h2>
+    <div class="ax-grid">
+      <label>Method <select class="th-m">
+        <option value="tan" selected>Tangent: distance and 2 readings</option>
+        <option value="sin">Sine: 2 laser distances</option>
+      </select></label>
+    </div>
+    <div class="ax-grid th-tan" style="margin-top:10px">
+      <label><span>Distance to the trunk (<span class="th-lu">m</span>)</span> <input class="th-d" inputmode="decimal" value="20" /></label>
+      <label>Distance measured <select class="th-dm">
+        <option value="h" selected>On the level (horizontal)</option>
+        <option value="s">Along the slope</option>
+      </select></label>
+      <label class="th-sl" hidden>Slope reading to the trunk <input class="th-slope" inputmode="decimal" value="15" /></label>
+      <label>Reading to the top <input class="th-top" inputmode="decimal" value="52" /></label>
+      <label>Bottom of the tree <select class="th-bm">
+        <option value="read" selected>Reading to the base</option>
+        <option value="eye">Level ground: my eye height</option>
+      </select></label>
+      <label class="th-bl">Reading to the base <input class="th-base" inputmode="decimal" value="-4" /></label>
+      <label class="th-el" hidden><span>Eye height (<span class="th-lu">m</span>)</span> <input class="th-eye" inputmode="decimal" value="1.6" /></label>
+    </div>
+    <div class="ax-grid th-sin" hidden style="margin-top:10px">
+      <label><span>Laser distance to the top (<span class="th-lu">m</span>)</span> <input class="th-lt" inputmode="decimal" value="33.5" /></label>
+      <label>Angle to the top <input class="th-at" inputmode="decimal" value="53" /></label>
+      <label><span>Laser distance to the base (<span class="th-lu">m</span>)</span> <input class="th-lb" inputmode="decimal" value="20.1" /></label>
+      <label>Angle to the base <input class="th-ab" inputmode="decimal" value="-5" /></label>
+    </div>
+    <p class="ax-help th-mhelp"></p>
+    <p class="ax-err th-herr" hidden></p>
+    <div class="th-hout">
+      <p class="ax-big th-hbig"></p>
+      <dl class="ax-facts th-hfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Basal area</h2>
+    <div class="ax-grid">
+      <label>From <select class="th-bmode">
+        <option value="one">One tree</option>
+        <option value="plot" selected>A fixed-area plot</option>
+        <option value="prism">A prism or angle-gauge sweep</option>
+      </select></label>
+    </div>
+    <div class="th-one" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label><span>DBH (<span class="th-du">cm</span>)</span> <input class="th-dbh" inputmode="decimal" value="35" /></label>
+      </div>
+    </div>
+    <div class="th-plot">
+      <label style="margin-top:10px;display:block">DBH of every tree in the plot, one per row (a column headed DBH is used, otherwise the last number in each row) <textarea class="th-dbhs" rows="7" spellcheck="false">{dbhs}</textarea></label>
+      <DataFile target=".th-dbhs" maxCols={10} maxRows={20000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Plot size given as <select class="th-pm">
+          <option value="area" selected>Area</option>
+          <option value="radius">Radius of a circular plot</option>
+        </select></label>
+        <label><span class="th-pl">Plot area (<span class="th-au">m²</span>)</span> <input class="th-pa" inputmode="decimal" value="400" /></label>
+      </div>
+    </div>
+    <div class="th-prism" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label><span>Basal area factor, BAF (<span class="th-bu">m²/ha</span>)</span> <input class="th-baf" inputmode="decimal" value="2" /></label>
+        <label>Each row gives <select class="th-rows">
+          <option value="count" selected>Point, number of trees counted in</option>
+          <option value="dbh">Point, then DBH of each in tree</option>
+        </select></label>
+      </div>
+      <label style="margin-top:10px;display:block">One row per sample point <textarea class="th-pts" rows="6" spellcheck="false">{points}</textarea></label>
+      <DataFile target=".th-pts" maxCols={200} maxRows={5000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label><span>Check a borderline tree: its DBH (<span class="th-du">cm</span>)</span> <input class="th-ld" inputmode="decimal" value="30" /></label>
+      </div>
+    </div>
+    <p class="ax-help th-bhelp"></p>
+    <p class="ax-err th-berr" hidden></p>
+    <div class="th-bout">
+      <p class="ax-big th-bbig"></p>
+      <dl class="ax-facts th-bfacts"></dl>
+      <canvas class="ax-fig th-fig" hidden></canvas>
+      <details class="th-sd">
+        <summary class="th-sum">Every tree (table)</summary>
+        <div class="ax-scroll"><table class="th-tab"></table></div>
+      </details>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small th-csv">Download the table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { tangentHeight, sineHeight, basalArea, plot, prism, limitDistance, degOf, type Reading, type Units } from '../../lib/sci/treeheight';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+  import { tInv } from '../../lib/sci/stats';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const f1 = (x: number) => (Math.abs(x) < 0.05 ? '0' : x.toFixed(1).replace('-', '−'));
+  const root = document.querySelector<HTMLElement>('.thb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = (c: string) => [...root.querySelectorAll<HTMLElement>(c)];
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let fig: Figure | null = null, hSec: Section | null = null, bSec: Section | null = null, csvRows: string[][] = [], csvName = 'basal-area.csv';
+
+  function table(head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>('.th-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function height(U: Units, ang: 'deg' | 'pct') {
+    const lu = U === 'metric' ? 'm' : 'ft';
+    const fail = (m: string) => { q('.th-herr').textContent = m; q('.th-herr').hidden = false; q('.th-hout').hidden = true; hSec = null; };
+    q('.th-herr').hidden = true;
+    const m = sel('.th-m'), dm = sel('.th-dm'), bm = sel('.th-bm');
+    q('.th-tan').hidden = m !== 'tan'; q('.th-sin').hidden = m !== 'sin';
+    q('.th-sl').hidden = dm !== 's'; q('.th-bl').hidden = bm !== 'read'; q('.th-el').hidden = bm !== 'eye';
+    q('.th-mhelp').textContent = m === 'tan'
+      ? 'Stand where you can see the top and the base. Tangent method: height = horizontal distance × (tan of the top reading − tan of the base reading). A base reading below eye level is negative, so it adds to the height; if you stand below the base it is positive. If you taped the distance along a slope, give the slope reading to the trunk and the tool turns it into the horizontal distance.'
+      : 'Sine method: with a laser rangefinder, measure the straight-line distance and the angle to the top and to the base. Height = distance to top × sin(top angle) − distance to base × sin(base angle). No horizontal distance is assumed, so it also works on uneven ground and when the top is not straight above the base.';
+    const R = (s: string): Reading | null => { const x = v(s); if (!Number.isFinite(x)) return null; return { value: x, unit: ang }; };
+    const lim = ang === 'deg' ? 89.9 : 5000, okA = (r: Reading | null) => r !== null && Math.abs(r.value) < lim;
+    const angName = ang === 'deg' ? 'degrees (between −90 and 90)' : 'percent';
+    let res: { H: number; D: number; above: number; below: number }, how: [string, string, string][] = [];
+    if (m === 'tan') {
+      const d = v('.th-d'), top = R('.th-top');
+      if (!(d > 0)) return fail(`Give the distance to the trunk in ${lu} (above 0).`);
+      if (!okA(top)) return fail(`Give the reading to the top in ${angName}.`);
+      let slope: Reading | undefined;
+      if (dm === 's') { const s = R('.th-slope'); if (!okA(s)) return fail(`Give the slope reading to the trunk in ${angName}.`); slope = s!; }
+      if (bm === 'read') {
+        const base = R('.th-base');
+        if (!okA(base)) return fail(`Give the reading to the base in ${angName}.`);
+        if (!(top!.value > base!.value)) return fail('The reading to the top must be higher than the reading to the base.');
+        res = tangentHeight({ dist: d, slope, top: top!, base: base! });
+      } else {
+        const eye = v('.th-eye');
+        if (!(eye >= 0 && eye < 10 * (U === 'metric' ? 1 : 3.28))) return fail(`Give your eye height above the ground at the base in ${lu}.`);
+        if (!(top!.value > 0)) return fail('On level ground the reading to the top must be above 0.');
+        res = tangentHeight({ dist: d, slope, top: top!, eye });
+      }
+      how = [['Horizontal distance', `${sg(res.D, 4)} ${lu}`, dm === 's' ? `${sg(d, 4)} ${lu} along a slope of ${sg(degOf(slope!), 3)}°` : 'as measured']];
+    } else {
+      const lt = v('.th-lt'), lb = v('.th-lb'), at = R('.th-at'), ab = R('.th-ab');
+      if (!(lt > 0) || !(lb > 0)) return fail(`Give both laser distances in ${lu} (above 0).`);
+      if (!okA(at) || !okA(ab)) return fail(`Give both angles in ${angName}.`);
+      if (!(at!.value > ab!.value)) return fail('The angle to the top must be higher than the angle to the base.');
+      res = sineHeight({ lTop: lt, top: at!, lBase: lb, base: ab! });
+      how = [['Distances', `${sg(lt, 4)} ${lu} to the top, ${sg(lb, 4)} ${lu} to the base`, 'straight line from your eye']];
+    }
+    if (!(res.H > 0) || !Number.isFinite(res.H)) return fail('These readings give no positive height. Check the signs: below eye level is negative.');
+    q('.th-hout').hidden = false;
+    q('.th-hbig').textContent = `Tree height: ${f1(res.H)} ${lu}`;
+    const angTxt = (s: string) => { const r = R(s)!; return ang === 'deg' ? `${sg(r.value, 4)}°` : `${sg(r.value, 4)} % (${sg(degOf(r), 3)}°)`; };
+    q('.th-hfacts').replaceChildren(
+      fact('Above eye level', `${sg(res.above, 4)} ${lu}`, m === 'tan' ? `from the top reading, ${angTxt('.th-top')}` : `from the top angle, ${angTxt('.th-at')}`),
+      fact(res.below >= 0 ? 'Below eye level' : 'Base above eye level', `${sg(Math.abs(res.below), 4)} ${lu}`, m === 'tan' ? (bm === 'eye' ? 'your eye height' : `from the base reading, ${angTxt('.th-base')}`) : `from the base angle, ${angTxt('.th-ab')}`),
+      ...how.map(([a, b, c]) => fact(a, b, c)),
+      fact('Method', m === 'tan' ? 'Tangent' : 'Sine', m === 'tan' ? 'H = D × (tan top − tan base)' : 'H = Lt sin(top) − Lb sin(base)'),
+    );
+    hSec = { title: q('.th-hbig').textContent!, facts: factsOf('.th-hfacts') };
+  }
+
+  function basal(U: Units) {
+    const du = U === 'metric' ? 'cm' : 'in', bu = U === 'metric' ? 'm²' : 'ft²', per = U === 'metric' ? 'ha' : 'acre', au = U === 'metric' ? 'm²' : 'ft²', lu = U === 'metric' ? 'm' : 'ft';
+    const fail = (m: string) => { q('.th-berr').textContent = m; q('.th-berr').hidden = false; q('.th-bout').hidden = true; bSec = null; fig = null; csvRows = []; };
+    q('.th-berr').hidden = true;
+    const mode = sel('.th-bmode');
+    q('.th-one').hidden = mode !== 'one'; q('.th-plot').hidden = mode !== 'plot'; q('.th-prism').hidden = mode !== 'prism';
+    q('.th-pl').firstChild!.textContent = sel('.th-pm') === 'area' ? 'Plot area (' : 'Plot radius (';
+    q('.th-au').textContent = sel('.th-pm') === 'area' ? au : lu;
+    q('.th-bhelp').textContent = mode === 'one'
+      ? `Basal area is the cross-section of the trunk at breast height (1.3 m, or 4.5 ft): π × DBH² / 4. In imperial units it is 0.005454 × DBH² ft² with DBH in inches.`
+      : mode === 'plot'
+        ? `Every tree in the plot at or above your minimum DBH. The tool adds up their basal areas and scales to one ${per}. A circular plot of radius 11.28 m is 400 m² (1/25 ha); one of 37.2 ft is 1/10 acre.`
+        : `Stand at each point and sweep the prism or angle gauge round. Count the trees that look "in" (the image overlaps the trunk); a borderline tree counts as half. Basal area per ${per} = BAF × the mean count. With the DBH of each in tree, each one also stands for BAF ÷ its basal area stems per ${per} (its tree factor). The borderline check gives the limiting distance: a tree of that DBH is in if it is nearer than this.`;
+    let big = '', facts: HTMLElement[] = [], head: string[] = [], rows: string[][] = [], right: number[] = [];
+    fig = null; q('.th-fig').hidden = true; q('.th-sd').hidden = mode === 'one'; q('.th-csv').hidden = mode === 'one';
+    const readDbhs = (text: string) => {
+      const all = parseTable(text).filter((r) => r.some((c) => c.trim() !== ''));
+      const h = all.length && all[0].some((c) => c.trim() !== '' && !Number.isFinite(num(c))) ? all[0] : null;
+      const col = h ? h.findIndex((c) => /dbh|diam/i.test(c)) : -1;
+      const out: number[] = [];
+      for (const r of h ? all.slice(1) : all) {
+        let x = NaN;
+        if (col >= 0) x = num(r[col]); else for (let i = r.length - 1; i >= 0; i--) if (Number.isFinite(num(r[i]))) { x = num(r[i]); break; }
+        out.push(x);
+      }
+      return out;
+    };
+    if (mode === 'one') {
+      const d = v('.th-dbh');
+      if (!(d > 0 && d <= (U === 'metric' ? 1500 : 600))) return fail(`Give the DBH in ${du} (above 0).`);
+      const ba = basalArea(d, U);
+      big = `Basal area: ${sg(ba, 4)} ${bu}`;
+      facts = [fact('DBH', `${sg(d, 4)} ${du}`, 'diameter at breast height'), fact('In other units', U === 'metric' ? `${sg(ba * 10000, 4)} cm²` : `${sg(ba * 144, 4)} in²`)];
+    } else if (mode === 'plot') {
+      const d = readDbhs(q<HTMLTextAreaElement>('.th-dbhs').value);
+      if (!d.length) return fail(`Give the DBH of each tree in the plot, one per row, in ${du}.`);
+      if (d.length > 20000) return fail('Up to 20,000 trees, please.');
+      const bad = d.findIndex((x) => !(x > 0 && x <= (U === 'metric' ? 1500 : 600)));
+      if (bad >= 0) return fail(`Row ${bad + 1}: give a DBH in ${du} (above 0).`);
+      const s = v('.th-pa'), area = sel('.th-pm') === 'area' ? s : Math.PI * s * s;
+      if (!(s > 0)) return fail(`Give the plot ${sel('.th-pm') === 'area' ? `area in ${au}` : `radius in ${lu}`} (above 0).`);
+      const p = plot(d, area, U);
+      big = `Basal area: ${sg(p.baPer, 3)} ${bu}/${per}`;
+      facts = [
+        fact('Stems', `${sg(p.stems, 4)} per ${per}`, `${p.n} tree${p.n > 1 ? 's' : ''} in ${sg(area, 4)} ${au}; each tree stands for ${sg(p.factor, 4)} per ${per}`),
+        fact('Basal area in the plot', `${sg(p.sumBA, 4)} ${bu}`),
+        fact('Quadratic mean diameter', `${sg(p.qmd, 3)} ${du}`, 'the DBH of the tree of mean basal area'),
+        fact('DBH range', `${sg(Math.min(...d), 3)} to ${sg(Math.max(...d), 3)} ${du}`),
+      ];
+      head = ['Tree', `DBH (${du})`, `Basal area (${bu})`, `Per ${per} (${bu})`]; right = [1, 2, 3];
+      rows = d.map((x, i) => [String(i + 1), sg(x, 4), sg(p.baTrees[i], 4), sg(p.baTrees[i] * p.factor, 4)]);
+      csvRows = [['tree', `dbh_${du}`, `basal_area_${bu === 'm²' ? 'm2' : 'ft2'}`, `basal_area_per_${per}`], ...d.map((x, i) => [String(i + 1), String(x), sg(p.baTrees[i], 6), sg(p.baTrees[i] * p.factor, 6)])];
+      csvName = 'plot-basal-area.csv';
+    } else {
+      const baf = v('.th-baf');
+      if (!(baf > 0 && baf <= 100)) return fail(`Give the basal area factor in ${bu}/${per} (above 0).`);
+      const byDbh = sel('.th-rows') === 'dbh';
+      const all = parseTable(q<HTMLTextAreaElement>('.th-pts').value).filter((r) => r.some((c) => c.trim() !== ''));
+      const isHead = (r: string[]) => r.every((c) => !Number.isFinite(num(c))) && /point|plot|dbh|tree|count/i.test(r.join(' '));
+      const body = all.length && isHead(all[0]) ? all.slice(1) : all;
+      if (!body.length) return fail(byDbh ? 'Give one row per point: a name, then the DBH of each tree counted in.' : 'Give one row per point: a name and the number of trees counted in.');
+      if (body.length > 5000) return fail('Up to 5,000 points, please.');
+      const names: string[] = [], counts: number[] = [], dl: number[][] = [];
+      for (let i = 0; i < body.length; i++) {
+        const r = body[i], named = !Number.isFinite(num(r[0]));
+        let nm = named ? r[0].trim() : `Point ${i + 1}`;
+        const vals = (named ? r.slice(1) : r).filter((c) => c.trim() !== '').map(num);
+        if (vals.some((x) => !Number.isFinite(x))) return fail(`Row ${i + 1}: only numbers after the point name.`);
+        if (byDbh) {
+          if (vals.some((x) => !(x > 0 && x <= (U === 'metric' ? 1500 : 600)))) return fail(`Row ${i + 1}: give each DBH in ${du} (above 0).`);
+          names.push(nm); counts.push(vals.length); dl.push(vals);
+        } else {
+          if (!named && vals.length === 2) { nm = `Point ${sg(vals[0], 6)}`; vals.shift(); }
+          const c = vals[0];
+          if (vals.length !== 1) return fail(`Row ${i + 1}: give one count per point (or choose rows of DBHs).`);
+          if (!(c >= 0 && c <= 200 && Math.round(c * 2) === c * 2)) return fail(`Row ${i + 1}: give the number of trees counted in (whole or half numbers).`);
+          names.push(nm); counts.push(c);
+        }
+      }
+      const s = prism(counts, baf, U, byDbh ? dl : undefined), k = s.points;
+      const t = k > 1 ? tInv(0.975, k - 1) : NaN;
+      big = `Basal area: ${sg(s.ba, 3)} ${bu}/${per}`;
+      const ld = v('.th-ld');
+      facts = [
+        fact('Points', `${k}`, `mean count ${sg(s.meanCount, 3)} trees × BAF ${sg(baf, 3)}`),
+        fact('Standard error', k > 1 ? `± ${sg(s.se, 3)} ${bu}/${per}` : 'needs 2 or more points', k > 1 ? `95 % range ${sg(s.ba - t * s.se, 3)} to ${sg(s.ba + t * s.se, 3)}; ${sg((100 * s.se) / s.ba, 3)} % of the mean` : ''),
+        ...(byDbh ? [fact('Stems', `${sg(s.stems, 4)} per ${per}`, 'from the tree factors, BAF ÷ basal area of each in tree'), fact('Quadratic mean diameter', `${sg(s.qmd, 3)} ${du}`)] : []),
+        ...(ld > 0 ? [fact('Borderline check', `${sg(limitDistance(ld, baf, U), 3)} ${lu}`, `a ${sg(ld, 3)} ${du} tree is in if its centre is nearer than this`)] : []),
+      ];
+      head = ['Point', 'Trees in', `Basal area (${bu}/${per})`, ...(byDbh ? [`Stems per ${per}`] : [])]; right = byDbh ? [1, 2, 3] : [1, 2];
+      rows = names.map((n, i) => [n, sg(counts[i], 3), sg(s.perPoint[i], 4), ...(byDbh ? [sg(s.stemsPer[i], 4)] : [])]);
+      csvRows = [['point', 'trees_in', `basal_area_per_${per}`, ...(byDbh ? [`stems_per_${per}`] : [])], ...names.map((n, i) => [n, String(counts[i]), sg(s.perPoint[i], 6), ...(byDbh ? [sg(s.stemsPer[i], 6)] : [])])];
+      csvName = 'prism-basal-area.csv';
+      const xs = names.map((_, i) => i + 1);
+      fig = chartFigure({ h: 280, xLabel: 'Point', yLabel: `Basal area (${bu}/${per})`, yMin: 0, xMin: 0, xMax: k + 1, legend: 'none', series: [{ name: 'Points', x: xs, y: s.perPoint, mode: 'points', labels: k <= 12 ? names : undefined }], marks: [{ kind: 'hline', at: s.ba, dash: [5, 4], label: 'mean' }] }, `Basal area per ${per} at each of ${k} prism points, with the mean`);
+      q('.th-fig').hidden = false; paint(q<HTMLCanvasElement>('.th-fig'), fig);
+    }
+    q('.th-bout').hidden = false;
+    q('.th-bbig').textContent = big;
+    q('.th-bfacts').replaceChildren(...facts);
+    q('.th-sum').textContent = mode === 'prism' ? 'Every point (table)' : 'Every tree (table)';
+    if (mode !== 'one') table(head, rows, right); else csvRows = [];
+    bSec = { title: big, facts: factsOf('.th-bfacts'), ...(fig ? { figure: fig } : {}), ...(rows.length ? { table: { head, rows, align: head.map((_, i) => (right.includes(i) ? 'r' : 'l')) as ('l' | 'r')[] } } : {}) };
+  }
+
+  function calc() {
+    const U = sel('.th-u') as Units, ang = sel('.th-ang') as 'deg' | 'pct';
+    qa('.th-lu').forEach((e) => (e.textContent = U === 'metric' ? 'm' : 'ft'));
+    qa('.th-du').forEach((e) => (e.textContent = U === 'metric' ? 'cm' : 'in'));
+    q('.th-bu').textContent = U === 'metric' ? 'm²/ha' : 'ft²/acre';
+    height(U, ang); basal(U);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.th-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), csvName, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.th-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Tree height and basal area', subtitle: [hSec?.title, bSec?.title].filter(Boolean).join('; '), file: 'tree-height-basal-area', sections: [hSec, bSec].filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .thb select { max-width: 100%; }
+  .thb .th-sd { margin-top: 14px; }
+  .thb .th-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .thb textarea { width: 100%; }
+</style>
