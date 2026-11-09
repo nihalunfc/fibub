@@ -11,7 +11,7 @@ order: 757
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, sample-size]
+related: [plot-maker, data-cleaner, sample-size, life-table, population-pyramid]
 sources:
   - "Formulas only: standard period fertility measures as in Preston, Heuveline and Guillot (2001), chapter 5. Example births, women and nLx are made up."
 flow:
