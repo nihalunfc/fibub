@@ -128,6 +128,15 @@ import * as RO from '../src/lib/sci/runoff.ts';
 import * as FF from '../src/lib/sci/floodfreq.ts';
 import * as ET from '../src/lib/sci/et0.ts';
 import * as RC from '../src/lib/sci/rating.ts';
+import * as AMB from '../src/lib/sci/amband.ts';
+import * as AHE from '../src/lib/sci/ahe.ts';
+import * as SSC from '../src/lib/sci/sscond.ts';
+import * as AMG from '../src/lib/sci/amagnon.ts';
+import * as UH from '../src/lib/sci/uh.ts';
+import * as THS from '../src/lib/sci/thiessen.ts';
+import * as PRB from '../src/lib/sci/probit.ts';
+import * as SSD from '../src/lib/sci/ssd.ts';
+import * as NDS from '../src/lib/sci/censored.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2534,6 +2543,206 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('rating: scatter band about ±7 %', sc[0] < -6 && sc[0] > -8 && sc[1] > 6 && sc[1] < 8);
   check('rating: columns by name', JSON.stringify(RC.pickColumns(['date', 'Discharge (m3/s)', 'Gauge height (m)'], [[NaN, NaN, NaN], [1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 2, qi: 1 }));
   check('rating: columns by order', JSON.stringify(RC.pickColumns(['a', 'b'], [[1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 0, qi: 1 }));
+}
+{
+  // Altermagnet band models, against NumPy eigh on the two-sublattice Hamiltonian, and symmetry checks.
+  const m = { kind: 'two', t1: 1, ta: 0.3, tb: -0.1, J: 0.8, mu: 0.2 };
+  const ref = [[0.7, 0.2, 1, -4.391269506032175, 3.2933059999818832, 0.3846924263377676], [0.7, 0.2, -1, -4.355251312186078, 3.257287806135787, 0.5937808309003051], [Math.PI, 0.3, 1, -1.7732018934753635, 1.3910672978251213, 0], [Math.PI, 0.3, -1, -0.20893270217487886, -0.17320189347536347, 1], [1.1, 2.5, 1, -1.246328094282544, 0.9853470919310865, 0.36642137392907353], [1.1, 2.5, -1, -1.819028447896271, 1.5580474455448137, 0.8855098125918729]];
+  for (const [kx, ky, sp, e0, e1, wa] of ref) {
+    const e = AMB.bands(m, kx, ky, sp);
+    near(`amband: two-sublattice bands at (${kx.toFixed(2)}, ${ky}) spin ${sp > 0 ? 'up' : 'down'} (NumPy)`, Math.abs(e[0] - e0) + Math.abs(e[1] - e1), 0, 1e-12);
+    near(`amband: sublattice A weight at (${kx.toFixed(2)}, ${ky}) spin ${sp > 0 ? 'up' : 'down'} (NumPy)`, AMB.weightA(m, kx, ky, sp)[0], wa, 1e-12);
+  }
+  // Spin up at (kx, ky) equals spin down at (ky, kx): the 90° rotation swaps the sublattices.
+  let worst = 0;
+  for (const [x, y] of [[0.3, 1.9], [2.2, -0.7], [-1.4, 2.8], [3, 0.1]]) { const u = AMB.bands(m, x, y, 1), d = AMB.bands(m, y, x, -1); worst = Math.max(worst, Math.abs(u[0] - d[0]), Math.abs(u[1] - d[1])); }
+  near('amband: E up(kx, ky) = E down(ky, kx)', worst, 0, 1e-12);
+  near('amband: no splitting on the diagonal kx = ky', Math.abs(AMB.bands(m, 1.3, 1.3, 1)[0] - AMB.bands(m, 1.3, 1.3, -1)[0]), 0, 1e-12);
+  near('amband: no splitting at Γ', Math.abs(AMB.bands(m, 0, 0, 1)[1] - AMB.bands(m, 0, 0, -1)[1]), 0, 1e-12);
+  check('amband: splitting changes sign across the diagonal', (AMB.bands(m, 2, 0.5, 1)[0] - AMB.bands(m, 2, 0.5, -1)[0]) * (AMB.bands(m, 0.5, 2, 1)[0] - AMB.bands(m, 0.5, 2, -1)[0]) < 0);
+  const g = AMB.grid(m, 200), fill = AMB.filling(g, 200);
+  near('amband: electrons per spin at μ = 0.2 (NumPy 1.0071)', fill[0], 1.0071, 1e-12);
+  check('amband: equal filling for both spins (no net moment)', fill[0] === fill[1]);
+  const D = AMB.dos(g, 200);
+  near('amband: spin-resolved DOS identical', D.up.reduce((s, v, i) => Math.max(s, Math.abs(v - D.dn[i])), 0), 0, 1e-9);
+  near('amband: DOS integrates to 2 bands per spin', D.up.reduce((s, v) => s + v, 0) * D.w, 2, 1e-9);
+  check('amband: no spin splitting without anisotropy (ta = tb)', AMB.maxSplit({ ...m, ta: 0.2, tb: 0.2 })[0].d === 0 || Math.abs(AMB.maxSplit({ ...m, ta: 0.2, tb: 0.2 })[0].d) < 1e-12);
+  // One-band forms.
+  const o = { kind: 'one', t: 1, tp: 0.2, J: 0.5, mu: -0.5, form: 'dx2y2' };
+  near('amband: one-band d-wave value', AMB.bands(o, 1, 2, 1)[0], -2 * (Math.cos(1) + Math.cos(2)) + 0.8 * Math.cos(1) * Math.cos(2) + 0.5 + 0.5 * (Math.cos(1) - Math.cos(2)), 1e-12);
+  near('amband: largest d-wave split is 4J at X', Math.abs(AMB.maxSplit(o)[0].d), 4 * 0.5, 1e-9);
+  near('amband: dxy split vanishes on the axes', AMB.bands({ ...o, form: 'dxy' }, 1.7, 0, 1)[0] - AMB.bands({ ...o, form: 'dxy' }, 1.7, 0, -1)[0], 0, 1e-12);
+  const gw = { ...o, form: 'g' };
+  check('amband: g-wave has four sign changes around a circle', (() => { let ch = 0, prev = 0; for (let a = 10; a <= 370; a += 1) { const r = 1.5, x = r * Math.cos(a * Math.PI / 180), y = r * Math.sin(a * Math.PI / 180), v = AMB.FORMS.g.f(x, y); const sg = Math.abs(v) < 1e-9 ? 0 : Math.sign(v); if (sg && prev && sg !== prev) ch++; if (sg) prev = sg; } return ch === 8; })());
+  near('amband: g-wave filling equal for both spins', AMB.filling(AMB.grid(gw, 120), 120)[0] - AMB.filling(AMB.grid(gw, 120), 120)[1], 0, 1e-12);
+  const P = AMB.kPath(40);
+  check('amband: path Y-Γ-X-M-Γ', P.ticks.map((t) => t.label).join('') === 'YΓXMΓ' && Math.abs(P.length - (3 + Math.SQRT2) * Math.PI) < 1e-12);
+  const circ = new Float64Array(64 * 64).map((_, i) => { const x = -Math.PI + (i % 64 + 0.5) * 2 * Math.PI / 64, y = -Math.PI + (Math.floor(i / 64) + 0.5) * 2 * Math.PI / 64; return x * x + y * y - 1; });
+  const seg = AMB.contour(circ, 64);
+  check('amband: contour of a unit circle lies on the circle', seg.length > 20 && seg.every(([a, b, c, d]) => Math.abs(Math.hypot(a, b) - 1) < 0.01 && Math.abs(Math.hypot(c, d) - 1) < 0.01));
+}
+// #146 anomalous Hall checker: magnetic point group and allowed Hall vector, checked against spglib 2.8 magnetic symmetry
+{
+  const { EXAMPLES: EX, parseCrystal: PC } = ALT;
+  const cr = (id) => PC(EX.find((e) => e.id === id).text).crystal;
+  const run = (id, d, cart = false) => { const c = cr(id), r = AHE.hall(AHE.prepare(c), cart ? d : AHE.latticeDir(c.cell, d)); return { r, dirs: r.basis.map((b) => AHE.dirName(c.cell, b)).join(' ') }; };
+  const want = [
+    ['rutile', [0, 0, 1], 0, ''], ['rutile', [1, 0, 0], 1, '[0 1 0]'], ['rutile', [1, 1, 0], 1, '[1 1 0]'], ['rutile', [1, -1, 0], 1, '[1 −1 0]'],
+    ['rutile', [1, 2, 0], 2, '[1 0 0] [0 1 0]'], ['rutile', [1, 0, 1], 1, '[0 1 0]'],
+    ['nias', [0, 0, 1], 0, ''], ['nias', [1, 0, 0], 0, ''], ['nias', [1, 1, 0], 0, ''], ['nias', [1, -1, 0], 1, '[0 0 1]'], ['nias', [1, 2, 0], 1, '[0 0 1]'],
+    ['ferri', [0, 0, 1], 1, '[0 0 1]'], ['ferri', [1, 1, 0], 1, '[1 1 0]'],
+  ];
+  for (const [id, d, rank, dirs] of want) { const { r, dirs: got } = run(id, d); check(`ahe: ${id} n=[${d}] rank ${rank} ${dirs}`, r.rank === rank && got === dirs); }
+  for (const id of ['bcc', 'chain']) for (const d of [[0, 0, 1], [1, 0, 0], [1, 1, 0], [1, 2, 3]]) check(`ahe: ${id} n=[${d}] Hall forbidden`, run(id, d).r.rank === 0);
+  check('ahe: rutile generic direction allows all three', run('rutile', [0.3, 0.5, 0.8], true).r.rank === 3);
+  check('ahe: MnTe generic direction allows all three', run('nias', [0.3, 0.5, 0.8], true).r.rank === 3);
+  // P is a projector (P² = P) and its trace is the rank.
+  { const { r } = run('rutile', [1, 1, 0]); const P = r.P, P2 = P.map((row, i) => row.map((_, j) => P[i][0] * P[0][j] + P[i][1] * P[1][j] + P[i][2] * P[2][j]));
+    check('ahe: P is a projector', P.every((row, i) => row.every((x, j) => Math.abs(x - P2[i][j]) < 1e-9)) && Math.abs(P[0][0] + P[1][1] + P[2][2] - r.rank) < 1e-9); }
+  // RuO2 n ∥ [001]: half the 16 operations need time reversal (magnetic point group 4′/mm′m).
+  { const { r } = run('rutile', [0, 0, 1]); check('ahe: rutile [001] has 16 ops, 8 with time reversal', r.ops.length === 16 && r.ops.filter((o) => o.T).length === 8); }
+  // Reversing n reverses no allowed direction set.
+  { const a = run('nias', [1, -1, 0]).dirs, b = run('nias', [-1, 1, 0]).dirs; check('ahe: −n gives the same allowed directions', a === b); }
+  check('ahe: components named', AHE.components([[0, 0, 1]]).join() === 'σxy (Hall vector along z)');
+  { const s = AHE.scanSphere(AHE.prepare(cr('rutile')), 12); check('ahe: sphere scan pole is forbidden, most directions allowed', s[0].rank === 0 && s.filter((x) => x.rank === 3).length > s.length / 2); }
+}
+
+// #147 spin splitter conductivity: Boltzmann tensors checked against an independent NumPy calculation (eigvalsh, 400², kT 0.1)
+{
+  const two = { kind: 'two', t1: 1, ta: 0.3, tb: -0.1, J: 0.8, mu: 0.2 }, one = (form, J = 0.3) => ({ kind: 'one', t: 1, tp: 0.2, J, mu: -0.5, form });
+  const ref = { two: [[0.003935, 0, 0.15401], [0.15401, 0, 0.003935]], d: [[0.218053, 0, 0.606105], [0.606105, 0, 0.218053]], dxy: [[0.417628, -0.021293, 0.417628], [0.417628, 0.021293, 0.417628]], g: [[0.42329, 0, 0.42329], [0.42329, 0, 0.42329]] };
+  const res = { two: SSC.tensors(two), d: SSC.tensors(one('dx2y2')), dxy: SSC.tensors(one('dxy')), g: SSC.tensors(one('g')) };
+  for (const k of Object.keys(ref)) ['up', 'dn'].forEach((s, i) => ['xx', 'xy', 'yy'].forEach((c, j) => near(`ssc: ${k} σ${s}_${c}`, res[k][s][c], ref[k][i][j], 2e-6)));
+  const d = res.d, b = SSC.bestAngle(d.up, d.dn);
+  near('ssc: d-wave best field angle 45°', (b.angle * 180) / Math.PI, 45, 0.06);
+  near('ssc: d-wave splitter ratio at 45°', SSC.atAngle(d.up, d.dn, Math.PI / 4).splitter, (0.606105 - 0.218053) / 0.824158, 2e-5);
+  near('ssc: d-wave current along x is spin polarised', SSC.atAngle(d.up, d.dn, 0).polar, (0.218053 - 0.606105) / 0.824158, 2e-5);
+  near('ssc: d-wave no transverse spin current along x', SSC.atAngle(d.up, d.dn, 0).splitter, 0, 1e-9);
+  near('ssc: d-wave no transverse charge current', SSC.atAngle(d.up, d.dn, 0.3).hallLike, 0, 1e-9);
+  near('ssc: dxy best field angle 0°', SSC.bestAngle(res.dxy.up, res.dxy.dn).angle, 0, 1e-9);
+  near('ssc: g-wave has no spin splitter effect', Math.abs(SSC.atAngle(res.g.up, res.g.dn, Math.PI / 4).splitter) + Math.abs(SSC.atAngle(res.g.up, res.g.dn, 0).polar), 0, 1e-9);
+  { const r0 = SSC.tensors(one('dx2y2', 0), 200); near('ssc: J = 0 gives no spin current', SSC.atAngle(r0.up, r0.dn, Math.PI / 4).splitter, 0, 1e-12); }
+  { const rm = SSC.tensors(one('dx2y2', -0.3), 200), rp = SSC.tensors(one('dx2y2', 0.3), 200); near('ssc: reversing J reverses the spin current', SSC.atAngle(rm.up, rm.dn, Math.PI / 4).splitter, -SSC.atAngle(rp.up, rp.dn, Math.PI / 4).splitter, 1e-12); }
+  // Plain antiferromagnet limit (ta = tb): the spins are degenerate, so no spin current at all.
+  { const tw = SSC.tensors({ ...two, ta: 0.2, tb: 0.2 }, 200); near('ssc: ta = tb gives no spin current', Math.abs(SSC.atAngle(tw.up, tw.dn, Math.PI / 4).splitter) + Math.abs(SSC.atAngle(tw.up, tw.dn, 0).polar), 0, 1e-9); }
+}
+
+// #148 chiral magnon bands: linear spin waves checked against NumPy eig of the paraunitary BdG matrix σ3·H
+{
+  const m = { J1: 1, Ja: 0.3, Jb: 0.05, K: 0.02, S: 1 };
+  const ref = [[[0, 0], 0.5670978752, 0.5670978752], [[Math.PI, 0], 5.24, 4.24], [[0, Math.PI], 4.24, 5.24], [[Math.PI, Math.PI], 5.44, 5.44], [[1, 0.4], 2.5537149894, 2.3633356453], [[2.2, -1.3], 4.846387156, 4.4183871831]];
+  for (const [[kx, ky], a, b] of ref) { const [wa, wb] = AMG.modes(m, kx, ky); near(`magnon: α at (${kx.toFixed(2)}, ${ky.toFixed(2)})`, wa, a, 1e-9); near(`magnon: β at (${kx.toFixed(2)}, ${ky.toFixed(2)})`, wb, b, 1e-9); }
+  near('magnon: gap at Γ = 2S√(K(4J1 + K))', AMG.gapGamma(m), 2 * Math.sqrt(0.02 * 4.02), 1e-12);
+  near('magnon: plain J1 antiferromagnet ω = 4SJ1√(1 − γ²)', AMG.modes({ J1: 1, Ja: 0, Jb: 0, K: 0, S: 1.5 }, 1.1, 0.7)[0], 4 * 1.5 * Math.sqrt(1 - (Math.cos(0.55) * Math.cos(0.35)) ** 2), 1e-12);
+  { const d = AMG.maxSplit(m); near('magnon: largest chirality splitting 4S|Ja − Jb|', Math.abs(d.d), 1, 1e-12); near('magnon: at X or Y', Math.abs(Math.cos(d.kx) - Math.cos(d.ky)), 2, 1e-12); }
+  check('magnon: degenerate along the diagonal', [0.3, 1.2, 2.5].every((k) => Math.abs(AMG.modes(m, k, k)[0] - AMG.modes(m, k, k)[1]) < 1e-12 && Math.abs(AMG.modes(m, k, -k)[0] - AMG.modes(m, k, -k)[1]) < 1e-12));
+  check('magnon: 90° rotation swaps the two chiralities', [[0.4, 1.7], [2.9, -0.8]].every(([x, y]) => Math.abs(AMG.modes(m, x, y)[0] - AMG.modes(m, -y, x)[1]) < 1e-12));
+  check('magnon: Ja = Jb gives degenerate magnons', Math.abs(AMG.maxSplit({ ...m, Jb: 0.3 }).d) < 1e-12);
+  check('magnon: stable with ferro J2 and easy axis', AMG.stability(m).stable);
+  check('magnon: unstable with a hard axis (K < 0)', !AMG.stability({ ...m, K: -0.05 }).stable);
+  check('magnon: unstable with strong antiferro J2', !AMG.stability({ ...m, Ja: -1.5 }).stable);
+}
+
+// #149 unit hydrograph builder: checked against SciPy (gamma, gammainc, brentq, optimize.nnls)
+{
+  near('uh: PRF of gamma shape m = 3.7 is 484', UH.prfOf(3.7), 484.21107639640013, 1e-9);
+  near('uh: shape for PRF 484', UH.shapeFor(484), 3.6969129776537417, 1e-9);
+  near('uh: shape for PRF 300', UH.shapeFor(300), 1.51372956560487, 1e-9);
+  const g = UH.gammaUH(50, 3, 3.7, 0.5);
+  near('uh: gamma UH peak (A 50 km², Tp 3 h, dt 0.5 h)', g.peak, 3.4737093013330655, 1e-9);
+  check('uh: gamma UH length and peak time', g.q.length === 32 && g.tPeak === 3);
+  near('uh: gamma UH holds 1 mm', UH.impliedArea(g.q, 0.5), 50, 1e-9);
+  const n = UH.nashUH(100, 3, 2, 1, 1);
+  near('uh: Nash UH peak (n 3, k 2 h, D 1 h, 100 km²)', n.peak, 3.690663135469436, 1e-9);
+  check('uh: Nash UH length and peak time', n.q.length === 36 && n.tPeak === 5);
+  const A = [[0.085649, 0.236811, 0.801274, 0.582162, 0.094129], [0.433127, 0.479051, 0.159739, 0.734577, 0.113672], [0.391228, 0.51674, 0.430628, 0.586799, 0.737838], [0.956267, 0.284201, 0.648547, 0.696216, 0.292721], [0.00149, 0.97346, 0.298401, 0.313986, 0.891711], [0.585163, 0.47131, 0.773277, 0.030346, 0.706965], [0.374244, 0.090853, 0.6605, 0.931464, 0.207191], [0.63009, 0.298163, 0.741757, 0.722165, 0.218715], [0.829887, 0.657652, 0.682799, 0.820076, 0.428573], [0.758705, 0.87848, 0.10232, 0.849768, 0.393927], [0.479684, 0.146335, 0.698426, 0.291979, 0.871139], [0.275374, 0.56181, 0.399656, 0.612909, 0.196639]];
+  const b = [-0.119712, 0.44686, 0.452223, 0.266978, 0.62108, -0.094225, 0.550901, -0.131013, 0.664358, 0.323693, 0.306884, 0.670559];
+  UH.nnls(A, b).forEach((x, i) => near(`uh: NNLS x${i} vs SciPy`, x, [0, 0.2769954522315101, 0, 0.2828549936145783, 0.12155574685036591][i], 1e-10));
+  check('uh: convolution', UH.convolve([5, 12, 3], [0, 1.5, 4, 3, 2, 1, 0.5, 0.2]).every((v, i) => Math.abs(v - [0, 7.5, 38, 67.5, 58, 38, 20.5, 10, 3.9, 0.6][i]) < 1e-12));
+  { const d = UH.deriveUH([5, 12, 3], [0, 7.5, 38, 67.5, 58, 38, 20.5, 10, 3.9, 0.6], 8); check('uh: deconvolution recovers the unit hydrograph', d.U.every((v, i) => Math.abs(v - [0, 1.5, 4, 3, 2, 1, 0.5, 0.2][i]) < 1e-9) && Math.abs(d.nse - 1) < 1e-12); }
+  { const r = UH.phiIndex([2, 10, 6, 1], 9); near('uh: φ-index leaves the runoff depth', r.excess.reduce((s, x) => s + x, 0), 9, 1e-9); near('uh: φ-index value', r.phi, 3.5, 1e-9); }
+  check('uh: straight-line baseflow', UH.baseflow([2, 9, 7, 4], 'line').every((v, i) => Math.abs(v - [2, 2 + 2 / 3, 2 + 4 / 3, 4][i]) < 1e-12));
+}
+
+// #150 Thiessen rain gauge average: cell areas checked against shapely 2.2 (voronoi_diagram ∩ catchment)
+{
+  const P = [[0, 0], [9, 1], [14, 5], [12, 11], [7, 9], [5, 13], [-1, 10], [1, 5]], G = [[2, 2], [7, 3], [12, 5], [10, 9], [4, 7], [1, 10], [11, -1]], R = [32, 41, 28, 19, 36, 24, 30];
+  const r = THS.arealMean(P, G, R);
+  near('thiessen: catchment area', r.total, 125, 1e-12);
+  [0.141397515528, 0.194642857143, 0.134683497537, 0.15325, 0.22984057971, 0.144761904762, 0.00142364532].forEach((w, i) => near(`thiessen: weight of gauge ${i + 1} vs shapely`, r.weights[i], w, 1e-11));
+  near('thiessen: areal mean vs shapely', r.mean, 30.979221514242877, 1e-10);
+  near('thiessen: weights sum to 1', r.weights.reduce((a, b) => a + b, 0), 1, 1e-12);
+  near('thiessen: arithmetic mean of gauges inside', r.arithIn, 30, 1e-12);
+  near('thiessen: missing reading redraws cells (vs shapely)', THS.arealMean(P, G, [32, NaN, 28, 19, 36, 24, 30]).mean, 29.108106452531132, 1e-10);
+  check('thiessen: concave catchment is not self-crossing', !THS.selfCrossing(P));
+  check('thiessen: bow-tie is self-crossing', THS.selfCrossing([[0, 0], [2, 2], [2, 0], [0, 2]]));
+  near('thiessen: one gauge takes the whole catchment', THS.arealMean(P, [[3, 3]], [10]).mean, 10, 1e-12);
+  { const c = THS.centroid([[0, 0], [4, 0], [4, 2], [0, 2]]); check('thiessen: centroid of a rectangle', c[0] === 2 && c[1] === 1); }
+  check('parseTable: whole-number CSV rows stay comma-separated', JSON.stringify(parseTable('x,y\n0,0\n9,1\n14,5')) === JSON.stringify([['x', 'y'], ['0', '0'], ['9', '1'], ['14', '5']]));
+  check('parseTable: decimal commas with spaces still split on spaces', JSON.stringify(parseTable('1,5 2,25\n3,0 4,5')) === JSON.stringify([['1,5', '2,25'], ['3,0', '4,5']]));
+  { const k = THS.lonLatToKm([[-79, 43], [-78, 43], [-79, 44]]); near('thiessen: 1° of longitude at 43.33° N', k.pts[1][0] - k.pts[0][0], 111.32 * Math.cos((43 + 1 / 3) * Math.PI / 180), 1e-9); near('thiessen: 1° of latitude', k.pts[2][1] - k.pts[0][1], 110.574, 1e-9); }
+}
+
+// #151 LC50 probit/logit (statsmodels GLM Binomial 0.15, SciPy minimise for fixed natural response)
+{
+  const conc = [1, 1.8, 3.2, 5.6, 10, 18], g = conc.map((c, i) => ({ conc: c, n: 20, r: [1, 3, 7, 12, 17, 19][i] }));
+  const fp = PRB.fitQuantal(g, 'probit');
+  near('probit a', fp.a, -1.7155910785833728, 1e-7); near('probit b', fp.b, 2.6843455880975906, 1e-7);
+  near('probit v11', fp.cov[0][0], 0.08553099565434798, 1e-7); near('probit v12', fp.cov[0][1], -0.10350482843580822, 1e-7); near('probit v22', fp.cov[1][1], 0.16296633349972064, 1e-7);
+  near('probit chi2', fp.chi2, 0.08951499514548839, 1e-8); check('probit not hetero', !fp.hetero && fp.converged);
+  const fl = PRB.fitQuantal(g, 'logit');
+  near('logit a', fl.a, -2.969842939780918, 1e-7); near('logit b', fl.b, 4.638265859372683, 1e-7); near('logit v22', fl.cov[1][1], 0.6179653051304821, 1e-7);
+  const fc = PRB.fitQuantal(g, 'probit', 0.1);
+  near('abbott-fixed a', fc.a, -2.28819243, 1e-6); near('abbott-fixed b', fc.b, 3.21307004, 1e-6); near('abbott-fixed loglik', fc.logLik, -51.8029301283888, 1e-8);
+  const fh = PRB.fitQuantal(conc.map((c, i) => ({ conc: c, n: 20, r: [0, 6, 4, 14, 13, 20][i] })), 'probit');
+  near('hetero chi2', fh.chi2, 11.811882776923222, 1e-6); check('hetero flagged', fh.hetero);
+  const L = PRB.lcp(fh, 0.5);
+  near('hetero LC50', L.conc, 4.621034433801545, 1e-6); near('hetero lo', L.lo, 1.9951916692740383, 1e-5); near('hetero hi', L.hi, 11.496793286286605, 1e-5);
+  const fx = PRB.fitQuantal([{ conc: 0, n: 20, r: 1 }, ...conc.map((c, i) => ({ conc: c, n: 20, r: [2, 4, 8, 13, 17, 20][i] }))], 'probit', 0.05);
+  [[0.1, 1.513505034796803, 0.798000494227113, 2.154671843861912], [0.5, 4.107523412143543, 3.116623737702744, 5.254160418674822], [0.9, 11.147467760867054, 8.17676784757237, 19.072579800257216]].forEach(([p, m, lo, hi]) => {
+    const L2 = PRB.lcp(fx, p); near(`fixed-c LC${p * 100}`, L2.conc, m, 1e-6); near(`fixed-c LC${p * 100} lo`, L2.lo, lo, 1e-6); near(`fixed-c LC${p * 100} hi`, L2.hi, hi, 1e-6);
+  });
+  check('control row ignored by fit', fx.groups.length === 6);
+  near('abbott', PRB.abbott(0.55, 0.1), 0.5, 1e-12); near('predict at LC50', PRB.predict(fp, PRB.lcp(fp, 0.5).conc), 0.5, 1e-12);
+}
+// #152 Species sensitivity distribution (SciPy 1.x norm.fit / logistic.fit, Anderson-Darling, AICc weights; bootstrap against a NumPy parametric bootstrap, B = 20000)
+{
+  const sm = SSD.speciesMeans([{ species: 'Water flea', value: 12 }, { species: 'water flea ', value: 20 }, { species: 'Snail', group: 'mollusc', value: 140 }]);
+  check('ssd species merged', sm.length === 2); near('ssd geometric mean', sm[0].value, Math.sqrt(240), 1e-12);
+  const y = [Math.sqrt(240), 35, 8.5, 60, 140, 22, 95, 250, 18, 44, 310].map(Math.log10);
+  const ln = SSD.fitLnorm(y), lg = SSD.fitLlogis(y);
+  near('ssd lnorm mu', ln.mu, 1.6996404588353735, 1e-12); near('ssd lnorm sigma', ln.s, 0.48641399648309974, 1e-12); near('ssd lnorm loglik', ln.logLik, -7.680676961372237, 1e-10);
+  near('ssd llogis mu', lg.mu, 1.6841862172135464, 1e-9); near('ssd llogis s', lg.s, 0.29369153004290866, 1e-9); near('ssd llogis aicc', lg.aicc, 21.78357604070394, 1e-9);
+  near('ssd lnorm A2', SSD.andersonDarling(y, ln.F), 0.2090133282972051, 1e-9); near('ssd llogis A2', SSD.andersonDarling(y, lg.F), 0.2074122777538303, 1e-8);
+  near('ssd lnorm HC5', 10 ** ln.q(0.05), 7.935250342938248, 1e-9); near('ssd llogis HC5', 10 ** lg.q(0.05), 6.598260055842771, 1e-7);
+  const w = SSD.weights([ln, lg]); near('ssd AICc weight', w[0], 0.61327772, 1e-7);
+  near('ssd averaged HC5', 10 ** SSD.mixQ([ln, lg], w, 0.05), 7.434278803377846, 1e-8);
+  const [bl] = SSD.bootstrapHC(ln, [0.05], 20000), [bg] = SSD.bootstrapHC(lg, [0.05], 20000);
+  near('ssd lnorm boot lo (MC)', 10 ** bl[0], 3.2175, 0.15); near('ssd lnorm boot hi (MC)', 10 ** bl[1], 23.98, 1.0);
+  near('ssd llogis boot lo (MC)', 10 ** bg[0], 2.0073, 0.12); near('ssd llogis boot hi (MC)', 10 ** bg[1], 21.61, 1.0);
+  const [ba] = SSD.bootstrapAvg([ln, lg], w, [0.05], 4000); near('ssd averaged boot lo (MC)', 10 ** ba[0], 2.64, 0.2); near('ssd averaged boot hi (MC)', 10 ** ba[1], 22.9, 1.5);
+  check('ssd bootstrap repeatable', SSD.bootstrapHC(ln, [0.05], 500)[0][0] === SSD.bootstrapHC(ln, [0.05], 500)[0][0]);
+}
+// #153 Non-detects (statsmodels SurvfuncRight on flipped data + Greenwood restricted-mean variance; statsmodels impute_ros; SciPy censored log-normal MLE)
+{
+  const P = (t) => t.split(' ').map((c) => NDS.parseObs(c));
+  check('cen parse <', NDS.parseObs('<0.5').nd && NDS.parseObs('<0.5').v === 0.5); check('cen parse ND', NDS.parseObs('ND 2').nd && NDS.parseObs('nd<2').v === 2);
+  check('cen parse lone flag', NDS.parseObs('<') === null && NDS.parseObs('') === null && NDS.parseObs('ND') === null);
+  check('cen parse flag', NDS.parseObs('3', 'U').nd && !NDS.parseObs('3', '').nd && NDS.parseObs('x') === null);
+  const a = P('<1 <1 1.2 <2 1.5 2.3 <2 3.1 0.8 4.6 2.0 <1 6.2 1.1 9.8 2.7');
+  const k = NDS.kaplanMeier(a);
+  near('cen KM mean', k.mean, 2.481250000000001, 1e-12); near('cen KM se', k.se, 0.6030028476147564, 1e-12);
+  near('cen KM F below 1.5', k.steps.find((s) => s.x === 1.5).Fbelow, 0.4821428571428572, 1e-12); near('cen KM median', k.q(0.5), 1.5, 0); near('cen KM p90', k.q(0.9), 6.2, 0);
+  const r = NDS.ros(a); near('cen ROS mean', r.mean, 2.4288359198732863, 1e-12); near('cen ROS sd', r.sd, 2.5278432464866607, 1e-12);
+  const m = NDS.mleLognormal(a); near('cen MLE mu', m.mu, 0.48887702413174616, 1e-7); near('cen MLE sigma', m.sigma, 0.9032713587661336, 1e-7); near('cen MLE loglik', m.logLik, -18.415341118663846, 1e-9);
+  const b = P('<0.5 <1 <1 1.2 <2 1.5 2.3 <2 3.1 0.8 4.6 2.0 <1 6.2 1.1 9.8 2.7 <0.5');
+  const k2 = NDS.kaplanMeier(b);
+  near('cen KM mean (lowest censored)', k2.mean, 2.208024691358025, 1e-12); near('cen KM se (lowest censored)', k2.se, 0.5647179412752805, 1e-12);
+  near('cen KM leftover', k2.leftover, 0.271604938271605, 1e-12); check('cen KM p25 below limits', Number.isNaN(k2.q(0.25)));
+  const r2 = NDS.ros(b); near('cen ROS mean 2', r2.mean, 2.148262308336133, 1e-12); near('cen ROS imputed min', Math.min(...r2.values), 0.23949239374100906, 1e-12);
+  near('cen MLE mean 2', NDS.mleLognormal(b).mean, 2.314573952100603, 1e-7);
+  near('cen half-DL mean', NDS.substitute(a, 0.5).mean, (1.2 + 1.5 + 2.3 + 3.1 + 0.8 + 4.6 + 2 + 6.2 + 1.1 + 9.8 + 2.7 + 0.5 * 3 + 1 * 2) / 16, 1e-12);
+  near('cen percentile', NDS.percentile([1, 2, 3, 4], 0.5), 2.5, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

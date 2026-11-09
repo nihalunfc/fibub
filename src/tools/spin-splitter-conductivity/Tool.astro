@@ -1,0 +1,148 @@
+---
+// Spin splitter conductivity: Boltzmann charge and spin conductivity of a 2D altermagnet model, the transverse spin
+// current for a field at any angle, and the longitudinal spin polarisation. Every parameter is a made-up model value.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ssp">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Model <select class="ss-kind">
+        <option value="two" selected>Two sublattices (d-wave from anisotropic hopping)</option>
+        <option value="one">One band with a spin-splitting form</option>
+      </select></label>
+      <label class="ss-one" hidden>Splitting form <select class="ss-form">
+        <option value="dx2y2" selected>d-wave: cos kx − cos ky</option>
+        <option value="dxy">d-wave: sin kx sin ky</option>
+        <option value="g">g-wave: sin kx sin ky (cos kx − cos ky)</option>
+      </select></label>
+      <label class="ss-two"><span>Hopping between sublattices t1</span> <input class="ss-t1" type="text" inputmode="decimal" value="1" /></label>
+      <label class="ss-two"><span>Hopping along the easy axis ta</span> <input class="ss-ta" type="text" inputmode="decimal" value="0.3" /></label>
+      <label class="ss-two"><span>Hopping along the other axis tb</span> <input class="ss-tb" type="text" inputmode="decimal" value="-0.1" /></label>
+      <label class="ss-one" hidden><span>Nearest-neighbour hopping t</span> <input class="ss-t" type="text" inputmode="decimal" value="1" /></label>
+      <label class="ss-one" hidden><span>Next-nearest hopping t′</span> <input class="ss-tp" type="text" inputmode="decimal" value="0.2" /></label>
+      <label><span>Exchange splitting J</span> <input class="ss-J" type="text" inputmode="decimal" value="0.8" /></label>
+      <label><span>Chemical potential μ</span> <input class="ss-mu" type="text" inputmode="decimal" value="-2" /></label>
+      <label><span>Temperature kT</span> <input class="ss-kT" type="text" inputmode="decimal" value="0.1" /></label>
+      <label><span>Field angle from x (°)</span> <input class="ss-ang" type="text" inputmode="decimal" value="45" /></label>
+    </div>
+    <p class="ax-help">The models are the same as in the Altermagnet band explorer: energies in units of a hopping on a square lattice with spacing 1. kT smooths the Fermi edge (in the same units). The electric field points at the angle you give, measured from the x axis. Every state has the same scattering time τ, so τ cancels out of the ratios below. All values are made up.</p>
+    <p class="ax-err ss-err" hidden></p>
+  </div>
+
+  <div class="ax-card ss-out">
+    <h2>Spin currents</h2>
+    <p class="ax-big ss-big"></p>
+    <dl class="ax-facts ss-facts"></dl>
+    <canvas class="ax-fig ss-afig"></canvas>
+    <canvas class="ax-fig ss-ffig"></canvas>
+    <p class="ax-help">Spin up is drawn solid, spin down dashed. The spin splitter ratio is the spin current flowing sideways (in units of ħ/2e) divided by the charge current flowing along the field. The spin polarisation is the share of the along-field current carried by spin up minus spin down. Neither needs a magnetic field or spin–orbit coupling: both come from the two spins' Fermi surfaces being rotated copies of each other.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { grid, contour, nBands, type Model } from '../../lib/sci/amband';
+  import { tensors, atAngle, bestAngle, type T2 } from '../../lib/sci/sscond';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-9) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.ssp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const deg = (a: number) => `${sg((a * 180) / Math.PI, 3)}°`;
+  const tens = (t: T2) => `σxx ${sg(t.xx, 3)}, σxy ${sg(t.xy, 3)}, σyy ${sg(t.yy, 3)}`;
+  let figs: [string, Figure][] = [], report: Section[] = [];
+  const N = 300, NC = 160;
+
+  function calc() {
+    const kind = sel('.ss-kind');
+    root.querySelectorAll<HTMLElement>('.ss-two').forEach((e) => { e.hidden = kind !== 'two'; });
+    root.querySelectorAll<HTMLElement>('.ss-one').forEach((e) => { e.hidden = kind !== 'one'; });
+    const err = q('.ss-err'), out = q('.ss-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; };
+    const J = val('.ss-J'), mu = val('.ss-mu'), kT = val('.ss-kT'), angD = val('.ss-ang');
+    let m: Model;
+    if (kind === 'two') {
+      const t1 = val('.ss-t1'), ta = val('.ss-ta'), tb = val('.ss-tb');
+      if (![t1, ta, tb].every((v) => Math.abs(v) <= 10)) return fail('Give the hoppings as numbers between −10 and 10.');
+      m = { kind: 'two', t1, ta, tb, J, mu };
+    } else {
+      const t = val('.ss-t'), tp = val('.ss-tp');
+      if (![t, tp].every((v) => Math.abs(v) <= 10)) return fail('Give the hoppings as numbers between −10 and 10.');
+      m = { kind: 'one', t, tp, J, mu, form: sel('.ss-form') as 'dx2y2' };
+    }
+    if (!(Math.abs(J) <= 10) || !(Math.abs(mu) <= 30)) return fail('Give J between −10 and 10 and μ between −30 and 30.');
+    if (!(kT >= 0.02 && kT <= 5)) return fail('Give kT between 0.02 and 5 (smaller needs a finer grid than a browser can do quickly).');
+    if (!(Math.abs(angD) <= 360)) return fail('Give the field angle in degrees, between −360 and 360.');
+    const r = tensors(m, N, kT), ang = (angD * Math.PI) / 180, here = atAngle(r.up, r.dn, ang);
+    if (!(here.charge > 1e-9)) return fail('There are no states at the Fermi level: μ is outside the bands, so nothing conducts. Move μ into the bands.');
+    err.hidden = true; out.hidden = false;
+    const best = bestAngle(r.up, r.dn), atBest = atAngle(r.up, r.dn, best.angle), none = Math.abs(atBest.splitter) < 1e-6;
+    q('.ss-big').textContent = none ? 'No spin splitter effect in this model' : `Spin splitter ratio ${sg(here.splitter, 3)} at ${sg(angD, 3)}°`;
+    const s: T2 = { xx: r.up.xx - r.dn.xx, xy: r.up.xy - r.dn.xy, yy: r.up.yy - r.dn.yy }, c: T2 = { xx: r.up.xx + r.dn.xx, xy: r.up.xy + r.dn.xy, yy: r.up.yy + r.dn.yy };
+    const why = kind === 'one' && sel('.ss-form') === 'g' ? 'g-wave splitting averages out in a 2D linear-response current: both spins conduct alike in every direction' : kind === 'two' && Math.abs(val('.ss-ta') - val('.ss-tb')) < 1e-12 ? 'ta = tb: a plain antiferromagnet, the spins are degenerate' : 'J = 0 or no splitting at the Fermi level';
+    const facts = [
+      fact('Spin splitter ratio at your angle', sg(here.splitter, 3), `sideways spin current ÷ along-field charge current; ${here.splitter > 0 ? 'spin up drifts to the left of the field' : here.splitter < 0 ? 'spin up drifts to the right of the field' : 'no sideways spin current'}`),
+      fact('Largest ratio', none ? 'none' : `${sg(Math.abs(atBest.splitter), 3)} at ${deg(best.angle)}`, none ? why : 'it varies as sin 2α or cos 2α: zero 45° away, opposite sign 90° away'),
+      fact('Spin polarisation along the field', sg(here.polar, 3), 'spin-up minus spin-down share of the along-field current'),
+      fact('Charge conductivity', tens(c), 'σ↑ + σ↓, in units of e²τt/ħ² per cell (τ the scattering time)'),
+      fact('Spin conductivity', tens(s), 'σ↑ − σ↓, same units times ħ/2e'),
+    ];
+    if (Math.abs(here.hallLike) > 1e-6) facts.push(fact('Sideways charge current', sg(here.hallLike, 3), 'the charge conductivity is not isotropic, so some charge also flows sideways'));
+    q('.ss-facts').replaceChildren(...facts);
+    // Ratio and polarisation against field angle.
+    const A = Array.from({ length: 181 }, (_, i) => i), rs = A.map((a) => atAngle(r.up, r.dn, (a * Math.PI) / 180));
+    const afig = chartFigure({ w: 380, h: 230, xLabel: 'Field angle from x (°)', yLabel: 'Ratio', xMin: 0, xMax: 180, legend: 'below', series: [
+      { name: 'Spin splitter ratio', x: A, y: rs.map((v) => v.splitter), mode: 'line', width: 2.2 },
+      { name: 'Spin polarisation along the field', x: A, y: rs.map((v) => v.polar), mode: 'line', width: 1.6, dash: [5, 3] },
+    ], marks: [{ kind: 'vline', at: ((angD % 180) + 180) % 180, dash: [3, 3], label: 'your angle' }, { kind: 'hline', at: 0 }] }, 'Spin splitter ratio and spin polarisation against the field angle');
+    // Fermi contours with the field and the spin-up drift.
+    const nb = nBands(m), g = grid(m, NC);
+    const ffig: Figure = { w: 380, h: 340, alt: 'Fermi contours of both spins with the field direction and the sideways spin-up drift', draw: (ctx, W, H, pal) => {
+      const S = Math.min(W - 60, H - 70), x0 = (W - S) / 2 + 8, y0 = 12;
+      const X = (k: number) => x0 + ((k + Math.PI) / (2 * Math.PI)) * S, Y = (k: number) => y0 + ((Math.PI - k) / (2 * Math.PI)) * S;
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, S, S); ctx.clip();
+      for (const sp of [0, 1]) for (let b = 0; b < nb; b++) {
+        ctx.strokeStyle = sp ? pal.accent2 : pal.accent; ctx.lineWidth = 1.8; ctx.setLineDash(sp ? [5, 3] : []); ctx.beginPath();
+        for (const [a, c2, d, e] of contour(g[sp][b], NC)) { ctx.moveTo(X(a), Y(c2)); ctx.lineTo(X(d), Y(e)); }
+        ctx.stroke();
+      }
+      ctx.restore(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, S, S);
+      const arrow = (dx: number, dy: number, len: number, col: string, label: string) => {
+        const cx = X(0), cy = Y(0), ex = cx + dx * len, ey = cy - dy * len, h = 8, an = Math.atan2(-dy, dx);
+        ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - h * Math.cos(an - 0.4), ey - h * Math.sin(an - 0.4)); ctx.lineTo(ex - h * Math.cos(an + 0.4), ey - h * Math.sin(an + 0.4)); ctx.closePath(); ctx.fill();
+        ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = dx >= 0 ? 'left' : 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink; ctx.fillText(label, ex + (dx >= 0 ? 6 : -6), ey + (dy >= 0 ? -6 : 8));
+      };
+      arrow(Math.cos(ang), Math.sin(ang), S * 0.3, pal.ink, 'field');
+      if (Math.abs(here.splitter) > 1e-6) { const sgn = Math.sign(here.splitter); arrow(-Math.sin(ang) * sgn, Math.cos(ang) * sgn, S * 0.18 + S * 0.12 * Math.min(1, Math.abs(here.splitter)), pal.red, 'spin up drifts'); }
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText('−π', X(-Math.PI), y0 + S + 3); ctx.fillText('kx', X(0), y0 + S + 3); ctx.fillText('π', X(Math.PI), y0 + S + 3);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('π', x0 - 4, Y(Math.PI)); ctx.fillText('ky', x0 - 4, Y(0)); ctx.fillText('−π', x0 - 4, Y(-Math.PI));
+      const ly = y0 + S + 26; ctx.textAlign = 'left'; ctx.font = '11px system-ui, sans-serif';
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(x0 + 18, ly); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText('spin up Fermi line', x0 + 22, ly);
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(x0 + S / 2 + 6, ly); ctx.lineTo(x0 + S / 2 + 24, ly); ctx.stroke(); ctx.setLineDash([]); ctx.fillText('spin down', x0 + S / 2 + 28, ly);
+    } };
+    figs = [['.ss-afig', afig], ['.ss-ffig', ffig]];
+    for (const [sel2, f] of figs) paint(q<HTMLCanvasElement>(sel2), f);
+    report = [{ title: q('.ss-big').textContent!, facts: [...q('.ss-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: afig }, { title: 'Fermi contours and currents', figure: ffig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Spin splitter conductivity', subtitle: q('.ss-big').textContent ?? '', file: 'spin-splitter', sections: report }));
+</script>
+
+<style is:global>
+  .ssp select, .ssp input { max-width: 100%; }
+</style>
