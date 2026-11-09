@@ -1,0 +1,140 @@
+---
+// Multirotor flight time from momentum theory or a measured hover current, with forward flight. Worked out in the
+// browser. The example drone is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dft">
+  <div class="ax-card">
+    <h2>Drone</h2>
+    <div class="ax-grid">
+      <label>All-up weight with battery and payload (g) <input class="df-m" type="text" inputmode="decimal" value="1200" /></label>
+      <label>Number of rotors <input class="df-n" type="text" inputmode="numeric" value="4" /></label>
+      <label>Propeller diameter (inches) <input class="df-D" type="text" inputmode="decimal" value="9" /></label>
+      <label>Rotor figure of merit <input class="df-fm" type="text" inputmode="decimal" value="0.6" /></label>
+      <label>Motor and ESC efficiency (%) <input class="df-eff" type="text" inputmode="decimal" value="75" /></label>
+      <label>Electronics, camera, radio (W) <input class="df-av" type="text" inputmode="decimal" value="5" /></label>
+      <label>Most thrust per motor (g, optional) <input class="df-tmax" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Body drag area Cd·A (m²) <input class="df-cda" type="text" inputmode="decimal" value="0.03" /></label>
+    </div>
+    <h3>Battery</h3>
+    <div class="ax-grid">
+      <label>Cells in series (S) <input class="df-s" type="text" inputmode="numeric" value="4" /></label>
+      <label>Capacity (mAh) <input class="df-mah" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Nominal cell voltage (V) <input class="df-cv" type="text" inputmode="decimal" value="3.7" /></label>
+      <label>Usable share (%) <input class="df-use" type="text" inputmode="decimal" value="80" /></label>
+    </div>
+    <h3>Air and flight</h3>
+    <div class="ax-grid">
+      <label>Altitude (m) <input class="df-alt" type="text" inputmode="decimal" value="0" /></label>
+      <label>Air temperature (°C) <input class="df-t" type="text" inputmode="decimal" value="15" /></label>
+      <label>Cruise speed (m/s) <input class="df-v" type="text" inputmode="decimal" value="10" /></label>
+      <label>Hover power from <select class="df-mode"><option value="theory" selected>Momentum theory (estimate)</option><option value="meas">My measured hover current</option></select></label>
+      <label class="df-ibox" hidden>Measured hover current (A) <input class="df-I" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The figure of merit says how close the propellers come to ideal: about 0.5 to 0.65 for small drone propellers. Motor and ESC efficiency is usually 70 to 85 %. Most pilots land with 20 to 30 % of the battery left, so 70 to 80 % is a usable share that protects the cells. Body drag area is the drag coefficient times the frontal area: about 0.01 to 0.05 m² for small drones. A measured hover current (from your flight log or a power meter) beats any estimate. The example drone is made up.</p>
+    <p class="ax-err df-err" hidden></p>
+  </div>
+
+  <div class="ax-card df-out">
+    <h2>Flight time</h2>
+    <p class="ax-big df-big"></p>
+    <dl class="ax-facts df-facts"></dl>
+    <canvas class="ax-fig df-f1"></canvas>
+    <canvas class="ax-fig df-f2"></canvas>
+    <p class="ax-help">The model holds the power constant through the flight: in practice the voltage sags as the battery empties, so the current rises a little. Wind, climbing, cold batteries and hard manoeuvres all shorten flights. For study and planning; follow your local drone rules.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small df-csv">Download power against speed (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dft h3 { margin: 16px 0 8px; font-size: 15px; }
+  .dft select, .dft input { max-width: 100%; }
+  .dft .df-f2 { margin-top: 10px; }
+</style>
+
+<script>
+  import { powerAt, hover, bestSpeeds, batteryWh, type Drone } from '../../lib/sci/eng-drone';
+  import { idealPower } from '../../lib/sci/eng-prop';
+  import { atmosphere, stdTP, geopotential } from '../../lib/sci/eng-atmos';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.dft')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const G = 9.80665, mins = (s: number) => `${sg(s / 60, 3)} min`;
+  let figs: Figure[] = [], sections: Section[] = [], rows: (string | number)[][] = [];
+
+  function run() {
+    const meas = sel('.df-mode') === 'meas'; q('.df-ibox').hidden = !meas;
+    const err = q('.df-err'), out = q('.df-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    const mass = val('.df-m') / 1000, n = Math.round(val('.df-n')), D = val('.df-D') * 0.0254, fm0 = val('.df-fm'), eff = val('.df-eff') / 100, av = val('.df-av'), tmax = val('.df-tmax'), cda = val('.df-cda');
+    const S = Math.round(val('.df-s')), mah = val('.df-mah'), cv = val('.df-cv'), use = val('.df-use') / 100, alt = val('.df-alt'), temp = val('.df-t'), V = val('.df-v'), I = val('.df-I');
+    if (!(mass > 0 && mass < 100)) return fail('Give the all-up weight in grams.');
+    if (!(n >= 1 && n <= 16)) return fail('Give the number of rotors (1 to 16).');
+    if (!(D > 0 && D < 3)) return fail('Give the propeller diameter in inches.');
+    if (!meas && !(fm0 > 0 && fm0 <= 1)) return fail('Give a figure of merit between 0 and 1 (about 0.6).');
+    if (!(eff > 0 && eff <= 1)) return fail('Give the motor and ESC efficiency in % (about 75).');
+    if (!(av >= 0 && av < 1000)) return fail('Give the electronics power in watts (0 or more).');
+    if (!(cda >= 0 && cda < 2)) return fail('Give the body drag area (0 or more, about 0.03 m²).');
+    if (!(S >= 1 && S <= 24 && mah > 0 && cv > 0 && cv < 5)) return fail('Give the battery cells in series, capacity in mAh and cell voltage.');
+    if (!(use > 0 && use <= 1)) return fail('Give the usable share of the battery in % (70 to 80 is kind to the cells).');
+    if (!(alt >= -400 && alt <= 6000) || !(temp >= -40 && temp <= 50)) return fail('Give an altitude from −400 to 6,000 m and a temperature from −40 to 50 °C.');
+    if (!(V >= 0 && V < 60)) return fail('Give a cruise speed in m/s (0 for hover only).');
+    const rho = atmosphere(alt, { dT: temp + 273.15 - stdTP(geopotential(alt)).T }).rho, volts = S * cv, wh = batteryWh(S, mah, cv);
+    const base: Drone = { mass, rotors: n, propD: D, FM: fm0, eff, avionics: av, wh, usable: use, rho, CdA: cda, maxThrust: tmax > 0 ? (tmax / 1000) * G : undefined, volts };
+    let d = base, note = '';
+    if (meas) {
+      if (!(I > 0 && I < 1000)) return fail('Give the measured hover current in amps.');
+      const Pshaft = (I * volts - av) * eff, Pideal = idealPower(mass * G, rho, (n * Math.PI * D * D) / 4);
+      if (!(Pshaft > 0)) return fail('The measured current is less than the electronics use; check the current and the electronics power.');
+      d = { ...base, FM: Pideal / Pshaft };
+      note = `implied figure of merit ${sg(d.FM, 3)}${d.FM > 0.85 ? ' (high: check the numbers)' : ''}`;
+    }
+    err.hidden = true; out.hidden = false;
+    const h = hover(d), c = powerAt(d, V), best = bestSpeeds(d);
+    q('.df-big').textContent = `Hover ${mins(h.t)}${V > 0 ? `, cruise at ${sg(V, 3)} m/s ${mins(c.t)} (${sg(c.range / 1000, 3)} km)` : ''}`;
+    const f = [
+      fact('Battery', `${sg(wh, 4)} Wh`, `${S}S ${sg(mah, 5)} mAh at ${sg(volts, 4)} V; ${sg(wh * use, 4)} Wh usable`),
+      fact('Hover power', `${sg(h.Pel, 4)} W`, `${sg(h.amps, 3)} A from the battery (${sg(h.amps / (mah / 1000), 2)} C); ${sg(h.Pshaft, 4)} W at the propellers${note ? `; ${note}` : ''}`),
+      fact('Power loading', `${sg(h.gPerW, 3)} g/W`, 'all-up grams carried per electrical watt in hover'),
+      fact('Disc loading', `${sg(h.discLoading, 4)} N/m²`, `induced velocity ${sg(h.vi, 3)} m/s; air ${sg(rho, 4)} kg/m³`),
+      fact('Thrust-to-weight', Number.isFinite(h.tw) ? `${sg(h.tw, 3)} : 1` : '–', Number.isFinite(h.tw) ? `hover at about ${sg(100 / h.tw, 2)} % of full thrust${h.tw < 1.8 ? '; under about 2 : 1 leaves little margin for wind and control' : ''}` : 'give the most thrust per motor to see it'),
+      ...(V > 0 ? [fact(`Cruise at ${sg(V, 3)} m/s`, mins(c.t), `${sg(c.Pel, 4)} W, ${sg(c.amps, 3)} A, tilted ${sg(c.alpha * 180 / Math.PI, 2)}°, range ${sg(c.range / 1000, 3)} km`)] : []),
+      fact('Longest flight', mins(best.endurance.t), `at about ${sg(best.endurance.V, 2)} m/s, ${sg(best.endurance.Pel, 4)} W`),
+      fact('Longest range', `${sg(best.range.range / 1000, 3)} km`, `at about ${sg(best.range.V, 2)} m/s, ${mins(best.range.t)} in the air`),
+    ];
+    q('.df-facts').replaceChildren(...f);
+    const Vmax = Math.max(20, V * 1.3, best.range.V * 1.6), vs: number[] = [];
+    for (let i = 0; i <= 80; i++) vs.push((Vmax * i) / 80);
+    const ps = vs.map((v) => powerAt(d, v));
+    rows = ps.map((p) => [p.V.toFixed(3), p.Pel.toFixed(3), (p.Pind / d.eff).toFixed(3), (p.Ppar / d.eff).toFixed(3), (p.t / 60).toFixed(3), (p.range / 1000).toFixed(4), p.amps.toFixed(3)]);
+    const f1 = chartFigure({ w: 380, h: 240, xLabel: 'Speed (m/s)', yLabel: 'Electrical power (W)', yMin: 0, xMin: 0, legend: 'below', series: [
+      { name: 'Total', x: vs, y: ps.map((p) => p.Pel), mode: 'line', width: 2 },
+      { name: 'Lift (induced)', x: vs, y: ps.map((p) => p.Pind / d.eff), mode: 'line', width: 1.5, dash: [5, 4] },
+      { name: 'Body drag', x: vs, y: ps.map((p) => p.Ppar / d.eff), mode: 'line', width: 1.5, dash: [2, 3] },
+    ] }, 'Electrical power against forward speed');
+    const f2 = chartFigure({ w: 380, h: 240, xLabel: 'Speed (m/s)', yLabel: 'Minutes, or km', yMin: 0, xMin: 0, legend: 'below', series: [
+      { name: 'Flight time (min)', x: vs, y: ps.map((p) => p.t / 60), mode: 'line', width: 2 },
+      { name: 'Range (km)', x: vs, y: ps.map((p) => p.range / 1000), mode: 'line', width: 2, dash: [5, 4] },
+    ] }, 'Flight time and range against forward speed');
+    figs = [f1, f2]; paint(q<HTMLCanvasElement>('.df-f1'), f1); paint(q<HTMLCanvasElement>('.df-f2'), f2);
+    sections = [
+      { title: q('.df-big').textContent!, text: [`${sg(mass * 1000, 5)} g, ${n} rotors of ${sg(D / 0.0254, 3)} inches, ${meas ? `measured hover current ${sg(I, 3)} A` : `figure of merit ${fm0}`}, motor and ESC ${sg(eff * 100, 3)} %, ${sg(av, 3)} W electronics; ${S}S ${sg(mah, 5)} mAh, ${sg(use * 100, 3)} % usable.`], facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 },
+      { title: 'Flight time and range', figure: f2 },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.df-csv').addEventListener('click', () => save(new Blob([csv([['speed_m_s', 'electrical_power_W', 'induced_part_W', 'body_drag_part_W', 'flight_time_min', 'range_km', 'current_A'], ...rows])], { type: 'text/csv' }), 'drone-power.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.df-out').hidden) { paint(q<HTMLCanvasElement>('.df-f1'), figs[0]); paint(q<HTMLCanvasElement>('.df-f2'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Drone flight time', subtitle: q('.df-big').textContent ?? '', file: 'drone-flight-time', sections }));
+</script>
