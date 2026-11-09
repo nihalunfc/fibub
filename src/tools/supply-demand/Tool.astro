@@ -1,0 +1,242 @@
+---
+// Supply and demand: linear or constant-elasticity curves, equilibrium, elasticities, surplus, taxes,
+// subsidies, price ceilings and floors. The example market is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sdm">
+  <div class="ax-card">
+    <h2>The market</h2>
+    <div class="ax-seg sd-model" role="group" aria-label="Curve shape">
+      <button type="button" data-m="linear" aria-pressed="true">Straight lines</button><button type="button" data-m="ce" aria-pressed="false">Constant elasticity</button>
+    </div>
+    <p class="ax-help sd-what"></p>
+    <div class="sd-p" data-m="linear">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Demand: quantity at price 0 <input class="sd-da" inputmode="decimal" value="100" /></label>
+        <label>Demand: fall in quantity per 1 rise in price <input class="sd-db" inputmode="decimal" value="2" /></label>
+        <label>Supply: quantity at price 0 <input class="sd-sa" inputmode="decimal" value="-20" /></label>
+        <label>Supply: rise in quantity per 1 rise in price <input class="sd-sb" inputmode="decimal" value="4" /></label>
+      </div>
+      <p class="ax-help sd-eq"></p>
+    </div>
+    <div class="sd-p" data-m="ce" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Demand: quantity at price 1 <input class="sd-dA" inputmode="decimal" value="1000" /></label>
+        <label>Demand elasticity (negative) <input class="sd-de" inputmode="decimal" value="-1.5" /></label>
+        <label>Supply: quantity at price 1 <input class="sd-sA" inputmode="decimal" value="10" /></label>
+        <label>Supply elasticity (positive) <input class="sd-se" inputmode="decimal" value="0.5" /></label>
+      </div>
+      <p class="ax-help sd-eq"></p>
+    </div>
+    <h3 style="margin-top:14px">Government policy</h3>
+    <div class="ax-grid">
+      <label>Policy <select class="sd-pol"><option value="none">None (free market)</option><option value="tax" selected>Per-unit tax</option><option value="subsidy">Per-unit subsidy</option><option value="ceiling">Price ceiling (maximum)</option><option value="floor">Price floor (minimum)</option></select></label>
+      <label class="sd-amtl">Amount per unit <input class="sd-amt" inputmode="decimal" value="6" /></label>
+      <label>Price unit <input class="sd-unit" value="$" placeholder="e.g. $, ₹, £" /></label>
+    </div>
+    <p class="ax-help sd-polhelp"></p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="ax-card sd-out">
+    <h2>Result</h2>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+    <canvas class="ax-fig sd-fig" style="margin-top:12px"></canvas>
+    <h3>Before and after</h3>
+    <div class="ax-scroll"><table class="sd-tab"></table></div>
+    <p class="ax-help sd-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Elasticity between two points</h2>
+    <p class="ax-help" style="margin-top:0">Two observed prices and quantities, for example before and after a price change. The midpoint (arc) formula gives the same answer whichever point comes first.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Price 1 <input class="sd-p1" inputmode="decimal" value="10" /></label>
+      <label>Quantity 1 <input class="sd-q1" inputmode="decimal" value="100" /></label>
+      <label>Price 2 <input class="sd-p2" inputmode="decimal" value="12" /></label>
+      <label>Quantity 2 <input class="sd-q2" inputmode="decimal" value="80" /></label>
+    </div>
+    <p class="ax-big sd-arc" style="margin-top:10px"></p>
+    <p class="ax-help sd-arch"></p>
+  </div>
+</div>
+
+<style is:global>
+  .sdm .sd-p { margin-top: 4px; }
+  .sdm .sd-tab td.r, .sdm .sd-tab th.r { text-align: right; }
+</style>
+
+<script>
+  import { market, policy, qAt, pAt, chokePrice, minSupplyPrice, arcElasticity, elasticityWord, type Curve, type Policy } from '../../lib/sci/supplydemand';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.sdm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => {
+    if (Math.abs(x) < 1e-9) x = 0;
+    const s = sig(x, d);
+    return Math.abs(x) >= 1000 && /^−?\d+(\.\d+)?$/.test(s) ? (x < 0 ? '−' : '') + Number(s.replace('−', '')).toLocaleString('en', { maximumFractionDigits: 12 }) : s;
+  };
+  let mode = 'linear', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  const WHAT: Record<string, string> = {
+    linear: 'Straight-line curves: demand Q = a − b·P and supply Q = c + d·P. The usual textbook market.',
+    ce: 'Curves with the same elasticity at every price: demand Q = A·P^e and supply Q = B·P^e. Common in applied work, where elasticities come from studies.',
+  };
+  const POL: Record<string, string> = {
+    none: 'No policy: the market settles where demand meets supply.',
+    tax: 'A fixed tax on each unit sold. Sellers pay it to the government, but buyers end up carrying part of it through a higher price.',
+    subsidy: 'A fixed payment from the government for each unit sold. Buyers pay less, sellers get more.',
+    ceiling: 'A legal maximum price, such as rent control. It only matters below the market price, where it causes a shortage.',
+    floor: 'A legal minimum price, such as a minimum wage or crop support price. It only matters above the market price, where it leaves goods unsold.',
+  };
+
+  function fact(k: string, val: string, sm = '') { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; }
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.sd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function curves(): [Curve, Curve] {
+    if (mode === 'linear') {
+      const da = v('.sd-da'), db = v('.sd-db'), sa = v('.sd-sa'), sb = v('.sd-sb');
+      if (![da, db, sa, sb].every(Number.isFinite)) throw new Error('Fill in all four numbers for the two lines.');
+      if (!(db > 0)) throw new Error('Demand must fall as the price rises: enter a positive fall in quantity per 1 rise in price.');
+      if (!(sb > 0)) throw new Error('Supply must rise with the price: enter a positive rise in quantity per 1 rise in price.');
+      if (!(da > 0)) throw new Error('Demand at price 0 must be above zero, or nobody ever buys.');
+      return [{ kind: 'linear', a: da, b: -db }, { kind: 'linear', a: sa, b: sb }];
+    }
+    const dA = v('.sd-dA'), de = v('.sd-de'), sA = v('.sd-sA'), se = v('.sd-se');
+    if (![dA, de, sA, se].every(Number.isFinite)) throw new Error('Fill in all four numbers for the two curves.');
+    if (!(dA > 0 && sA > 0)) throw new Error('Quantities at price 1 must be above zero.');
+    if (!(de < 0)) throw new Error('The demand elasticity must be negative (people buy less when the price rises).');
+    if (!(se > 0)) throw new Error('The supply elasticity must be positive (firms offer more when the price rises).');
+    return [{ kind: 'ce', A: dA, e: de }, { kind: 'ce', A: sA, e: se }];
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.sd-err').textContent = m; q('.sd-err').hidden = false; q('.sd-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.sd-err').hidden = true;
+    const kind = q<HTMLSelectElement>('.sd-pol').value, unit = q<HTMLInputElement>('.sd-unit').value.trim();
+    q('.sd-polhelp').textContent = POL[kind];
+    q('.sd-amtl').hidden = kind === 'none';
+    q('.sd-amtl').firstChild!.textContent = kind === 'ceiling' ? 'Maximum price ' : kind === 'floor' ? 'Minimum price ' : 'Amount per unit ';
+    const money = (x: number, d = 4) => (Number.isFinite(x) ? `${x < 0 ? '−' : ''}${unit}${sg(Math.abs(x), d)}` : 'unlimited');
+    let D: Curve, S: Curve;
+    try { [D, S] = curves(); } catch (e) { return fail((e as Error).message); }
+    const m = market(D, S);
+    if (!m) return fail('These curves do not cross at a positive quantity, so there is no market: supply starts above the highest price anyone would pay. Check the numbers.');
+    const amt = v('.sd-amt');
+    let pol: Policy = { kind: 'none' };
+    if (kind !== 'none') {
+      if (!Number.isFinite(amt) || amt < 0) return fail('Enter an amount of zero or more.');
+      pol = kind === 'tax' || kind === 'subsidy' ? { kind, amount: amt } : { kind: kind as 'ceiling' | 'floor', price: amt };
+    }
+    const r = policy(D, S, pol);
+    if (!r) return fail('With this tax the market disappears: nothing is traded at any price. Try a smaller tax.');
+    q('.sd-out').hidden = false;
+    for (const el of root.querySelectorAll('.sd-eq')) el.textContent = D.kind === 'linear' && S.kind === 'linear'
+      ? `Demand: Q = ${sg(D.a)} − ${sg(-D.b)}·P. Supply: Q = ${sg(S.a)} + ${sg(S.b)}·P (never below 0).`
+      : D.kind === 'ce' && S.kind === 'ce' ? `Demand: Q = ${sg(D.A)}·P^${sg(D.e)}. Supply: Q = ${sg(S.A)}·P^${sg(S.e)}.` : '';
+
+    const total = m.cs + m.ps;
+    q('.sd-big').textContent = `Market price ${money(m.P)}, quantity ${sg(m.Q)}`;
+    const facts = [
+      fact('Demand elasticity at equilibrium', sg(m.ed, 3), elasticityWord(m.ed)),
+      fact('Supply elasticity at equilibrium', sg(m.es, 3), elasticityWord(m.es)),
+      fact('Consumer surplus', money(m.cs), Number.isFinite(m.cs) ? 'what buyers would pay above what they do pay' : 'unbounded: with demand elasticity between −1 and 0 the curve never reaches zero'),
+      fact('Producer surplus', money(m.ps), 'what sellers get above the least they would accept'),
+      fact('Total surplus', money(total)),
+    ];
+    if (r.binding) {
+      const label = kind === 'tax' ? 'Tax' : kind === 'subsidy' ? 'Subsidy' : kind === 'ceiling' ? 'Ceiling' : 'Floor';
+      q('.sd-big').textContent += `; with the ${label.toLowerCase()} ${kind === 'ceiling' || kind === 'floor' ? 'price ' + money(r.Pb) + ' ' : ''}quantity ${sg(r.Q)}`.replace(/ $/, '');
+      facts.push(fact('Deadweight loss', money(r.dwl), 'surplus lost because fewer (or more) units are traded than is best'));
+      if (kind === 'tax' || kind === 'subsidy') facts.push(fact(kind === 'tax' ? 'Share paid by buyers' : 'Share going to buyers', `${sg(100 * r.buyerShare, 3)} %`, `sellers ${sg(100 * (1 - r.buyerShare), 3)} %; the less elastic side carries more`));
+      if (kind === 'ceiling') facts.push(fact('Shortage', sg(r.gap), `buyers want ${sg(r.Q + r.gap)} but sellers offer ${sg(r.Q)}`));
+      if (kind === 'floor') facts.push(fact('Unsold surplus', sg(r.gap), `sellers offer ${sg(r.Q + r.gap)} but buyers take ${sg(r.Q)}`));
+    } else if (kind !== 'none') {
+      facts.push(fact('Policy effect', 'none', kind === 'ceiling' ? 'the ceiling is at or above the market price, so it does not bind' : kind === 'floor' ? 'the floor is at or below the market price, so it does not bind' : 'an amount of zero changes nothing'));
+    }
+    q('.sd-facts').replaceChildren(...facts);
+
+    // Before and after table.
+    const fin = (x: number) => Number.isFinite(x);
+    const head = ['', 'Free market', kind === 'none' ? 'With policy' : `With ${kind}`, 'Change'];
+    const row = (k: string, a: number, b: number, isMoney = true) => [k, isMoney ? money(a) : sg(a), isMoney ? money(b) : sg(b), fin(a) && fin(b) ? (isMoney ? money(b - a) : sg(b - a)) : isMoney ? money(b - a) : '–'];
+    const rows = [
+      row('Price buyers pay', m.P, r.Pb), row('Price sellers get', m.P, r.Ps), row('Quantity traded', m.Q, r.Q, false),
+      [ 'Consumer surplus', money(m.cs), money(m.cs + r.dCS), money(r.dCS)],
+      [ 'Producer surplus', money(m.ps), money(m.ps + r.dPS), money(r.dPS)],
+      [ kind === 'subsidy' ? 'Government cost' : 'Government revenue', money(0), money(Math.abs(r.gov)), money(Math.abs(r.gov))],
+      [ 'Total surplus', money(total), money(total - r.dwl), money(-r.dwl)],
+    ];
+    table(head, rows);
+    q('.sd-note').textContent = 'Surplus is in price × quantity units (for example dollars per period if quantity is per period). ' + (kind === 'ceiling' ? 'With a ceiling the goods are assumed to reach the buyers who value them most; in practice queues and black markets make the loss larger. ' : kind === 'floor' ? 'With a floor only the lowest-cost sellers are assumed to sell, and nobody buys the unsold surplus. ' : '') + 'Total surplus after a tax counts the tax revenue; after a subsidy it subtracts the cost.';
+
+    // Chart: price up the side, quantity along the bottom, as economists draw it.
+    const pTop = Math.min(Number.isFinite(chokePrice(D)) ? chokePrice(D) * 1.05 : m.P * 3, Math.max(m.P * 3, r.Pb * 1.5));
+    const pLo = Math.max(minSupplyPrice(S), pTop * 1e-3);
+    const ps: number[] = []; for (let i = 0; i <= 200; i++) ps.push(D.kind === 'ce' ? pLo * (pTop / pLo) ** (i / 200) : (pTop * i) / 200);
+    const qMax = Math.max(m.Q, r.Q + (kind === 'ceiling' || kind === 'floor' ? r.gap : 0)) * 1.6;
+    const keep = (xs: number[], ys: number[]) => { const X: number[] = [], Y: number[] = []; xs.forEach((x, i) => { if (x <= qMax && x >= 0 && Number.isFinite(x)) { X.push(x); Y.push(ys[i]); } }); return { x: X, y: Y }; };
+    const dd = keep(ps.map((p) => qAt(D, p)), ps).x.length ? keep(ps.map((p) => qAt(D, p)), ps) : { x: [], y: [] };
+    const ss = keep(ps.map((p) => qAt(S, p)), ps);
+    const series: Series[] = [{ name: 'Demand', ...dd, mode: 'line', width: 2.2 }, { name: 'Supply', ...ss, mode: 'line', width: 2.2 }];
+    const marks: { kind: 'hline' | 'vline'; at: number; dash?: number[]; label?: string }[] = [];
+    if (r.binding && (kind === 'tax' || kind === 'subsidy')) {
+      const t = kind === 'tax' ? amt : -amt, sh = keep(ps.map((p) => qAt(S, p - t)), ps);
+      series.push({ name: kind === 'tax' ? 'Supply + tax' : 'Supply − subsidy', ...sh, mode: 'line', dash: [6, 4] });
+      marks.push({ kind: 'hline', at: r.Pb, dash: [3, 3], label: 'buyers pay' }, { kind: 'hline', at: r.Ps, dash: [3, 3], label: 'sellers get' });
+    }
+    if (r.binding && (kind === 'ceiling' || kind === 'floor')) marks.push({ kind: 'hline', at: r.Pb, dash: [3, 3], label: kind });
+    if (r.binding) {
+      // Outline of the deadweight-loss area between the two curves.
+      const qa = Math.min(r.Q, m.Q), qb = Math.max(r.Q, m.Q), n = 40, xs: number[] = [], top: number[] = [], bot: number[] = [];
+      for (let i = 0; i <= n; i++) { const Qx = qa + ((qb - qa) * i) / n; xs.push(Qx); top.push(pAt(D, Qx)); bot.push(Math.max(minSupplyPrice(S), pAt(S, Qx))); }
+      series.push({ name: 'Deadweight loss', x: [...xs, ...xs.slice().reverse(), xs[0]], y: [...top, ...bot.slice().reverse(), top[0]], mode: 'line', width: 1.4, dash: [2, 2] });
+    }
+    series.push({ name: r.binding ? 'Equilibrium and policy' : 'Equilibrium', x: r.binding ? [m.Q, r.Q] : [m.Q], y: r.binding ? [m.P, r.Pb] : [m.P], mode: 'points', marker: 'circle' });
+    fig = chartFigure({ h: 380, xMin: 0, xMax: qMax, yMin: 0, yMax: pTop, xLabel: 'Quantity', yLabel: `Price${unit ? ` (${unit})` : ''}`, legend: 'below', series, marks }, `Supply and demand: equilibrium price ${sg(m.P)}, quantity ${sg(m.Q)}`);
+    paint(q<HTMLCanvasElement>('.sd-fig'), fig);
+
+    csvRows = [['Quantity', ...head.slice(1)], ...rows, [], ['Demand elasticity at equilibrium', sg(m.ed, 6)], ['Supply elasticity at equilibrium', sg(m.es, 6)], ['Deadweight loss', sg(r.dwl, 6)], ...(r.binding && (kind === 'ceiling' || kind === 'floor') ? [[kind === 'ceiling' ? 'Shortage' : 'Unsold surplus', sg(r.gap, 6)]] : [])];
+    sections = [{ title: q('.sd-big').textContent!, text: [WHAT[mode], q('.sd-eq:not([hidden])')?.textContent ?? '', POL[kind]].filter(Boolean),
+      facts: [...q('.sd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: rows.length ? ['', ...head.slice(1)] : [], rows, align: ['l', 'r', 'r', 'r'] }, note: q('.sd-note').textContent! }];
+  }
+
+  function arc() {
+    const P1 = v('.sd-p1'), Q1 = v('.sd-q1'), P2 = v('.sd-p2'), Q2 = v('.sd-q2');
+    if (![P1, Q1, P2, Q2].every((x) => Number.isFinite(x) && x > 0)) { q('.sd-arc').textContent = '–'; q('.sd-arch').textContent = 'Enter four positive numbers.'; return; }
+    if (P1 === P2) { q('.sd-arc').textContent = '–'; q('.sd-arch').textContent = 'The two prices are the same, so the elasticity cannot be worked out.'; return; }
+    const a = arcElasticity(P1, Q1, P2, Q2);
+    q('.sd-arc').textContent = `Arc elasticity ${sg(a.arc, 4)}`;
+    q('.sd-arch').textContent = `Quantity changed by ${sg(100 * a.pctQ, 3)} % and price by ${sg(100 * a.pctP, 3)} % of their midpoints, so ${elasticityWord(a.arc)}${Number.isFinite(a.arc) && a.arc !== 0 ? ` (a 1 % price rise ${a.arc < 0 ? 'cuts' : 'raises'} quantity by about ${sg(Math.abs(a.arc), 3)} %)` : ''}. Measured from point 1 only it would be ${sg(a.simple, 4)}.`;
+  }
+
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.sd-model button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.sd-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.sd-what').textContent = WHAT[m];
+    if (m === 'ce' && q<HTMLInputElement>('.sd-amt').value === '6') q<HTMLInputElement>('.sd-amt').value = '2';
+    if (m === 'linear' && q<HTMLInputElement>('.sd-amt').value === '2') q<HTMLInputElement>('.sd-amt').value = '6';
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sd-model button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => { calc(); arc(); }, 200); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.sd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'supply-demand.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sd-fig'), fig); });
+  setMode('linear'); arc();
+  wireDownloads(q('.dl'), () => ({ title: 'Supply and demand', subtitle: q('.sd-big').textContent ?? '', file: 'supply-demand', sections }));
+</script>
