@@ -1,0 +1,160 @@
+---
+// Hall effect and van der Pauw analyser: sheet resistance, carrier type, density and mobility.
+// The example readings are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hle">
+  <div class="ax-card">
+    <h2>Sample and van der Pauw resistances</h2>
+    <div class="ax-grid">
+      <label><span>Film thickness (blank = sheet values only)</span> <input class="hl-t" type="text" inputmode="decimal" value="500" /></label>
+      <label>Thickness unit <select class="hl-tu"><option value="1e-9" selected>nm</option><option value="1e-6">µm</option><option value="1e-3">mm</option></select></label>
+      <label><span>R_A = V₄₃ / I₁₂ readings (Ω)</span> <input class="hl-ra" type="text" value="120.4, 119.6" /></label>
+      <label><span>R_B = V₁₄ / I₂₃ readings (Ω)</span> <input class="hl-rb" type="text" value="95.2, 94.8" /></label>
+    </div>
+    <p class="ax-help">Four small contacts 1, 2, 3, 4 on the edge of a flat sample, numbered anticlockwise. R_A: current in at 1, out at 2, voltage between 4 and 3. R_B: current 2 to 3, voltage 1 to 4. Give one or several readings each (for example with the current reversed, and the reciprocal R₄₃,₁₂), separated by commas; they are averaged and their spread is checked.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Hall measurement</h2>
+    <div class="ax-grid">
+      <label>Measurement <select class="hl-mode"><option value="pm" selected>One field, +B and −B</option><option value="sweep">Field sweep (table)</option></select></label>
+      <label><span>Current I</span> <input class="hl-i" type="text" inputmode="decimal" value="1" /></label>
+      <label>Current unit <select class="hl-iu"><option value="1e-6">µA</option><option value="1e-3" selected>mA</option><option value="1">A</option></select></label>
+      <label class="hl-pm"><span>Magnetic field B (T)</span> <input class="hl-b" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="hl-pm"><span>Hall voltage at +B (mV)</span> <input class="hl-vp" type="text" inputmode="decimal" value="-2.10" /></label>
+      <label class="hl-pm"><span>Hall voltage at −B (mV)</span> <input class="hl-vm" type="text" inputmode="decimal" value="1.90" /></label>
+      <label><span>Hall factor r_H</span> <input class="hl-rh" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <div class="hl-sw" hidden>
+      <label style="margin-top:10px">Field B (T) and Hall voltage (mV), two columns
+        <textarea class="hl-data" rows="6" spellcheck="false">B (T)	V_H (mV)
+-1	4.05
+-0.5	2.02
+0	0.03
+0.5	-1.96
+1	-3.98</textarea>
+      </label>
+      <DataFile target=".hl-data" maxCols={2} label="Open a file (2 columns)" />
+    </div>
+    <p class="ax-help">Hall voltage V_H = V₂₄ with the current flowing from 1 to 3 and B pointing towards you as you look at contacts 1, 2, 3, 4 going anticlockwise. With this convention holes give a positive V_H and electrons a negative one. Averaging +B and −B (V_H = (V₊ − V₋)/2) removes the offset from slightly misaligned contacts. r_H is 1 for a simple metal or degenerate semiconductor, and about 1.1 to 1.9 for phonon or impurity scattering; leave 1 if unsure. The example readings are made up.</p>
+    <p class="ax-err hl-err" hidden></p>
+  </div>
+
+  <div class="ax-card hl-out">
+    <h2>Results</h2>
+    <p class="ax-big hl-big"></p>
+    <dl class="ax-facts hl-facts"></dl>
+    <canvas class="ax-fig hl-fig"></canvas>
+    <canvas class="ax-fig hl-ffig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hl-csv">Results (CSV)</button></div>
+    <p class="ax-help">Van der Pauw's method needs a flat sample of even thickness with no holes and small contacts on its edge. The results assume one type of carrier; with both electrons and holes, the Hall density and mobility are weighted averages and can mislead.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { vdpSheet, hall, line, spread } from '../../lib/sci/phhall';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp, csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hle')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-300) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const ex = (x: number) => fmtExp(x, 3);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const list = (s: string) => s.split(/[;,\s]+/).filter(Boolean).map(num);
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    const mode = sel('.hl-mode');
+    root.querySelectorAll<HTMLElement>('.hl-pm').forEach((e) => { e.hidden = mode !== 'pm'; });
+    q('.hl-sw').hidden = mode !== 'sweep';
+    const err = q('.hl-err'), out = q('.hl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const tRaw = q<HTMLInputElement>('.hl-t').value.trim(), t = tRaw ? val('.hl-t') * +sel('.hl-tu') : 0;
+    if (tRaw && !(t > 0)) return fail('Give the thickness as a number above 0, or leave it blank for sheet values only.');
+    const ra = list(q<HTMLInputElement>('.hl-ra').value), rb = list(q<HTMLInputElement>('.hl-rb').value);
+    if (!ra.length || !rb.length || ![...ra, ...rb].every((x) => Number.isFinite(x))) return fail('Give R_A and R_B in ohms (one or more readings each, separated by commas).');
+    // Reversed-current readings may be typed with their sign; use magnitudes.
+    const RA = ra.reduce((s, x) => s + Math.abs(x), 0) / ra.length, RB = rb.reduce((s, x) => s + Math.abs(x), 0) / rb.length;
+    if (!(RA > 0 && RB > 0)) return fail('R_A and R_B must be above 0 Ω.');
+    const I = val('.hl-i') * +sel('.hl-iu'), rH = val('.hl-rh');
+    if (!(I > 0)) return fail('Give the current, above 0.');
+    if (!(rH > 0.5 && rH <= 3)) return fail('The Hall factor r_H is between about 1 and 2; use 1 if unsure.');
+    let VH: number, B: number, offset: number | null = null, fitTxt = '', pts: { B: number; V: number }[] = [];
+    let L: ReturnType<typeof line> | null = null;
+    if (mode === 'pm') {
+      B = val('.hl-b'); const vp = val('.hl-vp') * 1e-3, vm = val('.hl-vm') * 1e-3;
+      if (!(B > 0 && B <= 100)) return fail('Give the field magnitude B in tesla (above 0; 1 T = 10,000 gauss).');
+      if (!Number.isFinite(vp) || !Number.isFinite(vm)) return fail('Give the Hall voltage at +B and at −B in millivolts.');
+      VH = (vp - vm) / 2; offset = (vp + vm) / 2; pts = [{ B: -B, V: vm }, { B, V: vp }];
+      if (VH === 0) return fail('The Hall voltage at +B and −B is the same, so there is no Hall signal. Check the readings.');
+    } else {
+      const tab = parseTable(q<HTMLTextAreaElement>('.hl-data').value).map((r) => ({ B: num(r[0]), V: num(r[1]) * 1e-3 })).filter((p) => Number.isFinite(p.B) && Number.isFinite(p.V));
+      if (tab.length < 3) return fail('Give at least 3 rows of field (T) and Hall voltage (mV).');
+      if (new Set(tab.map((p) => p.B)).size < 2) return fail('The field must take at least two different values.');
+      pts = tab; L = line(tab.map((p) => p.B), tab.map((p) => p.V));
+      // Slope dV/dB = R_Hs I; use B = 1 T with VH = slope.
+      B = 1; VH = L.b; offset = L.a;
+      fitTxt = `slope ${sg(L.b * 1e3, 4)} ± ${sg(L.seB * 1e3, 2)} mV/T, R² = ${L.r2.toFixed(5)}`;
+      if (L.b === 0) return fail('The Hall voltage does not change with field.');
+    }
+    err.hidden = true; out.hidden = false;
+    const V = vdpSheet(RA, RB), h = hall({ I, B, VH, Rs: V.Rs, t: t || undefined, rH });
+    const relSE = L ? L.seB / Math.abs(L.b) : NaN;
+    const type = h.type === 'n' ? 'n-type (electrons)' : 'p-type (holes)';
+    q('.hl-big').textContent = `${h.type}-type: ${ex(h.ns * 1e-4)} cm⁻², μ = ${sg(h.mu! * 1e4, 3)} cm²/(V·s)`;
+    const sp = Math.max(ra.length > 1 ? spread(ra.map(Math.abs)) : 0, rb.length > 1 ? spread(rb.map(Math.abs)) : 0);
+    const f: HTMLElement[] = [
+      fact('Sheet resistance R_s', `${sg(V.Rs, 5)} Ω/□`, `van der Pauw factor f = ${V.f.toFixed(4)} from R_A/R_B = ${sg(V.ratio, 4)}${V.ratio > 10 ? ' (large ratio: check the sample shape and contacts)' : ''}`),
+      fact('Carrier type', type, h.type === 'n' ? 'negative Hall voltage under the stated convention' : 'positive Hall voltage under the stated convention'),
+      fact('Sheet carrier density n_s', `${ex(h.ns * 1e-4)} cm⁻²`, `r_H / (e |R_Hs|)${Number.isFinite(relSE) ? `, ± ${sg(relSE * 100, 2)} % from the field sweep` : ''}`),
+      fact('Hall mobility μ_H', `${sg(h.mu! * 1e4, 4)} cm²/(V·s)`, `|R_Hs| / (r_H R_s) = ${sg(h.mu!, 4)} m²/(V·s)`),
+      fact('Sheet Hall coefficient R_Hs', `${sg(h.RHs, 4)} m²/C`, `V_H / (I B) = ${sg(h.RHs, 4)} Ω/T`),
+    ];
+    if (t) f.push(
+      fact('Carrier density n', `${ex(h.n! * 1e-6)} cm⁻³`, `n_s / t with t = ${sg(t * 1e9, 4)} nm`),
+      fact('Resistivity ρ', `${sg(h.rho! * 100, 4)} Ω·cm`, `R_s × t; conductivity ${sg(h.sigma! / 100, 4)} S/cm`),
+      fact('Hall coefficient R_H', `${sg(h.RH! * 1e6, 4)} cm³/C`, 'R_Hs × t'),
+    );
+    f.push(fact('Hall voltage', `${sg(VH * 1e3, 4)} mV${mode === 'sweep' ? ' per tesla' : ''}`, mode === 'pm' ? `offset (V₊ + V₋)/2 = ${sg(offset! * 1e3, 3)} mV removed` : `${fitTxt}; offset at B = 0: ${sg(offset! * 1e3, 3)} mV`));
+    f.push(fact('Reciprocity check', ra.length + rb.length > 2 ? `${sg(sp * 100, 2)} % spread` : 'one reading each', ra.length + rb.length > 2 ? (sp > 0.05 ? 'above 5 %: check the contacts (ohmic, small) and the sample' : 'within 5 %: consistent readings') : 'add reversed or reciprocal readings to check the contacts'));
+    q('.hl-facts').replaceChildren(...f);
+    const bx = [Math.min(...pts.map((p) => p.B), 0), Math.max(...pts.map((p) => p.B), 0)];
+    const slope = mode === 'pm' ? VH / B : VH, icpt = offset!;
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Magnetic field B (T)', yLabel: 'Hall voltage (mV)', legend: 'below', series: [
+      { name: 'Measured', x: pts.map((p) => p.B), y: pts.map((p) => p.V * 1e3), mode: 'points', marker: 'circle', size: 4 },
+      { name: mode === 'pm' ? 'Line through ±B' : 'Least-squares line', x: bx, y: bx.map((b) => (icpt + slope * b) * 1e3), mode: 'line', width: 1.6 },
+    ], marks: [{ kind: 'hline', at: 0, dash: [2, 3] }] }, 'Hall voltage against field');
+    const rr: number[] = [], ff: number[] = [];
+    for (let i = 0; i <= 120; i++) { const r = Math.pow(10, (3 * i) / 120); rr.push(r); ff.push(vdpSheet(r, 1).f); }
+    const c2 = chartFigure({ w: 380, h: 200, xLabel: 'R_A / R_B (larger ÷ smaller)', yLabel: 'Correction factor f', xLog: true, yMin: 0, yMax: 1.05, legend: 'none', series: [
+      { name: 'f', x: rr, y: ff, mode: 'line', width: 1.8 },
+      { name: 'This sample', x: [V.ratio], y: [V.f], mode: 'points', marker: 'diamond', size: 5 },
+    ] }, 'Van der Pauw correction factor against the resistance ratio');
+    figs = [['.hl-fig', c1], ['.hl-ffig', c2]];
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+    const fr = (d: Element) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string];
+    rows = [['quantity', 'value', 'unit'], ['R_A (mean)', RA, 'ohm'], ['R_B (mean)', RB, 'ohm'], ['sheet resistance', +V.Rs.toPrecision(8), 'ohm/sq'], ['van der Pauw f', +V.f.toPrecision(8), ''], ['carrier type', h.type, ''], ['Hall voltage', +(VH * 1e3).toPrecision(8), mode === 'pm' ? 'mV' : 'mV/T'], ['sheet Hall coefficient', +h.RHs.toPrecision(8), 'm2/C'], ['sheet density', +(h.ns * 1e-4).toPrecision(6), 'cm-2'], ['Hall mobility', +(h.mu! * 1e4).toPrecision(6), 'cm2/(V s)'], ['Hall factor', rH, ''],
+      ...(t ? [['thickness', +(t * 1e9).toPrecision(8), 'nm'], ['density', +(h.n! * 1e-6).toPrecision(6), 'cm-3'], ['resistivity', +(h.rho! * 100).toPrecision(6), 'ohm cm'], ['Hall coefficient', +(h.RH! * 1e6).toPrecision(6), 'cm3/C']] : [])];
+    report = [{ title: q('.hl-big').textContent!, facts: [...q('.hl-facts').children].map(fr), figure: c1 }, { title: 'Van der Pauw correction', figure: c2 }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.hl-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), 'hall-effect.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Hall effect and van der Pauw', subtitle: q('.hl-big').textContent ?? '', file: 'hall-effect', sections: report }));
+</script>
+
+<style is:global>
+  .hle select, .hle input { max-width: 100%; }
+</style>
