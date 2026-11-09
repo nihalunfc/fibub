@@ -1,0 +1,139 @@
+---
+// Spike trains to firing rate, ISI histogram, CV, Fano factor, PSTH, raster and autocorrelogram.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sk">
+  <div class="ax-card">
+    <h2>Spike times</h2>
+    <label>Spike times for one or more trains (trials, or cells). Paste from a spreadsheet or open a file.
+      <textarea class="sk-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".sk-in" maxMB={20} maxCols={500} maxRows={1000000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Layout<select class="sk-lay"><option value="lines">One train per line</option><option value="pairs">Two columns: train, time</option><option value="columns">One train per column</option></select><span class="ax-help">A line may start with a label and a colon ("Trial 1: …").</span></label>
+      <label>Times are in<select class="sk-unit"><option value="s">seconds</option><option value="ms">milliseconds</option></select></label>
+    </div>
+    <p class="ax-help">The example is made up: 20 trials of 2 s, about 5 spikes/s at rest and 40 spikes/s between 0.5 and 1 s. Nothing is uploaded.</p>
+    <p class="ax-err sk-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Window from (s)<input class="sk-t0" type="number" step="any" value="0" /></label>
+      <label>Window to (s)<input class="sk-t1" type="number" step="any" value="2" /><span class="ax-help">Rates, CV and Fano use spikes in this window only.</span></label>
+      <label>Stimulus at (s)<input class="sk-stim" type="number" step="any" value="0.5" /><span class="ax-help">Optional: a line on the raster and PSTH.</span></label>
+      <label>PSTH bin (ms)<input class="sk-pb" type="number" min="0.1" step="any" value="50" /></label>
+      <label>ISI bin (ms)<input class="sk-ib" type="number" min="0.1" step="any" value="10" /></label>
+      <label>ISI up to (ms)<input class="sk-im" type="number" min="1" step="any" value="500" /></label>
+      <label>Autocorrelogram bin (ms)<input class="sk-ab" type="number" min="0.1" step="any" value="2" /></label>
+      <label>Autocorrelogram lag (ms)<input class="sk-al" type="number" min="1" step="any" value="50" /><span class="ax-help">Shown from minus to plus this lag.</span></label>
+      <label>Refractory period (ms)<input class="sk-rf" type="number" min="0" step="any" value="2" /><span class="ax-help">ISIs shorter than this are flagged (possible sorting errors).</span></label>
+    </div>
+  </div>
+
+  <div class="ax-card sk-out" hidden>
+    <h2>Result</h2>
+    <dl class="ax-facts sk-facts"></dl>
+    <h3>Raster</h3>
+    <canvas class="ax-fig sk-ras"></canvas>
+    <h3>PSTH (firing rate over time)</h3>
+    <canvas class="ax-fig sk-psth"></canvas>
+    <h3>ISI histogram</h3>
+    <canvas class="ax-fig sk-isi"></canvas>
+    <h3>Autocorrelogram</h3>
+    <canvas class="ax-fig sk-acg"></canvas>
+    <h3>Each train</h3>
+    <div class="ax-scroll"><table class="sk-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small sk-csv">Trains (CSV)</button>
+      <button type="button" class="btn secondary small sk-pcsv">PSTH (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseTrains, summarise, psth, histogram, autocorrelogram, exampleTrains, type Layout } from '../../lib/sci/spikes';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { rasterFigure } from '../../lib/rasterfig';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sk')!;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.sk-in');
+  box.value = exampleTrains().map((t) => `${t.name}: ${t.t.map((v) => v.toFixed(4)).join(' ')}`).join('\n');
+  let figs: [string, Figure][] = [], report: Section[] = [], csvTrains: (string | number)[][] = [], csvPsth: (string | number)[][] = [];
+  let userWindow = false;
+
+  /** Bars as a stepped outline, so a histogram can be drawn as a line. */
+  const steps = (edges: number[], y: number[]) => { const xs: number[] = [], ys: number[] = []; y.forEach((v, i) => { xs.push(edges[i], edges[i + 1]); ys.push(v, v); }); return { x: [edges[0], ...xs, edges[edges.length - 1]], y: [0, ...ys, 0] }; };
+
+  function calc() {
+    const err = q('.sk-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sk-out').hidden = true; report = []; };
+    let trains;
+    try { trains = parseTrains(box.value, q<HTMLSelectElement>('.sk-lay').value as Layout, q<HTMLSelectElement>('.sk-unit').value as 's' | 'ms'); } catch (e) { return fail((e as Error).message); }
+    if (!trains.length || trains.every((t) => !t.t.length)) return fail('Paste spike times: one train per line, or pick the layout that matches your table.');
+    const all = trains.flatMap((t) => t.t), lo = Math.min(...all), hi = Math.max(...all);
+    if (!userWindow) { q('.sk-t0').value = String(Math.min(0, Math.floor(lo))); q('.sk-t1').value = String(+(Math.ceil(hi * 10) / 10).toFixed(6)); }
+    const t0 = num(q('.sk-t0').value), t1 = num(q('.sk-t1').value), stim = num(q('.sk-stim').value);
+    const ms = (c: string) => num(q(c).value) / 1000, pb = ms('.sk-pb'), ib = ms('.sk-ib'), im = ms('.sk-im'), ab = ms('.sk-ab'), al = ms('.sk-al'), rf = ms('.sk-rf');
+    if (!(t1 > t0)) return fail('The window must end after it starts.');
+    if (![pb, ib, im, ab, al].every((v) => v > 0) || !(rf >= 0)) return fail('Bin widths and lags must be positive numbers of milliseconds.');
+    if ((t1 - t0) / pb > 5000 || im / ib > 5000 || (2 * al) / ab > 5000) return fail('That makes more than 5000 bins. Use wider bins or a shorter range.');
+    q('.sk-out').hidden = false;
+    const s = summarise(trains, t0, t1, rf), win = trains.map((t) => ({ ...t, t: t.t.filter((v) => v >= t0 && v <= t1) }));
+    const facts: [string, string][] = [
+      ['Trains', String(trains.length)], ['Spikes in window', String(s.trains.reduce((a, t) => a + t.n, 0))],
+      ['Mean firing rate', `${sig(s.meanRate, 4)}${Number.isFinite(s.sdRate) ? ` ± ${sig(s.sdRate, 3)}` : ''} spikes/s`],
+      ['Fano factor (counts)', Number.isFinite(s.fano) ? sig(s.fano, 3) : 'needs 2+ trains'], ['CV of ISIs (pooled)', Number.isFinite(s.cvPooled) ? sig(s.cvPooled, 3) : '–'],
+      [`ISIs under ${sig(rf * 1000, 3)} ms`, `${s.refractoryViolations} of ${s.isiAll.length}`],
+    ];
+    const dl = q('.sk-facts'); dl.innerHTML = '';
+    for (const [k, v] of facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.children[0].textContent = k; d.children[1].textContent = v; dl.append(d); }
+    // Raster: one row per train, train 1 at the top.
+    const n = trains.length, every = Math.max(1, Math.ceil(n / 10));
+    const yTicks = trains.map((t, i) => ({ at: n - i - 0.5, label: String(i + 1) })).filter((_, i) => i % every === 0 || i === n - 1);
+    const ras = rasterFigure({ cols: 1, rows: 1, v: new Float32Array([NaN]), x: [t0, t1], y: [0, n], xLabel: 'Time (s)', yLabel: 'Train', yTicks, overlay: (ctx, X, Y, pal) => {
+      ctx.fillStyle = pal.ink; const h = Math.max(1, Math.abs(Y(0) - Y(0.8)));
+      win.forEach((t, i) => { const y = Y(n - i - 0.1); for (const v of t.t) ctx.fillRect(X(v) - 0.6, y, 1.2, h); });
+      if (Number.isFinite(stim)) { ctx.fillStyle = pal.red ? '#a30000' : '#D55E00'; ctx.fillRect(X(stim) - 0.75, Y(n), 1.5, Y(0) - Y(n)); }
+    } }, 720, Math.min(520, 120 + n * 10), 'Raster plot of spike times');
+    const p = psth(trains, t0, t1, pb), ps = steps(p.edges, p.rate);
+    const marks = Number.isFinite(stim) ? [{ kind: 'vline' as const, at: stim, label: 'stimulus' }] : [];
+    const pf = chartFigure({ h: 280, xLabel: 'Time (s)', yLabel: 'Rate (spikes/s)', yMin: 0, xMin: t0, xMax: t1, series: [{ name: '', ...ps, mode: 'line' }], marks }, 'Peri-stimulus time histogram');
+    const ih = histogram(s.isiAll, 0, im, ib), is = steps(ih.edges.map((e) => e * 1000), ih.counts);
+    const isf = chartFigure({ h: 260, xLabel: 'Interval (ms)', yLabel: 'Count', yMin: 0, xMin: 0, xMax: im * 1000, series: [{ name: '', ...is, mode: 'line' }] }, 'Inter-spike interval histogram');
+    const ac = autocorrelogram(trains, al, ab, t0, t1), as = steps(ac.edges.map((e) => e * 1000), ac.rate);
+    const af = chartFigure({ h: 260, xLabel: 'Lag (ms)', yLabel: 'Rate (spikes/s)', yMin: 0, xMin: -al * 1000, xMax: al * 1000, series: [{ name: '', ...as, mode: 'line' }] }, 'Autocorrelogram');
+    figs = [['.sk-ras', ras], ['.sk-psth', pf], ['.sk-isi', isf], ['.sk-acg', af]];
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+    const head = ['Train', 'Spikes', 'Rate (spikes/s)', 'Mean ISI (ms)', 'CV of ISIs'];
+    const rows = s.trains.map((t) => [t.name, String(t.n), sig(t.rate, 4), Number.isFinite(t.meanIsi) ? sig(t.meanIsi * 1000, 4) : '–', Number.isFinite(t.cv) ? sig(t.cv, 3) : '–']);
+    const tb = q<HTMLTableElement>('.sk-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tbody = tb.createTBody(); rows.slice(0, 500).forEach((r) => { const tr = tbody.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    csvTrains = [['train', 'spikes', 'rate_per_s', 'mean_isi_ms', 'cv_isi'], ...s.trains.map((t) => [t.name, t.n, t.rate, Number.isFinite(t.meanIsi) ? +(t.meanIsi * 1000).toPrecision(8) : '', Number.isFinite(t.cv) ? +t.cv.toPrecision(8) : ''])];
+    csvPsth = [['bin_start_s', 'bin_end_s', 'spikes', 'rate_per_s'], ...p.counts.map((c, i) => [+p.edges[i].toPrecision(10), +p.edges[i + 1].toPrecision(10), c, +p.rate[i].toPrecision(8)])];
+    const set = `Window ${sig(t0, 4)}–${sig(t1, 4)} s; PSTH bins ${sig(pb * 1000, 3)} ms; ISI bins ${sig(ib * 1000, 3)} ms; autocorrelogram bins ${sig(ab * 1000, 3)} ms to ±${sig(al * 1000, 3)} ms.`;
+    report = [
+      { title: 'Summary', facts, text: [set] }, { title: 'Raster', figure: ras }, { title: 'PSTH', figure: pf }, { title: 'ISI histogram', figure: isf }, { title: 'Autocorrelogram', figure: af },
+      { title: 'Each train', table: { head, rows: rows.slice(0, 500), align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let t = 0;
+  const later = () => { clearTimeout(t); t = window.setTimeout(calc, 300); };
+  box.addEventListener('input', () => { userWindow = false; later(); });
+  for (const c of ['.sk-t0', '.sk-t1']) q(c).addEventListener('input', () => { userWindow = true; later(); });
+  for (const c of ['.sk-stim', '.sk-pb', '.sk-ib', '.sk-im', '.sk-ab', '.sk-al', '.sk-rf']) q(c).addEventListener('input', later);
+  for (const c of ['.sk-lay', '.sk-unit']) q(c).addEventListener('change', () => { userWindow = false; calc(); });
+  q('.sk-csv').addEventListener('click', () => csvTrains.length && save(new TextEncoder().encode(csv(csvTrains)), 'spike-trains.csv', 'text/csv'));
+  q('.sk-pcsv').addEventListener('click', () => csvPsth.length && save(new TextEncoder().encode(csv(csvPsth)), 'psth.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Spike train analysis', file: 'spike-trains', sections: report }));
+</script>
