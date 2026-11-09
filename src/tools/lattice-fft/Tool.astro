@@ -1,0 +1,231 @@
+---
+// Lattice FFT: the power spectrum of a square region of an HRTEM, STEM or AFM image, spots found or clicked and
+// turned into d-spacings and angles with the scale, and a Bragg-filtered image from the chosen spots. The image never
+// leaves the browser; the example lattice is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lfft">
+  <div class="ax-card">
+    <h2>Lattice image</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mg-open">Open an image</button>
+      <input type="file" class="mg-file" accept="image/png,image/jpeg,image/tiff,image/bmp,image/webp,.tif,.tiff" hidden />
+      <button type="button" class="btn secondary small lf-ex">Use the example</button>
+    </div>
+    <canvas class="mg-canvas" hidden></canvas>
+    <p class="ax-help lf-taphelp" hidden><b>Tap the image</b> to move the square region that is transformed.</p>
+    <p class="ax-help mg-note">PNG, JPEG or TIFF (8 or 16-bit) of lattice fringes or atoms: HRTEM, STEM or AFM. The image is read on this page only and is never uploaded.</p>
+    <p class="ax-err mg-err" hidden></p>
+    <div class="mg-cal" hidden>
+      <h3>Scale</h3>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small mg-draw">Draw on the scale bar</button>
+        <button type="button" class="btn secondary small mg-area" hidden>Set the area</button>
+        <button type="button" class="btn secondary small mg-full" hidden>Whole image</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Scale bar length (pixels) <input class="mg-bpx" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>The bar stands for <input class="mg-blen" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>Unit <select class="mg-unit"><option selected>nm</option><option>µm</option><option>mm</option></select></label>
+        <label>Or pixel size (original image) <input class="mg-pix" type="number" min="0" step="any" inputmode="decimal" placeholder="from the microscope" /></label>
+      </div>
+      <p class="ax-help mg-calout"></p>
+      <p class="ax-help">Tap both ends of the scale bar (or drag along it) and type its length, or type the pixel size from the microscope. Spacings come out in pixels until the scale is set.</p>
+    </div>
+  </div>
+
+  <div class="ax-card lf-set" hidden>
+    <h2>Region and transform</h2>
+    <div class="ax-grid">
+      <label>Region (pixels square) <select class="lf-size"><option>64</option><option>128</option><option selected>256</option><option>512</option><option>1024</option></select></label>
+      <label>Window <select class="lf-win"><option value="hann" selected>Hann (cleaner spots)</option><option value="none">None</option></select></label>
+      <label>Zero padding <select class="lf-pad"><option value="2" selected>2 × (finer spectrum)</option><option value="1">None</option></select></label>
+      <label>Spots to find <input class="lf-n" type="number" min="0" max="20" step="1" value="6" inputmode="numeric" /></label>
+      <label>Ignore the centre within (spectrum px) <input class="lf-minr" type="number" min="1" max="200" step="1" value="6" inputmode="numeric" /></label>
+      <label>Filter radius (spectrum px) <input class="lf-r" type="number" min="1" max="100" step="1" value="4" inputmode="numeric" /></label>
+      <label>Spectrum zoom <select class="lf-zoom"><option value="1">Whole</option><option value="2" selected>2 × (middle half)</option><option value="4">4 × (middle quarter)</option></select></label>
+    </div>
+    <p class="ax-help">The region's mean is taken away and, with the Hann window, its edges are faded so they do not streak the spectrum. Padding with zeros to twice the size samples the spectrum more finely. Spots are the strongest local peaks, one of each symmetric pair.</p>
+  </div>
+
+  <div class="ax-card lf-out" hidden>
+    <h2>Power spectrum</h2>
+    <p class="ax-big lf-big"></p>
+    <dl class="ax-facts lf-facts"></dl>
+    <canvas class="lf-spec"></canvas>
+    <p class="ax-help"><b>Tap a spot</b> on the spectrum to measure it (the page moves to the peak and refines it to a fraction of a pixel); tap a spot you added again to take it away. Untick a spot to leave it out of the filter.</p>
+    <div class="ax-scroll"><table class="lf-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small lf-find">Find the spots again</button>
+      <button type="button" class="btn secondary small lf-csv">Download spots (CSV)</button>
+    </div>
+    <h3 style="margin:16px 0 8px;font-size:15px">Filtered image (inverse FFT of the chosen spots)</h3>
+    <canvas class="lf-filt"></canvas>
+    <p class="ax-help lf-fnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small lf-fpng">Download the filtered image (PNG)</button>
+      <button type="button" class="btn secondary small lf-spng">Download the spectrum (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { spectrum, region, findSpots, refine, braggFilter, logImage, exampleLattice, type Spectrum, type Spot, type Region } from '../../lib/sci/latticefft';
+  import { fmtLen } from '../../lib/sci/micro';
+  import { Micro } from '../../lib/micrograph';
+  import { wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lfft')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  type Row = Spot & { picked: boolean; use: boolean };
+  let cx = 0, cy = 0, R: Region | null = null, S: Spectrum | null = null, rows: Row[] = [], specCv: HTMLCanvasElement | null = null, sections: Section[] = [];
+
+  const M = new Micro(root, {
+    change: () => {
+      if (M.img) {
+        cx = M.img.w / 2; cy = (M.rect.y0 + M.rect.y1) / 2;
+        // Start with the largest region that fits (at most 256 px).
+        const sel = q<HTMLSelectElement>('.lf-size'), fit = [...sel.options].map((o) => Number(o.value)).filter((v) => v <= Math.min(M.img.w, M.img.h, Math.max(256, Number(sel.value))));
+        if (fit.length && Number(sel.value) > Math.min(M.img.w, M.img.h)) sel.value = String(fit[fit.length - 1]);
+      }
+      transform(true);
+    },
+    cal: () => report(),
+    overlay: (ctx, lw) => { if (!R) return; ctx.strokeStyle = '#E69F00'; ctx.lineWidth = lw * 1.5; ctx.setLineDash([lw * 4, lw * 3]); ctx.strokeRect(R.x0, R.y0, R.size, R.size); ctx.setLineDash([]); },
+    tap: (x, y) => { cx = x; cy = y; transform(true); },
+  });
+
+  function fail(m: string) { M.err(m); q('.lf-out').hidden = true; sections = []; M.draw(); }
+
+  /** Takes the region, transforms it and (if asked) finds the spots again. */
+  function transform(find: boolean) {
+    if (!M.img || !M.grey) return;
+    const { w, h } = M.img, size = Number(q<HTMLSelectElement>('.lf-size').value);
+    q('.lf-set').hidden = false; q('.lf-taphelp').hidden = false; M.err('');
+    if (size > Math.min(w, h)) { S = null; R = null; return fail(`The image is ${w} × ${h} px, too small for a ${size} px region. Pick a smaller region.`); }
+    R = region(w, h, cx, cy, size);
+    S = spectrum(M.grey, w, R, q<HTMLSelectElement>('.lf-win').value === 'hann', q<HTMLSelectElement>('.lf-pad').value === '2');
+    // Spectrum picture (grey levels) kept for redrawing with marks.
+    const L = logImage(S.P), id = new ImageData(S.N, S.N);
+    for (let i = 0; i < L.length; i++) { id.data[4 * i] = id.data[4 * i + 1] = id.data[4 * i + 2] = L[i]; id.data[4 * i + 3] = 255; }
+    specCv = document.createElement('canvas'); specCv.width = S.N; specCv.height = S.N; specCv.getContext('2d')!.putImageData(id, 0, 0);
+    if (find) findAll(); else report();
+  }
+  function findAll() {
+    if (!S) return;
+    const n = Math.round(Number(q<HTMLInputElement>('.lf-n').value)), minR = Number(q<HTMLInputElement>('.lf-minr').value);
+    if (!(n >= 0 && n <= 20)) return fail('Spots to find: 0 to 20.');
+    if (!(minR >= 1 && minR < S.N / 2)) return fail(`Ignore the centre within 1 to ${S.N / 2 - 1} spectrum pixels.`);
+    // Weak peaks (under 5 % of the strongest) are listed but left out of the filter, as they are usually noise.
+    const f = findSpots(S, n, minR), top = f.length ? f[0].power : 1;
+    rows = f.map((s) => ({ ...s, picked: false, use: s.power >= 0.05 * top }));
+    report();
+  }
+
+  const zoom = () => Number(q<HTMLSelectElement>('.lf-zoom').value) || 1;
+  const dTxt = (dpx: number, um: number) => { const nm = dpx * um * 1000; return !Number.isFinite(um) ? `${dpx.toPrecision(4)} px` : nm >= 1000 ? `${(nm / 1000).toPrecision(4)} µm` : `${nm.toPrecision(4)} nm`; };
+  function report() {
+    if (!S || !R || !M.img) return;
+    M.draw();
+    const um = M.umpp(), cal = Number.isFinite(um), N = S.N;
+    q('.lf-out').hidden = false;
+    const best = rows[0];
+    q('.lf-big').textContent = best ? `d = ${dTxt(best.d, um)} at ${best.angle.toFixed(1)}°` : 'No spots yet: tap one on the spectrum';
+    q('.lf-facts').replaceChildren(
+      fact('Region', `${R.size} × ${R.size} px`, `top-left at ${R.x0}, ${R.y0}${cal ? `; ${fmtLen(R.size * um, 3)} across` : ''}`),
+      fact('Transform', `${N} × ${N}`, `${q<HTMLSelectElement>('.lf-win').value === 'hann' ? 'Hann window' : 'no window'}${N > R.size ? `, zero padded from ${R.size}` : ''}`),
+      fact('Spectrum step', cal ? `${+(1 / (N * um * 1000)).toPrecision(3)} nm⁻¹` : `1/${N} px⁻¹`, 'one spectrum pixel; spot centres are refined to a fraction of it'),
+      fact('Scale', cal ? `1 px = ${fmtLen(um, 4)}` : 'not set', cal ? `largest spacing the region holds: ${fmtLen(R.size * um / 2, 3)} (2 periods)` : 'spacings in pixels'),
+    );
+    // Table of spots.
+    const t = q<HTMLTableElement>('.lf-tab'); t.replaceChildren();
+    const head = ['#', 'Filter', `d (${cal ? 'nm' : 'px'})`, 'd (Å)', 'Angle (°)', `|g| (${cal ? 'nm⁻¹' : 'px⁻¹'})`, 'Angle to #1 (°)', 'Strength', ''];
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i > 1 && i < 8) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(), p0 = rows.length ? Math.max(...rows.map((r) => r.power)) : 1;
+    const dnm = (r: Row) => (cal ? r.d * um * 1000 : r.d);
+    const ang1 = (r: Row) => { if (!rows.length) return NaN; let a = Math.abs(r.angle - rows[0].angle) % 180; if (a > 90) a = 180 - a; return a; };
+    rows.forEach((r, i) => {
+      const tr = b.insertRow(), cells = [String(i + 1), '', (+dnm(r).toPrecision(5)).toString(), cal ? (dnm(r) * 10).toFixed(3) : '–', r.angle.toFixed(2), (1 / dnm(r)).toPrecision(4), i ? ang1(r).toFixed(2) : '–', `${(100 * r.power / p0).toPrecision(3)} %`, ''];
+      cells.forEach((c, k) => { const td = tr.insertCell(); if (k > 1 && k < 8) td.className = 'r'; td.textContent = c; if (k === 1) { const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = r.use; cb.className = 'lf-use'; cb.setAttribute('aria-label', `Use spot ${i + 1} in the filter`); cb.addEventListener('change', () => { r.use = cb.checked; report(); }); td.append(cb); } if (k === 8 && r.picked) td.textContent = 'tapped'; });
+    });
+    // Spectrum with marks.
+    const sc = q<HTMLCanvasElement>('.lf-spec'), z = zoom(), o = N / 2 - N / (2 * z); sc.width = N; sc.height = N;
+    const ctx = sc.getContext('2d')!; ctx.imageSmoothingEnabled = false; ctx.drawImage(specCv!, o, o, N / z, N / z, 0, 0, N, N);
+    ctx.save(); ctx.translate(-o * z, -o * z); ctx.scale(z, z);
+    const lw = Math.max(1, N / 300) / z, rr = Number(q<HTMLInputElement>('.lf-r').value);
+    ctx.font = `${Math.max(11, Math.round(N / 28)) / z}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    rows.forEach((r, i) => {
+      for (const [u, v] of [[r.u, r.v], [N - r.u, N - r.v]]) { ctx.strokeStyle = r.use ? (r.picked ? '#009E73' : '#E69F00') : '#888'; ctx.lineWidth = lw * 1.5; ctx.beginPath(); ctx.arc(u, v, Math.max(rr || 4, 3 * lw), 0, 2 * Math.PI); ctx.stroke(); }
+      ctx.fillStyle = r.use ? '#E69F00' : '#888'; ctx.fillText(String(i + 1), r.u, r.v - Math.max(rr || 4, 3 * lw) - 2 / z);
+    });
+    ctx.restore();
+    // Filtered image.
+    const use = rows.filter((r) => r.use), fc = q<HTMLCanvasElement>('.lf-filt');
+    if (!(rr >= 1 && rr <= 100)) { M.err('The filter radius is 1 to 100 spectrum pixels.'); fc.hidden = true; sections = []; return; }
+    if (use.length) {
+      const f = braggFilter(S, use, rr); let lo = Infinity, hi = -Infinity; for (const v of f) { if (v < lo) lo = v; if (v > hi) hi = v; }
+      const s = R.size, id = new ImageData(s, s); for (let i = 0; i < s * s; i++) { const g = (255 * (f[i] - lo)) / (hi - lo || 1); id.data[4 * i] = id.data[4 * i + 1] = id.data[4 * i + 2] = g; id.data[4 * i + 3] = 255; }
+      fc.width = s; fc.height = s; fc.getContext('2d')!.putImageData(id, 0, 0); fc.hidden = false;
+      q('.lf-fnote').textContent = `Spots ${rows.map((r, i) => (r.use ? i + 1 : 0)).filter(Boolean).join(', ')} and their mirror spots kept within ${rr} spectrum pixels, everything else removed, then transformed back. It shows the periodic part of the lattice; edges fade where the window does.`;
+    } else { fc.hidden = true; q('.lf-fnote').textContent = 'Tick at least one spot to see the filtered image.'; }
+    const csvRows = rows.map((r, i) => [i + 1, r.picked ? 'tapped' : 'found', +r.u.toFixed(3), +r.v.toFixed(3), +r.d.toPrecision(8), cal ? +(r.d * um * 1000).toPrecision(8) : '', +r.angle.toFixed(4), +(r.power / p0).toPrecision(6), r.use ? 'yes' : 'no']);
+    (q('.lf-csv') as HTMLButtonElement & { rows?: unknown }).rows = csvRows;
+    const imgFig: Figure = { w: N, h: N, alt: 'Power spectrum with the spots marked', draw: (c2, w2, h2) => c2.drawImage(sc, 0, 0, w2, h2) };
+    const tabRows = rows.map((r, i) => [String(i + 1), (+dnm(r).toPrecision(5)).toString(), r.angle.toFixed(2), i ? ang1(r).toFixed(2) : '–', `${(100 * r.power / p0).toPrecision(3)} %`]);
+    const th2 = ['#', `d (${cal ? 'nm' : 'px'})`, 'Angle (°)', 'Angle to #1 (°)', 'Strength'];
+    sections = [{ title: q('.lf-big').textContent!, facts: [...q('.lf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: imgFig, table: { head: th2, rows: tabRows, align: th2.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: 'd = 1 / |spatial frequency|. Angle: direction of the planes\' normal, counter-clockwise from the image x axis (the fringes run at right angles to it).' }];
+    if (use.length) sections.push({ title: 'Filtered image', figure: { w: R.size, h: R.size, alt: 'Bragg-filtered region', draw: (c2, w2, h2) => c2.drawImage(fc, 0, 0, w2, h2) } });
+  }
+
+  q('.lf-spec').addEventListener('click', (ev) => {
+    if (!S) return;
+    const sc = q<HTMLCanvasElement>('.lf-spec'), r = sc.getBoundingClientRect(), N = S.N;
+    const z = zoom(), o = N / 2 - N / (2 * z), u = o + ((ev.clientX - r.left) / r.width) * (N / z), v = o + ((ev.clientY - r.top) / r.height) * (N / z);
+    if (Math.hypot(u - N / 2, v - N / 2) < 2) return;
+    // A tap on a spot added by tapping (or its mirror) removes it.
+    const near = rows.findIndex((s) => s.picked && Math.min(Math.hypot(s.u - u, s.v - v), Math.hypot(N - s.u - u, N - s.v - v)) < Math.max(4, N / 64) / z);
+    if (near >= 0) { rows.splice(near, 1); report(); return; }
+    let s = refine(S, u, v, 3);
+    if (s.v > N / 2 || (s.v === N / 2 && s.u < N / 2)) s = refine(S, N - s.u, N - s.v, 1); // keep the upper member of the pair
+    rows.push({ ...s, picked: true, use: true }); report();
+  });
+  ['.lf-size', '.lf-win', '.lf-pad'].forEach((c) => q(c).addEventListener('change', () => transform(true)));
+  let tm = 0;
+  ['.lf-n', '.lf-minr'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(findAll, 300); }));
+  q('.lf-r').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(report, 300); });
+  q('.lf-zoom').addEventListener('change', () => report());
+  q('.lf-find').addEventListener('click', findAll);
+  q('.lf-csv').addEventListener('click', () => {
+    const cal = Number.isFinite(M.umpp());
+    const out = [['spot', 'how', 'u_spectrum_px', 'v_spectrum_px', 'd_px', cal ? 'd_nm' : 'd_nm (not calibrated)', 'angle_deg', 'relative_power', 'in_filter'], ...((q('.lf-csv') as HTMLButtonElement & { rows?: (string | number)[][] }).rows ?? [])];
+    save(new Blob([csv(out)], { type: 'text/csv' }), `${fileSafe(M.name)}-fft-spots.csv`, 'text/csv');
+  });
+  q('.lf-fpng').addEventListener('click', () => q<HTMLCanvasElement>('.lf-filt').toBlob((b) => { if (b) save(b, `${fileSafe(M.name)}-filtered.png`, 'image/png'); }, 'image/png'));
+  q('.lf-spng').addEventListener('click', () => q<HTMLCanvasElement>('.lf-spec').toBlob((b) => { if (b) save(b, `${fileSafe(M.name)}-spectrum.png`, 'image/png'); }, 'image/png'));
+  function loadExample() {
+    const e = exampleLattice(600, 560, [{ d: 12.5, angle: 20 }, { d: 12.5, angle: 80 }, { d: 12.5, angle: 140 }], 25, 857, { px: 100, label: '2 nm' });
+    q<HTMLInputElement>('.mg-bpx').value = '100'; q<HTMLInputElement>('.mg-blen').value = '2'; q<HTMLSelectElement>('.mg-unit').value = 'nm'; q<HTMLInputElement>('.mg-pix').value = '';
+    q<HTMLSelectElement>('.lf-size').value = '256'; q<HTMLSelectElement>('.lf-win').value = 'hann'; q<HTMLSelectElement>('.lf-pad').value = '2'; q<HTMLInputElement>('.lf-n').value = '6'; q<HTMLInputElement>('.lf-minr').value = '6'; q<HTMLInputElement>('.lf-r').value = '4'; q<HTMLSelectElement>('.lf-zoom').value = '2';
+    M.load({ rgba: e.px, w: e.w, h: e.h }, 'example-lattice', 1, 'Made-up lattice: three sets of fringes 0.25 nm apart at 60° to each other, with noise, 0.02 nm per pixel.', { x0: 0, y0: 0, x1: e.w, y1: e.h - 32 });
+    M.line = [e.w - 112, e.h - 21.5, e.w - 12, e.h - 21.5]; M.draw();
+  }
+  q('.lf-ex').addEventListener('click', loadExample);
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Lattice FFT', subtitle: q('.lf-big').textContent ?? '', file: `${fileSafe(M.name)}-lattice-fft`, sections }));
+</script>
+
+<style is:global>
+  .lfft .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
+  .lfft .mg-cal { margin-top: 14px; }
+  .lfft .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }
+  .lfft .mg-warn { color: var(--warn); }
+  .lfft select { max-width: 100%; }
+  .lfft .ax-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .lfft .lf-spec, .lfft .lf-filt { display: block; width: 100%; max-width: 512px; height: auto; margin: 10px auto 0; border: 1px solid var(--line); image-rendering: pixelated; }
+  .lfft .lf-spec { cursor: crosshair; }
+</style>
