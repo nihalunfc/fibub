@@ -263,6 +263,7 @@ FFFAFFFA SQ DigitalSignaturesSequence
 04000550 SQ ModifiedAttributesSequence
 00041510 UI ReferencedSOPClassUIDInFile
 00041511 UI ReferencedSOPInstanceUIDInFile
+00280303 CS LongitudinalTemporalInformationModified
 60000010 US OverlayRows
 60000011 US OverlayColumns
 60000022 LO OverlayDescription

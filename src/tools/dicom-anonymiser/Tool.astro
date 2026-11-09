@@ -1,0 +1,225 @@
+---
+// DICOM anonymiser: de-identify DICOM files on the device before sharing them (basic profile principles).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax da">
+  <p class="da-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <label class="da-drop">
+    <input type="file" class="da-in" accept=".dcm,.dicom,.dic,.ima,.img,application/dicom,*/*" multiple hidden />
+    <b>Choose DICOM files</b>
+    <span>or drop them here: one file or a whole study. They are cleaned in your browser and never leave your device.</span>
+  </label>
+  <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small da-sample">Use the sample again</button><span class="ax-help da-src" style="margin:0"></span></div>
+  <p class="ax-err da-err" hidden></p>
+
+  <div class="ax-card" style="margin-top:12px">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>New patient name <input class="da-name" value="ANONYMOUS" maxlength="64" /></label>
+      <label>New patient ID <input class="da-id" value="ANON-0001" maxlength="64" /></label>
+      <label>Dates <select class="da-dates"><option value="shift">Shift by a number of days</option><option value="blank">Remove (blank)</option><option value="keep">Keep</option></select></label>
+      <label class="da-shiftbox">Shift by (days) <input class="da-shift" inputmode="numeric" value="-100" /></label>
+    </div>
+    <p class="ax-help">Shifting moves every date by the same number of days, so the gaps between scans stay true while the real dates are hidden. Use your own number and keep it secret; a negative number moves dates back. The birth date is always removed.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="da-keepp" /> Keep sex, age, size and weight</label>
+      <label class="ax-check"><input type="checkbox" class="da-keepd" /> Keep descriptions (study, series, protocol)</label>
+    </div>
+    <p class="ax-help">Keep these only when the receiver needs them: together with dates they can help someone guess who the patient is. Descriptions are free text and may contain names.</p>
+    <p class="ax-err da-oerr" hidden></p>
+  </div>
+
+  <div class="da-burn" role="note"><b>Text burned into the image is not removed.</b> Ultrasound, screenshots, scanned forms and some X-rays show names or dates in the picture itself. Look at every image before you share it.</div>
+
+  <div class="ax-card da-out" hidden>
+    <h2>Cleaned files</h2>
+    <dl class="ax-facts da-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="da-files"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn da-dl">Download cleaned file</button>
+      <button type="button" class="btn secondary small da-csv">Change list (CSV)</button>
+    </div>
+    <p class="ax-help">Files are renamed (anon-0001.dcm and so on), because file names often contain the patient's name. The change list has the new values only, never the original ones.</p>
+  </div>
+
+  <div class="ax-card da-out" hidden>
+    <h2>Before and after</h2>
+    <label style="max-width:420px">File <select class="da-pick"></select></label>
+    <div class="da-prev" hidden><canvas class="da-cv photo"></canvas><p class="ax-help da-cap"></p></div>
+    <div class="ax-row" style="margin-top:10px"><input class="da-filter" placeholder="Search, e.g. date or name" style="flex:1;min-width:0" /></div>
+    <div class="ax-scroll da-tscroll" style="margin-top:8px"><table class="da-tab"></table></div>
+  </div>
+
+  <details class="ax-card da-rules" style="margin-top:12px">
+    <summary><b>What is changed</b></summary>
+    <ul class="da-rlist"></ul>
+  </details>
+  <Downloads />
+</div>
+
+<style is:global>
+  .da-med { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .da-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 22px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; }
+  .da-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .da-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+  .da-burn { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--ink); font-size: 14px; border-left: 4px solid var(--warn); }
+  .da-burn.strong { background: var(--bad-soft); border-left-color: var(--bad); }
+  .da-prev { margin-top: 10px; }
+  .da-cv { display: block; max-width: 100%; max-height: 300px; background: #000; border-radius: 8px; }
+  .da-tscroll { max-height: 440px; }
+  .da-tab td, .da-files td { font-size: 13px; vertical-align: top; }
+  .da-tab td:nth-child(4), .da-tab td:nth-child(5) { overflow-wrap: anywhere; min-width: 90px; }
+  .da-tab td:first-child { white-space: nowrap; }
+  .da-rlist { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
+  .da-rlist li { margin: 4px 0; }
+</style>
+
+<script>
+  import * as D from '../../lib/sci/dicom';
+  import { anonymise, RULES, TYPE_RULES, type AnonOptions, type Change } from '../../lib/sci/dicomanon';
+  import { sampleForAnon } from '../../lib/sci/dicomsample';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.da')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.da-err'), oerr = q('.da-oerr');
+  type In = { name: string; d: D.Dicom };
+  type Out = { name: string; newName: string; bytes: Uint8Array; changes: Change[]; burned: string; d: D.Dicom; modality: string };
+  let inputs: In[] = [], outs: Out[] = [], skipped: string[] = [];
+
+  // Rules list, in our own words.
+  q('.da-rlist').replaceChildren(...[...TYPE_RULES, ...RULES.map((r) => `${r.why}: ${r.act === 'remove' ? 'removed' : 'blanked'}.`)].map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+
+  const drop = q('.da-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); openFiles([...(e.dataTransfer?.files ?? [])]); });
+  q<HTMLInputElement>('.da-in').addEventListener('change', (e) => { openFiles([...((e.target as HTMLInputElement).files ?? [])]); (e.target as HTMLInputElement).value = ''; });
+  q('.da-sample').addEventListener('click', sample);
+
+  const MAX_FILES = 2000, MAX_BYTES = 1.5e9;
+  async function openFiles(files: File[]) {
+    if (!files.length) return;
+    err.hidden = true;
+    if (files.length > MAX_FILES) { err.textContent = `That is ${files.length} files; this tool cleans up to ${MAX_FILES} at a time. Do the study in parts with the same options and date shift.`; err.hidden = false; return; }
+    const total = files.reduce((s, f) => s + f.size, 0);
+    if (total > MAX_BYTES) { err.textContent = `Those files add up to ${(total / 1e9).toFixed(1)} GB; this tool takes up to 1.5 GB at a time. Do the study in parts with the same options and date shift.`; err.hidden = false; return; }
+    const ok: In[] = [], bad: string[] = [];
+    for (const f of files) {
+      try { ok.push({ name: f.name, d: D.parse(new Uint8Array(await f.arrayBuffer())) }); }
+      catch (e) { bad.push(`${f.name}: ${(e as Error).message}`); }
+    }
+    if (!ok.length) { err.textContent = bad.length === 1 ? bad[0] : `None of the ${files.length} files could be read as DICOM. ${bad[0]}`; err.hidden = false; root.querySelectorAll<HTMLElement>('.da-out').forEach((o) => (o.hidden = true)); return; }
+    inputs = ok; skipped = bad;
+    q('.da-src').textContent = '';
+    run();
+  }
+  function sample() {
+    inputs = sampleForAnon().map((b, i) => ({ name: `Phantom_Sample_slice${i + 1}.dcm`, d: D.parse(b) })); skipped = [];
+    q('.da-src').textContent = 'Sample: 3 made-up files with fictional names, IDs, a hospital and a private tag.';
+    err.hidden = true; run();
+  }
+
+  function options(): AnonOptions | null {
+    oerr.hidden = true;
+    const dates = q<HTMLSelectElement>('.da-dates').value as AnonOptions['dates'];
+    q('.da-shiftbox').hidden = dates !== 'shift';
+    const raw = q<HTMLInputElement>('.da-shift').value.trim(), days = Number(raw);
+    if (dates === 'shift' && (!/^[-+]?\d+$/.test(raw) || Math.abs(days) > 36500)) { oerr.textContent = 'Shift by: type a whole number of days, for example -100 or 365 (up to 100 years either way).'; oerr.hidden = false; return null; }
+    const name = q<HTMLInputElement>('.da-name').value.trim(), id = q<HTMLInputElement>('.da-id').value.trim();
+    if (/[\\]/.test(name + id)) { oerr.textContent = 'The new name and ID cannot contain a backslash (\\).'; oerr.hidden = false; return null; }
+    return { name, id, dates, shiftDays: days || 0, keepPatient: q<HTMLInputElement>('.da-keepp').checked, keepDescriptions: q<HTMLInputElement>('.da-keepd').checked };
+  }
+
+  function run() {
+    const opt = options();
+    if (!opt || !inputs.length) { root.querySelectorAll<HTMLElement>('.da-out').forEach((o) => (o.hidden = true)); return; }
+    const uids = new Map<string, string>();
+    outs = inputs.map((f, i) => {
+      const r = anonymise(f.d, opt, uids);
+      return { name: f.name, newName: `anon-${String(i + 1).padStart(4, '0')}.dcm`, bytes: D.write(r.out), changes: r.changes, burned: r.burned, d: r.out, modality: D.getter(f.d).s(0x00080060).toUpperCase() };
+    });
+    root.querySelectorAll<HTMLElement>('.da-out').forEach((o) => (o.hidden = false));
+    const all = outs.flatMap((o) => o.changes);
+    const count = (a: string) => all.filter((c) => c.action === a).length;
+    const facts: [string, string][] = [
+      ['Files cleaned', `${outs.length}${skipped.length ? ` (${skipped.length} not DICOM, skipped)` : ''}`],
+      ['Tags removed', String(count('removed') + count('removed (private)'))],
+      ['Private tags removed', String(count('removed (private)'))],
+      ['Tags blanked', String(count('blanked'))],
+      ['UIDs replaced', `${uids.size} different, kept consistent`],
+      ['Dates', opt.dates === 'shift' ? `shifted ${opt.shiftDays} days` : opt.dates === 'blank' ? 'removed' : 'kept'],
+    ];
+    q('.da-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    report = facts;
+    // Files table with warnings.
+    const t = q<HTMLTableElement>('.da-files'); t.innerHTML = '<thead><tr><th>File</th><th>Saved as</th><th class="r">Changes</th><th>Check</th></tr></thead>';
+    const b = t.createTBody();
+    const risky = (o: Out) => (o.burned === 'YES' ? 'Burned-in text: YES in the header' : ['US', 'SC', 'OT', 'XC', 'DOC', 'SM'].includes(o.modality) || D.getter(o.d).s(0x00080016).startsWith('1.2.840.10008.5.1.4.1.1.7') ? 'Often has burned-in text: look at it' : D.imageInfo(o.d).compressed ? 'Compressed: pixels kept as they were' : '');
+    for (const o of outs) { const tr = b.insertRow(); [o.name, o.newName, String(o.changes.length), risky(o)].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 2) td.className = 'r'; }); }
+    for (const s of skipped) { const tr = b.insertRow(); tr.className = 'dim'; [s.split(':')[0], '–', '–', 'Not DICOM: skipped'].forEach((x) => (tr.insertCell().textContent = x)); }
+    q('.da-burn').classList.toggle('strong', outs.some((o) => risky(o).startsWith('Burned') || risky(o).startsWith('Often')));
+    q('.da-dl').textContent = outs.length === 1 ? 'Download cleaned file' : `Download all ${outs.length} (ZIP)`;
+    const pick = q<HTMLSelectElement>('.da-pick'), keep = Math.min(+pick.value || 0, outs.length - 1);
+    pick.replaceChildren(...outs.map((o, i) => new Option(`${o.name} → ${o.newName}`, String(i))));
+    pick.value = String(Math.max(0, keep));
+    detail();
+  }
+  let report: [string, string][] = [];
+
+  function detail() {
+    const o = outs[+q<HTMLSelectElement>('.da-pick').value || 0]; if (!o) return;
+    const f = q<HTMLInputElement>('.da-filter').value.trim().toLowerCase();
+    const t = q<HTMLTableElement>('.da-tab'); t.innerHTML = '<thead><tr><th>Tag</th><th>Name</th><th>Change</th><th>Before</th><th>After</th></tr></thead>';
+    const b = t.createTBody();
+    for (const c of o.changes) {
+      if (f && !`${c.tag} ${c.name} ${c.action} ${c.before} ${c.after}`.toLowerCase().includes(f)) continue;
+      const tr = b.insertRow(); [c.tag, c.name, c.action, c.before, c.after].forEach((x) => (tr.insertCell().textContent = x));
+    }
+    preview(o);
+  }
+  q('.da-pick').addEventListener('change', detail);
+  q('.da-filter').addEventListener('input', detail);
+
+  function preview(o: Out) {
+    const info = D.imageInfo(o.d), box = q('.da-prev');
+    box.hidden = !info.supported;
+    if (!info.supported) return;
+    const c = q<HTMLCanvasElement>('.da-cv'); c.width = info.cols; c.height = info.rows;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(info.cols, info.rows), px = id.data, n = info.cols * info.rows;
+    if (info.spp === 3) { const rgb = D.rgbFrame(o.d, info, 0); for (let i = 0; i < n; i++) { px[i * 4] = rgb[i * 3]; px[i * 4 + 1] = rgb[i * 3 + 1]; px[i * 4 + 2] = rgb[i * 3 + 2]; px[i * 4 + 3] = 255; } }
+    else {
+      const v = D.frame(o.d, info, 0), [wc, ww] = D.autoWindow(v), m1 = info.photo === 'MONOCHROME1';
+      for (let i = 0; i < n; i++) { let g = D.windowLevel(v[i], wc, ww); if (m1) g = 255 - g; px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = g; px[i * 4 + 3] = 255; }
+    }
+    ctx.putImageData(id, 0, 0);
+    q('.da-cap').textContent = `The picture in ${o.newName}${info.frames > 1 ? ' (first frame)' : ''}, unchanged. Check it for names, dates or IDs written into the image.`;
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  root.querySelectorAll('.da-name, .da-id, .da-shift').forEach((e) => e.addEventListener('input', later));
+  root.querySelectorAll('.da-dates, .da-keepp, .da-keepd').forEach((e) => e.addEventListener('change', run));
+
+  q('.da-dl').addEventListener('click', async () => {
+    if (!outs.length) return;
+    if (outs.length === 1) return save(outs[0].bytes, outs[0].newName, 'application/dicom');
+    const { zipSync } = await import('fflate');
+    const files: Record<string, Uint8Array> = {};
+    for (const o of outs) files[o.newName] = o.bytes;
+    save(zipSync(files, { level: 1 }), 'dicom-anonymised.zip', 'application/zip');
+  });
+  const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  q('.da-csv').addEventListener('click', () => {
+    const rows = [['file', 'tag', 'name', 'change', 'new value'], ...outs.flatMap((o) => o.changes.map((c) => [o.newName, c.tag, c.name, c.action, c.after]))];
+    save(new Blob(['﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }), 'dicom-anonymiser-changes.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [{ title: 'Summary', facts: report }];
+    if (outs[0]) sections.push({ title: `Changes in ${outs[0].newName}`, note: 'New values only; the original values are not included.', table: { head: ['Tag', 'Name', 'Change', 'New value'], rows: outs[0].changes.map((c) => [c.tag, c.name, c.action, c.after]) } });
+    sections.push({ title: 'Not removed', text: ['Text burned into the pixels is not removed. Check every image before sharing.', 'For study and teaching, not medical advice. Check with a qualified professional.'] });
+    return { title: 'DICOM anonymiser report', file: 'dicom-anonymiser', sections };
+  });
+  sample();
+</script>

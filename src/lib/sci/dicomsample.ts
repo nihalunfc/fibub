@@ -1,6 +1,6 @@
 // A made-up CT-like phantom series for the DICOM tools' sample (synthetic: not a real patient or scan). Values are
 // round, illustrative Hounsfield units: air -1000, lung -800, fat -90, soft tissue 40, contrast vessel 180, bone 650.
-import { makeElement as E, write, TS, type Dicom } from './dicom.ts';
+import { makeElement as E, write, parse, TS, type Dicom } from './dicom.ts';
 
 /** A tiny seeded random number generator, so the sample is the same every time. */
 function rng(seed: number) { return () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -47,4 +47,20 @@ export function sampleSeries(n = 24, size = 128, spacing = 2.5, gap = 5): Uint8A
     out.push(write(d));
   }
   return out;
+}
+
+/** Three small sample files for the anonymiser, with made-up identifying details added (all fictional). */
+export function sampleForAnon(): Uint8Array[] {
+  return sampleSeries(3, 64, 5, 5).map((b, i) => {
+    const d = parse(b);
+    d.elements.push(
+      E(0x00080030, 'TM', '093000'), E(0x00080050, 'SH', 'ACC-555'), E(0x00080080, 'LO', 'Made-up General Hospital'),
+      E(0x00080090, 'PN', 'Pretend^Doctor'), E(0x00081010, 'SH', 'CT-ROOM-2'), E(0x00081070, 'PN', 'Example^Operator'),
+      E(0x00101010, 'AS', '024Y'), E(0x00101040, 'LO', '12 Imaginary Road'), E(0x00200010, 'SH', 'ST-9'),
+      E(0x00204000, 'LT', `Slice ${i + 1}: made-up note naming Sample Phantom`),
+      E(0x00090010, 'LO', 'MADE UP MAKER'), E(0x00091001, 'LO', 'private note with the ID SAMPLE-0001'),
+    );
+    d.elements.sort((a, b) => a.tag - b.tag);
+    return write(d);
+  });
 }
