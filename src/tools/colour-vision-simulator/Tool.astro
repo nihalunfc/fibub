@@ -1,0 +1,182 @@
+---
+// Colour vision deficiency simulator: protan, deutan and tritan (any severity) and achromatopsia, in linear RGB.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cvs">
+  <p class="cvs-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <label class="cvs-drop">
+    <input type="file" class="cvs-in" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/avif" hidden />
+    <b>Choose an image</b>
+    <span>or drop it here: a chart, map, slide, photo or design. It stays on your device.</span>
+  </label>
+  <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cvs-sample">Use the sample picture</button><span class="ax-help cvs-src" style="margin:0"></span></div>
+  <p class="ax-err cvs-err" hidden></p>
+
+  <div class="ax-card" style="margin-top:12px">
+    <div class="ax-grid">
+      <label>Type <select class="cvs-kind">
+        <option value="protan">Protan (red cones)</option>
+        <option value="deutan" selected>Deutan (green cones)</option>
+        <option value="tritan">Tritan (blue cones)</option>
+        <option value="achromat">Achromatopsia (no colour)</option>
+      </select></label>
+      <label>Severity <span class="cvs-sv"></span><input type="range" class="cvs-sev" min="0" max="100" step="5" value="100" /></label>
+    </div>
+    <p class="ax-help">100 % means the cone type is missing (dichromacy, the "-anopia" forms). Less than 100 % shows a weaker form (anomalous trichromacy, the "-anomaly" forms), approximated by mixing normal and dichromat vision.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <div class="ax-seg cvs-view" role="group" aria-label="Layout">
+        <button type="button" data-v="side" aria-pressed="true">Side by side</button><button type="button" data-v="sim" aria-pressed="false">Simulated only</button><button type="button" data-v="all" aria-pressed="false">All four types</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ax-card cvs-out" hidden style="margin-top:12px">
+    <p class="ax-big cvs-name"></p>
+    <div class="cvs-grid"></div>
+    <p class="ax-help cvs-px" aria-live="polite">Move over a picture to compare a colour before and after.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cvs-png">Download simulated image (PNG)</button><span class="ax-help cvs-size" style="margin:0"></span></div>
+    <details style="margin-top:12px"><summary>Matrix used (linear RGB)</summary>
+      <div class="ax-scroll"><table class="cvs-mat"></table></div>
+      <p class="ax-help">Each pixel is converted from sRGB to linear light, multiplied by this matrix, clipped to the screen's range and converted back.</p>
+    </details>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .cvs-med { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .cvs-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 22px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; }
+  .cvs-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .cvs-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+  .cvs-sv { font-weight: 600; color: var(--ink); }
+  .cvs-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); margin-top: 8px; }
+  .cvs-grid figure { margin: 0; min-width: 0; }
+  .cvs-grid canvas { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
+  .cvs-grid figcaption { font-size: 14px; font-weight: 600; margin-top: 4px; }
+  .cvs-mat td { font-variant-numeric: tabular-nums; text-align: right; }
+</style>
+
+<script>
+  import { cvdMatrix, cvdName, simulatePixels, simulate, type Kind } from '../../lib/sci/colourvision';
+  import { wireDownloads, save, fileSafe, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cvs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.cvs-err');
+  const MAX = 2000, MAX_BYTES = 40e6;
+  let src: ImageData | null = null, name = 'sample', layout = 'side';
+  let figs: { title: string; canvas: HTMLCanvasElement }[] = [];
+
+  // ---------- The sample: colour swatches, a made-up dot plate with a hidden number, a hue bar and a chart ----------
+  function samplePicture(): ImageData {
+    const W = 900, H = 560, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    const sw: [string, string][] = [['#d62728', 'Red'], ['#ff7f0e', 'Orange'], ['#f2d22e', 'Yellow'], ['#2ca02c', 'Green'], ['#17becf', 'Cyan'], ['#1f63c6', 'Blue'], ['#9467bd', 'Purple'], ['#e377c2', 'Pink'], ['#8c564b', 'Brown'], ['#7f7f7f', 'Grey']];
+    x.font = '600 15px system-ui, sans-serif'; x.textAlign = 'center';
+    sw.forEach(([col, n], i) => { x.fillStyle = col; x.fillRect(20 + i * 87, 20, 76, 60); x.fillStyle = '#111'; x.fillText(n, 58 + i * 87, 100); });
+    // Made-up dot plate (not a clinical test): the number 6 in warm dots among olive-green dots.
+    const m = document.createElement('canvas'); m.width = 300; m.height = 300; const mx = m.getContext('2d')!;
+    mx.font = 'bold 230px system-ui, sans-serif'; mx.textAlign = 'center'; mx.textBaseline = 'middle'; mx.fillText('6', 150, 160);
+    const mask = mx.getImageData(0, 0, 300, 300).data;
+    let s = 497; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const warm = ['#d9733b', '#e08a4a', '#cf6a35', '#e39a5a'], cool = ['#8fa14a', '#9aab55', '#7f9443', '#a6b062'];
+    x.save(); x.beginPath(); x.arc(170, 290, 145, 0, 2 * Math.PI); x.clip();
+    for (let i = 0; i < 2600; i++) {
+      const px = r() * 300, py = r() * 300, rad = 3 + r() * 6, inside = mask[(Math.floor(py) * 300 + Math.floor(px)) * 4 + 3] > 128;
+      x.fillStyle = (inside ? warm : cool)[Math.floor(r() * 4)]; x.beginPath(); x.arc(20 + px, 140 + py, rad, 0, 2 * Math.PI); x.fill();
+    }
+    x.restore();
+    x.fillStyle = '#111'; x.textAlign = 'left'; x.font = '13px system-ui, sans-serif'; x.fillText('Made-up dot plate (not a test)', 60, 455);
+    // A small bar chart with red and green series.
+    const bars = [[5, 7], [8, 6], [6, 9], [9, 4]];
+    x.strokeStyle = '#111'; x.beginPath(); x.moveTo(380, 150); x.lineTo(380, 420); x.lineTo(870, 420); x.stroke();
+    bars.forEach(([a, b], i) => { x.fillStyle = '#d62728'; x.fillRect(400 + i * 118, 420 - a * 28, 44, a * 28); x.fillStyle = '#2ca02c'; x.fillRect(446 + i * 118, 420 - b * 28, 44, b * 28); });
+    x.fillStyle = '#d62728'; x.fillRect(400, 130, 14, 14); x.fillStyle = '#2ca02c'; x.fillRect(520, 130, 14, 14);
+    x.fillStyle = '#111'; x.fillText('Sales', 420, 142); x.fillText('Costs', 540, 142);
+    // Hue bar.
+    for (let i = 0; i < W - 40; i++) { x.fillStyle = `hsl(${(i / (W - 40)) * 360} 85% 50%)`; x.fillRect(20 + i, 490, 1, 50); }
+    return x.getImageData(0, 0, W, H);
+  }
+
+  // ---------- Opening ----------
+  const drop = q('.cvs-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files?.[0]; if (f) open(f); });
+  q<HTMLInputElement>('.cvs-in').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); (e.target as HTMLInputElement).value = ''; });
+  q('.cvs-sample').addEventListener('click', () => { src = samplePicture(); name = 'sample'; q('.cvs-src').textContent = 'Showing the sample picture (made by this page).'; err.hidden = true; q('.cvs-size').textContent = ''; render(); });
+
+  async function open(f: File) {
+    err.hidden = true;
+    if (!/^image\//.test(f.type) && !/\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(f.name)) { err.textContent = `${f.name} is not an image. Use PNG, JPEG, WebP, GIF or BMP.`; err.hidden = false; return; }
+    if (f.size > MAX_BYTES) { err.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes images up to 40 MB.`; err.hidden = false; return; }
+    let bmp: ImageBitmap;
+    try { bmp = await createImageBitmap(f); } catch { err.textContent = `${f.name} could not be opened as an image. It may be damaged or in a format this browser cannot read.`; err.hidden = false; return; }
+    const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d')!;
+    x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(bmp, 0, 0, w, h);
+    src = x.getImageData(0, 0, w, h); name = f.name.replace(/\.[^.]+$/, '');
+    q('.cvs-src').textContent = '';
+    q('.cvs-size').textContent = k < 1 ? `Scaled to ${w} × ${h} pixels (from ${bmp.width} × ${bmp.height}).` : `${w} × ${h} pixels.`;
+    render();
+  }
+
+  // ---------- Simulation ----------
+  const kindOf = () => q<HTMLSelectElement>('.cvs-kind').value as Kind;
+  const sev = () => +q<HTMLInputElement>('.cvs-sev').value / 100;
+  function simCanvas(kind: Kind | null, s: number): HTMLCanvasElement {
+    const c = document.createElement('canvas'); c.width = src!.width; c.height = src!.height;
+    const d = new ImageData(new Uint8ClampedArray(src!.data), src!.width, src!.height);
+    if (kind) simulatePixels(d.data, cvdMatrix(kind, s));
+    c.getContext('2d')!.putImageData(d, 0, 0);
+    return c;
+  }
+  function render() {
+    q('.cvs-sv').textContent = `${Math.round(sev() * 100)} %`;
+    if (!src) return;
+    const kind = kindOf(), s = sev(), nm = cvdName(kind, s);
+    q('.cvs-out').hidden = false;
+    q('.cvs-name').textContent = s > 0 && s < 1 ? `${nm}, ${Math.round(s * 100)} %` : nm;
+    figs = [];
+    if (layout === 'all') for (const k of ['protan', 'deutan', 'tritan', 'achromat'] as Kind[]) figs.push({ title: s > 0 && s < 1 && k !== 'achromat' ? `${cvdName(k, s)}, ${Math.round(s * 100)} %` : cvdName(k, s), canvas: simCanvas(k, s) });
+    else {
+      if (layout === 'side') figs.push({ title: 'Original', canvas: simCanvas(null, 0) });
+      figs.push({ title: q('.cvs-name').textContent!, canvas: simCanvas(kind, s) });
+    }
+    q('.cvs-grid').replaceChildren(...figs.map((f) => { const fg = document.createElement('figure'); f.canvas.classList.add('photo'); fg.append(f.canvas); const cap = document.createElement('figcaption'); cap.textContent = f.title; fg.append(cap); return fg; }));
+    const m = cvdMatrix(kind, s), t = q<HTMLTableElement>('.cvs-mat');
+    t.innerHTML = '<thead><tr><th></th><th class="r">× R</th><th class="r">× G</th><th class="r">× B</th></tr></thead>';
+    const b = t.createTBody(); ['R′', 'G′', 'B′'].forEach((h, i) => { const tr = b.insertRow(); tr.insertCell().textContent = h; m[i].forEach((v) => (tr.insertCell().textContent = v.toFixed(4))); });
+  }
+  q('.cvs-kind').addEventListener('change', render);
+  let timer = 0;
+  q('.cvs-sev').addEventListener('input', () => { q('.cvs-sv').textContent = `${Math.round(sev() * 100)} %`; clearTimeout(timer); timer = window.setTimeout(render, 120); });
+  q('.cvs-view').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button'); if (!b) return;
+    layout = b.dataset.v!; q('.cvs-view').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  });
+  const hex = (c: number[]) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+  q('.cvs-grid').addEventListener('mousemove', (e) => {
+    const c = (e.target as HTMLElement).closest('canvas'); if (!c || !src) return;
+    const r = c.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) / r.width) * src.width), y = Math.floor(((e.clientY - r.top) / r.height) * src.height);
+    if (x < 0 || y < 0 || x >= src.width || y >= src.height) return;
+    const o = (y * src.width + x) * 4, c0 = [src.data[o], src.data[o + 1], src.data[o + 2]];
+    q('.cvs-px').textContent = `${hex(c0)} looks like ${hex(simulate(c0, cvdMatrix(kindOf(), sev())))} with ${q('.cvs-name').textContent!.toLowerCase()}`;
+  });
+  q('.cvs-png').addEventListener('click', () => {
+    const f = figs[figs.length - 1] && layout !== 'all' ? figs[figs.length - 1] : { canvas: simCanvas(kindOf(), sev()) };
+    f.canvas.toBlob((b) => b && save(b, `${fileSafe(name)}-${fileSafe(q('.cvs-name').textContent!.toLowerCase())}.png`, 'image/png'), 'image/png');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = figs.map((f) => {
+      const k = Math.min(1, 1000 / f.canvas.width);
+      const fig: Figure = { w: Math.round(f.canvas.width * k), h: Math.round(f.canvas.height * k), alt: f.title, draw: (ctx, w, h) => ctx.drawImage(f.canvas, 0, 0, w, h) };
+      return { title: f.title, figure: fig };
+    });
+    sections.push({ title: 'Method', text: ['Simulated in linear RGB after Viénot, Brettel and Mollon (1999); weaker forms mix normal and dichromat vision by severity. A simulation shows roughly what is lost, not exactly what any one person sees.', 'For study and teaching, not medical advice. Check with a qualified professional.'] });
+    return { title: 'Colour vision simulation', subtitle: q('.cvs-name').textContent ?? '', file: `colour-vision-${fileSafe(name)}`, sections };
+  });
+  src = samplePicture(); q('.cvs-src').textContent = 'Showing the sample picture (made by this page).'; render();
+</script>
