@@ -1,0 +1,153 @@
+---
+// Battery runtime (simple and Peukert) and off-grid solar sizing from an appliance list.
+// Example values are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'appliance\twatts\thours per day\tquantity\nLED lights\t10\t5\t4\nFridge (average draw)\t60\t10\t1\nLaptop\t45\t4\t1\nPhone charger\t10\t2\t2\nFan\t35\t6\t1';
+---
+<div class="ax bss">
+  <div class="ax-card">
+    <h2>Battery runtime</h2>
+    <div class="ax-grid">
+      <label>Battery capacity <input class="br-cap" type="text" inputmode="decimal" value="100" /></label>
+      <label>Capacity unit <select class="br-cu"><option value="Ah" selected>Ah</option><option value="Wh">Wh</option></select></label>
+      <label>Battery voltage (V) <input class="br-v" type="text" inputmode="decimal" value="12" /></label>
+      <label>Load <input class="br-load" type="text" inputmode="decimal" value="60" /></label>
+      <label>Load unit <select class="br-lu"><option value="W" selected>W at the device</option><option value="A">A from the battery</option></select></label>
+      <label class="br-effw">Converter or inverter efficiency (%) <input class="br-eff" type="text" inputmode="decimal" value="90" /></label>
+      <label>Usable depth of discharge (%) <input class="br-dod" type="text" inputmode="decimal" value="50" /></label>
+      <label>Peukert exponent k <input class="br-k" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>Capacity rated over (hours) <input class="br-h" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Example values, made up: a 100 Ah, 12 V lead-acid battery used to half its capacity. Lead-acid batteries often have k around 1.1 to 1.3 and lithium batteries close to 1.05; use your datasheet. k = 1 switches the Peukert effect off. With a load in amps from the battery, the efficiency is not used.</p>
+    <p class="ax-err br-err" hidden></p>
+    <div class="br-out">
+      <p class="ax-big br-big"></p>
+      <dl class="ax-facts br-facts"></dl>
+      <canvas class="ax-fig br-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Off-grid solar sizing</h2>
+    <label>Appliance, watts, hours per day, quantity <textarea class="so-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".so-data" maxCols={5} maxRows={200} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Peak sun hours per day <input class="so-psh" type="text" inputmode="decimal" value="4.5" /></label>
+      <label>System losses (%) <input class="so-loss" type="text" inputmode="decimal" value="25" /></label>
+      <label>Inverter efficiency (%) <input class="so-inv" type="text" inputmode="decimal" value="90" /></label>
+      <label>Battery charge efficiency (%) <input class="so-be" type="text" inputmode="decimal" value="90" /></label>
+      <label>Days of autonomy <input class="so-days" type="text" inputmode="decimal" value="2" /></label>
+      <label>Usable depth of discharge (%) <input class="so-dod" type="text" inputmode="decimal" value="50" /></label>
+      <label>System voltage <select class="so-vs"><option value="12">12 V</option><option value="24" selected>24 V</option><option value="48">48 V</option></select></label>
+      <label>Panel rating (W) <input class="so-pw" type="text" inputmode="decimal" value="400" /></label>
+      <label>One battery: voltage (V) <input class="so-bv" type="text" inputmode="decimal" value="12" /></label>
+      <label>One battery: capacity (Ah) <input class="so-bah" type="text" inputmode="decimal" value="100" /></label>
+      <label>Controller safety factor <input class="so-sf" type="text" inputmode="decimal" value="1.25" /></label>
+    </div>
+    <p class="ax-help">Peak sun hours are the hours of full 1000 W/m² sun that give the same energy as a whole day; 4.5 is only an example, so look up the value for your place and the worst month you need. System losses cover heat, dust, wiring and the controller. Days of autonomy is how long the batteries must last with no sun. Example values are made up.</p>
+    <p class="ax-err so-err" hidden></p>
+    <div class="so-out">
+      <p class="ax-big so-big"></p>
+      <dl class="ax-facts so-facts"></dl>
+      <div class="ax-scroll"><table class="so-tab"></table></div>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small so-csv">Download the sizing (CSV)</button></div>
+    </div>
+    <Downloads />
+    <p class="ax-help"><strong>For study and planning, not a substitute for professional judgement.</strong> Wiring, fuses, cable sizes and grid or building rules are not covered. Check your local electrical code and a qualified installer.</p>
+  </div>
+</div>
+
+<script>
+  import { runtime, solar, type Appliance } from '../../lib/sci/batsolar';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.bss')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const s3 = (x: number) => sig(x, 3);
+  const hm = (h: number) => { if (h >= 48) return `${s3(h / 24)} days`; const m = Math.round(h * 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`; };
+  let brFig: Figure | null = null, S: Record<string, Section | null> = {}, csvRows: (string | number)[][] = [];
+
+  function batt() {
+    const err = q('.br-err'), out = q('.br-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.br = null; brFig = null; };
+    const V = val('.br-v'), capIn = val('.br-cap'), cu = sel('.br-cu'), lu = sel('.br-lu') as 'W' | 'A';
+    q('.br-effw').hidden = lu === 'A';
+    const inp = { capAh: cu === 'Ah' ? capIn : capIn / V, V, load: val('.br-load'), loadUnit: lu, eff: lu === 'A' ? 1 : val('.br-eff') / 100, dod: val('.br-dod') / 100, peukert: val('.br-k'), ratedH: val('.br-h') };
+    let r: ReturnType<typeof runtime>;
+    try { r = runtime(inp); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    q('.br-big').textContent = `About ${hm(r.tPeukert)} (${hm(r.tSimple)} without Peukert)`;
+    const f = [fact('Stored energy', `${s3(r.E)} Wh`, `${s3(inp.capAh)} Ah × ${V} V; usable ${s3(r.E * inp.dod)} Wh`),
+      fact('Battery current', `${s3(r.Ibat)} A`, `${s3(r.Pbat)} W from the battery; ${s3(r.rateC)} C (current ÷ Ah)`),
+      fact('Simple runtime', hm(r.tSimple), 'usable Ah ÷ current'),
+      fact('Peukert runtime', hm(r.tPeukert), `t = H·(C/(I·H))^k × usable share = ${inp.ratedH}·(${s3(inp.capAh)}/(${s3(r.Ibat)}·${inp.ratedH}))^${inp.peukert} × ${s3(inp.dod)}`),
+      fact('Capacity at this current', `${s3(r.capEff)} Ah`, r.capEff < inp.capAh ? 'less than rated: drawn faster than the rated hours' : 'at or above rated: drawn slower than the rated hours')];
+    q('.br-facts').replaceChildren(...f);
+    const base = lu === 'W' ? inp.load : inp.load;
+    const xs = Array.from({ length: 41 }, (_, i) => base * 10 ** (-1 + (i * 2) / 40));
+    const rts = xs.map((L) => runtime({ ...inp, load: L }));
+    brFig = chartFigure({ w: 380, h: 250, xLog: true, yLog: true, xLabel: `Load (${lu === 'W' ? 'W at the device' : 'A'})`, yLabel: 'Runtime (hours)', legend: 'inside',
+      series: [{ name: 'Simple', x: xs, y: rts.map((x) => x.tSimple), mode: 'line', width: 1.6, dash: [5, 3] }, { name: 'Peukert', x: xs, y: rts.map((x) => x.tPeukert), mode: 'line', width: 2 }],
+      marks: [{ kind: 'vline', at: inp.load, dash: [3, 3], label: 'this load' }] }, 'Runtime against load, with and without the Peukert effect');
+    paint(q<HTMLCanvasElement>('.br-fig'), brFig);
+    S.br = { title: q('.br-big').textContent!, facts: pairs(f), figure: brFig };
+  }
+
+  function sun() {
+    const err = q('.so-err'), out = q('.so-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.so = null; csvRows = []; };
+    const loads: Appliance[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.so-data').value)) {
+      const c = r.map((x) => x.trim()); if (!c.some(Boolean)) continue;
+      const nums = c.map(num), firstNum = nums.findIndex(Number.isFinite);
+      if (firstNum < 0) continue; // header
+      const v = nums.slice(firstNum).filter(Number.isFinite);
+      if (v.length < 2) return fail(`Each row needs at least watts and hours per day: "${r.join(' ')}".`);
+      loads.push({ name: firstNum > 0 ? c.slice(0, firstNum).join(' ') : `Item ${loads.length + 1}`, W: v[0], h: v[1], n: v.length >= 3 ? v[2] : 1 });
+    }
+    const Vsys = +sel('.so-vs');
+    let r: ReturnType<typeof solar>;
+    try { r = solar({ loads, invEff: val('.so-inv') / 100, psh: val('.so-psh'), losses: val('.so-loss') / 100, battEff: val('.so-be') / 100, days: val('.so-days'), dod: val('.so-dod') / 100, Vsys, panelW: val('.so-pw'), battV: val('.so-bv'), battAh: val('.so-bah'), safety: val('.so-sf') }); }
+    catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const pw = val('.so-pw'), bv = val('.so-bv'), bah = val('.so-bah');
+    q('.so-big').textContent = `${r.panels} × ${pw} W panels, ${r.batteries} × ${bv} V ${bah} Ah batteries`;
+    const f = [fact('Daily load', `${s3(r.daily)} Wh/day`, `${s3(r.dcDaily)} Wh/day from the batteries after the inverter; all loads together draw up to ${s3(r.peakW)} W`),
+      fact('Solar array needed', `${s3(r.arrayW)} W`, `daily load ÷ (sun hours × (1 − losses) × charge efficiency); installed ${r.installedW} W gives about ${s3(r.dailyPv)} Wh/day`),
+      fact('Battery bank', `${s3(r.bankWh)} Wh, ${s3(r.bankAh)} Ah at ${Vsys} V`, 'daily load × days ÷ usable depth of discharge'),
+      fact('Battery layout', `${r.series} in series × ${r.parallel} in parallel`, `${r.batteries} batteries of ${bv} V ${bah} Ah`),
+      fact('Charge controller', `at least ${s3(r.ctrlA)} A`, `installed array W ÷ ${Vsys} V × ${val('.so-sf')}; for a PWM controller use the array short-circuit current × 1.25 instead`)];
+    if (Vsys % bv > 1e-9 && bv < Vsys) f.push(fact('Check', `${Vsys} V is not a whole number of ${bv} V batteries`, 'pick batteries that add up to the system voltage'));
+    q('.so-facts').replaceChildren(...f);
+    const head = ['Appliance', 'W', 'h/day', 'Qty', 'Wh/day', 'Share'];
+    const rows = loads.map((a, i) => [a.name, String(a.W), String(a.h), String(a.n), s3(r.perLoad[i]), `${((r.perLoad[i] / r.daily) * 100).toFixed(0)} %`]);
+    const tab = q<HTMLTableElement>('.so-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((x) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = x; e.append(d); }); return e; };
+    tab.append(tr(head, true), ...rows.map((x) => tr(x)), tr(['Total', '', '', '', s3(r.daily), '100 %']));
+    csvRows = [['appliance', 'watts', 'hours_per_day', 'quantity', 'wh_per_day'], ...loads.map((a, i) => [a.name, a.W, a.h, a.n, +r.perLoad[i].toFixed(6)]), [],
+      ['quantity', 'value'], ['daily_load_wh', +r.daily.toFixed(4)], ['array_needed_w', +r.arrayW.toFixed(4)], ['panels', r.panels], ['bank_wh', +r.bankWh.toFixed(4)], ['bank_ah', +r.bankAh.toFixed(4)], ['batteries_series', r.series], ['batteries_parallel', r.parallel], ['controller_a', +r.ctrlA.toFixed(4)]];
+    S.so = { title: q('.so-big').textContent!, facts: pairs(f), table: { head, rows }, note: 'Example values are made up. For study and planning, not a substitute for professional judgement.' };
+  }
+
+  root.querySelectorAll('.bss > .ax-card:first-child input, .bss > .ax-card:first-child select').forEach((i) => { i.addEventListener('input', batt); i.addEventListener('change', batt); });
+  root.querySelectorAll('.bss > .ax-card:nth-child(2) input, .bss > .ax-card:nth-child(2) select, .bss > .ax-card:nth-child(2) textarea').forEach((i) => { i.addEventListener('input', sun); i.addEventListener('change', sun); });
+  q('.so-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'solar-sizing.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (brFig && !q('.br-out').hidden) paint(q<HTMLCanvasElement>('.br-fig'), brFig); });
+  batt(); sun();
+  wireDownloads(q('.dl'), () => ({ title: 'Battery runtime and solar sizing', subtitle: [S.br?.title, S.so?.title].filter(Boolean).join('; '), file: 'battery-solar-sizing', sections: [S.br, S.so].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .bss select, .bss input[type=text] { max-width: 100%; }
+  .bss textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
+  .bss .br-out, .bss .so-out { margin-top: 12px; }
+  .bss .so-tab td:not(:first-child), .bss .so-tab th:not(:first-child) { text-align: right; }
+</style>
