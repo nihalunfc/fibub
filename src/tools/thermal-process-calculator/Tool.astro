@@ -1,0 +1,216 @@
+---
+// D-value, z-value, F needed for a log reduction, and F by the general method from a time-temperature profile.
+// For study, not a substitute for a process authority. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax therm">
+  <div class="ax-card">
+    <h2>Reference</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small tp-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span>Reference temperature, T<sub>ref</sub> (°C)</span> <input class="tp-tref" type="number" step="any" value="121.1" inputmode="decimal" /></label>
+      <label>z-value (°C) <input class="tp-z" type="number" min="0" step="any" value="10" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">F<sub>0</sub> is F with T<sub>ref</sub> 121.1 °C and z 10 °C, the usual reference for low-acid canned food. Change them for other organisms or processes (for example pasteurisation).</p>
+    <p class="ax-err tp-err0" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>D-value from survivor counts</h2>
+    <label>Heating time (min) and survivors, one count per line
+      <textarea class="tp-surv" rows="5" spellcheck="false" placeholder="0, 1000000&#10;2, 210000&#10;4, 44000"></textarea></label>
+    <DataFile target=".tp-surv" maxMB={1} maxCols={4} maxRows={500} />
+    <p class="ax-help">All counts at one temperature, in any unit (per g, per ml, per can). The D-value is the time for a tenfold (90 %) drop, from a straight line fitted to log<sub>10</sub>(count) against time.</p>
+    <p class="ax-err tp-err1" hidden></p>
+    <div class="tp-out1" hidden>
+      <p class="ax-big tp-big1"></p>
+      <dl class="ax-facts tp-facts1"></dl>
+      <canvas class="ax-fig tp-fig1" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>z-value from D-values</h2>
+    <label>Temperature (°C) and D-value (min), one per line
+      <textarea class="tp-dz" rows="4" spellcheck="false" placeholder="110, 20&#10;115, 6.5&#10;120, 2"></textarea></label>
+    <DataFile target=".tp-dz" maxMB={1} maxCols={4} maxRows={200} />
+    <p class="ax-help">The z-value is how many °C hotter it takes to make D ten times shorter, from a straight line fitted to log<sub>10</sub>(D) against temperature.</p>
+    <p class="ax-err tp-err2" hidden></p>
+    <div class="tp-out2" hidden>
+      <p class="ax-big tp-big2"></p>
+      <dl class="ax-facts tp-facts2"></dl>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tp-usez">Use this z and D above and below</button></div>
+      <canvas class="ax-fig tp-fig2" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>F needed for a log reduction</h2>
+    <div class="ax-grid">
+      <label><span>D at T<sub>ref</sub> (min)</span> <input class="tp-D" type="number" min="0" step="any" value="" placeholder="e.g. 1.5" inputmode="decimal" /></label>
+      <label><span>Starting count, N<sub>0</sub></span> <input class="tp-n0" type="text" value="" placeholder="e.g. 1000" inputmode="decimal" /></label>
+      <label>Count wanted, N <input class="tp-n" type="text" value="" placeholder="e.g. 1e-9" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">F = D × (log<sub>10</sub> N<sub>0</sub> − log<sub>10</sub> N). A count below 1, such as 1e-9, means a chance of one survivor in a billion units. Write powers of ten as 1e-9.</p>
+    <p class="ax-err tp-err3" hidden></p>
+    <p class="ax-big tp-big3"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>F from a time-temperature profile</h2>
+    <label>Time (min) and the temperature at the slowest-heating point (°C), one reading per line
+      <textarea class="tp-prof" rows="6" spellcheck="false" placeholder="0, 40&#10;5, 70&#10;10, 95"></textarea></label>
+    <DataFile target=".tp-prof" maxMB={5} maxCols={4} maxRows={20000} />
+    <p class="ax-help">Lethal rate L = 10<sup>(T − Tref)/z</sup>: minutes at T<sub>ref</sub> worth one minute at T. F adds up L over time with the trapezoid rule (the general method). Readings closer together give a better answer.</p>
+    <p class="ax-err tp-err4" hidden></p>
+    <div class="tp-out4" hidden>
+      <p class="ax-big tp-big4"></p>
+      <dl class="ax-facts tp-facts4"></dl>
+      <canvas class="ax-fig tp-fig4" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig tp-fig5" style="margin-top:12px"></canvas>
+      <div class="ax-scroll tp-tw"><table class="tp-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tp-csv">Download profile with lethal rates (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <Downloads />
+    <p class="ax-help">For study and checking sums only, not a substitute for a process authority. A commercial heat process must be designed and validated by a qualified process authority and meet the rules where the food is sold; check the official source.</p>
+  </div>
+</div>
+
+<style is:global>
+  .therm .tp-tw { max-height: 360px; overflow-y: auto; margin-top: 10px; }
+</style>
+
+<script>
+  import { dValue, zValue, fNeeded, fProfile, EXAMPLE_SURVIVORS, EXAMPLE_D, EXAMPLE_PROFILE, type Profile } from '../../lib/sci/thermproc';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.therm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const s3 = (x: number) => sig(x, 3), s4 = (x: number) => sig(x, 4);
+  const err = (c: string, m = '') => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const facts = (c: string, f: [string, string][]) => q(c).replaceChildren(...f.map(([k, x]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = x; d.append(dt, dd); return d; }));
+  const factList = (c: string) => [...q(c).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!]) as [string, string][];
+  /** Pairs of numbers from a pasted table; a first row of words is a header. */
+  function pairs(text: string): [number, number][] {
+    const out: [number, number][] = [];
+    for (const r of parseTable(text)) {
+      const a = num(r[0]), b = num(r[1]);
+      if (!out.length && !Number.isFinite(a) && !Number.isFinite(b)) continue;
+      if (!Number.isFinite(a) || !Number.isFinite(b)) throw new Error(`"${r.join(', ')}" needs two numbers.`);
+      out.push([a, b]);
+    }
+    return out;
+  }
+  const ref = () => ({ Tref: v('.tp-tref'), z: v('.tp-z') });
+  const figs: Record<string, Figure | null> = {};
+  const draw = (k: string, f: Figure) => { figs[k] = f; paint(q<HTMLCanvasElement>(`.tp-${k}`), f); };
+  let zRes: ReturnType<typeof zValue> | null = null, prof: Profile | null = null;
+  let done = { d: false, z: false, f: false, p: false };
+
+  function runD() {
+    err('.tp-err1'); q('.tp-out1').hidden = true; done.d = false;
+    const text = q<HTMLTextAreaElement>('.tp-surv').value; if (!text.trim()) return;
+    let r: ReturnType<typeof dValue>, pts: [number, number][];
+    try { pts = pairs(text); r = dValue(pts.map(([t, N]) => ({ t, N }))); } catch (e) { return err('.tp-err1', (e as Error).message); }
+    q('.tp-out1').hidden = false; done.d = true;
+    q('.tp-big1').textContent = `D = ${s3(r.D)} min`;
+    facts('.tp-facts1', [['Fitted log₁₀ N₀', r.logN0.toFixed(3)], ['R²', r.fit.r2.toFixed(4)], ['Counts', String(r.fit.n)], ['Log reductions seen', ((r.logN0 - (r.fit.a + r.fit.b * Math.max(...pts.map((p) => p[0]))))).toFixed(2)]]);
+    const xs = [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0]))];
+    draw('fig1', chartFigure({ w: 520, h: 320, yLog: true, xLabel: 'Heating time (min)', yLabel: 'Survivors', legend: 'below', series: [
+      { name: 'Counts', x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'points' },
+      { name: `Fit, D = ${s3(r.D)} min`, x: xs, y: xs.map((t) => Math.pow(10, r.fit.a + r.fit.b * t)), mode: 'line', width: 2 },
+    ] }, `Survivor curve on a log scale with the fitted line, D = ${s3(r.D)} min`));
+  }
+
+  function runZ() {
+    err('.tp-err2'); q('.tp-out2').hidden = true; zRes = null; done.z = false;
+    const text = q<HTMLTextAreaElement>('.tp-dz').value; if (!text.trim()) return;
+    let pts: [number, number][];
+    try { pts = pairs(text); zRes = zValue(pts.map(([T, D]) => ({ T, D }))); } catch (e) { return err('.tp-err2', (e as Error).message); }
+    const z = zRes, { Tref } = ref();
+    q('.tp-out2').hidden = false; done.z = true;
+    q('.tp-big2').textContent = `z = ${s3(z.z)} °C`;
+    facts('.tp-facts2', [[`D at ${Tref} °C`, Number.isFinite(Tref) ? `${s3(z.dAt(Tref))} min` : '–'], ['R²', z.fit.r2.toFixed(4)], ['D-values', String(z.fit.n)]]);
+    const xs = [Math.min(...pts.map((p) => p[0]), Tref), Math.max(...pts.map((p) => p[0]), Tref)].filter(Number.isFinite);
+    draw('fig2', chartFigure({ w: 520, h: 320, yLog: true, xLabel: 'Temperature (°C)', yLabel: 'D-value (min)', legend: 'below', series: [
+      { name: 'D-values', x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'points' },
+      { name: `Fit, z = ${s3(z.z)} °C`, x: xs, y: xs.map(z.dAt), mode: 'line', width: 2 },
+    ], marks: Number.isFinite(Tref) ? [{ kind: 'vline', at: Tref, dash: [3, 3], label: 'Tref' }] : [] }, `D-value against temperature on a log scale, z = ${s3(z.z)} °C`));
+  }
+
+  function runF() {
+    err('.tp-err3'); q('.tp-big3').textContent = ''; done.f = false;
+    const D = v('.tp-D'), n0 = num(q<HTMLInputElement>('.tp-n0').value), n = num(q<HTMLInputElement>('.tp-n').value);
+    if (![D, n0, n].some(Number.isFinite)) return;
+    if (!(D > 0) || !(n0 > 0) || !(n > 0)) return err('.tp-err3', 'D, N₀ and N must all be numbers above 0.');
+    if (n >= n0) return err('.tp-err3', 'The count wanted must be smaller than the starting count.');
+    const logs = Math.log10(n0) - Math.log10(n);
+    q('.tp-big3').textContent = `F = ${s3(fNeeded(D, Math.log10(n0), Math.log10(n)))} min (${s3(logs)} log reductions)`;
+    done.f = true;
+  }
+
+  function runP() {
+    err('.tp-err4'); q('.tp-out4').hidden = true; prof = null; done.p = false;
+    const text = q<HTMLTextAreaElement>('.tp-prof').value; if (!text.trim()) return;
+    const { Tref, z } = ref();
+    if (!Number.isFinite(Tref) || !(z > 0)) return err('.tp-err4', 'Set the reference temperature and a z-value above 0 at the top.');
+    try { prof = fProfile(pairs(text).map(([t, T]) => ({ t, T })), Tref, z); } catch (e) { return err('.tp-err4', (e as Error).message); }
+    const p = prof, D = v('.tp-D');
+    q('.tp-out4').hidden = false; done.p = true;
+    q('.tp-big4').textContent = `F = ${s3(p.total)} min at ${Tref} °C (z ${z} °C)`;
+    const f: [string, string][] = [['Highest temperature', `${p.peak} °C at ${p.peakAt} min`], ['Process time', `${s4(p.t[p.t.length - 1] - p.t[0])} min`], ['Readings', String(p.t.length)]];
+    if (D > 0) f.push([`Log reductions (D ${D} min)`, s3(p.total / D)]);
+    facts('.tp-facts4', f);
+    draw('fig4', chartFigure({ w: 520, h: 280, xLabel: 'Time (min)', yLabel: 'Temperature (°C)', legend: 'none', series: [{ name: 'Temperature', x: p.t, y: p.T, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: Tref, dash: [3, 3], label: 'Tref' }] }, `Temperature profile, highest ${p.peak} °C`));
+    draw('fig5', chartFigure({ w: 520, h: 280, xLabel: 'Time (min)', yLabel: 'F so far (min)', yMin: 0, legend: 'none', series: [{ name: 'F', x: p.t, y: p.F, mode: 'line', width: 2 }] }, `F building up over the process to ${s3(p.total)} min`));
+    const t = q('.tp-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Time (min)', 'T (°C)', 'Lethal rate', 'F so far (min)']) { const th = document.createElement('th'); th.textContent = x; th.className = 'r'; h.append(th); }
+    p.t.slice(0, 1000).forEach((ti, i) => { const tr = t.insertRow(); for (const x of [String(ti), String(p.T[i]), p.L[i].toExponential(3), p.F[i].toFixed(3)]) { const td = tr.insertCell(); td.textContent = x; td.className = 'r'; } });
+  }
+
+  const sections = (): Section[] => {
+    const s: Section[] = [{ title: 'Reference', facts: [['Tref', `${v('.tp-tref')} °C`], ['z', `${v('.tp-z')} °C`]] }];
+    if (done.d) s.push({ title: 'D-value', text: [q('.tp-big1').textContent!], facts: factList('.tp-facts1'), figure: figs.fig1 ?? undefined });
+    if (done.z) s.push({ title: 'z-value', text: [q('.tp-big2').textContent!], facts: factList('.tp-facts2'), figure: figs.fig2 ?? undefined });
+    if (done.f) s.push({ title: 'F needed', text: [q('.tp-big3').textContent!] });
+    if (done.p && prof) s.push({ title: 'F from the profile', text: [q('.tp-big4').textContent!], facts: factList('.tp-facts4'), figure: figs.fig4 ?? undefined },
+      { title: 'F building up', figure: figs.fig5 ?? undefined, table: { head: ['Time (min)', 'T (°C)', 'Lethal rate', 'F so far'], rows: prof.t.slice(0, 300).map((ti, i) => [String(ti), String(prof!.T[i]), prof!.L[i].toExponential(3), prof!.F[i].toFixed(3)]), align: ['r', 'r', 'r', 'r'] } });
+    return s;
+  };
+
+  const all = () => { err('.tp-err0', v('.tp-z') > 0 && Number.isFinite(v('.tp-tref')) ? '' : 'Give a reference temperature and a z-value above 0.'); runD(); runZ(); runF(); runP(); };
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 250); };
+  for (const c of ['.tp-tref', '.tp-z']) q(c).addEventListener('input', () => later(all));
+  q('.tp-surv').addEventListener('input', () => later(runD));
+  q('.tp-dz').addEventListener('input', () => later(runZ));
+  for (const c of ['.tp-D', '.tp-n0', '.tp-n']) q(c).addEventListener('input', () => later(() => { runF(); runP(); }));
+  q('.tp-prof').addEventListener('input', () => later(runP));
+  q('.tp-usez').addEventListener('click', () => {
+    if (!zRes) return;
+    q<HTMLInputElement>('.tp-z').value = zRes.z.toFixed(2);
+    const Tref = v('.tp-tref'); if (Number.isFinite(Tref)) q<HTMLInputElement>('.tp-D').value = zRes.dAt(Tref).toFixed(3);
+    all();
+  });
+  q('.tp-ex').addEventListener('click', () => {
+    q<HTMLInputElement>('.tp-tref').value = '121.1'; q<HTMLInputElement>('.tp-z').value = '10';
+    q<HTMLTextAreaElement>('.tp-surv').value = EXAMPLE_SURVIVORS; q<HTMLTextAreaElement>('.tp-dz').value = EXAMPLE_D; q<HTMLTextAreaElement>('.tp-prof').value = EXAMPLE_PROFILE;
+    q<HTMLInputElement>('.tp-D').value = '1.546'; q<HTMLInputElement>('.tp-n0').value = '1000'; q<HTMLInputElement>('.tp-n').value = '1e-9';
+    all();
+  });
+  q('.tp-csv').addEventListener('click', () => {
+    if (!prof) return;
+    const p = prof;
+    save(new Blob([csv([['time_min', 'temperature_C', 'lethal_rate', 'F_cumulative_min'], ...p.t.map((t, i) => [t, p.T[i], p.L[i].toPrecision(6), p.F[i].toPrecision(6)]), [], ['Tref_C', v('.tp-tref')], ['z_C', v('.tp-z')], ['F_total_min', p.total.toPrecision(6)]])], { type: 'text/csv' }), 'thermal-process-F.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Thermal process F-value', subtitle: 'For study, not a substitute for a process authority.', file: 'thermal-process', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { for (const [k, f] of Object.entries(figs)) if (f && !q(`.tp-${k}`).closest<HTMLElement>('[hidden]')) paint(q<HTMLCanvasElement>(`.tp-${k}`), f); });
+</script>
