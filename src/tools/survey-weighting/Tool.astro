@@ -1,0 +1,199 @@
+---
+// Survey weights: design weights, post-stratification and raking to population margins, Kish deff and effective n.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax svw">
+  <p class="ax-help sw-warn">For study and teaching, not medical advice. Check with a qualified professional. The example respondents and population figures are made up.</p>
+  <div class="ax-card">
+    <h2>Respondents</h2>
+    <label><span>One respondent per row, a header row first. Paste from a spreadsheet or open a file.</span>
+      <textarea class="sw-data" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".sw-data" maxCols={30} maxRows={100000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Design weight column <select class="sw-dw"><option value="">None (all equal)</option></select></label>
+      <label>That column holds <select class="sw-dwk"><option value="w">Weights</option><option value="p">Selection probabilities (weight = 1/p)</option></select></label>
+    </div>
+    <p class="ax-help">Design weights come from how the sample was drawn (for example, people in a small region sampled at twice the rate get half the weight). Leave it at None if everyone had the same chance.</p>
+    <p class="ax-err sw-derr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Population figures</h2>
+    <div class="ax-grid">
+      <label>Method <select class="sw-m"><option value="rake">Raking (1 to 3 variables)</option><option value="post">Post-stratification (first variable)</option></select></label>
+      <label>Weights add up to <select class="sw-tot"><option value="n">Sample size</option><option value="pop">Population size</option></select></label>
+      <label class="sw-pop-l" hidden>Population size <input class="sw-pop" inputmode="numeric" value="1000000" /></label>
+    </div>
+    <p class="ax-help">Post-stratification scales each group of one variable to its population share in one step. Raking adjusts the weights to two or three variables' shares in turn, again and again, until all of them match (iterative proportional fitting).</p>
+    <div class="sw-vars">
+      {[1, 2, 3].map((i) => (
+        <div class="sw-var">
+          <label>Variable {i} <select class={`sw-v sw-v${i}`} data-i={i - 1}><option value="">None</option></select></label>
+          <label><span class="sw-ml">Population counts or %, one category per line</span>
+            <textarea class={`sw-mg sw-mg${i}`} rows="3" spellcheck="false" data-i={i - 1}></textarea></label>
+        </div>
+      ))}
+    </div>
+    <p class="ax-err sw-err" hidden></p>
+  </div>
+
+  <div class="ax-card sw-out" hidden>
+    <h2>Weights</h2>
+    <p class="ax-big sw-big"></p>
+    <dl class="ax-facts sw-facts"></dl>
+    <p class="ax-help sw-note" hidden></p>
+    <h3 style="margin-top:16px">Weighted percentages</h3>
+    <div class="ax-scroll"><table class="sw-pct"></table></div>
+    <h3 style="margin-top:16px">First respondents and their weights</h3>
+    <div class="ax-scroll"><table class="sw-wt"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sw-csv">Download data with weights (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, parseTable, csv } from '../../lib/sci/num';
+  import { rake, kish, parseMargin, checkMargin, weightedPct, EXAMPLE } from '../../lib/sci/surveyw';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.svw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = <T extends HTMLElement = HTMLElement>(c: string) => [...root.querySelectorAll(c)] as T[];
+  const data = q<HTMLTextAreaElement>('.sw-data');
+  const vSel = qa<HTMLSelectElement>('.sw-v'), mBox = qa<HTMLTextAreaElement>('.sw-mg');
+  const f = (x: number, n = 4) => (+x.toPrecision(n)).toLocaleString('en', { maximumFractionDigits: 8 });
+  const p1 = (x: number) => `${x.toFixed(1)} %`;
+  let headers: string[] = [], rows: string[][] = [], report: Section[] = [], out: (string | number)[][] = [];
+
+  const show = (c: string, msg: string) => { const e = q(c); e.textContent = msg; e.hidden = !msg; };
+  function fillTable(el: HTMLTableElement, head: string[], body: string[][], right: (i: number) => boolean) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right(i)) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (right(i)) td.className = 'r'; }); });
+  }
+  const cats = (j: number) => [...new Set(rows.map((r) => r[j] ?? ''))];
+
+  // Read the table and refresh the column menus, keeping choices that still exist.
+  function readData() {
+    const t = parseTable(data.value);
+    headers = (t[0] ?? []).map((h, i) => h.trim() || `Column ${i + 1}`);
+    rows = t.slice(1).filter((r) => r.some((c) => c.trim())).map((r) => headers.map((_, i) => (r[i] ?? '').trim()));
+    const opts = (sel: HTMLSelectElement, keep: string) => {
+      sel.replaceChildren(sel.options[0]);
+      headers.forEach((h, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = h; sel.append(o); });
+      sel.value = keep !== '' && Number(keep) < headers.length ? keep : '';
+    };
+    for (const s of [q<HTMLSelectElement>('.sw-dw'), ...vSel]) opts(s, s.value);
+  }
+  function labelMargins() {
+    vSel.forEach((s, i) => { const lab = root.querySelectorAll<HTMLElement>('.sw-ml')[i]; lab.textContent = s.value === '' ? 'Population counts or %, one category per line' : `${headers[+s.value]}: population counts or %, one category per line`; mBox[i].disabled = s.value === ''; });
+  }
+  // A new variable gets its categories listed, ready for the figures.
+  function prefill(i: number) {
+    const s = vSel[i]; if (s.value === '') { mBox[i].value = ''; return; }
+    mBox[i].value = cats(+s.value).map((c) => `${c}, `).join('\n');
+  }
+
+  function calc() {
+    show('.sw-err', ''); show('.sw-derr', '');
+    const outs = qa('.sw-out');
+    const stop = (c: string, msg: string) => { show(c, msg); outs.forEach((o) => (o.hidden = true)); report = []; out = []; };
+    labelMargins();
+    q('.sw-pop-l').hidden = q<HTMLSelectElement>('.sw-tot').value !== 'pop';
+    if (headers.length < 2 || rows.length < 2) return stop('.sw-derr', 'Paste a table with a header row and at least two respondents.');
+    if (rows.length > 100000) return stop('.sw-derr', 'Up to 100,000 respondents.');
+    // Design weights.
+    const dwc = q<HTMLSelectElement>('.sw-dw').value, isP = q<HTMLSelectElement>('.sw-dwk').value === 'p';
+    let d = rows.map(() => 1);
+    if (dwc !== '') {
+      d = rows.map((r) => { const x = num(r[+dwc]); return isP ? 1 / x : x; });
+      const bad = d.findIndex((x) => !(x > 0) || !Number.isFinite(x));
+      if (bad >= 0) return stop('.sw-derr', `Row ${bad + 1}: the ${isP ? 'selection probability must be above 0 and at most 1' : 'design weight must be a number above 0'} ("${rows[bad][+dwc]}").`);
+      if (isP && rows.some((r) => num(r[+dwc]) > 1)) return stop('.sw-derr', 'Selection probabilities cannot be above 1. Did you mean weights?');
+    }
+    // Variables and margins.
+    const method = q<HTMLSelectElement>('.sw-m').value;
+    let used = vSel.map((s, i) => ({ j: s.value === '' ? -1 : +s.value, i })).filter((v) => v.j >= 0);
+    if (!used.length) return stop('.sw-err', 'Choose at least one variable to weight by.');
+    if (new Set(used.map((v) => v.j)).size !== used.length) return stop('.sw-err', 'Each variable can be chosen only once.');
+    if (dwc !== '' && used.some((v) => v.j === +dwc)) return stop('.sw-err', 'The design weight column cannot also be a weighting variable.');
+    const note = method === 'post' && used.length > 1 ? `Post-stratification uses only the first variable (${headers[used[0].j]}). Choose raking to use all ${used.length}.` : '';
+    if (method === 'post') used = used.slice(0, 1);
+    const cols: string[][] = [], targets: Map<string, number>[] = [];
+    for (const v of used) {
+      const m = parseMargin(mBox[v.i].value, num);
+      if (m.error) return stop('.sw-err', `${headers[v.j]}: ${m.error}`);
+      const col = rows.map((r) => r[v.j]);
+      const e = checkMargin(col, m.shares, headers[v.j]); if (e) return stop('.sw-err', e);
+      cols.push(col); targets.push(m.shares);
+    }
+    const T = q<HTMLSelectElement>('.sw-tot').value === 'pop' ? num(q<HTMLInputElement>('.sw-pop').value) : rows.length;
+    if (!(T > 0)) return stop('.sw-err', 'The population size must be above 0.');
+    const r = rake(cols, d, targets, T), k = kish(r.w), dk = kish(d);
+    if (!r.converged) return stop('.sw-err', `Raking did not settle after ${r.iterations} rounds (largest gap ${f(r.maxDiff * 100, 2)} percentage points). Some combinations may be missing from the sample: merge small categories.`);
+    outs.forEach((o) => (o.hidden = false));
+    const lo = Math.min(...r.w), hi = Math.max(...r.w);
+    q('.sw-big').textContent = `${rows.length.toLocaleString('en')} weights: design effect ${k.deff.toFixed(3)}, effective sample ${f(k.neff, 4)}`;
+    const facts: [string, string, string?][] = [
+      ['Method', method === 'post' ? 'Post-stratification' : `Raking on ${used.length} variable${used.length > 1 ? 's' : ''}`, method === 'post' ? '' : `${r.iterations} round${r.iterations > 1 ? 's' : ''} to match every share`],
+      ['Design effect (Kish)', k.deff.toFixed(3), 'n Σw² ÷ (Σw)² = 1 + CV²; variance inflation from unequal weights'],
+      ['Effective sample size', f(k.neff, 4), `(Σw)² ÷ Σw², out of ${rows.length.toLocaleString('en')}`],
+      ['Smallest weight', f(lo), ''], ['Largest weight', f(hi), `${f(hi / lo, 3)} × the smallest`],
+      ['Weights add up to', f(r.w.reduce((s, x) => s + x, 0), 8)],
+    ];
+    if (dwc !== '') facts.push(['Design effect of design weights alone', dk.deff.toFixed(3)]);
+    q('.sw-facts').replaceChildren(...facts.map(([kk, v, s]) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = kk; el.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; el.querySelector('dd')!.append(m); } return el; }));
+    show('.sw-note', note + (hi / lo > 10 ? `${note ? ' ' : ''}The largest weight is over 10 times the smallest: a few respondents count a lot. Consider merging small categories.` : ''));
+    // Weighted percentages: every column except ID-like ones (all different), numbers and the design weight.
+    const pctRows: string[][] = [];
+    headers.forEach((h, j) => {
+      if (String(j) === dwc) return;
+      const cs = cats(j);
+      if (cs.length > 20 || (cs.length === rows.length && rows.length > 5)) return;
+      const tIdx = used.findIndex((v) => v.j === j);
+      for (const p of weightedPct(rows.map((x) => x[j]), r.w)) pctRows.push([h, p.cat, p.n.toLocaleString('en'), p1(p.pct), p1(p.wpct), tIdx >= 0 ? p1(100 * (targets[tIdx].get(p.cat) ?? 0)) : '']);
+    });
+    const pHead = ['Variable', 'Category', 'n', 'Sample', 'Weighted', 'Target'];
+    fillTable(q<HTMLTableElement>('.sw-pct'), pHead, pctRows, (i) => i >= 2);
+    const shown = Math.min(rows.length, 15);
+    const wHead = [...headers, 'Weight'];
+    fillTable(q<HTMLTableElement>('.sw-wt'), wHead, rows.slice(0, shown).map((x, i) => [...x, f(r.w[i], 6)]), (i) => i === headers.length);
+    out = [[...headers, 'design_weight', 'final_weight'], ...rows.map((x, i) => [...x, +d[i].toPrecision(12), +r.w[i].toPrecision(12)])];
+    report = [
+      { title: 'Weighting', text: [`${rows.length} respondents. ${method === 'post' ? 'Post-stratified' : 'Raked'} to ${used.map((v) => headers[v.j]).join(', ')}${dwc !== '' ? `, starting from design weights in "${headers[+dwc]}"${isP ? ' (1/p)' : ''}` : ''}. ${note}`], facts: facts.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v] as [string, string]) },
+      { title: 'Weighted percentages', table: { head: pHead, rows: pctRows, align: ['l', 'l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let timer = 0;
+  const later = (fn: () => void) => { clearTimeout(timer); timer = window.setTimeout(fn, 300); };
+  data.addEventListener('input', () => later(() => { readData(); calc(); }));
+  data.addEventListener('change', () => { readData(); calc(); });
+  vSel.forEach((s, i) => s.addEventListener('change', () => { prefill(i); calc(); }));
+  mBox.forEach((m) => m.addEventListener('input', () => later(calc)));
+  qa<HTMLSelectElement>('.sw-dw, .sw-dwk, .sw-m, .sw-tot').forEach((s) => s.addEventListener('change', calc));
+  q('.sw-pop').addEventListener('input', () => later(calc));
+  q('.sw-csv').addEventListener('click', () => out.length > 1 && save(new TextEncoder().encode(csv(out)), 'survey-weights.csv', 'text/csv'));
+
+  // The made-up example.
+  data.value = EXAMPLE;
+  readData();
+  vSel[0].value = '1'; vSel[1].value = '2'; vSel[2].value = '3';
+  mBox[0].value = 'Female, 51 %\nMale, 49 %';
+  mBox[1].value = '18-34, 30 %\n35-54, 35 %\n55+, 35 %';
+  mBox[2].value = 'North, 40 %\nSouth, 60 %';
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Survey weights', subtitle: q('.sw-big').textContent ?? '', file: 'survey-weights', sections: report }));
+</script>
+
+<style is:global>
+  .svw .sw-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .svw .sw-vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 12px; }
+  .svw .sw-var { display: grid; gap: 8px; align-content: start; }
+  .svw .sw-var textarea:disabled { opacity: 0.5; }
+  .svw h3 { font-size: 15px; margin: 16px 0 6px; }
+  .svw .sw-data { white-space: pre; overflow-x: auto; tab-size: 10; }
+  .svw .sw-pct th, .svw .sw-pct td, .svw .sw-wt th, .svw .sw-wt td { padding: 6px 4px; white-space: nowrap; }
+</style>

@@ -1,0 +1,164 @@
+---
+// Colour contrast checker (WCAG 2.x), nearest passing colour, colour vision previews and a readability score.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cc">
+  <p class="cc-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Colours</h2>
+    <div class="cc-pair">
+      <label>Text colour <span class="cc-in"><input type="color" class="cc-fgp" value="#777777" aria-label="Pick the text colour" /><input class="cc-fg" value="#777777" spellcheck="false" /></span></label>
+      <button type="button" class="btn secondary small cc-swap" aria-label="Swap text and background">Swap ⇄</button>
+      <label>Background <span class="cc-in"><input type="color" class="cc-bgp" value="#ffffff" aria-label="Pick the background colour" /><input class="cc-bg" value="#ffffff" spellcheck="false" /></span></label>
+    </div>
+    <p class="ax-help">Type a hex code (#1a2b3c or #abc) or rgb(26, 43, 60), or use the picker.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out" style="margin-top:12px">
+    <p class="ax-big cc-big"></p>
+    <div class="cc-prev">
+      <p class="cc-n">Normal text: the quick brown fox jumps over the lazy dog.</p>
+      <p class="cc-l">Large text (24 px, or 18.7 px bold)</p>
+      <span class="cc-ui">Button outline</span>
+    </div>
+    <div class="ax-scroll" style="margin-top:12px"><table class="cc-tab"></table></div>
+    <h3 class="cc-h3">Nearest colours that pass</h3>
+    <p class="ax-help" style="margin-top:0">Same hue and saturation, lightness changed as little as possible.</p>
+    <div class="cc-sugg"></div>
+  </div>
+
+  <div class="ax-card" style="margin-top:12px">
+    <h2>How it looks with colour vision deficiency</h2>
+    <p class="ax-help" style="margin-top:0">Simulated full forms (Viénot, Brettel and Mollon 1999), with the contrast of the simulated colours. Contrast depends on lightness, so it changes little, but colours that look alike can still confuse.</p>
+    <div class="cc-cvd"></div>
+  </div>
+
+  <div class="ax-card" style="margin-top:12px">
+    <h2>Readability</h2>
+    <label>Paste your text
+      <textarea class="cc-text" rows="7">Please read these instructions before your appointment. Do not eat or drink for six hours before the scan. Bring a list of the medicines you take. If you feel unwell on the day, phone us and we will find another time.
+
+Wear loose, comfortable clothes without metal fasteners.</textarea></label>
+    <dl class="ax-facts cc-rf" style="margin-top:12px"></dl>
+    <p class="ax-help">Scores guess difficulty from sentence length and syllables per word only (English). They cannot judge meaning, order or layout. Syllables are estimated by a spelling rule.</p>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .cc-med { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .cc-pair { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+  .cc-pair > label { flex: 1 1 200px; min-width: 0; }
+  .cc-in { display: flex; gap: 8px; align-items: center; }
+  .cc-in input[type=color] { width: 46px; height: 42px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); flex: none; cursor: pointer; }
+  .cc-in input:not([type]) { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .cc-prev { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 10px; }
+  .cc-prev p { margin: 0 0 8px; }
+  .cc-n { font-size: 16px; }
+  .cc-l { font-size: 24px; }
+  .cc-ui { display: inline-block; padding: 6px 14px; border: 2px solid; border-radius: 8px; font-size: 14px; }
+  .cc-h3 { font-size: 15px; margin: 16px 0 4px; }
+  .cc-sugg { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); margin-top: 8px; }
+  .cc-sugg div { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; gap: 10px; align-items: center; min-width: 0; }
+  .cc-sugg i { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); flex: none; }
+  .cc-sugg span { font-size: 13px; flex: 1; min-width: 0; }
+  .cc-sugg b { display: block; font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .cc-cvd { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); }
+  .cc-cvd div { border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+  .cc-cvd b { display: block; font-size: 17px; }
+  .cc-cvd small { display: block; font-size: 12px; margin-top: 4px; opacity: 0.85; }
+</style>
+
+<script>
+  import { parseColour, contrast, ratioText, LEVELS, nearestPassing, hex, readability, freBand, type RGB } from '../../lib/sci/contrast';
+  import { cvdMatrix, simulate, cvdName, type Kind } from '../../lib/sci/colourvision';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.cc-err');
+  let fg: RGB = [119, 119, 119], bg: RGB = [255, 255, 255], rows: string[][] = [], sugg: string[][] = [], cvdRows: string[][] = [], rfacts: [string, string][] = [];
+
+  function read(): boolean {
+    err.hidden = true;
+    try { fg = parseColour(q<HTMLInputElement>('.cc-fg').value); }
+    catch (e) { err.textContent = `Text colour: ${(e as Error).message}`; err.hidden = false; q('.cc-out').hidden = true; return false; }
+    try { bg = parseColour(q<HTMLInputElement>('.cc-bg').value); }
+    catch (e) { err.textContent = `Background: ${(e as Error).message}`; err.hidden = false; q('.cc-out').hidden = true; return false; }
+    q<HTMLInputElement>('.cc-fgp').value = hex(fg); q<HTMLInputElement>('.cc-bgp').value = hex(bg);
+    return true;
+  }
+  function calc() {
+    if (!read()) return;
+    q('.cc-out').hidden = false;
+    const r = contrast(fg, bg);
+    q('.cc-big').textContent = `Contrast ${ratioText(r)}`;
+    const prev = q('.cc-prev'); prev.style.color = hex(fg); prev.style.background = hex(bg);
+    q('.cc-ui').style.borderColor = hex(fg);
+    rows = LEVELS.map((l) => [l.name, `${l.need}:1`, r >= l.need ? 'Pass' : 'Fail', `WCAG ${l.sc}`]);
+    const t = q<HTMLTableElement>('.cc-tab'); t.innerHTML = '<thead><tr><th>Check</th><th class="r">Needs</th><th>Result</th><th>Rule</th></tr></thead>';
+    const b = t.createTBody();
+    for (const row of rows) {
+      const tr = b.insertRow();
+      row.forEach((x, i) => { const td = tr.insertCell(); if (i === 2) { const p = document.createElement('span'); p.className = `ax-pill ${x === 'Pass' ? 'good' : 'bad'}`; p.textContent = x; td.append(p); } else td.textContent = x; if (i === 1) td.className = 'r'; });
+    }
+    // Suggestions: text and background, for AA and AAA normal text.
+    sugg = [];
+    const box = q('.cc-sugg'); box.replaceChildren();
+    for (const [what, need] of [['AA', 4.5], ['AAA', 7]] as [string, number][]) {
+      for (const side of ['text', 'background']) {
+        if (r >= need) continue;
+        const c = side === 'text' ? nearestPassing(fg, bg, need) : nearestPassing(bg, fg, need);
+        const d = document.createElement('div');
+        if (!c) { d.innerHTML = '<span></span>'; d.querySelector('span')!.textContent = `No ${side} colour of this hue reaches ${what} (${need}:1).`; box.append(d); sugg.push([`${side} for ${what}`, 'none', '']); continue; }
+        const nr = side === 'text' ? contrast(c, bg) : contrast(fg, c);
+        d.innerHTML = '<i></i><span><b></b></span><button type="button" class="btn secondary small">Use</button>';
+        (d.querySelector('i') as HTMLElement).style.background = hex(c);
+        d.querySelector('b')!.textContent = hex(c);
+        d.querySelector('span')!.append(`${side === 'text' ? 'Text' : 'Background'} for ${what}: ${ratioText(nr)}`);
+        d.querySelector('button')!.addEventListener('click', () => { q<HTMLInputElement>(side === 'text' ? '.cc-fg' : '.cc-bg').value = hex(c); calc(); });
+        d.querySelector('button')!.setAttribute('aria-label', `Use ${hex(c)} as the ${side} colour`);
+        box.append(d); sugg.push([`${side} for ${what}`, hex(c), ratioText(nr)]);
+      }
+    }
+    if (!box.children.length) { const d = document.createElement('div'); d.textContent = 'These colours already pass AAA for normal text.'; box.append(d); }
+    // Colour vision previews.
+    cvdRows = [];
+    const cv = q('.cc-cvd'); cv.replaceChildren();
+    for (const k of [null, 'protan', 'deutan', 'tritan', 'achromat'] as (Kind | null)[]) {
+      const f = k ? simulate(fg, cvdMatrix(k)) : fg, g = k ? simulate(bg, cvdMatrix(k)) : bg, cr = contrast(f, g), nm = k ? cvdName(k, 1) : 'Normal colour vision';
+      const d = document.createElement('div'); d.style.background = hex(g); d.style.color = hex(f);
+      d.innerHTML = '<b></b><small></small>'; d.querySelector('b')!.textContent = ratioText(cr); d.querySelector('small')!.textContent = `${nm}: ${hex(f)} on ${hex(g)}`;
+      cv.append(d); cvdRows.push([nm, hex(f), hex(g), ratioText(cr)]);
+    }
+  }
+  function calcText() {
+    const t = q<HTMLTextAreaElement>('.cc-text').value, r = readability(t);
+    rfacts = r.words ? [
+      ['Flesch reading ease', `${r.fre.toFixed(1)} (${freBand(r.fre)})`],
+      ['Flesch-Kincaid grade', `${r.fk.toFixed(1)}`],
+      ['Words', String(r.words)], ['Sentences', String(r.sentences)],
+      ['Words per sentence', (r.words / r.sentences).toFixed(1)], ['Syllables per word', (r.syllables / r.words).toFixed(2)],
+    ] : [['Readability', 'paste some text']];
+    q('.cc-rf').replaceChildren(...rfacts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  }
+  q('.cc-fg').addEventListener('input', calc); q('.cc-bg').addEventListener('input', calc);
+  q('.cc-fgp').addEventListener('input', (e) => { q<HTMLInputElement>('.cc-fg').value = (e.target as HTMLInputElement).value; calc(); });
+  q('.cc-bgp').addEventListener('input', (e) => { q<HTMLInputElement>('.cc-bg').value = (e.target as HTMLInputElement).value; calc(); });
+  q('.cc-swap').addEventListener('click', () => { const a = q<HTMLInputElement>('.cc-fg'), b = q<HTMLInputElement>('.cc-bg'); [a.value, b.value] = [b.value, a.value]; calc(); });
+  let timer = 0;
+  q('.cc-text').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(calcText, 200); });
+  calc(); calcText();
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: `Text ${hex(fg)} on ${hex(bg)}`, facts: [['Contrast', ratioText(contrast(fg, bg))]], table: { head: ['Check', 'Needs', 'Result', 'Rule'], rows } },
+      ...(sugg.length ? [{ title: 'Nearest colours that pass', table: { head: ['For', 'Colour', 'Contrast'], rows: sugg } }] : []),
+      { title: 'Simulated colour vision', table: { head: ['Vision', 'Text', 'Background', 'Contrast'], rows: cvdRows } },
+      { title: 'Readability', facts: rfacts },
+      { title: 'Note', text: ['WCAG 2.x contrast; the ratio is cut to 2 decimals, never rounded up. Readability scores are estimates for English.', 'For study and teaching, not medical advice. Check with a qualified professional.'] },
+    ];
+    return { title: 'Contrast check', subtitle: q('.cc-big').textContent ?? '', file: 'contrast-check', sections };
+  });
+</script>

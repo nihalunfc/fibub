@@ -1,0 +1,270 @@
+---
+// Electric field lines and equipotentials for point charges, line charges and dipoles that you drag around.
+// Everything is worked out in the browser. The example arrangements are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax flp">
+  <div class="ax-card">
+    <h2>Charges</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="fl-pre">
+        <option value="pair" selected>A + and − pair (dipole)</option>
+        <option value="like">Two equal + charges</option>
+        <option value="unequal">+2 and −1 (unequal pair)</option>
+        <option value="quad">Four charges (quadrupole)</option>
+        <option value="lines">Two line charges and a point charge</option>
+        <option value="dip">A point dipole and a + charge</option>
+      </select></label>
+      <label>View half-width (cm) <input class="fl-w" type="text" inputmode="decimal" value="10" /></label>
+      <label>Lines from the largest charge <select class="fl-n"><option>8</option><option>12</option><option selected>16</option><option>24</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fl-add" data-k="point" data-q="1">Add + charge</button>
+      <button type="button" class="btn secondary small fl-add" data-k="point" data-q="-1">Add − charge</button>
+      <button type="button" class="btn secondary small fl-add" data-k="line" data-q="1">Add line charge</button>
+      <button type="button" class="btn secondary small fl-add" data-k="dipole" data-q="1">Add dipole</button>
+    </div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="fl-src"></table></div>
+    <p class="ax-help">Point charges in nC, line charges (infinite wires running into the screen) in nC per metre, dipole moments in nC·cm (1 nC·cm is +1 nC and −1 nC 1 cm apart), positions in cm from the centre. Drag a charge on the picture to move it; tap an empty spot to measure the field there. Up to 12 sources.</p>
+    <p class="ax-err fl-err" hidden></p>
+  </div>
+
+  <div class="ax-card fl-out">
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="fl-showl" checked /> Field lines</label>
+      <label class="ax-check"><input type="checkbox" class="fl-showv" checked /> Equipotentials</label>
+    </div>
+    <canvas class="ax-fig fl-fig" style="margin-top:8px"></canvas>
+    <div class="ax-legend"><span><i class="fl-kp"></i>positive</span><span><i class="fl-kn"></i>negative</span><span>solid: field lines (arrows point along E)</span><span>dashed: equipotentials</span></div>
+    <p class="ax-help fl-levels"></p>
+    <h2 style="margin-top:14px">At the probe point</h2>
+    <p class="ax-big fl-big"></p>
+    <dl class="ax-facts fl-facts"></dl>
+    <h3 style="margin-top:14px">Forces on the charges</h3>
+    <div class="ax-scroll"><table class="fl-ftab"></table></div>
+    <p class="ax-help">Charges sit in the plane of the picture; line charges run through it at right angles. Field lines are drawn in that plane, so their spacing shows the field only roughly (exactly only for line charges). Potentials are zero far away, except that each line charge's potential is taken as zero 1 m from it. Force on a line charge is per metre of its length, from the other line charges only.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fl-csv">Download field grid (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { field, fieldLines, potentialGrid, niceLevels, contour, forceOn, type Src, type Box, type FieldLine } from '../../lib/sci/ph-fieldlines';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.flp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const canvas = q<HTMLCanvasElement>('.fl-fig');
+  const NAMES: Record<string, string> = { point: 'Point charge', line: 'Line charge', dipole: 'Dipole' };
+  const UNITS: Record<string, string> = { point: 'nC', line: 'nC/m', dipole: 'nC·cm' };
+  // Sources as typed: q in nC, nC/m or nC·cm; x, y in cm.
+  type Row = { kind: Src['kind']; q: number; x: number; y: number; ang: number };
+  const PRESETS: Record<string, Row[]> = {
+    pair: [{ kind: 'point', q: 1, x: -3, y: 0, ang: 0 }, { kind: 'point', q: -1, x: 3, y: 0, ang: 0 }],
+    like: [{ kind: 'point', q: 1, x: -3, y: 0, ang: 0 }, { kind: 'point', q: 1, x: 3, y: 0, ang: 0 }],
+    unequal: [{ kind: 'point', q: 2, x: -3, y: 0, ang: 0 }, { kind: 'point', q: -1, x: 3, y: 0, ang: 0 }],
+    quad: [{ kind: 'point', q: 1, x: -3, y: 3, ang: 0 }, { kind: 'point', q: -1, x: 3, y: 3, ang: 0 }, { kind: 'point', q: 1, x: 3, y: -3, ang: 0 }, { kind: 'point', q: -1, x: -3, y: -3, ang: 0 }],
+    lines: [{ kind: 'line', q: 1, x: -4, y: 2, ang: 0 }, { kind: 'line', q: -1, x: 4, y: 2, ang: 0 }, { kind: 'point', q: 1, x: 0, y: -4, ang: 0 }],
+    dip: [{ kind: 'dipole', q: 2, x: -3, y: 0, ang: 90, }, { kind: 'point', q: 1, x: 4, y: 0, ang: 0 }],
+  };
+  let rows: Row[] = PRESETS.pair.map((r) => ({ ...r }));
+  let probe: [number, number] = [0, 3]; // cm
+  let fig: Figure | null = null, report: Section[] = [], dragging = -1, view = { box: { x0: 0, x1: 1, y0: 0, y1: 1 } as Box, pl: 0, pt: 0, pw: 1, ph: 1 };
+  const W = 380, H = 320, ML = 34, MB = 24, MT = 8, MR = 8;
+
+  const toSrc = (r: Row): Src => ({ kind: r.kind, x: r.x / 100, y: r.y / 100, q: r.kind === 'dipole' ? r.q * 1e-11 : r.q * 1e-9, ang: r.ang });
+  const fmtE = (e: number) => (Math.abs(e) >= 1e3 ? `${sig(e / 1000, 3)} kV/m` : `${sig(e, 3)} V/m`);
+  const fmtV = (v: number) => (Math.abs(v) >= 1e3 ? `${sig(v / 1000, 3)} kV` : `${sig(v, 3)} V`);
+  const fmtF = (f: number) => (f === 0 ? '0 N' : Math.abs(f) >= 1e-3 ? `${sig(f * 1000, 3)} mN` : Math.abs(f) >= 1e-6 ? `${sig(f * 1e6, 3)} µN` : `${sig(f * 1e9, 3)} nN`);
+
+  function table() {
+    const t = q('.fl-src');
+    const head = document.createElement('tr');
+    head.innerHTML = '<th>Source</th><th>Amount</th><th>x (cm)</th><th>y (cm)</th><th>Angle (°)</th><th></th>';
+    const trs = rows.map((r, i) => {
+      const tr = document.createElement('tr');
+      const td = (el: Node) => { const c = document.createElement('td'); c.append(el); tr.append(c); };
+      td(document.createTextNode(`${i + 1}. ${NAMES[r.kind]} (${UNITS[r.kind]})`));
+      const inp = (k: 'q' | 'x' | 'y' | 'ang', cls: string) => { const e = document.createElement('input'); e.type = 'text'; e.inputMode = 'decimal'; e.className = `fl-${cls}`; e.dataset.i = String(i); e.dataset.k = k; e.value = String(r[k]); e.setAttribute('aria-label', `${NAMES[r.kind]} ${i + 1} ${k}`); e.style.minWidth = '64px'; return e; };
+      td(inp('q', 'q')); td(inp('x', 'x')); td(inp('y', 'y'));
+      if (r.kind === 'dipole') td(inp('ang', 'a')); else td(document.createTextNode('–'));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small fl-del'; b.dataset.i = String(i); b.textContent = 'Remove'; td(b);
+      return tr;
+    });
+    t.replaceChildren(head, ...trs);
+  }
+
+  function layout(): Box {
+    const hw = num(q<HTMLInputElement>('.fl-w').value);
+    const pw = W - ML - MR, ph = H - MT - MB, hh = (hw * ph) / pw;
+    view = { box: { x0: -hw / 100, x1: hw / 100, y0: -hh / 100, y1: hh / 100 }, pl: ML, pt: MT, pw, ph };
+    return view.box;
+  }
+
+  function figure(srcs: Src[], lines: FieldLine[], segs: [number, number, number, number][][], box: Box, pr: { x: number; y: number; ex: number; ey: number } | null): Figure {
+    const { pl, pt, pw, ph } = view;
+    const X = (x: number) => pl + ((x - box.x0) / (box.x1 - box.x0)) * pw, Y = (y: number) => pt + ph - ((y - box.y0) / (box.y1 - box.y0)) * ph;
+    return {
+      w: W, h: H, alt: `Field lines and equipotentials of ${srcs.length} charges`,
+      draw: (c: CanvasRenderingContext2D, _w: number, _h: number, pal: Palette) => {
+        c.save(); c.beginPath(); c.rect(pl, pt, pw, ph); c.clip();
+        c.strokeStyle = pal.muted; c.lineWidth = 1; c.setLineDash([3, 3]);
+        for (const s of segs) { c.beginPath(); for (const g of s) { c.moveTo(X(g[0]), Y(g[1])); c.lineTo(X(g[2]), Y(g[3])); } c.stroke(); }
+        c.setLineDash([]); c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.lineWidth = 1.1;
+        for (const L of lines) {
+          c.beginPath(); L.pts.forEach((p, k) => (k ? c.lineTo(X(p[0]), Y(p[1])) : c.moveTo(X(p[0]), Y(p[1])))); c.stroke();
+          // An arrowhead about a third of the way along the part that is on screen.
+          const vis = L.pts.filter((p) => p[0] > box.x0 && p[0] < box.x1 && p[1] > box.y0 && p[1] < box.y1);
+          if (vis.length > 6) {
+            const k = Math.floor(vis.length * 0.4), a = vis[k], b = vis[Math.min(vis.length - 1, k + 2)];
+            const ang = Math.atan2(Y(b[1]) - Y(a[1]), X(b[0]) - X(a[0])), x = X(a[0]), y = Y(a[1]);
+            c.beginPath(); c.moveTo(x + 6 * Math.cos(ang), y + 6 * Math.sin(ang)); c.lineTo(x + 6 * Math.cos(ang + 2.6), y + 6 * Math.sin(ang + 2.6)); c.lineTo(x + 6 * Math.cos(ang - 2.6), y + 6 * Math.sin(ang - 2.6)); c.closePath(); c.fill();
+          }
+        }
+        srcs.forEach((s, i) => {
+          const x = X(s.x), y = Y(s.y), col = s.q >= 0 ? pal.bad : pal.accent;
+          c.fillStyle = col; c.strokeStyle = pal.bg; c.lineWidth = 2;
+          if (s.kind === 'line') { c.beginPath(); c.rect(x - 8, y - 8, 16, 16); c.fill(); c.stroke(); }
+          else if (s.kind === 'dipole') {
+            const a = ((s.ang ?? 0) * Math.PI) / 180 + (s.q < 0 ? Math.PI : 0), dx = Math.cos(a) * 11, dy = -Math.sin(a) * 11;
+            c.beginPath(); c.arc(x, y, 9, 0, 2 * Math.PI); c.fillStyle = pal.bg; c.fill(); c.strokeStyle = pal.bad; c.lineWidth = 2; c.stroke();
+            c.beginPath(); c.moveTo(x - dx, y - dy); c.lineTo(x + dx, y + dy); c.stroke();
+            c.beginPath(); c.moveTo(x + dx, y + dy); c.lineTo(x + dx - 5 * Math.cos(Math.atan2(dy, dx) - 0.5), y + dy - 5 * Math.sin(Math.atan2(dy, dx) - 0.5)); c.lineTo(x + dx - 5 * Math.cos(Math.atan2(dy, dx) + 0.5), y + dy - 5 * Math.sin(Math.atan2(dy, dx) + 0.5)); c.closePath(); c.fillStyle = pal.bad; c.fill();
+            c.fillStyle = pal.ink; c.font = '600 11px system-ui, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(String(i + 1), x + 9, y - 7);
+            return;
+          } else { c.beginPath(); c.arc(x, y, 9, 0, 2 * Math.PI); c.fill(); c.stroke(); }
+          c.fillStyle = pal.bg; c.font = '700 14px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.q >= 0 ? '+' : '−', x, y + 1);
+          c.fillStyle = pal.ink; c.font = '600 11px system-ui, sans-serif'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(String(i + 1), x + 9, y - 7);
+        });
+        if (pr) {
+          const x = X(pr.x), y = Y(pr.y), m = Math.hypot(pr.ex, pr.ey);
+          c.strokeStyle = pal.accent2; c.fillStyle = pal.accent2; c.lineWidth = 2;
+          c.beginPath(); c.arc(x, y, 4, 0, 2 * Math.PI); c.stroke();
+          if (m > 0) { const ux = pr.ex / m, uy = -pr.ey / m, L = 26; c.beginPath(); c.moveTo(x, y); c.lineTo(x + L * ux, y + L * uy); c.stroke();
+            const a = Math.atan2(uy, ux); c.beginPath(); c.moveTo(x + L * ux + 3 * Math.cos(a), y + L * uy + 3 * Math.sin(a)); c.lineTo(x + L * ux - 6 * Math.cos(a - 0.5), y + L * uy - 6 * Math.sin(a - 0.5)); c.lineTo(x + L * ux - 6 * Math.cos(a + 0.5), y + L * uy - 6 * Math.sin(a + 0.5)); c.closePath(); c.fill(); }
+        }
+        c.restore();
+        // Frame and ticks in cm.
+        c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(pl, pt, pw, ph);
+        c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif';
+        const span = (box.x1 - box.x0) * 100, step = [1, 2, 5, 10, 20, 50, 100, 200, 500].find((s) => span / s <= 8) ?? 1000;
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        for (let v = Math.ceil((box.x0 * 100) / step) * step; v <= box.x1 * 100 + 1e-9; v += step) { c.fillText(sig(v, 3), X(v / 100), pt + ph + 4); c.fillRect(X(v / 100), pt + ph, 1, 3); }
+        c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (let v = Math.ceil((box.y0 * 100) / step) * step; v <= box.y1 * 100 + 1e-9; v += step) { c.fillText(sig(v, 3), pl - 5, Y(v / 100)); c.fillRect(pl - 3, Y(v / 100), 3, 1); }
+        c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('cm', 4, pt);
+      },
+    };
+  }
+
+  function calc(full = true) {
+    const err = q('.fl-err'), out = q('.fl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const hw = num(q<HTMLInputElement>('.fl-w').value);
+    if (!(hw > 0 && hw <= 1e5)) return fail('Give the view half-width in cm, greater than 0.');
+    if (!rows.length) return fail('Add at least one charge.');
+    for (const [i, r] of rows.entries()) {
+      if (![r.q, r.x, r.y, r.ang].every(Number.isFinite)) return fail(`Source ${i + 1}: every box needs a number.`);
+    }
+    if (rows.every((r) => r.q === 0)) return fail('Every source has zero charge: give at least one a non-zero amount.');
+    err.hidden = true; out.hidden = false;
+    const box = layout(), srcs = rows.map(toSrc);
+    const lines = q<HTMLInputElement>('.fl-showl').checked ? fieldLines(srcs, box, +q<HTMLSelectElement>('.fl-n').value) : [];
+    let segs: [number, number, number, number][][] = [], levels: number[] = [];
+    if (q<HTMLInputElement>('.fl-showv').checked) {
+      const nx = full ? 151 : 81, ny = Math.round((nx * view.ph) / view.pw), g = potentialGrid(srcs, box, nx, ny);
+      levels = niceLevels(g); segs = levels.map((L) => contour(g, nx, ny, box, L));
+    }
+    q('.fl-levels').textContent = levels.length ? `Equipotentials at ${levels.map((v) => sig(v, 2)).join(', ')} V.` : '';
+    const px = probe[0] / 100, py = probe[1] / 100, f = field(srcs, px, py), m = Math.hypot(f.ex, f.ey);
+    fig = figure(srcs, lines, segs, box, Number.isFinite(m) ? { x: px, y: py, ex: f.ex, ey: f.ey } : null);
+    paint(canvas, fig);
+    if (!full) return;
+    const deg = ((Math.atan2(f.ey, f.ex) * 180) / Math.PI + 360) % 360;
+    q('.fl-big').textContent = Number.isFinite(m) ? `E = ${fmtE(m)} at ${sig(deg, 3)}°, V = ${fmtV(f.v)}` : 'The probe is on a charge: move it';
+    const net = rows.filter((r) => r.kind === 'point').reduce((s, r) => s + r.q, 0);
+    const f1 = [
+      fact('Probe position', `(${sig(probe[0], 3)}, ${sig(probe[1], 3)}) cm`, 'tap the picture to move it'),
+      fact('Field strength |E|', Number.isFinite(m) ? fmtE(m) : '–', `direction ${sig(deg, 3)}° from +x, anticlockwise`),
+      fact('Eₓ and Eᵧ', `${fmtE(f.ex)}, ${fmtE(f.ey)}`, 'components of the field'),
+      fact('Potential V', fmtV(f.v), 'zero far away (line charges: zero 1 m from each line)'),
+      fact('Force on a +1 nC test charge', Number.isFinite(m) ? fmtF(m * 1e-9) : '–', 'F = qE'),
+      fact('Net point charge', `${sig(net, 4)} nC`, net === 0 ? 'neutral: far away it looks like a dipole or quadrupole' : 'far away it looks like a single charge of this size'),
+    ];
+    q('.fl-facts').replaceChildren(...f1);
+    const ft = q('.fl-ftab'), hd = document.createElement('tr');
+    hd.innerHTML = '<th>Source</th><th class="r">|F|</th><th class="r">Direction</th><th class="r">Fₓ</th><th class="r">Fᵧ</th>';
+    const frows: string[][] = [];
+    rows.forEach((r, i) => {
+      const F = forceOn(srcs, i);
+      if (!F) { frows.push([`${i + 1}. Dipole`, 'torque and force not shown', '', '', '']); return; }
+      const mag = Math.hypot(F.fx, F.fy), unit = (x: number) => (F.perMetre ? `${fmtF(x)}/m` : fmtF(x));
+      frows.push([`${i + 1}. ${NAMES[r.kind]} ${sig(r.q, 3)} ${UNITS[r.kind]}`, unit(mag), mag > 0 ? `${sig(((Math.atan2(F.fy, F.fx) * 180) / Math.PI + 360) % 360, 3)}°` : '–', unit(F.fx), unit(F.fy)]);
+    });
+    ft.replaceChildren(hd, ...frows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k) td.className = 'r'; tr.append(td); }); return tr; }));
+    report = [
+      { title: q('.fl-big').textContent!, facts: f1.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, note: q('.fl-levels').textContent || undefined },
+      { title: 'Sources and the forces on them', table: { head: ['Source', 'x (cm)', 'y (cm)', 'Angle (°)', '|F|', 'Direction'], rows: rows.map((r, i) => [frows[i][0], sig(r.x, 4), sig(r.y, 4), r.kind === 'dipole' ? sig(r.ang, 3) : '', frows[i][1], frows[i][2]]), align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  // Interaction: drag sources, tap to move the probe.
+  const toData = (e: PointerEvent): [number, number] => {
+    const r = canvas.getBoundingClientRect(), sx = ((e.clientX - r.left) / r.width) * W, sy = ((e.clientY - r.top) / r.height) * H, b = view.box;
+    return [(b.x0 + ((sx - view.pl) / view.pw) * (b.x1 - b.x0)) * 100, (b.y0 + ((view.pt + view.ph - sy) / view.ph) * (b.y1 - b.y0)) * 100];
+  };
+  const snap = (v: number) => { const hw = num(q<HTMLInputElement>('.fl-w').value), s = hw >= 20 ? 0.5 : 0.1; return Math.round(v / s) * s; };
+  let pending = false;
+  canvas.addEventListener('pointerdown', (e) => {
+    const [x, y] = toData(e), r = canvas.getBoundingClientRect(), cmPerPx = ((view.box.x1 - view.box.x0) * 100) / ((view.pw / W) * r.width);
+    let best = -1, bd = 16 * cmPerPx;
+    rows.forEach((s, i) => { const d = Math.hypot(s.x - x, s.y - y); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { dragging = best; canvas.setPointerCapture(e.pointerId); e.preventDefault(); }
+    else { probe = [snap(x), snap(y)]; calc(); }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (dragging < 0) return;
+    const [x, y] = toData(e); rows[dragging].x = snap(x); rows[dragging].y = snap(y);
+    if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; calc(false); }); }
+  });
+  const drop = () => { if (dragging < 0) return; dragging = -1; table(); calc(); };
+  canvas.addEventListener('pointerup', drop); canvas.addEventListener('pointercancel', drop);
+
+  q('.fl-src').addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement; if (!t.dataset.k) return;
+    (rows[+t.dataset.i!] as any)[t.dataset.k] = num(t.value); calc();
+  });
+  q('.fl-src').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.fl-del'); if (!b) return;
+    rows.splice(+b.dataset.i!, 1); table(); calc();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.fl-add').forEach((b) => b.addEventListener('click', () => {
+    if (rows.length >= 12) { const err = q('.fl-err'); err.textContent = 'Up to 12 sources: remove one first.'; err.hidden = false; return; }
+    const hw = num(q<HTMLInputElement>('.fl-w').value) || 10, k = rows.length;
+    rows.push({ kind: b.dataset.k as Src['kind'], q: +b.dataset.q!, x: snap(((k % 5) - 2) * hw * 0.3), y: snap(((Math.floor(k / 5) % 3) - 1) * hw * -0.4 + hw * 0.15), ang: 0 });
+    table(); calc();
+  }));
+  q('.fl-pre').addEventListener('change', () => { rows = PRESETS[q<HTMLSelectElement>('.fl-pre').value].map((r) => ({ ...r })); probe = [0, 3]; table(); calc(); });
+  ['.fl-w', '.fl-n', '.fl-showl', '.fl-showv'].forEach((c) => { q(c).addEventListener('input', () => calc()); q(c).addEventListener('change', () => calc()); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.fl-out').hidden) paint(canvas, fig); });
+  q('.fl-csv').addEventListener('click', () => {
+    const b = view.box, srcs = rows.map(toSrc), out = ['x_cm,y_cm,V_volt,Ex_V_per_m,Ey_V_per_m'];
+    for (let j = 0; j <= 40; j++) for (let i = 0; i <= 40; i++) {
+      const x = b.x0 + ((b.x1 - b.x0) * i) / 40, y = b.y0 + ((b.y1 - b.y0) * j) / 40, f = field(srcs, x, y);
+      out.push([x * 100, y * 100, f.v, f.ex, f.ey].map((v) => (Number.isFinite(v) ? +v.toPrecision(6) : '')).join(','));
+    }
+    save(new Blob([out.join('\n') + '\n'], { type: 'text/csv' }), 'field-grid.csv', 'text/csv');
+  });
+  table(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Electric field lines', subtitle: `${rows.length} sources, view ${q<HTMLInputElement>('.fl-w').value} cm either side`, file: 'field-lines', sections: report }));
+</script>
+
+<style is:global>
+  .flp .fl-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); }
+  .flp .fl-src input { padding: 6px 8px; }
+  .flp .fl-kp { background: var(--bad); }
+  .flp .fl-kn { background: var(--accent); }
+</style>

@@ -1,0 +1,219 @@
+---
+// Audiogram plotter: thresholds in, ASHA symbols, pure-tone averages, degree from a named and editable scheme,
+// air-bone gaps, type of loss and asymmetry out. Not a hearing test.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax au">
+  <p class="au-warn">For study and teaching, not medical advice. Check with a qualified professional. This is not a hearing test: it plots thresholds already measured with a calibrated audiometer.</p>
+  <div class="ax-card">
+    <h2>Thresholds (dB HL)</h2>
+    <label>One row per frequency: frequency, right air, left air, right bone, left bone. Leave a cell empty if not tested.
+      <textarea class="au-in" rows="8" spellcheck="false" wrap="off">Hz	Right air	Left air	Right bone	Left bone
+250	15	30
+500	20	40	15	10
+1000	25	45	20	10
+2000	35	40	30	15
+4000	55	35	50	15m
+8000	65	30</textarea></label>
+    <DataFile target=".au-in" maxCols={5} maxRows={30} />
+    <p class="ax-help">Add <b>m</b> for a masked threshold (35m), and <b>NR</b> for no response at the highest level tested (95NR). Frequencies in Hz or kHz (0.5, 1, 2). The example is made up.</p>
+    <p class="ax-err au-err" hidden></p>
+    <p class="ax-help au-note" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rules</h2>
+    <div class="ax-grid">
+      <label>Degree scheme <select class="au-scheme">
+        <option value="who2021">WHO 2021 grades</option>
+        <option value="clark1981">Clark 1981</option>
+        <option value="custom">My own cutoffs</option>
+      </select></label>
+      <label>Pure-tone average <select class="au-pta">
+        <option value="4">0.5, 1, 2, 4 kHz (PTA4)</option>
+        <option value="3">0.5, 1, 2 kHz (PTA3)</option>
+      </select></label>
+      <label>Air-bone gap flag at (dB) <input class="au-gap" inputmode="numeric" value="15" /></label>
+      <label>Normal limit (dB HL) <input class="au-norm" inputmode="numeric" value="20" /></label>
+      <label>Asymmetry: difference (dB) <input class="au-ad" inputmode="numeric" value="15" /></label>
+      <label>at adjacent frequencies <input class="au-an" inputmode="numeric" value="2" /></label>
+    </div>
+    <label style="margin-top:10px">Cutoffs, one grade per line ("Mild &lt; 35" or "Slight ≤ 25"); the last line is everything above. Edit them to use your own.
+      <textarea class="au-cut" rows="7" spellcheck="false"></textarea></label>
+    <p class="ax-help au-cite"></p>
+    <p class="ax-help">The gap flag of 15 dB means "more than 10 dB" in 5 dB steps. The asymmetry rule and the normal limit vary between clinics and papers; set the ones you were taught.</p>
+  </div>
+
+  <div class="ax-card au-out">
+    <h2>Audiogram</h2>
+    <p class="ax-big au-big"></p>
+    <dl class="ax-facts au-facts"></dl>
+    <ul class="au-flags"></ul>
+    <canvas class="ax-fig au-fig" style="margin-top:14px"></canvas>
+    <div class="ax-legend"><span><b class="au-r">O</b> right air</span><span><b class="au-l">X</b> left air</span><span><b class="au-r">△</b> <b class="au-l">□</b> masked air</span><span><b class="au-r">&lt;</b> <b class="au-l">&gt;</b> bone</span><span><b class="au-r">[</b> <b class="au-l">]</b> masked bone</span><span>↙ ↘ no response</span></div>
+    <div class="ax-scroll" style="margin-top:12px"><table class="au-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small au-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .au-warn { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; background: var(--surface); }
+  .au .au-in { tab-size: 9; }
+  .au-flags { margin: 12px 0 0; padding-left: 20px; font-size: 15px; }
+  .au-flags li + li { margin-top: 4px; }
+  .au-r { color: var(--bad); }
+  .au-l { color: var(--accent); }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseAudiogram, pta, parseScheme, grade, gaps, lossType, asymmetry, PTA3, PTA4, SCHEMES, type Audiogram, type Band, type Ear, type Threshold } from '../../lib/sci/audiogram';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.au')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.au-err'), cut = q<HTMLTextAreaElement>('.au-cut'), sch = q<HTMLSelectElement>('.au-scheme');
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const CHECKED = 'Cutoffs as published; checked 2026-11-09. Check the official source.';
+
+  function setScheme() {
+    const s = SCHEMES[sch.value];
+    if (!s) { q('.au-cite').textContent = 'Your own cutoffs.'; return; }
+    cut.value = s.text; q<HTMLSelectElement>('.au-pta').value = String(s.pta);
+    q('.au-cite').textContent = `${s.cite} ${CHECKED}`;
+  }
+
+  const kHz = (f: number) => (f >= 1000 ? `${f / 1000}k` : String(f));
+  const cell = (t?: Threshold) => (t ? `${t.db}${t.masked ? 'm' : ''}${t.nr ? ' NR' : ''}` : '');
+  const dB = (v: number | null) => (v === null ? '–' : `${sig(v, 3)} dB HL`);
+
+  function drawAudiogram(a: Audiogram, bands: Band[]): Figure {
+    const W = 560, H = 580, L = 52, R = 112, T = 20, B = 104;
+    const fMax = Math.max(8000, ...a.rows.map((r) => r.freq)), oMax = Math.log2(fMax / 125);
+    const X = (f: number) => L + 18 + (Math.log2(f / 125) / oMax) * (W - L - R - 36);
+    const Y = (d: number) => T + ((d + 10) / 130) * (H - T - B);
+    return {
+      w: W, h: H, alt: `Audiogram of ${a.rows.length} frequencies, right and left ear`,
+      draw: (ctx, _w, _h, pal: Palette) => {
+        const font = (s: number, b = false) => `${b ? 700 : 400} ${s}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        ctx.lineWidth = 1; ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.font = font(13);
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let d = -10; d <= 120; d += 10) { ctx.beginPath(); ctx.moveTo(L, Y(d)); ctx.lineTo(W - R, Y(d)); ctx.stroke(); ctx.fillText(String(d), L - 6, Y(d)); }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const major = [125, 250, 500, 1000, 2000, 4000, 8000, 16000].filter((f) => f <= fMax), minor = [750, 1500, 3000, 6000, 12000].filter((f) => f <= fMax);
+        for (const f of major) { ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(X(f), T); ctx.lineTo(X(f), Y(120)); ctx.stroke(); ctx.fillText(kHz(f), X(f), Y(120) + 6); }
+        ctx.setLineDash([3, 4]); for (const f of minor) { ctx.beginPath(); ctx.moveTo(X(f), T); ctx.lineTo(X(f), Y(120)); ctx.stroke(); } ctx.setLineDash([]);
+        ctx.strokeStyle = pal.line; ctx.strokeRect(L, T, W - R - L, Y(120) - T);
+        ctx.fillStyle = pal.ink; ctx.font = font(13, true); ctx.fillText('Frequency (Hz)', (L + W - R) / 2, Y(120) + 24);
+        ctx.save(); ctx.translate(16, (T + Y(120)) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Hearing level (dB HL)', 0, -6); ctx.restore();
+        // Degree bands on the right.
+        ctx.font = font(12.5); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        let lo = -10;
+        bands.forEach((b) => {
+          const hi = Math.min(120, b.limit);
+          if (b.limit < 120 && b.limit > -10) { ctx.strokeStyle = pal.muted; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(L, Y(b.limit)); ctx.lineTo(W - R + 6, Y(b.limit)); ctx.stroke(); ctx.setLineDash([]); }
+          if (hi > lo) { ctx.fillStyle = pal.muted; const words = b.label.split(' '), mid = Y((lo + hi) / 2); const lines: string[] = []; let cur = ''; for (const w of words) { if (ctx.measureText(`${cur} ${w}`.trim()).width > R - 14 && cur) { lines.push(cur); cur = w; } else cur = `${cur} ${w}`.trim(); } lines.push(cur); const lh = 14, room = Y(hi) - Y(lo); const shown = lines.slice(0, Math.max(1, Math.floor(room / lh))); shown.forEach((l, i) => ctx.fillText(l, W - R + 10, mid + (i - (shown.length - 1) / 2) * lh)); }
+          lo = Math.max(lo, hi);
+        });
+        // Symbols.
+        const col = (e: Ear) => (e === 'R' ? pal.bad : pal.accent);
+        const sym = (e: Ear, kind: 'air' | 'bone', t: Threshold, x: number, y: number) => {
+          ctx.strokeStyle = col(e); ctx.fillStyle = col(e); ctx.lineWidth = 2; const s = 8;
+          ctx.beginPath();
+          if (kind === 'air' && e === 'R' && !t.masked) ctx.arc(x, y, s, 0, 2 * Math.PI);
+          if (kind === 'air' && e === 'R' && t.masked) { ctx.moveTo(x, y - s - 1); ctx.lineTo(x + s, y + s - 2); ctx.lineTo(x - s, y + s - 2); ctx.closePath(); }
+          if (kind === 'air' && e === 'L' && !t.masked) { ctx.moveTo(x - s * 0.8, y - s * 0.8); ctx.lineTo(x + s * 0.8, y + s * 0.8); ctx.moveTo(x + s * 0.8, y - s * 0.8); ctx.lineTo(x - s * 0.8, y + s * 0.8); }
+          if (kind === 'air' && e === 'L' && t.masked) ctx.rect(x - s * 0.8, y - s * 0.8, s * 1.6, s * 1.6);
+          if (kind === 'bone') {
+            const d = e === 'R' ? -1 : 1; // < to the left of the line for the right ear, > to the right for the left ear
+            if (!t.masked) { ctx.moveTo(x + d * 2, y - s); ctx.lineTo(x + d * (2 + s), y); ctx.lineTo(x + d * 2, y + s); }
+            else { ctx.moveTo(x + d * 2, y - s); ctx.lineTo(x + d * (2 + s * 0.8), y - s); ctx.lineTo(x + d * (2 + s * 0.8), y + s); ctx.lineTo(x + d * 2, y + s); } // [ for the right ear, ] for the left
+          }
+          ctx.stroke();
+          if (t.nr) { const dx = e === 'R' ? -1 : 1, x0 = x + dx * 5, y0 = y + 7, x1 = x0 + dx * 11, y1 = y0 + 13; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - dx * 1, y1 - 7); ctx.moveTo(x1, y1); ctx.lineTo(x1 - dx * 7, y1 - 2); ctx.stroke(); }
+          ctx.lineWidth = 1;
+        };
+        for (const e of ['R', 'L'] as Ear[]) {
+          const pts = a.rows.filter((r) => r[e].air && !r[e].air!.nr).map((r) => [X(r.freq), Y(r[e].air!.db)]);
+          ctx.strokeStyle = col(e); ctx.lineWidth = 1.6; ctx.setLineDash(e === 'L' ? [7, 5] : []);
+          ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+          for (const r of a.rows) { if (r[e].air) sym(e, 'air', r[e].air!, X(r.freq), Y(r[e].air!.db)); if (r[e].bone) sym(e, 'bone', r[e].bone!, X(r.freq) + (e === 'R' ? -8 : 8), Y(r[e].bone!.db)); }
+        }
+        // Legend.
+        let ly = H - 50, lx = L; ctx.font = font(12.5); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        const item = (e: Ear, kind: 'air' | 'bone', masked: boolean, label: string) => { sym(e, kind, { db: 0, masked, nr: false }, lx + 10 + (kind === 'bone' ? (e === 'R' ? 4 : -4) : 0), ly); ctx.fillStyle = pal.ink; ctx.fillText(label, lx + 24, ly); lx += 24 + ctx.measureText(label).width + 18; };
+        item('R', 'air', false, 'Right air'); item('L', 'air', false, 'Left air'); item('R', 'air', true, ''); lx -= 18; item('L', 'air', true, 'masked air');
+        ly = H - 22; lx = L;
+        item('R', 'bone', false, 'Right bone'); item('L', 'bone', false, 'Left bone'); item('R', 'bone', true, ''); lx -= 18; item('L', 'bone', true, 'masked bone');
+      },
+    };
+  }
+
+  function calc() {
+    err.hidden = true; q('.au-note').hidden = true;
+    const out = q('.au-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; fig = null; };
+    let a: Audiogram, bands: Band[];
+    try { a = parseAudiogram(q<HTMLTextAreaElement>('.au-in').value); } catch (e) { return fail((e as Error).message); }
+    try { bands = parseScheme(cut.value); } catch (e) { return fail((e as Error).message); }
+    const gapL = num(q<HTMLInputElement>('.au-gap').value), norm = num(q<HTMLInputElement>('.au-norm').value), ad = num(q<HTMLInputElement>('.au-ad').value), an = num(q<HTMLInputElement>('.au-an').value);
+    if (!(gapL > 0) || !Number.isFinite(norm) || !(ad > 0) || !(an >= 1 && Number.isInteger(an))) return fail('The gap flag and asymmetry difference must be above 0 dB, the normal limit a number, and the asymmetry count a whole number of 1 or more.');
+    if (a.warnings.length) { q('.au-note').textContent = `Note: ${a.warnings.slice(0, 3).join('; ')}. Audiometers step in 5 dB.`; q('.au-note').hidden = false; }
+    out.hidden = false;
+    const P = q<HTMLSelectElement>('.au-pta').value === '3' ? PTA3 : PTA4, pName = P === PTA3 ? 'PTA3' : 'PTA4';
+    const schemeName = SCHEMES[sch.value]?.name ?? 'your cutoffs';
+    const ears = (['R', 'L'] as Ear[]).map((e) => {
+      const p3 = pta(a, e, 'air', PTA3), p4 = pta(a, e, 'air', PTA4), p = P === PTA3 ? p3 : p4;
+      const g = p.value === null ? null : grade(p.value, bands);
+      return { e, name: e === 'R' ? 'Right' : 'Left', p3, p4, p, g, type: lossType(a, e, norm, gapL), gaps: gaps(a, e, gapL), bone: pta(a, e, 'bone', P) };
+    });
+    const vals = ears.filter((x) => x.p.value !== null);
+    const better = vals.length === 2 ? (vals[0].p.value! <= vals[1].p.value! ? vals[0] : vals[1]) : null;
+    q('.au-big').textContent = ears.map((x) => `${x.name}: ${x.g ? x.g.label.toLowerCase() : 'no ' + pName} ${x.p.value !== null ? `(${pName} ${sig(x.p.value, 3)} dB HL)` : ''}`.trim()).join(' · ');
+    const facts: [string, string, string?][] = [];
+    for (const x of ears) {
+      facts.push([`${x.name} PTA3 (0.5–2 kHz)`, dB(x.p3.value) + (x.p3.nr ? ' or more' : ''), x.p3.missing.length ? `missing ${x.p3.missing.map(kHz).join(', ')} Hz` : undefined]);
+      facts.push([`${x.name} PTA4 (0.5–4 kHz)`, dB(x.p4.value) + (x.p4.nr ? ' or more' : ''), x.p4.missing.length ? `missing ${x.p4.missing.map(kHz).join(', ')} Hz` : undefined]);
+      facts.push([`${x.name} degree`, x.g ? x.g.label : '–', `${schemeName}, ${pName}`]);
+      facts.push([`${x.name} type`, x.type, x.bone.value !== null ? `bone ${pName} ${sig(x.bone.value, 3)} dB HL` : undefined]);
+    }
+    if (better) facts.push(['Better ear', `${better.name}: ${better.g!.label}`, `${pName} ${sig(better.p.value!, 3)} dB HL; WHO grades the better ear`]);
+    q('.au-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+    const flags: string[] = [];
+    for (const x of ears) { const f = x.gaps.filter((g) => g.flag); if (f.length) flags.push(`${x.name} ear: air-bone gap of ${gapL} dB or more at ${f.map((g) => `${kHz(g.freq)} Hz (${g.gap} dB)`).join(', ')}.`); }
+    const asy = asymmetry(a, ad, an);
+    if (asy.flag) { const w = asy.rows.find((r) => r.freq === asy.run[0])!.worse; flags.push(`Asymmetry: the ${w === 'R' ? 'right' : 'left'} ear is ${ad} dB or more worse at ${asy.run.length} adjacent frequencies (${asy.run.map(kHz).join(', ')} Hz).`); }
+    else if (asy.rows.length) flags.push(`No asymmetry by your rule (${ad} dB or more at ${an} adjacent frequencies).`);
+    if (a.rows.some((r) => r.R.air?.nr || r.L.air?.nr || r.R.bone?.nr || r.L.bone?.nr)) flags.push('No-response (NR) values count at the level tested, so averages that use them are "or more".');
+    q('.au-flags').replaceChildren(...flags.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    fig = drawAudiogram(a, bands);
+    paint(q<HTMLCanvasElement>('.au-fig'), fig);
+    const head = ['Hz', 'Right air', 'Left air', 'Right bone', 'Left bone', 'Right gap', 'Left gap', 'R − L air'];
+    const rows = a.rows.map((r) => { const gR = ears[0].gaps.find((g) => g.freq === r.freq), gL = ears[1].gaps.find((g) => g.freq === r.freq); return [String(r.freq), cell(r.R.air), cell(r.L.air), cell(r.R.bone), cell(r.L.bone), gR ? `${gR.gap}${gR.flag ? ' !' : ''}` : '', gL ? `${gL.gap}${gL.flag ? ' !' : ''}` : '', r.R.air && r.L.air ? String(r.R.air.db - r.L.air.db) : '']; });
+    const tb = q<HTMLTableElement>('.au-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((t) => { const td = tr.insertCell(); td.textContent = t; td.className = 'r'; }); });
+    csvRows = [['frequency_hz', 'right_air', 'left_air', 'right_bone', 'left_bone', 'right_air_bone_gap', 'left_air_bone_gap', 'right_minus_left_air'], ...rows.map((r) => r.map((c) => c.replace(' !', '')))];
+    report = [
+      { title: 'Audiogram', text: [q('.au-big').textContent ?? ''], figure: fig, facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]) },
+      { title: 'Findings', text: flags },
+      { title: 'Thresholds (dB HL)', table: { head, rows, align: head.map(() => 'r') as ('l' | 'r')[] } },
+      { title: 'Rules used', text: [`Degree: ${schemeName}. ${bands.map((b) => (b.op ? `${b.label} ${b.op === '<' ? '<' : '≤'} ${b.limit}` : `${b.label} above`)).join('; ')} dB HL. ${SCHEMES[sch.value] ? SCHEMES[sch.value].cite + ' ' + CHECKED : ''}`, `Air-bone gap flag: ${gapL} dB or more. Normal limit: ${norm} dB HL. Asymmetry: ${ad} dB or more at ${an} adjacent frequencies. Symbols: ASHA (1990).`], note: 'For study and teaching, not medical advice. Not a hearing test.' },
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  q('.au-in').addEventListener('input', later);
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  cut.addEventListener('input', () => { if (sch.value !== 'custom') { sch.value = 'custom'; q('.au-cite').textContent = 'Your own cutoffs.'; } later(); });
+  sch.addEventListener('change', () => { if (sch.value !== 'custom') setScheme(); else q('.au-cite').textContent = 'Your own cutoffs.'; calc(); });
+  q('.au-pta').addEventListener('change', calc);
+  q('.au-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'audiogram.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.au-fig'), fig));
+  setScheme();
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Audiogram', subtitle: 'For study and teaching, not medical advice. Not a hearing test.', file: 'audiogram', sections: report }));
+</script>

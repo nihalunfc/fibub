@@ -1,0 +1,157 @@
+---
+// Coupled oscillators: N masses and springs in a line, normal modes, animated motion. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cpo">
+  <div class="ax-card">
+    <h2>Masses and springs</h2>
+    <div class="ax-grid">
+      <label>Ends <select class="co-ends">
+        <option value="fixed-fixed" selected>Both ends tied to walls</option>
+        <option value="fixed-free">Left end tied, right end free</option>
+        <option value="free-free">Both ends free (a floating chain)</option>
+      </select></label>
+      <label>Number of masses (1 to 12) <input class="co-n" type="text" inputmode="numeric" value="3" /></label>
+      <label>Masses in kg, left to right (one number = all the same) <input class="co-m" type="text" value="1, 2, 1.5" /></label>
+      <label><span>Spring constants in N/m, left to right (<span class="co-kn">4</span> needed; one number = all the same)</span> <input class="co-k" type="text" value="10, 20, 15, 5" /></label>
+    </div>
+    <p class="ax-help">The masses slide along a line (no friction) and each spring joins neighbours; with a wall at an end, the first or last spring ties the end mass to it. Separate numbers with commas or spaces. The example values are made up.</p>
+    <p class="ax-err co-err" hidden></p>
+  </div>
+
+  <div class="ax-card co-out">
+    <h2>Normal modes</h2>
+    <p class="ax-big co-big"></p>
+    <div class="ax-scroll"><table class="co-tab"></table></div>
+    <canvas class="ax-fig co-fig"></canvas>
+    <h2 style="margin-top:14px">Watch it move</h2>
+    <div class="ax-grid">
+      <label>Start <select class="co-start"></select></label>
+      <label class="co-cl" hidden>Starting displacements, left to right <input class="co-x0" type="text" value="1, 0, 0" /></label>
+    </div>
+    <canvas class="co-live" aria-label="Animation of the masses and springs"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small co-play">Pause</button>
+      <label class="ax-check">Speed <input class="co-speed" type="range" min="0.1" max="2" step="0.1" value="1" /></label>
+      <span class="ax-help co-clock" style="margin:0"></span>
+    </div>
+    <dl class="ax-facts co-facts" style="margin-top:10px"></dl>
+    <canvas class="ax-fig co-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small co-csv">Download motion (CSV)</button></div>
+    <p class="ax-help">Small oscillations of ideal springs, no damping. Any motion is a sum of the normal modes, each swinging at its own frequency; starting in exactly one mode keeps the shape forever. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { normalModes, springCount, project, motionAt, modeEnergy, type Ends, type Mode } from '../../lib/sci/phcoupled';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cpo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const list = (s: string) => s.split(/[\s,;]+/).filter(Boolean).map(num);
+  let figs: Figure[] = [], report: Section[] = [], csv = '';
+  let sys: { modes: Mode[]; m: number[]; ends: Ends; coef: { a: number; b: number }[]; scale: number; t: number; last: number; slow: number } | null = null;
+  let playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, raf = 0;
+
+  function calc() {
+    const err = q('.co-err'), out = q('.co-out');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; report = []; sys = null; csv = ''; };
+    const ends = q<HTMLSelectElement>('.co-ends').value as Ends, n = num(inp('.co-n').value);
+    if (!(Number.isInteger(n) && n >= 1 && n <= 12)) return fail('The number of masses must be a whole number from 1 to 12.');
+    if (ends === 'free-free' && n < 2) return fail('A floating chain needs at least 2 masses.');
+    const need = springCount(n, ends); q('.co-kn').textContent = String(need);
+    let m = list(inp('.co-m').value), k = list(inp('.co-k').value);
+    if (m.length === 1) m = new Array(n).fill(m[0]);
+    if (k.length === 1) k = new Array(need).fill(k[0]);
+    if (m.length !== n || m.some((x) => !(x > 0))) return fail(`Give ${n} masses greater than 0 (or one number for all); you gave ${m.length}.`);
+    if (k.length !== need || k.some((x) => !(x > 0))) return fail(`Give ${need} spring constants greater than 0 (or one number for all); you gave ${k.length}. ${ends === 'fixed-fixed' ? 'With two walls there is one more spring than masses.' : ends === 'fixed-free' ? 'With one wall there are as many springs as masses.' : 'A floating chain has one spring fewer than masses.'}`);
+    err.hidden = true; out.hidden = false;
+    const modes = normalModes(m, k, ends);
+    q('.co-big').textContent = `${n} normal mode${n > 1 ? 's' : ''}: ${modes.map((md) => sig(md.f, 3)).join(', ')} Hz`;
+    const head = ['Mode', 'ω (rad/s)', 'f (Hz)', 'Period (s)', 'Shape (largest = 1)'];
+    const rows = modes.map((md, j) => [String(j + 1), sig(md.omega, 4), sig(md.f, 4), md.omega > 0 ? sig(md.T, 4) : 'rigid drift', md.shape.map((x) => (Math.abs(x) < 5e-10 ? '0' : x.toFixed(3))).join(', ')]);
+    const tr = (cells: string[], th = false) => { const t = document.createElement('tr'); for (const x of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; t.append(e); } return t; };
+    q('.co-tab').replaceChildren(tr(head, true), ...rows.map((r) => tr(r)));
+    const idx = m.map((_, i) => i + 1);
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Mass number', yLabel: 'Displacement (largest = 1)', yMin: -1.1, yMax: 1.1, legend: 'below', series: modes.slice(0, 8).map((md, j) => ({ name: `Mode ${j + 1}, ${sig(md.f, 3)} Hz`, x: idx, y: md.shape, mode: 'both' as const })), marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, 'Shapes of the normal modes: how far each mass moves');
+    paint(q<HTMLCanvasElement>('.co-fig'), c1);
+    // Start options.
+    const sel = q<HTMLSelectElement>('.co-start'), prev = sel.value;
+    const opts = [...modes.map((md, j) => [`mode${j}`, `Mode ${j + 1} only (${sig(md.f, 3)} Hz)`]), ['pull', 'Pull mass 1 aside and let go'], ['custom', 'My own starting displacements']].filter(([v]) => !(v === 'mode0' && modes[0].omega === 0));
+    sel.replaceChildren(...opts.map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+    sel.value = opts.some(([v]) => v === prev) ? prev : opts[0][0];
+    q('.co-cl').hidden = sel.value !== 'custom';
+    let x0: number[], badStart = false;
+    if (sel.value.startsWith('mode')) x0 = modes[+sel.value.slice(4)].shape;
+    else if (sel.value === 'pull') x0 = m.map((_, i) => (i === 0 ? 1 : 0));
+    else { x0 = list(inp('.co-x0').value); if (x0.length !== n || x0.some((x) => !Number.isFinite(x))) { badStart = true; x0 = new Array(n).fill(0); } }
+    const coef = project(modes, m, x0), E = modeEnergy(modes, coef), Et = E.reduce((s, e) => s + e, 0);
+    const pos = modes.filter((md) => md.omega > 0), slow = pos.length ? Math.min(...pos.map((md) => md.omega)) : 1;
+    const span = (3 * 2 * Math.PI) / slow, ts = Array.from({ length: 601 }, (_, i) => (span * i) / 600), xs = ts.map((t) => motionAt(modes, coef, t));
+    const amp = Math.max(1e-12, ...xs.flat().map(Math.abs));
+    q('.co-facts').replaceChildren(...(badStart ? [fact('Starting displacements', `give ${n} numbers`, 'one per mass, left to right; 0 for a mass that starts in place')] : Et > 0 ? modes.map((md, j) => fact(`Mode ${j + 1} share of the energy`, (E[j] / Et) * 100 < 0.001 ? 'under 0.001 %' : `${sig((E[j] / Et) * 100, 3)} %`, md.omega > 0 ? `${sig(md.f, 3)} Hz` : 'rigid motion')) : [fact('Energy', '0', 'nothing moves: give a starting displacement')]));
+    const c2 = chartFigure({ w: 380, h: 240, xLabel: 'Time (s)', yLabel: 'Displacement', legend: 'below', series: m.slice(0, 8).map((_, i) => ({ name: `Mass ${i + 1}`, x: ts, y: xs.map((x) => x[i]), mode: 'line' as const, width: 1.4 })) }, 'Displacement of each mass against time');
+    paint(q<HTMLCanvasElement>('.co-fig2'), c2);
+    figs = [c1, c2];
+    csv = 't_s,' + m.map((_, i) => `x${i + 1}`).join(',') + '\n' + ts.map((t, r) => [t, ...xs[r]].map((v) => +v.toPrecision(8)).join(',')).join('\n') + '\n';
+    report = [
+      { title: 'System', facts: [['Ends', q<HTMLSelectElement>('.co-ends').selectedOptions[0].textContent!], ['Masses (kg)', m.join(', ')], ['Springs (N/m)', k.join(', ')]] },
+      { title: q('.co-big').textContent!, table: { head, rows }, figure: c1 },
+      { title: `Motion: ${sel.selectedOptions[0].textContent}`, facts: [...q('.co-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: c2 },
+    ];
+    sys = { modes, m, ends, coef, scale: amp, t: 0, last: 0, slow };
+    draw();
+    if (playing && !raf) raf = requestAnimationFrame(tick);
+  }
+
+  function draw() {
+    const cv = q<HTMLCanvasElement>('.co-live'); if (!sys) return;
+    const W = cv.clientWidth || 340, H = 110, dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px'; }
+    const ctx = cv.getContext('2d')!, pal = pagePalette(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const n = sys.m.length, left = sys.ends !== 'free-free', right = sys.ends === 'fixed-fixed';
+    const gaps = n + 1, sp = (W - 24) / gaps, y = H / 2, x = motionAt(sys.modes, sys.coef, sys.t);
+    const eq = Array.from({ length: n }, (_, i) => 12 + sp * (i + 1)), px = eq.map((e, i) => e + (x[i] / sys!.scale) * sp * 0.35);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+    const wall = (wx: number) => { ctx.beginPath(); ctx.moveTo(wx, y - 30); ctx.lineTo(wx, y + 30); ctx.stroke(); for (let i = -30; i < 30; i += 8) { ctx.beginPath(); ctx.moveTo(wx, y + i); ctx.lineTo(wx + (wx < W / 2 ? -6 : 6), y + i + 6); ctx.stroke(); } };
+    const spring = (a: number, b: number) => { const coils = 8, amp = 6; ctx.beginPath(); ctx.moveTo(a, y); for (let i = 1; i < 2 * coils; i++) ctx.lineTo(a + ((b - a) * i) / (2 * coils), y + (i % 2 ? -amp : amp)); ctx.lineTo(b, y); ctx.stroke(); };
+    const mmax = Math.max(...sys.m), size = (mm: number) => 10 + 10 * Math.sqrt(mm / mmax), half = (i: number) => size(sys!.m[i]) / 2;
+    if (left) { wall(12); spring(12, px[0] - half(0)); }
+    for (let i = 0; i < n - 1; i++) spring(px[i] + half(i), px[i + 1] - half(i + 1));
+    if (right) { wall(W - 12); spring(px[n - 1] + half(n - 1), W - 12); }
+    ctx.strokeStyle = pal.line; ctx.setLineDash([2, 3]); eq.forEach((e) => { ctx.beginPath(); ctx.moveTo(e, y + 26); ctx.lineTo(e, y + 34); ctx.stroke(); }); ctx.setLineDash([]);
+    const col = pal.red ? pal.ink : pal.accent;
+    px.forEach((p, i) => { const s = size(sys!.m[i]); ctx.fillStyle = col; ctx.fillRect(p - s / 2, y - s / 2, s, s); });
+    q('.co-clock').textContent = `t = ${sys.t.toFixed(2)} s`;
+  }
+  function tick(now: number) {
+    raf = 0; if (!sys || !playing) return;
+    const dt = sys.last ? Math.min(0.1, (now - sys.last) / 1000) : 0; sys.last = now;
+    // Real time for a slowest period of 1 to 4 s; otherwise rescaled so the slowest mode takes about 3 s.
+    const Tslow = (2 * Math.PI) / sys.slow, rate = Tslow < 1 || Tslow > 4 ? Tslow / 3 : 1;
+    sys.t += dt * rate * num(inp('.co-speed').value);
+    draw(); raf = requestAnimationFrame(tick);
+  }
+
+  q('.co-play').addEventListener('click', () => { playing = !playing; q('.co-play').textContent = playing ? 'Pause' : 'Play'; if (sys) sys.last = 0; if (playing && !raf) raf = requestAnimationFrame(tick); });
+  q('.co-play').textContent = playing ? 'Pause' : 'Play';
+  root.querySelectorAll('.co-ends, .co-n, .co-m, .co-k, .co-start, .co-x0').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.co-csv').addEventListener('click', () => { if (csv) save(new Blob([csv], { type: 'text/csv' }), 'coupled-oscillators.csv', 'text/csv'); });
+  window.addEventListener('resize', draw);
+  document.addEventListener('fibub:theme', () => { draw(); if (figs.length && !q('.co-out').hidden) { paint(q<HTMLCanvasElement>('.co-fig'), figs[0]); paint(q<HTMLCanvasElement>('.co-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Coupled oscillators', subtitle: q('.co-big').textContent || '', file: 'coupled-oscillators', sections: report }));
+</script>
+
+<style is:global>
+  .cpo select, .cpo input[type=text] { max-width: 100%; }
+  .cpo .co-live { display: block; width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .cpo label[hidden] { display: none; }
+</style>

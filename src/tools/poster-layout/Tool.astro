@@ -1,0 +1,166 @@
+---
+// Poster layout: a to-scale grid for a conference poster (size, orientation, columns, margins, gutters, title and
+// footer bands), text sizes that stay readable at a viewing distance, and SVG and PDF templates with guides.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pst">
+  <div class="ax-card">
+    <h2>Poster</h2>
+    <div class="ax-grid">
+      <label>Size <select class="pl-size"></select></label>
+      <label class="pl-cw" hidden>Width (mm) <input class="pl-w" type="number" min="100" max="5000" step="1" value="800" inputmode="decimal" /></label>
+      <label class="pl-cw" hidden>Height (mm) <input class="pl-h" type="number" min="100" max="5000" step="1" value="1000" inputmode="decimal" /></label>
+      <label>Orientation <select class="pl-or"><option value="p">Portrait (tall)</option><option value="l">Landscape (wide)</option></select></label>
+      <label>Columns <input class="pl-cols" type="number" min="1" max="8" step="1" value="3" inputmode="numeric" /></label>
+      <label>Margin round the edge (mm) <input class="pl-m" type="number" min="0" max="300" step="1" value="25" inputmode="decimal" /></label>
+      <label>Gutter between columns (mm) <input class="pl-g" type="number" min="0" max="200" step="1" value="20" inputmode="decimal" /></label>
+      <label>Title band height (mm, 0 for none) <input class="pl-t" type="number" min="0" max="1000" step="1" value="150" inputmode="decimal" /></label>
+      <label>Footer band height (mm, 0 for none) <input class="pl-f" type="number" min="0" max="1000" step="1" value="60" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The margin keeps text away from the trimmed edge; the gutter is the gap between columns, and also between the bands and the columns. The footer band holds logos, references and contact details. Check the conference's size and orientation before you start.</p>
+    <p class="ax-err pl-err" hidden></p>
+  </div>
+
+  <div class="ax-card pl-out">
+    <h2>Layout to scale</h2>
+    <p class="ax-big pl-big"></p>
+    <dl class="ax-facts pl-facts"></dl>
+    <canvas class="ax-fig pl-fig"></canvas>
+    <p class="ax-help">The grey sheet in the corner is A4 at the same scale. The bar along the bottom is 100 mm.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pl-svg">Download template (SVG)</button>
+      <button type="button" class="btn secondary small pl-pdf">Download template (PDF)</button>
+    </div>
+    <p class="ax-help">Both templates are full size, with the guides on their own layer and the sizes written in. Open them in Inkscape, Illustrator, Affinity, PowerPoint (insert the PDF) or Scribus, and delete the notes before printing.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Text sizes</h2>
+    <p class="ax-help">Each kind of text should be readable from the distance people stand when they read it. The sizes below make capital letters span <span class="pl-ang">15</span> minutes of arc at that distance: <span class="pl-k">3</span> times the smallest letters someone with normal sight can read.</p>
+    <div class="ax-grid">
+      <label>Comfort (times the smallest readable letters) <input class="pl-c" type="number" min="1" max="10" step="0.5" value="3" inputmode="decimal" /></label>
+      <label>Title read from (m) <input class="pl-d" data-i="0" type="number" min="0.3" max="30" step="0.5" value="5" inputmode="decimal" /></label>
+      <label>Section headings read from (m) <input class="pl-d" data-i="1" type="number" min="0.3" max="30" step="0.5" value="3" inputmode="decimal" /></label>
+      <label>Body text read from (m) <input class="pl-d" data-i="2" type="number" min="0.3" max="30" step="0.5" value="1.5" inputmode="decimal" /></label>
+      <label>Captions and references read from (m) <input class="pl-d" data-i="3" type="number" min="0.3" max="30" step="0.5" value="1" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-scroll"><table class="pl-tab"></table></div>
+    <p class="ax-help">Point sizes are for a plain sans-serif font such as Arial or Helvetica, rounded up to an even size. Serif and narrow fonts need a little more. Characters per line is a rough count for the body column; about 45 to 90 reads comfortably.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PAPERS, ROLES, layout, textGuide, posterSvg, PT_MM, type Layout } from '../../lib/sci/poster';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (x: number) => (Math.abs(x - Math.round(x)) < 0.05 ? String(Math.round(x)) : x.toFixed(1));
+  const sel = q<HTMLSelectElement>('.pl-size');
+  sel.replaceChildren(...PAPERS.map((p) => new Option(p.name, p.id)), new Option('Custom size', 'custom'));
+  let L: Layout | null = null, guide: ReturnType<typeof textGuide> = [], label = '', fig: Figure | null = null, sections: Section[] = [];
+
+  function run() {
+    const err = q('.pl-err'); err.hidden = true;
+    const id = sel.value, custom = id === 'custom';
+    root.querySelectorAll<HTMLElement>('.pl-cw').forEach((e) => (e.hidden = !custom));
+    const p = PAPERS.find((x) => x.id === id);
+    const w = custom ? v('.pl-w') : p!.w, h = custom ? v('.pl-h') : p!.h;
+    const r = layout({ w, h, landscape: q<HTMLSelectElement>('.pl-or').value === 'l', cols: v('.pl-cols'), margin: v('.pl-m'), gutter: v('.pl-g'), title: v('.pl-t'), footer: v('.pl-f') });
+    const k = v('.pl-c');
+    const dists = [...root.querySelectorAll<HTMLInputElement>('.pl-d')].map((e) => Number(e.value));
+    if (typeof r === 'string') { err.textContent = r; err.hidden = false; return; }
+    if (!(k >= 1 && k <= 10)) { err.textContent = 'Comfort runs from 1 to 10.'; err.hidden = false; return; }
+    if (!dists.every((d) => d >= 0.3 && d <= 30)) { err.textContent = 'Reading distances run from 0.3 to 30 m.'; err.hidden = false; return; }
+    L = r;
+    label = custom ? `Custom ${mm(L.W)} × ${mm(L.H)} mm` : p!.name.replace(/ \(.*\)$/, '');
+    guide = textGuide(ROLES.map((ro, i) => ({ ...ro, dist: dists[i] })), k, L.colW);
+    q('.pl-ang').textContent = sig(k * 5, 3); q('.pl-k').textContent = sig(k, 3);
+    const body = guide[2];
+    q('.pl-big').textContent = `${L.columns.length} column${L.columns.length > 1 ? 's' : ''} ${mm(L.colW)} mm wide; body text ${body.round} pt, title ${guide[0].round} pt`;
+    q('.pl-facts').replaceChildren(
+      fact('Poster', `${mm(L.W)} × ${mm(L.H)} mm`, `${sig(L.W / 25.4, 3)} × ${sig(L.H / 25.4, 3)} in, ${sig((L.W * L.H) / 1e6, 3)} m²`),
+      fact('Each column', `${mm(L.colW)} × ${mm(L.columns[0].h)} mm`, `columns start ${mm(L.columns[0].y)} mm from the top`),
+      fact('Space for content', `${Math.round((100 * L.area) / (L.W * L.H))} % of the poster`, 'the columns only; the title and footer bands are extra'),
+      fact('Body text line', `about ${body.chars} characters`, body.chars > 90 ? 'long lines are tiring: use more columns or bigger text' : body.chars < 40 ? 'short lines: use fewer columns' : 'a comfortable line length'),
+    );
+    draw();
+    const head = ['Text', 'Read from', 'Capital height', 'Exact size', 'Use', 'Chars per column line'];
+    const rows = guide.map((g) => [g.name, `${g.dist} m`, `${g.cap.toFixed(1)} mm`, `${g.pt.toFixed(1)} pt`, `${g.round} pt`, String(g.chars)]);
+    const t = q<HTMLTableElement>('.pl-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((rw) => { const tr = tb.insertRow(); rw.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+    sections = [
+      { title: q('.pl-big').textContent!, facts: [...q('.pl-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig! },
+      { title: 'Text sizes', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, note: `Capital letters span ${sig(k * 5, 3)} arcmin (${sig(k, 3)} × the 5 arcmin of the smallest letters readable with normal sight); sans-serif capitals taken as 0.7 of the font size.` },
+    ];
+  }
+
+  function draw() {
+    const l = L!, maxW = 640, maxH = 560, sc = Math.min(maxW / (l.W + 40), maxH / (l.H + 50));
+    const w = Math.round((l.W + 40) * sc), h = Math.round((l.H + 50) * sc);
+    fig = {
+      w: Math.max(w, 300), h, alt: `Layout of a ${mm(l.W)} by ${mm(l.H)} mm poster with ${l.columns.length} columns, drawn to scale`,
+      draw: (ctx, W, H, pal) => {
+        const ox = 20 * sc, oy = 10 * sc, X = (x: number) => ox + x * sc, Y = (y: number) => oy + y * sc;
+        ctx.fillStyle = pal.bg === '#ffffff' ? '#ffffff' : '#1a1a1a'; ctx.fillRect(X(0), Y(0), l.W * sc, l.H * sc);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(X(0) + 0.5, Y(0) + 0.5, l.W * sc - 1, l.H * sc - 1);
+        const box = (r: { x: number; y: number; w: number; h: number }, fill: string, text: string) => {
+          ctx.fillStyle = fill; ctx.fillRect(X(r.x), Y(r.y), r.w * sc, r.h * sc);
+          ctx.strokeStyle = pal.accent; ctx.setLineDash([4, 3]); ctx.strokeRect(X(r.x) + 0.5, Y(r.y) + 0.5, r.w * sc - 1, r.h * sc - 1); ctx.setLineDash([]);
+          ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          if (r.h * sc > 16 && ctx.measureText(text).width < r.w * sc - 4) ctx.fillText(text, X(r.x + r.w / 2), Y(r.y + Math.min(r.h / 2, 30 / sc)));
+        };
+        const tint = pal.red ? pal.grid : pal.bg === '#ffffff' ? '#e8f0fa' : '#1d2a3a';
+        if (l.title) box(l.title, tint, `Title ${mm(l.title.h)} mm`);
+        l.columns.forEach((c, i) => box(c, tint, l.columns.length > 4 ? String(i + 1) : `${mm(c.w)} mm`));
+        if (l.footer) box(l.footer, tint, `Footer ${mm(l.footer.h)} mm`);
+        // A4 sheet for scale, bottom-right corner of the page.
+        const a4w = l.W > l.H ? 297 : 210, a4h = l.W > l.H ? 210 : 297;
+        ctx.fillStyle = pal.grid; ctx.globalAlpha = 0.85; ctx.fillRect(X(l.W - a4w - 8), Y(l.H - a4h - 8), a4w * sc, a4h * sc); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.muted; ctx.strokeRect(X(l.W - a4w - 8) + 0.5, Y(l.H - a4h - 8) + 0.5, a4w * sc - 1, a4h * sc - 1);
+        ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('A4', X(l.W - a4w / 2 - 8), Y(l.H - a4h / 2 - 8));
+        // 100 mm scale bar.
+        const by = Y(l.H) + 22 * sc;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), by); ctx.lineTo(X(100), by); ctx.stroke(); ctx.lineWidth = 1;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(`100 mm   (poster ${mm(l.W)} × ${mm(l.H)} mm)`, X(100) + 8, by);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.pl-fig'), fig);
+  }
+
+  async function pdf() {
+    const l = L!, { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const k = 72 / 25.4, doc = await PDFDocument.create(), page = doc.addPage([l.W * k, l.H * k]), font = await doc.embedFont(StandardFonts.Helvetica);
+    doc.setTitle(`${label} poster template`); doc.setProducer('fibub.com'); doc.setCreator('fibub.com poster layout');
+    const blue = rgb(0.12, 0.47, 0.71), s = Math.max(l.W, l.H) / 841, fs = 14 * s;
+    const rect = (r: { x: number; y: number; w: number; h: number }) => page.drawRectangle({ x: r.x * k, y: (l.H - r.y - r.h) * k, width: r.w * k, height: r.h * k, borderColor: blue, borderWidth: 0.6 * s * k, borderDashArray: [4 * s * k, 3 * s * k] });
+    const text = (t: string, x: number, y: number, size = fs) => page.drawText(t.replace(/×/g, 'x'), { x: x * k, y: (l.H - y) * k - size * 0.75, size, font, color: blue });
+    rect(l.content); if (l.title) rect(l.title); if (l.footer) rect(l.footer); l.columns.forEach(rect);
+    if (l.title) { text(`Title band ${mm(l.title.w)} × ${mm(l.title.h)} mm`, l.title.x + 6 * s, l.title.y + 6 * s); text(`Title, ${guide[0].round} pt`, l.title.x + 6 * s, l.title.y + l.title.h / 2 - guide[0].round * PT_MM / 2, guide[0].round); }
+    l.columns.forEach((c, i) => text(`Column ${i + 1}: ${mm(c.w)} × ${mm(c.h)} mm`, c.x + 6 * s, c.y + 6 * s));
+    guide.forEach((g, i) => text(`${g.name}: ${g.round} pt (readable at ${g.dist} m)`, l.columns[0].x + 6 * s, l.columns[0].y + 30 * s + i * 22 * s));
+    if (l.footer) text(`Footer ${mm(l.footer.w)} × ${mm(l.footer.h)} mm (logos, references, contact)`, l.footer.x + 6 * s, l.footer.y + 6 * s);
+    text(`${label}: ${mm(l.W)} × ${mm(l.H)} mm. Delete these guides before printing.`, l.content.x, l.H - Math.max(4, l.content.y / 2 + 4 * s), 10 * s);
+    return doc.save();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 200); };
+  root.querySelectorAll<HTMLInputElement>('input').forEach((e) => e.addEventListener('input', later));
+  root.querySelectorAll<HTMLSelectElement>('select').forEach((e) => e.addEventListener('change', run));
+  q('.pl-svg').addEventListener('click', () => L && save(new Blob([posterSvg(L, guide, label)], { type: 'image/svg+xml' }), `${fileSafe(label)}-poster-template.svg`, 'image/svg+xml'));
+  q('.pl-pdf').addEventListener('click', async () => { if (L) save(await pdf(), `${fileSafe(label)}-poster-template.pdf`, 'application/pdf'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pl-fig'), fig); });
+  wireDownloads(q('.dl'), () => ({ title: 'Poster layout', subtitle: q('.pl-big').textContent ?? '', file: `${fileSafe(label)}-poster-layout`, sections }));
+  run();
+</script>
+
+<style is:global>
+  .pst select { max-width: 100%; }
+</style>

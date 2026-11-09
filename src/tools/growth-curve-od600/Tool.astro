@@ -1,0 +1,354 @@
+---
+// Growth curve and doubling time from OD600 readings: paste time and OD (one column per culture), take away
+// a blank, find the exponential phase (steepest window of ln OD, or a time range by hand), and read the growth
+// rate, doubling time, lag (tangent method) and highest OD, with an optional logistic or Gompertz fit
+// (Zwietering form), plots on a linear or log scale, OD to cells/mL with an editable factor, CSV and a report.
+// The example readings and the default factor are made up. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gro">
+  <div class="ax-card">
+    <h2>Readings</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small gr-ex">Use the example</button>
+      <button type="button" class="btn secondary small gr-clear">Start empty</button>
+    </div>
+    <label style="margin-top:10px">Time in the first column, then one column of OD600 per culture or well. A first row of names is fine.
+      <textarea class="gr-data" rows="8" wrap="off" spellcheck="false" placeholder="Time&#9;Culture 1&#9;Culture 2&#10;0&#9;0.062&#9;0.060&#10;0.5&#9;0.066&#9;0.061"></textarea></label>
+    <DataFile target=".gr-data" maxCols={100} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Times are in <select class="gr-tu"><option value="h" selected>hours</option><option value="min">minutes</option></select></label>
+    </div>
+    <p class="ax-help">Copy straight from a spreadsheet or a plate reader export. Times like 1:30:00 are read as hours, minutes and seconds. An empty cell is a missing reading for that culture only. The example readings are made up.</p>
+    <p class="ax-err gr-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <h3>Blank</h3>
+    <div class="ax-seg gr-bmode" role="group" aria-label="Blank to take away">
+      <button type="button" data-m="none" aria-pressed="false">None</button>
+      <button type="button" data-m="value" aria-pressed="false">Type a value</button>
+      <button type="button" data-m="column" aria-pressed="true">A blank column</button>
+    </div>
+    <div class="ax-grid gr-brow">
+      <label class="gr-bvall" hidden>Blank OD <input class="gr-bval" inputmode="decimal" value="0.045" /></label>
+      <label class="gr-bcoll">Blank column <select class="gr-bcol"></select></label>
+    </div>
+    <p class="ax-help">The blank is the OD of medium with no cells. It is taken away from every reading so the OD is the cells' own. A blank column gives the mean of its readings, and is not analysed as a culture.</p>
+
+    <h3>Exponential phase</h3>
+    <div class="ax-seg gr-wmode" role="group" aria-label="How to choose the exponential phase">
+      <button type="button" data-m="auto" aria-pressed="true">Find it</button>
+      <button type="button" data-m="hand" aria-pressed="false">Choose by hand</button>
+    </div>
+    <div class="ax-grid gr-wrow">
+      <label class="gr-wl">Readings in the window <input class="gr-w" inputmode="numeric" value="5" /></label>
+      <label class="gr-froml" hidden><span class="gr-fromt">From (h)</span> <input class="gr-from" inputmode="decimal" value="3" /></label>
+      <label class="gr-tol" hidden><span class="gr-tot">To (h)</span> <input class="gr-to" inputmode="decimal" value="6" /></label>
+      <label>Lowest OD to use <input class="gr-min" inputmode="decimal" value="0.01" /></label>
+    </div>
+    <p class="ax-help gr-whelp">"Find it" slides a window of this many readings along each curve and keeps the one where ln OD rises fastest. Readings below the lowest OD (after the blank) are too close to the blank to trust on a log scale and are left out of every fit.</p>
+
+    <h3>Model and cells</h3>
+    <div class="ax-grid">
+      <label>Fit a model <select class="gr-model"><option value="none">No model</option><option value="gompertz" selected>Gompertz</option><option value="logistic">Logistic</option></select></label>
+      <label>Cells/mL for OD 1 <input class="gr-fac" inputmode="decimal" value="1e9" /></label>
+    </div>
+    <p class="ax-help">The model is fitted to ln(OD / starting OD) in the form of Zwietering and others (1990), and gives its own growth rate µm, lag λ and plateau. The cells/mL for OD 1 is a made-up round placeholder, not a value for any organism or instrument: count colonies from a few ODs of your own strain on your own spectrophotometer and type that.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results</h2>
+    <p class="ax-err gr-err" hidden></p>
+    <div class="gr-out">
+      <div class="ax-scroll"><table class="gr-sum"></table></div>
+      <p class="ax-help">Growth rate and doubling time from the straight-line fit of ln OD in the exponential window; lag from where that line meets the starting OD.</p>
+      <h3>One culture</h3>
+      <label class="gr-pickl">Culture <select class="gr-pick"></select></label>
+      <p class="ax-err gr-cerr" hidden></p>
+      <div class="gr-cout">
+        <p class="ax-big gr-big" aria-live="polite"></p>
+        <p class="ax-help gr-sub"></p>
+        <dl class="ax-facts gr-facts"></dl>
+        <h3 class="gr-mh">Model</h3>
+        <dl class="ax-facts gr-mfacts"></dl>
+        <ul class="gr-warn"></ul>
+        <div class="ax-seg gr-scale" role="group" aria-label="OD axis" style="margin-top:14px">
+          <button type="button" data-s="log" aria-pressed="true">Log scale</button>
+          <button type="button" data-s="lin" aria-pressed="false">Linear scale</button>
+        </div>
+        <canvas class="ax-fig gr-fig" style="margin-top:10px"></canvas>
+      </div>
+      <h3>All cultures</h3>
+      <canvas class="ax-fig gr-fig2"></canvas>
+      <div class="ax-row gr-dlrow">
+        <button type="button" class="btn secondary small gr-csv">Download results CSV</button>
+        <button type="button" class="btn secondary small gr-dcsv">Download data CSV</button>
+      </div>
+    </div>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<script>
+  import { parseGrowthTable, blankValue, analyse, tangent, modelOd, EXAMPLE, type Result, type Blank, type Model, type Table } from '../../lib/sci/growthcurve';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { save, wireDownloads, paint, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gro')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const box = q<HTMLTextAreaElement>('.gr-data');
+
+  const f3 = (x: number) => sig(x, 3), f4 = (x: number) => sig(x, 4);
+  const unit = () => sel('.gr-tu').value as 'h' | 'min';
+  const uName = () => (unit() === 'min' ? 'min' : 'h');
+  /** A time (held in hours) in the table's own unit. */
+  const showT = (h: number) => (unit() === 'min' ? h * 60 : h);
+  /** A time in the table's unit, to 4 significant figures without trailing zeros. */
+  const tNum = (h: number) => String(+showT(h).toPrecision(4)).replace('-', '−');
+  const tText = (h: number) => `${tNum(h)} ${uName()}`;
+  const tdText = (h: number) => (h < 2 ? `${f3(h * 60)} min (${f3(h)} h)` : `${f3(h)} h (${f3(h * 60)} min)`);
+  const cells = (x: number) => (Number.isFinite(x) ? sig(x, 3) : '–');
+  const colours = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000', '#d00000', '#600000', '#900000', '#b00000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']);
+
+  let bmode: 'none' | 'value' | 'column' = 'column', wmode: 'auto' | 'hand' = 'auto', ylog = true, model: Model = 'gompertz';
+  let table: Table = { names: [], time: [], cols: [], errors: [] };
+  let blank = 0, results: (Result | { name: string; error: string })[] = [], pick = 0;
+  const ok = (r: Result | { error: string }): r is Result => !('error' in r);
+
+  const setSeg = (cls: string, attr: string, v: string) => q(cls).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[attr] === v)));
+
+  /** Rebuild the blank-column list; pick a column named like a blank when there is one. */
+  function fillBlankCols(keep: boolean) {
+    const s = sel('.gr-bcol'), old = s.value;
+    s.replaceChildren(...table.names.map((n, i) => { const o = el('option', '', n); o.value = String(i); return o; }));
+    const guess = table.names.findIndex((n) => /blank|medium|media|broth|control/i.test(n));
+    s.value = keep && +old < table.names.length ? old : String(guess >= 0 ? guess : Math.max(0, table.names.length - 1));
+    return guess;
+  }
+
+  function readTable(fresh: boolean) {
+    table = parseGrowthTable(box.value, unit());
+    const e = q('.gr-perr');
+    e.textContent = table.errors.length ? `Left out: ${table.errors.slice(0, 3).join(' ')}${table.errors.length > 3 ? ` and ${table.errors.length - 3} more.` : ''}` : '';
+    e.hidden = !table.errors.length;
+    const guess = fillBlankCols(!fresh);
+    if (fresh) { bmode = guess >= 0 ? 'column' : bmode === 'column' ? 'none' : bmode; showBlank(); }
+  }
+  function showBlank() {
+    setSeg('.gr-bmode', 'm', bmode);
+    q('.gr-bvall').hidden = bmode !== 'value'; q('.gr-bcoll').hidden = bmode !== 'column';
+  }
+  function showWindow() {
+    setSeg('.gr-wmode', 'm', wmode);
+    q('.gr-wl').hidden = wmode !== 'auto'; q('.gr-froml').hidden = wmode !== 'hand'; q('.gr-tol').hidden = wmode !== 'hand';
+    q('.gr-fromt').textContent = `From (${uName()})`; q('.gr-tot').textContent = `To (${uName()})`;
+  }
+
+  function run() {
+    const err = q('.gr-err');
+    const fail = (m: string) => { results = []; err.textContent = m; err.hidden = false; q('.gr-out').hidden = true; };
+    if (!box.value.trim()) return fail('Paste or type your readings above: time in the first column, then one OD600 column per culture.');
+    if (!table.time.length || !table.names.length) return fail('No readings found: each line needs a time and at least one OD.');
+    const bcol = +sel('.gr-bcol').value;
+    let b: Blank = { kind: 'none' };
+    if (bmode === 'value') { const v = num(inp('.gr-bval').value); if (!Number.isFinite(v) || v < 0) return fail('Type the blank OD as a number (0 or more).'); b = { kind: 'value', value: v }; }
+    if (bmode === 'column') b = { kind: 'column', index: bcol };
+    try { blank = blankValue(b, table.cols); } catch (x) { return fail((x as Error).message); }
+    const minOd = num(inp('.gr-min').value);
+    if (!(minOd > 0)) return fail('Type the lowest OD to use as a number above 0, such as 0.01.');
+    const w = num(inp('.gr-w').value);
+    if (wmode === 'auto' && !(Number.isInteger(w) && w >= 3)) return fail('The window needs a whole number of readings, 3 or more.');
+    let manual: [number, number] | undefined;
+    if (wmode === 'hand') {
+      const a = num(inp('.gr-from').value), z = num(inp('.gr-to').value);
+      if (!Number.isFinite(a) || !Number.isFinite(z) || a === z) return fail('Type the start and end of the exponential phase as two different times.');
+      const k = unit() === 'min' ? 1 / 60 : 1; manual = [a * k, z * k];
+    }
+    const idx = table.names.map((_, i) => i).filter((i) => !(bmode === 'column' && i === bcol));
+    if (!idx.length) return fail('Every column is the blank: add at least one culture column.');
+    results = idx.map((i) => { try { return analyse(table.names[i], table.time, table.cols[i], blank, { window: w, manual, minOd, model }); } catch (x) { return { name: table.names[i], error: (x as Error).message }; } });
+    err.hidden = true; q('.gr-out').hidden = false;
+    // Summary table.
+    const t = q<HTMLTableElement>('.gr-sum'); t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    sumHead().forEach((h, j) => hr.append(el('th', j ? 'r' : '', h)));
+    const tb = t.createTBody();
+    sumBody().forEach((row) => { const tr = tb.insertRow(); row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    // Culture picker.
+    const p = sel('.gr-pick'), old = p.value;
+    p.replaceChildren(...results.map((r, i) => { const o = el('option', '', r.name); o.value = String(i); return o; }));
+    pick = +old < results.length ? +old : 0; p.value = String(pick);
+    q('.gr-pickl').hidden = results.length < 2;
+    detail();
+    drawAll();
+  }
+  const sumHead = () => ['Culture', 'Growth rate (per h)', 'Doubling time', `Lag (${uName()})`, 'Highest OD', ...(model !== 'none' ? ['Model µm (per h)', `Model λ (${uName()})`] : [])];
+  const sumBody = () => results.map((r) => ok(r)
+    ? [r.name, f4(r.mu), tdText(r.td), f3(showT(r.lag)), f3(r.odMax), ...(model !== 'none' ? [r.model ? f4(r.model.mu) : '–', r.model ? f3(showT(r.model.lag)) : '–'] : [])]
+    : [r.name, '–', '–', '–', '–', ...(model !== 'none' ? ['–', '–'] : [])]);
+
+  const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+  const facts = (r: Result): [string, string, string][] => {
+    const fac = num(inp('.gr-fac').value), a = r.t[r.win[0]], z = r.t[r.win[r.win.length - 1]];
+    return [
+      ['Growth rate µ', `${f4(r.mu)} per h`, `95 %: ${f4(r.muLo)} to ${f4(r.muHi)}`],
+      ['Doubling time', tdText(r.td), `95 %: ${f3(r.tdLo * 60)} to ${Number.isFinite(r.tdHi) ? f3(r.tdHi * 60) : '∞'} min`],
+      ['Lag (tangent)', tText(r.lag), `where the line meets the starting OD ${f3(r.od0)}`],
+      ['Exponential window', `${tNum(a)} to ${tText(z)}`, `${r.win.length} readings, R² = ${r.r2.toFixed(4)}${r.auto ? ', steepest' : ', by hand'}`],
+      ['Highest OD', f3(r.odMax), `at ${tText(r.tMax)}, after the blank`],
+      ['Cells/mL', Number.isFinite(fac) && fac > 0 ? `${cells(r.odMax * fac)} at the top` : '–', Number.isFinite(fac) && fac > 0 ? `${cells(r.od0 * fac)} at the start (from the factor)` : 'type a factor'],
+    ];
+  };
+  const mfacts = (r: Result): [string, string, string][] => {
+    const m = r.model; if (!m) return [];
+    const fac = num(inp('.gr-fac').value);
+    return [
+      ['µm', `${f4(m.mu)} ± ${sig(m.seMu, 2)} per h`, `doubling time ${tdText(m.td)}`],
+      ['Lag λ', `${tNum(m.lag)} ± ${sig(showT(m.seLag), 2)} ${uName()}`, 'standard errors from the fit'],
+      ['Plateau A', `${f4(m.A)} ± ${sig(m.seA, 2)}`, `ln(OD / OD₀): OD ${f3(m.odMax)}${fac > 0 ? `, ${cells(m.odMax * fac)} cells/mL` : ''}`],
+      ['Fit', `R² = ${m.r2.toFixed(4)}`, `${m.n} readings, residual SD ${sig(m.s, 3)} in ln OD`],
+    ];
+  };
+
+  function detail() {
+    const r = results[pick];
+    const ce = q('.gr-cerr');
+    if (!r || !ok(r)) { ce.textContent = r ? (r as { error: string }).error : ''; ce.hidden = !r; q('.gr-cout').hidden = true; return; }
+    ce.hidden = true; q('.gr-cout').hidden = false;
+    q('.gr-big').textContent = `${r.name}: doubling time ${tdText(r.td)}`;
+    q('.gr-sub').textContent = `Growth rate ${f4(r.mu)} per hour from ln OD between ${tNum(r.t[r.win[0]])} and ${tText(r.t[r.win[r.win.length - 1]])}${blank ? `, after taking away a blank of ${f4(blank)}` : ''}.`;
+    q('.gr-facts').replaceChildren(...facts(r).map(([k, v, s]) => fact(k, v, s)));
+    q('.gr-mh').textContent = model === 'none' ? '' : `${model === 'gompertz' ? 'Gompertz' : 'Logistic'} model`;
+    q('.gr-mh').hidden = !r.model;
+    q('.gr-mfacts').replaceChildren(...mfacts(r).map(([k, v, s]) => fact(k, v, s)));
+    q('.gr-mfacts').hidden = !r.model;
+    q('.gr-warn').replaceChildren(...r.warn.map((w) => el('li', '', w)));
+    drawOne();
+  }
+
+  function oneFigure(r: Result, W: number, H: number): Figure {
+    return {
+      w: W, h: H, alt: `${r.name}: OD600 against time on a ${ylog ? 'log' : 'linear'} scale with the exponential window, the tangent and the lag of ${tText(r.lag)}`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal), win = new Set(r.win);
+        const xs = r.t.map(showT);
+        const keep = (i: number) => !ylog || r.od[i] > 0;
+        const pick = (f: (i: number) => boolean) => { const ii = r.t.map((_, i) => i).filter((i) => f(i) && keep(i)); return { x: ii.map((i) => xs[i]), y: ii.map((i) => r.od[i]) }; };
+        const series: Series[] = [];
+        const low = pick((i) => !r.use[i]);
+        if (low.x.length) series.push({ name: 'Below the lowest OD', ...low, mode: 'points', marker: 'open-circle', color: pal.muted, size: 4 });
+        series.push({ name: 'Readings', ...pick((i) => r.use[i] && !win.has(i)), mode: 'points', marker: 'circle', color: c[0], size: 4 });
+        series.push({ name: 'Exponential window', ...pick((i) => win.has(i)), mode: 'points', marker: 'square', color: c[1], size: 4.5 });
+        const tEnd = Math.min(r.t[r.t.length - 1], (Math.log(r.odMax) - r.intercept) / r.mu), tStart = Math.max(r.t[0], r.lag);
+        if (tEnd > tStart) series.push({ name: 'Tangent', x: [showT(tStart), showT(tEnd)], y: [tangent(r, tStart), tangent(r, tEnd)], mode: 'line', color: c[1], width: 1.6, dash: [6, 4] });
+        if (r.model) {
+          const n = 200, a = r.t[0], z = r.t[r.t.length - 1], tx = Array.from({ length: n + 1 }, (_, i) => a + ((z - a) * i) / n);
+          series.push({ name: `${r.model.kind === 'gompertz' ? 'Gompertz' : 'Logistic'} fit`, x: tx.map(showT), y: tx.map((t) => modelOd(r, t)), mode: 'line', color: c[2], width: 2 });
+        }
+        const marks: { kind: 'hline' | 'vline'; at: number; color?: string; dash?: number[]; label?: string }[] = [{ kind: 'hline', at: r.od0, color: pal.muted, dash: [3, 3], label: 'starting OD' }];
+        if (r.lag >= r.t[0]) marks.push({ kind: 'vline', at: showT(r.lag), color: pal.muted, dash: [3, 3], label: 'lag' });
+        drawChart(canvasPainter(ctx), { w, h, xLabel: `Time (${unit() === 'min' ? 'minutes' : 'hours'})`, yLabel: ylog ? 'OD600 (log scale)' : 'OD600', yLog: ylog, ...(ylog ? {} : { yMin: Math.min(0, ...r.od) }), series, marks, legend: 'below', font: w < 480 ? 11 : 13, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  function allFigure(W: number, H: number): Figure {
+    const rs = results.filter(ok);
+    return {
+      w: W, h: H, alt: `OD600 against time for ${rs.length} culture${rs.length === 1 ? '' : 's'} on a ${ylog ? 'log' : 'linear'} scale`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const series: Series[] = rs.map((r, k) => { const ii = r.t.map((_, i) => i).filter((i) => !ylog || r.od[i] > 0); return { name: r.name, x: ii.map((i) => showT(r.t[i])), y: ii.map((i) => r.od[i]), mode: 'both', color: c[k % c.length], size: 2.6, width: 1.4 }; });
+        drawChart(canvasPainter(ctx), { w, h, xLabel: `Time (${unit() === 'min' ? 'minutes' : 'hours'})`, yLabel: ylog ? 'OD600 (log scale)' : 'OD600', yLog: ylog, series, legend: rs.length > 12 ? 'none' : 'below', font: w < 480 ? 11 : 13, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  const width = (c: HTMLCanvasElement) => Math.max(280, Math.min(760, Math.round(c.parentElement!.clientWidth || 640)));
+  function drawOne() {
+    const r = results[pick]; if (!r || !ok(r)) return;
+    const c = q<HTMLCanvasElement>('.gr-fig'), W = width(c);
+    paint(c, oneFigure(r, W, W < 480 ? 320 : 400));
+  }
+  function drawAll() {
+    const c = q<HTMLCanvasElement>('.gr-fig2'), W = width(c);
+    q('.gr-fig2').hidden = !results.some(ok);
+    if (results.some(ok)) paint(c, allFigure(W, W < 480 ? 320 : 380));
+  }
+
+  // ---------- CSV ----------
+  const p6 = (x: number | undefined) => (x == null || !Number.isFinite(x) ? '' : +x.toPrecision(6));
+  function resultsCsv() {
+    const fac = num(inp('.gr-fac').value), F = fac > 0 ? fac : NaN;
+    const head = ['culture', 'blank_od', 'window_from_h', 'window_to_h', 'window_readings', 'growth_rate_per_h', 'growth_rate_95_low', 'growth_rate_95_high', 'doubling_time_h', 'doubling_time_95_low_h', 'doubling_time_95_high_h', 'window_r_squared', 'lag_h', 'starting_od', 'highest_od', 'highest_od_time_h', 'cells_per_ml_start', 'cells_per_ml_highest', 'model', 'model_A', 'model_A_se', 'model_mu_per_h', 'model_mu_se', 'model_lag_h', 'model_lag_se', 'model_plateau_od', 'model_doubling_time_h', 'model_r_squared', 'note'];
+    const rows = results.map((r) => {
+      if (!ok(r)) return [r.name, p6(blank), ...Array(head.length - 3).fill(''), r.error];
+      const m = r.model;
+      return [r.name, p6(blank), p6(r.t[r.win[0]]), p6(r.t[r.win[r.win.length - 1]]), r.win.length, p6(r.mu), p6(r.muLo), p6(r.muHi), p6(r.td), p6(r.tdLo), p6(r.tdHi), p6(r.r2), p6(r.lag), p6(r.od0), p6(r.odMax), p6(r.tMax), p6(r.od0 * F), p6(r.odMax * F), m ? m.kind : 'none', p6(m?.A), p6(m?.seA), p6(m?.mu), p6(m?.seMu), p6(m?.lag), p6(m?.seLag), p6(m?.odMax), p6(m?.td), p6(m?.r2), r.warn.join(' ')];
+    });
+    return csv([head, ...rows]);
+  }
+  function dataCsv() {
+    const fac = num(inp('.gr-fac').value), F = fac > 0 ? fac : NaN, rs = results.filter(ok);
+    const times = [...new Set(rs.flatMap((r) => r.t))].sort((a, b) => a - b);
+    const safe = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '');
+    const head = ['time_h', ...rs.flatMap((r) => [`${safe(r.name)}_od`, `${safe(r.name)}_cells_per_ml`, ...(r.model ? [`${safe(r.name)}_${r.model.kind}_od`] : [])])];
+    const rows = times.map((t) => [p6(t), ...rs.flatMap((r) => { const i = r.t.indexOf(t); const od = i >= 0 ? r.od[i] : NaN; return [p6(od), p6(od * F), ...(r.model ? [p6(modelOd(r, t))] : [])]; })]);
+    return csv([head, ...rows]);
+  }
+
+  // ---------- Wiring ----------
+  let tmr = 0;
+  box.addEventListener('input', () => { clearTimeout(tmr); tmr = window.setTimeout(() => { readTable(true); run(); }, 200); });
+  box.addEventListener('change', () => { clearTimeout(tmr); readTable(true); run(); });
+  q('.gr-ex').addEventListener('click', () => { box.value = EXAMPLE; sel('.gr-tu').value = 'h'; readTable(true); run(); });
+  q('.gr-clear').addEventListener('click', () => { box.value = ''; readTable(true); run(); box.focus(); });
+  sel('.gr-tu').addEventListener('change', () => { readTable(false); showWindow(); run(); });
+  q('.gr-bmode').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return; bmode = b.dataset.m as typeof bmode; showBlank(); run(); });
+  q('.gr-wmode').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return; wmode = b.dataset.m as typeof wmode; showWindow(); run(); });
+  q('.gr-scale').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-s]'); if (!b) return; ylog = b.dataset.s === 'log'; setSeg('.gr-scale', 's', b.dataset.s!); drawOne(); drawAll(); });
+  for (const c of ['.gr-bval', '.gr-w', '.gr-from', '.gr-to', '.gr-min']) inp(c).addEventListener('input', run);
+  inp('.gr-fac').addEventListener('input', detail);
+  sel('.gr-bcol').addEventListener('change', run);
+  sel('.gr-model').addEventListener('change', () => { model = sel('.gr-model').value as Model; run(); });
+  sel('.gr-pick').addEventListener('change', () => { pick = +sel('.gr-pick').value; detail(); });
+  q('.gr-csv').addEventListener('click', () => save(new Blob([resultsCsv()], { type: 'text/csv' }), 'growth-curve-results.csv', 'text/csv'));
+  q('.gr-dcsv').addEventListener('click', () => save(new Blob([dataCsv()], { type: 'text/csv' }), 'growth-curve-data.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (results.length) {
+      sections.push({ title: 'All cultures', table: { head: sumHead(), rows: sumBody(), align: sumHead().map((_, j) => (j ? 'r' : 'l')) }, figure: results.some(ok) ? allFigure(720, 380) : undefined, text: [`Blank taken away: ${blank ? f4(blank) : 'none'}. Exponential window: ${wmode === 'auto' ? `the steepest ${inp('.gr-w').value} readings of ln OD` : `${inp('.gr-from').value} to ${inp('.gr-to').value} ${uName()}, chosen by hand`}. Lowest OD used: ${inp('.gr-min').value}.`] });
+      for (const r of results) {
+        if (!ok(r)) { sections.push({ title: r.name, text: [r.error] }); continue; }
+        sections.push({ title: `${r.name}: doubling time ${tdText(r.td)}`, facts: [...facts(r), ...mfacts(r)].map(([k, v, s]) => [k, `${v} (${s})`] as [string, string]), ...(r.warn.length ? { text: r.warn.map((w) => 'Check: ' + w) } : {}), figure: oneFigure(r, 720, 400) });
+      }
+      sections[sections.length - 1].note = `Worked out on fibub.com. Cells/mL use ${inp('.gr-fac').value} cells/mL for OD 1, a factor you typed or the made-up placeholder; measure your own.`;
+    }
+    return { title: 'Growth curve and doubling time', subtitle: (() => { const r = results[pick]; return r && ok(r) ? q('.gr-big').textContent! : ''; })(), file: 'growth-curve', sections };
+  });
+  document.addEventListener('fibub:theme', () => { drawOne(); drawAll(); });
+  let rw = 0;
+  window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(() => { drawOne(); drawAll(); }, 150); });
+  box.value = EXAMPLE; readTable(true); showWindow(); run();
+</script>
+
+<style is:global>
+  .gro [hidden] { display: none !important; }
+  .gro h3 { font-size: 15px; margin: 16px 0 6px; }
+  .gro .gr-brow, .gro .gr-wrow { margin-top: 10px; }
+  .gro .gr-data { margin-top: 6px; }
+  .gro .gr-sub { margin: 2px 0 12px; }
+  .gro .gr-pickl { max-width: 320px; margin-bottom: 10px; }
+  .gro .gr-warn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .gro .gr-warn:empty { display: none; }
+  .gro .gr-mh { margin-top: 18px; }
+  .gro .gr-dlrow { margin-top: 14px; }
+  .gro .gr-sum th, .gro .gr-sum td { white-space: nowrap; }
+  .gro select { max-width: 100%; }
+</style>

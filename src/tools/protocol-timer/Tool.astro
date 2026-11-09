@@ -1,0 +1,354 @@
+---
+// Protocol timer: multi-step lab protocols with named steps and times, several timers running at once, an alarm
+// sound (Web Audio) and a notification if allowed. Timers are kept as timestamps, so they stay right in a background
+// tab and after a reload. Protocols and running timers are kept only in this browser.
+import '../../styles/astro.css';
+---
+<div class="ax ptm" data-alarms="0">
+  <div class="ax-card">
+    <h2>Protocol</h2>
+    <div class="ax-grid">
+      <label>Open a protocol <select class="pt-pick"></select></label>
+      <label>Name <input class="pt-name" autocomplete="off" placeholder="My protocol" /></label>
+    </div>
+    <label style="margin-top:10px">Steps, one per line: name, comma, time
+      <textarea class="pt-steps" rows="7" spellcheck="false" placeholder={'Block, 1 h\nWash 1, 5 min\nWash 2, 5 min\nPrimary antibody, 1:00:00'}></textarea>
+    </label>
+    <p class="ax-help">Times: "5 min", "90 s", "1.5 h", "1 h 30 min", "5:00" (minutes:seconds) or "1:30:00" (hours:minutes:seconds). A plain number means minutes.</p>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pt-auto" checked /> Start each step by itself when the one before ends</label>
+    <p class="ax-help">Off: when a step ends the alarm sounds and the timer waits for you to tap <b>Next step</b> (it repeats the alarm every 30 seconds for 5 minutes and counts how long you are over).</p>
+    <p class="ax-help pt-sum" role="status"></p>
+    <p class="ax-err pt-err" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small pt-start">Start timer</button>
+      <button type="button" class="btn secondary small pt-save">Save protocol</button>
+      <button type="button" class="btn secondary small pt-del" hidden>Delete protocol</button>
+    </div>
+    <p class="ax-help pt-smsg" role="status" hidden></p>
+  </div>
+
+  <div class="ax-card pt-runs-card" hidden>
+    <h2>Running timers</h2>
+    <div class="pt-runs"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Alarm</h2>
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="pt-sound" checked /> Sound</label>
+      <button type="button" class="btn secondary small pt-test">Test the sound</button>
+      <button type="button" class="btn secondary small pt-notify">Allow notifications</button>
+      <label class="ax-check pt-wl-row" hidden><input type="checkbox" class="pt-wake" /> Keep the screen on</label>
+    </div>
+    <p class="ax-help pt-nstate"></p>
+    <p class="ax-help">The times stay right even when this tab is in the background or your phone screen is off: each timer remembers when its step started, not a counter. Keep this page open (in any tab) for the sound. Phones may hold back sound and notifications while the screen is locked, so for long steps keep the screen on, and turn your volume up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kept in this browser</h2>
+    <p class="ax-help pt-store">Your protocols, the sound setting and any running timers are saved automatically in this browser on this device, so a timer keeps going if you reload or close and reopen the page. Nothing is sent to fibub or anyone else. Clearing your browser data removes them.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pt-json">Export protocols (JSON)</button>
+      <button type="button" class="btn secondary small pt-jopen">Import protocols</button>
+      <input type="file" class="pt-jfile" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small pt-clear">Clear all</button>
+    </div>
+    <p class="ax-help pt-bmsg" role="status" hidden></p>
+  </div>
+</div>
+
+<script>
+  import * as P from '../../lib/sci/protocol';
+  import { save } from '../../lib/report';
+
+  const KEY = 'fibub-protocols-v1';
+  const root = document.querySelector<HTMLElement>('.ptm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const baseTitle = document.title;
+
+  let mine: P.Protocol[] = [];
+  let runs: P.Run[] = [];
+  let current = '';   // id of the protocol in the editor ('' = new)
+
+  // ---- storage ----
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ protocols: mine, runs, sound: inp('.pt-sound').checked })); } catch { /* full or blocked */ } };
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (s) {
+      if (Array.isArray(s.protocols) && s.protocols.length) { try { mine = P.fromJson(JSON.stringify({ protocols: s.protocols })); } catch { mine = []; } }
+      if (Array.isArray(s.runs)) runs = s.runs.filter((r: P.Run) => r && Array.isArray(r.steps) && r.steps.length && Number.isFinite(r.t0) && r.idx >= 0 && r.idx < r.steps.length);
+      if (s.sound === false) inp('.pt-sound').checked = false;
+    }
+  } catch { /* ignore */ }
+
+  // ---- editor ----
+  const all = () => [...mine, ...P.EXAMPLES.filter((e) => !mine.some((m) => m.id === e.id))];
+  function fillPick() {
+    const sel = q<HTMLSelectElement>('.pt-pick'); sel.replaceChildren();
+    const add = (v: string, t: string, parent: HTMLElement) => { const o = document.createElement('option'); o.value = v; o.textContent = t; parent.append(o); };
+    add('', 'New protocol', sel);
+    if (mine.length) { const g = document.createElement('optgroup'); g.label = 'Saved'; for (const p of mine) add(p.id, p.name, g); sel.append(g); }
+    const g = document.createElement('optgroup'); g.label = 'Examples (made up)'; for (const p of P.EXAMPLES) if (!mine.some((m) => m.id === p.id)) add(p.id, p.name, g); sel.append(g);
+    sel.value = current;
+  }
+  function load(id: string) {
+    current = id;
+    const p = all().find((x) => x.id === id);
+    inp('.pt-name').value = p?.name ?? ''; q<HTMLTextAreaElement>('.pt-steps').value = p ? P.stepsText(p.steps) : ''; inp('.pt-auto').checked = p?.auto ?? true;
+    q('.pt-del').hidden = !mine.some((m) => m.id === id);
+    summary();
+  }
+  function parsed() { return P.parseSteps(q<HTMLTextAreaElement>('.pt-steps').value); }
+  function summary() {
+    const { steps, errors } = parsed();
+    q('.pt-sum').textContent = steps.length ? `${steps.length} step${steps.length === 1 ? '' : 's'}, ${P.words(P.total(steps))} in all.` : '';
+    q('.pt-err').textContent = errors.join(' '); q('.pt-err').hidden = !errors.length;
+  }
+  q('.pt-pick').addEventListener('change', () => { load(q<HTMLSelectElement>('.pt-pick').value); smsg(''); });
+  q('.pt-steps').addEventListener('input', summary);
+  const smsg = (t: string) => { q('.pt-smsg').textContent = t; q('.pt-smsg').hidden = !t; };
+
+  q('.pt-save').addEventListener('click', () => {
+    const { steps, errors } = parsed();
+    if (errors.length || !steps.length) { q('.pt-err').textContent = errors.length ? errors.join(' ') : 'Add at least one step.'; q('.pt-err').hidden = false; return; }
+    const name = inp('.pt-name').value.trim() || 'My protocol';
+    const ex = P.EXAMPLES.some((e) => e.id === current);
+    const p: P.Protocol = { id: current && !ex ? current : P.randomId(), name, steps, auto: inp('.pt-auto').checked };
+    const i = mine.findIndex((m) => m.id === p.id);
+    if (i >= 0) mine[i] = p; else mine.push(p);
+    current = p.id; persist(); fillPick(); load(current); smsg(`Saved "${name}" in this browser.`);
+  });
+  q('.pt-del').addEventListener('click', () => {
+    const p = mine.find((m) => m.id === current); if (!p || !confirm(`Delete the protocol "${p.name}"?`)) return;
+    mine = mine.filter((m) => m.id !== current); persist(); current = ''; fillPick(); load(''); smsg('Deleted.');
+  });
+
+  // ---- sound, notifications, screen ----
+  let actx: AudioContext | null = null;
+  const scheduled = new Map<string, { nodes: OscillatorNode[]; at: number[] }>();
+  function audio(): AudioContext | null {
+    try {
+      if (!actx) { const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; if (!AC) return null; actx = new AC(); }
+      if (actx.state === 'suspended') actx.resume().catch(() => {});
+      return actx;
+    } catch { return null; }
+  }
+  /** Three short beeps starting `delay` seconds from now. Returns the oscillators so they can be cancelled. */
+  function beeps(delay: number, final = false): OscillatorNode[] {
+    const c = actx; if (!c || !inp('.pt-sound').checked) return [];
+    const out: OscillatorNode[] = [];
+    const t0 = c.currentTime + Math.max(0, delay);
+    const n = final ? 5 : 3;
+    for (let k = 0; k < n; k++) {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'square'; o.frequency.value = final && k % 2 ? 660 : 880;
+      const s = t0 + k * 0.3;
+      g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(0.25, s + 0.01); g.gain.setValueAtTime(0.25, s + 0.17); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.2);
+      o.connect(g).connect(c.destination); o.start(s); o.stop(s + 0.22);
+      out.push(o);
+    }
+    return out;
+  }
+  function cancelSound(id: string) { const s = scheduled.get(id); if (s) for (const o of s.nodes) { try { o.stop(); o.disconnect(); } catch { /* already stopped */ } } scheduled.delete(id); }
+  /** Book the alarm sounds for a run ahead of time on the audio clock, which keeps time in a background tab. */
+  function scheduleSound(r: P.Run) {
+    cancelSound(r.id);
+    if (!actx || r.done || r.paused !== null) return;
+    const now = Date.now(), nodes: OscillatorNode[] = [], at: number[] = [];
+    if (r.waiting) {
+      const over = (now - r.t0) / 1000 - r.steps[r.idx].sec;
+      for (let k = 1; k <= 10; k++) { const d = k * 30 - over; if (d > 0.5) { nodes.push(...beeps(d)); at.push(now + d * 1000); } }
+    } else {
+      // Every step end that will come by itself: the current one, and the next ones too when steps run on.
+      let end = r.t0 + Math.round(r.steps[r.idx].sec * 1000);
+      for (let i = r.idx; i < r.steps.length; i++) {
+        if (i > r.idx) end += Math.round(r.steps[i].sec * 1000);
+        nodes.push(...beeps((end - now) / 1000, i === r.steps.length - 1)); at.push(end);
+        if (!r.auto) break;
+      }
+    }
+    scheduled.set(r.id, { nodes, at });
+  }
+  function alarm(e: P.Event) {
+    root.dataset.alarms = String(Number(root.dataset.alarms) + 1);
+    // Sound: already booked on the audio clock if the page had sound running; otherwise play it now.
+    const s = scheduled.get(e.run);
+    if (!(s && s.at.some((t) => Math.abs(t - e.at) < 1500))) { audio(); beeps(0, e.kind === 'end'); }
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      try { new Notification(e.kind === 'end' ? `${runName(e.run)}: finished` : `${e.name} is done`, { body: e.kind === 'end' ? `Last step "${e.name}" is done.` : `Next: ${e.next}`, tag: e.run }); } catch { /* not allowed here */ }
+    }
+  }
+  const runName = (id: string) => runs.find((r) => r.id === id)?.name ?? 'Timer';
+  q('.pt-test').addEventListener('click', () => { if (audio()) beeps(0.05); else q('.pt-nstate').textContent = 'This browser cannot play sounds from a page.'; });
+  inp('.pt-sound').addEventListener('change', () => { persist(); for (const r of runs) scheduleSound(r); });
+  function nstate() {
+    const el = q('.pt-nstate');
+    if (!('Notification' in window)) { el.textContent = 'This browser does not show notifications from web pages; the sound still works.'; q('.pt-notify').hidden = true; return; }
+    const p = Notification.permission;
+    el.textContent = p === 'granted' ? 'Notifications are allowed: you get one when a step ends while this tab is out of sight.' : p === 'denied' ? 'Notifications are blocked for this site in your browser settings. The sound still works.' : 'Allow notifications to get one when a step ends while this tab is out of sight. They are made by your own browser; nothing is sent anywhere.';
+    q('.pt-notify').hidden = p !== 'default';
+  }
+  q('.pt-notify').addEventListener('click', async () => { try { await Notification.requestPermission(); } catch { /* old browsers */ } nstate(); });
+  let lock: { release: () => Promise<void> } | null = null;
+  const wakeOK = 'wakeLock' in navigator;
+  q('.pt-wl-row').hidden = !wakeOK;
+  async function wake() {
+    const want = inp('.pt-wake').checked && runs.some((r) => !r.done);
+    try {
+      if (want && !lock && !document.hidden) lock = await (navigator as unknown as { wakeLock: { request: (t: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock.request('screen');
+      else if (!want && lock) { await lock.release(); lock = null; }
+    } catch { lock = null; }
+  }
+  inp('.pt-wake').addEventListener('change', wake);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { lock = null; wake(); } tick(); });
+
+  // ---- running timers ----
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const leftWords = (sec: number) => P.words(sec > 600 ? Math.ceil(sec / 60) * 60 : Math.ceil(sec));
+  const at = (ms: number) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  function startRun() {
+    const { steps, errors } = parsed();
+    if (errors.length || !steps.length) { q('.pt-err').textContent = errors.length ? errors.join(' ') : 'Add at least one step.'; q('.pt-err').hidden = false; return; }
+    audio();
+    const r = P.start({ name: inp('.pt-name').value.trim() || 'Timer', steps, auto: inp('.pt-auto').checked }, Date.now(), P.randomId());
+    runs.push(r); scheduleSound(r); persist(); renderRuns(); wake();
+    q('.pt-runs-card').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  q('.pt-start').addEventListener('click', startRun);
+
+  function renderRuns() {
+    const box = q('.pt-runs'); box.replaceChildren();
+    q('.pt-runs-card').hidden = !runs.length;
+    for (const r of runs) {
+      const el = document.createElement('div'); el.className = 'pt-run'; el.dataset.id = r.id;
+      el.innerHTML = `<div class="pt-rh"><b class="pt-rn"></b><span class="pt-state ax-pill"></span></div>
+        <div class="pt-now"><span class="pt-step"></span><span class="pt-clock" aria-live="off"></span></div>
+        <div class="pt-bar"><i></i></div>
+        <p class="ax-help pt-meta"></p>
+        <ol class="pt-list"></ol>
+        <div class="ax-row pt-btns">
+          <button type="button" class="btn small" data-a="next">Next step</button>
+          <button type="button" class="btn secondary small" data-a="pause">Pause</button>
+          <button type="button" class="btn secondary small" data-a="add">+1 min</button>
+          <button type="button" class="btn secondary small" data-a="sub">−1 min</button>
+          <button type="button" class="btn secondary small" data-a="restart">Restart step</button>
+          <button type="button" class="btn secondary small" data-a="stop">Remove</button>
+        </div>`;
+      el.querySelector('.pt-rn')!.textContent = r.name;
+      const ol = el.querySelector('.pt-list')!;
+      r.steps.forEach((s, i) => { const li = document.createElement('li'); li.textContent = `${s.name} (${P.words(Math.round(s.sec))})`; if (i < r.idx || r.done) li.className = 'done'; if (i === r.idx && !r.done) li.className = 'cur'; ol.append(li); });
+      box.append(el);
+    }
+    paint();
+  }
+  /** Update the numbers only (several times a second). */
+  function paint() {
+    const now = Date.now();
+    let soonest: { left: number; label: string } | null = null;
+    for (const r of runs) {
+      const el = q(`.pt-run[data-id="${r.id}"]`); if (!el) continue;
+      const v = P.view(r, now), s = r.steps[r.idx];
+      const state = r.done ? 'Finished' : r.waiting ? 'Step done: waiting for you' : r.paused !== null ? 'Paused' : 'Running';
+      const st = el.querySelector<HTMLElement>('.pt-state')!; st.textContent = state; st.className = `pt-state ax-pill ${r.done ? 'good' : r.waiting ? 'warn' : r.paused !== null ? '' : 'good'}`;
+      el.classList.toggle('alert', r.waiting);
+      el.querySelector('.pt-step')!.textContent = r.done ? 'All steps done' : `Step ${r.idx + 1} of ${r.steps.length}: ${s.name}`;
+      el.querySelector('.pt-clock')!.textContent = r.done ? '0:00' : r.waiting ? `+${P.clock(v.over)}` : P.clock(v.left);
+      el.querySelector<HTMLElement>('.pt-bar i')!.style.width = `${r.done ? 100 : Math.min(100, (v.elapsed / s.sec) * 100)}%`;
+      const nextName = r.idx + 1 < r.steps.length ? r.steps[r.idx + 1].name : '';
+      el.querySelector('.pt-meta')!.textContent = r.done ? `Finished at ${at(r.endedAt ?? now)}.` : [
+        r.waiting ? `This step ended ${P.clock(v.over)} ago.` : `This step ends at ${at(now + v.left * 1000)}.`,
+        nextName ? `Next: ${nextName}.` : 'This is the last step.',
+        v.finishAt ? `All done at ${at(v.finishAt)} (${leftWords(v.runLeft)} left).` : !r.auto && !r.waiting ? `${leftWords(v.runLeft)} of steps left, plus the waits for you.` : '',
+      ].filter(Boolean).join(' ');
+      const b = (a: string) => el.querySelector<HTMLButtonElement>(`[data-a=${a}]`)!;
+      b('next').textContent = r.waiting ? (nextName ? `Start ${nextName}` : 'Finish') : r.idx + 1 < r.steps.length ? 'Skip to next step' : 'Finish now';
+      b('next').className = r.waiting ? 'btn small' : 'btn secondary small';
+      b('pause').textContent = r.paused !== null ? 'Resume' : 'Pause';
+      for (const a of ['next', 'pause', 'add', 'sub', 'restart']) b(a).hidden = r.done;
+      b('pause').hidden = r.done || r.waiting;
+      b('sub').hidden = r.done || r.waiting;
+      b('stop').textContent = r.done ? 'Remove' : 'Stop';
+      if (!r.done && r.paused === null) { const left = r.waiting ? -1 : v.left; if (!soonest || left < soonest.left) soonest = { left, label: r.waiting ? `Done: ${s.name}` : `${P.clock(v.left)} ${s.name}` }; }
+    }
+    document.title = soonest ? `${soonest.label} · ${baseTitle}` : baseTitle;
+  }
+
+  q('.pt-runs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-a]'); if (!b) return;
+    const id = b.closest<HTMLElement>('.pt-run')!.dataset.id!; const i = runs.findIndex((r) => r.id === id); if (i < 0) return;
+    audio();
+    const now = Date.now(); let r = P.advance(runs[i], now).run;
+    switch (b.dataset.a) {
+      case 'next': r = P.next(r, now); break;
+      case 'pause': r = r.paused !== null ? P.resume(r, now) : P.pause(r, now); break;
+      case 'add': r = P.addTime(r, 60, now); break;
+      case 'sub': r = P.addTime(r, -60, now); break;
+      case 'restart': r = P.restartStep(r, now); break;
+      case 'stop':
+        if (!r.done && !confirm(`Stop the timer "${r.name}"?`)) return;
+        cancelSound(id); runs.splice(i, 1); persist(); renderRuns(); wake(); return;
+    }
+    runs[i] = r; scheduleSound(r); persist(); renderRuns(); wake();
+  });
+
+  // ---- ticking ----
+  function tick() {
+    if (!runs.length) { if (document.title !== baseTitle) document.title = baseTitle; return; }
+    const now = Date.now(); let changed = false;
+    runs = runs.map((r) => { const a = P.advance(r, now); if (a.events.length) { changed = true; for (const e of a.events) alarm(e); } return a.run; });
+    if (changed) { for (const r of runs) if (r.waiting) scheduleSound(r); persist(); renderRuns(); wake(); } else paint();
+  }
+  try { const w = new Worker(new URL('./tick.ts', import.meta.url), { type: 'module' }); w.onmessage = tick; } catch { setInterval(tick, 250); }
+  setInterval(tick, 1000); // a second clock in case the worker is not allowed
+
+  // ---- export, import, clear ----
+  const bmsg = (t: string) => { q('.pt-bmsg').textContent = t; q('.pt-bmsg').hidden = !t; };
+  q('.pt-json').addEventListener('click', () => {
+    const list = mine.length ? mine : [];
+    if (!list.length) { bmsg('No saved protocols yet. Save one first (the examples are always here).'); return; }
+    save(new Blob([P.toJson(list)], { type: 'application/json' }), 'protocols.json', 'application/json'); bmsg('');
+  });
+  q('.pt-jopen').addEventListener('click', () => inp('.pt-jfile').click());
+  inp('.pt-jfile').addEventListener('change', async () => {
+    const f = inp('.pt-jfile').files?.[0]; inp('.pt-jfile').value = ''; if (!f) return;
+    try {
+      if (f.size > 2e6) throw new Error('This file is over 2 MB, too big for a protocol file.');
+      const items = P.fromJson(await f.text());
+      let added = 0, replaced = 0;
+      for (const p of items) { const i = mine.findIndex((m) => m.id === p.id); if (i >= 0) { mine[i] = p; replaced++; } else { mine.push(p); added++; } }
+      persist(); current = items[0].id; fillPick(); load(current);
+      bmsg(`Imported ${items.length} protocol${items.length === 1 ? '' : 's'} from ${f.name}${replaced ? ` (${replaced} replaced a saved one with the same id)` : ''}.`);
+    } catch (e) { bmsg((e as Error).message); }
+  });
+  q('.pt-clear').addEventListener('click', () => {
+    if ((mine.length || runs.length) && !confirm('Remove your saved protocols and stop all timers? Export your protocols first if you may need them.')) return;
+    for (const r of runs) cancelSound(r.id);
+    mine = []; runs = []; current = '';
+    try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    fillPick(); load(''); renderRuns(); wake(); bmsg('Cleared. Nothing is kept in this browser now.');
+  });
+
+  // Timers that ended while the page was closed are brought up to date quietly.
+  runs = runs.map((r) => P.advance(r, Date.now()).run);
+  fillPick(); load(P.EXAMPLES[0].id); renderRuns(); nstate();
+</script>
+
+<style is:global>
+  .ptm .pt-run { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; background: var(--bg); }
+  .ptm .pt-run:first-child { margin-top: 0; }
+  .ptm .pt-run.alert { border-color: var(--warn); box-shadow: inset 4px 0 0 var(--warn); }
+  .ptm .pt-rh { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ptm .pt-rh b { font-size: 16px; overflow-wrap: anywhere; }
+  .ptm .pt-now { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .ptm .pt-step { font-size: 15px; overflow-wrap: anywhere; }
+  .ptm .pt-clock { font-size: clamp(30px, 9vw, 44px); font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .ptm .pt-run.alert .pt-clock { color: var(--warn); }
+  .ptm .pt-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 4px; }
+  .ptm .pt-bar i { display: block; height: 100%; background: var(--accent); }
+  .ptm .pt-list { margin: 8px 0 0; padding-left: 22px; font-size: 14px; color: var(--muted); }
+  .ptm .pt-list li.done { text-decoration: line-through; }
+  .ptm .pt-list li.cur { color: var(--ink); font-weight: 650; }
+  .ptm .pt-btns { margin-top: 10px; }
+  .ptm .pt-btns .btn.small { padding: 7px 12px; font-size: 14px; }
+</style>

@@ -1,0 +1,160 @@
+---
+// Skin depth and conductor loss across frequency and material: round wires, sheets and shields, coax lines.
+// Worked out in the browser. Material values are rounded, typical figures and can be changed.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax skd">
+  <div class="ax-card">
+    <h2>Material and frequency</h2>
+    <div class="ax-grid">
+      <label>Material <select class="sk-mat">
+        <option value="1.59e-8|1|1">Silver</option>
+        <option value="1.72e-8|1|1" selected>Copper</option>
+        <option value="2.44e-8|1|1">Gold</option>
+        <option value="2.82e-8|1|1">Aluminium</option>
+        <option value="7e-8|1|1">Brass</option>
+        <option value="7.2e-7|1|1">Stainless steel (non-magnetic)</option>
+        <option value="7e-8|100|1">Nickel (μr 100, example)</option>
+        <option value="1.5e-7|200|1">Mild steel (μr 200, example)</option>
+        <option value="0.2|1|80">Sea water</option>
+        <option value="custom">Custom (type below)</option>
+      </select></label>
+      <label>Resistivity ρ (Ω m) <input class="sk-rho" type="text" inputmode="decimal" value="1.72e-8" /></label>
+      <label>Relative permeability μr <input class="sk-mr" type="text" inputmode="decimal" value="1" /></label>
+      <label>Relative permittivity εr <input class="sk-er" type="text" inputmode="decimal" value="1" /></label>
+      <label>Frequency <input class="sk-f" type="text" inputmode="decimal" value="1" /></label>
+      <label>Unit <select class="sk-fu"><option value="1">Hz</option><option value="1e3">kHz</option><option value="1e6" selected>MHz</option><option value="1e9">GHz</option></select></label>
+    </div>
+    <p class="ax-help">Resistivities are rounded, typical values at 20 °C (copper here is annealed copper, 1.72 × 10⁻⁸ Ω m). The μr of nickel and steel are only examples: they depend on the alloy, the field strength and the frequency, and fall towards 1 at microwave frequencies. εr only matters for poor conductors such as sea water or soil.</p>
+    <h3 style="margin-top:12px">Conductors</h3>
+    <div class="ax-grid">
+      <label>Round wire diameter (mm) <input class="sk-dw" type="text" inputmode="decimal" value="1" /></label>
+      <label>Sheet or shield thickness (µm) <input class="sk-t" type="text" inputmode="decimal" value="35" /></label>
+      <label>Coax inner conductor diameter (mm) <input class="sk-ci" type="text" inputmode="decimal" value="0.9" /></label>
+      <label>Coax shield inside diameter (mm) <input class="sk-co" type="text" inputmode="decimal" value="2.95" /></label>
+      <label>Coax dielectric εr <input class="sk-cer" type="text" inputmode="decimal" value="2.25" /></label>
+    </div>
+    <p class="ax-err sk-err" hidden></p>
+  </div>
+
+  <div class="ax-card sk-out">
+    <p class="ax-big sk-big"></p>
+    <dl class="ax-facts sk-facts"></dl>
+    <h3 style="margin-top:14px">Round wire</h3>
+    <dl class="ax-facts sk-wire"></dl>
+    <h3 style="margin-top:14px">Sheet or shield</h3>
+    <dl class="ax-facts sk-sheet"></dl>
+    <h3 style="margin-top:14px">Coax line (conductor loss only)</h3>
+    <dl class="ax-facts sk-coax"></dl>
+    <canvas class="ax-fig sk-fig" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig sk-fig2" style="margin-top:12px"></canvas>
+    <h3 style="margin-top:14px">Across frequency</h3>
+    <div class="ax-scroll"><table class="sk-tab"></table></div>
+    <p class="ax-help">Wire: exact Bessel-function solution for an isolated straight round wire (no proximity effect from nearby wires). Sheet: current flowing along a flat conductor fed from one face, such as a ground plane. Coax: loss in the copper only, both conductors of the chosen material, smooth surfaces; real cables lose more (surface roughness, braid, dielectric loss).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sk-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { skinDepth, skinDepthGood, surfaceR, wireRatio, wireRdc, sheetR, absorptionDb, coaxLoss, NP_TO_DB } from '../../lib/sci/ph-skin';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.skd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PRE: [number, string][] = [[1e-12, 'p'], [1e-9, 'n'], [1e-6, 'µ'], [1e-3, 'm'], [1, ''], [1e3, 'k'], [1e6, 'M'], [1e9, 'G']];
+  const si = (x: number, u: string, n = 3) => { if (x === 0 || !Number.isFinite(x)) return `${sig(x, n)} ${u}`; const a = Math.abs(x); let p = PRE[0]; for (const e of PRE) if (a >= e[0] * 0.9999) p = e; return `${sig(x / p[0], n)} ${p[1]}${u}`; };
+  const len = (m: number) => (m >= 1 ? `${sig(m, 3)} m` : m >= 1e-3 ? `${sig(m * 1000, 3)} mm` : m >= 1e-6 ? `${sig(m * 1e6, 3)} µm` : `${sig(m * 1e9, 3)} nm`);
+  const fHz = (f: number) => si(f, 'Hz', 3);
+  let figs: Figure[] = [], report: Section[] = [], csv: string[] = [];
+
+  function calc() {
+    const err = q('.sk-err'), out = q('.sk-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const rho = val('.sk-rho'), mr = val('.sk-mr'), er = val('.sk-er'), f = val('.sk-f') * +q<HTMLSelectElement>('.sk-fu').value;
+    const a = val('.sk-dw') / 2000, t = val('.sk-t') * 1e-6, ci = val('.sk-ci') / 2000, co = val('.sk-co') / 2000, cer = val('.sk-cer');
+    if (!(rho > 0)) return fail('Give the resistivity in Ω m (greater than 0), for example 1.72e-8 for copper.');
+    if (!(mr >= 1)) return fail('μr is 1 or more (1 for non-magnetic metals).');
+    if (!(er >= 1)) return fail('εr is 1 or more.');
+    if (!(f > 0 && f <= 1e13)) return fail('Give a frequency greater than 0 (up to 10 THz).');
+    if (!(a > 0)) return fail('Give the wire diameter in mm.');
+    if (!(t > 0)) return fail('Give the sheet thickness in µm.');
+    if (!(ci > 0 && co > ci)) return fail('The coax shield must be wider than its inner conductor.');
+    if (!(cer >= 1)) return fail('The coax dielectric εr is 1 or more.');
+    err.hidden = true; out.hidden = false;
+    const d = skinDepth(rho, f, mr, er), dg = skinDepthGood(rho, f, mr), good = rho * 2 * Math.PI * f * 8.8541878188e-12 * er < 0.01;
+    q('.sk-big').textContent = `Skin depth δ = ${len(d)} at ${fHz(f)}`;
+    const Rs = surfaceR(rho, f, mr);
+    const f0 = [
+      fact('Skin depth δ', len(d), 'the depth where the current (and field) has fallen to 1/e, 37 %; 63 % of the current flows within it'),
+      fact('Good-conductor formula √(2ρ/ωμ)', len(dg), good ? 'the same here: conduction current dominates' : `differs: at this frequency the material behaves partly as a dielectric (ωε/σ = ${sig(rho * 2 * Math.PI * f * 8.8541878188e-12 * er, 3)})`),
+      fact('Surface resistance Rs', good ? `${si(Rs, 'Ω')} per square` : '–', good ? 'ρ/δ: the resistance of a thick, flat conductor, per square of surface' : 'only meaningful for good conductors'),
+      fact('Depth for 99 % of the field to die away', len(d * Math.log(100)), '4.6 δ: a conductor thicker than this is "thick"'),
+    ];
+    const rdc = wireRdc(rho, a), wr = wireRatio(a, d);
+    const fw = [
+      fact('DC resistance', `${si(rdc, 'Ω')}/m`, `ρ / (π a²) for a ${sig(a * 2000, 3)} mm wire`),
+      fact('AC resistance', `${si(rdc * wr.r, 'Ω')}/m`, `${sig(wr.r, 4)} × the DC value (a/δ = ${sig(a / d, 3)})`),
+      fact('Internal inductance', `${si((rdc * wr.x) / (2 * Math.PI * f), 'H')}/m`, `inside the wire; ${si((4e-7 * Math.PI * mr) / (8 * Math.PI), 'H')}/m at DC (μ/8π)`),
+    ];
+    const rsh = sheetR(rho, t, d);
+    const fs = [
+      fact('Resistance per square', si(rsh, 'Ω'), `${sig(rsh / (rho / t), 4)} × the DC value ρ/t = ${si(rho / t, 'Ω')}`),
+      fact('Thickness in skin depths', sig(t / d, 3), t / d < 1 ? 'thinner than δ: the current uses the whole thickness' : 'thicker than δ: extra thickness adds little'),
+      fact('Absorption loss through it', `${sig(absorptionDb(t, d), 3)} dB`, '8.686 dB per skin depth, plane wave; reflection at the surfaces adds more shielding'),
+    ];
+    const att = coaxLoss(Rs, ci, co, cer) * NP_TO_DB;
+    const fc = [
+      fact('Conductor loss', `${sig(att, 3)} dB/m`, `${sig(att * 100, 3)} dB per 100 m`),
+      fact('Impedance of this coax', `${sig((Math.sqrt(4e-7 * Math.PI / (8.8541878188e-12 * cer)) / (2 * Math.PI)) * Math.log(co / ci), 4)} Ω`, '(η/2π) ln(b/a)'),
+    ];
+    if (!good) { fw.push(fact('Note', 'not a good conductor', 'wire and coax results assume a good conductor')); }
+    q('.sk-facts').replaceChildren(...f0); q('.sk-wire').replaceChildren(...fw); q('.sk-sheet').replaceChildren(...fs); q('.sk-coax').replaceChildren(...fc);
+    // Charts and table.
+    const fs2: number[] = []; for (let i = 0; i <= 100; i++) fs2.push(10 * Math.pow(1e10, i / 100));
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Frequency (Hz)', yLabel: 'Skin depth (m)', xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'This material', x: fs2, y: fs2.map((x) => skinDepth(rho, x, mr, er)), mode: 'line', width: 2 },
+      { name: 'Copper (rounded)', x: fs2, y: fs2.map((x) => skinDepth(1.72e-8, x)), mode: 'line', width: 1.2, dash: [5, 4] },
+      { name: 'Stainless steel (rounded)', x: fs2, y: fs2.map((x) => skinDepth(7.2e-7, x)), mode: 'line', width: 1.2, dash: [2, 3] },
+    ], marks: [{ kind: 'vline', at: f, dash: [3, 3], label: 'f' }, { kind: 'hline', at: a, dash: [6, 3], label: 'wire radius' }] }, 'Skin depth against frequency');
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Frequency (Hz)', yLabel: 'R_ac / R_dc', xLog: true, yLog: true, legend: 'below', series: [
+      { name: `${sig(a * 2000, 3)} mm wire`, x: fs2, y: fs2.map((x) => wireRatio(a, skinDepth(rho, x, mr, er)).r), mode: 'line', width: 2 },
+      { name: `${sig(t * 1e6, 3)} µm sheet`, x: fs2, y: fs2.map((x) => sheetR(rho, t, skinDepth(rho, x, mr, er)) / (rho / t)), mode: 'line', width: 1.4, dash: [5, 4] },
+    ], marks: [{ kind: 'vline', at: f, dash: [3, 3], label: 'f' }] }, 'AC resistance against frequency');
+    paint(q<HTMLCanvasElement>('.sk-fig'), c1); paint(q<HTMLCanvasElement>('.sk-fig2'), c2); figs = [c1, c2];
+    const fr = [50, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10];
+    const rows = fr.map((x) => { const dd = skinDepth(rho, x, mr, er); return [fHz(x), len(dd), si(surfaceR(rho, x, mr), 'Ω'), sig(wireRatio(a, dd).r, 4), sig(sheetR(rho, t, dd) / (rho / t), 4), sig(coaxLoss(surfaceR(rho, x, mr), ci, co, cer) * NP_TO_DB * 100, 3)]; });
+    const head = ['Frequency', 'δ', 'Rs per square', 'Wire R_ac/R_dc', 'Sheet R/R_dc', 'Coax dB/100 m'];
+    const tab = q('.sk-tab'), hr = document.createElement('tr');
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    tab.replaceChildren(hr, ...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i) td.className = 'r'; tr.append(td); }); return tr; }));
+    csv = ['frequency_Hz,skin_depth_m,Rs_ohm_per_square,wire_Rac_over_Rdc,sheet_R_over_Rdc,coax_conductor_loss_dB_per_m', ...fr.map((x) => { const dd = skinDepth(rho, x, mr, er); return [x, dd, surfaceR(rho, x, mr), wireRatio(a, dd).r, sheetR(rho, t, dd) / (rho / t), coaxLoss(surfaceR(rho, x, mr), ci, co, cer) * NP_TO_DB].map((v) => +v.toPrecision(6)).join(','); })];
+    const ff = (els: HTMLElement[]) => els.map((e) => [e.querySelector('dt')!.textContent!, e.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.sk-big').textContent!, text: [`ρ = ${q<HTMLInputElement>('.sk-rho').value} Ω m, μr = ${mr}, εr = ${er}`], facts: ff(f0), figure: c1 },
+      { title: `Round wire, ${sig(a * 2000, 3)} mm`, facts: ff(fw), figure: c2 },
+      { title: `Sheet, ${sig(t * 1e6, 3)} µm`, facts: ff(fs) },
+      { title: 'Coax conductor loss', facts: ff(fc), table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.sk-mat').addEventListener('change', () => {
+    const v = q<HTMLSelectElement>('.sk-mat').value; if (v === 'custom') return;
+    const [r, m, e] = v.split('|'); q<HTMLInputElement>('.sk-rho').value = r; q<HTMLInputElement>('.sk-mr').value = m; q<HTMLInputElement>('.sk-er').value = e;
+  });
+  ['.sk-rho', '.sk-mr', '.sk-er'].forEach((c) => q(c).addEventListener('input', () => { q<HTMLSelectElement>('.sk-mat').value = 'custom'; }));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.sk-out').hidden) { paint(q<HTMLCanvasElement>('.sk-fig'), figs[0]); paint(q<HTMLCanvasElement>('.sk-fig2'), figs[1]); } });
+  q('.sk-csv').addEventListener('click', () => save(new Blob([csv.join('\n') + '\n'], { type: 'text/csv' }), 'skin-depth.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Skin depth and conductor loss', subtitle: `${q<HTMLSelectElement>('.sk-mat').selectedOptions[0].text}, ${q<HTMLInputElement>('.sk-f').value} ${q<HTMLSelectElement>('.sk-fu').selectedOptions[0].text}`, file: 'skin-depth', sections: report }));
+</script>
+
+<style is:global>
+  .skd select, .skd input { max-width: 100%; }
+</style>

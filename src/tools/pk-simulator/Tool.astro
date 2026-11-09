@@ -1,0 +1,155 @@
+---
+// Teaching simulator: concentration-time curves of an invented drug under an entered regimen (one or two compartments).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pks">
+  <p class="note warn pks-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Invented drug</h2>
+    <label style="max-width:420px">Start from a made-up drug <select class="pks-preset">
+      <option value="a">Drug A: 1 compartment, by mouth</option>
+      <option value="b">Drug B: 2 compartments, IV infusion</option>
+      <option value="c">Drug C: 1 compartment, IV bolus</option>
+    </select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Model <select class="pks-comp"><option value="1">One compartment</option><option value="2">Two compartments</option></select></label>
+      <label>Clearance CL (L/h) <input class="pks-cl" inputmode="decimal" value="5" /></label>
+      <label><span class="pks-vl">Volume V (L)</span> <input class="pks-v1" inputmode="decimal" value="50" /></label>
+      <label class="pks-two" hidden>Q, between compartments (L/h) <input class="pks-q" inputmode="decimal" value="10" /></label>
+      <label class="pks-two" hidden>Peripheral volume V2 (L) <input class="pks-v2" inputmode="decimal" value="40" /></label>
+    </div>
+    <h2 style="margin-top:16px">Regimen to try</h2>
+    <div class="ax-grid">
+      <label>Route <select class="pks-route"><option value="oral">By mouth (first-order absorption)</option><option value="bolus">IV bolus</option><option value="infusion">IV infusion</option></select></label>
+      <label>Amount each time (mg) <input class="pks-amt" inputmode="decimal" value="250" /></label>
+      <label>Interval τ (h) <input class="pks-tau" inputmode="decimal" value="12" /></label>
+      <label>Number of administrations <input class="pks-n" inputmode="numeric" value="10" /></label>
+      <label class="pks-oral">Absorption rate ka (1/h) <input class="pks-ka" inputmode="decimal" value="1" /></label>
+      <label class="pks-oral">Fraction absorbed F (0 to 1) <input class="pks-f" inputmode="decimal" value="0.8" /></label>
+      <label class="pks-inf" hidden>Infusion duration (h) <input class="pks-tinf" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">CL is the volume of plasma cleared of drug per hour; V links the amount in the body to the concentration. With two compartments, drug also moves into and out of a peripheral compartment (tissues) at the rate Q. ka sets how fast an oral dose is absorbed and F how much of it reaches the blood. This page only shows what the regimen you type does to an invented drug; it never works out an amount to give.</p>
+    <p class="ax-err pks-err" hidden></p>
+  </div>
+
+  <div class="ax-card pks-out" hidden>
+    <h2>Concentration over time</h2>
+    <p class="ax-big pks-big"></p>
+    <dl class="ax-facts pks-facts"></dl>
+    <div class="ax-row" style="margin-top:12px">
+      <div class="ax-seg pks-scale" role="group" aria-label="Concentration axis">
+        <button type="button" data-s="lin" aria-pressed="true">Linear</button>
+        <button type="button" data-s="log" aria-pressed="false">Log</button>
+      </div>
+      <button type="button" class="btn secondary small pks-csv">Download curve (CSV)</button>
+    </div>
+    <canvas class="ax-fig pks-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Dashed lines: the highest and lowest concentration in a dosing interval once steady state is reached.</p>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .pks .ax-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .pks-med { margin: 0 0 12px; font-size: 14px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { simulate, summarise, type Model, type Regimen, type Route, type Sim, type Summary } from '../../lib/sci/pksim';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pks')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const set = (c: string, v: string) => (q<HTMLInputElement | HTMLSelectElement>(c).value = v);
+  const err = q('.pks-err');
+  const PRESETS: Record<string, Record<string, string>> = {
+    a: { comp: '1', cl: '5', v1: '50', route: 'oral', amt: '250', tau: '12', n: '10', ka: '1', f: '0.8' },
+    b: { comp: '2', cl: '5', v1: '20', q: '10', v2: '40', route: 'infusion', amt: '100', tau: '8', n: '9', tinf: '1' },
+    c: { comp: '1', cl: '4', v1: '30', route: 'bolus', amt: '120', tau: '6', n: '8' },
+  };
+  let logY = false, sim: Sim | null = null, sum: Summary | null = null, model: Model | null = null, reg: Regimen | null = null;
+  let fig: Figure | null = null, report: Section[] = [], curve: [number, number][] = [];
+
+  function read(): { m: Model; r: Regimen } {
+    const comp = val('.pks-comp') === '2' ? 2 : 1;
+    const m: Model = { comp, cl: num(val('.pks-cl')), v1: num(val('.pks-v1')), q: num(val('.pks-q')), v2: num(val('.pks-v2')) };
+    const route = val('.pks-route') as Route;
+    const r: Regimen = { route, amount: num(val('.pks-amt')), tau: num(val('.pks-tau')), n: num(val('.pks-n')), ka: num(val('.pks-ka')), f: num(val('.pks-f')), tinf: num(val('.pks-tinf')) };
+    return { m, r };
+  }
+
+  function calc() {
+    err.hidden = true;
+    const comp2 = val('.pks-comp') === '2', route = val('.pks-route');
+    root.querySelectorAll<HTMLElement>('.pks-two').forEach((e) => (e.hidden = !comp2));
+    q('.pks-vl').textContent = comp2 ? 'Central volume V1 (L)' : 'Volume V (L)';
+    root.querySelectorAll<HTMLElement>('.pks-oral').forEach((e) => (e.hidden = route !== 'oral'));
+    root.querySelectorAll<HTMLElement>('.pks-inf').forEach((e) => (e.hidden = route !== 'infusion'));
+    try {
+      const { m, r } = read();
+      if (Number.isFinite(r.tau) && r.tau * r.n > 1e5) throw new Error('That covers more than 100,000 hours. Use fewer administrations or a shorter interval.');
+      sim = simulate(m, r); sum = summarise(m, r, sim); model = m; reg = r;
+    } catch (e) {
+      sim = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.pks-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.pks-out').forEach((o) => (o.hidden = false));
+    const u = sum!, r = reg!, f = (v: number, n = 4) => sig(v, n);
+    q('.pks-big').textContent = `At steady state: Cmax ${f(u.cmaxSs)} mg/L, Cmin ${f(u.cminSs)} mg/L`;
+    const intervals = u.t90 / r.tau;
+    const facts: [string, string, string?][] = [
+      ['Cmax at steady state', `${f(u.cmaxSs)} mg/L`, `${f(u.tmaxSs, 3)} h after each administration`],
+      ['Cmin at steady state', `${f(u.cminSs)} mg/L`, 'just before the next one'],
+      ['Average at steady state', `${f(u.cavSs)} mg/L`, `AUCτ ${f(u.aucSs)} mg·h/L = F·amount / CL`],
+      ['Accumulation ratio', f(u.racAuc), 'AUCτ at steady state ÷ AUC of the first interval'],
+      ['Peak ratio', f(u.racCmax), 'Cmax at steady state ÷ first Cmax'],
+      ['Fluctuation', `${f(u.fluct, 3)} %`, '(Cmax − Cmin) ÷ average'],
+      ['First administration', `Cmax ${f(u.cmax1)} mg/L`, `at ${f(u.tmax1, 3)} h`],
+      [u.halfLives.length > 1 ? 'Half-lives (α, β)' : 'Half-life', u.halfLives.map((h) => `${f(h, 3)} h`).join(', '), u.halfLives.length > 1 ? 'distribution, then elimination' : 'ln 2 × V / CL'],
+      ['90 % of steady state', `${f(u.t90, 3)} h`, `about ${f(intervals, 2)} intervals (3.3 half-lives)`],
+    ];
+    q('.pks-facts').replaceChildren(...facts.map(([a, b, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    // The curve: a fine grid, plus the moments just before and after each administration so bolus jumps stay sharp.
+    const end = r.n * r.tau + r.tau, ts = new Set<number>();
+    for (let i = 0; i <= 1200; i++) ts.add((end * i) / 1200);
+    for (let j = 0; j < r.n; j++) { const t0 = j * r.tau; if (t0 > 0) ts.add(t0 - 1e-9 * end); ts.add(t0); if (r.route === 'infusion') ts.add(t0 + r.tinf!); }
+    curve = [...ts].sort((a, b) => a - b).map((t) => [t, sim!.at(t)]);
+    draw();
+    report = [{ title: 'Regimen and model', text: [`Invented drug: ${model!.comp === 2 ? `two compartments, CL ${val('.pks-cl')} L/h, V1 ${val('.pks-v1')} L, Q ${val('.pks-q')} L/h, V2 ${val('.pks-v2')} L` : `one compartment, CL ${val('.pks-cl')} L/h, V ${val('.pks-v1')} L`}. ${q<HTMLSelectElement>('.pks-route').selectedOptions[0].text}: ${val('.pks-amt')} mg every ${val('.pks-tau')} h, ${r.n} times${r.route === 'oral' ? `, ka ${val('.pks-ka')} /h, F ${val('.pks-f')}` : ''}${r.route === 'infusion' ? `, each over ${val('.pks-tinf')} h` : ''}.`, 'A teaching simulation of a made-up drug. For study and teaching, not medical advice.'], facts: facts.map(([a, b, s]) => [a, s ? `${b} (${s})` : b] as [string, string]), figure: fig! }];
+  }
+
+  function draw() {
+    if (!sim || !sum) return;
+    const pts = logY ? curve.filter(([, c]) => c > 0) : curve;
+    const w = Math.round(Math.min(720, Math.max(340, q('.pks-fig').parentElement!.clientWidth - 34)));
+    fig = chartFigure({ w, h: Math.round(w * 0.62), yLog: logY, xLabel: 'Time (h)', yLabel: 'Concentration (mg/L)', legend: 'none', series: [
+      { name: 'Concentration', x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'hline', at: sum.cmaxSs, label: 'Cmax,ss' }, { kind: 'hline', at: sum.cminSs, label: 'Cmin,ss' }] }, `Concentration-time curve; steady-state Cmax ${sig(sum.cmaxSs, 3)} and Cmin ${sig(sum.cminSs, 3)} mg/L`);
+    paint(q<HTMLCanvasElement>('.pks-fig'), fig);
+    if (report[0]) report[0].figure = fig;
+  }
+
+  q('.pks-preset').addEventListener('change', () => {
+    const p = PRESETS[val('.pks-preset')];
+    for (const [k, v] of Object.entries(p)) set(`.pks-${k}`, v);
+    calc();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.pks-scale button').forEach((b) => b.addEventListener('click', () => {
+    logY = b.dataset.s === 'log';
+    root.querySelectorAll<HTMLButtonElement>('.pks-scale button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    draw();
+  }));
+  q('.pks-csv').addEventListener('click', () => { if (curve.length) save(new Blob([csv([['time_h', 'concentration_mg_per_L'], ...curve.map(([t, c]) => [+t.toPrecision(8), +c.toPrecision(8)])])], { type: 'text/csv' }), 'pk-simulation.csv', 'text/csv'); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select:not(.pks-preset)').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', draw);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'PK simulation (invented drug)', subtitle: q('.pks-big').textContent ?? '', file: 'pk-simulation', sections: report }));
+</script>

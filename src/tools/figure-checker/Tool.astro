@@ -1,0 +1,264 @@
+---
+// Figure checker: pixel size and stored DPI of a figure file, its print size, a check against column widths and a
+// minimum DPI, a fix for the stored DPI, and colour-blind and greyscale previews side by side. The file never
+// leaves the browser. The example figure is drawn by the page from made-up numbers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fgc">
+  <div class="ax-card">
+    <h2>Your figure</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small fc-open">Open a figure</button>
+      <input type="file" class="fc-file" accept="image/png,image/jpeg,image/tiff,image/gif,image/webp,image/bmp,image/svg+xml,application/pdf,.tif,.tiff,.svg,.pdf" hidden />
+      <button type="button" class="btn secondary small fc-ex">Use the example figure</button>
+    </div>
+    <p class="ax-help fc-ph">PNG, JPEG, TIFF, GIF, WebP or BMP (size, DPI and previews), or SVG and PDF (size only, as they are vector). Up to 60 MB. The file is read on this page only and is never uploaded.</p>
+    <p class="ax-err fc-err" hidden></p>
+  </div>
+
+  <div class="ax-card fc-out" hidden>
+    <h2>Size and resolution</h2>
+    <p class="ax-big fc-big"></p>
+    <dl class="ax-facts fc-facts"></dl>
+    <ul class="fc-notes ax-help"></ul>
+    <div class="fc-raster">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Figure type <select class="fc-type">
+          <option value="300">Photo or colour image (example: 300 dpi)</option>
+          <option value="600">Photo with text or lines (example: 600 dpi)</option>
+          <option value="1000">Line art, graphs, black and white (example: 1000 dpi)</option>
+        </select></label>
+        <label>Minimum DPI the journal asks for <input class="fc-min" type="number" min="50" max="4800" step="1" value="300" inputmode="numeric" /></label>
+      </div>
+      <label style="margin-top:10px">Widths to check, one per line: name, width in mm, and an optional maximum height in mm <textarea class="fc-widths" rows="4" spellcheck="false">Single column, 85
+One and a half columns, 120
+Full page width, 175, 230</textarea></label>
+      <p class="ax-help">These widths and DPI values are rounded examples of what many journals ask for, not any one journal's rules. Check the journal's guide for authors and type its numbers here.</p>
+      <p class="ax-err fc-werr" hidden></p>
+      <div class="ax-scroll"><table class="fc-tab"></table></div>
+      <h3 class="fc-h3">Change the stored DPI</h3>
+      <p class="ax-help">The stored DPI only tells programs how big to print the picture; changing it adds no detail. Use it when a file has enough pixels but says 72 dpi, so it opens at the right size. PNG and JPEG only; the pixels are not touched or re-compressed.</p>
+      <div class="ax-row">
+        <label class="fc-inl">New DPI <input class="fc-newdpi" type="number" min="1" max="65535" step="1" value="300" inputmode="numeric" /></label>
+        <button type="button" class="btn secondary small fc-fix">Download with this DPI</button>
+      </div>
+      <p class="ax-help fc-fixnote" hidden></p>
+    </div>
+  </div>
+
+  <div class="ax-card fc-cvd" hidden>
+    <h2>Colour vision and greyscale</h2>
+    <p class="ax-help">About 1 in 12 men and 1 in 200 women see colours differently. Check that every line, bar and label can still be told apart in each panel, and in greyscale for black-and-white printing.</p>
+    <label>Strength <input class="fc-sev" type="range" min="0" max="100" step="10" value="100" /> <span class="fc-sevv">100 %</span></label>
+    <p class="ax-help">100 % shows full dichromacy (a missing cone type). Lower values mix in normal vision as a rough guide to milder forms.</p>
+    <div class="fc-grid"></div>
+    <p class="ax-help fc-cvdnote" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-png">Download the comparison (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readMeta, checkTargets, parseTargets, printMm, setPngDpi, setJpegDpi, simulate, greyscale, tiffPreview, CVD_NAMES, type Meta, type Cvd } from '../../lib/sci/figcheck';
+  import { readTiff } from '../../lib/sci/tiff';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fgc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (x: number) => (x >= 100 ? Math.round(x).toString() : sig(x, 3));
+  const dp = (x: number) => Math.round(x).toString();
+  const MAXB = 60e6, PREV = 700;
+
+  let bytes: Uint8Array | null = null, meta: Meta | null = null, name = 'figure';
+  let px: Uint8ClampedArray | null = null, pw = 0, ph = 0, sections: Section[] = [], cmpFig: Figure | null = null;
+  const panels: { title: string; canvas: HTMLCanvasElement }[] = [];
+
+  function fail(m: string) { q('.fc-err').textContent = m; q('.fc-err').hidden = false; }
+
+  async function open(b: Uint8Array, nm: string, type = '') {
+    q('.fc-err').hidden = true; name = nm;
+    let m: Meta;
+    try { m = readMeta(b); } catch (e) { q('.fc-out').hidden = true; q('.fc-cvd').hidden = true; return fail((e as Error).message); }
+    bytes = b; meta = m; px = null;
+    if (!m.vector) await decode(b, m, type);
+    show();
+  }
+
+  async function decode(b: Uint8Array, m: Meta, type: string) {
+    if (m.format === 'TIFF') {
+      try {
+        const r = readTiff(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer, 60e6);
+        const okLayout = /Greyscale|RGB/.test(m.colour ?? '') && !/CMYK|Palette/.test(m.colour ?? '');
+        const p = okLayout ? tiffPreview(r.bands, r.width, r.height, r.bits, (m.colour ?? '').includes('white is zero')) : null;
+        if (!p) { q('.fc-cvdnote').textContent = `The previews are not shown for this TIFF (${m.colour}); the size and DPI checks above still apply.`; return; }
+        shrink(p, r.width, r.height);
+      } catch (e) { q('.fc-cvdnote').textContent = `The previews are not shown: ${(e as Error).message} The size and DPI checks above still apply.`; }
+      return;
+    }
+    try {
+      const bmp = await createImageBitmap(new Blob([b as BlobPart], { type: type || 'image/' + m.format.toLowerCase() }));
+      const s = Math.min(1, PREV / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
+      const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d')!;
+      x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(bmp, 0, 0, w, h);
+      px = x.getImageData(0, 0, w, h).data; pw = w; ph = h;
+    } catch { q('.fc-cvdnote').textContent = 'Your browser could not show this image, so the previews are left out. The size and DPI checks above still apply.'; }
+  }
+  function shrink(p: Uint8ClampedArray, w: number, h: number) {
+    const s = Math.min(1, PREV / Math.max(w, h)), W = Math.max(1, Math.round(w * s)), H = Math.max(1, Math.round(h * s));
+    const full = document.createElement('canvas'); full.width = w; full.height = h; full.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(p), w, h), 0, 0);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.drawImage(full, 0, 0, W, H);
+    px = x.getImageData(0, 0, W, H).data; pw = W; ph = H;
+  }
+
+  function show() {
+    const m = meta!;
+    q('.fc-out').hidden = false;
+    const notes = q('.fc-notes'); notes.replaceChildren(...m.notes.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    q('.fc-raster').hidden = !!m.vector;
+    if (m.vector) {
+      q('.fc-big').textContent = m.widthMm ? `${m.format} vector figure, ${mm(m.widthMm)} × ${mm(m.heightMm ?? 0)} mm` : `${m.format} vector figure`;
+      q('.fc-facts').replaceChildren(fact('Format', m.format, 'vector: no pixel size or DPI'), fact('Size set in the file', m.widthMm ? `${mm(m.widthMm)} × ${mm(m.heightMm ?? 0)} mm` : 'not set', m.widthMm ? `${sig(m.widthMm / 25.4, 3)} × ${sig((m.heightMm ?? 0) / 25.4, 3)} in` : ''));
+      sections = [{ title: q('.fc-big').textContent!, facts: facts(), text: m.notes }];
+      q('.fc-cvd').hidden = true;
+      return;
+    }
+    q('.fc-fix').toggleAttribute('disabled', !(m.format === 'PNG' || m.format === 'JPEG'));
+    q('.fc-fixnote').hidden = true;
+    check();
+    q('.fc-cvd').hidden = false;
+    q('.fc-cvdnote').hidden = !!px || !q('.fc-cvdnote').textContent;
+    q('.fc-grid').hidden = !px; q('.fc-png').hidden = !px;
+    if (px) previews(); else { cmpFig = null; }
+  }
+  const facts = () => [...q('.fc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function check() {
+    const m = meta!;
+    const min = Number(q<HTMLInputElement>('.fc-min').value);
+    const err = (t: string) => { q('.fc-werr').textContent = t; q('.fc-werr').hidden = false; q<HTMLTableElement>('.fc-tab').replaceChildren(); };
+    q('.fc-werr').hidden = true;
+    const dpiTxt = m.dpiX ? (Math.abs((m.dpiX ?? 0) - (m.dpiY ?? 0)) > 0.5 ? `${dp(m.dpiX)} × ${dp(m.dpiY ?? 0)} dpi` : `${dp(m.dpiX)} dpi`) : 'not stored';
+    q('.fc-facts').replaceChildren(
+      fact('Format', m.format, [m.colour, m.bits ? `${m.bits}-bit` : '', m.alpha ? 'has transparency' : ''].filter(Boolean).join(', ')),
+      fact('Pixels', `${m.width} × ${m.height}`, `${sig((m.width * m.height) / 1e6, 3)} megapixels`),
+      fact('Stored resolution', dpiTxt, m.dpiFrom ?? 'programs usually assume 72 or 96 dpi'),
+      ...(m.dpiX ? [fact('Print size at the stored DPI', `${mm(printMm(m.width, m.dpiX))} × ${mm(printMm(m.height, m.dpiY ?? m.dpiX))} mm`, `${sig(m.width / m.dpiX, 3)} × ${sig(m.height / (m.dpiY ?? m.dpiX), 3)} in`)] : []),
+      ...(min >= 50 ? [fact(`Largest print at ${dp(min)} dpi`, `${mm(printMm(m.width, min))} × ${mm(printMm(m.height, min))} mm`, 'the widest the figure can go and still meet the minimum')] : []),
+    );
+    if (!(min >= 50 && min <= 4800)) return err('Give a minimum DPI between 50 and 4800.');
+    const t = parseTargets(q<HTMLTextAreaElement>('.fc-widths').value);
+    if (typeof t === 'string') return err(t);
+    const res = checkTargets(m.width, m.height, t, min);
+    const passing = res.filter((r) => r.ok && !r.tooTall);
+    q('.fc-big').textContent = passing.length === res.length ? `Passes at every width: up to ${mm(printMm(m.width, min))} mm wide at ${dp(min)} dpi` : res.some((r) => r.ok) ? `Passes at ${passing.length} of ${res.length} widths: up to ${mm(printMm(m.width, min))} mm wide at ${dp(min)} dpi` : `Too small for every width at ${dp(min)} dpi (up to ${mm(printMm(m.width, min))} mm wide)`;
+    const head = ['Width', 'mm', 'DPI there', 'Height (mm)', `Pixels for ${dp(min)} dpi`, 'Result'];
+    const rows = res.map((r) => [r.name, mm(r.widthMm), dp(r.dpi), mm(r.heightMm) + (r.maxHeightMm ? ` of ${mm(r.maxHeightMm)}` : ''), `${r.needPx} wide`, !r.ok ? 'Too few pixels' : r.tooTall ? 'Too tall: crop or shorten' : 'OK']);
+    const tab = q<HTMLTableElement>('.fc-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i && i < 5) th.style.textAlign = 'right'; hr.append(th); });
+    const body = tab.createTBody();
+    rows.forEach((r, k) => { const tr = body.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (i === 5) { const s = document.createElement('span'); s.className = 'ax-pill ' + (res[k].ok && !res[k].tooTall ? 'good' : res[k].ok ? 'warn' : 'bad'); s.textContent = c; td.append(s); } else td.textContent = c; if (i && i < 5) td.style.textAlign = 'right'; }); });
+    sections = [{ title: q('.fc-big').textContent!, facts: facts(), table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'l'] }, text: [...m.notes, 'Widths and DPI values are examples; check the journal\'s guide for authors.'] }];
+    if (cmpFig) sections.push({ title: 'Colour vision and greyscale', figure: cmpFig, note: `Viénot, Brettel and Mollon (1999) dichromat simulation at ${q<HTMLInputElement>('.fc-sev').value} % strength; greyscale is the relative luminance.` });
+  }
+
+  function previews() {
+    const sev = Number(q<HTMLInputElement>('.fc-sev').value) / 100;
+    q('.fc-sevv').textContent = `${Math.round(sev * 100)} %`;
+    const list: [string, Uint8ClampedArray][] = [['Original', px!], ...(['deutan', 'protan', 'tritan'] as Cvd[]).map((t) => [CVD_NAMES[t], simulate(px!, t, sev)] as [string, Uint8ClampedArray]), ['Greyscale print', greyscale(px!)]];
+    const grid = q('.fc-grid'); grid.replaceChildren(); panels.length = 0;
+    for (const [title, d] of list) {
+      const fig = document.createElement('figure'), c = document.createElement('canvas'), cap = document.createElement('figcaption');
+      c.width = pw; c.height = ph; c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(d), pw, ph), 0, 0);
+      c.setAttribute('aria-label', `${title} view of the figure`); cap.textContent = title;
+      fig.append(c, cap); grid.append(fig); panels.push({ title, canvas: c });
+    }
+    // The comparison figure for the downloads: two columns of panels with captions.
+    const cell = 300, capH = 24, cols = 2, rowsN = Math.ceil(panels.length / cols), sc = Math.min(cell / pw, cell / ph);
+    cmpFig = {
+      w: cols * (cell + 20) + 20, h: rowsN * (cell * (ph * sc / cell) + capH + 20) + 20, alt: 'The figure as seen with normal vision, three kinds of colour blindness and in greyscale',
+      draw: (ctx, w, h, pal) => {
+        const bh = ph * sc + capH + 20;
+        panels.forEach((p, i) => {
+          const x = 20 + (i % cols) * (cell + 20), y = 20 + Math.floor(i / cols) * bh;
+          ctx.drawImage(p.canvas, x, y, pw * sc, ph * sc);
+          ctx.strokeStyle = pal.line; ctx.strokeRect(x + 0.5, y + 0.5, pw * sc - 1, ph * sc - 1);
+          ctx.fillStyle = pal.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(p.title, x, y + ph * sc + 6);
+        });
+      },
+    };
+    check();
+  }
+
+  // ---------- The example: a made-up bar chart in red and green, saved as a PNG that says 150 dpi ----------
+  async function example(): Promise<Uint8Array> {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 800; const x = c.getContext('2d')!;
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 800);
+    const groups = ['Day 1', 'Day 3', 'Day 7', 'Day 14'], a = [42, 58, 71, 80], b = [40, 47, 52, 55], L = 120, B = 680, H = 560;
+    x.strokeStyle = '#000'; x.lineWidth = 3; x.beginPath(); x.moveTo(L, 80); x.lineTo(L, B); x.lineTo(1150, B); x.stroke();
+    x.font = '32px sans-serif'; x.fillStyle = '#000'; x.textAlign = 'right'; x.textBaseline = 'middle';
+    for (let v = 0; v <= 100; v += 25) { const y = B - (v / 100) * H; x.fillText(String(v), L - 14, y); x.beginPath(); x.moveTo(L - 8, y); x.lineTo(L, y); x.stroke(); }
+    groups.forEach((g, i) => {
+      const gx = L + 40 + i * 250;
+      x.fillStyle = '#d62728'; x.fillRect(gx, B - (a[i] / 100) * H, 90, (a[i] / 100) * H);
+      x.fillStyle = '#2ca02c'; x.fillRect(gx + 100, B - (b[i] / 100) * H, 90, (b[i] / 100) * H);
+      x.fillStyle = '#000'; x.textAlign = 'center'; x.textBaseline = 'top'; x.fillText(g, gx + 95, B + 16);
+    });
+    x.textAlign = 'left'; x.textBaseline = 'middle';
+    x.fillStyle = '#d62728'; x.fillRect(160, 40, 30, 30); x.fillStyle = '#000'; x.fillText('Treated', 200, 56);
+    x.fillStyle = '#2ca02c'; x.fillRect(360, 40, 30, 30); x.fillStyle = '#000'; x.fillText('Control', 400, 56);
+    x.save(); x.translate(36, 380); x.rotate(-Math.PI / 2); x.textAlign = 'center'; x.fillText('Growth (%)', 0, 0); x.restore();
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), 'image/png'));
+    return setPngDpi(new Uint8Array(await blob.arrayBuffer()), 150);
+  }
+
+  q('.fc-open').addEventListener('click', () => q<HTMLInputElement>('.fc-file').click());
+  q('.fc-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.fc-file').files?.[0]; q<HTMLInputElement>('.fc-file').value = ''; if (!f) return;
+    if (f.size > MAXB) return fail(`This file is ${sig(f.size / 1e6, 3)} MB; the limit here is 60 MB.`);
+    q('.fc-cvdnote').textContent = '';
+    await open(new Uint8Array(await f.arrayBuffer()), f.name.replace(/\.[^.]+$/, ''), f.type);
+  });
+  q('.fc-ex').addEventListener('click', async () => { q('.fc-cvdnote').textContent = ''; await open(await example(), 'example-figure', 'image/png'); });
+  q('.fc-type').addEventListener('change', () => { q<HTMLInputElement>('.fc-min').value = q<HTMLSelectElement>('.fc-type').value; q<HTMLInputElement>('.fc-newdpi').value = q<HTMLSelectElement>('.fc-type').value; if (meta) check(); });
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  q('.fc-min').addEventListener('input', () => later(() => meta && check()));
+  q('.fc-widths').addEventListener('input', () => later(() => meta && check()));
+  q('.fc-sev').addEventListener('input', () => later(() => px && previews()));
+  q('.fc-fix').addEventListener('click', () => {
+    if (!bytes || !meta) return;
+    const d = Math.round(Number(q<HTMLInputElement>('.fc-newdpi').value)), n = q('.fc-fixnote');
+    if (!(d >= 1 && d <= 65535)) { n.textContent = 'Give a DPI between 1 and 65535.'; n.hidden = false; return; }
+    const out = meta.format === 'PNG' ? setPngDpi(bytes, d) : setJpegDpi(bytes, d), ext = meta.format === 'PNG' ? 'png' : 'jpg';
+    save(out, `${fileSafe(name)}-${d}dpi.${ext}`, meta.format === 'PNG' ? 'image/png' : 'image/jpeg');
+    n.textContent = `Saved with ${d} dpi: it now prints ${mm(printMm(meta.width, d))} × ${mm(printMm(meta.height, d))} mm by default. The pixels are unchanged.`; n.hidden = false;
+  });
+  q('.fc-png').addEventListener('click', () => {
+    if (!cmpFig) return;
+    const c = document.createElement('canvas'); c.width = cmpFig.w * 2; c.height = cmpFig.h * 2; const x = c.getContext('2d')!; x.scale(2, 2);
+    x.fillStyle = '#fff'; x.fillRect(0, 0, cmpFig.w, cmpFig.h); cmpFig.draw(x, cmpFig.w, cmpFig.h, { bg: '#ffffff', ink: '#0a0a0a', muted: '#5c5c5c', line: '#cfcfcf', grid: '#ececec', accent: '#1f5fae', accent2: '#c26a00', good: '#146c34', warn: '#8a5300', bad: '#b3261e', night: '#1c2333', twilight: '#58637a', day: '#eef1f6', red: false });
+    c.toBlob((b) => b && save(b, `${fileSafe(name)}-colour-check.png`, 'image/png'), 'image/png');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Figure check', subtitle: q('.fc-big').textContent ?? '', file: `${fileSafe(name)}-figure-check`, sections }));
+  q('.fc-ex').click();
+</script>
+
+<style is:global>
+  .fgc .fc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-top: 12px; }
+  .fgc .fc-grid figure { margin: 0; }
+  .fgc .fc-grid canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line, #ddd); background: #fff; }
+  .fgc .fc-grid figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .fgc .fc-notes { margin: 10px 0 0; padding-left: 20px; }
+  .fgc .fc-notes:empty { display: none; }
+  .fgc .fc-h3 { font-size: 16px; margin: 18px 0 4px; }
+  .fgc .fc-inl { white-space: nowrap; display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
+  .fgc .fc-inl input { width: 100px; }
+  .fgc select { max-width: 100%; }
+  .fgc input[type=range] { width: 180px; vertical-align: middle; }
+  html.red-mode .fgc .fc-grid canvas { filter: url(#red-night); }
+</style>

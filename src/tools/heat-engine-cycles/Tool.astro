@@ -1,0 +1,137 @@
+---
+// Air-standard heat engine cycles (Carnot, Otto, Diesel, Brayton, Stirling) on P-v and T-s diagrams with efficiency.
+// Ideal gas with constant heat capacities; example values made up. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hec">
+  <div class="ax-card">
+    <h2>Cycle</h2>
+    <div class="ax-seg he-seg" role="group" aria-label="Cycle">
+      <button type="button" data-c="carnot" aria-pressed="false">Carnot</button>
+      <button type="button" data-c="otto" aria-pressed="true">Otto</button>
+      <button type="button" data-c="diesel" aria-pressed="false">Diesel</button>
+      <button type="button" data-c="brayton" aria-pressed="false">Brayton</button>
+      <button type="button" data-c="stirling" aria-pressed="false">Stirling</button>
+    </div>
+    <p class="ax-help he-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Gas <select class="he-gas"><option value="287,1.4" selected>Air (R 287, γ 1.4)</option><option value="297,1.4">Nitrogen (R 297, γ 1.4)</option><option value="2077,1.667">Helium (R 2077, γ 1.667)</option><option value="208,1.667">Argon (R 208, γ 1.667)</option><option value="custom">Other (type R and γ)</option></select></label>
+      <label>Gas constant R (J/kg·K) <input class="he-R" type="text" inputmode="decimal" value="287" /></label>
+      <label>Heat capacity ratio γ <input class="he-k" type="text" inputmode="decimal" value="1.4" /></label>
+      <label>Start temperature T1 (K) <input class="he-T1" type="text" inputmode="decimal" value="300" /></label>
+      <label>Start pressure P1 (kPa) <input class="he-P1" type="text" inputmode="decimal" value="100" /></label>
+      <label data-for="otto diesel stirling">Compression ratio r = v1/v2 <input class="he-r" type="text" inputmode="decimal" value="8" /></label>
+      <label data-for="diesel">Cut-off ratio rc = v3/v2 <input class="he-rc" type="text" inputmode="decimal" value="2" /></label>
+      <label data-for="brayton">Pressure ratio rp = P2/P1 <input class="he-rp" type="text" inputmode="decimal" value="10" /></label>
+      <label data-for="carnot otto brayton stirling">Peak (hot) temperature (K) <input class="he-Tm" type="text" inputmode="decimal" value="1800" /></label>
+      <label data-for="carnot">Isothermal expansion ratio v3/v2 <input class="he-rT" type="text" inputmode="decimal" value="3" /></label>
+      <label data-for="stirling">Regenerator effectiveness (%) <input class="he-eps" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help">State 1 is the start of compression, the coldest point of the cycle. R and γ are rounded values for the gas, taken as constant (the "cold air standard"); real engines lose more to friction, heat leaks and real-gas effects. The example values are made up.</p>
+    <p class="ax-err he-err" hidden></p>
+  </div>
+
+  <div class="ax-card he-out">
+    <h2>Efficiency and work</h2>
+    <p class="ax-big he-big"></p>
+    <dl class="ax-facts he-facts"></dl>
+    <h3 style="margin:16px 0 8px">States</h3>
+    <div class="ax-scroll"><table class="he-st"></table></div>
+    <h3 style="margin:16px 0 8px">Processes (per kg of gas; + into the gas)</h3>
+    <div class="ax-scroll"><table class="he-pr"></table></div>
+    <canvas class="ax-fig he-pv"></canvas>
+    <canvas class="ax-fig he-ts"></canvas>
+    <p class="ax-help">The area inside the P-v loop is the net work per kilogram; the area under the top of the T-s loop is the heat taken in. A cycle's efficiency can never beat the Carnot efficiency between its hottest and coldest temperatures.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small he-csv">Cycle path (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { cycle, path, CYCLE_NAMES, type Cycle } from '../../lib/sci/phcycles';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hec')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const WHAT: Record<Cycle, string> = {
+    carnot: 'Carnot: isentropic compression, heat taken in at constant temperature, isentropic expansion, heat given out at constant temperature. The most efficient cycle possible between two temperatures.',
+    otto: 'Otto (spark-ignition petrol engine): isentropic compression, heat added at constant volume (the spark), isentropic expansion, heat rejected at constant volume.',
+    diesel: 'Diesel (compression-ignition engine): isentropic compression, heat added at constant pressure while fuel burns, isentropic expansion, heat rejected at constant volume.',
+    brayton: 'Brayton (gas turbine, jet engine): compressor (isentropic), combustor at constant pressure, turbine (isentropic), exhaust cooled at constant pressure.',
+    stirling: 'Stirling (external combustion): isothermal compression, heating at constant volume, isothermal expansion, cooling at constant volume. A regenerator stores the cooling heat and gives it back for the heating.',
+  };
+  let kind: Cycle = 'otto', figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function show() {
+    root.querySelectorAll<HTMLButtonElement>('.he-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === kind)));
+    root.querySelectorAll<HTMLElement>('[data-for]').forEach((l) => { l.hidden = !l.dataset.for!.split(' ').includes(kind); });
+    q('.he-what').textContent = WHAT[kind];
+  }
+
+  function calc() {
+    const err = q('.he-err'), out = q('.he-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const R = val('.he-R'), k = val('.he-k'), T1 = val('.he-T1'), P1 = val('.he-P1') * 1000;
+    if (!(R > 0)) return fail('Give the gas constant R in J/(kg·K), for example 287 for air.');
+    if (!(k > 1 && k < 2)) return fail('The heat capacity ratio γ must be between 1 and 2 (1.4 for air, 1.667 for helium).');
+    if (!(T1 > 0)) return fail('The start temperature T1 must be above 0 K.');
+    if (!(P1 > 0)) return fail('Give a start pressure greater than 0.');
+    const g = { R, gamma: k };
+    const res = cycle(kind, { T1, P1, r: val('.he-r'), rc: val('.he-rc'), rp: val('.he-rp'), Tmax: val('.he-Tm'), rT: val('.he-rT'), regen: val('.he-eps') / 100 }, g);
+    if (res.problem) return fail(res.problem);
+    err.hidden = true; out.hidden = false;
+    const kJ = (x: number) => `${sig(x / 1000, 4)} kJ/kg`;
+    const Ts = res.states.map((s) => s.T), Tmax = Math.max(...Ts), Tmin = Math.min(...Ts);
+    q('.he-big').textContent = `Efficiency ${sig(res.eta * 100, 3)} % (Carnot limit ${sig(res.carnot * 100, 3)} %)`;
+    const f = [
+      fact('Net work', kJ(res.wnet), 'per kilogram of gas per cycle'),
+      fact('Heat taken in', kJ(res.qin), res.regenQ ? `after ${kJ(res.regenQ)} recycled by the regenerator` : 'from the hot source'),
+      fact('Heat given out', kJ(res.qout), 'to the cold sink'),
+      fact('Mean effective pressure', `${sig(res.mep / 1000, 4)} kPa`, 'net work ÷ swept volume: the steady pressure that would give the same work'),
+      fact('Peak pressure', `${sig(Math.max(...res.states.map((s) => s.P)) / 1000, 4)} kPa`, `pressure ratio ${sig(Math.max(...res.states.map((s) => s.P)) / P1, 4)}`),
+      fact('Temperatures', `${sig(Tmin, 4)} to ${sig(Tmax, 4)} K`, `Carnot efficiency 1 − Tmin/Tmax = ${sig(res.carnot * 100, 4)} %`),
+    ];
+    if (res.bwr !== undefined) f.push(fact('Back work ratio', `${sig(res.bwr * 100, 3)} %`, 'share of the turbine work used to drive the compressor'));
+    q('.he-facts').replaceChildren(...f);
+    const tab = (el: HTMLElement, head: string[], rows: string[][]) => { el.replaceChildren(); const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i) d.className = 'r'; r.append(d); }); return r; }; el.append(tr(head, true), ...rows.map((r) => tr(r))); };
+    const sh = ['State', 'P (kPa)', 'v (m³/kg)', 'T (K)', 's − s1 (J/kg·K)'], sr = res.states.map((s, i) => [String(i + 1), sig(s.P / 1000, 4), sig(s.v, 4), sig(s.T, 4), sig(s.s, 4)]);
+    const ph = ['Process', 'Kind', 'Heat q (kJ/kg)', 'Work w (kJ/kg)'], pr = res.procs.map((p) => [`${p.from} → ${p.to}`, p.label, sig(p.q / 1000, 4), sig(p.w / 1000, 4)]);
+    tab(q('.he-st'), sh, sr); tab(q('.he-pr'), ph, pr);
+    const legs = res.procs.map((p, i) => path(res.states[i], res.states[(i + 1) % 4], p.kind, g, T1, res.states[0].v, 80));
+    const series = (fx: (s: { v: number; P: number; T: number; s: number }) => number, fy: (s: { v: number; P: number; T: number; s: number }) => number) => [
+      ...legs.map((L, i) => ({ name: `${res.procs[i].from}→${res.procs[i].to} ${res.procs[i].label}`, x: L.map(fx), y: L.map(fy), mode: 'line' as const, width: 2 })),
+      { name: 'States', x: res.states.map(fx), y: res.states.map(fy), mode: 'points' as const, marker: 'circle' as const, size: 4, labels: res.states.map((_, i) => String(i + 1)) },
+    ];
+    const c1 = chartFigure({ w: 380, h: 250, xLabel: 'Specific volume v (m³/kg)', yLabel: 'Pressure (kPa)', xMin: 0, yMin: 0, legend: 'below', series: series((s) => s.v, (s) => s.P / 1000) }, `${CYCLE_NAMES[kind]} cycle on a pressure-volume diagram`);
+    const c2 = chartFigure({ w: 380, h: 250, xLabel: 'Entropy s − s1 (J/kg·K)', yLabel: 'Temperature (K)', yMin: 0, legend: 'below', series: series((s) => s.s, (s) => s.T) }, `${CYCLE_NAMES[kind]} cycle on a temperature-entropy diagram`);
+    figs = [c1, c2];
+    paint(q<HTMLCanvasElement>('.he-pv'), c1); paint(q<HTMLCanvasElement>('.he-ts'), c2);
+    csvRows = [['process', 'P (kPa)', 'v (m3/kg)', 'T (K)', 's - s1 (J/kg K)']];
+    legs.forEach((L, i) => L.forEach((s) => csvRows.push([`${res.procs[i].from}-${res.procs[i].to}`, +(s.P / 1000).toPrecision(6), +s.v.toPrecision(6), +s.T.toPrecision(6), +s.s.toPrecision(6)])));
+    const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: `${CYCLE_NAMES[kind]}: ${q('.he-big').textContent}`, text: [WHAT[kind]], facts: rowsOf(f), table: { head: sh, rows: sr, align: ['l', 'r', 'r', 'r', 'r'] }, figure: c1 },
+      { title: 'Processes', table: { head: ph, rows: pr, align: ['l', 'l', 'r', 'r'] }, figure: c2, note: 'Air-standard ideal-gas cycle with constant heat capacities. For study and planning, not a substitute for professional judgement.' },
+    ];
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.he-seg button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.c as Cycle; show(); calc(); }));
+  q('.he-gas').addEventListener('change', () => { const v = q<HTMLSelectElement>('.he-gas').value; if (v !== 'custom') { const [R, k] = v.split(','); inp('.he-R').value = R; inp('.he-k').value = k; } });
+  for (const c of ['.he-R', '.he-k']) inp(c).addEventListener('input', () => { q<HTMLSelectElement>('.he-gas').value = 'custom'; });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.he-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${kind}-cycle.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.he-out').hidden) { paint(q<HTMLCanvasElement>('.he-pv'), figs[0]); paint(q<HTMLCanvasElement>('.he-ts'), figs[1]); } });
+  show(); calc();
+  wireDownloads(q('.dl'), () => ({ title: `${CYCLE_NAMES[kind]} cycle`, subtitle: `T1 = ${inp('.he-T1').value} K, P1 = ${inp('.he-P1').value} kPa`, file: `${kind}-cycle`, sections: report }));
+</script>
+
+<style is:global>
+  .hec select, .hec input { max-width: 100%; }
+  .hec label[hidden] { display: none; }
+</style>

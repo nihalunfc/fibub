@@ -1,0 +1,136 @@
+---
+// Noise exposure dose: levels and durations through a day, the allowed time at each level for a chosen criterion level,
+// exchange rate and threshold, the daily dose, the 8-hour TWA and LEX,8h. Presets are formulas from the cited rules;
+// the user must check their local rules. Example day made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'Task, level dB(A), minutes\nGrinding, 95, 60\nAssembly line, 85, 300\nBreak room, 70, 60\nForklift, 90, 60';
+---
+<div class="ax nds">
+  <div class="ax-card">
+    <h2>Rules to compare against</h2>
+    <div class="ax-grid">
+      <label>Preset <select class="nd-pre">
+        <option value="85,3,80" selected>NIOSH REL (US): 85 dB(A), 3 dB, threshold 80</option>
+        <option value="90,5,90">US OSHA PEL: 90 dB(A), 5 dB, threshold 90</option>
+        <option value="85,5,80">US OSHA action level: 85 dB(A), 5 dB, threshold 80</option>
+        <option value="85,3,">EU and UK upper action value: 85 dB(A), 3 dB</option>
+        <option value="own">My own rules</option>
+      </select></label>
+      <label>Criterion level (dB(A)) <input class="nd-Lc" inputmode="decimal" value="85" /></label>
+      <label>Exchange rate (dB) <input class="nd-q" inputmode="decimal" value="3" /></label>
+      <label>Threshold (dB(A), empty for none) <input class="nd-Lt" inputmode="decimal" value="80" /></label>
+      <label>Criterion duration (hours) <input class="nd-Tc" inputmode="decimal" value="8" /></label>
+    </div>
+    <p class="ax-help">The criterion level is what a person may be exposed to for the criterion duration (100 % dose). The exchange rate is how many dB halve the allowed time: 3 dB keeps the sound energy equal, 5 dB is the US OSHA rule. Levels below the threshold are not counted. The presets follow the formulas in the cited rules as checked on 2026-11-09; rules differ by country, province and state and change over time, so check your local rules and the official source.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Exposures through the day</h2>
+    <label>One line per task: name (optional), A-weighted level, time <textarea class="nd-data" rows="7" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".nd-data" maxMB={5} maxCols={6} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Times are in <select class="nd-unit"><option value="min" selected>minutes</option><option value="h">hours</option></select></label>
+    </div>
+    <p class="ax-help">Use the A-weighted equivalent level (LAeq) for each task, from a sound level meter or dosimeter. Separate values with commas, tabs or semicolons; times can also be typed as h:mm (1:30). A dosimeter log with one level per minute works too. The example day is made up.</p>
+    <p class="ax-err nd-err" hidden></p>
+  </div>
+
+  <div class="ax-card nd-out">
+    <h2>Daily exposure</h2>
+    <p class="ax-big nd-big"></p>
+    <p><span class="ax-pill nd-pill"></span></p>
+    <dl class="ax-facts nd-facts"></dl>
+    <canvas class="ax-fig nd-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll"><table class="nd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nd-csv">Dose by task (CSV)</button></div>
+    <p class="ax-help">A calculation from the levels you typed; it does not measure anything. Impulse and peak noise, and hearing protection, are not included. For study and planning, not a substitute for professional judgement, a proper noise assessment or the rules that apply to your workplace.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { noiseDose, lex8h, hoursLeft, allowedHours, parseExposures, type Criterion } from '../../lib/sci/phnoise';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.nds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const d1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  const hm = (h: number) => { if (!Number.isFinite(h)) return '–'; const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min` : `${m} min`; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function applyPreset() {
+    const v = q<HTMLSelectElement>('.nd-pre').value; if (v === 'own') return;
+    const [Lc, qq, Lt] = v.split(',');
+    q<HTMLInputElement>('.nd-Lc').value = Lc; q<HTMLInputElement>('.nd-q').value = qq; q<HTMLInputElement>('.nd-Lt').value = Lt; q<HTMLInputElement>('.nd-Tc').value = '8';
+  }
+  function syncPreset() {
+    const key = `${q<HTMLInputElement>('.nd-Lc').value.trim()},${q<HTMLInputElement>('.nd-q').value.trim()},${q<HTMLInputElement>('.nd-Lt').value.trim()}`;
+    const s = q<HTMLSelectElement>('.nd-pre'), hit = [...s.options].find((o) => o.value === key);
+    s.value = hit && q<HTMLInputElement>('.nd-Tc').value.trim() === '8' ? hit.value : 'own';
+  }
+
+  function calc() {
+    const err = q('.nd-err'), out = q('.nd-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; csvRows = []; };
+    const ltS = q<HTMLInputElement>('.nd-Lt').value.trim();
+    const c: Criterion = { Lc: val('.nd-Lc'), q: val('.nd-q'), Lt: ltS ? num(ltS) : -Infinity, Tc: val('.nd-Tc') };
+    if (!(c.Lc >= 60 && c.Lc <= 120)) return fail('Give a criterion level from 60 to 120 dB(A).');
+    if (!(c.q >= 1 && c.q <= 10)) return fail('Give an exchange rate from 1 to 10 dB (usually 3 or 5).');
+    if (ltS && !(c.Lt >= 0 && c.Lt <= 120)) return fail('Give a threshold from 0 to 120 dB(A), or leave it empty for none.');
+    if (!(c.Tc > 0 && c.Tc <= 24)) return fail('Give a criterion duration from 0 to 24 hours (usually 8).');
+    const { rows, bad } = parseExposures(q<HTMLTextAreaElement>('.nd-data').value, q<HTMLSelectElement>('.nd-unit').value as 'min' | 'h');
+    if (bad.length) return fail(`Line${bad.length > 1 ? 's' : ''} ${bad.slice(0, 5).join(', ')}${bad.length > 5 ? '…' : ''}: give a level in dB(A) (above 0, below 200) and a time (up to 24 hours), separated by commas.`);
+    if (!rows.length) return fail('Type at least one line with a level and a time.');
+    const r = noiseDose(rows, c);
+    if (r.hours > 24 + 1e-9) return fail(`The times add up to ${sig(r.hours, 4)} hours, more than a day.`);
+    err.hidden = true; out.hidden = false;
+    const lex = lex8h(rows), loud = rows.reduce((a, b) => (b.L > a.L ? b : a));
+    q('.nd-big').textContent = `Daily dose ${r.D >= 10 ? Math.round(r.D) : sig(r.D, 2)} % (TWA ${d1(r.twa)} dB(A))`;
+    const pill = q('.nd-pill');
+    pill.className = `ax-pill nd-pill ${r.D > 100 ? 'bad' : r.D >= 50 ? 'warn' : 'good'}`;
+    pill.textContent = r.D > 100 ? 'Over the criterion' : r.D >= 50 ? 'Half the criterion or more' : 'Under half the criterion';
+    const facts = [
+      fact('Dose', `${sig(r.D, 4)} %`, `Σ time ÷ allowed time; 100 % = ${sig(c.Lc, 3)} dB(A) for ${sig(c.Tc, 3)} h`),
+      fact(`${sig(c.Tc, 3)}-hour TWA`, `${d1(r.twa)} dB(A)`, `${sig(c.Lc, 3)} + ${sig(c.q / Math.log10(2), 4)} × lg(dose/100)`),
+      fact('LEX,8h (3 dB, all levels)', `${d1(lex)} dB(A)`, 'energy average normalised to 8 hours, as used in the EU and UK'),
+      fact('Time measured', hm(r.hours), Number.isFinite(r.lavg) ? `average over that time with these rules: ${d1(r.lavg)} dB(A)` : ''),
+      fact(`Time left at ${sig(loud.L, 3)} dB(A)`, r.D >= 100 ? 'none' : hm(hoursLeft(r.D, loud.L, c)), `the loudest task, before the dose reaches 100 %`),
+    ];
+    q('.nd-facts').replaceChildren(...facts);
+    const head = ['Task', 'Level (dB(A))', 'Time', 'Allowed', 'Dose (%)'];
+    const show = r.parts.slice(0, 200), tRows = show.map((p) => [p.label, sig(p.L, 4), hm(p.hours), p.counted ? hm(p.allowed) : 'below threshold', p.counted ? sig(p.dose, 3) : '0']);
+    const t = q<HTMLTableElement>('.nd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); tRows.forEach((row, k) => { const tr = b.insertRow(); if (!show[k].counted) tr.className = 'dim'; row.forEach((cell, i) => { const td = tr.insertCell(); td.textContent = cell; if (i) td.className = 'r'; }); });
+    csvRows = [['task', 'level_dba', 'hours', 'allowed_hours', 'dose_percent'], ...r.parts.map((p) => [p.label, String(p.L), String(+p.hours.toPrecision(8)), p.counted ? String(+p.allowed.toPrecision(8)) : '', String(+p.dose.toPrecision(8))])];
+    const lo = Math.min(70, ...rows.map((x) => x.L)) - 2, hi = Math.max(115, ...rows.map((x) => x.L)) + 2, xs = Array.from({ length: 101 }, (_, i) => lo + ((hi - lo) * i) / 100);
+    fig = chartFigure({ w: 380, h: 260, xLabel: 'Level (dB(A))', yLabel: 'Hours', yLog: true, yMin: 1 / 60, yMax: 24, legend: 'below', series: [
+      { name: 'Allowed time for 100 %', x: xs.filter((x) => x >= c.Lt), y: xs.filter((x) => x >= c.Lt).map((x) => allowedHours(x, c)), mode: 'line', width: 2 },
+      { name: 'Time spent at each task', x: rows.map((x) => x.L), y: rows.map((x) => x.hours), mode: 'points', marker: 'diamond' },
+    ], marks: Number.isFinite(c.Lt) ? [{ kind: 'vline', at: c.Lt, dash: [3, 3], label: 'threshold' }] : [] }, `Allowed time against level, with the day's tasks: dose ${sig(r.D, 3)} %`);
+    paint(q<HTMLCanvasElement>('.nd-fig'), fig);
+    sections = [{ title: q('.nd-big').textContent!, text: [`Rules: criterion ${sig(c.Lc, 3)} dB(A) for ${sig(c.Tc, 3)} h, ${sig(c.q, 2)} dB exchange rate, ${Number.isFinite(c.Lt) ? `threshold ${sig(c.Lt, 3)} dB(A)` : 'no threshold'}. ${pill.textContent}. Check your local rules.`],
+      facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: tRows.slice(0, 40), align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  q('.nd-pre').addEventListener('change', () => { applyPreset(); calc(); });
+  for (const c of ['.nd-Lc', '.nd-q', '.nd-Lt', '.nd-Tc']) q(c).addEventListener('input', () => { syncPreset(); later(); });
+  for (const c of ['.nd-data', '.nd-unit']) { q(c).addEventListener('input', later); q(c).addEventListener('change', later); }
+  q('.nd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'noise-dose.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nd-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Noise dose', subtitle: q('.nd-big').textContent ?? '', file: 'noise-dose', sections }));
+</script>
+
+<style is:global>
+  .nds select { max-width: 100%; }
+  .nds .nd-tab td.r { white-space: nowrap; }
+</style>

@@ -1,0 +1,203 @@
+---
+// Crude rates, risks and prevalence with intervals; direct age standardisation (Fay-Feuer gamma limits) and
+// indirect standardisation (SMR with exact Poisson limits).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax rsd">
+  <div class="ax-card">
+    <h2>What do you want?</h2>
+    <p class="rsd-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <div class="ax-seg rsd-mode" role="group" aria-label="Calculation">
+      <button type="button" data-m="crude" aria-pressed="true">Crude rate</button><button type="button" data-m="direct" aria-pressed="false">Direct</button><button type="button" data-m="indirect" aria-pressed="false">Indirect (SMR)</button>
+    </div>
+    <p class="ax-help rsd-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Show rates per <select class="rsd-per"><option value="100">100</option><option value="1000">1000</option><option value="10000">10 000</option><option value="100000" selected>100 000</option></select></label>
+      <label>Confidence <select class="rsd-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+
+    <div class="rsd-p" data-m="crude">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Measure <select class="rsd-kind"><option value="rate" selected>Incidence rate (per person-time)</option><option value="risk">Cumulative incidence (risk)</option><option value="prevalence">Prevalence</option></select></label>
+        <label>Cases or events <input class="rsd-x" inputmode="numeric" value="17" /></label>
+        <label class="rsd-dl">Person-years <input class="rsd-n" inputmode="decimal" value="5230.5" /></label>
+        <label class="rsd-pm" hidden>Interval <select class="rsd-pmeth"><option value="wilson" selected>Wilson score</option><option value="exact">Exact (Clopper-Pearson)</option></select></label>
+      </div>
+      <p class="ax-help rsd-khelp"></p>
+    </div>
+
+    <div class="rsd-p" data-m="direct" hidden>
+      <label style="margin-top:10px">One row per age group: name, events, population (or person-years) in your study, and the standard population. A header row is optional.
+        <textarea class="rsd-din" rows="6" spellcheck="false" wrap="off">Age group	Events	Population	Standard population
+0-14	3	20000	20000
+15-44	25	45000	40000
+45-64	60	25000	25000
+65+	140	10000	15000</textarea></label>
+      <DataFile target=".rsd-din" maxCols={4} maxRows={200} />
+      <p class="ax-help"><strong>The standard population above is made up</strong> (rounded numbers for teaching). Replace it with the standard you need, such as your country's or the WHO's: check the official source.</p>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Interval <select class="rsd-dmeth"><option value="gamma" selected>Gamma (Fay and Feuer)</option><option value="normal">Normal approximation</option></select></label>
+      </div>
+    </div>
+
+    <div class="rsd-p" data-m="indirect" hidden>
+      <label style="margin-top:10px">One row per age group: name, population (or person-years) in your study, and the standard rate per the unit chosen above. A header row is optional.
+        <textarea class="rsd-iin" rows="6" spellcheck="false" wrap="off">Age group	Population	Standard rate
+0-14	20000	10
+15-44	45000	50
+45-64	25000	220
+65+	10000	1200</textarea></label>
+      <DataFile target=".rsd-iin" maxCols={3} maxRows={200} />
+      <p class="ax-help"><strong>The standard rates above are made up</strong> for teaching. Use the age-specific rates of your reference population: check the official source.</p>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Observed events in your study <input class="rsd-obs" inputmode="numeric" value="260" /></label>
+        <label>Standard's crude rate (optional) <input class="rsd-scr" inputmode="decimal" placeholder="for the standardised rate" /></label>
+      </div>
+    </div>
+    <p class="ax-err rsd-err" hidden></p>
+  </div>
+
+  <div class="ax-card rsd-out" hidden>
+    <h2 class="rsd-h"></h2>
+    <p class="ax-big rsd-big"></p>
+    <p class="rsd-ci"></p>
+    <dl class="ax-facts rsd-facts" style="margin-top:12px"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="rsd-tab"></table></div>
+    <p class="ax-help rsd-note"></p>
+    <div class="ax-row rsd-csvrow" style="margin-top:12px"><button type="button" class="btn secondary small rsd-csv">Table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rsd .rsd-med { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+  .rsd .rsd-ci { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+  .rsd .rsd-tab td:nth-child(n+2) { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { crude, direct, indirect, type Kind } from '../../lib/sci/ratestd';
+  import { poissonCI } from '../../lib/sci/epistat';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rsd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let mode = 'crude', report: Section[] = [], csvRows: string[][] = [];
+  const WHAT: Record<string, string> = {
+    crude: 'A single rate, risk or prevalence with its confidence interval.',
+    direct: 'Direct standardisation: the rate your study would have if its population had the age mix of a standard population. Use it to compare places or years with different age structures.',
+    indirect: 'Indirect standardisation: how many events you would expect if your population had the standard age-specific rates, and the standardised mortality (or incidence) ratio, observed ÷ expected. Use it when your groups are small.',
+  };
+  const s3 = (x: number) => (Number.isFinite(x) ? sig(x, 4) : '–');
+  const perTxt = (p: number) => p.toLocaleString('en').replace(/,/g, ' ');
+
+  function facts(list: [string, string][]) {
+    const dl = q('.rsd-facts'); dl.innerHTML = '';
+    for (const [k, x] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = x; d.append(dt, dd); dl.append(d); }
+  }
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.rsd-tab'); t.innerHTML = ''; q('.rsd-csvrow').hidden = !rows.length; if (!rows.length) return;
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+  /** Rows of a pasted table with a name and `k` numbers each; a non-numeric first row is a header. */
+  function rowsOf(text: string, k: number, what: string) {
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error(`Paste one row per age group: ${what}.`);
+    const body = rows.length > 1 && Number.isNaN(num(rows[0][1] ?? '')) ? rows.slice(1) : rows;
+    if (!body.length) throw new Error(`Paste one row per age group: ${what}.`);
+    return body.map((r, i) => {
+      const v = r.slice(1, 1 + k).map(num);
+      if (v.length < k || v.some((x) => !Number.isFinite(x) || x < 0)) throw new Error(`Row ${i + 1} ("${r[0]}") needs ${k} numbers of zero or more: ${what}.`);
+      return { name: r[0], v };
+    });
+  }
+
+  function runCrude(per: number, conf: number, cl: string): Section[] {
+    const kind = sel('.rsd-kind') as Kind, x = num(q<HTMLInputElement>('.rsd-x').value), n = num(q<HTMLInputElement>('.rsd-n').value);
+    if (!(Number.isInteger(x) && x >= 0)) throw new Error('Cases must be a whole number of zero or more.');
+    if (!(n > 0)) throw new Error(kind === 'rate' ? 'Person-time must be more than zero.' : 'The number of people must be more than zero.');
+    if (kind !== 'rate' && (x > n || !Number.isInteger(n))) throw new Error('For a risk or prevalence the number of people must be a whole number, at least the number of cases.');
+    const r = crude(x, n, kind, per, conf, sel('.rsd-pmeth') as 'wilson' | 'exact');
+    const unit = kind === 'rate' ? `per ${perTxt(per)} person-years` : `per ${perTxt(per)} people`;
+    const name = kind === 'rate' ? 'Incidence rate' : kind === 'risk' ? 'Cumulative incidence (risk)' : 'Prevalence';
+    q('.rsd-h').textContent = name;
+    q('.rsd-big').textContent = `${s3(r.est)} ${unit}`;
+    q('.rsd-ci').textContent = `${cl} interval: ${s3(r.ci[0])} to ${s3(r.ci[1])}`;
+    const fl: [string, string][] = [['Cases', String(x)], [kind === 'rate' ? 'Person-time' : 'People', s3(n)], ['Interval', kind === 'rate' ? 'Exact Poisson (Garwood)' : sel('.rsd-pmeth') === 'exact' ? 'Exact (Clopper-Pearson)' : 'Wilson score']];
+    facts(fl); table([], []); csvRows = [['Measure', 'Estimate', 'Lower', 'Upper', 'Unit'], [name, String(r.est), String(r.ci[0]), String(r.ci[1]), unit]];
+    q('.rsd-note').textContent = kind === 'rate' ? 'Person-time is the total time each person was followed and at risk, for example 1 person for 2 years plus 3 people for 1 year each is 5 person-years. Use the same time unit you report.' : kind === 'risk' ? 'Cumulative incidence is new cases over a stated period divided by the people at risk at the start. Always give the period, for example "over 5 years".' : 'Prevalence is everyone who has the condition at one time (point prevalence) or during a period, divided by the population then.';
+    q('.rsd-csvrow').hidden = false;
+    return [{ title: `${name}: ${q('.rsd-big').textContent}`, text: [q('.rsd-ci').textContent!], facts: fl, note: q('.rsd-note').textContent! }];
+  }
+
+  function runDirect(per: number, conf: number, cl: string): Section[] {
+    const R = rowsOf(q<HTMLTextAreaElement>('.rsd-din').value, 3, 'name, events, population, standard population');
+    if (R.some((r) => r.v[1] <= 0)) throw new Error('Every age group needs a study population above zero.');
+    if (R.reduce((s, r) => s + r.v[2], 0) <= 0) throw new Error('The standard population adds up to zero.');
+    const d = direct(R.map((r) => ({ name: r.name, events: r.v[0], pop: r.v[1], std: r.v[2] })), per, conf, sel('.rsd-dmeth') as 'gamma' | 'normal');
+    q('.rsd-h').textContent = 'Directly standardised rate';
+    q('.rsd-big').textContent = `${s3(d.dsr)} per ${perTxt(per)}`;
+    q('.rsd-ci').textContent = `${cl} interval: ${s3(d.ci[0])} to ${s3(d.ci[1])} (${sel('.rsd-dmeth') === 'gamma' ? 'gamma, Fay and Feuer' : 'normal approximation'})`;
+    const fl: [string, string][] = [['Crude rate', `${s3(d.crude)} per ${perTxt(per)}`], ['Events', String(d.events)], ['Population', s3(d.pop)], ['Standard error', s3(d.se)]];
+    facts(fl);
+    const head = ['Age group', 'Events', 'Population', `Rate per ${perTxt(per)}`, `${cl} interval`, 'Standard weight', 'Expected in standard'];
+    const rows = d.groups.map((g) => { const c = poissonCI(g.events, conf); return [g.name, String(g.events), s3(g.pop), s3(g.rate), `${s3((c[0] / g.pop) * per)} to ${s3((c[1] / g.pop) * per)}`, `${(g.weight * 100).toFixed(1)} %`, s3(g.expected)]; });
+    table(head, rows); csvRows = [head, ...rows, [], ['Directly standardised rate', String(d.dsr), String(d.ci[0]), String(d.ci[1])], ['Crude rate', String(d.crude)]];
+    const few = d.groups.some((g) => g.events < 10);
+    q('.rsd-note').textContent = `The standardised rate is the sum of each age group's rate times its share of the standard population. Compare standardised rates only when they use the same standard. ${few ? 'Some age groups have fewer than 10 events, so their rates are unstable; the gamma interval stays reliable with small counts.' : ''}`.trim();
+    return [{ title: `Directly standardised rate: ${q('.rsd-big').textContent}`, text: [q('.rsd-ci').textContent!], facts: fl, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: q('.rsd-note').textContent! }];
+  }
+
+  function runIndirect(per: number, conf: number, cl: string): Section[] {
+    const R = rowsOf(q<HTMLTextAreaElement>('.rsd-iin').value, 2, 'name, population, standard rate');
+    const O = num(q<HTMLInputElement>('.rsd-obs').value);
+    if (!(Number.isInteger(O) && O >= 0)) throw new Error('Observed events must be a whole number of zero or more.');
+    const r = indirect(R.map((x) => ({ name: x.name, pop: x.v[0], rate: x.v[1] })), O, per, conf);
+    if (!(r.expected > 0)) throw new Error('The expected number is zero: check the populations and standard rates.');
+    q('.rsd-h').textContent = 'Standardised mortality (or incidence) ratio';
+    q('.rsd-big').textContent = `SMR ${r.smr.toFixed(3)} (${(r.smr * 100).toFixed(0)})`;
+    q('.rsd-ci').textContent = `${cl} interval: ${r.ci[0].toFixed(3)} to ${r.ci[1].toFixed(3)} (exact Poisson)`;
+    const scr = num(q<HTMLInputElement>('.rsd-scr').value);
+    const fl: [string, string][] = [['Observed', String(O)], ['Expected', s3(r.expected)], ['Excess (observed − expected)', s3(r.excess)], ['Exact test of SMR = 1', `p ${r.p < 0.001 ? '< 0.001' : '= ' + r.p.toFixed(3)}`]];
+    if (scr > 0) fl.push(['Indirectly standardised rate', `${s3(r.smr * scr)} per ${perTxt(per)} (${s3(r.ci[0] * scr)} to ${s3(r.ci[1] * scr)})`]);
+    facts(fl);
+    const head = ['Age group', 'Population', `Standard rate per ${perTxt(per)}`, 'Expected events'];
+    const rows = r.groups.map((g) => [g.name, s3(g.pop), s3(g.rate), s3(g.expected)]);
+    rows.push(['Total', s3(r.groups.reduce((s, g) => s + g.pop, 0)), '', s3(r.expected)]);
+    table(head, rows); csvRows = [head, ...rows, [], ['SMR', String(r.smr), String(r.ci[0]), String(r.ci[1])], ['Observed', String(O)], ['Expected', String(r.expected)], ['p', String(r.p)]];
+    q('.rsd-note').textContent = 'An SMR above 1 (or above 100 when written as a percentage) means more events than expected from the standard rates. SMRs of different study populations each use their own age mix, so compare each with the standard, not with each other.';
+    return [{ title: q('.rsd-big').textContent!, text: [q('.rsd-ci').textContent!], facts: fl, table: { head, rows, align: ['l', 'r', 'r', 'r'] }, note: q('.rsd-note').textContent! }];
+  }
+
+  function calc() {
+    const err = q('.rsd-err'), per = Number(sel('.rsd-per')), conf = Number(sel('.rsd-conf')), cl = `${Math.round(conf * 100)} %`;
+    const kind = sel('.rsd-kind');
+    q('.rsd-dl').firstChild!.textContent = kind === 'rate' ? 'Person-years ' : kind === 'risk' ? 'People at risk at the start ' : 'People in the population ';
+    q('.rsd-pm').hidden = kind === 'rate';
+    q('.rsd-khelp').textContent = kind === 'rate' ? 'New cases divided by the total person-time at risk. The interval treats the count as Poisson.' : kind === 'risk' ? 'New cases during a period divided by the people at risk at its start.' : 'Everyone with the condition divided by the whole population at that time.';
+    try {
+      const secs = mode === 'crude' ? runCrude(per, conf, cl) : mode === 'direct' ? runDirect(per, conf, cl) : runIndirect(per, conf, cl);
+      report = [...secs, { title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.'] }];
+      err.hidden = true; q('.rsd-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.rsd-out').hidden = true; report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.rsd-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.rsd-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.rsd-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rsd-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.rsd-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(csvRows)), `rates-${mode}.csv`, 'text/csv'));
+  setMode('crude');
+  wireDownloads(q('.dl'), () => ({ title: 'Rates and standardisation', file: 'rate-standardisation', sections: report }));
+</script>

@@ -1,0 +1,266 @@
+---
+// Dental chart: FDI, Universal and Palmer numbering converter, and a clickable odontogram for findings per tooth and
+// surface, with a CSV, image, PDF and Word file. Nothing is stored: the chart lives only in this page until saved.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dc">
+  <p class="dc-warn">For study and teaching, not medical advice. Check with a qualified professional. Nothing is stored: the chart is lost when you close the page unless you download it.</p>
+
+  <div class="ax-card">
+    <h2>Chart</h2>
+    <div class="ax-grid">
+      <label>Teeth <select class="dc-dent"><option value="perm">Permanent (32)</option><option value="prim">Primary (20)</option></select></label>
+      <label>Label teeth with <select class="dc-sys"><option value="fdi">FDI (11–48)</option><option value="universal">Universal (1–32)</option><option value="palmer">Palmer (UR6)</option></select></label>
+    </div>
+    <p class="ax-help" style="margin-top:10px">Pick a mark, then tap a surface (caries, filled) or anywhere on a tooth (the others). Tap again to remove it.</p>
+    <div class="ax-seg dc-pens" role="group" aria-label="Mark" style="margin-top:8px">
+      <button type="button" data-pen="caries" aria-pressed="true">Caries</button>
+      <button type="button" data-pen="filled" aria-pressed="false">Filled</button>
+      <button type="button" data-pen="crown" aria-pressed="false">Crown</button>
+      <button type="button" data-pen="missing" aria-pressed="false">Missing</button>
+      <button type="button" data-pen="implant" aria-pressed="false">Implant</button>
+      <button type="button" data-pen="note" aria-pressed="false">Note</button>
+      <button type="button" data-pen="clear" aria-pressed="false">Clear tooth</button>
+    </div>
+    <div class="dc-wrap"></div>
+    <div class="ax-legend dc-legend">
+      <span><i class="dc-k-car"></i>Caries</span><span><i class="dc-k-fil"></i>Filled</span><span><i class="dc-k-crn"></i>Crown (thick outline)</span><span>✕ Missing</span><span>┃ Implant (dashed, post)</span><span>• Note</span>
+    </div>
+    <p class="ax-help">Patient's right is on the left, as when facing the patient. Upper teeth show the buccal (labial) side at the top, lower teeth at the bottom; mesial faces the midline.</p>
+    <div class="dc-sel" hidden>
+      <p class="dc-sel-t"></p>
+      <label>Note for this tooth <input class="dc-note" maxlength="200" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Findings</h2>
+    <p class="ax-help dc-ex" style="margin:0 0 8px">The chart opened with made-up example findings. Clear the chart to start your own.</p>
+    <dl class="ax-facts dc-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="dc-tab"></table></div>
+    <p class="ax-help dc-none" hidden>No findings yet.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small dc-csv">Download CSV</button>
+      <button type="button" class="btn secondary small dc-open">Open a saved CSV</button>
+      <input type="file" class="dc-file" accept=".csv,text/csv,text/plain" hidden />
+      <button type="button" class="btn secondary small dc-clear">Clear chart</button>
+    </div>
+    <p class="ax-err dc-err" hidden></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert tooth numbers</h2>
+    <div class="ax-grid">
+      <label>Numbers are in <select class="dc-from"><option value="fdi">FDI</option><option value="universal" selected>Universal</option><option value="palmer">Palmer</option></select></label>
+    </div>
+    <label style="margin-top:10px">Tooth numbers, separated by commas, spaces or new lines
+      <textarea class="dc-in" rows="2" spellcheck="false">3, 8, 19, 30, A, K</textarea></label>
+    <p class="ax-err dc-cerr" hidden></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="dc-conv"></table></div>
+    <details style="margin-top:12px"><summary>All teeth in the three systems</summary>
+      <div class="ax-scroll" style="margin-top:8px"><table class="dc-all"></table></div>
+    </details>
+  </div>
+</div>
+
+<style is:global>
+  .dc-warn { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; background: var(--surface); }
+  .dc-wrap { margin-top: 12px; }
+  .dc-wrap svg { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .dc-wrap polygon { cursor: pointer; }
+  .dc-legend i { border: 1px solid var(--line); }
+  .dc-k-car { background: var(--bad); }
+  .dc-k-fil { background: var(--accent); }
+  .dc-k-crn { background: transparent; border: 3px solid var(--warn) !important; }
+  .dc-sel { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .dc-sel-t { margin: 0 0 8px; font-weight: 600; }
+  .dc .dc-pens button { padding: 7px 10px; }
+</style>
+
+<script>
+  import { allTeeth, universal, palmer, toothName, parseTooth, isPrimary, upper, patientRight, markSurface, markTooth, rec, findings, toCsv, fromCsv, dmft, surfaceName, type Chart, type Surf, type System, type SurfCond, type ToothCond } from '../../lib/sci/dental';
+  import { save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  let chart: Chart = new Map(), pen = 'caries', sel: number | null = null, isExample = true;
+  const prim = () => q<HTMLSelectElement>('.dc-dent').value === 'prim';
+  const sys = () => q<HTMLSelectElement>('.dc-sys').value as System;
+  const label = (f: number, s = sys()) => (s === 'fdi' ? String(f) : s === 'universal' ? universal(f) : palmer(f).symbol);
+
+  function example() {
+    chart = new Map();
+    markSurface(chart, 16, 'O', 'caries'); markSurface(chart, 16, 'M', 'caries');
+    markSurface(chart, 24, 'M', 'filled'); markSurface(chart, 24, 'O', 'filled'); markSurface(chart, 24, 'D', 'filled');
+    markSurface(chart, 26, 'O', 'filled'); markTooth(chart, 11, 'crown'); markTooth(chart, 36, 'missing'); markTooth(chart, 46, 'implant');
+    rec(chart, 21).note = 'Sensitive to cold';
+  }
+
+  // Geometry shared by the SVG on the page and the picture in downloads.
+  const S = 34, G = 5, IN = S * 0.3;
+  type Pos = { f: number; x: number; y: number; up: boolean };
+  function layout(narrow: boolean, primary: boolean) {
+    const teeth = allTeeth(primary), n = primary ? 5 : 8, pos: Pos[] = [];
+    if (!narrow) {
+      const mid = 14, W = 16 + 2 * n * (S + G) + mid + 16;
+      teeth.forEach((f, i) => { const row = Math.floor(i / (2 * n)), k = i % (2 * n); pos.push({ f, x: 16 + k * (S + G) + (k >= n ? mid : 0), y: row === 0 ? 30 : 30 + S + 62, up: row === 0 }); });
+      return { pos, W, H: 30 + 2 * S + 62 + 34, mids: [{ x: 16 + n * (S + G) + mid / 2 - G / 2, y0: 6, y1: 30 + 2 * S + 62 + 28 }], titles: [] as { x: number; y: number; t: string }[] };
+    }
+    const W = 16 + n * (S + G) + 8, rows: number[][] = [teeth.slice(0, n), teeth.slice(n, 2 * n), teeth.slice(2 * n, 3 * n), teeth.slice(3 * n)];
+    const titles = ['Upper right', 'Upper left', 'Lower right', 'Lower left'], RH = S + 72, t: { x: number; y: number; t: string }[] = [];
+    rows.forEach((r, j) => { const y0 = 6 + j * RH; t.push({ x: 16, y: y0 + 12, t: titles[j] }); r.forEach((f, k) => pos.push({ f, x: 16 + k * (S + G), y: y0 + (j < 2 ? 50 : 22), up: j < 2 })); });
+    return { pos, W, H: 6 + 4 * RH, mids: [], titles: t };
+  }
+  type Pt = [number, number];
+  function polys(p: Pos): { s: Surf; pts: Pt[] }[] {
+    const { x, y } = p, r = patientRight(p.f);
+    const top: Pt[] = [[x, y], [x + S, y], [x + S - IN, y + IN], [x + IN, y + IN]];
+    const bot: Pt[] = [[x + IN, y + S - IN], [x + S - IN, y + S - IN], [x + S, y + S], [x, y + S]];
+    const left: Pt[] = [[x, y], [x + IN, y + IN], [x + IN, y + S - IN], [x, y + S]];
+    const right: Pt[] = [[x + S, y], [x + S, y + S], [x + S - IN, y + S - IN], [x + S - IN, y + IN]];
+    const mid: Pt[] = [[x + IN, y + IN], [x + S - IN, y + IN], [x + S - IN, y + S - IN], [x + IN, y + S - IN]];
+    return [{ s: upper(p.f) ? 'B' : 'L', pts: top }, { s: upper(p.f) ? 'L' : 'B', pts: bot }, { s: r ? 'D' : 'M', pts: left }, { s: r ? 'M' : 'D', pts: right }, { s: 'O', pts: mid }];
+  }
+  type Draw = { poly(pts: Pt[], fill: string, stroke: string, w: number, data?: { f: number; s?: Surf }, dash?: boolean): void; line(a: Pt, b: Pt, c: string, w: number, dash?: boolean): void; text(x: number, y: number, t: string, c: string, size: number, bold?: boolean, anchor?: 'middle' | 'start'): void; dot(x: number, y: number, r: number, c: string): void };
+  type Col = { bg: string; ink: string; muted: string; line: string; car: string; fil: string; crn: string; sel: string };
+  function drawChart(d: Draw, L: ReturnType<typeof layout>, c: Col, showSel: boolean) {
+    for (const m of L.mids) d.line([m.x, m.y0], [m.x, m.y1], c.muted, 1, true);
+    if (!L.titles.length) { d.line([10, L.H / 2], [L.W - 10, L.H / 2], c.line, 1, true); d.text(14, L.H / 2 - 6, 'Patient right', c.muted, 11, false, 'start'); d.text(L.W - 70, L.H / 2 - 6, 'Patient left', c.muted, 11, false, 'start'); }
+    for (const t of L.titles) d.text(t.x, t.y, t.t, c.muted, 12, true, 'start');
+    for (const p of L.pos) {
+      const r = chart.get(p.f), gone = r?.tooth === 'missing' || r?.tooth === 'implant';
+      for (const { s, pts } of polys(p)) { const cond = r?.surfaces[s]; d.poly(pts, cond === 'caries' ? c.car : cond === 'filled' ? c.fil : c.bg, gone ? c.line : c.muted, 1, { f: p.f, s }, r?.tooth === 'implant'); }
+      if (r?.tooth === 'crown') d.poly([[p.x - 2, p.y - 2], [p.x + S + 2, p.y - 2], [p.x + S + 2, p.y + S + 2], [p.x - 2, p.y + S + 2]], 'none', c.crn, 3.5);
+      if (r?.tooth === 'missing') { d.line([p.x - 2, p.y - 2], [p.x + S + 2, p.y + S + 2], c.ink, 2.5); d.line([p.x + S + 2, p.y - 2], [p.x - 2, p.y + S + 2], c.ink, 2.5); }
+      if (r?.tooth === 'implant') { const cx = p.x + S / 2, y0 = p.up ? p.y - 2 : p.y + S + 2, y1 = p.up ? p.y - 13 : p.y + S + 13; d.line([cx, y0], [cx, y1], c.ink, 3); for (let k = 1; k <= 2; k++) { const yy = y0 + (y1 - y0) * (k / 3); d.line([cx - 4, yy], [cx + 4, yy], c.ink, 1.5); } }
+      if (showSel && sel === p.f) d.poly([[p.x - 5, p.y - 5], [p.x + S + 5, p.y - 5], [p.x + S + 5, p.y + S + 5], [p.x - 5, p.y + S + 5]], 'none', c.sel, 1.5, undefined, true);
+      const ly = p.up ? p.y - (r?.tooth === 'implant' ? 17 : 9) : p.y + S + (r?.tooth === 'implant' ? 27 : 19);
+      d.text(p.x + S / 2 - (r?.note.trim() ? 3 : 0), ly, label(p.f), c.ink, 12.5, showSel && sel === p.f);
+      if (r?.note.trim()) d.dot(p.x + S / 2 + 12, ly - 4, 2.5, c.ink);
+    }
+  }
+  const cssCol = (): Col => ({ bg: 'var(--bg)', ink: 'var(--ink)', muted: 'var(--muted)', line: 'var(--line)', car: 'var(--bad)', fil: 'var(--accent)', crn: 'var(--warn)', sel: 'var(--accent)' });
+  const palCol = (p: Palette): Col => ({ bg: p.bg, ink: p.ink, muted: p.muted, line: p.line, car: p.bad, fil: p.accent, crn: p.warn, sel: p.accent });
+
+  function renderSvg() {
+    const wrap = q('.dc-wrap'), narrow = wrap.clientWidth < 560, L = layout(narrow, prim());
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${L.W} ${L.H}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', `Dental chart, ${prim() ? 'primary' : 'permanent'} teeth`);
+    if (!narrow) svg.style.maxWidth = `${Math.round(L.W * 1.35)}px`;
+    const el = (n: string, a: Record<string, string | number>) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, String(a[k])); svg.append(e); return e; };
+    drawChart({
+      poly: (pts, fill, stroke, w, data, dash) => { const e = el('polygon', { points: pts.map((p) => p.join(',')).join(' '), fill: fill === 'none' ? 'none' : fill, stroke, 'stroke-width': w, ...(dash ? { 'stroke-dasharray': '3 2' } : {}) }); e.setAttribute('style', `fill:${fill};stroke:${stroke}`); if (data) { e.setAttribute('data-f', String(data.f)); if (data.s) { e.setAttribute('data-s', data.s); const t = document.createElementNS(NS, 'title'); t.textContent = `${label(data.f)} ${surfaceName(data.f, data.s)}`; e.append(t); } } else e.setAttribute('pointer-events', 'none'); },
+      line: (a, b, c, w, dash) => { const e = el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], 'stroke-width': w, 'pointer-events': 'none', ...(dash ? { 'stroke-dasharray': '4 4' } : {}) }); e.setAttribute('style', `stroke:${c}`); },
+      text: (x, y, t, c, size, bold, anchor = 'middle') => { if (!t) return; const e = el('text', { x, y, 'font-size': size, 'text-anchor': anchor, 'font-weight': bold ? 700 : 400, 'pointer-events': 'none' }); e.setAttribute('style', `fill:${c}`); e.textContent = t; },
+      dot: (x, y, r, c) => { const e = el('circle', { cx: x, cy: y, r, 'pointer-events': 'none' }); e.setAttribute('style', `fill:${c}`); },
+    }, L, cssCol(), true);
+    svg.setAttribute('font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
+    wrap.replaceChildren(svg);
+  }
+
+  function figure(): Figure {
+    const L = layout(false, prim());
+    return {
+      w: Math.round(L.W * 1.4), h: Math.round(L.H * 1.4), alt: 'Dental chart',
+      draw: (ctx, _w, _h, pal) => {
+        ctx.save(); ctx.scale(1.4, 1.4);
+        drawChart({
+          poly: (pts, fill, stroke, w, _d, dash) => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); if (fill !== 'none') { ctx.fillStyle = fill; ctx.fill(); } ctx.setLineDash(dash ? [3, 2] : []); ctx.strokeStyle = stroke; ctx.lineWidth = w; ctx.stroke(); ctx.setLineDash([]); },
+          line: (a, b, c, w, dash) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.setLineDash(dash ? [4, 4] : []); ctx.strokeStyle = c; ctx.lineWidth = w; ctx.stroke(); ctx.setLineDash([]); },
+          text: (x, y, t, c, size, bold, anchor = 'middle') => { if (!t) return; ctx.font = `${bold ? 700 : 400} ${size}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`; ctx.fillStyle = c; ctx.textAlign = anchor === 'middle' ? 'center' : 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t, x, y); },
+          dot: (x, y, r, c) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); },
+        }, L, palCol(pal), false);
+        ctx.restore();
+      },
+    };
+  }
+
+  function renderSel() {
+    const box = q('.dc-sel');
+    if (sel === null) { box.hidden = true; return; }
+    box.hidden = false;
+    q('.dc-sel-t').textContent = `FDI ${sel} · Universal ${universal(sel)} · Palmer ${palmer(sel).symbol} (${palmer(sel).text}) · ${toothName(sel)}`;
+    const n = q<HTMLInputElement>('.dc-note'); if (document.activeElement !== n) n.value = chart.get(sel)?.note ?? '';
+  }
+
+  let report: Section[] = [];
+  function renderFindings() {
+    const fs = findings(chart), s = sys();
+    const head = [s === 'fdi' ? 'Tooth (FDI)' : s === 'universal' ? 'Tooth (Universal)' : 'Tooth (Palmer)', 'FDI', 'Tooth', 'Finding', 'Surfaces', 'Note'];
+    const rows = fs.map((x) => [s === 'palmer' ? palmer(x.fdi).text : label(x.fdi), String(x.fdi), toothName(x.fdi), x.condition, x.surfaces, x.note]);
+    const tb = q<HTMLTableElement>('.dc-tab'); tb.innerHTML = '';
+    q('.dc-none').hidden = rows.length > 0;
+    if (rows.length) {
+      const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const b = tb.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((t) => { tr.insertCell().textContent = t; }); });
+    }
+    const p = prim(), d = dmft(chart, p), nm = p ? 'dmft' : 'DMFT';
+    const facts: [string, string, string?][] = [[nm, String(d.total), `${p ? 'primary' : 'permanent'} teeth: decayed + missing + filled`], [p ? 'd (decayed)' : 'D (decayed)', String(d.d)], [p ? 'm (missing)' : 'M (missing)', String(d.m), 'assumed lost to caries; implants count'], [p ? 'f (filled)' : 'F (filled)', String(d.f), 'filled or crowned, no caries'], ['Findings', String(rows.length)]];
+    q('.dc-facts').replaceChildren(...facts.map(([k, v, sm]) => { const e = document.createElement('div'); e.innerHTML = '<dt></dt><dd></dd>'; e.querySelector('dt')!.textContent = k; e.querySelector('dd')!.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; e.querySelector('dd')!.append(x); } return e; }));
+    q('.dc-ex').hidden = !isExample;
+    report = [
+      { title: `${p ? 'Primary' : 'Permanent'} teeth`, text: [`Labels: ${s === 'fdi' ? 'FDI' : s === 'universal' ? 'Universal' : 'Palmer'}. Patient's right on the left. Red: caries; blue: filled; thick outline: crown; ✕: missing; post: implant.`], figure: figure(), facts: facts.map(([k, v, sm]) => [k, sm ? `${v} (${sm})` : v] as [string, string]) },
+      ...(rows.length ? [{ title: 'Findings', table: { head, rows } }] : []),
+    ];
+  }
+  function render() { renderSvg(); renderSel(); renderFindings(); }
+  function changed() { isExample = false; render(); }
+
+  q('.dc-pens').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pen]'); if (!b) return;
+    pen = b.dataset.pen!; q('.dc-pens').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  q('.dc-wrap').addEventListener('click', (e) => {
+    const t = (e.target as Element).closest('[data-f]'); if (!t) return;
+    const f = Number(t.getAttribute('data-f')), s = t.getAttribute('data-s') as Surf | null;
+    sel = f;
+    if (pen === 'caries' || pen === 'filled') { if (s) markSurface(chart, f, s, pen as SurfCond); }
+    else if (pen === 'crown' || pen === 'missing' || pen === 'implant') markTooth(chart, f, pen as ToothCond);
+    else if (pen === 'clear') chart.delete(f);
+    if (pen === 'note') { render(); q<HTMLInputElement>('.dc-note').focus(); return; }
+    changed();
+  });
+  q('.dc-note').addEventListener('input', () => { if (sel === null) return; rec(chart, sel).note = q<HTMLInputElement>('.dc-note').value; isExample = false; renderSvg(); renderFindings(); });
+  q('.dc-dent').addEventListener('change', () => { sel = null; render(); });
+  q('.dc-sys').addEventListener('change', render);
+  q('.dc-csv').addEventListener('click', () => save(new Blob([toCsv(chart)], { type: 'text/csv' }), 'dental-chart.csv', 'text/csv'));
+  let clearArmed = 0;
+  q('.dc-clear').addEventListener('click', () => {
+    const b = q<HTMLButtonElement>('.dc-clear');
+    if (!clearArmed && findings(chart).length && !isExample) { b.textContent = 'Press again to clear'; clearArmed = window.setTimeout(() => { clearArmed = 0; b.textContent = 'Clear chart'; }, 3000); return; }
+    clearTimeout(clearArmed); clearArmed = 0; b.textContent = 'Clear chart'; chart = new Map(); sel = null; changed();
+  });
+  q('.dc-open').addEventListener('click', () => q<HTMLInputElement>('.dc-file').click());
+  q('.dc-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.dc-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    const err = q('.dc-err'); err.hidden = true;
+    try {
+      if (f.size > 1e6) throw new Error('That file is over 1 MB; a dental chart CSV is much smaller.');
+      chart = fromCsv(await f.text()); sel = null;
+      if ([...chart.keys()].some(isPrimary) && ![...chart.keys()].some((k) => !isPrimary(k))) q<HTMLSelectElement>('.dc-dent').value = 'prim';
+      changed();
+    } catch (e2) { err.textContent = (e2 as Error).message; err.hidden = false; }
+  });
+
+  // Converter.
+  function convert() {
+    const from = q<HTMLSelectElement>('.dc-from').value as System, err = q('.dc-cerr'), tb = q<HTMLTableElement>('.dc-conv');
+    const parts = q<HTMLTextAreaElement>('.dc-in').value.split(from === 'palmer' ? /[,;\n]+/ : /[\s,;]+/).map((x) => x.trim()).filter(Boolean).slice(0, 200);
+    const bad: string[] = [], rows: string[][] = [];
+    for (const p of parts) { try { const f = parseTooth(p, from); rows.push([p, String(f), universal(f), `${palmer(f).symbol}  ${palmer(f).text}`, toothName(f)]); } catch (e) { bad.push((e as Error).message); } }
+    err.textContent = bad.length ? `${bad.slice(0, 3).join('. ')}.` : ''; err.hidden = !bad.length;
+    tb.innerHTML = '';
+    if (rows.length) { const hr = tb.createTHead().insertRow(); ['Typed', 'FDI', 'Universal', 'Palmer', 'Tooth'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); }); const b = tb.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((t) => { tr.insertCell().textContent = t; }); }); }
+  }
+  q('.dc-in').addEventListener('input', convert); q('.dc-from').addEventListener('change', convert);
+  { const tb = q<HTMLTableElement>('.dc-all'), hr = tb.createTHead().insertRow(); ['FDI', 'Universal', 'Palmer', 'Tooth'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = tb.createTBody(); for (const f of [...allTeeth(false), ...allTeeth(true)]) { const tr = b.insertRow(); [String(f), universal(f), `${palmer(f).symbol}  ${palmer(f).text}`, toothName(f)].forEach((t) => { tr.insertCell().textContent = t; }); } }
+
+  let w0 = 0;
+  new ResizeObserver(() => { const w = q('.dc-wrap').clientWidth; if ((w < 560) !== (w0 < 560) || !w0) { w0 = w; renderSvg(); } }).observe(q('.dc-wrap'));
+  example(); render(); convert();
+  wireDownloads(q('.dl'), () => ({ title: 'Dental chart', subtitle: 'For study and teaching, not medical advice.', file: 'dental-chart', sections: report }));
+</script>

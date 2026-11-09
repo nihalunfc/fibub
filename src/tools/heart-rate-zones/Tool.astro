@@ -1,0 +1,184 @@
+---
+// Heart rate zones (% HRmax or Karvonen) from four HRmax equations, and cycling power zones from FTP.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hrz">
+  <p class="hrz-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Maximum heart rate</h2>
+    <div class="ax-grid">
+      <label>Age (years) <input class="hrz-age" inputmode="decimal" value="40" /></label>
+      <label>Maximum heart rate from <select class="hrz-eq">
+        <option value="tanaka" selected>Tanaka: 208 − 0.7 × age</option>
+        <option value="gellish">Gellish: 207 − 0.7 × age</option>
+        <option value="nes">Nes: 211 − 0.64 × age</option>
+        <option value="fox">220 − age</option>
+        <option value="measured">My measured maximum</option>
+      </select></label>
+      <label class="hrz-mw" hidden>Measured maximum (beats/min) <input class="hrz-meas" inputmode="decimal" value="185" /></label>
+      <label>Resting heart rate (beats/min) <input class="hrz-rest" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-help">Resting heart rate is used only for the heart rate reserve (Karvonen) method: count your pulse for a full minute just after waking, on a few mornings.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Heart rate zones</h2>
+    <div class="ax-seg hrz-meth" role="group" aria-label="Zone method">
+      <button type="button" data-m="max" aria-pressed="true">% of max HR</button><button type="button" data-m="hrr" aria-pressed="false">% of reserve (Karvonen)</button>
+    </div>
+    <p class="ax-help hrz-mhelp"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Zone boundaries (%) <input class="hrz-b" value="50, 60, 70, 80, 90, 100" /></label>
+    </div>
+    <p class="ax-help">Each pair of numbers makes one zone. Change them to match your coach's or club's scheme.</p>
+    <p class="ax-err hrz-err" hidden></p>
+    <div class="hrz-out">
+      <p class="ax-big hrz-big"></p>
+      <dl class="ax-facts hrz-facts"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="hrz-tab"></table></div>
+      <canvas class="ax-fig hrz-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Cycling power zones</h2>
+    <div class="ax-grid">
+      <label>Functional threshold power, FTP (W) <input class="hrz-ftp" inputmode="decimal" value="250" /></label>
+      <label>Upper edges of the zones (% FTP) <input class="hrz-pb" value="55, 75, 90, 105, 120, 150" /></label>
+    </div>
+    <p class="ax-help">These bands are common coaching conventions, not a fixed standard. The first zone starts at 0 W and the last has no upper limit. FTP is roughly the power you can hold for about an hour, often estimated as 95 % of a 20-minute all-out effort.</p>
+    <p class="ax-err hrz-perr" hidden></p>
+    <div class="hrz-pout">
+      <div class="ax-scroll"><table class="hrz-ptab"></table></div>
+      <canvas class="ax-fig hrz-pfig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row"><button type="button" class="btn secondary small hrz-csv">Download zones (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hrz .hrz-med { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .hrz .hrz-tab td:first-child, .hrz .hrz-ptab td:first-child { white-space: nowrap; font-weight: 600; }
+  .hrz .hrz-tab td.r, .hrz .hrz-ptab td.r { white-space: nowrap; }
+  .hrz .hrz-tab td, .hrz .hrz-ptab td, .hrz .hrz-tab th, .hrz .hrz-ptab th { padding: 7px 5px; }
+</style>
+
+<script>
+  import { num, csv } from '../../lib/sci/num';
+  import { maxHR, MAX_EQS, hrZones, powerZones, parseBounds, type Zone, type MaxEq } from '../../lib/sci/hrzones';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hrz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let method = 'max', figs: (Figure | null)[] = [null, null], hrSec: Section | null = null, pwSec: Section | null = null;
+  let rows: (string | number)[][] = [];
+  const HR5 = ['Very light', 'Light', 'Moderate', 'Hard', 'Maximum'];
+  const PW7 = ['Active recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2max', 'Anaerobic', 'Neuromuscular'];
+  const r0 = (x: number) => (Number.isFinite(x) ? String(Math.round(x)) : '');
+
+  /** Horizontal bars, one per zone, from lo to hi on a shared axis. */
+  function barFigure(zones: Zone[], names: string[], unit: string, alt: string, axisMax: number): Figure {
+    const H = 44 + zones.length * 34;
+    return {
+      w: 440, h: H, alt,
+      draw: (ctx, w, h, pal) => {
+        const L = 64, R = w - 16, T = 12, B = h - 32;
+        const xs = (v: number) => L + (Math.min(v, axisMax) / axisMax) * (R - L);
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        const step = [5, 10, 20, 25, 50, 100, 200].find((s) => axisMax / s <= 6) ?? 500;
+        ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        for (let v = 0; v <= axisMax + 1e-9; v += step) { const x = xs(v); ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, B); ctx.stroke(); ctx.fillText(String(v), x, B + 12); }
+        ctx.fillText(unit, (L + R) / 2, B + 26);
+        const shades = pal.red ? ['#3a0000', '#5a0000', '#7a0000', '#a30000', '#c00000'] : pal.bg === '#ffffff' ? ['#9ecae1', '#6baed6', '#3182bd', '#e6550d', '#a63603'] : ['#2b5f80', '#3d7fae', '#56B4E9', '#E69F00', '#ff8a5c'];
+        zones.forEach((z, i) => {
+          const y = T + 6 + i * 34, x0 = xs(z.lo), x1 = xs(Number.isFinite(z.hi) ? z.hi : axisMax);
+          ctx.fillStyle = shades[Math.min(shades.length - 1, Math.floor((i * shades.length) / zones.length))];
+          ctx.fillRect(x0, y, Math.max(1, x1 - x0), 24);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right';
+          ctx.fillText(`Zone ${z.n}`, L - 8, y + 12);
+          ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+          const lab = `${r0(z.lo)}–${Number.isFinite(z.hi) ? r0(z.hi) : '…'}${names[i] ? '  ' + names[i] : ''}`;
+          const tw = ctx.measureText(lab).width;
+          ctx.fillText(lab, x1 + 6 + tw < w - 4 ? x1 + 6 : Math.max(L + 4, x0 - tw - 6), y + 12);
+        });
+      },
+    };
+  }
+  function table(el: HTMLTableElement, head: string[], body: string[][]) {
+    el.replaceChildren();
+    const tr = el.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; tr.append(th); });
+    for (const r of body) { const t = el.insertRow(); r.forEach((c, i) => { const td = t.insertCell(); td.textContent = c; if (i > 1) td.className = 'r'; }); }
+  }
+
+  function calcHR() {
+    const err = q('.hrz-err'), eq = q<HTMLSelectElement>('.hrz-eq').value;
+    q('.hrz-mw').hidden = eq !== 'measured';
+    q('.hrz-mhelp').textContent = method === 'max'
+      ? 'Each zone is a percentage of your maximum heart rate.'
+      : 'Karvonen method: target = resting HR + % × (max HR − resting HR). It lifts the easy zones for people with a low resting heart rate.';
+    try {
+      const age = val('.hrz-age'), rest = val('.hrz-rest');
+      if (!(age >= 5 && age <= 100)) throw new Error('Type an age between 5 and 100 years.');
+      let hm: number, src: string;
+      if (eq === 'measured') {
+        hm = val('.hrz-meas');
+        if (!(hm >= 100 && hm <= 230)) throw new Error('Type a measured maximum between 100 and 230 beats/min.');
+        src = 'measured';
+      } else { hm = maxHR(age, eq as MaxEq); src = MAX_EQS.find((m) => m.id === eq)!.cite; }
+      if (method === 'hrr' && !(rest >= 25 && rest < hm - 20)) throw new Error('Type a resting heart rate between 25 beats/min and 20 below your maximum.');
+      const bounds = parseBounds(q<HTMLInputElement>('.hrz-b').value, 0, 100);
+      const zones = hrZones(bounds, hm, method === 'hrr' ? rest : undefined);
+      const names = zones.length === 5 ? HR5 : [];
+      err.hidden = true; q('.hrz-out').hidden = false;
+      q('.hrz-big').textContent = `Max HR ${r0(hm)} beats/min`;
+      const facts: [string, string][] = [['Source', src], ...MAX_EQS.map((m) => [m.name, `${r0(maxHR(age, m.id))} beats/min`] as [string, string])];
+      if (method === 'hrr') facts.push(['Heart rate reserve', `${r0(hm - rest)} beats/min`]);
+      q('.hrz-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      const pctHead = method === 'hrr' ? '% of reserve' : '% of max';
+      const body = zones.map((z, i) => [String(z.n), names[i] ?? '', `${z.loPct}–${z.hiPct}`, `${r0(z.lo)}–${r0(z.hi)}`]);
+      table(q('.hrz-tab'), ['Zone', 'Feel', pctHead, 'Beats/min'], body);
+      figs[0] = barFigure(zones, names, 'Heart rate (beats/min)', 'Heart rate zones as bars', Math.ceil((hm + 10) / 20) * 20);
+      paint(q<HTMLCanvasElement>('.hrz-fig'), figs[0]);
+      hrSec = { title: `Heart rate zones (${method === 'hrr' ? 'Karvonen, % of heart rate reserve' : '% of maximum heart rate'})`, facts, table: { head: ['Zone', 'Feel', pctHead, 'Beats/min'], rows: body, align: ['l', 'l', 'r', 'r'] }, figure: figs[0] };
+      rows = [['type', 'zone', 'name', 'low_pct', 'high_pct', 'low', 'high', 'unit'], ...zones.map((z, i) => ['heart rate', z.n, names[i] ?? '', z.loPct, z.hiPct, +z.lo.toFixed(1), +z.hi.toFixed(1), 'beats/min'])];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.hrz-out').hidden = true; hrSec = null; rows = []; }
+  }
+  let pRows: (string | number)[][] = [];
+  function calcPower() {
+    const err = q('.hrz-perr');
+    try {
+      const ftp = val('.hrz-ftp');
+      if (!(ftp >= 20 && ftp <= 700)) throw new Error('Type an FTP between 20 and 700 W.');
+      const zones = powerZones(parseBounds(q<HTMLInputElement>('.hrz-pb').value, 1, 400), ftp);
+      const names = zones.length === 7 ? PW7 : [];
+      err.hidden = true; q('.hrz-pout').hidden = false;
+      const body = zones.map((z, i) => [String(z.n), names[i] ?? '', Number.isFinite(z.hiPct) ? `${z.loPct}–${z.hiPct}` : `${z.loPct}+`, Number.isFinite(z.hi) ? `${r0(z.lo)}–${r0(z.hi)}` : `${r0(z.lo)}+`]);
+      table(q('.hrz-ptab'), ['Zone', 'Name', '% of FTP', 'Watts'], body);
+      const top = zones[zones.length - 1].lo;
+      figs[1] = barFigure(zones, names, 'Power (W)', 'Cycling power zones as bars', Math.ceil((top * 1.15) / 50) * 50);
+      paint(q<HTMLCanvasElement>('.hrz-pfig'), figs[1]);
+      pwSec = { title: `Cycling power zones (FTP ${r0(ftp)} W)`, table: { head: ['Zone', 'Name', '% of FTP', 'Watts'], rows: body, align: ['l', 'l', 'r', 'r'] }, figure: figs[1], note: 'Bands are common coaching conventions, not a fixed standard.' };
+      pRows = zones.map((z, i) => ['power', z.n, names[i] ?? '', z.loPct, Number.isFinite(z.hiPct) ? z.hiPct : '', +z.lo.toFixed(1), Number.isFinite(z.hi) ? +z.hi.toFixed(1) : '', 'W']);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.hrz-pout').hidden = true; pwSec = null; pRows = []; }
+  }
+  const calc = () => { calcHR(); calcPower(); };
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.hrz-meth button')) b.addEventListener('click', () => {
+    method = b.dataset.m!; root.querySelectorAll('.hrz-meth button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc();
+  });
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.hrz-fig'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.hrz-pfig'), figs[1]); });
+  q('.hrz-csv').addEventListener('click', () => {
+    const all = rows.length ? [...rows, ...pRows] : pRows.length ? [['type', 'zone', 'name', 'low_pct', 'high_pct', 'low', 'high', 'unit'], ...pRows] : [];
+    if (all.length) save(new TextEncoder().encode(csv(all)), 'training-zones.csv', 'text/csv');
+  });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Training zones', subtitle: q('.hrz-big').textContent ?? '', file: 'training-zones', sections: [hrSec, pwSec].filter(Boolean) as Section[] }));
+</script>

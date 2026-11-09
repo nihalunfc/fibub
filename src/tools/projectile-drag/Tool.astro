@@ -1,0 +1,121 @@
+---
+// Projectile with quadratic air drag and wind: trajectory, range, apex, time of flight. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pjd">
+  <div class="ax-card">
+    <h2>Launch</h2>
+    <div class="ax-grid">
+      <label>Object <select class="pj-pre">
+        <option value="ball" selected>Small ball (made up: 145 g, 74 mm, Cd 0.35)</option>
+        <option value="football">Large ball (made up: 430 g, 22 cm, Cd 0.25)</option>
+        <option value="shot">Heavy shot (made up: 7.26 kg, 12 cm, Cd 0.47)</option>
+        <option value="custom">Custom (type your own)</option>
+      </select></label>
+      <label>Launch speed (m/s) <input class="pj-v" type="text" inputmode="decimal" value="40" /></label>
+      <label>Launch angle above level (°) <input class="pj-a" type="text" inputmode="decimal" value="35" /></label>
+      <label>Launch height above the landing ground (m) <input class="pj-h" type="text" inputmode="decimal" value="1" /></label>
+      <label>Mass (kg) <input class="pj-m" type="text" inputmode="decimal" value="0.145" /></label>
+      <label>Diameter (cm) <input class="pj-d" type="text" inputmode="decimal" value="7.4" /></label>
+      <label>Drag coefficient Cd <input class="pj-cd" type="text" inputmode="decimal" value="0.35" /></label>
+      <label>Wind along the throw (m/s, + tailwind, − headwind) <input class="pj-w" type="text" inputmode="decimal" value="0" /></label>
+      <label>Air density (kg/m³) <input class="pj-rho" type="text" inputmode="decimal" value="1.225" /></label>
+      <label>Gravity (m/s²) <input class="pj-g" type="text" inputmode="decimal" value="9.80665" /></label>
+    </div>
+    <p class="ax-help">Cd: how "draggy" the shape is (a smooth sphere is about 0.1 to 0.5 depending on speed and surface; 0 switches drag off). Air density 1.225 kg/m³ is sea level at 15 °C (rounded); it is about 1.0 at 2,000 m. Gravity: 9.80665 on Earth, about 1.62 on the Moon. The objects are made-up, rounded examples; change any number.</p>
+    <p class="ax-err pj-err" hidden></p>
+  </div>
+
+  <div class="ax-card pj-out">
+    <h2>Flight</h2>
+    <p class="ax-big pj-big"></p>
+    <dl class="ax-facts pj-facts"></dl>
+    <canvas class="ax-fig pj-fig"></canvas>
+    <canvas class="ax-fig pj-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pj-csv">Download path (CSV)</button></div>
+    <p class="ax-help">A point mass with drag proportional to the square of the speed through the air, a steady horizontal wind and flat ground; no spin (Magnus lift), no change of Cd with speed. Integrated with fourth-order Runge-Kutta in 2,000 steps. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { simulate, vacuum, bestAngle } from '../../lib/sci/phprojectile';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pjd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PRE: Record<string, [string, string, string]> = { ball: ['0.145', '7.4', '0.35'], football: ['0.43', '22', '0.25'], shot: ['7.26', '12', '0.47'] };
+  let figs: Figure[] = [], report: Section[] = [], csv = '';
+
+  function calc() {
+    const err = q('.pj-err'), out = q('.pj-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csv = ''; };
+    const v0 = val('.pj-v'), ang = val('.pj-a'), h0 = val('.pj-h'), m = val('.pj-m'), dcm = val('.pj-d'), Cd = val('.pj-cd'), w = val('.pj-w'), rho = val('.pj-rho'), g = val('.pj-g');
+    if (!(v0 > 0 && v0 < 1e4)) return fail('Give a launch speed in m/s, greater than 0 (up to 10,000).');
+    if (!(ang >= -89 && ang <= 90)) return fail('The launch angle must be between −89° and 90°.');
+    if (!(h0 >= 0 && h0 < 1e5)) return fail('The launch height must be 0 or more (metres above where it lands).');
+    if (!(h0 > 0 || ang > 0)) return fail('From ground level the angle must be above 0°, or nothing flies.');
+    if (!(m > 0)) return fail('Give the mass in kg, greater than 0.');
+    if (!(dcm >= 0)) return fail('Give the diameter in cm (0 or more).');
+    if (!(Cd >= 0 && Cd <= 5)) return fail('The drag coefficient is usually between 0 and 2 (0 = no drag).');
+    if (!Number.isFinite(w) || Math.abs(w) > 200) return fail('Give the wind in m/s (between −200 and 200; 0 for still air).');
+    if (!(rho >= 0 && rho <= 50)) return fail('Give the air density in kg/m³ (1.225 at sea level).');
+    if (!(g > 0 && g < 1000)) return fail('Give gravity in m/s², greater than 0.');
+    err.hidden = true; out.hidden = false;
+    const A = Math.PI * (dcm / 200) ** 2, p = { v0, angle: ang, h0, m, Cd, A, rho, g, wind: w };
+    const r = simulate(p), vac = vacuum(v0, ang, h0, g), best = bestAngle({ v0, h0, m, Cd, A, rho, g, wind: w });
+    const M = (x: number) => `${sig(x, 4)} m`;
+    q('.pj-big').textContent = `Range ${M(r.range)}, top ${M(r.apex)}, in the air ${sig(r.tof, 3)} s`;
+    const lost = vac.range > 0 ? (1 - r.range / vac.range) * 100 : 0;
+    const f = [
+      fact('Range', M(r.range), 'horizontal distance to where it lands'),
+      fact('Highest point', M(r.apex), r.tApex > 0 ? `${M(r.xApex)} out, ${sig(r.tApex, 3)} s after launch` : 'thrown level or downwards: highest at launch'),
+      fact('Time of flight', `${sig(r.tof, 4)} s`, ''),
+      fact('Landing speed', `${sig(r.impactSpeed, 3)} m/s`, `at ${sig(r.impactAngle, 3)}° below level (launched at ${sig(v0, 4)} m/s)`),
+      fact('Without air', `${M(vac.range)} range, ${M(vac.apex)} top`, Cd > 0 && A > 0 && rho > 0 ? `drag takes ${sig(lost, 3)} % off the range` : 'drag is off'),
+      fact('Best angle for range', `${sig(best.angle, 3)}°`, `gives ${M(best.range)} with this drag, wind and height`),
+      fact('Terminal speed', Number.isFinite(r.terminal) ? `${sig(r.terminal, 3)} m/s` : 'none (no drag)', 'falling speed where drag equals weight, √(2mg / ρ Cd A)'),
+      fact('Drag constant k', `${sig(r.k, 3)} per m`, 'ρ Cd A / 2m; drag deceleration = k × speed²'),
+    ];
+    q('.pj-facts').replaceChildren(...f);
+    // Trajectory against the no-drag path.
+    const nv = 200, xs: number[] = [], ys: number[] = [], a = (ang * Math.PI) / 180;
+    for (let i = 0; i <= nv; i++) { const t = (vac.tof * i) / nv; xs.push(v0 * Math.cos(a) * t); ys.push(Math.max(0, h0 + v0 * Math.sin(a) * t - 0.5 * g * t * t)); }
+    const every = Math.max(1, Math.floor(r.t.length / 400)), idx = r.t.map((_, i) => i).filter((i) => i % every === 0 || i === r.t.length - 1);
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Distance (m)', yLabel: 'Height (m)', yMin: 0, legend: 'below', series: [
+      { name: 'With drag and wind', x: idx.map((i) => r.x[i]), y: idx.map((i) => r.y[i]), mode: 'line', width: 2 },
+      { name: 'Without air', x: xs, y: ys, mode: 'line', width: 1.2, dash: [5, 4] },
+      { name: 'Highest point', x: [r.xApex], y: [r.apex], mode: 'points', marker: 'circle', size: 5 },
+    ] }, `Path of the projectile: range ${M(r.range)}, top ${M(r.apex)}`);
+    const c2 = chartFigure({ w: 380, h: 200, xLabel: 'Time (s)', yLabel: 'Speed (m/s)', yMin: 0, legend: 'none', series: [
+      { name: 'Speed', x: idx.map((i) => r.t[i]), y: idx.map((i) => Math.hypot(r.vx[i], r.vy[i])), mode: 'line', width: 2 },
+    ] }, 'Speed along the path against time');
+    paint(q<HTMLCanvasElement>('.pj-fig'), c1); paint(q<HTMLCanvasElement>('.pj-fig2'), c2);
+    figs = [c1, c2];
+    csv = 't_s,x_m,y_m,vx_m_s,vy_m_s,speed_m_s\n' + r.t.map((t, i) => [t, r.x[i], r.y[i], r.vx[i], r.vy[i], Math.hypot(r.vx[i], r.vy[i])].map((v) => +v.toPrecision(8)).join(',')).join('\n') + '\n';
+    const rows = f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: 'Launch', facts: [['Speed', `${sig(v0, 4)} m/s`], ['Angle', `${sig(ang, 4)}°`], ['Height', M(h0)], ['Mass', `${sig(m, 4)} kg`], ['Diameter', `${sig(dcm, 4)} cm`], ['Cd', sig(Cd, 3)], ['Wind', `${sig(w, 3)} m/s`], ['Air density', `${sig(rho, 4)} kg/m³`], ['Gravity', `${sig(g, 6)} m/s²`]] },
+      { title: q('.pj-big').textContent!, facts: rows, figure: c1 },
+      { title: 'Speed', figure: c2 },
+    ];
+  }
+
+  q('.pj-pre').addEventListener('change', () => { const v = PRE[q<HTMLSelectElement>('.pj-pre').value]; if (v) { inp('.pj-m').value = v[0]; inp('.pj-d').value = v[1]; inp('.pj-cd').value = v[2]; } calc(); });
+  for (const c of ['.pj-m', '.pj-d', '.pj-cd']) inp(c).addEventListener('input', () => { q<HTMLSelectElement>('.pj-pre').value = 'custom'; });
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.pj-csv').addEventListener('click', () => { if (csv) save(new Blob([csv], { type: 'text/csv' }), 'projectile-path.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pj-out').hidden) { paint(q<HTMLCanvasElement>('.pj-fig'), figs[0]); paint(q<HTMLCanvasElement>('.pj-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Projectile with drag', subtitle: `${inp('.pj-v').value} m/s at ${inp('.pj-a').value}°`, file: 'projectile', sections: report }));
+</script>
+
+<style is:global>
+  .pjd select, .pjd input { max-width: 100%; }
+</style>

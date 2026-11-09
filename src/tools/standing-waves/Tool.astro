@@ -1,0 +1,168 @@
+---
+// Standing waves on strings and in pipes: harmonic series with notes and cents, end corrections, and the tension or
+// pipe length for a target note. Material densities offered are rounded general values; the examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax stw">
+  <div class="ax-card">
+    <h2>What is vibrating</h2>
+    <div class="ax-grid">
+      <label>System <select class="sw-sys"><option value="string" selected>String fixed at both ends</option><option value="pipe">Air in a pipe</option></select></label>
+      <label>I want to find <select class="sw-goal"><option value="freq" selected>The notes it plays</option><option value="tune">What gives a target note</option></select></label>
+      <label class="sw-tg">Target note or frequency <input class="sw-target" value="E4" /></label>
+      <label>Harmonics to list <input class="sw-nh" inputmode="numeric" value="8" /></label>
+      <label>Tuning, A4 = (Hz) <input class="sw-a4" inputmode="decimal" value="440" /></label>
+    </div>
+    <p class="ax-help">Type a note such as E4, C#3 or Bb2 (middle C is C4), or a frequency in hertz. "What gives a target note" finds the string tension, or the pipe length, for that note as the fundamental.</p>
+  </div>
+
+  <div class="ax-card sw-str">
+    <h2>String</h2>
+    <div class="ax-grid">
+      <label>Vibrating length (mm) <input class="sw-L" inputmode="decimal" value="648" /></label>
+      <label>Mass given as <select class="sw-mm"><option value="d" selected>Diameter and material</option><option value="mu">Mass per metre</option></select></label>
+      <label class="sw-dd">Diameter (mm) <input class="sw-d" inputmode="decimal" value="0.25" /></label>
+      <label class="sw-dd">Material <select class="sw-rho"><option value="7850" selected>Steel (7,850 kg/m³)</option><option value="8900">Bronze or copper (about 8,900 kg/m³)</option><option value="1140">Nylon (about 1,140 kg/m³)</option><option value="1780">Fluorocarbon (about 1,780 kg/m³)</option><option value="own">My own density</option></select></label>
+      <label class="sw-dd sw-rhoo" hidden>Density (kg/m³) <input class="sw-rhov" inputmode="decimal" value="7850" /></label>
+      <label class="sw-mu" hidden>Mass per metre (g/m) <input class="sw-muv" inputmode="decimal" value="0.385" /></label>
+      <label class="sw-T">Tension (N) <input class="sw-Tv" inputmode="decimal" value="70" /></label>
+    </div>
+    <p class="ax-help">The vibrating length is from nut to bridge (the scale length). Densities are rounded general values; a wound string is heavier than a plain one of the same diameter, so use its mass per metre if the maker gives it. 1 kg-force is 9.81 N.</p>
+  </div>
+
+  <div class="ax-card sw-pipe" hidden>
+    <h2>Pipe</h2>
+    <div class="ax-grid">
+      <label>Ends <select class="sw-pk"><option value="open" selected>Open at both ends (flute)</option><option value="closed-open">Closed at one end (clarinet, bottle)</option><option value="closed">Closed at both ends</option></select></label>
+      <label class="sw-pl">Length (mm) <input class="sw-pL" inputmode="decimal" value="600" /></label>
+      <label>Inside diameter (mm) <input class="sw-pd" inputmode="decimal" value="19" /></label>
+      <label>Open ends are <select class="sw-end"><option value="unflanged" selected>Plain tube ends (×0.61 radius)</option><option value="flanged">In a wide flat face (×0.82 radius)</option><option value="none">No end correction</option></select></label>
+      <label>Air temperature (°C) <input class="sw-t" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Air vibrates a little beyond an open end, so the pipe sounds as if it were longer by about 0.61 of the radius at each plain open end (0.82 if the end is set in a wide flat surface). The speed of sound rises about 0.6 m/s per °C, which is why wind instruments go sharp as they warm up.</p>
+  </div>
+
+  <p class="ax-err sw-err" hidden></p>
+
+  <div class="ax-card sw-out">
+    <h2>Result</h2>
+    <p class="ax-big sw-big"></p>
+    <dl class="ax-facts sw-facts"></dl>
+    <canvas class="ax-fig sw-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll"><table class="sw-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sw-csv">Harmonics (CSV)</button></div>
+    <p class="ax-help">Ideal strings (perfectly flexible) and straight, narrow cylinders. Real strings are a little stiff, which pushes high harmonics sharp, and real instruments have tone holes, bells and cones. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { muFromDiameter, stringSpeed, stringHarmonic, tensionFor, pipeResonance, lengthFor, effLength, parsePitch, END_FACTOR, type PipeKind, type EndKind } from '../../lib/sci/phstand';
+  import { soundSpeed } from '../../lib/sci/phair';
+  import { noteOf } from '../../lib/sci/phfft';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.stw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const hz = (f: number) => `${f >= 1000 ? sig(f, 5) : f.toFixed(2)} Hz`;
+  const cents = (c: number) => `${c >= 0 ? '+' : '−'}${Math.abs(c).toFixed(1)} cents`;
+  const nn = (f: number, a4: number) => { const n = noteOf(f, a4); return `${n.name} ${cents(n.cents)}`; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const err = q('.sw-err'), out = q('.sw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; csvRows = []; };
+    const sys = sel('.sw-sys'), goal = sel('.sw-goal'), isStr = sys === 'string', tune = goal === 'tune';
+    q('.sw-str').hidden = !isStr; q('.sw-pipe').hidden = isStr; q('.sw-tg').hidden = !tune;
+    const byD = sel('.sw-mm') === 'd', own = sel('.sw-rho') === 'own';
+    root.querySelectorAll<HTMLElement>('.sw-dd').forEach((e) => { e.hidden = !byD; }); q('.sw-rhoo').hidden = !byD || !own; q('.sw-mu').hidden = byD;
+    q('.sw-T').hidden = tune; q('.sw-pl').hidden = tune;
+    const nh = val('.sw-nh'), a4 = val('.sw-a4');
+    if (!(Number.isInteger(nh) && nh >= 1 && nh <= 64)) return fail('List from 1 to 64 harmonics.');
+    if (!(a4 >= 400 && a4 <= 480)) return fail('Give a tuning for A4 from 400 to 480 Hz.');
+    const target = tune ? parsePitch(q<HTMLInputElement>('.sw-target').value, a4) : NaN;
+    if (tune && !(target > 0 && target < 1e5)) return fail('Give the target as a note such as E4, C#3 or Bb2, or as a frequency in Hz.');
+    const rows: { m: number; n: number; f: number; lam: number }[] = [], facts: HTMLElement[] = [];
+    let big = '', shape: (n: number, x: number) => number, Lplot: number, desc: string;
+    if (isStr) {
+      const L = val('.sw-L') / 1000;
+      if (!(L > 0 && L <= 100)) return fail('Give the vibrating length in millimetres (above 0).');
+      let mu: number;
+      if (byD) {
+        const d = val('.sw-d') / 1000, rho = own ? val('.sw-rhov') : +sel('.sw-rho');
+        if (!(d > 0 && d < 0.1)) return fail('Give the string diameter in millimetres (above 0, below 100).');
+        if (!(rho > 100 && rho < 30000)) return fail('Give a density from 100 to 30,000 kg/m³.');
+        mu = muFromDiameter(d, rho);
+      } else { mu = val('.sw-muv') / 1000; if (!(mu > 0 && mu < 100)) return fail('Give the mass per metre in grams (above 0).'); }
+      let T: number;
+      if (tune) T = tensionFor(target, L, mu);
+      else { T = val('.sw-Tv'); if (!(T > 0 && T < 1e6)) return fail('Give the tension in newtons (above 0).'); }
+      const v = stringSpeed(T, mu), f1 = stringHarmonic(1, L, T, mu);
+      for (let m = 1; m <= nh; m++) rows.push({ m, n: m, f: m * f1, lam: (2 * L) / m });
+      big = tune ? `Tension ${sig(T, 4)} N (${sig(T / 9.80665, 3)} kg-force) for ${hz(target)}` : `Fundamental ${hz(f1)} (${nn(f1, a4)})`;
+      facts.push(
+        fact('Fundamental', hz(f1), nn(f1, a4)),
+        fact('Tension', `${sig(T, 4)} N`, `${sig(T / 9.80665, 3)} kg-force; ${sig(T * 0.224809, 3)} lbf`),
+        fact('Mass per metre μ', `${sig(mu * 1000, 4)} g/m`, byD ? 'ρπd²/4 for a solid round string' : 'as you entered'),
+        fact('Wave speed on the string', `${sig(v, 4)} m/s`, 'v = √(T/μ); f = n v / 2L'),
+      );
+      shape = (n, x) => Math.sin((n * Math.PI * x) / L); Lplot = L; desc = 'String displacement: nodes at both ends';
+    } else {
+      const k = sel('.sw-pk') as PipeKind, end = sel('.sw-end') as EndKind, r = val('.sw-pd') / 2000, tC = val('.sw-t');
+      if (!(r > 0 && r < 5)) return fail('Give the inside diameter in millimetres (above 0).');
+      if (!(tC >= -40 && tC <= 60)) return fail('Give an air temperature from −40 to 60 °C.');
+      const c = soundSpeed(tC);
+      let L: number;
+      if (tune) { L = lengthFor(target, k, r, end, c); if (!(L > 0)) return fail('For that note the pipe would be shorter than its end corrections: choose a lower note or a narrower pipe.'); }
+      else { L = val('.sw-pL') / 1000; if (!(L > 0 && L <= 1000)) return fail('Give the pipe length in millimetres (above 0).'); }
+      const Le = effLength(k, L, r, end);
+      for (let m = 1; m <= nh; m++) { const p = pipeResonance(m, k, L, r, end, c); rows.push({ m, n: p.n, f: p.f, lam: p.lambda }); }
+      const f1 = rows[0].f;
+      big = tune ? `Pipe length ${sig(L * 1000, 4)} mm for ${hz(target)}` : `Fundamental ${hz(f1)} (${nn(f1, a4)})`;
+      facts.push(
+        fact('Fundamental', hz(f1), nn(f1, a4)),
+        fact('Physical length', `${sig(L * 1000, 4)} mm`, tune ? `from the end of the pipe to the end (or closed end)` : 'as you entered'),
+        fact('Acoustic length', `${sig(Le * 1000, 4)} mm`, k === 'closed' || end === 'none' ? 'no end correction' : `plus ${sig(END_FACTOR[end] * r * 1000, 3)} mm at ${k === 'open' ? 'each of two' : 'one'} open end${k === 'open' ? 's' : ''}`),
+        fact('Speed of sound', `${sig(c, 4)} m/s`, `in air at ${sig(tC, 3)} °C`),
+        fact('Harmonics present', k === 'closed-open' ? 'odd only (1, 3, 5 …)' : 'all (1, 2, 3 …)', k === 'closed-open' ? 'a pipe closed at one end has a node at the closed end and an antinode at the open end' : 'the same node or antinode at both ends'),
+      );
+      if (k === 'open') shape = (n, x) => Math.cos((n * Math.PI * x) / Le);
+      else if (k === 'closed-open') shape = (n, x) => Math.sin((n * Math.PI * x) / (2 * Le));
+      else shape = (n, x) => Math.sin((n * Math.PI * x) / Le);
+      Lplot = k === 'closed' ? L : Le; desc = `Air displacement along the ${k === 'closed' ? '' : 'acoustic '}length: open ends are antinodes, closed ends nodes`;
+    }
+    err.hidden = true; out.hidden = false;
+    q('.sw-big').textContent = big;
+    q('.sw-facts').replaceChildren(...facts);
+    const head = ['#', 'Harmonic', 'Frequency', 'Note', 'Wavelength'];
+    const tRows = rows.map((r) => [String(r.m), String(r.n), hz(r.f), nn(r.f, a4), `${sig(r.lam * 1000, 4)} mm`]);
+    const t = q<HTMLTableElement>('.sw-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i !== 3) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); tRows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i !== 3) td.className = 'r'; }); });
+    csvRows = [['resonance', 'harmonic', 'frequency_hz', 'note', 'cents', 'wavelength_m'], ...rows.map((r) => { const n = noteOf(r.f, a4); return [String(r.m), String(r.n), String(+r.f.toPrecision(10)), n.name, n.cents.toFixed(2), String(+r.lam.toPrecision(8))]; })];
+    const xs = Array.from({ length: 121 }, (_, i) => (i / 120) * Lplot);
+    fig = chartFigure({ w: 380, h: 240, xLabel: 'Position along the length (mm)', yLabel: 'Relative amplitude', yMin: -1.1, yMax: 1.1, legend: 'below', series: rows.slice(0, 3).map((r) => ({ name: `Harmonic ${r.n}, ${hz(r.f)}`, x: xs.map((x) => x * 1000), y: xs.map((x) => shape(r.n, x)), mode: 'line' as const, width: 2 })) }, `${desc}, first three resonances`);
+    paint(q<HTMLCanvasElement>('.sw-fig'), fig);
+    sections = [{ title: big, text: [desc + '.'], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: tRows, align: ['r', 'r', 'r', 'l', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.sw-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'standing-waves.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sw-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Standing waves', subtitle: q('.sw-big').textContent ?? '', file: 'standing-waves', sections }));
+</script>
+
+<style is:global>
+  .stw select { max-width: 100%; }
+  .stw [hidden] { display: none !important; }
+  .stw .sw-tab td { white-space: nowrap; }
+</style>

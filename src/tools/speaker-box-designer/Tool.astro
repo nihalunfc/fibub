@@ -1,0 +1,147 @@
+---
+// Speaker enclosure designer: Thiele-Small parameters in, closed and vented box responses out, with port length and
+// air speed and the driver's reference efficiency. The example driver is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spb">
+  <div class="ax-card">
+    <h2>Driver (Thiele-Small parameters)</h2>
+    <div class="ax-grid">
+      <label>Fs, free-air resonance (Hz) <input class="sb-fs" inputmode="decimal" value="35" /></label>
+      <label>Qts, total Q <input class="sb-qts" inputmode="decimal" value="0.38" /></label>
+      <label>Vas, equivalent volume (litres) <input class="sb-vas" inputmode="decimal" value="60" /></label>
+      <label>Qes, electrical Q (optional) <input class="sb-qes" inputmode="decimal" value="0.42" /></label>
+      <label>Sd, cone area (cm², optional) <input class="sb-sd" inputmode="decimal" value="220" /></label>
+      <label>Xmax, one-way travel (mm, optional) <input class="sb-xm" inputmode="decimal" value="6" /></label>
+    </div>
+    <p class="ax-help">From the driver's data sheet. Fs is where the cone resonates on its own, Qts how strongly that resonance is damped, and Vas the volume of air as springy as the cone's suspension. Qes gives the efficiency; Sd and Xmax give the port air speed. 1 cubic foot is 28.32 litres. The example driver is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Sealed box</h2>
+    <div class="ax-grid">
+      <label>Net box volume (litres) <input class="sb-vbs" inputmode="decimal" value="30" /></label>
+      <label>Target Qtc <input class="sb-qtc" inputmode="decimal" value="0.707" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sb-fit">Size the box for this Qtc</button></div>
+    <p class="ax-help">Qtc 0.5 is very tight and controlled, 0.707 the flattest without a bump, 1 and above boomy. Net volume is inside the box after subtracting the driver, bracing and port.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Ported box</h2>
+    <div class="ax-grid">
+      <label>Net box volume (litres) <input class="sb-vbp" inputmode="decimal" value="50" /></label>
+      <label>Tuning frequency fb (Hz) <input class="sb-fb" inputmode="decimal" value="35" /></label>
+      <label>Box losses QL <input class="sb-ql" inputmode="decimal" value="7" /></label>
+      <label>Port inside diameter (cm) <input class="sb-dp" inputmode="decimal" value="7.5" /></label>
+      <label>Number of ports <input class="sb-np" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">The port and the air in the box resonate at fb, where the port does most of the work and the cone barely moves. QL describes air leaks and losses: 7 is a usual guess, 10 or more for a well-sealed box, 3 to 5 for a lossy one. Round tube ports, one end flush with the front panel.</p>
+    <p class="ax-err sb-err" hidden></p>
+  </div>
+
+  <div class="ax-card sb-out">
+    <h2>Response</h2>
+    <p class="ax-big sb-big"></p>
+    <dl class="ax-facts sb-facts"></dl>
+    <canvas class="ax-fig sb-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sb-csv">Response (CSV)</button></div>
+    <p class="ax-help">Small-signal, low-frequency model in free space: no room gain, no baffle step, no voice-coil inductance and no cone break-up, so the curves show the low-frequency roll-off, not the whole speaker. For study and planning, not a substitute for professional judgement or measurement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { sealed, sealedDb, sealedVolumeFor, ventedCoeffs, ventedDb, cutoff, portLength, portSpeed, efficiency, vd, C_AIR, type Driver } from '../../lib/sci/phbox';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.spb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const val = (c: string) => num(raw(c));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const d1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function driver(): Driver | string {
+    const d: Driver = { fs: val('.sb-fs'), qts: val('.sb-qts'), vas: val('.sb-vas') };
+    if (!(d.fs >= 5 && d.fs <= 2000)) return 'Give the free-air resonance Fs in Hz (5 to 2000).';
+    if (!(d.qts > 0.05 && d.qts <= 3)) return 'Give the total Q (Qts), usually between 0.2 and 1.5.';
+    if (!(d.vas > 0 && d.vas < 1e5)) return 'Give Vas in litres (above 0).';
+    for (const [k, c, lo, hi, m] of [['qes', '.sb-qes', 0.05, 10, 'Qes should be a number from 0.05 to 10, or leave it empty.'], ['sd', '.sb-sd', 1, 1e5, 'Sd should be the cone area in cm², or leave it empty.'], ['xmax', '.sb-xm', 0.1, 100, 'Xmax should be in millimetres, or leave it empty.']] as const) {
+      if (raw(c)) { const v = val(c); if (!(v >= lo && v <= hi)) return m; (d as Record<string, number>)[k] = v; }
+    }
+    if (d.qes && d.qes < d.qts) return 'Qes cannot be smaller than Qts (Qts combines Qes and Qms).';
+    return d;
+  }
+
+  function calc() {
+    const err = q('.sb-err'), out = q('.sb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; csvRows = []; };
+    const d = driver(); if (typeof d === 'string') return fail(d);
+    const vbs = val('.sb-vbs'), vbp = val('.sb-vbp'), fb = val('.sb-fb'), ql = val('.sb-ql'), dp = val('.sb-dp') / 100, np = val('.sb-np');
+    if (!(vbs > 0 && vbs < 1e5)) return fail('Give the sealed box volume in litres (above 0).');
+    if (!(vbp > 0 && vbp < 1e5)) return fail('Give the ported box volume in litres (above 0).');
+    if (!(fb >= 5 && fb <= 500)) return fail('Give a port tuning frequency fb from 5 to 500 Hz.');
+    if (!(ql >= 1 && ql <= 1000)) return fail('Give box losses QL from 1 (very lossy) to 1000 (no losses); 7 is usual.');
+    if (!(dp > 0 && dp < 2)) return fail('Give the port diameter in centimetres (above 0).');
+    if (!(Number.isInteger(np) && np >= 1 && np <= 8)) return fail('Use 1 to 8 ports.');
+    err.hidden = true; out.hidden = false;
+    const S = sealed(d, vbs), V = ventedCoeffs(d, vbp, fb, ql);
+    const vf3 = cutoff((f) => ventedDb(f, V), 1, 2000), bf3 = cutoff((f) => sealedDb(f, d.fs, d.qts), 1, 2000);
+    q('.sb-big').textContent = `Sealed ${sig(vbs, 4)} L: f3 ${d1(S.f3)} Hz · Ported ${sig(vbp, 4)} L: f3 ${d1(vf3)} Hz`;
+    const lp = portLength(vbp, fb, dp, np);
+    let ripple = -Infinity; for (let f = vf3; f < fb * 20; f *= 1.01) ripple = Math.max(ripple, ventedDb(f, V));
+    const facts = [
+      fact('Sealed: system resonance fc', `${d1(S.fc)} Hz`, `fs × √(1 + Vas/Vb), Vas/Vb = ${sig(S.alpha, 3)}`),
+      fact('Sealed: Qtc', S.qtc.toFixed(3), S.peak > 0.05 ? `a ${d1(S.peak)} dB bump above f3` : S.qtc < 0.55 ? 'over-damped: gentle early roll-off' : 'no bump: smooth roll-off'),
+      fact('Ported: tuning ratio', `fb/fs = ${sig(V.h, 3)}`, `Vas/Vb = ${sig(V.alpha, 3)}, QL ${sig(ql, 3)}`),
+      fact('Ported: response shape', ripple > 0.1 ? `bump of +${d1(ripple)} dB` : 'no bump', ripple > 0.1 ? 'above the pass band level: try a bigger box or lower fb' : 'smooth above f3; a long tail means a low fb'),
+      fact('Port length', lp > 0 ? `${sig(lp * 1000, 4)} mm` : 'too short', lp > 0 ? `${np} port${np > 1 ? 's' : ''} of ${+(dp * 100).toPrecision(3)} cm, end corrections included` : 'the end corrections alone tune lower: use a narrower port or a smaller box'),
+      fact('Driver alone in a wall', `f3 ${d1(bf3)} Hz`, 'infinite baffle reference (Qts at Fs)'),
+    ];
+    if (d.sd && d.xmax) {
+      const v = portSpeed(d.sd, d.xmax, fb, dp, np);
+      facts.push(fact('Port air speed (rough)', `${sig(v, 3)} m/s`, v > 0.05 * C_AIR ? 'above about 17 m/s (5 % of the speed of sound): it may chuff; use a wider port' : 'below about 17 m/s: no chuffing expected'));
+      facts.push(fact('Displacement Vd', `${sig(vd(d.sd, d.xmax), 4)} cm³`, 'Sd × Xmax: how much air the cone can move'));
+    }
+    const e = efficiency(d);
+    if (e) facts.push(fact('Sensitivity', `${d1(e.spl)} dB at 1 W, 1 m`, `reference efficiency η0 = ${sig(e.eta * 100, 3)} % (half space)`));
+    q('.sb-facts').replaceChildren(...facts);
+    const fsx: number[] = []; for (let f = 10; f <= 500 * 1.0001; f *= 2 ** (1 / 24)) fsx.push(f);
+    const ys = fsx.map((f) => sealedDb(f, S.fc, S.qtc)), yv = fsx.map((f) => ventedDb(f, V)), yb = fsx.map((f) => sealedDb(f, d.fs, d.qts));
+    fig = chartFigure({ w: 380, h: 270, xLabel: 'Frequency (Hz)', yLabel: 'Response (dB)', xLog: true, yMin: -30, yMax: 6, legend: 'below', series: [
+      { name: `Sealed ${sig(vbs, 4)} L`, x: fsx, y: ys, mode: 'line', width: 2 },
+      { name: `Ported ${sig(vbp, 4)} L at ${sig(fb, 3)} Hz`, x: fsx, y: yv, mode: 'line', width: 2, dash: [7, 4] },
+      { name: 'Driver alone in a wall', x: fsx, y: yb, mode: 'line', width: 1.2, dash: [2, 3] },
+    ], marks: [{ kind: 'hline', at: -3, dash: [3, 3], label: '−3 dB' }] }, q('.sb-big').textContent!);
+    paint(q<HTMLCanvasElement>('.sb-fig'), fig);
+    const fr = (x: number) => String(+x.toFixed(3));
+    csvRows = [['frequency_hz', 'sealed_db', 'ported_db', 'infinite_baffle_db'], ...fsx.map((f, i) => [String(+f.toFixed(3)), fr(ys[i]), fr(yv[i]), fr(yb[i])])];
+    const rowsTab = [12, 16, 20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200].map((f) => [`${f} Hz`, d1(sealedDb(f, S.fc, S.qtc)), d1(ventedDb(f, V))]);
+    sections = [{ title: q('.sb-big').textContent!, text: [`Driver: Fs ${sig(d.fs, 4)} Hz, Qts ${sig(d.qts, 3)}, Vas ${sig(d.vas, 4)} L${d.qes ? `, Qes ${sig(d.qes, 3)}` : ''}${d.sd ? `, Sd ${sig(d.sd, 4)} cm²` : ''}${d.xmax ? `, Xmax ${sig(d.xmax, 3)} mm` : ''}.`],
+      facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: ['Frequency', 'Sealed (dB)', 'Ported (dB)'], rows: rowsTab, align: ['l', 'r', 'r'] } }];
+  }
+
+  q('.sb-fit').addEventListener('click', () => {
+    const d = driver(), t = val('.sb-qtc');
+    if (typeof d === 'string') { calc(); return; }
+    if (!(t > d.qts && t < 3)) { const e = q('.sb-err'); e.textContent = `The target Qtc must be higher than the driver's Qts (${sig(d.qts, 3)}): a box can only stiffen the suspension, never loosen it.`; e.hidden = false; q('.sb-out').hidden = true; return; }
+    q<HTMLInputElement>('.sb-vbs').value = String(+sealedVolumeFor(d, t).toPrecision(4)); calc();
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input').forEach((i) => { if (!i.classList.contains('sb-qtc')) i.addEventListener('input', later); });
+  q('.sb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'speaker-box.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Speaker box', subtitle: q('.sb-big').textContent ?? '', file: 'speaker-box', sections }));
+</script>
+
+<style is:global>
+  .spb select, .spb input { max-width: 100%; }
+</style>
