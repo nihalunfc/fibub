@@ -1,0 +1,220 @@
+---
+// Fold axis and cylindrical best fit from poles to bedding or foliation: orientation tensor eigenvectors,
+// Woodcock and Vollmer shape numbers, π-girdle, limb means, interlimb angle, axial plane and Kamb contours.
+// The example is made up by fibub: a fold plunging about 18° towards 062 with a few degrees of scatter.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = '050 50 A\n049 56 A\n055 59 A\n047 52\n050 64 A\n275 29 B\n055 68 A\n044 49 A\n049 65 A\n260 44 B\n254 43 B\n059 72 A\n264 36 B\n264 42 B\n263 44 B\n057 71 A\n046 51\n047 55 A\n063 66 A\n278 29 B\n258 47 B\n299 25\n266 39 B\n262 43 B\n047 53 A\n052 63 A\n001 22\n051 57 A\n262 38 B\n045 52\n280 32 B\n279 30 B';
+---
+<div class="ax fax">
+  <div class="ax-card">
+    <h2>Bedding or foliation planes</h2>
+    <div class="ax-grid">
+      <label>Planes typed as <select class="fx-pf"><option value="rhr">Strike, dip (right-hand rule)</option><option value="dd">Dip direction, dip</option></select></label>
+    </div>
+    <label style="margin-top:10px">One plane per line, with an optional limb label <textarea class="fx-in" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".fx-in" maxCols={3} maxRows={5000} />
+    <p class="ax-help fx-help"></p>
+    <p class="ax-err fx-err" hidden></p>
+    <p class="ax-help fx-warn" hidden></p>
+    <p class="ax-help">The example is made up: a fold plunging about 18° towards 062, with limbs labelled A and B and five readings from the hinge left unlabelled. Replace it with your own readings.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>The two limbs are <select class="fx-ov"><option value="up">Both the right way up</option><option value="over">One overturned</option></select></label>
+    </div>
+    <p class="ax-help">Only used when two limbs are labelled. It decides whether the limbs meet at the angle shown or at its supplement (180° minus it): an overturned limb has been turned past vertical, so its beds face down.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="fx-sp" checked /> Poles</label>
+      <label class="ax-check"><input type="checkbox" class="fx-sg" checked /> Girdle (π-circle)</label>
+      <label class="ax-check"><input type="checkbox" class="fx-sk" checked /> Density contours</label>
+      <label class="ax-check"><input type="checkbox" class="fx-sl" /> Limb planes</label>
+      <label class="ax-check"><input type="checkbox" class="fx-sa" checked /> Axial plane</label>
+    </div>
+    <p class="ax-help">Density contours count the poles in a small circle (Kamb's method) and are drawn every 2σ, from 2σ up. A uniform spread would give about 3σ everywhere.</p>
+  </div>
+
+  <div class="ax-card fx-out">
+    <h2>Fold axis</h2>
+    <p class="ax-big fx-big"></p>
+    <dl class="ax-facts fx-facts"></dl>
+    <div class="fx-paper"><canvas class="fx-fig" role="img" aria-label="Equal-area net of the poles, girdle and fold axis"></canvas></div>
+    <div class="ax-legend fx-leg"></div>
+    <h3>Limbs</h3>
+    <p class="ax-help fx-nolimb">Label the readings of one limb A and of the other limb B (any two names work) to get the interlimb angle and the axial plane.</p>
+    <dl class="ax-facts fx-limbs"></dl>
+    <h3>Poles</h3>
+    <div class="ax-scroll fx-scroll"><table class="fx-tab"></table></div>
+    <p class="ax-help">Off girdle: the angle between a pole and the best-fit great circle. On a cylindrical fold every pole sits on that circle.</p>
+    <div class="dl"><span class="dl-l">Data</span><button type="button" class="btn secondary fx-csv">Poles (CSV)</button><button type="button" class="btn secondary fx-rcsv">Results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parsePlanes, fit, limbs, kamb, contour, cylVerdict, type Fit, type Limbs } from '../../lib/sci/foldaxis';
+  import { project, greatCircle, type Line, type Plane } from '../../lib/sci/stereonet';
+  import { canvasPainter } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, pagePalette, save, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fax')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const on = (c: string) => q<HTMLInputElement>(c).checked;
+  const az = (a: number) => String(Math.round(((a % 360) + 360) % 360) % 360).padStart(3, '0');
+  const ln = (l: Line) => `${Math.round(l.plunge)}° → ${az(l.trend)}`;
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '∞');
+  const f3 = (x: number) => x.toFixed(3);
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const HELP = {
+    rhr: 'Strike and dip with the right-hand rule: face along the strike and the plane dips to your right (030 40 dips south-east). An optional third column names the limb, such as A or B. Text after # is ignored.',
+    dd: 'Dip direction and dip, such as 120 40 (dips 40° towards 120). An optional third column names the limb, such as A or B. Text after # is ignored.',
+  };
+  let fig: Figure | null = null, report: Section[] = [], rows: string[][] = [], results: string[][] = [];
+
+  function run() {
+    const dd = q<HTMLSelectElement>('.fx-pf').value === 'dd';
+    const pl = (p: Plane) => (dd ? `${az(p.strike + 90)}/${Math.round(p.dip).toString().padStart(2, '0')}` : `${az(p.strike)}/${Math.round(p.dip).toString().padStart(2, '0')}`);
+    const plName = dd ? 'dip direction/dip' : 'strike/dip, right-hand rule';
+    q('.fx-help').textContent = HELP[dd ? 'dd' : 'rhr'];
+    const err = (m: string) => { q('.fx-err').textContent = m; q('.fx-err').hidden = !m; q('.fx-out').hidden = !!m; if (m) { report = []; fig = null; rows = []; results = []; } };
+    const r = parsePlanes(q<HTMLTextAreaElement>('.fx-in').value, dd);
+    const D = r.data, notes = r.bad.map((b) => `line ${b.row} skipped: ${b.why}`);
+    const labels = [...new Set(D.map((d) => d.label).filter(Boolean))].sort();
+    if (labels.length > 2) notes.push(`${labels.length} labels found (${labels.join(', ')}); the limb results need exactly two, so they are left out`);
+    if (labels.length === 1) notes.push(`only one limb label (${labels[0]}) found; label the other limb too to get the interlimb angle`);
+    if (D.length < 3) { showNotes(notes); return err(`Type at least 3 planes (10 or more for a useful answer); ${D.length} read.`); }
+    const vs = D.map((d) => d.v), f = fit(vs);
+    if (!Number.isFinite(f.axis.plunge)) { showNotes(notes); return err('These planes do not fix a fold axis. Check the numbers.'); }
+    if (f.weak) notes.push('the poles do not spread out along one great circle (λ2 is less than 2.5 × λ3), so the fold axis is poorly fixed: add readings from both limbs and the hinge');
+    showNotes(notes);
+    err('');
+    let L: Limbs | null = null, n: number[] = [];
+    if (labels.length === 2) {
+      const A = D.filter((d) => d.label === labels[0]).map((d) => d.v), B = D.filter((d) => d.label === labels[1]).map((d) => d.v);
+      L = limbs(A, B, f.b, q<HTMLSelectElement>('.fx-ov').value === 'over');
+      n = [A.length, B.length];
+    }
+    const K = kamb(vs);
+    q('.fx-big').textContent = `Fold axis ${ln(f.axis)}` + (L ? `, ${L.tightness} fold (interlimb ${Math.round(L.interlimb)}°)` : '');
+    const shape = f.K < 1 ? 'girdle (K below 1)' : 'cluster (K above 1)';
+    const facts = [
+      fact('Fold axis (π-axis = e3)', ln(f.axis), 'plunge → trend; the least eigenvector, the pole of the best-fit girdle'),
+      fact('Best-fit girdle (π-circle)', pl(f.girdle), plName),
+      fact('Eigenvalues λ1, λ2, λ3', `${f3(f.val[0])}, ${f3(f.val[1])}, ${f3(f.val[2])}`, `of the orientation tensor of ${f.n} poles; they add up to 1`),
+      fact('e1 (densest pole direction)', ln(f.axes[0]), `e2 ${ln(f.axes[1])}`),
+      fact('Woodcock shape K = ln(λ1/λ2) / ln(λ2/λ3)', f2(f.K), shape),
+      fact('Woodcock strength C = ln(λ1/λ3)', f2(f.C), 'higher means the poles are better organised'),
+      fact('Vollmer P, G, R', `${f2(f.P)}, ${f2(f.G)}, ${f2(f.R)}`, 'point, girdle and random shares; they add up to 1'),
+      fact('Cylindricity', `RMS ${f.rms.toFixed(1)}° off the girdle`, `${cylVerdict(f.rms)}; largest ${f.maxOff.toFixed(1)}°, ${Math.round(f.within10 * 100)} % within 10°`),
+    ];
+    facts.push(fact('Kamb counting circle', `${K.cone.toFixed(1)}° radius`, `area ${(K.A * 100).toFixed(1)} % of the hemisphere, σ = ${K.sigma.toFixed(2)} poles, highest density ${K.max.toFixed(1)}σ`));
+    q('.fx-facts').replaceChildren(...facts);
+    // Limbs
+    let lf: HTMLElement[] = [];
+    if (L) {
+      lf = [
+        fact(`Limb ${labels[0]} mean plane`, pl(L.plane[0]), `${n[0]} planes; mean pole ${ln(L.mean[0])}`),
+        fact(`Limb ${labels[1]} mean plane`, pl(L.plane[1]), `${n[1]} planes; mean pole ${ln(L.mean[1])}`),
+        fact('Interlimb angle', `${L.interlimb.toFixed(1)}°`, `${L.tightness} (Fleuty classes: gentle 120° to 180°, open 70° to 120°, close 30° to 70°, tight 10° to 30°, isoclinal under 10°)`),
+        fact('Axial plane', L.axial ? pl(L.axial) : 'not defined', L.axial ? `${plName}; holds the fold axis and bisects the limbs` : 'the limbs are parallel'),
+        fact('Limb intersection', ln(L.intersection), `${L.axisGap.toFixed(1)}° from the π-axis (a check: the two should be close)`),
+      ];
+    }
+    q('.fx-limbs').replaceChildren(...lf);
+    q('.fx-nolimb').hidden = !!L;
+    // Table
+    const head = ['Line', dd ? 'Dip dir/dip' : 'Strike/dip', 'Pole', 'Off girdle (°)', 'Limb'];
+    rows = D.map((d, i) => [String(d.row), pl(d.plane), ln(d.pole), f.off[i].toFixed(1), d.label]);
+    const tb = q<HTMLTableElement>('.fx-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows.forEach((r2) => { const tr = bd.insertRow(); r2.forEach((c) => { tr.insertCell().textContent = c; }); });
+    const kv = (d: HTMLElement) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string];
+    results = [['quantity', 'value'],
+      ['fold_axis_plunge', f.axis.plunge.toFixed(2)], ['fold_axis_trend', f.axis.trend.toFixed(2)],
+      ['girdle_strike_rhr', f.girdle.strike.toFixed(2)], ['girdle_dip', f.girdle.dip.toFixed(2)],
+      ['lambda1', f.val[0].toFixed(6)], ['lambda2', f.val[1].toFixed(6)], ['lambda3', f.val[2].toFixed(6)],
+      ['e1_trend', f.axes[0].trend.toFixed(2)], ['e1_plunge', f.axes[0].plunge.toFixed(2)], ['e2_trend', f.axes[1].trend.toFixed(2)], ['e2_plunge', f.axes[1].plunge.toFixed(2)],
+      ['woodcock_K', Number.isFinite(f.K) ? f.K.toFixed(4) : 'inf'], ['woodcock_C', Number.isFinite(f.C) ? f.C.toFixed(4) : 'inf'],
+      ['vollmer_P', f.P.toFixed(4)], ['vollmer_G', f.G.toFixed(4)], ['vollmer_R', f.R.toFixed(4)],
+      ['rms_off_girdle_deg', f.rms.toFixed(2)], ['max_off_girdle_deg', f.maxOff.toFixed(2)], ['share_within_10deg', f.within10.toFixed(3)], ['n_planes', String(f.n)]];
+    if (L) results.push(['interlimb_deg', L.interlimb.toFixed(2)], ['tightness', L.tightness], ['axial_plane_strike_rhr', L.axial ? L.axial.strike.toFixed(2) : ''], ['axial_plane_dip', L.axial ? L.axial.dip.toFixed(2) : ''],
+      ['limb_intersection_plunge', L.intersection.plunge.toFixed(2)], ['limb_intersection_trend', L.intersection.trend.toFixed(2)]);
+    // Figure
+    const show = { p: on('.fx-sp'), g: on('.fx-sg'), k: on('.fx-sk'), l: on('.fx-sl') && !!L, a: on('.fx-sa') && !!L?.axial };
+    fig = { w: 520, h: 520, alt: `Equal-area net: ${f.n} poles, fold axis ${ln(f.axis)}, girdle ${pl(f.girdle)}`, draw: (ctx, W, H, pal) => drawNet(ctx, W, pal, D, labels, f, L, K, show) };
+    paint(q<HTMLCanvasElement>('.fx-fig'), fig);
+    const pp = pagePalette(), leg: [string, string][] = [];
+    if (show.p) { if (L) leg.push([pp.accent, `poles, limb ${labels[0]}`], [pp.accent2, `poles, limb ${labels[1]}`], [pp.ink, 'other poles']); else leg.push([pp.ink, 'poles']); }
+    if (show.g) leg.push([pp.ink, 'girdle (π-circle)']);
+    leg.push([pp.bad, 'fold axis (square)']);
+    if (show.k) leg.push([pp.muted, 'density, every 2σ']);
+    if (show.l) leg.push([pp.line, 'limb mean planes']);
+    if (show.a) leg.push([pp.good, 'axial plane (dashed)']);
+    q('.fx-leg').replaceChildren(...leg.map(([c, t2]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t2); return sp; }));
+    report = [
+      { title: q('.fx-big').textContent!, facts: facts.map(kv), figure: fig, note: 'Poles to planes on a lower-hemisphere equal-area net. The fold axis is the least eigenvector (e3) of the orientation tensor of the poles; it assumes a cylindrical fold.' },
+      ...(L ? [{ title: 'Limbs', facts: lf.map(kv) }] : []),
+      { title: 'Poles', table: { head, rows, align: ['r', 'l', 'l', 'r', 'l'] as ('l' | 'r')[] } },
+    ];
+  }
+
+  function showNotes(notes: string[]) {
+    q('.fx-warn').hidden = !notes.length;
+    q('.fx-warn').textContent = notes.length ? notes.slice(0, 6).join('; ') + (notes.length > 6 ? `; and ${notes.length - 6} more` : '') + '.' : '';
+  }
+
+  function drawNet(ctx: CanvasRenderingContext2D, S: number, pal: Palette, D: ReturnType<typeof parsePlanes>['data'], labels: string[], f: Fit, L: Limbs | null, K: ReturnType<typeof kamb>, show: { p: boolean; g: boolean; k: boolean; l: boolean; a: boolean }) {
+    const P = canvasPainter(ctx), C = S / 2, RAD = S * 0.42;
+    const xy = ([x, y]: [number, number]): [number, number] => [C + x * RAD, C - y * RAD];
+    if (show.k) {
+      ctx.save(); ctx.beginPath(); ctx.arc(C, C, RAD, 0, 2 * Math.PI); ctx.clip();
+      for (let lv = 2, i = 0; lv <= K.max; lv += 2, i++) {
+        ctx.globalAlpha = Math.min(1, 0.45 + i * 0.12);
+        for (const s of contour(K.z, K.lo, K.step, lv)) P.line(s.map(xy), pal.muted, lv === 2 ? 0.9 : 1.2);
+      }
+      ctx.restore();
+    }
+    P.circle(C, C, RAD, null, pal.ink, 1.4);
+    for (let a = 0; a < 360; a += 10) { const t = (a * Math.PI) / 180, k = a % 90 ? 5 : 9; P.line([[C + Math.sin(t) * RAD, C - Math.cos(t) * RAD], [C + Math.sin(t) * (RAD + k), C - Math.cos(t) * (RAD + k)]], pal.ink, 1); }
+    P.text(C, C - RAD - 12, 'N', 15, pal.ink, 'middle', 'bottom', 0, true);
+    P.line([[C - 5, C], [C + 5, C]], pal.ink, 1); P.line([[C, C - 5], [C, C + 5]], pal.ink, 1);
+    if (show.l && L) for (const p of L.plane) P.line(greatCircle(p, 'equal-area').map(xy), pal.line, 1.6);
+    if (show.g) P.line(greatCircle(f.girdle, 'equal-area').map(xy), pal.ink, 1.6);
+    if (show.a && L?.axial) P.line(greatCircle(L.axial, 'equal-area').map(xy), pal.good, 1.8, [7, 5]);
+    if (show.p) for (const d of D) {
+      const [x, y] = xy(project(d.pole, 'equal-area'));
+      const c = L && d.label === labels[0] ? pal.accent : L && d.label === labels[1] ? pal.accent2 : pal.ink;
+      P.circle(x, y, 3.4, c, pal.bg, 0.8);
+    }
+    if (L) for (const [i, m] of L.mean.entries()) { const [x, y] = xy(project(m, 'equal-area')); P.circle(x, y, 6.5, null, i ? pal.accent2 : pal.accent, 2); }
+    {
+      const [x, y] = xy(project(f.axis, 'equal-area'));
+      P.poly([[x - 7, y - 7], [x + 7, y - 7], [x + 7, y + 7], [x - 7, y + 7]], pal.bad, pal.bg, 1.5);
+      P.text(x + 10, y - 10, 'axis', 14, pal.bad, 'start', 'middle', 0, true);
+    }
+    P.text(S - 8, S - 10, 'Equal area, lower hemisphere', 11, pal.muted, 'end', 'middle');
+    P.text(8, S - 10, `${D.length} poles`, 11, pal.muted, 'start', 'middle');
+  }
+
+  q('.fx-csv').addEventListener('click', () => rows.length && save(new TextEncoder().encode(csv([['line', q<HTMLSelectElement>('.fx-pf').value === 'dd' ? 'dipdir_dip' : 'strike_dip_rhr', 'pole_plunge_trend', 'off_girdle_deg', 'limb'], ...rows])), 'fold-poles.csv', 'text/csv'));
+  q('.fx-rcsv').addEventListener('click', () => results.length && save(new TextEncoder().encode(csv(results)), 'fold-axis-results.csv', 'text/csv'));
+  let tm = 0;
+  q('.fx-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+  wireDownloads(q('.fx-out > .dl:last-child'), () => ({ title: 'Fold axis and cylindrical best fit', subtitle: q('.fx-big').textContent ?? '', file: 'fold-axis-fit', sections: report }));
+</script>
+
+<style is:inline>
+  .fax textarea { width: 100%; font-family: ui-monospace, monospace; }
+  .fax .fx-paper { max-width: 520px; margin: 12px auto 0; }
+  .fax .fx-paper canvas { display: block; width: 100%; height: auto; }
+  .fax h3 { margin: 14px 0 6px; font-size: 1rem; }
+  .fax .fx-tab td, .fax .fx-tab th { white-space: nowrap; }
+  .fax .fx-scroll { max-height: 420px; overflow-y: auto; }
+</style>
