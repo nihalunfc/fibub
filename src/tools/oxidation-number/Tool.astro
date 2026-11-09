@@ -1,0 +1,159 @@
+---
+// Oxidation number finder and redox balancer: every atom's oxidation number with the rule used, and redox
+// equations balanced by the half-reaction (ion-electron) method in acid or base, step by step.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { COUPLES, halfReaction, pretty } from '../../lib/sci/oxidation';
+const chips = ['K2Cr2O7', 'KMnO4', 'H2SO4', 'NH4+', 'H2O2', 'NaH', 'Fe3O4', 'OF2', 'S2O3^2-', 'CH4'];
+const kinds = COUPLES.map((c) => ({ ...c, kind: halfReaction(c.from, c.to, 'acid').kind }));
+const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c) => c.kind === 'reduction');
+---
+<div class="ax ox">
+  <div class="ax-card">
+    <h2>Oxidation numbers</h2>
+    <label>Formula <input class="ox-f" value="K2Cr2O7" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-help">Write charges with ^, like SO4^2- or Fe^3+ (MnO4- and NH4+ also work).</p>
+    <div class="ox-chips" role="group" aria-label="Examples">{chips.map((c) => <button type="button" class="ox-chip" data-f={c}>{pretty(c)}</button>)}</div>
+    <p class="ax-err ox-err" hidden></p>
+    <div class="ox-show" aria-live="polite"></div>
+    <div class="ax-scroll"><table class="ox-tab"></table></div>
+    <p class="lx-eq ox-sum"></p>
+    <p class="ax-help ox-note"></p>
+    <details class="ox-rules"><summary>The rules, in the order they are used</summary><ol class="ox-rl"></ol></details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Balance a redox reaction</h2>
+    <div class="ax-grid">
+      <label>Reducing agent (is oxidised) <select class="ox-o">{oxs.map((c) => <option value={c.id} selected={c.id === 'Fe2-Fe3'}>{pretty(c.from)} → {pretty(c.to)}</option>)}</select></label>
+      <label>Oxidising agent (is reduced) <select class="ox-r">{reds.map((c) => <option value={c.id} selected={c.id === 'MnO4-Mn2'}>{pretty(c.from)} → {pretty(c.to)}</option>)}</select></label>
+    </div>
+    <div class="ax-seg ox-med" role="group" aria-label="Medium" style="margin-top:10px"><button type="button" data-m="acid" aria-pressed="true">Acidic solution</button><button type="button" data-m="base" aria-pressed="false">Basic solution</button></div>
+    <p class="ax-err ox-berr" hidden></p>
+    <div class="ox-halves"></div>
+    <p class="ax-big ox-final" style="margin:12px 0 4px"></p>
+    <p class="lx-eq ox-check"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Find oxygen's oxidation number in H₂O, H₂O₂ and OF₂. Which rule changes each time?</li>
+      <li>Compare hydrogen in NH₃ and in NaH.</li>
+      <li>Type Fe3O4. Why is the answer a fraction?</li>
+      <li>Balance permanganate with iron(II) in acid, then switch to base with MnO₄⁻ → MnO₂. Where do the OH⁻ ions come from?</li>
+      <li>In every balanced equation, check that the electrons lost equal the electrons gained.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .ox select { font-size: 16px; min-height: 44px; }
+  .ox-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ox-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ox-show { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 6px; margin: 16px 0 10px; }
+  .ox-show .ox-el { display: grid; justify-items: center; }
+  .ox-show .ox-on { font-size: 17px; font-weight: 750; color: var(--accent); min-height: 1.3em; }
+  .ox-show .ox-sym { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .ox-show .ox-ch { font-size: 22px; font-weight: 700; align-self: end; }
+  .ox-rl { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 4px; }
+  .ox-rl li.used { font-weight: 650; }
+  .ox-halves { display: grid; gap: 10px; margin-top: 12px; }
+  .ox-halves h3 { margin: 0 0 4px; font-size: 15px; }
+  .ox-halves ol { margin: 0; padding-left: 22px; display: grid; gap: 3px; font-size: 15px; }
+</style>
+
+<script>
+  import { oxidationNumbers, onText, RULES, halfReaction, combine, eqText, tally, COUPLES, pretty, readFormula } from '../../lib/sci/oxidation';
+  import { mountQuiz, same, near, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ox')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = (sel: string, t: string | null) => { const e = q(sel); e.hidden = !t; e.textContent = t ?? ''; };
+  let medium: 'acid' | 'base' = 'acid';
+
+  function updON() {
+    const t = q<HTMLInputElement>('.ox-f').value.trim();
+    const show = q('.ox-show'), tab = q<HTMLTableElement>('.ox-tab');
+    let r;
+    try { r = oxidationNumbers(t); } catch (e) { err('.ox-err', (e as Error).message || 'Type a formula such as K2Cr2O7.'); show.replaceChildren(); tab.replaceChildren(); q('.ox-sum').textContent = ''; q('.ox-note').textContent = ''; return; }
+    err('.ox-err', null);
+    show.replaceChildren();
+    for (const row of r.rows) {
+      const d = document.createElement('div'); d.className = 'ox-el';
+      const on = document.createElement('span'); on.className = 'ox-on'; on.textContent = onText(row.on);
+      const sy = document.createElement('span'); sy.className = 'ox-sym'; sy.textContent = row.symbol + (row.count > 1 ? String(row.count).replace(/\d/g, (x) => '₀₁₂₃₄₅₆₇₈₉'[+x]) : '');
+      d.append(on, sy); show.append(d);
+    }
+    if (r.charge) { const c = document.createElement('span'); c.className = 'ox-ch'; c.textContent = `${Math.abs(r.charge) === 1 ? '' : Math.abs(r.charge)}${r.charge > 0 ? '+' : '−'}`; show.append(c); }
+    tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); for (const h of ['Element', 'Atoms', 'Oxidation number', 'Why']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const bd = tab.createTBody();
+    for (const row of r.rows) { const tr = bd.insertRow(); [row.symbol, String(row.count), onText(row.on), row.rule].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 1 || i === 2) td.className = 'r'; }); }
+    const total = r.rows.reduce((a, x) => a + x.count * x.on, 0);
+    q('.ox-sum').textContent = `Check: ${r.rows.map((x) => `${x.count} × (${onText(x.on)})`).join(' + ')} = ${onText(Math.round(total * 1e9) / 1e9)}, the ${r.charge ? 'charge of the ion' : 'charge of a neutral compound'}.`;
+    q('.ox-note').textContent = r.note;
+    const used = new Set(r.rows.map((x) => x.rule));
+    const ol = q('.ox-rl'); ol.replaceChildren();
+    RULES.forEach((rule) => { const li = document.createElement('li'); li.textContent = rule; if ([...used].some((u) => u.startsWith(rule.slice(0, 30)))) li.className = 'used'; ol.append(li); });
+  }
+
+  function updRedox() {
+    root.querySelectorAll<HTMLButtonElement>('.ox-med button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === medium)));
+    const co = COUPLES.find((c) => c.id === q<HTMLSelectElement>('.ox-o').value)!, cr = COUPLES.find((c) => c.id === q<HTMLSelectElement>('.ox-r').value)!;
+    const box = q('.ox-halves'); box.replaceChildren();
+    let o, r, c;
+    try { o = halfReaction(co.from, co.to, medium); r = halfReaction(cr.from, cr.to, medium); c = combine(o, r); }
+    catch (e) { err('.ox-berr', (e as Error).message); q('.ox-final').textContent = ''; q('.ox-check').textContent = ''; return; }
+    err('.ox-berr', null);
+    for (const [h, title, m] of [[o, 'Oxidation half', c.mOx], [r, 'Reduction half', c.mRed]] as const) {
+      const d = document.createElement('div'); const h3 = document.createElement('h3');
+      h3.textContent = `${title}: ${h.key} goes from ${onText(h.from)} to ${onText(h.to)} (${h.electrons} electron${h.electrons > 1 ? 's' : ''} ${h.kind === 'oxidation' ? 'lost' : 'gained'})`;
+      const ol = document.createElement('ol'); for (const s of h.steps) { const li = document.createElement('li'); li.textContent = s; ol.append(li); }
+      if (m > 1) { const li = document.createElement('li'); li.textContent = `Multiply by ${m} so the electrons match (${h.electrons * m} each).`; ol.append(li); }
+      d.append(h3, ol); box.append(d);
+    }
+    q('.ox-final').textContent = eqText(c.left, c.right);
+    const L = tally(c.left), R = tally(c.right);
+    const atoms = [...L.atoms].map(([e, n]) => `${e} ${n}`).join(', ');
+    q('.ox-check').textContent = `Add the halves and cancel what appears on both sides. Check: atoms ${atoms} on each side; charge ${L.charge > 0 ? '+' : L.charge < 0 ? '−' : ''}${Math.abs(L.charge)} on each side${[...L.atoms].every(([e, n]) => R.atoms.get(e) === n) && L.charge === R.charge ? '' : ' (does not balance)'}.`;
+  }
+
+  q('.ox-f').addEventListener('input', updON);
+  root.querySelectorAll<HTMLButtonElement>('.ox-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ox-f').value = b.dataset.f!; updON(); }));
+  q('.ox-o').addEventListener('change', updRedox); q('.ox-r').addEventListener('change', updRedox);
+  root.querySelectorAll<HTMLButtonElement>('.ox-med button').forEach((b) => b.addEventListener('click', () => { medium = b.dataset.m as 'acid' | 'base'; updRedox(); }));
+  updON(); updRedox();
+
+  // Check yourself
+  const ASK: [string, string][] = [['K2Cr2O7', 'Cr'], ['KMnO4', 'Mn'], ['H2SO4', 'S'], ['HNO3', 'N'], ['NH3', 'N'], ['SO2', 'S'], ['H2O2', 'O'], ['NaH', 'H'], ['Cl2O7', 'Cl'], ['HClO', 'Cl'], ['SO4^2-', 'S'], ['NH4+', 'N'], ['CO3^2-', 'C'], ['PO4^3-', 'P'], ['MnO2', 'Mn'], ['Fe2O3', 'Fe'], ['CrO4^2-', 'Cr'], ['N2O', 'N'], ['NO2', 'N'], ['OF2', 'O'], ['P4', 'P'], ['CH4', 'C']];
+  const onOf = (f: string, e: string) => oxidationNumbers(f).rows.find((r) => r.symbol === e)!.on;
+  const qON = (): Question => {
+    const [f, e] = pickOne(ASK), v = onOf(f, e);
+    const r = oxidationNumbers(f);
+    return { q: `What is the oxidation number of ${e} in ${pretty(f)}?`, hint: 'like +6 or −2', answer: onText(v), ok: (t) => near(v, 0)(t.replace('+', '')), worked: `${r.rows.filter((x) => x.symbol !== e).map((x) => `${x.symbol} is ${onText(x.on)}`).join(', ')}. The sum must be ${r.charge}: ${r.rows.map((x) => `${x.count}×(${x.symbol === e ? 'x' : onText(x.on)})`).join(' + ')} = ${r.charge}, so x = ${onText(v)}.` };
+  };
+  mountQuiz(q('.cq'), (): Question[] => {
+    let a = qON(), b = qON(); while (b.q === a.q) b = qON();
+    const c3 = pickOne(COUPLES), h3 = halfReaction(c3.from, c3.to, 'acid');
+    const c4 = pickOne(COUPLES), h4 = halfReaction(c4.from, c4.to, 'acid');
+    const word = h3.kind;
+    return [a, b,
+      { q: `${pretty(c3.from)} → ${pretty(c3.to)}: is this oxidation or reduction?`, hint: 'oxidation or reduction', answer: word, ok: same(word), worked: `${h3.key} goes from ${onText(h3.from)} to ${onText(h3.to)}: ${word === 'oxidation' ? 'up, so electrons are lost' : 'down, so electrons are gained'}.` },
+      { q: `How many electrons appear in the balanced half-reaction ${pretty(c4.from)} → ${pretty(c4.to)}?`, hint: 'a whole number', answer: String(h4.electrons), ok: near(h4.electrons, 0), worked: `${h4.steps[h4.steps.length - 1].replace('Balance charge with electrons: ', '')}.` },
+      (() => {
+        const oc = pickOne(COUPLES.filter((c) => halfReaction(c.from, c.to, 'acid').kind === 'oxidation'));
+        const rc = pickOne(COUPLES.filter((c) => halfReaction(c.from, c.to, 'acid').kind === 'reduction' && c.from !== oc.from));
+        const ho = halfReaction(oc.from, oc.to, 'acid'), hr = halfReaction(rc.from, rc.to, 'acid'), cb = combine(ho, hr);
+        const k = cb.left.get(oc.from) ?? 0;
+        return { q: `Balance ${pretty(oc.from)} + ${pretty(rc.from)} → ${pretty(oc.to)} + ${pretty(rc.to)} in acid. What number goes in front of ${pretty(oc.from)}?`, hint: 'a whole number', answer: String(k), ok: near(k, 0), worked: `${ho.electrons} electron${ho.electrons > 1 ? 's' : ''} lost per ${pretty(oc.from)}${ho.left.get(oc.from)! > 1 ? ` (×${ho.left.get(oc.from)})` : ''}, ${hr.electrons} gained per ${pretty(rc.from)}${hr.left.get(rc.from)! > 1 ? ` (×${hr.left.get(rc.from)})` : ''}; match the electrons: ${eqText(cb.left, cb.right)}` } as Question;
+      })(),
+    ];
+  });
+</script>
