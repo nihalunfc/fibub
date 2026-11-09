@@ -1,0 +1,128 @@
+---
+// Dimensional analysis with the Buckingham Π theorem: variables with their dimensions (M L T Θ I N J), the
+// dimension matrix and its rank, an integer null-space basis, and the Π groups for chosen repeating variables.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bpi">
+  <div class="ax-card">
+    <h2>Variables</h2>
+    <div class="ax-grid">
+      <label>Example <select class="bp-pre"></select></label>
+    </div>
+    <label style="margin-top:10px"><span>One per line: name, dimensions, and a note if you like. Put the quantity you want to predict first.</span> <textarea class="bp-vars" rows="8" spellcheck="false" autocomplete="off"></textarea></label>
+    <p class="ax-help">Dimensions use M (mass), L (length), T (time), Θ or K (temperature), I (current), N (amount of substance) and J (luminous intensity), with powers like L^-1 or L⁻¹, or a slash: L/T^2. Write 1 for a pure number.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Add a common quantity <select class="bp-q"></select></label>
+      <label>Its name <input class="bp-qn" spellcheck="false" autocomplete="off" placeholder="e.g. σ" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small bp-add">Add it to the list</button></div>
+    <p class="ax-err bp-err" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="bp-vt"></table></div>
+  </div>
+
+  <div class="ax-card bp-out" hidden>
+    <h2>Dimensionless groups</h2>
+    <p class="ax-big bp-big"></p>
+    <h3>Dimension matrix</h3>
+    <p class="ax-help" style="margin-top:0">Each column holds the powers of one variable's dimensions. The rank is the number of independent dimensions.</p>
+    <div class="ax-scroll"><table class="bp-mat"></table></div>
+    <h3>Repeating variables</h3>
+    <p class="ax-help bp-rhelp" style="margin-top:0"></p>
+    <div class="ax-row bp-rep"></div>
+    <p class="ax-err bp-rerr" hidden></p>
+    <div class="bp-res">
+      <h3>Π groups</h3>
+      <div class="ax-scroll"><table class="bp-pt"></table></div>
+      <p class="bp-rel"></p>
+      <h3>Null-space basis</h3>
+      <p class="ax-help" style="margin-top:0">Every dimensionless product of the variables has exponents that are a combination of these rows (found by exact row reduction of the matrix, scaled to whole numbers).</p>
+      <div class="ax-scroll"><table class="bp-ns"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bp-csv">Download the matrix and groups (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bpi h3 { margin: 22px 0 8px; font-size: 15px; }
+  .bpi .bp-rel { font-size: 17px; font-weight: 600; margin: 12px 0 0; overflow-wrap: anywhere; }
+  .bpi .bp-rep .ax-check { font-size: 15px; }
+  .bpi .bp-pt td:nth-child(2) { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseVariables, dimMatrix, rref, nullSpace, piGroups, autoRepeating, dimString, qstr, BASE, BASE_NAMES, QUANTITIES, PRESETS, type Variable } from '../../lib/sci/dimensional';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bpi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const table = (t: HTMLElement, head: string[], rows: string[][]) => { t.replaceChildren(); const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); } for (const r of rows) { const tr = t.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); } };
+  const SUB = '₀₁₂₃₄₅₆₇₈₉', sub = (n: number) => String(n).split('').map((d) => SUB[Number(d)]).join('');
+  const pre = q<HTMLSelectElement>('.bp-pre');
+  pre.replaceChildren(...PRESETS.map((p, i) => new Option(p.name, String(i))), new Option('My own variables', 'own'));
+  q<HTMLSelectElement>('.bp-q').replaceChildren(...QUANTITIES.map(([n, d], i) => new Option(`${n} (${d === '1' ? 'none' : d})`, String(i))));
+
+  let vars: Variable[] = [], rep: number[] = [], key = '', sections: Section[] = [], csvRows: (string | number)[][] = [];
+  function run() {
+    const err = q('.bp-err'); err.hidden = true;
+    try { vars = parseVariables(q<HTMLTextAreaElement>('.bp-vars').value); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.bp-out').hidden = true; q('.bp-vt').replaceChildren(); sections = []; return; }
+    table(q('.bp-vt'), ['Variable', 'Dimensions', 'SI units', 'Note'], vars.map((v) => [v.name, dimString(v.dim), dimString(v.dim, true).replace(' (dimensionless)', ''), v.note]));
+    // New set of variables: choose the repeating ones again.
+    const k = vars.map((v) => v.name + dimString(v.dim)).join('|');
+    if (k !== key) { key = k; rep = autoRepeating(vars); }
+    const { rows, D } = dimMatrix(vars), n = vars.length, rank = D.length ? rref(D).pivots.length : 0;
+    q('.bp-out').hidden = false;
+    q('.bp-big').textContent = `${n} variables − rank ${rank} = ${n - rank} dimensionless group${n - rank === 1 ? '' : 's'}`;
+    table(q('.bp-mat'), ['', ...vars.map((v) => v.name)], rows.map((i, r) => [`${BASE[i]} (${BASE_NAMES[i]})`, ...D[r].map(qstr)]));
+    q('.bp-rhelp').textContent = `Choose ${rank} variable${rank === 1 ? '' : 's'} that together hold all the dimensions; each group then combines one other variable with them. Pick ones you can control or measure easily, and not the quantity you want to predict. A different choice gives different-looking but equivalent groups.`;
+    q('.bp-rep').replaceChildren(...vars.map((v, j) => {
+      const l = document.createElement('label'); l.className = 'ax-check';
+      const c = document.createElement('input'); c.type = 'checkbox'; c.dataset.j = String(j); c.checked = rep.includes(j);
+      l.append(c, ` ${v.name}`); return l;
+    }));
+    groups();
+  }
+  function groups() {
+    const rerr = q('.bp-rerr'); rerr.hidden = true;
+    let res;
+    try { res = piGroups(vars, rep); }
+    catch (e) { rerr.textContent = (e as Error).message; rerr.hidden = false; q('.bp-res').hidden = true; sections = []; return; }
+    q('.bp-res').hidden = false;
+    const names = vars.map((v) => v.name), G = res.groups;
+    table(q('.bp-pt'), ['Group', 'Formula', ...names], G.map((g, i) => [`Π${sub(i + 1)}`, g.text, ...g.exps.map(String)]));
+    const first = G.findIndex((g) => g.main === 0);
+    const order = first >= 0 ? [first, ...G.map((_, i) => i).filter((i) => i !== first)] : G.map((_, i) => i);
+    q('.bp-rel').textContent = !G.length ? 'No dimensionless group: these variables cannot form one.'
+      : G.length === 1 ? `${G[0].text} = constant`
+      : `${G[order[0]].text} = φ(${order.slice(1).map((i) => G[i].text).join(', ')})`;
+    const { D } = dimMatrix(vars), ns = nullSpace(D, vars.length);
+    table(q('.bp-ns'), ['', ...names], ns.map((v, i) => [`v${sub(i + 1)}`, ...v.map(String)]));
+    const { rows } = dimMatrix(vars);
+    csvRows = [['row', ...names], ...rows.map((i, r) => [BASE[i], ...D[r].map((x) => qstr(x).replace('−', '-'))]), [], ['group', 'formula', ...names], ...G.map((g, i) => [`Pi${i + 1}`, g.text, ...g.exps])];
+    sections = [
+      { title: 'Variables', table: { head: ['Variable', 'Dimensions', 'Note'], rows: vars.map((v) => [v.name, dimString(v.dim), v.note]) } },
+      { title: 'Dimension matrix', text: [q('.bp-big').textContent!], table: { head: ['', ...names], rows: rows.map((i, r) => [BASE[i], ...D[r].map(qstr)]) } },
+      { title: 'Π groups', text: [`Repeating variables: ${rep.map((j) => names[j]).join(', ') || 'none'}.`, q('.bp-rel').textContent!], table: { head: ['Group', 'Formula'], rows: G.map((g, i) => [`Π${sub(i + 1)}`, g.text]) } },
+    ];
+  }
+  q('.bp-rep').addEventListener('change', (e) => {
+    const c = e.target as HTMLInputElement; const j = Number(c.dataset.j);
+    rep = c.checked ? [...rep, j].sort((a, b) => a - b) : rep.filter((x) => x !== j);
+    groups();
+  });
+  pre.addEventListener('change', () => { if (pre.value !== 'own') { q<HTMLTextAreaElement>('.bp-vars').value = PRESETS[Number(pre.value)].vars; run(); } });
+  let t = 0;
+  q('.bp-vars').addEventListener('input', () => { pre.value = 'own'; clearTimeout(t); t = window.setTimeout(run, 300); });
+  q('.bp-add').addEventListener('click', () => {
+    const [nm, d] = QUANTITIES[Number(q<HTMLSelectElement>('.bp-q').value)], name = q<HTMLInputElement>('.bp-qn').value.trim() || nm.split(/[ ,]/)[0].toLowerCase();
+    const box = q<HTMLTextAreaElement>('.bp-vars');
+    box.value = `${box.value.replace(/\s+$/, '')}${box.value.trim() ? '\n' : ''}${name.replace(/[,;]/g, ' ')}, ${d}, ${nm.toLowerCase()}`;
+    q<HTMLInputElement>('.bp-qn').value = ''; pre.value = 'own'; run();
+  });
+  q('.bp-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(csvRows)), 'buckingham-pi.csv', 'text/csv'));
+  q<HTMLTextAreaElement>('.bp-vars').value = PRESETS[0].vars; run();
+  wireDownloads(q('.dl'), () => ({ title: 'Dimensional analysis', subtitle: q('.bp-rel').textContent ?? '', file: 'buckingham-pi', sections }));
+</script>
