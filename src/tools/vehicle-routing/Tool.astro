@@ -1,0 +1,221 @@
+---
+// Vehicle routing for small instances: a depot, customers with demands, vehicles with a capacity. Clarke-Wright
+// savings with 2-opt and or-opt improvement, exact route order (Held-Karp) for routes up to 12 stops, and the exact
+// optimum for up to 12 customers. All in the browser; the maths is in src/lib/sci/vrp.ts. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax vrx">
+  <div class="ax-card">
+    <h2>Depot and customers</h2>
+    <div class="ax-seg vr-kind" role="group" aria-label="How the places are given">
+      <button type="button" data-k="xy" aria-pressed="true">Coordinates</button>
+      <button type="button" data-k="dm" aria-pressed="false">Distance table</button>
+    </div>
+    <div class="vr-xyw">
+      <label style="margin-top:12px">One place per line: name, x, y, demand. The first line is the depot <textarea class="vr-xy" rows="8" spellcheck="false" autocomplete="off"></textarea></label>
+      <DataFile target=".vr-xy" maxMB={1} maxCols={4} maxRows={200} label="Open a file" />
+      <p class="ax-help">x and y in any one unit (km on a map grid, for example); distances are straight lines. Up to 200 customers.</p>
+    </div>
+    <div class="vr-dmw" hidden>
+      <label style="margin-top:12px">Distance table: first row and column are the depot; names optional <textarea class="vr-dm" rows="8" spellcheck="false" autocomplete="off"></textarea></label>
+      <DataFile target=".vr-dm" maxMB={1} maxCols={201} maxRows={201} label="Open a file" />
+      <label style="margin-top:10px">Demands of the customers, in the table's order (not the depot) <input class="vr-dem" type="text" spellcheck="false" autocomplete="off" /></label>
+      <p class="ax-help">Road distances or travel times both work. If the table is not symmetric, each pair uses the average of its two directions.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Vehicle capacity <input class="vr-cap" type="number" min="0" step="any" value="15" inputmode="decimal" /></label>
+      <label>Vehicles available <input class="vr-k" type="number" min="0" step="1" value="3" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Vehicles: 0 or blank means as many as needed. Every vehicle starts and ends at the depot.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small vr-ex">Use the example</button></div>
+    <p class="ax-err vr-err" hidden></p>
+    <p class="ax-help vr-note" hidden></p>
+  </div>
+
+  <div class="ax-card vr-out" hidden>
+    <h2>Routes</h2>
+    <p class="ax-big vr-big" aria-live="polite"></p>
+    <p class="ax-err vr-warn" hidden></p>
+    <dl class="ax-facts vr-facts"></dl>
+    <canvas class="ax-fig vr-map" style="margin-top:12px"></canvas>
+    <div class="ax-legend vr-leg"></div>
+    <p class="ax-help vr-mnote"></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="vr-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small vr-csv">Download the stops (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import * as V from '../../lib/sci/vrp';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vrx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const COLS_LIGHT = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#F0E442'];
+  const COLS_DARK = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+  let kind: 'xy' | 'dm' = 'xy';
+  let inst: V.Instance | null = null, sol: V.Solution | null = null, pts: [number, number][] = [], fig: Figure | null = null, facts: [string, string][] = [];
+  const f = (x: number) => sig(x, 5);
+
+  function fail(msg: string) { q('.vr-err').textContent = msg; q('.vr-err').hidden = false; q('.vr-out').hidden = true; sol = null; }
+
+  function read(): V.Instance | string | null {
+    const cap = num(q<HTMLInputElement>('.vr-cap').value), kRaw = q<HTMLInputElement>('.vr-k').value.trim(), k = kRaw === '' ? 0 : num(kRaw);
+    if (!(cap > 0)) return 'Vehicle capacity must be a number above 0.';
+    if (!(k >= 0) || !Number.isInteger(k)) return 'Vehicles available must be a whole number (0 for as many as needed).';
+    const notes: string[] = [];
+    if (kind === 'xy') {
+      let rows = parseTable(q<HTMLTextAreaElement>('.vr-xy').value);
+      if (!rows.length) return null;
+      if (rows[0].length >= 3 && Number.isNaN(num(rows[0][1])) && Number.isNaN(num(rows[0][2]))) rows = rows.slice(1);
+      const names: string[] = [], xy: [number, number][] = [], demand: number[] = [];
+      for (let i = 0; i < rows.length; i++) {
+        let r = rows[i];
+        if (r.length >= 2 && !Number.isNaN(num(r[0])) && (r.length === 3 || (r.length === 2 && i === 0))) r = [i ? `C${i}` : 'Depot', ...r];
+        if (r.length < 3) return `Line ${i + 1}: give a name, x, y and (for customers) a demand.`;
+        const x = num(r[1]), y = num(r[2]), qd = i === 0 ? 0 : num(r[3] ?? '');
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return `Line ${i + 1}: x and y must be numbers.`;
+        if (i > 0 && !(qd >= 0)) return `Line ${i + 1}: the demand must be a number of 0 or more.`;
+        names.push(r[0] || (i ? `C${i}` : 'Depot')); xy.push([x, y]); demand.push(qd);
+      }
+      if (rows.length > 201) return 'This tool takes up to 200 customers.';
+      return { names, d: V.euclid(xy), demand, cap, vehicles: k, xy, ...{ notes } } as V.Instance;
+    }
+    const rows = parseTable(q<HTMLTextAreaElement>('.vr-dm').value);
+    if (!rows.length) return null;
+    const head = rows[0].slice(1).some((c) => c !== '' && Number.isNaN(num(c))) || (rows[0].length && Number.isNaN(num(rows[0][0])) && rows.length > 1 && rows[0].length < rows[1].length);
+    let body = head ? rows.slice(1) : rows;
+    const named = body.some((r) => Number.isNaN(num(r[0])));
+    const names = body.map((r, i) => (named ? r[0] : head ? (rows[0][rows[0].length - body.length + i] ?? '') : '') || (i ? `C${i}` : 'Depot'));
+    body = body.map((r) => (named ? r.slice(1) : r));
+    const n = body.length;
+    if (n > 201) return 'This tool takes up to 200 customers.';
+    const d: number[][] = [];
+    for (let i = 0; i < n; i++) {
+      if (body[i].length !== n) return `Row ${i + 1} has ${body[i].length} distances; a table of ${n} places needs ${n} in every row.`;
+      const r = body[i].map(num); const bad = r.findIndex((v) => !(v >= 0));
+      if (bad >= 0) return `Row ${i + 1}, column ${bad + 1}: "${body[i][bad]}" is not a distance of 0 or more.`;
+      d.push(r);
+    }
+    let asym = false;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (Math.abs(d[i][j] - d[j][i]) > 1e-9 * Math.max(1, d[i][j])) { asym = true; d[i][j] = d[j][i] = (d[i][j] + d[j][i]) / 2; }
+    for (let i = 0; i < n; i++) d[i][i] = 0;
+    const dem = q<HTMLInputElement>('.vr-dem').value.split(/[\s,;]+/).filter(Boolean).map(num);
+    if (dem.length !== n - 1) return `Give ${n - 1} demands (one per customer, not the depot); there ${dem.length === 1 ? 'is' : 'are'} ${dem.length}.`;
+    if (dem.some((v) => !(v >= 0))) return 'Every demand must be a number of 0 or more.';
+    if (asym) notes.push('The table was not symmetric: each pair uses the average of its two directions.');
+    return { names, d, demand: [0, ...dem], cap, vehicles: k, ...{ notes } } as V.Instance;
+  }
+
+  function run() {
+    q('.vr-err').hidden = true; q('.vr-note').hidden = true;
+    const r = read();
+    if (r === null) { q('.vr-out').hidden = true; sol = null; return; }
+    if (typeof r === 'string') return fail(r);
+    const notes = (r as V.Instance & { notes: string[] }).notes;
+    if (notes.length) { q('.vr-note').textContent = notes.join(' '); q('.vr-note').hidden = false; }
+    inst = r;
+    const n = r.d.length - 1;
+    let h: ReturnType<typeof V.heuristic>, ex: V.Solution | null = null;
+    try { h = V.heuristic(r); if (n <= V.EXACT_MAX) ex = V.exact(r); } catch (e) { return fail((e as Error).message); }
+    const K = r.vehicles, totalDem = r.demand.reduce((a, b) => a + b, 0), minVeh = Math.ceil(totalDem / r.cap - 1e-9);
+    const warn = q('.vr-warn'); warn.hidden = true;
+    if (n <= V.EXACT_MAX && !ex) { return fail(`No plan fits in ${K} vehicle${K === 1 ? '' : 's'}: the demand (${f(totalDem)}) needs at least ${minVeh} of capacity ${f(r.cap)}, and items cannot be split between vehicles. Allow more vehicles.`); }
+    sol = ex ?? h.improved;
+    if (!ex && K && sol.routes.length > K) { warn.textContent = `This plan needs ${sol.routes.length} vehicles but ${K} ${K === 1 ? 'is' : 'are'} available. With more than ${V.EXACT_MAX} customers the tool cannot promise a plan with fewer; at least ${minVeh} are needed for the load.`; warn.hidden = false; }
+    q('.vr-out').hidden = false;
+    q('.vr-big').textContent = `${ex ? 'Shortest possible' : 'Good plan'}: ${sol.routes.length} route${sol.routes.length === 1 ? '' : 's'}, total distance ${f(sol.length)}`;
+    facts = [
+      ['Clarke-Wright savings', `${f(h.savings.length)} (${h.savings.routes.length} routes)`],
+      ['After 2-opt and or-opt', `${f(h.improved.length)} (${h.improved.routes.length} routes)`],
+      ['Exact optimum', ex ? `${f(ex.length)}${h.improved.length - ex.length > 1e-9 ? ` (heuristic ${f((100 * (h.improved.length - ex.length)) / ex.length)} % longer)` : ' (heuristic found it)'}` : `not run (over ${V.EXACT_MAX} customers)`],
+      ['Load', `${f(totalDem)} in vehicles of ${f(r.cap)}: at least ${minVeh} needed`],
+      ['Vehicles', K ? `${sol.routes.length} of ${K} used` : `${sol.routes.length} used`],
+    ];
+    const dl = q('.vr-facts'); dl.replaceChildren();
+    for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    // Table.
+    const t = q('.vr-tab'); t.replaceChildren();
+    const h0 = t.insertRow(); for (const x of ['Route', 'Stops', 'Load', 'Distance']) { const th = document.createElement('th'); th.textContent = x; h0.append(th); }
+    sol.routes.forEach((rt, k) => { const tr = t.insertRow(); [`${k + 1}`, [r.names[0], ...rt.map((i) => r.names[i]), r.names[0]].join(' → '), `${f(sol!.loads[k])} of ${f(r.cap)}`, f(sol!.lengths[k])].forEach((x) => (tr.insertCell().textContent = x)); });
+    const tot = t.insertRow(); ['Total', '', f(totalDem), f(sol.length)].forEach((x) => (tot.insertCell().textContent = x));
+    // Map.
+    pts = r.xy ?? V.mds(r.d);
+    q('.vr-mnote').textContent = r.xy ? 'Square = depot; circles = customers (size shows demand). Each colour is one vehicle.' : 'Positions are drawn from the distances (multidimensional scaling), so they are approximate: the route lengths in the table are exact.';
+    drawMap();
+  }
+
+  function drawMap() {
+    if (!sol || !inst) return;
+    const s = sol, I = inst, P = pts, xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), span = Math.max(x1 - x0, y1 - y0) || 1, maxQ = Math.max(...I.demand) || 1;
+    const make = (W: number, H: number): Figure => ({
+      w: W, h: H, alt: `Map of ${s.routes.length} routes from the depot`,
+      draw: (ctx, w, h, p) => {
+        const cols = p.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : p.bg === '#ffffff' ? COLS_LIGHT : COLS_DARK, pad = 30, sc = Math.min(w - 2 * pad, h - 2 * pad) / span;
+        const X = (i: number) => w / 2 + (P[i][0] - (x0 + x1) / 2) * sc, Y = (i: number) => h / 2 - (P[i][1] - (y0 + y1) / 2) * sc * (I.xy ? 1 : 1);
+        s.routes.forEach((rt, k) => {
+          ctx.strokeStyle = cols[k % cols.length]; ctx.lineWidth = 2.5; ctx.setLineDash(k >= cols.length ? [6, 4] : []);
+          ctx.beginPath(); ctx.moveTo(X(0), Y(0)); for (const i of rt) ctx.lineTo(X(i), Y(i)); ctx.lineTo(X(0), Y(0)); ctx.stroke();
+        });
+        ctx.setLineDash([]);
+        const few = I.names.length <= 40;
+        I.names.forEach((nm, i) => {
+          const k = s.routes.findIndex((rt) => rt.includes(i));
+          if (i === 0) { ctx.fillStyle = p.ink; ctx.fillRect(X(0) - 7, Y(0) - 7, 14, 14); }
+          else { const r = 3 + 4 * Math.sqrt(I.demand[i] / maxQ); ctx.beginPath(); ctx.arc(X(i), Y(i), r, 0, 2 * Math.PI); ctx.fillStyle = k >= 0 ? cols[k % cols.length] : p.muted; ctx.fill(); ctx.strokeStyle = p.bg; ctx.lineWidth = 1.5; ctx.stroke(); }
+          if (few) { ctx.fillStyle = p.ink; ctx.font = `${i ? 400 : 700} 11px system-ui, -apple-system, "Segoe UI", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(nm, X(i) + 7, Y(i) - 3); }
+        });
+      },
+    });
+    fig = make(720, 540);
+    const W = Math.max(300, Math.min(720, q('.vr-out').clientWidth - 34 || 720));
+    paint(q<HTMLCanvasElement>('.vr-map'), make(W, Math.round(W * 0.75)));
+    const p = document.documentElement.dataset.theme === 'dark' ? COLS_DARK : COLS_LIGHT, leg = q('.vr-leg'); leg.replaceChildren();
+    s.routes.forEach((rt, k) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = p[k % p.length]; sp.append(i, `Route ${k + 1} (${rt.length} stop${rt.length === 1 ? '' : 's'})`); leg.append(sp); });
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 350); };
+  for (const c of ['.vr-xy', '.vr-dm', '.vr-dem', '.vr-cap', '.vr-k']) q(c).addEventListener('input', later);
+  q('.vr-kind').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!b) return;
+    kind = b.dataset.k as 'xy' | 'dm';
+    q('.vr-kind').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.vr-xyw').hidden = kind !== 'xy'; q('.vr-dmw').hidden = kind !== 'dm';
+    if (kind === 'dm' && !q<HTMLTextAreaElement>('.vr-dm').value.trim()) exampleMatrix();
+    run();
+  });
+  function exampleMatrix() {
+    const rows = parseTable(V.EXAMPLE).slice(1), xy = rows.map((r) => [num(r[1]), num(r[2])] as [number, number]), d = V.euclid(xy);
+    q<HTMLTextAreaElement>('.vr-dm').value = ['\t' + rows.map((r) => r[0]).join('\t'), ...rows.map((r, i) => [r[0], ...d[i].map((v) => Math.round(v))].join('\t'))].join('\n');
+    q<HTMLInputElement>('.vr-dem').value = rows.slice(1).map((r) => r[3]).join(', ');
+  }
+  q('.vr-ex').addEventListener('click', () => {
+    if (kind === 'xy') q<HTMLTextAreaElement>('.vr-xy').value = V.EXAMPLE; else exampleMatrix();
+    q<HTMLInputElement>('.vr-cap').value = '15'; q<HTMLInputElement>('.vr-k').value = '3'; run();
+  });
+  q('.vr-csv').addEventListener('click', () => {
+    if (!sol || !inst) return;
+    const I = inst, rows: (string | number)[][] = [['route', 'order', 'stop', ...(I.xy ? ['x', 'y'] : []), 'demand', 'load_so_far', 'leg_distance', 'distance_so_far']];
+    sol.routes.forEach((rt, k) => {
+      let load = 0, dist = 0, prev = 0;
+      [0, ...rt, 0].forEach((i, o) => { const leg = o ? I.d[prev][i] : 0; dist += leg; load += i ? I.demand[i] : 0; rows.push([k + 1, o, I.names[i], ...(I.xy ? [I.xy[i][0], I.xy[i][1]] : []), i ? I.demand[i] : 0, f(load), f(leg), f(dist)]); prev = i; });
+    });
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'vehicle-routes.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = sol && inst ? [
+      { title: 'Answer', text: [q('.vr-big').textContent ?? ''], facts, figure: fig ?? undefined, note: q('.vr-mnote').textContent ?? '' },
+      { title: 'Routes', table: { head: ['Route', 'Stops', 'Load', 'Distance'], rows: sol.routes.map((rt, k) => [String(k + 1), [inst!.names[0], ...rt.map((i) => inst!.names[i]), inst!.names[0]].join(' > '), `${f(sol!.loads[k])} of ${f(inst!.cap)}`, f(sol!.lengths[k])]) } },
+    ] : [];
+    return { title: 'Vehicle routes', subtitle: q('.vr-big').textContent ?? '', file: 'vehicle-routes', sections };
+  });
+  document.addEventListener('fibub:theme', drawMap);
+  if ('ResizeObserver' in window) { let lastW = 0; new ResizeObserver(() => { const w = q('.vr-out').clientWidth; if (w && w !== lastW) { const first = !lastW; lastW = w; if (!first) drawMap(); } }).observe(q('.vr-out')); }
+  q<HTMLTextAreaElement>('.vr-xy').value = V.EXAMPLE; run();
+</script>
