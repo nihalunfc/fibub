@@ -11,7 +11,7 @@ order: 419
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [colour-difference-calculator, psychrometric-calculator, plot-maker]
+related: [colour-difference-calculator, psychrometric-calculator, plot-maker, heritage-climate-checker]
 sources:
   - "Lux-hours (illuminance × time) and the reciprocity assumption that light damage depends on the total exposure; UV irradiance from illuminance × UV content in µW/lm. General conservation science and photometry."
   - "Checked against an independent Python sum of the example plan (124,800 lux-hours, 62.4 % of a 200,000 lux-hour plan budget, 188 more days at 50 lux for 8 hours)."

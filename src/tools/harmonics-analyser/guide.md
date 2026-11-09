@@ -11,7 +11,7 @@ order: 422
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [tuning-calculator, wave-calculator, period-finder]
+related: [tuning-calculator, wave-calculator, period-finder, tempo-detector]
 sources:
   - "Discrete Fourier transform with Hann, Hamming, Blackman or rectangular windows and frame averaging (Welch), parabolic interpolation of spectral peaks, the stiff-string partial formula fₙ = n f₀ √(1 + B n²) (Fletcher), and the spectral centroid: standard signal processing and musical acoustics."
   - "Checked against NumPy (rfft) and SciPy windows on a synthetic tone with stretched partials and noise: spectrum values to 10⁻¹², the five strongest peak frequencies and levels to 10⁻⁹ and the centroid to 10⁻⁸; f₀ and B recovered from tones of known f₀ (41 to 1047 Hz) and B."

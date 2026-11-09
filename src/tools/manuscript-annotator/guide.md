@@ -11,7 +11,7 @@ order: 416
 icon: image
 works: offline
 updated: 2026-11-09
-related: [graph-digitizer, image-resizer]
+related: [graph-digitizer, image-resizer, stylometry-delta, colour-difference-calculator]
 sources:
   - "Formats: W3C Web Annotation Data Model (W3C Recommendation, 23 February 2017), W3C Media Fragments URI 1.0 (xywh=), IIIF Presentation API 2.1 and 3.0."
   - "Checked by round trips in tests (export then re-import gives the same regions, including scaling to IIIF canvas pixels, quotes, line breaks and special characters) and by reading annotations written in other common shapes (#xywh targets, SVG rect and path selectors, IIIF 2 annotation lists)."

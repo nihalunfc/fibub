@@ -11,7 +11,7 @@ order: 415
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, astro-time]
+related: [radiocarbon-calibration, astro-time, manuscript-annotator, correspondence-network]
 sources:
   - "Gregorian and Julian day numbers: Fliegel and Van Flandern (1968), Communications of the ACM 11(10), and E. G. Richards in the Explanatory Supplement to the Astronomical Almanac (3rd ed., 2013). Hebrew and tabular Islamic calendars: E. M. Reingold and N. Dershowitz, Calendrical Calculations (Cambridge University Press)."
   - "Checked against the Python library convertdate on 20,000 random days from 3761 BC to AD 3200 in both directions for all four calendars, plus the weekday (163,908 checks, no differences)."

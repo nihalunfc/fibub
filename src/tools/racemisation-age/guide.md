@@ -11,7 +11,7 @@ order: 412
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, reaction-kinetics-fitter, uncertainty-calculator, radiometric-age-calculator]
+related: [radiocarbon-calibration, reaction-kinetics-fitter, uncertainty-calculator, radiometric-age-calculator, luminescence-age-calculator]
 sources:
   - "Reversible first-order racemisation kinetics, ln[(1 + D/L)/(1 − K′·D/L)] = (1 + K′)kt + constant, as set out by Bada and others (e.g. Bada, J. L. and Protsch, R., 1973, PNAS 70) and in standard geochronology texts; Arrhenius equation; GUM (JCGM 100:2008) and GUM Supplement 1 (JCGM 101:2008) for the uncertainty."
   - "Checked against scipy: the reversible reaction L ⇌ D integrated with scipy.integrate.solve_ivp and the age found with scipy.optimize.brentq (the calibrated rate constant found the same way), with scipy.constants.R. Ages agree to 1 part in 10⁹; the GUM uncertainty agrees with finite differences on that model; the Monte Carlo median and 68 % and 95 % ranges agree with a separate numpy run within 1 %."

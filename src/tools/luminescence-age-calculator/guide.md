@@ -11,7 +11,7 @@ order: 411
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, radiometric-age-calculator, uncertainty-calculator, decay-calculator]
+related: [radiocarbon-calibration, radiometric-age-calculator, uncertainty-calculator, decay-calculator, racemisation-age]
 sources:
   - "Central age model: Galbraith, R. F., Roberts, R. G., Laslett, G. M., Yoshida, H. and Olley, J. M. (1999), Archaeometry 41(2). Water correction: Zimmerman, D. W. (1971) and Aitken, M. J. (1985), Thermoluminescence Dating. Uncertainty propagation: JCGM 100:2008 (GUM)."
   - "No conversion-factor table is built in: the factors are inputs, prefilled with rough rounded example values that the user is told to replace with the published factors they use."
