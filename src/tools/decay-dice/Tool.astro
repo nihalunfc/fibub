@@ -1,0 +1,124 @@
+---
+// Radioactive decay dice (Learn): throw hundreds of dice, remove every six, and watch a half-life appear; compare
+// the counts with N₀(1 − p)ᵗ = N₀ e^(−λt). Each die is a model of one unstable nucleus.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn dcd">
+  <div class="ax-card">
+    <h2>Throw the dice</h2>
+    <canvas class="lrn-cv dd-cv" aria-label="A grid of dice; the ones that have been removed are faded"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small dd-one">Throw once</button>
+      <button type="button" class="btn secondary small dd-auto">Keep throwing</button>
+      <button type="button" class="btn secondary small dd-reset">Start again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Dice to start with N₀ <b class="dd-Nv"></b><input type="range" class="dd-N" min="50" max="1000" step="50" value="600" aria-label="Number of dice" /></label>
+      <label>Removed when <select class="dd-p"><option value="0.5">A coin lands heads (1 in 2)</option><option value="0.1666666666666667" selected>A die shows a six (1 in 6)</option><option value="0.1">A 10-sided die shows a 0 (1 in 10)</option><option value="0.05">A 20-sided die shows a 20 (1 in 20)</option></select></label>
+    </div>
+    <p class="ax-big dd-big" style="margin:10px 0 0"></p>
+    <dl class="ax-facts dd-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Number left after each throw</h2>
+    <canvas class="lrn-cv dd-gr" aria-label="Graph of dice left against number of throws, with the smooth decay curve"></canvas>
+    <p class="lrn-eq dd-eq"></p>
+    <div class="ax-scroll"><table class="dd-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Throw until about half the dice are gone. Then count how many more throws halve it again: about the same number.</li>
+      <li>Start again with 50 dice, then with 1,000. Small groups wobble around the curve; big groups follow it closely.</li>
+      <li>Switch to coins: the half-life is exactly one throw. With 20-sided dice it is about 13.5 throws.</li>
+      <li>Watch any one die: you cannot tell when it will go. Only the group behaves predictably, just like real nuclei.</li>
+    </ul>
+    <p class="ax-help">A teaching model: a die has no memory, just as a nucleus has no age, so the same share goes at every throw. Real samples hold billions of billions of nuclei, so their curves are perfectly smooth.</p>
+  </div>
+
+  <div class="ax-card dd-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { lambdaOf, halfLife, expected, throwAll, measuredHalfLife } from '../../lib/sci/learndecay';
+  import { mountQuiz, pick, one, r, fitCanvas } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dcd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let alive: boolean[] = [], series: number[] = [], timer = 0, lastGone = new Set<number>();
+  const p = () => +q<HTMLSelectElement>('.dd-p').value;
+
+  function reset() {
+    stop(); const N = +q<HTMLInputElement>('.dd-N').value; alive = new Array(N).fill(true); series = [N]; lastGone = new Set(); render();
+  }
+  function throwOnce() {
+    if (!alive.some(Boolean)) return stop();
+    const next = throwAll(alive, p(), Math.random); lastGone = new Set(); next.forEach((a, i) => { if (alive[i] && !a) lastGone.add(i); });
+    alive = next; series.push(alive.filter(Boolean).length); render();
+    if (!alive.some(Boolean)) stop();
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = 0; } q('.dd-auto').textContent = 'Keep throwing'; }
+
+  function render() {
+    const pal = pagePalette(), N0 = series[0], n = series[series.length - 1], t = series.length - 1, pp = p(), lam = lambdaOf(pp), th = halfLife(pp);
+    q('.dd-Nv').textContent = String(+q<HTMLInputElement>('.dd-N').value);
+    // Dice grid
+    { const cv = q<HTMLCanvasElement>('.dd-cv'), W = Math.max(200, cv.clientWidth || 340), cols = Math.max(10, Math.floor(W / 9)), rows = Math.ceil(alive.length / cols), cell = W / cols, H = Math.max(40, Math.ceil(rows * cell));
+      const c = fitCanvas(cv, H).ctx;
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+      alive.forEach((a, i) => { const x = (i % cols) * cell, y = Math.floor(i / cols) * cell; c.fillStyle = a ? (pal.red ? pal.ink : pal.accent) : lastGone.has(i) ? (pal.red ? pal.muted : pal.accent2) : pal.grid; c.fillRect(x + 1, y + 1, cell - 2, cell - 2); });
+    }
+    // Graph
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.dd-gr'), 220), gx = 40, gy = 10, gw = W - 50, gh = H - 42, tMax = Math.max(10, Math.ceil(th * 4), t);
+      const X = (x: number) => gx + (x / tMax) * gw, Y = (y: number) => gy + gh - (y / N0) * gh;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right';
+      for (const f of [0, 0.25, 0.5, 1]) { ctx.fillText(String(Math.round(N0 * f)), gx - 4, Y(N0 * f) + 4); ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(gx, Y(N0 * f)); ctx.lineTo(gx + gw, Y(N0 * f)); ctx.stroke(); }
+      ctx.textAlign = 'center'; const step = tMax > 40 ? 10 : 5; for (let x = 0; x <= tMax; x += step) ctx.fillText(String(x), X(x), gy + gh + 13);
+      ctx.fillText('throws', gx + gw / 2, H - 4);
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); for (let k = 1; k <= 4 && k * th <= tMax; k++) { ctx.moveTo(X(k * th), Y(N0 / 2 ** k)); ctx.lineTo(X(k * th), gy + gh); } ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+      for (let px = 0; px <= gw; px += 2) { const x = (px / gw) * tMax, y = Y(expected(N0, pp, x)); if (px) ctx.lineTo(gx + px, y); else ctx.moveTo(gx, y); }
+      ctx.stroke();
+      ctx.fillStyle = pal.red ? pal.muted : pal.accent2; series.forEach((v, i) => { ctx.beginPath(); ctx.arc(X(i), Y(v), 3.5, 0, 7); ctx.fill(); });
+    }
+    const mh = measuredHalfLife(series);
+    q('.dd-big').textContent = `${n} of ${N0} left after ${t} throw${t === 1 ? '' : 's'}`;
+    q('.dd-facts').replaceChildren(
+      fact('Half-life from your throws', Number.isFinite(mh) ? `${sig(mh, 3)} throws` : 'keep throwing', 'when half were gone'),
+      fact('Half-life expected', `${sig(th, 4)} throws`, 't½ = ln 2 / λ'),
+      fact('Decay constant λ', `${sig(lam, 4)} per throw`, `−ln(1 − p); about p = ${sig(pp, 3)} when p is small`),
+      fact('Expected now', `${sig(expected(N0, pp, t), 4)}`, 'N₀ e^(−λt)'));
+    q('.dd-eq').textContent = `N = N₀ e^(−λt) = ${N0} × e^(−${sig(lam, 4)} × ${t}) = ${sig(expected(N0, pp, t), 4)} expected; you have ${n}.  t½ = ln 2 / λ = 0.6931 / ${sig(lam, 4)} = ${sig(th, 4)} throws.`;
+    const tab = q<HTMLTableElement>('.dd-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); ['Throw', 'Left', 'Removed', 'Expected'].forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (i) c.className = 'r'; hr.append(c); });
+    const body = tab.createTBody(); series.slice(-8).forEach((v, k) => { const i = series.length - Math.min(8, series.length) + k; const tr = body.insertRow(); [String(i), String(v), i ? String(series[i - 1] - v) : '–', sig(expected(N0, pp, i), 4)].forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+  }
+
+  q('.dd-one').addEventListener('click', () => { stop(); throwOnce(); });
+  q('.dd-auto').addEventListener('click', () => { if (timer) return stop(); q('.dd-auto').textContent = 'Stop'; throwOnce(); timer = window.setInterval(throwOnce, 500); });
+  q('.dd-reset').addEventListener('click', reset);
+  q('.dd-N').addEventListener('input', reset); q('.dd-p').addEventListener('input', reset);
+  addEventListener('resize', render);
+  reset();
+
+  mountQuiz(q('.dd-quiz'), () => {
+    const N0 = one([800, 1000, 1600, 3200]), k = pick(1, 4), th = pick(2, 12), lam = pick(5, 50) / 100, tt = th * pick(1, 4), c = one([1024, 512, 2048]);
+    return [
+      { q: `A sample has ${N0} undecayed nuclei. How many are left after ${k} half-li${k === 1 ? 'fe' : 'ves'}?`, ans: N0 / 2 ** k, unit: 'nuclei', work: `Each half-life halves it: ${N0} ÷ 2${k > 1 ? `^${k}` : ''} = ${N0 / 2 ** k}` },
+      { q: `A nucleus has a decay constant of ${lam} per hour. What is its half-life?`, ans: Math.LN2 / lam, unit: 'hours', work: `t½ = ln 2 / λ = 0.693 / ${lam} = ${r(Math.LN2 / lam)} hours` },
+      { q: `The half-life is ${th} days. What fraction of the nuclei is left after ${tt} days? (as a decimal)`, ans: 0.5 ** (tt / th), unit: '', work: `${tt} days is ${tt / th} half-li${tt / th === 1 ? 'fe' : 'ves'}, so (1/2)^${tt / th} = ${r(0.5 ** (tt / th))}` },
+      { q: `You start with ${c} coins and remove every head at each throw. About how many throws until only ${c / 8} are left?`, ans: 3, unit: 'throws', work: `Each throw removes about half. ${c} → ${c / 2} → ${c / 4} → ${c / 8}: 3 throws.` },
+      { q: 'Can you predict which die will be removed on the next throw?', ans: 1, choices: ['Yes, the ones that have been there longest', 'No, every die has the same chance each throw', 'Yes, the ones in the middle'], work: 'Each die has the same 1 in 6 chance every throw, however long it has lasted. Radioactive decay is random in the same way.' },
+    ];
+  });
+</script>
