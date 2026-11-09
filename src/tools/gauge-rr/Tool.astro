@@ -1,0 +1,147 @@
+---
+// Crossed gauge R&R. The example study is made up (lib exampleStudy, seeded random values).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleStudy } from '../../lib/sci/eng-grr';
+const demo = 'part\toperator\ttrial 1\ttrial 2\ttrial 3\n' + exampleStudy().map((r) => r.join('\t')).join('\n');
+---
+<div class="ax grr">
+  <div class="ax-card">
+    <h2>Study data</h2>
+    <label>Part, operator, then the measurements <textarea class="gr-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".gr-data" maxCols={20} maxRows={20000} label="Open a file" />
+    <p class="ax-help">One row per part and operator with every trial across the row, or one row per measurement (part, operator, value). Part and operator can be names or numbers. Every operator must measure every part the same number of times (a crossed study). The example (10 parts, 3 operators, 3 trials, in mm) is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Tolerance (USL − LSL) <input class="gr-tol" type="text" inputmode="decimal" value="1" placeholder="none" /></label>
+      <label>Study variation <select class="gr-k"><option value="6" selected>6 standard deviations</option><option value="5.15">5.15 standard deviations</option></select></label>
+      <label>Remove interaction when p is above <select class="gr-a"><option value="0.05" selected>0.05</option><option value="0.25">0.25</option><option value="0">never (always keep it)</option></select></label>
+    </div>
+    <p class="ax-help">Tolerance is the width of the specification; leave it empty for no %tolerance. 6 SD covers 99.73 % of a normal spread (5.15 SD, 99 %, is in older manuals). When the part × operator interaction is not significant it is pooled into repeatability, as most software does.</p>
+    <p class="ax-err gr-err" hidden></p>
+  </div>
+
+  <div class="ax-card gr-out">
+    <h2>Gauge R&amp;R (ANOVA method)</h2>
+    <p class="ax-big gr-big"></p>
+    <dl class="ax-facts gr-facts"></dl>
+    <h3 class="gr-h">Variance components</h3>
+    <div class="ax-scroll"><table class="gr-vc"></table></div>
+    <canvas class="ax-fig gr-fc" style="margin-top:12px"></canvas>
+    <h3 class="gr-h">ANOVA table</h3>
+    <div class="ax-scroll"><table class="gr-an"></table></div>
+    <h3 class="gr-h">Average and range method</h3>
+    <div class="ax-scroll"><table class="gr-xr"></table></div>
+    <p class="ax-help gr-xrn"></p>
+    <h3 class="gr-h">Charts</h3>
+    <canvas class="ax-fig gr-fr"></canvas>
+    <canvas class="ax-fig gr-fx" style="margin-top:10px"></canvas>
+    <canvas class="ax-fig gr-fi" style="margin-top:10px"></canvas>
+    <p class="ax-help">Common guideline (AIAG): %GRR below 10 % of study variation or tolerance is acceptable, 10 to 30 % may be acceptable depending on the use and cost, above 30 % needs improvement; ndc should be 5 or more. The R chart should be in control (operators measure consistently); on the X̄ chart most points should be outside the limits, because the parts should differ by more than the gauge noise.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gr-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readStudy, checkStudy, anovaGRR, averageRange, type Components } from '../../lib/sci/eng-grr';
+  import { d2, d3 } from '../../lib/sci/eng-spc';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.grr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fill = (t: HTMLTableElement, head: string[], rows: string[][]) => { t.replaceChildren(); const hr = t.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); }); rows.forEach((r) => { const tr = t.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); }); };
+  const pct = (x: number) => (Number.isFinite(x) ? `${x.toFixed(2)} %` : '–');
+  const pf = (p: number) => (!Number.isFinite(p) ? '' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const verdict = (x: number) => (x < 10 ? 'acceptable (below 10 %)' : x <= 30 ? 'marginal (10 to 30 %)' : 'needs improvement (above 30 %)');
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function bars(c: { name: string; contrib: number; study: number; tol: number | null }[]): Figure {
+    return { w: 380, h: 220, alt: 'Components of variation: % contribution, % study variation and % tolerance for gauge R&R, repeatability, reproducibility and part-to-part', draw: (ctx, W, H, pal) => {
+      const l = 36, r = 8, t = 26, b = 34, pw = W - l - r, ph = H - t - b, max = Math.max(100, ...c.flatMap((x) => [x.contrib, x.study, x.tol ?? 0]));
+      const top = Math.ceil(max / 25) * 25, Y = (v: number) => t + ph * (1 - v / top);
+      ctx.font = '9px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+      for (let v = 0; v <= top; v += 25) { ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(l + pw, Y(v)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(`${v}`, l - 4, Y(v)); }
+      const cols = pal.red ? [pal.accent, pal.muted, pal.accent2] : [pal.accent, pal.accent2, pal.good], gw = pw / c.length, n = c[0].tol === null ? 2 : 3, bw = Math.min(16, (gw * 0.75) / n);
+      c.forEach((x, i) => {
+        [x.contrib, x.study, x.tol ?? NaN].slice(0, n).forEach((v, j) => { ctx.fillStyle = cols[j]; const x0 = l + gw * i + (gw - bw * n) / 2 + bw * j; ctx.fillRect(x0, Y(v), bw - 1, Y(0) - Y(v)); });
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(x.name, l + gw * (i + 0.5), t + ph + 5);
+      });
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, t, pw, ph);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; let lx = l;
+      ['% contribution', '% study var', '% tolerance'].slice(0, n).forEach((s, j) => { ctx.fillStyle = cols[j]; ctx.fillRect(lx, 8, 9, 9); ctx.fillStyle = pal.muted; ctx.fillText(s, lx + 12, 13); lx += ctx.measureText(s).width + 26; });
+    } };
+  }
+
+  function calc() {
+    const err = q('.gr-err'), out = q('.gr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    let s;
+    try { s = readStudy(parseTable(val('.gr-data')), num); } catch (e) { return fail((e as Error).message); }
+    const bad = checkStudy(s); if (bad) return fail(bad);
+    if (s.parts.length * s.ops.length * s.y[0][0].length > 20000) return fail('The study is too large (limit 20,000 measurements).');
+    const tolS = val('.gr-tol').trim(), tol = tolS ? num(tolS) : NaN;
+    if (tolS && !(tol > 0)) return fail('The tolerance must be a number above 0, or empty.');
+    const k = +val('.gr-k'), alpha = +val('.gr-a');
+    const a = anovaGRR(s, { alphaRemove: alpha, k, tol: tolS ? tol : undefined }), x = averageRange(s, { k, tol: tolS ? tol : undefined });
+    err.hidden = true; out.hidden = false;
+    const main = a.pctTol ? Math.max(a.pctStudy.grr, a.pctTol.grr) : a.pctStudy.grr;
+    q('.gr-big').textContent = `%GRR ${a.pctStudy.grr.toFixed(1)} % of study variation${a.pctTol ? `, ${a.pctTol.grr.toFixed(1)} % of tolerance` : ''}: ${verdict(main)}; ndc ${a.ndc}`;
+    const sd = (v: number) => Math.sqrt(v);
+    const facts = [
+      fact('Study', `${a.p} parts × ${a.o} operators × ${a.r} trials`, `${a.p * a.o * a.r} measurements`),
+      fact('Gauge R&R', `${pct(a.pctStudy.grr)} of study variation`, `${pct(a.pctContribution.grr)} of the total variance (% contribution)${a.pctTol ? `; ${pct(a.pctTol.grr)} of the tolerance` : ''}`),
+      fact('Repeatability (equipment)', `${pct(a.pctStudy.repeat)}`, `standard deviation ${sig(sd(a.v.repeat), 4)}`),
+      fact('Reproducibility (operators)', `${pct(a.pctStudy.reprod)}`, `standard deviation ${sig(sd(a.v.reprod), 4)}`),
+      fact('Number of distinct categories', String(a.ndc), a.ndc >= 5 ? '5 or more: the gauge can tell parts apart' : 'below 5: the gauge cannot tell the parts apart well'),
+      fact('Part × operator interaction', a.pooled ? `pooled (p = ${pf(a.pInteraction)})` : `kept (p = ${pf(a.pInteraction)})`, alpha === 0 ? 'always kept' : a.pooled ? `not significant at ${alpha}, so it is added to repeatability` : `significant at ${alpha}: operators measure some parts differently`),
+    ];
+    q('.gr-facts').replaceChildren(...facts);
+    const rowsVC: [string, keyof Components][] = [['Total gauge R&R', 'grr'], ['  Repeatability', 'repeat'], ['  Reproducibility', 'reprod'], ['    Operator', 'op'], ...(a.pooled ? [] : [['    Part × Operator', 'po']] as [string, keyof Components][]), ['Part-to-part', 'part'], ['Total variation', 'total']];
+    const headVC = ['Source', 'Variance', '% contribution', 'Std dev', `Study var (${k} SD)`, '% study var', ...(a.pctTol ? ['% tolerance'] : [])];
+    const vc = rowsVC.map(([n, key]) => [n, sig(a.v[key], 4), pct(a.pctContribution[key]), sig(sd(a.v[key]), 4), sig(k * sd(a.v[key]), 4), pct(a.pctStudy[key]), ...(a.pctTol ? [pct(a.pctTol[key])] : [])]);
+    fill(q<HTMLTableElement>('.gr-vc'), headVC, vc);
+    const headAN = ['Source', 'DF', 'SS', 'MS', 'F', 'p'];
+    const an = a.table.map((r) => [r.source, String(r.df), sig(r.ss, 5), Number.isFinite(r.ms) ? sig(r.ms, 5) : '', Number.isFinite(r.f) ? sig(r.f, 4) : '', pf(r.p)]);
+    fill(q<HTMLTableElement>('.gr-an'), headAN, an);
+    const headXR = ['Source', 'Std dev', `Study var (${k} SD)`, '% study var', ...(x.pctTol ? ['% tolerance'] : [])];
+    const xr = ([['Repeatability (EV)', 'ev'], ['Reproducibility (AV)', 'av'], ['Gauge R&R', 'grr'], ['Part variation (PV)', 'pv']] as const).map(([n, key]) => [n, sig(x[key], 4), sig(k * x[key], 4), pct(x.pctStudy[key]), ...(x.pctTol ? [pct(x.pctTol[key])] : [])]);
+    xr.push(['Total variation (TV)', sig(x.tv, 4), sig(k * x.tv, 4), '100.00 %', ...(x.pctTol ? [pct((100 * k * x.tv) / tol)] : [])]);
+    fill(q<HTMLTableElement>('.gr-xr'), headXR, xr);
+    q('.gr-xrn').textContent = `R̄̄ = ${sig(x.rbar, 4)}, X̄diff = ${sig(x.xdiff, 4)}, Rp = ${sig(x.rp, 4)}. K1 = 1/d2(${a.r}) = ${x.K1.toFixed(4)}, K2 = 1/d2*(${a.o}, 1) = ${x.K2.toFixed(4)}, K3 = 1/d2*(${a.p}, 1) = ${x.K3.toFixed(4)}, from d2 and d3 computed by integration. ndc = ${x.ndc}. The range method uses less of the data than ANOVA and cannot see interaction.`;
+    // Charts.
+    const fc = bars([{ name: 'Gauge R&R', key: 'grr' }, { name: 'Repeat', key: 'repeat' }, { name: 'Reprod', key: 'reprod' }, { name: 'Part-to-part', key: 'part' }].map((c) => ({ name: c.name, contrib: a.pctContribution[c.key as keyof Components], study: a.pctStudy[c.key as keyof Components], tol: a.pctTol ? a.pctTol[c.key as keyof Components] : null })));
+    const p = a.p, o = a.o, r = a.r, idx = (j: number, i: number) => j * p + i + 1;
+    const D4 = 1 + (3 * d3(r)) / d2(r), D3 = Math.max(0, 1 - (3 * d3(r)) / d2(r)), A2 = 3 / (d2(r) * Math.sqrt(r));
+    const sepMarks = Array.from({ length: o - 1 }, (_, j) => ({ kind: 'vline' as const, at: (j + 1) * p + 0.5, dash: [2, 3] }));
+    const xsAll = s.ops.flatMap((_, j) => s.parts.map((__, i) => idx(j, i)));
+    const fr = chartFigure({ w: 380, h: 210, xLabel: `Part, grouped by operator (${s.ops.join(', ')})`, yLabel: 'Range', legend: 'none', series: [{ name: 'Range', x: xsAll, y: s.ops.flatMap((_, j) => s.parts.map((__, i) => x.ranges[i][j])), mode: 'both', size: 2.4, width: 1 }], marks: [...sepMarks, { kind: 'hline', at: x.rbar, label: 'R̄' }, { kind: 'hline', at: D4 * x.rbar, dash: [4, 3], label: 'UCL' }, ...(D3 > 0 ? [{ kind: 'hline' as const, at: D3 * x.rbar, dash: [4, 3], label: 'LCL' }] : [])] }, `R chart by operator: R̄ ${sig(x.rbar, 4)}, UCL ${sig(D4 * x.rbar, 4)}`);
+    const gm = x.opMeans.reduce((u, v) => u + v, 0) / o;
+    const fx = chartFigure({ w: 380, h: 210, xLabel: `Part, grouped by operator (${s.ops.join(', ')})`, yLabel: 'Average', legend: 'none', series: [{ name: 'Average', x: xsAll, y: s.ops.flatMap((_, j) => s.parts.map((__, i) => s.y[i][j].reduce((u, v) => u + v, 0) / r)), mode: 'both', size: 2.4, width: 1 }], marks: [...sepMarks, { kind: 'hline', at: gm, label: 'X̄̄' }, { kind: 'hline', at: gm + A2 * x.rbar, dash: [4, 3], label: 'UCL' }, { kind: 'hline', at: gm - A2 * x.rbar, dash: [4, 3], label: 'LCL' }] }, 'X-bar chart by operator: most points should be outside the limits');
+    const fi = chartFigure({ w: 380, h: 220, xLabel: 'Part', yLabel: 'Operator average', legend: 'below', series: s.ops.map((op, j) => ({ name: `Operator ${op}`, x: s.parts.map((_, i) => i + 1), y: s.parts.map((_, i) => s.y[i][j].reduce((u, v) => u + v, 0) / r), mode: 'both' as const, size: 2.4, width: 1.2 })) }, 'Part by operator interaction plot: parallel lines mean no interaction');
+    figs = [fc, fr, fx, fi];
+    (['.gr-fc', '.gr-fr', '.gr-fx', '.gr-fi'] as const).forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i]));
+    csvRows = [['ANOVA method'], headVC, ...vc.map((r) => r.map((c) => c.trim())), [], headAN, ...an, [], ['Average and range method'], headXR, ...xr, [], ['ndc (ANOVA)', a.ndc], ['ndc (average and range)', x.ndc]];
+    report = [
+      { title: q('.gr-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), table: { head: headVC, rows: vc.map((r) => r.map((c) => c.trim())), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: fc },
+      { title: 'ANOVA table', table: { head: headAN, rows: an, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: fi },
+      { title: 'Average and range method', table: { head: headXR, rows: xr, align: ['l', 'r', 'r', 'r', 'r'] }, text: [q('.gr-xrn').textContent!], figure: fr },
+      { title: 'X-bar chart by operator', figure: fx },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.gr-out').hidden) (['.gr-fc', '.gr-fr', '.gr-fx', '.gr-fi'] as const).forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  q('.gr-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'gauge-rr.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gauge R&R study', subtitle: q('.gr-big').textContent ?? '', file: 'gauge-rr', sections: report }));
+</script>
+
+<style is:global>
+  .grr textarea { width: 100%; }
+  .grr .gr-h { font-size: 15px; margin: 16px 0 8px; }
+</style>

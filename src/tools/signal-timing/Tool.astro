@@ -1,0 +1,153 @@
+---
+// Signal timing by Webster's method: critical flow ratios, lost time, optimum cycle, green splits, degree of
+// saturation and Webster delay per approach. Example flows and settings made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'approach\tphase\tflow (veh/h)\tsaturation flow (veh/h)\nNorth\t1\t600\t1800\nSouth\t1\t500\t1800\nEast\t2\t450\t1600\nWest\t2\t400\t1600';
+---
+<div class="ax wbs">
+  <div class="ax-card">
+    <h2>Approaches</h2>
+    <label>Approach, phase, flow, saturation flow <textarea class="wb-data" rows="7" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".wb-data" maxCols={10} maxRows={200} label="Open a file" />
+    <p class="ax-help">One row per approach or lane group: a name, the phase number that serves it, the design flow and the saturation flow (the flow it would discharge in a long green), both in vehicles (or passenger car units) per hour. Approaches with the same phase number move together; the one with the highest flow ratio y = flow ÷ saturation flow is that phase's critical approach. The example values are made up. Up to 100 rows.</p>
+    <div class="ax-grid wb-g">
+      <label>Lost time per phase (s) <input class="wb-lost" type="text" inputmode="decimal" value="4" /></label>
+      <label>Intergreen per phase, yellow + all-red (s) <input class="wb-int" type="text" inputmode="decimal" value="4" /></label>
+      <label>Round the cycle up to <select class="wb-round"><option value="0">No rounding</option><option value="1">Whole seconds</option><option value="5" selected>5 s</option><option value="10">10 s</option></select></label>
+      <label>Shortest cycle allowed (s) <input class="wb-cmin" type="text" inputmode="decimal" value="" placeholder="no limit" /></label>
+      <label>Longest cycle allowed (s) <input class="wb-cmax" type="text" inputmode="decimal" value="" placeholder="no limit" /></label>
+      <label>Use this cycle instead (s) <input class="wb-cyc" type="text" inputmode="decimal" value="" placeholder="Webster's optimum" /></label>
+      <label>Space per queued vehicle (m) <input class="wb-sp" type="text" inputmode="decimal" value="7" /></label>
+    </div>
+    <p class="ax-help">Lost time is the part of each phase not used by traffic (start-up delay plus the unused end of the intergreen); 3 to 5 s is a common assumption. The displayed green is the effective green plus the lost time minus the intergreen. Cycle limits and pedestrian crossing times come from your local guidance. The space per queued vehicle (car length plus gap) is a made-up example; use your own.</p>
+    <p class="ax-err wb-err" hidden></p>
+  </div>
+
+  <div class="ax-card wb-out">
+    <h2>Timing</h2>
+    <p class="ax-big wb-big"></p>
+    <dl class="ax-facts wb-facts"></dl>
+    <canvas class="ax-fig wb-bar"></canvas>
+    <h2 class="wb-h">Phases</h2>
+    <div class="ax-scroll"><table class="wb-ptab"></table></div>
+    <h2 class="wb-h">Approaches</h2>
+    <div class="ax-scroll"><table class="wb-atab"></table></div>
+    <h2 class="wb-h">Delay against cycle length</h2>
+    <canvas class="ax-fig wb-curve"></canvas>
+    <div class="ax-row wb-row"><button type="button" class="btn secondary small wb-csv">Download timing (CSV)</button></div>
+    <p class="ax-help">Queues assume vehicles arrive evenly: the queue at the end of red is flow × effective red, and it keeps growing until it clears at the saturation flow, giving the longest queue = flow × red ÷ (1 − y). Random arrivals make queues longer at times. Webster's method suits isolated fixed-time signals with traffic below saturation. Delays are average seconds per vehicle from Webster's formula (uniform, random and a correction term). For study and planning; check your local design manual and a qualified engineer before setting a real signal.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { webster, delayCurve, type Approach } from '../../lib/sci/eng-webster';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wbs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => (q(c) as HTMLInputElement).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const f1 = (v: number, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : '∞');
+  const tr = (cells: string[], th = false) => { const x = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; x.append(e); } return x; };
+  let figs: Figure[] = [], report: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const err = q('.wb-err'), out = q('.wb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const apps: Approach[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.wb-data').value)) {
+      const ph = num(r[1]), fl = num(r[2]), sf = num(r[3]);
+      if (!Number.isFinite(ph) || !Number.isFinite(fl) || !Number.isFinite(sf)) continue;
+      if (!(Number.isInteger(ph) && ph >= 1)) return fail(`The phase of "${r[0]}" must be a whole number, 1 or more.`);
+      if (!(fl >= 0 && sf > 0)) return fail(`"${r[0]}": the flow must be 0 or more and the saturation flow above 0.`);
+      apps.push({ name: (r[0] ?? '').trim() || `Approach ${apps.length + 1}`, phase: ph, q: fl, s: sf });
+    }
+    if (apps.length > 100) return fail('The limit is 100 approaches.');
+    if (!apps.length) return fail('Give at least one row: approach name, phase number, flow and saturation flow.');
+    if (new Set(apps.map((a) => a.phase)).size < 2) return fail('A signal needs at least 2 phases: give the approaches different phase numbers.');
+    if (!(apps.reduce((s, a) => s + a.q, 0) > 0)) return fail('All the flows are zero.');
+    const l = num(val('.wb-lost')), I = num(val('.wb-int')), sp = num(val('.wb-sp'));
+    if (!(sp > 0)) return fail('Give the space per queued vehicle in metres.');
+    if (!(l >= 0) || !(I >= 0)) return fail('Lost time and intergreen must be 0 seconds or more.');
+    const opt = (c: string) => (val(c).trim() ? num(val(c)) : undefined);
+    const cMin = opt('.wb-cmin'), cMax = opt('.wb-cmax'), cyc = opt('.wb-cyc');
+    if ([cMin, cMax, cyc].some((v) => v !== undefined && !(v > 0))) return fail('Cycle lengths must be numbers above 0 seconds (or leave the box empty).');
+    if (cMin !== undefined && cMax !== undefined && cMin > cMax) return fail('The shortest cycle allowed is longer than the longest.');
+    const phases = [...new Set(apps.map((a) => a.phase))];
+    const lost = Object.fromEntries(phases.map((p) => [p, l])), inter = Object.fromEntries(phases.map((p) => [p, I]));
+    const r = webster(apps, lost, inter, { round: +val('.wb-round'), cMin, cMax, cycle: cyc });
+    if (!(r.Y < 1)) return fail(`The critical flow ratios add up to Y = ${r.Y.toFixed(3)}, which is 1 or more: the junction is over capacity whatever the timing. Reduce the flows, add lanes (more saturation flow) or change the phasing.`);
+    if (!(r.C > r.L)) return fail(`The cycle (${f1(r.C)} s) must be longer than the total lost time (${f1(r.L)} s).`);
+    err.hidden = true; out.hidden = false;
+    const over = r.A.filter((a) => !(a.x < 1));
+    if (over.length) { err.textContent = `At this cycle ${over.map((a) => a.name).join(', ')} ${over.length === 1 ? 'is' : 'are'} over capacity (degree of saturation 1 or more), so the delay grows without limit. Use a longer cycle.`; err.hidden = false; }
+    if (r.P.some((p) => p.G <= 0)) { err.textContent = 'A displayed green comes out at 0 s or less: lower the intergreen or lengthen the cycle.'; err.hidden = false; }
+    q('.wb-big').textContent = `Cycle ${f1(r.C, Number.isInteger(r.C) ? 0 : 1)} s · Y = ${r.Y.toFixed(3)} · average delay ${f1(r.dAvg)} s per vehicle`;
+    const facts = [
+      fact('Webster optimum cycle C₀', `${f1(r.C0)} s`, `(1.5 × ${f1(r.L)} + 5) ÷ (1 − ${r.Y.toFixed(3)})`),
+      fact('Cycle used', `${f1(r.C)} s`, cyc !== undefined ? 'your cycle' : r.note || (+val('.wb-round') ? `C₀ rounded up to ${val('.wb-round')} s` : 'C₀')),
+      fact('Total lost time L', `${f1(r.L)} s`, `${r.P.length} phases × ${f1(l)} s`),
+      fact('Sum of critical flow ratios Y', r.Y.toFixed(3), r.P.map((p) => `phase ${p.phase}: ${p.y.toFixed(3)} (${p.crit})`).join('; ')),
+      fact('Shortest workable cycle', `${f1(r.cMinX)} s`, 'L ÷ (1 − Y): every critical approach exactly at capacity'),
+      fact('Degree of saturation (critical)', r.X.toFixed(3), 'Y·C ÷ (C − L)'),
+      fact('Average delay', `${f1(r.dAvg)} s per vehicle`, `${f1(r.totalDelay, 2)} vehicle-hours of delay each hour`),
+    ];
+    q('.wb-facts').replaceChildren(...facts);
+    const phead = ['Phase', 'Critical approach', 'y', 'Effective green (s)', 'Displayed green (s)', 'Intergreen (s)', 'Lost time (s)'];
+    const prows = r.P.map((p) => [String(p.phase), p.crit, p.y.toFixed(3), f1(p.g), f1(p.G), f1(p.inter), f1(p.lost)]);
+    q('.wb-ptab').replaceChildren(tr(phead, true), ...prows.map((x) => tr(x)));
+    const ahead = ['Approach', 'Phase', 'Flow (veh/h)', 'Sat. flow (veh/h)', 'y', 'Capacity (veh/h)', 'Degree of sat.', 'Delay (s/veh)', 'Queue at end of red (veh)', 'Longest queue (veh)', 'Longest queue (m)'];
+    const arows = r.A.map((a) => [a.name, String(a.phase), String(a.q), String(a.s), a.y.toFixed(3), String(Math.round(a.cap)), a.x.toFixed(3), f1(a.d), f1(a.qRed), f1(a.qMax), f1(a.qMax * sp, 0)]);
+    q('.wb-atab').replaceChildren(tr(ahead, true), ...arows.map((x) => tr(x)));
+    // Timing bar: green and intergreen for each phase across one cycle.
+    const bar: Figure = { w: 380, h: 40 + 26 * r.P.length, alt: `Timing diagram: ${r.P.map((p) => `phase ${p.phase} green ${f1(p.G)} s`).join(', ')}, cycle ${f1(r.C)} s`, draw: (ctx, W, H, pal) => {
+      const L0 = 62, R0 = 10, pw = W - L0 - R0, X = (t: number) => L0 + (t / r.C) * pw;
+      ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      let t = 0;
+      r.P.forEach((p, i) => {
+        const y = 10 + i * 26;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`Phase ${p.phase}`, 4, y + 9);
+        ctx.fillStyle = pal.grid; ctx.fillRect(L0, y, pw, 18);
+        const G = Math.max(0, p.G);
+        ctx.fillStyle = pal.red ? pal.ink : pal.good; ctx.fillRect(X(t), y, X(t + G) - X(t), 18);
+        ctx.fillStyle = pal.warn; ctx.fillRect(X(t + G), y, X(t + G + p.inter) - X(t + G), 18);
+        if (X(t + G) - X(t) > 26) { ctx.fillStyle = pal.bg; ctx.textAlign = 'center'; ctx.fillText(`${f1(G)}`, (X(t) + X(t + G)) / 2, y + 9); }
+        t += G + p.inter;
+      });
+      const yb = 10 + r.P.length * 26 + 2;
+      ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(L0, yb); ctx.lineTo(L0 + pw, yb); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText('0 s', L0, yb + 4); ctx.textAlign = 'right'; ctx.fillText(`${f1(r.C)} s · green, then yellow + all-red`, L0 + pw, yb + 4);
+    } };
+    paint(q<HTMLCanvasElement>('.wb-bar'), bar);
+    const lo = Math.max(r.cMinX * 1.02, r.L + 1), hi = Math.max(r.C0 * 2.5, r.C * 1.3), Cs = Array.from({ length: 160 }, (_, i) => lo + (hi - lo) * i / 159);
+    const ds = delayCurve(apps, lost, inter, Cs), keep = Cs.map((_, i) => Number.isFinite(ds[i]) && ds[i] < 4 * r.dAvg + 30);
+    const curve = chartFigure({ w: 380, h: 220, xLabel: 'Cycle length (s)', yLabel: 'Average delay (s/veh)', legend: 'none', yMin: 0, series: [{ name: 'Webster delay', x: Cs.filter((_, i) => keep[i]), y: ds.filter((_, i) => keep[i]), mode: 'line', width: 1.8 }],
+      marks: [{ kind: 'vline', at: r.C0, dash: [4, 3], label: 'C₀' }, ...(Math.abs(r.C - r.C0) > 0.08 * r.C0 ? [{ kind: 'vline' as const, at: r.C, dash: [1, 3], label: 'used' }] : [])] }, `Average delay against cycle length; minimum near C0 = ${f1(r.C0)} s`);
+    paint(q<HTMLCanvasElement>('.wb-curve'), curve);
+    figs = [bar, curve];
+    csvRows = [phead, ...prows, [], ahead, ...arows];
+    report = [{ title: q('.wb-big').textContent!, facts: factsOf(q('.wb-facts')), figure: bar }, { title: 'Phases', table: { head: phead, rows: prows } }, { title: 'Approaches', table: { head: ahead, rows: arows } }, { title: 'Delay against cycle length', figure: curve, note: 'For study and planning; check your local design manual and a qualified engineer.' }];
+  }
+
+  let timer = 0;
+  root.querySelectorAll('textarea, input').forEach((i) => i.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); }));
+  root.querySelectorAll('textarea, select, input').forEach((i) => i.addEventListener('change', calc));
+  q('.wb-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'signal-timing.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.wb-out').hidden) { paint(q<HTMLCanvasElement>('.wb-bar'), figs[0]); paint(q<HTMLCanvasElement>('.wb-curve'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: "Signal timing (Webster's method)", subtitle: q('.wb-big').textContent ?? '', file: 'signal-timing', sections: report }));
+</script>
+
+<style is:global>
+  .wbs select, .wbs input[type=text] { max-width: 100%; }
+  .wbs textarea { width: 100%; }
+  .wbs .wb-h { margin-top: 14px; }
+  .wbs .wb-g, .wbs .wb-row { margin-top: 10px; }
+  .wbs .wb-atab th, .wbs .wb-ptab th { white-space: normal; }
+</style>

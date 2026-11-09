@@ -1,0 +1,198 @@
+---
+// EMG envelope and fatigue analyser: band-pass, rectify, RMS or low-pass envelope, burst onsets by a baseline
+// threshold, and mean/median frequency in sliding Welch windows with a fatigue trend. Example EMG is synthetic.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax emga">
+  <div class="ax-card">
+    <h2>EMG recording</h2>
+    <label>Samples <textarea class="em-data" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".em-data" maxMB={20} maxCols={12} maxRows={400000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small em-ex">Use the example</button></div>
+    <p class="ax-help">One channel of surface EMG. Either one column of values at a fixed sample rate, or a time column in seconds plus value columns. Header rows are skipped. The example is made up: 32 seconds at 1000 Hz with five 4-second contractions whose spectrum slides down over time, as it does when a muscle tires. Up to 400,000 samples.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Layout <select class="em-fmt"><option value="v" selected>Values only (give the sample rate)</option><option value="tv">Time (s) in the first column</option></select></label>
+      <label>Value column (1 = first) <input class="em-col" type="text" inputmode="numeric" value="1" /></label>
+      <label>Sample rate (Hz) <input class="em-fs" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Unit (for labels) <input class="em-unit" type="text" value="mV" /></label>
+      <label>High-pass cut-off (Hz) <input class="em-hp" type="text" inputmode="decimal" value="20" /></label>
+      <label>Low-pass cut-off (Hz) <input class="em-lp" type="text" inputmode="decimal" value="450" /></label>
+      <label>Mains hum filter <select class="em-notch"><option value="0" selected>Off</option><option value="50">50 Hz notch</option><option value="60">60 Hz notch</option></select></label>
+    </div>
+    <p class="ax-help">Surface EMG carries most of its power between about 20 and 450 Hz: the high-pass removes movement artefact, the low-pass removes noise above the muscle band (it must be below half the sample rate). Filters are second-order Butterworth run forwards and backwards. A notch rings for a fraction of a second, which smears onsets earlier, so use it only when hum is visible. Leave a cut-off empty to switch it off.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Envelope and bursts</h2>
+    <div class="ax-grid">
+      <label>Envelope <select class="em-env"><option value="rms" selected>Moving RMS</option><option value="lp">Rectify, then low-pass</option></select></label>
+      <label><span class="em-epl">RMS window (ms)</span> <input class="em-ep" type="text" inputmode="decimal" value="50" /></label>
+      <label>Rest (baseline) from (s) <input class="em-b0" type="text" inputmode="decimal" value="0" /></label>
+      <label>to (s) <input class="em-b1" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Threshold k (mean + k × SD of rest) <input class="em-k" type="text" inputmode="decimal" value="3" /></label>
+      <label>Shortest burst (s) <input class="em-min" type="text" inputmode="decimal" value="0.2" /></label>
+      <label>Join bursts closer than (s) <input class="em-gap" type="text" inputmode="decimal" value="0.1" /></label>
+    </div>
+    <p class="ax-help">The envelope follows the size of the muscle signal. A burst starts when the envelope rises above the rest level plus k standard deviations and ends when it falls back. Pick a quiet stretch with no contraction as the rest. Larger k ignores more noise but finds onsets a little later.</p>
+    <h2 style="margin-top:14px">Fatigue (spectrum over time)</h2>
+    <div class="ax-grid">
+      <label>Window length (s) <input class="em-win" type="text" inputmode="decimal" value="1" /></label>
+      <label>Move the window by (s) <input class="em-step" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Welch segment <select class="em-seg"><option value="128">128 samples</option><option value="256" selected>256 samples</option><option value="512">512 samples</option><option value="1024">1024 samples</option></select></label>
+      <label class="ax-check"><input class="em-act" type="checkbox" checked /> Use only windows that lie inside a burst</label>
+    </div>
+    <p class="ax-help">Each window's spectrum is a Welch average of Hann-windowed segments with 50 % overlap. The mean frequency (MNF) is the power-weighted average frequency; the median frequency (MDF) splits the power in half. Both are taken over the filter band. As a muscle tires, the action potentials slow and both fall; the slope of the line through them is the fatigue index.</p>
+    <p class="ax-err em-err" hidden></p>
+  </div>
+
+  <div class="ax-card em-out">
+    <h2>Result</h2>
+    <p class="ax-big em-big"></p>
+    <dl class="ax-facts em-facts"></dl>
+    <canvas class="ax-fig em-sig"></canvas>
+    <h2 style="margin-top:14px">Bursts</h2>
+    <div class="ax-scroll"><table class="em-tab"></table></div>
+    <h2 style="margin-top:14px">Median and mean frequency over time</h2>
+    <canvas class="ax-fig em-fat"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small em-bcsv">Download bursts (CSV)</button><button type="button" class="btn secondary small em-wcsv">Download windows (CSV)</button></div>
+    <p class="ax-help"><b>For study and research, not for diagnosis.</b> Electrode placement, skin preparation, contraction force and cross-talk from nearby muscles all change these numbers; compare like with like. Your recording stays on this device.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { envelope, bursts, fatigue, trendLine, synthEmg, type Burst, type Win } from '../../lib/sci/emg';
+  import { filtfilt, bandSections, readSignal } from '../../lib/sci/biosig';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.emga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => (q(c) as HTMLInputElement).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const sgn = (v: number, d = 2) => (Number.isFinite(v) ? `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(d)}` : '–');
+
+  const example = () => { const { x } = synthEmg(); let s = 'EMG (mV), 1000 Hz\n'; for (const v of x) s += v.toFixed(4) + '\n'; return s; };
+  let figs: Figure[] = [], report: Section[] = [], bRows: (string | number)[][] = [], wRows: (string | number)[][] = [];
+
+  // Min/max thinning so long recordings draw quickly.
+  const thin = (y: ArrayLike<number>, fs: number, t0: number, maxPts = 3000) => {
+    const n = y.length, step = Math.max(1, Math.floor(n / maxPts)), xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i < n; i += step) {
+      if (step === 1) { xs.push(t0 + i / fs); ys.push(y[i]); continue; }
+      let lo = i, hi = i; for (let k = i; k < Math.min(n, i + step); k++) { if (y[k] < y[lo]) lo = k; if (y[k] > y[hi]) hi = k; }
+      for (const k of lo < hi ? [lo, hi] : [hi, lo]) { xs.push(t0 + k / fs); ys.push(y[k]); }
+    }
+    return { xs, ys };
+  };
+
+  function calc() {
+    const err = q('.em-err'), out = q('.em-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const envKind = val('.em-env') as 'rms' | 'lp';
+    q('.em-epl').textContent = envKind === 'rms' ? 'RMS window (ms)' : 'Low-pass cut-off (Hz)';
+    const tv = val('.em-fmt') === 'tv';
+    let col = Math.round(num(val('.em-col')));
+    if (tv && col === 1) col = 2;
+    if (!(col >= 1)) return fail('The value column must be a whole number, 1 or more.');
+    const fsIn = num(val('.em-fs'));
+    if (!tv && !(fsIn > 0)) return fail('Give the sample rate in Hz (samples per second), such as 1000 or 2000.');
+    const sgl = readSignal(parseTable(q<HTMLTextAreaElement>('.em-data').value), num, fsIn, col, tv), fs = sgl.fs;
+    if (!sgl.y.length) return fail(tv ? `No numbers found in columns 1 (time) and ${col} (value).` : `No numbers found in column ${col}.`);
+    if (sgl.y.length > 400000) return fail(`The recording has ${sgl.y.length.toLocaleString('en')} samples; the limit is 400,000.`);
+    if (!(fs >= 100 && fs <= 50000)) return fail(`The sample rate is ${Number.isFinite(fs) ? sig(fs, 4) : 'unknown'} Hz. Surface EMG needs 100 to 50,000 Hz (1000 Hz or more is usual)${tv ? '; check the time column is in seconds' : ''}.`);
+    const dur = sgl.y.length / fs;
+    if (dur < 1) return fail(`The recording is ${sig(dur, 3)} s long. Give at least 1 second.`);
+    const hp = val('.em-hp').trim() ? num(val('.em-hp')) : 0, lp = val('.em-lp').trim() ? num(val('.em-lp')) : 0, mains = +val('.em-notch');
+    if (!(hp >= 0) || !(lp >= 0)) return fail('The cut-off frequencies must be numbers of 0 or more (leave empty to switch off).');
+    if (lp && lp >= fs / 2) return fail(`The low-pass cut-off must be below half the sample rate (${sig(fs / 2, 4)} Hz).`);
+    if (hp && lp && hp >= lp) return fail('The high-pass cut-off must be lower than the low-pass cut-off.');
+    const ep = num(val('.em-ep'));
+    if (envKind === 'rms' && !(ep >= 1000 / fs && ep <= 2000)) return fail(`The RMS window must be between one sample (${sig(1000 / fs, 3)} ms) and 2000 ms.`);
+    if (envKind === 'lp' && !(ep > 0 && ep < fs / 2)) return fail('The envelope low-pass cut-off must be above 0 and below half the sample rate (2 to 10 Hz is usual).');
+    const b0 = num(val('.em-b0')), b1 = num(val('.em-b1')), k = num(val('.em-k')), minD = num(val('.em-min')), gap = num(val('.em-gap'));
+    if (!(b1 > b0 && b0 >= 0)) return fail('The rest stretch needs a start of 0 or more and an end after it, in seconds.');
+    if (!(k >= 0) || !(minD >= 0) || !(gap >= 0)) return fail('k, the shortest burst and the join gap must be numbers of 0 or more.');
+    const win = num(val('.em-win')), step = num(val('.em-step')), nseg = +val('.em-seg');
+    if (!(win > 0) || !(step > 0)) return fail('The window length and the step must be above 0 seconds.');
+    const unit = val('.em-unit').trim() || 'units';
+    const y = filtfilt(sgl.y, bandSections(fs, hp, lp, mains));
+    const env = envelope(y, fs, envKind, ep);
+    let B;
+    try { B = bursts(env, y, fs, b0 - sgl.t0, b1 - sgl.t0, k, minD, gap); } catch (e) { return fail(`${(e as Error).message} The recording runs from ${sig(sgl.t0, 4)} to ${sig(sgl.t0 + dur, 4)} s.`); }
+    const useAct = q<HTMLInputElement>('.em-act').checked;
+    const inside = (t0: number, t1: number) => B.bursts.some((z) => t0 >= z.on - 1e-9 && t1 <= z.off + 1e-9);
+    let W: Win[];
+    try { W = fatigue(y, fs, win, step, nseg, hp, lp || fs / 2, inside); } catch (e) { return fail((e as Error).message); }
+    const used = W.filter((w) => (useAct ? w.active : true) && Number.isFinite(w.mdf));
+    err.hidden = true; out.hidden = false;
+    const t = used.map((w) => sgl.t0 + w.t), md = trendLine(t, used.map((w) => w.mdf)), mn = trendLine(t, used.map((w) => w.mnf));
+    const rel = (L: ReturnType<typeof trendLine>) => (t.length ? 100 * 60 * L.b / (L.a + L.b * t[0]) : NaN);
+    const nb = B.bursts.length;
+    q('.em-big').textContent = `${nb} burst${nb === 1 ? '' : 's'} · median frequency ${Number.isFinite(md.b) ? `${sgn(md.b, 2)} Hz/s (${sgn(rel(md), 1)} % per minute)` : 'trend needs 3 or more windows'}`;
+    const durs = B.bursts.map((z) => z.dur);
+    const facts = [
+      fact('Recording', `${sig(dur, 4)} s`, `${sgl.y.length.toLocaleString('en')} samples at ${sig(fs, 5)} Hz${sgl.fromTime ? ' (from the time column)' : ''}${sgl.skipped ? `; ${sgl.skipped} text row${sgl.skipped === 1 ? '' : 's'} skipped` : ''}`),
+      fact('Threshold', `${sig(B.thr, 3)} ${unit}`, `rest mean ${sig(B.baseMean, 3)} + ${k} × SD ${sig(B.baseSd, 3)}`),
+      fact('Bursts', String(nb), nb ? `${sig(durs.reduce((s, v) => s + v, 0) / nb, 3)} s long on average` : 'none above the threshold; check the rest stretch and k'),
+      fact('Windows used', `${used.length} of ${W.length}`, useAct ? 'only those inside a burst' : 'all windows'),
+      fact('Median frequency (MDF)', Number.isFinite(md.b) ? `${sig(md.a + md.b * t[0], 4)} → ${sig(md.a + md.b * t[t.length - 1], 4)} Hz` : '–', Number.isFinite(md.b) ? `slope ${sgn(md.b, 3)} ± ${sig(md.seb, 2)} Hz/s, R² = ${md.r2.toFixed(3)}` : ''),
+      fact('Mean frequency (MNF)', Number.isFinite(mn.b) ? `${sig(mn.a + mn.b * t[0], 4)} → ${sig(mn.a + mn.b * t[t.length - 1], 4)} Hz` : '–', Number.isFinite(mn.b) ? `slope ${sgn(mn.b, 3)} ± ${sig(mn.seb, 2)} Hz/s, R² = ${mn.r2.toFixed(3)}; ${sgn(rel(mn), 1)} % per minute` : ''),
+    ];
+    q('.em-facts').replaceChildren(...facts);
+    // Signal and envelope.
+    const s1 = thin(y, fs, sgl.t0), s2 = thin(env, fs, sgl.t0, 1500);
+    const marks = [{ kind: 'hline' as const, at: B.thr, dash: [4, 3], label: 'threshold' }, ...(nb <= 20 ? B.bursts.flatMap((z) => [{ kind: 'vline' as const, at: sgl.t0 + z.on, dash: [2, 2] }]) : [])];
+    const fSig = chartFigure({ w: 380, h: 230, xLabel: 'Time (s)', yLabel: `EMG (${unit})`, legend: 'below', series: [
+      { name: 'Filtered EMG', x: s1.xs, y: s1.ys, mode: 'line', width: 0.7 },
+      { name: envKind === 'rms' ? `RMS envelope (${ep} ms)` : `Low-pass envelope (${ep} Hz)`, x: s2.xs, y: s2.ys, mode: 'line', width: 1.8 },
+    ], marks }, `Filtered EMG with its envelope, the threshold and ${nb} burst onsets`);
+    paint(q<HTMLCanvasElement>('.em-sig'), fSig);
+    // Burst table.
+    const head = ['#', 'Onset (s)', 'Offset (s)', 'Length (s)', `Peak (${unit})`, `Mean (${unit})`, `iEMG (${unit}·s)`];
+    const rows = B.bursts.map((z, i) => [String(i + 1), (sgl.t0 + z.on).toFixed(3), (sgl.t0 + z.off).toFixed(3), z.dur.toFixed(3), sig(z.peak, 4), sig(z.mean, 4), sig(z.iemg, 4)]);
+    const tab = q('.em-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); } return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    // Fatigue chart.
+    const tAll = W.map((w) => sgl.t0 + w.t);
+    const fFat = chartFigure({ w: 380, h: 240, xLabel: 'Time (s)', yLabel: 'Frequency (Hz)', legend: 'below', series: [
+      { name: 'Median frequency', x: t, y: used.map((w) => w.mdf), mode: 'points', marker: 'circle', size: 3 },
+      { name: 'Mean frequency', x: t, y: used.map((w) => w.mnf), mode: 'points', marker: 'open-square', size: 3 },
+      ...(Number.isFinite(md.b) ? [{ name: `MDF line ${sgn(md.b, 2)} Hz/s`, x: [t[0], t[t.length - 1]], y: [md.a + md.b * t[0], md.a + md.b * t[t.length - 1]], mode: 'line' as const, width: 1.6 }] : []),
+      ...(Number.isFinite(mn.b) ? [{ name: `MNF line ${sgn(mn.b, 2)} Hz/s`, x: [t[0], t[t.length - 1]], y: [mn.a + mn.b * t[0], mn.a + mn.b * t[t.length - 1]], mode: 'line' as const, width: 1.6, dash: [5, 3] }] : []),
+    ] }, `Median and mean frequency in ${used.length} windows; ${q('.em-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.em-fat'), fFat);
+    figs = [fSig, fFat];
+    bRows = [head, ...rows];
+    wRows = [['window centre (s)', 'mean frequency (Hz)', 'median frequency (Hz)', `RMS (${unit})`, 'inside a burst', 'used'], ...W.map((w, i) => [tAll[i].toFixed(3), w.mnf.toFixed(3), w.mdf.toFixed(3), sig(w.rms, 5), w.active ? 'yes' : 'no', (useAct ? w.active : true) && Number.isFinite(w.mdf) ? 'yes' : 'no'])];
+    report = [
+      { title: q('.em-big').textContent!, text: ['For study and research, not for diagnosis.'], facts: factsOf(q('.em-facts')), figure: fSig },
+      { title: 'Bursts', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Median and mean frequency over time', figure: fFat },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', calc));
+  root.querySelectorAll('textarea, input[type=text]').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.em-env').addEventListener('change', () => { (q('.em-ep') as HTMLInputElement).value = val('.em-env') === 'rms' ? '50' : '6'; calc(); });
+  q('.em-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.em-data').value = example(); (q('.em-fmt') as HTMLSelectElement).value = 'v'; (q('.em-col') as HTMLInputElement).value = '1'; (q('.em-fs') as HTMLInputElement).value = '1000'; calc(); });
+  const dl = (rows: (string | number)[][], name: string) => { if (rows.length) save(new Blob([csv(rows)], { type: 'text/csv' }), name, 'text/csv'); };
+  q('.em-bcsv').addEventListener('click', () => dl(bRows, 'emg-bursts.csv'));
+  q('.em-wcsv').addEventListener('click', () => dl(wRows, 'emg-windows.csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.em-out').hidden) { paint(q<HTMLCanvasElement>('.em-sig'), figs[0]); paint(q<HTMLCanvasElement>('.em-fat'), figs[1]); } });
+  q<HTMLTextAreaElement>('.em-data').value = example();
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'EMG envelope and fatigue', subtitle: q('.em-big').textContent ?? '', file: 'emg-analysis', sections: report }));
+</script>
+
+<style is:global>
+  .emga select, .emga input[type=text] { max-width: 100%; }
+  .emga textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+</style>

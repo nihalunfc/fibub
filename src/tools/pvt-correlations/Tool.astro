@@ -1,0 +1,152 @@
+---
+// Black-oil and gas PVT correlations. Example inputs are made-up round numbers, not a real reservoir.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pvt">
+  <div class="ax-card">
+    <h2>Fluid and conditions</h2>
+    <div class="ax-grid">
+      <label>Oil gravity (°API) <input class="pv-api" type="text" inputmode="decimal" value="35" /></label>
+      <label>Gas specific gravity (air = 1) <input class="pv-gg" type="text" inputmode="decimal" value="0.75" /></label>
+      <label>Solution GOR at bubble point <input class="pv-rsb" type="text" inputmode="decimal" value="600" /></label>
+      <label>GOR unit <select class="pv-gu"><option value="1" selected>scf/STB</option><option value="5.614583">m³/m³ (sm³/sm³)</option></select></label>
+      <label>Reservoir temperature <input class="pv-t" type="text" inputmode="decimal" value="180" /></label>
+      <label>Temperature unit <select class="pv-tu"><option value="F" selected>°F</option><option value="C">°C</option></select></label>
+      <label>Pressure <input class="pv-p" type="text" inputmode="decimal" value="3000" /></label>
+      <label>Pressure unit <select class="pv-pu"><option value="1" selected>psia</option><option value="14.503774">bar (absolute)</option><option value="0.14503774">kPa (absolute)</option><option value="145.03774">MPa (absolute)</option></select></label>
+      <label>Oil correlation <select class="pv-om"><option value="standing" selected>Standing</option><option value="vb">Vasquez-Beggs</option></select></label>
+      <label>Z-factor method <select class="pv-zm"><option value="dak" selected>Dranchuk-Abou-Kassem</option><option value="hy">Hall-Yarborough</option></select></label>
+      <label>Separator pressure <input class="pv-ps" type="text" inputmode="decimal" value="100" /></label>
+      <label>Separator temperature <input class="pv-ts" type="text" inputmode="decimal" value="75" /></label>
+      <label>CO₂ in the gas (mol %) <input class="pv-co2" type="text" inputmode="decimal" value="0" /></label>
+      <label>H₂S in the gas (mol %) <input class="pv-h2s" type="text" inputmode="decimal" value="0" /></label>
+      <label>Curves up to pressure <input class="pv-pmax" type="text" inputmode="decimal" value="5000" /></label>
+    </div>
+    <p class="ax-help">Separator pressure and temperature (same units as above) are used only by Vasquez-Beggs, to correct the gas gravity to a 100 psig separator. CO₂ and H₂S adjust the gas pseudo-critical properties (Wichert-Aziz). The example values are made up.</p>
+    <p class="ax-err pv-err" hidden></p>
+  </div>
+
+  <div class="ax-card pv-out">
+    <h2>Results</h2>
+    <p class="ax-big pv-big"></p>
+    <h3 class="pv-h">Oil</h3>
+    <dl class="ax-facts pv-oil"></dl>
+    <h3 class="pv-h">Gas</h3>
+    <dl class="ax-facts pv-gas"></dl>
+    <p class="ax-help pv-warn" hidden></p>
+    <div class="pv-figs">
+      <canvas class="ax-fig pv-f0"></canvas><canvas class="ax-fig pv-f1"></canvas><canvas class="ax-fig pv-f2"></canvas><canvas class="ax-fig pv-f3"></canvas>
+    </div>
+    <h3 class="pv-h">Properties against pressure</h3>
+    <div class="ax-scroll"><table class="pv-tab"></table></div>
+    <p class="ax-help">Correlations are fitted to sets of crude oils and natural gases, and each one is only as good as its fit for fluids like yours (typical errors are 5 to 15 %). Use a lab PVT report where you have one. For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pv-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { oil, gas, specificGravity, type OilIn, type GasIn } from '../../lib/sci/eng-pvt';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pvt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.pv-err'), out = q('.pv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const pu = +val('.pv-pu'), puName = q<HTMLSelectElement>('.pv-pu').selectedOptions[0].textContent!.split(' ')[0], gu = +val('.pv-gu'), guName = gu === 1 ? 'scf/STB' : 'm³/m³';
+    const tF = (s: string) => { const v = num(s); return val('.pv-tu') === 'C' ? v * 1.8 + 32 : v; }, tuName = val('.pv-tu') === 'C' ? '°C' : '°F';
+    const api = num(val('.pv-api')), gg = num(val('.pv-gg')), Rsb = num(val('.pv-rsb')) * gu, T = tF(val('.pv-t')), p = num(val('.pv-p')) * pu;
+    const psep = num(val('.pv-ps')) * pu, Tsep = tF(val('.pv-ts')), co2 = num(val('.pv-co2')), h2s = num(val('.pv-h2s')), pmax = num(val('.pv-pmax')) * pu;
+    if (!(api > 5 && api < 80)) return fail('Oil gravity must be between 5 and 80 °API.');
+    if (!(gg >= 0.55 && gg <= 2)) return fail('Gas specific gravity must be between 0.55 and 2 (air = 1).');
+    if (!(Rsb >= 0 && Rsb <= 5000)) return fail('Solution GOR must be between 0 and 5,000 scf/STB (890 m³/m³).');
+    if (!(T > 60 && T < 400)) return fail('Reservoir temperature must be between 60 and 400 °F (16 to 204 °C).');
+    if (!(p >= 14.5 && p <= 20000)) return fail('Pressure must be between 14.5 and 20,000 psia (1 to 1,379 bar).');
+    if (!(psep > 14.7 && psep < 2000 && Tsep > -40 && Tsep < 300)) return fail('Separator pressure must be above 14.7 psia (atmospheric) and the separator temperature between −40 and 300 °F.');
+    if (!(co2 >= 0 && h2s >= 0 && co2 + h2s < 80)) return fail('CO₂ and H₂S must be 0 or more and add up to less than 80 %.');
+    if (!(pmax > 100 && pmax <= 20000)) return fail('"Curves up to pressure" must be between 100 and 20,000 psia.');
+    err.hidden = true; out.hidden = false;
+    const oi: OilIn = { api, gg, T, Rsb, Tsep, psep, method: val('.pv-om') as 'standing' | 'vb' };
+    const gi: GasIn = { gg, T, yCO2: co2 / 100, yH2S: h2s / 100, method: val('.pv-zm') as 'dak' | 'hy' };
+    const o = oil(oi, p), g = gas(gi, p);
+    const P = (x: number) => `${sig(x / pu, 4)} ${puName}`, G = (x: number) => `${sig(x / gu, 4)} ${guName}`;
+    const lbft3 = (x: number) => `${sig(x, 4)} lb/ft³`, kgm3 = (x: number) => `${sig(x * 16.01846, 4)} kg/m³`;
+    const cUnit = pu === 1 ? '1/psi' : `1/${puName}`;
+    q('.pv-big').textContent = `Bubble point ${P(o.pb)}; at ${P(p)}: Bo ${o.Bo.toFixed(4)} rb/STB, µo ${sig(o.mu, 3)} cP, Z ${g.Z.toFixed(4)}`;
+    const oname = oi.method === 'vb' ? 'Vasquez-Beggs' : 'Standing';
+    q('.pv-oil').replaceChildren(
+      fact('Bubble point pressure', P(o.pb), `${oname}; the oil is ${o.saturated ? 'saturated (gas comes out of solution) at this pressure' : 'undersaturated (all gas dissolved) at this pressure'}`),
+      fact('Solution GOR Rs', G(o.Rs), o.saturated ? `${oname}, below the bubble point` : 'equal to the GOR at the bubble point'),
+      fact('Oil formation volume factor Bo', `${o.Bo.toFixed(4)} rb/STB`, `${o.saturated ? oname : `Bob ${o.Bob.toFixed(4)} × exp(−A ln(p/pb)), Vasquez-Beggs compressibility`}; also m³/m³`),
+      fact('Oil compressibility co', o.saturated ? 'not defined below pb' : `${sig(o.co * pu, 3)} ${cUnit}`, o.saturated ? 'gas leaves solution as pressure drops' : 'Vasquez-Beggs, undersaturated oil'),
+      fact('Dead-oil viscosity', `${sig(o.muDead, 3)} cP`, 'Beggs-Robinson, gas-free oil at reservoir temperature; cP = mPa·s'),
+      fact('Oil viscosity µo', `${sig(o.mu, 3)} cP`, o.saturated ? 'Beggs-Robinson live oil' : `Vasquez-Beggs above pb, from ${sig(o.muB, 3)} cP at the bubble point`),
+      fact('Oil density', lbft3(o.rho), `${kgm3(o.rho)}; stock-tank specific gravity ${specificGravity(api).toFixed(4)}`),
+      ...(oi.method === 'vb' ? [fact('Separator-corrected gas gravity', o.ggs.toFixed(4), 'Vasquez-Beggs, referred to 100 psig')] : []),
+    );
+    const zname = gi.method === 'hy' ? 'Hall-Yarborough' : 'Dranchuk-Abou-Kassem';
+    q('.pv-gas').replaceChildren(
+      fact('Pseudo-critical Tpc, Ppc', `${sig(g.Tpc, 4)} °R, ${P(g.Ppc)}`, `Sutton from gas gravity${g.eps ? `, Wichert-Aziz correction ε = ${sig(g.eps, 3)} °R` : ''}`),
+      fact('Pseudo-reduced Tpr, Ppr', `${g.Tpr.toFixed(3)}, ${g.Ppr.toFixed(3)}`),
+      fact('Z-factor', g.Z.toFixed(4), zname),
+      fact('Gas formation volume factor Bg', `${sig(g.Bg, 4)} ft³/scf`, `${sig(g.Bg / 5.614583 * 1000, 4)} rb/Mscf; ${sig(g.Bg, 4)} m³/sm³ (standard 14.696 psia, 60 °F)`),
+      fact('Gas density', lbft3(g.rho), `${kgm3(g.rho)}; molar mass ${sig(g.M, 4)} g/mol`),
+      fact('Gas viscosity µg', `${sig(g.mu, 3)} cP`, 'Lee-Gonzalez-Eakin'),
+      fact('Gas compressibility cg', `${sig(g.cg * pu, 3)} ${cUnit}`, '1/p − (1/Z)(dZ/dp)'),
+    );
+    const warn: string[] = [];
+    if (!g.inRange) warn.push(`Tpr ${g.Tpr.toFixed(2)} and Ppr ${g.Ppr.toFixed(2)} are outside the range the Z-factor equations were fitted to (Tpr 1.0 to 3.0, Ppr 0.2 to 30).`);
+    if (g.Tpr < 1.2 && g.Ppr > 0.8 && g.Ppr < 3) warn.push('Near the critical point (Tpr below 1.2) Z changes steeply and the methods differ more; compare both.');
+    if (gg > 1 || co2 + h2s > 25) warn.push('Rich or very sour gas: Sutton and Wichert-Aziz are less certain here.');
+    q('.pv-warn').textContent = warn.join(' '); q('.pv-warn').hidden = !warn.length;
+    // Curves against pressure.
+    const n = 120, ps = Array.from({ length: n + 1 }, (_, i) => 14.7 + ((pmax - 14.7) * i) / n);
+    if (o.pb > 14.7 && o.pb < pmax) { ps.push(o.pb); ps.sort((a, b) => a - b); }
+    const os = ps.map((x) => oil(oi, x)), gs = ps.map((x) => gas(gi, x)), xs = ps.map((x) => x / pu);
+    const xl = `Pressure (${puName})`, pbMark = o.pb < pmax ? [{ kind: 'vline' as const, at: o.pb / pu, dash: [4, 3], label: 'pb' }] : [];
+    const mk = (y: number[], yl: string, alt: string, marks = pbMark) => chartFigure({ w: 340, h: 220, xLabel: xl, yLabel: yl, legend: 'none', series: [{ name: yl, x: xs, y, mode: 'line', width: 2 }], marks }, alt);
+    figs = [
+      mk(os.map((r) => r.Bo), 'Bo (rb/STB)', `Oil formation volume factor against pressure, peak at the bubble point ${P(o.pb)}`),
+      mk(os.map((r) => r.Rs / gu), `Rs (${guName})`, 'Solution gas-oil ratio against pressure'),
+      mk(os.map((r) => r.mu), 'µo (cP)', 'Oil viscosity against pressure, lowest at the bubble point'),
+      mk(gs.map((r) => r.Z), 'Z-factor', 'Gas Z-factor against pressure', []),
+    ];
+    figs.forEach((f, i) => paint(q<HTMLCanvasElement>(`.pv-f${i}`), f));
+    const head = [`p (${puName})`, `Rs (${guName})`, 'Bo (rb/STB)', 'µo (cP)', 'Z', 'Bg (ft³/scf)', 'µg (cP)'];
+    const st = [1, 2, 2.5, 5, 10].map((m) => m * 10 ** Math.floor(Math.log10(pmax / pu / 10))).find((s) => s * 10 >= pmax / pu * 0.999)! * pu;
+    const steps = [14.7, ...Array.from({ length: Math.floor(pmax / st + 1e-9) }, (_, i) => (i + 1) * st)];
+    if (o.pb > 14.7 && o.pb < pmax) { steps.push(o.pb); steps.sort((a, b) => a - b); }
+    const trows = steps.map((x) => { const a = oil(oi, x), b = gas(gi, x); return [(x === 14.7 ? sig(x / pu, 3) : x === o.pb ? sig(x / pu, 5) + ' (pb)' : String(+(x / pu).toPrecision(6))), sig(a.Rs / gu, 4), a.Bo.toFixed(4), sig(a.mu, 3), b.Z.toFixed(4), sig(b.Bg, 4), sig(b.mu, 3)]; });
+    const tab = q<HTMLTableElement>('.pv-tab'); tab.replaceChildren();
+    const hr = tab.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    trows.forEach((r) => { const tr = tab.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    csvRows = [[`pressure (${puName})`, `Rs (${guName})`, 'Bo (rb/STB)', 'oil viscosity (cP)', 'oil density (kg/m3)', 'Z', 'Bg (ft3/scf)', 'gas density (kg/m3)', 'gas viscosity (cP)'],
+      ...ps.map((x, i) => [+(x / pu).toPrecision(8), +(os[i].Rs / gu).toPrecision(6), +os[i].Bo.toPrecision(6), +os[i].mu.toPrecision(5), +(os[i].rho * 16.01846).toPrecision(5), +gs[i].Z.toPrecision(6), +gs[i].Bg.toPrecision(5), +(gs[i].rho * 16.01846).toPrecision(5), +gs[i].mu.toPrecision(5)])];
+    report = [
+      { title: 'Oil', text: [q('.pv-big').textContent!, `Inputs: ${api} °API, gas gravity ${gg}, GOR ${G(Rsb)}, ${val('.pv-t')} ${tuName}, ${P(p)}${co2 || h2s ? `, CO₂ ${co2} %, H₂S ${h2s} %` : ''}.`], facts: factsOf(q('.pv-oil')), figure: figs[0] },
+      { title: 'Gas', facts: factsOf(q('.pv-gas')), figure: figs[3], note: warn.join(' ') || undefined },
+      { title: 'Viscosity', figure: figs[2] },
+      { title: 'Properties against pressure', figure: figs[1], table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pv-out').hidden) figs.forEach((f, i) => paint(q<HTMLCanvasElement>(`.pv-f${i}`), f)); });
+  q('.pv-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'pvt-properties.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Oil and gas PVT correlations', subtitle: q('.pv-big').textContent ?? '', file: 'pvt-correlations', sections: report }));
+</script>
+
+<style is:global>
+  .pvt .pv-h { font-size: 15px; margin: 16px 0 8px; }
+  .pvt .pv-figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; margin-top: 14px; }
+</style>

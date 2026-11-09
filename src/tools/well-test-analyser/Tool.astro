@@ -1,0 +1,158 @@
+---
+// Pressure buildup analysis. The example is made up: line-source solution with skin and a sealing fault (lib EXAMPLE).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleBuildup } from '../../lib/sci/eng-welltest';
+const demo = 'shut-in time (h)\tpws (psia)\n' + exampleBuildup().map((r) => `${r.dt}\t${r.p.toFixed(2)}`).join('\n');
+---
+<div class="ax wta">
+  <div class="ax-card">
+    <h2>Buildup data</h2>
+    <label>Shut-in time Δt (hours) and pressure pws (psia) <textarea class="wt-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".wt-data" maxCols={20} maxRows={20000} label="Open a file" />
+    <p class="ax-help">Two columns: hours since shut-in and the bottomhole pressure. A row at Δt = 0 gives the flowing pressure at shut-in. A header row is skipped. The example is made up from the line-source solution (35 md, skin +3, a sealing fault 350 ft away).</p>
+    <h2 style="margin-top:14px">Well and fluid</h2>
+    <div class="ax-grid">
+      <label>Rate before shut-in q (STB/d) <input class="wt-q" type="text" inputmode="decimal" value="250" /></label>
+      <label>Producing time tp (hours) <input class="wt-tp" type="text" inputmode="decimal" value="480" /></label>
+      <label>Oil FVF Bo (rb/STB) <input class="wt-b" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>Oil viscosity µ (cP) <input class="wt-mu" type="text" inputmode="decimal" value="0.9" /></label>
+      <label>Net thickness h (ft) <input class="wt-h" type="text" inputmode="decimal" value="40" /></label>
+      <label>Porosity φ (fraction) <input class="wt-phi" type="text" inputmode="decimal" value="0.18" /></label>
+      <label>Total compressibility ct (1/psi) <input class="wt-ct" type="text" inputmode="decimal" value="1.2e-5" /></label>
+      <label>Wellbore radius rw (ft) <input class="wt-rw" type="text" inputmode="decimal" value="0.35" /></label>
+      <label>pwf at shut-in (psia) <input class="wt-pwf" type="text" inputmode="decimal" placeholder="from Δt = 0 row" /></label>
+    </div>
+    <p class="ax-help">tp is usually cumulative production since the last stabilisation ÷ rate (× 24 for hours). ct = so·co + sw·cw + cf.</p>
+    <h2 style="margin-top:14px">Straight line</h2>
+    <div class="ax-grid">
+      <label>Plot <select class="wt-m"><option value="horner" selected>Horner (pws vs (tp+Δt)/Δt)</option><option value="mdh">MDH (pws vs Δt)</option></select></label>
+      <label>Line from Δt (h) <input class="wt-a" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>to Δt (h) <input class="wt-z" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>Derivative smoothing L <select class="wt-l"><option value="0">0 (none)</option><option value="0.1">0.1</option><option value="0.2" selected>0.2</option><option value="0.3">0.3</option><option value="0.5">0.5</option></select></label>
+    </div>
+    <p class="ax-help">Auto picks the longest stretch where the Bourdet derivative is flat (within 10 %): radial flow. Type a range to override it, for example after wellbore storage ends. MDH suits short shut-ins (Δt much smaller than tp). Bigger L smooths a noisy derivative but blurs its shape.</p>
+    <p class="ax-err wt-err" hidden></p>
+  </div>
+
+  <div class="ax-card wt-out">
+    <h2>Results</h2>
+    <p class="ax-big wt-big"></p>
+    <dl class="ax-facts wt-facts"></dl>
+    <canvas class="ax-fig wt-sfig" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig wt-dfig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Log-log plot: a flat derivative is radial flow (its level gives k·h); a unit slope at early time is wellbore storage; a derivative that doubles and flattens again suggests one sealing fault; a falling derivative suggests constant pressure support or a gas cap. Field units; equations for a single-phase oil well in an infinite-acting, homogeneous reservoir. For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wt-csv">Download data and derivative (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, bourdet, autoRange, hornerRatio, type Reservoir } from '../../lib/sci/eng-welltest';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wta')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.wt-err'), out = q('.wt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const pts: { dt: number; p: number }[] = []; let pwf0 = NaN, skipped = 0;
+    parseTable(val('.wt-data')).forEach((r, i) => {
+      const t = num(r[0]), p = num(r[1] ?? '');
+      if (!Number.isFinite(t) || !Number.isFinite(p)) { if (i > 0) skipped++; return; }
+      if (t === 0) pwf0 = p; else if (t > 0) pts.push({ dt: t, p }); else skipped++;
+    });
+    pts.sort((a, b) => a.dt - b.dt);
+    if (pts.length > 5000) return fail('The limit is 5,000 rows.');
+    if (pts.length < 6) return fail('Give at least 6 rows with a shut-in time above 0 and a pressure.');
+    const r: Reservoir = { q: num(val('.wt-q')), B: num(val('.wt-b')), mu: num(val('.wt-mu')), h: num(val('.wt-h')), phi: num(val('.wt-phi')), ct: num(val('.wt-ct')), rw: num(val('.wt-rw')) };
+    const tp = num(val('.wt-tp'));
+    if (!(r.q > 0)) return fail('The rate before shut-in must be above 0.');
+    if (!(tp > 0)) return fail('The producing time tp must be above 0 hours.');
+    if (!(r.B > 0 && r.mu > 0 && r.h > 0 && r.ct > 0 && r.rw > 0)) return fail('Bo, viscosity, thickness, compressibility and wellbore radius must all be above 0.');
+    if (!(r.phi > 0 && r.phi < 1)) return fail('Porosity is a fraction between 0 and 1 (for example 0.18 for 18 %).');
+    const pwfS = val('.wt-pwf').trim(), pwf = pwfS ? num(pwfS) : pwf0;
+    if (!Number.isFinite(pwf)) return fail('Give the flowing pressure at shut-in, or a row at Δt = 0.');
+    const dt = pts.map((p) => p.dt), pws = pts.map((p) => p.p), dp = pws.map((p) => p - pwf);
+    const method = val('.wt-m') as 'horner' | 'mdh', L = +val('.wt-l');
+    const der = bourdet(dt, dp, tp, L);
+    const aS = val('.wt-a').trim(), zS = val('.wt-z').trim();
+    let i0: number, i1: number, auto = false;
+    if (aS || zS) {
+      const a = aS ? num(aS) : dt[0], z = zS ? num(zS) : dt[dt.length - 1];
+      if (!Number.isFinite(a) || !Number.isFinite(z) || !(z > a)) return fail('The line range needs "from" smaller than "to", in hours.');
+      i0 = dt.findIndex((t) => t >= a - 1e-12); i1 = dt.length - 1 - [...dt].reverse().findIndex((t) => t <= z + 1e-12);
+      if (i0 < 0 || i1 - i0 < 2) return fail('Fewer than 3 points lie in that range.');
+    } else {
+      const ar = autoRange(dt, der);
+      if (!ar) return fail('No flat stretch of the derivative was found (no clear radial flow). Type a range for the straight line, or try more smoothing.');
+      ({ i0, i1 } = ar); auto = true;
+    }
+    const a = analyse(dt, pws, pwf, tp, r, i0, i1, method);
+    if (!(a.m > 0)) return fail('The chosen points do not rise with shut-in time, so there is no buildup slope. Check the range and the time column.');
+    err.hidden = true; out.hidden = false;
+    const P = (x: number) => `${sig(x, 6)} psia`;
+    q('.wt-big').textContent = `k = ${sig(a.k, 4)} md, skin = ${a.s >= 0 ? '+' : '−'}${Math.abs(a.s).toFixed(2)}${method === 'horner' ? `, p* = ${P(a.pStar)}` : ''}`;
+    const iarf = (70.6 * r.q * r.B * r.mu) / a.kh, mdDer = (() => { const v = der.slice(i0, i1 + 1).filter(Number.isFinite).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : NaN; })();
+    const facts = [
+      fact('Straight line', `Δt ${+dt[i0].toPrecision(3)} to ${+dt[i1].toPrecision(3)} h`, `${a.line.n} points, ${auto ? 'picked automatically' : 'your range'}; R² = ${a.line.r2.toFixed(5)}`),
+      fact('Slope m', `${sig(a.m, 4)} psi/cycle`, method === 'horner' ? 'Horner plot' : 'MDH plot'),
+      fact('Permeability-thickness kh', `${sig(a.kh, 4)} md·ft`, 'kh = 162.6 qBµ / m'),
+      fact('Permeability k', `${sig(a.k, 4)} md`),
+      fact('Skin s', `${a.s >= 0 ? '+' : '−'}${Math.abs(a.s).toFixed(3)}`, a.s > 0.5 ? 'damaged well' : a.s < -0.5 ? 'stimulated well' : 'about undamaged'),
+      fact('Pressure drop from skin', `${sig(a.dpSkin, 4)} psi`, `0.869 m s${Number.isFinite(a.flowEff) ? `; flow efficiency ${(a.flowEff * 100).toFixed(1)} %` : ''}`),
+      fact('p1hr (from the line)', P(a.p1hr), `pwf at shut-in ${P(pwf)}`),
+      fact('p* (extrapolated)', method === 'horner' ? P(a.pStar) : 'Horner only', method === 'horner' ? 'Horner line at (tp+Δt)/Δt = 1; equals the initial pressure for a new, infinite-acting reservoir' : 'switch the plot to Horner'),
+      fact('Radius of investigation', `${sig(a.ri, 4)} ft`, `at the last Δt, ${sig(dt[dt.length - 1], 4)} h: 0.029 √(k Δt / φµct)`),
+      fact('Derivative check', `${sig(mdDer, 4)} psi`, `median derivative on the line; radial flow predicts m/ln 10 = ${sig(iarf, 4)} psi`),
+    ];
+    if (skipped) facts.push(fact('Rows not read', String(skipped)));
+    q('.wt-facts').replaceChildren(...facts);
+    const inL = (i: number) => i >= i0 && i <= i1;
+    let f1: Figure;
+    if (method === 'horner') {
+      const hr = dt.map((t) => hornerRatio(tp, t)), xs = [Math.max(...hr) * 1.3, 1];
+      f1 = chartFigure({ w: 380, h: 250, xLabel: 'Horner time (tp + Δt) / Δt', yLabel: 'pws (psia)', xLog: true, xReverse: true, legend: 'below', series: [
+        { name: 'Data', x: hr.filter((_, i) => !inL(i)), y: pws.filter((_, i) => !inL(i)), mode: 'points', marker: 'open-circle', size: 2.6 },
+        { name: 'Points on the line', x: hr.filter((_, i) => inL(i)), y: pws.filter((_, i) => inL(i)), mode: 'points', size: 2.6 },
+        { name: `Line, m = ${sig(a.m, 4)} psi/cycle`, x: xs, y: xs.map((x) => a.line.intercept + a.line.slope * Math.log10(x)), mode: 'line', width: 1.6 },
+      ] }, `Horner plot with the straight line; p* ${P(a.pStar)}`);
+    } else {
+      const xs = [dt[0] / 1.3, dt[dt.length - 1] * 1.3];
+      f1 = chartFigure({ w: 380, h: 250, xLabel: 'Shut-in time Δt (h)', yLabel: 'pws (psia)', xLog: true, legend: 'below', series: [
+        { name: 'Data', x: dt.filter((_, i) => !inL(i)), y: pws.filter((_, i) => !inL(i)), mode: 'points', marker: 'open-circle', size: 2.6 },
+        { name: 'Points on the line', x: dt.filter((_, i) => inL(i)), y: pws.filter((_, i) => inL(i)), mode: 'points', size: 2.6 },
+        { name: `Line, m = ${sig(a.m, 4)} psi/cycle`, x: xs, y: xs.map((x) => a.line.intercept + a.line.slope * Math.log10(x)), mode: 'line', width: 1.6 },
+      ] }, 'MDH plot with the straight line');
+    }
+    const ok = dt.map((_, i) => dp[i] > 0 && der[i] > 0);
+    const f2 = chartFigure({ w: 380, h: 250, xLabel: 'Shut-in time Δt (h)', yLabel: "Δp and Δp' (psi)", xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'Δp = pws − pwf', x: dt.filter((_, i) => dp[i] > 0), y: dp.filter((v) => v > 0), mode: 'points', size: 2.4 },
+      { name: `Bourdet derivative (L = ${L})`, x: dt.filter((_, i) => ok[i]), y: der.filter((_, i) => ok[i]), mode: 'points', marker: 'triangle', size: 2.6 },
+    ], marks: [{ kind: 'hline', at: iarf, dash: [4, 3], label: 'radial flow' }] }, 'Log-log diagnostic plot of the pressure change and its Bourdet derivative');
+    paint(q<HTMLCanvasElement>('.wt-sfig'), f1); paint(q<HTMLCanvasElement>('.wt-dfig'), f2);
+    figs = [f1, f2];
+    csvRows = [['shut-in time (h)', 'pws (psia)', 'delta p (psi)', 'Horner ratio', 'Bourdet derivative (psi)', 'on line'], ...dt.map((t, i) => [t, pws[i], +dp[i].toFixed(4), +hornerRatio(tp, t).toPrecision(8), Number.isFinite(der[i]) ? +der[i].toFixed(4) : '', inL(i) ? 'yes' : ''])];
+    report = [
+      { title: q('.wt-big').textContent!, text: [`q ${r.q} STB/d, tp ${tp} h, Bo ${r.B}, µ ${r.mu} cP, h ${r.h} ft, φ ${r.phi}, ct ${r.ct} 1/psi, rw ${r.rw} ft.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), figure: f1 },
+      { title: 'Log-log diagnostic plot', figure: f2 },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.wt-out').hidden) { paint(q<HTMLCanvasElement>('.wt-sfig'), figs[0]); paint(q<HTMLCanvasElement>('.wt-dfig'), figs[1]); } });
+  q('.wt-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'buildup-analysis.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Pressure buildup analysis', subtitle: q('.wt-big').textContent ?? '', file: 'well-test', sections: report }));
+</script>
+
+<style is:global>
+  .wta textarea { width: 100%; }
+</style>

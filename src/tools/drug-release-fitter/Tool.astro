@@ -1,0 +1,155 @@
+---
+// Drug release curve fitter: zero order, first order, Higuchi, Korsmeyer-Peppas, Hixson-Crowell and Weibull fitted
+// to cumulative release, with R², adjusted R², AIC and the best model; plus first-order degradation of mass.
+// Example data made up by fibub. Release kinetics only, no doses.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'time (h)\treleased (%)\n' + [[0.25, 7.9], [0.5, 13.3], [1, 23.9], [2, 38.6], [3, 49.7], [4, 56.8], [6, 68.0], [8, 75.9], [10, 83.2], [12, 88.3], [16, 92.4], [24, 95.8]].map(([a, b]) => `${a}\t${b.toFixed(1)}`).join('\n');
+const demo2 = 'day\tmass remaining (%)\n' + [[0, 100], [1, 97.8], [2, 93.4], [4, 85.6], [7, 78.2], [14, 60.3], [21, 47.4], [28, 37.1], [42, 22.4], [56, 14.5]].map(([a, b]) => `${a}\t${b}`).join('\n');
+---
+<div class="ax krel">
+  <div class="ax-card">
+    <h2>Release data</h2>
+    <label>Time and cumulative release <textarea class="kx-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".kx-data" maxCols={10} maxRows={2000} label="Open a file" />
+    <p class="ax-help">Two columns: time and the cumulative amount released, as a percentage of the total in the dosage form (or as a fraction from 0 to 1). Header rows are skipped. The example is made up. Up to 1,000 points.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Release given as <select class="kx-as"><option value="pct" selected>Percent (0 to 100)</option><option value="frac">Fraction (0 to 1)</option></select></label>
+      <label>Time unit (for labels) <input class="kx-tu" type="text" value="h" /></label>
+      <label>Shape (for the Peppas n) <select class="kx-geo"><option value="film">Thin film or slab</option><option value="cylinder" selected>Cylinder (tablet)</option><option value="sphere">Sphere (bead, microsphere)</option></select></label>
+      <label>Fit Korsmeyer-Peppas up to (%) <input class="kx-lim" type="text" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-help">Every model is fitted by least squares to the release values themselves (not to a straight-line transform), so the R² and AIC of all models compare like with like. Korsmeyer-Peppas only holds for the first part of the curve, usually up to 60 % released, so it is fitted to those points and left out of the best-model choice when that is fewer points.</p>
+    <p class="ax-err kx-err" hidden></p>
+  </div>
+
+  <div class="ax-card kx-out">
+    <h2>Model fits</h2>
+    <p class="ax-big kx-big"></p>
+    <div class="ax-scroll"><table class="kx-tab"></table></div>
+    <canvas class="ax-fig kx-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small kx-csv">Download fits (CSV)</button></div>
+    <p class="ax-help">R² is 1 − SSE/SST about the mean. Adjusted R² and AIC (n·ln(SSE/n) + 2k, k = number of parameters) penalise extra parameters; the lowest AIC is the best model. A good fit does not prove a mechanism; use it with what you know about the formulation. Release kinetics only: this page gives no doses.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Degradation (mass loss, first order)</h2>
+    <label>Time and mass <textarea class="kx-ddata" rows="7" spellcheck="false">{demo2}</textarea></label>
+    <DataFile target=".kx-ddata" maxCols={10} maxRows={2000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Mass given as <select class="kx-das"><option value="rem" selected>Mass remaining (%)</option><option value="loss">Mass lost (%)</option></select></label>
+      <label>Time unit (for labels) <input class="kx-dtu" type="text" value="day" /></label>
+      <label class="ax-check"><input class="kx-m0" type="checkbox" checked /> Start at exactly 100 %</label>
+    </div>
+    <p class="ax-help">For a degrading biomaterial (a polymer scaffold, film or implant), first order means M = M₀·e^(−k·t): the same fraction is lost each day. Untick the box to fit the starting mass as well, if the first weighing is uncertain. The example is made up.</p>
+    <p class="ax-err kx-derr" hidden></p>
+    <div class="kx-dout">
+      <p class="ax-big kx-dbig"></p>
+      <dl class="ax-facts kx-dfacts"></dl>
+      <canvas class="ax-fig kx-dfig"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitAll, degradation, type Geometry, type ModelFit } from '../../lib/sci/drugrelease';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.krel')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => (q(c) as HTMLInputElement).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const pairs = (text: string) => {
+    const t: number[] = [], y: number[] = []; let skipped = 0;
+    for (const r of parseTable(text)) { const a = num(r[0]), b = num(r[1]); if (Number.isFinite(a) && Number.isFinite(b)) { t.push(a); y.push(b); } else if (r.some((c) => c.trim())) skipped++; }
+    return { t, y, skipped };
+  };
+  const pf = (m: ModelFit) => m.params.map((p) => `${p.name} = ${Number.isFinite(p.value) ? sig(p.value, 4) : '–'}${Number.isFinite(p.se) ? ` ± ${sig(p.se, 2)}` : ''}`).join('; ');
+  let fig1: Figure | null = null, fig2: Figure | null = null, sec1: Section[] = [], sec2: Section[] = [], rows: string[][] = [];
+
+  function release() {
+    const err = q('.kx-err'), out = q('.kx-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sec1 = []; };
+    const d = pairs(q<HTMLTextAreaElement>('.kx-data').value);
+    if (d.t.length > 1000) return fail(`There are ${d.t.length} points; the limit is 1,000.`);
+    if (d.t.length < 3) return fail('Give at least 3 rows of time and release (two columns).');
+    const F = val('.kx-as') === 'frac' ? d.y.map((v) => v * 100) : d.y;
+    if (d.t.some((v) => v < 0)) return fail('Times must be 0 or more.');
+    if (F.some((v) => v < 0 || v > 110)) return fail(val('.kx-as') === 'frac' ? 'Fractions must be between 0 and 1.' : 'Release must be between 0 and 100 % (a little over 100 is allowed for assay error). If your values are fractions, choose "Fraction".');
+    const lim = num(val('.kx-lim'));
+    if (!(lim > 0 && lim <= 100)) return fail('The Korsmeyer-Peppas limit must be between 0 and 100 %.');
+    const tu = val('.kx-tu').trim() || 'time';
+    let r;
+    try { r = fitAll(d.t, F, lim, val('.kx-geo') as Geometry); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const b = r.best;
+    q('.kx-big').textContent = b ? `Best model: ${b.name} (AIC ${b.aic.toFixed(2)}, R² ${b.r2.toFixed(4)})` : 'No model could be fitted';
+    const head = ['Model', 'Equation', `Parameters (time in ${tu})`, 'Points', 'R²', 'Adj. R²', 'AIC', 'Note'];
+    rows = r.fits.map((m) => [m.name + (m === b ? ' (best)' : ''), m.formula, pf(m), String(m.n), Number.isFinite(m.r2) ? m.r2.toFixed(4) : '–', Number.isFinite(m.r2adj) ? m.r2adj.toFixed(4) : '–', Number.isFinite(m.aic) && m.ok ? m.aic.toFixed(2) : '–', m.note ?? '']);
+    const tab = q('.kx-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false, best = false) => { const x = document.createElement('tr'); if (best) x.className = 'kx-best'; for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; x.append(e); } return x; };
+    tab.append(tr(head, true), ...rows.map((rw, i) => tr(rw, false, r.fits[i] === b)));
+    const tmax = Math.max(...d.t), grid = Array.from({ length: 121 }, (_, i) => tmax * i / 120);
+    fig1 = chartFigure({ w: 380, h: 280, xLabel: `Time (${tu})`, yLabel: 'Released (%)', legend: 'below', yMin: 0, xMin: 0, series: [
+      { name: 'Measured', x: d.t, y: F, mode: 'points', marker: 'circle', size: 3.5, color: '#000000' },
+      ...r.fits.filter((m) => m.ok).map((m) => ({ name: m.name, x: m.id === 'kp' ? grid.filter((x) => x <= Math.max(...d.t.filter((_, i) => F[i] <= lim))) : grid, y: (m.id === 'kp' ? grid.filter((x) => x <= Math.max(...d.t.filter((_, i) => F[i] <= lim))) : grid).map(m.f), mode: 'line' as const, width: m === b ? 2.4 : 1.2, dash: m === b ? undefined : [4, 3] })),
+    ], colors: ['#000000', '#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9'] }, `Release data with six fitted models; ${q('.kx-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.kx-fig'), fig1);
+    sec1 = [{ title: q('.kx-big').textContent!, text: [`${d.t.length} points${d.skipped ? `, ${d.skipped} text rows skipped` : ''}. Least squares on the release values; AIC = n·ln(SSE/n) + 2k.`], table: { head: head.slice(0, 7), rows: rows.map((x) => x.slice(0, 7)), align: ['l', 'l', 'l', 'r', 'r', 'r', 'r'] }, figure: fig1 },
+      { title: 'Notes', facts: r.fits.filter((m) => m.note).map((m) => [m.name, m.note!] as [string, string]) }];
+  }
+
+  function degr() {
+    const err = q('.kx-derr'), out = q('.kx-dout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sec2 = []; };
+    const d = pairs(q<HTMLTextAreaElement>('.kx-ddata').value);
+    if (!d.t.length) { err.hidden = true; out.hidden = true; sec2 = []; return; }
+    if (d.t.length < 3) return fail('Give at least 3 rows of time and mass.');
+    if (d.t.length > 1000) return fail('The limit is 1,000 points.');
+    const M = val('.kx-das') === 'loss' ? d.y.map((v) => 100 - v) : d.y;
+    if (M.some((v) => v < 0 || v > 110)) return fail('Mass values must be percentages between 0 and 100.');
+    if (M.every((v) => v <= 0)) return fail('All the remaining masses are zero.');
+    const tu = val('.kx-dtu').trim() || 'time';
+    const tus = (v: number) => (Math.abs(v - 1) > 1e-9 && /^[a-z]{2,}$/i.test(tu) && !/s$/i.test(tu) ? tu + 's' : tu);
+    const r = degradation(d.t, M, q<HTMLInputElement>('.kx-m0').checked);
+    if (!(r.k > 0)) return fail('The mass does not fall over time, so there is no first-order loss to fit.');
+    err.hidden = true; out.hidden = false;
+    q('.kx-dbig').textContent = `k = ${sig(r.k, 4)} per ${tu} · half-life ${sig(r.half, 3)} ${tus(r.half)}`;
+    const facts = [
+      fact('Rate constant k', `${sig(r.k, 4)} ± ${sig(r.kse, 2)} per ${tu}`, `${sig(100 * (1 - Math.exp(-r.k)), 3)} % of what is left is lost each ${tu}`),
+      fact('Half-life', `${sig(r.half, 4)} ${tus(r.half)}`, 'ln 2 / k: time to lose half the mass'),
+      fact('Starting mass M₀', r.M0se ? `${sig(r.M0, 4)} ± ${sig(r.M0se, 2)} %` : '100 % (fixed)'),
+      fact('R²', r.r2.toFixed(4), `${r.n} points`),
+      fact('Time to 10 % left', `${sig(Math.log(r.M0 / 10) / r.k, 3)} ${tus(2)}`, 'if first order holds that long'),
+    ];
+    q('.kx-dfacts').replaceChildren(...facts);
+    const tmax = Math.max(...d.t), grid = Array.from({ length: 101 }, (_, i) => tmax * i / 100);
+    fig2 = chartFigure({ w: 380, h: 240, xLabel: `Time (${tu})`, yLabel: 'Mass remaining (%)', legend: 'below', yMin: 0, xMin: 0, series: [
+      { name: 'Measured', x: d.t, y: M, mode: 'points', size: 3.5 },
+      { name: `First order, k = ${sig(r.k, 3)}`, x: grid, y: grid.map(r.f), mode: 'line', width: 2 },
+    ] }, `Mass remaining with a first-order fit, ${q('.kx-dbig').textContent}`);
+    paint(q<HTMLCanvasElement>('.kx-dfig'), fig2);
+    sec2 = [{ title: `Degradation: ${q('.kx-dbig').textContent}`, facts: factsOf(q('.kx-dfacts')), figure: fig2 }];
+  }
+
+  let timer = 0;
+  const run = () => { release(); degr(); };
+  root.querySelectorAll('textarea, input[type=text]').forEach((i) => i.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 200); }));
+  root.querySelectorAll('textarea, select, input').forEach((i) => i.addEventListener('change', run));
+  q('.kx-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv([['model', 'equation', 'parameters', 'points', 'R2', 'adjusted R2', 'AIC', 'note'], ...rows])], { type: 'text/csv' }), 'release-fits.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig1 && !q('.kx-out').hidden) paint(q<HTMLCanvasElement>('.kx-fig'), fig1); if (fig2 && !q('.kx-dout').hidden) paint(q<HTMLCanvasElement>('.kx-dfig'), fig2); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Drug release curve fits', subtitle: q('.kx-big').textContent ?? '', file: 'release-fits', sections: [...sec1, ...sec2] }));
+</script>
+
+<style is:global>
+  .krel select, .krel input[type=text] { max-width: 100%; }
+  .krel textarea { width: 100%; }
+  .krel .kx-best td { font-weight: 650; }
+  .krel .kx-tab td:nth-child(3) { min-width: 180px; }
+</style>

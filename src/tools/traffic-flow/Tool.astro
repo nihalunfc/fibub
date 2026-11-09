@@ -1,0 +1,179 @@
+---
+// Traffic flow fundamentals: Greenshields, Greenberg and Underwood speed-density models fitted to data, capacity,
+// fundamental diagrams, an operating point and level of service from user-entered density limits. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'density (veh/km/lane)\tspeed (km/h)\n' + [[8, 95.0], [15, 84.2], [22, 79.5], [30, 70.5], [38, 64.8], [45, 60.2], [52, 49.4], [60, 48.7], [68, 40.7], [75, 38.4], [83, 32.6], [90, 25.5], [98, 19.7], [105, 13.2]].map(([a, b]) => `${a}\t${b.toFixed(1)}`).join('\n');
+---
+<div class="ax tqf">
+  <div class="ax-card">
+    <h2>Traffic data</h2>
+    <div class="ax-grid">
+      <label>Units <select class="tq-u"><option value="si" selected>Metric (km/h, veh/km)</option><option value="us">US (mi/h, veh/mi)</option></select></label>
+      <label>Columns <select class="tq-lay"><option value="kv" selected>Density, speed</option><option value="qv">Flow, speed</option><option value="kq">Density, flow</option></select></label>
+    </div>
+    <label style="margin-top:10px">Observations <textarea class="tq-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".tq-data" maxCols={10} maxRows={20000} label="Open a file" />
+    <p class="ax-help">One observation per row, for example 5-minute counts from a loop detector: two columns as chosen above. Use per-lane values (or whole-road values throughout). Density from flow and speed is k = q / v, using the space-mean speed. Header rows are skipped. The example is made up. Up to 10,000 rows.</p>
+    <p class="ax-err tq-err" hidden></p>
+  </div>
+
+  <div class="ax-card tq-out">
+    <h2>Models and capacity</h2>
+    <p class="ax-big tq-big"></p>
+    <div class="ax-scroll"><table class="tq-tab"></table></div>
+    <p class="ax-help">Each model is fitted the textbook way: Greenshields by regressing speed on density, Greenberg speed on ln(density), Underwood ln(speed) on density. "R² fit" is for that regression; "R² speed" and RMSE compare predicted and observed speeds, so all three can be compared. Greenberg has no finite free-flow speed and Underwood no finite jam density.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Model for the diagrams below <select class="tq-m"><option value="best" selected>Best fit (highest R² speed)</option><option value="greenshields">Greenshields</option><option value="greenberg">Greenberg</option><option value="underwood">Underwood</option><option value="own">My own Greenshields values</option></select></label>
+      <label class="tq-own" hidden><span>Free-flow speed v_f (<span class="tq-vu">km/h</span>)</span> <input class="tq-vf" type="text" inputmode="decimal" value="100" /></label>
+      <label class="tq-own" hidden><span>Jam density k_j (<span class="tq-ku">veh/km</span>)</span> <input class="tq-kj" type="text" inputmode="decimal" value="120" /></label>
+    </div>
+    <canvas class="ax-fig tq-vk"></canvas>
+    <canvas class="ax-fig tq-qk"></canvas>
+    <canvas class="ax-fig tq-vq"></canvas>
+  </div>
+
+  <div class="ax-card tq-out2">
+    <h2>Operating point and level of service</h2>
+    <div class="ax-grid">
+      <label>Given <select class="tq-given"><option value="k" selected>Density</option><option value="q">Flow</option><option value="v">Speed</option></select></label>
+      <label><span class="tq-gl">Density (veh/km)</span> <input class="tq-g" type="text" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-help">Upper density limit for each level of service, per lane. <b>The values filled in are example values only</b>, not from any manual: enter the limits from the highway capacity manual or guideline you work to, for your type of road. Above E is F.</p>
+    <div class="ax-grid tq-losg">
+      <label>A up to <input class="tq-l" type="text" inputmode="decimal" value="8" /></label>
+      <label>B up to <input class="tq-l" type="text" inputmode="decimal" value="14" /></label>
+      <label>C up to <input class="tq-l" type="text" inputmode="decimal" value="20" /></label>
+      <label>D up to <input class="tq-l" type="text" inputmode="decimal" value="26" /></label>
+      <label>E up to <input class="tq-l" type="text" inputmode="decimal" value="32" /></label>
+    </div>
+    <p class="ax-err tq-oerr" hidden></p>
+    <p class="ax-big tq-obig"></p>
+    <dl class="ax-facts tq-ofacts"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tq-csv">Download fits and observations (CSV)</button></div>
+    <p class="ax-help">For study and planning; check your local design manual and a qualified engineer before using numbers for a real road.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitModel, makeModel, densitiesForFlow, los, type TFit, type TModel } from '../../lib/sci/traffic';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tqf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => (q(c) as HTMLInputElement).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const f = (v: number, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en', { maximumFractionDigits: d, minimumFractionDigits: d }) : '∞');
+  const f0 = (v: number) => (Number.isFinite(v) ? Math.round(v).toLocaleString('en') : '∞');
+  let figs: Figure[] = [], sec: Section[] = [], osec: Section[] = [], rowsCsv: (string | number)[][] = [], cur: (TFit | ReturnType<typeof makeModel>) | null = null;
+  let U = { v: 'km/h', k: 'veh/km', q: 'veh/h' };
+
+  function fit() {
+    const err = q('.tq-err'), out = q('.tq-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; q('.tq-out2').hidden = true; sec = []; cur = null; };
+    const us = val('.tq-u') === 'us'; U = { v: us ? 'mi/h' : 'km/h', k: us ? 'veh/mi' : 'veh/km', q: 'veh/h' };
+    root.querySelectorAll('.tq-vu').forEach((e) => (e.textContent = U.v)); root.querySelectorAll('.tq-ku').forEach((e) => (e.textContent = U.k));
+    const lay = val('.tq-lay'), k: number[] = [], v: number[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.tq-data').value)) {
+      const a = num(r[0]), b = num(r[1]);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+      if (lay === 'kv') { k.push(a); v.push(b); } else if (lay === 'qv') { if (b > 0) { k.push(a / b); v.push(b); } } else if (a > 0) { k.push(a); v.push(b / a); }
+    }
+    if (k.length > 10000) return fail(`There are ${k.length.toLocaleString('en')} rows; the limit is 10,000.`);
+    if (k.length < 3) return fail('Give at least 3 rows of two numbers (more, spread from light to heavy traffic, for a useful fit).');
+    if (k.some((x) => x < 0) || v.some((x) => x < 0)) return fail('Density, speed and flow must be 0 or more.');
+    const fits: TFit[] = [], why: string[] = [];
+    for (const m of ['greenshields', 'greenberg', 'underwood'] as TModel[]) { try { fits.push(fitModel(m, k, v)); } catch (e) { why.push((e as Error).message); } }
+    if (!fits.length) return fail(why[0] ?? 'No model could be fitted.');
+    err.hidden = true; out.hidden = false; q('.tq-out2').hidden = false;
+    const best = fits.reduce((a, b) => (b.r2v > a.r2v ? b : a));
+    const pick = val('.tq-m');
+    root.querySelectorAll<HTMLElement>('.tq-own').forEach((e) => (e.hidden = pick !== 'own'));
+    if (pick === 'own') {
+      const vf = num(val('.tq-vf')), kj = num(val('.tq-kj'));
+      if (vf > 0 && kj > 0) cur = makeModel('greenshields', vf, kj);
+      else { cur = best; err.textContent = 'Give a free-flow speed and a jam density above 0; showing the best fit meanwhile.'; err.hidden = false; }
+    } else cur = pick === 'best' ? best : fits.find((x) => x.model === pick) ?? best;
+    if (pick !== 'best' && pick !== 'own' && !fits.find((x) => x.model === pick)) { err.textContent = `${pick} could not be fitted; showing the best fit.`; err.hidden = false; }
+    const own = pick === 'own' && cur !== best;
+    q('.tq-big').textContent = `Capacity ${f0(cur.qm)} ${U.q} at ${f(cur.km)} ${U.k} and ${f(cur.vm)} ${U.v} (${cur.name}${own ? ', your values' : ''})`;
+    const head = ['Model', `Free-flow speed (${U.v})`, `Jam density (${U.k})`, `Optimum density (${U.k})`, `Speed at capacity (${U.v})`, `Capacity (${U.q})`, 'R² fit', 'R² speed', `RMSE (${U.v})`];
+    const rows = fits.map((m) => [m.name + (m === best ? ' (best)' : ''), f(m.vf), f(m.kj), f(m.km), f(m.vm), f0(m.qm), m.r2t.toFixed(4), m.r2v.toFixed(4), f(m.rmse, 2)]);
+    const tab = q('.tq-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const x = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; x.append(e); } return x; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    // Fundamental diagrams.
+    const kmax = Math.max(Math.max(...k) * 1.25, Number.isFinite(cur.kj) ? cur.kj * 1.05 : 0, cur.km * 2);
+    const grid = Array.from({ length: 161 }, (_, i) => (kmax * (i + 0.5)) / 160);
+    const qd = k.map((kk, i) => kk * v[i]);
+    const curves = (y: (m: TFit | ReturnType<typeof makeModel>, kk: number) => number) => (own ? [cur!] : fits).map((m) => ({ name: m.name, x: grid, y: grid.map((kk) => y(m, kk)), mode: 'line' as const, width: m === cur ? 2.4 : 1.2, dash: m === cur ? undefined : [4, 3] }));
+    const vmax = Math.max(...v) * 1.25;
+    const fvk = chartFigure({ w: 380, h: 240, xLabel: `Density (${U.k})`, yLabel: `Speed (${U.v})`, legend: 'below', xMin: 0, xMax: kmax, yMin: 0, yMax: vmax, colors: ['#000000', '#0072B2', '#D55E00', '#009E73'],
+      series: [{ name: 'Observed', x: k, y: v, mode: 'points', size: 3 }, ...curves((m, kk) => Math.min(m.v(kk), vmax * 2))] }, `Speed against density with fitted models`);
+    const fqk = chartFigure({ w: 380, h: 240, xLabel: `Density (${U.k})`, yLabel: `Flow (${U.q})`, legend: 'below', xMin: 0, xMax: kmax, yMin: 0, colors: ['#000000', '#0072B2', '#D55E00', '#009E73'],
+      series: [{ name: 'Observed', x: k, y: qd, mode: 'points', size: 3 }, ...curves((m, kk) => m.q(kk))],
+      marks: [{ kind: 'vline', at: cur.km, dash: [2, 3], label: 'capacity' }] }, `Flow against density; capacity ${f0(cur.qm)} ${U.q}`);
+    const fvq = chartFigure({ w: 380, h: 240, xLabel: `Flow (${U.q})`, yLabel: `Speed (${U.v})`, legend: 'below', xMin: 0, yMin: 0, yMax: vmax, colors: ['#000000', '#0072B2', '#D55E00', '#009E73'],
+      series: [{ name: 'Observed', x: qd, y: v, mode: 'points', size: 3 }, ...(own ? [cur] : fits).map((m) => ({ name: m.name, x: grid.map((kk) => m.q(kk)), y: grid.map((kk) => Math.min(m.v(kk), vmax * 2)), mode: 'line' as const, width: m === cur ? 2.4 : 1.2, dash: m === cur ? undefined : [4, 3] }))] }, 'Speed against flow');
+    paint(q<HTMLCanvasElement>('.tq-vk'), fvk); paint(q<HTMLCanvasElement>('.tq-qk'), fqk); paint(q<HTMLCanvasElement>('.tq-vq'), fvq);
+    figs = [fvk, fqk, fvq];
+    rowsCsv = [head, ...rows, [], [`density (${U.k})`, `speed (${U.v})`, `flow (${U.q})`], ...k.map((kk, i) => [sig(kk, 6), sig(v[i], 6), sig(qd[i], 6)])];
+    sec = [{ title: q('.tq-big').textContent!, text: [`${k.length} observations. ${why.length ? why.join(' ') : ''}`], table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Speed and density', figure: fvk }, { title: 'Flow and density', figure: fqk }, { title: 'Speed and flow', figure: fvq }];
+    point();
+  }
+
+  function point() {
+    if (!cur) return;
+    const err = q('.tq-oerr'), m = cur, g = val('.tq-given');
+    q('.tq-gl').textContent = g === 'k' ? `Density (${U.k})` : g === 'q' ? `Flow (${U.q})` : `Speed (${U.v})`;
+    const x = num(val('.tq-g'));
+    const lims = [...root.querySelectorAll<HTMLInputElement>('.tq-l')].map((e) => num(e.value));
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; q('.tq-obig').textContent = ''; q('.tq-ofacts').replaceChildren(); osec = []; };
+    if (!(x >= 0)) return fail('Give a value of 0 or more.');
+    if (!lims.every((v, i) => v > 0 && (i === 0 || v > lims[i - 1]))) return fail('The level of service limits must be numbers above 0, rising from A to E.');
+    let ks: number[];
+    if (g === 'k') ks = [x];
+    else if (g === 'q') { ks = densitiesForFlow(m, x); if (!ks.length) return fail(`${f0(x)} ${U.q} is above the capacity of ${f0(m.qm)} ${U.q}: no traffic state carries it.`); }
+    else {
+      if (m.model === 'greenshields') { if (x > m.vf) return fail(`The speed is above the free-flow speed of ${f(m.vf)} ${U.v}.`); ks = [m.kj * (1 - x / m.vf)]; }
+      else if (m.model === 'greenberg') ks = [x > 0 ? m.kj * Math.exp(-x / m.vm) : m.kj];
+      else { if (x > m.vf) return fail(`The speed is above the free-flow speed of ${f(m.vf)} ${U.v}.`); if (x === 0) return fail('Underwood never reaches zero speed; give a speed above 0.'); ks = [m.km * Math.log(m.vf / x)]; }
+    }
+    if (Number.isFinite(m.kj) && ks[0] > m.kj) return fail(`The density is above the jam density of ${f(m.kj)} ${U.k}.`);
+    err.hidden = true;
+    const st = (kk: number) => ({ k: kk, v: m.v(kk), q: m.q(kk), L: los(kk, lims), cong: kk > m.km });
+    const S = ks.map(st);
+    q('.tq-obig').textContent = S.map((s) => `LOS ${s.L}: ${f(s.v)} ${U.v}, ${f0(s.q)} ${U.q}`).join(' · or · ');
+    const facts = S.flatMap((s, i) => [
+      fact(S.length > 1 ? (i ? 'Congested state' : 'Uncongested state') : 'State', s.cong ? 'Congested (past capacity)' : 'Uncongested', `density ${f(s.k)} ${U.k}`),
+      fact(`Level of service${S.length > 1 ? (i ? ' (congested)' : ' (uncongested)') : ''}`, s.L, 'from your density limits'),
+      fact(`Speed and flow${S.length > 1 ? (i ? ' (congested)' : ' (uncongested)') : ''}`, `${f(s.v)} ${U.v} · ${f0(s.q)} ${U.q}`, `${f(100 * s.q / m.qm)} % of capacity; spacing ${f(s.k > 0 ? (U.k === 'veh/km' ? 1000 : 5280) / s.k : Infinity)} ${U.k === 'veh/km' ? 'm' : 'ft'}, headway ${f(s.q > 0 ? 3600 / s.q : Infinity, 2)} s`),
+    ]);
+    q('.tq-ofacts').replaceChildren(...facts);
+    osec = [{ title: `Operating point (${m.name}): ${q('.tq-obig').textContent}`, facts: factsOf(q('.tq-ofacts')), note: `Level of service limits used (A to E, ${U.k} per lane): ${lims.join(', ')}. Example limits are not from any manual.` }];
+  }
+
+  let timer = 0;
+  q('.tq-data').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(fit, 250); });
+  ['.tq-lay', '.tq-m', '.tq-vf', '.tq-kj', '.tq-data'].forEach((c) => q(c).addEventListener('change', fit));
+  ['.tq-vf', '.tq-kj'].forEach((c) => q(c).addEventListener('input', fit));
+  q('.tq-u').addEventListener('change', () => { const us = val('.tq-u') === 'us'; root.querySelectorAll<HTMLInputElement>('.tq-l').forEach((e) => { const v = num(e.value); if (Number.isFinite(v)) e.value = String(+(us ? v * 1.609344 : v / 1.609344).toFixed(1)); }); fit(); });
+  root.querySelectorAll('.tq-l, .tq-g').forEach((e) => e.addEventListener('input', fit));
+  q('.tq-given').addEventListener('change', () => { const g = val('.tq-given'); (q('.tq-g') as HTMLInputElement).value = g === 'k' ? '25' : g === 'q' ? '2000' : '60'; point(); });
+  q('.tq-csv').addEventListener('click', () => { if (rowsCsv.length) save(new Blob([csv(rowsCsv)], { type: 'text/csv' }), 'traffic-flow.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.tq-out').hidden) { paint(q<HTMLCanvasElement>('.tq-vk'), figs[0]); paint(q<HTMLCanvasElement>('.tq-qk'), figs[1]); paint(q<HTMLCanvasElement>('.tq-vq'), figs[2]); } });
+  fit();
+  wireDownloads(q('.dl'), () => ({ title: 'Traffic flow fundamentals', subtitle: q('.tq-big').textContent ?? '', file: 'traffic-flow', sections: [...sec, ...osec] }));
+</script>
+
+<style is:global>
+  .tqf select, .tqf input[type=text] { max-width: 100%; }
+  .tqf textarea { width: 100%; }
+  .tqf .tq-losg { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+</style>

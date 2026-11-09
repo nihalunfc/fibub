@@ -1,0 +1,245 @@
+---
+// Control charts and capability. Example data are made up (lib exampleVariables / exampleDefectives / exampleDefects).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleVariables } from '../../lib/sci/eng-cc';
+const demo = 'x1\tx2\tx3\tx4\tx5\n' + exampleVariables().map((r) => r.map((v) => v.toFixed(2)).join('\t')).join('\n');
+---
+<div class="ax ccs">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <div class="ax-grid">
+      <label>Chart <select class="cc-kind">
+        <option value="xbar-r" selected>X̄ and R (subgroups)</option>
+        <option value="xbar-s">X̄ and S (subgroups)</option>
+        <option value="i-mr">I-MR (individual values)</option>
+        <option value="p">p (proportion defective)</option>
+        <option value="np">np (number defective)</option>
+        <option value="c">c (defects per sample)</option>
+        <option value="u">u (defects per unit)</option>
+      </select></label>
+      <label>Run rules <select class="cc-rules"><option value="we" selected>Western Electric (4 rules)</option><option value="nelson">Nelson (8 rules)</option><option value="limits">Limits only</option></select></label>
+      <label class="cc-v">Layout <select class="cc-lay"><option value="rows" selected>each row is a subgroup</option><option value="col">one column, in subgroups of n</option></select></label>
+      <label class="cc-v cc-nw">Subgroup size n <input class="cc-n" type="text" inputmode="numeric" value="5" /></label>
+    </div>
+    <label style="margin-top:10px">Values <textarea class="cc-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".cc-data" maxCols={30} maxRows={20000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cc-ex">Use the example for this chart</button></div>
+    <p class="ax-help cc-help"></p>
+    <div class="ax-grid cc-v" style="margin-top:10px">
+      <label>Lower spec limit (LSL) <input class="cc-lsl" type="text" inputmode="decimal" value="498.5" placeholder="none" /></label>
+      <label>Upper spec limit (USL) <input class="cc-usl" type="text" inputmode="decimal" value="501.5" placeholder="none" /></label>
+      <label>Confidence for intervals <select class="cc-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out">
+    <h2>Control chart</h2>
+    <p class="ax-big cc-big"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <canvas class="ax-fig cc-f1" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig cc-f2" style="margin-top:10px"></canvas>
+    <div class="cc-flagbox"><h3 class="cc-h">Points that break a rule</h3><div class="ax-scroll"><table class="cc-flags"></table></div><ul class="ax-help cc-rulekey"></ul></div>
+    <div class="cc-capbox">
+      <h3 class="cc-h">Process capability</h3>
+      <dl class="ax-facts cc-cap"></dl>
+      <canvas class="ax-fig cc-f3" style="margin-top:12px"></canvas>
+      <p class="ax-help">Cp and Cpk use the within-subgroup σ (short-term, from R̄/d2, S̄/c4 or MR̄/d2); Pp and Ppk use the overall standard deviation of all values. Capability only means something when the chart is in control and the data are roughly normal. Common targets: 1.33 or more.</p>
+    </div>
+    <p class="ax-help">Limits are the centre line ± 3σ, worked out from your data. Constants (d2, d3, c4) are computed by fibub from the normal distribution, not copied from a table. Fix the causes of flagged points, then recalculate the limits without them.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csv">Download chart data (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { xbarChart, imrChart, attributeChart, runRules, capability, RULE_TEXT, exampleVariables, exampleDefectives, exampleDefects, type ChartKind, type Plot, type ChartResult, type RuleSet } from '../../lib/sci/eng-cc';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ccs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (box: HTMLElement) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const EX = {
+    var: 'x1\tx2\tx3\tx4\tx5\n' + exampleVariables().map((r) => r.map((v) => v.toFixed(2)).join('\t')).join('\n'),
+    def: 'defective\tsample size\n' + exampleDefectives().map((r) => r.join('\t')).join('\n'),
+    u: 'defects\tunits inspected\n' + exampleDefects().map((r) => r.join('\t')).join('\n'),
+    c: 'defects\n' + exampleDefects().map((r) => r[0]).join('\n'),
+  };
+  const family = (k: string) => (k === 'p' || k === 'np' ? 'def' : k === 'u' ? 'u' : k === 'c' ? 'c' : 'var') as keyof typeof EX;
+  const HELP: Record<string, string> = {
+    var: 'Numbers only are read; a header row or a label column is skipped. For I-MR all values are read in order, row by row. The example (25 subgroups of 5 fill weights in grams) is made up.',
+    def: 'Each row: the number of defective items, then the sample size (a label column before them is skipped). The np chart needs the same size every time. The example is made up.',
+    u: 'Each row: the number of defects found, then the number of units inspected. The example is made up.',
+    c: 'One defect count per row, from samples of the same size (one board, one roll, one hour). The example is made up.',
+  };
+  const SHORT: Record<string, [string, string]> = { 'xbar-r': ['X̄', 'R'], 'xbar-s': ['X̄', 'S'], 'i-mr': ['I', 'MR'] };
+  const fmtNum = (x: number) => (Number.isFinite(x) ? sig(x, 5) : '–');
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function chartFig(p: Plot, flags: number[][], xLabel: string, alt: string): Figure {
+    const xs = p.y.map((_, i) => i + 1), ok = p.y.map((v) => Number.isFinite(v));
+    const fx = xs.filter((_, i) => flags[i].length), fy = p.y.filter((_, i) => flags[i].length);
+    const varies = p.ucl.some((v) => Math.abs(v - p.ucl[0]) > 1e-12) || p.lcl.some((v) => Math.abs(v - p.lcl[0]) > 1e-12);
+    const series = [
+      { name: p.name, x: xs.filter((_, i) => ok[i]), y: p.y.filter((_, i) => ok[i]), mode: 'both' as const, size: 2.3, width: 1 },
+      ...(varies ? [{ name: 'Limits', x: xs, y: p.ucl, mode: 'line' as const, width: 1.2, dash: [5, 3] }, { name: '', x: xs, y: p.lcl, mode: 'line' as const, width: 1.2, dash: [5, 3] }] : []),
+      ...(fx.length ? [{ name: 'Breaks a rule', x: fx, y: fy, mode: 'points' as const, marker: 'open-square' as const, size: 5 }] : []),
+    ];
+    const marks = [{ kind: 'hline' as const, at: p.cl, dash: [1, 0], label: `CL ${sig(p.cl, 5)}` }, ...(varies ? [] : [{ kind: 'hline' as const, at: p.ucl[0], label: `UCL ${sig(p.ucl[0], 5)}` }, { kind: 'hline' as const, at: p.lcl[0], label: `LCL ${sig(p.lcl[0], 5)}` }])];
+    const lo = Math.min(...p.y.filter(Number.isFinite), ...p.lcl), hi = Math.max(...p.y.filter(Number.isFinite), ...p.ucl), padY = (hi - lo) * 0.08 || 1;
+    const chart = { w: 380, h: 230, xLabel, yLabel: p.name, legend: 'below' as const, yMin: lo - padY, yMax: hi + padY, series, marks };
+    return { w: 380, h: 230, alt, draw: (ctx, W, H, pal) => chartFigure({ ...chart, colors: [pal.accent, pal.muted, pal.muted, pal.bad] }, alt).draw(ctx, W, H, pal) };
+  }
+
+  function histFig(all: number[], mean: number, sw: number, so: number, lsl: number, usl: number): Figure {
+    return { w: 380, h: 220, alt: 'Histogram of all values with normal curves for the within and overall standard deviations and the specification limits', draw: (ctx, W, H, pal) => {
+      const l = 34, r = 8, t = 24, b = 30, pw = W - l - r, ph = H - t - b;
+      const lo0 = Math.min(...all, Number.isFinite(lsl) ? lsl : Infinity, mean - 3.5 * so), hi0 = Math.max(...all, Number.isFinite(usl) ? usl : -Infinity, mean + 3.5 * so);
+      const nb = Math.max(5, Math.min(30, Math.ceil(Math.log2(all.length) + 1) + 2)), dmin = Math.min(...all), dmax = Math.max(...all), bw = (dmax - dmin) / nb || 1;
+      const counts = new Array(nb).fill(0); all.forEach((v) => counts[Math.min(nb - 1, Math.floor((v - dmin) / bw))]++);
+      const pdf = (x: number, s: number) => (all.length * bw * Math.exp(-0.5 * ((x - mean) / s) ** 2)) / (s * Math.sqrt(2 * Math.PI));
+      const top = Math.max(...counts, pdf(mean, sw), pdf(mean, so)) * 1.1;
+      const X = (v: number) => l + ((v - lo0) / (hi0 - lo0)) * pw, Y = (v: number) => t + ph * (1 - v / top);
+      ctx.fillStyle = pal.grid; counts.forEach((c, i) => { ctx.fillStyle = pal.red ? pal.twilight : pal.line; ctx.fillRect(X(dmin + i * bw) + 0.5, Y(c), X(dmin + (i + 1) * bw) - X(dmin + i * bw) - 1, Y(0) - Y(c)); });
+      const curve = (s: number, col: string, dash: number[]) => { ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.setLineDash(dash); ctx.beginPath(); for (let i = 0; i <= 200; i++) { const x = lo0 + ((hi0 - lo0) * i) / 200; const yy = Y(pdf(x, s)); if (i) ctx.lineTo(X(x), yy); else ctx.moveTo(X(x), yy); } ctx.stroke(); ctx.setLineDash([]); };
+      curve(sw, pal.accent, []); curve(so, pal.accent2, [5, 3]);
+      ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const [v, n] of [[lsl, 'LSL'], [usl, 'USL']] as [number, string][]) if (Number.isFinite(v)) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(v), t); ctx.lineTo(X(v), t + ph); ctx.stroke(); ctx.fillStyle = pal.bad; ctx.fillText(n, X(v), t + 2); }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(l, t, pw, ph);
+      ctx.fillStyle = pal.muted; const step = (() => { const sp = hi0 - lo0, d = 10 ** Math.floor(Math.log10(sp / 4)); return [1, 2, 5, 10].map((m) => m * d).find((m) => sp / m <= 6)!; })();
+      for (let v = Math.ceil(lo0 / step) * step; v <= hi0 + 1e-9; v += step) ctx.fillText(String(+v.toPrecision(8)), X(v), t + ph + 4);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('0', l - 4, Y(0)); ctx.fillText(String(Math.round(top / 1.1)), l - 4, Y(Math.round(top / 1.1)));
+      ctx.textAlign = 'left'; ctx.fillStyle = pal.accent; ctx.fillRect(l, 8, 14, 2); ctx.fillStyle = pal.muted; ctx.fillText('within', l + 18, 9);
+      ctx.fillStyle = pal.accent2; ctx.fillRect(l + 70, 8, 14, 2); ctx.fillStyle = pal.muted; ctx.fillText('overall', l + 88, 9);
+    } };
+  }
+
+  function setup() {
+    const k = val('.cc-kind'), fam = family(k), isVar = fam === 'var';
+    root.querySelectorAll<HTMLElement>('.cc-v').forEach((e) => (e.hidden = !isVar));
+    q('.cc-nw').hidden = !isVar || val('.cc-lay') !== 'col' || k === 'i-mr';
+    q('.cc-help').textContent = HELP[fam];
+  }
+
+  function calc() {
+    setup();
+    const err = q('.cc-err'), out = q('.cc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const kind = val('.cc-kind') as ChartKind, rules = val('.cc-rules') as RuleSet, fam = family(kind);
+    const rows = parseTable(val('.cc-data')).map((r) => r.map(num).filter(Number.isFinite)).filter((r) => r.length);
+    if (!rows.length) return fail('Paste or open some numbers.');
+    let res: ChartResult, all: number[] = [], xLabel = 'Sample', notes: string[] = [];
+    try {
+      if (fam === 'var') {
+        if (kind === 'i-mr') { all = rows.flat(); if (all.length < 10) return fail('Give at least 10 values (20 to 25 or more is better).'); res = imrChart(all); xLabel = 'Observation'; }
+        else {
+          let groups: number[][];
+          if (val('.cc-lay') === 'col') {
+            const n = num(val('.cc-n')); if (!(Number.isInteger(n) && n >= 2 && n <= 25)) return fail('Subgroup size must be a whole number from 2 to 25.');
+            const flat = rows.flat(), k = Math.floor(flat.length / n); groups = Array.from({ length: k }, (_, i) => flat.slice(i * n, i * n + n));
+            if (flat.length % n) notes.push(`${flat.length % n} value${flat.length % n === 1 ? '' : 's'} at the end did not fill a subgroup and ${flat.length % n === 1 ? 'was' : 'were'} left out`);
+          } else {
+            groups = rows; const n = groups[0].length;
+            const bad = groups.findIndex((g) => g.length !== n); if (bad >= 0) return fail(`Row ${bad + 1} has ${groups[bad].length} values but the first row has ${n}. Every subgroup needs the same size (or use the one-column layout).`);
+          }
+          if (groups.length < 5) return fail('Give at least 5 subgroups (20 to 25 is usual).');
+          if (groups[0].length < 2 || groups[0].length > 25) return fail('Subgroups need 2 to 25 values each (use I-MR for single values).');
+          res = xbarChart(groups, kind as 'xbar-r' | 'xbar-s'); all = groups.flat(); xLabel = 'Subgroup';
+        }
+      } else {
+        const need = kind === 'c' ? 1 : 2;
+        const bad = rows.findIndex((r) => r.length < need); if (bad >= 0) return fail(`Row ${bad + 1} needs ${need === 2 ? 'a count and a size' : 'a count'}.`);
+        const cnt = rows.map((r) => r[0]), size = kind === 'c' ? rows.map(() => 1) : rows.map((r) => r[1]);
+        if (cnt.some((v) => !(v >= 0) || !Number.isInteger(v))) return fail('Counts must be whole numbers of 0 or more.');
+        if (size.some((v) => !(v > 0))) return fail('Sample sizes and units must be above 0.');
+        if ((kind === 'p' || kind === 'np') && cnt.some((v, i) => v > size[i])) return fail('The number defective cannot be more than the sample size.');
+        if (rows.length < 5) return fail('Give at least 5 samples (20 to 25 is usual).');
+        res = attributeChart(kind as 'p' | 'np' | 'c' | 'u', cnt, size);
+        if (res.main.cl === 0) return fail('All counts are zero, so there is nothing to chart.');
+      }
+    } catch (e) { return fail((e as Error).message); }
+    if (res.main.y.length > 5000) return fail('The limit is 5,000 points on the chart.');
+    err.hidden = true; out.hidden = false;
+    const f1 = runRules(res.main, rules), f2 = res.second ? runRules(res.second, 'limits') : null;
+    const nFlag = f1.filter((v) => v.length).length + (f2 ? f2.filter((v) => v.length).length : 0);
+    const N = res.main.y.length;
+    q('.cc-big').textContent = nFlag ? `Out of control: ${nFlag} point${nFlag === 1 ? '' : 's'} break${nFlag === 1 ? 's' : ''} a rule` : `In control: no point breaks a rule (${N} ${xLabel.toLowerCase()}s)`;
+    const c = res.constants, facts: HTMLElement[] = [];
+    const lim = (p: Plot) => (p.ucl.every((v) => Math.abs(v - p.ucl[0]) < 1e-12) ? `LCL ${fmtNum(p.lcl[0])}, UCL ${fmtNum(p.ucl[0])}` : 'limits change with the sample size');
+    facts.push(fact(`${res.main.name}: centre line`, fmtNum(res.main.cl), lim(res.main)));
+    if (res.second) facts.push(fact(`${res.second.name}: centre line`, fmtNum(res.second.cl), lim(res.second)));
+    if (res.sigmaWithin) facts.push(fact('Within σ', fmtNum(res.sigmaWithin), kind === 'xbar-s' ? 'S̄ / c4' : kind === 'i-mr' ? 'MR̄ / d2(2)' : 'R̄ / d2'));
+    const cTxt = Object.entries(c).filter(([k]) => !['pbar', 'cbar', 'ubar', 'n'].includes(k)).map(([k, v]) => `${k} = ${v.toFixed(4)}`).join(', ');
+    if (cTxt) facts.push(fact('Constants', `n = ${res.n}`, cTxt));
+    facts.push(fact('Rules', rules === 'we' ? 'Western Electric' : rules === 'nelson' ? 'Nelson' : 'Limits only', res.second ? `on the ${SHORT[kind][0]} chart; the ${SHORT[kind][1]} chart uses its limits only` : 'on the chart'));
+    if (notes.length) facts.push(fact('Note', notes.join('; ')));
+    q('.cc-facts').replaceChildren(...facts);
+    const g1 = chartFig(res.main, f1, xLabel, `${res.main.name} chart`), g2 = res.second && f2 ? chartFig(res.second, f2, xLabel, `${res.second.name} chart`) : null;
+    paint(q<HTMLCanvasElement>('.cc-f1'), g1); q('.cc-f2').hidden = !g2; if (g2) paint(q<HTMLCanvasElement>('.cc-f2'), g2);
+    // Rule table.
+    const flagRows: string[][] = [];
+    const WE: Record<number, number> = { 1: 1, 5: 2, 6: 3, 9: 4 }, rn = (r: number) => (rules === 'we' ? WE[r] : r);
+    const used = new Set<number>(), cname = (pl: Plot, j: number) => SHORT[kind]?.[j] ?? pl.name.split(' ')[0];
+    f1.forEach((v, i) => { if (!v.length) return; v.sort((a, b) => a - b).forEach((r) => used.add(r)); flagRows.push([String(i + 1), cname(res.main, 0), fmtNum(res.main.y[i]), v.map(rn).join(', ')]); });
+    if (f2 && res.second) f2.forEach((v, i) => { if (!v.length) return; v.forEach((r) => used.add(r)); flagRows.push([String(i + 1), cname(res.second!, 1), fmtNum(res.second!.y[i]), v.map(rn).join(', ')]); });
+    flagRows.sort((a, b) => +a[0] - +b[0]);
+    q('.cc-flagbox').hidden = !flagRows.length;
+    const tab = q<HTMLTableElement>('.cc-flags'); tab.replaceChildren();
+    const head = [xLabel, 'Chart', 'Value', 'Rules broken'];
+    q('.cc-rulekey').replaceChildren(...[...used].sort((a, b) => a - b).map((r) => { const li = document.createElement('li'); li.textContent = `Rule ${rn(r)}: ${RULE_TEXT[r]}`; return li; }));
+    const hr = tab.insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    flagRows.forEach((r) => { const tr = tab.insertRow(); r.forEach((cc) => { tr.insertCell().textContent = cc; }); });
+    // Capability.
+    let g3: Figure | null = null; const capBox = q('.cc-capbox');
+    const lslS = val('.cc-lsl').trim(), uslS = val('.cc-usl').trim(), lsl = lslS ? num(lslS) : NaN, usl = uslS ? num(uslS) : NaN;
+    capBox.hidden = true;
+    if (fam === 'var' && res.sigmaWithin && (Number.isFinite(lsl) || Number.isFinite(usl))) {
+      if ((lslS && !Number.isFinite(lsl)) || (uslS && !Number.isFinite(usl))) return fail('Spec limits must be numbers, or empty.');
+      if (Number.isFinite(lsl) && Number.isFinite(usl) && !(usl > lsl)) return fail('The upper spec limit must be above the lower one.');
+      const conf = +val('.cc-conf'), dfw = kind === 'i-mr' ? all.length - 1 : (res.main.y.length) * ((res.n ?? 2) - 1);
+      const cp = capability(all, res.sigmaWithin, lsl, usl, conf, dfw);
+      const ci = (v: number, r: [number, number]) => (Number.isFinite(v) ? `${v.toFixed(3)}` : 'needs both limits');
+      const cis = (r: [number, number]) => (Number.isFinite(r[0]) ? `${Math.round(conf * 100)} % CI ${r[0].toFixed(3)} to ${r[1].toFixed(3)}` : '');
+      q('.cc-cap').replaceChildren(
+        fact('Cp (potential)', ci(cp.Cp, cp.ci.Cp), cis(cp.ci.Cp)),
+        fact('Cpk', cp.Cpk.toFixed(3), `${cis(cp.ci.Cpk)}; CPL ${fmtNum(cp.CPL)}, CPU ${fmtNum(cp.CPU)}`),
+        fact('Pp (overall)', ci(cp.Pp, cp.ci.Pp), cis(cp.ci.Pp)),
+        fact('Ppk', cp.Ppk.toFixed(3), `${cis(cp.ci.Ppk)}; PPL ${fmtNum(cp.PPL)}, PPU ${fmtNum(cp.PPU)}`),
+        fact('Mean and σ', `${fmtNum(cp.mean)}`, `within σ ${fmtNum(cp.sWithin)}, overall σ ${fmtNum(cp.sOverall)}; ${cp.N} values`),
+        fact('Expected out of spec', `${Math.round(cp.ppmOverall).toLocaleString('en')} ppm`, `overall; within ${Math.round(cp.ppmWithin).toLocaleString('en')} ppm; observed ${Math.round(cp.ppmObserved).toLocaleString('en')} ppm`),
+      );
+      g3 = histFig(all, cp.mean, cp.sWithin, cp.sOverall, lsl, usl); capBox.hidden = false; paint(q<HTMLCanvasElement>('.cc-f3'), g3);
+    }
+    figs = [g1, ...(g2 ? [g2] : []), ...(g3 ? [g3] : [])];
+    csvRows = [[xLabel.toLowerCase(), res.main.name, 'CL', 'LCL', 'UCL', 'rules broken', ...(res.second ? [res.second.name, `${res.second.name} CL`, `${res.second.name} LCL`, `${res.second.name} UCL`] : [])],
+      ...res.main.y.map((y, i) => [i + 1, +y.toPrecision(10), +res.main.cl.toPrecision(10), +res.main.lcl[i].toPrecision(10), +res.main.ucl[i].toPrecision(10), f1[i].join(' '), ...(res.second ? [Number.isFinite(res.second.y[i]) ? +res.second.y[i].toPrecision(10) : '', +res.second.cl.toPrecision(10), +res.second.lcl[i].toPrecision(10), +res.second.ucl[i].toPrecision(10)] : [])])];
+    report = [
+      { title: q('.cc-big').textContent!, facts: factPairs(q('.cc-facts')), figure: g1, table: flagRows.length ? { head, rows: flagRows, align: ['r', 'l', 'r', 'l'] } : undefined, text: [...used].sort((a, b) => a - b).map((r) => `Rule ${rn(r)}: ${RULE_TEXT[r]}`) },
+      ...(g2 ? [{ title: `${res.second!.name} chart`, figure: g2 }] : []),
+      ...(g3 ? [{ title: 'Process capability', facts: factPairs(q('.cc-cap')), figure: g3 }] : []),
+    ];
+  }
+
+  q('.cc-kind').addEventListener('change', () => {
+    const box = q<HTMLTextAreaElement>('.cc-data'), fam = family(val('.cc-kind'));
+    if (Object.values(EX).includes(box.value) && box.value !== EX[fam]) box.value = EX[fam];
+  });
+  q('.cc-ex').addEventListener('click', () => { const box = q<HTMLTextAreaElement>('.cc-data'); box.value = EX[family(val('.cc-kind'))]; if (family(val('.cc-kind')) === 'var') q<HTMLSelectElement>('.cc-lay').value = 'rows'; calc(); });
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cc-out').hidden) { paint(q<HTMLCanvasElement>('.cc-f1'), figs[0]); calc(); } });
+  q('.cc-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'control-chart.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Control chart', subtitle: q('.cc-big').textContent ?? '', file: 'control-chart', sections: report }));
+</script>
+
+<style is:global>
+  .ccs textarea { width: 100%; }
+  .ccs .cc-h { font-size: 15px; margin: 16px 0 8px; }
+  .ccs [hidden] { display: none !important; }
+</style>
