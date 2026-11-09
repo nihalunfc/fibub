@@ -117,6 +117,13 @@
   "site": false
  },
  {
+  "sha": "8992fac23ac0",
+  "date": "2026-11-09T01:50:26+00:00",
+  "title": "Show public view and use counters on tool pages and site views in the footer",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "1edf57054db5",
   "date": "2026-11-09T01:41:03+00:00",
   "title": "Add #155 detention pond router",
