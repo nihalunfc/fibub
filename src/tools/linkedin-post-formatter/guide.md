@@ -30,6 +30,8 @@ Drafted your post somewhere that uses Markdown, such as an AI chat? Paste it and
 
 Nothing you write leaves your device. The page works offline once it is open, and nothing is saved, so copy your post before you close the tab.
 
+To strip tracking codes from any link in the post, use the [[link-cleaner]]; to make your resume match it, the [[resume-builder]].
+
 ## How it works
 
 LinkedIn posts are plain text, so there is no real bold button. This tool swaps your letters for look-alike Unicode characters, such as 𝗯𝗼𝗹𝗱 and 𝘪𝘵𝘢𝘭𝘪𝘤 letters from the maths alphabet, and adds combining marks for u̲n̲d̲e̲r̲l̲i̲n̲e̲ and s̶t̶r̶i̶k̶e̶. They paste into LinkedIn, X, Instagram bios and most other sites.

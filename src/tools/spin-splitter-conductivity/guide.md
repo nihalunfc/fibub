@@ -31,6 +31,8 @@ It works like the spin Hall effect, but it does not need spin–orbit coupling a
 
 The tool computes the effect in a toy model you control, using the Boltzmann equation. Every state has the same scattering time τ, and τ cancels out of the ratios shown.
 
+See the bands that make the spin current in the [[altermagnet-bands|altermagnet band explorer]], and the Hall signals the crystal allows with the [[anomalous-hall-checker]].
+
 ## How to use it
 
 1. **Pick a model.** The two-sublattice model is a d-wave altermagnet made from anisotropic hopping. The one-band model lets you choose the splitting form: d-wave cos kx − cos ky, d-wave sin kx sin ky, or g-wave. These are the same models as in the Altermagnet band explorer.

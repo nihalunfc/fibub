@@ -25,6 +25,8 @@ flow:
 
 Even small binoculars show Jupiter's four large moons, discovered by Galileo in 1610: Io, Europa, Ganymede and Callisto. They swing from side to side as they orbit, so the line of dots changes every night, and Io moves visibly within an hour. This tool draws Jupiter and its moons for any moment, turned to match what you see through your instrument, and names each dot. It lists the coming events: a moon crossing in front of Jupiter (a **transit**), its black shadow crossing the cloud tops (a **shadow transit**), a moon slipping behind the planet (an **occultation**) and a moon fading into Jupiter's shadow (an **eclipse**). For each event it says whether you can see it from your place, with Jupiter's height at the time. A wave chart shows the moons over the coming days, the same kind of chart astronomy magazines print each month.
 
+To see when Jupiter is high enough to observe, use the [[object-altitude|target altitude planner]]; for the magnification you need, the [[telescope-calculator]].
+
 ## How to use it
 
 1. Set your **place** at the top. Times show on the clock chosen in "Times in".

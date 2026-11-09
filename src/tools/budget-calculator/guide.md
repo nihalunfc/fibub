@@ -23,6 +23,8 @@ flow:
 
 **Monthly budget** is for your regular money: your salary and other income, and everything you pay out. It turns weekly, monthly, quarterly and yearly costs into one monthly figure, shows what's left to save, and helps you find room to save more.
 
+Put each bill on its date with the [[bill-calendar]], and plan extra payments on a loan with the [[loan-payoff-planner]].
+
 ## Plan a trip or project
 
 1. Pick a starting list (**Trip**, **Home project**, **Wedding or event**, **Big purchase** or **Blank**). Rename, remove or add costs as you like.

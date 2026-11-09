@@ -36,6 +36,8 @@ The boundary is handled the classic way, with a mirror-image well on the other s
 
 The second card draws the **capture zone** of one well in a regional flow: the area whose water ends up in the well. That matters for protecting a drinking-water well, or for designing a pump-and-treat clean-up.
 
+Get T and S for each well from the [[pump-test-analyser]], and the groundwater flow between wells from the [[darcy-flow-calculator]].
+
 ## How to use it
 
 1. Enter the aquifer's transmissivity T (m²/day), storativity S and the well radius.

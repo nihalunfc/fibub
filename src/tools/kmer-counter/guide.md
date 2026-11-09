@@ -31,6 +31,8 @@ A **k-mer** is a word of k letters taken from a sequence: the read `ACGTAC` hold
 - **Look up a k-mer** gives the count of any word you type.
 - **Genome size (rough)** is the number of k-mers counted from the valley on, divided by the depth at the peak. It assumes one copy of each chromosome set and even coverage, so treat it as a first guess, not a measurement.
 
+Check read quality first with the [[fastq-inspector]], and compare two sequences in detail with the [[sequence-alignment]] tool.
+
 ## Options
 
 - **k** is the word length, from 1 to 25. Longer words are more likely to be unique in a genome; 21 is a common choice. Small k (3 to 8) is useful for word use and composition in short sequences.

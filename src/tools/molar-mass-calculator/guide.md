@@ -32,6 +32,8 @@ The molar mass is the mass of one mole of a substance: 6.022 × 10²³ molecules
 - **Percentage composition**: each element's share of the mass, as a table and a bar chart.
 - **Grams, moles and particles**: change any of the three and the other two follow.
 
+To make up a solution from the mass, use the [[solution-calculator]]; for the exact masses a mass spectrometer sees, the [[isotope-pattern-calculator]].
+
 ## Writing formulas
 
 - Capitals matter. **Co** is cobalt; **CO** is carbon and oxygen.

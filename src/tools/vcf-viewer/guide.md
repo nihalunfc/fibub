@@ -33,6 +33,8 @@ A VCF (variant call format) file lists the places where sequenced samples differ
 - **Genotypes per sample.** Homozygous reference, heterozygous, homozygous alternate and missing calls, with the het/hom-alt ratio.
 - **By chromosome.** Records on each chromosome or contig.
 
+Check the reads behind the calls with the [[fastq-inspector]], and the regions they fall in with the [[interval-tools]].
+
 ## How to use it
 
 1. **Open** a .vcf or .vcf.gz file, or paste a small VCF into the box.

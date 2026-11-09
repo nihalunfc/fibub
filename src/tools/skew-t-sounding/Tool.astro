@@ -195,7 +195,7 @@ const demo = 'pressure (hPa)\ttemperature (C)\tdew point (C)\twind direction (de
   wireDownloads(q('.dl'), () => ({ title: 'Sounding', subtitle: q('.sk-big').textContent ?? '', file: 'sounding', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .skt select, .skt input { max-width: 100%; }
   .skt textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 0.85rem; }
   .skt .sk-tab td { white-space: nowrap; }

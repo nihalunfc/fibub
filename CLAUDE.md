@@ -21,8 +21,15 @@ fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the
 4. Add checks for it in `tests/run.mjs`, and run `npm run images` to make its share image (`public/og/<id>.png`: tool name, fibub.com, FREE, NO SIGN-UP). Commit the image.
 5. Science tools need a `section` (listed in `SECTIONS` in `src/site.ts`); each section belongs to a subject (`SUBJECTS`: physics, astronomy, chemistry, ... 16 in all, from the science ideas list). Subjects get their own page at `/science/<subject>/` once they have a live tool, so a tool id may never equal a subject id. The build fails on an unknown section, a science tool without one, or a tool id that clashes with a subject.
 6. **Cross-link related tools (nihal's hard rule):** list them in `related:` (tool ids). Links show both ways ("Works well with" and Related tools); the build fails on an unknown id.
+   **Link in the text too, like an encyclopedia (nihal, 2026-11-09):** end the guide's first section with one sentence that sends readers to 2 or 3 related tools for the step before or after, written as `[[tool-id]]` (shows the tool's name) or `[[tool-id|your words]]`. Elsewhere, the first mention of any tool's name links itself (`src/lib/autolink.mjs`, at most 8 per guide). Only where it helps; never a list of links. `npm test` checks every guide links to another tool.
 7. Tools that make a report use `src/lib/report.ts` (sections of facts, tables and canvas figures) and `components/Downloads.astro` for PNG, PDF and Word downloads.
 8. `npm run build && npm test` must pass, then open a PR. The tool appears at `/<shelf>/<id>/`, on its shelf page and on the home page automatically.
+
+## Search engines and speed (nihal, 2026-11-09)
+- Pages must load near-instantly from a search result. Keep each page's HTML under 120 KB (`npm test` checks); the menus' tool lists live in `/nav/` and load the first time someone reaches for a menu (`loadNav()` in `src/scripts/site.ts`), never in every page. CSS is in shared cached files; links prefetch on hover or touch.
+- Search titles and descriptions come from `src/lib/seo.ts`: the part of `title` before the colon plus "free online tool", and the summary cut to 160 characters. If either reads badly, set `seoTitle` (60 max) or `seoDescription` (160 max) in guide.md.
+- Structured data (JSON-LD) is automatic: WebApplication and breadcrumbs on tool pages, CollectionPage on shelves and subjects, WebSite and Organization on home. Never add fake ratings or reviews.
+- Search Console and Bing Webmaster Tools are verified by DNS, with no code on the site. Never add Google Analytics, Tag Manager or any tracking script.
 
 ## Site rules
 - **No tool lives on both sites** (nihal, 2026-11-07). Everyday public tools go on fibub; ambitious career prototypes go on nihalsulaiman.com. Link between them only where useful. nihal's name appears only on the About page; the footer says "Developer" and links to the portfolio.

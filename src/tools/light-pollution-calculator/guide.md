@@ -25,6 +25,8 @@ flow:
 
 Sky darkness is measured in four common ways, and each source uses a different one. A sky quality meter (SQM) gives magnitudes per square arcsecond. Visual observers count the faintest star they can see, the naked-eye limiting magnitude. Light pollution atlases give luminance in millicandela per square metre, and forums talk in Bortle classes. This calculator takes any one of them and gives you the rest. It also says how many times brighter your sky is than a natural one, and how much longer a deep-sky image must be exposed to match a dark site.
 
+To find the darkest nights of the year, use the [[dark-sky-calendar]]; to set exposures under your sky, the [[sub-exposure-calculator]].
+
 ## How to use it
 
 1. Choose what you know: a **meter reading**, the **faintest star** you can see overhead, a **Bortle class**, or a **luminance**.

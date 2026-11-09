@@ -30,6 +30,8 @@ In an acid–base titration you add a base from a burette to an acid in a flask,
 - **Indicators** whose colour change falls within 0.5 % of the equivalence point, with the error each one gives.
 - **End point of your own curve.** Paste volume and pH readings. The tool finds the steepest point (the peak of ΔpH/ΔV, placed where the second derivative crosses zero), and from it the analyte's concentration and an estimate of the pKa.
 
+To make up the titrant, use the [[solution-calculator]]; to make a buffer at a chosen pH, the [[buffer-recipe-calculator]].
+
 ## How to use it
 
 1. Choose what is in the flask, or "Your own pKa values" for anything else. Strong acids are titrated with NaOH and bases with HCl.

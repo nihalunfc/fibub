@@ -29,6 +29,8 @@ A mineral deposit is not ore until it pays to dig up and process. The **cut-off 
 
 This tool takes your blocks or composites and draws the curve. It works out the cut-off from the metal price and costs, and reports the tonnes, average grade, contained metal and operating margin at any cut-off.
 
+Make length-weighted composites first with [[drill-hole-composites]], and put error bars on the totals with the [[uncertainty-calculator]].
+
 ## How to use it
 
 1. Paste or open your data: a name, then **tonnes and grade**, or **volume (m³), density (t/m³) and grade**. Thousands of rows from a block model export are fine.

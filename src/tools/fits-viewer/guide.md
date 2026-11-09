@@ -23,6 +23,8 @@ flow:
 
 FITS is the file format astronomy cameras and observatories use. Your phone and computer can't open it, and a raw astro image looks almost completely black until it is **stretched**. This viewer opens FITS files right in your browser: it stretches the image so you can see it, reads pixel values and sky positions, and shows every header card. It never uploads anything, so it is safe for unpublished data.
 
+To measure the stars in the same image, use the [[star-fwhm-checker]]; to stack many frames into one, the [[image-stacker]].
+
 ## How to use it
 
 1. **Choose FITS files** or drop them on the box. `.fits`, `.fit`, `.fts` and gzipped `.fits.gz` all work.

@@ -29,6 +29,8 @@ Different species tolerate a chemical very differently: a mayfly may react at a 
 
 The answer for 5 % is the **HC5**, the hazardous concentration for 5 % of species. It is the usual starting point for water and soil quality guidelines and for the predicted no-effect concentration in a risk assessment. This tool fits the SSD, gives the HC5 (or any HCp) with confidence limits, and gives the reverse too: the **fraction of species affected** at a concentration you name.
 
+Get each species' value from a test with the [[lc50-probit|LC50 probit analysis]] or the [[dose-response|dose-response fitter]].
+
 ## How to use it
 
 1. **Enter one toxicity value per test**: the species, an optional group (fish, insect, alga), and the value. Paste from a spreadsheet or open a CSV, TXT or Excel file. If a species appears more than once, its values are combined by geometric mean, so each species counts once.

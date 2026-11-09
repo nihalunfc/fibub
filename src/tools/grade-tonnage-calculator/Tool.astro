@@ -122,7 +122,7 @@ const demo = 'block\ttonnes\tCu (%)\nB01\t24000\t0.39\nB02\t24000\t0.61\nB03\t25
   wireDownloads(q('.dl'), () => ({ title: 'Grade-tonnage', subtitle: q('.gt-big').textContent ?? '', file: 'grade-tonnage', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gtc select, .gtc input { max-width: 100%; }
   .gtc textarea { width: 100%; }
 </style>

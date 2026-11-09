@@ -24,6 +24,8 @@ flow:
 
 Before you trust a questionnaire score or a set of ratings, reviewers will ask how reliable it is. This tool covers the four checks that come up most: **Cronbach's alpha** for the items of a scale, **Cohen's kappa** for two raters sorting things into categories, **Fleiss' kappa** for three or more raters, and the **intraclass correlation (ICC)** for numeric scores. Paste your data from a spreadsheet and the result, its confidence interval and a plain reading appear straight away. Nothing is uploaded.
 
+To plan how many people to survey, use the [[sample-size]]; to explore the answers with SQL, the [[sql-playground]].
+
 ## How to use it
 
 1. Pick what you are checking with the buttons at the top.

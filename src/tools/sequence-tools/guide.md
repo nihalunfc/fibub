@@ -33,6 +33,8 @@ This page does the everyday jobs people reach for a sequence tool for, without s
 - **Open reading frames:** every stretch from a start (ATG) to a stop above your minimum length, on one or both strands, on a map of the six frames and in a table you can download as CSV, with the proteins as FASTA.
 - **Codon usage:** how often each codon is used in the longest ORF, all ORFs, or frame +1 of the whole sequence, with RSCU (relative synonymous codon usage: 1 means a codon is used exactly as often as its synonyms, above 1 means it is preferred).
 
+To design primers on the sequence, use the [[primer-checker]]; to see where enzymes cut it, the [[restriction-digest]].
+
 ## How to use it
 
 1. **Sequence.** Paste it, or open a FASTA or text file (up to 20 MB; sequences up to 5 million bases). With several FASTA records, the first is used. Spaces, numbers and line breaks are ignored; U is read as T. Letters that are not bases are dropped and counted.

@@ -788,6 +788,44 @@ try {
     for (const f of ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest']) check(existsSync('dist/' + f), `icon file ${f}`);
   }
 
+  // 6h. Search engines: every page in the sitemap has a short title and description, tool pages say
+  // what they are in structured data, guides link to each other, and pages stay small.
+  {
+    const sitemap = readFileSync('dist/sitemap-0.xml', 'utf8');
+    const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+    check(urls.length > 150 && !urls.includes('/nav/') && (sitemap.match(/<lastmod>/g) ?? []).length > urls.length * 0.8, `sitemap: ${urls.length} pages, most with a last-changed date, no /nav/`);
+    const html = (p) => readFileSync(`dist${p}index.html`, 'utf8');
+    const unent = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+    const longTitle = [], longDesc = [], noLd = [], big = [], titles = new Map();
+    let toolPages = 0, linked = 0;
+    for (const p of urls) {
+      const s = html(p);
+      const t = unent(s.match(/<title>([^<]*)<\/title>/)?.[1] ?? '');
+      const d = unent(s.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? '');
+      if (t.length > 60) longTitle.push(`${p} (${t.length})`);
+      if (!d || d.length > 160) longDesc.push(`${p} (${d.length})`);
+      if (titles.has(t)) longTitle.push(`${p} repeats the title of ${titles.get(t)}`); else titles.set(t, p);
+      if (s.length > 120_000) big.push(`${p} ${Math.round(s.length / 1024)} KB`);
+      if (/^\/(money|documents|everyday|science)\/[^/]+\/$/.test(p) && s.includes('class="tool-ui"')) {
+        toolPages++;
+        const ld = s.match(/<script type="application\/ld\+json">([^<]*)<\/script>/)?.[1];
+        let ok = false;
+        try { const g = JSON.parse(ld)['@graph']; ok = g.some((x) => x['@type'] === 'WebApplication' && x.offers?.price === '0') && g.some((x) => x['@type'] === 'BreadcrumbList'); } catch {}
+        if (!ok) noLd.push(p);
+        if (/<article class="prose[^"]*"[^>]*>[\s\S]*?<a [^>]*class="tl"/.test(s)) linked++;
+      }
+    }
+    check(!longTitle.length, `search titles: all ${urls.length} are unique and 60 characters or less${longTitle.length ? ': ' + longTitle.slice(0, 5).join(', ') : ''}`);
+    check(!longDesc.length, `search descriptions: all present and 160 characters or less${longDesc.length ? ': ' + longDesc.slice(0, 5).join(', ') : ''}`);
+    check(toolPages > 100 && !noLd.length, `structured data: ${toolPages} tool pages are a free WebApplication with breadcrumbs${noLd.length ? '; missing on ' + noLd.slice(0, 5).join(', ') : ''}`);
+    check(linked === toolPages, `guides: ${linked} of ${toolPages} tool guides link to another tool in their text`);
+    check(!big.length, `page weight: every page under 120 KB of HTML${big.length ? ': ' + big.slice(0, 5).join(', ') : ''}`);
+    const home = html('/');
+    check(/"@type":"WebSite"/.test(home) && /"@type":"Organization"/.test(home), 'structured data: home page names the site and its publisher');
+    const nav = readFileSync('dist/nav/index.html', 'utf8');
+    check(/name="robots" content="noindex"/.test(nav) && /data-part="at-science"/.test(nav) && !/class="at-item"/.test(html('/money/loan-payoff-planner/')), 'menu lists: kept in /nav/ (noindex), not in every page');
+  }
+
   // 6c. ZIP checker and hand-off to the compressor.
   {
     writeFileSync(OUT + 'stored.zip', zipSync({ 'sales.csv': [new Uint8Array(readFileSync(OUT + 'sales.csv')), { level: 0 }], 'photo.jpg': [new Uint8Array(readFileSync(OUT + 'photo.jpg')), { level: 0 }] }));

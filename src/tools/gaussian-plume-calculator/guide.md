@@ -33,6 +33,8 @@ C(x, y, z) = Q / (2π u σy σz) × e^(−y²/2σy²) × [e^(−(z−H)²/2σz²
 
 Q is the emission rate, u the wind at the stack top, H the effective height (stack plus plume rise), and σy and σz the sideways and vertical spread at distance x. The second exponential is the ground acting as a mirror: gas that reaches the ground bounces back rather than soaking in.
 
+Convert the result between ppm and µg/m³ with the [[air-quality-calculator]], and look at the atmosphere's stability on a [[skew-t-sounding|Skew-T sounding]].
+
 ## How to use it
 
 1. Enter the **emission rate** (g/s, kg/h or tonnes a year) and the **stack height**.

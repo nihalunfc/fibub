@@ -35,6 +35,8 @@ It also makes the corrections that a simple calculator skips:
 - **Ionic strength.** Charged species are less active in salty solutions, which shifts the apparent pKa (pKa′). Phosphate's pKa of 7.2 becomes about 6.8 in a 100 mM buffer. The Davies equation handles this up to about 0.5 M ionic strength.
 - **Counter-ions.** The sodium or chloride that comes with each salt, the added NaOH or HCl and any extra NaCl all count towards the ionic strength.
 
+For plain stock solutions and dilutions, use the [[solution-calculator]]; to see how the buffer holds up as acid or base goes in, the [[titration-curve]].
+
 ## How to use it
 
 1. Choose the buffer, target pH, concentration (the total of all forms) and final volume.

@@ -30,6 +30,8 @@ Amateur observers have sent hundreds of millions of variable star measurements t
 
 Everything stays on this page. Nothing is uploaded; you send the file to the AAVSO yourself.
 
+Find the period of your measurements with the [[period-finder|light curve period finder]], and convert magnitudes to flux with the [[magnitude-flux-converter]].
+
 ## How to use it
 
 1. Pick **Visual estimate** or **Camera**. Type the star's name as the AAVSO knows it (such as SS Cyg, R Leo or Mira), the date and time in **UTC**, and the magnitude. The Julian Date appears as you type. If you looked but could not see the star, tick "Not seen" and give the faintest comparison star you could see.

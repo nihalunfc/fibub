@@ -24,6 +24,8 @@ flow:
 
 A Hohmann transfer is the cheapest way, with two short engine burns, to move between two circular orbits in the same plane: one burn stretches the orbit into an ellipse that touches the target orbit, and a second burn at the far side makes it circular again. This calculator works out both burns, the total delta-v, the time the transfer takes, where the target has to be when you leave, and how often that alignment comes round. It can also compare a bi-elliptic transfer, which uses three burns and can be cheaper for very different orbits.
 
+To see whether a rocket can deliver the delta-v, use the [[rocket-equation]]; to choose launch dates between planets, the [[porkchop-plot]].
+
 ## How to use it
 
 1. Pick the body you are orbiting: Earth, the Moon, Mars, Venus, Jupiter or the Sun.

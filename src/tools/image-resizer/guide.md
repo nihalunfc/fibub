@@ -28,6 +28,8 @@ flow:
 6. To meet an upload limit, tick **Make it smaller than** and enter a size such as 200 KB. fibub finds the best quality that fits.
 7. Press **Create image** and download it.
 
+To make the picture smaller in file size, use the [[compress-file|file compressor]]; to turn pictures into one PDF, the [[file-converter]].
+
 ## Which format should I use?
 
 | Format | Best for | Notes |

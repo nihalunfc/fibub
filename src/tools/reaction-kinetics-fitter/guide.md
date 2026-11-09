@@ -29,6 +29,8 @@ How fast a reactant disappears depends on its concentration through the **rate l
 - **The classic straight-line plots** ([A], ln [A] and 1/[A] against time) are one tap away, as in a textbook.
 - **Arrhenius analysis** turns rate constants at several temperatures into the activation energy Ea, with a 95 % range, and the pre-exponential factor A. The **Eyring** equation gives ΔH‡, ΔS‡ and ΔG‡, and you can predict k at any temperature.
 
+For enzyme rates with Km and Vmax, use the [[enzyme-kinetics-fitter]]; to turn absorbance into concentration first, the [[beer-lambert-calculator]].
+
 ## How to use it
 
 1. Paste time and concentration as two columns, or press **Load an example**. Use the reactant that is consumed. Absorbance works if it is proportional to concentration.

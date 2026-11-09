@@ -140,7 +140,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Activated sludge sizing', subtitle: q('.as-big').textContent ?? '', file: 'activated-sludge', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .asl .as-sd { margin-top: 14px; }
   .asl .as-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 </style>

@@ -31,6 +31,8 @@ The glass transition temperature, Tg, is where an amorphous polymer changes from
 
 **Molar mass effect (Flory–Fox).** Chain ends bring extra free volume, so short chains have a lower Tg: Tg = Tg∞ − K/Mn. The card shows how far below Tg∞ your sample is and above which molar mass the effect becomes small.
 
+To compare the estimate with a measured scan, use the [[dsc-tga-analyser]]; for the copolymer composition itself, the [[copolymer-composition]].
+
 ## How to use it
 
 1. Choose a monomer from the list; its homopolymer Tg and repeat unit mass fill in. Type over them if your source gives other values, or choose "Your own".

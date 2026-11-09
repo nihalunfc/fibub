@@ -24,6 +24,8 @@ Most medium and large employers put every application through an applicant track
 
 This checker reads your resume the same way: it pulls out the plain text, looks for the layout features that commonly trip ATS parsers up, and scores the result out of 100. Your file is read inside your browser and is never uploaded, stored or sent anywhere. Once the page has loaded, it works with no internet connection.
 
+No resume yet, or want a clean start? The [[resume-builder]] makes a one-column resume that scores well here.
+
 ## How to use it
 
 1. Choose your resume. PDF and Word (.docx) are what most job portals accept, and both are supported. Plain text and Markdown work too.

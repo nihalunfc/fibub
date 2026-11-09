@@ -27,6 +27,8 @@ flow:
 
 A shower's headline number, its zenithal hourly rate (ZHR), is what one observer would see under a perfect sky with the radiant straight overhead. Real nights are never that kind. This planner corrects the ZHR for your place and your sky, hour by hour through the night, so you know when to go out and what to expect. It also shows where the Moon is, the moonless dark hours on the nights either side of the peak, and lists every major shower of the coming year with its best rate from where you are.
 
+Check the Moon and darkness across the year with the [[dark-sky-calendar]], and note what you saw in the [[observing-log]].
+
 ## How to use it
 
 1. Set **your place** at the top. It is shared with the other astronomy tools.

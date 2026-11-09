@@ -9,3 +9,7 @@
 
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The menus' tool lists (loaded by every page the first time a menu opens): keep for 10 minutes.
+/nav/
+  Cache-Control: public, max-age=600, stale-while-revalidate=86400

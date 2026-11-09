@@ -27,6 +27,8 @@ Stars and gas in a spiral galaxy orbit its centre. How fast they go at each radi
 
 This tool fits a three-part mass model to a measured rotation curve. The parts are a central **bulge** (a Hernquist profile), a thin **exponential disc** (Freeman's solution) and a **dark halo**, either the cuspy NFW profile predicted by cold dark matter simulations or a cored pseudo-isothermal sphere. It gives each part's mass and size with uncertainties, plots each part's own contribution, and reports the share of dark matter inside the last measured point. It also gives the radius where the halo starts to outweigh the stars and, for NFW, the halo's total mass M₂₀₀ and concentration.
 
+To turn line positions into velocities, use the [[redshift-calculator]]; for a 21 cm spectrum from your own dish, the [[hydrogen-line-analyser]].
+
 ## How to use it
 
 1. Paste the curve: radius in kiloparsecs, circular speed in km/s and, if you have them, the error of each speed. Columns can be separated by tabs, commas or spaces. **Load the example** fills in a simulated Milky Way-like galaxy.

@@ -39,6 +39,8 @@ The first card gives:
 
 The second card **fits reactivity ratios** to your own measurements of feed and copolymer composition at low conversion, by Fineman–Ross, Kelen–Tüdős and non-linear least squares (the type of fit IUPAC recommends), and plots the fitted curve through your points.
 
+Measure the chains you made with the [[polymer-molar-mass|polymer molar mass calculator]], and estimate their glass transition with the [[glass-transition-calculator]].
+
 ## How to use it
 
 1. Pick a monomer pair from the list (typical literature values near 60 °C) or type your own r₁ and r₂.

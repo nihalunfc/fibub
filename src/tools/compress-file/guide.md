@@ -26,6 +26,8 @@ flow:
 
 Everything happens inside your browser, on your own computer or phone. Your file is never sent anywhere, so it is safe for bank statements, IDs, contracts and other private documents. Once the page has loaded, it even works with your internet switched off.
 
+To change a picture's size or crop it first, use the [[image-resizer]]; to change a file's format, the [[file-converter]].
+
 ## What each file type gets
 
 | File type | What fibub does | Typical saving |

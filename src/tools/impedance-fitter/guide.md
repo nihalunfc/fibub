@@ -45,6 +45,8 @@ The fit is complex non-linear least squares weighted by |Z|, so each frequency c
 - Rct × area and the exchange current density i₀ = RT/(nF·Rct·A)
 - a table that fits every circuit to your data, so you can compare them
 
+For the same cell's voltammogram, use the [[cyclic-voltammetry]]; for corrosion currents, the [[tafel-corrosion-rate|Tafel corrosion rate]] tool.
+
 ## How to use it
 
 1. Paste three columns or open a CSV, TSV or Excel file: frequency (Hz), Z′ and Z″ in ohms. If your file has |Z| and phase instead, choose that format.

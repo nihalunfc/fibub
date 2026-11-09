@@ -26,6 +26,8 @@ flow:
 
 Nothing you paste is sent anywhere. The cleaning happens in your browser, and the page keeps working with no internet once it is open.
 
+Writing a post to share the clean link? The [[linkedin-post-formatter]] adds bold, italics and lists.
+
 ## What gets removed
 
 - **Campaign tags** such as `utm_source`, `utm_medium` and `utm_campaign`, which tell a site which newsletter or post you came from.

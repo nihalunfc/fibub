@@ -34,6 +34,8 @@ You get four pictures:
 - A **splitting map** of E↑ − E↓ over the whole zone, showing the d-wave (four lobes) or g-wave (eight lobes) pattern.
 - The **spin-resolved density of states**, identical for both spins, which is why there is no net magnetisation.
 
+Before you model the bands, the [[altermagnet-checker]] confirms that a crystal is an altermagnet at all; the [[chiral-magnon-bands]] tool shows the matching spin waves.
+
 ## How to use it
 
 1. Pick the **two-sublattice model** (the physical picture) or the **one-band model** (the splitting form written in directly).

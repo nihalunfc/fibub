@@ -32,6 +32,8 @@ Before an analytical method is used for real samples, the lab shows that it is p
 - **Repeatability and intermediate precision** from a one-way ANOVA across the series. Repeatability (s_r) is the scatter within a day; intermediate precision (s_I) adds the day-to-day, analyst or instrument effect (s_L). An F-test says whether the series really differ. Series of unequal size are handled.
 - **Horwitz ratio (HorRat)**: your RSD divided by the reproducibility RSD that Horwitz's equation predicts at your concentration (Thompson's form: 2·C^−0.1505, capped at 22 % for very low levels).
 
+Build the calibration first with the [[calibration-curve|calibration curve]] tool, and combine the error sources with the [[uncertainty-calculator]].
+
 ## How to use it
 
 1. Paste your results, one column per series, with a header row, or open a CSV or Excel file (up to 10 MB and 20 columns). A single column is fine for a repeatability study.

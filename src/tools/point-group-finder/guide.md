@@ -42,6 +42,8 @@ For each molecule you get:
 
 The second card is the **flowchart on its own**: answer the questions from a model or a sketch.
 
+For how ligands split the d-orbitals, use the [[crystal-field-calculator]]; for the bands a molecule's symmetry allows, the [[ir-band-finder]].
+
 ## How to use it
 
 1. Pick an example, or paste coordinates in ångströms as "element x y z", one atom per line. You can also open an .xyz file exported from a drawing or modelling program. The usual first two lines (the atom count and a title) are skipped.

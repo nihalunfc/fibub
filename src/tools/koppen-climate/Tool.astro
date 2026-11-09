@@ -148,7 +148,7 @@ const presets = Object.fromEntries(Object.keys(EX).map((k) => [k, { ...EX[k], te
   wireDownloads(q('.dl'), () => ({ title: 'Climate class and diagram', subtitle: q('.kp-big').textContent ?? '', file: 'climate', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .kpc select, .kpc input { max-width: 100%; }
   .kpc textarea { width: 100%; }
   .kpc .kp-steps { margin: 6px 0 10px; padding-left: 1.3em; line-height: 1.45; }

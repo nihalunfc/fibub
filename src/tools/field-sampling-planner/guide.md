@@ -27,6 +27,8 @@ flow:
 
 Before a soil, sediment or groundwater survey you need two answers: **how many samples** to take, and **where** to take them. This tool works out both from your site boundary and the goal of the survey, then draws the points on a map and gives you a list to take into the field.
 
+To decide how many samples you need, use the [[sample-size]]; for results that come back below the detection limit, use [[non-detects|non-detect statistics]].
+
 ## How to use it
 
 1. **Site boundary.** Paste or open the corners of the site, in order around the edge, as x and y in metres or as longitude and latitude. With degrees the tool works on a flat map around the middle of the site and gives the points back in degrees.

@@ -206,7 +206,7 @@ const demo = 'hour,rain (mm),flow (m³/s)\n' + flows.map((q, i) => `${i},${rain[
   wireDownloads(q('.dl'), () => ({ title: 'Unit hydrograph', subtitle: q('.uh-big').textContent ?? '', file: 'unit-hydrograph', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .uhb select, .uhb input { max-width: 100%; }
   .uhb .uh-wide { grid-column: 1 / -1; }
   .uhb textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }

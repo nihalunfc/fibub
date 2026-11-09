@@ -25,6 +25,8 @@ flow:
 
 The habitable zone is the band of orbits around a star where a rocky planet with an Earth-like atmosphere could keep liquid water on its surface. This calculator works out its edges for any star from 2600 to 7200 K, using the climate model fits of Kopparapu et al. (2014), and places your planet against them. It also gives the starlight the planet receives, its equilibrium temperature and its orbital period, with a diagram and a table of every edge.
 
+For the planet's year and transit times, use the [[transit-planner]]; for the star's light at each temperature, the [[blackbody-calculator]].
+
 ## How to use it
 
 1. Pick a **star** or type your own temperature, luminosity and mass. If you only know the radius, leave the luminosity blank and type the radius: the luminosity comes from L = R² (T / 5772 K)⁴.

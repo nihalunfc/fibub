@@ -24,6 +24,8 @@ flow:
 
 Counting cells with a hemocytometer is one of the most common jobs in cell culture. The counting is the easy part. The arithmetic afterwards, with squares, chamber volume, trypan blue dilution, and then the volumes to seed a plate, is where mistakes creep in. This counter keeps the tally for you, square by square, and does the sums as you go.
 
+To dilute the cells to the density you need, use the [[solution-calculator]]; to plan where they go on a plate, the [[plate-layout]].
+
 ## How to use it
 
 1. Choose how many **large squares** you will count (usually the four corner squares) and how the cells were **mixed with trypan blue** (1 : 1 doubles the dilution). Add any **earlier dilution** of the cells.

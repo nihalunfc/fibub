@@ -28,6 +28,8 @@ Cold hydrogen gas fills the disc of the Milky Way, and every atom of it can give
 
 This tool turns such a spectrum into science. It converts frequency to velocity, corrects for the Earth's orbit and the Sun's own motion so velocities are relative to the **local standard of rest** (LSR), fits and removes the baseline, and measures the line. Looking inside the Sun's orbit (galactic longitude 0° to 90°, or 270° to 360°), the fastest gas lies at the **tangent point**, where the line of sight passes closest to the galactic centre. The tool finds that **terminal velocity** and turns it into the rotation speed at that radius. Several pointings together trace the Milky Way's **rotation curve**. It stays flat instead of falling, which is the galaxy's own evidence for dark matter.
 
+To see what your dish can detect, use the [[radio-telescope-calculator]]; to turn the velocities into a galaxy's rotation, the [[rotation-curve-fitter]].
+
 ## How to use it
 
 1. Paste the spectrum: frequency in MHz (or velocity in km/s) and power or antenna temperature, one channel per line, or open the text or CSV file your software saved.

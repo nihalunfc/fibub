@@ -137,6 +137,6 @@ const lbl = (f: number) => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`);
   wireDownloads(q('.dl'), () => ({ title: 'Noise barrier', subtitle: q('.nb-big').textContent ?? '', file: 'noise-barrier', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .nbr select { max-width: 100%; }
 </style>

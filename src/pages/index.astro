@@ -6,6 +6,7 @@ import Base from '../layouts/Base.astro';
 import { SITE, SHELVES, SUBJECTS } from '../site';
 import { ICONS } from '../lib/icons';
 import { allTools, bySubject, toolUrl } from '../lib/tools';
+import { siteLd } from '../lib/seo';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const soon = tools.filter((t) => t.data.status === 'soon');
@@ -13,7 +14,7 @@ const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live),
 const newest = [...live].sort((a, b) => (b.data.num ?? 0) - (a.data.num ?? 0)).slice(0, 5);
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
-<Base title={SITE.name}>
+<Base title={SITE.name} ld={siteLd()}>
   <section class="hero" id="find">
     <div class="hero-top">
       <div>

@@ -166,6 +166,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Altermagnet bands', subtitle: q('.am-big').textContent ?? '', file: 'altermagnet-bands', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .amb select, .amb input { max-width: 100%; }
 </style>

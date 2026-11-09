@@ -22,6 +22,8 @@ flow:
 
 Before an ELISA, qPCR run, cell assay or drug screen, you plan which well gets what. Getting it wrong costs a plate. This designer places your standards, samples, controls and blanks with their replicates in a tidy, repeatable order. It shows the plate as a map you can print, and exports a well list that plate readers, qPCR software and liquid handlers can import.
 
+Make up the reagents with the [[pcr-master-mix]], and fit the standards with the [[calibration-curve|calibration curve]] tool.
+
 ## How to use it
 
 1. Choose the **plate**: 6, 12, 24, 48, 96, 384 or 1536 wells.

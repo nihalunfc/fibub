@@ -254,7 +254,7 @@ const example = writeGenBank({
   wireDownloads(q('.dl'), () => ({ title: 'Plasmid map', subtitle: q('.pm-big').textContent ?? '', file: rec ? `${fileSafe(rec.name)}-map` : 'plasmid-map', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pmv .pm-list { display: grid; gap: 10px; }
   .pmv .pm-feat { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 6px 10px; align-items: end; padding: 10px 0; border-top: 1px solid var(--line, #ddd); }
   .pmv .pm-feat .pm-loc { grid-column: 1 / -1; margin: 0; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }

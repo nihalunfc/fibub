@@ -36,6 +36,8 @@ This tool fits four common distributions side by side:
 
 It shows the flood for any return period with a **bootstrap range**, the return period of a flow you give, and the chance of at least one such flood over a span of years.
 
+To turn a flood flow into a water level, use the [[rating-curve]]; to test the record for a trend first, the [[trend-analyser]].
+
 ## How to use it
 
 1. Paste a year and the year's **peak flow** per row, or open a CSV or text file. A single column of peaks also works. Use 10 to 1,000 years.

@@ -34,6 +34,8 @@ Whether a reaction gives out heat, whether it goes by itself and how far it goes
 - **The turnover temperature** T = ΔH°/ΔS°, where ΔG changes sign, and which side of it is spontaneous.
 - A **plot of ΔG° against temperature**, with zero, the turnover point and your temperature marked.
 
+To turn ΔG into an equilibrium constant and back, use the [[equilibrium-solver]]; balance the reaction first with the [[equation-balancer]].
+
 ## How to use it
 
 1. Type the balanced reaction with state symbols, such as `CaCO3(s) → CaO(s) + CO2(g)`. Use `→`, `->` or `=` for the arrow. Coefficients can be whole numbers, decimals or fractions such as `1/2O2(g)`.

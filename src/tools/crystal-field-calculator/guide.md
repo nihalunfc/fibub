@@ -34,6 +34,8 @@ In a coordination complex the ligands push the five d orbitals of the metal apar
 - **Jahn–Teller distortion** for octahedral ions: strong for an odd number of eg electrons (Cu²⁺, high-spin Mn³⁺, low-spin Co²⁺), weak for unevenly filled t2g.
 - **Δ from a spectrum.** Give the wavelength of the d–d band and the tool converts it to cm⁻¹ and kJ/mol and names the colour you see.
 
+To check whether the same complex follows the 18-electron rule, use the [[electron-count-calculator]]; to find its symmetry from coordinates, the [[point-group-finder]].
+
 ## How to use it
 
 1. Choose the metal and type its oxidation state. The d count fills in; you can type over it.

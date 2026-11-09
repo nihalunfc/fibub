@@ -30,6 +30,8 @@ flow:
 5. **Press Fill empty days.** The page puts people on shifts so each one has enough people, then you change anything by tapping a cell.
 6. **Download** it as an image, a PDF, an editable Excel workbook or an editable Word document.
 
+For your own week and month rather than a team's, use the [[planner|weekly and monthly planner]].
+
 ## What Fill does
 
 Fill only touches empty cells, so anything you set by hand stays. For each day, department and shift it picks the free person with the fewest hours so far, which shares the work out. It never puts someone on a day off, never goes over their hours for the week, never gives anyone two shifts on one day, and always leaves at least 11 hours between the end of one shift and the start of the next. When nobody is free, the cell stays empty and a note under the schedule says which day and shift is short, so you can call someone in or change a limit. Eleven hours of rest is a common default, but labour rules differ by country, province and state, so check the official source for your area.

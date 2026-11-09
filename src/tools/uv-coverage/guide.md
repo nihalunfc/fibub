@@ -26,6 +26,8 @@ A radio interferometer links several dishes so that together they act like one t
 
 This planner takes your antenna layout, the observing frequency, the source's declination and the hour-angle range, and draws three pictures: the array, the uv coverage, and the **dirty beam** (the image a single point source would make). It reports the number of baselines, the shortest and longest in metres and wavelengths, the resolution, the largest structure you can image, the single-dish field of view, and the beam size measured from the actual coverage.
 
+For a single dish's sensitivity, use the [[radio-telescope-calculator]]; to convert the source's coordinates, the [[sky-coordinates|sky coordinate converter]].
+
 ## How to use it
 
 1. Pick a **layout**, or type your own antenna positions: east and north in metres from any reference point, one dish per line. A name in front is fine, and a third number (height) is used if given.

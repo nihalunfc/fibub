@@ -25,6 +25,8 @@ flow:
 
 Some of the best targets, such as the Andromeda Galaxy, the North America Nebula or the Veil, are bigger than one camera frame. A mosaic covers them with several overlapping panels that are stitched together later. This planner works out how many panels your telescope and camera need, draws them over the target as it sits on the sky, and lists the right ascension and declination of every panel centre to type into your mount or capture software.
 
+Get the field of view of your camera from the [[telescope-calculator]], and see when the target is high enough with the [[object-altitude|target altitude planner]].
+
 ## How to use it
 
 1. **Target:** start typing a name or catalogue number (M31, NGC 7000, Veil) and pick it from the list to fill in its position and catalogue size, or type RA and Dec yourself.

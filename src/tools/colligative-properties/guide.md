@@ -35,6 +35,8 @@ Here m is the molality (moles of solute per kilogram of solvent) and i is the va
 
 The second part works backwards: from a measured change it gives the **molar mass** of an unknown. If you type the formula you expect, it compares the two and tells you whether the solute pairs up (as acetic acid does in benzene) or splits into ions.
 
+Get the molar mass of the solute first with the [[molar-mass-calculator]]; for the vapour pressure of a pure liquid, use the [[vapour-pressure-calculator]].
+
 ## How to use it
 
 1. Pick the solvent. Its Kf, Kb, melting and boiling points fill in (common textbook values from Atkins and the CRC Handbook). Type over them to use your own.

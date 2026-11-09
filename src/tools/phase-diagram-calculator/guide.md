@@ -39,6 +39,8 @@ For your mixture and temperature it gives the phases present, their compositions
 
 The second card is a plain lever rule calculator for any diagram, including real ones with intermediate phases, where you read the tie line ends yourself.
 
+For the vapour-liquid side, use the [[vapour-pressure-calculator]]; to read melting and crystallisation from a scan, the [[dsc-tga-analyser]].
+
 ## How to use it
 
 1. Pick a system, or choose "Your own components" and type the melting points (°C), enthalpies of fusion (kJ/mol) and molar masses.

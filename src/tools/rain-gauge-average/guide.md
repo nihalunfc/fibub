@@ -29,6 +29,8 @@ A rain gauge measures rain at one point, but floods, water balances and runoff m
 
 The **Thiessen polygon** method fixes this. Every point in the catchment is given to its nearest gauge. Each gauge then stands for its own patch, its Thiessen polygon, and its reading is weighted by that patch's share of the catchment area. The weighted sum is the **areal rainfall**.
 
+Turn the rainfall into a flood hydrograph with the [[unit-hydrograph]], or into a peak flow with the [[runoff-calculator]].
+
 ## How to use it
 
 1. **Choose the coordinates**: kilometres, metres, or longitude and latitude. Use the same system for the boundary and the gauges.

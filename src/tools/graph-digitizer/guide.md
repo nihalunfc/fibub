@@ -23,6 +23,8 @@ flow:
 
 Papers, old reports and data sheets often show results only as a graph. This tool turns a picture of the graph back into numbers: x and y values you can paste into a spreadsheet, refit, or compare with your own data. It reads screenshots, scans and phone photos of printed pages. The picture stays on your device: nothing is uploaded.
 
+Once you have the numbers, redraw them with the [[plot-maker]] or fit them with the [[calibration-curve|calibration curve]] tool.
+
 ## How to use it
 
 1. **Open the image.** Choose a file, drop it on the box, or paste a screenshot with Ctrl+V (⌘V on a Mac).

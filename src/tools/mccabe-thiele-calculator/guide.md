@@ -29,6 +29,8 @@ A distillation column splits a mixture of two liquids by boiling. Each tray (a "
 
 This tool draws the diagram and counts the stages for you. It also works out the **minimum reflux**, the **minimum number of stages**, the best **feed stage**, the number of **real trays** for a chosen efficiency, and the column **flows**.
 
+Get the equilibrium data from the [[vapour-pressure-calculator]], and see the whole two-component system in the [[phase-diagram-calculator]].
+
 ## How to use it
 
 1. Choose the equilibrium. With a **constant relative volatility α**, y = αx / (1 + (α − 1)x). That suits ideal mixtures such as benzene and toluene. For anything else, pick **My x–y data** and paste or open two columns: liquid mole fraction x and vapour mole fraction y of the light component. The tool adds (0, 0) and (1, 1) and draws a smooth, wiggle-free curve through your points.

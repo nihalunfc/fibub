@@ -6,23 +6,29 @@ import { SITE, SHELVES } from '../site';
 import { mark } from '../lib/brand';
 import { ICONS } from '../lib/icons';
 import { SUBJECTS, AREAS, areaOf } from '../site';
-import { allTools, bySection, bySubject, toolUrl } from '../lib/tools';
+import { allTools } from '../lib/tools';
+import { metaDescription } from '../lib/seo';
 // The header menu: on computers each shelf opens a panel listing its tools. A shelf with subjects
 // (Science) gets a two-level panel: subjects on the left; on the right, the chosen subject's sections,
 // each with its first few tools and a link to the rest, so the panel stays one screen tall however
 // many tools there are. Phones get the Tools panel instead: search, My tools, and the shelves.
 const tools = await allTools();
 const liveTools = tools.filter((t) => t.data.status === 'live');
-const menus = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, liveTools), subjects: bySubject(s.id, liveTools), hasSubjects: !!SUBJECTS[s.id], count: liveTools.filter((t) => t.data.shelf === s.id).length }));
-const PER_SECTION = 3;
-interface Props { title: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string }
-const { title, description = SITE.description, shelf, noindex = false, image = '/og/home.png', tool } = Astro.props;
+// The tool lists inside the menus are not in every page: they come from /nav/ (src/pages/nav.astro) the
+// first time someone reaches for a menu, so pages stay small however many tools there are.
+const menus = SHELVES.map((s) => ({ shelf: s, hasSubjects: !!SUBJECTS[s.id], count: liveTools.filter((t) => t.data.shelf === s.id).length }));
+// `title` names the page; `docTitle`, when given, is the exact <title> for search results (see src/lib/seo.ts).
+// `ld` is the page's structured data (JSON-LD) for search engines.
+interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[] }
+const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld } = Astro.props;
+const description = metaDescription(rawDescription);
+const ldJson = ld?.length ? JSON.stringify({ '@context': 'https://schema.org', '@graph': ld }).replace(/</g, '\\u003c') : null;
 const imageUrl = new URL(image, SITE.url).href;
 const canonical = new URL(Astro.url.pathname, SITE.url).href;
 const path = Astro.url.pathname;
 const area = areaOf(path);
 const learn = AREAS.find((a) => a.id === 'learn')!, news = AREAS.find((a) => a.id === 'news')!;
-const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`;
+const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`);
 ---
 <!doctype html>
 <html lang="en" data-shelf={shelf} data-tool={tool} data-area={area.id}>
@@ -50,6 +56,7 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
     <meta name="theme-color" content="#ffffff" />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="sitemap" href="/sitemap-index.xml" />
+    {ldJson && <script is:inline type="application/ld+json" set:html={ldJson} />}
     <script is:inline src="/theme.js"></script>
   </head>
   <body class:list={[{ 'has-sub': !tool }]}>
@@ -58,56 +65,11 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
       <div class="wrap">
         <a class="logo" href="/" aria-label="fibub home"><Fragment set:html={mark()} /><span class="logo-t">fi<span>bub</span></span></a>
         <nav class="main" aria-label="Shelves">
-          {menus.map(({ shelf: s, groups, subjects, hasSubjects }) => (
+          {menus.map(({ shelf: s, hasSubjects }) => (
             <div class="dd" data-shelf={s.id}>
               <a href={`/${s.id}/`} aria-current={shelf === s.id ? 'page' : undefined} aria-haspopup="true">{s.name}<svg class="dd-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></a>
-              {hasSubjects ? (
-                <div class="dd-panel dd-mega" role="menu" aria-label={`${s.name} tools`}>
-                  <div class="dd-subjects" role="none">
-                    <b class="dd-h">Subjects</b>
-                    {subjects.map((sj, i) => (
-                      <button type="button" class="dd-subj" data-i={i} role="menuitem" aria-haspopup="true">
-                        <span>{sj.name}</span><small>{sj.count}</small>
-                      </button>
-                    ))}
-                  </div>
-                  {subjects.map((sj, i) => (
-                    <div class="dd-pane" data-i={i} role="group" aria-label={`${sj.name} tools`}>
-                      <div class="dd-cols">
-                        {sj.groups.map((g) => (
-                          <div class="dd-group">
-                            <a class="dd-h dd-sec" href={`${sj.url}#${g.id}`}>{g.name}</a>
-                            {g.tools.slice(0, PER_SECTION).map((t) => (
-                              <a class="dd-item" role="menuitem" href={toolUrl(t)}>
-                                <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
-                              </a>
-                            ))}
-                            {g.tools.length > PER_SECTION && <a class="dd-more" href={`${sj.url}#${g.id}`}>{g.tools.length - PER_SECTION} more</a>}
-                          </div>
-                        ))}
-                      </div>
-                      <a class="dd-all" href={sj.url}>All {sj.count} {sj.name.toLowerCase()} tools →</a>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div class="dd-panel" role="menu" aria-label={`${s.name} tools`}>
-                  <div class="dd-cols" style={`--cols:${Math.min(2, Math.ceil(groups.reduce((n, g) => n + g.tools.length, 0) / 7))}`}>
-                    {groups.map((g) => (
-                      <div class="dd-group">
-                        {g.label && <b class="dd-h">{g.label}</b>}
-                        {g.tools.map((t) => (
-                          <a class="dd-item" role="menuitem" href={toolUrl(t)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
-                            <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
-                          </a>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  <a class="dd-all" href={`/${s.id}/`}>All {s.name.toLowerCase()} tools →</a>
-                </div>
-              )}
+              {hasSubjects ? <div class="dd-panel dd-mega" role="menu" aria-label={`${s.name} tools`} data-fill={`dd-${s.id}`}><p class="nav-wait">Loading…</p></div>
+                : <div class="dd-panel" role="menu" aria-label={`${s.name} tools`} data-fill={`dd-${s.id}`}><p class="nav-wait">Loading…</p></div>}
             </div>
           ))}
         </nav>
@@ -140,34 +102,10 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
           <details class="at-area" data-area="tools" open={area.id === 'tools'}>
             <summary><i class="at-dot" aria-hidden="true"></i><span class="at-nm">Tools</span><small class="at-n">{liveTools.length}</small></summary>
             <div class="at-in">
-          {menus.map(({ shelf: s, groups, subjects, hasSubjects, count }) => (
+          {menus.map(({ shelf: s, hasSubjects, count }) => (
             <details class="at-shelf" data-shelf={s.id}>
               <summary><span>{s.name}</span><small>{count}</small></summary>
-              {hasSubjects ? (
-                <div class="at-group">
-                  {subjects.map((sj) => (
-                    <details class="at-sj">
-                      <summary><span>{sj.name}</span><small>{sj.count}</small></summary>
-                      {sj.groups.map((g) => (
-                        <div class="at-group">
-                          <b class="at-sub">{g.name}</b>
-                          {g.tools.map((t) => <a class="at-item" href={toolUrl(t)} data-id={t.id}><span>{t.data.name}</span><small class="num">#{t.data.num}</small></a>)}
-                        </div>
-                      ))}
-                      <a class="at-all" href={sj.url}>{sj.name} page →</a>
-                    </details>
-                  ))}
-                </div>
-              ) : groups.map((g) => (
-                <div class="at-group">
-                  {g.tools.map((t) => (
-                    <a class="at-item" href={toolUrl(t)} data-id={t.id}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
-                      <span>{t.data.name}</span><small class="num">#{t.data.num}</small>
-                    </a>
-                  ))}
-                </div>
-              ))}
+              <div class="at-fill" data-fill={`at-${s.id}`}><p class="nav-wait">Loading…</p></div>
               <a class="at-all" href={`/${s.id}/`}>All {s.name.toLowerCase()} tools →</a>
             </details>
           ))}

@@ -31,6 +31,8 @@ log₁₀ P = A − B / (C + T)
 
 This tool turns Antoine constants into vapour pressures and boiling points, and estimates the heat of vaporisation from the slope of the curve. Give it two components and it treats them as an **ideal mixture** (Raoult's law), working out where the mixture starts to boil, where it is fully vapour, how a flash splits it, and how much easier one component is to boil off than the other.
 
+Step off distillation stages with the [[mccabe-thiele-calculator]], and see boiling and freezing point changes in solutions with the [[colligative-properties]].
+
 ## How to use it
 
 1. For each component, pick an example or choose **My own constants** and type A, B and C. Set the pressure unit the constants were made for (mmHg is the most common). Temperature is in °C.

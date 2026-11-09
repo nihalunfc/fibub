@@ -22,6 +22,8 @@ flow:
 
 Journals ask for figures at a set width, with readable text, error bars, and no fuzzy screenshots. Spreadsheet charts rarely meet that without a lot of fiddling. This tool takes columns pasted from Excel, Google Sheets or a plate reader export and draws a plain, print-ready graph: black axes, outward ticks, colour-blind safe colours, a different marker for every series, and text at the size you set. You download it as vector **SVG** or **PDF**, or as **PNG** at 300 or 600 dpi. Everything happens in your browser.
 
+To get numbers from a figure in a paper, use the [[graph-digitizer|graph digitiser]]; for error bars from a formula, the [[uncertainty-calculator]].
+
 ## How to use it
 
 1. **Paste your data** with a header row, or press **Open a file** (or drop a file on the box) to load a CSV, TSV, TXT or Excel (.xlsx) file. Files can be up to 10 MB, 20 columns and 50,000 rows; a wider or longer file is cut to the first 20 columns and 50,000 rows, and the page says so. For an Excel file with several sheets, the first sheet with data is used. The first column is x. Every other column becomes a series.

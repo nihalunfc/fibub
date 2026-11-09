@@ -29,6 +29,8 @@ Food, paper, wood and garden waste in a landfill rot without air and make **land
 
 It uses the **first-order decay** model that most landfill gas and greenhouse gas reporting methods are built on. Each tonne of waste can make L₀ cubic metres of methane in total, released ever more slowly. The rate falls by the same fraction each year, set by the decay rate k. The tool adds up the contribution of every year's waste. The yearly totals are exact, with waste placed evenly through each year, so in the end every tonne releases exactly L₀.
 
+Convert methane readings between ppm and mg/m³ with the [[air-quality-calculator]], and handle readings below the detection limit with [[non-detects|non-detect statistics]].
+
 ## How to use it
 
 1. **Waste placed**: a year and the tonnes placed that year, one row per year. Paste them or open a CSV, TXT or Excel file. Years listed twice are added together.

@@ -26,6 +26,8 @@ flow:
 
 Astronomers use several clocks at once. Observing logs and variable-star reports use the **Julian Date (JD)**, a running count of days. Catalogues and satellites often use the **Modified Julian Date (MJD)**, which is the JD minus 2,400,000.5, so the numbers are shorter and each day starts at midnight. Telescope mounts need **sidereal time**, which tracks the stars rather than the Sun. Timing an eclipsing binary or an exoplanet transit needs the **barycentric Julian Date (BJD)**, which removes the minutes that light takes to cross Earth's orbit. This page shows all of them for one moment, side by side.
 
+To turn the time into a place in the sky, use the [[sky-coordinates|sky coordinate converter]]; for the clock on another planet, see [[mars-time]].
+
 ## How to use it
 
 1. **Set your place** at the top. Local sidereal time and your local clock depend on your longitude and time zone. Pick a city, type your latitude and longitude, or press **Use my location**. Your location stays on your device.

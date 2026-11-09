@@ -34,6 +34,8 @@ A primer that folds on itself, sticks to its partner or binds in the wrong place
 - **Primer-dimers:** for each primer with itself and for the pair, the longest stretch of complementary bases, and how much of it sits at a 3′ end, where the polymerase can extend it. The worst one is drawn.
 - **Template:** paste the target DNA to see where each primer binds (both strands, with up to two mismatches but a matching 3′ end), the products and their sizes, and any extra sites.
 
+Make up the reaction with the [[pcr-master-mix]], and see where the primers sit on the [[plasmid-map]].
+
 ## How to use it
 
 1. **Primers.** Type or paste each one 5′ to 3′, exactly as you would order it. The reverse primer is optional.

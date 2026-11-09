@@ -26,6 +26,8 @@ flow:
 
 This tool shows where a satellite flies over the Earth and when it passes over you. Give it an orbit, either the two-line element set (TLE) that tracking agencies publish for every satellite or the heights and tilt of an orbit you design. It draws the **ground track** on a world map, solid where the satellite is in sunlight and dashed where it is in Earth's shadow, with the circle of ground that can see it right now. It gives the orbit's **period**, **speeds**, how fast **Earth's equatorial bulge** turns the orbit plane and the perigee, whether the orbit is **sun-synchronous**, and a table of **passes** over your place with rise, highest point and set times and compass directions. Passes when the satellite is sunlit and your sky is dark are marked **Visible**: those are the ones you can see with your own eyes.
 
+For the radio link during a pass, use the [[link-budget-calculator]]; to change the orbit, the [[orbit-transfer-calculator]].
+
 ## How to use it
 
 1. Set your **place** at the top. Times show on the clock chosen in "Times in".

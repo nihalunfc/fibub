@@ -32,6 +32,8 @@ Ligations and assemblies work best when the pieces are mixed by **number of mole
 - **Checks.** Whether the DNA fits in the room left, the most vector that would fit, and which fragments need less than 0.5 µL (hard to pipette accurately), with a dilution that brings them to at least 1 µL.
 - **Other ratios.** The first insert's ng and µL at 1:1, 2:1, 3:1, 5:1, 7:1 and 10:1.
 
+Measure each fragment first with [[nucleic-acid-concentration|DNA, RNA and protein concentration]], and see the finished construct on a [[plasmid-map]].
+
 ## How to use it
 
 1. **Reaction.** Pick *Ligation* (10× buffer plus 1 µL ligase in 20 µL) or *Assembly* (2× master mix, enzyme included), or type your own total volume, buffer strength and enzyme volume.

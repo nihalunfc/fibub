@@ -33,6 +33,8 @@ Before you cut a plasmid, it helps to know which enzymes cut once, what sizes yo
 - **Map.** A circular or linear map with every cut labelled.
 - **Virtual gel.** A ladder lane, a lane for each enzyme on its own and one for all together, with brighter bands where more DNA runs.
 
+Size the real bands on the gel with the [[gel-band-sizer|gel band size estimator]], and put the fragments together with the [[ligation-calculator]].
+
 ## How to use it
 
 1. **Sequence.** Paste DNA or open a FASTA file, and choose circular (plasmid) or linear.

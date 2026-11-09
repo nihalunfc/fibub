@@ -23,6 +23,8 @@ flow:
 2. fibub reads its table of contents and test-packs it with the strongest setting, all inside your browser.
 3. You get a clear answer: **already as small as it gets**, or **can be X% smaller**. If it can, one tap sends it to the [File compressor](/documents/compress-file/), still without uploading anything.
 
+If the files inside could get smaller, the [[compress-file|file compressor]] can repack them.
+
 ## What the report shows
 
 | Item | What it means |

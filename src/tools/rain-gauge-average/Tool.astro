@@ -156,7 +156,7 @@ const gauges = 'gauge,x (km),y (km),storm 1 (mm),storm 2 (mm)\nHill Farm,2,2,32,
   wireDownloads(q('.dl'), () => ({ title: 'Rain gauge network average', subtitle: q('.rg-big').textContent ?? '', file: 'thiessen-rainfall', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rga select { max-width: 100%; }
   .rga textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
   .rga h3 { font-size: 15px; margin: 14px 0 6px; }

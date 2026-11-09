@@ -25,6 +25,8 @@ flow:
 
 Optical astronomers quote magnitudes, radio and infrared astronomers quote Jansky, and theory papers and spectra use erg s⁻¹ cm⁻² Å⁻¹. Turning one into another needs the band's zero point and its wavelength, which are easy to get wrong. Type a brightness in any of these units, pick the band, and this converter shows it in all the others at once: Vega magnitude, AB magnitude, Jy, mJy, µJy, f_ν in cgs and SI, f_λ in cgs and SI, and photons per second per cm² per Å.
 
+For the star's spectrum at a temperature, use the [[blackbody-calculator]]; for distances at a redshift, the [[cosmology-calculator]].
+
 ## How to use it
 
 1. Type the **value** and choose its **unit**.

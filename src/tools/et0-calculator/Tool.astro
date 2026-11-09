@@ -220,7 +220,7 @@ const demo = 'date,Tmax (°C),Tmin (°C),RH max (%),RH min (%),wind (m/s),sunshi
   wireDownloads(q('.dl'), () => ({ title: 'Reference evapotranspiration', subtitle: q('.et-big').textContent ?? '', file: 'et0', sections: [daySec, tabSec].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .etc select, .etc input { max-width: 100%; }
   .etc textarea { width: 100%; }
 </style>

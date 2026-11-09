@@ -32,6 +32,8 @@ In a **pumping test** a well is pumped at a steady rate while the water level is
 
 This tool works these out three ways, so you can compare them.
 
+For a quick test in a single well, use the [[slug-test-analyser]]; to add up drawdown from several wells, the [[well-field-drawdown]] tool.
+
 ## How to use it
 
 1. Enter the **pumping rate** and choose its unit, the length unit (metres or feet) and the time unit of your readings.

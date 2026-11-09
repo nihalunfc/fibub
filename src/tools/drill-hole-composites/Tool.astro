@@ -165,7 +165,7 @@ const demo = 'hole\tfrom (m)\tto (m)\tAu (g/t)\tlithology\nDDH-01\t0\t4\t0.03\tO
   wireDownloads(q('.dl'), () => ({ title: 'Drill hole composites', subtitle: q('.dh-big').textContent ?? '', file: 'drill-hole-composites', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dhc select, .dhc input { max-width: 100%; }
   .dhc textarea { width: 100%; }
   .dhc .dh-int { padding-left: 1.1em; margin: 8px 0 12px; }

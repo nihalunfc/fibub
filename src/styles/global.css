@@ -229,3 +229,4 @@ html.red-mode .ico-btn.red-btn[aria-pressed=true] { background: #2b0000; color: 
 .find:focus-within { border-color: var(--accent); }
 .find svg { width: 18px; height: 18px; flex: none; }
 .find input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }
+.nav-wait { margin: 8px 4px; color: var(--muted); font-size: 14px; }

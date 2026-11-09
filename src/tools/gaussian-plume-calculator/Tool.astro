@@ -170,7 +170,7 @@ import { GASES } from '../../lib/sci/aqi';
   wireDownloads(q('.dl'), () => ({ title: 'Gaussian plume', subtitle: q('.gp-big').textContent ?? '', file: 'gaussian-plume', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gp .gp-chk { display: flex; gap: 8px; align-items: center; margin: 10px 0; }
   .gp select { max-width: 100%; }
 </style>

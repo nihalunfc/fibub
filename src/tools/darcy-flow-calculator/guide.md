@@ -33,6 +33,8 @@ Groundwater moves slowly through the pores of sand, gravel and rock. **Darcy's l
 - **Grain size**: d10, d30 and d60 from a sieve curve, the uniformity and curvature coefficients, and a rough K from **Hazen's rule**.
 - **Intrinsic permeability** k, which belongs to the rock alone, from K and the water temperature.
 
+To measure K in the field rather than estimate it, use the [[pump-test-analyser]] or the [[slug-test-analyser]].
+
 ## How to use it
 
 1. In the **Darcy flow** card, type K and choose its unit, or pick the Hazen estimate from the grain-size card.

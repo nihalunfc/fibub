@@ -22,6 +22,8 @@ flow:
 
 A field flattener or focal reducer only gives round stars to the corners when the sensor sits at one exact distance behind it, the "backfocus", often 55 mm. Between them sit the camera, perhaps a filter wheel or an off-axis guider, adapters and spacers, and filters push the focus back a little too. This calculator adds it all up, tells you how much spacing is missing, and picks the combination of your own spacers that comes closest, using as few as possible.
 
+Check your field of view and sampling with the [[telescope-calculator]], then confirm the spacing worked by measuring stars with the [[star-fwhm-checker]].
+
 ## How to use it
 
 1. Type the **backfocus** from your reducer's or flattener's manual.

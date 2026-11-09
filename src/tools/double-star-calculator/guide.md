@@ -27,6 +27,8 @@ Double stars are described by two numbers: the **separation ρ**, the angle betw
 
 This calculator does two jobs. **Predict from an orbit** takes the seven orbital elements of a binary and gives ρ and θ on any date. It draws the apparent orbit as it looks on the sky, lists a 12-step ephemeris, and, with the parallax, gives the real size of the orbit and the total mass. **Measure my image** lets you open your own photo, tap the two stars (each tap snaps to the centre of the star's light), and works out ρ and θ from your camera's pixel size, focal length and orientation.
 
+For a spectroscopic binary, fit the orbit with the [[radial-velocity-fitter]]; to check that your telescope can split the pair, use the [[telescope-calculator]].
+
 ## How to use it
 
 1. Choose **Predict from an orbit**. Pick Sirius or η Coronae Borealis, or type the elements of another binary from the Sixth Orbit Catalog: period P, periastron time T, eccentricity e, semi-major axis a in arcseconds, inclination i, node Ω and periastron argument ω.

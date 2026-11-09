@@ -25,6 +25,8 @@ flow:
 
 Psychrometrics describes moist air: how much water vapour it holds, when it condenses, and how much energy it carries. It matters in weather, building heating and cooling, greenhouses and plant growth rooms, drying, museums, and health and safety in hot workplaces. Type the air temperature and one humidity value, and the calculator gives all the others, draws the point on a psychrometric chart, and gives two common heat stress indices.
 
+For dry gases at any pressure, use the [[gas-law-calculator]]; for a full profile of the atmosphere, the [[skew-t-sounding|Skew-T sounding plotter]].
+
 ## How to use it
 
 1. Choose **°C or °F**.

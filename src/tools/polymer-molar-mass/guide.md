@@ -37,6 +37,8 @@ Two ways to enter data:
 - **GPC / SEC trace.** Paste or open the chromatogram (retention time or volume against detector signal) and your calibration standards (retention against peak molar mass). The tool fits log M against retention with a straight line, quadratic or cubic, subtracts a straight baseline between the ends of your integration window, and uses the slice method: each slice's signal is taken as its mass, and its molar mass comes from the calibration. You see the molar mass distribution and the trace with the window and baseline drawn in.
 - **List of chains.** Molar masses with the number of chains (or moles) or the mass of each, for textbook problems or blends.
 
+For the formula mass of a repeat unit, use the [[molar-mass-calculator]]; to build the GPC calibration, the [[calibration-curve|calibration curve]] tool.
+
 ## How to use it
 
 1. For a GPC run, paste the trace or open it as CSV, TSV or Excel (two columns). Do the same for the standards.

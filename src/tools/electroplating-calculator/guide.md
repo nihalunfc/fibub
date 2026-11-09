@@ -41,6 +41,8 @@ Alongside the answer it shows the mass deposited, the current density in A/dm²,
 
 Choose hydrogen, oxygen or chlorine instead of a metal to get the volume of gas from electrolysis at any temperature and pressure.
 
+For the potential a cell needs, use the [[nernst-calculator]]; for how fast the plated metal corrodes later, the [[tafel-corrosion-rate|Tafel corrosion rate]] tool.
+
 ## How to use it
 
 1. Pick the metal. For one that is not listed, choose "Your own metal" and type the electrons per atom, molar mass and density.

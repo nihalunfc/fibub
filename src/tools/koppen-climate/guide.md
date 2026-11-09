@@ -30,6 +30,8 @@ The **Köppen climate classification** sorts the world's climates into groups us
 
 Give this tool the 12 monthly means for a place and it works out the class, showing every test it applied and the numbers it compared, so you can see exactly why a place is, say, Csb rather than Cfb. It also draws a **Walter-Lieth climate diagram**, the compact chart ecologists and geographers use to show the length of the dry season at a glance.
 
+To test the same monthly data for a trend, use the [[trend-analyser]]; for evaporation at the site, the [[et0-calculator|evapotranspiration calculator]].
+
 ## How to use it
 
 1. Pick a **made-up example**, or choose **My own data** and paste 12 rows (January to December): the month, the mean temperature and the total precipitation. You can also paste two rows of 12 values, or open a CSV or Excel file. A row for the year or annual total is skipped.

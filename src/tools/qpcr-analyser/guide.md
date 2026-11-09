@@ -31,6 +31,8 @@ Real-time PCR gives a Cq (or Ct) for each well: the cycle where the signal cross
 - **Replicate checks.** Technical replicates are averaged; groups that spread more than 0.5 cycles, Cq values above 35, and reference genes that drift by more than a cycle across samples are flagged.
 - **Standard curves.** For each gene's dilution series: slope, intercept, R² and efficiency with a ± 1 SE range, a plot, and the quantity of any unknowns.
 
+Set up the reactions with the [[pcr-master-mix]], and check the primers with the [[primer-checker]].
+
 ## How to use it
 
 1. **Wells.** One row per well: sample, gene, Cq. Paste from your instrument's export or open a CSV or spreadsheet. "Undetermined" wells are skipped and counted.

@@ -33,6 +33,8 @@ A tree's wood is about half carbon, which came out of the air as CO₂. Weighing
 - **CO₂ equivalent**, carbon × 44/12;
 - **yearly uptake**, from the change since an earlier measurement, or by growing each trunk at a DBH growth rate for one year.
 
+To compare the trees with other ways of saving carbon, use [[lca-compare|life cycle comparison]]; for the variety of species in the same stand, [[biodiversity-indices]].
+
 ## How to use it
 
 1. **Trees.** Paste or open one row per tree: a name (optional), DBH now in cm, height now in m, and if you have them the DBH and height at an earlier measurement. Give the years between the two measurements.

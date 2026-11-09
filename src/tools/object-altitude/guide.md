@@ -27,6 +27,8 @@ flow:
 
 A target is best when it is high. Up there you look through the least air, the image is steadier, and light pollution near the horizon matters less. Most planetarium apps assume a perfectly flat horizon, but real gardens have trees, houses and streetlights. This planner draws the height of every target through the night over the sky's colour, so you can see day, twilight and true dark. It also checks each target against a horizon you draw yourself.
 
+For sunset, darkness and the Moon on the same night, open [[sky-tonight]]; to convert target coordinates first, use the [[sky-coordinates|sky coordinate converter]].
+
 ## How to use it
 
 1. **Set your place and the night** at the top. Your location stays on your device.

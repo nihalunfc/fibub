@@ -28,6 +28,8 @@ Three bench calculations in one place, the ones every chemistry and biology lab 
 
 Everything is worked out in your browser and the page keeps working offline.
 
+Get the molar mass first with the [[molar-mass-calculator]]; for a whole buffer recipe, use the [[buffer-recipe-calculator]].
+
 ## How to use it
 
 **Make a solution.** Pick what to work out, then type the molar mass and the other two values. Concentrations can be in M, mM, µM or nM (these need the molar mass), or in g/L, mg/mL, µg/mL, ng/µL, % w/v, ppm or ppb (these do not). Weigh the amount shown, dissolve it in less solvent than the final volume, and then top up to the mark. Adding the solid to the full volume gives a slightly weaker solution.

@@ -25,6 +25,8 @@ flow:
 
 Variable stars, eclipsing binaries, rotating asteroids and pulsating stars repeat themselves, but you can only observe them at night, in clear weather, and when they are up. The measurements end up unevenly spaced, so ordinary Fourier methods struggle. The Lomb-Scargle periodogram is the standard answer: it tests every trial period against the data you actually have. This tool finds the strongest periods, tells you how likely each is to be a fluke of noise, and folds the light curve so you can see whether the period is real.
 
+Keep your brightness estimates in the [[variable-star-log]]; for a planet's transit times from the period, use the [[transit-planner]].
+
 ## How to use it
 
 1. Paste three columns: **time** (such as JD or HJD), **value** (magnitude or flux) and, if you have them, **errors**. A header row is fine, and columns can be separated by tabs, commas or spaces.

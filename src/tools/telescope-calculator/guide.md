@@ -26,6 +26,8 @@ flow:
 
 Before you buy an eyepiece or a camera, or before you plan a night, you want to know some simple things. How much will it magnify? How much sky will I see? Will the Andromeda Galaxy fit? Is my camera's pixel size right for my telescope? The answers come from a handful of simple formulas. This page works them all out together and draws the result, so you can see the field rather than imagine it.
 
+Choose exposure lengths with the [[sub-exposure-calculator]], and plan big targets in several panels with the [[mosaic-planner]].
+
 ## How to use it
 
 1. **Telescope:** pick a common telescope or type its **aperture** (the width of the main lens or mirror) and **focal length** in millimetres. Both are printed on the tube or in the manual. Add a **Barlow** or **reducer** if you use one. **Typical seeing** is how much the air blurs stars on an average night: 2 to 3 arcseconds for most backyards, and 1 to 1.5 at a good mountain site.

@@ -132,7 +132,7 @@ const demo = 'station\tBS\tIS\tFS\tdistance (m)\tremarks\nBM A\t1.432\t\t\t0\tRL
   wireDownloads(q('.dl'), () => ({ title: 'Level book', subtitle: q('.lv-big').textContent ?? '', file: 'level-book', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lvb select, .lvb input { max-width: 100%; }
   .lvb textarea { width: 100%; }
   .lvb .lv-tab td { white-space: nowrap; }

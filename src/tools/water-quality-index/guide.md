@@ -35,6 +35,8 @@ This tool uses the method of the **Canadian Council of Ministers of the Environm
 
 The index is 100 − √(F1² + F2² + F3²) ÷ 1.732, from 0 (worst) to 100 (every test met its objective). The categories are Excellent (95 to 100), Good (80 to 94), Fair (65 to 79), Marginal (45 to 64) and Poor (0 to 44).
 
+For lab results below the detection limit, use [[non-detects|non-detect statistics]]; to plan where to sample, the [[field-sampling-planner]].
+
 ## How to use it
 
 1. **Objectives**: one row per variable with its lowest and/or highest allowed value. Use the guidelines or site-specific objectives that apply to your water and its use, from your regulator. The tool has no values built in.

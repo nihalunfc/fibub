@@ -214,7 +214,7 @@ const rows = [['12', '0.45', '75'], ['8', '0.25', '61'], ['', '', ''], ['', '', 
   wireDownloads(q('.dl'), () => ({ title: 'Rainfall runoff', subtitle: [q('.ro-rbig').textContent, q('.ro-sbig').textContent].filter(Boolean).join('; '), file: 'runoff', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rro select, .rro input { max-width: 100%; }
   .rro .ro-parts { display: grid; gap: 0.6rem; margin: 0.6rem 0; }
   .rro .ro-part { border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem 0.6rem 0.6rem; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem 0.6rem; min-width: 0; }

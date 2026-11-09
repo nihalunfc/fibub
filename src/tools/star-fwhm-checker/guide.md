@@ -29,6 +29,8 @@ It then looks at the whole field. A 3 × 3 map shows the median FWHM in each nin
 - **Field curvature**: whether the corners are softer than the centre, which points to a missing or wrongly spaced field flattener.
 - **Elongation**: whether stars are stretched, and whether they all point the same way (tracking, guiding, wind or flexure), towards the centre (wrong backfocus to a corrector) or around it (curvature or astigmatism).
 
+If the stars are bloated, check your spacing with the [[backfocus-calculator]]; to stack the good frames, use the [[image-stacker]].
+
 ## How to use it
 
 1. Open a sub-frame. A raw FITS file straight from the capture program is best, because its pixel values are still linear. PNG and JPEG files work too, but stretching changes the star sizes, so use them only to compare like with like.

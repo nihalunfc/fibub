@@ -28,6 +28,8 @@ A drill hole is sampled in pieces of core or chips, each sent to the lab for a g
 
 This tool does both, checks the data first, and draws a strip log of each hole. It runs in your browser; nothing is uploaded.
 
+Feed the composites into the [[grade-tonnage-calculator]], and plot the structures logged in the same holes on a [[stereonet]].
+
 ## How to use it
 
 1. Paste or open your assay table: **hole, from, to, grade**, and optionally **lithology** (a rock code such as QV or SED). A header row is fine. Depths are in metres along the hole.

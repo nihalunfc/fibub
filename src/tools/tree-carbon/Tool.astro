@@ -138,7 +138,7 @@ const trees = 'tree,DBH now (cm),height now (m),DBH before (cm),height before (m
   wireDownloads(q('.dl'), () => ({ title: 'Tree carbon', subtitle: q('.tk-big').textContent ?? '', file: 'tree-carbon', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .tkc select { max-width: 100%; }
   .tkc .tk-sd { margin-top: 14px; }
   .tkc .tk-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

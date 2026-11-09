@@ -35,6 +35,8 @@ Coulombic efficiency is discharge ÷ charge for a cathode or a full cell. For an
 
 **Incremental capacity card.** Paste one charge or discharge curve as capacity and voltage. The tool puts the curve on an even voltage grid, takes a smoothed derivative dQ/dV, and lists its peaks. Each peak marks a plateau, such as a phase change in the cathode or a staging step in graphite. Comparing these plots between early and late cycles shows which electrode is losing active material.
 
+For the electrochemistry behind the capacity fade, look at [[cyclic-voltammetry]] and the [[impedance-fitter|impedance (EIS) fitter]].
+
 ## How to use it
 
 1. Export the cycle summary from your cycler (most offer cycle, charge capacity and discharge capacity columns) and paste or open it.

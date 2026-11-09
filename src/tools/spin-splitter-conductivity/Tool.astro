@@ -143,6 +143,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Spin splitter conductivity', subtitle: q('.ss-big').textContent ?? '', file: 'spin-splitter', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ssp select, .ssp input { max-width: 100%; }
 </style>

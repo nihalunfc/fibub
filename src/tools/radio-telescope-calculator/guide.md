@@ -24,6 +24,8 @@ flow:
 
 A radio telescope measures faint noise from the sky on top of louder noise from its own receiver. Whether you can detect a source depends on the dish size, the receiver, the bandwidth and how long you integrate. This calculator works through the standard sums. It gives the beam width, the effective collecting area, the gain in kelvin per jansky, the system equivalent flux density (SEFD) and the noise after your integration time (the radiometer equation). Add a source's brightness and it gives the signal-to-noise and how long you need to reach a detection. It works for a backyard satellite dish, a research dish or an interferometer array.
 
+For an array of dishes, see the [[uv-coverage|interferometer uv-coverage]]; for a link to a spacecraft, the [[link-budget-calculator]].
+
 ## How to use it
 
 1. Pick an **example** or type your own: the **frequency**, the **dish diameter**, the **aperture efficiency**, the **system temperature** and the **number of dishes**.

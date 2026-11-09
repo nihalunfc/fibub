@@ -31,6 +31,8 @@ The Solar System's worlds differ by factors of thousands: Jupiter is over 300 ti
 - **Plot any two quantities** puts every world on a chart, with logarithmic axes where the range is huge. Some famous patterns show up at once. Orbit size against year traces **Kepler's third law** as a straight line for each family of orbits, and density against radius splits the rocky worlds from the icy moons and the gas giants.
 - **Your weight on each world** shows what a bathroom scale would read.
 
+To see whether a world could hold liquid water, use the [[habitable-zone-calculator]]; to plan a trip between two of them, the [[orbit-transfer-calculator]].
+
 ## How to use it
 
 1. Choose planets, moons or both at the top. The table, the plot and the weight list follow your choice.

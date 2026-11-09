@@ -25,6 +25,8 @@ flow:
 
 Most lab measurements are not read directly. You measure standards of known concentration, draw a straight line through them, and read your samples off that line. This tool does the whole job: it fits the line, checks it, gives the detection and quantitation limits, and works out each unknown with a confidence interval. It works for UV-Vis, HPLC, GC, ICP, fluorescence, protein assays (Bradford, BCA) and anything else with a straight-line response.
 
+If your standards curve rather than run straight, the [[dose-response|dose-response fitter]] handles a four-parameter curve; for the error on a result worked out from the line, use the [[uncertainty-calculator]].
+
 ## How to use it
 
 1. **Paste your standards:** two columns, the concentration and then the response. Copy them straight from Excel or Google Sheets. A header row is fine. If you ran replicates, give each its own line with the same concentration.

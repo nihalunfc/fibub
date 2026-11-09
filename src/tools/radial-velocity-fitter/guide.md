@@ -26,6 +26,8 @@ When two stars orbit each other, or a planet tugs on its star, the star moves to
 
 It plots the velocities folded on the period with the fitted curve, the residuals, and the whole data set over time, and lists the other periods it tried.
 
+Find the period first with the [[period-finder|light curve period finder]], and turn the orbit into a planet mass with the [[exoplanet-mass-calculator]].
+
 ## How to use it
 
 1. Paste your measurements: time in days, velocity, and optionally the error of each velocity. Columns can be separated by tabs, commas or spaces, and a header row is fine. **Load the example** fills in a simulated binary star.

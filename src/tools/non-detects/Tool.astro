@@ -158,6 +158,6 @@ const example = 'sample\tarsenic (µg/L)\n' + raw.map((v, i) => `Well ${i + 1}\t
   wireDownloads(q('.dl'), () => ({ title: 'Statistics with non-detects', subtitle: q('.nd-big').textContent ?? '', file: 'non-detects', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .nds select { max-width: 100%; }
 </style>

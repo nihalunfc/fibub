@@ -27,6 +27,8 @@ flow:
 
 The same star can be written several ways. Catalogues and papers use **J2000** right ascension and declination, which are fixed to the sky as it was at the start of 2000. Many telescope mounts point using **JNow**, the position "of date". JNow drifts from J2000 by about 50 arcseconds a year because Earth's axis slowly wobbles (precession). Radio astronomers and anyone mapping the Milky Way use **galactic** longitude and latitude. Planetary scientists use **ecliptic** coordinates, measured from the plane of Earth's orbit. And at the eyepiece, what matters is **altitude and azimuth**: how high the object is and in which direction. This converter shows all of them together.
 
+To see how high a target climbs tonight, use the [[object-altitude|target altitude planner]]; for the time scales behind JNow, the [[astro-time|astronomy time converter]].
+
 ## How to use it
 
 1. **Set your place** at the top. Your place is only needed for altitude, azimuth and hour angle.

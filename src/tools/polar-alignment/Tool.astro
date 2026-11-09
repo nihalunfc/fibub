@@ -24,7 +24,7 @@ import Downloads from '../../components/Downloads.astro';
   <Downloads />
 </div>
 
-<style is:global>
+<style is:inline>
   .pa-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 14px; align-items: start; }
   .pa-fig { max-width: 420px; justify-self: center; }
   @media (min-width: 760px) { .pa-wrap { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); } }

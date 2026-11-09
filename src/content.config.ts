@@ -12,7 +12,11 @@ const tools = defineCollection({
     name: z.string(),
     shelf: z.enum(SHELF_IDS),
     summary: z.string(),          // one sentence for cards and the meta description
-    title: z.string(),            // the <title> and H1, written the way people search
+    title: z.string(),            // the H1, written the way people search
+    // Optional: the title and description shown in search results. Left out, they are made from
+    // `title` and `summary` (see src/lib/seo.ts); set them when the automatic ones read badly.
+    seoTitle: z.string().max(60).optional(),
+    seoDescription: z.string().max(160).optional(),
     status: z.enum(['live', 'soon']).default('live'),
     ads: z.boolean().default(false), // false on any page that handles personal files or bank data
     order: z.number().default(100),

@@ -26,6 +26,8 @@ flow:
 
 The sky turns about 15° an hour. On a camera on a plain tripod, every star slowly slides across the sensor. Keep the shutter open too long and pin-point stars turn into short dashes. This page gives you the longest exposure for **sharp stars** with your exact camera and lens. It also does the opposite: it plans a **star trails** sequence, where you want long, smooth circles.
 
+For untracked exposures, align the mount first with the [[polar-alignment]]; for tracked subs, use the [[sub-exposure-calculator]].
+
 ## How to use it
 
 1. **Camera:** pick your camera type, or type the sensor size and pixel size from your camera's specifications. Phone cameras are included for night mode.

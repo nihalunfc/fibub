@@ -28,6 +28,8 @@ The Beer–Lambert law says that the light a solution absorbs grows in a straigh
 - **Reading quality.** Absorbances between about 0.1 and 1 are the most accurate. Below 0.05, noise and the blank dominate. Above 2, less than 1 % of the light gets through and most instruments stop being linear. The tool says which range your reading is in.
 - **Spectrum viewer.** Paste a spectrum, or open a CSV or Excel file: wavelength first, then one column per sample. The tool plots every sample as absorbance or transmittance, finds the absorption maxima (λmax), reads the absorbance at any wavelength, and turns it into a concentration with the ε and path length from the calculator.
 
+With several standards, fit the line properly with the [[calibration-curve|calibration curve]] tool; to make up the standards, use the [[solution-calculator]].
+
 ## How to use it
 
 1. In the calculator, fill in three values and leave the one you want empty.

@@ -39,6 +39,8 @@ It fits seven models:
 
 With a third column for the inhibitor concentration, every inhibitor level is fitted at once (a global fit), so Ki comes from all of your data, not from one line per level.
 
+For ordinary chemical reactions, use the [[reaction-kinetics-fitter]]; for ligand binding with Kd and Bmax, the [[binding-curve-fitter]].
+
 ## How to use it
 
 1. Paste two columns (substrate, rate) or three columns (substrate, inhibitor, rate), or open a CSV, TSV or Excel file. A header row is fine.

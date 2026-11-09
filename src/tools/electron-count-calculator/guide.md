@@ -35,6 +35,8 @@ Valence electrons = group number of the metal + 2 × L + X + metal–metal bonds
 
 The page also shows the **ionic count** (each X ligand as an anion giving two electrons), so you can see that both methods give the same answer, the **[MLₗXₓ] classification** and the **ligand bond number**.
 
+To see the d-electrons split by the ligands, use the [[crystal-field-calculator]]; for the molecule's symmetry, the [[point-group-finder]].
+
 ## How to use it
 
 1. Pick a worked example, or choose the metal and type the overall charge of the complex ion (0 for a neutral molecule).

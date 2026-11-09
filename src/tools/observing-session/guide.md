@@ -28,6 +28,8 @@ flow:
 
 On a clear night you might need four or five tools: when it gets dark, where the planets are, when your targets are high, where Polaris goes in the polar scope, which eyepiece to use, and a sheet to write on. This page puts the ones you choose together, for the same place and night. You can download them as **one** image, PDF or Word file to print or keep on your phone, or download **any part on its own**.
 
+Each part of the plan also works on its own: [[sky-tonight]], the [[object-altitude|target altitude planner]] and the [[polar-alignment]].
+
 ## How to use it
 
 1. **Set your place and the night** at the top. Your location stays on your device.

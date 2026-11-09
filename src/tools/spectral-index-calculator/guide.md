@@ -32,6 +32,8 @@ This tool reads **your own GeoTIFF files** in the browser, works out the index f
 
 **Your files stay on this device.** Nothing is uploaded; the page works offline once loaded.
 
+For the plants and animals at the same sites, use [[biodiversity-indices]]; for a GPS track across the area, the [[gps-track-analyser]].
+
 ## How to use it
 
 1. Press **Open GeoTIFF files**. Choose one multiband file, or several single-band files of the same size (for example one file per band from a satellite download).
