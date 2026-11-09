@@ -1,0 +1,241 @@
+---
+// Harmonic tide prediction from constituents, and harmonic analysis of a water-level record (lib/sci/tide.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE, predict } from '../../lib/sci/tide';
+const cons = EXAMPLE.map((c) => `${c.name.padEnd(4)} ${String(c.H).padEnd(5)} ${c.G}`).join('\n');
+// A made-up 30-day hourly record (another invented place), rounded to the centimetre.
+const rec = [{ name: 'M2', H: 0.9, G: 200 }, { name: 'S2', H: 0.3, G: 230 }, { name: 'N2', H: 0.18, G: 180 }, { name: 'K1', H: 0.15, G: 100 }, { name: 'O1', H: 0.12, G: 90 }, { name: 'M4', H: 0.04, G: 300 }];
+const t0 = Date.UTC(2026, 0, 1), times = Array.from({ length: 30 * 24 }, (_, i) => t0 + i * 3600000);
+const lv = predict(rec, 1.5, times, true);
+const p2 = (n: number) => String(n).padStart(2, '0');
+const recText = 'time_utc\tlevel_m\n' + times.map((t, i) => { const d = new Date(t); return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:00\t${lv[i].toFixed(2)}`; }).join('\n');
+---
+<div class="ax tdp">
+  <p class="tdp-warn"><strong>Not for navigation.</strong> These are astronomical tide predictions from the numbers you give. Weather, surges and river flow change real water levels. For navigation use the official tide tables and charts for your area.</p>
+
+  <div class="ax-card">
+    <h2>Tidal constituents</h2>
+    <label class="tdp-lab">One per line: name, amplitude, phase (Greenwich phase lag G in degrees, times in UTC) <textarea class="tdp-cons" rows="8" spellcheck="false">{cons}</textarea></label>
+    <div class="ax-grid">
+      <label>Mean level Z0 above datum <input class="tdp-z0" inputmode="decimal" value="2.0" /></label>
+      <label>Units <select class="tdp-unit"><option value="m">metres</option><option value="ft">feet</option></select></label>
+      <label>Nodal corrections <select class="tdp-nodal"><option value="1">on (18.6-year cycle)</option><option value="0">off</option></select></label>
+    </div>
+    <p class="ax-help">The example constituents are made up. Paste your own from a harmonic analysis or a published list (NOAA and many national agencies publish them in the same G convention). Names known: <span class="tdp-names"></span>.</p>
+    <p class="ax-err tdp-err" hidden></p>
+  </div>
+
+  <div class="ax-card tdp-out">
+    <h2>Prediction</h2>
+    <div class="ax-grid">
+      <label>Start date <input class="tdp-start" inputmode="numeric" placeholder="YYYY-MM-DD" value="" /></label>
+      <label>Days <input class="tdp-days" inputmode="numeric" value="3" /></label>
+      <label>Show times at UTC offset (hours) <input class="tdp-off" inputmode="decimal" value="0" /></label>
+      <label>Needed water level <input class="tdp-thr" inputmode="decimal" value="2.6" /></label>
+    </div>
+    <p class="ax-help">Needed water level is for a draft window: the depth you need (draft plus under-keel clearance) minus the charted depth, in the same units and above the same datum. Times above it are shaded on the plot and listed below.</p>
+    <p class="ax-err tdp-perr" hidden></p>
+    <div class="tdp-pout">
+      <p class="tdp-big"></p>
+      <canvas class="ax-fig tdp-fig"></canvas>
+      <h3>High and low waters</h3>
+      <div class="ax-scroll"><table class="tdp-hl"><thead><tr><th>Date and time</th><th></th><th>Level</th></tr></thead><tbody></tbody></table></div>
+      <h3>Draft windows</h3>
+      <div class="ax-scroll"><table class="tdp-win"><thead><tr><th>From</th><th>To</th><th>Hours</th></tr></thead><tbody></tbody></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tdp-csv">Download levels (CSV)</button><button type="button" class="btn secondary small tdp-hlcsv">Download high and low (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Harmonic analysis of a record</h2>
+    <p class="ax-help">Paste or open a water-level record: date and time (YYYY-MM-DD HH:MM) then level, one reading per line. Gaps are fine. At least two days; a month or more separates the main tides, and a year is needed to split S2 from K2 and K1 from P1. The example record is made up.</p>
+    <label class="tdp-lab">Record <textarea class="tdp-rec" rows="7" spellcheck="false">{recText}</textarea></label>
+    <DataFile target=".tdp-rec" maxCols={4} label="Open a file (time, level)" />
+    <div class="ax-grid">
+      <label>Record times at UTC offset (hours) <input class="tdp-roff" inputmode="decimal" value="0" /></label>
+      <label>Constituents <select class="tdp-sel"><option value="auto">chosen by the record length (Rayleigh)</option><option value="list">only those I list</option></select></label>
+      <label class="tdp-listl" hidden>List (names, comma separated) <input class="tdp-list" value="M2, S2, N2, K1, O1, M4" /></label>
+      <label>Nodal corrections <select class="tdp-anodal"><option value="1">on</option><option value="0">off</option></select></label>
+    </div>
+    <p class="ax-err tdp-aerr" hidden></p>
+    <div class="tdp-aout">
+      <p class="tdp-abig"></p>
+      <p class="ax-err tdp-awarn" hidden></p>
+      <div class="ax-scroll"><table class="tdp-acons"><thead><tr><th>Name</th><th>Speed °/h</th><th>Amplitude</th><th>Phase G °</th></tr></thead><tbody></tbody></table></div>
+      <canvas class="ax-fig tdp-afig" style="margin-top:10px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tdp-use">Use these in the prediction</button><button type="button" class="btn secondary small tdp-acsv">Download constituents (CSV)</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { predict, extremes, windows, analyse, rayleighSelect, parseTime, known, speed, PRIORITY, type Constituent, type Analysis } from '../../lib/sci/tide';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tdp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const show = (cls: string, out: string, m: string) => { q(cls).textContent = m; q(cls).hidden = !m; q(out).hidden = !!m; };
+  q('.tdp-names').textContent = PRIORITY.join(', ');
+  if (!q<HTMLInputElement>('.tdp-start').value) { const d = new Date(); q<HTMLInputElement>('.tdp-start').value = `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())}`; }
+
+  let fig: Figure | null = null, afig: Figure | null = null, series: { t: number[]; h: number[] } | null = null, hl: ReturnType<typeof extremes> = [], an: Analysis | null = null;
+  let off = 0;
+  const fmt = (t: number, o = off) => { const d = new Date(t + o * 3600000); return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`; };
+  const zone = (o: number) => (o === 0 ? 'UTC' : `UTC${o > 0 ? '+' : '−'}${Math.abs(o)}`);
+  const U = () => sel('.tdp-unit');
+
+  function readCons(): Constituent[] | string {
+    const out: Constituent[] = [];
+    const lines = q<HTMLTextAreaElement>('.tdp-cons').value.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+    for (const [i, l] of lines.entries()) {
+      const p = l.split(/[\s,;]+/);
+      const name = known(p[0] ?? '');
+      if (!name) { if (i === 0 && p.length >= 3 && !Number.isFinite(num(p[1]))) continue; return `Line ${i + 1}: "${p[0]}" is not a constituent this page knows.`; }
+      const H = num(p[1]), G = num(p[2]);
+      if (!(H >= 0) || !Number.isFinite(G)) return `Line ${i + 1}: give the amplitude (zero or more) and the phase in degrees after the name.`;
+      if (out.some((c) => c.name === name)) return `Line ${i + 1}: ${name} is listed twice.`;
+      out.push({ name, H, G });
+    }
+    return out.length ? out : 'List at least one constituent: name, amplitude, phase.';
+  }
+
+  function run() {
+    const cons = readCons();
+    if (typeof cons === 'string') { show('.tdp-err', '.tdp-out', cons); return; }
+    const Z0 = v('.tdp-z0');
+    if (!Number.isFinite(Z0)) { show('.tdp-err', '.tdp-out', 'Give the mean level Z0 as a number (0 if your amplitudes are about mean sea level).'); return; }
+    show('.tdp-err', '.tdp-out', '');
+    const start = parseTime(q<HTMLInputElement>('.tdp-start').value), days = v('.tdp-days'), o = v('.tdp-off'), thr = v('.tdp-thr');
+    const perr = (m: string) => show('.tdp-perr', '.tdp-pout', m);
+    if (!Number.isFinite(start)) return perr('Give the start date as YYYY-MM-DD.');
+    if (!(days >= 0.5 && days <= 31)) return perr('Days: between 0.5 and 31.');
+    if (!(o >= -12 && o <= 14)) return perr('The UTC offset is between −12 and +14 hours.');
+    perr('');
+    off = o;
+    const nodal = sel('.tdp-nodal') === '1';
+    const t0 = start - o * 3600000, t1 = t0 + days * 86400000, step = 6 * 60000;
+    const t: number[] = []; for (let x = t0; x <= t1 + 1; x += step) t.push(x);
+    series = { t, h: predict(cons, Z0, t, nodal) };
+    hl = extremes(cons, Z0, t0, t1, nodal);
+    const u = U();
+    const rows = hl.map((e) => { const tr = document.createElement('tr'); [fmt(e.t), e.kind === 'high' ? 'High' : 'Low', `${e.h.toFixed(2)} ${u}`].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; });
+    q('.tdp-hl tbody').replaceChildren(...rows);
+    const win = Number.isFinite(thr) ? windows(series, thr) : [];
+    q('.tdp-win tbody').replaceChildren(...(win.length ? win.map(([a, b]) => { const tr = document.createElement('tr'); [fmt(a), fmt(b), ((b - a) / 3600000).toFixed(1)].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }) : [(() => { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 3; td.textContent = Number.isFinite(thr) ? `The level never reaches ${thr} ${u} in this period.` : 'Type a needed water level to list windows.'; tr.append(td); return tr; })()]));
+    const hi = hl.filter((e) => e.kind === 'high'), lo = hl.filter((e) => e.kind === 'low');
+    const range = Math.max(...series.h) - Math.min(...series.h);
+    q('.tdp-big').textContent = hi.length ? `First high water ${fmt(hi[0].t)} ${zone(o)}, ${hi[0].h.toFixed(2)} ${u}; range over the period ${range.toFixed(2)} ${u}` : `No high water in this period; range ${range.toFixed(2)} ${u}`;
+    draw(thr, hi, lo);
+  }
+
+  function draw(thr: number, hi: { t: number; h: number }[], lo: { t: number; h: number }[]) {
+    const s = series!, t0 = s.t[0], X = (t: number) => (t - t0) / 86400000, u = U();
+    const W = Math.round(Math.min(760, Math.max(320, q('.tdp-pout').clientWidth || 640))), narrow = W < 500;
+    const inWin = s.h.map((h, i) => (Number.isFinite(thr) && h >= thr ? h : NaN));
+    // Split the shaded part into runs so lines are not drawn across gaps.
+    const runs: { x: number[]; y: number[] }[] = [];
+    inWin.forEach((h, i) => { if (Number.isFinite(h)) { if (i === 0 || !Number.isFinite(inWin[i - 1])) runs.push({ x: [], y: [] }); runs[runs.length - 1].x.push(X(s.t[i])); runs[runs.length - 1].y.push(h); } });
+    fig = chartFigure({ w: W, h: narrow ? 300 : 360, xLabel: `Days from ${fmt(t0)} ${zone(off)}`, yLabel: `Level (${u})`, series: [
+      { name: 'predicted level', x: s.t.map(X), y: s.h, mode: 'line', width: 1.6 },
+      ...runs.map((r, i) => ({ name: i === 0 ? 'above the needed level' : '', x: r.x, y: r.y, mode: 'line' as const, width: 5, color: '#009E73' })),
+      { name: 'high water', x: hi.map((e) => X(e.t)), y: hi.map((e) => e.h), mode: 'points', marker: 'triangle', size: 4, color: '#D55E00' },
+      { name: 'low water', x: lo.map((e) => X(e.t)), y: lo.map((e) => e.h), mode: 'points', marker: 'open-triangle', size: 4, color: '#D55E00' },
+    ], marks: Number.isFinite(thr) ? [{ kind: 'hline', at: thr, label: `needed ${thr} ${u}` }] : [], legend: 'below' }, 'Predicted water level over time with high and low waters and the draft windows');
+    paint(q<HTMLCanvasElement>('.tdp-fig'), fig);
+  }
+
+  // ---------- analysis ----------
+  function runAnalysis() {
+    an = null; afig = null;
+    const aerr = (m: string) => show('.tdp-aerr', '.tdp-aout', m);
+    q('.tdp-listl').hidden = sel('.tdp-sel') !== 'list';
+    const ro = v('.tdp-roff');
+    if (!(ro >= -12 && ro <= 14)) return aerr('The UTC offset of the record is between −12 and +14 hours.');
+    const rows = parseTable(q<HTMLTextAreaElement>('.tdp-rec').value).filter((r) => r.some((c) => c.trim()));
+    const T: number[] = [], H: number[] = [];
+    for (const [i, r] of rows.entries()) {
+      // Time may be one column ("2026-01-01 00:00") or two (date, time).
+      const two = r.length >= 3 && /^\d{1,2}:\d{2}/.test((r[1] ?? '').trim());
+      const t = two ? parseTime(`${r[0]} ${r[1]}`, ro) : parseTime(r[0], ro), lvl = num(r[two ? 2 : 1]);
+      if (!Number.isFinite(t) || !Number.isFinite(lvl)) { if (i === 0) continue; return aerr(`Line ${i + 1} is not a date and time (YYYY-MM-DD HH:MM) and a level.`); }
+      T.push(t); H.push(lvl);
+    }
+    if (T.length < 24) return aerr('Paste at least 24 readings: date and time, then level.');
+    const idx = T.map((_, i) => i).sort((a, b) => T[a] - T[b]);
+    const ts = idx.map((i) => T[i]), hs = idx.map((i) => H[i]);
+    if (ts.some((t, i) => i && t === ts[i - 1])) return aerr('Two readings have the same time.');
+    const hours = (ts[ts.length - 1] - ts[0]) / 3600000;
+    if (hours < 48) return aerr('The record must cover at least two days.');
+    let names: string[];
+    if (sel('.tdp-sel') === 'auto') names = rayleighSelect(hours);
+    else {
+      names = [];
+      for (const p of q<HTMLInputElement>('.tdp-list').value.split(/[\s,;]+/).filter(Boolean)) { const k = known(p); if (!k) return aerr(`"${p}" is not a constituent this page knows.`); if (!names.includes(k)) names.push(k); }
+      if (!names.length) return aerr('List at least one constituent.');
+    }
+    try { an = analyse(ts, hs, names, sel('.tdp-anodal') === '1'); } catch (e) { return aerr((e as Error).message); }
+    aerr('');
+    const a = an;
+    const close: string[] = [];
+    names.forEach((x, i) => names.slice(i + 1).forEach((y) => { if ((Math.abs(speed(x) - speed(y)) * hours) / 360 < 1) close.push(`${x} and ${y}`); }));
+    q('.tdp-awarn').textContent = close.length ? `${close.join(', ')} are too close in speed to be told apart in ${(hours / 24).toFixed(1)} days (Rayleigh criterion): their amplitudes and phases are unreliable.` : '';
+    q('.tdp-awarn').hidden = !close.length;
+    const ss = hs.reduce((s, x) => s + (x - a.Z0) ** 2, 0) / hs.length;
+    q('.tdp-abig').textContent = `${a.cons.length} constituents from ${a.n} readings over ${(a.hours / 24).toFixed(1)} days. Mean level Z0 = ${a.Z0.toFixed(3)}; residual rms ${sig(a.rms, 3)} (${(100 * (1 - (a.rms * a.rms) / ss)).toFixed(1)} % of the variance explained).`;
+    const sorted = [...a.cons].sort((x, y) => y.H - x.H);
+    q('.tdp-acons tbody').replaceChildren(...sorted.map((c) => { const tr = document.createElement('tr'); [c.name, c.speed.toFixed(7), c.H.toFixed(4), c.G.toFixed(2)].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }));
+    const W = Math.round(Math.min(760, Math.max(320, q('.tdp-aout').clientWidth || 640))), narrow = W < 500;
+    const X = ts.map((t) => (t - ts[0]) / 86400000);
+    afig = chartFigure({ w: W, h: narrow ? 280 : 330, xLabel: `Days from ${fmt(ts[0], ro)} ${zone(ro)}`, yLabel: 'Level', series: [
+      { name: 'record', x: X, y: hs, mode: 'points', size: 1.6 },
+      { name: 'harmonic fit', x: X, y: a.fit, mode: 'line', width: 1.2 },
+      { name: 'residual', x: X, y: a.residual, mode: 'line', width: 1 },
+    ], legend: 'below' }, 'The record, the harmonic fit and the residual');
+    paint(q<HTMLCanvasElement>('.tdp-afig'), afig);
+  }
+
+  root.querySelectorAll('.tdp-cons, .tdp-z0, .tdp-unit, .tdp-nodal, .tdp-start, .tdp-days, .tdp-off, .tdp-thr').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  root.querySelectorAll('.tdp-rec, .tdp-roff, .tdp-sel, .tdp-list, .tdp-anodal').forEach((i) => { i.addEventListener('input', runAnalysis); i.addEventListener('change', runAnalysis); });
+  q('.tdp-use').addEventListener('click', () => {
+    if (!an) return;
+    q<HTMLTextAreaElement>('.tdp-cons').value = [...an.cons].sort((x, y) => y.H - x.H).map((c) => `${c.name.padEnd(4)} ${String(+c.H.toFixed(4)).padEnd(6)} ${+c.G.toFixed(2)}`).join('\n');
+    q<HTMLInputElement>('.tdp-z0').value = String(+an.Z0.toFixed(3));
+    q<HTMLSelectElement>('.tdp-nodal').value = sel('.tdp-anodal');
+    run(); q('.tdp-out').scrollIntoView({ block: 'start' });
+  });
+  q('.tdp-csv').addEventListener('click', () => { if (!series) return; const s = series; save(new TextEncoder().encode(csv([[`time_${zone(off).replace('−', '-')}`, `level_${U()}`], ...s.t.map((t, i) => [fmt(t), +s.h[i].toFixed(4)])])), 'tide-prediction.csv', 'text/csv'); });
+  q('.tdp-hlcsv').addEventListener('click', () => { save(new TextEncoder().encode(csv([[`time_${zone(off).replace('−', '-')}`, 'type', `level_${U()}`], ...hl.map((e) => [fmt(e.t), e.kind, +e.h.toFixed(4)])])), 'tide-high-low.csv', 'text/csv'); });
+  q('.tdp-acsv').addEventListener('click', () => { if (!an) return; save(new TextEncoder().encode(csv([['name', 'speed_deg_per_hour', 'amplitude', 'phase_G_deg'], ['Z0', 0, +an.Z0.toFixed(6), ''], ...an.cons.map((c) => [c.name, +c.speed.toFixed(7), +c.H.toFixed(6), +c.G.toFixed(3)])])), 'tide-constituents.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tdp-fig'), fig); if (afig) paint(q<HTMLCanvasElement>('.tdp-afig'), afig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.tdp-pout').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; run(); runAnalysis(); } });
+  run(); runAnalysis(); lastW = q('.tdp-pout').clientWidth;
+  const rowsOf = (s: string) => [...root.querySelectorAll(`${s} tbody tr`)].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent!));
+  wireDownloads(q('.dl'), () => ({
+    title: 'Tide prediction (not for navigation)', subtitle: q('.tdp-big').textContent!, file: 'tide-prediction',
+    sections: !series || !fig ? [] : [
+      { title: 'Predicted level', figure: fig, note: 'Astronomical tide only, from the constituents entered. Not for navigation.' },
+      { title: 'High and low waters', table: { head: ['Date and time', '', 'Level'], rows: rowsOf('.tdp-hl') } },
+      { title: 'Draft windows', table: { head: ['From', 'To', 'Hours'], rows: rowsOf('.tdp-win') } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .tdp select { max-width: 100%; }
+  .tdp .tdp-lab { display: block; }
+  .tdp textarea { width: 100%; font: inherit; font-size: 14px; }
+  .tdp .tdp-cons { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .tdp [hidden] { display: none !important; }
+  .tdp .tdp-warn { border: 2px solid var(--bad); border-radius: 10px; padding: 10px 12px; margin: 0 0 14px; }
+  .tdp .tdp-big, .tdp .tdp-abig { font-weight: 650; margin: 0 0 8px; }
+  .tdp h3 { font-size: 16px; margin: 14px 0 6px; }
+</style>
