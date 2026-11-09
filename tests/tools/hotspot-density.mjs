@@ -36,6 +36,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill('.hs-area', ''); await page.fill('.hs-top', '0'); await settle();
   check((await err()).includes('1 to 100'), 'hotspot: bad list length refused');
   await page.fill('.hs-top', '5'); await page.uncheck('.hs-show-c'); await page.uncheck('.hs-show-p'); await settle();
+  await page.waitForFunction(() => (document.querySelector('.hs-fig').getAttribute('aria-label') || '').startsWith('Kernel density map of 120 points') && document.querySelector('.hs-fig').width > 0);
   check((await page.$$('.hs-tab tbody tr')).length === 5 && (await page.isVisible('.hs-fig')), 'hotspot: 5 cells, layers off still draws');
   await page.check('.hs-show-c'); await page.check('.hs-show-p');
 
