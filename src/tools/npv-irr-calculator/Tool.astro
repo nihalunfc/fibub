@@ -1,0 +1,146 @@
+---
+// Project appraisal: NPV, all IRRs, MIRR, payback, discounted payback, profitability index and the NPV profile.
+// The example project is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\n5\t1500';
+---
+<div class="ax nv">
+  <div class="ax-card">
+    <h2>Cash flows</h2>
+    <label>One row per period, oldest first: money out is negative (such as the investment today), money in positive. A period number first is optional; a header row is optional.
+      <textarea class="nv-cf" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".nv-cf" maxCols={4} maxRows={1200} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Discount rate (% per period) <input class="nv-r" inputmode="decimal" value="10" /></label>
+      <label>Periods are <select class="nv-per"><option value="year" selected>Years</option><option value="quarter">Quarters</option><option value="month">Months</option></select></label>
+      <label>Currency sign <input class="nv-cur" value="$" /></label>
+      <label>MIRR finance rate (%) <input class="nv-fin" inputmode="decimal" placeholder="same as discount rate" /></label>
+      <label>MIRR reinvestment rate (%) <input class="nv-re" inputmode="decimal" placeholder="same as discount rate" /></label>
+    </div>
+    <p class="ax-help">The first row is today (period 0) and each later row is the end of the next period. The discount rate is your cost of capital or the return you could get elsewhere. The example project is made up.</p>
+    <p class="ax-err nv-err" hidden></p>
+  </div>
+
+  <div class="ax-card nv-out">
+    <h2>Appraisal</h2>
+    <p class="ax-big nv-big"></p>
+    <p class="ax-help nv-verdict"></p>
+    <dl class="ax-facts nv-facts" style="margin-top:10px"></dl>
+    <p class="ax-err nv-warn" hidden></p>
+    <canvas class="ax-fig nv-fig" style="margin-top:12px"></canvas>
+    <h3>Period by period</h3>
+    <div class="ax-scroll"><table class="nv-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nv-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .nv .nv-tab td, .nv .nv-tab th { white-space: nowrap; }
+  .nv .nv-tab td.r, .nv .nv-tab th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .nv .nv-tab td.neg { color: var(--bad); }
+  .nv .nv-warn { color: var(--warn); }
+</style>
+
+<script>
+  import { npv, irrAll, mirr, payback, profitabilityIndex, equivalentAnnuity, signChanges } from '../../lib/sci/npv';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.nv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  const pc = (x: number, d = 2) => (Number.isFinite(x) ? `${(100 * x).toFixed(d).replace('-', '−')} %` : '–');
+  function fact(k: string, val: string, sm = '') { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; }
+
+  function read(): { cf: number[]; labels: string[] } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.nv-cf').value);
+    const isNum = (c?: string) => c !== undefined && c.trim() !== '' && Number.isFinite(num(c));
+    const body = rows.length && !rows[0].some((c) => isNum(c)) ? rows.slice(1) : rows;
+    const two = body.length > 0 && body.every((r) => r.length >= 2 && r[1].trim() !== '');
+    const cf: number[] = [], labels: string[] = [];
+    body.forEach((r, i) => {
+      const c = two ? r[1] : r[0];
+      const v = num(c);
+      if (!Number.isFinite(v)) throw new Error(`Row ${i + 1}: "${c}" is not an amount.`);
+      cf.push(v); labels.push(two ? r[0] : String(i));
+    });
+    if (cf.length < 2) throw new Error('Give at least two cash flows: today and one later period.');
+    if (cf.length > 1201) throw new Error('Up to 1,200 periods, please.');
+    if (two && labels.every(isNum)) labels.forEach((l, i) => { if (num(l) - num(labels[0]) !== i) throw new Error(`Periods must follow on one by one (such as 0, 1, 2 or 2025, 2026, 2027), one row each; row ${i + 1} says ${l}. Put a 0 in any period with no cash flow.`); });
+    return { cf, labels };
+  }
+
+  function calc() {
+    const err = q('.nv-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.nv-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    err.hidden = true;
+    let d;
+    try { d = read(); } catch (e) { return fail((e as Error).message); }
+    const { cf, labels } = d;
+    const r = num(q<HTMLInputElement>('.nv-r').value) / 100;
+    if (!Number.isFinite(r) || r <= -1) return fail('Enter a discount rate above −100 %.');
+    const finTxt = q<HTMLInputElement>('.nv-fin').value.trim(), reTxt = q<HTMLInputElement>('.nv-re').value.trim();
+    const fin = finTxt ? num(finTxt) / 100 : r, re = reTxt ? num(reTxt) / 100 : r;
+    if (!Number.isFinite(fin) || !Number.isFinite(re) || fin <= -1 || re <= -1) return fail('MIRR rates must be numbers above −100 %, or left blank.');
+    const cur = q<HTMLInputElement>('.nv-cur').value.trim(), per = q<HTMLSelectElement>('.nv-per').value;
+    const money = (x: number) => (Number.isFinite(x) ? `${x < 0 ? '−' : ''}${cur}${Math.abs(x).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '–');
+    const plural = (x: number) => `${sig(x, 3)} ${per}${x === 1 ? '' : 's'}`;
+    const v = npv(r, cf), irrs = irrAll(cf), m = mirr(cf, fin, re), pb = payback(cf), dpb = payback(cf, r), pi = profitabilityIndex(r, cf), eaa = equivalentAnnuity(r, cf), sc = signChanges(cf);
+    q('.nv-out').hidden = false;
+    q('.nv-big').textContent = `NPV ${money(v)} at ${pc(r, 2).replace(' %', ' %')}`;
+    q('.nv-verdict').textContent = v > 0 ? `Positive: the project earns more than ${pc(r)} per ${per}, so it adds value at this rate.` : v < 0 ? `Negative: the project earns less than ${pc(r)} per ${per}, so it loses value at this rate.` : 'Zero: the project earns exactly the discount rate.';
+    const irrTxt = !irrs.length ? 'none' : irrs.map((x) => pc(x)).join(', ');
+    const cum = cf.reduce<number[]>((a, c) => [...a, (a[a.length - 1] ?? 0) + c], []);
+    const reNeg = Number.isFinite(pb) && cum.some((c, t) => t > Math.ceil(pb) && c < 0);
+    const facts = [
+      fact(irrs.length > 1 ? 'IRRs (several)' : 'IRR', irrTxt, irrs.length === 0 ? (sc === 0 ? 'the cash flows never change sign' : 'NPV never crosses zero') : `per ${per}: the rate at which NPV is zero`),
+      fact('MIRR', pc(m), `finance ${pc(fin)}, reinvestment ${pc(re)}`),
+      fact('Payback', Number.isFinite(pb) ? plural(pb) : 'never', 'when the running total first reaches zero'),
+      fact('Discounted payback', Number.isFinite(dpb) ? plural(dpb) : 'never', `the same with flows discounted at ${pc(r)}`),
+      fact('Profitability index', Number.isFinite(pi) ? sig(pi, 4) : '–', Number.isFinite(pi) ? 'present value of later flows ÷ outlay today; above 1 is good' : 'needs money out today (a negative first flow)'),
+      fact(`Equivalent ${per}ly amount`, money(eaa), `a level amount over ${cf.length - 1} ${per}s with the same NPV`),
+      fact('Total of cash flows', money(cum[cum.length - 1]), 'undiscounted'),
+    ];
+    q('.nv-facts').replaceChildren(...facts);
+    const warn: string[] = [];
+    if (irrs.length > 1) warn.push(`The cash flows change sign ${sc} times and NPV is zero at ${irrs.length} rates, so the IRR has no single meaning. Judge the project by its NPV at your discount rate, or by the MIRR.`);
+    else if (sc > 1) warn.push(`The cash flows change sign ${sc} times, so there could be more than one IRR; only one was found between −99.9 % and 100,000 %.`);
+    if (reNeg) warn.push('The running total turns negative again after payback (later money out), so payback understates the risk.');
+    q('.nv-warn').textContent = warn.join(' ');
+    q('.nv-warn').hidden = !warn.length;
+    // NPV profile.
+    const top = Math.max(0.3, r * 2, ...irrs.filter((x) => x < 5).map((x) => x * 1.5));
+    const bot = Math.min(0, r, ...irrs.filter((x) => x > -0.9).map((x) => x - 0.05));
+    const xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 300; i++) { const x = bot + ((top - bot) * i) / 300; if (x <= -0.95) continue; xs.push(100 * x); ys.push(npv(x, cf)); }
+    fig = chartFigure({ h: 360, xLabel: `Discount rate (% per ${per})`, yLabel: `NPV${cur ? ` (${cur})` : ''}`, legend: 'below', series: [
+      { name: 'NPV profile', x: xs, y: ys, mode: 'line', width: 2.2 },
+      { name: irrs.length > 1 ? 'IRRs' : 'IRR', x: irrs.filter((x) => x >= bot && x <= top).map((x) => 100 * x), y: irrs.filter((x) => x >= bot && x <= top).map(() => 0), mode: 'points', marker: 'circle' },
+      { name: 'Your rate', x: [100 * r], y: [v], mode: 'points', marker: 'square' },
+    ], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, `NPV profile: NPV ${money(v)} at ${pc(r)}`);
+    paint(q<HTMLCanvasElement>('.nv-fig'), fig);
+    // Table.
+    let cpv = 0;
+    const head = ['Period', 'Cash flow', 'Discount factor', 'Present value', 'Running total', 'Running PV'];
+    const rows = cf.map((c, t) => { const df = 1 / (1 + r) ** t, pv = c * df; cpv += pv; return [labels[t], money(c), df.toFixed(4), money(pv), money(cum[t]), money(cpv)]; });
+    const tab = q<HTMLTableElement>('.nv-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = tab.createTBody(); rows.slice(0, 400).forEach((rr) => { const tr = tb.insertRow(); rr.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = [i ? 'r' : '', i && c.startsWith('−') ? 'neg' : ''].join(' ').trim(); }); });
+    const fl = facts.map((dd) => [dd.querySelector('dt')!.textContent!, dd.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    const plain = (x: number) => (Number.isFinite(x) ? String(+x.toFixed(10)) : '');
+    csvRows = [['Measure', 'Value'], ['NPV', plain(v)], ['Discount rate', plain(r)], ...irrs.map((x, i) => [`IRR ${i + 1}`, plain(x)]), ['MIRR', plain(m)], ['Payback', plain(pb)], ['Discounted payback', plain(dpb)], ['Profitability index', plain(pi)], [],
+      head, ...cf.map((c, t) => { const df = 1 / (1 + r) ** t; return [labels[t], plain(c), plain(df), plain(c * df), plain(cum[t]), plain(cf.slice(0, t + 1).reduce((s, x, k) => s + x / (1 + r) ** k, 0))]; })];
+    sections = [{ title: q('.nv-big').textContent!, text: [q('.nv-verdict').textContent!, ...warn], facts: fl, figure: fig, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.nv-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'npv-irr.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nv-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'NPV and IRR', subtitle: q('.nv-big').textContent ?? '', file: 'npv-irr', sections }));
+</script>

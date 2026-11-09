@@ -1,0 +1,283 @@
+---
+// Catchment buffers: straight-line (haversine) distances from people to facilities, coverage within chosen
+// distances, per-facility catchments and a simple walkability score from amenity counts. The example town is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import fac from '../../../tests/fixtures/catchment-buffer-facilities.csv?raw';
+import ppl from '../../../tests/fixtures/catchment-buffer-people.csv?raw';
+import amen from '../../../tests/fixtures/catchment-buffer-amenities.csv?raw';
+const boxes = [
+  { key: 'f', title: 'Facilities', help: 'One per row: name, latitude, longitude. Or paste GeoJSON points.', text: fac.trim(), rows: 5 },
+  { key: 'p', title: 'People', help: 'One place per row: name, latitude, longitude, population. Or paste GeoJSON points or polygons (polygons are counted at their centre) with a population property.', text: ppl.trim(), rows: 6 },
+  { key: 'a', title: 'Amenities (optional, for walkability)', help: 'One per row: type, latitude, longitude, for example grocery, school, park. Or GeoJSON points with a type property.', text: amen.trim(), rows: 5 },
+];
+---
+<div class="ax cb">
+  <div class="ax-card">
+    <p class="cb-warn"><strong>Straight-line distances.</strong> Everything here is measured as the crow flies (great-circle distance), not along roads or paths. Real walking or driving distances are longer, often by a quarter to a half, and rivers, rail lines and missing crossings can make them much longer.</p>
+    {boxes.map((b) => (
+      <div class="cb-box" data-k={b.key}>
+        <h2>{b.title}</h2>
+        <label>{b.help}
+          <textarea class={`cb-in cb-${b.key}`} rows={b.rows} spellcheck="false" wrap="off">{b.text}</textarea></label>
+        <div class="ax-row" style="margin-top:6px">
+          <button type="button" class="btn secondary small cb-open">Open a file</button>
+          <input type="file" class="cb-file" accept=".csv,.tsv,.txt,.geojson,.json,text/csv,text/plain,application/geo+json,application/json" hidden />
+          <button type="button" class="btn secondary small cb-clear">Clear</button>
+          <span class="ax-help cb-note" style="margin:0">CSV, TSV, TXT or GeoJSON, up to 20 MB.</span>
+        </div>
+      </div>
+    ))}
+    <p class="ax-help">The example town, its clinics, blocks and amenities are made up. Files are read on your device and never uploaded.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Distances</h2>
+    <div class="ax-grid">
+      <label>Catchment distance (m) <input class="cb-r" inputmode="decimal" value="1000" /></label>
+      <label>Also report within (m) <input class="cb-list" value="500, 1500, 2000" /></label>
+      <label>Walkability distance (m) <input class="cb-wr" inputmode="decimal" value="800" /></label>
+    </div>
+    <div class="cb-types-w" style="margin-top:10px"><span class="ax-help" style="margin:0">Amenity types counted for walkability:</span><div class="ax-row cb-types" style="margin-top:6px"></div></div>
+    <p class="ax-help">The catchment distance draws the circles on the map and sets the per-facility table. The walkability score of a place is the share of the ticked amenity types with at least one within the walkability distance (100 means every type is in reach), averaged over people.</p>
+    <p class="ax-err cb-err" hidden></p>
+  </div>
+
+  <div class="ax-card cb-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big cb-big"></p>
+    <dl class="ax-facts cb-facts"></dl>
+    <canvas class="ax-fig cb-fig" style="margin-top:12px"></canvas>
+    <div class="ax-legend"><span><i class="cb-sw-in"></i>People within the catchment distance</span><span><i class="cb-sw-out"></i>Beyond it</span><span><i class="cb-sw-f"></i>Facility, with its circle</span><span class="cb-leg-a"><i class="cb-sw-a"></i>Amenity</span></div>
+    <h3>Coverage</h3>
+    <div class="ax-scroll"><table class="cb-cov"></table></div>
+    <h3>Facilities</h3>
+    <div class="ax-scroll"><table class="cb-fac"></table></div>
+    <div class="cb-ww"><h3>Walkability</h3><div class="ax-scroll"><table class="cb-walk"></table></div></div>
+    <p class="ax-help cb-foot"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cb-pcsv">People (CSV)</button>
+      <button type="button" class="btn secondary small cb-fcsv">Facilities (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cb .cb-warn { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--ink); font-size: 14px; }
+  .cb .cb-box + .cb-box { margin-top: 14px; }
+  .cb .cb-box h2 { font-size: 16px; margin: 0 0 6px; }
+  .cb .cb-sw-in { background: #009E73; } .cb .cb-sw-out { background: #D55E00; } .cb .cb-sw-f { background: var(--ink); } .cb .cb-sw-a { background: #888; border-radius: 50%; }
+</style>
+
+<script>
+  import { haversine, nearest, coverage, wQuantile, catchments, walkScores, geojsonPlaces, R_EARTH, type Place } from '../../lib/sci/catchment';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const m = (x: number) => (Number.isFinite(x) ? `${Math.round(x).toLocaleString('en')} m` : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? `${(100 * x).toFixed(1)} %` : '–');
+  const n0 = (x: number) => (Number.isInteger(x) ? x.toLocaleString('en') : x.toLocaleString('en', { maximumFractionDigits: 1 }));
+  let fig: Figure | null = null, sections: Section[] = [], pCsv: (string | number)[][] = [], fCsv: (string | number)[][] = [];
+  const typeOn = new Map<string, boolean>();
+
+  /** Places from CSV/TSV text or GeoJSON. `kind` picks which extra column matters: weight (people) or type (amenities). */
+  function readPlaces(text: string, kind: 'f' | 'p' | 'a', label: string): Place[] {
+    const t = text.trim();
+    if (!t) return [];
+    if (t.startsWith('{')) {
+      let obj: unknown;
+      try { obj = JSON.parse(t); } catch { throw new Error(`${label}: this looks like GeoJSON but could not be read (${t.length > 40 ? 'check the brackets and commas' : 'it is incomplete'}).`); }
+      const feats = (obj as { features?: { properties?: Record<string, unknown> }[] }).features ?? [];
+      const keys = Object.keys(feats[0]?.properties ?? {});
+      const find = (re: RegExp) => keys.find((k) => re.test(k.toLowerCase())) ?? '';
+      const wk = kind === 'p' ? find(/^(pop|population|people|count|weight|residents|persons)/) : '', tk = kind === 'a' ? find(/^(type|amenity|category|kind|class)$/) : '';
+      if (kind === 'p' && !wk && keys.length) throw new Error(`${label}: no population property found (looked for pop, population, people, count, weight or residents among ${keys.join(', ')}).`);
+      if (kind === 'a' && !tk) throw new Error(`${label}: no type property found (looked for type, amenity, category, kind or class).`);
+      const g = geojsonPlaces(obj, wk, find(/^(name|title|label|id)$/), tk);
+      return check(g.places.map((x) => ({ ...x, type: x.type?.trim().toLowerCase() })), label);
+    }
+    const rows = parseTable(t).filter((r) => r.some((c) => c.trim()));
+    const head = rows[0].map((c) => c.trim().toLowerCase());
+    const isHead = rows[0].some((c, i) => c.trim() !== '' && !Number.isFinite(num(c)) && i < 3) && head.some((h) => /^(lat|latitude|y)$/.test(h));
+    let la = -1, lo = -1, nm = -1, wt = -1, ty = -1;
+    if (isHead) {
+      const f = (re: RegExp) => head.findIndex((h) => re.test(h));
+      la = f(/^(lat|latitude|y)$/); lo = f(/^(lon|lng|long|longitude|x)$/); nm = f(/^(name|title|label|id)$/);
+      wt = f(/^(pop|population|people|count|weight|residents|persons)/); ty = f(/^(type|amenity|category|kind|class)$/);
+      if (la < 0 || lo < 0) throw new Error(`${label}: the header needs lat and lon columns.`);
+    } else {
+      // No header: the first two number columns are latitude and longitude; a leading text column is the name or type.
+      const numCols = rows[0].map((c) => Number.isFinite(num(c)));
+      const first = numCols.indexOf(true);
+      if (first < 0 || !numCols[first + 1]) throw new Error(`${label}: each row needs latitude and longitude as numbers.`);
+      la = first; lo = first + 1;
+      if (first > 0) { if (kind === 'a') ty = 0; else nm = 0; }
+      if (numCols[first + 2]) wt = first + 2; else if (kind === 'a' && rows[0][first + 2]) ty = first + 2;
+    }
+    if (kind === 'a' && ty < 0) throw new Error(`${label}: give the amenity type in a column named type (or first).`);
+    const body = isHead ? rows.slice(1) : rows, out: Place[] = [];
+    body.forEach((r, i) => {
+      const lat = num(r[la]), lon = num(r[lo]), w = kind === 'p' && wt >= 0 ? num(r[wt]) : 1;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error(`${label}, row ${i + 1}: latitude and longitude must be numbers.`);
+      if (!(Number.isFinite(w) && w >= 0)) throw new Error(`${label}, row ${i + 1}: population must be a number of zero or more.`);
+      out.push({ lat, lon, w, name: nm >= 0 ? r[nm].trim() : undefined, type: ty >= 0 ? r[ty].trim().toLowerCase() : undefined });
+    });
+    return check(out, label);
+  }
+  function check(p: Place[], label: string) {
+    const bad = p.findIndex((x) => Math.abs(x.lat) > 90 || Math.abs(x.lon) > 180);
+    if (bad >= 0) throw new Error(`${label}, place ${bad + 1}: latitude must be −90 to 90 and longitude −180 to 180. Is the order latitude, longitude?`);
+    if (p.length > 50000) throw new Error(`${label}: up to 50,000 places, please.`);
+    return p;
+  }
+
+  function drawTypes(amenities: Place[]) {
+    const types = [...new Set(amenities.map((a) => a.type!).filter(Boolean))].sort();
+    q('.cb-types-w').hidden = !types.length;
+    const box = q('.cb-types');
+    if (box.dataset.list === types.join('|')) return;
+    box.dataset.list = types.join('|'); box.replaceChildren();
+    for (const t of types) {
+      if (!typeOn.has(t)) typeOn.set(t, true);
+      const l = document.createElement('label'), c = document.createElement('input');
+      l.className = 'ax-check'; c.type = 'checkbox'; c.checked = typeOn.get(t)!; c.dataset.t = t;
+      c.addEventListener('change', () => { typeOn.set(t, c.checked); calc(); });
+      l.append(c, ` ${t}`); box.append(l);
+    }
+  }
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.cb-err');
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; q('.cb-out').hidden = true; sections = []; fig = null; };
+    try {
+      const F = readPlaces(q<HTMLTextAreaElement>('.cb-f').value, 'f', 'Facilities');
+      const P = readPlaces(q<HTMLTextAreaElement>('.cb-p').value, 'p', 'People');
+      const A = readPlaces(q<HTMLTextAreaElement>('.cb-a').value, 'a', 'Amenities');
+      drawTypes(A);
+      if (!F.length) return fail('Add at least one facility (name, latitude, longitude).');
+      if (!P.length) return fail('Add the places where people live (name, latitude, longitude, population).');
+      if (P.length * F.length > 5e7) return fail('That is too many people places × facilities to compare in the browser (up to 50 million pairs).');
+      const r = num(val('.cb-r')), wr = num(val('.cb-wr'));
+      if (!(r > 0 && r <= 1e6)) return fail('Set the catchment distance in metres, above 0 and up to 1,000,000.');
+      const extra = val('.cb-list').split(/[,;\s]+/).filter(Boolean).map(num);
+      if (extra.some((x) => !(x > 0))) return fail('"Also report within" takes distances in metres above zero, separated by commas.');
+      const limits = [...new Set([r, ...extra])].sort((a, b) => a - b).slice(0, 12);
+      const types = [...typeOn.entries()].filter(([t, on]) => on && A.some((a) => a.type === t)).map(([t]) => t);
+      if (A.length && types.length && !(wr > 0 && wr <= 1e5)) return fail('Set the walkability distance in metres, above 0 and up to 100,000.');
+      err.hidden = true; q('.cb-out').hidden = false;
+
+      const w = P.map((p) => p.w ?? 1), tot = w.reduce((s, x) => s + x, 0);
+      if (!(tot > 0)) return fail('The population adds up to zero.');
+      const near = nearest(P, F), d = near.map((x) => x.d), cov = coverage(d, w, limits), main = cov.find((c) => c.limit === r)!;
+      const wmean = d.reduce((s, x, i) => s + x * w[i], 0) / tot;
+      q('.cb-big').textContent = `${pct(main.share)} of people live within ${m(r)} of a facility (straight line)`;
+      const facts: [string, string][] = [
+        ['People', `${n0(tot)} in ${P.length.toLocaleString('en')} place${P.length === 1 ? '' : 's'}`],
+        ['Facilities', String(F.length)],
+        ['Mean distance to nearest', m(wmean)],
+        ['Median', m(wQuantile(d, w, 0.5))],
+        ['90 % live within', m(wQuantile(d, w, 0.9))],
+        ['Farthest place', m(Math.max(...d))],
+      ];
+      const ca = catchments(P, F, r, near);
+      const fName = (k: number) => F[k].name || `Facility ${k + 1}`;
+      const fRows = F.map((_, k) => [fName(k), n0(ca[k].within), pct(ca[k].within / tot), n0(ca[k].served), pct(ca[k].served / tot)]);
+      const fHead = ['Facility', `People within ${m(r)}`, 'Share', 'Nearest for', 'Share'];
+      table('.cb-fac', fHead, fRows);
+      const covHead = ['Within', 'People', 'Share', 'Beyond'];
+      const covRows = cov.map((c) => [m(c.limit), n0(c.pop), pct(c.share), n0(tot - c.pop)]);
+      table('.cb-cov', covHead, covRows);
+
+      let ws: { score: number; count: number; types: number }[] = [], walkRows: string[][] = [];
+      const walkOn = A.length > 0 && types.length > 0;
+      q('.cb-ww').hidden = !walkOn;
+      if (walkOn) {
+        ws = walkScores(P, A, types, wr);
+        const mean = ws.reduce((s, x, i) => s + x.score * w[i], 0) / tot;
+        facts.push(['Walkability score', `${mean.toFixed(0)} of 100`], ['Amenities within ' + m(wr), `${(ws.reduce((s, x, i) => s + x.count * w[i], 0) / tot).toFixed(1)} on average`]);
+        walkRows = types.map((t) => { const reach = P.reduce((s, p, i) => s + (A.some((a) => a.type === t && Math.abs(a.lat - p.lat) * (Math.PI / 180) * R_EARTH <= wr && haversine(p.lat, p.lon, a.lat, a.lon) <= wr) ? w[i] : 0), 0); return [t, String(A.filter((a) => a.type === t).length), n0(reach), pct(reach / tot)]; });
+        walkRows.push(['All ticked types', '', n0(ws.reduce((s, x, i) => s + (x.types === types.length ? w[i] : 0), 0)), pct(ws.reduce((s, x, i) => s + (x.types === types.length ? w[i] : 0), 0) / tot)]);
+        table('.cb-walk', ['Amenity type', 'How many', `People with one within ${m(wr)}`, 'Share'], walkRows);
+      }
+      const dl = q('.cb-facts'); dl.replaceChildren();
+      for (const [k, v] of facts) { const e = document.createElement('div'); e.innerHTML = '<dt></dt><dd></dd>'; e.querySelector('dt')!.textContent = k; e.querySelector('dd')!.textContent = v; dl.append(e); }
+      const polyNote = q<HTMLTextAreaElement>('.cb-p').value.includes('Polygon') ? ' Polygons are counted at their centre, so a large area counts as wholly in or out of a circle.' : '';
+      q('.cb-foot').textContent = `"People within" counts everyone within the distance of that facility, so a person near two facilities counts for both. "Nearest for" gives each person to their single nearest facility, so it adds up to ${n0(tot)}.${polyNote} Distances are great-circle distances on a sphere of radius 6,371 km.`;
+
+      pCsv = [['name', 'lat', 'lon', 'population', 'nearest_facility', 'distance_m', ...(walkOn ? ['walk_score', 'amenities_within'] : [])], ...P.map((p, i) => [p.name ?? `Place ${i + 1}`, p.lat, p.lon, w[i], fName(near[i].i), +d[i].toFixed(1), ...(walkOn ? [+ws[i].score.toFixed(1), ws[i].count] : [])])];
+      fCsv = [['facility', 'lat', 'lon', `people_within_${r}m`, 'nearest_for'], ...F.map((f, k) => [fName(k), f.lat, f.lon, ca[k].within, ca[k].served])];
+
+      // Map in local metres around the middle of everything.
+      const all = [...F, ...P, ...(walkOn ? A : [])], lat0 = all.reduce((s, p) => s + p.lat, 0) / all.length, lon0 = all.reduce((s, p) => s + p.lon, 0) / all.length;
+      const k = Math.cos((lat0 * Math.PI) / 180), toXY = (p: Place): [number, number] => [((p.lon - lon0) * Math.PI) / 180 * R_EARTH * k, ((p.lat - lat0) * Math.PI) / 180 * R_EARTH];
+      const pts = all.map(toXY), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+      const pad = r * 0.6, x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+      const fw = 720, M = { l: 56, r: 12, t: 10, b: 44 }, pw = fw - M.l - M.r, sc0 = pw / (x1 - x0), ph = Math.min(800, Math.max(260, (y1 - y0) * sc0)), sc = Math.min(sc0, ph / (y1 - y0));
+      const wmax = Math.max(...w), big = P.length > 3000, km = Math.max(x1 - x0, y1 - y0) > 20000;
+      fig = {
+        w: fw, h: Math.round(ph + M.t + M.b), alt: `Map of ${F.length} facilities with ${m(r)} circles and ${P.length} places where people live`,
+        draw: (ctx, _w, _h, pal: Palette) => {
+          const X = (x: number) => M.l + (x - x0) * sc, Y = (y: number) => M.t + ph - (y - y0) * sc;
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(M.l, M.t, (x1 - x0) * sc, (y1 - y0) * sc);
+          ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, (x1 - x0) * sc, (y1 - y0) * sc); ctx.clip();
+          for (const f of F) { const [x, y] = toXY(f); ctx.beginPath(); ctx.arc(X(x), Y(y), r * sc, 0, 2 * Math.PI); ctx.fillStyle = pal.red ? 'rgba(160,0,0,0.12)' : pal.bg === '#ffffff' ? 'rgba(0,114,178,0.07)' : 'rgba(127,178,240,0.10)'; ctx.fill(); ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.stroke(); ctx.setLineDash([]); }
+          if (walkOn) { ctx.fillStyle = pal.muted; for (const a of A) if (a.type && types.includes(a.type)) { const [x, y] = toXY(a); ctx.beginPath(); ctx.arc(X(x), Y(y), 2, 0, 2 * Math.PI); ctx.fill(); } }
+          P.forEach((p, i) => {
+            const [x, y] = toXY(p), rad = big ? 1.5 : 2.5 + 5 * Math.sqrt(w[i] / (wmax || 1));
+            ctx.beginPath(); ctx.arc(X(x), Y(y), rad, 0, 2 * Math.PI);
+            ctx.fillStyle = pal.red ? (d[i] <= r ? pal.ink : pal.muted) : d[i] <= r ? '#009E73' : '#D55E00'; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+          });
+          for (const f of F) { const [x, y] = toXY(f); ctx.fillStyle = pal.ink; ctx.fillRect(X(x) - 5, Y(y) - 5, 10, 10); ctx.strokeStyle = pal.bg; ctx.lineWidth = 1.5; ctx.strokeRect(X(x) - 5, Y(y) - 5, 10, 10); }
+          ctx.restore();
+          ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif';
+          const div = km ? 1000 : 1, u = km ? 'km' : 'm';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          for (const v of niceTicks(x0 / div, x1 / div, 6)) { const px = X(v * div); if (px < M.l || px > M.l + (x1 - x0) * sc) continue; ctx.fillRect(px, M.t + ph, 1, 4); ctx.fillText(String(v), px, M.t + ph + 6); }
+          ctx.fillText(`${u} east of the middle`, M.l + ((x1 - x0) * sc) / 2, M.t + ph + 24);
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          for (const v of niceTicks(y0 / div, y1 / div, 6)) { const py = Y(v * div); if (py < M.t || py > M.t + ph) continue; ctx.fillRect(M.l - 4, py, 4, 1); ctx.fillText(String(v), M.l - 6, py); }
+          ctx.save(); ctx.translate(12, M.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(`${u} north`, 0, 0); ctx.restore();
+        },
+      };
+      paint(q<HTMLCanvasElement>('.cb-fig'), fig);
+      q('.cb-leg-a').hidden = !walkOn;
+      sections = [
+        { title: q('.cb-big').textContent!, text: ['All distances are straight-line (great-circle) distances, not along roads or paths.'], facts, figure: fig },
+        { title: 'Coverage', table: { head: covHead, rows: covRows, align: ['l', 'r', 'r', 'r'] } },
+        { title: 'Facilities', table: { head: fHead, rows: fRows, align: ['l', 'r', 'r', 'r', 'r'] }, note: q('.cb-foot').textContent! },
+        ...(walkOn ? [{ title: `Walkability (within ${m(wr)})`, table: { head: ['Amenity type', 'How many', 'People with one in reach', 'Share'], rows: walkRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      ];
+    } catch (e) { fail((e as Error).message); }
+  }
+
+  // File buttons and clear buttons for each box.
+  root.querySelectorAll<HTMLElement>('.cb-box').forEach((box) => {
+    const ta = box.querySelector<HTMLTextAreaElement>('textarea')!, input = box.querySelector<HTMLInputElement>('.cb-file')!, note = box.querySelector<HTMLElement>('.cb-note')!;
+    box.querySelector('.cb-open')!.addEventListener('click', () => input.click());
+    input.addEventListener('change', async () => {
+      const f = input.files?.[0]; input.value = ''; if (!f) return;
+      if (f.size > 20e6) { note.textContent = `${f.name} is over 20 MB.`; return; }
+      ta.value = await f.text(); note.textContent = `Opened ${f.name}.`; calc();
+    });
+    box.querySelector('.cb-clear')!.addEventListener('click', () => { ta.value = ''; note.textContent = 'CSV, TSV, TXT or GeoJSON, up to 20 MB.'; calc(); });
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, .ax-grid input').forEach((i) => i.addEventListener('input', later));
+  q('.cb-pcsv').addEventListener('click', () => { if (pCsv.length) save(new TextEncoder().encode(toCsv(pCsv)), 'catchment-people.csv', 'text/csv'); });
+  q('.cb-fcsv').addEventListener('click', () => { if (fCsv.length) save(new TextEncoder().encode(toCsv(fCsv)), 'catchment-facilities.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Catchment buffers', subtitle: q('.cb-big').textContent ?? '', file: 'catchment-buffers', sections }));
+</script>

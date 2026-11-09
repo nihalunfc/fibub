@@ -1,0 +1,224 @@
+---
+// Hot spot density: kernel density estimation (quartic or Gaussian) for the user's own point events, with a heat
+// map, contours, the top cells and the Clark–Evans nearest-neighbour index. The example incidents are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import raw from '../../../tests/fixtures/hotspot-density.csv?raw';
+const example = raw.trim();
+---
+<div class="ax hs">
+  <div class="ax-card">
+    <h2>Your points</h2>
+    <label>One event per row: x and y, or latitude and longitude. A header row helps find the columns (x, y, lat, lon, weight).
+      <textarea class="hs-data" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".hs-data" maxMB={20} maxCols={30} maxRows={50000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Coordinates are <select class="hs-crs"><option value="m" selected>x, y in metres</option><option value="ll">Latitude, longitude</option><option value="u">x, y in other units</option></select></label>
+      <label class="ax-check" style="align-self:end"><input type="checkbox" class="hs-wt" /> Third column is a weight</label>
+    </div>
+    <p class="ax-help">Latitude and longitude are turned into metres east and north of the middle of your points (fine across a city or region; distortion grows over hundreds of kilometres). A weight counts a row as that many events, for example a count at one address. The example incidents are made up.</p>
+    <p class="ax-err hs-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Kernel <select class="hs-k"><option value="quartic" selected>Quartic (biweight)</option><option value="gaussian">Gaussian</option></select></label>
+      <label>Bandwidth <select class="hs-bw"><option value="spatial" selected>Rule of thumb (spatial)</option><option value="scott">Scott's rule</option><option value="user">My own value</option></select></label>
+      <label class="hs-hw" hidden>Bandwidth (<span class="hs-u">m</span>) <input class="hs-h" inputmode="decimal" value="200" /></label>
+      <label>Cell size (<span class="hs-u">m</span>) <input class="hs-cell" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Study area for clustering (<span class="hs-au">km²</span>) <input class="hs-area" inputmode="decimal" placeholder="box around the points" /></label>
+      <label>List <select class="hs-list"><option value="top" selected>Top cells</option><option value="peaks">Separate peaks</option></select></label>
+      <label>How many <input class="hs-top" inputmode="numeric" value="10" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="hs-show-c" checked /> Contours</label>
+      <label class="ax-check"><input type="checkbox" class="hs-show-p" checked /> Points</label>
+    </div>
+    <p class="ax-help">For the quartic kernel the bandwidth is a search radius: events further away add nothing. For the Gaussian it is the standard deviation, so its influence reaches further. The rule of thumb is 0.9 × min(standard distance, √(1/ln 2) × median distance to the centre) × n<sup>−0.2</sup>; Scott's rule is the average spread × n<sup>−1/6</sup>. A larger bandwidth gives smoother, broader hot spots. Leave the cell size blank for about 150 cells across. "Top cells" lists the highest cells, which often sit side by side in one hot spot; "Separate peaks" lists only cells higher than all eight neighbours, one per hot spot.</p>
+  </div>
+
+  <div class="ax-card hs-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big hs-big"></p>
+    <dl class="ax-facts hs-facts"></dl>
+    <canvas class="ax-fig hs-fig" style="margin-top:12px"></canvas>
+    <div class="ax-legend"><span><i class="hs-sw1"></i>Low</span><span><i class="hs-sw2"></i></span><span><i class="hs-sw3"></i></span><span><i class="hs-sw4"></i>High density</span><span>Contours at 25, 50 and 75 % of the peak</span></div>
+    <h3 class="hs-th">Top cells</h3>
+    <div class="ax-scroll"><table class="hs-tab"></table></div>
+    <p class="ax-help hs-note"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hs-csv">Top cells (CSV)</button>
+      <button type="button" class="btn secondary small hs-gcsv">Whole grid (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hs .hs-sw1 { background: #fde9a9; } .hs .hs-sw2 { background: #f6a34a; } .hs .hs-sw3 { background: #d4492a; } .hs .hs-sw4 { background: #7a0d22; }
+</style>
+
+<script>
+  import { kdeGrid, topCells, localPeaks, contour, clarkEvans, scott, spatialRule, toLocal, fromLocal, type XY, type Kernel, type Grid } from '../../lib/sci/kde2d';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const sg = (x: number, d = 4) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const RAMP: [number, number, number][] = [[255, 255, 255], [253, 233, 169], [246, 163, 74], [212, 73, 42], [122, 13, 34]];
+  const colour = (v: number): string => { const p = Math.min(0.9999, Math.max(0, v)) * (RAMP.length - 1), i = Math.floor(p), f = p - i, a = RAMP[i], b = RAMP[i + 1]; return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`; };
+  let fig: Figure | null = null, sections: Section[] = [], topCsv: (string | number)[][] = [], grid: Grid | null = null, gridCsvHead: string[] = [], toOut: (x: number, y: number) => [number, number] = (x, y) => [x, y], perArea = 1;
+
+  /** Reads x, y (or lat, lon) and an optional weight from the pasted table. */
+  function readPoints(crs: string, useW: boolean) {
+    const rows = parseTable(q<HTMLTextAreaElement>('.hs-data').value).filter((r) => r.some((c) => c.trim()));
+    if (!rows.length) throw new Error('Paste or open your points first.');
+    const head = rows[0].map((c) => c.trim().toLowerCase().replace(/[^a-z]/g, ''));
+    const isHead = rows[0].some((c) => c.trim() !== '' && !Number.isFinite(num(c)));
+    let a = 0, b = 1, w = 2;
+    if (isHead) {
+      const f = (re: RegExp) => head.findIndex((h) => re.test(h));
+      if (crs === 'll') { a = f(/^lat/); b = f(/^(lon|lng|long)/); }
+      else { a = f(/^(x|east|easting)/); b = f(/^(y|north|northing)/); }
+      if (a < 0 || b < 0) { a = 0; b = 1; }
+      const wi = f(/^(weight|w|count|n|events)$/); w = wi >= 0 ? wi : [0, 1, 2].find((i) => i !== a && i !== b)!;
+    }
+    const body = isHead ? rows.slice(1) : rows, pts: { a: number; b: number; w: number }[] = [];
+    let skipped = 0;
+    for (const r of body) {
+      const A = num(r[a]), B = num(r[b]), W = useW ? num(r[w]) : 1;
+      if (Number.isFinite(A) && Number.isFinite(B) && Number.isFinite(W) && W >= 0) pts.push({ a: A, b: B, w: W }); else skipped++;
+    }
+    return { pts, skipped };
+  }
+
+  function calc() {
+    const err = q('.hs-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.hs-out').hidden = true; sections = []; fig = null; grid = null; };
+    try {
+      const fmtC = (x: number) => String(+x.toPrecision(8));
+      const crs = val('.hs-crs'), metres = crs !== 'u', unit = metres ? 'm' : 'units', au = metres ? 'km²' : 'units²';
+      root.querySelectorAll('.hs-u').forEach((e) => (e.textContent = unit)); q('.hs-au').textContent = au;
+      perArea = metres ? 1e6 : 1;
+      const kind = val('.hs-k') as Kernel, rule = val('.hs-bw');
+      q('.hs-hw').hidden = rule !== 'user';
+      const { pts: raw0, skipped } = readPoints(crs, q<HTMLInputElement>('.hs-wt').checked);
+      if (raw0.length < 3) return fail('Give at least 3 points with numbers for both coordinates.');
+      let P: XY[];
+      if (crs === 'll') {
+        if (raw0.some((p) => Math.abs(p.a) > 90 || Math.abs(p.b) > 180)) return fail('Latitude must be between −90 and 90 and longitude between −180 and 180. Check the column order (latitude first).');
+        const lat0 = raw0.reduce((s, p) => s + p.a, 0) / raw0.length, lon0 = raw0.reduce((s, p) => s + p.b, 0) / raw0.length;
+        P = raw0.map((p) => { const [x, y] = toLocal(p.a, p.b, lat0, lon0); return { x, y, w: p.w }; });
+        toOut = (x, y) => fromLocal(x, y, lat0, lon0);
+      } else { P = raw0.map((p) => ({ x: p.a, y: p.b, w: p.w })); toOut = (x, y) => [x, y]; }
+      const nW = P.reduce((s, p) => s + (p.w ?? 1), 0);
+      if (!(nW > 0)) return fail('The weights add up to zero.');
+      const xs = P.map((p) => p.x), ys = P.map((p) => p.y);
+      const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys);
+      if (bx1 - bx0 <= 0 && by1 - by0 <= 0) return fail('All points are in the same place, so there is no pattern to map.');
+      let h: number;
+      if (rule === 'user') { h = num(val('.hs-h')); if (!(h > 0)) return fail(`Enter a bandwidth above zero, in ${unit}.`); }
+      else h = rule === 'scott' ? scott(P) : spatialRule(P);
+      if (!(h > 0)) return fail('The points have no spread in one direction, so a bandwidth cannot be worked out. Enter your own.');
+      const pad = kind === 'quartic' ? h : 2.5 * h;
+      const cellIn = val('.hs-cell'), span = Math.max(bx1 - bx0, by1 - by0) + 2 * pad;
+      const cell = cellIn ? num(cellIn) : Number((span / 150).toPrecision(2));
+      if (!(cell > 0)) return fail(`Enter a cell size above zero, in ${unit}, or leave it blank.`);
+      // Snap the grid to whole cells so cell centres fall on round numbers.
+      const bounds = { x0: Math.floor((bx0 - pad) / cell) * cell, y0: Math.floor((by0 - pad) / cell) * cell, x1: bx1 + pad, y1: by1 + pad };
+      const cells = Math.ceil((bounds.x1 - bounds.x0) / cell) * Math.ceil((bounds.y1 - bounds.y0) / cell);
+      if (cells > 400000) return fail(`That cell size makes ${cells.toLocaleString('en')} cells; use a larger cell (up to 400,000 cells).`);
+      const k = num(val('.hs-top'));
+      if (!(Number.isInteger(k) && k >= 1 && k <= 100)) return fail('List from 1 to 100 top cells.');
+      const areaIn = val('.hs-area');
+      const area = areaIn ? num(areaIn) * perArea : (bx1 - bx0) * (by1 - by0);
+      if (!(area > 0)) return fail(areaIn ? `Enter the study area above zero, in ${au}, or leave it blank.` : 'The points lie on a line, so the box around them has no area. Enter the study area.');
+      err.hidden = true; q('.hs-out').hidden = false;
+
+      const g = kdeGrid(P, kind, h, cell, bounds); grid = g;
+      const peaks = val('.hs-list') === 'peaks', top = peaks ? localPeaks(g, k) : topCells(g, k), peak = topCells(g, 1)[0];
+      const ce = clarkEvans(P, area);
+      const reading = ce.p >= 0.05 ? 'no clear departure from random' : ce.R < 1 ? 'clustered' : 'dispersed (evenly spread)';
+      const [o1, o2] = toOut(peak.x, peak.y);
+      const where = crs === 'll' ? `${o1.toFixed(5)}, ${o2.toFixed(5)}` : `x ${fmtC(o1)}, y ${fmtC(o2)}`;
+      q('.hs-th').textContent = peaks ? 'Separate peaks' : 'Top cells';
+      q('.hs-big').textContent = `Peak density ${sg(peak.z * perArea, 3)} events per ${au} at ${where}`;
+      const dup = P.length - new Set(P.map((p) => `${p.x},${p.y}`)).size;
+      const facts: [string, string][] = [
+        ['Points', `${P.length.toLocaleString('en')}${nW !== P.length ? ` (weight ${sg(nW, 6)})` : ''}${skipped ? `, ${skipped} rows skipped` : ''}`],
+        ['Kernel, bandwidth', `${kind === 'quartic' ? 'quartic' : 'Gaussian'}, ${sg(h, 4)} ${unit}${rule === 'user' ? '' : rule === 'scott' ? " (Scott's rule)" : ' (rule of thumb)'}`],
+        ['Grid', `${g.cols} × ${g.rows} cells of ${sg(cell, 4)} ${unit}`],
+        ['Clark–Evans R', `${ce.R.toFixed(3)}: ${reading}`],
+        ['z, p', `${ce.z.toFixed(2).replace('-', '−')}, ${ce.p < 0.001 ? '< 0.001' : ce.p.toFixed(3)}`],
+        ['Mean nearest neighbour', `${sg(ce.ro, 4)} ${unit} (random: ${sg(ce.re, 4)})`],
+        ['Study area', `${sg(area / perArea, 4)} ${au}${areaIn ? '' : ' (box around the points)'}`],
+      ];
+      const dl = q('.hs-facts'); dl.replaceChildren();
+      for (const [a, b] of facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; dl.append(d); }
+      q('.hs-note').textContent = `Density is events per ${au} (the kernel sum); "Events in cell" is density × cell area. R below 1 means points sit closer together than in a random (Poisson) pattern of the same density, above 1 more evenly spread. R uses the study area and has no edge correction, so a box drawn tight around the points makes R look more dispersed than it is.${dup ? ` ${dup} points repeat another point's place exactly, which pulls R down.` : ''}`;
+
+      const cHead = crs === 'll' ? ['Rank', 'Latitude', 'Longitude', `Density (per ${au})`, 'Events in cell', 'Share of peak'] : ['Rank', `x (${unit})`, `y (${unit})`, `Density (per ${au})`, 'Events in cell', 'Share of peak'];
+      const cRows = top.map((c, i) => { const [a, b] = toOut(c.x, c.y); return [String(i + 1), crs === 'll' ? a.toFixed(5) : fmtC(a), crs === 'll' ? b.toFixed(5) : fmtC(b), sg(c.z * perArea, 4), sg(c.z * cell * cell, 3), `${Math.round((100 * c.z) / peak.z)} %`]; });
+      const t = q<HTMLTableElement>('.hs-tab'); t.replaceChildren();
+      const hr = t.createTHead().insertRow(); cHead.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); cRows.forEach((r) => { const tr = tb.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      const dens = `density_per_${metres ? 'km2' : 'unit2'}`;
+      topCsv = [crs === 'll' ? ['rank', 'latitude', 'longitude', dens, 'events_in_cell', 'share_of_peak'] : ['rank', `x_${unit}`, `y_${unit}`, dens, 'events_in_cell', 'share_of_peak'], ...top.map((c, i) => { const [a, b] = toOut(c.x, c.y); return [i + 1, +a.toFixed(crs === 'll' ? 6 : 3), +b.toFixed(crs === 'll' ? 6 : 3), +(c.z * perArea).toPrecision(6), +(c.z * cell * cell).toPrecision(6), +((c.z / peak.z).toFixed(4))]; })];
+      gridCsvHead = crs === 'll' ? ['latitude', 'longitude', `density_per_km2`] : [`x_${unit}`, `y_${unit}`, `density_per_${metres ? 'km2' : 'unit2'}`];
+
+      const showC = q<HTMLInputElement>('.hs-show-c').checked, showP = q<HTMLInputElement>('.hs-show-p').checked;
+      const levels = [0.25, 0.5, 0.75].map((f) => f * peak.z), segs = showC ? levels.map((l) => contour(g, l)) : [];
+      const W0 = g.cols * cell, H0 = g.rows * cell, fw = 720, M = { l: 62, r: 14, t: 12, b: 44 }, pw = fw - M.l - M.r;
+      const ph = Math.max(220, Math.min(900, (pw * H0) / W0)), sc = Math.min(pw / W0, ph / H0), fh = Math.round(ph + M.t + M.b);
+      const axLab = crs === 'll' ? ['metres east of the centre', 'metres north'] : [`x (${unit})`, `y (${unit})`];
+      fig = {
+        w: fw, h: fh, alt: `Kernel density map of ${P.length} points with the peak at ${where}`,
+        draw: (ctx, _w, _h, pal: Palette) => {
+          const X = (x: number) => M.l + (x - g.x0) * sc, Y = (y: number) => M.t + ph - (y - g.y0) * sc;
+          for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
+            const v = g.z[r * g.cols + c] / peak.z; if (v < 0.02) continue;
+            ctx.fillStyle = pal.red ? `rgba(255,0,0,${(0.85 * v).toFixed(3)})` : colour(v);
+            ctx.fillRect(X(g.x0 + c * cell), Y(g.y0 + (r + 1) * cell), cell * sc + 0.6, cell * sc + 0.6);
+          }
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(M.l, M.t, W0 * sc, H0 * sc);
+          if (showC) segs.forEach((ss, i) => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 0.8 + 0.6 * i; ctx.beginPath(); for (const [a, b, c2, d] of ss) { ctx.moveTo(X(a), Y(b)); ctx.lineTo(X(c2), Y(d)); } ctx.stroke(); });
+          if (showP) { ctx.fillStyle = pal.ink; for (const p of P) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), P.length > 2000 ? 1 : 2, 0, 2 * Math.PI); ctx.fill(); } }
+          ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif';
+          const tx = niceTicks(g.x0, g.x0 + W0, 6), ty = niceTicks(g.y0, g.y0 + H0, 6);
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          for (const v of tx) if (v >= g.x0 && v <= g.x0 + W0) { ctx.fillRect(X(v), M.t + H0 * sc, 1, 4); ctx.fillText(sig(v, 4), X(v), M.t + H0 * sc + 6); }
+          ctx.fillText(axLab[0], M.l + (W0 * sc) / 2, M.t + H0 * sc + 24);
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          for (const v of ty) if (v >= g.y0 && v <= g.y0 + H0) { ctx.fillRect(M.l - 4, Y(v), 4, 1); ctx.fillText(sig(v, 4), M.l - 6, Y(v)); }
+          ctx.save(); ctx.translate(14, M.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(axLab[1], 0, 0); ctx.restore();
+          // Mark the peak.
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(peak.x), Y(peak.y), 9, 0, 2 * Math.PI); ctx.stroke();
+        },
+      };
+      paint(q<HTMLCanvasElement>('.hs-fig'), fig);
+      sections = [
+        { title: q('.hs-big').textContent!, text: [`Kernel density estimate of ${P.length} points.`, q('.hs-note').textContent!], facts, figure: fig },
+        { title: peaks ? 'Separate peaks' : 'Top cells', table: { head: cHead, rows: cRows, align: ['r', 'r', 'r', 'r', 'r', 'r'] } },
+      ];
+    } catch (e) { fail((e as Error).message); }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.hs-csv').addEventListener('click', () => { if (topCsv.length) save(new TextEncoder().encode(toCsv(topCsv)), 'hotspot-top-cells.csv', 'text/csv'); });
+  q('.hs-gcsv').addEventListener('click', () => {
+    if (!grid) return;
+    const g = grid, rows: (string | number)[][] = [gridCsvHead], ll = gridCsvHead[0] === 'latitude';
+    for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) { const [a, b] = toOut(g.x0 + (c + 0.5) * g.cell, g.y0 + (r + 0.5) * g.cell); rows.push([+a.toFixed(ll ? 6 : 3), +b.toFixed(ll ? 6 : 3), +(g.z[r * g.cols + c] * perArea).toPrecision(6)]); }
+    save(new TextEncoder().encode(toCsv(rows)), 'hotspot-grid.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.hs-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Hot spot density', subtitle: q('.hs-big').textContent ?? '', file: 'hotspot-density', sections }));
+</script>

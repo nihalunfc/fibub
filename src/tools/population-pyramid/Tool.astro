@@ -1,0 +1,166 @@
+---
+// Population pyramid: male and female counts by age group, with an optional second year or area as an outline, dependency ratios, median age and sex ratios.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pp">
+  <div class="ax-card">
+    <h2>Population by age and sex</h2>
+    <div class="ax-grid"><label>Name <input class="pp-na" value="2025" maxlength="40" /></label></div>
+    <label style="margin-top:10px">Columns Age, Male, Female; one row per age group, the last one open (85+). Made-up example.
+      <textarea class="pp-a" rows="8" spellcheck="false" wrap="off">Age	Male	Female
+0-4	2410	2290
+5-9	2560	2440
+10-14	2690	2570
+15-19	2750	2620
+20-24	2900	2810
+25-29	3120	3050
+30-34	3260	3190
+35-39	3180	3150
+40-44	3010	3000
+45-49	2890	2900
+50-54	2800	2840
+55-59	2640	2730
+60-64	2380	2520
+65-69	2050	2250
+70-74	1660	1900
+75-79	1190	1460
+80-84	760	1030
+85+	470	840</textarea></label>
+    <DataFile target=".pp-a" maxMB={2} maxCols={10} maxRows={300} />
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="pp-ov" checked /> Compare with a second year or area (drawn as an outline)</label>
+    <div class="pp-bbox">
+      <div class="ax-grid" style="margin-top:10px"><label>Name <input class="pp-nb" value="2000" maxlength="40" /></label></div>
+      <label style="margin-top:10px">Same age groups, same columns. Made-up example.
+        <textarea class="pp-b" rows="6" spellcheck="false" wrap="off">Age	Male	Female
+0-4	3150	3000
+5-9	3210	3060
+10-14	3190	3040
+15-19	3080	2950
+20-24	3020	2930
+25-29	2950	2880
+30-34	2810	2760
+35-39	2700	2680
+40-44	2560	2570
+45-49	2380	2420
+50-54	2170	2230
+55-59	1890	1980
+60-64	1600	1730
+65-69	1310	1490
+70-74	1000	1210
+75-79	690	920
+80-84	400	590
+85+	210	380</textarea></label>
+      <DataFile target=".pp-b" maxMB={2} maxCols={10} maxRows={300} />
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Show bars as <select class="pp-mode"><option value="pct" selected>% of each total</option><option value="count">Counts</option></select></label>
+      <label>Old age starts at <select class="pp-old"><option value="65" selected>65</option><option value="60">60</option></select></label>
+    </div>
+    <p class="ax-help">% of each total lets you compare populations of different sizes by shape. Old age: the age that splits working age from old age in the dependency ratios (working age starts at 15).</p>
+    <p class="ax-err pp-err" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out" hidden>
+    <h2>Pyramid</h2>
+    <p class="ax-big pp-big"></p>
+    <canvas class="ax-fig pp-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pp-png">Pyramid PNG</button>
+      <button type="button" class="btn secondary small pp-svg">Pyramid SVG</button>
+      <button type="button" class="btn secondary small pp-csv">Table CSV</button>
+    </div>
+    <h3 class="pp-h3">Summary</h3>
+    <div class="ax-scroll"><table class="pp-sum"></table></div>
+    <h3 class="pp-h3">By age group</h3>
+    <div class="ax-scroll"><table class="pp-tab"></table></div>
+    <p class="ax-help pp-note"></p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .pp .pp-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .pp table th, .pp table td { white-space: nowrap; }
+  .pp .pp-bbox[hidden] { display: none; }
+</style>
+
+<script>
+  import { parseTable, csv } from '../../lib/sci/num';
+  import { parsePyramid, pyramidStats, drawPyramid, type Pyr, type DrawOpts } from '../../lib/sci/pyramid';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], fig: Figure | null = null, A: Pyr | null = null, B: Pyr | null = null, csvRows: string[][] = [];
+  const W = 640, H = 560;
+  const colours = (pal: Palette) => (pal.red ? { male: '#a30000', female: '#5a0000', over: pal.ink } : pal.bg === '#ffffff' ? { male: '#0072B2', female: '#D55E00', over: '#000000' } : { male: '#56B4E9', female: '#E69F00', over: '#ffffff' });
+  const opts = (pal: Palette, w: number, h: number): DrawOpts => ({ w, h, pct: q<HTMLSelectElement>('.pp-mode').value === 'pct', ink: pal.ink, muted: pal.muted, grid: pal.grid, bg: null, ...colours(pal), title: B ? `${A!.name} (bars) and ${B.name} (outline)` : A!.name });
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const med = (m: { value: number; open: boolean }) => (m.open ? `${m.value}+` : f1(m.value));
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][]) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.pp-err'), over = q<HTMLInputElement>('.pp-ov').checked;
+    q('.pp-bbox').hidden = !over;
+    try {
+      A = parsePyramid(parseTable(q<HTMLTextAreaElement>('.pp-a').value), q<HTMLInputElement>('.pp-na').value.trim() || 'Population A');
+      B = null;
+      if (over) {
+        try { B = parsePyramid(parseTable(q<HTMLTextAreaElement>('.pp-b').value), q<HTMLInputElement>('.pp-nb').value.trim() || 'Population B'); }
+        catch (e) { throw new Error(`Second population: ${(e as Error).message}`); }
+        if (B.labels.length !== A.labels.length || B.ages.some((a, i) => a !== A!.ages[i])) throw new Error('The second population must use the same age groups as the first.');
+      }
+      const old = Number(q<HTMLSelectElement>('.pp-old').value);
+      const sa = pyramidStats(A, old), sb = B ? pyramidStats(B, old) : null;
+      q('.pp-big').textContent = `${A.name}: median age ${med(sa.median)}${sb ? ` (${B!.name}: ${med(sb.median)})` : ''}`;
+      fig = { w: W, h: H, alt: `Population pyramid of ${A.name}${B ? ` with ${B.name} as an outline` : ''}.`, draw: (ctx, w, h, pal) => drawPyramid(canvasPainter(ctx), A!, B, opts(pal, w, h)) };
+      paint(q<HTMLCanvasElement>('.pp-fig'), fig);
+      const rowsOf = (s: ReturnType<typeof pyramidStats>): string[] => [
+        s.total.toLocaleString('en'), f1(s.sexRatio), med(s.median), med(s.medianMale), med(s.medianFemale),
+        s.dep ? f1(s.dep.young) : '–', s.dep ? f1(s.dep.old) : '–', s.dep ? f1(s.dep.total) : '–', `${f1(s.oldShare)} %`,
+      ];
+      const names = ['Total population', 'Sex ratio (males per 100 females)', 'Median age', 'Median age, males', 'Median age, females', `Young dependency (0–14 per 100 aged 15–${old - 1})`, `Old-age dependency (${old}+ per 100 aged 15–${old - 1})`, 'Total dependency ratio', `Share aged ${old}+`];
+      const ra = rowsOf(sa), rb = sb ? rowsOf(sb) : null;
+      const sumHead = ['Measure', A.name, ...(B ? [B.name] : [])], sumRows = names.map((n, i) => [n, ra[i], ...(rb ? [rb[i]] : [])]);
+      table(q('.pp-sum'), sumHead, sumRows);
+      const TA = sa.total, TB = sb?.total ?? 1;
+      const gHead = ['Age', 'Male', 'Female', 'Total', '% of total', 'Sex ratio', ...(B ? [`${B.name} total`, `${B.name} %`] : [])];
+      const gRows = A.labels.map((l, i) => { const t = A!.male[i] + A!.female[i]; return [l, A!.male[i].toLocaleString('en'), A!.female[i].toLocaleString('en'), t.toLocaleString('en'), (t / TA * 100).toFixed(2), f1(sa.groupSexRatio[i]), ...(B ? [(B.male[i] + B.female[i]).toLocaleString('en'), ((B.male[i] + B.female[i]) / TB * 100).toFixed(2)] : [])]; }).reverse();
+      table(q('.pp-tab'), gHead, gRows);
+      const note = `${sa.depNote ? sa.depNote + ' ' : ''}Median age: found inside its age group by straight-line interpolation, L + (N/2 − people below) ÷ people in the group × width; if it falls in the open group, only "at least" is known. Dependency ratios count people, not who works or depends on whom.`;
+      q('.pp-note').textContent = note;
+      csvRows = [['Age', 'Male', 'Female', ...(B ? [`${B.name} male`, `${B.name} female`] : [])], ...A.labels.map((l, i) => [l, String(A!.male[i]), String(A!.female[i]), ...(B ? [String(B.male[i]), String(B.female[i])] : [])]), [], ['Measure', A.name, ...(B ? [B.name] : [])], ...sumRows];
+      report = [{ title: 'Pyramid', figure: fig }, { title: 'Summary', table: { head: sumHead, rows: sumRows, align: sumHead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } }, { title: 'By age group', table: { head: gHead, rows: gRows, align: gHead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note }];
+      err.hidden = true; q('.pp-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.pp-out').hidden = true; report = []; fig = null; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) calc(); });
+  const name = () => fileSafe(`pyramid-${A?.name ?? ''}${B ? '-' + B.name : ''}`);
+  q('.pp-png').addEventListener('click', () => {
+    if (!fig) return;
+    const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
+    const ctx = c.getContext('2d')!; ctx.scale(2, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    fig.draw(ctx, W, H, LIGHT);
+    c.toBlob((b) => b && save(b, `${name()}.png`, 'image/png'), 'image/png');
+  });
+  q('.pp-svg').addEventListener('click', () => {
+    if (!A) return;
+    const P = svgPainter(W, H);
+    drawPyramid(P, A, B, { ...opts(LIGHT, W, H), bg: '#ffffff' });
+    save(new Blob([P.toString()], { type: 'image/svg+xml' }), `${name()}.svg`, 'image/svg+xml');
+  });
+  q('.pp-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${name()}.csv`, 'text/csv'); });
+  new MutationObserver(() => fig && paint(q<HTMLCanvasElement>('.pp-fig'), fig)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Population pyramid', file: name(), sections: report }));
+</script>

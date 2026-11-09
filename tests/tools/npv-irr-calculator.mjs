@@ -1,0 +1,43 @@
+// NPV and IRR: the made-up project, several IRRs, calendar-year periods, MIRR rates, downloads and bad input.
+export const path = '/science/npv-irr-calculator/';
+export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  page.setDefaultTimeout(120000); // pages load slowly when many builds share the machine; reset at the end
+  const dl = async (sel) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
+  const waitBig = (re) => page.waitForFunction((s) => new RegExp(s).test(document.querySelector('.nv-big')?.textContent || ''), re.source);
+  const waitErr = (re) => page.waitForFunction((s) => { const e = document.querySelector('.nv-err'); return e && !e.hidden && new RegExp(s).test(e.textContent || ''); }, re.source);
+  await page.goto(BASE + path);
+  check((await page.textContent('.nv-big')) === 'NPV $2,443.57 at 10.00 %', `npv: example (${await page.textContent('.nv-big')})`);
+  const f = await page.textContent('.nv-facts');
+  check(/IRR20\.01 %/.test(f) && /MIRR14\.92 %/.test(f) && /Payback2\.58 years/.test(f) && /Discounted payback3\.11 years/.test(f) && /index1\.244/.test(f) && /\$644\.61/.test(f), `npv: facts (${f})`);
+  check(await page.isHidden('.nv-warn') && /Positive/.test(await page.textContent('.nv-verdict')), 'npv: one IRR, no warning');
+  check((await page.locator('.nv-tab tbody tr').count()) === 6 && /0\.6209/.test(await page.textContent('.nv-tab')), 'npv: period table with discount factors');
+  const csv = readFileSync(await dl('.nv-csv'), 'utf8');
+  check(/^Measure,Value\nNPV,2443\.5737747/.test(csv) && /IRR 1,0\.200141737/.test(csv), 'npv: CSV download');
+  check(readFileSync(await dl('.dl [data-f=pdf]')).slice(0, 4).toString() === '%PDF', 'npv: PDF report');
+  await page.fill('.nv-fin', '8'); await page.fill('.nv-re', '12');
+  await page.waitForFunction(() => /MIRR15\.53 %|finance 8\.00 %/.test(document.querySelector('.nv-facts')?.textContent || ''));
+  check(/finance 8\.00 %, reinvestment 12\.00 %/.test(await page.textContent('.nv-facts')), 'npv: MIRR rates');
+  await page.fill('.nv-cf', '-1600\n10000\n-10000');
+  await waitBig(/−\$773\.55/);
+  check(/25\.00 %, 400\.00 %/.test(await page.textContent('.nv-facts')) && /no single meaning/.test(await page.textContent('.nv-warn')) && /Negative/.test(await page.textContent('.nv-verdict')), 'npv: two IRRs warned');
+  await page.fill('.nv-cf', 'Year\tFlow\n2025\t-500\n2026\t300\n2027\t300');
+  await waitBig(/NPV \$20\.66/);
+  check(/Payback1\.67 years/.test(await page.textContent('.nv-facts')), 'npv: calendar years as periods');
+  await page.selectOption('.nv-per', 'month');
+  await page.waitForFunction(() => /months/.test(document.querySelector('.nv-facts')?.textContent || ''));
+  check(/Equivalent monthly amount/.test(await page.textContent('.nv-facts')), 'npv: monthly periods');
+  await page.fill('.nv-cf', '100\n200\n300');
+  await waitBig(/NPV/);
+  await page.waitForFunction(() => /IRRnone/.test(document.querySelector('.nv-facts')?.textContent || ''));
+  check(/never change sign/.test(await page.textContent('.nv-facts')), 'npv: no IRR when flows never change sign');
+  await page.fill('.nv-cf', 'Year\tFlow\n2025\t-500\n2027\t300');
+  await waitErr(/follow on one by one/);
+  check(true, 'npv: skipped period explained');
+  await page.fill('.nv-cf', '-500\nlots');
+  await waitErr(/"lots" is not an amount/);
+  check(true, 'npv: text explained');
+  await page.fill('.nv-cf', '-500\n600'); await page.fill('.nv-r', '-150');
+  await waitErr(/above −100 %/);
+  check(true, 'npv: impossible rate explained');
+  page.setDefaultTimeout(30000);
+};

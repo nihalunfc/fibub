@@ -1,0 +1,241 @@
+id,age_group,region,main_transport,weight
+1,35-54,Urban,Walk or cycle,1.373
+2,35-54,Urban,Car,0.506
+3,55+,Rural,Walk or cycle,1.221
+4,18-34,Rural,Car,2.015
+5,55+,Rural,Car,1.38
+6,35-54,Urban,,1.166
+7,18-34,Urban,Bus or train,1.296
+8,18-34,Rural,Walk or cycle,2.03
+9,35-54,Rural,Car,2.323
+10,55+,Urban,Car,0.937
+11,18-34,Rural,Car,1.685
+12,18-34,Rural,Bus or train,2.22
+13,35-54,Urban,Car,0.846
+14,18-34,Rural,Bus or train,2.4
+15,35-54,Urban,Bus or train,0.617
+16,55+,Rural,Car,1.174
+17,18-34,Urban,Bus or train,0.63
+18,35-54,Urban,Walk or cycle,1.516
+19,55+,Urban,Car,0.947
+20,55+,Urban,Walk or cycle,0.53
+21,35-54,Urban,Car,0.745
+22,18-34,Rural,Bus or train,2.705
+23,55+,Rural,Car,2.102
+24,35-54,Urban,Walk or cycle,1.314
+25,55+,Urban,Walk or cycle,0.974
+26,18-34,Urban,Car,1.456
+27,35-54,Urban,Bus or train,1.166
+28,55+,Urban,Car,0.505
+29,18-34,Urban,Walk or cycle,1.424
+30,18-34,Rural,Bus or train,0.826
+31,18-34,Urban,Walk or cycle,0.996
+32,35-54,Urban,Bus or train,0.631
+33,35-54,Urban,Bus or train,1.486
+34,18-34,Rural,Walk or cycle,2.462
+35,35-54,Urban,Walk or cycle,0.677
+36,18-34,Rural,Bus or train,0.979
+37,35-54,Urban,Car,1.069
+38,35-54,Urban,Car,0.73
+39,35-54,Rural,Bus or train,2.214
+40,55+,Urban,Car,1.132
+41,35-54,Urban,Bus or train,1.331
+42,35-54,Urban,Walk or cycle,0.727
+43,18-34,Rural,Bus or train,1.014
+44,35-54,Rural,Walk or cycle,1.801
+45,18-34,Urban,Car,0.422
+46,18-34,Urban,Bus or train,0.939
+47,35-54,Urban,Walk or cycle,1.422
+48,18-34,Urban,Car,1.588
+49,35-54,Rural,Car,2.19
+50,18-34,Urban,Car,1.102
+51,18-34,Rural,Car,0.757
+52,35-54,Urban,Bus or train,1.269
+53,18-34,Urban,Bus or train,0.519
+54,35-54,Urban,Car,0.927
+55,55+,Urban,Car,1.333
+56,18-34,Urban,Walk or cycle,0.421
+57,55+,Urban,Walk or cycle,0.586
+58,55+,Urban,Bus or train,1.215
+59,35-54,Urban,Walk or cycle,1.368
+60,55+,Urban,Car,0.714
+61,55+,Urban,Car,0.918
+62,35-54,Urban,Bus or train,1.357
+63,18-34,Urban,Bus or train,1.16
+64,18-34,Rural,Car,2.334
+65,18-34,Rural,Car,1.789
+66,35-54,Urban,Bus or train,0.629
+67,18-34,Rural,Bus or train,2.469
+68,55+,Urban,Walk or cycle,1.401
+69,35-54,Urban,Car,0.626
+70,55+,Urban,Car,1.443
+71,35-54,Urban,Car,1.05
+72,35-54,Rural,Car,1.419
+73,18-34,Urban,Car,0.672
+74,18-34,Urban,Car,0.537
+75,35-54,Urban,Car,0.689
+76,35-54,Rural,Walk or cycle,1.367
+77,35-54,Urban,Bus or train,0.483
+78,35-54,Urban,,0.428
+79,18-34,Rural,Bus or train,1.754
+80,18-34,Rural,Bus or train,1.35
+81,35-54,Rural,Car,1.62
+82,55+,Rural,Walk or cycle,2.327
+83,35-54,Urban,Walk or cycle,1.091
+84,18-34,Rural,Bus or train,2.781
+85,35-54,Rural,Walk or cycle,2.486
+86,55+,Rural,Walk or cycle,0.73
+87,18-34,Urban,Walk or cycle,1.354
+88,55+,Urban,Walk or cycle,0.997
+89,18-34,Urban,Car,0.895
+90,35-54,Urban,Walk or cycle,1.493
+91,35-54,Urban,Walk or cycle,1.364
+92,18-34,Urban,Walk or cycle,1.529
+93,35-54,Urban,Walk or cycle,0.806
+94,35-54,Urban,Car,1.12
+95,18-34,Urban,Bus or train,1.085
+96,18-34,Rural,Bus or train,2.742
+97,18-34,Urban,Bus or train,1.011
+98,18-34,Rural,Walk or cycle,0.736
+99,55+,Urban,Bus or train,1.169
+100,35-54,Urban,Bus or train,0.918
+101,55+,Urban,Car,1.093
+102,18-34,Urban,Walk or cycle,0.505
+103,35-54,Rural,Bus or train,1.387
+104,35-54,Rural,Car,1.833
+105,35-54,Rural,Car,1.413
+106,18-34,Rural,Walk or cycle,0.909
+107,55+,Rural,Walk or cycle,2.341
+108,35-54,Rural,Bus or train,2.406
+109,35-54,Rural,Car,2.244
+110,18-34,Urban,Bus or train,1.128
+111,55+,Rural,Car,2.547
+112,18-34,Rural,Bus or train,1.844
+113,18-34,Rural,Car,0.912
+114,18-34,Rural,Bus or train,2.065
+115,18-34,Urban,Car,1.221
+116,35-54,Urban,Car,0.67
+117,18-34,Urban,Bus or train,1.172
+118,18-34,Urban,Bus or train,0.411
+119,18-34,Urban,Bus or train,0.687
+120,35-54,Urban,Car,0.896
+121,18-34,Urban,Bus or train,1.079
+122,55+,Rural,Car,0.936
+123,18-34,Rural,Bus or train,2.323
+124,35-54,Urban,Car,0.671
+125,18-34,Urban,Walk or cycle,0.997
+126,35-54,Rural,Bus or train,0.835
+127,35-54,Rural,Bus or train,1.116
+128,55+,Urban,Car,1.319
+129,35-54,Urban,Walk or cycle,1.14
+130,55+,Rural,Walk or cycle,0.744
+131,35-54,Urban,Walk or cycle,1.388
+132,55+,Urban,Car,0.928
+133,35-54,Rural,Car,1.235
+134,18-34,Rural,Car,1.947
+135,35-54,Rural,Car,2.429
+136,35-54,Urban,Walk or cycle,1.578
+137,35-54,Urban,Car,0.985
+138,18-34,Urban,Walk or cycle,1.246
+139,35-54,Urban,Bus or train,1.438
+140,35-54,Rural,Walk or cycle,1.608
+141,35-54,Urban,Walk or cycle,1.343
+142,35-54,Urban,Bus or train,0.485
+143,18-34,Urban,Walk or cycle,0.488
+144,35-54,Urban,Car,1.002
+145,35-54,Rural,Bus or train,2.782
+146,35-54,Urban,Bus or train,1.297
+147,35-54,Urban,Bus or train,0.71
+148,18-34,Rural,Bus or train,1.708
+149,55+,Urban,Car,1.23
+150,18-34,Rural,Bus or train,2.678
+151,18-34,Urban,Car,1.113
+152,18-34,Rural,Bus or train,0.793
+153,18-34,Rural,Car,1.368
+154,18-34,Urban,Walk or cycle,1.321
+155,18-34,Urban,Bus or train,1.065
+156,35-54,Rural,Walk or cycle,1.193
+157,55+,Urban,Car,1.235
+158,35-54,Rural,Bus or train,0.801
+159,18-34,Urban,Walk or cycle,1.584
+160,35-54,Rural,Walk or cycle,1.742
+161,55+,Rural,Walk or cycle,1.134
+162,35-54,Rural,Car,1.226
+163,18-34,Urban,Car,1.465
+164,55+,Rural,Car,0.862
+165,55+,Urban,Bus or train,1.375
+166,18-34,Urban,Walk or cycle,1.297
+167,18-34,Urban,Bus or train,0.597
+168,35-54,Urban,Walk or cycle,0.742
+169,35-54,Rural,Car,0.817
+170,55+,Urban,Walk or cycle,1.306
+171,55+,Urban,Car,1.189
+172,55+,Rural,Car,2.286
+173,55+,Rural,Bus or train,1.379
+174,55+,Rural,Car,1.01
+175,35-54,Rural,Bus or train,2.076
+176,55+,Rural,Walk or cycle,1.359
+177,18-34,Urban,Bus or train,1.134
+178,35-54,Urban,Bus or train,0.687
+179,35-54,Urban,Car,1.521
+180,18-34,Rural,Bus or train,1.266
+181,35-54,Rural,Bus or train,2.409
+182,35-54,Urban,Bus or train,1.341
+183,35-54,Rural,Car,2.277
+184,55+,Rural,Bus or train,2.494
+185,35-54,Urban,Walk or cycle,0.978
+186,35-54,Rural,Car,1.095
+187,35-54,Urban,Bus or train,1.074
+188,18-34,Rural,Car,0.708
+189,35-54,Urban,Car,1.273
+190,18-34,Rural,Bus or train,1.5
+191,35-54,Rural,Car,2.59
+192,18-34,Urban,Walk or cycle,1.437
+193,18-34,Urban,Bus or train,0.507
+194,35-54,Urban,Walk or cycle,0.715
+195,18-34,Rural,Walk or cycle,0.874
+196,35-54,Urban,Car,0.839
+197,55+,Rural,Walk or cycle,1.803
+198,18-34,Urban,Bus or train,0.987
+199,35-54,Urban,Car,0.838
+200,18-34,Rural,Bus or train,1.641
+201,55+,Urban,Walk or cycle,1.531
+202,35-54,Urban,Walk or cycle,1.282
+203,35-54,Rural,Car,2.629
+204,55+,Urban,Car,1.05
+205,35-54,Urban,Bus or train,1.476
+206,18-34,Urban,Walk or cycle,0.683
+207,55+,Urban,Walk or cycle,1.479
+208,35-54,Urban,Walk or cycle,0.879
+209,18-34,Urban,Bus or train,0.903
+210,18-34,Rural,Bus or train,1.986
+211,18-34,Rural,Bus or train,2.581
+212,18-34,Rural,Car,1.775
+213,18-34,Rural,Bus or train,2.514
+214,35-54,Urban,Walk or cycle,0.599
+215,55+,Rural,Car,2.25
+216,18-34,Urban,Bus or train,0.46
+217,35-54,Rural,Bus or train,1.774
+218,35-54,Rural,Walk or cycle,1.217
+219,35-54,Urban,Car,1.151
+220,18-34,Urban,Bus or train,0.676
+221,55+,Urban,Car,1.299
+222,35-54,Rural,Car,1.987
+223,55+,Urban,Walk or cycle,1.407
+224,55+,Urban,Car,0.41
+225,35-54,Urban,Car,0.438
+226,18-34,Rural,Car,2.624
+227,35-54,Urban,Car,1.417
+228,35-54,Rural,Bus or train,2.633
+229,35-54,Rural,Car,1.67
+230,35-54,Rural,Bus or train,1.783
+231,18-34,Rural,Walk or cycle,2.743
+232,35-54,Rural,Car,2.682
+233,35-54,Urban,Walk or cycle,1.219
+234,35-54,Urban,Bus or train,1.18
+235,18-34,Urban,Walk or cycle,0.938
+236,55+,Rural,Car,2.797
+237,18-34,Rural,Walk or cycle,1.124
+238,35-54,Urban,Bus or train,0.694
+239,55+,Urban,Bus or train,1.405
+240,55+,Urban,Walk or cycle,1.073

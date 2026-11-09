@@ -1,0 +1,220 @@
+---
+// Field note organiser: dated notes with place, people (pseudonyms) and tags; search, counts, Markdown/CSV/JSON
+// export and JSON import. Kept in this browser only if the person ticks the box.
+import '../../styles/astro.css';
+---
+<div class="ax fn">
+  <div class="ax-card">
+    <h2 class="fn-formh">New note</h2>
+    <div class="ax-grid">
+      <label>Date <input type="date" class="fn-date" /></label>
+      <label>Place <input class="fn-place" list="fn-places" autocomplete="off" placeholder="e.g. Harbour market" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>People (pseudonyms), separated by commas <input class="fn-people" list="fn-peoplelist" autocomplete="off" placeholder="e.g. Vendor B, Elder 2" /></label>
+      <label>Tags, separated by commas <input class="fn-tags" list="fn-taglist" autocomplete="off" placeholder="e.g. trade, kinship" /></label>
+    </div>
+    <label style="margin-top:10px">Note <textarea class="fn-text" rows="6" placeholder="What you saw, heard and did. Keep your own reflections clearly marked."></textarea></label>
+    <p class="ax-help">Use pseudonyms or codes, never real names, and keep any key to them somewhere else.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small fn-save">Save note</button>
+      <button type="button" class="btn secondary small fn-cancel" hidden>Cancel</button>
+    </div>
+    <p class="ax-err fn-ferr" hidden></p>
+    <datalist id="fn-places"></datalist><datalist id="fn-peoplelist"></datalist><datalist id="fn-taglist"></datalist>
+  </div>
+
+  <div class="ax-card">
+    <h2>Where your notes are kept</h2>
+    <label class="ax-check"><input type="checkbox" class="fn-keep" /> Keep my notes in this browser</label>
+    <p class="ax-help">Off by default. When it is on, your notes are saved only in this browser on this device, so they are here next time you open the page. They are never sent anywhere. When it is off, they are gone when you close the page, so export a JSON file to keep them. <b>Clear all</b> removes every note from the page and from this browser.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fn-clear">Clear all</button>
+      <button type="button" class="btn secondary small fn-sample">Add made-up example notes</button>
+    </div>
+    <p class="ax-help fn-status"></p>
+  </div>
+
+  <div class="ax-card fn-find">
+    <h2>Find</h2>
+    <div class="ax-grid">
+      <label>Search <input class="fn-q" type="search" placeholder="words in any field" /></label>
+      <label>Tag <select class="fn-ftag"><option value="">Any</option></select></label>
+      <label>Person <select class="fn-fperson"><option value="">Anyone</option></select></label>
+      <label>Place <select class="fn-fplace"><option value="">Anywhere</option></select></label>
+      <label>From <input type="date" class="fn-from" /></label>
+      <label>To <input type="date" class="fn-to" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fn-reset">Show all</button><span class="ax-help fn-shown" style="margin:0"></span></div>
+    <h3 style="margin:16px 0 6px">Tags</h3>
+    <div class="fn-chips fn-tagc"></div>
+    <h3 style="margin:14px 0 6px">People</h3>
+    <div class="fn-chips fn-pc"></div>
+  </div>
+
+  <div class="fn-list"></div>
+
+  <div class="ax-card">
+    <h2>Export and import</h2>
+    <div class="ax-grid">
+      <label>Export <select class="fn-which"><option value="shown">The notes shown</option><option value="all">All notes</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fn-x" data-f="md">Markdown</button>
+      <button type="button" class="btn secondary small fn-x" data-f="csv">CSV</button>
+      <button type="button" class="btn secondary small fn-x" data-f="json">JSON</button>
+      <button type="button" class="btn secondary small fn-imp">Import JSON</button>
+      <input type="file" class="fn-file" accept=".json,application/json" hidden />
+    </div>
+    <p class="ax-help">JSON keeps everything and can be imported back here, on this or another device. Imported notes are added to yours; notes already here are skipped.</p>
+    <p class="ax-help fn-impnote" hidden></p>
+    <p class="ax-err fn-imperr" hidden></p>
+  </div>
+</div>
+
+<style is:global>
+  .fn .fn-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fn .fn-chips button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .fn .fn-chips button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .fn .fn-list { display: grid; gap: 10px; }
+  .fn .fn-note h3 { margin: 0 0 4px; font-size: 16px; }
+  .fn .fn-note .meta { font-size: 13px; color: var(--muted); margin: 0 0 8px; overflow-wrap: anywhere; }
+  .fn .fn-note .body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 15px; }
+  .fn .fn-note .ax-row { margin-top: 10px; }
+  .fn .fn-empty { color: var(--muted); font-size: 14px; }
+</style>
+
+<script>
+  import { list, sortNotes, filterNotes, counts, toMarkdown, toCsv, toJson, fromJson, merge, validDate, type Note } from '../../lib/sci/fieldnotes';
+  import { save } from '../../lib/report';
+
+  const KEY = 'fibub-fieldnotes-v1';
+  const root = document.querySelector<HTMLElement>('.fn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  let notes: Note[] = [], editing = '', shown: Note[] = [], dirty = false;
+
+  const keeping = () => inp('.fn-keep').checked;
+  function store() {
+    try { if (keeping()) localStorage.setItem(KEY, JSON.stringify({ keep: true, notes })); } catch { q('.fn-status').textContent = 'This browser would not save the notes (storage may be full or blocked). Export a JSON file to keep them.'; }
+  }
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.keep && Array.isArray(s.notes)) { notes = fromJson(JSON.stringify(s.notes), newId).notes; inp('.fn-keep').checked = true; } } catch { /* nothing kept */ }
+  }
+  function status() {
+    q('.fn-status').textContent = `${notes.length} note${notes.length === 1 ? '' : 's'} ${keeping() ? 'kept in this browser' : 'on this page only (not kept)'}.`;
+  }
+
+  function el(tag: string, cls = '', text = '') { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  function options(sel: string, items: [string, number][], first: string) {
+    const s = q<HTMLSelectElement>(sel), cur = s.value; s.innerHTML = '';
+    s.append(new Option(first, ''));
+    for (const [v, n] of items) s.append(new Option(`${v} (${n})`, v));
+    s.value = items.some(([v]) => v === cur) ? cur : '';
+  }
+  function datalist(id: string, items: [string, number][]) { const d = document.getElementById(id)!; d.innerHTML = ''; for (const [v] of items) d.append(new Option(v)); }
+  function chips(sel: string, items: [string, number][], filter: string) {
+    const box = q(sel); box.innerHTML = '';
+    if (!items.length) { box.append(el('span', 'fn-empty', 'None yet.')); return; }
+    for (const [v, n] of items) {
+      const b = el('button', '', `${v} · ${n}`) as HTMLButtonElement; b.type = 'button';
+      const s = q<HTMLSelectElement>(filter); b.setAttribute('aria-pressed', String(s.value.toLowerCase() === v.toLowerCase()));
+      b.addEventListener('click', () => { s.value = s.value.toLowerCase() === v.toLowerCase() ? '' : v; render(); });
+      box.append(b);
+    }
+  }
+
+  function render() {
+    const tc = counts(notes, 'tags'), pc = counts(notes, 'people'), plc = counts(notes, 'place');
+    options('.fn-ftag', tc, 'Any'); options('.fn-fperson', pc, 'Anyone'); options('.fn-fplace', plc, 'Anywhere');
+    datalist('fn-places', plc); datalist('fn-peoplelist', pc); datalist('fn-taglist', tc);
+    shown = sortNotes(filterNotes(notes, { q: inp('.fn-q').value, tag: q<HTMLSelectElement>('.fn-ftag').value, person: q<HTMLSelectElement>('.fn-fperson').value, place: q<HTMLSelectElement>('.fn-fplace').value, from: inp('.fn-from').value, to: inp('.fn-to').value }));
+    chips('.fn-tagc', counts(shown, 'tags'), '.fn-ftag'); chips('.fn-pc', counts(shown, 'people'), '.fn-fperson');
+    q('.fn-shown').textContent = `Showing ${shown.length} of ${notes.length} note${notes.length === 1 ? '' : 's'}.`;
+    const box = q('.fn-list'); box.innerHTML = '';
+    if (!notes.length) { const c = el('div', 'ax-card fn-empty', 'No notes yet. Write your first note above, import a JSON file, or add the made-up examples to try the tool.'); box.append(c); }
+    else if (!shown.length) box.append(el('div', 'ax-card fn-empty', 'No notes match. Press Show all to clear the filters.'));
+    for (const n of shown) {
+      const c = el('article', 'ax-card fn-note');
+      c.append(el('h3', '', `${n.date}${n.place ? ' · ' + n.place : ''}`));
+      const meta = [n.people.length ? 'People: ' + n.people.join(', ') : '', n.tags.length ? 'Tags: ' + n.tags.join(', ') : ''].filter(Boolean).join(' · ');
+      if (meta) c.append(el('p', 'meta', meta));
+      c.append(el('p', 'body', n.text));
+      const row = el('div', 'ax-row');
+      const ed = el('button', 'btn secondary small fn-edit', 'Edit') as HTMLButtonElement, del = el('button', 'btn secondary small fn-del', 'Delete') as HTMLButtonElement;
+      ed.type = del.type = 'button';
+      ed.addEventListener('click', () => startEdit(n));
+      del.addEventListener('click', () => { if (!confirm(`Delete the note from ${n.date}?`)) return; notes = notes.filter((x) => x.id !== n.id); changed(); });
+      row.append(ed, del); c.append(row); box.append(c);
+    }
+    status();
+  }
+  function changed() { dirty = true; store(); render(); }
+
+  function resetForm() {
+    editing = ''; inp('.fn-date').value = today(); for (const c of ['.fn-place', '.fn-people', '.fn-tags']) inp(c).value = '';
+    q<HTMLTextAreaElement>('.fn-text').value = ''; q('.fn-formh').textContent = 'New note'; q('.fn-save').textContent = 'Save note'; q('.fn-cancel').hidden = true; q('.fn-ferr').hidden = true;
+  }
+  function startEdit(n: Note) {
+    editing = n.id; inp('.fn-date').value = n.date; inp('.fn-place').value = n.place; inp('.fn-people').value = n.people.join(', '); inp('.fn-tags').value = n.tags.join(', ');
+    q<HTMLTextAreaElement>('.fn-text').value = n.text; q('.fn-formh').textContent = `Edit note from ${n.date}`; q('.fn-save').textContent = 'Save changes'; q('.fn-cancel').hidden = false;
+    q('.fn-formh').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  q('.fn-save').addEventListener('click', () => {
+    const err = q('.fn-ferr'), date = inp('.fn-date').value, text = q<HTMLTextAreaElement>('.fn-text').value;
+    if (!validDate(date)) { err.textContent = 'Choose a date for the note.'; err.hidden = false; return; }
+    if (!text.trim()) { err.textContent = 'Write something in the note first.'; err.hidden = false; return; }
+    const n: Note = { id: editing || newId(), date, place: inp('.fn-place').value.trim(), people: list(inp('.fn-people').value), tags: list(inp('.fn-tags').value), text };
+    notes = editing ? notes.map((x) => (x.id === editing ? n : x)) : [...notes, n];
+    resetForm(); changed();
+  });
+  q('.fn-cancel').addEventListener('click', resetForm);
+
+  inp('.fn-keep').addEventListener('change', () => { try { if (keeping()) store(); else localStorage.removeItem(KEY); } catch { /* blocked */ } status(); });
+  q('.fn-clear').addEventListener('click', () => {
+    if (notes.length && !confirm('Remove every note from this page' + (keeping() ? ' and from this browser?' : '?'))) return;
+    notes = []; dirty = false; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    inp('.fn-keep').checked = false; resetForm(); render();
+  });
+  q('.fn-sample').addEventListener('click', () => {
+    const s: Omit<Note, 'id'>[] = [
+      { date: '2026-10-02', place: 'Harbour market', people: ['Fisher A', 'Vendor B'], tags: ['trade', 'morning'], text: 'Prices were called out before the boats landed. Most buyers paid cash.\n[My note: ask Vendor B why credit is refused to newcomers.]' },
+      { date: '2026-10-03', place: 'Tea stall', people: ['Vendor B'], tags: ['kinship', 'trade'], text: 'Vendor B said her cousin runs the stall on market days. Three regulars sat apart from the rest.' },
+      { date: '2026-10-05', place: 'Ferry landing', people: ['Ferry worker C', 'Fisher A'], tags: ['transport', 'trade'], text: 'Ferry fees discussed; the older fishers disagree with the new timetable.' },
+    ];
+    const r = merge(notes, s.map((x) => ({ ...x, id: newId() }))); notes = r.notes; changed();
+  });
+
+  let tm = 0;
+  q('.fn-find').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(render, 200); });
+  q('.fn-find').addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=date]')) render(); });
+  q('.fn-reset').addEventListener('click', () => { for (const c of ['.fn-q', '.fn-from', '.fn-to']) inp(c).value = ''; for (const c of ['.fn-ftag', '.fn-fperson', '.fn-fplace']) q<HTMLSelectElement>(c).value = ''; render(); });
+
+  root.querySelectorAll<HTMLButtonElement>('.fn-x').forEach((b) => b.addEventListener('click', () => {
+    const set = q<HTMLSelectElement>('.fn-which').value === 'all' ? sortNotes(notes) : shown;
+    if (!set.length) { q('.fn-imperr').textContent = 'There are no notes to export.'; q('.fn-imperr').hidden = false; return; }
+    q('.fn-imperr').hidden = true;
+    const f = b.dataset.f!, stamp = today();
+    if (f === 'md') save(new Blob([toMarkdown(set)], { type: 'text/markdown' }), `field-notes-${stamp}.md`, 'text/markdown');
+    if (f === 'csv') save(new Blob(['﻿' + toCsv(set)], { type: 'text/csv' }), `field-notes-${stamp}.csv`, 'text/csv');
+    if (f === 'json') { save(new Blob([toJson(set)], { type: 'application/json' }), `field-notes-${stamp}.json`, 'application/json'); if (set.length === notes.length) dirty = false; }
+  }));
+  q('.fn-imp').addEventListener('click', () => inp('.fn-file').click());
+  inp('.fn-file').addEventListener('change', async () => {
+    const f = inp('.fn-file').files?.[0]; inp('.fn-file').value = '';
+    const note = q('.fn-impnote'), err = q('.fn-imperr'); note.hidden = err.hidden = true;
+    if (!f) return;
+    try {
+      if (f.size > 20e6) throw new Error('That file is over 20 MB.');
+      const r = fromJson(await f.text(), newId), m = merge(notes, r.notes);
+      notes = m.notes; changed();
+      note.textContent = `Imported ${m.added} note${m.added === 1 ? '' : 's'} from ${f.name}.` + (m.dupes ? ` ${m.dupes} already here, skipped.` : '') + (r.skipped.length ? ` ${r.skipped.length} skipped: ${r.skipped.slice(0, 3).join(' ')}` : '');
+      note.hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; }
+  });
+  window.addEventListener('beforeunload', (e) => { if (dirty && !keeping() && notes.length) { e.preventDefault(); e.returnValue = ''; } });
+
+  load(); resetForm(); render();
+</script>

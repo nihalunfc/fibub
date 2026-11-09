@@ -1,0 +1,280 @@
+---
+// Kinship diagram maker: people, parents and marriages in; a standard diagram and kin type codes from Ego out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax kd">
+  <div class="ax-card kd-out">
+    <h2>Diagram</h2>
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="kd-codes" checked /> Kin types</label>
+      <label class="ax-check"><input type="checkbox" class="kd-names" checked /> Names</label>
+      <label class="ax-check"><input type="checkbox" class="kd-fit" checked /> Fit to width</label>
+    </div>
+    <div class="ax-scroll kd-wrap"><div class="kd-svg" role="img"></div></div>
+    <p class="ax-help">△ male, ○ female, □ sex unknown, = marriage, // divorce, a slash through a symbol for deceased. Ego is filled in.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small kd-dsvg">Diagram (SVG)</button>
+      <button type="button" class="btn secondary small kd-dpng">Diagram (PNG)</button>
+      <button type="button" class="btn secondary small kd-save">Save to a file</button>
+      <button type="button" class="btn secondary small kd-open">Open a saved file</button>
+      <input type="file" class="kd-file" accept=".json,application/json" hidden />
+    </div>
+    <h3>Relations from Ego</h3>
+    <div class="ax-scroll"><table class="kd-tab"></table></div>
+    <p class="ax-help">Kin type notation: F father, M mother, B brother, Z sister, S son, D daughter, H husband, W wife, and P parent, G sibling, C child, E spouse when the sex is unknown. Read left to right from Ego: FBD is father's brother's daughter. The shortest chain is shown; blood chains win ties.</p>
+    <Downloads label="Report" />
+  </div>
+  <div class="ax-card">
+    <h2>Family</h2>
+    <div class="ax-grid">
+      <label>Ego (the person relations are counted from) <select class="kd-ego"></select></label>
+    </div>
+    <p class="ax-help">Use pseudonyms or initials for real people. Nothing is saved or sent: the diagram is gone when you close the page unless you save it to a file.</p>
+    <h3>People</h3>
+    <div class="kd-people"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small kd-add">Add a person</button>
+      <button type="button" class="btn secondary small kd-example">Load the example</button>
+      <button type="button" class="btn secondary small kd-clear">Start again</button>
+    </div>
+    <h3>Marriages</h3>
+    <div class="kd-mars"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small kd-addm">Add a marriage</button></div>
+    <p class="ax-help">Children are linked to their parents above; two parents who are not married are joined by a single line. "Add relative" next to a person adds a father, sister, son, wife and so on in one step.</p>
+    <p class="ax-err kd-err" hidden></p>
+    <p class="ax-help kd-msg" hidden></p>
+  </div>
+
+</div>
+
+<style is:global>
+  .kd h3 { font-size: 15px; margin: 16px 0 8px; }
+  .kd .kd-person, .kd .kd-mar { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: end; }
+  .kd .kd-person .ax-check, .kd .kd-mar .ax-check { min-height: 40px; }
+  .kd .kd-x { justify-self: start; }
+  .kd .kd-svg { color: var(--ink); }
+  .kd .kd-svg svg { display: block; height: auto; }
+  .kd .kd-svg.fit svg { width: 100%; max-width: 100%; }
+  .kd .kd-tab td.kd-c { font-weight: 700; white-space: nowrap; }
+</style>
+
+<script>
+  import { relations, layout, validate, fromJson, toJson, type Kin, type Person, type Sex } from '../../lib/sci/kinship';
+  import { drawKinship, diagramSize } from '../../lib/sci/kinship-draw';
+  import { svgPainter, canvasPainter } from '../../lib/sci/plot';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.kd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+
+  const EXAMPLE: Kin = {
+    ego: 'p1',
+    people: [
+      { id: 'p1', name: 'Ravi', sex: 'm', parents: ['p2', 'p3'] },
+      { id: 'p2', name: 'Arun', sex: 'm', dead: true, parents: ['p10', 'p11'] },
+      { id: 'p3', name: 'Bina', sex: 'f', parents: ['p13'] },
+      { id: 'p4', name: 'Chetan', sex: 'm', parents: ['p10', 'p11'] },
+      { id: 'p5', name: 'Devi', sex: 'f', parents: [] },
+      { id: 'p6', name: 'Esha', sex: 'f', parents: ['p4', 'p5'] },
+      { id: 'p7', name: 'Farah', sex: 'f', parents: ['p13'] },
+      { id: 'p8', name: 'Gopal', sex: 'm', parents: [] },
+      { id: 'p9', name: 'Hari', sex: 'm', parents: ['p7', 'p8'] },
+      { id: 'p10', name: 'Lalit', sex: 'm', dead: true, parents: [] },
+      { id: 'p11', name: 'Meera', sex: 'f', parents: [] },
+      { id: 'p13', name: 'Noor', sex: 'u', parents: [] },
+      { id: 'p14', name: 'Isha', sex: 'f', parents: ['p2', 'p3'] },
+      { id: 'p15', name: 'Jaya', sex: 'f', parents: [] },
+      { id: 'p16', name: 'Kiran', sex: 'm', parents: ['p1', 'p15'] },
+    ],
+    marriages: [{ a: 'p10', b: 'p11' }, { a: 'p2', b: 'p3' }, { a: 'p4', b: 'p5' }, { a: 'p8', b: 'p7', divorced: true }, { a: 'p1', b: 'p15' }],
+  };
+  const clone = (k: Kin): Kin => JSON.parse(JSON.stringify(k));
+  let K: Kin = clone(EXAMPLE), report: Section[] = [], centreEgo = true;
+
+  const byId = (id: string) => K.people.find((p) => p.id === id);
+  const nextId = () => 'p' + (Math.max(0, ...K.people.map((p) => Number(p.id.replace(/\D/g, '')) || 0)) + 1);
+  const label = (p: Person) => p.name || '(no name)';
+  const el = <T extends HTMLElement>(tag: string, props: Record<string, unknown> = {}, kids: (Node | string)[] = []) => { const e = document.createElement(tag) as T; Object.assign(e, props); e.append(...kids); return e; };
+  const opt = (value: string, text: string, sel = false) => el<HTMLOptionElement>('option', { value, textContent: text, selected: sel });
+  const field = (text: string, input: HTMLElement) => el<HTMLLabelElement>('label', {}, [text, input]);
+  function msg(t: string) { const m = q('.kd-msg'); m.textContent = t; m.hidden = !t; }
+
+  function personSelect(cls: string, value: string, exclude: string, none = '—') {
+    const s = el<HTMLSelectElement>('select', { className: cls });
+    s.append(opt('', none, !value));
+    for (const p of K.people) if (p.id !== exclude) s.append(opt(p.id, label(p), p.id === value));
+    return s;
+  }
+
+  function editor() {
+    const ego = q<HTMLSelectElement>('.kd-ego'); ego.innerHTML = '';
+    for (const p of K.people) ego.append(opt(p.id, label(p), p.id === K.ego));
+    const box = q('.kd-people'); box.innerHTML = '';
+    K.people.forEach((p) => {
+      const row = el<HTMLDivElement>('div', { className: 'kd-person' }); row.dataset.id = p.id;
+      const sex = el<HTMLSelectElement>('select', { className: 'kd-sex' }); [['m', '△ Male'], ['f', '○ Female'], ['u', '□ Unknown']].forEach(([v, t]) => sex.append(opt(v, t, p.sex === v)));
+      const add = el<HTMLSelectElement>('select', { className: 'kd-rel' });
+      [['', 'Add relative…'], ['F', 'Father'], ['M', 'Mother'], ['B', 'Brother'], ['Z', 'Sister'], ['S', 'Son'], ['D', 'Daughter'], ['C', 'Child (sex unknown)'], ['H', 'Husband'], ['W', 'Wife']].forEach(([v, t]) => add.append(opt(v, t)));
+      row.append(
+        field('Name', el<HTMLInputElement>('input', { className: 'kd-name', value: p.name, maxLength: 40 })),
+        field('Sex', sex),
+        field('Parent 1', personSelect('kd-p1', p.parents[0] ?? '', p.id)),
+        field('Parent 2', personSelect('kd-p2', p.parents[1] ?? '', p.id)),
+        el('label', { className: 'ax-check' }, [el<HTMLInputElement>('input', { type: 'checkbox', className: 'kd-dead', checked: !!p.dead }), 'Deceased']),
+        field('Add', add),
+        el<HTMLButtonElement>('button', { type: 'button', className: 'btn secondary small kd-x', textContent: 'Remove', ariaLabel: `Remove ${label(p)}` }),
+      );
+      box.append(row);
+    });
+    const mb = q('.kd-mars'); mb.innerHTML = '';
+    K.marriages.forEach((m, i) => {
+      const row = el<HTMLDivElement>('div', { className: 'kd-mar' }); row.dataset.i = String(i);
+      row.append(
+        field('Partner', personSelect('kd-ma', m.a, '')), field('Partner', personSelect('kd-mb', m.b, '')),
+        el('label', { className: 'ax-check' }, [el<HTMLInputElement>('input', { type: 'checkbox', className: 'kd-div', checked: !!m.divorced }), 'Divorced']),
+        el<HTMLButtonElement>('button', { type: 'button', className: 'btn secondary small kd-x', textContent: 'Remove' }),
+      );
+      mb.append(row);
+    });
+    if (!K.marriages.length) mb.append(el('p', { className: 'ax-help', textContent: 'No marriages yet.' }));
+  }
+
+  function addRelative(p: Person, kind: string) {
+    const id = nextId(), sexOf: Record<string, Sex> = { F: 'm', M: 'f', B: 'm', Z: 'f', S: 'm', D: 'f', C: 'u', H: 'm', W: 'f' };
+    const words: Record<string, string> = { F: 'father', M: 'mother', B: 'brother', Z: 'sister', S: 'son', D: 'daughter', C: 'child', H: 'husband', W: 'wife' };
+    const n: Person = { id, name: `${label(p)}'s ${words[kind]}`.slice(0, 40), sex: sexOf[kind], parents: [] };
+    if (kind === 'F' || kind === 'M') {
+      if (p.parents.length >= 2) return msg(`${label(p)} already has two parents.`);
+      K.people.push(n);
+      if (p.parents.length === 1 && !K.marriages.some((m) => (m.a === p.parents[0] && m.b === id) || (m.b === p.parents[0] && m.a === id))) K.marriages.push(kind === 'F' ? { a: id, b: p.parents[0] } : { a: p.parents[0], b: id });
+      // Full siblings get the new parent too.
+      const key = p.parents.join('|');
+      for (const s of K.people) if (s.id !== id && s.parents.join('|') === key && s.parents.length < 2) s.parents.push(id);
+      if (!p.parents.includes(id)) p.parents.push(id);
+    } else if (kind === 'B' || kind === 'Z') {
+      if (!p.parents.length) return msg(`Add a parent of ${label(p)} first, so the new ${words[kind]} can share them.`);
+      n.parents = [...p.parents]; K.people.push(n);
+    } else if (kind === 'S' || kind === 'D' || kind === 'C') {
+      const sp = K.marriages.filter((m) => !m.divorced && (m.a === p.id || m.b === p.id)).map((m) => (m.a === p.id ? m.b : m.a));
+      n.parents = sp.length === 1 ? [p.id, sp[0]] : [p.id]; K.people.push(n);
+    } else { K.people.push(n); K.marriages.push(kind === 'H' ? { a: id, b: p.id } : { a: p.id, b: id }); }
+    msg(`Added ${n.name}. Rename them in the list.`);
+  }
+
+  function render() {
+    const err = q('.kd-err');
+    const bad = validate(K);
+    if (bad.length) { err.textContent = bad[0] + '.'; err.hidden = false; return; }
+    err.hidden = true;
+    if (!K.people.length) { q('.kd-svg').innerHTML = ''; q<HTMLTableElement>('.kd-tab').innerHTML = ''; report = []; return; }
+    const rel = relations(K), L = layout(K), o = { names: q<HTMLInputElement>('.kd-names').checked, codes: q<HTMLInputElement>('.kd-codes').checked };
+    const { w, h } = diagramSize(L);
+    const P = svgPainter(w, h); const cs = getComputedStyle(q('.kd-out')), ink = cs.color || '#000', bg = cs.backgroundColor || '#fff';
+    drawKinship(P, K, L, rel, { ...o, ink, bg, muted: ink });
+    const box = q('.kd-svg'); box.innerHTML = P.toString().replace(/^<\?xml[^>]*>\s*/, '');
+    box.classList.toggle('fit', q<HTMLInputElement>('.kd-fit').checked);
+    const sv = box.querySelector('svg')!; sv.style.maxWidth = q<HTMLInputElement>('.kd-fit').checked ? '100%' : 'none'; sv.style.width = q<HTMLInputElement>('.kd-fit').checked ? '100%' : `${w}px`;
+    if (centreEgo && L.pos.has(K.ego)) { const wrap = q('.kd-wrap'); wrap.scrollLeft = Math.max(0, (q<HTMLInputElement>('.kd-fit').checked ? 0 : 24 + L.pos.get(K.ego)!.x - wrap.clientWidth / 2)); centreEgo = false; }
+    box.setAttribute('aria-label', `Kinship diagram of ${K.people.length} people`);
+    const t = q<HTMLTableElement>('.kd-tab'); t.innerHTML = '';
+    const head = ['Name', 'Kin type', 'Reading', 'Generation', 'Link'];
+    const hr = t.createTHead().insertRow(); head.forEach((x) => hr.append(el('th', { textContent: x })));
+    const genTxt = (g: number) => (Number.isFinite(g) ? (g > 0 ? `+${g}` : g < 0 ? `−${-g}` : '0') : '–');
+    const st = (id: string) => { const v = rel.get(id)!.steps; return Number.isNaN(v) ? Infinity : v; };
+    const sorted = [...K.people].sort((a, b) => (st(a.id) === st(b.id) ? 0 : st(a.id) - st(b.id)));
+    const rows = sorted.map((p) => { const r = rel.get(p.id)!; return [label(p), r.code || '–', r.words, genTxt(r.generation), r.code === 'Ego' ? '' : !r.code ? '' : r.affinal ? 'By marriage' : 'Blood']; });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 1) td.className = 'kd-c'; }); });
+    const fig = { w, h, alt: 'Kinship diagram', draw: (ctx: CanvasRenderingContext2D) => drawKinship(canvasPainter(ctx), K, L, rel, { ...o, ink: '#000000', bg: '#ffffff', muted: '#444444' }) };
+    report = [{ title: 'Kinship diagram', text: [`Ego: ${label(byId(K.ego)!)}. ${K.people.length} people, ${K.marriages.length} marriages.`], figure: fig }, { title: 'Relations from Ego', table: { head, rows, align: ['l', 'l', 'l', 'r', 'l'] }, note: 'Kin type notation: F father, M mother, B brother, Z sister, S son, D daughter, H husband, W wife; P, G, C and E when the sex is unknown.' }];
+  }
+  const update = () => { editor(); render(); };
+
+  function fileName() { return 'kinship-' + (label(byId(K.ego) ?? K.people[0] ?? { name: 'diagram' } as Person).replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase() || 'diagram'); }
+  function drawingFor() {
+    const rel = relations(K), L = layout(K), { w, h } = diagramSize(L), o = { names: q<HTMLInputElement>('.kd-names').checked, codes: q<HTMLInputElement>('.kd-codes').checked, ink: '#000000', bg: '#ffffff', muted: '#444444' };
+    return { rel, L, w, h, o };
+  }
+
+  // Editing
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement, row = t.closest<HTMLElement>('.kd-person');
+    if (t.matches('.kd-name') && row) { byId(row.dataset.id!)!.name = (t as HTMLInputElement).value; render(); }
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement & HTMLSelectElement, row = t.closest<HTMLElement>('.kd-person'), mrow = t.closest<HTMLElement>('.kd-mar');
+    msg('');
+    if (t.matches('.kd-ego')) { K.ego = t.value; centreEgo = true; return render(); }
+    if (t.matches('.kd-codes, .kd-names, .kd-fit')) return render();
+    if (row) {
+      const p = byId(row.dataset.id!)!;
+      if (t.matches('.kd-name')) {
+        // Rename in place: rebuilding the editor here would swallow a click on another button.
+        root.querySelectorAll<HTMLOptionElement>(`option[value="${p.id}"]`).forEach((o) => { if (o.parentElement?.matches('.kd-ego, .kd-p1, .kd-p2, .kd-ma, .kd-mb')) o.textContent = label(p); });
+        return;
+      }
+      if (t.matches('.kd-sex')) p.sex = t.value as Sex;
+      if (t.matches('.kd-dead')) p.dead = t.checked;
+      if (t.matches('.kd-p1, .kd-p2')) {
+        const a = (row.querySelector('.kd-p1') as HTMLSelectElement).value, b = (row.querySelector('.kd-p2') as HTMLSelectElement).value;
+        p.parents = [a, b].filter((x, i, arr) => x && arr.indexOf(x) === i);
+      }
+      if (t.matches('.kd-rel') && t.value) { addRelative(p, t.value); return update(); }
+      return render();
+    }
+    if (mrow) {
+      const m = K.marriages[Number(mrow.dataset.i)];
+      if (t.matches('.kd-ma')) m.a = t.value; if (t.matches('.kd-mb')) m.b = t.value; if (t.matches('.kd-div')) m.divorced = t.checked;
+      return render();
+    }
+  });
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.kd-x'); if (!b) return;
+    const row = b.closest<HTMLElement>('.kd-person'), mrow = b.closest<HTMLElement>('.kd-mar');
+    if (row) {
+      const id = row.dataset.id!;
+      K.people = K.people.filter((p) => p.id !== id);
+      for (const p of K.people) p.parents = p.parents.filter((x) => x !== id);
+      K.marriages = K.marriages.filter((m) => m.a !== id && m.b !== id);
+      if (K.ego === id) K.ego = K.people[0]?.id ?? '';
+    }
+    if (mrow) K.marriages.splice(Number(mrow.dataset.i), 1);
+    update();
+  });
+  q('.kd-add').addEventListener('click', () => { const id = nextId(); K.people.push({ id, name: `Person ${id.slice(1)}`, sex: 'u', parents: [] }); if (!K.ego) K.ego = id; msg(''); update(); });
+  q('.kd-addm').addEventListener('click', () => {
+    if (K.people.length < 2) return msg('Add at least two people first.');
+    const free = K.people.filter((p) => !K.marriages.some((m) => m.a === p.id || m.b === p.id));
+    const [a, b] = free.length >= 2 ? [free[0], free[1]] : [K.people[0], K.people[1]];
+    K.marriages.push({ a: a.id, b: b.id }); msg('Added a marriage: choose the two partners.'); update();
+  });
+  q('.kd-example').addEventListener('click', () => { K = clone(EXAMPLE); msg(''); update(); });
+  q('.kd-clear').addEventListener('click', () => { K = { ego: 'p1', people: [{ id: 'p1', name: 'Ego', sex: 'u', parents: [] }], marriages: [] }; msg('Started again with Ego only. Use "Add relative" to build out from Ego.'); update(); });
+
+  // Files
+  q('.kd-dsvg').addEventListener('click', () => {
+    const { rel, L, w, h, o } = drawingFor(), P = svgPainter(w, h);
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], '#ffffff', null); drawKinship(P, K, L, rel, o);
+    save(new Blob([P.toString()], { type: 'image/svg+xml' }), fileName() + '.svg', 'image/svg+xml');
+  });
+  q('.kd-dpng').addEventListener('click', () => {
+    const { rel, L, w, h, o } = drawingFor(), c = document.createElement('canvas'), sc = 2;
+    c.width = w * sc; c.height = h * sc; const ctx = c.getContext('2d')!; ctx.scale(sc, sc); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+    drawKinship(canvasPainter(ctx), K, L, rel, o);
+    c.toBlob((b) => b && save(b, fileName() + '.png', 'image/png'), 'image/png');
+  });
+  q('.kd-save').addEventListener('click', () => save(new Blob([toJson(K)], { type: 'application/json' }), fileName() + '.json', 'application/json'));
+  q('.kd-open').addEventListener('click', () => q<HTMLInputElement>('.kd-file').click());
+  q<HTMLInputElement>('.kd-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; inp.value = '';
+    if (!f) return;
+    try {
+      if (f.size > 2e6) throw new Error('This file is over 2 MB, too big for a kinship diagram');
+      K = fromJson(await f.text()); msg(`Opened ${f.name}: ${K.people.length} people.`); update();
+    } catch (er) { q('.kd-err').textContent = (er as Error).message.replace(/([^.])$/, '$1.'); q('.kd-err').hidden = false; }
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Kinship diagram', file: fileName(), sections: report }));
+  q<HTMLInputElement>('.kd-fit').checked = root.clientWidth >= 600;
+  new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  update();
+</script>

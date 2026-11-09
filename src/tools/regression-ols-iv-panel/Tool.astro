@@ -1,0 +1,290 @@
+---
+// Regression for econometrics: OLS with classical, robust (HC0-HC3) and clustered standard errors,
+// IV/2SLS with first-stage F, and panel fixed effects (entity and time). Maths in src/lib/sci/econometrics.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax rg">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>A table with a header row: one row per observation, one column per variable (CSV, or paste from a spreadsheet). The sample is a made-up example: 15 people over 4 years.
+      <textarea class="rg-in" rows="8" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+    <DataFile target=".rg-in" maxCols={60} maxRows={100000} />
+    <p class="ax-help rg-cols"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-seg rg-mode" role="group" aria-label="Estimator">
+      <button type="button" data-m="ols" aria-pressed="true">OLS</button><button type="button" data-m="iv" aria-pressed="false">IV (2SLS)</button><button type="button" data-m="fe" aria-pressed="false">Panel fixed effects</button>
+    </div>
+    <p class="ax-help rg-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Outcome (y) <select class="rg-y"></select></label>
+      <label>Standard errors <select class="rg-se"></select></label>
+      <label class="rg-clw">Cluster by <select class="rg-cl"></select></label>
+      <label>Confidence level <select class="rg-lv"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label class="rg-ow" data-show="fe">Entity (person, firm, country) <select class="rg-ent"></select></label>
+      <label class="rg-ow" data-show="fe">Time (year, wave) <select class="rg-time"></select></label>
+    </div>
+    <div class="rg-box">
+      <h3 class="rg-xh">Explanatory variables</h3>
+      <div class="rg-list rg-xs"></div>
+    </div>
+    <div class="rg-box rg-ow" data-show="iv">
+      <h3>Endogenous variables <small>(instrumented)</small></h3>
+      <div class="rg-list rg-en"></div>
+      <h3>Excluded instruments</h3>
+      <div class="rg-list rg-z"></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check rg-ow" data-show="ols iv"><input type="checkbox" class="rg-c" checked /> Include a constant</label>
+      <label class="ax-check rg-ow" data-show="fe"><input type="checkbox" class="rg-te" /> Time effects too (two-way)</label>
+    </div>
+    <p class="ax-help rg-sehelp"></p>
+    <p class="ax-err rg-err" hidden></p>
+  </div>
+
+  <div class="ax-card rg-out" hidden>
+    <h2 class="rg-h"></h2>
+    <p class="rg-eq"></p>
+    <dl class="ax-facts rg-facts"></dl>
+    <h3>Coefficients</h3>
+    <div class="ax-scroll"><table class="rg-tab"></table></div>
+    <div class="rg-fsw" hidden>
+      <h3>First stage</h3>
+      <div class="ax-scroll"><table class="rg-fs"></table></div>
+    </div>
+    <p class="ax-help rg-note"></p>
+    <h3>Residuals against fitted values</h3>
+    <canvas class="ax-fig rg-fig"></canvas>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small rg-csv">Coefficients as CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rg .rg-box { margin-top: 12px; }
+  .rg h3 { font-size: 15px; margin: 12px 0 6px; }
+  .rg h3 small { font-weight: 400; color: var(--muted); }
+  .rg .rg-list { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .rg .rg-list .ax-check { font-size: 14px; }
+  .rg .rg-eq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; margin: 0 0 12px; }
+  .rg .rg-tab td, .rg .rg-tab th, .rg .rg-fs td, .rg .rg-fs th { white-space: nowrap; }
+  .rg .rg-tab td.rg-sig { font-weight: 650; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { ols, iv2sls, panelFE, readColumns, demean, type RegResult } from '../../lib/sci/econometrics';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let mode = 'ols', report: Section[] = [], csvRows: string[][] = [], fig: Figure | null = null, lastHead = '';
+  const WHAT: Record<string, string> = {
+    ols: 'Ordinary least squares: the straight-line relationship between the outcome and your explanatory variables.',
+    iv: 'Two-stage least squares: when a regressor is endogenous (it moves with the error), instruments that shift it but affect the outcome only through it give a consistent estimate.',
+    fe: 'The within estimator: compares each entity with itself over time, so anything about an entity that never changes (ability, location, culture) drops out.',
+  };
+  const SE: Record<string, [string, string][]> = {
+    ols: [['classical', 'Classical (constant variance)'], ['hc0', 'Robust HC0 (White)'], ['hc1', 'Robust HC1 (Stata "robust")'], ['hc2', 'Robust HC2'], ['hc3', 'Robust HC3 (small samples)'], ['cluster', 'Clustered']],
+    iv: [['classical', 'Classical (constant variance)'], ['robust', 'Robust (HC1-type)'], ['cluster', 'Clustered']],
+    fe: [['classical', 'Classical (constant variance)'], ['robust', 'Robust (HC1-type)'], ['cluster', 'Clustered by entity']],
+  };
+  const SEHELP: Record<string, string> = {
+    classical: 'Classical standard errors assume the errors have the same spread for every observation and are independent.',
+    hc0: 'White’s robust standard errors allow the error spread to differ between observations (heteroskedasticity).',
+    hc1: 'HC1 is HC0 scaled by n/(n − k), the "robust" option in Stata.',
+    hc2: 'HC2 divides each squared residual by (1 − leverage), which removes most of HC0’s small-sample bias.',
+    hc3: 'HC3 divides by (1 − leverage)², a safe choice below about 250 observations.',
+    robust: 'Robust standard errors allow the error spread to differ between observations; scaled by n/(n − k).',
+    cluster: 'Clustered standard errors allow errors to be correlated within a group (same school, firm or region) and use G − 1 degrees of freedom for OLS. With fewer than about 30 clusters they can be too small.',
+  };
+  /** Choices for the sample data, so the example opens on a sensible model. */
+  const PRESET: Record<string, { y: string; x: string[]; en: string[]; z: string[]; ent: string; time: string; cl: string }> = {
+    'person,year,region,log_wage,educ,exper,union,distance': { y: 'log_wage', x: ['educ', 'exper', 'union'], en: ['educ'], z: ['distance'], ent: 'person', time: 'year', cl: 'region' },
+  };
+  const f4 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) >= 1e5 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(3) : x.toFixed(4)).replace(/^-/, '−') : '–');
+  const pTxt = (p: number) => (p < 0.0001 ? '< 0.0001' : p.toFixed(4));
+  const stars = (p: number) => (p < 0.001 ? '***' : p < 0.01 ? '**' : p < 0.05 ? '*' : '');
+
+  let data: { head: string[]; cols: Record<string, string[]>; n: number; numeric: string[] } | null = null;
+  function readData() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.rg-in').value);
+    const { head, cols, n } = readColumns(rows);
+    const numeric = head.filter((h) => cols[h].some((c) => c !== '') && cols[h].every((c) => c === '' || Number.isFinite(num(c))));
+    data = { head, cols, n, numeric };
+    q('.rg-cols').textContent = `${n.toLocaleString('en')} rows, ${head.length} columns (${numeric.length} numeric).`;
+    const key = head.join(',');
+    if (key !== lastHead) { lastHead = key; buildControls(); }
+  }
+  function options(s: HTMLSelectElement, list: string[], pick: string, blank?: string) {
+    const old = s.value;
+    s.innerHTML = '';
+    if (blank) s.add(new Option(blank, ''));
+    for (const h of list) s.add(new Option(h, h));
+    s.value = list.includes(old) ? old : list.includes(pick) ? pick : (blank ? '' : list[0] ?? '');
+  }
+  function checks(box: HTMLElement, list: string[], on: string[]) {
+    box.innerHTML = '';
+    for (const h of list) {
+      const l = document.createElement('label'), c = document.createElement('input');
+      l.className = 'ax-check'; c.type = 'checkbox'; c.value = h; c.checked = on.includes(h);
+      l.append(c, ' ' + h); box.append(l);
+    }
+    if (!list.length) box.textContent = 'No numeric columns.';
+  }
+  const ticked = (c: string) => [...root.querySelectorAll<HTMLInputElement>(`${c} input:checked`)].map((i) => i.value);
+  function buildControls() {
+    const d = data!, p = PRESET[d.head.join(',')];
+    const y = p?.y ?? d.numeric[0] ?? '';
+    options(sel('.rg-y'), d.numeric, y);
+    const looksId = (h: string) => /^(id|year|yr|time|period|wave|date|month|t)$/i.test(h);
+    const xs = p?.x ?? d.numeric.filter((h) => h !== y && !looksId(h));
+    checks(q('.rg-xs'), d.numeric, xs);
+    checks(q('.rg-en'), d.numeric, p?.en ?? []);
+    checks(q('.rg-z'), d.numeric, p?.z ?? []);
+    const guessEnt = d.head.find((h) => /^(id|person|firm|country|entity|state|school|county|unit|pid)$/i.test(h)) ?? d.head[0];
+    const guessTime = d.head.find((h) => /^(year|yr|time|period|wave|month|t)$/i.test(h)) ?? d.head[1] ?? d.head[0];
+    options(sel('.rg-ent'), d.head, p?.ent ?? guessEnt);
+    options(sel('.rg-time'), d.head, p?.time ?? guessTime);
+    options(sel('.rg-cl'), d.head, p?.cl ?? guessEnt);
+  }
+  function setSe() {
+    const s = sel('.rg-se'), old = s.value;
+    s.innerHTML = '';
+    for (const [v, t] of SE[mode]) s.add(new Option(t, v));
+    s.value = SE[mode].some(([v]) => v === old) ? old : 'classical';
+  }
+
+  function run(): Section[] {
+    readData();
+    const d = data!, y = sel('.rg-y').value, cov = sel('.rg-se').value, level = Number(sel('.rg-lv').value);
+    if (!y) throw new Error('There is no numeric column to use as the outcome.');
+    const constant = q<HTMLInputElement>('.rg-c').checked && mode !== 'fe';
+    let xs = ticked('.rg-xs').filter((h) => h !== y);
+    const en = mode === 'iv' ? ticked('.rg-en').filter((h) => h !== y) : [];
+    const zs = mode === 'iv' ? ticked('.rg-z').filter((h) => h !== y && !en.includes(h)) : [];
+    if (mode === 'iv') xs = xs.filter((h) => !en.includes(h) && !zs.includes(h));
+    if (!xs.length && !en.length && !constant) throw new Error('Tick at least one explanatory variable.');
+    const cl = sel('.rg-cl').value, ent = sel('.rg-ent').value, tm = sel('.rg-time').value;
+    if (mode === 'fe' && ent === tm) throw new Error('The entity and time columns must be different.');
+    const used = [y, ...xs, ...en, ...zs];
+    const keep: number[] = [];
+    for (let i = 0; i < d.n; i++) {
+      if (used.some((h) => !Number.isFinite(num(d.cols[h][i])))) continue;
+      if (cov === 'cluster' && mode !== 'fe' && d.cols[cl][i] === '') continue;
+      if (mode === 'fe' && (d.cols[ent][i] === '' || d.cols[tm][i] === '')) continue;
+      keep.push(i);
+    }
+    const dropped = d.n - keep.length;
+    const col = (h: string) => keep.map((i) => num(d.cols[h][i]));
+    const Y = col(y), XC = xs.map(col), EN = en.map(col), ZC = zs.map(col);
+    const rowsOf = (cs: number[][], c: boolean) => keep.map((_, r) => [...(c ? [1] : []), ...cs.map((v) => v[r])]);
+    const xNames = [...(constant ? ['Constant'] : []), ...xs];
+    let r: RegResult, title: string, absorbedVars: string[] = [];
+    if (mode === 'ols') {
+      r = ols(Y, rowsOf(XC, constant), xNames, { cov: cov as 'classical', clusters: keep.map((i) => d.cols[cl][i]), level, hasConst: constant });
+      title = 'OLS regression';
+    } else if (mode === 'iv') {
+      if (!en.length) throw new Error('Tick the endogenous variable(s) under "Endogenous variables".');
+      if (!zs.length) throw new Error('Tick at least one excluded instrument.');
+      r = iv2sls(Y, rowsOf(XC, constant), rowsOf(EN, false), rowsOf(ZC, false), { exog: xNames, endog: en, instr: zs }, { cov: cov as 'classical', clusters: keep.map((i) => d.cols[cl][i]), level, hasConst: constant });
+      title = 'IV regression (2SLS)';
+    } else {
+      if (!xs.length) throw new Error('Tick at least one explanatory variable.');
+      const te = q<HTMLInputElement>('.rg-te').checked;
+      const seen = new Set<string>();
+      for (const i of keep) { const k = d.cols[ent][i] + '\u0000' + d.cols[tm][i]; if (seen.has(k)) throw new Error(`Entity "${d.cols[ent][i]}" has two rows for time "${d.cols[tm][i]}". Each entity needs at most one row per period.`); seen.add(k); }
+      const E = keep.map((i) => d.cols[ent][i]), T = keep.map((i) => d.cols[tm][i]);
+      // Variables that never change within an entity (or period) are absorbed by the effects: leave them out and say so.
+      const dm = demean(XC, E, te ? T : null);
+      absorbedVars = xs.filter((_, j) => dm[j].every((v) => Math.abs(v) < 1e-9 * Math.max(1, ...XC[j].map(Math.abs))));
+      const xk = xs.filter((h) => !absorbedVars.includes(h));
+      if (!xk.length) throw new Error(`${absorbedVars.join(', ')} ${absorbedVars.length > 1 ? 'do' : 'does'} not change within an entity${te ? ' or period' : ''}, so the fixed effects absorb ${absorbedVars.length > 1 ? 'them' : 'it'}. Tick a variable that changes over time.`);
+      r = panelFE(Y, rowsOf(xk.map((h) => XC[xs.indexOf(h)]), false), xk, E, T, { timeEffects: te, cov: cov as 'classical', level });
+      title = `Panel fixed effects (${te ? 'entity and time' : 'entity'})`;
+    }
+    const pct = `${Math.round(level * 100)} %`;
+    q('.rg-h').textContent = title;
+    q('.rg-eq').textContent = `${y} = ${r.coefs.map((c) => (c.name === 'Constant' ? f4(c.b) : `${f4(c.b)}·${c.name}`)).join(' + ').replace(/\+ −/g, '− ')}${mode === 'fe' ? ' + effects' : ''}`;
+    const seName = SE[mode].find(([v]) => v === cov)![1];
+    const facts: [string, string][] = [
+      ['Observations', `${r.n.toLocaleString('en')}${dropped ? ` (${dropped} with blanks left out)` : ''}`],
+      [mode === 'fe' ? 'Within R²' : 'R²', r.r2.toFixed(4)],
+      ...(mode === 'fe' ? [] : [['Adjusted R²', r.adjR2.toFixed(4)] as [string, string]]),
+      ...(r.f ? [[`Wald F(${r.f.df1}, ${r.f.df2})`, `${sig(r.f.F, 4)}, p ${pTxt(r.f.p)}`] as [string, string]] : []),
+      ['Residual SE', sig(r.sigma, 4)],
+      ['Standard errors', seName + (r.clusters ? ` (${r.clusters} clusters)` : '')],
+      ['t tests on', `${r.df} degrees of freedom`],
+    ];
+    if (r.effects) facts.push(['Fixed effects absorbed', `${r.effects.entities} entities${q<HTMLInputElement>('.rg-te').checked ? ` + ${r.effects.times - 1} periods` : ''}`]);
+    const dl = q('.rg-facts'); dl.innerHTML = '';
+    for (const [k, v] of facts) { const dv = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dv.append(dt, dd); dl.append(dv); }
+    const head = ['Variable', 'Coefficient', 'Std. error', 't', 'p', `${pct} CI low`, `${pct} CI high`];
+    const rows = r.coefs.map((c) => [c.name + (en.includes(c.name) ? ' (endog.)' : ''), f4(c.b) + stars(c.p), f4(c.se), c.t.toFixed(3).replace('-', '−'), pTxt(c.p), f4(c.lo), f4(c.hi)]);
+    table(q('.rg-tab'), head, rows, (ri) => (r.coefs[ri].p < 0.05 ? 'rg-sig' : ''));
+    csvRows = [['variable', 'coefficient', 'std_error', 't', 'p', 'ci_low', 'ci_high'], ...r.coefs.map((c) => [c.name, c.b, c.se, c.t, c.p, c.lo, c.hi].map(String))];
+    const sections: Section[] = [{ title, text: [q('.rg-eq').textContent!], facts }, { title: 'Coefficients', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: '* p < 0.05, ** p < 0.01, *** p < 0.001.' }];
+    q('.rg-fsw').hidden = !r.firstStage;
+    let note = `* p < 0.05, ** p < 0.01, *** p < 0.001. ${SEHELP[cov] ?? ''}`;
+    if (r.firstStage) {
+      const fh = ['Endogenous', 'First-stage F', 'p', 'Partial R²', 'Strength'];
+      const fr = r.firstStage.map((s) => [s.name, `F(${s.df1}, ${s.df2}) = ${sig(s.F, 4)}`, pTxt(s.p), s.partialR2.toFixed(4), s.F >= 10 ? 'strong (F ≥ 10)' : 'weak (F < 10)']);
+      table(q('.rg-fs'), fh, fr);
+      sections.push({ title: 'First stage', table: { head: fh, rows: fr, align: ['l', 'r', 'r', 'r', 'l'] } });
+      const weak = r.firstStage.filter((s) => s.F < 10);
+      note += ` First-stage F tests whether the excluded instruments move each endogenous variable (classical F, as in statsmodels). ${weak.length ? `Below 10 means weak instruments: 2SLS is then biased towards OLS and its tests are unreliable.` : 'Above 10 is the usual rule of thumb for instruments that are strong enough.'} R² for 2SLS can be negative and is not a measure of fit.`;
+    }
+    if (absorbedVars.length) note = `${absorbedVars.join(', ')} left out: ${absorbedVars.length > 1 ? 'they do' : 'it does'} not change within an entity${q<HTMLInputElement>('.rg-te').checked ? ' or period' : ''}, so the fixed effects absorb ${absorbedVars.length > 1 ? 'them' : 'it'}. ` + note;
+    if (mode === 'fe') note += ' Variables that never change within an entity cannot be estimated with fixed effects. Within R² is the share of the within-entity variation explained.';
+    q('.rg-note').textContent = note;
+    fig = chartFigure({
+      xLabel: mode === 'fe' ? 'Fitted value (within)' : 'Fitted value', yLabel: 'Residual', legend: 'none',
+      series: [{ name: 'Residuals', x: r.fitted, y: r.resid, mode: 'points', size: 3 }],
+      marks: [{ kind: 'hline', at: 0, dash: [4, 4] }],
+    }, 'Residuals plotted against fitted values');
+    paint(q<HTMLCanvasElement>('.rg-fig'), fig);
+    sections.push({ title: 'Residuals against fitted values', figure: fig, note: q('.rg-note').textContent! });
+    return sections;
+  }
+  function table(t: HTMLElement, head: string[], rows: string[][], cls?: (r: number) => string) {
+    t.innerHTML = '';
+    const tb = t as HTMLTableElement, hr = tb.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', i === 1 ? cls?.(ri) ?? '' : ''].join(' ').trim(); }); });
+  }
+
+  function calc() {
+    const err = q('.rg-err');
+    try { report = run(); err.hidden = true; q('.rg-out').hidden = false; }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.rg-out').hidden = true; report = []; csvRows = []; }
+  }
+  function show() {
+    root.querySelectorAll<HTMLElement>('.rg-ow').forEach((el) => (el.hidden = !el.dataset.show!.split(' ').includes(mode)));
+    q('.rg-clw').hidden = sel('.rg-se').value !== 'cluster' || mode === 'fe';
+    q('.rg-xh').textContent = mode === 'iv' ? 'Exogenous explanatory variables' : 'Explanatory variables';
+    q('.rg-sehelp').textContent = SEHELP[sel('.rg-se').value] ?? '';
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.rg-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.rg-what').textContent = WHAT[m];
+    setSe(); show(); calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rg-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  q('.rg-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  root.addEventListener('change', (e) => { if (!(e.target as HTMLElement).matches('textarea')) { show(); calc(); } });
+  q('.rg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csvRows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), `regression-${mode}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.rg-out').hidden) paint(q<HTMLCanvasElement>('.rg-fig'), fig); });
+  try { readData(); } catch { /* shown by calc */ }
+  setMode('ols');
+  wireDownloads(q('.dl'), () => ({ title: q('.rg-h').textContent || 'Regression', file: `regression-${mode}`, sections: report }));
+</script>

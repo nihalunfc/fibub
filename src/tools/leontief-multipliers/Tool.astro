@@ -1,0 +1,177 @@
+---
+// Input-output (Leontief) analysis: technical coefficients, Leontief inverse, output multipliers, linkages,
+// final demand shocks and Type I multipliers. The example table is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const flows = 'From \\ To\tFarming\tFactories\tServices\tFinal demand\nFarming\t15\t40\t10\t35\nFactories\t20\t60\t45\t125\nServices\t10\t30\t50\t160';
+const sat = 'Wages\t30\t60\t100\nJobs (thousands)\t12\t8\t20';
+---
+<div class="ax lt">
+  <div class="ax-card">
+    <h2>Input-output table</h2>
+    <label>Flows between sectors: each row is what that sector sells to each sector (columns, in the same order), then the sector's final demand (households, government, investment, exports). An extra last column, if given, is total output. Sector names in the first row and column.
+      <textarea class="lt-flows" rows="6" spellcheck="false" wrap="off">{flows}</textarea></label>
+    <DataFile target=".lt-flows" maxCols={32} maxRows={32} />
+    <label style="margin-top:10px">Optional: totals per sector to turn into multipliers, one row each (a name, then one number per sector in the same order), such as wages paid or jobs.
+      <textarea class="lt-sat" rows="3" spellcheck="false" wrap="off">{sat}</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Money unit <input class="lt-unit" value="$ million" /></label>
+    </div>
+    <p class="ax-help">The example table is made up. Up to 30 sectors. Final demand plus sales to other sectors is each sector's total output.</p>
+    <p class="ax-err lt-err" hidden></p>
+  </div>
+
+  <div class="ax-card lt-out">
+    <h2>Multipliers</h2>
+    <p class="ax-big lt-big"></p>
+    <p class="ax-help lt-warn"></p>
+    <div class="ax-scroll"><table class="lt-mult"></table></div>
+    <p class="ax-help">The <b>output multiplier</b> of a sector is the total output, across all sectors, needed to deliver one more unit of its final demand. <b>Backward</b> linkage above 1: the sector buys more than average from others. <b>Forward</b> linkage above 1: other sectors depend on it more than average. A <b>key sector</b> is above 1 on both.</p>
+    <div class="lt-satw">
+      <h3>Type I multipliers</h3>
+      <div class="ax-scroll"><table class="lt-satt"></table></div>
+      <p class="ax-help">Direct: the amount per unit of the sector's own output. Total: the amount in the whole economy per unit of final demand for the sector (direct plus indirect). Type I = total ÷ direct.</p>
+    </div>
+    <h3>Effect of a change in final demand</h3>
+    <div class="ax-grid lt-shock"></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="lt-imp"></table></div>
+    <p class="ax-help lt-imph"></p>
+    <h3>Technical coefficients A</h3>
+    <div class="ax-scroll"><table class="lt-A"></table></div>
+    <p class="ax-help">Input bought from the row sector for each unit of the column sector's output (a<sub>ij</sub> = z<sub>ij</sub> ÷ x<sub>j</sub>).</p>
+    <h3>Leontief inverse (I − A)⁻¹</h3>
+    <div class="ax-scroll"><table class="lt-L"></table></div>
+    <p class="ax-help">Output of the row sector needed, directly and indirectly, for one unit of final demand for the column sector.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lt-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lt .lt-out table td, .lt .lt-out table th { white-space: nowrap; }
+  .lt .lt-out table td.r, .lt .lt-out table th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .lt .lt-out table tr.lt-key td:first-child { font-weight: 700; }
+  .lt .lt-out table tr.lt-sum td { font-weight: 650; border-top: 2px solid var(--line); }
+  .lt .lt-shock input { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { model, impact, satellite, productive, type IO } from '../../lib/sci/leontief';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f4 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) < 1e-12 ? '0' : x.toFixed(4).replace('-', '−')) : '–');
+  const g = (x: number, d = 4) => { const s = sig(Math.abs(x) < 1e-12 ? 0 : x, d); return /^[−\d.]+$/.test(s) && s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s; };
+  let sections: Section[] = [], csvRows: string[][] = [], names: string[] = [], io: IO | null = null, sats: { name: string; totals: number[] }[] = [];
+
+  function table(sel: string, head: string[], rows: string[][], rowClass?: (i: number) => string) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); const c = rowClass?.(ri); if (c) tr.className = c; r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function read() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.lt-flows').value);
+    if (!rows.length) throw new Error('Paste an input-output table first.');
+    const isNum = (c: string | undefined) => c !== undefined && Number.isFinite(num(c));
+    const head = rows[0].slice(1).some((c) => !isNum(c)) ? rows[0] : null;
+    const body = head ? rows.slice(1) : rows;
+    const labelled = body.every((r) => !isNum(r[0]));
+    const data = body.map((r) => (labelled ? r.slice(1) : r));
+    const n = data.length;
+    if (n < 2) throw new Error('Give at least two sectors.');
+    if (n > 30) throw new Error('Up to 30 sectors, please.');
+    const nm = labelled ? body.map((r) => r[0]) : head ? head.slice(1, n + 1) : data.map((_, i) => `Sector ${i + 1}`);
+    const w = Math.max(...data.map((r) => r.length));
+    if (w < n + 1) throw new Error(`With ${n} sectors each row needs ${n} flows and then the final demand (${n + 1} numbers); found ${w}.`);
+    const Z: number[][] = [], fd: number[] = [], xs: number[] = [];
+    data.forEach((r, i) => {
+      const vals = r.slice(0, n + 2).map((c) => (c.trim() === '' ? 0 : num(c)));
+      const bad = vals.findIndex((v) => !Number.isFinite(v));
+      if (bad >= 0) throw new Error(`"${r[bad]}" in the row for ${nm[i]} is not a number.`);
+      if (vals.slice(0, n).some((v) => v < 0)) throw new Error(`Flows cannot be negative (row for ${nm[i]}).`);
+      Z.push(vals.slice(0, n)); fd.push(vals[n]); if (w >= n + 2) xs.push(vals[n + 1]);
+    });
+    const given = w >= n + 2 ? xs : null;
+    if (given) given.forEach((x, i) => { const tot = Z[i].reduce((s, v) => s + v, 0) + fd[i]; if (Math.abs(tot - x) > 1e-6 * Math.max(1, x)) throw new Error(`For ${nm[i]}, sales to sectors plus final demand (${g(tot, 6)}) do not add up to the total output given (${g(x, 6)}).`); });
+    const srows = parseTable(q<HTMLTextAreaElement>('.lt-sat').value);
+    const s = srows.map((r, k) => {
+      const vals = (isNum(r[0]) ? r : r.slice(1)).slice(0, n).map(num);
+      if (vals.length < n || vals.some((v) => !Number.isFinite(v))) throw new Error(`The extra row "${r[0]}" needs one number for each of the ${n} sectors.`);
+      return { name: isNum(r[0]) ? `Row ${k + 1}` : r[0], totals: vals };
+    });
+    return { Z, fd, given, nm, s };
+  }
+
+  function buildShock() {
+    const box = q('.lt-shock'), old = [...box.querySelectorAll<HTMLInputElement>('input')].map((i) => [i.dataset.name, i.value]);
+    if (box.dataset.key === names.join('|')) return;
+    box.dataset.key = names.join('|');
+    box.replaceChildren(...names.map((nmx, i) => {
+      const l = document.createElement('label'), inp = document.createElement('input');
+      inp.inputMode = 'decimal'; inp.className = 'lt-df'; inp.dataset.name = nmx;
+      inp.value = old.find((o) => o[0] === nmx)?.[1] ?? (old.length ? '0' : i === 1 ? '10' : '0');
+      inp.addEventListener('input', later);
+      l.append(`Extra final demand for ${nmx} `, inp); return l;
+    }));
+  }
+
+  function calc() {
+    const err = q('.lt-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.lt-out').hidden = true; sections = []; csvRows = []; io = null; };
+    err.hidden = true;
+    let d;
+    try { d = read(); io = model(d.Z, d.fd, d.given); } catch (e) { return fail((e as Error).message); }
+    names = d.nm; sats = d.s;
+    const unit = q<HTMLInputElement>('.lt-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const n = names.length, pr = productive(io);
+    q('.lt-out').hidden = false;
+    const best = io.multipliers.indexOf(Math.max(...io.multipliers));
+    q('.lt-big').textContent = `Highest output multiplier: ${names[best]}, ${f4(io.multipliers[best])}`;
+    q('.lt-warn').textContent = pr.ok ? `Each extra unit of final demand for ${names[best]}${unit ? ` (1${u})` : ''} needs ${f4(io.multipliers[best])} units of output across the economy.` : 'Warning: some sector uses up as much input as it produces (a column of A sums to 1 or more) or the inverse has negative entries, so the multipliers are not meaningful. Check the table.';
+    const multRows = names.map((nm, j) => [nm, g(io!.x[j], 6), g(io!.valueAdded[j], 6), f4(io!.multipliers[j]), f4(io!.backward[j]), f4(io!.forward[j]), io!.backward[j] > 1 && io!.forward[j] > 1 ? 'Key sector' : io!.backward[j] > 1 ? 'Strong buyer' : io!.forward[j] > 1 ? 'Strong supplier' : '']);
+    const multHead = ['Sector', `Total output${u}`, `Value added${u}`, 'Output multiplier', 'Backward linkage', 'Forward linkage', ''];
+    table('.lt-mult', multHead, multRows, (i) => (io!.backward[i] > 1 && io!.forward[i] > 1 ? 'lt-key' : ''));
+    // Satellite rows.
+    q('.lt-satw').hidden = !sats.length;
+    const satRes = sats.map((s) => ({ ...s, r: satellite(io!, s.totals) }));
+    const satHead = ['Sector', ...satRes.flatMap((s) => [`${s.name}: direct`, 'total', 'Type I'])];
+    const satRows = names.map((nm, j) => [nm, ...satRes.flatMap((s) => [g(s.r.coef[j]), g(s.r.simple[j]), f4(s.r.typeI[j])])]);
+    if (sats.length) table('.lt-satt', satHead, satRows);
+    // Shock.
+    buildShock();
+    const df = [...root.querySelectorAll<HTMLInputElement>('.lt-df')].map((i) => { const v = num(i.value); return Number.isFinite(v) ? v : 0; });
+    const dx = impact(io, df);
+    const impHead = ['Sector', `Final demand change${u}`, `Output change${u}`, ...satRes.map((s) => `${s.name} change`)];
+    const impRows = names.map((nm, i) => [nm, g(df[i], 6), g(dx[i], 5), ...satRes.map((s) => g(s.r.coef[i] * dx[i], 4))]);
+    const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+    impRows.push(['Total', g(sum(df), 6), g(sum(dx), 5), ...satRes.map((s) => g(sum(dx.map((v, i) => v * s.r.coef[i])), 4))]);
+    table('.lt-imp', impHead, impRows, (i) => (i === n ? 'lt-sum' : ''));
+    const tdf = sum(df);
+    q('.lt-imph').textContent = tdf ? `Total output changes by ${g(sum(dx), 5)}${u} for ${g(tdf, 6)}${u} of final demand: ${g(sum(dx) - tdf, 5)}${u} of it is indirect, from sectors supplying each other. The model assumes fixed recipes (no substitution), spare capacity and fixed prices, so treat large shocks with care.` : 'Enter a change in final demand for one or more sectors.';
+    // A and L.
+    const matRows = (M: number[][]) => M.map((r, i) => [names[i], ...r.map(f4)]);
+    table('.lt-A', ['', ...names], [...matRows(io.A), ['Column sum', ...pr.colSums.map(f4)]], (i) => (i === n ? 'lt-sum' : ''));
+    table('.lt-L', ['', ...names], [...matRows(io.L), ['Column sum', ...io.multipliers.map(f4)]], (i) => (i === n ? 'lt-sum' : ''));
+
+    csvRows = [['Multipliers'], multHead.slice(0, 6), ...multRows.map((r) => r.slice(0, 6)), [], ...(sats.length ? [['Type I multipliers'], satHead, ...satRows, []] : []), ['Impact'], impHead, ...impRows, [], ['Technical coefficients A'], ['', ...names], ...matRows(io.A), [], ['Leontief inverse'], ['', ...names], ...matRows(io.L)];
+    csvRows = csvRows.map((r) => r.map((c) => c.replace(/−/g, '-')));
+    const al = (k: number) => ['l', ...Array.from({ length: k }, () => 'r' as const)] as ('l' | 'r')[];
+    sections = [
+      { title: q('.lt-big').textContent!, text: [q('.lt-warn').textContent!], table: { head: multHead.slice(0, 6), rows: multRows.map((r) => r.slice(0, 6)), align: al(5) } },
+      ...(sats.length ? [{ title: 'Type I multipliers', table: { head: satHead, rows: satRows, align: al(satHead.length - 1) } }] : []),
+      { title: 'Effect of a change in final demand', text: [q('.lt-imph').textContent!], table: { head: impHead, rows: impRows, align: al(impHead.length - 1) } },
+      { title: 'Technical coefficients A', table: { head: ['', ...names], rows: matRows(io.A), align: al(n) } },
+      { title: 'Leontief inverse (I − A)⁻¹', table: { head: ['', ...names], rows: matRows(io.L), align: al(n) } },
+    ];
+  }
+
+  let timer = 0;
+  function later() { clearTimeout(timer); timer = window.setTimeout(calc, 200); }
+  root.querySelectorAll('textarea, .lt-unit').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.lt-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'leontief-multipliers.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Input-output multipliers', subtitle: q('.lt-big').textContent ?? '', file: 'leontief-multipliers', sections }));
+</script>

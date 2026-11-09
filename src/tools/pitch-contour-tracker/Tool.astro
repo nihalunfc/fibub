@@ -1,0 +1,137 @@
+---
+// Pitch contour tracker: F0 of a speech recording by YIN or autocorrelation, in Hz and semitones.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pc">
+  <div class="ax-card">
+    <h2>Recording</h2>
+    <div class="ax-row">
+      <label class="btn secondary small" style="cursor:pointer">Open a sound file<input type="file" class="pc-file" accept=".wav,audio/*" hidden /></label>
+      <button type="button" class="btn secondary small pc-ex">Load the made-up example</button>
+    </div>
+    <p class="ax-help pc-info">WAV files are read exactly as recorded. Other formats (MP3, M4A, OGG) are decoded by your browser. The sound stays on your device; nothing is uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Method <select class="pc-m"><option value="yin" selected>YIN</option><option value="acf">Autocorrelation</option></select></label>
+      <label>Lowest pitch (Hz) <input class="pc-lo" inputmode="decimal" value="75" /></label>
+      <label>Highest pitch (Hz) <input class="pc-hi" inputmode="decimal" value="500" /></label>
+      <label><span class="pc-thl">Voicing threshold</span> <input class="pc-th" inputmode="decimal" value="0.15" /></label>
+      <label>Silence below (% of loudest) <input class="pc-sil" inputmode="decimal" value="5" /></label>
+      <label>Smoothing <select class="pc-sm"><option value="1">none</option><option value="3">3 frames</option><option value="5" selected>5 frames</option><option value="7">7 frames</option></select></label>
+      <label>Semitones relative to <select class="pc-ref"><option value="100" selected>100 Hz</option><option value="median">the median pitch</option></select></label>
+    </div>
+    <p class="ax-help pc-thhelp"></p>
+    <p class="ax-help">Pitch range: most men speak between about 75 and 250 Hz, most women and children between 120 and 500 Hz. A narrower range avoids octave errors. Frames are 10 ms apart. Smoothing takes a running median inside each voiced stretch.</p>
+    <p class="ax-err pc-err" hidden></p>
+  </div>
+
+  <div class="ax-card pc-out" hidden>
+    <h2>Pitch contour</h2>
+    <p class="ax-big pc-big"></p>
+    <canvas class="ax-fig pc-hz"></canvas>
+    <canvas class="ax-fig pc-st" style="margin-top:8px"></canvas>
+    <dl class="ax-facts pc-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pc-csv">Contour (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { pitchTrack, pitchStats, semitones, synthVoice, type PitchTrack } from '../../lib/sci/pitch';
+  import { readWav, type Sound } from '../../lib/sci/formant-audio';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAX_S = 120;
+  let snd: Sound | null = null, name = '', tr: PitchTrack | null = null, ref = 100, figs: Figure[] = [], report: Section[] = [];
+  const TH = { yin: ['0.15', 'Voicing threshold (YIN, 0 to 1)', 'YIN: a frame is voiced when its normalised difference dips below this. Lower is stricter (fewer, surer pitch points); 0.10 to 0.20 is usual.'], acf: ['0.5', 'Voicing threshold (correlation, 0 to 1)', 'Autocorrelation: a frame is voiced when its best correlation peak is above this. Higher is stricter; 0.4 to 0.6 is usual.'] } as const;
+
+  function err(m: string) { const e = q('.pc-err'); e.textContent = m; e.hidden = !m; if (m) q('.pc-out').hidden = true; }
+
+  async function decode(f: File): Promise<Sound> {
+    const buf = await f.arrayBuffer(), head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+    if (String.fromCharCode(...head) === 'RIFF') return readWav(buf);
+    const AC = window.OfflineAudioContext;
+    if (!AC) throw new Error('This browser cannot decode that format. Save the recording as WAV and try again.');
+    let ab: AudioBuffer;
+    try { ab = await new AC(1, 1, 16000).decodeAudioData(buf); } catch { throw new Error('This file could not be read as sound. Try a WAV file.'); }
+    const x = new Float64Array(ab.length);
+    for (let c = 0; c < ab.numberOfChannels; c++) { const d = ab.getChannelData(c); for (let i = 0; i < x.length; i++) x[i] += d[i] / ab.numberOfChannels; }
+    return { fs: ab.sampleRate, x, channels: ab.numberOfChannels, bits: 32, format: 'decoded by the browser', seconds: x.length / ab.sampleRate };
+  }
+
+  // Made-up example: a falling statement (180 to 120 Hz), a pause, then a rising question (130 to 220 Hz).
+  const exF0 = (t: number) => (t < 0.1 ? 0 : t < 1.0 ? 180 * (120 / 180) ** ((t - 0.1) / 0.9) : t < 1.25 ? 0 : t < 2.05 ? 130 * (220 / 130) ** ((t - 1.25) / 0.8) : 0);
+
+  function run() {
+    if (!snd) return;
+    try {
+      const method = q<HTMLSelectElement>('.pc-m').value as 'yin' | 'acf';
+      const fmin = num(q<HTMLInputElement>('.pc-lo').value), fmax = num(q<HTMLInputElement>('.pc-hi').value), th = num(q<HTMLInputElement>('.pc-th').value), sil = num(q<HTMLInputElement>('.pc-sil').value);
+      if (!(fmin >= 20 && fmax <= 2000 && fmax > fmin * 1.2)) throw new Error('Give a pitch range between 20 and 2000 Hz, with the highest above the lowest.');
+      if (!(th > 0 && th < 1)) throw new Error('The voicing threshold must be between 0 and 1.');
+      if (!(sil >= 0 && sil < 100)) throw new Error('Silence must be between 0 and 100 % of the loudest frame.');
+      const x = snd.x.length > MAX_S * snd.fs ? snd.x.subarray(0, MAX_S * snd.fs) : snd.x;
+      tr = pitchTrack(x, snd.fs, { method, fmin, fmax, threshold: th, silence: sil / 100, smooth: +q<HTMLSelectElement>('.pc-sm').value });
+      if (!tr.t.length) throw new Error('The recording is too short for this pitch range.');
+      const s0 = pitchStats(tr.f0, 100);
+      if (!s0) throw new Error('No voiced frames found. Check the pitch range, or raise the voicing threshold (YIN) or lower it (autocorrelation).');
+      ref = q<HTMLSelectElement>('.pc-ref').value === 'median' ? s0.median : 100;
+      const s = pitchStats(tr.f0, ref)!;
+      err(''); q('.pc-out').hidden = false;
+      q('.pc-big').textContent = `Median pitch ${Math.round(s.median)} Hz, range ${s.rangeSt.toFixed(1)} semitones`;
+      const T = tr, xs = T.t, yHz = T.f0.map((f) => (f == null ? NaN : f)), ySt = T.f0.map((f) => (f == null ? NaN : semitones(f, ref)));
+      const refTxt = ref === 100 ? '100 Hz' : `${sig(ref, 4)} Hz (median)`;
+      const w = Math.max(340, Math.min(720, Math.round(q('.pc-out').clientWidth || 720)));
+      const hz = chartFigure({ w, h: 260, xLabel: 'Time (s)', yLabel: 'Pitch (Hz)', legend: 'none', xMin: 0, xMax: Math.min(snd.seconds, MAX_S), series: [{ name: 'F0', x: xs, y: yHz, mode: 'points', size: 2 }] }, 'Pitch contour in hertz against time');
+      const st = chartFigure({ w, h: 220, xLabel: 'Time (s)', yLabel: `Semitones re ${ref === 100 ? '100 Hz' : 'median'}`, legend: 'none', xMin: 0, xMax: Math.min(snd.seconds, MAX_S), series: [{ name: 'F0', x: xs, y: ySt, mode: 'points', size: 2, marker: 'square' }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, 'Pitch contour in semitones against time');
+      paint(q<HTMLCanvasElement>('.pc-hz'), hz); paint(q<HTMLCanvasElement>('.pc-st'), st); figs = [hz, st];
+      const facts: [string, string, string?][] = [
+        ['Mean', `${s.mean.toFixed(1)} Hz`, `SD ${s.sd.toFixed(1)} Hz`],
+        ['Lowest, highest', `${Math.round(s.min)} to ${Math.round(s.max)} Hz`],
+        ['Mean in semitones', `${s.stMean.toFixed(2)} st`, `SD ${s.stSd.toFixed(2)} st, re ${refTxt}`],
+        ['Voiced', `${Math.round(s.voiced * 100)} %`, `${s.n} of ${T.t.length} frames`],
+        ['Method', method === 'yin' ? 'YIN' : 'Autocorrelation', `threshold ${th}, ${fmin} to ${fmax} Hz`],
+      ];
+      const dl = q('.pc-facts'); dl.innerHTML = '';
+      for (const [k, v, sm] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); dl.append(d); }
+      report = [
+        { title: 'Pitch contour', facts: [['File', name], ['Median', `${Math.round(s.median)} Hz`], ['Range', `${s.rangeSt.toFixed(1)} semitones`], ...facts.map(([k, v, sm]) => [k, sm ? `${v} (${sm})` : v] as [string, string])], figure: hz },
+        { title: 'In semitones', figure: st },
+      ];
+    } catch (e) { err((e as Error).message); report = []; }
+  }
+
+  async function open(f: File) {
+    err('');
+    if (f.size > 100e6) { err('That file is over 100 MB. Cut out the part you need first.'); return; }
+    try {
+      snd = await decode(f); name = f.name;
+      q('.pc-info').textContent = `${f.name}: ${snd.seconds.toFixed(2)} s, ${snd.fs.toLocaleString('en')} Hz, ${snd.channels === 1 ? 'mono' : `${snd.channels} channels mixed to one`}, ${snd.format}${snd.seconds > MAX_S ? `. Only the first ${MAX_S} s are analysed.` : '.'}`;
+      run();
+    } catch (e) { snd = null; err((e as Error).message); }
+  }
+
+  function setMethod() {
+    const m = q<HTMLSelectElement>('.pc-m').value as 'yin' | 'acf';
+    q<HTMLInputElement>('.pc-th').value = TH[m][0]; q('.pc-thl').textContent = TH[m][1]; q('.pc-thhelp').textContent = TH[m][2];
+  }
+  q<HTMLInputElement>('.pc-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); });
+  q('.pc-ex').addEventListener('click', () => { snd = { fs: 16000, x: synthVoice(exF0, 2.15, 16000), channels: 1, bits: 16, format: 'made up', seconds: 2.15 }; name = 'made-up example'; q('.pc-info').textContent = 'Made-up example: a synthetic voice saying a falling statement (180 to 120 Hz), a pause, then a rising question (130 to 220 Hz), 2.15 s at 16,000 Hz.'; run(); });
+  q('.pc-m').addEventListener('change', () => { setMethod(); run(); });
+  for (const c of ['.pc-sm', '.pc-ref']) q(c).addEventListener('change', run);
+  for (const c of ['.pc-lo', '.pc-hi', '.pc-th', '.pc-sil']) q(c).addEventListener('change', run);
+  q('.pc-csv').addEventListener('click', () => {
+    if (!tr) return;
+    const rows: (string | number)[][] = [['time_s', 'f0_Hz', 'f0_unsmoothed_Hz', `semitones_re_${+ref.toFixed(2)}Hz`, 'strength', 'rms']];
+    tr.t.forEach((t, i) => { const f = tr!.f0[i], r = tr!.raw[i]; rows.push([+t.toFixed(4), f == null ? '' : +f.toFixed(2), r == null ? '' : +r.toFixed(2), f == null ? '' : +semitones(f, ref).toFixed(3), +tr!.strength[i].toFixed(4), +tr!.rms[i].toExponential(4)]); });
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'pitch-contour.csv', 'text/csv');
+  });
+  let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = window.setTimeout(() => { if (figs.length) run(); }, 200); });
+  new MutationObserver(() => { if (figs.length) { paint(q<HTMLCanvasElement>('.pc-hz'), figs[0]); paint(q<HTMLCanvasElement>('.pc-st'), figs[1]); } }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  setMethod();
+  wireDownloads(q('.dl'), () => ({ title: 'Pitch contour', file: 'pitch-contour', sections: report }));
+</script>

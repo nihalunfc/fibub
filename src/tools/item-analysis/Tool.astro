@@ -1,0 +1,219 @@
+---
+// Item analysis (classical test theory): difficulty, discrimination, KR-20 and distractors.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ia">
+  <div class="ax-card">
+    <h2>Test results</h2>
+    <div class="ax-grid">
+      <label>My data is <select class="ia-form"><option value="key" selected>Answers (A, B, C…) and a key</option><option value="scored">Scored 1 or 0</option></select></label>
+      <label>Upper and lower groups <select class="ia-frac"><option value="0.25">25 %</option><option value="0.27" selected>27 %</option><option value="0.33">33 %</option><option value="0.5">50 %</option></select></label>
+    </div>
+    <label style="margin-top:10px"><span class="ia-what"></span>
+      <textarea class="ia-in" rows="10" spellcheck="false" wrap="off">Student	Q1	Q2	Q3	Q4	Q5	Q6	Q7	Q8	Q9	Q10
+Key	B	D	A	C	A	B	C	D	B	A
+S01	B	D	D	D	D	D	A	B	C	B
+S02	B	D	A	B	A	B	D	C	D	A
+S03	B	D	A	D	A	C	D	D	B	A
+S04	B	D	B	C	C	B	B	B	D	C
+S05		D	D	C	C	A	B		B	
+S06	B	D	A	C	C	D	C	D	C	A
+S07	B	B	D	C	C	D	B	B	A	D
+S08	B	D	A	B	C		A	A	C	A
+S09	B	D	B	C	A	B	D	C	B	A
+S10	B	D	A	D		D	B	D	A	C
+S11	B	A	A	C	C	C	D	C	D	C
+S12	D	A	D	B	C	A	B	C	C	C
+S13	B	B	B	A	C	D	A	B	C	C
+S14	B	D	A	C	A	B	C	D	B	A
+S15	B	D	A	A	A	A	D	B	C	B
+S16	B		A	B	C	C	D	A		A
+S17	B	D	A	C	A	B	C	C	B	A
+S18	B	B	D	B	A	A	D	B	A	B
+S19	C	D	B	B	B	B	B	B	D	D
+S20	B	A	A	B	A	D	D	B	D	A
+S21	D	C	D	A	D	B	D	A	B	B
+S22	B	D	A		B	C	B	D	C	C
+S23	B	D	A	C	A	B	B	D	B	A
+S24	B	A	A	C	B	A	D	C	C	B
+S25	B	D	B	C	D	B	A	B	C	D
+S26	D	A	A	C	B	C	A	A	D	B
+S27	B	D	D	C	B	D	A	A	C	A
+S28	B	D	A	C	A	B	C	D	C	C
+S29	B	D	D	C	A	B	D	C	B	A
+S30	B	C	A	A	B	C	D	A	D	C</textarea></label>
+    <DataFile target=".ia-in" maxCols={200} maxRows={20000} />
+    <label class="ia-kl" style="margin-top:10px">Answer key <input class="ia-key" value="" placeholder="e.g. BDAC, or use a Key row" /></label>
+    <p class="ax-help ia-help">Made-up example: 30 students, 10 multiple-choice questions, with the key in the row labelled Key. Blank answers count as wrong.</p>
+    <p class="ax-err ia-err" hidden></p>
+  </div>
+
+  <div class="ax-card ia-out" hidden>
+    <h2>Whole test</h2>
+    <dl class="ax-facts ia-facts"></dl>
+    <h3 class="ia-h3">Items</h3>
+    <div class="ax-scroll"><table class="ia-items"></table></div>
+    <p class="ax-help ia-note"></p>
+    <div class="ia-dw">
+      <h3 class="ia-h3">Distractors</h3>
+      <label class="ia-pick">Item <select class="ia-item"></select></label>
+      <div class="ax-scroll"><table class="ia-dis"></table></div>
+      <p class="ax-help ia-dnote"></p>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ia-csv-i">Items (CSV)</button><button type="button" class="btn secondary small ia-csv-s">Scores (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ia .ia-h3 { margin: 16px 0 6px; font-size: 16px; }
+  .ia .ia-pick { max-width: 200px; margin-bottom: 8px; }
+  .ia td.ia-bad { color: var(--bad); font-weight: 600; }
+  .ia td.ia-key { font-weight: 700; }
+  .ia .ia-items td, .ia .ia-dis td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { scoreAnswers, analyse, distractors, type TestStats, type OptionStats } from '../../lib/sci/itemanalysis';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ia')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], itemCsv: (string | number)[][] = [], scoreCsv: (string | number)[][] = [];
+  let state: { r: TestStats; names: string[]; A: string[][] | null; key: string[] | null } | null = null;
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2).replace(/^-/, '−') : '–');
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const pc = (x: number) => `${(100 * x).toFixed(0)} %`;
+  const band = (d: number) => d >= 0.4 ? 'very good' : d >= 0.3 ? 'good' : d >= 0.2 ? 'marginal' : 'poor';
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+  function setHelp() {
+    const key = q<HTMLSelectElement>('.ia-form').value === 'key';
+    q('.ia-what').textContent = key ? 'One row per student, one column per question, with the answer chosen (A, B, C… or any text). A header row, a first column of names and a row labelled Key are optional.' : 'One row per student, one column per question: 1 for right, 0 for wrong (blank counts as 0). A header row and a first column of names are optional.';
+    q('.ia-kl').hidden = !key;
+  }
+
+  function disRows(o: OptionStats[]) { return o.map((x) => [(x.option || '(blank)') + (x.key ? ' ✓' : ''), String(x.count), pc(x.prop), pc(x.pUpper), pc(x.pLower), f2(x.rpb)]); }
+  const DHEAD = ['Option', 'Chosen', 'Share', 'Upper', 'Lower', 'r with total'];
+  function showDis() {
+    if (!state?.A || !state.key) return;
+    const j = Number(q<HTMLSelectElement>('.ia-item').value), { r, A, key, names } = state;
+    const o = distractors(A.map((x) => x[j] ?? ''), key[j], r.total, r.upper, r.lower);
+    table(q<HTMLTableElement>('.ia-dis'), DHEAD, disRows(o), (ri, c) => {
+      const x = o[ri];
+      if (c === 0 && x.key) return 'ia-key';
+      if (c === 5 && x.option !== '' && (x.key ? x.rpb < 0 : x.rpb > 0)) return 'ia-bad';
+      if (c === 1 && !x.key && x.option !== '' && x.count === 0) return 'ia-bad';
+      return '';
+    });
+    const notes: string[] = [];
+    const strong = o.filter((x) => !x.key && x.option !== '' && x.pUpper > x.pLower);
+    if (strong.length) notes.push(`${strong.map((x) => x.option).join(', ')} drew more strong students than weak ones: check the wording and the key.`);
+    if (o.some((x) => !x.key && x.option !== '' && x.count === 0)) notes.push('An option nobody chose is not doing its job.');
+    notes.push(`For ${names[j]}, a good distractor is chosen more by the lower group than the upper group and has a negative r with the total score. The key should have a positive r.`);
+    q('.ia-dnote').textContent = notes.join(' ');
+  }
+
+  function calc() {
+    const err = q('.ia-err');
+    try {
+      const rows = parseTable(q<HTMLTextAreaElement>('.ia-in').value);
+      if (!rows.length) throw new Error('Paste the test results first.');
+      const withKey = q<HTMLSelectElement>('.ia-form').value === 'key';
+      const isNum = (c: string) => c.trim() === '' || Number.isFinite(num(c));
+      // Header and ID column. In key mode answers are short codes (one or two characters), so longer text in the
+      // first row or first column marks a header or names; a row labelled Key holds the key.
+      const isKeyRow = (r: string[]) => /^(answer\s*)?key$/i.test(r[0]?.trim() ?? '');
+      const idWord = (c: string) => /^(id|name|names|student|students|person|candidate)$/i.test(c.trim());
+      const short = (c: string) => c.trim().length <= 1;
+      let head: string[] | null = null, body = rows;
+      if (withKey) {
+        const r0 = rows[0].slice(1);
+        if (rows.length > 1 && !isKeyRow(rows[0]) && (idWord(rows[0][0] ?? '') || r0.filter((c) => !short(c)).length > r0.length / 2)) { head = rows[0]; body = rows.slice(1); }
+      } else if (rows.length > 1 && !rows[0].every(isNum)) { head = rows[0]; body = rows.slice(1); }
+      let key: string[] | null = null;
+      const kTxt = q<HTMLInputElement>('.ia-key').value.trim();
+      const kr = body.findIndex(isKeyRow);
+      if (withKey && kr >= 0) { key = body[kr].slice(1); body = body.filter((_, i) => i !== kr); }
+      const hasId = withKey
+        ? kr >= 0 || idWord(head?.[0] ?? '') || body.every((r) => !short(r[0] ?? ''))
+        : body.every((r) => r[0]?.trim() !== '' && !Number.isFinite(num(r[0])));
+      const ids = body.map((r, i) => (hasId ? r[0].trim() : `Row ${i + 1}`));
+      if (hasId) body = body.map((r) => r.slice(1));
+      if (kTxt) key = /[,;\s]/.test(kTxt) ? kTxt.split(/[,;\s]+/).filter(Boolean) : kTxt.split('');
+      const k = Math.max(...body.map((r) => r.length), key?.length ?? 0);
+      const names = Array.from({ length: k }, (_, j) => (head ? head[j + (hasId ? 1 : 0)]?.trim() : '') || `Q${j + 1}`);
+      let X: number[][], A: string[][] | null = null;
+      if (withKey) {
+        if (!key) throw new Error('Type the answer key, or add a row labelled Key.');
+        if (key.length !== k) throw new Error(`The key has ${key.length} answers but there are ${k} questions.`);
+        A = body.map((r) => Array.from({ length: k }, (_, j) => r[j] ?? ''));
+        X = scoreAnswers(A, key);
+      } else {
+        X = body.map((r, i) => Array.from({ length: k }, (_, j) => {
+          const c = (r[j] ?? '').trim(); if (c === '') return 0;
+          const v = num(c); if (v !== 0 && v !== 1) throw new Error(`"${c}" for ${ids[i]} (${names[j]}) is not 0 or 1. Choose "Answers and a key" for letter answers.`); return v;
+        }));
+      }
+      const r = analyse(X, Number(q<HTMLSelectElement>('.ia-frac').value));
+      state = { r, names, A, key };
+      const ff: [string, string][] = [
+        ['Students, questions', `${r.n}, ${r.k}`],
+        ['Mean score', `${r.mean.toFixed(2)} of ${r.k} (${pc(r.mean / r.k)})`],
+        ['SD', r.sd.toFixed(2)],
+        ['KR-20 reliability', f3(r.kr20)],
+        ['KR-21', f3(r.kr21)],
+        ['Standard error of measurement', r.sem.toFixed(2)],
+        ['Group size (upper, lower)', `${r.groupSize} each`],
+      ];
+      const dl = q('.ia-facts'); dl.innerHTML = '';
+      for (const [a, b] of ff) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; d.append(dt, dd); dl.append(d); }
+      const flags = r.items.map((it) => {
+        const f: string[] = [];
+        if (it.rit < 0) f.push('check key');
+        if (it.p < 0.2) f.push('very hard'); else if (it.p > 0.9) f.push('very easy');
+        if (it.D < 0.2 || it.rit < 0.2) f.push('weak');
+        if (it.alphaIfDeleted > r.kr20 + 0.005) f.push('lowers KR-20');
+        return f.join(', ');
+      });
+      const head2 = ['Question', 'Difficulty p', 'D', 'D reads as', 'Point-biserial', 'Corrected r', 'KR-20 if dropped', 'Check'];
+      const rowsI = r.items.map((it, j) => [names[j] + (key ? ` (${key[j]})` : ''), f2(it.p), f2(it.D), band(it.D), f2(it.rpb), f2(it.rit), f3(it.alphaIfDeleted), flags[j] || '–']);
+      table(q<HTMLTableElement>('.ia-items'), head2, rowsI, (ri, c) => (c === 7 && flags[ri]) || (c === 2 && r.items[ri].D < 0.2) || (c === 5 && r.items[ri].rit < 0.2) ? 'ia-bad' : '');
+      q('.ia-note').textContent = `p is the share who got the question right. D is the share right in the top ${pc(r.groupSize / r.n)} minus the bottom ${pc(r.groupSize / r.n)} by total score (Ebel's guide: 0.40 and up very good, 0.30 good, 0.20 marginal, below poor; students tied at the cut are taken in list order). The point-biserial is the item's correlation with the total score; the corrected r leaves the item out of the total. KR-20 above 0.7 is usual for a class test.`;
+      itemCsv = [['Question', 'Key', 'p', 'D', 'Point-biserial', 'Corrected r', 'KR-20 if dropped', 'Check'], ...r.items.map((it, j) => [names[j], key?.[j] ?? '', +it.p.toFixed(6), +it.D.toFixed(6), +it.rpb.toFixed(6), +it.rit.toFixed(6), +it.alphaIfDeleted.toFixed(6), flags[j]])];
+      scoreCsv = [['ID', 'Score', 'Percent'], ...ids.map((id, i) => [id, r.total[i], +(100 * r.total[i] / r.k).toFixed(2)])];
+      q('.ia-dw').hidden = !A;
+      const sel = q<HTMLSelectElement>('.ia-item'), cur = sel.value;
+      sel.innerHTML = ''; names.forEach((nm, j) => sel.add(new Option(nm, String(j))));
+      sel.value = cur !== '' && Number(cur) < k ? cur : '0';
+      showDis();
+      report = [
+        { title: 'Whole test', facts: ff },
+        { title: 'Items', table: { head: head2, rows: rowsI, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: q('.ia-note').textContent! },
+        ...(A && key ? names.map((nm, j) => ({ title: `Distractors: ${nm}`, table: { head: DHEAD, rows: disRows(distractors(A!.map((x) => x[j] ?? ''), key![j], r.total, r.upper, r.lower)), align: ['l', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } })) : []),
+      ];
+      err.hidden = true; q('.ia-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.ia-out').hidden = true; report = []; itemCsv = []; scoreCsv = []; state = null; }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.ia-item')) return; clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.matches('.ia-item')) showDis();
+    else if (el.matches('.ia-form')) { setHelp(); calc(); }
+    else if (el.matches('select')) calc();
+  });
+  q('.ia-csv-i').addEventListener('click', () => { if (itemCsv.length > 1) save(new TextEncoder().encode(csv(itemCsv)), 'item-analysis.csv', 'text/csv'); });
+  q('.ia-csv-s').addEventListener('click', () => { if (scoreCsv.length > 1) save(new TextEncoder().encode(csv(scoreCsv)), 'test-scores.csv', 'text/csv'); });
+  setHelp(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Item analysis', file: 'item-analysis', sections: report }));
+</script>

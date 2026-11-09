@@ -1,0 +1,233 @@
+---
+// Reaction time experiments: run Stroop, flanker and n-back tasks in the page, then summarise and download
+// the trials. Maths and trial lists in src/lib/sci/rtexp.ts; nothing is kept after the page closes.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rx">
+  <div class="ax-card">
+    <h2>Choose a task</h2>
+    <div class="ax-seg rx-mode" role="group" aria-label="Task">
+      <button type="button" data-m="stroop" aria-pressed="true">Stroop</button><button type="button" data-m="flanker" aria-pressed="false">Flanker</button><button type="button" data-m="nback" aria-pressed="false">N-back</button>
+    </div>
+    <p class="rx-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Trials <input class="rx-n" type="number" min="8" max="200" step="1" value="24" inputmode="numeric" /></label>
+      <label class="rx-only-cf">Congruent trials (%) <input class="rx-pc" type="number" min="0" max="100" step="5" value="50" inputmode="numeric" /></label>
+      <label class="rx-only-nb" hidden>N (how far back) <select class="rx-lvl"><option value="1">1-back</option><option value="2" selected>2-back</option><option value="3">3-back</option></select></label>
+      <label class="rx-only-nb" hidden>Targets (%) <input class="rx-tr" type="number" min="10" max="50" step="5" value="30" inputmode="numeric" /></label>
+      <label class="rx-only-nb" hidden>Pace <select class="rx-pace"><option value="2500" selected>A letter every 2.5 s</option><option value="1500">A letter every 1.5 s</option></select></label>
+    </div>
+    <label class="ax-check rx-only-cf" style="margin-top:10px"><input type="checkbox" class="rx-fb" checked /> Show a tick or cross after each answer</label>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn rx-start">Start</button></div>
+    <p class="ax-help">Use a quiet room and sit comfortably. Browser timing is approximate: screens, keyboards and touch screens add a delay of a few to tens of milliseconds, the same for every trial, so differences between conditions are more trustworthy than single reaction times. Results stay in this page only and are gone when you close or reload it.</p>
+    <p class="ax-err rx-err" hidden></p>
+  </div>
+
+  <div class="ax-card rx-run" hidden>
+    <div class="ax-row" style="justify-content:space-between"><span class="ax-pill rx-prog"></span><button type="button" class="btn secondary small rx-stop">Stop</button></div>
+    <div class="rx-stage" aria-live="off"><span class="rx-stim"></span></div>
+    <div class="rx-keys"></div>
+    <p class="ax-help rx-keyhelp"></p>
+  </div>
+
+  <div class="ax-card rx-out" hidden>
+    <h2 class="rx-hd"></h2>
+    <p class="ax-big rx-big"></p>
+    <dl class="ax-facts rx-facts"></dl>
+    <div class="ax-grid" style="margin-top:14px">
+      <label>Fastest RT kept (ms) <input class="rx-min" type="number" min="0" step="10" value="150" inputmode="numeric" /></label>
+      <label>Slowest RT kept (ms) <input class="rx-max" type="number" min="100" step="100" value="3000" inputmode="numeric" /></label>
+      <label>Also drop RTs beyond <select class="rx-sd"><option value="">No SD rule</option><option value="2">2 SD</option><option value="2.5">2.5 SD</option><option value="3">3 SD</option></select></label>
+    </div>
+    <p class="ax-help">Reaction times (RT) use correct trials only. Very fast answers are usually anticipations and very slow ones lapses of attention. The SD rule works within each condition.</p>
+    <h3 style="margin-top:14px">By condition</h3>
+    <div class="ax-scroll"><table class="rx-tab"></table></div>
+    <canvas class="ax-fig rx-fig" style="margin-top:14px"></canvas>
+    <details style="margin-top:12px"><summary>Every trial</summary><div class="ax-scroll"><table class="rx-trials"></table></div></details>
+    <p class="ax-help rx-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small rx-csv">Download trials (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rx .rx-what { margin: 8px 0 0; font-size: 15px; }
+  .rx .rx-stage { margin-top: 12px; min-height: 220px; border-radius: 12px; background: #111; color: #f2f2f2; display: grid; place-items: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; overflow: hidden; }
+  .rx .rx-stim { font: 700 clamp(40px, 13vw, 72px)/1.1 system-ui, sans-serif; letter-spacing: 0.04em; white-space: nowrap; }
+  .rx .rx-stim.rx-arrows { letter-spacing: 0.02em; font-size: clamp(38px, 12vw, 68px); }
+  .rx .rx-stim.rx-ok { color: #7fd99a; } .rx .rx-stim.rx-bad { color: #ff8a80; }
+  .rx .rx-keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 8px; margin-top: 12px; }
+  .rx .rx-keys button { font: inherit; font-size: 17px; font-weight: 600; padding: 16px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); touch-action: manipulation; cursor: pointer; }
+  .rx .rx-keys button:active { background: var(--surface); }
+  .rx .rx-tab td.r, .rx .rx-trials td.r { white-space: nowrap; }
+  .rx .rx-trials td.rx-x { color: var(--bad); }
+  html.red-mode .rx .rx-stage { filter: url(#red-night); }
+</style>
+
+<script>
+  import { makeStroop, makeFlanker, makeNback, summarise, trialRows, type Task, type Stim, type Trial } from '../../lib/sci/rtexp';
+  import { csv } from '../../lib/sci/num';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const INK: Record<string, string> = { red: '#ff4b4b', green: '#2fc25b', blue: '#5b8cff', yellow: '#ffd21f' };
+  const WHAT: Record<Task, string> = {
+    stroop: 'A colour word appears in coloured ink. Answer the colour of the ink, not the word: R red, G green, B blue, Y yellow, or tap a button. Words that name a different colour slow most people down (the Stroop effect).',
+    flanker: 'Five arrows appear. Answer the direction of the middle one: left or right arrow key (or F and J), or tap a button. Neighbours pointing the other way slow you down (the flanker effect).',
+    nback: 'Letters appear one at a time. Press Space (or tap Match) when the letter is the same as the one N letters back. Say nothing otherwise. This tests working memory.',
+  };
+  const KEYS: Record<Task, { label: string; value: string; keys: string[] }[]> = {
+    stroop: [{ label: 'Red (R)', value: 'red', keys: ['r'] }, { label: 'Green (G)', value: 'green', keys: ['g'] }, { label: 'Blue (B)', value: 'blue', keys: ['b'] }, { label: 'Yellow (Y)', value: 'yellow', keys: ['y'] }],
+    flanker: [{ label: '← Left', value: 'left', keys: ['arrowleft', 'f'] }, { label: 'Right →', value: 'right', keys: ['arrowright', 'j'] }],
+    nback: [{ label: 'Match (Space)', value: 'match', keys: [' ', 'm'] }],
+  };
+  let task: Task = 'stroop', level = 2, trials: Trial[] = [], report: Section[] = [], fig: Figure | null = null;
+  let run: { stims: Stim[]; i: number; onset: number; open: boolean; resp: string; rt: number | null; timers: number[]; pace: number; feedback: boolean } | null = null;
+
+  const fmt = (x: number, d = 0) => (Number.isFinite(x) ? x.toFixed(d).replace(/^-/, '−') : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? `${(x * 100).toFixed(1)} %` : '–');
+  const after = (ms: number, f: () => void) => { const id = window.setTimeout(f, ms); run?.timers.push(id); };
+  const stim = q('.rx-stim'), stage = q('.rx-stage');
+  const show = (text: string, colour = '', cls = '') => { stim.textContent = text; stim.style.color = colour; stim.className = 'rx-stim' + (cls ? ' ' + cls : ''); };
+
+  function setTask(m: Task) {
+    task = m;
+    root.querySelectorAll<HTMLButtonElement>('.rx-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.rx-only-cf').forEach((e) => (e.hidden = m === 'nback'));
+    root.querySelectorAll<HTMLElement>('.rx-only-nb').forEach((e) => (e.hidden = m !== 'nback'));
+    q('.rx-what').textContent = WHAT[m];
+  }
+
+  function start() {
+    const err = q('.rx-err');
+    const n = Number(q<HTMLInputElement>('.rx-n').value), pc = Number(q<HTMLInputElement>('.rx-pc').value) / 100;
+    const lvl = Number(q<HTMLSelectElement>('.rx-lvl').value), tr = Number(q<HTMLInputElement>('.rx-tr').value) / 100;
+    const bad = !Number.isInteger(n) || n < 8 || n > 200 ? 'Choose between 8 and 200 trials.'
+      : task !== 'nback' && !(pc >= 0 && pc <= 1) ? 'Congruent trials must be between 0 and 100 %.'
+      : task === 'nback' && !(tr >= 0.1 && tr <= 0.5) ? 'Targets must be between 10 and 50 %.' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    err.hidden = true;
+    const seed = Math.random;
+    const stims = task === 'stroop' ? makeStroop(n, pc, seed) : task === 'flanker' ? makeFlanker(n, pc, seed) : makeNback(n, lvl, tr, seed);
+    trials = []; level = lvl;
+    run = { stims, i: -1, onset: 0, open: false, resp: '', rt: null, timers: [], pace: Number(q<HTMLSelectElement>('.rx-pace').value), feedback: q<HTMLInputElement>('.rx-fb').checked };
+    const keys = q('.rx-keys'); keys.innerHTML = '';
+    for (const k of KEYS[task]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = k.label; b.dataset.v = k.value; keys.append(b); }
+    q('.rx-keyhelp').textContent = task === 'stroop' ? 'Keys: R, G, B, Y. Esc stops.' : task === 'flanker' ? 'Keys: ← and → (or F and J). Esc stops.' : `Press Space when the letter matches the one ${lvl} back. Esc stops.`;
+    q('.rx-run').hidden = false; q('.rx-out').hidden = true;
+    (document.activeElement as HTMLElement | null)?.blur();
+    q('.rx-run').scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+    show('Get ready'); after(1200, next);
+  }
+
+  function next() {
+    if (!run) return;
+    run.i++;
+    if (run.i >= run.stims.length) return finish();
+    q('.rx-prog').textContent = `Trial ${run.i + 1} of ${run.stims.length}`;
+    if (task === 'nback') return present();
+    show('+'); after(500, present);
+  }
+
+  function present() {
+    if (!run) return;
+    const s = run.stims[run.i];
+    show(s.stimulus, s.ink ? INK[s.ink] : '', task === 'flanker' ? 'rx-arrows' : '');
+    stage.dataset.answer = s.answer;
+    run.resp = 'none'; run.rt = null; run.onset = 0; run.open = true;
+    // The stimulus is drawn in the next frame; take the onset from that frame's time.
+    requestAnimationFrame((t) => { if (run) run.onset = t; });
+    if (task === 'nback') { after(500, () => show('')); after(run.pace, () => close()); }
+    else after(2000, () => close());
+  }
+
+  function respond(value: string, time: number) {
+    if (!run || !run.open || !run.onset) return;
+    if (task === 'nback') { if (run.resp === 'none') { run.resp = value; run.rt = time - run.onset; } return; }
+    run.resp = value; run.rt = time - run.onset; close();
+  }
+
+  function close() {
+    if (!run || !run.open) return;
+    run.open = false; run.timers.forEach(clearTimeout); run.timers = [];
+    const s = run.stims[run.i], correct = run.resp === s.answer;
+    trials.push({ ...s, task, trial: run.i + 1, response: run.resp, correct, rt: run.rt });
+    delete stage.dataset.answer;
+    if (task === 'nback') return next();
+    if (run.feedback) { show(correct ? '✓' : run.resp === 'none' ? 'Too slow' : '✗', '', correct ? 'rx-ok' : 'rx-bad'); after(400, () => { show(''); after(400, next); }); }
+    else { show(''); after(500, next); }
+  }
+
+  function stop() { if (!run) return; run.timers.forEach(clearTimeout); run.open = false; finish(); }
+
+  function finish() {
+    run = null; q('.rx-run').hidden = true;
+    if (!trials.length) { const err = q('.rx-err'); err.textContent = 'Stopped before any answers were recorded.'; err.hidden = false; return; }
+    q('.rx-out').hidden = false;
+    analyse();
+    q('.rx-out').scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+  }
+
+  function cells(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+
+  function analyse() {
+    if (!trials.length) return;
+    const minRt = Number(q<HTMLInputElement>('.rx-min').value) || 0, maxRt = Number(q<HTMLInputElement>('.rx-max').value) || Infinity, sdv = q<HTMLSelectElement>('.rx-sd').value;
+    const s = summarise(trials, { minRt, maxRt, sdCut: sdv ? Number(sdv) : null });
+    const name = s.task === 'stroop' ? 'Stroop' : s.task === 'flanker' ? 'Flanker' : `${level}-back`;
+    q('.rx-hd').textContent = `${name} results`;
+    const fl: [string, string][] = [];
+    if (s.nback) {
+      q('.rx-big').textContent = `d′ = ${fmt(s.nback.dprime, 2)}`;
+      const hitRt = s.conds.find((c) => c.condition === 'target');
+      fl.push(['Hits', `${s.nback.hits} of ${s.nback.hits + s.nback.misses}`], ['False alarms', `${s.nback.fas} of ${s.nback.fas + s.nback.crs}`], ['Criterion c', fmt(s.nback.c, 2)], ['Mean RT on hits', `${fmt(hitRt?.mean ?? NaN)} ms`]);
+    } else if (s.effect) {
+      q('.rx-big').textContent = `${s.task === 'stroop' ? 'Stroop' : 'Flanker'} effect = ${fmt(s.effect.rt)} ms`;
+      fl.push(['Median RT difference', `${fmt(s.effect.median)} ms`], ['Accuracy difference', `${fmt(s.effect.accuracy * 100, 1)} points`]);
+      for (const c of s.conds) fl.push([`Mean RT, ${c.condition}`, `${fmt(c.mean)} ms`]);
+    } else q('.rx-big').textContent = `Mean RT = ${fmt(s.conds[0]?.mean ?? NaN)} ms`;
+    fl.push(['Accuracy', pct(s.accuracy)], ['Trials', String(s.n)], ['RTs left out', `${s.excluded} (${s.fast} too fast, ${s.slow} too slow${s.sdOut ? `, ${s.sdOut} beyond the SD rule` : ''})`]);
+    const dl = q('.rx-facts'); dl.innerHTML = '';
+    for (const [k, v] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    const head = ['Condition', 'Trials', 'Accuracy', 'Mean RT', 'Median RT', 'SD', 'RTs used'];
+    const rows = s.conds.map((c) => [c.condition, String(c.n), pct(c.accuracy), c.used ? `${fmt(c.mean)} ms` : '–', c.used ? `${fmt(c.median)} ms` : '–', c.used > 1 ? `${fmt(c.sd)} ms` : '–', String(c.used)]);
+    cells(q<HTMLTableElement>('.rx-tab'), head, rows);
+    const th = ['#', 'Condition', 'Stimulus', 'Answer', 'Response', 'RT (ms)'];
+    const tr = trials.map((t) => [String(t.trial), t.condition, t.stimulus + (t.ink ? ` (${t.ink} ink)` : ''), t.answer, t.response, t.rt === null ? '–' : fmt(t.rt)]);
+    cells(q<HTMLTableElement>('.rx-trials'), th, tr, (r, c) => (c === 4 && !trials[r].correct ? 'rx-x' : ''));
+    const series: Series[] = s.conds.map((c) => { const T = trials.filter((t) => t.condition === c.condition && t.correct && t.rt !== null); return { name: c.condition, x: T.map((t) => t.trial), y: T.map((t) => t.rt as number), mode: 'points' as const }; }).filter((x) => x.x.length);
+    const errs = trials.filter((t) => !t.correct && t.rt !== null);
+    if (errs.length) series.push({ name: 'errors', x: errs.map((t) => t.trial), y: errs.map((t) => t.rt as number), mode: 'points', marker: 'cross' });
+    fig = series.length ? chartFigure({ h: 300, xLabel: 'Trial', yLabel: 'Reaction time (ms)', xMin: 0, xMax: trials.length + 1, legend: 'inside', series }, 'Reaction time on each trial, by condition.') : null;
+    q('.rx-fig').hidden = !fig;
+    if (fig) paint(q<HTMLCanvasElement>('.rx-fig'), fig);
+    q('.rx-note').textContent = s.nback ? 'd′ uses the log-linear correction (0.5 added to each count), so perfect scores still give a finite value. Above about 2 is good for 2-back. The first N letters cannot be targets and are left out.' : 'The effect is the mean RT on incongruent trials minus congruent trials, using correct answers only. Typical effects are tens to about a hundred milliseconds; with few trials they are noisy, so run at least 40 trials for a class demonstration.';
+    report = [{ title: `${name} results`, facts: [['Result', q('.rx-big').textContent!], ...fl], ...(fig ? { figure: fig } : {}) }, { title: 'By condition', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } }, { title: 'Every trial', table: { head: th, rows: tr, align: ['r', 'l', 'l', 'l', 'l', 'r'] } }];
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.rx-mode button').forEach((b) => b.addEventListener('click', () => { if (!run) setTask(b.dataset.m as Task); }));
+  q('.rx-start').addEventListener('click', start);
+  q('.rx-stop').addEventListener('click', stop);
+  q('.rx-keys').addEventListener('pointerdown', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-v]'); if (b) { e.preventDefault(); respond(b.dataset.v!, e.timeStamp); } });
+  document.addEventListener('keydown', (e) => {
+    if (!run) return;
+    if (e.key === 'Escape') { stop(); return; }
+    const k = e.key.toLowerCase(), hit = KEYS[task].find((x) => x.keys.includes(k));
+    if (!hit) return;
+    e.preventDefault();
+    if (!e.repeat) respond(hit.value, e.timeStamp);
+  });
+  root.querySelector('.rx-out')!.addEventListener('input', () => analyse());
+  root.querySelector('.rx-out')!.addEventListener('change', () => analyse());
+  q('.rx-csv').addEventListener('click', () => save(new Blob([csv(trialRows(trials))], { type: 'text/csv' }), `${trials[0]?.task ?? task}-trials.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.rx-fig'), fig); });
+  setTask('stroop');
+  wireDownloads(q('.dl'), () => ({ title: 'Reaction time experiment', file: `${trials[0]?.task ?? task}-results`, sections: report }));
+</script>

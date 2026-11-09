@@ -1,0 +1,146 @@
+---
+// Syntax tree drawer: labelled bracket notation to a tree (SVG), with triangles, subscripts, movement arrows,
+// SVG/PNG downloads and LaTeX for forest and qtree.
+import '../../styles/astro.css';
+---
+<div class="ax st">
+  <div class="ax-card">
+    <h2>Your tree in brackets</h2>
+    <div class="ax-grid">
+      <label>Start from an example <select class="st-ex">
+        <option value="">Keep my tree</option>
+        <option value="simple">Simple sentence</option>
+        <option value="wh" selected>Question with movement</option>
+        <option value="tri">Triangles and subscripts</option>
+      </select></label>
+    </div>
+    <label style="margin-top:10px">Each phrase is [Label then its parts]. Words go straight inside the bracket of their label.
+      <textarea class="st-in" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></label>
+    <p class="ax-help"><code>NP_i</code> writes a subscript. <code>[NP^ the old man]</code> draws the words under a triangle. Mark where a phrase lands with <code>#1</code> and where it came from with <code>-&gt;1</code>, as in <code>[DP#1 what] … [DP t-&gt;1]</code>, to draw an arrow. Put a word in "quotes" if it contains brackets.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="st-arrows" checked /> Movement arrows</label>
+      <label class="ax-check"><input type="checkbox" class="st-bottom" /> All words on one line</label>
+      <label class="ax-check"><input type="checkbox" class="st-fit" checked /> Fit to screen</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Text size <select class="st-size"><option value="13">Small</option><option value="16" selected>Medium</option><option value="20">Large</option></select></label>
+    </div>
+    <p class="ax-err st-err" hidden></p>
+    <button type="button" class="btn secondary small st-goto" hidden>Show me where</button>
+  </div>
+
+  <div class="ax-card st-out" hidden>
+    <h2>Tree</h2>
+    <div class="ax-scroll st-pic"></div>
+    <dl class="ax-facts st-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:14px">
+      <button type="button" class="btn secondary small st-svg">Download SVG</button>
+      <button type="button" class="btn secondary small st-png">Download PNG</button>
+    </div>
+    <h3 style="margin:18px 0 6px">LaTeX</h3>
+    <div class="ax-seg st-tex" role="group" aria-label="LaTeX package"><button type="button" data-p="forest" aria-pressed="true">forest</button><button type="button" data-p="qtree" aria-pressed="false">qtree</button></div>
+    <textarea class="st-latex" rows="8" readonly spellcheck="false" aria-label="LaTeX code" style="margin-top:8px"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small st-copy">Copy</button>
+      <button type="button" class="btn secondary small st-dltex">Download .tex</button>
+      <span class="ax-help st-copied" style="margin:0" hidden>Copied.</span>
+    </div>
+    <p class="ax-help st-texnote"></p>
+  </div>
+</div>
+
+<style is:global>
+  .st .st-pic { color: var(--ink); }
+  .st code { font-size: 12.5px; }
+  .st .st-pic svg { display: block; margin: 0 auto; }
+  .st .st-pic.fit svg { max-width: 100%; height: auto; }
+</style>
+
+<script>
+  import { parseTree, layout, toSvg, toForest, toQtree, stats, TreeError, type Layout, type TNode } from '../../lib/sci/syntree';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.st')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.st-in');
+  const EX: Record<string, string> = {
+    simple: '[S [NP [D the] [N dog]] [VP [V chased] [NP [D a] [AdjP [Adj small]] [N cat]]]]',
+    wh: "[CP [DP#1 what] [C' [C did] [TP [DP you] [T' [T ∅] [VP [V see] [DP t->1]]]]]]",
+    tri: "[TP [DP_i^ the old ferry man] [T' [T will] [VP [DP t_i] [V' [V cross] [PP^ before noon]]]]]",
+  };
+  box.value = EX.wh;
+  const FONT = '"Times New Roman", Times, serif';
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  const measure = (t: string, size: number) => { ctx.font = `bold ${size}px ${FONT}`; return ctx.measureText(t).width; };
+  let tree: TNode | null = null, L: Layout | null = null, pkg = 'forest', errAt = -1;
+
+  function draw() {
+    const err = q('.st-err');
+    try {
+      if (box.value.length > 20000) throw new Error('That is a very long tree; keep it under 20,000 characters.');
+      tree = parseTree(box.value);
+      const size = Number(q<HTMLSelectElement>('.st-size').value);
+      L = layout(tree, { size, measure, bottomLeaves: q<HTMLInputElement>('.st-bottom').checked, arrows: q<HTMLInputElement>('.st-arrows').checked });
+      const svg = new DOMParser().parseFromString(toSvg(L, { ink: 'currentColor', font: FONT }), 'image/svg+xml').documentElement;
+      svg.setAttribute('role', 'img');
+      const s = stats(tree);
+      svg.setAttribute('aria-label', `Syntax tree of: ${s.sentence}`);
+      const pic = q('.st-pic'); pic.replaceChildren(document.importNode(svg, true));
+      pic.classList.toggle('fit', q<HTMLInputElement>('.st-fit').checked);
+      const dl = q('.st-facts'); dl.innerHTML = '';
+      const arrows = L.ops.filter((o) => o.k === 'arrow').length;
+      for (const [k, v] of [['Phrases (labels)', String(s.phrases)], ['Word groups', String(s.leaves)], ['Depth (levels)', String(s.depth)], ['Arrows', String(arrows)], ['Sentence', s.sentence]]) {
+        const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d);
+      }
+      q<HTMLTextAreaElement>('.st-latex').value = pkg === 'forest' ? toForest(tree) : toQtree(tree);
+      q('.st-texnote').textContent = pkg === 'forest'
+        ? 'Needs \\usepackage[linguistics]{forest} in your preamble. Arrows are drawn with TikZ lines after the tree; adjust their bend with the out= and in= angles.'
+        : 'Needs \\usepackage{qtree}. qtree cannot draw movement arrows; use forest for those.';
+      err.hidden = true; q('.st-goto').hidden = true; errAt = -1; q('.st-out').hidden = false;
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false;
+      errAt = e instanceof TreeError ? e.at : -1; q('.st-goto').hidden = errAt < 0;
+      q('.st-out').hidden = true; tree = null; L = null;
+    }
+  }
+
+  function png(): Promise<Blob> {
+    const scale = 3, c = document.createElement('canvas'), L0 = L!;
+    c.width = Math.ceil(L0.w * scale); c.height = Math.ceil(L0.h * scale);
+    const g = c.getContext('2d')!; g.scale(scale, scale);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, L0.w, L0.h);
+    g.strokeStyle = g.fillStyle = '#000000'; g.lineWidth = 1.2; g.lineJoin = 'round';
+    for (const o of L0.ops) {
+      if (o.k === 'line') { g.beginPath(); g.moveTo(o.x1, o.y1); g.lineTo(o.x2, o.y2); g.stroke(); }
+      else if (o.k === 'poly') { g.beginPath(); o.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke(); }
+      else if (o.k === 'arrow') { const [a, b, cc, d] = o.d; g.beginPath(); g.moveTo(a[0], a[1]); g.bezierCurveTo(b[0], b[1], cc[0], cc[1], d[0], d[1]); g.stroke(); g.beginPath(); o.head.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); }
+      else {
+        const main = `${o.leaf ? '' : 'bold '}${o.size}px ${FONT}`, sub = `${o.size * 0.7}px ${FONT}`;
+        g.font = main; const w1 = g.measureText(o.text).width; g.font = sub; const w2 = o.sub ? g.measureText(o.sub).width : 0;
+        const x0 = o.x - (w1 + w2) / 2; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+        g.font = main; g.fillText(o.text, x0, o.y);
+        if (o.sub) { g.font = sub; g.fillText(o.sub, x0 + w1, o.y + o.size * 0.3); }
+      }
+    }
+    return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'));
+  }
+
+  q<HTMLSelectElement>('.st-ex').addEventListener('change', (e) => { const v = (e.target as HTMLSelectElement).value; if (v) { box.value = EX[v]; draw(); } });
+  let t = 0;
+  box.addEventListener('input', () => { q<HTMLSelectElement>('.st-ex').value = ''; clearTimeout(t); t = window.setTimeout(draw, 250); });
+  root.querySelectorAll<HTMLInputElement>('.st-arrows, .st-bottom, .st-fit').forEach((c) => c.addEventListener('change', draw));
+  q('.st-size').addEventListener('change', draw);
+  q('.st-goto').addEventListener('click', () => { if (errAt < 0) return; box.focus(); box.setSelectionRange(errAt, Math.min(box.value.length, errAt + 1)); });
+  root.querySelectorAll<HTMLButtonElement>('.st-tex button').forEach((b) => b.addEventListener('click', () => {
+    pkg = b.dataset.p!; root.querySelectorAll<HTMLButtonElement>('.st-tex button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  q('.st-svg').addEventListener('click', () => { if (L) save(new Blob([toSvg(L, { ink: '#000000', bg: '#ffffff', font: FONT })], { type: 'image/svg+xml' }), 'syntax-tree.svg', 'image/svg+xml'); });
+  q('.st-png').addEventListener('click', async () => { if (L) save(await png(), 'syntax-tree.png', 'image/png'); });
+  q('.st-dltex').addEventListener('click', () => { if (tree) save(new Blob([q<HTMLTextAreaElement>('.st-latex').value + '\n'], { type: 'text/x-tex' }), `syntax-tree-${pkg}.tex`, 'text/x-tex'); });
+  q('.st-copy').addEventListener('click', async () => {
+    const ta = q<HTMLTextAreaElement>('.st-latex');
+    try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand('copy'); }
+    q('.st-copied').hidden = false; setTimeout(() => (q('.st-copied').hidden = true), 1500);
+  });
+  draw();
+</script>
