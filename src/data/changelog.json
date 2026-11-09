@@ -1,5 +1,14 @@
 [
  {
+  "sha": "ed9ea445672d",
+  "date": "2026-11-09T04:03:20+00:00",
+  "title": "Add #165 qPCR analyser: ΔΔCq and efficiency-corrected fold change, standard curves and unknowns",
+  "tools": [
+   "qpcr-analyser"
+  ],
+  "site": false
+ },
+ {
   "sha": "c63c4817db5b",
   "date": "2026-11-09T03:49:38+00:00",
   "title": "Add #164 DNA, RNA and protein concentration: A260/A280, purity, molarity, copy number and dilution",
