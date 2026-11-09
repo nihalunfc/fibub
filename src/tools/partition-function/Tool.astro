@@ -1,0 +1,132 @@
+---
+// Partition function explorer: energy levels and degeneracies in, populations, mean energy, entropy, Helmholtz
+// energy and heat capacity out, against temperature. Example levels made up. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pfx">
+  <div class="ax-card">
+    <h2>Energy levels</h2>
+    <div class="ax-grid">
+      <label>Energy unit <select class="pf-u"><option value="cm" selected>cm⁻¹ (wavenumber)</option><option value="meV">meV</option><option value="eV">eV</option><option value="K">K (E/kB)</option><option value="kJmol">kJ/mol</option><option value="zJ">zJ (10⁻²¹ J)</option></select></label>
+      <label>Temperature (K) <input class="pf-T" type="text" inputmode="decimal" value="300" /></label>
+      <label>Charts from (K) <input class="pf-t0" type="text" inputmode="decimal" value="1" /></label>
+      <label>Charts to (K) <input class="pf-t1" type="text" inputmode="decimal" value="2000" /></label>
+    </div>
+    <label style="margin-top:10px">One level per line: energy, degeneracy (degeneracy 1 if left out) <textarea class="pf-in" rows="6" spellcheck="false">0, 1
+120, 3
+450, 5
+900, 1</textarea></label>
+    <DataFile target=".pf-in" maxMB={2} maxCols={5} maxRows={20000} />
+    <h3 style="margin:14px 0 8px">Or make levels from a formula</h3>
+    <div class="ax-grid">
+      <label>Kind <select class="pf-k"><option value="osc">Harmonic oscillator (n + ½)·spacing</option><option value="rot">Rigid rotor B·J(J+1), g = 2J+1</option><option value="two">Two levels 0 and spacing</option></select></label>
+      <label>Spacing or B (in the unit above) <input class="pf-sp" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Number of levels <input class="pf-n" type="text" inputmode="numeric" value="40" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pf-make">Fill in the levels</button></div>
+    <p class="ax-help">Energies can be measured from any zero; only differences change the populations, entropy and heat capacity (U and F shift with the zero). The example four levels are made up.</p>
+    <p class="ax-err pf-err" hidden></p>
+  </div>
+
+  <div class="ax-card pf-out">
+    <h2>At this temperature</h2>
+    <p class="ax-big pf-big"></p>
+    <dl class="ax-facts pf-facts"></dl>
+    <p class="ax-help pf-warn" hidden></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="pf-tab"></table></div>
+    <canvas class="ax-fig pf-fp"></canvas>
+    <canvas class="ax-fig pf-fc"></canvas>
+    <canvas class="ax-fig pf-fs"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pf-csv">Against temperature (CSV)</button></div>
+    <p class="ax-help">For distinguishable, independent particles (or the internal states of one molecule). Per mole values multiply by Avogadro's number; for an ideal gas the translational part is not included.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseLevels, thermo, presets, UNIT, KB, NA } from '../../lib/sci/phpartition';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pfx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  q('.pf-make').addEventListener('click', () => {
+    const sp = val('.pf-sp'), n = val('.pf-n'), err = q('.pf-err');
+    if (!(sp > 0)) { err.textContent = 'Give a spacing (or rotational constant B) greater than 0.'; err.hidden = false; q('.pf-out').hidden = true; return; }
+    if (!(Number.isInteger(n) && n >= 2 && n <= 20000)) { err.textContent = 'The number of levels must be a whole number from 2 to 20,000.'; err.hidden = false; q('.pf-out').hidden = true; return; }
+    const k = sel('.pf-k'), ls = k === 'osc' ? presets.oscillator(sp, n) : k === 'rot' ? presets.rotor(sp, n) : presets.twoLevel(sp);
+    q<HTMLTextAreaElement>('.pf-in').value = ls.map((l) => `${+l.E.toPrecision(10)}, ${l.g}`).join('\n');
+    calc();
+  });
+
+  function calc() {
+    const err = q('.pf-err'), out = q('.pf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const U = UNIT[sel('.pf-u')], T = val('.pf-T'), t0 = val('.pf-t0'), t1 = val('.pf-t1');
+    const r = parseLevels(q<HTMLTextAreaElement>('.pf-in').value, U.j);
+    if (r.error) return fail(r.error);
+    if (r.levels.length > 20000) return fail('Use at most 20,000 levels.');
+    if (!(T > 0)) return fail('Give a temperature above 0 K.');
+    if (!(t0 > 0 && t1 > t0)) return fail('Give a chart range with both temperatures above 0 K and the second larger.');
+    err.hidden = true; out.hidden = false;
+    const ls = r.levels, th = thermo(ls, T), inU = (j: number) => j / U.j;
+    q('.pf-big').textContent = `Z = ${sig(th.Z, 4)} at ${sig(T, 4)} K`;
+    const ground = Math.min(...ls.map((l) => l.E));
+    const f = [
+      fact('Partition function Z', sig(th.Z, 5), `ln Z = ${sig(th.lnZ, 5)}; about ${sig(Math.exp(Math.log(th.Z) + ground / (KB * T)), 3)} states within reach of kT (counted from the lowest level)`),
+      fact('Thermal energy kT', `${sig(inU(KB * T), 4)} ${U.name}`, `${sig(KB * T * NA / 1000, 4)} kJ/mol`),
+      fact('Mean energy U', `${sig(inU(th.U), 4)} ${U.name}`, `${sig(th.U * NA / 1000, 4)} kJ/mol; ${sig(inU(th.U - ground), 4)} ${U.name} above the lowest level`),
+      fact('Entropy S', `${sig(th.S / KB, 4)} kB`, `${sig(th.S * NA, 4)} J/(mol·K)`),
+      fact('Helmholtz energy F', `${sig(inU(th.F), 4)} ${U.name}`, `F = −kT ln Z = ${sig(th.F * NA / 1000, 4)} kJ/mol`),
+      fact('Heat capacity Cv', `${sig(th.Cv / KB, 4)} kB`, `${sig(th.Cv * NA, 4)} J/(mol·K)`),
+    ];
+    q('.pf-facts').replaceChildren(...f);
+    const warn = q('.pf-warn');
+    if (ls.length > 1 && th.top > 1e-3) { warn.textContent = `The highest level holds ${sig(th.top * 100, 3)} % of the particles. If the real system has more levels above it, add them, or the results at this temperature are too low.`; warn.hidden = false; } else warn.hidden = true;
+    // Level table (first 200 rows).
+    const head = [`Energy (${U.name})`, 'g', 'Population', 'Per state'], idx = ls.map((_, i) => i).sort((a, b) => ls[a].E - ls[b].E);
+    const rows = idx.slice(0, 200).map((i) => [sig(inU(ls[i].E), 6), sig(ls[i].g, 4), sig(th.p[i], 4), sig(th.p[i] / ls[i].g, 4)]);
+    const tab = q('.pf-tab'); tab.replaceChildren();
+    const tr = (cells: string[], hd = false) => { const e = document.createElement('tr'); cells.forEach((c) => { const d = document.createElement(hd ? 'th' : 'td'); d.textContent = c; d.className = 'r'; e.append(d); }); return e; };
+    tab.append(tr(head, true), ...rows.map((x) => tr(x)));
+    if (ls.length > 200) { const e = document.createElement('tr'); e.className = 'dim'; const d = document.createElement('td'); d.colSpan = 4; d.textContent = `… and ${ls.length - 200} more levels (all are in the CSV and the results)`; e.append(d); tab.append(e); }
+    // Curves against temperature on a log scale.
+    const Ts: number[] = []; for (let i = 0; i <= 200; i++) Ts.push(t0 * Math.pow(t1 / t0, i / 200));
+    const ths = Ts.map((t) => thermo(ls, t));
+    csvRows = [['T (K)', 'Z', 'U (' + U.name + ')', 'S (kB)', 'F (' + U.name + ')', 'Cv (kB)'], ...ths.map((x) => [+x.T.toPrecision(6), +x.Z.toPrecision(8), +inU(x.U).toPrecision(8), +(x.S / KB).toPrecision(8), +inU(x.F).toPrecision(8), +(x.Cv / KB).toPrecision(8)])];
+    const shown = idx.slice(0, 400);
+    const c1 = chartFigure({ w: 380, h: 220, xLabel: `Level energy (${U.name})`, yLabel: 'Population', yMin: 0, legend: 'none', series: [{ name: 'Population', x: shown.map((i) => inU(ls[i].E)), y: shown.map((i) => th.p[i]), mode: 'points', marker: 'circle', size: 3.5 }] }, `Population of each level at ${sig(T, 4)} K`);
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Temperature (K)', yLabel: 'Cv / kB', xLog: true, yMin: 0, legend: 'none', series: [{ name: 'Heat capacity', x: Ts, y: ths.map((x) => x.Cv / KB), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: T, dash: [3, 3], label: 'T' }] }, 'Heat capacity per particle against temperature');
+    const c3 = chartFigure({ w: 380, h: 220, xLabel: 'Temperature (K)', yLabel: 'kB units', xLog: true, legend: 'below', series: [
+      { name: 'Entropy S / kB', x: Ts, y: ths.map((x) => x.S / KB), mode: 'line', width: 2 },
+      { name: '(U − E lowest) / kT', x: Ts, y: ths.map((x) => (x.U - ground) / (KB * x.T)), mode: 'line', width: 2, dash: [6, 3] },
+      { name: 'ln Z (from lowest level)', x: Ts, y: ths.map((x) => x.lnZ + ground / (KB * x.T)), mode: 'line', width: 1.4, dash: [2, 3] },
+    ], marks: [{ kind: 'vline', at: T, dash: [3, 3], label: 'T' }] }, 'Entropy, mean energy and ln Z against temperature');
+    figs = [c1, c2, c3];
+    paint(q<HTMLCanvasElement>('.pf-fp'), c1); paint(q<HTMLCanvasElement>('.pf-fc'), c2); paint(q<HTMLCanvasElement>('.pf-fs'), c3);
+    const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.pf-big').textContent!, facts: rowsOf(f), table: { head, rows: rows.slice(0, 60), align: ['r', 'r', 'r', 'r'] }, figure: c1 },
+      { title: 'Heat capacity', figure: c2 }, { title: 'Entropy and energy', figure: c3, note: 'Canonical ensemble, independent particles; CODATA constants.' },
+    ];
+  }
+
+  root.querySelectorAll('.pf-u, .pf-T, .pf-t0, .pf-t1, .pf-in').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.pf-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'partition-function.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pf-out').hidden) { paint(q<HTMLCanvasElement>('.pf-fp'), figs[0]); paint(q<HTMLCanvasElement>('.pf-fc'), figs[1]); paint(q<HTMLCanvasElement>('.pf-fs'), figs[2]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Partition function', subtitle: `${inp('.pf-T').value} K`, file: 'partition-function', sections: report }));
+</script>
+
+<style is:global>
+  .pfx select, .pfx input { max-width: 100%; }
+</style>
