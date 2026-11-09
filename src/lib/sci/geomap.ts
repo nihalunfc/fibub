@@ -78,3 +78,18 @@ export function gridFigure(g: { x: number[]; y: number[]; z: number[][]; unit: s
     },
   };
 }
+
+/**
+ * A chart Figure where each series takes the page palette colour numbered in `group` (so several series, such as
+ * picks and their fitted lines, share a colour in light, dark and red-light modes).
+ */
+export function groupFigure(c: Omit<Chart, 'w' | 'h'> & { w?: number; h?: number }, group: number[], alt: string): Figure {
+  const w = c.w ?? 720, h = c.h ?? 420;
+  return {
+    w, h, alt,
+    draw: (ctx, W, H, pal) => {
+      const colors = pageColors(pal);
+      drawChart(canvasPainter(ctx), { ...c, w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors, series: c.series.map((s, i) => ({ ...s, color: colors[(group[i] ?? i) % colors.length] })) });
+    },
+  };
+}
