@@ -129,7 +129,7 @@ import '../../styles/astro.css';
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
     // camera follows the trolley once it passes a third of the width
     cam = Math.max(0, tr.x - (w * 0.35) / ppm);
-    const X = (x: number) => 30 + (x - cam) * ppm;
+    const X = (x: number) => 48 + (x - cam) * ppm;
     ground(ctx, pal, w, yG, X, cam - 2, cam + w / ppm + 2);
     const m = val('.nl-m'), cx = X(tr.x), wPx = 64;
     trolley(ctx, pal, cx, yG, wPx, `${f(m)} kg`, Math.round((m - 1) * 2));

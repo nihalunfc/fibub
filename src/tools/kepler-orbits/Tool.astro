@@ -124,7 +124,7 @@ import '../../styles/astro.css';
     ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(1), Y(0)); ctx.lineTo(X(1), Y(0) - L + 8); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(X(1), Y(0) - L); ctx.lineTo(X(1) - 6, Y(0) - L + 11); ctx.lineTo(X(1) + 6, Y(0) - L + 11); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.arc(X(1), Y(0) - L, 10, 0, 7); ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${f(val('.ko-v'), 1)} km/s`, X(1) + 12, Y(0) - L + 4);
+    ctx.font = '600 12px system-ui, sans-serif'; const lab = `${f(val('.ko-v'), 1)} km/s`, right = X(1) + 14 + ctx.measureText(lab).width < w - 4; ctx.textAlign = right ? 'left' : 'right'; ctx.fillText(lab, right ? X(1) + 14 : X(1) - 14, Y(0) - L + 4);
     view = { cx, cy, sc, tipX: X(1), tipY: Y(0) - L, x0: X(1), y0: Y(0) };
     c.dataset.tip = `${Math.round(X(1))},${Math.round(Y(0) - L)}`;
     c.setAttribute('aria-label', o.bound ? `Ellipse with a = ${f(o.a)} AU, e = ${f(o.e)}, period ${f(o.T)} years` : 'Open orbit: the planet escapes');

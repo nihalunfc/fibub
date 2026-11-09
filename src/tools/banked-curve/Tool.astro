@@ -52,7 +52,7 @@ import '../../styles/astro.css';
   const val = (c: string) => Number(inp(c).value);
   const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
   const kmh = (v: number) => (Number.isFinite(v) ? `${f(v * 3.6, 0)} km/h` : 'no limit');
-  const H = 340;
+  const H = 370;
 
   function setup(c: HTMLCanvasElement, h: number) {
     const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
@@ -100,12 +100,12 @@ import '../../styles/astro.css';
     const nx = -uy, ny = -ux; // outward normal in screen coords (up-left)
     const bx = cx + nx * 14, by = cy + ny * 14;
     ctx.save(); ctx.translate(bx, by); ctx.rotate(-th); ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillRect(-26, -14, 52, 28); ctx.strokeRect(-26, -14, 52, 28); ctx.restore();
-    const k = 7; // px per m/s² (forces per kg)
+    const k = 5.5; // px per m/s² (forces per kg)
     arrow(ctx, bx, by, 0, G * k, pal.ink, `mg`);
     arrow(ctx, bx, by, nx * fo.N * k, ny * fo.N * k, pal.muted, 'N');
     // friction along the slope: f > 0 acts down the slope (towards the centre, to the left)
     if (Math.abs(fo.f) > 0.02) { const ff = Math.min(Math.abs(fo.f), mu * fo.N || Math.abs(fo.f)) * Math.sign(fo.f); arrow(ctx, cx, cy, -ux * ff * k, uy * ff * k, vd === 'safe' ? pal.accent2 : pal.bad, vd === 'safe' ? 'friction' : 'friction (not enough)'); }
-    arrow(ctx, bx, by - 50, -fo.ac * k, 0, pal.accent, `needed: v²/r = ${f(fo.ac, 2)} m/s²`, true);
+    arrow(ctx, bx, by - 72, -fo.ac * k, 0, pal.accent, '', true); ctx.fillStyle = pal.accent; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; const nl = `needed: v²/r = ${f(fo.ac, 2)} m/s²`, nw = ctx.measureText(nl).width; ctx.fillText(nl, Math.max(8, Math.min(w - 8 - nw, bx - fo.ac * k - 20)), by - 82);
     c.setAttribute('aria-label', `Car at ${f(v * 3.6, 0)} km/h on a ${ang}° bank: ${vd === 'safe' ? 'safe' : vd === 'out' ? 'skids outwards' : 'slides inwards'}`);
 
     // ---- readouts
