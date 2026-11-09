@@ -1,0 +1,137 @@
+---
+// Load combinations: the user's loads and factors, every sign of the reversible loads, and the governing value of each effect. Example loads and factor sets are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { PRESETS } from '../../lib/sci/eng-loadcomb';
+const loads = 'Load\tN (kN)\tM (kN·m)\tV (kN)\nD\t400\t35\t18\nL\t220\t28\t12\nS\t60\t8\t4\nW\t±40\t±95\t±42\nE\t±25\t±120\t±55';
+---
+<div class="ax lch">
+  <div class="ax-card">
+    <h2>Loads</h2>
+    <label>One row per load case: its name, then its value for each effect. Put ± in front of a value that can act either way (wind, earthquake).
+      <textarea class="lc-loads" rows="7" spellcheck="false">{loads}</textarea>
+    </label>
+    <DataFile target=".lc-loads" maxCols={13} maxRows={60} label="Open a file" />
+    <p class="ax-help">The first row names the effects (an axial force, a moment, a shear, a reaction, a deflection). Each effect is the result of that load case alone, from your analysis. The example loads are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Combinations</h2>
+    <div class="ax-grid">
+      <label>Fill in an example set <select class="lc-preset">
+        <option value="">Pick to fill in…</option>
+        <option value="factored">Example A: factored (made up, check your code edition)</option>
+        <option value="service">Example B: unfactored (made up, check your code edition)</option>
+      </select></label>
+    </div>
+    <label class="lc-cl">One per line, like <code>1.2D + 1.6L</code>. Name it with a colon if you like: <code>ULS 3: 0.9D + 1.4W</code>. Lines starting with # are skipped.
+      <textarea class="lc-combos" rows="8" spellcheck="false">{PRESETS.factored}</textarea>
+    </label>
+    <p class="ax-help">The example factor sets are made up to show how the tool works and are not from any code. Type the combinations and factors from the code edition that applies to your project. To check a load that helps (such as dead load against uplift), add a combination with its lower factor.</p>
+    <p class="ax-err lc-err" hidden></p>
+  </div>
+
+  <div class="ax-card lc-out">
+    <h2>Governing combinations</h2>
+    <p class="ax-big lc-big"></p>
+    <dl class="ax-facts lc-facts"></dl>
+    <div class="ax-scroll"><table class="lc-tab"></table></div>
+    <div class="ax-grid lc-eg"><label>Chart the effect <select class="lc-eff"></select></label></div>
+    <canvas class="ax-fig lc-fig"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.</p>
+    <div class="ax-row lc-row"><button type="button" class="btn secondary small lc-csv">Download all combinations (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseLoads, parseCombos, evaluate, PRESETS } from '../../lib/sci/eng-loadcomb';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { parseTable, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[-−]?[\d.]+$/.test(t) ? String(parseFloat(t.replace('−', '-'))).replace('-', '−') : t; };
+  const sgn = (x: number) => (x > 0 ? '+' : '') + sg(x);
+  const root = document.querySelector<HTMLElement>('.lch')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  let state: ReturnType<typeof evaluate> | null = null, effects: string[] = [];
+
+  function chart() {
+    if (!state) return;
+    const e = Math.max(0, effects.indexOf(q<HTMLSelectElement>('.lc-eff').value)), rows = state.rows;
+    const vals = rows.map((r) => r.values[e]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1;
+    const bh = 18, top = 26, H = top + rows.length * bh + 12;
+    fig = { w: 380, h: H, alt: `${effects[e]} for each combination, largest ${sg(state.max[e].value)} and smallest ${sg(state.min[e].value)}`, draw: (ctx, W, Hc, pal) => {
+      const lw = 140, x0 = lw + 8 + (lo < 0 ? 42 : 0), w = W - x0 - (hi > 0 ? 42 : 6), X = (v: number) => x0 + ((v - lo) / span) * w;
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+      ctx.fillText(effects[e], 6, 6);
+      rows.forEach((r, i) => {
+        const y = top + i * bh, v = r.values[e], gov = i === state!.max[e].row || i === state!.min[e].row;
+        ctx.fillStyle = gov ? (pal.red ? pal.ink : pal.bad) : pal.red ? pal.muted : pal.accent;
+        ctx.fillRect(Math.min(X(0), X(v)), y + 3, Math.max(1, Math.abs(X(v) - X(0))), bh - 6);
+        ctx.font = `${gov ? 700 : 400} 10px system-ui, sans-serif`; ctx.fillStyle = pal.ink; ctx.textBaseline = 'middle';
+        const full = r.combo + (r.variant ? ` (${r.variant})` : '');
+        let lab = full, cut = full.length;
+        while (ctx.measureText(lab).width > lw && cut > 3) lab = full.slice(0, --cut) + '…';
+        ctx.textAlign = 'right'; ctx.fillText(lab, lw, y + bh / 2);
+        ctx.textAlign = v >= 0 ? 'left' : 'right'; ctx.fillText(sg(v, 4), v >= 0 ? X(v) + 3 : X(v) - 3, y + bh / 2);
+      });
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), top); ctx.lineTo(X(0), top + rows.length * bh); ctx.stroke();
+    } };
+    paint(q<HTMLCanvasElement>('.lc-fig'), fig);
+    if (report[0]) report[0].figure = fig;
+  }
+
+  function run() {
+    const err = q('.lc-err'), out = q('.lc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; state = null; };
+    let L, C;
+    try { L = parseLoads(parseTable(q<HTMLTextAreaElement>('.lc-loads').value)); } catch (e) { return fail((e as Error).message); }
+    try { C = parseCombos(q<HTMLTextAreaElement>('.lc-combos').value, L.loads.map((l) => l.name)); } catch (e) { return fail((e as Error).message); }
+    if (!C.length) return fail('Type at least one combination, or pick an example set.');
+    if (C.length > 200) return fail('That is more than 200 combinations; split them into smaller sets.');
+    const r = evaluate(L, C);
+    if (r.rows.length > 2000) return fail('Too many sign cases: keep the reversible loads in each combination to a few.');
+    err.hidden = true; out.hidden = false; state = r; effects = L.effects;
+    const lab = (i: number) => r.rows[i].combo + (r.rows[i].variant ? ` (${r.rows[i].variant})` : '');
+    q('.lc-big').textContent = `${r.rows.length} cases from ${C.length} combinations, ${L.effects.length} effect${L.effects.length > 1 ? 's' : ''}`;
+    const facts = L.effects.map((e, i) => fact(e, `${sgn(r.max[i].value)} / ${sgn(r.min[i].value)}`, `largest from ${lab(r.max[i].row)}; smallest from ${lab(r.min[i].row)}`));
+    q('.lc-facts').replaceChildren(...facts);
+    const head = ['Combination', ...L.effects];
+    const tab = q<HTMLTableElement>('.lc-tab'), th = document.createElement('thead'), tb = document.createElement('tbody'), hr = document.createElement('tr');
+    head.forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (i) c.className = 'r'; hr.append(c); }); th.append(hr);
+    r.rows.forEach((row, i) => {
+      const tr = document.createElement('tr'), c0 = document.createElement('td'); c0.textContent = lab(i); tr.append(c0);
+      row.values.forEach((v, e) => { const c = document.createElement('td'); c.className = 'r'; c.textContent = sg(v, 4); if (r.max[e].row === i || r.min[e].row === i) { c.classList.add('lc-gov'); c.title = r.max[e].row === i ? 'largest' : 'smallest'; } tr.append(c); });
+      tb.append(tr);
+    });
+    tab.replaceChildren(th, tb);
+    const effSel = q<HTMLSelectElement>('.lc-eff'), keep = effSel.value;
+    effSel.replaceChildren(...L.effects.map((e) => { const o = document.createElement('option'); o.value = e; o.textContent = e; return o; }));
+    effSel.value = L.effects.includes(keep) ? keep : L.effects[Math.min(1, L.effects.length - 1)];
+    csvRows = [['combination', 'signs', ...L.effects], ...r.rows.map((row) => [row.combo, row.variant, ...row.values.map((v) => +v.toPrecision(10))])];
+    report = [
+      { title: q('.lc-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + ' (' + d.querySelector('small')!.textContent + ')'] as [string, string]) },
+      { title: 'All combinations', table: { head, rows: r.rows.map((row, i) => [lab(i), ...row.values.map((v) => sg(v, 4))]), align: ['l', ...L.effects.map(() => 'r' as const)] }, note: 'Loads and factors as entered by the user; example values are made up and not from any code. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.' },
+    ];
+    chart();
+  }
+  q('.lc-preset').addEventListener('change', () => { const v = q<HTMLSelectElement>('.lc-preset').value; if (v) { q<HTMLTextAreaElement>('.lc-combos').value = PRESETS[v]; q<HTMLSelectElement>('.lc-preset').value = ''; run(); } });
+  q('.lc-loads').addEventListener('input', run); q('.lc-combos').addEventListener('input', run);
+  q('.lc-eff').addEventListener('change', chart);
+  document.addEventListener('fibub:theme', () => { if (fig && state) paint(q<HTMLCanvasElement>('.lc-fig'), fig); });
+  q('.lc-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'load-combinations.csv', 'text/csv'); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Load combinations', subtitle: q('.lc-big').textContent ?? '', file: 'load-combinations', sections: report }));
+</script>
+
+<style is:global>
+  .lch .lc-row { margin-top: 10px; }
+  .lch .lc-tab { margin: 12px 0; }
+  .lch .lc-tab td.lc-gov { font-weight: 700; color: var(--bad); }
+  .lch .lc-eg { margin-bottom: 8px; }
+  .lch .lc-cl { margin-top: 10px; }
+  .lch code { font-size: 13px; }
+</style>
