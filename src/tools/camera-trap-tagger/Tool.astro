@@ -1,0 +1,344 @@
+---
+// Camera-trap tagger: photos picked from a folder (never uploaded), EXIF times, events by time gap, tags by hotkey,
+// tags kept only in this browser if the user wants, independent detections, RAI, naive occupancy, activity by hour.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ctx">
+  <div class="ax-card">
+    <h2>Photos</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ct-dir">Choose a folder</button>
+      <input type="file" class="ct-indir" webkitdirectory multiple hidden />
+      <button type="button" class="btn secondary small ct-files">Choose photos</button>
+      <input type="file" class="ct-in" accept="image/jpeg,.jpg,.jpeg" multiple hidden />
+      <button type="button" class="btn secondary small ct-demo">Use the example</button>
+    </div>
+    <p class="ax-help">JPEG photos from one or more camera traps, up to 20,000 at a time. Each sub-folder counts as one station (camera). The date and time come from each photo's EXIF data (the file's date if there is none). <strong>Your photos stay on this device</strong>: they are read in your browser and never uploaded.</p>
+    <p class="ax-help ct-note"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Station for photos not in a folder <input class="ct-station" type="text" value="Station 1" /></label>
+      <label>Event gap (minutes) <input class="ct-egap" type="text" inputmode="decimal" value="5" /></label>
+      <label>Independence interval (minutes) <input class="ct-igap" type="text" inputmode="decimal" value="30" /></label>
+      <label>Interval counted from <select class="ct-from"><option value="last" selected>The last photo</option><option value="first">The first photo of the detection</option></select></label>
+    </div>
+    <p class="ax-help">Photos at one station closer together than the event gap form one event, which you tag in one go. Photos of one species at one station closer than the independence interval count as one detection (30 minutes is common).</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Species (keys 1–9, in order) <input class="ct-sp" type="text" value="Deer, Fox, Hare, Badger, Wild boar, Squirrel, Bird, Human, Other" /></label>
+      <label>Behaviours (keys Q W E R T) <input class="ct-beh" type="text" value="Moving, Feeding, Resting, Vigilant, Other" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="ct-keep" checked /> Remember my tags in this browser</label>
+      <button type="button" class="btn secondary small ct-clear">Clear saved tags</button>
+    </div>
+    <p class="ax-help">Tags are kept only in this browser on this device (by file name, size and time), never sent anywhere, so they are back when you open the same photos again. Untick the box to stop and delete them, or press Clear.</p>
+    <p class="ax-err ct-err" hidden></p>
+  </div>
+
+  <div class="ax-card ct-tag" hidden>
+    <h2>Tag</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ct-prev" aria-label="Previous event">← Previous</button>
+      <button type="button" class="btn secondary small ct-next" aria-label="Next event">Next →</button>
+      <button type="button" class="btn secondary small ct-nextu">Next untagged (N)</button>
+    </div>
+    <p class="ct-pos"></p>
+    <div class="ct-view"><img class="ct-img" alt="" /></div>
+    <p class="ax-help ct-cap"></p>
+    <div class="ct-thumbs"></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Apply tags to <select class="ct-apply"><option value="event" selected>The whole event</option><option value="photo">This photo only</option></select></label>
+      <label>Count <input class="ct-count" type="number" min="0" max="999" step="1" inputmode="numeric" value="1" /></label>
+      <label>Notes <input class="ct-notes" type="text" maxlength="300" /></label>
+    </div>
+    <div class="ct-btns ct-spb"></div>
+    <div class="ct-btns ct-beb"></div>
+    <p class="ax-big ct-now"></p>
+    <p class="ax-help">Keys: 1–9 species, 0 empty (no animal), Q W E R T behaviour, + and − count, ← and → events, N next untagged, Backspace clears the tag. Keys work when you are not typing in a box.</p>
+    <details style="margin-top:8px"><summary>All events</summary><div class="ax-scroll ct-evwrap"><table class="ct-ev"></table></div></details>
+  </div>
+
+  <div class="ax-card ct-out" hidden>
+    <h2>Summary</h2>
+    <p class="ax-big ct-big"></p>
+    <h3 style="margin:6px 0">Trap-nights per station</h3>
+    <div class="ax-grid ct-nights"></div>
+    <p class="ax-help">The first guess is the number of days from the station's first to its last photo. Type the real number of nights each camera was working.</p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="ct-sum"></table></div>
+    <p class="ax-help">RAI: detections per 100 trap-nights, all stations together. Naive occupancy: share of stations with at least one detection, not corrected for detection probability.</p>
+    <label style="margin-top:10px">Activity of <select class="ct-act"></select></label>
+    <canvas class="ax-fig ct-hours" style="margin-top:8px"></canvas>
+    <div class="ax-row" style="margin:10px 0">
+      <button type="button" class="btn secondary small ct-csv">Photos and tags (CSV)</button>
+      <button type="button" class="btn secondary small ct-dcsv">Detections (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readExif, parseTime, fmtTime, groupEvents, detections, summarise, guessNights, stationOf, csvCell, exampleSurvey, type Detection } from '../../lib/sci/camtrap';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ctx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const STORE = 'fibub-camtrap-v1', PREF = 'fibub-camtrap-keep', MAXN = 20000;
+  type Tag = { s: string; n: number; b: string; note: string };
+  type Ph = { name: string; size: number; station: string; t: number; src: 'exif' | 'file' | 'example'; key: string; file?: File; exifTime: string };
+  let photos: Ph[] = [], tags: Record<string, Tag> = {}, example = false;
+  let ev = { order: [] as number[], event: [] as number[], count: 0 }, events: number[][] = [], cur = 0, curPhoto = 0, url = '';
+  let nights: Record<string, number> = {}, dets: Detection[] = [], figs: Record<string, Figure> = {}, report: Section[] = [];
+
+  const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } };
+  const lsDel = (k: string) => { try { localStorage.removeItem(k); } catch { /* storage blocked */ } };
+  const keep = () => q<HTMLInputElement>('.ct-keep').checked;
+  q<HTMLInputElement>('.ct-keep').checked = lsGet(PREF) !== '0';
+  function loadSaved(): Record<string, Tag> { try { const o = JSON.parse(lsGet(STORE) || '{}'); return o && typeof o.tags === 'object' ? o.tags : {}; } catch { return {}; } }
+  function persist() {
+    if (example || !keep()) return;
+    const all = loadSaved();
+    for (const p of photos) { if (tags[p.key]) all[p.key] = tags[p.key]; else delete all[p.key]; }
+    lsSet(STORE, JSON.stringify({ v: 1, tags: all }));
+  }
+  const species = () => q<HTMLInputElement>('.ct-sp').value.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 9);
+  const behaviours = () => q<HTMLInputElement>('.ct-beh').value.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const BKEYS = ['q', 'w', 'e', 'r', 't'];
+
+  // ---------- Reading photos ----------
+  async function readFiles(files: File[]) {
+    const note = q('.ct-note'), err = q('.ct-err');
+    const jpg = files.filter((f) => /\.jpe?g$/i.test(f.name) || f.type === 'image/jpeg');
+    if (!jpg.length) { err.textContent = 'No JPEG photos found there.'; err.hidden = false; return; }
+    if (jpg.length > MAXN) { err.textContent = `That is ${jpg.length.toLocaleString('en')} photos; the limit is ${MAXN.toLocaleString('en')} at a time. Choose one station's folder at a time.`; err.hidden = false; return; }
+    err.hidden = true;
+    const out: Ph[] = [], fallback = q<HTMLInputElement>('.ct-station').value.trim() || 'Station 1';
+    let noExif = 0;
+    for (let i = 0; i < jpg.length; i++) {
+      const f = jpg[i];
+      if (i % 200 === 0) { note.textContent = `Reading dates on this device… ${i} of ${jpg.length}`; await new Promise((r) => setTimeout(r)); }
+      let e = null; try { e = readExif(new Uint8Array(await f.slice(0, 262144).arrayBuffer())); } catch { e = null; }
+      const s = e?.dateTimeOriginal || e?.dateTimeDigitized || e?.dateTime || '';
+      let t = parseTime(s), src: Ph['src'] = 'exif';
+      if (!Number.isFinite(t)) { const d = new Date(f.lastModified); t = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()); src = 'file'; noExif++; }
+      const station = stationOf((f as File & { webkitRelativePath?: string }).webkitRelativePath || '') || fallback;
+      out.push({ name: f.name, size: f.size, station, t, src, key: `${f.name}|${f.size}|${s || 'file:' + f.lastModified}`, file: f, exifTime: s });
+    }
+    example = false; photos = out;
+    tags = {}; const saved = keep() ? loadSaved() : {};
+    let back = 0; for (const p of photos) if (saved[p.key]) { tags[p.key] = saved[p.key]; back++; }
+    const st = new Set(photos.map((p) => p.station));
+    note.textContent = `Read ${photos.length.toLocaleString('en')} photos from ${st.size} station${st.size > 1 ? 's' : ''} on this device.` + (noExif ? ` ${noExif} had no EXIF date, so the file's date is used (check the camera's clock).` : '') + (back ? ` ${back} saved tags found.` : '');
+    nights = {}; start();
+  }
+
+  // ---------- Example ----------
+  function demo() {
+    const e = exampleSurvey();
+    example = true;
+    photos = e.photos.map((p) => ({ name: p.name, size: 0, station: p.station, t: p.t, src: 'example' as const, key: `ex|${p.station}|${p.name}`, exifTime: '' }));
+    tags = {}; e.photos.forEach((p, i) => { tags[photos[i].key] = p.species ? { s: p.species, n: p.count, b: p.behaviour, note: '' } : { s: 'Empty', n: 0, b: '', note: '' }; });
+    nights = { ...e.nights };
+    q('.ct-note').textContent = `Showing the example: ${photos.length} made-up photos from three cameras over two weeks, already tagged. Pictures are drawn placeholders. Example tags are not saved.`;
+    q('.ct-err').hidden = true; start();
+  }
+  function placeholder(p: Ph) {
+    const c = document.createElement('canvas'); c.width = 480; c.height = 300;
+    const ctx = c.getContext('2d')!, h = new Date(p.t).getUTCHours(), night = h < 6 || h >= 20;
+    ctx.fillStyle = night ? '#2b2b2b' : '#6d8a52'; ctx.fillRect(0, 0, 480, 300);
+    ctx.fillStyle = night ? '#3a3a3a' : '#556d3f'; ctx.fillRect(0, 200, 480, 100);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Example photo (made up)', 240, 120); ctx.font = '16px system-ui, sans-serif'; ctx.fillText(`${p.station} · ${p.name}`, 240, 150);
+    ctx.fillStyle = '#000000'; ctx.fillRect(0, 276, 480, 24); ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.font = '13px ui-monospace, monospace'; ctx.fillText(fmtTime(p.t), 8, 293);
+    return c.toDataURL('image/jpeg', 0.7);
+  }
+
+  // ---------- Events and tagging ----------
+  function regroup() {
+    const g = val('.ct-egap');
+    ev = groupEvents(photos, g >= 0 ? g : 5);
+    events = Array.from({ length: ev.count }, () => [] as number[]);
+    for (const i of ev.order) events[ev.event[i]].push(i);
+  }
+  function start() {
+    regroup(); cur = 0; curPhoto = 0;
+    q('.ct-tag').hidden = false; q('.ct-out').hidden = false;
+    for (const s of new Set(photos.map((p) => p.station))) if (!(s in nights)) nights[s] = guessNights(photos.filter((p) => p.station === s).map((p) => p.t));
+    buildNights(); show(); summary();
+  }
+  const eventTag = (e: number) => { const ids = events[e]; const t = ids.map((i) => tags[photos[i].key]).filter(Boolean); return { tagged: t.length, all: ids.length, first: t[0] }; };
+  function show() {
+    if (!events.length) return;
+    cur = Math.max(0, Math.min(events.length - 1, cur));
+    const ids = events[cur]; curPhoto = Math.max(0, Math.min(ids.length - 1, curPhoto));
+    const p = photos[ids[curPhoto]], a = photos[ids[0]], z = photos[ids[ids.length - 1]];
+    q('.ct-pos').textContent = `Event ${cur + 1} of ${events.length} · ${a.station} · ${fmtTime(a.t, false)}${ids.length > 1 ? ` to ${fmtTime(z.t, false).slice(11)}` : ''} · ${ids.length} photo${ids.length > 1 ? 's' : ''}`;
+    if (url) { URL.revokeObjectURL(url); url = ''; }
+    const img = q<HTMLImageElement>('.ct-img');
+    if (p.file) { url = URL.createObjectURL(p.file); img.src = url; } else img.src = placeholder(p);
+    img.alt = `${p.name}, ${p.station}, ${fmtTime(p.t)}`;
+    q('.ct-cap').textContent = `${p.name} · ${fmtTime(p.t)}${p.src === 'file' ? ' (file date: no EXIF time)' : ''} · photo ${curPhoto + 1} of ${ids.length}`;
+    const th = q('.ct-thumbs'); th.replaceChildren();
+    ids.forEach((i, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-th' + (k === curPhoto ? ' on' : ''); const t = tags[photos[i].key]; b.textContent = `${k + 1}${t ? ' ✓' : ''}`; b.title = photos[i].name; b.addEventListener('click', () => { curPhoto = k; show(); }); th.append(b); });
+    buttons(); nowText(); eventsTable();
+  }
+  function nowText() {
+    const ids = events[cur], t = tags[photos[ids[curPhoto]].key];
+    q('.ct-now').textContent = t ? (t.s === 'Empty' ? 'Empty (no animal)' : `${t.s} × ${t.n}${t.b ? `, ${t.b.toLowerCase()}` : ''}`) : 'Not tagged';
+    q<HTMLInputElement>('.ct-count').value = String(t ? t.n : 1);
+    q<HTMLInputElement>('.ct-notes').value = t?.note ?? '';
+    root.querySelectorAll<HTMLButtonElement>('.ct-spb button, .ct-beb button').forEach((b) => b.setAttribute('aria-pressed', String(!!t && (b.dataset.s === t.s || b.dataset.b === t.b))));
+  }
+  function buttons() {
+    const sp = q('.ct-spb'), be = q('.ct-beb');
+    if (sp.dataset.list !== species().join('|')) {
+      sp.dataset.list = species().join('|'); sp.replaceChildren();
+      [...species(), 'Empty'].forEach((s, k) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.s = s; b.textContent = `${s === 'Empty' ? 0 : k + 1} ${s}`; b.addEventListener('click', () => setTag({ s })); sp.append(b); });
+    }
+    if (be.dataset.list !== behaviours().join('|')) {
+      be.dataset.list = behaviours().join('|'); be.replaceChildren();
+      behaviours().forEach((s, k) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.b = s; b.textContent = `${BKEYS[k].toUpperCase()} ${s}`; b.addEventListener('click', () => setTag({ b: s })); be.append(b); });
+    }
+  }
+  function targets() { const ids = events[cur]; return sel('.ct-apply') === 'photo' ? [ids[curPhoto]] : ids; }
+  function setTag(ch: Partial<Tag>) {
+    if (!events.length) return;
+    const base = tags[photos[events[cur][curPhoto]].key];
+    const n = Math.max(0, Math.min(999, Math.round(val('.ct-count')) || 0));
+    const t: Tag = { s: base?.s ?? '', n: base?.n ?? (n || 1), b: base?.b ?? '', note: q<HTMLInputElement>('.ct-notes').value.trim(), ...ch };
+    if (ch.s === 'Empty') { t.n = 0; t.b = ''; } else if (ch.s && base?.s === 'Empty') t.n = Math.max(1, n);
+    if (ch.s && !base) t.n = Math.max(1, n);
+    for (const i of targets()) tags[photos[i].key] = { ...t };
+    persist(); show(); summary();
+  }
+  function clearTag() { for (const i of targets()) delete tags[photos[i].key]; persist(); show(); summary(); }
+  function go(d: number) { cur += d; curPhoto = 0; show(); }
+  function nextUntagged() {
+    for (let k = 1; k <= events.length; k++) { const e = (cur + k) % events.length; if (eventTag(e).tagged < events[e].length) { cur = e; curPhoto = 0; show(); return; } }
+    q('.ct-now').textContent = 'Every photo is tagged.';
+  }
+  function eventsTable() {
+    const tab = q('.ct-ev'); if (!(tab.closest('details') as HTMLDetailsElement).open) return;
+    const rows: HTMLElement[] = [];
+    const head = document.createElement('tr'); ['#', 'Station', 'Start', 'Photos', 'Tag'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; head.append(th); }); rows.push(head);
+    events.forEach((ids, e) => {
+      const tr = document.createElement('tr'), t = eventTag(e), a = photos[ids[0]];
+      [String(e + 1), a.station, fmtTime(a.t, false), String(ids.length), t.first ? `${t.first.s}${t.first.s !== 'Empty' ? ' × ' + t.first.n : ''}${t.tagged < t.all ? ` (${t.tagged} of ${t.all})` : ''}` : '—'].forEach((v) => { const td = document.createElement('td'); td.textContent = v; tr.append(td); });
+      if (e === cur) tr.className = 'ct-cur';
+      tr.addEventListener('click', () => { cur = e; curPhoto = 0; show(); q('.ct-pos').scrollIntoView({ block: 'nearest' }); });
+      rows.push(tr);
+    });
+    tab.replaceChildren(...rows);
+  }
+
+  // ---------- Summary ----------
+  function buildNights() {
+    const box = q('.ct-nights'); box.replaceChildren();
+    for (const s of Object.keys(nights).sort()) {
+      const l = document.createElement('label'), i = document.createElement('input');
+      l.textContent = s; i.type = 'number'; i.min = '0'; i.step = 'any'; i.inputMode = 'decimal'; i.value = String(nights[s]); i.dataset.st = s;
+      i.addEventListener('input', () => { nights[s] = Math.max(0, num(i.value) || 0); summary(); });
+      l.append(i); box.append(l);
+    }
+  }
+  function summary() {
+    const ig = val('.ct-igap'), err = q('.ct-err');
+    if (!(ig >= 0) || !(val('.ct-egap') >= 0)) { err.textContent = 'The event gap and independence interval are minutes, 0 or more.'; err.hidden = false; return; }
+    err.hidden = true;
+    const recs = photos.map((p) => ({ station: p.station, t: p.t, species: tags[p.key] && tags[p.key].s !== 'Empty' ? tags[p.key].s : '', count: tags[p.key]?.n ?? 0 }));
+    dets = detections(recs, ig, sel('.ct-from') as 'last' | 'first');
+    const sm = summarise(dets, nights), tagged = photos.filter((p) => tags[p.key]).length;
+    q('.ct-big').textContent = `${dets.length} detection${dets.length === 1 ? '' : 's'} of ${sm.species.length} species in ${+sm.totalNights.toFixed(2)} trap-nights`;
+    const head = ['Species', 'Detections', 'Animals', 'Stations', 'Naive occupancy', 'RAI'];
+    const rows = sm.species.map((s) => [s.species, String(s.detections), String(s.animals), `${s.stations} of ${sm.stations}`, s.naiveOcc.toFixed(2), Number.isFinite(s.rai) ? s.rai.toFixed(2) : '—']);
+    const tab = q('.ct-sum'); tab.replaceChildren();
+    const tr = (c: string[], th = false) => { const r = document.createElement('tr'); c.forEach((t, k) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = t; if (k) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...(rows.length ? rows.map((r) => tr(r)) : [tr(['No animals tagged yet', '', '', '', '', ''])]));
+    // Activity by hour.
+    const as = q<HTMLSelectElement>('.ct-act'), was = as.value;
+    as.replaceChildren(); [['', 'All species'], ...sm.species.map((s) => [s.species, s.species])].forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; as.append(o); });
+    as.value = sm.species.some((s) => s.species === was) ? was : '';
+    const hours = new Array(24).fill(0); sm.species.filter((s) => !as.value || s.species === as.value).forEach((s) => s.hours.forEach((v, h) => (hours[h] += v)));
+    figs.hours = chartFigure({ w: 380, h: 220, xMin: 0, xMax: 24, yMin: 0, yMax: Math.max(2, ...hours), xLabel: 'Hour of day (camera time)', yLabel: 'Detections', legend: 'none', series: [{ name: 'Detections', x: hours.map((_, h) => h + 0.5), y: hours, mode: 'both', marker: 'square', width: 1.5 }] }, `Detections of ${as.value || 'all species'} by hour of day`);
+    paint(q<HTMLCanvasElement>('.ct-hours'), figs.hours);
+    report = [
+      { title: q('.ct-big').textContent!, facts: [['Photos', `${photos.length} (${tagged} tagged)`], ['Stations', String(sm.stations)], ['Independence interval', `${ig} min from the ${sel('.ct-from')} photo`], ['Trap-nights', Object.entries(nights).map(([k, v]) => `${k} ${v}`).join(', ')]], table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: `Activity by hour: ${as.value || 'all species'}`, figure: figs.hours },
+    ];
+  }
+
+  // ---------- Downloads ----------
+  q('.ct-csv').addEventListener('click', () => {
+    const det = new Map<string, number>();
+    dets.forEach((d, k) => photos.forEach((p) => { const t = tags[p.key]; if (t && t.s === d.species && p.station === d.station && p.t >= d.start && p.t <= d.end) det.set(p.key, k + 1); }));
+    const lines = [['station', 'file', 'datetime', 'time_source', 'event', 'species', 'count', 'behaviour', 'notes', 'detection'].join(',')];
+    for (const i of ev.order) { const p = photos[i], t = tags[p.key]; lines.push([p.station, p.name, fmtTime(p.t), p.src, ev.event[i] + 1, t?.s ?? '', t ? t.n : '', t?.b ?? '', t?.note ?? '', det.get(p.key) ?? ''].map(csvCell).join(',')); }
+    save(new TextEncoder().encode(lines.join('\n') + '\n'), 'camera-trap-photos.csv', 'text/csv');
+  });
+  q('.ct-dcsv').addEventListener('click', () => {
+    const lines = ['detection,station,species,start,end,photos,count,hour'];
+    dets.forEach((d, k) => lines.push([k + 1, d.station, d.species, fmtTime(d.start), fmtTime(d.end), d.photos, d.count, new Date(d.start).getUTCHours()].map(csvCell).join(',')));
+    save(new TextEncoder().encode(lines.join('\n') + '\n'), 'camera-trap-detections.csv', 'text/csv');
+  });
+
+  // ---------- Wiring ----------
+  const dirIn = q<HTMLInputElement>('.ct-indir'), fIn = q<HTMLInputElement>('.ct-in');
+  q('.ct-dir').addEventListener('click', () => dirIn.click());
+  q('.ct-files').addEventListener('click', () => fIn.click());
+  for (const inp of [dirIn, fIn]) inp.addEventListener('change', () => { const f = Array.from(inp.files ?? []); inp.value = ''; if (f.length) readFiles(f); });
+  q('.ct-demo').addEventListener('click', demo);
+  q('.ct-prev').addEventListener('click', () => go(-1));
+  q('.ct-next').addEventListener('click', () => go(1));
+  q('.ct-nextu').addEventListener('click', nextUntagged);
+  q('.ct-count').addEventListener('change', () => { const t = tags[photos[events[cur]?.[curPhoto]]?.key]; if (t && t.s !== 'Empty') setTag({ n: Math.max(0, Math.min(999, Math.round(val('.ct-count')) || 0)) }); });
+  q('.ct-notes').addEventListener('change', () => { if (tags[photos[events[cur]?.[curPhoto]]?.key]) setTag({ note: q<HTMLInputElement>('.ct-notes').value.trim() }); });
+  q('.ct-egap').addEventListener('input', () => { if (!photos.length || !(val('.ct-egap') >= 0)) return summary(); const k = events[cur]?.[curPhoto]; regroup(); cur = Math.max(0, ev.event[k] ?? 0); curPhoto = events[cur].indexOf(k); show(); summary(); });
+  for (const c of ['.ct-igap', '.ct-from']) { q(c).addEventListener('input', () => photos.length && summary()); q(c).addEventListener('change', () => photos.length && summary()); }
+  for (const c of ['.ct-sp', '.ct-beh']) q(c).addEventListener('change', () => photos.length && show());
+  q('.ct-act').addEventListener('change', summary);
+  q('.ct-ev').closest('details')!.addEventListener('toggle', eventsTable);
+  q('.ct-keep').addEventListener('change', () => {
+    if (keep()) { lsDel(PREF); persist(); q('.ct-note').textContent = 'Tags will be kept in this browser.'; }
+    else { lsSet(PREF, '0'); lsDel(STORE); q('.ct-note').textContent = 'Saved tags deleted from this browser; new tags are not kept.'; }
+  });
+  q('.ct-clear').addEventListener('click', () => { lsDel(STORE); q('.ct-note').textContent = 'Saved tags cleared from this browser. Tags on this page stay until you close it.'; });
+  document.addEventListener('keydown', (e) => {
+    if (q('.ct-tag').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tg = e.target as HTMLElement;
+    if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable)) return;
+    const k = e.key.toLowerCase(), sp = species(), be = behaviours();
+    let done = true;
+    if (/^[1-9]$/.test(k) && sp[+k - 1]) setTag({ s: sp[+k - 1] });
+    else if (k === '0') setTag({ s: 'Empty' });
+    else if (BKEYS.includes(k) && be[BKEYS.indexOf(k)]) setTag({ b: be[BKEYS.indexOf(k)] });
+    else if (k === '+' || k === '=') { q<HTMLInputElement>('.ct-count').value = String(Math.min(999, (val('.ct-count') || 0) + 1)); setTag({ n: val('.ct-count') }); }
+    else if (k === '-') { q<HTMLInputElement>('.ct-count').value = String(Math.max(1, (val('.ct-count') || 1) - 1)); setTag({ n: val('.ct-count') }); }
+    else if (k === 'arrowright') go(1);
+    else if (k === 'arrowleft') go(-1);
+    else if (k === 'n') nextUntagged();
+    else if (k === 'backspace') clearTag();
+    else done = false;
+    if (done) e.preventDefault();
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.hours && !q('.ct-out').hidden) paint(q<HTMLCanvasElement>('.ct-hours'), figs.hours); });
+  wireDownloads(q('.dl'), () => ({ title: 'Camera-trap summary', subtitle: q('.ct-big').textContent ?? '', file: 'camera-trap-summary', sections: report }));
+  demo();
+</script>
+
+<style is:global>
+  .ctx .ct-note:empty { display: none; }
+  .ctx .ct-view { background: #000; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; margin-top: 8px; }
+  .ctx .ct-img { display: block; max-width: 100%; max-height: 60vh; object-fit: contain; }
+  html.red-mode .ctx .ct-img { filter: url(#red-night); }
+  .ctx .ct-thumbs, .ctx .ct-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ctx .ct-thumbs button, .ctx .ct-btns button { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ctx .ct-thumbs button.on, .ctx .ct-btns button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .ctx .ct-pos { font-weight: 600; margin: 10px 0 0; }
+  .ctx .ct-evwrap { max-height: 320px; overflow-y: auto; }
+  .ctx .ct-ev tr { cursor: pointer; }
+  .ctx tr.ct-cur td { font-weight: 700; }
+</style>
