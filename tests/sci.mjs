@@ -146,6 +146,7 @@ import * as BIO from '../src/lib/sci/bioacc.ts';
 import * as NB from '../src/lib/sci/barrier.ts';
 import * as TC from '../src/lib/sci/treecarbon.ts';
 import * as LCA from '../src/lib/sci/lca.ts';
+import * as SQ from '../src/lib/sci/seqtools.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2888,6 +2889,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const m1 = LCA.monteCarlo(rows, life, 365, 10000, 1), m2 = LCA.monteCarlo(rows, life, 30, 10000, 1);
   check('lca MC 365', m1.pA === 1); near('lca MC 365 p50', m1.p50, 31.825753420237692, 1e-9);
   near('lca MC 30 pA', m2.pA, 0.5923, 1e-12); near('lca MC 30 p5', m2.p5, -0.6048322133878243, 1e-9); near('lca MC 30 p95', m2.p95, 0.8201603659705721, 1e-9);
+}
+{
+  // Sequence tools: against Biopython 1.88 (reverse complement, translation in three frames, GC, ORFs with an
+  // independent first-M-after-stop scan, codon counts). The test sequence is random with two planted ORFs (made up).
+  const seq = 'GCTAAAGACAATTACATAACATACACGTCAGCACGAAACTATGTGTTGGCCCAGTGTGAATCGCTTAAGGGTTAAGGTGTGCATACGCCTTTACTTGCTGTGTCCACCCCATCGGACTGGCATTTTTATTACACTCAGAAACAGAACTCGGGTAATTTTGACAGGTCACGCAGAGGCGCGCCCTCCTGAAGTGCGTGGACACTCGCTAATCTCTGATTTACCCACTCTGCCAAACTCCAGCGCGGTCAGTTCCATCACCCTAAGTAACCGAATAATGCGTTCGCTCTATCTACGACGCGCTCATTCCCTTGTCGGAGAGTTATGGAACAAGGACGCTGTCGACAAGACAGATAGTGCACACGACCGGCGTCGGAGAAACTCTATTTGCCGCCTGACAAGTCAATAATGCGATCCGTAGGGGCAGCGCAGTATGCCAAGACTATAGGCACTGTCGCATTAAGCAGCTAAGTTCATGGAGCCACTTGCAGCTTTACGCTGGTTTATGGGTGAAATTAAATGAAAGCTGGCCATCCAGAAATGCCGCTCGTGGGAACAGAGTGGTAACGACCCCCAAGGTACGAATTGATACGCACGGCTTCTCACTAATCCCTGTACCTCCAGCAAATGTAAAGCTCGCCGTTGGACATATCGTAAACCAGTCATATGCCCGTGTAAAGGGCTCATGTTAATCGTTTGTGACATAGTGTCAGACTCGCCTCGGATCCTTACTAC';
+  const p = SQ.parse('>test seq\n' + seq.match(/.{1,60}/g).join('\n'));
+  check('seq parse', p.name === 'test seq' && p.seq === seq && p.dropped === 0 && !p.rna);
+  check('seq revcomp', SQ.reverseComplement(seq).slice(0, 60) === 'GTAGTAAGGATCCGAGGCGAGTCTGACACTATGTCACAAACGATTAACATGAGCCCTTTA');
+  near('seq gc', SQ.gc(seq), 0.49453551912568305, 1e-15);
+  ["AKDNYITYTSARNYVLAQCESLKG*GVHTPLLAVSTPSDWHFYYTQKQNSGNFDRSRRGAPS*SAWTLANL*FTHSAKLQRGQFHHPK*PNNAFALSTTRSFPCRRVMEQGRCRQDR*CTRPASEKLYLPPDKSIMRSVGAAQYAKTIGTVALSS*VHGATCSFTLVYG*N*MKAGHPEMPLVGTEW*RPPRYELIRTASH*SLYLQQM*SSPLDIS*TSHMPV*RAHVNRL*HSVRLASDPYY", "LKTIT*HTRQHETMCWPSVNRLRVKVCIRLYLLCPPHRTGIFITLRNRTRVILTGHAEARPPEVRGHSLISDLPTLPNSSAVSSITLSNRIMRSLYLRRAHSLVGELWNKDAVDKTDSAHDRRRRNSICRLTSQ*CDP*GQRSMPRL*ALSH*AAKFMEPLAALRWFMGEIK*KLAIQKCRSWEQSGNDPQGTN*YARLLTNPCTSSKCKARRWTYRKPVICPCKGLMLIVCDIVSDSPRILT", "*RQLHNIHVSTKLCVGPV*IA*GLRCAYAFTCCVHPIGLAFLLHSETELG*F*QVTQRRALLKCVDTR*SLIYPLCQTPARSVPSP*VTE*CVRSIYDALIPLSESYGTRTLSTRQIVHTTGVGETLFAA*QVNNAIRRGSAVCQDYRHCRIKQLSSWSHLQLYAGLWVKLNESWPSRNAARGNRVVTTPKVRIDTHGFSLIPVPPANVKLAVGHIVNQSYARVKGSC*SFVT*CQTRLGSLL"].forEach((t, f) => check(`seq translate frame ${f + 1}`, SQ.translate(seq, f) === t));
+  const o = SQ.findOrfs(seq, 30, 'atg', true);
+  check('seq orfs', JSON.stringify(o.map((x) => [x.strand === '+' ? '+' : '-', x.frame, x.start, x.end, x.aa])) === '[["+",2,41,406,121],["-",1,457,702,81]]');
+  const u = SQ.codonUsage([seq.slice(o[0].start - 1, o[0].end)]);
+  check('seq codon counts', u.n.ATG === 2 && u.n.TAA === 1 && u.n.GCT === 2 && u.n.CTG === 3 && u.total === 122);
+  near('seq RSCU sums', ['CTG', 'CTA', 'CTC', 'CTT', 'TTA', 'TTG'].reduce((a, c) => a + (u.rscu[c] || 0), 0), 6, 1e-12);
+  check('seq IUPAC revcomp', SQ.reverseComplement('ACGTRYKMBVDHNSW') === 'WSNDHBVKMRYACGT');
+  const r = SQ.parse('augGCU uaa\n123 x');
+  check('seq RNA parse', r.rna && r.seq === 'ATGGCTTAA' && r.dropped === 1 && SQ.translate(r.seq) === 'MA*');
+  check('seq ambiguous codon', SQ.translate('ATGNNNTAA') === 'MX*');
+  check('seq stop mode', SQ.findOrfs('AAATAAGGGCCCTTTTGA', 3, 'stop', false).some((x) => x.start === 7 && x.end === 18 && !x.complete));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

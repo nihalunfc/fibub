@@ -1,0 +1,212 @@
+---
+// DNA sequence tools: reverse complement, six-frame translation, ORF finder with a map, codon usage and base counts.
+// The example sequence is random with two planted reading frames (made up).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `>example made-up sequence
+GCTAAAGACAATTACATAACATACACGTCAGCACGAAACTATGTGTTGGCCCAGTGTGAA
+TCGCTTAAGGGTTAAGGTGTGCATACGCCTTTACTTGCTGTGTCCACCCCATCGGACTGG
+CATTTTTATTACACTCAGAAACAGAACTCGGGTAATTTTGACAGGTCACGCAGAGGCGCG
+CCCTCCTGAAGTGCGTGGACACTCGCTAATCTCTGATTTACCCACTCTGCCAAACTCCAG
+CGCGGTCAGTTCCATCACCCTAAGTAACCGAATAATGCGTTCGCTCTATCTACGACGCGC
+TCATTCCCTTGTCGGAGAGTTATGGAACAAGGACGCTGTCGACAAGACAGATAGTGCACA
+CGACCGGCGTCGGAGAAACTCTATTTGCCGCCTGACAAGTCAATAATGCGATCCGTAGGG
+GCAGCGCAGTATGCCAAGACTATAGGCACTGTCGCATTAAGCAGCTAAGTTCATGGAGCC
+ACTTGCAGCTTTACGCTGGTTTATGGGTGAAATTAAATGAAAGCTGGCCATCCAGAAATG
+CCGCTCGTGGGAACAGAGTGGTAACGACCCCCAAGGTACGAATTGATACGCACGGCTTCT
+CACTAATCCCTGTACCTCCAGCAAATGTAAAGCTCGCCGTTGGACATATCGTAAACCAGT
+CATATGCCCGTGTAAAGGGCTCATGTTAATCGTTTGTGACATAGTGTCAGACTCGCCTCG
+GATCCTTACTAC`;
+---
+<div class="ax sqt">
+  <div class="ax-card">
+    <h2>Sequence</h2>
+    <label>DNA or RNA, as FASTA or plain letters <textarea class="sq-in" rows="8" spellcheck="false">{example}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sq-open">Open a sequence file</button>
+      <input type="file" class="sq-file" accept=".fa,.fasta,.fna,.ffn,.fas,.seq,.txt,text/plain" hidden />
+      <span class="ax-help" style="margin:0">FASTA or plain text, up to 20 MB. The file stays on your device.</span>
+    </div>
+    <p class="ax-help">Only the first record of a multi-sequence FASTA file is used. Spaces, numbers and line breaks are ignored, IUPAC ambiguity letters (N, R, Y…) are kept, and U is read as T. Up to 5 million bases. The example is a made-up random sequence with two reading frames planted in it.</p>
+    <p class="ax-err sq-err" hidden></p>
+  </div>
+
+  <div class="ax-card sq-out">
+    <h2>Summary</h2>
+    <p class="ax-big sq-big"></p>
+    <dl class="ax-facts sq-facts"></dl>
+  </div>
+
+  <div class="ax-card sq-out">
+    <h2>Reverse complement</h2>
+    <textarea class="sq-rc" rows="5" readonly spellcheck="false"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sq-copy-rc">Copy</button>
+      <button type="button" class="btn secondary small sq-dl-rc">Download (FASTA)</button>
+    </div>
+  </div>
+
+  <div class="ax-card sq-out">
+    <h2>Translation</h2>
+    <div class="ax-grid"><label>Reading frame <select class="sq-frame">
+      <option value="0">+1</option><option value="1">+2</option><option value="2">+3</option>
+      <option value="3">−1</option><option value="4">−2</option><option value="5">−3</option>
+    </select></label></div>
+    <textarea class="sq-tr" rows="5" readonly spellcheck="false"></textarea>
+    <p class="ax-help">Standard genetic code. * is a stop codon and X a codon with an ambiguity letter. Frames −1 to −3 read the reverse complement.</p>
+    <div class="ax-row"><button type="button" class="btn secondary small sq-copy-tr">Copy</button></div>
+  </div>
+
+  <div class="ax-card sq-out">
+    <h2>Open reading frames</h2>
+    <div class="ax-grid">
+      <label>Shortest ORF (amino acids) <input class="sq-min" inputmode="numeric" value="30" /></label>
+      <label>An ORF starts at <select class="sq-mode"><option value="atg" selected>The first ATG after a stop</option><option value="stop">Just after a stop (stop to stop)</option></select></label>
+      <label>Strands <select class="sq-both"><option value="1" selected>Both</option><option value="0">Top strand only</option></select></label>
+    </div>
+    <canvas class="ax-fig sq-map"></canvas>
+    <div class="ax-scroll"><table class="sq-tab"></table></div>
+    <p class="ax-help sq-more" hidden></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sq-csv">Download ORFs (CSV)</button>
+      <button type="button" class="btn secondary small sq-faa">Download proteins (FASTA)</button>
+    </div>
+  </div>
+
+  <div class="ax-card sq-out">
+    <h2>Codon usage</h2>
+    <div class="ax-grid"><label>Count codons in <select class="sq-cu"><option value="long" selected>The longest ORF</option><option value="all">All ORFs listed</option><option value="f1">The whole sequence, frame +1</option></select></label></div>
+    <p class="ax-help">RSCU (relative synonymous codon usage) is how often a codon is used compared with an even share among the codons for the same amino acid: 1 is even, above 1 is preferred.</p>
+    <details class="sq-sd"><summary>Codon table</summary><div class="ax-scroll"><table class="sq-cut"></table></div></details>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parse, reverseComplement, translate, findOrfs, codonUsage, gc, counts, CODE, type Orf } from '../../lib/sci/seqtools';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => x.toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.sqt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const wrap = (s: string, n = 60) => s.replace(new RegExp(`(.{${n}})`, 'g'), '$1\n').trim();
+  let seq = '', rc = '', name = '', orfs: Orf[] = [], map: Figure | null = null, sections: Section[] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  const outs = (show: boolean) => root.querySelectorAll<HTMLElement>('.sq-out').forEach((e) => { e.hidden = !show; });
+
+  function calc() {
+    const fail = (m: string) => { q('.sq-err').textContent = m; q('.sq-err').hidden = false; outs(false); map = null; sections = []; seq = ''; };
+    q('.sq-err').hidden = true;
+    const p = parse(q<HTMLTextAreaElement>('.sq-in').value);
+    if (!p.seq.length) return fail('Paste a DNA or RNA sequence (A, C, G, T or U), plain or as FASTA.');
+    if (p.seq.length > 5e6) return fail('Up to 5 million bases, please.');
+    seq = p.seq; name = p.name || 'sequence'; rc = reverseComplement(seq);
+    outs(true);
+    const cnt = counts(seq), amb = seq.length - ['A', 'C', 'G', 'T'].reduce((a, b) => a + (cnt[b] ?? 0), 0), g = gc(seq);
+    q('.sq-rc').textContent = ''; q<HTMLTextAreaElement>('.sq-rc').value = `>${name} reverse complement\n${wrap(rc)}`;
+    frame(); orfsCalc();
+    const facts = [
+      fact('Length', `${tn(seq.length)} ${p.rna ? 'nt (RNA, read as DNA)' : 'bp'}`, p.records > 1 ? `first of ${p.records}+ records in the FASTA; the rest are left out` : name !== 'sequence' ? `“${name}”` : ''),
+      fact('Bases', ['A', 'C', 'G', 'T'].map((b) => `${b} ${tn(cnt[b] ?? 0)}`).join(', '), amb ? `${tn(amb)} ambiguity letters (N, R, Y…)` : 'no ambiguity letters'),
+      fact('GC content', `${sg(g * 100, 3)} %`, 'over the unambiguous bases'),
+    ];
+    if (p.dropped) facts.push(fact('Left out', `${tn(p.dropped)} characters`, 'letters that are not DNA, RNA or IUPAC codes'));
+    q('.sq-facts').replaceChildren(...facts);
+    q('.sq-big').textContent = `${tn(seq.length)} ${p.rna ? 'nt' : 'bp'}, GC ${sg(g * 100, 3)} %, ${orfs.length} ORF${orfs.length === 1 ? '' : 's'}`;
+    report();
+  }
+
+  function frame() {
+    if (!seq) return;
+    const f = +q<HTMLSelectElement>('.sq-frame').value;
+    const prot = f < 3 ? translate(seq, f) : translate(rc, f - 3);
+    q<HTMLTextAreaElement>('.sq-tr').value = `>${name} frame ${f < 3 ? '+' : '−'}${(f % 3) + 1}\n${wrap(prot)}`;
+  }
+
+  function orfsCalc() {
+    if (!seq) return;
+    const minAA = Math.max(1, Math.round(num(q<HTMLInputElement>('.sq-min').value)) || 30);
+    orfs = findOrfs(seq, minAA, q<HTMLSelectElement>('.sq-mode').value as 'atg' | 'stop', q<HTMLSelectElement>('.sq-both').value === '1');
+    const shown = orfs.slice(0, 200);
+    table('.sq-tab', ['#', 'Strand', 'Frame', 'Start', 'End', 'Length (aa)', 'Starts with ATG'], shown.map((o, i) => [String(i + 1), o.strand, String(o.frame), tn(o.start), tn(o.end), tn(o.aa), o.complete ? 'yes' : 'no']), [0, 2, 3, 4, 5]);
+    q('.sq-more').hidden = orfs.length <= 200; q('.sq-more').textContent = `Showing the 200 longest of ${tn(orfs.length)} ORFs; the downloads have them all.`;
+    const L = seq.length;
+    map = { w: 640, h: 330, alt: `Map of ${orfs.length} open reading frames on six frames`, draw: (ctx, W, H, pal) => {
+      const l = 64, r = 16, top = 44, lane = 36, x = (p: number) => l + ((p - 1) / Math.max(1, L - 1)) * (W - l - r);
+      ctx.font = '20px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left'; ctx.fillText(`${tn(L)} bp; ${orfs.length} ORFs`, 6, 18);
+      const lanes = ['+1', '+2', '+3', '−1', '−2', '−3'];
+      lanes.forEach((nm, k) => {
+        const y = top + k * lane + (k >= 3 ? 14 : 0) + lane / 2;
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(nm, l - 10, y);
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(W - r, y); ctx.stroke();
+      });
+      const yAxis = top + 3 * lane + 7; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(l, yAxis); ctx.lineTo(W - r, yAxis); ctx.stroke();
+      orfs.forEach((o) => {
+        const k = (o.strand === '+' ? 0 : 3) + o.frame - 1, y = top + k * lane + (k >= 3 ? 14 : 0) + lane / 2, a = x(o.start), b = Math.max(x(o.end), a + 4), h = 9, tip = Math.min(10, (b - a) / 2);
+        ctx.fillStyle = o.strand === '+' ? pal.accent : pal.accent2; ctx.beginPath();
+        if (o.strand === '+') { ctx.moveTo(a, y - h); ctx.lineTo(b - tip, y - h); ctx.lineTo(b, y); ctx.lineTo(b - tip, y + h); ctx.lineTo(a, y + h); }
+        else { ctx.moveTo(b, y - h); ctx.lineTo(a + tip, y - h); ctx.lineTo(a, y); ctx.lineTo(a + tip, y + h); ctx.lineTo(b, y + h); }
+        ctx.closePath(); ctx.fill();
+      });
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('1', l, H - 14); ctx.textAlign = 'right'; ctx.fillText(tn(L), W - r, H - 14);
+    } };
+    paint(q<HTMLCanvasElement>('.sq-map'), map);
+    codons();
+  }
+
+  function codons() {
+    if (!seq) return;
+    const m = q<HTMLSelectElement>('.sq-cu').value;
+    const cdsOf = (o: Orf) => (o.strand === '+' ? seq.slice(o.start - 1, o.end) : reverseComplement(seq.slice(o.start - 1, o.end)));
+    const cds = m === 'f1' ? [seq] : m === 'all' ? orfs.map(cdsOf) : orfs.length ? [cdsOf(orfs[0])] : [];
+    const u = codonUsage(cds);
+    const rows = Object.keys(CODE).sort((a, b) => CODE[a].localeCompare(CODE[b]) || a.localeCompare(b)).map((c) => [CODE[c] === '*' ? 'Stop' : CODE[c], c, tn(u.n[c]), u.total ? sg((1000 * u.n[c]) / u.total, 3) : '–', Number.isFinite(u.rscu[c]) ? u.rscu[c].toFixed(2) : '–']);
+    table('.sq-cut', ['Amino acid', 'Codon', 'Count', 'Per 1,000', 'RSCU'], rows, [2, 3, 4]);
+    return { u, rows };
+  }
+
+  function report() {
+    const top = orfs.slice(0, 50).map((o, i) => [String(i + 1), o.strand, String(o.frame), tn(o.start), tn(o.end), tn(o.aa)]);
+    sections = [{ title: q('.sq-big').textContent ?? '', facts: [...q('.sq-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: map ?? undefined,
+      table: { head: ['#', 'Strand', 'Frame', 'Start', 'End', 'Length (aa)'], rows: top, align: ['r', 'l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  q('.sq-in').addEventListener('input', later);
+  q('.sq-frame').addEventListener('change', frame);
+  ['.sq-min', '.sq-mode', '.sq-both'].forEach((c) => { q(c).addEventListener('input', () => { orfsCalc(); if (seq) { q('.sq-big').textContent = q('.sq-big').textContent!.replace(/\d[\d,]* ORFs?$/, `${orfs.length} ORF${orfs.length === 1 ? '' : 's'}`); report(); } }); q(c).addEventListener('change', () => q(c).dispatchEvent(new Event('input'))); });
+  q('.sq-cu').addEventListener('change', codons);
+  q('.sq-open').addEventListener('click', () => q<HTMLInputElement>('.sq-file').click());
+  q('.sq-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.sq-file').files?.[0]; if (!f) return;
+    if (f.size > 20e6) { q('.sq-err').textContent = 'That file is over 20 MB.'; q('.sq-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.sq-in').value = await f.text(); q<HTMLInputElement>('.sq-file').value = ''; calc();
+  });
+  const copy = async (sel: string, btn: string) => { try { await navigator.clipboard.writeText(q<HTMLTextAreaElement>(sel).value); q(btn).textContent = 'Copied'; setTimeout(() => (q(btn).textContent = 'Copy'), 1500); } catch { /* clipboard blocked */ } };
+  q('.sq-copy-rc').addEventListener('click', () => copy('.sq-rc', '.sq-copy-rc'));
+  q('.sq-copy-tr').addEventListener('click', () => copy('.sq-tr', '.sq-copy-tr'));
+  q('.sq-dl-rc').addEventListener('click', () => { if (seq) save(new TextEncoder().encode(q<HTMLTextAreaElement>('.sq-rc').value + '\n'), 'reverse-complement.fasta', 'text/plain'); });
+  q('.sq-csv').addEventListener('click', () => { if (seq) save(new TextEncoder().encode(toCsv([['orf', 'strand', 'frame', 'start', 'end', 'length_nt', 'length_aa', 'starts_with_atg', 'protein'], ...orfs.map((o, i) => [String(i + 1), o.strand === '+' ? '+' : '-', String(o.frame), String(o.start), String(o.end), String(o.nt), String(o.aa), o.complete ? 'yes' : 'no', o.protein])])), 'orfs.csv', 'text/csv'); });
+  q('.sq-faa').addEventListener('click', () => { if (seq) save(new TextEncoder().encode(orfs.map((o, i) => `>orf${i + 1} ${o.strand === '+' ? '+' : '-'}${o.frame} ${o.start}-${o.end} ${o.aa} aa\n${wrap(o.protein)}\n`).join('')), 'orf-proteins.fasta', 'text/plain'); });
+  document.addEventListener('fibub:theme', () => { if (map) paint(q<HTMLCanvasElement>('.sq-map'), map); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Sequence summary', subtitle: q('.sq-big').textContent ?? '', file: 'sequence', sections }));
+</script>
+
+<style is:global>
+  .sqt .sq-rc, .sqt .sq-tr { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .sqt .sq-in { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .sqt select { max-width: 100%; }
+  .sqt .sq-sd { margin-top: 8px; }
+  .sqt .sq-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
