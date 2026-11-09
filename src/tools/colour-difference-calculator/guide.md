@@ -11,7 +11,7 @@ order: 418
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [beer-lambert-calculator, uncertainty-calculator, plot-maker]
+related: [light-exposure-budget, beer-lambert-calculator, uncertainty-calculator, plot-maker]
 sources:
   - "CIELAB, ΔE*ab and ΔE94: CIE 15 (Colorimetry) and CIE 116 formulas. CIEDE2000: G. Sharma, W. Wu and E. N. Dalal (2005), Color Research and Application 30, 21-30, whose published test pairs are used in fibub's tests. sRGB: IEC 61966-2-1 matrix and transfer curve; Bradford chromatic adaptation."
   - "Checked against colour-science 0.4.7 (Python) on 2,000 random colour pairs: ΔE76, ΔE94 (both weightings), CIEDE2000 with random kL, kC and kH, LCh, and sRGB to Lab under D65 and D50, all within 10⁻¹²."
