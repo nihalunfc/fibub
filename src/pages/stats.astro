@@ -29,8 +29,28 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 ---
 <Base title="Usage statistics" description="How many people use fibub's tools, on which devices and for which file types. Anonymous totals only.">
   <h1>Usage statistics</h1>
-  <p class="lead">Anonymous totals of how fibub's tools are used, updated daily. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
+  <p class="lead">Anonymous totals of how fibub's tools are used. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
 
+  <section class="live-counts" data-live-counts>
+    <h2>Views and uses per tool</h2>
+    <p class="muted">Live running totals. A view is one opening of a tool's page; a use is counted the first time someone works the tool after opening it. Reloading a page counts again: we keep no way to tell visits apart.</p>
+    <div class="grid kpis">
+      <div class="card"><span class="muted">Page views, whole site</span><b data-lc="site">…</b></div>
+      <div class="card"><span class="muted">Tool page views</span><b data-lc="views">…</b></div>
+      <div class="card"><span class="muted">Tool uses</span><b data-lc="uses">…</b></div>
+    </div>
+    <div class="lc-sort" role="group" aria-label="Sort tools by">
+      <button type="button" class="btn secondary" data-sort="v" aria-pressed="true">Most viewed</button>
+      <button type="button" class="btn secondary" data-sort="u" aria-pressed="false">Most used</button>
+      <button type="button" class="btn secondary" data-sort="r" aria-pressed="false">Use rate</button>
+    </div>
+    <div class="lc-scroll">
+      <table class="tbl lc-tbl"><thead><tr><th>Tool</th><th class="r">Views</th><th class="r">Uses</th><th class="r" title="Uses per 100 views">Use rate</th></tr></thead><tbody></tbody></table>
+    </div>
+    <p class="muted lc-msg" hidden>The live counters could not be reached just now. Try again later.</p>
+  </section>
+
+  <h2>Files processed</h2>
   {total === 0 ? (
     <div class="panel"><p style="margin:0">No usage has been counted yet. Totals appear here the day after the first tools are used.</p></div>
   ) : (
@@ -64,6 +84,10 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   )}
 </Base>
 
+<script>
+  import '../scripts/live-counts';
+</script>
+
 <style>
   .muted { color: var(--muted); font-size: 14px; }
   .kpis .card { display: grid; gap: 4px; }
@@ -77,4 +101,11 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   .row .track { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
   .row .track span { display: block; height: 100%; background: var(--accent); }
   .row .num { text-align: right; color: var(--muted); }
+  .live-counts { margin-bottom: 32px; }
+  .lc-sort { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
+  .lc-sort [aria-pressed="true"] { border-color: var(--ink); font-weight: 700; }
+  .lc-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+  .lc-tbl { max-width: 640px; font-size: 15px; }
+  .lc-tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .lc-tbl small { color: var(--muted); }
 </style>

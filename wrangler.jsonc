@@ -1,16 +1,23 @@
-// Cloudflare Workers settings for fibub.com. The site is plain static files from dist/,
-// so there is no server code. Keeping this file in the repo stops Cloudflare's build from
-// rewriting the project on every deploy.
+// Cloudflare Workers settings for fibub.com. The site is plain static files from dist/. The only
+// server code is worker/index.ts: the public view and use counters under /api/. Every other address
+// is served straight from dist/ without running it.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fibub",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "build": { "command": "npm run build" },
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "html_handling": "force-trailing-slash"
+    "html_handling": "force-trailing-slash",
+    "run_worker_first": ["/api/*"]
   },
+  // The counters: running totals only (site views, and views and uses per tool), nothing about visitors.
+  // Cloudflare creates this storage itself on the first deploy; there is nothing to set up by hand.
+  "durable_objects": { "bindings": [{ "name": "COUNTER", "class_name": "Counter" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
   "observability": { "enabled": false },
   // Needed by `wrangler preview`, which Cloudflare runs to build a preview link for each pull request.
   "previews": {}
