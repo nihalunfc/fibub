@@ -1,0 +1,132 @@
+---
+// Gray-coded BPSK, QPSK, 8-PSK, 16-QAM and 64-QAM over a seeded AWGN channel: constellation scatter, measured and
+// theoretical bit and symbol error rates, and an Eb/N0 sweep (src/lib/sci/eng-modem.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cbr">
+  <div class="ax-card">
+    <h2>Signal and noise</h2>
+    <div class="ax-grid">
+      <label>Modulation <select class="cb-mod"><option value="bpsk">BPSK (1 bit per symbol)</option><option value="qpsk">QPSK (2 bits)</option><option value="8psk">8-PSK (3 bits)</option><option value="16qam" selected>16-QAM (4 bits)</option><option value="64qam">64-QAM (6 bits)</option></select></label>
+      <label>Eb/N0 (dB) <input class="cb-eb" type="text" inputmode="decimal" value="10" /></label>
+      <label>Symbols to simulate <select class="cb-n"><option value="10000">10,000</option><option value="100000" selected>100,000</option><option value="1000000">1,000,000</option></select></label>
+      <label>Random seed <input class="cb-seed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">Eb/N0 is the energy per bit over the noise density, the fair way to compare schemes that carry different numbers of bits per symbol. Each symbol gets random Gaussian noise (AWGN) and is decided as the nearest constellation point. The seed makes the noise repeatable.</p>
+    <p class="ax-err cb-err" hidden></p>
+  </div>
+
+  <div class="ax-card cb-out">
+    <h2>Constellation</h2>
+    <p class="ax-big cb-big"></p>
+    <dl class="ax-facts cb-facts"></dl>
+    <canvas class="ax-fig cb-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">The first 2,000 received symbols are drawn; the ideal points are labelled with their Gray-coded bits (up to 16 points), so neighbours differ by one bit.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Error rate against Eb/N0</h2>
+    <div class="ax-grid">
+      <label>From (dB) <input class="sw-a" type="text" inputmode="decimal" value="0" /></label>
+      <label>To (dB) <input class="sw-b" type="text" inputmode="decimal" value="14" /></label>
+      <label>Step (dB) <input class="sw-s" type="text" inputmode="decimal" value="1" /></label>
+      <label>Symbols per point <select class="sw-n"><option value="20000">20,000</option><option value="100000" selected>100,000</option><option value="500000">500,000</option></select></label>
+    </div>
+    <p class="ax-help">Lines are the theoretical bit error rates of all five schemes; dots are this simulation of the chosen one. Points with no errors are left off (the rate is below about 1 in the number of bits sent).</p>
+    <p class="ax-err sw-err" hidden></p>
+    <div class="sw-out">
+      <canvas class="ax-fig sw-fig"></canvas>
+      <div class="ax-scroll" style="margin-top:12px"><table class="sw-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sw-csv">Download sweep (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { constellation, simulate, theory, ebn0For, wilson, db, ORDER, type Mod } from '../../lib/sci/eng-modem';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const ex = (x: number) => (x === 0 ? '0' : fmtExp(x, 3));
+  const root = document.querySelector<HTMLElement>('.cbr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAME: Record<Mod, string> = { bpsk: 'BPSK', qpsk: 'QPSK', '8psk': '8-PSK', '16qam': '16-QAM', '64qam': '64-QAM' };
+  let cFig: Figure | null = null, sFig: Figure | null = null, cSec: Section | null = null, sSec: Section | null = null, rows: (string | number)[][] = [], timer = 0;
+
+  function one(mod: Mod, seed: number) {
+    const err = q('.cb-err'), out = q('.cb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; cSec = null; };
+    const eb = num(raw('.cb-eb')), n = +q<HTMLSelectElement>('.cb-n').value;
+    if (!(eb >= -10 && eb <= 40)) return fail('Give Eb/N0 between −10 and 40 dB.');
+    err.hidden = true; out.hidden = false;
+    const s = simulate(mod, db(eb), n, seed, 2000), t = theory(mod, db(eb)), k = Math.log2(ORDER[mod]);
+    const [lo, hi] = wilson(s.bitErr, s.bits);
+    q('.cb-big').textContent = `${NAME[mod]} at ${sg(eb, 4)} dB: BER ${ex(s.ber)} measured, ${ex(t.ber)} in theory`;
+    const facts = [
+      fact('Bit errors', `${s.bitErr.toLocaleString('en')} in ${s.bits.toLocaleString('en')} bits`, s.bitErr ? `95 % interval ${ex(lo)} to ${ex(hi)}` : `none seen: the rate is likely below ${ex(hi)}`),
+      fact('Symbol errors', `${s.symErr.toLocaleString('en')} (SER ${ex(s.ser)})`, `theory ${ex(t.ser)}`),
+      fact('Theory', `BER ${ex(t.ber)}`, t.exactBer ? 'exact for Gray coding' : 'Gray approximation SER / log2 M (SER exact)'),
+      fact('Es/N0', `${sg(eb + 10 * Math.log10(k), 4)} dB`, `Eb/N0 + 10 log10(${k}) bits per symbol`),
+      fact('Eb/N0 for BER 10⁻⁶', `${sg(ebn0For(mod, 1e-6), 4)} dB`, `for 10⁻³: ${sg(ebn0For(mod, 1e-3), 4)} dB (theory)`),
+    ];
+    q('.cb-facts').replaceChildren(...facts);
+    const pts = constellation(mod), lab = pts.length <= 16;
+    const lim = Math.max(1.6, ...s.rx.map((p) => Math.max(Math.abs(p.i), Math.abs(p.q)))) * 1.02, L = Math.min(lim, 3);
+    cFig = chartFigure({ w: 380, h: 380, xLabel: 'In-phase (I)', yLabel: 'Quadrature (Q)', xMin: -L, xMax: L, yMin: -L, yMax: L, legend: 'below', series: [
+      { name: 'Received', x: s.rx.map((p) => p.i), y: s.rx.map((p) => p.q), mode: 'points', size: 1.2 },
+      { name: 'Ideal', x: pts.map((p) => p.i), y: pts.map((p) => p.q), mode: 'points', size: 4, marker: 'diamond', labels: lab ? pts.map((p) => p.bits.toString(2).padStart(k, '0')) : undefined },
+    ] }, `${NAME[mod]} constellation with noise at ${sg(eb, 3)} dB`);
+    paint(q<HTMLCanvasElement>('.cb-fig'), cFig);
+    cSec = { title: q('.cb-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: cFig };
+  }
+
+  function sweep(mod: Mod, seed: number) {
+    const err = q('.sw-err'), out = q('.sw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sSec = null; rows = []; };
+    const a = num(raw('.sw-a')), b = num(raw('.sw-b')), st = num(raw('.sw-s')), n = +q<HTMLSelectElement>('.sw-n').value;
+    if (!(a >= -10 && b <= 40 && b > a)) return fail('Give a range between −10 and 40 dB, with "to" above "from".');
+    if (!(st > 0) || (b - a) / st > 60) return fail('Give a step that makes 60 points or fewer.');
+    err.hidden = true; out.hidden = false;
+    const es: number[] = []; for (let x = a; x <= b + 1e-9; x += st) es.push(+x.toFixed(6));
+    const sims = es.map((e, i) => simulate(mod, db(e), n, seed + i));
+    const fine: number[] = []; for (let x = a; x <= b + 1e-9; x += (b - a) / 120) fine.push(x);
+    const series = (Object.keys(ORDER) as Mod[]).map((m) => {
+      const pts = fine.map((x) => [x, theory(m, db(x)).ber]).filter(([, y]) => y >= 1e-8);
+      return { name: NAME[m], x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'line' as const, width: m === mod ? 2.5 : 1.2, dash: m === mod ? undefined : [4, 3] };
+    });
+    const sp = sims.map((s, i) => [es[i], s.ber]).filter(([, y]) => y > 0);
+    sFig = chartFigure({ w: 380, h: 300, xLabel: 'Eb/N0 (dB)', yLabel: 'Bit error rate', yLog: true, yMin: 1e-7, yMax: 1, xMin: a, xMax: b, legend: 'below', series: [...series, { name: `${NAME[mod]} simulated`, x: sp.map((p) => p[0]), y: sp.map((p) => p[1]), mode: 'points', size: 4, marker: 'circle' }] }, 'Bit error rate against Eb/N0, theory and simulation');
+    paint(q<HTMLCanvasElement>('.sw-fig'), sFig);
+    rows = [['ebn0_dB', 'bits', 'bit_errors', 'ber_sim', 'ber_theory', 'symbol_errors', 'ser_sim', 'ser_theory'], ...sims.map((s, i) => { const t = theory(mod, db(es[i])); return [es[i], s.bits, s.bitErr, sg(s.ber, 6), sg(t.ber, 6), s.symErr, sg(s.ser, 6), sg(t.ser, 6)]; })];
+    const head = ['Eb/N0 (dB)', 'Bit errors', 'BER simulated', 'BER theory'];
+    const body = sims.map((s, i) => [sg(es[i], 4), s.bitErr.toLocaleString('en'), s.bitErr ? ex(s.ber) : `< ${ex(1 / s.bits)}`, ex(theory(mod, db(es[i])).ber)]);
+    const tab = q('.sw-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const e = document.createElement('tr'); cells.forEach((c) => { const td = document.createElement(th ? 'th' : 'td'); td.textContent = c; td.className = 'r'; e.append(td); }); return e; };
+    const thead = document.createElement('thead'); thead.append(tr(head, true)); const tb = document.createElement('tbody'); body.forEach((r) => tb.append(tr(r, false))); tab.append(thead, tb);
+    sSec = { title: `${NAME[mod]} bit error rate, ${n.toLocaleString('en')} symbols per point`, figure: sFig, table: { head, rows: body, align: ['r', 'r', 'r', 'r'] } };
+  }
+
+  function run() {
+    const mod = q<HTMLSelectElement>('.cb-mod').value as Mod, seed = num(raw('.cb-seed'));
+    if (!(Number.isInteger(seed) && seed >= 0)) { const e = q('.cb-err'); e.textContent = 'The seed is a whole number, 0 or more.'; e.hidden = false; q('.cb-out').hidden = true; q('.sw-out').hidden = true; cSec = sSec = null; rows = []; return; }
+    one(mod, seed); sweep(mod, seed);
+  }
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 200); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.sw-csv').addEventListener('click', () => rows.length > 1 && save(new Blob([csv(rows)], { type: 'text/csv' }), 'ber-sweep.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (cFig && !q('.cb-out').hidden) paint(q<HTMLCanvasElement>('.cb-fig'), cFig); if (sFig && !q('.sw-out').hidden) paint(q<HTMLCanvasElement>('.sw-fig'), sFig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Modulation and BER', subtitle: q('.cb-big').textContent ?? '', file: 'modulation-ber', sections: [cSec, sSec].filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .cbr select, .cbr input { max-width: 100%; }
+  .cbr .sw-out { margin-top: 12px; }
+  .cbr .sw-tab td, .cbr .sw-tab th { white-space: nowrap; }
+</style>
