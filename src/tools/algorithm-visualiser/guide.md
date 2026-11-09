@@ -7,7 +7,7 @@ title: "Algorithm visualiser: sorting, binary search and dynamic programming ste
 summary: "Watch bubble, insertion, selection, merge, quick, heap, counting and radix sort work on your own list, one step at a time, with exact comparison, swap and write counts. Also linear and binary search, and the tables for longest common subsequence, edit distance and the 0/1 knapsack."
 status: live
 ads: true
-order: 10
+order: 573
 icon: chart
 works: offline
 updated: 2026-11-09
