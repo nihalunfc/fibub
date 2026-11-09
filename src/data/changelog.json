@@ -1,5 +1,14 @@
 [
  {
+  "sha": "97799b189cc0",
+  "date": "2026-11-09T02:34:58+00:00",
+  "title": "Add #159 bioaccumulation factor calculator (kinetic BCF, TMF)",
+  "tools": [
+   "bioaccumulation-factor"
+  ],
+  "site": false
+ },
+ {
   "sha": "34325f675dad",
   "date": "2026-11-09T02:20:40+00:00",
   "title": "Add #158 field sampling planner (sample numbers, hot-spot grids, point layouts)",
