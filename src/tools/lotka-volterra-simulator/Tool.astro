@@ -1,0 +1,166 @@
+---
+// Lotka-Volterra predator-prey and competition simulator (RK4), with phase plane and equilibria.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lvs">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-seg lv-mode" role="group" aria-label="Model"><button type="button" data-m="pp" aria-pressed="true">Predator-prey</button><button type="button" data-m="cp" aria-pressed="false">Competition</button></div>
+    <div class="lv-pp" style="margin-top:12px">
+      <p class="ax-help" style="margin:0 0 10px">dx/dt = αx(1 − x/K) − βxy, dy/dt = δxy − γy, with x the prey and y the predators.</p>
+      <div class="ax-grid">
+        <label>Prey growth α <input class="lv-a" inputmode="decimal" value="1" /></label>
+        <label>Predation rate β <input class="lv-b" inputmode="decimal" value="0.1" /></label>
+        <label>Predator gain δ <input class="lv-d" inputmode="decimal" value="0.075" /></label>
+        <label>Predator death γ <input class="lv-g" inputmode="decimal" value="1.5" /></label>
+        <label>Prey limit K (blank = none) <input class="lv-K" inputmode="decimal" value="" placeholder="none" /></label>
+        <label>Starting prey <input class="lv-x0" inputmode="decimal" value="10" /></label>
+        <label>Starting predators <input class="lv-y0" inputmode="decimal" value="5" /></label>
+      </div>
+      <p class="ax-help">α: prey birth rate with no predators. β: how fast each predator kills prey. δ: predators gained per prey eaten per predator. γ: predator death rate with no prey. K adds a carrying capacity for the prey; leave it blank for the classic model with endless cycles.</p>
+    </div>
+    <div class="lv-cp" style="margin-top:12px" hidden>
+      <p class="ax-help" style="margin:0 0 10px">dN₁/dt = r₁N₁(K₁ − N₁ − α₁₂N₂)/K₁, dN₂/dt = r₂N₂(K₂ − N₂ − α₂₁N₁)/K₂.</p>
+      <div class="ax-grid">
+        <label>Growth r₁ <input class="lv-r1" inputmode="decimal" value="0.8" /></label>
+        <label>Growth r₂ <input class="lv-r2" inputmode="decimal" value="0.6" /></label>
+        <label>Capacity K₁ <input class="lv-K1" inputmode="decimal" value="500" /></label>
+        <label>Capacity K₂ <input class="lv-K2" inputmode="decimal" value="400" /></label>
+        <label>Effect of 2 on 1, α₁₂ <input class="lv-a12" inputmode="decimal" value="0.6" /></label>
+        <label>Effect of 1 on 2, α₂₁ <input class="lv-a21" inputmode="decimal" value="0.7" /></label>
+        <label>Starting N₁ <input class="lv-n1" inputmode="decimal" value="20" /></label>
+        <label>Starting N₂ <input class="lv-n2" inputmode="decimal" value="20" /></label>
+      </div>
+      <p class="ax-help">α₁₂ says how much one individual of species 2 counts against species 1's capacity, compared with one of its own kind (1 = the same).</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Run for (time) <input class="lv-T" inputmode="decimal" value="50" /></label>
+      <label>Time step <input class="lv-dt" inputmode="decimal" value="0.01" /></label>
+    </div>
+    <p class="ax-help">Solved with the fourth-order Runge-Kutta method; a smaller time step is more accurate but slower (up to 200,000 steps). The parameter values are a made-up example.</p>
+    <p class="ax-err lv-err" hidden></p>
+  </div>
+
+  <div class="ax-card lv-out">
+    <h2>Result</h2>
+    <p class="ax-big lv-big"></p>
+    <dl class="ax-facts lv-facts"></dl>
+    <h3>Over time</h3>
+    <canvas class="ax-fig lv-fig"></canvas>
+    <h3>Phase plane</h3>
+    <canvas class="ax-fig lv-ph"></canvas>
+    <p class="ax-help lv-phhelp"></p>
+    <h3>Equilibria</h3>
+    <div class="ax-scroll"><table class="lv-tab"></table></div>
+    <p class="ax-help">Stability from the eigenvalues of the Jacobian at each point: negative real parts pull the populations in, positive ones push them away; a saddle attracts from one direction only; a centre circles forever.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lv-csv">Download simulation (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { predPrey, compete, rk4, predPreyEquilibria, competeEquilibria, competeOutcome, meanPeriod, type Equilibrium } from '../../lib/sci/lotkav';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lvs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (x: number, d = 4) => { if (Math.abs(x) < 1e-12) return '0'; const t = sig(x, d).replace(/^−/, '-'); return (/^-?\d+\.\d+$/.test(t) ? t.replace(/\.?0+$/, '') : t).replace(/^-/, '−'); };
+  const eigText = (e: Equilibrium) => (e.eig[0].im ? `${tr(e.eig[0].re)} ± ${tr(Math.abs(e.eig[0].im))}i` : `${tr(e.eig[0].re)}, ${tr(e.eig[1].re)}`);
+  let mode = 'pp', fig: Figure | null = null, ph: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.lv-err').textContent = m; q('.lv-err').hidden = false; q('.lv-out').hidden = true; sections = []; csvRows = []; fig = ph = null; };
+    q('.lv-err').hidden = true;
+    const T = v('.lv-T'), dt = v('.lv-dt');
+    if (!(T > 0)) return fail('Run for a time above zero.');
+    if (!(dt > 0)) return fail('The time step must be above zero.');
+    const steps = Math.ceil(T / dt - 1e-9);
+    if (steps > 200000) return fail(`That is ${steps.toLocaleString('en')} steps; use a larger time step or a shorter run (up to 200,000 steps).`);
+    const pp = mode === 'pp';
+    const names = pp ? ['Prey', 'Predators'] : ['Species 1', 'Species 2'];
+    let f, eq: Equilibrium[], x0: number, y0: number, lines: { name: string; x: number[]; y: number[] }[] = [], vline: number | null = null, outcome = '';
+    if (pp) {
+      const Ktxt = q<HTMLInputElement>('.lv-K').value.trim();
+      const p = { alpha: v('.lv-a'), beta: v('.lv-b'), delta: v('.lv-d'), gamma: v('.lv-g'), K: Ktxt ? num(Ktxt) : Infinity };
+      if (![p.alpha, p.beta, p.delta, p.gamma].every((z) => z > 0)) return fail('α, β, δ and γ must all be numbers above zero.');
+      if (!(p.K > 0)) return fail('K must be above zero, or blank for no limit.');
+      x0 = v('.lv-x0'); y0 = v('.lv-y0');
+      f = predPrey(p); eq = predPreyEquilibria(p);
+      const xs = p.gamma / p.delta;
+      vline = xs;
+      if (Number.isFinite(p.K)) lines.push({ name: 'Prey nullcline', x: [0, p.K], y: [p.alpha / p.beta, 0] });
+      else lines.push({ name: 'Prey nullcline', x: [0, 1e9], y: [p.alpha / p.beta, p.alpha / p.beta] });
+      outcome = !Number.isFinite(p.K) ? 'Classic model: the populations cycle for ever around the coexistence point.' : xs >= p.K ? 'Predators cannot persist: even at K the prey cannot feed enough of them (γ/δ ≥ K).' : 'With a prey limit the cycles shrink towards the coexistence point.';
+    } else {
+      const p = { r1: v('.lv-r1'), r2: v('.lv-r2'), K1: v('.lv-K1'), K2: v('.lv-K2'), a12: v('.lv-a12'), a21: v('.lv-a21') };
+      if (![p.r1, p.r2, p.K1, p.K2].every((z) => z > 0)) return fail('r₁, r₂, K₁ and K₂ must be above zero.');
+      if (!(p.a12 >= 0 && p.a21 >= 0)) return fail('The competition coefficients must be zero or more.');
+      x0 = v('.lv-n1'); y0 = v('.lv-n2');
+      f = compete(p); eq = competeEquilibria(p);
+      lines = [{ name: 'Species 1 nullcline', x: [p.K1, 0], y: [0, p.a12 > 0 ? p.K1 / p.a12 : 1e9] }, { name: 'Species 2 nullcline', x: [0, p.a21 > 0 ? p.K2 / p.a21 : 1e9], y: [p.K2, 0] }];
+      const o = competeOutcome(p);
+      outcome = { coexist: 'Stable coexistence: each species limits itself more than it limits the other.', one: 'Species 1 wins and species 2 dies out.', two: 'Species 2 wins and species 1 dies out.', either: 'Either species can win, depending on the starting numbers (unstable coexistence).', borderline: 'A borderline case: the nullclines touch or coincide.' }[o];
+    }
+    if (!(x0 >= 0 && y0 >= 0)) return fail('Starting numbers must be zero or more.');
+    const s = rk4(f, x0, y0, T, steps);
+    if (![...s.x.slice(-1), ...s.y.slice(-1)].every(Number.isFinite) || Math.max(s.x[steps], s.y[steps]) > 1e15) return fail('The numbers ran off to infinity: use a smaller time step, or check the parameters.');
+    q('.lv-out').hidden = false;
+    const xEnd = s.x[steps], yEnd = s.y[steps];
+    q('.lv-big').textContent = `At t = ${tr(T)}: ${names[0].toLowerCase()} ${tr(xEnd)}, ${names[1].toLowerCase()} ${tr(yEnd)}`;
+    const per = meanPeriod(s.t, s.x), co = eq.find((e) => e.name === 'Coexistence');
+    let xMax = 0, yMax = 0, xMin = Infinity, yMin = Infinity; for (let i = 0; i <= steps; i++) { xMax = Math.max(xMax, s.x[i]); yMax = Math.max(yMax, s.y[i]); xMin = Math.min(xMin, s.x[i]); yMin = Math.min(yMin, s.y[i]); }
+    q('.lv-facts').replaceChildren(
+      fact('Outcome', co ? `Coexistence at (${tr(co.x)}, ${tr(co.y)})` : 'No coexistence point', outcome),
+      ...(pp && co ? [fact('Small-cycle period', sig((2 * Math.PI) / Math.sqrt(v('.lv-a') * v('.lv-g')), 4), '2π/√(αγ), for small cycles of the classic model')] : []),
+      ...(pp ? [fact('Prey cycle in this run', Number.isFinite(per.period) && per.peaks > 2 ? sig(per.period, 4) : '–', per.peaks > 2 ? `mean time between ${per.peaks} prey peaks` : 'fewer than three prey peaks')] : []),
+      fact(`${names[0]} range`, `${tr(xMin)} to ${tr(xMax)}`, 'over the run'),
+      fact(`${names[1]} range`, `${tr(yMin)} to ${tr(yMax)}`, `${steps.toLocaleString('en')} RK4 steps of ${tr(T / steps)}`),
+    );
+    const every = Math.max(1, Math.ceil(steps / 1500)), idx: number[] = []; for (let i = 0; i <= steps; i += every) idx.push(i); if (idx[idx.length - 1] !== steps) idx.push(steps);
+    const tt = idx.map((i) => s.t[i]), xx = idx.map((i) => s.x[i]), yy = idx.map((i) => s.y[i]);
+    fig = chartFigure({ w: 560, h: 320, xLabel: 'Time', yLabel: 'Population', yMin: 0, legend: 'below', series: [{ name: names[0], x: tt, y: xx, mode: 'line' }, { name: names[1], x: tt, y: yy, mode: 'line' }] }, 'Both populations over time');
+    paint(q<HTMLCanvasElement>('.lv-fig'), fig);
+    const X = Math.max(xMax, ...eq.map((e) => e.x)) * 1.1 || 1, Y = Math.max(yMax, ...eq.map((e) => e.y)) * 1.1 || 1;
+    ph = chartFigure({ w: 560, h: 380, xLabel: names[0], yLabel: names[1], xMin: 0, yMin: 0, xMax: X, yMax: Y, legend: 'below', series: [
+      { name: 'Path', x: xx, y: yy, mode: 'line', width: 1.6 },
+      ...lines.map((l) => ({ ...l, mode: 'line' as const, dash: [5, 4], width: 1.2 })),
+      { name: 'Start', x: [x0], y: [y0], mode: 'points', marker: 'open-circle' },
+      { name: 'Equilibria', x: eq.map((e) => e.x), y: eq.map((e) => e.y), mode: 'points', marker: 'square' },
+    ], marks: vline !== null ? [{ kind: 'vline', at: vline, dash: [5, 4], label: 'Predator nullcline' }] : [] }, 'Phase plane with nullclines and equilibria');
+    paint(q<HTMLCanvasElement>('.lv-ph'), ph);
+    q('.lv-phhelp').textContent = pp ? 'Each point is the prey and predator numbers at one moment. Dashed lines are nullclines: on them one population stops changing; equilibria are where they cross.' : 'Each point is the two species at one moment. Dashed lines are nullclines (zero growth); which one lies outside the other decides who wins.';
+    const head = ['Equilibrium', names[0], names[1], 'Eigenvalues', 'Type'];
+    const rows = eq.map((e) => [e.name, tr(e.x), tr(e.y), eigText(e), e.kind]);
+    const t = q<HTMLTableElement>('.lv-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i && i < 4) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const trw = b.insertRow(); r.forEach((c, i) => { const td = trw.insertCell(); td.textContent = c; if (i && i < 4) td.className = 'r'; }); });
+    const cEvery = Math.max(1, Math.ceil(steps / 2000)), cRows: string[][] = [['t', names[0], names[1]]];
+    for (let i = 0; i <= steps; i += cEvery) cRows.push([sig(s.t[i], 8), sig(s.x[i], 10), sig(s.y[i], 10)]);
+    if ((steps % cEvery) !== 0) cRows.push([sig(s.t[steps], 8), sig(xEnd, 10), sig(yEnd, 10)]);
+    csvRows = cRows;
+    sections = [{ title: q('.lv-big').textContent!, text: [pp ? 'Lotka-Volterra predator-prey model' : 'Lotka-Volterra competition model', outcome], facts: [...q('.lv-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: 'Phase plane and equilibria', figure: ph, table: { head, rows, align: ['l', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.lv-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!; q('.lv-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.lv-pp').hidden = mode !== 'pp'; q('.lv-cp').hidden = mode === 'pp'; calc();
+  });
+  q('.lv-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), mode === 'pp' ? 'predator-prey.csv' : 'competition.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lv-fig'), fig); if (ph) paint(q<HTMLCanvasElement>('.lv-ph'), ph); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'pp' ? 'Lotka-Volterra predator-prey simulation' : 'Lotka-Volterra competition simulation', subtitle: q('.lv-big').textContent ?? '', file: 'lotka-volterra', sections }));
+</script>
+
+<style is:global>
+  .lvs .lv-tab td:first-child { white-space: nowrap; }
+  .lvs .lv-out h3 { margin: 18px 0 8px; }
+</style>
