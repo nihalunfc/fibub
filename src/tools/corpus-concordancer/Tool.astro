@@ -1,0 +1,210 @@
+---
+// Corpus concordancer: KWIC lines, word list, n-grams and window collocations (MI, t-score, G²) for your own texts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cc">
+  <div class="ax-card">
+    <h2>Your texts</h2>
+    <label>Paste text here, or open one or more .txt files below.
+      <textarea class="cc-in" rows="8" spellcheck="false">The river town wakes early. By six the tea stalls are open and the ferry is loading crates of fresh fish. People say the strong tea at the corner stall is the best in town, and the old ferry man drinks two cups before his first crossing.
+In the dry season the river runs low and the ferry waits for the tide. Children walk along the bank and count the boats. When the tide turns, the ferry crosses again and the market fills with noise. Strong tea, hot bread and fresh fish are sold until noon.
+Visitors often ask why the town never built a bridge. The answer is simple: the ferry is part of the town. A bridge would be faster, but the ferry is where people meet, share news and drink strong tea together.</textarea></label>
+    <p class="ax-help">The example is a made-up text. Your files are read on this device and never uploaded.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cc-open">Open .txt files</button>
+      <input type="file" class="cc-file" accept=".txt,text/plain" multiple hidden />
+      <span class="ax-help" style="margin:0">Plain text (UTF-8), up to 20 MB in all.</span>
+    </div>
+    <ul class="cc-files" hidden></ul>
+    <p class="ax-err cc-ferr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-seg cc-mode" role="group" aria-label="View">
+      <button type="button" data-m="kwic" aria-pressed="true">Concordance</button><button type="button" data-m="freq" aria-pressed="false">Word list</button><button type="button" data-m="ngram" aria-pressed="false">N-grams</button><button type="button" data-m="coll" aria-pressed="false">Collocations</button>
+    </div>
+    <p class="ax-help cc-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="cc-q-w">Search word or phrase <input class="cc-q" value="ferry" autocomplete="off" spellcheck="false" /></label>
+      <label class="cc-k">Context (words each side) <input class="cc-width" type="number" min="1" max="30" value="6" /></label>
+      <label class="cc-k">Sort lines by <select class="cc-sort">
+        <option value="text">Order in the text</option><option value="node">Search word</option>
+        <option value="L1">1st word left</option><option value="L2">2nd word left</option><option value="L3">3rd word left</option>
+        <option value="R1" selected>1st word right</option><option value="R2">2nd word right</option><option value="R3">3rd word right</option></select></label>
+      <label class="cc-n">Words in each n-gram <select class="cc-nn"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+      <label class="cc-n cc-f">Show items seen at least <input class="cc-min" type="number" min="1" value="1" /></label>
+      <label class="cc-c">Words to the left <input class="cc-L" type="number" min="0" max="20" value="3" /></label>
+      <label class="cc-c">Words to the right <input class="cc-R" type="number" min="0" max="20" value="3" /></label>
+      <label class="cc-c">Seen together at least <input class="cc-minO" type="number" min="1" value="2" /></label>
+      <label class="cc-c">Rank by <select class="cc-by"><option value="G2" selected>Log-likelihood G²</option><option value="MI">MI</option><option value="T">t-score</option><option value="O">Times together</option></select></label>
+    </div>
+    <div class="ax-row cc-n cc-stopw" style="margin-top:10px"><label class="ax-check"><input type="checkbox" class="cc-stop" checked /> Stop at sentence ends</label></div>
+    <div class="ax-row cc-q-w" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="cc-re" /> Regular expression</label>
+      <label class="ax-check"><input type="checkbox" class="cc-cs" /> Match case</label>
+    </div>
+    <p class="ax-help cc-q-w">Spaces separate the words of a phrase. Without "Regular expression", * stands for any letters (teach* finds teacher and teaching) and ? for one letter. With it, each word is a pattern that must match a whole word, such as <code>colou?r</code>.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <dl class="ax-facts cc-facts"></dl>
+    <h3 class="cc-th" style="margin:16px 0 6px"></h3>
+    <div class="ax-scroll"><table class="cc-tab"></table></div>
+    <p class="ax-help cc-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cc-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cc .cc-files { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+  .cc .cc-files li { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+  .cc .cc-files li span { overflow-wrap: anywhere; min-width: 0; flex: 1; }
+  .cc .cc-files button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .cc .cc-tab.kw td { white-space: nowrap; }
+  .cc .cc-tab.kw td.cc-l { text-align: right; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; direction: rtl; }
+  .cc .cc-tab.kw td.cc-l bdi { direction: ltr; unicode-bidi: isolate; }
+  .cc .cc-tab.kw td.cc-node { font-weight: 700; padding: 7px 2px; text-align: center; }
+  .cc .cc-tab.kw td.cc-r { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; }
+  .cc .cc-tab td.cc-doc { color: var(--muted); font-size: 12.5px; }
+  .cc code { font-size: 12.5px; }
+</style>
+
+<script>
+  import { buildCorpus, compileQuery, findHits, kwic, frequencies, ngrams, collocates, type Corpus, type SortKey } from '../../lib/sci/kwic';
+  import { csv, sig } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const int = (c: string, lo: number, hi: number, d: number) => { const v = Math.round(Number(val(c))); return Number.isFinite(v) && val(c).trim() !== '' ? Math.min(hi, Math.max(lo, v)) : d; };
+  const SHOW = 300, MAXB = 20e6;
+  const WHAT: Record<string, string> = {
+    kwic: 'Every place your search word appears, with the words around it (key word in context).',
+    freq: 'How often each word appears, most frequent first. Upper and lower case count as the same word unless "Match case" is on.',
+    ngram: 'Word sequences that repeat (2 to 5 words in a row), most frequent first. N-grams never run from one file into the next.',
+    coll: 'Words that turn up near your search word more often than chance would give, with three common strength scores.',
+  };
+  let mode = 'kwic', files: { name: string; text: string }[] = [], corpus: Corpus | null = null;
+  let table: { head: string[]; rows: string[][]; align: ('l' | 'r')[] } = { head: [], rows: [], align: [] }, facts: [string, string][] = [], title = '', csvName = 'concordance';
+
+  let filesVer = 0, cachedPaste = '', cachedVer = -1;
+  function getCorpus(): Corpus {
+    const pasted = val('.cc-in');
+    if (corpus && pasted === cachedPaste && filesVer === cachedVer) return corpus;
+    corpus = buildCorpus([...(pasted.trim() ? [{ name: 'Pasted text', text: pasted }] : []), ...files]);
+    cachedPaste = pasted; cachedVer = filesVer;
+    return corpus;
+  }
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2).replace(/^-/, '−') : '–');
+  const pct = (n: number, N: number) => `${((100 * n) / N).toFixed(2)} %`;
+
+  function render() {
+    const t = q<HTMLTableElement>('.cc-tab'); t.innerHTML = ''; t.className = 'cc-tab' + (mode === 'kwic' ? ' kw' : '');
+    const dl = q('.cc-facts'); dl.innerHTML = '';
+    for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    q('.cc-th').textContent = title;
+    const hr = t.createTHead().insertRow();
+    table.head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (table.align[i] === 'r') th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    for (const r of table.rows.slice(0, SHOW)) {
+      const tr = b.insertRow();
+      r.forEach((x, i) => {
+        const td = tr.insertCell();
+        if (mode === 'kwic') {
+          const name = table.head[i];
+          td.className = name === 'Left' ? 'cc-l' : name === 'Hit' ? 'cc-node' : name === 'Right' ? 'cc-r' : 'cc-doc';
+          if (name === 'Left') { const bd = document.createElement('bdi'); bd.textContent = x; td.append(bd); } else td.textContent = x;
+        } else { td.textContent = x; if (table.align[i] === 'r') td.className = 'r'; }
+      });
+    }
+  }
+
+  function calc() {
+    const err = q('.cc-err');
+    try {
+      const c = getCorpus();
+      if (!c.N) throw new Error('There are no words yet. Paste some text or open a .txt file.');
+      const cs = q<HTMLInputElement>('.cc-cs').checked, re = q<HTMLInputElement>('.cc-re').checked;
+      const many = c.docs.length > 1, docName = (i: number) => c.docs[i].name;
+      facts = [['Words (tokens)', c.N.toLocaleString('en')], ['Different words (types)', frequencies(c, cs).length.toLocaleString('en')], ['Files', String(c.docs.length)]];
+      if (mode === 'kwic' || mode === 'coll') {
+        const qs = compileQuery(val('.cc-q'), { regex: re, cs }), hits = findHits(c, qs);
+        facts.push(['Hits', `${hits.length.toLocaleString('en')} (${((hits.length / c.N) * 1e6).toFixed(0)} per million words)`]);
+        if (mode === 'kwic') {
+          const lines = kwic(c, hits, int('.cc-width', 1, 30, 6), val('.cc-sort') as SortKey);
+          title = `Concordance: ${lines.length.toLocaleString('en')} line${lines.length === 1 ? '' : 's'}`;
+          table = { head: [...(many ? ['File'] : []), 'Left', 'Hit', 'Right'], align: [...(many ? ['l' as const] : []), 'r', 'l', 'l'], rows: lines.map((l) => [...(many ? [docName(l.doc)] : []), l.left, l.node, l.right]) };
+          q('.cc-note').textContent = (lines.length > SHOW ? `The first ${SHOW} lines are shown; the CSV has all ${lines.length.toLocaleString('en')}. ` : '') + (lines.length ? 'Sorting by the words next to the hit groups repeated patterns together. On a small screen long context is cut short; the CSV has the full lines.' : 'No hits. Check the spelling, try a * wildcard, or turn off "Match case".');
+          csvName = 'concordance';
+        } else {
+          const L = int('.cc-L', 0, 20, 3), R = int('.cc-R', 0, 20, 3);
+          if (L + R === 0) throw new Error('Set at least one word to the left or right.');
+          const res = collocates(c, hits, L, R, cs, int('.cc-minO', 1, 1e9, 2)), by = val('.cc-by') as 'G2' | 'MI' | 'T' | 'O';
+          const rows = [...res.rows].sort((a, b) => b[by] - a[by] || b.O - a.O || (a.w < b.w ? -1 : 1));
+          facts.push(['Window', `${L} left, ${R} right (${res.W.toLocaleString('en')} words)`]);
+          title = `Collocates: ${rows.length} word${rows.length === 1 ? '' : 's'}`;
+          table = { head: ['Collocate', 'Together (O)', 'Expected (E)', 'Left', 'Right', 'Word freq.', 'MI', 't-score', 'G²'], align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'], rows: rows.map((r) => [r.w, String(r.O), sig(r.E, 3), String(r.left), String(r.right), String(r.fc), f2(r.MI), f2(r.T), f2(r.G2)]) };
+          q('.cc-note').textContent = 'MI = log₂(O/E) favours rare, exclusive pairs; t-score favours frequent ones; G² above 3.84 is unlikely by chance at p < 0.05 and above 10.83 at p < 0.001 (one degree of freedom), though words in running text are not independent, so treat these as rankings rather than tests. Expected E = window words × word frequency ÷ corpus words.' + (rows.length > SHOW ? ` The first ${SHOW} rows are shown; the CSV has all of them.` : '');
+          csvName = 'collocates';
+        }
+      } else {
+        const n = mode === 'ngram' ? Number(val('.cc-nn')) : 1, min = int('.cc-min', 1, 1e9, 1);
+        const all = mode === 'ngram' ? ngrams(c, n, cs, q<HTMLInputElement>('.cc-stop').checked) : frequencies(c, cs), list = all.filter((r) => r.n >= min);
+        const total = mode === 'ngram' ? all.reduce((s, r) => s + r.n, 0) : c.N;
+        title = mode === 'ngram' ? `${n}-grams: ${list.length.toLocaleString('en')} shown` : `Word list: ${list.length.toLocaleString('en')} words shown`;
+        table = { head: ['Rank', mode === 'ngram' ? `${n}-gram` : 'Word', 'Count', 'Share', ...(many ? ['Files'] : [])], align: ['r', 'l', 'r', 'r', ...(many ? ['r' as const] : [])], rows: list.map((r, i) => [String(i + 1), r.w, r.n.toLocaleString('en'), pct(r.n, total), ...(many ? [String(r.docs)] : [])]) };
+        if (mode === 'freq') facts.push(['Type-token ratio', (frequencies(c, cs).length / c.N).toFixed(3)]);
+        q('.cc-note').textContent = (list.length > SHOW ? `The first ${SHOW} rows are shown; the CSV has all ${list.length.toLocaleString('en')}. ` : '') + (mode === 'ngram' ? 'Share is of all n-grams of this length.' + (q<HTMLInputElement>('.cc-stop').checked ? ' With "Stop at sentence ends", an n-gram never runs across . ! ? ; : or a blank line.' : '') : 'Share is of all words. Words are runs of letters and digits; apostrophes and hyphens inside a word keep it whole.');
+        csvName = mode === 'ngram' ? `${n}-grams` : 'word-list';
+      }
+      render(); err.hidden = true; q('.cc-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.cc-out').hidden = true; table = { head: [], rows: [], align: [] }; }
+  }
+
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.cc-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.cc-q-w').forEach((el) => (el.hidden = !(m === 'kwic' || m === 'coll')));
+    root.querySelectorAll<HTMLElement>('.cc-k').forEach((el) => (el.hidden = m !== 'kwic'));
+    root.querySelectorAll<HTMLElement>('.cc-n').forEach((el) => (el.hidden = !(m === 'ngram' || m === 'freq')));
+    root.querySelectorAll<HTMLElement>('.cc-n:not(.cc-f)').forEach((el) => (el.hidden = m !== 'ngram'));
+    root.querySelectorAll<HTMLElement>('.cc-c').forEach((el) => (el.hidden = m !== 'coll'));
+    q('.cc-what').textContent = WHAT[m];
+    calc();
+  }
+
+  function showFiles() {
+    const ul = q('.cc-files'); ul.innerHTML = ''; ul.hidden = !files.length;
+    files.forEach((f, i) => {
+      const li = document.createElement('li'), s = document.createElement('span'), b = document.createElement('button');
+      s.textContent = `${f.name} (${(f.text.match(/[\p{L}\p{N}]+/gu) || []).length.toLocaleString('en')} words)`;
+      b.type = 'button'; b.textContent = 'Remove'; b.className = 'cc-rm'; b.addEventListener('click', () => { files.splice(i, 1); filesVer++; showFiles(); calc(); });
+      li.append(s, b); ul.append(li);
+    });
+  }
+  q('.cc-open').addEventListener('click', () => q<HTMLInputElement>('.cc-file').click());
+  q<HTMLInputElement>('.cc-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, list = [...(inp.files || [])]; inp.value = '';
+    const ferr = q('.cc-ferr'); ferr.hidden = true;
+    let total = files.reduce((s, f) => s + f.text.length, 0);
+    for (const f of list) {
+      if (total + f.size > MAXB) { ferr.textContent = `${f.name} was not opened: all files together may be up to 20 MB.`; ferr.hidden = false; continue; }
+      const text = await f.text(); total += f.size;
+      if (/\u0000/.test(text.slice(0, 2000))) { ferr.textContent = `${f.name} does not look like a plain text file.`; ferr.hidden = false; continue; }
+      files.push({ name: f.name, text });
+    }
+    filesVer++; showFiles(); calc();
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.cc-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) return; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) calc(); });
+  q('.cc-csv').addEventListener('click', () => { if (table.rows.length) save(new Blob([csv([table.head, ...table.rows])], { type: 'text/csv' }), `${csvName}.csv`, 'text/csv'); });
+  setMode('kwic');
+  wireDownloads(q('.dl'), () => ({ title: 'Corpus concordancer', subtitle: title, file: csvName, sections: table.rows.length ? [{ title: 'Corpus', facts }, { title, table: { head: table.head, rows: table.rows.slice(0, 200), align: table.align }, note: table.rows.length > 200 ? `First 200 of ${table.rows.length} rows; download the CSV for all of them.` : undefined }] : [] }));
+</script>
