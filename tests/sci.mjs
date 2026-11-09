@@ -162,6 +162,10 @@ import * as SR from '../src/lib/roster.ts';
 import * as IV from '../src/lib/sci/intervals.ts';
 import * as KM from '../src/lib/sci/kmer.ts';
 import * as RX from '../src/lib/rosterExport.ts';
+import * as NW from '../src/lib/sci/newick.ts';
+import * as PP from '../src/lib/sci/protparam.ts';
+import * as PE from '../src/lib/sci/peptide.ts';
+import * as DN from '../src/lib/sci/densitometry.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
@@ -172,6 +176,8 @@ function near(name, got, want, tol) {
 }
 function check(name, ok) { ok ? pass++ : fail++; if (!ok) console.log(`FAIL ${name}`); }
 function throws(name, fn) { try { fn(); check(name, false); } catch { check(name, true); } }
+// Per-tool maths checks live in tests/sci-tools/<id>.mjs: `export default async (check) => {}`.
+for (const f of (await import('node:fs')).readdirSync(new URL('./sci-tools/', import.meta.url)).filter((f) => f.endsWith('.mjs')).sort()) await (await import(new URL('./sci-tools/' + f, import.meta.url))).default(check);
 
 // ---- Statistics: Student t and normal quantiles (standard tables).
 near('t 97.5 % df 1', tInv(0.975, 1), 12.706, 0.001);
@@ -3363,6 +3369,120 @@ ORIGIN
   check('kmer: k limits', (() => { try { new KM.KmerCounter({ k: 26, canonical: true }); return false; } catch { return true; } })() && run('ACGTACGTACGTACGTACGTACGTACGTACGT', 25, true).total === 8);
   check('kmer: no clear peak, no estimate', KM.genomeEstimate(KM.spectrum(run('>a\n' + ex.genome + '\n', 21, true).counts, 200)) === null);
   check('kmer: distinct limit', (() => { const c = new KM.KmerCounter({ k: 8, canonical: false, maxDistinct: 10 }); c.push(ex.genome.slice(0, 500)); c.end(); return c.full && c.counts.size === 10; })());
+}
+
+// ---- #177 Newick tree viewer: distances and midpoint depths checked against Biopython Bio.Phylo ----
+{
+  const t = NW.parseNewick(NW.EXAMPLE), st = NW.stats(t), L = NW.leaves(t.root), by = (n) => L.find((x) => x.name === n);
+  check('newick: example has 14 tips, 13 branch points, total 2.35, 12 support values', st.tips === 14 && st.internal === 13 && Math.abs(st.total - 2.35) < 1e-9 && st.support === 12 && st.binary);
+  check('newick: _ becomes a space', L[0].name === 'Taxon A');
+  check('newick: distance A to B = 0.18, C to N = 0.80 (Bio.Phylo)', Math.abs(NW.distance(by('Taxon A'), by('Taxon B')) - 0.18) < 1e-9 && Math.abs(NW.distance(by('Taxon C'), by('Taxon N')) - 0.8) < 1e-9);
+  const m = NW.midpointRoot(t), d = NW.depths(m), ML = NW.leaves(m.root), dm = (n) => d.get(ML.find((x) => x.name === n));
+  // Bio.Phylo root_at_midpoint on the example: N 0.40, C 0.40, I 0.24, G 0.38
+  check('newick: midpoint root depths match Bio.Phylo', Math.abs(dm('Taxon N') - 0.4) < 1e-9 && Math.abs(dm('Taxon C') - 0.4) < 1e-9 && Math.abs(dm('Taxon I') - 0.24) < 1e-9 && Math.abs(dm('Taxon G') - 0.38) < 1e-9);
+  let same = true; for (const a of L) for (const b of L) { const x = ML.find((n) => n.name === a.name), y = ML.find((n) => n.name === b.name); if (Math.abs(NW.distance(a, b) - NW.distance(x, y)) > 1e-9) same = false; }
+  check('newick: rerooting keeps every tip-to-tip distance', same && Math.abs(NW.stats(m).total - 2.35) < 1e-9 && m.root.children.length === 2);
+  check('newick: Newick written back reads the same', NW.toNewick(NW.parseNewick(NW.toNewick(t))) === NW.toNewick(t) && NW.toNewick(t).startsWith("(((('Taxon A':0.08,'Taxon B':0.1)98:0.05"));
+  // Rerooting on a leaf branch: support values move with their branches.
+  const s2 = NW.parseNewick('((A:1,B:1)80:1,(C:1,D:1)60:1);'), C = NW.leaves(s2.root).find((n) => n.name === 'C');
+  const r2 = NW.reroot(s2, C, 0.25);
+  check('newick: reroot on C, 0.25 along its branch (a tip branch has no support; the old root joins its single branch)', NW.toNewick(r2) === '(C:0.25,((A:1,B:1)80:2,D:1):0.75);');
+  const s3 = NW.parseNewick('(((A:1,B:1)90:1,C:1)70:1,D:1,E:1);'), ab = s3.nodes[2];
+  const r3 = NW.reroot(s3, ab, 0.5);
+  check('newick: support follows reversed branches when rerooting', NW.toNewick(r3) === '((A:1,B:1)90:0.5,((D:1,E:1)70:1,C:1)90:0.5);');
+  check('newick: ladderize puts smaller groups first', NW.toNewick(NW.ladderize(NW.parseNewick('((A,(B,C)),D);'))) === '(D,(A,(B,C)));');
+  check('newick: quoted names, comments, spaces and scientific lengths', (() => { const q = NW.parseNewick("[header] ( 'it''s : here':1e-2 , B_c [x] :2.5E0 ) root ;"); return q.root.children[0].name === "it's : here" && q.root.children[0].length === 0.01 && q.root.children[1].name === 'B c' && q.root.children[1].length === 2.5 && q.root.name === 'root'; })());
+  const bad = (s) => { try { NW.parseNewick(s); return false; } catch (e) { return /character/.test(e.message); } };
+  check('newick: clear errors for broken trees', bad('((A,B);') && bad('(A:x,B);') && bad("('A,B);") && bad('(A,B));'));
+  check('newick: splitTrees keeps ; inside quotes and comments', NW.splitTrees("(A,B);\n('x;y',C)[c;];\n(D,E)").length === 3);
+  const nex = "#NEXUS\nBEGIN TREES;\n [c;] TRANSLATE 1 Homo_sapiens, 2 'Pan troglodytes', 3 Gorilla;\n TREE t1 = [&R] ((1:0.1,2:0.12)95:0.05,3:0.2);\n tree 'two' = (1,(2,3));\nEND;";
+  const rn = NW.readTrees(nex), tn = NW.applyTranslate(NW.parseNewick(rn.trees[0].newick), rn.translate);
+  check('newick: NEXUS trees and TRANSLATE table', rn.nexus && rn.trees.length === 2 && rn.trees[1].name === 'two' && NW.leaves(tn.root).map((n) => n.name).join('|') === 'Homo sapiens|Pan troglodytes|Gorilla');
+  check('newick: a NEXUS file without trees says so', (() => { try { NW.readTrees('#NEXUS\nbegin taxa; end;'); return false; } catch (e) { return /TREES/.test(e.message); } })());
+  const o = { layout: 'rect', lengths: true, align: false, support: true, branchLabels: false, font: 12, line: 1.5, italic: false, ink: '#000', muted: '#666', width: 600 };
+  const dr = NW.drawTree(t, o), texts = dr.shapes.filter((x) => x.t === 'text');
+  check('newick: drawing has 14 tip names, 12 support labels and a scale bar', texts.filter((x) => x.size === 12).length === 14 && texts.filter((x) => x.size === 9).length === 12 && dr.shapes.some((x) => x.t === 'text' && x.s === '0.1'));
+  check('newick: drawing stays inside its box', dr.shapes.every((x) => x.t !== 'line' || (Math.max(x.x1, x.x2) <= dr.w && Math.max(x.y1, x.y2) <= dr.h)) && dr.hits.length === 27);
+  const dc = NW.drawTree(t, { ...o, layout: 'circle' }), arcs = dc.shapes.filter((x) => x.t === 'arc');
+  check('newick: circular drawing has an arc per branch point', arcs.length === 13 && dc.h >= dc.w);
+  const svg = NW.toSvg(dr);
+  check('newick: SVG has every tip and escapes names', svg.startsWith('<svg') && (svg.match(/<text/g) || []).length === texts.length && NW.toSvg({ w: 10, h: 10, shapes: [{ t: 'text', x: 1, y: 1, s: 'a<b&c', size: 5, color: '#000', anchor: 'start' }], hits: [] }).includes('a&lt;b&amp;c'));
+  const clad = NW.drawTree(NW.parseNewick('((A,B),(C,(D,E)));'), { ...o, lengths: true });
+  check('newick: a tree without lengths is drawn as a cladogram (no scale bar)', !NW.stats(NW.parseNewick('((A,B),C);')).lengths && !clad.shapes.some((x) => x.t === 'line' && x.y1 === x.y2 && x.y1 > clad.h - 30 && x.color === '#000' && x.w === 1.5 && x.x1 === 12));
+}
+
+// ---- #178 Protein parameter calculator: masses and extinction checked against Biopython ----
+{
+  const ex = PP.readProtein(PP.EXAMPLE)[0], a = PP.analyse(ex.seq);
+  check('protein: example is 120 aa, C626H932N176O183S9', ex.seq.length === 120 && a.formula === 'C626H932N176O183S9');
+  // Biopython molecular_weight(monoisotopic=True) 14130.651938; average 14139.751 with older atomic weights.
+  check('protein: monoisotopic mass matches Biopython (14130.6520)', Math.abs(a.mono - 14130.651938) < 1e-3);
+  check('protein: average mass 14139.93 (Biopython 14139.75, older weights)', Math.abs(a.avg - 14139.931) < 0.01 && Math.abs(a.avg - 14139.751) / a.avg < 2e-5);
+  check('protein: extinction 36440 reduced, 36690 with two cystines (Biopython)', a.eps.reduced === 36440 && a.eps.cystines === 36690 && a.eps.pairs === 2);
+  check('protein: pI 7.38 and charge +0.68 at pH 7 with the default pKa set', Math.abs(a.pI - 7.3814) < 1e-3 && Math.abs(a.chargeAt - 0.6804) < 1e-3 && Math.abs(PP.charge(ex.seq, a.pI)) < 1e-9);
+  check('protein: A280 of 1 mg/mL 2.577, and 0.5 → 13.72 µM, 0.194 mg/mL', Math.abs(a.abs01 - 2.5771) < 1e-3 && Math.abs(PP.fromA280(0.5, 36440, a.avg).uM - 13.7212) < 1e-3 && Math.abs(PP.fromA280(0.5, 36440, a.avg).mgPerMl - 0.19402) < 1e-4);
+  const ss = PP.analyse(ex.seq, { disulfides: 2 });
+  check('protein: two disulfides take 4 H (4.032 Da) off and raise ε to 36690', Math.abs(a.avg - ss.avg - 4 * 1.008) < 1e-9 && ss.epsUsed === 36690 && ss.formula === 'C626H928N176O183S9');
+  check('protein: disulfides are capped by the cysteines', PP.analyse(ex.seq, { disulfides: 9 }).disulfides === 2);
+  // Glycine dipeptide: C4H8N2O3, 132.0535 monoisotopic (water + 2 Gly residues).
+  check('protein: GG is C4H8N2O3, 132.0535', PP.analyse('GG').formula === 'C4H8N2O3' && Math.abs(PP.analyse('GG').mono - 132.05349) < 1e-4);
+  check('protein: a lone amino acid with no side chain is neutral at (9.0+3.0)/2', Math.abs(PP.isoelectric('G') - 6) < 1e-9);
+  check('protein: charge falls with pH; +ve at 2, -ve at 12', PP.charge(ex.seq, 2) > 10 && PP.charge(ex.seq, 12) < -10);
+  const p2 = { ...PP.PKA_DEFAULT, H: 7.0 };
+  check('protein: own pKa values change the pI', Math.abs(PP.isoelectric('HHHH', p2) - PP.isoelectric('HHHH')) > 0.3);
+  const r = PP.readProtein('>a one\nmkt ay*\n12 XB\n>b\nACDE\n>c\nhej!');
+  check('protein: FASTA records, lower case, numbers, *, ambiguous and odd letters', r.length === 3 && r[0].seq === 'MKTAY' && r[0].stop && r[0].ambiguous.X === 1 && r[0].ambiguous.B === 1 && r[1].seq === 'ACDE' && r[2].seq === 'HE' && r[2].skipped['!'] === 1 && r[2].ambiguous.J === 1);
+  check('protein: selenocysteine counted', PP.analyse('U').formula === 'C3H7NO2Se');
+  const c = PP.chargeCurve('KDE');
+  check('protein: charge curve from pH 0 to 14', c.x.length === 281 && c.x[0] === 0 && c.x[280] === 14 && c.y[0] > c.y[280]);
+}
+
+// ---- #179 Peptide masses: digest, masses and fragments checked against pyteomics ----
+{
+  const seq = PP.readProtein(PE.EXAMPLE_PROTEIN)[0].seq;
+  const d = PE.digest(seq, 'trypsin', { missed: 1, mods: ['carbamidomethyl'], minLen: 4, maxLen: 40 });
+  check('peptide: example digest has 27 peptides, 14 with no missed cleavage', seq.length === 136 && d.length === 27 && d.filter((p) => p.missed === 0).length === 14);
+  check('peptide: trypsin does not cut before P (HKP, RP)', !PE.sites(seq, 'trypsin').includes(seq.indexOf('KPT') + 1) && PE.sites(seq, 'trypsin-p').includes(seq.indexOf('KPT') + 1));
+  const p = d.find((x) => x.seq === 'DFSLQGECK');
+  check('peptide: DFSLQGECK mono 1082.4703, [M+H]+ 1083.4775, [M+2H]2+ 542.2424 (pyteomics)', p.start === 16 && p.end === 24 && Math.abs(p.mono - 1082.47026) < 1e-4 && Math.abs(PE.mz(p.mono, 1) - 1083.47754) < 1e-4 && Math.abs(PE.mz(p.mono, 2) - 542.24241) < 1e-4);
+  check('peptide: PEPTIDE is 799.3600 (pyteomics)', Math.abs(PE.peptideMass('PEPTIDE').mono - 799.35996) < 1e-4);
+  const fr = PE.fragments('PEPTIDE');
+  check('peptide: PEPTIDE b2 227.1026, y1 148.0604, a2 199.1077', Math.abs(fr[1].b - 227.10263) < 1e-4 && Math.abs(fr[6].y - 148.06043) < 1e-4 && Math.abs(fr[1].a - 199.10772) < 1e-4);
+  const f2 = PE.fragments('PEPTIDE', { charge: 2 });
+  check('peptide: 2+ fragments are (M + 2 protons) / 2', Math.abs(f2[1].b - (fr[1].b + PE.PROTON) / 2) < 1e-9);
+  check('peptide: b(n-1) + y1 = [M+H]+ + proton', Math.abs(fr[5].b + fr[6].y - (PE.mz(PE.peptideMass('PEPTIDE').mono, 1) + PE.PROTON)) < 1e-9);
+  const fp = PE.fingerprint(seq, d, PE.EXAMPLE_PEAKS.split('\n').map(Number), { ppm: 10 });
+  check('peptide: fingerprint matches 10 of 13 peaks, coverage 71.3 %', fp.matched === 10 && Math.abs(fp.coverage - 97 / 136) < 1e-9 && fp.hits.find((h) => h.obs === 1083.4749).matches[0].err.toFixed(1) === '-2.4');
+  check('peptide: missed-cleavage peptide matched', fp.hits.some((h) => h.matches.some((m) => m.pep.seq === 'DEYGKNHQVTSLPMCFR' && m.pep.missed === 1)));
+  check('peptide: 2+ charge finds the 2+ peak', PE.fingerprint(seq, d, [PE.mz(p.mono, 2)], { ppm: 5, charges: [1, 2] }).hits[0].matches[0].z === 2);
+  check('peptide: Asp-N cuts before D; CNBr after M', PE.digest('AADBBDCC'.replace(/B/g, 'K'), 'aspn').map((x) => x.seq).join() === 'AA,DKK,DCC' && PE.digest('AMKMGG', 'cnbr').map((x) => x.seq).join() === 'AM,KM,GG');
+  check('peptide: missed cleavages join neighbours', PE.digest('AKBKCK'.replace('B', 'G'), 'trypsin', { missed: 2 }).length === 6);
+  check('peptide: oxidised Met adds 15.9949', Math.abs(PE.peptideMass('M', ['oxidation']).mono - PE.peptideMass('M').mono - 15.99491) < 1e-4);
+}
+// #180 gel and blot densitometry: profiles, rolling background and volumes checked against NumPy on a random image;
+// the made-up blot's known amounts come back.
+{
+  let seed = 7; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  const w = 97, h = 83, px = new Uint8Array(w * h * 4); for (let i = 0; i < w * h * 4; i++) px[i] = Math.floor(rnd() * 256);
+  const s = DN.toSignal(px, w, h, false), lanes = DN.makeLanes({ x0: 3.5, y0: 5, x1: 94, y1: 80 }, 5, 0.55);
+  const profs = lanes.map((l) => DN.profile(s, l, 5, 80)), subs = profs.map((p) => DN.subtract(p, DN.rollingBackground(p, 4)));
+  const bands = [{ top: 3, bottom: 20 }, { top: 30, bottom: 31 }, { top: 50, bottom: 74 }];
+  check('densitometry: lane columns 8-17 of 97 px', lanes[0].c0 === 8 && lanes[0].c1 === 18 && lanes.length === 5 && profs[0].length === 75);
+  const vs = DN.volumes(subs, lanes, bands), vl = DN.volumes(profs, lanes, bands, true);
+  check('densitometry: rolling-background volumes match NumPy', Math.abs(vs[0][0] - 10.04669806) < 1e-5 && Math.abs(vs[0][1] - 1.42469792) < 1e-5 && Math.abs(vs[0][2] - 15.30809738) < 1e-5);
+  check('densitometry: straight-line volumes match NumPy', Math.abs(vl[0][0] - 2.75630461) < 1e-5 && Math.abs(vl[0][1] - 0.64526533) < 1e-5 && Math.abs(vl[1][0] - 7.38230402) < 1e-5 && vl[1][1] === 0);
+  check('densitometry: rolling background follows a ramp away from the ends and drops a narrow peak', DN.rollingBackground([1, 2, 3, 4, 5, 6, 7], 2).slice(2, 5).join() === '3,4,5' && DN.rollingBackground([0, 0, 0, 5, 0, 0, 0], 2).every((v) => v === 0));
+  const ex = DN.exampleBlot(), es = DN.toSignal(ex.px, ex.w, ex.h, true), el = DN.makeLanes(ex.rect, ex.lanes, 0.6);
+  const ep = el.map((l) => DN.profile(es, l, 0, ex.h)), eb = DN.findBands(ep.map((p) => DN.subtract(p, DN.rollingBackground(p, 25))));
+  check('densitometry: example blot has two band rows near 95 and 205', eb.length === 2 && Math.abs(eb[0].peak - 95) <= 1 && Math.abs(eb[1].peak - 205) <= 1);
+  const er = DN.relative(DN.volumes(ep, el, eb, true), 0, 1);
+  const truth = DN.EXAMPLE_TARGET.map((t, i) => (100 * t) / DN.EXAMPLE_CONTROL[i] / (DN.EXAMPLE_TARGET[0] / DN.EXAMPLE_CONTROL[0]));
+  check('densitometry: target amounts within 1.5 % of the truth (100, 200, 400, 600, 300, 150)', er.rel.every((r, i) => Math.abs(r[0] / (100 * DN.EXAMPLE_TARGET[i]) - 1) < 0.015));
+  check('densitometry: normalised to the loading control within 2 %', er.norm.every((r, i) => Math.abs(r[0] / truth[i] - 1) < 0.02) && er.norm.every((r) => Math.abs(r[1] - 100) < 1e-9));
+  check('densitometry: shares of each lane add to 100 %', er.share.every((r) => Math.abs(r[0] + r[1] - 100) < 1e-9));
+  check('densitometry: example has no saturated pixels; a black box is saturated', DN.saturation(es, el, eb, 0).flat().every((v) => v === 0) && DN.saturation(DN.toSignal(new Uint8Array(16).fill(0).map((v, i) => (i % 4 === 3 ? 255 : 0)), 2, 2, true), [{ cx: 1, c0: 0, c1: 2 }], [{ top: 0, bottom: 1 }], 0)[0][0] === 1);
+  check('densitometry: findBands of a flat profile finds none', DN.findBands([[0, 0, 0, 0]]).length === 0 && DN.findBands([]).length === 0);
+  check('densitometry: two touching peaks get separate rows', (() => { const p = Array.from({ length: 100 }, (_, i) => Math.exp(-(((i - 40) / 4) ** 2)) + 0.6 * Math.exp(-(((i - 55) / 4) ** 2))); const b = DN.findBands([p]); return b.length === 2 && b[0].bottom < b[1].top; })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

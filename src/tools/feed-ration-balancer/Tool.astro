@@ -1,0 +1,182 @@
+---
+// Feed ration balancer: least-cost ration by linear programming and the Pearson square, from the user's own feed
+// analyses and requirements. Nothing is uploaded. The example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax frb">
+  <div class="ax-card">
+    <h2>Feeds</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small fr-ex">Use the example</button></div>
+    <label style="margin-top:10px">One feed per line: name, DM %, CP % of DM, energy per kg DM, Ca % of DM, P % of DM, price per kg as fed, and optional min and max kg DM per day
+      <textarea class="fr-in" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".fr-in" maxMB={2} maxCols={9} maxRows={200} />
+    <p class="ax-help">Use your own feed analyses. Nutrients are on a dry-matter basis; the price is per kg as fed (any currency). Leave min or max empty for no limit.</p>
+    <p class="ax-err fr-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The animal's daily requirements</h2>
+    <p class="ax-help" style="margin:0 0 10px">Type the requirements for your animal (from your nutritionist, a feeding standard or your own records). Leave a box empty for no limit.</p>
+    <div class="fr-req">
+      <span></span><span class="h">Minimum</span><span class="h">Maximum</span>
+      <span>Dry matter (kg DM)</span><input class="fr-dmMin" type="text" inputmode="decimal" aria-label="Dry matter minimum" /><input class="fr-dmMax" type="text" inputmode="decimal" aria-label="Dry matter maximum" />
+      <span>Crude protein (g)</span><input class="fr-cpMin" type="text" inputmode="decimal" aria-label="Crude protein minimum" /><input class="fr-cpMax" type="text" inputmode="decimal" aria-label="Crude protein maximum" />
+      <span>Energy (<b class="fr-eu">MJ ME</b>)</span><input class="fr-enMin" type="text" inputmode="decimal" aria-label="Energy minimum" /><input class="fr-enMax" type="text" inputmode="decimal" aria-label="Energy maximum" />
+      <span>Calcium (g)</span><input class="fr-caMin" type="text" inputmode="decimal" aria-label="Calcium minimum" /><input class="fr-caMax" type="text" inputmode="decimal" aria-label="Calcium maximum" />
+      <span>Phosphorus (g)</span><input class="fr-pMin" type="text" inputmode="decimal" aria-label="Phosphorus minimum" /><input class="fr-pMax" type="text" inputmode="decimal" aria-label="Phosphorus maximum" />
+    </div>
+    <label style="margin-top:10px;max-width:260px">Energy unit (the same as in the feed list) <input class="fr-unit" type="text" value="MJ ME" maxlength="20" /></label>
+  </div>
+
+  <div class="ax-card fr-out" hidden>
+    <h2>Least-cost ration</h2>
+    <p class="ax-big fr-big" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="fr-tab"></table></div>
+    <h3>Nutrients supplied</h3>
+    <div class="ax-scroll"><table class="fr-ntab"></table></div>
+    <p class="ax-help fr-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fr-csv">Download ration (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card fr-sq" hidden>
+    <h2>Pearson square (two feeds)</h2>
+    <div class="ax-grid">
+      <label>Feed A <select class="fr-a"></select></label>
+      <label>Feed B <select class="fr-b"></select></label>
+      <label>Nutrient <select class="fr-nut"><option value="cp">Crude protein (% DM)</option><option value="energy">Energy (per kg DM)</option></select></label>
+      <label>Target in the mix <input class="fr-target" type="text" inputmode="decimal" value="16" /></label>
+    </div>
+    <div class="fr-square" aria-hidden="true"></div>
+    <p class="fr-sqout" aria-live="polite"></p>
+  </div>
+</div>
+
+<style is:global>
+  .frb h3 { margin: 18px 0 8px; font-size: 15px; }
+  .frb .fr-req { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 14px; }
+  .frb .fr-req .h { font-size: 13px; color: var(--muted); }
+  .frb .fr-square { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; max-width: 420px; margin: 14px 0 6px; font-size: 13px; text-align: center; }
+  .frb .fr-square div { border: 1px solid var(--line); border-radius: 6px; padding: 6px 4px; overflow-wrap: anywhere; }
+  .frb .fr-square div.e { border: 0; }
+  .frb .fr-square b { display: block; font-size: 16px; }
+  .frb tr.low td { color: var(--bad); }
+</style>
+
+<script>
+  import { leastCost, pearson, readFeeds, NUTRIENTS, EXAMPLE_FEEDS, EXAMPLE_REQ, pricePerKgDm, type Feed, type Req, type Ration } from '../../lib/sci/ration';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.frb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEYS = ['dmMin', 'dmMax', 'cpMin', 'cpMax', 'enMin', 'enMax', 'caMin', 'caMax', 'pMin', 'pMax'] as const;
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '');
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+
+  let feeds: Feed[] = [], ration: Ration | null = null, req: Req = EXAMPLE_REQ, unit = 'MJ ME';
+
+  function run() {
+    const err = q('.fr-err'); err.hidden = true;
+    const r = readFeeds(parseTable(q<HTMLTextAreaElement>('.fr-in').value), num);
+    feeds = r.feeds; unit = q<HTMLInputElement>('.fr-unit').value.trim() || 'energy units';
+    q('.fr-eu').textContent = unit;
+    const msgs = [...r.errors];
+    req = Object.fromEntries(KEYS.map((k) => { const v = q<HTMLInputElement>(`.fr-${k}`).value.trim(); const x = v ? num(v) : NaN; if (v && Number.isNaN(x)) msgs.push(`"${v}" is not a number.`); return [k, x]; })) as Req;
+    fillSelects();
+    if (msgs.length) { err.textContent = msgs.join(' '); err.hidden = false; }
+    if (!feeds.length) { q('.fr-out').hidden = true; q('.fr-sq').hidden = true; ration = null; return; }
+    q('.fr-sq').hidden = feeds.length < 2; square();
+    q('.fr-out').hidden = false;
+    ration = leastCost(feeds, req);
+    const ntab = q('.fr-ntab');
+    if (ration.status !== 'optimal') {
+      q('.fr-big').textContent = ration.status === 'infeasible' ? 'No ration meets every limit' : 'The cost has no lower limit';
+      table(q('.fr-tab'), [], []); ntab.replaceChildren();
+      q('.fr-note').textContent = ration.status === 'infeasible'
+        ? (ration.relax?.length ? `A ration becomes possible if you remove or loosen one of these: ${ration.relax.join('; ')}.` : 'No single limit is to blame: loosen several limits or add a feed richer in what is short.')
+        : 'A feed has a negative price and no maximum. Give it a maximum.';
+      q<HTMLButtonElement>('.fr-csv').disabled = true; return;
+    }
+    q<HTMLButtonElement>('.fr-csv').disabled = false;
+    const dm = ration.supplied.dm;
+    q('.fr-big').textContent = `Cost ${f2(ration.cost)} per day for ${sig(dm, 3)} kg DM (${f2(ration.asFedKg.reduce((s, v) => s + v, 0))} kg as fed)`;
+    table(q('.fr-tab'), ['Feed', 'kg DM/day', 'kg as fed/day', '% of DM', 'Cost/day'], feeds.map((f, i) => [f.name, f2(ration!.dmKg[i]), f2(ration!.asFedKg[i]), (100 * ration!.dmKg[i] / dm).toFixed(1), f2(ration!.dmKg[i] * pricePerKgDm(f))]), ['', 'r', 'r', 'r', 'r']);
+    table(ntab, ['Nutrient', 'Supplied', 'Minimum', 'Maximum', 'In the DM'], nutrientRows(), ['', 'r', 'r', 'r', 'r']);
+    q('.fr-note').textContent = `Limits reached (they set the cost): ${ration.binding.join('; ') || 'none'}. Feeds at 0 are dearer than the others for what they supply. Concentrations are of the whole ration's dry matter.`;
+  }
+
+  function nutrientRows() {
+    const r = ration!, dm = r.supplied.dm;
+    return NUTRIENTS.map((n) => {
+      const u = n.key === 'en' ? unit : n.unit, mn = req[`${n.key}Min` as keyof Req], mx = req[`${n.key}Max` as keyof Req];
+      const conc = n.key === 'dm' ? '' : n.key === 'en' ? `${sig(r.supplied.en / dm, 3)} per kg` : `${(r.supplied[n.key] / dm / 10).toFixed(2)} %`;
+      return [`${n.name} (${u})`, sig(r.supplied[n.key], 4), Number.isFinite(mn) ? sig(mn, 4) : '–', Number.isFinite(mx) ? sig(mx, 4) : '–', conc];
+    });
+  }
+
+  function fillSelects() {
+    const a = q<HTMLSelectElement>('.fr-a'), b = q<HTMLSelectElement>('.fr-b');
+    const names = feeds.map((f) => f.name).join('|');
+    if (a.dataset.names === names) return;
+    a.dataset.names = names;
+    const va = a.value, vb = b.value;
+    for (const s of [a, b]) s.replaceChildren(...feeds.map((f, i) => new Option(f.name, String(i))));
+    a.value = Number(va) < feeds.length && va ? va : '0';
+    b.value = Number(vb) < feeds.length && vb ? vb : String(Math.min(feeds.length - 1, feeds.findIndex((f, i) => i > 0 && f.cp > 30) > 0 ? feeds.findIndex((f, i) => i > 0 && f.cp > 30) : 1));
+  }
+
+  function square() {
+    const out = q('.fr-sqout'), box = q('.fr-square');
+    const A = feeds[Number(q<HTMLSelectElement>('.fr-a').value)], B = feeds[Number(q<HTMLSelectElement>('.fr-b').value)];
+    const key = q<HTMLSelectElement>('.fr-nut').value as 'cp' | 'energy', t = num(q<HTMLInputElement>('.fr-target').value);
+    box.replaceChildren();
+    if (!A || !B) return;
+    if (A === B) { out.textContent = 'Pick two different feeds.'; return; }
+    if (!Number.isFinite(t)) { out.textContent = 'Type a target value.'; return; }
+    const s = pearson(A[key], B[key], t, A.dm, B.dm), u = key === 'cp' ? ' %' : '';
+    const cell = (cls: string, title: string, v: string) => { const d = document.createElement('div'); d.className = cls; d.textContent = title; if (v) { const b = document.createElement('b'); b.textContent = v; d.append(b); } box.append(d); };
+    cell('', A.name, `${sig(A[key], 4)}${u}`); cell('e', '', ''); cell('', `Parts of ${A.name}`, sig(s.partsA, 4));
+    cell('e', '', ''); cell('', 'Target', `${sig(t, 4)}${u}`); cell('e', '', '');
+    cell('', B.name, `${sig(B[key], 4)}${u}`); cell('e', '', ''); cell('', `Parts of ${B.name}`, sig(s.partsB, 4));
+    out.textContent = s.ok
+      ? `Mix ${(100 * s.fracA).toFixed(1)} % ${A.name} with ${(100 * s.fracB).toFixed(1)} % ${B.name} (dry-matter basis). As fed, that is ${(100 * s.asFedA).toFixed(1)} % and ${(100 * s.asFedB).toFixed(1)} %.`
+      : `The target must lie between the two feeds (${sig(Math.min(A[key], B[key]), 4)} to ${sig(Math.max(A[key], B[key]), 4)}${u}).`;
+  }
+
+  const sections = (): Section[] => {
+    if (!ration || ration.status !== 'optimal') return [];
+    return [
+      { title: 'Least-cost ration', text: [q('.fr-big').textContent ?? ''], table: { head: ['Feed', 'kg DM/day', 'kg as fed/day', 'Cost/day'], rows: feeds.map((f, i) => [f.name, f2(ration!.dmKg[i]), f2(ration!.asFedKg[i]), f2(ration!.dmKg[i] * pricePerKgDm(f))]), align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Nutrients supplied', table: { head: ['Nutrient', 'Supplied', 'Minimum', 'Maximum', 'Concentration'], rows: nutrientRows().map((r) => r.map(String)), align: ['l', 'r', 'r', 'r', 'r'] }, note: q('.fr-note').textContent ?? '' },
+      ...(q('.fr-sq').hidden ? [] : [{ title: 'Pearson square', text: [q('.fr-sqout').textContent ?? ''] }]),
+    ];
+  };
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  q('.fr-in').addEventListener('input', later);
+  root.querySelectorAll('.fr-req input, .fr-unit').forEach((el) => el.addEventListener('input', later));
+  for (const c of ['.fr-a', '.fr-b', '.fr-nut']) q(c).addEventListener('change', square);
+  q('.fr-target').addEventListener('input', square);
+  q('.fr-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.fr-in').value = EXAMPLE_FEEDS;
+    for (const k of KEYS) q<HTMLInputElement>(`.fr-${k}`).value = Number.isFinite(EXAMPLE_REQ[k]) ? String(EXAMPLE_REQ[k]) : '';
+    q<HTMLInputElement>('.fr-unit').value = 'MJ ME';
+    q<HTMLSelectElement>('.fr-a').dataset.names = ''; q<HTMLSelectElement>('.fr-a').value = ''; q<HTMLSelectElement>('.fr-b').value = '';
+    q<HTMLSelectElement>('.fr-nut').value = 'cp'; q<HTMLInputElement>('.fr-target').value = '16';
+    run();
+  });
+  q('.fr-csv').addEventListener('click', () => {
+    if (!ration || ration.status !== 'optimal') return;
+    const rows: (string | number)[][] = [['feed', 'kg_DM_per_day', 'kg_as_fed_per_day', 'percent_of_DM', 'cost_per_day'], ...feeds.map((f, i) => [f.name, ration!.dmKg[i].toFixed(4), ration!.asFedKg[i].toFixed(4), (100 * ration!.dmKg[i] / ration!.supplied.dm).toFixed(2), (ration!.dmKg[i] * pricePerKgDm(f)).toFixed(4)]), ['total', ration.supplied.dm.toFixed(4), ration.asFedKg.reduce((s, v) => s + v, 0).toFixed(4), '100', ration.cost.toFixed(4)], [], ['nutrient', 'supplied', 'minimum', 'maximum'], ...NUTRIENTS.map((n) => [`${n.name} (${n.key === 'en' ? unit : n.unit})`, ration!.supplied[n.key].toFixed(4), String(req[`${n.key}Min` as keyof Req]).replace('NaN', ''), String(req[`${n.key}Max` as keyof Req]).replace('NaN', '')])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'least-cost-ration.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Least-cost ration', subtitle: 'Made with the fibub feed ration balancer from the user\'s own feed values and requirements', file: 'least-cost-ration', sections: sections() }));
+</script>

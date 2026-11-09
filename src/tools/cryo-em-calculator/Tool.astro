@@ -1,0 +1,278 @@
+---
+// Cryo-EM sampling and resolution calculator: pixel size and Nyquist, dose per frame, electron wavelength and CTF
+// zeros, box size, and the Rosenthal-Henderson particles-to-resolution guide. All sums run in the browser; the example
+// numbers are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cem">
+  <div class="ax-card">
+    <h2>Camera and pixel size</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small ce-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Pixel size from <select class="ce-mode">
+        <option value="mag" selected>Camera pixel and magnification</option>
+        <option value="cal">A calibrated pixel size</option>
+      </select></label>
+      <label class="ce-m">Camera pixel (µm) <input class="ce-det" inputmode="decimal" /></label>
+      <label class="ce-m">Magnification (×) <input class="ce-mag" inputmode="decimal" /></label>
+      <label class="ce-c" hidden>Calibrated pixel (Å, one camera pixel) <input class="ce-cal" inputmode="decimal" placeholder="e.g. 0.83" /></label>
+      <label>Binning <select class="ce-bin"><option value="1">None (1)</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="8">8</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ce-sr" /> Super-resolution (records each camera pixel as 2 × 2, half the pixel size)</label>
+    <p class="ax-help">The magnification on the microscope is only nominal; a pixel size calibrated against a known sample is better when you have one.</p>
+    <p class="ax-err ce-serr" hidden></p>
+    <div class="ce-sout">
+      <p class="ax-big ce-big"></p>
+      <dl class="ax-facts ce-sfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Dose</h2>
+    <div class="ax-grid">
+      <label>Dose rate (e⁻ per camera pixel per second) <input class="ce-rate" inputmode="decimal" /></label>
+      <label>Exposure time (s) <input class="ce-t" inputmode="decimal" /></label>
+      <label>Number of frames <input class="ce-fr" inputmode="numeric" /></label>
+      <label>Target total dose (e⁻/Å², optional) <input class="ce-tt" inputmode="decimal" placeholder="e.g. 50" /></label>
+      <label>Target dose per frame (e⁻/Å², optional) <input class="ce-tf" inputmode="decimal" placeholder="e.g. 1" /></label>
+    </div>
+    <p class="ax-help">Measure the dose rate over an empty hole or with no sample, per physical camera pixel. Counting cameras miss electrons when too many arrive at once, so check the rate your camera is made for.</p>
+    <p class="ax-err ce-derr" hidden></p>
+    <dl class="ax-facts ce-dfacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Microscope and CTF</h2>
+    <div class="ax-grid">
+      <label>Voltage <select class="ce-kv"><option value="100">100 kV</option><option value="120">120 kV</option><option value="200">200 kV</option><option value="300" selected>300 kV</option></select></label>
+      <label>Spherical aberration Cs (mm) <input class="ce-cs" inputmode="decimal" /></label>
+      <label>Amplitude contrast (0 to 0.5) <input class="ce-amp" inputmode="decimal" /></label>
+      <label>Defocus (µm, underfocus +) <input class="ce-df" inputmode="decimal" /></label>
+      <label>Envelope B-factor (Å², optional) <input class="ce-eb" inputmode="decimal" placeholder="e.g. 50" /></label>
+    </div>
+    <p class="ax-help">Cs is in your microscope's specifications. The amplitude contrast and envelope B are rough, made-up starting values: change them to match your data. The envelope only damps the curve; it does not move the zeros.</p>
+    <p class="ax-err ce-oerr" hidden></p>
+    <div class="ce-oout">
+      <dl class="ax-facts ce-ofacts"></dl>
+      <canvas class="ax-fig ce-ctf" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ce-ccsv">Download the CTF curve (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Box size</h2>
+    <div class="ax-grid">
+      <label>Particle diameter (Å) <input class="ce-dia" inputmode="decimal" /></label>
+      <label>Target resolution (Å) <input class="ce-res" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The microscope spreads fine detail out from each particle (more with more defocus). A box that holds the particle plus that spread keeps all the signal; smaller boxes are faster but lose some of it.</p>
+    <p class="ax-err ce-berr" hidden></p>
+    <dl class="ax-facts ce-bfacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Particles and resolution (rough guide)</h2>
+    <div class="ax-grid">
+      <label>B-factor (Å²) <input class="ce-b" inputmode="decimal" /></label>
+      <label>Known point: particles <input class="ce-n0" inputmode="numeric" /></label>
+      <label>Known point: resolution (Å) <input class="ce-d0" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Rosenthal and Henderson's relation: the resolution improves with the logarithm of the number of particles, ln N = B ÷ (2d²) + constant. The example B-factor and known point are made up; use a B-factor and one result from your own data.</p>
+    <p class="ax-err ce-rerr" hidden></p>
+    <div class="ce-rout">
+      <dl class="ax-facts ce-rfacts"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="ce-rtab"></table></div>
+      <canvas class="ax-fig ce-rh" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ce-rcsv">Download the table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cem .ce-big { margin: 12px 0 10px; }
+  .cem .ax-facts { margin-top: 12px; }
+  .cem .ce-rtab td.r, .cem .ce-rtab th.r { text-align: right; }
+</style>
+
+<script>
+  import { num, csv } from '../../lib/sci/num';
+  import { wavelength, wavelengthClassical, sampling, dose, timeForDose, framesForDose, ctfZeros, ctfCurve, boxAdvice, rhResolution, rhParticles, EXAMPLE, type Optics, type Sampling } from '../../lib/sci/cryoem';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cem')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  // n significant figures without trailing zeros (21.6, not 21.60).
+  const g = (x: number, n = 4) => (Number.isFinite(x) ? Number(x.toPrecision(n)).toLocaleString('en', { maximumFractionDigits: 12 }).replace('-', '−') : '–');
+  const A = (x: number) => `${g(x, 4)} Å`;
+  const whole = (x: number) => Math.round(x).toLocaleString('en');
+  const round3 = (x: number) => Number(x.toPrecision(3)).toLocaleString('en');
+  type Fact = [string, string, string?];
+  const facts = (el: HTMLElement, list: Fact[]) => el.replaceChildren(...list.map(([k, v, sm]) => {
+    const d = document.createElement('div'); d.append(document.createElement('dt'), document.createElement('dd'));
+    d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+    if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); }
+    return d;
+  }));
+  const fail = (err: string, msg: string, hide: string[] = []) => { q(err).textContent = msg; q(err).hidden = false; for (const h of hide) q(h).hidden = true; };
+  const ok = (err: string, show: string[] = []) => { q(err).hidden = true; for (const h of show) q(h).hidden = false; };
+  // A required number: throws a friendly message when it is missing or out of range.
+  const need = (c: string, msg: string, test: (x: number) => boolean) => { const x = num(inp(c).value); if (!Number.isFinite(x) || !test(x)) throw new Error(msg); return x; };
+  const maybe = (c: string, msg: string, test: (x: number) => boolean) => { if (!inp(c).value.trim()) return NaN; return need(c, msg, test); };
+
+  let S: Sampling | null = null, O: Optics | null = null, ctfFig: Figure | null = null, rhFig: Figure | null = null;
+  let rep: Record<string, Section | null> = {}, ctfRows: (string | number)[][] = [], rhRows: (string | number)[][] = [];
+
+  function calcSampling() {
+    S = null; rep.s = null;
+    try {
+      const cal = q<HTMLSelectElement>('.ce-mode').value === 'cal', bin = Number(q<HTMLSelectElement>('.ce-bin').value), superRes = inp('.ce-sr').checked;
+      S = cal
+        ? sampling({ calibrated: need('.ce-cal', 'Type the calibrated pixel size in Å, for example 0.83', (x) => x > 0 && x < 1000), superRes, bin })
+        : sampling({ detectorUm: need('.ce-det', 'Type the camera pixel size in µm, for example 5', (x) => x > 0 && x < 1000), mag: need('.ce-mag', 'Type the magnification, for example 60000', (x) => x >= 1), superRes, bin });
+      ok('.ce-serr', ['.ce-sout']);
+      q('.ce-big').textContent = `${A(S.pixel)} per pixel, Nyquist ${A(S.nyquist)}`;
+      const how = [superRes ? `recorded at ${A(S.recorded)} (super-resolution)` : `recorded at ${A(S.recorded)}`, bin > 1 ? `binned by ${bin}` : 'not binned'].join(', ');
+      const list: Fact[] = [
+        ['Pixel size you process at', A(S.pixel), how],
+        ['One camera pixel at the sample', A(S.physical), cal ? 'as you typed it' : `${g(num(inp('.ce-det').value), 4)} µm ÷ ${whole(num(inp('.ce-mag').value))} × 10,000`],
+        ['Nyquist limit', A(S.nyquist), `${g(S.nyquistK, 4)} per Å: no map can show detail finer than two pixels`],
+      ];
+      if (superRes) list.push(['Super-resolution Nyquist', A(2 * S.recorded), 'before binning; the camera responds poorly this far out']);
+      facts(q('.ce-sfacts'), list);
+      rep.s = { title: 'Pixel size', facts: list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]) };
+    } catch (e) { fail('.ce-serr', `${(e as Error).message}.`, ['.ce-sout']); }
+  }
+
+  function calcDose() {
+    rep.d = null;
+    try {
+      if (!S) throw new Error('Fix the pixel size above first');
+      const rate = need('.ce-rate', 'Type the dose rate in electrons per camera pixel per second', (x) => x > 0);
+      const t = need('.ce-t', 'Type the exposure time in seconds', (x) => x > 0);
+      const fr = need('.ce-fr', 'Type a whole number of frames, 1 or more', (x) => x >= 1 && Number.isInteger(x));
+      const tt = maybe('.ce-tt', 'Type the target total dose in e⁻/Å², or leave it empty', (x) => x > 0);
+      const tf = maybe('.ce-tf', 'Type the target dose per frame in e⁻/Å², or leave it empty', (x) => x > 0);
+      const d = dose(rate, S.physical, t, fr);
+      ok('.ce-derr', ['.ce-dfacts']);
+      const list: Fact[] = [
+        ['Dose rate at the sample', `${g(d.ratePerA2, 4)} e⁻/Å²/s`, `${g(rate, 4)} e⁻ ÷ (${g(S.physical, 4)} Å)² each second`],
+        ['Total dose', `${g(d.total, 4)} e⁻/Å²`, `over ${g(t, 4)} s`],
+        ['Dose per frame', `${g(d.perFrame, 4)} e⁻/Å²`, `${g(d.frameTime * 1000, 4)} ms per frame; ${g(d.perPixelFrame, 3)} e⁻ per camera pixel`],
+      ];
+      if (tt > 0) list.push([`Time for ${g(tt, 4)} e⁻/Å²`, `${g(timeForDose(tt, rate, S.physical), 3)} s`, 'at this dose rate']);
+      if (tf > 0) { const tot = tt > 0 ? tt : d.total, n = framesForDose(tot, tf); list.push([`Frames for ${g(tf, 3)} e⁻/Å² or less each`, `${n}`, `${g(tot / n, 3)} e⁻/Å² each, out of ${g(tot, 4)} e⁻/Å²`]); }
+      facts(q('.ce-dfacts'), list);
+      rep.d = { title: 'Dose', facts: list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]) };
+    } catch (e) { fail('.ce-derr', `${(e as Error).message}.`, ['.ce-dfacts']); }
+  }
+
+  function calcOptics() {
+    O = null; rep.o = null; ctfRows = [];
+    try {
+      const kV = Number(q<HTMLSelectElement>('.ce-kv').value);
+      const csMm = need('.ce-cs', 'Type Cs in mm (0 for a corrected microscope)', (x) => x >= 0 && x < 100);
+      const amp = need('.ce-amp', 'Type the amplitude contrast as a fraction from 0 to 0.5', (x) => x >= 0 && x <= 0.5);
+      const defocusUm = need('.ce-df', 'Type the defocus in µm (underfocus is positive)', (x) => Math.abs(x) <= 100);
+      const eb = maybe('.ce-eb', 'Type the envelope B-factor in Å² (0 or more), or leave it empty', (x) => x >= 0 && x <= 10000);
+      O = { kV, csMm, amp, defocusUm, bFactor: eb > 0 ? eb : undefined };
+      ok('.ce-oerr', ['.ce-oout']);
+      const lam = wavelength(kV), kMax = S ? S.nyquistK : 0.5;
+      const zs = ctfZeros(O, kMax), z0 = zs[0];
+      const list: Fact[] = [
+        ['Electron wavelength', `${g(lam, 4)} Å`, `${g(wavelengthClassical(kV), 4)} Å without the relativistic correction`],
+        ['First CTF zero', z0 ? A(1 / z0) : 'none', z0 ? `${g(z0, 4)} per Å: the first Thon ring` : `no zero before ${S ? 'Nyquist' : '2 Å'}`],
+        [S ? 'CTF zeros up to Nyquist' : 'CTF zeros up to 2 Å', String(zs.length), zs.length > 1 ? `the last two are ${g(1 / zs[zs.length - 2], 4)} and ${g(1 / zs[zs.length - 1], 4)} Å` : ''],
+      ];
+      if (defocusUm < 0) list.push(['Overfocus', 'Yes', 'negative defocus; most data are taken underfocus']);
+      facts(q('.ce-ofacts'), list.map(([k, v, s]) => (s ? [k, v, s] : [k, v])) as Fact[]);
+      const c = ctfCurve(O, kMax, 800);
+      const series = [{ name: 'CTF', x: c.k, y: c.ctf, mode: 'line' as const, width: 1.5 }];
+      if (O.bFactor) series.push({ name: 'Envelope', x: c.k, y: c.env, mode: 'line' as const, width: 1.2 }, { name: '', x: c.k, y: c.env.map((v) => -v), mode: 'line' as const, width: 1.2 });
+      const marks = z0 ? [{ kind: 'vline' as const, at: z0, dash: [3, 3], label: `first zero ${g(1 / z0, 3)} Å` }] : [];
+      ctfFig = chartFigure({ w: 480, h: 340, xLabel: S ? `Spatial frequency (1/Å), up to Nyquist ${g(S.nyquist, 4)} Å` : 'Spatial frequency (1/Å)', yLabel: 'CTF', xMin: 0, xMax: kMax, yMin: -1, yMax: 1, legend: O.bFactor ? 'below' : 'none', series, marks }, `CTF at ${kV} kV, ${g(defocusUm, 4)} µm defocus, from 0 to ${g(kMax, 3)} per Å`);
+      paint(q<HTMLCanvasElement>('.ce-ctf'), ctfFig);
+      ctfRows = c.k.map((k, i) => [k.toFixed(6), k > 0 ? (1 / k).toFixed(4) : '', c.ctf[i].toFixed(6), c.env[i].toFixed(6)]);
+      rep.o = { title: 'Microscope and CTF', facts: [['Voltage', `${kV} kV`], ['Cs', `${g(csMm, 4)} mm`], ['Amplitude contrast', g(amp, 3)], ['Defocus', `${g(defocusUm, 4)} µm`], ...list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], figure: ctfFig };
+    } catch (e) { fail('.ce-oerr', `${(e as Error).message}.`, ['.ce-oout']); }
+  }
+
+  function calcBox() {
+    rep.b = null;
+    try {
+      if (!S) throw new Error('Fix the pixel size above first');
+      if (!O) throw new Error('Fix the microscope settings above first');
+      const D = need('.ce-dia', 'Type the particle diameter in Å', (x) => x > 0 && x < 1e5);
+      const d = need('.ce-res', 'Type the target resolution in Å', (x) => x > 0);
+      if (d < S.nyquist - 1e-9) throw new Error(`${g(d, 4)} Å is finer than the Nyquist limit (${A(S.nyquist)}). Use a smaller pixel or aim lower`);
+      const b = boxAdvice(D, S.pixel, d, O);
+      ok('.ce-berr', ['.ce-bfacts']);
+      const list: Fact[] = [
+        ['Box with room for the spread signal', `${b.boxPx} px`, `${g(b.boxA, 4)} Å across; needs at least ${g(b.minA, 4)} Å`],
+        [`Signal spread at ${g(d, 3)} Å`, `up to ${g(b.delocal, 4)} Å`, 'on each side of the particle: λΔf ÷ d + Cs λ³ ÷ d³'],
+        ['Rule of thumb, 1.5 to 2 × diameter', `${b.ruleLo} to ${b.ruleHi} px`, 'smaller and faster; loses some high-resolution signal at this defocus'],
+        ['Particle across', `${g(D / S.pixel, 3)} px`, `${g(D, 4)} Å at ${A(S.pixel)} per pixel`],
+      ];
+      if (b.minA <= 1.5 * D + 1e-9) list[2][2] = 'here the rule of thumb already holds the spread signal';
+      facts(q('.ce-bfacts'), list);
+      rep.b = { title: 'Box size', facts: list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]), note: 'Box sizes are rounded up to even numbers with only 2, 3 and 5 as factors, which fast Fourier transforms handle quickly.' };
+    } catch (e) { fail('.ce-berr', `${(e as Error).message}.`, ['.ce-bfacts']); }
+  }
+
+  function calcRH() {
+    rep.r = null; rhRows = [];
+    try {
+      const B = need('.ce-b', 'Type a B-factor in Å², above 0', (x) => x > 0 && x <= 5000);
+      const N0 = need('.ce-n0', 'Type how many particles gave the known resolution', (x) => x >= 1);
+      const d0 = need('.ce-d0', 'Type the resolution those particles gave, in Å', (x) => x > 0 && x < 1000);
+      ok('.ce-rerr', ['.ce-rout']);
+      const target = num(inp('.ce-res').value);
+      const list: Fact[] = [
+        ['With twice the particles', A(rhResolution(2 * N0, B, N0, d0)), `${whole(2 * N0)} particles`],
+        ['With ten times the particles', A(rhResolution(10 * N0, B, N0, d0)), `${whole(10 * N0)} particles`],
+      ];
+      if (target > 0) list.push([`Particles for ${g(target, 3)} Å`, round3(rhParticles(target, B, N0, d0)), `with B = ${g(B, 4)} Å² (your target resolution above)`]);
+      facts(q('.ce-rfacts'), list);
+      const mult = [0.25, 0.5, 1, 2, 4, 10, 100];
+      rhRows = mult.map((m) => { const r = rhResolution(m * N0, B, N0, d0); return [whole(m * N0), `${m} ×`, Number.isFinite(r) ? r.toFixed(2) : 'none']; });
+      const t = q<HTMLTableElement>('.ce-rtab'); t.replaceChildren();
+      const h = t.insertRow(); ['Particles', 'Of the known', 'Resolution (Å)'].forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i !== 1) th.className = 'r'; h.append(th); });
+      for (const r of rhRows) { const tr = t.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = String(x); if (i !== 1) td.className = 'r'; }); }
+      const xs: number[] = [], ys: number[] = [];
+      for (let i = 0; i <= 120; i++) { const n = (N0 / 10) * 10 ** ((4 * i) / 120), r = rhResolution(n, B, N0, d0); if (Number.isFinite(r) && r < 100) { xs.push(n); ys.push(r); } }
+      rhFig = chartFigure({ w: 480, h: 320, xLog: true, xLabel: 'Particles', yLabel: 'Resolution (Å)', legend: 'none', series: [{ name: `B = ${g(B, 4)} Å²`, x: xs, y: ys, mode: 'line', width: 2 }, { name: 'Known point', x: [N0], y: [d0], mode: 'points', size: 5 }] }, `Resolution against particles for B = ${g(B, 4)} Å²`);
+      paint(q<HTMLCanvasElement>('.ce-rh'), rhFig);
+      rep.r = { title: 'Particles and resolution', facts: [['B-factor', `${g(B, 4)} Å²`], ['Known point', `${whole(N0)} particles give ${g(d0, 4)} Å`], ...list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string])], table: { head: ['Particles', 'Of the known', 'Resolution (Å)'], rows: rhRows.map((r) => r.map(String)), align: ['r', 'l', 'r'] }, figure: rhFig, note: 'A rough guide: real data stop improving when something else (the microscope, the sample, flexibility) limits them.' };
+    } catch (e) { fail('.ce-rerr', `${(e as Error).message}.`, ['.ce-rout']); }
+  }
+
+  const calc = () => { calcSampling(); calcDose(); calcOptics(); calcBox(); calcRH(); };
+  function setMode() { const cal = q<HTMLSelectElement>('.ce-mode').value === 'cal'; root.querySelectorAll<HTMLElement>('.ce-m').forEach((e) => (e.hidden = cal)); q('.ce-c').hidden = !cal; }
+  function example() {
+    const x = EXAMPLE;
+    q<HTMLSelectElement>('.ce-mode').value = 'mag'; setMode();
+    inp('.ce-det').value = String(x.detectorUm); inp('.ce-mag').value = String(x.mag); inp('.ce-sr').checked = x.superRes; q<HTMLSelectElement>('.ce-bin').value = String(x.bin);
+    inp('.ce-rate').value = String(x.ratePerPx); inp('.ce-t').value = String(x.seconds); inp('.ce-fr').value = String(x.frames); inp('.ce-tt').value = ''; inp('.ce-tf').value = '';
+    q<HTMLSelectElement>('.ce-kv').value = String(x.kV); inp('.ce-cs').value = String(x.csMm); inp('.ce-amp').value = String(x.amp); inp('.ce-df').value = String(x.defocusUm); inp('.ce-eb').value = '';
+    inp('.ce-dia').value = String(x.diameter); inp('.ce-res').value = String(x.target);
+    inp('.ce-b').value = String(x.B); inp('.ce-n0').value = String(x.N0); inp('.ce-d0').value = String(x.d0);
+    calc();
+  }
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input')) calc(); });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.matches('.ce-mode')) setMode(); if (t.matches('select, input[type=checkbox]')) calc(); });
+  q('.ce-ex').addEventListener('click', example);
+  q('.ce-ccsv').addEventListener('click', () => {
+    if (!ctfRows.length || !O) return;
+    save(new Blob([csv([['frequency_per_A', 'resolution_A', 'ctf', 'envelope'], ...ctfRows])], { type: 'text/csv' }), `ctf-${O.kV}kV-${g(O.defocusUm, 4)}um.csv`, 'text/csv');
+  });
+  q('.ce-rcsv').addEventListener('click', () => {
+    if (!rhRows.length) return;
+    save(new Blob([csv([['particles', 'times_known', 'resolution_A'], ...rhRows.map((r) => [String(r[0]).replace(/,/g, ''), String(r[1]).replace(' ×', ''), r[2]])])], { type: 'text/csv' }), 'particles-resolution.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Cryo-EM sampling and resolution', subtitle: q('.ce-big').textContent ?? '', file: 'cryo-em-calculator', sections: [rep.s, rep.d, rep.o, rep.b, rep.r].filter((s): s is Section => !!s) }));
+  document.addEventListener('fibub:theme', () => { if (ctfFig) paint(q<HTMLCanvasElement>('.ce-ctf'), ctfFig); if (rhFig) paint(q<HTMLCanvasElement>('.ce-rh'), rhFig); });
+  example();
+</script>

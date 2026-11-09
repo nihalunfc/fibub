@@ -1,0 +1,595 @@
+---
+// PDB and mmCIF viewer: reads a structure file in the browser, draws it in 3D on a canvas with fibub's own small
+// renderer (cartoon-lite, backbone trace or all atoms; ligands as ball and stick), lists chains, residues and
+// ligands, measures distances and lists residue contacts. The file never leaves the device. The example model is
+// made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pvdb">
+  <div class="ax-card">
+    <h2>Structure file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pv-open">Open a PDB or mmCIF file</button>
+      <input type="file" class="pv-file" accept=".pdb,.ent,.cif,.mmcif,.pdb1,.txt,.gz" hidden />
+      <button type="button" class="btn secondary small pv-ex">Use the example</button>
+    </div>
+    <details class="pv-paste-d">
+      <summary>Or paste the file's text</summary>
+      <textarea class="pv-paste" rows="5" spellcheck="false" placeholder="ATOM      1  N   SER A   1 ..."></textarea>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pv-show">Show it</button></div>
+    </details>
+    <p class="ax-help pv-note">PDB (.pdb, .ent) or mmCIF (.cif) files, also gzipped (.gz), up to 60 MB. You can drop a file on the view. The file is read on this page only and never uploaded.</p>
+    <p class="ax-err pv-err" hidden></p>
+  </div>
+
+  <div class="ax-card pv-out" hidden>
+    <p class="ax-big pv-big"></p>
+    <p class="ax-help pv-title"></p>
+    <div class="pv-stage">
+      <canvas class="pv-view" tabindex="0"></canvas>
+    </div>
+    <div class="ax-row pv-tools">
+      <button type="button" class="btn secondary small pv-zin" aria-label="Zoom in">+</button>
+      <button type="button" class="btn secondary small pv-zout" aria-label="Zoom out">−</button>
+      <button type="button" class="btn secondary small pv-reset">Reset view</button>
+      <button type="button" class="btn secondary small pv-clear">Clear picks</button>
+    </div>
+    <p class="ax-help">Drag to turn it, pinch or scroll to zoom, tap two atoms to measure between them. With the keyboard: arrow keys turn it, + and − zoom.</p>
+    <p class="pv-pick" aria-live="polite"></p>
+    <div class="ax-legend pv-legend"></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Style <select class="pv-style">
+        <option value="cartoon" selected>Cartoon (helices thick, strands as arrows)</option>
+        <option value="trace">Backbone trace (C-alpha lines)</option>
+        <option value="atoms">All atoms (sticks)</option>
+      </select></label>
+      <label>Colour by <select class="pv-color">
+        <option value="ss" selected>Secondary structure</option>
+        <option value="chain">Chain</option>
+        <option value="b">B-factor (blue low, red high)</option>
+        <option value="rainbow">Position (blue N end to red C end)</option>
+        <option value="element">Element (all-atoms style)</option>
+      </select></label>
+      <label>Secondary structure <select class="pv-ss">
+        <option value="auto" selected>From the file, or a guess if it has none</option>
+        <option value="guess">Guess from C-alpha positions</option>
+      </select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="pv-lig" checked /> Ligands</label>
+      <label class="ax-check"><input type="checkbox" class="pv-wat" /> Water</label>
+      <label class="ax-check"><input type="checkbox" class="pv-hyd" /> Hydrogens</label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pv-png">Download the view (PNG)</button>
+    </div>
+  </div>
+
+  <div class="ax-card pv-out" hidden>
+    <h2>Chains, residues and ligands</h2>
+    <dl class="ax-facts pv-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="pv-chains"></table></div>
+    <div class="pv-seqs"></div>
+    <p class="ax-help">Tap residues in a sequence to measure between them. Coloured letters: <span class="pv-h">helix</span>, <span class="pv-e">strand</span>.</p>
+    <div class="pv-ligbox">
+      <h3>Ligands</h3>
+      <div class="ax-scroll"><table class="pv-ligs"></table></div>
+    </div>
+    <p class="ax-help pv-notes"></p>
+  </div>
+
+  <div class="ax-card pv-out" hidden>
+    <h2>Distance between two residues</h2>
+    <div class="ax-grid">
+      <label>First residue <select class="pv-r1"></select></label>
+      <label>Second residue <select class="pv-r2"></select></label>
+    </div>
+    <p class="pv-mout" aria-live="polite"></p>
+    <p class="ax-help">The closest pair of atoms (hydrogens left out), and the distance between the two C-alpha (or P) atoms when both residues have one. The pair is marked in the view.</p>
+  </div>
+
+  <div class="ax-card pv-out" hidden>
+    <h2>Residue contacts</h2>
+    <div class="ax-grid">
+      <label>Cutoff (Å) <input class="pv-cut" type="number" min="1" max="12" step="0.1" value="4" inputmode="decimal" /></label>
+      <label>Skip neighbours closer than (residues) <input class="pv-sep" type="number" min="1" max="20" step="1" value="3" inputmode="numeric" /></label>
+      <label>Show <select class="pv-scope">
+        <option value="all" selected>All contacts</option>
+        <option value="chains">Between chains only</option>
+        <option value="ligands">With ligands and water only</option>
+      </select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="pv-cwat" /> Count water</label>
+      <label class="ax-check"><input type="checkbox" class="pv-chyd" /> Count hydrogens</label>
+    </div>
+    <p class="ax-help">Two residues are in contact when any of their atoms are within the cutoff. 4 Å is a common choice for side-chain contacts and hydrogen bonds; 3.5 Å keeps mostly hydrogen bonds and salt bridges. Neighbours along the same chain always touch, so the skip setting leaves them out (3 skips the next two residues).</p>
+    <p class="ax-big pv-cbig" style="margin-top:10px"></p>
+    <p class="ax-err pv-cerr" hidden></p>
+    <div class="ax-scroll pv-cscroll"><table class="pv-ctab"></table></div>
+    <p class="ax-help pv-cnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pv-csv">Download contacts (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseStructure, assignSS, contacts, contactRows, closest, bonds, segments, extent, principalAxes, ssShare, resLabel, atomLabel, dist, type Structure, type Contact } from '../../lib/sci/pdb';
+  import { EXAMPLE_PDB } from '../../lib/sci/pdb-example';
+  import { pagePalette, wireDownloads, save, fileSafe, LIGHT, type Palette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pvdb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = (c: string) => [...root.querySelectorAll<HTMLElement>(c)];
+  const canvas = q<HTMLCanvasElement>('.pv-view');
+  const MAXB = 60e6, TABLE_MAX = 300;
+  const fmt = (d: number) => d.toFixed(2);
+  type P3 = [number, number, number];
+  // A primitive: 0 segment (p to q, width w Å), 1 ball (radius w Å), 2 arrow head (base p, tip q, half-width w Å).
+  type Prim = { t: 0 | 1 | 2; p: P3; q?: P3; w: number; c: string; z?: number };
+
+  let S: Structure | null = null, name = 'structure';
+  let prims: Prim[] = [], pickable: number[] = [], picks: number[] = [], cs: Contact[] = [];
+  let R = [1, 0, 0, 0, 1, 0, 0, 0, 1], R0 = R.slice(), zoom = 1, centre: P3 = [0, 0, 0], radius = 10, fitX = 10, fitY = 10;
+  let bRange: [number, number] = [0, 1], sections: Section[] = [], slot = 0;
+
+  // ---------- colours ----------
+  const dark = (pal: Palette) => pal.bg !== '#ffffff';
+  const CHAIN_L = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#8C6D31', '#5D5D9E'];
+  const CHAIN_D = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#f08a5d', '#b9a7ff'];
+  const SSC = { L: { H: '#C24E0C', E: '#0067A8', C: '#8a8a8a' }, D: { H: '#f0a060', E: '#6cc0f2', C: '#9a9a9a' } };
+  const EL_L: Record<string, string> = { C: '#555555', O: '#D62828', N: '#1F5FD6', S: '#B38F00', P: '#D97000', H: '#9A9A9A', SE: '#A86A00', F: '#2E9E2E', CL: '#2E9E2E', BR: '#8B3A1A', I: '#7B2D8B' };
+  const EL_D: Record<string, string> = { C: '#c8c8c8', O: '#ff6b6b', N: '#7fa8ff', S: '#f0d040', P: '#ffa040', H: '#e6e6e6', SE: '#f0a040', F: '#6fdc6f', CL: '#6fdc6f', BR: '#d07a5a', I: '#c890e0' };
+  const elColor = (el: string, pal: Palette) => (dark(pal) ? EL_D : EL_L)[el] ?? (dark(pal) ? '#d39be8' : '#8E44AD');
+  function bColor(b: number, pal: Palette) {
+    const t = Math.max(0, Math.min(1, (b - bRange[0]) / (bRange[1] - bRange[0] || 1)));
+    const lo = [33, 102, 172], mid = dark(pal) ? [170, 170, 170] : [150, 150, 150], hi = [190, 30, 45];
+    const [a, c, u] = t < 0.5 ? [lo, mid, t * 2] : [mid, hi, (t - 0.5) * 2];
+    const m = a.map((v, k) => Math.round(v + (c[k] - v) * u));
+    if (dark(pal) && t < 0.5) m[0] += 40, m[1] += 50, m[2] += 40;
+    return `rgb(${m.join(',')})`;
+  }
+  /** Colour of atom i under the chosen scheme. */
+  function colorOf(i: number, pal: Palette, mode: string, chainIx: Map<string, number>, posIx: Map<number, number>): string {
+    const s = S!, a = s.atoms[i], r = s.residues[a.res];
+    if (pal.red) return pal.ink;
+    if (r.kind !== 'polymer' || mode === 'element') return elColor(a.el, pal);
+    if (mode === 'chain') { const l = dark(pal) ? CHAIN_D : CHAIN_L; return l[(chainIx.get(r.chain) ?? 0) % l.length]; }
+    if (mode === 'ss') return (dark(pal) ? SSC.D : SSC.L)[r.ss];
+    if (mode === 'b') return bColor(r.rep >= 0 && q<HTMLSelectElement>('.pv-style').value !== 'atoms' ? s.atoms[r.rep].b : a.b, pal);
+    const t = posIx.get(a.res) ?? 0;
+    return `hsl(${Math.round(240 * (1 - t))}, ${dark(pal) ? 80 : 75}%, ${dark(pal) ? 62 : 42}%)`;
+  }
+
+  // ---------- scene ----------
+  const P = (i: number): P3 => { const a = S!.atoms[i]; return [a.x, a.y, a.z]; };
+  const mid = (a: P3, b: P3): P3 => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+  const showLig = () => q<HTMLInputElement>('.pv-lig').checked, showWat = () => q<HTMLInputElement>('.pv-wat').checked, showH = () => q<HTMLInputElement>('.pv-hyd').checked;
+
+  function build(pal: Palette) {
+    const s = S!, style = q<HTMLSelectElement>('.pv-style').value;
+    let mode = q<HTMLSelectElement>('.pv-color').value;
+    if (mode === 'element' && style !== 'atoms') mode = 'chain';
+    const chainIx = new Map(s.chains.map((c, k) => [c.id, k] as [string, number]));
+    const posIx = new Map<number, number>();
+    for (const c of s.chains) c.polymer.forEach((ri, k) => posIx.set(ri, c.polymer.length > 1 ? k / (c.polymer.length - 1) : 0));
+    const col = (i: number) => colorOf(i, pal, mode, chainIx, posIx);
+    const out: Prim[] = [], pick: number[] = [];
+    const okAtom = (i: number) => showH() || s.atoms[i].el !== 'H';
+    if (style === 'atoms') {
+      const idx = s.atoms.map((_, i) => i).filter((i) => s.residues[s.atoms[i].res].kind === 'polymer' && okAtom(i));
+      const bonded = new Set<number>();
+      for (const [i, j] of bonds(s, idx)) {
+        bonded.add(i); bonded.add(j);
+        const m = mid(P(i), P(j));
+        out.push({ t: 0, p: P(i), q: m, w: 0.28, c: col(i) }, { t: 0, p: m, q: P(j), w: 0.28, c: col(j) });
+      }
+      for (const i of idx) { pick.push(i); if (!bonded.has(i)) out.push({ t: 1, p: P(i), w: 0.35, c: col(i) }); }
+    } else {
+      for (const c of s.chains) for (const seg of segments(s, c)) {
+        const pts = seg.map((ri) => P(s.residues[ri].rep)), cols = seg.map((ri) => col(s.residues[ri].rep));
+        seg.forEach((ri) => pick.push(s.residues[ri].rep));
+        if (seg.length === 1) { out.push({ t: 1, p: pts[0], w: 0.5, c: cols[0] }); continue; }
+        if (style === 'trace') {
+          for (let k = 0; k + 1 < pts.length; k++) { const m = mid(pts[k], pts[k + 1]); out.push({ t: 0, p: pts[k], q: m, w: 0.4, c: cols[k] }, { t: 0, p: m, q: pts[k + 1], w: 0.4, c: cols[k + 1] }); }
+          continue;
+        }
+        // Cartoon-lite: a Catmull-Rom curve through the trace atoms, thick in helices, arrows at strand ends.
+        const ss = seg.map((ri) => s.residues[ri].ss);
+        const W = { H: 1.5, E: 1.1, C: 0.45 } as const, N = 5;
+        const at = (k: number) => pts[Math.max(0, Math.min(pts.length - 1, k))];
+        const curve = (k: number, u: number): P3 => {
+          const p0 = at(k - 1), p1 = at(k), p2 = at(k + 1), p3 = at(k + 2), u2 = u * u, u3 = u2 * u;
+          return [0, 1, 2].map((d) => 0.5 * (2 * p1[d] + (-p0[d] + p2[d]) * u + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * u2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * u3)) as P3;
+        };
+        for (let k = 0; k + 1 < pts.length; k++) {
+          // The last span of a strand of three or more residues becomes an arrow head.
+          const endStrand = k > 0 && ss[k - 1] === 'E' && ss[k] === 'E' && ss[k + 1] === 'E' && (k + 2 >= ss.length || ss[k + 2] !== 'E');
+          if (endStrand) { out.push({ t: 2, p: curve(k, 0), q: curve(k, 1), w: 1.9, c: cols[k] }); continue; }
+          let prev = curve(k, 0);
+          for (let j = 1; j <= N; j++) {
+            const cur = curve(k, j / N), first = j <= N / 2;
+            const st = first ? ss[k] : ss[k + 1], w = st === ss[k] && st === ss[k + 1] ? W[st] : Math.min(W[ss[k]], W[ss[k + 1]]);
+            out.push({ t: 0, p: prev, q: cur, w, c: first ? cols[k] : cols[k + 1] });
+            prev = cur;
+          }
+        }
+      }
+    }
+    for (const r of s.residues) {
+      if (r.kind === 'ligand' && showLig()) {
+        const idx = r.atoms.filter(okAtom), bonded = new Set<number>();
+        for (const [i, j] of bonds(s, idx)) { bonded.add(i); bonded.add(j); const m = mid(P(i), P(j)); out.push({ t: 0, p: P(i), q: m, w: 0.2, c: elColor(s.atoms[i].el, pal) }, { t: 0, p: m, q: P(j), w: 0.2, c: elColor(s.atoms[j].el, pal) }); }
+        for (const i of idx) { out.push({ t: 1, p: P(i), w: bonded.has(i) ? 0.38 : 0.7, c: pal.red ? pal.ink : elColor(s.atoms[i].el, pal) }); pick.push(i); }
+      }
+      if (r.kind === 'water' && showWat()) for (const i of r.atoms.filter(okAtom)) { out.push({ t: 1, p: P(i), w: 0.3, c: pal.red ? pal.ink : dark(pal) ? '#ff9a9a' : '#e06666' }); pick.push(i); }
+      if (r.kind === 'polymer' && style !== 'atoms' && r.rep < 0 && showLig()) {
+        // Amino acids or nucleotides with no trace atom are drawn as atoms so nothing goes missing.
+        for (const i of r.atoms.filter(okAtom)) { out.push({ t: 1, p: P(i), w: 0.3, c: elColor(s.atoms[i].el, pal) }); pick.push(i); }
+      }
+    }
+    prims = out; pickable = pick;
+    legend(pal, mode);
+  }
+
+  function legend(pal: Palette, mode: string) {
+    const items: [string, string][] = [];
+    if (mode === 'ss') items.push(['Helix', (dark(pal) ? SSC.D : SSC.L).H], ['Strand', (dark(pal) ? SSC.D : SSC.L).E], ['Other', (dark(pal) ? SSC.D : SSC.L).C]);
+    if (mode === 'chain') S!.chains.filter((c) => c.polymer.length).slice(0, 12).forEach((c) => items.push([`Chain ${c.id || '(none)'}`, (dark(pal) ? CHAIN_D : CHAIN_L)[S!.chains.indexOf(c) % 8]]));
+    if (mode === 'b') items.push([`B ${fmt(bRange[0])} (low)`, bColor(bRange[0], pal)], [`B ${fmt(bRange[1])} (high)`, bColor(bRange[1], pal)]);
+    if (mode === 'rainbow') items.push(['N end', 'hsl(240,75%,45%)'], ['Middle', 'hsl(120,75%,40%)'], ['C end', 'hsl(0,75%,45%)']);
+    if (mode === 'element' || (showLig() && S!.residues.some((r) => r.kind === 'ligand'))) for (const e of ['C', 'N', 'O', 'S']) if (mode === 'element' || S!.residues.some((r) => r.kind === 'ligand' && r.atoms.some((i) => S!.atoms[i].el === e))) items.push([`${e}${mode === 'element' ? '' : ' (ligand)'}`, elColor(e, pal)]);
+    const box = q('.pv-legend'); box.replaceChildren();
+    for (const [t, c] of items) { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, t); box.append(s); }
+  }
+
+  // ---------- drawing ----------
+  function project(p: P3, W: number, H: number, sc: number): P3 {
+    const x = p[0] - centre[0], y = p[1] - centre[1], z = p[2] - centre[2];
+    return [W / 2 + sc * (R[0] * x + R[1] * y + R[2] * z), H / 2 - sc * (R[3] * x + R[4] * y + R[5] * z), R[6] * x + R[7] * y + R[8] * z];
+  }
+  // Fits the starting view: the longest side across, the second longest up and down.
+  const scaleFor = (W: number, H: number) => zoom * Math.min(W / (2 * fitX * 1.1), H / (2 * fitY * 1.1));
+
+  function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, pal: Palette) {
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    if (!S) return;
+    const sc = scaleFor(W, H);
+    const items = prims.map((pr) => {
+      const a = project(pr.p, W, H, sc), b = pr.q ? project(pr.q, W, H, sc) : null;
+      return { pr, a, b, z: b ? (a[2] + b[2]) / 2 : a[2] };
+    });
+    items.sort((u, v) => u.z - v.z);
+    ctx.lineCap = 'round';
+    for (const { pr, a, b, z } of items) {
+      const fog = Math.max(0, Math.min(1, (z / radius + 1) / 2));
+      ctx.globalAlpha = 0.35 + 0.65 * fog;
+      if (pr.t === 0 && b) {
+        ctx.strokeStyle = pr.c; ctx.lineWidth = Math.max(1, pr.w * sc);
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      } else if (pr.t === 1) {
+        ctx.fillStyle = pr.c; ctx.beginPath(); ctx.arc(a[0], a[1], Math.max(1.5, pr.w * sc), 0, 2 * Math.PI); ctx.fill();
+        if (pr.w * sc > 4) { ctx.strokeStyle = pal.bg; ctx.lineWidth = 1; ctx.stroke(); }
+      } else if (pr.t === 2 && b) {
+        const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, w = Math.max(3, pr.w * sc);
+        ctx.fillStyle = pr.c; ctx.beginPath(); ctx.moveTo(a[0] + nx * w, a[1] + ny * w); ctx.lineTo(b[0], b[1]); ctx.lineTo(a[0] - nx * w, a[1] - ny * w); ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    // Picked atoms and the distance between them.
+    const pp = picks.map((i) => project(P(i), W, H, sc));
+    if (pp.length === 2) {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(pp[0][0], pp[0][1]); ctx.lineTo(pp[1][0], pp[1][1]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    for (const p of pp) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 7, 0, 2 * Math.PI); ctx.stroke(); }
+    // The distance label goes on top of everything.
+    if (pp.length === 2) {
+      ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const t = `${fmt(dist(S.atoms[picks[0]], S.atoms[picks[1]]))} Å`, mx = (pp[0][0] + pp[1][0]) / 2, my = Math.max(14, Math.min(pp[0][1], pp[1][1]) - 20), tw = ctx.measureText(t).width + 10;
+      ctx.fillStyle = pal.bg; ctx.fillRect(mx - tw / 2, my - 11, tw, 22); ctx.fillStyle = pal.ink; ctx.fillText(t, mx, my);
+    }
+  }
+
+  let raf = 0, builtFor = '';
+  function frame() {
+    raf = 0;
+    const pal = pagePalette(), key = pal.bg + pal.red;
+    if (key !== builtFor) { build(pal); builtFor = key; }
+    const dpr = Math.min(3, window.devicePixelRatio || 1), W = canvas.clientWidth, H = canvas.clientHeight;
+    if (!W || !H) return;
+    if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
+    const ctx = canvas.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawScene(ctx, W, H, pal);
+  }
+  const redraw = () => { if (!raf) raf = requestAnimationFrame(frame); };
+  const rebuild = () => { builtFor = ''; redraw(); };
+
+  // ---------- rotation, zoom, picking ----------
+  const mul = (A: number[], B: number[]) => [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]));
+  const rotY = (t: number) => [Math.cos(t), 0, Math.sin(t), 0, 1, 0, -Math.sin(t), 0, Math.cos(t)];
+  const rotX = (t: number) => [1, 0, 0, 0, Math.cos(t), -Math.sin(t), 0, Math.sin(t), Math.cos(t)];
+  const turn = (dx: number, dy: number) => { R = mul(rotX(dy), mul(rotY(dx), R)); redraw(); };
+  const setZoom = (z: number) => { zoom = Math.max(0.2, Math.min(40, z)); redraw(); };
+  const ptrs = new Map<number, { x: number; y: number }>();
+  let down: { x: number; y: number; t: number; moved: boolean } | null = null, pinch = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    down = ptrs.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), moved: false } : null;
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const old = ptrs.get(e.pointerId); if (!old) return;
+    const now = { x: e.clientX, y: e.clientY }; ptrs.set(e.pointerId, now);
+    if (ptrs.size === 1) {
+      if (down && Math.hypot(now.x - down.x, now.y - down.y) > 5) down.moved = true;
+      if (!down || down.moved) turn((now.x - old.x) * 0.01, (now.y - old.y) * 0.01);
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch > 0) setZoom(zoom * (d / pinch));
+      pinch = d;
+    }
+  });
+  const up = (e: PointerEvent) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (down && !down.moved && performance.now() - down.t < 600 && e.type === 'pointerup') tap(e.clientX, e.clientY);
+    down = null; if (ptrs.size < 2) pinch = 0;
+  };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(zoom * Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+  canvas.addEventListener('keydown', (e) => {
+    const k = e.key, step = Math.PI / 18;
+    if (k === 'ArrowLeft') turn(-step, 0); else if (k === 'ArrowRight') turn(step, 0); else if (k === 'ArrowUp') turn(0, -step); else if (k === 'ArrowDown') turn(0, step);
+    else if (k === '+' || k === '=') setZoom(zoom * 1.25); else if (k === '-' || k === '_') setZoom(zoom / 1.25); else return;
+    e.preventDefault();
+  });
+  function tap(cx: number, cy: number) {
+    if (!S) return;
+    const r = canvas.getBoundingClientRect(), x = cx - r.left, y = cy - r.top, sc = scaleFor(r.width, r.height);
+    let best = -1, bd = 18 * 18, bz = -Infinity;
+    for (const i of pickable) {
+      const p = project(P(i), r.width, r.height, sc), d = (p[0] - x) ** 2 + (p[1] - y) ** 2;
+      if (d < bd - 9 || (d < bd + 9 && p[2] > bz)) { if (d <= 18 * 18) { best = i; bd = d; bz = p[2]; } }
+    }
+    if (best < 0) return;
+    picks = picks.length >= 2 ? [best] : [...picks, best];
+    showPick();
+  }
+  function showPick() {
+    const s = S!, el = q('.pv-pick');
+    if (!picks.length) el.textContent = 'Tap an atom to start a measurement.';
+    else if (picks.length === 1) el.textContent = `${atomLabel(s, picks[0])} picked (B ${fmt(s.atoms[picks[0]].b)}). Tap a second atom.`;
+    else el.textContent = `${atomLabel(s, picks[0])} to ${atomLabel(s, picks[1])}: ${dist(s.atoms[picks[0]], s.atoms[picks[1]]).toFixed(3)} Å`;
+    redraw();
+  }
+  function resetView() {
+    R = R0.slice(); zoom = 1; redraw();
+  }
+
+  // ---------- tables ----------
+  function table(t: HTMLTableElement, head: string[], rows: (string | Node)[][], right: number[] = []) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (typeof c === 'string') td.textContent = c; else td.append(c); if (right.includes(i)) td.className = 'r'; }); });
+  }
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); return d; };
+  const pct = (a: number, n: number) => (n ? `${Math.round((100 * a) / n)} %` : '–');
+  const near4 = (ri: number) => {
+    const s = S!, out: string[] = [];
+    s.residues.forEach((r, k) => { if (k !== ri && r.kind !== 'water' && closest(s, ri, k).d <= 4) out.push(resLabel(r)); });
+    return out;
+  };
+
+  function describe() {
+    const s = S!, sh = ssShare(s), polyChains = s.chains.filter((c) => c.polymer.length);
+    const ligs = s.residues.filter((r) => r.kind === 'ligand'), wats = s.residues.filter((r) => r.kind === 'water');
+    const nPoly = s.residues.filter((r) => r.kind === 'polymer').length;
+    q('.pv-big').textContent = `${polyChains.length} chain${polyChains.length === 1 ? '' : 's'}, ${nPoly} residue${nPoly === 1 ? '' : 's'}, ${ligs.length} ligand${ligs.length === 1 ? '' : 's'}`;
+    q('.pv-title').textContent = s.title ? `${s.title} (${name})` : name;
+    const src = s.ssSource === 'records' ? (s.format === 'cif' ? 'from the file (struct_conf and struct_sheet_range)' : "from the file's HELIX and SHEET records") : s.ssSource === 'guess' ? 'a rough guess from C-alpha positions' : 'none: the file has no records for it';
+    q('.pv-facts').replaceChildren(
+      fact('Atoms', s.atoms.length.toLocaleString('en'), `${s.format === 'cif' ? 'mmCIF' : 'PDB'} file${s.models > 1 ? `, model 1 of ${s.models}` : ''}`),
+      fact('Chains', String(polyChains.length), polyChains.map((c) => c.id || '(none)').slice(0, 12).join(', ') + (polyChains.length > 12 ? '…' : '')),
+      fact('Residues', nPoly.toLocaleString('en'), 'amino acids or nucleotides'),
+      fact('Ligands', String(ligs.length), [...new Set(ligs.map((r) => r.resName))].slice(0, 8).join(', ')),
+      fact('Waters', String(wats.length)),
+      fact('Secondary structure', `${pct(sh.h, sh.n)} helix, ${pct(sh.e, sh.n)} strand`, src),
+    );
+    table(q<HTMLTableElement>('.pv-chains'), ['Chain', 'Residues', 'Numbered', 'Helix', 'Strand', 'Ligands', 'Waters'],
+      s.chains.map((c) => {
+        const rs = c.polymer.map((i) => s.residues[i]), h = rs.filter((r) => r.ss === 'H').length, e = rs.filter((r) => r.ss === 'E').length;
+        return [c.id || '(none)', String(rs.length), rs.length ? `${rs[0].resSeq}${rs[0].iCode} to ${rs[rs.length - 1].resSeq}${rs[rs.length - 1].iCode}` : '–', String(h), String(e), String(c.ligands.length), String(c.waters.length)];
+      }), [1, 3, 4, 5, 6]);
+    // Sequences, letters coloured by secondary structure; tap one to measure.
+    const box = q('.pv-seqs'); box.replaceChildren();
+    for (const c of polyChains.slice(0, 40)) {
+      const h = document.createElement('p'); h.className = 'pv-seqh'; h.textContent = `Chain ${c.id || '(none)'}`;
+      const p = document.createElement('p'); p.className = 'pv-seq';
+      c.polymer.slice(0, 5000).forEach((ri, k) => {
+        const r = s.residues[ri], b = document.createElement('button');
+        b.type = 'button'; b.textContent = c.seq[k]; b.dataset.r = String(ri); b.title = resLabel(r);
+        if (r.ss !== 'C') b.className = r.ss === 'H' ? 'pv-h' : 'pv-e';
+        p.append(b);
+        if ((k + 1) % 10 === 0) p.append(document.createTextNode(' '));
+      });
+      box.append(h, p);
+    }
+    table(q<HTMLTableElement>('.pv-ligs'), ['Name', 'Chain', 'Number', 'Atoms', 'Residues within 4 Å'],
+      ligs.slice(0, 200).map((r) => { const n = near4(s.residues.indexOf(r)); return [r.resName, r.chain || '(none)', `${r.resSeq}${r.iCode}`, String(r.atoms.length), n.length ? n.slice(0, 8).join(', ') + (n.length > 8 ? ` and ${n.length - 8} more` : '') : 'none']; }), [2, 3]);
+    q('.pv-ligbox').hidden = !ligs.length;
+    q('.pv-notes').textContent = [...s.notes, ligs.length > 200 ? `Only the first 200 of ${ligs.length} ligands are listed.` : ''].filter(Boolean).join(' ');
+    // Residue pickers.
+    const opts = s.residues.map((r, i) => [r, i] as const).filter(([r]) => r.kind !== 'water').slice(0, 20000);
+    for (const sel of [q<HTMLSelectElement>('.pv-r1'), q<HTMLSelectElement>('.pv-r2')]) sel.replaceChildren(...opts.map(([r, i]) => new Option(resLabel(r) + (r.kind === 'ligand' ? ' (ligand)' : ''), String(i))));
+  }
+
+  function measure() {
+    const s = S!, a = Number(q<HTMLSelectElement>('.pv-r1').value), b = Number(q<HTMLSelectElement>('.pv-r2').value), out = q('.pv-mout');
+    qa('.pv-seq button.pv-sel').forEach((e) => e.classList.remove('pv-sel'));
+    for (const ri of [a, b]) root.querySelector(`.pv-seq button[data-r="${ri}"]`)?.classList.add('pv-sel');
+    if (!(a >= 0) || !(b >= 0)) { out.textContent = ''; return; }
+    if (a === b) { out.textContent = 'Pick two different residues.'; return; }
+    const c = closest(s, a, b), ra = s.residues[a], rb = s.residues[b];
+    if (c.a < 0) { out.textContent = 'These residues have no heavy atoms to measure.'; return; }
+    const ca = ra.rep >= 0 && rb.rep >= 0 ? ` ${s.atoms[ra.rep].name} to ${s.atoms[rb.rep].name}: ${dist(s.atoms[ra.rep], s.atoms[rb.rep]).toFixed(3)} Å.` : '';
+    out.textContent = `Closest atoms: ${atomLabel(s, c.a)} to ${atomLabel(s, c.b)}, ${c.d.toFixed(3)} Å.${ca}`;
+    picks = [c.a, c.b]; showPick();
+  }
+
+  function runContacts() {
+    const s = S!, cut = Number(q<HTMLInputElement>('.pv-cut').value), sep = Number(q<HTMLInputElement>('.pv-sep').value);
+    const err = q('.pv-cerr');
+    if (!(cut >= 1 && cut <= 12)) { err.textContent = 'Give a cutoff between 1 and 12 Å.'; err.hidden = false; return; }
+    if (!(sep >= 1 && sep <= 20 && Number.isInteger(sep))) { err.textContent = 'Give a whole number of residues between 1 and 20 to skip.'; err.hidden = false; return; }
+    err.hidden = true;
+    const scope = q<HTMLSelectElement>('.pv-scope').value as 'all' | 'chains' | 'ligands';
+    cs = contacts(s, { cutoff: cut, minSep: sep, scope, water: q<HTMLInputElement>('.pv-cwat').checked, hydrogens: q<HTMLInputElement>('.pv-chyd').checked });
+    const what = scope === 'chains' ? ' between chains' : scope === 'ligands' ? ' with ligands or water' : '';
+    q('.pv-cbig').textContent = `${cs.length.toLocaleString('en')} residue pair${cs.length === 1 ? '' : 's'}${what} within ${cut} Å`;
+    const rows = cs.slice(0, TABLE_MAX).map((c) => [resLabel(s.residues[c.r1]), resLabel(s.residues[c.r2]), c.d.toFixed(2), `${s.atoms[c.a1].name}–${s.atoms[c.a2].name}`, String(c.n), c.kind]);
+    table(q<HTMLTableElement>('.pv-ctab'), ['Residue', 'Residue', 'Closest (Å)', 'Atoms', 'Pairs', 'Type'], rows, [2, 4]);
+    q('.pv-cnote').textContent = cs.length > TABLE_MAX ? `The first ${TABLE_MAX} pairs are listed; the CSV has all ${cs.length.toLocaleString('en')}.` : cs.length ? '"Pairs" counts the atom pairs within the cutoff; tap a row to mark it in the view.' : 'No contacts at these settings.';
+    report();
+  }
+
+  function report() {
+    const s = S!;
+    const fig: Figure = { w: 640, h: 480, alt: `3D view of ${name}`, draw: (ctx, w, h, pal) => { const was = builtFor; build(pal); drawScene(ctx, w, h, pal); builtFor = was === pal.bg + pal.red ? was : ''; if (!builtFor) redraw(); } };
+    const facts = [...q('.pv-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    const ch = q<HTMLTableElement>('.pv-chains');
+    const rowsOf = (t: HTMLTableElement) => [...t.tBodies[0]?.rows ?? []].map((r) => [...r.cells].map((c) => c.textContent ?? ''));
+    sections = [
+      { title: q('.pv-big').textContent!, text: [q('.pv-title').textContent!], facts, figure: fig },
+      { title: 'Chains', table: { head: [...ch.tHead!.rows[0].cells].map((c) => c.textContent!), rows: rowsOf(ch), align: ['l', 'r', 'l', 'r', 'r', 'r', 'r'] } },
+      ...(q('.pv-ligbox').hidden ? [] : [{ title: 'Ligands', table: { head: ['Name', 'Chain', 'Number', 'Atoms', 'Residues within 4 Å'], rows: rowsOf(q<HTMLTableElement>('.pv-ligs')) } }]),
+      { title: q('.pv-cbig').textContent!, table: { head: ['Residue', 'Residue', 'Closest (Å)', 'Atoms', 'Pairs', 'Type'], rows: rowsOf(q<HTMLTableElement>('.pv-ctab')).slice(0, 150), align: ['l', 'l', 'r', 'l', 'r', 'l'] }, note: cs.length > 150 ? `First 150 of ${cs.length} pairs; download the CSV for all of them.` : undefined },
+    ];
+    if (q('.pv-mout').textContent) sections.splice(1, 0, { title: 'Measured', text: [q('.pv-mout').textContent!, q('.pv-pick').textContent!] });
+  }
+
+  // ---------- loading ----------
+  function load(t: string, nm: string) {
+    const err = q('.pv-err');
+    let s: Structure;
+    try { s = parseStructure(t, { ss: q<HTMLSelectElement>('.pv-ss').value as 'auto' | 'guess' }); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; return; }
+    if (!s.residues.some((r) => r.kind === 'polymer' && r.rep >= 0) && !s.residues.some((r) => r.kind === 'ligand')) { err.textContent = 'No amino acids, nucleotides or ligands found to draw.'; err.hidden = false; return; }
+    err.hidden = true; S = s; name = nm; picks = [];
+    const shown = s.atoms.map((_, i) => i).filter((i) => s.residues[s.atoms[i].res].kind !== 'water');
+    const e = extent(s, shown.length ? shown : s.atoms.map((_, i) => i)); centre = e.c; radius = Math.max(4, e.r);
+    const bs = s.residues.filter((r) => r.kind === 'polymer' && r.rep >= 0).map((r) => s.atoms[r.rep].b);
+    bRange = bs.length ? [Math.min(...bs), Math.max(...bs)] : [0, 1];
+    if (q<HTMLSelectElement>('.pv-style').value === 'atoms') { const all = s.atoms.map((a) => a.b); bRange = [Math.min(...all), Math.max(...all)]; }
+    const ax = principalAxes(shown.map((i) => P(i))).axes;
+    R0 = [...ax[0], ...ax[1], ...ax[2]]; R = R0.slice(); zoom = 1;
+    const along = (k: number) => Math.max(...shown.map((i) => { const a = s.atoms[i]; return Math.abs(ax[k][0] * (a.x - centre[0]) + ax[k][1] * (a.y - centre[1]) + ax[k][2] * (a.z - centre[2])); }));
+    fitX = Math.max(4, along(0) + 1.5); fitY = Math.max(fitX * 0.5, along(1) + 1.5);
+    qa('.pv-out').forEach((x) => (x.hidden = false));
+    describe();
+    if (nm === 'example') { setPick(1, 'A', 4); setPick(2, 'B', 10); }
+    else { q<HTMLSelectElement>('.pv-r2').selectedIndex = Math.min(1, q<HTMLSelectElement>('.pv-r2').options.length - 1); }
+    measure(); runContacts(); rebuild();
+  }
+  function setPick(k: number, ch: string, seq: number) {
+    const i = S!.residues.findIndex((r) => r.chain === ch && r.resSeq === seq);
+    if (i >= 0) q<HTMLSelectElement>(`.pv-r${k}`).value = String(i);
+  }
+  async function readFile(f: File) {
+    const err = q('.pv-err');
+    if (f.size > MAXB) { err.textContent = `That file is ${(f.size / 1e6).toFixed(0)} MB; the limit is 60 MB.`; err.hidden = false; return; }
+    try {
+      let t: string;
+      if (/\.gz$/i.test(f.name)) {
+        if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, then open the .pdb or .cif file.');
+        t = await new Response(f.stream().pipeThrough(new DecompressionStream('gzip'))).text();
+      } else t = await f.text();
+      load(t, f.name.replace(/\.gz$/i, '').replace(/\.[^.]+$/, ''));
+    } catch (e) { err.textContent = (e as Error).message || 'That file could not be read.'; err.hidden = false; }
+  }
+
+  q('.pv-open').addEventListener('click', () => q<HTMLInputElement>('.pv-file').click());
+  q('.pv-file').addEventListener('change', () => { const f = q<HTMLInputElement>('.pv-file').files?.[0]; q<HTMLInputElement>('.pv-file').value = ''; if (f) readFile(f); });
+  q('.pv-ex').addEventListener('click', () => load(EXAMPLE_PDB, 'example'));
+  q('.pv-show').addEventListener('click', () => { const t = q<HTMLTextAreaElement>('.pv-paste').value; if (!t.trim()) { q('.pv-err').textContent = 'Paste the text of a PDB or mmCIF file first.'; q('.pv-err').hidden = false; return; } load(t, 'pasted'); });
+  for (const el of [canvas, q('.pv-paste')]) {
+    el.addEventListener('dragover', (e) => { if ((e as DragEvent).dataTransfer?.types.includes('Files')) e.preventDefault(); });
+    el.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) { e.preventDefault(); readFile(f); } });
+  }
+  q('.pv-zin').addEventListener('click', () => setZoom(zoom * 1.25));
+  q('.pv-zout').addEventListener('click', () => setZoom(zoom / 1.25));
+  q('.pv-reset').addEventListener('click', resetView);
+  q('.pv-clear').addEventListener('click', () => { picks = []; q('.pv-mout').textContent = ''; qa('.pv-seq button.pv-sel').forEach((e) => e.classList.remove('pv-sel')); showPick(); report(); });
+  q('.pv-style').addEventListener('change', () => {
+    if (S) { const vals = q<HTMLSelectElement>('.pv-style').value === 'atoms' ? S.atoms.map((a) => a.b) : S.residues.filter((r) => r.kind === 'polymer' && r.rep >= 0).map((r) => S!.atoms[r.rep].b); if (vals.length) bRange = [Math.min(...vals), Math.max(...vals)]; }
+    if (q<HTMLSelectElement>('.pv-style').value !== 'atoms' && q<HTMLSelectElement>('.pv-color').value === 'element') q<HTMLSelectElement>('.pv-color').value = 'chain';
+    rebuild();
+  });
+  q('.pv-color').addEventListener('change', () => {
+    // Element colours only make sense with every atom drawn.
+    if (q<HTMLSelectElement>('.pv-color').value === 'element' && q<HTMLSelectElement>('.pv-style').value !== 'atoms') { q<HTMLSelectElement>('.pv-style').value = 'atoms'; q('.pv-style').dispatchEvent(new Event('change')); return; }
+    rebuild();
+  });
+  ['.pv-lig', '.pv-wat', '.pv-hyd'].forEach((c) => q(c).addEventListener('change', rebuild));
+  q('.pv-ss').addEventListener('change', () => { if (!S) return; assignSS(S, q<HTMLSelectElement>('.pv-ss').value as 'auto' | 'guess'); describe(); measure(); runContacts(); rebuild(); });
+  ['.pv-r1', '.pv-r2'].forEach((c) => q(c).addEventListener('change', () => { measure(); report(); }));
+  q('.pv-seqs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-r]'); if (!b) return;
+    q<HTMLSelectElement>(slot === 0 ? '.pv-r1' : '.pv-r2').value = b.dataset.r!; slot = 1 - slot; measure(); report();
+  });
+  q('.pv-ctab').addEventListener('click', (e) => {
+    const tr = (e.target as HTMLElement).closest('tbody tr') as HTMLTableRowElement | null; if (!tr) return;
+    const c = cs[tr.sectionRowIndex]; if (!c) return;
+    picks = [c.a1, c.a2]; showPick();
+    canvas.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  let timer = 0;
+  ['.pv-cut', '.pv-sep'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => S && runContacts(), 300); }));
+  ['.pv-scope', '.pv-cwat', '.pv-chyd'].forEach((c) => q(c).addEventListener('change', () => S && runContacts()));
+  const csv = (rows: string[][]) => rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.pv-csv').addEventListener('click', () => S && save(new Blob([csv(contactRows(S, cs))], { type: 'text/csv' }), `${fileSafe(name)}-contacts.csv`, 'text/csv'));
+  q('.pv-png').addEventListener('click', () => {
+    if (!S) return;
+    const c = document.createElement('canvas'), w = 1600, h = 1200; c.width = w; c.height = h;
+    const ctx = c.getContext('2d')!; ctx.scale(2, 2);
+    const was = builtFor; build(LIGHT); drawScene(ctx, w / 2, h / 2, LIGHT); builtFor = was === LIGHT.bg + LIGHT.red ? was : '';
+    redraw();
+    c.toBlob((b) => b && save(b, `${fileSafe(name)}-view.png`, 'image/png'), 'image/png');
+  });
+  new ResizeObserver(() => redraw()).observe(canvas);
+  document.addEventListener('fibub:theme', rebuild);
+  new MutationObserver(rebuild).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  wireDownloads(q('.dl'), () => { report(); return { title: 'PDB structure', subtitle: q('.pv-title').textContent ?? '', file: `${fileSafe(name)}-structure`, sections }; });
+  load(EXAMPLE_PDB, 'example');
+</script>
+
+<style is:global>
+  .pvdb .pv-stage { position: relative; margin-top: 10px; }
+  .pvdb .pv-view { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 70vh; border: 1px solid var(--line); border-radius: 8px; touch-action: none; cursor: grab; background: var(--bg); }
+  .pvdb .pv-view:active { cursor: grabbing; }
+  .pvdb .pv-view:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pvdb .pv-tools { margin-top: 8px; }
+  .pvdb .pv-tools .btn { min-width: 44px; }
+  .pvdb .pv-pick, .pvdb .pv-mout { font-weight: 600; margin: 8px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .pvdb .pv-paste-d { margin-top: 10px; }
+  .pvdb .pv-paste-d summary { cursor: pointer; font-size: 15px; }
+  .pvdb .pv-paste-d textarea { margin-top: 8px; }
+  .pvdb .pv-seqh { margin: 14px 0 2px; font-weight: 600; font-size: 14px; }
+  .pvdb .pv-seq { margin: 0; font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; word-break: break-all; }
+  .pvdb .pv-seq button { font: inherit; border: 0; background: none; padding: 0 1px; margin: 0; color: var(--muted); cursor: pointer; border-radius: 3px; }
+  .pvdb .pv-h { color: #b5470b !important; font-weight: 700; }
+  .pvdb .pv-e { color: #0060a0 !important; font-weight: 700; }
+  html[data-theme=dark] .pvdb .pv-h { color: #f0a060 !important; }
+  html[data-theme=dark] .pvdb .pv-e { color: #6cc0f2 !important; }
+  .pvdb .pv-seq button.pv-sel { outline: 2px solid var(--ink); background: var(--bg); }
+  .pvdb .pv-ligbox h3 { font-size: 15px; margin: 16px 0 6px; }
+  .pvdb .pv-ctab tbody tr { cursor: pointer; }
+  .pvdb .pv-ctab td, .pvdb .pv-ctab th { white-space: nowrap; }
+  .pvdb .pv-cscroll { max-height: 420px; overflow: auto; }
+  .pvdb select { max-width: 100%; }
+</style>

@@ -1,0 +1,145 @@
+---
+// Triangle, duo-trio, 2-AFC and tetrad difference tests: exact binomial p, fewest correct for significance,
+// d′ and proportion of distinguishers, power and sample size. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sens">
+  <div class="ax-card">
+    <h2>Your test</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small sd-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Test <select class="sd-m"><option value="triangle">Triangle</option><option value="duotrio">Duo-trio</option><option value="twoAFC">2-AFC (paired)</option><option value="tetrad">Tetrad</option></select></label>
+      <label>Answers (n) <input class="sd-n" type="number" min="1" step="1" value="" placeholder="e.g. 36" inputmode="numeric" /></label>
+      <label>Correct <input class="sd-x" type="number" min="0" step="1" value="" placeholder="e.g. 18" inputmode="numeric" /></label>
+      <label>Significance level (α) <select class="sd-a"><option value="0.1">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="0.001">0.001</option></select></label>
+    </div>
+    <p class="ax-help sd-mnote"></p>
+    <p class="ax-err sd-err" hidden></p>
+    <div class="sd-out" hidden>
+      <p class="ax-big sd-big"></p>
+      <p class="sd-say"></p>
+      <dl class="ax-facts sd-facts"></dl>
+      <p class="ax-help">One-sided exact binomial test against guessing. d′ (Thurstonian) measures the size of the difference on a scale that does not depend on the test method; the proportion of distinguishers uses the simpler guessing model. ± is one standard error (delta method).</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Power and sample size</h2>
+    <div class="ax-grid">
+      <label>Size of difference given as <select class="sd-pk"><option value="pd">Distinguishers (%)</option><option value="d">d′</option></select></label>
+      <label>Value <input class="sd-pv" type="number" min="0" step="any" value="30" inputmode="decimal" /></label>
+      <label>Power wanted (%) <input class="sd-pt" type="number" min="1" max="99.9" step="any" value="80" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Uses the test and α above. Power is the chance the test comes out significant if the true difference is this size. It zig-zags as n grows (the answers are whole numbers), so check the n either side.</p>
+    <p class="ax-err sd-perr" hidden></p>
+    <p class="ax-big sd-pbig"></p>
+    <p class="ax-help sd-pnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fewest correct answers for significance</h2>
+    <div class="ax-grid">
+      <label>From n <input class="sd-t1" type="number" min="1" step="1" value="10" inputmode="numeric" /></label>
+      <label>To n <input class="sd-t2" type="number" min="1" step="1" value="60" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help sd-tnote">Worked out exactly from the binomial distribution for the test chosen above (up to 500 rows). A dash means n is too small to ever be significant at that level.</p>
+    <p class="ax-err sd-terr" hidden></p>
+    <div class="ax-scroll sd-tw"><table class="sd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-csv">Download table (CSV)</button></div>
+  </div>
+
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<style is:global>
+  .sens .sd-tw { max-height: 420px; overflow-y: auto; }
+  .sens .sd-say { margin: 4px 0 12px; font-size: 15px; }
+</style>
+
+<script>
+  import { METHODS, analyse, power, sampleSize, criticalTable, pcFromPd, pCorrect, dPrime, pdFrom, type Method, type Analysis } from '../../lib/sci/sensory';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sens')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const err = (c: string, m = '') => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const ALPHAS = [0.1, 0.05, 0.01, 0.001];
+  const fp = (p: number) => (p < 0.0001 ? '< 0.0001' : p.toFixed(4));
+  const pm = (x: number, s: number) => (Number.isFinite(s) ? `${sig(x, 3)} ± ${sig(s, 2)}` : Number.isFinite(x) ? sig(x, 3) : '∞');
+  let res: Analysis | null = null, facts: [string, string][] = [], powerText = '', tableRows: { n: number; c: (number | null)[] }[] = [];
+
+  const method = () => q<HTMLSelectElement>('.sd-m').value as Method;
+  const alpha = () => Number(q<HTMLSelectElement>('.sd-a').value);
+
+  function runTest() {
+    const m = METHODS[method()];
+    q('.sd-mnote').textContent = `${m.name}: ${m.note}. Chance of a correct guess: 1/${Math.round(1 / m.p0)}.`;
+    err('.sd-err'); q('.sd-out').hidden = true; res = null;
+    if (q<HTMLInputElement>('.sd-n').value === '' && q<HTMLInputElement>('.sd-x').value === '') return;
+    try { res = analyse(method(), v('.sd-n'), v('.sd-x'), alpha()); } catch (e) { return err('.sd-err', (e as Error).message); }
+    const r = res;
+    q('.sd-out').hidden = false;
+    q('.sd-big').textContent = `${r.significant ? 'Significant' : 'Not significant'}: ${r.x} of ${r.n} correct, p = ${fp(r.pValue)}`;
+    q('.sd-say').textContent = r.significant
+      ? `The panel told the samples apart more often than guessing would (α = ${r.alpha}).`
+      : `This does not show a difference at α = ${r.alpha}. It does not prove the samples are the same: check the power below.`;
+    facts = [['p-value (one-sided)', fp(r.pValue)], [`Correct needed at α ${r.alpha}`, r.needed === null ? `not possible with n = ${r.n}` : `${r.needed} of ${r.n}`], ['Proportion correct', `${(100 * r.pc).toFixed(1)} %`], ['Distinguishers', `${(100 * r.pd).toFixed(1)} ± ${(100 * r.sePd).toFixed(1)} %`], ['d′', r.d === 0 ? '0 (at or below chance)' : pm(r.d, r.seD)]];
+    q('.sd-facts').replaceChildren(...facts.map(([k, x]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = x; d.append(dt, dd); return d; }));
+  }
+
+  function runPower() {
+    err('.sd-perr'); q('.sd-pbig').textContent = ''; q('.sd-pnote').textContent = ''; powerText = '';
+    const m = method(), p0 = METHODS[m].p0, kind = q<HTMLSelectElement>('.sd-pk').value, val = v('.sd-pv'), target = v('.sd-pt') / 100;
+    if (!Number.isFinite(val) || val <= 0) return err('.sd-perr', 'Give a difference above 0.');
+    if (kind === 'pd' && val >= 100) return err('.sd-perr', 'Distinguishers must be under 100 %.');
+    if (!(target > 0 && target < 1)) return err('.sd-perr', 'Power wanted must be between 1 and 99.9 %.');
+    const pA = kind === 'pd' ? pcFromPd(val / 100, p0) : pCorrect(m, val);
+    const d = kind === 'pd' ? dPrime(m, pA) : val, pd = pdFrom(pA, p0);
+    const n = v('.sd-n'), nNeed = sampleSize(p0, pA, alpha(), target);
+    const parts = [];
+    if (Number.isInteger(n) && n >= 1) parts.push(`Power with n = ${n}: ${(100 * power(n, p0, pA, alpha())).toFixed(1)} %`);
+    parts.push(nNeed === null ? `More than 5000 answers needed for ${(100 * target).toFixed(0)} % power` : `${nNeed} answers for ${sig(100 * target, 3)} % power`);
+    q('.sd-pbig').textContent = parts.join('. ');
+    q('.sd-pnote').textContent = `That difference means a ${(100 * pA).toFixed(1)} % chance of a correct answer, ${(100 * pd).toFixed(1)} % distinguishers, d′ ${sig(d, 3)} (${METHODS[m].name}, α ${alpha()}).`;
+    powerText = `${q('.sd-pbig').textContent}. ${q('.sd-pnote').textContent}`;
+  }
+
+  function runTable() {
+    err('.sd-terr');
+    let a = Math.round(v('.sd-t1')), b = Math.round(v('.sd-t2'));
+    if (!(a >= 1) || !(b >= 1)) { q('.sd-tab').replaceChildren(); tableRows = []; return err('.sd-terr', 'Give whole numbers of 1 or more.'); }
+    if (b < a) [a, b] = [b, a];
+    if (b - a > 499) b = a + 499;
+    tableRows = criticalTable(method(), a, b, ALPHAS);
+    const t = q('.sd-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['n', ...ALPHAS.map((x) => `α ${x}`)]) { const th = document.createElement('th'); th.textContent = x; th.className = 'r'; h.append(th); }
+    for (const r of tableRows) { const tr = t.insertRow(); for (const x of [r.n, ...r.c]) { const td = tr.insertCell(); td.textContent = x === null ? '–' : String(x); td.className = 'r'; } }
+  }
+
+  const all = () => { runTest(); runPower(); runTable(); };
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 200); };
+  for (const c of ['.sd-m', '.sd-a']) q(c).addEventListener('change', all);
+  for (const c of ['.sd-n', '.sd-x']) q(c).addEventListener('input', () => later(() => { runTest(); runPower(); }));
+  q('.sd-pk').addEventListener('change', () => { q<HTMLInputElement>('.sd-pv').value = q<HTMLSelectElement>('.sd-pk').value === 'pd' ? '30' : '1'; runPower(); });
+  for (const c of ['.sd-pv', '.sd-pt']) q(c).addEventListener('input', () => later(runPower));
+  for (const c of ['.sd-t1', '.sd-t2']) q(c).addEventListener('input', () => later(runTable));
+  q('.sd-ex').addEventListener('click', () => {
+    q<HTMLSelectElement>('.sd-m').value = 'triangle'; q<HTMLInputElement>('.sd-n').value = '36'; q<HTMLInputElement>('.sd-x').value = '18';
+    q<HTMLSelectElement>('.sd-a').value = '0.05'; q<HTMLSelectElement>('.sd-pk').value = 'pd'; q<HTMLInputElement>('.sd-pv').value = '30'; q<HTMLInputElement>('.sd-pt').value = '80'; q<HTMLInputElement>('.sd-t1').value = '10'; q<HTMLInputElement>('.sd-t2').value = '60';
+    all();
+  });
+  q('.sd-csv').addEventListener('click', () => {
+    save(new Blob([csv([['n', ...ALPHAS.map((a) => `min_correct_alpha_${a}`)], ...tableRows.map((r) => [r.n, ...r.c.map((x) => (x === null ? '' : x))])])], { type: 'text/csv' }), `${method()}-critical-values.csv`, 'text/csv');
+  });
+  const sections = (): Section[] => [
+    ...(res ? [{ title: `${METHODS[res.method].name} test`, text: [q('.sd-big').textContent ?? '', q('.sd-say').textContent ?? ''], facts }] : []),
+    ...(powerText ? [{ title: 'Power and sample size', text: [powerText] }] : []),
+    ...(tableRows.length ? [{ title: 'Fewest correct answers for significance', table: { head: ['n', ...ALPHAS.map((a) => `α ${a}`)], rows: tableRows.slice(0, 200).map((r) => [String(r.n), ...r.c.map((x) => (x === null ? '–' : String(x)))]), align: ['r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+  ];
+  wireDownloads(q('.dl'), () => ({ title: 'Sensory difference test', subtitle: res ? q('.sd-big').textContent ?? '' : METHODS[method()].name, file: `${method()}-test`, sections: sections() }));
+  all();
+</script>

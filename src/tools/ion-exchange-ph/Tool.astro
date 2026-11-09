@@ -1,0 +1,263 @@
+---
+// Ion exchange and IEF pH picker, worked out in the browser. Nothing is uploaded. The example proteins are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax iex">
+  <div class="ax-card">
+    <h2>Proteins</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ix-open">Open a FASTA file</button>
+      <input type="file" class="ix-file" accept=".fa,.fasta,.faa,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small ix-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Paste one or more protein sequences (FASTA: a line starting with &gt; before each one) <textarea class="ix-in" rows="6" spellcheck="false" autocapitalize="characters"></textarea></label>
+    <p class="ax-help">One-letter codes. Spaces, numbers and a final * are ignored; B, Z, J and X are left out of the charge. Up to 12 proteins and 5 MB.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Distance from the pI (pH units) <input class="ix-off" type="number" min="0.1" max="4" step="0.1" value="1.0" inputmode="decimal" /></label>
+      <label>Buffer pH from <input class="ix-lo" type="number" min="1" max="13" step="0.5" value="4" inputmode="decimal" /></label>
+      <label>to <input class="ix-hi" type="number" min="1" max="13" step="0.5" value="9" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The suggested buffer is this far above the pI for anion exchange and below it for cation exchange. The pH range is where you are willing to run the column: the best separation is searched inside it, and suggestions outside it are flagged.</p>
+    <details class="ix-more">
+      <summary>pKa values (approximate, editable)</summary>
+      <p class="ax-help">These are fibub's own rounded, approximate values of the kind printed in biochemistry books. Real proteins shift them (buried or neighbouring groups), and published sets differ by up to about 0.5, so treat every pI here as a guide to within a few tenths. Type your own to match another tool. All cysteines are counted as free.</p>
+      <div class="ax-grid ix-pka"></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ix-def">Back to the default values</button></div>
+    </details>
+    <p class="ax-err ix-err" hidden></p>
+    <p class="ax-help ix-note" hidden></p>
+  </div>
+
+  <div class="ax-card ix-out" hidden>
+    <h2>Buffer pH for each resin</h2>
+    <p class="ax-big ix-big"></p>
+    <div class="ax-scroll"><table class="ix-tab"></table></div>
+    <p class="ax-help ix-warn" hidden></p>
+    <p class="ax-help">Anion exchangers (Q, DEAE) hold proteins that are negative, so the buffer is above the pI. Cation exchangers (S, SP, CM) hold proteins that are positive, so the buffer is below the pI.</p>
+    <h3>Charge against pH</h3>
+    <canvas class="ax-fig ix-fig"></canvas>
+
+    <div class="ix-sep" hidden>
+      <h3>Best pH to separate them</h3>
+      <dl class="ax-facts ix-sfacts"></dl>
+      <canvas class="ax-fig ix-sfig"></canvas>
+      <p class="ax-help">The line shows, at each pH, the smallest difference in holding charge between any two of your proteins (the hardest pair to split). A protein with the wrong sign does not bind and flows through, which counts as 0. Charge is per molecule; a bigger protein spreads it over more surface, so use this as a starting point and test a few pH values around it.</p>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ix-csv">Download table (CSV)</button>
+      <button type="button" class="btn secondary small ix-ccsv">Download charge curves (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card ix-ief" hidden>
+    <h2>Isoelectric focusing</h2>
+    <p class="ax-help">Each protein stops where the gradient's pH equals its pI. On a linear strip that is (pI − low pH) ÷ (high pH − low pH) × length from the + end (anode, acidic end).</p>
+    <div class="ax-grid">
+      <label>Strip pH from <input class="ix-glo" type="number" min="0" max="14" step="0.5" value="3" inputmode="decimal" /></label>
+      <label>to <input class="ix-ghi" type="number" min="0" max="14" step="0.5" value="11" inputmode="decimal" /></label>
+      <label>Strip length (mm) <input class="ix-len" type="number" min="1" step="1" value="70" inputmode="numeric" /></label>
+      <label>Smallest gap you can see (mm) <input class="ix-gap" type="number" min="0" step="0.5" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err ix-gerr" hidden></p>
+    <canvas class="ax-fig ix-strip"></canvas>
+    <div class="ax-scroll"><table class="ix-itab"></table></div>
+    <p class="ax-help ix-inote" aria-live="polite"></p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .iex h3 { margin: 18px 0 8px; font-size: 15px; }
+  .iex .ix-more { margin-top: 12px; }
+  .iex .ix-more summary { cursor: pointer; font-weight: 600; }
+  .iex .ix-pka { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .iex .ix-tab td:first-child, .iex .ix-itab td:first-child { min-width: 9em; max-width: 16em; }
+  .iex .ix-tab th, .iex .ix-itab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { readProtein, charge, chargeCurve, PKA_DEFAULT, type PkaSet, type ParsedProtein } from '../../lib/sci/protparam';
+  import { pickBuffers, separation, iefSpots, iefGaps, EXAMPLE, type Separation } from '../../lib/sci/ionexchange';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.iex')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const sg = (z: number, d = 1) => (z > 0 ? '+' : z < 0 ? '−' : '') + Math.abs(z).toFixed(d);
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const table = (t: HTMLTableElement, head: string[], rows: string[][], right: number[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (right.includes(k)) td.className = 'r'; }); }
+  };
+
+  const PKA_LABEL: [keyof PkaSet, string][] = [['nTerm', 'N-terminus'], ['cTerm', 'C-terminus'], ['D', 'Asp (D)'], ['E', 'Glu (E)'], ['H', 'His (H)'], ['C', 'Cys (C)'], ['Y', 'Tyr (Y)'], ['K', 'Lys (K)'], ['R', 'Arg (R)'], ['U', 'Sec (U)']];
+  const field = (key: string, label: string, v: number) => { const l = document.createElement('label'); l.textContent = label + ' '; const i = document.createElement('input'); i.type = 'number'; i.step = '0.01'; i.value = String(v); i.dataset.k = key; i.inputMode = 'decimal'; l.append(i); return l; };
+  const fillParams = () => q('.ix-pka').replaceChildren(...PKA_LABEL.map(([k, l]) => field(k, `pKa ${l}`, PKA_DEFAULT[k])));
+  fillParams();
+  const pka = (): PkaSet => { const p = { ...PKA_DEFAULT }; root.querySelectorAll<HTMLInputElement>('.ix-pka input').forEach((i) => { const v = Number(i.value); if (i.value !== '' && Number.isFinite(v)) p[i.dataset.k as keyof PkaSet] = v; }); return p; };
+
+  // Same colours as the chart, so protein N has one colour on the curves and on the IEF strip.
+  const colors = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']);
+  const MAX = 12;
+
+  type Row = { name: string; seq: string; pI: number; anionPH: number; cationPH: number; zAnion: number; zCation: number };
+  let recs: ParsedProtein[] = [], rows: Row[] = [], fig: Figure | null = null, sfig: Figure | null = null, strip: Figure | null = null;
+  let seps: Separation[] = [], sections: Section[] = [], iefSection: Section | null = null;
+
+  const curveRange = () => { const lo = Math.min(2, ...rows.map((r) => Math.floor(r.cationPH))), hi = Math.max(12, ...rows.map((r) => Math.ceil(r.anionPH))); return [Math.max(0, lo), Math.min(14, hi)]; };
+
+  function run() {
+    const err = q('.ix-err'), note = q('.ix-note');
+    err.hidden = true; note.hidden = true;
+    recs = readProtein(q<HTMLTextAreaElement>('.ix-in').value).filter((r) => r.seq.length);
+    if (!recs.length) {
+      q('.ix-out').hidden = true; q('.ix-ief').hidden = true; rows = []; sections = [];
+      if (q<HTMLTextAreaElement>('.ix-in').value.trim()) { err.textContent = 'No amino acids found. Paste protein sequences in one-letter codes, such as MKTAYIAKQR, with a > line before each one.'; err.hidden = false; }
+      return;
+    }
+    const off = num('.ix-off'), lo = num('.ix-lo'), hi = num('.ix-hi');
+    if (!(off > 0 && off <= 4)) { err.textContent = 'Set the distance from the pI between 0.1 and 4 pH units.'; err.hidden = false; q('.ix-out').hidden = true; q('.ix-ief').hidden = true; return; }
+    if (!(lo >= 0 && hi <= 14 && hi - lo >= 0.5)) { err.textContent = 'Set a buffer pH range inside 0 to 14, with the second value at least 0.5 above the first.'; err.hidden = false; q('.ix-out').hidden = true; q('.ix-ief').hidden = true; return; }
+    const notes: string[] = [];
+    if (recs.length > MAX) { notes.push(`${recs.length} proteins found; using the first ${MAX}.`); recs = recs.slice(0, MAX); }
+    const amb = recs.filter((r) => Object.keys(r.ambiguous).length).map((r) => r.name);
+    if (amb.length) notes.push(`Ambiguous letters (B, Z, J, X) left out of: ${amb.slice(0, 3).join(', ')}${amb.length > 3 ? ' and more' : ''}.`);
+    const skip = recs.flatMap((r) => Object.entries(r.skipped));
+    if (skip.length) notes.push(`Ignored characters: ${[...new Set(skip.map(([k]) => `"${k}"`))].slice(0, 8).join(', ')}.`);
+    if (recs.some((r) => /^[ACGTUN]+$/.test(r.seq) && r.seq.length >= 20)) notes.push('One sequence looks like DNA or RNA. Translate it to protein first (sequence tools).');
+    note.textContent = notes.join(' '); note.hidden = !notes.length;
+
+    const p = pka();
+    rows = recs.map((r) => ({ name: r.name, seq: r.seq, ...pickBuffers(r.seq, p, off) }));
+    q('.ix-out').hidden = false; q('.ix-ief').hidden = false;
+    const lab = (i: number) => `${i + 1}. ${rows[i].name}`;
+    q('.ix-big').textContent = rows.length === 1
+      ? `pI ${rows[0].pI.toFixed(2)}: anion exchange at pH ${rows[0].anionPH.toFixed(1)}, cation exchange at pH ${rows[0].cationPH.toFixed(1)}`
+      : `${rows.length} proteins, pI ${Math.min(...rows.map((r) => r.pI)).toFixed(2)} to ${Math.max(...rows.map((r) => r.pI)).toFixed(2)}`;
+    const head = ['Protein', 'Length', 'pI', 'Anion pH', 'Charge', 'Cation pH', 'Charge'];
+    const body = rows.map((r, i) => [lab(i), String(r.seq.length), r.pI.toFixed(2), r.anionPH.toFixed(1), sg(r.zAnion), r.cationPH.toFixed(1), sg(r.zCation)]);
+    table(q<HTMLTableElement>('.ix-tab'), head, body, [1, 2, 3, 4, 5, 6]);
+    const out = rows.flatMap((r, i) => [...(r.anionPH > hi || r.anionPH < lo ? [`anion pH ${r.anionPH.toFixed(1)} for protein ${i + 1}`] : []), ...(r.cationPH < lo || r.cationPH > hi ? [`cation pH ${r.cationPH.toFixed(1)} for protein ${i + 1}`] : [])]);
+    const weak = rows.flatMap((r, i) => [...(Math.abs(r.zAnion) < 2 ? [`protein ${i + 1} on anion exchange`] : []), ...(Math.abs(r.zCation) < 2 ? [`protein ${i + 1} on cation exchange`] : [])]);
+    const w: string[] = [];
+    if (out.length) w.push(`Outside your buffer range of pH ${lo} to ${hi}: ${out.join(', ')}. Use the other resin, or check the protein stays folded and soluble there.`);
+    if (weak.length) w.push(`Less than 2 charges at the suggested pH (may bind weakly): ${weak.join(', ')}. Move further from the pI.`);
+    q('.ix-warn').textContent = w.join(' '); q('.ix-warn').hidden = !w.length;
+
+    const [cx0, cx1] = curveRange();
+    const series = rows.map((r, i) => { const c = chargeCurve(r.seq, p); const k = c.x.map((x, j) => (x >= cx0 && x <= cx1 ? j : -1)).filter((j) => j >= 0); return { name: `${i + 1}. ${r.name.slice(0, 28)}`, x: k.map((j) => c.x[j]), y: k.map((j) => c.y[j]), mode: 'line' as const, width: 2 }; });
+    fig = chartFigure({ w: 560, h: 340, xLabel: 'pH', yLabel: 'Net charge', legend: rows.length > 1 ? 'below' : 'none', xMin: cx0, xMax: cx1, series, marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, ...(rows.length === 1 ? [{ kind: 'vline' as const, at: rows[0].pI, dash: [5, 4], label: `pI ${rows[0].pI.toFixed(2)}` }] : [])] }, `Net charge against pH for ${rows.length} protein${rows.length === 1 ? '' : 's'}; each crosses zero at its pI`);
+    paint(q<HTMLCanvasElement>('.ix-fig'), fig);
+
+    const sepFacts: [string, string][] = [];
+    q('.ix-sep').hidden = rows.length < 2;
+    seps = [];
+    if (rows.length > 1) {
+      seps = (['anion', 'cation'] as const).map((k) => separation(rows.map((r) => r.seq), k, lo, hi, p));
+      for (const s of seps) {
+        const R = s.kind === 'anion' ? 'Anion exchange' : 'Cation exchange';
+        if (!s.best) { sepFacts.push([R, `no pH from ${lo} to ${hi} separates them: at every pH at least two of them carry the same holding charge (often none bind)`]); continue; }
+        const b = s.best;
+        sepFacts.push([R, `best at pH ${b.pH.toFixed(2)}, good from ${s.range![0].toFixed(2)} to ${s.range![1].toFixed(2)}`]);
+        sepFacts.push([`Charges at pH ${b.pH.toFixed(2)}`, rows.map((r, i) => { const z = b.charges[i], binds = s.kind === 'anion' ? z < 0 : z > 0; return `${i + 1}: ${sg(z)}${binds ? '' : ' (flows through)'}`; }).join(', ')]);
+        sepFacts.push([`Hardest pair (${s.kind})`, `${b.pair[0] + 1} and ${b.pair[1] + 1}, ${b.score.toFixed(2)} charges apart${s.range![1] >= hi - 1e-9 && b.pH >= hi - 1e-9 ? '; still rising at the end of your range' : s.range![0] <= lo + 1e-9 && b.pH <= lo + 1e-9 ? '; still rising at the start of your range' : ''}`]);
+      }
+      q('.ix-sfacts').replaceChildren(...sepFacts.map(([k, v]) => fact(k, v)));
+      sfig = chartFigure({ w: 560, h: 260, xLabel: 'Buffer pH', yLabel: 'Charge difference', legend: 'below', xMin: lo, xMax: hi, yMin: 0, series: seps.map((s) => ({ name: s.kind === 'anion' ? 'Anion exchange' : 'Cation exchange', x: s.x, y: s.score, mode: 'line' as const, width: 2, dash: s.kind === 'cation' ? [6, 4] : undefined })) }, `Smallest difference in holding charge between any two proteins against buffer pH, for anion and cation exchange`);
+      paint(q<HTMLCanvasElement>('.ix-sfig'), sfig);
+    } else sfig = null;
+
+    sections = [
+      { title: 'Proteins', table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: `Buffer ${off} pH unit${off === 1 ? '' : 's'} from the pI; buffer range pH ${lo} to ${hi}.${w.length ? ' ' + w.join(' ') : ''}` },
+      { title: 'Charge against pH', figure: fig },
+      ...(rows.length > 1 ? [{ title: 'Best pH to separate them', facts: sepFacts, figure: sfig! }] : []),
+    ];
+    ief();
+  }
+
+  function ief() {
+    if (!rows.length) return;
+    const gerr = q('.ix-gerr'); gerr.hidden = true;
+    const a = num('.ix-glo'), b = num('.ix-ghi'), L = num('.ix-len'), gap = Math.max(0, num('.ix-gap') || 0);
+    if (!(a >= 0 && b <= 14 && b - a >= 0.5 && L > 0)) {
+      gerr.textContent = 'Set a strip pH range inside 0 to 14 (high at least 0.5 above low) and a length above 0 mm.'; gerr.hidden = false;
+      q<HTMLCanvasElement>('.ix-strip').hidden = true; q('.ix-itab').replaceChildren(); q('.ix-inote').textContent = ''; iefSection = null; return;
+    }
+    q<HTMLCanvasElement>('.ix-strip').hidden = false;
+    const spots = iefSpots(rows.map((r) => r.pI), a, b, L), gaps = iefGaps(spots);
+    const IHEAD = ['Protein', 'pI', 'mm from +', 'mm from −'];
+    const body = spots.map((s, i) => [`${i + 1}. ${rows[i].name}`, s.pI.toFixed(2), s.mm === null ? (s.side === 'acid' ? 'off the + end' : '—') : s.mm.toFixed(1), s.mm === null ? (s.side === 'base' ? 'off the − end' : '—') : (L - s.mm).toFixed(1)]);
+    table(q<HTMLTableElement>('.ix-itab'), IHEAD, body, [1, 2, 3]);
+    const close = gaps.filter((g) => g.mm < gap);
+    const msg = [`Strip pH ${a} to ${b}, ${L} mm: ${((b - a) / L * 10).toFixed(2)} pH units per cm.`];
+    if (close.length) msg.push(`Closer than ${gap} mm, may run as one band: ${close.map((g) => `${g.a + 1} and ${g.b + 1} (${g.mm.toFixed(2)} mm)`).join(', ')}. Try a narrower pH range or a longer strip.`);
+    else if (gaps.length) msg.push(`Closest neighbours ${Math.min(...gaps.map((g) => g.mm)).toFixed(1)} mm apart.`);
+    if (spots.some((s) => s.mm === null)) msg.push('Widen the pH range to catch every protein.');
+    q('.ix-inote').textContent = msg.join(' ');
+
+    const n = rows.length;
+    strip = {
+      w: 400, h: 140, alt: `IEF strip from pH ${a} (+ end) to pH ${b} (− end), ${L} mm, with ${spots.filter((s) => s.mm !== null).length} of ${n} proteins on it`,
+      draw: (ctx, W, H, pal) => {
+        const x0 = 26, x1 = W - 26, y0 = 48, y1 = 86, cols = colors(pal);
+        const X = (mm: number) => x0 + (mm / L) * (x1 - x0);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        ctx.fillStyle = pal.ink; ctx.font = '600 18px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+        ctx.fillText('+', x0 - 13, (y0 + y1) / 2); ctx.fillText('−', x1 + 13, (y0 + y1) / 2);
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textBaseline = 'top';
+        const step = b - a > 8 ? 2 : b - a > 3 ? 1 : 0.5;
+        for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) { const x = X(((v - a) / (b - a)) * L); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y1 + 5); ctx.stroke(); ctx.fillText(String(+v.toFixed(1)), x, y1 + 8); }
+        ctx.fillText('pH', (x0 + x1) / 2, y1 + 26);
+        const placed: number[][] = [[], []];
+        spots.forEach((s, i) => {
+          if (s.mm === null) return;
+          const x = X(s.mm), c = cols[i % cols.length];
+          ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y0 + 3); ctx.lineTo(x, y1 - 3); ctx.stroke();
+          const row = placed[0].some((p) => Math.abs(p - x) < 16) ? 1 : 0; placed[row].push(x);
+          ctx.fillStyle = c; ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'bottom';
+          ctx.fillText(String(i + 1), x, y0 - 4 - row * 18);
+        });
+        const offA = spots.map((s, i) => (s.side === 'acid' ? i + 1 : 0)).filter(Boolean), offB = spots.map((s, i) => (s.side === 'base' ? i + 1 : 0)).filter(Boolean);
+        ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.bad; ctx.textBaseline = 'top';
+        if (offA.length) { ctx.textAlign = 'left'; ctx.fillText(`off: ${offA.join(', ')}`, 4, 4); }
+        if (offB.length) { ctx.textAlign = 'right'; ctx.fillText(`off: ${offB.join(', ')}`, W - 4, 4); }
+        ctx.textAlign = 'start';
+      },
+    };
+    paint(q<HTMLCanvasElement>('.ix-strip'), strip);
+    iefSection = { title: 'Isoelectric focusing', text: msg, figure: strip, table: { head: IHEAD, rows: body, align: ['l', 'r', 'r', 'r'] } };
+  }
+
+  const repaint = () => { if (fig) paint(q<HTMLCanvasElement>('.ix-fig'), fig); if (sfig) paint(q<HTMLCanvasElement>('.ix-sfig'), sfig); if (strip && !q<HTMLCanvasElement>('.ix-strip').hidden) paint(q<HTMLCanvasElement>('.ix-strip'), strip); };
+
+  let t = 0;
+  q('.ix-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 250); });
+  q('.ix-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.ix-in').value = EXAMPLE; run(); });
+  q('.ix-open').addEventListener('click', () => q<HTMLInputElement>('.ix-file').click());
+  q('.ix-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.ix-file').files?.[0]; if (!f) return;
+    if (f.size > 5e6) { q('.ix-err').textContent = 'That file is over 5 MB.'; q('.ix-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.ix-in').value = await f.text(); run();
+    q<HTMLInputElement>('.ix-file').value = '';
+  });
+  for (const c of ['.ix-off', '.ix-lo', '.ix-hi']) q(c).addEventListener('input', run);
+  q('.ix-more').addEventListener('input', run);
+  q('.ix-def').addEventListener('click', () => { fillParams(); run(); });
+  for (const c of ['.ix-glo', '.ix-ghi', '.ix-len', '.ix-gap']) q(c).addEventListener('input', ief);
+  q('.ix-csv').addEventListener('click', () => {
+    if (!rows.length) return;
+    save(new Blob([csv([['protein', 'length', 'pI', 'anion_pH', 'charge_at_anion_pH', 'cation_pH', 'charge_at_cation_pH'], ...rows.map((r) => [r.name, r.seq.length, r.pI.toFixed(3), r.anionPH.toFixed(1), r.zAnion.toFixed(3), r.cationPH.toFixed(1), r.zCation.toFixed(3)])])], { type: 'text/csv' }), 'ion-exchange-ph.csv', 'text/csv');
+  });
+  q('.ix-ccsv').addEventListener('click', () => {
+    if (!rows.length) return;
+    const p = pka(), xs: number[] = [];
+    for (let k = 0; k <= 280; k++) xs.push(k / 20);
+    save(new Blob([csv([['pH', ...rows.map((r) => r.name)], ...xs.map((x) => [x.toFixed(2), ...rows.map((r) => charge(r.seq, x, p).toFixed(4))])])], { type: 'text/csv' }), 'charge-curves.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Ion exchange and IEF pH picker', subtitle: q('.ix-big').textContent ?? '', file: fileSafe(rows.length === 1 ? rows[0].name : 'ion-exchange-ph'), sections: [...sections, ...(iefSection ? [iefSection] : []), ...(sections.length ? [{ title: 'Values used', text: [`pKa: ${PKA_LABEL.map(([k, l]) => `${l} ${pka()[k]}`).join(', ')}.`], note: 'Approximate pKa values; real proteins differ. Check with your own method.' }] : [])] }));
+  document.addEventListener('fibub:theme', repaint);
+</script>

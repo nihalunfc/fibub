@@ -1,0 +1,170 @@
+---
+// Arterial blood gas interpretation, step by step: primary disorder, compensation, anion gap, delta ratio, osmolar gap.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax abi">
+  <p class="abi-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Blood gas and electrolytes</h2>
+    <div class="ax-grid">
+      <label>pH <input class="abi-ph" inputmode="decimal" value="7.32" /></label>
+      <label>pCO2 <input class="abi-pco2" inputmode="decimal" value="28" /></label>
+      <label>pCO2 unit <select class="abi-pu"><option value="mmHg">mmHg</option><option value="kPa">kPa</option></select></label>
+      <label>HCO3 (mmol/L) <input class="abi-hco3" inputmode="decimal" value="14" /></label>
+      <label>Sodium (mmol/L) <input class="abi-na" inputmode="decimal" value="140" /></label>
+      <label>Chloride (mmol/L) <input class="abi-cl" inputmode="decimal" value="100" /></label>
+      <label>Albumin <input class="abi-alb" inputmode="decimal" value="3" /></label>
+      <label>Albumin unit <select class="abi-au"><option value="gdl">g/dL</option><option value="gl">g/L</option></select></label>
+    </div>
+    <h3 class="abi-h3">Optional</h3>
+    <div class="ax-grid">
+      <label>Lactate (mmol/L) <input class="abi-lac" inputmode="decimal" value="13" /></label>
+      <label>Glucose <input class="abi-glu" inputmode="decimal" value="6" /></label>
+      <label>Glucose unit <select class="abi-gu"><option value="mmol">mmol/L</option><option value="mgdl">mg/dL</option></select></label>
+      <label>Urea <input class="abi-urea" inputmode="decimal" value="7" /></label>
+      <label>Urea unit <select class="abi-uu"><option value="mmol">Urea, mmol/L</option><option value="bun">BUN, mg/dL</option></select></label>
+      <label>Measured osmolality (mOsm/kg) <input class="abi-osm" inputmode="decimal" value="297" /></label>
+    </div>
+    <details class="abi-norm">
+      <summary>Assumed normal values (edit to match your lab)</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Normal pCO2 (mmHg) <input class="abi-npco2" inputmode="decimal" value="40" /></label>
+        <label>Normal HCO3 <input class="abi-nhco3" inputmode="decimal" value="24" /></label>
+        <label>Normal anion gap <input class="abi-nag" inputmode="decimal" value="12" /></label>
+        <label>Gap raised above <input class="abi-nagh" inputmode="decimal" value="16" /></label>
+        <label>Normal albumin (g/dL) <input class="abi-nalb" inputmode="decimal" value="4" /></label>
+        <label>Osmolar gap raised above <input class="abi-nosm" inputmode="decimal" value="10" /></label>
+        <label>Lactate raised above <input class="abi-nlac" inputmode="decimal" value="2" /></label>
+      </div>
+      <p class="ax-help">Rounded teaching values, not from any one lab. pCO2 counts as normal within ± 5 mmHg and HCO3 within ± 2 mmol/L of these. The anion gap here leaves out potassium.</p>
+    </details>
+    <p class="ax-err abi-err" hidden></p>
+  </div>
+
+  <div class="ax-card abi-out">
+    <h2>Interpretation</h2>
+    <ul class="abi-dis"></ul>
+    <dl class="ax-facts abi-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card abi-out">
+    <h2>Step by step</h2>
+    <ol class="abi-steps"></ol>
+  </div>
+
+  <div class="ax-card abi-out">
+    <h2>Acid-base map</h2>
+    <canvas class="ax-fig abi-fig"></canvas>
+    <p class="ax-help">Lines show where pCO2 and HCO3 sit when a single disorder is fully as expected: Winter's line for metabolic acidosis, the metabolic alkalosis line, and the acute and chronic respiratory lines. A point far from every line suggests a mixed disorder.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .abi [hidden] { display: none !important; }
+  .abi-med { font-size: 14px; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 0 0 12px; background: var(--warn-soft); }
+  .abi-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .abi-norm { margin-top: 14px; font-size: 15px; }
+  .abi-norm summary { cursor: pointer; font-weight: 600; }
+  .abi-dis { margin: 0; padding-left: 20px; font-size: 18px; font-weight: 700; }
+  .abi-dis li + li { margin-top: 4px; }
+  .abi-steps { margin: 0; padding-left: 22px; }
+  .abi-steps li { margin: 0 0 10px; padding-left: 4px; font-size: 15px; }
+  .abi-steps li b { display: block; }
+  .abi-steps li.bad b { color: var(--bad); }
+  .abi-steps li.warn b { color: var(--warn); }
+  .abi-steps li.good b { color: var(--good); }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { interpretAbg, type AbgResult, type AbgNormals } from '../../lib/sci/acidbase';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.abi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const err = q('.abi-err');
+  const MMHG_PER_KPA = 7.50062, GLU_MGDL = 18.016, BUN_MGDL = 2.8;
+  let fig: Figure | null = null, report: Section[] = [], res: AbgResult | null = null;
+
+  function need(c: string, name: string) { const v = num(raw(c)); if (!Number.isFinite(v)) throw new Error(`Enter ${name} as a number.`); return v; }
+  function opt(c: string, name: string) { if (raw(c) === '') return undefined; return need(c, name); }
+
+  function calc() {
+    err.hidden = true;
+    let N: AbgNormals, pco2 = 0, hco3 = 0;
+    try {
+      const ph = need('.abi-ph', 'pH');
+      pco2 = need('.abi-pco2', 'pCO2') * (sel('.abi-pu') === 'kPa' ? MMHG_PER_KPA : 1);
+      hco3 = need('.abi-hco3', 'HCO3');
+      const na = need('.abi-na', 'sodium'), cl = need('.abi-cl', 'chloride');
+      const alb = need('.abi-alb', 'albumin') / (sel('.abi-au') === 'gl' ? 10 : 1);
+      const lactate = opt('.abi-lac', 'lactate');
+      let glucose = opt('.abi-glu', 'glucose'), urea = opt('.abi-urea', 'urea');
+      const osm = opt('.abi-osm', 'the measured osmolality');
+      if (glucose !== undefined && sel('.abi-gu') === 'mgdl') glucose /= GLU_MGDL;
+      if (urea !== undefined && sel('.abi-uu') === 'bun') urea /= BUN_MGDL;
+      N = { pco2: need('.abi-npco2', 'the normal pCO2'), hco3: need('.abi-nhco3', 'the normal HCO3'), ag: need('.abi-nag', 'the normal anion gap'), agHigh: need('.abi-nagh', 'the raised-gap limit'), alb: need('.abi-nalb', 'the normal albumin'), osmGap: need('.abi-nosm', 'the osmolar gap limit'), lactate: need('.abi-nlac', 'the lactate limit') };
+      const r1 = (v: number | undefined) => (v === undefined ? undefined : Math.round(v * 100) / 100);
+      res = interpretAbg({ ph, pco2: r1(pco2)!, hco3, na, cl, alb: r1(alb)!, lactate, glucose: r1(glucose), urea: r1(urea), osm }, N);
+    } catch (e) {
+      res = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.abi-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.abi-out').forEach((o) => (o.hidden = false));
+    const r = res;
+    q('.abi-dis').replaceChildren(...r.disorders.map((d) => { const li = document.createElement('li'); li.textContent = d; return li; }));
+    const facts: [string, string][] = [
+      ['pH status', r.status],
+      ['Anion gap', `${r.ag.toFixed(1)} mmol/L`],
+      ['Albumin-corrected gap', `${r.agCorr.toFixed(1)} mmol/L`],
+      ...(r.deltaRatio !== null ? [['Delta ratio', r.deltaRatio.toFixed(2)] as [string, string]] : []),
+      ...(r.expected ? [[`Expected ${r.expected.what}`, `${r.expected.lo.toFixed(1)} to ${r.expected.hi.toFixed(1)}${r.expected.what === 'pCO2' ? ' mmHg' : ' mmol/L'}`] as [string, string]] : []),
+      ...(r.osmGap !== null ? [['Osmolar gap', `${r.osmGap.toFixed(1)} mOsm/kg`] as [string, string]] : []),
+    ];
+    q('.abi-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    q('.abi-steps').replaceChildren(...r.steps.map((s) => { const li = document.createElement('li'); if (s.tone) li.className = s.tone; const b = document.createElement('b'); b.textContent = s.title; li.append(b, s.text); return li; }));
+
+    // The map: HCO3 across, pCO2 up, with the single-disorder lines.
+    const nP = N!.pco2, nB = N!.hco3, line = (a: number, b: number, f: (t: number) => [number, number]) => { const xs: number[] = [], ys: number[] = []; for (let i = 0; i <= 40; i++) { const [x, y] = f(a + ((b - a) * i) / 40); xs.push(x); ys.push(y); } return { x: xs, y: ys }; };
+    const L = (name: string, d: { x: number[]; y: number[] }, dash?: number[]) => ({ name, ...d, mode: 'line' as const, dash });
+    fig = chartFigure({ h: 360, xLabel: 'HCO3 (mmol/L)', yLabel: 'pCO2 (mmHg)', xMin: 0, xMax: Math.max(50, hco3 + 5), yMin: 0, yMax: Math.max(100, pco2 + 10), legend: 'below', series: [
+      L("Metabolic acidosis (Winter's)", line(4, nB, (b) => [b, 1.5 * b + 8])),
+      L('Metabolic alkalosis', line(nB, 45, (b) => [b, nP + 0.7 * (b - nB)])),
+      L('Respiratory acidosis, acute', line(nP, 100, (p) => [nB + (0.1 * (p - nP)), p])),
+      L('Respiratory acidosis, chronic', line(nP, 100, (p) => [nB + (0.35 * (p - nP)), p]), [5, 4]),
+      L('Respiratory alkalosis, acute', line(10, nP, (p) => [nB - 0.2 * (nP - p), p])),
+      L('Respiratory alkalosis, chronic', line(10, nP, (p) => [nB - 0.5 * (nP - p), p]), [5, 4]),
+      { name: 'This gas', x: [hco3], y: [pco2], marker: 'diamond', size: 10 },
+    ] }, `Acid-base map: HCO3 ${sig(hco3, 3)}, pCO2 ${sig(pco2, 3)} mmHg`);
+    paint(q<HTMLCanvasElement>('.abi-fig'), fig);
+
+    report = [
+      { title: 'Interpretation', text: r.disorders, facts },
+      { title: 'Step by step', text: r.steps.map((s, i) => `${i + 1}. ${s.title}: ${s.text}`) },
+      { title: 'Acid-base map', figure: fig, note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  // Switching a unit converts the number in its box.
+  const conv: [string, string, Record<string, number>][] = [['.abi-pu', '.abi-pco2', { mmHg: 1, kPa: MMHG_PER_KPA }], ['.abi-au', '.abi-alb', { gdl: 10, gl: 1 }], ['.abi-gu', '.abi-glu', { mmol: GLU_MGDL, mgdl: 1 }], ['.abi-uu', '.abi-urea', { mmol: BUN_MGDL, bun: 1 }]];
+  for (const [s, box, f] of conv) {
+    let last = sel(s);
+    q(s).addEventListener('change', () => {
+      const v = num(raw(box)), now = sel(s);
+      if (Number.isFinite(v)) q<HTMLInputElement>(box).value = sig((v * f[last]) / f[now], 3);
+      last = now; calc();
+    });
+  }
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.abi-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Acid-base interpretation', subtitle: res ? res.disorders.join('; ') : '', file: 'acid-base', sections: report }));
+</script>

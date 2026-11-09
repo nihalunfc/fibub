@@ -1,0 +1,296 @@
+---
+// Landmark digitiser and generalised Procrustes analysis with principal components of shape. Photos and landmark
+// files stay in the browser. The example specimens are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pcm">
+  <div class="ax-card">
+    <h2>Landmarks</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pm-ex">Use the example</button>
+      <button type="button" class="btn secondary small pm-open">Open a landmark file</button>
+      <input type="file" class="pm-file" accept=".tps,.txt,.csv,.tsv,text/plain,text/csv" hidden />
+    </div>
+    <p class="ax-help">TPS, CSV, TSV or TXT, up to 5 MB, 300 specimens and 100 landmarks each.</p>
+    <label style="margin-top:8px">TPS text (LM=, then x y lines, then ID=), or a table with one specimen per row: name, x1, y1, x2, y2, ...
+      <textarea class="pm-in" rows="9" spellcheck="false" wrap="off"></textarea></label>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pm-tan" checked /> Project onto the tangent space before the PCA (usual in geometric morphometrics)</label>
+    <label class="ax-check"><input type="checkbox" class="pm-grp" checked /> Colour groups by the start of each name, up to the first - or _ (A-01 and A-02 are group A)</label>
+    <p class="ax-err pm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Digitise on photos (optional)</h2>
+    <div class="ax-grid">
+      <label>Landmarks per specimen <input class="pm-n" type="number" min="3" max="100" step="1" value="7" inputmode="numeric" /></label>
+      <label>Scale, units per pixel (optional) <input class="pm-scale" type="text" inputmode="decimal" placeholder="e.g. 0.05 for mm" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pm-photos">Open photos</button>
+      <input type="file" class="pm-pfile" accept="image/*" multiple hidden />
+      <button type="button" class="btn secondary small pm-undo" disabled>Undo last landmark</button>
+      <button type="button" class="btn secondary small pm-skip" hidden>Skip this photo</button>
+    </div>
+    <p class="ax-help pm-pstat" aria-live="polite">Open one photo per specimen, then tap the landmarks in the same order on every photo. When a photo has all its landmarks, they are added to the box above as TPS and the next photo opens. Photos stay on your device and are never uploaded.</p>
+    <canvas class="pm-photo" hidden></canvas>
+  </div>
+
+  <div class="ax-card pm-out" hidden>
+    <h2>Procrustes analysis</h2>
+    <p class="ax-big pm-big"></p>
+    <dl class="ax-facts pm-facts"></dl>
+    <h3>Aligned shapes</h3>
+    <label class="pm-showl">Show <select class="pm-show"><option value="al">Aligned specimens and the mean shape</option><option value="0">Shape change along PC1</option><option value="1">Shape change along PC2</option></select></label>
+    <canvas class="ax-fig pm-sfig"></canvas>
+    <p class="ax-help pm-snote"></p>
+    <h3>PCA scores</h3>
+    <div class="ax-grid">
+      <label>Across <select class="pm-px"></select></label>
+      <label>Up <select class="pm-py"></select></label>
+    </div>
+    <canvas class="ax-fig pm-pfig"></canvas>
+    <div class="ax-scroll"><table class="pm-etab"></table></div>
+    <h3>Specimens</h3>
+    <div class="ax-scroll pm-tw"><table class="pm-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pm-csv">Aligned coordinates (CSV)</button>
+      <button type="button" class="btn secondary small pm-scsv">PC scores (CSV)</button>
+      <button type="button" class="btn secondary small pm-dcsv">Distance matrix (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pcm h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pcm .pm-photo { display: block; width: 100%; height: auto; margin-top: 10px; cursor: crosshair; border: 1px solid var(--line); touch-action: manipulation; }
+  .pcm .pm-tw { max-height: 420px; overflow-y: auto; }
+  .pcm select { max-width: 100%; }
+  .pcm .pm-showl { margin-bottom: 8px; }
+</style>
+
+<script>
+  import { parseLandmarks, gpa, tangent, pca, pcShape, distanceMatrix, groupOf, EXAMPLE, type Pt, type Specimen, type GpaResult, type Pca } from '../../lib/sci/procrustes';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pcm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.pm-in');
+  const MAXN = 300, MAXP = 100;
+  const csz = (x: number) => (x >= 1e5 || x < 1e-3 ? sig(x, 5) : x.toPrecision(5));
+  const table = (t: HTMLElement, head: string[], rows: string[][], right: number[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right.includes(k)) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (right.includes(k)) td.className = 'r'; }); }
+  };
+  const err = (m: string) => { q('.pm-err').textContent = m; q('.pm-err').hidden = false; q('.pm-out').hidden = true; };
+
+  let specs: Specimen[] = [], g: GpaResult | null = null, pc: Pca | null = null, groups: string[] = [], sfig: Figure | null = null, pfig: Figure | null = null, sections: Section[] = [];
+
+  function run() {
+    q('.pm-err').hidden = true;
+    if (!box.value.trim()) { q('.pm-out').hidden = true; return; }
+    let r;
+    try { r = parseLandmarks(box.value); } catch (e) { err((e as Error).message); return; }
+    specs = r.specimens;
+    if (specs.length < 3) return err(`Found ${specs.length} specimen${specs.length === 1 ? '' : 's'}. A Procrustes analysis needs at least 3.`);
+    if (specs.length > MAXN) return err(`Found ${specs.length} specimens; this tool takes up to ${MAXN}.`);
+    const p = specs[0].pts.length;
+    if (p < 3) return err('Each specimen needs at least 3 landmarks.');
+    if (p > MAXP) return err(`Each specimen has ${p} landmarks; this tool takes up to ${MAXP}.`);
+    const odd = specs.find((s) => s.pts.length !== p);
+    if (odd) return err(`${odd.name} has ${odd.pts.length} landmarks but ${specs[0].name} has ${p}. Every specimen needs the same landmarks, in the same order.`);
+    const flat = specs.find((s) => !(sizeOf(s.pts) > 0));
+    if (flat) return err(`${flat.name}: all its landmarks are at the same place.`);
+    g = gpa(specs.map((s) => s.pts));
+    const tan = q<HTMLInputElement>('.pm-tan').checked;
+    pc = pca(tan ? tangent(g.aligned, g.mean) : g.aligned);
+    groups = q<HTMLInputElement>('.pm-grp').checked ? specs.map((s) => groupOf(s.name)) : specs.map(() => 'All');
+    const ug = [...new Set(groups)];
+    if (ug.length > 8 || ug.length === specs.length) groups = specs.map(() => 'All');
+    q('.pm-out').hidden = false;
+    const k = pc.values.length;
+    q('.pm-big').textContent = k ? `${specs.length} specimens, ${p} landmarks: PC1 holds ${(100 * pc.share[0]).toFixed(1)} % of the shape variation` : `${specs.length} specimens, ${p} landmarks: all shapes are identical`;
+    const cs = g.sizes, meanCs = cs.reduce((s, x) => s + x, 0) / cs.length;
+    const facts: [string, string][] = [
+      ['Mean centroid size', sig(meanCs, 5)], ['Centroid size range', `${sig(Math.min(...cs), 4)} to ${sig(Math.max(...cs), 4)}`],
+      ['Procrustes variance', sig(g.variance, 4)], ['GPA iterations', `${g.iterations}${g.converged ? '' : ' (not converged)'}`],
+      ['Components with variance', String(k)], ['Read as', `${r.format}${r.notes.length ? '. ' + r.notes.join(' ') : ''}`],
+    ];
+    q('.pm-facts').replaceChildren(...facts.map(([a, b]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; d.append(dt, dd); return d; }));
+    // PC choosers.
+    for (const [c, def] of [['.pm-px', 0], ['.pm-py', 1]] as const) {
+      const s = q<HTMLSelectElement>(c), old = s.value;
+      s.replaceChildren(...pc.values.map((_, j) => new Option(`PC${j + 1} (${(100 * pc!.share[j]).toFixed(1)} %)`, String(j))));
+      s.value = old && Number(old) < k ? old : String(Math.min(def, Math.max(0, k - 1)));
+    }
+    const show = q<HTMLSelectElement>('.pm-show');
+    [...show.options].forEach((o) => { o.disabled = o.value !== 'al' && Number(o.value) >= k; });
+    if (show.selectedOptions[0]?.disabled) show.value = 'al';
+    table(q('.pm-etab'), ['Component', 'Variance', '% of total', 'Cumulative %'], pc.values.slice(0, 10).map((v, j) => [`PC${j + 1}`, sig(v, 4), (100 * pc!.share[j]).toFixed(1), (100 * pc!.share.slice(0, j + 1).reduce((s, x) => s + x, 0)).toFixed(1)]), [1, 2, 3]);
+    const multi = new Set(groups).size > 1;
+    table(q('.pm-tab'), ['Specimen', ...(multi ? ['Group'] : []), 'Centroid size', 'Distance to mean', ...(k ? ['PC1'] : []), ...(k > 1 ? ['PC2'] : [])],
+      specs.map((s, i) => [s.name, ...(multi ? [groups[i]] : []), csz(cs[i]), g!.dist[i].toFixed(4), ...pc!.scores[i].slice(0, 2).map((v) => v.toFixed(4))]), multi ? [2, 3, 4, 5] : [1, 2, 3, 4]);
+    shapes(); scores();
+  }
+  const sizeOf = (p: Pt[]) => { const cx = p.reduce((s, x) => s + x[0], 0) / p.length, cy = p.reduce((s, x) => s + x[1], 0) / p.length; return Math.sqrt(p.reduce((s, [x, y]) => s + (x - cx) ** 2 + (y - cy) ** 2, 0)); };
+
+  const COLS = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#F0E442'] : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']);
+
+  function shapes() {
+    if (!g || !pc) return;
+    const mode = q<HTMLSelectElement>('.pm-show').value, ug = [...new Set(groups)], mean = g.mean;
+    let layers: { pts: Pt[]; kind: 'spec' | 'mean' | 'minus' | 'plus'; gi: number }[] = [];
+    let note = '';
+    if (mode === 'al') {
+      layers = g.aligned.map((a, i) => ({ pts: a, kind: 'spec' as const, gi: ug.indexOf(groups[i]) }));
+      layers.push({ pts: mean, kind: 'mean', gi: 0 });
+      note = `Every specimen after alignment (small dots${ug.length > 1 ? ', coloured by group' : ''}) and the mean shape (numbered landmarks). Unit centroid size, so there are no units.`;
+    } else {
+      const j = Number(mode), sd = Math.sqrt(pc.values[j]), f = 2 * sd;
+      const sMin = Math.min(...pc.scores.map((r) => r[j])), sMax = Math.max(...pc.scores.map((r) => r[j]));
+      layers = [{ pts: pcShape(pc, j, -f), kind: 'minus', gi: 0 }, { pts: pcShape(pc, j, f), kind: 'plus', gi: 0 }, { pts: pcShape(pc, j, 0), kind: 'mean', gi: 0 }];
+      note = `Mean shape (numbered) and the shapes 2 standard deviations (score ${f.toFixed(4)}) along PC${j + 1} in each direction: low end in the second colour, high end in the first. The specimens' scores run from ${sMin.toFixed(4)} to ${sMax.toFixed(4)}.`;
+    }
+    q('.pm-snote').textContent = note;
+    const all = layers.flatMap((l) => l.pts), xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    sfig = {
+      w: 440, h: 380, alt: mode === 'al' ? 'Aligned landmarks of every specimen with the mean shape' : `Shape change along PC${Number(mode) + 1}`,
+      draw: (ctx, W, H, pal) => {
+        const pad = 26, s = Math.min((W - 2 * pad) / (x1 - x0 || 1), (H - 2 * pad) / (y1 - y0 || 1));
+        const ox = (W - s * (x1 - x0)) / 2, oy = (H - s * (y1 - y0)) / 2;
+        const X = (x: number) => ox + (x - x0) * s, Y = (y: number) => H - oy - (y - y0) * s;
+        const cols = COLS(pal);
+        ctx.font = '13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        if (mode !== 'al') {
+          const [mi, pl, me] = layers;
+          ctx.lineWidth = 1.5;
+          me.pts.forEach((m, k) => {
+            ctx.strokeStyle = cols[1]; ctx.beginPath(); ctx.moveTo(X(m[0]), Y(m[1])); ctx.lineTo(X(mi.pts[k][0]), Y(mi.pts[k][1])); ctx.stroke();
+            ctx.strokeStyle = cols[0]; ctx.beginPath(); ctx.moveTo(X(m[0]), Y(m[1])); ctx.lineTo(X(pl.pts[k][0]), Y(pl.pts[k][1])); ctx.stroke();
+          });
+          for (const [l, c] of [[mi, cols[1]], [pl, cols[0]]] as const) { ctx.fillStyle = c; for (const p of l.pts) { ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 4, 0, 7); ctx.fill(); } }
+        }
+        for (const l of layers) {
+          if (l.kind === 'spec') { ctx.fillStyle = cols[l.gi % cols.length]; ctx.globalAlpha = 0.7; for (const p of l.pts) { ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 2.5, 0, 7); ctx.fill(); } ctx.globalAlpha = 1; }
+          if (l.kind === 'mean') {
+            l.pts.forEach((p, k) => {
+              ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, 7); ctx.fill(); ctx.stroke();
+              ctx.fillStyle = pal.ink; ctx.fillText(String(k + 1), X(p[0]) + 7, Y(p[1]) - 4);
+            });
+          }
+        }
+        if (mode === 'al' && ug.length > 1) { let lx = 10; ug.forEach((n, i) => { ctx.fillStyle = cols[i % cols.length]; ctx.beginPath(); ctx.arc(lx + 4, 14, 4, 0, 7); ctx.fill(); ctx.fillStyle = pal.ink; ctx.textBaseline = 'middle'; ctx.fillText(n, lx + 12, 14); lx += 24 + ctx.measureText(n).width; }); }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.pm-sfig'), sfig);
+  }
+
+  function scores() {
+    if (!g || !pc || !pc.values.length) { q('.pm-pfig').hidden = true; pfig = null; return; }
+    q('.pm-pfig').hidden = false;
+    const a = Number(q<HTMLSelectElement>('.pm-px').value), b = Number(q<HTMLSelectElement>('.pm-py').value), ug = [...new Set(groups)];
+    const lab = specs.length <= 30;
+    const series = ug.map((gname) => { const idx = specs.map((_, i) => i).filter((i) => groups[i] === gname); return { name: gname, x: idx.map((i) => pc!.scores[i][a]), y: idx.map((i) => (pc!.values.length > 1 ? pc!.scores[i][b] : 0)), mode: 'points' as const, labels: lab ? idx.map((i) => specs[i].name) : undefined }; });
+    pfig = chartFigure({ w: 560, h: 420, xLabel: `PC${a + 1} (${(100 * pc.share[a]).toFixed(1)} %)`, yLabel: pc.values.length > 1 ? `PC${b + 1} (${(100 * pc.share[b]).toFixed(1)} %)` : '', series, legend: ug.length > 1 ? 'below' : 'none' }, `Scores of each specimen on PC${a + 1} and PC${b + 1}`);
+    paint(q<HTMLCanvasElement>('.pm-pfig'), pfig);
+  }
+
+  function build() {
+    if (!g || !pc) return;
+    const multi = new Set(groups).size > 1;
+    sections = [
+      { title: 'Procrustes analysis', text: [q('.pm-big').textContent ?? ''], facts: [...q('.pm-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+      { title: 'Aligned shapes', figure: sfig ?? undefined, note: q('.pm-snote').textContent ?? '' },
+      ...(pfig ? [{ title: 'PCA scores', figure: pfig, table: { head: ['Component', 'Variance', '%'], rows: pc.values.slice(0, 10).map((v, j) => [`PC${j + 1}`, sig(v, 4), (100 * pc!.share[j]).toFixed(1)]), align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      { title: 'Specimens', table: { head: ['Specimen', ...(multi ? ['Group'] : []), 'Centroid size', 'Distance', 'PC1', 'PC2'], rows: specs.slice(0, 300).map((s, i) => [s.name, ...(multi ? [groups[i]] : []), csz(g!.sizes[i]), g!.dist[i].toFixed(4), ...[0, 1].map((j) => (pc!.scores[i][j] ?? NaN).toFixed(4))]), align: ['l', ...(multi ? ['l' as const] : []), 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  q('.pm-tan').addEventListener('change', run);
+  q('.pm-grp').addEventListener('change', run);
+  q('.pm-show').addEventListener('change', shapes);
+  q('.pm-px').addEventListener('change', scores);
+  q('.pm-py').addEventListener('change', scores);
+  q('.pm-ex').addEventListener('click', () => { box.value = EXAMPLE; run(); });
+  q('.pm-open').addEventListener('click', () => q<HTMLInputElement>('.pm-file').click());
+  q('.pm-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pm-file').files?.[0]; q<HTMLInputElement>('.pm-file').value = ''; if (!f) return;
+    if (f.size > 5e6) return err(`${f.name} is over 5 MB.`);
+    box.value = await f.text(); run();
+  });
+  const dl = (rows: (string | number)[][], name: string) => save(new Blob([csv(rows)], { type: 'text/csv' }), name, 'text/csv');
+  q('.pm-csv').addEventListener('click', () => {
+    if (!g) return; const p = g.mean.length;
+    dl([['specimen', 'group', 'centroid_size', 'procrustes_distance', ...Array.from({ length: p }, (_, k) => [`x${k + 1}`, `y${k + 1}`]).flat()],
+      ...specs.map((s, i) => [s.name, groups[i], g!.sizes[i].toPrecision(10), g!.dist[i].toPrecision(10), ...g!.aligned[i].flat().map((v) => v.toPrecision(10))]),
+      ['mean shape', '', '', '', ...g.mean.flat().map((v) => v.toPrecision(10))]], 'procrustes-aligned.csv');
+  });
+  q('.pm-scsv').addEventListener('click', () => {
+    if (!pc) return;
+    dl([['specimen', 'group', ...pc.values.map((_, j) => `PC${j + 1}`)], ...specs.map((s, i) => [s.name, groups[i], ...pc!.scores[i].map((v) => v.toPrecision(10))]), ['variance', '', ...pc.values.map((v) => v.toPrecision(10))], ['percent', '', ...pc.share.map((v) => (100 * v).toFixed(4))]], 'procrustes-pc-scores.csv');
+  });
+  q('.pm-dcsv').addEventListener('click', () => {
+    if (!g) return; const D = distanceMatrix(specs.map((s) => s.pts));
+    dl([['', ...specs.map((s) => s.name)], ...D.map((r, i) => [specs[i].name, ...r.map((v) => v.toFixed(8))])], 'procrustes-distances.csv');
+  });
+
+  // Digitiser: one photo per specimen, landmarks tapped in order, y measured upwards from the bottom of the photo.
+  let photos: File[] = [], pi = 0, img: HTMLImageElement | null = null, taps: Pt[] = [];
+  const need = () => Math.min(MAXP, Math.max(3, Math.round(Number(q<HTMLInputElement>('.pm-n').value) || 3)));
+  function status() {
+    const st = q('.pm-pstat');
+    q<HTMLButtonElement>('.pm-undo').disabled = !taps.length;
+    q('.pm-skip').hidden = !img;
+    if (!img) return;
+    st.textContent = `Photo ${pi + 1} of ${photos.length} (${photos[pi].name}): tap landmark ${taps.length + 1} of ${need()}.`;
+  }
+  function drawPhoto() {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.pm-photo'), w = Math.min(img.naturalWidth, 1600), s = w / img.naturalWidth, h = img.naturalHeight * s;
+    c.width = w; c.height = h; const ctx = c.getContext('2d')!; ctx.drawImage(img, 0, 0, w, h);
+    const r = Math.max(4, w / 160);
+    ctx.font = `bold ${Math.round(r * 3)}px Arial, Helvetica, sans-serif`; ctx.textBaseline = 'bottom';
+    taps.forEach(([x, y], k) => {
+      const X = x * s, Y = (img!.naturalHeight - y) * s;
+      ctx.lineWidth = r / 2; ctx.strokeStyle = '#ffffff'; ctx.fillStyle = '#d55e00'; ctx.beginPath(); ctx.arc(X, Y, r, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeText(String(k + 1), X + r * 1.3, Y - r); ctx.fillText(String(k + 1), X + r * 1.3, Y - r);
+    });
+  }
+  function openPhoto() {
+    taps = [];
+    if (pi >= photos.length) { img = null; q('.pm-photo').hidden = true; q('.pm-pstat').textContent = `Done: ${photos.length} photo${photos.length === 1 ? '' : 's'} digitised. Open more photos to add specimens.`; status(); return; }
+    const url = URL.createObjectURL(photos[pi]), im = new Image();
+    im.onload = () => { img = im; q('.pm-photo').hidden = false; drawPhoto(); status(); };
+    im.onerror = () => { q('.pm-pstat').textContent = `${photos[pi].name} could not be opened as an image; skipped.`; URL.revokeObjectURL(url); pi++; openPhoto(); };
+    im.src = url;
+  }
+  q('.pm-photos').addEventListener('click', () => q<HTMLInputElement>('.pm-pfile').click());
+  q('.pm-pfile').addEventListener('change', () => { const fs = [...(q<HTMLInputElement>('.pm-pfile').files ?? [])]; q<HTMLInputElement>('.pm-pfile').value = ''; if (!fs.length) return; photos = fs; pi = 0; openPhoto(); });
+  q('.pm-photo').addEventListener('click', (ev) => {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.pm-photo'), r = c.getBoundingClientRect();
+    const x = ((ev.clientX - r.left) / r.width) * img.naturalWidth, y = img.naturalHeight - ((ev.clientY - r.top) / r.height) * img.naturalHeight;
+    taps.push([+x.toFixed(1), +y.toFixed(1)]); drawPhoto();
+    if (taps.length >= need()) {
+      const sc = num(q<HTMLInputElement>('.pm-scale').value), name = photos[pi].name.replace(/\.[a-z0-9]+$/i, '');
+      const block = [`LM=${taps.length}`, ...taps.map(([a, b]) => `${a} ${b}`), `IMAGE=${photos[pi].name}`, `ID=${name}`, ...(sc > 0 ? [`SCALE=${sc}`] : [])].join('\n');
+      const before = box.value.trim();
+      box.value = (before && /^LM\s*=/im.test(before) ? before + '\n' : before ? '' : '') + block + '\n';
+      if (before && !/^LM\s*=/im.test(before)) q('.pm-pstat').textContent = 'The box held a table, so it was replaced with TPS from your photos.';
+      pi++; openPhoto(); run();
+    } else status();
+  });
+  q('.pm-undo').addEventListener('click', () => { taps.pop(); drawPhoto(); status(); });
+  q('.pm-skip').addEventListener('click', () => { pi++; openPhoto(); });
+
+  box.value = EXAMPLE; run();
+  wireDownloads(q('.dl'), () => { build(); return { title: 'Procrustes analysis', subtitle: q('.pm-big').textContent ?? '', file: 'procrustes-analysis', sections }; });
+  document.addEventListener('fibub:theme', () => { if (sfig) paint(q<HTMLCanvasElement>('.pm-sfig'), sfig); if (pfig) paint(q<HTMLCanvasElement>('.pm-pfig'), pfig); });
+</script>

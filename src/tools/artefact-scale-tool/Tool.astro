@@ -1,0 +1,279 @@
+---
+// Artefact measurement on a photo with a scale bar: set the scale, then measure lengths, angles and areas. The photo
+// is opened in the browser and never uploaded. The example "photo" is drawn by the page.
+import '../../styles/astro.css';
+---
+<div class="ax asc">
+  <div class="ax-card">
+    <h2>1. Open a photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small as-open">Open a photo</button>
+      <input type="file" class="as-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small as-ex">Use the example photo</button>
+    </div>
+    <p class="ax-help">JPG, PNG, WebP or GIF up to 60 MB. The photo stays on your device: it is never uploaded or kept. Very large photos are scaled to 4000 px on the long side (the scale bar is scaled with them, so measurements are unchanged).</p>
+    <p class="ax-err as-err" hidden></p>
+  </div>
+
+  <div class="ax-card as-work" hidden>
+    <h2>2. Scale and measure</h2>
+    <div class="ax-seg as-modes" role="group" aria-label="What a tap does">
+      <button type="button" data-m="scale" aria-pressed="true">Scale bar</button>
+      <button type="button" data-m="length" aria-pressed="false">Length</button>
+      <button type="button" data-m="angle" aria-pressed="false">Angle</button>
+      <button type="button" data-m="area" aria-pressed="false">Area</button>
+      <button type="button" data-m="check" aria-pressed="false">Check scale</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Scale bar length <input class="as-len" type="number" min="0" step="any" value="50" inputmode="decimal" /></label>
+      <label>Unit <select class="as-unit"><option value="1">mm</option><option value="10">cm</option><option value="25.4">inch</option></select></label>
+      <label>Second bar (check) length <input class="as-len2" type="number" min="0" step="any" value="" placeholder="optional" inputmode="decimal" /></label>
+      <label>Click accuracy (px) <input class="as-r" type="number" min="0" step="0.5" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="as-hint" aria-live="polite"></p>
+    <div class="as-scroll"><canvas class="as-cv photo"></canvas></div>
+    <div class="ax-row" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Zoom</span>
+      <div class="ax-seg as-zoom"><button type="button" data-z="1" aria-pressed="true">Fit</button><button type="button" data-z="2" aria-pressed="false">2×</button><button type="button" data-z="4" aria-pressed="false">4×</button></div>
+      <button type="button" class="btn secondary small as-finish" hidden>Finish shape</button>
+      <button type="button" class="btn secondary small as-undo">Undo</button>
+    </div>
+    <dl class="ax-facts as-facts" style="margin-top:12px"></dl>
+    <p class="ax-help as-persp"></p>
+  </div>
+
+  <div class="ax-card as-res" hidden>
+    <h2>3. Measurements</h2>
+    <div class="ax-scroll"><table class="as-tab"></table></div>
+    <p class="ax-help as-note">± is the uncertainty from placing the clicks (on the object and on the scale bar). It does not include tilt, lens distortion or where you decide the edge is.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small as-png">Annotated photo (PNG)</button>
+      <button type="button" class="btn secondary small as-csv">Measurements (CSV)</button>
+      <button type="button" class="btn secondary small as-clear">Clear measurements</button>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .asc .as-hint { margin: 10px 0; font-size: 15px; }
+  .asc .as-scroll { overflow: auto; max-height: 75vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; touch-action: pan-x pan-y; }
+  .asc .as-cv { display: block; width: 100%; cursor: crosshair; }
+  .asc .as-tab button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+  .asc .as-persp.warn { color: var(--warn); font-weight: 600; }
+</style>
+
+<script>
+  import { pxPerMm, lengthMm, angleDeg, polygonAreaMm2, perimeterPx, lengthUncertaintyMm, areaScaleRelU, scaleMismatchPct, barAngle, measureNotes, selfIntersects, dist, EXAMPLE, type Pt, type Scale } from '../../lib/sci/artscale';
+  import { sig, csv, num } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.asc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.as-cv'), ctx = cv.getContext('2d')!;
+  type Mode = 'scale' | 'check' | 'length' | 'angle' | 'area';
+  type Meas = { kind: 'length' | 'angle' | 'area'; pts: Pt[]; label: string };
+  let photo: HTMLCanvasElement | null = null, name = 'photo', mode: Mode = 'scale', zoom = 1;
+  let bar: Pt[] = [], bar2: Pt[] = [], pending: Pt[] = [], meas: Meas[] = [];
+  const history: (() => void)[] = [];
+  const count = { length: 0, angle: 0, area: 0 };
+
+  const HINTS: Record<Mode, string> = {
+    scale: 'Tap one end of the scale bar, then the other end, and type its length above.',
+    length: 'Tap the two ends of the length you want.',
+    angle: 'Tap the end of one arm, then the corner (vertex), then the end of the other arm.',
+    area: 'Tap round the outline, corner by corner. Tap the first point again or press Finish shape to close it.',
+    check: 'Optional: tap the two ends of a second scale bar, ideally at right angles to the first, and type its length. If the two disagree, the photo was taken at a slant.',
+  };
+  const unit = () => Number(q<HTMLSelectElement>('.as-unit').value);
+  const scaleOf = (pts: Pt[], len: number): Scale | null => (pts.length === 2 && len > 0 && dist(pts[0], pts[1]) > 0 ? { a: pts[0], b: pts[1], mm: len * unit() } : null);
+  const scale = () => scaleOf(bar, num(q<HTMLInputElement>('.as-len').value));
+  const scale2 = () => scaleOf(bar2, num(q<HTMLInputElement>('.as-len2').value));
+  const clickR = () => Math.max(0, num(q<HTMLInputElement>('.as-r').value) || 0);
+
+  function setMode(m: Mode) {
+    mode = m; pending = [];
+    for (const b of q('.as-modes').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.m === m));
+    q('.as-finish').hidden = m !== 'area';
+    hint(); draw();
+  }
+  function hint(extra = '') { q('.as-hint').textContent = extra || HINTS[mode]; }
+
+  function loadCanvas(c: HTMLCanvasElement, n: string) {
+    photo = c; name = n; cv.width = c.width; cv.height = c.height;
+    bar = []; bar2 = []; pending = []; meas = []; history.length = 0; count.length = count.angle = count.area = 0;
+    q('.as-err').hidden = true; q('.as-work').hidden = false;
+    setMode('scale'); setZoom(1); update();
+  }
+  function loadFile(f: File) {
+    const err = (m: string) => { q('.as-err').textContent = m; q('.as-err').hidden = false; };
+    if (!f.type.startsWith('image/')) return err('That file is not a photo. Use JPG, PNG, WebP or GIF.');
+    if (f.size > 60e6) return err('That photo is over 60 MB. Save a smaller copy first.');
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 4000 / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      c.getContext('2d')!.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      loadCanvas(c, f.name.replace(/\.[^.]+$/, ''));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); err('This photo could not be opened. Try saving it as JPG or PNG.'); };
+    im.src = url;
+  }
+  function examplePhoto() {
+    const E = EXAMPLE, c = document.createElement('canvas'); c.width = E.w; c.height = E.h;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ddd8cb'; x.fillRect(0, 0, E.w, E.h);
+    // The made-up point: a filled outline with a few flake scars.
+    x.beginPath(); E.outline.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath();
+    x.fillStyle = '#7d6e5c'; x.fill(); x.strokeStyle = '#3d342a'; x.lineWidth = 3; x.stroke();
+    x.strokeStyle = '#5e5244'; x.lineWidth = 2;
+    for (const [a, b, c2, d] of [[600, 140, 560, 330], [600, 140, 640, 330], [560, 330, 600, 600], [640, 330, 600, 600], [530, 420, 600, 470], [670, 420, 600, 470]]) { x.beginPath(); x.moveTo(a, b); x.lineTo(c2, d); x.stroke(); }
+    // L-shaped scale: 50 mm along the bottom, 25 mm up the side, in 10 mm and 5 mm blocks (8 px per mm).
+    for (let k = 0; k < 5; k++) { x.fillStyle = k % 2 ? '#ffffff' : '#111111'; x.fillRect(100 + k * 80, 692, 80, 16); }
+    for (let k = 0; k < 5; k++) { x.fillStyle = k % 2 ? '#ffffff' : '#111111'; x.fillRect(92, 700 - (k + 1) * 40, 16, 40); }
+    x.strokeStyle = '#111111'; x.lineWidth = 1; x.strokeRect(100, 692, 400, 16); x.strokeRect(92, 500, 16, 200);
+    x.fillStyle = '#111111'; x.font = '22px Arial, sans-serif'; x.fillText('50 mm', 250, 745); x.fillText('Example (made up)', 860, 760);
+    loadCanvas(c, 'example');
+    bar = [E.scale.a, E.scale.b]; bar2 = [E.check.a, E.check.b];
+    q<HTMLInputElement>('.as-len').value = '50'; q<HTMLInputElement>('.as-len2').value = '25'; q<HTMLSelectElement>('.as-unit').value = '1';
+    add({ kind: 'length', pts: E.length, label: '' }); add({ kind: 'angle', pts: E.angle, label: '' }); add({ kind: 'area', pts: E.outline, label: '' });
+    history.length = 0; setMode('length');
+  }
+
+  function add(m: Meas) {
+    count[m.kind]++; m.label = `${m.kind === 'length' ? 'L' : m.kind === 'angle' ? 'A' : 'P'}${count[m.kind]}`;
+    meas.push(m); history.push(() => { meas.pop(); count[m.kind]--; });
+    update();
+  }
+
+  // ---- Drawing ----
+  function overlay(c: CanvasRenderingContext2D, k: number) {
+    const lw = 2 * k, fs = Math.round(15 * k);
+    const line = (pts: Pt[], col: string, close = false, dash: number[] = []) => {
+      c.save(); c.setLineDash(dash.map((d) => d * k)); c.lineJoin = 'round';
+      c.beginPath(); pts.forEach(([a, b], i) => (i ? c.lineTo(a, b) : c.moveTo(a, b))); if (close) c.closePath();
+      c.strokeStyle = 'rgba(0,0,0,0.75)'; c.lineWidth = lw + 2 * k; c.stroke(); c.strokeStyle = col; c.lineWidth = lw; c.stroke(); c.restore();
+    };
+    const dot = ([a, b]: Pt, col: string) => { c.beginPath(); c.arc(a, b, 4 * k, 0, Math.PI * 2); c.fillStyle = col; c.fill(); c.lineWidth = 1.5 * k; c.strokeStyle = '#000'; c.stroke(); };
+    const label = ([a, b]: Pt, t: string) => { c.font = `600 ${fs}px Arial, Helvetica, sans-serif`; c.textBaseline = 'bottom'; c.lineWidth = 4 * k; c.strokeStyle = 'rgba(0,0,0,0.85)'; c.strokeText(t, a + 6 * k, b - 6 * k); c.fillStyle = '#ffffff'; c.fillText(t, a + 6 * k, b - 6 * k); };
+    const s = scale(), s2 = scale2();
+    const SC = '#ff9f1a', MC = '#2bc4ff', PC = '#ffe14d';
+    if (bar.length) { line(bar, SC); bar.forEach((p) => dot(p, SC)); if (s) label([(bar[0][0] + bar[1][0]) / 2, (bar[0][1] + bar[1][1]) / 2], `scale ${sig(s.mm / unit(), 4)} ${q<HTMLSelectElement>('.as-unit').selectedOptions[0].text}`); }
+    if (bar2.length) { line(bar2, SC, false, [6, 4]); bar2.forEach((p) => dot(p, SC)); if (s2) label(bar2[1], 'check'); }
+    for (const m of meas) {
+      if (m.kind === 'area') {
+        c.save(); c.beginPath(); m.pts.forEach(([a, b], i) => (i ? c.lineTo(a, b) : c.moveTo(a, b))); c.closePath(); c.fillStyle = 'rgba(43,196,255,0.18)'; c.fill(); c.restore();
+        line(m.pts, MC, true);
+      } else line(m.pts, MC);
+      m.pts.forEach((p) => dot(p, MC));
+      const at: Pt = m.kind === 'angle' ? m.pts[1] : m.kind === 'length' ? m.pts[1] : [m.pts.reduce((t, p) => t + p[0], 0) / m.pts.length, m.pts.reduce((t, p) => t + p[1], 0) / m.pts.length];
+      label(at, `${m.label} ${result(m).text}`);
+    }
+    if (pending.length) { const col = mode === 'scale' || mode === 'check' ? SC : PC; if (pending.length > 1) line(pending, col); pending.forEach((p) => dot(p, col)); }
+  }
+  function draw() {
+    if (!photo) return;
+    ctx.drawImage(photo, 0, 0);
+    const shown = cv.getBoundingClientRect().width;
+    overlay(ctx, shown > 0 ? cv.width / shown : Math.max(1, cv.width / 800));
+  }
+  function setZoom(z: number) {
+    zoom = z; cv.style.width = `${z * 100}%`;
+    for (const b of q('.as-zoom').querySelectorAll('button')) b.setAttribute('aria-pressed', String(Number(b.dataset.z) === z));
+    draw();
+  }
+
+  // ---- Results ----
+  function result(m: Meas): { text: string; value: number; u: number; unit: string; notes: string[] } {
+    const s = scale(), r = clickR(), diag = Math.hypot(cv.width, cv.height);
+    if (m.kind === 'angle') { const a = angleDeg(m.pts[0], m.pts[1], m.pts[2]); const arm = Math.min(dist(m.pts[0], m.pts[1]), dist(m.pts[2], m.pts[1])); const u = arm > 0 ? ((Math.SQRT2 * r) / arm) * (180 / Math.PI) : NaN; return { text: `${a.toFixed(1)}°`, value: a, u, unit: 'degrees', notes: [] }; }
+    if (!s) return { text: 'set the scale', value: NaN, u: NaN, unit: '', notes: [] };
+    if (m.kind === 'length') {
+      const L = lengthMm(m.pts[0], m.pts[1], s);
+      return { text: `${L.toFixed(1)} mm`, value: L, u: lengthUncertaintyMm(m.pts[0], m.pts[1], s, r), unit: 'mm', notes: measureNotes(m.pts, s, diag) };
+    }
+    const A = polygonAreaMm2(m.pts, s), notes = measureNotes(m.pts, s, diag);
+    if (selfIntersects(m.pts)) notes.unshift('the outline crosses itself, so the area is wrong: redo it in order round the edge');
+    return { text: `${A.toFixed(0)} mm²`, value: A, u: A * areaScaleRelU(s, r), unit: 'mm²', notes: [`perimeter ${(perimeterPx(m.pts) / pxPerMm(s)).toFixed(1)} mm`, ...notes] };
+  }
+
+  function update() {
+    draw();
+    const s = scale(), s2 = scale2(), facts: [string, string][] = [];
+    if (s) { const k = pxPerMm(s); facts.push(['Scale', `${sig(k, 4)} px per mm`], ['One pixel is', `${sig(1 / k, 3)} mm`]); }
+    else facts.push(['Scale', bar.length === 2 ? 'type the bar length' : 'not set']);
+    q('.as-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+    const p = q('.as-persp'); p.classList.remove('warn');
+    if (s && s2) {
+      const d = scaleMismatchPct(s, s2), ang = barAngle(s, s2);
+      p.textContent = d > 2
+        ? `The two scale bars disagree by ${d.toFixed(1)} %: the photo was probably taken at a slant (perspective), so lengths in some directions are off by about that much. Retake it square-on if you can.`
+        : `The two scale bars agree to within ${d.toFixed(1)} % (${ang.toFixed(0)}° apart): no sign of perspective.${ang < 30 ? ' Put the second bar across the first for a stronger check.' : ''}`;
+      if (d > 2) p.classList.add('warn');
+    } else p.textContent = 'Keep the scale bar on the same level as the object and the camera square on to it. Mark a second bar across the first (Check scale) to test for a slant.';
+    const res = q('.as-res'); res.hidden = !meas.length;
+    const t = q('.as-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['#', 'Result', '±', 'Notes', '']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    meas.forEach((m, i) => {
+      const r = result(m), tr = t.insertRow();
+      tr.insertCell().textContent = m.label; tr.insertCell().textContent = r.text;
+      tr.insertCell().textContent = Number.isFinite(r.u) ? (m.kind === 'area' ? r.u.toFixed(0) : r.u.toFixed(1)) : '';
+      tr.insertCell().textContent = r.notes.join('; ');
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Delete'; b.dataset.i = String(i); tr.insertCell().append(b);
+    });
+  }
+
+  // ---- Taps ----
+  cv.addEventListener('click', (e) => {
+    if (!photo) return;
+    const r = cv.getBoundingClientRect(), k = cv.width / r.width;
+    const p: Pt = [Math.round((e.clientX - r.left) * k * 10) / 10, Math.round((e.clientY - r.top) * k * 10) / 10];
+    if (mode === 'scale' || mode === 'check') {
+      const old = mode === 'scale' ? [...bar] : [...bar2];
+      if (!pending.length) pending = [p]; else { const done = [pending[0], p]; pending = []; if (mode === 'scale') bar = done; else bar2 = done; const m0 = mode; history.push(() => { if (m0 === 'scale') bar = old; else bar2 = old; }); if (mode === 'scale' && scale()) setMode('length'); hint(mode === 'length' ? 'Scale set. Now tap the two ends of a length, or pick Angle or Area.' : ''); }
+      update(); return;
+    }
+    if (mode !== 'angle' && !scale()) { hint('Set the scale first: pick Scale bar, tap both ends of the bar and type its length.'); return; }
+    if (mode === 'area' && pending.length >= 3 && dist(p, pending[0]) < 12 * k) { finish(); return; }
+    pending.push(p);
+    if (mode === 'length' && pending.length === 2) { const pts = pending; pending = []; add({ kind: 'length', pts, label: '' }); return; }
+    if (mode === 'angle' && pending.length === 3) { const pts = pending; pending = []; add({ kind: 'angle', pts, label: '' }); return; }
+    draw();
+  });
+  function finish() {
+    if (pending.length < 3) { hint('An outline needs at least three corners.'); return; }
+    const pts = pending; pending = []; add({ kind: 'area', pts, label: '' }); hint();
+  }
+  q('.as-finish').addEventListener('click', finish);
+  q('.as-undo').addEventListener('click', () => { if (pending.length) { pending.pop(); draw(); return; } const f = history.pop(); if (f) { f(); update(); } });
+  q('.as-modes').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (b) setMode(b.dataset.m as Mode); });
+  q('.as-zoom').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-z]'); if (b) setZoom(Number(b.dataset.z)); });
+  for (const c of ['.as-len', '.as-len2', '.as-r']) q(c).addEventListener('input', update);
+  q('.as-unit').addEventListener('change', update);
+  q('.as-tab').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-i]'); if (!b) return;
+    const i = Number(b.dataset.i), [m] = meas.splice(i, 1); history.push(() => meas.splice(i, 0, m)); update();
+  });
+  q('.as-clear').addEventListener('click', () => { const old = meas; meas = []; history.push(() => { meas = old; }); update(); });
+  q('.as-open').addEventListener('click', () => q<HTMLInputElement>('.as-file').click());
+  q('.as-file').addEventListener('change', () => { const f = q<HTMLInputElement>('.as-file').files?.[0]; q<HTMLInputElement>('.as-file').value = ''; if (f) loadFile(f); });
+  for (const el of [q('.as-open'), cv]) {
+    el.addEventListener('dragover', (e) => { if ((e as DragEvent).dataTransfer?.types.includes('Files')) e.preventDefault(); });
+    el.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) { e.preventDefault(); loadFile(f); } });
+  }
+  q('.as-ex').addEventListener('click', examplePhoto);
+  q('.as-png').addEventListener('click', () => {
+    if (!photo) return;
+    const c = document.createElement('canvas'); c.width = photo.width; c.height = photo.height;
+    const x = c.getContext('2d')!; x.drawImage(photo, 0, 0); overlay(x, Math.max(1, Math.max(c.width, c.height) / 1200));
+    c.toBlob((b) => { if (b) save(b, `${name}-measured.png`, 'image/png'); }, 'image/png');
+  });
+  q('.as-csv').addEventListener('click', () => {
+    const s = scale();
+    const rows: (string | number)[][] = [['label', 'kind', 'value', 'unit', 'plus_minus', 'notes', 'points_px']];
+    for (const m of meas) { const r = result(m); rows.push([m.label, m.kind, Number.isFinite(r.value) ? +r.value.toFixed(3) : '', r.unit, Number.isFinite(r.u) ? +r.u.toFixed(3) : '', r.notes.join('; '), m.pts.map((p) => p.join(' ')).join('; ')]); }
+    rows.push([], ['scale_px_per_mm', s ? +pxPerMm(s).toFixed(5) : '', 'scale_bar_mm', s ? s.mm : '', 'click_accuracy_px', clickR()]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${name}-measurements.csv`, 'text/csv');
+  });
+  let tm = 0;
+  window.addEventListener('resize', () => { clearTimeout(tm); tm = window.setTimeout(draw, 150); });
+</script>

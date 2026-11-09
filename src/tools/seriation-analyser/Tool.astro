@@ -1,0 +1,175 @@
+---
+// Seriation and correspondence analysis of assemblage counts (sites × types), in the browser. The example counts are
+// made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ser">
+  <div class="ax-card">
+    <h2>Assemblage counts</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small se-ex">Use the example</button></div>
+    <label style="margin-top:10px">Sites in rows, types in columns: a header row of type names, then one row per site (name, then counts) <textarea class="se-in" rows="9" spellcheck="false"></textarea></label>
+    <DataFile target=".se-in" maxMB={5} maxCols={60} maxRows={2000} />
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="se-rev" /> Reverse the order (the direction of the first axis is arbitrary)</label>
+    <p class="ax-help">Paste from a spreadsheet (tabs), or use commas or semicolons. Blank cells count as 0. Sites or types with no finds are left out.</p>
+    <div class="se-msg"></div>
+  </div>
+
+  <div class="ax-card se-out" hidden>
+    <h2>Seriation</h2>
+    <p class="ax-big se-big"></p>
+    <dl class="ax-facts se-facts"></dl>
+    <h3>Battleship plot (frequency seriation)</h3>
+    <p class="ax-help">Sites in the order of the first correspondence axis, types likewise. Each bar's width is that type's share of the site's assemblage. A good seriation shows each type rising and falling once, like the hull of a ship.</p>
+    <div class="ax-scroll"><canvas class="se-bfig"></canvas></div>
+    <h3>Correspondence analysis map</h3>
+    <canvas class="ax-fig se-cfig"></canvas>
+    <p class="ax-help se-cnote"></p>
+    <h3>Inertia by axis</h3>
+    <div class="ax-scroll"><table class="se-itab"></table></div>
+    <h3>Scores</h3>
+    <div class="ax-scroll"><table class="se-rtab"></table></div>
+    <div class="ax-scroll" style="margin-top:12px"><table class="se-ctab"></table></div>
+    <h3>Brainerd-Robinson similarity</h3>
+    <p class="ax-help se-brnote"></p>
+    <div class="ax-scroll"><table class="se-br"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small se-csv">Ordered table (CSV)</button>
+      <button type="button" class="btn secondary small se-scsv">CA scores (CSV)</button>
+      <button type="button" class="btn secondary small se-bcsv">Brainerd-Robinson (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ser h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ser canvas.se-bfig { display: block; height: auto; }
+  .ser .se-br td, .ser .se-br th { text-align: right; padding: 5px 6px; font-size: 13px; }
+  .ser .se-br td.n, .ser .se-br th.n { text-align: left; white-space: nowrap; }
+  .ser .se-msg p { margin: 6px 0 0; }
+</style>
+
+<script>
+  import { parseCounts, correspondence, orderBy, rowPercent, brainerdRobinson, robinsonViolations, EXAMPLE, type CA, type Counts } from '../../lib/sci/seriation';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ser')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.se-in');
+  let d: Counts | null = null, ca: CA | null = null, ro: number[] = [], co: number[] = [], BR: number[][] = [], bfig: Figure | null = null, cfig: Figure | null = null;
+  const f3 = (x: number) => x.toFixed(3).replace('-', '−'), pc = (x: number) => `${x.toFixed(1)} %`;
+
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+
+  function battleship(): Figure {
+    const D = d!, P = rowPercent(D.N), maxP = Math.max(...P.flat());
+    const probe = document.createElement('canvas').getContext('2d')!; probe.font = '13px Arial, Helvetica, sans-serif';
+    const labelW = Math.max(...D.rows.map((s) => probe.measureText(s).width)) + 14, colW = 64, rowH = 24, head = Math.min(130, Math.max(...D.cols.map((s) => probe.measureText(s).width)) * 0.72 + 24);
+    const w = Math.round(labelW + co.length * colW + 10), h = Math.round(head + ro.length * rowH + 26);
+    return {
+      w, h, alt: `Battleship plot of ${D.rows.length} sites and ${D.cols.length} types in correspondence-analysis order`,
+      draw: (ctx, W, H, pal) => {
+        ctx.font = '13px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'middle';
+        co.forEach((j, k) => {
+          const cx = labelW + k * colW + colW / 2;
+          ctx.save(); ctx.translate(cx - 4, head - 8); ctx.rotate(-Math.PI / 4); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(D.cols[j], 0, 0); ctx.restore();
+          ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, head); ctx.lineTo(cx, head + ro.length * rowH); ctx.stroke();
+        });
+        ro.forEach((i, k) => {
+          const y = head + k * rowH;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(D.rows[i], labelW - 8, y + rowH / 2);
+          co.forEach((j, m) => {
+            const bw = (P[i][j] / maxP) * (colW - 6), cx = labelW + m * colW + colW / 2;
+            if (bw > 0) { ctx.fillStyle = pal.accent; ctx.fillRect(cx - bw / 2, y + 3, Math.max(1, bw), rowH - 6); }
+          });
+        });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = '12px Arial, Helvetica, sans-serif';
+        ctx.fillText(`Widest bar = ${maxP.toFixed(1)} % of a site's finds`, 4, H - 11);
+      },
+    };
+  }
+
+  function run() {
+    const msg = q('.se-msg'); msg.replaceChildren();
+    const say = (t: string, cls = 'ax-help') => { const p = document.createElement('p'); p.className = cls; p.textContent = t; msg.append(p); };
+    d = parseCounts(box.value);
+    for (const e of d.errors.slice(0, 6)) say(e, 'ax-err');
+    for (const n of d.notes) say(n);
+    if (d.errors.length || d.rows.length < 3 || d.cols.length < 3) {
+      if (!d.errors.length && box.value.trim()) say('Seriation needs at least 3 sites and 3 types with finds.', 'ax-err');
+      q('.se-out').hidden = true; ca = null; return;
+    }
+    ca = correspondence(d.N);
+    const rev = q<HTMLInputElement>('.se-rev').checked;
+    ro = orderBy(ca.F.map((f) => f[0]), rev); co = orderBy(ca.G.map((g) => g[0]), rev);
+    BR = brainerdRobinson(d.N);
+    q('.se-out').hidden = false;
+    const tot = ca.total, pct = ca.inertia.map((x) => (100 * x) / tot);
+    q('.se-big').textContent = `${d.rows.length} sites × ${d.cols.length} types, ${Math.round(ca.n).toLocaleString('en')} finds. Axis 1 holds ${pc(pct[0])} of the inertia.`;
+    const facts: [string, string][] = [['Total inertia', ca.total.toFixed(4)], ['χ² (= inertia × n)', ca.chi2.toFixed(1)], ['Axis 1', pc(pct[0])], ...(pct.length > 1 ? [['Axis 2', pc(pct[1])] as [string, string]] : [])];
+    q('.se-facts').replaceChildren(...facts.map(([k, v]) => { const x = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; x.append(dt, dd); return x; }));
+    bfig = battleship(); const bc = q<HTMLCanvasElement>('.se-bfig'); paint(bc, bfig); bc.style.width = `${bfig.w}px`;
+    const two = ca.inertia.length > 1;
+    cfig = chartFigure({
+      w: 520, h: 460, xLabel: `Axis 1 (${pc(pct[0])})`, yLabel: two ? `Axis 2 (${pc(pct[1])})` : '',
+      series: [
+        { name: 'Sites', x: ca.F.map((f) => f[0]), y: ca.F.map((f) => (two ? f[1] : 0)), labels: d.rows, marker: 'circle' },
+        { name: 'Types', x: ca.G.map((g) => g[0]), y: ca.G.map((g) => (two ? g[1] : 0)), labels: d.cols, marker: 'triangle' },
+      ], legend: 'inside',
+    }, 'Correspondence analysis map: sites and types on the first two axes');
+    paint(q<HTMLCanvasElement>('.se-cfig'), cfig);
+    q('.se-cnote').textContent = 'Symmetric map: sites and types both in principal coordinates. A curve (a "horseshoe") is the usual sign of a single sequence.';
+    let cum = 0;
+    table(q('.se-itab'), ['Axis', 'Inertia', '% of total', 'Cumulative'], ca.inertia.map((x, a) => { cum += pct[a]; return [a + 1, x.toFixed(5), pc(pct[a]), pc(cum)]; }), ['', 'r', 'r', 'r']);
+    const two2 = (v: number[]) => [f3(v[0]), two ? f3(v[1]) : ''];
+    table(q('.se-rtab'), ['Order', 'Site', 'Finds', 'Mass', 'Axis 1', 'Axis 2'], ro.map((i, k) => [k + 1, d!.rows[i], d!.N[i].reduce((a, b) => a + b, 0), ca!.rowMass[i].toFixed(3), ...two2(ca!.F[i])]), ['r', '', 'r', 'r', 'r', 'r']);
+    table(q('.se-ctab'), ['Order', 'Type', 'Finds', 'Mass', 'Axis 1', 'Axis 2'], co.map((j, k) => [k + 1, d!.cols[j], d!.N.reduce((s, r) => s + r[j], 0), ca!.colMass[j].toFixed(3), ...two2(ca!.G[j])]), ['r', '', 'r', 'r', 'r', 'r']);
+    // BR matrix in the seriated order, shaded by similarity.
+    const t = q('.se-br'); t.replaceChildren();
+    const h = t.insertRow(); const th0 = document.createElement('th'); th0.className = 'n'; h.append(th0);
+    for (const i of ro) { const th = document.createElement('th'); th.textContent = d.rows[i]; h.append(th); }
+    for (const i of ro) {
+      const tr = t.insertRow(), n = tr.insertCell(); n.textContent = d.rows[i]; n.className = 'n';
+      for (const j of ro) { const td = tr.insertCell(), v = BR[i][j]; td.textContent = v.toFixed(0); td.style.background = `color-mix(in srgb, var(--accent) ${Math.round((v / 200) * 55)}%, transparent)`; }
+    }
+    const vS = robinsonViolations(BR, ro), vIn = robinsonViolations(BR, d.rows.map((_, i) => i));
+    q('.se-brnote').textContent = `200 means two sites have identical percentages; 0 means they share no types. In the seriated order, similarities should fall away from the diagonal: ${vS} break${vS === 1 ? '' : 's'} of that pattern, against ${vIn} in the order you entered.`;
+  }
+
+  const ordered = () => [['Site', ...co.map((j) => d!.cols[j])], ...ro.map((i) => [d!.rows[i], ...co.map((j) => d!.N[i][j])])];
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  q('.se-rev').addEventListener('change', run);
+  q('.se-ex').addEventListener('click', () => { box.value = EXAMPLE; q<HTMLInputElement>('.se-rev').checked = false; run(); });
+  q('.se-csv').addEventListener('click', () => save(new Blob([csv(ordered())], { type: 'text/csv' }), 'seriation-ordered.csv', 'text/csv'));
+  q('.se-scsv').addEventListener('click', () => {
+    const K = ca!.inertia.length, axes = Array.from({ length: K }, (_, a) => `axis_${a + 1}`);
+    const rows: (string | number)[][] = [['kind', 'name', 'order', 'mass', ...axes]];
+    ro.forEach((i, k) => rows.push(['site', d!.rows[i], k + 1, +ca!.rowMass[i].toFixed(6), ...ca!.F[i].map((x) => +x.toFixed(6))]));
+    co.forEach((j, k) => rows.push(['type', d!.cols[j], k + 1, +ca!.colMass[j].toFixed(6), ...ca!.G[j].map((x) => +x.toFixed(6))]));
+    rows.push([], ['axis', 'inertia', 'percent'], ...ca!.inertia.map((x, a) => [a + 1, +x.toFixed(8), +((100 * x) / ca!.total).toFixed(4)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'seriation-ca-scores.csv', 'text/csv');
+  });
+  q('.se-bcsv').addEventListener('click', () => save(new Blob([csv([['', ...ro.map((i) => d!.rows[i])], ...ro.map((i) => [d!.rows[i], ...ro.map((j) => +BR[i][j].toFixed(2))])])], { type: 'text/csv' }), 'brainerd-robinson.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => {
+    if (!ca || !d) return { title: '', sections: [], file: 'seriation' };
+    const sections: Section[] = [
+      { title: 'Summary', text: [q('.se-big').textContent ?? ''], facts: [...q('.se-facts').querySelectorAll('div')].map((x) => [x.querySelector('dt')!.textContent ?? '', x.querySelector('dd')!.textContent ?? '']) },
+      { title: 'Battleship plot', figure: bfig! },
+      { title: 'Correspondence analysis map', figure: cfig!, table: { head: ['Axis', 'Inertia', '%'], rows: ca.inertia.map((x, a) => [String(a + 1), x.toFixed(5), ((100 * x) / ca!.total).toFixed(1)]), align: ['r', 'r', 'r'] } },
+      { title: 'Ordered counts', table: { head: ordered()[0].map(String), rows: ordered().slice(1).map((r) => r.map(String)) } },
+      { title: 'Brainerd-Robinson similarity', text: [q('.se-brnote').textContent ?? ''], table: { head: ['', ...ro.map((i) => d!.rows[i])], rows: ro.map((i) => [d!.rows[i], ...ro.map((j) => BR[i][j].toFixed(0))]) } },
+    ];
+    return { title: 'Seriation and correspondence analysis', subtitle: q('.se-big').textContent ?? '', file: 'seriation', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (bfig && ca) { paint(q<HTMLCanvasElement>('.se-bfig'), bfig, pagePalette()); paint(q<HTMLCanvasElement>('.se-cfig'), cfig!, pagePalette()); } });
+  box.value = EXAMPLE; run();
+</script>

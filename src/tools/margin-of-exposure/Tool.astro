@@ -1,0 +1,156 @@
+---
+// Margin of exposure: point of departure ÷ estimated exposure, for several scenarios, against a target built from uncertainty factors.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax moe">
+  <p class="moe-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Point of departure</h2>
+    <div class="ax-grid">
+      <label>Substance <input class="moe-sub" value="Substance X (made up)" /></label>
+      <label>Type <select class="moe-podt"><option>BMDL10</option><option>NOAEL</option><option>LOAEL</option><option>BMDL05</option><option>Other</option></select></label>
+      <label>Value <input class="moe-pod" inputmode="decimal" value="0.3" /></label>
+      <label>Unit <select class="moe-du"><option>mg/kg bw/day</option><option>µg/kg bw/day</option></select></label>
+    </div>
+    <p class="ax-help">The point of departure is the dose from a study where the effect starts (BMDL) or no effect was seen (NOAEL). The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Exposure scenarios</h2>
+    <label>One scenario per line: name, concentration, daily intake, body weight (kg). Paste from a spreadsheet.
+      <textarea class="moe-data" rows="5" spellcheck="false">Scenario	Concentration	Intake	Body weight (kg)
+Adult, average	50	200	70
+Adult, high consumer	50	600	70
+Child, high consumer	50	300	20</textarea></label>
+    <DataFile target=".moe-data" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Concentration unit <select class="moe-cu"><option>mg/kg</option><option selected>µg/kg</option><option>ng/g</option><option>mg/L</option><option>µg/L</option></select></label>
+      <label>Intake unit <select class="moe-iu"><option selected>g/day</option><option>kg/day</option><option>mL/day</option><option>L/day</option></select></label>
+    </div>
+    <p class="ax-help">Exposure (dose) = concentration × intake ÷ body weight, for one food, drink or medium taken by mouth.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Uncertainty factors</h2>
+    <label>One per line: a name and a number. The target MOE is their product.
+      <textarea class="moe-uf" rows="3" spellcheck="false">Between species (animal to human), 10
+Within humans (variability), 10</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small moe-100">Use 10 × 10 = 100</button>
+      <button type="button" class="btn secondary small moe-10k">Use 10 000</button>
+    </div>
+    <p class="ax-help">Editable defaults, not taken from any one agency. A factor of 100 (10 for animal to human, 10 for differences between people) is commonly used with a NOAEL for effects with a threshold (WHO IPCS, EHC 240, 2009), and an MOE of 10 000 or more from a BMDL10 is commonly read as low concern for substances that are genotoxic and carcinogenic (EFSA Scientific Committee, 2005). Checked 2026-11-09; check the official source for your case.</p>
+    <p class="ax-err moe-err" hidden></p>
+  </div>
+
+  <div class="ax-card moe-out">
+    <h2>Margin of exposure</h2>
+    <p class="ax-big moe-big"></p>
+    <dl class="ax-facts moe-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="moe-tab"></table></div>
+    <canvas class="ax-fig moe-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary moe-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .moe [hidden] { display: none !important; }
+  .moe-med { font-size: 14px; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 0 0 12px; background: var(--warn-soft); }
+  .moe table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .moe th, .moe td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .moe th.r, .moe td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .moe td.below { color: var(--bad); font-weight: 600; }
+</style>
+
+<script>
+  import { sig as sig0, num, csv } from '../../lib/sci/num';
+  import { parseScenarios, parseFactors, marginOfExposure, type ScenarioResult } from '../../lib/sci/moe';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.moe')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const err = q('.moe-err');
+  // Significant figures without trailing zeros (0.3, not 0.3000).
+  const sig = (x: number, n = 4) => { const t = sig0(x, n); return t.includes('.') && !t.includes('×') ? t.replace(/\.?0+$/, '') : t; };
+  let fig: Figure | null = null, report: Section[] = [], table: string[][] = [], head: string[] = [];
+
+  /** Horizontal bars of MOE on a log scale, with the target as a line. */
+  function barFigure(rows: ScenarioResult[], target: number): Figure {
+    const h = 70 + rows.length * 34;
+    return { w: 720, h, alt: `Margin of exposure per scenario against a target of ${sig(target, 3)}`, draw(ctx, w, hh, pal: Palette) {
+      const L = Math.min(260, Math.max(120, ...rows.map((r) => r.name.length * 7.2 + 16))), R = w - 24, T = 16, B = hh - 40;
+      const vals = rows.map((r) => (Number.isFinite(r.moe) ? r.moe : NaN)).filter(Number.isFinite).concat([target]);
+      const lo = Math.floor(Math.log10(Math.min(...vals) / 2)), hi = Math.ceil(Math.log10(Math.max(...vals) * 2));
+      const X = (v: number) => L + ((Math.log10(v) - lo) / (hi - lo)) * (R - L);
+      ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      for (let e = lo; e <= hi; e++) {
+        const x = X(10 ** e); ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, B); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(sig(10 ** e, 2).replace(/^1 × 10/, '10'), x, B + 14);
+      }
+      ctx.textAlign = 'center'; ctx.fillText('Margin of exposure (log scale)', (L + R) / 2, B + 32);
+      rows.forEach((r, i) => {
+        const y = T + 10 + i * 34;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(r.name.length > 34 ? r.name.slice(0, 33) + '…' : r.name, L - 8, y + 10);
+        const v = Number.isFinite(r.moe) ? r.moe : 10 ** hi;
+        ctx.fillStyle = r.meets ? pal.accent : pal.bad; ctx.fillRect(L, y, Math.max(2, X(v) - L), 20);
+      });
+      const tx = X(target); ctx.strokeStyle = pal.ink; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, T - 4); ctx.lineTo(tx, B); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+      ctx.fillStyle = pal.ink; ctx.textAlign = tx > R - 80 ? 'right' : 'left'; ctx.fillText(`target ${sig(target, 3)}`, tx + (tx > R - 80 ? -4 : 4), T - 2 > 8 ? T - 2 : 9);
+    } };
+  }
+
+  function calc() {
+    err.hidden = true;
+    const du = sel('.moe-du'), cu = sel('.moe-cu'), iu = sel('.moe-iu'), podt = sel('.moe-podt');
+    try {
+      const pod = num(q<HTMLInputElement>('.moe-pod').value);
+      if (!Number.isFinite(pod)) throw new Error('Enter the point of departure as a number.');
+      const sc = parseScenarios(q<HTMLTextAreaElement>('.moe-data').value);
+      const f = parseFactors(q<HTMLTextAreaElement>('.moe-uf').value);
+      if (!f.length) throw new Error('Add at least one uncertainty factor, such as "Between species, 10".');
+      const target = f.reduce((a, b) => a * b.value, 1);
+      const r = marginOfExposure(pod, sc, target, { conc: cu, intake: iu, dose: du });
+      root.querySelectorAll<HTMLElement>('.moe-out').forEach((o) => (o.hidden = false));
+      const sub = q<HTMLInputElement>('.moe-sub').value.trim() || 'the substance';
+      const nBelow = r.rows.filter((x) => !x.meets).length;
+      q('.moe-big').textContent = `Lowest MOE ${sig(r.lowest.moe, 3)} (${r.lowest.name})`;
+      const facts: [string, string, string?][] = [
+        ['Point of departure', `${podt} ${sig(pod, 4)} ${du}`, sub],
+        ['Target MOE', sig(target, 4), f.map((x) => `${x.name} ${sig(x.value, 3)}`).join(' × ')],
+        ['Exposure giving the target', `${sig(r.tolerable, 3)} ${du}`, 'point of departure ÷ target'],
+        ['Scenarios below the target', `${nBelow} of ${r.rows.length}`, nBelow ? 'a smaller margin: higher concern' : 'all at or above the target'],
+      ];
+      q('.moe-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      head = ['Scenario', `Concentration (${cu})`, `Intake (${iu})`, 'Body weight (kg)', `Exposure (${du})`, 'MOE', 'At or above target', `Concentration meeting the target (${cu})`];
+      table = r.rows.map((x) => [x.name, sig(x.conc, 4), sig(x.intake, 4), sig(x.bw, 4), sig(x.exposure, 3), Number.isFinite(x.moe) ? sig(x.moe, 3) : 'no exposure', x.meets ? 'yes' : 'no', Number.isFinite(x.maxConc) ? sig(x.maxConc, 3) : '–']);
+      const short = ['Scenario', 'Exposure', 'MOE', 'Target met', `Max conc. (${cu})`];
+      const tb = q<HTMLTableElement>('.moe-tab'); tb.innerHTML = '';
+      const hr = tb.createTHead().insertRow(); short.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody();
+      r.rows.forEach((x, k) => { const tr = body.insertRow(); [table[k][0], table[k][4], table[k][5], table[k][6], table[k][7]].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; if (i === 2 && !x.meets) td.className = 'r below'; }); });
+      fig = barFigure(r.rows, target);
+      paint(q<HTMLCanvasElement>('.moe-fig'), fig);
+      report = [
+        { title: 'Inputs', facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), text: ['Exposure = concentration × intake ÷ body weight; MOE = point of departure ÷ exposure.'] },
+        { title: 'Scenarios', table: { head, rows: table, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l', 'r'] }, figure: fig, note: 'Uncertainty factors and target are the user’s own; check the official source. For study and teaching, not medical advice.' },
+      ];
+    } catch (e) {
+      report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.moe-out').forEach((o) => (o.hidden = true));
+    }
+  }
+  q('.moe-100').addEventListener('click', () => { q<HTMLTextAreaElement>('.moe-uf').value = 'Between species (animal to human), 10\nWithin humans (variability), 10'; calc(); });
+  q('.moe-10k').addEventListener('click', () => { q<HTMLTextAreaElement>('.moe-uf').value = 'Genotoxic carcinogen convention (BMDL10), 10000'; calc(); });
+  q('.moe-csv').addEventListener('click', () => { if (table.length) save(new TextEncoder().encode(csv([head, ...table])), 'margin-of-exposure.csv', 'text/csv'); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.moe-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Margin of exposure', subtitle: q('.moe-big').textContent ?? '', file: 'margin-of-exposure', sections: report }));
+</script>

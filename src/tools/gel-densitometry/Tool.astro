@@ -1,0 +1,292 @@
+---
+// Gel and western blot densitometry: lane profiles from a photo, background taken away, band volumes added up and
+// shown relative to a reference lane and a loading control. The photo never leaves the browser. The example blot is
+// drawn by the page and is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dns">
+  <div class="ax-card">
+    <h2>Gel or blot photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small dn-open">Open a photo</button>
+      <input type="file" class="dn-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small dn-ex">Use the example blot</button>
+    </div>
+    <canvas class="dn-photo" hidden></canvas>
+    <div class="ax-row dn-arow" hidden>
+      <button type="button" class="btn secondary small dn-area">Set the lane area</button>
+      <button type="button" class="btn secondary small dn-full">Use the whole photo</button>
+    </div>
+    <p class="ax-help dn-ph" data-t="Open a photo of a stained gel or a blot (PNG, JPEG or TIFF your browser can show). Use an image straight from the scanner or imager, not a screenshot, with no contrast changes. The photo stays on your device and is never uploaded.">Open a photo of a stained gel or a blot (PNG, JPEG or TIFF your browser can show). Use an image straight from the scanner or imager, not a screenshot, with no contrast changes. The photo stays on your device and is never uploaded.</p>
+    <p class="ax-err dn-err" hidden></p>
+  </div>
+
+  <div class="ax-card dn-set" hidden>
+    <h2>Lanes and bands</h2>
+    <div class="ax-grid">
+      <label>The bands are <select class="dn-dark"><option value="1" selected>Dark on a light background (stained gel, film)</option><option value="0">Light on a dark background (fluorescence, imager)</option></select></label>
+      <label>Number of lanes <input class="dn-n" type="number" min="1" max="40" step="1" value="6" inputmode="numeric" /></label>
+      <label>Width read in each lane (%) <input class="dn-wf" type="number" min="10" max="100" step="5" value="60" inputmode="numeric" /></label>
+      <label>Background <select class="dn-bg">
+        <option value="line" selected>Straight line under each band</option>
+        <option value="rolling">Rolling window under the whole lane</option>
+        <option value="none">None (raw signal)</option>
+      </select></label>
+      <label>Rolling window (px) <input class="dn-r" type="number" min="2" max="2000" step="1" placeholder="auto" inputmode="numeric" /></label>
+      <label>Find bands above (% of the strongest) <input class="dn-min" type="number" min="1" max="90" step="1" value="10" inputmode="numeric" /></label>
+    </div>
+    <label style="margin-top:10px">Lane names, comma separated (optional) <input class="dn-names" type="text" placeholder="Control, 1 h, 2 h, 4 h" /></label>
+    <label style="margin-top:10px">Band rows: name, top and bottom in pixels from the top of the photo <textarea class="dn-bands" rows="3" spellcheck="false"></textarea></label>
+    <div class="ax-row"><button type="button" class="btn secondary small dn-find">Find the bands again</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Reference lane (100 %) <select class="dn-ref"></select></label>
+      <label>Loading control <select class="dn-ctl"></select></label>
+    </div>
+    <p class="ax-help">The page splits the lane area into equal lanes and reads the middle part of each, so gaps between lanes are left out. A straight line under each band is the usual gel method and copes with a sloping background; the rolling window suits an even background. Pick the loading-control band (such as actin or GAPDH on a blot) to divide each lane by it.</p>
+  </div>
+
+  <div class="ax-card dn-out" hidden>
+    <h2>Band amounts</h2>
+    <p class="ax-big dn-big"></p>
+    <dl class="ax-facts dn-facts"></dl>
+    <canvas class="ax-fig dn-bars"></canvas>
+    <div class="ax-scroll"><table class="dn-tab"></table></div>
+    <canvas class="ax-fig dn-prof"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small dn-csv">Download amounts (CSV)</button>
+      <button type="button" class="btn secondary small dn-pcsv">Download lane profiles (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { toSignal, makeLanes, profile, rollingBackground, subtract, findBands, volumes, saturation, relative, exampleBlot, type Signal, type Rect, type Lane, type Band } from '../../lib/sci/densitometry';
+  import { chartFigure, OKABE_ITO, niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dns')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pc = (x: number) => (Number.isFinite(x) ? (x >= 100 ? Math.round(x).toString() : sig(x, 3)) : '–');
+  const MAXW = 1200;
+
+  let rgba: Uint8ClampedArray | null = null, W = 0, H = 0, photo: HTMLCanvasElement | null = null, name = 'blot';
+  let sigl: Signal | null = null, rect: Rect = { x0: 0, y0: 0, x1: 0, y1: 0 }, lanes: Lane[] = [], bands: Band[] = [];
+  let auto = true, tapA: [number, number] | null = null, arming = false;
+  let profs: number[][] = [], subs: number[][] = [], vol: number[][] = [], laneNames: string[] = [];
+  let figB: Figure | null = null, figP: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.dn-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function load(px: Uint8ClampedArray, w: number, h: number, nm: string, r?: Rect, n?: number) {
+    rgba = px; W = w; H = h; name = nm;
+    photo = document.createElement('canvas'); photo.width = w; photo.height = h; photo.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(px), w, h), 0, 0);
+    rect = r ?? { x0: 0, y0: 0, x1: w, y1: h };
+    q<HTMLSelectElement>('.dn-ref').value = '0'; q('.dn-ph').textContent = q('.dn-ph').dataset.t ?? '';
+    if (n) q<HTMLInputElement>('.dn-n').value = String(n);
+    q('.dn-photo').hidden = false; q('.dn-arow').hidden = false; q('.dn-set').hidden = false; q('.dn-err').hidden = true;
+    auto = true; arming = false; tapA = null; q('.dn-area').textContent = 'Set the lane area';
+    signal(); run();
+  }
+  const signal = () => { if (rgba) sigl = toSignal(rgba, W, H, q<HTMLSelectElement>('.dn-dark').value === '1'); };
+
+  function bandsText() { q<HTMLTextAreaElement>('.dn-bands').value = bands.map((b) => `${b.name}, ${b.top}, ${b.bottom}`).join('\n'); }
+  function readBands(): Band[] | string {
+    const out: Band[] = [];
+    const lines = q<HTMLTextAreaElement>('.dn-bands').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[,;\t]/).map((p) => p.trim());
+      const nums = parts.filter((p) => p !== '' && Number.isFinite(Number(p))).map(Number);
+      if (nums.length < 2) return `Band row ${i + 1}: give a top and a bottom in pixels (a name first is optional).`;
+      const nm = parts.find((p) => p !== '' && !Number.isFinite(Number(p))) || `Band ${i + 1}`;
+      const top = Math.round(Math.min(nums[0], nums[1])), bottom = Math.round(Math.max(nums[0], nums[1]));
+      if (top < rect.y0 || bottom >= rect.y1) return `Band row ${i + 1} (${nm}) runs outside the lane area, which is ${Math.round(rect.y0)} to ${Math.round(rect.y1) - 1} px.`;
+      out.push({ name: nm, top, bottom });
+    }
+    if (out.length > 20) return 'Up to 20 band rows, please.';
+    return out;
+  }
+
+  function run() {
+    if (!sigl) return;
+    const fail = (m: string) => { q('.dn-err').textContent = m; q('.dn-err').hidden = false; q('.dn-out').hidden = true; sections = []; drawPhoto(); };
+    q('.dn-err').hidden = true;
+    const n = Math.round(val('.dn-n')), wf = val('.dn-wf') / 100;
+    if (!(n >= 1 && n <= 40)) return fail('Give between 1 and 40 lanes.');
+    if (!(wf >= 0.1 && wf <= 1)) return fail('The width read in each lane is between 10 and 100 %.');
+    if (rect.x1 - rect.x0 < n || rect.y1 - rect.y0 < 10) return fail('The lane area is too small. Set it again or use the whole photo.');
+    lanes = makeLanes(rect, n, wf);
+    const y0 = Math.round(rect.y0), y1 = Math.round(rect.y1), len = y1 - y0;
+    const rIn = val('.dn-r'), r = q<HTMLInputElement>('.dn-r').value.trim() && rIn >= 2 ? Math.round(rIn) : Math.max(5, Math.round(len / 12));
+    profs = lanes.map((l) => profile(sigl!, l, y0, y1));
+    subs = profs.map((p) => subtract(p, rollingBackground(p, r)));
+    if (auto) {
+      const minF = Math.min(0.9, Math.max(0.01, (val('.dn-min') || 10) / 100));
+      bands = findBands(subs, minF).slice(0, 20).map((b, i) => ({ name: `Band ${i + 1}`, top: b.top + y0, bottom: b.bottom + y0 }));
+      bandsText();
+    } else {
+      const b = readBands();
+      if (typeof b === 'string') return fail(b);
+      bands = b;
+    }
+    // Lane names and the two pickers.
+    const typed = q<HTMLInputElement>('.dn-names').value.split(',').map((s) => s.trim());
+    laneNames = lanes.map((_, i) => typed[i] || `Lane ${i + 1}`);
+    const ref = q<HTMLSelectElement>('.dn-ref'), ctl = q<HTMLSelectElement>('.dn-ctl');
+    const refV = Math.min(n - 1, Math.max(0, Number(ref.value) || 0)), ctlWas = ctl.value;
+    ref.replaceChildren(...laneNames.map((l, i) => new Option(l, String(i), false, i === refV)));
+    ctl.replaceChildren(new Option('None', '-1'), ...bands.map((b, i) => new Option(b.name, String(i))));
+    ctl.value = Number(ctlWas) < bands.length ? ctlWas : '-1';
+    drawPhoto();
+    if (!bands.length) { q('.dn-out').hidden = true; q('.dn-err').textContent = 'No bands found. Lower "Find bands above", check whether the bands are dark or light, or type the band rows.'; q('.dn-err').hidden = false; sections = []; return; }
+
+    const mode = q<HTMLSelectElement>('.dn-bg').value;
+    const rel = bands.map((b) => ({ top: b.top - y0, bottom: b.bottom - y0 }));
+    vol = mode === 'line' ? volumes(profs, lanes, rel, true) : volumes(mode === 'rolling' ? subs : profs, lanes, rel);
+    const c = Number(ctl.value), R = relative(vol, refV, c), sat = saturation(sigl, lanes, rel, y0);
+    const satHit: string[] = [];
+    sat.forEach((row, l) => row.forEach((s, b) => { if (s > 0.01) satHit.push(`${laneNames[l]} ${bands[b].name}`); }));
+    q('.dn-out').hidden = false;
+    const show = bands.map((_, b) => b).filter((b) => b !== c);
+    const amt = (l: number, b: number) => (R.norm ? R.norm[l][b] : R.rel[l][b]);
+    const first = show[0] ?? 0;
+    q('.dn-big').textContent = `${bands[first].name}${R.norm ? ` ÷ ${bands[c].name}` : ''}: ${lanes.map((_, l) => pc(amt(l, first))).slice(0, 8).join(', ')}${n > 8 ? '…' : ''} % of ${laneNames[refV]}`;
+    q('.dn-facts').replaceChildren(
+      fact('Lanes and bands', `${n} lane${n > 1 ? 's' : ''}, ${bands.length} band row${bands.length > 1 ? 's' : ''}`, `each lane read over ${lanes[0].c1 - lanes[0].c0} px of ${sig((rect.x1 - rect.x0) / n, 3)} px`),
+      fact('Background', mode === 'line' ? 'straight line under each band' : mode === 'rolling' ? `rolling window of ${2 * r + 1} px` : 'none', mode === 'none' ? 'raw signal: the gel or film background is counted too' : ''),
+      ...(R.norm ? [fact('Loading control', bands[c].name, `each lane's bands divided by the same lane's control band, then compared with ${laneNames[refV]}`)] : []),
+      ...(satHit.length ? [fact('Saturated', satHit.slice(0, 4).join(', ') + (satHit.length > 4 ? '…' : ''), 'some pixels are at the top of the photo\'s range, so these amounts read low; take a shorter exposure')] : [fact('Saturated', 'none', 'no band box has more than 1 % of its pixels at the top of the range')]),
+    );
+
+    // Bar chart: one group per lane, one bar per band shown.
+    const vals = lanes.map((_, l) => show.map((b) => amt(l, b)));
+    const mx = Math.max(100, ...vals.flat().filter(Number.isFinite));
+    figB = {
+      w: 640, h: 320, alt: `Bar chart of band amounts relative to ${laneNames[refV]}`,
+      draw: (ctx, w, h, pal) => {
+        const cols = pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1'];
+        const L = 56, Rm = 12, T = show.length > 1 ? 34 : 14, B = 46, pw = w - L - Rm, ph = h - T - B;
+        const ticks = niceTicks(0, mx * 1.05, 5), top = ticks[ticks.length - 1] || 100;
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+        for (const t of ticks) { const y = T + ph - (t / top) * ph; ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(String(t), L - 6, y); }
+        const yr = T + ph - (100 / top) * ph; ctx.strokeStyle = pal.ink; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(L, yr); ctx.lineTo(L + pw, yr); ctx.stroke(); ctx.setLineDash([]);
+        const gw = pw / n, bw = Math.min(28, (gw * 0.75) / show.length);
+        lanes.forEach((_, l) => {
+          const gx = L + gw * l + (gw - bw * show.length) / 2;
+          show.forEach((b, k) => { const v = vals[l][k]; if (!Number.isFinite(v)) return; const bh = (v / top) * ph; ctx.fillStyle = pal.red ? pal.accent : cols[k % cols.length]; ctx.fillRect(gx + k * bw, T + ph - bh, bw - 1, bh); });
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          const lab = laneNames[l].length > 10 && n > 4 ? laneNames[l].slice(0, 9) + '…' : laneNames[l];
+          if (n <= 12 || l % 2 === 0) ctx.fillText(lab, L + gw * (l + 0.5), T + ph + 6);
+        });
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + ph); ctx.lineTo(L + pw, T + ph); ctx.stroke();
+        ctx.save(); ctx.translate(14, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink; ctx.fillText(`% of ${laneNames[refV]}`, 0, 0); ctx.restore();
+        if (show.length > 1) { let x = L; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; show.forEach((b, k) => { ctx.fillStyle = pal.red ? pal.accent : cols[k % cols.length]; ctx.fillRect(x, 10, 12, 12); ctx.fillStyle = pal.ink; const t = bands[b].name; ctx.fillText(t, x + 16, 16); x += 28 + ctx.measureText(t).width; }); }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.dn-bars'), figB);
+
+    const head = ['Lane', ...bands.flatMap((b, i) => [`${b.name} volume`, `${b.name} % of ref.`, ...(R.norm && i !== c ? [`${b.name} ÷ control %`] : [])])];
+    const rows = lanes.map((_, l) => [laneNames[l], ...bands.flatMap((_, b) => [sig(vol[l][b], 4), pc(R.rel[l][b]), ...(R.norm && b !== c ? [pc(R.norm[l][b])] : [])])]);
+    table(head, rows);
+    csvRows = [['lane', ...bands.flatMap((b, i) => [`${b.name} volume`, `${b.name} percent of ${laneNames[refV]}`, ...(R.norm && i !== c ? [`${b.name} divided by ${bands[c].name}, percent`] : []), `${b.name} saturated pixels percent`])],
+      ...lanes.map((_, l) => [laneNames[l], ...bands.flatMap((_, b) => [String(vol[l][b]), String(R.rel[l][b]), ...(R.norm && b !== c ? [String(R.norm[l][b])] : []), (100 * sat[l][b]).toFixed(2)])])];
+
+    const ys = profs[0].map((_, i) => i + y0);
+    const many = n > 8;
+    figP = chartFigure({
+      h: 300, xLabel: 'Pixels from the top of the photo', yLabel: 'Signal', legend: many ? 'none' : 'below',
+      series: profs.map((p, l) => ({ name: laneNames[l], x: ys, y: p, mode: 'line' as const, width: 1.4 })),
+      marks: bands.flatMap((b) => [{ kind: 'vline' as const, at: b.top, dash: [3, 3], label: b.name }, { kind: 'vline' as const, at: b.bottom, dash: [3, 3] }]),
+    }, `Lane profiles down the gel for ${n} lanes, with the band rows marked`);
+    paint(q<HTMLCanvasElement>('.dn-prof'), figP);
+    sections = [
+      { title: q('.dn-big').textContent!, facts: [...q('.dn-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figB, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: 'Lane profiles', figure: figP, note: 'Signal is the mean across each lane, from 0 (no stain) to 1. Volumes are the background-free signal added up over the band rows and the lane width.' },
+    ];
+  }
+
+  function drawPhoto() {
+    if (!photo) return;
+    const c = q<HTMLCanvasElement>('.dn-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!; ctx.drawImage(photo, 0, 0);
+    const lw = Math.max(1.5, W / 400);
+    ctx.lineWidth = lw; ctx.font = `${Math.max(11, Math.round(W / 45))}px system-ui, sans-serif`;
+    ctx.strokeStyle = '#d55e00'; ctx.setLineDash([lw * 4, lw * 3]); ctx.strokeRect(rect.x0, rect.y0, rect.x1 - rect.x0, rect.y1 - rect.y0); ctx.setLineDash([]);
+    lanes.forEach((l, i) => {
+      ctx.strokeStyle = '#0072b2'; ctx.strokeRect(l.c0, rect.y0, l.c1 - l.c0, rect.y1 - rect.y0);
+      ctx.fillStyle = '#0072b2'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(i + 1), l.cx, rect.y0 + 3);
+    });
+    bands.forEach((b) => {
+      ctx.strokeStyle = '#009e73'; ctx.beginPath(); ctx.moveTo(rect.x0, b.top); ctx.lineTo(rect.x1, b.top); ctx.moveTo(rect.x0, b.bottom + 1); ctx.lineTo(rect.x1, b.bottom + 1); ctx.stroke();
+      ctx.fillStyle = '#009e73'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(b.name, rect.x0 + 3, b.top - 2);
+    });
+    if (tapA) { ctx.fillStyle = '#d55e00'; ctx.beginPath(); ctx.arc(tapA[0], tapA[1], lw * 4, 0, 2 * Math.PI); ctx.fill(); }
+  }
+
+  q('.dn-open').addEventListener('click', () => q<HTMLInputElement>('.dn-file').click());
+  q('.dn-file').addEventListener('change', () => {
+    const f = q<HTMLInputElement>('.dn-file').files?.[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, MAXW / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * s)), h = Math.max(1, Math.round(im.naturalHeight * s));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d')!; cx.drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      load(cx.getImageData(0, 0, w, h).data, w, h, f.name.replace(/\.[^.]+$/, ''));
+      if (s < 1) q('.dn-ph').textContent = `The photo was scaled down to ${w} × ${h} px to keep the page quick; pixel numbers below are on that size. It stays on your device and is never uploaded.`;
+    };
+    im.onerror = () => { q('.dn-err').textContent = 'That image could not be opened. Try a PNG or JPEG.'; q('.dn-err').hidden = false; };
+    im.src = url; q<HTMLInputElement>('.dn-file').value = '';
+  });
+  function loadExample() {
+    const e = exampleBlot();
+    q<HTMLSelectElement>('.dn-dark').value = '1'; q<HTMLInputElement>('.dn-names').value = 'Untreated, 1 h, 2 h, 4 h, 8 h, 24 h'; q<HTMLSelectElement>('.dn-ref').value = '0';
+    load(e.px, e.w, e.h, 'example-blot', e.rect, e.lanes);
+    const ctl = q<HTMLSelectElement>('.dn-ctl'); if (bands.length === 2) { bands[1].name = 'Loading control'; bands[0].name = 'Target'; bandsText(); auto = false; run(); ctl.value = '1'; run(); }
+  }
+  q('.dn-ex').addEventListener('click', loadExample);
+  q('.dn-area').addEventListener('click', () => { arming = !arming; tapA = null; q('.dn-area').textContent = arming ? 'Tap two opposite corners…' : 'Set the lane area'; drawPhoto(); });
+  q('.dn-full').addEventListener('click', () => { rect = { x0: 0, y0: 0, x1: W, y1: H }; arming = false; tapA = null; q('.dn-area').textContent = 'Set the lane area'; auto = true; run(); });
+  q('.dn-photo').addEventListener('click', (ev) => {
+    if (!arming || !photo) return;
+    const c = q<HTMLCanvasElement>('.dn-photo'), r = c.getBoundingClientRect();
+    const x = Math.max(0, Math.min(W, ((ev.clientX - r.left) / r.width) * W)), y = Math.max(0, Math.min(H, ((ev.clientY - r.top) / r.height) * H));
+    if (!tapA) { tapA = [x, y]; drawPhoto(); return; }
+    const [ax, ay] = tapA; tapA = null; arming = false; q('.dn-area').textContent = 'Set the lane area';
+    if (Math.abs(x - ax) < 4 || Math.abs(y - ay) < 10) { q('.dn-err').textContent = 'That area is too small; tap two corners further apart.'; q('.dn-err').hidden = false; drawPhoto(); return; }
+    rect = { x0: Math.round(Math.min(ax, x)), y0: Math.round(Math.min(ay, y)), x1: Math.round(Math.max(ax, x)), y1: Math.round(Math.max(ay, y)) };
+    auto = true; run();
+  });
+
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  q('.dn-dark').addEventListener('change', () => { signal(); auto = true; run(); });
+  ['.dn-n', '.dn-wf', '.dn-r', '.dn-min'].forEach((c) => q(c).addEventListener('input', () => later(() => { auto = true; run(); })));
+  ['.dn-bg', '.dn-ref', '.dn-ctl'].forEach((c) => q(c).addEventListener('change', () => run()));
+  q('.dn-names').addEventListener('input', () => later(run));
+  q('.dn-bands').addEventListener('input', () => { auto = false; later(run); });
+  q('.dn-find').addEventListener('click', () => { auto = true; run(); });
+  document.addEventListener('fibub:theme', () => { if (figB && !q('.dn-out').hidden) { paint(q<HTMLCanvasElement>('.dn-bars'), figB); if (figP) paint(q<HTMLCanvasElement>('.dn-prof'), figP); } });
+  const csv = (rows: string[][]) => rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.dn-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${fileSafe(name)}-densitometry.csv`, 'text/csv'));
+  q('.dn-pcsv').addEventListener('click', () => {
+    const y0 = Math.round(rect.y0);
+    const rows = [['pixel_from_top', ...laneNames.flatMap((l) => [`${l} signal`, `${l} after rolling background`])], ...profs[0].map((_, i) => [String(i + y0), ...profs.flatMap((p, l) => [p[i].toFixed(5), subs[l][i].toFixed(5)])])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-lane-profiles.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Gel densitometry', subtitle: q('.dn-big').textContent ?? '', file: `${fileSafe(name)}-densitometry`, sections }));
+</script>
+
+<style is:global>
+  .dns .dn-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; }
+  .dns select { max-width: 100%; }
+  .dns .dn-arow { margin-top: 8px; }
+</style>

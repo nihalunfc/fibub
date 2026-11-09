@@ -1,0 +1,128 @@
+---
+// SIR / SEIR / SEIRS epidemic simulator for teaching (RK4 in the browser).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax epm">
+  <p class="ax-help em-warn">For study and teaching, not medical advice. Check with a qualified professional. This is a teaching model, not a forecast.</p>
+  <div class="ax-card">
+    <h2>Model and disease</h2>
+    <div class="ax-grid">
+      <label>Model <select class="em-model">
+        <option value="SIR">SIR</option>
+        <option value="SEIR" selected>SEIR (with a latent stage)</option>
+        <option value="SEIRS">SEIRS (immunity wanes)</option>
+      </select></label>
+      <label>Population <input class="em-n" inputmode="numeric" value="100000" /></label>
+      <label>R0 (basic reproduction number) <input class="em-r0" inputmode="decimal" value="2.5" /></label>
+      <label class="em-lat-l">Latent period (days) <input class="em-lat" inputmode="decimal" value="3" /></label>
+      <label>Infectious period (days) <input class="em-inf" inputmode="decimal" value="5" /></label>
+      <label class="em-imm-l" hidden>Immunity lasts (days) <input class="em-imm" inputmode="decimal" value="180" /></label>
+      <label>Initial infectious cases <input class="em-i0" inputmode="decimal" value="10" /></label>
+      <label>Vaccinated at the start (%) <input class="em-vac" inputmode="decimal" value="0" /></label>
+      <label>Days to run <input class="em-days" inputmode="numeric" value="200" /></label>
+      <label>Show as <select class="em-show"><option value="n">Number of people</option><option value="p">% of population</option></select></label>
+    </div>
+    <p class="ax-help">R0 is how many people one case infects in a fully susceptible population. The latent period is the time from infection to becoming infectious; the infectious period is how long a case can pass it on. Vaccinated people start fully immune. In SEIRS, recovered (and vaccinated) people lose immunity after about the time you give.</p>
+    <label style="margin-top:12px"><span>Interventions: one per line, <em>from day, to day, % contact cut</em> (for example <code>30, 60, 40</code>).</span>
+      <textarea class="em-iv" rows="3" spellcheck="false" placeholder="30, 60, 40"></textarea></label>
+    <p class="ax-help">A contact cut of 40 % lowers the transmission rate by 40 % on those days (distancing, closures, masks). Overlapping cuts multiply.</p>
+    <p class="ax-err em-err" hidden></p>
+  </div>
+
+  <div class="ax-card em-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big em-big"></p>
+    <dl class="ax-facts em-facts"></dl>
+    <canvas class="ax-fig em-fig" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig em-fig2" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small em-csv">Download daily numbers (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { simulate, finalSize, cutAt, parseInterventions, type Model, type EpiResult } from '../../lib/sci/epidemic';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.epm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const err = q('.em-err');
+  const int = (x: number) => Math.round(x).toLocaleString('en');
+  const pct = (x: number) => `${sig(100 * x, 3)} %`;
+  let figs: Figure[] = [], report: Section[] = [], rows: (string | number)[][] = [], res: EpiResult | null = null;
+
+  function fail(msg: string) {
+    err.textContent = msg; err.hidden = false; res = null; report = []; rows = [];
+    root.querySelectorAll<HTMLElement>('.em-out').forEach((o) => (o.hidden = true));
+  }
+
+  function calc() {
+    err.hidden = true;
+    const model = q<HTMLSelectElement>('.em-model').value as Model;
+    q('.em-lat-l').hidden = model === 'SIR';
+    q('.em-imm-l').hidden = model !== 'SEIRS';
+    const iv = parseInterventions(q<HTMLTextAreaElement>('.em-iv').value);
+    if (iv.error) return fail(iv.error);
+    const p = { model, N: val('.em-n'), R0: val('.em-r0'), latent: val('.em-lat'), infectious: val('.em-inf'), immunity: val('.em-imm'), I0: val('.em-i0'), vacc: val('.em-vac') / 100, days: val('.em-days'), interventions: iv.list };
+    if (Number.isNaN(p.vacc) || p.vacc < 0 || p.vacc >= 1) return fail('The vaccinated share must be from 0 to below 100 %.');
+    let r: EpiResult;
+    try { r = simulate(p); } catch (e) { return fail((e as Error).message); }
+    res = r;
+    root.querySelectorAll<HTMLElement>('.em-out').forEach((o) => (o.hidden = false));
+    const asPct = q<HTMLSelectElement>('.em-show').value === 'p';
+    const sc = (x: number) => (asPct ? 100 * x / p.N : x);
+    const atEnd = r.peakDay > 0 && r.peakDay > p.days - 1;
+    q('.em-big').textContent = r.peakDay === 0
+      ? `No outbreak: cases fall from day 0 (R at start ${sig(r.Re0, 3)})`
+      : `Peak: ${int(r.peakI)} infectious (${pct(r.peakI / p.N)}) on day ${r.peakDay.toFixed(1)}`;
+    const simple = model !== 'SEIRS' && !iv.list.length;
+    const fs = finalSize(p.R0, r.S0 / p.N, p.vacc);
+    const facts: [string, string, string?][] = [
+      ['Peak day', r.peakDay === 0 ? 'day 0' : `day ${r.peakDay.toFixed(1)}`, atEnd ? 'still rising at the end: run more days' : 'when the most people are infectious'],
+      ['Peak infectious', int(r.peakI), `${pct(r.peakI / p.N)} of the population at once`],
+      [model === 'SEIRS' ? 'Infections in the run' : 'Infected in the run', model === 'SEIRS' ? `${sig(r.attack, 3)} per person` : pct(r.attack), `${int(r.infected + p.I0)} infections, counting the ${int(p.I0)} initial cases${model === 'SEIRS' ? ' and reinfections' : ''}`],
+    ];
+    if (model !== 'SEIRS') facts.push(['Final size (equation)', pct(fs.attack), simple ? 'SIR final-size equation; the run should end close to it' : 'without the interventions, for comparison']);
+    facts.push(['R at the start', sig(r.Re0, 3), 'R0 × share susceptible'], ['Herd immunity threshold', pct(r.hit), '1 − 1/R0'], ['Still susceptible at the end', pct(r.S.at(-1)! / p.N)]);
+    if (model !== 'SIR') facts.push(['Peak in latent stage', int(r.peakE)]);
+    q('.em-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+
+    const unit = asPct ? '% of population' : 'People';
+    const marks = iv.list.flatMap((v) => [{ kind: 'vline' as const, at: v.from, dash: [4, 4], label: `−${Math.round(v.cut * 100)} %` }, { kind: 'vline' as const, at: Math.min(v.to, p.days), dash: [4, 4] }]);
+    const series = [
+      { name: 'Susceptible', x: r.t, y: r.S.map(sc), mode: 'line' as const, width: 2 },
+      ...(model === 'SIR' ? [] : [{ name: 'Exposed', x: r.t, y: r.E.map(sc), mode: 'line' as const, width: 2, dash: [6, 3] }]),
+      { name: 'Infectious', x: r.t, y: r.I.map(sc), mode: 'line' as const, width: 2.5 },
+      { name: 'Recovered / immune', x: r.t, y: r.R.map(sc), mode: 'line' as const, width: 2, dash: [2, 3] },
+    ];
+    const f1 = chartFigure({ h: 380, xLabel: 'Day', yLabel: unit, xMin: 0, xMax: p.days, yMin: 0, series, marks, legend: 'below' }, `${model} model: susceptible, ${model === 'SIR' ? '' : 'exposed, '}infectious and recovered over ${p.days} days`);
+    const f2 = chartFigure({ h: 300, xLabel: 'Day', yLabel: asPct ? 'New infections (% per day)' : 'New infections per day', xMin: 0, xMax: p.days, yMin: 0, series: [{ name: 'New infections', x: r.t.slice(1), y: r.daily.slice(1).map(sc), mode: 'line', width: 2 }], marks, legend: 'none' }, 'New infections per day');
+    figs = [f1, f2];
+    paint(q<HTMLCanvasElement>('.em-fig'), f1); paint(q<HTMLCanvasElement>('.em-fig2'), f2);
+
+    rows = [['day', 'susceptible', 'exposed', 'infectious', 'recovered_or_immune', 'new_infections', 'cumulative_new_infections', 'contact_cut_percent'],
+      ...r.t.map((t, i) => [t, +r.S[i].toFixed(3), +r.E[i].toFixed(3), +r.I[i].toFixed(3), +r.R[i].toFixed(3), +r.daily[i].toFixed(3), +r.C[i].toFixed(3), +(100 * cutAt(t, iv.list)).toFixed(2)])];
+    const setup = `${model}, population ${int(p.N)}, R0 ${p.R0}, ${model === 'SIR' ? '' : `latent ${p.latent} d, `}infectious ${p.infectious} d${model === 'SEIRS' ? `, immunity ${p.immunity} d` : ''}, ${int(p.I0)} initial cases, ${sig(p.vacc * 100, 3)} % vaccinated, ${p.days} days.`;
+    report = [
+      { title: 'Set-up', text: [setup, iv.list.length ? `Interventions: ${iv.list.map((v) => `days ${v.from} to ${v.to}, contacts cut ${Math.round(v.cut * 100)} %`).join('; ')}.` : 'No interventions.', 'Teaching model, not a forecast. Solved with fourth-order Runge-Kutta steps of at most 0.1 day.'], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), figure: f1 },
+      { title: 'New infections per day', figure: f2 },
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => { if (res && figs.length) { paint(q<HTMLCanvasElement>('.em-fig'), figs[0]); paint(q<HTMLCanvasElement>('.em-fig2'), figs[1]); } });
+  q('.em-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), `epidemic-${q<HTMLSelectElement>('.em-model').value.toLowerCase()}.csv`, 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Epidemic model (teaching)', subtitle: q('.em-big').textContent ?? '', file: 'epidemic-model', sections: report }));
+</script>
+
+<style>
+  .epm .em-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .epm code { font-size: 13px; }
+</style>

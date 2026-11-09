@@ -1,0 +1,474 @@
+---
+// DICOM viewer: open CT, MR, X-ray and other DICOM files on the device. Window and level, zoom and pan, distance,
+// angle and ROI (mean and SD in HU), tag table with search, a series as a scrollable stack, and simple reslicing.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dv">
+  <p class="dv-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <label class="dv-drop">
+    <input type="file" class="dv-in" accept=".dcm,.dicom,.dic,.ima,.img,application/dicom,*/*" multiple hidden />
+    <b>Choose DICOM files</b>
+    <span>or drop them here: one file, or every slice of a series to scroll through. Files never leave your device.</span>
+  </label>
+  <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dv-sample">Show the sample again</button><span class="ax-help dv-src" style="margin:0"></span></div>
+  <p class="ax-err dv-err" hidden></p>
+  <ul class="ax-help dv-warn" hidden></ul>
+
+  <div class="ax-card dv-view" hidden>
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 class="dv-name" style="margin:0;overflow-wrap:anywhere"></h2>
+      <span class="ax-help dv-dims" style="margin:0"></span>
+    </div>
+    <div class="ax-row dv-planes" style="margin-top:10px" hidden>
+      <span class="ax-help" style="margin:0">View</span>
+      <div class="ax-seg dv-plane" role="group" aria-label="View"></div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="dv-slicebox">Slice <span class="dv-sn"></span><input type="range" class="dv-slice" min="0" max="0" value="0" /></label>
+      <label>Window <select class="dv-pre"></select></label>
+      <label>Centre (level) <input class="dv-c" inputmode="decimal" /></label>
+      <label>Width <input class="dv-w" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <div class="ax-seg dv-tool" role="group" aria-label="What dragging does">
+        <button type="button" data-t="wl" aria-pressed="true">Window</button><button type="button" data-t="pan" aria-pressed="false">Pan</button><button type="button" data-t="dist" aria-pressed="false">Distance</button><button type="button" data-t="angle" aria-pressed="false">Angle</button><button type="button" data-t="rect" aria-pressed="false">ROI box</button><button type="button" data-t="ell" aria-pressed="false">ROI oval</button>
+      </div>
+    </div>
+    <p class="ax-help dv-how"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small dv-zin" aria-label="Zoom in">Zoom +</button>
+      <button type="button" class="btn secondary small dv-zout" aria-label="Zoom out">Zoom −</button>
+      <button type="button" class="btn secondary small dv-fit">Fit</button>
+      <label class="ax-check"><input type="checkbox" class="dv-inv" /> Invert</label>
+    </div>
+    <div class="dv-stage"><canvas class="dv-cv photo" tabindex="0" aria-label="DICOM image"></canvas></div>
+    <p class="ax-help dv-px" aria-live="polite">Move over the image to read pixel values.</p>
+    <div class="dv-mbox" hidden>
+      <h3>Measurements</h3>
+      <div class="ax-scroll"><table class="dv-mt"></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dv-mcsv">Download measurements (CSV)</button><button type="button" class="btn secondary small dv-mclr">Clear all</button></div>
+    </div>
+    <dl class="ax-facts dv-facts" style="margin-top:14px"></dl>
+  </div>
+
+  <div class="ax-card dv-tagcard" hidden>
+    <h2>Header tags</h2>
+    <p class="ax-help dv-tagnote" style="margin-top:0"></p>
+    <div class="ax-row"><input class="dv-filter" placeholder="Search tags, e.g. spacing or 0028" style="flex:1;min-width:0" /><button type="button" class="btn secondary small dv-tcsv">Tags (CSV)</button></div>
+    <div class="ax-scroll dv-tscroll" style="margin-top:8px"><table class="dv-tags"></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .dv-med { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+  .dv-drop { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 22px 16px; border: 2px dashed var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; }
+  .dv-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .dv-drop span { color: var(--muted); font-size: 14px; max-width: 520px; }
+  .dv-warn { margin: 8px 0 0; padding-left: 18px; }
+  .dv-slicebox .dv-sn { font-weight: 600; color: var(--ink); }
+  .dv-stage { margin-top: 10px; background: #000; border-radius: 8px; overflow: hidden; }
+  .dv-cv { display: block; width: 100%; height: 360px; touch-action: none; cursor: crosshair; outline: none; }
+  .dv-cv:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+  .dv-mbox { margin-top: 12px; }
+  .dv-mbox h3 { font-size: 15px; margin: 0 0 6px; }
+  .dv-mt td button { font: inherit; font-size: 13px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .dv-tscroll { max-height: 420px; }
+  .dv-tags td { font-size: 13px; vertical-align: top; }
+  .dv-tags td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dv-tags td:last-child { overflow-wrap: anywhere; }
+  .dv-tags tr.priv td { color: var(--muted); }
+  .dv-tags tr.seq td { font-weight: 600; }
+</style>
+
+<script>
+  import * as D from '../../lib/sci/dicom';
+  import { sampleSeries } from '../../lib/sci/dicomsample';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const err = q('.dv-err'), warnBox = q('.dv-warn');
+  const cv = q<HTMLCanvasElement>('.dv-cv');
+  const fmt = (v: number, d = 1) => (Number.isFinite(v) ? (Math.abs(v) >= 1000 || Number.isInteger(v) ? String(Math.round(v * 10 ** d) / 10 ** d) : v.toFixed(d)) : '–');
+
+  type Slice = { d: D.Dicom; info: D.ImageInfo; name: string; px?: Float32Array | Uint8Array };
+  type View = { w: number; h: number; data: Float32Array | null; rgb: Uint8Array | null; sp: [number, number] | null; label: string };
+  type Meas = { kind: string; key: string; pts: [number, number][]; text: string; vals: string[] };
+  let slices: Slice[] = [], stack: D.Stack | null = null, multiFrame = false, plane = 'orig', idx = 0, title = '';
+  let view: View | null = null, wc = 40, ww = 400, inv = false, tool = 'wl', zoom = 1, panX = 0, panY = 0;
+  let meas: Meas[] = [], draft: Meas | null = null, vol: Float32Array[] | null = null;
+
+  // ---------- Opening files ----------
+  const drop = q('.dv-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); openFiles([...(e.dataTransfer?.files ?? [])]); });
+  q<HTMLInputElement>('.dv-in').addEventListener('change', (e) => { openFiles([...((e.target as HTMLInputElement).files ?? [])]); (e.target as HTMLInputElement).value = ''; });
+  q('.dv-sample').addEventListener('click', () => loadSample());
+
+  const MAX_FILES = 1500, MAX_BYTES = 1.5e9;
+  async function openFiles(files: File[]) {
+    if (!files.length) return;
+    if (files.length > MAX_FILES) return fail(`That is ${files.length} files; this viewer opens up to ${MAX_FILES} at a time.`);
+    const total = files.reduce((s, f) => s + f.size, 0);
+    if (total > MAX_BYTES) return fail(`Those files add up to ${(total / 1e9).toFixed(1)} GB; this viewer opens up to 1.5 GB at a time.`);
+    const parsed: { d: D.Dicom; name: string }[] = [], bad: string[] = [];
+    for (const f of files) {
+      try { parsed.push({ d: D.parse(new Uint8Array(await f.arrayBuffer())), name: f.name }); }
+      catch (e) { bad.push(`${f.name}: ${(e as Error).message}`); }
+    }
+    if (!parsed.length) return fail(bad.length === 1 ? bad[0] : `None of the ${files.length} files could be read as DICOM. ${bad[0]}`);
+    load(parsed, bad, files.length === 1 ? files[0].name : `${parsed.length} files`);
+    q('.dv-src').textContent = '';
+  }
+  function fail(msg: string) { err.textContent = msg; err.hidden = false; }
+  function loadSample() {
+    const files = sampleSeries();
+    load(files.map((b, i) => ({ d: D.parse(b), name: `phantom-${String(i + 1).padStart(2, '0')}.dcm` })), [], 'Sample phantom');
+    q('.dv-src').textContent = 'Showing a made-up CT-like phantom (24 slices, synthetic, not a real patient).';
+  }
+
+  function load(parsed: { d: D.Dicom; name: string }[], bad: string[], label: string) {
+    err.hidden = true;
+    const notes: string[] = [...bad];
+    // Group by series; keep the largest group of images.
+    const groups = new Map<string, Slice[]>();
+    for (const p of parsed) {
+      const info = D.imageInfo(p.d), uid = D.getter(p.d).s(0x0020000e) || 'none';
+      if (!groups.has(uid)) groups.set(uid, []);
+      groups.get(uid)!.push({ d: p.d, info, name: p.name });
+      for (const w of p.d.warnings) notes.push(`${p.name}: ${w}`);
+    }
+    let best = [...groups.values()].sort((a, b) => b.length - a.length)[0];
+    if (groups.size > 1) notes.push(`These files hold ${groups.size} series. Showing the largest (${best.length} files); open the others on their own.`);
+    // Several files: drop the ones without a viewable image from the stack, but keep at least one for its tags.
+    const imgs = best.filter((s) => s.info.supported);
+    if (best.length > 1 && imgs.length && imgs.length < best.length) notes.push(`${best.length - imgs.length} file${best.length - imgs.length === 1 ? ' has' : 's have'} no image this viewer can show and ${best.length - imgs.length === 1 ? 'is' : 'are'} left out of the stack.`);
+    if (best.length > 1 && imgs.length) best = imgs;
+    if (best.length > 1 && best.some((s) => s.info.frames > 1)) { notes.push('Several multi-frame files: showing the first.'); best = [best[0]]; }
+    slices = best; multiFrame = best.length === 1 && best[0].info.frames > 1;
+    stack = best.length > 1 ? D.sortSlices(best.map((s) => s.info)) : null;
+    if (stack) slices = stack.order.map((i) => best[i]);
+    if (stack && !stack.regular && best.length >= 3) notes.push(`Reslicing is off: ${stack.why}`);
+    if (stack && !stack.positions.every(Number.isFinite)) notes.push('Sorted by instance number (no slice positions).');
+    vol = null; meas = []; draft = null; plane = 'orig';
+    warnBox.replaceChildren(...notes.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    warnBox.hidden = !notes.length;
+    title = label;
+    const first = slices[0];
+    q('.dv-view').hidden = !first.info.supported;
+    if (!first.info.supported) fail(first.info.why);
+    q('.dv-tagcard').hidden = false;
+    // Planes: original, plus two reslices for a regular stack.
+    const seg = q('.dv-plane'); seg.replaceChildren();
+    q('.dv-planes').hidden = !(stack?.regular);
+    if (stack?.regular) {
+      const iop = first.info.iop!, rowDir = iop.slice(0, 3), colDir = iop.slice(3);
+      const opts: [string, string][] = [['orig', `${D.planeOf(stack.normal!)} (as scanned)`], ['row', `${D.planeOf(colDir)} (reslice)`], ['col', `${D.planeOf(rowDir)} (reslice)`]];
+      for (const [k, t] of opts) { const b = document.createElement('button'); b.type = 'button'; b.dataset.p = k; b.textContent = t; b.setAttribute('aria-pressed', String(k === 'orig')); seg.append(b); }
+    }
+    idx = Math.floor((count() - 1) / 2);
+    if (first.info.supported) { setupWindowList(); fit(); show(); }
+    tags();
+  }
+  q('.dv-plane').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button'); if (!b) return;
+    plane = b.dataset.p!;
+    q('.dv-plane').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (plane !== 'orig' && !vol) vol = slices.map((s) => D.frame(s.d, s.info));
+    idx = Math.floor((count() - 1) / 2); fit(); show();
+  });
+
+  // ---------- The current image ----------
+  function count() {
+    const i = slices[0].info;
+    if (plane === 'row') return i.rows;
+    if (plane === 'col') return i.cols;
+    return multiFrame ? i.frames : slices.length;
+  }
+  function getView(): View {
+    const s0 = slices[0], i0 = s0.info;
+    if (plane === 'orig') {
+      const s = multiFrame ? s0 : slices[idx], f = multiFrame ? idx : 0;
+      const n = multiFrame ? `frame ${idx + 1} of ${i0.frames}` : slices.length > 1 ? `slice ${idx + 1} of ${slices.length}` : '';
+      if (s.info.spp === 3) return { w: s.info.cols, h: s.info.rows, data: null, rgb: D.rgbFrame(s.d, s.info, f), sp: s.info.spacing, label: n };
+      return { w: s.info.cols, h: s.info.rows, data: D.frame(s.d, s.info, f), rgb: null, sp: s.info.spacing, label: n };
+    }
+    const r = D.reslice(vol!, i0.rows, i0.cols, plane as 'row' | 'col', idx);
+    const sp = i0.spacing ?? [1, 1], g = stack!.spacing;
+    return { ...r, rgb: null, sp: [g, plane === 'row' ? sp[1] : sp[0]], label: `${plane === 'row' ? 'row' : 'column'} ${idx + 1} of ${count()}` };
+  }
+  const key = () => `${plane}:${idx}`;
+
+  function setupWindowList() {
+    const i = slices[0].info, sel = q<HTMLSelectElement>('.dv-pre');
+    const opts: [string, string][] = [];
+    i.wc.forEach((c, k) => { const w = i.ww[k]; if (Number.isFinite(w)) opts.push([`f${k}`, `From the file${i.wNames[k] ? `: ${i.wNames[k].toLowerCase()}` : ''} (C ${c}, W ${w})`]); });
+    opts.push(['auto', 'Auto (fits the data)']);
+    if (i.units === 'HU') for (const p of D.PRESETS) opts.push([`p:${p.name}`, `${p.name}, approx. (C ${p.c}, W ${p.w})`]);
+    opts.push(['custom', 'Custom']);
+    sel.replaceChildren(...opts.map(([v, t]) => new Option(t, v)));
+    sel.value = opts[0][0]; applyPreset();
+  }
+  function applyPreset() {
+    const i = slices[0].info, v = q<HTMLSelectElement>('.dv-pre').value;
+    if (v.startsWith('f')) { const k = +v.slice(1); wc = i.wc[k]; ww = i.ww[k]; }
+    else if (v === 'auto') { const vw = view ?? getView(); [wc, ww] = vw.data ? D.autoWindow(vw.data) : [128, 256]; }
+    else if (v.startsWith('p:')) { const p = D.PRESETS.find((p) => p.name === v.slice(2))!; wc = p.c; ww = p.w; }
+    syncWindow();
+  }
+  function syncWindow() { q<HTMLInputElement>('.dv-c').value = fmt(wc); q<HTMLInputElement>('.dv-w').value = fmt(ww); }
+  q('.dv-pre').addEventListener('change', () => { applyPreset(); draw(); });
+  for (const c of ['.dv-c', '.dv-w']) q(c).addEventListener('input', () => {
+    const c2 = parseFloat(q<HTMLInputElement>('.dv-c').value), w2 = parseFloat(q<HTMLInputElement>('.dv-w').value);
+    if (Number.isFinite(c2)) wc = c2; if (Number.isFinite(w2) && w2 >= 1) ww = w2;
+    q<HTMLSelectElement>('.dv-pre').value = 'custom'; draw();
+  });
+  q('.dv-inv').addEventListener('change', (e) => { inv = (e.target as HTMLInputElement).checked; draw(); });
+
+  const img = document.createElement('canvas');
+  function show() {
+    view = getView();
+    const n = count(), sl = q<HTMLInputElement>('.dv-slice');
+    sl.max = String(n - 1); sl.value = String(idx); q('.dv-slicebox').hidden = n < 2;
+    q('.dv-sn').textContent = view.label;
+    if (q<HTMLSelectElement>('.dv-pre').value === 'auto' && plane !== 'orig') applyPreset();
+    const s = slices[multiFrame || plane !== 'orig' ? 0 : idx];
+    q('.dv-name').textContent = title;
+    q('.dv-dims').textContent = `${view.w} × ${view.h} pixels${view.sp ? `, ${fmt(view.w * view.sp[1])} × ${fmt(view.h * view.sp[0])} mm` : ''}`;
+    facts(s);
+    draw();
+  }
+  q('.dv-slice').addEventListener('input', (e) => { idx = +(e.target as HTMLInputElement).value; show(); });
+
+  function draw() {
+    if (!view) return;
+    const { w, h } = view;
+    img.width = w; img.height = h;
+    const ictx = img.getContext('2d')!, id = ictx.createImageData(w, h), px = id.data;
+    const m1 = slices[0].info.photo === 'MONOCHROME1' && plane === 'orig';
+    const flip = m1 !== inv;
+    if (view.rgb) { for (let i = 0; i < w * h; i++) { for (let k = 0; k < 3; k++) px[i * 4 + k] = inv ? 255 - view.rgb[i * 3 + k] : view.rgb[i * 3 + k]; px[i * 4 + 3] = 255; } }
+    else {
+      const d = view.data!;
+      for (let i = 0; i < w * h; i++) { let g = D.windowLevel(d[i], wc, ww); if (flip) g = 255 - g; px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = g; px[i * 4 + 3] = 255; }
+    }
+    ictx.putImageData(id, 0, 0);
+    const box = cv.getBoundingClientRect(), dpr = Math.min(3, devicePixelRatio || 1);
+    const W = Math.max(1, Math.round(box.width)), H = Math.max(1, Math.round(box.height));
+    cv.width = W * dpr; cv.height = H * dpr;
+    const ctx = cv.getContext('2d')!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintView(ctx, W, H);
+  }
+  // Image to screen: physical aspect from the spacing, then zoom and pan.
+  function geom(W: number, H: number) {
+    const v = view!, ax = v.sp ? v.sp[1] : 1, ay = v.sp ? v.sp[0] : 1;
+    const s0 = Math.min(W / (v.w * ax), H / (v.h * ay)), s = s0 * zoom;
+    const ox = (W - v.w * ax * s) / 2 + panX, oy = (H - v.h * ay * s) / 2 + panY;
+    return { sx: ax * s, sy: ay * s, ox, oy };
+  }
+  function paintView(ctx: CanvasRenderingContext2D, W: number, H: number, scale = 1) {
+    const g = geom(W / scale, H / scale);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.scale(scale, scale);
+    ctx.imageSmoothingEnabled = g.sx < 3;
+    ctx.drawImage(img, g.ox, g.oy, view!.w * g.sx, view!.h * g.sy);
+    const P = (p: [number, number]) => [g.ox + p[0] * g.sx, g.oy + p[1] * g.sy] as [number, number];
+    const list = meas.filter((m) => m.key === key()); if (draft) list.push(draft);
+    ctx.lineWidth = 2; ctx.font = '600 13px system-ui, sans-serif';
+    list.forEach((m) => {
+      const n = meas.indexOf(m) + 1;
+      ctx.strokeStyle = '#ffd400'; ctx.fillStyle = '#ffd400';
+      const pts = m.pts.map(P);
+      ctx.beginPath();
+      if (m.kind === 'rect' || m.kind === 'ell') {
+        const [a, b] = pts; const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]), w2 = Math.abs(b[0] - a[0]), h2 = Math.abs(b[1] - a[1]);
+        if (m.kind === 'rect') ctx.rect(x, y, w2, h2); else ctx.ellipse(x + w2 / 2, y + h2 / 2, w2 / 2, h2 / 2, 0, 0, 2 * Math.PI);
+      } else { pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); }
+      ctx.stroke();
+      for (const p of pts) { ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, 2 * Math.PI); ctx.fill(); }
+      const at = pts[pts.length - 1], label = `${n > 0 ? n + ': ' : ''}${m.text}`;
+      ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(label, at[0] + 6, at[1] - 6); ctx.fillText(label, at[0] + 6, at[1] - 6); ctx.lineWidth = 2;
+    });
+    ctx.restore();
+  }
+  function fit() { zoom = 1; panX = 0; panY = 0; sizeCanvas(); }
+  function sizeCanvas() {
+    const v = getView(), ax = v.sp ? v.sp[1] : 1, ay = v.sp ? v.sp[0] : 1;
+    const W = cv.parentElement!.clientWidth || 600, ratio = (v.h * ay) / (v.w * ax);
+    cv.style.height = `${Math.round(Math.max(200, Math.min(W * ratio, window.innerHeight * 0.7)))}px`;
+  }
+  q('.dv-zin').addEventListener('click', () => { zoom = Math.min(32, zoom * 1.5); draw(); });
+  q('.dv-zout').addEventListener('click', () => { zoom = Math.max(0.25, zoom / 1.5); draw(); });
+  q('.dv-fit').addEventListener('click', () => { fit(); draw(); });
+  new ResizeObserver(() => { if (view && !q('.dv-view').hidden) { sizeCanvas(); draw(); } }).observe(q('.dv-stage'));
+
+  // ---------- Pointer: window, pan, measure; two fingers zoom ----------
+  const HOW: Record<string, string> = {
+    wl: 'Drag on the image: left and right change the width (contrast), up and down the centre (brightness).',
+    pan: 'Drag to move the image. Two fingers pinch to zoom on a touch screen.',
+    dist: 'Drag from one point to another to measure a distance.',
+    angle: 'Tap three points: one end, the corner, the other end.',
+    rect: 'Drag a box to get the mean, SD, minimum and maximum inside it.',
+    ell: 'Drag an oval to get the mean, SD, minimum and maximum inside it.',
+  };
+  q('.dv-tool').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button'); if (!b) return;
+    tool = b.dataset.t!; draft = null;
+    q('.dv-tool').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.dv-how').textContent = HOW[tool]; draw();
+  });
+  q('.dv-how').textContent = HOW.wl;
+  const toImg = (e: PointerEvent | MouseEvent): [number, number] => {
+    const r = cv.getBoundingClientRect(), g = geom(r.width, r.height);
+    return [(e.clientX - r.left - g.ox) / g.sx, (e.clientY - r.top - g.oy) / g.sy];
+  };
+  const pointers = new Map<number, { x: number; y: number }>();
+  let start: { x: number; y: number; wc: number; ww: number; px: number; py: number } | null = null, pinch = 0;
+  cv.addEventListener('pointerdown', (e) => {
+    if (!view) return;
+    cv.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); draft = tool === 'angle' ? draft : null; start = null; return; }
+    start = { x: e.clientX, y: e.clientY, wc, ww, px: panX, py: panY };
+    const p = toImg(e);
+    if (tool === 'dist' || tool === 'rect' || tool === 'ell') draft = { kind: tool, key: key(), pts: [p, p], text: '', vals: [] };
+    else if (tool === 'angle') {
+      if (!draft || draft.kind !== 'angle' || draft.key !== key()) draft = { kind: 'angle', key: key(), pts: [p], text: '', vals: [] };
+      else draft.pts.push(p);
+      if (draft.pts.length === 3) { finish(draft); draft = null; }
+      draw();
+    }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!view) return;
+    readout(toImg(e));
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch > 0) { zoom = Math.max(0.25, Math.min(32, zoom * (d / pinch))); pinch = d; draw(); }
+      return;
+    }
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if (tool === 'wl' && view.data) {
+      const k = Math.max(0.5, start.ww / 300);
+      ww = Math.max(1, start.ww + dx * k); wc = start.wc - dy * k;
+      q<HTMLSelectElement>('.dv-pre').value = 'custom'; syncWindow(); draw();
+    } else if (tool === 'pan') { panX = start.px + dx; panY = start.py + dy; draw(); }
+    else if (draft && tool !== 'angle') { draft.pts[1] = toImg(e); draft.text = measureText(draft).text; draw(); }
+  });
+  const up = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = 0;
+    if (draft && tool !== 'angle' && start) {
+      const [a, b] = draft.pts;
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) * geom(cv.clientWidth, cv.clientHeight).sx >= 4) finish(draft);
+      draft = null; draw();
+    }
+    start = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', (e) => { if (count() < 2) return; e.preventDefault(); idx = Math.max(0, Math.min(count() - 1, idx + Math.sign(e.deltaY))); show(); }, { passive: false });
+  cv.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); idx = Math.max(0, Math.min(count() - 1, idx + (/Up/.test(e.key) ? -1 : 1))); show(); }
+  });
+
+  const unit = () => slices[0]?.info.units || 'units';
+  function measureText(m: Meas): { text: string; vals: string[] } {
+    const v = view!, sp = v.sp, mm = sp ? 'mm' : 'px';
+    if (m.kind === 'dist') { const d = D.distance(m.pts[0], m.pts[1], sp ?? [1, 1]); return { text: `${fmt(d, 2)} ${mm}`, vals: [`${fmt(d, 2)} ${mm}`] }; }
+    if (m.kind === 'angle') { const a = D.angle(m.pts[0], m.pts[1], m.pts[2], sp ?? [1, 1]); return { text: `${a.toFixed(1)}°`, vals: [`${a.toFixed(1)}°`] }; }
+    if (!v.data) return { text: 'colour image: no statistics', vals: [] };
+    const st = D.roiStats(v.data, v.w, v.h, [m.pts[0][0], m.pts[0][1], m.pts[1][0], m.pts[1][1]], m.kind === 'ell', sp);
+    const u = unit();
+    return { text: `mean ${fmt(st.mean)} ${u}, SD ${fmt(st.sd)}`, vals: [`mean ${fmt(st.mean)} ${u}`, `SD ${fmt(st.sd)}`, `min ${fmt(st.min)}`, `max ${fmt(st.max)}`, `${st.n} px`, sp ? `${fmt(st.area, 1)} mm²` : ''] };
+  }
+  function finish(m: Meas) { const r = measureText(m); m.text = r.text; m.vals = r.vals; meas.push(m); table(); }
+  const KIND: Record<string, string> = { dist: 'Distance', angle: 'Angle', rect: 'ROI box', ell: 'ROI oval' };
+  function table() {
+    const t = q<HTMLTableElement>('.dv-mt'); t.innerHTML = '<thead><tr><th>#</th><th>What</th><th>Where</th><th>Result</th><th></th></tr></thead>';
+    const b = t.createTBody();
+    meas.forEach((m, i) => {
+      const tr = b.insertRow();
+      [String(i + 1), KIND[m.kind], where(m.key), m.vals.filter(Boolean).join(', ')].forEach((x) => (tr.insertCell().textContent = x));
+      const del = document.createElement('button'); del.type = 'button'; del.textContent = 'Delete'; del.onclick = () => { meas.splice(i, 1); table(); draw(); };
+      tr.insertCell().append(del);
+    });
+    q('.dv-mbox').hidden = !meas.length;
+  }
+  function where(k: string) {
+    const [p, i] = k.split(':'), n = +i + 1;
+    if (p === 'orig') return multiFrame ? `frame ${n}` : slices.length > 1 ? `slice ${n}` : 'image';
+    return `${p === 'row' ? 'reslice, row' : 'reslice, column'} ${n}`;
+  }
+  q('.dv-mclr').addEventListener('click', () => { meas = []; table(); draw(); });
+  const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const csv = (rows: string[][]) => new Blob(['﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' });
+  q('.dv-mcsv').addEventListener('click', () => save(csv([['number', 'kind', 'where', 'result'], ...meas.map((m, i) => [String(i + 1), KIND[m.kind], where(m.key), m.vals.filter(Boolean).join('; ')])]), 'dicom-measurements.csv', 'text/csv'));
+
+  function readout(p: [number, number]) {
+    const v = view!, x = Math.floor(p[0]), y = Math.floor(p[1]);
+    if (x < 0 || y < 0 || x >= v.w || y >= v.h) return;
+    const i = y * v.w + x;
+    const val = v.data ? `${fmt(v.data[i], 2)} ${unit()}` : `R ${v.rgb![i * 3]}, G ${v.rgb![i * 3 + 1]}, B ${v.rgb![i * 3 + 2]}`;
+    q('.dv-px').textContent = `Column ${x + 1}, row ${y + 1}: ${val}`;
+  }
+
+  // ---------- Facts and tags ----------
+  let factRows: [string, string][] = [];
+  function facts(s: Slice) {
+    const g = D.getter(s.d), i = s.info, rows: [string, string][] = [];
+    const add = (k: string, v: string | undefined) => { if (v) rows.push([k, v]); };
+    add('Modality', i.modality || undefined);
+    add('Image', `${i.cols} × ${i.rows}${i.frames > 1 ? `, ${i.frames} frames` : ''}${slices.length > 1 ? `, ${slices.length} slices` : ''}`);
+    add('Pixel spacing', i.spacing ? `${i.spacing[0]} × ${i.spacing[1]} mm (row × column)${i.spacingFrom.startsWith('Imager') ? ', at the detector' : ''}` : 'not given: lengths in pixels');
+    if (stack?.regular) add('Slice gap', `${fmt(stack.spacing, 2)} mm`); else add('Slice thickness', i.thickness ? `${i.thickness} mm` : undefined);
+    add('Pixels', `${i.bitsStored} of ${i.bitsAlloc} bits, ${i.signed ? 'signed' : 'unsigned'}, ${i.photo}`);
+    add('Rescale', i.slope !== 1 || i.intercept !== 0 ? `value × ${i.slope} + ${i.intercept}${i.units ? ` = ${i.units}` : ''}` : 'none');
+    add('Transfer syntax', D.tsName(s.d.ts));
+    add('Study date', g.s(0x00080020) || undefined);
+    add('Description', g.s(0x00081030) || g.s(0x0008103e) || undefined);
+    q('.dv-facts').replaceChildren(...rows.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    factRows = rows;
+  }
+  let tagList: D.TagRow[] = [];
+  function tags() {
+    const s = slices[plane === 'orig' && !multiFrame ? idx : 0] ?? slices[0];
+    tagList = D.tagRows(s.d);
+    q('.dv-tagnote').textContent = `${s.name}: ${tagList.filter((r) => r.tag).length} tags. Private (maker-specific) tags are grey.`;
+    fillTags();
+  }
+  function fillTags() {
+    const f = q<HTMLInputElement>('.dv-filter').value.trim().toLowerCase(), t = q<HTMLTableElement>('.dv-tags');
+    t.innerHTML = '<thead><tr><th>Tag</th><th>VR</th><th>Name</th><th>Value</th></tr></thead>';
+    const b = t.createTBody();
+    let shown = 0;
+    for (const r of tagList) {
+      if (f && !`${r.tag} ${r.tag.replace(/[(),]/g, '')} ${r.vr} ${r.name} ${r.value}`.toLowerCase().includes(f)) continue;
+      if (++shown > 3000) break;
+      const tr = b.insertRow(); if (r.private) tr.className = 'priv'; if (r.vr === 'SQ' || !r.tag) tr.classList.add('seq');
+      [r.tag, r.vr, r.name || (r.private ? 'Private' : 'Unknown'), r.value].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 2 && r.depth) td.style.paddingLeft = `${8 + r.depth * 12}px`; });
+    }
+  }
+  q('.dv-filter').addEventListener('input', fillTags);
+  q('.dv-slice').addEventListener('change', tags);
+  q('.dv-tcsv').addEventListener('click', () => save(csv([['depth', 'tag', 'vr', 'name', 'value'], ...tagList.map((r) => [String(r.depth), r.tag, r.vr, r.name, r.value])]), 'dicom-tags.csv', 'text/csv'));
+
+  document.addEventListener('fibub:theme', () => draw());
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (view) {
+      const r = cv.getBoundingClientRect(), k = Math.min(2, 1000 / r.width);
+      const fig: Figure = { w: Math.round(r.width * k), h: Math.round(r.height * k), alt: `${title}, ${view.label}`, draw: (ctx, w, h) => paintView(ctx, w, h, k) };
+      sections.push({ title: `${title}${view.label ? `, ${view.label}` : ''}`, text: [`Window centre ${fmt(wc)}, width ${fmt(ww)}.`], figure: fig, facts: factRows });
+      if (meas.length) sections.push({ title: 'Measurements', table: { head: ['#', 'What', 'Where', 'Result'], rows: meas.map((m, i) => [String(i + 1), KIND[m.kind], where(m.key), m.vals.filter(Boolean).join(', ')]) } });
+    }
+    sections.push({ title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.'] });
+    return { title: 'DICOM image', subtitle: title, file: 'dicom-view', sections };
+  });
+  loadSample();
+</script>

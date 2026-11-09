@@ -1,0 +1,180 @@
+---
+// Occupational exposure: 8-hour TWA, highest 15-minute average, excursion check and long-shift limit adjustment.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax twa">
+  <p class="twa-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Sampled periods</h2>
+    <label>One per line: start, end and concentration (07:00 09:30 12), or minutes and concentration (150 12). A task name at the end is optional.
+      <textarea class="twa-data" rows="7" spellcheck="false">Start	End	Concentration	Task
+07:00	09:30	12	Mixing
+09:30	09:45	60	Cleaning tank
+09:45	12:00	8	Packing
+12:30	15:00	10	Packing
+15:00	17:00	6	Store room</textarea></label>
+    <DataFile target=".twa-data" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit <select class="twa-u"><option>ppm</option><option>mg/m³</option><option>f/cc</option></select></label>
+      <label>Shift length (hours) <input class="twa-shift" inputmode="decimal" value="10" /></label>
+      <label>Time not sampled <select class="twa-uns"><option value="zero">Counts as zero exposure</option><option value="average">At the sampled average</option></select></label>
+    </div>
+    <p class="ax-help">The 8-hour TWA adds up concentration × time over the whole shift and divides by 8 hours (480 minutes). Count unsampled time as zero only when there really was no exposure, such as a lunch break away from the work area.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your limits</h2>
+    <div class="ax-grid">
+      <label>8-hour limit <input class="twa-lim" inputmode="decimal" value="20" /></label>
+      <label>15-minute limit (STEL, optional) <input class="twa-stel" inputmode="decimal" value="50" /></label>
+      <label>Long-shift adjustment <select class="twa-model">
+        <option value="none">None</option>
+        <option value="bs-daily" selected>Brief and Scala, daily</option>
+        <option value="bs-weekly">Brief and Scala, weekly</option>
+        <option value="osha-daily">OSHA model, daily (8 ÷ h)</option>
+        <option value="osha-weekly">OSHA model, weekly (40 ÷ h)</option>
+      </select></label>
+      <label>Hours per week <input class="twa-hpw" inputmode="decimal" value="50" /></label>
+    </div>
+    <h3 class="twa-h3">Excursion rule (for substances with no STEL)</h3>
+    <div class="ax-grid">
+      <label>Above this many × the limit <input class="twa-ex1" inputmode="decimal" value="3" /></label>
+      <label>for no more than (min a day) <input class="twa-exm" inputmode="decimal" value="30" /></label>
+      <label>and never above × the limit <input class="twa-ex2" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Type the limits that apply to you; the example limits are made up and no limit tables are included. The excursion defaults (3 × for at most 30 minutes, never 5 ×) follow the ACGIH TLV excursion guidance, checked 2026-11-09; check the official source for your country.</p>
+    <p class="ax-err twa-err" hidden></p>
+  </div>
+
+  <div class="ax-card twa-out">
+    <h2>Result</h2>
+    <p class="ax-big twa-big"></p>
+    <dl class="ax-facts twa-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="twa-ver"></table></div>
+    <p class="twa-exc"></p>
+    <ul class="twa-notes"></ul>
+    <canvas class="ax-fig twa-fig" style="margin-top:12px"></canvas>
+  </div>
+
+  <div class="ax-card twa-out">
+    <h2>Working (check the sums)</h2>
+    <div class="ax-scroll"><table class="twa-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary twa-csv">Download working (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .twa [hidden] { display: none !important; }
+  .twa-med { font-size: 14px; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 0 0 12px; background: var(--warn-soft); }
+  .twa-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .twa table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .twa th, .twa td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .twa th.r, .twa td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .twa tfoot td { font-weight: 700; }
+  .twa td.bad { color: var(--bad); font-weight: 600; }
+  .twa td.good { color: var(--good); font-weight: 600; }
+  .twa-exc { margin: 10px 0 0; font-size: 15px; }
+  .twa-notes { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig as sig0, csv } from '../../lib/sci/num';
+  import { parsePeriods, exposureTwa, clock, MODEL_NAMES, type Model, type TwaResult, type Period } from '../../lib/sci/twa';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.twa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const err = q('.twa-err');
+  const sig = (x: number, n = 4) => { const t = sig0(x, n); return t.includes('.') && !t.includes('×') ? t.replace(/\.?0+$/, '') : t; };
+  let fig: Figure | null = null, report: Section[] = [], head: string[] = [], rows: string[][] = [];
+
+  const optNum = (c: string, name: string) => { if (raw(c) === '') return undefined; const v = num(raw(c)); if (!Number.isFinite(v)) throw new Error(`${name} must be a number or left empty.`); return v; };
+  const need = (c: string, name: string) => { const v = num(raw(c)); if (!Number.isFinite(v)) throw new Error(`Enter ${name} as a number.`); return v; };
+
+  function calc() {
+    err.hidden = true;
+    const u = sel('.twa-u'), model = sel('.twa-model') as Model;
+    let r: TwaResult, per: Period[] = [], clockTimes = false;
+    try {
+      const parsed = parsePeriods(q<HTMLTextAreaElement>('.twa-data').value);
+      per = parsed.periods;
+      const limit = optNum('.twa-lim', 'The 8-hour limit'), stel = optNum('.twa-stel', 'The STEL');
+      r = exposureTwa(per, {
+        shiftHours: need('.twa-shift', 'the shift length'), unsampled: sel('.twa-uns') as 'zero' | 'average', limit, stel,
+        excursion: { times: need('.twa-ex1', 'the excursion multiple'), minutes: need('.twa-exm', 'the excursion minutes'), never: need('.twa-ex2', 'the "never above" multiple') },
+        model, hoursPerWeek: need('.twa-hpw', 'the hours per week'),
+      });
+      if (model !== 'none' && limit === undefined) throw new Error('Enter an 8-hour limit to adjust it for a long shift.');
+      clockTimes = parsed.clockTimes;
+    } catch (e) {
+      report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.twa-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.twa-out').forEach((o) => (o.hidden = false));
+    const shift = num(raw('.twa-shift')), t0 = per[0].start, when = (m: number) => (clockTimes ? clock(m) : `${sig(m - t0, 4)} min`);
+    q('.twa-big').textContent = `8-hour TWA ${sig(r.twa8, 3)} ${u}`;
+    const facts: [string, string, string?][] = [
+      ['Sampled', `${sig(r.sampledMin, 4)} min`, `of a ${sig(shift, 3)} h shift (${sig(shift * 60, 4)} min)`],
+      ['Sum of concentration × time', `${sig(r.dose, 5)} ${u}·min`, r.unsampledMin > 0 ? (sel('.twa-uns') === 'zero' ? 'unsampled time counted as zero' : `plus ${sig(r.unsampledMin, 4)} min at ${sig(r.sampledAvg, 3)}`) : 'whole shift sampled'],
+      ['Shift average', `${sig(r.shiftAvg, 3)} ${u}`, `over ${sig(shift, 3)} h`],
+      ['Highest 15-minute average', `${sig(r.stel15.avg, 3)} ${u}`, `from ${when(r.stel15.start)}`],
+      ['Highest sampled level', `${sig(r.peak, 3)} ${u}`],
+      ...(model !== 'none' && r.adjLimit !== null ? [['Adjusted limit', `${sig(r.adjLimit, 3)} ${u}`, `${MODEL_NAMES[model]}: × ${sig(r.rf, 3)}`] as [string, string, string]] : []),
+    ];
+    q('.twa-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+
+    const vt = q<HTMLTableElement>('.twa-ver'); vt.innerHTML = '';
+    if (r.verdicts.length) {
+      const hr = vt.createTHead().insertRow(); ['Comparison', 'Value', 'Limit', '% of limit', ''].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const b = vt.createTBody();
+      for (const v of r.verdicts) { const tr = b.insertRow(); [v.name, sig(v.value, 3), sig(v.limit, 3), `${(v.ratio * 100).toFixed(0)} %`, v.ok ? 'within' : 'above'].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; if (i === 4) td.className = `r ${v.ok ? 'good' : 'bad'}`; }); }
+    }
+    q('.twa-exc').textContent = r.excursion ? `Excursion check: ${r.excursion.ok ? 'passes' : 'fails'}. ${r.excursion.text}` : '';
+    q('.twa-notes').replaceChildren(...r.notes.map((n) => { const li = document.createElement('li'); li.textContent = n; return li; }));
+
+    // Working table with running totals, so the sums can be checked by hand.
+    let run = 0;
+    head = ['From', 'To', 'Minutes', `Concentration (${u})`, `Conc. × min (${u}·min)`, 'Running total', 'Task'];
+    rows = per.map((x) => { const d = x.end - x.start, ct = x.conc * d; run += ct; return [when(x.start), when(x.end), sig(d, 4), sig(x.conc, 4), sig(ct, 5), sig(run, 5), x.label]; });
+    const tb = q<HTMLTableElement>('.twa-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1 && i < 6) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(); rows.forEach((rr) => { const tr = body.insertRow(); rr.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i > 1 && i < 6) td.className = 'r'; }); });
+    const ft = tb.createTFoot().insertRow(); ['Total', '', sig(r.sampledMin, 4), '', sig(r.dose, 5), '', `÷ 480 = ${sig(r.dose / 480, 4)}`].forEach((t, i) => { const td = ft.insertCell(); td.textContent = t; if (i > 1 && i < 6) td.className = 'r'; });
+
+    // Step profile through the shift, in hours from the first sample.
+    const xs: number[] = [], ys: number[] = [];
+    per.forEach((x, i) => { if (i && x.start > per[i - 1].end) { xs.push(per[i - 1].end, x.start); ys.push(0, 0); } xs.push(x.start, x.end); ys.push(x.conc, x.conc); });
+    const H = (m: number) => (m - t0) / 60;
+    const lim = optNum('.twa-lim', ''), stel = optNum('.twa-stel', '');
+    fig = chartFigure({ h: 320, xLabel: clockTimes ? `Hours from ${clock(t0)}` : 'Hours from the first sample', yLabel: `Concentration (${u})`, yMin: 0, legend: 'below', series: [
+      { name: 'Sampled concentration (gaps as zero)', x: xs.map(H), y: ys, mode: 'line' },
+    ], marks: [
+      { kind: 'hline', at: r.twa8, label: '8-h TWA', dash: [2, 3] },
+      ...(lim !== undefined ? [{ kind: 'hline' as const, at: lim, label: '8-h limit', dash: [6, 4] }] : []),
+      ...(r.adjLimit !== null && model !== 'none' ? [{ kind: 'hline' as const, at: r.adjLimit, label: 'adjusted', dash: [3, 3] }] : []),
+      ...(stel !== undefined ? [{ kind: 'hline' as const, at: stel, label: 'STEL', dash: [8, 3] }] : []),
+    ] }, `Concentration through the shift; 8-hour TWA ${sig(r.twa8, 3)} ${u}`);
+    paint(q<HTMLCanvasElement>('.twa-fig'), fig);
+
+    report = [
+      { title: 'Result', facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), text: [r.excursion ? `Excursion check: ${r.excursion.ok ? 'passes' : 'fails'}. ${r.excursion.text}` : '', ...r.notes].filter(Boolean),
+        ...(r.verdicts.length ? { table: { head: ['Comparison', 'Value', 'Limit', '% of limit', 'Verdict'], rows: r.verdicts.map((v) => [v.name, sig(v.value, 3), sig(v.limit, 3), `${(v.ratio * 100).toFixed(0)} %`, v.ok ? 'within' : 'above']), align: ['l', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] } } : {}), figure: fig },
+      { title: 'Working', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'l'] }, note: 'Limits are the user’s own; check the official source. For study and teaching, not medical advice.' },
+    ];
+  }
+  q('.twa-csv').addEventListener('click', () => { if (rows.length) save(new TextEncoder().encode(csv([head, ...rows])), 'exposure-twa.csv', 'text/csv'); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.twa-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Exposure TWA', subtitle: q('.twa-big').textContent ?? '', file: 'exposure-twa', sections: report }));
+</script>

@@ -1,5 +1,102 @@
 [
  {
+  "sha": "172b319a9a43",
+  "date": "2026-11-09T10:02:38+00:00",
+  "title": "Add #188 Cryo-EM sampling and resolution calculator",
+  "tools": [
+   "cryo-em-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ad4e8d163c1e",
+  "date": "2026-11-09T10:02:24+00:00",
+  "title": "Add #186 Ramachandran plot",
+  "tools": [
+   "ramachandran-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c9dd5e3dbd3b",
+  "date": "2026-11-09T09:51:39+00:00",
+  "title": "Add #182 Hydropathy plot and transmembrane helix finder",
+  "tools": [
+   "hydropathy-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9c7e504b895f",
+  "date": "2026-11-09T09:51:10+00:00",
+  "title": "Add #183 Stock solution and media recipe scaler",
+  "tools": [
+   "media-recipe-scaler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "64a87fbdd56e",
+  "date": "2026-11-09T09:50:51+00:00",
+  "title": "Add #184 Ion exchange and IEF pH picker",
+  "tools": [
+   "ion-exchange-ph"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a8819b51b86e",
+  "date": "2026-11-09T09:49:13+00:00",
+  "title": "Add #181 Protein assay standard curve",
+  "tools": [
+   "protein-assay"
+  ],
+  "site": false
+ },
+ {
+  "sha": "268a0eef3784",
+  "date": "2026-11-09T09:35:05+00:00",
+  "title": "Add #180 gel and western blot densitometry; per-tool test files",
+  "tools": [
+   "gel-densitometry"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ca68e5d6534",
+  "date": "2026-11-09T09:14:46+00:00",
+  "title": "Add #179 peptide mass and fragment ion calculator",
+  "tools": [
+   "peptide-mass-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "09573f2cc53b",
+  "date": "2026-11-09T08:56:51+00:00",
+  "title": "Add #178 protein parameter calculator",
+  "tools": [
+   "protein-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4eed7f76da37",
+  "date": "2026-11-09T08:39:38+00:00",
+  "title": "Add #177 phylogenetic tree viewer (Newick and NEXUS)",
+  "tools": [
+   "tree-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dd18115fc51c",
+  "date": "2026-11-09T08:10:31+00:00",
+  "title": "Count views per page by day, publish counts to the repo daily",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "92dae82478fc",
   "date": "2026-11-09T08:09:01+00:00",
   "title": "Add a bottom bar (Learn, Tools, Home, News, Menu) with area colours, plus Learn, Tools and News pages",

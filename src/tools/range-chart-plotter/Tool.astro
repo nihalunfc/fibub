@@ -1,0 +1,201 @@
+---
+// Range chart and diversity through time: taxa with first and last appearances, put into time bins and counted
+// with Foote's boundary-crosser categories. The example taxa are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE } from '../../lib/sci/ranges';
+---
+<div class="ax rcp">
+  <div class="ax-card">
+    <h2>Taxa</h2>
+    <label>One taxon per row: name, first appearance, last appearance. Leave the last out for a taxon found at one level only.
+      <textarea class="rc-in" rows="9" spellcheck="false" wrap="off">{EXAMPLE}</textarea></label>
+    <DataFile target=".rc-in" maxCols={10} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>First and last are <select class="rc-mode"><option value="ages" selected>Ages in Ma (older is larger)</option><option value="bins">Bin numbers or names (1 = oldest)</option></select></label>
+      <label class="rc-agesonly">Bins <select class="rc-bins"><option value="equal" selected>Equal widths</option><option value="edges">My own boundaries</option></select></label>
+      <label class="rc-agesonly rc-wl">Bin width (Myr) <input class="rc-w" type="text" inputmode="decimal" value="10" /></label>
+      <label>Range chart order <select class="rc-sort"><option value="first" selected>By first appearance</option><option value="last">By last appearance</option><option value="input">As entered</option></select></label>
+    </div>
+    <label class="rc-el" style="margin-top:10px" hidden>Bin boundaries in Ma, oldest first <input class="rc-edges" type="text" inputmode="decimal" value="120, 100, 90, 80, 66, 60" /></label>
+    <label style="margin-top:10px">Bin names, oldest first, one per line or separated by commas (optional) <textarea class="rc-names" rows="2" spellcheck="false"></textarea></label>
+    <p class="ax-help">A first appearance that falls exactly on a boundary counts in the younger bin, and a last appearance on a boundary in the older bin, so a taxon that ends at a boundary did not cross it. The example taxa and ages are made up.</p>
+    <p class="ax-err rc-err" hidden></p>
+  </div>
+
+  <div class="ax-card rc-out" hidden>
+    <h2>Range chart</h2>
+    <p class="ax-big rc-big"></p>
+    <canvas class="ax-fig rc-rfig"></canvas>
+    <h3>Diversity through time</h3>
+    <canvas class="ax-fig rc-dfig"></canvas>
+    <h3>Origination and extinction rates</h3>
+    <canvas class="ax-fig rc-pfig"></canvas>
+    <p class="ax-help rc-pnote"></p>
+    <div class="ax-scroll"><table class="rc-tab"></table></div>
+    <p class="ax-help">Foote's boundary crossers: <b>FL</b> first and last in the bin (singletons), <b>bL</b> cross the bottom boundary and end in the bin, <b>Ft</b> start in the bin and cross the top, <b>bt</b> range through, crossing both. Range-through diversity counts every taxon present in the bin (FL + bL + Ft + bt). Mean standing diversity is (bL + Ft) / 2 + bt. Rates: p = −ln(bt / (Ft + bt)), q = −ln(bt / (bL + bt)); with no range-through taxa they cannot be worked out (–).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rc-csv">Counts per bin (CSV)</button><button type="button" class="btn secondary small rc-tcsv">Taxa with their bins (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rcp h3 { margin: 22px 0 8px; font-size: 15px; }
+  .rcp select { max-width: 100%; }
+  .rcp .rc-tab td, .rcp .rc-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTaxa, equalBins, edgeBins, analyse, type Bin, type BinCounts, type Taxon } from '../../lib/sci/ranges';
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rcp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const MAXT = 2000;
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : '–');
+  const fa = (x: number) => String(+x.toPrecision(8));
+
+  let taxa: Taxon[] = [], bins: Bin[] = [], counts: BinCounts[] = [], ranges: { f: number; l: number }[] = [], mode: 'ages' | 'bins' = 'ages';
+  let rfig: Figure | null = null, dfig: Figure | null = null, pfig: Figure | null = null, sections: Section[] = [];
+  const err = (m: string) => { q('.rc-err').textContent = m; q('.rc-err').hidden = false; q('.rc-out').hidden = true; };
+
+  function run() {
+    q('.rc-err').hidden = true;
+    mode = val('.rc-mode') as 'ages' | 'bins';
+    for (const el of root.querySelectorAll<HTMLElement>('.rc-agesonly')) el.hidden = mode !== 'ages';
+    q('.rc-wl').hidden = mode !== 'ages' || val('.rc-bins') !== 'equal';
+    q('.rc-el').hidden = mode !== 'ages' || val('.rc-bins') !== 'edges';
+    const names = val('.rc-names').split(/[\n,;\t]+/).map((s) => s.trim()).filter(Boolean);
+    const rows = parseTable(val('.rc-in'));
+    if (!rows.length) { q('.rc-out').hidden = true; return; }
+    try {
+      taxa = parseTaxa(rows, mode, names).taxa;
+      if (!taxa.length) throw new Error('Add at least one taxon below the header row.');
+      if (taxa.length > MAXT) throw new Error(`There are ${taxa.length} taxa; this tool takes up to ${MAXT}.`);
+      if (mode === 'ages') {
+        if (val('.rc-bins') === 'equal') {
+          const w = num(val('.rc-w'));
+          if (!(w > 0)) throw new Error('Give a bin width above 0.');
+          const span = Math.max(...taxa.map((t) => t.first)) - Math.min(...taxa.map((t) => t.last));
+          if (span / w > 500) throw new Error(`Bins of ${w} Myr would make more than 500 bins. Use wider bins.`);
+          bins = equalBins(taxa, w);
+          bins.forEach((b, i) => { if (names[i]) b.name = names[i]; });
+        } else {
+          const edges = val('.rc-edges').split(/[\s,;]+/).filter(Boolean).map(num);
+          if (edges.length < 2 || edges.some((x) => !Number.isFinite(x))) throw new Error('Give at least two bin boundaries in Ma, oldest first, such as 120, 100, 90.');
+          bins = edgeBins(edges, names);
+        }
+      } else {
+        const n = Math.max(names.length, ...taxa.map((t) => t.last));
+        if (n > 500) throw new Error(`Bin ${n} is too many; this tool takes up to 500 bins.`);
+        bins = Array.from({ length: n }, (_, i) => ({ name: names[i] || `Bin ${i + 1}` }));
+      }
+      ({ ranges, counts } = analyse(taxa, mode, bins));
+    } catch (e) { return err((e as Error).message); }
+    q('.rc-out').hidden = false;
+    const peak = Math.max(...counts.map((c) => c.total)), at = counts.filter((c) => c.total === peak).map((c) => c.bin.name);
+    q('.rc-big').textContent = `${taxa.length} taxa in ${bins.length} bins: diversity peaks at ${peak} taxa in ${at.slice(0, 3).join(' and ')}${at.length > 3 ? ' and others' : ''}`;
+    drawRanges(); charts(); tableOut();
+  }
+
+  function drawRanges() {
+    const order = taxa.map((_, i) => i);
+    const s = val('.rc-sort');
+    if (s === 'first') order.sort((a, b) => ranges[a].f - ranges[b].f || (mode === 'ages' ? taxa[b].first - taxa[a].first || taxa[b].last - taxa[a].last : taxa[a].last - taxa[b].last));
+    if (s === 'last') order.sort((a, b) => ranges[a].l - ranges[b].l || (mode === 'ages' ? taxa[b].last - taxa[a].last : 0));
+    const n = taxa.length, label = n <= 60, rowH = label ? 16 : Math.max(2, Math.min(8, 900 / n));
+    const lo = mode === 'ages' ? bins[bins.length - 1].top! : bins.length, hi = mode === 'ages' ? bins[0].base! : 0;
+    rfig = {
+      w: 640, h: Math.round(56 + rowH * n + (mode === 'bins' ? 14 : 0)), alt: `Range chart of ${n} taxa, oldest on the left`,
+      draw: (ctx, W, H, pal) => {
+        ctx.font = '12px Arial, Helvetica, sans-serif';
+        const L = label ? Math.min(170, 12 + Math.max(...taxa.map((t) => ctx.measureText(t.name).width))) : 14, R = 14, T = mode === 'bins' ? 26 : 10, B = 40;
+        const X = (v: number) => L + ((hi - v) / (hi - lo)) * (W - L - R);
+        const Xb = mode === 'ages' ? X : (i: number) => L + (i / bins.length) * (W - L - R);
+        // Bin boundaries, labels and alternate shading.
+        bins.forEach((b, i) => {
+          const x0 = mode === 'ages' ? X(b.base!) : Xb(i), x1 = mode === 'ages' ? X(b.top!) : Xb(i + 1);
+          if (i % 2) { ctx.fillStyle = pal.grid; ctx.fillRect(x0, T, x1 - x0, H - T - B); }
+          if (mode === 'bins' && (x1 - x0) > ctx.measureText(b.name).width + 4) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(b.name, (x0 + x1) / 2, T - 4); }
+        });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, H - B); ctx.lineTo(W - R, H - B); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        if (mode === 'ages') {
+          const edges = [bins[0].base!, ...bins.map((b) => b.top!)], every = Math.max(1, Math.ceil(edges.length / 10));
+          edges.forEach((e, i) => { if (i % every && i !== edges.length - 1) return; ctx.beginPath(); ctx.moveTo(X(e), H - B); ctx.lineTo(X(e), H - B + 4); ctx.stroke(); ctx.fillText(fa(e), X(e), H - B + 6); });
+          ctx.fillText('Age (Ma)', (L + W - R) / 2, H - 16);
+        } else {
+          const every = Math.max(1, Math.ceil(bins.length / 12));
+          bins.forEach((_, i) => { if (i % every) return; ctx.fillText(String(i + 1), (Xb(i) + Xb(i + 1)) / 2, H - B + 6); });
+          ctx.fillText('Bin (1 = oldest)', (L + W - R) / 2, H - 16);
+        }
+        order.forEach((i, r) => {
+          const t = taxa[i], y = T + rowH * (r + 0.5);
+          const x0 = mode === 'ages' ? X(t.first) : Xb(t.first - 1), x1 = mode === 'ages' ? X(t.last) : Xb(t.last);
+          ctx.fillStyle = pal.accent; ctx.strokeStyle = pal.accent;
+          if (x1 - x0 < 3) { ctx.beginPath(); ctx.arc((x0 + x1) / 2, y, Math.max(2, Math.min(4, rowH / 2.5)), 0, 7); ctx.fill(); }
+          else { ctx.lineWidth = Math.max(1.5, Math.min(6, rowH * 0.45)); ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); }
+          if (label) { ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; let nm = t.name; while (nm.length > 3 && ctx.measureText(nm).width > L - 8) nm = nm.slice(0, -2); ctx.fillText(nm === t.name ? nm : nm + '…', L - 6, y); }
+        });
+      },
+    };
+    paint(q<HTMLCanvasElement>('.rc-rfig'), rfig);
+  }
+
+  function charts() {
+    const xs = counts.map((c, i) => (mode === 'ages' ? (c.bin.base! + c.bin.top!) / 2 : i + 1));
+    const xl = mode === 'ages' ? { xLabel: 'Age (Ma), bin midpoints', xReverse: true } : { xLabel: 'Bin (1 = oldest)' };
+    dfig = chartFigure({ w: 640, h: 380, ...xl, yLabel: 'Number of taxa', yMin: 0, legend: 'below', series: [
+      { name: 'Range-through diversity', x: xs, y: counts.map((c) => c.total), mode: 'both' },
+      { name: 'Mean standing diversity', x: xs, y: counts.map((c) => c.meanStanding), mode: 'both' },
+      { name: 'Originations', x: xs, y: counts.map((c) => c.originations), mode: 'both', dash: [5, 4] },
+      { name: 'Extinctions', x: xs, y: counts.map((c) => c.extinctions), mode: 'both', dash: [5, 4] },
+    ] }, 'Diversity, originations and extinctions in each bin');
+    paint(q<HTMLCanvasElement>('.rc-dfig'), dfig);
+    const perTime = mode === 'ages';
+    pfig = chartFigure({ w: 640, h: 340, ...xl, yLabel: perTime ? 'Rate per taxon per Myr' : 'Rate per taxon per bin', yMin: 0, legend: 'below', series: [
+      { name: 'Origination p', x: xs, y: counts.map((c) => (perTime ? c.pTime : c.p)), mode: 'both' },
+      { name: 'Extinction q', x: xs, y: counts.map((c) => (perTime ? c.qTime : c.q)), mode: 'both' },
+    ] }, "Foote's per-capita origination and extinction rates");
+    paint(q<HTMLCanvasElement>('.rc-pfig'), pfig);
+    const none = counts.filter((c) => !Number.isFinite(c.p)).length;
+    q('.rc-pnote').textContent = `${perTime ? 'Rates are divided by each bin’s length in Myr.' : 'Numbered bins have no length, so rates are per bin.'}${none ? ` ${none} bin${none === 1 ? ' has' : 's have'} no range-through taxa, so no rate there (usually the first and last bins).` : ''}`;
+  }
+
+  const head = () => ['Bin', ...(mode === 'ages' ? ['Base', 'Top'] : []), 'Taxa', 'FL', 'bL', 'Ft', 'bt', 'Orig.', 'Ext.', 'Mean standing', 'p', 'q', ...(mode === 'ages' ? ['p / Myr', 'q / Myr'] : [])];
+  const rowOf = (c: BinCounts) => [c.bin.name, ...(mode === 'ages' ? [fa(c.bin.base!), fa(c.bin.top!)] : []), ...[c.total, c.FL, c.bL, c.Ft, c.bt, c.originations, c.extinctions, c.meanStanding].map(String), f3(c.p), f3(c.q), ...(mode === 'ages' ? [f3(c.pTime), f3(c.qTime)] : [])];
+  function tableOut() {
+    const t = q<HTMLTableElement>('.rc-tab'); t.replaceChildren();
+    const h = t.insertRow(); head().forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const c of counts) { const tr = t.insertRow(); rowOf(c).forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  for (const c of ['.rc-in', '.rc-w', '.rc-edges', '.rc-names']) q(c).addEventListener('input', later);
+  for (const c of ['.rc-mode', '.rc-bins']) q(c).addEventListener('change', run);
+  q('.rc-sort').addEventListener('change', drawRanges);
+  const dl = (rows: (string | number)[][], name: string) => save(new Blob([csv(rows)], { type: 'text/csv' }), name, 'text/csv');
+  q('.rc-csv').addEventListener('click', () => {
+    dl([['bin', ...(mode === 'ages' ? ['base_ma', 'top_ma'] : []), 'taxa', 'FL', 'bL', 'Ft', 'bt', 'originations', 'extinctions', 'diversity_at_base', 'diversity_at_top', 'mean_standing', 'p', 'q', ...(mode === 'ages' ? ['p_per_myr', 'q_per_myr'] : [])],
+      ...counts.map((c) => [c.bin.name, ...(mode === 'ages' ? [c.bin.base!, c.bin.top!] : []), c.total, c.FL, c.bL, c.Ft, c.bt, c.originations, c.extinctions, c.atBase, c.atTop, c.meanStanding, ...[c.p, c.q, ...(mode === 'ages' ? [c.pTime, c.qTime] : [])].map((v) => (Number.isFinite(v) ? v.toPrecision(8) : ''))])], 'diversity-per-bin.csv');
+  });
+  q('.rc-tcsv').addEventListener('click', () => {
+    dl([['taxon', 'first', 'last', 'first_bin', 'last_bin', 'bins_spanned'], ...taxa.map((t, i) => [t.name, t.first, t.last, bins[ranges[i].f].name, bins[ranges[i].l].name, ranges[i].l - ranges[i].f + 1])], 'taxa-ranges.csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    sections = [
+      { title: 'Range chart', text: [q('.rc-big').textContent ?? ''], figure: rfig ?? undefined },
+      { title: 'Diversity through time', figure: dfig ?? undefined },
+      { title: 'Origination and extinction rates', figure: pfig ?? undefined, note: q('.rc-pnote').textContent ?? '' },
+      { title: 'Counts per bin', table: { head: head(), rows: counts.map(rowOf), align: head().map((_, k) => (k ? 'r' : 'l')) } },
+    ];
+    return { title: 'Range chart and diversity', subtitle: q('.rc-big').textContent ?? '', file: 'range-chart', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (rfig) paint(q<HTMLCanvasElement>('.rc-rfig'), rfig); if (dfig) paint(q<HTMLCanvasElement>('.rc-dfig'), dfig); if (pfig) paint(q<HTMLCanvasElement>('.rc-pfig'), pfig); });
+  run();
+</script>

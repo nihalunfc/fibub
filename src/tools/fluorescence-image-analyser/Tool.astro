@@ -1,0 +1,240 @@
+---
+// Fluorescence image analyser: count nuclei (or any bright objects) and measure their area and intensity, like a
+// small ImageJ in the browser. The image never leaves the device. The example image is drawn by the page and is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fia">
+  <div class="ax-card">
+    <h2>Image</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small fi-open">Open an image</button>
+      <input type="file" class="fi-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small fi-ex">Use the example image</button>
+    </div>
+    <canvas class="fi-view" hidden></canvas>
+    <div class="ax-grid fi-showrow" hidden>
+      <label>Show <select class="fi-show">
+        <option value="rgb" selected>Original colours</option>
+        <option value="chan">Chosen channel in grey</option>
+        <option value="mask">Threshold mask</option>
+      </select></label>
+      <label class="ax-check fi-ck"><input type="checkbox" class="fi-lines" checked /> Outlines and numbers</label>
+    </div>
+    <p class="ax-help fi-ph" data-t="Open a microscope image (PNG, JPEG or TIFF your browser can show), ideally the original file, not a screenshot, with no contrast changes. The image stays on your device and is never uploaded.">Open a microscope image (PNG, JPEG or TIFF your browser can show), ideally the original file, not a screenshot, with no contrast changes. The image stays on your device and is never uploaded.</p>
+    <p class="ax-err fi-err" hidden></p>
+  </div>
+
+  <div class="ax-card fi-set" hidden>
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Channel <select class="fi-ch">
+        <option value="b" selected>Blue (DAPI, Hoechst)</option>
+        <option value="g">Green (GFP, FITC)</option>
+        <option value="r">Red (mCherry, Texas Red)</option>
+        <option value="grey">Grey (all colours)</option>
+      </select></label>
+      <label>Objects are <select class="fi-inv">
+        <option value="0" selected>Bright on dark (fluorescence)</option>
+        <option value="1">Dark on light (stained, bright field)</option>
+      </select></label>
+      <label>Background <select class="fi-bg">
+        <option value="ball" selected>Rolling ball</option>
+        <option value="constant">Constant level</option>
+        <option value="none">None</option>
+      </select></label>
+      <label class="fi-rl">Ball radius (px) <input class="fi-r" type="number" min="1" max="1000" step="1" value="50" inputmode="numeric" /></label>
+      <label class="fi-cl" hidden>Background level (0 to 255) <input class="fi-c" type="number" min="0" max="255" step="1" placeholder="auto: most common" inputmode="numeric" /></label>
+      <label>Threshold <select class="fi-th">
+        <option value="otsu" selected>Otsu (automatic)</option>
+        <option value="triangle">Triangle (automatic, dim objects)</option>
+        <option value="manual">Typed level</option>
+      </select></label>
+      <label class="fi-ml" hidden>Objects brighter than (0 to 254) <input class="fi-m" type="number" min="0" max="254" step="1" value="50" inputmode="numeric" /></label>
+      <label>Smallest object (px) <input class="fi-min" type="number" min="0" step="1" value="50" inputmode="numeric" /></label>
+      <label>Largest object (px) <input class="fi-max" type="number" min="1" step="1" placeholder="no limit" inputmode="numeric" /></label>
+      <label>Pixel size (µm per px) <input class="fi-px" type="number" min="0" step="any" placeholder="optional" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="fi-fill" checked /> Fill holes</label>
+      <label class="ax-check"><input type="checkbox" class="fi-split" checked /> Split touching nuclei</label>
+      <label class="ax-check"><input type="checkbox" class="fi-edge" /> Leave out objects touching the edge</label>
+    </div>
+    <p class="ax-help">Pick the channel your stain is in. The rolling ball takes away an uneven background; make its radius larger than your biggest object. Otsu suits bright, clear objects; triangle catches dim edges when most of the image is background. Fill holes closes dark spots inside a nucleus. Split touching nuclei cuts joined blobs at their waist. The size limits drop dust and clumps.</p>
+  </div>
+
+  <div class="ax-card fi-out" hidden>
+    <h2>Objects</h2>
+    <p class="ax-big fi-big"></p>
+    <dl class="ax-facts fi-facts"></dl>
+    <canvas class="ax-fig fi-hist"></canvas>
+    <div class="ax-scroll fi-tw"><table class="fi-tab"></table></div>
+    <p class="ax-help fi-more" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fi-csv">Download objects (CSV)</button>
+      <button type="button" class="btn secondary small fi-png">Download the overlay (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, channel, outlines, exampleImage, type Result, type Options, type Channel } from '../../lib/sci/fluorescence';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fia')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const txt = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const MAXW = 1000, SHOW = 300;
+  const NAMES: Record<Channel, string> = { b: 'blue', g: 'green', r: 'red', grey: 'grey' };
+
+  let rgba: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'image';
+  let res: Result | null = null, pxSize = NaN, sections: Section[] = [], figH: Figure | null = null, csvRows: string[][] = [];
+
+  function fail(m: string) { q('.fi-err').textContent = m; q('.fi-err').hidden = false; q('.fi-out').hidden = true; sections = []; res = null; draw(); }
+
+  function options(): Options | string {
+    const bg = sel('.fi-bg') as Options['background'], method = sel('.fi-th') as Options['method'];
+    const r = Number(txt('.fi-r')), c = txt('.fi-c'), m = Number(txt('.fi-m')), mn = txt('.fi-min'), mx = txt('.fi-max'), ps = txt('.fi-px');
+    if (bg === 'ball' && !(r >= 1 && r <= 1000)) return 'Give a ball radius between 1 and 1000 pixels.';
+    if (bg === 'constant' && c !== '' && !(Number(c) >= 0 && Number(c) <= 255)) return 'The background level is between 0 and 255, or leave it empty for automatic.';
+    if (method === 'manual' && !(txt('.fi-m') !== '' && m >= 0 && m <= 254)) return 'Give a threshold level between 0 and 254.';
+    const minA = mn === '' ? 0 : Number(mn), maxA = mx === '' ? Infinity : Number(mx);
+    if (!(minA >= 0) || !(maxA >= 1)) return 'Sizes are whole numbers of pixels, 0 or more.';
+    if (maxA < minA) return 'The largest object size is smaller than the smallest. Swap them or clear the largest.';
+    if (ps !== '' && !(Number(ps) > 0)) return 'The pixel size is a number above 0, such as 0.65, or leave it empty.';
+    pxSize = ps === '' ? NaN : Number(ps);
+    return {
+      channel: sel('.fi-ch') as Channel, invert: sel('.fi-inv') === '1', background: bg, radius: r, constant: c === '' ? null : Number(c),
+      method, manual: m, fill: q<HTMLInputElement>('.fi-fill').checked, split: q<HTMLInputElement>('.fi-split').checked,
+      minArea: minA, maxArea: maxA, dropEdge: q<HTMLInputElement>('.fi-edge').checked,
+    };
+  }
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.fi-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c) => { const td = tr.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); });
+  }
+
+  function run() {
+    if (!rgba) return;
+    q('.fi-rl').hidden = sel('.fi-bg') !== 'ball'; q('.fi-cl').hidden = sel('.fi-bg') !== 'constant'; q('.fi-ml').hidden = sel('.fi-th') !== 'manual';
+    q('.fi-err').hidden = true;
+    const o = options();
+    if (typeof o === 'string') return fail(o);
+    res = analyse(rgba, W, H, o);
+    const r = res, um = Number.isFinite(pxSize), a2 = (px: number) => (um ? `${sig(px * pxSize * pxSize, 4)} µm²` : `${sig(px, 4)} px`);
+    draw();
+    q('.fi-out').hidden = false;
+    const methodName = o.method === 'otsu' ? 'Otsu' : o.method === 'triangle' ? 'triangle' : 'typed';
+    q('.fi-big').textContent = `${r.count} object${r.count === 1 ? '' : 's'} in the ${NAMES[o.channel]} channel`;
+    const facts = [
+      fact('Threshold', `above ${r.t}`, `${methodName}, on a 0 to 255 scale after the background is taken away`),
+      fact('Background', o.background === 'ball' ? `rolling ball, ${o.radius} px` : o.background === 'constant' ? `constant, ${r.bgLevel}` : 'none', o.background === 'constant' && o.constant == null ? 'the most common level in the channel' : o.background === 'none' ? 'raw channel values are measured' : ''),
+      fact('Mean area', r.count ? a2(r.meanArea) : '–', r.count ? `total ${a2(r.objects.reduce((s, b) => s + b.area, 0))}, ${sig(100 * r.areaFraction, 3)} % of the image` : ''),
+      fact('Mean intensity', r.count ? sig(r.meanIntensity, 4) : '–', 'over all object pixels, after background'),
+      fact('Integrated intensity', r.count ? sig(r.totalIntegrated, 4) : '–', 'all objects added up'),
+      fact('Left out', `${r.removed} object${r.removed === 1 ? '' : 's'}`, `${Number.isFinite(o.maxArea!) ? `outside ${o.minArea ?? 0} to ${o.maxArea} px` : `smaller than ${o.minArea ?? 0} px`}${o.dropEdge ? ', or touching the edge' : ''}`),
+    ];
+    if (r.t < 8 && r.count) facts.push(fact('Check', 'very low threshold', 'this channel may hold mostly noise; try another channel or a typed level'));
+    q('.fi-facts').replaceChildren(...facts);
+    if (!r.count) { q('.fi-err').textContent = `No objects found in the ${NAMES[o.channel]} channel. Try another channel, a lower threshold or a smaller "Smallest object".`; q('.fi-err').hidden = false; }
+
+    // Histogram of the measured signal, log counts, with the threshold.
+    const xs = Array.from({ length: 256 }, (_, i) => i), ys = Array.from(r.hist, (c) => c + 1);
+    figH = chartFigure({
+      w: 560, h: 320, xLabel: 'Grey level after background (0 to 255)', yLabel: 'Pixels + 1 (log scale)', yLog: true, xMin: 0, xMax: 255, legend: 'none',
+      series: [{ name: 'Pixels', x: xs, y: ys, mode: 'line', width: 1.6 }],
+      marks: [{ kind: 'vline', at: r.t + 0.5, dash: [4, 4], label: `Threshold ${r.t}` }],
+    }, `Histogram of grey levels with the threshold at ${r.t}`);
+    paint(q<HTMLCanvasElement>('.fi-hist'), figH);
+
+    const head = ['#', 'X (px)', 'Y (px)', um ? 'Area (µm²)' : 'Area (px)', 'Mean', 'Integrated', 'Max'];
+    const rows = r.objects.map((b) => [String(b.id), b.x.toFixed(1), b.y.toFixed(1), um ? sig(b.area * pxSize * pxSize, 4) : String(b.area), b.mean.toFixed(1), Math.round(b.integrated).toString(), b.max.toFixed(0)]);
+    table(head, rows.slice(0, SHOW));
+    q('.fi-tw').hidden = !r.count;
+    q('.fi-more').hidden = r.count <= SHOW; q('.fi-more').textContent = `The first ${SHOW} of ${r.count} objects are shown; the CSV has them all.`;
+    csvRows = [['object', 'x_px', 'y_px', 'area_px', ...(um ? ['area_um2'] : []), 'mean_intensity', 'integrated_intensity', 'max_intensity', 'touches_edge'],
+      ...r.objects.map((b) => [String(b.id), b.x.toFixed(2), b.y.toFixed(2), String(b.area), ...(um ? [String(b.area * pxSize * pxSize)] : []), b.mean.toFixed(4), b.integrated.toFixed(2), b.max.toFixed(2), b.edge ? 'yes' : 'no'])];
+    const figO: Figure = { w: W, h: H, alt: `The image with ${r.count} objects outlined and numbered`, draw: (ctx, w, h) => { ctx.drawImage(q<HTMLCanvasElement>('.fi-view'), 0, 0, w, h); } };
+    sections = [
+      { title: q('.fi-big').textContent!, facts: [...q('.fi-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figO },
+      { title: 'Histogram', figure: figH, note: `Grey levels of the ${NAMES[o.channel]} channel after background, counted per pixel. Objects are pixels above the threshold.` },
+      ...(r.count ? [{ title: 'Objects', table: { head, rows: rows.slice(0, 500), align: head.map(() => 'r') as ('l' | 'r')[] }, note: r.count > 500 ? `First 500 of ${r.count}; the CSV has all.` : 'Mean, integrated and max intensities are on the 0 to 255 scale after background. Integrated = mean × area in pixels.' }] : []),
+    ];
+  }
+
+  function draw() {
+    if (!rgba) return;
+    const c = q<HTMLCanvasElement>('.fi-view'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!, img = ctx.createImageData(W, H), d = img.data, mode = sel('.fi-show');
+    if (mode === 'rgb' || !res) d.set(rgba);
+    else {
+      const ch = mode === 'chan' ? channel(rgba, W, H, sel('.fi-ch') as Channel, sel('.fi-inv') === '1').v : null;
+      for (let i = 0; i < W * H; i++) { const g = ch ? ch[i] : res.labels[i] ? 255 : res.mask[i] ? 110 : 0; d[4 * i] = d[4 * i + 1] = d[4 * i + 2] = g; d[4 * i + 3] = 255; }
+    }
+    if (res && q<HTMLInputElement>('.fi-lines').checked) {
+      const o = outlines(res.labels, W, H);
+      for (let i = 0; i < o.length; i++) if (o[i]) { d[4 * i] = 255; d[4 * i + 1] = 212; d[4 * i + 2] = 0; }
+    }
+    ctx.putImageData(img, 0, 0);
+    if (res && q<HTMLInputElement>('.fi-lines').checked && res.count <= 2000) {
+      const fs = Math.max(10, Math.round(Math.max(W, H) / 45));
+      ctx.font = `600 ${fs}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(2, fs / 5); ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff';
+      for (const b of res.objects) { ctx.strokeText(String(b.id), b.x, b.y); ctx.fillText(String(b.id), b.x, b.y); }
+    }
+  }
+
+  function load(px: Uint8ClampedArray, w: number, h: number, nm: string) {
+    rgba = px; W = w; H = h; name = nm;
+    q('.fi-ph').textContent = q('.fi-ph').dataset.t ?? '';
+    q('.fi-view').hidden = false; q('.fi-showrow').hidden = false; q('.fi-set').hidden = false;
+    run();
+  }
+
+  q('.fi-open').addEventListener('click', () => q<HTMLInputElement>('.fi-file').click());
+  q('.fi-file').addEventListener('change', () => {
+    const f = q<HTMLInputElement>('.fi-file').files?.[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, MAXW / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * s)), h = Math.max(1, Math.round(im.naturalHeight * s));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d')!; cx.drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      load(cx.getImageData(0, 0, w, h).data, w, h, f.name.replace(/\.[^.]+$/, ''));
+      if (s < 1) q('.fi-ph').textContent = `The image was scaled down to ${w} × ${h} px to keep the page quick, so areas and positions are on that size (multiply the pixel size by ${sig(1 / s, 4)}). It stays on your device and is never uploaded.`;
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); q('.fi-err').textContent = 'That image could not be opened. Try a PNG or JPEG.'; q('.fi-err').hidden = false; };
+    im.src = url; q<HTMLInputElement>('.fi-file').value = '';
+  });
+  q('.fi-ex').addEventListener('click', () => {
+    const e = exampleImage();
+    q<HTMLSelectElement>('.fi-ch').value = 'b'; q<HTMLSelectElement>('.fi-inv').value = '0'; q<HTMLSelectElement>('.fi-bg').value = 'ball'; q<HTMLInputElement>('.fi-r').value = '50';
+    q<HTMLSelectElement>('.fi-th').value = 'otsu'; q<HTMLInputElement>('.fi-min').value = '50'; q<HTMLInputElement>('.fi-max').value = ''; q<HTMLInputElement>('.fi-px').value = '';
+    q<HTMLInputElement>('.fi-fill').checked = true; q<HTMLInputElement>('.fi-split').checked = true; q<HTMLInputElement>('.fi-edge').checked = false;
+    load(e.px, e.w, e.h, 'example-nuclei');
+  });
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  ['.fi-r', '.fi-c', '.fi-m', '.fi-min', '.fi-max', '.fi-px'].forEach((c) => q(c).addEventListener('input', later));
+  ['.fi-ch', '.fi-inv', '.fi-bg', '.fi-th', '.fi-fill', '.fi-split', '.fi-edge'].forEach((c) => q(c).addEventListener('change', run));
+  ['.fi-show', '.fi-lines'].forEach((c) => q(c).addEventListener('change', draw));
+  document.addEventListener('fibub:theme', () => { if (figH && !q('.fi-out').hidden) paint(q<HTMLCanvasElement>('.fi-hist'), figH); });
+  q('.fi-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${fileSafe(name)}-objects.csv`, 'text/csv'));
+  q('.fi-png').addEventListener('click', () => q<HTMLCanvasElement>('.fi-view').toBlob((b) => { if (b) save(b, `${fileSafe(name)}-overlay.png`, 'image/png'); }, 'image/png'));
+  q<HTMLButtonElement>('.fi-ex').click();
+  wireDownloads(q('.dl'), () => ({ title: 'Fluorescence image analysis', subtitle: q('.fi-big').textContent ?? '', file: `${fileSafe(name)}-objects`, sections }));
+</script>
+
+<style is:global>
+  .fia .fi-view { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); image-rendering: auto; }
+  .fia select { max-width: 100%; }
+  .fia .fi-showrow { margin-top: 10px; align-items: end; }
+  .fia .fi-tw { max-height: 420px; overflow-y: auto; }
+</style>

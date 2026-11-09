@@ -1,0 +1,169 @@
+---
+// Protein assay standard curve (Bradford, BCA and similar): blank subtraction, a straight-line, quadratic or
+// point-to-point curve, unknowns with replicates and dilution factors, flags, and loading volumes. All in the
+// browser; nothing is uploaded. The example readings are made up.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pas">
+  <div class="ax-card">
+    <h2>Standards</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small pa-ex">Use the example</button></div>
+    <label style="margin-top:10px">One standard per line: its concentration, then each absorbance reading (replicates side by side). Separate with commas or tabs, or paste from a spreadsheet.
+      <textarea class="pa-std" rows="9" spellcheck="false"></textarea></label>
+    <DataFile target=".pa-std" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Concentration unit <select class="pa-unit"><option value="ug/mL">µg/mL</option><option value="mg/mL">mg/mL</option></select></label>
+      <label>Curve <select class="pa-fit"><option value="quadratic">Quadratic (curved)</option><option value="linear">Straight line</option><option value="p2p">Point to point</option></select></label>
+      <label>Blank <select class="pa-blank"><option value="zero">The 0 standard</option><option value="value">A value I type</option><option value="none">None (already taken away)</option></select></label>
+      <label class="pa-bvl" hidden>Blank absorbance <input class="pa-bv" inputmode="decimal" value="0.45" /></label>
+    </div>
+    <p class="ax-help">Curve: Bradford curves bend at the top, so a quadratic or point to point usually fits better than a straight line; BCA is straighter. Blank: its absorbance is taken away from every reading before the fit.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Samples</h2>
+    <label>One sample per line: a name, the dilution factor (1 if undiluted; 10 or 1:10 for a 10-fold dilution), then each absorbance reading.
+      <textarea class="pa-unk" rows="5" spellcheck="false"></textarea></label>
+    <DataFile target=".pa-unk" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Protein to load (µg) <input class="pa-amt" inputmode="decimal" value="20" /></label>
+      <label>Final volume (µL, optional) <input class="pa-fv" inputmode="decimal" value="25" /></label>
+      <label>Flag replicate CV above (%) <input class="pa-cvl" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">Protein to load: the page works out how many µL of each sample hold that much, for a gel lane or an enzyme reaction. Final volume: the buffer or water to add to reach it. CV: the spread of a sample's readings (SD ÷ mean); a high CV means a pipetting slip or a bubble.</p>
+    <p class="ax-err pa-err" hidden></p>
+  </div>
+
+  <div class="ax-card pa-out" hidden>
+    <h2>Standard curve</h2>
+    <p class="ax-big pa-big"></p>
+    <p class="ax-help pa-eq" style="margin-top:0"></p>
+    <dl class="ax-facts pa-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig pa-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help pa-warn"></p>
+    <h3>Samples</h3>
+    <div class="ax-scroll"><table class="pa-utab"></table></div>
+    <p class="ax-help pa-unote"></p>
+    <h3>Standards read back</h3>
+    <div class="ax-scroll"><table class="pa-stab"></table></div>
+    <p class="ax-help">Each standard's mean reading put back through the curve. Within about 10 % of the real value (90 to 110 %) means the curve describes the standards well there.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pa-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pas h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pas .pa-utab td:first-child { min-width: 110px; }
+  .pas .pa-utab .ax-pill { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseStandards, parseUnknowns, assay, FIT_NAMES, FLAG_TEXT, FLAG_SHORT, EXAMPLE_STANDARDS, EXAMPLE_SAMPLES, type FitKind, type BlankMode } from '../../lib/sci/protassay';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pas')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let fig: Figure | null = null, sections: Section[] = [], rows: (string | number)[][] = [], subtitle = '';
+
+  const table = (t: HTMLElement, head: string[], body: (string | HTMLElement)[][], right: boolean[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right[k]) th.className = 'r'; h.append(th); });
+    for (const r of body) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); if (typeof x === 'string') td.textContent = x; else td.append(x); if (right[k]) td.className = 'r'; }); }
+  };
+  const f = (x: number, n = 4) => (Number.isFinite(x) ? sig(x, n) : '–');
+  const fA = (x: number) => (Number.isFinite(x) ? x.toFixed(4).replace('-', '−') : '–');
+  const fP = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const poly = (c: number[]) => c.map((v, k) => (k === 0 ? sig(v, 4) : `${v < 0 ? '−' : '+'} ${sig(Math.abs(v), 4)} c${k === 2 ? '²' : ''}`)).join(' ');
+
+  function fail(msg: string) {
+    q('.pa-err').textContent = msg; q('.pa-err').hidden = false; q('.pa-out').hidden = true; sections = []; rows = [];
+  }
+
+  function run() {
+    q('.pa-err').hidden = true;
+    const blankMode = q<HTMLSelectElement>('.pa-blank').value as BlankMode;
+    q('.pa-bvl').hidden = blankMode !== 'value';
+    const S = parseStandards(val('.pa-std')), U = parseUnknowns(val('.pa-unk'));
+    const errs = [...S.errors, ...U.errors];
+    if (errs.length) return fail(errs.slice(0, 3).join(' '));
+    const fit = q<HTMLSelectElement>('.pa-fit').value as FitKind, unit = q<HTMLSelectElement>('.pa-unit').value as 'ug/mL' | 'mg/mL', u = unit === 'mg/mL' ? 'mg/mL' : 'µg/mL';
+    const amount = num(val('.pa-amt')), finalVol = num(val('.pa-fv')), cvLimit = num(val('.pa-cvl'));
+    if (val('.pa-amt').trim() && !(amount > 0)) return fail('Protein to load must be a number above zero, or leave it empty.');
+    if (val('.pa-fv').trim() && !(finalVol > 0)) return fail('The final volume must be a number above zero, or leave it empty.');
+    if (!(cvLimit > 0)) return fail('The CV limit must be a number above zero, such as 10.');
+    let r: ReturnType<typeof assay>;
+    try { r = assay(S.rows, U.rows, { blank: blankMode, blankValue: num(val('.pa-bv')), fit, cvLimit, amount: amount > 0 ? amount : undefined, finalVol: finalVol > 0 ? finalVol : undefined, unit }); }
+    catch (e) { return fail((e as Error).message); }
+    q('.pa-out').hidden = false;
+    const c = r.curve;
+    q('.pa-big').textContent = fit === 'p2p' ? `Point to point through ${c.knots.length} standards` : `${FIT_NAMES[fit]}, R² ${c.r2.toFixed(5)}`;
+    q('.pa-eq').textContent = fit === 'p2p' ? 'Straight lines join the mean of each standard; a reading is read off the segment it falls on.' : `Net absorbance = ${poly(c.coef)}, with c in ${u}. Fitted to all ${r.n} blank-subtracted readings.`;
+    const facts: [string, string, string?][] = [
+      ['Blank', fA(r.blank), blankMode === 'zero' ? 'mean of the 0 standard' : blankMode === 'value' ? 'typed' : 'none taken away'],
+      ['Standards', `${f(r.lo)} to ${f(r.hi)} ${u}`, `${r.stds.length} levels, ${r.n} readings`],
+      ...(fit === 'p2p' ? [] : [['Scatter about the curve', fA(c.sy), `SD of the residuals, ${c.df} degrees of freedom`] as [string, string, string]]),
+      ...(fit === 'quadratic' && Number.isFinite(c.peak.x) ? [['Curve tops out at', `${f(c.peak.x, 3)} ${u}`, `net absorbance ${c.peak.y.toFixed(3)}`] as [string, string, string]] : []),
+    ];
+    q('.pa-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; }));
+    const poor = r.stds.filter((s) => s.conc > 0 && Math.abs(s.recovery - 100) > 10);
+    q('.pa-warn').textContent = poor.length ? `${poor.length} standard${poor.length > 1 ? 's read' : ' reads'} back more than 10 % off (${poor.map((s) => f(s.conc)).join(', ')} ${u}). ${fit === 'linear' ? 'The readings bend: try the quadratic or point to point curve, or leave out the top standards.' : 'Check those readings.'}` : 'Every standard reads back within 10 % of its real value.';
+
+    // Figure: standards (mean ± SD), the curve, and the samples placed on it.
+    const xmax = Math.max(r.hi, ...r.unks.map((x) => x.inAssay).filter((x) => Number.isFinite(x) && x < r.hi * 1.6));
+    const top = fit === 'quadratic' && Number.isFinite(c.peak.x) ? Math.min(xmax, c.peak.x) : xmax;
+    const cx = Array.from({ length: 121 }, (_, i) => (top * i) / 120), placed = r.unks.filter((x) => Number.isFinite(x.inAssay) && x.inAssay >= 0 && x.inAssay <= xmax);
+    fig = chartFigure({
+      w: 480, h: 360, font: 15, xLabel: `Protein (${u})`, yLabel: 'Net absorbance', legend: 'below',
+      series: [
+        { name: 'Standards (mean ± SD)', x: r.stds.map((s) => s.conc), y: r.stds.map((s) => s.net), yErr: r.stds.map((s) => (Number.isFinite(s.sd) ? s.sd : undefined)), mode: 'points', marker: 'circle' },
+        { name: FIT_NAMES[fit], x: fit === 'p2p' ? c.knots.map((k) => k[0]) : cx, y: fit === 'p2p' ? c.knots.map((k) => k[1]) : cx.map(c.predict), mode: 'line', marker: 'none', width: 2 },
+        { name: 'Samples (in the assay)', x: placed.map((x) => x.inAssay), y: placed.map((x) => x.net), mode: 'points', marker: 'diamond', size: 6 },
+      ],
+    }, `Standard curve: ${FIT_NAMES[fit]} through ${r.stds.length} standards from 0 to ${f(r.hi)} ${u}, with ${placed.length} samples placed on it`);
+    paint(q<HTMLCanvasElement>('.pa-fig'), fig);
+
+    const pill = (fl: string[]) => { const s = document.createElement('span'); s.style.display = 'grid'; s.style.gap = '4px'; for (const k of fl) { const p = document.createElement('span'); p.className = `ax-pill ${k === 'ok' ? 'good' : k === 'cv' || k === 'below' ? 'warn' : 'bad'}`; p.textContent = FLAG_SHORT[k as keyof typeof FLAG_SHORT]; p.title = FLAG_TEXT[k as keyof typeof FLAG_TEXT]; s.append(p); } return s; };
+    const hasAmt = amount > 0, hasFv = finalVol > 0;
+    const vol = (x: number) => (Number.isFinite(x) ? sig(x, 3) : '–');
+    const uhead = ['Sample', 'Dilution', 'Mean A', 'SD', 'CV %', 'Net A', `In assay (${u})`, `In sample (${u})`, 'SD', ...(hasAmt ? [`µL for ${sig(amount, 4)} µg`] : []), ...(hasFv ? [`Buffer to ${sig(finalVol, 4)} µL`] : []), 'Check'];
+    const uright = [false, true, true, true, true, true, true, true, true, ...(hasAmt ? [true] : []), ...(hasFv ? [true] : []), false];
+    table(q('.pa-utab'), uhead, r.unks.map((x) => [x.name, f(x.dil), fA(x.mean), fA(x.sd), fP(x.cv), fA(x.net), f(x.inAssay), f(x.conc), f(x.concSd, 3), ...(hasAmt ? [vol(x.volume)] : []), ...(hasFv ? [Number.isFinite(x.buffer) ? (x.buffer < 0 ? 'too dilute' : vol(x.buffer)) : '–'] : []), pill(x.flags)]), uright);
+    const help: Record<string, string> = { above: 'dilute more and measure again', below: 'less reliable; use less dilution if you can', blank: 'no protein measured', top: 'the curve never reaches this reading; dilute and measure again', cv: `the readings' CV is above ${sig(cvLimit, 3)} %, so check for a pipetting slip or bubble` };
+    const seen = [...new Set(r.unks.flatMap((x) => x.flags))].filter((k) => k !== 'ok').map((k) => `${FLAG_SHORT[k]}: ${help[k]}.`).join(' ');
+    q('.pa-unote').textContent = r.unks.length ? `${seen ? seen + ' ' : ''}In sample = in assay × dilution. The second SD is the spread of the sample's replicate readings, each read through the curve.${hasAmt ? ` ${unit === 'mg/mL' ? '1 mg/mL holds 1 µg in each µL.' : '1000 µg/mL holds 1 µg in each µL.'}` : ''}${r.unks.some((x) => x.buffer < 0) ? ' "Too dilute" means the protein does not fit in the final volume: load less, use a larger volume or concentrate the sample.' : ''}` : 'Add samples above to read them off the curve.';
+    table(q('.pa-stab'), [`Standard (${u})`, 'Mean A', 'SD', 'CV %', 'Net A', 'Reads back', 'Recovery %'], r.stds.map((s) => [f(s.conc), fA(s.mean), fA(s.sd), fP(s.cv), fA(s.net), f(s.back), fP(s.recovery)]), [true, true, true, true, true, true, true]);
+
+    subtitle = q('.pa-big').textContent ?? '';
+    const ucsv = ['sample', 'dilution', 'mean_A', 'sd_A', 'cv_percent', 'net_A', `in_assay_${unit}`, `in_sample_${unit}`, `sd_${unit}`, 'volume_uL_for_amount', 'buffer_uL', 'check'];
+    const n = (x: number, d = 6) => (Number.isFinite(x) ? String(Number(x.toPrecision(d))) : '');
+    rows = [ucsv, ...r.unks.map((x) => [x.name, n(x.dil), n(x.mean), n(x.sd), n(x.cv, 4), n(x.net), n(x.inAssay), n(x.conc), n(x.concSd), n(x.volume, 4), n(x.buffer, 4), x.flags.map((k) => FLAG_TEXT[k as keyof typeof FLAG_TEXT]).join('; ')]),
+      [], [`standard_${unit}`, 'mean_A', 'sd_A', 'cv_percent', 'net_A', `reads_back_${unit}`, 'recovery_percent'], ...r.stds.map((s) => [n(s.conc), n(s.mean), n(s.sd), n(s.cv, 4), n(s.net), n(s.back), n(s.recovery, 4)])];
+    sections = [
+      { title: 'Standard curve', text: [q('.pa-eq').textContent ?? '', q('.pa-warn').textContent ?? ''], facts: [...facts.map(([k, v]) => [k, v] as [string, string]), ...(fit === 'p2p' ? [] : [['R²', c.r2.toFixed(5)] as [string, string]])], figure: fig },
+      { title: 'Samples', table: { head: uhead, rows: r.unks.map((x) => [x.name, f(x.dil), fA(x.mean), fA(x.sd), fP(x.cv), fA(x.net), f(x.inAssay), f(x.conc), f(x.concSd, 3), ...(hasAmt ? [vol(x.volume)] : []), ...(hasFv ? [Number.isFinite(x.buffer) ? (x.buffer < 0 ? 'too dilute' : vol(x.buffer)) : '–'] : []), x.flags.map((k) => FLAG_TEXT[k as keyof typeof FLAG_TEXT]).join('; ')]), align: uright.map((b) => (b ? 'r' : 'l')) }, note: q('.pa-unote').textContent ?? '' },
+      { title: 'Standards read back', table: { head: [`Standard (${u})`, 'Mean A', 'SD', 'CV %', 'Net A', 'Reads back', 'Recovery %'], rows: r.stds.map((s) => [f(s.conc), fA(s.mean), fA(s.sd), fP(s.cv), fA(s.net), f(s.back), fP(s.recovery)]), align: ['r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  root.querySelectorAll('textarea, input:not([type=file])').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', run));
+  q('.pa-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.pa-std').value = EXAMPLE_STANDARDS; q<HTMLTextAreaElement>('.pa-unk').value = EXAMPLE_SAMPLES;
+    q<HTMLSelectElement>('.pa-unit').value = 'ug/mL'; q<HTMLSelectElement>('.pa-fit').value = 'quadratic'; q<HTMLSelectElement>('.pa-blank').value = 'zero';
+    q<HTMLInputElement>('.pa-amt').value = '20'; q<HTMLInputElement>('.pa-fv').value = '25'; q<HTMLInputElement>('.pa-cvl').value = '10';
+    run();
+  });
+  q('.pa-csv').addEventListener('click', () => rows.length && save(new TextEncoder().encode(csv(rows)), 'protein-assay-results.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.pa-out').hidden) paint(q<HTMLCanvasElement>('.pa-fig'), fig); });
+  q<HTMLTextAreaElement>('.pa-std').value = EXAMPLE_STANDARDS; q<HTMLTextAreaElement>('.pa-unk').value = EXAMPLE_SAMPLES;
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Protein assay', subtitle, file: 'protein-assay', sections }));
+</script>
