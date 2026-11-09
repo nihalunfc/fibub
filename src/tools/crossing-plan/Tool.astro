@@ -1,0 +1,192 @@
+---
+// Crossing plan and pedigree tracker: checks a pedigree, works out inbreeding and coancestry by the tabular method,
+// draws the pedigree and rates planned crosses. Everything runs in the browser; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cpl">
+  <div class="ax-card">
+    <h2>Pedigree</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small cp-ex">Use the example</button></div>
+    <label style="margin-top:10px">One plant per line: name, female (seed) parent, male (pollen) parent, and for a founder its inbreeding if known (1 for a pure line). Write - for an unknown parent; a self is the same name twice. <textarea class="cp-ped" rows="9" spellcheck="false" placeholder="plant&#9;female&#9;male&#10;P1&#9;-&#9;-&#10;F1a&#9;P1&#9;P2"></textarea></label>
+    <DataFile target=".cp-ped" maxMB={5} maxCols={4} maxRows={2500} />
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="cp-sex" /> Flag plants used as both a female and a male parent (for species with separate sexes)</label>
+    <h3>Planned crosses</h3>
+    <label>One cross per line: female, male, and an optional cross name <textarea class="cp-plan" rows="4" spellcheck="false" placeholder="X1&#9;X2"></textarea></label>
+    <p class="ax-err cp-err" hidden></p>
+  </div>
+
+  <div class="ax-card cp-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big cp-big"></p>
+    <ul class="cp-warn"></ul>
+    <div class="cp-planbox">
+      <h3>Planned crosses</h3>
+      <div class="ax-scroll"><table class="cp-pt"></table></div>
+      <p class="ax-help">F of offspring is the coancestry of the two parents: the inbreeding coefficient their offspring will have, the chance that the two copies of a gene in the offspring are identical by descent.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cp-pcsv">Download crossing plan (CSV)</button></div>
+    </div>
+    <h3>Coancestry of any two plants</h3>
+    <div class="ax-grid">
+      <label>Plant 1 <select class="cp-a"></select></label>
+      <label>Plant 2 <select class="cp-b"></select></label>
+    </div>
+    <p class="cp-ab"></p>
+    <h3>Pedigree</h3>
+    <label style="max-width:320px">Draw <select class="cp-draw"></select></label>
+    <p class="ax-help cp-dnote"></p>
+    <canvas class="ax-fig cp-fig"></canvas>
+    <div class="ax-legend"><span><i class="cp-lf"></i>female (seed) parent</span><span><i class="cp-lm"></i>male (pollen) parent</span></div>
+    <h3>Plants</h3>
+    <div class="ax-scroll cp-tw"><table class="cp-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cp-csv">Download inbreeding (CSV)</button>
+      <button type="button" class="btn secondary small cp-mcsv">Download coancestry matrix (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cpl h3 { margin: 22px 0 8px; font-size: 15px; }
+  .cpl .ax-card > h3:first-of-type { margin-top: 18px; }
+  .cpl .cp-tw { max-height: 420px; overflow-y: auto; }
+  .cpl .cp-warn { margin: 6px 0 0; padding-left: 20px; color: var(--warn); font-size: 14px; }
+  .cpl .cp-warn:empty { display: none; }
+  .cpl .cp-ab { font-size: 15px; margin: 8px 0 0; }
+  .cpl .cp-lf { background: var(--accent); height: 3px !important; }
+  .cpl .cp-lm { background: repeating-linear-gradient(90deg, var(--warn) 0 4px, transparent 4px 7px); height: 3px !important; }
+</style>
+
+<script>
+  import { build, readPedigree, readPlan, inbreeding, coancestry, ancestors, EXAMPLE_PED, EXAMPLE_PLAN, type Ped } from '../../lib/sci/pedigree';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cpl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const DRAW_MAX = 120, MATRIX_MAX = 400;
+  let P: Ped | null = null, plan: { name: string; female: string; male: string; f: number }[] = [], fig: Figure | null = null;
+
+  const fx = (x: number) => (Math.abs(x) < 5e-7 ? '0' : x.toFixed(6).replace(/0+$/, '').replace(/\.$/, ''));
+  const f3 = fx;
+  const say = (f: number, a: string, b: string) => (a === b ? 'self-pollination' : f === 0 ? 'unrelated in this pedigree' : f >= 0.25 ? 'close relatives' : f >= 0.125 ? 'related, like half-sibs or closer' : 'distant relatives');
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], right: number[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right.includes(k)) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (right.includes(k)) td.className = 'r'; }); }
+  };
+
+  function makeFig(P: Ped, ids: string[]): Figure {
+    const mctx = document.createElement('canvas').getContext('2d')!;
+    mctx.font = `600 12px ${FONT}`;
+    const label = (id: string) => { const F = inbreeding(P, id); return F > 0 ? `F ${f3(F)}` : ''; };
+    const bw = Math.min(150, Math.max(54, ...ids.map((id) => Math.max(mctx.measureText(id).width, mctx.measureText(label(id)).width) + 16))), bh = 38, gap = 14, vgap = 50;
+    const gens = [...new Set(ids.map((id) => P.gen[P.index.get(id)!]))].sort((a, b) => a - b);
+    const rows = gens.map((g) => ids.filter((id) => P.gen[P.index.get(id)!] === g));
+    const pos = new Map<string, number>();
+    // Order each row by where its parents sit (barycentre), so lines cross less.
+    rows.forEach((row, r) => {
+      if (r) row.sort((a, b) => bary(a) - bary(b));
+      row.forEach((id, k) => pos.set(id, k - (row.length - 1) / 2));
+    });
+    function bary(id: string) { const e = P.entries[P.index.get(id)!]; const xs = [e.female, e.male].filter((p): p is string => !!p && pos.has(p)).map((p) => pos.get(p)!); return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0; }
+    const maxRow = Math.max(...rows.map((r) => r.length));
+    const w = Math.max(340, Math.round(maxRow * (bw + gap) + 20)), h = rows.length * (bh + vgap) - vgap + 30;
+    return {
+      w, h, alt: `Pedigree of ${ids.length} plants in ${rows.length} generations`,
+      draw: (ctx, W, H, pal) => {
+        const X = (id: string) => W / 2 + pos.get(id)! * (bw + gap), Y = (id: string) => 15 + rows.findIndex((r) => r.includes(id)) * (bh + vgap);
+        for (const id of ids) {
+          const e = P.entries[P.index.get(id)!];
+          for (const [p, male] of [[e.female, false], [e.male, true]] as const) {
+            if (!p || !pos.has(p)) continue;
+            const off = e.female === e.male ? (male ? 3 : -3) : 0;
+            ctx.save(); ctx.strokeStyle = male ? pal.accent2 : pal.accent; ctx.lineWidth = 1.6; ctx.setLineDash(male ? [5, 3] : []);
+            const x0 = X(p) + off, y0 = Y(p) + bh, x1 = X(id) + off * 2 + (e.female === e.male ? 0 : male ? 6 : -6), y1 = Y(id);
+            ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + vgap / 2, x1, y1 - vgap / 2, x1, y1); ctx.stroke(); ctx.restore();
+          }
+        }
+        for (const id of ids) {
+          const x = X(id) - bw / 2, y = Y(id), F = inbreeding(P, id);
+          ctx.fillStyle = pal.bg; ctx.fillRect(x, y, bw, bh);
+          ctx.strokeStyle = F > 0 ? pal.warn : pal.ink; ctx.lineWidth = F > 0 ? 2 : 1.2; ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `600 12px ${FONT}`;
+          let s = id; while (s.length > 1 && ctx.measureText(s).width > bw - 8) s = s.slice(0, -1);
+          const lab = label(id);
+          ctx.fillText(s === id ? s : s.slice(0, -1) + '…', X(id), y + (lab ? 13 : bh / 2));
+          if (lab) { ctx.font = `11px ${FONT}`; ctx.fillStyle = pal.warn; ctx.fillText(lab, X(id), y + 27); }
+        }
+      },
+    };
+  }
+
+  function drawPed() {
+    if (!P) return;
+    const v = q<HTMLSelectElement>('.cp-draw').value;
+    let ids = v === '*' ? P.ids : ancestors(P, v);
+    const note = q('.cp-dnote');
+    if (ids.length > DRAW_MAX) { note.textContent = `${ids.length} plants are too many to draw clearly; showing the latest ${DRAW_MAX} in pedigree order. Pick one plant to see its own ancestry.`; ids = ids.slice(-DRAW_MAX); }
+    else note.textContent = v === '*' ? 'Boxes with an orange edge are inbred (F above 0).' : `${v} and its ${ids.length - 1} ancestors. Boxes with an orange edge are inbred.`;
+    fig = makeFig(P, ids); paint(q<HTMLCanvasElement>('.cp-fig'), fig);
+  }
+
+  function pair() {
+    if (!P) return;
+    const a = q<HTMLSelectElement>('.cp-a').value, b = q<HTMLSelectElement>('.cp-b').value, f = coancestry(P, a, b);
+    q('.cp-ab').textContent = `Coancestry of ${a} and ${b}: ${fx(f)} (${say(f, a, b)}). Their offspring would have F = ${fx(f)}; the additive relationship is ${fx(2 * f)}.`;
+  }
+
+  function run() {
+    const err = q('.cp-err'); err.hidden = true;
+    const text = q<HTMLTextAreaElement>('.cp-ped').value;
+    if (!text.trim()) { q('.cp-out').hidden = true; P = null; return; }
+    try {
+      P = build(readPedigree(text), { sexCheck: q<HTMLInputElement>('.cp-sex').checked });
+      plan = readPlan(q<HTMLTextAreaElement>('.cp-plan').value).map((c) => ({ ...c, f: coancestry(P!, c.female, c.male) }));
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cp-out').hidden = true; P = null; return; }
+    q('.cp-out').hidden = false;
+    const Fs = P.ids.map((id) => inbreeding(P!, id)), founders = P.entries.filter((e) => !e.female && !e.male).length;
+    const top = Fs.reduce((k, f, i) => (f > Fs[k] ? i : k), 0), gens = Math.max(...P.gen) + 1;
+    q('.cp-big').textContent = `${P.n} plants, ${founders} founder${founders === 1 ? '' : 's'}, ${gens} generation${gens === 1 ? '' : 's'}`;
+    const warns = [...P.warnings, ...(P.added.length ? [`Parents not listed as plants were added as founders with unknown parents: ${P.added.slice(0, 12).join(', ')}${P.added.length > 12 ? ` and ${P.added.length - 12} more` : ''}.`] : []), ...(Fs[top] > 0 ? [] : ['No plant is inbred in this pedigree.'])];
+    q('.cp-warn').replaceChildren(...warns.map((w) => { const li = document.createElement('li'); li.textContent = w; return li; }));
+    q('.cp-planbox').hidden = !plan.length;
+    table(q('.cp-pt'), ['Cross (female × male)', 'F of offspring', 'Note'], plan.slice().sort((a, b) => a.f - b.f).map((c) => [c.name === `${c.female} × ${c.male}` ? c.name : `${c.name}: ${c.female} × ${c.male}`, fx(c.f), say(c.f, c.female, c.male)]), [1]);
+    table(q('.cp-tab'), ['Plant', 'Female', 'Male', 'Generation', 'F'], P.entries.map((e, i) => [e.id, e.female ?? '–', e.male ?? '–', P!.gen[i], fx(Fs[i])]), [3, 4]);
+    q<HTMLButtonElement>('.cp-mcsv').disabled = P.n > MATRIX_MAX;
+    q<HTMLButtonElement>('.cp-mcsv').title = P.n > MATRIX_MAX ? `Only for pedigrees of up to ${MATRIX_MAX} plants` : '';
+    // Pickers: keep the choice when the plant is still there.
+    const fill = (sel: string, opts: [string, string][], dflt: string) => { const s = q<HTMLSelectElement>(sel), old = s.value; s.replaceChildren(...opts.map(([v, t]) => new Option(t, v))); s.value = opts.some(([v]) => v === old) ? old : dflt; };
+    const plants = P.ids.map((id) => [id, id] as [string, string]);
+    fill('.cp-a', plants, P.ids[Math.max(0, P.n - 2)]); fill('.cp-b', plants, P.ids[P.n - 1]);
+    fill('.cp-draw', [['*', `All plants (${P.n})`], ...P.ids.slice().reverse().map((id) => [id, `${id} and its ancestors`] as [string, string])], P.n <= 60 ? '*' : P.ids[P.n - 1]);
+    pair(); drawPed();
+  }
+
+  const sections = (): Section[] => {
+    if (!P) return [];
+    return [
+      { title: 'Pedigree', text: [q('.cp-big').textContent ?? '', ...[...q('.cp-warn').children].map((li) => li.textContent ?? '')] },
+      ...(plan.length ? [{ title: 'Planned crosses', table: { head: ['Cross', 'Female', 'Male', 'Coancestry (F of offspring)', 'Note'], rows: plan.slice().sort((a, b) => a.f - b.f).map((c) => [c.name, c.female, c.male, fx(c.f), say(c.f, c.female, c.male)]), align: ['l', 'l', 'l', 'r', 'l'] as ('l' | 'r')[] } }] : []),
+      { title: 'Pedigree drawing', figure: fig ?? undefined },
+      { title: 'Inbreeding', table: { head: ['Plant', 'Female', 'Male', 'Generation', 'F'], rows: P.entries.slice(0, 600).map((e, i) => [e.id, e.female ?? '-', e.male ?? '-', String(P!.gen[i]), fx(inbreeding(P!, e.id))]), align: ['l', 'l', 'l', 'r', 'r'] }, note: P.n > 600 ? `First 600 of ${P.n} plants; the CSV has them all.` : undefined },
+    ];
+  };
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  q('.cp-ped').addEventListener('input', later); q('.cp-plan').addEventListener('input', later);
+  q('.cp-sex').addEventListener('change', run);
+  q('.cp-a').addEventListener('change', pair); q('.cp-b').addEventListener('change', pair);
+  q('.cp-draw').addEventListener('change', drawPed);
+  q('.cp-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.cp-ped').value = EXAMPLE_PED; q<HTMLTextAreaElement>('.cp-plan').value = EXAMPLE_PLAN; q<HTMLInputElement>('.cp-sex').checked = false; run(); });
+  q('.cp-pcsv').addEventListener('click', () => save(new Blob([csv([['cross', 'female', 'male', 'coancestry_F_of_offspring', 'note'], ...plan.map((c) => [c.name, c.female, c.male, c.f.toPrecision(8).replace(/\.?0+$/, ''), say(c.f, c.female, c.male)])])], { type: 'text/csv' }), 'crossing-plan.csv', 'text/csv'));
+  q('.cp-csv').addEventListener('click', () => { if (P) save(new Blob([csv([['plant', 'female', 'male', 'generation', 'inbreeding_F'], ...P.entries.map((e, i) => [e.id, e.female ?? '', e.male ?? '', P!.gen[i], inbreeding(P!, e.id).toPrecision(8).replace(/\.?0+$/, '')])])], { type: 'text/csv' }), 'pedigree-inbreeding.csv', 'text/csv'); });
+  q('.cp-mcsv').addEventListener('click', () => { if (P && P.n <= MATRIX_MAX) save(new Blob([csv([['', ...P.ids], ...P.ids.map((a) => [a, ...P!.ids.map((b) => fx(coancestry(P!, a, b)))])])], { type: 'text/csv' }), 'coancestry-matrix.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Crossing plan and pedigree', subtitle: q('.cp-big').textContent ?? '', file: 'crossing-plan', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (P && fig) paint(q<HTMLCanvasElement>('.cp-fig'), fig); });
+  q<HTMLTextAreaElement>('.cp-ped').value = EXAMPLE_PED; q<HTMLTextAreaElement>('.cp-plan').value = EXAMPLE_PLAN; run();
+</script>

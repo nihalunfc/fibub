@@ -1,0 +1,189 @@
+---
+// Allometric body mass estimator: fit log M = a + b log X to your own reference specimens (or type an equation's
+// a and b), then predict masses with prediction intervals. No published coefficients are bundled; the example
+// reference data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax bme">
+  <div class="ax-card">
+    <h2>1. The equation</h2>
+    <div class="ax-seg bm-mode" role="group" aria-label="Where the equation comes from">
+      <button type="button" data-m="fit" aria-pressed="true">Fit my reference specimens</button>
+      <button type="button" data-m="eq" aria-pressed="false">Type an equation</button>
+    </div>
+    <div class="bm-fit" style="margin-top:12px">
+      <div class="ax-row"><button type="button" class="btn secondary small bm-ex">Use the made-up example</button></div>
+      <label style="margin-top:10px">Reference specimens: name, measurement X, body mass M (one per line) <textarea class="bm-ref" rows="8" spellcheck="false" placeholder="Ref 1&#9;200&#9;572.6"></textarea></label>
+      <DataFile target=".bm-ref" maxMB={2} maxCols={3} maxRows={5000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Bias correction <select class="bm-cf"><option value="smear">Smearing (Duan)</option><option value="qmle">QMLE (from SEE)</option><option value="none">None</option></select></label>
+        <label>Interval <select class="bm-lv"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      </div>
+    </div>
+    <div class="bm-eq" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label>Intercept a <input class="bm-a" type="number" step="any" inputmode="decimal" /></label>
+        <label>Slope b <input class="bm-b" type="number" step="any" inputmode="decimal" /></label>
+        <label>Logarithm <select class="bm-base"><option value="10">log₁₀ (common)</option><option value="e">ln (natural)</option></select></label>
+        <label>Correction factor <input class="bm-ecf" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help">For an equation from a paper: type its a and b exactly as published, with the same logarithm and units, and cite the paper in your work. A typed equation has no reference data, so no prediction interval can be worked out here.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>X unit <input class="bm-xu" type="text" value="mm" /></label>
+      <label>Mass unit <input class="bm-mu" type="text" value="kg" /></label>
+    </div>
+    <div class="bm-msg"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Fossils to estimate</h2>
+    <label>Name and measurement X, one per line <textarea class="bm-fos" rows="4" spellcheck="false" placeholder="Fossil A&#9;160"></textarea></label>
+    <div class="bm-fmsg"></div>
+  </div>
+
+  <div class="ax-card bm-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big bm-big"></p>
+    <dl class="ax-facts bm-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="bm-ftab"></table></div>
+    <p class="ax-help bm-fnote"></p>
+    <canvas class="ax-fig bm-fig" style="margin-top:10px"></canvas>
+    <h3 class="bm-rh">Reference specimens</h3>
+    <div class="ax-scroll"><table class="bm-rtab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small bm-csv">Estimates (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bme h3 { margin: 22px 0 8px; font-size: 15px; }
+  .bme .bm-msg p, .bme .bm-fmsg p { margin: 6px 0 0; }
+  .bme .bm-rtab td, .bme .bm-ftab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { fitAllometry, predict, fromEquation, readRows, EXAMPLE_REF, EXAMPLE_FOSSILS, type Fit } from '../../lib/sci/allometry';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bme')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode: 'fit' | 'eq' = 'fit', fit: Fit | null = null, fig: Figure | null = null, rows: (string | number)[][] = [], refNames: string[] = [], refX: number[] = [], refM: number[] = [];
+  const s4 = (x: number) => sig(x, 4);
+
+  const table = (t: HTMLElement, head: string[], body: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of body) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  const msgs = (el: HTMLElement, errs: string[], help: string[] = []) => {
+    el.replaceChildren(...errs.slice(0, 6).map((e) => Object.assign(document.createElement('p'), { className: 'ax-err', textContent: e })), ...help.map((e) => Object.assign(document.createElement('p'), { className: 'ax-help', textContent: e })));
+  };
+
+  function run() {
+    const xu = q<HTMLInputElement>('.bm-xu').value.trim() || 'X', mu = q<HTMLInputElement>('.bm-mu').value.trim() || 'mass';
+    const fo = readRows(q<HTMLTextAreaElement>('.bm-fos').value, 1);
+    msgs(q('.bm-fmsg'), fo.errors);
+    const out = q('.bm-out');
+    let cf = 1, lv = Number(q<HTMLSelectElement>('.bm-lv').value), eqText = '';
+    fit = null; fig = null; rows = [];
+    if (mode === 'fit') {
+      const r = readRows(q<HTMLTextAreaElement>('.bm-ref').value, 2);
+      refNames = r.names; refX = r.cols[0]; refM = r.cols[1];
+      const errs = [...r.errors];
+      if (r.names.length && r.names.length < 3) errs.push('Add at least 3 reference specimens to fit a line.');
+      if (r.names.length >= 3 && new Set(refX).size < 2) errs.push('The reference specimens need at least two different X values.');
+      msgs(q('.bm-msg'), errs, r.names.length >= 3 && r.names.length < 10 ? ['Few specimens: intervals will be wide. Ten or more of a similar body plan are better.'] : []);
+      if (r.names.length < 3 || new Set(refX).size < 2) { out.hidden = true; return; }
+      fit = fitAllometry(refX, refM);
+      const c = q<HTMLSelectElement>('.bm-cf').value; cf = c === 'smear' ? fit.smear : c === 'qmle' ? fit.qmle : 1;
+      eqText = `log₁₀ M = ${fit.a.toFixed(4).replace('-', '−')} + ${fit.b.toFixed(4)} log₁₀ X`;
+      q('.bm-big').textContent = `${eqText} (n = ${fit.n}, r² = ${fit.r2.toFixed(4)})`;
+      const facts: [string, string][] = [['a ± SE', `${fit.a.toFixed(4)} ± ${fit.seA.toFixed(4)}`], ['b ± SE', `${fit.b.toFixed(4)} ± ${fit.seB.toFixed(4)}`], ['SEE (log₁₀)', fit.see.toFixed(4)], ['%SEE', `${fit.seePct.toFixed(1)} %`], ['%PE', `${fit.pe.toFixed(1)} %`], ['Smearing factor', fit.smear.toFixed(4)], ['QMLE factor', fit.qmle.toFixed(4)], ['X range', `${s4(fit.xmin)} to ${s4(fit.xmax)} ${xu}`]];
+      q('.bm-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+      const f = fit;
+      table(q('.bm-rtab'), ['Specimen', `X (${xu})`, `Mass (${mu})`, 'Predicted', 'Error'], refNames.map((n, i) => { const p = 10 ** f.fitted[i] * cf; return [n, s4(refX[i]), s4(refM[i]), s4(p), `${(((refM[i] - p) / p) * 100).toFixed(1)} %`]; }), ['', 'r', 'r', 'r', 'r']);
+    } else {
+      const a = num(q<HTMLInputElement>('.bm-a').value), b = num(q<HTMLInputElement>('.bm-b').value), base = q<HTMLSelectElement>('.bm-base').value;
+      cf = num(q<HTMLInputElement>('.bm-ecf').value); if (!(cf > 0)) cf = 1;
+      const errs = (!Number.isFinite(a) || !Number.isFinite(b)) && (q<HTMLInputElement>('.bm-a').value || q<HTMLInputElement>('.bm-b').value) ? ['Type both a and b as numbers.'] : [];
+      msgs(q('.bm-msg'), errs);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) { out.hidden = true; return; }
+      const L = base === 'e' ? 'ln' : 'log₁₀';
+      eqText = `${L} M = ${a} + ${b} ${L} X`;
+      q('.bm-big').textContent = `${eqText}${cf !== 1 ? `, × ${cf}` : ''} (typed in)`;
+      q('.bm-facts').replaceChildren();
+    }
+    q('.bm-rh').hidden = mode !== 'fit'; q('.bm-rtab').hidden = mode !== 'fit';
+    out.hidden = false;
+    // Fossil estimates.
+    const pct = `${Math.round(lv * 100)} %`;
+    if (mode === 'fit') {
+      const f = fit!;
+      const ps = fo.cols[0].map((x) => predict(f, x, cf, lv));
+      rows = ps.map((p, i) => [fo.names[i], s4(p.x), s4(p.mass), `${s4(p.lo)} to ${s4(p.hi)}`, p.extrapolated ? 'outside the reference range' : '']);
+      table(q('.bm-ftab'), ['Fossil', `X (${xu})`, `Mass (${mu})`, `${pct} prediction interval`, 'Note'], rows, ['', 'r', 'r', 'r', '']);
+      q('.bm-fnote').textContent = fo.names.length ? `Mass is 10^(a + b log₁₀ X)${cf !== 1 ? ` × ${cf.toFixed(4)} (${q<HTMLSelectElement>('.bm-cf').selectedOptions[0].text.toLowerCase()})` : ''}. The prediction interval is for one individual, back-transformed from the log scale.${ps.some((p) => p.extrapolated) ? ' Estimates outside the X range of the references are extrapolations: treat them with extra care.' : ''}` : 'Add fossils above to estimate their masses.';
+      // Figure: references, fitted line and prediction band on log axes, fossils on the line.
+      const lo = Math.min(f.xmin, ...fo.cols[0]) / 1.15, hi = Math.max(f.xmax, ...fo.cols[0]) * 1.15;
+      const xs = Array.from({ length: 41 }, (_, k) => lo * (hi / lo) ** (k / 40)), band = xs.map((x) => predict(f, x, 1, lv));
+      // The interval lines take the page's muted colour (so red night mode stays red).
+      const spec = (muted: string) => chartFigure({
+        w: 620, h: 420, xLog: true, yLog: true, xLabel: `X (${xu})`, yLabel: `Body mass (${mu})`, legend: 'inside',
+        series: [
+          { name: 'Reference specimens', x: refX, y: refM, marker: 'circle' },
+          { name: 'Fitted line', x: xs, y: xs.map((x) => 10 ** (f.a + f.b * Math.log10(x))), mode: 'line' },
+          { name: `${pct} prediction interval`, x: xs, y: band.map((b) => b.lo), mode: 'line', dash: [5, 4], width: 1.2, color: muted },
+          { name: '', x: xs, y: band.map((b) => b.hi), mode: 'line', dash: [5, 4], width: 1.2, color: muted },
+          ...(fo.names.length ? [{ name: 'Fossils', x: fo.cols[0], y: ps.map((p) => p.mass), marker: 'diamond' as const, labels: fo.names }] : []),
+        ],
+      }, `Log-log plot of ${f.n} reference specimens with the fitted line and ${pct} prediction interval`);
+      const alt = `Log-log plot of ${f.n} reference specimens with the fitted line and ${pct} prediction interval`;
+      fig = { w: 620, h: 420, alt, draw: (ctx, W, H, pal) => spec(pal.muted).draw(ctx, W, H, pal) };
+    } else {
+      const a = num(q<HTMLInputElement>('.bm-a').value), b = num(q<HTMLInputElement>('.bm-b').value), base = q<HTMLSelectElement>('.bm-base').value === 'e' ? 'e' as const : 10 as const;
+      rows = fo.cols[0].map((x, i) => [fo.names[i], s4(x), s4(fromEquation(a, b, x, base, cf)), '', '']);
+      table(q('.bm-ftab'), ['Fossil', `X (${xu})`, `Mass (${mu})`], rows.map((r) => r.slice(0, 3)), ['', 'r', 'r']);
+      q('.bm-fnote').textContent = fo.names.length ? 'From the typed equation. Use the same units and logarithm as the source, and give its own error figures with the estimate.' : 'Add fossils above to estimate their masses.';
+    }
+    const c = q<HTMLCanvasElement>('.bm-fig'); c.hidden = !fig; if (fig) paint(c, fig);
+  }
+
+  function setMode(m: 'fit' | 'eq') {
+    mode = m;
+    for (const b of q('.bm-mode').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.m === m));
+    q('.bm-fit').hidden = m !== 'fit'; q('.bm-eq').hidden = m !== 'eq';
+    run();
+  }
+  q('.bm-mode').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (b) setMode(b.dataset.m as 'fit' | 'eq'); });
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  for (const c of ['.bm-cf', '.bm-lv', '.bm-base']) q(c).addEventListener('change', run);
+  q('.bm-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.bm-ref').value = EXAMPLE_REF; q<HTMLTextAreaElement>('.bm-fos').value = EXAMPLE_FOSSILS; q<HTMLInputElement>('.bm-xu').value = 'mm'; q<HTMLInputElement>('.bm-mu').value = 'kg'; run(); });
+  q('.bm-csv').addEventListener('click', () => {
+    const xu = q<HTMLInputElement>('.bm-xu').value.trim() || 'X', mu = q<HTMLInputElement>('.bm-mu').value.trim() || 'mass';
+    const head = mode === 'fit' ? ['name', `x_${xu}`, `mass_${mu}`, 'prediction_interval', 'note'] : ['name', `x_${xu}`, `mass_${mu}`];
+    const lines: (string | number)[][] = [head, ...rows.map((r) => (mode === 'fit' ? r : r.slice(0, 3)))];
+    lines.push([], ['equation', q('.bm-big').textContent ?? '']);
+    if (fit) lines.push(['a', fit.a, 'se_a', fit.seA], ['b', fit.b, 'se_b', fit.seB], ['see_log10', fit.see, 'r2', fit.r2], ['percent_pe', fit.pe, 'percent_see', fit.seePct], ['smearing', fit.smear, 'qmle', fit.qmle], ['correction_used', q<HTMLSelectElement>('.bm-cf').value, 'interval', q<HTMLSelectElement>('.bm-lv').value]);
+    save(new Blob([csv(lines)], { type: 'text/csv' }), 'body-mass-estimates.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    if (q('.bm-out').hidden) return { title: '', sections: [], file: 'body-mass' };
+    const facts = [...q('.bm-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? ''] as [string, string]);
+    const head = [...q('.bm-ftab').querySelectorAll('th')].map((t) => t.textContent ?? '');
+    const sections: Section[] = [
+      { title: 'Equation', text: [q('.bm-big').textContent ?? ''], ...(facts.length ? { facts } : {}) },
+      { title: 'Estimates', table: { head, rows: rows.map((r) => r.slice(0, head.length).map(String)) }, note: q('.bm-fnote').textContent ?? '' },
+      ...(fig ? [{ title: 'Log-log plot', figure: fig }] : []),
+      ...(fit ? [{ title: 'Reference specimens', table: { head: [...q('.bm-rtab').querySelectorAll('th')].map((t) => t.textContent ?? ''), rows: [...q('.bm-rtab').querySelectorAll('tr')].slice(1).map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent ?? '')) } }] : []),
+    ];
+    return { title: 'Allometric body mass estimate', subtitle: q('.bm-big').textContent ?? '', file: 'body-mass', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.bm-fig'), fig, pagePalette()); });
+  q<HTMLTextAreaElement>('.bm-ref').value = EXAMPLE_REF; q<HTMLTextAreaElement>('.bm-fos').value = EXAMPLE_FOSSILS; run();
+</script>

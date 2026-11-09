@@ -1,0 +1,183 @@
+---
+// Analysis of variance of a yield trial (CRD, RCBD or Latin square), with F tests, CV %, LSD and mean separation
+// letters. Everything runs in the browser; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax yta">
+  <div class="ax-card">
+    <h2>Plot data</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small ya-ex">Use the example</button></div>
+    <label style="margin-top:10px">One plot per line: treatment, block (or row), column for a Latin square, and the yield. A header row is fine. <textarea class="ya-in" rows="8" spellcheck="false" placeholder="variety&#9;block&#9;yield&#10;Variety A&#9;1&#9;4.2"></textarea></label>
+    <DataFile target=".ya-in" maxMB={5} maxCols={20} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Design
+        <select class="ya-design">
+          <option value="rcbd" selected>Randomised complete block (RCBD)</option>
+          <option value="crd">Completely randomised (CRD)</option>
+          <option value="latin">Latin square</option>
+        </select>
+      </label>
+      <label>Treatment column <select class="ya-ct"></select></label>
+      <label class="ya-cbl">Block column <select class="ya-cb"></select></label>
+      <label class="ya-ccl" hidden>Column (Latin square) <select class="ya-cc"></select></label>
+      <label>Yield column <select class="ya-cy"></select></label>
+      <label>Significance level
+        <select class="ya-alpha"><option value="0.05" selected>5 %</option><option value="0.01">1 %</option></select>
+      </label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ya-prot" checked /> Protected LSD: separate means only when the treatment F test is significant</label>
+    <p class="ax-help">Lines with no treatment or no number in the yield column are left out. Any unit of yield works (t/ha, kg per plot, bu/acre).</p>
+    <p class="ax-err ya-err" hidden></p>
+  </div>
+
+  <div class="ax-card ya-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big ya-big"></p>
+    <p class="ya-say"></p>
+    <dl class="ax-facts ya-facts"></dl>
+    <h3>Analysis of variance</h3>
+    <div class="ax-scroll"><table class="ya-tab"></table></div>
+    <h3>Treatment means</h3>
+    <div class="ax-scroll"><table class="ya-mt"></table></div>
+    <p class="ax-help ya-mnote"></p>
+    <canvas class="ax-fig ya-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ya-csv">Download means and ANOVA (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .yta h3 { margin: 22px 0 8px; font-size: 15px; }
+  .yta .ya-say { margin: 4px 0 14px; }
+  .yta td.let { font-weight: 700; }
+</style>
+
+<script>
+  import { analyse, readObs, EXAMPLE, type Design, type Result } from '../../lib/sci/trialanova';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.yta')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.ya-in');
+  const NAMES: Record<Design, string> = { crd: 'Completely randomised design', rcbd: 'Randomised complete block design', latin: 'Latin square' };
+  let R: Result | null = null, fig: Figure | null = null, header: string[] = [], body: string[][] = [], yName = 'yield', lastHead = '';
+
+  const pf = (p: number | undefined) => (p == null ? '' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const f = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '');
+  const dec = () => { const m = R ? Math.abs(R.grand) : 1; return m >= 100 ? 1 : m >= 10 ? 2 : 3; };
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], right: number[] = [], cls: Record<number, string> = {}) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right.includes(k)) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); td.className = [right.includes(k) ? 'r' : '', cls[k] ?? ''].join(' ').trim(); }); }
+  };
+
+  /** Read the table, find a header and fill the column pickers (keeping choices when the header is unchanged). */
+  function readTable() {
+    const rows = parseTable(box.value);
+    const isHead = rows.length > 0 && rows[0].every((c) => !Number.isFinite(num(c))) && rows.length > 1 && rows[1].some((c) => Number.isFinite(num(c)));
+    const w = Math.max(0, ...rows.map((r) => r.length));
+    header = isHead ? rows[0].map((h, i) => h || `Column ${i + 1}`) : Array.from({ length: w }, (_, i) => `Column ${i + 1}`);
+    while (header.length < w) header.push(`Column ${header.length + 1}`);
+    body = isHead ? rows.slice(1) : rows;
+    const key = header.join('\u0000');
+    if (key === lastHead) return;
+    lastHead = key;
+    const find = (re: RegExp, dflt: number) => { const i = header.findIndex((h) => re.test(h)); return i >= 0 ? i : dflt; };
+    const fill = (sel: string, v: number) => { const s = q<HTMLSelectElement>(sel); s.replaceChildren(...header.map((h, i) => new Option(h, String(i)))); s.value = String(Math.min(v, header.length - 1)); };
+    fill('.ya-ct', find(/treat|trt|variet|entry|genotype|cultivar|hybrid|line/i, 0));
+    fill('.ya-cb', find(/block|rep|row/i, 1));
+    fill('.ya-cc', find(/^col|column/i, 2));
+    fill('.ya-cy', find(/yield|value|response|weight|^y$/i, w - 1));
+  }
+
+  function makeFig(r: Result): Figure {
+    const ms = r.means.slice().sort((a, b) => b.mean - a.mean), n = ms.length;
+    // Sized to the space on the page, so the labels stay readable on a phone.
+    const w = Math.round(Math.min(640, Math.max(320, q('.ya-out').clientWidth - 34))), h = w < 480 ? 280 : 300;
+    return {
+      w, h, alt: `Bar chart of ${n} treatment means with standard error bars and letters`,
+      draw: (ctx, W, H, pal) => {
+        const L = 52, Rm = 10, T = 26, B = 56, top = Math.max(...ms.map((m) => m.mean + Math.sqrt(r.mse / m.n)));
+        const step = 10 ** Math.floor(Math.log10(top || 1)), ymax = Math.ceil((top * 1.08) / (step / 2)) * (step / 2) || 1;
+        const Y = (v: number) => H - B - (v / ymax) * (H - T - B), bw = (W - L - Rm) / n;
+        ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let k = 0; k <= 4; k++) { const v = (ymax * k) / 4; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - Rm, Y(v)); ctx.stroke(); ctx.fillText(sig(v, 3), L - 6, Y(v)); }
+        ctx.save(); ctx.translate(12, (T + H - B) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(`Mean ${yName}`, 0, 0); ctx.restore();
+        ms.forEach((m, i) => {
+          const x = L + bw * i + bw * 0.18, bwi = bw * 0.64, se = Math.sqrt(r.mse / m.n);
+          ctx.fillStyle = pal.accent; ctx.fillRect(x, Y(m.mean), bwi, Y(0) - Y(m.mean));
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; const cx = x + bwi / 2;
+          ctx.beginPath(); ctx.moveTo(cx, Y(m.mean - se)); ctx.lineTo(cx, Y(m.mean + se)); ctx.moveTo(cx - 5, Y(m.mean + se)); ctx.lineTo(cx + 5, Y(m.mean + se)); ctx.moveTo(cx - 5, Y(m.mean - se)); ctx.lineTo(cx + 5, Y(m.mean - se)); ctx.stroke();
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.font = '700 13px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          ctx.fillText(m.letters, cx, Y(m.mean + se) - 3);
+          ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.ink;
+          // Long names go on two lines, split at a space; anything still too wide is shortened.
+          const fit = (t: string) => { let u = t; while (u.length > 1 && ctx.measureText(u).width > bw - 4) u = u.slice(0, -1); return u === t ? t : u.slice(0, -1) + '…'; };
+          const sp = m.trt.lastIndexOf(' ');
+          const lines = ctx.measureText(m.trt).width > bw - 4 && sp > 0 ? [m.trt.slice(0, sp), m.trt.slice(sp + 1)] : [m.trt];
+          lines.forEach((t, j) => ctx.fillText(fit(t), cx, H - B + 6 + j * 15));
+        });
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T - 6); ctx.lineTo(L, Y(0)); ctx.lineTo(W - Rm, Y(0)); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(W < 480 ? 'Bars: ± 1 SE. Same letter: no significant difference.' : 'Bars: ± 1 standard error. Same letter: not significantly different.', W < 480 ? 4 : L, H - 4);
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.ya-err'); err.hidden = true;
+    const d = q<HTMLSelectElement>('.ya-design').value as Design;
+    q('.ya-cbl').hidden = d === 'crd'; q('.ya-ccl').hidden = d !== 'latin';
+    q('.ya-cbl').firstChild!.textContent = d === 'latin' ? 'Row column ' : 'Block column ';
+    readTable();
+    if (!body.length) { q('.ya-out').hidden = true; R = null; return; }
+    const ci = (s: string) => Number(q<HTMLSelectElement>(s).value);
+    yName = header[ci('.ya-cy')] ?? 'yield';
+    try {
+      const { obs } = readObs(body, { trt: ci('.ya-ct'), block: d === 'crd' ? undefined : ci('.ya-cb'), col: d === 'latin' ? ci('.ya-cc') : undefined, y: ci('.ya-cy') }, num);
+      R = analyse(obs, d, Number(q<HTMLSelectElement>('.ya-alpha').value), q<HTMLInputElement>('.ya-prot').checked);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ya-out').hidden = true; R = null; return; }
+    const r = R, k = dec(), a = Math.round(r.alpha * 100);
+    q('.ya-out').hidden = false;
+    const T = r.rows.find((x) => x.source === 'Treatments')!;
+    q('.ya-big').textContent = `F = ${f(T.f!, 2)}, p ${T.p! < 0.001 ? '< 0.001' : '= ' + pf(T.p)}`;
+    q('.ya-say').textContent = T.p! < r.alpha ? `The treatments differ at the ${a} % level. Means that share a letter are not significantly different by the LSD test.` : `No significant difference between treatments at the ${a} % level${r.separated ? '' : ', so (protected LSD) all means share the letter a'}.`;
+    const facts: [string, string][] = [['Grand mean', f(r.grand, k)], ['CV', `${f(r.cv, 1)} %`], [`LSD ${a} %`, r.lsd != null ? f(r.lsd, k) : 'varies by pair'], ['SE of a mean', r.sem != null ? f(r.sem, k) : 'varies'], ['SE of a difference', r.sed != null ? f(r.sed, k) : 'varies'], ['Error df', String(r.dfe)], [`t (${a} %, two-sided)`, f(r.tq, 3)], ['Plots', String(r.n)]];
+    q('.ya-facts').replaceChildren(...facts.map(([dt, dd]) => { const div = document.createElement('div'); const t = document.createElement('dt'); t.textContent = dt; const v = document.createElement('dd'); v.textContent = dd; div.append(t, v); return div; }));
+    table(q('.ya-tab'), ['Source', 'df', 'Sum of squares', 'Mean square', 'F', 'p'], r.rows.map((x) => [x.source, x.df, f(x.ss, 4), Number.isFinite(x.ms) ? f(x.ms, 4) : '', x.f != null ? f(x.f, 2) : '', pf(x.p)]), [1, 2, 3, 4, 5]);
+    const sorted = r.means.slice().sort((a, b) => b.mean - a.mean);
+    table(q('.ya-mt'), ['Rank', 'Treatment', 'Plots', 'Mean', 'Group'], sorted.map((m, i) => [i + 1, m.trt, m.n, f(m.mean, k), m.letters]), [0, 2, 3], { 4: 'let' });
+    q('.ya-mnote').textContent = r.cv > 20 ? `The CV of ${f(r.cv, 1)} % is high for a yield trial: check for typing errors, outliers or a very uneven field.` : `A CV of ${f(r.cv, 1)} % is ${r.cv < 10 ? 'good' : 'acceptable'} for a field trial.`;
+    fig = makeFig(r); paint(q<HTMLCanvasElement>('.ya-fig'), fig);
+  }
+
+  const sections = (): Section[] => {
+    if (!R) return [];
+    const r = R, k = dec(), a = Math.round(r.alpha * 100);
+    return [
+      { title: 'Summary', text: [q('.ya-big').textContent ?? '', q('.ya-say').textContent ?? ''], facts: [['Design', NAMES[r.design]], ['Grand mean', f(r.grand, k)], ['CV', `${f(r.cv, 1)} %`], [`LSD ${a} %`, r.lsd != null ? f(r.lsd, k) : 'varies by pair'], ['Error df', String(r.dfe)]] },
+      { title: 'Analysis of variance', table: { head: ['Source', 'df', 'SS', 'MS', 'F', 'p'], rows: r.rows.map((x) => [x.source, String(x.df), f(x.ss, 4), Number.isFinite(x.ms) ? f(x.ms, 4) : '', x.f != null ? f(x.f, 2) : '', pf(x.p)]), align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Treatment means', figure: fig ?? undefined, table: { head: ['Treatment', 'Plots', 'Mean', 'Group'], rows: r.means.slice().sort((a, b) => b.mean - a.mean).map((m) => [m.trt, String(m.n), f(m.mean, k), m.letters]), align: ['l', 'r', 'r', 'l'] } },
+    ];
+  };
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  box.addEventListener('input', later);
+  for (const c of ['.ya-design', '.ya-ct', '.ya-cb', '.ya-cc', '.ya-cy', '.ya-alpha', '.ya-prot']) q(c).addEventListener('change', run);
+  q('.ya-ex').addEventListener('click', () => { box.value = EXAMPLE; lastHead = ''; q<HTMLSelectElement>('.ya-design').value = 'rcbd'; q<HTMLSelectElement>('.ya-alpha').value = '0.05'; q<HTMLInputElement>('.ya-prot').checked = true; run(); });
+  q('.ya-csv').addEventListener('click', () => {
+    if (!R) return;
+    const r = R, a = Math.round(r.alpha * 100);
+    const rows: (string | number)[][] = [['treatment', 'plots', 'mean', 'group'], ...r.means.slice().sort((a, b) => b.mean - a.mean).map((m) => [m.trt, m.n, m.mean.toPrecision(8), m.letters]), [],
+      ['source', 'df', 'sum_of_squares', 'mean_square', 'F', 'p'], ...r.rows.map((x) => [x.source, x.df, x.ss.toPrecision(8), Number.isFinite(x.ms) ? x.ms.toPrecision(8) : '', x.f != null ? x.f.toPrecision(6) : '', x.p != null ? x.p.toPrecision(4) : '']), [],
+      ['grand_mean', r.grand.toPrecision(8)], ['cv_percent', r.cv.toPrecision(4)], [`lsd_${a}_percent`, r.lsd != null ? r.lsd.toPrecision(6) : 'varies'], ['error_df', r.dfe]];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `yield-anova-${r.design}.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Yield trial analysis of variance', subtitle: R ? NAMES[R.design] : '', file: R ? `yield-anova-${R.design}` : 'yield-anova', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (R && fig) paint(q<HTMLCanvasElement>('.ya-fig'), fig); });
+  box.value = EXAMPLE; run();
+</script>

@@ -1,0 +1,142 @@
+---
+// Breeding calendar: due date window, pregnancy check and returns to heat from mating dates, with CSV and .ics
+// downloads made in the browser. Nothing is uploaded. Species lengths are rounded typical figures, editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax brc">
+  <div class="ax-card">
+    <h2>Species</h2>
+    <div class="ax-grid">
+      <label>Species <select class="bc-sp"></select></label>
+      <label>Gestation (days) <input class="bc-g" type="number" min="1" max="800" step="1" inputmode="numeric" /></label>
+      <label>Due window ± days <input class="bc-w" type="number" min="0" max="60" step="1" inputmode="numeric" /></label>
+      <label>Heat cycle (days, 0 = none) <input class="bc-c" type="number" min="0" max="400" step="1" inputmode="numeric" /></label>
+      <label>Pregnancy check (days after mating) <input class="bc-k" type="number" min="1" max="400" step="1" inputmode="numeric" /></label>
+      <label>Heat dates to show <select class="bc-n"><option>0</option><option>1</option><option selected>2</option><option>3</option></select></label>
+    </div>
+    <p class="ax-help bc-note"></p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small bc-reset">Back to the typical figures</button></div>
+    <p class="ax-err bc-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>One mating</h2>
+    <label style="max-width:240px">Mating date <input class="bc-date" type="date" /></label>
+    <dl class="ax-facts bc-one" style="margin-top:12px" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>A list of matings</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small bc-ex">Use the example</button></div>
+    <label style="margin-top:10px">One per line: animal, mating date (2026-03-14 or 14 Mar 2026), and optionally the species (cow, ewe, goat, sow, mare, dog, cat, rabbit; otherwise the species above)
+      <textarea class="bc-in" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".bc-in" maxMB={1} maxCols={3} maxRows={2000} />
+    <p class="ax-err bc-err" hidden></p>
+  </div>
+
+  <div class="ax-card bc-out" hidden>
+    <h2>Calendar</h2>
+    <p class="ax-big bc-big" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="bc-tab"></table></div>
+    <h3>Every date in order</h3>
+    <div class="ax-scroll bc-evw"><table class="bc-ev"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small bc-csv">Download table (CSV)</button>
+      <button type="button" class="btn secondary small bc-ics">Add to a calendar (.ics)</button>
+    </div>
+    <p class="ax-help">The .ics file opens in Google Calendar, Apple Calendar or Outlook as all-day events. It is made on this device.</p>
+    <Downloads />
+  </div>
+  <p class="ax-help">Typical, rounded figures: breeds and individual animals vary. For study and planning, not a substitute for professional judgement; ask your vet.</p>
+</div>
+
+<style is:global>
+  .brc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .brc .bc-evw { max-height: 420px; overflow-y: auto; }
+  .brc td.nw { white-space: nowrap; }
+</style>
+
+<script>
+  import { SPECIES, dayOf, iso, nice, plan, readMatings, events, ics, csvRows, EXAMPLE, type Species, type Plan } from '../../lib/sci/breeding';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.brc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let table: Species[] = SPECIES.map((s) => ({ ...s })), plans: Plan[] = [];
+  const sel = q<HTMLSelectElement>('.bc-sp');
+  sel.replaceChildren(...SPECIES.map((s) => new Option(s.name, s.id)));
+  const cur = () => table.find((s) => s.id === sel.value)!;
+  const nHeats = () => Number(q<HTMLSelectElement>('.bc-n').value);
+  const KINDS: Record<string, string> = { check: 'Pregnancy check', heat: 'Watch for heat', window: 'Due window', due: 'Due' };
+
+  function showSpecies() {
+    const s = cur();
+    inp('.bc-g').value = String(s.gestation); inp('.bc-w').value = String(s.window); inp('.bc-c').value = String(s.cycle); inp('.bc-k').value = String(s.check);
+    note();
+  }
+  function note() {
+    const s = cur(), o = SPECIES.find((x) => x.id === s.id)!;
+    const edited = s.gestation !== o.gestation || s.window !== o.window || s.cycle !== o.cycle || s.check !== o.check;
+    q('.bc-note').textContent = `${o.name}: typical gestation about ${o.gestation} days${o.cycle ? `, heat about every ${o.cycle} days` : ''}. ${o.cycleNote ?? ''}${edited ? ' You have changed these figures.' : ''}`.trim();
+  }
+  function readSpecies() {
+    const s = cur(), err = q('.bc-perr');
+    const g = Number(inp('.bc-g').value), w = Number(inp('.bc-w').value), c = Number(inp('.bc-c').value), k = Number(inp('.bc-k').value);
+    const ok = Number.isInteger(g) && g > 0 && Number.isInteger(w) && w >= 0 && w < g && Number.isInteger(c) && c >= 0 && Number.isInteger(k) && k > 0;
+    err.hidden = ok; if (!ok) { err.textContent = 'Use whole days: gestation above 0, a window smaller than the gestation, a cycle of 0 or more, a check day above 0.'; return false; }
+    Object.assign(s, { gestation: g, window: w, cycle: c, check: k }); note(); return true;
+  }
+
+  function one() {
+    const d = dayOf(inp('.bc-date').value || ''), dl = q('.bc-one');
+    if (Number.isNaN(d)) { dl.hidden = true; return; }
+    const p = plan('', d, cur(), nHeats());
+    const facts: [string, string, string][] = [['Expected due date', nice(p.due), `${p.species.gestation} days after mating`], ['Due window', `${nice(p.early)} to ${nice(p.late)}`, `± ${p.species.window} days`], ['Pregnancy check', nice(p.check), `day ${p.species.check}`], ...p.heats.map((h, k) => [`Heat ${k + 1} (if she does not hold)`, nice(h), `day ${p.species.cycle * (k + 1)}`] as [string, string, string])];
+    dl.replaceChildren(...facts.map(([t, v, s]) => { const div = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = v; const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); div.append(dt, dd); return div; }));
+    dl.hidden = false;
+  }
+
+  function list() {
+    const err = q('.bc-err'); err.hidden = true;
+    const r = readMatings(q<HTMLTextAreaElement>('.bc-in').value, cur(), table, nHeats());
+    plans = r.plans.sort((a, b) => a.due - b.due);
+    if (r.errors.length) { err.textContent = r.errors.slice(0, 5).join(' ') + (r.errors.length > 5 ? ` (${r.errors.length - 5} more)` : ''); err.hidden = false; }
+    q('.bc-out').hidden = !plans.length;
+    if (!plans.length) return;
+    const n = Math.max(0, ...plans.map((p) => p.heats.length));
+    q('.bc-big').textContent = `${plans.length} mating${plans.length === 1 ? '' : 's'}, first due ${nice(plans[0].due)}`;
+    const t = q('.bc-tab'); t.replaceChildren();
+    const head = ['Animal', 'Species', 'Mated', 'Check', ...Array.from({ length: n }, (_, k) => `Heat ${k + 1}`), 'Due', 'Window'];
+    const h = t.insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    for (const p of plans) { const tr = t.insertRow(); [p.animal, p.species.name, iso(p.mated), iso(p.check), ...Array.from({ length: n }, (_, k) => (p.heats[k] !== undefined ? iso(p.heats[k]) : '–')), iso(p.due), `${iso(p.early)} to ${iso(p.late)}`].forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k > 1) td.className = 'nw'; }); }
+    const e = q('.bc-ev'); e.replaceChildren();
+    const eh = e.insertRow(); ['Date', 'What', 'Animal'].forEach((x) => { const th = document.createElement('th'); th.textContent = x; eh.append(th); });
+    for (const ev of events(plans)) { const tr = e.insertRow(); [ev.end ? `${nice(ev.day)} to ${nice(ev.end)}` : nice(ev.day), ev.kind === 'heat' ? ev.title.split(':')[0] : KINDS[ev.kind], ev.animal].forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; }); }
+  }
+
+  const all = () => { if (readSpecies()) { one(); list(); } };
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(all, 250); };
+  sel.addEventListener('change', () => { showSpecies(); all(); });
+  for (const c of ['.bc-g', '.bc-w', '.bc-c', '.bc-k']) q(c).addEventListener('input', later);
+  q('.bc-n').addEventListener('change', all);
+  inp('.bc-date').addEventListener('input', one);
+  inp('.bc-date').addEventListener('change', one);
+  q('.bc-in').addEventListener('input', later);
+  q('.bc-reset').addEventListener('click', () => { const o = SPECIES.find((x) => x.id === sel.value)!; Object.assign(cur(), o); showSpecies(); all(); });
+  q('.bc-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.bc-in').value = EXAMPLE; list(); });
+  q('.bc-csv').addEventListener('click', () => save(new Blob([csv(csvRows(plans))], { type: 'text/csv' }), 'breeding-calendar.csv', 'text/csv'));
+  q('.bc-ics').addEventListener('click', () => save(new Blob([ics(events(plans), new Date())], { type: 'text/calendar' }), 'breeding-calendar.ics', 'text/calendar'));
+  wireDownloads(q('.dl'), () => ({
+    title: 'Breeding calendar', subtitle: q('.bc-big').textContent ?? '', file: 'breeding-calendar',
+    sections: plans.length ? [
+      { title: 'Matings', table: { head: ['Animal', 'Species', 'Mated', 'Check', 'Due', 'Window'], rows: plans.map((p) => [p.animal, p.species.name, iso(p.mated), iso(p.check), iso(p.due), `${iso(p.early)} to ${iso(p.late)}`]), align: ['l', 'l', 'l', 'l', 'l', 'l'] } },
+      { title: 'Every date in order', table: { head: ['Date', 'What', 'Animal'], rows: events(plans).map((ev) => [ev.end ? `${iso(ev.day)} to ${iso(ev.end)}` : iso(ev.day), ev.kind === 'heat' ? ev.title.split(':')[0] : KINDS[ev.kind], ev.animal]), align: ['l', 'l', 'l'] }, note: 'Typical, rounded figures; for planning only. Ask your vet.' },
+    ] : [],
+  }));
+  showSpecies();
+</script>

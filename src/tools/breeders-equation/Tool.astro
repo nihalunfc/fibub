@@ -1,0 +1,194 @@
+---
+// The breeder's equation (R = h² S = i h² σP), response per year, and heritability from parent-offspring
+// regression or variance components. Everything runs in the browser; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax beq">
+  <div class="ax-card">
+    <h2>Response to selection</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small be-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Selection given as
+        <select class="be-mode"><option value="p" selected>Proportion selected</option><option value="S">Selection differential S</option></select>
+      </label>
+      <label>Heritability h² (0 to 1) <input class="be-h2" type="number" min="0" max="1" step="0.01" value="0.4" inputmode="decimal" /></label>
+      <label class="be-pl">Proportion selected (%) <input class="be-p" type="number" min="0.01" max="99.99" step="any" value="10" inputmode="decimal" /></label>
+      <label class="be-sdl">Phenotypic SD σP <input class="be-sd" type="number" min="0" step="any" value="8" inputmode="decimal" /></label>
+      <label class="be-sl" hidden>Selection differential S <input class="be-s" type="number" step="any" value="14" inputmode="decimal" /></label>
+      <label>Parents selected
+        <select class="be-c"><option value="1" selected>Both parents</option><option value="0.5">One parent only</option></select>
+      </label>
+      <label>Generation interval (years) <input class="be-l" type="number" min="0.1" step="any" value="2" inputmode="decimal" /></label>
+      <label>Population mean (optional) <input class="be-m" type="number" step="any" value="100" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help be-chelp">Both parents: you pick the plants before they flower and cross only among them. One parent only: you pick the seed parents after open pollination, so the pollen comes from the whole population and the response is halved.</p>
+    <p class="ax-err be-err" hidden></p>
+    <div class="be-out">
+      <p class="ax-big be-big"></p>
+      <dl class="ax-facts be-facts"></dl>
+      <canvas class="ax-fig be-fig" style="margin-top:12px"></canvas>
+      <p class="ax-help">Picture: the thick part of the curve is the selected top. Lines: μ the population mean, S the selected parents' mean (μ + S), R the offspring mean (μ + R). Assumes the trait is normally distributed and the best plants are kept (truncation selection). Response is per generation of selection, in the trait's own unit.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Heritability from your data</h2>
+    <label>Method
+      <select class="be-meth">
+        <option value="mid" selected>Offspring on mid-parent regression (h² = b)</option>
+        <option value="one">Offspring on one parent regression (h² = 2b)</option>
+        <option value="clone">Lines or clones, variance components (broad sense H²)</option>
+        <option value="halfsib">Half-sib families, variance components (h² = 4σ²f / σ²P)</option>
+        <option value="fullsib">Full-sib families, variance components (h² ≤ 2σ²f / σ²P)</option>
+      </select>
+    </label>
+    <label style="margin-top:10px"><span class="be-dl">Two columns: parent value, offspring value (a header row is fine)</span> <textarea class="be-data" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".be-data" maxMB={5} maxCols={4} maxRows={20000} />
+    <p class="ax-err be-herr" hidden></p>
+    <div class="be-hout" hidden>
+      <p class="ax-big be-hbig"></p>
+      <dl class="ax-facts be-hfacts"></dl>
+      <div class="ax-scroll"><table class="be-htab"></table></div>
+      <p class="ax-help be-hnote"></p>
+      <canvas class="ax-fig be-hfig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small be-use">Use this h² above</button>
+        <button type="button" class="btn secondary small be-csv">Download results (CSV)</button>
+      </div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .beq .be-big { margin: 16px 0 10px; }
+</style>
+
+<script>
+  import { response, parentOffspring, components, EXAMPLE_PO, EXAMPLE_VC, type Response, type Regression, type Components, type GroupKind } from '../../lib/sci/breedeq';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.beq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const f = (x: number | null, d = 3) => (x == null || !Number.isFinite(x) ? '–' : sig(x, 4).includes('e') ? x.toExponential(2) : x.toFixed(d));
+  // Charts sized to the card, so their labels stay readable on a phone.
+  const cw = () => Math.round(Math.min(640, Math.max(340, q('.ax-card').clientWidth - 34)));
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([a, b]) => { const div = document.createElement('div'); const t = document.createElement('dt'); t.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; div.append(t, dd); return div; }));
+  let vcData: { group: string; y: number }[] = [];
+  let R: Response | null = null, fig: Figure | null = null, H: { kind: 'reg'; r: Regression; mid: boolean } | { kind: 'vc'; c: Components } | null = null, hfig: Figure | null = null, rFacts: [string, string][] = [], hFacts: [string, string][] = [];
+
+  function calc() {
+    const err = q('.be-err'); err.hidden = true;
+    const mode = q<HTMLSelectElement>('.be-mode').value;
+    q('.be-pl').hidden = mode !== 'p'; q('.be-sdl').hidden = mode !== 'p'; q('.be-sl').hidden = mode !== 'S';
+    const h2 = v('.be-h2'), c = Number(q<HTMLSelectElement>('.be-c').value), L = v('.be-l'), mean = v('.be-m');
+    try {
+      if (!Number.isFinite(h2)) throw new Error('Enter the heritability, a number from 0 to 1.');
+      R = mode === 'p' ? response({ h2, p: v('.be-p') / 100, sigmaP: v('.be-sd'), c, L: Number.isFinite(L) ? L : undefined, mean: Number.isFinite(mean) ? mean : undefined })
+        : response({ h2, S: v('.be-s'), c, L: Number.isFinite(L) ? L : undefined, mean: Number.isFinite(mean) ? mean : undefined });
+      if (R.perYear != null && !Number.isFinite(R.perYear)) throw new Error('The generation interval must be above 0 years.');
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.be-out').hidden = true; R = null; return; }
+    q('.be-out').hidden = false;
+    q('.be-big').textContent = `R = ${f(R.R)} per generation`;
+    rFacts = [
+      ...(R.i != null ? [['Selection intensity i', f(R.i, 4)], ['Truncation point z', f(R.z, 3)]] as [string, string][] : []),
+      ['Selection differential S', f(R.S)], ['Response R', f(R.R)], ['Response per year', R.perYear != null ? f(R.perYear) : '–'],
+      ...(R.newMean != null ? [['Mean of the offspring', f(R.newMean)], ['Gain', `${f(R.pct, 2)} % of the mean`]] as [string, string][] : []),
+    ];
+    facts(q('.be-facts'), rFacts);
+    // Picture (when σP is known): the distribution, the selected tail, and where S and R land.
+    const canvas = q<HTMLCanvasElement>('.be-fig');
+    if (mode !== 'p' || R.z == null) { fig = null; canvas.hidden = true; return; }
+    const sd = v('.be-sd'), m0 = Number.isFinite(mean) ? mean : 0, z = R.z, xs: number[] = [], ys: number[] = [];
+    for (let k = -3.5; k <= Math.max(3.5, z + 1) + 1e-9; k += 0.05) { xs.push(m0 + k * sd); ys.push(Math.exp(-k * k / 2) / Math.sqrt(2 * Math.PI) / sd); }
+    const cut = m0 + z * sd, sel = xs.map((x, k) => (x >= cut - 1e-9 ? ys[k] : NaN));
+    fig = chartFigure({
+      w: cw(), h: cw() < 480 ? 280 : 300, xLabel: Number.isFinite(mean) ? 'Trait value' : 'Trait value (deviation from the mean)', yLabel: 'Density', legend: 'none',
+      series: [{ name: 'Population', x: xs, y: ys, mode: 'line', width: 2 }, { name: 'Selected', x: xs, y: sel, mode: 'line', width: 5 }],
+      marks: [{ kind: 'vline', at: m0, label: 'μ' }, { kind: 'vline', at: m0 + R.R, label: 'R', dash: [6, 3] }, { kind: 'vline', at: m0 + R.S, label: 'S', dash: [2, 3] }],
+    }, `Normal distribution of the trait with the selected top ${v('.be-p')} %; the selected parents' mean is ${f(R.S)} above the population mean and the offspring mean ${f(R.R)} above it`);
+    canvas.hidden = false;
+    paint(q<HTMLCanvasElement>('.be-fig'), fig);
+  }
+
+  function herit() {
+    const err = q('.be-herr'); err.hidden = true;
+    const meth = q<HTMLSelectElement>('.be-meth').value, reg = meth === 'mid' || meth === 'one';
+    q('.be-dl').textContent = reg ? 'Two columns: parent value (mid-parent or one parent), offspring value. A header row is fine.' : 'Two columns: group (family, line or clone), plant value. One plant per line; a header row is fine.';
+    let rows = parseTable(q<HTMLTextAreaElement>('.be-data').value);
+    if (rows.length && !Number.isFinite(num(rows[0][rows[0].length - 1]))) rows = rows.slice(1);
+    if (!rows.length) { q('.be-hout').hidden = true; H = null; return; }
+    try {
+      if (reg) {
+        const pairs = rows.map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+        const r = parentOffspring(pairs.map((p) => p[0]), pairs.map((p) => p[1]), meth === 'mid');
+        H = { kind: 'reg', r, mid: meth === 'mid' };
+      } else {
+        const data = rows.map((r) => ({ group: (r[0] ?? '').trim(), y: num(r[1]) })).filter((r) => r.group && Number.isFinite(r.y));
+        H = { kind: 'vc', c: components(data, meth as GroupKind) }; vcData = data;
+      }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.be-hout').hidden = true; H = null; return; }
+    q('.be-hout').hidden = false;
+    const tab = q('.be-htab'), note = q('.be-hnote'), canvas = q<HTMLCanvasElement>('.be-hfig');
+    tab.replaceChildren();
+    if (H.kind === 'reg') {
+      const r = H.r;
+      q('.be-hbig').textContent = `h² = ${f(r.h2)} ± ${f(r.seH2)} (SE)`;
+      hFacts = [['Pairs', String(r.n)], ['Slope b', `${f(r.b, 4)} ± ${f(r.seB, 4)}`], ['95 % interval for h²', `${f(r.ciH2[0])} to ${f(r.ciH2[1])}`], ['Correlation r', f(r.r)], ['p (slope = 0)', r.p < 0.001 ? '< 0.001' : f(r.p)]];
+      note.textContent = `${H.mid ? 'Offspring on mid-parent: h² is the slope.' : 'Offspring on one parent: the parent passes on half its genes, so h² is twice the slope.'}${r.h2 > 1 || r.ciH2[1] - r.ciH2[0] > 1 ? ' The estimate is very uncertain: more pairs would help.' : ''}`;
+      const lo = Math.min(...r.x), hi = Math.max(...r.x);
+      hfig = chartFigure({ w: cw(), h: cw() < 480 ? 300 : 340, xLabel: H.mid ? 'Mid-parent value' : 'Parent value', yLabel: 'Offspring value', legend: 'none', series: [{ name: 'Pairs', x: r.x, y: r.y, mode: 'points' }, { name: 'Fit', x: [lo, hi], y: [r.a + r.b * lo, r.a + r.b * hi], mode: 'line', width: 2 }] }, `Offspring against ${H.mid ? 'mid-parent' : 'parent'} values, ${r.n} pairs, slope ${f(r.b, 3)}`);
+    } else {
+      const c = H.c, name = c.kind === 'clone' ? 'H²' : 'h²';
+      q('.be-hbig').textContent = `${name} = ${f(c.h2)}${c.h2Mean != null ? ` (line-mean basis ${f(c.h2Mean)})` : ''}`;
+      hFacts = [['Groups', String(c.a)], ['Plants', String(c.N)], ['n0 (plants per group)', f(c.n0, 2)], ['Between-group variance', f(c.varB)], ['Within-group variance', f(c.varW)], ['Phenotypic variance', f(c.varP)], ['F test of groups', `F = ${f(c.F, 2)}, p ${c.p < 0.001 ? '< 0.001' : '= ' + f(c.p)}`]];
+      const h = tab.insertRow(); for (const t of ['Source', 'df', 'Mean square']) { const th = document.createElement('th'); th.textContent = t; h.append(th); }
+      for (const [s, df, ms] of [['Between groups', c.dfb, c.msb], ['Within groups', c.dfw, c.msw]] as const) { const tr = tab.insertRow(); [s, String(df), f(ms, 4)].forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+      note.textContent = [
+        c.kind === 'clone' ? 'Lines or clones: the variance between groups is the genetic variance, so this is broad-sense heritability (it includes dominance). The line-mean value applies when you select on the mean of n0 plants.' : c.kind === 'halfsib' ? 'Half-sib families share a quarter of the additive variance, so h² = 4 × between-family variance ÷ phenotypic variance.' : 'Full-sib families share half the additive variance plus some dominance and shared environment, so 2 × between-family variance ÷ phenotypic variance is an upper limit for h².',
+        c.truncated ? 'The between-group mean square is smaller than the within-group one, so the between-group variance is set to 0.' : '',
+        c.h2 > 1 ? `The estimate is above 1, which cannot be true: check that the groups really are ${c.kind === 'halfsib' ? 'half-sib' : 'full-sib'} families and that the plants were grown together.` : '',
+      ].filter(Boolean).join(' ');
+      hfig = chartFigure({ w: cw(), h: cw() < 480 ? 280 : 320, xLabel: 'Group', yLabel: 'Plant value', legend: 'none', series: [{ name: 'Plants', x: vcData.map((d) => c.groups.findIndex((g) => g.name === d.group) + 1), y: vcData.map((d) => d.y), mode: 'points', marker: 'open-circle' }, { name: 'Group means', x: c.groups.map((_, k) => k + 1), y: c.groups.map((g) => g.mean), mode: 'points', marker: 'diamond', size: 5, labels: c.groups.map((g) => (c.a <= 12 ? g.name : '')) }], xMin: 0, xMax: c.a + 1 + (c.a <= 12 ? 1 : 0) }, `Plant values and means of ${c.a} groups`);
+    }
+    facts(q('.be-hfacts'), hFacts);
+    paint(canvas, hfig);
+  }
+
+  const sections = (): Section[] => [
+    ...(R ? [{ title: 'Response to selection', text: [q('.be-big').textContent ?? ''], facts: rFacts, figure: fig ?? undefined }] : []),
+    ...(H ? [{ title: 'Heritability', text: [q('.be-hbig').textContent ?? '', q('.be-hnote').textContent ?? ''], facts: hFacts, figure: hfig ?? undefined }] : []),
+  ];
+
+  let tm = 0;
+  const later = (fn: () => void) => { clearTimeout(tm); tm = window.setTimeout(fn, 250); };
+  for (const c of ['.be-h2', '.be-p', '.be-sd', '.be-s', '.be-l', '.be-m']) q(c).addEventListener('input', () => later(calc));
+  for (const c of ['.be-mode', '.be-c']) q(c).addEventListener('change', calc);
+  q('.be-data').addEventListener('input', () => later(herit));
+  q('.be-meth').addEventListener('change', () => {
+    const reg = ['mid', 'one'].includes(q<HTMLSelectElement>('.be-meth').value), box = q<HTMLTextAreaElement>('.be-data');
+    if (box.value === EXAMPLE_PO && !reg) box.value = EXAMPLE_VC; else if (box.value === EXAMPLE_VC && reg) box.value = EXAMPLE_PO;
+    herit();
+  });
+  q('.be-use').addEventListener('click', () => { if (!H) return; const h = H.kind === 'reg' ? H.r.h2 : H.c.h2; q<HTMLInputElement>('.be-h2').value = String(+Math.min(1, Math.max(0, h)).toFixed(3)); calc(); q('.be-h2').scrollIntoView({ block: 'center' }); });
+  q('.be-ex').addEventListener('click', () => {
+    q<HTMLSelectElement>('.be-mode').value = 'p'; q<HTMLInputElement>('.be-h2').value = '0.4'; q<HTMLInputElement>('.be-p').value = '10'; q<HTMLInputElement>('.be-sd').value = '8';
+    q<HTMLSelectElement>('.be-c').value = '1'; q<HTMLInputElement>('.be-l').value = '2'; q<HTMLInputElement>('.be-m').value = '100';
+    q<HTMLSelectElement>('.be-meth').value = 'mid'; q<HTMLTextAreaElement>('.be-data').value = EXAMPLE_PO; calc(); herit();
+  });
+  q('.be-csv').addEventListener('click', () => {
+    if (!H) return;
+    const rows: (string | number)[][] = H.kind === 'reg'
+      ? [['quantity', 'value'], ['method', H.mid ? 'offspring on mid-parent' : 'offspring on one parent'], ['pairs', H.r.n], ['slope_b', H.r.b], ['se_b', H.r.seB], ['intercept', H.r.a], ['r', H.r.r], ['p', H.r.p], ['h2', H.r.h2], ['se_h2', H.r.seH2], ['h2_ci95_low', H.r.ciH2[0]], ['h2_ci95_high', H.r.ciH2[1]]]
+      : [['quantity', 'value'], ['groups_are', H.c.kind], ['groups', H.c.a], ['plants', H.c.N], ['n0', H.c.n0], ['ms_between', H.c.msb], ['ms_within', H.c.msw], ['F', H.c.F], ['p', H.c.p], ['var_between', H.c.varB], ['var_within', H.c.varW], [H.c.kind === 'clone' ? 'H2' : 'h2', H.c.h2], ...(H.c.h2Mean != null ? [['H2_line_mean', H.c.h2Mean]] : []), [], ['group', 'plants', 'mean'], ...H.c.groups.map((g) => [g.name, g.n, g.mean])];
+    save(new Blob([csv(rows.map((r) => r.map((x) => (typeof x === 'number' ? +x.toPrecision(8) : x))))], { type: 'text/csv' }), 'heritability.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: "Breeder's equation", subtitle: q('.be-big').textContent ?? '', file: 'breeders-equation', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (fig && R) paint(q<HTMLCanvasElement>('.be-fig'), fig); if (hfig && H) paint(q<HTMLCanvasElement>('.be-hfig'), hfig); });
+  q<HTMLTextAreaElement>('.be-data').value = EXAMPLE_PO; calc(); herit();
+</script>

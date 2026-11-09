@@ -1,0 +1,297 @@
+---
+// Trench and grid recording sheet: a site grid, a trench, and finds/points positioned by grid coordinates, tape
+// offsets or a baseline, with levels and optional phone GPS. Everything stays in the page; the example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax trs">
+  <div class="ax-card">
+    <h2>Site grid and trench</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small tr-ex">Use the example</button></div>
+    <h3>Grid</h3>
+    <div class="ax-grid">
+      <label>Origin easting (m) <input class="tr-e0" type="number" step="any" value="1000" inputmode="decimal" /></label>
+      <label>Origin northing (m) <input class="tr-n0" type="number" step="any" value="5000" inputmode="decimal" /></label>
+      <label>Square size (m) <input class="tr-sp" type="number" min="0" step="any" value="5" inputmode="decimal" /></label>
+      <label>Square names <select class="tr-style"><option value="en">By SW corner (E1010 N5020)</option><option value="alnum">Letters and numbers (C5)</option></select></label>
+    </div>
+    <p class="ax-help">Squares are named from their south-west corner. Letters count east from the origin (A, B, C …), numbers count north (1, 2, 3 …).</p>
+    <h3>Trench</h3>
+    <div class="ax-grid">
+      <label>Name <input class="tr-tn" type="text" value="Trench 1" /></label>
+      <label>SW corner easting <input class="tr-te" type="number" step="any" value="1012" inputmode="decimal" /></label>
+      <label>SW corner northing <input class="tr-tnn" type="number" step="any" value="5021" inputmode="decimal" /></label>
+      <label>Size east (m) <input class="tr-tw" type="number" min="0" step="any" value="4" inputmode="decimal" /></label>
+      <label>Size north (m) <input class="tr-tl" type="number" min="0" step="any" value="2" inputmode="decimal" /></label>
+    </div>
+    <h3>Levels</h3>
+    <div class="ax-grid">
+      <label>Datum height (m) <input class="tr-datum" type="number" step="any" value="100" inputmode="decimal" /></label>
+      <label>Backsight on datum (m) <input class="tr-bs" type="number" step="any" value="1.42" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help tr-hi"></p>
+    <h3>Tie the grid to latitude and longitude (optional)</h3>
+    <div class="ax-grid">
+      <label>Origin latitude (°) <input class="tr-lat" type="number" step="any" placeholder="e.g. 51.5" inputmode="decimal" /></label>
+      <label>Origin longitude (°) <input class="tr-lon" type="number" step="any" placeholder="e.g. −1.25, west negative" inputmode="decimal" /></label>
+      <label>Grid north bearing (°) <input class="tr-rot" type="number" step="any" value="0" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The latitude and longitude of the grid origin (from a survey-grade GNSS fix or a map), and how far grid north is turned clockwise from true north. Then every point gets a latitude and longitude, and a phone GPS fix can be placed on the grid.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Record a point</h2>
+    <div class="ax-grid">
+      <label>ID <input class="tr-id" type="text" value="F1" autocomplete="off" /></label>
+      <label>Type <select class="tr-kind"><option value="find">Find</option><option value="sample">Sample</option><option value="level">Level only</option><option value="point">Survey point</option></select></label>
+      <label>Description <input class="tr-note" type="text" autocomplete="off" placeholder="e.g. flint flake" /></label>
+      <label>Position from <select class="tr-how"><option value="grid">Grid easting and northing</option><option value="peg">Offsets from a peg</option><option value="base">A baseline (along and offset)</option></select></label>
+    </div>
+    <div class="ax-grid tr-m" data-m="grid" style="margin-top:10px">
+      <label>Easting (m) <input class="tr-ge" type="number" step="any" inputmode="decimal" /></label>
+      <label>Northing (m) <input class="tr-gn" type="number" step="any" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-grid tr-m" data-m="peg" style="margin-top:10px" hidden>
+      <label>Peg easting <input class="tr-pe" type="number" step="any" inputmode="decimal" /></label>
+      <label>Peg northing <input class="tr-pn" type="number" step="any" inputmode="decimal" /></label>
+      <label>Offset east (m, west −) <input class="tr-oe" type="number" step="any" inputmode="decimal" /></label>
+      <label>Offset north (m, south −) <input class="tr-on" type="number" step="any" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-grid tr-m" data-m="base" style="margin-top:10px" hidden>
+      <label>Start (A) easting <input class="tr-ae" type="number" step="any" inputmode="decimal" /></label>
+      <label>Start (A) northing <input class="tr-an" type="number" step="any" inputmode="decimal" /></label>
+      <label>End (B) easting <input class="tr-be" type="number" step="any" inputmode="decimal" /></label>
+      <label>End (B) northing <input class="tr-bn" type="number" step="any" inputmode="decimal" /></label>
+      <label>Along from A (m) <input class="tr-al" type="number" step="any" inputmode="decimal" /></label>
+      <label>Offset (m, right +, left −) <input class="tr-of" type="number" step="any" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Height from <select class="tr-zhow"><option value="staff">Staff reading (foresight)</option><option value="z">Height typed in</option><option value="none">No height</option></select></label>
+      <label class="tr-zl">Staff reading (m) <input class="tr-z" type="number" step="any" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small tr-gps">Use my location (GPS)</button>
+      <label class="ax-check tr-usegps" hidden><input type="checkbox" class="tr-usegpsc" /> Use it for easting and northing</label>
+    </div>
+    <p class="ax-help tr-gpst">Your location is asked for only when you press the button. It stays in this page and is kept with the next point you add.</p>
+    <p class="tr-prev" aria-live="polite"></p>
+    <p class="ax-err tr-err" hidden></p>
+    <div class="ax-row"><button type="button" class="btn small tr-add">Add point</button></div>
+  </div>
+
+  <div class="ax-card tr-out" hidden>
+    <h2 class="tr-title">Recording sheet</h2>
+    <p class="ax-big tr-big"></p>
+    <canvas class="ax-fig tr-fig"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="tr-tab"></table></div>
+    <p class="ax-help">Nothing is saved: download the CSV or the sheet before you close or reload this page.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small tr-csv">Points (CSV)</button>
+      <button type="button" class="btn secondary small tr-clear">Clear all points</button>
+    </div>
+    <Downloads label="Sheet" />
+  </div>
+</div>
+
+<style is:global>
+  .trs h3 { margin: 18px 0 8px; font-size: 15px; }
+  .trs .tr-prev { margin: 10px 0 4px; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .trs .tr-tab button { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+  .trs .tr-tab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { squareOf, fromPeg, fromBaseline, instrumentHeight, levelFromStaff, inTrench, gridToLatLon, latLonToGrid, EXAMPLE, type Grid, type Georef, type Kind, type Rec } from '../../lib/sci/trenchgrid';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.trs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const setv = (c: string, x: string | number) => { q<HTMLInputElement>(c).value = String(x); };
+  let recs: Rec[] = [], gps: { lat: number; lon: number; acc: number } | null = null, fig: Figure | null = null;
+  const f3 = (x: number) => x.toFixed(3), f2 = (x: number) => x.toFixed(2), f7 = (x: number) => x.toFixed(7);
+
+  const grid = (): Grid | null => { const g = { e0: v('.tr-e0'), n0: v('.tr-n0'), spacing: v('.tr-sp'), style: q<HTMLSelectElement>('.tr-style').value as Grid['style'] }; return Number.isFinite(g.e0) && Number.isFinite(g.n0) && g.spacing > 0 ? g : null; };
+  const trench = () => { const t = { name: q<HTMLInputElement>('.tr-tn').value.trim() || 'Trench', e: v('.tr-te'), n: v('.tr-tnn'), w: v('.tr-tw'), l: v('.tr-tl') }; return [t.e, t.n].every(Number.isFinite) && t.w > 0 && t.l > 0 ? t : null; };
+  const georef = (): Georef | null => { const g = grid(), lat = v('.tr-lat'), lon = v('.tr-lon'); return g && Math.abs(lat) <= 89 && Math.abs(lon) <= 180 ? { lat, lon, e: g.e0, n: g.n0, rot: v('.tr-rot') || 0 } : null; };
+  const hi = () => { const d = v('.tr-datum'), b = v('.tr-bs'); return Number.isFinite(d) && Number.isFinite(b) ? instrumentHeight(d, b) : NaN; };
+
+  /** The point described by the form, or an error message. */
+  function current(): { e: number; n: number; z: number | null; how: string } | string {
+    let p: { e: number; n: number }, how = '';
+    const m = q<HTMLSelectElement>('.tr-how').value, G = georef();
+    if (gps && q<HTMLInputElement>('.tr-usegpsc').checked) {
+      if (!G) return 'Tie the grid to latitude and longitude first, to place a GPS fix on it.';
+      p = latLonToGrid(gps.lat, gps.lon, G); how = `GPS ±${Math.round(gps.acc)} m`;
+    } else if (m === 'grid') { p = { e: v('.tr-ge'), n: v('.tr-gn') }; how = 'grid'; }
+    else if (m === 'peg') { p = fromPeg(v('.tr-pe'), v('.tr-pn'), v('.tr-oe') || 0, v('.tr-on') || 0); how = `peg ${q<HTMLInputElement>('.tr-pe').value}/${q<HTMLInputElement>('.tr-pn').value} + ${q<HTMLInputElement>('.tr-oe').value || 0} E, ${q<HTMLInputElement>('.tr-on').value || 0} N`; }
+    else {
+      const a: [number, number] = [v('.tr-ae'), v('.tr-an')], b: [number, number] = [v('.tr-be'), v('.tr-bn')];
+      if (![...a, ...b].every(Number.isFinite)) return 'Type the eastings and northings of both ends of the baseline.';
+      if (a[0] === b[0] && a[1] === b[1]) return 'The two ends of the baseline are the same point.';
+      p = fromBaseline(a, b, v('.tr-al') || 0, v('.tr-of') || 0); how = `baseline ${q<HTMLInputElement>('.tr-al').value || 0} along, ${q<HTMLInputElement>('.tr-of').value || 0} offset`;
+    }
+    if (!Number.isFinite(p.e) || !Number.isFinite(p.n)) return m === 'peg' ? 'Type the peg easting and northing.' : 'Type the easting and northing.';
+    const zh = q<HTMLSelectElement>('.tr-zhow').value, zv = v('.tr-z');
+    let z: number | null = null;
+    if (zh === 'staff') { if (!Number.isFinite(zv)) return 'Type the staff reading, or pick "No height".'; if (!Number.isFinite(hi())) return 'Type the datum height and the backsight to work out heights from staff readings.'; z = levelFromStaff(hi(), zv); }
+    if (zh === 'z') { if (!Number.isFinite(zv)) return 'Type the height, or pick "No height".'; z = zv; }
+    return { e: p.e, n: p.n, z, how };
+  }
+
+  function preview() {
+    const H = hi();
+    q('.tr-hi').textContent = Number.isFinite(H) ? `Height of instrument: ${f3(H)} m. A point's height is this minus its staff reading.` : 'Type the datum height and backsight to work out heights from staff readings.';
+    for (const el of root.querySelectorAll<HTMLElement>('.tr-m')) el.hidden = el.dataset.m !== q<HTMLSelectElement>('.tr-how').value;
+    const zh = q<HTMLSelectElement>('.tr-zhow').value;
+    q('.tr-zl').hidden = zh === 'none'; q('.tr-zl').firstChild!.textContent = zh === 'staff' ? 'Staff reading (m) ' : 'Height (m) ';
+    const c = current(), g = grid(), t = trench(), out = q('.tr-prev');
+    if (typeof c === 'string' || !g) { out.textContent = typeof c === 'string' ? '' : 'Set the grid origin and square size.'; return; }
+    const sq = squareOf(c.e, c.n, g), G = georef(), ll = G ? gridToLatLon(c.e, c.n, G) : null;
+    out.textContent = `→ E ${f3(c.e)}, N ${f3(c.n)} · square ${sq.label} · ${t ? (inTrench(c.e, c.n, t) ? `in ${t.name}` : `outside ${t.name}`) : 'no trench set'}${c.z != null ? ` · height ${f3(c.z)} m` : ''}${ll ? ` · ${f7(ll.lat)}, ${f7(ll.lon)}` : ''}`;
+  }
+
+  function addPoint() {
+    const err = q('.tr-err'); err.hidden = true;
+    const id = q<HTMLInputElement>('.tr-id').value.trim(), c = current();
+    if (!id) { err.textContent = 'Give the point an ID.'; err.hidden = false; return; }
+    if (recs.some((r) => r.id === id)) { err.textContent = `There is already a point called ${id}.`; err.hidden = false; return; }
+    if (typeof c === 'string') { err.textContent = c; err.hidden = false; return; }
+    if (!grid()) { err.textContent = 'Set the grid origin and square size.'; err.hidden = false; return; }
+    recs.push({ id, kind: q<HTMLSelectElement>('.tr-kind').value as Kind, e: c.e, n: c.n, z: c.z, note: q<HTMLInputElement>('.tr-note').value.trim(), how: c.how, ...(gps ? { lat: gps.lat, lon: gps.lon, acc: gps.acc } : {}) });
+    gps = null; q('.tr-usegps').hidden = true; q<HTMLInputElement>('.tr-usegpsc').checked = false;
+    q('.tr-gpst').textContent = 'Your location is asked for only when you press the button. It stays in this page and is kept with the next point you add.';
+    // Next ID: bump a trailing number.
+    q<HTMLInputElement>('.tr-id').value = id.replace(/(\d+)$/, (d) => String(Number(d) + 1)) === id ? `${id}-2` : id.replace(/(\d+)$/, (d) => String(Number(d) + 1));
+    q<HTMLInputElement>('.tr-note').value = '';
+    sheet(); preview();
+  }
+
+  const rowOf = (r: Rec) => {
+    const g = grid()!, t = trench(), G = georef(), sq = squareOf(r.e, r.n, g), ll = G ? gridToLatLon(r.e, r.n, G) : null;
+    return { sq: sq.label, inT: t ? (inTrench(r.e, r.n, t) ? 'yes' : 'no') : '', lat: ll ? f7(ll.lat) : '', lon: ll ? f7(ll.lon) : '' };
+  };
+
+  function plan(): Figure {
+    const g = grid()!, t = trench(), xs = recs.map((r) => r.e), ys = recs.map((r) => r.n);
+    if (t) { xs.push(t.e, t.e + t.w); ys.push(t.n, t.n + t.l); }
+    const s = g.spacing, pad = Math.max(0.5, 0.15 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1));
+    const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+    const W = 460, L = 50, R = 14, T = 30, B = 44, k = Math.min((W - L - R) / (x1 - x0), 440 / (y1 - y0)), H = Math.round(T + B + (y1 - y0) * k);
+    const X = (e: number) => L + (e - x0) * k, Y = (n: number) => T + (y1 - n) * k;
+    const kinds: Record<Kind, string> = { find: 'Find', sample: 'Sample', level: 'Level', point: 'Survey point' };
+    return {
+      w: W, h: H, alt: `Plan of ${t ? t.name : 'the site'} with ${recs.length} points on a ${s} m grid`,
+      draw: (ctx, _W, _H, pal) => {
+        ctx.font = '11px Arial, Helvetica, sans-serif';
+        // Grid lines (and 1 m lines when squares are bigger and the view is small).
+        const lines = (step: number, col: string, lab: boolean) => {
+          ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.fillStyle = pal.muted;
+          for (let e = Math.ceil((x0 - g.e0) / step) * step + g.e0; e <= x1 + 1e-9; e += step) { ctx.beginPath(); ctx.moveTo(X(e), T); ctx.lineTo(X(e), H - B); ctx.stroke(); if (lab) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(+e.toFixed(3)), X(e), H - B + 4); } }
+          for (let n = Math.ceil((y0 - g.n0) / step) * step + g.n0; n <= y1 + 1e-9; n += step) { ctx.beginPath(); ctx.moveTo(L, Y(n)); ctx.lineTo(W - R, Y(n)); ctx.stroke(); if (lab) { ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(String(+n.toFixed(3)), L - 4, Y(n)); } }
+        };
+        const fine = s > 1 && (x1 - x0) / 1 < 40 && (y1 - y0) / 1 < 40;
+        if (fine) lines(1, pal.grid, !(x1 - x0 > s));
+        lines(s, pal.line, true);
+        if (t) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(X(t.e), Y(t.n + t.l), t.w * k, t.l * k); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.font = '600 12px Arial, Helvetica, sans-serif'; ctx.fillText(t.name, X(t.e) + 2, Y(t.n + t.l) - 3); }
+        ctx.font = '11px Arial, Helvetica, sans-serif';
+        for (const r of recs) {
+          const x = X(r.e), y = Y(r.n);
+          ctx.fillStyle = r.kind === 'find' ? pal.accent : r.kind === 'sample' ? pal.accent2 : pal.ink; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1.6;
+          if (r.kind === 'find') { ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill(); }
+          else if (r.kind === 'sample') ctx.fillRect(x - 4, y - 4, 8, 8);
+          else if (r.kind === 'level') { ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x - 5, y + 4); ctx.closePath(); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x - 4, y + 4); ctx.lineTo(x + 4, y - 4); ctx.stroke(); }
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(r.id, x + 7, y);
+        }
+        // North arrow and scale.
+        ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(W - R - 14, T + 30); ctx.lineTo(W - R - 14, T + 6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W - R - 14, T + 2); ctx.lineTo(W - R - 19, T + 12); ctx.lineTo(W - R - 9, T + 12); ctx.closePath(); ctx.fill();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('Grid N', W - R - 14, T + 33);
+        const sb = [0.5, 1, 2, 5, 10, 20, 50, 100].find((m) => m * k >= 60) ?? 100;
+        ctx.beginPath(); ctx.moveTo(L, H - 10); ctx.lineTo(L + sb * k, H - 10); ctx.stroke();
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`${sb} m`, L + sb * k + 6, H - 4);
+        const used = [...new Set(recs.map((r) => r.kind))].map((x) => kinds[x]).join(', ');
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(used ? `● find  ■ sample  ▲ level  ✕ survey point` : '', W - R, H - 4);
+      },
+    };
+  }
+
+  function sheet() {
+    const out = q('.tr-out'); out.hidden = !recs.length;
+    if (!recs.length || !grid()) return;
+    const t = trench();
+    q('.tr-title').textContent = `${t ? t.name : 'Site'} recording sheet`;
+    const inside = t ? recs.filter((r) => inTrench(r.e, r.n, t)).length : 0;
+    q('.tr-big').textContent = `${recs.length} point${recs.length === 1 ? '' : 's'}${t ? `: ${inside} inside ${t.name}, ${recs.length - inside} outside` : ''}`;
+    fig = plan(); paint(q<HTMLCanvasElement>('.tr-fig'), fig);
+    const tab = q('.tr-tab'); tab.replaceChildren();
+    const G = georef();
+    const head = ['ID', 'Type', 'Easting', 'Northing', 'Height', 'Square', 'In trench', ...(G ? ['Latitude', 'Longitude'] : []), 'GPS fix', 'Position from', 'Description', ''];
+    const h = tab.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    recs.forEach((r, i) => {
+      const x = rowOf(r), tr = tab.insertRow();
+      for (const c of [r.id, r.kind, f3(r.e), f3(r.n), r.z == null ? '' : f3(r.z), x.sq, x.inT, ...(G ? [x.lat, x.lon] : []), r.lat != null ? `${f7(r.lat)}, ${f7(r.lon!)} ±${Math.round(r.acc!)} m` : '', r.how, r.note]) tr.insertCell().textContent = c;
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Delete'; b.dataset.i = String(i); tr.insertCell().append(b);
+    });
+  }
+
+  q('.tr-gps').addEventListener('click', () => {
+    const st = q('.tr-gpst');
+    if (!('geolocation' in navigator)) { st.textContent = 'This browser cannot give a location.'; return; }
+    st.textContent = 'Asking for your location…';
+    navigator.geolocation.getCurrentPosition((p) => {
+      gps = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
+      const G = georef(), gp = G ? latLonToGrid(gps.lat, gps.lon, G) : null;
+      st.textContent = `Phone position: ${f7(gps.lat)}, ${f7(gps.lon)} (±${Math.round(gps.acc)} m)${gp ? ` → grid E ${f2(gp.e)}, N ${f2(gp.n)}` : ''}. It is kept with the next point you add.${gps.acc > 3 ? ' Phone GPS is good to a few metres at best: use tapes or a total station for finds.' : ''}`;
+      q('.tr-usegps').hidden = !G; preview();
+    }, (e) => { st.textContent = e.code === 1 ? 'Location was not allowed. You can still type positions.' : 'No location fix. Try again outdoors.'; }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+  q('.tr-add').addEventListener('click', addPoint);
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ax-card') !== q('.tr-out')) { preview(); if (recs.length) sheet(); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) { preview(); if (recs.length) sheet(); } });
+  q('.tr-tab').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-i]'); if (b) { recs.splice(Number(b.dataset.i), 1); sheet(); } });
+  q('.tr-clear').addEventListener('click', () => { if (confirm('Remove every point from this sheet?')) { recs = []; sheet(); } });
+  q('.tr-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['id', 'type', 'description', 'easting', 'northing', 'height', 'square', 'in_trench', 'latitude', 'longitude', 'gps_latitude', 'gps_longitude', 'gps_accuracy_m', 'position_from']];
+    for (const r of recs) { const x = rowOf(r); rows.push([r.id, r.kind, r.note, f3(r.e), f3(r.n), r.z == null ? '' : f3(r.z), x.sq, x.inT, x.lat, x.lon, r.lat != null ? f7(r.lat) : '', r.lon != null ? f7(r.lon) : '', r.acc != null ? Math.round(r.acc) : '', r.how]); }
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${(trench()?.name ?? 'site').replace(/[^\w]+/g, '-')}-points.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const g = grid(), t = trench(), G = georef();
+    if (!recs.length || !g) return { title: '', sections: [], file: 'sheet' };
+    const sections: Section[] = [
+      { title: 'Grid and trench', facts: [['Grid origin', `E ${g.e0}, N ${g.n0}`], ['Squares', `${g.spacing} m`], ['Trench', t ? `${t.name}: SW corner E ${t.e}, N ${t.n}, ${t.w} × ${t.l} m` : 'not set'], ['Height of instrument', Number.isFinite(hi()) ? `${f3(hi())} m` : '—'], ['Datum', `${q<HTMLInputElement>('.tr-datum').value} m`], ['Origin lat/long', G ? `${G.lat}, ${G.lon}; grid north ${G.rot}°` : 'not set']] },
+      { title: 'Plan', figure: fig!, note: q('.tr-big').textContent ?? '' },
+      { title: 'Points', table: { head: ['ID', 'Type', 'Easting', 'Northing', 'Height', 'Square', 'In', 'Description'], rows: recs.map((r) => { const x = rowOf(r); return [r.id, r.kind, f3(r.e), f3(r.n), r.z == null ? '' : f3(r.z), x.sq, x.inT, r.note]; }), align: ['l', 'l', 'r', 'r', 'r', 'l', 'l', 'l'] } },
+      { title: 'Checked by', text: ['Recorded by: ____________________   Date: ____________   Checked: ____________'] },
+    ];
+    return { title: q('.tr-title').textContent ?? 'Recording sheet', subtitle: q('.tr-big').textContent ?? '', file: (t?.name ?? 'site').replace(/[^\w]+/g, '-') + '-sheet', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && recs.length) paint(q<HTMLCanvasElement>('.tr-fig'), fig, pagePalette()); });
+
+  q('.tr-ex').addEventListener('click', () => {
+    const E = EXAMPLE;
+    setv('.tr-e0', E.grid.e0); setv('.tr-n0', E.grid.n0); setv('.tr-sp', E.grid.spacing); q<HTMLSelectElement>('.tr-style').value = 'en';
+    setv('.tr-tn', E.trench.name); setv('.tr-te', E.trench.e); setv('.tr-tnn', E.trench.n); setv('.tr-tw', E.trench.w); setv('.tr-tl', E.trench.l);
+    setv('.tr-datum', E.datum); setv('.tr-bs', E.backsight); setv('.tr-lat', E.georef.lat); setv('.tr-lon', E.georef.lon); setv('.tr-rot', E.georef.rot);
+    recs = [];
+    const put = (id: string, kind: Kind, note: string, how: string, vals: Record<string, number>, zhow: string, z?: number) => {
+      setv('.tr-id', id); q<HTMLSelectElement>('.tr-kind').value = kind; setv('.tr-note', note); q<HTMLSelectElement>('.tr-how').value = how;
+      for (const [k, x] of Object.entries(vals)) setv(k, x);
+      q<HTMLSelectElement>('.tr-zhow').value = zhow; setv('.tr-z', z ?? '');
+      addPoint();
+    };
+    put('F1', 'find', 'Flint flake (example)', 'grid', { '.tr-ge': 1013.25, '.tr-gn': 5021.8 }, 'staff', 1.87);
+    put('F2', 'find', 'Pot sherd (example)', 'peg', { '.tr-pe': 1012, '.tr-pn': 5021, '.tr-oe': 2.4, '.tr-on': 1.15 }, 'staff', 1.95);
+    put('S1', 'sample', 'Charcoal (example)', 'base', { '.tr-ae': 1012, '.tr-an': 5021, '.tr-be': 1016, '.tr-bn': 5021, '.tr-al': 3.1, '.tr-of': -0.6 }, 'staff', 2.05);
+    put('L1', 'level', 'Trench base, SW corner', 'grid', { '.tr-ge': 1012, '.tr-gn': 5021 }, 'staff', 2.21);
+    put('P1', 'point', 'Section peg', 'grid', { '.tr-ge': 1016, '.tr-gn': 5023 }, 'z', 100.12);
+    put('F3', 'find', 'Surface find (example)', 'grid', { '.tr-ge': 1008.6, '.tr-gn': 5017.2 }, 'none');
+    q<HTMLSelectElement>('.tr-how').value = 'grid'; q<HTMLSelectElement>('.tr-zhow').value = 'staff'; setv('.tr-ge', ''); setv('.tr-gn', ''); setv('.tr-z', '');
+    preview();
+  });
+  preview();
+</script>

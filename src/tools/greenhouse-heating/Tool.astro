@@ -1,0 +1,165 @@
+---
+// Greenhouse heating (heat loss, heater size, seasonal fuel) and ventilation (air flow to remove solar heat, air
+// changes, fans), from physical constants. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ghh">
+  <div class="ax-card">
+    <h2>Greenhouse</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small gh-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Length (m) <input class="gh-len" type="number" min="0" step="any" value="30" inputmode="decimal" /></label>
+      <label>Width (m) <input class="gh-wid" type="number" min="0" step="any" value="9.6" inputmode="decimal" /></label>
+      <label>Eave (wall) height (m) <input class="gh-eave" type="number" min="0" step="any" value="3" inputmode="decimal" /></label>
+      <label>Ridge height (m) <input class="gh-ridge" type="number" min="0" step="any" value="4.8" inputmode="decimal" /></label>
+      <label>Cover
+        <select class="gh-cover"></select>
+      </label>
+      <label>Cover U value (W/m² K) <input class="gh-u" type="number" min="0" step="any" value="4" inputmode="decimal" /></label>
+      <label>Altitude (m) <input class="gh-alt" type="number" step="any" value="0" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">A single-span greenhouse with a pitched (gable) roof; for a flat roof make the ridge height equal to the eave height. U values in the list are rounded examples: use your supplier's figure if you have it. Altitude sets the air pressure, which changes how much heat air carries.</p>
+    <dl class="ax-facts gh-geo" style="margin-top:12px"></dl>
+    <p class="ax-err gh-gerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Heating</h2>
+    <div class="ax-grid">
+      <label>Inside set point (°C) <input class="gh-tin" type="number" step="any" value="18" inputmode="decimal" /></label>
+      <label>Coldest outside (°C) <input class="gh-tout" type="number" step="any" value="-10" inputmode="decimal" /></label>
+      <label>Air changes per hour <input class="gh-ach" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Safety margin (%) <input class="gh-margin" type="number" min="0" step="any" value="10" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Air changes per hour: how often leaks replace the air. A tight double-film house may be about 0.5; an older glasshouse 1 to 2 or more. The coldest outside temperature is the one you design for, not the record low.</p>
+    <p class="ax-err gh-herr" hidden></p>
+    <div class="gh-hout">
+      <p class="ax-big gh-hbig"></p>
+      <dl class="ax-facts gh-hf"></dl>
+      <canvas class="ax-fig gh-hfig" style="margin-top:12px"></canvas>
+      <h3>Fuel over a season</h3>
+      <div class="ax-grid">
+        <label>Heating degree-days (°C·day) <input class="gh-dd" type="number" min="0" step="any" value="3000" inputmode="decimal" /></label>
+        <label>Fuel <select class="gh-fuel"></select></label>
+        <label><span>Energy content (<span class="gh-fu">MJ per m³</span>)</span> <input class="gh-mj" type="number" min="0" step="any" value="38" inputmode="decimal" /></label>
+        <label>Heater efficiency (%) <input class="gh-eff" type="number" min="1" max="100" step="any" value="85" inputmode="decimal" /></label>
+        <label><span>Price per <span class="gh-pu">m³</span> (optional)</span> <input class="gh-price" type="number" min="0" step="any" value="" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help">Degree-days add up how far, and for how long, the outside stays below your set point over the season; your weather service publishes them for your base temperature. Energy contents in the list are rounded examples; check your supplier's figure.</p>
+      <p class="ax-err gh-ferr" hidden></p>
+      <dl class="ax-facts gh-ff" style="margin-top:10px"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Ventilation</h2>
+    <div class="ax-grid">
+      <label>Sunlight outside (W/m²) <input class="gh-sun" type="number" min="0" step="any" value="800" inputmode="decimal" /></label>
+      <label>Cover transmits (%) <input class="gh-tau" type="number" min="0" max="100" step="any" value="70" inputmode="decimal" /></label>
+      <label>Share used by the crop (%) <input class="gh-evap" type="number" min="0" max="99" step="any" value="50" inputmode="decimal" /></label>
+      <label>Outside air (°C) <input class="gh-vout" type="number" step="any" value="28" inputmode="decimal" /></label>
+      <label>Allowed rise inside (°C) <input class="gh-rise" type="number" min="0" step="any" value="4" inputmode="decimal" /></label>
+      <label>One fan moves (m³/h) <input class="gh-fan" type="number" min="0" step="any" value="35000" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="gh-cc" checked /> Count heat lost through the cover</label>
+    <p class="ax-help">Full summer sun is about 800 to 1000 W/m². A full, well-watered crop uses about half the sunlight to evaporate water (which cools without warming the air); use 0 for an empty house. The fan figure is at the pressure it works against: take it from the fan's data sheet.</p>
+    <p class="ax-err gh-verr" hidden></p>
+    <div class="gh-vout2">
+      <p class="ax-big gh-vbig"></p>
+      <dl class="ax-facts gh-vf"></dl>
+      <canvas class="ax-fig gh-vfig" style="margin-top:12px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ghh h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ghh .ax-big { margin: 16px 0 10px; }
+</style>
+
+<script>
+  import { geometry, heating, season, ventilation, pressureAtAltitude, COVERS, FUELS, BTU_PER_W, type Geometry, type Heating, type Vent } from '../../lib/sci/greenhouse';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ghh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const n0 = (x: number, d = 0) => x.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const kw = (w: number) => `${n0(w / 1000, 1)} kW`;
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([a, b]) => { const div = document.createElement('div'); const t = document.createElement('dt'); t.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; div.append(t, dd); return div; }));
+  const cw = () => Math.round(Math.min(640, Math.max(340, q('.ax-card').clientWidth - 34)));
+  const cover = q<HTMLSelectElement>('.gh-cover'), fuelSel = q<HTMLSelectElement>('.gh-fuel');
+  cover.replaceChildren(...COVERS.map((c) => new Option(`${c.name} (example ${c.U.toFixed(1)})`, c.id)), new Option('My own U value', 'custom'));
+  fuelSel.replaceChildren(...FUELS.map((f) => new Option(f.name, f.id)));
+  cover.value = 'double';
+  let G: Geometry | null = null, H: Heating | null = null, V: Vent | null = null, hfig: Figure | null = null, vfig: Figure | null = null;
+  let gF: [string, string][] = [], hF: [string, string][] = [], fF: [string, string][] = [], vF: [string, string][] = [];
+
+  const show = (err: string, msg: string | null, out?: string) => { const e = q(err); e.hidden = !msg; e.textContent = msg ?? ''; if (out) q(out).hidden = !!msg; };
+
+  function run() {
+    G = null; H = null; V = null;
+    const p = pressureAtAltitude(Number.isFinite(v('.gh-alt')) ? v('.gh-alt') : 0), U = v('.gh-u');
+    try { G = geometry({ length: v('.gh-len'), width: v('.gh-wid'), eave: v('.gh-eave'), ridge: v('.gh-ridge') }); show('.gh-gerr', null); }
+    catch (e) { show('.gh-gerr', (e as Error).message); q('.gh-geo').replaceChildren(); show('.gh-herr', 'Fix the greenhouse size first.', '.gh-hout'); show('.gh-verr', 'Fix the greenhouse size first.', '.gh-vout2'); return; }
+    gF = [['Floor area', `${n0(G.floor, 1)} m²`], ['Cover area', `${n0(G.cover, 1)} m²`], ['Air volume', `${n0(G.volume, 1)} m³`], ['Roof slope', `${n0(G.slope, 1)}°`]];
+    facts(q('.gh-geo'), gF);
+
+    try {
+      H = heating(G, { U, tIn: v('.gh-tin'), tOut: v('.gh-tout'), ach: v('.gh-ach'), margin: Math.max(0, v('.gh-margin') || 0), p });
+      show('.gh-herr', null, '.gh-hout');
+      q('.gh-hbig').textContent = `Heater: ${kw(H.heater)}`;
+      hF = [['Heat loss', kw(H.q)], ['Through the cover', `${kw(H.qCover)} (${n0((100 * H.qCover) / H.q)} %)`], ['Through air leaks', `${kw(H.qAir)} (${n0((100 * H.qAir) / H.q)} %)`], ['Heater with margin', `${kw(H.heater)} = ${n0(H.heater * BTU_PER_W)} BTU/h`], ['Per m² of floor', `${n0(H.perFloor)} W/m²`], ['Temperature difference', `${n0(H.dT, 1)} °C`], ['Air density outside', `${H.rho.toFixed(3)} kg/m³`]];
+      facts(q('.gh-hf'), hF);
+      const tIn = v('.gh-tin'), xs: number[] = [], ys: number[] = [];
+      for (let t = Math.floor(Math.min(v('.gh-tout'), tIn) - 10); t <= tIn; t += 1) { xs.push(t); ys.push((H.ua * (tIn - t)) / 1000); }
+      hfig = chartFigure({ w: cw(), h: cw() < 480 ? 260 : 300, xLabel: 'Outside temperature (°C)', yLabel: 'Heat loss (kW)', legend: 'none', series: [{ name: 'Heat loss', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v('.gh-tout'), label: 'design' }] }, `Heat loss against outside temperature, ${kw(H.q)} at ${v('.gh-tout')} °C`);
+      paint(q<HTMLCanvasElement>('.gh-hfig'), hfig);
+      const fu = FUELS.find((f) => f.id === fuelSel.value)!;
+      q('.gh-fu').textContent = `MJ per ${fu.unit}`; q('.gh-pu').textContent = fu.unit;
+      try {
+        const price = v('.gh-price'), s = season(H, v('.gh-dd'), { energyMJ: v('.gh-mj'), efficiency: v('.gh-eff') / 100, price: Number.isFinite(price) ? price : undefined });
+        show('.gh-ferr', null);
+        fF = [['Heat needed', `${n0(s.kWh)} kWh = ${n0(s.kWh * 0.0036, 1)} GJ`], [`${fu.name} used`, `${n0(s.fuel)} ${fu.unit}`], ['Per m² of floor', `${n0(s.fuel / G.floor, 2)} ${fu.unit}`], ...(s.cost != null ? [['Fuel cost', n0(s.cost)] as [string, string]] : [])];
+        facts(q('.gh-ff'), fF);
+      } catch (e) { show('.gh-ferr', (e as Error).message); q('.gh-ff').replaceChildren(); fF = []; }
+    } catch (e) { show('.gh-herr', (e as Error).message, '.gh-hout'); H = null; }
+
+    try {
+      V = ventilation(G, { I: v('.gh-sun'), tau: v('.gh-tau') / 100, evap: v('.gh-evap') / 100, dT: v('.gh-rise'), tOut: v('.gh-vout'), U, countCover: q<HTMLInputElement>('.gh-cc').checked, fanM3h: v('.gh-fan'), p });
+      show('.gh-verr', null, '.gh-vout2');
+      q('.gh-vbig').textContent = V.needed ? `${n0(V.flow, 2)} m³/s = ${n0(V.achMin, 2)} air changes a minute` : 'No ventilation needed: the cover loses the heat';
+      vF = [['Solar heat warming the air', kw(V.solar)], ...(V.coverLoss ? [['Lost through the cover', kw(V.coverLoss)] as [string, string]] : []), ['Air flow', `${n0(V.flow * 3600)} m³/h = ${n0(V.cfm)} CFM`], ['Per m² of floor', `${(V.perFloor * 1000).toFixed(1)} L/s`], ...(V.fans != null ? [['Fans needed', String(V.fans)] as [string, string]] : [])];
+      facts(q('.gh-vf'), vF);
+      const xs: number[] = [], ys: number[] = [];
+      for (let d = 1; d <= 10; d += 0.25) { try { const w = ventilation(G, { I: v('.gh-sun'), tau: v('.gh-tau') / 100, evap: v('.gh-evap') / 100, dT: d, tOut: v('.gh-vout'), U, countCover: q<HTMLInputElement>('.gh-cc').checked, p }); xs.push(d); ys.push(w.achMin); } catch { /* skip */ } }
+      vfig = chartFigure({ w: cw(), h: cw() < 480 ? 260 : 300, xLabel: 'Allowed rise inside (°C)', yLabel: 'Air changes per minute', legend: 'none', yMin: 0, series: [{ name: 'Needed', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v('.gh-rise'), label: 'chosen' }] }, `Air changes per minute needed for an allowed temperature rise of 1 to 10 °C`);
+      paint(q<HTMLCanvasElement>('.gh-vfig'), vfig);
+    } catch (e) { show('.gh-verr', (e as Error).message, '.gh-vout2'); V = null; }
+  }
+
+  const sections = (): Section[] => [
+    ...(G ? [{ title: 'Greenhouse', facts: [...gF, ['Cover U value', `${v('.gh-u')} W/m² K`], ['Altitude', `${v('.gh-alt') || 0} m`]] as [string, string][] }] : []),
+    ...(H ? [{ title: 'Heating', text: [`Inside ${v('.gh-tin')} °C, outside ${v('.gh-tout')} °C, ${v('.gh-ach')} air changes per hour.`], facts: [...hF, ...fF], figure: hfig ?? undefined }] : []),
+    ...(V ? [{ title: 'Ventilation', text: [q('.gh-vbig').textContent ?? ''], facts: vF, figure: vfig ?? undefined }] : []),
+  ];
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input[type=number]')) { if ((e.target as HTMLElement).matches('.gh-u')) cover.value = 'custom'; later(); } });
+  cover.addEventListener('change', () => { const c = COVERS.find((x) => x.id === cover.value); if (c) q<HTMLInputElement>('.gh-u').value = String(c.U); run(); });
+  fuelSel.addEventListener('change', () => { const f = FUELS.find((x) => x.id === fuelSel.value)!; q<HTMLInputElement>('.gh-mj').value = String(f.MJ); q<HTMLInputElement>('.gh-eff').value = String(f.eff); run(); });
+  q('.gh-cc').addEventListener('change', run);
+  q('.gh-ex').addEventListener('click', () => {
+    const set: Record<string, string> = { '.gh-len': '30', '.gh-wid': '9.6', '.gh-eave': '3', '.gh-ridge': '4.8', '.gh-u': '4', '.gh-alt': '0', '.gh-tin': '18', '.gh-tout': '-10', '.gh-ach': '1', '.gh-margin': '10', '.gh-dd': '3000', '.gh-mj': '38', '.gh-eff': '85', '.gh-price': '', '.gh-sun': '800', '.gh-tau': '70', '.gh-evap': '50', '.gh-vout': '28', '.gh-rise': '4', '.gh-fan': '35000' };
+    for (const [k, x] of Object.entries(set)) q<HTMLInputElement>(k).value = x;
+    cover.value = 'double'; fuelSel.value = 'gas'; q<HTMLInputElement>('.gh-cc').checked = true; run();
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Greenhouse heating and ventilation', subtitle: G ? `${v('.gh-len')} × ${v('.gh-wid')} m greenhouse` : '', file: 'greenhouse-heating', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (hfig && H) paint(q<HTMLCanvasElement>('.gh-hfig'), hfig); if (vfig && V) paint(q<HTMLCanvasElement>('.gh-vfig'), vfig); });
+  run();
+</script>
