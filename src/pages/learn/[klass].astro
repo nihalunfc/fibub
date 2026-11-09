@@ -20,7 +20,7 @@ const title = `Learn: ${cls.name}`;
 const desc = `Interactive ${names} tools for ${cls.name}, chapter by chapter, following the NCERT topics. Free, in your browser, no sign-up.`;
 const others = CLASSES.filter((k) => k.id !== cls.id);
 ---
-<Base title={title} docTitle={`${cls.name} ${names} tools, chapter by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Class 8 to 12', url: '/learn/school/' }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
+<Base title={title} docTitle={`${cls.name} science and maths tools by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Class 8 to 12', url: '/learn/school/' }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/school/">Class 8 to 12</a> / {cls.name}</div>
   <div class="ar-head">
     <h1>{cls.name}: {names}</h1>
