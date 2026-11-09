@@ -1,0 +1,195 @@
+---
+// Project scheduling: critical path method with FS/SS/FF/SF links and lags, PERT three-point estimates, a Monte Carlo
+// check and a Gantt chart. Everything runs in the browser. The example projects are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pjs">
+  <div class="ax-card">
+    <h2>Tasks</h2>
+    <div class="ax-grid">
+      <label>Example <select class="pj-ex">
+        <option value="pert">Building project, three-point times (PERT)</option>
+        <option value="plain">Same project, single durations with lags</option>
+        <option value="own">My own tasks</option>
+      </select></label>
+      <label>Time unit <select class="pj-u"><option>days</option><option>weeks</option><option>hours</option></select></label>
+    </div>
+    <label style="margin-top:10px">One task per row: ID, task, duration (or optimistic, most likely, pessimistic), predecessors <textarea class="pj-in" rows="11" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".pj-in" maxMB={2} maxCols={10} maxRows={2000} />
+    <p class="ax-help">Predecessors: IDs separated by spaces, such as <code>A B</code>. Plain IDs mean finish-to-start. Add a lag with <code>A+2</code> or <code>A-1</code>, and other link types with <code>A SS</code>, <code>B FF+1</code> or <code>C SF</code>.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Start date (optional) <input class="pj-start" type="date" /></label>
+      <label class="ax-check" style="align-self:end"><input type="checkbox" class="pj-wd" checked /> Working days only (Mon to Fri)</label>
+    </div>
+    <p class="ax-err pj-err" hidden></p>
+  </div>
+
+  <div class="ax-card pj-out" hidden>
+    <h2>Schedule</h2>
+    <p class="ax-big pj-big"></p>
+    <dl class="ax-facts pj-facts"></dl>
+    <p class="ax-help pj-note"></p>
+    <h3>Gantt chart</h3>
+    <canvas class="ax-fig pj-fig"></canvas>
+    <p class="ax-help">Dark bars: critical tasks. Light bars: tasks with float; the thin line runs to their latest finish. Diamonds: milestones (zero duration).</p>
+    <h3>Every task</h3>
+    <div class="ax-scroll pj-tw"><table class="pj-tab"></table></div>
+    <p class="ax-help">ES, EF: earliest start and finish. LS, LF: latest start and finish without delaying the project. Total float: how long a task can slip without delaying the end. Free float: how long it can slip without delaying any other task.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pj-csv">Download schedule (CSV)</button>
+      <button type="button" class="btn secondary small pj-png">Download Gantt chart (PNG)</button>
+    </div>
+    <Downloads label="Report" />
+  </div>
+
+  <div class="ax-card pj-pert" hidden>
+    <h2>PERT: chance of finishing in time</h2>
+    <div class="ax-grid">
+      <label>Finish within <input class="pj-D" inputmode="decimal" value="32" /></label>
+      <label>Simulation runs <select class="pj-runs"><option>1000</option><option selected>5000</option><option>20000</option></select></label>
+      <label>Seed <input class="pj-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-big pj-pbig" style="margin-top:12px"></p>
+    <div class="ax-scroll"><table class="pj-ptab"></table></div>
+    <canvas class="ax-fig pj-hist" style="margin-top:14px"></canvas>
+    <p class="ax-help">Classic PERT adds up the means and variances along the critical path and uses a normal curve. It ignores other paths that can become critical, so it tends to be optimistic. The simulation draws every task's time from a beta-PERT distribution (the same mean as PERT) and schedules the whole project each time.</p>
+  </div>
+</div>
+
+<style is:global>
+  .pjs h3 { margin: 20px 0 8px; font-size: 15px; }
+  .pjs code { font-size: 13px; }
+  .pjs .pj-tw { max-height: 460px; overflow-y: auto; }
+  .pjs .pj-tab tr.crit td:first-child { font-weight: 700; }
+  .pjs .pj-tab tr.crit td { background: var(--accent-soft); }
+</style>
+
+<script>
+  import { parseProject, schedule, pertChance, pertDate, monteCarlo, addDays, EXAMPLE, EXAMPLE_PLAIN, type Project, type Schedule, type MonteCarlo } from '../../lib/sci/cpm';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pjs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.pj-in'), ex = q<HTMLSelectElement>('.pj-ex');
+  box.value = EXAMPLE;
+  const g = (x: number) => sig(Math.abs(x) < 1e-9 ? 0 : x, 4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  let gantt: Figure | null = null, hist: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function ganttFig(p: Project, s: Schedule, unit: string): Figure {
+    const rows = s.rows.slice().sort((a, b) => a.es - b.es || a.row - b.row).slice(0, 150);
+    const W = 560, L = 130, R = 16, T = 12, B = 44, rh = 30, H = T + B + rh * rows.length;
+    const tmax = Math.max(s.T, ...rows.map((r) => r.lf)) || 1;
+    const X = (v: number) => L + (v / tmax) * (W - L - R);
+    return {
+      w: W, h: H, alt: `Gantt chart of ${p.tasks.length} tasks; the project takes ${g(s.T)} ${unit}`,
+      draw: (ctx, w, h, pal: Palette) => {
+        ctx.font = '16px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+        ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+        for (const t of niceTicks(0, tmax, 6)) { if (t > tmax + 1e-9) continue; ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(t), T); ctx.lineTo(X(t), H - B); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(String(t), X(t), H - B + 6); }
+        ctx.fillText(unit, (L + W - R) / 2, H - 18);
+        rows.forEach((r, i) => {
+          const y = T + i * rh;
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink;
+          let lab = r.name ? `${r.id} ${r.name}` : r.id;
+          while (lab.length > 3 && ctx.measureText(lab).width > L - 10) lab = lab.slice(0, -2) + '…';
+          ctx.font = (r.critical ? '700 ' : '') + '16px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText(lab, 4, y + rh / 2);
+          ctx.font = '16px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+          if (r.d === 0) {
+            const cx = X(r.es), cy = y + rh / 2; ctx.fillStyle = r.critical ? pal.bad : pal.accent;
+            ctx.beginPath(); ctx.moveTo(cx, cy - 7); ctx.lineTo(cx + 7, cy); ctx.lineTo(cx, cy + 7); ctx.lineTo(cx - 7, cy); ctx.closePath(); ctx.fill();
+          } else {
+            if (r.tf > 0) { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(r.ef), y + rh / 2); ctx.lineTo(X(r.lf), y + rh / 2); ctx.moveTo(X(r.lf), y + rh / 2 - 4); ctx.lineTo(X(r.lf), y + rh / 2 + 4); ctx.stroke(); }
+            ctx.fillStyle = r.critical ? pal.bad : pal.accent; ctx.globalAlpha = r.critical ? 1 : 0.45;
+            ctx.fillRect(X(r.es), y + 5, Math.max(1.5, X(r.ef) - X(r.es)), rh - 10); ctx.globalAlpha = 1;
+          }
+        });
+        ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, H - B); ctx.lineTo(W - R, H - B); ctx.stroke();
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.pj-err');
+    try {
+      const p = parseProject(box.value), s = schedule(p.tasks), unit = q<HTMLSelectElement>('.pj-u').value;
+      err.hidden = true; q('.pj-out').hidden = false;
+      const startV = q<HTMLInputElement>('.pj-start').value, wd = q<HTMLInputElement>('.pj-wd').checked;
+      const start = startV && unit === 'days' ? new Date(startV + 'T00:00:00Z') : null;
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      const finishDate = (x: number) => (start ? fmt(addDays(start, Math.max(0, Math.ceil(x - 1e-9) - 1), wd)) : '');
+      q('.pj-big').textContent = `The project takes ${g(s.T)} ${unit}` + (start ? `, finishing ${finishDate(s.T)}` : '');
+      const crit = s.rows.filter((r) => r.critical);
+      const facts: [string, string][] = [
+        ['Critical path', s.path.map((i) => p.tasks[i].id).join(' → ')],
+        ['Tasks', `${p.tasks.length}, of which ${crit.length} critical`],
+      ];
+      if (s.paths > 1) facts.push(['Critical paths', `${s.paths} (the one with the largest variance is shown)`]);
+      if (p.pert) facts.push(['Durations', 'PERT means (o + 4m + p) / 6']);
+      q('.pj-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      const notes = [...p.notes];
+      if (startV && unit !== 'days') notes.push('Dates are shown only when the time unit is days.');
+      if (p.tasks.length > 150) notes.push('The Gantt chart shows the first 150 tasks by start; the table and CSV have them all.');
+      q('.pj-note').textContent = notes.join(' ');
+      gantt = ganttFig(p, s, unit); paint(q<HTMLCanvasElement>('.pj-fig'), gantt);
+      const head = ['ID', 'Task', 'Duration', ...(p.pert ? ['SD'] : []), 'Predecessors', 'ES', 'EF', 'LS', 'LF', 'Total float', 'Free float', ...(start ? ['Start date', 'Finish date'] : [])];
+      const predText = (t: Project['tasks'][0]) => t.preds.map((l) => `${p.tasks[l.from].id}${l.type === 'FS' ? '' : ' ' + l.type}${l.lag ? (l.lag > 0 ? '+' : '') + l.lag : ''}`).join(' ');
+      const body = s.rows.map((r) => [r.id, r.name, g(r.d), ...(p.pert ? [g(r.sd)] : []), predText(r), g(r.es), g(r.ef), g(r.ls), g(r.lf), g(r.tf), g(r.ff), ...(start ? [fmt(addDays(start, r.es, wd)), r.d > 0 ? finishDate(r.ef) : fmt(addDays(start, r.es, wd))] : [])]);
+      const tab = q('.pj-tab'), tr = document.createElement('tr');
+      head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= 2 && h !== 'Predecessors') th.className = 'r'; tr.append(th); });
+      tab.replaceChildren(tr, ...body.map((row, k) => { const x = document.createElement('tr'); if (s.rows[k].critical) x.className = 'crit'; row.forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i >= 2 && head[i] !== 'Predecessors') td.className = 'r'; x.append(td); }); return x; }));
+      csvRows = [['id', 'task', 'duration', ...(p.pert ? ['optimistic', 'most likely', 'pessimistic', 'sd'] : []), 'predecessors', 'ES', 'EF', 'LS', 'LF', 'total float', 'free float', 'critical', ...(start ? ['start date', 'finish date'] : [])],
+        ...s.rows.map((r, k) => [r.id, r.name, r.d, ...(p.pert ? [r.o!, r.m!, r.p!, r.sd] : []), predText(r), r.es, r.ef, r.ls, r.lf, r.tf, r.ff, r.critical ? 'yes' : 'no', ...(start ? [body[k][body[k].length - 2], body[k][body[k].length - 1]] : [])])];
+      report = [{ title: 'Schedule', facts: [['Duration', `${g(s.T)} ${unit}`], ...facts], figure: gantt }, { title: 'Tasks', table: { head, rows: body } }];
+      pert(p, s, unit);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.pj-out').hidden = true; q('.pj-pert').hidden = true; report = []; }
+  }
+
+  function pert(p: Project, s: Schedule, unit: string) {
+    const card = q('.pj-pert'); card.hidden = !p.pert;
+    if (!p.pert) { hist = null; return; }
+    const D = num(q<HTMLInputElement>('.pj-D').value), runs = Number(q<HTMLSelectElement>('.pj-runs').value), seed = Math.floor(num(q<HTMLInputElement>('.pj-seed').value));
+    if (!(D > 0)) throw new Error('Type a target time above zero for the PERT chance.');
+    if (!(seed >= 0)) throw new Error('The seed must be a whole number, 0 or more.');
+    q('.pj-D').previousSibling!.textContent = `Finish within (${unit}) `;
+    const pc = pertChance(s, D), mc: MonteCarlo = monteCarlo(p.tasks, D, runs, seed);
+    q('.pj-pbig').textContent = `${sig(pc * 100, 3)} % chance by ${g(D)} ${unit} (PERT); ${sig(mc.pBy * 100, 3)} % in the simulation`;
+    const pct = (x: number) => mc.totals[Math.min(mc.totals.length - 1, Math.floor(x * mc.totals.length))];
+    const rows = [
+      ['Expected duration', g(s.T), g(mc.mean)], ['Standard deviation', g(Math.sqrt(s.pathVar)), g(mc.sd)],
+      [`Chance of finishing by ${g(D)}`, `${sig(pc * 100, 3)} %`, `${sig(mc.pBy * 100, 3)} %`],
+      ...[0.5, 0.8, 0.9, 0.95].map((x) => [`${x * 100} % sure by`, g(pertDate(s, x)), g(pct(x))]),
+    ];
+    const t = q('.pj-ptab'), tr = document.createElement('tr');
+    ['', 'PERT (normal)', `Simulation (${runs.toLocaleString('en')} runs)`].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; tr.append(th); });
+    t.replaceChildren(tr, ...rows.map((r) => { const x = document.createElement('tr'); r.forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i) td.className = 'r'; x.append(td); }); return x; }));
+    const lo = mc.totals[0], hi = mc.totals[mc.totals.length - 1], nb = 30, bw = (hi - lo) / nb || 1;
+    const counts = new Array(nb).fill(0); for (const v of mc.totals) counts[Math.min(nb - 1, Math.floor((v - lo) / bw))]++;
+    const xs = counts.map((_, i) => lo + (i + 0.5) * bw), dens = counts.map((c) => c / (runs * bw));
+    const sd = Math.sqrt(s.pathVar), nx: number[] = [], ny: number[] = [];
+    for (let i = 0; i <= 100; i++) { const x = lo + ((hi - lo) * i) / 100; nx.push(x); ny.push(sd > 0 ? Math.exp(-0.5 * ((x - s.T) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI)) : 0); }
+    hist = chartFigure({ h: 300, xLabel: `Project duration (${unit})`, yLabel: 'Density', series: [{ name: 'Simulation', x: xs, y: dens, mode: 'both', marker: 'circle', size: 3 }, { name: 'PERT normal', x: nx, y: ny, mode: 'line' }], marks: [{ kind: 'vline', at: D, label: `${g(D)}` }], yMin: 0 }, 'Distribution of the project duration: simulation and PERT normal curve');
+    paint(q<HTMLCanvasElement>('.pj-hist'), hist);
+    report.push({ title: 'PERT and simulation', text: [q('.pj-pbig').textContent!], table: { head: ['', 'PERT', 'Simulation'], rows }, figure: hist });
+  }
+
+  let tm = 0;
+  box.addEventListener('input', () => { ex.value = 'own'; clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  ex.addEventListener('change', () => { if (ex.value !== 'own') { box.value = ex.value === 'pert' ? EXAMPLE : EXAMPLE_PLAIN; run(); } });
+  for (const c of ['.pj-u', '.pj-start', '.pj-wd', '.pj-runs']) q(c).addEventListener('change', run);
+  for (const c of ['.pj-D', '.pj-seed']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  q('.pj-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'schedule.csv', 'text/csv'));
+  q('.pj-png').addEventListener('click', () => {
+    if (!gantt) return;
+    const c = document.createElement('canvas'), k = 2; c.width = gantt.w * k; c.height = gantt.h * k;
+    const ctx = c.getContext('2d')!; ctx.scale(k, k); ctx.fillStyle = LIGHT.bg; ctx.fillRect(0, 0, gantt.w, gantt.h); gantt.draw(ctx, gantt.w, gantt.h, LIGHT);
+    c.toBlob((b) => b && save(b, 'gantt.png', 'image/png'), 'image/png');
+  });
+  document.addEventListener('fibub:theme', () => { if (gantt) paint(q<HTMLCanvasElement>('.pj-fig'), gantt); if (hist && !q('.pj-pert').hidden) paint(q<HTMLCanvasElement>('.pj-hist'), hist); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Project schedule', subtitle: q('.pj-big').textContent ?? '', file: 'project-schedule', sections: report }));
+</script>
