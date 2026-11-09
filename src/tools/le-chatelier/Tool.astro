@@ -181,7 +181,7 @@ import { REACTIONS } from '../../lib/sci/lechatelier';
 
   function render(start: number[], eq: number[], why: string | null) {
     q('.lc-big').textContent = last || 'At equilibrium. Change something.';
-    q('.lc-why').textContent = why ?? r.note;
+    q('.lc-why').textContent = why ?? '';
     ice(start, eq); facts(eq);
     if (start.some((x, i) => Math.abs(x - eq[i]) > 1e-12)) { draw(start); drawQK(Q(r, start, V), Kat(r, T)); settle(start, eq); }
     else { cancelAnimationFrame(anim); draw(eq); drawQK(Q(r, eq, V), Kat(r, T)); }

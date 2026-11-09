@@ -75,10 +75,10 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
   .mb-svg .box { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
   .mb-svg .box.on { stroke-width: 3; }
   .mb-svg .bt { fill: var(--muted); font: 12px system-ui, sans-serif; text-anchor: middle; }
-  .mb-svg .bv { fill: var(--ink); font: 750 15px system-ui, sans-serif; text-anchor: middle; }
+  .mb-svg .bv { fill: var(--ink); font: 750 13.5px system-ui, sans-serif; text-anchor: middle; }
   .mb-svg .lk { stroke: var(--line); stroke-width: 2; fill: none; }
   .mb-svg .lk.on { stroke: var(--accent); stroke-width: 3.5; }
-  .mb-svg .op { fill: var(--muted); font: 600 12px system-ui, sans-serif; text-anchor: middle; }
+  .mb-svg .op { fill: var(--muted); font: 600 11px system-ui, sans-serif; text-anchor: middle; }
   .mb-svg .op.on { fill: var(--accent); }
   .mb-lsvg .ma { fill: var(--ink); }
   .mb-lsvg .mbb { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
@@ -114,8 +114,8 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
   function drawBridge(from: Unit, a: { g: number; mol: number; N: number; L: number }, M: number, f: string) {
     const svg = q<SVGSVGElement>('.mb-svg'); svg.replaceChildren();
     // boxes: mass (left), moles (centre), particles (right), volume (below moles)
-    const B = { g: [6, 20], mol: [114, 20], N: [222, 20], L: [114, 150] } as const;
-    const W = 92, H = 60;
+    const B = { g: [2, 20], mol: [120, 20], N: [238, 20], L: [120, 150] } as const;
+    const W = 80, H = 60;
     const on = (k: Unit) => k === from || k === 'mol' || (from === 'mol');
     const link = (x1: number, y1: number, x2: number, y2: number, lit: boolean, t1: string, t2: string, tx: number, ty: number, vertical = false) => {
       svg.append(sv('line', { x1, y1, x2, y2, class: `lk${lit ? ' on' : ''}` }));
@@ -123,8 +123,8 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
       svg.append(sv('text', { x: vertical ? tx + 26 : tx, y: vertical ? ty : ty + 16, class: `op${lit ? ' on' : ''}` }, t2));
     };
     const litG = from === 'g', litN = from === 'N', litL = from === 'L';
-    link(B.g[0] + W, 50, B.mol[0], 50, litG, '÷ M →', '← × M', 106, 50);
-    link(B.mol[0] + W, 50, B.N[0], 50, litN, '← ÷ Nₐ', '× Nₐ →', 214, 50);
+    link(B.g[0] + W, 50, B.mol[0], 50, litG, '÷M →', '← ×M', 101, 50);
+    link(B.mol[0] + W, 50, B.N[0], 50, litN, '← ÷Nₐ', '×Nₐ →', 219, 50);
     link(160, B.mol[1] + H, 160, B.L[1], litL, `× ${vmTxt()} ↓`, `↑ ÷ ${vmTxt()}`, 160, 116, true);
     const box = (k: Unit, title: string, val: string) => {
       const [x, y] = B[k];
@@ -132,8 +132,8 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
       svg.append(sv('text', { x: x + W / 2, y: y + 22, class: 'bt' }, title), sv('text', { x: x + W / 2, y: y + 44, class: 'bv' }, val));
     };
     box('g', 'mass', `${fmt(a.g)} g`); box('mol', 'moles', `${fmt(a.mol)} mol`); box('N', 'particles', fmt(a.N, 3)); box('L', 'gas at STP', `${fmt(a.L)} L`);
-    svg.append(sv('text', { x: 52, y: 104, class: 'bt' }, `M = ${fmt(M)} g/mol`));
-    svg.append(sv('text', { x: 268, y: 104, class: 'bt' }, 'Nₐ = 6.022 × 10²³'));
+    svg.append(sv('text', { x: 42, y: 104, class: 'bt' }, `M = ${fmt(M)} g/mol`));
+    svg.append(sv('text', { x: 272, y: 104, class: 'bt' }, 'Nₐ = 6.022 × 10²³'));
     svg.setAttribute('aria-label', `${fmt(a.g)} g of ${f} = ${fmt(a.mol)} mol = ${fmt(a.N, 3)} particles = ${fmt(a.L)} L of gas at STP`);
     void on;
   }

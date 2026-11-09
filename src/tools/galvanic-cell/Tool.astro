@@ -92,11 +92,12 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
       svg.append(sv('rect', { x: x + 2, y: 150, width: 96, height: 76, class: 'sol' }));
       svg.append(sv('path', { d: `M${x} 120 L${x} 226 Q${x} 232 ${x + 6} 232 L${x + 94} 232 Q${x + 100} 232 ${x + 100} 226 L${x + 100} 120`, class: 'glass' }));
       const e = electrodeOf(h);
-      svg.append(sv('rect', { x: x + 40, y: 70, width: 20, height: 140, class: `el${e === 'Cu' ? ' cu' : e === 'Pt' ? ' pt' : ''}` }));
+      svg.append(sv('rect', { x: x + 40, y: 70, width: 20, height: 106, class: `el${e === 'Cu' ? ' cu' : e === 'Pt' ? ' pt' : ''}` }));
       svg.append(sv('text', { x: x + 50, y: 246, class: 'lab' }, `${isAnode ? 'Anode (−)' : 'Cathode (+)'}`));
       svg.append(sv('text', { x: x + 50, y: 196, class: 'ion' }, nice(ionOf(h))));
       svg.append(sv('text', { x: x + 50, y: 214, class: 'lab2' }, isAnode ? 'oxidation' : 'reduction'));
-      svg.append(sv('text', { x: x + 50, y: 140, class: 'lab2' }, e === 'Pt' ? 'Pt, H₂ gas' : e));
+      svg.append(sv('text', { x: x + 20, y: 104, class: 'lab' }, e === 'Pt' ? 'Pt' : e));
+      if (e === 'Pt') svg.append(sv('text', { x: x + 20, y: 120, class: 'lab2' }, 'H₂ gas'));
     };
     beaker(20, L, leftIsAnode); beaker(220, R, !leftIsAnode);
     // salt bridge

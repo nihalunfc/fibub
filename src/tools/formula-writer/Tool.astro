@@ -86,7 +86,7 @@ const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸�
     // crossing arrows: cation valency down to the anion's count and back
     svg.append(sv('path', { d: `M${xa + 14} 62 L${xb - 22} 120`, class: 'xa' }), sv('path', { d: `M${xb - 14} 62 L${xa + 22} 120`, class: 'xa' }));
     svg.append(sv('path', { d: `M${xb - 22} 120 l-3 -11 l-7 6 z`, class: 'xh' }), sv('path', { d: `M${xa + 22} 120 l3 -11 l7 6 z`, class: 'xh' }));
-    svg.append(sv('text', { x: xa, y: 142, class: 'val' }, `${c.cat.f} × ${c.swapped[0]}`), sv('text', { x: xb, y: 142, class: 'val' }, `${c.an.f} × ${c.swapped[1]}`));
+    svg.append(sv('text', { x: xa - 20, y: 142, class: 'val' }, `${subs(c.cat.f)} × ${c.swapped[0]}`), sv('text', { x: xb + 20, y: 142, class: 'val' }, `${subs(c.an.f)} × ${c.swapped[1]}`));
   }
 
   function drawBalance(c: Compound) {
