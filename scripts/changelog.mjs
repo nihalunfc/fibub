@@ -1,14 +1,29 @@
 // Writes src/data/changelog.json from the git history: every change to the site, newest first, with
 // its time, its one-line description (the commit title), the tools it touched and a link to it on
-// GitHub. Runs before every build (npm run build). On a shallow or missing history (some build
-// machines clone only the latest commit) it keeps the committed file instead of writing a short one.
+// GitHub. Runs before every build (npm run build). Cloudflare's build clones only the latest commit,
+// so on a shallow clone it first downloads the rest of the history. If that fails (no network, or
+// not a git checkout) it keeps the committed file instead of writing a short one.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
 
 const OUT = 'src/data/changelog.json';
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-let shallow = true;
-try { shallow = git('rev-parse', '--is-shallow-repository').trim() !== 'false'; } catch { /* not a git checkout */ }
+const isShallow = () => {
+  try { return git('rev-parse', '--is-shallow-repository').trim() !== 'false'; } catch { return true; /* not a git checkout */ }
+};
+let shallow = isShallow();
+if (shallow) {
+  // Plain first (follows the clone's own branch), then main, which is what the site deploys from.
+  for (const args of [[], ['origin', 'main']]) {
+    try {
+      git('fetch', '--quiet', '--unshallow', ...args);
+      shallow = isShallow();
+      if (!shallow) { console.log('changelog: fetched the full git history'); break; }
+    } catch (e) {
+      console.log(`changelog: could not fetch the full git history (${String(e.message || e).split('\n')[0]})`);
+    }
+  }
+}
 if (shallow) {
   console.log(`changelog: no full git history here, keeping ${OUT}`);
   if (!existsSync(OUT)) { mkdirSync('src/data', { recursive: true }); writeFileSync(OUT, '[]\n'); }
