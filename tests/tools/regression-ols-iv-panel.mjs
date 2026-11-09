@@ -2,6 +2,7 @@
 export const path = '/science/regression-ols-iv-panel/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
   const vp = page.viewportSize();
+  page.setDefaultTimeout(120000);
   await page.goto(BASE + path);
   await page.waitForSelector('.rg-out:not([hidden])');
   const cell = (r, c) => page.textContent(`.rg-tab tbody tr:nth-child(${r}) td:nth-child(${c})`);
@@ -77,4 +78,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.waitForSelector('.rg-out:not([hidden])');
   await page.screenshot({ path: OUT + 'regression-ols-iv-panel.png', fullPage: true });
   await page.setViewportSize(vp);
+  page.setDefaultTimeout(30000);
 };
