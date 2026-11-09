@@ -42,12 +42,19 @@ export const MARKERS: Marker[] = ['circle', 'square', 'triangle', 'diamond', 'op
 
 /** About `count` round tick values covering [lo, hi]. */
 export function niceTicks(lo: number, hi: number, count = 6): number[] {
-  if (!(hi > lo)) { const d = Math.abs(lo) || 1; lo -= d / 2; hi += d / 2; }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return [];
+  if (hi < lo) [lo, hi] = [hi, lo];
+  // A span that is zero, or too small for floating point to step across (values nearly equal), is widened
+  // around its middle, so the loop below always moves on.
+  const big = Math.max(Math.abs(lo), Math.abs(hi));
+  if (hi === lo) { const d = big || 1; lo -= d / 2; hi += d / 2; }
+  else if (!(hi - lo > big * 1e-9)) { const mid = (lo + hi) / 2, d = big * 1e-6 || 1; lo = mid - d / 2; hi = mid + d / 2; }
   const raw = (hi - lo) / Math.max(1, count);
   const mag = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw * 0.999)!;
   const out: number[] = [];
-  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : +v.toPrecision(12));
+  const first = Math.ceil(lo / step - 1e-9);
+  for (let i = 0, v = first * step; v <= hi + step * 1e-9 && i < 1000; i++, v = (first + i) * step) out.push(Math.abs(v) < step * 1e-9 ? 0 : +v.toPrecision(12));
   return out;
 }
 /** Expand [lo, hi] outward to round numbers, with a little padding. */
