@@ -1,0 +1,294 @@
+---
+// Geological cross-section: a topographic profile from a DEM along a tapped or typed line (or typed distance and
+// elevation pairs), vertical exaggeration, contacts drawn at their apparent dip, units filled between them, and
+// SVG, PNG, PDF and CSV downloads. The DEM never leaves the browser. The example DEM is made up by the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE_LINE, EXAMPLE_CONTACTS, EXAMPLE_LOWEST } from '../../lib/sci/xsection';
+const line = EXAMPLE_LINE.map(([x, y]) => `${x}, ${y}`).join('\n');
+const pairs = 'distance (m)\televation (m)\n0\t310\n250\t352\n500\t420\n750\t468\n1000\t455\n1250\t401\n1500\t360\n1750\t341\n2000\t338';
+---
+<div class="ax xsp">
+  <div class="ax-card">
+    <h2>Topography</h2>
+    <div class="ax-seg" role="group" aria-label="Where the profile comes from">
+      <button type="button" class="xs-m" data-m="dem" aria-pressed="true">From a DEM</button>
+      <button type="button" class="xs-m" data-m="typed" aria-pressed="false">Typed profile</button>
+    </div>
+    <div class="xs-dem" style="margin-top:12px">
+      <div class="ax-row">
+        <button type="button" class="btn secondary small xs-open">Open a DEM</button>
+        <input type="file" class="xs-file" accept=".asc,.txt,.tif,.tiff,image/tiff" hidden />
+        <button type="button" class="btn secondary small xs-ex">Use the example DEM</button>
+      </div>
+      <p class="ax-help">A GeoTIFF (one band of elevations) or an ESRI ASCII grid (.asc), up to 150 MB and 30 million cells. Use a projected grid in metres (such as UTM); a latitude-longitude grid also works, with distances from a local flat Earth. The file is read on this page only.</p>
+      <p class="ax-help xs-dinfo"></p>
+      <p class="ax-err xs-derr" hidden></p>
+      <canvas class="xs-map" style="display:block;width:100%;height:auto;margin-top:8px;border-radius:8px;touch-action:manipulation;cursor:crosshair"></canvas>
+      <p class="ax-help">Tap the map to add points to the section line, or type them below (x, y in the DEM's map units, one point per line).</p>
+      <label style="margin-top:8px">Section line (x, y) <textarea class="xs-line" rows="4" spellcheck="false">{line}</textarea></label>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small xs-undo">Undo last point</button>
+        <button type="button" class="btn secondary small xs-clear">Clear the line</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Sample every (m) <input class="xs-sp" type="text" inputmode="decimal" placeholder="auto" /></label>
+      </div>
+    </div>
+    <div class="xs-typed" hidden style="margin-top:12px">
+      <label>Distance and elevation, one point per row <textarea class="xs-pairs" rows="7" spellcheck="false">{pairs}</textarea></label>
+      <DataFile target=".xs-pairs" maxCols={10} maxRows={20000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Section azimuth (° from north) <input class="xs-az" type="text" inputmode="decimal" value="90" /></label>
+      </div>
+      <p class="ax-help">The first two columns are read. The azimuth is the direction of increasing distance; it sets the apparent dips.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Geology and drawing</h2>
+    <label>Contacts, youngest unit first: unit name, distance where its base meets the surface, strike, dip <textarea class="xs-con" rows="4" spellcheck="false">{EXAMPLE_CONTACTS}</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit below the last contact <input class="xs-low" type="text" value={EXAMPLE_LOWEST} /></label>
+      <label>Vertical exaggeration (×) <input class="xs-ve" type="text" inputmode="decimal" value="2" /></label>
+      <label>Draw down to elevation <input class="xs-base" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>Elevation unit <input class="xs-zu" type="text" value="m" /></label>
+    </div>
+    <p class="ax-help">Strike and dip use the right-hand rule (the bed dips towards strike + 90°). Each contact is drawn from the surface at its apparent dip in the section's direction, tan α = tan δ · sin(azimuth − strike), and the units are stacked as a layer cake: each lies above its base contact and below the contacts listed before it. Leave the box empty for a plain profile.</p>
+    <p class="ax-err xs-err" hidden></p>
+  </div>
+
+  <div class="ax-card xs-out" hidden>
+    <h2>Cross-section</h2>
+    <p class="ax-big xs-big"></p>
+    <dl class="ax-facts xs-facts"></dl>
+    <canvas class="ax-fig xs-fig" style="margin-top:10px"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="xs-tab"></table></div>
+    <p class="ax-help">Circles on the map mark where each contact meets the surface.</p>
+    <p class="ax-help xs-warn" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small xs-svg">Download SVG</button>
+      <button type="button" class="btn secondary small xs-csv">Download the profile (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseAsciiGrid, demFromTiff, profileFromDem, parsePairs, contactLine, unitBands, sectionSize, drawSection, exampleDem, FILLS, EXAMPLE_LINE, EXAMPLE_CONTACTS, EXAMPLE_LOWEST, type Dem, type Profile, type SectionDraw } from '../../lib/sci/xsection';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.xsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const txt = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const az3 = (a: number) => String(Math.round(a) % 360).padStart(3, '0') + '°';
+  const RED_FILLS = ['#3a0000', '#5a0000', '#2a0000', '#6e0000', '#470000', '#200000'];
+
+  let mode: 'dem' | 'typed' = 'dem', dem: Dem | null = null, demName = 'example';
+  let prof: Profile | null = null, draw: SectionDraw | null = null, fig: Figure | null = null, sections: Section[] = [];
+  let base = document.createElement('canvas'), zmin = 0, zmax = 1;
+
+  const style = (pal: Palette) => ({ ink: pal.ink, muted: pal.muted, grid: pal.grid, fills: pal.red ? RED_FILLS : FILLS, line: pal.red ? '#c00000' : '#7a1f12' });
+
+  // ---- DEM picture (shaded relief) ----
+  function renderBase() {
+    if (!dem) return;
+    const s = Math.min(1, 900 / Math.max(dem.w, dem.h)), W = Math.max(1, Math.round(dem.w * s)), H = Math.max(1, Math.round(dem.h * s));
+    base.width = W; base.height = H;
+    const ctx = base.getContext('2d')!, img = ctx.createImageData(W, H), red = pagePalette().red;
+    zmin = Infinity; zmax = -Infinity;
+    for (const v of dem.z) if (Number.isFinite(v)) { if (v < zmin) zmin = v; if (v > zmax) zmax = v; }
+    const span = zmax - zmin || 1, cell = dem.geographic ? dem.dx * 111000 : dem.dx;
+    const at = (c: number, r: number) => { const v = dem!.z[Math.min(dem!.h - 1, Math.max(0, r)) * dem!.w + Math.min(dem!.w - 1, Math.max(0, c))]; return v; };
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const c = Math.min(dem.w - 1, Math.floor((i + 0.5) / s)), r = Math.min(dem.h - 1, Math.floor((j + 0.5) / s)), v = at(c, r), k = (j * W + i) * 4;
+      if (!Number.isFinite(v)) { img.data[k + 3] = 0; continue; }
+      // Hillshade (sun from the north-west, 45° up, heights ×2) blended with the elevation.
+      const gx = ((at(c + 1, r) - at(c - 1, r)) / 2) * 2 / cell, gy = ((at(c, r - 1) - at(c, r + 1)) / 2) * 2 / cell; // east and north gradients
+      const hs = Math.max(0, (0.7071 + 0.7071 * (gx * 0.7071 - gy * 0.7071)) / Math.sqrt(1 + gx * gx + gy * gy));
+      const g = Math.round(40 + 110 * hs + 90 * ((v - zmin) / span));
+      img.data[k] = Math.min(255, g); img.data[k + 1] = red ? 0 : Math.min(255, g); img.data[k + 2] = red ? 0 : Math.min(255, g); img.data[k + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function readLine(): [number, number][] | string {
+    const out: [number, number][] = [];
+    const rows = parseTable(q<HTMLTextAreaElement>('.xs-line').value);
+    for (let i = 0; i < rows.length; i++) {
+      const x = num(rows[i][0]), y = num(rows[i][1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) { if (i === 0 && rows.length > 1) continue; return `Section line, row ${i + 1}: give x and y as numbers.`; }
+      out.push([x, y]);
+    }
+    return out;
+  }
+  function drawMap() {
+    const cv = q<HTMLCanvasElement>('.xs-map');
+    if (!dem) { cv.hidden = true; return; }
+    cv.hidden = false;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = base.width, H = base.height;
+    const cssW = Math.min(W, 900) || 1, k = Math.max(1, 640 / cssW);
+    cv.width = Math.round(W * k * dpr); cv.height = Math.round(H * k * dpr);
+    const ctx = cv.getContext('2d')!; ctx.imageSmoothingEnabled = false;
+    const ps = cv.width / Math.max(1, cv.getBoundingClientRect().width || cssW); // canvas pixels per CSS pixel
+    ctx.drawImage(base, 0, 0, cv.width, cv.height);
+    const pal = pagePalette(), ln = readLine();
+    if (typeof ln === 'string') return;
+    const P = (x: number, y: number): [number, number] => [((x - dem!.x0) / dem!.dx + 0.5) / dem!.w * cv.width, ((dem!.y0 - y) / dem!.dy + 0.5) / dem!.h * cv.height];
+    ctx.lineWidth = 3 * ps; ctx.strokeStyle = pal.red ? '#a30000' : '#d55e00'; ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath(); ln.forEach(([x, y], i) => { const [u, v] = P(x, y); i ? ctx.lineTo(u, v) : ctx.moveTo(u, v); }); ctx.stroke();
+    ln.forEach(([x, y], i) => { const [u, v] = P(x, y); ctx.beginPath(); ctx.arc(u, v, (i === 0 ? 6 : 4) * ps, 0, 7); ctx.fill(); });
+    if (ln.length) { const [u, v] = P(...ln[0]); ctx.font = `600 ${13 * ps}px system-ui, sans-serif`; ctx.fillStyle = pal.red ? '#a30000' : '#000'; ctx.fillText('start', u + 8 * ps, v - 8 * ps); }
+    // where the contacts meet the surface
+    if (prof && draw) for (const c of draw.contacts) {
+      const i = prof.d.findIndex((d) => d >= c.d); if (i < 0 || !prof.x.length) continue;
+      const [u, v] = P(prof.x[i], prof.y[i]); ctx.strokeStyle = pal.red ? '#c00000' : '#0072b2'; ctx.lineWidth = 2.5 * ps; ctx.beginPath(); ctx.arc(u, v, 7 * ps, 0, 7); ctx.stroke();
+    }
+  }
+  const co = (v: number, d: Dem) => v.toLocaleString('en', { maximumFractionDigits: d.geographic ? 5 : Math.max(0, Math.min(3, 2 - Math.floor(Math.log10(d.dx)))), useGrouping: false });
+  function setDem(d: Dem, name: string) {
+    dem = d; demName = name; renderBase();
+    q('.xs-dinfo').textContent = `${d.note}. Elevations ${sig(zmin, 4)} to ${sig(zmax, 4)}. Map x ${co(d.x0, d)} to ${co(d.x0 + (d.w - 1) * d.dx, d)}, y ${co(d.y0 - (d.h - 1) * d.dy, d)} to ${co(d.y0, d)}${d.geographic ? ' (degrees of longitude and latitude)' : ''}.`;
+    q('.xs-derr').hidden = true;
+  }
+
+  function run() {
+    const err = q('.xs-err'), out = q('.xs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; draw = null; drawMap(); };
+    err.hidden = true;
+    const dU = 'm';
+    let p: Profile;
+    if (mode === 'dem') {
+      if (!dem) return fail('Open a DEM or use the example.');
+      const ln = readLine();
+      if (typeof ln === 'string') return fail(ln);
+      if (ln.length < 2) return fail('Tap at least two points on the map (or type them) to make a section line.');
+      const cell = dem.geographic ? dem.dx * 111195 : Math.min(dem.dx, dem.dy);
+      const sp = txt('.xs-sp') ? num(txt('.xs-sp')) : cell / 2;
+      if (!(sp > 0)) return fail('The sample spacing must be above 0.');
+      try { p = profileFromDem(dem, ln, sp); } catch (e) { return fail((e as Error).message); }
+      if (!(p.d[p.d.length - 1] > 0)) return fail('The section line has no length.');
+      const good = p.z.filter(Number.isFinite).length;
+      if (good < 2) return fail('The line does not cross the DEM (or crosses only empty cells). Tap inside the map.');
+    } else {
+      const r = parsePairs(parseTable(q<HTMLTextAreaElement>('.xs-pairs').value), num);
+      if (typeof r === 'string') return fail(r);
+      const az = num(txt('.xs-az'));
+      if (!Number.isFinite(az)) return fail('Give the section azimuth in degrees from north.');
+      r.segAz = [((az % 360) + 360) % 360]; p = r;
+    }
+    prof = p;
+    const zs = p.z.filter(Number.isFinite), lo = Math.min(...zs), hi = Math.max(...zs), L = p.d[p.d.length - 1] - p.d[0];
+    const ve = num(txt('.xs-ve'));
+    if (!(ve > 0 && ve <= 100)) return fail('The vertical exaggeration is a number from 0.1 to 100 (1 = true scale).');
+    // Contacts.
+    const contacts: SectionDraw['contacts'] = [];
+    const lines = q<HTMLTextAreaElement>('.xs-con').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[,;\t]/).map((s) => s.trim());
+      const nums = parts.filter((s) => s !== '' && Number.isFinite(num(s))).map(num), name = parts.find((s) => s !== '' && !Number.isFinite(num(s))) || `Unit ${i + 1}`;
+      if (nums.length < 3) return fail(`Contact row ${i + 1}: give a distance, a strike and a dip (a unit name first).`);
+      const [d, strike, dip] = nums;
+      if (!(dip >= 0 && dip <= 90)) return fail(`Contact row ${i + 1} (${name}): the dip is between 0 and 90°.`);
+      if (d < p.d[0] || d > p.d[p.d.length - 1]) return fail(`Contact row ${i + 1} (${name}): the distance ${d} is off the section, which runs from ${sig(p.d[0], 6)} to ${sig(p.d[p.d.length - 1], 6)} ${dU}.`);
+      const cl = contactLine(p, { name, d, strike, dip });
+      if (!Number.isFinite(cl.z0)) return fail(`Contact row ${i + 1} (${name}): the surface has no elevation there.`);
+      contacts.push({ name, d, strike, dip, line: cl.at, alpha: cl.alpha });
+    }
+    if (contacts.length > 10) return fail('Up to 10 contacts, please.');
+    const baseIn = txt('.xs-base');
+    const bz = baseIn ? num(baseIn) : Math.floor((lo - Math.max(0.15 * (hi - lo), L / (10 * ve))) / 10) * 10;
+    if (!Number.isFinite(bz) || bz >= hi) return fail(`Draw down to an elevation below the highest point (${sig(hi, 5)}).`);
+    const topZ = hi + (hi - bz) * 0.06;
+    const units = unitBands(p, contacts.map((c) => c.line), bz);
+    const lowest = txt('.xs-low') || 'Basement';
+    const zU = txt('.xs-zu') || 'm';
+    const azText = p.segAz.length === 1 ? `towards ${az3(p.segAz[0])}` : `towards ${p.segAz.map(az3).join(', then ')}`;
+    draw = { p, ve, base: bz, top: topZ, contacts, lowest, units, title: contacts.length ? 'Geological cross-section' : 'Topographic profile', dUnit: dU, zUnit: zU, labelAz: azText };
+    const size = sectionSize(draw);
+    if (size.H > 1600) return fail(`At ${ve}× the section would be ${size.H} px tall. Lower the vertical exaggeration or raise "Draw down to elevation".`);
+    const warn = q('.xs-warn');
+    warn.hidden = size.ph >= 60; warn.textContent = size.ph < 60 ? `The section is very flat at ${ve}× (${Math.round(size.ph)} px tall); raise the vertical exaggeration to see the relief.` : '';
+    const d = draw;
+    fig = { w: size.W, h: size.H, alt: `Cross-section ${sig(L, 4)} ${dU} long at ${ve} times vertical exaggeration`, draw: (ctx, w, h, pal) => drawSection(canvasPainter(ctx), d, style(pal), w) };
+    paint(q<HTMLCanvasElement>('.xs-fig'), fig);
+    q('.xs-big').textContent = `${sig(L, 4)} ${dU} long, ${azText}`;
+    const facts: [string, string, string][] = [
+      ['Length', `${Math.round(L).toLocaleString('en')} ${dU}`, mode === 'dem' ? `${p.d.length} samples, every ${sig(p.d[1] - p.d[0], 3)} ${dU} or less` : `${p.d.length} typed points`],
+      ['Elevation', `${sig(lo, 5)} to ${sig(hi, 5)} ${zU}`, `relief ${sig(hi - lo, 4)} ${zU}`],
+      ['Vertical exaggeration', `${+ve.toPrecision(3)}×`, ve === 1 ? 'true scale' : `slopes and dips look steeper`],
+      ['Drawn down to', `${sig(bz, 5)} ${zU}`, ''],
+    ];
+    if (mode === 'dem' && p.z.some((z) => !Number.isFinite(z))) facts.push(['Gaps', `${p.z.filter((z) => !Number.isFinite(z)).length} samples`, 'off the DEM or on empty cells']);
+    q('.xs-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const head = ['Unit (base contact)', 'At distance', 'Surface', 'Strike / dip', 'Section azimuth', 'Apparent dip', 'Drawn slope at VE'];
+    const rows = contacts.map((c) => { const app = c.alpha, drawn = Math.atan(Math.tan(Math.abs(app) * Math.PI / 180) * ve) * 180 / Math.PI; return [c.name, `${sig(c.d, 6)} ${dU}`, `${sig(c.line(c.d), 5)} ${zU}`, `${az3(c.strike)} / ${sig(c.dip, 3)}°`, az3(contactLine(p, c).az), `${Math.abs(app).toFixed(1)}° ${Math.abs(app) < 0.05 ? '(flat)' : app > 0 ? '(down along the section)' : '(up along the section)'}`, `${drawn.toFixed(1)}°`]; });
+    const t = q<HTMLTableElement>('.xs-tab'); t.replaceChildren();
+    if (rows.length) {
+      const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+      const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.whiteSpace = 'nowrap'; }); });
+    }
+    sections = [
+      { title: draw.title, text: [`${q('.xs-big').textContent}. ${mode === 'dem' ? `DEM: ${demName}.` : 'Typed profile.'}`], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), figure: fig },
+      ...(rows.length ? [{ title: 'Contacts', table: { head, rows }, note: `Apparent dip: tan α = tan δ · sin(azimuth − strike), right-hand rule. Lowest unit: ${lowest}.` }] : []),
+    ];
+    out.hidden = false;
+    drawMap();
+  }
+
+  function setMode(m: 'dem' | 'typed') {
+    mode = m; root.querySelectorAll<HTMLButtonElement>('.xs-m').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.xs-dem').hidden = m !== 'dem'; q('.xs-typed').hidden = m !== 'typed'; run();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.xs-m').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m as 'dem' | 'typed')));
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('xs-file')) return; clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  q('.xs-map').addEventListener('click', (e) => {
+    if (!dem) return;
+    const cv = q<HTMLCanvasElement>('.xs-map'), r = cv.getBoundingClientRect();
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    const x = dem.x0 + (fx * dem.w - 0.5) * dem.dx, y = dem.y0 - (fy * dem.h - 0.5) * dem.dy;
+    const dp = dem.geographic ? 6 : Math.max(0, Math.min(3, 2 - Math.floor(Math.log10(dem.dx))));
+    const ta = q<HTMLTextAreaElement>('.xs-line'), cur = ta.value.trim();
+    ta.value = (cur ? cur + '\n' : '') + `${x.toFixed(dp)}, ${y.toFixed(dp)}`;
+    run();
+  });
+  q('.xs-undo').addEventListener('click', () => { const ta = q<HTMLTextAreaElement>('.xs-line'); ta.value = ta.value.trim().split(/\r?\n/).slice(0, -1).join('\n'); run(); });
+  q('.xs-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.xs-line').value = ''; run(); });
+  q('.xs-ex').addEventListener('click', () => { setDem(exampleDem(), 'example (made up)'); q<HTMLTextAreaElement>('.xs-line').value = EXAMPLE_LINE.map(([x, y]) => `${x}, ${y}`).join('\n'); q<HTMLTextAreaElement>('.xs-con').value = EXAMPLE_CONTACTS; q<HTMLInputElement>('.xs-low').value = EXAMPLE_LOWEST; q<HTMLInputElement>('.xs-sp').value = ''; q<HTMLInputElement>('.xs-base').value = ''; run(); });
+  q('.xs-open').addEventListener('click', () => q<HTMLInputElement>('.xs-file').click());
+  q<HTMLInputElement>('.xs-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.xs-file'), f = inp.files?.[0]; inp.value = '';
+    if (!f) return;
+    const e = q('.xs-derr');
+    try {
+      if (f.size > 150e6) throw new Error(`${f.name} is ${(f.size / 1e6).toFixed(0)} MB; up to 150 MB, please. Clip the DEM to your area first.`);
+      const buf = await f.arrayBuffer(), b = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+      const isTiff = (b[0] === 0x49 && b[1] === 0x49) || (b[0] === 0x4d && b[1] === 0x4d);
+      let d: Dem;
+      if (isTiff) d = demFromTiff(buf, 30e6);
+      else { if (f.size > 60e6) throw new Error('ASCII grids up to 60 MB, please (a GeoTIFF can be larger).'); d = parseAsciiGrid(new TextDecoder().decode(buf)); }
+      if (d.w * d.h > 30e6) throw new Error('Up to 30 million cells, please.');
+      setDem(d, f.name);
+      q<HTMLTextAreaElement>('.xs-line').value = ''; q<HTMLTextAreaElement>('.xs-con').value = ''; q<HTMLInputElement>('.xs-base').value = ''; q<HTMLInputElement>('.xs-sp').value = '';
+      run();
+    } catch (x) { e.textContent = (x as Error).message; e.hidden = false; }
+  });
+  const svgText = () => { if (!draw || !fig) return ''; const P = svgPainter(fig.w, fig.h); const pal = { ink: '#0a0a0a', muted: '#5c5c5c', grid: '#ececec', line: '#7a1f12', fills: FILLS }; P.poly([[0, 0], [fig.w, 0], [fig.w, fig.h], [0, fig.h]], '#ffffff', null); drawSection(P, draw, pal, fig.w); return P.toString(); };
+  q('.xs-svg').addEventListener('click', () => save(new Blob([svgText()], { type: 'image/svg+xml' }), 'cross-section.svg', 'image/svg+xml'));
+  q('.xs-csv').addEventListener('click', () => {
+    if (!prof || !draw) return;
+    const hasXY = prof.x.length === prof.d.length;
+    const rows: (string | number)[][] = [['distance_m', ...(hasXY ? ['x', 'y'] : []), 'elevation', ...draw.contacts.map((c) => `${c.name}_base`)]];
+    prof.d.forEach((d, k) => rows.push([+d.toFixed(3), ...(hasXY ? [+prof!.x[k].toPrecision(12), +prof!.y[k].toPrecision(12)] : []), Number.isFinite(prof!.z[k]) ? +prof!.z[k].toFixed(3) : '', ...draw!.contacts.map((c) => +c.line(d).toFixed(3))]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'cross-section-profile.csv', 'text/csv');
+  });
+  wireDownloads(q('.xs-out'), () => ({ title: draw?.title ?? 'Cross-section', subtitle: 'fibub.com cross-section profile', sections, file: 'cross-section' }));
+  document.addEventListener('fibub:theme', () => { renderBase(); if (fig && !q('.xs-out').hidden) paint(q<HTMLCanvasElement>('.xs-fig'), fig); drawMap(); });
+  window.addEventListener('resize', () => drawMap());
+  setDem(exampleDem(), 'example (made up)');
+  run();
+</script>
