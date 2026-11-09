@@ -1,0 +1,455 @@
+---
+// Punnett square and pedigree probability: crosses of 1 to 6 genes with exact genotype and phenotype ratios, the
+// branch method for one chosen kind of offspring, binomial chances for several children and simple Bayesian carrier
+// risks. Everything is worked out in the browser; nothing is stored or sent. For teaching, not genetic counselling.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pun">
+  <p class="pu-warn" role="note"><strong>For learning only.</strong> This page works out textbook chances from the rules of Mendelian inheritance. It is not genetic counselling or a medical test: real families have new mutations, linked genes, reduced penetrance and test results this page does not know about. Talk to a genetic counsellor or doctor about a real family.</p>
+
+  <div class="ax-card">
+    <h2>The cross</h2>
+    <div class="ax-grid">
+      <label>Start from an example <select class="pu-preset"></select></label>
+      <label>Number of genes <select class="pu-n"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+    </div>
+    <p class="ax-help">Each gene: a letter, how its alleles act, and the two parents' genotypes. Phenotype names are optional (separate them with commas). Genes are taken to sort independently (not linked).</p>
+    <div class="pu-genes"></div>
+    <p class="ax-err pu-err" hidden></p>
+  </div>
+
+  <div class="ax-card pu-out" hidden>
+    <h2>Punnett square</h2>
+    <p class="ax-big pu-big" aria-live="polite"></p>
+    <dl class="ax-facts pu-facts"></dl>
+    <p class="ax-help pu-gam"></p>
+    <div class="ax-scroll pu-sqw"><table class="pu-sq"></table></div>
+    <p class="ax-help pu-sqnote"></p>
+
+    <h3>Phenotypes</h3>
+    <div class="ax-scroll"><table class="pu-ptab"></table></div>
+    <h3>Genotypes</h3>
+    <div class="ax-scroll pu-gw"><table class="pu-gtab"></table></div>
+    <p class="ax-help pu-gnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pu-pcsv">Download phenotypes (CSV)</button>
+      <button type="button" class="btn secondary small pu-gcsv">Download genotypes (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card pu-out" hidden>
+    <h2>Branch method</h2>
+    <p class="ax-help" style="margin-top:0">Each gene on its own, then multiply (the product rule). This is how to answer questions about many genes without drawing a huge square.</p>
+    <ul class="pu-branch"></ul>
+    <h3>Chance of one kind of child</h3>
+    <div class="ax-grid pu-q"></div>
+    <p class="ax-big pu-qres" aria-live="polite"></p>
+    <p class="ax-help pu-qwork"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Several children</h2>
+    <p class="ax-help" style="margin-top:0">Each child is a new, independent draw, so the chances for a family follow the binomial rule: C(n, k) × p<sup>k</sup> × (1 − p)<sup>n − k</sup>.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="pu-wide">Chance for one child (p) comes from <select class="pu-src"></select></label>
+      <label>p for one child <input class="pu-p" type="text" inputmode="decimal" value="1/4" autocomplete="off" spellcheck="false" /></label>
+      <label>Children (n) <input class="pu-kids" type="number" min="1" max="40" step="1" value="4" inputmode="numeric" /></label>
+      <label>Exactly k of them <input class="pu-k" type="number" min="0" max="40" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Type p as 1/4, 0.25, 25 % or 1 in 4. Up to 40 children.</p>
+    <p class="ax-err pu-berr" hidden></p>
+    <div class="pu-bout">
+      <p class="ax-big pu-bbig" aria-live="polite"></p>
+      <dl class="ax-facts pu-bfacts"></dl>
+      <div class="ax-scroll pu-btw"><table class="pu-btab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pu-bcsv">Download the table (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Carrier risk from a family tree</h2>
+    <div class="ax-seg pu-pat" role="group" aria-label="Inheritance pattern (recessive)">
+      <button type="button" data-v="ar" aria-pressed="true">Autosomal</button>
+      <button type="button" data-v="xl" aria-pressed="false">X-linked</button>
+    </div>
+    <div class="pu-ar">
+      <p class="ax-help">Two unaffected partners who are not related to each other. Pick what is known about each, then how many unaffected children they already have. Each child of two carriers has a 1 in 4 chance of being affected.</p>
+      <div class="ax-grid pu-rgrid">
+        <label class="pu-wide">Partner 1 <select class="pu-p1"></select></label>
+        <label class="pu-c1w">Partner 1's chance <input class="pu-p1c" type="text" inputmode="decimal" value="1/50" autocomplete="off" spellcheck="false" /></label>
+        <label class="pu-wide">Partner 2 <select class="pu-p2"></select></label>
+        <label class="pu-c2w">Partner 2's chance <input class="pu-p2c" type="text" inputmode="decimal" value="1/50" autocomplete="off" spellcheck="false" /></label>
+        <label>Unaffected children they have <input class="pu-ch" type="number" min="0" max="20" step="1" value="1" inputmode="numeric" /></label>
+      </div>
+    </div>
+    <div class="pu-xl" hidden>
+      <p class="ax-help">An unaffected woman who may carry an X-linked recessive allele, with an unaffected partner. Each son of a carrier has a 1 in 2 chance of being affected; unaffected sons lower her chance of being a carrier.</p>
+      <div class="ax-grid pu-rgrid">
+        <label class="pu-wide">What is known <select class="pu-w"></select></label>
+        <label class="pu-cww">Her chance <input class="pu-wc" type="text" inputmode="decimal" value="1/2" autocomplete="off" spellcheck="false" /></label>
+        <label>Unaffected sons she has <input class="pu-sons" type="number" min="0" max="20" step="1" value="2" inputmode="numeric" /></label>
+      </div>
+    </div>
+    <p class="ax-help">A typed chance such as 1/50 is a made-up example, not a figure for any real condition or population. Ask a genetics service for real numbers.</p>
+    <p class="ax-err pu-rerr" hidden></p>
+    <div class="pu-rout">
+      <p class="ax-big pu-rbig" aria-live="polite"></p>
+      <dl class="ax-facts pu-rfacts"></dl>
+      <h3>Bayes table</h3>
+      <div class="ax-scroll"><table class="pu-rtab"></table></div>
+      <p class="ax-help">Prior: chance before looking at the children. Conditional: chance of these unaffected children if that is true. Joint = prior × conditional. Posterior = joint ÷ the sum of the joints.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Report</h2>
+    <p class="ax-help" style="margin-top:0">The cross, the ratios, your branch-method question, the family chances and the carrier risk in one file.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pun .pu-warn { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--ink); font-size: 14px; line-height: 1.5; border: 1px solid var(--line); }
+  .pun .pu-warn strong { color: var(--warn); }
+  .pun h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pun .pu-gene { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0 0; min-width: 0; }
+  .pun .pu-gene h3 { margin: 0 0 8px; font-size: 15px; }
+  .pun .pu-wide { grid-column: 1 / -1; }
+  .pun .pu-g1, .pun .pu-g2 { display: grid; gap: 10px 12px; grid-template-columns: 64px minmax(0, 1fr); }
+  .pun .pu-g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 10px; }
+  @media (min-width: 640px) { .pun .pu-gene .pu-g1, .pun .pu-gene .pu-g2 { display: contents; } .pun .pu-gene .pu-gg { display: grid; gap: 10px 12px; grid-template-columns: 64px minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); } }
+  .pun td.r { white-space: nowrap; }
+  .pun .pu-rtab td:first-child { min-width: 8.5em; }
+  .pun .pu-names-l { margin-top: 10px; }
+  .pun sup { font-size: 0.7em; line-height: 0; }
+  .pun .pu-sq { width: auto; border-collapse: collapse; margin-top: 10px; }
+  .pun .pu-sq th, .pun .pu-sq td { text-align: center; border: 1px solid var(--line); padding: 6px 7px; white-space: nowrap; }
+  .pun .pu-sq th { background: var(--bg); color: var(--ink); font-size: 13px; }
+  .pun .pu-sq th.c { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .pun .pu-sq.big td { font-size: 18px; padding: 14px 18px; }
+  .pun .pu-sq.small td, .pun .pu-sq.small th { font-size: 12px; padding: 4px 5px; }
+  .pun .pu-sq td.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .pun .pu-ptab tr[data-k], .pun .pu-gtab tr[data-k] { cursor: pointer; }
+  .pun tr.on td { background: var(--accent-soft); }
+  .pun .pu-gw { max-height: 420px; overflow-y: auto; }
+  .pun .pu-btw { max-height: 360px; overflow-y: auto; margin-top: 10px; }
+  .pun .pu-branch { margin: 8px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  .pun .pu-branch li { margin-bottom: 4px; }
+  .pun .pu-qres, .pun .pu-bbig, .pun .pu-rbig { margin: 12px 0 4px; }
+  .pun .pu-pat { margin-bottom: 4px; }
+  .pun .pu-facts, .pun .pu-bfacts, .pun .pu-rfacts { margin-top: 10px; }
+</style>
+
+<script>
+  import * as P from '../../lib/sci/punnett';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pun')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = <T extends HTMLElement = HTMLElement>(c: string) => [...root.querySelectorAll<T>(c)];
+  const pct = (x: number) => (x === 0 ? '0 %' : x === 1 ? '100 %' : x * 100 < 0.01 ? `${(x * 100).toPrecision(2)} %` : `${Number((x * 100).toFixed(2))} %`);
+  const fpct = (f: P.Frac) => pct(f.n / f.d);
+  const bpct = (b: P.Big) => pct(P.bnum(b));
+  const bshow = (b: P.Big) => (b.d > 10n ** 12n ? bpct(b) : `${P.bstr(b)} (${bpct(b)})`);
+  /** (3/4)^2 shown with a real superscript on the page. */
+  const supPow = (s: string): string | Node => { const m = /^(.*?)\^(\d+)(.*)$/.exec(s); if (!m) return s; const f = document.createDocumentFragment(), e = document.createElement('sup'); e.textContent = m[2]; f.append(m[1], e, m[3]); return f; };
+  const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const csv = (rows: (string | number)[][]) => rows.map((r) => r.map((x) => csvCell(String(x))).join(',')).join('\n') + '\n';
+
+  /** Genotype or gamete symbols as text with <sup>. */
+  function toks(t: P.Tok[], sep = t.some((x) => x[1]) ? ' ' : ''): DocumentFragment {
+    const f = document.createDocumentFragment();
+    t.forEach(([b, s], i) => { if (i && sep) f.append(sep); f.append(b); if (s) { const e = document.createElement('sup'); e.textContent = s; f.append(e); } });
+    return f;
+  }
+  function genoNodes(genes: P.Gene[], pairs: number[][]): DocumentFragment {
+    const f = document.createDocumentFragment(), simple = genes.every((g) => g.mode === 'complete' || g.mode === 'incomplete');
+    pairs.forEach((p, i) => { if (i && !simple) f.append(' '); f.append(toks(P.genoToks(genes[i], p))); });
+    return f;
+  }
+  const fill = (t: HTMLElement, head: string[], rows: (string | Node)[][], align: string[] = [], keys: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (align[k] === 'r') th.className = 'r'; h.append(th); });
+    rows.forEach((r, i) => { const tr = t.insertRow(); if (keys[i]) { tr.dataset.k = keys[i]; tr.tabIndex = 0; } r.forEach((x, k) => { const td = tr.insertCell(); td.append(x); if (align[k] === 'r') td.className = 'r'; }); });
+  };
+  const facts = (dl: HTMLElement, items: [string, string][]) => dl.replaceChildren(...items.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+
+  // ---------- The cross form ----------
+  const preset = q<HTMLSelectElement>('.pu-preset'), nSel = q<HTMLSelectElement>('.pu-n'), list = q('.pu-genes');
+  preset.replaceChildren(new Option('Your own cross', ''), ...P.PRESETS.map((p) => new Option(p.name, p.id)));
+  const optLabel = (g: { letter: string; mode: P.Mode }, pair: number[]) => P.plain(P.genoToks(g, pair));
+
+  function geneCard(i: number, g: P.Gene): HTMLElement {
+    const box = document.createElement('fieldset'); box.className = 'pu-gene'; box.dataset.i = String(i);
+    box.innerHTML = `<h3>Gene ${i + 1}</h3><div class="pu-gg"><div class="pu-g1">
+      <label>Letter <input class="pu-L" type="text" maxlength="1" autocomplete="off" spellcheck="false" autocapitalize="characters" /></label>
+      <label>How the alleles act <select class="pu-mode"></select></label></div><div class="pu-g2">
+      <label>Mother <select class="pu-m"></select></label>
+      <label>Father <select class="pu-f"></select></label></div></div>
+      <label class="pu-names-l">Phenotype names (optional) <input class="pu-names" type="text" autocomplete="off" /></label>`;
+    const mode = box.querySelector<HTMLSelectElement>('.pu-mode')!;
+    mode.replaceChildren(...Object.entries(P.MODES).map(([k, m]) => new Option(m.name, k)));
+    setGene(box, g);
+    return box;
+  }
+  function setGene(box: HTMLElement, g: P.Gene) {
+    const L = box.querySelector<HTMLInputElement>('.pu-L')!, mode = box.querySelector<HTMLSelectElement>('.pu-mode')!;
+    mode.value = g.mode; L.value = g.mode === 'abo' ? 'I' : g.letter; L.disabled = g.mode === 'abo';
+    fillGenos(box, g);
+    box.querySelector<HTMLSelectElement>('.pu-m')!.value = P.norm(g.mother).join();
+    box.querySelector<HTMLSelectElement>('.pu-f')!.value = P.norm(g.father).join();
+    const nm = box.querySelector<HTMLInputElement>('.pu-names')!;
+    nm.value = g.names?.join(', ') ?? '';
+    nm.placeholder = P.defaultNames(g).join(', ');
+  }
+  function fillGenos(box: HTMLElement, g: { letter: string; mode: P.Mode }) {
+    for (const [c, sex] of [['.pu-m', 'f'], ['.pu-f', 'm']] as const) {
+      const s = box.querySelector<HTMLSelectElement>(c)!, old = s.value;
+      s.replaceChildren(...P.genotypeOptions(g.mode, sex).map((p) => new Option(optLabel(g, p), p.join())));
+      if ([...s.options].some((o) => o.value === old)) s.value = old;
+      else s.value = sex === 'm' && P.MODES[g.mode].x ? `0,${P.Y}` : g.mode === 'abo' ? '0,2' : '0,1';
+    }
+  }
+  function readGenes(): P.Gene[] {
+    return qa('.pu-gene').map((box) => {
+      const mode = box.querySelector<HTMLSelectElement>('.pu-mode')!.value as P.Mode;
+      const names = box.querySelector<HTMLInputElement>('.pu-names')!.value.split(',').map((s) => s.trim()).filter(Boolean);
+      return { letter: box.querySelector<HTMLInputElement>('.pu-L')!.value.trim().toUpperCase(), mode, mother: box.querySelector<HTMLSelectElement>('.pu-m')!.value.split(',').map(Number), father: box.querySelector<HTMLSelectElement>('.pu-f')!.value.split(',').map(Number), names: names.length ? names : undefined };
+    });
+  }
+  function setGenes(gs: P.Gene[]) { nSel.value = String(gs.length); list.replaceChildren(...gs.map((g, i) => geneCard(i, g))); }
+  function resize() {
+    const gs = readGenes(), n = Number(nSel.value);
+    const used = new Set(gs.map((g) => (g.mode === 'abo' ? 'I' : g.letter)));
+    while (gs.length < n) { const L = [...'ABCDEFGHJKLMNOPQRSTUVW'].find((c) => !used.has(c))!; used.add(L); gs.push({ letter: L, mode: 'complete', mother: [0, 1], father: [0, 1] }); }
+    setGenes(gs.slice(0, n));
+  }
+
+  // ---------- Results ----------
+  let genes: P.Gene[] = [], R: P.Ratios | null = null, sq: ReturnType<typeof P.square> | null = null;
+  let qText = '', bLines: string[] = [], rSection: Section | null = null;
+
+  function run() {
+    genes = readGenes();
+    const errs = P.validate(genes), err = q('.pu-err');
+    err.hidden = !errs.length; err.textContent = errs.join(' ');
+    qa('.pu-out').forEach((e) => (e.hidden = !!errs.length));
+    if (errs.length) { R = null; qText = ''; return; }
+    R = P.ratios(genes);
+    const sexed = P.hasSex(genes);
+    q('.pu-big').textContent = `Phenotypes ${R.phenoRatio.join(' : ')}`;
+    facts(q('.pu-facts'), [['Boxes (equal chances)', String(R.total)], ['Genotypes', String(R.genotypes.length)], ['Phenotypes', String(R.phenotypes.length)], ['Genotype ratio', R.genotypes.length <= 27 ? R.genoRatio.join(' : ') : `${R.genotypes.length} classes`]]);
+    // Square
+    const tab = q('.pu-sq'), note = q('.pu-sqnote'), gam = q('.pu-gam');
+    if (genes.length <= P.MAX_SQUARE_GENES) {
+      sq = P.square(genes);
+      gam.replaceChildren(`Mother's eggs (${sq.mg.length}, each 1/${sq.mg.length}): `, ...joinNodes(sq.mg.map((g) => toks(g.toks))), `. Father's sperm (${sq.fg.length}, each 1/${sq.fg.length}): `, ...joinNodes(sq.fg.map((g) => toks(g.toks))), '.');
+      tab.replaceChildren(); tab.className = 'pu-sq' + (sq.fg.length <= 2 && sq.mg.length <= 2 ? ' big' : sq.fg.length >= 8 ? ' small' : '');
+      const h = tab.insertRow(); const c = document.createElement('th'); c.className = 'c'; c.textContent = '♀ \\ ♂'; h.append(c);
+      for (const f of sq.fg) { const th = document.createElement('th'); th.append(toks(f.toks)); h.append(th); }
+      sq.cells.forEach((row, i) => {
+        const tr = tab.insertRow(), th = document.createElement('th'); th.append(toks(sq!.mg[i].toks)); tr.append(th);
+        for (const o of row) { const td = tr.insertCell(); td.append(genoNodes(genes, o.pairs)); td.dataset.g = P.genoKey(o); td.dataset.p = P.phenoKey(P.phenoOf(genes, o)); td.title = P.phenoLabel(genes, P.phenoOf(genes, o)); }
+      });
+      q('.pu-sqw').hidden = false;
+      note.textContent = `Rows: the mother's eggs. Columns: the father's sperm. Each of the ${sq.mg.length * sq.fg.length} boxes is equally likely. Tap a row in the tables below to light up its boxes.`;
+    } else {
+      sq = null; tab.replaceChildren(); q('.pu-sqw').hidden = true; gam.textContent = '';
+      note.textContent = `With ${genes.length} genes the square would have up to ${4 ** genes.length} boxes, too many to draw. The tables below come from the branch method, which gives the same fractions.`;
+    }
+    // Tables
+    fill(q('.pu-ptab'), ['Phenotype', 'Fraction', 'Boxes', '%'], R.phenotypes.map((p) => [p.name, P.fstr(p.p), String(p.count), fpct(p.p)]), ['', 'r', 'r', 'r'], R.phenotypes.map((p) => 'p:' + p.key));
+    const MAX = 300, gs = R.genotypes.slice(0, MAX);
+    fill(q('.pu-gtab'), ['Genotype', ...(sexed ? ['Sex'] : []), 'Fraction', 'Boxes', '%', 'Phenotype'], gs.map((g) => [genoNodes(genes, g.pairs), ...(sexed ? [P.sexName(g.sex)] : []), P.fstr(g.p), String(g.count), fpct(g.p), R!.phenotypes.find((p) => p.key === g.pheno)!.name]), ['', ...(sexed ? [''] : []), 'r', 'r', 'r', ''], gs.map((g) => 'g:' + g.key));
+    q('.pu-gnote').textContent = R.genotypes.length > MAX ? `The first ${MAX} of ${R.genotypes.length} genotypes are shown; the CSV has them all.` : '';
+    branch(); query(); sources(); bin(); risk();
+  }
+  function joinNodes(ns: Node[]): (Node | string)[] { return ns.flatMap((n, i) => (i ? [', ', n] : [n])); }
+
+  function light(key: string | null) {
+    qa('.pu-ptab tr.on, .pu-gtab tr.on, .pu-sq td.on').forEach((e) => e.classList.remove('on'));
+    if (!key) return;
+    qa(`.pu-ptab tr, .pu-gtab tr`).forEach((tr) => { if (tr.dataset.k === key) tr.classList.add('on'); });
+    const [kind, k] = [key.slice(0, 1), key.slice(2)];
+    qa<HTMLTableCellElement>('.pu-sq td').forEach((td) => { if ((kind === 'p' ? td.dataset.p : td.dataset.g) === k) td.classList.add('on'); });
+  }
+  let lit: string | null = null;
+  for (const c of ['.pu-ptab', '.pu-gtab']) {
+    q(c).addEventListener('click', (e) => { const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-k]'); if (!tr) return; lit = lit === tr.dataset.k ? null : tr.dataset.k!; light(lit); });
+    q(c).addEventListener('keydown', (e) => { if (e.key === 'Enter') (e.target as HTMLElement).click(); });
+  }
+
+  // ---------- Branch method ----------
+  function branch() {
+    const sexed = P.hasSex(genes), ul = q('.pu-branch');
+    ul.replaceChildren();
+    if (sexed) { const li = document.createElement('li'); li.textContent = 'Sex: female 1/2, male 1/2 (the father gives an X or a Y).'; ul.append(li); }
+    genes.forEach((g, i) => {
+      const li = document.createElement('li'), b = document.createElement('b');
+      b.append(genoNodes([g], [g.mother]), ' × ', genoNodes([g], [g.father])); li.append(b, ': ');
+      const part = (s: number) => {
+        const d = P.geneDist(g, s), f = document.createDocumentFragment(), ph = new Map<number, number>();
+        d.rows.forEach((r, k) => { if (k) f.append(', '); f.append(P.fstr(P.frac(r.w, d.of)), ' '); f.append(genoNodes([g], [r.pair])); const x = P.phenoIndex(g, r.pair); ph.set(x, (ph.get(x) ?? 0) + r.w); });
+        f.append(' → ', [...ph].sort((a, b) => a[0] - b[0]).map(([x, w]) => `${P.fstr(P.frac(w, d.of))} ${P.phenoNames(g)[x]}`).join(', '));
+        return f;
+      };
+      if (P.isX(g)) li.append('daughters ', part(0), '; sons ', part(1));
+      else li.append(part(-1));
+      li.dataset.i = String(i); ul.append(li);
+    });
+  }
+  let qState: { sex: string; genes: string[] } | null = null;
+  function buildQuery() {
+    const box = q('.pu-q'); box.replaceChildren();
+    if (P.hasSex(genes)) { const l = document.createElement('label'); l.innerHTML = 'Sex <select class="pu-qsex"><option value="any">Either</option><option value="0">Female</option><option value="1">Male</option></select>'; box.append(l); }
+    genes.forEach((g, i) => {
+      const l = document.createElement('label'), s = document.createElement('select');
+      s.className = 'pu-qg'; s.dataset.i = String(i);
+      const opts = P.wantOptions(g);
+      opts.forEach((o, k) => { const op = new Option((o.want.kind === 'p' ? 'Looks: ' : o.want.kind === 'g' ? 'Genotype ' : '') + o.label, String(k)); s.append(op); });
+      // Default: the last phenotype (often the recessive one).
+      s.value = String(opts.map((o) => o.want.kind).lastIndexOf('p'));
+      l.append(`Gene ${g.mode === 'abo' ? 'I' : g.letter}`, s); box.append(l);
+    });
+  }
+  function query() {
+    const sig = JSON.stringify(genes.map((g) => [g.letter, g.mode, g.mother, g.father, g.names]));
+    if (!qState || q('.pu-q').dataset.sig !== sig) { buildQuery(); q('.pu-q').dataset.sig = sig; }
+    const sexSel = root.querySelector<HTMLSelectElement>('.pu-qsex');
+    const want: P.Query = { sex: !sexSel || sexSel.value === 'any' ? 'any' : (Number(sexSel.value) as 0 | 1), genes: qa<HTMLSelectElement>('.pu-qg').map((s, i) => P.wantOptions(genes[i])[Number(s.value)].want) };
+    qState = { sex: sexSel?.value ?? 'any', genes: qa<HTMLSelectElement>('.pu-qg').map((s) => s.value) };
+    const c = P.chance(genes, want);
+    lastQ = c.p;
+    const desc = [...(want.sex !== 'any' ? [P.sexName(want.sex).toLowerCase()] : []), ...qa<HTMLSelectElement>('.pu-qg').map((s) => s.selectedOptions[0].text)].filter((x) => x !== 'Any').join(', ') || 'any child';
+    q('.pu-qres').textContent = `${P.fstr(c.p)} (${fpct(c.p)})`;
+    q('.pu-qwork').textContent = `Chance of a child that is ${desc}: ${c.working}.`;
+    qText = `Chance of a child that is ${desc}: ${c.working} (${fpct(c.p)}).`;
+  }
+  let lastQ: P.Frac = { n: 0, d: 1 };
+  q('.pu-q').addEventListener('change', () => { query(); sources(); bin(); });
+
+  // ---------- Several children ----------
+  const src = q<HTMLSelectElement>('.pu-src'), pIn = q<HTMLInputElement>('.pu-p');
+  function sources() {
+    if (!R) return;
+    const old = src.value;
+    src.replaceChildren(new Option('Type it below', 'typed'), new Option(`The child chosen above (${P.fstr(lastQ)})`, 'query'), ...R.phenotypes.map((p, i) => new Option(`${p.name} (${P.fstr(p.p)})`, `ph${i}`)));
+    src.value = [...src.options].some((o) => o.value === old) ? old : 'typed';
+    if (src.value === 'query') pIn.value = P.fstr(lastQ);
+    else if (src.value.startsWith('ph')) pIn.value = P.fstr(R.phenotypes[Number(src.value.slice(2))].p);
+  }
+  function bin() {
+    const err = q('.pu-berr'), out = q('.pu-bout');
+    const p = P.parseChance(pIn.value), n = Math.round(Number(q<HTMLInputElement>('.pu-kids').value)), k = Math.round(Number(q<HTMLInputElement>('.pu-k').value));
+    const msg = !p ? 'Type the chance for one child as 1/4, 0.25, 25 % or 1 in 4 (between 0 and 1).' : !(n >= 1 && n <= 40) ? 'Use 1 to 40 children.' : !(k >= 0 && k <= n) ? `k must be from 0 to ${n}.` : '';
+    err.textContent = msg; err.hidden = !msg; out.hidden = !!msg; bLines = [];
+    if (msg || !p) return;
+    const s = P.binomialSummary(p, n, k);
+    q('.pu-bbig').textContent = `Exactly ${k} of ${n}: ${bshow(s.exactly)}`;
+    const items: [string, string][] = [[`At least ${k}`, bshow(s.atLeast)], [`At most ${k}`, bshow(s.atMost)], ['At least one', bshow(s.atLeastOne)], ['None', bshow(s.none)], [`${k} in one given order`, bshow(s.inOrder)]];
+    facts(q('.pu-bfacts'), items);
+    fill(q('.pu-btab'), ['k', 'Exactly k', '%', 'At least k'], s.all.map((x, i) => [String(i), P.bstr(x), bpct(x), bpct(s.all.slice(i).reduce(P.badd, P.ZERO))]), ['r', 'r', 'r', 'r']);
+    q('.pu-btab').querySelectorAll('tr')[k + 1]?.classList.add('on');
+    bLines = [`p = ${P.bstr(p)} for each child, n = ${n} children.`, `Exactly ${k}: ${bshow(s.exactly)}.`, ...items.map(([a, b]) => `${a}: ${b}.`)];
+  }
+  src.addEventListener('change', () => { sources(); bin(); });
+  pIn.addEventListener('input', () => { src.value = 'typed'; bin(); });
+  for (const c of ['.pu-kids', '.pu-k']) q(c).addEventListener('input', bin);
+  q('.pu-bcsv').addEventListener('click', () => {
+    const p = P.parseChance(pIn.value), n = Math.round(Number(q<HTMLInputElement>('.pu-kids').value)); if (!p) return;
+    const all = P.binomial(p, n);
+    save(new Blob([csv([['k', 'n', 'p', 'exactly_k', 'exactly_k_decimal', 'at_least_k_decimal'], ...all.map((x, i) => [i, n, P.bstr(p), P.bstr(x), P.bnum(x).toPrecision(10), P.bnum(all.slice(i).reduce(P.badd, P.ZERO)).toPrecision(10)])])], { type: 'text/csv' }), `binomial-${n}-children.csv`, 'text/csv');
+  });
+
+  // ---------- Carrier risk ----------
+  const fillPriors = (s: HTMLSelectElement, items: typeof P.AR_PRIORS, v: string) => { s.replaceChildren(...items.map((p) => new Option(p.p ? `${p.label} (${p.p})` : p.label, p.id))); s.value = v; };
+  fillPriors(q('.pu-p1'), P.AR_PRIORS, 'sib'); fillPriors(q('.pu-p2'), P.AR_PRIORS, 'sib'); fillPriors(q('.pu-w'), P.XL_PRIORS, 'carrier-mother');
+  let pattern: 'ar' | 'xl' = 'ar';
+  function prior(sel: string, inp: string, wrap: string, items: typeof P.AR_PRIORS): P.Big | null {
+    const id = q<HTMLSelectElement>(sel).value, it = items.find((x) => x.id === id)!;
+    q(wrap).hidden = id !== 'custom';
+    return P.parseChance(id === 'custom' ? q<HTMLInputElement>(inp).value : it.p);
+  }
+  function risk() {
+    const err = q('.pu-rerr'), out = q('.pu-rout');
+    q('.pu-ar').hidden = pattern !== 'ar'; q('.pu-xl').hidden = pattern !== 'xl';
+    rSection = null;
+    const kidsOk = (v: number) => Number.isInteger(v) && v >= 0 && v <= 20;
+    const B = (b: P.Big) => `${P.bstr(b)}`;
+    if (pattern === 'ar') {
+      const p1 = prior('.pu-p1', '.pu-p1c', '.pu-c1w', P.AR_PRIORS), p2 = prior('.pu-p2', '.pu-p2c', '.pu-c2w', P.AR_PRIORS), ch = Number(q<HTMLInputElement>('.pu-ch').value);
+      const msg = !p1 || !p2 ? 'Type each chance as 2/3, 0.5, 50 % or 1 in 50 (between 0 and 1).' : !kidsOk(ch) ? 'Use 0 to 20 unaffected children.' : '';
+      err.textContent = msg; err.hidden = !msg; out.hidden = !!msg; if (msg || !p1 || !p2) return;
+      const r = P.arBayes(p1, p2, ch);
+      q('.pu-rbig').textContent = `Next child affected: ${P.bstr(r.childAffected)} (${P.oneIn(r.childAffected)})`;
+      const items: [string, string][] = [['Partner 1 a carrier', bshow(r.carrier1)], ['Partner 2 a carrier', bshow(r.carrier2)], ['Both carriers', bshow(r.both)], ['Next child a carrier', bshow(r.childCarrier)], ['Next child affected', bshow(r.childAffected)], ['Before counting the children', `${P.bstr(r.priorChildAffected)} affected`]];
+      facts(q('.pu-rfacts'), items);
+      const rows = r.rows.map((x) => [x.name, B(x.prior), x.cond.n === x.cond.d ? '1' : `(3/4)^${ch} = ${B(x.cond)}`, B(x.joint), `${B(x.post)} (${bpct(x.post)})`]);
+      fill(q('.pu-rtab'), ['', 'Prior', 'Conditional', 'Joint', 'Posterior'], rows.map((r) => r.map(supPow)), ['', 'r', 'r', 'r', 'r']);
+      rSection = { title: 'Carrier risk: autosomal recessive', text: [`Partner 1: ${q<HTMLSelectElement>('.pu-p1').selectedOptions[0].text}. Partner 2: ${q<HTMLSelectElement>('.pu-p2').selectedOptions[0].text}. Unaffected children: ${ch}.`], facts: items, table: { head: ['State', 'Prior', 'Conditional', 'Joint', 'Posterior'], rows, align: ['l', 'r', 'r', 'r', 'r'] }, note: 'A teaching calculation, not genetic counselling.' };
+    } else {
+      const p = prior('.pu-w', '.pu-wc', '.pu-cww', P.XL_PRIORS), sons = Number(q<HTMLInputElement>('.pu-sons').value);
+      const msg = !p ? 'Type her chance as 1/2, 0.5, 50 % or 1 in 2 (between 0 and 1).' : !kidsOk(sons) ? 'Use 0 to 20 unaffected sons.' : '';
+      err.textContent = msg; err.hidden = !msg; out.hidden = !!msg; if (msg || !p) return;
+      const r = P.xlBayes(p, sons);
+      q('.pu-rbig').textContent = `She is a carrier: ${P.bstr(r.carrier)} (${P.oneIn(r.carrier)})`;
+      const items: [string, string][] = [['Carrier', bshow(r.carrier)], ['Next son affected', bshow(r.sonAffected)], ['Next daughter a carrier', bshow(r.daughterCarrier)], ['Next son affected, before counting sons', bshow(r.priorSonAffected)]];
+      facts(q('.pu-rfacts'), items);
+      const rows = r.rows.map((x) => [x.name, B(x.prior), x.cond.n === x.cond.d ? '1' : `(1/2)^${sons} = ${B(x.cond)}`, B(x.joint), `${B(x.post)} (${bpct(x.post)})`]);
+      fill(q('.pu-rtab'), ['', 'Prior', 'Conditional', 'Joint', 'Posterior'], rows.map((r) => r.map(supPow)), ['', 'r', 'r', 'r', 'r']);
+      rSection = { title: 'Carrier risk: X-linked recessive', text: [`${q<HTMLSelectElement>('.pu-w').selectedOptions[0].text}. Unaffected sons: ${sons}.`], facts: items, table: { head: ['State', 'Prior', 'Conditional', 'Joint', 'Posterior'], rows, align: ['l', 'r', 'r', 'r', 'r'] }, note: 'A teaching calculation, not genetic counselling.' };
+    }
+  }
+  qa<HTMLButtonElement>('.pu-pat button').forEach((b) => b.addEventListener('click', () => { pattern = b.dataset.v as 'ar' | 'xl'; qa('.pu-pat button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); risk(); }));
+  for (const c of ['.pu-p1', '.pu-p2', '.pu-w']) q(c).addEventListener('change', risk);
+  for (const c of ['.pu-p1c', '.pu-p2c', '.pu-ch', '.pu-wc', '.pu-sons']) q(c).addEventListener('input', risk);
+
+  // ---------- Wiring ----------
+  list.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement, box = t.closest<HTMLElement>('.pu-gene');
+    if (box && t.classList.contains('pu-mode')) {
+      const g = readGenes()[Number(box.dataset.i)];
+      const L = box.querySelector<HTMLInputElement>('.pu-L')!;
+      if (g.mode === 'abo') { L.value = 'I'; L.disabled = true; } else { if (L.disabled) { const used = new Set(readGenes().map((x) => x.letter)); L.value = [...'ABCDEFGHJKLMNOPQRSTUVW'].find((c) => !used.has(c)) ?? 'A'; } L.disabled = false; }
+      box.querySelector<HTMLInputElement>('.pu-names')!.value = '';
+      fillGenos(box, readGenes()[Number(box.dataset.i)]);
+    }
+    preset.value = ''; run();
+  });
+  let tm = 0;
+  list.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement, box = t.closest<HTMLElement>('.pu-gene');
+    if (box && t.classList.contains('pu-L')) { const g = readGenes()[Number(box.dataset.i)]; fillGenos(box, g); box.querySelector<HTMLInputElement>('.pu-names')!.placeholder = P.defaultNames(g).join(', '); }
+    preset.value = ''; clearTimeout(tm); tm = window.setTimeout(run, 200);
+  });
+  nSel.addEventListener('change', () => { resize(); preset.value = ''; run(); });
+  preset.addEventListener('change', () => { const p = P.PRESETS.find((x) => x.id === preset.value); if (p) { setGenes(structuredClone(p.genes)); lit = null; run(); } });
+
+  q('.pu-pcsv').addEventListener('click', () => {
+    if (!R) return; const sx = P.hasSex(genes);
+    save(new Blob([csv([['phenotype', ...(sx ? ['sex'] : []), 'fraction', 'boxes', 'total_boxes', 'percent'], ...R.phenotypes.map((p) => [p.name, ...(sx ? [P.sexName(p.sex)] : []), P.fstr(p.p), p.count, R!.total, (100 * p.p.n / p.p.d).toFixed(4)])])], { type: 'text/csv' }), 'punnett-phenotypes.csv', 'text/csv');
+  });
+  q('.pu-gcsv').addEventListener('click', () => {
+    if (!R) return; const sx = P.hasSex(genes);
+    save(new Blob([csv([['genotype', ...(sx ? ['sex'] : []), 'fraction', 'boxes', 'total_boxes', 'percent', 'phenotype'], ...R.genotypes.map((g) => [P.genoText(genes, g.pairs), ...(sx ? [P.sexName(g.sex)] : []), P.fstr(g.p), g.count, R!.total, (100 * g.p.n / g.p.d).toFixed(4), R!.phenotypes.find((p) => p.key === g.pheno)!.name])])], { type: 'text/csv' }), 'punnett-genotypes.csv', 'text/csv');
+  });
+
+  wireDownloads(q('.dl'), () => {
+    if (!R) return { title: 'Punnett square', sections: [], file: 'punnett-square' };
+    const cross = genes.map((g) => `${P.MODES[g.mode].name}: ${P.plain(P.genoToks(g, g.mother))} (mother) × ${P.plain(P.genoToks(g, g.father))} (father)`);
+    const sections: Section[] = [
+      { title: 'The cross', text: cross, facts: [['Boxes', String(R.total)], ['Genotypes', String(R.genotypes.length)], ['Phenotypes', String(R.phenotypes.length)], ['Phenotype ratio', R.phenoRatio.join(' : ')]] },
+      { title: 'Phenotypes', table: { head: ['Phenotype', 'Fraction', '%'], rows: R.phenotypes.map((p) => [p.name, P.fstr(p.p), fpct(p.p)]), align: ['l', 'r', 'r'] } },
+      { title: 'Genotypes', table: { head: ['Genotype', 'Fraction', '%', 'Phenotype'], rows: R.genotypes.slice(0, 100).map((g) => [P.genoText(genes, g.pairs), P.fstr(g.p), fpct(g.p), R!.phenotypes.find((p) => p.key === g.pheno)!.name]), align: ['l', 'r', 'r', 'l'] }, note: R.genotypes.length > 100 ? `First 100 of ${R.genotypes.length} genotypes.` : undefined },
+    ];
+    if (sq && sq.fg.length <= 8) sections.push({ title: 'Punnett square', table: { head: ['Mother / Father', ...sq.fg.map((f) => P.plain(f.toks))], rows: sq.cells.map((row, i) => [P.plain(sq!.mg[i].toks), ...row.map((o) => P.genoText(genes, o.pairs))]) }, note: 'Rows: the mother\'s eggs. Columns: the father\'s sperm. Each box is equally likely.' });
+    if (qText) sections.push({ title: 'Branch method', text: [qText] });
+    if (bLines.length) sections.push({ title: 'Several children (binomial)', text: bLines });
+    if (rSection) sections.push(rSection);
+    sections.push({ title: 'Note', text: ['For learning only. This is not genetic counselling or a medical test. Genes are taken to sort independently.'] });
+    return { title: 'Punnett square', subtitle: `Phenotypes ${R.phenoRatio.join(' : ')}`, file: 'punnett-square', sections };
+  });
+
+  setGenes(structuredClone(P.PRESETS[0].genes)); preset.value = P.PRESETS[0].id; run(); bin(); risk();
+</script>
