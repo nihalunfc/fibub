@@ -135,6 +135,7 @@ import * as AMG from '../src/lib/sci/amagnon.ts';
 import * as UH from '../src/lib/sci/uh.ts';
 import * as THS from '../src/lib/sci/thiessen.ts';
 import * as PRB from '../src/lib/sci/probit.ts';
+import * as SSD from '../src/lib/sci/ssd.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2702,6 +2703,24 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   });
   check('control row ignored by fit', fx.groups.length === 6);
   near('abbott', PRB.abbott(0.55, 0.1), 0.5, 1e-12); near('predict at LC50', PRB.predict(fp, PRB.lcp(fp, 0.5).conc), 0.5, 1e-12);
+}
+// #152 Species sensitivity distribution (SciPy 1.x norm.fit / logistic.fit, Anderson-Darling, AICc weights; bootstrap against a NumPy parametric bootstrap, B = 20000)
+{
+  const sm = SSD.speciesMeans([{ species: 'Water flea', value: 12 }, { species: 'water flea ', value: 20 }, { species: 'Snail', group: 'mollusc', value: 140 }]);
+  check('ssd species merged', sm.length === 2); near('ssd geometric mean', sm[0].value, Math.sqrt(240), 1e-12);
+  const y = [Math.sqrt(240), 35, 8.5, 60, 140, 22, 95, 250, 18, 44, 310].map(Math.log10);
+  const ln = SSD.fitLnorm(y), lg = SSD.fitLlogis(y);
+  near('ssd lnorm mu', ln.mu, 1.6996404588353735, 1e-12); near('ssd lnorm sigma', ln.s, 0.48641399648309974, 1e-12); near('ssd lnorm loglik', ln.logLik, -7.680676961372237, 1e-10);
+  near('ssd llogis mu', lg.mu, 1.6841862172135464, 1e-9); near('ssd llogis s', lg.s, 0.29369153004290866, 1e-9); near('ssd llogis aicc', lg.aicc, 21.78357604070394, 1e-9);
+  near('ssd lnorm A2', SSD.andersonDarling(y, ln.F), 0.2090133282972051, 1e-9); near('ssd llogis A2', SSD.andersonDarling(y, lg.F), 0.2074122777538303, 1e-8);
+  near('ssd lnorm HC5', 10 ** ln.q(0.05), 7.935250342938248, 1e-9); near('ssd llogis HC5', 10 ** lg.q(0.05), 6.598260055842771, 1e-7);
+  const w = SSD.weights([ln, lg]); near('ssd AICc weight', w[0], 0.61327772, 1e-7);
+  near('ssd averaged HC5', 10 ** SSD.mixQ([ln, lg], w, 0.05), 7.434278803377846, 1e-8);
+  const [bl] = SSD.bootstrapHC(ln, [0.05], 20000), [bg] = SSD.bootstrapHC(lg, [0.05], 20000);
+  near('ssd lnorm boot lo (MC)', 10 ** bl[0], 3.2175, 0.15); near('ssd lnorm boot hi (MC)', 10 ** bl[1], 23.98, 1.0);
+  near('ssd llogis boot lo (MC)', 10 ** bg[0], 2.0073, 0.12); near('ssd llogis boot hi (MC)', 10 ** bg[1], 21.61, 1.0);
+  const [ba] = SSD.bootstrapAvg([ln, lg], w, [0.05], 4000); near('ssd averaged boot lo (MC)', 10 ** ba[0], 2.64, 0.2); near('ssd averaged boot hi (MC)', 10 ** ba[1], 22.9, 1.5);
+  check('ssd bootstrap repeatable', SSD.bootstrapHC(ln, [0.05], 500)[0][0] === SSD.bootstrapHC(ln, [0.05], 500)[0][0]);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

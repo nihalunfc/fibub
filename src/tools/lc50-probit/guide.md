@@ -11,7 +11,7 @@ order: 1
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [dose-response, sample-size, binding-curve-fitter, air-quality-calculator]
+related: [dose-response, species-sensitivity, sample-size, binding-curve-fitter, air-quality-calculator]
 sources:
   - "Probit analysis: D. J. Finney, Probit Analysis (Cambridge University Press, 3rd ed. 1971): the model, the heterogeneity factor and the g statistic. Abbott's correction: W. S. Abbott (1925). Fiducial limits from Fieller's theorem (1954). Method only; no tables are copied."
   - "Fitting written by fibub (Fisher scoring with step halving). Checked in the tests against statsmodels 0.15 (binomial GLM with probit and logit links) and SciPy (fixed natural response and Fieller limits)."
