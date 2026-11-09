@@ -1,5 +1,14 @@
 [
  {
+  "sha": "34325f675dad",
+  "date": "2026-11-09T02:20:40+00:00",
+  "title": "Add #158 field sampling planner (sample numbers, hot-spot grids, point layouts)",
+  "tools": [
+   "field-sampling-planner"
+  ],
+  "site": false
+ },
+ {
   "sha": "9e59ef1e5ee2",
   "date": "2026-11-09T02:07:05+00:00",
   "title": "Add #157 activated sludge sizer (BOD removal, SRT design)",
