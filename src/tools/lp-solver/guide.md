@@ -11,7 +11,7 @@ order: 582
 icon: target
 works: offline
 updated: 2026-11-09
-related: [plot-maker, sql-playground, uncertainty-calculator]
+related: [transportation-assignment, vehicle-routing, project-scheduler, plot-maker, sql-playground]
 sources:
   - "Methods: the two-phase simplex method with Bland's anti-cycling rule and branch and bound, as described in standard operations research textbooks; the solver was written for fibub."
   - "Checked against SciPy's linprog and milp (HiGHS) on 1,800 random models (optimal, infeasible and unbounded; free, shifted and upper-bounded variables), against brute-force search for small integer models, and the shadow prices and reduced costs against the optimality (KKT) conditions and HiGHS's marginals."

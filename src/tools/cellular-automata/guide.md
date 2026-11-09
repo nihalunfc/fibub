@@ -11,7 +11,7 @@ order: 589
 icon: table
 works: offline
 updated: 2026-11-09
-related: [agent-based-models, plot-maker]
+related: [agent-based-models, chaos-explorer, network-metrics, plot-maker]
 sources:
   - "Rules: Wolfram's numbering of elementary cellular automata (1983) and the B/S notation for Life-like rules; the patterns (glider, spaceship, blinker, pulsar, R-pentomino, acorn, Gosper glider gun) are well-known Game of Life objects, typed in by fibub."
   - "Checked against an independent Python implementation (NumPy for the elementary rules, SciPy's convolve2d for Life-like rules) on 40 random elementary runs and 30 random Life-like runs with both kinds of edge, identical cell for cell; the RLE reader against a separate Python decoder."

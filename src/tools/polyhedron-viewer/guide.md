@@ -11,7 +11,7 @@ order: 554
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [function-grapher]
+related: [poincare-disk, geometry-construction, function-grapher]
 sources:
   - "Vertex coordinates from the standard closed-form formulas (sign changes and permutations of numbers built from √2, the golden ratio and the tribonacci constant); the snub dodecahedron is solved numerically as the orbit of one point under the icosahedral rotations. General mathematics; no outside data."
   - "Checked against closed-form volumes for edge 1 and Python scipy.spatial.ConvexHull (volume, area and face count) for all 18 solids."

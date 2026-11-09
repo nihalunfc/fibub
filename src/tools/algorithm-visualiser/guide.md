@@ -11,7 +11,7 @@ order: 573
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [sql-playground, plot-maker]
+related: [big-o-plotter, regex-fsm-visualiser, graph-algorithms, sql-playground]
 sources:
   - "Algorithms as described in standard textbooks (general computer science); the quicksort is the Lomuto partition with the last value as pivot, as in Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms."
   - "Checked against separate Python implementations written for this tool: sorted output and comparison, swap and write counts for all eight sorts on 32 lists, linear and binary search results and counts, LCS and edit distance on 16 pairs (including the textbook ABCBDAB / BDCABA and kitten / sitting), and knapsack optima against an integer linear program solved by SciPy (milp)."

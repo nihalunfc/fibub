@@ -11,7 +11,7 @@ order: 587
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [queueing-calculator, plot-maker, trend-analyser]
+related: [cellular-automata, network-metrics, ode-solver, queueing-calculator, plot-maker]
 sources:
   - "Models: Reynolds' boids (1987), Schelling's segregation model (1971) and the SIR epidemic model on a lattice, written for fibub from their published descriptions."
   - "Checked against an independent Python implementation of the Schelling and grid-SIR rules fed the same random number stream (identical grids after every test run), and by deterministic unit tests of each rule."

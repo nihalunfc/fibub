@@ -1,6 +1,7 @@
 // #572 embedding visualiser (PCA and t-SNE)
 export const path = '/science/embedding-visualiser/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const T = (s) => page.textContent('.emv ' + s);
   const done = async () => { await page.waitForTimeout(500); await page.waitForFunction(() => document.querySelector('.emv .emv-status').textContent === '', null, { timeout: 60000 }); await page.waitForTimeout(100); };
   await page.goto(`${BASE}/science/embedding-visualiser/`); await done();
@@ -47,5 +48,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await T('.emv-err')).includes('at least two number columns'), 'embedding: no columns message');
   await page.setViewportSize({ width: 375, height: 800 }); await page.goto(`${BASE}/science/embedding-visualiser/`); await done();
   await page.screenshot({ path: OUT + 'embedding-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };
