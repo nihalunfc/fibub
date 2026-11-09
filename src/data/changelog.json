@@ -1,5 +1,14 @@
 [
  {
+  "sha": "99079079034f",
+  "date": "2026-11-09T01:54:06+00:00",
+  "title": "Add #156 water quality index (CCME method, user objectives)",
+  "tools": [
+   "water-quality-index"
+  ],
+  "site": false
+ },
+ {
   "sha": "1edf57054db5",
   "date": "2026-11-09T01:41:03+00:00",
   "title": "Add #155 detention pond router",
