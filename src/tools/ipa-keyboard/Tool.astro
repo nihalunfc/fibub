@@ -1,0 +1,186 @@
+---
+// IPA keyboard: click symbols from the IPA chart, or type X-SAMPA, to build a phonetic transcription.
+import '../../styles/astro.css';
+---
+<div class="ax ik">
+  <div class="ax-card">
+    <h2>Transcription</h2>
+    <label>Type here, or click symbols below to add them where the cursor is.
+      <textarea class="ik-out" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small ik-copy">Copy</button>
+      <button type="button" class="btn secondary small ik-bs" aria-label="Delete the character before the cursor">⌫ Delete</button>
+      <button type="button" class="btn secondary small ik-sp">Space</button>
+      <button type="button" class="btn secondary small ik-clear">Clear</button>
+      <span class="ax-help ik-status" role="status" style="margin:0"></span>
+    </div>
+    <p class="ax-help ik-last">Hover over or tap a symbol to see its name and code point.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Type X-SAMPA</h2>
+    <label><span>X-SAMPA writes the IPA with ordinary keyboard characters, for example <code>{'D@ k{t'}</code> for ðə kæt or <code>t_h</code> for tʰ.</span>
+      <input class="ik-xs" spellcheck="false" autocapitalize="off" autocomplete="off" value='"fA:D@`' /></label>
+    <p class="ik-xsout" aria-live="polite"></p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ik-xsadd">Add to the transcription</button>
+      <button type="button" class="btn secondary small ik-toxs">Transcription to X-SAMPA</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Keyboard</h2>
+    <div class="ax-seg ik-tabs" role="group" aria-label="Symbol groups">
+      <button type="button" data-t="pul" aria-pressed="true">Consonants</button><button type="button" data-t="oth" aria-pressed="false">Other consonants</button><button type="button" data-t="vow" aria-pressed="false">Vowels</button><button type="button" data-t="dia" aria-pressed="false">Diacritics</button><button type="button" data-t="sup" aria-pressed="false">Stress, length</button><button type="button" data-t="ton" aria-pressed="false">Tones</button>
+    </div>
+    <div class="ik-pane" data-t="pul"><p class="ax-help">Pulmonic consonants: places across, manners down. In each cell the voiceless symbol is on the left, the voiced on the right. Scroll sideways on a phone.</p><div class="ax-scroll"><table class="ik-chart ik-cons"></table></div></div>
+    <div class="ik-pane" data-t="oth" hidden><p class="ax-help">Clicks, implosives, ejectives, other symbols, affricates and double articulations.</p><div class="ik-keys ik-other"></div></div>
+    <div class="ik-pane" data-t="vow" hidden><p class="ax-help">Vowels by height (down) and backness (across). In each pair the unrounded vowel is on the left, the rounded on the right.</p><div class="ax-scroll"><table class="ik-chart ik-vow"></table></div></div>
+    <div class="ik-pane" data-t="dia" hidden><p class="ax-help">Diacritics go after the symbol they modify (◌ marks where that symbol sits).</p><div class="ik-keys ik-dia"></div></div>
+    <div class="ik-pane" data-t="sup" hidden><div class="ik-keys ik-sup"></div></div>
+    <div class="ik-pane" data-t="ton" hidden><p class="ax-help">Tone diacritics go over a vowel; tone letters stand after the syllable.</p><div class="ik-keys ik-ton"></div></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What is in the transcription</h2>
+    <div class="ax-scroll"><table class="ik-inv"><thead><tr><th>Symbol</th><th>Code point</th><th>Name</th><th class="r">Count</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help ik-invnote"></p>
+  </div>
+</div>
+
+<style is:global>
+  .ik { --ipa-font: "Charis SIL", "Doulos SIL", "Gentium Plus", "Noto Sans", "Segoe UI", "Lucida Sans Unicode", "DejaVu Sans", system-ui, sans-serif; }
+  .ik .ik-out, .ik .ik-xs { font-family: var(--ipa-font) !important; font-size: 22px !important; line-height: 1.5; }
+  .ik .ik-xs { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; font-size: 17px !important; }
+  .ik .ik-xsout { font-family: var(--ipa-font); font-size: 24px; margin: 8px 0; min-height: 36px; overflow-wrap: anywhere; }
+  .ik .ik-tabs { margin-bottom: 10px; }
+  .ik .ik-k { font-family: var(--ipa-font); font-size: 20px; min-width: 40px; height: 42px; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; line-height: 1; }
+  .ik .ik-k:hover, .ik .ik-k:focus-visible { border-color: var(--accent); outline: none; }
+  .ik .ik-keys { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ik .ik-keys .ik-g { flex-basis: 100%; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .ik table.ik-chart { width: auto; }
+  .ik table.ik-chart th, .ik table.ik-chart td { padding: 4px; border: 1px solid var(--line); text-align: center; white-space: nowrap; }
+  .ik table.ik-chart th { font-size: 12px; }
+  .ik table.ik-chart td.ik-x { background: var(--line); }
+  .ik table.ik-chart .ik-k { min-width: 34px; height: 38px; font-size: 19px; }
+  .ik table.ik-chart td > div { display: flex; gap: 4px; justify-content: space-between; min-width: 72px; }
+  .ik .ik-inv td:first-child { font-family: var(--ipa-font); font-size: 20px; }
+</style>
+
+<script>
+  import { PULMONIC, NON_PULMONIC, OTHER, VOWELS, DIACRITICS, SUPRA, TONES, PLACES, MANNERS, HEIGHTS, describe, codePoints, isCombining, xsampaToIpa, ipaToXsampa, inventory, type Mark, type Segment } from '../../lib/sci/ipa';
+
+  const root = document.querySelector<HTMLElement>('.ik')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const out = q<HTMLTextAreaElement>('.ik-out'), xs = q<HTMLInputElement>('.ik-xs');
+  let caret = 0;
+  const remember = () => { caret = out.selectionStart ?? out.value.length; };
+  for (const ev of ['keyup', 'click', 'select', 'input', 'blur']) out.addEventListener(ev, remember);
+
+  function insert(s: string) {
+    const a = Math.min(caret, out.value.length), b = Math.max(a, Math.min(out.selectionEnd ?? a, out.value.length));
+    const end = document.activeElement === out ? b : a;
+    out.value = out.value.slice(0, a) + s + out.value.slice(end);
+    caret = a + s.length;
+    try { out.setSelectionRange(caret, caret); } catch { /* not focused */ }
+    refresh();
+  }
+  const status = (t: string) => { q('.ik-status').textContent = t; };
+  const label = (ch: string) => (isCombining(ch) ? '◌' + ch : ch);
+  const xsOf = (ch: string) => { const x = ipaToXsampa(ch); return /^[\x21-\x7e]+$/.test(x) ? x : ''; };
+
+  function key(ch: string, name: string, x?: string) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ik-k'; b.textContent = label(ch); b.dataset.ch = ch;
+    const xx = x ?? xsOf(ch), info = `${ch.length > 2 || /\s/.test(ch) ? ch : label(ch)}: ${name}, ${codePoints(ch)}${xx ? `, X-SAMPA ${xx}` : ''}`;
+    b.title = info; b.setAttribute('aria-label', name);
+    b.addEventListener('click', () => { insert(ch); q('.ik-last').textContent = info; });
+    b.addEventListener('mouseenter', () => { q('.ik-last').textContent = info; });
+    return b;
+  }
+
+  // Pulmonic consonant chart.
+  {
+    const t = q<HTMLTableElement>('.ik-cons'), hr = t.createTHead().insertRow();
+    hr.append(document.createElement('th'));
+    for (const p of PLACES) { const th = document.createElement('th'); th.textContent = p; hr.append(th); }
+    const body = t.createTBody();
+    for (const m of MANNERS) {
+      const tr = body.insertRow(), th = document.createElement('th'); th.textContent = m; th.style.textAlign = 'left'; tr.append(th);
+      for (const p of PLACES) {
+        const td = tr.insertCell(), here = PULMONIC.filter((c) => c.manner === m && c.place === p);
+        const div = document.createElement('div');
+        const vl = here.find((c) => !c.voice), vd = here.find((c) => c.voice);
+        const blank = () => { const s = document.createElement('span'); s.style.minWidth = '34px'; return s; };
+        div.append(vl ? key(vl.ch, describe(vl)) : blank(), vd ? key(vd.ch, describe(vd)) : blank());
+        if (here.length) td.append(div);
+      }
+    }
+  }
+  // Vowel chart: three columns (front, central, back), near-front and near-back placed with front and back.
+  {
+    const t = q<HTMLTableElement>('.ik-vow'), hr = t.createTHead().insertRow();
+    for (const h of ['', 'front', 'central', 'back']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const col = (b: string) => (b === 'front' || b === 'near-front' ? 0 : b === 'central' ? 1 : 2);
+    const body = t.createTBody();
+    for (const h of HEIGHTS) {
+      const tr = body.insertRow(), th = document.createElement('th'); th.textContent = h; th.style.textAlign = 'left'; tr.append(th);
+      for (let c = 0; c < 3; c++) {
+        const td = tr.insertCell(), here = VOWELS.filter((v) => v.height === h && col(v.back) === c && !v.rhotic);
+        if (!here.length) continue;
+        const div = document.createElement('div'), un = here.find((v) => !v.round), ro = here.find((v) => v.round);
+        const blank = () => { const s = document.createElement('span'); s.style.minWidth = '34px'; return s; };
+        div.append(un ? key(un.ch, describe(un)) : blank(), ro ? key(ro.ch, describe(ro)) : blank());
+        td.append(div);
+      }
+    }
+  }
+  const group = (box: HTMLElement, title: string, items: { ch: string; name: string; xs?: string }[]) => {
+    const g = document.createElement('div'); g.className = 'ik-g'; g.textContent = title; box.append(g);
+    for (const it of items) box.append(key(it.ch, it.name, it.xs));
+  };
+  const segItems = (list: Segment[]) => list.map((s) => ({ ch: s.ch, name: describe(s) }));
+  {
+    const box = q('.ik-other');
+    group(box, 'Clicks', segItems(NON_PULMONIC.filter((c) => /click/.test(c.manner as string))));
+    group(box, 'Voiced implosives', segItems(NON_PULMONIC.filter((c) => c.manner === 'implosive')));
+    group(box, 'Ejectives', segItems(NON_PULMONIC.filter((c) => /ejective/.test(c.manner as string))));
+    group(box, 'Other symbols', segItems(OTHER.filter((c) => c.manner !== 'affricate' && !c.ch.includes('͡'))));
+    group(box, 'Affricates and double articulations', segItems(OTHER.filter((c) => c.ch.includes('͡'))));
+    group(box, 'Rhotacised vowels and convenience symbols', [...segItems(VOWELS.filter((v) => v.rhotic)), { ch: 'ᵻ', name: 'near-close central unrounded vowel (non-IPA)' }, { ch: 'ᵿ', name: 'near-close central rounded vowel (non-IPA)' }]);
+  }
+  const marks = (box: string, list: Mark[]) => { const b = q(box); for (const m of list) b.append(key(m.ch, m.name, m.xs)); };
+  marks('.ik-dia', DIACRITICS); marks('.ik-sup', SUPRA);
+  { const b = q('.ik-ton'); group(b, 'Tone diacritics (over a vowel)', TONES.filter((t) => isCombining(t.ch))); group(b, 'Tone letters', TONES.filter((t) => /letter/.test(t.name))); group(b, 'Steps and global pitch', TONES.filter((t) => !isCombining(t.ch) && !/letter/.test(t.name))); }
+
+  root.querySelectorAll<HTMLButtonElement>('.ik-tabs button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll<HTMLButtonElement>('.ik-tabs button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.ik-pane').forEach((p) => (p.hidden = p.dataset.t !== b.dataset.t));
+  }));
+
+  function refresh() {
+    const inv = inventory(out.value), tb = q<HTMLTableElement>('.ik-inv').tBodies[0];
+    tb.innerHTML = '';
+    for (const r of inv) { const tr = tb.insertRow(); for (const [i, v] of [label(r.ch), r.code, r.name, String(r.count)].entries()) { const td = tr.insertCell(); td.textContent = v; if (i === 3) td.className = 'r'; } }
+    const unknown = inv.filter((r) => /not an IPA symbol/.test(r.name)).length;
+    q('.ik-invnote').textContent = inv.length ? `${[...out.value].filter((c) => !/\s/.test(c)).length} characters, ${inv.length} different.${unknown ? ` ${unknown} ${unknown > 1 ? 'are not IPA symbols on their own' : 'is not an IPA symbol on its own'} (punctuation or letters outside the chart).` : ''}` : 'The transcription is empty.';
+  }
+  function xsShow() { q('.ik-xsout').textContent = xsampaToIpa(xs.value); }
+  xs.addEventListener('input', xsShow);
+  out.addEventListener('input', refresh);
+  q('.ik-xsadd').addEventListener('click', () => { if (xs.value) { insert(xsampaToIpa(xs.value)); status('Added.'); } });
+  q('.ik-toxs').addEventListener('click', () => { xs.value = ipaToXsampa(out.value); xsShow(); status('Shown as X-SAMPA above.'); });
+  q('.ik-sp').addEventListener('click', () => insert(' '));
+  q('.ik-bs').addEventListener('click', () => {
+    const a = Math.min(caret, out.value.length); if (!a) return;
+    const chars = [...out.value.slice(0, a)]; const last = chars.pop()!;
+    out.value = chars.join('') + out.value.slice(a); caret = a - last.length; refresh();
+  });
+  q('.ik-clear').addEventListener('click', () => { out.value = ''; caret = 0; refresh(); status(''); });
+  q('.ik-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(out.value); status('Copied.'); }
+    catch { out.focus(); out.select(); status(document.execCommand('copy') ? 'Copied.' : 'Select the text and copy it with Ctrl+C (⌘C).'); }
+  });
+  out.value = 'ðə ˈnɔːθ ˌwɪnd ən ðə ˈsʌn'; caret = out.value.length;
+  xsShow(); refresh();
+</script>
