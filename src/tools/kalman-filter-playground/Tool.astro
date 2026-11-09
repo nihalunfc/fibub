@@ -1,0 +1,161 @@
+---
+// Kalman filter playground: constant or constant-velocity model on simulated (seeded) or pasted measurements,
+// with Q and R sliders, estimate against truth, innovations and covariance. Example data are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'time (s)\tmeasurement\n0\t10.2\n1\t11.9\n2\t11.1\n3\t13.4\n4\t14.0\n5\t14.6\n6\t16.9\n7\t16.2\n8\t18.4\n9\t18.7\n10\t20.6\n11\t21.1\n12\t22.9\n13\t23.0\n14\t25.2';
+---
+<div class="ax kfp">
+  <div class="ax-card">
+    <h2>Measurements</h2>
+    <div class="ax-grid">
+      <label>Data <select class="kf-src"><option value="sim" selected>Simulate a noisy sensor</option><option value="paste">My own measurements</option></select></label>
+      <label>Model <select class="kf-model"><option value="constant">Constant level (random walk)</option><option value="cv" selected>Constant velocity</option></select></label>
+    </div>
+    <div class="kf-sim">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Steps <input class="kf-n" type="text" inputmode="numeric" value="100" /></label>
+        <label>Time step Δt (s) <input class="kf-dt" type="text" inputmode="decimal" value="0.5" /></label>
+        <label>True process noise q <input class="kf-qt" type="text" inputmode="decimal" value="0.05" /></label>
+        <label>Sensor noise σ <input class="kf-sig" type="text" inputmode="decimal" value="2" /></label>
+        <label>Start value <input class="kf-x0" type="text" inputmode="decimal" value="0" /></label>
+        <label class="kf-cvonly">Start velocity (per s) <input class="kf-v0" type="text" inputmode="decimal" value="1" /></label>
+        <label>Random seed <input class="kf-seed" type="text" inputmode="numeric" value="1" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small kf-new">New noise</button><button type="button" class="btn secondary small kf-match">Set Q and R to the true values</button></div>
+      <p class="ax-help">The same seed always gives the same noise, so you can change Q and R and compare fairly. For the constant model the true value takes random steps of variance q·Δt; for constant velocity it is pushed by random acceleration with spectral density q.</p>
+    </div>
+    <div class="kf-paste" hidden>
+      <label style="margin-top:10px">Time, measurement, and optionally the true value <textarea class="kf-data" rows="7" spellcheck="false">{demo}</textarea></label>
+      <DataFile target=".kf-data" maxCols={4} maxRows={20000} label="Open a file" />
+      <p class="ax-help">One column is read as measurements one second apart. The example data are made up.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Filter settings</h2>
+    <label>Process noise Q: how much the state can wander <span class="kf-row"><input class="kf-qs" type="range" min="-5" max="3" step="0.05" value="-1.3" /><input class="kf-q" type="text" inputmode="decimal" value="0.05" /></span></label>
+    <label style="margin-top:10px">Measurement noise R (variance, σ²): how much to distrust the sensor <span class="kf-row"><input class="kf-rs" type="range" min="-3" max="4" step="0.05" value="0.6" /><input class="kf-r" type="text" inputmode="decimal" value="4" /></span></label>
+    <label class="kf-cvonly" style="margin-top:10px">Starting velocity variance <input class="kf-vv" type="text" inputmode="decimal" value="1" /></label>
+    <p class="ax-help">Small Q or large R: a smooth estimate that is slow to follow changes. Large Q or small R: a quick estimate that copies the noise. The filter starts at the first measurement (variance R) with velocity 0.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-err kf-err" hidden></p>
+    <div class="kf-out">
+      <p class="ax-big kf-big"></p>
+      <dl class="ax-facts kf-facts"></dl>
+      <h3>Estimate</h3>
+      <canvas class="ax-fig kf-fig"></canvas>
+      <h3>Innovation (measurement minus prediction)</h3>
+      <canvas class="ax-fig kf-inn"></canvas>
+      <h3>Uncertainty and gain</h3>
+      <canvas class="ax-fig kf-cov"></canvas>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small kf-csv">Download every step (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<script>
+  import { kalman, simulate, summary, steadyGainConstant, type Model, type KStep } from '../../lib/sci/kalman';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.kfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s3 = (x: number) => sig(x, 3);
+  let figs: Figure[] = [], sections: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function run() {
+    const err = q('.kf-err'), out = q('.kf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; csvRows = []; figs = []; };
+    const sim = sel('.kf-src') === 'sim', model = sel('.kf-model') as Model;
+    q('.kf-sim').hidden = !sim; q('.kf-paste').hidden = sim;
+    root.querySelectorAll<HTMLElement>('.kf-cvonly').forEach((e) => (e.hidden = model !== 'cv'));
+    let t: number[], z: number[], truth: number[] | undefined;
+    if (sim) {
+      const N = Math.round(val('.kf-n')), dt = val('.kf-dt'), qt = val('.kf-qt'), sg = val('.kf-sig'), x0 = val('.kf-x0'), v0 = model === 'cv' ? val('.kf-v0') : 0, seed = Math.round(val('.kf-seed'));
+      if (!(N >= 2 && N <= 20000)) return fail('Use 2 to 20,000 steps.');
+      if (!(dt > 0)) return fail('The time step must be above zero.');
+      if (!(qt >= 0 && sg > 0)) return fail('The true process noise must be 0 or more and the sensor noise above zero.');
+      if (![x0, v0, seed].every(Number.isFinite)) return fail('Give a start value, a start velocity and a whole-number seed.');
+      ({ t, z, truth } = simulate(model, N, dt, qt, sg, x0, v0, seed));
+    } else {
+      const c = numericColumns(q<HTMLTextAreaElement>('.kf-data').value);
+      if (!c.cols.length) return fail('Paste a column of measurements, or time and measurement.');
+      if (c.cols.length === 1) { z = c.cols[0].filter(Number.isFinite); t = z.map((_, i) => i); }
+      else {
+        const ok = c.cols[0].map((x, i) => Number.isFinite(x) && Number.isFinite(c.cols[1][i]));
+        t = c.cols[0].filter((_, i) => ok[i]); z = c.cols[1].filter((_, i) => ok[i]);
+        if (c.cols.length >= 3) { const tr = c.cols[2].filter((_, i) => ok[i]); if (tr.every(Number.isFinite)) truth = tr; }
+      }
+      if (z.length < 2) return fail('Need at least two measurements.');
+      if (t.some((x, i) => i > 0 && !(x > t[i - 1]))) return fail('Times must increase from row to row.');
+    }
+    const Q = val('.kf-q'), R = val('.kf-r'), V0 = val('.kf-vv');
+    if (!(Q >= 0)) return fail('Q must be 0 or more.');
+    if (!(R > 0)) return fail('R must be above zero.');
+    if (model === 'cv' && !(V0 >= 0)) return fail('The starting velocity variance must be 0 or more.');
+    let s: KStep[];
+    try { s = kalman(model, t, z, Q, R, V0); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const m = summary(s, truth), last = s[s.length - 1];
+    q('.kf-big').textContent = truth ? `RMS error ${s3(m.rmsEst)} filtered against ${s3(m.rmsMeas)} raw` : `Last estimate ${s3(last.x)} ± ${s3(2 * Math.sqrt(last.P))}`;
+    const nisText = m.nis > 2 ? 'well above 1: the filter is overconfident; raise Q or R' : m.nis < 0.5 ? 'well below 1: the filter is too cautious; lower Q or R' : 'close to 1: Q and R suit the data';
+    const f = [fact('Mean normalised innovation²', s3(m.nis), nisText),
+      fact('Last estimate', `${s3(last.x)} ± ${s3(2 * Math.sqrt(last.P))}`, '± 2 standard deviations'),
+      fact('Last gain K', s3(last.K), 'share of each surprise the estimate takes on: 0 ignores the sensor, 1 copies it')];
+    if (model === 'cv') f.push(fact('Last velocity', `${s3(last.v)} ± ${s3(2 * Math.sqrt(Math.max(0, last.Pv)))} per s`));
+    if (model === 'constant' && s.length > 2) { const dt = (t[t.length - 1] - t[0]) / (t.length - 1); f.push(fact('Steady-state gain', s3(steadyGainConstant(Q, R, dt)), `for an even step of ${s3(dt)} s`)); }
+    if (truth) f.push(fact('Truth inside ± 2σ', `${(m.inside2 * 100).toFixed(0)} %`, 'about 95 % if the filter is consistent'));
+    q('.kf-facts').replaceChildren(...f);
+    const sd = s.map((k) => Math.sqrt(k.P));
+    const est = chartFigure({ w: 380, h: 260, xLabel: 'Time (s)', yLabel: 'Value', legend: 'below',
+      series: [{ name: 'Measurements', x: t, y: z, mode: 'points', size: 2.4, marker: 'open-circle' },
+        ...(truth ? [{ name: 'Truth', x: t, y: truth, mode: 'line' as const, width: 1.4, color: '#888888' }] : []),
+        { name: 'Estimate', x: t, y: s.map((k) => k.x), mode: 'line', width: 2 },
+        { name: '± 2σ', x: [...t, ...t.slice().reverse()], y: [...s.map((k, i) => k.x + 2 * sd[i]), ...s.map((k, i) => k.x - 2 * sd[i]).reverse()], mode: 'line', width: 1, dash: [3, 3] }] }, 'Measurements, truth and the Kalman estimate with a 2-sigma band');
+    const ti = t.slice(1), si = s.slice(1);
+    const inn = chartFigure({ w: 380, h: 220, xLabel: 'Time (s)', yLabel: 'Innovation', legend: 'below',
+      series: [{ name: 'Innovation', x: ti, y: si.map((k) => k.nu), mode: 'points', size: 2.4 }, { name: '± 2√S', x: [...ti, ...ti.slice().reverse()], y: [...si.map((k) => 2 * Math.sqrt(k.S)), ...si.map((k) => -2 * Math.sqrt(k.S)).reverse()], mode: 'line', width: 1, dash: [3, 3] }] }, 'Innovations with their expected 2-sigma range');
+    const cov = chartFigure({ w: 380, h: 220, xLabel: 'Time (s)', yLabel: 'σ of estimate, gain K', legend: 'below', yMin: 0,
+      series: [{ name: 'σ (√P)', x: t, y: sd, mode: 'line', width: 1.8 }, { name: 'Gain K', x: t, y: s.map((k) => k.K), mode: 'line', width: 1.4, dash: [5, 3] }] }, 'Standard deviation of the estimate and the Kalman gain over time');
+    figs = [est, inn, cov];
+    paint(q<HTMLCanvasElement>('.kf-fig'), est); paint(q<HTMLCanvasElement>('.kf-inn'), inn); paint(q<HTMLCanvasElement>('.kf-cov'), cov);
+    csvRows = [['time', 'measurement', 'truth', 'estimate', 'std', 'velocity', 'innovation', 'innovation_variance', 'gain'],
+      ...s.map((k, i) => [k.t, k.z, truth ? truth[i] : '', sig(k.x, 8), sig(Math.sqrt(k.P), 6), model === 'cv' ? sig(k.v, 6) : '', i ? sig(k.nu, 6) : '', i ? sig(k.S, 6) : '', sig(k.K, 6)])];
+    const pairs = f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [{ title: q('.kf-big').textContent!, text: [`${model === 'cv' ? 'Constant-velocity' : 'Constant-level'} model, Q = ${s3(Q)}, R = ${s3(R)}, ${s.length} measurements${sim ? ` (simulated, seed ${val('.kf-seed')})` : ''}.`], facts: pairs, figure: est },
+      { title: 'Innovation', figure: inn }, { title: 'Uncertainty and gain', figure: cov }];
+  }
+
+  const link = (slider: string, box: string) => {
+    q(slider).addEventListener('input', () => { q<HTMLInputElement>(box).value = sig(10 ** +q<HTMLInputElement>(slider).value, 3); run(); });
+    q(box).addEventListener('input', () => { const v = val(box); if (v > 0) q<HTMLInputElement>(slider).value = String(Math.log10(v)); run(); });
+  };
+  link('.kf-qs', '.kf-q'); link('.kf-rs', '.kf-r');
+  root.querySelectorAll('input:not([type=range]):not(.kf-q):not(.kf-r), select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  const setBox = (box: string, slider: string, v: number) => { q<HTMLInputElement>(box).value = sig(v, 3); if (v > 0) q<HTMLInputElement>(slider).value = String(Math.log10(v)); };
+  q('.kf-new').addEventListener('click', () => { q<HTMLInputElement>('.kf-seed').value = String(Math.round(val('.kf-seed') || 0) + 1); run(); });
+  q('.kf-match').addEventListener('click', () => { setBox('.kf-q', '.kf-qs', val('.kf-qt')); setBox('.kf-r', '.kf-rs', val('.kf-sig') ** 2); run(); });
+  q('.kf-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'kalman-filter.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.kf-out').hidden) ['.kf-fig', '.kf-inn', '.kf-cov'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Kalman filter', subtitle: q('.kf-big').textContent ?? '', file: 'kalman-filter', sections }));
+</script>
+
+<style is:global>
+  .kfp select, .kfp input[type=text] { max-width: 100%; }
+  .kfp textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
+  .kfp h3 { font-size: 15px; margin: 16px 0 6px; }
+  .kfp .kf-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+  .kfp .kf-row input[type=range] { flex: 1; min-width: 0; }
+  .ax.kfp .kf-row input.kf-q, .ax.kfp .kf-row input.kf-r { width: 96px; flex: none; }
+</style>
