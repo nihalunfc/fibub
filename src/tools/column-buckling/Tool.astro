@@ -1,0 +1,151 @@
+---
+// Column buckling: Euler with an effective length factor, Johnson parabola for intermediate columns, section properties. Example column made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ckb">
+  <div class="ax-card">
+    <h2>Section</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="ck-shape"><option value="ibeam" selected>I or H section</option><option value="rect">Solid rectangle</option><option value="circle">Solid circle</option><option value="tube">Round tube</option></select></label>
+      <label class="ck-i">Depth d (mm) <input class="ck-d" type="text" inputmode="decimal" value="200" /></label>
+      <label class="ck-i">Flange width b (mm) <input class="ck-bf" type="text" inputmode="decimal" value="150" /></label>
+      <label class="ck-i">Flange thickness (mm) <input class="ck-tf" type="text" inputmode="decimal" value="10" /></label>
+      <label class="ck-i">Web thickness (mm) <input class="ck-tw" type="text" inputmode="decimal" value="6" /></label>
+      <label class="ck-r" hidden>Width b (mm) <input class="ck-b" type="text" inputmode="decimal" value="100" /></label>
+      <label class="ck-r" hidden>Depth h (mm) <input class="ck-h" type="text" inputmode="decimal" value="150" /></label>
+      <label class="ck-c" hidden>Diameter (mm) <input class="ck-D" type="text" inputmode="decimal" value="100" /></label>
+      <label class="ck-t" hidden>Wall thickness (mm) <input class="ck-t1" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Column and material</h2>
+    <div class="ax-grid">
+      <label>Length L between supports (mm) <input class="ck-L" type="text" inputmode="decimal" value="4000" /></label>
+      <label>Ends <select class="ck-ends">
+        <option value="1" selected>Pinned – pinned (K = 1)</option>
+        <option value="2">Fixed – free, a flagpole (K = 2)</option>
+        <option value="0.7">Fixed – pinned (K = 0.7)</option>
+        <option value="0.5">Fixed – fixed (K = 0.5)</option>
+        <option value="">My own K</option>
+      </select></label>
+      <label>Effective length factor K <input class="ck-K" type="text" inputmode="decimal" value="1" /></label>
+      <label>Young's modulus E (MPa) <input class="ck-E" type="text" inputmode="decimal" value="200000" /></label>
+      <label>Yield strength fy (MPa) <input class="ck-fy" type="text" inputmode="decimal" value="250" /></label>
+      <label>Factor of safety (your choice) <input class="ck-fs" type="text" inputmode="decimal" value="2" /></label>
+      <label>Applied load (kN, optional) <input class="ck-P" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">K values are the ideal ones from theory; real end fixings are never perfect, and design codes often use larger K values, so enter what your code requires. E = 200,000 MPa and fy = 250 MPa are example values for a mild steel; use your material's. The example column is made up.</p>
+    <p class="ax-err ck-err" hidden></p>
+  </div>
+
+  <div class="ax-card ck-out">
+    <h2>Buckling load</h2>
+    <p class="ax-big ck-big"></p>
+    <dl class="ax-facts ck-facts"></dl>
+    <canvas class="ax-fig ck-sec"></canvas>
+    <canvas class="ax-fig ck-fig"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer. Ideal straight columns only; real columns have crookedness, residual stresses and eccentric loads, which codes allow for with their own column curves.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { column, type Section } from '../../lib/sci/eng-buckling';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section as RSection } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.ckb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: RSection[] = [];
+
+  function run() {
+    const err = q('.ck-err'), out = q('.ck-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const kind = sel('.ck-shape');
+    root.querySelectorAll<HTMLElement>('.ck-i').forEach((e) => { e.hidden = kind !== 'ibeam'; });
+    root.querySelectorAll<HTMLElement>('.ck-r').forEach((e) => { e.hidden = kind !== 'rect'; });
+    q('.ck-c').hidden = !(kind === 'circle' || kind === 'tube'); q('.ck-t').hidden = kind !== 'tube';
+    let s: Section;
+    if (kind === 'ibeam') {
+      const d = val('.ck-d'), bf = val('.ck-bf'), tf = val('.ck-tf'), tw = val('.ck-tw');
+      if (![d, bf, tf, tw].every((v) => v > 0)) return fail('Give the depth, flange width and both thicknesses in mm.');
+      if (2 * tf >= d || tw > bf) return fail('The flanges must be thinner than half the depth, and the web narrower than the flange.');
+      s = { kind, d, bf, tf, tw };
+    } else if (kind === 'rect') { const b = val('.ck-b'), h = val('.ck-h'); if (!(b > 0 && h > 0)) return fail('Give the width and depth in mm.'); s = { kind, b, h }; }
+    else if (kind === 'circle') { const d = val('.ck-D'); if (!(d > 0)) return fail('Give the diameter in mm.'); s = { kind, d }; }
+    else { const D = val('.ck-D'), t = val('.ck-t1'); if (!(D > 0 && t > 0)) return fail('Give the outside diameter and wall thickness in mm.'); if (2 * t >= D) return fail('The wall is too thick: it must be less than half the diameter (use a solid circle instead).'); s = { kind, D, t }; }
+    const L = val('.ck-L'), K = val('.ck-K'), E = val('.ck-E'), fy = val('.ck-fy'), fs = val('.ck-fs'), Pa = q<HTMLInputElement>('.ck-P').value.trim() ? val('.ck-P') : NaN;
+    if (!(L > 0)) return fail('Give the column length in mm.');
+    if (!(K > 0 && K <= 10)) return fail('Give an effective length factor K (0.5 to 2 for the usual end conditions).');
+    if (!(E > 0)) return fail("Give Young's modulus E in MPa (N/mm²).");
+    if (!(fy > 0 && fy < E)) return fail('Give the yield strength fy in MPa, less than E.');
+    if (!(fs >= 1)) return fail('Give a factor of safety of 1 or more.');
+    if (q<HTMLInputElement>('.ck-P').value.trim() && !(Pa > 0)) return fail('Give the applied load in kN, or leave it empty.');
+    err.hidden = true; out.hidden = false;
+    const r = column(s, L, K, E, fy);
+    q('.ck-big').textContent = `Critical load ${sg(r.Pcr / 1000, 4)} kN (${r.mode === 'johnson' ? 'Johnson, intermediate column' : 'Euler, slender column'})`;
+    const axis = r.axis === 'any' ? 'any axis (same I both ways)' : r.axis === 'y' ? 'the weak (y) axis' : 'the x axis';
+    const facts = [
+      fact('Slenderness KL/r', sg(r.lambda, 4), `KL = ${sg(r.KL, 4)} mm, r = ${sg(r.rmin, 4)} mm; buckles about ${axis}`),
+      fact('Transition slenderness Cc', sg(r.Cc, 4), `√(2π²E/fy); ${r.lambda < r.Cc ? 'below it, Johnson parabola' : 'above it, Euler'}`),
+      fact('Critical stress', `${sg(r.sigma, 4)} MPa`, `${sg((r.sigma / fy) * 100, 3)} % of fy`),
+      fact('Euler load', `${sg(r.PE / 1000, 4)} kN`, `π²EI/(KL)², stress ${sg(r.sigmaE, 4)} MPa${r.mode === 'johnson' ? ' (not valid here: above fy/2)' : ''}`),
+      fact('Squash load A·fy', `${sg(r.Py / 1000, 4)} kN`, 'short column, no buckling'),
+      fact(`Allowed with factor ${sg(fs)}`, `${sg(r.Pcr / fs / 1000, 4)} kN`, 'critical load ÷ factor of safety'),
+      fact('Section', `A ${sg(r.A, 4)} mm²`, `Ix ${sg(r.Ix, 4)} mm⁴, Iy ${sg(r.Iy, 4)} mm⁴; rx ${sg(r.rx, 4)}, ry ${sg(r.ry, 4)} mm`),
+    ];
+    if (Pa > 0) { const u = (Pa * 1000 * fs) / r.Pcr; const d = fact('Applied load check', `${sg(u * 100, 3)} % used`, u <= 1 ? `${sg(Pa)} kN is within the allowed load` : `${sg(Pa)} kN is MORE than the allowed load`); d.querySelector('dd')!.classList.add(u <= 1 ? 'ck-ok' : 'ck-bad'); facts.push(d); }
+    q('.ck-facts').replaceChildren(...facts);
+    // Section drawing.
+    const sec: Figure = { w: 380, h: 170, alt: `Cross-section: ${kind}`, draw: (ctx, W, H, pal) => {
+      const dims = s.kind === 'ibeam' ? [s.bf, s.d] : s.kind === 'rect' ? [s.b, s.h] : s.kind === 'circle' ? [s.d, s.d] : [s.D, s.D];
+      const sc = Math.min((W - 80) / dims[0], (H - 40) / dims[1]), cx = W / 2, cy = H / 2;
+      ctx.fillStyle = pal.red ? pal.muted : pal.accent; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      if (s.kind === 'ibeam') {
+        const bw = s.bf * sc / 2, hd = s.d * sc / 2, tf = s.tf * sc, tw = s.tw * sc / 2;
+        const pts = [[-bw, -hd], [bw, -hd], [bw, -hd + tf], [tw, -hd + tf], [tw, hd - tf], [bw, hd - tf], [bw, hd], [-bw, hd], [-bw, hd - tf], [-tw, hd - tf], [-tw, -hd + tf], [-bw, -hd + tf]];
+        pts.forEach(([x, y], i) => (i ? ctx.lineTo(cx + x, cy + y) : ctx.moveTo(cx + x, cy + y))); ctx.closePath();
+      } else if (s.kind === 'rect') ctx.rect(cx - s.b * sc / 2, cy - s.h * sc / 2, s.b * sc, s.h * sc);
+      else if (s.kind === 'circle') ctx.arc(cx, cy, s.d * sc / 2, 0, 2 * Math.PI);
+      else { ctx.arc(cx, cy, s.D * sc / 2, 0, 2 * Math.PI); ctx.moveTo(cx + (s.D / 2 - s.t) * sc, cy); ctx.arc(cx, cy, (s.D / 2 - s.t) * sc, 0, 2 * Math.PI, true); }
+      ctx.globalAlpha = 0.35; ctx.fill('evenodd'); ctx.globalAlpha = 1; ctx.stroke();
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(cx - dims[0] * sc / 2 - 16, cy); ctx.lineTo(cx + dims[0] * sc / 2 + 16, cy); ctx.moveTo(cx, cy - dims[1] * sc / 2 - 12); ctx.lineTo(cx, cy + dims[1] * sc / 2 + 12); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.fillText('x', cx + dims[0] * sc / 2 + 19, cy); ctx.textAlign = 'center'; ctx.fillText('y', cx, cy - dims[1] * sc / 2 - 16 < 6 ? 8 : cy - dims[1] * sc / 2 - 16);
+    } };
+    paint(q<HTMLCanvasElement>('.ck-sec'), sec);
+    // Column curve.
+    const lmax = Math.max(r.lambda * 1.5, r.Cc * 1.6), ls: number[] = [], js: number[] = [], el: number[] = [], es: number[] = [];
+    for (let i = 0; i <= 200; i++) { const l = (lmax * i) / 200; if (l <= r.Cc) { ls.push(l); js.push(fy - (fy * fy / (4 * Math.PI ** 2 * E)) * l * l); } const se = (Math.PI ** 2 * E) / (l * l); if (l > 0 && se <= fy * 1.6) { el.push(l); es.push(se); } }
+    const curve = chartFigure({ w: 380, h: 240, xLabel: 'Slenderness KL/r', yLabel: 'Critical stress (MPa)', xMin: 0, yMin: 0, yMax: fy * 1.25, legend: 'below', series: [
+      { name: 'Johnson parabola', x: ls, y: js, mode: 'line', width: 2 },
+      { name: 'Euler', x: el, y: es, mode: 'line', width: 1.5, dash: [5, 4] },
+      { name: 'This column', x: [r.lambda], y: [r.sigma], mode: 'points', size: 5 },
+    ], marks: [{ kind: 'hline', at: fy, dash: [2, 3], label: 'fy' }, { kind: 'vline', at: r.Cc, dash: [2, 3], label: 'Cc' }] }, `Critical stress against slenderness; this column at KL/r ${sg(r.lambda, 3)}, ${sg(r.sigma, 3)} MPa`);
+    paint(q<HTMLCanvasElement>('.ck-fig'), curve);
+    figs = [sec, curve];
+    report = [
+      { title: q('.ck-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: sec },
+      { title: 'Column curve', figure: curve, note: 'Ideal column formulas; example values made up. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.' },
+    ];
+  }
+  q('.ck-ends').addEventListener('change', () => { const v = sel('.ck-ends'); if (v) q<HTMLInputElement>('.ck-K').value = v; run(); });
+  q('.ck-K').addEventListener('input', () => { const k = q<HTMLInputElement>('.ck-K').value.trim(); q<HTMLSelectElement>('.ck-ends').value = ['1', '2', '0.7', '0.5'].includes(k) ? k : ''; });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ck-out').hidden) { paint(q<HTMLCanvasElement>('.ck-sec'), figs[0]); paint(q<HTMLCanvasElement>('.ck-fig'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Column buckling', subtitle: q('.ck-big').textContent ?? '', file: 'column-buckling', sections: report }));
+</script>
+
+<style is:global>
+  .ckb .ck-ok { color: var(--good); }
+  .ckb .ck-bad { color: var(--bad); }
+</style>
