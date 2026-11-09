@@ -1,0 +1,247 @@
+---
+// Map projection distortion explorer: 11 projections on a sphere, the world outline, Tissot indicatrices from the
+// projection's partial derivatives, and the distortion numbers at any point, compared across projections.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tsx">
+  <div class="ax-card">
+    <h2>Projection</h2>
+    <div class="ax-grid">
+      <label>Projection <select class="ts-proj"></select></label>
+      <label class="ts-p-lon0">Central meridian (°) <input class="ts-lon0" type="text" inputmode="decimal" value="0" /></label>
+      <label class="ts-p-lat0"><span class="ts-lat0-l">Latitude of origin (°)</span> <input class="ts-lat0" type="text" inputmode="decimal" value="30" /></label>
+      <label class="ts-p-lat1"><span class="ts-lat1-l">First standard parallel (°)</span> <input class="ts-lat1" type="text" inputmode="decimal" value="20" /></label>
+      <label class="ts-p-lat2">Second standard parallel (°) <input class="ts-lat2" type="text" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help ts-about"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Circles every <select class="ts-grid"><option value="15">15°</option><option value="30" selected>30°</option></select></label>
+      <label>Circle size on the globe <select class="ts-size"><option value="3">3° radius</option><option value="5" selected>5° radius</option><option value="7">7° radius</option></select></label>
+      <label>Colour the circles by <select class="ts-col"><option value="area" selected>Areal scale</option><option value="omega">Angular distortion</option><option value="none">One colour</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="ts-land" checked /> Land</label>
+      <label class="ax-check"><input type="checkbox" class="ts-grat" checked /> Graticule</label>
+    </div>
+    <p class="ax-help">Each ellipse is the picture of a small circle of the same size on the globe (a Tissot indicatrix). Where the ellipses grow, areas are enlarged; where they stretch out, angles and shapes are bent. Worked on a sphere.</p>
+    <p class="ax-err ts-err" hidden></p>
+  </div>
+
+  <div class="ax-card ts-out">
+    <h2>Distortion</h2>
+    <p class="ax-big ts-big"></p>
+    <canvas class="ax-fig ts-fig" tabindex="0"></canvas>
+    <div class="ax-legend ts-legend"></div>
+    <p class="ax-help">Tap the map to read the distortion there, or type a place.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Latitude (°, north +) <input class="ts-lat" type="text" inputmode="decimal" value="60" /></label>
+      <label>Longitude (°, east +) <input class="ts-lon" type="text" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-err ts-perr" hidden></p>
+    <dl class="ax-facts ts-facts" style="margin-top:10px"></dl>
+    <h3 style="margin:16px 0 6px">All projections at this point</h3>
+    <div class="ax-scroll"><table class="ts-tab"></table></div>
+    <p class="ax-help">With the same central meridian, origin and standard parallels. "Not shown" means the point is outside the part of the map drawn here.</p>
+    <div class="ax-row" style="margin:10px 0">
+      <button type="button" class="btn secondary small ts-csv">Distortion grid (CSV)</button>
+    </div>
+    <p class="ax-help">The CSV lists h, k, areal scale, a, b and ω every 15° of latitude and longitude for the chosen projection, with the projected x and y on a sphere of radius 1 (multiply by 6 371 km for a mean Earth).</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PROJECTIONS, byId, project, factors, inverse, projectLine, ellipse, outline, shown, type Params, type ProjDef, type Factors } from '../../lib/sci/tissot';
+  import LAND from '../../data/world-land-110m.json';
+  import { paint, save, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tsx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const f4 = (v: number) => v.toFixed(4), f2 = (v: number) => v.toFixed(2);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const latTxt = (v: number) => `${Math.abs(+v.toFixed(3))}° ${v >= 0 ? 'N' : 'S'}`, lonTxt = (v: number) => `${Math.abs(+v.toFixed(3))}° ${v >= 0 ? 'E' : 'W'}`;
+
+  const ps = q<HTMLSelectElement>('.ts-proj');
+  PROJECTIONS.forEach((p) => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name} (${p.property.split(' (')[0].toLowerCase()})`; ps.append(o); });
+
+  let def: ProjDef = PROJECTIONS[0], prm: Params = { lon0: 0, lat0: 30, lat1: 20, lat2: 50 }, pt = { lon: 30, lat: 60 };
+  let view = { sx: 1, ox: 0, oy: 0 }, figs: Record<string, Figure> = {}, report: Section[] = [], lastF: Factors | null = null;
+
+  function readParams(): Params | string {
+    def = byId(sel('.ts-proj'));
+    const u = def.uses;
+    q('.ts-p-lat0').hidden = !u.includes('lat0'); q('.ts-p-lat1').hidden = !u.includes('lat1'); q('.ts-p-lat2').hidden = !u.includes('lat2');
+    q('.ts-lat0-l').textContent = def.kind === 'Azimuthal' ? 'Centre latitude (°)' : 'Latitude of origin (°)';
+    q('.ts-lat1-l').textContent = def.id === 'eqc' ? 'Latitude of true scale (°)' : 'First standard parallel (°)';
+    q('.ts-about').textContent = `${def.kind}. ${def.property}.` + ({
+      merc: ' Straight lines are lines of constant compass bearing; areas grow fast towards the poles (drawn to 85°).',
+      tmerc: ' Mercator turned on its side: true scale along the central meridian, used for UTM zones 6° wide (drawn to about 80° from the central meridian).',
+      eqc: ' Latitude and longitude drawn as a square grid; true scale along every meridian and on the chosen parallel.',
+      lcc: ' True scale on the two standard parallels; used for mid-latitude countries and aviation charts.',
+      aea: ' True scale on the two standard parallels; areas kept; used for statistical maps of wide countries.',
+      aeqd: ' Distances and directions from the centre are true; drawn to 179° from the centre.',
+      laea: ' Areas kept; directions from the centre true; drawn to 179° from the centre.',
+      stere: ' Circles stay circles; used for polar maps; drawn to 110° from the centre.',
+      ortho: ' One hemisphere, as a photo of the globe from space.',
+      moll: ' Whole world in an ellipse; areas kept, shapes bent near the edges.',
+      sinu: ' Areas kept; true scale along every parallel and the central meridian.',
+    } as Record<string, string>)[def.id];
+    const p = { lon0: val('.ts-lon0'), lat0: u.includes('lat0') ? val('.ts-lat0') : 0, lat1: u.includes('lat1') ? val('.ts-lat1') : 0, lat2: u.includes('lat2') ? val('.ts-lat2') : 0 };
+    if (!(Math.abs(p.lon0) <= 180)) return 'The central meridian is from −180° to 180°.';
+    if (!(Math.abs(p.lat0) <= 90)) return 'The latitude of the origin or centre is from −90° to 90°.';
+    if (u.includes('lat1') && !(Math.abs(p.lat1) < 90)) return `The ${def.id === 'eqc' ? 'latitude of true scale' : 'first standard parallel'} is between −90° and 90°.`;
+    if (u.includes('lat2')) {
+      if (!(Math.abs(p.lat2) < 90)) return 'The second standard parallel is between −90° and 90°.';
+      if (Math.abs(p.lat1 + p.lat2) < 1e-9) return 'The standard parallels cannot sit either side of the equator at the same distance (the cone becomes a cylinder). Use a cylindrical projection instead.';
+      if (def.id === 'lcc' && Math.abs(p.lat1) < 1e-9 && Math.abs(p.lat2) < 1e-9) return 'A Lambert conic with both standard parallels on the equator is a Mercator; choose Mercator.';
+    }
+    return p;
+  }
+
+  // Colours for the circles: areal scale on a log scale (0.25 to 4) and ω from 0 to 60°.
+  const RAMP = [[33, 102, 172], [146, 197, 222], [247, 247, 247], [244, 165, 130], [178, 24, 43]];
+  const ramp = (t: number) => { const u = Math.max(0, Math.min(1, t)) * 4, i = Math.min(3, Math.floor(u)), f = u - i; return RAMP[i].map((c, k) => Math.round(c + f * (RAMP[i + 1][k] - c))); };
+  const colourT = (F: Factors) => (sel('.ts-col') === 'area' ? 0.5 + Math.log(Math.abs(F.s)) / Math.log(16) : sel('.ts-col') === 'omega' ? 0.5 + F.omega / 120 : NaN);
+
+  function calc() {
+    const err = q('.ts-err'), out = q('.ts-out');
+    const p = readParams();
+    if (typeof p === 'string') { err.textContent = p; err.hidden = false; out.hidden = true; report = []; return; }
+    err.hidden = true; out.hidden = false; prm = p;
+    // Lines: land, graticule, outline.
+    const land: { pieces: number[][]; fill: boolean }[] = [];
+    for (const poly of LAND as number[][]) { const pieces = projectLine(def, poly, prm); if (pieces.length) land.push({ pieces, fill: pieces.length === 1 && poly.length > 6 && Math.hypot(pieces[0][0] - pieces[0].at(-2)!, pieces[0][1] - pieces[0].at(-1)!) < 1e-6 }); }
+    const grat: number[][] = [];
+    for (let lon = -180; lon < 180; lon += 30) { const pts: number[] = []; for (let lat = -90; lat <= 90; lat += 2) pts.push(lon, lat); grat.push(...projectLine(def, pts, prm)); }
+    for (let lat = -60; lat <= 60; lat += 30) { const pts: number[] = []; for (let lon = -180; lon <= 180; lon += 2) pts.push(lon, lat); grat.push(...projectLine(def, pts, prm)); }
+    const edge = outline(def, prm);
+    // Azimuthal edge: the circle at the largest distance drawn.
+    if (def.maxC !== undefined) {
+      const r = def.maxC, pts: number[] = [], c0 = prm.lat0 * Math.PI / 180;
+      for (let a = 0; a <= 360; a += 2) { const A = a * Math.PI / 180, c = r * Math.PI / 180, la = Math.asin(Math.sin(c0) * Math.cos(c) + Math.cos(c0) * Math.sin(c) * Math.cos(A)), lo = prm.lon0 * Math.PI / 180 + Math.atan2(Math.sin(A) * Math.sin(c) * Math.cos(c0), Math.cos(c) - Math.sin(c0) * Math.sin(la)); pts.push(lo * 180 / Math.PI, la * 180 / Math.PI); }
+      const xy: number[] = []; for (let i = 0; i < pts.length; i += 2) { const r2 = project(def, pts[i], pts[i + 1], prm); if (r2) xy.push(r2[0], r2[1]); }
+      edge.push(xy);
+    }
+    // Indicatrices.
+    const step = +sel('.ts-grid'), rad = +sel('.ts-size'), ells: { pts: number[]; F: Factors }[] = [];
+    for (let lat = -90 + step; lat < 90; lat += step) for (let lon = -180; lon < 180; lon += step) {
+      if (!shown(def, lon, lat, prm)) continue;
+      const F = factors(def, lon, lat, prm), e = F && ellipse(def, lon, lat, prm, rad);
+      if (F && e) ells.push({ pts: e, F });
+    }
+    // Bounds from the graticule, outline and land.
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const l of [...grat, ...edge, ...land.flatMap((g) => g.pieces)]) for (let i = 0; i < l.length; i += 2) { x0 = Math.min(x0, l[i]); x1 = Math.max(x1, l[i]); y0 = Math.min(y0, l[i + 1]); y1 = Math.max(y1, l[i + 1]); }
+    const W = 380, pad = 8, sx = Math.min((W - 2 * pad) / (x1 - x0), 460 / (y1 - y0)), H = Math.round((y1 - y0) * sx + 2 * pad);
+    view = { sx, ox: W / 2 - ((x0 + x1) / 2) * sx, oy: H / 2 + ((y0 + y1) / 2) * sx };
+    const X = (x: number) => view.ox + x * view.sx, Y = (y: number) => view.oy - y * view.sx;
+    const showLand = q<HTMLInputElement>('.ts-land').checked, showGrat = q<HTMLInputElement>('.ts-grat').checked, colBy = sel('.ts-col');
+    const path = (ctx: CanvasRenderingContext2D, l: number[], close = false) => { ctx.beginPath(); for (let i = 0; i < l.length; i += 2) (i ? ctx.lineTo(X(l[i]), Y(l[i + 1])) : ctx.moveTo(X(l[i]), Y(l[i + 1]))); if (close) ctx.closePath(); };
+    const ptXY = () => project(def, pt.lon, pt.lat, prm);
+    figs.map = { w: W, h: H, alt: `${def.name} world map with Tissot indicatrices every ${step}°`, draw: (ctx, Wc, Hc, pal) => {
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Wc, Hc); ctx.clip();
+      const dark = pal.bg !== '#ffffff';
+      if (showLand) {
+        ctx.fillStyle = pal.red ? '#1c0000' : dark ? '#2a2a2a' : '#e4e4e4'; ctx.strokeStyle = pal.red ? '#5a0000' : dark ? '#777' : '#8a8a8a'; ctx.lineWidth = 0.7;
+        for (const g of land) for (const l of g.pieces) { path(ctx, l, g.fill); if (g.fill) ctx.fill(); ctx.stroke(); }
+      }
+      if (showGrat) { ctx.strokeStyle = pal.red ? '#3a0000' : dark ? '#444' : '#c4c4c4'; ctx.lineWidth = 0.6; for (const l of grat) { path(ctx, l); ctx.stroke(); } }
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; for (const l of edge) { path(ctx, l); ctx.stroke(); }
+      for (const e of ells) {
+        const t = colourT(e.F), c = pal.red ? [163, 0, 0] : colBy === 'none' || !Number.isFinite(t) ? (dark ? [127, 178, 240] : [31, 95, 174]) : ramp(t);
+        path(ctx, e.pts, true); ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${colBy === 'none' || pal.red ? 0.35 : 0.8})`; ctx.fill();
+        ctx.strokeStyle = pal.red ? '#a30000' : dark ? '#dddddd' : '#333333'; ctx.lineWidth = 0.6; ctx.stroke();
+      }
+      const p = ptXY();
+      if (p) { const px = X(p[0]), py = Y(p[1]); ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.stroke(); ctx.lineWidth = 1.6; ctx.strokeStyle = pal.red ? '#c00000' : pal.bad; ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.moveTo(px - 10, py); ctx.lineTo(px + 10, py); ctx.moveTo(px, py - 10); ctx.lineTo(px, py + 10); ctx.stroke(); }
+      ctx.restore();
+    } };
+    paint(q<HTMLCanvasElement>('.ts-fig'), figs.map);
+    const lg = q('.ts-legend'); lg.replaceChildren();
+    if (colBy !== 'none') {
+      const stops = colBy === 'area' ? [['×0.25', 0], ['×0.5', 0.25], ['×1', 0.5], ['×2', 0.75], ['×4 or more', 1]] : [['0°', 0.5], ['15°', 0.625], ['30°', 0.75], ['45°', 0.875], ['60° or more', 1]];
+      const lab = document.createElement('span'); lab.textContent = colBy === 'area' ? 'Areal scale:' : 'Angular distortion ω:'; lg.append(lab);
+      for (const [t, v] of stops as [string, number][]) { const s = document.createElement('span'), i = document.createElement('i'), c = ramp(v); i.style.background = `rgb(${c[0]},${c[1]},${c[2]})`; s.append(i, t); lg.append(s); }
+    }
+    point();
+  }
+
+  function point() {
+    const perr = q('.ts-perr'), lat = val('.ts-lat'), lon = val('.ts-lon');
+    const box = q('.ts-facts');
+    if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) { perr.textContent = 'Latitude is from −90° to 90° and longitude from −180° to 180°.'; perr.hidden = false; box.replaceChildren(); lastF = null; return; }
+    pt = { lon, lat };
+    const F = shown(def, lon, lat, prm) ? factors(def, lon, lat, prm) : null;
+    lastF = F;
+    if (figs.map) paint(q<HTMLCanvasElement>('.ts-fig'), figs.map);
+    if (!F) { perr.textContent = Math.abs(lat) > 89.99 ? 'At the pole the scale along the parallel has no single value; pick a point just off it.' : `${latTxt(lat)}, ${lonTxt(lon)} is outside the part of the ${def.name} drawn here.`; perr.hidden = false; box.replaceChildren(); q('.ts-big').textContent = `${def.name}: pick a point on the map`; table(); setReport(); return; }
+    perr.hidden = true;
+    const areaWord = Math.abs(F.s - 1) < 5e-5 ? 'areas true' : F.s > 1 ? `areas shown ${f2(F.s)} × too big` : `areas shown at ${f2(F.s)} of their size`;
+    q('.ts-big').textContent = `${latTxt(lat)}, ${lonTxt(lon)}: area × ${F.s.toFixed(3)}, ω ${f2(F.omega)}°`;
+    const maxErr = Math.max(F.a - 1, 1 - F.b);
+    box.replaceChildren(
+      fact('Scale along the meridian (h)', f4(F.h), 'north–south distances × h'),
+      fact('Scale along the parallel (k)', f4(F.k), 'east–west distances × k'),
+      fact('Areal scale', F.s.toFixed(4), areaWord),
+      fact('Tissot ellipse', `a ${f4(F.a)}, b ${f4(F.b)}`, `largest and smallest scale at this point; a/b ${(F.a / F.b).toFixed(3)}`),
+      fact('Angular distortion ω', `${f2(F.omega)}°`, 'the most any angle is bent here'),
+      fact('Largest scale error', `${(100 * maxErr).toFixed(2)} %`, `meridian and parallel meet at ${f2(Math.abs(F.thetaP))}°; convergence ${f2(F.conv)}°`),
+    );
+    table(); setReport();
+  }
+
+  function table() {
+    const head = ['Projection', 'h', 'k', 'Areal scale', 'ω (°)'];
+    const rows = PROJECTIONS.map((p) => {
+      const qq = { lon0: prm.lon0, lat0: p.uses.includes('lat0') ? val('.ts-lat0') : 0, lat1: val('.ts-lat1'), lat2: val('.ts-lat2') };
+      if (![qq.lat0, qq.lat1, qq.lat2].every((v) => Math.abs(v) < 90)) return [p.name, 'check the settings', '', '', ''];
+      if (p.uses.includes('lat2') && Math.abs(qq.lat1 + qq.lat2) < 1e-9) return [p.name, 'needs other parallels', '', '', ''];
+      const F = shown(p, pt.lon, pt.lat, qq) ? factors(p, pt.lon, pt.lat, qq) : null;
+      return F ? [p.name, f4(F.h), f4(F.k), F.s.toFixed(4), f2(F.omega)] : [p.name, 'not shown', '', '', ''];
+    });
+    const tab = q('.ts-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false, cur = false) => { const r = document.createElement('tr'); if (cur) r.className = 'ts-cur'; cells.forEach((t, k) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = t; if (k > 0) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r, i) => tr(r, false, PROJECTIONS[i].id === def.id)));
+    lastTable = { head, rows };
+  }
+  let lastTable: { head: string[]; rows: string[][] } = { head: [], rows: [] };
+  function setReport() {
+    const params = def.uses.map((u) => `${({ lon0: 'central meridian', lat0: def.kind === 'Azimuthal' ? 'centre latitude' : 'origin', lat1: def.id === 'eqc' ? 'true-scale latitude' : 'standard parallel 1', lat2: 'standard parallel 2' } as Record<string, string>)[u]} ${prm[u]}°`).join(', ');
+    report = [
+      { title: q('.ts-big').textContent!, facts: [['Projection', `${def.name} (${def.property})`], ['Settings', params], ...Array.from(q('.ts-facts').children).map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string])], figure: figs.map },
+      { title: 'All projections at this point', table: { ...lastTable, align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.ts-fig').addEventListener('click', (e) => {
+    const c = q<HTMLCanvasElement>('.ts-fig'), r = c.getBoundingClientRect(), kk = figs.map.w / r.width;
+    const fx = ((e as MouseEvent).clientX - r.left) * kk, fy = ((e as MouseEvent).clientY - r.top) * kk;
+    const x = (fx - view.ox) / view.sx, y = (view.oy - fy) / view.sx, ll = inverse(def, x, y, prm);
+    if (!ll) { const perr = q('.ts-perr'); perr.textContent = 'That spot is off the map.'; perr.hidden = false; return; }
+    q<HTMLInputElement>('.ts-lat').value = String(+ll[1].toFixed(3)); q<HTMLInputElement>('.ts-lon').value = String(+ll[0].toFixed(3));
+    point();
+  });
+  q('.ts-csv').addEventListener('click', () => {
+    const lines = [`# ${def.name} on a sphere of radius 1; ${def.uses.map((u) => `${u} ${prm[u]}`).join(', ')}`, 'lat,lon,x,y,h,k,areal_scale,a,b,omega_deg'];
+    for (let lat = -75; lat <= 75; lat += 15) for (let lon = -180; lon < 180; lon += 15) {
+      const F = shown(def, lon, lat, prm) ? factors(def, lon, lat, prm) : null, xy = F && project(def, lon, lat, prm);
+      if (F && xy) lines.push([lat, lon, ...xy, F.h, F.k, F.s, F.a, F.b, F.omega].map((v) => String(+v.toPrecision(10))).join(','));
+    }
+    save(new TextEncoder().encode(lines.join('\n') + '\n'), `tissot-${def.id}.csv`, 'text/csv');
+  });
+  root.querySelectorAll('.ts-proj, .ts-lon0, .ts-lat0, .ts-lat1, .ts-lat2, .ts-grid, .ts-size, .ts-col, .ts-land, .ts-grat').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.ts-lat, .ts-lon').forEach((i) => i.addEventListener('input', point));
+  document.addEventListener('fibub:theme', () => { if (!q('.ts-out').hidden) paint(q<HTMLCanvasElement>('.ts-fig'), figs.map); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Map projection distortion', subtitle: q('.ts-big').textContent ?? '', file: `tissot-${def.id}`, sections: report }));
+</script>
+
+<style is:global>
+  .tsx select, .tsx input[type=text] { max-width: 100%; }
+  .tsx .ts-fig { cursor: crosshair; }
+  .tsx tr.ts-cur td { font-weight: 700; }
+</style>
