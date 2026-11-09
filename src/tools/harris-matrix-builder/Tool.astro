@@ -1,0 +1,203 @@
+---
+// Harris matrix builder: stratigraphic relations in, a checked and reduced matrix out. Runs in the browser; the
+// example contexts are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hmx">
+  <div class="ax-card">
+    <h2>Contexts and relations</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small hm-ex">Use the example</button>
+      <button type="button" class="btn secondary small hm-clear">Clear</button>
+    </div>
+    <label style="margin-top:10px">One relation per line <textarea class="hm-in" rows="10" spellcheck="false" placeholder="102 above 105&#10;105 cuts 107&#10;107 same as 112&#10;108 contemporary with 109"></textarea></label>
+    <DataFile target=".hm-in" maxMB={2} maxCols={3} maxRows={20000} />
+    <p class="ax-help">Write <b>A above B</b> when A is later (it covers, cuts, fills or seals B); <b>A below B</b> for the reverse. <b>A same as B</b> joins two numbers for one deposit. <b>A contemporary with B</b> puts two units on the same level without one being above the other. Short forms: <code>&gt;</code>, <code>&lt;</code>, <code>=</code>, <code>~</code>. A spreadsheet with three columns (context, relation, context) works too. A line with a single number adds a context with no relations; text after # is ignored.</p>
+    <div class="hm-errs" hidden></div>
+  </div>
+
+  <div class="ax-card hm-out" hidden>
+    <h2>Matrix</h2>
+    <p class="ax-big hm-big"></p>
+    <div class="hm-warn" aria-live="polite"></div>
+    <div class="ax-scroll hm-figwrap"><canvas class="hm-fig"></canvas></div>
+    <p class="ax-help hm-cap"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hm-svg">Figure (SVG)</button>
+      <button type="button" class="btn secondary small hm-png">Figure (PNG)</button>
+      <button type="button" class="btn secondary small hm-ccsv">Contexts (CSV)</button>
+      <button type="button" class="btn secondary small hm-rcsv">Relations (CSV)</button>
+    </div>
+    <h3>Redundant relations</h3>
+    <p class="ax-help hm-rnote"></p>
+    <div class="ax-scroll"><table class="hm-rtab"></table></div>
+    <h3>Units by level (latest first)</h3>
+    <div class="ax-scroll"><table class="hm-ltab"></table></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hmx h3 { margin: 22px 0 8px; font-size: 15px; }
+  .hmx .hm-figwrap { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .hmx canvas.hm-fig { display: block; height: auto; margin: 0 auto; }
+  .hmx .hm-warn p { margin: 8px 0 0; }
+  .hmx .hm-errs p { margin: 6px 0 0; }
+  .hmx code { font-size: 13px; }
+</style>
+
+<script>
+  import { parseRelations, buildMatrix, nodeLabel, EXAMPLE, type Matrix } from '../../lib/sci/harris';
+  import { canvasPainter, svgPainter, type Painter } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, pagePalette, LIGHT, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hmx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.hm-in');
+  let m: Matrix | null = null, fig: Figure | null = null, size = { w: 0, h: 0 };
+
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); for (const x of r) tr.insertCell().textContent = String(x); }
+  };
+  const para = (cls: string, text: string) => { const p = document.createElement('p'); p.className = cls; p.textContent = text; return p; };
+
+  // ---- Drawing (one function for the page, SVG and PNG) ----
+  const BOX_H = 30, GAP_Y = 58, PAD = 20, FS = 13;
+  function geometry(P: Painter, mat: Matrix) {
+    const widths = mat.nodes.map((_, k) => Math.max(46, P.measure(nodeLabel(mat, k), FS, true) + 18));
+    const slot = Math.max(64, ...widths) + 18;
+    const maxRow = Math.max(1, ...mat.rows.map((r) => r.length));
+    const W = Math.max(240, maxRow * slot + PAD * 2), H = mat.rows.length * (BOX_H + GAP_Y) - GAP_Y + PAD * 2 + 4;
+    const x = (L: number, i: number) => W / 2 + (i - (mat.rows[L].length - 1) / 2) * slot;
+    const y = (L: number) => PAD + L * (BOX_H + GAP_Y);
+    return { widths, W, H, x, y };
+  }
+  function draw(P: Painter, mat: Matrix, pal: Palette) {
+    const g = geometry(P, mat);
+    // Contemporary units: a dashed double line between boxes on the same level.
+    for (const c of mat.contemporary) {
+      if (c.conflict || mat.layer[c.a] !== mat.layer[c.b]) continue;
+      const L = mat.layer[c.a], ia = mat.rows[L].indexOf(c.a), ib = mat.rows[L].indexOf(c.b);
+      const [l, r] = ia < ib ? [c.a, c.b] : [c.b, c.a], [il, ir] = ia < ib ? [ia, ib] : [ib, ia];
+      const x0 = g.x(L, il) + g.widths[l] / 2, x1 = g.x(L, ir) - g.widths[r] / 2, yy = g.y(L) + BOX_H / 2;
+      P.line([[x0, yy - 3], [x1, yy - 3]], pal.muted, 1.2, [4, 3]); P.line([[x0, yy + 3], [x1, yy + 3]], pal.muted, 1.2, [4, 3]);
+    }
+    // Edges: from the bottom of the later unit, through dummy points, to the top of the earlier one.
+    for (const route of mat.routes) {
+      const pts: [number, number][] = route.map(([L, i], k) => [g.x(L, i), k === 0 ? g.y(L) + BOX_H : k === route.length - 1 ? g.y(L) : g.y(L) + BOX_H / 2]);
+      P.line(pts, pal.ink, 1.3);
+    }
+    mat.rows.forEach((row, L) => row.forEach((v, i) => {
+      if (v < 0) return;
+      const cx = g.x(L, i), w = g.widths[v], y0 = g.y(L);
+      P.poly([[cx - w / 2, y0], [cx + w / 2, y0], [cx + w / 2, y0 + BOX_H], [cx - w / 2, y0 + BOX_H]], pal.bg, pal.ink, 1.4);
+      P.text(cx, y0 + BOX_H / 2, nodeLabel(mat, v), FS, pal.ink, 'middle', 'middle', 0, true);
+    }));
+  }
+  function makeFigure(mat: Matrix): Figure {
+    const probe = canvasPainter(document.createElement('canvas').getContext('2d')!);
+    const g = geometry(probe, mat); size = { w: g.W, h: g.H };
+    return { w: g.W, h: g.H, alt: `Harris matrix of ${mat.nodes.length} units in ${mat.rows.length} levels`, draw: (ctx, _W, _H, pal) => draw(canvasPainter(ctx), mat, pal) };
+  }
+
+  function showFig() {
+    if (!fig) return;
+    const c = q<HTMLCanvasElement>('.hm-fig'), avail = q('.hm-figwrap').clientWidth || 600;
+    paint(c, fig, pagePalette());
+    c.style.width = `${Math.round(Math.min(fig.w, Math.max(avail - 2, fig.w * 0.55)))}px`;
+  }
+
+  function run() {
+    const errs = q('.hm-errs'), out = q('.hm-out'), warn = q('.hm-warn');
+    const p = parseRelations(box.value);
+    errs.replaceChildren(...p.errors.slice(0, 8).map((e) => para('ax-err', e)), ...(p.errors.length > 8 ? [para('ax-err', `… and ${p.errors.length - 8} more lines that could not be read.`)] : []));
+    errs.hidden = !p.errors.length;
+    if (!p.contexts.length) { out.hidden = true; m = null; fig = null; return; }
+    m = buildMatrix(p);
+    out.hidden = false; warn.replaceChildren();
+    const ctx = p.contexts.length, units = m.nodes.length;
+    if (m.cycles.length || m.selfLoops.length) {
+      q('.hm-big').textContent = `The sequence is impossible: ${m.cycles.length + m.selfLoops.length} loop${m.cycles.length + m.selfLoops.length === 1 ? '' : 's'}`;
+      for (const cy of m.cycles) {
+        const names = cy.map((k) => nodeLabel(m!, k));
+        warn.append(para('ax-err', `Loop: ${[...names, names[0]].join(' above ')}. A unit cannot be both above and below another; check these relations.`));
+      }
+      for (const s of m.selfLoops) warn.append(para('ax-err', `${nodeLabel(m, s.from)}: these are recorded as the same deposit, but line ${s.lines.join(', ')} puts one above the other.`));
+      q('.hm-figwrap').hidden = true; q('.hm-cap').textContent = 'Fix the loops to see the matrix.';
+      table(q('.hm-rtab'), [], []); table(q('.hm-ltab'), [], []); q('.hm-rnote').textContent = '';
+      fig = null;
+      return;
+    }
+    const nCont = m.contemporary.length, bad = m.contemporary.filter((c) => c.conflict);
+    q('.hm-big').textContent = `${ctx} context${ctx === 1 ? '' : 's'} in ${units} unit${units === 1 ? '' : 's'} and ${m.rows.length} level${m.rows.length === 1 ? '' : 's'}; ${m.kept.length} relation${m.kept.length === 1 ? '' : 's'} kept, ${m.redundant.length} redundant`;
+    warn.append(para('ax-help', `No loops: the sequence is consistent.${nCont ? ` ${nCont - bad.length} of ${nCont} contemporary pair${nCont === 1 ? '' : 's'} drawn level.` : ''}`));
+    for (const c of bad) warn.append(para('ax-err', `${nodeLabel(m, c.a)} and ${nodeLabel(m, c.b)} are recorded as contemporary (line ${c.lines.join(', ')}), but the sequence puts one above the other.`));
+    q('.hm-figwrap').hidden = false;
+    fig = makeFigure(m); showFig();
+    q('.hm-cap').textContent = 'Latest at the top. Lines show the direct relations left after removing redundant ones; "same as" contexts share a box; a dashed double line joins contemporary units.';
+    q('.hm-rnote').textContent = m.redundant.length ? 'These relations are true but already implied by a longer chain, so the matrix leaves them out.' : 'None: every relation is needed.';
+    table(q('.hm-rtab'), m.redundant.length ? ['Later', 'Earlier', 'Line', 'Implied by'] : [], m.redundant.map((e) => [nodeLabel(m!, e.from), nodeLabel(m!, e.to), e.lines.join(', '), chain(m!, e.from, e.to)]));
+    table(q('.hm-ltab'), ['Level', 'Units'], m.rows.map((r, L) => [L + 1, r.filter((v) => v >= 0).map((v) => nodeLabel(m!, v)).join(', ')]));
+  }
+
+  /** A path from u to v through the kept edges (the chain that makes u→v redundant). */
+  function chain(mat: Matrix, u: number, v: number) {
+    const prev = new Map<number, number>([[u, u]]), qu = [u];
+    for (let h = 0; h < qu.length; h++) for (const e of mat.kept) if (e.from === qu[h] && !prev.has(e.to)) { prev.set(e.to, qu[h]); qu.push(e.to); }
+    const path = [v]; let w = v; while (w !== u && prev.has(w)) { w = prev.get(w)!; path.push(w); }
+    return path.reverse().map((k) => nodeLabel(mat, k)).join(' > ');
+  }
+
+  function rows() {
+    const mat = m!;
+    const directUp = (k: number) => mat.kept.filter((e) => e.to === k).map((e) => nodeLabel(mat, e.from)).join('; ');
+    const directDown = (k: number) => mat.kept.filter((e) => e.from === k).map((e) => nodeLabel(mat, e.to)).join('; ');
+    const cont = (k: number) => mat.contemporary.filter((c) => c.a === k || c.b === k).map((c) => nodeLabel(mat, c.a === k ? c.b : c.a)).join('; ');
+    return [...mat.nodeOf.entries()].map(([c, k]) => [c, mat.nodes[k].filter((x) => x !== c).join('; '), mat.layer.length ? mat.layer[k] + 1 : '', directUp(k), directDown(k), cont(k)]);
+  }
+
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  q('.hm-ex').addEventListener('click', () => { box.value = EXAMPLE; run(); });
+  q('.hm-clear').addEventListener('click', () => { box.value = ''; run(); });
+  q('.hm-svg').addEventListener('click', () => {
+    if (!m || !fig) return;
+    const P = svgPainter(size.w, size.h); P.poly([[0, 0], [size.w, 0], [size.w, size.h], [0, size.h]], '#ffffff', null);
+    draw(P, m, LIGHT); save(new Blob([P.toString()], { type: 'image/svg+xml' }), 'harris-matrix.svg', 'image/svg+xml');
+  });
+  q('.hm-png').addEventListener('click', () => {
+    if (!m || !fig) return;
+    const c = document.createElement('canvas'), s = 2; c.width = size.w * s; c.height = size.h * s;
+    const ctx = c.getContext('2d')!; ctx.scale(s, s); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size.w, size.h); draw(canvasPainter(ctx), m, LIGHT);
+    c.toBlob((b) => { if (b) save(b, 'harris-matrix.png', 'image/png'); }, 'image/png');
+  });
+  q('.hm-ccsv').addEventListener('click', () => {
+    if (!m) return;
+    save(new Blob([csv([['context', 'same_as', 'level', 'directly_above_it', 'directly_below_it', 'contemporary_with'], ...rows()])], { type: 'text/csv' }), 'harris-contexts.csv', 'text/csv');
+  });
+  q('.hm-rcsv').addEventListener('click', () => {
+    if (!m) return;
+    const mat = m, rs = [...mat.kept.map((e) => [nodeLabel(mat, e.from), 'above', nodeLabel(mat, e.to), 'kept', e.lines.join(' ')]), ...mat.redundant.map((e) => [nodeLabel(mat, e.from), 'above', nodeLabel(mat, e.to), 'redundant', e.lines.join(' ')]),
+      ...mat.contemporary.map((c) => [nodeLabel(mat, c.a), 'contemporary with', nodeLabel(mat, c.b), c.conflict ? 'contradicted' : 'kept', c.lines.join(' ')])];
+    save(new Blob([csv([['later_or_first', 'relation', 'earlier_or_second', 'status', 'input_lines'], ...rs])], { type: 'text/csv' }), 'harris-relations.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    if (!m) return { title: '', sections: [], file: 'harris-matrix' };
+    const mat = m;
+    const sections: Section[] = [
+      { title: 'Summary', text: [q('.hm-big').textContent ?? '', ...[...q('.hm-warn').querySelectorAll('p')].map((p) => p.textContent ?? '')] },
+      ...(fig ? [{ title: 'Matrix', figure: fig, note: q('.hm-cap').textContent ?? '' }] : []),
+      { title: 'Redundant relations', table: { head: ['Later', 'Earlier', 'Line', 'Implied by'], rows: mat.redundant.map((e) => [nodeLabel(mat, e.from), nodeLabel(mat, e.to), e.lines.join(', '), chain(mat, e.from, e.to)]) } },
+      { title: 'Contexts', table: { head: ['Context', 'Same as', 'Level', 'Directly above it', 'Directly below it', 'Contemporary'], rows: rows().map((r) => r.map(String)) } },
+    ];
+    return { title: 'Harris matrix', subtitle: q('.hm-big').textContent ?? '', file: 'harris-matrix', sections };
+  });
+  document.addEventListener('fibub:theme', showFig);
+  window.addEventListener('resize', () => { clearTimeout(tm); tm = window.setTimeout(showFig, 150); });
+  box.value = EXAMPLE; run();
+</script>
