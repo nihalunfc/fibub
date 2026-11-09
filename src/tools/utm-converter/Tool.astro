@@ -1,0 +1,210 @@
+---
+// UTM, MGRS and latitude/longitude converter with distance and bearing and a batch list (src/lib/sci/utm.ts).
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import { ELLIPSOIDS } from '../../lib/sci/utm';
+const ZONES = Array.from({ length: 60 }, (_, i) => i + 1);
+---
+<div class="ax utmc">
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Ellipsoid <select class="utm-ell">{ELLIPSOIDS.map((e) => <option value={e.id}>{e.name}</option>)}</select></label>
+      <label>UTM zone <select class="utm-zone"><option value="0" selected>Automatic (standard zone)</option>{ZONES.map((z) => <option value={z}>Zone {z} ({z * 6 - 186}° to {z * 6 - 180}°)</option>)}</select></label>
+      <label>UTM rounding <select class="utm-dec"><option value="0">1 m</option><option value="1">0.1 m</option><option value="2" selected>0.01 m</option><option value="3">1 mm</option></select></label>
+      <label>MGRS precision <select class="utm-mg"><option value="5" selected>1 m (5+5 digits)</option><option value="4">10 m (4+4)</option><option value="3">100 m (3+3)</option><option value="2">1 km (2+2)</option><option value="1">10 km (1+1)</option><option value="0">100 km (square only)</option></select></label>
+    </div>
+    <p class="ax-help">The ellipsoid must match your coordinates' datum (WGS 84 for GPS). This tool changes the way a position is written, not its datum: it does not shift between datums such as ED50 and WGS 84. Forcing a zone keeps a whole project on one grid; outside its normal 6° the distortion grows. MGRS is shown only on WGS 84 and GRS 1980, the ellipsoids its lettering is defined for here.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert a point</h2>
+    <label>Position: latitude and longitude, UTM or MGRS
+      <input class="utm-in" type="text" value="51°28′40.1″ N, 0°00′05.3″ W" autocapitalize="off" spellcheck="false" />
+    </label>
+    <p class="ax-help">For example 51.4778, -0.0015 or 51 28 40.1 N 0 0 5.3 W or 30U 699375 5710164 or 30UXC9937510164. Write latitude first when there are no N/S/E/W letters.</p>
+    <p class="ax-err utm-err" hidden></p>
+    <p class="ax-help utm-note" hidden></p>
+    <div class="utm-res" style="margin-top:12px">
+      <dl class="ax-facts utm-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Distance and bearing</h2>
+    <div class="ax-grid utm-two">
+      <label>From <input class="utm-a" type="text" value="51.4778, -0.0015" autocapitalize="off" spellcheck="false" /></label>
+      <label>To <input class="utm-b" type="text" value="48.8584 N, 2.2945 E" autocapitalize="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err utm-derr" hidden></p>
+    <dl class="ax-facts utm-dfacts" style="margin-top:12px"></dl>
+    <p class="ax-help">The shortest path on the ellipsoid (the geodesic), by Vincenty's formula, accurate to under a millimetre. Bearings are from true north, clockwise; the final bearing is the direction of travel on arrival. Heights are ignored.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>A list of points</h2>
+    <label>One point per line, in any of the forms above. A name may come first, before a comma. A table with latitude and longitude columns works too.
+      <textarea class="utm-list" rows="8" spellcheck="false" autocapitalize="off" wrap="off"></textarea>
+    </label>
+    <DataFile target=".utm-list" maxMB={5} maxCols={30} maxRows={20000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small utm-ex">Use the example</button>
+      <button type="button" class="btn secondary small utm-clear">Clear</button>
+    </div>
+    <p class="ax-err utm-lerr" hidden></p>
+    <div class="utm-lres" hidden>
+      <p class="ax-big utm-lbig"></p>
+      <p class="ax-help utm-lnote"></p>
+      <div class="ax-scroll"><table class="utm-table"><thead><tr><th>#</th><th>Name</th><th class="r">Latitude</th><th class="r">Longitude</th><th>UTM</th><th class="r">Easting</th><th class="r">Northing</th><th class="utm-mgcol">MGRS</th><th class="r">Leg (m)</th><th class="r">Total (m)</th></tr></thead><tbody></tbody></table></div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small utm-csv">Download CSV</button>
+        <button type="button" class="btn secondary small utm-geo">Download GeoJSON</button>
+      </div>
+      <p class="ax-help">The CSV has every point with decimal degrees, degrees minutes seconds, UTM, MGRS, the distance from the previous point and the running total. The GeoJSON (WGS 84 longitude, latitude) opens in GIS software and online maps.</p>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .utmc .utm-facts dd { font-size: 17px; font-variant-numeric: tabular-nums; }
+  .utmc .utm-facts .wide { grid-column: 1 / -1; }
+  .utmc .utm-table td { white-space: nowrap; }
+  .utmc .utm-table td.err { white-space: normal; color: var(--bad); }
+  .utmc .utm-warn { color: var(--warn); }
+</style>
+
+<script>
+  import { ELLIPSOIDS, toUtm, toMgrs, parsePoint, parseBatch, inverse, fmtDms, fmtDdm, EXAMPLE_BATCH, type Ellipsoid, type BatchRow } from '../../lib/sci/utm';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.utmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  const ell = (): Ellipsoid => ELLIPSOIDS.find((e) => e.id === v('.utm-ell')) ?? ELLIPSOIDS[0];
+  const mgrsOk = () => ['wgs84', 'grs80'].includes(ell().id);
+  const fmt = (x: number, d: number) => x.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fact = (dl: HTMLElement, k: string, val: string, sm = '', wide = false) => {
+    const d = document.createElement('div'); if (wide) d.className = 'wide';
+    const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = val;
+    if (sm) { const s = document.createElement('small'); s.textContent = sm; dd.append(s); }
+    d.append(dt, dd); dl.append(d);
+  };
+  const show = (el: HTMLElement, msg: string) => { el.textContent = msg; el.hidden = !msg; };
+
+  function utmText(lat: number, lon: number) {
+    const zone = Number(v('.utm-zone')) || undefined, dec = Number(v('.utm-dec'));
+    const u = toUtm(lat, lon, { zone, ell: ell() });
+    return { u, text: `${u.zone}${u.band} ${u.easting.toFixed(dec)} E ${u.northing.toFixed(dec)} N`, e: u.easting.toFixed(dec), n: u.northing.toFixed(dec) };
+  }
+
+  function point() {
+    const dl = q('.utm-facts'); dl.replaceChildren();
+    show(q('.utm-err'), ''); show(q('.utm-note'), '');
+    try {
+      const p = parsePoint(v('.utm-in'), ell());
+      const notes: string[] = p.note ? [p.note] : [];
+      fact(dl, 'Latitude, longitude (decimal degrees)', `${p.lat.toFixed(7)}, ${p.lon.toFixed(7)}`, '', true);
+      fact(dl, 'Degrees, minutes, seconds', `${fmtDms(p.lat, true, 2)}  ${fmtDms(p.lon, false, 2)}`, '', true);
+      fact(dl, 'Degrees and decimal minutes', `${fmtDdm(p.lat, true, 4)}  ${fmtDdm(p.lon, false, 4)}`, '', true);
+      const { u, e, n } = utmText(p.lat, p.lon);
+      fact(dl, 'UTM zone', `${u.zone}${u.band}`, `${u.hemi === 'N' ? 'northern' : 'southern'} hemisphere, central meridian ${Math.abs(u.zone * 6 - 183)}° ${u.zone * 6 - 183 < 0 ? 'W' : 'E'}`);
+      fact(dl, 'Easting', `${e} m`);
+      fact(dl, 'Northing', `${n} m`);
+      if (Math.abs(u.offCentre) > 3) notes.push(`This point is ${Math.abs(u.offCentre).toFixed(2)}° from the centre of zone ${u.zone}, outside the zone's normal 6° width; the scale distortion is larger than usual.`);
+      if (mgrsOk()) fact(dl, 'MGRS', toMgrs(p.lat, p.lon, Number(v('.utm-mg')), true, ell()), 'standard zone, truncated to the chosen precision');
+      fact(dl, 'Grid convergence', `${u.convergence >= 0 ? '+' : '−'}${Math.abs(u.convergence).toFixed(5)}°`, 'grid north is this far clockwise from true north');
+      fact(dl, 'Point scale factor', u.scale.toFixed(7), `grid distance = ground distance × ${u.scale.toFixed(6)} (at sea level on the ellipsoid)`);
+      show(q('.utm-note'), notes.join(' '));
+    } catch (err) { show(q('.utm-err'), (err as Error).message); }
+  }
+
+  function distance() {
+    const dl = q('.utm-dfacts'); dl.replaceChildren(); show(q('.utm-derr'), '');
+    try {
+      const a = parsePoint(v('.utm-a'), ell()), b = parsePoint(v('.utm-b'), ell());
+      const r = inverse(a.lat, a.lon, b.lat, b.lon, ell());
+      if (!r.converged) throw new Error('These points are almost exactly opposite each other on the Earth (nearly antipodal); Vincenty\'s method does not settle there. The distance is close to half the circumference, about 20,000 km.');
+      fact(dl, 'Distance', r.s >= 10000 ? `${fmt(r.s / 1000, 3)} km` : `${fmt(r.s, 3)} m`, `${fmt(r.s, 3)} m, ${fmt(r.s / 1852, 3)} nautical miles, ${fmt(r.s / 1609.344, 3)} miles`);
+      fact(dl, 'Initial bearing', `${r.az1.toFixed(4)}°`, fmtDms(r.az1, true, 1).replace(/ [NS]$/, ''));
+      fact(dl, 'Final bearing', `${r.az2.toFixed(4)}°`, fmtDms(r.az2, true, 1).replace(/ [NS]$/, ''));
+      fact(dl, 'Back bearing (from the end)', `${((r.az2 + 180) % 360).toFixed(4)}°`);
+    } catch (err) { show(q('.utm-derr'), (err as Error).message); }
+  }
+
+  let rows: BatchRow[] = [];
+  const legs = () => { let prev: { lat: number; lon: number } | null = null, tot = 0; return rows.map((r) => { if (!r.p) return null; let leg = 0; if (prev) { const g = inverse(prev.lat, prev.lon, r.p.lat, r.p.lon, ell()); leg = g.converged ? g.s : NaN; tot += leg; } const out = prev ? { leg, tot } : { leg: NaN, tot: 0 }; prev = r.p; return out; }); };
+
+  function list() {
+    show(q('.utm-lerr'), ''); q('.utm-lres').hidden = true;
+    const text = v('.utm-list');
+    if (!text.trim()) return show(q('.utm-lerr'), 'Paste or type a list of points, open a file, or use the example.');
+    if (text.split('\n').length > 20001) return show(q('.utm-lerr'), 'That is more than 20,000 lines; split the list.');
+    rows = parseBatch(text, ell());
+    if (!rows.length) return show(q('.utm-lerr'), 'No points found.');
+    const good = rows.filter((r) => r.p).length, bad = rows.length - good, L = legs();
+    const total = L.reduce((s, x) => (x && Number.isFinite(x.tot) ? x.tot : s), 0);
+    q('.utm-lbig').textContent = `${good} point${good === 1 ? '' : 's'} converted${bad ? `, ${bad} not read` : ''}`;
+    const zones = new Set<number>(); let notes = 0;
+    const tb = q('.utm-table tbody'); tb.replaceChildren();
+    const mg = mgrsOk(); q('.utm-mgcol').hidden = !mg;
+    rows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      const td = (t: string, cls = '') => { const c = document.createElement('td'); c.textContent = t; if (cls) c.className = cls; tr.append(c); return c; };
+      td(String(i + 1)); td(r.label);
+      if (!r.p) { const c = td(`Line ${r.line}: ${r.error}`, 'err'); c.colSpan = mg ? 8 : 7; }
+      else {
+        try {
+          const { u, e, n } = utmText(r.p.lat, r.p.lon); zones.add(u.zone);
+          td(r.p.lat.toFixed(6), 'r'); td(r.p.lon.toFixed(6), 'r'); td(`${u.zone}${u.band}`); td(e, 'r'); td(n, 'r');
+          if (mg) td(toMgrs(r.p.lat, r.p.lon, Number(v('.utm-mg')), true, ell()));
+          const l = L[i]!; td(Number.isFinite(l.leg) ? fmt(l.leg, 1) : '–', 'r'); td(fmt(l.tot, 1), 'r');
+          if (r.p.note) notes++;
+        } catch (err) { const c = td((err as Error).message, 'err'); c.colSpan = mg ? 8 : 7; }
+      }
+      if (i < 500) tb.append(tr);
+    });
+    const msgs: string[] = [];
+    if (rows.length > 500) msgs.push(`The table shows the first 500 rows; the downloads have all ${rows.length}.`);
+    if (good > 1) msgs.push(`Path length along the list: ${total >= 10000 ? fmt(total / 1000, 3) + ' km' : fmt(total, 2) + ' m'} (geodesic legs).`);
+    if (zones.size > 1 && !Number(v('.utm-zone'))) msgs.push(`The points fall in ${zones.size} UTM zones (${[...zones].sort((a, b) => a - b).join(', ')}); eastings and northings from different zones cannot be compared directly. Choose one zone in Settings to put them all on one grid.`);
+    if (notes) msgs.push(`${notes} point${notes === 1 ? ' has a note' : 's have notes'} (MGRS squares or zone letters); see the CSV.`);
+    q('.utm-lnote').textContent = msgs.join(' ');
+    q('.utm-lres').hidden = false;
+  }
+
+  const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  q('.utm-csv').addEventListener('click', () => {
+    const L = legs(), dec = Number(v('.utm-dec'));
+    const head = ['name', 'input', 'latitude', 'longitude', 'latitude_dms', 'longitude_dms', 'utm_zone', 'hemisphere', 'band', 'easting_m', 'northing_m', 'mgrs', 'leg_m', 'cumulative_m', 'note'];
+    const lines = [head.join(',')];
+    rows.forEach((r, i) => {
+      if (!r.p) { lines.push([r.label, r.text, '', '', '', '', '', '', '', '', '', '', '', '', r.error ?? ''].map(csvCell).join(',')); return; }
+      try {
+        const u = toUtm(r.p.lat, r.p.lon, { zone: Number(v('.utm-zone')) || undefined, ell: ell() }), l = L[i]!;
+        lines.push([r.label, r.text, r.p.lat.toFixed(8), r.p.lon.toFixed(8), fmtDms(r.p.lat, true, 3), fmtDms(r.p.lon, false, 3), String(u.zone), u.hemi, u.band, u.easting.toFixed(dec), u.northing.toFixed(dec), mgrsOk() ? toMgrs(r.p.lat, r.p.lon, Number(v('.utm-mg')), false, ell()) : '', Number.isFinite(l.leg) ? l.leg.toFixed(3) : '', l.tot.toFixed(3), r.p.note ?? ''].map(csvCell).join(','));
+      } catch (err) { lines.push([r.label, r.text, r.p.lat.toFixed(8), r.p.lon.toFixed(8), '', '', '', '', '', '', '', '', '', '', (err as Error).message].map(csvCell).join(',')); }
+    });
+    save(new TextEncoder().encode('﻿' + lines.join('\r\n') + '\r\n'), 'points-utm.csv', 'text/csv');
+  });
+  q('.utm-geo').addEventListener('click', () => {
+    const features = rows.filter((r) => r.p).map((r) => {
+      const props: Record<string, string> = { name: r.label, input: r.text };
+      try { props.utm = utmText(r.p!.lat, r.p!.lon).text; if (mgrsOk()) props.mgrs = toMgrs(r.p!.lat, r.p!.lon, Number(v('.utm-mg')), true, ell()); } catch { /* outside UTM */ }
+      return { type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: [+r.p!.lon.toFixed(8), +r.p!.lat.toFixed(8)] } };
+    });
+    save(new TextEncoder().encode(JSON.stringify({ type: 'FeatureCollection', features }, null, 1)), 'points.geojson', 'application/geo+json');
+  });
+
+  const all = () => { point(); distance(); if (v('.utm-list').trim()) list(); };
+  for (const c of ['.utm-ell', '.utm-zone', '.utm-dec', '.utm-mg']) q(c).addEventListener('change', all);
+  q('.utm-in').addEventListener('input', point);
+  q('.utm-a').addEventListener('input', distance); q('.utm-b').addEventListener('input', distance);
+  let t = 0;
+  const lst = q<HTMLTextAreaElement>('.utm-list');
+  lst.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(list, 250); });
+  lst.addEventListener('change', list);
+  q('.utm-ex').addEventListener('click', () => { lst.value = EXAMPLE_BATCH; list(); });
+  q('.utm-clear').addEventListener('click', () => { lst.value = ''; rows = []; q('.utm-lres').hidden = true; show(q('.utm-lerr'), ''); });
+  lst.value = EXAMPLE_BATCH;
+  all();
+</script>
