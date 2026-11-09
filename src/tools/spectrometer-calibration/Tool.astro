@@ -1,0 +1,206 @@
+---
+// Spectrometer wavelength calibration from a photo of a spectrum: brightness profile, peaks, known lines, polynomial
+// pixel-to-wavelength fit and the calibrated spectrum. The photo never leaves the device. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spc">
+  <div class="ax-card">
+    <h2>Photo of the spectrum</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sc-open">Open a photo</button>
+      <input type="file" class="sc-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small sc-ex">Use the example</button>
+    </div>
+    <p class="ax-help sc-ph"></p>
+    <canvas class="ax-fig sc-photo"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Spectrum runs <select class="sc-dir"><option value="h" selected>Left to right</option><option value="v">Top to bottom</option></select></label>
+      <label>Band from (% across) <input class="sc-b0" type="text" inputmode="decimal" value="40" /></label>
+      <label>Band to (% across) <input class="sc-b1" type="text" inputmode="decimal" value="60" /></label>
+      <label>Colour used <select class="sc-ch"><option value="sum" selected>All (R + G + B)</option><option value="r">Red only</option><option value="g">Green only</option><option value="b">Blue only</option></select></label>
+      <label>Smoothing (pixels) <input class="sc-sm" type="text" inputmode="numeric" value="1" /></label>
+      <label>Peaks at least (% of tallest) <input class="sc-th" type="text" inputmode="decimal" value="10" /></label>
+      <label>Peaks at least (pixels apart) <input class="sc-sep" type="text" inputmode="numeric" value="4" /></label>
+    </div>
+    <p class="ax-help">The band is the strip of the photo (marked on it) that is averaged into one brightness profile; keep it inside the bright spectrum. Large photos are scaled to 2,000 pixels along the spectrum. The photo stays on your device: nothing is uploaded or stored.</p>
+    <p class="ax-err sc-err" hidden></p>
+  </div>
+
+  <div class="ax-card sc-mid" hidden>
+    <h2>Known lines</h2>
+    <div class="ax-grid">
+      <label>Light source <select class="sc-set"></select></label>
+      <label>Fit <select class="sc-deg"><option value="1">Straight line</option><option value="2" selected>Quadratic</option><option value="3">Cubic</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sc-auto">Match automatically</button></div>
+    <p class="ax-help sc-mnote"></p>
+    <div class="ax-scroll"><table class="sc-tab"></table></div>
+    <p class="ax-help">Pick the known line for each peak, or "—" to leave it out. Wavelengths are well-known lines rounded to 0.1 nm; lamp phosphor lines are approximate. A fluorescent tube or compact fluorescent lamp (CFL) shows mercury lines at 435.8 and 546.1 nm and a red phosphor line near 611.6 nm.</p>
+  </div>
+
+  <div class="ax-card sc-out" hidden>
+    <h2>Calibration</h2>
+    <p class="ax-big sc-big"></p>
+    <dl class="ax-facts sc-facts"></dl>
+    <canvas class="ax-fig sc-fig"></canvas>
+    <canvas class="ax-fig sc-fig2"></canvas>
+    <p class="ax-help">Wavelength = polynomial of the pixel position, fitted by least squares to the matched lines. Peak positions are refined to a fraction of a pixel with a parabola through the top three points. For study and planning; a phone spectrometer's accuracy is limited by its optics and camera processing.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sc-csv">Download the calibrated spectrum (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { profile, smooth, findPeaks, calibrate, plainCoeffs, polyval, autoMatch, LINE_SETS, exampleProfile, type Peak, type Calibration } from '../../lib/sci/phspec';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.spc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let img: { w: number; h: number; data: Uint8ClampedArray; name: string } | null = null;
+  let peaks: Peak[] = [], prof: number[] = [], match: number[] = [], cal: Calibration | null = null, figs: Figure[] = [], report: Section[] = [];
+
+  const sel = q<HTMLSelectElement>('.sc-set');
+  for (const [k, s] of Object.entries(LINE_SETS)) { const o = document.createElement('option'); o.value = k; o.textContent = s.name; sel.append(o); }
+  const lines = () => LINE_SETS[sel.value].lines;
+
+  function exampleImage() {
+    const p = exampleProfile(), w = p.length, h = 120, data = new Uint8ClampedArray(w * h * 4);
+    // Colour each column roughly by its (made-up) wavelength, brightness from the profile, fading at the top and bottom.
+    const col = (nm: number): [number, number, number] => nm < 440 ? [0.5, 0, 1] : nm < 490 ? [0, (nm - 440) / 50, 1] : nm < 510 ? [0, 1, (510 - nm) / 20] : nm < 580 ? [(nm - 510) / 70, 1, 0] : nm < 645 ? [1, (645 - nm) / 65, 0] : [1, 0, 0];
+    for (let x = 0; x < w; x++) { const nm = 380 + 0.32 * x + 2e-5 * x * x, c = col(nm), v = p[x] / 255; for (let y = 0; y < h; y++) { const f = Math.exp(-(((y - h / 2) / (h * 0.3)) ** 4)), o = 4 * (y * w + x); const k = Math.min(1, v * f * 1.15); data[o] = 255 * Math.min(1, k * c[0] + 0.15 * k); data[o + 1] = 255 * Math.min(1, k * c[1] + 0.15 * k); data[o + 2] = 255 * Math.min(1, k * c[2] + 0.15 * k); data[o + 3] = 255; } }
+    // Scale so that R + G + B along the band reproduces the profile shape (the profile, not the colour, is what is measured).
+    img = { w, h, data, name: 'example (made up)' };
+    sel.value = 'cfl';
+    q('.sc-ph').textContent = 'Made-up example: a fluorescent-lamp-like spectrum, 1000 × 120 pixels.';
+    analyse(true);
+  }
+
+  async function openFile(f: File) {
+    const err = q('.sc-err');
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp|heic|avif)$/i.test(f.name)) { err.textContent = `${f.name} is not a photo. Open a JPG, PNG or WebP picture of the spectrum.`; err.hidden = false; return; }
+    if (f.size > 40e6) { err.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; open a photo up to 40 MB.`; err.hidden = false; return; }
+    try {
+      const bmp = await createImageBitmap(f);
+      const along = q<HTMLSelectElement>('.sc-dir').value === 'v' ? bmp.height : bmp.width, k = Math.min(1, 2000 / along);
+      const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true })!; x.drawImage(bmp, 0, 0, w, h);
+      img = { w, h, data: x.getImageData(0, 0, w, h).data, name: f.name };
+      q('.sc-ph').textContent = `${f.name}: ${w} × ${h} pixels${k < 1 ? ` (scaled from ${bmp.width} × ${bmp.height})` : ''}.`;
+      analyse(true);
+    } catch { err.textContent = `${f.name} could not be read as a picture. Try saving it as JPG or PNG.`; err.hidden = false; }
+  }
+
+  function drawPhoto() {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.sc-photo'), v = q<HTMLSelectElement>('.sc-dir').value === 'v';
+    c.width = img.w; c.height = img.h; c.style.aspectRatio = `${img.w} / ${img.h}`;
+    const x = c.getContext('2d')!; x.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.w, img.h), 0, 0);
+    const b0 = val('.sc-b0') / 100, b1 = val('.sc-b1') / 100, lw = Math.max(1, Math.round(Math.max(img.w, img.h) / 400));
+    x.strokeStyle = '#ffffff'; x.lineWidth = lw; x.setLineDash([lw * 6, lw * 4]);
+    for (const b of [b0, b1]) { x.beginPath(); if (v) { x.moveTo(b * img.w, 0); x.lineTo(b * img.w, img.h); } else { x.moveTo(0, b * img.h); x.lineTo(img.w, b * img.h); } x.stroke(); }
+  }
+
+  function analyse(rematch: boolean) {
+    const err = q('.sc-err'), mid = q('.sc-mid'), out = q('.sc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; mid.hidden = true; out.hidden = true; report = []; cal = null; };
+    if (!img) return;
+    const v = q<HTMLSelectElement>('.sc-dir').value === 'v', b0 = val('.sc-b0'), b1 = val('.sc-b1'), sm = val('.sc-sm'), th = val('.sc-th'), sep = val('.sc-sep');
+    if (!(b0 >= 0 && b1 <= 100 && b1 > b0)) return fail('Give the band as two percentages across the photo, the second larger (for example 40 and 60).');
+    if (!(Number.isInteger(sm) && sm >= 1 && sm <= 51)) return fail('Smoothing is a whole number of pixels from 1 (none) to 51.');
+    if (!(th > 0 && th < 100) || !(Number.isInteger(sep) && sep >= 1)) return fail('Give the peak threshold as a percentage (1 to 99) and the spacing as a whole number of pixels.');
+    err.hidden = true;
+    drawPhoto();
+    const across = v ? img.w : img.h;
+    prof = smooth(profile(img.data, img.w, img.h, (b0 / 100) * (across - 1), (b1 / 100) * (across - 1), v, q<HTMLSelectElement>('.sc-ch').value as 'sum'), sm);
+    peaks = findPeaks(prof, th / 100, sep);
+    if (peaks.length < 2) return fail(`Found ${peaks.length} peak${peaks.length === 1 ? '' : 's'}: at least 2 bright lines are needed. Lower the threshold, move the band onto the spectrum, or check the direction.`);
+    if (peaks.length > 60) peaks = [...peaks].sort((a, b) => b.height - a.height).slice(0, 60).sort((a, b) => a.x - b.x);
+    mid.hidden = false;
+    if (rematch || match.length !== peaks.length) doMatch();
+    else { renderTable(); fit(); }
+  }
+
+  function doMatch() {
+    const L = lines().map((l) => l.nm);
+    match = autoMatch(peaks.map((p) => p.x), L, 3, [300, 1100], peaks.map((p) => p.height));
+    const n = match.filter((m) => m >= 0).length;
+    q('.sc-mnote').textContent = n >= 2 ? `Matched ${n} of ${peaks.length} peaks to ${LINE_SETS[sel.value].name.toLowerCase()} lines. Check them against what you expect to see.` : 'Could not match the peaks automatically: pick the lines by hand below.';
+    renderTable(); fit();
+  }
+
+  function renderTable() {
+    const t = q<HTMLTableElement>('.sc-tab'), L = lines();
+    t.replaceChildren();
+    const head = document.createElement('tr'); ['Peak', 'Pixel', 'Height', 'Known line', 'Fitted (nm)', 'Residual (nm)'].forEach((h, j) => { const e = document.createElement('th'); e.textContent = h; if (j && j !== 3) e.className = 'r'; head.append(e); }); t.append(head);
+    peaks.forEach((p, i) => {
+      const r = document.createElement('tr');
+      const cell = (s: string, right = true) => { const e = document.createElement('td'); e.textContent = s; if (right) e.className = 'r'; r.append(e); return e; };
+      cell(String(i + 1), false); cell(p.x.toFixed(2)); cell(sig(p.height, 3));
+      const td = document.createElement('td'), s = document.createElement('select'); s.className = 'sc-pick'; s.dataset.i = String(i); s.setAttribute('aria-label', `Known line for peak ${i + 1}`);
+      s.append(new Option('—', '-1'), ...L.map((l, k) => new Option(l.name, String(k))));
+      s.value = String(match[i] ?? -1); td.append(s); r.append(td);
+      cell(''); cell('');
+      t.append(r);
+    });
+    t.querySelectorAll<HTMLSelectElement>('.sc-pick').forEach((s) => s.addEventListener('change', () => { match[Number(s.dataset.i)] = Number(s.value); fit(); }));
+  }
+
+  function fit() {
+    const out = q('.sc-out'), L = lines(), deg = Number(q<HTMLSelectElement>('.sc-deg').value);
+    const pairs = peaks.map((p, i) => [p.x, match[i] >= 0 ? L[match[i]].nm : NaN] as const).filter((x) => Number.isFinite(x[1]));
+    const rows = [...q<HTMLTableElement>('.sc-tab').querySelectorAll('tr')].slice(1);
+    rows.forEach((r) => { r.children[4].textContent = ''; r.children[5].textContent = ''; });
+    const err = q('.sc-err');
+    if (new Set(pairs.map((p) => p[1])).size < pairs.length) { err.textContent = 'The same known line is picked for two peaks; each line can be used once.'; err.hidden = false; out.hidden = true; cal = null; report = []; return; }
+    try { cal = calibrate(pairs.map((p) => p[0]), pairs.map((p) => p[1]), deg); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; cal = null; report = []; return; }
+    err.hidden = true; out.hidden = false;
+    let k = 0;
+    peaks.forEach((p, i) => { const fl = polyval(cal!.fit, p.x); rows[i].children[4].textContent = fl.toFixed(2); if (match[i] >= 0) { rows[i].children[5].textContent = cal!.res[k].toFixed(3).replace('-', '−'); k++; } });
+    const pc = plainCoeffs(cal.fit), first = polyval(cal.fit, 0), last = polyval(cal.fit, prof.length - 1);
+    const term = (c: number, i: number) => `${i === 0 ? sig(c, 6) : `${c < 0 ? '−' : '+'} ${Math.abs(c) < 1e-3 ? fmtExp(Math.abs(c), 4) : sig(Math.abs(c), 5)}${i === 1 ? ' x' : ` x${i === 2 ? '²' : '³'}`}`}`;
+    q('.sc-big').textContent = `λ = ${pc.map(term).join(' ')} nm`;
+    const f = [
+      fact('Lines used', `${cal.n} of ${peaks.length} peaks`, `${['', 'straight line', 'quadratic', 'cubic'][deg]} fit`),
+      fact('RMS residual', Number.isFinite(cal.rms) ? `${sig(cal.rms, 3)} nm` : '–', Number.isFinite(cal.rms) ? 'scatter of the lines about the fit' : 'needs more lines than coefficients to estimate'),
+      fact('Dispersion', `${sig(Math.abs(cal.dispersion), 3)} nm per pixel`, 'at the middle of the matched lines'),
+      fact('Range of the photo', `${sig(Math.min(first, last), 4)} to ${sig(Math.max(first, last), 4)} nm`, `pixel 0 is ${sig(first, 4)} nm${first > last ? ' (red on the left)' : ''}`),
+    ];
+    q('.sc-facts').replaceChildren(...f);
+    const xs = prof.map((_, i) => polyval(cal!.fit, i)), mx = Math.max(...prof);
+    const used = peaks.map((p, i) => [p, match[i]] as const).filter(([, m]) => m >= 0);
+    const c1 = chartFigure({ w: 400, h: 230, xLabel: 'Wavelength (nm)', yLabel: 'Brightness (relative)', yMin: 0, legend: 'none', series: [{ name: 'Spectrum', x: xs, y: prof.map((v) => v / mx), mode: 'line', width: 1.4 }], marks: used.map(([, m]) => ({ kind: 'vline' as const, at: L[m].nm, dash: [2, 3], label: String(L[m].nm) })) }, 'Calibrated spectrum with the matched lines');
+    const c2 = chartFigure({ w: 400, h: 180, xLabel: 'Known wavelength (nm)', yLabel: 'Residual (nm)', legend: 'none', series: [{ name: 'Residual', x: used.map(([, m]) => L[m].nm), y: cal.res, mode: 'points', size: 4 }], marks: [{ kind: 'hline', at: 0, dash: [4, 3] }] }, 'Calibration residuals');
+    paint(q<HTMLCanvasElement>('.sc-fig'), c1); paint(q<HTMLCanvasElement>('.sc-fig2'), c2);
+    figs = [c1, c2];
+    const plain = (els: HTMLElement[]) => els.map((e) => [e.querySelector('dt')!.textContent!, e.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    const trows = used.map(([p, m], i) => [p.x.toFixed(2), L[m].name, polyval(cal!.fit, p.x).toFixed(2), cal!.res[i].toFixed(3)]);
+    report = [
+      { title: q('.sc-big').textContent!, facts: plain(f), figure: c1 },
+      { title: 'Matched lines', table: { head: ['Pixel', 'Known line', 'Fitted (nm)', 'Residual (nm)'], rows: trows, align: ['r', 'l', 'r', 'r'] }, figure: c2, note: `Photo: ${img?.name ?? ''}. Line wavelengths rounded to 0.1 nm.` },
+    ];
+  }
+
+  q('.sc-open').addEventListener('click', () => q<HTMLInputElement>('.sc-file').click());
+  q('.sc-file').addEventListener('change', () => { const i = q<HTMLInputElement>('.sc-file'), f = i.files?.[0]; i.value = ''; if (f) openFile(f); });
+  q('.sc-ex').addEventListener('click', exampleImage);
+  root.querySelectorAll('.sc-b0, .sc-b1, .sc-sm, .sc-th, .sc-sep').forEach((i) => i.addEventListener('input', () => analyse(false)));
+  root.querySelectorAll('.sc-dir, .sc-ch').forEach((i) => i.addEventListener('change', () => analyse(true)));
+  sel.addEventListener('change', doMatch);
+  q('.sc-auto').addEventListener('click', doMatch);
+  q('.sc-deg').addEventListener('change', fit);
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.sc-out').hidden) { paint(q<HTMLCanvasElement>('.sc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.sc-fig2'), figs[1]); } });
+  q('.sc-csv').addEventListener('click', () => { if (cal && prof.length) save(new TextEncoder().encode(csv([['pixel', 'wavelength_nm', 'brightness'], ...prof.map((v, i) => [i, +polyval(cal!.fit, i).toFixed(4), +v.toFixed(4)])])), 'calibrated-spectrum.csv', 'text/csv'); });
+  exampleImage();
+  wireDownloads(q('.dl'), () => ({ title: 'Spectrometer calibration', subtitle: q('.sc-big').textContent ?? '', file: 'spectrometer-calibration', sections: report }));
+</script>
+
+<style is:global>
+  .spc .sc-photo { margin-top: 8px; image-rendering: auto; background: #000; }
+  .spc .sc-pick { min-width: 8.5em; padding: 4px 6px; }
+</style>

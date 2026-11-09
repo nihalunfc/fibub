@@ -1,0 +1,144 @@
+---
+// Quadrat and line-intercept transect analysis: density, frequency, cover, relative values, importance value.
+// The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const quad = 'quadrat\tspecies\tcount\tcover %\nQ1\tRibwort plantain\t6\t20\nQ1\tWhite clover\t12\t35\nQ1\tDaisy\t4\t5\nQ2\tRibwort plantain\t3\t10\nQ2\tWhite clover\t20\t50\nQ2\tDandelion\t1\t8\nQ3\tDaisy\t9\t12\nQ3\tCreeping buttercup\t2\t6\nQ3\tWhite clover\t7\t15\nQ4\tRibwort plantain\t5\t15\nQ4\tDandelion\t2\t10\nQ5\tWhite clover\t15\t40\nQ5\tDaisy\t6\t8\nQ5\tCreeping buttercup\t4\t12\nQ6\tRibwort plantain\t8\t25\nQ6\tDaisy\t3\t4\nQ7\tWhite clover\t10\t30\nQ7\tDandelion\t1\t5\nQ8\tRibwort plantain\t2\t5\nQ8\tCreeping buttercup\t3\t10';
+const line = 'transect\tspecies\tintercept (m)\twidth (m)\nT1\tSagebrush\t1.2\t0.9\nT1\tRabbitbrush\t0.6\t0.5\nT1\tSagebrush\t0.8\t0.7\nT1\tBitterbrush\t1.5\t1.1\nT2\tSagebrush\t2.0\t1.4\nT2\tRabbitbrush\t0.4\t0.3\nT2\tRabbitbrush\t0.5\t0.4\nT3\tSagebrush\t1.1\t0.8\nT3\tBitterbrush\t0.9\t0.6\nT3\tSagebrush\t0.7\t0.5';
+---
+<div class="ax qta" data-quad={quad} data-line={line}>
+  <div class="ax-card">
+    <h2>Your survey</h2>
+    <div class="ax-seg qt-mode" role="group" aria-label="Method"><button type="button" data-m="quad" aria-pressed="true">Quadrats</button><button type="button" data-m="line" aria-pressed="false">Line intercept</button></div>
+    <label style="margin-top:12px"><span class="qt-what">One row per species in each quadrat: quadrat name, species, number of individuals, percentage cover. Either the count or the cover may be left blank.</span>
+      <textarea class="qt-data" rows="10" spellcheck="false" wrap="off">{quad}</textarea></label>
+    <DataFile target=".qt-data" maxCols={6} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="qt-areab">Quadrat area (m²) <input class="qt-area" inputmode="decimal" value="0.25" /></label>
+      <label class="qt-lenb" hidden>Length of each transect (m) <input class="qt-len" inputmode="decimal" value="20" /></label>
+      <label><span class="qt-nlab">Number of quadrats</span> <input class="qt-n" inputmode="numeric" placeholder="as listed" /></label>
+    </div>
+    <p class="ax-help qt-help">Leave the number blank to use the quadrats named in the table; give a larger number to include quadrats where nothing was found. The example is made up.</p>
+    <p class="ax-err qt-err" hidden></p>
+  </div>
+
+  <div class="ax-card qt-out">
+    <h2>Results</h2>
+    <p class="ax-big qt-big"></p>
+    <dl class="ax-facts qt-facts"></dl>
+    <h3>Per species</h3>
+    <div class="ax-scroll"><table class="qt-tab"></table></div>
+    <p class="ax-help">Relative values are each species' share of the total for all species, in %. The importance value adds them up, so it runs to 300 with density, frequency and cover (200 with two of them).</p>
+    <h3>Importance value</h3>
+    <canvas class="ax-fig qt-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qt-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { quadrats, lineIntercept, type Rec, type Summary } from '../../lib/sci/quadrat';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.qta')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f2 = (x: number | null, d = 4) => (x === null ? '–' : sig(x, d));
+  let mode: 'quad' | 'line' = 'quad', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function bars(s: Summary): Figure {
+    const parts: [string, (r: Summary['rows'][number]) => number | null][] = [['Rel. density', (r) => r.relDensity], ['Rel. frequency', (r) => r.relFrequency], ['Rel. cover', (r) => r.relCover]];
+    const used = parts.filter(([, g]) => s.rows.some((r) => g(r) !== null)), rows = s.rows.slice(0, 25);
+    const h = 56 + rows.length * 26;
+    return { w: 440, h, alt: `Importance value by species, out of ${s.ivMax}`, draw: (ctx, W, H, pal) => {
+      const cols = pal.red ? ['#a30000', '#6e0000', '#c00000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8'];
+      ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      const lw = Math.min(150, Math.max(...rows.map((r) => ctx.measureText(r.species).width)) + 12), x0 = lw, x1 = W - 40, k = (x1 - x0) / Math.max(...rows.map((r) => r.iv));
+      rows.forEach((r, i) => {
+        const y = 12 + i * 26; let x = x0;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right';
+        let name = r.species; while (ctx.measureText(name).width > lw - 12 && name.length > 3) name = name.slice(0, -2) + '…';
+        ctx.fillText(name, x0 - 8, y + 9);
+        used.forEach(([, g], j) => { const v = g(r) ?? 0; ctx.fillStyle = cols[j]; ctx.fillRect(x, y, v * k, 18); x += v * k; });
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(sig(r.iv, 3), x + 6, y + 9);
+      });
+      let lx = 8; const ly = H - 22;
+      used.forEach(([n], j) => { ctx.fillStyle = cols[j]; ctx.fillRect(lx, ly - 6, 12, 12); ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(n, lx + 16, ly); lx += ctx.measureText(n).width + 34; });
+    } };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.qt-err').textContent = m; q('.qt-err').hidden = false; q('.qt-out').hidden = true; sections = []; csvRows = []; fig = null; };
+    q('.qt-err').hidden = true;
+    const all = parseTable(q<HTMLTextAreaElement>('.qt-data').value);
+    const isHead = (r: string[]) => r.length > 2 && !Number.isFinite(num(r[2])) && !Number.isFinite(num(r[3] ?? '')) && (r[2] ?? '') !== '';
+    const body = all.length && isHead(all[0]) ? all.slice(1) : all;
+    if (body.length > 20000) return fail('Up to 20,000 rows, please.');
+    const recs: Rec[] = [];
+    for (const [i, r] of body.entries()) {
+      if (r.length < 3 || !r[0] || !r[1]) return fail(`Row ${i + 1}: give a ${mode === 'quad' ? 'quadrat' : 'transect'} name, a species and at least one number.`);
+      const cell = (s: string | undefined) => (s === undefined || s.trim() === '' ? null : num(s));
+      const a = cell(r[2]), b = cell(r[3]);
+      if ((a !== null && !(a >= 0)) || (b !== null && !(b >= 0))) return fail(`Row ${i + 1} (${r[1]}): numbers must be zero or more.`);
+      if (mode === 'quad' && b !== null && b > 100) return fail(`Row ${i + 1} (${r[1]}): cover is a percentage, from 0 to 100.`);
+      if (a === null && b === null) return fail(`Row ${i + 1} (${r[1]}): give a count or a cover.`);
+      recs.push({ sample: r[0], species: r[1], a, b });
+    }
+    if (!recs.length) return fail('Paste at least one row.');
+    const nTxt = q<HTMLInputElement>('.qt-n').value.trim(), n = nTxt ? num(nTxt) : undefined;
+    if (n !== undefined && !(Number.isInteger(n) && n > 0)) return fail('The number of quadrats or transects must be a whole number above zero.');
+    const named = new Set(recs.map((r) => r.sample)).size;
+    if (n !== undefined && n < named) return fail(`The table names ${named} ${mode === 'quad' ? 'quadrats' : 'transects'}, more than the ${n} you entered.`);
+    let s: Summary;
+    try {
+      s = mode === 'quad' ? quadrats(recs, num(q<HTMLInputElement>('.qt-area').value), n) : lineIntercept(recs, num(q<HTMLInputElement>('.qt-len').value), n);
+    } catch (e) { return fail((e as Error).message); }
+    if (!s.rows.length) return fail('Every count and cover is zero.');
+    q('.qt-out').hidden = false;
+    const unit = mode === 'quad' ? 'quadrat' : 'transect', top = s.rows[0];
+    q('.qt-big').textContent = `${s.rows.length} species in ${s.samples} ${unit}s; most important: ${top.species} (${sig(top.iv, 4)} of ${s.ivMax})`;
+    const L = num(q<HTMLInputElement>('.qt-len').value);
+    q('.qt-facts').replaceChildren(
+      ...(s.totalDensity !== null ? [fact('Total density', `${sig(s.totalDensity, 4)} per m²`, `${sig(s.totalDensity * 1e4, 4)} per hectare`)] : []),
+      ...(s.totalCover !== null ? [fact(mode === 'quad' ? 'Total cover' : 'Total line cover', `${sig(s.totalCover, 4)} %`, mode === 'quad' ? 'summed over species; layers can overlap past 100 %' : 'share of the line under plants')] : []),
+      fact('Sampled', mode === 'quad' ? `${sig(s.samples * num(q<HTMLInputElement>('.qt-area').value), 4)} m²` : `${sig(s.samples * L, 4)} m of line`, `${s.samples} ${unit}s${s.samples > named ? `, ${s.samples - named} with nothing found` : ''}`),
+      fact('Importance value', `out of ${s.ivMax}`, s.hasDensity && s.hasCover ? 'relative density + frequency + cover' : s.hasDensity ? 'relative density + frequency (no cover given)' : 'relative frequency + cover (no counts or widths given)'),
+    );
+    const head = ['Species', mode === 'quad' ? 'Individuals' : 'Plants', 'Density /m²', 'Frequency %', 'Cover %', 'Rel. density', 'Rel. frequency', 'Rel. cover', 'Importance'];
+    const rows = s.rows.map((r) => [r.species, String(r.individuals), f2(r.density), sig(100 * r.frequency, 4), f2(r.cover), f2(r.relDensity), sig(r.relFrequency, 4), f2(r.relCover), sig(r.iv, 4)]);
+    const t = q<HTMLTableElement>('.qt-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    fig = bars(s); paint(q<HTMLCanvasElement>('.qt-fig'), fig);
+    csvRows = [head, ...s.rows.map((r) => [r.species, String(r.individuals), r.density === null ? '' : sig(r.density, 8), sig(100 * r.frequency, 8), r.cover === null ? '' : sig(r.cover, 8), r.relDensity === null ? '' : sig(r.relDensity, 8), sig(r.relFrequency, 8), r.relCover === null ? '' : sig(r.relCover, 8), sig(r.iv, 8)])];
+    const method = mode === 'quad' ? `Quadrats of ${q<HTMLInputElement>('.qt-area').value} m²: density = individuals ÷ area sampled; frequency = share of quadrats with the species; cover = mean % cover over all quadrats.` : `Line-intercept transects of ${L} m (Canfield 1941): cover = intercepted length ÷ line length; density = Σ(1 ÷ plant width) ÷ line length (Strong 1966); frequency = share of transects with the species.`;
+    sections = [{ title: q('.qt-big').textContent!, text: [method], facts: [...q('.qt-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') }, figure: fig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.qt-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b || b.dataset.m === mode) return;
+    mode = b.dataset.m as 'quad' | 'line'; q('.qt-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const box = q<HTMLTextAreaElement>('.qt-data');
+    if (box.value.trim() === (mode === 'quad' ? root.dataset.line : root.dataset.quad)!.trim() || !box.value.trim()) box.value = (mode === 'quad' ? root.dataset.quad : root.dataset.line)!;
+    q('.qt-areab').hidden = mode !== 'quad'; q('.qt-lenb').hidden = mode === 'quad';
+    q('.qt-nlab').textContent = mode === 'quad' ? 'Number of quadrats' : 'Number of transects';
+    q('.qt-what').textContent = mode === 'quad' ? 'One row per species in each quadrat: quadrat name, species, number of individuals, percentage cover. Either the count or the cover may be left blank.' : 'One row per plant that touches the line: transect name, species, length of line it covers, and (optional, for density) its widest extent at right angles to the line, both in metres.';
+    q('.qt-help').textContent = mode === 'quad' ? 'Leave the number blank to use the quadrats named in the table; give a larger number to include quadrats where nothing was found. The example is made up.' : 'Leave the number blank to use the transects named in the table; give a larger number to include transects that crossed no plants. The example is made up.';
+    calc();
+  });
+  q('.qt-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), mode === 'quad' ? 'quadrat-results.csv' : 'transect-results.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.qt-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'quad' ? 'Quadrat survey analysis' : 'Line-intercept transect analysis', subtitle: q('.qt-big').textContent ?? '', file: 'quadrat-transect', sections }));
+</script>
+
+<style is:global>
+  .qta .qt-tab td:first-child { white-space: nowrap; }
+  .qta .qt-out h3 { margin: 18px 0 8px; }
+</style>

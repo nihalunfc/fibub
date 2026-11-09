@@ -1,0 +1,238 @@
+---
+// Embedding visualiser: PCA and exact t-SNE of a small table (up to 2,000 rows) in a Web Worker, coloured by a label
+// column, with explained variance and neighbour-preservation scores. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax emv">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>Paste a table (first row = column names), or open a file
+      <textarea class="emv-in" rows="7" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".emv-in" maxMB={10} maxCols={100} maxRows={2000} />
+    <p class="ax-help">The example of 120 readings from four machines is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Method <select class="emv-m">
+        <option value="both">PCA and t-SNE</option>
+        <option value="pca">PCA only</option>
+        <option value="tsne">t-SNE only</option>
+      </select></label>
+      <label>Colour by <select class="emv-label"></select></label>
+      <label class="emv-o-ts">Perplexity <input class="emv-perp" inputmode="decimal" value="30" /></label>
+      <label class="emv-o-ts">Steps <input class="emv-iter" inputmode="numeric" value="1000" /></label>
+      <label class="emv-o-ts">Start from <select class="emv-init"><option value="pca">PCA (same result every time)</option><option value="random">Random (uses the seed)</option></select></label>
+      <label class="emv-o-ts emv-seed-w">Seed <input class="emv-seed" inputmode="numeric" value="42" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="emv-std" checked /> Standardise columns (each to mean 0, SD 1), so units do not matter</label>
+    <h3 class="emv-h3">Number columns to use</h3>
+    <div class="emv-feats"></div>
+    <p class="ax-help emv-help">PCA finds the straight directions with the most spread. t-SNE places similar rows near each other; perplexity is roughly how many neighbours each row pays attention to (5 to 50; it must be below the number of rows).</p>
+    <div class="ax-row" style="margin-top:8px"><span class="ax-help emv-status" role="status" style="margin:0"></span><button type="button" class="btn secondary small emv-stop" hidden>Stop</button></div>
+    <p class="ax-err emv-err" hidden></p>
+  </div>
+
+  <div class="emv-out ax" style="margin:0" hidden>
+    <div class="ax-card emv-c-pca">
+      <h2>PCA</h2>
+      <p class="ax-big emv-pbig"></p>
+      <canvas class="ax-fig emv-pfig"></canvas>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Across <select class="emv-px"></select></label>
+        <label>Up <select class="emv-py"></select></label>
+      </div>
+      <canvas class="ax-fig emv-scree" style="margin-top:12px"></canvas>
+      <h3 class="emv-h3">Loadings (weight of each column in each component)</h3>
+      <div class="ax-scroll"><table class="emv-load"></table></div>
+    </div>
+    <div class="ax-card emv-c-ts">
+      <h2>t-SNE</h2>
+      <p class="ax-big emv-tbig"></p>
+      <dl class="ax-facts emv-tfacts"></dl>
+      <canvas class="ax-fig emv-tfig" style="margin-top:12px"></canvas>
+      <p class="ax-help">Distances between clusters and cluster sizes in a t-SNE picture mean little; what counts is which rows end up together. Trustworthiness near 1 means rows close in the picture really are close in the data.</p>
+    </div>
+    <div class="ax-card">
+      <h2>Downloads</h2>
+      <p class="ax-help emv-note" style="margin-top:0"></p>
+      <div class="ax-row"><button type="button" class="btn secondary small emv-csv">Coordinates (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .emv .emv-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .emv .emv-feats { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .emv .emv-load td { white-space: nowrap; }
+</style>
+
+<script>
+  import { readTable, cellNumber, toCsvText, type Table } from '../../lib/sci/dataset';
+  import { EXAMPLE } from '../../lib/sci/embed';
+  import type { EmbedSettings } from '../../lib/sci/embedworker';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.emv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.emv-in');
+  type Res = { rows: number[]; n: number; dropped: number; names: string[]; labels: string[]; constant: string[]; pca?: { components: number[][]; variance: number[]; ratio: number[]; scores: number[][] }; tsne?: { Y: number[][]; kl: number; iterations: number; trust: number; keep: number }; pcaQuality?: { trust: number; keep: number } };
+  let table: Table | null = null, res: Res | null = null, worker: Worker | null = null, busy = false, seq = 0, timer = 0, fileName = 'machines';
+  const figs: Record<string, Figure | null> = { p: null, s: null, t: null };
+  const MAXC = 10;
+  const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+  const f4 = (x: number) => (+x.toPrecision(4)).toString().replace('-', '−');
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = ''): HTMLElementTagNameMap[K] { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+
+  function columns(t: Table) {
+    const names = t.head.join('\u0000');
+    if (root.dataset.cols === names) return;
+    root.dataset.cols = names;
+    const numeric = t.head.map((_, j) => { const v = t.rows.map((r) => r[j]).filter((x) => x && x.trim() !== ''); return v.length > 0 && v.filter((x) => Number.isFinite(cellNumber(x))).length >= 0.9 * v.length; });
+    const distinct = t.head.map((_, j) => new Set(t.rows.map((r) => r[j])).size);
+    const lab = q<HTMLSelectElement>('.emv-label');
+    lab.replaceChildren(el('option', '(no colours)'), ...t.head.map((h) => { const o = el('option', h); o.value = h; return o; }));
+    (lab.options[0] as HTMLOptionElement).value = '';
+    const guess = t.head.findIndex((h, j) => !numeric[j] && distinct[j] <= MAXC * 2);
+    lab.value = guess >= 0 ? t.head[guess] : '';
+    q('.emv-feats').replaceChildren(...t.head.map((h, j) => {
+      const l = el('label', '', 'ax-check'), cb = el('input');
+      cb.type = 'checkbox'; cb.value = h; cb.className = 'emv-f'; cb.checked = numeric[j] && h !== lab.value; cb.disabled = !numeric[j];
+      l.append(cb, document.createTextNode(' ' + h + (numeric[j] ? '' : ' (text)'))); return l;
+    }));
+  }
+  function settings(): EmbedSettings {
+    const method = q<HTMLSelectElement>('.emv-m').value as EmbedSettings['method'];
+    const perplexity = num(q<HTMLInputElement>('.emv-perp').value), iterations = num(q<HTMLInputElement>('.emv-iter').value), seed = num(q<HTMLInputElement>('.emv-seed').value);
+    if (method !== 'pca') {
+      if (!(perplexity >= 1 && perplexity <= 100)) throw new Error('The perplexity must be from 1 to 100.');
+      if (!(Number.isInteger(iterations) && iterations >= 250 && iterations <= 5000)) throw new Error('Steps must be a whole number from 250 to 5,000.');
+      if (!Number.isInteger(seed)) throw new Error('The seed must be a whole number.');
+    }
+    return { method, perplexity, iterations, seed, init: q<HTMLSelectElement>('.emv-init').value as 'pca', label: q<HTMLSelectElement>('.emv-label').value, standardise: q<HTMLInputElement>('.emv-std').checked, features: [...root.querySelectorAll<HTMLInputElement>('.emv-f')].filter((c) => c.checked && !c.disabled).map((c) => c.value) };
+  }
+  function showOptions() {
+    const m = q<HTMLSelectElement>('.emv-m').value;
+    root.querySelectorAll<HTMLElement>('.emv-o-ts').forEach((e) => (e.hidden = m === 'pca'));
+    q('.emv-seed-w').hidden = m === 'pca' || q<HTMLSelectElement>('.emv-init').value === 'pca';
+  }
+  function stop(msg = '') { if (worker) { worker.terminate(); worker = null; } busy = false; q('.emv-stop').hidden = true; q('.emv-status').textContent = msg; }
+
+  function runIt() {
+    showOptions();
+    const err = q('.emv-err');
+    let s: EmbedSettings;
+    try {
+      table = readTable(box.value);
+      if (!table.head.length || table.rows.length < 4) throw new Error('Paste a table with a row of column names and at least 4 rows.');
+      columns(table); s = settings();
+      if (s.method !== 'pca' && !(s.perplexity < table.rows.length)) throw new Error(`The perplexity must be below the number of rows (${table.rows.length}).`);
+    } catch (e) { stop(); err.textContent = (e as Error).message; err.hidden = false; q('.emv-out').hidden = true; res = null; return; }
+    if (busy) stop();
+    worker ??= new Worker(new URL('../../lib/sci/embedworker.ts', import.meta.url), { type: 'module' });
+    const id = ++seq; busy = true;
+    q('.emv-status').textContent = s.method === 'pca' ? 'Working…' : 't-SNE: starting…'; q('.emv-stop').hidden = s.method === 'pca';
+    worker.onmessage = (e) => {
+      const d = e.data; if (d.id !== id) return;
+      if (d.progress) { q('.emv-status').textContent = `t-SNE: step ${d.progress.iter} of ${d.progress.of}, KL divergence ${d.progress.kl.toFixed(3)}`; return; }
+      busy = false; q('.emv-stop').hidden = true; q('.emv-status').textContent = '';
+      if (!d.ok) { err.textContent = d.error; err.hidden = false; q('.emv-out').hidden = true; res = null; return; }
+      err.hidden = true; res = d.result; show(s);
+    };
+    worker.onerror = () => { stop(); err.textContent = 'The calculation stopped with an error. Try fewer rows.'; err.hidden = false; };
+    worker.postMessage({ id, text: box.value, settings: s });
+  }
+
+  /** Scatter coloured by label: one series per label (the most common ones; the rest as "other"). */
+  function scatter(xs: number[], ys: number[], labels: string[], xl: string, yl: string, alt: string): Figure {
+    const counts = new Map<string, number>(); labels.forEach((l) => counts.set(l, (counts.get(l) ?? 0) + 1));
+    const keys = [...counts.keys()].filter((k) => k !== '').sort((a, b) => (counts.get(b)! - counts.get(a)!) || (a < b ? -1 : 1));
+    const shown = keys.length > MAXC ? keys.slice(0, MAXC - 1) : keys, other = new Set(keys.slice(shown.length));
+    const groups = shown.length ? [...shown.sort(), ...(other.size ? ['other'] : [])] : [''];
+    const series = groups.map((g) => { const idx = labels.map((l, i) => (g === '' ? i : g === 'other' ? (other.has(l) ? i : -1) : l === g ? i : -1)).filter((i) => i >= 0); return { name: g, x: idx.map((i) => xs[i]), y: idx.map((i) => ys[i]), size: 3.2 }; });
+    return chartFigure({ w: 560, h: 440, xLabel: xl, yLabel: yl, series, legend: groups.length > 1 ? 'below' : 'none' }, alt);
+  }
+
+  function axesChoices(k: number) {
+    for (const [c, def] of [['.emv-px', 0], ['.emv-py', 1]] as const) {
+      const s = q<HTMLSelectElement>(c), old = s.value;
+      if (s.options.length === k) continue;
+      s.replaceChildren(...Array.from({ length: k }, (_, i) => { const o = el('option', `PC${i + 1}`); o.value = String(i); return o; }));
+      s.value = old && Number(old) < k ? old : String(Math.min(def, k - 1));
+    }
+  }
+  function drawPca() {
+    const r = res!, P = r.pca!, a = Number(q<HTMLSelectElement>('.emv-px').value), b = Number(q<HTMLSelectElement>('.emv-py').value);
+    figs.p = scatter(P.scores.map((s) => s[a]), P.scores.map((s) => s[b]), r.labels, `PC${a + 1} (${pc(P.ratio[a])})`, `PC${b + 1} (${pc(P.ratio[b])})`, `PCA scores: PC${a + 1} against PC${b + 1}, ${r.n} rows`);
+    paint(q<HTMLCanvasElement>('.emv-pfig'), figs.p);
+  }
+
+  function show(s: EmbedSettings) {
+    const r = res!;
+    q('.emv-out').hidden = false;
+    q('.emv-c-pca').hidden = !r.pca; q('.emv-c-ts').hidden = !r.tsne;
+    const sections: Section[] = [];
+    const notes = [`${r.n.toLocaleString('en')} rows and ${r.names.length} columns used${s.standardise ? ', standardised' : ''}.`];
+    if (r.dropped) notes.push(`${r.dropped} row${r.dropped === 1 ? '' : 's'} with a gap or text in a chosen column left out.`);
+    if (r.constant.length) notes.push(`${r.constant.join(', ')} ${r.constant.length === 1 ? 'has' : 'have'} the same value in every row and add${r.constant.length === 1 ? 's' : ''} nothing.`);
+    q('.emv-note').textContent = notes.join(' ');
+    if (r.pca) {
+      const P = r.pca, k = P.ratio.length;
+      axesChoices(Math.min(k, 10));
+      q('.emv-pbig').textContent = `PC1 and PC2 explain ${pc(P.ratio[0] + (P.ratio[1] ?? 0))} of the variance`;
+      drawPca();
+      let cum = 0; const cumul = P.ratio.map((v) => (cum += v));
+      figs.s = chartFigure({ w: 560, h: 280, xLabel: 'Component', yLabel: 'Share of variance', yMin: 0, yMax: 1, series: [{ name: 'Each component', x: P.ratio.map((_, i) => i + 1), y: P.ratio, mode: 'both' }, { name: 'Cumulative', x: cumul.map((_, i) => i + 1), y: cumul, mode: 'both', dash: [5, 3] }] }, 'Scree plot: share of variance explained by each principal component');
+      paint(q<HTMLCanvasElement>('.emv-scree'), figs.s);
+      const kc = Math.min(k, 5), head = ['Column', ...Array.from({ length: kc }, (_, i) => `PC${i + 1}`)];
+      const rows = [...r.names.map((nm, j) => [nm, ...P.components.slice(0, kc).map((c) => c[j].toFixed(3).replace('-', '−'))]), ['Variance explained', ...P.ratio.slice(0, kc).map(pc)], ['Cumulative', ...cumul.slice(0, kc).map(pc)]];
+      const t = q<HTMLTableElement>('.emv-load'), tr = el('tr'); head.forEach((h, j) => tr.append(el('th', h, j ? 'r' : '')));
+      const tb = el('tbody'); rows.forEach((row) => { const x = el('tr'); row.forEach((c, j) => x.append(el('td', c, j ? 'r' : ''))); tb.append(x); });
+      const th = el('thead'); th.append(tr); t.replaceChildren(th, tb);
+      const quality = r.pcaQuality ? [['PC1–PC2 trustworthiness', r.pcaQuality.trust.toFixed(3)], ['PC1–PC2 neighbours kept (10 nearest)', pc(r.pcaQuality.keep)]] as [string, string][] : [];
+      sections.push({ title: 'PCA', facts: [['Result', q('.emv-pbig').textContent!], ...quality], figure: figs.p! }, { title: 'Scree plot and loadings', figure: figs.s, table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) } });
+    }
+    if (r.tsne) {
+      const T = r.tsne;
+      q('.emv-tbig').textContent = `KL divergence ${T.kl.toFixed(3)} after ${T.iterations} steps`;
+      const facts: [string, string][] = [['Perplexity', String(s.perplexity)], ['Trustworthiness (5 nearest)', T.trust.toFixed(3)], ['Neighbours kept (10 nearest)', pc(T.keep)]];
+      if (r.pcaQuality) facts.push(['PCA (PC1–PC2) keeps', pc(r.pcaQuality.keep)]);
+      facts.push(['Started from', s.init === 'pca' ? 'PCA' : `random, seed ${s.seed}`]);
+      q('.emv-tfacts').replaceChildren(...facts.map(([k, v]) => { const d = el('div'); d.append(el('dt', k), el('dd', v)); return d; }));
+      figs.t = scatter(T.Y.map((y) => y[0]), T.Y.map((y) => y[1]), r.labels, 't-SNE 1', 't-SNE 2', `t-SNE map of ${r.n} rows, perplexity ${s.perplexity}`);
+      paint(q<HTMLCanvasElement>('.emv-tfig'), figs.t);
+      sections.push({ title: 't-SNE', facts: [['Result', q('.emv-tbig').textContent!], ...facts], figure: figs.t });
+    }
+    sections.push({ title: 'Notes', text: [q('.emv-note').textContent ?? ''] });
+    current = sections;
+  }
+  let current: Section[] = [];
+
+  q('.emv-csv').addEventListener('click', () => {
+    if (!res || !table) return;
+    const r = res, k = r.pca ? r.pca.scores[0].length : 0, lab = q<HTMLSelectElement>('.emv-label').value;
+    const head = ['row', ...(lab ? [lab] : []), ...Array.from({ length: k }, (_, i) => `PC${i + 1}`), ...(r.tsne ? ['tSNE1', 'tSNE2'] : [])];
+    const rows = r.rows.map((ri, i) => [ri + 1, ...(lab ? [r.labels[i]] : []), ...(r.pca ? r.pca.scores[i].map((v) => +v.toPrecision(10)) : []), ...(r.tsne ? r.tsne.Y[i].map((v) => +v.toPrecision(10)) : [])]);
+    save(new Blob([toCsvText(head, rows)], { type: 'text/csv' }), `${fileSafe(fileName)}-embedding.csv`, 'text/csv');
+  });
+  q('.emv-stop').addEventListener('click', () => stop('Stopped.'));
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.classList?.contains('dfb-in') && t.files?.[0]) fileName = t.files[0].name.replace(/\.[^.]+$/, ''); }, true);
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.matches('.emv-px, .emv-py')) { if (res?.pca) { drawPca(); if (current[0]?.title === 'PCA') current[0].figure = figs.p!; } return; }
+    if (t.matches('.emv-label')) { const v = (t as HTMLSelectElement).value; root.querySelectorAll<HTMLInputElement>('.emv-f').forEach((c) => { if (c.value === v) c.checked = false; }); }
+    if (t.matches('select, input[type=checkbox]')) { clearTimeout(timer); runIt(); }
+  });
+  root.addEventListener('input', (e) => { const t = e.target as HTMLElement; if (t.matches('select, input[type=checkbox], .dfb-in')) return; clearTimeout(timer); timer = window.setTimeout(runIt, 400); });
+  document.addEventListener('fibub:theme', () => { if (figs.p) paint(q<HTMLCanvasElement>('.emv-pfig'), figs.p); if (figs.s) paint(q<HTMLCanvasElement>('.emv-scree'), figs.s); if (figs.t) paint(q<HTMLCanvasElement>('.emv-tfig'), figs.t); });
+  box.value = EXAMPLE;
+  runIt();
+  wireDownloads(q('.dl'), () => ({ title: 'Embedding', subtitle: `${fileName}: ${res?.n ?? 0} rows`, file: `${fileSafe(fileName)}-embedding`, sections: current }));
+</script>

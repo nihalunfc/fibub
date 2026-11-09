@@ -1,0 +1,104 @@
+---
+// Gravitational-wave chirp calculator: leading-order inspiral of a compact binary. Example masses are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gwc">
+  <div class="ax-card">
+    <h2>Binary</h2>
+    <div class="ax-grid">
+      <label><span>Mass 1 (solar masses)</span> <input class="gw-m1" type="text" inputmode="decimal" value="30" /></label>
+      <label><span>Mass 2 (solar masses)</span> <input class="gw-m2" type="text" inputmode="decimal" value="25" /></label>
+      <label><span>Luminosity distance (Mpc)</span> <input class="gw-d" type="text" inputmode="decimal" value="400" /></label>
+      <label><span>Redshift z (0 = nearby)</span> <input class="gw-z" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Start frequency (Hz)</span> <input class="gw-f" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Masses are as measured in the source's own frame; with a redshift z the detector sees them (1 + z) times heavier and everything slower. Frequencies are gravitational-wave frequencies, twice the orbital frequency. 1 Mpc = 3.26 million light-years. The example values are made up.</p>
+    <p class="ax-err gw-err" hidden></p>
+  </div>
+
+  <div class="ax-card gw-out">
+    <h2>Chirp</h2>
+    <p class="ax-big gw-big"></p>
+    <dl class="ax-facts gw-facts"></dl>
+    <canvas class="ax-fig gw-ffig"></canvas>
+    <canvas class="ax-fig gw-hfig"></canvas>
+    <canvas class="ax-fig gw-cfig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gw-csv">Frequency and strain against time (CSV)</button></div>
+    <p class="ax-help">Leading-order (Newtonian quadrupole) inspiral, stopped at the innermost stable circular orbit of the total mass. Real waveforms add post-Newtonian corrections, spins, the merger and the ringdown, so treat times within about 10 to 20 % and the merger phase as indicative. The strain is for a face-on binary directly overhead; averaged over sky position and orientation it is about 2.5 times smaller. For study.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { chirpMass, eta, tau, freqAt, fdot, cycles, phaseAt, strain, hChar, fIsco, separation, vOverC } from '../../lib/sci/phgw';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gwc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-300) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const dur = (s: number) => (s < 1 ? `${sg(s * 1000)} ms` : s < 120 ? `${sg(s)} s` : s < 7200 ? `${sg(s / 60)} min` : s < 86400 * 3 ? `${sg(s / 3600)} h` : s < 3.15576e7 * 2 ? `${sg(s / 86400)} days` : `${sg(s / 3.15576e7)} years`);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.gw-err'), out = q('.gw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const m1 = val('.gw-m1'), m2 = val('.gw-m2'), d = val('.gw-d'), z = val('.gw-z'), f0 = val('.gw-f');
+    if (!(m1 >= 0.05 && m1 <= 1e10) || !(m2 >= 0.05 && m2 <= 1e10)) return fail('Give both masses in solar masses (0.05 to 10¹⁰).');
+    if (!(d > 0 && d <= 1e6)) return fail('Give the luminosity distance in megaparsecs (above 0).');
+    if (!(z >= 0 && z <= 20)) return fail('Give a redshift from 0 to 20.');
+    const zf = 1 + z, Mc = chirpMass(m1, m2) * zf, M = (m1 + m2) * zf, fi = fIsco(M);
+    if (!(f0 > 0 && f0 < fi)) return fail(`Give a start frequency above 0 and below the ISCO frequency of ${sg(fi, 3)} Hz, where the inspiral ends.`);
+    err.hidden = true; out.hidden = false;
+    const T = tau(f0, Mc) - tau(fi, Mc), N = cycles(f0, fi, Mc);
+    q('.gw-big').textContent = `${dur(T)} and ${sg(N, 3)} cycles from ${sg(f0, 3)} Hz to ${sg(fi, 3)} Hz`;
+    const f = [
+      fact('Chirp mass', `${sg(Mc / zf, 4)} M☉`, `(m₁m₂)^(3/5) / (m₁ + m₂)^(1/5)${z ? `; ${sg(Mc, 4)} M☉ as seen by the detector` : ''}; it alone sets the chirp`),
+      fact('Total mass and mass ratio', `${sg((m1 + m2), 4)} M☉, η = ${sg(eta(m1, m2), 4)}`, 'η = m₁m₂/(m₁ + m₂)², 0.25 for equal masses'),
+      fact('End of inspiral (ISCO)', `${sg(fi, 4)} Hz`, `gravitational-wave frequency at 6GM/c²; orbital speed there ${sg(vOverC(fi, M), 3)}c`),
+      fact(`Time from ${sg(f0, 3)} Hz`, dur(T), `to the ISCO; ${dur(tau(f0, Mc))} to the formal coalescence time`),
+      fact('Cycles in band', sg(N, 4), 'gravitational-wave cycles between the start frequency and the ISCO'),
+      fact(`Chirp rate at ${sg(f0, 3)} Hz`, `${sg(fdot(f0, Mc), 3)} Hz/s`, `rising to ${sg(fdot(fi, Mc), 3)} Hz/s at the ISCO`),
+      fact(`Strain at ${sg(f0, 3)} Hz`, fmtExp(strain(f0, Mc, d), 3), `face-on, at ${sg(d, 4)} Mpc; ${fmtExp(strain(fi, Mc, d), 3)} at the ISCO`),
+      fact('Orbit size at the start', `${sg(separation(f0 / zf, m1 + m2) / 1000, 4)} km`, `separation of the two bodies; orbital period ${dur(2 / f0)}`),
+    ];
+    q('.gw-facts').replaceChildren(...f);
+    // Frequency against time, log-spaced in frequency.
+    const fs: number[] = []; for (let i = 0; i <= 400; i++) fs.push(f0 * Math.pow(fi / f0, i / 400));
+    const ts = fs.map((x) => -tau(x, Mc));
+    const tScale = T < 1 ? 1000 : 1, tUnit = T < 1 ? 'ms' : 's';
+    const c1 = chartFigure({ w: 380, h: 220, xLabel: `Time to coalescence (${tUnit})`, yLabel: 'GW frequency (Hz)', yLog: true, legend: 'none', series: [{ name: 'f(t)', x: ts.map((t) => t * tScale), y: fs, mode: 'line', width: 2 }] }, 'Frequency rising towards merger');
+    // Waveform over the last cycles (all of them if few).
+    const lastN = Math.min(N, 25), fStart = N > 25 ? (() => { let lo = f0, hi = fi; for (let i = 0; i < 80; i++) { const m = Math.sqrt(lo * hi); if (cycles(m, fi, Mc) > 25) lo = m; else hi = m; } return lo; })() : f0;
+    const t0 = tau(fStart, Mc), t1 = tau(fi, Mc), wt: number[] = [], wh: number[] = [];
+    const nS = Math.ceil(lastN * 60);
+    const hmax = strain(fi, Mc, d), ex = Math.floor(Math.log10(hmax)), sc = Math.pow(10, -ex);
+    for (let i = 0; i <= nS; i++) { const tt = t0 + ((t1 - t0) * i) / nS, ff = freqAt(tt, Mc); wt.push(-tt * tScale); wh.push(strain(ff, Mc, d) * Math.cos(phaseAt(tt, Mc)) * sc); }
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: `Time to coalescence (${tUnit})`, yLabel: `Strain (× 10^${ex})`, legend: 'none', series: [{ name: 'h(t)', x: wt, y: wh, mode: 'line', width: 1.2 }] }, `Face-on waveform over the last ${sg(lastN, 3)} cycles before the ISCO`);
+    const c3 = chartFigure({ w: 380, h: 220, xLabel: 'Frequency (Hz)', yLabel: 'Characteristic strain h_c', xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'h_c = h √(2f²/ḟ)', x: fs, y: fs.map((x) => hChar(x, Mc, d)), mode: 'line', width: 2 },
+      { name: 'Strain h', x: fs, y: fs.map((x) => strain(x, Mc, d)), mode: 'line', width: 1.2, dash: [5, 3] },
+    ] }, 'Strain and characteristic strain against frequency');
+    figs = [['.gw-ffig', c1], ['.gw-hfig', c2], ['.gw-cfig', c3]];
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+    rows = [['time to coalescence (s)', 'GW frequency (Hz)', 'strain face-on', 'characteristic strain'], ...fs.map((x) => [+tau(x, Mc).toPrecision(10), +x.toPrecision(10), +strain(x, Mc, d).toPrecision(6), +hChar(x, Mc, d).toPrecision(6)])];
+    const fr = (dd: Element) => [dd.querySelector('dt')!.textContent!, dd.querySelector('dd')!.childNodes[0].textContent!] as [string, string];
+    report = [{ title: q('.gw-big').textContent!, facts: [...q('.gw-facts').children].map(fr), figure: c1 }, { title: 'Waveform', figure: c2 }, { title: 'Strain', figure: c3 }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.gw-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), 'gw-chirp.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gravitational-wave chirp', subtitle: `${q<HTMLInputElement>('.gw-m1').value} + ${q<HTMLInputElement>('.gw-m2').value} solar masses`, file: 'gw-chirp', sections: report }));
+</script>
+
+<style is:global>
+  .gwc input { max-width: 100%; }
+</style>

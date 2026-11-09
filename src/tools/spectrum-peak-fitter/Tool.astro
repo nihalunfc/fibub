@@ -1,0 +1,191 @@
+---
+// Spectrum and histogram peak fitting: Gaussian peaks on a polynomial background in a region of interest, peak
+// finding, net areas, and an energy calibration. The example spectrum is made up (seeded Poisson noise).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax spf">
+  <div class="ax-card">
+    <h2>Spectrum</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small sp-ex">Use the example</button><button type="button" class="btn secondary small sp-clear">Clear</button></div>
+    <label style="margin-top:10px">Counts, one per line (channels 0, 1, 2 …), or two columns: channel or energy, counts <textarea class="sp-in" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".sp-in" maxCols={2} maxRows={65536} label="Open a file (1 or 2 columns)" />
+    <p class="ax-help sp-info"></p>
+    <label class="ax-check" style="margin-top:6px"><input type="checkbox" class="sp-log" checked /> Logarithmic counts axis</label>
+    <canvas class="ax-fig sp-fig0" style="margin-top:10px"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Region and peaks</h2>
+    <div class="ax-grid">
+      <label>Region from <input class="sp-lo" type="text" inputmode="decimal" value="380" /></label>
+      <label>Region to <input class="sp-hi" type="text" inputmode="decimal" value="460" /></label>
+      <label>Background <select class="sp-bg"><option value="0">constant</option><option value="1" selected>straight line</option><option value="2">quadratic</option></select></label>
+      <label>Typical peak width (FWHM) <input class="sp-w" type="text" inputmode="decimal" value="12" /></label>
+      <label class="sp-wide">Peak positions, separated by commas <input class="sp-pk" type="text" value="410, 425" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sp-find">Find peaks in the region</button><span class="ax-help sp-found" style="margin:0" aria-live="polite"></span></div>
+    <p class="ax-help">Positions are starting guesses in the units of the first column; the fit moves them. Width: a rough full width at half maximum, used to find peaks. Counts are weighted as Poisson (1/counts).</p>
+    <p class="ax-err sp-err" hidden></p>
+    <div class="sp-out">
+      <p class="ax-big sp-big"></p>
+      <div class="ax-scroll"><table class="sp-tab"></table></div>
+      <dl class="ax-facts sp-facts" style="margin-top:10px"></dl>
+      <canvas class="ax-fig sp-fig1" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig sp-fig2" style="margin-top:6px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sp-csv">Download peaks (CSV)</button><button type="button" class="btn secondary small sp-fcsv">Download fit (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Energy calibration (optional)</h2>
+    <label>Pairs, one per line: position and energy. Write #1, #2 … for a fitted peak's centroid. <textarea class="sp-cal" rows="3" spellcheck="false" placeholder="#1 662&#10;180 300"></textarea></label>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Calibration <select class="sp-co"><option value="1" selected>straight line</option><option value="2">quadratic (3 or more pairs)</option></select></label>
+      <label>Energy unit <input class="sp-eu" type="text" value="keV" /></label>
+    </div>
+    <p class="ax-help">Peaks from earlier fits stay as #1, #2 … only while the region is unchanged; for a calibration across the spectrum, type the positions of known peaks as numbers.</p>
+    <p class="ax-err sp-cerr" hidden></p>
+    <dl class="ax-facts sp-cfacts"></dl>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement or validated spectroscopy software. Peak shapes are pure Gaussians (no low-energy tail).</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .spf .sp-wide { grid-column: 1 / -1; }
+  .spf select, .spf input { max-width: 100%; }
+  .spf .sp-tab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { readSpectrum, fitPeaks, findPeaks, sumArea, calibrate, exampleSpectrum, type PeakFit } from '../../lib/sci/phpeak';
+  import { num, fmtExp, parseTable, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.spf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sig = (x: number, n = 4) => { const a = Math.abs(x); return !Number.isFinite(x) ? '–' : a && (a >= 1e7 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
+  const fixed = (x: number, e: number) => { const d = Math.max(0, Math.min(6, 1 - Math.floor(Math.log10(Math.abs(e) || 1)))); return x.toFixed(d).replace('-', '−'); };
+  const pm = (x: number, e: number) => `${fixed(x, e)} ± ${sig(e, 2)}`;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  let spec: { x: number[]; y: number[] } | null = null, fit: PeakFit | null = null, cal: ReturnType<typeof calibrate> = null;
+  let figs: (Figure | null)[] = [null, null, null], peakRows: string[][] = [], peakHead: string[] = [], report: Section[] = [];
+
+  function region() {
+    const lo = num(inp('.sp-lo').value), hi = num(inp('.sp-hi').value), x = spec!.x;
+    if (!(Number.isFinite(lo) && Number.isFinite(hi) && hi > lo)) return null;
+    let i0 = x.findIndex((v) => v >= lo), i1 = x.length - 1 - [...x].reverse().findIndex((v) => v <= hi);
+    if (i0 < 0 || i1 >= x.length || i1 <= i0) return null;
+    return { i0, i1 };
+  }
+
+  function overview() {
+    if (!spec) return;
+    const log = inp('.sp-log').checked, r = region();
+    const ys = spec.y.map((v) => (log ? Math.max(v, 0.5) : v));
+    const f = chartFigure({ w: 380, h: 200, xLabel: spec.x[0] === 0 && spec.x[1] === 1 ? 'Channel' : 'Position', yLabel: 'Counts', yLog: log, yMin: log ? 0.5 : 0, legend: 'none', series: [{ name: 'counts', x: spec.x, y: ys, mode: 'line', width: 1 }], marks: r ? [{ kind: 'vline', at: spec.x[r.i0], dash: [3, 3] }, { kind: 'vline', at: spec.x[r.i1], dash: [3, 3], label: 'region' }] : [] }, 'Whole spectrum with the fitting region marked');
+    paint(q<HTMLCanvasElement>('.sp-fig0'), f); figs[0] = f;
+  }
+
+  function run() {
+    const err = q('.sp-err'), out = q('.sp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fit = null; report = []; calib(); };
+    const rows = parseTable(q<HTMLTextAreaElement>('.sp-in').value).map((r) => r.map(num));
+    const s = readSpectrum(rows);
+    if (typeof s === 'string') { spec = null; q('.sp-info').textContent = ''; return fail(s); }
+    spec = s;
+    q('.sp-info').textContent = `${s.x.length.toLocaleString('en')} channels, ${s.y.reduce((a, b) => a + b, 0).toLocaleString('en')} counts in all.`;
+    overview();
+    const r = region();
+    if (!r) return fail('Give a region (from, to) inside the spectrum, with "to" larger than "from".');
+    const mus = inp('.sp-pk').value.split(/[,;\s]+/).filter(Boolean).map(num);
+    if (mus.some((m) => !Number.isFinite(m))) return fail('Peak positions must be numbers, separated by commas.');
+    if (mus.some((m) => m <= s.x[r.i0] || m >= s.x[r.i1])) return fail('Every peak position must lie inside the region.');
+    if (mus.length > 8) return fail('Up to 8 peaks in one region.');
+    const res = fitPeaks(s.x, s.y, r.i0, r.i1, mus, +q<HTMLSelectElement>('.sp-bg').value as 0 | 1 | 2);
+    if (!res.ok) return fail(res.error);
+    err.hidden = true; out.hidden = false; fit = res;
+    q('.sp-big').textContent = `${res.peaks.length} peak${res.peaks.length > 1 ? 's' : ''}: ${res.peaks.map((p) => fixed(p.mu, p.muSe)).join(', ')}`;
+    // Charts of the region and the residuals.
+    const xs = res.x, fx: number[] = [], dense: number[] = [];
+    for (let i = 0; i <= 400; i++) dense.push(xs[0] + ((xs[xs.length - 1] - xs[0]) * i) / 400);
+    for (const xx of dense) fx.push(res.model(xx));
+    const f1 = chartFigure({ w: 380, h: 240, xLabel: 'Position', yLabel: 'Counts', yMin: 0, legend: 'below', series: [
+      { name: 'Data', x: xs, y: res.y, mode: 'points', marker: 'circle', size: 2.2 },
+      { name: 'Fit', x: dense, y: fx, mode: 'line', width: 2 },
+      { name: 'Background', x: dense, y: dense.map(res.background), mode: 'line', width: 1.2, dash: [5, 4] },
+    ], marks: res.peaks.map((p, i) => ({ kind: 'vline' as const, at: p.mu, dash: [2, 3], label: `#${i + 1}` })) }, 'Fitted peaks in the region');
+    const nr = xs.map((xx, i) => (res.y[i] - res.model(xx)) / Math.sqrt(Math.max(res.y[i], 1)));
+    const f2 = chartFigure({ w: 380, h: 140, xLabel: 'Position', yLabel: 'Residual (σ)', legend: 'none', series: [{ name: 'residual', x: xs, y: nr, mode: 'points', marker: 'circle', size: 2 }], marks: [{ kind: 'hline', at: 0 }, { kind: 'hline', at: 2, dash: [2, 3] }, { kind: 'hline', at: -2, dash: [2, 3] }] }, 'Normalised residuals');
+    paint(q<HTMLCanvasElement>('.sp-fig1'), f1); paint(q<HTMLCanvasElement>('.sp-fig2'), f2); figs[1] = f1; figs[2] = f2;
+    calib();
+  }
+
+  function table() {
+    if (!fit) return;
+    const eu = inp('.sp-eu').value.trim() || 'keV', res = fit, r = region()!;
+    peakHead = ['#', 'Centroid', 'FWHM', 'Net area (counts)', 'Height', ...(cal ? [`Energy (${eu})`, `FWHM (${eu})`] : [])];
+    peakRows = res.peaks.map((p, i) => [String(i + 1), pm(p.mu, p.muSe), pm(p.fwhm, p.fwhmSe), pm(p.area, p.areaSe), sig(p.height, 4), ...(cal ? [sig(cal.f(p.mu), 6), sig(p.fwhm * cal.d(p.mu), 3)] : [])]);
+    const tab = q<HTMLTableElement>('.sp-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); peakHead.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody(); peakRows.forEach((row) => { const tr = bd.insertRow(); row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    const sa = sumArea(spec!.y, r.i0, r.i1, Math.max(1, Math.min(5, Math.floor((r.i1 - r.i0 + 1) / 10))));
+    const f = [
+      fact('Goodness of fit', `χ²/ν = ${sig(res.redChi2, 3)}`, `χ² = ${sig(res.chi2, 4)} on ${res.df} degrees of freedom; near 1 means the model fits within counting noise${res.redChi2 > 2 ? ' (here it does not: try another background or another peak)' : ''}`),
+      fact('Summation net area of the region', pm(sa.net, sa.se), `gross ${sa.gross} minus a trapezoid background of ${sig(sa.background, 5)}; compare with the sum of the fitted areas, ${sig(res.peaks.reduce((a, p) => a + p.area, 0), 5)}`),
+      fact('Region', `${sig(spec!.x[r.i0], 6)} to ${sig(spec!.x[r.i1], 6)}`, `${r.i1 - r.i0 + 1} channels; ${['constant', 'straight-line', 'quadratic'][res.bgOrder]} background`),
+    ];
+    q('.sp-facts').replaceChildren(...f);
+    report = [{ title: q('.sp-big').textContent!, table: { head: peakHead, rows: peakRows, align: peakHead.map((_, j) => (j ? 'r' : 'l')) }, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[1]! }, { title: 'Whole spectrum', figure: figs[0]! }];
+    if (cal) report.push({ title: 'Energy calibration', facts: [...q('.sp-cfacts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) });
+  }
+
+  function calib() {
+    const e = q('.sp-cerr'), out = q('.sp-cfacts'); cal = null;
+    const lines = q<HTMLTextAreaElement>('.sp-cal').value.split('\n').map((l) => l.trim()).filter(Boolean);
+    const done = (m = '') => { e.textContent = m; e.hidden = !m; if (m) out.replaceChildren(); table(); };
+    if (!lines.length) { out.replaceChildren(); return done(); }
+    const pairs: [number, number][] = [];
+    for (const [i, l] of lines.entries()) {
+      const t = l.split(/[\s,;]+/), ref = t[0].match(/^#(\d+)$/);
+      let ch = num(t[0]);
+      if (ref) { const p = fit?.peaks[+ref[1] - 1]; if (!p) return done(`Line ${i + 1}: there is no fitted peak ${t[0]}.`); ch = p.mu; }
+      const E = num(t[1]);
+      if (!Number.isFinite(ch) || !Number.isFinite(E)) return done(`Line ${i + 1}: write a position (or #n) and an energy.`);
+      pairs.push([ch, E]);
+    }
+    const order = +q<HTMLSelectElement>('.sp-co').value as 1 | 2;
+    if (pairs.length < order + 1) return done(order === 1 ? 'A straight-line calibration needs at least 2 pairs.' : 'A quadratic calibration needs at least 3 pairs.');
+    if (new Set(pairs.map((p) => p[0])).size < pairs.length) return done('Each pair needs a different position.');
+    cal = calibrate(pairs, order);
+    if (!cal) return done('These pairs do not give a calibration.');
+    const eu = inp('.sp-eu').value.trim() || 'keV';
+    const eq = order === 1 ? `E = ${sig(cal.c[0], 6)} + ${sig(cal.c[1], 6)} × x` : `E = ${sig(cal.c[0], 6)} + ${sig(cal.c[1], 6)} × x + ${sig(cal.c[2], 6)} × x²`;
+    const rms = Math.sqrt(pairs.reduce((s, [c, E]) => s + (E - cal!.f(c)) ** 2, 0) / pairs.length);
+    out.replaceChildren(fact('Calibration', eq, `in ${eu}, x = position`), fact('Fit residuals', `${sig(rms, 3)} ${eu} rms`, pairs.map(([c, E]) => `${sig(c, 6)} → ${sig(cal!.f(c), 6)} (given ${sig(E, 6)})`).join('; ')));
+    done();
+  }
+
+  const box = q<HTMLTextAreaElement>('.sp-in');
+  q('.sp-ex').addEventListener('click', () => { box.value = exampleSpectrum().join('\n'); inp('.sp-lo').value = '380'; inp('.sp-hi').value = '460'; inp('.sp-pk').value = '410, 425'; q<HTMLSelectElement>('.sp-bg').value = '1'; run(); });
+  q('.sp-clear').addEventListener('click', () => { box.value = ''; run(); });
+  q('.sp-find').addEventListener('click', () => {
+    if (!spec) return; const r = region(); if (!r) return run();
+    const dx = (spec.x[spec.x.length - 1] - spec.x[0]) / (spec.x.length - 1), w = num(inp('.sp-w').value) / dx;
+    const fp = findPeaks(spec.y, r.i0 + 2, r.i1 - 2, { width: Number.isFinite(w) && w > 0 ? w / 2 : 3, max: 8 }).map((p) => spec!.x[p.i]).sort((a, b) => a - b);
+    q('.sp-found').textContent = fp.length ? `Found ${fp.length}.` : 'None found: type positions instead.';
+    if (fp.length) { inp('.sp-pk').value = fp.map((v) => sig(v, 6)).join(', '); run(); }
+  });
+  ['.sp-in', '.sp-lo', '.sp-hi', '.sp-bg', '.sp-pk'].forEach((c) => { q(c).addEventListener('input', run); q(c).addEventListener('change', run); });
+  inp('.sp-log').addEventListener('change', overview);
+  ['.sp-cal', '.sp-co', '.sp-eu'].forEach((c) => { q(c).addEventListener('input', calib); q(c).addEventListener('change', calib); });
+  q('.sp-csv').addEventListener('click', () => { if (fit) save(new TextEncoder().encode(csv([['peak', 'centroid', 'centroid se', 'fwhm', 'fwhm se', 'net area', 'area se', 'height', ...(cal ? ['energy', 'fwhm energy'] : [])], ...fit.peaks.map((p, i) => [i + 1, +p.mu.toPrecision(10), +p.muSe.toPrecision(4), +p.fwhm.toPrecision(8), +p.fwhmSe.toPrecision(4), +p.area.toPrecision(8), +p.areaSe.toPrecision(4), +p.height.toPrecision(8), ...(cal ? [+cal.f(p.mu).toPrecision(10), +(p.fwhm * cal.d(p.mu)).toPrecision(6)] : [])])])), 'peaks.csv', 'text/csv'); });
+  q('.sp-fcsv').addEventListener('click', () => { if (fit) { const f = fit; save(new TextEncoder().encode(csv([['position', 'counts', 'fit', 'background', 'residual (sigma)'], ...f.x.map((xx, i) => [xx, f.y[i], +f.model(xx).toPrecision(8), +f.background(xx).toPrecision(8), +((f.y[i] - f.model(xx)) / Math.sqrt(Math.max(f.y[i], 1))).toPrecision(5)])])), 'peak-fit.csv', 'text/csv'); } });
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.sp-fig0'), figs[0]); if (fit && figs[1] && figs[2]) { paint(q<HTMLCanvasElement>('.sp-fig1'), figs[1]); paint(q<HTMLCanvasElement>('.sp-fig2'), figs[2]); } });
+  box.value = exampleSpectrum().join('\n'); run();
+  wireDownloads(q('.dl'), () => ({ title: 'Spectrum peak fit', subtitle: q('.sp-info').textContent ?? '', file: 'spectrum-peaks', sections: report }));
+</script>

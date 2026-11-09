@@ -1,0 +1,218 @@
+---
+// Queueing calculator: M/M/1, M/M/c (Erlang C), M/M/c/K, M/M/∞, Erlang B and M/G/1, staffing for a target wait,
+// and a seeded discrete-event simulation to compare with. Everything runs in the browser. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax qcs">
+  <div class="ax-card">
+    <h2>Queue</h2>
+    <div class="ax-grid">
+      <label>Model <select class="qc-k">
+        <option value="mm1">M/M/1: one server</option>
+        <option value="mmc" selected>M/M/c: several servers (Erlang C)</option>
+        <option value="mmck">M/M/c/K: limited room, extra arrivals turned away</option>
+        <option value="erlangb">Erlang B (M/M/c/c): no queue, busy means lost</option>
+        <option value="mminf">M/M/∞: everyone served at once (self-service)</option>
+        <option value="mg1">M/G/1: one server, any service time spread</option>
+      </select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Arrivals <input class="qc-l" inputmode="decimal" value="100" /></label>
+      <label>per <select class="qc-lu"><option value="1">second</option><option value="60">minute</option><option value="3600" selected>hour</option><option value="86400">day</option></select></label>
+      <label>Average service time <input class="qc-s" inputmode="decimal" value="3" /></label>
+      <label>in <select class="qc-su"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option><option value="86400">days</option></select></label>
+      <label class="qc-cw">Servers c <input class="qc-c" inputmode="numeric" value="6" /></label>
+      <label class="qc-kw" hidden>Room in the system K <input class="qc-K" inputmode="numeric" value="10" /></label>
+      <label class="qc-sdw" hidden>Service time standard deviation <input class="qc-sd" inputmode="decimal" value="1.5" /></label>
+    </div>
+    <p class="ax-help qc-help"></p>
+    <p class="ax-err qc-err" hidden></p>
+  </div>
+
+  <div class="ax-card qc-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big qc-big"></p>
+    <dl class="ax-facts qc-facts"></dl>
+    <p class="ax-help qc-note"></p>
+  </div>
+
+  <div class="ax-card qc-staff" hidden>
+    <h2>Staffing</h2>
+    <div class="ax-grid">
+      <label class="qc-tkw">Target <select class="qc-tk"><option value="sl">Share served within a time</option><option value="asa">Average wait at most</option></select></label>
+      <label class="qc-pw">Share (%) <input class="qc-pct" inputmode="decimal" value="80" /></label>
+      <label class="qc-tw">Within (seconds) <input class="qc-t" inputmode="decimal" value="20" /></label>
+      <label class="qc-bw" hidden>Lost at most (%) <input class="qc-bt" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-big qc-sbig" style="margin-top:12px"></p>
+    <div class="ax-scroll"><table class="qc-stab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qc-scsv">Download staffing table (CSV)</button></div>
+  </div>
+
+  <div class="ax-card qc-simc" hidden>
+    <h2>Simulation</h2>
+    <p class="ax-help" style="margin-top:0">Customers arrive at random and are served first come, first served, one by one in the computer. The first tenth is left out as warm-up. Averages from a simulation wobble; the ± is a 95 % range from 20 batches.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Customers <select class="qc-n"><option>5000</option><option>20000</option><option selected>100000</option><option>500000</option></select></label>
+      <label>Seed <input class="qc-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small qc-new">New seed and run again</button></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="qc-simtab"></table></div>
+    <p class="ax-help qc-simn"></p>
+    <canvas class="ax-fig qc-fig" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig qc-fig2" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qc-pcsv">Download number-in-system table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { solveQueue, staffing, simulate, erlangB, erlangBServers, type Kind, type Input, type Result, type SimResult } from '../../lib/sci/queue';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.qcs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const HELP: Record<Kind, string> = {
+    mm1: 'One server; arrivals at random (Poisson) and service times spread exponentially. The textbook single queue.',
+    mmc: 'c identical servers sharing one queue, such as a call centre or a bank. The Erlang C formula gives the chance of waiting.',
+    mmck: 'c servers and room for K people in all (being served plus waiting). Anyone arriving when it is full is turned away.',
+    erlangb: 'c servers and no waiting room: a call that finds every line busy is lost. Used for phone lines, beds and parking.',
+    mminf: 'So many servers that nobody waits, such as people browsing a shop or a self-service car park. The number present follows a Poisson distribution.',
+    mg1: 'One server, arrivals at random, and any service time distribution with the given mean and standard deviation (Pollaczek-Khinchine). SD = mean is the M/M/1 case; SD = 0 is a fixed service time.',
+  };
+  let figs: Figure[] = [], report: Section[] = [], staffRows: (string | number)[][] = [], pnRows: (string | number)[][] = [], seed = 1;
+
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const table = (t: HTMLElement, head: string[], rows: string[][], hi = -1) => {
+    const tr = document.createElement('tr'); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; tr.append(th); });
+    t.replaceChildren(tr, ...rows.map((r, k) => { const x = document.createElement('tr'); if (k === hi) x.className = 'qc-hi'; r.forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i) td.className = 'r'; x.append(td); }); return x; }));
+  };
+
+  function read(): { inp: Input; unit: string; uSec: number } {
+    const k = sel('.qc-k') as Kind;
+    const l = val('.qc-l'), lu = Number(sel('.qc-lu')), s = val('.qc-s'), su = Number(sel('.qc-su'));
+    if (!(l > 0)) throw new Error('Type an arrival rate above zero.');
+    if (!(s > 0)) throw new Error('Type an average service time above zero.');
+    const unit = q<HTMLSelectElement>('.qc-su').selectedOptions[0].textContent!;
+    const inp: Input = { kind: k, lambda: (l / lu) * su, mu: 1 / s };
+    if (k === 'mmc' || k === 'mmck' || k === 'erlangb') { inp.c = val('.qc-c'); if (!(Number.isInteger(inp.c) && inp.c >= 1 && inp.c <= 5000)) throw new Error('The number of servers must be a whole number from 1 to 5000.'); }
+    if (k === 'mmck') inp.K = val('.qc-K');
+    if (k === 'mg1') { inp.sd = val('.qc-sd'); if (!(inp.sd >= 0)) throw new Error('Type a standard deviation of 0 or more (same unit as the service time).'); }
+    return { inp, unit, uSec: su };
+  }
+
+  function calc() {
+    const k = sel('.qc-k') as Kind, err = q('.qc-err');
+    q('.qc-cw').hidden = !['mmc', 'mmck', 'erlangb'].includes(k); q('.qc-kw').hidden = k !== 'mmck'; q('.qc-sdw').hidden = k !== 'mg1';
+    q('.qc-help').textContent = HELP[k];
+    try {
+      const { inp, unit, uSec } = read();
+      const r = solveQueue(inp), t = (x: number) => `${sig(x, 4)} ${unit}`;
+      err.hidden = true; q('.qc-out').hidden = false;
+      const offered = `${sig(r.a, 4)} erlangs (arrival rate × service time)`;
+      if (!r.stable) {
+        q('.qc-big').textContent = 'The queue grows without limit';
+        facts(q('.qc-facts'), [['Utilisation', `${sig(r.rho * 100, 4)} %`], ['Offered load', offered]]);
+        q('.qc-note').textContent = `Work arrives faster than ${inp.kind === 'mmc' ? `${inp.c} servers` : 'the server'} can do it (utilisation must be below 100 %). ${inp.kind === 'mmc' ? `At least ${Math.floor(r.a) + 1} servers are needed.` : 'Speed up service, or add servers (M/M/c).'}`;
+      } else {
+        q('.qc-big').textContent = inp.kind === 'erlangb' ? `${sig(r.pBlock * 100, 4)} % of arrivals are lost` : inp.kind === 'mminf' ? `On average ${sig(r.L, 4)} in the system, nobody waits` : `Average wait in the queue Wq = ${t(r.Wq)}`;
+        const list: [string, string][] = [
+          ['Utilisation ρ', `${sig(r.rho * 100, 4)} %`],
+          ['In the system L', sig(r.L, 4)], ['In the queue Lq', sig(r.Lq, 4)],
+          ['Time in the system W', t(r.W)], ['Time in the queue Wq', t(r.Wq)],
+          ['Chance of waiting', `${sig(r.pWait * 100, 4)} %`],
+          ['Offered load', offered],
+        ];
+        if (inp.kind === 'mmck' || inp.kind === 'erlangb') list.push(['Turned away', `${sig(r.pBlock * 100, 4)} %`], ['Served per ' + unit.replace(/s$/, ''), sig(r.lambdaEff, 4)]);
+        if (r.waitTail && inp.kind !== 'mminf') list.push([`Wait over ${sig(val('.qc-t'), 4)} s`, `${sig(r.waitTail(val('.qc-t') / uSec) * 100, 4)} %`]);
+        if (r.Wq > 0) list.push(['Average wait of those who wait', t(r.Wq / r.pWait)]);
+        facts(q('.qc-facts'), list.filter(([, v]) => !/NaN/.test(v)));
+        q('.qc-note').textContent = `Little's law holds: L = λW (${sig(r.L, 4)} = ${sig(r.lambdaEff, 4)} × ${sig(r.W, 4)}). Formulas assume steady state: the same rates for a long time.`;
+      }
+      staff(inp, r, unit, uSec);
+      sim(inp, r, unit);
+      report = [{ title: q<HTMLSelectElement>('.qc-k').selectedOptions[0].textContent!, text: [q('.qc-big').textContent!], facts: [...q('.qc-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!]) as [string, string][] }];
+      if (!q('.qc-staff').hidden) report.push({ title: 'Staffing', text: [q('.qc-sbig').textContent!], table: { head: staffRows[0].map(String), rows: staffRows.slice(1).map((x) => x.map(String)) } });
+      if (!q('.qc-simc').hidden) report.push({ title: 'Simulation', table: { head: ['Measure', 'Formula', 'Simulation'], rows: [...q('.qc-simtab').querySelectorAll('tr')].slice(1).map((tr) => [...tr.children].map((c) => c.textContent!)) }, figure: figs[0] });
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; for (const c of ['.qc-out', '.qc-staff', '.qc-simc']) q(c).hidden = true; report = []; }
+  }
+
+  function staff(inp: Input, r: Result, unit: string, uSec: number) {
+    const card = q('.qc-staff');
+    const k = inp.kind;
+    card.hidden = !(k === 'mmc' || k === 'mm1' || k === 'erlangb');
+    if (card.hidden) return;
+    q('.qc-bw').hidden = k !== 'erlangb'; for (const c of ['.qc-tkw', '.qc-pw', '.qc-tw']) q(c).hidden = k === 'erlangb';
+    if (k !== 'erlangb') q('.qc-pw').hidden = sel('.qc-tk') !== 'sl';
+    q('.qc-tw').firstChild!.textContent = sel('.qc-tk') === 'sl' ? 'Within (seconds) ' : 'Average wait (seconds) ';
+    if (k === 'erlangb') {
+      const tgt = val('.qc-bt') / 100;
+      if (!(tgt > 0 && tgt < 1)) throw new Error('The share lost must be between 0 and 100 %.');
+      const best = erlangBServers(r.a, tgt);
+      q('.qc-sbig').textContent = `${best} servers lose at most ${sig(tgt * 100, 3)} %`;
+      const rows: string[][] = []; staffRows = [['servers', 'lost %', 'utilisation %']];
+      for (let c = Math.max(1, best - 3); c <= best + 3; c++) { const b = erlangB(c, r.a); rows.push([String(c), sig(b * 100, 4), sig((r.a * (1 - b) / c) * 100, 4)]); staffRows.push([c, b * 100, (r.a * (1 - b) / c) * 100]); }
+      table(q('.qc-stab'), ['Servers', 'Lost (%)', 'Utilisation (%)'], rows, rows.findIndex((x) => Number(x[0]) === best));
+      return;
+    }
+    const tsec = val('.qc-t'), pct = val('.qc-pct') / 100;
+    if (!(tsec >= 0)) throw new Error('Type a time of 0 seconds or more for the staffing target.');
+    const sl = sel('.qc-tk') === 'sl';
+    if (sl && !(pct > 0 && pct < 1)) throw new Error('The share served in time must be between 0 and 100 %.');
+    if (!sl && !(tsec > 0)) throw new Error('Type an average wait above 0 seconds.');
+    const st = staffing(inp.lambda, inp.mu, sl ? { kind: 'sl', t: tsec / uSec, pct } : { kind: 'asa', t: tsec / uSec });
+    q('.qc-sbig').textContent = sl ? `${st.best} servers answer ${sig(pct * 100, 3)} % within ${sig(tsec, 4)} s` : `${st.best} servers keep the average wait within ${sig(tsec, 4)} s`;
+    staffRows = [['servers', 'utilisation %', 'chance of waiting %', `average wait (${unit})`, `served within ${tsec} s %`]];
+    const rows = st.rows.map((x) => { staffRows.push([x.c, x.rho * 100, x.pWait * 100, x.Wq, x.service * 100]); return [String(x.c), sig(x.rho * 100, 4), sig(x.pWait * 100, 4), sig(x.Wq, 4), sig(x.service * 100, 4)]; });
+    table(q('.qc-stab'), ['Servers', 'Utilisation (%)', 'Chance of waiting (%)', `Average wait (${unit})`, `Within ${sig(tsec, 4)} s (%)`], rows, st.rows.findIndex((x) => x.c === st.best));
+  }
+
+  function sim(inp: Input, r: Result, unit: string) {
+    const card = q('.qc-simc');
+    card.hidden = !r.stable && inp.kind !== 'mmck' && inp.kind !== 'erlangb';
+    if (card.hidden) { figs = []; return; }
+    const n = Number(sel('.qc-n')), sd = Math.floor(val('.qc-seed'));
+    if (!(sd >= 0)) throw new Error('The seed must be a whole number, 0 or more.');
+    if ((inp.c ?? 1) > 2000 || r.a > 2000) { card.hidden = true; return; }
+    const s: SimResult = simulate(inp, n, sd);
+    const pm = (x: number, ci: number) => (Number.isFinite(ci) && ci > 0 ? `${sig(x, 4)} ± ${sig(ci, 2)}` : sig(x, 4));
+    const rows: string[][] = [
+      ['Utilisation (%)', sig(r.rho * 100, 4), sig(s.rho * 100, 4)],
+      ['In the system L', sig(r.L, 4), sig(s.L, 4)], ['In the queue Lq', sig(r.Lq, 4), sig(s.Lq, 4)],
+      [`Time in the system W (${unit})`, sig(r.W, 4), pm(s.W, s.WCI)], [`Time in the queue Wq (${unit})`, sig(r.Wq, 4), pm(s.Wq, s.WqCI)],
+      ['Chance of waiting (%)', sig(r.pWait * 100, 4), sig(s.pWait * 100, 4)],
+    ];
+    if (inp.kind === 'mmck' || inp.kind === 'erlangb') rows.push(['Turned away (%)', sig(r.pBlock * 100, 4), sig(s.pBlock * 100, 4)]);
+    table(q('.qc-simtab'), ['Measure', 'Formula', 'Simulation'], rows);
+    q('.qc-simn').textContent = `${s.customers.toLocaleString('en')} customers counted after the warm-up.`;
+    const top = Math.min(Math.max(s.pn.length, r.pn?.length ?? 0) - 1, Math.max(15, Math.ceil(r.L * 4)));
+    const xs = Array.from({ length: top + 1 }, (_, i) => i);
+    const series: any[] = [{ name: 'Simulation', x: xs, y: xs.map((i) => s.pn[i] ?? 0), mode: 'points', marker: 'open-circle' }];
+    if (r.pn) series.unshift({ name: 'Formula', x: xs, y: xs.map((i) => r.pn![i] ?? 0), mode: 'line' });
+    pnRows = [['n in system', 'formula probability', 'simulated share of time'], ...xs.map((i) => [i, r.pn ? r.pn[i] ?? 0 : '', s.pn[i] ?? 0])];
+    figs = [
+      chartFigure({ h: 320, xLabel: 'Number in the system', yLabel: 'Share of time', series, yMin: 0 }, 'Distribution of the number in the system: formula and simulation'),
+      chartFigure({ h: 280, xLabel: `Time (${unit})`, yLabel: 'Number in the system', series: [{ name: 'Simulation', x: s.trace.flatMap((p, i) => (i ? [p.t, p.t] : [p.t])), y: s.trace.flatMap((p, i) => (i ? [s.trace[i - 1].n, p.n] : [p.n])), mode: 'line' }], legend: 'none', yMin: 0 }, 'The first events of the simulation: number in the system over time'),
+    ];
+    paint(q<HTMLCanvasElement>('.qc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.qc-fig2'), figs[1]);
+  }
+
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', calc);
+  q('.qc-new').addEventListener('click', () => { seed = Math.floor(val('.qc-seed')) + 1 || 1; q<HTMLInputElement>('.qc-seed').value = String(seed); calc(); });
+  q('.qc-scsv').addEventListener('click', () => save(new Blob([csv(staffRows)], { type: 'text/csv' }), 'staffing.csv', 'text/csv'));
+  q('.qc-pcsv').addEventListener('click', () => save(new Blob([csv(pnRows)], { type: 'text/csv' }), 'number-in-system.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.qc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.qc-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Queueing calculator', subtitle: q('.qc-big').textContent ?? '', file: 'queue', sections: report }));
+</script>
+
+<style is:global>
+  .qcs tr.qc-hi td { background: var(--accent-soft); font-weight: 700; }
+</style>

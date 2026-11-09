@@ -1,0 +1,110 @@
+---
+// Perturbation theory checker: H = H0 + λV, corrections to first, second and third order against exact
+// diagonalisation. Matrices are typed, pasted or opened from a file; nothing leaves the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ptb">
+  <div class="ax-card">
+    <h2>Matrices</h2>
+    <div class="ax-grid">
+      <label>Example <select class="pt-pre">
+        <option value="three" selected>Three levels (made up)</option><option value="x4">Anharmonic oscillator, λx⁴ (20 states)</option><option value="deg">Degenerate levels (made up)</option><option value="deg2">Degeneracy split at second order</option><option value="cplx">Complex couplings (made up)</option>
+      </select></label>
+      <label>λ (strength of V) <input class="pt-lam" type="text" inputmode="decimal" /></label>
+    </div>
+    <label style="margin-top:10px">Unperturbed H₀ (one row per line) <textarea class="pt-h0" rows="5" spellcheck="false"></textarea></label>
+    <DataFile target=".pt-h0" maxMB={1} maxCols={40} maxRows={40} label="Open H₀ from a file" />
+    <label style="margin-top:10px">Perturbation V <textarea class="pt-v" rows="5" spellcheck="false"></textarea></label>
+    <DataFile target=".pt-v" maxMB={1} maxCols={40} maxRows={40} label="Open V from a file" />
+    <p class="ax-help">Square Hermitian matrices up to 40 × 40 (real symmetric, or complex with entry (j, i) the conjugate of (i, j); write complex numbers as 1+2i). H₀ need not be diagonal: the tool works in its eigenbasis. Levels of H₀ that are equal are treated by degenerate perturbation theory. Units are whatever your matrices use.</p>
+    <p class="ax-err pt-err" hidden></p>
+  </div>
+
+  <div class="ax-card pt-out">
+    <h2>Corrections and the exact answer</h2>
+    <p class="ax-big pt-big"></p>
+    <dl class="ax-facts pt-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="pt-tab"></table></div>
+    <p class="ax-help pt-note"></p>
+    <canvas class="ax-fig pt-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pt-csv">Download levels (CSV)</button>
+      <button type="button" class="btn secondary small pt-ccsv">Download E(λ) curves (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseMatrix, perturb, hoX4, fmtMatrix, type Result } from '../../lib/sci/phpert';
+  import { chartFigure, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ptb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g = (x: number | null, d = 7) => (x === null || !Number.isFinite(x) ? '–' : String(+(Math.abs(x) < 1e-14 ? 0 : x).toPrecision(d)).replace('-', '−'));
+  const PRESETS: Record<string, () => { h0: string; v: string; lam: string }> = {
+    three: () => ({ h0: '0 0 0\n0 1 0\n0 0 2.5', v: '0.2 0.3 0.1\n0.3 -0.1 0.4\n0.1 0.4 0.3', lam: '0.2' }),
+    x4: () => { const { H0, V } = hoX4(20); return { h0: fmtMatrix(H0), v: fmtMatrix(V), lam: '0.01' }; },
+    deg: () => ({ h0: '1 0 0 0\n0 1 0 0\n0 0 1 0\n0 0 0 3', v: '0 0.5 0 0.3\n0.5 0 0 0.2\n0 0 0 0.4\n0.3 0.2 0.4 0', lam: '0.1' }),
+    deg2: () => ({ h0: '0 0 0\n0 0 0\n0 0 2', v: '0 0 1\n0 0 1\n1 1 0', lam: '0.1' }),
+    cplx: () => ({ h0: '0 0 0\n0 1 0\n0 0 2', v: '0.1 0.2-0.3i 0.1i\n0.2+0.3i -0.2 0.25\n-0.1i 0.25 0.05', lam: '0.3' }),
+  };
+  let res: Result | null = null, fig: Figure | null = null, rows: string[][] = [], head: string[] = [], report: Section[] = [];
+
+  function load() { const p = PRESETS[q<HTMLSelectElement>('.pt-pre').value](); q<HTMLTextAreaElement>('.pt-h0').value = p.h0; q<HTMLTextAreaElement>('.pt-v').value = p.v; q<HTMLInputElement>('.pt-lam').value = p.lam; calc(); }
+
+  function calc() {
+    const err = q('.pt-err'), out = q('.pt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; res = null; report = []; };
+    const lam = num(q<HTMLInputElement>('.pt-lam').value);
+    if (!Number.isFinite(lam) || lam === 0) return fail('Give λ, a number that is not 0.');
+    let H0, V;
+    try { H0 = parseMatrix(q<HTMLTextAreaElement>('.pt-h0').value, 'H₀'); V = parseMatrix(q<HTMLTextAreaElement>('.pt-v').value, 'V'); } catch (e) { return fail((e as Error).message); }
+    if (H0.length > 40) return fail('Use matrices up to 40 × 40.');
+    try { res = perturb(H0, V, lam); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const L = res.levels, n = L.length, anyDeg = L.some((l) => l.degenerate > 1);
+    const e0 = L[0], err2 = e0.pt2 - e0.exact;
+    q('.pt-big').textContent = `Lowest level: exact ${g(e0.exact)}, second order ${g(e0.pt2)}`;
+    const worst2 = Math.max(...L.map((l) => Math.abs(l.pt2 - l.exact))), worst1 = Math.max(...L.map((l) => Math.abs(l.pt1 - l.exact)));
+    const facts = [
+      fact('Levels', String(n), anyDeg ? `${L.filter((l) => l.degenerate > 1).length} in degenerate sets` : 'all non-degenerate'),
+      fact('Error of the lowest level', `${g(err2, 3)} (2nd order)`, `first order ${g(e0.pt1 - e0.exact, 3)}${e0.pt3 !== null ? `, third ${g(e0.pt3 - e0.exact, 3)}` : ''}`),
+      fact('Largest error over all levels', `${g(worst2, 3)} (2nd order)`, `first order ${g(worst1, 3)}`),
+      fact('Coupling ÷ gap, largest', g(res.maxRatio, 3), res.maxRatio < 0.3 ? 'λ|V_mn| / |E_n − E_m| well below 1: the series should work' : res.maxRatio < 1 ? 'getting close to 1: expect the higher orders to matter' : 'above 1: the series is unreliable here; trust the exact column'),
+    ];
+    q('.pt-facts').replaceChildren(...facts);
+    head = ['n', 'E⁽⁰⁾', 'Set', 'E⁽¹⁾', 'E⁽²⁾', 'E⁽³⁾', '1st order', '2nd order', '3rd order', 'Exact', '2nd − exact'];
+    rows = L.map((l, k) => [String(k), g(l.E0), l.degenerate > 1 ? `×${l.degenerate}` : '', g(l.E1), g(l.E2), g(l.E3), g(l.pt1), g(l.pt2), g(l.pt3), g(l.exact), g(l.pt2 - l.exact, 3)]);
+    const t = q<HTMLTableElement>('.pt-tab'); t.replaceChildren();
+    const hr = t.insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    rows.slice(0, 60).forEach((r) => { const tr = t.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+    q('.pt-note').textContent = `E⁽¹⁾, E⁽²⁾ and E⁽³⁾ are the coefficients of λ, λ² and λ³; the order columns add them up. ${anyDeg ? 'For degenerate levels (×k) the first-order values are the eigenvalues of V inside the set and the "good" states are used for second order; third order is not given for them. ' : ''}The exact level is followed continuously from λ = 0, so each row stays with its own level even where levels cross.`;
+    // Picture: exact curves and second-order parabolas.
+    const series: Series[] = [];
+    const show = Math.min(n, 8);
+    for (let k = 0; k < show; k++) {
+      const col = OKABE_ITO[k % 7], l = L[k];
+      series.push({ name: k === 0 ? 'exact' : '', x: res.lambdas, y: res.exactCurves[k], mode: 'line', width: 2, color: col });
+      series.push({ name: k === 0 ? '2nd order' : '', x: res.lambdas, y: res.lambdas.map((x) => l.E0 + x * l.E1 + x * x * l.E2), mode: 'line', width: 1.2, color: col, dash: [5, 4] });
+    }
+    const ys = series.flatMap((s) => s.y), ex = res.exactCurves.slice(0, show).flat(), lo = Math.min(...ex), hi = Math.max(...ex), pad = 0.15 * (hi - lo || 1);
+    fig = chartFigure({ w: 520, h: 300, xLabel: 'λ', yLabel: 'Energy', xMin: Math.min(0, res.lambdas[res.lambdas.length - 1]), xMax: Math.max(0, res.lambdas[res.lambdas.length - 1]), yMin: Math.max(Math.min(...ys), lo - pad), yMax: Math.min(Math.max(...ys), hi + pad), legend: 'none', series: series.map((s) => (s.name ? s : { ...s, name: '​' })), marks: [{ kind: 'vline', at: lam, dash: [3, 3], label: 'λ' }] }, `Exact levels (solid) and second-order perturbation theory (dashed) from λ = 0 to ${g(1.5 * lam, 3)}${n > show ? `, lowest ${show} levels` : ''}`);
+    paint(q<HTMLCanvasElement>('.pt-fig'), fig);
+    report = [{ title: q('.pt-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: 'Levels', table: { head, rows: rows.slice(0, 40), align: head.map((_, j) => (j ? 'r' : 'l')) as ('l' | 'r')[] }, note: q('.pt-note').textContent! }];
+  }
+
+  q('.pt-pre').addEventListener('change', load);
+  let tm = 0;
+  for (const c of ['.pt-h0', '.pt-v', '.pt-lam']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 350); });
+  q('.pt-csv').addEventListener('click', () => save(new Blob([csv([['n', 'E0', 'set', 'E1', 'E2', 'E3', 'order1', 'order2', 'order3', 'exact', 'order2_minus_exact'], ...res!.levels.map((l, k) => [k, l.E0, l.degenerate, l.E1, l.E2, l.E3 ?? '', l.pt1, l.pt2, l.pt3 ?? '', l.exact, l.pt2 - l.exact])])], { type: 'text/csv' }), 'perturbation-levels.csv', 'text/csv'));
+  q('.pt-ccsv').addEventListener('click', () => { if (!res) return; const r = res; save(new Blob([csv([['lambda', ...r.levels.map((_, k) => `exact_${k}`)], ...r.lambdas.map((x, i) => [+x.toPrecision(10), ...r.exactCurves.map((c) => +c[i].toPrecision(12))])])], { type: 'text/csv' }), 'perturbation-curves.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.pt-out').hidden) paint(q<HTMLCanvasElement>('.pt-fig'), fig); });
+  load();
+  wireDownloads(q('.dl'), () => ({ title: 'Perturbation theory', subtitle: `λ = ${q<HTMLInputElement>('.pt-lam').value}`, file: 'perturbation-theory', sections: report }));
+</script>

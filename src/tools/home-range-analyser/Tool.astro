@@ -1,0 +1,363 @@
+---
+// Animal home range from GPS collar fixes: minimum convex polygons (100 % and 95 %), fixed kernel density
+// home ranges (bivariate normal kernel, reference bandwidth, 50 % and 95 % isopleths), step lengths and
+// turning angles. The example collar is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `time	lat	lon
+2026-05-01 00:00	52.102422	-1.295625
+2026-05-01 04:00	52.099926	-1.299209
+2026-05-01 08:00	52.101447	-1.299864
+2026-05-01 12:00	52.100388	-1.294906
+2026-05-01 16:00	52.099406	-1.298402
+2026-05-01 20:00	52.099362	-1.296708
+2026-05-02 00:00	52.102877	-1.285948
+2026-05-02 04:00	52.104678	-1.282579
+2026-05-02 08:00	52.105800	-1.285122
+2026-05-02 12:00	52.107246	-1.288321
+2026-05-02 16:00	52.106282	-1.285549
+2026-05-02 20:00	52.103590	-1.295185
+2026-05-03 00:00	52.099827	-1.298740
+2026-05-03 04:00	52.102104	-1.298700
+2026-05-03 08:00	52.099184	-1.301608
+2026-05-03 12:00	52.100717	-1.300237
+2026-05-03 16:00	52.101912	-1.295637
+2026-05-03 20:00	52.102655	-1.296962
+2026-05-04 00:00	52.107107	-1.286281
+2026-05-04 04:00	52.107201	-1.282867
+2026-05-04 08:00	52.107698	-1.284030
+2026-05-04 12:00	52.106200	-1.279712
+2026-05-04 16:00	52.108307	-1.281693
+2026-05-04 20:00	52.109373	-1.278654
+2026-05-05 00:00	52.106240	-1.289428
+2026-05-05 04:00	52.104242	-1.300834
+2026-05-05 08:00	52.099706	-1.300636
+2026-05-05 12:00	52.107310	-1.287901
+2026-05-05 16:00	52.100335	-1.296134
+2026-05-05 20:00	52.104135	-1.293581
+2026-05-06 00:00	52.107899	-1.288753
+2026-05-06 04:00	52.106538	-1.283617
+2026-05-06 08:00	52.107066	-1.282971
+2026-05-06 12:00	52.108289	-1.281414
+2026-05-06 16:00	52.105628	-1.282750
+2026-05-06 20:00	52.106728	-1.278689
+2026-05-07 00:00	52.103740	-1.287183
+2026-05-07 04:00	52.100584	-1.294672
+2026-05-07 08:00	52.105314	-1.293610
+2026-05-07 12:00	52.103305	-1.299526
+2026-05-07 16:00	52.100630	-1.300681
+2026-05-07 20:00	52.100296	-1.296750
+2026-05-08 00:00	52.105620	-1.289522
+2026-05-08 04:00	52.108675	-1.289944
+2026-05-08 08:00	52.106085	-1.294233
+2026-05-08 12:00	52.107067	-1.283892
+2026-05-08 16:00	52.106715	-1.285381
+2026-05-08 20:00	52.107356	-1.285385
+2026-05-09 00:00	52.099139	-1.295244
+2026-05-09 04:00	52.101800	-1.297373
+2026-05-09 08:00	52.099289	-1.301020
+2026-05-09 12:00	52.103337	-1.297974
+2026-05-09 16:00	52.102097	-1.301821
+2026-05-09 20:00	52.101910	-1.298928
+2026-05-10 00:00	52.102647	-1.288482
+2026-05-10 04:00	52.104434	-1.281210
+2026-05-10 08:00	52.107850	-1.283459
+2026-05-10 12:00	52.108619	-1.281862
+2026-05-10 16:00	52.107976	-1.283656
+2026-05-10 20:00	52.108072	-1.281685
+2026-05-11 00:00	52.104984	-1.296949
+2026-05-11 04:00	52.101603	-1.301142
+2026-05-11 08:00	52.099506	-1.299520
+2026-05-11 12:00	52.102397	-1.302529
+2026-05-11 16:00	52.105829	-1.294239
+2026-05-11 20:00	52.099317	-1.291938
+2026-05-12 00:00	52.101713	-1.284497
+2026-05-12 04:00	52.106463	-1.280062
+2026-05-12 08:00	52.107757	-1.278442
+2026-05-12 12:00	52.104352	-1.291785
+2026-05-12 16:00	52.105595	-1.283637
+2026-05-12 20:00	52.105586	-1.292280
+2026-05-13 00:00	52.103615	-1.298571
+2026-05-13 04:00	52.101623	-1.299827
+2026-05-13 08:00	52.099270	-1.303243
+2026-05-13 12:00	52.097843	-1.306176
+2026-05-13 16:00	52.099087	-1.297111
+2026-05-13 20:00	52.095854	-1.299694
+2026-05-14 00:00	52.102348	-1.287915
+2026-05-14 04:00	52.104085	-1.282795
+2026-05-14 08:00	52.103567	-1.280347
+2026-05-14 12:00	52.103379	-1.293273
+2026-05-14 16:00	52.107587	-1.288121
+2026-05-14 20:00	52.109960	-1.282425
+2026-05-15 00:00	52.112840	-1.280061
+2026-05-15 04:00	52.103910	-1.298677
+2026-05-15 08:00	52.102294	-1.295409
+2026-05-15 12:00	52.098446	-1.293199
+2026-05-15 16:00	52.097018	-1.297332
+2026-05-15 20:00	52.101354	-1.287284
+2026-05-16 00:00	52.101632	-1.285773
+2026-05-16 04:00	52.106763	-1.282932
+2026-05-16 08:00	52.108488	-1.282499
+2026-05-16 12:00	52.108543	-1.278684
+2026-05-16 16:00	52.106868	-1.284346
+2026-05-16 20:00	52.107042	-1.282130
+2026-05-17 00:00	52.103368	-1.294402
+2026-05-17 04:00	52.098227	-1.296873
+2026-05-17 08:00	52.096164	-1.300399
+2026-05-17 12:00	52.098767	-1.301353
+2026-05-17 16:00	52.106672	-1.299263
+2026-05-17 20:00	52.102054	-1.298619
+2026-05-18 00:00	52.103399	-1.294747
+2026-05-18 04:00	52.109447	-1.287493
+2026-05-18 08:00	52.114392	-1.283907
+2026-05-18 12:00	52.110541	-1.285942
+2026-05-18 16:00	52.109326	-1.281132
+2026-05-18 20:00	52.113801	-1.281243
+2026-05-19 00:00	52.110093	-1.290919
+2026-05-19 04:00	52.103695	-1.294366
+2026-05-19 08:00	52.103239	-1.294750
+2026-05-19 12:00	52.108710	-1.286277
+2026-05-19 16:00	52.106005	-1.295640
+2026-05-19 20:00	52.100837	-1.298506
+2026-05-20 00:00	52.099667	-1.290920
+2026-05-20 04:00	52.104297	-1.284016
+2026-05-20 08:00	52.107307	-1.281668
+2026-05-20 12:00	52.108829	-1.282888
+2026-05-20 16:00	52.111204	-1.276706
+2026-05-20 20:00	52.110463	-1.287224
+2026-05-21 00:00	52.103936	-1.291793
+2026-05-21 04:00	52.102460	-1.301543
+2026-05-21 08:00	52.101893	-1.299491
+2026-05-21 12:00	52.100730	-1.298777
+2026-05-21 16:00	52.099210	-1.297897
+2026-05-21 20:00	52.099483	-1.293549
+2026-05-22 00:00	52.103531	-1.285625
+2026-05-22 04:00	52.106774	-1.283334
+2026-05-22 08:00	52.106387	-1.286881
+2026-05-22 12:00	52.102741	-1.279073
+2026-05-22 16:00	52.106803	-1.282838
+2026-05-22 20:00	52.110669	-1.281433
+2026-05-23 00:00	52.107637	-1.280845
+2026-05-23 04:00	52.101450	-1.293008
+2026-05-23 08:00	52.102070	-1.297934
+2026-05-23 12:00	52.103707	-1.300877
+2026-05-23 16:00	52.102684	-1.296266
+2026-05-23 20:00	52.100521	-1.299855
+2026-05-24 00:00	52.102130	-1.289053
+2026-05-24 04:00	52.106033	-1.289648
+2026-05-24 08:00	52.107501	-1.289396
+2026-05-24 12:00	52.109334	-1.290576
+2026-05-24 16:00	52.102373	-1.290375
+2026-05-24 20:00	52.102945	-1.286197
+2026-05-25 00:00	52.099692	-1.292894
+2026-05-25 04:00	52.099189	-1.302036
+2026-05-25 08:00	52.098813	-1.306333
+2026-05-25 12:00	52.102193	-1.299161
+2026-05-25 16:00	52.100159	-1.298215
+2026-05-25 20:00	52.103405	-1.295811
+2026-05-26 00:00	52.107345	-1.288414
+2026-05-26 04:00	52.105694	-1.284895
+2026-05-26 08:00	52.107411	-1.281112
+2026-05-26 12:00	52.109227	-1.290007
+2026-05-26 16:00	52.109896	-1.287818
+2026-05-26 20:00	52.110662	-1.289579
+2026-05-27 00:00	52.104140	-1.295097
+2026-05-27 04:00	52.101840	-1.302996
+2026-05-27 08:00	52.102699	-1.305195
+2026-05-27 12:00	52.105724	-1.298244
+2026-05-27 16:00	52.099972	-1.298270
+2026-05-27 20:00	52.100693	-1.301685
+2026-05-28 00:00	52.100703	-1.296840
+2026-05-28 04:00	52.107428	-1.292233
+2026-05-28 08:00	52.108306	-1.287415
+2026-05-28 12:00	52.106542	-1.287702
+2026-05-28 16:00	52.105997	-1.283600
+2026-05-28 20:00	52.107594	-1.280386
+2026-05-29 00:00	52.102814	-1.293079
+2026-05-29 04:00	52.102695	-1.297341
+2026-05-29 08:00	52.103897	-1.304141
+2026-05-29 12:00	52.098835	-1.302186
+2026-05-29 16:00	52.101652	-1.296776
+2026-05-29 20:00	52.099114	-1.303720
+2026-05-30 00:00	52.106719	-1.293966
+2026-05-30 04:00	52.108505	-1.287136
+2026-05-30 08:00	52.106513	-1.287248
+2026-05-30 12:00	52.108602	-1.283271
+2026-05-30 16:00	52.107186	-1.287146
+2026-05-30 20:00	52.104879	-1.296571`;
+---
+<div class="ax hra">
+  <div class="ax-card">
+    <h2>GPS fixes</h2>
+    <label>Time, latitude and longitude (decimal degrees), one fix per row. A header row naming the columns (time, lat, lon) lets them come in any order.
+      <textarea class="hra-data" rows="9" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".hra-data" maxCols={20} maxRows={20000} />
+    <p class="ax-help">The example is a made-up collar: 180 fixes, one every 4 hours for a month. Times like 2026-05-01 06:00 are read as UTC. Your file stays on this device: nothing is uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Kernel bandwidth <select class="hra-hmode"><option value="ref" selected>Reference (h ref)</option><option value="set">Set it (metres)</option></select></label>
+      <label class="hra-hbox" hidden>Bandwidth h (m) <input class="hra-h" inputmode="decimal" value="200" /></label>
+      <label>Kernel grid <select class="hra-grid"><option value="100">Coarse (100 cells)</option><option value="200" selected>Normal (200 cells)</option><option value="400">Fine (400 cells)</option></select></label>
+      <label>Area unit <select class="hra-unit"><option value="ha" selected>hectares</option><option value="km2">km²</option></select></label>
+    </div>
+    <p class="ax-help">The <b>minimum convex polygon</b> (MCP) is the smallest shape with no dents around the fixes; the 95 % MCP leaves out the 5 % of fixes farthest from the centre. The <b>kernel density</b> home range puts a small bell-shaped hill (sd = h) on every fix and keeps the smallest area holding 95 % (home range) or 50 % (core area) of the total. The <b>reference bandwidth</b> h ref = √((var x + var y)/2) × n^(−1/6) is a common default that tends to make ranges a little too large when fixes are clumped; a smaller h follows the fixes more tightly. A finer grid is more exact but slower.</p>
+    <p class="ax-err hra-err" hidden></p>
+  </div>
+
+  <div class="ax-card hra-out">
+    <h2>Home range</h2>
+    <p class="ax-big hra-big"></p>
+    <dl class="ax-facts hra-facts"></dl>
+    <canvas class="ax-fig hra-map" style="margin-top:12px"></canvas>
+    <div class="ax-legend"><span><i class="hra-k95"></i>Kernel 95 %</span><span><i class="hra-k50"></i>Kernel 50 %</span><span>— 100 % MCP</span><span>- - 95 % MCP</span><span>· fixes</span></div>
+    <h3>Movement</h3>
+    <dl class="ax-facts hra-move"></dl>
+    <canvas class="ax-fig hra-steps" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig hra-turns" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hra-csv">Download steps (CSV)</button><button type="button" class="btn secondary small hra-sum">Download summary (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hra .hra-k95 { background: rgba(31, 95, 174, 0.22); }
+  .hra .hra-k50 { background: rgba(31, 95, 174, 0.55); }
+  html[data-theme=dark] .hra .hra-k95 { background: rgba(127, 178, 240, 0.25); }
+  html[data-theme=dark] .hra .hra-k50 { background: rgba(127, 178, 240, 0.6); }
+</style>
+
+<script>
+  import { project, mcp, href, kde, isopleth, steps, resultant, readTime, type XY, type KDE, type Step } from '../../lib/sci/homerange';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hra')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let figs: Figure[] = [], sections: Section[] = [], stepRows: string[][] = [], sumRows: string[][] = [];
+
+  function hist(vals: number[], lo: number, hi: number, bins: number, xLabel: string, alt: string): Figure {
+    const w = (hi - lo) / bins, c = new Array(bins).fill(0);
+    for (const v of vals) { const i = Math.min(bins - 1, Math.max(0, Math.floor((v - lo) / w))); c[i]++; }
+    const x: number[] = [], y: number[] = [];
+    c.forEach((n, i) => { x.push(lo + i * w, lo + i * w, lo + (i + 1) * w, lo + (i + 1) * w); y.push(0, n, n, 0); });
+    return chartFigure({ h: 240, xLabel, yLabel: 'Steps', yMin: 0, xMin: lo, xMax: hi, legend: 'none', series: [{ name: '', x, y, mode: 'line', width: 1.5 }] }, alt);
+  }
+
+  function mapFigure(pts: XY[], k: KDE, l95: number, l50: number, p100: XY[], p95: XY[]): Figure {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let j = 0; j < k.ny; j++) for (let i = 0; i < k.nx; i++) if (k.dens[j * k.nx + i] >= l95) { const x = k.x0 + i * k.cell, y = k.y0 + j * k.cell; x0 = Math.min(x0, x); x1 = Math.max(x1, x + k.cell); y0 = Math.min(y0, y); y1 = Math.max(y1, y + k.cell); }
+    for (const p of pts) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+    const W = 720, H = Math.round(Math.min(720, Math.max(320, (W * (y1 - y0)) / (x1 - x0)))), m = 16;
+    return { w: W, h: H, alt: 'Map of the fixes with the kernel and MCP home ranges', draw: (ctx, w, h, pal: Palette) => {
+      const s = Math.min((w - 2 * m) / (x1 - x0), (h - 2 * m - 30) / (y1 - y0)), ox = (w - s * (x1 - x0)) / 2, oy = (h - 30 + s * (y1 - y0)) / 2;
+      const X = (x: number) => ox + (x - x0) * s, Y = (y: number) => oy - (y - y0) * s;
+      const acc = pal.accent;
+      ctx.save();
+      // One path per isopleth, filled once, so neighbouring cells leave no seams.
+      for (const [lev, alpha] of [[l95, 0.22], [l50, 0.42]]) {
+        ctx.beginPath();
+        for (let j = 0; j < k.ny; j++) for (let i = 0; i < k.nx; i++) if (k.dens[j * k.nx + i] >= lev) ctx.rect(X(k.x0 + i * k.cell) - 0.3, Y(k.y0 + (j + 1) * k.cell) - 0.3, k.cell * s + 0.6, k.cell * s + 0.6);
+        ctx.globalAlpha = alpha; ctx.fillStyle = acc; ctx.fill('nonzero');
+      }
+      ctx.globalAlpha = 1;
+      const poly = (pp: XY[], dash: number[]) => { ctx.beginPath(); pp.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.closePath(); ctx.setLineDash(dash); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); };
+      poly(p100, []); poly(p95, [6, 4]);
+      ctx.fillStyle = pal.ink;
+      for (const p of pts) { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 1.8, 0, 2 * Math.PI); ctx.fill(); }
+      // Scale bar and north arrow.
+      const raw = (x1 - x0) / 4, mag = 10 ** Math.floor(Math.log10(raw)), len = [1, 2, 5, 10].map((v) => v * mag).filter((v) => v <= raw).pop() ?? mag;
+      const bx = m, by = h - 6;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by - 4); ctx.lineTo(bx, by); ctx.lineTo(bx + len * s, by); ctx.lineTo(bx + len * s, by - 4); ctx.stroke();
+      ctx.font = '20px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(len >= 1000 ? `${len / 1000} km` : `${len} m`, bx + len * s + 6, by + 2);
+      ctx.textAlign = 'right'; ctx.fillText('N ↑', w - m, by + 2); ctx.restore();
+    } };
+  }
+
+  function calc() {
+    const fail = (msg: string) => { q('.hra-err').textContent = msg; q('.hra-err').hidden = false; q('.hra-out').hidden = true; figs = []; sections = []; stepRows = []; sumRows = []; };
+    q('.hra-err').hidden = true;
+    const hmode = q<HTMLSelectElement>('.hra-hmode').value; q('.hra-hbox').hidden = hmode !== 'set';
+    const ha = q<HTMLSelectElement>('.hra-unit').value === 'ha', A = (m2: number) => (ha ? `${sig(m2 / 1e4, 4)} ha` : `${sig(m2 / 1e6, 4)} km²`);
+    const rows = parseTable(q<HTMLTextAreaElement>('.hra-data').value);
+    if (!rows.length) return fail('Paste time, latitude and longitude, one fix per row.');
+    let it = 0, ila = 1, ilo = 2, body = rows;
+    const head = rows[0].map((c) => c.toLowerCase());
+    if (head.some((c) => /^(lat|latitude|y)$|lat/.test(c)) && !Number.isFinite(num(rows[0][1]))) {
+      const f = (re: RegExp) => head.findIndex((c) => re.test(c));
+      ila = f(/lat/); ilo = f(/lon|lng/); it = f(/time|date|stamp|utc/);
+      if (ila < 0 || ilo < 0) return fail('The header row needs a latitude column (lat) and a longitude column (lon).');
+      body = rows.slice(1);
+    } else if (!Number.isFinite(num(rows[0][ila]))) body = rows.slice(1);
+    if (body.length > 20000) return fail('Up to 20,000 fixes, please.');
+    let skipped = 0;
+    const fixes: { t: number; lat: number; lon: number; k: number }[] = [];
+    body.forEach((r, k) => {
+      const lat = num(r[ila]), lon = num(r[ilo]), t = it >= 0 ? readTime(r[it] ?? '') : NaN;
+      if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) { skipped++; return; }
+      fixes.push({ t, lat, lon, k });
+    });
+    if (fixes.length < 5) return fail(`Only ${fixes.length} usable fix${fixes.length === 1 ? '' : 'es'} found. Give at least 5 rows of time, latitude, longitude in decimal degrees.`);
+    const timed = fixes.every((f) => Number.isFinite(f.t));
+    if (timed) fixes.sort((a, b) => a.t - b.t || a.k - b.k);
+    const lons = fixes.map((f) => f.lon);
+    if (Math.max(...lons) - Math.min(...lons) > 180) return fail('These fixes cross the 180° meridian, which this tool cannot project. Shift the longitudes (add 360 to the negative ones) first.');
+    const { pts } = project(fixes);
+    const m100 = mcp(pts), m95 = mcp(pts, 95);
+    const span = Math.max(...pts.map((p) => Math.hypot(p.x, p.y)));
+    if (!(m100.area > 1e-6 * span * span)) return fail('All fixes lie on one line or one spot, so there is no area to measure.');
+    const hr = href(pts);
+    let h = hr;
+    if (hmode === 'set') { h = num(q<HTMLInputElement>('.hra-h').value); if (!(h > 0)) return fail('Set a bandwidth h in metres above 0.'); }
+    const k = kde(pts, h, Number(q<HTMLSelectElement>('.hra-grid').value));
+    const i95 = isopleth(k, 95), i50 = isopleth(k, 50);
+    q('.hra-out').hidden = false;
+    q('.hra-big').textContent = `Kernel 95 %: ${A(i95.area)}; 100 % MCP: ${A(m100.area)}`;
+    const t0 = fixes[0].t, t1 = fixes[fixes.length - 1].t, days = (t1 - t0) / 864e5;
+    q('.hra-facts').replaceChildren(
+      fact('Fixes', String(fixes.length), skipped ? `${skipped} row${skipped > 1 ? 's' : ''} skipped (no usable position)` : timed ? `over ${sig(days, 3)} days` : 'times not read, so kept in the order given'),
+      fact('100 % MCP', A(m100.area), `${m100.poly.length} corners`),
+      fact('95 % MCP', A(m95.area), `${m95.used} fixes nearest the centre`),
+      fact('Kernel 95 % (home range)', A(i95.area), `${i95.cells.toLocaleString('en')} grid cells of ${sig(k.cell, 3)} m`),
+      fact('Kernel 50 % (core area)', A(i50.area), `${sig((100 * i50.area) / i95.area, 3)} % of the 95 % range`),
+      fact('Bandwidth h', `${sig(h, 4)} m`, hmode === 'set' ? `set by you (h ref would be ${sig(hr, 4)} m)` : 'reference bandwidth h ref'),
+    );
+    const mapFig = mapFigure(pts, k, i95.level, i50.level, m100.poly, m95.poly);
+
+    const ts = fixes.map((f) => f.t), st: Step[] = steps(pts, ts), L = st.map((s) => s.len), T = st.map((s) => s.turn).filter(Number.isFinite);
+    const sorted = [...L].sort((a, b) => a - b), med = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+    const tot = L.reduce((a, b) => a + b, 0), rt = resultant(T), sp = st.map((s) => s.speed).filter(Number.isFinite);
+    const dts = st.map((s) => s.dt).filter((v) => v > 0).sort((a, b) => a - b), dtMed = dts.length ? dts[Math.floor(dts.length / 2)] : NaN;
+    q('.hra-move').replaceChildren(
+      fact('Steps', String(st.length), timed && dtMed > 0 ? `usually ${sig(dtMed / 3600, 3)} h apart` : 'no times, so no speeds'),
+      fact('Step length', `${sig(tot / L.length, 4)} m mean`, `median ${sig(med, 4)} m, longest ${sig(sorted[sorted.length - 1], 4)} m`),
+      fact('Path length', tot >= 1e4 ? `${sig(tot / 1000, 4)} km` : `${sig(tot, 4)} m`, 'sum of the straight steps'),
+      ...(sp.length ? [fact('Speed', `${sig((sp.reduce((a, b) => a + b, 0) / sp.length) * 3.6, 3)} km/h mean`, 'straight line between fixes; real paths are longer')] : []),
+      fact('Turning angles', `${sig(T.reduce((a, b) => a + Math.abs(b), 0) / Math.max(1, T.length), 3)}° mean size`, `mean resultant length ${sig(rt.r, 2)} (1 = always the same turn, 0 = no preference)`),
+    );
+    const stepFig = hist(L, 0, sorted[sorted.length - 1] * 1.0001 || 1, Math.min(30, Math.max(5, Math.round(Math.sqrt(L.length)))), 'Step length (m)', 'Histogram of step lengths');
+    const turnFig = hist(T, -180, 180, 18, 'Turning angle (°, negative = left)', 'Histogram of turning angles');
+    figs = [mapFig, stepFig, turnFig];
+    paint(q<HTMLCanvasElement>('.hra-map'), mapFig); paint(q<HTMLCanvasElement>('.hra-steps'), stepFig); paint(q<HTMLCanvasElement>('.hra-turns'), turnFig);
+
+    const iso = (t: number) => (Number.isFinite(t) ? new Date(t).toISOString().replace('.000Z', 'Z') : '');
+    stepRows = [['fix', 'time_utc', 'lat', 'lon', 'x_m', 'y_m', 'step_to_next_m', 'interval_to_next_s', 'speed_to_next_m_s', 'heading_to_next_deg', 'turn_at_fix_deg'],
+      ...fixes.map((f, i) => { const s = st[i]; const g = (v: number | undefined, d = 6) => (v != null && Number.isFinite(v) ? String(+v.toFixed(d)) : ''); return [String(i + 1), iso(f.t), String(f.lat), String(f.lon), g(pts[i].x, 2), g(pts[i].y, 2), g(s?.len, 2), g(s?.dt, 0), g(s?.speed, 4), g(s?.heading, 2), g(s?.turn, 2)]; })];
+    sumRows = [['measure', 'value', 'unit'], ['fixes', String(fixes.length), ''], ['mcp100_area', (m100.area / 1e4).toFixed(4), 'ha'], ['mcp95_area', (m95.area / 1e4).toFixed(4), 'ha'],
+      ['kernel95_area', (i95.area / 1e4).toFixed(4), 'ha'], ['kernel50_area', (i50.area / 1e4).toFixed(4), 'ha'], ['bandwidth_h', h.toFixed(3), 'm'], ['href', hr.toFixed(3), 'm'], ['grid_cell', k.cell.toFixed(3), 'm'],
+      ['mean_step', (tot / L.length).toFixed(3), 'm'], ['median_step', med.toFixed(3), 'm'], ['mean_abs_turn', (T.reduce((a, b) => a + Math.abs(b), 0) / Math.max(1, T.length)).toFixed(3), 'deg'], ['turn_resultant_length', rt.r.toFixed(4), '']];
+    sections = [{ title: q('.hra-big').textContent!, text: ['Positions projected to metres around the mean fix (WGS84). Kernel: fixed bivariate normal kernel, isopleths from the density grid. 95 % MCP: fixes beyond the 95th percentile of distance to the mean centre left out.'], facts: factsOf('.hra-facts'), figure: mapFig },
+      { title: 'Movement', facts: factsOf('.hra-move'), figure: stepFig }, { title: 'Turning angles', figure: turnFig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.hra-csv').addEventListener('click', () => { if (stepRows.length) save(new TextEncoder().encode(toCsv(stepRows)), 'home-range-steps.csv', 'text/csv'); });
+  q('.hra-sum').addEventListener('click', () => { if (sumRows.length) save(new TextEncoder().encode(toCsv(sumRows)), 'home-range-summary.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) ['.hra-map', '.hra-steps', '.hra-turns'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Home range analysis', subtitle: q('.hra-big').textContent ?? '', file: 'home-range', sections }));
+</script>

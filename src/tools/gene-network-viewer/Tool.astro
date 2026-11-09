@@ -1,0 +1,216 @@
+---
+// Gene regulatory network viewer: SIF or GraphML in, a force-directed drawing with activation and repression edges,
+// degree statistics, feedback and feed-forward loops. Opens files; nothing leaves the device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `# A made-up regulatory network (SIF: source, interaction, targets)
+MasterA activates TF1 TF2 GeneX GeneY
+TF1 activates GeneX GeneY
+TF2 represses GeneY
+TF2 activates GeneZ
+MasterA represses GeneZ
+GeneY activates TF3
+TF3 represses TF3
+TF3 activates GeneW
+TF4 activates TF4 TF5
+TF5 represses TF4
+TF5 activates GeneV
+Sensor activates MasterA
+Orphan`;
+---
+<div class="ax gnv">
+  <div class="ax-card">
+    <h2>Network</h2>
+    <label>Paste SIF (one "source interaction target" per line) or GraphML <textarea class="gn-data" rows="9" spellcheck="false" wrap="off">{example}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small gn-open">Open a file</button>
+      <input type="file" class="gn-file" accept=".sif,.graphml,.xml,.txt,.tsv,text/plain,application/xml" hidden />
+    </div>
+    <p class="ax-help">SIF or GraphML from Cytoscape, yEd, NetworkX or igraph, up to 5 MB. Interactions such as activates, induces or + are drawn as arrows; represses, inhibits or − as bars (⊣); anything else as plain lines. In GraphML the sign comes from an edge attribute called sign, interaction, type, effect or regulation. The file stays on this device. The example network is made up.</p>
+    <p class="ax-err gn-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Drawing</h2>
+    <div class="ax-grid">
+      <label>Layout <select class="gn-lay"><option value="force" selected>Force-directed</option><option value="circle">Circle</option></select></label>
+      <label>Highlight <select class="gn-hl"><option value="none" selected>Nothing</option><option value="ffl">Feed-forward loops</option><option value="fb">Feedback (self and two-gene loops)</option></select></label>
+      <label>Node size <select class="gn-size"><option value="degree" selected>By number of links</option><option value="same">All the same</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="gn-lab" checked /> Show gene names</label>
+      <button type="button" class="btn secondary small gn-shuffle">New layout</button>
+    </div>
+    <p class="ax-help">Force-directed pulls linked genes together and pushes the rest apart; New layout tries another random start. Filled nodes regulate other genes, open ones are only targets.</p>
+  </div>
+
+  <div class="ax-card gn-out">
+    <h2>Result</h2>
+    <p class="ax-big gn-big"></p>
+    <dl class="ax-facts gn-facts"></dl>
+    <canvas class="ax-fig gn-fig" style="margin-top:12px"></canvas>
+    <h3>Most connected genes</h3>
+    <div class="ax-scroll gn-tw"><table class="gn-dtab"></table></div>
+    <h3>Feed-forward loops</h3>
+    <p class="gn-fsum"></p>
+    <div class="ax-scroll gn-tw"><table class="gn-ftab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gn-dcsv">Degrees (CSV)</button>
+      <button type="button" class="btn secondary small gn-fcsv">Motifs (CSV)</button>
+    </div>
+    <p class="ax-help">A feed-forward loop is X regulating Y, and both regulating Z. It is coherent when the direct path X → Z has the same sign as the path through Y (C1: all activation), incoherent when they differ (I1: X activates Y and Z, Y represses Z). For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readNetwork, degrees, ffls, mutual, summary, forceLayout, circleLayout, type Net, type Degree, type FFL } from '../../lib/sci/sbnet';
+  import { sig, csv as toCsv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gnv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const sym = (s: number) => (s > 0 ? '+' : s < 0 ? '−' : '?');
+  let fig: Figure | null = null, sections: Section[] = [], degCsv: string[][] = [], motCsv: string[][] = [];
+  let seed = 1, lastText = '', lastKey = '', net: Net | null = null, pos: [number, number][] = [];
+
+  function table(s: string, head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>(s); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function drawNet(n: Net, P: [number, number][], deg: Degree[], hlEdges: Set<string> | null, hlNodes: Set<string>, labels: boolean, bySize: boolean): Figure {
+    const W0 = 380, H0 = 400;
+    return { w: W0, h: H0, alt: `Network of ${n.nodes.length} genes and ${n.edges.length} interactions`, draw: (ctx, W, H, pal: Palette) => {
+      const M = 26, LB = 28, idx = new Map(n.nodes.map((v, i) => [v, i]));
+      const xy = (i: number) => [M + P[i][0] * (W - 2 * M), M + P[i][1] * (H - 2 * M - LB)] as [number, number];
+      const rad = deg.map((d) => (bySize ? Math.min(14, 4 + 1.6 * Math.sqrt(d.total)) : 6));
+      const col = (s: number) => (s > 0 ? pal.good : s < 0 ? pal.bad : pal.muted);
+      const pairs = new Set(n.edges.map((e) => e.s + '\u0001' + e.t));
+      ctx.lineCap = 'round';
+      const marker = (x: number, y: number, ux: number, uy: number, s: number, c: string) => {
+        ctx.fillStyle = c; ctx.strokeStyle = c;
+        if (s < 0) { ctx.setLineDash([]); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(x - uy * 5, y + ux * 5); ctx.lineTo(x + uy * 5, y - ux * 5); ctx.stroke(); }
+        else { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - ux * 8 - uy * 4, y - uy * 8 + ux * 4); ctx.lineTo(x - ux * 8 + uy * 4, y - uy * 8 - ux * 4); ctx.closePath(); ctx.fill(); }
+      };
+      for (const e of n.edges) {
+        const a = idx.get(e.s)!, b = idx.get(e.t)!, c = col(e.sign), on = !hlEdges || hlEdges.has(e.s + '\u0001' + e.t);
+        ctx.globalAlpha = on ? 1 : 0.18; ctx.strokeStyle = c; ctx.lineWidth = hlEdges && on ? 2.4 : 1.4; ctx.setLineDash(e.sign < 0 ? [5, 3] : []);
+        const [x0, y0] = xy(a);
+        if (a === b) {
+          const r = rad[a], cx = x0, cy = y0 - r - 7;
+          ctx.beginPath(); ctx.arc(cx, cy, 8, 0.75 * Math.PI, 2.25 * Math.PI); ctx.stroke();
+          const ex = cx + 8 * Math.cos(2.25 * Math.PI), ey = cy + 8 * Math.sin(2.25 * Math.PI);
+          marker(ex, ey, -0.6, 0.8, e.sign, c);
+          continue;
+        }
+        let [x1, y1] = xy(b), sx = x0, sy = y0;
+        const L = Math.hypot(x1 - sx, y1 - sy) || 1, ux = (x1 - sx) / L, uy = (y1 - sy) / L;
+        if (pairs.has(e.t + '\u0001' + e.s)) { sx += -uy * 4; sy += ux * 4; x1 += -uy * 4; y1 += ux * 4; }
+        const ax = sx + ux * rad[a], ay = sy + uy * rad[a], bx = x1 - ux * (rad[b] + 2), by = y1 - uy * (rad[b] + 2);
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx - ux * (e.sign < 0 ? 0 : 6), by - uy * (e.sign < 0 ? 0 : 6)); ctx.stroke();
+        marker(bx, by, ux, uy, e.sign, c);
+      }
+      ctx.globalAlpha = 1; ctx.setLineDash([]);
+      n.nodes.forEach((name, i) => {
+        const [x, y] = xy(i), reg = deg[i].outD - (deg[i].self != null ? 1 : 0) > 0, on = !hlEdges || hlNodes.has(name);
+        ctx.globalAlpha = on ? 1 : 0.35;
+        ctx.beginPath(); ctx.arc(x, y, rad[i], 0, 2 * Math.PI);
+        ctx.fillStyle = reg ? pal.accent : pal.bg; ctx.fill();
+        ctx.lineWidth = hlEdges && on ? 2.4 : 1.3; ctx.strokeStyle = reg ? pal.accent : pal.ink; ctx.stroke();
+      });
+      if (labels) {
+        ctx.font = '11px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        n.nodes.forEach((name, i) => {
+          const [x, y] = xy(i), right = P[i][0] < 0.8, tx = right ? x + rad[i] + 3 : x - rad[i] - 3;
+          ctx.globalAlpha = !hlEdges || hlNodes.has(name) ? 1 : 0.35; ctx.textAlign = right ? 'left' : 'right';
+          ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.strokeText(name, tx, y + 1); ctx.fillStyle = pal.ink; ctx.fillText(name, tx, y + 1);
+        });
+      }
+      ctx.globalAlpha = 1;
+      // Legend along the bottom.
+      const ly = H - 12; ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      let lx = 10;
+      const item = (s: number, text: string) => { ctx.strokeStyle = col(s); ctx.lineWidth = 1.6; ctx.setLineDash(s < 0 ? [5, 3] : []); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 18, ly); ctx.stroke(); ctx.setLineDash([]); marker(lx + 24, ly, 1, 0, s, col(s)); ctx.fillStyle = pal.ink; ctx.fillText(text, lx + 30, ly); lx += 36 + ctx.measureText(text).width + 10; };
+      item(1, 'activates'); item(-1, 'represses');
+      if (n.edges.some((e) => e.sign === 0)) item(0, 'other');
+    } };
+  }
+
+  function calc() {
+    const err = q('.gn-err'), out = q('.gn-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; degCsv = []; motCsv = []; net = null; lastText = ''; };
+    const text = q<HTMLTextAreaElement>('.gn-data').value;
+    let n: Net;
+    try { n = readNetwork(text); } catch (e) { return fail((e as Error).message); }
+    if (n.nodes.length > 3000) return fail(`The network has ${n.nodes.length.toLocaleString('en')} genes; this page draws up to 3,000. Open a smaller part of it.`);
+    err.hidden = true; out.hidden = false;
+    const lay = sel('.gn-lay'), key = `${text}\u0001${lay}\u0001${seed}`;
+    if (key !== lastKey) { pos = lay === 'circle' || n.nodes.length > 800 ? circleLayout(n) : forceLayout(n, seed, n.nodes.length > 300 ? 120 : 300); lastKey = key; }
+    net = n; lastText = text;
+    const deg = degrees(n), s = summary(n), F = ffls(n), Mu = mutual(n);
+    q('.gn-big').textContent = `${n.nodes.length} genes, ${n.edges.length} interactions`;
+    const coh = F.filter((f) => f.kind === 'coherent').length, inc = F.filter((f) => f.kind === 'incoherent').length;
+    const facts = [
+      fact('Interactions', `${s.activation} activating, ${s.repression} repressing${s.unsigned ? `, ${s.unsigned} other` : ''}`, n.duplicates ? `${n.duplicates} repeated line${n.duplicates > 1 ? 's' : ''} left out` : `${s.regulators} genes regulate others`),
+      fact('Density', sig(s.density, 3), `mean ${sig(s.meanDegree, 3)} targets per gene`),
+      fact('Parts', `${s.components}`, s.components > 1 ? `largest has ${s.largest} genes${s.isolated ? `; ${s.isolated} gene${s.isolated > 1 ? 's' : ''} with no links` : ''}` : 'all genes are linked'),
+      fact('Feed-forward loops', `${F.length}`, `${coh} coherent, ${inc} incoherent${F.length - coh - inc ? `, ${F.length - coh - inc} unsigned` : ''}`),
+      fact('Feedback', `${s.selfPos + s.selfNeg + s.selfUnsigned} self, ${Mu.length} two-gene`, `${s.selfNeg} negative and ${s.selfPos} positive autoregulation; ${Mu.filter((m) => m.kind === 'negative').length} negative and ${Mu.filter((m) => m.kind === 'positive').length} positive two-gene loops`),
+    ];
+    q('.gn-facts').replaceChildren(...facts);
+    const hl = sel('.gn-hl');
+    let hlE: Set<string> | null = null; const hlN = new Set<string>();
+    const k2 = (a: string, b: string) => a + '\u0001' + b;
+    if (hl === 'ffl') { hlE = new Set(); for (const f of F) { hlE.add(k2(f.x, f.y)); hlE.add(k2(f.y, f.z)); hlE.add(k2(f.x, f.z)); hlN.add(f.x); hlN.add(f.y); hlN.add(f.z); } }
+    if (hl === 'fb') { hlE = new Set(); for (const m of Mu) { hlE.add(k2(m.a, m.b)); hlE.add(k2(m.b, m.a)); hlN.add(m.a); hlN.add(m.b); } for (const d of deg) if (d.self != null) { hlE.add(k2(d.node, d.node)); hlN.add(d.node); } }
+    fig = drawNet(n, pos, deg, hlE, hlN, q<HTMLInputElement>('.gn-lab').checked, sel('.gn-size') === 'degree');
+    paint(q<HTMLCanvasElement>('.gn-fig'), fig);
+    const sorted = [...deg].sort((a, b) => b.total - a.total || b.outD - a.outD || a.node.localeCompare(b.node));
+    const dHead = ['Gene', 'In', 'Out', 'Activates', 'Represses', 'Self'];
+    const dRows = sorted.slice(0, 50).map((d) => [d.node, String(d.inD), String(d.outD), String(d.act), String(d.rep), d.self == null ? '' : sym(d.self)]);
+    table('.gn-dtab', dHead, dRows, [1, 2, 3, 4]);
+    const kindText = (f: FFL) => (f.kind === 'unsigned' ? 'unsigned' : `${f.kind}${f.type ? ' ' + f.type : ''}`);
+    const fHead = ['X', 'Y', 'Z', 'Signs XY, YZ, XZ', 'Kind'];
+    const fRows = F.slice(0, 100).map((f) => [f.x, f.y, f.z, f.signs.map(sym).join(' '), kindText(f)]);
+    table('.gn-ftab', fHead, fRows, []);
+    q('.gn-fsum').textContent = F.length ? `${F.length} loop${F.length > 1 ? 's' : ''}${F.length > 100 ? ' (first 100 shown; all in the CSV)' : ''}.` : 'No feed-forward loops in this network.';
+    q('.gn-ftab').hidden = !F.length;
+    degCsv = [['gene', 'in_degree', 'out_degree', 'activates', 'represses', 'self_regulation'], ...sorted.map((d) => [d.node, String(d.inD), String(d.outD), String(d.act), String(d.rep), d.self == null ? '' : String(d.self)])];
+    motCsv = [['motif', 'x', 'y', 'z', 'sign_xy', 'sign_yz', 'sign_xz', 'kind'], ...F.map((f) => ['feed-forward loop', f.x, f.y, f.z, ...f.signs.map(String), kindText(f)]), ...Mu.map((m) => ['two-gene feedback', m.a, m.b, '', String(m.signs[0]), String(m.signs[1]), '', m.kind]), ...deg.filter((d) => d.self != null).map((d) => ['autoregulation', d.node, '', '', String(d.self), '', '', d.self! > 0 ? 'positive' : d.self! < 0 ? 'negative' : 'unsigned'])];
+    sections = [
+      { title: q('.gn-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, `${d.querySelector('dd')!.childNodes[0].textContent!} (${d.querySelector('small')?.textContent ?? ''})`] as [string, string]), figure: fig },
+      { title: 'Most connected genes', table: { head: dHead, rows: dRows.slice(0, 30), align: ['l', 'r', 'r', 'r', 'r', 'l'] } },
+      ...(F.length ? [{ title: 'Feed-forward loops', table: { head: fHead, rows: fRows.slice(0, 40), align: ['l', 'l', 'l', 'l', 'l'] as ('l' | 'r')[] } }] : []),
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  q('.gn-data').addEventListener('input', later);
+  for (const c of ['.gn-lay', '.gn-hl', '.gn-size', '.gn-lab']) q(c).addEventListener('change', calc);
+  q('.gn-shuffle').addEventListener('click', () => { seed++; if (sel('.gn-lay') !== 'force') q<HTMLSelectElement>('.gn-lay').value = 'force'; calc(); });
+  q('.gn-open').addEventListener('click', () => q<HTMLInputElement>('.gn-file').click());
+  q('.gn-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.gn-file'), f = inp.files?.[0]; inp.value = '';
+    if (!f) return;
+    const err = q('.gn-err');
+    if (f.size > 5 * 1024 * 1024) { err.textContent = `${f.name} is larger than 5 MB.`; err.hidden = false; return; }
+    q<HTMLTextAreaElement>('.gn-data').value = await f.text(); seed = 1; calc();
+  });
+  q('.gn-dcsv').addEventListener('click', () => { if (degCsv.length) save(new TextEncoder().encode(toCsv(degCsv)), 'network-degrees.csv', 'text/csv'); });
+  q('.gn-fcsv').addEventListener('click', () => { if (motCsv.length) save(new TextEncoder().encode(toCsv(motCsv)), 'network-motifs.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.gn-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gene regulatory network', subtitle: q('.gn-big').textContent ?? '', file: 'gene-network', sections }));
+</script>
+
+<style is:global>
+  .gnv select { max-width: 100%; }
+  .gnv td { white-space: nowrap; }
+  .gnv .gn-tw { max-height: 360px; overflow-y: auto; }
+  .gnv h3 { margin: 16px 0 6px; font-size: 1rem; }
+</style>

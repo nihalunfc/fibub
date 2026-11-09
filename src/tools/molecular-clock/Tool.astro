@@ -1,0 +1,199 @@
+---
+// Molecular clock: divergence time from a distance and a rate (T = d / 2r), or the rate from a calibration, with
+// JC/K2P corrections, error propagation and Tajima's relative rate test. The example sequences and rate are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `>Species A
+GTATCAGCTACCGCAAAAATAGTACCCTATTTACGCAGGATGTCCTAACGATTAGTCTCAAGTAAGTCTAGCTTACTGCGACATTAACATGGCGTATATTTATTCCTTGCATCGGACGAGTGACCACGGAAGTGTCCTAAACATTCAAAG
+>Species B
+GTATCGGCTACCGTACAAATAGTACCCTATTTACACAGGATATCCTAACGATTAGTCTCATGTAGGCCTGGCCTGCAGCGACATTAACATGGCGTATATTTATTCCTTGCATCGGACGCGTGACTACGGAAGTGTCTTAGACATTCAGGG
+>Outgroup
+GTATGGGCTACGGCAAAAGTGGTACTTTATTTACGCGGGATGTCCCAGCGGCCAGTTTCATGTAAGGCTAGCCTACAACGACATTGACATGGCGTATACTCCTTCCTTGCACCGGAAGAGTGGCTACAGAAGTGTTCTAAACATTTTGAG`;
+---
+<div class="ax mclk">
+  <div class="ax-card">
+    <h2>Genetic distance</h2>
+    <div class="ax-grid">
+      <label>Distance from <select class="mc-src"><option value="seq" selected>Two aligned sequences</option><option value="count">Site counts</option><option value="d">A distance I already have</option></select></label>
+      <label class="mc-modw">Correction <select class="mc-mod"><option value="k2p" selected>Kimura 2-parameter (K2P)</option><option value="jc">Jukes-Cantor (JC69)</option><option value="p">None (p-distance)</option></select></label>
+    </div>
+    <div class="mc-seqw">
+      <label>Two aligned sequences in FASTA. Add a third, an outgroup, to test whether the two evolved at the same rate.
+        <textarea class="mc-seq" rows="7" spellcheck="false" wrap="off">{example}</textarea></label>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small mc-open">Open a file</button><input type="file" class="mc-file" accept=".fa,.fasta,.fas,.fna,.txt,text/plain" hidden /><span class="ax-help" style="margin:0">FASTA or text, up to 1 MB.</span></div>
+    </div>
+    <div class="ax-grid mc-cntw" hidden>
+      <label>Sites compared <input class="mc-n" inputmode="numeric" value="1000" /></label>
+      <label>Transitions (A↔G, C↔T) <input class="mc-ts" inputmode="numeric" value="60" /></label>
+      <label>Transversions <input class="mc-tv" inputmode="numeric" value="25" /></label>
+    </div>
+    <div class="ax-grid mc-dw" hidden>
+      <label>Distance d (substitutions per site) <input class="mc-d" inputmode="decimal" value="0.1" /></label>
+      <label>Its standard error (optional) <input class="mc-dse" inputmode="decimal" value="0.01" /></label>
+    </div>
+    <p class="ax-help mc-dhelp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Clock</h2>
+    <div class="ax-grid">
+      <label>Work out <select class="mc-find"><option value="time" selected>When they split (time)</option><option value="rate">The rate (from a known split)</option></select></label>
+      <label>Time unit <select class="mc-unit"><option value="Myr" selected>million years</option><option value="kyr">thousand years</option><option value="yr">years</option></select></label>
+      <label>Rate given as <select class="mc-per"><option value="lineage" selected>per lineage (T = d / 2r)</option><option value="pair">pairwise divergence (T = d / r)</option></select></label>
+      <label class="mc-rw"><span class="mc-rl">Rate r</span> <input class="mc-r" inputmode="decimal" value="0.01" /></label>
+      <label class="mc-rw">Rate standard error (optional) <input class="mc-rse" inputmode="decimal" value="0.002" /></label>
+      <label class="mc-tw" hidden><span class="mc-tl">Calibration time</span> <input class="mc-t" inputmode="decimal" value="5" /></label>
+      <label class="mc-tw" hidden>Its standard error (optional) <input class="mc-tse" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">A per-lineage rate counts changes along one branch; two lineages drift apart at twice that, so T = d / 2r. Some textbook rates (such as "2 % per million years") are pairwise divergence rates, so T = d / r. The example rate is made up: always use a rate published for your group and gene.</p>
+    <p class="ax-err mc-err" hidden></p>
+  </div>
+
+  <div class="ax-card mc-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big mc-big"></p>
+    <dl class="ax-facts mc-facts"></dl>
+    <canvas class="ax-fig mc-fig"></canvas>
+    <p class="ax-help">The line is the clock (distance against time); the dot and bar are your estimate and its approximate 95 % range. The range combines the sampling error of the distance with the error you gave for the rate or calibration; it ignores errors in the clock model itself.</p>
+    <div class="mc-rrt" hidden>
+      <h3>Relative rate test (Tajima)</h3>
+      <p class="mc-rrtbig"></p>
+      <dl class="ax-facts mc-rrtf"></dl>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small mc-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { distWithSE, seqDist, divergenceTime, clockRate, tajima, type Dist } from '../../lib/sci/molclock';
+  import { parseFasta, type Model } from '../../lib/sci/treebuild';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mclk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const all = (c: string) => root.querySelectorAll<HTMLElement>(c);
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const UNIT: Record<string, string> = { Myr: 'million years', kyr: 'thousand years', yr: 'years' };
+  const MODEL: Record<Model, string> = { k2p: 'Kimura 2-parameter', jc: 'Jukes-Cantor', p: 'p-distance' };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.mc-err').textContent = m; q('.mc-err').hidden = false; q('.mc-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.mc-err').hidden = true;
+    const src = q<HTMLSelectElement>('.mc-src').value, model = q<HTMLSelectElement>('.mc-mod').value as Model;
+    const find = q<HTMLSelectElement>('.mc-find').value, unit = q<HTMLSelectElement>('.mc-unit').value, perLineage = q<HTMLSelectElement>('.mc-per').value === 'lineage';
+    q('.mc-seqw').hidden = src !== 'seq'; q('.mc-cntw').hidden = src !== 'count'; q('.mc-dw').hidden = src !== 'd'; q('.mc-modw').hidden = src === 'd';
+    all('.mc-rw').forEach((e) => { e.hidden = find !== 'time'; }); all('.mc-tw').forEach((e) => { e.hidden = find !== 'rate'; });
+    q('.mc-rl').textContent = `Rate r (substitutions per site per ${unit === 'Myr' ? 'million years' : unit === 'kyr' ? 'thousand years' : 'year'})`;
+    q('.mc-tl').textContent = `Calibration time (${UNIT[unit]} since the split)`;
+    q('.mc-dhelp').textContent = src === 'd' ? 'Use a distance already corrected for multiple hits if it comes from a tree or a program.' : model === 'k2p' ? 'Kimura 2-parameter corrects for sites that changed more than once and lets transitions happen more often than transversions. Jukes-Cantor treats every change alike. Gaps and N are skipped.' : model === 'jc' ? 'Jukes-Cantor corrects for sites that changed more than once, treating every change alike. Only the total of transitions and transversions matters. Gaps and N are skipped.' : 'The p-distance is the plain share of sites that differ. It underestimates older splits, where some sites changed more than once.';
+
+    let D: Dist | null = null, seqs: { name: string; seq: string }[] = [];
+    if (src === 'seq') {
+      try { seqs = parseFasta(q<HTMLTextAreaElement>('.mc-seq').value); } catch (e) { return fail((e as Error).message); }
+      if (seqs.length < 2) return fail('Paste two aligned sequences in FASTA format (a >name line, then the sequence), or switch to site counts.');
+      if (seqs.length > 3) return fail('Use two sequences, or three with an outgroup.');
+      if (seqs.some((s) => s.seq.length !== seqs[0].seq.length)) return fail(`The sequences are not aligned: they have ${seqs.map((s) => s.seq.length).join(', ')} columns. Align them first.`);
+      const bad = seqs.find((s) => /[^ACGTRYSWKMBDHVN?.\-]/.test(s.seq));
+      if (bad) return fail(`${bad.name} has letters that are not DNA. This tool works on DNA or RNA.`);
+      D = seqDist(seqs[0].seq, seqs[1].seq, model);
+      if (!D.sites) return fail('The two sequences share no columns where both have a base.');
+    } else if (src === 'count') {
+      const n = num(q<HTMLInputElement>('.mc-n').value), ts = num(q<HTMLInputElement>('.mc-ts').value), tv = num(q<HTMLInputElement>('.mc-tv').value);
+      if (!(Number.isInteger(n) && n > 0)) return fail('Sites compared: a whole number above 0.');
+      if (!(Number.isInteger(ts) && ts >= 0 && Number.isInteger(tv) && tv >= 0)) return fail('Transitions and transversions: whole numbers, 0 or more.');
+      if (ts + tv > n) return fail('There cannot be more differences than sites compared.');
+      D = distWithSE(n, ts, tv, model);
+    } else {
+      const d = num(q<HTMLInputElement>('.mc-d').value), se = q<HTMLInputElement>('.mc-dse').value.trim() === '' ? 0 : num(q<HTMLInputElement>('.mc-dse').value);
+      if (!(d > 0)) return fail('The distance must be a number above 0.');
+      if (!(se >= 0)) return fail('The standard error must be 0 or more.');
+      D = { d, se, p: NaN, sites: 0, diff: 0, ts: 0, tv: 0 };
+    }
+    if (!Number.isFinite(D.d)) return fail(`The sequences differ at ${(100 * D.p).toFixed(1)} % of sites, too many for the ${MODEL[model]} correction: they are saturated (or badly aligned), and no clock can date them reliably.`);
+    if (D.d === 0) return fail('The two sequences are identical at every compared site, so the distance is 0 and the split is too recent to date this way.');
+
+    const readPos = (sel: string, seSel: string, what: string) => {
+      const v = num(q<HTMLInputElement>(sel).value), s = q<HTMLInputElement>(seSel).value.trim() === '' ? 0 : num(q<HTMLInputElement>(seSel).value);
+      if (!(v > 0)) throw new Error(`${what} must be a number above 0.`);
+      if (!(s >= 0)) throw new Error(`The standard error of the ${what.toLowerCase()} must be 0 or more.`);
+      return [v, s];
+    };
+    const perTxt = `substitutions per site per ${unit === 'Myr' ? 'million years' : unit === 'kyr' ? 'thousand years' : 'year'}${perLineage ? ', per lineage' : ', pairwise'}`;
+    let big = '', est, rate = 0, T = 0, rateSE = 0, TSE = 0;
+    try {
+      if (find === 'time') {
+        [rate, rateSE] = readPos('.mc-r', '.mc-rse', 'The rate');
+        est = divergenceTime(D.d, D.se, rate, rateSE, perLineage); T = est.value; TSE = est.se;
+        big = `Split about ${sg(est.value, 3)} ± ${sg(est.se, 2)} ${UNIT[unit]} ago`;
+      } else {
+        [T, TSE] = readPos('.mc-t', '.mc-tse', 'The calibration time');
+        est = clockRate(D.d, D.se, T, TSE, perLineage); rate = est.value; rateSE = est.se;
+        big = `Rate ${sg(est.value, 3)} ± ${sg(est.se, 2)} ${perTxt.replace(', per lineage', ' per lineage').replace(', pairwise', ' (pairwise)')}`;
+      }
+    } catch (e) { return fail((e as Error).message); }
+
+    q('.mc-big').textContent = big;
+    const dLabel = src === 'd' ? 'distance you gave' : `${MODEL[model]}${D.sites ? `, ${D.diff} differences in ${D.sites} sites (${D.ts} transitions, ${D.tv} transversions)` : ''}`;
+    const facts: [string, string, string][] = [
+      ['Distance d', `${sg(D.d, 4)} ± ${sg(D.se, 2)}`, dLabel],
+      ...(src !== 'd' && model !== 'p' ? [['p-distance', sg(D.p, 4), 'share of sites that differ'] as [string, string, string]] : []),
+      find === 'time' ? ['Rate r', `${sg(rate, 4)}${rateSE ? ` ± ${sg(rateSE, 2)}` : ''}`, perTxt] : ['Calibration', `${sg(T, 4)}${TSE ? ` ± ${sg(TSE, 2)}` : ''} ${UNIT[unit]}`, ''],
+      [find === 'time' ? 'Time since the split' : 'Rate', find === 'time' ? `${sg(est.value, 4)} ${UNIT[unit]}` : sg(est.value, 4), find === 'time' ? `T = d / ${perLineage ? '2r' : 'r'}` : `r = d / ${perLineage ? '2T' : 'T'}`],
+      ['Approximate 95 % range', `${sg(est.lo, 3)} to ${sg(est.hi, 3)}`, find === 'time' ? UNIT[unit] : 'same units as the rate'],
+      ['Relative error', `${(100 * est.se / est.value).toFixed(0)} %`, 'from the distance and the rate or calibration combined'],
+    ];
+    q('.mc-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+
+    // Clock line: d = k r T, with the estimate as a point with an error bar.
+    const k = perLineage ? 2 : 1, Tmax = Math.max(T + 2.5 * TSE, 1.5 * T);
+    fig = chartFigure({ w: 520, h: 340, xMin: 0, yMin: 0, xLabel: `Time since the split (${UNIT[unit]})`, yLabel: 'Distance (substitutions per site)', legend: 'below', series: [
+      { name: `Clock: d = ${k === 2 ? '2' : ''}r × T`, x: [0, Tmax], y: [0, k * rate * Tmax], mode: 'line' },
+      { name: find === 'time' ? 'Your distance and the time' : 'Your distance and calibration', x: [T], y: [D.d], xErr: [1.959963984540054 * TSE], yErr: [1.959963984540054 * D.se], mode: 'points', marker: 'circle' },
+    ] }, big);
+    paint(q<HTMLCanvasElement>('.mc-fig'), fig);
+
+    // Relative rate test.
+    let rrt: Section | null = null;
+    if (src === 'seq' && seqs.length === 3) {
+      const t = tajima(seqs[0].seq, seqs[1].seq, seqs[2].seq);
+      const same = t.p >= 0.05;
+      q('.mc-rrtbig').textContent = t.m1 + t.m2 === 0 ? 'No site changed on only one of the two lineages, so the test has nothing to compare.' : `χ² = ${t.chi2.toFixed(2)}, p = ${t.p < 0.001 ? '< 0.001' : t.p.toFixed(3)}: ${same ? 'no evidence that the two lineages evolved at different rates.' : 'the two lineages seem to have evolved at different rates, so a single clock is doubtful.'}`;
+      q('.mc-rrtf').replaceChildren(fact(`Changes only in ${seqs[0].name}`, String(t.m1), 'sites where it differs from both others'), fact(`Changes only in ${seqs[1].name}`, String(t.m2), ''), fact('Outgroup differs', String(t.m3), `${seqs[2].name}, at sites where the two match each other`), fact('Sites compared', String(t.sites), 'with a base in all three'));
+      rrt = { title: 'Relative rate test (Tajima 1993)', text: [q('.mc-rrtbig').textContent!], facts: [[`Only in ${seqs[0].name}`, String(t.m1)], [`Only in ${seqs[1].name}`, String(t.m2)], ['χ²', t.chi2.toFixed(3)], ['p', t.p.toFixed(4)]] };
+      q('.mc-rrt').hidden = false;
+    } else q('.mc-rrt').hidden = true;
+
+    csvRows = [['quantity', 'value', 'standard error', 'note'], ['distance', String(+D.d.toPrecision(8)), String(+D.se.toPrecision(6)), dLabel],
+      find === 'time' ? ['rate', String(rate), String(rateSE), perTxt] : ['calibration time', String(T), String(TSE), UNIT[unit]],
+      find === 'time' ? ['divergence time', String(+est.value.toPrecision(8)), String(+est.se.toPrecision(6)), UNIT[unit]] : ['rate', String(+est.value.toPrecision(8)), String(+est.se.toPrecision(6)), perTxt],
+      ['95% range low', String(+est.lo.toPrecision(6)), '', ''], ['95% range high', String(+est.hi.toPrecision(6)), '', '']];
+    sections = [{ title: big, text: [find === 'time' ? `Divergence time T = d / ${perLineage ? '2r' : 'r'}, with the standard error propagated to first order from the distance and the rate.` : `Rate r = d / ${perLineage ? '2T' : 'T'}, with the standard error propagated to first order from the distance and the calibration.`],
+      facts: facts.map(([kk, v]) => [kk, v] as [string, string]), figure: fig }, ...(rrt ? [rrt] : [])];
+    q('.mc-out').hidden = false;
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input:not([type=file]), select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  const file = q<HTMLInputElement>('.mc-file');
+  q('.mc-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; file.value = '';
+    if (!f) return;
+    if (f.size > 1e6) { q('.mc-err').textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 1 MB.`; q('.mc-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.mc-seq').value = await f.text(); calc();
+  });
+  q('.mc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'molecular-clock.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mc-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Molecular clock', subtitle: q('.mc-big').textContent ?? '', file: 'molecular-clock', sections }));
+</script>
+
+<style is:global>
+  .mclk select { max-width: 100%; }
+</style>

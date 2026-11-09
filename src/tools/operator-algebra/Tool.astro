@@ -1,0 +1,132 @@
+---
+// Commutator and operator algebra helper: spin, Pauli, two-spin and ladder operators as matrices; expressions with
+// commutators, anticommutators, products, powers and daggers; eigenvalues and properties. In the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax opa">
+  <div class="ax-card">
+    <h2>Operators</h2>
+    <div class="ax-grid">
+      <label>Space <select class="oa-sp">
+        <option value="s0.5" selected>Spin ½ (2 × 2)</option><option value="s1">Spin 1 (3 × 3)</option><option value="s1.5">Spin 3/2 (4 × 4)</option><option value="s2">Spin 2 (5 × 5)</option><option value="s2.5">Spin 5/2</option><option value="s3">Spin 3</option><option value="s4">Spin 4</option><option value="s5">Spin 5</option>
+        <option value="two">Two spins ½ (4 × 4)</option><option value="osc">Harmonic oscillator (N states)</option>
+      </select></label>
+      <label class="oa-nl" hidden>States kept N <input class="oa-n" type="text" inputmode="numeric" value="6" /></label>
+    </div>
+    <p class="ax-help oa-known"></p>
+    <label style="margin-top:10px">Expression <input class="oa-e" type="text" spellcheck="false" autocomplete="off" value="[Jx, Jy]" /></label>
+    <div class="ax-row oa-quick" style="margin-top:8px"></div>
+    <label style="margin-top:10px">Check that it equals (optional) <input class="oa-c" type="text" spellcheck="false" autocomplete="off" value="i*Jz" /></label>
+    <p class="ax-help">Write products as A*B or A B, powers as A^2, commutators as [A, B], anticommutators as {'{A, B}'}, the adjoint as A' or dag(A); also tr(A), det(A), sqrt(…), i and pi. A number added to an operator means that number times the identity. ħ = 1 (and m = ω = 1 for the oscillator).</p>
+    <p class="ax-err oa-err" hidden></p>
+  </div>
+
+  <div class="ax-card oa-out">
+    <h2>Result</h2>
+    <p class="ax-big oa-big"></p>
+    <dl class="ax-facts oa-facts"></dl>
+    <h3 class="oa-h3">Matrix</h3>
+    <div class="ax-scroll"><table class="oa-tab"></table></div>
+    <p class="ax-help oa-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small oa-csv">Download matrix (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .opa label[hidden] { display: none; }
+  .opa .oa-h3 { margin: 18px 0 8px; font-size: 15px; }
+  .opa .oa-tab td, .opa .oa-tab th { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .opa .oa-quick .btn { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  import { operators, evaluate, analyse, type Space, type Val } from '../../lib/sci/phops';
+  import { fmtC, cmdiff, type CM, type C } from '../../lib/sci/phq';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { num, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.opa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const QUICK: Record<string, [string, string][]> = {
+    spin: [['[Jx, Jy]', 'i*Jz'], ['J2', ''], ['[J2, Jz]', '0'], ['[Jz, Jp]', 'Jp'], ['Jp Jm - Jm Jp', '2 Jz'], ['Jx', '']],
+    half: [['[Jx, Jy]', 'i*Jz'], ['{X, Y}', '0'], ['X*Y', 'i*Z'], ['H X H', 'Z'], ['X^2', 'I'], ['Jx', 'X/2']],
+    two: [['S2', ''], ['[S2, Sz1 + Sz2]', '0'], ['SWAP', '(I + X1 X2 + Y1 Y2 + Z1 Z2)/2'], ['X1 X2 + Y1 Y2 + Z1 Z2', ''], ['[X1, X2]', '0']],
+    osc: [['[a, ad]', 'I'], ['[x, p]', 'i'], ['ad*a', 'n'], ['x', ''], ['H', 'ad a + 1/2'], ['[n, a]', '-a']],
+  };
+  let ops: Record<string, CM> = {}, M: CM | null = null, labels: string[] = [], report: Section[] = [];
+
+  function space(): Space | string {
+    const v = q<HTMLSelectElement>('.oa-sp').value;
+    q('.oa-nl').hidden = v !== 'osc';
+    if (v === 'osc') { const N = num(inp('.oa-n').value); if (!(Number.isInteger(N) && N >= 2 && N <= 40)) return 'Keep between 2 and 40 oscillator states.'; return { kind: 'osc', N }; }
+    if (v === 'two') return { kind: 'two' };
+    return { kind: 'spin', j: Number(v.slice(1)) };
+  }
+  function basisLabels(s: Space): string[] {
+    if (s.kind === 'osc') return Array.from({ length: s.N }, (_, n) => `n=${n}`);
+    if (s.kind === 'two') return ['↑↑', '↑↓', '↓↑', '↓↓'];
+    const d = Math.round(2 * s.j + 1), fr = (m: number) => (Number.isInteger(m) ? String(m) : `${Math.round(2 * m)}/2`).replace('-', '−');
+    return Array.from({ length: d }, (_, k) => `m=${fr(s.j - k)}`);
+  }
+  function quick(s: Space) {
+    const set = s.kind === 'osc' ? QUICK.osc : s.kind === 'two' ? QUICK.two : s.j === 0.5 ? QUICK.half : QUICK.spin;
+    q('.oa-quick').replaceChildren(...set.map(([e, c]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = e; b.addEventListener('click', () => { inp('.oa-e').value = e; inp('.oa-c').value = c; calc(); }); return b; }));
+  }
+
+  function calc() {
+    const err = q('.oa-err'), out = q('.oa-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; M = null; report = []; };
+    const s = space(); if (typeof s === 'string') return fail(s);
+    ops = operators(s); labels = basisLabels(s);
+    q('.oa-known').textContent = `Operators here: ${Object.keys(ops).join(', ')}.${s.kind === 'osc' ? ' a lowers, ad (a†) raises, n = a†a, x and p are position and momentum, H = n + ½.' : s.kind === 'two' ? ' X1, Y1, Z1 act on the first spin and X2, Y2, Z2 on the second (Pauli); Sx1 = X1/2 and so on; S2 is the total spin squared.' : ` Jp and Jm are J₊ and J₋, J2 is J².${s.j === 0.5 ? ' X, Y, Z are the Pauli matrices and H the Hadamard.' : ''}`}`;
+    let v: Val;
+    try { v = evaluate(inp('.oa-e').value, ops); } catch (e) { return fail((e as Error).message); }
+    let cmp: Val | null = null;
+    const cs = inp('.oa-c').value.trim();
+    if (cs) { try { cmp = evaluate(cs, ops); } catch (e) { return fail(`Check: ${(e as Error).message}`); } }
+    err.hidden = true; out.hidden = false;
+    const d = ops.I.length, expr = inp('.oa-e').value.trim();
+    const asM = (x: Val): CM => (x.k === 'm' ? x.v : ops.I.map((r) => r.map((z) => [z[0] * x.v[0], z[0] * x.v[1]] as C)));
+    const facts: HTMLElement[] = [];
+    if (v.k === 's') {
+      q('.oa-big').textContent = `${expr} = ${fmtC(v.v, 6)}`;
+      M = null; q('.oa-tab').replaceChildren(); q('.oa-note').textContent = 'The result is a number, not a matrix.';
+      if (cmp) { const diff = Math.hypot(v.v[0] - (cmp.k === 's' ? cmp.v[0] : NaN), v.v[1] - (cmp.k === 's' ? cmp.v[1] : NaN)); facts.push(fact('Check', diff < 1e-10 ? 'equal' : 'not equal', `${cs} = ${cmp.k === 's' ? fmtC(cmp.v, 6) : 'a matrix'}`)); }
+      q('.oa-facts').replaceChildren(...facts);
+      report = [{ title: q('.oa-big').textContent!, facts: facts.map((f) => [f.querySelector('dt')!.textContent!, f.querySelector('dd')!.childNodes[0].textContent!]) }];
+      return;
+    }
+    M = v.v;
+    const a = analyse(M, ops);
+    const nameOf = (c: C, n: string) => { const s2 = fmtC(c, 6); return s2 === '1' ? n : s2 === '−1' ? `−${n}` : /[+−] /.test(s2) ? `(${s2}) ${n}` : `${s2} ${n}`; };
+    q('.oa-big').textContent = a.zero ? `${expr} = 0` : a.identityMultiple ? `${expr} = ${nameOf(a.identityMultiple, 'I')}` : a.multipleOf.length ? `${expr} = ${nameOf(a.multipleOf[0].c, a.multipleOf[0].name)}` : `${expr}: a ${d} × ${d} matrix`;
+    const kinds = [a.hermitian && 'Hermitian', a.antiHermitian && 'anti-Hermitian', a.unitary && 'unitary', !a.hermitian && !a.antiHermitian && a.normal && 'normal'].filter(Boolean).join(', ') || 'none of Hermitian, anti-Hermitian, unitary or normal';
+    facts.push(fact('Kind', kinds, a.hermitian ? 'real eigenvalues: an observable' : a.antiHermitian ? 'i times it is Hermitian' : a.unitary ? 'keeps lengths: a valid time evolution or gate' : ''));
+    const ev = a.eigen.grouped.map((g) => `${fmtC(g.v, 6)}${g.mult > 1 ? ` (×${g.mult})` : ''}`).join(', ');
+    facts.push(fact('Eigenvalues', ev, a.hermitian || a.antiHermitian ? `${d} in all, with multiplicities` : 'from a general complex eigen-solver; if the matrix cannot be diagonalised (for example a, a† truncated), repeated eigenvalues are less accurate'));
+    facts.push(fact('Trace and determinant', `${fmtC(a.trace, 6)}, ${fmtC(a.det, 6)}`));
+    if (a.multipleOf.length > 1 || (a.multipleOf.length && a.identityMultiple)) facts.push(fact('Also equal to', a.multipleOf.slice(1).map((m) => nameOf(m.c, m.name)).join(', ') || nameOf(a.multipleOf[0].c, a.multipleOf[0].name)));
+    if (cmp) { const diff = cmdiff(M, asM(cmp)); facts.push(fact('Check', diff <= 1e-10 * Math.max(1, a.norm) ? `equal to ${cs}` : `not equal to ${cs}`, `largest difference between entries ${fmtC([diff, 0], 3)}`)); }
+    q('.oa-facts').replaceChildren(...facts);
+    const show = Math.min(d, 16);
+    const t = q<HTMLTableElement>('.oa-tab'); t.replaceChildren();
+    const hr = t.insertRow(); ['', ...labels.slice(0, show)].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const rows = M.slice(0, show).map((r, i) => [labels[i], ...r.slice(0, show).map((z) => fmtC(z, 4))]);
+    rows.forEach((r) => { const tr = t.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; else td.style.color = 'var(--muted)'; }); });
+    const sk = space() as Space;
+    q('.oa-note').textContent = `${d > show ? `The first ${show} rows and columns of ${d} are shown; the CSV has them all. ` : ''}Rows and columns are the basis states ${sk.kind === 'spin' ? 'm = j down to −j (Jz eigenstates)' : sk.kind === 'osc' ? 'n = 0, 1, … (number states)' : '|↑↑⟩, |↑↓⟩, |↓↑⟩, |↓↓⟩'}.${sk.kind === 'osc' ? ' The oscillator is cut off after N states, so relations such as [a, a†] = 1 fail in the last row and column.' : ''}`;
+    report = [{ title: q('.oa-big').textContent!, facts: facts.map((f) => [f.querySelector('dt')!.textContent!, f.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['', ...labels.slice(0, Math.min(d, 8))], rows: M.slice(0, 8).map((r, i) => [labels[i], ...r.slice(0, 8).map((z) => fmtC(z, 4))]), align: Array(Math.min(d, 8) + 1).fill('r') }, note: q('.oa-note').textContent! }];
+  }
+
+  q('.oa-sp').addEventListener('change', () => { const s = space(); if (typeof s !== 'string') { quick(s); const set = s.kind === 'osc' ? QUICK.osc : s.kind === 'two' ? QUICK.two : s.j === 0.5 ? QUICK.half : QUICK.spin; inp('.oa-e').value = set[0][0]; inp('.oa-c').value = set[0][1]; } calc(); });
+  let tm = 0;
+  for (const c of ['.oa-e', '.oa-c', '.oa-n']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  q('.oa-csv').addEventListener('click', () => { if (!M) return; save(new Blob([csv([['', ...labels], ...M.map((r, i) => [labels[i], ...r.map((z) => `${+z[0].toPrecision(12)}${z[1] < 0 ? '-' : '+'}${Math.abs(+z[1].toPrecision(12))}i`)])])], { type: 'text/csv' }), 'operator.csv', 'text/csv'); });
+  { const s = space(); if (typeof s !== 'string') quick(s); }
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Operator algebra', subtitle: q<HTMLSelectElement>('.oa-sp').selectedOptions[0].text, file: 'operator-algebra', sections: report }));
+</script>

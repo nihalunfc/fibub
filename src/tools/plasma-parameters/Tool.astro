@@ -1,0 +1,182 @@
+---
+// Plasma parameter calculator: Debye length, plasma and cyclotron frequencies, gyroradii, collision rates, beta.
+// Presets are rounded typical values, labelled as such and editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ppc">
+  <div class="ax-card">
+    <h2>Plasma</h2>
+    <label>Start from <select class="pp-pre"><option value="">My own values</option></select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Electron density nₑ <input class="pp-n" type="text" inputmode="decimal" value="1e20" /></label>
+      <label>Density unit <select class="pp-nu"><option value="1" selected>per m³</option><option value="1e6">per cm³</option></select></label>
+      <label>Electron temperature Tₑ <input class="pp-te" type="text" inputmode="decimal" value="10000" /></label>
+      <label>Ion temperature Tᵢ <input class="pp-ti" type="text" inputmode="decimal" value="10000" /></label>
+      <label>Temperature unit <select class="pp-tu"><option value="eV" selected>eV</option><option value="K">kelvin</option></select></label>
+      <label>Magnetic field B <input class="pp-b" type="text" inputmode="decimal" value="5" /></label>
+      <label>Field unit <select class="pp-bu"><option value="1" selected>tesla</option><option value="1e-4">gauss</option><option value="1e-9">nanotesla</option></select></label>
+      <label>Ion <select class="pp-ion"><option value="1,1">H⁺ (proton)</option><option value="2,1" selected>D⁺ (deuteron)</option><option value="4,2">He²⁺</option><option value="4,1">He⁺</option><option value="16,1">O⁺</option><option value="40,1">Ar⁺</option><option value="">Other…</option></select></label>
+      <label>Ion mass (u) <input class="pp-a" type="text" inputmode="decimal" value="2" /></label>
+      <label>Ion charge Z <input class="pp-z" type="text" inputmode="decimal" value="1" /></label>
+      <label>Plasma size L (m, optional) <input class="pp-l" type="text" inputmode="decimal" value="1" /></label>
+      <label>Coulomb logarithm (blank = work it out) <input class="pp-ln" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Density is the electron density; the ion density is nₑ ÷ Z (quasi-neutral). Temperatures are kT in electronvolts (1 eV ≈ 11 605 K). Use B = 0 for an unmagnetised plasma. The size L is only used to say whether the plasma is collisional and how it compares with the Debye length. The presets are rounded, typical orders of magnitude, not measurements.</p>
+    <p class="ax-err pp-err" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out">
+    <h2>Results</h2>
+    <p class="ax-big pp-big"></p>
+    <div class="pp-pills"></div>
+    <h3>Lengths</h3><dl class="ax-facts pp-len"></dl>
+    <h3>Frequencies</h3><dl class="ax-facts pp-freq"></dl>
+    <h3>Speeds</h3><dl class="ax-facts pp-spd"></dl>
+    <h3>Collisions and ratios</h3><dl class="ax-facts pp-col"></dl>
+    <canvas class="ax-fig pp-fig"></canvas>
+    <canvas class="ax-fig pp-fig2"></canvas>
+    <p class="ax-help">Thermal speed is √(kT/m). Collision times are Braginskii's (electron-ion for electrons, ion-ion for ions); the Coulomb logarithm follows the NRL Plasma Formulary. Classical, non-relativistic formulas: for study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pp-csv">Download all values (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { plasma, PRESETS, EV_K, type PlasmaOut } from '../../lib/sci/phplasma';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, sup } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ppc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pre = q<HTMLSelectElement>('.pp-pre');
+  for (const p of PRESETS) pre.append(new Option(p.name, p.id));
+  let rows: [string, string, string, string][] = [], figs: Figure[] = [], report: Section[] = [];
+
+  const len = (m: number) => !Number.isFinite(m) ? 'none (no field)' : m >= 1e3 ? `${sig(m / 1e3, 3)} km` : m >= 1 ? `${sig(m, 3)} m` : m >= 1e-3 ? `${sig(m * 1e3, 3)} mm` : m >= 1e-6 ? `${sig(m * 1e6, 3)} µm` : `${sig(m * 1e9, 3)} nm`;
+  const hz = (f: number) => f === 0 ? '0 (no field)' : f >= 1e9 ? `${sig(f / 1e9, 3)} GHz` : f >= 1e6 ? `${sig(f / 1e6, 3)} MHz` : f >= 1e3 ? `${sig(f / 1e3, 3)} kHz` : `${sig(f, 3)} Hz`;
+  const spd = (v: number) => v === 0 ? '0 (no field)' : v >= 1e3 ? `${sig(v / 1e3, 3)} km/s` : `${sig(v, 3)} m/s`;
+  const tim = (t: number) => !Number.isFinite(t) || t <= 0 ? '–' : t >= 1 ? `${sig(t, 3)} s` : t >= 1e-3 ? `${sig(t * 1e3, 3)} ms` : t >= 1e-6 ? `${sig(t * 1e6, 3)} µs` : `${sig(t * 1e9, 3)} ns`;
+
+  function ladder(items: { name: string; v: number }[], unit: string, title: string): Figure {
+    const ok = items.filter((i) => Number.isFinite(i.v) && i.v > 0);
+    const lo = Math.floor(Math.log10(Math.min(...ok.map((i) => i.v)))), hi = Math.ceil(Math.log10(Math.max(...ok.map((i) => i.v))));
+    const span = Math.max(1, hi - lo), h = 34 + ok.length * 24 + 34;
+    return { w: 380, h, alt: title, draw: (ctx, W, H, pal) => {
+      const L = 118, R = 16, T = 26, X = (v: number) => L + ((Math.log10(v) - lo) / span) * (W - L - R);
+      ctx.font = 'bold 12px Arial, Helvetica, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(title, 6, 6);
+      ctx.font = '11px Arial, Helvetica, sans-serif';
+      const every = Math.max(1, Math.ceil(span / 6));
+      for (let e = lo; e <= hi; e++) { const x = X(10 ** e); ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, H - 26); ctx.stroke(); if ((e - lo) % every === 0) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(`10${sup(e)}`, x, H - 22); } }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(unit, (L + W - R) / 2, H - 11);
+      ok.sort((a, b) => a.v - b.v).forEach((it, k) => {
+        const y = T + 8 + k * 24; ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(it.name, L - 8, y);
+        ctx.fillStyle = it.name.startsWith('Size') || it.name.startsWith('Wave') ? pal.accent2 : pal.accent; ctx.beginPath(); ctx.arc(X(it.v), y, 5, 0, 7); ctx.fill();
+        ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(X(it.v) - 6, y); ctx.stroke();
+      });
+    } };
+  }
+
+  function calc() {
+    const err = q('.pp-err'), out = q('.pp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; rows = []; };
+    const K = q<HTMLSelectElement>('.pp-tu').value === 'K';
+    const ne = num(inp('.pp-n').value) * +q<HTMLSelectElement>('.pp-nu').value;
+    const Te = num(inp('.pp-te').value) / (K ? EV_K : 1), Ti = num(inp('.pp-ti').value) / (K ? EV_K : 1);
+    const B = num(inp('.pp-b').value) * +q<HTMLSelectElement>('.pp-bu').value;
+    const A = num(inp('.pp-a').value), Z = num(inp('.pp-z').value);
+    const Ltxt = inp('.pp-l').value.trim(), L = Ltxt ? num(Ltxt) : NaN, lnTxt = inp('.pp-ln').value.trim(), lnL = lnTxt ? num(lnTxt) : undefined;
+    if (!(ne > 0 && ne < 1e40)) return fail('Give an electron density greater than 0, for example 1e18.');
+    if (!(Te > 0)) return fail('Give an electron temperature greater than 0.');
+    if (!(Ti >= 0)) return fail('The ion temperature cannot be negative (0 means cold ions).');
+    if (!(B >= 0)) return fail('Give a magnetic field of 0 or more.');
+    if (!(A >= 1 && A <= 500)) return fail('Give the ion mass in atomic mass units (1 for hydrogen, 40 for argon).');
+    if (!(Z >= 1 && Z <= 100 && Number.isInteger(Z))) return fail('The ion charge Z must be a whole number from 1 to 100.');
+    if (Ltxt && !(L > 0)) return fail('The plasma size must be a length greater than 0, or left blank.');
+    if (lnTxt && !(lnL! > 1 && lnL! < 50)) return fail('A Coulomb logarithm is usually between 5 and 35; leave it blank to work it out.');
+    err.hidden = true; out.hidden = false;
+    const p: PlasmaOut = plasma({ ne, Te, Ti, B, A, Z, lnL });
+    q('.pp-big').textContent = `Debye length ${len(p.lambdaD)}, plasma frequency ${hz(p.fpe)}${B > 0 ? `, β = ${sig(p.beta, 3)}` : ''}`;
+    const R: [string, string, string, string][] = [];
+    const add = (el: HTMLElement[], group: string, name: string, shown: string, raw: number, unit: string, note = '') => { el.push(fact(name, shown, note)); R.push([group, name, Number.isFinite(raw) ? String(+raw.toPrecision(6)) : '', unit]); };
+    const fl: HTMLElement[] = [], ff: HTMLElement[] = [], fs: HTMLElement[] = [], fc: HTMLElement[] = [];
+    add(fl, 'length', 'Debye length (electrons)', len(p.lambdaD), p.lambdaD, 'm', 'λD = √(ε₀kTₑ / nₑe²): electric fields are screened beyond this');
+    if (Ti > 0) add(fl, 'length', 'Debye length (electrons and ions)', len(p.lambdaDtot), p.lambdaDtot, 'm', 'both species screening; the electron value is the usual one');
+    add(fl, 'length', 'Electron gyroradius', len(p.rLe), p.rLe, 'm', 'thermal electron circling the field line');
+    add(fl, 'length', 'Ion gyroradius', len(p.rLi), p.rLi, 'm');
+    add(fl, 'length', 'Electron skin depth c/ωpe', len(p.skinE), p.skinE, 'm', 'how far low-frequency waves get into the plasma');
+    add(fl, 'length', 'Ion inertial length c/ωpi', len(p.skinI), p.skinI, 'm');
+    add(fl, 'length', 'Electron mean free path', len(p.mfpE), p.mfpE, 'm', 'thermal speed × collision time');
+    if (Ti > 0) add(fl, 'length', 'Ion mean free path', len(p.mfpI), p.mfpI, 'm');
+    add(ff, 'frequency', 'Electron plasma frequency fpe', hz(p.fpe), p.fpe, 'Hz', `ωpe = ${sig(p.wpe, 4)} rad/s; radio waves below fpe are reflected`);
+    add(ff, 'frequency', 'Ion plasma frequency fpi', hz(p.fpi), p.fpi, 'Hz');
+    add(ff, 'frequency', 'Electron cyclotron frequency fce', hz(p.fce), p.fce, 'Hz', B > 0 ? `ωce = ${sig(p.wce, 4)} rad/s` : '');
+    add(ff, 'frequency', 'Ion cyclotron frequency fci', hz(p.fci), p.fci, 'Hz');
+    add(ff, 'frequency', 'Electron collision frequency νe', `${sig(p.nuE, 3)} s⁻¹`, p.nuE, '1/s', `collision time ${tim(p.tauE)}`);
+    if (Ti > 0) add(ff, 'frequency', 'Ion collision frequency νi', `${sig(p.nuI, 3)} s⁻¹`, p.nuI, '1/s', `collision time ${tim(p.tauI)}`);
+    add(fs, 'speed', 'Electron thermal speed', spd(p.vte), p.vte, 'm/s', '√(kTₑ/mₑ)');
+    if (Ti > 0) add(fs, 'speed', 'Ion thermal speed', spd(p.vti), p.vti, 'm/s');
+    add(fs, 'speed', 'Ion sound speed', spd(p.cs), p.cs, 'm/s', '√((ZkTₑ + 3kTᵢ)/mᵢ)');
+    add(fs, 'speed', 'Alfvén speed', spd(p.vA), p.vA, 'm/s', B > 0 && p.vA > 0.1 * 299792458 ? 'a large fraction of light speed: relativistic correction needed' : 'B / √(μ₀ρ)');
+    add(fc, 'ratio', 'Coulomb logarithm ln Λ', sig(p.lnL, 3), p.lnL, '', lnL ? 'as you gave it' : 'NRL formulary, electron-ion');
+    add(fc, 'ratio', 'Particles in a Debye sphere ND', sig(p.ND, 3), p.ND, '', p.ND > 100 ? 'much more than 1: an ideal (weakly coupled) plasma' : p.ND > 1 ? 'only a few: weakly ideal, collective behaviour marginal' : 'below 1: strongly coupled, these formulas do not apply');
+    add(fc, 'ratio', 'Plasma beta β', B > 0 ? sig(p.beta, 3) : '∞ (no field)', p.beta, '', B > 0 ? (p.beta < 0.1 ? 'low: the magnetic field dominates' : p.beta > 1 ? 'above 1: the plasma pressure dominates' : 'pressure and field comparable') : '');
+    add(fc, 'ratio', 'Pressure nₑkTₑ + nᵢkTᵢ', `${sig(p.pressure, 3)} Pa`, p.pressure, 'Pa');
+    if (B > 0) add(fc, 'ratio', 'Electron Hall parameter ωce τe', sig(p.hallE, 3), p.hallE, '', p.hallE > 1 ? 'electrons magnetised (circle many times between collisions)' : 'electrons not magnetised');
+    if (B > 0 && Ti > 0) add(fc, 'ratio', 'Ion Hall parameter ωci τi', sig(p.hallI, 3), p.hallI, '', p.hallI > 1 ? 'ions magnetised' : 'ions not magnetised');
+    add(fc, 'ratio', 'Spitzer resistivity (Z = 1 form)', `${sig(p.etaSpitzer, 3)} Ω·m`, p.etaSpitzer, 'ohm m', 'parallel to B; 0.51 mₑ/(nₑe²τe)');
+    q('.pp-len').replaceChildren(...fl); q('.pp-freq').replaceChildren(...ff); q('.pp-spd').replaceChildren(...fs); q('.pp-col').replaceChildren(...fc);
+    // Regime pills.
+    const pills: [string, string][] = [];
+    pills.push(p.ND > 1 ? ['good', 'Ideal plasma (ND ≫ 1)'] : ['bad', 'Strongly coupled (ND < 1)']);
+    if (L > 0) {
+      pills.push(p.lambdaD < L ? ['good', 'Quasi-neutral (λD ≪ L)'] : ['warn', 'Not quasi-neutral: λD ≥ size']);
+      pills.push(p.mfpE < L ? ['warn', 'Collisional (mean free path < size)'] : ['good', 'Collisionless (mean free path > size)']);
+    }
+    if (B > 0) pills.push(p.hallE > 1 ? ['good', 'Magnetised electrons'] : ['warn', 'Unmagnetised electrons']);
+    q('.pp-pills').replaceChildren(...pills.map(([c, t]) => { const s = document.createElement('span'); s.className = `ax-pill ${c}`; s.textContent = t; return s; }));
+    if (L > 0) R.push(['length', 'Plasma size', String(L), 'm']);
+    rows = R;
+    const lens = [{ name: 'Debye length', v: p.lambdaD }, { name: 'e gyroradius', v: p.rLe }, { name: 'ion gyroradius', v: p.rLi }, { name: 'e skin depth', v: p.skinE }, { name: 'e mean free path', v: p.mfpE }, ...(L > 0 ? [{ name: 'Size L', v: L }] : [])];
+    const fr = [{ name: 'fpe', v: p.fpe }, { name: 'fpi', v: p.fpi }, { name: 'fce', v: p.fce }, { name: 'fci', v: p.fci }, { name: 'νe / 2π', v: p.nuE / (2 * Math.PI) }];
+    figs = [ladder(lens, 'metres (log scale)', 'Length scales'), ladder(fr, 'hertz (log scale)', 'Frequencies')];
+    paint(q<HTMLCanvasElement>('.pp-fig'), figs[0]); paint(q<HTMLCanvasElement>('.pp-fig2'), figs[1]);
+    const toFacts = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.pp-big').textContent!, text: [`nₑ = ${sig(ne, 4)} m⁻³, Tₑ = ${sig(Te, 4)} eV, Tᵢ = ${sig(Ti, 4)} eV, B = ${sig(B, 4)} T, ion mass ${sig(A, 4)} u, Z = ${Z}`, pills.map((x) => x[1]).join('; ')], facts: toFacts(fl), figure: figs[0] },
+      { title: 'Frequencies and speeds', facts: [...toFacts(ff), ...toFacts(fs)], figure: figs[1] },
+      { title: 'Collisions and ratios', facts: toFacts(fc) },
+    ];
+  }
+
+  pre.addEventListener('change', () => {
+    const p = PRESETS.find((x) => x.id === pre.value); if (!p) return;
+    q<HTMLSelectElement>('.pp-nu').value = '1'; q<HTMLSelectElement>('.pp-tu').value = 'eV'; q<HTMLSelectElement>('.pp-bu').value = '1';
+    inp('.pp-n').value = String(p.v.ne); inp('.pp-te').value = String(p.v.Te); inp('.pp-ti').value = String(p.v.Ti); inp('.pp-b').value = String(p.v.B);
+    inp('.pp-a').value = String(p.v.A); inp('.pp-z').value = String(p.v.Z); inp('.pp-l').value = String(p.v.L ?? ''); inp('.pp-ln').value = '';
+    const ion = q<HTMLSelectElement>('.pp-ion'); ion.value = `${p.v.A},${p.v.Z}`; if (ion.selectedIndex < 0 || ion.value !== `${p.v.A},${p.v.Z}`) ion.value = '';
+    calc();
+  });
+  q<HTMLSelectElement>('.pp-ion').addEventListener('change', (e) => { const v = (e.target as HTMLSelectElement).value; if (v) { const [a, z] = v.split(','); inp('.pp-a').value = a; inp('.pp-z').value = z; } });
+  root.querySelectorAll('input, .pp-nu, .pp-tu, .pp-bu, .pp-ion').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  // Switching the temperature unit converts the typed temperatures.
+  let lastTU = 'eV';
+  q<HTMLSelectElement>('.pp-tu').addEventListener('change', () => {
+    const now = q<HTMLSelectElement>('.pp-tu').value; if (now === lastTU) return;
+    const f = now === 'K' ? EV_K : 1 / EV_K;
+    for (const c of ['.pp-te', '.pp-ti']) { const v = num(inp(c).value); if (Number.isFinite(v)) inp(c).value = String(+(v * f).toPrecision(6)); }
+    lastTU = now; calc();
+  }, { capture: true });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pp-out').hidden) { paint(q<HTMLCanvasElement>('.pp-fig'), figs[0]); paint(q<HTMLCanvasElement>('.pp-fig2'), figs[1]); } });
+  q('.pp-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv([['group', 'quantity', 'value', 'unit'], ...rows])], { type: 'text/csv' }), 'plasma-parameters.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Plasma parameters', subtitle: q('.pp-big').textContent ?? '', file: 'plasma-parameters', sections: report }));
+</script>
+
+<style is:global>
+  .ppc h3 { margin: 16px 0 6px; font-size: 15px; }
+  .ppc .pp-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+  .ppc canvas.ax-fig { margin-top: 12px; }
+</style>

@@ -1,0 +1,269 @@
+---
+// Linear and integer programming solver: a text model, two-phase simplex, branch and bound, sensitivity and a
+// two-variable picture. Everything runs in the browser; nothing is uploaded. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lps">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Example <select class="lp-ex"></select></label>
+      <label>Pivot rule <select class="lp-rule">
+        <option value="dantzig">Largest gain (switches to Bland's if stuck)</option>
+        <option value="bland">Bland's rule (never cycles)</option>
+      </select></label>
+    </div>
+    <label style="margin-top:10px">Your model, one constraint per line <textarea class="lp-in" rows="11" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small lp-open">Open a model file</button>
+      <input type="file" class="lp-file" accept=".txt,.lp,text/plain" hidden />
+      <button type="button" class="btn secondary small lp-save">Save the model</button>
+      <span class="ax-help" style="margin:0">Plain text (.txt or .lp), up to 200 KB, 300 variables and 300 constraints.</span>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="lp-steps" /> Show the simplex tableaux, step by step (small linear models)</label>
+    <details class="lp-how">
+      <summary>How to write a model</summary>
+      <ul>
+        <li>First the objective: <code>maximize 3x + 2y</code> or <code>minimize cost: 4a + 5b</code>.</li>
+        <li>Then the constraints, one per line, after <code>subject to</code>. Give a constraint a name with <code>name:</code>. Use <code>&lt;=</code>, <code>&gt;=</code> or <code>=</code>; <code>2 &lt;= x + y &lt;= 8</code> is fine.</li>
+        <li>Variables are 0 or more unless you change that under <code>bounds</code>: <code>x &lt;= 10</code>, <code>-5 &lt;= y &lt;= 5</code>, <code>z free</code>.</li>
+        <li>Whole numbers only: <code>int x, y</code>. Yes/no (0 or 1): <code>bin a, b</code>.</li>
+        <li>Coefficients: <code>3x</code>, <code>3 x</code>, <code>3*x</code>, <code>1/3 x</code>, <code>-x</code>. Comments start with <code>#</code>.</li>
+      </ul>
+    </details>
+    <p class="ax-err lp-err" hidden></p>
+  </div>
+
+  <div class="ax-card lp-out" hidden>
+    <h2>Result</h2>
+    <p class="lp-pill"></p>
+    <p class="ax-big lp-big"></p>
+    <dl class="ax-facts lp-facts"></dl>
+    <p class="ax-help lp-note"></p>
+    <h3>Variables</h3>
+    <div class="ax-scroll"><table class="lp-vars"></table></div>
+    <h3>Constraints</h3>
+    <div class="ax-scroll"><table class="lp-rows"></table></div>
+    <p class="ax-help lp-sens"></p>
+    <div class="lp-gw" hidden>
+      <h3>Picture (two variables)</h3>
+      <canvas class="ax-fig lp-fig"></canvas>
+      <p class="ax-help lp-gnote"></p>
+    </div>
+    <div class="lp-tw" hidden>
+      <h3>Simplex tableaux</h3>
+      <p class="ax-help lp-tnote"></p>
+      <div class="lp-tabs"></div>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small lp-csv">Download the solution (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lps h3 { margin: 20px 0 8px; font-size: 15px; }
+  .lps .lp-how { margin-top: 10px; font-size: 14px; }
+  .lps .lp-how summary { cursor: pointer; color: var(--accent); }
+  .lps .lp-how ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+  .lps code { font-size: 13px; }
+  .lps .lp-pill { margin: 0 0 4px; }
+  .lps .lp-tabs { display: grid; gap: 14px; }
+  .lps .lp-tabs table { font-size: 12.5px; }
+  .lps .lp-tabs td, .lps .lp-tabs th { padding: 4px 6px; text-align: right; white-space: nowrap; }
+  .lps .lp-tabs td.pv { outline: 2px solid var(--accent); font-weight: 700; }
+  .lps .lp-tabs p { margin: 0 0 4px; font-size: 13px; }
+</style>
+
+<script>
+  import { parseModel, solve, region2d, corners2d, modelText, EXAMPLES, LIMITS, type Model, type MILPResult } from '../../lib/sci/lp';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lps')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.lp-in'), exSel = q<HTMLSelectElement>('.lp-ex');
+  exSel.replaceChildren(...EXAMPLES.map((e) => new Option(e.name, e.id)), new Option('My own model', 'own'));
+  box.value = EXAMPLES[0].text;
+  const f = (v: number) => (Number.isFinite(v) ? (Math.abs(v) < 1e-9 ? '0' : sig(v, 6)) : v > 0 ? '∞' : v < 0 ? '−∞' : '');
+  const num = (v: number) => f(v).replace(/^-/, '−');
+  let fig: Figure | null = null, report: Section[] = [], last: { m: Model; r: MILPResult } | null = null;
+
+  const fillTable = (t: HTMLElement, head: string[], rows: string[][], right: number[]) => {
+    const th = document.createElement('tr');
+    head.forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (right.includes(i)) c.className = 'r'; th.append(c); });
+    t.replaceChildren(th, ...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, i) => { const c = document.createElement('td'); c.textContent = v; if (right.includes(i)) c.className = 'r'; tr.append(c); }); return tr; }));
+  };
+
+  function graph(m: Model, r: MILPResult): Figure | null {
+    if (m.vars.length !== 2) return null;
+    const pts: [number, number][] = [...corners2d(m)];
+    if (r.status === 'optimal') pts.push([r.x[0], r.x[1]]);
+    pts.push([0, 0]);
+    for (const row of m.rows) { if (row.a[0]) pts.push([row.rhs / row.a[0], 0]); if (row.a[1]) pts.push([0, row.rhs / row.a[1]]); }
+    const fin = pts.filter((p) => p.every((v) => Number.isFinite(v) && Math.abs(v) < 1e7));
+    let x0 = Math.min(...fin.map((p) => p[0])), x1 = Math.max(...fin.map((p) => p[0])), y0 = Math.min(...fin.map((p) => p[1])), y1 = Math.max(...fin.map((p) => p[1]));
+    const big = region2d(m, [x0 - 1e6, x1 + 1e6, y0 - 1e6, y1 + 1e6]);
+    const open = big.some((p) => Math.abs(p[0]) > 5e5 || Math.abs(p[1]) > 5e5);
+    const padx = (x1 - x0 || 1) * (open ? 0.35 : 0.12), pady = (y1 - y0 || 1) * (open ? 0.35 : 0.12);
+    x0 -= padx; x1 += padx; y0 -= pady; y1 += pady;
+    const poly = region2d(m, [x0, x1, y0, y1]);
+    const W = 600, H = 470, L = 64, R = 16, T = 14, B = 52;
+    const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v: number) => H - B - ((v - y0) / (y1 - y0)) * (H - T - B);
+    const cols = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9'];
+    return {
+      w: W, h: H, alt: `Feasible region of ${m.vars[0]} and ${m.vars[1]}${r.status === 'optimal' ? `, optimum at (${f(r.x[0])}, ${f(r.x[1])})` : ''}`,
+      draw: (ctx, w, h, pal: Palette) => {
+        ctx.font = '17px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+        ctx.lineWidth = 1; ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted;
+        const tx = niceTicks(x0, x1, 7), ty = niceTicks(y0, y1, 6);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (const t of tx) { ctx.beginPath(); ctx.moveTo(X(t), T); ctx.lineTo(X(t), H - B); ctx.stroke(); ctx.fillText(num(t), X(t), H - B + 5); }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (const t of ty) { ctx.beginPath(); ctx.moveTo(L, Y(t)); ctx.lineTo(W - R, Y(t)); ctx.stroke(); ctx.fillText(num(t), L - 6, Y(t)); }
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2;
+        if (x0 < 0 && x1 > 0) { ctx.beginPath(); ctx.moveTo(X(0), T); ctx.lineTo(X(0), H - B); ctx.stroke(); }
+        if (y0 < 0 && y1 > 0) { ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(W - R, Y(0)); ctx.stroke(); }
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(m.vars[0], (L + W - R) / 2, H - 4);
+        ctx.save(); ctx.translate(16, (T + H - B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(m.vars[1], 0, 6); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(L, T, W - L - R, H - T - B); ctx.clip();
+        if (poly.length > 2) {
+          ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])))); ctx.closePath();
+          ctx.globalAlpha = 0.18; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1;
+        }
+        m.rows.forEach((row, i) => {
+          const [a, b] = row.a, c = row.rhs; let p: [number, number][];
+          if (Math.abs(b) > 1e-12) p = [[x0, (c - a * x0) / b], [x1, (c - a * x1) / b]]; else p = [[c / a, y0], [c / a, y1]];
+          ctx.strokeStyle = pal.red ? pal.ink : cols[i % cols.length]; ctx.lineWidth = 2; ctx.setLineDash(row.op === '=' ? [] : []);
+          ctx.beginPath(); ctx.moveTo(X(p[0][0]), Y(p[0][1])); ctx.lineTo(X(p[1][0]), Y(p[1][1])); ctx.stroke();
+          // label where the line enters the box
+          const t = 0.08 + 0.12 * (i % 6); const lx = X(p[0][0] + t * (p[1][0] - p[0][0])), ly = Y(p[0][1] + t * (p[1][1] - p[0][1]));
+          if (lx > L && lx < W - R && ly > T && ly < H - B) { ctx.fillStyle = ctx.strokeStyle; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(row.name, lx + 4, ly - 2); }
+        });
+        if (m.isInt.some(Boolean) && (x1 - x0) * (y1 - y0) <= 4000) {
+          ctx.fillStyle = pal.muted;
+          for (let i = Math.ceil(x0); i <= x1; i++) for (let j = Math.ceil(y0); j <= y1; j++) {
+            const inside = m.rows.every((row) => { const v = row.a[0] * i + row.a[1] * j; return row.op === '<=' ? v <= row.rhs + 1e-9 : row.op === '>=' ? v >= row.rhs - 1e-9 : Math.abs(v - row.rhs) < 1e-9; }) && i >= m.lo[0] && i <= m.hi[0] && j >= m.lo[1] && j <= m.hi[1];
+            if (inside) { ctx.beginPath(); ctx.arc(X(i), Y(j), 2.4, 0, 7); ctx.fill(); }
+          }
+        }
+        if (r.status === 'optimal') {
+          const [a, b] = m.c, v = r.obj - m.c0;
+          if (Math.abs(a) + Math.abs(b) > 0) {
+            let p: [number, number][];
+            if (Math.abs(b) > 1e-12) p = [[x0, (v - a * x0) / b], [x1, (v - a * x1) / b]]; else p = [[v / a, y0], [v / a, y1]];
+            ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+            ctx.beginPath(); ctx.moveTo(X(p[0][0]), Y(p[0][1])); ctx.lineTo(X(p[1][0]), Y(p[1][1])); ctx.stroke(); ctx.setLineDash([]);
+          }
+          ctx.fillStyle = pal.bad; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(X(r.x[0]), Y(r.x[1]), 6, 0, 7); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+          const lab = `(${num(r.x[0])}, ${num(r.x[1])})`, lx = X(r.x[0]) + 9;
+          ctx.textAlign = lx + ctx.measureText(lab).width > W - R ? 'right' : 'left';
+          ctx.fillText(lab, ctx.textAlign === 'right' ? X(r.x[0]) - 9 : lx, Y(r.x[1]) - 6);
+        }
+        ctx.restore();
+      },
+    };
+  }
+
+  function showSteps(r: MILPResult) {
+    const wrap = q('.lp-tw'), tabs = q('.lp-tabs');
+    if (!q<HTMLInputElement>('.lp-steps').checked) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    if (r.integer) { q('.lp-tnote').textContent = 'Tableaux are shown for linear models only (no int or bin variables).'; tabs.replaceChildren(); return; }
+    if (!r.steps.length) { q('.lp-tnote').textContent = 'No tableaux to show for this model.'; tabs.replaceChildren(); return; }
+    q('.lp-tnote').textContent = `Each table is one step. The bottom row holds the reduced costs (phase 1: of the sum of artificial variables a; phase 2: of the objective written as a minimum); the corner is minus the current objective. A boxed number is the pivot. ′ marks a variable shifted by its lower bound, ″ one measured down from its upper bound, ⁺ and ⁻ the two parts of a free variable, s a slack.${r.steps.length >= 40 ? ' Only the first 40 steps are shown.' : ''}`;
+    const out: HTMLElement[] = [];
+    r.steps.forEach((s, k) => {
+      const d = document.createElement('div');
+      const p = document.createElement('p');
+      p.textContent = `Step ${k + 1}, phase ${s.phase}: ${s.enter ? (s.leave ? `${s.enter} enters, ${s.leave} leaves` : `${s.enter} could grow without limit: unbounded`) : 'no reduced cost is negative, so this phase is finished'}`;
+      const sc = document.createElement('div'); sc.className = 'ax-scroll';
+      const t = document.createElement('table');
+      const ei = s.enter ? s.cols.indexOf(s.enter) : -1, li = s.leave ? s.basis.indexOf(s.leave) : -1;
+      fillTable(t, ['Basis', ...s.cols, 'RHS'], [...s.rows.map((row, i) => [s.basis[i], ...row.map(f)]), ['z', ...s.z.map((v) => f(-0 + v))]], []);
+      if (ei >= 0 && li >= 0) t.rows[li + 1].cells[ei + 1].className = 'pv';
+      sc.append(t); d.append(p, sc); out.push(d);
+    });
+    tabs.replaceChildren(...out);
+  }
+
+  function run() {
+    const err = q('.lp-err'), out = q('.lp-out');
+    try {
+      const m = parseModel(box.value);
+      const record = q<HTMLInputElement>('.lp-steps').checked && m.rows.length <= 12 && m.vars.length <= 12;
+      const r = solve(m, { rule: q<HTMLSelectElement>('.lp-rule').value as 'dantzig' | 'bland', record });
+      last = { m, r }; err.hidden = true; out.hidden = false;
+      const pill = q('.lp-pill');
+      const kind = r.integer ? 'Integer program, branch and bound' : 'Linear program, two-phase simplex';
+      const lab: Record<string, [string, string]> = { optimal: ['Optimal', 'good'], infeasible: ['Infeasible', 'bad'], unbounded: ['Unbounded', 'warn'], limit: ['Stopped early', 'warn'] };
+      pill.innerHTML = '<span class="ax-pill"></span>'; pill.firstElementChild!.textContent = lab[r.status][0]; pill.firstElementChild!.className = 'ax-pill ' + lab[r.status][1];
+      const has = r.x.length === m.vars.length;
+      let big = '';
+      if (r.status === 'optimal') big = `${m.sense === 'max' ? 'Maximum' : 'Minimum'} ${m.objName} = ${num(r.obj)}`;
+      else if (r.status === 'infeasible') big = r.integer ? 'No whole-number solution meets every constraint' : 'No solution meets every constraint';
+      else if (r.status === 'unbounded') big = `The ${m.objName} can ${m.sense === 'max' ? 'grow' : 'fall'} without limit`;
+      else big = has ? `Best found: ${m.objName} = ${num(r.obj)} (not proven optimal)` : 'Stopped before finding a solution';
+      q('.lp-big').textContent = big;
+      const facts: [string, string][] = [['Method', kind], ['Size', `${m.vars.length} variable${m.vars.length === 1 ? '' : 's'}, ${m.rows.length} constraint${m.rows.length === 1 ? '' : 's'}`], ['Simplex pivots', String(r.pivots)]];
+      if (r.integer) { facts.push(['Branch-and-bound nodes', r.nodes.toLocaleString('en')]); if (Number.isFinite(r.rootBound)) facts.push(['LP relaxation bound', num(r.rootBound)]); }
+      if (r.usedBland && q<HTMLSelectElement>('.lp-rule').value === 'dantzig') facts.push(['Pivot rule', "Switched to Bland's rule after many degenerate steps"]);
+      q('.lp-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      const notes = [...m.notes];
+      if (r.status === 'infeasible') notes.push('Check the signs (<= or >=) and the right-hand sides; remember that variables are 0 or more unless you set other bounds. Removing constraints one at a time shows which ones clash.');
+      if (r.status === 'unbounded') notes.push(`Some direction improves the ${m.objName} for ever. Usually a limit is missing, such as a capacity, a demand or an upper bound.`);
+      if (r.status === 'limit') notes.push(r.integer ? `Branch and bound stopped after ${r.nodes.toLocaleString('en')} nodes. Tighten the bounds on the integer variables, or solve a smaller model.` : 'The simplex method stopped after 50,000 pivots.');
+      if (r.integer && r.status === 'optimal') notes.push('Shadow prices and reduced costs are not defined for integer programs, so they are left out.');
+      q('.lp-note').textContent = notes.join(' ');
+      const lp = !r.integer && r.status === 'optimal';
+      const bnd = (j: number) => `${num(m.lo[j])} to ${num(m.hi[j])}${m.isInt[j] ? (m.lo[j] === 0 && m.hi[j] === 1 ? ', yes/no' : ', whole') : ''}`;
+      const vHead = ['Variable', 'Value', ...(lp ? ['Reduced cost'] : []), 'Objective coef.', 'Allowed range'];
+      const vRows = m.vars.map((nm, j) => [nm, has ? num(r.x[j]) : '', ...(lp ? [num(r.rc[j])] : []), num(m.c[j]), bnd(j)]);
+      fillTable(q('.lp-vars'), vHead, vRows, lp ? [1, 2, 3] : [1, 2]);
+      const rHead = ['Constraint', 'Left side', 'Sign', 'Right side', 'Slack', ...(lp ? ['Shadow price'] : [])];
+      const rRows = m.rows.map((row, i) => [row.name, has ? num(r.activity[i]) : '', row.op === '<=' ? '≤' : row.op === '>=' ? '≥' : '=', num(row.rhs), has ? (Math.abs(row.rhs - r.activity[i]) < 1e-7 * (1 + Math.abs(row.rhs)) ? '0 (binding)' : num(Math.abs(row.rhs - r.activity[i]))) : '', ...(lp ? [num(r.shadow[i])] : [])]);
+      fillTable(q('.lp-rows'), rHead, rRows, lp ? [1, 3, 4, 5] : [1, 3, 4]);
+      q('.lp-sens').textContent = lp ? `Shadow price: how much the best ${m.objName} changes if that right-hand side goes up by 1 (valid for small changes). Reduced cost: how much it changes for each unit a variable is pushed up from where it sits; 0 for variables strictly between their bounds.` : '';
+      fig = graph(m, r);
+      q('.lp-gw').hidden = !fig;
+      if (fig) { paint(q<HTMLCanvasElement>('.lp-fig'), fig); q('.lp-gnote').textContent = `Shaded: every point that meets all constraints and bounds. Coloured lines: the constraints. Dashed: the objective through the optimum (red dot).${m.isInt.some(Boolean) ? ' Grey dots: whole-number points that are allowed.' : ''}`; }
+      showSteps(r);
+      if (q<HTMLInputElement>('.lp-steps').checked && !record && !r.integer) q('.lp-tnote').textContent = 'Tableaux are shown for models with up to 12 variables and 12 constraints.', q('.lp-tabs').replaceChildren();
+      report = [
+        { title: 'Result', facts: [['Status', lab[r.status][0]], ['Answer', big], ...facts] , note: notes.join(' ') || undefined },
+        { title: 'Variables', table: { head: vHead, rows: vRows, align: vHead.map((_, i) => (i === 0 || i === vHead.length - 1 ? 'l' : 'r')) } },
+        { title: 'Constraints', table: { head: rHead, rows: rRows, align: rHead.map((_, i) => (i === 0 || i === 2 ? 'l' : 'r')) } },
+        ...(fig ? [{ title: 'Feasible region', figure: fig }] : []),
+        { title: 'Model', text: modelText(m).trim().split('\n') },
+      ];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; last = null; report = []; }
+  }
+
+  let t = 0;
+  box.addEventListener('input', () => { exSel.value = 'own'; clearTimeout(t); t = window.setTimeout(run, 300); });
+  exSel.addEventListener('change', () => { const e = EXAMPLES.find((x) => x.id === exSel.value); if (e) { box.value = e.text; run(); } });
+  for (const c of ['.lp-rule', '.lp-steps']) q(c).addEventListener('change', run);
+  q('.lp-open').addEventListener('click', () => q<HTMLInputElement>('.lp-file').click());
+  q('.lp-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.lp-file'), file = inp.files?.[0]; inp.value = '';
+    if (!file) return;
+    if (file.size > LIMITS.chars) { q('.lp-err').textContent = `${file.name} is too big; this tool takes model files up to 200 KB.`; q('.lp-err').hidden = false; return; }
+    box.value = await file.text(); exSel.value = 'own'; run();
+  });
+  q('.lp-save').addEventListener('click', () => save(new Blob([box.value], { type: 'text/plain' }), 'model.txt', 'text/plain'));
+  q('.lp-csv').addEventListener('click', () => {
+    if (!last) return;
+    const { m, r } = last, has = r.x.length === m.vars.length, lp = !r.integer && r.status === 'optimal';
+    const rows: (string | number)[][] = [['kind', 'name', 'value', 'reduced cost or shadow price', 'sign', 'right side', 'slack']];
+    rows.push(['status', r.status, has ? r.obj : '', '', '', '', '']);
+    m.vars.forEach((nm, j) => rows.push(['variable', nm, has ? r.x[j] : '', lp ? r.rc[j] : '', '', '', '']));
+    m.rows.forEach((row, i) => rows.push(['constraint', row.name, has ? r.activity[i] : '', lp ? r.shadow[i] : '', row.op, row.rhs, has ? row.rhs - r.activity[i] : '']));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(m.objName)}-solution.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => fig && !q('.lp-gw').hidden && paint(q<HTMLCanvasElement>('.lp-fig'), fig));
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Linear programming solution', subtitle: q('.lp-big').textContent ?? '', file: 'lp-solution', sections: report }));
+</script>

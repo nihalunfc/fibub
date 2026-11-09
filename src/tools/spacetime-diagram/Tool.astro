@@ -1,0 +1,213 @@
+---
+// Special relativity spacetime (Minkowski) diagram: Lorentz transformation of events, relativity of simultaneity,
+// intervals and the twin paradox. c = 1. Example events are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax std">
+  <div class="ax-card">
+    <h2>Diagram</h2>
+    <div class="ax-grid">
+      <label>Show <select class="sd-mode">
+        <option value="events" selected>Events in two frames</option>
+        <option value="twin">Twin paradox</option>
+      </select></label>
+      <label>Units (c = 1) <select class="sd-u">
+        <option value="y|ly" selected>years and light-years</option>
+        <option value="s|ls">seconds and light-seconds</option>
+        <option value="|">plain numbers</option>
+      </select></label>
+      <label><span>Speed β = v/c (−0.99 to 0.99)</span> <input class="sd-b" type="text" inputmode="decimal" value="0.5" /></label>
+      <label><span>Slide β</span> <input class="sd-bs" type="range" min="-0.95" max="0.95" step="0.05" value="0.5" /></label>
+      <label class="sd-tw" hidden><span>Distance to the turning point D</span> <input class="sd-d" type="text" inputmode="decimal" value="4" /></label>
+    </div>
+    <label class="sd-ev" style="margin-top:10px">Events: name, time t, position x (one per line, in frame S)
+      <textarea class="sd-data" rows="5" spellcheck="false">O, 0, 0
+A, 2, 1
+B, 1, 3
+C, 3, 3</textarea>
+    </label>
+    <p class="ax-help sd-help"></p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="ax-card sd-out">
+    <h2>Results</h2>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+    <canvas class="ax-fig sd-fig"></canvas>
+    <canvas class="ax-fig sd-fig2"></canvas>
+    <div class="sd-tabs">
+      <h3 style="margin:14px 0 6px;font-size:16px">Events in both frames</h3>
+      <div class="ax-scroll"><table class="sd-tab"></table></div>
+      <h3 style="margin:14px 0 6px;font-size:16px">Pairs of events</h3>
+      <div class="ax-scroll"><table class="sd-pairs"></table></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-csv">Table (CSV)</button></div>
+    <p class="ax-help">One space dimension, with c = 1 so light rays run at 45°. Frame S′ moves at β along +x and shares the origin event with S. The interval s² = Δt² − Δx² is the same in every frame: positive (timelike) pairs can be causally linked and keep their order; negative (spacelike) pairs cannot, and their order depends on the frame.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { gamma, boost, interval, classify, simultaneousFrame, samePlaceFrame, twin, dopplerK } from '../../lib/sci/phsr';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.std')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-10) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  type Item = { kind: 'line'; pts: [number, number][]; color: keyof Palette; width?: number; dash?: number[]; label?: string } | { kind: 'dot'; x: number; t: number; label: string; color: keyof Palette };
+  /** A square Minkowski diagram: x across, t up, equal scales, light cone through the origin. */
+  function mink(alt: string, box: { xc: number; tc: number; R: number }, xLab: string, tLab: string, items: Item[], axesNote: string): Figure {
+    const { xc, tc, R } = box;
+    return { w: 360, h: 380, alt, draw: (ctx, W, H, pal) => {
+      const S = Math.min(W - 40, H - 60), x0 = (W - S) / 2 + 10, y0 = 10, X = (x: number) => x0 + ((x - xc + R) / (2 * R)) * S, Y = (t: number) => y0 + ((R - t + tc) / (2 * R)) * S;
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, S, S); ctx.clip();
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+      const step = Math.pow(10, Math.floor(Math.log10(R))) * (R / Math.pow(10, Math.floor(Math.log10(R))) > 5 ? 2 : R / Math.pow(10, Math.floor(Math.log10(R))) > 2 ? 1 : 0.5);
+      for (let v = Math.ceil((xc - R) / step) * step; v <= xc + R; v += step) { ctx.beginPath(); ctx.moveTo(X(v), y0); ctx.lineTo(X(v), y0 + S); ctx.stroke(); }
+      for (let v = Math.ceil((tc - R) / step) * step; v <= tc + R; v += step) { ctx.beginPath(); ctx.moveTo(x0, Y(v)); ctx.lineTo(x0 + S, Y(v)); ctx.stroke(); }
+      const E = 4 * R + Math.abs(xc) + Math.abs(tc);
+      ctx.strokeStyle = pal.warn; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(-E), Y(-E)); ctx.lineTo(X(E), Y(E)); ctx.moveTo(X(-E), Y(E)); ctx.lineTo(X(E), Y(-E)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(-E), Y(0)); ctx.lineTo(X(E), Y(0)); ctx.moveTo(X(0), Y(-E)); ctx.lineTo(X(0), Y(E)); ctx.stroke();
+      for (const it of items) if (it.kind === 'line') {
+        ctx.strokeStyle = pal[it.color] as string; ctx.lineWidth = it.width ?? 1.6; ctx.setLineDash(it.dash ?? []);
+        ctx.beginPath(); it.pts.forEach(([x, t], i) => (i ? ctx.lineTo(X(x), Y(t)) : ctx.moveTo(X(x), Y(t)))); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.restore();
+      ctx.font = '600 12px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+      const lab = (s: string, x: number, y: number, c: string) => { ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.strokeText(s, x, y); ctx.fillStyle = c; ctx.fillText(s, x, y); };
+      for (const it of items) {
+        if (it.kind === 'dot') { if (Math.abs(it.x - xc) > R || Math.abs(it.t - tc) > R) continue; ctx.fillStyle = pal[it.color] as string; ctx.beginPath(); ctx.arc(X(it.x), Y(it.t), 4, 0, 7); ctx.fill(); lab(it.label, X(it.x) + 5, Y(it.t) - 2, pal[it.color] as string); }
+        else if (it.label) { const [x, t] = it.pts[it.pts.length - 1]; const sc = Math.min(1, (R * 0.96) / Math.max(Math.abs(x), Math.abs(t))), cx = x * sc, ct = t * sc; lab(it.label, Math.min(X(cx) + 3, x0 + S - 24), Math.max(Y(ct) + 12, y0 + 14), pal[it.color] as string); }
+      }
+      lab(tLab, X(0) - 14, y0 + 14, pal.ink); lab(xLab, x0 + S - 18, Math.min(Y(0), y0 + S) - 3, pal.ink);
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`Grid every ${sg(step, 2)}. Dotted: light rays. ${axesNote}`, 6, H - 4);
+    } };
+  }
+
+  function calc() {
+    const mode = sel('.sd-mode');
+    q('.sd-tw').hidden = mode !== 'twin'; q('.sd-ev').hidden = mode !== 'events'; q('.sd-tabs').hidden = mode !== 'events';
+    q('.sd-help').textContent = mode === 'events' ? 'Type events as name, t, x in frame S. The tool shows them in S and in S′ (moving at β), draws the S′ axes and the S′ lines of simultaneity through each event, and compares every pair. The example events are made up.' : 'One twin stays on Earth (x = 0); the other travels at β to a turning point at distance D and comes straight back at the same speed. The example trip is made up.';
+    const err = q('.sd-err'), out = q('.sd-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const [tu, xu] = sel('.sd-u').split('|'), U = (v: number, u: string) => `${sg(v)}${u ? ' ' + u : ''}`;
+    const b = val('.sd-b');
+    if (!(Math.abs(b) <= 0.99)) return fail('Give a speed β between −0.99 and 0.99 (a fraction of the speed of light).');
+    const g = gamma(b);
+    if (mode === 'events') {
+      const ev: { n: string; t: number; x: number }[] = [];
+      for (const r of parseTable(q<HTMLTextAreaElement>('.sd-data').value)) {
+        if (r.length < 3) return fail(`Each line needs a name, a time and a position: "${r.join(', ')}"`);
+        const t = num(r[1]), x = num(r[2]);
+        if (!Number.isFinite(t) || !Number.isFinite(x)) return fail(`"${r.join(', ')}" needs numbers for the time and the position.`);
+        ev.push({ n: r[0] || `E${ev.length + 1}`, t, x });
+      }
+      if (!ev.length) return fail('Type at least one event as name, t, x.');
+      if (ev.length > 12) return fail('Up to 12 events, so the diagram stays readable.');
+      err.hidden = true; out.hidden = false;
+      const tr = ev.map((e) => { const [tp, xp] = boost(e.t, e.x, b); return { ...e, tp, xp }; });
+      q('.sd-big').textContent = `Frame S′ moves at ${sg(b, 3)}c: γ = ${sg(g, 4)}`;
+      const f = [
+        fact('Lorentz factor γ', sg(g, 5), `moving clocks run ${sg(g, 4)} times slow; moving rulers are ${sg(1 / g, 4)} as long`),
+        fact('S′ axes in the S diagram', `t′ axis: x = ${sg(b, 3)} t`, `x′ axis: t = ${sg(b, 3)} x; both lean towards the light ray as β grows`),
+        fact('Transformation', `t′ = γ(t − βx), x′ = γ(x − βt)`, 'with c = 1'),
+      ];
+      q('.sd-facts').replaceChildren(...f);
+      const th = (cells: string[], h: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(h ? 'th' : 'td'); e.textContent = c; if (j) e.className = 'r'; r.append(e); }); return r; };
+      const head = ['Event', `t${tu ? ` (${tu})` : ''}`, `x${xu ? ` (${xu})` : ''}`, `t′${tu ? ` (${tu})` : ''}`, `x′${xu ? ` (${xu})` : ''}`];
+      const er = tr.map((e) => [e.n, sg(e.t), sg(e.x), sg(e.tp), sg(e.xp)]);
+      q('.sd-tab').replaceChildren(th(head, true), ...er.map((r) => th(r, false)));
+      const ph = ['Pair', 's² = Δt² − Δx²', 'Type', 'Proper time or length', 'Order in S′', 'Special frame'];
+      const pr: string[][] = [];
+      for (let i = 0; i < tr.length; i++) for (let j = i + 1; j < tr.length; j++) {
+        const A = tr[i], B = tr[j], dt = B.t - A.t, dx = B.x - A.x, dtp = B.tp - A.tp, s2 = interval(dt, dx), ty = classify(dt, dx);
+        const ord = Math.abs(dtp) < 1e-9 ? 'simultaneous' : Math.abs(dt) < 1e-9 ? `${dtp > 0 ? B.n : A.n} first` : Math.sign(dtp) === Math.sign(dt) ? 'same order' : 'reversed';
+        const special = ty === 'spacelike' ? `simultaneous at β = ${sg(simultaneousFrame(dt, dx), 3)}` : ty === 'timelike' ? `same place at β = ${sg(samePlaceFrame(dt, dx), 3)}` : 'light ray: none';
+        pr.push([`${A.n}–${B.n}`, sg(s2), ty, ty === 'timelike' ? U(Math.sqrt(s2), tu) : ty === 'spacelike' ? U(Math.sqrt(-s2), xu) : '0', ord, special]);
+      }
+      q('.sd-pairs').replaceChildren(th(ph, true), ...pr.map((r) => th(r, false)));
+      const R = Math.max(1, ...ev.map((e) => Math.max(Math.abs(e.t), Math.abs(e.x))), ...tr.map((e) => Math.max(Math.abs(e.tp), Math.abs(e.xp)))) * 1.25;
+      const L = 3 * R;
+      const items1: Item[] = [
+        { kind: 'line', pts: [[-L * b, -L], [L * b, L]], color: 'accent', width: 2, label: 't′' },
+        { kind: 'line', pts: [[-L, -L * b], [L, L * b]], color: 'accent', width: 2, label: 'x′' },
+        ...tr.map((e) => ({ kind: 'line' as const, pts: [[e.x - L, e.t - L * b], [e.x + L, e.t + L * b]] as [number, number][], color: 'accent2' as const, width: 1, dash: [5, 4] })),
+        ...tr.map((e) => ({ kind: 'dot' as const, x: e.x, t: e.t, label: e.n, color: 'ink' as const })),
+      ];
+      const items2: Item[] = [
+        { kind: 'line', pts: [[L * b, -L], [-L * b, L]], color: 'accent', width: 2, label: 't' },
+        { kind: 'line', pts: [[-L, L * b], [L, -L * b]], color: 'accent', width: 2, label: 'x' },
+        ...tr.map((e) => ({ kind: 'line' as const, pts: [[e.xp - L, e.tp], [e.xp + L, e.tp]] as [number, number][], color: 'accent2' as const, width: 1, dash: [5, 4] })),
+        ...tr.map((e) => ({ kind: 'dot' as const, x: e.xp, t: e.tp, label: e.n, color: 'ink' as const })),
+      ];
+      const f1 = mink('Events in frame S with the axes of S′ and the S′ lines of simultaneity', { xc: 0, tc: 0, R }, 'x', 't', items1, 'Dashed: equal t′.');
+      const f2 = mink('The same events in frame S′, with the axes of S', { xc: 0, tc: 0, R }, 'x′', 't′', items2, 'Dashed: equal t′.');
+      figs = [['.sd-fig', f1], ['.sd-fig2', f2]]; q('.sd-fig2').hidden = false;
+      rows = [['event', 't', 'x', "t'", "x'"], ...tr.map((e) => [e.n, e.t, e.x, +e.tp.toPrecision(10), +e.xp.toPrecision(10)])];
+      report = [{ title: q('.sd-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 }, { title: 'In frame S′', figure: f2 }, { title: 'Events', table: { head, rows: er, align: ['l', 'r', 'r', 'r', 'r'] } }, { title: 'Pairs', table: { head: ph, rows: pr } }];
+    } else {
+      const D = val('.sd-d'), ab = Math.abs(b);
+      if (!(ab >= 0.01)) return fail('For the twin paradox give a speed β of at least 0.01 (its sign does not matter).');
+      if (!(D > 0 && D <= 1e6)) return fail('Give the distance to the turning point (above 0).');
+      err.hidden = true; out.hidden = false;
+      const T = twin(ab, D), k = dopplerK(ab);
+      q('.sd-big').textContent = `Traveller ages ${U(T.traveller, tu)}, Earth twin ${U(T.earth, tu)}`;
+      const f = [
+        fact('Trip at β', `${sg(ab, 3)}c, γ = ${sg(T.g, 4)}`, `out to ${U(D, xu)} and back`),
+        fact('Earth twin ages', U(T.earth, tu), `2D/β; turnaround at Earth time ${U(T.turn[0], tu)}`),
+        fact('Traveller ages', U(T.traveller, tu), `Earth time ÷ γ; the traveller is ${U(T.earth - T.traveller, tu)} younger on return`),
+        fact('Turnaround jump', U(T.jump, tu), `just before turning, "now on Earth" for the traveller is t = ${sg(T.tOut)}; just after, t = ${sg(T.tIn)} (2βD)`),
+        fact(`Earth's signals, one per ${tu || 'unit'}`, `${sg(T.signalsOut)} on the way out, ${sg(T.signalsIn)} back`, `Doppler factor ${sg(k, 4)}: out, one every ${sg(k, 4)} ${tu || 'units'}; back, one every ${sg(1 / k, 4)} ${tu || 'units'}`),
+      ];
+      q('.sd-facts').replaceChildren(...f);
+      const [Tt] = T.turn, R = (Math.max(T.earth, D) * 1.12) / 2;
+      const sig1: [number, number][][] = [];
+      const nSig = Math.min(40, Math.floor(T.earth));
+      for (let n = 1; n <= nSig; n++) {
+        // Signal from Earth at t = n until it meets the traveller.
+        const tr = n <= Tt - D ? n / (1 - ab) : (n + 2 * D) / (1 + ab);
+        sig1.push([[0, n], [tr - n, tr]]);
+      }
+      const items: Item[] = [
+        { kind: 'line', pts: [[0, 0], [0, T.earth]], color: 'ink', width: 2.4 },
+        { kind: 'line', pts: [[0, 0], [D, Tt], [0, T.earth]], color: 'accent', width: 2.4 },
+        ...sig1.map((p) => ({ kind: 'line' as const, pts: p, color: 'muted' as const, width: 0.8 })),
+        { kind: 'line', pts: [[0, T.tOut], [D, Tt]], color: 'accent2', width: 1.4, dash: [6, 4] },
+        { kind: 'line', pts: [[0, T.tIn], [D, Tt]], color: 'accent2', width: 1.4, dash: [6, 4] },
+        { kind: 'dot', x: D, t: Tt, label: 'turn', color: 'accent' },
+        { kind: 'dot', x: 0, t: T.tOut, label: `${sg(T.tOut, 3)}`, color: 'accent2' },
+        { kind: 'dot', x: 0, t: T.tIn, label: `${sg(T.tIn, 3)}`, color: 'accent2' },
+        { kind: 'dot', x: 0, t: T.earth, label: 'meet', color: 'ink' },
+      ];
+      const f1 = mink("Twin paradox in Earth's frame: the traveller's path, Earth's signals and the traveller's lines of simultaneity at the turn", { xc: D / 2, tc: T.earth / 2, R }, 'x', 't', items, 'Grey: Earth signals.');
+      figs = [['.sd-fig', f1]]; q('.sd-fig2').hidden = true;
+      rows = [['quantity', 'value'], ['beta', ab], ['gamma', +T.g.toPrecision(10)], ['distance D', D], ['Earth time', +T.earth.toPrecision(10)], ['traveller time', +T.traveller.toPrecision(10)], ['jump at turnaround', +T.jump.toPrecision(10)], ['signals received out', +T.signalsOut.toPrecision(10)], ['signals received back', +T.signalsIn.toPrecision(10)]];
+      report = [{ title: q('.sd-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 }];
+    }
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 80); };
+  root.querySelectorAll('input:not(.sd-bs), select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.sd-bs').addEventListener('input', () => { q<HTMLInputElement>('.sd-b').value = q<HTMLInputElement>('.sd-bs').value; later(); });
+  q('.sd-b').addEventListener('input', () => { const v = val('.sd-b'); if (Math.abs(v) <= 0.95) q<HTMLInputElement>('.sd-bs').value = String(v); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.sd-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), `spacetime-${sel('.sd-mode')}.csv`, 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Spacetime diagram', subtitle: q('.sd-big').textContent ?? '', file: `spacetime-${sel('.sd-mode')}`, sections: report }));
+</script>
+
+<style is:global>
+  .std select, .std input, .std textarea { max-width: 100%; }
+  .std input[type=range] { width: 100%; }
+</style>

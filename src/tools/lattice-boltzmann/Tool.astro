@@ -1,0 +1,192 @@
+---
+// 2D lattice Boltzmann wind tunnel (D2Q9, BGK) with drawable obstacles, live vorticity, drag, lift and Strouhal number.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lbw">
+  <div class="ax-card">
+    <h2>Wind tunnel</h2>
+    <div class="ax-grid">
+      <label>Body <select class="lb-sh"><option value="cylinder" selected>Cylinder</option><option value="square">Square</option><option value="plate">Flat plate</option><option value="airfoil">NACA 0012 airfoil</option><option value="none">Nothing (draw your own)</option></select></label>
+      <label>Body size (cells across) <input class="lb-sz" type="text" inputmode="numeric" value="20" /></label>
+      <label>Angle of attack (°) <input class="lb-ang" type="text" inputmode="decimal" value="0" /></label>
+      <label>Reynolds number <input class="lb-re" type="text" inputmode="decimal" value="100" /></label>
+      <label>Grid <select class="lb-g"><option value="200x80">200 × 80 (fast)</option><option value="300x120" selected>300 × 120</option><option value="400x160">400 × 160 (sharp, slow)</option></select></label>
+      <label>Show <select class="lb-v"><option value="vort" selected>Vorticity (spin)</option><option value="speed">Speed</option><option value="press">Pressure</option></select></label>
+    </div>
+    <p class="ax-help">Air flows in from the left at 0.1 lattice units per step (Mach 0.17 in lattice terms). The Reynolds number sets the viscosity from the body's height across the flow: ν = U × height ÷ Re. Changing the body, size, grid or Re restarts the tunnel. Draw on the tunnel to add walls; switch to Erase to remove them.</p>
+    <p class="ax-err lb-err" hidden></p>
+  </div>
+
+  <div class="ax-card lb-out">
+    <div class="ax-row">
+      <button type="button" class="btn small lb-play">Pause</button>
+      <button type="button" class="btn secondary small lb-reset">Restart</button>
+      <span class="ax-seg lb-tool" role="group" aria-label="Touching the tunnel"><button type="button" data-t="draw" aria-pressed="true">Draw</button><button type="button" data-t="erase" aria-pressed="false">Erase</button><button type="button" data-t="off" aria-pressed="false">Off</button></span>
+    </div>
+    <canvas class="lb-cv" width="300" height="120" aria-label="Flow field in the wind tunnel"></canvas>
+    <p class="ax-big lb-big">Starting…</p>
+    <dl class="ax-facts lb-facts"></dl>
+    <canvas class="ax-fig lb-fig"></canvas>
+    <p class="ax-help">D2Q9 lattice Boltzmann with BGK collisions and bounce-back walls; forces by momentum exchange. Drag and lift coefficients use the body's height across the flow. The top and bottom edges hold the inflow speed, so a large body is "blocked" like one in a narrow tunnel and drags more than in open air. A teaching model: for study and planning, not a substitute for professional judgement or a validated CFD code.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lb-csv">Download drag and lift history (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { Lbm, drawShape, tauFor, strouhal, type Shape } from '../../lib/sci/phlbm';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, pagePalette, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lbw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const U = 0.1;
+  const cv = q<HTMLCanvasElement>('.lb-cv'), cx = cv.getContext('2d')!;
+  let sim: Lbm | null = null, D = 20, Re = 100, img: ImageData | null = null, vort = new Float32Array(0);
+  let hist: [number, number, number][] = [], playing = false, raf = 0, perFrame = 4, frames = 0, tool = 'draw', report: Section[] = [], forceFig: Figure | null = null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Colour maps: blue-white-red for signed fields, a dark-to-light blue-green-yellow ramp for speed; red only in red mode.
+  const lerp = (a: number[], b: number[], t: number) => a.map((x, i) => x + (b[i] - x) * t);
+  const ramp = (stops: number[][], t: number) => { t = Math.min(1, Math.max(0, t)) * (stops.length - 1); const i = Math.min(stops.length - 2, Math.floor(t)); return lerp(stops[i], stops[i + 1], t - i); };
+  const DIV = [[33, 102, 172], [146, 197, 222], [247, 247, 247], [244, 165, 130], [178, 24, 43]];
+  const SEQ = [[13, 8, 135], [84, 2, 163], [139, 10, 165], [185, 50, 137], [219, 92, 104], [244, 136, 73], [254, 188, 43], [240, 249, 33]];
+
+  function render(target: CanvasRenderingContext2D | null = cx) {
+    if (!sim) return;
+    const { nx, ny, N, solid, ux, uy, rho } = sim, mode = q<HTMLSelectElement>('.lb-v').value, pal = pagePalette();
+    if (!img || img.width !== nx || img.height !== ny) img = new ImageData(nx, ny);
+    if (vort.length !== N) vort = new Float32Array(N);
+    if (mode === 'vort') sim.vorticity(vort);
+    const d = img.data, ink = pal.red ? [163, 0, 0] : pal.ink === '#0a0a0a' ? [40, 40, 40] : [235, 235, 235];
+    const scaleV = (4 * U) / D, scaleP = 0.02;
+    for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
+      const n = y * nx + x, o = ((ny - 1 - y) * nx + x) * 4; // y up
+      let c: number[];
+      if (solid[n]) c = ink;
+      else if (mode === 'vort') c = ramp(DIV, 0.5 + vort[n] / (2 * scaleV));
+      else if (mode === 'speed') c = ramp(SEQ, Math.hypot(ux[n], uy[n]) / (1.8 * U));
+      else c = ramp(DIV, 0.5 + (rho[n] - 1) / (2 * scaleP));
+      if (pal.red && !solid[n]) { const l = (0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]) / 255; c = [40 + 140 * l, 0, 0]; }
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
+    }
+    if (target) { if (cv.width !== nx) { cv.width = nx; cv.height = ny; } target.putImageData(img, 0, 0); }
+  }
+  const fieldFig = (): Figure => {
+    render(null); const im = img!, s = sim!;
+    return { w: 600, h: Math.round((600 * s.ny) / s.nx), alt: `Flow past the body at Re ${Re}, step ${s.t}`, draw: (ctx, w, h) => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d')!.putImageData(im, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(c, 0, 0, w, h); } };
+  };
+
+  function start() {
+    const err = q('.lb-err'), out = q('.lb-out');
+    const fail = (m: string) => { pause(); err.textContent = m; err.hidden = false; out.hidden = true; sim = null; report = []; };
+    const shape = q<HTMLSelectElement>('.lb-sh').value as Shape, size = val('.lb-sz'), ang = val('.lb-ang'); Re = val('.lb-re');
+    const [nx, ny] = q<HTMLSelectElement>('.lb-g').value.split('x').map(Number);
+    q('.lb-ang').closest('label')!.hidden = !(shape === 'plate' || shape === 'airfoil');
+    if (!(Re > 0 && Re <= 5000)) return fail('Give a Reynolds number between 1 and 5000.');
+    if (shape !== 'none' && !(size >= 4 && size <= ny / 2 && Number.isInteger(size))) return fail(`The body size must be a whole number of cells from 4 to ${ny / 2} on this grid.`);
+    if (!(Math.abs(ang) <= 90)) return fail('The angle of attack must be between −90° and 90°.');
+    D = shape === 'none' ? Math.round(ny / 6) : size;
+    sim = new Lbm(nx, ny, 0.6, U);
+    if (shape !== 'none') drawShape(sim, shape, Math.round(nx / 5), ny / 2 + 0.3, size, shape === 'plate' || shape === 'airfoil' ? ang : 0);
+    if (shape !== 'none') D = sim.frontalHeight() || size;
+    const tau = tauFor(Re, U, D);
+    if (tau < 0.505) return fail(`Re ${Re} needs τ = ${tau.toFixed(4)}, too close to ½ for this grid to stay stable. Lower Re, or use a bigger body or a finer grid (the limit here is about Re ${Math.floor((3 * U * D) / 0.005)}).`);
+    sim.tau = tau;
+    err.hidden = true; out.hidden = false; hist = []; frames = 0; perFrame = 4;
+    render(); update();
+    if (reduce) pause(); else play();
+  }
+
+  function update() {
+    if (!sim) return;
+    const qd = 0.5 * U * U * D, t0 = 5 * D / U, tail = hist.slice(-Math.min(hist.length, Math.max(500, Math.round(30 * D / U)))).filter((h) => h[0] > t0), nu = (sim.tau - 0.5) / 3;
+    const cd = tail.length ? tail.reduce((a, h) => a + h[1], 0) / tail.length : NaN, cl = tail.length ? tail.reduce((a, h) => a + h[2], 0) / tail.length : NaN;
+    const flow = sim.t * U / D, settled = flow >= 20;
+    const clAmp = tail.length && settled ? Math.max(...tail.map((h) => Math.abs(h[2] - cl))) : 0;
+    const st = clAmp > 0.02 ? strouhal(tail.map((h) => h[2]), D, U) : NaN;
+    q('.lb-big').textContent = `Step ${sim.t}: Cd ${Number.isFinite(cd) ? sig(cd, 3) : '–'}, Cl ${Number.isFinite(cl) ? sig(cl, 2) : '–'}${Number.isFinite(st) ? `, St ${sig(st, 3)}` : ''}`;
+    q('.lb-facts').replaceChildren(
+      fact('Reynolds number', sig(Re, 4), `body height ${D} cells, viscosity ν = ${sig(nu, 3)}, relaxation time τ = ${sim.tau.toFixed(4)}`),
+      fact('Time', `${sim.t} steps`, `${sig(flow, 3)} body heights of flow have passed; let at least 50 pass before trusting the averages`),
+      fact('Drag coefficient Cd', Number.isFinite(cd) ? sig(cd, 3) : '–', `mean drag ÷ ½ρU²D over the last ${tail.length} steps`),
+      fact('Lift coefficient Cl', Number.isFinite(cl) ? sig(cl, 2) : '–', !settled ? 'still starting up' : clAmp > 0.02 ? `swings by ±${sig(clAmp, 2)}: the wake is shedding vortices` : 'steady'),
+      fact('Strouhal number St', Number.isFinite(st) ? sig(st, 3) : settled ? 'not shedding' : 'not yet (after 20 body heights of flow)', 'shedding frequency × D ÷ U; a cylinder sheds near 0.16 to 0.2 at Re 100'),
+    );
+  }
+
+  function forceFigure(): Figure {
+    const qd = 0.5 * U * U * D, t0 = 2 * D / U, step = Math.max(1, Math.floor(hist.length / 600)), late = hist.filter((r) => r[0] > t0), h = (late.length > 10 ? late : hist).filter((_, i) => i % step === 0);
+    return chartFigure({ w: 380, h: 220, xLabel: 'Time step', yLabel: 'Coefficient', legend: 'below', series: [
+      { name: 'Drag Cd', x: h.map((r) => r[0]), y: h.map((r) => r[1]), mode: 'line', width: 1.5 },
+      { name: 'Lift Cl', x: h.map((r) => r[0]), y: h.map((r) => r[2]), mode: 'line', width: 1.5 },
+    ] }, `Drag and lift coefficients over ${sim?.t ?? 0} steps (the start-up pulse in the first ${Math.round(2 * D / U)} steps is left out) (dynamic pressure ${sig(qd, 3)} in lattice units)`);
+  }
+
+  function tick() {
+    if (!playing || !sim) return;
+    const t0 = performance.now(), qd = 0.5 * U * U * D;
+    for (let k = 0; k < perFrame; k++) {
+      sim.step(); hist.push([sim.t, sim.fx / qd, sim.fy / qd]);
+      // A small sideways nudge early on starts the vortex street sooner.
+      if (sim.t === 200) { const x0 = Math.round(sim.nx / 5) + D, y0 = Math.round(sim.ny / 2); for (let y = y0 - D; y < y0 + D; y++) for (let x = x0; x < x0 + 6; x++) if (y > 0 && y < sim.ny && !sim.solid[y * sim.nx + x]) { sim.setEq(y * sim.nx + x, 1, U, 0.03); } }
+    }
+    const dt = performance.now() - t0;
+    perFrame = Math.max(1, Math.min(40, Math.round(perFrame * (dt > 14 ? 0.8 : dt < 8 ? 1.25 : 1)) || 1));
+    let bad = false; for (let n = 0; n < sim.N; n += 97) if (!(Math.abs(sim.ux[n]) < 0.45)) { bad = true; break; }
+    if (bad) { pause(); const e = q('.lb-err'); e.textContent = 'The flow went unstable (speeds blew up). Lower the Reynolds number, use a finer grid, or make the body bigger, then restart.'; e.hidden = false; return; }
+    render(); frames++;
+    if (frames % 15 === 0) { update(); forceFig = forceFigure(); paint(q<HTMLCanvasElement>('.lb-fig'), forceFig); }
+    raf = requestAnimationFrame(tick);
+  }
+  function play() { if (!sim) return; cancelAnimationFrame(raf); playing = true; q('.lb-play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function pause() { playing = false; cancelAnimationFrame(raf); q('.lb-play').textContent = 'Play'; if (sim) { update(); forceFig = forceFigure(); paint(q<HTMLCanvasElement>('.lb-fig'), forceFig); } }
+
+  // Drawing on the tunnel.
+  let down = false, last: [number, number] | null = null;
+  const dab = (gx: number, gy: number) => {
+    const s = sim!, rad = Math.max(1, Math.round(s.nx / 150)) * (tool === 'erase' ? 2 : 1);
+    for (let y = gy - rad; y <= gy + rad; y++) for (let x = gx - rad; x <= gx + rad; x++) if ((x - gx) ** 2 + (y - gy) ** 2 <= rad * rad + 0.5 && x > 1 && x < s.nx - 2 && y > 0 && y < s.ny - 1) s.setSolid(x, y, tool === 'draw');
+  };
+  const paintAt = (e: PointerEvent) => {
+    if (!sim || tool === 'off') return;
+    const r = cv.getBoundingClientRect(), gx = Math.floor(((e.clientX - r.left) / r.width) * sim.nx), gy = sim.ny - 1 - Math.floor(((e.clientY - r.top) / r.height) * sim.ny);
+    // Fill the gap from the last point so fast strokes stay continuous.
+    const [lx, ly] = last ?? [gx, gy], n = Math.max(1, Math.ceil(Math.hypot(gx - lx, gy - ly)));
+    for (let k = 1; k <= n; k++) dab(Math.round(lx + ((gx - lx) * k) / n), Math.round(ly + ((gy - ly) * k) / n));
+    last = [gx, gy];
+    const h = sim.frontalHeight(); if (h > 0) { D = h; const tau = tauFor(Re, U, D); if (tau >= 0.505) sim.tau = tau; }
+    if (!playing) render();
+  };
+  cv.addEventListener('pointerdown', (e) => { if (tool === 'off') return; down = true; last = null; cv.setPointerCapture(e.pointerId); paintAt(e); });
+  cv.addEventListener('pointermove', (e) => { if (down) paintAt(e); });
+  cv.addEventListener('pointerup', () => { down = false; if (!playing) update(); });
+  q('.lb-tool').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-t]'); if (!b) return; tool = b.dataset.t!; q('.lb-tool').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); cv.classList.toggle('off', tool === 'off'); });
+
+  q('.lb-play').addEventListener('click', () => (playing ? pause() : play()));
+  q('.lb-reset').addEventListener('click', start);
+  for (const c of ['.lb-sh', '.lb-g']) q(c).addEventListener('change', start);
+  for (const c of ['.lb-sz', '.lb-ang', '.lb-re']) q(c).addEventListener('change', start);
+  q('.lb-v').addEventListener('change', () => render());
+  document.addEventListener('fibub:theme', () => { render(); if (forceFig) paint(q<HTMLCanvasElement>('.lb-fig'), forceFig); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && playing) pause(); });
+  q('.lb-csv').addEventListener('click', () => { if (hist.length) save(new Blob([csv([['step', 'Cd', 'Cl'], ...hist.map((h) => [h[0], +h[1].toPrecision(6), +h[2].toPrecision(6)])])], { type: 'text/csv' }), 'lattice-boltzmann-forces.csv', 'text/csv'); });
+  start();
+  wireDownloads(q('.dl'), () => {
+    if (!sim) return { title: 'Wind tunnel', sections: [], file: 'wind-tunnel' };
+    update();
+    report = [{ title: q('.lb-big').textContent!, text: [`${q<HTMLSelectElement>('.lb-sh').selectedOptions[0].text}, Re ${Re}, grid ${sim.nx} × ${sim.ny}, showing ${q<HTMLSelectElement>('.lb-v').selectedOptions[0].text.toLowerCase()}.`], facts: [...q('.lb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fieldFig() }, { title: 'Drag and lift', figure: forceFigure() }];
+    return { title: 'Lattice Boltzmann wind tunnel', subtitle: q('.lb-big').textContent ?? '', file: 'wind-tunnel', sections: report };
+  });
+</script>
+
+<style is:global>
+  .lbw .lb-cv { display: block; width: 100%; height: auto; margin-top: 10px; border-radius: 8px; image-rendering: auto; touch-action: none; cursor: crosshair; background: #000; }
+  .lbw .lb-cv.off { touch-action: auto; cursor: default; }
+  .lbw canvas.ax-fig { margin-top: 12px; }
+  .lbw [hidden] { display: none !important; }
+</style>

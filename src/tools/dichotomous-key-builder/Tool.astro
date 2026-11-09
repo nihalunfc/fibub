@@ -1,0 +1,156 @@
+---
+// Dichotomous key builder: write couplets for any group of organisms, check the key for loops, dead ends and
+// unreached couplets or taxa, play it step by step, and save it as JSON or printable text.
+// The example is a simplified teaching key written for this page, not for real identification.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `Title: Simplified key to some common adult insect orders
+1a. Front wings hardened or leathery, at least at the base ... 2
+1b. Wings all thin and membranous or scaly, or only one pair of wings ... 3
+2a. Front wings hard shells that meet in a straight line down the back ... Beetles (Coleoptera)
+2b. Front wings leathery or half leathery, often overlapping ... 4
+4a. Hind legs long and thickened for jumping; chewing mouthparts ... Grasshoppers and crickets (Orthoptera)
+4b. Hind legs not thickened; mouthparts a jointed beak for piercing and sucking ... True bugs (Hemiptera)
+3a. One pair of wings; hind wings reduced to tiny knobs ... Flies (Diptera)
+3b. Two pairs of wings ... 5
+5a. Wings covered in tiny scales that rub off as dust ... Butterflies and moths (Lepidoptera)
+5b. Wings clear, without scales ... 6
+6a. Narrow waist between thorax and abdomen; hind wings smaller than front wings ... Bees, wasps and ants (Hymenoptera)
+6b. Long slender abdomen; very short antennae; both pairs of wings about the same size ... Dragonflies and damselflies (Odonata)`;
+---
+<div class="ax dkb">
+  <div class="ax-card">
+    <h2>Your key</h2>
+    <label>One lead per line: couplet number and a or b, the description, then "..." and where it goes (another couplet number, or the name of a taxon). An optional first line "Title: ..." names the key.
+      <textarea class="dk-text" rows="14" spellcheck="false" wrap="soft">{example}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small dk-add">Add a couplet</button>
+      <button type="button" class="btn secondary small dk-open">Open a key (JSON)</button>
+      <input type="file" class="dk-file" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small dk-json">Save as JSON</button>
+      <button type="button" class="btn secondary small dk-txt">Printable text</button>
+    </div>
+    <label style="margin-top:12px">Taxa the key should reach (optional, one per line), to check none are missing
+      <textarea class="dk-expect" rows="3" spellcheck="false" placeholder="Beetles (Coleoptera)"></textarea></label>
+    <p class="ax-help">The example is a simplified key to seven insect orders, written for this page to show how keys work; real insects have more orders and exceptions, so do not use it for identification. "1'" can stand for "1b". Leads can also end with → or a tab. Files you open stay on this device.</p>
+    <p class="ax-err dk-perr" hidden></p>
+    <p class="ax-help dk-note" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check</h2>
+    <p class="ax-big dk-big"></p>
+    <ul class="dk-issues"></ul>
+    <dl class="ax-facts dk-facts"></dl>
+    <h3>Path to each taxon</h3>
+    <div class="ax-scroll"><table class="dk-paths"></table></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try the key</h2>
+    <p class="dk-trail ax-help" style="margin-top:0"></p>
+    <p class="dk-q"></p>
+    <div class="dk-choices"></div>
+    <p class="ax-big dk-res" hidden></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dk-back">Back</button><button type="button" class="btn secondary small dk-again">Start again</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .dkb .dk-issues { margin: 8px 0 12px; padding-left: 20px; font-size: 15px; }
+  .dkb .dk-issues li { margin: 4px 0; }
+  .dkb .dk-issues li.error { color: var(--bad); }
+  .dkb .dk-issues li.warning { color: var(--warn); }
+  .dkb .dk-choices { display: grid; gap: 8px; }
+  .dkb .dk-choices button { font: inherit; font-size: 15px; text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .dkb .dk-choices button:hover { border-color: var(--accent); }
+  .dkb .dk-choices button b { margin-right: 6px; }
+  .dkb .dk-paths td { white-space: normal; }
+</style>
+
+<script>
+  import { parseKey, checkKey, keyToText, keyToPrint, keyToJson, keyFromJson, type Key, type CheckResult } from '../../lib/sci/dkey';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dkb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let key: Key | null = null, res: CheckResult | null = null, sections: Section[] = [];
+  let at = 1, trail: { n: number; label: string }[] = [], done = '';
+
+  function calc() {
+    const p = parseKey(q<HTMLTextAreaElement>('.dk-text').value);
+    key = p.key;
+    q('.dk-perr').textContent = p.errors.slice(0, 5).join(' ') + (p.errors.length > 5 ? ` (and ${p.errors.length - 5} more lines)` : '');
+    q('.dk-perr').hidden = !p.errors.length;
+    const expect = q<HTMLTextAreaElement>('.dk-expect').value.split(/\r?\n/);
+    res = checkKey(key, expect);
+    const errs = res.issues.filter((i) => i.level === 'error').length + p.errors.length, warns = res.issues.filter((i) => i.level === 'warning').length;
+    q('.dk-big').textContent = errs ? `${errs} problem${errs > 1 ? 's' : ''} to fix${warns ? `, ${warns} to look at` : ''}` : warns ? `No errors; ${warns} thing${warns > 1 ? 's' : ''} to look at` : 'The key checks out: no loops, dead ends or unreached parts';
+    const ul = q('.dk-issues'); ul.replaceChildren();
+    for (const t of p.errors) { const li = document.createElement('li'); li.className = 'error'; li.textContent = t; ul.append(li); }
+    for (const i of res.issues) { const li = document.createElement('li'); li.className = i.level; li.textContent = (i.level === 'error' ? 'Error: ' : 'Check: ') + i.text; ul.append(li); }
+    q('.dk-facts').replaceChildren(
+      fact('Couplets', String(key.couplets.size), `${res.reached.size} reached from couplet ${key.start}`),
+      fact('Taxa reached', String(res.taxa.length), res.taxa.length ? 'each at the end of a path' : 'none yet'),
+      fact('Longest path', `${res.depth} step${res.depth === 1 ? '' : 's'}`, res.taxa.length ? `mean ${res.meanDepth.toFixed(1)} steps to a taxon` : ''),
+    );
+    const t = q<HTMLTableElement>('.dk-paths'); t.replaceChildren();
+    const rows = [...res.paths].sort((a, b) => a[0].localeCompare(b[0])).flatMap(([tx, ps]) => ps.map((pp) => [tx, pp.join(' → '), String(pp.length)]));
+    if (rows.length) {
+      const h = t.createTHead().insertRow(); ['Taxon', 'Path', 'Steps'].forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i === 2) th.className = 'r'; h.append(th); });
+      const b = t.createTBody(); for (const r of rows.slice(0, 1000)) { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i === 2) td.className = 'r'; }); }
+    }
+    const leadRows = [...key.couplets.values()].sort((a, b) => a.n - b.n).flatMap((c) => c.leads.map((l) => [l.label, l.text, 'couplet' in l.to ? `couplet ${l.to.couplet}` : l.to.taxon]));
+    sections = [{ title: key.title || 'Dichotomous key', table: { head: ['Lead', 'Description', 'Goes to'], rows: leadRows, align: ['l', 'l', 'l'] } },
+      { title: 'Check', text: [q('.dk-big').textContent!, ...[...p.errors, ...res.issues.map((i) => (i.level === 'error' ? 'Error: ' : 'Check: ') + i.text)]], table: rows.length ? { head: ['Taxon', 'Path', 'Steps'], rows, align: ['l', 'l', 'r'] } : undefined }];
+    if (!key.couplets.has(at)) restart(); else play();
+  }
+
+  function restart() { at = key?.start ?? 1; trail = []; done = ''; play(); }
+  function play() {
+    const ch = q('.dk-choices'); ch.replaceChildren();
+    q('.dk-trail').textContent = trail.length ? 'Your choices: ' + trail.map((s) => s.label).join(' → ') : '';
+    q<HTMLButtonElement>('.dk-back').disabled = !trail.length;
+    if (done) { q('.dk-q').textContent = ''; q('.dk-res').textContent = done; q('.dk-res').hidden = false; return; }
+    q('.dk-res').hidden = true;
+    const c = key?.couplets.get(at);
+    if (!c) { q('.dk-q').textContent = key && key.couplets.size ? `Couplet ${at} does not exist: this lead is a dead end. Fix it in the key above.` : 'Write a key above to try it here.'; return; }
+    if (trail.some((st) => st.n === at)) { q('.dk-q').textContent = `This lead goes back to couplet ${at}, which you have already passed: the key loops. Fix the loop in the key above, or go back.`; return; }
+    q('.dk-q').textContent = `Couplet ${c.n}: which fits your specimen?`;
+    for (const l of c.leads) {
+      const b = document.createElement('button'); b.type = 'button'; b.dataset.label = l.label;
+      const s = document.createElement('b'); s.textContent = l.label + '.'; b.append(s, document.createTextNode(l.text || '(no description)'));
+      b.addEventListener('click', () => { trail.push({ n: at, label: l.label }); if ('taxon' in l.to) done = l.to.taxon; else at = l.to.couplet; play(); });
+      ch.append(b);
+    }
+  }
+
+  q('.dk-back').addEventListener('click', () => { const s = trail.pop(); if (s) { at = s.n; done = ''; } play(); });
+  q('.dk-again').addEventListener('click', restart);
+  q('.dk-add').addEventListener('click', () => {
+    const ta = q<HTMLTextAreaElement>('.dk-text'), n = key && key.couplets.size ? Math.max(...key.couplets.keys()) + 1 : 1;
+    ta.value = ta.value.replace(/\s*$/, '') + `\n${n}a. Describe the first choice ... taxon or couplet\n${n}b. Describe the second choice ... taxon or couplet\n`;
+    calc();
+  });
+  q('.dk-open').addEventListener('click', () => q<HTMLInputElement>('.dk-file').click());
+  q('.dk-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.dk-file').files?.[0]; if (!f) return;
+    const note = q('.dk-note');
+    try {
+      if (f.size > 2e6) throw new Error('Key files can be up to 2 MB.');
+      const k = keyFromJson(JSON.parse(await f.text()));
+      q<HTMLTextAreaElement>('.dk-text').value = keyToText(k); note.textContent = `Opened ${f.name}: ${k.couplets.size} couplets.`; note.hidden = false; q('.dk-perr').hidden = true; calc(); restart();
+    } catch (e) { q('.dk-perr').textContent = e instanceof SyntaxError ? 'That file is not valid JSON. Open a key saved with "Save as JSON".' : (e as Error).message; q('.dk-perr').hidden = false; note.hidden = true; }
+    q<HTMLInputElement>('.dk-file').value = '';
+  });
+  const base = () => fileSafe(key?.title || 'dichotomous-key');
+  q('.dk-json').addEventListener('click', () => { if (key) save(new TextEncoder().encode(JSON.stringify(keyToJson(key), null, 2) + '\n'), `${base()}.json`, 'application/json'); });
+  q('.dk-txt').addEventListener('click', () => { if (key) save(new TextEncoder().encode(keyToPrint(key)), `${base()}.txt`, 'text/plain'); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  q('.dk-text').addEventListener('input', later); q('.dk-expect').addEventListener('input', later);
+  calc(); restart();
+  wireDownloads(q('.dl'), () => ({ title: key?.title || 'Dichotomous key', subtitle: q('.dk-big').textContent ?? '', file: base(), sections }));
+</script>

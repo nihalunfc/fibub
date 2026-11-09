@@ -1,0 +1,432 @@
+---
+// Design of experiments: factorial, fractional factorial, Plackett-Burman, central composite and Box-Behnken designs,
+// randomised run sheets, and analysis of the responses.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax de">
+  <div class="ax-card">
+    <h2>Design</h2>
+    <div class="ax-grid">
+      <label>Type <select class="de-type">
+        <option value="full">Full factorial</option>
+        <option value="fractional" selected>Fractional factorial 2^(k−p)</option>
+        <option value="pb">Plackett–Burman screening</option>
+        <option value="ccd">Central composite (response surface)</option>
+        <option value="bbd">Box–Behnken (response surface)</option>
+      </select></label>
+      <label>Factors k <input class="de-k" inputmode="numeric" value="5" /></label>
+      <label class="de-o de-o-frac">Fraction <select class="de-p"></select></label>
+      <label class="de-o de-o-frac">Generators <select class="de-genmode"><option value="best">Best (minimum aberration)</option><option value="custom">My own</option></select></label>
+      <label class="de-o de-o-gens">Generators, e.g. E=ABC, F=BCD <input class="de-gens" spellcheck="false" /></label>
+      <label class="de-o de-o-pb">Runs N <select class="de-N"></select></label>
+      <label class="de-o de-o-ccd">α (axial distance) <select class="de-alpha"><option value="rotatable">Rotatable</option><option value="orthogonal">Orthogonal blocks</option><option value="spherical">Spherical (√k)</option></select></label>
+      <label class="de-o de-o-ccd">Axial points <select class="de-face"><option value="circumscribed">Outside the box (CCC)</option><option value="inscribed">Inside the box (CCI)</option><option value="faced">On the faces (CCF, α = 1)</option></select></label>
+      <label class="de-o de-o-ccd">Centre runs, factorial block <input class="de-cf" inputmode="numeric" value="3" /></label>
+      <label class="de-o de-o-ccd">Centre runs, axial block <input class="de-ca" inputmode="numeric" value="2" /></label>
+      <label class="de-o de-o-bbd">Centre runs <input class="de-cb" inputmode="numeric" value="3" /></label>
+      <label class="de-o de-o-rep">Replicates <input class="de-rep" inputmode="numeric" value="1" /></label>
+      <label class="de-o de-o-c0">Centre runs <input class="de-c0" inputmode="numeric" value="0" /></label>
+      <label>Seed for the run order <input class="de-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <label class="ax-check de-o de-o-half" style="margin-top:10px"><input type="checkbox" class="de-half" /> Use a half fraction for the corners (fewer runs, resolution V)</label>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="de-rand" checked /> Randomise the run order (recommended: protects against drift over time)</label>
+    <p class="ax-help de-help"></p>
+    <h3 class="de-h3">Factors</h3>
+    <p class="ax-help de-fhelp"></p>
+    <div class="ax-scroll"><table class="de-ft"></table></div>
+    <p class="ax-err de-err" hidden></p>
+  </div>
+
+  <div class="ax-card de-out">
+    <h2>Run sheet</h2>
+    <p class="ax-big de-big"></p>
+    <dl class="ax-facts de-facts"></dl>
+    <div class="de-aliasbox">
+      <h3 class="de-h3">Aliases</h3>
+      <p class="ax-help de-rel"></p>
+      <div class="ax-scroll"><table class="de-alias"></table></div>
+    </div>
+    <h3 class="de-h3">Runs</h3>
+    <div class="ax-scroll de-runwrap"><table class="de-runs"></table></div>
+    <p class="ax-help de-runnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small de-csv">Run sheet CSV</button></div>
+  </div>
+
+  <div class="ax-card de-an-card">
+    <h2>Analyse the results</h2>
+    <label>Responses, one per line <textarea class="de-y" rows="6" spellcheck="false" placeholder="One measured value per run"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>The values are in <select class="de-yorder"><option value="run">run order (as done)</option><option value="std">standard order</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small de-fake">Fill made-up example responses</button></div>
+    <p class="ax-err de-an-err" hidden></p>
+    <div class="de-an-out" hidden>
+      <p class="ax-big de-an-big"></p>
+      <dl class="ax-facts de-an-facts"></dl>
+      <div class="ax-scroll" style="margin-top:10px"><table class="de-eff"></table></div>
+      <canvas class="ax-fig de-c-a" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig de-c-b" style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .de .de-h3 { margin: 16px 0 6px; font-size: 15px; }
+  .de .de-ft input:not([type=checkbox]):not([type=radio]):not([type=range]) { min-width: 80px; }
+  .de .de-ft input.de-fn:not([type=checkbox]):not([type=radio]):not([type=range]) { min-width: 130px; }
+  .de .de-eff td:first-child { white-space: nowrap; }
+  .de .de-runs td, .de .de-runs th { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, csv, fmtExp } from '../../lib/sci/num';
+  import * as D from '../../lib/sci/doe';
+  import { rng, normPpf } from '../../lib/sci/distributions';
+  import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.de')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const g = (v: number, n = 5) => (!Number.isFinite(v) ? '–' : v === 0 ? '0' : Math.abs(v) >= 1e6 || Math.abs(v) < 1e-4 ? fmtExp(v, n) : String(Number(v.toPrecision(n))).replace('-', '−'));
+  const fp = (p: number) => (!Number.isFinite(p) ? '–' : p < 1e-4 ? fmtExp(p, 3) : String(Number(p.toPrecision(3))));
+  const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
+  const colorsFor = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4']);
+  const figW = () => Math.round(Math.min(720, Math.max(380, q('.de-an-card').clientWidth - 34 || 720)));
+  function fig(alt: string, ratio: number, build: (cols: string[]) => Omit<Chart, 'w' | 'h'>, extra?: (ctx: CanvasRenderingContext2D, m: ReturnType<typeof drawChart>, cols: string[], pal: Palette) => void): Figure {
+    const w = figW(), h = Math.round(w * ratio);
+    return { w, h, alt, draw: (ctx, W, H, pal) => { const cols = colorsFor(pal); const m = drawChart(canvasPainter(ctx), { ...build(cols), w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: cols }); extra?.(ctx, m, cols, pal); } };
+  }
+  const setFacts = (el: string, rows: [string, string][]) => q(el).replaceChildren(...rows.map(([k, v]) => { const x = document.createElement('div'); x.innerHTML = '<dt></dt><dd></dd>'; x.querySelector('dt')!.textContent = k; x.querySelector('dd')!.textContent = v; return x; }));
+  function fillTable(el: HTMLElement, head: string[], rows: string[][], max = Infinity) {
+    el.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    el.querySelector('thead tr')!.replaceChildren(...head.map((t, i) => { const th = document.createElement('th'); th.textContent = t; if (i) th.className = 'r'; return th; }));
+    el.querySelector('tbody')!.replaceChildren(...rows.slice(0, max).map((r) => { const tr = document.createElement('tr'); r.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.className = 'r'; tr.append(td); }); return tr; }));
+  }
+
+  // Made-up starting factors (a chemistry-style example), editable.
+  const START = [['Temperature', '150', '180'], ['Time', '30', '60'], ['Pressure', '1', '2'], ['Catalyst', '0.5', '1.5'], ['Stirring', '200', '400'], ['pH', '6', '8'], ['Feed rate', '10', '20'], ['Solvent', '20', '40']];
+  type Factor = { name: string; low: string; high: string; levels: string };
+  let factors: Factor[] = [];
+  type Built = { design: D.Design; std: number[][]; order: number[]; actual: string[][]; names: string[]; twoLevel: boolean; multiLevels?: string[][]; title: string; facts: [string, string][]; aliasRows?: string[][]; relText?: string };
+  let built: Built | null = null, figs: Record<string, Figure | null> = {}, secDesign: Section[] = [], secAn: Section[] = [];
+
+  const HELP: Record<string, string> = {
+    full: 'Every combination of every level. Best for a few factors; runs multiply fast (2 levels each: 2^k).',
+    fractional: 'A balanced part of the 2-level full factorial. Some effects are aliased (estimated together); the resolution says how badly: III mixes main effects with 2-factor interactions, IV mixes 2-factor interactions with each other, V keeps main effects and 2-factor interactions apart.',
+    pb: 'Screening many factors in few runs (a multiple of 4). Only main effects are estimated; each 2-factor interaction is partly mixed into several of them, so use it to find the few factors that matter.',
+    ccd: 'A 2-level factorial plus axial (star) points and centre runs: fits a full quadratic model to find an optimum. Rotatable gives equal precision at equal distance from the centre.',
+    bbd: 'Each pair of factors at its 4 corners with the rest at the middle, plus centre runs: fits a quadratic model without ever setting all factors to an extreme at once.',
+  };
+
+  function factorTable() {
+    const k = Math.round(num(inp('.de-k').value)), type = sel('.de-type').value;
+    if (!(k >= 1 && k <= 25)) return;
+    const old = readFactors();
+    factors = Array.from({ length: k }, (_, i) => old[i] ?? { name: START[i]?.[0] ?? `Factor ${D.LETTERS[i]}`, low: START[i]?.[1] ?? '−1', high: START[i]?.[2] ?? '+1', levels: START[i] ? `${START[i][1]}, ${START[i][2]}` : 'low, high' });
+    const full = type === 'full', t = q('.de-ft');
+    t.innerHTML = `<thead><tr><th></th><th>Name</th>${full ? '<th>Levels (comma between)</th>' : '<th>Low (−1)</th><th>High (+1)</th>'}</tr></thead><tbody></tbody>`;
+    t.querySelector('tbody')!.replaceChildren(...factors.map((f, i) => {
+      const tr = document.createElement('tr');
+      const td0 = document.createElement('td'); td0.textContent = D.LETTERS[i]; tr.append(td0);
+      const cell = (cls: string, v: string, label: string) => { const td = document.createElement('td'), x = document.createElement('input'); x.className = cls; x.dataset.i = String(i); x.value = v; x.setAttribute('aria-label', `${label} of factor ${D.LETTERS[i]}`); td.append(x); tr.append(td); };
+      cell('de-fn', f.name, 'Name');
+      if (full) cell('de-flv', f.levels, 'Levels'); else { cell('de-flo', f.low, 'Low'); cell('de-fhi', f.high, 'High'); }
+      return tr;
+    }));
+    q('.de-fhelp').textContent = full ? 'Type 2 to 6 levels per factor, numbers or names (for example 10, 20, 30 or glass, steel).' : type === 'ccd' || type === 'bbd' ? 'Numbers only: −1 and +1 are the low and high settings; axial and centre runs are worked out from them.' : 'Numbers or names (for example glass and steel). Centre runs need numbers.';
+  }
+  function readFactors(): Factor[] {
+    const out: Factor[] = [];
+    root.querySelectorAll<HTMLInputElement>('.de-fn').forEach((e) => { const i = Number(e.dataset.i); out[i] = { ...(factors[i] ?? { name: '', low: '', high: '', levels: '' }), name: e.value }; });
+    root.querySelectorAll<HTMLInputElement>('.de-flo').forEach((e) => { out[Number(e.dataset.i)].low = e.value; });
+    root.querySelectorAll<HTMLInputElement>('.de-fhi').forEach((e) => { out[Number(e.dataset.i)].high = e.value; });
+    root.querySelectorAll<HTMLInputElement>('.de-flv').forEach((e) => { out[Number(e.dataset.i)].levels = e.value; });
+    return out;
+  }
+  function options() {
+    const type = sel('.de-type').value, k = Math.round(num(inp('.de-k').value));
+    root.querySelectorAll<HTMLElement>('.de-o').forEach((e) => (e.hidden = true));
+    const showO = (c: string) => root.querySelectorAll<HTMLElement>(`.de-o-${c}`).forEach((e) => (e.hidden = false));
+    if (type === 'fractional') { showO('frac'); if (sel('.de-genmode').value === 'custom') showO('gens'); showO('rep'); showO('c0'); }
+    if (type === 'full') { showO('rep'); showO('c0'); }
+    if (type === 'pb') { showO('pb'); showO('rep'); }
+    if (type === 'ccd') { showO('ccd'); if (k >= 5) showO('half'); }
+    if (type === 'bbd') showO('bbd');
+    q('.de-help').textContent = HELP[type];
+    if (Number.isInteger(k) && k >= 3) {
+      const ps = sel('.de-p'), old = ps.value;
+      const opts: [string, string][] = [];
+      for (let p = 1; p <= k - 2; p++) if (2 ** (k - p) >= k + 1) opts.push([String(p), `1/${2 ** p}: ${2 ** (k - p)} runs (2^(${k}−${p}))`]);
+      ps.replaceChildren(...opts.map(([v, t]) => new Option(t, v, false, v === old)));
+      if (!opts.some(([v]) => v === old) && opts.length) ps.value = opts[0][0];
+    }
+    if (Number.isInteger(k) && k >= 1) {
+      const ns = sel('.de-N'), old = ns.value;
+      const sizes = D.pbSizes(100).filter((N) => N >= k + 1 && N >= 8);
+      ns.replaceChildren(...sizes.map((N) => new Option(`${N} runs`, String(N), false, String(N) === old)));
+      if (!sizes.map(String).includes(old) && sizes.length) ns.value = String(sizes[0]);
+    }
+  }
+  const intIn = (c: string, lo: number, hi: number, what: string) => { const v = num(inp(c).value); if (!(Number.isInteger(v) && v >= lo && v <= hi)) throw new Error(`${what} must be a whole number from ${lo} to ${hi}.`); return v; };
+
+  function build() {
+    const err = q('.de-err');
+    try {
+      const type = sel('.de-type').value;
+      const k = intIn('.de-k', type === 'bbd' ? 3 : type === 'pb' ? 2 : type === 'fractional' ? 3 : 1, type === 'ccd' || type === 'bbd' ? 10 : type === 'full' ? 12 : 25, 'The number of factors');
+      factors = readFactors();
+      if (factors.length !== k) { factorTable(); factors = readFactors(); }
+      const names = factors.map((f, i) => f.name.trim() || D.LETTERS[i]);
+      if (new Set(names).size < k) throw new Error('Give each factor a different name.');
+      const seed = intIn('.de-seed', 0, 4294967295, 'The seed');
+      const facts: [string, string][] = [];
+      let coded: number[][], block: number[] | undefined, types: string[] | undefined, title = '', fraction: D.Fraction | undefined, alpha: number | undefined, multi: string[][] | undefined;
+      let reps = 1, c0 = 0;
+      if (type === 'full' || type === 'fractional' || type === 'pb') reps = intIn('.de-rep', 1, 20, 'Replicates');
+      if (type === 'full' || type === 'fractional') c0 = intIn('.de-c0', 0, 50, 'Centre runs');
+      if (type === 'full') {
+        multi = factors.map((f, i) => { const lv = f.levels.split(',').map((s) => s.trim()).filter(Boolean); if (lv.length < 2 || lv.length > 6) throw new Error(`Give factor ${names[i]} 2 to 6 levels, separated by commas.`); if (new Set(lv).size < lv.length) throw new Error(`Factor ${names[i]} has the same level twice.`); return lv; });
+        const L = multi.map((l) => l.length), n = L.reduce((a, b) => a * b, 1);
+        if (n * reps > 4096) throw new Error(`That is ${n * reps} runs; up to 4,096 here. Use a fractional factorial or fewer levels.`);
+        const all2 = L.every((v) => v === 2);
+        coded = all2 ? D.ff2(k) : D.fullFactorial(L);
+        if (c0 && !all2) throw new Error('Centre runs are for designs where every factor has 2 levels.');
+        title = all2 ? `2^${k} full factorial` : `${L.join(' × ')} full factorial`;
+        facts.push(['Effects estimable', all2 ? `all ${2 ** k - 1} main effects and interactions` : 'all main effects and interactions']);
+        if (all2) { factors = factors.map((f, i) => ({ ...f, low: multi![i][0], high: multi![i][1] })); multi = undefined; }
+      } else if (type === 'fractional') {
+        const p = Number(sel('.de-p').value);
+        if (!p) throw new Error('With so few factors there is no useful fraction; use a full factorial.');
+        fraction = sel('.de-genmode').value === 'custom' ? D.customFraction(k, p, inp('.de-gens').value) : D.bestFraction(k, p);
+        if (sel('.de-genmode').value !== 'custom') inp('.de-gens').value = fraction.generators.map((g, j) => `${D.LETTERS[k - p + j]}=${D.wordName(g & ((1 << (k - p)) - 1))}`).join(', ');
+        coded = D.fractional(fraction);
+        title = `2^(${k}−${p}) fractional factorial, resolution ${ROMAN[fraction.resolution] ?? fraction.resolution}`;
+        facts.push(['Generators', inp('.de-gens').value || fraction.generators.map((g, j) => `${D.LETTERS[k - p + j]}=${D.wordName(g & ((1 << (k - p)) - 1))}`).join(', ')]);
+        facts.push(['Word-length pattern', fraction.wlp.slice(3).map((v, i) => `A${i + 3} = ${v}`).filter((s) => !s.endsWith(' 0')).join(', ') || '–']);
+      } else if (type === 'pb') {
+        const N = Number(sel('.de-N').value);
+        coded = D.plackettBurman(N).map((r) => r.slice(0, k));
+        title = `${N}-run Plackett–Burman design`;
+        facts.push(['Unused columns', `${N - 1 - k} (kept as dummy factors to estimate the noise)`]);
+      } else if (type === 'ccd') {
+        const cf = intIn('.de-cf', 0, 20, 'Centre runs'), ca = intIn('.de-ca', 0, 20, 'Centre runs');
+        const half = q<HTMLInputElement>('.de-half').checked && k >= 5;
+        const c = D.ccd(k, { alpha: sel('.de-alpha').value as D.CcdOpts['alpha'], face: sel('.de-face').value as D.CcdOpts['face'], centerF: cf, centerA: ca, half });
+        coded = c.coded; block = c.block; types = c.type; alpha = c.alpha; fraction = c.fraction;
+        title = `Central composite design (${sel('.de-face').selectedOptions[0].text.match(/\((\w+)/)?.[1] ?? ''})`;
+        facts.push(['α', `${g(alpha, 5)} (coded units)`], ['Blocks', '1: factorial and its centre runs; 2: axial and its centre runs']);
+        if (half) facts.push(['Corner points', `half fraction, resolution ${ROMAN[fraction!.resolution]}`]);
+      } else {
+        const cb = intIn('.de-cb', 0, 20, 'Centre runs');
+        const b = D.boxBehnken(k, cb); coded = b.coded; types = b.type;
+        title = `Box–Behnken design`;
+        if (k >= 6) facts.push(['Note', 'For 6 or more factors this uses every pair of factors, so it has more runs than Box and Behnken’s original tables.']);
+      }
+      // Replicates and centre runs.
+      let std = coded.slice(), bl = block ?? coded.map(() => 1), ty = types ?? coded.map(() => (multi ? 'level' : 'factorial'));
+      if (reps > 1) { std = Array.from({ length: reps }, () => coded).flat(); bl = Array.from({ length: reps }, () => bl).flat(); ty = Array.from({ length: reps }, () => ty).flat(); }
+      if (c0) { std = [...std, ...Array.from({ length: c0 }, () => new Array(k).fill(0))]; bl = [...bl, ...new Array(c0).fill(1)]; ty = [...ty, ...new Array(c0).fill('center')]; }
+      // Actual settings.
+      const numeric = factors.map((f) => Number.isFinite(num(f.low)) && Number.isFinite(num(f.high)));
+      if (!multi) factors.forEach((f, i) => { if (!f.low.trim() || !f.high.trim()) throw new Error(`Give factor ${names[i]} a low and a high setting.`); if (f.low.trim() === f.high.trim()) throw new Error(`Factor ${names[i]}: low and high must differ.`); });
+      if ((type === 'ccd' || type === 'bbd' || c0) && numeric.some((v) => !v)) throw new Error('Centre and axial runs need numbers for every low and high setting.');
+      const actual = std.map((r) => r.map((v, i) => {
+        if (multi) return multi[i][v];
+        if (numeric[i]) { const lo = num(factors[i].low), hi = num(factors[i].high); return g((lo + hi) / 2 + (v * (hi - lo)) / 2, 6); }
+        return v < 0 ? factors[i].low.trim() : factors[i].high.trim();
+      }));
+      const n = std.length;
+      if (n > 4096) throw new Error(`That is ${n} runs; up to 4,096 here.`);
+      const order = q<HTMLInputElement>('.de-rand').checked ? D.runOrder(n, seed) : Array.from({ length: n }, (_, i) => i);
+      const design: D.Design = { kind: type as D.Design['kind'], coded: std, block: bl, type: ty, fraction, alpha, notes: [] };
+      facts.unshift(['Runs', String(n)], ['Factors', String(k)]);
+      if (reps > 1) facts.push(['Replicates', String(reps)]);
+      if (ty.filter((t) => t === 'center').length) facts.push(['Centre runs', String(ty.filter((t) => t === 'center').length)]);
+      built = { design, std, order, actual, names, twoLevel: !multi && type !== 'ccd' && type !== 'bbd', multiLevels: multi, title, facts };
+      // Aliases.
+      const ab = q('.de-aliasbox');
+      if (fraction && type === 'fractional') {
+        const rel = fraction.relation.map((w) => D.wordName(w));
+        built.relText = `Defining relation: I = ${rel.join(' = ')}${rel.length > 15 ? '' : ''}`;
+        built.aliasRows = D.aliasTable(fraction, 3).map((r) => [r.effect, r.aliases.join(' = ') || '(none up to 3 factors)']);
+        q('.de-rel').textContent = `${built.relText}. Letters are the factors (${names.map((nm, i) => `${D.LETTERS[i]} = ${nm}`).join(', ')}). Aliases with more than 3 factors are left out.`;
+        fillTable(q('.de-alias'), ['Effect', 'Aliased with'], built.aliasRows);
+        ab.hidden = false;
+      } else ab.hidden = true;
+      // Run sheet.
+      const head = ['Run', 'Std', ...(type === 'ccd' ? ['Block'] : []), ...(type === 'ccd' || type === 'bbd' || c0 ? ['Type'] : []), ...names.map((nm, i) => `${D.LETTERS[i]}: ${nm}`)];
+      const rows = order.map((s, r) => [String(r + 1), String(s + 1), ...(type === 'ccd' ? [String(bl[s])] : []), ...(type === 'ccd' || type === 'bbd' || c0 ? [ty[s]] : []), ...actual[s]]);
+      fillTable(q('.de-runs'), head, rows, 300);
+      q('.de-runnote').textContent = `${n > 300 ? `The first 300 of ${n} runs are shown; the CSV has them all. ` : ''}Do the runs in this order. “Std” is the standard order, used in textbooks and for checking.`;
+      q('.de-big').textContent = `${n} runs: ${title}`;
+      setFacts('.de-facts', facts);
+      err.hidden = true; q('.de-out').hidden = false; q('.de-an-card').hidden = false;
+      secDesign = [{ title, facts, text: built.relText ? [built.relText] : undefined, table: { head, rows: rows.slice(0, 300), align: head.map((_, i) => (i ? 'r' : 'l')) } }];
+      if (built.aliasRows) secDesign.push({ title: 'Aliases (up to 3-factor terms)', table: { head: ['Effect', 'Aliased with'], rows: built.aliasRows } });
+      analyse();
+    } catch (e) { built = null; err.textContent = (e as Error).message; err.hidden = false; q('.de-out').hidden = true; q('.de-an-card').hidden = true; secDesign = []; }
+  }
+
+  // ---------- Analysis ----------
+  function analyse() {
+    const err = q('.de-an-err'), out = q('.de-an-out'); secAn = [];
+    if (!built) return;
+    const text = q<HTMLTextAreaElement>('.de-y').value.trim();
+    if (!text) { err.hidden = true; out.hidden = true; return; }
+    try {
+      const vals = text.split(/[\s,;]+/).filter(Boolean).map(num);
+      const n = built.std.length;
+      if (vals.some((v) => !Number.isFinite(v))) throw new Error('Every response must be a number.');
+      if (vals.length !== n) throw new Error(`There are ${n} runs but ${vals.length} responses. Give one value per run, in ${sel('.de-yorder').value === 'run' ? 'run' : 'standard'} order.`);
+      const y = new Array(n);
+      if (sel('.de-yorder').value === 'run') built.order.forEach((s, r) => (y[s] = vals[r])); else vals.forEach((v, i) => (y[i] = v));
+      const { design, names } = built, k = names.length, kind = design.kind;
+      let facts: [string, string][] = [], big = '', head: string[] = [], rows: string[][] = [];
+      figs = {};
+      if (kind === 'ccd' || kind === 'bbd') {
+        const qd = D.quadratic(built.std, y, names.map((_, i) => D.LETTERS[i]));
+        big = `Quadratic model: R² = ${g(qd.r2, 4)}, adjusted ${g(qd.adjR2, 4)}`;
+        const sp = qd.stationary ? qd.stationary.map((v, i) => { const lo = num(factors[i].low), hi = num(factors[i].high); return `${names[i]} ${g(v, 4)} coded (${g((lo + hi) / 2 + (v * (hi - lo)) / 2, 5)})`; }).join('; ') : 'none (the surface is flat in some direction)';
+        facts = [['Stationary point', sp], ['Predicted response there', g(qd.yStationary, 6)], ['Kind', `${qd.kind} (eigenvalues ${qd.eigen.map((v) => g(v, 4)).join(', ')})`], ['Residual SD', g(qd.sigma)], ['Residual df', String(qd.df)]];
+        const far = qd.stationary && qd.stationary.some((v) => Math.abs(v) > (design.alpha ?? 1) * 1.05);
+        if (far) facts.push(['Careful', 'The stationary point lies outside the region tested; explore further in that direction before trusting it.']);
+        head = ['Term', 'Coefficient (coded)', 'SE', 't', 'p'];
+        rows = qd.coefs.map((c) => [c.name.replace(/[A-Z]/g, (L) => names[D.LETTERS.indexOf(L)] ?? L), g(c.est), g(c.se, 4), g(c.t, 4), fp(c.p)]);
+        const lo = Math.min(...y, ...qd.fitted), hi = Math.max(...y, ...qd.fitted);
+        figs.a = fig('Observed responses against the quadratic model', 0.6, (c) => ({ xLabel: 'Predicted', yLabel: 'Observed', series: [{ name: 'Runs', x: qd.fitted, y, mode: 'points', color: c[0] }, { name: 'y = x', x: [lo, hi], y: [lo, hi], mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }] }));
+        figs.b = mainEffectsFig(built.std, y, names, true);
+      } else if (built.multiLevels) {
+        const me = D.mainEffects(built.std, y, names);
+        big = `Main effects: R² = ${g(me.r2, 4)} with ${me.dfError} residual df`;
+        head = ['Factor', 'df', 'Sum of squares', 'F', 'p'];
+        rows = me.anova.map((a) => [a.name, String(a.df), g(a.ss), g(a.F, 4), fp(a.p)]);
+        facts = me.means.map((m, j) => [`${names[j]} means`, m.map((x) => `${built!.multiLevels![j][x.level]}: ${g(x.mean, 5)}`).join(', ')]);
+        facts.push(['Residual', `SS ${g(me.sseError)} on ${me.dfError} df (interactions are pooled into it)`]);
+        figs.a = mainEffectsFig(built.std, y, names, false, built.multiLevels);
+      } else {
+        // Two-level: contrast columns.
+        const cols: number[][] = [], cn: string[] = [];
+        if (kind === 'pb') {
+          const N = Number(sel('.de-N').value), full = D.plackettBurman(N), reps = built.std.length / N;
+          for (let j = 0; j < N - 1; j++) { cols.push(Array.from({ length: built.std.length }, (_, i) => full[i % N][j])); cn.push(j < k ? names[j] : `dummy ${j - k + 1}`); }
+          void reps;
+        } else {
+          const f = design.fraction, b = f ? k - f.p : k, seen = new Set<number>();
+          const words: number[] = []; for (let w = 1; w < 1 << b; w++) words.push(w);
+          // Express each base word through the full factor set and name it by its shortest aliases.
+          for (const w of words) {
+            let full = w;
+            if (f) { /* the base word itself is a word on the first b factors */ }
+            const al = f ? D.aliasesOf(full, f.relation) : [];
+            const chain = [full, ...al].sort((a, c) => pc(a) - pc(c) || a - c);
+            full = chain[0];
+            if (seen.has(full)) continue; seen.add(full);
+            cols.push(built.std.map((r) => r.slice(0, b).reduce((s, v, j) => ((w >> j) & 1 ? s * v : s), 1)));
+            const label = chain.filter((x) => pc(x) <= Math.max(3, pc(chain[0]))).slice(0, 3).map((x) => D.wordName(x)).join(' = ');
+            cn.push(label);
+          }
+        }
+        const centre = built.design.type.map((t) => t === 'center');
+        const res = D.twoLevelEffects(cols.map((_, j) => j).length ? built.std.map((_, i) => cols.map((c) => c[i])) : [], y, cn, centre);
+        const letterNote = names.map((nm, i) => `${D.LETTERS[i]} = ${nm}`).join(', ');
+        if (res.dfResid > 0) {
+          big = `${res.rows.filter((r) => (r.p ?? 1) < 0.05).length} of ${res.rows.length} effects significant at 5 % (t tests, ${res.dfResid} residual df)`;
+          head = ['Effect', 'Estimate', 'SE', 't', 'p'];
+          rows = res.rows.map((r) => [r.name, g(r.effect), g(r.se!, 4), g(r.t!, 4), fp(r.p!)]);
+          facts = [['Residual SD', g(res.sigma)], ['Letters', letterNote]];
+          if (res.curvature) facts.push(['Curvature (centre runs)', `${g(res.curvature.est, 4)}, p = ${fp(res.curvature.p)}${res.curvature.p < 0.05 ? ': the response bends; consider a response-surface design' : ''}`]);
+        } else {
+          const L = D.lenth(res.rows.map((r) => r.effect));
+          const sig = res.rows.filter((r) => Math.abs(r.effect) > L.me);
+          big = `${sig.length} of ${res.rows.length} effects stand out (Lenth's margin of error ${g(L.me, 4)})`;
+          head = ['Effect', 'Estimate', '|Effect| > ME', '|Effect| > SME'];
+          rows = res.rows.map((r) => [r.name, g(r.effect), Math.abs(r.effect) > L.me ? 'yes' : '', Math.abs(r.effect) > L.sme ? 'yes' : '']);
+          facts = [["Lenth's PSE", g(L.pse, 4)], ['Margin of error (ME, 95 %)', g(L.me, 4)], ['Simultaneous ME (SME)', g(L.sme, 4)], ['Letters', letterNote]];
+          figs.b = halfNormalFig(res.rows, L.me);
+          figs.a = paretoFig(res.rows, L.me, L.sme);
+        }
+        if (!figs.a) figs.a = paretoFig(res.rows);
+        if (!figs.b) figs.b = mainEffectsFig(built.std, y, names, true);
+        const sorted = rows.map((r, i) => [r, Math.abs(res.rows[i].effect)] as const).sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+        rows = sorted;
+      }
+      q('.de-an-big').textContent = big;
+      setFacts('.de-an-facts', facts);
+      fillTable(q('.de-eff'), head, rows);
+      for (const [k2, cls] of [['a', '.de-c-a'], ['b', '.de-c-b']] as const) { const c = q<HTMLCanvasElement>(cls); c.hidden = !figs[k2]; if (figs[k2]) paint(c, figs[k2]!); }
+      err.hidden = true; out.hidden = false;
+      secAn = [{ title: 'Analysis', facts: [['Result', big], ...facts], table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) }, figure: figs.a ?? undefined }, ...(figs.b ? [{ title: figs.b.alt, figure: figs.b }] : [])];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; }
+  }
+  const pc = (w: number) => { let c = 0; while (w) { w &= w - 1; c++; } return c; };
+  function paretoFig(rows: D.EffectRow[], me?: number, sme?: number): Figure {
+    const s = [...rows].sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect)).slice(0, 25);
+    const n = s.length, top = Math.max(...s.map((r) => Math.abs(r.effect)), sme ?? 0) * 1.4 || 1;
+    return fig(`Pareto chart of the absolute effects${me ? ', with Lenth’s ME and SME' : ''}`, Math.min(1.2, 0.18 + n * 0.045), () => ({
+      xLabel: '|Effect|', legend: 'none', xMin: 0, xMax: top, yMin: 0, yMax: n + 1, series: [], font: 12,
+      marks: [...(me ? [{ kind: 'vline' as const, at: me, label: 'ME' }] : []), ...(sme ? [{ kind: 'vline' as const, at: sme, label: 'SME' }] : [])],
+    }), (ctx, m, cols, pal) => {
+      const P = canvasPainter(ctx), h = Math.max(4, ((m.py1 - m.py0) / (n + 1)) * 0.6);
+      // The y axis is only the rank: cover its numbers and label each bar at its end instead.
+      P.poly([[0, m.py0 - 8], [m.px0 - 1, m.py0 - 8], [m.px0 - 1, m.py1 + 8], [0, m.py1 + 8]], pal.bg, null);
+      s.forEach((r, i) => { const yv = m.Y(n - i), x1 = m.X(Math.abs(r.effect)); P.poly([[m.X(0), yv - h / 2], [x1, yv - h / 2], [x1, yv + h / 2], [m.X(0), yv + h / 2]], r.effect >= 0 ? cols[0] : cols[1], null); P.text(x1 + 4, yv, r.name, 11, pal.ink, 'start', 'middle'); });
+      P.text(m.px1 - 4, m.py1 - 26, 'raises the response', 11, cols[0], 'end', 'middle'); P.text(m.px1 - 4, m.py1 - 11, 'lowers it', 11, cols[1], 'end', 'middle');
+    });
+  }
+  function halfNormalFig(rows: D.EffectRow[], me: number): Figure {
+    const s = [...rows].sort((a, b) => Math.abs(a.effect) - Math.abs(b.effect)), qn = D.halfNormalQuantiles(s.length);
+    return fig('Half-normal plot of the absolute effects (points far above the line are real effects)', 0.6, (c) => ({
+      xLabel: '|Effect|', yLabel: 'Half-normal quantile', legend: 'none', font: 12,
+      series: [{ name: '', x: s.map((r) => Math.abs(r.effect)), y: qn, mode: 'points', color: c[0], labels: s.map((r) => (Math.abs(r.effect) > me ? r.name : '')) }],
+      marks: [{ kind: 'vline', at: me, label: 'ME' }],
+    }));
+  }
+  function mainEffectsFig(std: number[][], y: number[], names: string[], coded: boolean, labels?: string[][]): Figure {
+    const series = names.map((nm, j) => {
+      const lv = [...new Set(std.map((r) => r[j]))].sort((a, b) => a - b);
+      const xs = lv.map((v, i) => (coded ? v : i)), ys = lv.map((v) => { const a = y.filter((_, i) => std[i][j] === v); return a.reduce((s, x) => s + x, 0) / a.length; });
+      return { name: nm, x: xs, y: ys, mode: 'both' as const };
+    });
+    void labels;
+    return fig(`Main effects: mean response at each ${coded ? 'coded ' : ''}level of each factor`, 0.6, (c) => ({ xLabel: coded ? 'Coded level' : 'Level (1st, 2nd, …)', yLabel: 'Mean response', legend: names.length > 4 ? 'below' : 'auto', font: 12, series: series.map((s, i) => ({ ...s, color: c[i % c.length], marker: (['circle', 'square', 'triangle', 'diamond'] as const)[i % 4] })) }));
+  }
+  /** Made-up responses for trying the analysis: a simple smooth surface plus noise, in run order. */
+  function fakeResponses() {
+    if (!built) return;
+    const u = rng(2026), z = () => normPpf(u());
+    const y = built.std.map((r) => {
+      const x = r.map((v, j) => (built!.multiLevels ? v - (built!.multiLevels[j].length - 1) / 2 : v));
+      return 50 + 6 * (x[0] ?? 0) - 3 * (x[1] ?? 0) + 4 * (x[0] ?? 0) * (x[2] ?? 0) + 2 * (x[3] ?? 0) - 2.5 * (x[0] ?? 0) ** 2 - 1.5 * (x[1] ?? 0) ** 2 + z();
+    });
+    sel('.de-yorder').value = 'run';
+    q<HTMLTextAreaElement>('.de-y').value = built.order.map((s) => y[s].toFixed(2)).join('\n');
+    analyse();
+  }
+  function runCsv() {
+    if (!built) return;
+    const { names, order, std, actual, design } = built;
+    const rows: (string | number)[][] = [['run', 'std_order', 'block', 'type', ...names.map((n, i) => `${D.LETTERS[i]}_coded`), ...names, 'response']];
+    order.forEach((s, r) => rows.push([r + 1, s + 1, design.block[s], design.type[s], ...std[s].map((v) => +v.toPrecision(12)), ...actual[s].map((v) => v.replace('−', '-')), '']));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'run-sheet.csv', 'text/csv');
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (fn: () => void, ms = 250) => { clearTimeout(timers.get(fn)); timers.set(fn, window.setTimeout(fn, ms)); };
+  const rebuildAll = () => { options(); factorTable(); build(); };
+  sel('.de-type').addEventListener('change', () => { options(); factorTable(); build(); });
+  inp('.de-k').addEventListener('input', () => later(rebuildAll));
+  for (const c of ['.de-p', '.de-genmode', '.de-N', '.de-alpha', '.de-face', '.de-yorder']) sel(c).addEventListener('change', () => { options(); if (c === '.de-yorder') analyse(); else build(); });
+  for (const c of ['.de-gens', '.de-cf', '.de-ca', '.de-cb', '.de-rep', '.de-c0', '.de-seed']) inp(c).addEventListener('input', () => later(build, 400));
+  for (const c of ['.de-half', '.de-rand']) q(c).addEventListener('change', build);
+  q('.de-ft').addEventListener('input', () => later(build, 400));
+  q('.de-y').addEventListener('input', () => later(analyse, 300));
+  q('.de-fake').addEventListener('click', fakeResponses);
+  q('.de-csv').addEventListener('click', runCsv);
+  document.addEventListener('fibub:theme', () => { if (figs.a) paint(q<HTMLCanvasElement>('.de-c-a'), figs.a); if (figs.b) paint(q<HTMLCanvasElement>('.de-c-b'), figs.b); });
+  options(); factorTable(); build();
+  wireDownloads(q('.dl'), () => ({ title: 'Design of experiments', subtitle: q('.de-big').textContent ?? '', file: 'experiment-design', sections: [...secDesign, ...secAn] }));
+</script>

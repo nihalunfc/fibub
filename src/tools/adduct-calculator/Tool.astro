@@ -1,0 +1,197 @@
+---
+// Adduct and neutral loss calculator: ESI adduct m/z in both modes from a formula or a neutral monoisotopic mass,
+// neutral losses, ppm matching of observed m/z values, or neutral masses from observed m/z. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { LOSSES } from '../../lib/sci/mbadduct';
+const on = ['H2O', 'NH3', 'CO2', 'HCOOH'];
+---
+<div class="ax adc">
+  <div class="ax-card">
+    <h2>Molecule</h2>
+    <div class="ax-grid">
+      <label>Give it as <select class="ad-as"><option value="f" selected>Formula</option><option value="m">Neutral monoisotopic mass</option><option value="none">Nothing: find masses from m/z</option></select></label>
+      <label class="ad-fl">Formula <input class="ad-f" value="C6H12O6" spellcheck="false" autocomplete="off" /></label>
+      <label class="ad-ml" hidden>Neutral mass (Da) <input class="ad-m" inputmode="decimal" value="180.06339" /></label>
+      <label>Ion mode <select class="ad-mode"><option value="both" selected>Positive and negative</option><option value="+">Positive only</option><option value="-">Negative only</option></select></label>
+    </div>
+    <p class="ax-help">The neutral molecule, for example C6H12O6 for a hexose. Isotope labels such as [13C]6 or D work as in the molar mass calculator. Masses are monoisotopic, from the most abundant isotope of each element, with the electron mass taken off or added for the charge.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Neutral losses</h2>
+    <div class="ad-losses">
+      {LOSSES.map((l) => <label class="ax-check"><input type="checkbox" class="ad-loss" value={l.id} checked={on.includes(l.id)} /> {l.label} ({l.formula})</label>)}
+    </div>
+    <label style="margin-top:10px">Other losses (formulas, separated by commas) <input class="ad-lc" value="" spellcheck="false" placeholder="for example C3H5NO, C2H5N" /></label>
+    <p class="ax-help">Losses are taken from the [M+H]⁺ ion in positive mode and the [M−H]⁻ ion in negative mode, as in MS/MS spectra and in-source fragments.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Observed m/z (optional)</h2>
+    <label>One m/z per line, or the first number of each line <textarea class="ad-obs" rows="4" spellcheck="false">203.0530
+181.0710
+163.0605
+179.0560</textarea></label>
+    <DataFile target=".ad-obs" maxMB={5} maxCols={20} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Tolerance (ppm) <input class="ad-ppm" inputmode="decimal" value="5" /></label>
+      <label>Or within (mDa) <input class="ad-mda" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">A peak list from your instrument, a CSV or an Excel file; extra columns such as intensity are ignored. A match counts if it is within the ppm tolerance or within the absolute mDa window (useful for small ions). The example peaks are made up.</p>
+    <p class="ax-err ad-err" hidden></p>
+  </div>
+
+  <div class="ax-card ad-out">
+    <h2>Ions</h2>
+    <p class="ax-big ad-big"></p>
+    <dl class="ax-facts ad-facts"></dl>
+    <div class="ad-sec-match">
+      <h3 style="margin:14px 0 6px">Matches</h3>
+      <div class="ax-scroll"><table class="ad-mtab"></table></div>
+    </div>
+    <div class="ad-sec-ions">
+      <h3 style="margin:14px 0 6px">Adducts</h3>
+      <div class="ax-scroll"><table class="ad-atab"></table></div>
+      <h3 style="margin:14px 0 6px">After neutral losses</h3>
+      <div class="ax-scroll"><table class="ad-ltab"></table></div>
+    </div>
+    <div class="ad-sec-inv" hidden>
+      <h3 style="margin:14px 0 6px">Neutral mass for each observed m/z</h3>
+      <div class="ax-scroll"><table class="ad-itab"></table></div>
+    </div>
+    <canvas class="ax-fig ad-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ad-csv">Ions (CSV)</button>
+      <button type="button" class="btn secondary small ad-mcsv">Matches (CSV)</button>
+    </div>
+    <p class="ax-help">A match is a possible explanation, not an identification: check the isotope pattern, retention time and MS/MS against a standard. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ADDUCT_LIST, LOSSES, formulaMass, adductMz, neutralFrom, afterLoss, matchList, type Candidate } from '../../lib/sci/mbadduct';
+  import { parseFormula, monoMass, hill, FormulaError } from '../../lib/sci/chem';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.adc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f5 = (x: number) => x.toFixed(5), f1 = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`;
+  const zs = (z: number) => `${Math.abs(z) > 1 ? Math.abs(z) : ''}${z > 0 ? '+' : '−'}`;
+  let fig: Figure | null = null, sections: Section[] = [], ionCsv: string[][] = [], matchCsv: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+  const readObs = (): number[] | string => {
+    const out: number[] = [];
+    const lines = q<HTMLTextAreaElement>('.ad-obs').value.replace(/\r\n?/g, '\n').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim(); if (!t || t.startsWith('#')) continue;
+      const first = t.split(/[\t;,\s]+/)[0], v = num(first);
+      if (!Number.isFinite(v)) { if (!out.length) continue; return `Line ${i + 1} does not start with an m/z value.`; }
+      if (!(v > 0 && v < 1e6)) return `Line ${i + 1}: an m/z should be above 0.`;
+      out.push(v);
+    }
+    return out;
+  };
+
+  function calc() {
+    const err = q('.ad-err'), out = q('.ad-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; ionCsv = []; matchCsv = []; };
+    const as = q<HTMLSelectElement>('.ad-as').value, mode = q<HTMLSelectElement>('.ad-mode').value;
+    q('.ad-fl').hidden = as !== 'f'; q('.ad-ml').hidden = as !== 'm';
+    const tol = val('.ad-ppm'), mda = q<HTMLInputElement>('.ad-mda').value.trim() ? val('.ad-mda') : 0;
+    if (!(tol >= 0 && tol <= 1000)) return fail('Give a tolerance from 0 to 1,000 ppm.');
+    if (!(mda >= 0 && mda <= 1000)) return fail('Give the mDa window from 0 to 1,000, or 0 for none.');
+    const obs = readObs(); if (typeof obs === 'string') return fail(obs);
+    const adds = ADDUCT_LIST.filter((a) => mode === 'both' || a.mode === mode);
+    let M = NaN, name = '';
+    if (as === 'f') {
+      try { const F = parseFormula(q<HTMLInputElement>('.ad-f').value); if (F.charge) return fail('Give the neutral molecule (no charge); the adducts add the charge.'); if (!F.counts.size) throw new FormulaError('empty'); M = monoMass(F); name = hill(F); }
+      catch (e) { return fail(e instanceof FormulaError && e.message !== 'empty' ? e.message : 'Type a formula such as C6H12O6.'); }
+    } else if (as === 'm') { M = val('.ad-m'); if (!(M > 0 && M < 1e6)) return fail('Give the neutral monoisotopic mass in Da (above 0).'); name = 'given mass'; }
+    else if (!obs.length) return fail('Give at least one observed m/z to find neutral masses from.');
+    const losses: { label: string; formula: string; mass: number }[] = [];
+    root.querySelectorAll<HTMLInputElement>('.ad-loss:checked').forEach((c) => { const l = LOSSES.find((x) => x.id === c.value)!; losses.push({ label: l.label, formula: l.formula, mass: formulaMass(l.formula) }); });
+    const extra = q<HTMLInputElement>('.ad-lc').value.split(',').map((s) => s.trim()).filter(Boolean);
+    for (const s of extra) { try { const F = parseFormula(s); losses.push({ label: hill(F), formula: s, mass: monoMass(F) }); } catch { return fail(`"${s}" is not a formula. Type losses such as C3H5NO, separated by commas.`); } }
+    err.hidden = true; out.hidden = false;
+    const inv = as === 'none';
+    q('.ad-sec-ions').hidden = inv; q('.ad-sec-inv').hidden = !inv; q('.ad-sec-match').hidden = inv || !obs.length; q('.ad-mcsv').hidden = inv || !obs.length;
+    const facts: HTMLElement[] = [];
+    let figSeries: { name: string; x: number[]; y: number[]; mode: 'points'; marker?: 'circle' | 'diamond' | 'triangle' }[] = [];
+    if (!inv) {
+      const ions: Candidate[] = [];
+      const aRows = adds.map((a) => { const mz = adductMz(M, a); ions.push({ label: a.label, mz, z: a.z }); return [a.label, zs(a.z), f5(mz), f5(mz * Math.abs(a.z) - a.mult * M)]; });
+      table('.ad-atab', ['Adduct', 'Charge', 'm/z', 'Δ mass vs M'], aRows, [1, 2, 3]);
+      const lRows: string[][] = [];
+      for (const base of ADDUCT_LIST.filter((a) => (a.id === 'M+H' || a.id === 'M-H') && (mode === 'both' || a.mode === mode))) {
+        const mz0 = adductMz(M, base);
+        for (const l of losses) { const mz = afterLoss(mz0, base.z, l.mass); if (mz > 0) { ions.push({ label: `${base.label} − ${l.formula}`, mz, z: base.z, loss: l.formula }); lRows.push([base.label, `${l.label} (${l.formula})`, f5(l.mass), f5(mz)]); } }
+      }
+      table('.ad-ltab', ['From', 'Loss', 'Loss mass', 'm/z'], lRows, [2, 3]);
+      ionCsv = [['ion', 'charge', 'mz'], ...ions.map((c) => [c.label, String(c.z), c.mz.toFixed(6)])];
+      q('.ad-big').textContent = `M = ${f5(M)} Da${as === 'f' ? ` (${name})` : ''}`;
+      const mh = ADDUCT_LIST[0], mmh = ADDUCT_LIST.find((a) => a.id === 'M-H')!;
+      facts.push(fact('[M+H]⁺', f5(adductMz(M, mh)), 'the usual positive-mode ion'), fact('[M−H]⁻', f5(adductMz(M, mmh)), 'the usual negative-mode ion'), fact('Ions listed', String(ions.length), `${adds.length} adducts and ${ions.length - adds.length} loss ions`));
+      if (obs.length) {
+        const m = matchList(obs, ions, tol, mda);
+        const mRows: string[][] = [];
+        m.forEach((r) => { if (!r.hits.length) mRows.push([r.observed.toFixed(5), 'no match', '–', '–']); r.hits.slice(0, 3).forEach((h, i) => mRows.push([i ? '' : r.observed.toFixed(5), h.label, f5(h.mz), `${f1(h.ppm)} ppm`])); });
+        table('.ad-mtab', ['Observed', 'Possible ion', 'Theory', 'Error'], mRows.slice(0, 300), [0, 2, 3]);
+        matchCsv = [['observed_mz', 'ion', 'theory_mz', 'error_ppm', 'error_mda'], ...m.flatMap((r) => (r.hits.length ? r.hits.map((h) => [String(r.observed), h.label, h.mz.toFixed(6), h.ppm.toFixed(3), h.mda.toFixed(4)]) : [[String(r.observed), '', '', '', '']]))];
+        const n = m.filter((r) => r.hits.length).length;
+        facts.push(fact('Observed peaks matched', `${n} of ${obs.length}`, `within ${sig(tol, 3)} ppm${mda ? ` or ${sig(mda, 3)} mDa` : ''}`));
+        figSeries.push({ name: 'Observed', x: obs, y: obs.map(() => 1), mode: 'points', marker: 'diamond' });
+      }
+      figSeries.unshift({ name: 'Adducts', x: ions.filter((c) => !c.loss).map((c) => c.mz), y: ions.filter((c) => !c.loss).map((c) => (c.z > 0 ? 3 : 2)), mode: 'points', marker: 'circle' }, { name: 'Loss ions', x: ions.filter((c) => c.loss).map((c) => c.mz), y: ions.filter((c) => c.loss).map((c) => (c.z > 0 ? 3 : 2)), mode: 'points', marker: 'triangle' });
+    } else {
+      const common = ['M+H', 'M+Na', 'M+NH4', 'M+K', 'M-H', 'M+Cl', 'M+HCOO'].map((id) => ADDUCT_LIST.find((a) => a.id === id)!).filter((a) => mode === 'both' || a.mode === mode);
+      const rows = obs.slice(0, 200).map((o) => [o.toFixed(5), ...common.map((a) => { const n = neutralFrom(o, a); return n > 0 ? f5(n) : '–'; })]);
+      table('.ad-itab', ['Observed', ...common.map((a) => `as ${a.label}`)], rows, rows[0] ? rows[0].map((_, i) => i) : []);
+      ionCsv = [['observed_mz', ...common.map((a) => `neutral_if_${a.id}`)], ...obs.map((o) => [String(o), ...common.map((a) => neutralFrom(o, a).toFixed(6))])];
+      q('.ad-big').textContent = `Neutral masses for ${obs.length} observed m/z`;
+      facts.push(fact('Adducts tried', String(common.length), 'the commonest ones in each mode'));
+      // Pairs of observed peaks that agree on one neutral mass under two different adducts.
+      const pairs: string[] = [];
+      for (let i = 0; i < obs.length && pairs.length < 6; i++) for (let j = 0; j < obs.length; j++) if (i !== j) for (const a of common) for (const b of common) {
+        if (a === b) continue; const ma = neutralFrom(obs[i], a), mb = neutralFrom(obs[j], b);
+        if (i < j && Math.abs(ma - mb) / ma * 1e6 <= Math.max(tol, 0.01) && pairs.length < 6) pairs.push(`${obs[i].toFixed(4)} as ${a.label} and ${obs[j].toFixed(4)} as ${b.label} → M ≈ ${f5((ma + mb) / 2)}`);
+      }
+      facts.push(fact('Peaks that agree on one mass', pairs.length ? pairs[0] : 'none found', pairs.length > 1 ? `${pairs.length - 1} more: ${pairs.slice(1).join('; ')}` : `two peaks giving the same neutral mass within ${sig(tol, 3)} ppm under different adducts`));
+      figSeries = [{ name: 'Observed', x: obs, y: obs.map(() => 1), mode: 'points', marker: 'diamond' }];
+    }
+    q('.ad-facts').replaceChildren(...facts);
+    fig = chartFigure({ w: 380, h: 220, xLabel: 'm/z', yLabel: '', yMin: 0.5, yMax: 3.5, legend: 'below', series: figSeries }, inv ? 'Observed m/z values' : 'Positive ions on the top row, negative ions in the middle, observed peaks at the bottom');
+    paint(q<HTMLCanvasElement>('.ad-fig'), fig);
+    const tabOf = (sel: string) => { const t = q<HTMLTableElement>(sel); return { head: [...t.tHead!.rows[0].cells].map((c) => c.textContent!), rows: [...t.tBodies[0].rows].slice(0, 60).map((r) => [...r.cells].map((c) => c.textContent!)) }; };
+    sections = [{ title: q('.ad-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+    if (inv) sections.push({ title: 'Neutral mass for each observed m/z', table: tabOf('.ad-itab') });
+    else { if (obs.length) sections.push({ title: 'Matches', table: tabOf('.ad-mtab') }); sections.push({ title: 'Adducts', table: tabOf('.ad-atab') }, { title: 'After neutral losses', table: tabOf('.ad-ltab') }); }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ad-csv').addEventListener('click', () => { if (ionCsv.length) save(new TextEncoder().encode(toCsv(ionCsv)), 'adducts.csv', 'text/csv'); });
+  q('.ad-mcsv').addEventListener('click', () => { if (matchCsv.length) save(new TextEncoder().encode(toCsv(matchCsv)), 'adduct-matches.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ad-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Adducts and neutral losses', subtitle: q('.ad-big').textContent ?? '', file: 'adducts', sections }));
+</script>
+
+<style is:global>
+  .adc select { max-width: 100%; }
+  .adc [hidden] { display: none !important; }
+  .adc .ad-losses { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 6px 12px; }
+  .adc td { white-space: nowrap; }
+</style>

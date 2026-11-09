@@ -1,0 +1,220 @@
+---
+// Quantum circuit simulator: OpenQASM 2.0 in and out, state vector up to 20 qubits, all in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax qci">
+  <div class="ax-card">
+    <h2>Circuit (OpenQASM 2.0)</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small qc-open">Open a .qasm file</button>
+      <input type="file" class="qc-file" accept=".qasm,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small qc-ex">Use the example</button>
+      <button type="button" class="btn secondary small qc-new">New empty circuit</button>
+    </div>
+    <label style="margin-top:10px">Program <textarea class="qc-src" rows="12" spellcheck="false"></textarea></label>
+    <p class="ax-help">Paste or type OpenQASM 2.0: qreg, creg, the qelib1.inc gates (h, x, y, z, s, sdg, t, tdg, sx, rx, ry, rz, u1, u2, u3, p, cx, cy, cz, ch, swap, crx, cry, crz, cu1, cp, cu3, rzz, rxx, ccx, cswap), your own gate definitions, barrier and measure. Up to 20 qubits; files up to 1 MB. Measurements are taken at the end, so reset, if and gates after a measurement are not supported. Qubit q[0] is the rightmost bit of each outcome, as in Qiskit.</p>
+    <h3 class="qc-h3">Add a gate</h3>
+    <div class="ax-grid">
+      <label>Gate <select class="qc-g">
+        <option>h</option><option>x</option><option>y</option><option>z</option><option>s</option><option>sdg</option><option>t</option><option>tdg</option><option>sx</option><option>rx</option><option>ry</option><option>rz</option><option>u3</option><option>cx</option><option>cy</option><option>cz</option><option>swap</option><option>crz</option><option>cu1</option><option>ccx</option><option>cswap</option>
+      </select></label>
+      <label class="qc-pl">Angle(s) <input class="qc-par" type="text" spellcheck="false" value="pi/2" /></label>
+      <label><span class="qc-ql">Qubit</span> <input class="qc-qs" type="text" spellcheck="false" value="0" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small qc-add">Add gate</button>
+      <button type="button" class="btn secondary small qc-meas">Measure all</button>
+      <button type="button" class="btn secondary small qc-undo">Remove last line</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Shots (simulated runs) <input class="qc-shots" type="text" inputmode="numeric" value="1024" /></label>
+    </div>
+    <p class="ax-err qc-err" hidden></p>
+  </div>
+
+  <div class="ax-card qc-out">
+    <h2>Results</h2>
+    <p class="ax-big qc-big"></p>
+    <div class="ax-scroll qc-dw"><canvas class="qc-dia" aria-label="Circuit diagram"></canvas></div>
+    <p class="ax-help qc-dnote"></p>
+    <canvas class="ax-fig qc-hist" style="margin-top:12px"></canvas>
+    <h3 class="qc-h3">Outcomes</h3>
+    <div class="ax-scroll qc-tw"><table class="qc-otab"></table></div>
+    <h3 class="qc-h3">Each qubit on its own</h3>
+    <div class="ax-scroll"><table class="qc-btab"></table></div>
+    <p class="ax-help">The Bloch vector of a qubit traced out of the full state. Length 1 means the qubit is in a pure state of its own; shorter means it is entangled with the others.</p>
+    <h3 class="qc-h3">State vector</h3>
+    <div class="ax-scroll qc-tw"><table class="qc-atab"></table></div>
+    <p class="ax-help qc-anote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small qc-csv">Download outcomes (CSV)</button>
+      <button type="button" class="btn secondary small qc-scsv">Download state vector (CSV)</button>
+      <button type="button" class="btn secondary small qc-qasm">Download OpenQASM 2.0</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .qci .qc-h3 { margin: 18px 0 8px; font-size: 15px; }
+  .qci .qc-tw { max-height: 360px; overflow-y: auto; }
+  .qci .qc-dia { display: block; max-width: none; }
+  .qci label[hidden] { display: none; }
+  .qci .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  import { parseQasm, run, outcomes, blochVectors, toQasm, bits, EXAMPLE, type Circuit, type State } from '../../lib/sci/phqc';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.qci')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const src = q<HTMLTextAreaElement>('.qc-src');
+  const f4 = (x: number) => String(+(Math.abs(x) < 5e-13 ? 0 : x).toFixed(4)).replace('-', '−');
+  const PARAMS: Record<string, number> = { rx: 1, ry: 1, rz: 1, u3: 3, crz: 1, cu1: 1 };
+  const NQ: Record<string, number> = { cx: 2, cy: 2, cz: 2, swap: 2, crz: 2, cu1: 2, ccx: 3, cswap: 3 };
+  let circ: Circuit | null = null, st: State | null = null, figD: Figure | null = null, figH: Figure | null = null, outRows: (string | number)[][] = [], report: Section[] = [];
+
+  const table = (t: HTMLTableElement, head: string[], rows: string[][], mono = 0) => {
+    t.replaceChildren(); const h = t.insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    rows.forEach((r) => { const tr = t.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j < mono) td.className = 'mono'; else if (j) td.className = 'r'; }); });
+  };
+
+  function diagram(c: Circuit): Figure {
+    const lastCol = new Array(c.n).fill(-1), place: { col: number; op: Circuit['ops'][number] }[] = [];
+    for (const op of c.ops) { const lo = Math.min(...op.qubits), hi = Math.max(...op.qubits); let col = 0; for (let k = lo; k <= hi; k++) col = Math.max(col, lastCol[k] + 1); for (let k = lo; k <= hi; k++) lastCol[k] = col; place.push({ col, op }); }
+    let mcol = Math.max(-1, ...lastCol) + 1; const measCol = mcol; if (c.measures.length) mcol++;
+    const maxCols = 160, cols = Math.min(mcol, maxCols), CW = 46, RH = 38, L = 44, W = L + Math.max(1, cols) * CW + 16, H = c.n * RH + 24;
+    const short: Record<string, string> = { sdg: 'S†', tdg: 'T†', sx: '√X', sxdg: '√X†', u1: 'P', p: 'P', u2: 'U2', u3: 'U', u: 'U', id: 'I' };
+    return {
+      w: W, h: H, alt: `Circuit diagram: ${c.n} qubits, ${c.ops.length} gates`,
+      draw: (ctx, w, h, pal) => {
+        const Y = (qq: number) => 16 + qq * RH + RH / 2, X = (col: number) => L + col * CW + CW / 2;
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        for (let k = 0; k < c.n; k++) { ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`q${k}`, L - 8, Y(k)); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, Y(k)); ctx.lineTo(w - 8, Y(k)); ctx.stroke(); }
+        const box = (x: number, y: number, t: string) => { ctx.font = `${t.length > 3 ? 10 : 12}px system-ui, sans-serif`; const bw = Math.max(28, ctx.measureText(t).width + 8); ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.fillRect(x - bw / 2, y - 13, bw, 26); ctx.strokeRect(x - bw / 2, y - 13, bw, 26); ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(t, x, y + 1); };
+        const dot = (x: number, y: number) => { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 2 * Math.PI); ctx.fill(); };
+        const plus = (x: number, y: number) => { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.moveTo(x - 10, y); ctx.lineTo(x + 10, y); ctx.moveTo(x, y - 10); ctx.lineTo(x, y + 10); ctx.stroke(); };
+        const cross = (x: number, y: number) => { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6); ctx.stroke(); };
+        for (const { col, op } of place) {
+          if (col >= maxCols) continue;
+          const x = X(col), qs = op.qubits, nm = op.name;
+          if (qs.length > 1) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, Y(Math.min(...qs))); ctx.lineTo(x, Y(Math.max(...qs))); ctx.stroke(); }
+          const lab = (n: string) => short[n] ?? n.toUpperCase();
+          if (qs.length === 1) box(x, Y(qs[0]), lab(nm));
+          else if (nm === 'cx' || nm === 'ccx') { qs.slice(0, -1).forEach((k) => dot(x, Y(k))); plus(x, Y(qs[qs.length - 1])); }
+          else if (nm === 'cz') { dot(x, Y(qs[0])); dot(x, Y(qs[1])); }
+          else if (nm === 'swap') { cross(x, Y(qs[0])); cross(x, Y(qs[1])); }
+          else if (nm === 'cswap') { dot(x, Y(qs[0])); cross(x, Y(qs[1])); cross(x, Y(qs[2])); }
+          else if (nm === 'rzz' || nm === 'rxx') { box(x, Y(qs[0]), nm.toUpperCase()); box(x, Y(qs[1]), nm.toUpperCase()); }
+          else { dot(x, Y(qs[0])); box(x, Y(qs[1]), lab(nm.slice(1))); }
+        }
+        if (c.measures.length && measCol < maxCols) for (const m of c.measures) box(X(measCol), Y(m.q), `M→c${m.c}`);
+      },
+    };
+  }
+
+  function histogram(entries: [string, number][]): Figure {
+    const top = entries.slice(0, 32);
+    return {
+      w: 520, h: 250, alt: `Outcome probabilities (${top.length} shown)`,
+      draw: (ctx, W, H, pal) => {
+        const L = 40, B = top.some((e) => e[0].length > 4) || top.length > 12 ? 70 : 34, T = 14, bw = (W - L - 10) / Math.max(1, top.length);
+        ctx.strokeStyle = pal.line; ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (const v of [0, 0.25, 0.5, 0.75, 1]) { const y = H - B - v * (H - B - T); ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - 6, y); ctx.stroke(); ctx.fillText(String(v), L - 4, y); }
+        top.forEach(([k, p], i) => {
+          const x = L + i * bw, y = H - B - p * (H - B - T);
+          ctx.fillStyle = pal.accent; ctx.fillRect(x + bw * 0.15, y, bw * 0.7, H - B - y);
+          ctx.save(); ctx.translate(x + bw / 2, H - B + 6); if (B > 40) { ctx.rotate(-Math.PI / 2); ctx.textAlign = 'right'; } else ctx.textAlign = 'center'; ctx.fillStyle = pal.ink; ctx.textBaseline = B > 40 ? 'middle' : 'top'; ctx.font = '11px ui-monospace, Menlo, monospace'; ctx.fillText(k, 0, 0); ctx.restore();
+        });
+        ctx.save(); ctx.translate(11, (H - B) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.fillText('Probability', 0, 0); ctx.restore();
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.qc-err'), out = q('.qc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; circ = null; st = null; report = []; };
+    const shots = Math.round(num(q<HTMLInputElement>('.qc-shots').value));
+    if (!(shots >= 1 && shots <= 1e6)) return fail('Give between 1 and 1,000,000 shots.');
+    try { circ = parseQasm(src.value); } catch (e) { return fail((e as Error).message); }
+    if (circ.ops.length > 20000) return fail('That circuit has more than 20,000 gates; this page stops there.');
+    st = run(circ);
+    err.hidden = true; out.hidden = false;
+    const o = outcomes(circ, st, shots, 7), entries = [...o.probs.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+    q('.qc-big').textContent = `${circ.n} qubit${circ.n === 1 ? '' : 's'}, ${circ.ops.length} gate${circ.ops.length === 1 ? '' : 's'}: ${entries.length} possible outcome${entries.length === 1 ? '' : 's'}`;
+    figD = diagram(circ); const cv = q<HTMLCanvasElement>('.qc-dia'); paint(cv, figD); cv.style.width = `${figD.w}px`;
+    q('.qc-dnote').textContent = figD.w > 7000 ? 'Only the first 160 columns are drawn.' : 'Gates that do not overlap share a column. Scroll sideways for long circuits.';
+    figH = histogram(entries); paint(q<HTMLCanvasElement>('.qc-hist'), figH);
+    const show = entries.slice(0, 1000);
+    outRows = [['outcome', 'probability', 'counts']];
+    for (const [k, p] of entries) outRows.push([k, +p.toPrecision(12), o.counts.get(k) ?? 0]);
+    table(q<HTMLTableElement>('.qc-otab'), [`Outcome (${o.label})`, 'Probability', `Counts in ${shots.toLocaleString('en')} shots`], show.map(([k, p]) => [k, f4(p), String(o.counts.get(k) ?? 0)]), 1);
+    const B = blochVectors(st);
+    table(q<HTMLTableElement>('.qc-btab'), ['Qubit', 'x', 'y', 'z', 'Length', 'P(1)'], B.map((v, k) => [`q${k}`, f4(v[0]), f4(v[1]), f4(v[2]), f4(Math.hypot(...v)), f4((1 - v[2]) / 2)]));
+    // Amplitudes, largest first, up to 256.
+    const idx: number[] = []; for (let i = 0; i < st.re.length; i++) if (st.re[i] ** 2 + st.im[i] ** 2 > 1e-14) idx.push(i);
+    idx.sort((a, b) => (st!.re[b] ** 2 + st!.im[b] ** 2) - (st!.re[a] ** 2 + st!.im[a] ** 2) || a - b);
+    const amp = idx.slice(0, 256).map((i) => { const re = st!.re[i], im = st!.im[i]; return [`|${bits(i, circ!.n)}⟩`, f4(re), f4(im), f4(re * re + im * im), `${f4((Math.atan2(im, re) * 180) / Math.PI)}°`]; });
+    table(q<HTMLTableElement>('.qc-atab'), ['Basis state', 'Real', 'Imaginary', 'Probability', 'Phase'], amp, 1);
+    q('.qc-anote').textContent = `${idx.length.toLocaleString('en')} of ${st.re.length.toLocaleString('en')} amplitudes are not zero${idx.length > 256 ? '; the 256 largest are listed' : ''}. Basis states are written |q${circ.n - 1}…q0⟩. The overall phase of the state cannot be measured.`;
+    q<HTMLButtonElement>('.qc-scsv').disabled = circ.n > 16;
+    q<HTMLButtonElement>('.qc-scsv').title = circ.n > 16 ? 'Up to 16 qubits (65,536 rows)' : '';
+    report = [
+      { title: q('.qc-big').textContent!, figure: figD.w <= 1600 ? figD : undefined, text: [toQasm(circ).split('\n').slice(0, 60).join('  ')] },
+      { title: 'Outcomes', figure: figH, table: { head: ['Outcome', 'Probability', 'Counts'], rows: show.slice(0, 64).map(([k, p]) => [k, f4(p), String(o.counts.get(k) ?? 0)]), align: ['l', 'r', 'r'] } },
+      { title: 'Each qubit', table: { head: ['Qubit', 'x', 'y', 'z', 'Length'], rows: B.map((v, k) => [`q${k}`, f4(v[0]), f4(v[1]), f4(v[2]), f4(Math.hypot(...v))]), align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  function updateAdd() {
+    const g = q<HTMLSelectElement>('.qc-g').value, np = PARAMS[g] ?? 0, nq = NQ[g] ?? 1;
+    q('.qc-pl').hidden = !np; q('.qc-ql').textContent = nq === 1 ? 'Qubit' : nq === 2 ? 'Qubits (control, target)' : 'Qubits (three, comma-separated)';
+    q<HTMLInputElement>('.qc-par').value = np === 3 ? 'pi/2,0,pi' : 'pi/2';
+    q<HTMLInputElement>('.qc-qs').value = nq === 1 ? '0' : nq === 2 ? '0,1' : '0,1,2';
+  }
+  /** Insert a line before the first measure (gates after measure are not allowed). */
+  function insertLine(line: string) {
+    const lines = src.value.replace(/\s+$/, '').split('\n'), k = lines.findIndex((l) => /^\s*measure\b/.test(l));
+    if (k < 0) lines.push(line); else lines.splice(k, 0, line);
+    src.value = lines.join('\n') + '\n'; calc();
+  }
+  q('.qc-add').addEventListener('click', () => {
+    const g = q<HTMLSelectElement>('.qc-g').value, np = PARAMS[g] ?? 0, qs = q<HTMLInputElement>('.qc-qs').value.split(/[,\s]+/).filter(Boolean);
+    const reg = /qreg\s+([A-Za-z_]\w*)/.exec(src.value)?.[1] ?? 'q';
+    insertLine(`${g}${np ? `(${q<HTMLInputElement>('.qc-par').value.trim()})` : ''} ${qs.map((x) => `${reg}[${x}]`).join(',')};`);
+  });
+  q('.qc-meas').addEventListener('click', () => {
+    if (!circ) return;
+    let s = src.value.replace(/^\s*measure\b.*$/gm, '').replace(/\n{2,}$/g, '\n');
+    if (!/creg\s+c\s*\[/.test(s)) s = s.replace(/(qreg[^;]*;)(?![\s\S]*qreg)/, `$1\ncreg c[${circ.n}];`);
+    const regs = circ.qregs; let k = 0; const lines: string[] = [];
+    for (const r of regs) for (let j = 0; j < r.size; j++) lines.push(`measure ${r.name}[${j}] -> c[${k++}];`);
+    src.value = s.replace(/\s+$/, '') + '\n' + lines.join('\n') + '\n'; calc();
+  });
+  q('.qc-undo').addEventListener('click', () => { const lines = src.value.replace(/\s+$/, '').split('\n'); if (lines.length > 1) lines.pop(); src.value = lines.join('\n') + '\n'; calc(); });
+  q('.qc-ex').addEventListener('click', () => { src.value = EXAMPLE; calc(); });
+  q('.qc-new').addEventListener('click', () => { src.value = 'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\n'; calc(); });
+  q('.qc-open').addEventListener('click', () => q<HTMLInputElement>('.qc-file').click());
+  q('.qc-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.qc-file').files?.[0]; q<HTMLInputElement>('.qc-file').value = ''; if (!f) return;
+    if (f.size > 1e6) { q('.qc-err').textContent = `${f.name} is over 1 MB.`; q('.qc-err').hidden = false; return; }
+    src.value = await f.text(); calc();
+  });
+  q('.qc-g').addEventListener('change', updateAdd);
+  let tm = 0;
+  src.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 350); });
+  q('.qc-shots').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 350); });
+  q('.qc-csv').addEventListener('click', () => save(new Blob([csv(outRows)], { type: 'text/csv' }), 'circuit-outcomes.csv', 'text/csv'));
+  q('.qc-scsv').addEventListener('click', () => {
+    if (!st || !circ) return; const rows: (string | number)[][] = [['index', 'basis_state', 're', 'im', 'probability']];
+    for (let i = 0; i < st.re.length; i++) rows.push([i, bits(i, circ.n), +st.re[i].toPrecision(12), +st.im[i].toPrecision(12), +(st.re[i] ** 2 + st.im[i] ** 2).toPrecision(12)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'statevector.csv', 'text/csv');
+  });
+  q('.qc-qasm').addEventListener('click', () => { if (circ) save(new Blob([toQasm(circ)], { type: 'text/plain' }), 'circuit.qasm', 'text/plain'); });
+  document.addEventListener('fibub:theme', () => { if (figD && !q('.qc-out').hidden) { paint(q<HTMLCanvasElement>('.qc-dia'), figD); paint(q<HTMLCanvasElement>('.qc-hist'), figH!); } });
+  src.value = EXAMPLE; updateAdd(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Quantum circuit', subtitle: q('.qc-big').textContent ?? '', file: 'quantum-circuit', sections: report }));
+</script>

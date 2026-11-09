@@ -1,0 +1,138 @@
+---
+// Gamma shielding: narrow-beam attenuation, half- and tenth-value layers, optional buildup and the thickness for a
+// wanted transmission. The built-in coefficients are worked out from formulas (Klein-Nishina plus approximate
+// photoelectric and pair terms), not from any table, and are editable; typed values are the recommended path.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MATERIALS, LINES } from '../../lib/sci/phgamma';
+---
+<div class="ax gsh">
+  <div class="ax-card">
+    <h2>Gamma rays and shield</h2>
+    <div class="ax-grid">
+      <label>Gamma energy <select class="gs-line">{Object.entries(LINES).map(([k, l]) => <option value={k} selected={k === 'cs137'}>{l.label}</option>)}<option value="custom">Your own energy…</option></select></label>
+      <label class="gs-ew" hidden>Energy (MeV, 0.1 to 2) <input class="gs-e" type="text" inputmode="decimal" value="0.662" /></label>
+      <label>Shield material <select class="gs-mat">{Object.entries(MATERIALS).map(([k, m]) => <option value={k} selected={k === 'lead'}>{m.name}</option>)}</select></label>
+      <label>μ/ρ, mass attenuation (cm²/g) <input class="gs-mu" type="text" inputmode="decimal" /></label>
+      <label>Density (g/cm³) <input class="gs-rho" type="text" inputmode="decimal" /></label>
+      <label>Shield thickness <input class="gs-x" type="text" inputmode="decimal" value="2" /></label>
+      <label>Unit <select class="gs-xu"><option value="0.1">mm</option><option value="1" selected>cm</option><option value="2.54">inch</option></select></label>
+      <label>Buildup <select class="gs-b"><option value="none" selected>none (narrow beam)</option><option value="linear">simple: B = 1 + μx</option><option value="berger">Berger: B = 1 + a μx e^(b μx)</option></select></label>
+      <label class="gs-bw" hidden>Berger a <input class="gs-ba" type="text" inputmode="decimal" value="1" /></label>
+      <label class="gs-bw" hidden>Berger b <input class="gs-bb" type="text" inputmode="decimal" value="0" /></label>
+      <label>Wanted transmission (%) <input class="gs-want" type="text" inputmode="decimal" value="1" /></label>
+      <label>Incoming intensity (optional, any unit) <input class="gs-i0" type="text" inputmode="decimal" value="" placeholder="e.g. 100" /></label>
+    </div>
+    <p class="ax-pill warn gs-approx" style="display:inline-block"></p>
+    <p class="ax-help">μ/ρ and the density fill in whenever you change the energy or material. <b>μ/ρ is not looked up in a table: the page works it out from formulas</b> (the exact Klein-Nishina Compton cross-section, plus an approximate photoelectric scaling law and a pair-production term above 1.022 MeV), element by element from the material's composition, leaving out coherent scattering and electron binding. <b>For real work, look μ/ρ up in NIST XCOM and type it into the box</b>; a typed value is used exactly as given. Densities are rounded and editable; "concrete" is a simple made-up stand-in mix. Buildup counts photons scattered towards you that a narrow beam leaves out; the simple form is a rough rule of thumb, and Berger's a and b come from buildup tables for your material, energy and geometry.</p>
+    <p class="ax-err gs-err" hidden></p>
+  </div>
+
+  <div class="ax-card gs-out">
+    <h2>Result</h2>
+    <p class="ax-big gs-big"></p>
+    <dl class="ax-facts gs-facts"></dl>
+    <canvas class="ax-fig gs-fig" style="margin-top:12px"></canvas>
+    <h3 style="margin:14px 0 6px">All materials at this energy</h3>
+    <div class="ax-scroll"><table class="gs-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gs-csv">Download the table (CSV)</button></div>
+    <p class="ax-help gs-note"></p>
+    <p class="ax-help">Teaching values, for study and planning, not a substitute for professional judgement or a shielding assessment by a qualified expert. Real shields need the full spectrum, geometry, scatter and your local rules; this page does not work out doses.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .gsh select, .gsh input { max-width: 100%; }
+</style>
+
+<script>
+  import { massAtten, parts, transmission, hvl, tvl, thicknessFor, MATERIALS, LINES, ACCURACY, type Buildup } from '../../lib/sci/phgamma';
+  import { num, fmtExp, csv } from '../../lib/sci/num';
+  const sig = (x: number, n = 4) => { const a = Math.abs(x); return a && (a >= 1e6 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gsh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  const pct = (f: number) => (f >= 1e-4 ? `${sig(f * 100, 3)} %` : `${fmtExp(f * 100, 3)} %`);
+  let fig: Figure | null = null, report: Section[] = [], tableRows: (string | number)[][] = [], typed = false;
+
+  const energy = () => (sel('.gs-line') === 'custom' ? num(inp('.gs-e').value) : LINES[sel('.gs-line')].E);
+  function fill() {
+    q('.gs-ew').hidden = sel('.gs-line') !== 'custom';
+    const m = MATERIALS[sel('.gs-mat')], v = massAtten(sel('.gs-mat'), energy());
+    inp('.gs-mu').value = Number.isFinite(v) ? String(+v.toPrecision(3)) : '';
+    inp('.gs-rho').value = String(m.rho);
+    typed = false;
+  }
+
+  function calc() {
+    const err = q('.gs-err'), out = q('.gs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; fig = null; };
+    root.querySelectorAll<HTMLElement>('.gs-bw').forEach((e) => { e.hidden = sel('.gs-b') !== 'berger'; });
+    const E = energy();
+    if (!(E >= 0.1 && E <= 2)) return fail('Give a gamma energy between 0.1 and 2 MeV (the range of the built-in coefficients).');
+    const mr = num(inp('.gs-mu').value), rho = num(inp('.gs-rho').value), U = +sel('.gs-xu'), x = num(inp('.gs-x').value) * U;
+    if (!(mr > 0)) return fail('Give a mass attenuation coefficient μ/ρ above zero.');
+    if (!(rho > 0)) return fail('Give a density above zero.');
+    if (!(x >= 0)) return fail('Give a shield thickness of zero or more.');
+    const want = num(inp('.gs-want').value) / 100;
+    if (!(want > 0 && want < 1)) return fail('The wanted transmission must be between 0 and 100 %.');
+    let B: Buildup = { kind: 'none' };
+    if (sel('.gs-b') === 'linear') B = { kind: 'linear' };
+    if (sel('.gs-b') === 'berger') { const a = num(inp('.gs-ba').value), b = num(inp('.gs-bb').value); if (!(a >= 0) || !(Math.abs(b) < 1)) return fail('Berger a must be 0 or more and b between −1 and 1.'); B = { kind: 'berger', a, b }; }
+    const i0s = inp('.gs-i0').value.trim(), I0 = num(i0s);
+    if (i0s && !(I0 > 0)) return fail('The incoming intensity must be above zero, or leave it blank.');
+    err.hidden = true; out.hidden = false;
+    const mu = mr * rho, lu = q<HTMLSelectElement>('.gs-xu').selectedOptions[0].text, L = (cm: number) => `${sig(cm / U, 3)} ${lu}`;
+    const name = sel('.gs-mat') ? MATERIALS[sel('.gs-mat')].name.toLowerCase() : 'shield';
+    const T0 = transmission(mu, x), TB = transmission(mu, x, B), need = thicknessFor(mu, want, B);
+    q('.gs-big').textContent = `${L(x)} of ${name} lets through ${pct(B.kind === 'none' ? T0 : TB)} of ${sig(E, 3)} MeV gamma rays${B.kind === 'none' ? '' : ' (with buildup)'}`;
+    // Where the μ/ρ in use came from, and what the built-in estimate is made of.
+    const built = !typed, pr = parts(MATERIALS[sel('.gs-mat')].comp, E);
+    q('.gs-approx').textContent = built ? 'Built-in estimate: approximate, computed from formulas' : 'Using the μ/ρ you typed';
+    q('.gs-approx').className = `ax-pill gs-approx ${built ? 'warn' : 'good'}`;
+    q('.gs-note').textContent = built ? ACCURACY : 'This result uses the μ/ρ you typed, exactly as given.';
+    const facts = [
+      fact('Linear attenuation μ', `${sig(mu, 4)} /cm`, `μ = (μ/ρ) × ρ = ${sig(mr, 3)} × ${sig(rho, 4)}`),
+      fact('Half-value layer', L(hvl(mu)), 'ln 2 / μ: halves a narrow beam'),
+      fact('Tenth-value layer', L(tvl(mu)), 'ln 10 / μ: cuts it to a tenth'),
+      fact('Mean free path', L(1 / mu), '1 / μ: the average distance before an interaction'),
+      fact('Narrow-beam transmission', pct(T0), `e^(−μx), ${sig(x * mu / Math.LN2, 3)} half-value layers`),
+    ];
+    if (built) facts.push(fact('What makes up this μ/ρ', `${sig((100 * pr.compton) / pr.total, 3)} % Compton`, `${sig((100 * pr.photo) / pr.total, 3)} % photoelectric (the approximate part), ${sig((100 * pr.pair) / pr.total, 3)} % pair production${pr.photo > 0.2 * pr.total ? '. The photoelectric part is large here, so this estimate is rough: type a value from NIST XCOM' : ''}`));
+    if (B.kind !== 'none') facts.push(fact('With buildup', pct(TB), `buildup factor ${sig(TB / T0, 4)} at μx = ${sig(mu * x, 3)}`));
+    facts.push(fact(`Thickness for ${pct(want)}`, need == null ? 'not reached' : L(need), B.kind === 'none' ? `${sig(-Math.log10(want), 3)} tenth-value layers` : 'with the chosen buildup'));
+    if (i0s) facts.push(fact('Transmitted intensity', sig(I0 * (B.kind === 'none' ? T0 : TB), 4), `from ${sig(I0, 4)} in the same unit`));
+    q('.gs-facts').replaceChildren(...facts);
+    // Chart: transmission against thickness.
+    const xm = Math.max(x * 1.5, need ? need * 1.2 : 0, 3 * tvl(mu)), xs: number[] = [];
+    for (let i = 0; i <= 160; i++) xs.push((xm * i) / 160);
+    const series = [{ name: 'Narrow beam e^(−μx)', x: xs.map((v) => v / U), y: xs.map((v) => transmission(mu, v) * 100), mode: 'line' as const, width: 2 }];
+    if (B.kind !== 'none') series.push({ name: 'With buildup', x: xs.map((v) => v / U), y: xs.map((v) => transmission(mu, v, B) * 100), mode: 'line' as const, width: 2, dash: [6, 3] } as any);
+    const ymin = Math.max(1e-6, Math.min(...series.flatMap((s) => s.y).filter((v) => v > 0)));
+    fig = chartFigure({ w: 380, h: 240, xLabel: `Thickness (${lu})`, yLabel: 'Transmission (%)', yLog: true, yMin: ymin, xMin: 0, legend: 'below', series, marks: [{ kind: 'vline', at: x / U, dash: [3, 3], label: 'shield' }, { kind: 'hline', at: want * 100, dash: [2, 3], label: 'wanted' }] }, `Transmission through ${name} at ${sig(E, 3)} MeV`);
+    paint(q<HTMLCanvasElement>('.gs-fig'), fig);
+    // Table of all materials at this energy (built-in values).
+    const head = ['Material', 'μ/ρ (cm²/g)', 'Density (g/cm³)', 'μ (/cm)', `HVL (${lu})`, `TVL (${lu})`, `For ${pct(want)} (${lu})`];
+    const rows = Object.entries(MATERIALS).map(([k, m]) => { const v = massAtten(k, E), u = v * m.rho, t = thicknessFor(u, want, B); return [m.name, sig(v, 3), String(m.rho), sig(u, 3), sig(hvl(u) / U, 3), sig(tvl(u) / U, 3), t == null ? '–' : sig(t / U, 3)]; });
+    const tab = q<HTMLTableElement>('.gs-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    tableRows = [head, ...rows];
+    report = [{ title: q('.gs-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: `All materials at ${sig(E, 3)} MeV`, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: `${ACCURACY} Not a shielding assessment.` }];
+  }
+
+  ['.gs-line', '.gs-mat'].forEach((c) => q(c).addEventListener('change', () => { fill(); calc(); }));
+  inp('.gs-mu').addEventListener('input', () => { typed = true; });
+  inp('.gs-e').addEventListener('input', () => { fill(); calc(); });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.matches('.gs-line, .gs-mat, .gs-e')) { i.addEventListener('input', calc); i.addEventListener('change', calc); } });
+  q('.gs-csv').addEventListener('click', () => { if (tableRows.length) save(new TextEncoder().encode(csv(tableRows)), 'gamma-shielding.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.gs-out').hidden) paint(q<HTMLCanvasElement>('.gs-fig'), fig); });
+  fill(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gamma shielding', subtitle: `${sig(energy(), 3)} MeV, ${MATERIALS[sel('.gs-mat')].name}`, file: 'gamma-shielding', sections: report }));
+</script>

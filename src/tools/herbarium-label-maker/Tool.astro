@@ -1,0 +1,215 @@
+---
+// Herbarium labels from Darwin Core fields: a form or a CSV of many specimens, several labels per page, print or PDF.
+// The example specimens are made up.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import { FIELDS } from '../../lib/sci/herbarium';
+const example = [
+  'family,scientificName,scientificNameAuthorship,country,stateProvince,county,locality,decimalLatitude,decimalLongitude,coordinateUncertaintyInMeters,minimumElevationInMeters,habitat,occurrenceRemarks,recordedBy,recordNumber,eventDate,identifiedBy,dateIdentified,institutionCode,catalogNumber',
+  'Sapindaceae,Acer rubrum,L.,Canada,Ontario,,"Old logging road, 2 km east of the gate",45.41,-78.21,30,410,Wet mixed forest on a seepage slope,Tree 12 m; samaras red,A. Example,101,2026-05-14,A. Example,2026-05-20,XYZ,000123',
+  'Cyperaceae,Carex flava subsp. jemtlandica,(Palmgr.) Palmgr.,Canada,Ontario,,Fen margin near the north shore,45.388,-78.1544,15,395,Open calcareous fen,Tufted; perigynia yellow-green,A. Example; B. Sample,102,2026-06-30,B. Sample,2026-07-02,XYZ,000124',
+  'Ericaceae,Vaccinium angustifolium,Aiton,Canada,Ontario,,Rock barren above the lake,45.4,-78.2,,430,Thin soil over granite,Shrub 30 cm; fruit blue,A. Example,103,2026-08-02,,,XYZ,000125',
+].join('\n');
+---
+<div class="ax hlm">
+  <div class="ax-card">
+    <h2>Add a specimen</h2>
+    <div class="ax-grid hl-form">
+      {FIELDS.map((f) => (
+        <label>{f.label} <input data-term={f.term} placeholder={f.hint ?? ''} inputmode={/Latitude|Longitude|Meters/.test(f.term) ? 'decimal' : undefined} /></label>
+      ))}
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small hl-add">Add to the list</button>
+      <button type="button" class="btn secondary small hl-clearform">Clear the form</button>
+    </div>
+    <p class="ax-help hl-formmsg">Fill in what you have; only the scientific name is needed. Dates as YYYY-MM-DD; coordinates in decimal degrees (south and west negative).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Specimens</h2>
+    <label>A header row of Darwin Core field names (as in the example), then one row per specimen
+      <textarea class="hl-data" rows="7" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".hl-data" maxCols={60} maxRows={2000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small hl-clear">Clear the list</button></div>
+    <p class="ax-help">Column names may have a dwc: prefix, any capitals, or common names such as collector, date, latitude and elevation. Other columns are ignored, and adding a specimen from the form keeps only the Darwin Core columns. Up to 2,000 specimens. Nothing is saved or sent: copy the CSV out before you close the page. The example specimens are made up.</p>
+    <p class="ax-err hl-err" hidden></p>
+    <p class="ax-help hl-warn" hidden></p>
+  </div>
+
+  <div class="ax-card hl-out">
+    <h2>Labels</h2>
+    <div class="ax-grid">
+      <label>Heading <input class="hl-head" value="Plants of {stateProvince}, {country}" /></label>
+      <label>Dates <select class="hl-date"><option value="long">14 May 2026</option><option value="short">14 May 2026 (short months)</option><option value="roman" selected>14.v.2026</option><option value="iso">2026-05-14</option></select></label>
+      <label>Coordinates <select class="hl-coord"><option value="dms" selected>45°24'36"N</option><option value="decimal">Decimal degrees</option><option value="both">Both</option></select></label>
+      <label>Elevation <select class="hl-ft"><option value="0" selected>Metres</option><option value="1">Metres and feet</option></select></label>
+      <label>Paper <select class="hl-paper"><option value="letter">US Letter</option><option value="a4" selected>A4</option></select></label>
+      <label>Labels per page <select class="hl-per"><option value="1">1</option><option value="2">2</option><option value="4" selected>4</option><option value="6">6</option><option value="8">8</option></select></label>
+      <label>Copies of each <select class="hl-copies"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+      <label>Cut lines <select class="hl-cut"><option value="1" selected>Show</option><option value="0">Hide</option></select></label>
+    </div>
+    <p class="ax-help">The heading can use any field in braces, such as {'{country}'} or {'{institutionCode}'}; empty ones are left out. Scientific names are set in italics, with rank words (subsp., var.) and the authors in roman. Text shrinks to fit when a label is full.</p>
+    <p class="ax-big hl-big"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn small hl-pdf">Download PDF</button>
+      <button type="button" class="btn secondary small hl-print">Print</button>
+      <button type="button" class="btn secondary small hl-csv">Download CSV (Darwin Core)</button>
+    </div>
+    <p class="ax-err hl-pdferr" hidden></p>
+    <h3>Preview</h3>
+    <div class="hl-preview"></div>
+    <p class="ax-help hl-more" hidden></p>
+  </div>
+</div>
+
+<script>
+  import { readRecords, recordsCsv, labelLines, checkRecord, wrapRuns, PAPERS, grid, TERMS, type Rec, type Line, type LabelOpts, type Style } from '../../lib/sci/herbarium';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hlm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let records: Rec[] = [];
+  const opts = (): LabelOpts => ({ heading: q<HTMLInputElement>('.hl-head').value, dateStyle: sel('.hl-date') as LabelOpts['dateStyle'], coords: sel('.hl-coord') as LabelOpts['coords'], feet: sel('.hl-ft') === '1' });
+  const BASE: Record<number, number> = { 1: 12, 2: 11, 4: 10, 6: 9, 8: 8 };
+
+  function lineEl(l: Line) {
+    const d = document.createElement('div'); d.className = `hl-l hl-${l.align}`;
+    d.style.fontSize = `calc(var(--s) * ${l.size})`; if (l.gap) d.style.marginTop = `calc(var(--s) * ${l.gap})`;
+    l.runs.forEach((r, i) => { const s = document.createElement('span'); s.className = `hl-${r.style}`; s.textContent = (i ? ' ' : '') + r.text; d.append(s); });
+    return d;
+  }
+  function labelEl(r: Rec, size: number) {
+    const b = document.createElement('div'); b.className = 'hl-label'; b.style.setProperty('--s', `${size}pt`);
+    labelLines(r, opts()).forEach((l) => b.append(lineEl(l)));
+    return b;
+  }
+
+  function calc() {
+    const err = q('.hl-err'), warn = q('.hl-warn');
+    err.hidden = true;
+    const r = readRecords(q<HTMLTextAreaElement>('.hl-data').value);
+    if (r.error) { err.textContent = r.error; err.hidden = false; records = []; }
+    else if (r.records.length > 2000) { err.textContent = 'Up to 2,000 specimens, please.'; err.hidden = false; records = []; }
+    else records = r.records;
+    const notes: string[] = [];
+    if (r.unknown.length) notes.push(`Ignored columns: ${r.unknown.slice(0, 6).join(', ')}${r.unknown.length > 6 ? ' …' : ''}.`);
+    records.forEach((rec, i) => { const p = checkRecord(rec); if (p.length) notes.push(`Specimen ${i + 1}${rec.scientificName ? ` (${rec.scientificName})` : ''}: ${p.join('; ')}.`); });
+    warn.textContent = notes.slice(0, 8).join(' ') + (notes.length > 8 ? ` And ${notes.length - 8} more.` : ''); warn.hidden = !notes.length;
+    const per = Number(sel('.hl-per')), copies = Number(sel('.hl-copies')), n = records.length * copies;
+    q('.hl-big').textContent = records.length ? `${n} label${n > 1 ? 's' : ''} on ${Math.ceil(n / per)} page${Math.ceil(n / per) > 1 ? 's' : ''}` : 'No specimens yet';
+    const pv = q('.hl-preview'); pv.replaceChildren(...records.slice(0, 12).map((rec) => labelEl(rec, 10)));
+    q('.hl-more').hidden = records.length <= 12; q('.hl-more').textContent = `Showing the first 12 of ${records.length} specimens; the PDF and print have them all.`;
+    root.querySelectorAll<HTMLButtonElement>('.hl-pdf, .hl-print, .hl-csv').forEach((b) => (b.disabled = !records.length));
+  }
+
+  const all = () => { const c = Number(sel('.hl-copies')); return records.flatMap((r) => Array.from({ length: c }, () => r)); };
+
+  // Printing: a sheet of real-size pages, built just before the print dialog opens.
+  function buildPrint() {
+    document.querySelector('.hl-print-sheet')?.remove();
+    const paper = PAPERS[sel('.hl-paper') as 'a4' | 'letter'], per = Number(sel('.hl-per')), { cols, rows } = grid(per);
+    const mm = 25.4 / 72, W = paper.w * mm - 20, H = paper.h * mm - 20, base = BASE[per];
+    const sheet = document.createElement('div'); sheet.className = 'hl-print-sheet' + (sel('.hl-cut') === '1' ? ' hl-cuts' : '');
+    const st = document.createElement('style'); st.textContent = `@page { size: ${paper.name === 'A4' ? 'A4' : 'letter'}; margin: 10mm; }`; sheet.append(st);
+    const labs = all();
+    for (let p = 0; p < labs.length; p += per) {
+      const pg = document.createElement('div'); pg.className = 'hl-page';
+      pg.style.width = `${W}mm`; pg.style.height = `${H - 1}mm`; pg.style.gridTemplateColumns = `repeat(${cols}, 1fr)`; pg.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      labs.slice(p, p + per).forEach((r) => pg.append(labelEl(r, base)));
+      sheet.append(pg);
+    }
+    document.body.append(sheet);
+    // Shrink any label whose text does not fit.
+    sheet.querySelectorAll<HTMLElement>('.hl-label').forEach((lab) => {
+      for (let s = base; lab.scrollHeight > lab.clientHeight + 1 && s > 5;) { s -= 0.5; lab.style.setProperty('--s', `${s}pt`); }
+    });
+  }
+
+  async function pdf() {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const { pdfSafe } = await import('../../lib/resume/pdf');
+    const doc = await PDFDocument.create(); doc.setTitle('Herbarium labels'); doc.setCreator('fibub.com');
+    const F: Record<Style, Awaited<ReturnType<typeof doc.embedFont>>> = { r: await doc.embedFont(StandardFonts.TimesRoman), i: await doc.embedFont(StandardFonts.TimesRomanItalic), b: await doc.embedFont(StandardFonts.TimesRomanBold), bi: await doc.embedFont(StandardFonts.TimesRomanBoldItalic) };
+    const paper = PAPERS[sel('.hl-paper') as 'a4' | 'letter'], per = Number(sel('.hl-per')), { cols, rows } = grid(per);
+    const M = 28.35, cw = (paper.w - 2 * M) / cols, ch = (paper.h - 2 * M) / rows, pad = 12, cut = sel('.hl-cut') === '1';
+    const lost = new Set<string>();
+    const safe = (s: string) => { const r = pdfSafe(s); r.lost.forEach((c) => lost.add(c)); return r.text; };
+    const labs = all();
+    let page = doc.addPage([paper.w, paper.h]);
+    labs.forEach((rec, k) => {
+      const slot = k % per; if (k && !slot) page = doc.addPage([paper.w, paper.h]);
+      const x0 = M + (slot % cols) * cw, yTop = paper.h - M - Math.floor(slot / cols) * ch;
+      if (cut) page.drawRectangle({ x: x0, y: yTop - ch, width: cw, height: ch, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.4, borderDashArray: [3, 3] });
+      const lines = labelLines(rec, opts()).map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, text: safe(r.text) })) }));
+      const layout = (size: number) => lines.map((l) => { const s = size * l.size; return { l, s, rows: wrapRuns(l.runs, cw - 2 * pad, (t, st) => F[st].widthOfTextAtSize(t, s)) }; });
+      let size = BASE[per], lay = layout(size);
+      const height = (ly: typeof lay) => ly.reduce((h, x) => h + x.rows.length * x.s * 1.2 + (x.l.gap ?? 0) * size, 0);
+      while (height(lay) > ch - 2 * pad && size > 5) { size -= 0.5; lay = layout(size); }
+      let y = yTop - pad;
+      for (const x of lay) {
+        y -= (x.l.gap ?? 0) * size;
+        for (const row of x.rows) {
+          y -= x.s * 1.2;
+          const w = row.reduce((s, r) => s + F[r.style].widthOfTextAtSize(r.text, x.s), 0);
+          let cx = x.l.align === 'c' ? x0 + (cw - w) / 2 : x.l.align === 'r' ? x0 + cw - pad - w : x0 + pad;
+          for (const r of row) { page.drawText(r.text, { x: cx, y: y + x.s * 0.25, size: x.s, font: F[r.style], color: rgb(0, 0, 0) }); cx += F[r.style].widthOfTextAtSize(r.text, x.s); }
+        }
+      }
+    });
+    const e = q('.hl-pdferr');
+    e.hidden = !lost.size; e.textContent = lost.size ? `The PDF fonts cannot show ${[...lost].slice(0, 10).join(' ')}; those characters were left out. Use Print for full character support.` : '';
+    save(await doc.save(), 'herbarium-labels.pdf', 'application/pdf');
+  }
+
+  function addFromForm() {
+    const rec: Rec = {};
+    root.querySelectorAll<HTMLInputElement>('.hl-form input').forEach((i) => { if (i.value.trim()) rec[i.dataset.term!] = i.value.trim(); });
+    const m = q('.hl-formmsg');
+    if (!rec.scientificName) { m.textContent = 'Add at least a scientific name.'; m.classList.add('ax-err'); return; }
+    const p = checkRecord(rec);
+    const cur = readRecords(q<HTMLTextAreaElement>('.hl-data').value);
+    const list = cur.error ? [] : cur.records;
+    list.push(rec);
+    q<HTMLTextAreaElement>('.hl-data').value = recordsCsv(list).trimEnd();
+    m.classList.remove('ax-err');
+    m.textContent = `Added ${rec.scientificName} as specimen ${list.length}.${p.length ? ` Check: ${p.join('; ')}.` : ''}`;
+    calc();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('.hl-data, .hl-head, .hl-out select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.hl-add').addEventListener('click', addFromForm);
+  q('.hl-clearform').addEventListener('click', () => { root.querySelectorAll<HTMLInputElement>('.hl-form input').forEach((i) => (i.value = '')); });
+  q('.hl-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.hl-data').value = TERMS.join(','); calc(); });
+  q('.hl-csv').addEventListener('click', () => { if (records.length) save(new TextEncoder().encode(recordsCsv(records)), 'specimens-darwin-core.csv', 'text/csv'); });
+  q('.hl-pdf').addEventListener('click', () => { if (records.length) pdf(); });
+  q('.hl-print').addEventListener('click', () => { if (!records.length) return; buildPrint(); window.print(); });
+  window.addEventListener('beforeprint', () => { if (records.length && !document.querySelector('.hl-print-sheet')) buildPrint(); });
+  window.addEventListener('afterprint', () => document.querySelector('.hl-print-sheet')?.remove());
+  calc();
+</script>
+
+<style is:global>
+  .hlm select { max-width: 100%; }
+  .hlm textarea { width: 100%; }
+  .hlm input { min-width: 0; }
+  .hl-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .hl-label { font-family: 'Times New Roman', Times, Georgia, serif; line-height: 1.2; overflow-wrap: anywhere; }
+  .hl-print-sheet .hl-label { color: #000; background: #fff; }
+  .hl-preview .hl-label { border: 1px dashed var(--line, #999); border-radius: 4px; padding: 12px; }
+  .hl-l.hl-c { text-align: center; } .hl-l.hl-r { text-align: right; }
+  .hl-i { font-style: italic; } .hl-b { font-weight: 700; } .hl-bi { font-weight: 700; font-style: italic; }
+  .hl-print-sheet { position: absolute; left: -10000px; top: 0; }
+  .hl-page { display: grid; box-sizing: border-box; break-after: page; page-break-after: always; }
+  .hl-page:last-child { break-after: auto; page-break-after: auto; }
+  .hl-page .hl-label { box-sizing: border-box; padding: 4mm; overflow: hidden; min-height: 0; }
+  .hl-cuts .hl-label { outline: 0.3mm dashed #999; outline-offset: -0.15mm; }
+  @media print {
+    body:has(> .hl-print-sheet) > *:not(.hl-print-sheet) { display: none !important; }
+    .hl-print-sheet { position: static; left: auto; }
+    html:has(.hl-print-sheet), html:has(.hl-print-sheet) body { background: #fff !important; }
+  }
+</style>

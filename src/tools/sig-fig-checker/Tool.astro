@@ -1,0 +1,212 @@
+---
+// Significant figures and rounding checker for lab reports, with exact decimal arithmetic. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax sfc">
+  <div class="ax-card">
+    <h2>Count and round</h2>
+    <div class="ax-grid">
+      <label>Number <input class="sf-x" type="text" inputmode="decimal" value="0.004560" /></label>
+      <label>Round to significant figures <input class="sf-n" type="text" inputmode="numeric" value="2" /></label>
+      <label>Round to decimal places <input class="sf-dp" type="text" inputmode="numeric" value="3" /></label>
+      <label>When exactly halfway <select class="sf-mode"><option value="half-up" selected>Round half away from zero (school rule)</option><option value="half-even">Round half to even (banker's, ISO 80000-1)</option></select></label>
+    </div>
+    <p class="ax-help">Type numbers as you would write them: 0.004560, 1200, 1200., 6.02e23 or 6.02 × 10^23. Halfway rule: 2.5 becomes 3 with the school rule and 2 with round half to even, which avoids a small upward bias over many roundings. The arithmetic is exact decimal, so 2.675 really is halfway.</p>
+    <p class="ax-err sf-err" hidden></p>
+    <div class="sf-out1">
+      <p class="ax-big sf-big"></p>
+      <p class="sf-digits" aria-label="Digits, significant ones underlined"></p>
+      <ul class="sf-why"></ul>
+      <dl class="ax-facts sf-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Value ± uncertainty for a report</h2>
+    <div class="ax-grid">
+      <label>Measured value <input class="sf-v" type="text" inputmode="decimal" value="9.81234" /></label>
+      <label>Uncertainty <input class="sf-u" type="text" inputmode="decimal" value="0.0312" /></label>
+      <label>Unit (optional) <input class="sf-unit" type="text" value="m/s²" /></label>
+      <label>Figures in the uncertainty <select class="sf-rule"><option value="1" selected>1</option><option value="2">2</option><option value="lead1">2 if it starts with 1, else 1</option><option value="lead12">2 if it starts with 1 or 2, else 1</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="sf-up" /> Round the uncertainty up, never down (some lab guides ask for this)</label>
+    <p class="ax-help">The uncertainty is rounded first; the value is then rounded to the same decimal place, so its last digit is the uncertain one. Ask your course which figure rule it uses.</p>
+    <p class="ax-err sf-err2" hidden></p>
+    <p class="ax-big sf-big2"></p>
+    <p class="ax-help sf-note2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Calculation</h2>
+    <div class="ax-grid">
+      <label>Operation <select class="sf-op"><option value="add">Add</option><option value="sub">Subtract (first minus the rest)</option><option value="mul" selected>Multiply</option><option value="div">Divide (first ÷ the rest)</option></select></label>
+    </div>
+    <label style="margin-top:8px">Numbers, one per line or separated by commas or spaces <textarea class="sf-list" rows="3" spellcheck="false">4.56
+1.4</textarea></label>
+    <p class="ax-err sf-err3" hidden></p>
+    <p class="ax-big sf-big3"></p>
+    <p class="ax-help sf-note3"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check a table of results</h2>
+    <label>One result per line: value ± uncertainty, or value and uncertainty in two columns <textarea class="sf-tab-in" rows="5" spellcheck="false">9.81234 ± 0.0312
+2.7 ± 0.1
+1530 ± 25
+0.048, 0.001
+3.1416 ± 0.0050</textarea></label>
+    <DataFile target=".sf-tab-in" maxMB={5} maxCols={4} maxRows={5000} />
+    <p class="ax-help">Uses the uncertainty rule and the halfway rule chosen above. A first column of labels is fine (label, value, uncertainty).</p>
+    <p class="ax-err sf-err4" hidden></p>
+    <p class="ax-big sf-big4"></p>
+    <div class="ax-scroll"><table class="sf-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sf-csv">Download the checked table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parse, leadPlace, roundSig, roundPlace, toPlain, toSci, nice, reportPair, combine, lowestSigPlace, sigOf, type Mode, type Rule, type Op, type Parsed } from '../../lib/sci/phsigfig';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.sfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const show = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const mode = () => v('.sf-mode') as Mode;
+  const fig = (n: number) => `${n} significant figure${n === 1 ? '' : 's'}`;
+  let sec: Section[] = [null, null, null, null] as unknown as Section[], tabRows: string[][] = [];
+
+  function one() {
+    const p = parse(v('.sf-x')), out = q('.sf-out1');
+    if (!p) { show('.sf-err', 'Type a number, for example 0.004560 or 6.02e23.'); out.hidden = true; sec[0] = null as unknown as Section; return; }
+    show('.sf-err', ''); out.hidden = false;
+    q('.sf-big').textContent = p.ambiguous ? `${p.min} to ${p.max} significant figures (ambiguous)` : fig(p.min);
+    const dig = q('.sf-digits'); dig.replaceChildren();
+    p.mask.forEach((m) => { const s = document.createElement('span'); s.textContent = m.ch; s.className = m.sig === true ? 'sf-s' : m.sig === null && m.ch !== '.' ? 'sf-q' : 'sf-n'; dig.append(s); });
+    if (p.sciNotation) { const s = document.createElement('span'); s.className = 'sf-n'; s.textContent = ` × 10^${leadExp(p)}`; dig.append(s); }
+    const why: string[] = [];
+    const t = p.mask.map((m) => m.ch).join('');
+    if (p.m === 0n) why.push('The number is zero: its figures are taken as the places written.');
+    else {
+      if (/^0/.test(t)) why.push('Leading zeros only place the decimal point: never significant.');
+      if (/[1-9]0+[1-9]/.test(t.replace('.', ''))) why.push('Zeros between non-zero digits are significant.');
+      if (t.includes('.') && /\.\d*0$|[1-9]0+\.$/.test(t)) why.push('Trailing zeros with a decimal point are significant.');
+      if (p.ambiguous) why.push('Trailing zeros of a whole number without a decimal point are ambiguous; write it in scientific notation (or with a final point) to show which count.');
+      if (p.sciNotation) why.push('In scientific notation every digit of the number before × 10 is significant.');
+      if (!why.length) why.push('All non-zero digits are significant.');
+    }
+    q('.sf-why').replaceChildren(...why.map((w) => { const li = document.createElement('li'); li.textContent = w; return li; }));
+    const n = Number(v('.sf-n')), dp = Number(v('.sf-dp')), facts: HTMLElement[] = [];
+    if (Number.isInteger(n) && n >= 1 && n <= 30) {
+      const r = roundSig(p, n, mode()), fewer = p.min < n && !p.ambiguous && sigOf(r) < n;
+      facts.push(fact(`To ${fig(n)}`, nice(r), fewer ? `the number only has ${fig(p.min)}; adding zeros would claim precision it does not have` : `plain ${toPlain(r)}, scientific ${toSci(r)}`));
+    } else facts.push(fact('To significant figures', '—', 'give a whole number from 1 to 30'));
+    if (Number.isInteger(dp) && dp >= -20 && dp <= 30) {
+      const r = roundPlace(p, -dp, mode());
+      facts.push(fact(`To ${dp} decimal place${dp === 1 ? '' : 's'}`, toPlain(r), r.e > -dp ? 'already has fewer places' : `${fig(sigOf(r))} left`));
+    } else facts.push(fact('To decimal places', '—', 'give a whole number from −20 to 30'));
+    facts.push(fact('Scientific notation', toSci(p), p.ambiguous ? 'as written, if every trailing zero counts' : 'as written'));
+    q('.sf-facts').replaceChildren(...facts);
+    sec[0] = { title: `${p.text}: ${q('.sf-big').textContent}`, text: why, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!]) };
+  }
+  const leadExp = (p: Parsed) => { const m = (p.text.match(/(?:[eE]|10\^?)([+-−]?\d+)\s*$/) || [])[1]; return m ?? ''; };
+
+  function pairText(vv: Parsed, uu: Parsed) {
+    const r = reportPair(vv, uu, v('.sf-rule') as Rule, mode(), q<HTMLInputElement>('.sf-up').checked);
+    const k = r.v.m !== 0n ? leadPlace(r.v) : leadPlace(r.u);
+    if (k >= 6 || k <= -5) return { r, text: `(${toPlain({ m: r.v.m, e: r.v.e - k })} ± ${toPlain({ m: r.u.m, e: r.u.e - k })}) × 10${sup(k)}` };
+    return { r, text: `${toPlain(r.v)} ± ${toPlain(r.u)}` };
+  }
+  const sup = (n: number) => String(n).replace(/./g, (c) => ({ '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' } as Record<string, string>)[c] ?? c);
+
+  function two() {
+    const vv = parse(v('.sf-v')), uu = parse(v('.sf-u'));
+    if (!vv || !uu || uu.m <= 0n) { show('.sf-err2', !vv ? 'Type the measured value as a number.' : 'Type the uncertainty as a number greater than 0.'); q('.sf-big2').textContent = ''; q('.sf-note2').textContent = ''; sec[1] = null as unknown as Section; return; }
+    show('.sf-err2', '');
+    const { r, text } = pairText(vv, uu), unit = v('.sf-unit').trim();
+    q('.sf-big2').textContent = unit ? (text.includes('×') ? `${text} ${unit}` : `(${text}) ${unit}`) : text;
+    q('.sf-note2').textContent = `Uncertainty ${toPlain(uu)} kept to ${fig(r.figures)}${q<HTMLInputElement>('.sf-up').checked ? ', rounded up' : ''}: ${toPlain(r.u)}. The value is then rounded to the same place (${r.place < 0 ? `${-r.place} decimal place${r.place === -1 ? '' : 's'}` : r.place === 0 ? 'whole units' : `the ${toPlain({ m: 1n, e: r.place })}s`}).`;
+    sec[1] = { title: `Report: ${q('.sf-big2').textContent}`, text: [`From ${toPlain(vv)} ± ${toPlain(uu)}.`, q('.sf-note2').textContent!] };
+  }
+
+  function three() {
+    const items = v('.sf-list').split(/[\n,;\t ]+/).map((s) => s.trim()).filter(Boolean), ps = items.map(parse);
+    const bad = items.find((_, i) => !ps[i]);
+    const op = v('.sf-op') as Op;
+    const fail = (m: string) => { show('.sf-err3', m); q('.sf-big3').textContent = ''; q('.sf-note3').textContent = ''; sec[2] = null as unknown as Section; };
+    if (bad) return fail(`"${bad}" is not a number.`);
+    if (ps.length < 2) return fail('Give at least two numbers.');
+    let res;
+    try { res = combine(ps as Parsed[], op, mode()); } catch (e) { return fail((e as Error).message + '.'); }
+    show('.sf-err3', '');
+    const sym = { add: ' + ', sub: ' − ', mul: ' × ', div: ' ÷ ' }[op], expr = (ps as Parsed[]).map((p) => p.text).join(sym);
+    const exactTxt = op === 'div' ? toPlain(roundSig(res.exact, 12, 'half-up')) + '…' : toPlain(res.exact);
+    q('.sf-big3').textContent = `${expr} = ${nice(res.rounded)}`;
+    const amb = (ps as Parsed[]).filter((p) => p.ambiguous).map((p) => p.text);
+    q('.sf-note3').textContent = (res.rule === 'place'
+      ? `Exact ${exactTxt}. Adding or subtracting: keep the decimal place of the least precise number (${res.place < 0 ? `${-res.place} decimal place${res.place === -1 ? '' : 's'}` : res.place === 0 ? 'whole units' : `the ${toPlain({ m: 1n, e: res.place })}s`}).`
+      : `Exact ${exactTxt}. Multiplying or dividing: keep the fewest significant figures of any number (${res.figures}).`) + (amb.length ? ` ${amb.join(', ')} counted with ${amb.length > 1 ? 'their' : 'its'} fewest figures (trailing zeros ambiguous).` : '') + ' In a longer calculation, keep extra figures until the end and round once.';
+    sec[2] = { title: `Calculation: ${q('.sf-big3').textContent}`, text: [q('.sf-note3').textContent!] };
+  }
+
+  function four() {
+    const lines = v('.sf-tab-in').replace(/\r/g, '').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+    const tab = q<HTMLTableElement>('.sf-tab');
+    const fail = (m: string) => { show('.sf-err4', m); tab.replaceChildren(); q('.sf-big4').textContent = ''; tabRows = []; sec[3] = null as unknown as Section; };
+    if (!lines.length) return fail('Paste results, one per line.');
+    if (lines.length > 5000) return fail('Up to 5,000 lines at a time.');
+    const rows: string[][] = [];
+    let ok = 0;
+    for (const [i, line] of lines.entries()) {
+      let cells: string[];
+      if (/±|\+\/-|\+-/.test(line)) { const [a, b] = line.split(/±|\+\/-|\+-/); const lab = a.trim().match(/^(.*?)[\s,;:\t]+([-−+]?[\d.,]+(?:\s*(?:[eE]|[×x]\s*10\^?)\s*[-−+]?\d+)?)$/); cells = lab ? [lab[1], lab[2], b] : ['', a, b]; }
+      else { const c = parseTable(line)[0] ?? []; cells = c.length >= 3 ? [c[0], c[1], c[2]] : ['', c[0] ?? '', c[1] ?? '']; }
+      const label = cells[0].trim(), vv = parse(cells[1] ?? ''), uu = parse((cells[2] ?? '').trim());
+      if (i === 0 && !vv && /[a-z]/i.test(line)) continue; // a header row
+      if (!vv || !uu || uu.m <= 0n) return fail(`Line ${i + 1} ("${line}"): give a value and an uncertainty greater than 0.`);
+      const { r, text } = pairText(vv, uu);
+      const issues: string[] = [];
+      if (uu.min > r.figures) issues.push(`uncertainty to ${fig(r.figures)}`);
+      const vp = lowestSigPlace(vv);
+      if (vp < r.place) issues.push('value has too many decimals');
+      else if ((vv.ambiguous ? leadPlace(vv) - vv.max + 1 : vp) > r.place) issues.push('value has too few decimals');
+      if (!issues.length && toPlain(r.u) !== toPlain(uu)) issues.push('uncertainty rounds differently');
+      if (!issues.length) ok++;
+      rows.push([String(i + 1), label, `${toPlain(vv)} ± ${toPlain(uu)}`, text, issues.length ? issues.join('; ') : 'OK']);
+    }
+    if (!rows.length) return fail('Paste results, one per line.');
+    show('.sf-err4', '');
+    q('.sf-big4').textContent = `${ok} of ${rows.length} written correctly`;
+    const head = ['#', 'Label', 'As written', 'Suggested', 'Check'], hasLab = rows.some((r) => r[1]);
+    const cols = hasLab ? [0, 1, 2, 3, 4] : [0, 2, 3, 4];
+    tab.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    cols.forEach((j) => { const th = document.createElement('th'); th.textContent = head[j]; tab.tHead!.rows[0].append(th); });
+    rows.forEach((r) => { const tr = tab.tBodies[0].insertRow(); if (r[4] !== 'OK') tr.className = 'sf-fix'; cols.forEach((j) => { tr.insertCell().textContent = r[j]; }); });
+    tabRows = [head, ...rows];
+    sec[3] = { title: `Table check: ${q('.sf-big4').textContent}`, table: { head: cols.map((j) => head[j]), rows: rows.map((r) => cols.map((j) => r[j])) } };
+  }
+
+  const all = () => { one(); two(); three(); four(); };
+  root.querySelectorAll('input:not(.dfb-in), select, textarea').forEach((i) => {
+    const f = i.matches('.sf-x, .sf-n, .sf-dp') ? one : i.matches('.sf-v, .sf-u, .sf-unit, .sf-up') ? two : i.matches('.sf-op, .sf-list') ? three : i.matches('.sf-tab-in') ? four : all;
+    i.addEventListener('input', f); i.addEventListener('change', f);
+  });
+  q('.sf-csv').addEventListener('click', () => { if (tabRows.length) save(new Blob([csv(tabRows.map((r) => [r[0], r[1], r[2].replace(/−/g, '-'), r[3].replace(/−/g, '-'), r[4]]))], { type: 'text/csv' }), 'sig-fig-check.csv', 'text/csv'); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Significant figures check', file: 'significant-figures', sections: sec.filter(Boolean) }));
+</script>
+
+<style is:global>
+  .sfc .sf-digits { font: 600 28px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 8px 0; overflow-wrap: anywhere; }
+  .sfc .sf-s { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; color: var(--ink); }
+  .sfc .sf-n { color: var(--muted); }
+  .sfc .sf-q { color: var(--warn); text-decoration: underline dotted; text-underline-offset: 6px; }
+  .sfc .sf-why { margin: 6px 0 12px; padding-left: 20px; font-size: 14px; }
+  .sfc tr.sf-fix td:last-child { color: var(--warn); font-weight: 600; }
+  .sfc h2 { margin-bottom: 10px; }
+</style>

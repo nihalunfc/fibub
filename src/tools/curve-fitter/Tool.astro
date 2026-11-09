@@ -1,0 +1,176 @@
+---
+// Linear and nonlinear curve fitter with y uncertainties, residuals, chi-square and parameter uncertainties.
+// Runs in the browser; nothing is uploaded. The example data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { MODELS } from '../../lib/sci/phcurvefit';
+const EX = '0 111 10.5;1 116 10.8;2 72 8.5;3 71 8.4;4 65 8.1;5 47 6.9;6 40 6.3;7 31 5.6;8 34 5.8;9 23 4.8;10 30 5.5;11 20 4.5;12 17 4.1;13 13 3.6;14 13 3.6;15 17 4.1;16 17 4.1;17 12 3.5;18 17 4.1;19 16 4.0;20 11 3.3'.split(';').map((r) => r.split(' ').join('\t'));
+const example = ['time_s\tcounts\tsigma', ...EX].join('\n');
+---
+<div class="ax cfc">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <label>Columns: x, y and (optional) the uncertainty in y <textarea class="cf-in" rows="7" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".cf-in" maxMB={10} maxCols={20} maxRows={100000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>x column <select class="cf-cx"></select></label>
+      <label>y column <select class="cf-cy"></select></label>
+      <label>Uncertainty in y <select class="cf-cs"></select></label>
+    </div>
+    <p class="ax-help cf-parse"></p>
+    <h3>Model</h3>
+    <div class="ax-grid">
+      <label>Model <select class="cf-m">{MODELS.map((m) => <option value={m.id} selected={m.id === 'decay'}>{m.name}</option>)}<option value="custom">My own formula</option></select></label>
+      <label>Formula, y = <input class="cf-f" type="text" spellcheck="false" autocomplete="off" /></label>
+      <label>Starting values <input class="cf-p0" type="text" spellcheck="false" autocomplete="off" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cf-guess">Guess starting values again</button></div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="cf-scale" /> Scale the parameter uncertainties by √(χ²/dof)</label>
+    <p class="ax-help">Formula: any expression in x with named parameters, such as A*exp(-x/tau) + c (functions exp, ln, log, sqrt, sin, cos, tan, abs; pi). Starting values: name = value, separated by commas; nonlinear fits need sensible ones, and the built-in models guess them from the data. With an uncertainty column the fit is weighted by 1/σ² and the parameter uncertainties are taken as absolute; tick the box if your σ values are only relative. The example (counts against time) is made up.</p>
+    <p class="ax-err cf-err" hidden></p>
+  </div>
+
+  <div class="ax-card cf-out">
+    <h2>Fit</h2>
+    <p class="ax-big cf-big"></p>
+    <div class="ax-scroll"><table class="cf-tab"></table></div>
+    <dl class="ax-facts cf-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig cf-fig1"></canvas>
+    <canvas class="ax-fig cf-fig2"></canvas>
+    <h3>Parameter correlations</h3>
+    <div class="ax-scroll"><table class="cf-corr"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cf-csv">Download fitted values and residuals (CSV)</button></div>
+    <p class="ax-help">Next steps: carry these parameters and their uncertainties into the <a href="/science/uncertainty-calculator/">uncertainty propagation calculator</a>, or draw a publication figure with the <a href="/science/plot-maker/">plot maker</a>. Least squares assumes the x values are exact and the y errors are independent and roughly normal.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MODELS, fitCurve, formulaParams } from '../../lib/sci/phcurvefit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, numericColumns, pm } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], outRows: (string | number)[][] = [];
+  let cols: { headers: string[]; cols: number[][]; rows: number } = { headers: [], cols: [], rows: 0 };
+
+  function readColumns() {
+    cols = numericColumns(q<HTMLTextAreaElement>('.cf-in').value);
+    const keep = [sel('.cf-cx').value, sel('.cf-cy').value, sel('.cf-cs').value];
+    const opts = (extra: boolean) => [...(extra ? [new Option('None (unweighted)', '-1')] : []), ...cols.headers.map((h, i) => new Option(h, String(i)))];
+    sel('.cf-cx').replaceChildren(...opts(false)); sel('.cf-cy').replaceChildren(...opts(false)); sel('.cf-cs').replaceChildren(...opts(true));
+    const n = cols.headers.length, ok = (v: string, def: number) => (v !== '' && +v < n ? v : String(def));
+    sel('.cf-cx').value = ok(keep[0], 0); sel('.cf-cy').value = ok(keep[1], Math.min(1, n - 1)); sel('.cf-cs').value = keep[2] === '-1' ? '-1' : ok(keep[2], n > 2 ? 2 : -1);
+    q('.cf-parse').textContent = cols.rows ? `${cols.rows.toLocaleString('en')} rows, ${n} column${n === 1 ? '' : 's'}.` : '';
+  }
+
+  function data(): { x: number[]; y: number[]; s?: number[] } | string {
+    if (cols.headers.length < 2) return 'Paste at least two columns: x and y.';
+    const ix = +sel('.cf-cx').value, iy = +sel('.cf-cy').value, is = +sel('.cf-cs').value;
+    const x: number[] = [], y: number[] = [], s: number[] = [];
+    for (let r = 0; r < cols.rows; r++) {
+      const a = cols.cols[ix][r], b = cols.cols[iy][r], c = is >= 0 ? cols.cols[is][r] : 1;
+      if (Number.isNaN(a) && Number.isNaN(b)) continue;
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return `Row ${r + 1}: x and y must both be numbers.`;
+      if (is >= 0 && !(c > 0)) return `Row ${r + 1}: the uncertainty must be a number greater than 0.`;
+      x.push(a); y.push(b); s.push(c);
+    }
+    return is >= 0 ? { x, y, s } : { x, y };
+  }
+
+  const fmtP0 = (names: string[], v: number[]) => names.map((n, i) => `${n} = ${+v[i].toPrecision(4)}`).join(', ');
+  function guess() {
+    const m = MODELS.find((k) => k.id === sel('.cf-m').value), d = data();
+    if (!m || typeof d === 'string') return;
+    try { q<HTMLInputElement>('.cf-p0').value = fmtP0(m.params, m.guess(d.x, d.y)); } catch { /* keep */ }
+  }
+  function startValues(names: string[]): number[] | string {
+    const got: Record<string, number> = {};
+    for (const part of q<HTMLInputElement>('.cf-p0').value.split(/[,;]/)) {
+      if (!part.trim()) continue;
+      const m = part.match(/^\s*([A-Za-z_Ͱ-Ͽ][\wͰ-Ͽ]*)\s*=\s*(.+)$/);
+      if (!m || !Number.isFinite(num(m[2]))) return `Starting values: write them as name = value, for example a = 1, b = 0.5 ("${part.trim()}").`;
+      got[m[1]] = num(m[2]);
+    }
+    return names.map((n) => got[n] ?? 1);
+  }
+
+  function calc() {
+    const err = q('.cf-err'), out = q('.cf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const d = data(); if (typeof d === 'string') return fail(d);
+    const formula = q<HTMLInputElement>('.cf-f').value.trim();
+    if (!formula) return fail('Type a formula in x, for example a + b*x.');
+    let names: string[];
+    try { names = formulaParams(formula); } catch (e) { return fail(`Formula: ${(e as Error).message}.`); }
+    if (!names.length) return fail('The formula needs at least one parameter besides x (for example a*x).');
+    const p0 = startValues(names); if (typeof p0 === 'string') return fail(p0);
+    let r;
+    try { r = fitCurve(formula, d.x, d.y, p0, d.s, q<HTMLInputElement>('.cf-scale').checked); } catch (e) { return fail(`${(e as Error).message}. ${/finite/.test((e as Error).message) ? 'Try other starting values or another model (a power law cannot start at x = 0 with a negative power).' : ''}`.trim()); }
+    if (r.se.some((v) => !Number.isFinite(v))) return fail('The fit did not settle: some parameters are not determined by these data. Try other starting values or a simpler model.');
+    err.hidden = true; out.hidden = false;
+    const w = !!d.s;
+    if (w) {
+      const verdict = r.pValue! < 0.01 ? 'poor fit, or the uncertainties are too small' : r.pValue! > 0.99 ? 'suspiciously good: are the uncertainties too large?' : 'consistent with the uncertainties';
+      q('.cf-big').textContent = `χ²/dof = ${sig(r.redChi2!, 3)} (p = ${sig(r.pValue!, 2)}): ${verdict}`;
+    } else q('.cf-big').textContent = `R² = ${r.r2.toFixed(4)}, residual standard error ${sig(r.s, 3)}`;
+    const head = ['Parameter', 'Written', 'Value', 'Std. uncertainty', '95 % interval'];
+    const rows = r.names.map((n, i) => [n, pm(r.p[i], r.se[i]), sig(r.p[i], 6), sig(r.se[i], 3), `${sig(r.p[i] - r.ci[i], 5)} to ${sig(r.p[i] + r.ci[i], 5)}`]);
+    const tab = q<HTMLTableElement>('.cf-tab');
+    tab.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; tab.tHead!.rows[0].append(th); });
+    rows.forEach((rw) => { const tr = tab.tBodies[0].insertRow(); rw.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    const facts = [
+      ...(w ? [fact('χ²', sig(r.chi2!, 4), `${r.dof} degrees of freedom (${d.x.length} points − ${r.names.length} parameters)`), fact('Reduced χ²', sig(r.redChi2!, 3), 'about 1 for a good fit with honest uncertainties'), fact('p-value', sig(r.pValue!, 3), 'chance of a χ² this large if the model and σ are right')] : [fact('Degrees of freedom', String(r.dof), `${d.x.length} points − ${r.names.length} parameters`)]),
+      fact('R²', r.r2.toFixed(4), 'share of the variation in y the model explains'),
+      fact('Residual standard error', sig(r.s, 4), 'typical vertical scatter about the curve'),
+      fact('AIC', sig(r.aic, 4), 'lower is better when comparing models on the same data'),
+      fact('Uncertainties', w ? (r.scaled ? 'scaled by √(χ²/dof)' : 'absolute (from σ)') : 'from the scatter', `t = ${sig(r.tCrit, 4)} for the 95 % interval`),
+      fact('Converged', r.converged ? `yes, ${r.iterations} iterations` : 'not fully', 'Levenberg-Marquardt'),
+    ];
+    q('.cf-facts').replaceChildren(...facts);
+    const corr = q<HTMLTableElement>('.cf-corr');
+    corr.innerHTML = '<thead><tr><th></th></tr></thead><tbody></tbody>';
+    r.names.forEach((n) => { const th = document.createElement('th'); th.textContent = n; th.className = 'r'; corr.tHead!.rows[0].append(th); });
+    r.corr.forEach((row, i) => { const tr = corr.tBodies[0].insertRow(); tr.insertCell().textContent = r.names[i]; row.forEach((v) => { const td = tr.insertCell(); td.textContent = v.toFixed(3); td.className = 'r'; }); });
+    const lo = Math.min(...d.x), hi = Math.max(...d.x), xs = Array.from({ length: 241 }, (_, i) => lo + ((hi - lo) * i) / 240);
+    const xl = cols.headers[+sel('.cf-cx').value], yl = cols.headers[+sel('.cf-cy').value];
+    const c1 = chartFigure({ w: 380, h: 250, xLabel: xl, yLabel: yl, legend: 'below', series: [
+      { name: 'Data', x: d.x, y: d.y, yErr: d.s, mode: 'points', marker: 'circle', size: 3 },
+      { name: `Fit: y = ${formula}`, x: xs, y: xs.map(r.f), mode: 'line', width: 2 },
+    ] }, `Data and fitted curve y = ${formula}`);
+    const c2 = chartFigure({ w: 380, h: 200, xLabel: xl, yLabel: w ? 'Residual ÷ σ' : 'Residual', legend: 'none', series: [{ name: 'Residuals', x: d.x, y: w ? r.norm : r.resid, mode: 'points', marker: 'circle', size: 3 }],
+      marks: w ? [{ kind: 'hline', at: 0 }, { kind: 'hline', at: 2, dash: [4, 4] }, { kind: 'hline', at: -2, dash: [4, 4] }] : [{ kind: 'hline', at: 0 }] }, 'Residuals; they should scatter evenly about zero with no pattern');
+    paint(q<HTMLCanvasElement>('.cf-fig1'), c1); paint(q<HTMLCanvasElement>('.cf-fig2'), c2);
+    figs = [c1, c2];
+    outRows = [['x', 'y', ...(w ? ['sigma'] : []), 'fit', 'residual', ...(w ? ['residual_over_sigma'] : [])], ...d.x.map((xx, i) => [xx, d.y[i], ...(w ? [d.s![i]] : []), +r.fitted[i].toPrecision(10), +r.resid[i].toPrecision(10), ...(w ? [+r.norm[i].toPrecision(6)] : [])])];
+    const fr = facts.map((dd) => [dd.querySelector('dt')!.textContent!, dd.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.cf-big').textContent!, text: [`y = ${formula}, ${d.x.length} points, ${w ? 'weighted by 1/σ²' : 'unweighted'}.`], table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] }, facts: fr, figure: c1 }, { title: 'Residuals', figure: c2 }];
+  }
+
+  function setModel() {
+    const m = MODELS.find((k) => k.id === sel('.cf-m').value);
+    if (m) { q<HTMLInputElement>('.cf-f').value = m.formula; guess(); }
+  }
+  q('.cf-in').addEventListener('input', () => { readColumns(); if (sel('.cf-m').value !== 'custom') guess(); calc(); });
+  sel('.cf-m').addEventListener('change', () => { setModel(); calc(); });
+  q('.cf-f').addEventListener('input', () => { sel('.cf-m').value = 'custom'; calc(); });
+  ['.cf-cx', '.cf-cy', '.cf-cs'].forEach((c) => sel(c).addEventListener('change', () => { if (sel('.cf-m').value !== 'custom') guess(); calc(); }));
+  q('.cf-p0').addEventListener('input', calc); q('.cf-scale').addEventListener('change', calc);
+  q('.cf-guess').addEventListener('click', () => { if (sel('.cf-m').value === 'custom') { const names = (() => { try { return formulaParams(q<HTMLInputElement>('.cf-f').value); } catch { return []; } })(); q<HTMLInputElement>('.cf-p0').value = names.map((n) => `${n} = 1`).join(', '); } else guess(); calc(); });
+  q('.cf-csv').addEventListener('click', () => save(new Blob([csv(outRows)], { type: 'text/csv' }), 'curve-fit.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cf-out').hidden) { paint(q<HTMLCanvasElement>('.cf-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.cf-fig2'), figs[1]); } });
+  readColumns(); setModel(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Curve fit', subtitle: q('.cf-big').textContent ?? '', file: 'curve-fit', sections: report }));
+</script>
+
+<style is:global>
+  .cfc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .cfc .cf-out a { color: var(--accent); }
+  .cfc .cf-tab td { white-space: nowrap; }
+</style>

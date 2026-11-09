@@ -1,0 +1,137 @@
+---
+// Single-season occupancy (MacKenzie et al. 2002) from detection histories. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'site\tsurvey 1\tsurvey 2\tsurvey 3\tsurvey 4\nSite 1\t0\t0\t0\t0\nSite 2\t0\t0\t0\t0\nSite 3\t1\t0\t0\t0\nSite 4\t1\t1\t0\t-\nSite 5\t0\t1\t1\t0\nSite 6\t1\t0\t1\t0\nSite 7\t1\t0\t0\t1\nSite 8\t0\t0\t0\t0\nSite 9\t1\t0\t1\t0\nSite 10\t0\t0\t0\t0\nSite 11\t0\t0\t0\t0\nSite 12\t0\t0\t0\t0\nSite 13\t0\t1\t0\t0\nSite 14\t0\t0\t0\t0\nSite 15\t0\t0\t0\t0\nSite 16\t0\t0\t0\t0\nSite 17\t0\t1\t0\t1\nSite 18\t0\t1\t-\t0\nSite 19\t0\t0\t0\t0\nSite 20\t0\t1\t0\t1\nSite 21\t0\t1\t1\t1\nSite 22\t1\t0\t0\t0\nSite 23\t0\t-\t0\t0\nSite 24\t0\t1\t0\t0\nSite 25\t0\t0\t0\t0\nSite 26\t0\t0\t0\t0\nSite 27\t1\t1\t0\t0\nSite 28\t0\t0\t0\t0\nSite 29\t0\t0\t0\t0\nSite 30\t1\t0\t1\t0';
+---
+<div class="ax occ">
+  <div class="ax-card">
+    <h2>Detection histories</h2>
+    <label>One row per site: an optional site name, then 1 (detected) or 0 (not detected) for each survey. Use - or NA for a survey that was not done. Compact rows such as 0101 work too.
+      <textarea class="oc-data" rows="10" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".oc-data" maxCols={41} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Detection model <select class="oc-model"><option value="best" selected>Best by AIC</option><option value="dot">Same p every survey, ψ(.)p(.)</option><option value="time">p differs by survey, ψ(.)p(t)</option></select></label>
+      <label>Confidence <select class="oc-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">ψ is the share of sites the species really occupies; p is the chance of detecting it in one survey of an occupied site. Up to 40 surveys (15 for the survey-by-survey model) and 20,000 sites. The example is made up.</p>
+    <p class="ax-err oc-err" hidden></p>
+  </div>
+
+  <div class="ax-card oc-out">
+    <h2>Occupancy</h2>
+    <p class="ax-big oc-big"></p>
+    <dl class="ax-facts oc-facts"></dl>
+    <p class="ax-help oc-warn" hidden></p>
+    <h3>Models compared</h3>
+    <div class="ax-scroll"><table class="oc-tab"></table></div>
+    <div class="oc-ptw" hidden>
+      <h3>Detection by survey</h3>
+      <div class="ax-scroll"><table class="oc-pt"></table></div>
+    </div>
+    <h3>How many surveys are enough?</h3>
+    <canvas class="ax-fig oc-fig"></canvas>
+    <p class="ax-help oc-fighelp"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small oc-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitOccupancy, type History, type OccFit } from '../../lib/sci/occupancy';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.occ')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : '–');
+  const NA = /^(-|\.|na|n\/a)$/i, TOK = /^(0|1|-|\.|na|n\/a)$/i;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function read(): { names: string[]; H: History[] } {
+    const names: string[] = [], H: History[] = [];
+    const rows = parseTable(q<HTMLTextAreaElement>('.oc-data').value);
+    rows.forEach((r, i) => {
+      let cells = r.map((c) => c.trim());
+      while (cells.length && cells[cells.length - 1] === '') cells.pop();
+      let name = `Site ${H.length + 1}`;
+      if (cells.length && !TOK.test(cells[0]) && !/^[01.\-]{2,}$/.test(cells[0])) { name = cells[0]; cells = cells.slice(1); }
+      const toks = cells.flatMap((c) => (/^[01.\-]{2,}$/.test(c) ? c.split('') : [c === '' ? 'NA' : c]));
+      if (!toks.length) return;
+      if (!toks.every((t) => TOK.test(t))) {
+        if (i === 0) return; // a header row
+        throw new Error(`${name}: use only 1, 0, or - for a missing survey (found "${toks.find((t) => !TOK.test(t))}").`);
+      }
+      names.push(name); H.push(toks.map((t) => (NA.test(t) ? null : t === '1' ? 1 : 0)));
+    });
+    return { names, H };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.oc-err').textContent = m; q('.oc-err').hidden = false; q('.oc-out').hidden = true; sections = []; csvRows = []; fig = null; };
+    q('.oc-err').hidden = true;
+    let data: ReturnType<typeof read>;
+    try { data = read(); } catch (e) { return fail((e as Error).message); }
+    const { names, H } = data;
+    if (H.length > 20000) return fail('Up to 20,000 sites, please.');
+    const K = Math.max(0, ...H.map((h) => h.length));
+    if (K > 40) return fail('Up to 40 surveys per site, please.');
+    const conf = Number(q<HTMLSelectElement>('.oc-conf').value), cl = `${Math.round(conf * 100)} %`, choice = q<HTMLSelectElement>('.oc-model').value;
+    let dot: OccFit, time: OccFit | null = null;
+    try { dot = fitOccupancy(H, 'dot', conf); } catch (e) { return fail((e as Error).message); }
+    if (K <= 15) { try { time = fitOccupancy(H, 'time', conf); } catch { time = null; } }
+    if (choice === 'time' && !time) return fail(K > 15 ? 'The survey-by-survey model allows up to 15 surveys.' : 'The survey-by-survey model cannot be fitted to these data (a survey may have no data).');
+    const fit = choice === 'dot' ? dot : choice === 'time' ? time! : time && time.aic < dot.aic ? time : dot;
+    q('.oc-out').hidden = false;
+    q('.oc-big').textContent = `ψ = ${f3(fit.psi.est)} (${cl} CI ${f3(fit.psi.lo)} to ${f3(fit.psi.hi)}); naive ${f3(fit.naive)}`;
+    const pTxt = fit.model === 'dot' ? `${f3(fit.p[0].est)} (${f3(fit.p[0].lo)} to ${f3(fit.p[0].hi)})` : `${f3(Math.min(...fit.p.map((p) => p.est)))} to ${f3(Math.max(...fit.p.map((p) => p.est)))}`;
+    const never = fit.condPsi.filter((c) => c !== null) as number[];
+    const missing = H.reduce((a, h) => a + h.filter((y) => y === null).length, 0);
+    q('.oc-facts').replaceChildren(
+      fact('Occupancy ψ', `${f3(fit.psi.est)} ± ${f3(fit.psi.se)}`, `${cl} CI ${f3(fit.psi.lo)} to ${f3(fit.psi.hi)}, on the logit scale`),
+      fact('Naive occupancy', f3(fit.naive), `${fit.detected} of ${fit.sites} sites with a detection; biased low when p < 1`),
+      fact('Detection p per survey', pTxt, fit.model === 'dot' ? `± ${f3(fit.p[0].se)}; same in every survey` : 'varies by survey; see the table below'),
+      fact(`Detected at least once in ${fit.surveys} surveys`, f3(fit.pStar), 'p*, if a site is occupied'),
+      fact('Expected occupied sites', sig(fit.expectedOccupied, 4), `${fit.detected} seen plus ${sig(fit.expectedOccupied - fit.detected, 4)} expected among the ${never.length} never detected`),
+      ...(never.length ? [fact('Never-detected site occupied', never.length && Math.max(...never) - Math.min(...never) < 1e-9 ? f3(never[0]) : `${f3(Math.min(...never))} to ${f3(Math.max(...never))}`, 'chance it holds the species anyway')] : []),
+      fact('Data', `${fit.sites} sites × ${fit.surveys} surveys`, missing ? `${missing} missing survey${missing > 1 ? 's' : ''}, left out of the likelihood` : 'no missing surveys'),
+    );
+    q('.oc-warn').hidden = !fit.boundary;
+    q('.oc-warn').textContent = fit.boundary ? 'Warning: an estimate is at the edge (near 0 or 1), so its standard error and interval are not reliable. This happens when the species was found at almost every site, or almost never re-detected.' : '';
+    const best = Math.min(dot.aic, time?.aic ?? Infinity);
+    const mrows = [dot, ...(time ? [time] : [])].map((m) => [m.model === 'dot' ? 'ψ(.)p(.)' : 'ψ(.)p(t)', String(m.k), m.aic.toFixed(2), (m.aic - best).toFixed(2), f3(m.psi.est), m.model === 'dot' ? f3(m.p[0].est) : 'by survey']);
+    const mhead = ['Model', 'Parameters', 'AIC', 'ΔAIC', 'ψ', 'p'];
+    table('.oc-tab', mhead, mrows);
+    const pt = fit.model === 'time' ? fit.p.map((p, j) => [`Survey ${j + 1}`, f3(p.est), f3(p.se), `${f3(p.lo)} to ${f3(p.hi)}`]) : [];
+    q('.oc-ptw').hidden = !pt.length; if (pt.length) table('.oc-pt', ['Survey', 'p', 'SE', `${cl} CI`], pt);
+    const pm = fit.model === 'dot' ? fit.p[0].est : 1 - Math.pow(1 - fit.pStar, 1 / fit.surveys);
+    const ks = Array.from({ length: 15 }, (_, i) => i + 1), need = Math.ceil(Math.log(0.05) / Math.log(1 - pm));
+    fig = chartFigure({ w: 560, h: 300, xLabel: 'Surveys per site', yLabel: 'Chance of detecting if present', yMin: 0, yMax: 1, xMin: 1, xMax: 15, legend: 'none', series: [{ name: 'Cumulative detection', x: ks, y: ks.map((k) => 1 - (1 - pm) ** k), mode: 'both', marker: 'circle' }], marks: [{ kind: 'hline', at: 0.95, dash: [4, 4], label: '95 %' }] }, 'Chance of detecting the species at an occupied site against the number of surveys');
+    paint(q<HTMLCanvasElement>('.oc-fig'), fig);
+    q('.oc-fighelp').textContent = Number.isFinite(need) && need > 0 ? `With p = ${f3(pm)} per survey${fit.model === 'time' ? ' (the average)' : ''}, ${need} surveys give a 95 % chance of detecting the species where it is present.` : '';
+    csvRows = [['Quantity', 'Estimate', 'SE', `Lower ${cl}`, `Upper ${cl}`], ['psi', sig(fit.psi.est, 8), sig(fit.psi.se, 6), sig(fit.psi.lo, 8), sig(fit.psi.hi, 8)], ...fit.p.map((p, j) => [fit.model === 'dot' ? 'p' : `p survey ${j + 1}`, sig(p.est, 8), sig(p.se, 6), sig(p.lo, 8), sig(p.hi, 8)]), ['naive occupancy', sig(fit.naive, 8)], ['p*', sig(fit.pStar, 8)], ['AIC', sig(fit.aic, 10)], [], ['Site', 'Detected', 'Chance occupied'], ...names.map((n, i) => [n, H[i].includes(1) ? '1' : '0', H[i].some((y) => y !== null) ? sig(fit.condPsi[H.slice(0, i).filter((h) => h.some((y) => y !== null)).length] ?? 1, 6) : ''])];
+    sections = [{ title: q('.oc-big').textContent!, text: [`Single-season occupancy model ${fit.model === 'dot' ? 'ψ(.)p(.)' : 'ψ(.)p(t)'} fitted by maximum likelihood (MacKenzie et al. 2002). Intervals are on the logit scale.`], facts: [...q('.oc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: mhead, rows: mrows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: fig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.oc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'occupancy.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.oc-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Site occupancy estimate', subtitle: q('.oc-big').textContent ?? '', file: 'occupancy', sections }));
+</script>
+
+<style is:global>
+  .occ select { max-width: 100%; }
+  .occ .oc-out h3 { margin: 18px 0 8px; }
+</style>

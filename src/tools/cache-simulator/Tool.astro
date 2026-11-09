@@ -1,0 +1,233 @@
+---
+// Cache and memory hierarchy simulator: one or two cache levels on an address trace, hit/miss per access, AMAT.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cs">
+  <div class="ax-card">
+    <h2>Address trace</h2>
+    <div class="ax-grid">
+      <label>Accesses from <select class="cs-src">
+        <option value="mm">Matrix multiply</option>
+        <option value="stride">Walk through an array</option>
+        <option value="rand">Random addresses</option>
+        <option value="paste">My own trace</option>
+      </select></label>
+    </div>
+    <div class="ax-grid cs-p cs-p-mm" style="margin-top:10px">
+      <label>Matrix size n <input class="cs-n" inputmode="numeric" value="16" /></label>
+      <label>Element size (bytes) <input class="cs-me" inputmode="numeric" value="8" /></label>
+      <label>Loop order <select class="cs-order"><option value="ijk">i j k (row × column)</option><option value="ikj">i k j (row by row)</option><option value="jki">j k i (column by column)</option></select></label>
+    </div>
+    <div class="ax-grid cs-p cs-p-stride" style="margin-top:10px" hidden>
+      <label>Start address <input class="cs-base" inputmode="numeric" value="0" /></label>
+      <label>Element size (bytes) <input class="cs-se" inputmode="numeric" value="4" /></label>
+      <label>Elements in the array <input class="cs-cnt" inputmode="numeric" value="1024" /></label>
+      <label>Stride (elements) <input class="cs-stride" inputmode="numeric" value="16" /></label>
+      <label>Passes <input class="cs-pass" inputmode="numeric" value="3" /></label>
+    </div>
+    <div class="ax-grid cs-p cs-p-rand" style="margin-top:10px" hidden>
+      <label>Accesses <input class="cs-rc" inputmode="numeric" value="2000" /></label>
+      <label>Address range (bytes) <input class="cs-rr" inputmode="numeric" value="8192" /></label>
+      <label>Aligned to (bytes) <input class="cs-ra" inputmode="numeric" value="4" /></label>
+    </div>
+    <div class="cs-p cs-p-paste" hidden>
+      <label style="margin-top:10px">Addresses, one per line or separated by spaces: decimal (4096) or hex (0x1000). R or W in front and # comments are ignored.
+        <textarea class="cs-trace" rows="6" spellcheck="false">R 0x0000
+R 0x0400
+R 0x0000
+R 0x0400
+W 0x0010
+R 0x0800
+R 0x0000</textarea></label>
+      <DataFile target=".cs-trace" maxMB={4} maxCols={4} maxRows={100000} />
+    </div>
+    <p class="ax-help cs-tlen"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Caches</h2>
+    <h3 class="cs-h">Level 1</h3>
+    <div class="ax-grid">
+      <label>Size (bytes) <input class="cs-s1" inputmode="numeric" value="1024" /></label>
+      <label>Block size (bytes) <input class="cs-b1" inputmode="numeric" value="32" /></label>
+      <label>Placement <select class="cs-w1"><option value="1">Direct-mapped</option><option value="2" selected>2-way set associative</option><option value="4">4-way</option><option value="8">8-way</option><option value="16">16-way</option><option value="full">Fully associative</option></select></label>
+      <label>Replacement <select class="cs-p1"><option value="lru">LRU (least recently used)</option><option value="fifo">FIFO (oldest arrival)</option><option value="random">Random</option></select></label>
+      <label>Hit time (cycles) <input class="cs-h1" inputmode="decimal" value="1" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="cs-l2on" checked /> Level 2 cache</label>
+    <div class="ax-grid cs-l2" style="margin-top:8px">
+      <label>Size (bytes) <input class="cs-s2" inputmode="numeric" value="8192" /></label>
+      <label>Block size (bytes) <input class="cs-b2" inputmode="numeric" value="64" /></label>
+      <label>Placement <select class="cs-w2"><option value="1">Direct-mapped</option><option value="2">2-way set associative</option><option value="4" selected>4-way</option><option value="8">8-way</option><option value="16">16-way</option><option value="full">Fully associative</option></select></label>
+      <label>Replacement <select class="cs-p2"><option value="lru">LRU (least recently used)</option><option value="fifo">FIFO (oldest arrival)</option><option value="random">Random</option></select></label>
+      <label>Hit time (cycles) <input class="cs-h2" inputmode="decimal" value="10" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:12px"><label>Main memory time (cycles) <input class="cs-mem" inputmode="decimal" value="100" /></label></div>
+    <p class="ax-help">Sizes and blocks are powers of 2. Each miss fetches the whole block. Level 2 is looked up on every level 1 miss, and memory on every level 2 miss. Reads and writes are treated alike (write-allocate).</p>
+    <p class="ax-err cs-err" hidden></p>
+  </div>
+
+  <div class="ax-card cs-out">
+    <h2>Results</h2>
+    <p class="ax-big cs-big"></p>
+    <p class="ax-help cs-formula"></p>
+    <dl class="ax-facts cs-facts" style="margin-top:10px"></dl>
+    <canvas class="ax-fig cs-fig" style="margin-top:14px"></canvas>
+    <h3 class="cs-h">Same trace, other level 1 designs</h3>
+    <div class="ax-scroll"><table class="cs-cmp"></table></div>
+    <h3 class="cs-h">Every access <small class="cs-shown"></small></h3>
+    <div class="ax-scroll cs-rowsbox"><table class="cs-rows"></table></div>
+    <h3 class="cs-h">Level 1 contents</h3>
+    <div class="ax-grid"><label>After access number <input class="cs-at" inputmode="numeric" value="1" /></label></div>
+    <p class="ax-help cs-atsay"></p>
+    <div class="ax-scroll"><table class="cs-grid"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cs-csv">Every access (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cs .cs-h { margin: 16px 0 6px; font-size: 15px; }
+  .cs .cs-h small { font-weight: 400; color: var(--muted); }
+  .cs .cs-rowsbox { max-height: 420px; overflow-y: auto; }
+  .cs .cs-rows td, .cs .cs-grid td, .cs .cs-cmp td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cs .cs-rows td.hit { color: var(--good); font-weight: 600; }
+  .cs .cs-rows td.miss { color: var(--bad); font-weight: 600; }
+  .cs .cs-grid td { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .cs .cs-grid tr.on td { background: var(--accent-soft); }
+  .cs .cs-grid td.new { font-weight: 700; color: var(--accent); }
+  .cs .cs-cmp tr.on td { font-weight: 700; }
+</style>
+
+<script>
+  import { simulate, parseTrace, strided, matmul, randomTrace, amatFormula, Cache, type Level, type Result, type Policy } from '../../lib/sci/cache';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const MAX = 100000;
+  let res: Result | null = null, trace: number[] = [], L1: Level, L2: Level | null, mem = 0, fig: Figure | null = null, facts: [string, string][] = [], cmpRows: string[][] = [];
+  const hx = (a: number) => '0x' + a.toString(16).toUpperCase();
+  const pct = (x: number) => `${sig(100 * x, 3)} %`;
+  const whole = (x: number, name: string, lo: number, hi: number) => { if (!(Number.isInteger(x) && x >= lo && x <= hi)) throw new Error(`${name} must be a whole number from ${lo.toLocaleString('en')} to ${hi.toLocaleString('en')}.`); return x; };
+
+  function makeTrace(): number[] {
+    const src = q<HTMLSelectElement>('.cs-src').value;
+    if (src === 'mm') {
+      const n = whole(v('.cs-n'), 'Matrix size', 1, 32), e = whole(v('.cs-me'), 'Element size', 1, 64);
+      return matmul(n, e, q<HTMLSelectElement>('.cs-order').value as 'ijk');
+    }
+    if (src === 'stride') {
+      const base = whole(v('.cs-base'), 'Start address', 0, 2 ** 40), e = whole(v('.cs-se'), 'Element size', 1, 4096), c = whole(v('.cs-cnt'), 'Elements', 1, 10_000_000), s = whole(v('.cs-stride'), 'Stride', 1, 10_000_000), p = whole(v('.cs-pass'), 'Passes', 1, 1000);
+      if (Math.ceil(c / s) * p > MAX) throw new Error(`That makes ${(Math.ceil(c / s) * p).toLocaleString('en')} accesses; keep it to ${MAX.toLocaleString('en')}.`);
+      return strided(base, e, c, s, p);
+    }
+    if (src === 'rand') return randomTrace(whole(v('.cs-rc'), 'Accesses', 1, MAX), whole(v('.cs-rr'), 'Address range', 1, 2 ** 40), whole(v('.cs-ra'), 'Alignment', 1, 4096));
+    return parseTrace(q<HTMLTextAreaElement>('.cs-trace').value, MAX);
+  }
+  function level(k: 1 | 2): Level {
+    const w = q<HTMLSelectElement>(`.cs-w${k}`).value, hit = v(`.cs-h${k}`);
+    if (!(hit >= 0)) throw new Error(`Level ${k}: hit time must be 0 cycles or more.`);
+    return { size: v(`.cs-s${k}`), block: v(`.cs-b${k}`), ways: w === 'full' ? 'full' : Number(w), policy: q<HTMLSelectElement>(`.cs-p${k}`).value as Policy, hit };
+  }
+  const tr = (cells: (string | [string, string])[], th = false, cls = '') => { const r = document.createElement('tr'); if (cls) r.className = cls; cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); if (Array.isArray(c)) { d.textContent = c[0]; d.className = c[1]; } else d.textContent = c; r.append(d); }); return r; };
+
+  function run() {
+    const src = q<HTMLSelectElement>('.cs-src').value;
+    root.querySelectorAll<HTMLElement>('.cs-p').forEach((el) => (el.hidden = !el.classList.contains(`cs-p-${src}`)));
+    q('.cs-l2').hidden = !q<HTMLInputElement>('.cs-l2on').checked;
+    const err = q('.cs-err');
+    try {
+      trace = makeTrace();
+      L1 = level(1); L2 = q<HTMLInputElement>('.cs-l2on').checked ? level(2) : null; mem = v('.cs-mem');
+      if (!(mem >= 0)) throw new Error('Main memory time must be 0 cycles or more.');
+      res = simulate(trace, L1, L2, mem);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cs-out').hidden = true; res = null; q('.cs-tlen').textContent = ''; return; }
+    err.hidden = true; q('.cs-out').hidden = false;
+    const r = res, n = r.n, m1 = r.l1.misses / n;
+    q('.cs-tlen').textContent = `${n.toLocaleString('en')} accesses${src === 'mm' ? ' (A[i][k], B[k][j] and C[i][j] for each step of the innermost loop)' : ''}.`;
+    q('.cs-big').textContent = `AMAT ${sig(r.amat, 4)} cycles`;
+    const g1 = r.g1;
+    facts = [
+      ['Level 1', `${g1.sets} set${g1.sets > 1 ? 's' : ''} × ${g1.ways} way${g1.ways > 1 ? 's' : ''} of ${L1.block} B; address = tag | ${g1.indexBits} index bits | ${g1.offsetBits} offset bits`],
+      ['Level 1 hits', `${r.l1.hits.toLocaleString('en')} of ${n.toLocaleString('en')} (${pct(r.l1.hits / n)})`],
+      ['Level 1 misses', `${r.l1.misses.toLocaleString('en')} (miss rate ${pct(m1)})`],
+      ['Kinds of miss', `${r.l1.compulsory.toLocaleString('en')} compulsory, ${r.l1.capacity.toLocaleString('en')} capacity, ${r.l1.conflict.toLocaleString('en')} conflict`],
+    ];
+    let formula = `AMAT = ${L1.hit} + ${sig(m1, 4)} × ${mem} = ${sig(amatFormula(L1.hit, m1, mem), 4)} cycles`;
+    if (r.l2 && L2) {
+      const a2 = r.l2.hits + r.l2.misses, m2 = a2 ? r.l2.misses / a2 : 0;
+      facts.push(['Level 2', `${r.g2!.sets} sets × ${r.g2!.ways} ways of ${L2.block} B`], ['Level 2 hits', `${r.l2.hits.toLocaleString('en')} of ${a2.toLocaleString('en')} lookups`], ['Level 2 local miss rate', a2 ? pct(m2) : '–'], ['Global miss rate (to memory)', pct(r.l2.misses / n)]);
+      formula = `AMAT = L1 hit + L1 miss rate × (L2 hit + L2 local miss rate × memory) = ${L1.hit} + ${sig(m1, 4)} × (${L2.hit} + ${sig(m2, 4)} × ${mem}) = ${sig(amatFormula(L1.hit, m1, mem, L2.hit, m2), 4)} cycles`;
+    }
+    q('.cs-formula').textContent = formula;
+    q('.cs-facts').replaceChildren(...facts.map(([k, x]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = x; return d; }));
+    // Running miss rates
+    const step = Math.max(1, Math.floor(n / 300)), xs: number[] = [], y1: number[] = [], y2: number[] = [];
+    let mm1 = 0, mm2 = 0;
+    r.rows.forEach((row, i) => { if (!row.l1) mm1++; if (row.l2 === false || (!L2 && !row.l1)) mm2++; if ((i + 1) % step === 0 || i === n - 1) { xs.push(i + 1); y1.push(100 * mm1 / (i + 1)); y2.push(100 * mm2 / (i + 1)); } });
+    const series = [{ name: 'Level 1 miss rate', x: xs, y: y1, mode: 'line' as const }];
+    if (L2) series.push({ name: 'Global miss rate (to memory)', x: xs, y: y2, mode: 'line' as const });
+    const W = Math.max(300, Math.min(720, (q('.cs-out').clientWidth || 720) - 32)); fig = chartFigure({ w: W, h: Math.round(W < 500 ? W * 0.8 : 300), xLabel: 'Access number', yLabel: 'Miss rate so far (%)', yMin: 0, series, legend: 'below' }, 'Running miss rate over the trace');
+    paint(q<HTMLCanvasElement>('.cs-fig'), fig);
+    // Other L1 designs
+    const designs: (number | 'full')[] = [1, 2, 4, 8, 'full'];
+    cmpRows = [];
+    for (const w of designs) for (const p of ['lru', 'fifo', 'random'] as Policy[]) {
+      if (w === 1 && p !== 'lru') continue;
+      try {
+        const s = simulate(trace, { ...L1, ways: w, policy: p }, L2, mem);
+        cmpRows.push([w === 1 ? 'Direct-mapped' : w === 'full' ? 'Fully associative' : `${w}-way`, w === 1 ? '–' : p.toUpperCase(), pct(s.l1.misses / n), `${s.l1.compulsory}/${s.l1.capacity}/${s.l1.conflict}`, sig(s.amat, 4)]);
+      } catch { /* more ways than blocks */ }
+    }
+    const cur = (row: string[]) => row[0] === (L1.ways === 1 ? 'Direct-mapped' : L1.ways === 'full' ? 'Fully associative' : `${L1.ways}-way`) && (L1.ways === 1 || row[1] === L1.policy.toUpperCase());
+    q('.cs-cmp').replaceChildren(tr(['Level 1 placement', 'Replacement', 'L1 miss rate', 'Compulsory / capacity / conflict', 'AMAT'], true), ...cmpRows.map((row) => tr(row, false, cur(row) ? 'on' : '')));
+    // Per access
+    const shown = r.rows.slice(0, 1000);
+    q('.cs-shown').textContent = n > 1000 ? `(first 1,000 of ${n.toLocaleString('en')}; the CSV has them all)` : '';
+    const head = ['#', 'Address', 'Tag', 'Set', 'Offset', 'Level 1', 'Evicted block', ...(L2 ? ['Level 2'] : []), 'Cycles'];
+    q('.cs-rows').replaceChildren(tr(head, true), ...shown.map((x) => tr([String(x.i), hx(x.addr), hx(x.tag), String(x.set), String(x.offset), [x.l1 ? 'hit' : `miss (${x.kind})`, x.l1 ? 'hit' : 'miss'], x.evicted == null ? '' : hx(x.evicted), ...(L2 ? [x.l1 ? '' : [x.l2 ? 'hit' : 'miss', x.l2 ? 'hit' : 'miss'] as [string, string]] : []), String(x.cycles)])));
+    q<HTMLInputElement>('.cs-at').value = String(Math.min(Math.max(1, Math.round(v('.cs-at')) || 1), n));
+    contents();
+  }
+
+  function contents() {
+    if (!res) return;
+    const k = Math.round(v('.cs-at'));
+    if (!(k >= 1 && k <= res.n)) { q('.cs-atsay').textContent = `Type an access number from 1 to ${res.n.toLocaleString('en')}.`; q('.cs-grid').replaceChildren(); return; }
+    const c = new Cache(L1);
+    let last: ReturnType<Cache['access']> | null = null;
+    for (let i = 0; i < k; i++) last = c.access(trace[i]);
+    const sets = c.sets, showN = Math.min(sets.length, 64);
+    q('.cs-atsay').textContent = `Access ${k}: ${hx(trace[k - 1])} → set ${last!.set}, tag ${hx(last!.tag)}, ${last!.hit ? 'hit' : 'miss'}${last!.evicted != null ? `, evicted block ${hx(last!.evicted)}` : ''}. Tags shown per way${sets.length > 64 ? `; first 64 of ${sets.length} sets, plus set ${last!.set}` : ''}.`;
+    const idx = Array.from({ length: showN }, (_, i) => i);
+    if (last!.set >= showN) idx.push(last!.set);
+    q('.cs-grid').replaceChildren(tr(['Set', ...sets[0].map((_, w) => `Way ${w}`)], true), ...idx.map((s) => {
+      const row = tr([String(s), ...sets[s].map((l, w) => [l.valid ? hx(l.tag) : '–', s === last!.set && w === last!.way ? 'new' : ''] as [string, string])], false, s === last!.set ? 'on' : '');
+      return row;
+    }));
+  }
+
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('cs-at')) { clearTimeout(t); t = window.setTimeout(contents, 200); return; } clearTimeout(t); t = window.setTimeout(run, 300); });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLElement; if (el.tagName === 'SELECT' || (el as HTMLInputElement).type === 'checkbox') run(); });
+  q('.cs-csv').addEventListener('click', () => {
+    if (!res) return;
+    const rows: (string | number)[][] = [['access', 'address', 'tag', 'set', 'offset', 'L1', 'miss kind', 'evicted block', ...(L2 ? ['L2'] : []), 'cycles']];
+    for (const x of res.rows) rows.push([x.i, hx(x.addr), hx(x.tag), x.set, x.offset, x.l1 ? 'hit' : 'miss', x.kind ?? '', x.evicted == null ? '' : hx(x.evicted), ...(L2 ? [x.l1 ? '' : x.l2 ? 'hit' : 'miss'] : []), x.cycles]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'cache-trace.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({
+    title: 'Cache simulation', subtitle: q('.cs-big').textContent ?? '', file: 'cache-simulation',
+    sections: res ? [{ title: q('.cs-big').textContent ?? '', text: [q('.cs-tlen').textContent ?? '', q('.cs-formula').textContent ?? ''], facts, figure: fig ?? undefined }, { title: 'Same trace, other level 1 designs', table: { head: ['Placement', 'Replacement', 'L1 miss rate', 'Compulsory/capacity/conflict', 'AMAT'], rows: cmpRows } }] : [],
+  }));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.cs-fig'), fig));
+  let rw = 0;
+  new ResizeObserver(() => { const w = q('.cs-out').clientWidth; if (w && Math.abs(w - rw) > 20) { const first = rw === 0; rw = w; if (!first) run(); } }).observe(q('.cs-out'));
+  run();
+</script>

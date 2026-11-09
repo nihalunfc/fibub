@@ -1,0 +1,228 @@
+---
+// Spore size measurer: calibrate with a scale bar, measure spores by tapping the ends of their length and width, or
+// fit ellipses to dark (or light) patches automatically, and report the usual mycological summary with Q = L/W.
+// The photo never leaves the browser. The example spores are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spm">
+  <div class="ax-card">
+    <h2>Microscope photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sp-open">Open a photo</button>
+      <input type="file" class="sp-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small sp-ex">Use the example</button>
+    </div>
+    <div class="sp-tools" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Scale bar length (µm) <input class="sp-len" type="number" min="0" step="any" value="10" inputmode="decimal" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small sp-line">Draw the scale bar</button>
+        <div class="ax-seg sp-kind" role="group" aria-label="A tap">
+          <button type="button" data-k="m" aria-pressed="true">Measure</button>
+          <button type="button" data-k="x" aria-pressed="false">Remove</button>
+        </div>
+      </div>
+      <p class="ax-help sp-step"></p>
+      <canvas class="sp-photo"></canvas>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small sp-undo">Undo</button>
+        <button type="button" class="btn secondary small sp-clear">Clear all spores</button>
+      </div>
+    </div>
+    <p class="ax-help sp-ph"></p>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card sp-set" hidden>
+    <h2>Find spores automatically (optional)</h2>
+    <div class="ax-grid">
+      <label>Spores look <select class="sp-dark"><option value="1" selected>Darker than the background</option><option value="0">Lighter than the background</option></select></label>
+      <label>Threshold (0 to 255, blank for automatic) <input class="sp-t" type="number" min="0" max="255" step="1" placeholder="auto (Otsu)" inputmode="numeric" /></label>
+      <label>Shortest spore (µm) <input class="sp-lmin" type="number" min="0" step="any" value="2" inputmode="decimal" /></label>
+      <label>Longest spore (µm) <input class="sp-lmax" type="number" min="0" step="any" value="100" inputmode="decimal" /></label>
+      <label>Largest Q (length ÷ width) <input class="sp-qmax" type="number" min="1" step="any" value="4" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sp-auto">Find spores</button></div>
+    <p class="ax-help">Each separate patch is fitted with the ellipse that has the same spread (its second moments); its long and short axes are the length and width. Patches cut by the photo's edge, touching each other (one patch, too long or too round) or outside the limits are left out. It replaces earlier automatic spores and keeps the ones you tapped.</p>
+
+    <h2 style="margin-top:18px">Summary</h2>
+    <label>Middle range <select class="sp-mid"><option value="sd" selected>Mean ± standard deviation</option><option value="pct">5th to 95th percentile</option></select></label>
+  </div>
+
+  <div class="ax-card sp-out" hidden>
+    <h2>Spore size</h2>
+    <p class="sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <canvas class="ax-fig sp-fig"></canvas>
+    <div class="ax-scroll"><table class="sp-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sp-csv">Download measurements (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleSpores, luminance, histogram, otsu, threshold, blobs, sporeStats, dist, type Pt } from '../../lib/sci/plantimg';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { readPhoto, photoCanvas, tapAt, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { paint, wireDownloads, save, fileSafe, type Section, type Figure } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.spm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PH = 'Open a photo taken through the microscope, with a scale bar or a stage micrometer photographed at the same settings. The photo stays on your device and is never uploaded.';
+  // A spore: length ends a–b and width ends c–d in photo pixels (auto spores store the ellipse axes the same way).
+  type Spore = { a: Pt; b: Pt; c: Pt; d: Pt; auto: boolean };
+
+  let px: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'spores', base: HTMLCanvasElement | null = null;
+  let bar: Pt[] = [], spores: Spore[] = [], taps: Pt[] = [], history: Spore[][] = [], barArm = false, kind: 'm' | 'x' = 'm';
+  let fig: Figure | null = null, sections: Section[] = [];
+  const ppu = () => (bar.length === 2 && Number(inp('.sp-len').value) > 0 ? dist(bar[0], bar[1]) / Number(inp('.sp-len').value) : NaN);
+  const mid = (s: Spore): Pt => [(s.a[0] + s.b[0]) / 2, (s.a[1] + s.b[1]) / 2];
+  const lw = (s: Spore, k: number) => { const l = dist(s.a, s.b) / k, w = dist(s.c, s.d) / k; return l >= w ? [l, w] : [w, l]; };
+
+  function load(p: Uint8ClampedArray, w: number, h: number, nm: string) {
+    px = p; W = w; H = h; name = nm; base = photoCanvas(p, w, h);
+    bar = []; spores = []; taps = []; history = []; barArm = true;
+    q('.sp-tools').hidden = false; q('.sp-set').hidden = false;
+    run();
+  }
+  const push = () => { history.push(spores.slice()); if (history.length > 200) history.shift(); };
+  function step() {
+    q('.sp-line').textContent = barArm ? 'Drawing the scale bar…' : 'Draw the scale bar';
+    q('.sp-step').textContent = barArm ? (taps.length ? 'Now tap the other end of the scale bar.' : 'Tap one end of the scale bar.')
+      : kind === 'x' ? 'Tap a spore to remove it.'
+      : ['Tap one end of the next spore\'s length (its long axis).', 'Tap the other end of its length.', 'Tap one side of its width (at the widest point, across the length).', 'Tap the other side of its width.'][taps.length];
+  }
+
+  function run() {
+    if (!px) return;
+    step(); draw();
+    const k = ppu(), err = q('.sp-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sp-out').hidden = true; sections = []; };
+    if (!(Number(inp('.sp-len').value) > 0)) return fail('Give the length of the scale bar in µm.');
+    if (!Number.isFinite(k)) return fail('Tap both ends of the scale bar first (press "Draw the scale bar").');
+    if (!spores.length) return fail('Measure a spore: tap the two ends of its length, then the two sides of its width. Or press "Find spores".');
+    err.hidden = true;
+    const m = spores.map((s) => lw(s, k)), L = m.map((x) => x[0]), Wd = m.map((x) => x[1]);
+    const st = sporeStats(L, Wd, q<HTMLSelectElement>('.sp-mid').value as 'sd' | 'pct');
+    q('.sp-out').hidden = false;
+    q('.sp-big').textContent = st.text;
+    q('.sp-facts').replaceChildren(
+      fact('Spores', String(L.length), `${spores.filter((s) => s.auto).length} found automatically`),
+      fact('Length', `${sig(st.L.mean, 3)} ± ${sig(st.L.sd, 2)} µm`, `${st.L.min.toFixed(1)} to ${st.L.max.toFixed(1)}`),
+      fact('Width', `${sig(st.W.mean, 3)} ± ${sig(st.W.sd, 2)} µm`, `${st.W.min.toFixed(1)} to ${st.W.max.toFixed(1)}`),
+      fact('Q (length ÷ width)', `${st.Q.mean.toFixed(2)} ± ${st.Q.sd.toFixed(2)}`, `${st.Q.min.toFixed(2)} to ${st.Q.max.toFixed(2)}`),
+      fact('Scale', `${sig(k, 4)} px per µm`, `${sig(1 / k, 3)} µm per pixel`),
+    );
+    fig = chartFigure({ h: 300, xLabel: 'Length (µm)', yLabel: 'Width (µm)', legend: 'none', series: [{ name: 'Spores', x: L, y: Wd, mode: 'points', size: 4 }] }, `Width against length for ${L.length} spores`);
+    paint(q<HTMLCanvasElement>('.sp-fig'), fig);
+    const head = ['Spore', 'Length (µm)', 'Width (µm)', 'Q', 'How'];
+    const rows = m.map((x, i) => [String(i + 1), x[0].toFixed(2), x[1].toFixed(2), (x[0] / x[1]).toFixed(2), spores[i].auto ? 'fitted' : 'tapped']);
+    fillTable(q<HTMLTableElement>('.sp-tab'), head, rows);
+    sections = [{ title: 'Spore size', text: [st.text], facts: factPairs(q('.sp-facts')), figure: fig, table: { head, rows } }, { title: 'Spores measured', figure: canvasFigure(q<HTMLCanvasElement>('.sp-photo'), 'The photo with each measured spore marked') }];
+  }
+
+  function draw() {
+    if (!base) return;
+    const c = q<HTMLCanvasElement>('.sp-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!; ctx.drawImage(base, 0, 0);
+    const lwid = Math.max(1.5, W / 500), fs = Math.max(12, Math.round(W / 50));
+    ctx.lineCap = 'round'; ctx.font = `bold ${fs}px system-ui, sans-serif`; ctx.textBaseline = 'bottom';
+    const seg = (a: Pt, b: Pt, col: string) => { ctx.strokeStyle = col; ctx.lineWidth = lwid; ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke(); };
+    spores.forEach((s, i) => {
+      seg(s.a, s.b, '#d55e00'); seg(s.c, s.d, '#0072b2');
+      const m = mid(s); ctx.fillStyle = '#000'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeText(String(i + 1), m[0] + 4, m[1] - 4); ctx.fillText(String(i + 1), m[0] + 4, m[1] - 4);
+    });
+    if (bar.length === 2) seg(bar[0], bar[1], '#cc79a7');
+    ctx.fillStyle = barArm ? '#cc79a7' : '#d55e00';
+    taps.forEach((p) => { ctx.beginPath(); ctx.arc(p[0], p[1], lwid * 2.5, 0, 2 * Math.PI); ctx.fill(); });
+    if (taps.length >= 2 && !barArm) seg(taps[0], taps[1], '#d55e00');
+  }
+
+  function findSpores() {
+    if (!px) return;
+    const k = ppu(), err = (m: string) => { q('.sp-err').textContent = m; q('.sp-err').hidden = false; };
+    if (!Number.isFinite(k)) return err('Draw the scale bar first, so the size limits in µm can be turned into pixels.');
+    const tStr = inp('.sp-t').value.trim(), lmin = Number(inp('.sp-lmin').value), lmax = Number(inp('.sp-lmax').value), qmax = Number(inp('.sp-qmax').value);
+    if (!(lmin >= 0 && lmax > lmin)) return err('The longest spore must be longer than the shortest.');
+    if (!(qmax >= 1)) return err('The largest Q is 1 or more.');
+    const v = luminance(px, W * H), t = tStr ? Number(tStr) : otsu(histogram(v));
+    if (!(t >= 0 && t <= 255)) return err(tStr ? 'The threshold runs from 0 to 255.' : 'The photo is one flat colour, so there is nothing to find.');
+    const b = blobs(threshold(v, t, q<HTMLSelectElement>('.sp-dark').value === '1'), W, H, 3, Infinity)
+      .filter((r) => r.major / k >= lmin && r.major / k <= lmax && r.minor > 0 && r.major / r.minor <= qmax)
+      .filter((r) => !bar.length || !(dist([r.cx, r.cy], [(bar[0][0] + bar[1][0]) / 2, (bar[0][1] + bar[1][1]) / 2]) < dist(bar[0], bar[1]) / 2 + 2));
+    push();
+    spores = [...spores.filter((s) => !s.auto), ...b.map((r) => {
+      const t = (-r.angle * Math.PI) / 180, ux = Math.cos(t), uy = Math.sin(t), A = r.major / 2, B = r.minor / 2;
+      return { a: [r.cx - ux * A, r.cy - uy * A] as Pt, b: [r.cx + ux * A, r.cy + uy * A] as Pt, c: [r.cx + uy * B, r.cy - ux * B] as Pt, d: [r.cx - uy * B, r.cy + ux * B] as Pt, auto: true };
+    })];
+    run();
+    if (!b.length) err('No spores of that size found. Change the limits, the threshold, or whether spores are darker or lighter.');
+  }
+
+  q('.sp-open').addEventListener('click', () => inp('.sp-file').click());
+  q('.sp-file').addEventListener('change', async () => {
+    const f = inp('.sp-file').files?.[0]; if (!f) return; inp('.sp-file').value = '';
+    try {
+      const p = await readPhoto(f, 1600);
+      load(p.px, p.w, p.h, p.name);
+      q('.sp-ph').textContent = p.scaled ? `The photo was scaled down from ${p.ow} × ${p.oh} to ${p.w} × ${p.h} px to keep the page quick; the scale bar is read on the same picture. It stays on your device and is never uploaded.` : PH;
+    } catch (e) { q('.sp-err').textContent = (e as Error).message; q('.sp-err').hidden = false; }
+  });
+  function loadExample() {
+    const e = exampleSpores();
+    inp('.sp-len').value = '10'; inp('.sp-t').value = ''; inp('.sp-lmin').value = '2'; inp('.sp-lmax').value = '100'; inp('.sp-qmax').value = '4'; q<HTMLSelectElement>('.sp-dark').value = '1';
+    load(e.px, e.w, e.h, 'example-spores');
+    bar = e.bar; barArm = false; findSpores(); history = [];
+    q('.sp-ph').textContent = 'Made-up example: 24 spores drawn at 10 px per µm with a 10 µm scale bar (bottom right), measured automatically. ' + PH;
+  }
+  q('.sp-ex').addEventListener('click', loadExample);
+  q('.sp-line').addEventListener('click', () => { barArm = !barArm; taps = []; run(); });
+  q('.sp-kind').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!b) return; kind = b.dataset.k as 'm' | 'x'; taps = []; root.querySelectorAll('.sp-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); });
+  q('.sp-photo').addEventListener('click', (ev) => {
+    if (!base) return;
+    const p = tapAt(ev, q<HTMLCanvasElement>('.sp-photo'), W, H);
+    if (barArm) {
+      taps.push(p);
+      if (taps.length === 2) { if (dist(taps[0], taps[1]) >= 5) { bar = taps; barArm = false; } taps = []; }
+      run(); return;
+    }
+    if (kind === 'x') {
+      let best = -1, bd = Infinity;
+      spores.forEach((s, i) => { const d = dist(mid(s), p); if (d < bd) { bd = d; best = i; } });
+      const sp = best >= 0 ? spores[best] : null;
+      if (sp && bd <= Math.max(10, dist(sp.a, sp.b) / 2 + 4)) { push(); spores.splice(best, 1); }
+      run(); return;
+    }
+    taps.push(p);
+    if (taps.length === 4) {
+      const [a, b, c, d] = taps; taps = [];
+      if (dist(a, b) < 2 || dist(c, d) < 1) { q('.sp-err').textContent = 'Those taps were too close together; measure that spore again.'; q('.sp-err').hidden = false; draw(); step(); return; }
+      push(); spores.push({ a, b, c, d, auto: false });
+    }
+    run();
+  });
+  q('.sp-undo').addEventListener('click', () => { if (taps.length) { taps.pop(); run(); return; } const h = history.pop(); if (h) { spores = h; run(); } });
+  q('.sp-clear').addEventListener('click', () => { if (!spores.length) return; push(); spores = []; taps = []; run(); });
+  q('.sp-auto').addEventListener('click', findSpores);
+  q('.sp-mid').addEventListener('change', run);
+  let timer = 0;
+  q('.sp-len').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 250); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.sp-out').hidden) paint(q<HTMLCanvasElement>('.sp-fig'), fig); });
+  q('.sp-csv').addEventListener('click', () => {
+    const k = ppu();
+    save(new Blob([csv([['spore', 'length_um', 'width_um', 'Q', 'method', 'centre_x_px', 'centre_y_px'], ...spores.map((s, i) => { const [l, w] = lw(s, k); const m = mid(s); return [i + 1, l.toFixed(3), w.toFixed(3), (l / w).toFixed(3), s.auto ? 'fitted' : 'tapped', m[0].toFixed(1), m[1].toFixed(1)]; })])], { type: 'text/csv' }), `${fileSafe(name)}-spore-sizes.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Spore size', subtitle: q('.sp-big').textContent ?? '', file: `${fileSafe(name)}-spore-size`, sections }));
+</script>
+
+<style is:global>
+  .spm .sp-photo { display: block; width: 100%; height: auto; margin-top: 8px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
+  .spm .sp-big { font-size: 17px; font-weight: 650; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .spm .sp-step { color: var(--ink); font-weight: 600; }
+  .spm select { max-width: 100%; }
+</style>

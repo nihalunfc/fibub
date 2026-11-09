@@ -1,0 +1,210 @@
+---
+// Spin-½ and Bloch sphere: gate sequences as rotations, and Rabi oscillations with optional T1/T2 relaxation.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax blo">
+  <div class="ax-card">
+    <h2>Gates and rotations</h2>
+    <div class="ax-grid">
+      <label>Start state <select class="bl-start">
+        <option value="0" selected>|0⟩ (spin up, north pole)</option><option value="1">|1⟩ (spin down)</option><option value="+">|+⟩</option><option value="-">|−⟩</option><option value="+i">|+i⟩</option><option value="-i">|−i⟩</option><option value="ang">Angles θ and φ</option>
+      </select></label>
+      <label class="bl-angl" hidden>θ from +z (°) <input class="bl-th" type="text" inputmode="decimal" value="60" /></label>
+      <label class="bl-angl" hidden>φ from +x (°) <input class="bl-ph" type="text" inputmode="decimal" value="45" /></label>
+    </div>
+    <label style="margin-top:10px">Gates, in order (separate with ; or new lines) <textarea class="bl-gates" rows="2" spellcheck="false">H; T; Rx(90)</textarea></label>
+    <div class="ax-row bl-add" style="margin-top:8px">
+      <button type="button" class="btn secondary small" data-g="H">H</button><button type="button" class="btn secondary small" data-g="X">X</button><button type="button" class="btn secondary small" data-g="Y">Y</button><button type="button" class="btn secondary small" data-g="Z">Z</button><button type="button" class="btn secondary small" data-g="S">S</button><button type="button" class="btn secondary small" data-g="T">T</button><button type="button" class="btn secondary small" data-g="Rx(90)">Rx</button><button type="button" class="btn secondary small" data-g="Ry(90)">Ry</button><button type="button" class="btn secondary small" data-g="Rz(90)">Rz</button><button type="button" class="btn secondary small bl-undo">Undo</button><button type="button" class="btn secondary small bl-clr">Clear</button>
+    </div>
+    <p class="ax-help">Gates: H, X, Y, Z, S, S†, T, T†, √X, Rx(θ), Ry(θ), Rz(θ) and R(θ, x, y, z) about any axis. Angles are in degrees, or in radians when you write pi (Rx(pi/2)). Every single-qubit gate is a rotation of the Bloch sphere; a global phase does not show on the sphere and is left out.</p>
+    <p class="ax-err bl-err" hidden></p>
+    <div class="bl-gout">
+      <p class="ax-big bl-big"></p>
+      <dl class="ax-facts bl-facts"></dl>
+      <canvas class="ax-fig bl-sph" style="margin-top:12px;max-width:440px"></canvas>
+      <div class="ax-scroll" style="margin-top:10px"><table class="bl-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rabi oscillations</h2>
+    <div class="ax-grid">
+      <label>Rabi frequency Ω/2π (MHz) <input class="bl-W" type="text" inputmode="decimal" value="1" /></label>
+      <label>Detuning Δ/2π (MHz) <input class="bl-D" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Drive time (µs) <input class="bl-t" type="text" inputmode="decimal" value="3" /></label>
+      <label>T1 (µs, blank: none) <input class="bl-T1" type="text" inputmode="decimal" value="" /></label>
+      <label>T2 (µs, blank: none, or 2 × T1) <input class="bl-T2" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">The qubit starts in |0⟩ and is driven at Rabi frequency Ω, detuned by Δ from resonance (rotating frame). T1 is the energy relaxation time back to |0⟩, T2 the dephasing time; physically T2 ≤ 2T1. MHz and µs go together; any matching pair works (GHz and ns, kHz and ms). Example values are made up.</p>
+    <p class="ax-err bl-rerr" hidden></p>
+    <div class="bl-rout">
+      <p class="ax-big bl-rbig"></p>
+      <dl class="ax-facts bl-rfacts"></dl>
+      <canvas class="ax-fig bl-rfig" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig bl-rsph" style="margin-top:12px;max-width:440px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bl-csv">Download P₁(t) (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>View</h2>
+    <div class="ax-grid">
+      <label>Turn the spheres (°) <input class="bl-az" type="range" min="-180" max="180" value="-35" /></label>
+      <label>Tilt the spheres (°) <input class="bl-el" type="range" min="-60" max="60" value="20" /></label>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .blo label[hidden] { display: none; }
+  .blo input[type=range] { width: 100%; accent-color: var(--accent); }
+  .blo .bl-add .btn { min-width: 44px; }
+</style>
+
+<script>
+  import { parseGates, runGates, fromAngles, blochOf, anglesOf, blochRun, rabiP1, steadyP1, STARTS, type Vec, type Spinor } from '../../lib/sci/phbloch';
+  import { fmtC } from '../../lib/sci/phq';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.blo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g4 = (x: number) => String(+(Math.abs(x) < 5e-13 ? 0 : x).toFixed(4)).replace('-', '−');
+  const gs = (x: number, d = 4) => String(+x.toPrecision(d)).replace('-', '−');
+  const deg = (r: number) => `${g4((r * 180) / Math.PI)}°`;
+  let gPaths: Vec[][] = [], gFinal: Vec = [0, 0, 1], gStart: Vec = [0, 0, 1], rPath: Vec[] = [], rAxis: Vec = [1, 0, 0];
+  let figG: Figure | null = null, figR: Figure | null = null, figRS: Figure | null = null, gReport: Section[] = [], rReport: Section[] = [], rRows: (string | number)[][] = [];
+
+  /** A Bloch sphere picture: wire frame, axes, paths (front solid, back faint) and the state arrow. */
+  function sphere(title: string, paths: Vec[][], arrow: Vec | null, start: Vec | null, axis: Vec | null): Figure {
+    const az = (+inp('.bl-az').value * Math.PI) / 180, el = (+inp('.bl-el').value * Math.PI) / 180;
+    const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+    // Viewer looks along −(screen depth). Screen X right, Y up, D towards the viewer.
+    const P = (v: Vec): [number, number, number] => { const x1 = ca * v[0] - sa * v[1], y1 = sa * v[0] + ca * v[1]; return [y1, ce * v[2] - se * x1, se * v[2] + ce * x1]; };
+    return {
+      w: 440, h: 440, alt: title,
+      draw: (ctx, W, H, pal) => {
+        const R = Math.min(W, H) * 0.36, cx = W / 2, cy = H / 2 + 8;
+        const S = (v: Vec) => { const [a, b, d] = P(v); return [cx + a * R, cy - b * R, d] as const; };
+        ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(title, 0, 16);
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+        const ring = (f: (t: number) => Vec, dash: boolean) => { for (let k = 0; k < 72; k++) { const a = S(f((k / 72) * 2 * Math.PI)), b = S(f(((k + 1) / 72) * 2 * Math.PI)); ctx.setLineDash(a[2] < 0 && dash ? [3, 4] : []); ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } ctx.setLineDash([]); };
+        ring((t) => [Math.cos(t), Math.sin(t), 0], true); ring((t) => [Math.cos(t), 0, Math.sin(t)], true); ring((t) => [0, Math.cos(t), Math.sin(t)], true);
+        ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center';
+        for (const [v, t] of [[[1.25, 0, 0], 'x |+⟩'], [[0, 1.25, 0], 'y |+i⟩'], [[0, 0, 1.18], '|0⟩'], [[0, 0, -1.22], '|1⟩']] as [Vec, string][]) {
+          const o = S([0, 0, 0]), e = S(v.map((x) => x / Math.hypot(...v)) as Vec), l = S(v);
+          ctx.strokeStyle = pal.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(e[0], e[1]); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = pal.muted; ctx.fillText(t, l[0], l[1] + 4);
+        }
+        if (axis) { const a = S(axis.map((x) => -x * 1.1) as Vec), b = S(axis.map((x) => x * 1.1) as Vec); ctx.strokeStyle = pal.good; ctx.lineWidth = 1.5; ctx.setLineDash([6, 3]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = pal.good; ctx.fillText('drive axis', b[0], b[1] - 6); }
+        paths.forEach((p, i) => {
+          ctx.lineWidth = 2;
+          for (let k = 0; k + 1 < p.length; k++) { const a = S(p[k]), b = S(p[k + 1]); ctx.strokeStyle = i % 2 ? pal.accent2 : pal.accent; ctx.globalAlpha = a[2] < 0 ? 0.35 : 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+          ctx.globalAlpha = 1;
+        });
+        if (start) { const s = S(start); ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.arc(s[0], s[1], 4, 0, 2 * Math.PI); ctx.fill(); }
+        if (arrow) {
+          const o = S([0, 0, 0]), e = S(arrow), ang = Math.atan2(e[1] - o[1], e[0] - o[0]);
+          ctx.strokeStyle = pal.bad; ctx.fillStyle = pal.bad; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(e[0], e[1]); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(e[0], e[1]); ctx.lineTo(e[0] - 11 * Math.cos(ang - 0.4), e[1] - 11 * Math.sin(ang - 0.4)); ctx.lineTo(e[0] - 11 * Math.cos(ang + 0.4), e[1] - 11 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill();
+        }
+      },
+    };
+  }
+
+  function gates() {
+    const err = q('.bl-err'), out = q('.bl-gout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; gReport = []; };
+    const st = q<HTMLSelectElement>('.bl-start').value;
+    root.querySelectorAll<HTMLElement>('.bl-angl').forEach((e) => { e.hidden = st !== 'ang'; });
+    let start: Spinor, startName: string;
+    if (st === 'ang') {
+      const th = num(inp('.bl-th').value), ph = num(inp('.bl-ph').value);
+      if (!Number.isFinite(th) || !Number.isFinite(ph)) return fail('Give the start angles θ and φ in degrees.');
+      start = fromAngles((th * Math.PI) / 180, (ph * Math.PI) / 180); startName = `θ = ${th}°, φ = ${ph}°`;
+    } else { start = fromAngles(STARTS[st][0], STARTS[st][1]); startName = STARTS[st][2]; }
+    let gs;
+    try { gs = parseGates(q<HTMLTextAreaElement>('.bl-gates').value); } catch (e) { return fail((e as Error).message); }
+    if (gs.length > 200) return fail('Use at most 200 gates.');
+    err.hidden = true; out.hidden = false;
+    const r = runGates(start, gs);
+    const fin = r.states[r.states.length - 1], v = blochOf(fin), a = anglesOf(v), p1 = Math.abs(fin[1][0]) ** 2 + Math.abs(fin[1][1]) ** 2;
+    // Show the state with a real, non-negative |0⟩ amplitude (global phase removed).
+    const ph0 = Math.atan2(fin[0][1], fin[0][0]), rot = (z: [number, number]): [number, number] => [z[0] * Math.cos(-ph0) - z[1] * Math.sin(-ph0), z[0] * Math.sin(-ph0) + z[1] * Math.cos(-ph0)];
+    const shown = Math.hypot(...fin[0]) > 1e-12 ? [rot(fin[0]), rot(fin[1])] : [[0, 0] as [number, number], [1, 0] as [number, number]];
+    q('.bl-big').textContent = `${fmtC(shown[0], 4)} |0⟩ + (${fmtC(shown[1], 4)}) |1⟩`;
+    const facts = [
+      fact('Bloch vector (x, y, z)', `(${g4(v[0])}, ${g4(v[1])}, ${g4(v[2])})`, `from ${startName} after ${gs.length} gate${gs.length === 1 ? '' : 's'}`),
+      fact('Angles θ, φ', `${deg(a.th)}, ${deg(a.ph)}`, 'θ from |0⟩ (north), φ round from +x'),
+      fact('P(0), P(1)', `${g4(1 - p1)}, ${g4(p1)}`, 'measuring along z'),
+      fact('P(+) and P(+i)', `${g4((1 + v[0]) / 2)}, ${g4((1 + v[1]) / 2)}`, 'measuring along x and along y'),
+    ];
+    q('.bl-facts').replaceChildren(...facts);
+    const t = q<HTMLTableElement>('.bl-tab'); t.replaceChildren();
+    const head = ['Step', 'Gate', 'x', 'y', 'z', 'P(1)'], rows = r.states.map((s, i) => { const b = blochOf(s); return [String(i), i ? gs[i - 1].label : 'start', g4(b[0]), g4(b[1]), g4(b[2]), g4((1 - b[2]) / 2)]; });
+    const hr = t.insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    rows.forEach((rw) => { const tr = t.insertRow(); rw.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j > 1) td.className = 'r'; }); });
+    gPaths = r.path; gFinal = v; gStart = blochOf(start);
+    drawG();
+    gReport = [{ title: `Gates: ${q('.bl-big').textContent}`, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!]), figure: figG!, table: { head, rows, align: ['r', 'l', 'r', 'r', 'r', 'r'] } }];
+  }
+  const drawG = () => { figG = sphere('Gate path (colours alternate per gate)', gPaths, gFinal, gStart, null); paint(q<HTMLCanvasElement>('.bl-sph'), figG); if (gReport[0]) gReport[0].figure = figG; };
+
+  function rabi() {
+    const err = q('.bl-rerr'), out = q('.bl-rout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; rReport = []; };
+    const f = num(inp('.bl-W').value), d = num(inp('.bl-D').value), T = num(inp('.bl-t').value);
+    const t1s = inp('.bl-T1').value.trim(), t2s = inp('.bl-T2').value.trim(), T1 = t1s ? num(t1s) : Infinity, T2 = t2s ? num(t2s) : Number.isFinite(T1) ? 2 * T1 : Infinity;
+    if (!(f > 0)) return fail('Give a Rabi frequency greater than 0.');
+    if (!Number.isFinite(d)) return fail('Give the detuning (0 for resonance).');
+    if (!(T > 0)) return fail('Give a drive time greater than 0.');
+    if (!(T1 > 0) || !(T2 > 0)) return fail('T1 and T2 must be greater than 0, or blank (T2 blank with a T1 means T2 = 2 × T1).');
+    if (T2 > 2 * T1 * (1 + 1e-12)) return fail('T2 cannot be longer than 2 × T1.');
+    if (f * T > 2000 || Math.abs(d) * T > 2000) return fail('That is more than 2,000 oscillations: shorten the drive time.');
+    err.hidden = true; out.hidden = false;
+    const W = 2 * Math.PI * f, D = 2 * Math.PI * d, WR = Math.hypot(W, D), damped = Number.isFinite(T1) || Number.isFinite(T2);
+    const steps = Math.min(200000, Math.max(2000, Math.ceil((WR * T) / (2 * Math.PI) * 200)));
+    const run = blochRun(W, D, T, T1, T2, [0, 0, 1], steps);
+    const P1 = run.r.map((r) => (1 - r[2]) / 2), Pend = P1[P1.length - 1];
+    q('.bl-rbig').textContent = `P(1) at ${gs(T, 4)} µs = ${g4(Pend)}`;
+    const ss = Number.isFinite(T1) && Number.isFinite(T2) ? steadyP1(W, D, T1, T2) : Number.isFinite(T1) ? steadyP1(W, D, T1, 1e-300) : NaN;
+    const facts = [
+      fact('π-pulse length', `${gs(0.5 / f, 4)} µs`, `on resonance a drive of 1/(2 × Ω/2π) flips |0⟩ to |1⟩`),
+      fact('Generalised Rabi frequency', `${gs(WR / (2 * Math.PI), 4)} MHz`, `√(Ω² + Δ²)/2π; period ${gs((2 * Math.PI) / WR, 4)} µs`),
+      fact('Largest P(1) without decay', g4((W * W) / (WR * WR)), 'Ω² / (Ω² + Δ²): detuning stops a full flip'),
+      fact('P(1) without decay at the end', g4(rabiP1(W, D, T)), '(Ω²/Ω_R²) sin²(Ω_R t / 2)'),
+      ...(damped ? [fact('Steady state P(1)', Number.isFinite(ss) ? g4(ss) : '–', Number.isFinite(T1) ? 'where the damped oscillation settles (Torrey)' : 'needs T1')] : []),
+    ];
+    q('.bl-rfacts').replaceChildren(...facts);
+    const stride = Math.max(1, Math.floor(run.t.length / 1200)), ts: number[] = [], ps: number[] = [], pa: number[] = [];
+    rRows = [['t_us', 'P1', 'x', 'y', 'z']];
+    for (let i = 0; i < run.t.length; i += stride) { ts.push(run.t[i]); ps.push(P1[i]); pa.push(rabiP1(W, D, run.t[i])); rRows.push([+run.t[i].toPrecision(6), +P1[i].toPrecision(8), +run.r[i][0].toPrecision(8), +run.r[i][1].toPrecision(8), +run.r[i][2].toPrecision(8)]); }
+    figR = chartFigure({ w: 520, h: 250, xLabel: 'Time (µs)', yLabel: 'P(1)', yMin: 0, yMax: 1, xMin: 0, xMax: T, legend: 'below', series: [
+      ...(damped ? [{ name: 'With T1, T2', x: ts, y: ps, mode: 'line' as const, width: 2 }] : []),
+      { name: damped ? 'No decay' : 'P(1)', x: ts, y: pa, mode: 'line', width: damped ? 1.2 : 2, dash: damped ? [5, 3] : undefined },
+    ], marks: Number.isFinite(ss) && damped ? [{ kind: 'hline', at: ss, dash: [2, 3], label: 'steady' }] : [] }, 'Excited-state probability against time');
+    paint(q<HTMLCanvasElement>('.bl-rfig'), figR);
+    rPath = run.r.filter((_, i) => i % Math.max(1, Math.floor(run.r.length / 800)) === 0); rAxis = [W / WR, 0, D / WR];
+    drawR();
+    rReport = [{ title: `Rabi: ${q('.bl-rbig').textContent}`, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!]), figure: figR }, { title: 'Rabi path on the Bloch sphere', figure: figRS! }];
+  }
+  const drawR = () => { figRS = sphere('Rabi path (rotating frame)', [rPath], rPath[rPath.length - 1] ?? null, [0, 0, 1], rAxis); paint(q<HTMLCanvasElement>('.bl-rsph'), figRS); if (rReport[1]) rReport[1].figure = figRS; };
+
+  let tm = 0, tr = 0;
+  q('.bl-start').addEventListener('change', gates);
+  for (const c of ['.bl-th', '.bl-ph', '.bl-gates']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(gates, 250); });
+  for (const c of ['.bl-W', '.bl-D', '.bl-t', '.bl-T1', '.bl-T2']) q(c).addEventListener('input', () => { clearTimeout(tr); tr = window.setTimeout(rabi, 250); });
+  root.querySelectorAll<HTMLButtonElement>('.bl-add [data-g]').forEach((b) => b.addEventListener('click', () => { const t = q<HTMLTextAreaElement>('.bl-gates'); t.value = (t.value.trim() ? t.value.trim().replace(/;$/, '') + '; ' : '') + b.dataset.g; gates(); }));
+  q('.bl-undo').addEventListener('click', () => { const t = q<HTMLTextAreaElement>('.bl-gates'); const parts = t.value.split(/[;\n]/).map((s) => s.trim()).filter(Boolean); parts.pop(); t.value = parts.join('; '); gates(); });
+  q('.bl-clr').addEventListener('click', () => { q<HTMLTextAreaElement>('.bl-gates').value = ''; gates(); });
+  for (const c of ['.bl-az', '.bl-el']) q(c).addEventListener('input', () => { if (!q('.bl-gout').hidden) drawG(); if (!q('.bl-rout').hidden) drawR(); });
+  q('.bl-csv').addEventListener('click', () => save(new Blob([csv(rRows)], { type: 'text/csv' }), 'rabi.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.bl-gout').hidden) drawG(); if (!q('.bl-rout').hidden) { drawR(); rabi(); } });
+  gates(); rabi();
+  wireDownloads(q('.dl'), () => ({ title: 'Spin and Bloch sphere', subtitle: q('.bl-big').textContent ?? '', file: 'bloch-sphere', sections: [...gReport, ...rReport] }));
+</script>

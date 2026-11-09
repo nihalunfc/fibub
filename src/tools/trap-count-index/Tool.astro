@@ -1,0 +1,183 @@
+---
+// Insect trap counts to a population index: catch per trap per day (night or week), centred moving averages,
+// flight peaks, site and week comparisons, and threshold flags you set. The example season is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `date	site	traps	count
+2026-05-04	North orchard	3	7
+2026-05-11	North orchard	3	28
+2026-05-18	North orchard	3	77
+2026-05-25	North orchard	3	137
+2026-06-01	North orchard	3	83
+2026-06-08	North orchard	3	59
+2026-06-15	North orchard	2	62
+2026-06-22	North orchard	3	177
+2026-06-29	North orchard	3	203
+2026-07-06	North orchard	3	149
+2026-07-13	North orchard	3	101
+2026-07-20	North orchard	3	39
+2026-07-27	North orchard	3	13
+2026-08-03	North orchard	3	8
+2026-05-05	South orchard	2	5
+2026-05-12	South orchard	2	19
+2026-05-19	South orchard	2	44
+2026-05-26	South orchard	2	71
+2026-06-02	South orchard	2	48
+2026-06-09	South orchard	2	10
+2026-06-16	South orchard	2	10
+2026-06-23	South orchard	2	16
+2026-06-30	South orchard	2	39
+2026-07-07	South orchard	2	75
+2026-07-14	South orchard	2	98
+2026-07-21	South orchard	2	78
+2026-07-28	South orchard	2	39
+2026-08-04	South orchard	2	15`;
+---
+<div class="ax tci">
+  <div class="ax-card">
+    <h2>Trap checks</h2>
+    <label>Date, site, number of traps, insects caught, and (optional) days the traps were out. One check per row. A header row naming the columns lets them come in any order.
+      <textarea class="tci-data" rows="9" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".tci-data" maxCols={20} maxRows={20000} />
+    <p class="ax-help">The example is a made-up season of weekly pheromone-trap checks in two orchards; in mid-June one North trap was lost, so that week has 2 traps.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Index <select class="tci-per"><option value="day" selected>per trap per day</option><option value="night">per trap per night</option><option value="week">per trap per week</option></select></label>
+      <label>Days before the first check <input class="tci-first" inputmode="decimal" value="7" /></label>
+      <label>Moving average <select class="tci-win"><option value="1">None</option><option value="3" selected>3 checks</option><option value="5">5 checks</option></select></label>
+      <label>Flag at or above (index) <input class="tci-thr" inputmode="decimal" value="5" placeholder="no flags" /></label>
+      <label>Peak must reach (% of top) <input class="tci-share" inputmode="decimal" value="20" /></label>
+      <label>Dates like 04/05/2026 are <select class="tci-dmy"><option value="dmy" selected>day/month/year</option><option value="mdy">month/day/year</option></select></label>
+    </div>
+    <p class="ax-help">The <b>index</b> is catch ÷ (traps × days out), so checks with lost traps or longer gaps compare fairly. Days come from the days column if there is one, else from the gap since the site's previous check; the first check of each site uses <b>days before the first check</b>. The <b>moving average</b> is centred on each check and smooths week-to-week noise. A <b>flight peak</b> is a check where the smoothed index is higher than at the checks either side and at least the share of the site's top you set. The <b>flag</b> level is yours to choose (for example an action threshold from your local advisory service); the 5 on the page is only an example.</p>
+    <p class="ax-err tci-err" hidden></p>
+  </div>
+
+  <div class="ax-card tci-out">
+    <h2>Population index</h2>
+    <p class="ax-big tci-big"></p>
+    <canvas class="ax-fig tci-fig" style="margin-top:8px"></canvas>
+    <h3>Sites compared</h3>
+    <div class="ax-scroll"><table class="tci-sites"></table></div>
+    <p class="ax-help">Season index = total catch ÷ total trap-days, so long or busy checks count for more; the mean of checks gives every check the same weight.</p>
+    <h3>Week by week</h3>
+    <div class="ax-scroll"><table class="tci-weeks"></table></div>
+    <h3>Every check</h3>
+    <div class="ax-scroll tci-scroll"><table class="tci-checks"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tci-csv">Download checks (CSV)</button><button type="button" class="btn secondary small tci-wcsv">Download weeks (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .tci .tci-scroll { max-height: 420px; overflow-y: auto; }
+  .tci td .ax-pill { margin-left: 4px; }
+</style>
+
+<script>
+  import { trapIndex, summarise, byWeek, type TrapRow, type IndexRow } from '../../lib/sci/trapcount';
+  import { readDate } from '../../lib/sci/degdays';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tci')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f2 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2)) : '–');
+  const nice = (iso: string) => (iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '–');
+  const DARK_COLS = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], wRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: (string | Node)[][], right: number[]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (typeof c === 'string') td.textContent = c; else td.append(c); if (right.includes(i)) td.className = 'r'; }); });
+  }
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = `ax-pill ${cls}`; s.textContent = t; return s; };
+
+  function read(): { rows: TrapRow[]; skipped: number } {
+    const all = parseTable(q<HTMLTextAreaElement>('.tci-data').value), mdy = q<HTMLSelectElement>('.tci-dmy').value === 'mdy';
+    if (!all.length) return { rows: [], skipped: 0 };
+    let iD = 0, iS = 1, iT = 2, iC = 3, iN = 4, body = all;
+    const head = all[0].map((c) => c.toLowerCase());
+    if (!readDate(all[0][0] ?? '', mdy) && head.some((c) => /trap|count|catch|site|date/.test(c))) {
+      const f = (re: RegExp) => head.findIndex((c) => re.test(c));
+      iD = f(/date|day$|when/); iS = f(/site|location|place|field|plot/); iT = f(/^traps?$|^n.?traps|number of traps|traps/); iC = f(/count|catch|caught|insects|moths|total/); iN = f(/days|nights|exposure|interval/);
+      if (iT === iC) iT = f(/^traps?$/);
+      body = all.slice(1);
+    } else if ((all[0].length === 3 || all[0].length === 4 && Number.isFinite(num(all[0][1]))) ) { iS = -1; iT = 1; iC = 2; iN = all[0].length === 4 ? 3 : -1; }
+    if (iD < 0 || iT < 0 || iC < 0) throw new Error('The header row needs date, traps and count columns (site and days are optional).');
+    let skipped = 0;
+    const rows: TrapRow[] = [];
+    for (const r of body) {
+      const date = readDate(r[iD] ?? '', mdy), traps = num(r[iT]), count = num(r[iC]), days = iN >= 0 ? num(r[iN]) : NaN;
+      if (!date || !Number.isFinite(traps) || !Number.isFinite(count)) { skipped++; continue; }
+      if (traps < 0 || count < 0) throw new Error(`${date}: traps and count cannot be negative.`);
+      rows.push({ date, site: iS >= 0 ? (r[iS] || 'Site') : 'Site', traps, count, ...(Number.isFinite(days) ? { days } : {}) });
+    }
+    return { rows, skipped };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.tci-err').textContent = m; q('.tci-err').hidden = false; q('.tci-out').hidden = true; fig = null; sections = []; csvRows = []; wRows = []; };
+    q('.tci-err').hidden = true;
+    let data: ReturnType<typeof read>;
+    try { data = read(); } catch (e) { return fail((e as Error).message); }
+    const { rows, skipped } = data;
+    if (rows.length > 20000) return fail('Up to 20,000 checks, please.');
+    if (!rows.length) return fail('No checks found. Use columns date, site, traps, count (and optionally days), one check per row.');
+    const seen = new Set<string>();
+    for (const r of rows) { const k = r.site + '|' + r.date; if (seen.has(k)) return fail(`${r.site} has two checks on ${r.date}. Add them together into one row.`); seen.add(k); }
+    const perKey = q<HTMLSelectElement>('.tci-per').value, per = perKey === 'week' ? 7 : 1, unit = `per trap per ${perKey}`;
+    const firstDays = num(q<HTMLInputElement>('.tci-first').value);
+    if (!(firstDays > 0)) return fail('Days before the first check must be above 0.');
+    const thrTxt = q<HTMLInputElement>('.tci-thr').value.trim(), threshold = thrTxt ? num(thrTxt) : NaN;
+    if (thrTxt && !(threshold >= 0)) return fail('The flag level must be a number of 0 or more (or leave it blank).');
+    const share = num(q<HTMLInputElement>('.tci-share').value);
+    if (!(share >= 0 && share <= 100)) return fail('The peak share must be from 0 to 100 %.');
+    const window = Number(q<HTMLSelectElement>('.tci-win').value);
+    const out: IndexRow[] = trapIndex(rows, { firstDays, window, per, threshold, peakShare: share / 100 });
+    const bad = out.find((r) => !(r.trapDays > 0));
+    if (bad) return fail(`${bad.site}, ${bad.date}: traps × days is zero, so no index can be worked out. Check the traps and days.`);
+    q('.tci-out').hidden = false;
+    const sm = summarise(out, per), sites = sm.map((s) => s.site);
+    q('.tci-big').textContent = sm.map((s) => `${s.site}: ${f2(s.index)}`).join('; ') + ` insects ${unit} over the season`;
+
+    const t0 = Math.min(...out.map((r) => Date.parse(r.date))), first = new Date(t0).toISOString().slice(0, 10), xd = (d: string) => (Date.parse(d) - t0) / 864e5;
+    // Each site's points and its smoothed line share a colour, picked from the palette of the page's theme.
+    const make = (cols: string[]) => chartFigure({ h: 320, xLabel: `Days from ${nice(first)}`, yLabel: `Insects ${unit}`, yMin: 0, legend: 'below',
+      series: sites.flatMap((s, i) => { const rs = out.filter((r) => r.site === s), col = cols[i % cols.length]; return [
+        { name: s, x: rs.map((r) => xd(r.date)), y: rs.map((r) => r.index), mode: 'points' as const, color: col, marker: (['circle', 'square', 'triangle', 'diamond'] as const)[i % 4] },
+        ...(window > 1 ? [{ name: '', x: rs.map((r) => xd(r.date)), y: rs.map((r) => r.smooth), mode: 'line' as const, color: col }] : [])]; }),
+      marks: Number.isFinite(threshold) ? [{ kind: 'hline', at: threshold, dash: [5, 4], label: 'flag level' }] : [] }, '');
+    const base = make(OKABE_ITO);
+    fig = { w: base.w, h: base.h, alt: 'Trap index through the season, points per check' + (window > 1 ? ' with the moving average' : ''),
+      draw: (ctx, w, h, pal) => make(pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : DARK_COLS).draw(ctx, w, h, pal) };
+    paint(q<HTMLCanvasElement>('.tci-fig'), fig);
+
+    const sHead = ['Site', 'Checks', 'Catch', 'Trap-days', 'Season index', 'Mean of checks', 'Highest', 'Flight peaks', 'First flag'];
+    const sRows = sm.map((s) => [s.site, String(s.checks), String(s.catch), sig(s.trapDays, 6), f2(s.index), f2(s.meanIndex), `${f2(s.maxIndex)} (${nice(s.maxDate)})`, s.peaks.map(nice).join(', ') || 'none', Number.isFinite(threshold) ? (s.firstFlag ? `${nice(s.firstFlag)} (${s.flagged} checks)` : 'never') : '–']);
+    table('.tci-sites', sHead, sRows, [1, 2, 3, 4, 5, 6]);
+    const wk = byWeek(out, per), wHead = ['Week', ...wk.sites];
+    const wTab = wk.weeks.map((w, i) => [w, ...wk.cell[i].map((v) => (v == null ? '–' : f2(v)))]);
+    table('.tci-weeks', wHead, wTab, wk.sites.map((_, i) => i + 1));
+    const cHead = ['Site', 'Date', 'Traps', 'Days', 'Catch', 'Index', ...(window > 1 ? ['Smoothed'] : []), 'Notes'];
+    const cRows = out.map((r) => [r.site, r.date, sig(r.traps, 6), sig(r.days, 6), String(r.count), f2(r.index), ...(window > 1 ? [f2(r.smooth)] : []), [r.peak ? 'peak' : '', r.flagged ? 'flag' : ''].filter(Boolean).join(', ')]);
+    table('.tci-checks', cHead, out.map((r, k) => { const c: (string | Node)[] = cRows[k].slice(0, -1); const span = document.createElement('span'); if (r.peak) span.append(pill('peak', 'good')); if (r.flagged) span.append(pill('flag', 'bad')); c.push(span); return c; }), [2, 3, 4, 5, 6]);
+
+    csvRows = [['site', 'date', 'traps', 'days', 'count', 'trap_days', `index_per_trap_per_${perKey}`, 'smoothed', 'peak', 'flagged'], ...out.map((r) => [r.site, r.date, String(r.traps), String(r.days), String(r.count), String(r.trapDays), r.index.toFixed(6), r.smooth.toFixed(6), r.peak ? '1' : '0', r.flagged ? '1' : '0'])];
+    wRows = [['iso_week', ...wk.sites], ...wk.weeks.map((w, i) => [w, ...wk.cell[i].map((v) => (v == null ? '' : v.toFixed(6)))])];
+    sections = [{ title: q('.tci-big').textContent!, text: [`Index = catch ÷ (traps × days)${per === 7 ? ' × 7' : ''}. ${window > 1 ? `Centred moving average over ${window} checks.` : 'No smoothing.'}${Number.isFinite(threshold) ? ` Flag level ${sig(threshold, 4)}.` : ''}${skipped ? ` ${skipped} unreadable rows skipped.` : ''}`], figure: fig, table: { head: sHead, rows: sRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'l', 'l'] } },
+      { title: 'Week by week', table: { head: wHead, rows: wTab, align: ['l', ...wk.sites.map(() => 'r' as const)] } },
+      { title: 'Every check', table: { head: cHead, rows: cRows, align: cHead.map((_, i) => (i >= 2 && i < cHead.length - 1 ? 'r' : 'l')) } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.tci-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'trap-index-checks.csv', 'text/csv'); });
+  q('.tci-wcsv').addEventListener('click', () => { if (wRows.length) save(new TextEncoder().encode(toCsv(wRows)), 'trap-index-weeks.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tci-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Trap count index', subtitle: q('.tci-big').textContent ?? '', file: 'trap-index', sections }));
+</script>

@@ -1,0 +1,137 @@
+---
+// Superconductor calculator: BCS gap from Tc and its temperature dependence, London depth, coherence length,
+// κ and the critical fields. The example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax scc">
+  <div class="ax-card">
+    <h2>Superconductor</h2>
+    <div class="ax-grid">
+      <label><span>Critical temperature T_c (K)</span> <input class="sc-tc" type="text" inputmode="decimal" value="9.2" /></label>
+      <label><span>Temperature T (K)</span> <input class="sc-t" type="text" inputmode="decimal" value="4.2" /></label>
+      <label><span>Gap ratio 2Δ₀ / k_BT_c</span> <input class="sc-r" type="text" inputmode="decimal" value="3.528" /></label>
+      <label>Lengths <select class="sc-mode">
+        <option value="len" selected>I know λ and ξ</option>
+        <option value="mat">Estimate from the electrons</option>
+      </select></label>
+      <label class="sc-len"><span>Penetration depth λ(0) (nm)</span> <input class="sc-lam" type="text" inputmode="decimal" value="40" /></label>
+      <label class="sc-len"><span>Coherence length ξ(0) (nm)</span> <input class="sc-xi" type="text" inputmode="decimal" value="35" /></label>
+      <label class="sc-mat" hidden><span>Superconducting electron density n (10²⁸ m⁻³)</span> <input class="sc-n" type="text" inputmode="decimal" value="1" /></label>
+      <label class="sc-mat" hidden><span>Effective mass m* (× mₑ)</span> <input class="sc-m" type="text" inputmode="decimal" value="1" /></label>
+      <label class="sc-mat" hidden><span>Fermi velocity v_F (10⁶ m/s)</span> <input class="sc-vf" type="text" inputmode="decimal" value="1" /></label>
+      <label class="sc-mat" hidden><span>Mean free path ℓ (nm, blank = clean)</span> <input class="sc-l" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">3.528 is the weak-coupling BCS value of 2Δ₀/k_BT_c; strong-coupling superconductors reach about 4 to 5. "Estimate from the electrons" uses the London depth √(m*/μ₀ne²) and the BCS coherence length ħv_F/πΔ₀, shortened by a finite mean free path (Pippard). The example values are made up.</p>
+    <p class="ax-err sc-err" hidden></p>
+  </div>
+
+  <div class="ax-card sc-out">
+    <h2>Results</h2>
+    <p class="ax-big sc-big"></p>
+    <dl class="ax-facts sc-facts"></dl>
+    <canvas class="ax-fig sc-gfig"></canvas>
+    <canvas class="ax-fig sc-bfig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sc-csv">Against temperature (CSV)</button></div>
+    <p class="ax-help">Δ(T) comes from solving the weak-coupling BCS gap equation (scaled when the gap ratio differs from 3.528). The fields use Ginzburg-Landau formulas from λ and ξ, with the empirical (1 − t²) law for their temperature dependence and the two-fluid law for λ(T). These are textbook estimates for study, good to tens of per cent, not a substitute for measurement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { gapRatio, londonDepth, bcsCoherence, pippard, glFields, lambdaT, parabolic, PHI0, KB, QE, H } from '../../lib/sci/phsc';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.scc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-300) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const fB = (b: number) => (b >= 0.1 ? `${sg(b, 3)} T` : `${sg(b * 1000, 3)} mT`);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    const mode = sel('.sc-mode');
+    root.querySelectorAll<HTMLElement>('.sc-len').forEach((e) => { e.hidden = mode !== 'len'; });
+    root.querySelectorAll<HTMLElement>('.sc-mat').forEach((e) => { e.hidden = mode !== 'mat'; });
+    const err = q('.sc-err'), out = q('.sc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const Tc = val('.sc-tc'), T = val('.sc-t'), ratio = val('.sc-r');
+    if (!(Tc > 0 && Tc <= 300)) return fail('Give the critical temperature in kelvin (above 0, up to 300).');
+    if (!(T >= 0)) return fail('Give the temperature in kelvin (0 or more).');
+    if (!(ratio >= 2 && ratio <= 10)) return fail('The gap ratio 2Δ₀/k_BT_c is normally between 3 and 6; use 3.528 for weak coupling.');
+    const gap = (ratio / 2) * KB * Tc, t = T / Tc;
+    let lam: number, xi: number, src = '';
+    if (mode === 'len') {
+      lam = val('.sc-lam') * 1e-9; xi = val('.sc-xi') * 1e-9;
+      if (!(lam > 0 && lam < 1e-3)) return fail('Give the penetration depth in nm (above 0).');
+      if (!(xi > 0 && xi < 1e-3)) return fail('Give the coherence length in nm (above 0).');
+      src = 'as typed';
+    } else {
+      const n = val('.sc-n') * 1e28, m = val('.sc-m'), vF = val('.sc-vf') * 1e6, lRaw = q<HTMLInputElement>('.sc-l').value.trim(), l = lRaw ? val('.sc-l') * 1e-9 : Infinity;
+      if (!(n > 0)) return fail('Give the electron density (in units of 10²⁸ per m³, above 0).');
+      if (!(m > 0 && m <= 1000)) return fail('Give the effective mass as a multiple of the electron mass (above 0).');
+      if (!(vF > 0 && vF < 3e8)) return fail('Give the Fermi velocity in units of 10⁶ m/s (above 0).');
+      if (lRaw && !(l > 0)) return fail('Give the mean free path in nm, or leave it blank for a clean superconductor.');
+      const lL = londonDepth(n, m), xi0 = bcsCoherence(vF, gap);
+      xi = pippard(xi0, l); lam = Number.isFinite(l) ? lL * Math.sqrt(1 + xi0 / l) : lL;
+      src = `London λ_L = ${sg(lL * 1e9, 3)} nm, BCS ξ₀ = ${sg(xi0 * 1e9, 3)} nm${Number.isFinite(l) ? `, with ℓ = ${sg(l * 1e9, 3)} nm` : ' (clean)'}`;
+    }
+    err.hidden = true; out.hidden = false;
+    const g = glFields(lam, xi, gap), dT = t < 1 ? gapRatio(t) : 0, meV = (x: number) => (x / QE) * 1e3;
+    q('.sc-big').textContent = `Type ${g.type} (κ = ${sg(g.kappa, 3)}): Δ₀ = ${sg(meV(gap), 3)} meV, ${g.type === 'II' ? `B_c2(0) ≈ ${fB(g.Bc2)}` : `B_c(0) ≈ ${fB(g.Bc)}`}`;
+    const above = t >= 1;
+    const f = [
+      fact('Energy gap Δ₀ (at 0 K)', `${sg(meV(gap), 4)} meV`, `2Δ₀ = ${sg(meV(2 * gap), 4)} meV = ${sg(ratio, 4)} k_BT_c`),
+      fact('Gap frequency 2Δ₀/h', `${sg((2 * gap) / H / 1e9, 4)} GHz`, `photons above this break Cooper pairs; wavelength ${sg((3e8 / ((2 * gap) / H)) * 1e3, 3)} mm`),
+      fact(`Gap at ${sg(T, 4)} K`, above ? '0 (normal state)' : `${sg(meV(gap * dT), 4)} meV`, above ? 'T is at or above T_c' : `Δ(T)/Δ₀ = ${sg(dT, 4)} from the BCS gap equation`),
+      fact('Penetration depth λ', `${sg(lam * 1e9, 4)} nm at 0 K`, above ? src : `${sg(lambdaT(lam, t) * 1e9, 4)} nm at ${sg(T, 4)} K (two-fluid); ${src}`),
+      fact('Coherence length ξ', `${sg(xi * 1e9, 4)} nm`, 'the size of a Cooper pair; sets the vortex core size'),
+      fact('Ginzburg-Landau κ = λ/ξ', sg(g.kappa, 4), g.type === 'II' ? 'above 1/√2 = 0.707: type II, lets in flux as vortices between B_c1 and B_c2' : 'below 1/√2: type I, expels the field completely up to B_c'),
+      fact('Thermodynamic field B_c', `${fB(g.Bc)} at 0 K`, above ? '' : `${fB(parabolic(g.Bc, t))} at ${sg(T, 4)} K`),
+    ];
+    if (g.type === 'II') f.push(
+      fact('Lower critical field B_c1', `${fB(g.Bc1)} at 0 K`, `first vortices enter${above ? '' : `; ${fB(parabolic(g.Bc1, t))} at ${sg(T, 4)} K`}${g.kappa < 2 ? '; rough for κ near 1' : ''}`),
+      fact('Upper critical field B_c2', `${fB(g.Bc2)} at 0 K`, `Φ₀/(2πξ²)${above ? '' : `; ${fB(parabolic(g.Bc2, t))} at ${sg(T, 4)} K`}`),
+    );
+    f.push(
+      fact('Pauli (Clogston) limit', `${fB(g.Bp)}`, `Δ₀/(√2 μ_B) = ${sg(g.Bp / Tc, 3)} T/K × T_c: spin splitting breaks pairs above this`),
+      fact('Depairing current density', `${fmtExp(g.Jd * 1e-4, 3)} A/cm²`, 'Ginzburg-Landau limit at 0 K; real wires carry far less'),
+      fact('Flux quantum Φ₀', `${fmtExp(PHI0, 5)} Wb`, 'h/2e: each vortex carries one'),
+    );
+    q('.sc-facts').replaceChildren(...f);
+    // Curves against temperature.
+    const ts: number[] = []; for (let i = 0; i <= 100; i++) ts.push((Tc * i) / 100);
+    const gaps = ts.map((x) => meV(gap) * gapRatio(x / Tc));
+    const c1 = chartFigure({ w: 380, h: 220, xLabel: 'Temperature (K)', yLabel: 'Gap Δ (meV)', yMin: 0, xMin: 0, legend: 'none', series: [
+      { name: 'Δ(T)', x: ts, y: gaps, mode: 'line', width: 2 },
+      ...(above ? [] : [{ name: 'T', x: [T], y: [meV(gap) * dT], mode: 'points' as const, marker: 'diamond' as const, size: 5 }]),
+    ] }, 'BCS energy gap against temperature');
+    const series = g.type === 'II' ? [
+      { name: 'B_c2 (upper)', x: ts, y: ts.map((x) => parabolic(g.Bc2, x / Tc)), mode: 'line' as const, width: 2 },
+      { name: 'B_c (thermodynamic)', x: ts, y: ts.map((x) => parabolic(g.Bc, x / Tc)), mode: 'line' as const, width: 1.2, dash: [5, 3] },
+      { name: 'B_c1 (lower)', x: ts, y: ts.map((x) => parabolic(g.Bc1, x / Tc)), mode: 'line' as const, width: 2 },
+    ] : [{ name: 'B_c', x: ts, y: ts.map((x) => parabolic(g.Bc, x / Tc)), mode: 'line' as const, width: 2 }];
+    const c2 = chartFigure({ w: 380, h: 240, xLabel: 'Temperature (K)', yLabel: 'Field (T)', yMin: 0, xMin: 0, legend: 'below', series }, g.type === 'II' ? 'Phase diagram: Meissner state below B_c1, vortex state up to B_c2, normal above' : 'Phase diagram: superconducting below B_c, normal above');
+    figs = [['.sc-gfig', c1], ['.sc-bfig', c2]];
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+    rows = [['T (K)', 'gap (meV)', 'lambda (nm)', 'Bc1 (T)', 'Bc (T)', 'Bc2 (T)'], ...ts.map((x, i) => [+x.toFixed(6), +gaps[i].toPrecision(6), x < Tc ? +(lambdaT(lam, x / Tc) * 1e9).toPrecision(6) : 'inf', g.type === 'II' ? +parabolic(g.Bc1, x / Tc).toPrecision(6) : '', +parabolic(g.Bc, x / Tc).toPrecision(6), g.type === 'II' ? +parabolic(g.Bc2, x / Tc).toPrecision(6) : ''])];
+    const fr = (d: Element) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string];
+    report = [{ title: q('.sc-big').textContent!, facts: [...q('.sc-facts').children].map(fr), figure: c1 }, { title: 'Critical fields', figure: c2 }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.sc-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), 'superconductor.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Superconductor', subtitle: `T_c = ${q<HTMLInputElement>('.sc-tc').value} K`, file: 'superconductor', sections: report }));
+</script>
+
+<style is:global>
+  .scc select, .scc input { max-width: 100%; }
+</style>

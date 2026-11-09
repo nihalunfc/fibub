@@ -13,3 +13,7 @@
 /science/audio-spectrum-analyser/*
   ! Permissions-Policy
   Permissions-Policy: camera=(), microphone=(self), geolocation=(self), payment=(), usb=()
+
+/science/harmonics-analyser/*
+  ! Permissions-Policy
+  Permissions-Policy: camera=(), microphone=(self), geolocation=(self), payment=(), usb=()

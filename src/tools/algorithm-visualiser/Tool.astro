@@ -1,0 +1,399 @@
+---
+// Algorithm visualiser: sorting, searching and dynamic programming, replayed step by step with counts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax av">
+  <div class="ax-card">
+    <h2>Algorithm</h2>
+    <div class="ax-grid">
+      <label>Algorithm <select class="av-alg">
+        <optgroup label="Sorting">
+          <option value="bubble">Bubble sort</option>
+          <option value="insertion">Insertion sort</option>
+          <option value="selection">Selection sort</option>
+          <option value="merge" selected>Merge sort</option>
+          <option value="quick">Quicksort</option>
+          <option value="heap">Heap sort</option>
+          <option value="counting">Counting sort</option>
+          <option value="radix">Radix sort</option>
+        </optgroup>
+        <optgroup label="Searching">
+          <option value="linear">Linear search</option>
+          <option value="binary">Binary search</option>
+        </optgroup>
+        <optgroup label="Dynamic programming">
+          <option value="lcs">Longest common subsequence</option>
+          <option value="edit">Edit distance</option>
+          <option value="knap">0/1 knapsack</option>
+        </optgroup>
+      </select></label>
+    </div>
+    <p class="ax-help av-help"></p>
+
+    <div class="av-listbox">
+      <label style="margin-top:10px">Numbers, separated by commas or spaces (up to 100)
+        <textarea class="av-list" rows="2" spellcheck="false">38, 27, 43, 3, 9, 82, 10</textarea></label>
+      <div class="ax-row" style="margin-top:8px">
+        <label class="av-inl">How many <input class="av-n" inputmode="numeric" value="20" /></label>
+        <label class="av-inl">Order <select class="av-kind"><option value="random">Random</option><option value="nearly">Nearly sorted</option><option value="reversed">Reversed</option><option value="few">Few different values</option><option value="sorted">Already sorted</option></select></label>
+        <button type="button" class="btn secondary small av-make">Make a list</button>
+      </div>
+      <div class="ax-grid av-searchbox" style="margin-top:10px" hidden>
+        <label>Look for <input class="av-target" inputmode="decimal" value="43" /></label>
+        <label class="ax-check"><input type="checkbox" class="av-presort" checked /> Sort the list first</label>
+      </div>
+    </div>
+    <div class="ax-grid av-strbox" style="margin-top:10px" hidden>
+      <label>First word <input class="av-s" value="ABCBDAB" spellcheck="false" /></label>
+      <label>Second word <input class="av-t" value="BDCABA" spellcheck="false" /></label>
+    </div>
+    <div class="av-knapbox" hidden>
+      <label style="margin-top:10px">Items: name, weight, value (one per line, whole numbers)
+        <textarea class="av-items" rows="5" spellcheck="false">Tent, 5, 60
+Stove, 3, 50
+Camera, 4, 70
+Book, 2, 30
+Food, 3, 45</textarea></label>
+      <div class="ax-grid" style="margin-top:8px"><label>Capacity (weight limit) <input class="av-cap" inputmode="numeric" value="10" /></label></div>
+    </div>
+    <p class="ax-err av-err" hidden></p>
+  </div>
+
+  <div class="ax-card av-out">
+    <h2>Step by step</h2>
+    <p class="ax-big av-big"></p>
+    <canvas class="ax-fig av-fig" role="img"></canvas>
+    <div class="ax-scroll av-dpwrap" hidden><table class="av-dp"></table></div>
+    <p class="av-say" aria-live="polite"></p>
+    <div class="ax-row av-ctl">
+      <button type="button" class="btn secondary small av-first" aria-label="Back to the start">⏮</button>
+      <button type="button" class="btn secondary small av-back" aria-label="One step back">◀</button>
+      <button type="button" class="btn small av-play">Play</button>
+      <button type="button" class="btn secondary small av-step" aria-label="One step forward">Step ▶</button>
+      <button type="button" class="btn secondary small av-last" aria-label="Jump to the end">⏭</button>
+      <label class="av-inl">Speed <select class="av-speed"><option value="600">Slow</option><option value="200" selected>Normal</option><option value="50">Fast</option><option value="5">Very fast</option></select></label>
+    </div>
+    <input type="range" class="av-pos" min="0" value="0" aria-label="Step" />
+    <dl class="ax-facts av-counts"></dl>
+    <div class="ax-legend av-key"></div>
+  </div>
+
+  <div class="ax-card av-cmp">
+    <h2>All sorting methods on this list</h2>
+    <div class="ax-scroll"><table class="av-cmptab"></table></div>
+    <p class="ax-help">The same list sorted by every method. Counts are exact for this list; the time column is how each method grows for long lists.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Save</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small av-csv">Step log (CSV)</button>
+      <button type="button" class="btn secondary small av-ccsv">Sorting comparison (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .av .av-inl { display: inline-grid; grid-template-columns: auto; }
+  .av .av-inl input { width: 80px; }
+  .av .av-say { min-height: 3em; margin: 10px 0 6px; font-size: 15px; }
+  .av-ctl { gap: 6px 6px; }
+  .av .av-ctl .btn.small { min-width: 44px; padding: 8px 10px; }
+  .av .av-pos { width: 100%; margin: 8px 0 12px; accent-color: var(--accent); }
+  .av .av-dp { width: auto; font-size: 13px; }
+  .av .av-dp th, .av .av-dp td { text-align: center; padding: 4px 6px; border: 1px solid var(--line); min-width: 26px; }
+  .av .av-dp th { color: var(--ink); background: var(--bg); }
+  .av .av-dp tr > th:first-child { position: sticky; left: 0; z-index: 1; }
+  .av .av-dp td.dep { background: var(--warn-soft); }
+  .av .av-dp td.cur { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .av .av-dp td.path { background: var(--good-soft); color: var(--good); font-weight: 700; }
+  .av .av-cmptab tr.on td { font-weight: 700; }
+</style>
+
+<script>
+  import { SORTS, sortOps, searchOps, lcs, editDistance, knapsack, countOps, replay, parseList, makeList, type Op, type DP, type SortName } from '../../lib/sci/algoviz';
+  import { num, csv } from '../../lib/sci/num';
+  import { paint, pagePalette, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.av')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const alg = q<HTMLSelectElement>('.av-alg'), err = q('.av-err'), canvas = q<HTMLCanvasElement>('.av-fig'), pos = q<HTMLInputElement>('.av-pos');
+  const SORT_IDS = SORTS.map((s) => s.id) as string[];
+  const HELP: Record<string, string> = {
+    bubble: 'Walks along the list swapping neighbours that are in the wrong order; the largest value "bubbles" to the end each pass. Stops early when a pass makes no swap. O(n²).',
+    insertion: 'Takes each value in turn and moves it left past larger values, like sorting cards in your hand. Fast on nearly sorted lists. O(n²).',
+    selection: 'Finds the smallest remaining value and swaps it to the front. Always n(n − 1)/2 comparisons, but at most n − 1 swaps. O(n²).',
+    merge: 'Splits the list in halves, sorts each half, then merges the two sorted halves by taking the smaller front value. O(n log n), needs a spare list.',
+    quick: 'Picks the last value as the pivot, moves smaller values before it and larger after (Lomuto partition), then sorts each side. O(n log n) on average, O(n²) on an already sorted list.',
+    heap: 'Arranges the list as a max-heap (every parent larger than its children), then moves the top to the end and repairs the heap. O(n log n).',
+    counting: 'Counts how many times each value appears, then writes them back in order. No comparisons at all. Whole numbers of 0 or more only.',
+    radix: 'Sorts by the ones digit, then the tens, then the hundreds, keeping ties in order each time. No comparisons. Whole numbers of 0 or more only.',
+    linear: 'Looks at each value from the start until it finds the target. Up to n comparisons.',
+    binary: 'On a sorted list, looks at the middle value and throws away the half that cannot hold the target. At most ⌊log₂ n⌋ + 1 comparisons.',
+    lcs: 'The longest sequence of letters that appears in both words in the same order (not necessarily side by side). Each cell is the answer for the first i and j letters.',
+    edit: 'The fewest single-letter inserts, deletes or changes that turn the first word into the second (Levenshtein distance).',
+    knap: 'Which items to pack for the most value without going over the weight limit, each item at most once. Each cell is the best value using the first items within that weight.',
+  };
+
+  type Run =
+    | { kind: 'sort' | 'search'; init: number[]; ops: Op[]; target?: number; result: string }
+    | { kind: 'dp'; dp: DP; ops: number; result: string };
+  let run: Run | null = null, step = 0, timer = 0, sortTable: string[][] = [];
+
+  function kindOf(a: string) { return SORT_IDS.includes(a) ? 'sort' : a === 'linear' || a === 'binary' ? 'search' : 'dp'; }
+
+  function build(): Run {
+    const a = alg.value, kind = kindOf(a);
+    if (kind === 'dp') {
+      let dp: DP;
+      if (a === 'knap') {
+        const lines = q<HTMLTextAreaElement>('.av-items').value.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (!lines.length) throw new Error('Type at least one item: name, weight, value.');
+        if (lines.length > 15) throw new Error('Up to 15 items, so the table stays readable.');
+        const items = lines.map((l, i) => {
+          const p = l.split(/\s*[,\t;]\s*/);
+          if (p.length < 3) throw new Error(`Line ${i + 1}: give a name, a weight and a value, separated by commas.`);
+          const w = num(p[1]), v = num(p[2]);
+          if (!(Number.isInteger(w) && w >= 1 && Number.isInteger(v) && v >= 0)) throw new Error(`Line ${i + 1}: weight must be a whole number of 1 or more, and value a whole number.`);
+          return { name: p[0] || `Item ${i + 1}`, w, v };
+        });
+        const cap = num(q<HTMLInputElement>('.av-cap').value);
+        if (!(Number.isInteger(cap) && cap >= 0 && cap <= 60)) throw new Error('Capacity must be a whole number from 0 to 60 (one table column per unit of weight).');
+        dp = knapsack(items, cap);
+      } else {
+        const s = q<HTMLInputElement>('.av-s').value.trim(), t = q<HTMLInputElement>('.av-t').value.trim();
+        if (s.length > 20 || t.length > 20) throw new Error('Keep each word to 20 letters or fewer, so the table fits.');
+        if (!s && !t) throw new Error('Type two words.');
+        dp = a === 'lcs' ? lcs(s, t) : editDistance(s, t);
+      }
+      return { kind: 'dp', dp, ops: dp.cells.length + 1, result: `${dp.answer}. ${dp.detail[0]}` };
+    }
+    let list = parseList(q<HTMLTextAreaElement>('.av-list').value);
+    if (kind === 'sort') {
+      const ops = sortOps(a as SortName, list);
+      return { kind, init: list, ops, result: `Sorted: ${replay(list, ops).join(', ')}` };
+    }
+    const target = num(q<HTMLInputElement>('.av-target').value);
+    if (!Number.isFinite(target)) throw new Error('Type the number to look for.');
+    if (q<HTMLInputElement>('.av-presort').checked) list = list.slice().sort((x, y) => x - y);
+    const r = searchOps(a as 'linear' | 'binary', list, target);
+    return { kind, init: list, ops: r.ops, target, result: r.index >= 0 ? `Found ${target} at place ${r.index}` : `${target} is not in the list` };
+  }
+
+  /** What the step that was just taken did, in words. */
+  function say(o: Op, before: number[]): string {
+    switch (o.k) {
+      case 'cmp': return o.j < 0 ? `Compare ${o.x} (place ${o.i}) with the target ${o.y}: ${o.why}.` : `Compare ${o.x} and ${o.y}: ${o.why} ${o.res ? 'Yes.' : 'No.'}`;
+      case 'swap': return `Swap ${before[o.i]} (place ${o.i}) and ${before[o.j]} (place ${o.j}).`;
+      case 'set': return `Write ${o.v} at place ${o.i}: ${o.why}.`;
+      case 'read': return `Read place ${o.i}: ${o.why}.`;
+      case 'sorted': return o.from === o.to ? `Place ${o.from} now holds its final value.` : `Places ${o.from} to ${o.to} now hold their final values.`;
+      case 'range': return `${o.why[0].toUpperCase()}${o.why.slice(1)}; the middle is place ${(o.lo + o.hi) >> 1}.`;
+      case 'found': return `Found it at place ${o.i}.`;
+      case 'none': return `${o.why[0].toUpperCase()}${o.why.slice(1)}.`;
+    }
+  }
+
+  function figure(): Figure | null {
+    if (!run || run.kind === 'dp') return null;
+    const r = run, s = step, arr = replay(r.init, r.ops, s), last = s > 0 ? r.ops[s - 1] : null;
+    const done = new Set<number>(); let lo = 0, hi = arr.length - 1, found = -1;
+    for (let k = 0; k < s; k++) { const o = r.ops[k]; if (o.k === 'sorted') for (let i = o.from; i <= o.to; i++) done.add(i); if (o.k === 'range') { lo = o.lo; hi = o.hi; } if (o.k === 'found') found = o.i; }
+    if (r.kind === 'search' && s > 0 && last?.k === 'none') { lo = 0; hi = -1; }
+    const w = Math.max(300, canvas.parentElement!.clientWidth - 32 || 600), h = Math.min(320, Math.max(200, w * 0.5));
+    return {
+      w, h, alt: `Bars for the list at step ${s}`,
+      draw: (ctx, W, H, pal) => {
+        const n = arr.length, top = 8, bottom = n <= 30 ? 22 : 6, gap = n > 60 ? 1 : 2, bw = (W - gap * (n + 1)) / n;
+        const mn = Math.min(0, ...arr), mx = Math.max(...arr, mn + 1), sc = (H - top - bottom - 14) / (mx - mn);
+        const base = H - bottom - (0 - mn) * sc;
+        ctx.font = `${Math.max(9, Math.min(13, bw * 0.55))}px system-ui, sans-serif`; ctx.textAlign = 'center';
+        for (let i = 0; i < n; i++) {
+          let c = pal.muted;
+          if (done.has(i)) c = pal.good;
+          if (r.kind === 'search' && (i < lo || i > hi)) c = pal.grid;
+          if (last && (last.k === 'cmp' && (i === last.i || i === last.j))) c = pal.accent;
+          if (last && (last.k === 'swap' && (i === last.i || i === last.j))) c = pal.warn;
+          if (last && ((last.k === 'set' || last.k === 'read') && i === last.i)) c = pal.accent2;
+          if (i === found) c = pal.good;
+          const x = gap + i * (bw + gap), y = base - arr[i] * sc;
+          ctx.fillStyle = c; ctx.fillRect(x, Math.min(y, base), bw, Math.max(1, Math.abs(base - y)));
+          if (n <= 30) { ctx.fillStyle = pal.ink; ctx.fillText(String(arr[i]), x + bw / 2, H - 6); }
+        }
+      },
+    };
+  }
+
+  function drawDp() {
+    if (!run || run.kind !== 'dp') return;
+    const { dp } = run, filled = Math.min(step, dp.cells.length), showPath = step > dp.cells.length;
+    const val: (number | null)[][] = dp.table.map((row, i) => row.map((v, j) => (i === 0 || (alg.value !== 'knap' && j === 0) ? v : null)));
+    if (alg.value === 'knap') val.forEach((row, i) => i > 0 && (row[0] = null));
+    for (let k = 0; k < filled; k++) { const c = dp.cells[k]; val[c.r][c.c] = c.v; }
+    const cur = filled > 0 && !showPath ? dp.cells[filled - 1] : null;
+    const deps = new Set((cur?.from ?? []).map(([r, c]) => `${r},${c}`)), path = new Set(showPath ? dp.path.map(([r, c]) => `${r},${c}`) : []);
+    const t = q('.av-dp'), head = document.createElement('tr');
+    head.append(document.createElement('th'));
+    dp.cols.forEach((c) => { const th = document.createElement('th'); th.textContent = c || '∅'; head.append(th); });
+    const rows = dp.rows.map((rl, i) => {
+      const tr = document.createElement('tr'), th = document.createElement('th');
+      th.textContent = rl || '∅'; tr.append(th);
+      dp.cols.forEach((_, j) => {
+        const td = document.createElement('td'), key = `${i},${j}`;
+        td.textContent = val[i][j] == null ? '' : String(val[i][j]);
+        if (cur && cur.r === i && cur.c === j) td.className = 'cur';
+        else if (deps.has(key)) td.className = 'dep';
+        else if (path.has(key)) td.className = 'path';
+        tr.append(td);
+      });
+      return tr;
+    });
+    t.replaceChildren(head, ...rows);
+    // Keep the cell being filled in view on narrow screens.
+    const wrap = q('.av-dpwrap'), c = t.querySelector<HTMLElement>('td.cur');
+    if (c) { const cr = c.getBoundingClientRect(), wr = wrap.getBoundingClientRect(); if (cr.left < wr.left || cr.right > wr.right) wrap.scrollLeft += cr.left - wr.left - wr.width / 2; }
+  }
+
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const key = (items: [string, string][]) => q('.av-key').replaceChildren(...items.map(([c, t]) => { const s = document.createElement('span'), i = document.createElement('i'); i.style.background = c; s.append(i, t); return s; }));
+
+  function show() {
+    if (!run) return;
+    const total = run.kind === 'dp' ? run.ops : run.ops.length;
+    step = Math.max(0, Math.min(step, total));
+    pos.max = String(total); pos.value = String(step);
+    const facts: HTMLElement[] = [fact('Step', `${step} of ${total}`)];
+    const pal = pagePalette();
+    if (run.kind === 'dp') {
+      canvas.hidden = true; q('.av-dpwrap').hidden = false;
+      drawDp();
+      const n = Math.min(step, run.dp.cells.length);
+      facts.push(fact('Cells filled', `${n} of ${run.dp.cells.length}`));
+      q('.av-say').textContent = step === 0 ? 'The first row and column are the starting values. Press Step or Play to fill the table.' : step > run.dp.cells.length ? `Trace back from the last cell (green) to read the answer. ${run.dp.detail.join('. ')}.` : `Row ${run.dp.rows[run.dp.cells[n - 1].r]}, column ${run.dp.cols[run.dp.cells[n - 1].c]}: ${run.dp.cells[n - 1].why} = ${run.dp.cells[n - 1].v}.`;
+      key([['var(--accent)', 'Cell being filled'], ['var(--warn-soft)', 'Cells it uses'], ['var(--good-soft)', 'Trace-back path']]);
+    } else {
+      canvas.hidden = false; q('.av-dpwrap').hidden = true;
+      const fig = figure()!; paint(canvas, fig);
+      const c = countOps(run.ops, step);
+      facts.push(fact('Comparisons', String(c.comparisons)));
+      if (run.kind === 'sort') {
+        facts.push(fact('Swaps', String(c.swaps)), fact('Writes', String(c.writes)));
+        if (alg.value === 'counting' || alg.value === 'radix') facts.push(fact('Reads', String(c.reads)));
+      }
+      q('.av-say').textContent = step === 0 ? (run.kind === 'sort' ? 'The starting list. Press Step or Play.' : `Looking for ${run.target} in ${run.init.length} values. Press Step or Play.`) : say(run.ops[step - 1], replay(run.init, run.ops, step - 1));
+      key(run.kind === 'sort' ? [[pal.accent, 'Compared'], [pal.warn, 'Swapped'], [pal.accent2, 'Written or read'], [pal.good, 'In final place']] : [[pal.accent, 'Looked at'], [pal.grid, 'Ruled out'], [pal.good, 'Found']]);
+    }
+    q('.av-counts').replaceChildren(...facts);
+    q('.av-play').textContent = timer ? 'Pause' : 'Play';
+  }
+
+  function compareTable() {
+    const box = q('.av-cmp');
+    q('.av-ccsv').hidden = !run || run.kind !== 'sort';
+    if (!run || run.kind !== 'sort') { box.hidden = true; sortTable = []; return; }
+    const list = run.init, rows: string[][] = [];
+    for (const s of SORTS) {
+      let ops: Op[] | null = null;
+      try { ops = sortOps(s.id, list); } catch { /* counting/radix on negatives or decimals */ }
+      if (!ops) { rows.push([s.name.split(' (')[0], '–', '–', '–', 'whole numbers ≥ 0 only', s.time]); continue; }
+      const c = countOps(ops);
+      rows.push([s.name.split(' (')[0], String(c.comparisons), String(c.swaps), String(c.writes), String(ops.length), s.time]);
+    }
+    sortTable = rows;
+    const head = ['Method', 'Comparisons', 'Swaps', 'Writes', 'Steps', 'Time (growth)'];
+    const tr = (cells: string[], th = false, on = false) => { const r = document.createElement('tr'); if (on) r.className = 'on'; cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i > 0 && i < 5) d.className = 'r'; r.append(d); }); return r; };
+    q('.av-cmptab').replaceChildren(tr(head, true), ...rows.map((r, i) => tr(r, false, SORTS[i].id === alg.value)));
+    box.hidden = false;
+  }
+
+  function stop() { if (timer) { clearInterval(timer); timer = 0; } }
+  function calc() {
+    stop();
+    const a = alg.value, kind = kindOf(a);
+    q('.av-help').textContent = HELP[a];
+    q('.av-listbox').hidden = kind === 'dp'; q('.av-searchbox').hidden = kind !== 'search';
+    q('.av-strbox').hidden = a !== 'lcs' && a !== 'edit'; q('.av-knapbox').hidden = a !== 'knap';
+    try { run = build(); } catch (e) { run = null; err.textContent = (e as Error).message; err.hidden = false; q('.av-out').hidden = true; q('.av-cmp').hidden = true; return; }
+    err.hidden = true; q('.av-out').hidden = false;
+    q('.av-big').textContent = run.result;
+    step = 0; show(); compareTable();
+  }
+
+  function play() {
+    if (timer) { stop(); show(); return; }
+    if (!run) return;
+    const total = Number(pos.max);
+    if (step >= total) step = 0;
+    timer = window.setInterval(() => { step++; if (step >= total) stop(); show(); }, Number(q<HTMLSelectElement>('.av-speed').value));
+    show();
+  }
+
+  q('.av-play').addEventListener('click', play);
+  q('.av-step').addEventListener('click', () => { stop(); step++; show(); });
+  q('.av-back').addEventListener('click', () => { stop(); step--; show(); });
+  q('.av-first').addEventListener('click', () => { stop(); step = 0; show(); });
+  q('.av-last').addEventListener('click', () => { stop(); step = Number(pos.max); show(); });
+  pos.addEventListener('input', () => { stop(); step = Number(pos.value); show(); });
+  q('.av-speed').addEventListener('change', () => { if (timer) { stop(); play(); } });
+  let seed = 1;
+  q('.av-make').addEventListener('click', () => {
+    const n = Math.round(num(q<HTMLInputElement>('.av-n').value));
+    if (!(n >= 2 && n <= 100)) { err.textContent = 'Choose a list of 2 to 100 numbers.'; err.hidden = false; return; }
+    q<HTMLTextAreaElement>('.av-list').value = makeList(n, q<HTMLSelectElement>('.av-kind').value as any, seed++).join(', ');
+    calc();
+  });
+  alg.addEventListener('change', () => { if (alg.value === 'binary') q<HTMLInputElement>('.av-presort').checked = true; calc(); });
+  let t = 0;
+  for (const c of ['.av-list', '.av-target', '.av-s', '.av-t', '.av-items', '.av-cap']) q(c).addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  q('.av-presort').addEventListener('change', calc);
+
+  q('.av-csv').addEventListener('click', () => {
+    if (!run) return;
+    if (run.kind === 'dp') {
+      const dp = run.dp;
+      save(new Blob([csv([['step', 'row', 'column', 'value', 'why'], ...dp.cells.map((c, i) => [i + 1, dp.rows[c.r], dp.cols[c.c], c.v, c.why])])], { type: 'text/csv' }), `${alg.value}-steps.csv`, 'text/csv');
+      return;
+    }
+    const r = run, rows: (string | number)[][] = [['step', 'action', 'places', 'values', 'comparisons', 'swaps', 'writes', 'list after']];
+    let a = r.init.slice();
+    const c = { comparisons: 0, swaps: 0, writes: 0 };
+    r.ops.forEach((o, i) => {
+      const before = a; a = replay(before, [o]);
+      if (o.k === 'cmp') c.comparisons++; if (o.k === 'swap') c.swaps++; if (o.k === 'set') c.writes++;
+      const places = 'i' in o ? ('j' in o && o.j >= 0 ? `${o.i} ${o.j}` : String(o.i)) : o.k === 'sorted' ? `${o.from}-${o.to}` : o.k === 'range' ? `${o.lo}-${o.hi}` : '';
+      const vals = o.k === 'cmp' ? `${o.x} ${o.y}` : o.k === 'swap' ? `${before[o.i]} ${before[o.j]}` : o.k === 'set' ? String(o.v) : '';
+      rows.push([i + 1, o.k === 'cmp' ? 'compare' : o.k === 'set' ? 'write' : o.k, places, vals, c.comparisons, c.swaps, c.writes, a.join(' ')]);
+    });
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${alg.value}-steps.csv`, 'text/csv');
+  });
+  q('.av-ccsv').addEventListener('click', () => {
+    if (!sortTable.length) return;
+    save(new Blob([csv([['method', 'comparisons', 'swaps', 'writes', 'steps', 'time growth'], ...sortTable])], { type: 'text/csv' }), 'sorting-comparison.csv', 'text/csv');
+  });
+
+  wireDownloads(q('.dl'), () => {
+    const name = alg.selectedOptions[0].textContent!, sections: Section[] = [];
+    if (!run) return { title: name, file: 'algorithm', sections };
+    const facts: [string, string][] = [['Result', run.result]];
+    if (run.kind === 'dp') {
+      facts.push(['Cells filled', String(run.dp.cells.length)], ...run.dp.detail.map((d) => ['Detail', d] as [string, string]));
+      sections.push({ title: name, facts, table: { head: ['', ...run.dp.cols.map((c) => c || '∅')], rows: run.dp.table.map((r, i) => [run && run.kind === 'dp' ? run.dp.rows[i] || '∅' : '', ...r.map(String)]) } });
+    } else {
+      const c = countOps(run.ops);
+      facts.unshift(['Input', run.init.join(', ')]);
+      facts.push(['Comparisons', String(c.comparisons)], ['Swaps', String(c.swaps)], ['Writes', String(c.writes)], ['Steps', String(run.ops.length)]);
+      const s0 = step; step = run.ops.length; const fig = figure()!; step = s0;
+      sections.push({ title: name, text: [HELP[alg.value]], facts, figure: fig });
+      if (sortTable.length) sections.push({ title: 'All sorting methods on this list', table: { head: ['Method', 'Comparisons', 'Swaps', 'Writes', 'Steps', 'Time'], rows: sortTable, align: ['l', 'r', 'r', 'r', 'r', 'l'] } });
+    }
+    return { title: name, subtitle: run.result, file: alg.value, sections };
+  });
+
+  let rw = 0;
+  new ResizeObserver(() => { const w = canvas.parentElement!.clientWidth; if (w !== rw) { rw = w; if (run) show(); } }).observe(q('.av-out'));
+  document.addEventListener('fibub:theme', () => run && show());
+  new MutationObserver(() => run && show()).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  calc();
+</script>

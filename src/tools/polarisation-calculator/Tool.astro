@@ -1,0 +1,163 @@
+---
+// Polarisation calculator: Jones and Mueller calculus through polarisers, waveplates, rotators and depolarisers,
+// with the path drawn on the Poincaré sphere. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax plc">
+  <div class="ax-card">
+    <h2>Light in</h2>
+    <div class="ax-grid">
+      <label>Polarisation <select class="pl-in">
+        <option value="h" selected>Linear horizontal (0°)</option>
+        <option value="v">Linear vertical (90°)</option>
+        <option value="d">Linear +45°</option>
+        <option value="a">Linear −45°</option>
+        <option value="r">Right-handed circular</option>
+        <option value="l">Left-handed circular</option>
+        <option value="e">Elliptical (set the angles)</option>
+        <option value="u">Unpolarised</option>
+      </select></label>
+      <label class="pl-ell">Azimuth ψ (°) <input class="pl-psi" type="text" inputmode="decimal" value="20" /></label>
+      <label class="pl-ell">Ellipticity angle χ (°, ±45 circular) <input class="pl-chi" type="text" inputmode="decimal" value="10" /></label>
+      <label class="pl-dopl">Degree of polarisation (0 to 1) <input class="pl-dop" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <label style="margin-top:10px"><span>Elements, in order, one per line: <code>polariser 45</code>, <code>qwp 0</code> (quarter-wave plate, fast axis angle), <code>hwp 22.5</code>, <code>retarder 60 30</code> (retardance, axis), <code>rotator 30</code>, <code>partial 0.9 0.1 0</code> (partial polariser: Tmax, Tmin, axis), <code>depolariser 0.5</code>. Angles from horizontal, anticlockwise looking at the oncoming beam.</span> <textarea class="pl-els" rows="4" spellcheck="false">hwp 22.5
+qwp 0
+polariser 30</textarea></label>
+    <p class="ax-help">Handedness follows the IEEE convention: right-handed light turns clockwise when you look along the beam from behind (S₃ &gt; 0). The traditional optics convention, looking into the beam, calls the same light left-handed. The example chain is made up.</p>
+    <p class="ax-err pl-err" hidden></p>
+  </div>
+
+  <div class="ax-card pl-out">
+    <h2>Light out</h2>
+    <p class="ax-big pl-big"></p>
+    <dl class="ax-facts pl-facts"></dl>
+    <canvas class="ax-fig pl-sph"></canvas>
+    <canvas class="ax-fig pl-fig"></canvas>
+    <h3>After each element</h3>
+    <div class="ax-scroll"><table class="pl-tab"></table></div>
+    <h3>Mueller matrix of the whole chain</h3>
+    <div class="ax-scroll"><table class="pl-mm"></table></div>
+    <p class="ax-help">Ideal, thin elements at normal incidence; intensities are relative to the light going in. For study and planning.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseElements, propagate, propagateJones, stokesFrom, jonesFrom, describe, systemMueller, muellerOfEl, mapply, type El, type Stokes, type Z } from '../../lib/sci/phpol';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const PRESET: Record<string, [number, number]> = { h: [0, 0], v: [90, 0], d: [45, 0], a: [-45, 0], r: [0, 45], l: [0, -45] };
+  const root = document.querySelector<HTMLElement>('.plc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLTableElement, head: string[], rows: string[][]) => { const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j && /^[−\d.–]/.test(c)) e.className = 'r'; r.append(e); }); return r; }; t.replaceChildren(tr(head, true), ...rows.map((r) => tr(r, false))); };
+  const f3 = (x: number) => { const v = Math.abs(x) < 5e-13 ? 0 : x; return v.toFixed(3).replace('-', '−'); };
+  const pc = (x: number) => `${sig(x * 100, 3)} %`;
+  const cz = (z: Z) => { const re = Math.abs(z[0]) < 5e-13 ? 0 : z[0], im = Math.abs(z[1]) < 5e-13 ? 0 : z[1]; if (!im) return f3(re); if (!re) return `${f3(im)}i`; return `${f3(re)} ${im < 0 ? '−' : '+'} ${f3(Math.abs(im))}i`; };
+  let figs: Figure[] = [], report: Section[] = [];
+
+  function sphereFigure(path: { pts: [number, number, number][]; jump: boolean }[], marks: [number, number, number][]): Figure {
+    const az = (-35 * Math.PI) / 180, el = (20 * Math.PI) / 180;
+    // View: S1 to the right-front, S2 to the right, S3 up.
+    const proj = (p: [number, number, number]) => { const [x, y, z] = p; const xr = x * Math.cos(az) - y * Math.sin(az), yr = x * Math.sin(az) + y * Math.cos(az); return { sx: yr, sy: z * Math.cos(el) - xr * Math.sin(el), depth: xr * Math.cos(el) + z * Math.sin(el) }; };
+    return {
+      w: 320, h: 320, alt: 'Path of the polarisation state on the Poincaré sphere',
+      draw: (ctx, w, h, pal) => {
+        const cx = w / 2, cy = h / 2 + 4, R = w * 0.38;
+        const P = (p: [number, number, number]) => { const o = proj(p); return [cx + R * o.sx, cy - R * o.sy, o.depth] as const; };
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+        const circle = (f: (t: number) => [number, number, number]) => { for (let i = 0; i < 120; i++) { const a = P(f((2 * Math.PI * i) / 120)), b = P(f((2 * Math.PI * (i + 1)) / 120)); ctx.setLineDash(a[2] < 0 ? [2, 3] : []); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } ctx.setLineDash([]); };
+        ctx.strokeStyle = pal.grid; circle((t) => [Math.cos(t), Math.sin(t), 0]); circle((t) => [Math.cos(t), 0, Math.sin(t)]); circle((t) => [0, Math.cos(t), Math.sin(t)]);
+        ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+        const lab = (p: [number, number, number], s: string) => { const a = P(p); ctx.fillText(s, a[0], a[1] + 4); };
+        lab([1.18, 0, 0], 'H'); lab([-1.18, 0, 0], 'V'); lab([0, 1.18, 0], '+45'); lab([0, -1.18, 0], '−45'); lab([0, 0, 1.15], 'R'); lab([0, 0, -1.18], 'L');
+        for (const seg of path) {
+          ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.setLineDash(seg.jump ? [4, 3] : []);
+          ctx.beginPath(); seg.pts.forEach((p, i) => { const a = P(p); i ? ctx.lineTo(a[0], a[1]) : ctx.moveTo(a[0], a[1]); }); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        marks.forEach((m, i) => { const a = P(m); ctx.fillStyle = i === 0 ? pal.ink : i === marks.length - 1 ? pal.accent2 : pal.accent; ctx.beginPath(); ctx.arc(a[0], a[1], i === 0 || i === marks.length - 1 ? 5 : 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(i === 0 ? 'in' : String(i), a[0] + 6, a[1] - 5); });
+        ctx.textAlign = 'left'; ctx.fillStyle = pal.muted; ctx.fillText('dashed: behind the sphere, or a jump (polariser)', 8, h - 8);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.pl-err'), out = q('.pl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const kind = q<HTMLSelectElement>('.pl-in').value;
+    root.querySelectorAll<HTMLElement>('.pl-ell').forEach((e) => (e.hidden = kind !== 'e'));
+    q('.pl-dopl').hidden = kind === 'u';
+    let psi = 0, chi = 0;
+    if (kind === 'e') { psi = val('.pl-psi'); chi = val('.pl-chi'); if (!(Math.abs(psi) <= 180)) return fail('Give the azimuth ψ in degrees (−90 to 90).'); if (!(Math.abs(chi) <= 45)) return fail('The ellipticity angle χ is between −45° (left circular) and 45° (right circular).'); }
+    else if (PRESET[kind]) [psi, chi] = PRESET[kind];
+    const dop = kind === 'u' ? 0 : val('.pl-dop');
+    if (!(dop >= 0 && dop <= 1)) return fail('The degree of polarisation is between 0 (unpolarised) and 1 (fully polarised).');
+    let els: El[];
+    try { els = parseElements(q<HTMLTextAreaElement>('.pl-els').value); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const s0 = stokesFrom(psi, chi, dop), S = propagate(s0, els), sOut = S[S.length - 1], d = describe(sOut);
+    q('.pl-big').textContent = d.I < 1e-12 ? 'No light gets through' : `Out: ${d.kind}, ${pc(d.I)} of the light`;
+    const J = dop === 1 ? propagateJones(jonesFrom(psi, chi), els) : null;
+    const f = [
+      fact('Intensity', pc(d.I), 'of the light going in'),
+      fact('Stokes vector', `${f3(sOut[0])}, ${f3(sOut[1])}, ${f3(sOut[2])}, ${f3(sOut[3])}`, 'S₀ (intensity), S₁ (H − V), S₂ (+45 − −45), S₃ (right − left)'),
+      fact('Degree of polarisation', d.I < 1e-12 ? '–' : pc(d.dop), d.dop < 1 - 1e-9 && d.I > 1e-12 ? 'the rest is unpolarised' : ''),
+      fact('Azimuth ψ', d.I < 1e-12 || d.dop < 1e-6 ? '–' : `${sig(d.psi, 4)}°`, 'angle of the major axis from horizontal'),
+      fact('Ellipticity angle χ', d.I < 1e-12 || d.dop < 1e-6 ? '–' : `${sig(d.chi, 4)}°`, `axis ratio ${d.dop > 1e-6 ? sig(Math.abs(Math.tan((d.chi * Math.PI) / 180)), 3) : '–'} (0 linear, 1 circular)${d.hand ? `; ${d.hand}` : ''}`),
+    ];
+    if (J) { const v = J[J.length - 1]; f.push(fact('Jones vector', `(${cz(v[0])}, ${cz(v[1])})`, 'Ex, Ey (amplitudes, overall phase included)')); }
+    else f.push(fact('Jones vector', 'not defined', 'Jones vectors describe fully polarised light only; Mueller calculus is used'));
+    q('.pl-facts').replaceChildren(...f);
+    // Table.
+    const rows = S.map((s, i) => [i === 0 ? 'Input' : els[i - 1].label, pc(s[0]), describe(s).kind, f3(s[1] / (s[0] || 1)), f3(s[2] / (s[0] || 1)), f3(s[3] / (s[0] || 1))]);
+    table(q<HTMLTableElement>('.pl-tab'), ['Element', 'Intensity', 'State', 'S₁/S₀', 'S₂/S₀', 'S₃/S₀'], rows);
+    const M = systemMueller(els);
+    table(q<HTMLTableElement>('.pl-mm'), ['', 'S₀ in', 'S₁ in', 'S₂ in', 'S₃ in'], M.map((r, i) => [`S${'₀₁₂₃'[i]} out`, ...r.map(f3)]));
+    // Sphere path: interpolate retarders and rotators, jumps for the rest.
+    const unit = (s: Stokes): [number, number, number] => { const n = Math.hypot(s[1], s[2], s[3]); return n > 1e-9 ? [s[1] / n, s[2] / n, s[3] / n] : [0, 0, 0]; };
+    const path: { pts: [number, number, number][]; jump: boolean }[] = [];
+    els.forEach((e, i) => {
+      const a = S[i];
+      if (Math.hypot(a[1], a[2], a[3]) < 1e-9 || S[i + 1][0] < 1e-12) return;
+      if (e.kind === 'retarder' || e.kind === 'rotator') { const pts: [number, number, number][] = []; for (let k = 0; k <= 40; k++) pts.push(unit(mapply(muellerOfEl(e, k / 40), a))); path.push({ pts, jump: false }); }
+      else if (Math.hypot(S[i + 1][1], S[i + 1][2], S[i + 1][3]) > 1e-9) path.push({ pts: [unit(a), unit(S[i + 1])], jump: true });
+    });
+    const marks = S.filter((s) => s[0] > 1e-12 && Math.hypot(s[1], s[2], s[3]) > 1e-9 * s[0]).map(unit);
+    const sph = sphereFigure(path, marks);
+    // Sweep the last element's angle.
+    const last = els[els.length - 1];
+    let sweep: Figure | null = null;
+    if (last && last.kind !== 'rotator' && last.kind !== 'depolariser') {
+      const xs: number[] = [], ys: number[] = [];
+      for (let t = 0; t <= 180; t += 1) { const e2: El = last.kind === 'polariser' ? { ...last, a: t } : last.kind === 'retarder' ? { ...last, b: t } : { ...last, c: t }; xs.push(t); ys.push(mapply(muellerOfEl(e2), S[S.length - 2])[0] * 100); }
+      const cur = last.kind === 'polariser' ? last.a : last.kind === 'retarder' ? last.b : last.c;
+      sweep = chartFigure({ w: 400, h: 210, xLabel: `Angle of the last element (${last.label.replace(/ at .*$/, '')}) (°)`, yLabel: 'Intensity out (%)', xMin: 0, xMax: 180, yMin: 0, yMax: Math.min(100, Math.max(1, ...ys) * 1.1), legend: 'none', series: [{ name: 'Intensity', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: ((cur % 180) + 180) % 180, dash: [3, 3], label: 'now' }] }, 'Output intensity as the last element is turned');
+    }
+    q('.pl-fig').hidden = !sweep;
+    paint(q<HTMLCanvasElement>('.pl-sph'), sph); if (sweep) paint(q<HTMLCanvasElement>('.pl-fig'), sweep);
+    figs = sweep ? [sph, sweep] : [sph];
+    const plain = (els_: HTMLElement[]) => els_.map((e) => [e.querySelector('dt')!.textContent!, e.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.pl-big').textContent!, facts: plain(f), figure: sph },
+      { title: 'After each element', table: { head: ['Element', 'Intensity', 'State', 'S1/S0', 'S2/S0', 'S3/S0'], rows, align: ['l', 'r', 'l', 'r', 'r', 'r'] }, ...(sweep ? { figure: sweep } : {}) },
+      { title: 'Mueller matrix of the whole chain', table: { head: ['', 'S0 in', 'S1 in', 'S2 in', 'S3 in'], rows: M.map((r, i) => [`S${i} out`, ...r.map(f3)]), align: ['l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pl-out').hidden) { paint(q<HTMLCanvasElement>('.pl-sph'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.pl-fig'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Polarisation', subtitle: q('.pl-big').textContent ?? '', file: 'polarisation', sections: report }));
+</script>
+
+<style is:global>
+  .plc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .plc code { font-size: 13px; }
+  .plc .pl-sph { max-width: 360px; margin: 10px auto 0; }
+</style>

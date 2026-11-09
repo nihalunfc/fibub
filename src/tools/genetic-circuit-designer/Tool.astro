@@ -1,0 +1,132 @@
+---
+// Genetic circuit designer: parts and interactions in, SBOL Visual style diagram (fibub's own drawing) out, with
+// transcription units and design checks; SVG and PNG export. Example design made up. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { PART_TYPES } from '../../lib/sci/sbcircuit';
+---
+<div class="ax gcd">
+  <div class="ax-card">
+    <h2>Design</h2>
+    <label>Parts as name:type in order, then interactions (A -| B represses, A -&gt; B activates). Start a part with &lt; for the reverse strand. <textarea class="gc-in" rows="8" spellcheck="false"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small gc-ex">Use the example</button>
+      <button type="button" class="btn secondary small gc-clear">Clear</button>
+    </div>
+    <h3 style="margin:14px 0 8px">Add a part</h3>
+    <div class="ax-grid">
+      <label>Type <select class="gc-t">{PART_TYPES.map((t) => <option value={t.id}>{t.name}</option>)}</select></label>
+      <label>Name <input class="gc-n" type="text" value="gfp" /></label>
+      <label>Strand <select class="gc-s"><option value="f" selected>forward</option><option value="r">reverse</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gc-addp">Add part</button></div>
+    <h3 style="margin:14px 0 8px">Add an interaction</h3>
+    <div class="ax-grid">
+      <label>From <select class="gc-from"></select></label>
+      <label>Effect <select class="gc-k"><option value="-|">represses</option><option value="->">activates</option></select></label>
+      <label>On <select class="gc-to"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gc-addi">Add interaction</button></div>
+    <p class="ax-help">Types: promoter, operator, rbs, cds (or gene), terminator, insulator, ori, spacer, generic. Glyphs follow the shapes described by the SBOL Visual standard, drawn by fibub. The example (the repressilator: three repressors in a ring) uses generic part names.</p>
+    <p class="ax-err gc-err" hidden></p>
+  </div>
+
+  <div class="ax-card gc-out">
+    <h2>Diagram</h2>
+    <p class="ax-big gc-big"></p>
+    <div class="ax-scroll gc-pic" role="img" aria-label="Genetic circuit diagram"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gc-svg">Diagram (SVG)</button>
+      <button type="button" class="btn secondary small gc-png">Diagram (PNG)</button>
+    </div>
+    <h3 style="margin:16px 0 8px">Checks</h3>
+    <ul class="gc-warn"></ul>
+    <h3 style="margin:16px 0 8px">Transcription units</h3>
+    <div class="ax-scroll"><table class="gc-tab"></table></div>
+    <p class="ax-help">A transcription unit runs from a promoter, along its strand, to the first terminator. The checks look for genes without a ribosome binding site or promoter, units without a terminator, and interactions that name a missing part. They catch slips in a drawing, not biology: a design that passes may still not work.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseDesign, checkDesign, transcriptionUnits, layout, toSvg, type Layout, type Colours } from '../../lib/sci/sbcircuit';
+  import { pagePalette, LIGHT, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const EXAMPLE = `pLlacO1:promoter, rbs1:rbs, tetR:cds, T1:terminator
+pLtetO1:promoter, rbs2:rbs, cI:cds, T2:terminator
+pR:promoter, rbs3:rbs, lacI:cds, T3:terminator
+lacI -| pLlacO1
+tetR -| pLtetO1
+cI -| pR`;
+  const root = document.querySelector<HTMLElement>('.gcd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = q<HTMLTextAreaElement>('.gc-in');
+  let L: Layout | null = null, report: Section[] = [];
+  const colours = (p: Palette): Colours => ({ ink: p.ink, muted: p.muted, accent: p.accent, bad: p.bad, bg: p.bg, soft: p.grid });
+
+  function drawTo(ctx: CanvasRenderingContext2D, lay: Layout, c: Colours, scale: number) {
+    ctx.save(); ctx.scale(scale, scale); ctx.fillStyle = c.bg; ctx.fillRect(0, 0, lay.w, lay.h);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    const col = (k: string) => (c as Record<string, string>)[k];
+    for (const p of lay.prims) {
+      if (p.k === 'path') { const path = new Path2D(p.d); if (p.fill !== 'none') { ctx.fillStyle = col(p.fill); ctx.fill(path); } if (p.stroke !== 'none') { ctx.strokeStyle = col(p.stroke); ctx.lineWidth = p.w; ctx.stroke(path); } }
+      else { ctx.fillStyle = col(p.color); ctx.font = `${p.bold ? '700 ' : ''}${p.size}px Helvetica, Arial, sans-serif`; ctx.textAlign = p.anchor === 'middle' ? 'center' : p.anchor === 'end' ? 'right' : 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.s, p.x, p.y); }
+    }
+    ctx.restore();
+  }
+
+  function fillSelects(names: string[]) {
+    for (const c of ['.gc-from', '.gc-to']) { const s = q<HTMLSelectElement>(c), old = s.value; s.replaceChildren(...names.map((n) => { const o = document.createElement('option'); o.value = o.textContent = n; return o; })); if (names.includes(old)) s.value = old; }
+  }
+
+  function calc() {
+    const err = q('.gc-err'), out = q('.gc-out');
+    const { design: d, errors } = parseDesign(ta.value);
+    fillSelects(d.parts.map((p) => p.name));
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; L = null; };
+    if (errors.length) return fail(errors.slice(0, 3).join(' ') + (errors.length > 3 ? ` (and ${errors.length - 3} more)` : ''));
+    if (!d.parts.length) return fail('Add at least one part, for example pTet:promoter.');
+    if (d.parts.length > 200) return fail('Use at most 200 parts.');
+    err.hidden = true; out.hidden = false;
+    L = layout(d);
+    const warns = checkDesign(d), units = transcriptionUnits(d);
+    q('.gc-big').textContent = `${d.parts.length} parts, ${units.length} transcription unit${units.length === 1 ? '' : 's'}, ${d.interactions.length} interaction${d.interactions.length === 1 ? '' : 's'}`;
+    q('.gc-pic').innerHTML = toSvg(L, colours(pagePalette()));
+    const ul = q('.gc-warn'); ul.replaceChildren(...(warns.length ? warns : ['No problems found.']).map((w) => { const li = document.createElement('li'); li.textContent = w; if (warns.length) li.className = 'gc-bad'; return li; }));
+    const head = ['Promoter', 'Strand', 'Genes', 'Parts', 'Ends with a terminator'], rows = units.map((u) => [u.promoter, u.rev ? 'reverse' : 'forward', u.cds.join(', ') || '–', u.parts.join(', ') || '–', u.terminated ? 'yes' : 'no']);
+    const tab = q('.gc-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); }); return r; };
+    if (rows.length) tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    const lay = L, fig: Figure = { w: Math.min(lay.w, 1600), h: lay.h * Math.min(1, 1600 / lay.w), alt: 'Genetic circuit diagram', draw: (ctx, w, _h, pal) => drawTo(ctx, lay, colours(pal), w / lay.w) };
+    report = [
+      { title: q('.gc-big').textContent!, figure: fig, text: [ta.value.trim()] },
+      { title: 'Checks', text: warns.length ? warns : ['No problems found.'] },
+      ...(rows.length ? [{ title: 'Transcription units', table: { head, rows, align: ['l', 'l', 'l', 'l', 'l'] as ('l' | 'r')[] } }] : []),
+    ];
+  }
+
+  ta.addEventListener('input', calc);
+  q('.gc-ex').addEventListener('click', () => { ta.value = EXAMPLE; calc(); });
+  q('.gc-clear').addEventListener('click', () => { ta.value = ''; calc(); });
+  q('.gc-addp').addEventListener('click', () => {
+    const name = q<HTMLInputElement>('.gc-n').value.trim().replace(/[,:;]/g, '');
+    if (!name) { q('.gc-err').textContent = 'Give the new part a name.'; q('.gc-err').hidden = false; return; }
+    ta.value = `${ta.value.replace(/\s+$/, '')}${ta.value.trim() ? '\n' : ''}${q<HTMLSelectElement>('.gc-s').value === 'r' ? '<' : ''}${name}:${q<HTMLSelectElement>('.gc-t').value}`; calc();
+  });
+  q('.gc-addi').addEventListener('click', () => { const a = q<HTMLSelectElement>('.gc-from').value, b = q<HTMLSelectElement>('.gc-to').value; if (!a || !b) return; ta.value = `${ta.value.replace(/\s+$/, '')}\n${a} ${q<HTMLSelectElement>('.gc-k').value} ${b}`; calc(); });
+  q('.gc-svg').addEventListener('click', () => { if (L) save(new Blob([toSvg(L, colours(LIGHT))], { type: 'image/svg+xml' }), 'genetic-circuit.svg', 'image/svg+xml'); });
+  q('.gc-png').addEventListener('click', () => {
+    if (!L) return; const lay = L, s = 2, c = document.createElement('canvas'); c.width = Math.ceil(lay.w * s); c.height = Math.ceil(lay.h * s);
+    drawTo(c.getContext('2d')!, lay, colours(LIGHT), s); c.toBlob((b) => { if (b) save(b, 'genetic-circuit.png', 'image/png'); }, 'image/png');
+  });
+  document.addEventListener('fibub:theme', () => { if (L) q('.gc-pic').innerHTML = toSvg(L, colours(pagePalette())); });
+  ta.value = EXAMPLE; calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Genetic circuit', file: 'genetic-circuit', sections: report }));
+</script>
+
+<style is:global>
+  .gcd select, .gcd input { max-width: 100%; }
+  .gcd .gc-pic svg { display: block; max-width: none; }
+  .gcd .gc-warn { margin: 0; padding-left: 20px; font-size: 14px; }
+  .gcd .gc-warn li.gc-bad { color: var(--bad); }
+</style>

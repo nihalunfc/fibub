@@ -1,0 +1,126 @@
+---
+// CT reconstruction demonstration: exact parallel-beam projections (sinogram) of a made-up phantom and filtered
+// back-projection with a choice of filters, angles and noise. Worked out in the browser; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ctr">
+  <div class="ax-card">
+    <h2>Scan</h2>
+    <div class="ax-grid">
+      <label>Object <select class="ct-ph"><option value="head" selected>Head-like (made up)</option><option value="disc">Uniform disc</option><option value="dots">Small dots (resolution)</option></select></label>
+      <label>Image size <select class="ct-n"><option value="64">64 × 64</option><option value="128" selected>128 × 128</option></select></label>
+      <label>Number of projection angles <select class="ct-na"><option>12</option><option>30</option><option>60</option><option selected>90</option><option>180</option><option>360</option></select></label>
+      <label>Angles covered <select class="ct-rng"><option value="180" selected>0 to 180° (complete)</option><option value="120">0 to 120° (limited)</option><option value="90">0 to 90° (limited)</option></select></label>
+      <label>Reconstruction filter <select class="ct-f"><option value="none">None (plain back-projection)</option><option value="ramp" selected>Ramp (Ram-Lak)</option><option value="shepp">Shepp-Logan (ramp × sinc)</option><option value="cosine">Cosine</option><option value="hann">Hann</option></select></label>
+      <label>Noise (% of the largest projection) <input class="ct-noise" type="text" inputmode="decimal" value="0" /></label>
+      <label>Grey window, lowest <input class="ct-lo" type="text" inputmode="decimal" value="0" /></label>
+      <label>Grey window, highest <input class="ct-hi" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Angles: how many views the scanner takes; a parallel-beam scan needs 180° for a complete set. The filter sharpens the back-projection: the ramp is exact for perfect data, the windowed ones trade a little sharpness for less noise. The grey window sets which values show as black and white (narrow it, for example 0.1 to 0.45 on the head-like object, to see soft details).</p>
+    <p class="ax-err ct-err" hidden></p>
+  </div>
+
+  <div class="ax-card ct-out">
+    <h2>Sinogram and reconstruction</h2>
+    <p class="ax-big ct-big"></p>
+    <dl class="ax-facts ct-facts"></dl>
+    <canvas class="ax-fig ct-fig1"></canvas>
+    <canvas class="ax-fig ct-fig2"></canvas>
+    <canvas class="ax-fig ct-fig3"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ct-scsv">Download the sinogram (CSV)</button>
+      <button type="button" class="btn secondary small ct-pcsv">Download the centre profile (CSV)</button>
+    </div>
+    <p class="ax-help">Parallel-beam geometry with projections worked out exactly from the ellipse formulas; real scanners use fan or cone beams, X-ray spectra and many corrections. The objects are made up. For study, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PHANTOMS, rasterise, sinogram, fbp, angles, detector, rmse, filterResponse, type Filter } from '../../lib/sci/phct';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ctr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const FN: Record<Filter, string> = { none: 'no filter', ramp: 'ramp filter', shepp: 'Shepp-Logan filter', cosine: 'cosine filter', hann: 'Hann filter' };
+  const WIN: Record<string, [number, number]> = { head: [0, 1], disc: [0, 1], dots: [0, 1] };
+  let figs: Figure[] = [], report: Section[] = [], sinoRows: (string | number)[][] = [], profRows: (string | number)[][] = [];
+
+  function panels(list: { title: string; data: ArrayLike<number>; w: number; h: number; lo: number; hi: number }[], alt: string): Figure {
+    const W = 380, P = 118, gap = (W - 3 * P) / 2;
+    return { w: W, h: P + 22, alt, draw: (ctx, _w, _h, pal) => {
+      list.forEach((p, k) => {
+        const x0 = k * (P + gap), cw = P / p.w, ch = P / p.h;
+        ctx.fillStyle = '#000'; ctx.fillRect(x0, 0, P, P);
+        for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++) {
+          const v = Math.max(0, Math.min(1, (p.data[y * p.w + x] - p.lo) / (p.hi - p.lo || 1))), g = Math.round(v * 255);
+          if (!g) continue;
+          ctx.fillStyle = pal.red ? `rgb(${Math.round(g * 0.64)},0,0)` : `rgb(${g},${g},${g})`;
+          ctx.fillRect(x0 + x * cw, y * ch, cw + 0.3, ch + 0.3);
+        }
+        ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(p.title, x0 + P / 2, P + 5);
+      });
+      ctx.textAlign = 'left';
+    } };
+  }
+
+  function calc() {
+    const err = q('.ct-err'), out = q('.ct-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const ph = PHANTOMS[sel('.ct-ph')], N = +sel('.ct-n'), na = +sel('.ct-na'), range = +sel('.ct-rng'), f = sel('.ct-f') as Filter;
+    const noise = num(q<HTMLInputElement>('.ct-noise').value), lo = num(q<HTMLInputElement>('.ct-lo').value), hi = num(q<HTMLInputElement>('.ct-hi').value);
+    if (!(noise >= 0 && noise <= 50)) return fail('Give the noise as a percentage from 0 to 50.');
+    if (!(Number.isFinite(lo) && Number.isFinite(hi) && hi > lo)) return fail('The grey window needs a highest value above the lowest.');
+    err.hidden = true; out.hidden = false;
+    const th = angles(na, range), rows = sinogram(ph.e, th, N, noise / 100), img = rasterise(ph.e, N);
+    let rec = fbp(rows, th, N, f), sc = 1;
+    if (f === 'none') { const mr = Math.max(...rec), mi = Math.max(...img); sc = mi / mr; rec = rec.map((v) => v * sc); }
+    const e = rmse(rec, img, N), mx = Math.max(...img);
+    q('.ct-big').textContent = f === 'none' ? `Plain back-projection from ${na} angles: blurred` : `Error ${sig(e, 3)} (${sig((100 * e) / mx, 3)} % of the brightest value), ${FN[f]}, ${na} angles`;
+    const rays = na * N, need = Math.ceil((Math.PI / 2) * N);
+    const facts = [
+      fact('Projections', `${na} angles × ${N} detector bins`, `${rays.toLocaleString('en')} ray sums over ${range}°`),
+      fact('Angles for full sampling', `about ${need}`, `π/2 × ${N} bins; fewer gives streaks`),
+      fact('Filter', FN[f], f === 'none' ? 'plain back-projection blurs every point as 1/r; scaled to the same peak for display' : 'applied to each projection before back-projection'),
+      fact('RMS error inside the circle', f === 'none' ? 'not meaningful' : sig(e, 3), 'reconstruction minus the true object'),
+      fact('Noise added', `${sig(noise, 3)} %`, noise ? 'Gaussian, same seed every time, so results repeat' : 'perfect data'),
+    ];
+    q('.ct-facts').replaceChildren(...facts);
+    // Sinogram as an image: rows are angles, columns detector bins.
+    const flat = new Float64Array(na * N); rows.forEach((r, k) => flat.set(r, k * N));
+    const smax = Math.max(...flat), smin = Math.min(0, ...flat);
+    const c1 = panels([
+      { title: 'Object', data: img, w: N, h: N, lo, hi },
+      { title: 'Sinogram', data: flat, w: N, h: na, lo: smin, hi: smax },
+      { title: 'Reconstruction', data: rec, w: N, h: N, lo, hi },
+    ], `Object, its sinogram (${na} angles down, detector across) and the reconstruction`);
+    const xs = detector(N), mid = N / 2;
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: 'Position across the middle row', yLabel: 'Value', legend: 'below', series: [
+      { name: 'True object', x: xs, y: Array.from({ length: N }, (_, i) => img[mid * N + i]), mode: 'line', width: 2 },
+      { name: 'Reconstruction', x: xs, y: Array.from({ length: N }, (_, i) => rec[mid * N + i]), mode: 'line', width: 1.6 },
+    ] }, 'Profile across the middle of the image: true object and reconstruction');
+    let P = 64; while (P < 2 * N) P <<= 1;
+    const fq = Array.from({ length: P / 2 + 1 }, (_, k) => k / P);
+    const c3 = chartFigure({ w: 380, h: 200, xLabel: 'Frequency (cycles per detector bin)', yLabel: 'Filter gain', legend: 'below', yMin: 0, series: (['ramp', 'shepp', 'cosine', 'hann'] as Filter[]).map((k) => { const H = filterResponse(P, k); return { name: FN[k], x: fq, y: fq.map((_, i) => H[i]), mode: 'line' as const, width: k === f ? 2.6 : 1.2 }; }) }, 'Frequency response of the reconstruction filters');
+    paint(q<HTMLCanvasElement>('.ct-fig1'), c1); paint(q<HTMLCanvasElement>('.ct-fig2'), c2); paint(q<HTMLCanvasElement>('.ct-fig3'), c3);
+    figs = [c1, c2, c3];
+    sinoRows = [['angle_deg', ...xs.map((x) => `t=${+x.toFixed(5)}`)], ...rows.map((r, k) => [+th[k].toFixed(4), ...[...r].map((v) => +v.toFixed(6))])];
+    profRows = [['x', 'true', 'reconstruction'], ...xs.map((x, i) => [+x.toFixed(5), +img[mid * N + i].toFixed(6), +rec[mid * N + i].toFixed(6)])];
+    const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.ct-big').textContent!, text: [`${ph.name}, ${N} × ${N}, ${na} angles over ${range}°, ${FN[f]}, noise ${sig(noise, 3)} %.`], facts: rowsOf(facts), figure: c1 }, { title: 'Middle row profile', figure: c2 }, { title: 'Filters', figure: c3 }];
+  }
+
+  q('.ct-ph').addEventListener('change', () => { const w = WIN[sel('.ct-ph')]; q<HTMLInputElement>('.ct-lo').value = String(w[0]); q<HTMLInputElement>('.ct-hi').value = String(w[1]); });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.ct-scsv').addEventListener('click', () => save(new Blob([csv(sinoRows)], { type: 'text/csv' }), 'sinogram.csv', 'text/csv'));
+  q('.ct-pcsv').addEventListener('click', () => save(new Blob([csv(profRows)], { type: 'text/csv' }), 'ct-profile.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ct-out').hidden) ['.ct-fig1', '.ct-fig2', '.ct-fig3'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'CT reconstruction', subtitle: q('.ct-big').textContent ?? '', file: 'ct-reconstruction', sections: report }));
+</script>

@@ -1,0 +1,164 @@
+---
+// Exponential and logistic growth, and Leslie matrix projection. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'class\tfecundity F\tsurvival P\tstarting number\nAge 0\t0\t0.5\t100\nAge 1\t1.2\t0.6\t50\nAge 2\t2.0\t0.4\t30\nAge 3\t1.5\t0\t10';
+---
+<div class="ax pgm">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-seg pg-mode" role="group" aria-label="Model"><button type="button" data-m="cont" aria-pressed="true">Exponential and logistic</button><button type="button" data-m="les" aria-pressed="false">Leslie matrix</button></div>
+    <div class="pg-cont" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Starting size N₀ <input class="pg-N0" inputmode="decimal" value="20" /></label>
+        <label>Growth rate r (per time unit) <input class="pg-r" inputmode="decimal" value="0.3" /></label>
+        <label>Carrying capacity K <input class="pg-K" inputmode="decimal" value="500" /></label>
+        <label>Run for (time units) <input class="pg-T" inputmode="decimal" value="30" /></label>
+        <label>Time to reach N (optional) <input class="pg-target" inputmode="decimal" value="250" /></label>
+      </div>
+      <p class="ax-help">r is the intrinsic (instantaneous) rate of increase: births minus deaths per individual per time unit. Exponential growth has no limit; logistic growth slows as the population nears K. The numbers are a made-up example.</p>
+    </div>
+    <div class="pg-les" style="margin-top:12px" hidden>
+      <label>One row per age or stage class: name, fecundity F (offspring counted at the next census per individual in the class), survival P to the next class, and the starting number.
+        <textarea class="pg-data" rows="6" spellcheck="false" wrap="off">{example}</textarea></label>
+      <DataFile target=".pg-data" maxCols={6} maxRows={60} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Time steps to project <input class="pg-steps" inputmode="numeric" value="20" /></label>
+      </div>
+      <p class="ax-help">The survival on the last row is the chance of staying in the last class (a "plus group"); leave it at 0 for a plain Leslie matrix, where no one outlives the last class. Up to 60 classes. The example is made up.</p>
+    </div>
+    <p class="ax-err pg-err" hidden></p>
+  </div>
+
+  <div class="ax-card pg-out">
+    <h2>Result</h2>
+    <p class="ax-big pg-big"></p>
+    <dl class="ax-facts pg-facts"></dl>
+    <canvas class="ax-fig pg-fig"></canvas>
+    <div class="pg-lesout" hidden>
+      <h3>Classes</h3>
+      <div class="ax-scroll"><table class="pg-tab"></table></div>
+      <h3>Leslie matrix</h3>
+      <div class="ax-scroll"><table class="pg-mat"></table></div>
+    </div>
+    <div class="pg-contout">
+      <h3>Values</h3>
+      <div class="ax-scroll"><table class="pg-vals"></table></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pg-csv">Download projection (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { expN, logisticN, expTime, logisticTime, leslie, project, matrix } from '../../lib/sci/popgrowth';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pgm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const big = (x: number) => (Number.isFinite(x) ? (Math.abs(x) >= 1e4 && Math.abs(x) < 1e12 ? Math.round(x).toLocaleString('en') : sig(x, 4)) : '∞');
+  const tr = (x: number, d = 4) => { const t = sig(x, d); return /^-?\d+\.\d+$/.test(t) ? t.replace(/\.?0+$/, '') : t; };
+  const tm = (t: number) => (Number.isFinite(t) ? sig(t, 4) : 'never');
+  let mode = 'cont', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+  const factPairs = () => [...q('.pg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function calc() {
+    const fail = (m: string) => { q('.pg-err').textContent = m; q('.pg-err').hidden = false; q('.pg-out').hidden = true; sections = []; csvRows = []; fig = null; };
+    q('.pg-err').hidden = true;
+    if (mode === 'cont') {
+      const N0 = v('.pg-N0'), r = v('.pg-r'), K = v('.pg-K'), T = v('.pg-T'), tgTxt = q<HTMLInputElement>('.pg-target').value.trim(), tg = tgTxt ? num(tgTxt) : NaN;
+      if (!(N0 > 0)) return fail('The starting size must be more than zero.');
+      if (!Number.isFinite(r) || Math.abs(r) > 50) return fail('Enter a growth rate r between −50 and 50.');
+      if (!(K > 0)) return fail('The carrying capacity K must be more than zero.');
+      if (!(T > 0 && T <= 1e6)) return fail('Run for a time above zero.');
+      if (tgTxt && !(tg > 0)) return fail('The size to reach must be a number above zero, or leave it blank.');
+      q('.pg-out').hidden = false; q('.pg-lesout').hidden = true; q('.pg-contout').hidden = false;
+      const eT = expN(N0, r, T), lT = logisticN(N0, r, K, T);
+      q('.pg-big').textContent = `At t = ${sig(T, 4)}: exponential ${big(eT)}, logistic ${big(lT)}`;
+      const tHalf = logisticTime(N0, r, K, K / 2);
+      q('.pg-facts').replaceChildren(
+        fact('Growth per time unit λ = eʳ', sig(Math.exp(r), 5), r >= 0 ? `+${sig(100 * (Math.exp(r) - 1), 3)} % per time unit while small` : `${sig(100 * (Math.exp(r) - 1), 3)} % per time unit`),
+        fact(r >= 0 ? 'Doubling time' : 'Halving time', r === 0 ? 'never' : sig(Math.log(2) / Math.abs(r), 4), 'ln 2 ÷ |r|, exponential growth'),
+        fact('Fastest logistic growth', `${sig((r * K) / 4, 4)} per time unit`, `rK/4, at N = K/2 = ${sig(K / 2, 4)}${Number.isFinite(tHalf) ? `, reached at t = ${sig(tHalf, 4)}` : ''}`),
+        ...(tgTxt ? [fact(`Time to reach ${sig(tg, 4)}`, `exp. ${tm(expTime(N0, r, tg))}, log. ${tm(logisticTime(N0, r, K, tg))}`, 'logistic never reaches K itself or passes it')] : []),
+      );
+      const ts = Array.from({ length: 201 }, (_, i) => (T * i) / 200);
+      const yMax = Math.max(K * 1.15, N0 * 1.15);
+      fig = chartFigure({ w: 560, h: 340, xLabel: 'Time', yLabel: 'Population size N', yMin: 0, yMax: Math.max(...ts.map((t) => expN(N0, r, t))) > yMax * 4 ? yMax * 2 : undefined, legend: 'below', series: [
+        { name: 'Exponential', x: ts, y: ts.map((t) => expN(N0, r, t)), mode: 'line' },
+        { name: 'Logistic', x: ts, y: ts.map((t) => logisticN(N0, r, K, t)), mode: 'line' },
+      ], marks: [{ kind: 'hline', at: K, dash: [4, 4], label: 'K' }] }, 'Exponential and logistic growth curves');
+      paint(q<HTMLCanvasElement>('.pg-fig'), fig);
+      const head = ['Time', 'Exponential N', 'Logistic N'], rows = Array.from({ length: 11 }, (_, i) => { const t = (T * i) / 10; return [sig(t, 4), big(expN(N0, r, t)), big(logisticN(N0, r, K, t))]; });
+      table('.pg-vals', head, rows);
+      csvRows = [head, ...Array.from({ length: 101 }, (_, i) => { const t = (T * i) / 100; return [sig(t, 6), sig(expN(N0, r, t), 8), sig(logisticN(N0, r, K, t), 8)]; })];
+      sections = [{ title: q('.pg-big').textContent!, text: [`N₀ = ${N0}, r = ${r}, K = ${K}. Exponential: N = N₀ e^(rt). Logistic: N = K / (1 + ((K − N₀)/N₀) e^(−rt)).`], facts: factPairs(), figure: fig, table: { head, rows, align: ['r', 'r', 'r'] } }];
+      return;
+    }
+    const all = parseTable(q<HTMLTextAreaElement>('.pg-data').value), body = all.filter((r) => r.length >= 3 && Number.isFinite(num(r[1])));
+    if (body.length > 60) return fail('Up to 60 classes, please.');
+    if (!body.length) return fail('Give one row per class: name, fecundity, survival, starting number.');
+    const names = body.map((r, i) => r[0] || `Class ${i + 1}`), F = body.map((r) => num(r[1])), P = body.map((r) => (r[2] === '' ? 0 : num(r[2]))), N0 = body.map((r) => (r[3] === undefined || r[3] === '' ? 0 : num(r[3])));
+    for (let i = 0; i < body.length; i++) {
+      if (!(F[i] >= 0)) return fail(`${names[i]}: fecundity must be a number of zero or more.`);
+      if (!(P[i] >= 0 && P[i] <= 1)) return fail(`${names[i]}: survival must be between 0 and 1.`);
+      if (!(N0[i] >= 0)) return fail(`${names[i]}: the starting number must be zero or more.`);
+    }
+    const steps = v('.pg-steps');
+    if (!(Number.isInteger(steps) && steps >= 1 && steps <= 500)) return fail('Project for 1 to 500 time steps.');
+    let L: ReturnType<typeof leslie>;
+    try { L = leslie(F, P); } catch (e) { return fail((e as Error).message); }
+    q('.pg-out').hidden = false; q('.pg-lesout').hidden = false; q('.pg-contout').hidden = true;
+    const proj = project(F, P, N0, steps), tot = proj.map((x) => x.reduce((a, b) => a + b, 0));
+    const pct = 100 * (L.lambda - 1);
+    q('.pg-big').textContent = `λ = ${sig(L.lambda, 5)}: the population ${Math.abs(pct) < 1e-6 ? 'holds steady' : pct > 0 ? `grows ${sig(pct, 3)} % per time step` : `shrinks ${sig(-pct, 3)} % per time step`} in the long run`;
+    q('.pg-facts').replaceChildren(
+      fact('Intrinsic rate r = ln λ', sig(L.r, 4), 'per time step'),
+      fact(L.lambda >= 1 ? 'Doubling time' : 'Halving time', Math.abs(L.r) < 1e-12 ? 'never' : sig(Math.log(2) / Math.abs(L.r), 4), 'time steps, once the stable distribution is reached'),
+      fact('Net reproductive rate R₀', sig(L.R0, 4), 'lifetime offspring per newborn; above 1 means growth'),
+      fact('Generation time', Number.isFinite(L.T) ? sig(L.T, 4) : '–', 'ln R₀ ÷ ln λ, in time steps'),
+      fact(`Total after ${steps} steps`, big(tot[steps]), `from ${big(tot[0])}${tot[steps - 1] > 0 ? `; last step ×${sig(tot[steps] / tot[steps - 1], 4)}` : ''}`),
+    );
+    const head = ['Class', 'F', 'P', 'Survivorship l', 'Stable %', 'Reproductive value', `N at step ${steps}`];
+    const rows = names.map((n, i) => [n, tr(F[i]), tr(P[i]), tr(L.l[i]), tr(100 * L.stable[i]), tr(L.repro[i]), big(proj[steps][i])]);
+    table('.pg-tab', head, rows);
+    const A = matrix(F, P); table('.pg-mat', ['', ...names], A.map((r, i) => [names[i], ...r.map((x) => tr(x))]));
+    const xs = proj.map((_, t) => t), many = names.length > 6;
+    fig = chartFigure({ w: 560, h: 340, xLabel: 'Time step', yLabel: 'Number', yMin: 0, legend: 'below', series: [
+      { name: 'Total', x: xs, y: tot, mode: 'line', width: 2.5 },
+      ...(many ? [] : names.map((n, i) => ({ name: n, x: xs, y: proj.map((p) => p[i]), mode: 'line' as const, width: 1.2 }))),
+    ] }, 'Leslie matrix projection over time');
+    paint(q<HTMLCanvasElement>('.pg-fig'), fig);
+    csvRows = [['Step', ...names, 'Total'], ...proj.map((p, t) => [String(t), ...p.map((x) => sig(x, 8)), sig(tot[t], 8)]), [], ['lambda', sig(L.lambda, 10)], ['r', sig(L.r, 10)], ['R0', sig(L.R0, 10)], ['Stable distribution', ...L.stable.map((x) => sig(x, 8))], ['Reproductive value', ...L.repro.map((x) => sig(x, 8))]];
+    sections = [{ title: q('.pg-big').textContent!, text: ['Dominant eigenvalue λ from the characteristic (Euler-Lotka) equation of the Leslie matrix; stable distribution and reproductive values are its right and left eigenvectors.'], facts: factPairs(), figure: fig, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.pg-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!; q('.pg-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.pg-cont').hidden = mode !== 'cont'; q('.pg-les').hidden = mode === 'cont'; calc();
+  });
+  q('.pg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), mode === 'cont' ? 'growth-curves.csv' : 'leslie-projection.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pg-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'cont' ? 'Exponential and logistic growth' : 'Leslie matrix projection', subtitle: q('.pg-big').textContent ?? '', file: 'population-growth', sections }));
+</script>
+
+<style is:global>
+  .pgm .pg-out h3 { margin: 18px 0 8px; }
+  .pgm .pg-tab td:first-child, .pgm .pg-mat td:first-child { white-space: nowrap; }
+</style>
