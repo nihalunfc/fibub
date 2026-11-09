@@ -1,0 +1,182 @@
+---
+// Pedigree drawing with the standard (NSGC, Bennett et al. 2008) symbols: a family table in, an automatic
+// generation layout out, with checks, add-a-relative buttons and SVG / PNG export. The example family is made up.
+// Nothing leaves the device; the table is kept in this browser only if the user ticks the box.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `id	father	mother	sex	affected	carrier	deceased	proband	twin	adopted	note
+Arthur			M			yes				d. aged 78
+Beatrice			F		yes					
+Colin	Arthur	Beatrice	M	yes						
+Fiona			F							
+Diana	Arthur	Beatrice	F		yes					
+George			M							
+Edith	Arthur	Beatrice	F							
+Harry	Colin	Fiona	M							
+Iris	Colin	Fiona	F		yes					
+Jack	George	Diana	M	yes				DZ1		
+Kevin	George	Diana	M					DZ1		
+Lena	George	Diana	F						in	
+Max	Kevin	Iris	M	yes			yes			
+Nora	Kevin	Iris	F							
+Child	Kevin	Iris	U							sex unknown`;
+---
+<div class="ax ped" data-example={example}>
+  <div class="ax-card">
+    <h2>Family table</h2>
+    <label>One person per row. Columns: id, father, mother, sex (M, F or U for unknown), affected, carrier, deceased, proband (yes or blank), twin, adopted (in or out) and note. Leave father and mother blank for people whose parents are not drawn.
+      <textarea class="pd-data" rows="10" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".pd-data" maxCols={11} maxRows={500} />
+    <p class="ax-help">The example is a made-up family. Twins share a label in the twin column: start it with MZ for identical twins (MZ1), with ? if not known (?1), or anything else for non-identical twins (DZ1). "Adopted in" draws a dashed line to the adoptive parents given as father and mother; "adopted out" a solid line to the birth parents. Everything stays on this device: nothing is uploaded. For study and teaching, not for clinical use.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="pd-remember" /> Remember this table on this device</label>
+      <button type="button" class="btn secondary small pd-clear">Clear saved table</button>
+      <button type="button" class="btn secondary small pd-reset">Load the example</button>
+    </div>
+    <p class="ax-help">Off by default. When ticked, the table is kept in this browser only (family health details never leave your device). Clear removes it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pedigree</h2>
+    <ul class="pd-issues"></ul>
+    <div class="pd-edit">
+      <div class="ax-grid">
+        <label>Person (or tap a symbol) <select class="pd-sel"></select></label>
+        <label>Sex <select class="pd-sex"><option value="M">Male (square)</option><option value="F">Female (circle)</option><option value="U">Unknown (diamond)</option></select></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px">
+        <label class="ax-check"><input type="checkbox" class="pd-f" data-f="affected" /> Affected</label>
+        <label class="ax-check"><input type="checkbox" class="pd-f" data-f="carrier" /> Carrier</label>
+        <label class="ax-check"><input type="checkbox" class="pd-f" data-f="deceased" /> Deceased</label>
+        <label class="ax-check"><input type="checkbox" class="pd-f" data-f="proband" /> Proband</label>
+      </div>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small pd-add" data-add="parents">Add parents</button>
+        <button type="button" class="btn secondary small pd-add" data-add="son">Add son</button>
+        <button type="button" class="btn secondary small pd-add" data-add="daughter">Add daughter</button>
+        <button type="button" class="btn secondary small pd-add" data-add="brother">Add brother</button>
+        <button type="button" class="btn secondary small pd-add" data-add="sister">Add sister</button>
+        <button type="button" class="btn secondary small pd-add" data-add="remove">Remove</button>
+      </div>
+      <p class="ax-err pd-aerr" hidden></p>
+    </div>
+    <div class="ax-scroll pd-wrap" style="margin-top:12px"><canvas class="pd-fig" role="img"></canvas></div>
+    <p class="ax-help">Square male, circle female, diamond sex unknown; filled = affected; dot = carrier; slash = deceased; arrow with P = proband; double line = partners who are blood relatives (found from the table); brackets = adopted. Roman numerals number the generations and the numbers under the symbols number people left to right, so II-3 is the third person in generation II.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pd-svg">Download SVG</button><button type="button" class="btn secondary small pd-png">Download PNG</button><button type="button" class="btn secondary small pd-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ped .pd-data { tab-size: 10; }
+  .ped .pd-issues { margin: 0 0 10px; padding-left: 20px; font-size: 15px; }
+  .ped .pd-issues li { margin: 4px 0; }
+  .ped .pd-issues li.error { color: var(--bad); }
+  .ped .pd-issues li.warning { color: var(--warn); }
+  .ped .pd-issues li.ok { color: var(--good); list-style: none; margin-left: -20px; }
+  .ped .pd-wrap canvas { display: block; max-width: none; height: auto; border-radius: 8px; cursor: pointer; }
+</style>
+
+<script>
+  import { readPeople, checkPeople, layout, drawPedigree, drawingSize, centre, toTable, addParents, addChild, addSibling, removePerson, S, type Person, type Layout } from '../../lib/sci/pedidraw';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { parseTable, csv as toCsv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ped')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-pedigree-v1';
+  const cols = (pal: Palette) => ({ ink: pal.ink, bg: pal.bg, muted: pal.muted, accent: pal.accent });
+  let people: Person[] = [], L: Layout | null = null, fig: Figure | null = null, sel = '', sections: Section[] = [];
+
+  function figure(withSel: boolean): Figure {
+    const { w, h } = drawingSize(L!), ps = people, lay = L!, s = withSel ? sel : '';
+    return { w, h, alt: `Pedigree of ${ps.length} people in ${lay.rows.length} generations`, draw: (ctx, _w, _h, pal) => drawPedigree(canvasPainter(ctx), ps, lay, cols(pal), s) };
+  }
+  function store() { try { if (q<HTMLInputElement>('.pd-remember').checked) localStorage.setItem(KEY, q<HTMLTextAreaElement>('.pd-data').value); } catch {} }
+  function setTable(p: Person[]) { q<HTMLTextAreaElement>('.pd-data').value = toTable(p); calc(); }
+
+  function calc() {
+    const r = readPeople(parseTable(q<HTMLTextAreaElement>('.pd-data').value));
+    people = r.people;
+    const chk = checkPeople(people), ul = q('.pd-issues'); ul.replaceChildren();
+    const add = (cls: string, t: string) => { const li = document.createElement('li'); li.className = cls; li.textContent = t; ul.append(li); };
+    if (people.length > 500) r.errors.push('Up to 500 people, please.');
+    if (!people.length) r.errors.push('Add at least one person: a row with an id and a sex.');
+    for (const e of [...r.errors, ...chk.errors]) add('error', 'Error: ' + e);
+    for (const w of chk.warnings) add('warning', 'Check: ' + w);
+    const fatal = chk.fatal || r.errors.length > 0;
+    q('.pd-wrap').hidden = fatal;
+    store();
+    if (fatal) { L = null; fig = null; sections = []; fillSel(); return; }
+    L = layout(people);
+    for (const w of L.warnings) add('warning', 'Check: ' + w);
+    if (!ul.children.length) add('ok', `No problems found: ${people.length} people in ${L.rows.length} generations.`);
+    if (!people.some((p) => p.id === sel)) sel = people.find((p) => p.proband)?.id ?? people[0]?.id ?? '';
+    fillSel(); draw();
+    const head = ['No.', 'Id', 'Father', 'Mother', 'Sex', 'Status', 'Note'];
+    const rows = people.slice().sort((a, b) => cmpLabel(L!.label.get(a.id)!, L!.label.get(b.id)!)).map((p) => [L!.label.get(p.id)!, p.id, p.father, p.mother, p.sex, [p.affected && 'affected', p.carrier && 'carrier', p.deceased && 'deceased', p.proband && 'proband', p.twin && `twin ${p.twin}`, p.adopted && `adopted ${p.adopted}`].filter(Boolean).join(', '), p.note]);
+    sections = [{ title: 'Pedigree', text: [`${people.length} people in ${L.rows.length} generations. Symbols follow the NSGC pedigree nomenclature (Bennett et al. 2008).`], figure: figure(false), table: { head, rows, align: head.map(() => 'l' as const) } }];
+  }
+  const cmpLabel = (a: string, b: string) => { const [ga, na] = a.split('-'), [gb, nb] = b.split('-'); return ga.length - gb.length || ga.localeCompare(gb) || Number(na) - Number(nb); };
+
+  function draw() {
+    if (!L) return;
+    fig = figure(true);
+    const c = q<HTMLCanvasElement>('.pd-fig'); paint(c, fig);
+    c.style.width = `${Math.round(fig.w * 0.8)}px`;
+  }
+  function fillSel() {
+    const s = q<HTMLSelectElement>('.pd-sel'); s.replaceChildren();
+    for (const p of people) { const o = document.createElement('option'); o.value = p.id; o.textContent = L ? `${L.label.get(p.id)} ${p.id}` : p.id; s.append(o); }
+    s.value = sel; const p = people.find((x) => x.id === sel);
+    q('.pd-edit').querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button').forEach((e) => { if (e !== s) e.disabled = !p || !L; });
+    if (p) { q<HTMLSelectElement>('.pd-sex').value = p.sex; root.querySelectorAll<HTMLInputElement>('.pd-f').forEach((b) => { b.checked = p[b.dataset.f as 'affected']; }); }
+  }
+
+  q('.pd-sel').addEventListener('change', () => { sel = q<HTMLSelectElement>('.pd-sel').value; fillSel(); draw(); });
+  q('.pd-sex').addEventListener('change', () => setTable(people.map((p) => (p.id === sel ? { ...p, sex: q<HTMLSelectElement>('.pd-sex').value as Person['sex'] } : p))));
+  root.querySelectorAll<HTMLInputElement>('.pd-f').forEach((b) => b.addEventListener('change', () => setTable(people.map((p) => (p.id === sel ? { ...p, [b.dataset.f!]: b.checked } : p)))));
+  root.querySelectorAll<HTMLButtonElement>('.pd-add').forEach((b) => b.addEventListener('click', () => {
+    const err = q('.pd-aerr'); err.hidden = true;
+    try {
+      const a = b.dataset.add!;
+      if (a === 'parents') setTable(addParents(people, sel));
+      else if (a === 'son' || a === 'daughter') { const r = addChild(people, sel, a === 'son' ? 'M' : 'F'); sel = r.added; setTable(r.people); }
+      else if (a === 'brother' || a === 'sister') { const r = addSibling(people, sel, a === 'brother' ? 'M' : 'F'); sel = r.added; setTable(r.people); }
+      else { setTable(removePerson(people, sel)); }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; }
+  }));
+  q('.pd-fig').addEventListener('click', (e) => {
+    if (!L || !fig) return;
+    const c = q<HTMLCanvasElement>('.pd-fig'), r = c.getBoundingClientRect(), k = fig.w / r.width;
+    const x = ((e as MouseEvent).clientX - r.left) * k, y = ((e as MouseEvent).clientY - r.top) * k;
+    let best = '', bd = Infinity;
+    for (const p of people) { const [cx, cy] = centre(L, p.id), d = Math.hypot(cx - x, cy - y); if (d < bd) { bd = d; best = p.id; } }
+    if (best && bd < S * 1.2) { sel = best; fillSel(); draw(); }
+  });
+  q('.pd-remember').addEventListener('change', () => { try { if (q<HTMLInputElement>('.pd-remember').checked) store(); else localStorage.removeItem(KEY); } catch {} });
+  q('.pd-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.pd-remember').checked = false; });
+  q('.pd-reset').addEventListener('click', () => { q<HTMLTextAreaElement>('.pd-data').value = root.dataset.example!; sel = ''; calc(); });
+  q('.pd-svg').addEventListener('click', () => {
+    if (!L) return;
+    const { w, h } = drawingSize(L), P = svgPainter(w, h);
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], '#ffffff', null);
+    drawPedigree(P, people, L, cols(LIGHT));
+    save(new TextEncoder().encode(P.toString()), 'pedigree.svg', 'image/svg+xml');
+  });
+  q('.pd-png').addEventListener('click', () => {
+    if (!L) return;
+    const f = figure(false), c = document.createElement('canvas'), k = 3;
+    c.width = f.w * k; c.height = f.h * k; const ctx = c.getContext('2d')!; ctx.scale(k, k); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, f.w, f.h); f.draw(ctx, f.w, f.h, LIGHT);
+    c.toBlob(async (b) => { if (b) save(new Uint8Array(await b.arrayBuffer()), 'pedigree.png', 'image/png'); }, 'image/png');
+  });
+  q('.pd-csv').addEventListener('click', () => { if (people.length) save(new TextEncoder().encode(toCsv(toTable(people).split('\n').map((l) => l.split('\t')))), 'pedigree.csv', 'text/csv'); });
+  let timer = 0;
+  q('.pd-data').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); });
+  document.addEventListener('fibub:theme', draw);
+  try { const saved = localStorage.getItem(KEY); if (saved != null) { q<HTMLTextAreaElement>('.pd-data').value = saved; q<HTMLInputElement>('.pd-remember').checked = true; } } catch {}
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Pedigree', subtitle: `${people.length} people`, file: 'pedigree', sections }));
+</script>
