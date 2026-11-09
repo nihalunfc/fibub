@@ -1,0 +1,366 @@
+---
+// Point counter for thin sections and photos (modal analysis): grid or seeded random points on your image, keys or
+// buttons to assign each point to a class, undo, modal % with binomial errors, Van der Plas and Tobi 2σ chart, CSV.
+// Without an image it is a plain tally counter. The made-up thin section is drawn by fibub (random Voronoi grains).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const classes = '1 Quartz\n2 Feldspar\n3 Lithic fragments\n4 Matrix\n5 Cement\n6 Pore space';
+---
+<div class="ax pcn">
+  <div class="ax-card">
+    <h2>Classes</h2>
+    <label>One class per line: its key, then its name <textarea class="pc-cls" rows="6" spellcheck="false">{classes}</textarea></label>
+    <p class="ax-help">The key is one letter or digit you press to count that class (case does not matter). Up to 20 classes.</p>
+    <p class="ax-err pc-cerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Image and points</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pc-open">Open an image</button>
+      <input type="file" class="pc-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small pc-demo">Use a made-up thin section</button>
+      <button type="button" class="btn secondary small pc-noimg" hidden>Tally only (no image)</button>
+    </div>
+    <p class="ax-help pc-imginfo">No image: the class buttons below work as a plain tally counter. Your image stays on this device; it is never uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Points <select class="pc-mode"><option value="grid">Grid</option><option value="random">Random</option></select></label>
+      <label class="pc-g">Rows <input class="pc-rows" inputmode="numeric" value="15" /></label>
+      <label class="pc-g">Columns <input class="pc-cols" inputmode="numeric" value="20" /></label>
+      <label class="pc-r" hidden>Number of points <input class="pc-n" inputmode="numeric" value="300" /></label>
+      <label class="pc-r" hidden>Seed <input class="pc-seed" inputmode="numeric" value="1" /></label>
+      <label>Margin (% of each side) <input class="pc-margin" inputmode="decimal" value="2" /></label>
+      <label>Zoom <select class="pc-zoom"><option value="1">Fit</option><option value="2">2×</option><option value="4">4×</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small pc-place">Place points</button><span class="ax-help pc-placed" style="margin:0"></span></div>
+    <p class="ax-help">Random points use a seed, so the same seed puts them in the same places again. They are visited in bands across the image. Tap a point to go back to it.</p>
+    <p class="ax-err pc-perr" hidden></p>
+    <div class="pc-wrap" hidden><canvas class="pc-cv"></canvas></div>
+  </div>
+
+  <div class="ax-card pc-countcard">
+    <h2>Count</h2>
+    <p class="pc-prog"></p>
+    <div class="pc-bar" aria-hidden="true"><i></i></div>
+    <div class="pc-btns"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pc-undo">Undo</button>
+      <button type="button" class="btn secondary small pc-prev">Previous point</button>
+      <button type="button" class="btn secondary small pc-next">Next point</button>
+      <button type="button" class="btn secondary small pc-reset">Clear counts</button>
+    </div>
+    <p class="ax-help">Keys: a class key counts the current point and moves on; Backspace or Ctrl+Z undoes; the arrow keys move between points. Counts live only in this page: download the CSV before you close it.</p>
+  </div>
+
+  <div class="ax-card pc-out">
+    <h2>Modal composition</h2>
+    <p class="ax-big pc-big"></p>
+    <div class="ax-grid"><label>Target 2σ (± percentage points) <input class="pc-target" inputmode="decimal" value="2" /></label></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="pc-tab"></table></div>
+    <p class="ax-help">SE = √(p(1 − p)/N). 2σ is the Van der Plas and Tobi (1965) precision: about 95 % of repeat counts fall within it. The 95 % range is the exact (Clopper-Pearson) binomial interval, which stays sensible for rare classes. "Points for target" is how many points you would need for that class's 2σ to reach the target: 4p(1 − p)/target².</p>
+    <canvas class="ax-fig pc-fig" style="margin-top:12px"></canvas>
+    <div class="dl" style="margin-top:12px"><span class="dl-l">Data</span><button type="button" class="btn secondary pc-csv">Results (CSV)</button><button type="button" class="btn secondary pc-pcsv">Every point (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { gridPoints, randomPoints, classStat, pointsNeeded, twoSigma, mulberry32, type Pt } from '../../lib/sci/pointcount';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pcn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Cls = { key: string; name: string };
+  let classes: Cls[] = [];
+  let img: ImageBitmap | HTMLCanvasElement | null = null, imgName = '', truth: number[] | null = null;
+  let pts: Pt[] = [], cls: number[] = [], cur = 0;
+  let tally: number[] = [];
+  const hist: { i: number; prev: number }[] = [];
+  let fig: Figure | null = null, report: Section[] = [];
+  const colour = (k: number) => OKABE_ITO[k % OKABE_ITO.length] === '#000000' ? '#777777' : OKABE_ITO[k % OKABE_ITO.length];
+  const pct = (x: number, d = 1) => (Number.isFinite(x) ? (x * 100).toFixed(d) : '–');
+
+  function readClasses() {
+    const out: Cls[] = [], seen = new Set<string>();
+    for (const line of q<HTMLTextAreaElement>('.pc-cls').value.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      const m = line.match(/^(\S)[\s,;:.)-]+(.+)$/);
+      if (!m) return `"${line}": start the line with a one-letter or one-digit key, then the name.`;
+      const key = m[1].toLowerCase();
+      if (seen.has(key)) return `The key "${m[1]}" is used twice.`;
+      seen.add(key); out.push({ key, name: m[2].trim() });
+    }
+    if (!out.length) return 'Type at least one class.';
+    if (out.length > 20) return 'Up to 20 classes.';
+    classes = out; return '';
+  }
+
+  const usingImage = () => !!img && pts.length > 0;
+  function counts() {
+    const c = classes.map(() => 0);
+    if (usingImage()) cls.forEach((k) => { if (k >= 0 && k < c.length) c[k]++; });
+    else tally.forEach((k) => { if (k < c.length) c[k]++; });
+    return c;
+  }
+
+  // ---------- Drawing the image and points ----------
+  let view = { s: 1, w: 0, h: 0 };
+  function draw() {
+    const wrap = q('.pc-wrap');
+    wrap.hidden = !img;
+    if (!img) return;
+    const zoom = Number(q<HTMLSelectElement>('.pc-zoom').value), cw = Math.max(200, wrap.clientWidth - 2) * zoom;
+    const iw = img.width, ih = img.height, s = cw / iw, ch = ih * s;
+    view = { s, w: cw, h: ch };
+    const cv = q<HTMLCanvasElement>('.pc-cv'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); cv.style.width = `${cw}px`; cv.style.height = `${ch}px`;
+    const ctx = cv.getContext('2d')!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.drawImage(img, 0, 0, cw, ch);
+    drawPoints(ctx, cw, ch, 1);
+    cv.dataset.drawn = String(pts.length);
+  }
+  function drawPoints(ctx: CanvasRenderingContext2D, cw: number, ch: number, scale: number) {
+    // Markers shrink when points are close together, so they never cover each other.
+    const r = Math.max(2.5 * scale, Math.min(5 * scale, 0.22 * Math.sqrt((cw * ch) / Math.max(1, pts.length))));
+    ctx.lineWidth = Math.min(1.5 * scale, r / 3); ctx.font = `700 ${Math.max(7, 2 * r)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    pts.forEach((p, i) => {
+      const x = p.x * cw, y = p.y * ch, k = cls[i];
+      if (k >= 0 && k < classes.length) {
+        ctx.fillStyle = colour(k); ctx.beginPath(); ctx.arc(x, y, r + 2 * scale, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.fillText(classes[k].key.toUpperCase(), x, y + 0.5);
+      } else {
+        ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+        ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, r - 1.5 * scale, 0, 7); ctx.stroke();
+        ctx.beginPath(); const a = 0.6 * r; ctx.moveTo(x - r - a, y); ctx.lineTo(x - r + 1, y); ctx.moveTo(x + r - 1, y); ctx.lineTo(x + r + a, y); ctx.moveTo(x, y - r - a); ctx.lineTo(x, y - r + 1); ctx.moveTo(x, y + r - 1); ctx.lineTo(x, y + r + a); ctx.strokeStyle = '#000'; ctx.stroke();
+      }
+    });
+    if (pts[cur]) {
+      const x = pts[cur].x * cw, y = pts[cur].y * ch;
+      ctx.lineWidth = 3 * scale; ctx.strokeStyle = '#ffd400'; ctx.beginPath(); ctx.arc(x, y, r + 7 * scale, 0, 7); ctx.stroke();
+      ctx.lineWidth = 1.2 * scale; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.arc(x, y, r + 9 * scale, 0, 7); ctx.stroke();
+    }
+  }
+  function scrollToCurrent() {
+    const wrap = q('.pc-wrap'), p = pts[cur];
+    if (!p || wrap.hidden || wrap.scrollWidth <= wrap.clientWidth + 2) return;
+    const x = p.x * view.w, y = p.y * view.h;
+    if (x < wrap.scrollLeft + 30 || x > wrap.scrollLeft + wrap.clientWidth - 30) wrap.scrollLeft = x - wrap.clientWidth / 2;
+    if (y < wrap.scrollTop + 30 || y > wrap.scrollTop + wrap.clientHeight - 30) wrap.scrollTop = y - wrap.clientHeight / 2;
+  }
+
+  // ---------- Counting ----------
+  function assign(k: number) {
+    if (k < 0 || k >= classes.length) return;
+    if (usingImage()) {
+      if (cur >= pts.length) return;
+      hist.push({ i: cur, prev: cls[cur] }); cls[cur] = k;
+      const next = cls.findIndex((c, i) => i > cur && c < 0);
+      cur = next >= 0 ? next : Math.min(pts.length, cur + 1);
+      if (cur >= pts.length) { const first = cls.indexOf(-1); cur = first >= 0 ? first : pts.length; }
+    } else { tally.push(k); hist.push({ i: -1, prev: k }); }
+    refresh(); scrollToCurrent();
+  }
+  function undo() {
+    const h = hist.pop();
+    if (!h) return;
+    if (h.i >= 0) { cls[h.i] = h.prev; cur = h.i; } else tally.pop();
+    refresh(); scrollToCurrent();
+  }
+  function move(d: number) { if (!usingImage()) return; cur = Math.max(0, Math.min(pts.length - 1, cur + d)); refresh(); scrollToCurrent(); }
+
+  function buttons() {
+    const box = q('.pc-btns');
+    const c = counts();
+    if (box.childElementCount !== classes.length || [...box.children].some((b, i) => (b as HTMLElement).dataset.k !== classes[i].key + classes[i].name)) {
+      box.replaceChildren(...classes.map((cl, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'pc-cb'; b.dataset.k = cl.key + cl.name; b.dataset.i = String(i);
+        b.innerHTML = '<kbd></kbd><span class="pc-cn"></span><b></b>';
+        b.querySelector('kbd')!.textContent = cl.key.toUpperCase(); b.querySelector('.pc-cn')!.textContent = cl.name;
+        b.style.setProperty('--c', colour(i));
+        b.addEventListener('click', () => assign(i));
+        return b;
+      }));
+    }
+    [...box.children].forEach((b, i) => { b.querySelector('b')!.textContent = String(c[i]); });
+  }
+
+  function refresh() {
+    buttons();
+    const c = counts(), N = c.reduce((a, b) => a + b, 0);
+    if (usingImage()) {
+      const done = cls.filter((k) => k >= 0 && k < classes.length).length;
+      q('.pc-prog').textContent = cur < pts.length ? `Point ${cur + 1} of ${pts.length} · ${done} counted` : `All ${pts.length} points counted`;
+      (q('.pc-bar').firstElementChild as HTMLElement).style.width = `${(done / pts.length) * 100}%`;
+    } else {
+      q('.pc-prog').textContent = `Tally: ${N} counted`;
+      (q('.pc-bar').firstElementChild as HTMLElement).style.width = '0';
+    }
+    q('.pc-prev').hidden = q('.pc-next').hidden = !usingImage();
+    draw();
+    results(c, N);
+  }
+
+  function results(c: number[], N: number) {
+    const target = num(q<HTMLInputElement>('.pc-target').value) / 100;
+    q('.pc-big').textContent = N ? `${N} point${N > 1 ? 's' : ''} counted` : 'Nothing counted yet';
+    const st = c.map((k) => classStat(k, N));
+    const head = ['Class', 'Key', 'Count', '%', 'SE %', '2σ %', '95 % range (exact)', ...(target > 0 ? ['Points for target'] : []), ...(truth ? ['True area %'] : [])];
+    const rows = classes.map((cl, i) => [cl.name, cl.key.toUpperCase(), String(c[i]), pct(st[i].p), pct(st[i].se, 2), pct(st[i].twoSigma, 2), N ? `${pct(st[i].exact[0])} to ${pct(st[i].exact[1])}` : '–',
+      ...(target > 0 ? [N && st[i].p > 0 ? String(pointsNeeded(st[i].p, target)) : '–'] : []), ...(truth ? [pct(truth[i] ?? 0)] : [])]);
+    const tab = q<HTMLTableElement>('.pc-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j > 1) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r, i) => { const tr = bd.insertRow(); r.forEach((v, j) => { const td = tr.insertCell(); td.textContent = v; if (j > 1) td.className = 'r'; if (j === 0) td.style.borderLeft = `4px solid ${colour(i)}`; }); });
+    // Van der Plas and Tobi chart: 2σ against the number of points for a few proportions, and the classes now.
+    const Ns = Array.from({ length: 61 }, (_, i) => 10 * 10 ** (i / 20));
+    const series: any[] = [5, 10, 20, 30, 50].map((p) => ({ name: `${p} %`, x: Ns, y: Ns.map((n) => twoSigma(p / 100, n) * 100), mode: 'line', width: 1.2, color: '#999999', labels: Ns.map((_, i) => (i === 6 ? `${p} %` : '')) }));
+    if (N) series.push({ name: 'Your classes', x: st.filter((s) => s.n > 0).map(() => N), y: st.filter((s) => s.n > 0).map((s) => s.twoSigma * 100), mode: 'points', marker: 'circle', size: 6, color: pagePalette().accent, labels: classes.filter((_, i) => st[i].n > 0).map((cl) => cl.name) });
+    const marks = target > 0 ? [{ kind: 'hline' as const, at: target * 100, dash: [5, 4], label: `target ±${sig(target * 100, 3)}` }] : [];
+    fig = chartFigure({ h: 320, xLog: true, yLog: true, xMin: 10, xMax: 10000, yMin: 0.1, yMax: 50, xLabel: 'Points counted (N)', yLabel: '2σ (percentage points)', legend: 'none', series, marks }, 'Van der Plas and Tobi chart: two sigma against number of points for proportions of 5 to 50 per cent, with the classes counted so far');
+    paint(q<HTMLCanvasElement>('.pc-fig'), fig);
+    const sections: Section[] = [{ title: q('.pc-big').textContent!, text: [imgName ? `Image: ${imgName}, ${pts.length} points (${q<HTMLSelectElement>('.pc-mode').value}).` : 'Tally counter (no image).'], table: { head, rows, align: head.map((_, j) => (j > 1 ? 'r' : 'l')) } }, { title: 'Van der Plas and Tobi chart', figure: fig }];
+    if (usingImage() && img) {
+      const im = img, w = 720, h = Math.round((720 * im.height) / im.width);
+      sections.push({ title: 'Points on the image', figure: { w, h, alt: 'The image with the counted points', draw: (ctx, W, H) => { ctx.drawImage(im, 0, 0, W, H); drawPoints(ctx, W, H, Math.max(0.6, W / 900)); } } });
+    }
+    report = sections;
+  }
+
+  // ---------- Points and images ----------
+  function place(force = false) {
+    const err = (m: string) => { q('.pc-perr').textContent = m; q('.pc-perr').hidden = !m; return !m; };
+    if (!img) return err('');
+    const mode = q<HTMLSelectElement>('.pc-mode').value, margin = num(q<HTMLInputElement>('.pc-margin').value) / 100;
+    if (!(margin >= 0 && margin < 0.45)) return err('The margin must be from 0 to 45 %.');
+    let p: Pt[];
+    if (mode === 'grid') {
+      const r = num(q<HTMLInputElement>('.pc-rows').value), c = num(q<HTMLInputElement>('.pc-cols').value);
+      if (!(Number.isInteger(r) && Number.isInteger(c) && r >= 1 && c >= 1 && r * c <= 10000)) return err('Rows and columns must be whole numbers, up to 10,000 points in all.');
+      p = gridPoints(r, c, margin);
+    } else {
+      const n = num(q<HTMLInputElement>('.pc-n').value), s = num(q<HTMLInputElement>('.pc-seed').value);
+      if (!(Number.isInteger(n) && n >= 1 && n <= 10000)) return err('The number of points must be a whole number from 1 to 10,000.');
+      if (!Number.isInteger(s)) return err('The seed must be a whole number.');
+      p = randomPoints(n, s, margin);
+    }
+    const counted = cls.filter((k) => k >= 0).length;
+    if (counted && !force && !window.confirm(`Placing new points clears the ${counted} points you have counted. Go ahead?`)) return false;
+    err(''); pts = p; cls = p.map(() => -1); cur = 0; hist.length = 0;
+    q('.pc-placed').textContent = `${p.length} points placed`;
+    refresh();
+    return true;
+  }
+  function setImage(im: ImageBitmap | HTMLCanvasElement | null, name: string, tr: number[] | null) {
+    img = im; imgName = name; truth = tr;
+    q('.pc-noimg').hidden = !im;
+    q('.pc-imginfo').textContent = im ? `${name}: ${im.width} × ${im.height} pixels. It stays on this device; it is never uploaded.` : 'No image: the class buttons below work as a plain tally counter. Your image stays on this device; it is never uploaded.';
+    pts = []; cls = []; cur = 0; hist.length = 0; tally = [];
+    if (im) place(true); else refresh();
+  }
+
+  /** A made-up thin section: Voronoi grains of quartz, feldspar, lithics, matrix and pores; returns the true area %. */
+  function demoSection() {
+    const W = 900, H = 600, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!, r = mulberry32(873);
+    const weights = [0.42, 0.2, 0.14, 0.14, 0, 0.1];
+    const cols = [[226, 226, 220], [214, 196, 160], [96, 86, 78], [160, 150, 132], [240, 240, 240], [60, 120, 200]];
+    const seeds = Array.from({ length: 220 }, () => { let u = r(), k = 0; while (k < weights.length - 1 && u > weights[k]) { u -= weights[k]; k++; } return { x: r() * W, y: r() * H, k }; });
+    const data = ctx.createImageData(W, H), area = new Array(6).fill(0), owner = new Int16Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let best = 0, bd = Infinity;
+      for (let s = 0; s < seeds.length; s++) { const dx = seeds[s].x - x, dy = seeds[s].y - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = s; } }
+      owner[y * W + x] = best;
+    }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const o = owner[y * W + x], k = seeds[o].k, edge = (x + 1 < W && owner[y * W + x + 1] !== o) || (y + 1 < H && owner[(y + 1) * W + x] !== o);
+      const shade = 0.9 + 0.1 * Math.sin(o * 12.9898);
+      const [R, G, B] = cols[k], i = (y * W + x) * 4;
+      data.data[i] = edge ? 40 : R * shade; data.data[i + 1] = edge ? 40 : G * shade; data.data[i + 2] = edge ? 40 : B * shade; data.data[i + 3] = 255;
+      area[k]++;
+    }
+    ctx.putImageData(data, 0, 0);
+    return { canvas: c, truth: area.map((a) => a / (W * H)) };
+  }
+
+  // ---------- Wiring ----------
+  q('.pc-open').addEventListener('click', () => q<HTMLInputElement>('.pc-file').click());
+  q('.pc-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pc-file').files?.[0];
+    if (!f) return;
+    try { const bm = await createImageBitmap(f); setImage(bm, f.name, null); }
+    catch { q('.pc-perr').textContent = 'That file could not be opened as an image (JPEG, PNG, WebP, GIF or BMP).'; q('.pc-perr').hidden = false; }
+    q<HTMLInputElement>('.pc-file').value = '';
+  });
+  q('.pc-demo').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.pc-cls').value = '1 Quartz\n2 Feldspar\n3 Lithic fragments\n4 Matrix\n5 Cement\n6 Pore space';
+    readClasses();
+    const d = demoSection(); setImage(d.canvas, 'made-up thin section', d.truth);
+  });
+  q('.pc-noimg').addEventListener('click', () => setImage(null, '', null));
+  q('.pc-place').addEventListener('click', () => place());
+  q('.pc-mode').addEventListener('change', () => { const r = q<HTMLSelectElement>('.pc-mode').value === 'random'; root.querySelectorAll<HTMLElement>('.pc-g').forEach((e) => (e.hidden = r)); root.querySelectorAll<HTMLElement>('.pc-r').forEach((e) => (e.hidden = !r)); });
+  q('.pc-zoom').addEventListener('change', () => { draw(); scrollToCurrent(); });
+  q('.pc-cv').addEventListener('click', (e) => {
+    const cv = q<HTMLCanvasElement>('.pc-cv'), b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    let best = -1, bd = 24 * 24;
+    pts.forEach((p, i) => { const d = (p.x * view.w - x) ** 2 + (p.y * view.h - y) ** 2; if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { cur = best; refresh(); }
+  });
+  q('.pc-undo').addEventListener('click', undo);
+  q('.pc-prev').addEventListener('click', () => move(-1));
+  q('.pc-next').addEventListener('click', () => move(1));
+  q('.pc-reset').addEventListener('click', () => {
+    const n = usingImage() ? cls.filter((k) => k >= 0).length : tally.length;
+    if (n && !window.confirm(`Clear all ${n} counts?`)) return;
+    cls = cls.map(() => -1); tally = []; cur = 0; hist.length = 0; refresh();
+  });
+  q('.pc-cls').addEventListener('input', () => { const m = readClasses(); q('.pc-cerr').textContent = m; q('.pc-cerr').hidden = !m; if (!m) refresh(); });
+  q('.pc-target').addEventListener('input', () => refresh());
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (t instanceof HTMLElement && (t.closest("input, textarea, select") || t.isContentEditable)) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Backspace') { e.preventDefault(); undo(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (usingImage()) { e.preventDefault(); move(1); } return; }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (usingImage()) { e.preventDefault(); move(-1); } return; }
+    const k = classes.findIndex((c) => c.key === e.key.toLowerCase());
+    if (k >= 0) { e.preventDefault(); assign(k); }
+  });
+  q('.pc-csv').addEventListener('click', () => {
+    const c = counts(), N = c.reduce((a, b) => a + b, 0), target = num(q<HTMLInputElement>('.pc-target').value) / 100;
+    const rows: (string | number)[][] = [['class', 'key', 'count', 'N', 'percent', 'se_percent', 'two_sigma_percent', 'exact95_low_percent', 'exact95_high_percent', 'wilson95_low_percent', 'wilson95_high_percent', 'points_for_target', ...(truth ? ['true_area_percent'] : [])]];
+    const r6 = (x: number) => (Number.isFinite(x) ? +(x * 100).toPrecision(6) : '');
+    classes.forEach((cl, i) => { const s = classStat(c[i], N); rows.push([cl.name, cl.key, c[i], N, r6(s.p), r6(s.se), r6(s.twoSigma), r6(s.exact[0]), r6(s.exact[1]), r6(s.wilson[0]), r6(s.wilson[1]), N && s.p > 0 && target > 0 ? pointsNeeded(s.p, target) : '', ...(truth ? [r6(truth[i] ?? 0)] : [])]); });
+    save(new TextEncoder().encode(csv(rows)), 'point-count.csv', 'text/csv');
+  });
+  q('.pc-pcsv').addEventListener('click', () => {
+    let rows: (string | number)[][];
+    if (usingImage() && img) { const im = img; rows = [['point', 'x_fraction', 'y_fraction', 'x_px', 'y_px', 'key', 'class'], ...pts.map((p, i) => [i + 1, +p.x.toPrecision(8), +p.y.toPrecision(8), +(p.x * im.width).toFixed(1), +(p.y * im.height).toFixed(1), cls[i] >= 0 && cls[i] < classes.length ? classes[cls[i]].key : '', cls[i] >= 0 && cls[i] < classes.length ? classes[cls[i]].name : ''])]; }
+    else rows = [['count', 'key', 'class'], ...tally.filter((k) => k < classes.length).map((k, i) => [i + 1, classes[k].key, classes[k].name])];
+    save(new TextEncoder().encode(csv(rows)), 'point-count-points.csv', 'text/csv');
+  });
+  window.addEventListener('resize', () => draw());
+  document.addEventListener('fibub:theme', () => refresh());
+  readClasses(); refresh();
+  wireDownloads(q('.pc-out > .dl:last-child'), () => ({ title: 'Point count', subtitle: q('.pc-big').textContent ?? '', file: 'point-count', sections: report }));
+</script>
+
+<style is:global>
+  .pcn textarea { width: 100%; }
+  .pcn .pc-wrap { margin-top: 12px; max-height: 75vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; -webkit-overflow-scrolling: touch; }
+  .pcn .pc-cv { display: block; cursor: crosshair; touch-action: manipulation; }
+  .pcn .pc-prog { margin: 0 0 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pcn .pc-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .pcn .pc-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .pcn .pc-btns { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 8px; margin-top: 12px; }
+  .pcn .pc-cb { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 10px; min-height: 48px; border: 1px solid var(--line); border-left: 6px solid var(--c); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-size: 15px; text-align: left; cursor: pointer; touch-action: manipulation; }
+  .pcn .pc-cb:active { background: var(--surface); }
+  .pcn .pc-cb kbd { font: 700 13px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+  .pcn .pc-cb .pc-cn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .pcn .pc-cb b { font-variant-numeric: tabular-nums; }
+  .pcn .pc-tab td { white-space: nowrap; }
+  html.red-mode .pcn .pc-cv { filter: url(#red-night); }
+</style>
