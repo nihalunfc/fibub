@@ -1,0 +1,124 @@
+---
+// Heat of reaction from heats of formation, Kirchhoff correction with polynomial cp, adiabatic temperature rise and
+// outlet temperature at any conversion with excess reactants and diluents. Worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax adt">
+  <div class="ax-card">
+    <h2>Reaction and feed</h2>
+    <label>One species per line: name, ν, feed (mol), ΔfH° (kJ/mol), M (g/mol), cp a, b, c, d <textarea class="at-sp" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".at-sp" maxMB={1} maxCols={10} maxRows={200} />
+    <p class="ax-help">ν is the stoichiometric coefficient: negative for reactants, positive for products, 0 for inerts such as nitrogen or a solvent. Feed is the moles entering (products can be 0). Heat capacity is cp = a + bT + cT² + dT³ in J/(mol·K) with T in kelvin; leave b, c, d out for a constant cp. Each species keeps one phase (no boiling or melting) and the gases are ideal. The example is methane burning in 10 % excess air: its ΔfH° are rounded standard values and its cp lines are rough, made-up straight-line fits for illustration. Use values from a data source you trust.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Feed temperature <input class="at-tin" type="text" inputmode="decimal" value="25" /></label>
+      <label>Temperature unit <select class="at-tu"><option value="C" selected>°C</option><option value="K">K</option></select></label>
+      <label>Conversion of the key reactant (%) <input class="at-x" type="text" inputmode="decimal" value="100" /></label>
+      <label>Key reactant <select class="at-key"></select></label>
+      <label>Show ΔrH at (same unit) <input class="at-tk" type="text" inputmode="decimal" value="1000" /></label>
+    </div>
+    <p class="ax-err at-err" hidden></p>
+  </div>
+
+  <div class="ax-card at-out">
+    <h2>Result</h2>
+    <p class="ax-big at-big"></p>
+    <dl class="ax-facts at-facts"></dl>
+    <div class="ax-scroll"><table class="at-tab"></table></div>
+    <canvas class="ax-fig at-f1"></canvas>
+    <canvas class="ax-fig at-f2"></canvas>
+    <p class="ax-help">The outlet temperature assumes no heat loss and no dissociation. Real flames above about 2,000 K are a few hundred kelvin cooler because CO₂ and water partly split up. For runaway studies, the adiabatic rise is the worst case if cooling fails. For study and planning, not a substitute for professional process safety assessment.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small at-csv">Download temperature against conversion (CSV)</button>
+      <button type="button" class="btn secondary small at-ocsv">Download the outlet (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .adt select, .adt input { max-width: 100%; }
+  .adt .at-sp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .adt .at-tab { margin: 12px 0; }
+  .adt .at-tab th, .adt .at-tab td { white-space: nowrap; }
+  .adt .at-f2 { margin-top: 10px; }
+</style>
+
+<script>
+  import { readSpecies, adiabatic, quickRise, energyRelease, dHr0, dHrAt, dCp, limiting, cpAt, T0, EXAMPLE, type Species } from '../../lib/sci/eng-adiabatic';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d), m = t.replace('−', '-'); return /^-?[\d.]+$/.test(m) ? String(parseFloat(m)).replace('-', '−') : t; };
+  const grp = (x: number) => Math.round(x).toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.adt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], sections: Section[] = [], sweep: (string | number)[][] = [], outRows: (string | number)[][] = [], keyNames = '';
+  q<HTMLTextAreaElement>('.at-sp').value = EXAMPLE;
+
+  function run() {
+    const err = q('.at-err'), out = q('.at-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; sweep = []; outRows = []; };
+    const r = readSpecies(q<HTMLTextAreaElement>('.at-sp').value);
+    if (r.error) return fail(r.error);
+    const sp: Species[] = r.species, K = sel('.at-tu') === 'K', toK = (x: number) => (K ? x : x + 273.15), show = (Tk: number) => (K ? `${grp(Tk)} K` : `${grp(Tk - 273.15)} °C`);
+    // Key reactant choices.
+    const reac = sp.map((s, i) => [s, i] as const).filter(([s]) => s.nu < 0), names = reac.map(([s]) => s.name).join('|');
+    if (names !== keyNames) { const keep = sel('.at-key'); q<HTMLSelectElement>('.at-key').replaceChildren(new Option('Limiting reactant (automatic)', 'auto'), ...reac.map(([s, i]) => new Option(s.name, String(i)))); if ([...q<HTMLSelectElement>('.at-key').options].some((o) => o.value === keep)) q<HTMLSelectElement>('.at-key').value = keep; keyNames = names; }
+    const Tin = toK(val('.at-tin')), X = val('.at-x') / 100, Tk = toK(val('.at-tk'));
+    if (!(Tin > 50 && Tin < 3000)) return fail('Give a feed temperature between 50 K and 3,000 K.');
+    if (!(X >= 0 && X <= 1)) return fail('Give a conversion from 0 to 100 %.');
+    if (!(Tk > 50 && Tk < 6000)) return fail('Give a temperature for ΔrH between 50 K and 6,000 K.');
+    const key = sel('.at-key') === 'auto' ? limiting(sp) : Number(sel('.at-key'));
+    if (!(sp[key].feed > 0)) return fail(`There is no ${sp[key].name} in the feed; give it a feed amount.`);
+    if (sp.some((s) => s.feed + (s.nu * X * sp[key].feed) / -sp[key].nu < -1e-9)) return fail(`Not enough of another reactant for ${sg(X * 100, 3)} % conversion of ${sp[key].name}: choose the limiting reactant or lower the conversion.`);
+    if (sp.some((s) => cpAt(s, Tin) <= 0)) return fail('A heat capacity is 0 or negative at the feed temperature; check the cp coefficients.');
+    const a = adiabatic(sp, Tin, X, key);
+    if (!a || !a.ok) return fail('No outlet temperature between 50 K and 6,000 K balances the energy; check the heats of formation and cp values.');
+    err.hidden = true; out.hidden = false;
+    const e = energyRelease(sp, Tin, X, key), qr = quickRise(sp, Tin, X, key), H0 = dHr0(sp);
+    q('.at-big').textContent = `Adiabatic outlet ${show(a.T)}, a rise of ${grp(a.T - Tin)} K`;
+    const ex = reac.filter(([, i]) => i !== key).map(([s]) => `${s.name} ${sg((s.feed / ((-s.nu * sp[key].feed) / -sp[key].nu) - 1) * 100, 3)} %`).join(', ');
+    const f = [
+      fact('Heat of reaction ΔrH°(298 K)', `${sg(H0, 5)} kJ/mol`, `${H0 < 0 ? 'exothermic' : 'endothermic'}; per mol of reaction as written (Σ ν ΔfH°)`),
+      fact('ΔrH at the feed temperature', `${sg(dHrAt(sp, Tin), 5)} kJ/mol`, `Kirchhoff: + ∫ Δcp dT; Δcp = ${sg(dCp(sp, Tin), 4)} J/(mol·K) there`),
+      fact(`ΔrH at ${show(Tk)}`, `${sg(dHrAt(sp, Tk), 5)} kJ/mol`, `Δcp = ${sg(dCp(sp, Tk), 4)} J/(mol·K)`),
+      fact('Extent of reaction', `${sg(a.xi, 4)} mol`, `${sg(X * 100, 3)} % of ${sp[key].name}${ex ? `; excess: ${ex}` : ''}`),
+      fact('Heat released', `${sg(e.Q, 5)} kJ`, `${grp(e.perKgFeed)} kJ per kg of feed; ${grp(e.perKgKey)} kJ per kg of ${sp[key].name} reacted`),
+      fact('Quick estimate', `ΔT ≈ ${grp(qr)} K`, '−ΔrH ξ / Σ n cp of the feed, cp held at the feed temperature'),
+    ];
+    q('.at-facts').replaceChildren(...f);
+    outRows = sp.map((s, i) => [s.name, s.nu, sg(s.feed, 5), sg(a.out[i], 5), sg((100 * a.out[i]) / a.out.reduce((p, x) => p + x, 0), 4)]);
+    const t = q<HTMLTableElement>('.at-tab'); t.replaceChildren();
+    const head = ['Species', 'ν', 'Feed (mol)', 'Out (mol)', 'Out (mol %)'];
+    const hr = t.insertRow(); for (const h of head) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    for (const rr of outRows) { const tr = t.insertRow(); rr.forEach((x, i) => { const td = tr.insertCell(); td.textContent = String(x); if (i) td.className = 'r'; }); }
+    const xs = Array.from({ length: 51 }, (_, i) => i / 50), Ts = xs.map((x) => adiabatic(sp, Tin, x, key)!.T), off = K ? 0 : 273.15, u = K ? 'K' : '°C';
+    sweep = xs.map((x, i) => [(x * 100).toFixed(0), (Ts[i]).toFixed(3), (Ts[i] - 273.15).toFixed(3), (Ts[i] - Tin).toFixed(3)]);
+    const f1 = chartFigure({ w: 380, h: 230, xLabel: `Conversion of ${sp[key].name} (%)`, yLabel: `Outlet temperature (${u})`, xMin: 0, xMax: 100, legend: 'none', series: [
+      { name: 'Adiabatic outlet', x: xs.map((x) => x * 100), y: Ts.map((T) => T - off), mode: 'line', width: 2 },
+      { name: 'This conversion', x: [X * 100], y: [a.T - off], mode: 'points', size: 4 },
+    ] }, 'Adiabatic outlet temperature against conversion');
+    const Tlo = Math.min(Tin, T0, Tk), Thi = Math.max(a.T, Tk, 1000), ts = Array.from({ length: 81 }, (_, i) => Tlo + ((Thi - Tlo) * i) / 80);
+    const f2 = chartFigure({ w: 380, h: 220, xLabel: `Temperature (${u})`, yLabel: 'ΔrH (kJ/mol)', legend: 'none', series: [{ name: 'ΔrH (Kirchhoff)', x: ts.map((T) => T - off), y: ts.map((T) => dHrAt(sp, T)), mode: 'line', width: 2 }] }, 'Heat of reaction against temperature (Kirchhoff)');
+    figs = [f1, f2]; paint(q<HTMLCanvasElement>('.at-f1'), f1); paint(q<HTMLCanvasElement>('.at-f2'), f2);
+    sections = [
+      { title: q('.at-big').textContent!, text: [`Feed at ${show(Tin)}, ${sg(X * 100, 3)} % conversion of ${sp[key].name}.`], facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows: outRows.map((r) => r.map(String)), align: ['l', 'r', 'r', 'r', 'r'] }, figure: f1 },
+      { title: 'Heat of reaction against temperature', figure: f2, note: 'No heat loss, no dissociation, one phase per species, ideal mixing.' },
+    ];
+  }
+
+  let tm = 0;
+  root.querySelectorAll('input, textarea').forEach((i) => i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 200); }));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', run));
+  q('.at-csv').addEventListener('click', () => save(new Blob([csv([['conversion_percent', 'outlet_K', 'outlet_C', 'rise_K'], ...sweep])], { type: 'text/csv' }), 'adiabatic-temperature.csv', 'text/csv'));
+  q('.at-ocsv').addEventListener('click', () => save(new Blob([csv([['species', 'nu', 'feed_mol', 'outlet_mol', 'outlet_mol_percent'], ...outRows])], { type: 'text/csv' }), 'reactor-outlet.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.at-out').hidden) { paint(q<HTMLCanvasElement>('.at-f1'), figs[0]); paint(q<HTMLCanvasElement>('.at-f2'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Adiabatic temperature rise', subtitle: q('.at-big').textContent ?? '', file: 'adiabatic-temperature-rise', sections }));
+</script>
