@@ -1,0 +1,201 @@
+---
+// Voting systems: one set of ranked ballots counted by six single-winner methods, multi-seat STV, and party-list seat allocation.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax vs">
+  <div class="ax-card">
+    <h2>What are you counting?</h2>
+    <div class="ax-seg vs-mode" role="group" aria-label="Count">
+      <button type="button" data-m="ranked" aria-pressed="true">Ranked ballots</button><button type="button" data-m="list" aria-pressed="false">Party lists</button>
+    </div>
+
+    <div class="vs-p" data-m="ranked">
+      <label style="margin-top:12px">Ballots, one group per line: number of voters, then names in order of preference. Made-up example.
+        <textarea class="vs-ballots" rows="8" spellcheck="false" wrap="off">candidates: Ash, Birch, Cedar, Dune, Elm
+31: Ash > Dune > Elm
+24: Birch > Cedar > Elm
+17: Cedar | Birch > Elm > Dune
+12: Elm > Cedar > Birch
+9: Dune > Elm > Cedar
+7: Elm > Dune > Ash</textarea></label>
+      <p class="ax-help">Write <b>31: Ash &gt; Dune &gt; Elm</b> for 31 voters who put Ash first, Dune second and Elm third. Voters may leave names out. A <b>|</b> marks where a voter's approval ends; lines without one approve their first choices (set below). The optional "candidates:" line sets the list order, which also breaks exact ties.</p>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Seats to fill (STV) <input class="vs-seats" type="number" min="1" step="1" value="2" inputmode="numeric" /></label>
+        <label>Approve first choices <input class="vs-k" type="number" min="1" step="1" value="2" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-help">Seats: how many winners the single transferable vote count elects. Approve first choices: for ballots without a "|", how many of their top names count as approved.</p>
+    </div>
+
+    <div class="vs-p" data-m="list" hidden>
+      <label style="margin-top:12px">Parties and their votes, one per line. Made-up example.
+        <textarea class="vs-parties" rows="6" spellcheck="false" wrap="off">Green 41200
+Blue 33900
+Red 15400
+Gold 6100
+Teal 3400</textarea></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Seats <input class="vs-pseats" type="number" min="1" step="1" value="10" inputmode="numeric" /></label>
+        <label>Threshold (% of votes) <input class="vs-thr" type="number" min="0" max="50" step="0.1" value="5" inputmode="decimal" /></label>
+        <label>Seat-by-seat table for <select class="vs-meth">
+          <option value="dhondt" selected>D'Hondt</option><option value="sainte-lague">Sainte-Laguë</option><option value="modified-sainte-lague">Modified Sainte-Laguë (1.4)</option><option value="hare">Largest remainder, Hare quota</option><option value="droop">Largest remainder, Droop quota</option>
+        </select></label>
+      </div>
+      <p class="ax-help">Threshold: parties below this share of all valid votes get no seats, and seats are shared among the rest.</p>
+    </div>
+    <p class="ax-err vs-err" hidden></p>
+  </div>
+
+  <div class="ax-card vs-out" hidden>
+    <h2 class="vs-h"></h2>
+    <p class="ax-big vs-big"></p>
+    <dl class="ax-facts vs-facts"></dl>
+    <div class="vs-tabs"></div>
+    <p class="ax-help vs-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small vs-csv">Download tables (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .vs .vs-p { margin-top: 4px; }
+  .vs .vs-tabs h3 { font-size: 15px; margin: 18px 0 4px; }
+  .vs .vs-tabs .vs-sub { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  .vs .vs-tabs td.vs-win { font-weight: 700; }
+  .vs .vs-tabs td.vs-out { color: var(--muted); text-decoration: line-through; }
+  .vs .vs-tabs th, .vs .vs-tabs td { white-space: nowrap; }
+</style>
+
+<script>
+  import { sig, csv } from '../../lib/sci/num';
+  import * as V from '../../lib/sci/voting';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Tab = { title: string; sub?: string; head: string[]; rows: string[][]; mark?: (r: number, c: number) => string };
+  let mode = 'ranked', report: Section[] = [], tabs: Tab[] = [];
+  const n0 = (x: number) => (Number.isInteger(x) ? x.toLocaleString('en') : sig(x, 5));
+  const pc = (x: number) => `${(x * 100).toFixed(1)} %`;
+  const intIn = (c: string, name: string, min = 1) => { const v = Number(q<HTMLInputElement>(c).value); if (!Number.isInteger(v) || v < min) throw new Error(`${name} must be a whole number of ${min} or more`); return v; };
+
+  function facts(list: [string, string][]) {
+    const dl = q('.vs-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function render(list: Tab[]) {
+    tabs = list;
+    const box = q('.vs-tabs'); box.innerHTML = '';
+    for (const t of list) {
+      const h = document.createElement('h3'); h.textContent = t.title; box.append(h);
+      if (t.sub) { const p = document.createElement('p'); p.className = 'vs-sub'; p.textContent = t.sub; box.append(p); }
+      const w = document.createElement('div'); w.className = 'ax-scroll'; const tb = document.createElement('table'); w.append(tb); box.append(w);
+      const hr = tb.createTHead().insertRow(); t.head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+      const b = tb.createTBody(); t.rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', t.mark?.(ri, i) ?? ''].join(' ').trim(); }); });
+    }
+  }
+  const sections = (head: [string, string][], note: string): Section[] => [{ title: q('.vs-h').textContent!, facts: head }, ...tabs.map((t) => ({ title: t.title, text: t.sub ? [t.sub] : undefined, table: { head: t.head, rows: t.rows, align: t.head.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') } })), { title: 'Rules used', text: [note] }];
+  const tieText = (ties: { round: string; between: string[]; loser?: string; winner?: string }[]) => ties.map((t) => `${t.round}: ${t.between.join(', ')} tied; ${t.loser ? `${t.loser} dropped` : `${t.winner} chosen`} (earlier totals, then list order).`).join(' ');
+
+  function runRanked() {
+    const B = V.parseBallots(q<HTMLTextAreaElement>('.vs-ballots').value);
+    const seats = intIn('.vs-seats', 'Seats'), k = intIn('.vs-k', 'Approve first choices');
+    const C = B.candidates;
+    const pl = V.plurality(B), tr = V.twoRound(B), ir = V.irv(B), bo = V.borda(B), co = V.condorcet(B), ap = V.approval(B, k);
+    const st = seats < C.length ? V.stv(B, seats) : null;
+    const winners: [string, string, string][] = [
+      ['Plurality (first past the post)', pl.winner, `${n0(pl.votes[pl.winner])} first preferences (${pc(pl.votes[pl.winner] / B.total)})`],
+      ['Two-round system', tr.winner, tr.outright ? 'Majority in round 1' : `Run-off ${Object.entries(tr.rounds[1].votes).map(([c, v]) => `${c} ${n0(v)}`).join(' v ')}`],
+      ['Instant-runoff (alternative vote)', ir.winner, `${ir.rounds.length} round${ir.rounds.length > 1 ? 's' : ''}`],
+      ['Borda count', bo.winner, `${n0(bo.points[bo.winner])} points`],
+      ['Condorcet winner', co.condorcetWinner ?? 'none', co.condorcetWinner ? 'Beats every other candidate head to head' : 'No candidate beats all others (a cycle)'],
+      ['Schulze (beatpath)', co.schulzeWinners.join(', '), co.schulzeWinners.length > 1 ? 'Tied on strongest paths' : 'Strongest paths beat every rival'],
+      ['Approval', ap.winner, `${n0(ap.votes[ap.winner])} approvals`],
+    ];
+    if (st) winners.push([`STV, ${seats} seat${seats > 1 ? 's' : ''}`, st.elected.join(', '), `Droop quota ${n0(st.quota)}`]);
+    const distinct = new Set(winners.slice(0, 7).map((w) => w[1]).filter((w) => w !== 'none'));
+    q('.vs-h').textContent = 'Results by method';
+    q('.vs-big').textContent = distinct.size === 1 ? `Every method picks ${[...distinct][0]}` : `${distinct.size} different winners from 7 methods`;
+    const head: [string, string][] = [['Voters', n0(B.total)], ['Candidates', String(C.length)], ['Majority needed', n0(Math.floor(B.total / 2) + 1)]];
+    facts(head);
+    const list: Tab[] = [{ title: 'Winner under each method', head: ['Method', 'Winner', 'Why'], rows: winners.map((w) => [...w]) }];
+    list.push({ title: 'First preferences and two-round', sub: tr.outright ? 'A candidate had a majority, so no run-off.' : 'No majority in round 1, so the top two meet; each ballot goes to whichever of them it ranks higher.', head: ['Candidate', 'Round 1', 'Share', ...(tr.outright ? [] : ['Run-off'])], rows: C.map((c) => [c, n0(pl.votes[c]), pc(pl.votes[c] / B.total), ...(tr.outright ? [] : [c in tr.rounds[1].votes ? n0(tr.rounds[1].votes[c]) : '–'])]).concat(tr.outright ? [] : [['Exhausted (ranked neither)', '', '', n0(tr.rounds[1].exhausted)]]) });
+    list.push({
+      title: 'Instant-runoff rounds', sub: 'Each round the last-placed candidate is dropped and their ballots go to the next name still in the race, until someone has more than half of the ballots still counting.',
+      head: ['Candidate', ...ir.rounds.map((r) => r.label)],
+      rows: [...C.map((c) => [c, ...ir.rounds.map((r) => (c in r.votes ? n0(r.votes[c]) + (r.out === c ? ' out' : '') : '–'))]), ['Exhausted', ...ir.rounds.map((r) => n0(r.exhausted))]],
+      mark: (r, i) => (i > 0 && r < C.length && ir.rounds[i - 1].out === C[r] ? 'vs-out' : i === ir.rounds.length && C[r] === ir.winner ? 'vs-win' : ''),
+    });
+    list.push({ title: 'Borda count', sub: `1st place scores ${C.length - 1} points, 2nd ${C.length - 2}, down to 0; names a ballot leaves out score 0.`, head: ['Candidate', 'Points'], rows: [...C].sort((a, b) => bo.points[b] - bo.points[a]).map((c) => [c, n0(bo.points[c])]) });
+    list.push({ title: 'Head to head (pairwise)', sub: 'Each cell: voters who rank the row candidate above the column candidate (a ranked name is above every unranked one).', head: ['Row over column', ...C], rows: C.map((c, i) => [c, ...C.map((_, j) => (i === j ? '–' : n0(co.d[i][j])))]), mark: (r, c) => (c > 0 && r !== c - 1 && co.d[r][c - 1] > co.d[c - 1][r] ? 'vs-win' : '') });
+    list.push({ title: 'Schulze strongest paths', sub: 'Strength of the strongest chain of head-to-head wins from row to column (winning votes). A candidate whose paths beat or equal every rival wins.', head: ['From \\ to', ...C, 'Beats'], rows: C.map((c, i) => [c, ...C.map((_, j) => (i === j ? '–' : n0(co.p[i][j]))), String(co.schulzeWins[i])]) });
+    list.push({ title: 'Approval', sub: ap.marked ? `Ballots with "|" approve the names before it; others approve their first ${k}.` : `Each ballot approves its first ${k} name${k > 1 ? 's' : ''}.`, head: ['Candidate', 'Approvals', 'Share of voters'], rows: [...C].sort((a, b) => ap.votes[b] - ap.votes[a]).map((c) => [c, n0(ap.votes[c]), pc(ap.votes[c] / B.total)]) });
+    if (st) list.push({
+      title: `Single transferable vote, ${seats} seat${seats > 1 ? 's' : ''}`, sub: `Quota ${n0(st.quota)} = floor(${n0(B.total)} ÷ ${seats + 1}) + 1. ${st.stages.map((s) => `${s.label}: ${s.action}.`).join(' ')}${st.stages.some((s) => s.note) ? ' ' + st.stages.map((s) => s.note ?? '').join(' ') : ''}`,
+      head: ['Candidate', ...st.stages.map((s) => s.label)],
+      rows: [...C.map((c) => [c, ...st.stages.map((s) => (s.excluded.includes(c) && !s.votes[c] ? '–' : sig(s.votes[c], 6)) + (s.elected.includes(c) && !st.stages[st.stages.indexOf(s) - 1]?.elected.includes(c) ? ' elected' : ''))]), ['Exhausted', ...st.stages.map((s) => sig(s.exhausted, 6))]],
+      mark: (r, i) => (r < C.length && st.elected.includes(C[r]) && i === st.stages.length ? 'vs-win' : ''),
+    });
+    render(list);
+    const ties = tieText([...pl.ties, ...tr.ties, ...ir.ties, ...bo.ties, ...ap.ties, ...(st?.ties ?? [])]);
+    const note = (ties ? `Ties broken: ${ties} ` : '') + `STV rule: ${V.STV_RULE}${st ? '' : ` STV needs fewer seats than candidates (${C.length}).`}`;
+    q('.vs-note').textContent = note;
+    report = sections(head, note);
+  }
+
+  const METH: [V.ListMethod, string][] = [['dhondt', "D'Hondt"], ['sainte-lague', 'Sainte-Laguë'], ['modified-sainte-lague', 'Mod. S-L'], ['hare', 'Hare LR'], ['droop', 'Droop LR']];
+  function runList() {
+    const P = V.parseParties(q<HTMLTextAreaElement>('.vs-parties').value);
+    const seats = intIn('.vs-pseats', 'Seats');
+    const thr = Number(q<HTMLInputElement>('.vs-thr').value || 0);
+    if (!(thr >= 0 && thr < 100)) throw new Error('The threshold must be between 0 and 100 %');
+    const R = METH.map(([m]) => V.listSeats(P, seats, m, thr));
+    const total = R[0].total, chosen = q<HTMLSelectElement>('.vs-meth').value as V.ListMethod, ci = METH.findIndex(([m]) => m === chosen), r = R[ci];
+    q('.vs-h').textContent = 'Seats by method';
+    q('.vs-big').textContent = `${METH[ci][1].replace('LR', 'largest remainder')}: ${P.filter((p) => r.seats[p.name]).map((p) => `${p.name} ${r.seats[p.name]}`).join(', ')}`;
+    const below = P.filter((p) => !r.eligible.includes(p.name));
+    const head: [string, string][] = [['Valid votes', n0(total)], ['Seats', String(seats)], ['Parties over threshold', `${r.eligible.length} of ${P.length}`]];
+    facts(head);
+    const list: Tab[] = [{
+      title: 'Seats under each method', sub: 'The Gallagher index (last row) measures how far seat shares stray from vote shares: 0 is perfectly proportional.',
+      head: ['Party', 'Votes', 'Share', ...METH.map((m) => m[1])],
+      rows: [...P.map((p) => [p.name + (below.includes(p) ? ' (below threshold)' : ''), n0(p.votes), pc(p.votes / total), ...R.map((x) => String(x.seats[p.name]))]), ['Gallagher index', '', '', ...R.map((x) => x ? sig(V.gallagher(P, x.seats), 3) : '')]],
+    }];
+    if (r.divisors.length) {
+      const k = Math.min(seats, 8), divs = Array.from({ length: k }, (_, i) => (chosen === 'dhondt' ? i + 1 : chosen === 'sainte-lague' ? 2 * i + 1 : i === 0 ? 1.4 : 2 * i + 1));
+      const won = new Map(r.steps.map((s) => [`${s.party}|${+s.value.toFixed(6)}`, s.seat]));
+      list.push({ title: `${METH[ci][1]} quotients`, sub: `Votes divided by ${divs.join(', ')}${seats > k ? ', …' : ''}. The ${seats} largest quotients win seats (marked with the seat number).`, head: ['Party', ...divs.map((d) => `÷ ${d}`)], rows: P.filter((p) => r.eligible.includes(p.name)).map((p) => [p.name, ...divs.map((d) => { const v = p.votes / d, s = won.get(`${p.name}|${+v.toFixed(6)}`); return sig(v, 6) + (s ? ` (#${s})` : ''); })]) });
+      list.push({ title: 'Seat by seat', head: ['Seat', 'Party', 'Quotient'], rows: r.steps.map((s) => [String(s.seat), s.party, sig(s.value, 6)]) });
+    } else {
+      list.push({ title: `Largest remainder, ${chosen === 'hare' ? 'Hare' : 'Droop'} quota ${sig(r.quota!, 7)}`, sub: chosen === 'hare' ? `Quota = votes of parties over the threshold ÷ seats = ${n0(r.counted)} ÷ ${seats}. Each party gets one seat per whole quota, then the largest remainders take the seats left.` : `Quota = floor(${n0(r.counted)} ÷ ${seats + 1}) + 1. Each party gets one seat per whole quota, then the largest remainders take the seats left.`, head: ['Party', 'Votes ÷ quota', 'Whole quotas', 'Remainder', 'Seats'], rows: P.filter((p) => r.eligible.includes(p.name)).map((p) => [p.name, sig(p.votes / r.quota!, 5), String(Math.floor(p.votes / r.quota! + 1e-9)), sig(r.remainders[p.name], 6), String(r.seats[p.name])]) });
+    }
+    render(list);
+    const ties = tieText(R.flatMap((x) => x.ties));
+    const note = `Threshold ${thr} % of all ${n0(total)} valid votes${below.length ? ` leaves out ${below.map((p) => p.name).join(', ')}` : ''}. D'Hondt divides by 1, 2, 3…; Sainte-Laguë by 1, 3, 5…; modified Sainte-Laguë starts at 1.4. ${ties ? `Ties broken by more votes, then list order: ${ties}` : ''}`.trim();
+    q('.vs-note').textContent = note;
+    report = sections(head, note);
+  }
+
+  function calc() {
+    const err = q('.vs-err');
+    try { mode === 'ranked' ? runRanked() : runList(); err.hidden = true; q('.vs-out').hidden = false; }
+    catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.vs-out').hidden = true; report = []; tabs = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.vs-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.vs-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.vs-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.vs-csv').addEventListener('click', () => {
+    const rows: string[][] = [];
+    for (const tb of tabs) { rows.push([tb.title]); rows.push(tb.head); rows.push(...tb.rows); rows.push([]); }
+    save(new Blob([csv(rows)], { type: 'text/csv' }), mode === 'ranked' ? 'voting-results.csv' : 'party-list-seats.csv', 'text/csv');
+  });
+  setMode('ranked');
+  wireDownloads(q('.dl'), () => ({ title: mode === 'ranked' ? 'Voting systems compared' : 'Party-list seat allocation', file: mode === 'ranked' ? 'voting-results' : 'party-list-seats', sections: report }));
+</script>
