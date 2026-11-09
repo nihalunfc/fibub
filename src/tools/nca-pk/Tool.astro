@@ -1,0 +1,221 @@
+---
+// Non-compartmental pharmacokinetic analysis of one measured concentration-time profile, in the browser.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax nca">
+  <p class="note warn nca-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Measured profile</h2>
+    <label>Time, then concentration, one sample per row. Paste from a spreadsheet; a header row is fine.
+      <textarea class="nca-data" rows="9" spellcheck="false">Time (h)	Concentration (ng/mL)
+0	0
+0.25	520
+0.5	860
+1	1240
+1.5	1460
+2	1470
+3	1510
+4	1490
+6	1110
+8	862
+12	553
+16	352
+24	139</textarea></label>
+    <DataFile target=".nca-data" maxCols={5} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Route <select class="nca-route"><option value="ev">Extravascular (oral, etc.)</option><option value="bolus">IV bolus</option><option value="infusion">IV infusion</option></select></label>
+      <label class="nca-tinf-l" hidden>Infusion duration <input class="nca-tinf" inputmode="decimal" value="1" /></label>
+      <label>AUC method <select class="nca-meth"><option value="linlog">Linear up, log down</option><option value="linear">Linear trapezoid</option></select></label>
+      <label>Time unit <input class="nca-tu" value="h" /></label>
+      <label>Concentration unit <select class="nca-cu"><option>ng/mL</option><option>µg/mL</option><option>mg/L</option><option>µg/L</option><option>ng/L</option><option>mg/mL</option></select></label>
+      <label>Amount given (optional) <input class="nca-dose" inputmode="decimal" value="100" /></label>
+      <label>Amount unit <select class="nca-du"><option>mg</option><option>µg</option><option>ng</option><option>g</option></select></label>
+      <label>Terminal phase (λz) <select class="nca-lz"><option value="best">Best fit (adjusted R²)</option><option value="range">Choose the points</option></select></label>
+      <label class="nca-pick" hidden>From time <select class="nca-from"></select></label>
+      <label class="nca-pick" hidden>To time <select class="nca-to"></select></label>
+    </div>
+    <p class="ax-help">Linear up, log down uses straight lines while the level rises and exponential pieces while it falls, which suits the falling part of a curve better. The amount given is the data from your study (for CL and V); this page never suggests an amount. Best fit tries the last 3, 4, 5 … points after the peak and keeps the line with the highest adjusted R².</p>
+    <p class="ax-err nca-err" hidden></p>
+  </div>
+
+  <div class="ax-card nca-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big nca-big"></p>
+    <dl class="ax-facts nca-facts"></dl>
+    <ul class="nca-notes"></ul>
+    <div class="ax-row" style="margin-top:12px">
+      <div class="ax-seg nca-scale" role="group" aria-label="Concentration axis">
+        <button type="button" data-s="lin" aria-pressed="false">Linear</button>
+        <button type="button" data-s="log" aria-pressed="true">Log</button>
+      </div>
+    </div>
+    <canvas class="ax-fig nca-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help nca-zero" hidden>Concentrations of 0 cannot be drawn on a log axis; switch to Linear to see them.</p>
+  </div>
+
+  <div class="ax-card nca-out" hidden>
+    <h2>All parameters</h2>
+    <div class="ax-scroll"><table class="nca-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nca-csv">Download CSV</button></div>
+    <details style="margin-top:10px"><summary>AUC piece by piece</summary><div class="ax-scroll"><table class="nca-ptab"></table></div></details>
+  </div>
+  <Downloads />
+</div>
+
+<style is:global>
+  .nca .ax-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .nca-tab td:nth-child(4) { font-size: 13px; color: var(--muted); min-width: 150px; }
+  .nca-med { margin: 0 0 12px; font-size: 14px; }
+  .nca-notes { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+  .nca-notes:empty { display: none; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { nca, cleanProfile, DOSE_MG, CONC_MGL, type NcaResult, type Route } from '../../lib/sci/nca';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nca')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const err = q('.nca-err');
+  let res: NcaResult | null = null, fig: Figure | null = null, report: Section[] = [], csvRows: string[][] = [];
+  let logY = true, lastTimes = '';
+
+  function readRows(): [number, number][] {
+    return parseTable(val('.nca-data')).map((r) => [num(r[0]), num(r[1])] as [number, number]).filter(([t, c]) => Number.isFinite(t) || Number.isFinite(c));
+  }
+  /** Keep the From / To lists in step with the times pasted. */
+  function fillPick(times: number[]) {
+    const key = times.join(',');
+    if (key === lastTimes) return;
+    lastTimes = key;
+    for (const [c, def] of [['.nca-from', Math.max(0, times.length - 4)], ['.nca-to', times.length - 1]] as const) {
+      const s = q<HTMLSelectElement>(c);
+      s.replaceChildren(...times.map((t) => new Option(String(t), String(t))));
+      s.selectedIndex = def;
+    }
+  }
+
+  function calc() {
+    err.hidden = true;
+    const route = val('.nca-route') as Route;
+    q('.nca-tinf-l').hidden = route !== 'infusion';
+    const pick = val('.nca-lz') === 'range';
+    root.querySelectorAll<HTMLElement>('.nca-pick').forEach((e) => (e.hidden = !pick));
+    const tu = val('.nca-tu').trim() || 'h', cu = val('.nca-cu'), du = val('.nca-du');
+    const doseIn = val('.nca-dose').trim(), dose = doseIn ? num(doseIn) : NaN;
+    try {
+      const rows = readRows();
+      if (rows.some(([t, c]) => !Number.isFinite(t) || !Number.isFinite(c))) throw new Error('Every row needs a time and a concentration (use 0 for values below the limit of quantification).');
+      const pts = cleanProfile(rows);
+      fillPick(pts.map((p) => p.t));
+      if (doseIn && !(dose > 0)) throw new Error('The amount given must be a number above 0, or left empty.');
+      const tinf = num(val('.nca-tinf'));
+      if (route === 'infusion' && !(tinf > 0)) throw new Error('Enter the infusion duration (longer than 0).');
+      res = nca(pts, { route, method: val('.nca-meth') as 'linear' | 'linlog', dose: dose > 0 ? dose : undefined, tinf,
+        lambda: pick ? { mode: 'range', from: num(val('.nca-from')), to: num(val('.nca-to')) } : { mode: 'best' } });
+    } catch (e) {
+      res = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.nca-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.nca-out').forEach((o) => (o.hidden = false));
+    const r = res, iv = route !== 'ev', F = iv ? '' : '/F';
+    const auc = `${tu}·${cu}`, aumc = `${tu}²·${cu}`;
+    // CL in L per time unit and V in L: amount in mg, AUC in mg·time/L.
+    const k = DOSE_MG[du] / CONC_MGL[cu];
+    const has = Number.isFinite(r.cl), lz = !!r.term;
+    const rowsOut: [string, number, string, string?][] = [
+      ['Cmax', r.cmax, cu, 'highest measured concentration'],
+      ['Tmax', r.tmax, tu, 'time of Cmax'],
+      ...(r.c0 !== undefined ? [['C0', r.c0, cu, r.pts[0].added ? 'back-extrapolated to time 0' : 'measured at time 0'] as [string, number, string, string]] : []),
+      ['Clast', r.clast, cu, 'last concentration above 0'],
+      ['Tlast', r.tlast, tu],
+      ['AUC0-t', r.aucLast, auc, 'area from 0 to Tlast'],
+      ['AUMC0-t', r.aumcLast, aumc],
+      ['MRT0-t', r.mrtLast, tu, route === 'infusion' ? 'minus half the infusion time' : ''],
+      ['λz', r.term?.lambda ?? NaN, `1/${tu}`, lz ? `${r.term!.n} points, ${r.term!.from} to ${r.term!.to} ${tu}` : 'not estimated'],
+      ['Half-life (t½)', r.halfLife, tu, 'ln 2 / λz'],
+      ['R² (terminal fit)', r.term?.r2 ?? NaN, ''],
+      ['Adjusted R²', r.term?.adjR2 ?? NaN, ''],
+      ['Span ratio', r.spanRatio, '', 'terminal points span in half-lives'],
+      ['AUC0-∞ (observed Clast)', r.aucInf, auc, 'AUC0-t + Clast / λz'],
+      ['AUC0-∞ (predicted Clast)', r.aucInfPred, auc],
+      ['AUC % extrapolated', r.extrap, '%'],
+      ['AUMC0-∞', r.aumcInf, aumc],
+      ['MRT0-∞', r.mrtInf, tu],
+      [`CL${F}`, r.cl * k, `L/${tu}`, has ? `amount / AUC0-∞` : 'enter the amount given'],
+      [`Vz${F}`, r.vz * k, 'L', has ? 'CL / λz' : 'enter the amount given'],
+      ...(iv ? [['Vss', r.vss * k, 'L', 'MRT0-∞ × CL'] as [string, number, string, string]] : []),
+    ];
+    const fmt = (v: number) => (Number.isFinite(v) ? sig(v, 4) : '–');
+    q('.nca-big').textContent = lz ? `t½ = ${fmt(r.halfLife)} ${tu}, AUC0-∞ = ${fmt(r.aucInf)} ${auc}` : `AUC0-t = ${fmt(r.aucLast)} ${auc}`;
+    const facts: [string, string, string?][] = [
+      ['Cmax', `${fmt(r.cmax)} ${cu}`, `at Tmax ${fmt(r.tmax)} ${tu}`],
+      ['AUC0-t', `${fmt(r.aucLast)} ${auc}`, val('.nca-meth') === 'linlog' ? 'linear up, log down' : 'linear trapezoid'],
+      ['λz', lz ? `${fmt(r.term!.lambda)} /${tu}` : '–', lz ? `${r.term!.n} points (${r.term!.from} to ${r.term!.to} ${tu}), adj. R² ${r.term!.adjR2.toFixed(4)}` : 'not estimated'],
+      ['AUC % extrapolated', lz ? `${r.extrap.toFixed(2)} %` : '–', 'under 20 % is the usual aim'],
+      ['MRT0-∞', lz ? `${fmt(r.mrtInf)} ${tu}` : '–'],
+      [`CL${F}`, has ? `${fmt(r.cl * k)} L/${tu}` : '–', has ? `from ${sig(dose, 4)} ${du} given` : 'enter the amount given'],
+      [`Vz${F}`, has ? `${fmt(r.vz * k)} L` : '–'],
+      ...(iv && has ? [['Vss', `${fmt(r.vss * k)} L`] as [string, string]] : []),
+    ];
+    q('.nca-facts').replaceChildren(...facts.map(([a, b, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    q('.nca-notes').replaceChildren(...r.notes.map((n) => { const li = document.createElement('li'); li.textContent = n; return li; }));
+
+    const tb = q<HTMLTableElement>('.nca-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['Parameter', 'Value', 'Unit', 'Note'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    const tableRows = rowsOut.map(([p, v, u, n]) => [p, p.includes('R²') && Number.isFinite(v) ? v.toFixed(4) : fmt(v), u, n ?? '']);
+    tableRows.forEach((row) => { const tr = body.insertRow(); row.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i === 1) td.className = 'r'; }); });
+    csvRows = [['parameter', 'value', 'unit', 'note'], ...rowsOut.map(([p, v, u, n]) => [p, Number.isFinite(v) ? String(+v.toPrecision(10)) : '', u, n ?? ''])];
+    const pt = q<HTMLTableElement>('.nca-ptab'); pt.innerHTML = '';
+    const ph = pt.createTHead().insertRow(); ['From', 'To', 'AUC', 'AUMC', 'Rule'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i < 4) th.className = 'r'; ph.append(th); });
+    const pb = pt.createTBody(); r.pieces.forEach((p) => { const tr = pb.insertRow(); [String(p.t1), String(p.t2), fmt(p.auc), fmt(p.aumc), p.log ? 'log' : 'linear'].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i < 4) td.className = 'r'; }); });
+
+    draw();
+    report = [
+      { title: 'Non-compartmental analysis', text: [`Route: ${q<HTMLSelectElement>('.nca-route').selectedOptions[0].text}${route === 'infusion' ? ` over ${val('.nca-tinf')} ${tu}` : ''}. AUC by ${val('.nca-meth') === 'linlog' ? 'linear-up/log-down' : 'linear'} trapezoids; λz by ${pick ? 'the chosen points' : 'best fit (adjusted R²)'}. For study and teaching, not medical advice.`, ...r.notes], facts: facts.map(([a, b, s]) => [a, s ? `${b} (${s})` : b] as [string, string]), figure: fig! },
+      { title: 'All parameters', table: { head: ['Parameter', 'Value', 'Unit', 'Note'], rows: tableRows, align: ['l', 'r', 'l', 'l'] } },
+    ];
+  }
+
+  function draw() {
+    if (!res) return;
+    const r = res, tu = val('.nca-tu').trim() || 'h', cu = val('.nca-cu');
+    const used = new Set(r.term?.used ?? []);
+    const obs = r.pts.filter((p) => !p.added);
+    const keep = (c: number) => !logY || c > 0;
+    const term = r.term;
+    const lineT: number[] = [];
+    if (term) for (let i = 0; i <= 40; i++) lineT.push(term.from + ((r.tlast - term.from) * i) / 40);
+    const w = Math.round(Math.min(720, Math.max(340, q('.nca-fig').parentElement!.clientWidth - 34)));
+    fig = chartFigure({ w, h: Math.round(w * 0.62), yLog: logY, xLabel: `Time (${tu})`, yLabel: `Concentration (${cu})`, series: [
+      { name: 'Measured', x: obs.filter((p) => keep(p.c)).map((p) => p.t), y: obs.filter((p) => keep(p.c)).map((p) => p.c), mode: 'both', marker: 'circle', width: 1.2 },
+      ...(term ? [{ name: 'Used for λz', x: obs.filter((_, i) => used.has(i)).map((p) => p.t), y: obs.filter((_, i) => used.has(i)).map((p) => p.c), marker: 'open-square' as const, size: 6 },
+        { name: `Terminal fit, t½ ${sig(r.halfLife, 3)} ${tu}`, x: lineT, y: lineT.map((t) => Math.exp(term.intercept - term.lambda * t)), mode: 'line' as const, dash: [6, 4] }] : []),
+      ...(r.pts[0].added === 'c0' ? [{ name: 'C0 (back-extrapolated)', x: [0], y: [r.pts[0].c], marker: 'open-triangle' as const, size: 5 }] : []),
+    ] }, `Concentration-time curve${term ? ` with terminal half-life ${sig(r.halfLife, 3)} ${tu}` : ''}`);
+    paint(q<HTMLCanvasElement>('.nca-fig'), fig);
+    q('.nca-zero').hidden = !logY || !obs.some((p) => p.c === 0);
+    if (report[0]) report[0].figure = fig;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.nca-scale button').forEach((b) => b.addEventListener('click', () => {
+    logY = b.dataset.s === 'log';
+    root.querySelectorAll<HTMLButtonElement>('.nca-scale button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    draw();
+  }));
+  q('.nca-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'nca-parameters.csv', 'text/csv'); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', draw);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Non-compartmental PK analysis', subtitle: q('.nca-big').textContent ?? '', file: 'nca-pk', sections: report }));
+</script>
