@@ -1,0 +1,212 @@
+---
+// Band structure toy models: tight-binding chain, diatomic chain, square lattice, graphene and Kronig-Penney,
+// with densities of states. Every parameter is a made-up or rounded textbook value, editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bst">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Model <select class="bs-kind">
+        <option value="chain" selected>1D chain (one atom per cell)</option>
+        <option value="diatomic">1D diatomic chain (two atoms per cell)</option>
+        <option value="square">2D square lattice</option>
+        <option value="graphene">Graphene (honeycomb)</option>
+        <option value="kp">Kronig-Penney (1D square wells)</option>
+      </select></label>
+      <label class="bs-tb"><span>Hopping t (eV)</span> <input class="bs-t" type="text" inputmode="decimal" value="1" /></label>
+      <label class="bs-tp"><span>Next-neighbour hopping t′ (eV)</span> <input class="bs-tpv" type="text" inputmode="decimal" value="0" /></label>
+      <label class="bs-d" hidden><span>On-site difference Δ (eV)</span> <input class="bs-dv" type="text" inputmode="decimal" value="0" /></label>
+      <label class="bs-tb"><span class="bs-al">Lattice constant a (nm)</span> <input class="bs-a" type="text" inputmode="decimal" value="0.3" /></label>
+      <label class="bs-tb"><span>Electrons per cell (0 to <span class="bs-nmax">2</span>)</span> <input class="bs-n" type="text" inputmode="decimal" value="1" /></label>
+      <label class="bs-kp" hidden><span>Barrier height V₀ (eV)</span> <input class="bs-V" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="bs-kp" hidden><span>Well width w (nm)</span> <input class="bs-w" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="bs-kp" hidden><span>Barrier width b (nm)</span> <input class="bs-b" type="text" inputmode="decimal" value="0.2" /></label>
+      <label class="bs-kp" hidden><span>Effective mass (× electron mass)</span> <input class="bs-m" type="text" inputmode="decimal" value="1" /></label>
+      <label class="bs-kp" hidden><span>Bands to find (1 to 8)</span> <input class="bs-nb" type="text" inputmode="decimal" value="4" /></label>
+    </div>
+    <p class="ax-help bs-help"></p>
+    <p class="ax-err bs-err" hidden></p>
+  </div>
+
+  <div class="ax-card bs-out">
+    <h2>Bands and density of states</h2>
+    <p class="ax-big bs-big"></p>
+    <dl class="ax-facts bs-facts"></dl>
+    <div class="ax-scroll bs-tabw" hidden><table class="bs-tab"></table></div>
+    <canvas class="ax-fig bs-bfig"></canvas>
+    <canvas class="ax-fig bs-dfig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small bs-csv">Bands (CSV)</button>
+      <button type="button" class="btn secondary small bs-dcsv">Density of states (CSV)</button>
+    </div>
+    <p class="ax-help">Toy models for learning, with one orbital per site, spin ignored in the bands (each band holds 2 electrons per cell with spin). The density of states is per spin; for the lattice models it is counted from a fine grid of k-points, with the exact formula drawn on top where one exists.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { tbBands, tbPath, tbSamples, dosFromSamples, fermiLevel, chainDosExact, squareDosExact, grapheneVF, HB2M, kpBands, kpCurve, kpDos, type TB, type KP } from '../../lib/sci/phbands';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.bst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PRESET: Record<string, Record<string, string>> = {
+    chain: { '.bs-t': '1', '.bs-tpv': '0', '.bs-a': '0.3', '.bs-n': '1' },
+    diatomic: { '.bs-t': '1', '.bs-dv': '1', '.bs-a': '0.5', '.bs-n': '2' },
+    square: { '.bs-t': '1', '.bs-tpv': '0', '.bs-a': '0.4', '.bs-n': '1' },
+    graphene: { '.bs-t': '2.7', '.bs-dv': '0', '.bs-a': '0.142', '.bs-n': '2' },
+  };
+  const HELP: Record<string, string> = {
+    chain: 'One s-like orbital per atom, hopping t to each neighbour (and t′ to the next ones): E(k) = −2t cos ka − 2t′ cos 2ka. The band is 4t wide. One electron per cell fills it half way.',
+    diatomic: 'Two atoms per cell (A and B, spacing a/2) whose orbital energies differ by Δ, with hopping t between neighbours. The band splits in two with a gap of Δ at the zone edge: two electrons per cell fill the lower band, an insulator.',
+    square: 'One orbital per site on a square lattice: E = −2t(cos kxa + cos kya) − 4t′ cos kxa cos kya. The flat region at X gives the van Hove peak in the density of states. Path Γ (0,0), X (π/a,0), M (π/a,π/a).',
+    graphene: 'Two carbon atoms per cell, one p_z orbital each. Here a is the C–C distance (0.142 nm) and t about 2.7 eV (both rounded textbook values). The bands touch at K (Dirac points). Δ ≠ 0 makes the two atoms different (as in boron nitride) and opens a gap Δ.',
+    kp: 'An electron in a row of square wells: wells of width w (potential 0) separated by barriers of width b and height V₀, repeating every w + b. Allowed energies satisfy cos k(w + b) = F(E); the gaps open at k = 0 and π/(w + b). Set V₀ = 0 for free electrons. Values are made up.',
+  };
+  let kind = sel('.bs-kind');
+  let figs: [string, Figure][] = [], report: Section[] = [], bandRows: (string | number)[][] = [], dosRows: (string | number)[][] = [];
+
+  function show() {
+    root.querySelectorAll<HTMLElement>('.bs-tb').forEach((e) => { e.hidden = kind === 'kp'; });
+    root.querySelectorAll<HTMLElement>('.bs-kp').forEach((e) => { e.hidden = kind !== 'kp'; });
+    q('.bs-tp').hidden = !(kind === 'chain' || kind === 'square');
+    q('.bs-d').hidden = !(kind === 'diatomic' || kind === 'graphene');
+    q('.bs-al').textContent = kind === 'graphene' ? 'C–C distance d (nm)' : 'Lattice constant a (nm)';
+    q('.bs-nmax').textContent = kind === 'diatomic' || kind === 'graphene' ? '4' : '2';
+    q('.bs-help').textContent = HELP[kind];
+  }
+
+  function bandFig(m: TB, ef: number): Figure {
+    const P = tbPath(m, 80), es = P.pts.map((p) => tbBands(m, p.kx, p.ky)), nb = es[0].length;
+    return { w: 380, h: 250, alt: 'Band energies along a path through the Brillouin zone', draw: (ctx, W, H, pal) => {
+      const L = 42, R = 10, T = 10, Bm = 26, pw = W - L - R, ph = H - T - Bm;
+      let lo = Infinity, hi = -Infinity; es.forEach((e) => e.forEach((x) => { lo = Math.min(lo, x); hi = Math.max(hi, x); }));
+      const pad = 0.08 * (hi - lo || 1); lo -= pad; hi += pad;
+      const X = (x: number) => L + (x / P.length) * pw, Y = (e: number) => T + ((hi - e) / (hi - lo)) * ph;
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(L, T, pw, ph);
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const t of P.ticks) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(t.at), T); ctx.lineTo(X(t.at), T + ph); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(t.label, X(t.at), T + ph + 4); }
+      const span = hi - lo, mag = Math.pow(10, Math.floor(Math.log10(span / 4))), step = mag * ([1, 2, 5, 10].find((s) => span / (s * mag) <= 6) ?? 10);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted;
+      for (let e = Math.ceil(lo / step) * step; e <= hi; e += step) ctx.fillText(sg(+e.toPrecision(10), 2), L - 4, Y(e));
+      ctx.save(); ctx.translate(10, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Energy (eV)', 0, 0); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(L, Y(ef)); ctx.lineTo(L + pw, Y(ef)); ctx.stroke(); ctx.setLineDash([]);
+      for (let b = 0; b < nb; b++) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); P.pts.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(es[i][b])) : ctx.moveTo(X(p.x), Y(es[i][b])))); ctx.stroke(); }
+      ctx.restore();
+      ctx.fillStyle = pal.accent2; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Fermi level', L + pw - 4, Y(ef) - 2);
+    } };
+  }
+
+  function calc() {
+    const err = q('.bs-err'), out = q('.bs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; bandRows = []; dosRows = []; };
+    const facts: HTMLElement[] = [];
+    q('.bs-tabw').hidden = true;
+    if (kind !== 'kp') {
+      const t = val('.bs-t'), tp = val('.bs-tpv'), dl = val('.bs-dv'), a = val('.bs-a'), n = val('.bs-n');
+      if (!(Math.abs(t) > 0 && Math.abs(t) <= 20)) return fail('Give a hopping t between −20 and 20 eV (not 0).');
+      if ((kind === 'chain' || kind === 'square') && !(Math.abs(tp) <= 20)) return fail('Give t′ between −20 and 20 eV (0 for none).');
+      if ((kind === 'diatomic' || kind === 'graphene') && !(Math.abs(dl) <= 40)) return fail('Give Δ between −40 and 40 eV (0 for identical atoms).');
+      if (!(a > 0 && a <= 10)) return fail('Give a lattice constant between 0 and 10 nm.');
+      const nmax = kind === 'diatomic' || kind === 'graphene' ? 4 : 2;
+      if (!(n >= 0 && n <= nmax)) return fail(`Give the electrons per cell between 0 and ${nmax}.`);
+      err.hidden = true; out.hidden = false;
+      const m: TB = kind === 'chain' ? { kind, t, tp } : kind === 'square' ? { kind, t, tp } : { kind: kind as 'diatomic', t, delta: dl };
+      const two = kind === 'square' || kind === 'graphene', N = two ? 300 : 20000, per = two ? N * N : N;
+      const S = tbSamples(m, N), nb = S.length / per;
+      let mins = Array(nb).fill(Infinity), maxs = Array(nb).fill(-Infinity);
+      for (let i = 0; i < S.length; i++) { const b = i % nb; mins[b] = Math.min(mins[b], S[i]); maxs[b] = Math.max(maxs[b], S[i]); }
+      // The band edges of these models lie at high-symmetry points, which the path includes exactly.
+      for (const p of tbPath(m, 200).pts) tbBands(m, p.kx, p.ky).forEach((e, b) => { mins[b] = Math.min(mins[b], e); maxs[b] = Math.max(maxs[b], e); });
+      const ef = fermiLevel(S, per, n), D = dosFromSamples(S, per, two ? 160 : 200);
+      const exact = (kind === 'chain' && tp === 0) ? (e: number) => chainDosExact(e, t) : (kind === 'square' && tp === 0) ? (e: number) => squareDosExact(e, t) : null;
+      const gap = nb > 1 ? mins[1] - maxs[0] : 0;
+      const fb = n / 2, fi = Math.round(fb), ins = Math.abs(fb - fi) < 1e-9 && fi >= 1 && fi < nb && mins[fi] - maxs[fi - 1] > 1e-9;
+      const state = n === 0 ? 'empty bands' : n === 2 * nb ? 'full bands' : ins ? 'insulator (filled band, gap above)' : 'metal (partly filled band)';
+      q('.bs-big').textContent = nb === 1 ? `Bandwidth ${sg(maxs[0] - mins[0], 4)} eV, E_F = ${sg(ef, 3)} eV: ${state}` : `Gap ${sg(Math.max(0, gap), 3)} eV, E_F = ${sg(ef, 3)} eV: ${state}`;
+      for (let b = 0; b < nb; b++) facts.push(fact(nb > 1 ? `Band ${b + 1}` : 'Band', `${sg(mins[b], 4)} to ${sg(maxs[b], 4)} eV`, `width ${sg(maxs[b] - mins[b], 4)} eV`));
+      if (nb > 1) facts.push(fact('Band gap', gap > 1e-9 ? `${sg(gap, 4)} eV` : 'none (bands touch)', kind === 'graphene' ? 'at the K points; set by Δ' : 'at the zone edge k = π/a; equal to |Δ|'));
+      facts.push(fact('Fermi level E_F', `${sg(ef, 4)} eV`, `${sg(n, 3)} electron${n === 1 ? '' : 's'} per cell (both spins), the top filled state at zero temperature`));
+      // Effective mass at the bottom of the lowest band from the curvature along kx.
+      if (kind !== 'graphene') {
+        const P = tbPath(m, 400); let best = P.pts[0], bE = Infinity; for (const p of P.pts) { const e = tbBands(m, p.kx, p.ky)[0]; if (e < bE) { bE = e; best = p; } }
+        const h = 1e-3, c2 = (tbBands(m, best.kx + h, best.ky)[0] - 2 * bE + tbBands(m, best.kx - h, best.ky)[0]) / (h * h);
+        const ms = (2 * HB2M) / (c2 * a * a);
+        facts.push(fact('Effective mass at the band bottom', c2 > 1e-9 ? `${sg(ms, 3)} mₑ` : 'very heavy (flat)', 'm* = ħ² / (d²E/dk²), from the band curvature along kx'));
+      } else if (Math.abs(dl) < 1e-12) facts.push(fact('Fermi velocity at K', `${fmtExp(grapheneVF(t, a), 3)} m/s`, 'v_F = 3td / 2ħ: electrons near K move like massless particles at about c/300'));
+      else facts.push(fact('Dirac mass', `${sg(Math.abs(dl) / 2, 3)} eV`, 'half the gap; the cones at K are rounded off'));
+      facts.push(fact('Density of states at E_F', `${sg(D.g[Math.min(D.g.length - 1, Math.max(0, Math.floor((ef - D.lo) / D.de)))], 3)} per eV`, 'per cell per spin, from the histogram'));
+      q('.bs-facts').replaceChildren(...facts);
+      const bf = bandFig(m, ef);
+      const series = [{ name: 'Sampled k-grid', x: D.e, y: D.g, mode: 'line' as const, width: 2 }];
+      if (exact) series.push({ name: 'Exact formula', x: D.e, y: D.e.map(exact).map((g) => (Number.isFinite(g) ? g : NaN)), mode: 'line' as const, width: 1.2, dash: [5, 3] } as any);
+      const yMax = Math.max(...D.g) * 1.08;
+      const df = chartFigure({ w: 380, h: 230, xLabel: 'Energy (eV)', yLabel: 'States per eV per cell', yMin: 0, yMax, legend: 'below', series, marks: [{ kind: 'vline', at: ef, dash: [3, 3], label: 'E_F' }] }, 'Density of states');
+      figs = [['.bs-bfig', bf], ['.bs-dfig', df]];
+      const P = tbPath(m, 80);
+      bandRows = [['path distance (1/a)', 'kx (1/a)', 'ky (1/a)', ...Array.from({ length: nb }, (_, i) => `E${i + 1} (eV)`)], ...P.pts.map((p) => [+p.x.toFixed(6), +p.kx.toFixed(6), +p.ky.toFixed(6), ...tbBands(m, p.kx, p.ky).map((e) => +e.toFixed(6))])];
+      dosRows = [['E (eV)', 'DOS per eV per cell per spin'], ...D.e.map((e, i) => [+e.toFixed(6), +D.g[i].toFixed(6)])];
+    } else {
+      const V0 = val('.bs-V'), w = val('.bs-w'), b = val('.bs-b'), mass = val('.bs-m'), nbw = val('.bs-nb');
+      if (!(V0 >= 0 && V0 <= 100)) return fail('Give a barrier height between 0 and 100 eV.');
+      if (!(w > 0 && w <= 50)) return fail('Give a well width between 0 and 50 nm.');
+      if (!(b >= 0 && b <= 50)) return fail('Give a barrier width between 0 and 50 nm (0 for none).');
+      if (!(mass >= 0.01 && mass <= 10)) return fail('Give an effective mass between 0.01 and 10 electron masses.');
+      if (!(Number.isInteger(nbw) && nbw >= 1 && nbw <= 8)) return fail('Give a whole number of bands from 1 to 8.');
+      err.hidden = true; out.hidden = false;
+      const p: KP = { V0, w, b, mass }, L = w + b, B = kpBands(p, nbw);
+      const gaps = B.slice(1).map((x, i) => x[0] - B[i][1]);
+      q('.bs-big').textContent = gaps.length ? `First gap ${sg(gaps[0], 3)} eV, lowest band ${sg(B[0][0], 3)} to ${sg(B[0][1], 3)} eV` : `Lowest band ${sg(B[0][0], 3)} to ${sg(B[0][1], 3)} eV`;
+      facts.push(fact('Period w + b', `${sg(L, 4)} nm`, `zone edge π/(w + b) = ${sg(Math.PI / L, 4)} nm⁻¹`));
+      facts.push(fact('Lowest band', `${sg(B[0][0], 4)} to ${sg(B[0][1], 4)} eV`, `width ${sg(B[0][1] - B[0][0], 3)} eV; a single well alone would have its ground state near the bottom`));
+      if (gaps.length) facts.push(fact('First gap', `${sg(gaps[0], 4)} eV`, 'at the zone edge k = π/(w + b); later gaps alternate between the edge and k = 0'));
+      const fe = HB2M / mass * Math.pow(Math.PI / L, 2);
+      facts.push(fact('Free-electron energy at the zone edge', `${sg(fe, 4)} eV`, 'ħ²(π/L)²/2m: where the first gap would open for a weak potential'));
+      q('.bs-facts').replaceChildren(...facts);
+      const tab = q<HTMLTableElement>('.bs-tab');
+      const head = ['Band', 'Bottom (eV)', 'Top (eV)', 'Width (eV)', 'Gap above (eV)'];
+      const rows = B.map(([lo, hi], i) => [String(i + 1), sg(lo, 5), sg(hi, 5), sg(hi - lo, 4), i < gaps.length ? sg(gaps[i], 4) : '–']);
+      tab.innerHTML = '';
+      const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j) e.className = 'r'; r.append(e); }); return r; };
+      tab.append(tr(head, true), ...rows.map((r) => tr(r, false)));
+      q('.bs-tabw').hidden = false;
+      const pts = kpCurve(p, B, 120);
+      const series = B.map((_, bi) => { const s = pts.filter((x) => x.band === bi).sort((u, v) => u.k - v.k); return { name: `Band ${bi + 1}`, x: s.map((x) => x.k), y: s.map((x) => x.E), mode: 'line' as const, width: 2 }; });
+      const kmax = Math.PI / L;
+      const fk: number[] = [], fE: number[] = [];
+      for (let i = 0; i <= 200; i++) { const k = -kmax + (2 * kmax * i) / 200; fk.push(k); fE.push((HB2M / mass) * k * k); }
+      const bf = chartFigure({ w: 380, h: 250, xLabel: 'k (nm⁻¹), first Brillouin zone', yLabel: 'Energy (eV)', xMin: -kmax, xMax: kmax, legend: 'none', series: [...series, { name: 'Free electron', x: fk, y: fE, mode: 'line', width: 1, dash: [4, 3] }] }, 'Kronig-Penney bands in the reduced zone, with the free-electron parabola dashed');
+      const D = kpDos(p, B, 240);
+      const df = chartFigure({ w: 380, h: 230, xLabel: 'Energy (eV)', yLabel: 'States per eV per nm', yMin: 0, yMax: Math.min(Math.max(...D.g), 6 * D.g.reduce((s, x) => s + x, 0) / D.g.length) * 1.1, legend: 'none', series: [{ name: 'DOS', x: D.e, y: D.g, mode: 'line', width: 2 }] }, 'Kronig-Penney density of states');
+      figs = [['.bs-bfig', bf], ['.bs-dfig', df]];
+      bandRows = [['band', 'k (1/nm)', 'E (eV)'], ...pts.filter((x) => x.k >= 0).map((x) => [x.band + 1, +x.k.toFixed(6), +x.E.toFixed(6)])];
+      dosRows = [['E (eV)', 'DOS per eV per nm per spin'], ...D.e.map((e, i) => [+e.toFixed(6), +D.g[i].toFixed(6)])];
+    }
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+    const facts2 = [...q('.bs-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.bs-big').textContent!, text: [q('.bs-help').textContent!], facts: facts2, figure: figs[0][1] }, { title: 'Density of states', figure: figs[1][1] }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 100); };
+  q('.bs-kind').addEventListener('change', () => { kind = sel('.bs-kind'); const pr = PRESET[kind]; if (pr) for (const [c, v] of Object.entries(pr)) q<HTMLInputElement>(c).value = v; show(); calc(); });
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  q('.bs-csv').addEventListener('click', () => bandRows.length && save(new Blob([csv(bandRows)], { type: 'text/csv' }), `bands-${kind}.csv`, 'text/csv'));
+  q('.bs-dcsv').addEventListener('click', () => dosRows.length && save(new Blob([csv(dosRows)], { type: 'text/csv' }), `dos-${kind}.csv`, 'text/csv'));
+  show(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Band structure', subtitle: q<HTMLSelectElement>('.bs-kind').selectedOptions[0].textContent ?? '', file: `band-structure-${kind}`, sections: report }));
+</script>
+
+<style is:global>
+  .bst select, .bst input { max-width: 100%; }
+</style>
