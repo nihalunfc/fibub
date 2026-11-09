@@ -1,0 +1,161 @@
+---
+// Circle sectors and tangents: drag the arc to change a sector's angle; sector and segment area, arc length; drag a
+// point outside the circle to see its two tangents. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cs">
+  <div class="ax-card">
+    <h2>Sector and segment</h2>
+    <svg class="sm-fig cs-fig" viewBox="0 0 340 300" role="img" aria-label="A circle with a shaded sector; drag the point on the circle to change the angle"></svg>
+    <p class="ax-help">Drag the blue point around the circle to open or close the sector.</p>
+    <div class="sm-sl"><b>r</b><input type="range" class="cs-rr" min="1" max="30" step="1" value="21" aria-label="Radius slider" /><input type="number" class="cs-r" min="0.1" step="1" value="21" inputmode="decimal" aria-label="Radius (cm)" /></div>
+    <div class="sm-sl"><b>θ</b><input type="range" class="cs-tr" min="1" max="359" step="1" value="60" aria-label="Angle slider" /><input type="number" class="cs-t" min="0.1" max="359.9" step="1" value="60" inputmode="decimal" aria-label="Angle (degrees)" /></div>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Use π =</span>
+      <div class="ax-seg cs-pi" role="group" aria-label="Value of pi">
+        <button type="button" data-p="22/7" aria-pressed="true">22/7</button>
+        <button type="button" data-p="3.14" aria-pressed="false">3.14</button>
+        <button type="button" data-p="pi" aria-pressed="false">π (exact)</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Shade</span>
+      <div class="ax-seg cs-shade" role="group" aria-label="What to shade">
+        <button type="button" data-s="sector" aria-pressed="true">Sector</button>
+        <button type="button" data-s="segment" aria-pressed="false">Segment</button>
+      </div>
+    </div>
+    <p class="ax-err cs-err" hidden></p>
+    <ul class="sm-steps cs-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Tangents from a point outside</h2>
+    <svg class="sm-fig cs-tan" viewBox="0 0 340 260" role="img" aria-label="A circle, a point P outside it and the two tangents from P"></svg>
+    <p class="ax-help">Drag P. Move it inside the circle and the tangents disappear.</p>
+    <ul class="sm-steps cs-tout"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set θ to 90°, 180° and 360°. The sector becomes a quarter, a half and the whole circle.</li>
+      <li>Double r. What happens to the arc length? To the area?</li>
+      <li>Shade the segment and slide θ past 180°. The triangle is now added back, not taken away.</li>
+      <li>Drag P so that PT = 3 when the radius is 4. How far is P from the centre?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use π = 22/7 and give answers to 2 decimal places where needed. Nothing is saved.</p>
+    <div class="cs-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cs svg .cs-sec { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .cs svg .cs-seg { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .cs svg .cs-tri { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .cs svg .cs-circ { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .cs svg .cs-tl { stroke: var(--good); stroke-width: 2.5; }
+  .cs svg .cs-rad { stroke: var(--accent); stroke-width: 2; }
+</style>
+
+<script>
+  import { sector, tangents, PI_CHOICES, type Pt } from '../../lib/sci/circle-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.cs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cs-fig'), tan = q<SVGSVGElement>('.cs-tan');
+  const Rb = q<HTMLInputElement>('.cs-r'), Tb = q<HTMLInputElement>('.cs-t');
+  pair(q('.cs-rr'), Rb, draw); const setT = pair(q('.cs-tr'), Tb, draw);
+  let piKey = '22/7', shade = 'sector';
+  const cx = 170, cy = 150, RR = 120;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const at = (deg: number, r = RR): Pt => [cx + r * Math.cos(rad(deg)), cy - r * Math.sin(rad(deg))];
+
+  function draw() {
+    const r = val(Rb, 21, 0.001), th = val(Tb, 60, 0.001, 360), pi = PI_CHOICES[piKey], s = sector(r, th, pi);
+    const err = q('.cs-err'); err.hidden = true;
+    if (Number(Tb.value) > 360) { err.textContent = 'An angle in a circle is at most 360°.'; err.hidden = false; }
+    fig.replaceChildren();
+    S('circle', { cx, cy, r: RR, class: 'cs-circ' }, fig);
+    const [ax, ay] = at(0), [bx, by] = at(th), large = th > 180 ? 1 : 0;
+    if (shade === 'sector') S('path', { d: th >= 359.999 ? `M${cx - RR},${cy} a${RR},${RR} 0 1 0 ${2 * RR},0 a${RR},${RR} 0 1 0 ${-2 * RR},0` : `M${cx},${cy} L${ax},${ay} A${RR},${RR} 0 ${large} 0 ${bx},${by} Z`, class: 'cs-sec cs-shape' }, fig);
+    else S('path', { d: `M${ax},${ay} A${RR},${RR} 0 ${large} 0 ${bx},${by} Z`, class: 'cs-seg cs-shape' }, fig);
+    S('polyline', { points: `${ax},${ay} ${cx},${cy} ${bx},${by}`, class: shade === 'segment' ? 'cs-tri' : 'sm-line' }, fig);
+    if (shade === 'segment') S('line', { x1: ax, y1: ay, x2: bx, y2: by, class: 'sm-line' }, fig);
+    S('path', { d: `M${cx + 26},${cy} A26,26 0 ${large} 0 ${cx + 26 * Math.cos(rad(th))},${cy - 26 * Math.sin(rad(th))}`, class: 'sm-line', style: 'stroke-width:1.5' }, fig);
+    const [lx, ly] = at(th / 2, 44); S('text', { x: lx, y: ly + 5, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `${fmt(th, 1)}°`);
+    const [rx, ry] = at(0, RR / 2); S('text', { x: rx, y: ry + 16, 'text-anchor': 'middle', class: 'sm-tick' }, fig, `r = ${fmt(r, 2)}`);
+    S('circle', { cx, cy, r: 3, style: 'fill:var(--ink)' }, fig);
+    S('circle', { cx: bx, cy: by, r: 22, class: 'sm-hit' }, fig);
+    S('circle', { cx: bx, cy: by, r: 9, class: 'sm-handle cs-h' }, fig);
+    const P = piKey === 'pi' ? 'π' : piKey, f = (x: number) => fmt(x, 2);
+    q('.cs-out').replaceChildren(...[
+      `Sector area = (θ/360) × πr² = (${fmt(th, 2)}/360) × ${P} × ${fmt(r, 2)}² = ${f(s.area)} cm²`,
+      `Arc length = (θ/360) × 2πr = (${fmt(th, 2)}/360) × 2 × ${P} × ${fmt(r, 2)} = ${f(s.arc)} cm`,
+      `Perimeter of the sector = arc + 2r = ${f(s.arc)} + ${f(2 * r)} = ${f(s.perimeter)} cm`,
+      `Segment area = sector − triangle = ${f(s.area)} − ½ × ${fmt(r, 2)}² × sin ${fmt(th, 2)}° = ${f(s.area)} ${s.tri >= 0 ? '−' : '+'} ${f(Math.abs(s.tri))} = ${f(s.segment)} cm²`,
+      `Major sector = πr² − sector = ${f(s.major)} cm²; major segment = ${f(s.majorSegment)} cm²`,
+    ].map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  // Tangents.
+  const O: Pt = [110, 130], TR = 70;
+  let P: Pt = [290, 130];
+  function tanDraw() {
+    tan.replaceChildren();
+    S('circle', { cx: O[0], cy: O[1], r: TR, class: 'cs-circ' }, tan);
+    S('circle', { cx: O[0], cy: O[1], r: 3, style: 'fill:var(--ink)' }, tan);
+    S('text', { x: O[0] - 10, y: O[1] + 16, class: 'sm-tick' }, tan, 'O');
+    const T = tangents(O, TR, P), u = (x: number) => fmt((x / TR) * 4, 2);   // the radius stands for 4 cm
+    if (T) {
+      for (const X of [T.T1, T.T2]) {
+        S('line', { x1: P[0], y1: P[1], x2: X[0], y2: X[1], class: 'cs-tl' }, tan);
+        S('line', { x1: O[0], y1: O[1], x2: X[0], y2: X[1], class: 'cs-rad' }, tan);
+        // Right-angle mark at the point of contact.
+        const ux = (O[0] - X[0]) / TR, uy = (O[1] - X[1]) / TR, vx = (P[0] - X[0]) / T.len, vy = (P[1] - X[1]) / T.len, k = 9;
+        S('polyline', { points: `${X[0] + ux * k},${X[1] + uy * k} ${X[0] + (ux + vx) * k},${X[1] + (uy + vy) * k} ${X[0] + vx * k},${X[1] + vy * k}`, class: 'sm-line', style: 'stroke-width:1.2' }, tan);
+      }
+      S('line', { x1: O[0], y1: O[1], x2: P[0], y2: P[1], class: 'sm-dash' }, tan);
+    }
+    S('circle', { cx: P[0], cy: P[1], r: 22, class: 'sm-hit' }, tan);
+    S('circle', { cx: P[0], cy: P[1], r: 9, class: 'sm-handle cs-hp' }, tan);
+    S('text', { x: P[0] + 12, y: P[1] - 10, style: 'font-weight:700' }, tan, 'P');
+    const d = Math.hypot(P[0] - O[0], P[1] - O[1]);
+    q('.cs-tout').replaceChildren(...(T ? [
+      `Radius OT = 4 cm and OP = ${u(d)} cm.`,
+      `The radius meets the tangent at a right angle, so PT = √(OP² − OT²) = √(${u(d)}² − 4²) = ${u(T.len)} cm.`,
+      `Both tangents from P have the same length: PT₁ = PT₂ = ${u(T.len)} cm.`,
+      `Angle between the tangents = ${fmt(T.atP, 1)}°, angle between the radii = ${fmt(T.atO, 1)}°; together 180°.`,
+    ] : [d < TR - 0.5 ? 'P is inside the circle: no tangent can be drawn from it.' : 'P is on the circle: exactly one tangent touches here.']).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  dragOn(fig, (x, y) => { const [bx, by] = at(val(Tb, 60, 0.001, 360)); return Math.hypot(x - bx, y - by) < 30 ? 'b' : null; },
+    (_id, x, y) => { let a = Math.round((Math.atan2(cy - y, x - cx) * 180) / Math.PI); if (a <= 0) a += 360; setT(Math.min(359, Math.max(1, a))); draw(); });
+  dragOn(tan, (x, y) => (Math.hypot(x - P[0], y - P[1]) < 30 ? 'p' : null), (_id, x, y) => {
+    // OP snaps to whole tenths of a centimetre, so the numbers stay tidy.
+    const dx = x - O[0], dy = y - O[1], d = Math.hypot(dx, dy) || 1, s = (Math.round((d / TR) * 40) / 40) * TR / d;
+    P = [Math.max(10, Math.min(330, O[0] + dx * s)), Math.max(10, Math.min(250, O[1] + dy * s))]; tanDraw(); });
+  root.querySelectorAll<HTMLButtonElement>('.cs-pi button').forEach((b) => b.addEventListener('click', () => { piKey = b.dataset.p!; root.querySelectorAll('.cs-pi button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.cs-shade button').forEach((b) => b.addEventListener('click', () => { shade = b.dataset.s!; root.querySelectorAll('.cs-shade button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  draw(); tanDraw();
+
+  quiz(q('.cs-quiz'), () => {
+    const out: Question[] = [];
+    const r1 = randInt(1, 4) * 7, t1 = [30, 45, 60, 90, 120][randInt(0, 4)], a1 = (t1 / 360) * (22 / 7) * r1 * r1;
+    out.push({ q: `Find the area of a sector of radius ${r1} cm and angle ${t1}°.`, want: [Math.round(a1 * 100) / 100], tol: 0.002, hint: 'cm²', work: `(${t1}/360) × 22/7 × ${r1}² = ${fmt(a1, 2)} cm².` });
+    const r2 = randInt(1, 4) * 7, t2 = [30, 60, 90, 120, 150][randInt(0, 4)], l2 = (t2 / 360) * 2 * (22 / 7) * r2;
+    out.push({ q: `Find the length of the arc of a circle of radius ${r2} cm cut off by an angle of ${t2}° at the centre.`, want: [Math.round(l2 * 100) / 100], tol: 0.002, hint: 'cm', work: `(${t2}/360) × 2 × 22/7 × ${r2} = ${fmt(l2, 2)} cm.` });
+    const [rr, tt, dd] = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [6, 8, 10]][randInt(0, 4)];
+    out.push({ q: `From a point ${dd} cm from the centre of a circle of radius ${rr} cm, how long is the tangent to the circle?`, want: [tt], hint: 'cm', work: `The radius is at right angles to the tangent, so PT = √(${dd}² − ${rr}²) = √${dd * dd - rr * rr} = ${tt} cm.` });
+    const ang = randInt(5, 15) * 10;
+    out.push({ q: `The two tangents from a point P meet at an angle of ${ang}°. What is the angle between the radii to the points of contact?`, want: [180 - ang], hint: 'degrees', work: `The quadrilateral O T₁ P T₂ has two right angles, so the other two angles add to 180°: 180 − ${ang} = ${180 - ang}°.` });
+    return out;
+  });
+</script>
