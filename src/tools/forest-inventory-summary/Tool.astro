@@ -1,0 +1,182 @@
+---
+// Forest inventory plot summary: stems/ha, basal area/ha, QMD, Lorey's height, diameter classes and per-species
+// figures with standard errors across fixed-area plots. The example tally is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const tally = 'plot,species,DBH,height\n1,Birch,12.9,9.7\n1,Pine,21.1,12.9\n1,Birch,12.0,9.2\n1,Pine,30.5,15.6\n1,Pine,27.8,14.9\n1,Birch,12.2,\n1,Birch,7.5,6.8\n1,Spruce,21.6,13.1\n1,Spruce,7.5,\n2,Spruce,20.7,12.8\n2,Pine,29.0,15.3\n2,Spruce,26.4,14.6\n2,Pine,34.2,16.5\n2,Pine,28.8,15.2\n2,Birch,14.3,\n2,Pine,34.0,16.4\n2,Birch,22.0,13.2\n3,Pine,32.0,16.0\n3,Birch,13.7,\n3,Spruce,15.9,\n3,Spruce,20.8,12.8\n3,Pine,26.6,14.6\n4,Birch,8.7,\n4,Pine,14.1,\n4,Pine,36.8,\n4,Birch,12.5,9.5\n4,Pine,25.0,14.2\n5,Birch,13.2,9.8\n5,Pine,24.9,14.1\n5,Pine,27.8,14.9\n5,Spruce,26.3,\n5,Pine,19.0,12.2\n6,Pine,13.8,\n6,Pine,29.1,\n6,Pine,23.6,\n6,Pine,26.8,\n6,Birch,16.1,';
+---
+<div class="ax fis">
+  <div class="ax-card">
+    <h2>Plot tally</h2>
+    <label><span>One row per tree: plot, species, DBH, and height if measured</span> <textarea class="fi-data" rows="9" spellcheck="false">{tally}</textarea></label>
+    <DataFile target=".fi-data" maxCols={20} maxRows={50000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Units <select class="fi-u">
+        <option value="metric" selected>Metric: cm, m, m²/ha</option>
+        <option value="imperial">Imperial: inches, ft, ft²/acre</option>
+      </select></label>
+      <label>Plot size given as <select class="fi-pm">
+        <option value="area" selected>Area of each plot</option>
+        <option value="radius">Radius of a circular plot</option>
+      </select></label>
+      <label><span class="fi-pl">Plot area (m²)</span> <input class="fi-pa" inputmode="decimal" value="400" /></label>
+      <label>Number of plots (blank = plots in the tally) <input class="fi-k" inputmode="numeric" value="" /></label>
+      <label><span>Diameter class width (<span class="fi-du">cm</span>)</span> <input class="fi-w" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Columns headed plot, species, DBH (or diameter) and height are found by name; without headers the order is plot, species, DBH, height. With only two columns they are plot and DBH. All plots must be the same size. If some plots had no trees, give the total number of plots so they count as zeros. Up to 50,000 trees. The example tally (6 plots of 400 m²) is made up.</p>
+    <p class="ax-err fi-err" hidden></p>
+  </div>
+
+  <div class="ax-card fi-out">
+    <h2>Stand summary</h2>
+    <p class="ax-big fi-big"></p>
+    <dl class="ax-facts fi-facts"></dl>
+    <h3>By species</h3>
+    <div class="ax-scroll"><table class="fi-sp"></table></div>
+    <h3>Diameter distribution</h3>
+    <canvas class="ax-fig fi-fig"></canvas>
+    <details class="fi-sd">
+      <summary>Stems per <span class="fi-per">ha</span> by diameter class (table)</summary>
+      <div class="ax-scroll"><table class="fi-cl"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fi-csv1">Species summary (CSV)</button>
+      <button type="button" class="btn secondary small fi-csv2">Diameter classes (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { inventory, type InvTree, type Inventory } from '../../lib/sci/inventory';
+  import { niceTicks, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.fis')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csv1: string[][] = [], csv2: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  /** Stacked bars of stems per unit area in each diameter class, one colour per species. */
+  function bars(r: Inventory, du: string, per: string): Figure {
+    return {
+      w: 720, h: 340, alt: `Stems per ${per} in each ${du} diameter class, stacked by species`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const cols = pal.red ? ['#a30000', '#5a0000', '#c00000', '#7a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+        const fs = 13, sp = r.species.map((s) => s.species), legendRows = Math.ceil(sp.length / 4);
+        const L = 62, R = 14, T = 14, B = 52 + legendRows * 20, pw = W - L - R, ph = H - T - B;
+        const ymax = Math.max(...r.classes.map((c) => c.total)), ticks = niceTicks(0, ymax, 5), top = ticks[ticks.length - 1] || 1;
+        const y = (v: number) => T + ph - (v / top) * ph;
+        ctx.font = `${fs}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
+        for (const t of ticks) { ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y(t)); ctx.lineTo(L + pw, y(t)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(sg(t, 4), L - 6, y(t)); }
+        const n = r.classes.length, bw = pw / n;
+        r.classes.forEach((c, i) => {
+          let acc = 0;
+          c.perSpecies.forEach((v, s) => { if (v <= 0) return; ctx.fillStyle = cols[s % cols.length]; ctx.fillRect(L + i * bw + 1, y(acc + v), bw - 2, y(acc) - y(acc + v)); acc += v; });
+        });
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + ph); ctx.lineTo(L + pw, T + ph); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const every = Math.max(1, Math.ceil((n + 1) / (pw / 40)));
+        for (let i = 0; i <= n; i += every) ctx.fillText(sg(r.classes[0].lo + (i * (r.classes[0].hi - r.classes[0].lo)), 4), L + i * bw, T + ph + 4);
+        ctx.fillText(`DBH class (${du})`, L + pw / 2, T + ph + 22);
+        ctx.save(); ctx.translate(14, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(`Stems per ${per}`, 0, 0); ctx.restore();
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        const lw = pw / Math.min(4, sp.length);
+        sp.forEach((s, i) => { const lx = L + (i % 4) * lw, ly = T + ph + 46 + Math.floor(i / 4) * 20; ctx.fillStyle = cols[i % cols.length]; ctx.fillRect(lx, ly - 6, 12, 12); ctx.fillStyle = pal.ink; ctx.fillText(s.length > 16 ? s.slice(0, 15) + '…' : s, lx + 17, ly); });
+      },
+    };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.fi-err').textContent = m; q('.fi-err').hidden = false; q('.fi-out').hidden = true; fig = null; sections = []; csv1 = []; csv2 = []; };
+    q('.fi-err').hidden = true;
+    const U = q<HTMLSelectElement>('.fi-u').value as 'metric' | 'imperial';
+    const du = U === 'metric' ? 'cm' : 'in', bu = U === 'metric' ? 'm²' : 'ft²', per = U === 'metric' ? 'ha' : 'acre', lu = U === 'metric' ? 'm' : 'ft';
+    const radius = q<HTMLSelectElement>('.fi-pm').value === 'radius';
+    q('.fi-pl').textContent = radius ? `Plot radius (${lu})` : `Plot area (${bu})`;
+    q('.fi-du').textContent = du; q('.fi-per').textContent = per;
+    const all = parseTable(q<HTMLTextAreaElement>('.fi-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    if (!all.length) return fail('Give the tally: one row per tree with plot, species, DBH and height (optional).');
+    const head = all[0].some((c) => /dbh|diam/i.test(c)) || !all[0].some(isNum) ? all[0] : null;
+    const body = head ? all.slice(1) : all;
+    const width = Math.max(...body.map((r) => r.length));
+    const find = (re: RegExp) => (head ? head.findIndex((c) => re.test(c)) : -1);
+    let cP = find(/plot/i), cS = find(/spec|sp\b|name/i), cD = find(/dbh|diam/i), cH = find(/height|ht\b|^h$/i);
+    if (cD < 0) { if (width === 2) { cP = 0; cS = -1; cD = 1; } else { cP = 0; cS = 1; cD = 2; cH = width > 3 ? 3 : -1; } }
+    if (!body.length) return fail('Give at least one tree under the header row.');
+    if (body.length > 50000) return fail('Up to 50,000 trees, please.');
+    const maxD = U === 'metric' ? 1500 : 600, trees: InvTree[] = [];
+    for (let i = 0; i < body.length; i++) {
+      const r = body[i], d = num(r[cD]);
+      if (!(d > 0 && d <= maxD)) return fail(`Row ${i + 1 + (head ? 1 : 0)}: give the DBH in ${du} (above 0).`);
+      const p = cP >= 0 ? (r[cP] ?? '').trim() : '1';
+      if (!p) return fail(`Row ${i + 1 + (head ? 1 : 0)}: give the plot.`);
+      let h: number | undefined;
+      if (cH >= 0 && (r[cH] ?? '').trim() !== '') { h = num(r[cH]); if (!(h > 0 && h <= (U === 'metric' ? 150 : 500))) return fail(`Row ${i + 1 + (head ? 1 : 0)}: the height must be a number above 0, or blank.`); }
+      trees.push({ plot: p, species: cS >= 0 ? (r[cS] ?? '').trim() || 'Unknown' : 'All', dbh: d, h });
+    }
+    const s = num(q<HTMLInputElement>('.fi-pa').value);
+    if (!(s > 0)) return fail(`Give the plot ${radius ? `radius in ${lu}` : `area in ${bu}`} (above 0).`);
+    const area = radius ? Math.PI * s * s : s;
+    const kStr = q<HTMLInputElement>('.fi-k').value.trim(), kIn = kStr === '' ? undefined : num(kStr);
+    const nTally = new Set(trees.map((t) => t.plot)).size;
+    if (kIn !== undefined && !(Number.isInteger(kIn) && kIn >= nTally && kIn <= 100000)) return fail(`The number of plots must be a whole number, at least the ${nTally} plots in the tally.`);
+    const w = num(q<HTMLInputElement>('.fi-w').value);
+    const dmax = Math.max(...trees.map((t) => t.dbh));
+    if (!(w > 0 && dmax / w <= 200)) return fail(`Give a diameter class width in ${du} (above 0, and no more than 200 classes).`);
+    const r = inventory(trees, area, U, w, kIn);
+    q('.fi-out').hidden = false;
+    const ci = (e: { lo: number; hi: number }) => (r.k > 1 ? `95 % range ${sg(e.lo, 3)} to ${sg(e.hi, 3)}` : 'needs 2 or more plots for a range');
+    const pct = (e: { se: number; mean: number }) => (r.k > 1 && e.mean > 0 ? `± ${sg(e.se, 3)} (${sg((100 * e.se) / e.mean, 3)} %)` : '');
+    q('.fi-big').textContent = `Basal area ${sg(r.ba.mean, 3)} ${bu}/${per}, ${sg(r.stems.mean, 3)} stems/${per}`;
+    q('.fi-facts').replaceChildren(
+      fact('Basal area', `${sg(r.ba.mean, 4)} ${bu}/${per} ${pct(r.ba)}`.trim(), `standard error across plots; ${ci(r.ba)}`),
+      fact('Stems', `${sg(r.stems.mean, 4)} per ${per} ${pct(r.stems)}`.trim(), ci(r.stems)),
+      fact('Quadratic mean diameter', `${sg(r.qmd, 3)} ${du}`, 'the DBH of the tree of mean basal area'),
+      fact("Lorey's mean height", r.heights ? `${sg(r.lorey, 3)} ${lu}` : 'no heights given', r.heights ? `basal-area-weighted, from ${r.heights} measured tree${r.heights > 1 ? 's' : ''}` : ''),
+      fact('Plots', `${r.k}`, `${r.trees} trees; each plot is ${sg(area, 4)} ${bu}, so each tree stands for ${sg(r.ef, 4)} per ${per}${r.k > r.plots.length ? `; ${r.k - r.plots.length} plot${r.k - r.plots.length > 1 ? 's' : ''} with no trees` : ''}`),
+    );
+    const spHead = ['Species', 'Trees', `Stems/${per}`, `BA (${bu}/${per})`, 'SE of BA', '% of BA', `QMD (${du})`, `Lorey ht (${lu})`];
+    const spRows = r.species.map((x) => [x.species, String(x.trees), sg(x.stems.mean, 4), sg(x.ba.mean, 4), r.k > 1 ? sg(x.ba.se, 3) : '–', sg(100 * x.shareBA, 3), sg(x.qmd, 3), sg(x.lorey, 3)]);
+    if (r.species.length > 1) spRows.push(['All', String(r.trees), sg(r.stems.mean, 4), sg(r.ba.mean, 4), r.k > 1 ? sg(r.ba.se, 3) : '–', '100', sg(r.qmd, 3), sg(r.lorey, 3)]);
+    table('.fi-sp', spHead, spRows, [1, 2, 3, 4, 5, 6, 7]);
+    const clHead = [`Class (${du})`, ...r.species.map((x) => x.species), ...(r.species.length > 1 ? ['All'] : [])];
+    const clRows = r.classes.map((c) => [`${sg(c.lo, 4)}–${sg(c.hi, 4)}`, ...c.perSpecies.map((v) => sg(v, 4)), ...(r.species.length > 1 ? [sg(c.total, 4)] : [])]);
+    table('.fi-cl', clHead, clRows, clHead.map((_, i) => i).slice(1));
+    fig = bars(r, du, per); paint(q<HTMLCanvasElement>('.fi-fig'), fig);
+    const bk = bu === 'm²' ? 'm2' : 'ft2';
+    csv1 = [['species', 'trees', `stems_per_${per}`, `stems_se`, `basal_area_${bk}_per_${per}`, 'basal_area_se', 'share_of_basal_area', `qmd_${du}`, `lorey_height_${lu}`],
+      ...[...r.species.map((x) => ({ n: x.species, t: x.trees, s: x.stems, b: x.ba, sh: x.shareBA, qm: x.qmd, lh: x.lorey })), { n: 'All', t: r.trees, s: r.stems, b: r.ba, sh: 1, qm: r.qmd, lh: r.lorey }]
+        .map((x) => [x.n, String(x.t), sg(x.s.mean, 6), r.k > 1 ? sg(x.s.se, 6) : '', sg(x.b.mean, 6), r.k > 1 ? sg(x.b.se, 6) : '', sg(x.sh, 6), sg(x.qm, 6), Number.isFinite(x.lh) ? sg(x.lh, 6) : ''])];
+    csv2 = [[`class_from_${du}`, `class_to_${du}`, ...r.species.map((x) => x.species), 'all'], ...r.classes.map((c) => [String(c.lo), String(c.hi), ...c.perSpecies.map((v) => sg(v, 6)), sg(c.total, 6)])];
+    sections = [{ title: q('.fi-big').textContent!, facts: [...q('.fi-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: spHead, rows: spRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: `Stems per ${per} by diameter class`, figure: fig, table: { head: clHead, rows: clRows, align: clHead.map((_, i) => (i ? 'r' : 'l')) } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.fi-csv1').addEventListener('click', () => { if (csv1.length) save(new TextEncoder().encode(toCsv(csv1)), 'inventory-species.csv', 'text/csv'); });
+  q('.fi-csv2').addEventListener('click', () => { if (csv2.length) save(new TextEncoder().encode(toCsv(csv2)), 'inventory-diameter-classes.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fi-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Forest inventory summary', subtitle: q('.fi-big').textContent ?? '', file: 'forest-inventory', sections }));
+</script>
+
+<style is:global>
+  .fis select { max-width: 100%; }
+  .fis textarea { width: 100%; }
+  .fis h3 { margin: 18px 0 8px; font-size: 16px; }
+  .fis .fi-sd { margin-top: 14px; }
+  .fis .fi-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
