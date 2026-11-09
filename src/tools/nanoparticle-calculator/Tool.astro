@@ -1,0 +1,195 @@
+---
+// Nanoparticle calculator: S/V, specific surface area, atoms per particle and surface-atom fraction for spheres and
+// magic-number clusters, particle number and molar concentration from mass concentration, BET-equivalent diameter.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax npc">
+  <div class="ax-card">
+    <h2>1. Material and size</h2>
+    <div class="ax-grid">
+      <label>Density ρ (g/cm³) <input class="npc-rho" inputmode="decimal" value="19.3" /></label>
+      <label>Molar mass M (g/mol) <input class="npc-m" inputmode="decimal" value="196.97" /></label>
+      <label>Atom diameter (nm, blank = estimate) <input class="npc-da" inputmode="decimal" value="" placeholder="from ρ and M" /></label>
+      <label>Particle diameter d (nm) <input class="npc-d" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">The example is gold (density and molar mass rounded). For a compound such as SiO₂ or TiO₂, M is the formula unit's mass, and "atoms" then means formula units. Left blank, the atom diameter is that of a sphere with the volume per atom, M/(ρN<sub>A</sub>); typing the nearest-neighbour distance instead is also common.</p>
+    <p class="ax-err npc-err" hidden></p>
+    <div class="npc-out">
+      <p class="ax-big npc-big"></p>
+      <dl class="ax-facts npc-facts"></dl>
+      <canvas class="ax-fig npc-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Magic-number clusters</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="npc-shape"><option value="cubo" selected>cuboctahedron (fcc)</option><option value="ico">icosahedron (Mackay)</option></select></label>
+      <label>Shells around the centre atom n <input class="npc-n" inputmode="numeric" value="3" /></label>
+    </div>
+    <p class="ax-help">Complete shells give the "magic" sizes 13, 55, 147, 309, 561 ...: N = (10n³ + 15n² + 11n + 3)/3 atoms, with 10n² + 2 in the outer shell. Both shapes have the same counts but different surface sites: corners (vertices), edges and faces. The size above suggests n = <b class="npc-nsug"></b>.</p>
+    <p class="ax-err npc-cerr" hidden></p>
+    <div class="npc-cout">
+      <p class="ax-big npc-cbig"></p>
+      <dl class="ax-facts npc-cfacts"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="npc-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Concentration</h2>
+    <div class="ax-grid">
+      <label>Mass concentration <input class="npc-c" inputmode="decimal" value="50" /></label>
+      <label>Unit <select class="npc-cu"><option value="1">mg/mL (g/L)</option><option value="1e-3" selected>µg/mL (mg/L)</option><option value="1e-6">ng/mL (µg/L)</option></select></label>
+      <label>Particles are <select class="npc-of"><option value="sphere" selected>spheres of diameter d</option><option value="cluster">the cluster above</option></select></label>
+    </div>
+    <p class="ax-help">The mass concentration of the particle material itself (for example the metal content from ICP), not counting ligands or shells.</p>
+    <p class="ax-err npc-kerr" hidden></p>
+    <dl class="ax-facts npc-kfacts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. BET-equivalent diameter</h2>
+    <div class="ax-grid">
+      <label>Measured specific surface area (m²/g) <input class="npc-ssa" inputmode="decimal" value="12" /></label>
+    </div>
+    <p class="ax-help">d<sub>BET</sub> = 6/(ρ × SSA): the diameter of identical, smooth, non-porous spheres with this surface area per gram.</p>
+    <p class="ax-err npc-berr" hidden></p>
+    <dl class="ax-facts npc-bfacts" style="margin-top:12px"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { NA, sphere, specificSurface, betDiameter, particleMass, atomVolume, sphereAtoms, magic, shellsFor, numberConc } from '../../lib/sci/nano';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.npc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const err = (c: string, out: string, m: string) => { q(c).textContent = m; q(c).hidden = !m; q(out).hidden = !!m; };
+  const count = (n: number) => (n >= 1e6 ? sig(n, 4) : n >= 100 ? Math.round(n).toLocaleString('en') : sig(n, 4));
+  const pct = (f: number) => `${sig(f * 100, 3)} %`;
+  const molar = (m: number) => { for (const [u, s] of [['M', 1], ['mM', 1e-3], ['µM', 1e-6], ['nM', 1e-9], ['pM', 1e-12], ['fM', 1e-15]] as [string, number][]) if (m >= s) return `${sig(m / s, 4)} ${u}`; return `${sig(m / 1e-18, 4)} aM`; };
+  const width = () => Math.round(Math.min(720, Math.max(300, root.clientWidth - 34 || 640)));
+  let fig: Figure | null = null, st: { rho: number; M: number; da: number; d: number } | null = null, clusterRows: string[][] = [], cl: { N: number; dia: number } | null = null;
+
+  function sizeStep() {
+    st = null; fig = null;
+    const rho = v('.npc-rho'), M = v('.npc-m'), dat = q<HTMLInputElement>('.npc-da').value.trim(), daIn = v('.npc-da'), d = v('.npc-d');
+    if (!(rho > 0) || !(M > 0)) return err('.npc-err', '.npc-out', 'Give a density and a molar mass above zero.');
+    if (dat && !(daIn > 0)) return err('.npc-err', '.npc-out', 'Give an atom diameter above zero, or leave it blank.');
+    if (!(d > 0)) return err('.npc-err', '.npc-out', 'Give a particle diameter above zero.');
+    const av = atomVolume(rho, M), da = dat ? daIn : av.da;
+    st = { rho, M, da, d }; err('.npc-err', '.npc-out', '');
+    const sp = sphere(d), sa = sphereAtoms(d, rho, M, da), mass = particleMass(d, rho);
+    q('.npc-big').textContent = `${sig(specificSurface(d, rho), 4)} m²/g, ${pct(sa.fraction)} of atoms on the surface`;
+    const f = [
+      fact('Specific surface area', `${sig(specificSurface(d, rho), 4)} m²/g`, '6/(ρd)'),
+      fact('Surface to volume S/V', `${sig(sp.SV, 4)} /nm`, '6/d'),
+      fact('Surface area', `${sig(sp.S, 4)} nm²`, `volume ${sig(sp.V, 4)} nm³`),
+      fact('Mass of one particle', `${sig(mass, 4)} g`, `${sig(mass * NA, 4)} g/mol of particles`),
+      fact('Atoms per particle', count(sa.N), `volume ÷ volume per atom (${sig(av.v, 4)} nm³)`),
+      fact('Atoms on the surface', count(sa.N * sa.fraction), `those within one atom diameter (${sig(da, 4)} nm) of the surface`),
+    ];
+    if (d < 2 * da) f.push(fact('Size', 'below two atoms', 'every atom is a surface atom; a continuum sphere means little this small'));
+    q('.npc-facts').replaceChildren(...f);
+    // Surface fraction against size: spheres and magic clusters.
+    const xs: number[] = [], ys: number[] = [];
+    const lo = Math.max(da * 2.2, 0.5), hi = Math.max(100, d * 2);
+    for (let i = 0; i <= 120; i++) { const x = lo * (hi / lo) ** (i / 120); xs.push(x); ys.push(sphereAtoms(x, rho, M, da).fraction * 100); }
+    const cx: number[] = [], cy: number[] = [];
+    for (let n = 1; (2 * n + 1) * da <= hi && n < 400; n++) { const m = magic(n, 'cubo'); if ((2 * n + 1) * da >= lo) { cx.push((2 * n + 1) * da); cy.push(m.fraction * 100); } }
+    const W = width();
+    fig = chartFigure({ w: W, h: W < 500 ? 260 : 320, xLog: true, yMin: 0, yMax: 100, xLabel: 'Diameter (nm)', yLabel: 'Atoms on the surface (%)', series: [
+      { name: 'sphere, one-atom shell', x: xs, y: ys, mode: 'line', width: 1.8 },
+      { name: 'magic clusters (2n + 1 atoms across)', x: cx, y: cy, mode: 'points', marker: 'open-circle', size: 3 },
+      { name: 'this particle', x: [d], y: [sa.fraction * 100], mode: 'points', marker: 'diamond', size: 6 },
+    ], legend: 'below' }, 'Share of atoms on the surface against particle diameter');
+    paint(q<HTMLCanvasElement>('.npc-fig'), fig);
+  }
+
+  function clusterStep() {
+    cl = null;
+    q('.npc-nsug').textContent = st ? String(shellsFor(st.d, st.da)) : '–';
+    const n = v('.npc-n'), shape = q<HTMLSelectElement>('.npc-shape').value as 'cubo' | 'ico';
+    if (!(Number.isInteger(n) && n >= 0 && n <= 1000)) return err('.npc-cerr', '.npc-cout', 'Give a whole number of shells from 0 to 1000.');
+    err('.npc-cerr', '.npc-cout', '');
+    const m = magic(n, shape), da = st?.da;
+    cl = da ? { N: m.N, dia: (2 * n + 1) * da } : null;
+    q('.npc-cbig').textContent = `${count(m.N)} atoms, ${count(m.surface)} on the surface (${pct(m.fraction)})`;
+    const f = [
+      fact('Corner (vertex) atoms', String(m.vertex), shape === 'cubo' ? '5 neighbours each' : '6 neighbours each'),
+      fact('Edge atoms', count(m.edge), shape === 'cubo' ? '7 neighbours each, not counting corners' : '8 neighbours each, not counting corners'),
+      fact('Face atoms', count(m.face), shape === 'cubo' ? '(111) faces 9 neighbours, (100) faces 8' : '(111)-like faces, 9 neighbours'),
+      fact('Atoms along an edge', String(m.edgeAtoms), `${shape === 'cubo' ? 14 : 20} faces, 12 corners`),
+    ];
+    if (da && st) f.push(fact('Approximate diameter', `${sig((2 * n + 1) * da, 4)} nm`, `(2n + 1) atom diameters; mass ${sig((m.N * st.M) / NA, 4)} g`));
+    q('.npc-cfacts').replaceChildren(...f);
+    const lo = Math.max(1, n - 4), rows: string[][] = [];
+    for (let k = lo; k <= lo + 9; k++) { const x = magic(k, shape); rows.push([String(k), count(x.N), count(x.surface), pct(x.fraction), ...(da ? [sig((2 * k + 1) * da, 3)] : [])]); }
+    clusterRows = rows;
+    const head = ['n', 'Atoms', 'Surface', 'Share', ...(da ? ['d (nm)'] : [])];
+    const th = document.createElement('thead'), tr = document.createElement('tr');
+    head.forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (i) c.className = 'r'; tr.append(c); }); th.append(tr);
+    const tb = document.createElement('tbody');
+    rows.forEach((r) => { const t = document.createElement('tr'); if (r[0] === String(n)) t.className = 'npc-hit'; r.forEach((x, i) => { const c = document.createElement('td'); c.textContent = x; if (i) c.className = 'r'; t.append(c); }); tb.append(t); });
+    q('.npc-tab').replaceChildren(th, tb);
+  }
+
+  function concStep() {
+    const c = v('.npc-c') * Number(q<HTMLSelectElement>('.npc-cu').value), of = q<HTMLSelectElement>('.npc-of').value;
+    if (!st) return err('.npc-kerr', '.npc-kfacts', 'Fix the material and size first.');
+    if (!(c > 0)) return err('.npc-kerr', '.npc-kfacts', 'Give a mass concentration above zero.');
+    if (of === 'cluster' && !cl) return err('.npc-kerr', '.npc-kfacts', 'Fix the cluster first.');
+    err('.npc-kerr', '.npc-kfacts', '');
+    const mass = of === 'cluster' ? (cl!.N * st.M) / NA : particleMass(st.d, st.rho), r = numberConc(c, mass);
+    const atoms = of === 'cluster' ? cl!.N : sphereAtoms(st.d, st.rho, st.M, st.da).N;
+    const area = of === 'cluster' ? null : r.perML * sphere(st.d).S * 1e-14; // cm² per mL
+    const f = [
+      fact('Particles per mL', sig(r.perML, 4), `${sig(r.perML * 1000, 4)} per litre`),
+      fact('Molar concentration of particles', molar(r.molar), 'particles ÷ Avogadro\'s number'),
+      fact('Atoms per mL', sig(r.perML * atoms, 4), `${molar((c / st.M))} of atoms`),
+    ];
+    if (area !== null) f.push(fact('Surface area per mL', `${sig(area, 4)} cm²`, `${sig(area * 1e-4 * 1000, 4)} m² per litre`));
+    q('.npc-kfacts').replaceChildren(...f);
+  }
+
+  function betStep() {
+    const ssa = v('.npc-ssa');
+    if (!st) return err('.npc-berr', '.npc-bfacts', 'Fix the material and size first.');
+    if (!(ssa > 0)) return err('.npc-berr', '.npc-bfacts', 'Give a specific surface area above zero.');
+    err('.npc-berr', '.npc-bfacts', '');
+    const dB = betDiameter(ssa, st.rho), ratio = dB / st.d;
+    q('.npc-bfacts').replaceChildren(
+      fact('BET-equivalent diameter', `${sig(dB, 4)} nm`),
+      fact('dBET ÷ d above', sig(ratio, 3), ratio > 1.3 ? 'the powder has less surface than separate spheres of size d: the particles are likely aggregated, sintered or larger' : ratio < 0.77 ? 'more surface than smooth spheres of size d: rough, porous or smaller particles' : 'close to separate smooth spheres of size d'),
+    );
+  }
+
+  const all = () => { sizeStep(); clusterStep(); concStep(); betStep(); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.npc-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (st) s.push({ title: q('.npc-big').textContent!, text: [`ρ = ${sig(st.rho, 4)} g/cm³, M = ${sig(st.M, 5)} g/mol, d = ${sig(st.d, 4)} nm, atom diameter ${sig(st.da, 4)} nm.`], facts: facts('.npc-facts'), ...(fig ? { figure: fig } : {}) });
+    if (!q('.npc-cout').hidden) s.push({ title: `${q('.npc-shape').querySelector('option:checked')!.textContent}: ${q('.npc-cbig').textContent}`, facts: facts('.npc-cfacts'), table: { head: ['n', 'Atoms', 'Surface', 'Share', ...(st ? ['d (nm)'] : [])], rows: clusterRows } });
+    if (!q('.npc-kfacts').hidden) s.push({ title: 'Concentration', facts: facts('.npc-kfacts') });
+    if (!q('.npc-bfacts').hidden) s.push({ title: 'BET-equivalent diameter', facts: facts('.npc-bfacts') });
+    return { title: 'Nanoparticle calculator', subtitle: 'Surface, atoms and concentration', file: 'nanoparticle', sections: s };
+  });
+</script>
+
+<style is:inline>
+  .npc select { max-width: 100%; }
+  .npc [hidden] { display: none !important; }
+  .npc tr.npc-hit td { font-weight: 700; }
+</style>

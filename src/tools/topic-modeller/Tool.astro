@@ -1,0 +1,177 @@
+---
+// Topic modelling (LDA by collapsed Gibbs sampling) in the browser. Documents are pasted or opened from local files;
+// nothing is uploaded. The example notes are made up for fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tpm">
+  <div class="ax-card">
+    <h2>Documents</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small tm-open">Open text files</button>
+      <input type="file" class="tm-file" accept=".txt,.text,.md,text/plain" multiple hidden />
+      <button type="button" class="btn secondary small tm-ex">Use the example</button>
+      <button type="button" class="btn secondary small tm-clear">Clear</button>
+    </div>
+    <label style="margin-top:10px"><span>One document per paragraph (blank line between), or start each with a line <code>### name</code></span> <textarea class="tm-in" rows="8" spellcheck="false"></textarea></label>
+    <p class="ax-help">Each opened file becomes one document. Up to 2,000 documents and 5 MB of text; this is for small corpora.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Topics <input class="tm-k" type="number" min="2" max="30" step="1" value="3" inputmode="numeric" /></label>
+      <label>Sweeps (iterations) <input class="tm-it" type="number" min="10" max="5000" step="10" value="500" inputmode="numeric" /></label>
+      <label>Seed <input class="tm-seed" type="number" min="0" step="1" value="1" inputmode="numeric" /></label>
+      <label>Words per topic shown <input class="tm-top" type="number" min="3" max="50" step="1" value="10" inputmode="numeric" /></label>
+      <label>Alpha (topics per document) <input class="tm-a" type="number" min="0.001" step="0.01" value="0.1" inputmode="decimal" /></label>
+      <label>Beta (words per topic) <input class="tm-b" type="number" min="0.001" step="0.01" value="0.01" inputmode="decimal" /></label>
+      <label>Shortest word (letters) <input class="tm-min" type="number" min="1" max="10" step="1" value="3" inputmode="numeric" /></label>
+      <label>Drop words used fewer than <input class="tm-rare" type="number" min="1" max="100" step="1" value="2" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Smaller alpha: each document keeps to fewer topics. Smaller beta: each topic keeps to fewer words. The same seed and settings always give the same topics.</p>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="tm-stop" checked /> Remove common English words (the, and, of, …)</label>
+    <label style="margin-top:8px">More words to remove (spaces or commas) <input class="tm-extra" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. chapter, page" /></label>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn tm-run">Find topics</button><span class="ax-help tm-prog" aria-live="polite" style="margin:0"></span></div>
+    <p class="ax-err tm-err" hidden></p>
+  </div>
+
+  <div class="ax-card tm-out" hidden>
+    <h2>Topics</h2>
+    <p class="ax-big tm-big"></p>
+    <dl class="ax-facts tm-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="tm-ttab"></table></div>
+    <h3>Topics in each document</h3>
+    <canvas class="ax-fig tm-fig"></canvas>
+    <div class="ax-legend tm-leg"></div>
+    <div class="ax-scroll tm-dw"><table class="tm-dtab"></table></div>
+    <h3>Convergence</h3>
+    <canvas class="ax-fig tm-cfig"></canvas>
+    <p class="ax-help">Perplexity of the documents every 10 sweeps. When the line is flat the sampler has settled; try another seed to see whether the topics are stable.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small tm-csv">Topic words (CSV)</button>
+      <button type="button" class="btn secondary small tm-dcsv">Document topics (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .tpm h3 { margin: 22px 0 8px; font-size: 15px; }
+  .tpm code { font-size: 13px; }
+  .tpm .tm-dw { max-height: 420px; overflow-y: auto; }
+  .tpm .tm-ttab td:nth-child(2) { min-width: 160px; }
+</style>
+
+<script>
+  import { splitDocs, prepare, initGibbs, sweep, estimate, perplexity, topWords, STOP_WORDS, EXAMPLE, type Corpus, type Gibbs } from '../../lib/sci/lda';
+  import { csv } from '../../lib/sci/num';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tpm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const box = q<HTMLTextAreaElement>('.tm-in');
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  const colour = (k: number, K: number, pal: Palette) => (pal.red ? `rgb(${120 + ((k * 97) % 135)},0,0)` : K <= 7 ? OKABE_ITO[k] : `hsl(${Math.round((360 * k) / K)},65%,${pal.bg === '#ffffff' ? 45 : 65}%)`);
+
+  let corpus: Corpus | null = null, g: Gibbs | null = null, run = 0, trace: [number, number][] = [];
+  let est: { phi: number[][]; theta: number[][] } | null = null, tops: { word: string; p: number }[][] = [], fig: Figure | null = null, cfig: Figure | null = null, ppl = 0;
+  const fail = (m: string) => { q('.tm-err').textContent = m; q('.tm-err').hidden = false; q('.tm-out').hidden = true; q('.tm-prog').textContent = ''; };
+
+  function start() {
+    const id = ++run; q('.tm-err').hidden = true;
+    const docs = splitDocs(box.value);
+    if (!docs.length) return fail('Paste some documents first, or press Use the example.');
+    if (docs.length > 2000) return fail(`That is ${docs.length.toLocaleString('en')} documents; the limit is 2,000.`);
+    const K = Math.floor(val('.tm-k')), it = Math.floor(val('.tm-it')), seed = Math.floor(val('.tm-seed')), alpha = val('.tm-a'), beta = val('.tm-b');
+    if (!(K >= 2 && K <= 30)) return fail('Choose between 2 and 30 topics.');
+    if (!(it >= 10 && it <= 5000)) return fail('Choose between 10 and 5000 sweeps.');
+    if (!(alpha > 0) || !(beta > 0)) return fail('Alpha and beta must be above 0.');
+    if (!(seed >= 0)) return fail('The seed must be a whole number, 0 or more.');
+    const extra = q<HTMLInputElement>('.tm-extra').value.toLowerCase().split(/[\s,;]+/).filter(Boolean);
+    const stop = [...(q<HTMLInputElement>('.tm-stop').checked ? STOP_WORDS : []), ...extra];
+    const c = prepare(docs, { stop, minLen: Math.max(1, Math.floor(val('.tm-min')) || 1), minCount: Math.max(1, Math.floor(val('.tm-rare')) || 1) });
+    if (c.vocab.length < 2 || c.tokens < 10) return fail(`Only ${c.tokens} words are left after removing common and rare words. Add more text, or lower "Drop words used fewer than".`);
+    if (c.docs.filter((d) => d.length).length < 2) return fail('At least 2 documents need words left after cleaning.');
+    corpus = c; g = initGibbs(c, K, alpha, beta, seed); trace = [];
+    const step = () => {
+      if (id !== run || !g) return;
+      const t0 = performance.now();
+      while (g.sweeps < it && performance.now() - t0 < 40) { sweep(g, 1); if (g.sweeps % 10 === 0 || g.sweeps === it) { const e = estimate(g); trace.push([g.sweeps, perplexity(c.docs, e.phi, e.theta)]); } }
+      q('.tm-prog').textContent = g.sweeps < it ? `Sampling: ${g.sweeps} of ${it} sweeps…` : `Done: ${it} sweeps.`;
+      if (g.sweeps < it) setTimeout(step, 0); else show();
+    };
+    step();
+  }
+
+  function show() {
+    const c = corpus!, G = g!, K = G.K;
+    est = estimate(G); ppl = perplexity(c.docs, est.phi, est.theta);
+    tops = topWords(est.phi, c.vocab, Math.max(3, Math.min(50, Math.floor(val('.tm-top')) || 10)));
+    const share = Array.from({ length: K }, (_, k) => G.nk[k] / c.tokens);
+    q('.tm-out').hidden = false;
+    q('.tm-big').textContent = `${K} topics in ${c.names.length} documents`;
+    const facts: [string, string][] = [['Distinct words', c.vocab.length.toLocaleString('en')], ['Words used', c.tokens.toLocaleString('en')], ['Removed', `${(c.removed.stop + c.removed.short).toLocaleString('en')} common or short, ${c.removed.rare.toLocaleString('en')} rare`], ['Perplexity', ppl.toFixed(2)], ['Sweeps', String(G.sweeps)]];
+    q('.tm-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; }));
+    table(q('.tm-ttab'), ['Topic', 'Top words', 'Share of words'], tops.map((t, k) => [k + 1, t.map((x) => x.word).join(', '), `${(100 * share[k]).toFixed(1)} %`]), ['r', '', 'r']);
+    table(q('.tm-dtab'), ['Document', 'Main topic', ...Array.from({ length: K }, (_, k) => `T${k + 1} %`)], c.names.map((n, d) => { const th = est!.theta[d]; const m = th.indexOf(Math.max(...th)); return [n, c.docs[d].length ? m + 1 : '–', ...th.map((p) => (100 * p).toFixed(0))]; }), ['', 'r', ...Array.from({ length: K }, () => 'r')]);
+    const shown = Math.min(60, c.names.length), rowH = 20, W = 380, labW = 90;
+    fig = {
+      w: W, h: 14 + shown * rowH, alt: `Topic shares in ${shown} documents, ${K} topics`,
+      draw: (ctx, w, _h, pal) => {
+        ctx.font = '12px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'middle';
+        for (let d = 0; d < shown; d++) {
+          const y = 6 + d * rowH; let x = labW;
+          let s = c.names[d]; while (s.length > 3 && ctx.measureText(s).width > labW - 8) s = s.slice(0, -1);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(s, labW - 6, y + rowH / 2 - 1);
+          est!.theta[d].forEach((p, k) => { const bw = p * (w - labW - 4); ctx.fillStyle = colour(k, K, pal); ctx.fillRect(x, y, bw, rowH - 4); x += bw; });
+        }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.tm-fig'), fig);
+    q('.tm-leg').replaceChildren(...tops.map((t, k) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = colour(k, K, { bg: document.documentElement.dataset.theme === 'dark' ? '#0a0a0a' : '#ffffff', red: document.documentElement.classList.contains('red-mode') } as Palette); s.append(i, `Topic ${k + 1}: ${t.slice(0, 3).map((x) => x.word).join(', ')}`); return s; }));
+    cfig = chartFigure({ w: 420, h: 260, xLabel: 'Sweep', yLabel: 'Perplexity', series: [{ name: 'Perplexity', x: trace.map((p) => p[0]), y: trace.map((p) => p[1]), mode: 'line' }], legend: 'none' }, `Perplexity falling from ${trace[0][1].toFixed(1)} to ${ppl.toFixed(1)} over ${G.sweeps} sweeps`);
+    paint(q<HTMLCanvasElement>('.tm-cfig'), cfig);
+  }
+
+  q('.tm-run').addEventListener('click', start);
+  q('.tm-ex').addEventListener('click', () => {
+    box.value = EXAMPLE;
+    for (const [c, v] of [['.tm-k', '3'], ['.tm-it', '500'], ['.tm-seed', '1'], ['.tm-a', '0.1'], ['.tm-b', '0.01'], ['.tm-min', '3'], ['.tm-rare', '2'], ['.tm-top', '10'], ['.tm-extra', '']]) q<HTMLInputElement>(c).value = v;
+    q<HTMLInputElement>('.tm-stop').checked = true; start();
+  });
+  q('.tm-clear').addEventListener('click', () => { box.value = ''; run++; q('.tm-out').hidden = true; q('.tm-prog').textContent = ''; q('.tm-err').hidden = true; });
+  q('.tm-open').addEventListener('click', () => q<HTMLInputElement>('.tm-file').click());
+  q('.tm-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.tm-file'), files = [...(inp.files ?? [])]; inp.value = '';
+    if (!files.length) return;
+    if (files.reduce((a, f) => a + f.size, 0) + box.value.length > 5e6) return fail('Those files come to more than 5 MB.');
+    const parts = await Promise.all(files.map(async (f) => `### ${f.name.replace(/\.[^.]+$/, '')}\n${(await f.text()).replace(/^\s*###/gm, '#')}\n`));
+    const cur = box.value.trim();
+    // Pasted paragraphs without ### names keep their own documents.
+    const head = cur && !/^\s*###/m.test(cur) ? splitDocs(cur).map((d) => `### ${d.name}\n${d.text}\n`).join('\n') : cur;
+    box.value = (head ? head + '\n\n' : '') + parts.join('\n');
+    q('.tm-prog').textContent = `Added ${files.length} file${files.length === 1 ? '' : 's'}. Press Find topics.`;
+  });
+  const stamp = () => `lda-k${g?.K ?? 0}-seed${Math.floor(val('.tm-seed'))}`;
+  q('.tm-csv').addEventListener('click', () => {
+    if (!est || !corpus) return;
+    const all = topWords(est.phi, corpus.vocab, Math.max(...tops.map((t) => t.length)));
+    save(new Blob([csv([['topic', 'rank', 'word', 'probability'], ...all.flatMap((t, k) => t.map((x, r) => [k + 1, r + 1, x.word, x.p.toFixed(6)]))])], { type: 'text/csv' }), `${stamp()}-topic-words.csv`, 'text/csv');
+  });
+  q('.tm-dcsv').addEventListener('click', () => {
+    if (!est || !corpus) return;
+    save(new Blob([csv([['document', 'words', ...est.phi.map((_, k) => `topic_${k + 1}`)], ...corpus.names.map((n, d) => [n, corpus!.docs[d].length, ...est!.theta[d].map((p) => p.toFixed(6))])])], { type: 'text/csv' }), `${stamp()}-document-topics.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({
+    title: 'Topic model (LDA)', subtitle: `${q('.tm-big').textContent}; perplexity ${ppl.toFixed(2)}; seed ${val('.tm-seed')}, alpha ${val('.tm-a')}, beta ${val('.tm-b')}, ${g?.sweeps} sweeps`, file: stamp(),
+    sections: [
+      { title: 'Topics', table: { head: ['Topic', 'Top words'], rows: tops.map((t, k) => [String(k + 1), t.map((x) => x.word).join(', ')]), align: ['r', 'l'] } },
+      { title: 'Topics in each document', figure: fig ?? undefined, table: { head: ['Document', ...tops.map((_, k) => `T${k + 1} %`)], rows: corpus!.names.slice(0, 200).map((n, d) => [n, ...est!.theta[d].map((p) => (100 * p).toFixed(0))]), align: ['l', ...tops.map(() => 'r' as const)] } },
+      { title: 'Convergence', figure: cfig ?? undefined },
+    ],
+  }));
+  document.addEventListener('fibub:theme', () => { if (est && fig && cfig) show(); });
+</script>

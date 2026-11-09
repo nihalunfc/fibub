@@ -1,0 +1,190 @@
+---
+// Equation converter: LaTeX maths to MathML (pasteable into Word and LibreOffice) with a live preview drawn from that
+// MathML, and MathML back to LaTeX. The converter is fibub's own (src/lib/sci/texmath.ts); nothing leaves the page.
+import '../../styles/astro.css';
+---
+<div class="ax eqc">
+  <div class="ax-card">
+    <div class="ax-seg eqc-dir" role="group" aria-label="Convert">
+      <button type="button" data-d="tex" aria-pressed="true">LaTeX to MathML</button>
+      <button type="button" data-d="mml" aria-pressed="false">MathML to LaTeX</button>
+    </div>
+    <label class="eqc-inl" style="margin-top:12px"><span class="eqc-inlabel">LaTeX maths (with or without $ signs)</span>
+      <textarea class="eqc-in" rows="4" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    </label>
+    <div class="ax-row eqc-ex" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Examples:</span>
+      <button type="button" class="btn secondary small" data-ex="quad">Quadratic formula</button>
+      <button type="button" class="btn secondary small" data-ex="gauss">Gaussian integral</button>
+      <button type="button" class="btn secondary small" data-ex="matrix">Matrix</button>
+      <button type="button" class="btn secondary small" data-ex="cases">Cases</button>
+      <button type="button" class="btn secondary small" data-ex="maxwell">Aligned</button>
+    </div>
+    <div class="ax-grid eqc-opts" style="margin-top:12px">
+      <label>Show the equation <select class="eqc-disp"><option value="block" selected>On its own line (display)</option><option value="inline">In a line of text (inline)</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="eqc-ann" /> Keep the LaTeX inside the MathML</label>
+      <label class="ax-check"><input type="checkbox" class="eqc-pretty" /> Indent the MathML</label>
+    </div>
+    <p class="ax-help eqc-opthelp">Display maths puts limits above and below sums. Keeping the LaTeX adds it as an annotation, so some programs can show the source again. Indenting only makes the MathML easier to read.</p>
+    <div class="eqc-errbox" hidden>
+      <p class="ax-err eqc-err"></p>
+      <pre class="eqc-caret"></pre>
+    </div>
+  </div>
+
+  <div class="ax-card eqc-pcard">
+    <h2>Preview</h2>
+    <div class="eqc-prev" aria-live="polite"></div>
+    <p class="ax-help">Drawn by your browser from the MathML below, so what you see is what Word or LibreOffice will get. Fonts differ a little between programs.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="eqc-outh">MathML</h2>
+    <textarea class="eqc-out" rows="6" readonly spellcheck="false"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small eqc-copy">Copy MathML</button>
+      <button type="button" class="btn secondary small eqc-dl">Download .mml</button>
+      <span class="ax-help eqc-done" style="margin:0" aria-live="polite"></span>
+    </div>
+    <details class="eqc-how">
+      <summary>How to paste it into Word or LibreOffice</summary>
+      <p><b>Word (Windows and Mac, 2016 or newer):</b> click Copy MathML, then in Word paste with Ctrl+V (⌘+V). Word turns it into an equation you can edit. If it arrives as text, paste with <i>Keep Text Only</i> into an empty equation box (Insert, Equation) instead.</p>
+      <p><b>LibreOffice Writer:</b> Insert, Object, Formula Object, then in the formula editor use Tools, <i>Import MathML from Clipboard</i>. LibreOffice Math can also open the downloaded .mml file.</p>
+      <p><b>Web pages:</b> the MathML works as it is inside HTML in every current browser.</p>
+    </details>
+  </div>
+
+  <details class="ax-card eqc-list">
+    <summary>What LaTeX it understands</summary>
+    <div class="eqc-cmds"></div>
+  </details>
+</div>
+
+<style is:inline>
+  .eqc .eqc-in, .eqc .eqc-out { font-size: 14px; }
+  .eqc-prev { min-height: 64px; display: flex; align-items: center; justify-content: center; padding: 14px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); overflow-x: auto; font-size: 22px; }
+  .eqc-prev math { font-size: inherit; }
+  .eqc-prev math[display=block] { margin: 0 auto; }
+  .eqc-prev.empty { color: var(--muted); font-size: 15px; }
+  .eqc-caret { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; white-space: pre; }
+  .eqc-how, .eqc-list { margin-top: 12px; }
+  .eqc-how summary, .eqc-list summary { cursor: pointer; font-weight: 600; }
+  .eqc-how p { font-size: 14px; margin: 8px 0 0; }
+  .eqc-cmds p { font-size: 13.5px; margin: 8px 0 0; overflow-wrap: anywhere; }
+  .eqc-cmds code { font-size: 12.5px; }
+  .ax .eqc-ex .btn { padding: 5px 10px; font-size: 14px; }
+  .eqc-dir button { font-size: 14px; }
+</style>
+
+<script>
+  import { texToMathML, mathmlToTex, MathError, where, placeText, SUPPORTED } from '../../lib/sci/texmath';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.eqc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLTextAreaElement>('.eqc-in'), out = q<HTMLTextAreaElement>('.eqc-out'), prev = q('.eqc-prev');
+  const EX: Record<string, string> = {
+    quad: String.raw`x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`,
+    gauss: String.raw`\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}`,
+    matrix: String.raw`A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}, \quad \det A = a_{11}a_{22} - a_{12}a_{21}`,
+    cases: String.raw`|x| = \begin{cases} x & \text{if } x \geq 0 \\ -x & \text{if } x < 0 \end{cases}`,
+    maxwell: String.raw`\begin{aligned} \nabla \cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0} \\ \nabla \times \mathbf{B} &= \mu_0 \mathbf{J} + \mu_0 \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t} \end{aligned}`,
+  };
+  let dir: 'tex' | 'mml' = 'tex', result = '', lastTex = '', lastMml = '';
+
+  function showError(src: string, e: unknown) {
+    const box = q('.eqc-errbox');
+    if (e instanceof MathError) {
+      const w = where(src, e.pos);
+      const at = placeText(src, e.pos);
+      q('.eqc-err').textContent = `${at[0].toUpperCase() + at.slice(1)}: ${e.message}`;
+      q('.eqc-caret').textContent = `${w.text}\n${w.caret}`;
+      q('.eqc-caret').hidden = false;
+    } else {
+      q('.eqc-err').textContent = (e as Error).message || 'Could not convert this.';
+      q('.eqc-caret').hidden = true;
+    }
+    box.hidden = false;
+    prev.classList.add('empty'); prev.textContent = 'Fix the error above to see the equation.';
+    out.value = ''; result = '';
+    q<HTMLButtonElement>('.eqc-copy').disabled = true; q<HTMLButtonElement>('.eqc-dl').disabled = true;
+  }
+
+  function run() {
+    const src = input.value;
+    q('.eqc-errbox').hidden = true; q('.eqc-done').textContent = '';
+    if (!src.trim()) {
+      prev.classList.add('empty'); prev.textContent = dir === 'tex' ? 'Type or paste LaTeX above.' : 'Paste MathML above.';
+      out.value = ''; result = '';
+      q<HTMLButtonElement>('.eqc-copy').disabled = true; q<HTMLButtonElement>('.eqc-dl').disabled = true;
+      return;
+    }
+    const display = q<HTMLSelectElement>('.eqc-disp').value === 'block';
+    try {
+      let mml: string;
+      if (dir === 'tex') {
+        mml = texToMathML(src, { display, annotate: q<HTMLInputElement>('.eqc-ann').checked, pretty: q<HTMLInputElement>('.eqc-pretty').checked });
+        result = mml; lastTex = src;
+      } else {
+        const tex = mathmlToTex(src);
+        result = tex; lastMml = src;
+        mml = texToMathML(tex, { display });
+      }
+      out.value = result;
+      // The preview is our own MathML (every text escaped), so it is safe to place in the page.
+      prev.classList.remove('empty'); prev.innerHTML = dir === 'tex' ? mml.replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/, '') : mml;
+      q<HTMLButtonElement>('.eqc-copy').disabled = false; q<HTMLButtonElement>('.eqc-dl').disabled = false;
+    } catch (e) { showError(src, e); }
+  }
+
+  let timer = 0;
+  input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 120); });
+  for (const c of ['.eqc-disp', '.eqc-ann', '.eqc-pretty']) q(c).addEventListener('change', run);
+
+  function setDir(d: 'tex' | 'mml') {
+    if (d === dir) return;
+    const keep = result;
+    dir = d;
+    root.querySelectorAll<HTMLButtonElement>('.eqc-dir button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.d === d)));
+    q('.eqc-inlabel').textContent = d === 'tex' ? 'LaTeX maths (with or without $ signs)' : 'MathML (from Word, a web page or another program)';
+    q('.eqc-outh').textContent = d === 'tex' ? 'MathML' : 'LaTeX';
+    q('.eqc-copy').textContent = d === 'tex' ? 'Copy MathML' : 'Copy LaTeX';
+    q('.eqc-dl').textContent = d === 'tex' ? 'Download .mml' : 'Download .tex';
+    q('.eqc-how').hidden = d !== 'tex'; q('.eqc-ex').hidden = d !== 'tex';
+    for (const c of ['.eqc-ann', '.eqc-pretty']) (q(c).closest('label') as HTMLElement).hidden = d !== 'tex';
+    // Carry the current result across, so switching direction converts it back.
+    input.value = keep || (d === 'tex' ? lastTex : lastMml);
+    run();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.eqc-dir button').forEach((b) => b.addEventListener('click', () => setDir(b.dataset.d as 'tex' | 'mml')));
+  root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => { input.value = EX[b.dataset.ex!]; run(); }));
+
+  q('.eqc-copy').addEventListener('click', async () => {
+    if (!result) return;
+    let ok = true;
+    try { await navigator.clipboard.writeText(result); } catch { ok = false; out.select(); }
+    q('.eqc-done').textContent = ok ? (dir === 'tex' ? 'Copied. Paste it into Word or LibreOffice.' : 'Copied.') : 'Your browser blocked copying; the text is selected, press Ctrl+C (⌘+C).';
+  });
+  q('.eqc-dl').addEventListener('click', () => {
+    if (!result) return;
+    if (dir === 'tex') save(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + result + '\n'], { type: 'application/mathml+xml' }), 'equation.mml', 'application/mathml+xml');
+    else save(new Blob([result + '\n'], { type: 'text/plain' }), 'equation.tex', 'text/plain');
+  });
+
+  // The list of supported commands.
+  const groups: [string, string[], boolean][] = [
+    ['Structures', SUPPORTED.structures, true], ['Environments', SUPPORTED.environments.map((e) => `{${e}}`), false], ['Greek letters', SUPPORTED.greek, true],
+    ['Large operators', SUPPORTED.large, true], ['Functions', SUPPORTED.functions, true], ['Accents', SUPPORTED.accents, true], ['Fonts', SUPPORTED.fonts, true],
+    ['Text', SUPPORTED.text, true], ['Spaces', SUPPORTED.spaces, true], ['Operators, relations and arrows', SUPPORTED.operators, true], ['Symbols', SUPPORTED.symbols, true],
+  ];
+  const box = q('.eqc-cmds');
+  for (const [name, list, slash] of groups) {
+    const p = document.createElement('p'); const b = document.createElement('b'); b.textContent = name + ': '; p.append(b);
+    list.forEach((c, i) => { const code = document.createElement('code'); code.textContent = (slash ? '\\' : '') + c; p.append(code); if (i < list.length - 1) p.append(' '); });
+    box.append(p);
+  }
+  { const p = document.createElement('p'); p.textContent = 'Also: ^ and _ for scripts, \' for primes, { } for groups, & and \\\\ in matrices, \\left. and \\right. for no bracket, $...$, $$...$$, \\[...\\] and \\begin{equation} around the whole equation, % comments. Not supported: macros (\\newcommand), \\color, lines in tables, chemistry (\\ce).'; box.append(p); }
+
+  input.value = EX.quad;
+  run();
+</script>

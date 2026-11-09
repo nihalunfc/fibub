@@ -1,0 +1,171 @@
+---
+// Historic calendar converter: Gregorian (proleptic), Julian, the Julian/Gregorian switch of 1582, Islamic (tabular),
+// Hebrew (arithmetic), Julian Day Number and weekday. All arithmetic, in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax hcc">
+  <div class="ax-card">
+    <h2>Date</h2>
+    <div class="ax-grid">
+      <label>Calendar <select class="hc-cal">
+        <option value="gregorian">Gregorian</option>
+        <option value="julian">Julian</option>
+        <option value="historical">Julian to 4 Oct 1582, then Gregorian</option>
+        <option value="islamic">Islamic (tabular Hijri)</option>
+        <option value="hebrew">Hebrew</option>
+        <option value="jdn">Julian Day Number</option>
+      </select></label>
+    </div>
+    <div class="ax-grid hc-ymd" style="margin-top:10px">
+      <label>Day <input class="hc-d" type="number" min="1" max="31" step="1" value="1" inputmode="numeric" /></label>
+      <label>Month <select class="hc-m"></select></label>
+      <label>Year <input class="hc-y" type="number" min="1" step="1" value="2000" inputmode="numeric" /></label>
+      <label class="hc-erab">Era <select class="hc-era"><option value="ad">AD / CE</option><option value="bc">BC / BCE</option></select></label>
+    </div>
+    <div class="ax-grid hc-jdnb" style="margin-top:10px" hidden>
+      <label>Julian Day Number <input class="hc-j" type="number" step="1" value="2451545" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small hc-today">Today</button>
+      <button type="button" class="btn secondary small hc-ex">Example: Shakespeare and Cervantes</button>
+    </div>
+    <p class="ax-err hc-err" hidden></p>
+  </div>
+
+  <div class="ax-card hc-out" hidden>
+    <h2>The same day in each calendar</h2>
+    <p class="ax-big hc-big"></p>
+    <div class="ax-scroll"><table class="hc-tab"></table></div>
+    <p class="ax-help">The tabular Islamic calendar is arithmetic. Dates set by sighting the new moon, or by Saudi Arabia's Umm al-Qura calendar, can differ by a day or two. Hebrew and Islamic days begin at sunset on the evening before the date shown. Julian Day Numbers count whole civil days; the astronomer's Julian Date starts at noon.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert a list</h2>
+    <label>One date per line in the calendar chosen above, as year-month-day (e.g. <code>1616-4-23</code>; BC years as negative astronomical years, 0 = 1 BC), or one Julian Day Number per line <textarea class="hc-list" rows="5" spellcheck="false" placeholder="1066-10-14&#10;1616-4-23&#10;1752-9-3"></textarea></label>
+    <p class="ax-help hc-lnote"></p>
+    <div class="ax-scroll"><table class="hc-ltab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hc-csv" disabled>Download the list (CSV)</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hcc code { font-size: 13px; }
+  .hcc .hc-tab td:first-child { color: var(--muted); }
+  .hcc .hc-tab td:nth-child(2) { font-weight: 600; }
+</style>
+
+<script>
+  import * as C from '../../lib/sci/calendars';
+  import { csv } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  type Mode = C.CalendarId | 'historical' | 'jdn';
+  const root = document.querySelector<HTMLElement>('.hcc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cal = q<HTMLSelectElement>('.hc-cal'), ms = q<HTMLSelectElement>('.hc-m');
+  const yIn = q<HTMLInputElement>('.hc-y'), dIn = q<HTMLInputElement>('.hc-d'), era = q<HTMLSelectElement>('.hc-era'), jIn = q<HTMLInputElement>('.hc-j');
+  const mode = () => cal.value as Mode;
+  const western = (m: Mode) => m === 'gregorian' || m === 'julian' || m === 'historical';
+  /** The astronomical year typed in. */
+  const year = () => { const y = Number(yIn.value); return western(mode()) && era.value === 'bc' ? 1 - y : y; };
+  const ord = (m: Mode, y: number) => (m === 'hebrew' ? C.hebrewMonthOrder(y) : Array.from({ length: 12 }, (_, i) => i + 1));
+  const histCal = (j: number): C.CalendarId => (C.historicalIsGregorian(j) ? 'gregorian' : 'julian');
+
+  function fillMonths() {
+    const m = mode(); if (m === 'jdn') return;
+    const keep = Number(ms.value) || 1, y = Number.isInteger(year()) ? year() : 2000;
+    const c: C.CalendarId = m === 'historical' ? 'gregorian' : m;
+    ms.replaceChildren(...ord(m, y).map((k) => new Option(C.monthName(c, y, k), String(k))));
+    ms.value = [...ms.options].some((o) => o.value === String(keep)) ? String(keep) : keep === 13 ? '12' : ms.options[0].value;
+  }
+  function layout() {
+    const m = mode();
+    q('.hc-ymd').hidden = m === 'jdn'; q('.hc-jdnb').hidden = m !== 'jdn'; q('.hc-erab').hidden = !western(m);
+    fillMonths();
+  }
+
+  /** JDN of the date typed, or an error message. */
+  function current(): number | string {
+    const m = mode();
+    if (m === 'jdn') { const j = Number(jIn.value); return Number.isInteger(j) && Math.abs(j) < 4e7 ? j : 'Type a whole Julian Day Number.'; }
+    const y = year(), mo = Number(ms.value), d = Number(dIn.value);
+    if (western(m) && !(Number(yIn.value) >= 1)) return 'Type a year of 1 or more and choose AD or BC (there is no year 0).';
+    if (m === 'historical') {
+      const e = C.invalid('julian', y, mo, d); if (e) return e;
+      const jj = C.julianToJdn(y, mo, d), jg = C.gregorianToJdn(y, mo, d);
+      if (jj >= 2299161) { const eg = C.invalid('gregorian', y, mo, d); if (eg) return eg; if (jg < 2299161) return '5 to 14 October 1582 were skipped when the Gregorian calendar began.'; return jg; }
+      return jj;
+    }
+    const e = C.invalid(m, y, mo, d); return e || C.toJdn(m, y, mo, d);
+  }
+
+  function rows(j: number): [string, string][] {
+    const g = C.jdnToGregorian(j), ju = C.jdnToJulian(j), h = C.jdnToHebrew(j), wd = C.WEEKDAYS[C.weekday(j)];
+    return [
+      ['Gregorian', C.format('gregorian', g)],
+      ['Julian', C.format('julian', ju)],
+      ['Historical (Julian to 1582, then Gregorian)', `${C.format(histCal(j), histCal(j) === 'gregorian' ? g : ju)} (${histCal(j) === 'gregorian' ? 'Gregorian' : 'Julian'})`],
+      ['Islamic (tabular)', j >= C.ISLAMIC_EPOCH ? C.format('islamic', C.jdnToIslamic(j)) : 'before AH 1'],
+      ['Hebrew', h.y >= 1 ? C.format('hebrew', h) : 'before AM 1'],
+      ['Julian Day Number', String(j)],
+      ['Day of the week', wd],
+    ];
+  }
+
+  function show() {
+    const err = q('.hc-err'), r = current();
+    if (typeof r === 'string') { err.textContent = r; err.hidden = false; q('.hc-out').hidden = true; return; }
+    err.hidden = true; q('.hc-out').hidden = false;
+    const all = rows(r);
+    q('.hc-big').textContent = `${all[6][1]}, ${all[0][1]} (Gregorian)`;
+    const t = q('.hc-tab'); t.replaceChildren();
+    for (const [k, v] of all) { const tr = t.insertRow(); tr.insertCell().textContent = k; tr.insertCell().textContent = v; }
+  }
+
+  let listRows: string[][] = [];
+  function list() {
+    const lines = q<HTMLTextAreaElement>('.hc-list').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 5000);
+    const t = q('.hc-ltab'), note = q('.hc-lnote'), m = mode();
+    listRows = []; t.replaceChildren();
+    if (!lines.length) { note.textContent = ''; q<HTMLButtonElement>('.hc-csv').disabled = true; return; }
+    let bad = 0;
+    const head = ['Input', 'Gregorian', 'Julian', 'Islamic (tabular)', 'Hebrew', 'JDN', 'Weekday'];
+    for (const line of lines) {
+      let j: number | string;
+      if (m === 'jdn') { const v = Number(line); j = Number.isInteger(v) ? v : 'not a whole number'; }
+      else {
+        const p = /^(-?\d+)[-/.\s]+(\d+)[-/.\s]+(\d+)$/.exec(line);
+        if (!p) j = 'use year-month-day';
+        else {
+          const [y, mo, d] = [Number(p[1]), Number(p[2]), Number(p[3])];
+          if (m === 'historical') { const jj = C.invalid('julian', y, mo, d) ? NaN : C.julianToJdn(y, mo, d); const jg = C.invalid('gregorian', y, mo, d) ? NaN : C.gregorianToJdn(y, mo, d); j = jj < 2299161 ? jj : jg >= 2299161 ? jg : 'not a date in use then'; }
+          else { const e = C.invalid(m, y, mo, d); j = e || C.toJdn(m, y, mo, d); }
+        }
+      }
+      if (typeof j === 'string' || !Number.isFinite(j)) { bad++; listRows.push([line, `error: ${typeof j === 'string' ? j : 'not a date'}`, '', '', '', '', '']); continue; }
+      const iso = (v: C.YMD) => `${v.y}-${String(v.m).padStart(2, '0')}-${String(v.d).padStart(2, '0')}`;
+      const h = C.jdnToHebrew(j);
+      listRows.push([line, iso(C.jdnToGregorian(j)), iso(C.jdnToJulian(j)), j >= C.ISLAMIC_EPOCH ? C.format('islamic', C.jdnToIslamic(j)) : '', h.y >= 1 ? C.format('hebrew', h) : '', String(j), C.WEEKDAYS[C.weekday(j)]]);
+    }
+    const hr = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; hr.append(th); }
+    for (const r of listRows.slice(0, 200)) { const tr = t.insertRow(); for (const x of r) tr.insertCell().textContent = x; }
+    note.textContent = `${lines.length - bad} of ${lines.length} dates converted${bad ? `; ${bad} could not be read` : ''}. Gregorian and Julian are shown as astronomical year-month-day (0 = 1 BC).${listRows.length > 200 ? ' The first 200 are shown; the CSV has them all.' : ''}`;
+    q<HTMLButtonElement>('.hc-csv').disabled = false;
+  }
+
+  cal.addEventListener('change', () => { layout(); show(); list(); });
+  yIn.addEventListener('input', () => { fillMonths(); show(); });
+  era.addEventListener('change', () => { fillMonths(); show(); });
+  for (const el of [ms, dIn, jIn]) el.addEventListener('input', show);
+  ms.addEventListener('change', show);
+  let tm = 0;
+  q('.hc-list').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(list, 250); });
+  const set = (m: Mode, y: number, mo: number, d: number) => { cal.value = m; era.value = y < 1 && western(m) ? 'bc' : 'ad'; yIn.value = String(western(m) && y < 1 ? 1 - y : y); layout(); ms.value = String(mo); dIn.value = String(d); show(); };
+  q('.hc-today').addEventListener('click', () => { const n = new Date(); set('gregorian', n.getFullYear(), n.getMonth() + 1, n.getDate()); });
+  q('.hc-ex').addEventListener('click', () => {
+    set('julian', 1616, 4, 23);
+    q<HTMLTextAreaElement>('.hc-list').value = '1616-4-23\n1616-5-3\n1066-10-14\n1752-9-3\n-43-3-15'; list();
+  });
+  q('.hc-csv').addEventListener('click', () => save(new Blob([csv([['input', 'gregorian', 'julian', 'islamic_tabular', 'hebrew', 'jdn', 'weekday'], ...listRows])], { type: 'text/csv' }), `dates-${mode()}.csv`, 'text/csv'));
+  layout(); ms.value = '1'; show();
+</script>

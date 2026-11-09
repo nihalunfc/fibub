@@ -1,0 +1,158 @@
+---
+// Gait and cadence from a phone's accelerometer (recorded here, or a CSV of t, ax, ay, az).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { syntheticWalk } from '../../lib/sci/gait';
+const EXAMPLE = syntheticWalk();
+---
+<div class="ax gc">
+  <p class="gc-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Record on this phone</h2>
+    <p class="ax-help" style="margin-top:0">Hold the phone against your waist or put it in a front pocket, press Start, walk at least 20 steps on flat ground, then press Stop. The readings stay in this page; nothing leaves your device.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small gc-start">Start recording</button>
+      <button type="button" class="btn secondary small gc-stop" disabled>Stop</button>
+      <span class="gc-rec" aria-live="polite"></span>
+    </div>
+    <p class="ax-err gc-rerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Accelerometer data</h2>
+    <label>Rows of time, ax, ay, az (m/s²). Time in seconds or milliseconds; a header row is fine. The example is a made-up 20-second walk at 50 samples a second.
+      <textarea class="gc-in" rows="6" spellcheck="false" wrap="off">{EXAMPLE}</textarea></label>
+    <DataFile target=".gc-in" maxMB={20} maxCols={8} maxRows={500000} />
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Low-pass cut-off (Hz) <input class="gc-fc" inputmode="decimal" value="3" /></label>
+      <label>Shortest step (s) <input class="gc-ms" inputmode="decimal" value="0.3" /></label>
+      <label>Peak threshold (× SD) <input class="gc-k" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">The cut-off smooths away jolts faster than steps (2 to 4 Hz suits walking, a little higher for running). Peaks closer together than the shortest step are merged (0.3 s allows up to 200 steps/min). A peak must rise this many standard deviations above the mean to count as a step.</p>
+    <p class="ax-err gc-err" hidden></p>
+  </div>
+
+  <div class="ax-card gc-out">
+    <h2>Gait</h2>
+    <p class="ax-big gc-big"></p>
+    <dl class="ax-facts gc-facts"></dl>
+    <p class="ax-help gc-note"></p>
+    <canvas class="ax-fig gc-f1" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig gc-f2" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig gc-f3" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small gc-csv">Download steps (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .gc .gc-med { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .gc .gc-rec { font-size: 14px; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseAccel, analyse, type Gait } from '../../lib/sci/gait';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = q<HTMLTextAreaElement>('.gc-in');
+  let figs: Figure[] = [], report: Section[] = [], g: Gait | null = null;
+
+  function calc() {
+    const err = q('.gc-err');
+    try {
+      const fc = num(q<HTMLInputElement>('.gc-fc').value), ms = num(q<HTMLInputElement>('.gc-ms').value), k = num(q<HTMLInputElement>('.gc-k').value);
+      if (!(ms >= 0.1 && ms <= 3)) throw new Error('The shortest step must be between 0.1 and 3 s.');
+      if (!(k >= 0 && k <= 5)) throw new Error('The peak threshold must be between 0 and 5 standard deviations.');
+      if (!(fc > 0)) throw new Error('Type a cut-off above 0 Hz.');
+      const d = parseAccel(ta.value);
+      g = analyse(d, { fc, minStep: ms, k });
+      if (g.steps < 3) throw new Error(`Found ${g.steps} step${g.steps === 1 ? '' : 's'}: too few. Record at least 20 steps, or lower the peak threshold.`);
+      err.hidden = true; q('.gc-out').hidden = false;
+      show(g, d.unitNote, fc);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.gc-out').hidden = true; report = []; g = null; }
+  }
+  function show(r: Gait, unitNote: string, fc: number) {
+    q('.gc-big').textContent = `Cadence ${r.cadence.toFixed(1)} steps/min`;
+    const facts: [string, string][] = [
+      ['Steps found', String(r.steps)], ['Recording', `${r.duration.toFixed(1)} s at ${sig(r.fs, 3)} samples/s`],
+      ['Mean step time', `${(r.meanStep * 1000).toFixed(0)} ms`], ['Step time SD', `${(r.sdStep * 1000).toFixed(1)} ms`],
+      ['Step time CV', `${r.cvStep.toFixed(2)} %`], ['Mean stride time', Number.isFinite(r.meanStride) ? `${(r.meanStride * 1000).toFixed(0)} ms` : '–'],
+      ['Stride time CV', Number.isFinite(r.cvStride) ? `${r.cvStride.toFixed(2)} %` : '–'],
+      ['Spectrum peak', `${r.domF.toFixed(3)} Hz = ${r.specCadence.toFixed(1)} steps/min`],
+    ];
+    q('.gc-facts').replaceChildren(...facts.map(([a, b]) => { const e = document.createElement('div'); e.innerHTML = '<dt></dt><dd></dd>'; e.querySelector('dt')!.textContent = a; e.querySelector('dd')!.textContent = b; return e; }));
+    const diff = Math.abs(r.cadence - r.specCadence) / r.cadence;
+    q('.gc-note').textContent = `${unitNote} Cadence = 60 × (steps − 1) / time from first to last step.` + (diff > 0.1 ? ' The step count and the spectrum disagree by more than 10 %: some steps may be missed or doubled, so try another threshold or cut-off.' : ' The step count and the spectrum agree.');
+    // Keep the drawn signal light: at most about 3000 points.
+    const every = Math.max(1, Math.ceil(r.t.length / 3000)), idx = r.t.map((_, i) => i).filter((i) => i % every === 0);
+    figs = [
+      chartFigure({ w: 440, h: 300, xLabel: 'Time (s)', yLabel: 'Acceleration (m/s²)', legend: 'below', series: [
+        { name: 'Magnitude − mean', x: idx.map((i) => r.t[i]), y: idx.map((i) => r.mag[i]), mode: 'line', width: 0.8, color: '#bbbbbb' },
+        { name: `Low-passed (${fc} Hz)`, x: idx.map((i) => r.t[i]), y: idx.map((i) => r.filt[i]), mode: 'line', width: 1.5 },
+        { name: 'Steps', x: r.peaks.map((p) => r.t[p]), y: r.peaks.map((p) => r.filt[p]), mode: 'points', marker: 'triangle', size: 5 },
+      ], marks: [{ kind: 'hline', at: r.threshold, dash: [4, 4], label: 'threshold' }] }, 'Acceleration magnitude with the detected steps'),
+      chartFigure({ w: 440, h: 260, xLabel: 'Step number', yLabel: 'Step time (ms)', legend: 'none', series: [
+        { name: 'Step time', x: r.intervals.map((_, i) => i + 2), y: r.intervals.map((v) => v * 1000), mode: 'both', marker: 'circle', size: 3 },
+      ], marks: [{ kind: 'hline', at: r.meanStep * 1000, dash: [5, 4], label: 'mean' }] }, 'Time between steps, step by step'),
+      chartFigure({ w: 440, h: 260, xLabel: 'Frequency (Hz)', yLabel: 'Amplitude (m/s²)', legend: 'none', xMin: 0, xMax: Math.min(6, r.fs / 2), yMin: 0, series: [
+        { name: 'Spectrum', x: r.spec.f.filter((f) => f <= 6), y: r.spec.a.slice(0, r.spec.f.filter((f) => f <= 6).length), mode: 'line' },
+      ], marks: [{ kind: 'vline', at: r.domF, dash: [4, 4], label: `${r.domF.toFixed(2)} Hz` }] }, 'Amplitude spectrum of the acceleration magnitude'),
+    ];
+    paint(q<HTMLCanvasElement>('.gc-f1'), figs[0]); paint(q<HTMLCanvasElement>('.gc-f2'), figs[1]); paint(q<HTMLCanvasElement>('.gc-f3'), figs[2]);
+    report = [{ title: 'Gait and cadence', facts: [['Cadence', `${r.cadence.toFixed(1)} steps/min`], ...facts], note: q('.gc-note').textContent!, figure: figs[0] }, { title: 'Step times', figure: figs[1] }, { title: 'Spectrum', figure: figs[2] }];
+  }
+
+  // ---- Recording from the motion sensor (DeviceMotion). Nothing is sent anywhere.
+  let rec: { t: number[]; x: number[]; y: number[]; z: number[] } | null = null, timer = 0;
+  const status = (s: string) => { q('.gc-rec').textContent = s; };
+  const onMotion = (e: DeviceMotionEvent) => {
+    if (!rec) return;
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null || a.z == null) return;
+    const t = e.timeStamp / 1000;
+    if (rec.t.length && t <= rec.t[rec.t.length - 1]) return;
+    rec.t.push(t); rec.x.push(a.x); rec.y.push(a.y); rec.z.push(a.z);
+  };
+  q('.gc-start').addEventListener('click', async () => {
+    const rerr = q('.gc-rerr'); rerr.hidden = true;
+    const DME = (window as any).DeviceMotionEvent;
+    if (!DME) { rerr.textContent = 'This browser has no motion sensor access. Open a CSV instead.'; rerr.hidden = false; return; }
+    if (typeof DME.requestPermission === 'function') {
+      try { if ((await DME.requestPermission()) !== 'granted') throw new Error(); }
+      catch { rerr.textContent = 'Motion access was not allowed. Allow motion sensors for this site in your browser settings (on iPhone: Motion & Orientation access) and try again.'; rerr.hidden = false; return; }
+    }
+    rec = { t: [], x: [], y: [], z: [] };
+    window.addEventListener('devicemotion', onMotion);
+    q<HTMLButtonElement>('.gc-start').disabled = true; q<HTMLButtonElement>('.gc-stop').disabled = false;
+    const t0 = performance.now();
+    timer = window.setInterval(() => status(`Recording… ${((performance.now() - t0) / 1000).toFixed(0)} s, ${rec!.t.length} readings`), 500);
+    status('Recording…');
+  });
+  q('.gc-stop').addEventListener('click', () => {
+    window.removeEventListener('devicemotion', onMotion); clearInterval(timer);
+    q<HTMLButtonElement>('.gc-start').disabled = false; q<HTMLButtonElement>('.gc-stop').disabled = true;
+    const r = rec; rec = null;
+    if (!r || r.t.length < 20) { status(''); const e = q('.gc-rerr'); e.textContent = 'No motion readings arrived. This device may have no motion sensor, or the browser blocked it.'; e.hidden = false; return; }
+    const t0 = r.t[0];
+    ta.value = 't,ax,ay,az\n' + r.t.map((t, i) => `${(t - t0).toFixed(4)},${r.x[i].toFixed(4)},${r.y[i].toFixed(4)},${r.z[i].toFixed(4)}`).join('\n') + '\n';
+    status(`Recorded ${r.t.length} readings over ${(r.t[r.t.length - 1] - t0).toFixed(1)} s.`);
+    calc();
+  });
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.gc-f1'), figs[0]); paint(q<HTMLCanvasElement>('.gc-f2'), figs[1]); paint(q<HTMLCanvasElement>('.gc-f3'), figs[2]); } });
+  q('.gc-csv').addEventListener('click', () => {
+    if (!g) return;
+    const rows: (string | number)[][] = [['step', 'time_s', 'step_time_s', 'filtered_peak_m_s2'], ...g.stepTimes.map((s, i) => [i + 1, +s.toFixed(4), i ? +g!.intervals[i - 1].toFixed(4) : '', +g!.filt[g!.peaks[i]].toFixed(4)])];
+    save(new TextEncoder().encode(csv(rows)), 'gait-steps.csv', 'text/csv');
+  });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gait and cadence', subtitle: q('.gc-big').textContent ?? '', file: 'gait-cadence', sections: report }));
+</script>

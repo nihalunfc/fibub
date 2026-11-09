@@ -1,0 +1,330 @@
+---
+// Matrix calculator: determinant, inverse, row reduction with steps in exact fractions, products, eigenvalues and
+// eigenvectors (complex too), LU, QR, Cholesky and SVD. Everything is worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax mxc">
+  <div class="ax-card">
+    <h2>Matrices</h2>
+    <div class="ax-grid">
+      <label>Work out <select class="mx-op">
+        <optgroup label="One matrix, exact fractions">
+          <option value="det" selected>Determinant (with steps)</option>
+          <option value="inv">Inverse (with steps)</option>
+          <option value="rref">Rank and row reduction (RREF)</option>
+          <option value="transpose">Transpose</option>
+          <option value="pow">Power Aⁿ</option>
+          <option value="lu">LU decomposition</option>
+        </optgroup>
+        <optgroup label="Two matrices">
+          <option value="solve">Solve A x = B (with steps)</option>
+          <option value="mul">Product A × B</option>
+          <option value="add">Sum A + B</option>
+          <option value="sub">Difference A − B</option>
+        </optgroup>
+        <optgroup label="Decimals">
+          <option value="eig">Eigenvalues and eigenvectors</option>
+          <option value="qr">QR decomposition</option>
+          <option value="chol">Cholesky decomposition</option>
+          <option value="svd">Singular value decomposition (SVD)</option>
+        </optgroup>
+      </select></label>
+      <label>Show numbers as <select class="mx-fmt"><option value="frac" selected>Fractions</option><option value="dec">Decimals</option></select></label>
+    </div>
+    <label style="margin-top:10px">Matrix A, one row per line <textarea class="mx-a" rows="4" spellcheck="false" autocomplete="off">2 1 -1
+-3 -1 2
+-2 1 2</textarea></label>
+    <DataFile target=".mx-a" maxMB={1} maxCols={12} maxRows={12} label="Open a file for A" />
+    <div class="mx-bwrap" hidden>
+      <label style="margin-top:10px"><span class="mx-blab">Matrix B</span> <textarea class="mx-b" rows="3" spellcheck="false" autocomplete="off">8
+-11
+-3</textarea></label>
+      <DataFile target=".mx-b" maxMB={1} maxCols={12} maxRows={12} label="Open a file for B" />
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="mx-nwrap" hidden>Power n <input class="mx-n" type="number" step="1" min="-100" max="100" value="3" inputmode="numeric" /></label>
+      <label class="mx-pwrap" hidden>Row swaps <select class="mx-piv"><option value="hand" selected>Only when a pivot is 0 (as by hand)</option><option value="partial">Largest pivot first (as numpy and scipy)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mx-ex" data-ex="sys">Example: 3 equations</button>
+      <button type="button" class="btn secondary small mx-ex" data-ex="eig">Example: eigenvalues</button>
+      <button type="button" class="btn secondary small mx-ex" data-ex="cplx">Example: complex eigenvalues</button>
+      <button type="button" class="btn secondary small mx-ex" data-ex="spd">Example: Cholesky</button>
+    </div>
+    <p class="ax-help">Entries are whole numbers, decimals or fractions like <code>-3/4</code>, separated by spaces or commas. <code>[[1, 2], [3, 4]]</code> works too. Up to 12 × 12.</p>
+    <p class="ax-help mx-help"></p>
+    <p class="ax-err mx-err" hidden></p>
+  </div>
+
+  <div class="ax-card mx-out" hidden>
+    <h2 class="mx-title">Result</h2>
+    <p class="ax-big mx-big"></p>
+    <p class="mx-sub"></p>
+    <div class="mx-mats"></div>
+    <div class="ax-scroll mx-tw" hidden><table class="mx-tab"></table></div>
+    <dl class="ax-facts mx-facts"></dl>
+    <div class="mx-stepwrap" hidden>
+      <h3>Step by step</h3>
+      <ol class="mx-steps"></ol>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small mx-csv">Download result (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .mxc h3 { margin: 22px 0 8px; font-size: 15px; }
+  .mxc code { font-size: 13px; }
+  .mxc .mx-sub { margin: 4px 0 0; color: var(--muted); font-size: 14.5px; }
+  .mxc .mx-mats { display: flex; flex-wrap: wrap; gap: 14px 24px; margin-top: 12px; }
+  .mxc .mx-mat { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+  .mxc .mx-lab { font-weight: 650; white-space: nowrap; font-size: 15px; }
+  .mxc .mx-box { overflow-x: auto; max-width: 100%; }
+  .mxc table.mx-t { width: auto; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); border-radius: 7px; border-collapse: separate; border-spacing: 0; font-size: 14.5px; }
+  .mxc table.mx-t td { border: 0; padding: 3px 9px; text-align: right; white-space: nowrap; }
+  .mxc table.mx-t td.mx-bar { border-left: 1px solid var(--muted); }
+  .mxc .mx-steps { padding-left: 22px; margin: 0; }
+  .mxc .mx-steps li { margin: 0 0 14px; }
+  .mxc .mx-steps .mx-ops { font-weight: 600; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .mxc .mx-tab td { white-space: nowrap; }
+  .mxc .mx-facts { margin-top: 16px; }
+</style>
+
+<script>
+  import { parseMatrix, det, inverse, rowReduce, nullSpace, solve, transpose, qMul, qAdd, qPower, qTrace, qSymmetric, lu, eigen, qr, cholesky, svd, toFloat, fMul, maxDiff, rank, polyText, fmt, fmtC, fmtQC, qDec, Q, type QM, type M, type Step } from '../../lib/sci/matrix';
+  import { csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mxc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const EX: Record<string, [string, string, string]> = {
+    sys: ['2 1 -1\n-3 -1 2\n-2 1 2', '8\n-11\n-3', 'solve'],
+    eig: ['4 1\n2 3', '', 'eig'],
+    cplx: ['1 -2\n1 3', '', 'eig'],
+    spd: ['4 12 -16\n12 37 -43\n-16 -43 98', '', 'chol'],
+  };
+  const HELP: Record<string, string> = {
+    det: 'Row reduce to echelon form: a row swap flips the sign, adding a multiple of one row to another changes nothing. The determinant is then the product of the diagonal.',
+    inv: 'Row reduce [A | I] until the left half is I; the right half is then A⁻¹. If a column has no pivot, A is singular and has no inverse.',
+    rref: 'Reduced row echelon form: each pivot is 1 with zeros above and below it. The rank is the number of pivots; the free columns give the null space.',
+    transpose: 'Rows become columns: entry (i, j) moves to (j, i).',
+    pow: 'A multiplied by itself n times (A⁰ = I). A negative n uses the inverse.',
+    lu: 'P A = L U: L is lower triangular with 1s on its diagonal, U is upper triangular, and P records any row swaps.',
+    solve: 'Row reduce [A | B]. One solution, none (a row 0 = nonzero), or infinitely many (free variables t₁, t₂ …). B is one column for one system.',
+    mul: 'Entry (i, j) of A × B is row i of A times column j of B. A needs as many columns as B has rows.',
+    add: 'Add entry by entry. A and B must be the same size.',
+    sub: 'Subtract entry by entry. A and B must be the same size.',
+    eig: 'Numbers λ and vectors v with A v = λ v. Found from det(λI − A) = 0. Eigenvalues that are fractions (or fractions plus a fraction times i) are shown exactly with whole-number eigenvectors; the rest as decimals with unit eigenvectors.',
+    qr: 'A = Q R: Q has orthonormal columns, R is upper triangular with a diagonal of zero or more (Householder reflections).',
+    chol: 'A = L Lᵀ with L lower triangular, for symmetric positive definite matrices only (all eigenvalues above 0).',
+    svd: 'A = U Σ Vᵀ: U and V have orthonormal columns, Σ holds the singular values from largest to smallest. Signs of matching U and V columns can flip together.',
+  };
+  type Mat = { label: string; cells: string[][]; bar?: number; raw: number[][] };
+  let report: Section[] = [], csvRows: (string | number)[][] = [], title = 'Matrix result';
+
+  const dec = () => q<HTMLSelectElement>('.mx-fmt').value === 'dec';
+  const qs = (x: Q) => (dec() ? qDec(x) : x.toString());
+  const qm = (label: string, A: QM, bar?: number): Mat => ({ label, cells: A.map((r) => r.map(qs)), bar, raw: A.map((r) => r.map((x) => x.toNumber())) });
+  const fm = (label: string, A: M): Mat => ({ label, cells: A.map((r) => r.map((x) => fmt(x))), raw: A });
+  const sizeT = (A: unknown[][]) => `${A.length} × ${A[0].length}`;
+
+  function matEl(m: Mat): HTMLElement {
+    const wrap = document.createElement('div'); wrap.className = 'mx-mat';
+    if (m.label) { const l = document.createElement('span'); l.className = 'mx-lab'; l.textContent = m.label; wrap.append(l); }
+    const box = document.createElement('div'); box.className = 'mx-box';
+    const t = document.createElement('table'); t.className = 'mx-t';
+    for (const r of m.cells) { const tr = t.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (m.bar && j === m.bar) td.className = 'mx-bar'; }); }
+    box.append(t); wrap.append(box); return wrap;
+  }
+  const vecText = (v: string[]) => `(${v.join(', ')})`;
+
+  function calc() {
+    const op = q<HTMLSelectElement>('.mx-op').value, err = q('.mx-err');
+    const two = ['solve', 'mul', 'add', 'sub'].includes(op);
+    q('.mx-bwrap').hidden = !two; q('.mx-nwrap').hidden = op !== 'pow'; q('.mx-pwrap').hidden = op !== 'lu';
+    q('.mx-blab').textContent = op === 'solve' ? 'Right-hand side B (one column per system)' : 'Matrix B';
+    q('.mx-help').textContent = HELP[op];
+    try {
+      let A: QM;
+      try { A = parseMatrix(q<HTMLTextAreaElement>('.mx-a').value); } catch (e) { throw new Error('Matrix A: ' + (e as Error).message); }
+      let B: QM | null = null;
+      if (two) { try { B = parseMatrix(q<HTMLTextAreaElement>('.mx-b').value); } catch (e) { throw new Error('Matrix B: ' + (e as Error).message); } }
+      const sq = A.length === A[0].length;
+      const needSq = ['det', 'inv', 'pow', 'eig', 'chol'];
+      if (needSq.includes(op) && !sq) throw new Error(`A is ${sizeT(A)}; this needs a square matrix (as many rows as columns).`);
+      let big = '', sub = '', mats: Mat[] = [], facts: [string, string][] = [], steps: Step[] = [], bar: number | undefined, table: { head: string[]; rows: string[][] } | null = null;
+      switch (op) {
+        case 'det': {
+          const d = det(A);
+          big = `det A = ${qs(d.value)}`;
+          const piv = d.red.M.map((r, i) => r[i]);
+          sub = d.red.pivots.length < A.length ? 'A row of zeros appeared, so the determinant is 0 and A has no inverse.' : `= ${d.red.swaps % 2 ? '−' : ''}(${piv.map(qs).join(') × (')})${d.red.swaps ? `, the sign flipped by ${d.red.swaps} row swap${d.red.swaps > 1 ? 's' : ''}` : ''}`;
+          mats = [qm('Echelon form', d.red.M)]; steps = d.red.steps; break;
+        }
+        case 'inv': {
+          const { inv, red } = inverse(A);
+          steps = red.steps; bar = A.length;
+          if (!inv) { big = 'A has no inverse'; sub = `A is singular: its rank is ${red.pivots.length}, less than ${A.length}, and its determinant is 0.`; mats = [qm('[A | I] reduced', red.M, A.length)]; }
+          else {
+            big = 'A⁻¹ found'; mats = [qm('A⁻¹ =', inv)];
+            const I = qMul(A, inv), ok = I.every((r, i) => r.every((x, j) => (i === j ? x.isOne() : x.isZero())));
+            sub = ok ? 'Checked: A × A⁻¹ = I exactly.' : '';
+            facts.push(['det A', qs(det(A).value)]);
+          }
+          break;
+        }
+        case 'rref': {
+          const red = rowReduce(A), ns = nullSpace(A), rk = red.pivots.length;
+          big = `Rank ${rk}`;
+          sub = `${rk} pivot${rk === 1 ? '' : 's'} in column${rk === 1 ? '' : 's'} ${red.pivots.map((c) => c + 1).join(', ') || 'none'}; nullity ${A[0].length - rk}.`;
+          mats = [qm('RREF =', red.M)];
+          if (ns.length) mats.push(qm('Null space basis (columns):', transpose(ns)));
+          facts.push(['Column space', rk ? `spanned by column${rk > 1 ? 's' : ''} ${red.pivots.map((c) => c + 1).join(', ')} of A` : 'zero']);
+          facts.push(['Null space', ns.length ? `dimension ${ns.length}: ${ns.map((v) => vecText(v.map(qs))).join(', ')}` : 'only the zero vector']);
+          steps = red.steps; break;
+        }
+        case 'transpose': big = `Aᵀ is ${sizeT(transpose(A))}`; mats = [qm('Aᵀ =', transpose(A))]; break;
+        case 'pow': {
+          const n = Number(q<HTMLInputElement>('.mx-n').value);
+          const P = qPower(A, n);
+          big = `A${String(n).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(c)] ?? '⁻').join('')} found`; mats = [qm(`A^${n} =`, P)]; break;
+        }
+        case 'lu': {
+          const partial = q<HTMLSelectElement>('.mx-piv').value === 'partial';
+          const f = lu(A, partial);
+          big = f.swaps ? 'P A = L U' : 'A = L U';
+          sub = f.swaps ? `${f.swaps} row swap${f.swaps > 1 ? 's' : ''}, recorded in P.` : 'No row swaps were needed, so P = I.';
+          mats = [...(f.swaps ? [qm('P =', f.P)] : []), qm('L =', f.L), qm('U =', f.U)];
+          const PA = qMul(f.P, A), LU = qMul(f.L, f.U);
+          if (PA.every((r, i) => r.every((x, j) => x.eq(LU[i][j])))) sub += ' Checked exactly.';
+          break;
+        }
+        case 'solve': {
+          const { sol, red } = solve(A, B!);
+          steps = red.steps; bar = A[0].length;
+          const vars = A[0].map((_, j) => `x${String(j + 1).split('').map((c) => '₀₁₂₃₄₅₆₇₈₉'[Number(c)]).join('')}`);
+          if (sol.kind === 'unique') {
+            big = 'One solution';
+            if (B![0].length === 1) sub = sol.x.map((r, j) => `${vars[j]} = ${qs(r[0])}`).join(', ');
+            mats = [qm('x =', sol.x)];
+          } else if (sol.kind === 'none') {
+            big = 'No solution'; sub = `Row ${sol.row + 1} of the reduced matrix reads 0 = ${qs(red.M[sol.row][A[0].length])}, which is impossible.`;
+            mats = [qm('[A | B] reduced', red.M, A[0].length)];
+          } else {
+            const ts = sol.free.map((_, i) => `t${'₀₁₂₃₄₅₆₇₈₉'[i + 1] ?? i + 1}`);
+            big = `Infinitely many solutions (${sol.free.length} free variable${sol.free.length > 1 ? 's' : ''})`;
+            sub = `x = ${vecText(sol.particular.map(qs))}${sol.directions.map((d, i) => ` + ${ts[i]}·${vecText(d.map(qs))}`).join('')}, with ${sol.free.map((f, i) => `${ts[i]} = ${vars[f]}`).join(', ')} any number${sol.free.length > 1 ? 's' : ''}.`;
+            mats = [qm('One solution x =', sol.particular.map((x) => [x])), qm('Directions (columns):', transpose(sol.directions))];
+          }
+          break;
+        }
+        case 'mul': case 'add': case 'sub': {
+          const R = op === 'mul' ? qMul(A, B!) : qAdd(A, B!, op === 'add' ? 1 : -1);
+          const sym = op === 'mul' ? '×' : op === 'add' ? '+' : '−';
+          big = `A ${sym} B is ${sizeT(R)}`; mats = [qm(`A ${sym} B =`, R)];
+          if (op === 'mul' && B!.length === B![0].length && sq && A.length === B!.length) {
+            const BA = qMul(B!, A); const comm = BA.every((r, i) => r.every((x, j) => x.eq(R[i][j])));
+            facts.push(['B × A', comm ? 'the same: A and B commute' : 'different (matrix products usually depend on order)']);
+          }
+          break;
+        }
+        case 'eig': {
+          const e = eigen(A);
+          const nEx = e.eigs.filter((g) => g.exact).length;
+          big = `${e.eigs.length} distinct eigenvalue${e.eigs.length > 1 ? 's' : ''}: ${e.eigs.map((g) => (g.exact && !dec() ? fmtQC(g.exact) : fmtC(g.value))).join(', ')}`;
+          sub = `Characteristic polynomial det(λI − A) = ${polyText(e.poly)}`;
+          const rows = e.eigs.map((g) => {
+            const vecs = g.exactVectors && !dec() ? g.exactVectors.map((v) => vecText(v.map((z) => fmtQC(z)))) : g.vectors.map((v) => vecText(v.map((z) => fmtC(z, 5))));
+            return [g.exact && !dec() ? fmtQC(g.exact) : fmtC(g.value), String(g.algebraic), String(g.vectors.length), vecs.join('; ')];
+          });
+          table = { head: ['Eigenvalue λ', 'Algebraic multiplicity', 'Geometric multiplicity', 'Eigenvector(s)'], rows };
+          const defective = e.eigs.some((g) => g.vectors.length < g.algebraic);
+          facts.push(['Trace = sum of eigenvalues', qs(qTrace(A))], ['Determinant = product of eigenvalues', qs(det(A).value)]);
+          facts.push(['Diagonalisable', defective ? 'no: some eigenvalue has fewer eigenvectors than its multiplicity' : 'yes']);
+          if (qSymmetric(A)) facts.push(['Symmetric', 'yes, so all eigenvalues are real and the eigenvectors are orthogonal']);
+          if (nEx < e.eigs.length) facts.push(['Decimals', 'eigenvalues that are not fractions are shown to 6 significant figures; their eigenvectors have length 1']);
+          csvRows = [['eigenvalue (real)', 'eigenvalue (imaginary)', 'algebraic multiplicity', 'geometric multiplicity', ...A.map((_, i) => `v${i + 1} (real)`), ...A.map((_, i) => `v${i + 1} (imaginary)`)]];
+          for (const g of e.eigs) for (const v of g.vectors.length ? g.vectors : [[]]) csvRows.push([fmt(g.value.re, 12, true), fmt(g.value.im, 12, true), g.algebraic, g.vectors.length, ...v.map((z) => fmt(z.re, 12, true)), ...v.map((z) => fmt(z.im, 12, true))]);
+          break;
+        }
+        case 'qr': {
+          const F = toFloat(A), f = qr(F);
+          big = 'A = Q R'; sub = `Largest error in Q R − A: ${fmt(maxDiff(fMul(f.Q, f.R), F), 2)}.`;
+          mats = [fm('Q =', f.Q), fm('R =', f.R)];
+          if (A.length > A[0].length) facts.push(['Shape', `reduced QR: Q is ${sizeT(f.Q)}, R is ${sizeT(f.R)}`]);
+          break;
+        }
+        case 'chol': {
+          const L = cholesky(A), F = toFloat(A);
+          big = 'A = L Lᵀ'; sub = `A is symmetric positive definite. Largest error in L Lᵀ − A: ${fmt(maxDiff(fMul(L, transpose(L)), F), 2)}.`;
+          mats = [fm('L =', L)]; break;
+        }
+        case 'svd': {
+          const F = toFloat(A), f = svd(F), smax = f.S[0], tol = Math.max(A.length, A[0].length) * 2.2e-16 * smax;
+          const nr = f.S.filter((s) => s > tol).length, smin = f.S[f.S.length - 1];
+          big = `Singular values: ${f.S.map((s) => fmt(s)).join(', ')}`;
+          const R = fMul(f.U.map((r) => r.map((x, j) => x * f.S[j])), transpose(f.V));
+          sub = `Largest error in U Σ Vᵀ − A: ${fmt(maxDiff(R, F), 2)}.`;
+          mats = [fm('U =', f.U), fm('Σ =', f.S.map((s, i) => f.S.map((_, j) => (i === j ? s : 0)))), fm('Vᵀ =', transpose(f.V))];
+          facts.push(['Rank (numerical)', String(nr)], ['2-norm ‖A‖₂', fmt(smax)], ['Condition number σmax/σmin', smin > tol ? fmt(smax / smin) : '∞ (singular)']);
+          break;
+        }
+      }
+      // Facts about A itself.
+      const rk = rank(A);
+      const about: [string, string][] = [['Size of A', sizeT(A)], ['Rank of A', String(rk)]];
+      if (sq) about.push(['Trace of A', qs(qTrace(A))]);
+      if (sq && op !== 'det') about.push(['det A', qs(det(A).value)]);
+      if (sq) about.push(['Symmetric', qSymmetric(A) ? 'yes' : 'no']);
+      facts = [...facts, ...about.filter(([k]) => !facts.some(([f]) => f === k))];
+      err.hidden = true; q('.mx-out').hidden = false;
+      title = q<HTMLSelectElement>('.mx-op').selectedOptions[0].textContent!.replace(/ \(with steps\)/, '');
+      q('.mx-title').textContent = title;
+      q('.mx-big').textContent = big; q('.mx-sub').textContent = sub; q('.mx-sub').hidden = !sub;
+      q('.mx-mats').replaceChildren(...mats.map(matEl));
+      q('.mx-tw').hidden = !table;
+      if (table) {
+        const t = q<HTMLTableElement>('.mx-tab'); t.replaceChildren();
+        const hr = t.createTHead().insertRow(); for (const h of table.head) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+        const tb = t.createTBody(); for (const r of table.rows) { const tr = tb.insertRow(); for (const c of r) tr.insertCell().textContent = c; }
+      }
+      q('.mx-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      q('.mx-stepwrap').hidden = !steps.length;
+      const shown = steps.slice(0, 80);
+      q('.mx-steps').replaceChildren(...shown.map((s) => {
+        const li = document.createElement('li'); const o = document.createElement('div'); o.className = 'mx-ops'; o.textContent = s.ops.join(',  ');
+        li.append(o, matEl(qm('', s.M, bar))); return li;
+      }));
+      if (steps.length > shown.length) { const li = document.createElement('li'); li.textContent = `… ${steps.length - shown.length} more steps (in the downloads).`; q('.mx-steps').append(li); }
+      if (op !== 'eig') {
+        csvRows = [];
+        for (const m of mats) { if (csvRows.length) csvRows.push([]); csvRows.push([m.label.replace(/ =$|:$/, '') || 'Result']); for (const r of m.raw) csvRows.push(r.map((x) => fmt(x, 15, true))); }
+      }
+      const inputTable = { head: A[0].map((_, j) => `col ${j + 1}`), rows: A.map((r) => r.map(qs)) };
+      report = [
+        { title: 'Matrix A', table: inputTable },
+        ...(B ? [{ title: 'Matrix B', table: { head: B[0].map((_, j) => `col ${j + 1}`), rows: B.map((r) => r.map(qs)) } }] : []),
+        { title: 'Result', text: [big, ...(sub ? [sub] : [])], facts, ...(table ? { table } : {}) },
+        ...mats.map((m) => ({ title: m.label.replace(/ =$|:$/, ''), table: { head: m.cells[0].map((_, j) => `col ${j + 1}`), rows: m.cells } })),
+        ...steps.map((s, i) => ({ title: `Step ${i + 1}: ${s.ops.join(', ')}`, table: { head: s.M[0].map((_, j) => (bar && j >= bar ? `| ${j + 1}` : `${j + 1}`)), rows: s.M.map((r) => r.map(qs)) } })),
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; q('.mx-out').hidden = true; report = []; csvRows = [];
+    }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input')) { clearTimeout(t); t = window.setTimeout(calc, 250); } });
+  root.addEventListener('change', calc);
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.mx-ex');
+    if (!b) return;
+    const [a, bb, op] = EX[b.dataset.ex!];
+    q<HTMLTextAreaElement>('.mx-a').value = a; if (bb) q<HTMLTextAreaElement>('.mx-b').value = bb;
+    q<HTMLSelectElement>('.mx-op').value = op; calc();
+  });
+  q('.mx-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), `matrix-${q<HTMLSelectElement>('.mx-op').value}.csv`, 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title, subtitle: q('.mx-big').textContent ?? '', file: `matrix-${q<HTMLSelectElement>('.mx-op').value}`, sections: report }));
+</script>

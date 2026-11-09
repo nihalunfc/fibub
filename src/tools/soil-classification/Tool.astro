@@ -1,0 +1,177 @@
+---
+// Soil classification: USCS group symbol and name with the decision path, AASHTO group and group index,
+// grading curve and plasticity chart. Example data are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'size (mm)\tpassing (%)\n19\t100\n9.5\t93\n4.75\t82\n2\t74\n0.85\t64\n0.425\t55\n0.25\t46\n0.15\t36\n0.075\t24\n0.03\t17\n0.01\t11\n0.002\t6';
+---
+<div class="ax scl">
+  <div class="ax-card">
+    <h2>Grading</h2>
+    <label>The grading comes from <select class="sc-mode"><option value="curve" selected>a grading curve</option><option value="typed">typed percentages</option></select></label>
+    <div class="sc-curve">
+      <label style="margin-top:10px">Size in mm, then percent passing (sieve and hydrometer results) <textarea class="sc-data" rows="8" spellcheck="false">{demo}</textarea></label>
+      <DataFile target=".sc-data" maxCols={4} maxRows={200} label="Open a file" />
+      <p class="ax-help">D10, D30 and D60 and the percent passing each key sieve are read off the curve by straight lines between points on a log size scale. The example data are made up.</p>
+    </div>
+    <div class="sc-typed" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>% passing 4.75 mm (No. 4) <input class="sc-p4" type="text" inputmode="decimal" value="82" /></label>
+        <label>% passing 2 mm (No. 10) <input class="sc-p10" type="text" inputmode="decimal" value="74" /></label>
+        <label>% passing 0.425 mm (No. 40) <input class="sc-p40" type="text" inputmode="decimal" value="55" /></label>
+        <label>% passing 0.075 mm (No. 200) <input class="sc-p200" type="text" inputmode="decimal" value="24" /></label>
+        <label>D10 (mm) <input class="sc-d10" type="text" inputmode="decimal" value="" placeholder="needed below 12 % fines" /></label>
+        <label>D30 (mm) <input class="sc-d30" type="text" inputmode="decimal" value="" /></label>
+        <label>D60 (mm) <input class="sc-d60" type="text" inputmode="decimal" value="" /></label>
+      </div>
+      <p class="ax-help">D10, D30 and D60 are the sizes that 10, 30 and 60 % of the sample pass. They only matter when fines are below 12 %.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plasticity (Atterberg limits)</h2>
+    <div class="ax-grid">
+      <label>Liquid limit LL (%) <input class="sc-ll" type="text" inputmode="decimal" value="34" /></label>
+      <label>Plastic limit PL (%) <input class="sc-pl" type="text" inputmode="decimal" value="19" /></label>
+      <label>LL after oven drying (%, optional) <input class="sc-lld" type="text" inputmode="decimal" value="" placeholder="for the organic test" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sc-np" /> Non-plastic (no plastic limit can be found)</label>
+    <p class="ax-help">The limits are measured on the part finer than 0.425 mm. The oven-dried LL is only used for fine-grained soils: a ratio below 0.75 means organic (OL or OH).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-err sc-err" hidden></p>
+    <div class="sc-out">
+      <p class="ax-big sc-big"></p>
+      <p class="sc-name"></p>
+      <dl class="ax-facts sc-facts"></dl>
+      <h3>How the USCS symbol was found</h3>
+      <ol class="sc-steps"></ol>
+      <h3>AASHTO</h3>
+      <ol class="sc-asteps"></ol>
+      <p class="ax-help sc-gi"></p>
+      <h3>Grading curve</h3>
+      <canvas class="ax-fig sc-gfig"></canvas>
+      <h3>Plasticity chart</h3>
+      <canvas class="ax-fig sc-pfig"></canvas>
+      <p class="ax-help">A-line PI = 0.73 (LL − 20), level at PI = 4 below LL 25.5. U-line PI = 0.9 (LL − 8), an upper bound for natural soils; a point above it usually means a typing or test error. The small box between PI 4 and 7, above the A-line, is CL-ML.</p>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small sc-csv">Download the results (CSV)</button></div>
+      <Downloads />
+    </div>
+    <p class="ax-help">For study and planning. The group rules follow the published logic of the USCS (ASTM D2487) and AASHTO (M 145) systems, written in fibub's own words; check the current standard and a qualified engineer for design work.</p>
+  </div>
+</div>
+
+<script>
+  import { uscs, aashto, fromCurve, aLine, uLine, SIEVE, type Uscs, type Aashto } from '../../lib/sci/soilclass';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.scl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s ? num(s) : undefined; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const li = (s: string) => { const e = document.createElement('li'); e.textContent = s; return e; };
+  const f1 = (x: number) => (Number.isFinite(x) ? sig(x, 3) : '–');
+  let gFig: Figure | null = null, pFig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function run() {
+    const err = q('.sc-err'), out = q('.sc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; csvRows = []; gFig = pFig = null; };
+    const mode = q<HTMLSelectElement>('.sc-mode').value;
+    q('.sc-curve').hidden = mode !== 'curve'; q('.sc-typed').hidden = mode === 'curve';
+    let p4: number, p10: number, p40: number, p200: number, d10: number | undefined, d30: number | undefined, d60: number | undefined, size: number[] = [], pass: number[] = [];
+    if (mode === 'curve') {
+      const t = numericColumns(q<HTMLTextAreaElement>('.sc-data').value);
+      if (t.cols.length < 2) return fail('Paste two columns: size in mm and percent passing.');
+      t.cols[0].forEach((s, i) => { const p = t.cols[1][i]; if (s > 0 && p >= 0 && p <= 100) { size.push(s); pass.push(p); } });
+      if (size.length < 2) return fail('Need at least two rows with a size above zero and 0 to 100 % passing.');
+      const o = size.map((s, i) => [s, pass[i]]).sort((a, b) => a[0] - b[0]);
+      if (o.some((r, i) => i > 0 && r[1] < o[i - 1][1] - 1e-9)) return fail('Percent passing must not rise as the size gets smaller. Check the order of the columns.');
+      const c = fromCurve(size, pass);
+      ({ p4, p10, p40, p200 } = c);
+      if (!Number.isFinite(p200)) return fail('The curve stops above 0.075 mm, so the fines content is unknown. Add the 0.075 mm sieve (No. 200).');
+      if (![p4, p10, p40].every(Number.isFinite)) return fail('The largest size passes less than 100 %, so the gravel content is unknown. Add a larger sieve that passes 100 %.');
+      d10 = Number.isFinite(c.d10) ? c.d10 : undefined; d30 = Number.isFinite(c.d30) ? c.d30 : undefined; d60 = Number.isFinite(c.d60) ? c.d60 : undefined;
+    } else {
+      p4 = val('.sc-p4'); p10 = val('.sc-p10'); p40 = val('.sc-p40'); p200 = val('.sc-p200'); d10 = opt('.sc-d10'); d30 = opt('.sc-d30'); d60 = opt('.sc-d60');
+      if (![p4, p10, p40, p200].every((v) => v >= 0 && v <= 100)) return fail('Each percent passing must be between 0 and 100.');
+      if (!(p4 >= p10 && p10 >= p40 && p40 >= p200)) return fail('Percent passing must fall as the sieve gets finer (4.75 ≥ 2 ≥ 0.425 ≥ 0.075 mm).');
+      if ([d10, d30, d60].some((d) => d !== undefined && !(d > 0))) return fail('D10, D30 and D60 must be above zero (or left blank).');
+      if (d10 && d30 && d60 && !(d10 <= d30 && d30 <= d60)) return fail('D10, D30 and D60 must grow in that order.');
+    }
+    const np = q<HTMLInputElement>('.sc-np').checked;
+    q<HTMLInputElement>('.sc-ll').disabled = np; q<HTMLInputElement>('.sc-pl').disabled = np; q<HTMLInputElement>('.sc-lld').disabled = np;
+    const LL = val('.sc-ll'), PL = val('.sc-pl'), LLdry = opt('.sc-lld');
+    if (!np && (!(LL >= 0 && LL <= 1000) || !(PL >= 0))) return fail('Give the liquid and plastic limits in %, or tick non-plastic.');
+    if (!np && PL > LL) return fail('The plastic limit is above the liquid limit. Check the numbers, or tick non-plastic.');
+    if (LLdry !== undefined && !(LLdry > 0)) return fail('The oven-dried liquid limit must be above zero (or left blank).');
+    const gravel = 100 - p4, fines = p200, sand = p4 - p200;
+    let u: Uscs, a: Aashto;
+    try {
+      u = uscs({ gravel, sand, fines, d10, d30, d60, LL, PL, nonPlastic: np, LLdry });
+      a = aashto({ p10, p40, p200, LL, PI: LL - PL, nonPlastic: np });
+    } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const PI = np ? NaN : LL - PL;
+    q('.sc-big').textContent = `USCS ${u.symbol}, AASHTO ${a.group} (${a.GI})`;
+    q('.sc-name').textContent = `${u.name[0].toUpperCase()}${u.name.slice(1)}. AASHTO: ${a.material}.`;
+    const f = [fact('Gravel, sand, fines', `${sig(gravel, 3)}, ${sig(sand, 3)}, ${sig(fines, 3)} %`, 'over 4.75 mm, 4.75 to 0.075 mm, under 0.075 mm'),
+      fact('D10, D30, D60', `${d10 ? f1(d10) : '–'}, ${d30 ? f1(d30) : '–'}, ${d60 ? f1(d60) : '–'} mm`),
+      fact('Cu = D60/D10', f1(u.Cu)), fact('Cc = D30²/(D10·D60)', f1(u.Cc)),
+      fact('Plasticity index PI = LL − PL', np ? 'non-plastic' : sig(PI, 3), np ? '' : `A-line at this LL: ${sig(0.73 * (LL - 20), 3)}`),
+      fact('Passing 2, 0.425, 0.075 mm', `${sig(p10, 3)}, ${sig(p40, 3)}, ${sig(p200, 3)} %`, 'the sieves AASHTO uses')];
+    q('.sc-facts').replaceChildren(...f);
+    q('.sc-steps').replaceChildren(...u.steps.map(li));
+    q('.sc-asteps').replaceChildren(...a.steps.map(li));
+    q('.sc-gi').textContent = `Group index: ${a.giText} A higher index means a weaker subgrade within the group.`;
+    // Grading curve.
+    const pts = mode === 'curve' ? size.map((s, i) => [s, pass[i]]).sort((x, y) => x[0] - y[0]) : [[SIEVE.no200, p200], [SIEVE.no40, p40], [SIEVE.no10, p10], [SIEVE.no4, p4]];
+    const dm = [[d10, 'D10'], [d30, 'D30'], [d60, 'D60']].filter((r) => r[0]) as [number, string][];
+    gFig = chartFigure({ w: 380, h: 260, xLog: true, yMin: 0, yMax: 100, xLabel: 'Grain size (mm)', yLabel: 'Passing (%)', legend: 'none',
+      series: [{ name: 'Grading', x: pts.map((r) => r[0]), y: pts.map((r) => r[1]), mode: 'both', size: 3.5, width: 1.6 }],
+      marks: [{ kind: 'vline', at: SIEVE.no4, dash: [2, 3] }, { kind: 'vline', at: SIEVE.no200, dash: [2, 3] }, ...dm.map(([v, l]) => ({ kind: 'vline' as const, at: v, dash: [5, 3], label: l }))] }, 'Grading curve with D10, D30 and D60 and the 4.75 mm and 0.075 mm sieves');
+    paint(q<HTMLCanvasElement>('.sc-gfig'), gFig);
+    // Plasticity chart.
+    const top = Math.max(100, np ? 0 : Math.ceil((LL + 10) / 10) * 10), pTop = Math.max(60, np ? 0 : Math.ceil((PI + 5) / 10) * 10);
+    const aX = [4, 25.48, top], uX = [16, 16, top];
+    const series = [
+      { name: 'A-line', x: aX, y: aX.map(aLine), mode: 'line' as const, width: 1.8 },
+      { name: 'U-line', x: uX, y: [0, 7, uLine(top)], mode: 'line' as const, width: 1.2, dash: [6, 4] },
+      { name: 'LL = 50', x: [50, 50], y: [0, pTop], mode: 'line' as const, width: 1, dash: [2, 3], color: '#888888' },
+      { name: 'CL-ML band', x: [16, 25.48, 29.59, 16, 16], y: [4, 4, 7, 7, 4], mode: 'line' as const, width: 1, color: '#888888' },
+      { name: '', x: [38, 70, 70, 38], y: [24, 52, 16, 3], mode: 'points' as const, marker: 'none' as const, labels: ['CL', 'CH', 'MH', 'ML'] },
+      ...(np ? [] : [{ name: 'This soil', x: [LL], y: [PI], mode: 'points' as const, size: 5, marker: 'diamond' as const }]),
+    ];
+    pFig = chartFigure({ w: 380, h: 280, xMin: 0, xMax: top, yMin: 0, yMax: pTop, xLabel: 'Liquid limit LL (%)', yLabel: 'Plasticity index PI (%)', legend: 'below', series }, 'Plasticity chart with the A-line, U-line and this soil');
+    paint(q<HTMLCanvasElement>('.sc-pfig'), pFig);
+    const facts = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [{ title: q('.sc-big').textContent!, text: [q('.sc-name').textContent!], facts: facts(f) },
+      { title: 'USCS decision path', text: u.steps.map((s, i) => `${i + 1}. ${s}`) },
+      { title: `AASHTO ${a.group}, group index ${a.GI}`, text: [...a.steps, a.giText] },
+      { title: 'Grading curve', figure: gFig }, { title: 'Plasticity chart', figure: pFig, note: 'For study and planning; check the current standard and a qualified engineer.' }];
+    csvRows = [['quantity', 'value'], ['uscs_symbol', u.symbol], ['uscs_name', u.name], ['aashto_group', a.group], ['group_index', String(a.GI)], ['group_index_unrounded', sig(a.giRaw, 6)],
+      ['gravel_pct', sig(gravel, 6)], ['sand_pct', sig(sand, 6)], ['fines_pct', sig(fines, 6)], ['passing_2mm_pct', sig(p10, 6)], ['passing_0.425mm_pct', sig(p40, 6)],
+      ['d10_mm', d10 ? sig(d10, 6) : ''], ['d30_mm', d30 ? sig(d30, 6) : ''], ['d60_mm', d60 ? sig(d60, 6) : ''], ['cu', Number.isFinite(u.Cu) ? sig(u.Cu, 6) : ''], ['cc', Number.isFinite(u.Cc) ? sig(u.Cc, 6) : ''],
+      ['ll_pct', np ? 'NP' : sig(LL, 6)], ['pl_pct', np ? 'NP' : sig(PL, 6)], ['pi_pct', np ? 'NP' : sig(PI, 6)]];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.sc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'soil-classification.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (gFig && !q('.sc-out').hidden) { paint(q<HTMLCanvasElement>('.sc-gfig'), gFig); paint(q<HTMLCanvasElement>('.sc-pfig'), pFig!); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Soil classification', subtitle: q('.sc-big').textContent ?? '', file: 'soil-classification', sections }));
+</script>
+
+<style is:inline>
+  .scl select, .scl input[type=text] { max-width: 100%; }
+  .scl textarea { width: 100%; }
+  .scl h3 { font-size: 15px; margin: 16px 0 6px; }
+  .scl ol { margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.5; }
+  .scl ol li + li { margin-top: 4px; }
+  .scl .sc-name { margin: 4px 0 12px; }
+</style>

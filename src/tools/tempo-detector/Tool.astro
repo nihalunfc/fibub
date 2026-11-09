@@ -1,0 +1,162 @@
+---
+// Rhythm and tempo detector: a local audio file decoded in the browser; onset strength from spectral flux, onsets,
+// tempo by autocorrelation with candidates, and beat times by dynamic programming. The sound is never stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tpd">
+  <div class="ax-card">
+    <h2>Sound</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small td-open">Open an audio file</button>
+      <input type="file" class="td-file" accept="audio/*,.wav,.mp3,.ogg,.oga,.flac,.m4a,.aac,.webm" hidden />
+      <button type="button" class="btn secondary small td-ex">Use the example</button>
+    </div>
+    <p class="ax-help">WAV, MP3, OGG, FLAC or M4A, up to 100 MB; up to 10 minutes are analysed. The sound is decoded on this device and never stored or sent.</p>
+    <p class="ax-help td-info" aria-live="polite"></p>
+    <p class="ax-err td-err" hidden></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Analyse from (s) <input class="td-t0" inputmode="decimal" value="0" /></label>
+      <label>Length (s, blank = to the end) <input class="td-len" inputmode="decimal" placeholder="all" /></label>
+      <label>Slowest tempo (BPM) <input class="td-min" inputmode="decimal" value="60" /></label>
+      <label>Fastest tempo (BPM) <input class="td-max" inputmode="decimal" value="200" /></label>
+      <label>Onset sensitivity <select class="td-thr"><option value="0.05">high (more onsets)</option><option value="0.1" selected>normal</option><option value="0.2">low (only strong onsets)</option></select></label>
+    </div>
+    <p class="ax-help">Tempo is searched only between the slowest and fastest values; narrow the range if the result is half or double what you hear.</p>
+  </div>
+
+  <div class="ax-card td-out" hidden>
+    <p class="ax-big td-big"></p>
+    <dl class="ax-facts td-facts"></dl>
+    <h3>Onset strength and beats</h3>
+    <canvas class="ax-fig td-fig"></canvas>
+    <h3>Tempo candidates</h3>
+    <canvas class="ax-fig td-fig2"></canvas>
+    <div class="ax-scroll"><table class="td-tab"></table></div>
+    <p class="ax-help">Strength is the autocorrelation peak relative to the strongest. Press Use to place beats at another candidate.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small td-ocsv">Download onsets (CSV)</button>
+      <button type="button" class="btn secondary small td-bcsv">Download beat times (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .tpd h3 { margin: 20px 0 8px; font-size: 15px; }
+  .tpd .td-tab td { white-space: nowrap; }
+  .tpd .td-tab button { border: 1px solid var(--line); background: var(--bg); color: var(--accent); border-radius: 6px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  .tpd .td-tab tr.on td { background: var(--accent-soft); }
+</style>
+
+<script>
+  import { onsetEnvelope, onsets, tempoCandidates, beats, relation, clickTrack, frameTime, type Envelope, type Onset, type Candidate } from '../../lib/sci/tempo';
+  import { thin } from '../../lib/sci/heritageclimate';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tpd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const err = (s: string) => { q('.td-err').textContent = s; q('.td-err').hidden = !s; };
+  const MAX_S = 600;
+
+  let x: Float32Array | Float64Array | null = null, fs = 44100, name = 'sound', env: Envelope | null = null, ons: Onset[] = [], cands: Candidate[] = [], acf: Float64Array | null = null;
+  let chosen = 0, bt: number[] = [], figs: Figure[] = [], facts: [string, string][] = [], offset = 0, cache = '';
+
+  function load(data: Float32Array | Float64Array, rate: number, label: string, info: string) { x = data; fs = rate; name = label; cache = ''; q('.td-info').textContent = info; run(); }
+
+  function run() {
+    err('');
+    if (!x) return;
+    const dur = x.length / fs, t0 = num(q<HTMLInputElement>('.td-t0').value), lenS = q<HTMLInputElement>('.td-len').value.trim(), len = lenS ? num(lenS) : dur - t0;
+    const lo = num(q<HTMLInputElement>('.td-min').value), hi = num(q<HTMLInputElement>('.td-max').value), thr = Number(q<HTMLSelectElement>('.td-thr').value);
+    const bad = [!(t0 >= 0 && t0 < dur) && `the start must be from 0 to ${dur.toFixed(1)} s`, !(len > 0) && 'the length must be above 0', !(lo >= 20 && hi <= 400 && hi > lo * 1.2) && 'the tempo range must lie between 20 and 400 BPM, with the fastest at least 1.2 × the slowest'].filter(Boolean);
+    if (bad.length) { err(`Check: ${bad.join('; ')}.`); q('.td-out').hidden = true; return; }
+    const span = Math.min(len, dur - t0, MAX_S);
+    if (span < (4 * 60) / lo) { err(`That part is ${span.toFixed(1)} s long: give at least 4 beats at the slowest tempo (${((4 * 60) / lo).toFixed(1)} s).`); q('.td-out').hidden = true; return; }
+    const key = `${t0}|${span}`;
+    if (key !== cache) { const s = Math.round(t0 * fs); env = onsetEnvelope(x.subarray(s, s + Math.round(span * fs)), fs); offset = t0; cache = key; }
+    ons = onsets(env!, thr);
+    const tc = tempoCandidates(env!, lo, hi); cands = tc.cands; acf = tc.acf;
+    if (!cands.length || !ons.length) { err('No steady pulse was found in that part. Try a longer part, another range or higher sensitivity.'); q('.td-out').hidden = true; return; }
+    chosen = 0; place();
+    if (span < Math.min(len, dur - t0)) err(`Only the first ${MAX_S / 60} minutes from the start time are analysed.`);
+  }
+
+  function place() {
+    const e = env!, c = cands[chosen];
+    bt = beats(e, c.bpm).map((t) => t + offset);
+    q('.td-out').hidden = false;
+    const ibi = bt.slice(1).map((t, i) => t - bt[i]), mean = ibi.reduce((s, v) => s + v, 0) / (ibi.length || 1);
+    const sd = Math.sqrt(ibi.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, ibi.length - 1));
+    q('.td-big').textContent = `Tempo ${c.bpm.toFixed(1)} BPM${chosen ? ' (your choice)' : ''}`;
+    facts = [
+      ['Beat period', `${(60000 / c.bpm).toFixed(0)} ms`], ['Beats placed', String(bt.length)],
+      ['Mean beat-to-beat', `${(mean * 1000).toFixed(0)} ms`], ['Spread of beat gaps', `${(sd * 1000).toFixed(0)} ms`],
+      ['Onsets found', String(ons.length)], ['Analysed', `${(e.env.length / e.rate).toFixed(1)} s from ${offset.toFixed(1)} s`],
+      ['Time step', `${(1000 / e.rate).toFixed(1)} ms`],
+    ];
+    const subs: Record<string, string> = { 'Mean beat-to-beat': `= ${sig(60 / mean, 4)} BPM`, 'Spread of beat gaps': 'standard deviation; large = tempo changes', 'Time step': `${e.n}-sample frames every ${e.hop}` };
+    q('.td-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v, subs[k] ?? '')));
+    const t = q<HTMLTableElement>('.td-tab'); t.replaceChildren();
+    const hr = t.insertRow(); ['', 'Tempo (BPM)', 'Strength', 'Relation'].forEach((s, k) => { const th = document.createElement('th'); th.textContent = s; if (k === 1 || k === 2) th.className = 'r'; hr.append(th); });
+    cands.slice(0, 8).forEach((cd, i) => {
+      const tr = t.insertRow(); if (i === chosen) tr.className = 'on';
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = i === chosen ? 'In use' : 'Use'; b.dataset.i = String(i); b.disabled = i === chosen;
+      tr.insertCell().append(b);
+      [cd.bpm.toFixed(1), cd.strength.toFixed(2), i === 0 ? 'detected' : relation(cd.bpm, cands[0].bpm)].forEach((s, k) => { const td = tr.insertCell(); td.textContent = s; if (k < 2) td.className = 'r'; });
+    });
+    // Figures: the envelope (thinned) with beats and onsets; the autocorrelation against tempo.
+    const X = Array.from(e.env, (_, k) => frameTime(e, k) + offset), th = thin(X, Array.from(e.env), 4000);
+    const shown = Math.min(X[X.length - 1], offset + 30);
+    figs = [
+      chartFigure({ w: 560, h: 300, xLabel: 'Time (s)', yLabel: 'Onset strength', legend: 'below', xMin: offset, xMax: shown, yMin: 0, yMax: 1.15,
+        series: [{ name: 'Onset strength', x: th.x.filter((v) => v <= shown), y: th.y.filter((_, i) => th.x[i] <= shown), mode: 'line', width: 1 },
+          { name: 'Onsets', x: ons.map((o) => o.t + offset).filter((v) => v <= shown), y: ons.filter((o) => o.t + offset <= shown).map((o) => o.strength), mode: 'points', marker: 'open-circle', size: 3 },
+          { name: 'Beats', x: bt.filter((v) => v <= shown), y: bt.filter((v) => v <= shown).map(() => 1.08), mode: 'points', marker: 'triangle', size: 4 }] }, `Onset strength over the first ${(shown - offset).toFixed(0)} s with ${ons.length} onsets and beats at ${c.bpm.toFixed(1)} BPM`),
+    ];
+    const lo = num(q<HTMLInputElement>('.td-min').value), hi = num(q<HTMLInputElement>('.td-max').value), ax: number[] = [], ay: number[] = [];
+    for (let L = 1; L < acf!.length; L++) { const b = (60 * e.rate) / L; if (b >= lo && b <= hi) { ax.push(b); ay.push(acf![L] / acf![0]); } }
+    figs.push(chartFigure({ w: 560, h: 260, xLabel: 'Tempo (BPM)', yLabel: 'Autocorrelation', legend: 'none', xMin: lo, xMax: hi,
+      series: [{ name: 'Autocorrelation', x: ax.reverse(), y: ay.reverse(), mode: 'line', width: 1.2 }],
+      marks: cands.slice(0, 3).map((cd, i) => ({ kind: 'vline' as const, at: cd.bpm, dash: i === chosen ? undefined : [4, 3], label: cd.bpm.toFixed(1) })) }, `Autocorrelation of the onset strength from ${lo} to ${hi} BPM`));
+    paint(q<HTMLCanvasElement>('.td-fig'), figs[0]); paint(q<HTMLCanvasElement>('.td-fig2'), figs[1]);
+  }
+
+  q('.td-tab').addEventListener('click', (ev) => { const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-i]'); if (!b) return; chosen = Number(b.dataset.i); place(); });
+  q('.td-open').addEventListener('click', () => q<HTMLInputElement>('.td-file').click());
+  q('.td-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.td-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    if (f.size > 100e6) { err(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 100 MB.`); return; }
+    q('.td-info').textContent = `Reading ${f.name}…`; err('');
+    const ac = new AudioContext();
+    try {
+      const a = await ac.decodeAudioData(await f.arrayBuffer()), mono = new Float32Array(a.length);
+      for (let c = 0; c < a.numberOfChannels; c++) { const d = a.getChannelData(c); for (let i = 0; i < a.length; i++) mono[i] += d[i] / a.numberOfChannels; }
+      q<HTMLInputElement>('.td-t0').value = '0'; q<HTMLInputElement>('.td-len').value = '';
+      load(mono, a.sampleRate, f.name, `${f.name}: ${a.duration.toFixed(1)} s at ${a.sampleRate.toLocaleString('en')} Hz${a.numberOfChannels > 1 ? `, ${a.numberOfChannels} channels mixed to one` : ''}.`);
+    } catch { err(`${f.name} could not be decoded. Try WAV, MP3, OGG or FLAC.`); q('.td-info').textContent = ''; }
+    finally { ac.close(); }
+  });
+  function example() {
+    q<HTMLInputElement>('.td-t0').value = '0'; q<HTMLInputElement>('.td-len').value = '';
+    load(clickTrack(44100, 16, 104, { accentEvery: 4, offbeats: true, noise: 0.01, seed: 5 }).x, 44100, 'example', 'Example: a made-up click pattern at 104 BPM, accented every 4th beat, with soft off-beat clicks; 16 s at 44,100 Hz.');
+  }
+  q('.td-ex').addEventListener('click', example);
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 350); };
+  for (const c of ['.td-t0', '.td-len', '.td-min', '.td-max']) q(c).addEventListener('input', later);
+  q('.td-thr').addEventListener('change', run);
+  const base = () => name.replace(/\.[^.]+$/, '');
+  q('.td-ocsv').addEventListener('click', () => save(new Blob([csv([['time_s', 'strength'], ...ons.map((o) => [(o.t + offset).toFixed(4), o.strength.toFixed(4)])])], { type: 'text/csv' }), `${base()}-onsets.csv`, 'text/csv'));
+  q('.td-bcsv').addEventListener('click', () => save(new Blob([csv([['beat', 'time_s'], ...bt.map((t, i) => [i + 1, t.toFixed(4)])])], { type: 'text/csv' }), `${base()}-beats.csv`, 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: 'Tempo', subtitle: `${q('.td-big').textContent ?? ''}, ${name}`, file: `${base()}-tempo`, sections: env ? [
+    { title: 'Summary', facts, figure: figs[0] },
+    { title: 'Tempo candidates', figure: figs[1], table: { head: ['Tempo (BPM)', 'Strength', 'Relation'], rows: cands.slice(0, 8).map((cd, i) => [cd.bpm.toFixed(1), cd.strength.toFixed(2), i === 0 ? 'detected' : relation(cd.bpm, cands[0].bpm)]), align: ['r', 'r', 'l'] } },
+    { title: 'Beat times (s)', text: [bt.slice(0, 400).map((t) => t.toFixed(3)).join(', ') + (bt.length > 400 ? ' …' : '')] },
+  ] : [] }));
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.td-fig'), figs[0]); paint(q<HTMLCanvasElement>('.td-fig2'), figs[1]); } });
+  example();
+</script>

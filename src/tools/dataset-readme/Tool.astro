@@ -1,0 +1,198 @@
+---
+// Dataset README builder: a form for the parts a FAIR README needs, a live preview, a checklist of what is missing,
+// and Markdown or plain-text downloads. The layout and writers are in src/lib/sci/readme.ts. Picked files give only
+// their names and sizes; nothing is read, sent or stored.
+import '../../styles/astro.css';
+---
+<div class="ax rdm">
+  <div class="ax-card">
+    <h2>Your dataset</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rd-ex">Fill in the example</button>
+      <button type="button" class="btn secondary small rd-clear">Clear the form</button>
+    </div>
+    <p class="ax-help">What you type stays on this page and is not saved; download the README before you leave. The example is made up.</p>
+
+    <h3>General information</h3>
+    <label>Title <input class="rd-in" data-k="title" type="text" /></label>
+    <label>Authors, one per line <textarea class="rd-in" data-k="authors" rows="3" placeholder="Ana Rivera; 0000-0002-1825-0097; River Institute; ana@example.org"></textarea></label>
+    <p class="ax-help">Name; ORCID iD; affiliation; email. Leave a part empty with nothing between the semicolons.</p>
+    <label>Contact for questions <input class="rd-in" data-k="contact" type="text" placeholder="Name, email" /></label>
+    <label>Description <textarea class="rd-in" data-k="abstract" rows="3" placeholder="What the data are, where and why they were collected."></textarea></label>
+    <div class="ax-grid">
+      <label>Collection started <input class="rd-in" data-k="dateStart" type="text" placeholder="2026-03-01" /></label>
+      <label>Collection ended <input class="rd-in" data-k="dateEnd" type="text" placeholder="2026-05-31" /></label>
+    </div>
+    <label>Location <input class="rd-in" data-k="location" type="text" placeholder="Place, and coordinates if useful" /></label>
+    <label>Keywords <input class="rd-in" data-k="keywords" type="text" placeholder="separated by commas" /></label>
+    <label>Funding <input class="rd-in" data-k="funding" type="text" placeholder="Funder, grant number" /></label>
+
+    <h3>Sharing and access</h3>
+    <label>Licence <select class="rd-in rd-lic" data-k="licence"></select></label>
+    <p class="ax-help rd-lichelp"></p>
+    <label class="rd-other" hidden>Your licence or terms <input class="rd-in" data-k="licenceOther" type="text" /></label>
+    <label>Restrictions <input class="rd-in" data-k="restrictions" type="text" placeholder="Embargo, sensitive locations, ethics conditions…" /></label>
+    <div class="ax-grid">
+      <label>DOI <input class="rd-in" data-k="doi" type="text" placeholder="10.xxxx/…" /></label>
+      <label>Publisher or repository <input class="rd-in" data-k="publisher" type="text" /></label>
+      <label>Year published <input class="rd-in" data-k="year" type="text" inputmode="numeric" /></label>
+      <label>Version <input class="rd-in" data-k="version" type="text" placeholder="1.0" /></label>
+    </div>
+    <label>Recommended citation <textarea class="rd-in" data-k="citation" rows="2" placeholder="Leave empty to have one written from the fields above"></textarea></label>
+    <label>Publications that use the data, one per line <textarea class="rd-in" data-k="publications" rows="2"></textarea></label>
+    <label>Related data or other copies, one per line <textarea class="rd-in" data-k="related" rows="2"></textarea></label>
+
+    <h3>Files</h3>
+    <label>One per line: name | description <textarea class="rd-in" data-k="files" rows="4" spellcheck="false" placeholder="site-a.csv | Hourly temperature, site A"></textarea></label>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rd-pick">Add files from your device</button>
+      <input type="file" class="rd-files" multiple hidden />
+      <button type="button" class="btn secondary small rd-pickdir">Add a folder</button>
+      <input type="file" class="rd-dir" webkitdirectory multiple hidden />
+    </div>
+    <p class="ax-help">Only the names and sizes of the files you pick are used; the files are not opened or uploaded. Lines become "name | size in bytes | description"; write each description after the last bar.</p>
+    <label>File naming <input class="rd-in" data-k="naming" type="text" placeholder="How the file names are built" /></label>
+
+    <h3>Methods</h3>
+    <label>Data collection <textarea class="rd-in" data-k="methods" rows="3"></textarea></label>
+    <label>Processing <textarea class="rd-in" data-k="processing" rows="2"></textarea></label>
+    <label>Instruments and software <input class="rd-in" data-k="software" type="text" /></label>
+    <label>Quality checks <input class="rd-in" data-k="quality" type="text" /></label>
+
+    <h3>Variables</h3>
+    <label>One per line: name | description | unit | missing value code <textarea class="rd-in" data-k="variables" rows="4" spellcheck="false" placeholder="temp_c | Water temperature | °C | -999"></textarea></label>
+    <label>Missing values in general <input class="rd-in" data-k="missing" type="text" placeholder="Empty cells mean…" /></label>
+  </div>
+
+  <div class="ax-card">
+    <h2>Checklist</h2>
+    <p class="ax-big rd-big" aria-live="polite"></p>
+    <ul class="rd-check"></ul>
+    <ul class="rd-probs"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>README</h2>
+    <div class="ax-seg rd-view" role="group" aria-label="Show">
+      <button type="button" data-v="preview" aria-pressed="true">Preview</button><button type="button" data-v="md" aria-pressed="false">Markdown</button><button type="button" data-v="txt" aria-pressed="false">Plain text</button>
+    </div>
+    <div class="rd-prev"></div>
+    <pre class="rd-src" hidden tabindex="0"></pre>
+    <div class="ax-row">
+      <button type="button" class="btn small rd-dmd">Download README.md</button>
+      <button type="button" class="btn secondary small rd-dtxt">Download README.txt</button>
+      <button type="button" class="btn secondary small rd-copy">Copy</button>
+    </div>
+    <p class="ax-help">Markdown shows as formatted text on GitHub, GitLab, Zenodo and most repositories. The plain text version opens anywhere.</p>
+  </div>
+</div>
+
+<script>
+  import { model, toMarkdown, toText, checklist, problems, EXAMPLE, EMPTY, type ReadmeData, type Doc } from '../../lib/sci/readme';
+  import { LICENCES } from '../../lib/sci/metadata';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rdm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MADE = 'README written with the dataset README builder at fibub.com.';
+  let data: ReadmeData = { ...EMPTY }, view: 'preview' | 'md' | 'txt' = 'preview';
+
+  const lic = q<HTMLSelectElement>('.rd-lic');
+  lic.append(new Option('(choose a licence)', ''), ...LICENCES.map((l) => new Option(`${l.id}: ${l.name}`, l.id)), new Option('Other or custom terms', 'other'));
+  const LIC_HELP: Record<string, string> = {
+    'CC-BY-4.0': 'Anyone may reuse the data, also commercially, if they credit you. The most common choice for research data.',
+    'CC0-1.0': 'You give up your rights: anyone may reuse the data with no conditions. Credit is asked for by custom, not required.',
+    'CC-BY-SA-4.0': 'Reuse with credit, and changed versions must use the same licence.',
+    'CC-BY-NC-4.0': 'Reuse with credit, but not for commercial purposes. This limits reuse; check what your funder asks for.',
+    'ODbL-1.0': 'For databases: reuse with credit, and shared changed versions of the database must stay open.',
+    'PDDL-1.0': 'Public domain for databases: no conditions.',
+    MIT: 'A short software licence; suits code shipped with the data.',
+    'Apache-2.0': 'A software licence with a patent grant; suits code shipped with the data.',
+    other: 'Write your own terms. Custom terms make reuse harder; a standard licence is easier for others.',
+    '': 'Without a licence, others cannot be sure they may reuse the data.',
+  };
+
+  function fill() { root.querySelectorAll<HTMLInputElement>('.rd-in').forEach((i) => { i.value = data[i.dataset.k as keyof ReadmeData] ?? ''; }); update(); }
+
+  function render(doc: Doc) {
+    const box = q('.rd-prev'); box.replaceChildren();
+    const h1 = document.createElement('h1'); h1.textContent = doc.title; box.append(h1);
+    for (const s of doc.sections) {
+      const h = document.createElement('h2'); h.textContent = s.h; box.append(h);
+      for (const b of s.blocks) {
+        if ('p' in b) { const p = document.createElement('p'); p.textContent = b.p; box.append(p); }
+        else if ('list' in b) { const ul = document.createElement('ul'); b.list.forEach((x) => { const li = document.createElement('li'); li.textContent = x; ul.append(li); }); box.append(ul); }
+        else if ('kv' in b) { const ul = document.createElement('ul'); b.kv.forEach(([k, v]) => { const li = document.createElement('li'), st = document.createElement('strong'); st.textContent = `${k}: `; li.append(st, v); ul.append(li); }); box.append(ul); }
+        else {
+          const wrap = document.createElement('div'); wrap.className = 'ax-scroll'; const t = document.createElement('table');
+          const hr = t.createTHead().insertRow(); b.table.head.forEach((c) => { const th = document.createElement('th'); th.textContent = c; hr.append(th); });
+          const tb = t.createTBody(); b.table.rows.forEach((r) => { const tr = tb.insertRow(); b.table.head.forEach((_, i) => { tr.insertCell().textContent = r[i] ?? ''; }); });
+          wrap.append(t); box.append(wrap);
+        }
+      }
+    }
+  }
+
+  function update() {
+    const doc = model(data), ck = checklist(data), pr = problems(data);
+    render(doc);
+    q('.rd-src').textContent = view === 'txt' ? toText(doc, MADE) : toMarkdown(doc, MADE);
+    q('.rd-prev').hidden = view !== 'preview'; q('.rd-src').hidden = view === 'preview';
+    const done = ck.filter((c) => c.ok).length;
+    q('.rd-big').textContent = `${done} of ${ck.length} parts filled in${pr.length ? `, ${pr.length} to fix` : ''}`;
+    const ul = q('.rd-check'); ul.replaceChildren();
+    for (const c of ck) { const li = document.createElement('li'); li.className = c.ok ? 'rd-ok' : 'rd-no'; li.textContent = `${c.ok ? '✓' : '○'} ${c.item}`; if (!c.ok) { const sm = document.createElement('small'); sm.textContent = ` ${c.why}`; li.append(sm); } ul.append(li); }
+    const pl = q('.rd-probs'); pl.replaceChildren();
+    for (const p of pr) { const li = document.createElement('li'); li.textContent = p; pl.append(li); }
+    q('.rd-other').hidden = data.licence !== 'other';
+    q('.rd-lichelp').textContent = LIC_HELP[data.licence] ?? '';
+  }
+
+  root.addEventListener('input', (e) => { const t = e.target as HTMLInputElement; if (t.classList.contains('rd-in')) { (data as Record<string, string>)[t.dataset.k!] = t.value; update(); } });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.classList.contains('rd-in') && (data as Record<string, string>)[t.dataset.k!] !== t.value) { (data as Record<string, string>)[t.dataset.k!] = t.value; update(); } });
+  q('.rd-ex').addEventListener('click', () => { data = { ...EXAMPLE }; fill(); });
+  q('.rd-clear').addEventListener('click', () => { data = { ...EMPTY }; fill(); });
+  q('.rd-view').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; view = b.dataset.v as typeof view; q('.rd-view').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update(); });
+
+  // Picked files: names and sizes only. Existing lines for the same name keep their descriptions.
+  function addFiles(list: File[]) {
+    const have = new Map(data.files.split(/\r?\n/).filter((l) => l.trim()).map((l) => [l.split('|')[0].trim(), l] as [string, string]));
+    for (const f of list) {
+      const name = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
+      const old = have.get(name), desc = old ? old.split('|').slice(-1)[0].trim() : '';
+      have.set(name, `${name} | ${f.size} | ${old && old.split('|').length > 1 && !/^\d+$/.test(desc) ? desc : ''}`.trimEnd());
+    }
+    data.files = [...have.values()].join('\n');
+    q<HTMLTextAreaElement>('.rd-in[data-k=files]').value = data.files;
+    update();
+  }
+  q('.rd-pick').addEventListener('click', () => q<HTMLInputElement>('.rd-files').click());
+  q('.rd-pickdir').addEventListener('click', () => q<HTMLInputElement>('.rd-dir').click());
+  for (const c of ['.rd-files', '.rd-dir']) q(c).addEventListener('change', () => { const i = q<HTMLInputElement>(c), l = [...(i.files ?? [])]; i.value = ''; if (l.length) addFiles(l.slice(0, 2000)); });
+
+  q('.rd-dmd').addEventListener('click', () => save(new Blob([toMarkdown(model(data), MADE)], { type: 'text/markdown' }), 'README.md', 'text/markdown'));
+  q('.rd-dtxt').addEventListener('click', () => save(new Blob([toText(model(data), MADE)], { type: 'text/plain' }), 'README.txt', 'text/plain'));
+  q('.rd-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(view === 'txt' ? toText(model(data), MADE) : toMarkdown(model(data), MADE)); q('.rd-copy').textContent = 'Copied'; setTimeout(() => { q('.rd-copy').textContent = 'Copy'; }, 1500); } catch { /* the source view can be selected */ } });
+  data = { ...EXAMPLE };
+  fill();
+</script>
+
+<style is:inline>
+  .rdm h3 { font-size: 15px; margin: 20px 0 4px; }
+  .rdm label { display: block; margin-top: 10px; }
+  .rdm .ax-grid label { margin-top: 0; }
+  .rdm .rd-in { width: 100%; margin-top: 4px; }
+  .rdm textarea.rd-in { font: inherit; }
+  .rdm textarea[data-k=files], .rdm textarea[data-k=variables] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .rdm .rd-check, .rdm .rd-probs { list-style: none; padding: 0; margin: 6px 0 0; }
+  .rdm .rd-check li { margin: 3px 0; }
+  .rdm .rd-ok { color: var(--good); }
+  .rdm .rd-no small { color: var(--muted); }
+  .rdm .rd-probs li { color: var(--bad); margin: 4px 0; }
+  .rdm .rd-prev { border: 1px solid var(--line); border-radius: 8px; padding: 4px 14px 10px; margin: 10px 0; overflow-wrap: anywhere; }
+  .rdm .rd-prev h1 { font-size: 20px; margin: 12px 0 6px; }
+  .rdm .rd-prev td:first-child { white-space: nowrap; }
+  .rdm .rd-prev h2 { font-size: 16px; margin: 16px 0 6px; }
+  .rdm .rd-prev p, .rdm .rd-prev ul { margin: 6px 0; font-size: 14px; }
+  .rdm .rd-src { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; max-height: 480px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0; }
+</style>

@@ -1,0 +1,140 @@
+---
+// Correspondence network: letters become a weighted network of people with degree, strength, betweenness and
+// greedy-modularity communities, drawn with a seeded force layout. All in the browser; the example letters are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cnw">
+  <div class="ax-card">
+    <h2>Letters</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small cn-ex">Use the example</button></div>
+    <label style="margin-top:10px">One letter per row: sender, recipient, date, place (date and place optional). A first row of column names in any order is fine. <textarea class="cn-in" rows="8" spellcheck="false" placeholder="sender,recipient,date,place&#10;Anna Price,Clara Price,1821-03-02,Bath"></textarea></label>
+    <DataFile target=".cn-in" maxMB={10} maxCols={20} maxRows={50000} />
+    <p class="ax-help">Dates as 1821, 1821-03 or 1821-03-02. Names must be spelt the same way each time to count as one person.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>From date <input class="cn-from" type="text" placeholder="e.g. 1822" autocomplete="off" /></label>
+      <label>To date <input class="cn-to" type="text" placeholder="e.g. 1823-06" autocomplete="off" /></label>
+      <label>Names on the picture <select class="cn-lab"><option value="all">Everyone</option><option value="10" selected>Top 10 by letters</option><option value="0">None</option></select></label>
+      <label>Layout seed <input class="cn-seed" type="number" min="0" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">The date filter keeps letters from the start of "From" to the end of "To"; undated letters are left out while it is on. The seed only moves the picture; the numbers stay the same.</p>
+    <p class="ax-err cn-err" hidden></p>
+  </div>
+
+  <div class="ax-card cn-out" hidden>
+    <h2>Network</h2>
+    <p class="ax-big cn-big"></p>
+    <dl class="ax-facts cn-facts"></dl>
+    <canvas class="ax-fig cn-fig" style="margin-top:12px"></canvas>
+    <div class="ax-legend cn-leg"></div>
+    <p class="ax-help">Circle size: letters sent and received. Line width: letters between the two. Colour: community.</p>
+    <h3>People</h3>
+    <div class="ax-scroll cn-pw"><table class="cn-ptab"></table></div>
+    <p class="ax-help">Degree: how many people they wrote to or heard from. Strength: letters sent plus received. Betweenness: the share of shortest paths between other people that pass through them (0 to 1), a sign of a go-between.</p>
+    <h3>Pairs</h3>
+    <div class="ax-scroll cn-ew"><table class="cn-etab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cn-csv">People (CSV)</button>
+      <button type="button" class="btn secondary small cn-ecsv">Pairs (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .cnw h3 { margin: 22px 0 8px; font-size: 15px; }
+  .cnw .cn-pw, .cnw .cn-ew { max-height: 420px; overflow-y: auto; }
+</style>
+
+<script>
+  import { readLetters, filterLetters, buildNetwork, degree, strength, betweenness, greedyCommunities, modularity, layout, EXAMPLE, type Network } from '../../lib/sci/letters';
+  import { csv } from '../../lib/sci/num';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cnw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.cn-in');
+  const DARK = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#d55e00', '#ffffff'];
+  const colour = (k: number, pal: Palette) => (pal.red ? ['#a30000', '#6e0000', '#c00000', '#4a0000'][k % 4] : k >= 8 ? pal.muted : (pal.bg === '#ffffff' ? OKABE_ITO : DARK)[k]);
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  type Res = { net: Network; deg: number[]; str: number[]; btw: number[]; comm: number[]; q: number; letters: number; pos: [number, number][] };
+  let res: Res | null = null, fig: Figure | null = null;
+
+  function run() {
+    const err = q('.cn-err'); err.hidden = true;
+    const fail = (m: string) => { q('.cn-out').hidden = true; res = null; if (m) { err.textContent = m; err.hidden = false; } };
+    if (!box.value.trim()) return fail('');
+    const r = readLetters(box.value);
+    if (!r.letters.length) return fail('No letters found. Each row needs a sender and a recipient (different people).');
+    const from = q<HTMLInputElement>('.cn-from').value, to = q<HTMLInputElement>('.cn-to').value;
+    for (const [v, n] of [[from, 'From'], [to, 'To']]) if (v.trim() && !/^\s*-?\d{1,4}([-/.]\d{1,2}){0,2}\s*$/.test(v)) return fail(`"${n}" should be a date such as 1822, 1822-06 or 1822-06-15.`);
+    const f = filterLetters(r.letters, from, to);
+    if (!f.kept.length) return fail(`No letters fall between those dates${f.undated ? ` (${f.undated} undated letters are left out by the filter)` : ''}.`);
+    const net = buildNetwork(f.kept);
+    if (net.names.length > 2000) return fail(`That is ${net.names.length.toLocaleString('en')} people; the limit is 2,000.`);
+    const comm = greedyCommunities(net);
+    res = { net, deg: degree(net), str: strength(net), btw: betweenness(net), comm, q: modularity(net, comm), letters: f.kept.length, pos: layout(net, Math.max(0, Math.floor(Number(q<HTMLInputElement>('.cn-seed').value) || 0)), net.names.length > 300 ? 80 : 300) };
+    show(r.skipped, f.undated, r.letters.length);
+  }
+
+  function show(skipped: number, undated: number, total: number) {
+    const R = res!, n = R.net.names.length, nc = Math.max(...R.comm) + 1;
+    q('.cn-out').hidden = false;
+    q('.cn-big').textContent = `${n} people, ${R.letters} letters, ${nc} communit${nc === 1 ? 'y' : 'ies'}`;
+    const top = R.btw.indexOf(Math.max(...R.btw)), busiest = R.str.indexOf(Math.max(...R.str));
+    const facts: [string, string][] = [['Letters used', `${R.letters} of ${total}`], ['Pairs who wrote', String(R.net.edges.length)], ['Modularity', R.q.toFixed(3)], ['Most letters', `${R.net.names[busiest]} (${R.str[busiest]})`], ['Main go-between', R.btw[top] > 0 ? `${R.net.names[top]} (${R.btw[top].toFixed(3)})` : 'none'], ['Density', n > 1 ? ((2 * R.net.edges.length) / (n * (n - 1))).toFixed(3) : '–']];
+    q('.cn-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; }));
+    if (skipped || undated) { const p = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = 'Left out'; const dd = document.createElement('dd'); dd.textContent = [skipped ? `${skipped} unreadable row${skipped === 1 ? '' : 's'}` : '', undated ? `${undated} undated` : ''].filter(Boolean).join(', '); p.append(dt, dd); q('.cn-facts').append(p); }
+    const order = R.net.names.map((_, i) => i).sort((a, b) => R.str[b] - R.str[a] || a - b);
+    table(q('.cn-ptab'), ['Person', 'Community', 'Sent', 'Received', 'Degree', 'Strength', 'Betweenness'], order.map((i) => [R.net.names[i], R.comm[i] + 1, R.net.sent[i], R.net.received[i], R.deg[i], R.str[i], R.btw[i].toFixed(3)]), ['', 'r', 'r', 'r', 'r', 'r', 'r']);
+    const es = [...R.net.edges].sort((a, b) => b.w - a.w);
+    table(q('.cn-etab'), ['Pair', 'Letters', 'Each way'], es.slice(0, 300).map((e) => [`${R.net.names[e.a]} – ${R.net.names[e.b]}`, e.w, `${e.ab} / ${e.ba}`]), ['', 'r', 'r']);
+    const groups = Array.from({ length: nc }, (_, k) => order.filter((i) => R.comm[i] === k));
+    const labelMode = q<HTMLSelectElement>('.cn-lab').value, labelled = new Set(labelMode === 'all' ? order : order.slice(0, Number(labelMode)));
+    const maxS = Math.max(...R.str), maxW = Math.max(...R.net.edges.map((e) => e.w));
+    fig = {
+      w: 400, h: 340, alt: `Network of ${n} people and ${R.net.edges.length} pairs who wrote to each other, in ${nc} communities`,
+      draw: (ctx, W, H, pal) => {
+        const m = 44, X = (x: number) => m + x * (W - 2 * m), Y = (y: number) => m * 0.6 + y * (H - 1.6 * m);
+        ctx.lineCap = 'round';
+        for (const e of R.net.edges) { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.55; ctx.lineWidth = 0.8 + (4 * e.w) / maxW; ctx.beginPath(); ctx.moveTo(X(R.pos[e.a][0]), Y(R.pos[e.a][1])); ctx.lineTo(X(R.pos[e.b][0]), Y(R.pos[e.b][1])); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+        for (const i of [...order].reverse()) { const r = 4 + 10 * Math.sqrt(R.str[i] / maxS); ctx.fillStyle = colour(R.comm[i], pal); ctx.strokeStyle = pal.bg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(R.pos[i][0]), Y(R.pos[i][1]), r, 0, 7); ctx.fill(); ctx.stroke(); }
+        ctx.font = '13px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.lineJoin = 'round';
+        for (const i of labelled) { const r = 4 + 10 * Math.sqrt(R.str[i] / maxS), x = X(R.pos[i][0]), y = Y(R.pos[i][1]) + r + 2; ctx.strokeStyle = pal.bg; ctx.lineWidth = 3; ctx.strokeText(R.net.names[i], x, y); ctx.fillStyle = pal.ink; ctx.fillText(R.net.names[i], x, y); }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.cn-fig'), fig);
+    const pal = { bg: document.documentElement.dataset.theme === 'dark' ? '#0a0a0a' : '#ffffff', red: document.documentElement.classList.contains('red-mode'), muted: '#888' } as Palette;
+    q('.cn-leg').replaceChildren(...groups.slice(0, 9).map((g, k) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = colour(k, pal); s.append(i, `${k + 1}: ${g.slice(0, 3).map((x) => R.net.names[x]).join(', ')}${g.length > 3 ? ` and ${g.length - 3} more` : ''}`); return s; }));
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  for (const c of ['.cn-in', '.cn-from', '.cn-to', '.cn-seed']) q(c).addEventListener('input', later);
+  q('.cn-lab').addEventListener('change', run);
+  q('.cn-ex').addEventListener('click', () => { box.value = EXAMPLE; q<HTMLInputElement>('.cn-from').value = ''; q<HTMLInputElement>('.cn-to').value = ''; q<HTMLInputElement>('.cn-seed').value = '1'; run(); });
+  q('.cn-csv').addEventListener('click', () => {
+    if (!res) return; const R = res;
+    save(new Blob([csv([['person', 'community', 'sent', 'received', 'degree', 'strength', 'betweenness'], ...R.net.names.map((nm, i) => [nm, R.comm[i] + 1, R.net.sent[i], R.net.received[i], R.deg[i], R.str[i], R.btw[i].toFixed(6)])])], { type: 'text/csv' }), 'correspondence-people.csv', 'text/csv');
+  });
+  q('.cn-ecsv').addEventListener('click', () => {
+    if (!res) return; const R = res;
+    save(new Blob([csv([['person_a', 'person_b', 'letters', 'a_to_b', 'b_to_a'], ...R.net.edges.map((e) => [R.net.names[e.a], R.net.names[e.b], e.w, e.ab, e.ba])])], { type: 'text/csv' }), 'correspondence-pairs.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const R = res!, order = R.net.names.map((_, i) => i).sort((a, b) => R.str[b] - R.str[a] || a - b);
+    const sections: Section[] = [
+      { title: 'Network', facts: [...q('.cn-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? ''] as [string, string]), figure: fig ?? undefined },
+      { title: 'People', table: { head: ['Person', 'Community', 'Sent', 'Received', 'Degree', 'Strength', 'Betweenness'], rows: order.slice(0, 300).map((i) => [R.net.names[i], String(R.comm[i] + 1), String(R.net.sent[i]), String(R.net.received[i]), String(R.deg[i]), String(R.str[i]), R.btw[i].toFixed(3)]), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+    return { title: 'Correspondence network', subtitle: q('.cn-big').textContent ?? '', file: 'correspondence-network', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (res && fig) paint(q<HTMLCanvasElement>('.cn-fig'), fig); });
+</script>

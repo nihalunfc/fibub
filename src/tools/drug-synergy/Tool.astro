@@ -1,0 +1,219 @@
+---
+// Drug-combination synergy: Bliss, HSA and Loewe reference models and the combination index, from a dose matrix.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax syn">
+  <p class="note warn syn-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Dose matrix (% inhibition)</h2>
+    <label>First row: drug B doses after a corner cell. Then one row per drug A dose: the dose, then the % inhibition at each drug B dose. Include dose 0 for both drugs (the single-drug responses).
+      <textarea class="syn-data" rows="8" spellcheck="false">A (µM) \ B (nM)	0	1	3	10	30	100
+0	0	7.4	21	45	67.1	84.4
+0.1	6.8	18.3	29.8	54.9	70.1	89.8
+0.3	23.4	35.3	43.8	62.1	78.4	90.9
+1	56.4	65.6	71.6	78.7	85.3	94.8
+3	82	83	86.5	90.7	93.4	95.5
+10	95.4	97.6	96.4	96.6	99.3	100</textarea></label>
+    <DataFile target=".syn-data" maxCols={21} maxRows={21} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Drug A name <input class="syn-na" value="Drug A" /></label>
+      <label>Drug A unit <input class="syn-ua" value="µM" /></label>
+      <label>Drug B name <input class="syn-nb" value="Drug B" /></label>
+      <label>Drug B unit <input class="syn-ub" value="nM" /></label>
+      <label>Top of single-drug curves <select class="syn-top"><option value="100">Fixed at 100 %</option><option value="">Fitted</option></select></label>
+    </div>
+    <p class="ax-help">Responses are % inhibition (0 = no effect, 100 = full effect); convert viability first (100 − % viability). Fixing the top at 100 % is the median-effect model of Chou and Talalay; fit it when a drug clearly levels off lower. Bliss and HSA use your measured single-drug wells; Loewe and the combination index use the fitted single-drug curves.</p>
+    <p class="ax-err syn-err" hidden></p>
+  </div>
+
+  <div class="ax-card syn-out" hidden>
+    <h2>Synergy scores</h2>
+    <p class="ax-big syn-big"></p>
+    <dl class="ax-facts syn-facts"></dl>
+    <p class="ax-help">Excess = observed − expected, in % points, averaged over the combination wells. As a rough guide, above +10 suggests synergy, below −10 antagonism, and in between the drugs are close to additive. CI below 0.9 suggests synergy, 0.9 to 1.1 additivity, above 1.1 antagonism.</p>
+  </div>
+
+  <div class="ax-card syn-out" hidden>
+    <h2>Heatmap</h2>
+    <div class="ax-seg syn-view" role="group" aria-label="Show">
+      <button type="button" data-v="blissEx" aria-pressed="true">Bliss</button>
+      <button type="button" data-v="hsaEx" aria-pressed="false">HSA</button>
+      <button type="button" data-v="loeweEx" aria-pressed="false">Loewe</button>
+      <button type="button" data-v="ci" aria-pressed="false">CI</button>
+      <button type="button" data-v="obs" aria-pressed="false">Observed</button>
+    </div>
+    <p class="ax-help syn-vhelp"></p>
+    <canvas class="ax-fig syn-heat" style="margin-top:8px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small syn-csv">Download all wells (CSV)</button></div>
+  </div>
+
+  <div class="ax-card syn-out" hidden>
+    <h2>Single-drug curves</h2>
+    <dl class="ax-facts syn-hill"></dl>
+    <canvas class="ax-fig syn-fig" style="margin-top:12px"></canvas>
+  </div>
+  <Downloads />
+</div>
+
+<style is:inline>
+  .syn .ax-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .syn-med { margin: 0 0 12px; font-size: 14px; }
+  .syn .ax-seg button { padding: 7px 10px; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { analyse, parseMatrix, hill, type SynergyResult, type Cell } from '../../lib/sci/synergy';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.syn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const err = q('.syn-err');
+  type View = 'blissEx' | 'hsaEx' | 'loeweEx' | 'ci' | 'obs';
+  const VIEW: Record<View, [string, string]> = {
+    blissEx: ['Excess over Bliss (% points)', 'Observed − Bliss expected, where Bliss expected = EA + EB − EA·EB from the single-drug wells. Orange: more than expected (synergy); blue: less (antagonism).'],
+    hsaEx: ['Excess over the highest single agent (% points)', 'Observed − the larger of the two single-drug responses at those doses.'],
+    loeweEx: ['Excess over Loewe additivity (% points)', 'Observed − the effect the fitted curves predict if each drug acted as a dilution of the other.'],
+    ci: ['Combination index', 'CI = a / DxA + b / DxB, where DxA and DxB are the doses alone that give the observed effect. Below 1: synergy (orange); above 1: antagonism (blue). A dash: the effect is beyond a fitted curve.'],
+    obs: ['Observed % inhibition', 'The measured responses, darker for stronger inhibition.'],
+  };
+  let res: SynergyResult | null = null, view: View = 'blissEx', heat: Figure | null = null, curves: Figure | null = null, report: Section[] = [];
+  let names = { a: 'Drug A', b: 'Drug B', ua: '', ub: '' };
+
+  const mix = (c1: string, c2: string, t: number) => {
+    const p = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    const [a, b] = [p(c1), p(c2)];
+    return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+  };
+  const label = (v: number) => String(+v.toPrecision(4));
+
+  /** Cell text: CI to 2 decimals, others to 1, with a sign for excesses and no "−0.0". */
+  function cellText(z: number, v: View) {
+    if (!Number.isFinite(z)) return '–';
+    if (v === 'ci') return z.toFixed(2);
+    const t = z.toFixed(1);
+    if (Number(t) === 0) return '0';
+    return (z > 0 && v !== 'obs' ? '+' : '') + t.replace('-', '−');
+  }
+
+  function heatFigure(r: SynergyResult, v: View, w: number): Figure {
+    const A = [...new Set(r.cells.map((c) => c.a))].sort((x, y) => x - y), B = [...new Set(r.cells.map((c) => c.b))].sort((x, y) => x - y);
+    const value = (c: Cell) => (v === 'ci' ? (c.a > 0 && c.b > 0 ? c.ci : NaN) : c[v]);
+    const vals = r.cells.map(value).filter(Number.isFinite);
+    const scale = v === 'obs' ? 100 : v === 'ci' ? 1 : Math.max(10, Math.ceil(Math.max(...vals.map(Math.abs)) / 5) * 5);
+    const fs = w < 480 ? 11 : 13, left = fs * 4.6, bottom = fs * 4.2, top = 8, right = 8;
+    const cw = (w - left - right) / B.length, ch = Math.min(52, Math.max(28, cw * 0.75)), h = Math.round(top + ch * A.length + bottom);
+    return {
+      w, h, alt: `${VIEW[v][0]} heatmap, ${A.length} by ${B.length} wells`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const pos = pal.red ? '#a30000' : '#D55E00', neg = pal.red ? '#5a0000' : '#0072B2', bg = pal.bg;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const c of r.cells) {
+          const x = left + B.indexOf(c.b) * cw, y = top + (A.length - 1 - A.indexOf(c.a)) * ch, z = value(c);
+          let t = 0, col = bg;
+          if (Number.isFinite(z)) {
+            if (v === 'obs') { t = Math.max(0, Math.min(1, z / 100)) * 0.85; col = mix(bg.length === 7 ? bg : '#ffffff', pal.red ? '#a30000' : '#0072B2', t); }
+            else if (v === 'ci') { const L = Math.log2(Math.max(1e-3, z)); t = Math.min(1, Math.abs(L) / 2) * 0.85; col = mix(bg, L < 0 ? pos : neg, t); }
+            else { t = Math.min(1, Math.abs(z) / scale) * 0.85; col = mix(bg, z > 0 ? pos : neg, t); }
+          }
+          ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2);
+          ctx.fillStyle = t > 0.75 && !pal.red ? '#ffffff' : c.a > 0 && c.b > 0 ? pal.ink : pal.muted;
+          ctx.font = `${c.a > 0 && c.b > 0 ? 600 : 400} ${fs}px system-ui, sans-serif`;
+          ctx.fillText(cellText(z, v), x + cw / 2, y + ch / 2);
+        }
+        ctx.fillStyle = pal.muted; ctx.font = `${fs}px system-ui, sans-serif`;
+        A.forEach((a, i) => { ctx.textAlign = 'right'; ctx.fillText(label(a), left - 6, top + (A.length - 1 - i) * ch + ch / 2); });
+        B.forEach((b, j) => { ctx.textAlign = 'center'; ctx.fillText(label(b), left + j * cw + cw / 2, top + A.length * ch + fs); });
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+        ctx.fillText(`${names.b}${names.ub ? ` (${names.ub})` : ''}`, left + (W - left - right) / 2, top + A.length * ch + fs * 2.6);
+        ctx.save(); ctx.translate(fs * 0.9, top + (A.length * ch) / 2); ctx.rotate(-Math.PI / 2);
+        ctx.fillText(`${names.a}${names.ua ? ` (${names.ua})` : ''}`, 0, 0); ctx.restore();
+        void H;
+      },
+    };
+  }
+
+  function calc() {
+    err.hidden = true;
+    names = { a: val('.syn-na').trim() || 'Drug A', b: val('.syn-nb').trim() || 'Drug B', ua: val('.syn-ua').trim(), ub: val('.syn-ub').trim() };
+    try {
+      const m = parseMatrix(parseTable(val('.syn-data')), num);
+      const top = val('.syn-top');
+      res = analyse(m, top ? Number(top) : undefined);
+    } catch (e) {
+      res = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.syn-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.syn-out').forEach((o) => (o.hidden = false));
+    const r = res, s = r.summary, pm = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`;
+    const word = (v: number) => (v > 10 ? 'suggests synergy' : v < -10 ? 'suggests antagonism' : 'close to additive');
+    const at = (p: [number, number]) => `at ${names.a} ${label(p[0])}${names.ua ? ' ' + names.ua : ''}, ${names.b} ${label(p[1])}${names.ub ? ' ' + names.ub : ''}`;
+    q('.syn-big').textContent = `Mean excess over Bliss ${pm(s.bliss.mean)}, combination index ${Number.isFinite(s.ci.geoMean) ? s.ci.geoMean.toFixed(2) : '–'}`;
+    const facts: [string, string, string?][] = [
+      ['Bliss excess (mean)', pm(s.bliss.mean), word(s.bliss.mean)],
+      ['Bliss excess (highest)', pm(s.bliss.max), at(s.bliss.at)],
+      ['HSA excess (mean)', pm(s.hsa.mean), word(s.hsa.mean)],
+      ['Loewe excess (mean)', pm(s.loewe.mean), word(s.loewe.mean)],
+      ['Loewe excess (highest)', pm(s.loewe.max), at(s.loewe.at)],
+      ['Combination index', Number.isFinite(s.ci.geoMean) ? s.ci.geoMean.toFixed(3) : '–', `geometric mean of ${s.ci.n} wells: ${s.ci.syn} below 0.9, ${s.ci.add} from 0.9 to 1.1, ${s.ci.ant} above 1.1`],
+    ];
+    const dl = (el: HTMLElement, list: [string, string, string?][]) => el.replaceChildren(...list.map(([a, b, t]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (t) { const m = document.createElement('small'); m.textContent = t; d.querySelector('dd')!.append(m); } return d; }));
+    dl(q('.syn-facts'), facts);
+    const hf = (n: string, u: string, h: typeof r.hillA): [string, string, string][] => [[`${n} EC50`, `${sig(h.ec50, 4)}${u ? ' ' + u : ''}`, `Hill slope ${sig(h.h, 3)}, top ${sig(h.emax, 4)} %${h.capped ? ' (curve did not level off: top set to 100 %)' : ''}, R² ${h.r2.toFixed(4)}`]];
+    const hillFacts = [...hf(names.a, names.ua, r.hillA), ...hf(names.b, names.ub, r.hillB)];
+    dl(q('.syn-hill'), hillFacts);
+    draw();
+    report = [
+      { title: 'Synergy scores', text: [`${names.a} × ${names.b}: ${r.cells.length} wells. Bliss and HSA from the measured single-drug wells; Loewe and CI from Hill curves with the top ${val('.syn-top') ? 'fixed at 100 %' : 'fitted'}. For study and teaching, not medical advice.`], facts: facts.map(([a, b, t]) => [a, t ? `${b} (${t})` : b] as [string, string]) },
+      { title: VIEW[view][0], figure: heat! },
+      { title: 'Single-drug curves', facts: hillFacts.map(([a, b, t]) => [a, `${b} (${t})`] as [string, string]), figure: curves! },
+    ];
+  }
+
+  function draw() {
+    if (!res) return;
+    const r = res;
+    const w = Math.round(Math.min(720, Math.max(320, q('.syn-heat').parentElement!.clientWidth - 34)));
+    heat = heatFigure(r, view, w);
+    paint(q<HTMLCanvasElement>('.syn-heat'), heat);
+    q('.syn-vhelp').textContent = VIEW[view][1];
+    const single = (axis: 'a' | 'b') => r.cells.filter((c) => (axis === 'a' ? c.b === 0 && c.a > 0 : c.a === 0 && c.b > 0));
+    const sa = single('a'), sb = single('b');
+    const grid = (pts: Cell[], k: 'a' | 'b') => { const d = pts.map((c) => c[k]), lo = Math.min(...d) / 3, hi = Math.max(...d) * 3, out: number[] = []; for (let i = 0; i <= 120; i++) out.push(lo * (hi / lo) ** (i / 120)); return out; };
+    const ga = grid(sa, 'a'), gb = grid(sb, 'b');
+    // Both drugs on one log axis of "dose relative to EC50", so curves with different units share a picture.
+    curves = chartFigure({ w, h: Math.round(w * 0.6), xLog: true, xLabel: 'Dose ÷ fitted EC50', yLabel: '% inhibition', yMin: 0, yMax: 105, series: [
+      { name: names.a, x: sa.map((c) => c.a / r.hillA.ec50), y: sa.map((c) => c.obs), marker: 'circle' },
+      { name: `${names.a} fit`, x: ga.map((d) => d / r.hillA.ec50), y: ga.map((d) => hill(d, r.hillA)), mode: 'line' },
+      { name: names.b, x: sb.map((c) => c.b / r.hillB.ec50), y: sb.map((c) => c.obs), marker: 'square' },
+      { name: `${names.b} fit`, x: gb.map((d) => d / r.hillB.ec50), y: gb.map((d) => hill(d, r.hillB)), mode: 'line', dash: [6, 4] },
+    ] }, `Single-drug Hill curves for ${names.a} and ${names.b}`);
+    paint(q<HTMLCanvasElement>('.syn-fig'), curves);
+    if (report[1]) { report[1] = { title: VIEW[view][0], figure: heat }; report[2].figure = curves; }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.syn-view button').forEach((b) => b.addEventListener('click', () => {
+    view = b.dataset.v as View;
+    root.querySelectorAll<HTMLButtonElement>('.syn-view button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    draw();
+  }));
+  q('.syn-csv').addEventListener('click', () => {
+    if (!res) return;
+    const f = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(8)) : '');
+    const rows = [['dose_a', 'dose_b', 'observed', 'bliss_expected', 'bliss_excess', 'hsa_expected', 'hsa_excess', 'loewe_expected', 'loewe_excess', 'combination_index'],
+      ...res.cells.map((c) => [f(c.a), f(c.b), f(c.obs), f(c.bliss), f(c.blissEx), f(c.hsa), f(c.hsaEx), f(c.loewe), f(c.loeweEx), f(c.ci)])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'drug-synergy.csv', 'text/csv');
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', draw);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Drug combination synergy', subtitle: q('.syn-big').textContent ?? '', file: 'drug-synergy', sections: report }));
+</script>

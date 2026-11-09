@@ -1,0 +1,167 @@
+---
+// Data management plan builder: generic sections with guiding questions (fibub's own words), a word count per
+// section with an optional limit, and Markdown, Word, PDF and image downloads. The draft can be kept in this
+// browser only (localStorage), never sent anywhere.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { DMP_SECTIONS } from '../../lib/sci/dmp';
+---
+<div class="ax dmp">
+  <div class="ax-card">
+    <h2>Your plan</h2>
+    <div class="ax-grid">
+      <label>Project title <input class="dm-title" type="text" placeholder="What the project is called" /></label>
+      <label>Prepared by <input class="dm-author" type="text" placeholder="Name and organisation" /></label>
+      <label>Funder or programme <input class="dm-funder" type="text" placeholder="Optional" /></label>
+      <label>Date <input class="dm-date" type="date" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small dm-ex">Fill with the example</button>
+      <button type="button" class="btn secondary small dm-open">Open a Markdown file</button>
+      <input type="file" class="dm-file" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden />
+      <button type="button" class="btn secondary small dm-clear">Start again</button>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="dm-keep" checked /> Keep my draft in this browser</label>
+    <p class="ax-help">When ticked, the draft is saved in this browser only (local storage), so it is here next time you open the page. It never leaves your device. Untick it or press <em>Start again</em> to delete it. <em>Open a Markdown file</em> reads back a plan you downloaded from this page (up to 1 MB).</p>
+    <p class="ax-help dm-note" hidden></p>
+    <p class="ax-err dm-err" hidden></p>
+  </div>
+
+  {DMP_SECTIONS.map((s, i) => (
+    <div class="ax-card dm-sec" data-id={s.id}>
+      <h2>{i + 1}. {s.title}</h2>
+      <p class="ax-help" style="margin-top:0">{s.blurb}</p>
+      <details class="dm-q">
+        <summary>Questions to answer</summary>
+        <ul>{s.prompts.map((p) => <li>{p}</li>)}</ul>
+      </details>
+      <textarea class="dm-text" rows="7" aria-label={s.title} placeholder="Write in plain sentences. Answer the questions that apply to your project."></textarea>
+      <div class="dm-foot">
+        <span class="dm-count">0 words</span>
+        <label class="dm-lim">Word limit <input class="dm-limit" type="number" min="1" max="10000" step="1" inputmode="numeric" placeholder="none" /></label>
+      </div>
+    </div>
+  ))}
+
+  <div class="ax-card dm-out">
+    <h2>Summary and downloads</h2>
+    <p class="ax-big dm-big"></p>
+    <div class="ax-scroll"><table class="dm-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small dm-md">Download Markdown</button>
+    </div>
+    <Downloads />
+    <p class="ax-help">Sections with nothing written show "Not written yet" in the downloads. Check what your funder or institution asks for: their own template, headings and word limits come first.</p>
+  </div>
+</div>
+
+<script>
+  import { DMP_SECTIONS, summarise, toMarkdown, fromMarkdown, examplePlan, emptyPlan, type DmpPlan } from '../../lib/sci/dmp';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-dmp-v1', KEEP = 'fibub-dmp-keep-v1';
+  const root = document.querySelector<HTMLElement>('.dmp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sec = (id: string) => root.querySelector<HTMLElement>(`.dm-sec[data-id="${id}"]`)!;
+
+  function read(): DmpPlan {
+    const p = emptyPlan();
+    p.title = inp('.dm-title').value; p.author = inp('.dm-author').value; p.funder = inp('.dm-funder').value; p.date = inp('.dm-date').value;
+    for (const s of DMP_SECTIONS) {
+      const el = sec(s.id);
+      p.texts[s.id] = el.querySelector<HTMLTextAreaElement>('.dm-text')!.value;
+      const l = Math.round(Number(el.querySelector<HTMLInputElement>('.dm-limit')!.value));
+      p.limits[s.id] = el.querySelector<HTMLInputElement>('.dm-limit')!.value.trim() && l >= 1 ? l : null;
+    }
+    return p;
+  }
+  function fill(p: DmpPlan) {
+    inp('.dm-title').value = p.title; inp('.dm-author').value = p.author; inp('.dm-funder').value = p.funder;
+    inp('.dm-date').value = /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : '';
+    for (const s of DMP_SECTIONS) {
+      const el = sec(s.id);
+      el.querySelector<HTMLTextAreaElement>('.dm-text')!.value = p.texts[s.id] ?? '';
+      el.querySelector<HTMLInputElement>('.dm-limit')!.value = p.limits[s.id] != null ? String(p.limits[s.id]) : '';
+    }
+    update();
+  }
+
+  let sections: Section[] = [];
+  function update() {
+    const p = read(), s = summarise(p);
+    for (const r of s.rows) {
+      const c = sec(r.id).querySelector<HTMLElement>('.dm-count')!;
+      c.textContent = r.limit != null ? `${r.words} of ${r.limit} words${r.status === 'over' ? `, ${r.words - r.limit} over` : ''}` : `${r.words} word${r.words === 1 ? '' : 's'}`;
+      c.classList.toggle('over', r.status === 'over');
+    }
+    q('.dm-big').textContent = `${s.total} word${s.total === 1 ? '' : 's'}, ${s.filled} of ${DMP_SECTIONS.length} sections written${s.over ? `, ${s.over} over the word limit` : ''}`;
+    const t = q<HTMLTableElement>('.dm-tab'); t.replaceChildren();
+    const head = ['Section', 'Words', 'Limit', 'Status'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1 || i === 2) th.className = 'r'; hr.append(th); });
+    const rows = s.rows.map((r) => [r.title, String(r.words), r.limit != null ? String(r.limit) : '–', r.status === 'empty' ? 'Not written yet' : r.status === 'over' ? `${r.words - r.limit!} words over` : 'Written']);
+    const b = t.createTBody();
+    rows.forEach((r, k) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (i === 1 || i === 2) td.className = 'r'; if (i === 3) { const sp = document.createElement('span'); sp.className = 'ax-pill ' + (s.rows[k].status === 'ok' ? 'good' : s.rows[k].status === 'over' ? 'bad' : 'warn'); sp.textContent = c; td.append(sp); } else td.textContent = c; }); });
+    const meta: [string, string][] = [['Prepared by', p.author], ['Funder or programme', p.funder], ['Date', p.date]].filter(([, v]) => v.trim()) as [string, string][];
+    sections = [
+      { title: 'Summary', facts: [...meta, ['Words', String(s.total)], ['Sections written', `${s.filled} of ${DMP_SECTIONS.length}`]], table: { head, rows, align: ['l', 'r', 'r', 'l'] } },
+      ...DMP_SECTIONS.map((d, i) => { const txt = (p.texts[d.id] ?? '').trim(); return { title: `${i + 1}. ${d.title}`, text: txt ? txt.split(/\n\s*\n/).map((x) => x.replace(/\s*\n\s*/g, ' ').trim()) : ['Not written yet.'] }; }),
+    ];
+    store(p);
+  }
+
+  const keep = () => inp('.dm-keep').checked;
+  function store(p: DmpPlan) { try { if (keep()) localStorage.setItem(KEY, JSON.stringify(p)); } catch {} }
+  function forget() { try { localStorage.removeItem(KEY); } catch {} }
+  const note = (m: string) => { q('.dm-note').textContent = m; q('.dm-note').hidden = !m; q('.dm-err').hidden = true; };
+  const err = (m: string) => { q('.dm-err').textContent = m; q('.dm-err').hidden = false; q('.dm-note').hidden = true; };
+
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.dm-sec, .ax-grid')) update(); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('.ax-grid')) update(); });
+  inp('.dm-keep').addEventListener('change', () => {
+    try { localStorage.setItem(KEEP, keep() ? '1' : '0'); } catch {}
+    if (keep()) { update(); note('Your draft is now kept in this browser.'); } else { forget(); note('The saved draft was deleted from this browser. What is on the page stays until you close it.'); }
+  });
+  q('.dm-ex').addEventListener('click', () => {
+    const p = read();
+    if (DMP_SECTIONS.some((s) => p.texts[s.id].trim()) && !confirm('Replace what you have written with the example?')) return;
+    fill(examplePlan()); note('The example is a made-up project. Replace its text with your own.');
+  });
+  q('.dm-clear').addEventListener('click', () => {
+    const p = read();
+    if (DMP_SECTIONS.some((s) => p.texts[s.id].trim()) && !confirm('Clear every section and delete the saved draft?')) return;
+    fill(emptyPlan()); forget(); note('Cleared. Nothing is saved in this browser now.');
+  });
+  q('.dm-open').addEventListener('click', () => q<HTMLInputElement>('.dm-file').click());
+  q('.dm-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.dm-file').files?.[0]; q<HTMLInputElement>('.dm-file').value = '';
+    if (!f) return;
+    if (f.size > 1e6) return err(`${f.name} is larger than 1 MB. Open a Markdown file downloaded from this page.`);
+    const text = await f.text();
+    if (/\u0000/.test(text.slice(0, 2000))) return err(`${f.name} is not a text file. Open a Markdown (.md) file.`);
+    const r = fromMarkdown(text);
+    if (!r.matched) return err(`No section headings were found in ${f.name}. The file needs headings such as "## Data description", as in the Markdown this page downloads.`);
+    fill(r.plan);
+    note(`Opened ${f.name}: ${r.matched} of ${DMP_SECTIONS.length} sections found.${r.unknown.length ? ` Left out headings this page does not have: ${r.unknown.slice(0, 4).join(', ')}${r.unknown.length > 4 ? '…' : ''}.` : ''}`);
+  });
+  q('.dm-md').addEventListener('click', () => { const p = read(); save(new Blob([toMarkdown(p)], { type: 'text/markdown' }), `${fileSafe(p.title || 'data-management-plan')}.md`, 'text/markdown'); });
+
+  let saved: DmpPlan | null = null;
+  try { inp('.dm-keep').checked = localStorage.getItem(KEEP) !== '0'; saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved && saved.texts) { fill({ ...emptyPlan(), ...saved, texts: { ...emptyPlan().texts, ...saved.texts }, limits: { ...emptyPlan().limits, ...saved.limits } }); note('Your saved draft from this browser was opened.'); }
+  else update();
+  wireDownloads(q('.dl'), () => { const p = read(); return { title: p.title.trim() || 'Data management plan', subtitle: p.title.trim() ? 'Data management plan' : '', file: fileSafe(p.title || 'data-management-plan'), sections }; });
+</script>
+
+<style is:inline>
+  .dmp .dm-q { margin: 6px 0 10px; }
+  .dmp .dm-q summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .dmp .dm-q ul { margin: 6px 0 0; padding-left: 20px; font-size: 15px; }
+  .dmp .dm-q li { margin: 3px 0; }
+  .dmp .dm-text { width: 100%; min-height: 150px; font-family: inherit; font-size: 16px; line-height: 1.5; }
+  .dmp .dm-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .dmp .dm-count { font-size: 15px; color: var(--muted, #5c5c5c); }
+  .dmp .dm-count.over { color: var(--bad, #b3261e); font-weight: 600; }
+  .dmp label.dm-lim { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; white-space: nowrap; }
+  .dmp .dm-lim input { width: 84px; }
+</style>

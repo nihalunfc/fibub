@@ -1,0 +1,175 @@
+---
+// Retaining wall stability: sliding, overturning and bearing for a cantilever or gravity wall. Example walls are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rwc">
+  <div class="ax-card">
+    <h2>Wall (per metre run)</h2>
+    <div class="ax-grid">
+      <label>Fill in an example <select class="rw-ex"><option value="">Pick to fill in…</option><option value="cant">Cantilever wall (made up)</option><option value="grav">Gravity wall (made up)</option></select></label>
+      <label>Height H, base underside to top (m) <input class="rw-H" type="text" inputmode="decimal" value="4" /></label>
+      <label>Stem thickness at top (m) <input class="rw-tt" type="text" inputmode="decimal" value="0.3" /></label>
+      <label>Stem thickness at bottom (m) <input class="rw-tbo" type="text" inputmode="decimal" value="0.4" /></label>
+      <label>Base thickness (m) <input class="rw-tb" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Toe length (m) <input class="rw-toe" type="text" inputmode="decimal" value="0.8" /></label>
+      <label>Heel length (m) <input class="rw-heel" type="text" inputmode="decimal" value="1.8" /></label>
+      <label>Wall unit weight (kN/m³) <input class="rw-gc" type="text" inputmode="decimal" value="24" /></label>
+    </div>
+    <p class="ax-help">The back of the stem is vertical; a thicker bottom slopes the front face. For a gravity wall set the toe, heel and base to 0 and give the top and bottom widths. Unit weights here are example values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Backfill, water and base</h2>
+    <div class="ax-grid">
+      <label>Soil unit weight (kN/m³) <input class="rw-g" type="text" inputmode="decimal" value="18" /></label>
+      <label>Saturated unit weight (kN/m³) <input class="rw-gs" type="text" inputmode="decimal" value="20" /></label>
+      <label>Friction angle φ (°) <input class="rw-phi" type="text" inputmode="decimal" value="32" /></label>
+      <label>Backfill slope β (°) <input class="rw-beta" type="text" inputmode="decimal" value="0" /></label>
+      <label>Earth pressure <select class="rw-m"><option value="rankine" selected>Rankine</option><option value="coulomb">Coulomb (wall friction)</option></select></label>
+      <label class="rw-dbox" hidden>Wall friction δ (°) <input class="rw-d" type="text" inputmode="decimal" value="20" /></label>
+      <label>Surcharge on the backfill (kPa) <input class="rw-q" type="text" inputmode="decimal" value="10" /></label>
+      <label>Water height above base underside (m) <input class="rw-hw" type="text" inputmode="decimal" value="0" /></label>
+      <label class="ax-check"><input class="rw-up" type="checkbox" checked /> Uplift under the base</label>
+      <label>Base friction coefficient μ <input class="rw-mu" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Soil in front, above base underside (m) <input class="rw-Df" type="text" inputmode="decimal" value="0" /></label>
+      <label class="ax-check"><input class="rw-pp" type="checkbox" /> Count passive resistance in front</label>
+      <label>Allowable bearing pressure (kPa) <input class="rw-qa" type="text" inputmode="decimal" value="150" /></label>
+      <label>Target factor, sliding <input class="rw-ts" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Target factor, overturning <input class="rw-to" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-help">Cohesionless (sandy, gravelly) backfill. Water stands at the same level behind the wall and drains away in front; uplift then falls from the heel to zero at the toe. Passive resistance needs soil that will not be dug away, so it is off by default. The targets, φ, μ and bearing pressure come from your soil report and your code: the starting numbers are only examples.</p>
+    <p class="ax-err rw-err" hidden></p>
+  </div>
+
+  <div class="ax-card rw-out">
+    <h2>Stability</h2>
+    <p class="ax-big rw-big"></p>
+    <div class="ax-row rw-pills"></div>
+    <dl class="ax-facts rw-facts"></dl>
+    <canvas class="ax-fig rw-fig"></canvas>
+    <div class="ax-scroll"><table class="rw-tab"></table></div>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer. This checks stability only, not the strength of the stem and base or overall slope stability.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { retainingWall, type WallInput, type WallResult } from '../../lib/sci/eng-retwall';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[-−]?[\d.]+$/.test(t) ? String(parseFloat(t.replace('−', '-'))).replace('-', '−') : t; };
+  const root = document.querySelector<HTMLElement>('.rwc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const EX: Record<string, Record<string, string>> = {
+    cant: { H: '4', tt: '0.3', tbo: '0.4', tb: '0.5', toe: '0.8', heel: '1.8', gc: '24' },
+    grav: { H: '3', tt: '0.6', tbo: '2', tb: '0', toe: '0', heel: '0', gc: '22' },
+  };
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function drawing(w: WallInput, r: WallResult): Figure {
+    return { w: 380, h: 300, alt: `Wall section with earth pressure on the back and bearing pressure under the base`, draw: (ctx, W, Hc, pal) => {
+      const pmax = Math.max(...r.pressure.map((p) => p.soil + p.water + p.surcharge), 1e-9);
+      const pw = Math.max(1, r.B * 0.6); // drawing width of the pressure diagram, in metres
+      const qmax = Math.max(r.qToe, r.qHeel, 1e-9), qd = Number.isFinite(qmax) ? 0.8 : 0;
+      const x0m = -0.3, x1m = r.B + pw + 0.3, y0m = -qd - 0.3, y1m = r.Hv + 0.4;
+      const sc = Math.min((W - 20) / (x1m - x0m), (Hc - 20) / (y1m - y0m)), ox = 10 - x0m * sc + ((W - 20) - (x1m - x0m) * sc) / 2, oy = Hc - 10 + y0m * sc;
+      const X = (x: number) => ox + x * sc, Y = (y: number) => oy - y * sc;
+      const xb = w.toe + w.tBot, tanb = Math.tan((w.beta * Math.PI) / 180);
+      // Backfill.
+      ctx.fillStyle = pal.red ? '#1c0000' : pal.bg === '#ffffff' ? '#efe6d6' : '#3a3226';
+      ctx.beginPath(); ctx.moveTo(X(xb), Y(w.tb)); ctx.lineTo(X(xb), Y(w.H)); ctx.lineTo(X(r.B + pw), Y(w.H + (r.B + pw - xb) * tanb)); ctx.lineTo(X(r.B + pw), Y(0)); ctx.lineTo(X(r.B), Y(0)); ctx.lineTo(X(r.B), Y(w.tb)); ctx.closePath(); ctx.fill();
+      if (w.Df > 0) ctx.fillRect(X(x0m), Y(w.Df), X(w.toe) - X(x0m), Y(Math.min(w.tb, w.Df)) - Y(w.Df));
+      // Water.
+      if (w.hw > 0) { ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(X(xb), Y(Math.min(w.hw, r.Hv))); ctx.lineTo(X(r.B), Y(Math.min(w.hw, r.Hv))); ctx.stroke(); ctx.setLineDash([]); }
+      // Wall.
+      ctx.fillStyle = pal.red ? pal.muted : pal.bg === '#ffffff' ? '#c9c9c9' : '#555555'; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+      const poly = [[0, 0], [r.B, 0], [r.B, w.tb], [xb, w.tb], [xb, w.H], [xb - w.tTop, w.H], [w.toe, w.tb], [0, w.tb]];
+      ctx.beginPath(); poly.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Virtual back and pressure diagram.
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(r.B), Y(0)); ctx.lineTo(X(r.B), Y(r.Hv)); ctx.stroke(); ctx.setLineDash([]);
+      const s = (pw * 0.9) / pmax;
+      ctx.fillStyle = pal.red ? pal.accent2 : pal.bad; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(r.B), Y(r.Hv));
+      r.pressure.forEach((p) => ctx.lineTo(X(r.B + (p.soil + p.water + p.surcharge) * s), Y(r.Hv - p.z))); ctx.lineTo(X(r.B), Y(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.red ? pal.ink : pal.bad; ctx.beginPath(); r.pressure.forEach((p, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(r.B + (p.soil + p.water + p.surcharge) * s), Y(r.Hv - p.z))); ctx.stroke();
+      const pb = r.pressure[r.pressure.length - 1];
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${sg(pb.soil + pb.water + pb.surcharge, 3)} kPa`, X(r.B + (pb.soil + pb.water + pb.surcharge) * s) - 30, Y(0) - 2);
+      // Bearing pressure under the base.
+      if (qd) {
+        const bs = qd / qmax; ctx.fillStyle = pal.red ? pal.accent2 : pal.accent; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+        if (r.contact >= r.B - 1e-9) { ctx.lineTo(X(0), Y(-r.qToe * bs)); ctx.lineTo(X(r.B), Y(-r.qHeel * bs)); ctx.lineTo(X(r.B), Y(0)); }
+        else if (r.qToe > 0) { ctx.lineTo(X(0), Y(-r.qToe * bs)); ctx.lineTo(X(r.contact), Y(0)); }
+        else { ctx.lineTo(X(r.B - r.contact), Y(0)); ctx.lineTo(X(r.B), Y(-r.qHeel * bs)); ctx.lineTo(X(r.B), Y(0)); }
+        ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = pal.ink; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(`toe ${sg(r.qToe, 3)}`, X(0), Y(-r.qToe * bs) + 2);
+        ctx.textAlign = 'right'; ctx.fillText(`heel ${sg(r.qHeel, 3)} kPa`, X(r.B), Y(-Math.max(r.qHeel * bs, 0)) + 2);
+      } else { ctx.fillStyle = pal.bad; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('resultant outside the base: the wall tips over', W / 2, Y(0) + 4); }
+    } };
+  }
+
+  function run() {
+    const err = q('.rw-err'), out = q('.rw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const method = q<HTMLSelectElement>('.rw-m').value as 'rankine' | 'coulomb';
+    q('.rw-dbox').hidden = method !== 'coulomb';
+    const w: WallInput = { H: val('.rw-H'), tTop: val('.rw-tt'), tBot: val('.rw-tbo'), tb: val('.rw-tb'), toe: val('.rw-toe'), heel: val('.rw-heel'), gc: val('.rw-gc'), gamma: val('.rw-g'), gsat: val('.rw-gs'), phi: val('.rw-phi'), beta: val('.rw-beta'), method, delta: method === 'coulomb' ? val('.rw-d') : 0, q: val('.rw-q'), hw: val('.rw-hw'), uplift: q<HTMLInputElement>('.rw-up').checked, mu: val('.rw-mu'), Df: val('.rw-Df'), usePassive: q<HTMLInputElement>('.rw-pp').checked };
+    const qa = val('.rw-qa'), ts = val('.rw-ts'), to = val('.rw-to');
+    if (!(w.H > 0 && w.H <= 30)) return fail('Give the wall height in metres (up to 30).');
+    if (!(w.tTop > 0) || !(w.tBot >= w.tTop)) return fail('Give the stem thickness at the top, and at the bottom (at least as thick).');
+    if (![w.tb, w.toe, w.heel].every((v) => v >= 0)) return fail('Give the base thickness, toe and heel (0 or more).');
+    if (w.tb >= w.H) return fail('The base is as thick as the wall is high.');
+    if (!(w.gc > 0 && w.gamma > 0 && w.gsat >= w.gamma)) return fail('Give the unit weights in kN/m³ (saturated at least the moist one).');
+    if (!(w.gsat > 9.81)) return fail('The saturated unit weight must be more than water (9.81 kN/m³).');
+    if (!(w.phi > 0 && w.phi < 60)) return fail('Give the friction angle φ in degrees (0 to 60).');
+    if (!(w.beta >= 0 && w.beta < w.phi)) return fail('Give a backfill slope β of 0° or more and less than φ; steeper slopes are not stable.');
+    if (method === 'coulomb' && !(w.delta >= 0 && w.delta <= w.phi)) return fail('Give the wall friction δ between 0 and φ (often about ⅔ φ).');
+    if (!(w.q >= 0)) return fail('Give the surcharge in kPa (0 for none).');
+    if (!(w.hw >= 0)) return fail('Give the water height in metres (0 if dry).');
+    if (!(w.mu > 0 && w.mu < 2)) return fail('Give the base friction coefficient μ (often tan of the base friction angle, 0.3 to 0.7).');
+    if (!(w.Df >= 0 && w.Df < w.H)) return fail('Give the soil depth in front of the wall (0 or more, below the top).');
+    if (!(qa > 0) || !(ts > 0) || !(to > 0)) return fail('Give the allowable bearing pressure and both target factors.');
+    err.hidden = true; out.hidden = false;
+    const r = retainingWall(w);
+    const out3 = r.contact === 0;
+    const fsb = out3 ? 0 : qa / Math.max(r.qToe, r.qHeel);
+    q('.rw-big').textContent = out3 ? 'The wall overturns: the resultant falls outside the base' : `Sliding ${sg(r.fsSliding, 3)}, overturning ${sg(r.fsOverturning, 3)}, max bearing ${sg(Math.max(r.qToe, r.qHeel), 3)} kPa`;
+    const pill = (t: string, ok: boolean) => { const s = document.createElement('span'); s.className = `ax-pill ${ok ? 'good' : 'bad'}`; s.textContent = `${t}: ${ok ? 'OK' : 'not OK'}`; return s; };
+    q('.rw-pills').replaceChildren(pill('Sliding', r.fsSliding >= ts), pill('Overturning', r.fsOverturning >= to), pill('Bearing', !out3 && fsb >= 1), pill('Middle third', Math.abs(r.e) <= r.B / 6));
+    const hz = r.forces.filter((f) => f.H > 0);
+    const facts = [
+      fact('Sliding factor', sg(r.fsSliding, 3), `(μ × ${sg(r.sumV, 4)} kN${r.Pp ? ` + passive ${sg(r.Pp, 4)} kN` : ''}) ÷ ${sg(r.sumH, 4)} kN pushing; target ${sg(ts)}`),
+      fact('Overturning factor', sg(r.fsOverturning, 3), `${sg(r.Mr, 4)} ÷ ${sg(r.Mo, 4)} kN·m about the toe; target ${sg(to)}`),
+      fact('Eccentricity e', `${sg(r.e, 3)} m`, `B/6 = ${sg(r.B / 6, 3)} m; resultant ${sg(r.R, 4)} kN at ${sg(r.xbar, 3)} m from the toe`),
+      fact('Toe and heel pressure', out3 ? '–' : `${sg(r.qToe, 4)} / ${sg(r.qHeel, 4)} kPa`, out3 ? 'no contact' : r.contact < r.B - 1e-9 ? `only ${sg(r.contact, 3)} m of the ${sg(r.B, 3)} m base is in contact` : `allowable ${sg(qa)} kPa: factor ${sg(fsb, 3)}`),
+      fact('Earth pressure coefficient', `K = ${sg(r.K, 4)}`, `${method === 'rankine' ? 'Rankine' : 'Coulomb'}${r.angle ? `, thrust at ${sg(r.angle)}° to horizontal` : ''}; on a ${sg(r.Hv, 3)} m high plane at the heel`),
+      fact('Pushing forces', hz.map((f) => `${f.name.replace(' pressure', '')} ${sg(f.H, 4)} kN`).join(', '), hz.map((f) => `${f.name.toLowerCase()} at ${sg(f.y, 3)} m`).join('; ')),
+    ];
+    q('.rw-facts').replaceChildren(...facts);
+    const head = ['Force', 'Down kN', 'Across kN', 'x from toe m', 'Height m'];
+    const rows = r.forces.map((f) => [f.name + (f.resist === 'bearing' ? ' (bearing only)' : ''), f.V ? sg(f.V, 4) : '–', f.H ? sg(f.H, 4) : '–', f.V ? sg(f.x, 3) : '–', f.H ? sg(f.y, 3) : '–']);
+    const tab = q<HTMLTableElement>('.rw-tab'), th = document.createElement('thead'), tb = document.createElement('tbody');
+    const tr = (cells: string[], h: boolean) => { const x = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(h ? 'th' : 'td'); e.textContent = c; if (i) e.className = 'r'; x.append(e); }); return x; };
+    th.append(tr(head, true)); rows.forEach((row) => tb.append(tr(row, false))); tab.replaceChildren(th, tb);
+    fig = drawing(w, r); paint(q<HTMLCanvasElement>('.rw-fig'), fig);
+    report = [
+      { title: q('.rw-big').textContent!, text: [...q('.rw-pills').children].map((e) => e.textContent!), facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Forces per metre run', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] }, note: 'Example inputs made up. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.' },
+    ];
+  }
+  q('.rw-ex').addEventListener('change', () => { const v = q<HTMLSelectElement>('.rw-ex').value; if (!v) return; for (const [k, x] of Object.entries(EX[v])) q<HTMLInputElement>(`.rw-${k}`).value = x; q<HTMLSelectElement>('.rw-ex').value = ''; run(); });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.classList.contains('rw-ex')) { i.addEventListener('input', run); i.addEventListener('change', run); } });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.rw-out').hidden) paint(q<HTMLCanvasElement>('.rw-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Retaining wall stability', subtitle: q('.rw-big').textContent ?? '', file: 'retaining-wall', sections: report }));
+</script>
+
+<style is:inline>
+  .rwc .rw-pills { margin: 4px 0 12px; }
+  .rwc .rw-fig { margin-top: 12px; }
+  .rwc .rw-tab { margin: 12px 0; }
+  .rwc .rw-tab th { white-space: normal; }
+</style>

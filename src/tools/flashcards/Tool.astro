@@ -1,0 +1,363 @@
+---
+// Flashcards with SM-2 spaced repetition: decks, study sessions, import from CSV, TSV or an Anki plain-text export,
+// statistics, and export. All decks are kept only in this browser.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax fcd">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Deck <select class="fc-deck"></select></label>
+      <label>New cards per day <input class="fc-newday" type="number" min="0" max="9999" step="1" value="20" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-newdeck">New deck</button>
+      <button type="button" class="btn secondary small fc-rename">Rename</button>
+      <button type="button" class="btn secondary small fc-deldeck">Delete deck</button>
+    </div>
+    <dl class="ax-facts fc-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn fc-study">Study now</button>
+    </div>
+    <p class="ax-help fc-nothing" hidden></p>
+  </div>
+
+  <div class="ax-card fc-session" hidden>
+    <div class="fc-top"><span class="fc-left" role="status"></span><button type="button" class="btn secondary small fc-end">End session</button></div>
+    <div class="fc-card" aria-live="polite">
+      <div class="fc-front"></div>
+      <div class="fc-back" hidden></div>
+    </div>
+    <div class="ax-row fc-showrow"><button type="button" class="btn fc-show">Show answer</button><span class="ax-help" style="margin:0">or press Space</span></div>
+    <div class="fc-grades" hidden></div>
+    <p class="ax-help fc-ghelp" hidden>How well did you know it? Grades 0 to 2 count as forgotten: the card starts again tomorrow. Anything below 4 comes back later in this session. Keys 0 to 5 work too.</p>
+    <div class="fc-donebox" hidden>
+      <p class="ax-big fc-donemsg"></p>
+      <p class="ax-help fc-donesub"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="fc-ftitle">Add a card</h2>
+    <div class="ax-grid fc-fgrid">
+      <label>Front (question) <textarea class="fc-ffront" rows="2"></textarea></label>
+      <label>Back (answer) <textarea class="fc-fback" rows="2"></textarea></label>
+    </div>
+    <label style="margin-top:10px">Tags (optional, separated by spaces) <input class="fc-ftags" autocomplete="off" /></label>
+    <p class="ax-err fc-ferr" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small fc-fsave">Add card</button>
+      <button type="button" class="btn secondary small fc-fcancel" hidden>Cancel</button>
+      <button type="button" class="btn secondary small fc-freset" hidden>Forget progress</button>
+      <button type="button" class="btn secondary small fc-fdel" hidden>Delete card</button>
+    </div>
+    <p class="ax-help fc-fmsg" role="status" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Import cards</h2>
+    <label>Paste a list: front, back and (optional) tags in columns, from a spreadsheet, a CSV or TSV file, or an Anki "Notes in Plain Text" export
+      <textarea class="fc-paste" rows="5" spellcheck="false" placeholder={'Front\tBack\nSI unit of power\twatt (W)\nSymbol for gold\tAu'}></textarea>
+    </label>
+    <DataFile target=".fc-paste" maxMB={5} maxCols={10} maxRows={20000} />
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="fc-swap" /> Swap front and back</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Add the cards to <select class="fc-into"><option value="this">This deck</option><option value="new">A new deck</option></select></label>
+    </div>
+    <p class="ax-help">Tabs, commas or semicolons between columns all work, and "quoted, text" keeps its comma. A first row like "Front, Back" is skipped. From Anki: File, Export, "Notes in Plain Text"; its header lines are followed and HTML is turned into plain text (pictures and sounds are left out).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small fc-import">Import cards</button></div>
+    <p class="ax-help fc-imsg" role="status" hidden></p>
+    <p class="ax-err fc-ierr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Cards in this deck</h2>
+    <label>Search <input class="fc-q" type="search" autocomplete="off" placeholder="Word on either side or a tag" /></label>
+    <p class="ax-help fc-count"></p>
+    <div class="ax-scroll"><table class="fc-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Statistics</h2>
+    <dl class="ax-facts fc-sfacts"></dl>
+    <h3 class="fc-h3">Answers in the last 30 days</h3>
+    <canvas class="ax-fig fc-hist"></canvas>
+    <h3 class="fc-h3">Cards due in the next 14 days</h3>
+    <canvas class="ax-fig fc-fore"></canvas>
+    <p class="ax-help">Learning: seen, with an interval under 6 days. Young: 6 to 20 days. Mature: 21 days or more. Right: graded 3 or more.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Export and keep</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small fc-anki">Deck for Anki (.txt)</button>
+      <button type="button" class="btn secondary small fc-csv">Deck with schedule (CSV)</button>
+    </div>
+    <p class="ax-help fc-store">Your decks and your progress are saved automatically in this browser on this device, so they are here next time. Nothing is sent to fibub or anyone else. Clearing your browser data removes them, so download a backup now and then; it also moves your decks to another device. Browsers keep about 5 MB per site, room for tens of thousands of cards.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-json">Download backup (JSON)</button>
+      <button type="button" class="btn secondary small fc-jopen">Open a backup</button>
+      <input type="file" class="fc-jfile" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small fc-ex">Add the example deck</button>
+      <button type="button" class="btn secondary small fc-clear">Clear all</button>
+    </div>
+    <p class="ax-help fc-bmsg" role="status" hidden></p>
+  </div>
+</div>
+
+<script>
+  import * as S from '../../lib/sci/flashcards';
+  import { csv } from '../../lib/sci/num';
+  import { paint, save, fileSafe, type Figure } from '../../lib/report';
+
+  const KEY = 'fibub-flashcards-v1';
+  const root = document.querySelector<HTMLElement>('.fcd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const now = new Date();
+  const today = Math.round(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
+
+  let decks: S.Deck[] = [];
+  let cur = '';
+  let editing: string | null = null;
+  let sess: S.Session | null = null;
+  let shown = false;
+
+  const persist = () => {
+    try { localStorage.setItem(KEY, JSON.stringify({ ...JSON.parse(S.toJson(decks)), current: cur })); }
+    catch { msg('.fc-bmsg', 'Could not save in this browser (storage full or blocked). Download a backup so you do not lose your progress.'); }
+  };
+  try { const raw = localStorage.getItem(KEY); if (raw) { decks = S.fromJson(raw); cur = JSON.parse(raw).current ?? ''; } } catch { decks = []; }
+  if (!decks.length) decks = [S.exampleDeck()];
+  if (!decks.some((d) => d.id === cur)) cur = decks[0].id;
+  const deck = () => decks.find((d) => d.id === cur)!;
+
+  const msg = (c: string, t: string) => { const el = q(c); el.textContent = t; el.hidden = !t; };
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; };
+  const newLeft = (d: S.Deck) => Math.max(0, d.newPerDay - S.newStartedToday(d, today));
+  const days = (n: number) => (n === 1 ? '1 day' : n < 60 ? `${n} days` : n < 730 ? `${Math.round(n / 30.4)} months` : `${+(n / 365.25).toFixed(1)} years`);
+
+  // ---- decks ----
+  function fillDecks() {
+    const sel = q<HTMLSelectElement>('.fc-deck'); sel.replaceChildren();
+    for (const d of decks) { const o = document.createElement('option'); o.value = d.id; o.textContent = `${d.name} (${d.cards.length})`; sel.append(o); }
+    sel.value = cur;
+  }
+  q('.fc-deck').addEventListener('change', () => { cur = q<HTMLSelectElement>('.fc-deck').value; endSession(); closeEdit(); persist(); render(); });
+  q('.fc-newdeck').addEventListener('click', () => {
+    const name = prompt('Name of the new deck', 'My deck'); if (!name?.trim()) return;
+    const d: S.Deck = { id: S.randomId(), name: name.trim(), cards: [], newPerDay: 20 }; decks.push(d); cur = d.id; endSession(); persist(); render();
+  });
+  q('.fc-rename').addEventListener('click', () => { const d = deck(); const name = prompt('New name for this deck', d.name); if (!name?.trim()) return; d.name = name.trim(); persist(); render(); });
+  q('.fc-deldeck').addEventListener('click', () => {
+    const d = deck(); if (!confirm(`Delete the deck "${d.name}" and its ${d.cards.length} cards? Download a backup first if you may need it.`)) return;
+    decks = decks.filter((x) => x.id !== d.id); if (!decks.length) decks = [{ id: S.randomId(), name: 'My deck', cards: [], newPerDay: 20 }];
+    cur = decks[0].id; endSession(); persist(); render();
+  });
+  inp('.fc-newday').addEventListener('change', () => { const v = Math.round(Number(inp('.fc-newday').value)); if (Number.isFinite(v) && v >= 0) { deck().newPerDay = v; persist(); render(); } });
+
+  function render() {
+    fillDecks();
+    const d = deck();
+    inp('.fc-newday').value = String(d.newPerDay);
+    const st = S.stats(d, today);
+    const qn = S.todayQueue(d, today, newLeft(d));
+    const nNew = qn.filter(S.isNew).length;
+    q('.fc-facts').replaceChildren(fact('Due today', String(st.dueToday)), fact('New today', `${nNew}`), fact('Cards', String(st.total)), fact('Mature', String(st.mature)));
+    const study = q<HTMLButtonElement>('.fc-study');
+    study.textContent = qn.length ? `Study now (${qn.length} card${qn.length === 1 ? '' : 's'})` : 'Study now';
+    study.disabled = !qn.length || !!sess;
+    const nxt = d.cards.filter((c) => !S.isNew(c)).reduce((m, c) => Math.min(m, c.due), Infinity);
+    msg('.fc-nothing', qn.length ? '' : !d.cards.length ? 'This deck is empty. Add cards below or import a list.' : `All done for today. ${Number.isFinite(nxt) ? `Next review ${nxt <= today + 1 ? 'tomorrow' : `in ${days(nxt - today)}`}.` : ''}${d.cards.some(S.isNew) ? ' Raise "New cards per day" to learn more now.' : ''}`);
+    renderList(); renderStats(st);
+  }
+
+  // ---- study ----
+  function startStudy() {
+    const d = deck(); const qn = S.todayQueue(d, today, newLeft(d)); if (!qn.length) return;
+    sess = S.startSession(qn);
+    q('.fc-session').hidden = false; q('.fc-donebox').hidden = true;
+    showCard(); render();
+    q('.fc-session').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function showCard() {
+    const d = deck();
+    const id = sess?.queue[0];
+    const c = d.cards.find((x) => x.id === id);
+    if (!sess || !c) { finish(); return; }
+    shown = false;
+    q('.fc-front').textContent = c.front; q('.fc-back').textContent = c.back; q('.fc-back').hidden = true;
+    q('.fc-showrow').hidden = false; q('.fc-grades').hidden = true; q('.fc-ghelp').hidden = true;
+    const left = sess.queue.length;
+    q('.fc-left').textContent = `${left} to go${sess.again ? `, ${sess.again} again` : ''} · ${S.isNew(c) ? 'new card' : sess.graded.has(c.id) ? 'once more' : `review, last seen ${days(today - c.log[c.log.length - 1][0])} ago`}`;
+    // Grade buttons with the next interval each would give (first answer of the day only).
+    const g = q('.fc-grades'); g.replaceChildren();
+    for (const gr of S.GRADES) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = `btn secondary fc-g g${gr.q}`; b.dataset.q = String(gr.q); b.title = gr.help;
+      const n = document.createElement('b'); n.textContent = `${gr.q} ${gr.name}`;
+      const s = document.createElement('small');
+      s.textContent = sess.graded.has(c.id) ? (gr.q >= 4 ? 'done for today' : 'again later') : `${days(S.sm2(c, gr.q).interval)}${gr.q < 4 ? ', again today' : ''}`;
+      b.append(n, s); g.append(b);
+    }
+  }
+  function reveal() { if (!sess || shown) return; shown = true; q('.fc-back').hidden = false; q('.fc-showrow').hidden = true; q('.fc-grades').hidden = false; q('.fc-ghelp').hidden = false; q<HTMLButtonElement>('.fc-g.g4').focus({ preventScroll: true }); }
+  function gradeIt(g: number) {
+    if (!sess || !shown) return;
+    S.answer(sess, deck(), g, today);
+    persist(); showCard(); render();
+  }
+  function finish() {
+    const done = sess?.done ?? 0;
+    sess = null;
+    q('.fc-front').textContent = ''; q('.fc-back').hidden = true; q('.fc-showrow').hidden = true; q('.fc-grades').hidden = true; q('.fc-ghelp').hidden = true;
+    q('.fc-donebox').hidden = false; q('.fc-left').textContent = 'Session over';
+    q('.fc-donemsg').textContent = done ? `Well done: ${done} card${done === 1 ? '' : 's'} learned today.` : 'Session ended.';
+    const d = deck(); const nxt = d.cards.filter((c) => !S.isNew(c)).reduce((m, c) => Math.min(m, c.due), Infinity);
+    q('.fc-donesub').textContent = Number.isFinite(nxt) && nxt > today ? `Next review ${nxt === today + 1 ? 'tomorrow' : `in ${days(nxt - today)}`}.` : '';
+    render();
+  }
+  function endSession() { if (sess) finish(); q('.fc-session').hidden = true; }
+  q('.fc-study').addEventListener('click', startStudy);
+  q('.fc-show').addEventListener('click', reveal);
+  q('.fc-end').addEventListener('click', () => { if (sess) finish(); else q('.fc-session').hidden = true; });
+  q('.fc-grades').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.fc-g'); if (b) gradeIt(Number(b.dataset.q)); });
+  document.addEventListener('keydown', (e) => {
+    if (!sess || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target as HTMLElement; if (t.matches('input, textarea, select')) return;
+    if (!shown && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); reveal(); }
+    else if (shown && /^[0-5]$/.test(e.key)) { e.preventDefault(); gradeIt(Number(e.key)); }
+  });
+
+  // ---- add and edit ----
+  function closeEdit() {
+    editing = null; q('.fc-ftitle').textContent = 'Add a card'; q('.fc-fsave').textContent = 'Add card';
+    for (const c of ['.fc-fcancel', '.fc-freset', '.fc-fdel']) q(c).hidden = true;
+    q<HTMLTextAreaElement>('.fc-ffront').value = ''; q<HTMLTextAreaElement>('.fc-fback').value = ''; inp('.fc-ftags').value = ''; q('.fc-ferr').hidden = true;
+  }
+  function openEdit(id: string) {
+    const c = deck().cards.find((x) => x.id === id); if (!c) return;
+    editing = id; q('.fc-ftitle').textContent = 'Change a card'; q('.fc-fsave').textContent = 'Save card';
+    for (const s of ['.fc-fcancel', '.fc-freset', '.fc-fdel']) q(s).hidden = false;
+    q<HTMLTextAreaElement>('.fc-ffront').value = c.front; q<HTMLTextAreaElement>('.fc-fback').value = c.back; inp('.fc-ftags').value = c.tags;
+    q('.fc-ftitle').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  q('.fc-fsave').addEventListener('click', () => {
+    const f = q<HTMLTextAreaElement>('.fc-ffront').value.trim(), b = q<HTMLTextAreaElement>('.fc-fback').value.trim(), t = inp('.fc-ftags').value.trim();
+    if (!f || !b) { msg('.fc-ferr', 'Write something on both the front and the back.'); return; }
+    const d = deck();
+    if (editing) { const c = d.cards.find((x) => x.id === editing); if (c) Object.assign(c, { front: f, back: b, tags: t }); msg('.fc-fmsg', 'Card saved.'); closeEdit(); }
+    else { d.cards.push(S.newCard(f, b, t)); q<HTMLTextAreaElement>('.fc-ffront').value = ''; q<HTMLTextAreaElement>('.fc-fback').value = ''; msg('.fc-fmsg', `Added. The deck has ${d.cards.length} cards.`); msg('.fc-ferr', ''); q<HTMLTextAreaElement>('.fc-ffront').focus(); }
+    persist(); render();
+  });
+  q('.fc-fcancel').addEventListener('click', closeEdit);
+  q('.fc-fdel').addEventListener('click', () => { const d = deck(); if (!confirm('Delete this card?')) return; d.cards = d.cards.filter((c) => c.id !== editing); if (sess) sess.queue = sess.queue.filter((x) => x !== editing); closeEdit(); persist(); render(); msg('.fc-fmsg', 'Card deleted.'); });
+  q('.fc-freset').addEventListener('click', () => { const c = deck().cards.find((x) => x.id === editing); if (!c || !confirm('Forget this card’s progress? It becomes a new card again.')) return; Object.assign(c, { ef: 2.5, n: 0, interval: 0, due: NaN, log: [] }); closeEdit(); persist(); render(); msg('.fc-fmsg', 'Progress forgotten: it is a new card again.'); });
+
+  // ---- card list ----
+  function renderList() {
+    const d = deck(), words = inp('.fc-q').value.toLowerCase().split(/\s+/).filter(Boolean);
+    const rows = d.cards.filter((c) => { const h = `${c.front} ${c.back} ${c.tags}`.toLowerCase(); return words.every((w) => h.includes(w)); });
+    q('.fc-count').textContent = `${rows.length} of ${d.cards.length} cards${rows.length > 300 ? ' (first 300 shown)' : ''}.`;
+    const t = q<HTMLTableElement>('.fc-tab'); t.replaceChildren();
+    if (!rows.length) return;
+    const h = t.createTHead().insertRow(); for (const x of ['Front', 'Back', 'Next review', 'Easiness', '']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    const b = t.createTBody();
+    for (const c of rows.slice(0, 300)) {
+      const tr = b.insertRow(); tr.dataset.id = c.id;
+      const cell = (s: string, cls = '') => { const td = tr.insertCell(); td.textContent = s; if (cls) td.className = cls; return td; };
+      cell(c.front, 'fc-clip'); cell(c.back, 'fc-clip');
+      cell(S.isNew(c) ? 'new' : c.due <= today ? 'due now' : c.due === today + 1 ? 'tomorrow' : S.isoDay(c.due));
+      cell(S.isNew(c) ? '' : c.ef.toFixed(2), 'r');
+      const td = tr.insertCell(); const e = document.createElement('button'); e.type = 'button'; e.className = 'btn secondary small fc-edit'; e.textContent = 'Edit'; td.append(e);
+    }
+  }
+  q('.fc-q').addEventListener('input', renderList);
+  q('.fc-tab').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.fc-edit'); if (b) openEdit(b.closest('tr')!.dataset.id!); });
+
+  // ---- import ----
+  q('.fc-import').addEventListener('click', () => {
+    msg('.fc-imsg', ''); msg('.fc-ierr', '');
+    const text = q<HTMLTextAreaElement>('.fc-paste').value;
+    if (!text.trim()) { msg('.fc-ierr', 'Paste a list first, or open a file.'); return; }
+    const r = S.parseCards(text, { swap: inp('.fc-swap').checked });
+    if (!r.cards.length) { msg('.fc-ierr', ['No cards found: each row needs a front and a back in two columns.', ...r.problems.slice(0, 3)].join(' ')); return; }
+    let d = deck();
+    if (q<HTMLSelectElement>('.fc-into').value === 'new') { d = { id: S.randomId(), name: `Imported ${S.isoDay(today)}`, cards: [], newPerDay: 20 }; decks.push(d); cur = d.id; }
+    const have = new Set(d.cards.map((c) => `${c.front}\u0000${c.back}`));
+    let dup = 0;
+    for (const c of r.cards) { const k = `${c.front}\u0000${c.back}`; if (have.has(k)) { dup++; continue; } have.add(k); d.cards.push(S.newCard(c.front, c.back, c.tags)); }
+    endSession(); persist(); render();
+    msg('.fc-imsg', [`Added ${r.cards.length - dup} card${r.cards.length - dup === 1 ? '' : 's'} to "${d.name}".`, dup ? `${dup} already in the deck were skipped.` : '', `Columns split by ${r.sep}${r.header ? ', header row skipped' : ''}.`, ...r.problems.slice(0, 6), r.problems.length > 6 ? `…and ${r.problems.length - 6} more.` : ''].filter(Boolean).join(' '));
+  });
+
+  // ---- statistics ----
+  function bars(title: string, labels: string[], a: number[], b: number[] | null, alt: string): Figure {
+    return { w: 640, h: 220, alt, draw: (ctx, w, h, pal) => {
+      const L = 34, R = 8, T = 12, B = 26, n = a.length, max = Math.max(1, ...a.map((x, i) => x + (b ? b[i] : 0)));
+      const step = max <= 5 ? 1 : Math.ceil(max / 4);
+      ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+      for (let v = 0; v <= max; v += step) { const y = h - B - ((h - B - T) * v) / max; ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(w - R, y); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(String(v), L - 6, y); }
+      const bw = (w - L - R) / n;
+      for (let i = 0; i < n; i++) {
+        const x = L + i * bw + bw * 0.15, ww = bw * 0.7;
+        const ha = ((h - B - T) * a[i]) / max, hb = b ? ((h - B - T) * b[i]) / max : 0;
+        ctx.fillStyle = pal.good; ctx.fillRect(x, h - B - ha, ww, ha);
+        if (b) { ctx.fillStyle = pal.bad; ctx.fillRect(x, h - B - ha - hb, ww, hb); }
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.muted;
+      const every = Math.ceil(n / 8);
+      labels.forEach((s, i) => { if (i % every === 0 || i === n - 1) ctx.fillText(s, L + (i + 0.5) * bw, h - B + 6); });
+      void title;
+    } };
+  }
+  function renderStats(st: S.Stats) {
+    q('.fc-sfacts').replaceChildren(fact('New', String(st.fresh)), fact('Learning', String(st.learning)), fact('Young', String(st.young)), fact('Mature', String(st.mature)),
+      fact('Answers, 30 days', String(st.reviews30)), fact('Right, 30 days', st.reviews30 ? `${Math.round((100 * st.right30) / st.reviews30)} %` : '–'), fact('Due tomorrow', String(st.dueTomorrow)), fact('Average easiness', Number.isFinite(st.avgEf) ? st.avgEf.toFixed(2) : '–'));
+    const lab = st.days.map((d) => (d.day === today ? 'today' : `−${today - d.day}`));
+    paint(q<HTMLCanvasElement>('.fc-hist'), bars('answers', lab, st.days.map((d) => d.right), st.days.map((d) => d.n - d.right), `Answers per day for the last 30 days: ${st.reviews30} in all, ${st.right30} right (green) and ${st.reviews30 - st.right30} forgotten (red).`));
+    paint(q<HTMLCanvasElement>('.fc-fore'), bars('due', st.forecast.map((_, i) => (i === 0 ? 'today' : `+${i}`)), st.forecast, null, `Cards due each day for the next 14 days: ${st.forecast.join(', ')}.`));
+  }
+
+  // ---- export, backup, example, clear ----
+  q('.fc-anki').addEventListener('click', () => { const d = deck(); if (!d.cards.length) { msg('.fc-bmsg', 'This deck has no cards to export.'); return; } save(new Blob([S.toAnkiText(d.cards)], { type: 'text/plain' }), `${fileSafe(d.name)}.txt`, 'text/plain'); });
+  q('.fc-csv').addEventListener('click', () => { const d = deck(); save(new Blob([csv(S.scheduleRows(d.cards))], { type: 'text/csv' }), `${fileSafe(d.name)}-schedule.csv`, 'text/csv'); });
+  q('.fc-json').addEventListener('click', () => save(new Blob([S.toJson(decks)], { type: 'application/json' }), `flashcards-backup-${S.isoDay(today)}.json`, 'application/json'));
+  q('.fc-jopen').addEventListener('click', () => inp('.fc-jfile').click());
+  inp('.fc-jfile').addEventListener('change', async () => {
+    const f = inp('.fc-jfile').files?.[0]; inp('.fc-jfile').value = ''; if (!f) return;
+    try {
+      if (f.size > 20e6) throw new Error('This file is over 20 MB, too big for a flashcards backup.');
+      const items = S.fromJson(await f.text()); if (!items.length) throw new Error('This backup has no decks.');
+      if (!confirm(`Replace all your decks with the ${items.length} deck${items.length === 1 ? '' : 's'} in ${f.name}?`)) return;
+      decks = items; cur = decks[0].id; endSession(); closeEdit(); persist(); render(); msg('.fc-bmsg', `Opened ${f.name}: ${items.length} deck${items.length === 1 ? '' : 's'}, ${items.reduce((s, d) => s + d.cards.length, 0)} cards.`);
+    } catch (e) { msg('.fc-bmsg', (e as Error).message); }
+  });
+  q('.fc-ex').addEventListener('click', () => { const d = S.exampleDeck(); d.id = S.randomId(); d.cards.forEach((c) => (c.id = S.randomId())); decks.push(d); cur = d.id; endSession(); persist(); render(); msg('.fc-bmsg', 'Added the example deck (made-up cards of general science facts).'); });
+  q('.fc-clear').addEventListener('click', () => {
+    if (!confirm('Remove every deck and all progress from this browser? Download a backup first if you may need it.')) return;
+    try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    decks = [{ id: S.randomId(), name: 'My deck', cards: [], newPerDay: 20 }]; cur = decks[0].id; endSession(); closeEdit(); render();
+    msg('.fc-bmsg', 'Cleared. Nothing is kept in this browser now.');
+  });
+
+  render();
+</script>
+
+<style is:inline>
+  .fcd .fc-facts, .fcd .fc-sfacts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .fcd .fc-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+  .fcd .fc-card { margin: 14px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); padding: 22px 16px; min-height: 140px; display: grid; align-content: center; gap: 14px; text-align: center; }
+  .fcd .fc-front { font-size: clamp(20px, 5vw, 26px); font-weight: 650; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .fcd .fc-back { font-size: clamp(17px, 4.4vw, 21px); white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 14px; }
+  .fcd .fc-grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .fcd .fc-g { display: grid; gap: 2px; padding: 8px 6px; font-size: 15px; text-align: center; min-width: 0; }
+  .fcd .fc-g small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .fcd .fc-g.g0, .fcd .fc-g.g1, .fcd .fc-g.g2 { border-color: var(--bad); }
+  .fcd .fc-g.g4, .fcd .fc-g.g5 { border-color: var(--good); }
+  .fcd .fc-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .fcd .fc-clip { max-width: 16em; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .fcd .fc-tab .btn.small { padding: 4px 10px; font-size: 14px; }
+  .fcd .fc-fgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+</style>

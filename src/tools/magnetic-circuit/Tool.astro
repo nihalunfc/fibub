@@ -1,0 +1,145 @@
+---
+// Magnetic circuit solver: cores and air gaps as reluctances, single loop or three-leg core. Linear (no
+// saturation curve). Worked out in the browser. The example cores are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mgc">
+  <div class="ax-card">
+    <h2>Core and coil</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="mc-pre">
+        <option value="gap" selected>Ring core with one air gap</option>
+        <option value="ring">Ring core, no gap</option>
+        <option value="three">Three-leg core, gap in the centre leg</option>
+      </select></label>
+      <label>Turns N <input class="mc-N" type="text" inputmode="decimal" value="500" /></label>
+      <label>Current I (A) <input class="mc-I" type="text" inputmode="decimal" value="2" /></label>
+      <label>Core saturates near (T) <input class="mc-sat" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Target B in the first gap (T, optional) <input class="mc-tgt" type="text" inputmode="decimal" value="" placeholder="e.g. 0.8" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="mc-fr" /> Allow for fringing at the gaps (flux spreads over (√A + g)²)</label>
+    <label style="margin-top:10px">Coil leg: the path through the coil, one segment per line: <code>core length(mm) area(mm²) μr</code> or <code>gap length(mm) area(mm²)</code> <textarea class="mc-c" rows="3" spellcheck="false"></textarea></label>
+    <label style="margin-top:8px">Return leg A (optional: leave both empty if the coil leg is the whole loop) <textarea class="mc-a" rows="2" spellcheck="false"></textarea></label>
+    <label style="margin-top:8px">Return leg B (optional, in parallel with A) <textarea class="mc-b" rows="2" spellcheck="false"></textarea></label>
+    <p class="ax-help">Lengths are along the middle of the core (the mean path); areas are cross-sections. The saturation value is a rounded example (silicon steel near 1.5 T, ferrite near 0.3 to 0.5 T); type the one for your material. Everything after # on a line is ignored.</p>
+    <p class="ax-err mc-err" hidden></p>
+  </div>
+
+  <div class="ax-card mc-out">
+    <p class="ax-big mc-big"></p>
+    <dl class="ax-facts mc-facts"></dl>
+    <canvas class="ax-fig mc-fig" style="margin-top:12px"></canvas>
+    <h3 style="margin-top:14px">Segments</h3>
+    <div class="ax-scroll"><table class="mc-tab"></table></div>
+    <p class="ax-help mc-warn"></p>
+    <p class="ax-help">A linear model: μr is taken as constant, which holds well below saturation. Leakage flux (that skips the core) is left out, so real inductance is a little higher and the gap field a little lower. For study and planning, not a substitute for professional judgement on real designs.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mc-csv">Download segments (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseLeg, solve, gapForce, ampereTurnsFor, type Leg } from '../../lib/sci/ph-magcircuit';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mgc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PRE: Record<string, [string, string, string]> = {
+    gap: ['core 300 400 2000   # made-up ring, 300 mm round, 20 × 20 mm\ngap 1 400', '', ''],
+    ring: ['core 300 400 2000', '', ''],
+    three: ['core 100 800 3000   # centre leg\ngap 2 800', 'core 250 400 3000   # left leg', 'core 250 400 3000   # right leg'],
+  };
+  const PR: [number, string][] = [[1e-9, 'n'], [1e-6, 'µ'], [1e-3, 'm'], [1, ''], [1e3, 'k'], [1e6, 'M']];
+  const si = (x: number, u: string, n = 4) => { if (x === 0 || !Number.isFinite(x)) return `${sig(x, n)} ${u}`; let p = PR[0]; for (const e of PR) if (Math.abs(x) >= e[0] * 0.9999) p = e; return `${sig(x / p[0], n)} ${p[1]}${u}`; };
+  let fig: Figure | null = null, report: Section[] = [], csv: string[] = [];
+
+  function barFigure(names: string[], share: number[], gaps: boolean[]): Figure {
+    const W = 380, rowH = 22, H = 30 + names.length * rowH, ml = 118;
+    return { w: W, h: H, alt: 'Share of the ampere-turns used by each segment', draw: (c: CanvasRenderingContext2D, _w: number, _h: number, pal: Palette) => {
+      c.font = '12px system-ui, sans-serif'; c.textBaseline = 'middle';
+      names.forEach((n, i) => {
+        const y = 8 + i * rowH, w = (W - ml - 50) * Math.min(1, share[i]);
+        c.fillStyle = pal.ink; c.textAlign = 'right'; c.fillText(n, ml - 8, y + rowH / 2 - 2);
+        c.fillStyle = gaps[i] ? pal.accent2 : pal.accent; c.fillRect(ml, y + 2, Math.max(1, w), rowH - 8);
+        c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText(`${sig(share[i] * 100, 3)} %`, ml + w + 6, y + rowH / 2 - 2);
+      });
+      c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText('Share of N I used in each segment (gaps in orange)', 4, H - 10);
+    } };
+  }
+
+  function calc() {
+    const err = q('.mc-err'), out = q('.mc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const N = val('.mc-N'), I = val('.mc-I'), sat = val('.mc-sat'), fr = q<HTMLInputElement>('.mc-fr').checked;
+    const tgtRaw = q<HTMLInputElement>('.mc-tgt').value.trim(), tgt = num(tgtRaw);
+    if (!(N > 0)) return fail('Give the number of turns (greater than 0).');
+    if (!(Number.isFinite(I) && I !== 0)) return fail('Give the current in amperes (not 0).');
+    if (!(sat > 0)) return fail('Give the saturation flux density in tesla (greater than 0).');
+    if (tgtRaw && !(tgt > 0)) return fail('The target B must be above 0, or leave it empty.');
+    const coil = parseLeg(q<HTMLTextAreaElement>('.mc-c').value);
+    if (typeof coil === 'string') return fail(`Coil leg, ${coil}.`);
+    if (!coil.length) return fail('The coil leg needs at least one segment.');
+    const rets: Leg[] = [];
+    for (const [k, nm] of [['.mc-a', 'Return leg A'], ['.mc-b', 'Return leg B']]) {
+      const l = parseLeg(q<HTMLTextAreaElement>(k).value);
+      if (typeof l === 'string') return fail(`${nm}, ${l}.`);
+      if (l.length) rets.push(l);
+    }
+    err.hidden = true; out.hidden = false;
+    const s = solve(coil, rets, N, I, fr);
+    const legNames = ['Coil leg', ...(rets.length ? ['Return A', 'Return B'].slice(0, rets.length) : [])];
+    const firstGap = s.legs.flatMap((l, li) => l.segs.map((g, si) => ({ g, li, si }))).find((x) => x.g.kind === 'gap');
+    q('.mc-big').textContent = firstGap ? `Φ = ${si(s.phi, 'Wb')}, B = ${sig(firstGap.g.B, 4)} T in the gap` : `Φ = ${si(s.phi, 'Wb')}, B = ${sig(s.legs[0].segs[0].B, 4)} T in the core`;
+    const f = [
+      fact('Ampere-turns N I', `${sig(s.ni, 5)} A-t`, 'the magnetomotive force (MMF) driving the flux'),
+      fact('Total reluctance', `${si(s.Rtot, 'A-t/Wb')}`, rets.length ? 'coil leg in series with the return legs in parallel' : 'all segments in series'),
+      fact('Flux through the coil Φ', si(s.phi, 'Wb'), `flux linkage NΦ = ${si(N * s.phi, 'Wb')}`),
+      fact('Inductance L', si(s.L, 'H'), `N² / reluctance; A_L = ${si(1 / s.Rtot, 'H')} per turn²`),
+      fact('Stored energy', si(s.energy, 'J'), `½ L I²; ${sig(100 * s.legs.flatMap((l) => l.segs).filter((g) => g.kind === 'gap').reduce((t, g) => t + g.mmf * g.phi, 0) / (s.ni * s.phi) || 0, 3)} % of it is in the gaps`),
+    ];
+    if (rets.length) s.legs.slice(1).forEach((l, i) => f.push(fact(`Flux in ${legNames[i + 1]}`, si(l.phi, 'Wb'), `${sig((100 * l.phi) / s.phi, 3)} % of the coil flux`)));
+    if (firstGap) {
+      f.push(fact('Pull across the first gap', `${sig(gapForce(firstGap.g.B, firstGap.g.aEff), 4)} N`, 'B²A / 2μ0: the force closing the gap, per gap'));
+      if (tgt > 0) { const at = ampereTurnsFor(coil, rets, firstGap.li, firstGap.si, tgt, fr); f.push(fact(`For ${sig(tgt, 3)} T in the gap`, `${sig(at, 4)} A-t`, `${sig(at / N, 4)} A with ${sig(N, 5)} turns`)); }
+    } else if (tgtRaw) f.push(fact('Target B', 'no gap', 'add a gap line to use the target'));
+    q('.mc-facts').replaceChildren(...f);
+    // Segment table.
+    const head = ['Leg', 'Segment', 'Length (mm)', 'Area (mm²)', 'μr', 'Reluctance (A-t/Wb)', 'MMF (A-t)', 'B (T)', 'H (A/m)'];
+    const rows: string[][] = [], names: string[] = [], share: number[] = [], gaps: boolean[] = [], over: string[] = [];
+    s.legs.forEach((l, li) => l.segs.forEach((g, si) => {
+      const nm = `${legNames[li]} ${g.kind} ${si + 1}`;
+      rows.push([legNames[li], `${g.kind} ${si + 1}`, sig(g.len * 1000, 4), sig(g.aEff * 1e6, 4), sig(g.mr, 4), sig(g.R, 4), sig(g.mmf, 4), sig(g.B, 4), sig(g.H, 4)]);
+      names.push(nm.replace('Coil leg', 'Coil').replace('Return ', '')); share.push(g.mmf / s.ni); gaps.push(g.kind === 'gap');
+      if (g.kind === 'core' && Math.abs(g.B) > sat) over.push(`${legNames[li]} core ${si + 1} (${sig(Math.abs(g.B), 3)} T)`);
+    }));
+    const tab = q('.mc-tab'), hr = document.createElement('tr');
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+    tab.replaceChildren(hr, ...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k > 1) td.className = 'r'; tr.append(td); }); return tr; }));
+    csv = ['leg,segment,length_mm,area_mm2,mu_r,reluctance_At_per_Wb,mmf_At,B_T,H_A_per_m', ...rows.map((r) => r.map((v) => v.replace('−', '-')).join(','))];
+    q('.mc-warn').textContent = over.length ? `Above the ${sig(sat, 3)} T saturation value: ${over.join(', ')}. The core would saturate, μr would fall and the real flux would be lower than shown.` : `Every core segment is below ${sig(sat, 3)} T.`;
+    q('.mc-warn').classList.toggle('mc-bad', over.length > 0);
+    fig = barFigure(names, share, gaps); paint(q<HTMLCanvasElement>('.mc-fig'), fig);
+    report = [
+      { title: q('.mc-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, note: q('.mc-warn').textContent! },
+      { title: 'Segments', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  function preset() { const p = PRE[q<HTMLSelectElement>('.mc-pre').value]; q<HTMLTextAreaElement>('.mc-c').value = p[0]; q<HTMLTextAreaElement>('.mc-a').value = p[1]; q<HTMLTextAreaElement>('.mc-b').value = p[2]; }
+  q('.mc-pre').addEventListener('change', preset);
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.mc-out').hidden) paint(q<HTMLCanvasElement>('.mc-fig'), fig); });
+  q('.mc-csv').addEventListener('click', () => save(new Blob([csv.join('\n') + '\n'], { type: 'text/csv' }), 'magnetic-circuit.csv', 'text/csv'));
+  preset(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Magnetic circuit', subtitle: `N = ${q<HTMLInputElement>('.mc-N').value}, I = ${q<HTMLInputElement>('.mc-I').value} A`, file: 'magnetic-circuit', sections: report }));
+</script>
+
+<style is:inline>
+  .mgc select, .mgc input { max-width: 100%; }
+  .mgc code { font-size: 13px; }
+  .mgc .mc-bad { color: var(--warn); }
+</style>

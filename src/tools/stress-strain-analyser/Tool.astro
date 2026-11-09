@@ -1,0 +1,170 @@
+---
+// Tensile test analysis: force-extension or stress-strain in; modulus, offset yield, UTS, elongations, toughness,
+// resilience, true stress-strain to the UTS and the Hollomon exponent out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleTest } from '../../lib/sci/tensile';
+const ex = exampleTest();
+const data = 'force_kN\textension_mm\n' + ex.force.map((f, i) => `${f}\t${ex.ext[i]}`).join('\n');
+---
+<div class="ax ssa">
+  <div class="ax-card">
+    <h2>Your test data</h2>
+    <div class="ax-grid">
+      <label>Columns are <select class="ssa-mode"><option value="fx">force, then extension</option><option value="ss">stress, then strain</option></select></label>
+      <label class="ssa-fx">Force unit <select class="ssa-fu"><option value="kN">kN</option><option value="N">N</option><option value="lbf">lbf</option></select></label>
+      <label class="ssa-fx">Length unit <select class="ssa-lu"><option value="mm">mm</option><option value="in">inch</option></select></label>
+      <label class="ssa-ss" hidden>Stress unit <select class="ssa-su"><option value="MPa">MPa</option><option value="ksi">ksi</option><option value="psi">psi</option></select></label>
+      <label class="ssa-ss" hidden>Strain unit <select class="ssa-eu"><option value="1">mm/mm</option><option value="100">%</option></select></label>
+    </div>
+    <label class="ssa-lab" style="margin-top:10px">One reading per line, from the start of the test to fracture <textarea class="ssa-data" rows="7" spellcheck="false">{data}</textarea></label>
+    <DataFile target=".ssa-data" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid ssa-fx" style="margin-top:10px">
+      <label>Specimen <select class="ssa-shape"><option value="flat">flat (width × thickness)</option><option value="round">round (diameter)</option><option value="area">I know the area</option></select></label>
+      <label class="ssa-w">Width <input class="ssa-a" inputmode="decimal" value="12.5" /></label>
+      <label class="ssa-t">Thickness <input class="ssa-b" inputmode="decimal" value="2" /></label>
+      <label>Gauge length <input class="ssa-l0" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help ssa-fx">Lengths in the length unit above (area in its square). Stress is force over the starting area; strain is extension over the starting gauge length.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Analysis</h2>
+    <div class="ax-grid">
+      <label>Modulus fit from (% of UTS) <input class="ssa-lo" inputmode="decimal" value="10" /></label>
+      <label>to (% of UTS) <input class="ssa-hi" inputmode="decimal" value="40" /></label>
+      <label>Yield offset (% strain) <input class="ssa-off" inputmode="decimal" value="0.2" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px; display:flex; gap:8px; align-items:center"><input type="checkbox" class="ssa-toe" checked /> Correct the toe (start strain where the fitted line crosses zero)</label>
+    <p class="ax-help">The modulus is a straight line through the points between the two stress levels, on the way up. The yield strength is where the curve meets the same line moved right by the offset.</p>
+    <p class="ax-err ssa-err" hidden></p>
+    <div class="ssa-out">
+      <p class="ax-big ssa-big"></p>
+      <dl class="ax-facts ssa-facts"></dl>
+      <canvas class="ax-fig ssa-fig" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig ssa-zfig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ssa-csv">Download the curves (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, engineering, areaOf, FORCE, LENGTH, STRESS, type Tensile } from '../../lib/sci/tensile';
+  import { num, sig, numericColumns, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ssa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (x + 1e-12).toFixed(n);
+  const pc = (x: number, n = 2) => `${f(x * 100, n)} %`;
+  const mpa = (x: number) => `${f(x, 1)} MPa`;
+  let fig: Figure | null = null, zfig: Figure | null = null, res: Tensile | null = null, specimen = '';
+
+  function show() {
+    const fx = sel('.ssa-mode') === 'fx';
+    root.querySelectorAll<HTMLElement>('.ssa-fx').forEach((e) => (e.hidden = !fx));
+    root.querySelectorAll<HTMLElement>('.ssa-ss').forEach((e) => (e.hidden = fx));
+    const sh = sel('.ssa-shape');
+    q('.ssa-w').childNodes[0].textContent = sh === 'flat' ? 'Width ' : sh === 'round' ? 'Diameter ' : 'Area ';
+    q('.ssa-t').hidden = sh !== 'flat';
+  }
+
+  function run() {
+    show();
+    const err = (m: string) => { q('.ssa-err').textContent = m; q('.ssa-err').hidden = !m; q('.ssa-out').hidden = !!m; if (m) { fig = zfig = null; res = null; } };
+    const t = numericColumns(q<HTMLTextAreaElement>('.ssa-data').value);
+    if (t.cols.length < 2 || t.rows < 5) return err('Paste at least five lines of two numbers each.');
+    const [c1, c2] = t.cols;
+    const bad = c1.findIndex((x, i) => !Number.isFinite(x) || !Number.isFinite(c2[i]));
+    if (bad >= 0) return err(`Line ${bad + 1} of the data is not two numbers.`);
+    let stress: number[], strain: number[];
+    if (sel('.ssa-mode') === 'fx') {
+      const L = LENGTH[sel('.ssa-lu') as keyof typeof LENGTH], F = FORCE[sel('.ssa-fu') as keyof typeof FORCE], sh = sel('.ssa-shape');
+      const a = v('.ssa-a') * L, b = v('.ssa-b') * L, l0 = v('.ssa-l0') * L;
+      const area = sh === 'area' ? v('.ssa-a') * L * L : areaOf(sh as 'flat' | 'round', a, b);
+      if (!(area > 0)) return err('Give the specimen size: all numbers above zero.');
+      if (!(l0 > 0)) return err('Give the gauge length, above zero.');
+      ({ stress, strain } = engineering(c1.map((x) => x * F), c2.map((x) => x * L), area, l0));
+      specimen = `${sig(area, 4)} mm² area, ${sig(l0, 4)} mm gauge length`;
+    } else {
+      const S = STRESS[sel('.ssa-su') as keyof typeof STRESS], d = Number(sel('.ssa-eu'));
+      stress = c1.map((x) => x * S); strain = c2.map((x) => x / d);
+      specimen = '';
+    }
+    const lo = v('.ssa-lo') / 100, hi = v('.ssa-hi') / 100, off = v('.ssa-off') / 100;
+    if (!(lo >= 0 && hi > lo && hi <= 1)) return err('The modulus range runs from a lower to a higher percentage of the UTS, up to 100.');
+    if (!(off > 0 && off < 0.05)) return err('The yield offset is a small strain above zero, such as 0.2 %.');
+    if (Math.max(...strain) > 5) return err('Strains above 500 %: is the strain column in % rather than mm/mm, or are the columns swapped?');
+    let r: Tensile;
+    try { r = analyse(strain, stress, { lo, hi, offset: off, toe: q<HTMLInputElement>('.ssa-toe').checked }); } catch (e) { return err((e as Error).message); }
+    err(''); res = r;
+    const offT = `${+(off * 100).toPrecision(3)} %`;
+    q('.ssa-big').textContent = `E ${f(r.E / 1000, 1)} GPa · ${r.yield ? `yield ${mpa(r.yield.s)}` : 'no offset yield'} · UTS ${mpa(r.uts)}`;
+    const fit = r.fitIdx;
+    const facts = [
+      fact("Young's modulus", `${f(r.E / 1000, 2)} GPa`, `straight line through ${r.nFit} points from ${f(r.stress[fit[0]], 1)} to ${f(r.stress[fit[fit.length - 1]], 1)} MPa; r² ${f(r.r2, 5)}${r.r2 < 0.995 ? ': not straight, so narrow the range and check the close-up plot' : ''}`),
+      fact(`${offT} offset yield strength`, r.yield ? mpa(r.yield.s) : 'not found', r.yield ? `at ${pc(r.yield.e, 3)} strain` : 'the curve never crosses the offset line: it broke while still elastic, or the modulus range is wrong'),
+      fact('Tensile strength (UTS)', mpa(r.uts), `highest engineering stress, at ${pc(r.eUts)} strain`),
+      fact('Uniform elongation', `${pc(r.uniformPlastic)} plastic`, `${pc(r.eUts)} total at the highest force; necking starts here`),
+      fact('Elongation at fracture', `${pc(r.fracture.plastic)} plastic`, `${pc(r.fracture.e)} total at the last point; the elastic part (σ/E) springs back`),
+      fact('Toughness', `${sig(r.toughness, 4)} MJ/m³`, 'area under the engineering curve to fracture (1 MPa = 1 MJ/m³)'),
+      fact('Modulus of resilience', r.resilience !== null ? `${sig(r.resilience, 3)} MJ/m³` : '–', 'elastic energy stored up to yield, σy² ÷ 2E'),
+      fact('Yield to tensile ratio', r.yield ? f(r.yield.s / r.uts, 3) : '–', 'low values mean much strain hardening'),
+      fact('True stress and strain at UTS', `${mpa(r.trueStress[r.iUts])}, ${f(r.trueStrain[r.iUts], 4)}`, 'σ(1 + e) and ln(1 + e); only valid up to necking'),
+      fact('Strain-hardening exponent n', r.hollomon ? f(r.hollomon.n, 3) : '–', r.hollomon ? `Hollomon σ = K εⁿ fitted from yield to UTS (${r.hollomon.pts} points, r² ${f(r.hollomon.r2, 4)}); K ${f(r.hollomon.K, 0)} MPa. Considère: n ≈ true strain at UTS (${f(r.trueStrain[r.iUts], 3)})` : 'needs at least 3 points between yield and UTS'),
+    ];
+    if (q<HTMLInputElement>('.ssa-toe').checked) facts.push(fact('Toe correction', `${sig(r.toe * 100, 2)} % strain`, 'subtracted from every strain so the elastic line starts at zero'));
+    if (specimen) facts.push(fact('Specimen', specimen));
+    q('.ssa-facts').replaceChildren(...facts);
+    const X = r.strain.map((e) => e * 100);
+    const pts = (name: string, e: number, s: number, marker: 'square' | 'triangle' | 'cross') => ({ name, x: [e * 100], y: [s], mode: 'points' as const, marker, size: 6 });
+    const marks = [pts('UTS', r.eUts, r.uts, 'triangle'), pts('fracture', r.fracture.e, r.fracture.s, 'cross')];
+    if (r.yield) marks.unshift(pts('yield', r.yield.e, r.yield.s, 'square'));
+    const W = Math.round(Math.min(720, Math.max(320, q('.ssa-out').clientWidth || 640))), narrow = W < 500;
+    fig = chartFigure({ w: W, h: narrow ? 320 : 380, xLabel: 'Strain (%)', yLabel: 'Stress (MPa)', xMin: 0, yMin: 0, series: [
+      { name: 'engineering', x: X, y: r.stress, mode: 'line', width: 1.5 },
+      { name: 'true (to UTS)', x: r.trueStrain.map((e) => e * 100), y: r.trueStress, mode: 'line', width: 1.5, dash: [5, 3] },
+      ...marks,
+    ], legend: 'below' }, 'Engineering and true stress against strain, with the yield point, tensile strength and fracture marked');
+    const ey = r.yield ? r.yield.e : r.eUts, xm = Math.max(ey * 2.5, r.offset * 3) * 100, ym = (r.yield ? r.yield.s : r.uts) * 1.25;
+    const lx = [0, xm], ly = lx.map((x) => r.intercept + (r.E * x) / 100), ox = [r.offset * 100, xm], oy = ox.map((x) => r.E * (x / 100 - r.offset) + r.intercept);
+    const zi = X.map((x, i) => i).filter((i) => X[i] <= xm * 1.05);
+    zfig = chartFigure({ w: W, h: narrow ? 280 : 320, xLabel: 'Strain (%)', yLabel: 'Stress (MPa)', xMin: 0, xMax: xm, yMin: 0, yMax: ym, series: [
+      { name: 'data', x: zi.map((i) => X[i]), y: zi.map((i) => r.stress[i]), mode: 'points', size: 3 },
+      { name: 'modulus fit', x: lx, y: ly, mode: 'line', width: 1.2 },
+      { name: `${offT} offset`, x: ox, y: oy, mode: 'line', width: 1.2, dash: [4, 3] },
+      ...(r.yield ? [pts('yield', r.yield.e, r.yield.s, 'square')] : []),
+    ], legend: 'below' }, 'The elastic part close up, with the fitted modulus line and the offset line');
+    paint(q<HTMLCanvasElement>('.ssa-fig'), fig); paint(q<HTMLCanvasElement>('.ssa-zfig'), zfig);
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.ssa-csv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res;
+    const rows: (string | number)[][] = [['engineering_strain', 'engineering_stress_MPa', 'true_strain', 'true_stress_MPa'], ...r.strain.map((e, i) => [+e.toPrecision(8), +r.stress[i].toPrecision(8), i <= r.iUts ? +r.trueStrain[i].toPrecision(8) : '', i <= r.iUts ? +r.trueStress[i].toPrecision(8) : ''])];
+    save(new TextEncoder().encode(csv(rows)), 'stress-strain.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ssa-fig'), fig); if (zfig) paint(q<HTMLCanvasElement>('.ssa-zfig'), zfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.ssa-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; run(); } });
+  run(); lastW = q('.ssa-out').clientWidth;
+  const facts = () => [...root.querySelectorAll('.ssa-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Tensile test', subtitle: 'Stress-strain analysis', file: 'stress-strain',
+    sections: q('.ssa-out').hidden ? [] : [{ title: q('.ssa-big').textContent!, facts: facts(), ...(fig ? { figure: fig } : {}) }, ...(zfig ? [{ title: 'Elastic part and offset line', figure: zfig }] : [])],
+  }));
+</script>
+
+<style is:inline>
+  .ssa select { max-width: 100%; }
+  .ssa .ssa-lab { display: block; }
+  .ssa textarea { width: 100%; font: inherit; font-size: 14px; }
+  .ssa [hidden] { display: none !important; }
+</style>

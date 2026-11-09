@@ -32,10 +32,15 @@ export function toolTerms() {
     const fm = readFileSync(f, 'utf8').split(/^---\s*$/m)[1] ?? '';
     if ((field(fm, 'status') || 'live') !== 'live') continue;
     const name = field(fm, 'name'), shelf = field(fm, 'shelf'), head = field(fm, 'title').split(/:\s/)[0].trim();
+    const related = (field(fm, 'related').match(/[a-z0-9-]+/g) ?? []), section = field(fm, 'section');
     // Only phrases of two or more words: a lone word ("Planner") would also match ordinary sentences.
     const terms = [...new Set([name, head].filter((t) => t && t.split(/\s+/).length >= 2 && t.length <= 60))];
-    out.push({ id, name, url: `/${shelf}/${id}/`, terms });
+    out.push({ id, name, url: `/${shelf}/${id}/`, terms, related, section });
   }
+  // `related` works both ways, as on the tool page.
+  const byId = new Map(out.map((t) => [t.id, t]));
+  for (const t of out) for (const r of t.related) { const o = byId.get(r); if (o && !o.related.includes(t.id)) o.related.push(t.id); }
+  for (const t of out) t.related = t.related.filter((r) => byId.has(r));
   return out;
 }
 
@@ -83,9 +88,27 @@ export default function autolinkTools() {
       });
     };
     manual(tree);
+    const handMade = done.size > 1;
     // Tools the guide already links to with an ordinary Markdown link count as linked too.
     const seen = (node) => { if (node.type === 'element' && node.tagName === 'a') { const h = String(node.properties?.href ?? ''); for (const t of tools) if (h === t.url) done.add(t.id); } (node.children ?? []).forEach(seen); };
     seen(tree);
+
+    // A guide without its own linking sentence gets a plain one after its first section, naming up to
+    // three related tools (or tools from its section), so every guide links on. Write a better one by hand.
+    if (!handMade) {
+      const me = byId.get(self);
+      const pool = me ? (me.related.length ? me.related : tools.filter((t) => t.id !== self && me.section && t.section === me.section).map((t) => t.id)) : [];
+      const picks = pool.filter((id) => !done.has(id)).slice(0, 3).map((id) => byId.get(id));
+      if (picks.length) {
+        const kids = [{ type: 'text', value: 'It works well with ' }];
+        picks.forEach((t, i) => { if (i) kids.push({ type: 'text', value: i === picks.length - 1 ? ' and ' : ', ' }); kids.push({ type: 'text', value: 'the ' }, link(t, inSentence(t.name))); done.add(t.id); });
+        kids.push({ type: 'text', value: '.' });
+        const para = { type: 'element', tagName: 'p', properties: {}, children: kids };
+        const heads = tree.children.map((c, i) => [c, i]).filter(([c]) => c.type === 'element' && c.tagName === 'h2');
+        const at = heads.length >= 2 ? heads[1][1] : heads.length ? heads[0][1] : tree.children.length;
+        tree.children.splice(at, 0, para, { type: 'text', value: '\n' });
+      }
+    }
 
     if (!anyPhrase) return;
     const walk = (node) => {

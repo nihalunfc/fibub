@@ -1,0 +1,123 @@
+---
+// Author list and affiliation formatter: a simple line format in, the author block for a journal's LaTeX class,
+// a superscript list for Word or HTML, or JATS-style XML out. Everything runs on the page; nothing is stored.
+import '../../styles/astro.css';
+---
+<div class="ax alf">
+  <div class="ax-card">
+    <h2>Authors and affiliations</h2>
+    <textarea class="alf-in" rows="11" spellcheck="false" aria-label="Authors and affiliations"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small alf-ex">Use the example</button>
+      <button type="button" class="btn secondary small alf-clear">Clear</button>
+      <button type="button" class="btn secondary small alf-open">Open a text file</button>
+      <input type="file" class="alf-file" accept=".txt,.tex,.csv,text/plain" hidden />
+      <span class="ax-help" style="margin:0">Plain text (.txt), up to 1 MB and 2,000 lines.</span>
+    </div>
+    <p class="ax-err alf-ferr" hidden></p>
+    <p class="ax-help">One author per line, in author order: <b>name; affiliations; ORCID; email; *</b>. Only the name is needed. Give affiliations as short keys defined on their own line (<code>1 = Department, University, City, Country</code>) or write them out in full. The same affiliation written twice is merged. A <b>*</b> marks the corresponding author. Write <code>Family, Given</code> when the family name has more than one word (<code>van der Berg, Mira</code>). Lines starting with # are ignored.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Style</h2>
+    <div class="ax-grid">
+      <label>Journal style <select class="alf-style"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="alf-acc" /> Accents as LaTeX commands</label>
+      <label class="ax-check"><input type="checkbox" class="alf-orc" /> ORCID icons with \orcidlink</label>
+    </div>
+    <p class="ax-help">Accents as LaTeX commands writes é as &#123;\'e&#125; and ø as &#123;\o&#125;, for old templates that do not read UTF-8. The \orcidlink option puts a linked ORCID icon after each name (MNRAS, A&amp;A, REVTeX and elsarticle; add \usepackage&#123;orcidlink&#125;); AASTeX has its own ORCID slot. Classes change: check the journal's current template.</p>
+  </div>
+
+  <div class="ax-card alf-out" hidden>
+    <h2>Author block</h2>
+    <dl class="ax-facts alf-facts"></dl>
+    <ul class="alf-warn"></ul>
+    <div class="alf-prev" hidden></div>
+    <textarea class="alf-res" rows="12" readonly spellcheck="false" aria-label="Formatted author block"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small alf-copy">Copy</button>
+      <button type="button" class="btn secondary small alf-word" hidden>Copy for Word</button>
+      <button type="button" class="btn secondary small alf-dl">Download</button>
+      <span class="ax-help alf-msg" style="margin:0" aria-live="polite"></span>
+    </div>
+  </div>
+  <p class="ax-err alf-err" hidden></p>
+</div>
+
+<style is:inline>
+  .alf .alf-warn { margin: 10px 0 0; padding-left: 20px; color: var(--warn); font-size: 14px; }
+  .alf .alf-warn:empty { display: none; }
+  .alf .alf-res { margin-top: 12px; }
+  .alf .alf-prev { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 15px; overflow-wrap: anywhere; }
+  .alf .alf-prev p { margin: 0 0 8px; }
+  .alf code { font-size: 13px; overflow-wrap: anywhere; }
+</style>
+
+<script>
+  import { parseAuthors, STYLES, EXAMPLE, type AuthorList } from '../../lib/sci/authors';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.alf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = q<HTMLTextAreaElement>('.alf-in'), sel = q<HTMLSelectElement>('.alf-style');
+  sel.replaceChildren(...STYLES.map((s) => new Option(s.name, s.id)));
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  let L: AuthorList | null = null, text = '', html = '';
+
+  function run() {
+    const err = q('.alf-err'); err.hidden = true; q('.alf-msg').textContent = '';
+    if (!inp.value.trim()) { q('.alf-out').hidden = true; L = null; return; }
+    L = parseAuthors(inp.value);
+    if (L.errors.length) { err.textContent = L.errors.join(' '); err.hidden = false; q('.alf-out').hidden = true; return; }
+    const st = STYLES.find((s) => s.id === sel.value) ?? STYLES[0];
+    text = st.run(L, { latexAccents: q<HTMLInputElement>('.alf-acc').checked, orcidLink: q<HTMLInputElement>('.alf-orc').checked });
+    const res = q<HTMLTextAreaElement>('.alf-res'); res.value = text; res.rows = Math.min(24, Math.max(6, text.split('\n').length + 1));
+    const corr = L.authors.filter((a) => a.corresponding).map((a) => a.name);
+    q('.alf-facts').replaceChildren(fact('Authors', String(L.authors.length)), fact('Affiliations', String(L.affs.length)), fact('Corresponding', corr.length ? corr.join(', ') : 'none'), fact('With ORCID', String(L.authors.filter((a) => a.orcid).length)));
+    q('.alf-warn').replaceChildren(...L.warnings.map((w) => { const li = document.createElement('li'); li.textContent = w; return li; }));
+    const isWord = st.id === 'word';
+    html = isWord ? text : '';
+    const prev = q('.alf-prev'); prev.hidden = !isWord;
+    if (isWord) prev.innerHTML = text; // our own escaped HTML (names and affiliations are escaped in toHTML)
+    q('.alf-word').hidden = !isWord;
+    q('.alf-out').hidden = false;
+  }
+
+  inp.addEventListener('input', run);
+  for (const c of ['.alf-style', '.alf-acc', '.alf-orc']) q(c).addEventListener('change', run);
+  q('.alf-ex').addEventListener('click', () => { inp.value = EXAMPLE; run(); });
+  q('.alf-clear').addEventListener('click', () => { inp.value = ''; run(); inp.focus(); });
+  const msg = (m: string) => { q('.alf-msg').textContent = m; };
+  q('.alf-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(text); msg('Copied.'); } catch { q<HTMLTextAreaElement>('.alf-res').select(); document.execCommand('copy'); msg('Copied.'); }
+  });
+  q('.alf-word').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([q('.alf-prev').innerText], { type: 'text/plain' }) })]);
+      msg('Copied with superscripts. Paste into Word or Google Docs.');
+    } catch {
+      const r = document.createRange(); r.selectNodeContents(q('.alf-prev')); const s = getSelection()!; s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); s.removeAllRanges(); msg('Copied.');
+    }
+  });
+  q('.alf-dl').addEventListener('click', () => {
+    const st = STYLES.find((s) => s.id === sel.value) ?? STYLES[0];
+    const type = st.ext === 'html' ? 'text/html' : st.ext === 'xml' ? 'application/xml' : 'text/plain';
+    save(new Blob([st.ext === 'html' ? `<!doctype html><meta charset="utf-8"><title>Authors</title>\n${text}` : text], { type: `${type};charset=utf-8` }), `authors-${st.id}.${st.ext}`, type);
+  });
+  q('.alf-open').addEventListener('click', () => q<HTMLInputElement>('.alf-file').click());
+  q<HTMLInputElement>('.alf-file').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; (e.target as HTMLInputElement).value = '';
+    const fe = q('.alf-ferr'); fe.hidden = true;
+    if (!f) return;
+    if (f.size > 1e6) { fe.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes text files up to 1 MB.`; fe.hidden = false; return; }
+    const t = (await f.text()).replace(/^﻿/, '');
+    if (/\u0000/.test(t.slice(0, 2000))) { fe.textContent = `${f.name} is not a text file. Save the list as plain text (.txt) first.`; fe.hidden = false; return; }
+    const lines = t.split(/\r?\n/);
+    if (lines.length > 2000) { fe.textContent = `${f.name} has ${lines.length.toLocaleString('en')} lines; this tool takes up to 2,000.`; fe.hidden = false; return; }
+    inp.value = t; run();
+  });
+
+  inp.value = EXAMPLE; run();
+</script>

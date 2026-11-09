@@ -1,0 +1,119 @@
+---
+// One-dimensional tolerance stack-up: worst case, RSS and a seeded Monte Carlo (src/lib/sci/eng-stack.ts).
+// The example assembly is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax tsu">
+  <div class="ax-card">
+    <h2>Dimension chain</h2>
+    <label>One dimension per row: name, nominal, plus tolerance, minus tolerance, direction (+ or −), distribution
+      <textarea class="ts-data" rows="8" spellcheck="false">Part, Nominal, Plus, Minus, Direction, Distribution
+Housing bore depth, 60, 0.10, 0.10, +, normal
+Spacer, 20, 0.05, 0.05, -, normal
+Bearing width, 15, 0, 0.12, -, uniform
+Gear hub, 24.5, 0.08, 0.08, -, triangular
+Circlip, 0.3, 0.02, 0.02, -, normal</textarea>
+    </label>
+    <DataFile target=".ts-data" maxCols={6} maxRows={500} label="Open a file" />
+    <p class="ax-help">Walk round the loop from one side of the gap to the other: dimensions that make the gap bigger are +, those that make it smaller are −. The minus tolerance is how far below nominal the lower limit is (0.12 means −0.12); leave it empty for an equal ± tolerance. Distribution says how parts spread inside their limits: normal (most near the middle, the limits at ±3σ), uniform (anywhere in the band equally) or triangular. The example is a made-up shaft assembly.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Gap lower limit (optional) <input class="ts-lsl" type="text" inputmode="decimal" value="0.05" /></label>
+      <label>Gap upper limit (optional) <input class="ts-usl" type="text" inputmode="decimal" value="0.40" /></label>
+      <label>Normal parts: tolerance = ± k σ, k <input class="ts-k" type="text" inputmode="decimal" value="3" /></label>
+      <label>Monte Carlo samples <select class="ts-n"><option value="10000">10,000</option><option value="100000" selected>100,000</option><option value="500000">500,000</option></select></label>
+      <label>Random seed <input class="ts-seed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">The gap limits are what the assembly needs (for example a clearance between 0.05 and 0.40). k = 3 assumes each normal part's tolerance covers ±3 standard deviations of its process. The seed makes the simulation repeatable; change it to draw a different random set.</p>
+    <p class="ax-err ts-err" hidden></p>
+  </div>
+
+  <div class="ax-card ts-out">
+    <h2>Stack-up</h2>
+    <p class="ax-big ts-big"></p>
+    <dl class="ax-facts ts-facts"></dl>
+    <canvas class="ax-fig ts-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="ts-tab"></table></div>
+    <p class="ax-help">Share of variance shows which parts drive the spread: tightening the biggest share helps most.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ts-csv">Download simulated gaps (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseDims, stack, fallout, monteCarlo, summarise, centred, sigmaOf } from '../../lib/sci/eng-stack';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const pct = (p: number) => (p === 0 ? '0 %' : p < 1e-4 ? `${sg(p * 1e6, 3)} ppm` : `${sg(p * 100, 3)} %`);
+  const root = document.querySelector<HTMLElement>('.tsu')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, report: Section[] = [], sims: Float64Array | null = null, timer = 0;
+
+  function run() {
+    const err = q('.ts-err'), out = q('.ts-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; sims = null; };
+    let dims; try { dims = parseDims(parseTable(q<HTMLTextAreaElement>('.ts-data').value)); } catch (e) { return fail((e as Error).message); }
+    const k = num(raw('.ts-k')), lsl = raw('.ts-lsl') === '' ? -Infinity : num(raw('.ts-lsl')), usl = raw('.ts-usl') === '' ? Infinity : num(raw('.ts-usl'));
+    const seed = num(raw('.ts-seed')), n = +q<HTMLSelectElement>('.ts-n').value;
+    if (!(k > 0)) return fail('Give k, the number of standard deviations each normal tolerance covers (usually 3).');
+    if (Number.isNaN(lsl) || Number.isNaN(usl)) return fail('The gap limits must be numbers, or left empty.');
+    if (lsl >= usl) return fail('The gap lower limit must be below the upper limit.');
+    if (!(Number.isInteger(seed) && seed >= 0)) return fail('The seed is a whole number, 0 or more.');
+    err.hidden = true; out.hidden = false;
+    const s = stack(dims, k), f = fallout(s.mean, s.sigma, lsl, usl);
+    sims = monteCarlo(dims, n, seed, k);
+    const m = summarise(sims, lsl, usl), hasL = Number.isFinite(lsl) || Number.isFinite(usl);
+    q('.ts-big').textContent = `Gap ${sg(s.mean, 5)}: worst case ±${sg(s.wcHalf, 4)}, RSS ±${sg(s.rssHalf, 4)}`;
+    const facts = [
+      fact('Worst case', `${sg(s.wcMin, 5)} to ${sg(s.wcMax, 5)}`, `every part at its limit at once; nominal gap ${sg(s.nominal, 5)}, middle of the bands ${sg(s.mean, 5)}`),
+      fact('RSS (statistical)', `${sg(s.rssMin, 5)} to ${sg(s.rssMax, 5)}`, `mean ± ${sg(k, 3)} σ, σ = √(Σ σᵢ²) = ${sg(s.sigma, 4)}`),
+      fact('Monte Carlo', `${sg(m.mean, 5)} ± ${sg(3 * m.sd, 4)} (3 sd)`, `${n.toLocaleString('en')} assemblies, seed ${seed}; seen ${sg(m.min, 5)} to ${sg(m.max, 5)}; 99.73 % between ${sg(m.p00135, 5)} and ${sg(m.p99865, 5)}`),
+    ];
+    if (hasL) {
+      facts.push(fact('Out of limits (simulated)', pct(m.below + m.above), `${pct(m.below)} below, ${pct(m.above)} above`));
+      facts.push(fact('Out of limits (normal estimate)', pct(f.total), `${pct(f.below)} below, ${pct(f.above)} above, treating the gap as normal with the RSS σ`));
+      facts.push(fact('Cp and Cpk', `${Number.isFinite(f.Cp) ? sg(f.Cp, 3) : '–'} and ${sg(f.Cpk, 3)}`, 'Cpk = distance from the mean to the nearer limit ÷ 3σ; 1.33 or more is a common aim'));
+      facts.push(fact('Worst case fits?', s.wcMin >= lsl && s.wcMax <= usl ? 'yes' : 'no', s.wcMin >= lsl && s.wcMax <= usl ? 'every assembly fits even at the extremes' : 'some combinations of parts at their limits fall outside'));
+    }
+    q('.ts-facts').replaceChildren(...facts);
+    // Histogram of the simulated gap as a step line.
+    const lo = Math.min(m.min, s.wcMin), hi = Math.max(m.max, s.wcMax), bins = 60, w = (hi - lo) / bins || 1, counts = new Array(bins).fill(0);
+    for (const v of sims) counts[Math.min(bins - 1, Math.max(0, Math.floor((v - lo) / w)))]++;
+    const hx: number[] = [], hy: number[] = [];
+    counts.forEach((c, i) => { const dens = c / (n * w); hx.push(lo + i * w, lo + (i + 1) * w); hy.push(dens, dens); });
+    const nx: number[] = [], ny: number[] = [];
+    for (let i = 0; i <= 120; i++) { const x = lo + ((hi - lo) * i) / 120; nx.push(x); ny.push(Math.exp(-0.5 * ((x - s.mean) / s.sigma) ** 2) / (s.sigma * Math.sqrt(2 * Math.PI))); }
+    const marks: { kind: 'vline'; at: number; dash?: number[]; label?: string }[] = [{ kind: 'vline', at: s.wcMin, dash: [2, 3], label: 'WC' }, { kind: 'vline', at: s.wcMax, dash: [2, 3], label: 'WC' }];
+    if (Number.isFinite(lsl)) marks.push({ kind: 'vline', at: lsl, label: 'LSL' });
+    if (Number.isFinite(usl)) marks.push({ kind: 'vline', at: usl, label: 'USL' });
+    fig = chartFigure({ w: 380, h: 230, xLabel: 'Gap', yLabel: 'Density', yMin: 0, legend: 'below', series: [
+      { name: 'Monte Carlo', x: hx, y: hy, mode: 'line', width: 1.5 },
+      { name: 'RSS normal', x: nx, y: ny, mode: 'line', width: 2, dash: [5, 4] },
+    ], marks }, 'Histogram of the simulated gap with the worst-case and gap limits');
+    paint(q<HTMLCanvasElement>('.ts-fig'), fig);
+    const head = ['Part', 'Dir.', 'Nominal', 'Limits', 'Distribution', 'σ', 'Share of variance'];
+    const body = dims.map((d, i) => { const c = centred(d); return [d.name, d.dir > 0 ? '+' : '−', sg(d.nominal, 6), `${sg(c.mid - c.half, 6)} to ${sg(c.mid + c.half, 6)}`, d.dist, sg(sigmaOf(d, k), 3), `${sg(s.share[i] * 100, 3)} %`]; });
+    const tab = q('.ts-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const e = document.createElement('tr'); cells.forEach((c, i) => { const td = document.createElement(th ? 'th' : 'td'); td.textContent = c; if (i === 2 || i === 5 || i === 6) td.className = 'r'; e.append(td); }); return e; };
+    const thead = document.createElement('thead'); thead.append(tr(head, true)); const tb = document.createElement('tbody'); body.forEach((b) => tb.append(tr(b, false))); tab.append(thead, tb);
+    report = [{ title: q('.ts-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: fig, table: { head, rows: body, align: ['l', 'l', 'r', 'l', 'l', 'r', 'r'] } }];
+  }
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 150); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ts-csv').addEventListener('click', () => { if (sims) save(new Blob([csv([['gap'], ...Array.from(sims, (v) => [+v.toPrecision(8)])])], { type: 'text/csv' }), 'stackup-monte-carlo.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ts-out').hidden) paint(q<HTMLCanvasElement>('.ts-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Tolerance stack-up', subtitle: q('.ts-big').textContent ?? '', file: 'tolerance-stackup', sections: report }));
+</script>
+
+<style is:inline>
+  .tsu textarea { min-height: 150px; }
+  .tsu .ts-tab td:nth-child(4), .tsu .ts-tab td:first-child { white-space: nowrap; }
+  .tsu select, .tsu input { max-width: 100%; }
+</style>

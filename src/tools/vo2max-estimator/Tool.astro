@@ -1,0 +1,185 @@
+---
+// VO2max from six field tests, side by side.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax vo2">
+  <p class="vo2-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>About you</h2>
+    <div class="ax-grid">
+      <label>Age (years) <input class="vo2-age" inputmode="decimal" value="40" /></label>
+      <label>Sex <select class="vo2-sex"><option value="m" selected>Male</option><option value="f">Female</option></select></label>
+      <label>Body mass (kg) <input class="vo2-kg" inputmode="decimal" value="75" /></label>
+    </div>
+    <p class="ax-help">Sex is used only by the walk and step test equations, which were fitted separately for men and women. Body mass turns mL/kg/min into litres per minute.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Field test</h2>
+    <div class="ax-seg vo2-mode" role="group" aria-label="Test">
+      <button type="button" data-m="cooper" aria-pressed="true">12-min run</button><button type="button" data-m="mile" aria-pressed="false">1.5-mile run</button><button type="button" data-m="rockport" aria-pressed="false">1-mile walk</button><button type="button" data-m="shuttle" aria-pressed="false">Shuttle run</button><button type="button" data-m="step" aria-pressed="false">Step test</button><button type="button" data-m="uth" aria-pressed="false">Heart rates</button>
+    </div>
+    <p class="ax-help vo2-what"></p>
+    <div class="ax-grid vo2-p" data-m="cooper" style="margin-top:10px">
+      <label>Distance in 12 minutes (m) <input class="vo2-dist" inputmode="decimal" value="2400" /></label>
+    </div>
+    <div class="ax-grid vo2-p" data-m="mile" style="margin-top:10px" hidden>
+      <label>Time for 1.5 miles (min:s) <input class="vo2-mt" value="11:40" /></label>
+    </div>
+    <div class="ax-grid vo2-p" data-m="rockport" style="margin-top:10px" hidden>
+      <label>Time for 1 mile (min:s) <input class="vo2-wt" value="14:30" /></label>
+      <label>Heart rate at the finish (beats/min) <input class="vo2-whr" inputmode="decimal" value="140" /></label>
+    </div>
+    <div class="ax-grid vo2-p" data-m="shuttle" style="margin-top:10px" hidden>
+      <label>Last stage (level) completed <input class="vo2-stage" inputmode="decimal" value="9" /></label>
+    </div>
+    <div class="ax-grid vo2-p" data-m="step" style="margin-top:10px" hidden>
+      <label>Recovery heart rate (beats/min) <input class="vo2-shr" inputmode="decimal" value="150" /></label>
+    </div>
+    <div class="ax-grid vo2-p" data-m="uth" style="margin-top:10px" hidden>
+      <label>Maximum heart rate (beats/min) <input class="vo2-hmax" inputmode="decimal" value="180" /></label>
+      <label>Resting heart rate (beats/min) <input class="vo2-hrest" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-err vo2-err" hidden></p>
+    <div class="vo2-out">
+      <p class="ax-big vo2-big"></p>
+      <dl class="ax-facts vo2-facts"></dl>
+      <p class="ax-help vo2-note"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>All tests side by side</h2>
+    <p class="ax-help" style="margin-top:0">Each test with the numbers in its box. Tests with missing or impossible numbers are left out. Expect estimates to differ by several mL/kg/min: each equation has its own error.</p>
+    <div class="ax-scroll" style="margin-top:8px"><table class="vo2-tab"></table></div>
+    <canvas class="ax-fig vo2-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small vo2-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .vo2 .vo2-med { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .vo2 .vo2-tab td.r { white-space: nowrap; }
+  .vo2 .vo2-tab td, .vo2 .vo2-tab th { padding: 7px 5px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import * as V from '../../lib/sci/vo2max';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vo2')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let mode = 'cooper', fig: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+  const NAME: Record<string, string> = { cooper: 'Cooper 12-minute run', mile: '1.5-mile run', rockport: 'Rockport 1-mile walk', shuttle: '20 m shuttle run (Léger)', step: 'Queens College step test', uth: 'Heart rate ratio (Uth)' };
+  const WHAT: Record<string, string> = {
+    cooper: 'Run as far as you can in 12 minutes on a flat track, then measure the distance. VO2max = (distance in m − 504.9) / 44.73 (Cooper, 1968).',
+    mile: 'Run 1.5 miles (2.4 km) as fast as you can. VO2max = 3.5 + 483 / time in minutes. Type the time as 11:40 or 11.67.',
+    rockport: 'Walk 1 mile (1.61 km) as fast as you can, then take your heart rate straight away. Kline et al. (1987): 132.853 − 0.0769 × weight (lb) − 0.3877 × age + 6.315 × (1 for men) − 3.2649 × time − 0.1565 × heart rate.',
+    shuttle: 'Run 20 m back and forth to the beeps; the pace rises every minute. Stage 1 is 8.5 km/h and each stage adds 0.5 km/h (Léger et al., 1988). Ages 6 to 17 use the children\'s equation with age, 18 and over the adult one.',
+    step: 'Step up and down a 41.3 cm step for 3 minutes (men 24 steps a minute, women 22), then count your pulse for 15 s from 5 s after stopping and multiply by 4 (McArdle et al., 1972).',
+    uth: 'No exercise: VO2max ≈ 15.3 × maximum heart rate / resting heart rate (Uth et al., 2004). Only as good as your measured maximum.',
+  };
+  const male = () => q<HTMLSelectElement>('.vo2-sex').value === 'm';
+  const need = (ok: boolean, msg: string) => { if (!ok) throw new Error(msg); };
+  function person() {
+    const age = val('.vo2-age'), kg = val('.vo2-kg');
+    need(age >= 6 && age <= 100, 'Type an age between 6 and 100 years.');
+    need(kg >= 15 && kg <= 250, 'Type a body mass between 15 and 250 kg.');
+    return { age, kg };
+  }
+  /** One test: [VO2max, working shown to the user, a caution or ''] or an error. */
+  function one(m: string, age: number, kg: number): { v: number; how: string; warn: string } {
+    if (m === 'cooper') {
+      const d = val('.vo2-dist'); need(d >= 600 && d <= 5500, 'Type a 12-minute distance between 600 and 5500 m.');
+      return { v: V.cooper(d), how: `(${d} − 504.9) / 44.73`, warn: '' };
+    }
+    if (m === 'mile') {
+      const t = V.parseMinutes(q<HTMLInputElement>('.vo2-mt').value); need(t >= 6 && t <= 40, 'Type a 1.5-mile time between 6:00 and 40:00, such as 11:40.');
+      return { v: V.mile15(t), how: `3.5 + 483 / ${sig(t, 4)} min`, warn: '' };
+    }
+    if (m === 'rockport') {
+      const t = V.parseMinutes(q<HTMLInputElement>('.vo2-wt').value), hr = val('.vo2-whr');
+      need(t >= 8 && t <= 35, 'Type a 1-mile walking time between 8:00 and 35:00.');
+      need(hr >= 60 && hr <= 220, 'Type a finishing heart rate between 60 and 220 beats/min.');
+      return { v: V.rockport(kg, age, male(), t, hr), how: `${sig(kg / 0.45359237, 4)} lb, ${age} y, ${male() ? 'male' : 'female'}, ${sig(t, 4)} min, ${hr} beats/min`, warn: age < 30 || age > 69 ? 'The walk equation was fitted to adults aged 30 to 69.' : '' };
+    }
+    if (m === 'shuttle') {
+      const st = val('.vo2-stage'); need(st >= 1 && st <= 21 && Number.isInteger(st * 2), 'Type the last stage completed, from 1 to 21 (halves allowed).');
+      const s = V.shuttleSpeed(st);
+      return age < 18
+        ? { v: V.legerChild(s, age), how: `children's equation, ${s} km/h, age ${age}`, warn: age < 8 ? 'The children\'s equation was fitted to ages 8 to 19.' : '' }
+        : { v: V.legerAdult(s), how: `adult equation, −24.4 + 6.0 × ${s} km/h`, warn: '' };
+    }
+    if (m === 'step') {
+      const hr = val('.vo2-shr'); need(hr >= 60 && hr <= 220, 'Type a recovery heart rate between 60 and 220 beats/min.');
+      return { v: V.queens(hr, male()), how: male() ? `111.33 − 0.42 × ${hr}` : `65.81 − 0.1847 × ${hr}`, warn: age < 18 || age > 30 ? 'The step test equations were fitted to college-age adults.' : '' };
+    }
+    const hm = val('.vo2-hmax'), hr = val('.vo2-hrest');
+    need(hm >= 120 && hm <= 230, 'Type a maximum heart rate between 120 and 230 beats/min.');
+    need(hr >= 30 && hr <= 110 && hr < hm, 'Type a resting heart rate between 30 and 110 beats/min.');
+    return { v: V.uth(hm, hr), how: `15.3 × ${hm} / ${hr}`, warn: 'Fitted to trained men aged 21 to 51; less certain for others.' };
+  }
+  const f1 = (x: number) => x.toFixed(1);
+  function bars(list: { name: string; v: number }[]): Figure {
+    const H = 40 + list.length * 32, max = Math.max(60, Math.ceil(Math.max(...list.map((l) => l.v)) / 10) * 10);
+    return {
+      w: 440, h: H, alt: 'VO2max estimate from each test, as bars',
+      draw: (ctx, w, h, pal) => {
+        const L = 120, R = w - 50, T = 8, B = h - 30, xs = (v: number) => L + (Math.max(0, v) / max) * (R - L);
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        for (let v = 0; v <= max; v += 10) { const x = xs(v); ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, B); ctx.stroke(); if (v % 20 === 0) ctx.fillText(String(v), x, B + 10); }
+        ctx.fillText('VO2max (mL/kg/min)', (L + R) / 2, B + 24);
+        list.forEach((l, i) => {
+          const y = T + 4 + i * 32;
+          ctx.fillStyle = pal.red ? '#a30000' : pal.accent; ctx.fillRect(L, y, Math.max(1, xs(l.v) - L), 22);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(l.name, L - 6, y + 11);
+          ctx.textAlign = 'left'; ctx.fillText(f1(l.v), xs(l.v) + 5, y + 11);
+        });
+      },
+    };
+  }
+  const SHORT: Record<string, string> = { cooper: '12-min run', mile: '1.5-mile run', rockport: '1-mile walk', shuttle: 'Shuttle run', step: 'Step test', uth: 'Heart rates' };
+  function calc() {
+    root.querySelectorAll<HTMLElement>('.vo2-p').forEach((p) => (p.hidden = p.dataset.m !== mode));
+    q('.vo2-what').textContent = WHAT[mode];
+    const err = q('.vo2-err');
+    let who: { age: number; kg: number } | null = null;
+    try {
+      who = person();
+      const r = one(mode, who.age, who.kg);
+      err.hidden = true; q('.vo2-out').hidden = false;
+      q('.vo2-big').textContent = `VO2max ≈ ${f1(r.v)} mL/kg/min`;
+      const facts: [string, string][] = [['Test', NAME[mode]], ['Working', r.how], ['METs', f1(V.mets(r.v))], ['Absolute', `${V.litres(r.v, who.kg).toFixed(2)} L/min`]];
+      q('.vo2-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      q('.vo2-note').textContent = (r.warn ? r.warn + ' ' : '') + 'A field test estimate is typically within about ±10 % of a laboratory measurement at best. Compare with age and sex norms from an official source.';
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.vo2-out').hidden = true; }
+    const list: { m: string; name: string; v: number; how: string }[] = [];
+    if (who) for (const m of Object.keys(NAME)) { try { const r = one(m, who.age, who.kg); list.push({ m, name: SHORT[m], v: r.v, how: r.how }); } catch {} }
+    const tab = q<HTMLTableElement>('.vo2-tab'); tab.replaceChildren();
+    const head = ['Test', 'VO2max', 'METs', 'L/min'];
+    const body = list.map((l) => [NAME[l.m], f1(l.v), f1(V.mets(l.v)), who ? V.litres(l.v, who.kg).toFixed(2) : '']);
+    { const tr = tab.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; tr.append(th); }); }
+    for (const r of body) { const tr = tab.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); }
+    if (list.length) { fig = bars(list); paint(q<HTMLCanvasElement>('.vo2-fig'), fig); q('.vo2-fig').hidden = false; } else { fig = null; q('.vo2-fig').hidden = true; }
+    rows = [['test', 'vo2max_ml_kg_min', 'mets', 'l_per_min', 'working'], ...list.map((l) => [NAME[l.m], +l.v.toFixed(2), +V.mets(l.v).toFixed(2), who ? +V.litres(l.v, who.kg).toFixed(3) : '', l.how])];
+    report = [];
+    if (!err.hidden) report.push({ title: 'Field test result', text: [err.textContent ?? ''] });
+    else report.push({ title: NAME[mode], facts: [['VO2max', q('.vo2-big').textContent!.replace('VO2max ≈ ', '')], ...[...q('.vo2-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string])], note: q('.vo2-note').textContent ?? '' });
+    if (list.length) report.push({ title: 'All tests side by side', table: { head: ['Test', 'VO2max (mL/kg/min)', 'METs', 'L/min'], rows: body, align: ['l', 'r', 'r', 'r'] }, figure: fig! });
+  }
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.vo2-mode button')) b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.vo2-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc();
+  });
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.vo2-fig'), fig));
+  q('.vo2-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'vo2max-estimates.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'VO2max from field tests', subtitle: q('.vo2-big').textContent ?? '', file: 'vo2max', sections: report }));
+</script>

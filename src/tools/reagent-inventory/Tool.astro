@@ -1,0 +1,327 @@
+---
+// Reagent inventory: a list of reagents with location, amount, lot, opened date and expiry, flags for expired,
+// expiring-soon and low stock, search and filters, spreadsheet import and export, and a printable list.
+// The list is kept only in this browser (localStorage), never sent anywhere, and can be cleared.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax rin">
+  <div class="ax-card">
+    <h2>Your reagents</h2>
+    <dl class="ax-facts ri-facts"></dl>
+    <div class="ax-grid ri-ctl" style="margin-top:12px">
+      <label>Search <input class="ri-q" type="search" placeholder="Name, CAS, place, lot…" autocomplete="off" /></label>
+      <label>Show <select class="ri-filter">
+        <option value="all">All reagents</option>
+        <option value="attention">Needs attention</option>
+        <option value="expired">Expired</option>
+        <option value="soon">Expiring soon</option>
+        <option value="low">Low stock or empty</option>
+        <option value="opened">Opened</option>
+        <option value="unopened">Not opened</option>
+      </select></label>
+      <label>Sort by <select class="ri-sort">
+        <option value="expiry">Use-by date</option>
+        <option value="name">Name</option>
+        <option value="location">Location</option>
+        <option value="amount">Stock left (vs reorder level)</option>
+      </select></label>
+      <label>Expiring soon means within (days) <input class="ri-soon" type="number" min="0" max="3650" step="1" value="30" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help ri-count" role="status"></p>
+    <div class="ax-scroll"><table class="ri-tab"></table></div>
+    <p class="ax-help ri-empty" hidden>No reagents yet. Add one, import a spreadsheet below, or load the example list to see how it works.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small ri-add">Add a reagent</button>
+      <button type="button" class="btn secondary small ri-print-btn">Print list</button>
+      <button type="button" class="btn secondary small ri-csv">Download CSV</button>
+    </div>
+    <Downloads label="Download list as" />
+  </div>
+
+  <div class="ax-card ri-form" hidden>
+    <h2 class="ri-ftitle">Add a reagent</h2>
+    <div class="ax-grid">
+      <label>Name <input class="ri-f" data-k="name" autocomplete="off" placeholder="Tris base" /></label>
+      <label>CAS or catalogue no. <input class="ri-f" data-k="cas" autocomplete="off" placeholder="77-86-1" /></label>
+      <label>Location <input class="ri-f" data-k="location" autocomplete="off" placeholder="Shelf B2" list="ri-locs" /></label>
+      <label>Amount left <input class="ri-f" data-k="amount" inputmode="decimal" placeholder="500" /></label>
+      <label>Unit <input class="ri-f" data-k="unit" autocomplete="off" placeholder="g, mL, vials" /></label>
+      <label>Reorder at (amount) <input class="ri-f" data-k="min" inputmode="decimal" placeholder="100" /></label>
+      <label>Lot or batch <input class="ri-f" data-k="lot" autocomplete="off" /></label>
+      <label>Supplier <input class="ri-f" data-k="supplier" autocomplete="off" /></label>
+      <label>Opened on <input class="ri-f" data-k="opened" type="date" /></label>
+      <label>Expiry date (label) <input class="ri-f" data-k="expiry" type="date" /></label>
+      <label>Use within (days of opening) <input class="ri-f" data-k="useDays" inputmode="numeric" placeholder="optional" /></label>
+    </div>
+    <label style="margin-top:10px">Notes <input class="ri-f" data-k="notes" autocomplete="off" placeholder="Hazards, who to ask, storage…" /></label>
+    <datalist id="ri-locs"></datalist>
+    <p class="ax-help">Reorder at: the reagent is flagged as low stock when the amount left is at or below this. Use within: for things that spoil once opened (media, peroxides, ethers), the use-by date becomes the opening date plus this many days when that comes before the label date.</p>
+    <p class="ax-err ri-ferr" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small ri-save">Save</button>
+      <button type="button" class="btn secondary small ri-cancel">Cancel</button>
+      <button type="button" class="btn secondary small ri-dup" hidden>Save as a copy</button>
+      <button type="button" class="btn secondary small ri-del" hidden>Delete</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Import from a spreadsheet</h2>
+    <label>Paste rows (with a header row) from Excel, Sheets or a CSV file
+      <textarea class="ri-paste" rows="5" spellcheck="false" placeholder={'Name\tLocation\tAmount\tUnit\tLot\tExpiry\nGlycine\tShelf A\t500\tg\tG-114\t2028-03-31'}></textarea>
+    </label>
+    <DataFile target=".ri-paste" maxMB={5} maxCols={20} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Dates like 03/04/2027 mean <select class="ri-order"><option value="dmy">3 April (day/month/year)</option><option value="mdy">March 4 (month/day/year)</option></select></label>
+      <label>Imported rows <select class="ri-mode"><option value="add">Add to my list</option><option value="replace">Replace my list</option></select></label>
+    </div>
+    <p class="ax-help">Columns are matched by their headers (Name or Reagent, Location, Amount or Qty, Unit, Reorder at, Lot or Batch, Supplier, Opened, Expiry or Use by, Notes and more). "500 mL" in one cell is split into amount and unit. A month with no day, such as 2027-03 or Mar 2027, means the end of that month.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small ri-import">Import rows</button>
+    </div>
+    <p class="ax-help ri-imsg" hidden></p>
+    <p class="ax-err ri-ierr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kept in this browser</h2>
+    <p class="ax-help ri-store">Your list is saved automatically in this browser on this device, so it is here next time you open this page. It is never sent to fibub or anyone else. Clearing your browser data removes it, so download a backup now and then. Another device or browser will not see it; move it with a backup file.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ri-json">Download backup (JSON)</button>
+      <button type="button" class="btn secondary small ri-jopen">Open a backup</button>
+      <input type="file" class="ri-jfile" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small ri-ex">Load the example list</button>
+      <button type="button" class="btn secondary small ri-clear">Clear all</button>
+    </div>
+    <p class="ax-help ri-bmsg" role="status" hidden></p>
+  </div>
+
+  <div class="ri-print" aria-hidden="true"></div>
+</div>
+
+<script>
+  import * as R from '../../lib/sci/reagents';
+  import { csv } from '../../lib/sci/num';
+  import { parseCsv } from '../../lib/convert/table';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-reagents-v1';
+  const root = document.querySelector<HTMLElement>('.rin')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = R.dayNum(todayIso);
+
+  let list: R.Reagent[] = [];
+  let editing: string | null = null;
+
+  const soon = () => { const v = Math.round(Number(inp('.ri-soon').value)); return Number.isFinite(v) && v >= 0 ? v : 30; };
+  const persist = () => {
+    try { localStorage.setItem(KEY, JSON.stringify({ reagents: JSON.parse(R.toJson(list)).reagents, soon: soon() })); } catch { /* storage full or blocked */ }
+  };
+  const restore = () => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      list = R.fromJson(JSON.stringify(s));
+      if (Number.isFinite(s.soon)) inp('.ri-soon').value = String(s.soon);
+    } catch { list = []; }
+  };
+
+  const fmtNum = (x: number) => (Number.isFinite(x) ? String(+x.toPrecision(10)) : '');
+  const fact = (k: string, v: string, cls = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (cls) dd.className = cls; d.append(dt, dd); return d; };
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = `ax-pill ${cls}`; s.textContent = t; return s; };
+  const td = (t: string, small = '') => { const c = document.createElement('td'); c.textContent = t; if (small) { const s = document.createElement('small'); s.textContent = small; c.append(document.createElement('br'), s); } return c; };
+  const shown = () => R.select(list, inp('.ri-q').value, q<HTMLSelectElement>('.ri-filter').value as R.Filter, q<HTMLSelectElement>('.ri-sort').value as R.Sort, today, soon());
+  const flags = (r: R.Reagent) => {
+    const s = R.status(r, today, soon()), out: [string, string][] = [];
+    if (s.state === 'expired') out.push(['Expired', 'bad']);
+    else if (s.state === 'soon') out.push(['Expiring soon', 'warn']);
+    if (s.empty) out.push(['Empty', 'bad']);
+    else if (s.low) out.push(['Low stock', 'warn']);
+    if (!out.length) out.push([s.state === 'none' ? 'No date' : 'OK', s.state === 'none' ? '' : 'good']);
+    return { s, out };
+  };
+  const amountText = (r: R.Reagent) => (Number.isFinite(r.amount) ? `${fmtNum(r.amount)} ${r.unit}`.trim() : '');
+  const useByText = (s: R.Status) => (s.exp.from === 'none' ? '' : s.exp.iso + (s.exp.from === 'opened' ? ' (opened + rule)' : ''));
+
+  function render() {
+    const sm = R.summary(list, today, soon());
+    const f = q('.ri-facts'); f.replaceChildren(fact('Reagents', String(sm.total)), fact('Expired', String(sm.expired), sm.expired ? 'ri-bad' : ''), fact(`Expiring within ${soon()} days`, String(sm.soon), sm.soon ? 'ri-warn' : ''), fact('Low stock or empty', String(sm.low), sm.low ? 'ri-warn' : ''));
+    const rows = shown();
+    const t = q<HTMLTableElement>('.ri-tab');
+    t.replaceChildren();
+    q('.ri-empty').hidden = list.length > 0;
+    q('.ri-count').textContent = list.length ? `Showing ${rows.length} of ${list.length}. Today is ${todayIso}.` : '';
+    if (rows.length) {
+      const h = t.createTHead().insertRow();
+      for (const x of ['Reagent', 'Location', 'Amount', 'Lot', 'Opened', 'Use by', 'Status', '']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+      const b = t.createTBody();
+      for (const r of rows) {
+        const { s, out } = flags(r);
+        const tr = b.insertRow();
+        tr.dataset.id = r.id;
+        if (s.state === 'expired' || s.empty) tr.className = 'ri-rbad';
+        tr.append(td(r.name, [r.cas, r.supplier].filter(Boolean).join(' · ')), td(r.location), td(amountText(r), Number.isFinite(r.min) && r.min > 0 ? `reorder at ${fmtNum(r.min)}` : ''), td(r.lot), td(r.opened), td(useByText(s), s.exp.from === 'none' ? '' : R.daysText(s.days)));
+        const st = document.createElement('td'); st.className = 'ri-st'; for (const [txt, cls] of out) st.append(pill(txt, cls)); tr.append(st);
+        const ed = document.createElement('td'); const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small ri-edit'; btn.textContent = 'Edit'; btn.setAttribute('aria-label', `Edit ${r.name}`); ed.append(btn); tr.append(ed);
+      }
+    } else if (list.length) {
+      const tr = t.insertRow(); const c = tr.insertCell(); c.textContent = 'Nothing matches this search and filter.';
+    }
+    const dl = q('#ri-locs'); dl.replaceChildren(...[...new Set(list.map((r) => r.location).filter(Boolean))].sort().map((l) => { const o = document.createElement('option'); o.value = l; return o; }));
+    renderPrint(rows);
+  }
+
+  function printRows(rows: R.Reagent[]): string[][] {
+    return rows.map((r) => { const { s, out } = flags(r); return [r.name + (r.cas ? ` (${r.cas})` : ''), r.location, amountText(r), r.lot, r.opened, useByText(s), out.map((o) => o[0]).join(', ')]; });
+  }
+  const PHEAD = ['Reagent', 'Location', 'Amount', 'Lot', 'Opened', 'Use by', 'Status'];
+  function filterLabel() { const f = q<HTMLSelectElement>('.ri-filter'); const qs = inp('.ri-q').value.trim(); return `${f.options[f.selectedIndex].text}${qs ? `, matching "${qs}"` : ''}`; }
+
+  function renderPrint(rows: R.Reagent[]) {
+    const p = q('.ri-print'); p.replaceChildren();
+    const h = document.createElement('h2'); h.textContent = 'Reagent list'; const sub = document.createElement('p'); sub.textContent = `${filterLabel()}. ${rows.length} reagents. Printed ${todayIso}. Expiring soon = within ${soon()} days.`;
+    const t = document.createElement('table'); const hr = t.createTHead().insertRow();
+    for (const x of [...PHEAD, 'Checked']) { const th = document.createElement('th'); th.textContent = x; hr.append(th); }
+    const b = t.createTBody(); for (const r of printRows(rows)) { const tr = b.insertRow(); for (const c of [...r, '']) tr.insertCell().textContent = c; }
+    p.append(h, sub, t);
+  }
+
+  // ---- add / edit form ----
+  const field = (k: string) => root.querySelector<HTMLInputElement>(`.ri-f[data-k="${k}"]`)!;
+  function openForm(r: R.Reagent | null) {
+    editing = r?.id ?? null;
+    q('.ri-ftitle').textContent = r ? `Edit ${r.name}` : 'Add a reagent';
+    for (const el of root.querySelectorAll<HTMLInputElement>('.ri-f')) {
+      const k = el.dataset.k as keyof R.Reagent; const v = r ? r[k] : '';
+      el.value = typeof v === 'number' ? fmtNum(v) : String(v ?? '');
+    }
+    q('.ri-del').hidden = q('.ri-dup').hidden = !r;
+    q('.ri-ferr').hidden = true;
+    q('.ri-form').hidden = false;
+    q('.ri-form').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    field('name').focus({ preventScroll: true });
+  }
+  function readForm(): R.Reagent | string {
+    const v = (k: string) => field(k).value.trim();
+    const name = v('name'); if (!name) return 'Give the reagent a name.';
+    const numOr = (k: string, label: string) => { const s = v(k).replace(',', '.'); if (!s) return NaN; const x = Number(s); if (!Number.isFinite(x) || x < 0) throw new Error(`${label} must be a number of 0 or more.`); return x; };
+    try {
+      const amount = numOr('amount', 'Amount left'), min = numOr('min', 'Reorder at'), useDays = numOr('useDays', 'Use within');
+      const opened = v('opened'), expiry = v('expiry');
+      if (opened && Number.isNaN(R.dayNum(opened))) return 'The opened date is not a date.';
+      if (expiry && Number.isNaN(R.dayNum(expiry))) return 'The expiry date is not a date.';
+      if (Number.isFinite(useDays) && !opened) return 'Add the date it was opened, or leave "Use within" empty.';
+      return { id: editing ?? R.randomId(), name, cas: v('cas'), location: v('location'), amount, unit: v('unit'), min, lot: v('lot'), supplier: v('supplier'), opened, expiry, useDays: Number.isFinite(useDays) ? Math.round(useDays) : NaN, notes: v('notes') };
+    } catch (e) { return (e as Error).message; }
+  }
+  function saveForm(copy = false) {
+    const r = readForm();
+    if (typeof r === 'string') { q('.ri-ferr').textContent = r; q('.ri-ferr').hidden = false; return; }
+    if (copy) r.id = R.randomId();
+    const i = list.findIndex((x) => x.id === r.id);
+    if (i >= 0) list[i] = r; else list.push(r);
+    q('.ri-form').hidden = true; editing = null;
+    persist(); render();
+  }
+  q('.ri-add').addEventListener('click', () => openForm(null));
+  q('.ri-save').addEventListener('click', () => saveForm());
+  q('.ri-dup').addEventListener('click', () => saveForm(true));
+  q('.ri-cancel').addEventListener('click', () => { q('.ri-form').hidden = true; editing = null; });
+  q('.ri-del').addEventListener('click', () => {
+    const r = list.find((x) => x.id === editing); if (!r) return;
+    if (!confirm(`Delete ${r.name} from the list?`)) return;
+    list = list.filter((x) => x.id !== editing); q('.ri-form').hidden = true; editing = null; persist(); render();
+  });
+  q('.ri-tab').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.ri-edit'); if (!b) return;
+    const id = b.closest('tr')?.dataset.id; const r = list.find((x) => x.id === id); if (r) openForm(r);
+  });
+  q('.ri-form').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') saveForm(); });
+
+  for (const c of ['.ri-q', '.ri-filter', '.ri-sort', '.ri-soon']) q(c).addEventListener('input', () => { render(); if (c === '.ri-soon') persist(); });
+
+  // ---- downloads and printing ----
+  q('.ri-csv').addEventListener('click', () => save(new Blob([csv(R.toTable(shown(), today, soon()))], { type: 'text/csv' }), `reagents-${todayIso}.csv`, 'text/csv'));
+  q('.ri-json').addEventListener('click', () => save(new Blob([R.toJson(list)], { type: 'application/json' }), `reagents-backup-${todayIso}.json`, 'application/json'));
+  q('.ri-print-btn').addEventListener('click', () => { document.documentElement.classList.add('ri-printing'); window.print(); });
+  window.addEventListener('afterprint', () => document.documentElement.classList.remove('ri-printing'));
+  wireDownloads(q('.dl'), () => {
+    const rows = shown(); const sm = R.summary(rows, today, soon());
+    const sections: Section[] = rows.length ? [{ title: filterLabel(), facts: [['Reagents', String(sm.total)], ['Expired', String(sm.expired)], [`Expiring within ${soon()} days`, String(sm.soon)], ['Low stock or empty', String(sm.low)]], table: { head: PHEAD, rows: printRows(rows) }, note: `Made ${todayIso} with fibub reagent inventory. The use-by date is the label expiry, or the opening date plus the use-within days when that is sooner.` }] : [];
+    return { title: 'Reagent list', subtitle: `${todayIso}`, file: `reagents-${todayIso}`, sections };
+  });
+
+  // ---- import ----
+  const msg = (cls: string, text: string) => { const el = q(cls); el.textContent = text; el.hidden = !text; };
+  q('.ri-import').addEventListener('click', () => {
+    msg('.ri-imsg', ''); msg('.ri-ierr', '');
+    const text = q<HTMLTextAreaElement>('.ri-paste').value;
+    if (!text.trim()) { msg('.ri-ierr', 'Paste some rows first, or open a file.'); return; }
+    const rows = text.includes('\t') ? text.replace(/\r\n?/g, '\n').split('\n').map((l) => l.split('\t')) : parseCsv(text);
+    const res = R.fromTable(rows, q<HTMLSelectElement>('.ri-order').value as R.DateOrder);
+    if (!res.items.length) { msg('.ri-ierr', ['No reagents found. Each row needs a name.', ...res.problems.slice(0, 5)].join(' ')); return; }
+    const replace = q<HTMLSelectElement>('.ri-mode').value === 'replace';
+    if (replace && list.length && !confirm(`Replace your ${list.length} reagents with the ${res.items.length} imported ones?`)) return;
+    list = replace ? res.items : list.concat(res.items);
+    persist(); render();
+    const parts = [`Imported ${res.items.length} reagent${res.items.length === 1 ? '' : 's'}.`];
+    if (res.mapped.length) parts.push(`Columns: ${res.mapped.join(', ')}.`);
+    if (res.unmapped.length) parts.push(`Not used: ${res.unmapped.join(', ')}.`);
+    if (res.problems.length) parts.push(res.problems.slice(0, 8).join(' ') + (res.problems.length > 8 ? ` …and ${res.problems.length - 8} more.` : ''));
+    msg('.ri-imsg', parts.join(' '));
+  });
+
+  // ---- backup, example, clear ----
+  q('.ri-jopen').addEventListener('click', () => inp('.ri-jfile').click());
+  inp('.ri-jfile').addEventListener('change', async () => {
+    const f = inp('.ri-jfile').files?.[0]; inp('.ri-jfile').value = ''; if (!f) return;
+    try {
+      if (f.size > 5e6) throw new Error('This file is over 5 MB, too big for a reagent backup.');
+      const items = R.fromJson(await f.text());
+      if (list.length && !confirm(`Replace your ${list.length} reagents with the ${items.length} in ${f.name}?`)) return;
+      list = items; persist(); render(); msg('.ri-bmsg', `Opened ${f.name}: ${items.length} reagents.`);
+    } catch (e) { msg('.ri-bmsg', (e as Error).message); }
+  });
+  q('.ri-ex').addEventListener('click', () => {
+    if (list.length && !confirm('Replace your list with the made-up example list?')) return;
+    list = R.exampleList(today); persist(); render(); msg('.ri-bmsg', 'Loaded a made-up example list. Its dates are set around today so every flag shows.');
+  });
+  q('.ri-clear').addEventListener('click', () => {
+    if (list.length && !confirm('Remove every reagent from this browser? Download a backup first if you may need it.')) return;
+    list = []; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    q('.ri-form').hidden = true; render(); msg('.ri-bmsg', 'Cleared. Nothing is kept in this browser now.');
+  });
+
+  restore();
+  render();
+</script>
+
+<style is:inline>
+  .rin .ri-tab td small { color: var(--muted); font-size: 12.5px; }
+  .rin .ri-tab td:first-child { min-width: 9em; font-weight: 600; }
+  .rin .ri-tab td:first-child small { font-weight: 400; }
+  .rin .ri-tab tr.ri-rbad td:first-child { color: var(--bad); }
+  .rin .ri-st { white-space: nowrap; }
+  .rin .ri-st .ax-pill + .ax-pill { margin-left: 4px; }
+  .rin .ri-tab .btn.small { padding: 4px 10px; font-size: 14px; }
+  .rin .ri-bad { color: var(--bad); }
+  .rin .ri-warn { color: var(--warn); }
+  .rin .ri-print { display: none; }
+  .rin .ri-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .rin .ri-ctl label:first-child { grid-column: 1 / -1; }
+  @media print {
+    html.ri-printing body * { visibility: hidden !important; }
+    html.ri-printing .rin .ri-print, html.ri-printing .rin .ri-print * { visibility: visible !important; color: #000 !important; }
+    html.ri-printing .rin .ri-print { display: block; position: absolute; left: 0; top: 0; width: 100%; background: #fff; font-size: 11pt; }
+    html.ri-printing .rin .ri-print table { border-collapse: collapse; width: 100%; }
+    html.ri-printing .rin .ri-print th, html.ri-printing .rin .ri-print td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
+    html.ri-printing .rin .ri-print td:last-child { width: 4.5em; }
+    html.ri-printing .rin .ri-print tr { break-inside: avoid; }
+  }
+</style>

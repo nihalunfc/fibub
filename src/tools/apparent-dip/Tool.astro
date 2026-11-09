@@ -1,0 +1,231 @@
+---
+// Apparent dip, true dip from two apparent dips, true thickness on sloping ground, borehole depth and the
+// three-point problem. Example numbers are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax apd">
+  <div class="ax-card">
+    <h2>The bed</h2>
+    <div class="ax-grid">
+      <label>Typed as <select class="ad-fmt"><option value="rhr">Strike, dip (right-hand rule)</option><option value="dd">Dip direction, dip</option></select></label>
+      <label><span class="ad-sl">Strike (°)</span> <input class="ad-s" inputmode="decimal" value="040" /></label>
+      <label>Dip (°) <input class="ad-d" inputmode="decimal" value="35" /></label>
+      <label>Lengths in <select class="ad-u"><option value="m">metres</option><option value="ft">feet</option></select></label>
+    </div>
+    <p class="ax-help">Right-hand rule: face along the strike and the bed dips to your right, so the dip direction is the strike + 90°. Azimuths are degrees clockwise from north.</p>
+    <p class="ax-err ad-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Apparent dip</h2>
+    <div class="ax-grid"><label>Direction of the section or cliff face (°) <input class="ad-t" inputmode="decimal" value="090" /></label></div>
+    <p class="ax-big ad-big"></p>
+    <dl class="ax-facts ad-afacts"></dl>
+    <canvas class="ax-fig ad-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">tan α = tan δ · sin β, where δ is the true dip and β the angle from the strike to the section. A section along the strike shows the bed flat; one along the dip direction shows the true dip.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ad-csv">Apparent dips every 5° (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>True thickness from outcrop width</h2>
+    <div class="ax-grid">
+      <label>Outcrop width <input class="ad-w" inputmode="decimal" value="120" /></label>
+      <label>Width measured <select class="ad-wm"><option value="slope">along the ground (tape)</option><option value="horizontal">horizontally (map)</option></select></label>
+      <label>Direction of the traverse (°) <input class="ad-wt" inputmode="decimal" value="130" /></label>
+      <label>Ground slope (°) <input class="ad-sg" inputmode="decimal" value="15" /></label>
+      <label>Along the traverse the ground goes <select class="ad-sd"><option value="down">downhill</option><option value="up">uphill</option></select></label>
+    </div>
+    <p class="ax-err ad-terr" hidden></p>
+    <dl class="ax-facts ad-tfacts" style="margin-top:12px"></dl>
+    <p class="ax-help">Measure the width from the base to the top of the bed. T = w · |sin δ · cos σ · sin β − s · cos δ · sin σ|, with σ the slope, β the angle from the strike to the traverse, and s = +1 going downhill, −1 going uphill (Ragan's general formula; the page works it as a vector product, which gives the same number).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Depth to the bed in a borehole</h2>
+    <div class="ax-grid">
+      <label>Horizontal distance from the contact to the collar <input class="ad-bd" inputmode="decimal" value="250" /></label>
+      <label>Direction from the contact to the collar (°) <input class="ad-bt" inputmode="decimal" value="130" /></label>
+      <label>Collar height above the contact <input class="ad-br" inputmode="decimal" value="12" /></label>
+      <label>Hole direction (°) <input class="ad-ht" inputmode="decimal" value="000" /></label>
+      <label>Hole plunge (°, 90 = vertical) <input class="ad-hp" inputmode="decimal" value="90" /></label>
+      <label>True thickness of the bed (optional) <input class="ad-bT" inputmode="decimal" value="" placeholder="e.g. 40" /></label>
+    </div>
+    <p class="ax-err ad-berr" hidden></p>
+    <dl class="ax-facts ad-bfacts" style="margin-top:12px"></dl>
+    <p class="ax-help">The contact is where the base (or top) of the bed meets the ground. The bed is taken as a flat plane with the strike and dip above, so faults and folds between the outcrop and the hole are not allowed for.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>True dip from two apparent dips</h2>
+    <div class="ax-grid">
+      <label>First section direction (°) <input class="ad-t1" inputmode="decimal" value="090" /></label>
+      <label>Apparent dip (°) <input class="ad-a1" inputmode="decimal" value="25" /></label>
+      <label>Second section direction (°) <input class="ad-t2" inputmode="decimal" value="180" /></label>
+      <label>Apparent dip (°) <input class="ad-a2" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Type a negative apparent dip if the bed rises in that direction.</p>
+    <p class="ax-err ad-2err" hidden></p>
+    <dl class="ax-facts ad-2facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ad-use2">Use as the bed</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Three-point problem</h2>
+    <p class="ax-help" style="margin:0 0 8px">Three places where the same contact was found (outcrops or boreholes): easting, northing and elevation.</p>
+    <div class="ax-scroll"><table class="ad-3">
+      <thead><tr><th></th><th>Easting</th><th>Northing</th><th>Elevation</th></tr></thead>
+      <tbody>
+        <tr><th>A</th><td><input class="ad-p" inputmode="decimal" value="0" aria-label="A easting" /></td><td><input class="ad-p" inputmode="decimal" value="0" aria-label="A northing" /></td><td><input class="ad-p" inputmode="decimal" value="320" aria-label="A elevation" /></td></tr>
+        <tr><th>B</th><td><input class="ad-p" inputmode="decimal" value="800" aria-label="B easting" /></td><td><input class="ad-p" inputmode="decimal" value="200" aria-label="B northing" /></td><td><input class="ad-p" inputmode="decimal" value="260" aria-label="B elevation" /></td></tr>
+        <tr><th>C</th><td><input class="ad-p" inputmode="decimal" value="300" aria-label="C easting" /></td><td><input class="ad-p" inputmode="decimal" value="900" aria-label="C northing" /></td><td><input class="ad-p" inputmode="decimal" value="210" aria-label="C elevation" /></td></tr>
+      </tbody>
+    </table></div>
+    <p class="ax-err ad-3err" hidden></p>
+    <dl class="ax-facts ad-3facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ad-use3">Use as the bed</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { apparentDip, thickness, borehole, planeFromTwoApparent, threePoint } from '../../lib/sci/apparentdip';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import type { Plane } from '../../lib/sci/stereonet';
+
+  const root = document.querySelector<HTMLElement>('.apd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const az = (a: number) => String(Math.round(((a % 360) + 360) % 360) % 360).padStart(3, '0');
+  const deg = (a: number) => `${sig(a, 3)}°`;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const facts = (c: string, list: HTMLElement[]) => q(c).replaceChildren(...list);
+  const factPairs = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const err = (c: string, m: string) => { q(c).textContent = m; q(c).hidden = !m; };
+  const isAz = (x: number) => Number.isFinite(x) && x >= -360 && x <= 720;
+  let plane: Plane | null = null, fig: Figure | null = null;
+  let two: Plane | null = null, three: Plane | null = null;
+
+  function readBed() {
+    const a = v('.ad-s'), d = v('.ad-d'), dd = sel('.ad-fmt') === 'dd';
+    q('.ad-sl').textContent = dd ? 'Dip direction (°)' : 'Strike (°)';
+    if (!isAz(a) || !(d >= 0 && d <= 90)) { err('.ad-err', `Give ${dd ? 'a dip direction' : 'a strike'} from 0 to 360 and a dip from 0 to 90.`); plane = null; return; }
+    err('.ad-err', '');
+    plane = { strike: ((dd ? a - 90 : a) % 360 + 360) % 360, dip: d };
+  }
+
+  function app() {
+    const t = v('.ad-t');
+    if (!plane) { q('.ad-big').textContent = '–'; facts('.ad-afacts', []); fig = null; return; }
+    const p = plane;
+    if (!isAz(t)) { q('.ad-big').textContent = 'Type the section direction (0 to 360).'; facts('.ad-afacts', []); }
+    else {
+      const a = apparentDip(p, t), beta = (((t - p.strike) % 360) + 360) % 360;
+      q('.ad-big').textContent = Math.abs(a) < 0.005 ? `Apparent dip: 0° (the section runs along the strike)` : `Apparent dip: ${a.toFixed(1)}° towards ${az(a >= 0 ? t : t + 180)}`;
+      facts('.ad-afacts', [
+        fact('True dip', `${deg(p.dip)} towards ${az(p.strike + 90)}`, `strike ${az(p.strike)} (right-hand rule)`),
+        fact('Angle β from the strike to the section', deg(beta > 180 ? beta - 180 : beta)),
+        fact('Apparent dip', `${a.toFixed(2)}°`, a >= 0 ? `going down towards ${az(t)}` : `rising towards ${az(t)}, so going down towards ${az(t + 180)}`),
+      ]);
+    }
+    const xs = Array.from({ length: 73 }, (_, i) => i * 5);
+    fig = chartFigure({ h: 300, xLabel: 'Direction of the section (°)', yLabel: 'Apparent dip (°)', xMin: 0, xMax: 360, yMin: -90, yMax: 90, legend: 'none',
+      series: [{ name: 'Apparent dip', x: xs, y: xs.map((x) => apparentDip(p, x)), mode: 'line', width: 2 }],
+      marks: [...(isAz(t) ? [{ kind: 'vline' as const, at: ((t % 360) + 360) % 360, label: az(t) }] : []), { kind: 'hline' as const, at: 0 }] }, `Apparent dip of a bed ${az(p.strike)} / ${sig(p.dip, 3)} in every section direction`);
+    paint(q<HTMLCanvasElement>('.ad-fig'), fig);
+  }
+
+  function thick() {
+    if (!plane) { facts('.ad-tfacts', []); return; }
+    const w = v('.ad-w'), t = v('.ad-wt'), sg = v('.ad-sg'), u = sel('.ad-u');
+    if (!(w > 0) || !isAz(t) || !(sg >= 0 && sg < 90)) { err('.ad-terr', 'Give a width above zero, a traverse direction from 0 to 360 and a slope from 0 up to (not including) 90°.'); facts('.ad-tfacts', []); return; }
+    err('.ad-terr', '');
+    const r = thickness({ plane, trend: t, width: w, slope: sg, downhill: sel('.ad-sd') === 'down', measured: sel('.ad-wm') as 'slope' })!;
+    facts('.ad-tfacts', [
+      fact('True thickness', `${sig(r.trueT, 4)} ${u}`, 'measured square to the bedding'),
+      fact('Vertical thickness', Number.isFinite(r.vertical) ? `${sig(r.vertical, 4)} ${u}` : 'no limit (vertical bed)', 'T / cos δ, what a vertical hole cuts'),
+      fact('Width', `${sig(r.slopeWidth, 4)} ${u} along the ground`, `${sig(r.horizWidth, 4)} ${u} horizontally`),
+      fact('β, strike to traverse', deg(r.beta > 180 ? r.beta - 180 : r.beta), Math.abs(Math.sin((r.beta * Math.PI) / 180)) < 0.17 ? 'the traverse is close to the strike, so a small error in direction changes the answer a lot' : ''),
+    ]);
+  }
+
+  function hole() {
+    if (!plane) { facts('.ad-bfacts', []); return; }
+    const d = v('.ad-bd'), t = v('.ad-bt'), rise = v('.ad-br'), ht = v('.ad-ht'), hp = v('.ad-hp'), T = q<HTMLInputElement>('.ad-bT').value.trim() ? v('.ad-bT') : undefined, u = sel('.ad-u');
+    if (!(d >= 0) || !isAz(t) || !Number.isFinite(rise) || !isAz(ht) || !(hp > 0 && hp <= 90) || (T !== undefined && !(T > 0))) { err('.ad-berr', 'Give a distance of zero or more, directions from 0 to 360, a collar height (negative if lower than the contact), a hole plunge above 0 up to 90°, and a thickness above zero or blank.'); facts('.ad-bfacts', []); return; }
+    const r = borehole({ plane, dist: d, trend: t, rise, holeTrend: ht, holePlunge: hp, T });
+    if (r.parallel) { err('.ad-berr', 'The hole runs parallel to the bed, so it never meets it.'); facts('.ad-bfacts', []); return; }
+    if (r.along < 0) { err('.ad-berr', `The bed is above the collar along this hole (it would meet the bed ${sig(-r.along, 4)} ${u} back up the hole's line). Check the direction from the contact to the collar.`); facts('.ad-bfacts', []); return; }
+    err('.ad-berr', '');
+    const list = [
+      fact('Depth along the hole', `${sig(r.along, 4)} ${u}`, hp === 90 ? 'the hole is vertical' : `hole ${az(ht)}, plunging ${sig(hp, 3)}°`),
+      fact('Vertical depth below the collar', `${sig(r.vertical, 4)} ${u}`, `= collar height + distance × tan(apparent dip ${r.apparent.toFixed(1)}°) for a vertical hole`),
+      fact('Angle between the hole and the bed', deg(r.angle)),
+    ];
+    if (r.through !== undefined) list.push(fact('Core length through the bed', `${sig(r.through, 4)} ${u}`, `true thickness ${sig(T!, 4)} ${u} ÷ sin(${sig(r.angle, 3)}°)`));
+    facts('.ad-bfacts', list);
+  }
+
+  function twoApp() {
+    const t1 = v('.ad-t1'), a1 = v('.ad-a1'), t2 = v('.ad-t2'), a2 = v('.ad-a2');
+    two = null; q<HTMLButtonElement>('.ad-use2').disabled = true;
+    if (![t1, t2].every(isAz) || ![a1, a2].every((a) => a >= -90 && a <= 90)) { err('.ad-2err', 'Give two directions from 0 to 360 and two apparent dips from −90 to 90.'); facts('.ad-2facts', []); return; }
+    const r = planeFromTwoApparent({ trend: t1, dip: a1 }, { trend: t2, dip: a2 });
+    if (!r) { err('.ad-2err', 'The two apparent dips are the same line, so they do not fix a plane. Use two sections in different directions.'); facts('.ad-2facts', []); return; }
+    err('.ad-2err', r.between < 15 ? `The two lines are only ${sig(r.between, 2)}° apart, so small reading errors move the answer a lot.` : '');
+    two = r.plane; q<HTMLButtonElement>('.ad-use2').disabled = false;
+    facts('.ad-2facts', [
+      fact('True dip', `${deg(r.plane.dip)} towards ${az(r.plane.strike + 90)}`),
+      fact('Strike / dip', `${az(r.plane.strike)} / ${sig(r.plane.dip, 3)}`, 'right-hand rule'),
+      fact('Angle between the two lines', deg(r.between)),
+    ]);
+  }
+
+  function threePt() {
+    const p = [...root.querySelectorAll<HTMLInputElement>('.ad-p')].map((i) => num(i.value));
+    three = null; q<HTMLButtonElement>('.ad-use3').disabled = true;
+    if (!p.every(Number.isFinite)) { err('.ad-3err', 'Fill in all nine numbers.'); facts('.ad-3facts', []); return; }
+    const pts = [0, 1, 2].map((k) => ({ e: p[3 * k], n: p[3 * k + 1], z: p[3 * k + 2] })) as [any, any, any];
+    const r = threePoint(pts), u = sel('.ad-u');
+    if (!r) { err('.ad-3err', 'The three points lie on one line (or two are the same place), so they do not fix a plane.'); facts('.ad-3facts', []); return; }
+    err('.ad-3err', '');
+    three = r.plane; q<HTMLButtonElement>('.ad-use3').disabled = false;
+    const name = 'ABC'[r.mid];
+    facts('.ad-3facts', [
+      fact('True dip', `${deg(r.plane.dip)} towards ${az(r.dipDir)}`),
+      fact('Strike / dip', `${az(r.plane.strike)} / ${sig(r.plane.dip, 3)}`, 'right-hand rule'),
+      fact('Strike line', `through ${name} and (${sig(r.strikePoint.e, 5)}, ${sig(r.strikePoint.n, 5)})`, `the point on the line from the lowest to the highest point at ${name}'s elevation, ${sig(r.strikePoint.z, 5)} ${u}`),
+    ]);
+  }
+
+  function all() { readBed(); app(); thick(); hole(); twoApp(); threePt(); }
+  const use = (p: Plane | null) => { if (!p) return; const dd = sel('.ad-fmt') === 'dd'; q<HTMLInputElement>('.ad-s').value = az(dd ? p.strike + 90 : p.strike); q<HTMLInputElement>('.ad-d').value = sig(p.dip, 4); all(); q('.ad-s').scrollIntoView({ block: 'center' }); };
+  q('.ad-use2').addEventListener('click', () => use(two));
+  q('.ad-use3').addEventListener('click', () => use(three));
+  q('.ad-fmt').addEventListener('change', () => { const a = v('.ad-s'); if (Number.isFinite(a)) q<HTMLInputElement>('.ad-s').value = az(sel('.ad-fmt') === 'dd' ? a + 90 : a - 90); });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.ad-csv').addEventListener('click', () => { if (!plane) return; const p = plane; save(new TextEncoder().encode(csv([['section_direction', 'apparent_dip_deg', 'down_towards'], ...Array.from({ length: 72 }, (_, i) => { const a = apparentDip(p, i * 5); return [az(i * 5), a.toFixed(3), Math.abs(a) < 1e-9 ? 'flat' : az(a >= 0 ? i * 5 : i * 5 + 180)]; })])), 'apparent-dips.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ad-fig'), fig));
+  all();
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (plane) {
+      s.push({ title: q('.ad-big').textContent!, facts: factPairs('.ad-afacts'), ...(fig ? { figure: fig } : {}) });
+      if (q('.ad-tfacts').children.length) s.push({ title: 'True thickness from outcrop width', facts: factPairs('.ad-tfacts') });
+      if (q('.ad-bfacts').children.length) s.push({ title: 'Depth to the bed in a borehole', facts: factPairs('.ad-bfacts') });
+    }
+    if (two) s.push({ title: 'True dip from two apparent dips', facts: factPairs('.ad-2facts') });
+    if (three) s.push({ title: 'Three-point problem', facts: factPairs('.ad-3facts') });
+    return { title: 'Apparent dip and true thickness', subtitle: plane ? `Bed ${az(plane.strike)} / ${sig(plane.dip, 3)} (right-hand rule)` : '', file: 'apparent-dip', sections: s };
+  });
+</script>
+
+<style is:inline>
+  .apd .ad-3 { border-collapse: collapse; width: 100%; min-width: 280px; }
+  .apd .ad-3 th, .apd .ad-3 td { padding: 3px 4px; text-align: left; }
+  .apd .ad-3 input { width: 100%; min-width: 0; }
+  .apd .ad-3 tbody th { width: 1.5em; }
+</style>

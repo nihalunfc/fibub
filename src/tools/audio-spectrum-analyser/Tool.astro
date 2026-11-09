@@ -1,0 +1,267 @@
+---
+// Audio spectrum analyser: live microphone (Web Audio AnalyserNode for the samples, our own FFT for the spectrum) or
+// an audio file decoded in the browser. Spectrum, spectrogram, peaks and note names. Audio never leaves the device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax asa">
+  <div class="ax-card">
+    <h2>Sound</h2>
+    <div class="ax-row">
+      <button type="button" class="btn as-mic">Start microphone</button>
+      <button type="button" class="btn secondary as-demo">Try a test sound</button>
+      <button type="button" class="btn secondary as-freeze" hidden>Freeze</button>
+      <button type="button" class="btn secondary as-stop" hidden>Stop</button>
+    </div>
+    <label style="margin-top:12px">Or open an audio file (WAV, MP3, OGG, FLAC, M4A; up to 200 MB, the first 10 minutes are analysed) <input type="file" class="as-file" accept="audio/*,.wav,.mp3,.ogg,.oga,.flac,.m4a,.aac,.webm,.opus" /></label>
+    <p class="ax-help">The sound is analysed on this device and never recorded, saved or sent anywhere. Your browser asks before it lets the page hear the microphone; Stop switches it off again. Turn off noise suppression in your system settings for the truest picture.</p>
+    <p class="as-status" aria-live="polite"></p>
+    <p class="ax-err as-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>FFT size <select class="as-n">
+        <option value="1024">1024 (fast, coarse)</option><option value="2048">2048</option><option value="4096" selected>4096</option><option value="8192">8192</option><option value="16384">16384 (fine, slow)</option>
+      </select></label>
+      <label>Window <select class="as-w">
+        <option value="hann" selected>Hann (all-round)</option><option value="hamming">Hamming</option><option value="blackman">Blackman (low leakage)</option><option value="rect">None (rectangular)</option>
+      </select></label>
+      <label>Frequency axis <select class="as-ax"><option value="log" selected>Logarithmic (like the ear)</option><option value="lin">Linear</option></select></label>
+      <label>Lowest level shown <select class="as-floor"><option value="-120">−120 dBFS</option><option value="-100" selected>−100 dBFS</option><option value="-80">−80 dBFS</option><option value="-60">−60 dBFS</option></select></label>
+      <label>Live smoothing <select class="as-avg"><option value="0">None</option><option value="0.7" selected>Some</option><option value="0.93">Lots</option></select></label>
+      <label>Tuning, A4 = (Hz) <input class="as-a4" inputmode="decimal" value="440" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="as-hold" /> Peak hold (keep the highest level seen in each band)</label>
+    <p class="ax-help">The FFT size sets the detail: frequency resolution is the sample rate divided by the size (about 11.7 Hz for 4096 at 48 kHz), but bigger sizes react more slowly. The window trades sharp peaks (rectangular) against less spill into neighbouring frequencies (Blackman). Smoothing averages successive live spectra.</p>
+  </div>
+
+  <div class="ax-card as-out" hidden>
+    <h2>Spectrum</h2>
+    <p class="ax-big as-big"></p>
+    <dl class="ax-facts as-facts"></dl>
+    <canvas class="ax-fig as-spec" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig as-sg" style="margin-top:12px"></canvas>
+    <div class="ax-scroll"><table class="as-pk"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small as-csv">Spectrum (CSV)</button></div>
+    <p class="ax-help">Levels are in dBFS: decibels below the loudest sound the recording can hold (0 dBFS), not sound pressure. A phone or laptop microphone is not calibrated and often filters out low and very high frequencies. Peak frequencies are refined between FFT bins by fitting a parabola, so they are usually far finer than the resolution.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { makeWindow, powerSpectrum, welch, peaks, noteOf, rmsDb, toDb, spectrogram, thin, type WindowName } from '../../lib/sci/phfft';
+  import { chartFigure, niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.asa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const d1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  const hz = (f: number) => (f >= 1000 ? `${+(f / 1000).toPrecision(5)} kHz` : `${f >= 100 ? f.toFixed(1) : f.toFixed(2)} Hz`);
+  const ROWS = 160, LIVE_COLS = 240, MAX_BYTES = 200e6;
+
+  let source: 'mic' | 'file' | null = null, fs = 48000, power: Float64Array | null = null, hold: Float64Array | null = null;
+  let cols: Float32Array[] = [], colSpan = 0, fileInfo: { name: string; dur: number; frames: number; rms: number; rate: number; resampled: boolean } | null = null;
+  let specFig: Figure | null = null, sgFig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  let ctx: AudioContext | null = null, stream: MediaStream | null = null, analyser: AnalyserNode | null = null, buf: Float32Array | null = null, raf = 0, frozen = false, last = 0, liveStart = 0;
+  let samples: Float32Array | null = null;
+
+  const opts = () => ({ n: +sel('.as-n'), w: sel('.as-w') as WindowName, log: sel('.as-ax') === 'log', floor: +sel('.as-floor'), a4: num(q<HTMLInputElement>('.as-a4').value) });
+  const status = (t: string) => { q('.as-status').textContent = t; };
+  const error = (t: string) => { const e = q('.as-err'); e.textContent = t; e.hidden = !t; };
+
+  // Frequency rows of the spectrogram: each row takes the highest level among the bins it covers.
+  function rowMap(nBins: number, rate: number, log: boolean): [number, number][] {
+    const df = rate / ((nBins - 1) * 2), lo = log ? Math.max(20, df) : 0, hi = rate / 2, out: [number, number][] = [];
+    for (let r = 0; r < ROWS; r++) {
+      const fa = log ? lo * Math.pow(hi / lo, r / ROWS) : (hi * r) / ROWS, fb = log ? lo * Math.pow(hi / lo, (r + 1) / ROWS) : (hi * (r + 1)) / ROWS;
+      const ka = Math.min(nBins - 1, Math.round(fa / df)), kb = Math.min(nBins - 1, Math.max(ka, Math.round(fb / df) - 1));
+      out.push([ka, kb]);
+    }
+    return out;
+  }
+  const toRows = (db: ArrayLike<number>, map: [number, number][]) => { const o = new Float32Array(ROWS); map.forEach(([a, b], r) => { let m = -Infinity; for (let k = a; k <= b; k++) if (db[k] > m) m = db[k]; o[r] = m; }); return o; };
+
+  const STOPS = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  function colour(t: number, pal: Palette): [number, number, number] {
+    t = Math.max(0, Math.min(1, t));
+    if (pal.red) return [Math.round(30 + t * 170), 0, 0];
+    const x = t * (STOPS.length - 1), i = Math.min(STOPS.length - 2, Math.floor(x)), f = x - i;
+    return [0, 1, 2].map((c) => Math.round(STOPS[i][c] + (STOPS[i + 1][c] - STOPS[i][c]) * f)) as [number, number, number];
+  }
+
+  function sgFigure(): Figure {
+    const o = opts(), data = cols.slice(), rate = fs, span = colSpan, live = source === 'mic';
+    const df = rate / o.n, lo = o.log ? Math.max(20, df) : 0, hi = rate / 2;
+    return { w: 380, h: 230, alt: `Spectrogram: time across, frequency up, brighter is louder${live ? ' (live, newest on the right)' : ''}`, draw: (c, W, H, pal) => {
+      const L = 46, B = 30, T = 8, Rm = 8, pw = W - L - Rm, ph = H - T - B;
+      const img = document.createElement('canvas'); img.width = Math.max(1, live ? LIVE_COLS : data.length); img.height = ROWS;
+      const ic = img.getContext('2d')!, id = ic.createImageData(img.width, ROWS);
+      const off = live ? LIVE_COLS - data.length : 0;
+      for (let x = 0; x < img.width; x++) for (let r = 0; r < ROWS; r++) {
+        const v = x - off >= 0 ? data[x - off][r] : -Infinity, [R, G, Bc] = Number.isFinite(v) ? colour((v - o.floor) / -o.floor, pal) : pal.red ? [0, 0, 0] : colour(0, pal);
+        const p = ((ROWS - 1 - r) * img.width + x) * 4; id.data[p] = R; id.data[p + 1] = G; id.data[p + 2] = Bc; id.data[p + 3] = 255;
+      }
+      ic.putImageData(id, 0, 0);
+      c.imageSmoothingEnabled = false; c.drawImage(img, L, T, pw, ph);
+      c.strokeStyle = pal.ink; c.lineWidth = 1; c.strokeRect(L, T, pw, ph);
+      c.fillStyle = pal.ink; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.textBaseline = 'middle';
+      const ticks = o.log ? [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].filter((f) => f >= lo && f <= hi) : niceTicks(0, hi, 5).filter((f) => f <= hi);
+      for (const f of ticks) { const y = T + ph - (o.log ? Math.log(f / lo) / Math.log(hi / lo) : f / hi) * ph; c.fillText(f >= 1000 ? `${f / 1000}k` : String(f), L - 4, y); c.beginPath(); c.moveTo(L - 3, y); c.lineTo(L, y); c.stroke(); }
+      c.save(); c.translate(10, T + ph / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.fillText('Frequency (Hz)', 0, 0); c.restore();
+      c.textBaseline = 'top'; c.textAlign = 'left';
+      c.fillText(live ? `−${sig(span, 2)} s` : '0 s', L, T + ph + 4); c.textAlign = 'right'; c.fillText(live ? 'now' : `${sig(span, 3)} s`, L + pw, T + ph + 4);
+      c.textAlign = 'center'; c.fillText('Time', L + pw / 2, T + ph + 4);
+    } };
+  }
+
+  function render() {
+    if (!power) return;
+    const o = opts(), n = (power.length - 1) * 2, df = fs / n;
+    const f = Array.from({ length: power.length }, (_, k) => k * df), db = Array.from(power, toDb);
+    const a4 = o.a4 > 300 && o.a4 < 500 ? o.a4 : 440;
+    const pk = peaks(power, fs, { count: 8, fMin: 20, minDb: o.floor });
+    q('.as-out').hidden = false;
+    const top = pk[0];
+    if (top) { const nt = noteOf(top.f, a4); q('.as-big').textContent = `Peak ${hz(top.f)} (${nt.name} ${nt.cents >= 0 ? '+' : '−'}${Math.abs(nt.cents).toFixed(0)} cents), ${d1(top.db)} dBFS`; }
+    else q('.as-big').textContent = 'No clear peak above the lowest level shown';
+    const facts = [
+      fact('Source', source === 'mic' ? `microphone${frozen ? ' (frozen)' : ''}` : fileInfo!.name, source === 'mic' ? `live, ${sig(fs, 5)} samples per second` : `${sig(fileInfo!.dur, 4)} s analysed at ${sig(fs, 5)} samples per second${fileInfo!.resampled ? ' (resampled by the browser)' : ''}`),
+      fact('Resolution', `${sig(df, 3)} Hz`, `${n}-point FFT, ${({ hann: 'Hann', hamming: 'Hamming', blackman: 'Blackman', rect: 'rectangular' } as Record<string, string>)[o.w]} window${source === 'file' ? `, ${fileInfo!.frames} frames averaged` : ''}`),
+      fact('Overall level', `${d1(source === 'file' ? fileInfo!.rms : rmsDb(buf!))} dBFS`, source === 'file' ? 'RMS of the whole analysed sound' : 'RMS of the latest block'),
+      fact('Highest frequency', `${hz(fs / 2)}`, 'half the sample rate (Nyquist)'),
+    ];
+    q('.as-facts').replaceChildren(...facts);
+    const t = thin(f, db, 700, o.log), series = [{ name: source === 'mic' ? 'Spectrum' : 'Average spectrum', x: t.f, y: t.v.map((v) => Math.max(v, o.floor)), mode: 'line' as const, width: 1.4 }];
+    if (hold && q<HTMLInputElement>('.as-hold').checked) { const h = thin(f, Array.from(hold, toDb), 700, o.log); series.push({ name: 'Peak hold', x: h.f, y: h.v.map((v) => Math.max(v, o.floor)), mode: 'line', width: 1, dash: [4, 3] } as never); }
+    specFig = chartFigure({ w: 380, h: 250, xLabel: 'Frequency (Hz)', yLabel: 'Level (dBFS)', xLog: o.log, xMin: o.log ? Math.max(20, df) : 0, xMax: fs / 2, yMin: o.floor, yMax: 0, legend: series.length > 1 ? 'below' : 'none', series, marks: top ? [{ kind: 'vline', at: top.f, dash: [3, 3], label: hz(top.f) }] : [] }, q('.as-big').textContent!);
+    paint(q<HTMLCanvasElement>('.as-spec'), specFig);
+    sgFig = sgFigure(); paint(q<HTMLCanvasElement>('.as-sg'), sgFig);
+    const head = ['#', 'Frequency', 'Level (dBFS)', 'Note', 'Cents'], rows = pk.map((p, i) => { const nt = noteOf(p.f, a4); return [String(i + 1), hz(p.f), d1(p.db), nt.name, `${nt.cents >= 0 ? '+' : '−'}${Math.abs(nt.cents).toFixed(0)}`]; });
+    const tb = q<HTMLTableElement>('.as-pk'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i !== 3) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i !== 3) td.className = 'r'; }); });
+    const hasHold = !!hold && q<HTMLInputElement>('.as-hold').checked;
+    csvRows = [['frequency_hz', 'level_dbfs', ...(hasHold ? ['peak_hold_dbfs'] : [])], ...f.map((x, k) => [String(+x.toFixed(4)), String(+db[k].toFixed(3)), ...(hasHold ? [String(+toDb(hold![k]).toFixed(3))] : [])])];
+    sections = [{ title: q('.as-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: specFig },
+      { title: 'Spectrogram and peaks', figure: sgFig, table: rows.length ? { head, rows, align: ['r', 'r', 'r', 'l', 'r'] } : undefined }];
+  }
+
+  // ----- File -----
+  function wavRate(b: ArrayBuffer) {
+    const v = new DataView(b);
+    if (b.byteLength > 28 && v.getUint32(0, false) === 0x52494646 && v.getUint32(8, false) === 0x57415645) {
+      for (let p = 12; p + 8 <= b.byteLength && p < 4096;) { const id = v.getUint32(p, false), len = v.getUint32(p + 4, true); if (id === 0x666d7420) return v.getUint32(p + 12, true); p += 8 + len + (len & 1); }
+    }
+    return 0;
+  }
+  function analyseFile() {
+    if (!samples || !fileInfo) return;
+    const o = opts(), win = makeWindow(o.w, o.n), w = welch(samples, win, 6000);
+    power = w.power; hold = null; fileInfo.frames = w.frames;
+    cols = spectrogram(samples, makeWindow(o.w, Math.min(o.n, 4096)), 300).map((c) => toRows(c, rowMap(c.length, fs, o.log)));
+    colSpan = fileInfo.dur;
+    render();
+  }
+  q<HTMLInputElement>('.as-file').addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return;
+    stopMic();
+    error('');
+    if (file.size > MAX_BYTES) { error(`That file is ${sig(file.size / 1e6, 3)} MB; the limit is 200 MB.`); return; }
+    status(`Reading ${file.name}…`);
+    try {
+      const bytes = await file.arrayBuffer(), r = wavRate(bytes), rate = r >= 3000 && r <= 384000 ? r : 48000;
+      const ac = new OfflineAudioContext(1, 1, rate), audio = await ac.decodeAudioData(bytes);
+      const len = Math.min(audio.length, Math.round(600 * audio.sampleRate)), mono = new Float32Array(len);
+      for (let c = 0; c < audio.numberOfChannels; c++) { const d = audio.getChannelData(c); for (let i = 0; i < len; i++) mono[i] += d[i] / audio.numberOfChannels; }
+      if (len < 256) throw new Error('short');
+      samples = mono; fs = audio.sampleRate; source = 'file'; frozen = false;
+      fileInfo = { name: file.name, dur: len / fs, frames: 0, rms: rmsDb(mono), rate: fs, resampled: !r };
+      analyseFile();
+      status(`Analysed ${file.name}: ${sig(len / fs, 4)} s${audio.length > len ? ` (the first 10 minutes of ${sig(audio.duration / 60, 3)})` : ''}, ${audio.numberOfChannels === 1 ? 'mono' : `${audio.numberOfChannels} channels mixed to mono`}.`);
+    } catch {
+      status(''); error(`Could not read ${file.name} as sound. Try a WAV, MP3, OGG or FLAC file (some formats depend on the browser).`);
+    }
+  });
+
+  // A made-up test sound: 2 s at 44.1 kHz, 1 kHz at half full scale plus 3.15 kHz at a twentieth.
+  q('.as-demo').addEventListener('click', () => {
+    stopMic(); error('');
+    const rate = 44100, n = rate * 2, x = new Float32Array(n);
+    for (let i = 0; i < n; i++) x[i] = 0.5 * Math.sin((2 * Math.PI * 1000 * i) / rate) + 0.05 * Math.sin((2 * Math.PI * 3150 * i) / rate);
+    samples = x; fs = rate; source = 'file'; frozen = false; q<HTMLInputElement>('.as-file').value = '';
+    fileInfo = { name: 'Test sound (made up)', dur: n / rate, frames: 0, rms: rmsDb(x), rate, resampled: false };
+    analyseFile(); status('Analysed the test sound: 1 kHz at half of full scale plus a quieter 3.15 kHz tone, 2 s, mono.');
+  });
+
+  // ----- Microphone -----
+  function stopMic() {
+    cancelAnimationFrame(raf); raf = 0;
+    stream?.getTracks().forEach((t) => t.stop()); stream = null;
+    ctx?.close().catch(() => {}); ctx = null; analyser = null;
+    q('.as-mic').hidden = false; q('.as-demo').hidden = false; q('.as-stop').hidden = true; q('.as-freeze').hidden = true;
+    if (source === 'mic') status('Microphone off.');
+  }
+  function setupAnalyser() {
+    if (!ctx || !analyser) return;
+    const o = opts(); analyser.fftSize = o.n; buf = new Float32Array(o.n); power = null; hold = null; cols = [];
+  }
+  function tick(now: number) {
+    raf = requestAnimationFrame(tick);
+    if (frozen || !analyser || !buf || now - last < 70) return;
+    last = now;
+    analyser.getFloatTimeDomainData(buf);
+    const o = opts(), p = powerSpectrum(buf, makeWindow(o.w, o.n)), a = +sel('.as-avg');
+    if (!power || power.length !== p.length) power = p; else for (let k = 0; k < p.length; k++) power[k] = a * power[k] + (1 - a) * p[k];
+    if (!hold || hold.length !== p.length) hold = Float64Array.from(p); else for (let k = 0; k < p.length; k++) if (p[k] > hold[k]) hold[k] = p[k];
+    const map = rowMap(p.length, fs, o.log);
+    cols.push(toRows(Array.from(p, toDb), map)); if (cols.length > LIVE_COLS) cols.shift();
+    colSpan = Math.min((now - liveStart) / 1000, (LIVE_COLS * 70) / 1000);
+    render();
+  }
+  q('.as-mic').addEventListener('click', async () => {
+    error('');
+    const pp = (document as unknown as { permissionsPolicy?: { allowsFeature(f: string): boolean }; featurePolicy?: { allowsFeature(f: string): boolean } });
+    const pol = pp.permissionsPolicy ?? pp.featurePolicy;
+    if (pol && !pol.allowsFeature('microphone')) { error('The microphone is switched off for this site at the moment. You can still open an audio file below.'); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { error('This browser cannot give the page microphone sound. You can still open an audio file below.'); return; }
+    try {
+      status('Asking for the microphone…');
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      ctx = new AudioContext(); await ctx.resume();
+      fs = ctx.sampleRate; analyser = ctx.createAnalyser(); analyser.smoothingTimeConstant = 0;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      setupAnalyser(); source = 'mic'; frozen = false; samples = null; fileInfo = null; liveStart = performance.now();
+      q('.as-mic').hidden = true; q('.as-demo').hidden = true; q('.as-stop').hidden = false; q('.as-freeze').hidden = false; q('.as-freeze').textContent = 'Freeze';
+      q<HTMLInputElement>('.as-file').value = '';
+      status('Listening. Nothing is recorded or sent.');
+      raf = requestAnimationFrame(tick);
+    } catch (err) {
+      stopMic(); status('');
+      const name = (err as Error)?.name;
+      error(name === 'NotAllowedError' || name === 'SecurityError' ? 'Microphone permission was refused. Allow it in the browser (the icon by the address) and try again, or open an audio file.' : name === 'NotFoundError' ? 'No microphone was found on this device. You can still open an audio file.' : 'The microphone could not be started. You can still open an audio file.');
+    }
+  });
+  q('.as-stop').addEventListener('click', stopMic);
+  q('.as-freeze').addEventListener('click', () => { frozen = !frozen; q('.as-freeze').textContent = frozen ? 'Resume' : 'Freeze'; status(frozen ? 'Frozen: the picture is held; the microphone is still on.' : 'Listening. Nothing is recorded or sent.'); render(); });
+
+  // ----- Settings -----
+  const changed = () => { if (source === 'file') analyseFile(); else if (source === 'mic') { setupAnalyser(); } };
+  for (const c of ['.as-n', '.as-w', '.as-ax']) q(c).addEventListener('change', changed);
+  for (const c of ['.as-floor', '.as-hold']) q(c).addEventListener('change', () => render());
+  q('.as-a4').addEventListener('input', () => render());
+  q('.as-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'spectrum.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (power) render(); });
+  window.addEventListener('pagehide', stopMic);
+  wireDownloads(q('.dl'), () => ({ title: 'Audio spectrum', subtitle: q('.as-big').textContent ?? '', file: 'audio-spectrum', sections }));
+</script>
+
+<style is:inline>
+  .asa select { max-width: 100%; }
+  .asa .as-status { margin: 8px 0 0; font-size: 14px; }
+  .asa [hidden] { display: none !important; }
+</style>

@@ -1,0 +1,316 @@
+---
+// Gram stain and biochemical test key: a table of bacteria groups against yes/no lab tests, used step by step as a
+// dichotomous key, as a results table that ranks the groups, or as a printed numbered key. Runs in the browser; a key
+// file you open is read on the page only. The example table is written by fibub and simplified for teaching.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gsk">
+  <p class="gk-warn" role="note"><strong>For teaching only.</strong> This key is not a clinical or diagnostic identification. Real identification needs pure cultures, controls, a validated system and a trained laboratory. The example table is simplified and written by fibub; real strains vary.</p>
+
+  <div class="ax-card">
+    <h2>The key</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small gk-ex">Use the example</button>
+      <button type="button" class="btn secondary small gk-open">Open a key file</button>
+      <input type="file" class="gk-file" accept=".csv,.tsv,.txt,.json,text/csv,text/plain,application/json" hidden />
+    </div>
+    <label style="margin-top:10px">Key table: one row per group, one column per test (CSV, tab or semicolon separated, or JSON) <textarea class="gk-in" rows="7" spellcheck="false" wrap="off"></textarea></label>
+    <p class="ax-help">Results: <b>+</b> positive, <b>-</b> negative, <b>v</b> variable (strains differ), blank for a test not used on that group. Optional rows <b>+ means</b> and <b>- means</b> name the two outcomes of each test, and a <b>Note</b> column adds a note. Lines starting with # are skipped. Up to 300 groups and 60 tests; files up to 2 MB.</p>
+    <p class="ax-help gk-sum" aria-live="polite"></p>
+    <p class="ax-err gk-err" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gk-kcsv">Download key (CSV)</button>
+      <button type="button" class="btn secondary small gk-kjson">Download key (JSON)</button>
+    </div>
+  </div>
+
+  <div class="ax-card gk-out" hidden>
+    <div class="ax-row gk-bar">
+      <div class="ax-seg gk-view" role="group" aria-label="View">
+        <button type="button" data-v="step" aria-pressed="true">Step by step</button>
+        <button type="button" data-v="table" aria-pressed="false">Results</button>
+        <button type="button" data-v="print" aria-pressed="false">Printed key</button>
+      </div>
+      <label class="gk-ml">Choose tests <select class="gk-mode"><option value="order">In the table's order (lab order)</option><option value="best">Fewest steps</option></select></label>
+    </div>
+
+    <section class="gk-step">
+      <p class="ax-big gk-big" aria-live="polite"></p>
+      <div class="gk-q">
+        <p class="gk-qt"></p>
+        <div class="ax-row gk-ans">
+          <button type="button" class="btn small gk-yes"></button>
+          <button type="button" class="btn small gk-no"></button>
+          <button type="button" class="btn secondary small gk-skip">Not done, skip</button>
+        </div>
+        <p class="ax-help gk-split"></p>
+        <label style="margin-top:10px">Or answer another test <select class="gk-other"></select></label>
+      </div>
+      <h3>Your path</h3>
+      <ol class="gk-path"></ol>
+      <p class="ax-help gk-nopath">No answers yet. Start with the test above.</p>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small gk-back" disabled>Back one step</button>
+        <button type="button" class="btn secondary small gk-reset" disabled>Start again</button>
+        <button type="button" class="btn secondary small gk-to-table" disabled>Rank in the results table</button>
+      </div>
+      <h3 class="gk-ch"></h3>
+      <ul class="gk-cands"></ul>
+    </section>
+
+    <section class="gk-table" hidden>
+      <p class="ax-help" style="margin-top:0">Set each result you have; leave the rest as "Not done". Groups are ranked by fewest conflicting results, then by fit: (agree + half of variable) ÷ results compared.</p>
+      <div class="ax-row" style="margin:10px 0">
+        <button type="button" class="btn secondary small gk-rex">Use example results</button>
+        <button type="button" class="btn secondary small gk-rclear">Clear results</button>
+      </div>
+      <div class="gk-res"></div>
+      <p class="ax-big gk-rbig" aria-live="polite"></p>
+      <p class="ax-help gk-rnote"></p>
+      <div class="ax-scroll"><table class="gk-rank"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gk-rcsv" disabled>Download ranking (CSV)</button></div>
+    </section>
+
+    <section class="gk-print" hidden>
+      <p class="ax-help gk-pnote" style="margin-top:0"></p>
+      <ol class="gk-lines"></ol>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gk-ptxt">Download printed key (text)</button></div>
+    </section>
+
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .gsk .gk-warn { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--ink); font-size: 14px; line-height: 1.5; border: 1px solid var(--line); }
+  .gsk .gk-warn strong { color: var(--warn); }
+  .gsk textarea.gk-in { overflow-x: auto; white-space: pre; }
+  .gsk .gk-bar { justify-content: space-between; align-items: end; }
+  .gsk .gk-ml { flex: 1 1 200px; max-width: 320px; }
+  .gsk section { margin-top: 14px; }
+  .gsk h3 { margin: 22px 0 8px; font-size: 15px; }
+  .gsk .gk-q { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+  .gsk .gk-q[hidden] { display: none; }
+  .gsk .gk-qt { margin: 0 0 10px; font-size: 17px; font-weight: 650; }
+  .gsk .gk-ans .btn { white-space: normal; text-align: left; }
+  .gsk .gk-path { margin: 0; padding-left: 22px; font-size: 15px; }
+  .gsk .gk-path li { margin: 3px 0; }
+  .gsk .gk-path .n { color: var(--muted); font-size: 13px; }
+  .gsk .gk-cands { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .gsk .gk-cands li { border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
+  .gsk .gk-cands li.out { color: var(--muted); text-decoration: line-through; border-style: dashed; }
+  .gsk .gk-cands li small { display: block; color: var(--muted); font-size: 12.5px; text-decoration: none; }
+  .gsk .gk-cands li.one { border-color: var(--accent); background: var(--accent-soft); }
+  .gsk .gk-res { display: grid; gap: 8px 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+  .gsk .gk-res select.set { border-color: var(--accent); }
+  .gsk .gk-rank td.c { color: var(--bad); }
+  .gsk .gk-rank td.nw { white-space: nowrap; }
+  .gsk .gk-rank tr.top td { background: var(--accent-soft); }
+  .gsk .gk-lines { margin: 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.55; }
+  .gsk .gk-lines li { padding: 2px 0; overflow-wrap: anywhere; }
+  .gsk .gk-lines li.b { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 4px; }
+  .gsk .gk-lines b { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { parseKey, keyToCsv, keyToJson, candidates, split, nextTest, buildTree, keyLines, rank, EXAMPLE_KEY, EXAMPLE_RESULTS, type Key, type Mode, type Fit } from '../../lib/sci/gramkey';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gsk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.gk-in'), modeSel = q<HTMLSelectElement>('.gk-mode'), other = q<HTMLSelectElement>('.gk-other');
+
+  let key: Key | null = null, keyCsv = '';
+  type Step = { t: number; a: '+' | '-' | 'skip'; left: number };
+  let steps: Step[] = [], pick: number | null = null, results = new Map<number, '+' | '-'>(), fits: Fit[] = [], lines: string[] = [];
+
+  const mode = () => modeSel.value as Mode;
+  const answers = () => new Map(steps.filter((s) => s.a !== 'skip').map((s) => [s.t, s.a as '+' | '-']));
+  const list = (n: number[]) => n.map((g) => key!.groups[g].name);
+
+  function load() {
+    const err = q('.gk-err'); err.hidden = true;
+    const r = parseKey(box.value);
+    if (!r.key) { key = null; q('.gk-out').hidden = true; q('.gk-sum').textContent = ''; if (box.value.trim() || r.errors.length) { err.textContent = r.errors.join(' '); err.hidden = !box.value.trim(); } return; }
+    const changed = keyToCsv(r.key) !== keyCsv;
+    key = r.key; keyCsv = keyToCsv(key);
+    if (box.value.trim() === EXAMPLE_KEY.trim()) key.name = 'Teaching example';
+    if (r.errors.length) { err.textContent = r.errors.slice(0, 5).join(' ') + (r.errors.length > 5 ? ` (and ${r.errors.length - 5} more)` : ''); err.hidden = false; }
+    q('.gk-sum').textContent = `${key.groups.length} groups and ${key.tests.length} tests read.`;
+    if (changed) { steps = []; pick = null; results = new Map(); }
+    q('.gk-out').hidden = false;
+    renderAll();
+  }
+
+  function renderAll() { renderStep(); renderTable(); renderPrint(); }
+
+  function renderStep() {
+    if (!key) return;
+    const all = key.groups.map((_, i) => i), ans = answers(), cands = candidates(key, ans), used = new Set(steps.map((s) => s.t));
+    if (pick !== null && used.has(pick)) pick = null;
+    const t = pick ?? nextTest(key, cands, used, mode());
+    const big = q('.gk-big'), qbox = q('.gk-q');
+    if (cands.length === 0) big.textContent = 'No group in this key fits these answers';
+    else if (cands.length === 1) big.textContent = `Matches: ${key.groups[cands[0]].name}`;
+    else big.textContent = `${cands.length} groups still possible`;
+    // Ask a question while there is something to separate, or when the person picked a test themselves.
+    const ask = t !== null && (cands.length > 1 || pick !== null);
+    q('.gk-qt').textContent = ask ? `Next test: ${key.tests[t!].name}` : cands.length > 1 ? 'No test left in the key tells these groups apart.' : cands.length === 1 ? 'Done. Confirm with more tests before you rely on it.' : 'Go back a step or check your results.';
+    q('.gk-ans').hidden = !ask;
+    q('.gk-split').textContent = '';
+    if (ask) {
+      const s = split(key, cands, t!);
+      q('.gk-yes').textContent = `+ ${key.tests[t!].yes}`; q('.gk-no').textContent = `− ${key.tests[t!].no}`;
+      q('.gk-yes').dataset.t = q('.gk-no').dataset.t = q('.gk-skip').dataset.t = String(t);
+      q('.gk-split').textContent = `Positive leaves ${s.pos.length}, negative leaves ${s.neg.length} of the ${cands.length} (a variable or unused result keeps a group on both sides).`;
+    }
+    const left = key.tests.map((x, i) => ({ x, i })).filter(({ i }) => !used.has(i));
+    other.replaceChildren(new Option(left.length ? 'Pick a test…' : 'Every test is answered', ''), ...left.map(({ x, i }) => new Option(x.name, String(i))));
+    other.value = pick !== null ? String(pick) : '';
+    other.disabled = !left.length;
+    // Path
+    const path = q('.gk-path'); path.replaceChildren();
+    for (const s of steps) {
+      const li = document.createElement('li'), te = key.tests[s.t];
+      li.append(`${te.name}: ${s.a === 'skip' ? 'not done' : s.a === '+' ? te.yes : te.no} `);
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = `(${s.a === 'skip' ? 'skipped' : `${s.left} left`})`; li.append(n);
+      path.append(li);
+    }
+    q('.gk-nopath').hidden = steps.length > 0;
+    q<HTMLButtonElement>('.gk-back').disabled = q<HTMLButtonElement>('.gk-reset').disabled = !steps.length;
+    q<HTMLButtonElement>('.gk-to-table').disabled = !ans.size;
+    // Candidates: those still possible first, then those ruled out (struck through) with the test that ruled them out.
+    q('.gk-ch').textContent = `Still possible (${cands.length}) and ruled out (${all.length - cands.length})`;
+    const ul = q('.gk-cands'); ul.replaceChildren();
+    const inSet = new Set(cands);
+    for (const g of [...cands, ...all.filter((g) => !inSet.has(g))]) {
+      const li = document.createElement('li'), gr = key.groups[g];
+      li.textContent = gr.name;
+      if (!inSet.has(g)) {
+        li.className = 'out';
+        const by = steps.find((s) => s.a !== 'skip' && candidates(key!, new Map([[s.t, s.a as '+' | '-']]), [g]).length === 0);
+        const sm = document.createElement('small'); sm.textContent = by ? `ruled out by ${key.tests[by.t].name}` : ''; li.append(sm);
+      } else {
+        if (cands.length === 1) li.className = 'one';
+        if (gr.note) { const sm = document.createElement('small'); sm.textContent = gr.note; li.append(sm); }
+      }
+      ul.append(li);
+    }
+  }
+
+  function answer(t: number, a: '+' | '-' | 'skip') {
+    if (!key) return;
+    const ans = answers(); if (a !== 'skip') ans.set(t, a);
+    steps.push({ t, a, left: candidates(key, ans).length }); pick = null; renderStep();
+  }
+
+  function renderTable() {
+    if (!key) return;
+    const wrap = q('.gk-res');
+    if (wrap.childElementCount !== key.tests.length || wrap.dataset.k !== keyCsv) {
+      wrap.dataset.k = keyCsv; wrap.replaceChildren();
+      key.tests.forEach((te, i) => {
+        const l = document.createElement('label'); l.textContent = te.name;
+        const s = document.createElement('select'); s.dataset.t = String(i);
+        s.append(new Option('Not done', ''), new Option(`+ ${te.yes}`, '+'), new Option(`− ${te.no}`, '-'));
+        l.append(s); wrap.append(l);
+      });
+    }
+    wrap.querySelectorAll<HTMLSelectElement>('select').forEach((s) => { const v = results.get(Number(s.dataset.t)) ?? ''; s.value = v; s.classList.toggle('set', !!v); });
+    const tab = q('.gk-rank'); tab.replaceChildren();
+    q<HTMLButtonElement>('.gk-rcsv').disabled = !results.size;
+    if (!results.size) { fits = []; q('.gk-rbig').textContent = ''; q('.gk-rnote').textContent = 'Set at least one result to rank the groups.'; return; }
+    fits = rank(key, results);
+    const top = fits[0], ties = fits.filter((f) => f.conflict === top.conflict && f.score === top.score);
+    const n = results.size;
+    q('.gk-rbig').textContent = top.conflict === 0
+      ? `${ties.length > 1 ? `${ties.length} groups fit equally` : `Best fit: ${key.groups[top.group].name}`} (${top.agree + top.variable} of ${n - top.unused} results agree${top.variable ? `, ${top.variable} variable` : ''})`
+      : `No group fits every result. Closest: ${key.groups[top.group].name} (${top.conflict} conflict${top.conflict > 1 ? 's' : ''})`;
+    q('.gk-rnote').textContent = `${n} result${n > 1 ? 's' : ''} compared. Fit = (agree + ½ × variable) ÷ (agree + variable + conflict). Tests not used for a group are left out of its fit.${ties.length > 1 && top.conflict === 0 ? ' Do more tests to tell the top groups apart.' : ''}`;
+    const h = tab.insertRow();
+    for (const [x, c] of [['#', 'r'], ['Group', ''], ['Fit', 'r'], ['Conflicts', ''], ['Agree', 'r'], ['Variable', 'r'], ['Not used', 'r']]) { const th = document.createElement('th'); th.textContent = x; th.className = c; h.append(th); }
+    fits.forEach((f, k) => {
+      const tr = tab.insertRow(); if (f.conflict === 0 && f.score === top.score && top.conflict === 0) tr.className = 'top';
+      const cells: [string, string][] = [[String(k + 1), 'r'], [key!.groups[f.group].name, ''], [`${f.score.toFixed(1)} %`, 'r nw'], [f.conflict ? `${f.conflict}: ${f.conflicts.map((t) => key!.tests[t].name).join(', ')}` : '0', f.conflict ? 'c' : ''], [String(f.agree), 'r'], [String(f.variable), 'r'], [String(f.unused), 'r']];
+      for (const [x, c] of cells) { const td = tr.insertCell(); td.textContent = x; td.className = c; }
+    });
+  }
+
+  function renderPrint() {
+    if (!key) return;
+    const b = buildTree(key, mode());
+    lines = keyLines(key, b.tree);
+    q('.gk-pnote').textContent = `${b.couplets} couplet${b.couplets === 1 ? '' : 's'}, ${mode() === 'best' ? 'choosing the test that leaves the fewest groups on average' : "taking the first useful test in the table's order"}. Start at 1 and follow "go to". A group with a variable or unused result appears down both branches.${b.cut ? ' The key was too long and was cut short.' : ''}`;
+    const ol = q('.gk-lines'); ol.replaceChildren();
+    lines.forEach((l, i) => {
+      const li = document.createElement('li'); if (i % 2 === 1) li.className = 'b';
+      const m = /^(\d+[ab]\.)(.*)$/.exec(l);
+      if (m) { const bb = document.createElement('b'); bb.textContent = m[1]; li.append(bb, m[2]); } else li.textContent = l;
+      ol.append(li);
+    });
+  }
+
+  function setView(v: string) {
+    root.querySelectorAll<HTMLButtonElement>('.gk-view button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+    q('.gk-step').hidden = v !== 'step'; q('.gk-table').hidden = v !== 'table'; q('.gk-print').hidden = v !== 'print';
+  }
+
+  const report = (): Section[] => {
+    if (!key) return [];
+    const ans = answers(), cands = candidates(key, ans);
+    const plain = (s: string) => s.replace(/−/g, '-');
+    const out: Section[] = [{ title: 'Teaching use only', text: ['This key is for teaching, not clinical or diagnostic identification. The example table is simplified and written by fibub; real strains vary.'], facts: [['Key', key.name], ['Groups', String(key.groups.length)], ['Tests', String(key.tests.length)], ['Test choice', mode() === 'best' ? 'Fewest steps' : 'Table (lab) order']] }];
+    if (steps.length) out.push({ title: 'Step-by-step path', table: { head: ['Step', 'Test', 'Result', 'Groups left'], rows: steps.map((s, i) => [String(i + 1), key!.tests[s.t].name, s.a === 'skip' ? 'not done' : s.a === '+' ? key!.tests[s.t].yes : key!.tests[s.t].no, s.a === 'skip' ? '-' : String(s.left)]), align: ['r', 'l', 'l', 'r'] }, text: [`Still possible: ${list(cands).join(', ') || 'none'}.`] });
+    if (fits.length) out.push({ title: 'Results table ranking', text: [plain(q('.gk-rbig').textContent ?? ''), `Results: ${[...results].map(([t, a]) => `${key!.tests[t].name} ${a}`).join(', ')}.`], table: { head: ['#', 'Group', 'Fit %', 'Agree', 'Variable', 'Not used', 'Conflicts'], rows: fits.map((f, k) => [String(k + 1), key!.groups[f.group].name, f.score.toFixed(1), String(f.agree), String(f.variable), String(f.unused), f.conflicts.map((t) => key!.tests[t].name).join(', ') || '-']), align: ['r', 'l', 'r', 'r', 'r', 'r', 'l'] } });
+    out.push({ title: 'Printed key', text: lines.slice(0, 400) });
+    out.push({ title: 'Key table', table: { head: ['Group', ...key.tests.map((t) => t.name)], rows: key.groups.map((g) => [g.name, ...g.vals.map((v) => v || '.')]) }, note: '+ positive, - negative, v variable, . not used.' });
+    return out;
+  };
+
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(load, 300); });
+  q('.gk-ex').addEventListener('click', () => { box.value = EXAMPLE_KEY; load(); });
+  q('.gk-open').addEventListener('click', () => q<HTMLInputElement>('.gk-file').click());
+  q('.gk-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.gk-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    if (f.size > 2e6) { q('.gk-err').textContent = 'That file is over 2 MB. A key is a small table; check you opened the right file.'; q('.gk-err').hidden = false; return; }
+    box.value = await f.text(); load();
+  });
+  q('.gk-kcsv').addEventListener('click', () => { if (key) save(new Blob([keyToCsv(key)], { type: 'text/csv' }), `${fileSafe(key.name)}-key.csv`, 'text/csv'); });
+  q('.gk-kjson').addEventListener('click', () => { if (key) save(new Blob([keyToJson(key)], { type: 'application/json' }), `${fileSafe(key.name)}-key.json`, 'application/json'); });
+  root.querySelectorAll<HTMLButtonElement>('.gk-view button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.v!)));
+  modeSel.addEventListener('change', () => { pick = null; renderStep(); renderPrint(); });
+  q('.gk-yes').addEventListener('click', () => answer(Number(q('.gk-yes').dataset.t), '+'));
+  q('.gk-no').addEventListener('click', () => answer(Number(q('.gk-no').dataset.t), '-'));
+  q('.gk-skip').addEventListener('click', () => answer(Number(q('.gk-skip').dataset.t), 'skip'));
+  other.addEventListener('change', () => { pick = other.value === '' ? null : Number(other.value); renderStep(); });
+  q('.gk-back').addEventListener('click', () => { steps.pop(); pick = null; renderStep(); });
+  q('.gk-reset').addEventListener('click', () => { steps = []; pick = null; renderStep(); });
+  q('.gk-to-table').addEventListener('click', () => { results = answers(); renderTable(); setView('table'); });
+  q('.gk-res').addEventListener('change', (e) => {
+    const s = e.target as HTMLSelectElement; const t = Number(s.dataset.t);
+    if (s.value) results.set(t, s.value as '+' | '-'); else results.delete(t);
+    renderTable();
+  });
+  q('.gk-rex').addEventListener('click', () => {
+    if (!key) return;
+    results = new Map(EXAMPLE_RESULTS.map(([n, a]) => [key!.tests.findIndex((t) => t.name === n), a] as [number, '+' | '-']).filter(([t]) => t >= 0));
+    renderTable();
+  });
+  q('.gk-rclear').addEventListener('click', () => { results = new Map(); renderTable(); });
+  q('.gk-rcsv').addEventListener('click', () => {
+    if (!key) return;
+    const rows: (string | number)[][] = [['rank', 'group', 'fit_percent', 'agree', 'variable', 'not_used', 'conflict', 'conflicting_tests'], ...fits.map((f, k) => [k + 1, key!.groups[f.group].name, f.score.toFixed(1), f.agree, f.variable, f.unused, f.conflict, f.conflicts.map((t) => key!.tests[t].name).join('; ')])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(key.name)}-ranking.csv`, 'text/csv');
+  });
+  q('.gk-ptxt').addEventListener('click', () => {
+    if (!key) return;
+    const head = [`${key.name}: printed identification key (${mode() === 'best' ? 'fewest steps' : 'table order'})`, 'For teaching only, not clinical identification. Made with fibub.com.', ''];
+    save(new Blob([[...head, ...lines].join('\n') + '\n'], { type: 'text/plain' }), `${fileSafe(key.name)}-printed-key.txt`, 'text/plain');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Identification key', subtitle: key ? `${key.name}: ${key.groups.length} groups, ${key.tests.length} tests` : '', file: `${fileSafe(key?.name ?? 'key')}-identification`, sections: report() }));
+
+  box.value = EXAMPLE_KEY; load();
+</script>

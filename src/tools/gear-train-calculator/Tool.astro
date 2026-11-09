@@ -1,0 +1,232 @@
+---
+// Gear trains (simple, idler, compound), planetary sets (Willis equation) and belt drives (src/lib/sci/eng-gear.ts).
+// Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gtc">
+  <div class="ax-card">
+    <h2>Gear train</h2>
+    <div class="ax-grid">
+      <label>Input speed (rpm) <input class="gt-n" type="text" inputmode="decimal" value="1440" /></label>
+      <label>Input torque (N·m) <input class="gt-t" type="text" inputmode="decimal" value="20" /></label>
+      <label>Module (mm, optional) <input class="gt-m" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <div class="gt-meshes"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gt-add">Add a mesh</button></div>
+    <p class="ax-help">Each row is one pair of gears in mesh, from the input onward. The driven gear of a row sits on the same shaft as the driver of the next row (a compound train). For an idler, make the next driver the same gear: same tooth count. External gears reverse the direction; an internal (ring) gear or a chain keeps it. Efficiency is per mesh; about 98 % is a rounded example for good spur gears. The module (tooth size in mm) gives the centre distances.</p>
+    <p class="ax-err gt-err" hidden></p>
+    <div class="gt-out">
+      <p class="ax-big gt-big"></p>
+      <dl class="ax-facts gt-facts"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="gt-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gt-csv">Download shafts (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Planetary gear set</h2>
+    <div class="ax-grid">
+      <label>Sun teeth <input class="pl-s" type="text" inputmode="numeric" value="24" /></label>
+      <label>Ring teeth <input class="pl-r" type="text" inputmode="numeric" value="72" /></label>
+      <label>Number of planets <input class="pl-np" type="text" inputmode="numeric" value="3" /></label>
+      <label>Sun speed (rpm) <input class="pl-ws" type="text" inputmode="decimal" value="1500" /></label>
+      <label>Ring speed (rpm) <input class="pl-wr" type="text" inputmode="decimal" value="0" /></label>
+      <label>Carrier speed (rpm) <input class="pl-wc" type="text" inputmode="decimal" value="" /></label>
+      <label>Torque on the sun (N·m, optional) <input class="pl-ts" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">Give two of the three speeds and leave the third empty; type 0 for the part that is held still. Directions follow the sign: a negative speed turns the other way.</p>
+    <p class="ax-err pl-err" hidden></p>
+    <div class="pl-out">
+      <p class="ax-big pl-big"></p>
+      <dl class="ax-facts pl-facts"></dl>
+      <canvas class="ax-fig pl-fig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Belt drive</h2>
+    <div class="ax-grid">
+      <label>Driving pulley diameter (mm) <input class="bd-d1" type="text" inputmode="decimal" value="100" /></label>
+      <label>Driven pulley diameter (mm) <input class="bd-d2" type="text" inputmode="decimal" value="300" /></label>
+      <label>Belt <select class="bd-x"><option value="open" selected>Open (same direction)</option><option value="crossed">Crossed (opposite direction)</option></select></label>
+      <label>Find <select class="bd-mode"><option value="L" selected>Belt length from the centre distance</option><option value="C">Centre distance from a belt length</option></select></label>
+      <label class="bd-cbox">Centre distance (mm) <input class="bd-c" type="text" inputmode="decimal" value="500" /></label>
+      <label class="bd-lbox" hidden>Belt length (mm) <input class="bd-l" type="text" inputmode="decimal" value="1700" /></label>
+      <label>Driving speed (rpm) <input class="bd-n" type="text" inputmode="decimal" value="1440" /></label>
+      <label>Slip (%) <input class="bd-slip" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Use pitch diameters (where the belt's middle runs). Flat and V-belts creep 1 to 3 % (a rounded example); toothed belts do not slip. A wrap below about 120° on the small pulley makes slipping more likely.</p>
+    <p class="ax-err bd-err" hidden></p>
+    <div class="bd-out">
+      <p class="ax-big bd-big"></p>
+      <dl class="ax-facts bd-facts"></dl>
+      <canvas class="ax-fig bd-fig"></canvas>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<template class="gt-tpl">
+  <div class="gt-row">
+    <label>Driver teeth <input class="gt-a" type="text" inputmode="numeric" /></label>
+    <label>Driven teeth <input class="gt-b" type="text" inputmode="numeric" /></label>
+    <label>Type <select class="gt-k"><option value="external">External</option><option value="internal">Internal (ring)</option><option value="chain">Chain or toothed belt</option></select></label>
+    <label>Efficiency (%) <input class="gt-e" type="text" inputmode="decimal" value="98" /></label>
+    <button type="button" class="btn secondary small gt-del" aria-label="Remove this mesh">Remove</button>
+  </div>
+</template>
+
+<script>
+  import { train, centreDistance, planetary, planetaryTorques, planetaryChecks, belt, beltApprox, beltCentre, type Mesh } from '../../lib/sci/eng-gear';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.gtc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const val = (c: string) => num(raw(c));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const facts2 = (el: HTMLElement) => [...el.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const kw = (T: number, n: number) => (T * n * 2 * Math.PI) / 60 / 1000;
+  let gtSec: Section | null = null, plSec: Section | null = null, bdSec: Section | null = null, rows: (string | number)[][] = [];
+  let plFig: Figure | null = null, bdFig: Figure | null = null;
+
+  function addMesh(a: string, b: string, k = 'external', e = '98') {
+    const row = (document.querySelector<HTMLTemplateElement>('.gt-tpl')!.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+    const f = (c: string) => row.querySelector(c) as HTMLInputElement;
+    f('.gt-a').value = a; f('.gt-b').value = b; f('.gt-k').value = k; f('.gt-e').value = e;
+    row.querySelector('.gt-del')!.addEventListener('click', () => { row.remove(); gears(); });
+    row.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', gears); i.addEventListener('change', gears); });
+    q('.gt-meshes').append(row);
+  }
+
+  function gears() {
+    const err = q('.gt-err'), out = q('.gt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; gtSec = null; rows = []; };
+    const n = val('.gt-n'), T = val('.gt-t'), m = val('.gt-m');
+    if (!(n > 0)) return fail('Give the input speed.');
+    if (!Number.isFinite(T)) return fail('Give the input torque (0 if you only need speeds).');
+    const meshes: Mesh[] = [...root.querySelectorAll<HTMLElement>('.gt-row')].map((r) => ({ driver: num((r.querySelector('.gt-a') as HTMLInputElement).value), driven: num((r.querySelector('.gt-b') as HTMLInputElement).value), kind: (r.querySelector('.gt-k') as HTMLSelectElement).value as Mesh['kind'], eff: num((r.querySelector('.gt-e') as HTMLInputElement).value) / 100 }));
+    for (const [i, x] of meshes.entries()) if (!(Number.isInteger(x.driver) && Number.isInteger(x.driven))) return fail(`Mesh ${i + 1}: tooth counts are whole numbers.`);
+    let r; try { r = train(meshes, n, T); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const last = r.shafts[r.shafts.length - 1];
+    q('.gt-big').textContent = `Output ${sg(last.speed, 4)} rpm ${last.dir === 1 ? 'same way as' : 'opposite to'} the input, ${sg(last.torque, 4)} N·m`;
+    const f = [
+      fact('Overall ratio', `${sg(r.ratio, 5)} : 1`, r.ratio >= 1 ? 'speed reduced, torque raised' : 'speed raised (overdrive)'),
+      fact('Efficiency', `${sg(r.eff * 100, 4)} %`, `power in ${sg(kw(T, n), 4)} kW, out ${sg(kw(last.torque, last.speed), 4)} kW`),
+    ];
+    if (m > 0) f.push(fact('Centre distances', meshes.map((x) => `${sg(centreDistance(m, x), 4)}`).join(', ') + ' mm', `module ${sg(m, 3)} mm; pitch diameters are module × teeth${meshes.some((x) => x.kind === 'chain') ? '; chain rows have no fixed centre distance, shown as if gears' : ''}`));
+    q('.gt-facts').replaceChildren(...f);
+    const head = ['Shaft', 'Speed (rpm)', 'Direction', 'Torque (N·m)', 'Power (kW)'];
+    rows = [['shaft', 'speed_rpm', 'direction', 'torque_Nm', 'power_kW'], ...r.shafts.map((s, i) => [i === 0 ? 'input' : String(i), sg(s.speed, 6), s.dir === 1 ? 'same as input' : 'reversed', sg(s.torque, 6), sg(kw(s.torque, s.speed), 6)])];
+    const body = r.shafts.map((s, i) => [i === 0 ? 'Input' : i === r.shafts.length - 1 ? `${i} (output)` : String(i), sg(s.speed, 4), s.dir === 1 ? 'same' : 'reversed', sg(s.torque, 4), sg(kw(s.torque, s.speed), 4)]);
+    const tab = q('.gt-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const e = document.createElement('tr'); cells.forEach((c, i) => { const td = document.createElement(th ? 'th' : 'td'); td.textContent = c; if (i !== 0 && i !== 2) td.className = 'r'; e.append(td); }); return e; };
+    const thead = document.createElement('thead'); thead.append(tr(head, true)); const tb = document.createElement('tbody'); body.forEach((b) => tb.append(tr(b, false))); tab.append(thead, tb);
+    gtSec = { title: q('.gt-big').textContent!, facts: facts2(q('.gt-facts')), table: { head, rows: body, align: ['l', 'r', 'l', 'r', 'r'] } };
+  }
+
+  function planet() {
+    const err = q('.pl-err'), out = q('.pl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; plSec = null; };
+    const Ns = val('.pl-s'), Nr = val('.pl-r'), np = val('.pl-np');
+    if (!(Number.isInteger(Ns) && Number.isInteger(Nr) && Ns > 0 && Nr > Ns)) return fail('Give whole tooth counts, with more on the ring than the sun.');
+    if (!(Number.isInteger(np) && np >= 1)) return fail('Give the number of planets (1 or more).');
+    const sp = (c: string) => (raw(c) === '' ? NaN : val(c));
+    const ws = sp('.pl-ws'), wr = sp('.pl-wr'), wc = sp('.pl-wc');
+    if ([ws, wr, wc].filter((v) => !Number.isFinite(v)).length !== 1) return fail('Give exactly two of the three speeds and leave one empty.');
+    const p = planetary(Ns, Nr, ws, wr, wc), ck = planetaryChecks(Ns, Nr, np);
+    err.hidden = true; out.hidden = false;
+    const solved = !Number.isFinite(ws) ? 'Sun' : !Number.isFinite(wr) ? 'Ring' : 'Carrier', sv = solved === 'Sun' ? p.ws : solved === 'Ring' ? p.wr : p.wc;
+    q('.pl-big').textContent = `${solved} speed ${sg(sv, 5)} rpm`;
+    const f = [
+      fact('Speeds', `sun ${sg(p.ws, 5)}, ring ${sg(p.wr, 5)}, carrier ${sg(p.wc, 5)} rpm`, '(ωr − ωc) / (ωs − ωc) = −Ns / Nr (Willis)'),
+      fact('Planet teeth', Number.isInteger(ck.Np) ? String(ck.Np) : `${sg(ck.Np, 3)} (not whole)`, ck.wholePlanet ? `(ring − sun) / 2; each planet spins at ${sg(p.wp, 5)} rpm` : 'ring − sun must be even for standard gears'),
+      fact('Assembly', ck.assembles && ck.wholePlanet ? `${np} equally spaced planets fit` : `${np} planets cannot be equally spaced`, ck.assembles ? `(sun + ring) / planets = ${sg((Ns + Nr) / np, 4)}, a whole number${ck.fits ? '' : '; but neighbouring planets would touch'}` : `(sun + ring) / planets = ${sg((Ns + Nr) / np, 4)} must be a whole number`),
+    ];
+    const known = [ws, wr, wc].map((v, i) => (v === 0 ? i : -1)).filter((i) => i >= 0);
+    if (known.length === 1) {
+      const held = known[0], inp = held === 0 ? 'ring' : 'sun', outp = held === 2 ? 'ring' : 'carrier';
+      const wi = inp === 'sun' ? p.ws : p.wr, wo = outp === 'ring' ? p.wr : p.wc;
+      if (wo !== 0) f.push(fact('Ratio', `${sg(wi / wo, 5)} : 1`, `${inp} in, ${outp} out, ${['sun', 'ring', 'carrier'][held]} held${wi / wo < 0 ? '; the output turns backwards' : ''}`));
+    }
+    const Ts = val('.pl-ts');
+    if (Number.isFinite(Ts) && Ts !== 0) { const t = planetaryTorques(Ns, Nr, Ts); f.push(fact('Torques (ideal)', `sun ${sg(t.Ts, 4)}, ring ${sg(t.Tr, 4)}, carrier ${sg(t.Tc, 4)} N·m`, 'they add to zero; losses ignored')); }
+    q('.pl-facts').replaceChildren(...f);
+    plFig = { w: 380, h: 230, alt: `Planetary set: sun ${Ns}, ring ${Nr}, ${np} planets`, draw: (ctx, W, H, pal) => {
+      const cx = W / 2, cy = H / 2, R = (H - 20) / 2, sc = R / (Nr / 2), rs = (Ns / 2) * sc, rp = ((Nr - Ns) / 4) * sc;
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+      ctx.strokeStyle = pal.accent; ctx.beginPath(); ctx.arc(cx, cy, rs, 0, 7); ctx.stroke();
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 3; ctx.beginPath();
+      for (let i = 0; i < np; i++) { const a = -Math.PI / 2 + (2 * Math.PI * i) / np; ctx.moveTo(cx, cy); ctx.lineTo(cx + (rs + rp) * Math.cos(a), cy + (rs + rp) * Math.sin(a)); }
+      ctx.stroke(); ctx.lineWidth = 2; ctx.strokeStyle = pal.accent2;
+      for (let i = 0; i < np; i++) { const a = -Math.PI / 2 + (2 * Math.PI * i) / np; ctx.beginPath(); ctx.arc(cx + (rs + rp) * Math.cos(a), cy + (rs + rp) * Math.sin(a), rp, 0, 7); ctx.stroke(); }
+      ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`ring ${Nr}`, 6, 6); ctx.fillStyle = pal.accent; ctx.fillText(`sun ${Ns}`, 6, 22); ctx.fillStyle = pal.accent2; ctx.fillText(`planets ${sg(ck.Np, 3)}`, 6, 38); ctx.fillStyle = pal.muted; ctx.fillText('carrier', 6, 54);
+    } };
+    paint(q<HTMLCanvasElement>('.pl-fig'), plFig);
+    plSec = { title: `Planetary set: ${q('.pl-big').textContent}`, facts: facts2(q('.pl-facts')), figure: plFig };
+  }
+
+  function belts() {
+    const err = q('.bd-err'), out = q('.bd-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; bdSec = null; };
+    const mode = q<HTMLSelectElement>('.bd-mode').value; q('.bd-cbox').hidden = mode !== 'L'; q('.bd-lbox').hidden = mode !== 'C';
+    const d1 = val('.bd-d1'), d2 = val('.bd-d2'), crossed = q<HTMLSelectElement>('.bd-x').value === 'crossed', n1 = val('.bd-n'), slip = val('.bd-slip');
+    if (!(d1 > 0 && d2 > 0)) return fail('Give both pulley diameters.');
+    if (!(n1 >= 0)) return fail('Give the driving speed.');
+    if (!(slip >= 0 && slip < 50)) return fail('Give the slip as a percentage (0 for a toothed belt).');
+    let C: number, b;
+    try {
+      if (mode === 'L') { C = val('.bd-c'); if (!(C > 0)) return fail('Give the centre distance.'); }
+      else { const L = val('.bd-l'); if (!(L > 0)) return fail('Give the belt length.'); C = beltCentre(Math.max(d1, d2), Math.min(d1, d2), L, crossed); }
+      b = belt(d1, d2, C, crossed);
+    } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const n2 = (n1 * d1) / d2 * (1 - slip / 100), v = (Math.PI * d1 * n1) / 60000, deg = (r: number) => (r * 180) / Math.PI;
+    q('.bd-big').textContent = mode === 'L' ? `Belt length ${sg(b.L, 5)} mm` : `Centre distance ${sg(C, 5)} mm`;
+    const f = [
+      fact('Belt length', `${sg(b.L, 5)} mm`, `the quick formula 2C + π(D + d)/2 + (D ${crossed ? '+' : '−'} d)²/4C gives ${sg(beltApprox(Math.max(d1, d2), Math.min(d1, d2), C, crossed), 5)} mm`),
+      fact('Wrap angles', crossed ? `${sg(deg(b.wrapSmall), 4)}° on both` : `${sg(deg(b.wrapSmall), 4)}° small, ${sg(deg(b.wrapLarge), 4)}° large`, b.wrapSmall < (2 * Math.PI) / 3 ? 'small-pulley wrap below 120°: slipping is likely' : 'angle of contact on each pulley'),
+      fact('Driven speed', `${sg(n2, 5)} rpm`, `ratio ${sg(d2 / d1, 4)} : 1${slip ? `, less ${sg(slip, 3)} % slip` : ''}; ${crossed ? 'opposite direction' : 'same direction'}`),
+      fact('Belt speed', `${sg(v, 4)} m/s`, 'π × driving diameter × speed'),
+      fact('Free span', `${sg(b.span, 5)} mm`, 'straight length between the pulleys, each side'),
+    ];
+    q('.bd-facts').replaceChildren(...f);
+    bdFig = { w: 380, h: 190, alt: `${crossed ? 'Crossed' : 'Open'} belt on ${d1} and ${d2} mm pulleys ${sg(C, 4)} mm apart`, draw: (ctx, W, H, pal) => {
+      const r1 = d1 / 2, r2 = d2 / 2, sc = Math.min((W - 20) / (C + r1 + r2), (H - 20) / (2 * Math.max(r1, r2)));
+      const x1 = 10 + r1 * sc, x2 = x1 + C * sc, cy = H / 2;
+      // Belt: tangent lines and wrapped arcs, from the same geometry as the length.
+      // Common tangents: a unit normal n with n·(c2 − c1) = r1 − r2 (open) or r1 + r2 (crossed); the belt touches
+      // pulley 1 at c1 + r1 n and pulley 2 at c2 + r2 n (open) or c2 − r2 n (crossed).
+      const th = Math.acos((crossed ? r1 + r2 : r1 - r2) / C), k = crossed ? -1 : 1;
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 3;
+      for (const a of [th, -th]) { const nx = Math.cos(a), ny = Math.sin(a); ctx.beginPath(); ctx.moveTo(x1 + r1 * sc * nx, cy - r1 * sc * ny); ctx.lineTo(x2 + k * r2 * sc * nx, cy - k * r2 * sc * ny); ctx.stroke(); }
+      ctx.lineWidth = 1.5; ctx.strokeStyle = pal.ink;
+      for (const [x, r] of [[x1, r1], [x2, r2]] as const) { ctx.beginPath(); ctx.arc(x, cy, r * sc, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(x, cy, 2, 0, 7); ctx.fill(); }
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`C = ${sg(C, 4)} mm`, (x1 + x2) / 2, cy - 4);
+    } };
+    paint(q<HTMLCanvasElement>('.bd-fig'), bdFig);
+    bdSec = { title: `Belt drive: ${q('.bd-big').textContent}`, facts: facts2(q('.bd-facts')), figure: bdFig };
+  }
+
+  const all = () => { gears(); planet(); belts(); };
+  q('.gt-add').addEventListener('click', () => { addMesh('20', '40'); gears(); });
+  q('.gt-csv').addEventListener('click', () => rows.length > 1 && save(new Blob([csv(rows)], { type: 'text/csv' }), 'gear-train.csv', 'text/csv'));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (plFig && !q('.pl-out').hidden) paint(q<HTMLCanvasElement>('.pl-fig'), plFig); if (bdFig && !q('.bd-out').hidden) paint(q<HTMLCanvasElement>('.bd-fig'), bdFig); });
+  addMesh('18', '54'); addMesh('20', '60');
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Gear train and belt drive', subtitle: q('.gt-big').textContent ?? '', file: 'gear-train', sections: [gtSec, plSec, bdSec].filter((s): s is Section => !!s) }));
+</script>
+
+<style is:inline>
+  .gtc select, .gtc input { max-width: 100%; }
+  .gtc .gt-meshes { margin-top: 12px; }
+  .gtc .gt-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .gtc .gt-out, .gtc .pl-out, .gtc .bd-out { margin-top: 12px; }
+</style>

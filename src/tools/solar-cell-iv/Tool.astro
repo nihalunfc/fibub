@@ -1,0 +1,202 @@
+---
+// Solar cell I-V: Isc/Jsc, Voc, maximum power point, fill factor and efficiency from measured points; series and
+// shunt resistance from the slopes; and a single-diode model fit (explicit Lambert W form) for the ideality
+// factor and saturation current. Nothing is uploaded. The example curve is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax solariv">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">I-V curve</h2>
+      <button type="button" class="btn secondary small sv-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Voltage (V), then current, one point per line <textarea class="sv-data" rows="5" spellcheck="false" wrap="off" placeholder="0.00&#9;149.7&#10;0.01&#9;149.7"></textarea></label>
+    <DataFile target=".sv-data" maxCols={6} maxRows={20000} label="Open an I-V file" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Current column <select class="sv-unit"><option value="ma" selected>Current (mA)</option><option value="a">Current (A)</option><option value="j">Current density (mA/cm²)</option></select></label>
+      <label>Cell area (cm²) <input class="sv-area" inputmode="decimal" value="4" /></label>
+      <label>Irradiance (W/m²) <input class="sv-irr" inputmode="decimal" value="1000" /></label>
+      <label>Cell temperature (°C) <input class="sv-tc" inputmode="decimal" value="25" /></label>
+      <label>Cells in series <input class="sv-ns" type="number" min="1" max="500" step="1" inputmode="numeric" value="1" /></label>
+      <label>Points for the slopes <input class="sv-k" type="number" min="2" max="50" step="1" inputmode="numeric" value="5" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sv-fit" checked /> Fit the single-diode model</label>
+    <p class="ax-help">Either sign convention works: if the current at 0 V is negative, the page flips it so the photocurrent is positive. The area is the cell's active (or aperture) area; it turns current into current density and gives the efficiency with the irradiance (1000 W/m² is standard test light). Temperature sets the thermal voltage kT/q for the diode fit, and cells in series multiply it. The slopes use the points nearest Voc and 0 V.</p>
+    <p class="ax-err sv-err" hidden></p>
+  </div>
+
+  <div class="ax-card sv-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big sv-big"></p>
+    <dl class="ax-facts sv-facts"></dl>
+    <p class="ax-help sv-note"></p>
+    <h3 class="sv-fh">Single-diode model</h3>
+    <div class="ax-scroll"><table class="sv-tab"></table></div>
+    <p class="ax-help sv-fnote"></p>
+    <h3>I-V curve</h3>
+    <canvas class="ax-fig sv-fig1"></canvas>
+    <h3>Power</h3>
+    <canvas class="ax-fig sv-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sv-csv">Download points and model (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { normalise, metrics, fitDiode, currentAt, exampleIV, EXAMPLE, type DiodeFit, type Metrics } from '../../lib/sci/solarcell';
+  import { num, sig, parseTable, pm } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.solariv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mA = (x: number) => `${sig(x * 1000, 5)} mA`;
+
+  let sections: Section[] = [], figs: Figure[] = [], name = 'iv';
+  let last: { V: number[]; I: number[]; fit: DiodeFit | null; area: number } | null = null;
+
+  function table(t: HTMLTableElement, head: string[], body: string[][]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function run() {
+    const err = q('.sv-err'), out = q('.sv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = !m; out.hidden = true; sections = []; last = null; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.sv-data').value);
+    if (!rows.length) return fail('');
+    const unit = q<HTMLSelectElement>('.sv-unit').value;
+    const areaRaw = inp('.sv-area').value.trim(), area = areaRaw === '' ? NaN : v('.sv-area');
+    if (areaRaw !== '' && !(area > 0)) return fail('The cell area is a positive number of cm², or leave it empty.');
+    if (unit === 'j' && !(area > 0)) return fail('Give the cell area to turn current density into current.');
+    const irr = v('.sv-irr'), tC = v('.sv-tc'), Ns = Math.round(v('.sv-ns')), k = Math.round(v('.sv-k'));
+    if (!(irr > 0 && irr <= 1e6)) return fail('The irradiance is a positive number of W/m² (1000 for standard test light).');
+    if (!(tC > -100 && tC < 300)) return fail('The cell temperature is in °C, between −100 and 300.');
+    if (!(Ns >= 1 && Ns <= 500)) return fail('Cells in series is a whole number from 1 to 500.');
+    if (!(k >= 2 && k <= 50)) return fail('Points for the slopes is a whole number from 2 to 50.');
+    const Vs: number[] = [], Is: number[] = [];
+    for (const r of rows) { const a = num(r[0]), b = num(r[1]); if (Number.isFinite(a) && Number.isFinite(b)) { Vs.push(a); Is.push(unit === 'a' ? b : unit === 'ma' ? b / 1000 : (b * area) / 1000); } }
+    if (Vs.length < 8) return fail('The curve needs at least 8 points, each with a voltage and a current.');
+    if (new Set(Vs).size !== Vs.length) return fail('Two points have the same voltage. Remove the repeat (or average the two).');
+    const iv = normalise(Vs, Is);
+    const m = metrics(iv, k);
+    if (!Number.isFinite(m.Isc)) return fail('The curve does not cross 0 V. Measure from slightly below 0 V (or from 0 V) to beyond the open-circuit voltage.');
+    if (!(m.Isc > 0)) return fail('No photocurrent at 0 V: the curve looks like a dark measurement.');
+    if (!Number.isFinite(m.Voc)) return fail('The current never falls to zero: measure past the open-circuit voltage.');
+    let fit: DiodeFit | null = null, fitMsg = '';
+    if (inp('.sv-fit').checked) {
+      try { fit = fitDiode(iv, m, tC, Ns); } catch (e) { fitMsg = (e as Error).message; }
+    }
+    err.hidden = true; out.hidden = false;
+    last = { V: iv.V, I: iv.I, fit, area };
+
+    const hasA = area > 0;
+    const Pin = hasA ? irr * area * 1e-4 : NaN; // W
+    const eff = (m.Pmax / Pin) * 100;
+    q('.sv-big').textContent = [hasA ? `Efficiency ${eff.toFixed(2)} %` : '', `FF ${(m.FF * 100).toFixed(2)} %`, `Voc ${m.Voc.toFixed(4)} V`, hasA ? `Jsc ${(m.Isc * 1000 / area).toFixed(2)} mA/cm²` : `Isc ${mA(m.Isc)}`].filter(Boolean).join(', ');
+    const facts = [
+      fact('Short-circuit current Isc', mA(m.Isc), hasA ? `Jsc = ${sig((m.Isc * 1000) / area, 5)} mA/cm²` : 'give the area for the current density'),
+      fact('Open-circuit voltage Voc', `${sig(m.Voc, 5)} V`, Ns > 1 ? `${sig(m.Voc / Ns, 4)} V per cell` : ''),
+      fact('Maximum power Pmax', `${sig(m.Pmax * 1000, 5)} mW`, `at Vmp = ${sig(m.Vmp, 4)} V, Imp = ${mA(m.Imp)}${hasA ? `; ${sig((m.Pmax * 1000) / area, 4)} mW/cm²` : ''}`),
+      fact('Fill factor FF', `${(m.FF * 100).toFixed(2)} %`, 'Pmax / (Voc · Isc)'),
+      fact('Efficiency η', hasA ? `${eff.toFixed(2)} %` : '–', hasA ? `Pmax / (${irr} W/m² × ${area} cm² = ${sig(Pin * 1000, 4)} mW)` : 'give the cell area'),
+      fact('Series resistance (slope)', `${sig(m.RsSlope, 4)} Ω`, `−dV/dI near Voc${hasA ? `; ${sig(m.RsSlope * area, 4)} Ω·cm²` : ''}. An upper limit: it includes the diode's own slope`),
+      fact('Shunt resistance (slope)', `${sig(m.RshSlope, 4)} Ω`, `−dV/dI near 0 V${hasA ? `; ${sig(m.RshSlope * area, 4)} Ω·cm²` : ''}`),
+    ];
+    q('.sv-facts').replaceChildren(...facts);
+    const notes: string[] = [];
+    if (iv.flipped) notes.push('The current was negative at 0 V, so its sign was flipped.');
+    if (!(m.RshSlope > 0)) notes.push('The curve does not fall near 0 V, so the slope gives no shunt resistance: there is too much noise, or more points are needed.');
+    if (iv.V[iv.V.length - 1] < m.Voc * 1.02) notes.push('The curve stops close to Voc: a few points beyond it make the series-resistance slope steadier.');
+    notes.push('Isc and Voc are read where the measured curve crosses the axes (straight lines between points); Pmax is the highest V·I along those lines.');
+    q('.sv-note').textContent = notes.join(' ');
+
+    // Fit table.
+    const showFit = inp('.sv-fit').checked;
+    q('.sv-fh').hidden = q('.sv-tab').hidden = q('.sv-fnote').hidden = !showFit;
+    let fitRows: string[][] = [];
+    if (fit) {
+      const d = fit.d, s = fit.se;
+      fitRows = [
+        ['Photocurrent Iph', `${pm(d.Iph * 1000, s.Iph * 1000)} mA`, hasA ? `${sig((d.Iph * 1000) / area, 5)} mA/cm²` : ''],
+        ['Saturation current I0', `${pm(d.I0, s.I0)} A`, hasA ? `${sig(d.I0 / area, 4)} A/cm²` : ''],
+        ['Ideality factor n', pm(d.n, s.n), Ns > 1 ? 'per cell' : ''],
+        ['Series resistance Rs', `${pm(d.Rs, s.Rs)} Ω`, hasA ? `${sig(d.Rs * area, 4)} Ω·cm²` : ''],
+        ['Shunt resistance Rsh', `${pm(d.Rsh, s.Rsh)} Ω`, hasA ? `${sig(d.Rsh * area, 4)} Ω·cm²` : ''],
+        ['Model Voc, Isc', `${sig(fit.model.Voc, 5)} V, ${mA(fit.model.Isc)}`, ''],
+        ['Model Pmax, FF', `${sig(fit.model.P * 1000, 5)} mW, ${(fit.model.FF * 100).toFixed(2)} %`, ''],
+        ['RMS misfit', `${sig(fit.rmse * 1e6, 4)} µA`, `${sig((fit.rmse / m.Isc) * 100, 3)} % of Isc`],
+      ];
+      table(q<HTMLTableElement>('.sv-tab'), ['Parameter', 'Value ± SE', hasA ? 'Per area' : ''], fitRows);
+      const fn = [`I = Iph − I0[exp((V + I·Rs)/(n·${Ns > 1 ? `${Ns}·` : ''}kT/q)) − 1] − (V + I·Rs)/Rsh with kT/q = ${sig(fit.a / fit.d.n / Ns * 1000, 5)} mV at ${tC} °C, solved for I with the Lambert W function and fitted to every point by least squares.`];
+      if (!fit.converged) fn.push('The fit stopped before it fully settled; treat the numbers with care.');
+      if (d.n < 0.8 || d.n > 3) fn.push('An ideality factor outside about 1 to 2 often means the one-diode model does not describe this cell well (or the cell count or temperature is wrong).');
+      fn.push('± is 1 standard error from the fit.');
+      q('.sv-fnote').textContent = fn.join(' ');
+    } else if (showFit) { table(q<HTMLTableElement>('.sv-tab'), ['Parameter', 'Value'], []); q('.sv-fnote').textContent = fitMsg; }
+
+    // Figures (current density if the area is known).
+    const scale = hasA ? 1000 / area : 1000, yl = hasA ? 'Current density J (mA/cm²)' : 'Current I (mA)';
+    const vMax = iv.V[iv.V.length - 1], vMin = Math.min(0, iv.V[0]);
+    const mv = Array.from({ length: 200 }, (_, i) => vMin + ((vMax - vMin) * i) / 199);
+    const modelI = fit ? mv.map((x) => currentAt(x, fit!.d, fit!.a)) : [];
+    const f1 = chartFigure({
+      h: 340, xLabel: 'Voltage (V)', yLabel: yl, legend: 'below', yMin: 0, yMax: m.Isc * scale * 1.12,
+      series: [
+        { name: 'Measured', x: iv.V, y: iv.I.map((x) => x * scale), mode: 'points', marker: 'circle', size: 2.6 },
+        ...(fit ? [{ name: 'Single-diode fit', x: mv, y: modelI.map((x) => x * scale), mode: 'line' as const, width: 1.8 }] : []),
+        { name: 'Maximum power point', x: [m.Vmp], y: [m.Imp * scale], mode: 'points', marker: 'diamond', size: 6 },
+      ],
+    }, `I-V curve with Isc ${mA(m.Isc)}, Voc ${sig(m.Voc, 4)} V and the maximum power point`);
+    const pScale = hasA ? 1000 / area : 1000;
+    const f2 = chartFigure({
+      h: 280, xLabel: 'Voltage (V)', yLabel: hasA ? 'Power density (mW/cm²)' : 'Power (mW)', legend: 'below', yMin: 0, yMax: m.Pmax * pScale * 1.15,
+      series: [
+        { name: 'Measured V·I', x: iv.V, y: iv.V.map((x, i) => x * iv.I[i] * pScale), mode: 'points', marker: 'circle', size: 2.4 },
+        ...(fit ? [{ name: 'Model', x: mv, y: mv.map((x, i) => x * modelI[i] * pScale), mode: 'line' as const, width: 1.8 }] : []),
+      ],
+      marks: [{ kind: 'vline', at: m.Vmp, dash: [3, 3], label: 'Vmp' }],
+    }, `Power against voltage, peaking at ${sig(m.Pmax * 1000, 4)} mW`);
+    paint(q<HTMLCanvasElement>('.sv-fig1'), f1); paint(q<HTMLCanvasElement>('.sv-fig2'), f2);
+    figs = [f1, f2];
+    sections = [
+      { title: q('.sv-big').textContent!, facts: [...q('.sv-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.sv-note').textContent!, figure: f1 },
+      ...(fit ? [{ title: 'Single-diode model', table: { head: ['Parameter', 'Value ± SE', 'Per area'], rows: fitRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] }, note: q('.sv-fnote').textContent! }] : []),
+      { title: 'Power', figure: f2 },
+    ];
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 300)); };
+  q('.sv-data').addEventListener('input', () => { name = 'iv'; later(run); });
+  ['.sv-area', '.sv-irr', '.sv-tc', '.sv-ns', '.sv-k'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  ['.sv-unit', '.sv-fit'].forEach((c) => q(c).addEventListener('change', run));
+  q('.sv-ex').addEventListener('click', () => {
+    const e = exampleIV();
+    q<HTMLTextAreaElement>('.sv-data').value = 'voltage_V\tcurrent_mA\n' + e.V.map((x, i) => `${x.toFixed(2)}\t${e.I[i]}`).join('\n');
+    q<HTMLSelectElement>('.sv-unit').value = 'ma'; inp('.sv-area').value = String(EXAMPLE.area); inp('.sv-irr').value = String(EXAMPLE.irr);
+    inp('.sv-tc').value = String(EXAMPLE.tC); inp('.sv-ns').value = '1'; inp('.sv-k').value = '5'; inp('.sv-fit').checked = true;
+    name = 'example-cell'; run();
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.sv-out').hidden) { paint(q<HTMLCanvasElement>('.sv-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.sv-fig2'), figs[1]); } });
+  q('.sv-csv').addEventListener('click', () => {
+    if (!last) return;
+    const { V, I, fit, area } = last;
+    const head = ['voltage_V', 'current_A', ...(area > 0 ? ['current_density_mA_cm2'] : []), 'power_W', ...(fit ? ['model_current_A', 'residual_A'] : [])];
+    const body = V.map((x, i) => { const mi = fit ? currentAt(x, fit.d, fit.a) : NaN; return [x, I[i], ...(area > 0 ? [(I[i] * 1000) / area] : []), x * I[i], ...(fit ? [mi, I[i] - mi] : [])].map((y) => String(+y.toPrecision(10))); });
+    save(new Blob([[head, ...body].map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-iv.csv`, 'text/csv');
+  });
+  (q('.sv-ex') as HTMLButtonElement).click();
+  wireDownloads(q('.dl'), () => ({ title: 'Solar cell I-V', subtitle: q('.sv-big').textContent ?? '', file: `${fileSafe(name)}-iv`, sections }));
+</script>
+
+<style is:inline>
+  .solariv h3 { margin: 20px 0 8px; font-size: 15px; }
+  .solariv select { max-width: 100%; }
+</style>

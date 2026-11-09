@@ -1,0 +1,226 @@
+---
+// Biot-Savart coil designer: Helmholtz, anti-Helmholtz, Maxwell and custom coaxial coils, with field
+// uniformity along the axis and over the r–z plane. Worked out in the browser; the example coil is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cfd">
+  <div class="ax-card">
+    <h2>Coils</h2>
+    <div class="ax-grid">
+      <label>Coil set <select class="cf-set">
+        <option value="helmholtz" selected>Helmholtz pair (uniform field)</option>
+        <option value="maxwell">Maxwell three-coil (more uniform)</option>
+        <option value="anti">Anti-Helmholtz pair (uniform gradient)</option>
+        <option value="single">Single coil</option>
+        <option value="custom">Custom (type the coils)</option>
+      </select></label>
+      <label class="cf-std">Coil radius R (cm) <input class="cf-R" type="text" inputmode="decimal" value="10" /></label>
+      <label class="cf-std">Turns per coil N <input class="cf-N" type="text" inputmode="decimal" value="100" /></label>
+      <label class="cf-std">Current I (A) <input class="cf-I" type="text" inputmode="decimal" value="1" /></label>
+      <label class="cf-std">Winding width (mm, along the axis) <input class="cf-w" type="text" inputmode="decimal" value="0" /></label>
+      <label class="cf-std">Winding depth (mm, outwards) <input class="cf-d" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="cf-cus" style="margin-top:10px" hidden>Coils, one per line: radius (cm), centre position along the axis (cm), turns, current (A); optionally winding width and depth (mm). A negative current runs the other way. <textarea class="cf-list" rows="5" spellcheck="false"></textarea></label>
+    <p class="ax-help cf-note"></p>
+    <h3 style="margin-top:12px">Uniformity, wire and probe</h3>
+    <div class="ax-grid">
+      <label>Uniform to within <select class="cf-tol"><option value="0.01" selected>1 %</option><option value="0.001">0.1 %</option><option value="0.0001">100 ppm</option></select></label>
+      <label>Target field at the centre (mT, optional) <input class="cf-tgt" type="text" inputmode="decimal" value="" placeholder="e.g. 2" /></label>
+      <label>Wire diameter (mm) <input class="cf-dw" type="text" inputmode="decimal" value="0.8" /></label>
+      <label>Wire <select class="cf-rho"><option value="1.72e-8" selected>Copper (1.72 × 10⁻⁸ Ω m, rounded, 20 °C)</option><option value="2.82e-8">Aluminium (2.82 × 10⁻⁸ Ω m, rounded)</option></select></label>
+      <label>Probe r (cm from the axis) <input class="cf-pr" type="text" inputmode="decimal" value="2" /></label>
+      <label>Probe z (cm along the axis) <input class="cf-pz" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">The field is worked out exactly for thin circular loops (Biot-Savart with elliptic integrals). Give a winding width or depth to spread each coil over a 5 × 5 grid of loops. Resistivities are rounded textbook values for room temperature; the wire length counts one mean circumference per turn and leaves out the leads.</p>
+    <p class="ax-err cf-err" hidden></p>
+  </div>
+
+  <div class="ax-card cf-out">
+    <p class="ax-big cf-big"></p>
+    <dl class="ax-facts cf-facts"></dl>
+    <canvas class="ax-fig cf-fig" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig cf-map" style="margin-top:12px"></canvas>
+    <div class="ax-legend cf-leg"></div>
+    <p class="ax-help">The map is a slice through the axis (vertical): coils are the filled squares on either side. Colours show how far the field strays from its value at the centre (for a gradient coil, the size of the field as a share of the largest on the map).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cf-csv">Download axis profile (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { preset, loops, fieldAt, uniformLength, uniformSphere, gradient, gradientUniformLength, wireLength, type Coil, type Preset } from '../../lib/sci/ph-coil';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cfd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NOTES: Record<string, string> = {
+    helmholtz: 'Two equal coils one radius apart, current the same way: the field at the centre is as flat as two coils can make it.',
+    maxwell: 'A centre coil of radius R with two smaller coils (radius 0.756 R) at ±0.655 R carrying 49/64 of its ampere-turns: flatter than a Helmholtz pair.',
+    anti: 'Two equal coils 0.866 R either side of the centre (√3 R apart), currents opposite: zero field at the centre and the most uniform gradient.',
+    single: 'One coil: the field is strongest at its centre and falls away along the axis.',
+    custom: '',
+  };
+  let figs: Figure[] = [], report: Section[] = [], axisRows: string[] = [];
+  const fmtB = (t: number) => (Math.abs(t) >= 0.1 ? `${sig(t, 4)} T` : Math.abs(t) >= 1e-4 ? `${sig(t * 1000, 4)} mT` : `${sig(t * 1e6, 4)} µT`);
+  const fmtL = (m: number) => (m >= 1 ? `${sig(m, 4)} m` : m >= 0.01 ? `${sig(m * 100, 3)} cm` : `${sig(m * 1000, 3)} mm`);
+
+  function coilsText(cs: Coil[]) { return cs.map((c) => [c.R * 100, c.z * 100, c.N, c.I].map((v) => sig(v, 6)).join(', ') + (c.w || c.d ? `, ${sig(c.w * 1000, 4)}, ${sig(c.d * 1000, 4)}` : '')).join('\n'); }
+
+  function readCoils(): Coil[] | string {
+    const set = sel('.cf-set');
+    if (set !== 'custom') {
+      const R = val('.cf-R') / 100, N = val('.cf-N'), I = val('.cf-I'), w = val('.cf-w') / 1000, d = val('.cf-d') / 1000;
+      if (!(R > 0)) return 'Give the coil radius in cm (greater than 0).';
+      if (!(N > 0)) return 'Give the number of turns per coil (greater than 0).';
+      if (!(I !== 0 && Number.isFinite(I))) return 'Give the current in amperes (not 0).';
+      if (!(w >= 0 && d >= 0)) return 'Winding width and depth must be 0 or more.';
+      if (d / 2 >= R * 0.9) return 'The winding depth must be well under twice the radius.';
+      return preset(set as Preset, R, N, I).map((c) => ({ ...c, R: c.R, w, d }));
+    }
+    const lines = q<HTMLTextAreaElement>('.cf-list').value.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return 'Type at least one coil: radius (cm), position (cm), turns, current (A).';
+    if (lines.length > 20) return 'Up to 20 coils.';
+    const out: Coil[] = [];
+    for (const [i, l] of lines.entries()) {
+      const v = l.split(/[,;\t]+|\s+/).filter(Boolean).map(num);
+      if (v.length < 4 || v.some((x) => !Number.isFinite(x))) return `Line ${i + 1}: give radius, position, turns and current as numbers.`;
+      if (!(v[0] > 0)) return `Line ${i + 1}: the radius must be greater than 0.`;
+      out.push({ R: v[0] / 100, z: v[1] / 100, N: v[2], I: v[3], w: (v[4] || 0) / 1000, d: (v[5] || 0) / 1000 });
+    }
+    if (out.every((c) => c.N * c.I === 0)) return 'Every coil has zero ampere-turns.';
+    return out;
+  }
+
+  function mapFigure(L: ReturnType<typeof loops>, coils: Coil[], ext: number, z0: number, grad: boolean, tol: number): Figure {
+    const n = L.length > 20 ? 72 : 120, W = 380, H = 300, ml = 34, mb = 24, mt = 8, mr = 8, pw = W - ml - mr, ph = H - mt - mb, hz = (ext * ph) / pw;
+    const c0 = fieldAt(L, 0, z0), b0 = Math.hypot(c0.br, c0.bz), ny = Math.round((n * ph) / pw);
+    const vals: number[] = [];
+    let bmax = 0;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < n; i++) {
+      const r = Math.abs(-ext + ((i + 0.5) / n) * 2 * ext), z = z0 - hz + ((j + 0.5) / ny) * 2 * hz, f = fieldAt(L, r, z);
+      vals.push(grad ? f.b : Math.hypot(f.br - c0.br, f.bz - c0.bz) / b0); bmax = Math.max(bmax, Number.isFinite(f.b) ? f.b : 0);
+    }
+    const bands = grad ? [0.1, 0.2, 0.4, 0.6, 0.8] : [tol / 10, tol, tol * 10, tol * 100, Infinity];
+    return {
+      w: W, h: H, alt: grad ? 'Map of field strength around the coils' : 'Map of field uniformity around the coils',
+      draw: (c: CanvasRenderingContext2D, _w: number, _h: number, pal: Palette) => {
+        const cols = pal.red ? ['#5a0000', '#3a0000', '#240000', '#140000', '#000000'] : pal.bg === '#ffffff' ? ['#08519c', '#4292c6', '#9ecae1', '#deebf7', '#ffffff'] : ['#6baed6', '#3c7fb5', '#21507a', '#14304a', '#0a0a0a'];
+        const order = grad ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4];
+        for (let j = 0; j < ny; j++) for (let i = 0; i < n; i++) {
+          const v = grad ? vals[j * n + i] / bmax : vals[j * n + i];
+          let k = bands.findIndex((b) => v < b); if (k < 0) k = 4;
+          c.fillStyle = cols[order[k]]; c.fillRect(ml + (i / n) * pw, mt + ph - ((j + 1) / ny) * ph, pw / n + 0.6, ph / ny + 0.6);
+        }
+        const X = (r: number) => ml + ((r + ext) / (2 * ext)) * pw, Y = (z: number) => mt + ph - ((z - (z0 - hz)) / (2 * hz)) * ph;
+        c.fillStyle = pal.ink;
+        for (const k of coils) for (const s of [-1, 1]) {
+          const ww = Math.max(4, (k.d / (2 * ext)) * pw), hh = Math.max(4, (k.w / (2 * hz)) * ph);
+          c.fillRect(X(s * k.R) - ww / 2, Y(k.z) - hh / 2, ww, hh);
+        }
+        c.strokeStyle = pal.muted; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X(0), mt); c.lineTo(X(0), mt + ph); c.stroke(); c.setLineDash([]);
+        c.strokeStyle = pal.line; c.strokeRect(ml, mt, pw, ph);
+        c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif';
+        const span = ext * 200, step = [0.5, 1, 2, 5, 10, 20, 50, 100].find((s) => span / s <= 8) ?? 200;
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        for (let v = Math.ceil((-ext * 100) / step) * step; v <= ext * 100 + 1e-9; v += step) c.fillText(sig(v, 3), X(v / 100), mt + ph + 4);
+        c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (let v = Math.ceil(((z0 - hz) * 100) / step) * step; v <= (z0 + hz) * 100 + 1e-9; v += step) c.fillText(sig(v, 3), ml - 5, Y(v / 100));
+        c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('cm', 4, mt);
+      },
+    };
+  }
+
+  function legend(grad: boolean, tol: number) {
+    const lab = (t: number) => (t >= 0.001 ? `${+(t * 100).toPrecision(2)} %` : `${+(t * 1e6).toPrecision(2)} ppm`);
+    const items = grad ? ['under 10 %', '10 to 20 %', '20 to 40 %', '40 to 60 %', 'over 60 % of the largest |B|'] : [`within ${lab(tol / 10)}`, `within ${lab(tol)}`, `within ${lab(tol * 10)}`, `within ${lab(tol * 100)}`, 'further off'];
+    const cls = grad ? ['cf-c4', 'cf-c3', 'cf-c2', 'cf-c1', 'cf-c0'] : ['cf-c0', 'cf-c1', 'cf-c2', 'cf-c3', 'cf-c4'];
+    q('.cf-leg').replaceChildren(...items.map((t, i) => { const s = document.createElement('span'); s.innerHTML = `<i class="${cls[i]}"></i>`; s.append(t); return s; }));
+  }
+
+  function calc() {
+    const err = q('.cf-err'), out = q('.cf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const set = sel('.cf-set');
+    root.querySelectorAll<HTMLElement>('.cf-std').forEach((e) => { e.hidden = set === 'custom'; });
+    q('.cf-cus').hidden = set !== 'custom';
+    q('.cf-note').textContent = NOTES[set];
+    const coils = readCoils();
+    if (typeof coils === 'string') return fail(coils);
+    const tol = +sel('.cf-tol'), dw = val('.cf-dw') / 1000, rho = +sel('.cf-rho'), pr = val('.cf-pr') / 100, pz = val('.cf-pz') / 100, tgt = q<HTMLInputElement>('.cf-tgt').value.trim() ? val('.cf-tgt') / 1000 : NaN;
+    if (!(dw > 0)) return fail('Give the wire diameter in mm.');
+    if (!Number.isFinite(pr) || !Number.isFinite(pz)) return fail('Give the probe position as numbers (cm).');
+    if (q<HTMLInputElement>('.cf-tgt').value.trim() && !(tgt > 0)) return fail('The target field must be a number above 0 (mT), or leave it empty.');
+    err.hidden = true; out.hidden = false;
+    const L = loops(coils), Rmax = Math.max(...coils.map((c) => c.R + c.d / 2));
+    const zs = coils.map((c) => c.z), z0 = (Math.min(...zs) + Math.max(...zs)) / 2;
+    const c0 = fieldAt(L, z0 === 0 ? 0 : 0, z0), bScale = Math.max(...L.map((l) => Math.abs(l.NI))) * 1.26e-6 / Rmax;
+    const grad = Math.abs(c0.bz) < 1e-6 * bScale;
+    const zspan = Math.max(Rmax, (Math.max(...zs) - Math.min(...zs)) / 2 + Rmax * 0.5) * 1.6, step = Rmax / 2000;
+    const lab = (t: number) => (t >= 0.001 ? `${+(t * 100).toPrecision(2)} %` : `${+(t * 1e6).toPrecision(2)} ppm`);
+    const g0 = gradient(L, z0, Rmax * 1e-4);
+    const f1: HTMLElement[] = [];
+    if (!grad) {
+      q('.cf-big').textContent = `B = ${fmtB(c0.bz)} (${sig(c0.bz * 1e4, 4)} gauss) at the centre`;
+      const ul = uniformLength(L, z0, tol, step, zspan), us = uniformSphere(L, z0, tol, Rmax / 400, Rmax);
+      f1.push(fact('Field at the centre', fmtB(c0.bz), `on the axis at z = ${sig(z0 * 100, 4)} cm; ${sig(c0.bz * 1e4, 4)} G`));
+      f1.push(fact(`Uniform to ${lab(tol)} along the axis`, ul > 0 ? `±${fmtL(ul)}` : 'not even ±0.05 % of R', `a stretch of ${fmtL(2 * ul)}, ${sig((2 * ul) / Rmax, 3)} × the radius`));
+      f1.push(fact(`Uniform to ${lab(tol)} in a sphere`, us > 0 ? `radius ${fmtL(us)}` : 'smaller than R/400', 'the whole field vector, every direction from the centre'));
+      if (tgt > 0) { const k = tgt / Math.abs(c0.bz), I = coils.map((c) => c.I * k); f1.push(fact(`Current for ${sig(tgt * 1000, 4)} mT`, `${sig(Math.max(...I.map(Math.abs)), 4)} A`, `scales with the current: ${sig(k, 4)} × the present current`)); }
+    } else {
+      q('.cf-big').textContent = `Gradient ${sig(g0 * 1000 / 100, 4)} mT/cm (${sig(g0, 4)} T/m) at the centre`;
+      const gl = gradientUniformLength(L, z0, tol, step, zspan);
+      f1.push(fact('Field at the centre', '0', 'the two coils cancel there'));
+      f1.push(fact('Axial gradient dBz/dz', `${sig(g0, 4)} T/m`, `${sig(g0 * 10, 4)} mT/cm; ${sig(g0 * 100, 4)} G/cm`));
+      f1.push(fact(`Gradient uniform to ${lab(tol)}`, gl > 0 ? `±${fmtL(gl)}` : 'not even ±0.05 % of R', 'along the axis'));
+      if (tgt > 0) f1.push(fact('Target field', 'not used', 'a gradient coil has no field at its centre'));
+    }
+    const len = wireLength(coils), area = (Math.PI * dw * dw) / 4, res = (rho * len) / area;
+    const Imax = Math.max(...coils.map((c) => Math.abs(c.I))), pow = coils.reduce((s, c) => s + c.I * c.I * (rho * Math.abs(c.N) * 2 * Math.PI * c.R) / area, 0);
+    f1.push(fact('Wire length', fmtL(len), `${sig(coils.reduce((s, c) => s + Math.abs(c.N), 0), 5)} turns in ${coils.length} coil${coils.length > 1 ? 's' : ''}`));
+    f1.push(fact('Resistance', `${sig(res, 3)} Ω`, `all coils in series, ${sig(dw * 1000, 3)} mm wire`));
+    f1.push(fact('Heat in the wire', `${sig(pow, 3)} W`, `I²R; ${coils.every((c) => Math.abs(c.I) === Imax) ? `${sig(Imax * res, 3)} V across the set at ${sig(Imax, 3)} A` : 'each coil at its own current'}`));
+    f1.push(fact('Current density', `${sig(Imax / area / 1e6, 3)} A/mm²`, Imax / area / 1e6 > 4 ? 'above about 4 A/mm²: the coils will run hot without cooling' : 'below about 4 A/mm², usually fine in air'));
+    const p = fieldAt(L, pr, pz);
+    f1.push(fact(`Probe at r = ${sig(pr * 100, 3)}, z = ${sig(pz * 100, 3)} cm`, Number.isFinite(p.b) ? fmtB(p.b) : 'on a wire', Number.isFinite(p.b) ? `Bz ${fmtB(p.bz)}, Br ${fmtB(p.br)}${grad ? '' : `; ${sig((100 * (p.b - Math.abs(c0.bz))) / Math.abs(c0.bz), 3)} % from the centre`}` : ''));
+    q('.cf-facts').replaceChildren(...f1);
+    // Axis profile.
+    const zz: number[] = [], bb: number[] = []; axisRows = ['z_cm,Bz_mT,deviation_from_centre_percent'];
+    for (let i = 0; i <= 200; i++) { const z = z0 - zspan + (i / 100) * zspan, b = fieldAt(L, 0, z).bz; zz.push(z * 100); bb.push(b * 1000); axisRows.push(`${+(z * 100).toPrecision(6)},${+(b * 1000).toPrecision(7)},${grad ? '' : +((100 * (b - c0.bz)) / c0.bz).toPrecision(5)}`); }
+    const band = grad ? [] : [{ kind: 'hline' as const, at: c0.bz * 1000 * (1 + tol), dash: [3, 3] }, { kind: 'hline' as const, at: c0.bz * 1000 * (1 - tol), dash: [3, 3], label: `±${lab(tol)}` }];
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Position along the axis z (cm)', yLabel: 'Bz on the axis (mT)', legend: 'none', series: [{ name: 'Bz', x: zz, y: bb, mode: 'line', width: 2 }],
+      marks: [...band, ...coils.map((c) => ({ kind: 'vline' as const, at: c.z * 100, dash: [2, 4] }))] }, 'Field along the axis of the coils');
+    const ext = Math.max(Rmax * 1.3, zspan * 0.8);
+    const c2 = mapFigure(L, coils, ext, z0, grad, tol);
+    legend(grad, tol);
+    paint(q<HTMLCanvasElement>('.cf-fig'), c1); paint(q<HTMLCanvasElement>('.cf-map'), c2); figs = [c1, c2];
+    const rows = f1.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.cf-big').textContent!, facts: rows, figure: c1 },
+      { title: 'Coils', table: { head: ['Radius (cm)', 'Position (cm)', 'Turns', 'Current (A)', 'Width (mm)', 'Depth (mm)'], rows: coils.map((c) => [sig(c.R * 100, 4), sig(c.z * 100, 4), sig(c.N, 4), sig(c.I, 4), sig(c.w * 1000, 3), sig(c.d * 1000, 3)]), align: ['r', 'r', 'r', 'r', 'r', 'r'] }, figure: c2 },
+    ];
+  }
+
+  q('.cf-set').addEventListener('change', () => {
+    if (sel('.cf-set') === 'custom' && !q<HTMLTextAreaElement>('.cf-list').value.trim()) {
+      const R = val('.cf-R') / 100 || 0.1, N = val('.cf-N') || 100, I = val('.cf-I') || 1;
+      q<HTMLTextAreaElement>('.cf-list').value = coilsText(preset('helmholtz', R, N, I));
+    }
+  });
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cf-out').hidden) { paint(q<HTMLCanvasElement>('.cf-fig'), figs[0]); paint(q<HTMLCanvasElement>('.cf-map'), figs[1]); } });
+  q('.cf-csv').addEventListener('click', () => save(new Blob([axisRows.join('\n') + '\n'], { type: 'text/csv' }), 'coil-axis-field.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Coil field design', subtitle: q<HTMLSelectElement>('.cf-set').selectedOptions[0].text, file: 'coil-field', sections: report }));
+</script>
+
+<style is:inline>
+  .cfd select, .cfd input { max-width: 100%; }
+  .cfd .cf-c0 { background: #08519c; } .cfd .cf-c1 { background: #4292c6; } .cfd .cf-c2 { background: #9ecae1; } .cfd .cf-c3 { background: #deebf7; } .cfd .cf-c4 { background: #ffffff; border: 1px solid var(--line); }
+  html[data-theme=dark] .cfd .cf-c0 { background: #6baed6; } html[data-theme=dark] .cfd .cf-c1 { background: #3c7fb5; } html[data-theme=dark] .cfd .cf-c2 { background: #21507a; } html[data-theme=dark] .cfd .cf-c3 { background: #14304a; } html[data-theme=dark] .cfd .cf-c4 { background: #0a0a0a; }
+</style>

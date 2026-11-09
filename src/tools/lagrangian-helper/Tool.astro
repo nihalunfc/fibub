@@ -1,0 +1,174 @@
+---
+// Lagrangian helper: Euler-Lagrange equations from typed T and V with a small symbolic differentiator, plus a numerical run.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lgh">
+  <div class="ax-card">
+    <h2>System</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="lg-pre">
+        <option value="pend" selected>Simple pendulum</option>
+        <option value="cart">Pendulum on a sliding cart</option>
+        <option value="double">Double pendulum</option>
+        <option value="spring">Spring pendulum</option>
+        <option value="hoop">Bead on a spinning hoop</option>
+        <option value="shaken">Pendulum with a shaken pivot</option>
+        <option value="custom">Custom</option>
+      </select></label>
+      <label>Generalised coordinates, separated by commas <input class="lg-q" type="text" spellcheck="false" value="theta" /></label>
+    </div>
+    <label style="display:block;margin-top:10px">Kinetic energy T <textarea class="lg-T" rows="2" spellcheck="false">1/2 m l^2 theta'^2</textarea></label>
+    <label style="display:block;margin-top:10px">Potential energy V <textarea class="lg-V" rows="2" spellcheck="false">-m g l cos(theta)</textarea></label>
+    <p class="ax-help">Write the rate of change of a coordinate with a dash, theta' (or thetadot); time is t. Any other name (m, g, l, k ...) is a constant. Use + − * / ^ and brackets, and sin, cos, tan, exp, ln, sqrt, sinh, cosh, tanh, asin, acos, atan; "2 m l" means 2·m·l. Greek names such as theta and phi are shown as θ and φ.</p>
+    <p class="ax-err lg-err" hidden></p>
+  </div>
+
+  <div class="ax-card lg-out">
+    <h2>Equations of motion</h2>
+    <p class="ax-big lg-big"></p>
+    <dl class="ax-facts lg-facts lg-eqs"></dl>
+    <label style="display:block;margin-top:12px">Plain text, ready for SymPy or your notes <textarea class="lg-plain" rows="6" readonly spellcheck="false"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lg-txt">Download (TXT)</button></div>
+  </div>
+
+  <div class="ax-card lg-sim">
+    <h2>Try it with numbers</h2>
+    <div class="ax-grid lg-params"></div>
+    <div class="ax-grid lg-init" style="margin-top:10px"></div>
+    <div class="ax-grid" style="margin-top:10px"><label>Run for (s) <input class="lg-dur" type="text" inputmode="decimal" value="10" /></label></div>
+    <p class="ax-err lg-serr" hidden></p>
+    <dl class="ax-facts lg-sfacts" style="margin-top:10px"></dl>
+    <canvas class="ax-fig lg-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lg-csv">Download motion (CSV)</button></div>
+    <p class="ax-help">The equations above are solved for the accelerations at every step and integrated with fourth-order Runge-Kutta in 4,000 steps. When nothing depends on t, the energy function h = Σ q′ ∂L/∂q′ − L must stay constant; its drift is a check on the numbers. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { read, lagrange, print, prettyName, simulate, mul, pow, scale, type LagResult } from '../../lib/sci/phlagrange';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lgh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  // [coordinates, T, V, parameter values, initial q, initial q', seconds]
+  const PRE: Record<string, [string, string, string, Record<string, number>, number[], number[], number]> = {
+    pend: ['theta', "1/2 m l^2 theta'^2", '-m g l cos(theta)', { m: 1, g: 9.81, l: 1 }, [1], [0], 10],
+    cart: ['x, theta', "1/2 (M + m) x'^2 + m l x' theta' cos(theta) + 1/2 m l^2 theta'^2", '-m g l cos(theta)', { M: 2, m: 1, g: 9.81, l: 1 }, [0, 1], [0, 0], 10],
+    double: ['th1, th2', "1/2 (m1 + m2) l1^2 th1'^2 + 1/2 m2 l2^2 th2'^2 + m2 l1 l2 th1' th2' cos(th1 - th2)", '-(m1 + m2) g l1 cos(th1) - m2 g l2 cos(th2)', { m1: 1, m2: 1, l1: 1, l2: 1, g: 9.81 }, [2, 1], [0, 0], 10],
+    spring: ['r, phi', "1/2 m (r'^2 + r^2 phi'^2)", '-m g r cos(phi) + 1/2 k (r - L0)^2', { m: 1, g: 9.81, k: 40, L0: 1 }, [1.2, 0.6], [0, 0], 10],
+    hoop: ['theta', "1/2 m R^2 (theta'^2 + w^2 sin(theta)^2)", '-m g R cos(theta)', { m: 1, g: 9.81, R: 0.5, w: 6 }, [0.3], [0], 10],
+    shaken: ['theta', "1/2 m (l^2 theta'^2 + a^2 w^2 sin(w t)^2 + 2 l theta' a w sin(w t) sin(theta))", '-m g (l cos(theta) + a cos(w t))', { m: 1, g: 9.81, l: 1, a: 0.05, w: 60 }, [3], [0], 5],
+  };
+  let res: LagResult | null = null, qs: string[] = [], figs: Figure[] = [], eqReport: Section[] = [], simReport: Section[] = [], plain = '', csv = '';
+  const keep: Record<string, string> = {};
+
+  function load(id: string) {
+    const p = PRE[id]; if (!p) return;
+    inp('.lg-q').value = p[0]; q<HTMLTextAreaElement>('.lg-T').value = p[1]; q<HTMLTextAreaElement>('.lg-V').value = p[2];
+    for (const [k, v] of Object.entries(p[3])) keep['p:' + k] = String(v);
+    p[0].split(/\s*,\s*/).forEach((c, i) => { keep['q0:' + c] = String(p[4][i]); keep['v0:' + c] = String(p[5][i]); });
+    inp('.lg-dur').value = String(p[6]);
+  }
+
+  function calc() {
+    const err = q('.lg-err'), out = q('.lg-out'), sim = q('.lg-sim');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; sim.hidden = true; res = null; eqReport = []; simReport = []; plain = ''; csv = ''; };
+    qs = inp('.lg-q').value.split(/[\s,;]+/).filter(Boolean);
+    if (!qs.length) return fail('Name at least one generalised coordinate, such as theta or x.');
+    for (const c of qs) if (!/^[A-Za-zͰ-Ͽ][A-Za-z0-9_Ͱ-Ͽ]*$/.test(c) || /dot$/.test(c) || c === 't') return fail(`"${c}" cannot be a coordinate name: use letters and digits, starting with a letter, not ending in "dot", and not t.`);
+    if (new Set(qs).size !== qs.length) return fail('Each coordinate must be named once.');
+    if (qs.length > 4) return fail('Up to 4 coordinates.');
+    let T, V;
+    try { T = read(q<HTMLTextAreaElement>('.lg-T').value); } catch (e) { return fail(`Kinetic energy T: ${(e as Error).message}.`); }
+    try { V = read(q<HTMLTextAreaElement>('.lg-V').value || '0'); } catch (e) { return fail(`Potential energy V: ${(e as Error).message}.`); }
+    const r = lagrange(qs, T, V);
+    const stray = r.params.filter((p) => /dot$/.test(p));
+    if (stray.length) return fail(`${stray.join(', ')} is not the rate of a coordinate you listed. Add ${stray.map((s) => s.replace(/d?dot$/, '')).join(', ')} to the coordinates, or rename it.`);
+    const dead = qs.filter((_, i) => r.A[i].every((a) => !a.length) && r.A.every((row) => !row[i].length));
+    err.hidden = true; out.hidden = false;
+    res = r;
+    const P = (x: Parameters<typeof print>[0]) => print(x, true), Tx = (x: Parameters<typeof print>[0]) => print(x, false);
+    const n = qs.length;
+    q('.lg-big').textContent = n === 1 ? `${n} equation of motion, for ${prettyName(qs[0])}` : `${n} coupled equations of motion, for ${qs.map(prettyName).join(', ')}`;
+    const f: HTMLElement[] = [fact('Lagrangian L = T − V', P(r.L))];
+    const lines = [`# Lagrangian mechanics from fibub.com. Coordinates: ${qs.join(', ')}; qdot = dq/dt, qddot = d2q/dt2.`, `L = ${Tx(r.L)}`];
+    qs.forEach((c, i) => {
+      const pc = prettyName(c), pd = prettyName(c + 'dot');
+      f.push(fact(`Momentum p of ${pc} = ∂L/∂${pd}`, P(r.p[i])));
+      f.push(fact(`∂L/∂${pc}`, P(r.dLdq[i])));
+      f.push(fact(`d/dt (∂L/∂${pd})`, P(r.ddt[i])));
+      f.push(fact(`Equation for ${pc}`, `${P(r.EL[i])} = 0`, 'd/dt(∂L/∂q′) − ∂L/∂q = 0'));
+      lines.push(`p_${c} = ${Tx(r.p[i])}`, `dL/d${c} = ${Tx(r.dLdq[i])}`, `EL_${c}: ${Tx(r.EL[i])} = 0`);
+    });
+    if (n === 1 && r.A[0][0].length) {
+      const sol = scale(mul(r.B[0], pow(r.A[0][0], -1)), -1);
+      f.push(fact(`Solved for ${prettyName(qs[0] + 'ddot')}`, `${prettyName(qs[0] + 'ddot')} = ${P(sol)}`, 'the acceleration, ready for a numerical solver'));
+      lines.push(`${qs[0]}ddot = ${Tx(sol)}`);
+    } else if (n > 1) {
+      const M = r.A.map((row) => row.map((a) => P(a)).join(' | ')).join(' ; '), F = r.B.map((b) => P(scale(b, -1))).join(' ; ');
+      f.push(fact('Matrix form M(q) q″ = F', `M = [ ${M} ]`, `F = [ ${F} ]; rows are the equations, columns ${qs.map((c) => prettyName(c + 'ddot')).join(', ')}`));
+      lines.push(`M = [${r.A.map((row) => '[' + row.map((a) => Tx(a)).join(', ') + ']').join(', ')}]`, `F = [${r.B.map((b) => Tx(scale(b, -1))).join(', ')}]`);
+    }
+    f.push(fact('Energy function h = Σ q′ ∂L/∂q′ − L', P(r.H!), r.explicitT ? 'L depends on t, so h is not conserved' : 'L has no t in it, so h is conserved (here it is T + V when T is quadratic in the rates)'));
+    lines.push(`h = ${Tx(r.H!)}`, `# Parameters: ${r.params.join(', ') || 'none'}`);
+    if (dead.length) f.push(fact('Note', `${dead.map(prettyName).join(', ')} has no kinetic energy`, 'its equation has no acceleration term, so the numerical run is not possible'));
+    q('.lg-eqs').replaceChildren(...f);
+    plain = lines.join('\n') + '\n'; q<HTMLTextAreaElement>('.lg-plain').value = plain;
+    eqReport = [{ title: q('.lg-big').textContent!, facts: [['T', P(T)], ['V', P(V)], ...f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string])] }];
+    // Numbers: one box per parameter and per coordinate.
+    const box = (key: string, label: string, def: string) => { const l = document.createElement('label'); l.textContent = label + ' '; const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.dataset.key = key; i.value = keep[key] ?? def; i.addEventListener('input', () => { keep[key] = i.value; runSim(); }); l.append(i); return l; };
+    q('.lg-params').replaceChildren(...r.params.map((p) => box('p:' + p, prettyName(p), p === 'g' ? '9.81' : '1')));
+    q('.lg-init').replaceChildren(...qs.flatMap((c) => [box('q0:' + c, `${prettyName(c)} at t = 0`, '0.5'), box('v0:' + c, `${prettyName(c + 'dot')} at t = 0`, '0')]));
+    sim.hidden = false;
+    runSim();
+  }
+
+  function runSim() {
+    const e = q('.lg-serr'), fail = (s: string) => { e.textContent = s; e.hidden = false; q('.lg-sfacts').replaceChildren(); q('.lg-fig').hidden = true; simReport = []; csv = ''; };
+    if (!res) return;
+    const vals: Record<string, number> = {};
+    for (const i of root.querySelectorAll<HTMLInputElement>('.lg-params input')) { const v = num(i.value); if (!Number.isFinite(v)) return fail(`Give a number for ${prettyName(i.dataset.key!.slice(2))}.`); vals[i.dataset.key!.slice(2)] = v; }
+    const q0 = qs.map((c) => num(root.querySelector<HTMLInputElement>(`[data-key="q0:${c}"]`)!.value)), v0 = qs.map((c) => num(root.querySelector<HTMLInputElement>(`[data-key="v0:${c}"]`)!.value));
+    if ([...q0, ...v0].some((x) => !Number.isFinite(x))) return fail('Give a starting value and rate for every coordinate.');
+    const dur = num(inp('.lg-dur').value);
+    if (!(dur > 0 && dur <= 1e4)) return fail('Give a run time in seconds, greater than 0.');
+    let s;
+    try { s = simulate(qs, res, vals, q0, v0, dur, 4000); } catch (x) { return fail(`${(x as Error).message}.`); }
+    if (!s.q.every((r) => r.every(Number.isFinite))) return fail('The run blew up (the numbers became infinite). Check the parameters, or shorten the run.');
+    e.hidden = true; q('.lg-fig').hidden = false;
+    const E0 = s.E[0], drift = Math.max(...s.E.map((x) => Math.abs(x - E0))) / (Math.abs(E0) || 1);
+    const last = s.q.length - 1;
+    const sf = [
+      ...qs.map((c, i) => fact(`${prettyName(c)} at t = ${sig(dur, 4)} s`, sig(s.q[last][i], 5), `rate ${sig(s.v[last][i], 5)}; range ${sig(Math.min(...s.q.map((r) => r[i])), 4)} to ${sig(Math.max(...s.q.map((r) => r[i])), 4)}`)),
+      fact('Energy function h', res.explicitT ? 'not conserved (L depends on t)' : `kept to ${drift < 1e-4 ? fmtExp(drift, 2) : sig(drift, 2)} (relative)`, res.explicitT ? `from ${sig(E0, 4)} to ${sig(s.E[last], 4)}` : `h = ${sig(E0, 6)}; a large drift means the run needs a shorter time or the motion is violent`),
+    ];
+    q('.lg-sfacts').replaceChildren(...sf);
+    const every = 4, idx = s.t.map((_, i) => i).filter((i) => i % every === 0);
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Time (s)', yLabel: 'Coordinate', legend: 'below', series: qs.map((c, i) => ({ name: prettyName(c), x: idx.map((k) => s.t[k]), y: idx.map((k) => s.q[k][i]), mode: 'line' as const, width: 1.6 })) }, `Coordinates against time for the first ${sig(dur, 3)} s`);
+    paint(q<HTMLCanvasElement>('.lg-fig'), c1); figs = [c1];
+    csv = 't_s,' + qs.flatMap((c) => [c, c + 'dot']).join(',') + ',h\n' + s.t.map((t, k) => [t, ...qs.flatMap((_, i) => [s.q[k][i], s.v[k][i]]), s.E[k]].map((v) => +v.toPrecision(9)).join(',')).join('\n') + '\n';
+    simReport = [{ title: 'Numerical run', facts: [...Object.entries(vals).map(([k, v]) => [prettyName(k), String(v)] as [string, string]), ...sf.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string])], figure: c1 }];
+  }
+
+  q('.lg-pre').addEventListener('change', () => { load(q<HTMLSelectElement>('.lg-pre').value); calc(); });
+  root.querySelectorAll('.lg-q, .lg-T, .lg-V').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.lg-pre').value = 'custom'; calc(); }));
+  inp('.lg-dur').addEventListener('input', runSim);
+  q('.lg-txt').addEventListener('click', () => { if (plain) save(new Blob([plain], { type: 'text/plain' }), 'euler-lagrange.txt', 'text/plain'); });
+  q('.lg-csv').addEventListener('click', () => { if (csv) save(new Blob([csv], { type: 'text/csv' }), 'lagrangian-run.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.lg-sim').hidden) paint(q<HTMLCanvasElement>('.lg-fig'), figs[0]); });
+  load('pend'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Lagrangian mechanics', subtitle: q('.lg-big').textContent || '', file: 'lagrangian', sections: [...eqReport, ...simReport] }));
+</script>
+
+<style is:inline>
+  .lgh select, .lgh input[type=text], .lgh textarea { max-width: 100%; }
+  .lgh textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
+  .lgh .lg-eqs { grid-template-columns: 1fr; }
+  .lgh .lg-eqs dd { overflow-wrap: anywhere; }
+</style>

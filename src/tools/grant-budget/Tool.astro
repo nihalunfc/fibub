@@ -1,0 +1,234 @@
+---
+// Grant budget: personnel with effort, fringe and yearly raises, other direct cost lines, indirect costs on a
+// chosen base with exclusions, and totals per year. Every rate is typed by the user; nothing is preset for any
+// funder. Numbers stay in the browser (kept only if "Remember my numbers" is ticked).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax gbt">
+  <div class="ax-card">
+    <h2>Budget</h2>
+    <div class="ax-grid">
+      <label>Number of years <input class="gb-years" type="number" min="1" max="10" step="1" value="3" inputmode="numeric" /></label>
+      <label>Currency (shown in the table) <input class="gb-cur" type="text" maxlength="5" placeholder="$, £, €, ₹, CAD" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="gb-round" checked /> Round every amount to whole units</label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gb-ex">Use the example</button>
+      <button type="button" class="btn secondary small gb-empty">Start empty</button>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="gb-remember" /> Remember my numbers in this browser</label>
+    <p class="ax-help">Off at first. When ticked, your budget is kept in this browser only (local storage) and is never sent anywhere. Untick it to delete it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Personnel</h2>
+    <p class="ax-help" style="margin-top:0">One person per line: <b>role or name, yearly full-time salary in year 1, effort %, fringe %, yearly raise %</b>. Effort is the share of a full-time year paid by this grant: one value for every year, or one per year such as <code>50/50/100</code>. The fringe (benefits) rate and raise are your organisation's; leave them out for 0.</p>
+    <textarea class="gb-people" rows="5" spellcheck="false" aria-label="Personnel lines"></textarea>
+    <DataFile target=".gb-people" maxMB={1} maxCols={5} maxRows={200} />
+  </div>
+
+  <div class="ax-card">
+    <h2>Other direct costs</h2>
+    <p class="ax-help" style="margin-top:0">One line per item: <b>category, item, year 1, year 2, …</b> The category is <b>equipment</b>, <b>travel</b>, <b>consumables</b> (supplies) or <b>other</b>. Years you leave out are 0. End a line with <b>x</b> to keep it out of the indirect-cost base, or <b>cap</b> to count only the first part of it (set below), as some agreements do for subawards. No thousands commas: type 18000.</p>
+    <textarea class="gb-lines" rows="7" spellcheck="false" aria-label="Cost lines"></textarea>
+    <DataFile target=".gb-lines" maxMB={1} maxCols={13} maxRows={500} />
+  </div>
+
+  <div class="ax-card">
+    <h2>Indirect costs</h2>
+    <div class="ax-grid">
+      <label>Rate (%) <input class="gb-rate" type="text" inputmode="decimal" placeholder="e.g. 50, or 50/52/54 by year" /></label>
+      <label>Charged on <select class="gb-base">
+        <option value="tdc">Total direct costs</option>
+        <option value="modified">Direct costs with exclusions</option>
+        <option value="salaries">Salaries only</option>
+        <option value="salfringe">Salaries and fringe</option>
+        <option value="none">No indirect costs</option>
+      </select></label>
+    </div>
+    <div class="gb-mod">
+      <p class="ax-help" style="margin-bottom:4px">Leave these categories out of the base:</p>
+      <div class="ax-row gb-excl">
+        <label class="ax-check"><input type="checkbox" value="equipment" /> Equipment</label>
+        <label class="ax-check"><input type="checkbox" value="travel" /> Travel</label>
+        <label class="ax-check"><input type="checkbox" value="consumables" /> Consumables</label>
+        <label class="ax-check"><input type="checkbox" value="other" /> Other</label>
+      </div>
+      <label style="margin-top:10px">Lines marked "cap": count only the first (over all years) <input class="gb-cap" type="number" min="0" step="any" inputmode="decimal" placeholder="no cap" /></label>
+    </div>
+    <p class="ax-help">Indirect (overhead, F&amp;A) rates and what they are charged on differ by organisation and funder. Type the rate and base from your organisation's agreement; this page has no built-in rates. Check the official source before you submit.</p>
+    <p class="ax-help gb-note" hidden></p>
+    <p class="ax-err gb-err" hidden></p>
+  </div>
+
+  <div class="ax-card gb-out" hidden>
+    <h2>Budget by year</h2>
+    <p class="ax-big gb-big"></p>
+    <dl class="ax-facts gb-facts"></dl>
+    <canvas class="ax-fig gb-fig"></canvas>
+    <div class="ax-scroll"><table class="gb-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gb-csv">Download for Excel (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { compute, parsePeople, parseLines, money, EXAMPLE, CATEGORIES, CAT_NAME, type BaseKind, type Category, type Result } from '../../lib/sci/grantbudget';
+  import { OKABE_ITO, niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-grant-budget-v1';
+  const root = document.querySelector<HTMLElement>('.gbt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const BASE_NAME: Record<BaseKind, string> = { tdc: 'total direct costs', modified: 'direct costs with exclusions', salaries: 'salaries only', salfringe: 'salaries and fringe', none: 'no indirect costs' };
+  let R: Result | null = null, rows: { label: string; v: number[]; kind: 'line' | 'sub' | 'total' | 'info' }[] = [], fig: Figure | null = null, sections: Section[] = [];
+
+  function snapshot() {
+    return { years: inp('.gb-years').value, cur: inp('.gb-cur').value, round: inp('.gb-round').checked, people: q<HTMLTextAreaElement>('.gb-people').value, lines: q<HTMLTextAreaElement>('.gb-lines').value,
+      rate: inp('.gb-rate').value, base: q<HTMLSelectElement>('.gb-base').value, excl: [...root.querySelectorAll<HTMLInputElement>('.gb-excl input:checked')].map((e) => e.value), cap: inp('.gb-cap').value };
+  }
+  function restore(s: ReturnType<typeof snapshot>) {
+    inp('.gb-years').value = s.years; inp('.gb-cur').value = s.cur; inp('.gb-round').checked = s.round;
+    q<HTMLTextAreaElement>('.gb-people').value = s.people; q<HTMLTextAreaElement>('.gb-lines').value = s.lines;
+    inp('.gb-rate').value = s.rate; q<HTMLSelectElement>('.gb-base').value = s.base; inp('.gb-cap').value = s.cap;
+    root.querySelectorAll<HTMLInputElement>('.gb-excl input').forEach((e) => { e.checked = s.excl.includes(e.value); });
+  }
+  const remember = () => inp('.gb-remember').checked;
+  function store() { try { if (remember()) localStorage.setItem(KEY, JSON.stringify(snapshot())); } catch {} }
+
+  function run() {
+    const fail = (m: string) => { q('.gb-err').textContent = m; q('.gb-err').hidden = false; q('.gb-out').hidden = true; sections = []; R = null; };
+    q('.gb-err').hidden = true; q('.gb-note').hidden = true;
+    const base = q<HTMLSelectElement>('.gb-base').value as BaseKind;
+    q('.gb-mod').hidden = base !== 'modified';
+    store();
+    const n = Math.round(Number(inp('.gb-years').value));
+    if (!(n >= 1 && n <= 10)) return fail('Give between 1 and 10 years.');
+    const P = parsePeople(q<HTMLTextAreaElement>('.gb-people').value), L = parseLines(q<HTMLTextAreaElement>('.gb-lines').value, n);
+    const errs = [...P.errors, ...L.errors];
+    if (errs.length) return fail(errs.slice(0, 3).join(' ') + (errs.length > 3 ? ` (and ${errs.length - 3} more)` : ''));
+    if (!P.people.length && !L.lines.length) return fail('Add at least one person or one cost line, or press "Use the example".');
+    const rateTxt = inp('.gb-rate').value.trim(), rates = rateTxt ? rateTxt.split(/[\/;|,\s]+/).filter(Boolean).map(money) : [];
+    if (base !== 'none' && !rates.length) return fail('Type your indirect cost rate in %, or choose "No indirect costs".');
+    if (rates.some((r) => !(r >= 0 && r <= 300))) return fail('The indirect cost rate is a percent from 0 to 300, one value or one per year like 50/52/54.');
+    if (rates.length > n) return fail(`You typed ${rates.length} indirect rates, but the budget has ${n} years.`);
+    const capTxt = inp('.gb-cap').value.trim(), cap = capTxt ? Number(capTxt) : null;
+    if (cap != null && !(cap >= 0)) return fail('The cap is an amount of 0 or more.');
+    const excludeCats = [...root.querySelectorAll<HTMLInputElement>('.gb-excl input:checked')].map((e) => e.value as Category);
+    const round = inp('.gb-round').checked;
+    const r = compute({ years: n, people: P.people, lines: L.lines, rates, base, excludeCats, cap, round });
+    R = r;
+    const notes = [...L.notes];
+    if (base === 'modified' && L.lines.some((l) => l.flag === 'cap') && cap == null) notes.push('Some lines are marked "cap" but no cap is set, so they count in full.');
+    if (notes.length) { q('.gb-note').textContent = notes.slice(0, 4).join(' ') + (notes.length > 4 ? ' …' : ''); q('.gb-note').hidden = false; }
+
+    const cur = inp('.gb-cur').value.trim();
+    const fm = (x: number) => x.toLocaleString('en', { minimumFractionDigits: round ? 0 : 2, maximumFractionDigits: round ? 0 : 2 });
+    const money$ = (x: number) => (cur ? (/^[A-Za-z]/.test(cur) ? `${cur} ${fm(x)}` : `${cur}${fm(x)}`) : fm(x));
+    const eff = (e: number[]) => (e.every((x) => x === e[0]) ? `${e[0]} %` : `${e.join('/')} %`);
+    rows = [];
+    r.people.forEach((p) => { rows.push({ label: `${p.name}: salary (${eff(p.effort)})`, v: p.salary, kind: 'line' }); if (p.fringe.some((x) => x)) rows.push({ label: `${p.name}: fringe`, v: p.fringe, kind: 'line' }); });
+    if (r.people.length) rows.push({ label: 'Personnel', v: r.personnel, kind: 'sub' });
+    for (const c of CATEGORIES) {
+      const ls = r.lines.filter((l) => l.category === c);
+      if (!ls.length) continue;
+      ls.forEach((l) => rows.push({ label: `${l.name}${l.flag === 'exclude' ? ' (not in base)' : l.flag === 'cap' ? ' (capped in base)' : ''}`, v: l.amounts, kind: 'line' }));
+      rows.push({ label: CAT_NAME[c], v: r.cats[c], kind: 'sub' });
+    }
+    rows.push({ label: 'Total direct costs', v: r.direct, kind: 'total' });
+    if (base !== 'none') {
+      rows.push({ label: `Indirect cost base (${BASE_NAME[base]})`, v: r.base, kind: 'info' });
+      rows.push({ label: `Indirect costs (${r.rate.every((x) => x === r.rate[0]) ? `${r.rate[0]} %` : r.rate.join('/') + ' %'})`, v: r.indirect, kind: 'line' });
+    }
+    rows.push({ label: 'Total', v: r.total, kind: 'total' });
+    const yrs = Array.from({ length: n }, (_, y) => `Year ${y + 1}`);
+    const head = ['', ...yrs, 'Total'];
+    const t = q<HTMLTableElement>('.gb-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    const tableRows = rows.map((row) => [row.label, ...row.v.map(fm), fm(r.sum(row.v))]);
+    rows.forEach((row, k) => { const tr = tb.insertRow(); tr.className = `gb-${row.kind}`; tableRows[k].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+
+    const T = r.sum(r.total), D = r.sum(r.direct), I = r.sum(r.indirect);
+    q('.gb-big').textContent = `Total ${money$(T)} over ${n} year${n > 1 ? 's' : ''}`;
+    q('.gb-facts').replaceChildren(
+      fact('Direct costs', money$(D)), fact('Indirect costs', money$(I)),
+      fact('Personnel', `${money$(r.sum(r.personnel))} (${D ? Math.round((100 * r.sum(r.personnel)) / D) : 0} % of direct)`),
+      fact('Largest year', `Year ${r.total.indexOf(Math.max(...r.total)) + 1}: ${money$(Math.max(...r.total))}`),
+      ...(base !== 'none' ? [fact('Effective indirect rate', `${D ? ((100 * I) / D).toFixed(1) : '0'} % of direct costs`)] : []),
+    );
+
+    // Stacked bars: personnel, each category, indirect.
+    const parts: [string, number[]][] = [['Personnel', r.personnel], ...CATEGORIES.filter((c) => r.sum(r.cats[c]) > 0).map((c) => [CAT_NAME[c], r.cats[c]] as [string, number[]]), ...(I > 0 ? [['Indirect', r.indirect] as [string, number[]]] : [])].filter(([, v]) => r.sum(v) > 0);
+    fig = {
+      w: 480, h: 340, alt: `Stacked bar chart of the budget for each of ${n} years`,
+      draw: (ctx, w, h, pal) => {
+        const cols = pal.red ? ['#a30000', '#7a0000', '#520000', '#c00000', '#3a0000', '#900000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1'];
+        const L = 58, Rm = 10, Tp = 58, B = 30, pw = w - L - Rm, ph = h - Tp - B;
+        const mx = Math.max(1, ...r.total), ticks = niceTicks(0, mx * 1.05, 5), st = ticks.length > 1 ? ticks[1] - ticks[0] : mx;
+        while (ticks[ticks.length - 1] < mx) ticks.push(ticks[ticks.length - 1] + st);
+        const top = ticks[ticks.length - 1] || 1;
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+        const short = (v: number) => (top >= 1e6 ? `${+(v / 1e6).toFixed(2)}M` : top >= 1e4 ? `${+(v / 1e3).toFixed(1)}k` : String(v));
+        for (const tk of ticks) { const y = Tp + ph - (tk / top) * ph; ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(short(tk), L - 6, y); }
+        const gw = pw / n, bw = Math.min(70, gw * 0.6);
+        for (let y = 0; y < n; y++) {
+          let acc = 0; const x = L + gw * y + (gw - bw) / 2;
+          parts.forEach(([, v], k) => { const hgt = (v[y] / top) * ph; ctx.fillStyle = cols[k % cols.length]; ctx.fillRect(x, Tp + ph - ((acc + v[y]) / top) * ph, bw, hgt); acc += v[y]; });
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`Year ${y + 1}`, x + bw / 2, Tp + ph + 8);
+        }
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, Tp); ctx.lineTo(L, Tp + ph); ctx.lineTo(L + pw, Tp + ph); ctx.stroke();
+        let lx = L; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        let ly = 14; parts.forEach(([nm], k) => { const wd = 30 + ctx.measureText(nm).width; if (lx + wd > w - Rm && lx > L) { lx = L; ly += 20; } ctx.fillStyle = cols[k % cols.length]; ctx.fillRect(lx, ly - 6, 12, 12); ctx.fillStyle = pal.ink; ctx.fillText(nm, lx + 16, ly); lx += wd; });
+        if (cur) { ctx.save(); ctx.translate(14, Tp + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillStyle = pal.ink; ctx.fillText(cur, 0, 0); ctx.restore(); }
+      },
+    };
+    q('.gb-out').hidden = false;
+    paint(q<HTMLCanvasElement>('.gb-fig'), fig);
+    sections = [
+      { title: q('.gb-big').textContent!, facts: [...q('.gb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig },
+      { title: 'Budget by year', table: { head: ['Line', ...yrs, 'Total'], rows: tableRows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: `${cur ? `Amounts in ${cur}. ` : ''}Indirect costs on ${BASE_NAME[base]}${base === 'modified' ? (excludeCats.length ? `, leaving out ${excludeCats.map((c) => CAT_NAME[c].toLowerCase()).join(', ')}` : '') + (cap != null ? `; lines marked cap count up to ${fm(cap)}` : '') : ''}. Rates typed by the user.` },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.gb-remember')) return; later(); });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.closest('.gb-remember')) return; if (t.matches('select, input[type=checkbox]')) run(); });
+  inp('.gb-remember').addEventListener('change', () => { try { if (remember()) store(); else localStorage.removeItem(KEY); } catch {} });
+  function example() {
+    restore({ years: String(EXAMPLE.years), cur: '', round: true, people: EXAMPLE.people, lines: EXAMPLE.lines, rate: EXAMPLE.rate, base: EXAMPLE.base, excl: EXAMPLE.excludeCats, cap: String(EXAMPLE.cap) });
+    run();
+  }
+  q('.gb-ex').addEventListener('click', example);
+  q('.gb-empty').addEventListener('click', () => { restore({ years: '3', cur: inp('.gb-cur').value, round: true, people: 'Role, yearly salary, effort %, fringe %, raise %\n', lines: 'Category, item, year 1, year 2, year 3\n', rate: '', base: 'tdc', excl: [], cap: '' }); run(); });
+  q('.gb-csv').addEventListener('click', () => {
+    if (!R) return;
+    const cell = (c: string) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+    const num = (x: number) => String(Math.round(x * 100) / 100);
+    const out = [['Line', ...Array.from({ length: R.years }, (_, y) => `Year ${y + 1}`), 'Total'], ...rows.map((row) => [row.label, ...row.v.map(num), num(R!.sum(row.v))])];
+    save(new Blob(['﻿' + out.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n'], { type: 'text/csv' }), 'grant-budget.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.gb-out').hidden) paint(q<HTMLCanvasElement>('.gb-fig'), fig); });
+
+  let saved: ReturnType<typeof snapshot> | null = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved && typeof saved.people === 'string') { inp('.gb-remember').checked = true; restore(saved); run(); } else example();
+  wireDownloads(q('.dl'), () => ({ title: 'Grant budget', subtitle: q('.gb-big').textContent ?? '', file: 'grant-budget', sections }));
+</script>
+
+<style is:inline>
+  .gbt textarea { white-space: pre; overflow-x: auto; }
+  .gbt .gb-excl { gap: 6px 16px; }
+  .gbt tr.gb-sub td { font-weight: 600; }
+  .gbt tr.gb-total td { font-weight: 700; border-top: 2px solid var(--ink); }
+  .gbt tr.gb-info td { color: var(--muted); font-style: italic; }
+  .gbt .gb-tab td:first-child { min-width: 160px; }
+  .gbt code { font-size: 14px; }
+</style>

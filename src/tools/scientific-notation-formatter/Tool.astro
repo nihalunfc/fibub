@@ -1,0 +1,162 @@
+---
+// Scientific notation formatter: scientific, engineering or SI-prefix form, significant figures, and value ±
+// uncertainty rounded together, as plain text, Unicode, LaTeX and siunitx, one number or a whole column
+// (src/lib/sci/scinote.ts, decimal.ts). Nothing leaves the page.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax snf">
+  <div class="ax-card">
+    <h2>Numbers</h2>
+    <label>One per line: a number, or a value and its uncertainty
+      <textarea class="snf-in" rows="5" spellcheck="false" autocapitalize="off" wrap="off"></textarea>
+    </label>
+    <p class="ax-help">Write 0.000123 or 1.23e-4, and an uncertainty as 0.0123 ± 0.0004, 12.3 +/- 0.4, 1.234(12) or two columns pasted from a spreadsheet. A unit after the numbers is kept.</p>
+    <DataFile target=".snf-in" maxMB={2} maxCols={2} maxRows={5000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small snf-ex">Use the example</button>
+      <button type="button" class="btn secondary small snf-clear">Clear</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Write as <select class="snf-not">
+        <option value="sci" selected>Scientific (1.23 × 10⁻⁴)</option>
+        <option value="eng">Engineering (123 × 10⁻⁶)</option>
+        <option value="si">SI prefix (123 µm)</option>
+        <option value="plain">Plain decimal (0.000123)</option>
+      </select></label>
+      <label>Unit (optional) <input class="snf-unit" type="text" placeholder="m, g, Hz, °C" autocapitalize="off" /></label>
+      <label>Significant figures <input class="snf-sig" type="number" min="0" max="20" step="1" value="3" inputmode="numeric" /></label>
+      <label>Uncertainty keeps <select class="snf-rule">
+        <option value="pdg" selected>1 or 2 figures, PDG rule</option>
+        <option value="lead12">2 figures if it starts with 1 or 2, else 1</option>
+        <option value="two">Always 2 figures</option>
+        <option value="one">Always 1 figure</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Significant figures apply to numbers without an uncertainty (0 keeps them as typed). With an uncertainty, the uncertainty is rounded first and the value to the same decimal place. PDG rule: the uncertainty's first three digits 100 to 354 keep two figures, 355 to 949 one, 950 to 999 round up to 1.0. Rounding is half away from zero, digit by digit.</p>
+    <p class="ax-err snf-err" hidden></p>
+  </div>
+
+  <div class="ax-card snf-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big snf-big"></p>
+    <p class="ax-help snf-note" hidden></p>
+    <div class="snf-forms"></div>
+    <h3 class="snf-th">All lines</h3>
+    <div class="ax-scroll"><table class="snf-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="snf-colsel">Copy a column <select class="snf-col">
+        <option value="unicode">Unicode</option><option value="plain">Plain text</option><option value="latex">LaTeX</option><option value="siunitx">siunitx</option><option value="concise">Concise</option><option value="e">Value and uncertainty (for Excel)</option>
+      </select></label>
+      <button type="button" class="btn secondary small snf-copycol">Copy column</button>
+      <button type="button" class="btn secondary small snf-csv">Download CSV</button>
+      <span class="ax-help snf-done" style="margin:0" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .snf-forms { display: grid; gap: 8px; margin-top: 12px; }
+  .snf-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .snf-form b { font-size: 13px; color: var(--muted); font-weight: 600; grid-column: 1 / -1; }
+  .snf-form code { font-size: 14.5px; overflow-wrap: anywhere; }
+  .snf-form button { padding: 5px 10px; font-size: 13.5px; }
+  .snf h3 { font-size: 15px; margin: 18px 0 6px; }
+  .snf-tab td { white-space: nowrap; }
+  .snf-tab td.bad { color: var(--bad); white-space: normal; }
+  .snf .snf-colsel { display: flex; flex-direction: row; align-items: center; gap: 8px; color: var(--ink); white-space: nowrap; }
+  .snf .snf-colsel select { width: auto; }
+</style>
+
+<script>
+  import { parseLine, format, type Formatted, type Opts } from '../../lib/sci/scinote';
+  import { save } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.snf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLTextAreaElement>('.snf-in');
+  // Example: a few textbook constants and made-up measurements.
+  const EX = ['0.000123456 ± 0.0000356 m', '6.02214076e23', '9.80665 ± 0.0951', '1.234(12)e-3 s', '-0.0004567', '299792458 m/s'].join('\n');
+  const FORMS: [keyof Formatted, string][] = [['unicode', 'Unicode (Word, email, slides)'], ['plain', 'Plain text'], ['latex', 'LaTeX'], ['siunitx', 'siunitx (LaTeX package, version 3)'], ['concise', 'Concise']];
+  type Row = { src: string; f: Formatted | null; err: string };
+  let rows: Row[] = [];
+
+  async function copy(text: string, btn?: HTMLElement) {
+    let ok = true;
+    try { await navigator.clipboard.writeText(text); } catch { ok = false; }
+    if (btn) { const t = btn.textContent; btn.textContent = ok ? 'Copied' : 'Blocked'; setTimeout(() => (btn.textContent = t), 1200); }
+    return ok;
+  }
+
+  function run() {
+    q('.snf-err').hidden = true; q('.snf-done').textContent = '';
+    const fail = (m: string) => { q('.snf-err').textContent = m; q('.snf-err').hidden = false; q('.snf-out').hidden = true; rows = []; };
+    const sig = Number(q<HTMLInputElement>('.snf-sig').value);
+    if (!(Number.isInteger(sig) && sig >= 0 && sig <= 20)) return fail('Give 1 to 20 significant figures, or 0 to keep them as typed.');
+    const o: Opts = { notation: q<HTMLSelectElement>('.snf-not').value as Opts['notation'], sig, rule: q<HTMLSelectElement>('.snf-rule').value as Opts['rule'], unit: q<HTMLInputElement>('.snf-unit').value.trim() };
+    const lines = input.value.split(/\r?\n/).filter((l) => l.trim());
+    if (!lines.length) return fail('Type a number first.');
+    if (lines.length > 5000) return fail(`That is ${lines.length.toLocaleString('en')} lines; this page takes up to 5,000 at a time.`);
+    rows = lines.map((src) => {
+      const p = parseLine(src);
+      if (typeof p === 'string') return { src, f: null, err: p };
+      try { return { src, f: format(p, o), err: '' }; } catch (e) { return { src, f: null, err: (e as Error).message }; }
+    });
+    // A header line from a file (such as "value,uncertainty") is skipped quietly when the rest are numbers.
+    if (rows.length > 1 && !rows[0].f && rows.slice(1).some((r) => r.f) && /[a-z]/i.test(rows[0].src) && !/\d/.test(rows[0].src)) rows = rows.slice(1);
+    const first = rows.find((r) => r.f);
+    const bad = rows.filter((r) => !r.f);
+    if (bad.length) { q('.snf-err').textContent = rows.length === 1 ? bad[0].err : `${bad.length} of ${rows.length} lines could not be read; they are marked in the table.`; q('.snf-err').hidden = false; }
+    if (!first) { q('.snf-out').hidden = true; return; }
+    q('.snf-out').hidden = false;
+    const f = first.f!;
+    q('.snf-big').textContent = f.unicode;
+    q('.snf-note').textContent = f.note; q('.snf-note').hidden = !f.note;
+    const box = q('.snf-forms'); box.replaceChildren();
+    for (const [k, name] of FORMS) {
+      const d = document.createElement('div'); d.className = 'snf-form';
+      const b = document.createElement('b'); b.textContent = name;
+      const c = document.createElement('code'); c.textContent = String(f[k]); c.dataset.k = k;
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small'; btn.textContent = 'Copy';
+      btn.addEventListener('click', () => copy(String(f[k]), btn));
+      d.append(b, c, btn); box.append(d);
+    }
+    // Table of every line.
+    const multi = rows.length > 1;
+    q('.snf-th').hidden = !multi; (q('.snf-tab').parentElement as HTMLElement).hidden = !multi;
+    const t = q<HTMLTableElement>('.snf-tab'); t.replaceChildren();
+    if (multi) {
+      const hr = t.createTHead().insertRow();
+      for (const h of ['Input', 'Unicode', 'LaTeX', 'siunitx']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+      const tb = t.createTBody();
+      for (const r of rows) {
+        const tr = tb.insertRow();
+        tr.insertCell().textContent = r.src.trim();
+        if (r.f) for (const k of ['unicode', 'latex', 'siunitx'] as const) tr.insertCell().textContent = r.f[k];
+        else { const td = tr.insertCell(); td.colSpan = 3; td.className = 'bad'; td.textContent = r.err; }
+      }
+    }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 150); };
+  input.addEventListener('input', later);
+  q('.snf-unit').addEventListener('input', later); q('.snf-sig').addEventListener('input', later);
+  for (const c of ['.snf-not', '.snf-rule', '.snf-sig']) q(c).addEventListener('change', run);
+  q('.snf-ex').addEventListener('click', () => { input.value = EX; run(); });
+  q('.snf-clear').addEventListener('click', () => { input.value = ''; run(); input.focus(); });
+  q('.snf-copycol').addEventListener('click', async () => {
+    const k = q<HTMLSelectElement>('.snf-col').value;
+    const text = rows.map((r) => (r.f ? (k === 'e' ? `${r.f.eValue}\t${r.f.eUnc}` : String(r.f[k as keyof Formatted])) : '')).join('\n');
+    q('.snf-done').textContent = (await copy(text)) ? `Copied ${rows.length} line${rows.length === 1 ? '' : 's'}.` : 'Your browser blocked copying.';
+  });
+  q('.snf-csv').addEventListener('click', () => {
+    const out: string[][] = [['input', 'value', 'uncertainty', 'unicode', 'plain', 'latex', 'siunitx', 'concise', 'note']];
+    for (const r of rows) out.push(r.f ? [r.src.trim(), r.f.eValue, r.f.eUnc, r.f.unicode, r.f.plain, r.f.latex, r.f.siunitx, r.f.concise, r.f.note] : [r.src.trim(), '', '', '', '', '', '', '', r.err]);
+    save(new Blob(['\ufeff' + csv(out)], { type: 'text/csv' }), 'scientific-notation.csv', 'text/csv');
+  });
+
+  input.value = EX;
+  run();
+</script>

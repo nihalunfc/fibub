@@ -1,0 +1,208 @@
+---
+// Science file converter: open NetCDF classic / 64-bit offset / 64-bit data, FITS images and tables, CSV and Excel,
+// list what is inside (dimensions, variables, attributes, header cards) and export one variable or table to CSV or
+// JSON. The readers are in src/lib/sci/sciformat.ts. Files never leave the browser.
+import '../../styles/astro.css';
+---
+<div class="ax sfc">
+  <div class="ax-card">
+    <h2>Data file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sf-open">Open a file</button>
+      <input type="file" class="sf-file" hidden accept=".nc,.nc3,.cdf,.netcdf,.fits,.fit,.fts,.gz,.csv,.tsv,.txt,.dat,.xlsx,.h5,.hdf5,.he5,.nc4,.parquet" />
+      <button type="button" class="btn secondary small sf-ex">Use the example NetCDF</button>
+    </div>
+    <p class="ax-help">Opens NetCDF classic, 64-bit offset and 64-bit data (.nc), FITS images and tables (.fits, .fit, .fts, also gzipped), CSV, TSV and Excel (.xlsx), up to 500 MB. The file is read on this page only and never uploaded.</p>
+    <p class="ax-help"><strong>Not supported:</strong> HDF5 and NetCDF-4 files, and Parquet. Reading them needs large libraries this page does not load. Convert NetCDF-4 with <code>nccopy -k classic in.nc out.nc</code>, or save Parquet as CSV first.</p>
+    <p class="ax-help sf-status" aria-live="polite"></p>
+    <p class="ax-err sf-err" hidden></p>
+  </div>
+
+  <div class="ax-card sf-sum" hidden>
+    <h2>What is inside</h2>
+    <dl class="ax-facts sf-facts"></dl>
+    <p class="ax-help sf-notes"></p>
+    <div class="sf-dimbox"><h3>Dimensions</h3><div class="ax-scroll"><table class="sf-dims"></table></div></div>
+    <h3 class="sf-ith">Variables</h3>
+    <div class="ax-scroll"><table class="sf-items"></table></div>
+    <details class="sf-gbox"><summary class="sf-gsum">Global attributes</summary><div class="ax-scroll"><table class="sf-globals"></table></div></details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sf-djson">Download the description (JSON)</button></div>
+  </div>
+
+  <div class="ax-card sf-pick" hidden>
+    <h2>Export</h2>
+    <div class="ax-grid">
+      <label><span class="sf-picklab">Variable</span> <select class="sf-item"></select></label>
+      <label>CSV layout <select class="sf-layout">
+        <option value="long" selected>One row per value</option>
+        <option value="grid">Grid (two dimensions only)</option>
+      </select></label>
+    </div>
+    <label class="ax-check"><input type="checkbox" class="sf-scale" checked /> Unpack and mark missing values</label>
+    <p class="ax-help sf-scalehelp">Applies scale_factor and add_offset (FITS: BSCALE/BZERO, TSCAL/TZERO) and leaves fill values empty in CSV (null in JSON). Untick to export the numbers exactly as stored.</p>
+    <dl class="ax-facts sf-ifacts"></dl>
+    <p class="ax-help sf-inote"></p>
+    <details class="sf-abox"><summary class="sf-asum">Attributes</summary><div class="ax-scroll"><table class="sf-attrs"></table></div></details>
+    <h3>Preview</h3>
+    <p class="ax-help sf-prevnote"></p>
+    <div class="ax-scroll"><table class="sf-prev"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small sf-csv">Download CSV</button>
+      <button type="button" class="btn secondary small sf-json">Download JSON</button>
+    </div>
+    <p class="ax-err sf-xerr" hidden></p>
+  </div>
+</div>
+
+<script>
+  import { openBinary, openTables, sniff, exampleNetcdf, UNSUPPORTED, type Dataset, type Options } from '../../lib/sci/sciformat';
+  import { parseCsv } from '../../lib/convert/table';
+  import { save, fileSafe } from '../../lib/report';
+
+  type R = ReturnType<typeof openBinary>;
+  const root = document.querySelector<HTMLElement>('.sfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAXB = 500e6, PREV_ROWS = 12, PREV_MAX = 300_000;
+  let reader: R | null = null, base = 'data', bytesN = 0;
+
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fill = (t: HTMLTableElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+  };
+  const size = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(1)} kB` : `${n} bytes`);
+  const count = (n: number) => n.toLocaleString('en');
+  const fail = (m: string) => { q('.sf-err').textContent = m; q('.sf-err').hidden = false; q('.sf-sum').hidden = true; q('.sf-pick').hidden = true; reader = null; q('.sf-status').textContent = ''; };
+  const opts = (): Options => ({ scale: q<HTMLInputElement>('.sf-scale').checked, layout: q<HTMLSelectElement>('.sf-layout').value as 'long' | 'grid' });
+
+  function show(r: R, name: string, n: number) {
+    reader = r; base = name.replace(/\.(gz)$/i, '').replace(/\.[^.]+$/, '') || 'data'; bytesN = n;
+    const ds: Dataset = r.ds;
+    q('.sf-err').hidden = true; q('.sf-sum').hidden = false; q('.sf-pick').hidden = false;
+    const vars = ds.items.filter((i) => i.kind === 'variable').length, tabs = ds.items.filter((i) => i.kind === 'table').length, imgs = ds.items.length - vars - tabs;
+    const what = [vars && `${vars} variable${vars > 1 ? 's' : ''}`, imgs && `${imgs} image${imgs > 1 ? 's' : ''}`, tabs && `${tabs} table${tabs > 1 ? 's' : ''}`].filter(Boolean).join(', ') || 'no data';
+    q('.sf-facts').replaceChildren(fact('Format', ds.format), fact('File', name, size(n)), fact('Contents', what, ds.dims.length ? `${ds.dims.length} dimension${ds.dims.length > 1 ? 's' : ''}` : ''));
+    q('.sf-notes').textContent = ds.notes.join(' ');
+    q('.sf-dimbox').hidden = !ds.dims.length;
+    fill(q('.sf-dims'), ['Dimension', 'Size'], ds.dims.map((d) => [d.name, count(d.size) + (d.unlimited ? ' (unlimited, records)' : '')]));
+    const isNc = ds.items.some((i) => i.kind === 'variable');
+    q('.sf-ith').textContent = isNc ? 'Variables' : ds.format === 'FITS' ? 'HDUs with data' : 'Sheets and tables';
+    q('.sf-picklab').textContent = isNc ? 'Variable' : ds.format === 'FITS' ? 'HDU' : 'Table';
+    fill(q('.sf-items'), [isNc ? 'Variable' : 'Name', 'Type', 'Dimensions', 'Values'], ds.items.map((it) => [
+      it.name, it.type,
+      it.kind === 'table' ? `${count(it.shape[0])} rows × ${it.columns!.length} columns` : it.dims.length ? it.dims.map((d, k) => `${d} ${it.shape[k]}`).join(' × ') : 'single value',
+      count(it.kind === 'table' ? it.shape[0] * it.columns!.length : it.shape.reduce((a, b) => a * b, 1)),
+    ]));
+    q('.sf-gbox').hidden = !ds.globals.length;
+    q('.sf-gsum').textContent = `${ds.format === 'FITS' ? 'Primary header' : 'Global attributes'} (${ds.globals.length})`;
+    fill(q('.sf-globals'), ['Name', 'Value'], ds.globals);
+    const sel = q<HTMLSelectElement>('.sf-item');
+    sel.replaceChildren(...ds.items.map((it, i) => new Option(it.name, String(i))));
+    // Start on the first variable with two or more dimensions (the data, not a coordinate), else the first.
+    const first = Math.max(0, ds.items.findIndex((it) => it.kind !== 'variable' || it.dims.length >= 2));
+    sel.value = String(first);
+    q('.sf-status').textContent = `Opened ${name}.`;
+    pick();
+  }
+
+  function pick() {
+    if (!reader) return;
+    const i = Number(q<HTMLSelectElement>('.sf-item').value), it = reader.ds.items[i];
+    const n = it.kind === 'table' ? it.shape[0] * it.columns!.length : it.shape.reduce((a, b) => a * b, 1);
+    const twoD = it.kind !== 'table' && it.shape.length === 2 && !(it.type === 'char');
+    const lay = q<HTMLSelectElement>('.sf-layout');
+    lay.disabled = !twoD; if (!twoD) lay.value = 'long';
+    q('.sf-ifacts').replaceChildren(
+      fact('Type', it.type),
+      fact(it.kind === 'table' ? 'Rows' : 'Shape', it.kind === 'table' ? count(it.shape[0]) : it.shape.length ? it.shape.join(' × ') : '1', it.kind === 'table' ? `${it.columns!.length} columns` : it.dims.join(', ')),
+      fact('Values', count(n)),
+    );
+    q('.sf-inote').textContent = it.note ?? '';
+    const hasAttrs = it.kind === 'table' ? true : it.attrs.length > 0;
+    q('.sf-abox').hidden = !hasAttrs;
+    if (it.kind === 'table') {
+      q('.sf-asum').textContent = `Columns (${it.columns!.length})${it.attrs.length ? ` and header (${it.attrs.length} cards)` : ''}`;
+      fill(q('.sf-attrs'), ['Name', 'Type / value', 'Unit'], [...it.columns!.map((c) => [c.name, c.type, c.unit]), ...it.attrs.map(([k, v]) => [k, v, ''])]);
+    } else {
+      q('.sf-asum').textContent = `${reader.ds.format === 'FITS' ? 'Header' : 'Attributes'} (${it.attrs.length})`;
+      fill(q('.sf-attrs'), ['Name', 'Value'], it.attrs);
+    }
+    preview();
+  }
+
+  function preview() {
+    if (!reader) return;
+    const i = Number(q<HTMLSelectElement>('.sf-item').value), it = reader.ds.items[i];
+    const n = it.kind === 'table' ? it.shape[0] * it.columns!.length : it.shape.reduce((a, b) => a * b, 1);
+    q('.sf-xerr').hidden = true;
+    if (n > PREV_MAX) { q('.sf-prevnote').textContent = `This one has ${count(n)} values, so there is no preview; the downloads still work (up to 5,000,000 values).`; fill(q('.sf-prev'), [], []); return; }
+    try {
+      const t = reader.table(i, opts());
+      const shown = t.slice(1, PREV_ROWS + 1).map((r) => r.slice(0, 12));
+      fill(q('.sf-prev'), t[0].slice(0, 12), shown);
+      q('.sf-prevnote').textContent = `The CSV has ${count(t.length - 1)} row${t.length === 2 ? '' : 's'} and ${t[0].length} column${t[0].length === 1 ? '' : 's'}${t.length - 1 > PREV_ROWS || t[0].length > 12 ? `; the first ${Math.min(PREV_ROWS, t.length - 1)} rows${t[0].length > 12 ? ' and 12 columns' : ''} are shown` : ''}.`;
+    } catch (e) { q('.sf-prevnote').textContent = ''; fill(q('.sf-prev'), [], []); q('.sf-xerr').textContent = (e as Error).message; q('.sf-xerr').hidden = false; }
+  }
+
+  async function openFile(f: File) {
+    q('.sf-err').hidden = true;
+    if (f.size > MAXB) return fail(`${f.name} is ${size(f.size)}; this page opens files up to 500 MB.`);
+    q('.sf-status').textContent = `Reading ${f.name}…`;
+    try {
+      let b = new Uint8Array(await f.arrayBuffer());
+      if (b[0] === 0x1f && b[1] === 0x8b) {
+        const s = new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));
+        b = new Uint8Array(await new Response(s).arrayBuffer());
+        if (b.length > MAXB) return fail(`Unzipped, ${f.name} is ${size(b.length)}; this page opens files up to 500 MB.`);
+      }
+      const kind = sniff(b), lower = f.name.toLowerCase();
+      if (kind === 'netcdf' || kind === 'fits') return show(openBinary(b), f.name, b.length);
+      if (kind === 'xlsx' && lower.endsWith('.xlsx')) {
+        const { xlsxToTables } = await import('../../lib/convert/table');
+        let sheets;
+        try { sheets = xlsxToTables(b); } catch { return fail(`${f.name} could not be read as an Excel file. Try saving it again as .xlsx or CSV.`); }
+        return show(openTables(sheets, 'Excel workbook (.xlsx)'), f.name, b.length);
+      }
+      if (kind === 'text') {
+        let text = new TextDecoder().decode(b);
+        if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+        const t = lower.endsWith('.tsv') ? text.split(/\r?\n/).map((r) => r.split('\t')) : parseCsv(text);
+        return show(openTables([{ name: f.name, table: t }], lower.endsWith('.tsv') ? 'TSV (tab-separated text)' : 'CSV (comma-separated text)'), f.name, b.length);
+      }
+      fail(UNSUPPORTED[kind] ?? UNSUPPORTED.unknown);
+    } catch (e) { fail(`${f.name}: ${(e as Error).message}`); }
+  }
+
+  const csvText = (rows: string[][]) => rows.map((r) => r.map((c) => (/[",\r\n]/.test(c) || /^\s|\s$/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\r\n') + '\r\n';
+  const itemFile = () => { const it = reader!.ds.items[Number(q<HTMLSelectElement>('.sf-item').value)]; return `${fileSafe(base)}-${fileSafe(it.name.replace(/^HDU (\d+)/, 'hdu$1').replace(/:.*$/, ''))}`; };
+  const guard = (f: () => void) => { q('.sf-xerr').hidden = true; try { f(); } catch (e) { q('.sf-xerr').textContent = (e as Error).message; q('.sf-xerr').hidden = false; } };
+  q('.sf-csv').addEventListener('click', () => guard(() => save(new Blob([csvText(reader!.table(Number(q<HTMLSelectElement>('.sf-item').value), opts()))], { type: 'text/csv' }), `${itemFile()}.csv`, 'text/csv')));
+  q('.sf-json').addEventListener('click', () => guard(() => save(new Blob([JSON.stringify(reader!.json(Number(q<HTMLSelectElement>('.sf-item').value), opts()), null, 1)], { type: 'application/json' }), `${itemFile()}.json`, 'application/json')));
+  q('.sf-djson').addEventListener('click', () => {
+    if (!reader) return;
+    const d = reader.ds;
+    const desc = { format: d.format, bytes: bytesN, dimensions: d.dims, attributes: Object.fromEntries(d.globals), notes: d.notes, items: d.items.map((it) => ({ name: it.name, kind: it.kind, type: it.type, dimensions: it.dims, shape: it.shape, ...(it.columns ? { columns: it.columns } : {}), attributes: Object.fromEntries(it.attrs) })) };
+    save(new Blob([JSON.stringify(desc, null, 1)], { type: 'application/json' }), `${fileSafe(base)}-description.json`, 'application/json');
+  });
+
+  q('.sf-open').addEventListener('click', () => q<HTMLInputElement>('.sf-file').click());
+  q('.sf-file').addEventListener('change', () => { const inp = q<HTMLInputElement>('.sf-file'), f = inp.files?.[0]; inp.value = ''; if (f) openFile(f); });
+  root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  root.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); openFile(f); } });
+  q('.sf-ex').addEventListener('click', () => { const b = exampleNetcdf(); show(openBinary(b), 'example-temperature.nc', b.length); q('.sf-status').textContent = 'Opened the example: made-up temperatures on a small grid, not real measurements.'; });
+  q('.sf-item').addEventListener('change', pick);
+  q('.sf-layout').addEventListener('change', preview);
+  q('.sf-scale').addEventListener('change', preview);
+  q<HTMLButtonElement>('.sf-ex').click();
+</script>
+
+<style is:inline>
+  .sfc h3 { font-size: 15px; margin: 16px 0 6px; }
+  .sfc select { max-width: 100%; }
+  .sfc details { margin-top: 12px; }
+  .sfc summary { cursor: pointer; font-weight: 600; }
+  .sfc code { overflow-wrap: anywhere; }
+  .sfc td { overflow-wrap: anywhere; }
+  .sfc .sf-items td:first-child, .sfc .sf-items td:nth-child(2), .sfc .sf-prev td { white-space: nowrap; }
+</style>

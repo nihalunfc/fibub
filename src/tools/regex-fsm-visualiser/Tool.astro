@@ -1,0 +1,317 @@
+---
+// Finite state machine and regex visualiser: regex → Thompson NFA → DFA → minimal DFA, drawn; step through a string; type your own DFA.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fsm">
+  <div class="ax-card">
+    <div class="ax-seg fsm-modes" role="group" aria-label="Start from">
+      <button type="button" data-m="re" aria-pressed="true">From a regex</button>
+      <button type="button" data-m="dfa" aria-pressed="false">Type a DFA</button>
+    </div>
+    <div class="fsm-p" data-p="re" style="margin-top:12px">
+      <label>Regular expression <input class="fsm-re" value="(a|b)*abb" autocomplete="off" spellcheck="false" /></label>
+      <label style="margin-top:10px">Extra alphabet symbols (optional) <input class="fsm-alpha" value="" autocomplete="off" spellcheck="false" placeholder="e.g. abc" /></label>
+      <p class="ax-help">Supported: letters and other symbols, . (any symbol), [abc], [a-z], [^ab], \d \w \s, | for "or", * (0 or more), + (1 or more), ? (optional), &#123;2&#125; &#123;2,&#125; &#123;2,4&#125; repeats, and brackets ( ). The whole string must match, as if inside ^( … )$. The alphabet is every symbol the regex names plus any you add.</p>
+    </div>
+    <div class="fsm-p" data-p="dfa" style="margin-top:12px" hidden>
+      <label>DFA, one move per line <textarea class="fsm-dfa" rows="8" spellcheck="false">start q0
+accept q0
+# Binary numbers divisible by 3
+q0 0 q0
+q0 1 q1
+q1 0 q2
+q1 1 q0
+q2 0 q1
+q2 1 q2</textarea></label>
+      <p class="ax-help">"start q0" and "accept q1 q2", then one move per line: "state symbol next" (also "q0, a, q1" or "q0 -a-> q1"; "q0 a,b q1" for several symbols). A missing move goes to a dead state that rejects. Lines starting # are notes.</p>
+    </div>
+    <p class="ax-err fsm-err" hidden></p>
+  </div>
+
+  <div class="ax-card fsm-out">
+    <h2>Machines</h2>
+    <p class="ax-big fsm-big"></p>
+    <dl class="ax-facts fsm-facts"></dl>
+    <Downloads />
+  </div>
+
+  <div class="ax-card fsm-out">
+    <h2>Diagram</h2>
+    <div class="ax-seg fsm-views" role="group" aria-label="Which machine"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="fsm-dead" /> Show the dead state</label>
+      <button type="button" class="btn secondary small fsm-edit">Edit this as a DFA</button>
+    </div>
+    <p class="ax-help fsm-vhelp"></p>
+    <div class="ax-scroll fsm-scroll"><canvas class="fsm-fig"></canvas></div>
+    <div class="ax-legend"><span><i class="fsm-k1"></i>Start (arrow in)</span><span><i class="fsm-k2"></i>Accepting (double ring)</span><span><i class="fsm-k3"></i>Current state when stepping</span></div>
+    <h3 style="margin:16px 0 6px;font-size:16px">Transition table</h3>
+    <div class="ax-scroll"><table class="fsm-tab"></table></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fsm-csv">Table as CSV</button></div>
+  </div>
+
+  <div class="ax-card fsm-out">
+    <h2>Test a string</h2>
+    <label>String <input class="fsm-w" value="babb" autocomplete="off" spellcheck="false" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fsm-reset">Reset</button>
+      <button type="button" class="btn secondary small fsm-back">Back</button>
+      <button type="button" class="btn small fsm-step">Step</button>
+      <button type="button" class="btn secondary small fsm-run">Run to end</button>
+    </div>
+    <p class="fsm-tape" aria-live="polite"></p>
+    <p class="fsm-status"></p>
+    <label style="margin-top:14px">Several strings, one per line <textarea class="fsm-many" rows="4" spellcheck="false">abb
+aabb
+ab
+</textarea></label>
+    <div class="ax-scroll" style="margin-top:8px"><table class="fsm-mt"></table></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fsm .fsm-big { font-size: clamp(20px, 4.4vw, 28px); }
+  .fsm .fsm-facts dd { font-size: 16px; overflow-wrap: anywhere; }
+  .fsm .fsm-scroll { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .fsm canvas.fsm-fig { display: block; max-width: none; height: auto; }
+  .fsm .fsm-tape { font: 20px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 12px 0 4px; overflow-wrap: anywhere; }
+  .fsm .fsm-tape span.done { color: var(--muted); }
+  .fsm .fsm-tape span.cur { background: var(--accent); color: var(--accent-ink); border-radius: 3px; }
+  .fsm .fsm-status { margin: 0; font-weight: 600; }
+  .fsm .fsm-status.good { color: var(--good); } .fsm .fsm-status.bad { color: var(--bad); }
+  .fsm .fsm-tab td, .fsm .fsm-mt td { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .fsm .fsm-k1 { background: var(--ink); } .fsm .fsm-k2 { background: transparent; border: 3px double var(--ink); box-sizing: border-box; } .fsm .fsm-k3 { background: #c26a00; }
+  .fsm .fsm-views { margin-top: 2px; }
+</style>
+
+<script>
+  import * as A from '../../lib/sci/automata';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fsm')!;
+  const q = <E extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as E;
+  type View = { id: string; label: string; kind: 'nfa' | 'dfa'; nfa?: A.NFA; dfa?: A.DFA; help: string };
+  let mode = 're', views: View[] = [], view = 'min', re = '', fig: Figure | null = null, report: Section[] = [], factsList: [string, string][] = [];
+  let pos = 0, path: (number[] | number)[] = []; // simulation: states after each prefix
+  let tableCsv: string[][] = [];
+
+  // ---------- Graph drawing ----------
+  type G = { n: number; start: number; accept: boolean[]; names: string[]; edges: { a: number; b: number; label: string; eps?: boolean }[] };
+  function graphOf(v: View, dead: boolean): G {
+    if (v.kind === 'nfa') {
+      const nf = v.nfa!, edges: G['edges'] = [];
+      for (let x = 0; x < nf.n; x++) {
+        const by = new Map<number, string[]>(); for (const [c, y] of nf.moves[x]) by.set(y, [...(by.get(y) ?? []), nf.alphabet[c]]);
+        by.forEach((cs, y) => edges.push({ a: x, b: y, label: A.symLabel(cs) }));
+        for (const y of nf.eps[x]) edges.push({ a: x, b: y, label: 'ε', eps: true });
+      }
+      return { n: nf.n, start: nf.start, accept: nf.accept, names: [...Array(nf.n).keys()].map(String), edges };
+    }
+    const d = v.dfa!, needDead = dead && d.delta.some((r) => r.includes(-1)), D = d.n;
+    const edges: G['edges'] = [];
+    for (let x = 0; x < d.n; x++) {
+      const by = new Map<number, string[]>(); d.delta[x].forEach((y, c) => { const t = y < 0 ? (needDead ? D : -1) : y; if (t >= 0) by.set(t, [...(by.get(t) ?? []), d.alphabet[c]]); });
+      by.forEach((cs, y) => edges.push({ a: x, b: y, label: A.symLabel(cs) }));
+    }
+    if (needDead) edges.push({ a: D, b: D, label: A.symLabel(d.alphabet) });
+    return { n: d.n + (needDead ? 1 : 0), start: d.start, accept: [...d.accept, ...(needDead ? [false] : [])], names: [...d.names, ...(needDead ? ['∅'] : [])], edges };
+  }
+  function figure(g: G, hl: Set<number>, title: string): Figure {
+    // Columns by distance from the start (breadth-first), rows in the order states are met.
+    const col = new Array(g.n).fill(-1), adj: number[][] = g.edges.reduce((m, e) => (m[e.a].push(e.b), m), Array.from({ length: g.n }, () => [] as number[]));
+    const qu = [g.start]; col[g.start] = 0;
+    while (qu.length) { const x = qu.shift()!; for (const y of adj[x]) if (col[y] < 0) { col[y] = col[x] + 1; qu.push(y); } }
+    let maxc = Math.max(0, ...col); for (let x = 0; x < g.n; x++) if (col[x] < 0) col[x] = ++maxc;
+    const rowOf = new Array(g.n), counts: number[] = [];
+    for (let x = 0; x < g.n; x++) { rowOf[x] = counts[col[x]] ?? 0; counts[col[x]] = rowOf[x] + 1; }
+    const ncol = maxc + 1, maxRows = Math.max(...counts), R = 17, CG = g.n > 30 ? 92 : 112, RG = 84, M = 46, top = 64, lbl = Math.max(...g.names.map((s) => s.length)) > 3 ? 4 : 0;
+    const W = Math.max(280, 2 * M + (ncol - 1) * CG + 30), H = top + (maxRows - 1) * RG + 2 * R + 64;
+    const pos = [...Array(g.n).keys()].map((x) => [M + 14 + col[x] * CG, top + R + (rowOf[x] + (maxRows - counts[col[x]]) / 2) * RG] as [number, number]);
+    void lbl;
+    const pairs = new Set(g.edges.map((e) => `${e.a}>${e.b}`));
+    return {
+      w: Math.round(W), h: Math.round(H), alt: title,
+      draw(ctx, _w, _h, pal) {
+        const label = (x: number, y: number, t: string, colour: string) => {
+          ctx.font = '13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; const tw = ctx.measureText(t).width;
+          ctx.fillStyle = pal.bg; ctx.fillRect(x - tw / 2 - 3, y - 9, tw + 6, 18); ctx.fillStyle = colour; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y);
+        };
+        const arrow = (x: number, y: number, ang: number, colour: string) => { ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 10 * Math.cos(ang - 0.4), y - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x - 10 * Math.cos(ang + 0.4), y - 10 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill(); };
+        const labels: [number, number, string, string][] = [];
+        for (const e of g.edges) {
+          const colour = e.eps ? pal.muted : pal.ink; ctx.strokeStyle = colour; ctx.lineWidth = 1.4; ctx.setLineDash(e.eps ? [4, 3] : []);
+          const [x0, y0] = pos[e.a], [x1, y1] = pos[e.b];
+          if (e.a === e.b) {
+            ctx.beginPath(); ctx.moveTo(x0 - 8, y0 - R + 2); ctx.bezierCurveTo(x0 - 26, y0 - R - 40, x0 + 26, y0 - R - 40, x0 + 8, y0 - R + 2); ctx.stroke();
+            arrow(x0 + 8, y0 - R + 2, Math.atan2(42, -18), colour); labels.push([x0, y0 - R - 34, e.label, colour]); continue;
+          }
+          const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+          const twoWay = pairs.has(`${e.b}>${e.a}`), span = Math.abs(col[e.b] - col[e.a]);
+          // Two-way pairs bow apart (the normal flips with direction); other forward edges bow up, backward ones down.
+          const back = col[e.b] < col[e.a] || (col[e.b] === col[e.a] && e.b < e.a);
+          const bend = twoWay ? 22 : back ? -(44 + 22 * span) : span === 1 ? 0 : -(26 + 10 * span);
+          const cx = (x0 + x1) / 2 + nx * bend, cy = (y0 + y1) / 2 + ny * bend;
+          const sa = Math.atan2(cy - y0, cx - x0), ea = Math.atan2(y1 - cy, x1 - cx);
+          const sx = x0 + R * Math.cos(sa), sy = y0 + R * Math.sin(sa), ex = x1 - R * Math.cos(ea), ey = y1 - R * Math.sin(ea);
+          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, ex, ey); ctx.stroke(); ctx.setLineDash([]);
+          arrow(ex, ey, ea, colour);
+          labels.push([0.25 * sx + 0.5 * cx + 0.25 * ex, 0.25 * sy + 0.5 * cy + 0.25 * ey, e.label, colour]);
+        }
+        ctx.setLineDash([]);
+        // start arrow
+        { const [x, y] = pos[g.start]; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x - R - 30, y); ctx.lineTo(x - R - 2, y); ctx.stroke(); arrow(x - R - 1, y, 0, pal.ink); }
+        for (let x = 0; x < g.n; x++) {
+          const [px, py] = pos[x];
+          ctx.beginPath(); ctx.arc(px, py, R, 0, 2 * Math.PI); ctx.fillStyle = hl.has(x) ? pal.accent2 : pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6; ctx.stroke();
+          if (g.accept[x]) { ctx.beginPath(); ctx.arc(px, py, R - 4, 0, 2 * Math.PI); ctx.stroke(); }
+          ctx.fillStyle = hl.has(x) ? pal.bg : pal.ink; ctx.font = `${g.names[x].length > 3 ? 10 : 13}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(g.names[x], px, py);
+        }
+        for (const [x, y, t, c] of labels) label(x, y, t, c);
+      },
+    };
+  }
+
+  // ---------- Tables ----------
+  function table(v: View) {
+    const t = q<HTMLTableElement>('.fsm-tab'); t.replaceChildren();
+    let head: string[], rows: string[][];
+    if (v.kind === 'nfa') {
+      const nf = v.nfa!;
+      head = ['State', ...nf.alphabet.map((c) => A.symLabel([c])), 'ε'];
+      rows = [...Array(nf.n).keys()].map((x) => [`${x === nf.start ? '→ ' : ''}${nf.accept[x] ? '* ' : ''}${x}`, ...nf.alphabet.map((_, c) => { const ys = nf.moves[x].filter((m) => m[0] === c).map((m) => m[1]); return ys.length ? `{${ys.join(', ')}}` : '∅'; }), nf.eps[x].length ? `{${nf.eps[x].join(', ')}}` : '∅']);
+    } else {
+      const d = v.dfa!;
+      head = ['State', ...d.alphabet.map((c) => A.symLabel([c]))];
+      if (d.sets) head.push('NFA states');
+      rows = d.names.map((nm, x) => [`${x === d.start ? '→ ' : ''}${d.accept[x] ? '* ' : ''}${nm}`, ...d.delta[x].map((y) => (y < 0 ? '∅' : d.names[y])), ...(d.sets ? [`{${d.sets[x].join(', ')}}`] : [])]);
+    }
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c) => (tr.insertCell().textContent = c)); });
+    tableCsv = [head, ...rows];
+    return { head, rows };
+  }
+
+  // ---------- Simulation ----------
+  const current = () => views.find((v) => v.id === view)!;
+  function startSim() {
+    const v = current(), w = [...q<HTMLInputElement>('.fsm-w').value];
+    path = [];
+    if (v.kind === 'nfa') { let cur = A.closure(v.nfa!, [v.nfa!.start]); path.push(cur); for (const ch of w) { const c = v.nfa!.alphabet.indexOf(ch); cur = c < 0 ? [] : A.nfaStep(v.nfa!, cur, c); path.push(cur); } }
+    else { let x = v.dfa!.start; path.push(x); for (const ch of w) { const c = v.dfa!.alphabet.indexOf(ch); x = x < 0 || c < 0 ? -1 : v.dfa!.delta[x][c]; path.push(x); } }
+  }
+  function showSim() {
+    const v = current(), w = [...q<HTMLInputElement>('.fsm-w').value];
+    pos = Math.max(0, Math.min(pos, w.length));
+    const tape = q('.fsm-tape'); tape.replaceChildren(...(w.length ? w.map((ch, i) => { const s = document.createElement('span'); s.textContent = ch === ' ' ? '␣' : ch; if (i < pos) s.className = 'done'; else if (i === pos) s.className = 'cur'; return s; }) : [Object.assign(document.createElement('span'), { textContent: '(empty string)' })]));
+    const st = path[pos], status = q('.fsm-status');
+    const names = v.kind === 'nfa' ? null : v.dfa!.names;
+    let hl = new Set<number>(), text = '', cls = '';
+    const read = pos === 0 ? 'Before reading anything' : `After reading ${pos} of ${w.length}`;
+    if (Array.isArray(st)) { hl = new Set(st); text = st.length ? `${read}: states {${st.join(', ')}}` : `${read}: no states left, so the string is rejected`; }
+    else { if (st >= 0) hl.add(st); text = st >= 0 ? `${read}: state ${names![st]}` : `${read}: stuck in the dead state`; }
+    if (pos === w.length) {
+      const ok = Array.isArray(st) ? st.some((x) => v.nfa!.accept[x]) : st >= 0 && v.dfa!.accept[st];
+      text += ok ? '. Accepted.' : '. Rejected.'; cls = ok ? 'good' : 'bad';
+      if (w.some((ch) => !(v.kind === 'nfa' ? v.nfa!.alphabet : v.dfa!.alphabet).includes(ch))) text += ' (It uses a symbol outside the alphabet.)';
+    }
+    status.textContent = text; status.className = 'fsm-status ' + cls;
+    fig = figure(graphOf(v, q<HTMLInputElement>('.fsm-dead').checked && v.kind === 'dfa'), hl, `${v.label}: state diagram`);
+    const cv = q<HTMLCanvasElement>('.fsm-fig'); paint(cv, fig); cv.style.width = `${fig.w}px`;
+  }
+
+  function many() {
+    const lines = q<HTMLTextAreaElement>('.fsm-many').value.split('\n').map((l) => l.replace(/\r$/, '')).slice(0, 200);
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    const t = q<HTMLTableElement>('.fsm-mt'); t.replaceChildren();
+    if (!views.length) return;
+    const min = views.find((v) => v.id === 'min')!.dfa!;
+    let js: RegExp | null = null; if (mode === 're') { try { js = new RegExp('^(?:' + re + ')$'); } catch { js = null; } }
+    const hr = t.createTHead().insertRow(); ['String', 'Minimal DFA', ...(js ? ['Browser RegExp'] : [])].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = t.createTBody();
+    for (const w of lines) { const tr = tb.insertRow(); tr.insertCell().textContent = w === '' ? '(empty)' : w; tr.insertCell().textContent = A.dfaAccepts(min, w) ? 'accepted' : 'rejected'; if (js) tr.insertCell().textContent = js.test(w) ? 'match' : 'no match'; }
+  }
+
+  function crossCheck(min: A.DFA): string {
+    let js: RegExp; try { js = new RegExp('^(?:' + re + ')$'); } catch { return 'Your browser reads this regex differently, so it could not be compared.'; }
+    const al = min.alphabet; if (!al.length) return js.test('') === A.dfaAccepts(min, '') ? 'Agrees with your browser on the empty string.' : 'Differs from your browser on the empty string.';
+    let L = 0, total = 1; while (L < 14 && total + al.length ** (L + 1) <= 30000) { L++; total += al.length ** L; }
+    let layer = [''], n = 0;
+    for (let l = 0; l <= L; l++) {
+      for (const w of layer) { n++; if (js.test(w) !== A.dfaAccepts(min, w)) return `Differs from your browser's RegExp on "${w}". Please tell us.`; }
+      if (l < L) layer = layer.flatMap((w) => al.map((c) => w + c));
+    }
+    return `Agrees with your browser's own RegExp on all ${n.toLocaleString('en')} strings up to length ${L}.`;
+  }
+
+  function build() {
+    const err = q('.fsm-err');
+    try {
+      let facts: [string, string][];
+      if (mode === 're') {
+        re = q<HTMLInputElement>('.fsm-re').value;
+        const r = A.fromRegex(re, q<HTMLInputElement>('.fsm-alpha').value);
+        views = [
+          { id: 'nfa', label: 'Thompson NFA', kind: 'nfa', nfa: r.nfa, help: 'Thompson\'s construction: small pieces for each symbol, joined by ε-moves (dashed), which the machine may take without reading anything. Accepting state shown with a double ring.' },
+          { id: 'dfa', label: 'DFA (subsets)', kind: 'dfa', dfa: r.dfa, help: 'The subset construction: each DFA state is the set of NFA states the NFA could be in (see the last column of the table). A missing arrow means the dead state.' },
+          { id: 'min', label: 'Minimal DFA', kind: 'dfa', dfa: r.min, help: 'The smallest DFA for the same language: states that no string can tell apart are merged (Moore\'s algorithm). It is unique apart from the names of the states.' },
+        ];
+        const counts = A.countByLength(r.min, 8), sh = A.shortest(r.min, 8), fin = A.isFinite(r.min);
+        q('.fsm-big').textContent = `Minimal DFA: ${r.min.n} state${r.min.n === 1 ? '' : 's'}`;
+        facts = [['Alphabet', r.alphabet.length ? `{${A.symLabel(r.alphabet)}}` : 'empty'], ['NFA states (Thompson)', String(r.nfa.n)], ['DFA states (subset construction)', String(r.dfa.n)], ['Minimal DFA states', String(r.min.n)],
+          ['Accepts the empty string?', A.dfaAccepts(r.min, '') ? 'Yes' : 'No'], ['Language', sh.length === 0 ? 'Empty: no string matches' : fin ? 'Finite' : 'Infinite'],
+          ['Shortest matches', sh.length ? sh.map((w) => (w === '' ? 'ε' : w)).join(', ') : 'none'], ['Matches of length 0, 1, 2, …, 8', counts.join(', ')], ['Check', crossCheck(r.min)]];
+        if (!views.some((v) => v.id === view)) view = 'min';
+      } else {
+        const d = A.parseDFA(q<HTMLTextAreaElement>('.fsm-dfa').value), min = A.minimise(d);
+        views = [
+          { id: 'mine', label: 'Your DFA', kind: 'dfa', dfa: d, help: 'Your machine as typed. A missing arrow means the dead state.' },
+          { id: 'min', label: 'Minimal DFA', kind: 'dfa', dfa: min, help: 'The smallest DFA accepting the same strings: unreachable states are dropped and states no string can tell apart are merged (Moore\'s algorithm).' },
+        ];
+        const counts = A.countByLength(min, 8), sh = A.shortest(min, 8);
+        q('.fsm-big').textContent = `${d.n} states → minimal ${min.n}`;
+        facts = [['Alphabet', `{${A.symLabel(d.alphabet)}}`], ['Your states', String(d.n)], ['Minimal DFA states', String(min.n)], ['Accepts the empty string?', A.dfaAccepts(min, '') ? 'Yes' : 'No'],
+          ['Language', sh.length === 0 ? 'Empty: no string is accepted' : A.isFinite(min) ? 'Finite' : 'Infinite'], ['Shortest accepted', sh.length ? sh.map((w) => (w === '' ? 'ε' : w)).join(', ') : 'none'], ['Accepted of length 0, 1, 2, …, 8', counts.join(', ')]];
+        if (!views.some((v) => v.id === view)) view = 'mine';
+      }
+      factsList = facts;
+      q('.fsm-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+      const seg = q('.fsm-views'); seg.replaceChildren(...views.map((v) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v.id; b.textContent = v.label; b.addEventListener('click', () => { view = v.id; showView(); }); return b; }));
+      err.hidden = true; root.querySelectorAll<HTMLElement>('.fsm-out').forEach((e) => (e.hidden = false));
+      showView(); many();
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.fsm-out').forEach((x) => (x.hidden = true)); views = []; report = []; }
+  }
+  function showView() {
+    const v = current();
+    root.querySelectorAll<HTMLButtonElement>('.fsm-views button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === view)));
+    q('.fsm-vhelp').textContent = v.help;
+    q<HTMLInputElement>('.fsm-dead').disabled = v.kind === 'nfa';
+    q('.fsm-edit').hidden = v.kind === 'nfa' || v.id === 'mine';
+    const tb = table(v);
+    startSim(); showSim();
+    report = [{ title: mode === 're' ? `Regex ${re || '(empty)'}` : 'Typed DFA', text: [q('.fsm-big').textContent!], facts: factsList }, { title: v.label, text: [v.help], figure: fig!, table: { head: tb.head, rows: tb.rows.slice(0, 120) } }];
+  }
+
+  const setMode = (m: string) => {
+    mode = m; view = m === 're' ? 'min' : 'mine';
+    root.querySelectorAll<HTMLButtonElement>('.fsm-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.fsm-p').forEach((p) => (p.hidden = p.dataset.p !== m));
+    if (m === 'dfa' && q<HTMLInputElement>('.fsm-w').value === 'babb') q<HTMLInputElement>('.fsm-w').value = '110';
+    pos = 0; build();
+  };
+  root.querySelectorAll<HTMLButtonElement>('.fsm-modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  for (const c of ['.fsm-re', '.fsm-alpha', '.fsm-dfa']) q(c).addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => { pos = 0; build(); }, 300); });
+  q('.fsm-w').addEventListener('input', () => { if (!views.length) return; pos = 0; startSim(); showSim(); });
+  q('.fsm-step').addEventListener('click', () => { if (!views.length) return; pos++; showSim(); });
+  q('.fsm-back').addEventListener('click', () => { if (!views.length) return; pos = Math.max(0, pos - 1); showSim(); });
+  q('.fsm-run').addEventListener('click', () => { if (!views.length) return; pos = Infinity; showSim(); });
+  q('.fsm-reset').addEventListener('click', () => { if (!views.length) return; pos = 0; showSim(); });
+  q('.fsm-dead').addEventListener('change', () => views.length && showView());
+  q('.fsm-many').addEventListener('input', many);
+  q('.fsm-edit').addEventListener('click', () => { const v = current(); if (!v.dfa) return; const txt = A.dfaText(v.dfa); q<HTMLTextAreaElement>('.fsm-dfa').value = txt; setMode('dfa'); });
+  q('.fsm-csv').addEventListener('click', () => save(new Blob([tableCsv.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'], { type: 'text/csv' }), `fsm-${view}.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => views.length && showSim());
+  build();
+  wireDownloads(q('.dl'), () => ({ title: 'Finite state machine', subtitle: q('.fsm-big').textContent ?? '', file: 'fsm', sections: report }));
+</script>

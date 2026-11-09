@@ -1,0 +1,135 @@
+---
+// Eruption column height ↔ mass eruption rate by an editable power law and by buoyant plume theory (MTT),
+// erupted mass over a duration and its DRE volume. Example numbers are rounded and made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax erc">
+  <div class="ax-card">
+    <h2>Start from</h2>
+    <div class="ax-grid">
+      <label>I know <select class="ec-mode"><option value="H">the column height</option><option value="Q">the mass eruption rate</option></select></label>
+      <label class="ec-hbox">Column height above the vent (km) <input class="ec-H" inputmode="decimal" value="15" /></label>
+      <label class="ec-qbox" hidden>Mass eruption rate (kg/s) <input class="ec-Q" inputmode="decimal" value="1e7" /></label>
+      <label>Vent elevation (km above sea level) <input class="ec-vent" inputmode="decimal" value="1.5" /></label>
+      <label>Magma density, dense rock (kg/m³) <input class="ec-rho" inputmode="decimal" value="2500" /></label>
+    </div>
+    <p class="ax-help">Heights are the top of the column, measured from the vent. Type large numbers as 1e7 or 1.5×10^7. The dense-rock density turns mass into a dense-rock-equivalent (DRE) volume; 2500 kg/m³ is a round value, change it for your magma.</p>
+    <p class="ax-err ec-err" hidden></p>
+  </div>
+
+  <div class="ax-card ec-out">
+    <h2>Result</h2>
+    <p class="ax-big ec-big"></p>
+    <dl class="ax-facts ec-facts"></dl>
+    <canvas class="ax-fig ec-fig" style="margin-top:12px"></canvas>
+    <div class="dl ec-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary ec-csv">Height against rate (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Empirical power law</h2>
+    <p class="ax-help" style="margin:0 0 8px">H = a · V<sup>b</sup>, with H in km above the vent and V the DRE volume flux in m³/s. The defaults a = 2.00, b = 0.241 are the fit of Mastin et al. (2009, Journal of Volcanology and Geothermal Research 186) to well-observed eruptions; type other coefficients to use another fit in the same form.</p>
+    <div class="ax-grid">
+      <label>a <input class="ec-a" inputmode="decimal" value="2.00" /></label>
+      <label>b <input class="ec-b" inputmode="decimal" value="0.241" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Buoyant plume theory (Morton, Taylor and Turner)</h2>
+    <p class="ax-help" style="margin:0 0 8px">A plume from a point source of buoyancy flux F₀, entraining air at α times its rise speed, in air of steady buoyancy frequency N, rises to H = C · α<sup>−1/2</sup> F₀<sup>1/4</sup> N<sup>−3/4</sup> (C from integrating the plume equations, shown with the result). F₀ = g · Q · c<sub>p</sub> · ΔT / (ρ<sub>a</sub> · c<sub>a</sub> · T<sub>a</sub>): the heat the erupted mass brings, turned into buoyancy. The defaults are round textbook values.</p>
+    <div class="ax-grid">
+      <label>Entrainment coefficient α (top-hat) <input class="ec-al" inputmode="decimal" value="0.1" /></label>
+      <label>Buoyancy frequency N (1/s) <input class="ec-N" inputmode="decimal" value="0.01" /></label>
+      <label><span>Magma heat capacity c<sub>p</sub> (J/(kg·K))</span> <input class="ec-cp" inputmode="decimal" value="1100" /></label>
+      <label>Magma minus air temperature ΔT (K) <input class="ec-dT" inputmode="decimal" value="1000" /></label>
+      <label><span>Air density ρ<sub>a</sub> (kg/m³)</span> <input class="ec-ra" inputmode="decimal" value="1.0" /></label>
+      <label><span>Air heat capacity c<sub>a</sub> (J/(kg·K))</span> <input class="ec-ca" inputmode="decimal" value="1000" /></label>
+      <label><span>Air temperature T<sub>a</sub> (K)</span> <input class="ec-ta" inputmode="decimal" value="273" /></label>
+    </div>
+    <p class="ax-help">This is the simple Boussinesq plume: it leaves out wind, moisture, the dense gas jet near the vent and the change of air with height, which is why it and the power law can differ by tens of percent.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Erupted mass and volume</h2>
+    <div class="ax-grid">
+      <label>Duration (hours) <input class="ec-hr" inputmode="decimal" value="3" /></label>
+      <label>Deposit bulk density (kg/m³, optional) <input class="ec-rb" inputmode="decimal" value="1000" /></label>
+    </div>
+    <p class="ax-help">Assumes the rate stayed steady for the whole time. The bulk volume is the volume of the loose deposit, for comparing with a tephra volume.</p>
+  </div>
+</div>
+
+<script>
+  import { heightFromV, vFromHeight, mttHeight, mttFlux, fluxFromQ, qFromFlux, totals, type Thermal } from '../../lib/sci/eruption';
+  import { num, sig, fmtExp, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.erc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const e3 = (x: number) => fmtExp(x, 3);
+  let fig: Figure | null = null, report: Section[] = [], curve: string[][] = [];
+
+  function run() {
+    const mode = q<HTMLSelectElement>('.ec-mode').value;
+    q('.ec-hbox').hidden = mode !== 'H'; q('.ec-qbox').hidden = mode !== 'Q';
+    const H = v('.ec-H'), Q = v('.ec-Q'), vent = v('.ec-vent'), rho = v('.ec-rho'), a = v('.ec-a'), b = v('.ec-b');
+    const al = v('.ec-al'), N = v('.ec-N'), hr = v('.ec-hr'), rb = q<HTMLInputElement>('.ec-rb').value.trim() ? v('.ec-rb') : undefined;
+    const th: Thermal = { cp: v('.ec-cp'), dT: v('.ec-dT'), rhoA: v('.ec-ra'), cA: v('.ec-ca'), tA: v('.ec-ta') };
+    const fail = (m: string) => { q('.ec-err').textContent = m; q('.ec-err').hidden = !m; q('.ec-out').hidden = !!m; if (m) report = []; };
+    if (mode === 'H' && !(H > 0 && H < 100)) return fail('Type a column height above 0 and below 100 km.');
+    if (mode === 'Q' && !(Q > 0)) return fail('Type a mass eruption rate above zero, such as 1e7.');
+    if (!Number.isFinite(vent) || !(rho > 0)) return fail('Type the vent elevation and a magma density above zero.');
+    if (!(a > 0 && b > 0)) return fail('The power law needs a and b above zero.');
+    if (![al, N, th.cp, th.dT, th.rhoA, th.cA, th.tA].every((x) => x > 0)) return fail('Every plume theory value must be above zero.');
+    if (!(hr >= 0) || (rb !== undefined && !(rb > 0))) return fail('Type a duration of zero or more hours, and a bulk density above zero or leave it blank.');
+    fail('');
+    const dur = hr * 3600;
+    let qPL: number, qMT: number, hPL: number, hMT: number, nb: number, F0: number;
+    if (mode === 'H') {
+      hPL = hMT = H;
+      qPL = rho * vFromHeight(H, a, b);
+      F0 = mttFlux(H * 1000, al, N); qMT = qFromFlux(F0, th); nb = mttHeight(F0, al, N).nb / 1000;
+    } else {
+      qPL = qMT = Q;
+      hPL = heightFromV(Q / rho, a, b);
+      F0 = fluxFromQ(Q, th); const m = mttHeight(F0, al, N); hMT = m.top / 1000; nb = m.nb / 1000;
+    }
+    const C = mttHeight(1, 1, 1).C;
+    const tPL = totals(qPL, dur, rho, rb), tMT = totals(qMT, dur, rho, rb);
+    q('.ec-big').textContent = mode === 'H' ? `${sig(H, 3)} km column: ${e3(qPL)} kg/s (power law), ${e3(qMT)} kg/s (plume theory)` : `${e3(Q)} kg/s: ${sig(hPL, 3)} km (power law), ${sig(hMT, 3)} km (plume theory) above the vent`;
+    const vol = (t: ReturnType<typeof totals>) => `${e3(t.dre)} m³ DRE = ${sig(t.dre / 1e9, 3)} km³${t.bulk ? `; bulk ${e3(t.bulk)} m³` : ''}`;
+    const facts = [
+      fact('Power law', mode === 'H' ? `${e3(qPL)} kg/s` : `${sig(hPL, 3)} km above the vent`, `${mode === 'H' ? '' : `${sig(hPL + vent, 3)} km above sea level; `}DRE volume flux ${e3(qPL / rho)} m³/s; H = ${a} · V^${b}`),
+      fact('Plume theory', mode === 'H' ? `${e3(qMT)} kg/s` : `${sig(hMT, 3)} km above the vent`, `${mode === 'H' ? '' : `${sig(hMT + vent, 3)} km above sea level; `}neutral buoyancy at ${sig(nb, 3)} km; buoyancy flux F₀ = ${e3(F0)} m⁴/s³; C = ${sig(C, 4)}`),
+      fact('Column top above sea level', mode === 'H' ? `${sig(H + vent, 3)} km` : `${sig(hPL + vent, 3)} / ${sig(hMT + vent, 3)} km`, mode === 'H' ? '' : 'power law / plume theory'),
+      fact(`Erupted mass in ${sig(hr, 3)} h`, `${e3(tPL.mass)} kg`, `${vol(tPL)} (power law)`),
+      fact(`Erupted mass in ${sig(hr, 3)} h, plume theory`, `${e3(tMT.mass)} kg`, vol(tMT)),
+    ];
+    q('.ec-facts').replaceChildren(...facts);
+    // Chart: H against Q for both relations.
+    const qs = Array.from({ length: 61 }, (_, i) => Math.pow(10, 3 + i * 0.1));
+    const hm = qs.map((x) => mttHeight(fluxFromQ(x, th), al, N).top / 1000), hp = qs.map((x) => heightFromV(x / rho, a, b));
+    const ptQ = mode === 'H' ? [qPL, qMT] : [Q, Q], ptH = mode === 'H' ? [H, H] : [hPL, hMT];
+    fig = chartFigure({ h: 320, xLabel: 'Mass eruption rate (kg/s)', yLabel: 'Column height above vent (km)', xLog: true, xMin: 1e3, xMax: 1e9, yMin: 0, legend: 'below',
+      series: [
+        { name: `Power law H = ${sig(a, 3)} V^${sig(b, 3)}`, x: qs, y: hp, mode: 'line', width: 2 },
+        { name: `Plume theory, α ${sig(al, 3)}, N ${sig(N, 3)}/s`, x: qs, y: hm, mode: 'line', width: 2, dash: [6, 4] },
+        { name: 'This eruption', x: ptQ, y: ptH, mode: 'points', marker: 'circle', size: 6, color: undefined },
+      ] }, 'Column height against mass eruption rate by the power law and by plume theory');
+    paint(q<HTMLCanvasElement>('.ec-fig'), fig);
+    curve = qs.map((x, i) => [x.toExponential(4), hp[i].toFixed(3), hm[i].toFixed(3)]);
+    report = [{ title: q('.ec-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig,
+      text: [`Power law: H = ${a} · V^${b} (H km above vent, V DRE m³/s; defaults from Mastin et al. 2009). Plume theory: Morton, Taylor and Turner (1956) top-hat plume, α = ${sig(al, 3)}, N = ${sig(N, 3)} 1/s, cp ${sig(th.cp, 4)}, ΔT ${sig(th.dT, 4)} K, ρa ${sig(th.rhoA, 3)}, ca ${sig(th.cA, 4)}, Ta ${sig(th.tA, 4)} K. DRE density ${sig(rho, 4)} kg/m³.`] }];
+  }
+
+  q('.ec-csv').addEventListener('click', () => curve.length && save(new TextEncoder().encode(csv([['mass_eruption_rate_kg_s', 'height_power_law_km', 'height_plume_theory_km'], ...curve])), 'eruption-column.csv', 'text/csv'));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ec-fig'), fig));
+  run();
+  wireDownloads(q('.ec-out > .dl:last-child'), () => ({ title: 'Eruption column and mass eruption rate', subtitle: q('.ec-big').textContent ?? '', file: 'eruption-column', sections: report }));
+</script>

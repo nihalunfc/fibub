@@ -1,0 +1,340 @@
+---
+// Equipment booking: one person's calendar of instrument bookings, shown as a week. Finds clashes, repeats
+// bookings, and exports .ics (for any calendar app) and CSV. Bookings are kept only in this browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ebk">
+  <div class="ax-card">
+    <div class="ax-row eb-nav">
+      <button type="button" class="btn secondary small eb-prev" aria-label="Previous week">‹ Week</button>
+      <button type="button" class="btn secondary small eb-this">This week</button>
+      <button type="button" class="btn secondary small eb-next" aria-label="Next week">Week ›</button>
+      <input type="date" class="eb-jump" aria-label="Go to the week of this date" />
+    </div>
+    <h2 class="eb-wk" style="margin-top:10px"></h2>
+    <dl class="ax-facts eb-facts"></dl>
+    <div class="ax-scroll eb-scroll"><div class="eb-grid"></div></div>
+    <div class="ax-legend"><span><i class="eb-sw"></i>Booking</span><span><i class="eb-sw bad"></i>Same instrument booked twice</span><span><i class="eb-sw you"></i>Overlaps another instrument</span></div>
+    <p class="ax-help">Tap a booking to change it. Times are your own clock times. A dashed edge means an overnight booking carries on outside the hours shown. On a phone, swipe the calendar sideways to see the whole week.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small eb-add">Book an instrument</button>
+    </div>
+  </div>
+
+  <div class="ax-card eb-form" hidden>
+    <h2 class="eb-ftitle">Book an instrument</h2>
+    <div class="ax-grid">
+      <label>Instrument <input class="eb-inst" list="eb-insts" autocomplete="off" placeholder="Confocal microscope" /></label>
+      <label>What for (optional) <input class="eb-title" autocomplete="off" placeholder="Live imaging" /></label>
+      <label>Date <input class="eb-date" type="date" /></label>
+      <label>From <input class="eb-from" type="time" step="300" value="09:00" /></label>
+      <label>To <input class="eb-to" type="time" step="300" value="10:00" /></label>
+      <label>Repeat <select class="eb-rep"></select></label>
+      <label class="eb-ronly">Ends after (times) <input class="eb-count" type="number" min="1" max="500" step="1" value="4" inputmode="numeric" /></label>
+      <label class="eb-ronly">Or repeat until <input class="eb-until" type="date" /></label>
+    </div>
+    <datalist id="eb-insts"></datalist>
+    <label style="margin-top:10px">Notes <input class="eb-notes" autocomplete="off" placeholder="Room, settings, who to tell…" /></label>
+    <p class="ax-help">A "To" time earlier than "From" means the booking runs overnight to the next day. For repeats, give how many times in all, or a last date (the date wins if both are set). Monthly repeats on the 29th to 31st skip months without that date, as calendar apps do.</p>
+    <p class="ax-help eb-skips" hidden></p>
+    <p class="ax-err eb-ferr" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small eb-save">Save</button>
+      <button type="button" class="btn secondary small eb-cancel">Close</button>
+      <button type="button" class="btn secondary small eb-skip" hidden>Cancel this date only</button>
+      <button type="button" class="btn secondary small eb-del" hidden>Delete</button>
+    </div>
+  </div>
+
+  <div class="ax-card eb-cl-card" hidden>
+    <h2>Clashes</h2>
+    <ul class="eb-cl"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>This week, day by day</h2>
+    <div class="eb-list"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Export</h2>
+    <div class="ax-grid">
+      <label>CSV covers <select class="eb-span"><option value="1">The week shown</option><option value="4">4 weeks from the week shown</option><option value="13">13 weeks from the week shown</option><option value="all">Every booking</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small eb-ics">Download .ics (calendar)</button>
+      <button type="button" class="btn secondary small eb-csv">Download CSV</button>
+    </div>
+    <p class="ax-help">The .ics file holds every booking, with repeats and cancelled dates, and opens in Google Calendar, Outlook and Apple Calendar. Its times are "floating": they show at the same clock time in any time zone. The CSV has one row per booking, with a column marking clashes.</p>
+    <Downloads label="This week as" />
+  </div>
+
+  <div class="ax-card">
+    <h2>Kept in this browser</h2>
+    <p class="ax-help eb-store">Your bookings are saved automatically in this browser on this device, so they are here next time. They are never sent to fibub or anyone else, and nobody else can see them: this is your own planner, not a shared booking system. Clearing your browser data removes them, so download a backup now and then.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small eb-json">Download backup (JSON)</button>
+      <button type="button" class="btn secondary small eb-jopen">Open a backup</button>
+      <input type="file" class="eb-jfile" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small eb-ex">Load an example week</button>
+      <button type="button" class="btn secondary small eb-clear">Clear all</button>
+    </div>
+    <p class="ax-help eb-bmsg" role="status" hidden></p>
+  </div>
+</div>
+
+<script>
+  import * as B from '../../lib/sci/booking';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-bookings-v1';
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const PX = 44; // pixels per hour in the grid
+  const root = document.querySelector<HTMLElement>('.ebk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const now = new Date();
+  const today = B.dayOf(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+
+  let list: B.Booking[] = [];
+  let monday = B.mondayOf(today);
+  let editing: string | null = null, editingDay = NaN;
+
+  for (const r of B.REPEATS) { const o = document.createElement('option'); o.value = r.id; o.textContent = r.name; q('.eb-rep').append(o); }
+
+  const persist = () => { try { localStorage.setItem(KEY, B.toJson(list)); } catch { /* storage full or blocked */ } };
+  try { const raw = localStorage.getItem(KEY); if (raw) list = B.fromJson(raw); } catch { list = []; }
+
+  const dayName = (d: number) => { const x = new Date(d * 864e5); return `${DAYS[B.weekday(d)]} ${x.getUTCDate()} ${MON[x.getUTCMonth()]}`; };
+  const hm = (t: number) => B.fromMin(t).slice(11);
+  const hrs = (h: number) => `${+h.toFixed(2)} h`;
+  const key = (o: B.Occurrence) => `${o.id}#${o.n}`;
+  const span = (o: B.Occurrence) => { const d0 = Math.floor(o.start / 1440), d1 = Math.floor((o.end - 1) / 1440); return `${hm(o.start)}–${hm(o.end)}${d1 > d0 ? ` (${DAYS[B.weekday(d1)]})` : ''}`; };
+  const fact = (k: string, v: string, cls = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (cls) dd.className = cls; d.append(dt, dd); return d; };
+
+  function weekData() {
+    const occ = B.occurrences(list, monday * 1440, (monday + 7) * 1440);
+    // Clashes are looked for over a margin around the week, so an overnight booking from Sunday is seen too.
+    const cl = B.clashes(B.occurrences(list, (monday - 1) * 1440, (monday + 8) * 1440)).filter((c) => c.to > monday * 1440 && c.from < (monday + 7) * 1440);
+    return { occ, cl };
+  }
+
+  function render() {
+    const { occ, cl } = weekData();
+    const bad = new Set<string>(), you = new Set<string>();
+    for (const c of cl) for (const o of [c.a, c.b]) (c.kind === 'instrument' ? bad : you).add(key(o));
+    const last = new Date((monday + 6) * 864e5);
+    q('.eb-wk').textContent = `Week of ${dayName(monday)} to ${dayName(monday + 6)} ${last.getUTCFullYear()}`;
+    inp('.eb-jump').value = B.isoDay(monday);
+    const hours = occ.reduce((s, o) => s + (Math.min(o.end, (monday + 7) * 1440) - Math.max(o.start, monday * 1440)) / 60, 0);
+    const nInst = cl.filter((c) => c.kind === 'instrument').length, nYou = cl.length - nInst;
+    q('.eb-facts').replaceChildren(fact('Bookings', String(occ.length)), fact('Hours booked', hrs(hours)), fact('Instrument clashes', String(nInst), nInst ? 'eb-bad' : ''), fact('Overlaps', String(nYou), nYou ? 'eb-warn' : ''));
+
+    // Week grid.
+    const lay = B.weekLayout(occ, monday, bad);
+    let h0 = 8, h1 = 18;
+    // The hours shown run from the earliest start to the latest end in the week (at least 08:00 to 18:00); the parts
+    // of overnight bookings outside that range are cut off at the edge.
+    for (const d of lay) for (const p of d) {
+      if (p.start >= p.day * 1440) h0 = Math.min(h0, Math.floor(p.top / 60));
+      if (p.end <= (p.day + 1) * 1440) h1 = Math.max(h1, Math.ceil(p.bottom / 60));
+    }
+    const g = q('.eb-grid'); g.replaceChildren();
+    g.style.setProperty('--eb-h', `${(h1 - h0) * PX}px`);
+    const corner = document.createElement('div'); corner.className = 'eb-corner'; g.append(corner);
+    for (let k = 0; k < 7; k++) { const h = document.createElement('div'); h.className = 'eb-dh' + (monday + k === today ? ' today' : ''); h.textContent = dayName(monday + k); g.append(h); }
+    const axis = document.createElement('div'); axis.className = 'eb-axis';
+    for (let h = h0; h < h1; h++) { const t = document.createElement('span'); t.textContent = `${String(h).padStart(2, '0')}:00`; t.style.top = `${(h - h0) * PX}px`; axis.append(t); }
+    g.append(axis);
+    lay.forEach((items, k) => {
+      const col = document.createElement('div'); col.className = 'eb-day' + (monday + k === today ? ' today' : '');
+      for (const p of items) {
+        const b = document.createElement('button'); b.type = 'button';
+        b.className = 'eb-ev' + (bad.has(key(p)) ? ' bad' : you.has(key(p)) ? ' you' : '');
+        b.dataset.id = p.id; b.dataset.day = String(Math.floor(p.start / 1440));
+        const top = Math.max(p.top, h0 * 60), bottom = Math.min(p.bottom, h1 * 60), hpx = ((bottom - top) / 60) * PX - 2;
+        b.style.top = `${((top - h0 * 60) / 60) * PX}px`; b.style.height = `${Math.max(18, hpx)}px`;
+        if (hpx < 34) b.classList.add('short');
+        if (top > p.top) b.classList.add('cut-top');
+        if (bottom < p.bottom) b.classList.add('cut-bottom');
+        b.style.left = `${(p.col / p.cols) * 100}%`; b.style.width = `${100 / p.cols}%`;
+        b.title = `${p.instrument}${p.title ? ': ' + p.title : ''}, ${span(p)}`;
+        const s = document.createElement('b'); s.textContent = p.instrument; const t = document.createElement('span'); t.textContent = span(p);
+        b.append(s, t); col.append(b);
+      }
+      g.append(col);
+    });
+
+    // Day-by-day list.
+    const L = q('.eb-list'); L.replaceChildren();
+    if (!occ.length) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = list.length ? 'Nothing booked this week.' : 'No bookings yet. Tap "Book an instrument", or load the example week.'; L.append(p); }
+    for (let k = 0; k < 7; k++) {
+      const d = monday + k, items = occ.filter((o) => o.start < (d + 1) * 1440 && o.end > d * 1440 && (Math.floor(o.start / 1440) === d || k === 0));
+      if (!items.length) continue;
+      const h = document.createElement('h3'); h.textContent = `${LONG[B.weekday(d)]} ${dayName(d).slice(4)}`; L.append(h);
+      const ul = document.createElement('ul'); ul.className = 'eb-day-list';
+      for (const o of items) {
+        const li = document.createElement('li'); const b = document.createElement('button'); b.type = 'button'; b.className = 'eb-li'; b.dataset.id = o.id; b.dataset.day = String(Math.floor(o.start / 1440));
+        b.textContent = `${span(o)} ${o.instrument}${o.title ? ' — ' + o.title : ''}`;
+        li.append(b);
+        if (bad.has(key(o))) li.append(' ', Object.assign(document.createElement('span'), { className: 'ax-pill bad', textContent: 'Clash' }));
+        else if (you.has(key(o))) li.append(' ', Object.assign(document.createElement('span'), { className: 'ax-pill warn', textContent: 'Overlap' }));
+        ul.append(li);
+      }
+      L.append(ul);
+    }
+
+    // Clash list.
+    const cu = q('.eb-cl'); cu.replaceChildren();
+    for (const c of cl) {
+      const li = document.createElement('li');
+      li.textContent = c.kind === 'instrument'
+        ? `${c.a.instrument} is booked twice on ${dayName(Math.floor(c.from / 1440))}, ${hm(c.from)}–${hm(c.to)}: "${c.a.title || 'booking'}" and "${c.b.title || 'booking'}".`
+        : `On ${dayName(Math.floor(c.from / 1440))}, ${hm(c.from)}–${hm(c.to)}, you have ${c.a.instrument} and ${c.b.instrument} at the same time. Fine for an unattended run; otherwise move one.`;
+      li.className = c.kind === 'instrument' ? 'eb-bad' : '';
+      cu.append(li);
+    }
+    q('.eb-cl-card').hidden = !cl.length;
+    q('#eb-insts').replaceChildren(...[...new Set(list.map((b) => b.instrument.trim()).filter(Boolean))].sort().map((v) => Object.assign(document.createElement('option'), { value: v })));
+  }
+
+  // ---- form ----
+  const showRepeat = () => { const r = q<HTMLSelectElement>('.eb-rep').value !== 'none'; for (const el of root.querySelectorAll<HTMLElement>('.eb-ronly')) el.hidden = !r; };
+  q('.eb-rep').addEventListener('change', showRepeat);
+  function openForm(b: B.Booking | null, day = NaN) {
+    editing = b?.id ?? null; editingDay = day;
+    q('.eb-ftitle').textContent = b ? `Change ${b.instrument}` : 'Book an instrument';
+    const s = b ? B.toMin(b.start) : NaN, e = b ? B.toMin(b.end) : NaN;
+    inp('.eb-inst').value = b?.instrument ?? ''; inp('.eb-title').value = b?.title ?? ''; inp('.eb-notes').value = b?.notes ?? '';
+    inp('.eb-date').value = b ? b.start.slice(0, 10) : B.isoDay(Math.min(Math.max(today, monday), monday + 6));
+    inp('.eb-from').value = b ? hm(s) : '09:00'; inp('.eb-to').value = b ? hm(e) : '10:00';
+    q<HTMLSelectElement>('.eb-rep').value = b?.repeat ?? 'none'; inp('.eb-count').value = String(b?.count ?? 4); inp('.eb-until').value = b?.until ?? '';
+    showRepeat();
+    q('.eb-del').hidden = !b; q('.eb-skip').hidden = !b || b.repeat === 'none' || !Number.isFinite(day);
+    if (b && Number.isFinite(day)) q('.eb-skip').textContent = `Cancel ${dayName(day)} only`;
+    q('.eb-skips').hidden = !b?.skip.length; q('.eb-skips').textContent = b?.skip.length ? `Cancelled dates: ${b.skip.join(', ')}.` : '';
+    q('.eb-ferr').hidden = true; q('.eb-form').hidden = false;
+    q('.eb-form').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function readForm(): B.Booking | string[] {
+    const date = inp('.eb-date').value, from = inp('.eb-from').value, to = inp('.eb-to').value;
+    if (!date || !from || !to) return ['Give a date, a start time and an end time.'];
+    const s = B.toMin(`${date}T${from}`); let e = B.toMin(`${date}T${to}`);
+    if (e <= s) e += 1440;
+    const old = list.find((x) => x.id === editing);
+    const b: B.Booking = { id: editing ?? B.randomId(), instrument: inp('.eb-inst').value.trim(), title: inp('.eb-title').value.trim(), start: B.fromMin(s), end: B.fromMin(e), repeat: q<HTMLSelectElement>('.eb-rep').value as B.Repeat, count: Math.round(Number(inp('.eb-count').value)), until: inp('.eb-until').value, skip: old?.skip ?? [], notes: inp('.eb-notes').value.trim() };
+    if (b.repeat === 'none') { b.count = 1; b.until = ''; }
+    const p = B.problems(b);
+    return p.length ? p : b;
+  }
+  q('.eb-save').addEventListener('click', () => {
+    const r = readForm();
+    if (Array.isArray(r)) { q('.eb-ferr').textContent = r.join(' '); q('.eb-ferr').hidden = false; return; }
+    const i = list.findIndex((x) => x.id === r.id); if (i >= 0) list[i] = r; else list.push(r);
+    q('.eb-form').hidden = true; editing = null;
+    const sd = Math.floor(B.toMin(r.start) / 1440);
+    if (sd < monday || sd >= monday + 7) monday = B.mondayOf(sd);
+    persist(); render();
+  });
+  q('.eb-cancel').addEventListener('click', () => { q('.eb-form').hidden = true; editing = null; });
+  q('.eb-del').addEventListener('click', () => {
+    const b = list.find((x) => x.id === editing); if (!b) return;
+    if (!confirm(b.repeat === 'none' ? `Delete this ${b.instrument} booking?` : `Delete this booking and all its repeats? (To drop one date, use "Cancel … only".)`)) return;
+    list = list.filter((x) => x.id !== editing); q('.eb-form').hidden = true; editing = null; persist(); render();
+  });
+  q('.eb-skip').addEventListener('click', () => {
+    const b = list.find((x) => x.id === editing); if (!b || !Number.isFinite(editingDay)) return;
+    b.skip = [...new Set([...b.skip, B.isoDay(editingDay)])].sort();
+    q('.eb-form').hidden = true; editing = null; persist(); render();
+  });
+  q('.eb-add').addEventListener('click', () => openForm(null));
+  root.addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.eb-ev, .eb-li'); if (!el) return;
+    const b = list.find((x) => x.id === el.dataset.id); if (b) openForm(b, Number(el.dataset.day));
+  });
+
+  // ---- week navigation ----
+  q('.eb-prev').addEventListener('click', () => { monday -= 7; render(); });
+  q('.eb-next').addEventListener('click', () => { monday += 7; render(); });
+  q('.eb-this').addEventListener('click', () => { monday = B.mondayOf(today); render(); });
+  inp('.eb-jump').addEventListener('change', () => { const d = B.dayOf(inp('.eb-jump').value); if (Number.isFinite(d)) { monday = B.mondayOf(d); render(); } });
+
+  // ---- exports ----
+  q('.eb-ics').addEventListener('click', () => {
+    if (!list.length) { msg('No bookings to export yet.'); return; }
+    save(new Blob([B.toIcs(list, new Date())], { type: 'text/calendar' }), 'instrument-bookings.ics', 'text/calendar');
+  });
+  q('.eb-csv').addEventListener('click', () => {
+    const v = q<HTMLSelectElement>('.eb-span').value;
+    const from = v === 'all' ? -Infinity : monday * 1440, to = v === 'all' ? Infinity : (monday + 7 * Number(v)) * 1440;
+    const occ = B.occurrences(list, from, to);
+    const cl = B.clashes(B.occurrences(list, from === -Infinity ? from : from - 1440, to === Infinity ? to : to + 1440));
+    save(new Blob([csv(B.csvRows(occ, cl))], { type: 'text/csv' }), v === 'all' ? 'instrument-bookings.csv' : `instrument-bookings-${B.isoDay(monday)}.csv`, 'text/csv');
+  });
+  q('.eb-json').addEventListener('click', () => save(new Blob([B.toJson(list)], { type: 'application/json' }), `instrument-bookings-backup-${B.isoDay(today)}.json`, 'application/json'));
+  wireDownloads(q('.dl'), () => {
+    const { occ, cl } = weekData();
+    const rows = B.csvRows(occ, cl);
+    const sections: Section[] = [{ title: q('.eb-wk').textContent ?? '', facts: B.hoursBy(occ).map(([k, h]) => [k, hrs(h)] as [string, string]), table: { head: ['Date', 'Day', 'Start', 'End', 'Instrument', 'Title', 'Clash'], rows: rows.slice(1).map((r) => [r[0], r[1], r[2], r[3], r[5], r[6], r[8]]) }, note: 'Made with fibub equipment booking. Times are wall-clock times.' }];
+    return { title: 'Instrument bookings', subtitle: q('.eb-wk').textContent ?? '', file: `instrument-bookings-${B.isoDay(monday)}`, sections };
+  });
+
+  // ---- backup, example, clear ----
+  const msg = (t: string) => { q('.eb-bmsg').textContent = t; q('.eb-bmsg').hidden = !t; };
+  q('.eb-jopen').addEventListener('click', () => inp('.eb-jfile').click());
+  inp('.eb-jfile').addEventListener('change', async () => {
+    const f = inp('.eb-jfile').files?.[0]; inp('.eb-jfile').value = ''; if (!f) return;
+    try {
+      if (f.size > 5e6) throw new Error('This file is over 5 MB, too big for a bookings backup.');
+      const items = B.fromJson(await f.text());
+      if (list.length && !confirm(`Replace your ${list.length} bookings with the ${items.length} in ${f.name}?`)) return;
+      list = items; persist(); render(); msg(`Opened ${f.name}: ${items.length} bookings.`);
+    } catch (e) { msg((e as Error).message); }
+  });
+  q('.eb-ex').addEventListener('click', () => {
+    if (list.length && !confirm('Replace your bookings with the made-up example week?')) return;
+    monday = B.mondayOf(today); list = B.exampleBookings(monday); persist(); render();
+    msg('Loaded a made-up example for this week, with one clash on the confocal and one overlap.');
+  });
+  q('.eb-clear').addEventListener('click', () => {
+    if (list.length && !confirm('Remove every booking from this browser? Download a backup first if you may need it.')) return;
+    list = []; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    q('.eb-form').hidden = true; render(); msg('Cleared. Nothing is kept in this browser now.');
+  });
+
+  render();
+</script>
+
+<style is:inline>
+  .ebk .eb-nav input[type=date] { width: auto; flex: 1 1 140px; max-width: 180px; }
+  .ebk .eb-grid { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 520px; margin-top: 12px; font-size: 12px; }
+  .ebk .eb-dh { text-align: center; font-weight: 600; padding: 4px 2px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 12px; }
+  .ebk .eb-dh.today { color: var(--accent); }
+  .ebk .eb-axis { position: relative; height: var(--eb-h); }
+  .ebk .eb-axis span { position: absolute; right: 6px; transform: translateY(-6px); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .ebk .eb-day { position: relative; height: var(--eb-h); border-left: 1px solid var(--line); background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 44px); }
+  .ebk .eb-day.today { background-color: var(--bg); }
+  .ebk .eb-ev { position: absolute; box-sizing: border-box; margin: 0; padding: 2px 4px; border: 1px solid var(--accent); border-left-width: 3px; border-radius: 4px; background: var(--surface); color: var(--ink); font: inherit; font-size: 11px; line-height: 1.25; text-align: left; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
+  .ebk .eb-ev b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ebk .eb-ev span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ebk .eb-ev.short span { display: none; }
+  .ebk .eb-ev.cut-top { border-top-style: dashed; border-top-left-radius: 0; border-top-right-radius: 0; }
+  .ebk .eb-ev.cut-bottom { border-bottom-style: dashed; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .ebk .eb-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .ebk .eb-ev.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .ebk .eb-ev.you { border-color: var(--warn); background: var(--warn-soft); }
+  .ebk .eb-sw { border: 1px solid var(--accent); border-left-width: 3px; background: var(--surface); }
+  .ebk .eb-sw.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .ebk .eb-sw.you { border-color: var(--warn); background: var(--warn-soft); }
+  .ebk .eb-bad { color: var(--bad); }
+  .ebk .eb-warn { color: var(--warn); }
+  .ebk .eb-list h3 { font-size: 15px; margin: 12px 0 4px; }
+  .ebk .eb-cl { margin: 0; padding-left: 18px; }
+  .ebk .eb-day-list { margin: 0; padding: 0; list-style: none; }
+  .ebk .eb-day-list li, .ebk .eb-cl li { margin: 4px 0; font-size: 14px; }
+  .ebk .eb-li { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+</style>

@@ -1,0 +1,384 @@
+---
+// Heat conduction solver: layered walls (steady), transient 1D slabs, transient 2D plates, fins and insulated pipes.
+// Material properties are rounded general values and editable; example values are made up. All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MATERIALS } from '../../lib/sci/phconduct';
+const mats = MATERIALS;
+---
+<div class="ax hcd">
+  <div class="ax-card">
+    <h2>Problem</h2>
+    <div class="ax-seg hc-seg" role="group" aria-label="Problem">
+      <button type="button" data-m="wall" aria-pressed="true">Wall</button>
+      <button type="button" data-m="slab" aria-pressed="false">Slab in time</button>
+      <button type="button" data-m="plate" aria-pressed="false">2D plate</button>
+      <button type="button" data-m="fin" aria-pressed="false">Fin</button>
+      <button type="button" data-m="pipe" aria-pressed="false">Pipe</button>
+    </div>
+    <p class="ax-help hc-what"></p>
+
+    <div class="hc-p" data-p="wall">
+      <label style="margin-top:10px">Layers, inside to outside: name, thickness (mm), conductivity k (W/m·K) <textarea class="hc-layers" rows="4" spellcheck="false">Plasterboard, 12.5, 0.25
+Mineral wool, 100, 0.04
+Brick, 100, 0.7</textarea></label>
+      <div class="ax-row" style="margin-top:8px">
+        <select class="hc-wm" aria-label="Material to add">{mats.map((m) => <option value={m.id}>{m.name} (k {m.k})</option>)}</select>
+        <input class="hc-wt" type="text" inputmode="decimal" value="50" aria-label="Thickness of the layer to add (mm)" style="width:90px" />
+        <button type="button" class="btn secondary small hc-add">Add layer (mm)</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Inside air (°C) <input class="hc-ti" type="text" inputmode="decimal" value="20" /></label>
+        <label>Outside air (°C) <input class="hc-to" type="text" inputmode="decimal" value="-5" /></label>
+        <label>Inside film h (W/m²·K) <input class="hc-hi" type="text" inputmode="decimal" value="7.7" /></label>
+        <label>Outside film h (W/m²·K) <input class="hc-ho" type="text" inputmode="decimal" value="25" /></label>
+        <label>Wall area (m²) <input class="hc-area" type="text" inputmode="decimal" value="10" /></label>
+      </div>
+      <p class="ax-help">Films: the thin layer of still air on each face. About 7.7 inside a room and 25 outside in wind are common round figures; leave a film empty to fix that surface at the air temperature.</p>
+    </div>
+
+    <div class="hc-p" data-p="slab" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Material <select class="hc-sm hc-mat" data-k=".hc-sk" data-rho=".hc-srho" data-cp=".hc-scp">{mats.map((m) => <option value={m.id} selected={m.id === 'concrete'}>{m.name}</option>)}<option value="custom">Other</option></select></label>
+        <label>k (W/m·K) <input class="hc-sk" type="text" inputmode="decimal" value="1.4" /></label>
+        <label>Density (kg/m³) <input class="hc-srho" type="text" inputmode="decimal" value="2300" /></label>
+        <label>Specific heat (J/kg·K) <input class="hc-scp" type="text" inputmode="decimal" value="880" /></label>
+        <label>Thickness (mm) <input class="hc-sL" type="text" inputmode="decimal" value="200" /></label>
+        <label>Starting temperature (°C) <input class="hc-s0" type="text" inputmode="decimal" value="80" /></label>
+        <label>Time (minutes) <input class="hc-st" type="text" inputmode="decimal" value="120" /></label>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Left face <select class="hc-lt"><option value="conv" selected>air or liquid (h, T∞)</option><option value="fixed">held at a temperature</option><option value="insulated">insulated</option></select></label>
+        <label>Left temperature (°C) <input class="hc-lT" type="text" inputmode="decimal" value="20" /></label>
+        <label>Left h (W/m²·K) <input class="hc-lh" type="text" inputmode="decimal" value="10" /></label>
+        <label>Right face <select class="hc-rt"><option value="conv" selected>air or liquid (h, T∞)</option><option value="fixed">held at a temperature</option><option value="insulated">insulated</option></select></label>
+        <label>Right temperature (°C) <input class="hc-rT" type="text" inputmode="decimal" value="20" /></label>
+        <label>Right h (W/m²·K) <input class="hc-rh" type="text" inputmode="decimal" value="10" /></label>
+      </div>
+      <p class="ax-help">A wide slab with heat flowing only through its thickness. "Air or liquid" uses Newton cooling with the film coefficient h; "held at" fixes the surface temperature from time zero.</p>
+    </div>
+
+    <div class="hc-p" data-p="plate" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Material <select class="hc-pm hc-mat" data-k=".hc-pk" data-rho=".hc-prho" data-cp=".hc-pcp">{mats.map((m) => <option value={m.id} selected={m.id === 'aluminium'}>{m.name}</option>)}<option value="custom">Other</option></select></label>
+        <label>k (W/m·K) <input class="hc-pk" type="text" inputmode="decimal" value="205" /></label>
+        <label>Density (kg/m³) <input class="hc-prho" type="text" inputmode="decimal" value="2700" /></label>
+        <label>Specific heat (J/kg·K) <input class="hc-pcp" type="text" inputmode="decimal" value="900" /></label>
+        <label>Width (cm) <input class="hc-pW" type="text" inputmode="decimal" value="20" /></label>
+        <label>Height (cm) <input class="hc-pH" type="text" inputmode="decimal" value="20" /></label>
+        <label>Starting temperature (°C) <input class="hc-p0" type="text" inputmode="decimal" value="20" /></label>
+        <label>Top edge (°C) <input class="hc-pt" type="text" inputmode="decimal" value="100" /></label>
+        <label>Right edge (°C) <input class="hc-pr" type="text" inputmode="decimal" value="20" /></label>
+        <label>Bottom edge (°C) <input class="hc-pb" type="text" inputmode="decimal" value="20" /></label>
+        <label>Left edge (°C) <input class="hc-pl" type="text" inputmode="decimal" value="20" /></label>
+        <label>Time (minutes) <input class="hc-ptm" type="text" inputmode="decimal" value="0.5" /></label>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="hc-pss" /> Steady state (wait for ever)</label>
+      <p class="ax-help">A thin plate (or a long bar's cross-section) with its four edges held at fixed temperatures and its faces insulated. Solved on a 41 × 41 grid.</p>
+    </div>
+
+    <div class="hc-p" data-p="fin" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Shape <select class="hc-fs"><option value="pin" selected>pin (round rod)</option><option value="rect">straight (flat plate)</option></select></label>
+        <label>Material <select class="hc-fm hc-mat" data-k=".hc-fk">{mats.map((m) => <option value={m.id} selected={m.id === 'aluminium'}>{m.name}</option>)}<option value="custom">Other</option></select></label>
+        <label>k (W/m·K) <input class="hc-fk" type="text" inputmode="decimal" value="205" /></label>
+        <label>Length (mm) <input class="hc-fL" type="text" inputmode="decimal" value="50" /></label>
+        <label class="hc-fpin">Diameter (mm) <input class="hc-fD" type="text" inputmode="decimal" value="5" /></label>
+        <label class="hc-frect" hidden>Thickness (mm) <input class="hc-ft" type="text" inputmode="decimal" value="2" /></label>
+        <label class="hc-frect" hidden>Width (mm) <input class="hc-fw" type="text" inputmode="decimal" value="100" /></label>
+        <label>Film h (W/m²·K) <input class="hc-fh" type="text" inputmode="decimal" value="25" /></label>
+        <label>Base temperature (°C) <input class="hc-fb" type="text" inputmode="decimal" value="100" /></label>
+        <label>Air temperature (°C) <input class="hc-fa" type="text" inputmode="decimal" value="20" /></label>
+        <label>Tip <select class="hc-ftip"><option value="conv" selected>loses heat too</option><option value="adiabatic">insulated</option></select></label>
+      </div>
+      <p class="ax-help">One-dimensional fin theory: the fin is thin, so its temperature only changes along its length. h of 5 to 25 W/m²·K is still or gently moving air; fans give 25 to 250.</p>
+    </div>
+
+    <div class="hc-p" data-p="pipe" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Pipe inside diameter (mm) <input class="hc-qdi" type="text" inputmode="decimal" value="50" /></label>
+        <label>Pipe outside diameter (mm) <input class="hc-qdo" type="text" inputmode="decimal" value="60" /></label>
+        <label>Pipe k (W/m·K) <input class="hc-qkp" type="text" inputmode="decimal" value="50" /></label>
+        <label>Insulation <select class="hc-qm hc-mat" data-k=".hc-qk">{mats.filter((m) => m.k < 1).map((m) => <option value={m.id} selected={m.id === 'wool'}>{m.name}</option>)}<option value="custom">Other</option></select></label>
+        <label>Insulation k (W/m·K) <input class="hc-qk" type="text" inputmode="decimal" value="0.04" /></label>
+        <label>Insulation thickness (mm) <input class="hc-qs" type="text" inputmode="decimal" value="40" /></label>
+        <label>Fluid inside (°C) <input class="hc-qti" type="text" inputmode="decimal" value="150" /></label>
+        <label>Inside film h (W/m²·K, empty = none) <input class="hc-qhi" type="text" inputmode="decimal" value="500" /></label>
+        <label>Air outside (°C) <input class="hc-qta" type="text" inputmode="decimal" value="20" /></label>
+        <label>Outside film h (W/m²·K) <input class="hc-qho" type="text" inputmode="decimal" value="10" /></label>
+        <label>Pipe length (m) <input class="hc-qlen" type="text" inputmode="decimal" value="25" /></label>
+        <label>Surface no hotter than (°C, optional) <input class="hc-qmax" type="text" inputmode="decimal" value="40" /></label>
+      </div>
+      <p class="ax-help">Steady radial conduction through the pipe wall and the insulation, with a film on each side. The outside h includes radiation roughly (about 10 for still indoor air).</p>
+    </div>
+    <p class="ax-help">Material properties are rounded general values; type your own for real products. For study and planning, not a substitute for professional judgement.</p>
+    <p class="ax-err hc-err" hidden></p>
+  </div>
+
+  <div class="ax-card hc-out">
+    <h2 class="hc-oh">Result</h2>
+    <p class="ax-big hc-big"></p>
+    <dl class="ax-facts hc-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="hc-tab"></table></div>
+    <canvas class="ax-fig hc-f1"></canvas>
+    <canvas class="ax-fig hc-f2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hc-csv">Numbers (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MATERIALS, wall, slab1D, wallSeries, plate2D, plateSteadyExact, fin, pipe, thicknessFor, type Bc, type Layer } from '../../lib/sci/phconduct';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  type Mode = 'wall' | 'slab' | 'plate' | 'fin' | 'pipe';
+  const root = document.querySelector<HTMLElement>('.hcd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const WHAT: Record<Mode, string> = {
+    wall: 'Steady heat flow through a flat wall of layers: U-value, heat loss and the temperature at every interface.',
+    slab: 'How a slab heats up or cools down over time (Crank-Nicolson finite differences), compared with the exact series solution where one exists.',
+    plate: 'How heat spreads across a rectangular plate with its edges held at set temperatures, in time or at steady state (ADI finite differences).',
+    fin: 'A cooling fin or pin: heat it sheds, its efficiency and effectiveness, and the temperature along it.',
+    pipe: 'Heat lost from an insulated pipe, its surface temperature, the critical radius and the thickness needed to keep the surface cool enough.',
+  };
+  let mode: Mode = 'wall', figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [], csvName = 'wall';
+
+  // Material pickers fill in the property boxes; typing a property switches the picker to Other.
+  root.querySelectorAll<HTMLSelectElement>('select.hc-mat').forEach((s) => {
+    s.addEventListener('change', () => { const m = MATERIALS.find((x) => x.id === s.value); if (!m) return; inp(s.dataset.k!).value = String(m.k); if (s.dataset.rho) inp(s.dataset.rho).value = String(m.rho); if (s.dataset.cp) inp(s.dataset.cp).value = String(m.cp); });
+    for (const k of ['k', 'rho', 'cp']) { const c = s.dataset[k]; if (c) inp(c).addEventListener('input', () => { s.value = 'custom'; }); }
+  });
+  q('.hc-add').addEventListener('click', () => { const m = MATERIALS.find((x) => x.id === sel('.hc-wm'))!, ta = q<HTMLTextAreaElement>('.hc-layers'); ta.value = `${ta.value.trim()}\n${m.name}, ${inp('.hc-wt').value.trim() || '50'}, ${m.k}`.trim(); calc(); });
+  q('.hc-fs').addEventListener('change', () => { const pin = sel('.hc-fs') === 'pin'; root.querySelectorAll<HTMLElement>('.hc-fpin').forEach((e) => { e.hidden = !pin; }); root.querySelectorAll<HTMLElement>('.hc-frect').forEach((e) => { e.hidden = pin; }); });
+
+  const table = (head: string[], rows: string[][]) => { const t = q('.hc-tab'); t.replaceChildren(); if (!rows.length) return; const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i) d.className = 'r'; r.append(d); }); return r; }; t.append(tr(head, true), ...rows.map((r) => tr(r))); };
+  const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const C = (t: number) => `${sig(t, 4)} °C`;
+
+  function calc() {
+    const err = q('.hc-err'), out = q('.hc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    let r: string | null = null;
+    try { r = mode === 'wall' ? doWall() : mode === 'slab' ? doSlab() : mode === 'plate' ? doPlate() : mode === 'fin' ? doFin() : doPipe(); } catch (e) { r = (e as Error).message; }
+    if (r) return fail(r);
+    err.hidden = true; out.hidden = false;
+    paintAll();
+  }
+  function paintAll() { const c1 = q<HTMLCanvasElement>('.hc-f1'), c2 = q<HTMLCanvasElement>('.hc-f2'); c1.hidden = !figs[0]; c2.hidden = !figs[1]; if (figs[0]) paint(c1, figs[0]); if (figs[1]) paint(c2, figs[1]); }
+  const pos = (c: string, what: string, allowZero = false) => { const v = val(c); if (!(allowZero ? v >= 0 : v > 0)) throw new Error(`Give ${what} greater than ${allowZero ? 'or equal to ' : ''}0.`); return v; };
+  const temp = (c: string, what: string) => { const v = val(c); if (!(v > -273.15 && v < 1e5)) throw new Error(`Give ${what} in °C (above −273.15).`); return v; };
+
+  function doWall(): string | null {
+    const rows = parseTable(q<HTMLTextAreaElement>('.hc-layers').value), layers: Layer[] = [];
+    for (const [i, rw] of rows.entries()) {
+      const L = num(rw[1]) / 1000, k = num(rw[2]);
+      if (rw.length < 3 || !(L > 0) || !(k > 0)) return `Layer ${i + 1}: write a name, the thickness in mm and the conductivity, for example "Brick, 100, 0.7".`;
+      layers.push({ name: rw[0], L, k });
+    }
+    if (!layers.length) return 'Add at least one layer.';
+    const Ti = temp('.hc-ti', 'the inside air temperature'), To = temp('.hc-to', 'the outside air temperature');
+    const hiS = inp('.hc-hi').value.trim(), hoS = inp('.hc-ho').value.trim(), hi = hiS ? val('.hc-hi') : Infinity, ho = hoS ? val('.hc-ho') : Infinity, A = pos('.hc-area', 'the wall area');
+    if (!(hi > 0) || !(ho > 0)) return 'Film coefficients must be greater than 0 (or empty for none).';
+    const w = wall(layers, Ti, To, hi, ho);
+    q('.hc-oh').textContent = 'Wall';
+    q('.hc-big').textContent = `U = ${sig(w.U, 4)} W/m²·K: ${sig(w.q * A, 4)} W through ${sig(A, 4)} m²`;
+    const f = [
+      fact('Total resistance R', `${sig(w.Rtot, 4)} m²·K/W`, 'films included; U = 1/R'),
+      fact('Heat flux', `${sig(w.q, 4)} W/m²`, `${sig((w.q * A * 24) / 1000, 4)} kWh per day through the whole area`),
+      fact('Inside surface', C(w.temps[1])),
+      fact('Outside surface', C(w.temps[w.temps.length - 2])),
+    ];
+    q('.hc-facts').replaceChildren(...f);
+    const head = ['Layer', 'Thickness (mm)', 'k (W/m·K)', 'R (m²·K/W)', 'Share of R', 'Temperature after (°C)'];
+    const rows2 = [['Inside film', '–', '–', sig(w.Rs[0], 3), `${sig((w.Rs[0] / w.Rtot) * 100, 3)} %`, sig(w.temps[1], 4)], ...layers.map((l, i) => [l.name, sig(l.L * 1000, 4), sig(l.k, 4), sig(w.Rs[i + 1], 3), `${sig((w.Rs[i + 1] / w.Rtot) * 100, 3)} %`, sig(w.temps[i + 2], 4)]), ['Outside film', '–', '–', sig(w.Rs[w.Rs.length - 1], 3), `${sig((w.Rs[w.Rs.length - 1] / w.Rtot) * 100, 3)} %`, sig(w.temps[w.temps.length - 1], 4)]];
+    table(head, rows2);
+    const xs = [0]; layers.forEach((l) => xs.push(xs[xs.length - 1] + l.L * 1000));
+    const tot = xs[xs.length - 1], pad = tot * 0.08;
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Position through the wall (mm), inside on the left', yLabel: 'Temperature (°C)', legend: 'below', series: [
+      { name: 'Inside the wall', x: xs, y: w.temps.slice(1, -1), mode: 'both', marker: 'circle', size: 3, width: 2 },
+      { name: 'Air films', x: [-pad, 0, NaN, tot, tot + pad], y: [Ti, w.temps[1], NaN, w.temps[w.temps.length - 2], To], mode: 'line', width: 1.4, dash: [4, 3] },
+    ] }, 'Temperature through the wall');
+    figs = [c1];
+    csvRows = [['layer', 'thickness_mm', 'k', 'R', 'temperature_after_C'], ...rows2.map((r) => [r[0], r[1], r[2], r[3], r[5]])]; csvName = 'wall';
+    report = [{ title: q('.hc-big').textContent!, facts: rowsOf(f), table: { head, rows: rows2, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: c1 }];
+    return null;
+  }
+
+  function doSlab(): string | null {
+    const k = pos('.hc-sk', 'the conductivity k'), rho = pos('.hc-srho', 'the density'), cp = pos('.hc-scp', 'the specific heat'), L = pos('.hc-sL', 'the thickness') / 1000, T0 = temp('.hc-s0', 'the starting temperature'), tm = pos('.hc-st', 'the time');
+    const alpha = k / (rho * cp), tEnd = tm * 60;
+    const bc = (side: 'l' | 'r'): Bc => { const t = sel(`.hc-${side}t`), T = temp(`.hc-${side}T`, `the ${side === 'l' ? 'left' : 'right'} temperature`); if (t === 'fixed') return { type: 'fixed', T }; if (t === 'insulated') return { type: 'insulated' }; return { type: 'conv', h: pos(`.hc-${side}h`, `the ${side === 'l' ? 'left' : 'right'} film h`), Tinf: T }; };
+    const left = bc('l'), right = bc('r');
+    if (left.type === 'insulated' && right.type === 'insulated') return 'With both faces insulated nothing changes: give at least one face a temperature.';
+    const times = [0.05, 0.15, 0.3, 0.6, 1].map((f) => f * tEnd);
+    const r = slab1D({ L, k, alpha, T0, left, right, tEnd, n: 101, steps: 2000, times });
+    const fin_ = r.final, mid = fin_[50];
+    q('.hc-oh').textContent = 'Slab in time';
+    q('.hc-big').textContent = `After ${+tm.toPrecision(4)} min: middle ${C(mid)}, faces ${C(fin_[0])} and ${C(fin_[100])}`;
+    const hs = [left, right].filter((b) => b.type === 'conv') as { h: number }[];
+    const Lc = left.type === 'insulated' || right.type === 'insulated' ? L : L / 2;
+    const f = [
+      fact('Thermal diffusivity α', `${sig(alpha, 3)} m²/s`, 'k / (ρ cp): how fast temperature spreads'),
+      fact('Fourier number', sig((alpha * tEnd) / (Lc * Lc), 3), `α t / Lc², Lc = ${sig(Lc * 1000, 3)} mm; above about 0.2 the middle has clearly responded`),
+      fact('Time scale', `${sig((Lc * Lc) / alpha / 60, 3)} min`, 'Lc² / α'),
+    ];
+    if (hs.length) f.push(fact('Biot number', sig((Math.max(...hs.map((b) => b.h)) * Lc) / k, 3), 'h Lc / k: below 0.1 the slab stays nearly uniform (lumped)'));
+    // Exact series where the problem is symmetric (same condition both faces) or one face insulated.
+    const same = left.type === right.type && left.type !== 'insulated' && JSON.stringify(left) === JSON.stringify(right);
+    const oneIns = (left.type === 'insulated') !== (right.type === 'insulated');
+    if (same || oneIns) {
+      const b = (same ? left : left.type === 'insulated' ? right : left) as Exclude<Bc, { type: 'insulated' }>;
+      const h = b.type === 'conv' ? b.h : Infinity, Tinf = b.type === 'conv' ? b.Tinf : b.T;
+      const xm = same ? 0 : Lc, exMid = wallSeries(Lc, k, alpha, h, T0, Tinf, tEnd, xm), insIdx = left.type === 'insulated' ? 0 : 100;
+      const ref = same ? mid : fin_[insIdx];
+      f.push(fact(same ? 'Exact series, middle' : 'Exact series, insulated face', C(exMid), `finite differences ${C(ref)} (difference ${sig(Math.abs(exMid - ref), 2)} °C)`));
+    }
+    q('.hc-facts').replaceChildren(...f);
+    table([], []);
+    const xmm = r.x.map((x) => x * 1000);
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Position (mm)', yLabel: 'Temperature (°C)', legend: 'below', series: r.profiles.map((p) => ({ name: `${sig(p.t / 60, 3)} min`, x: xmm, y: p.T, mode: 'line' as const, width: 1.8 })) }, 'Temperature across the slab at five times');
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: 'Time (min)', yLabel: 'Temperature (°C)', xMin: 0, legend: 'below', series: [
+      { name: 'Left face', x: r.hist.t.map((t) => t / 60), y: r.hist.left, mode: 'line', width: 1.6 },
+      { name: 'Middle', x: r.hist.t.map((t) => t / 60), y: r.hist.mid, mode: 'line', width: 2.2 },
+      { name: 'Right face', x: r.hist.t.map((t) => t / 60), y: r.hist.right, mode: 'line', width: 1.6, dash: [5, 3] },
+    ] }, 'Face and middle temperatures against time');
+    figs = [c1, c2];
+    csvRows = [['x_mm', ...r.profiles.map((p) => `T_at_${+(p.t / 60).toPrecision(4)}_min`)], ...xmm.map((x, i) => [+x.toPrecision(6), ...r.profiles.map((p) => +p.T[i].toPrecision(7))])]; csvName = 'slab';
+    report = [{ title: q('.hc-big').textContent!, facts: rowsOf(f), figure: c1 }, { title: 'Against time', figure: c2, note: 'Crank-Nicolson finite differences, 101 nodes, 2000 time steps.' }];
+    return null;
+  }
+
+  function heat(pal: Palette, f: number): string {
+    f = Math.max(0, Math.min(1, f));
+    if (pal.red) return `rgb(${Math.round(20 + 200 * f)},0,0)`;
+    const st = [[49, 54, 149], [69, 117, 180], [171, 217, 233], [254, 224, 144], [244, 109, 67], [165, 0, 38]];
+    const p = f * (st.length - 1), i = Math.min(st.length - 2, Math.floor(p)), u = p - i, c = st[i].map((v, j) => Math.round(v + (st[i + 1][j] - v) * u));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+  function doPlate(): string | null {
+    const k = pos('.hc-pk', 'the conductivity k'), rho = pos('.hc-prho', 'the density'), cp = pos('.hc-pcp', 'the specific heat'), W = pos('.hc-pW', 'the width') / 100, H = pos('.hc-pH', 'the height') / 100;
+    const T0 = temp('.hc-p0', 'the starting temperature'), e: [number, number, number, number] = [temp('.hc-pt', 'the top edge'), temp('.hc-pr', 'the right edge'), temp('.hc-pb', 'the bottom edge'), temp('.hc-pl', 'the left edge')];
+    const steady = inp('.hc-pss').checked, tm = steady ? Infinity : pos('.hc-ptm', 'the time'), alpha = k / (rho * cp);
+    if (W / H > 20 || H / W > 20) return 'Keep the width and height within 20 times of each other.';
+    const p = plate2D({ W, H, alpha, T0, edges: e, t: steady ? Infinity : tm * 60, nx: 41, ny: 41, steps: 200 });
+    const at = (i: number, j: number) => p.F[j * 41 + i], centre = at(20, 20);
+    let lo = Infinity, hi = -Infinity; for (const v of p.F) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    q('.hc-oh').textContent = '2D plate';
+    q('.hc-big').textContent = `${steady ? 'Steady state' : `After ${+tm.toPrecision(4)} min`}: centre ${C(centre)}`;
+    const f = [
+      fact('Centre', C(centre)), fact('Range', `${sig(lo, 4)} to ${sig(hi, 4)} °C`),
+      fact('Thermal diffusivity α', `${sig(alpha, 3)} m²/s`, `slowest time constant 1/(απ²(1/W² + 1/H²)) = ${sig(1 / (alpha * Math.PI * Math.PI * (1 / (W * W) + 1 / (H * H))), 3)} s; after about 5 of them it is close to steady`),
+    ];
+    // One edge different, the other three equal: compare the steady centre with the exact Fourier series.
+    const odd = [0, 1, 2, 3].filter((i) => { const o = e.filter((_, j) => j !== i); return o.every((v) => v === o[0]) && e[i] !== o[0]; });
+    if (steady && odd.length === 1) {
+      const i = odd[0], Wd = i % 2 === 0 ? W : H, Hd = i % 2 === 0 ? H : W, ex = plateSteadyExact(Wd, Hd, e[i], e[(i + 1) % 4], Wd / 2, Hd / 2);
+      f.push(fact('Exact series, centre', C(ex), `Fourier series for one edge at ${C(e[i])}; grid answer differs by ${sig(Math.abs(ex - centre), 2)} °C`));
+    }
+    q('.hc-facts').replaceChildren(...f);
+    table([], []);
+    const mapFig: Figure = { w: 380, h: Math.round(Math.min(560, Math.max(160, 300 * (H / W)))) + 50, alt: `Temperature map of the plate, ${sig(lo, 3)} to ${sig(hi, 3)} °C`, draw: (ctx, w, hh, pal) => {
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, hh);
+      const ph = hh - 50, pw = Math.min(w - 20, (ph * W) / H), ox = (w - pw) / 2, cw = pw / 41, ch = ph / 41;
+      for (let j = 0; j < 41; j++) for (let i = 0; i < 41; i++) { ctx.fillStyle = heat(pal, (at(i, j) - lo) / (hi - lo || 1)); ctx.fillRect(ox + i * cw, 4 + (40 - j) * ch, cw + 0.6, ch + 0.6); }
+      const by = ph + 14, bw = Math.min(260, w - 40), bx = (w - bw) / 2;
+      for (let i = 0; i < 100; i++) { ctx.fillStyle = heat(pal, i / 99); ctx.fillRect(bx + (i * bw) / 100, by, bw / 100 + 0.6, 10); }
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'top';
+      ctx.textAlign = 'left'; ctx.fillText(`${sig(lo, 3)} °C`, bx, by + 14); ctx.textAlign = 'right'; ctx.fillText(`${sig(hi, 3)} °C`, bx + bw, by + 14);
+    } };
+    const line = Array.from({ length: 41 }, (_, j) => j);
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Height from the bottom edge (cm)', yLabel: 'Temperature (°C)', legend: 'none', series: [{ name: 'Up the middle', x: line.map((j) => (j * H * 100) / 40), y: line.map((j) => at(20, j)), mode: 'line', width: 2 }] }, 'Temperature up the middle of the plate');
+    figs = [mapFig, c2];
+    csvRows = [['y_cm \\ x_cm', ...line.map((i) => +((i * W * 100) / 40).toPrecision(5))], ...line.slice().reverse().map((j) => [+((j * H * 100) / 40).toPrecision(5), ...line.map((i) => +at(i, j).toPrecision(6))])]; csvName = 'plate';
+    report = [{ title: q('.hc-big').textContent!, facts: rowsOf(f), figure: mapFig }, { title: 'Up the middle', figure: c2, note: 'ADI finite differences on a 41 × 41 grid; faces insulated.' }];
+    return null;
+  }
+
+  function doFin(): string | null {
+    const shape = sel('.hc-fs') as 'pin' | 'rect', k = pos('.hc-fk', 'the conductivity k'), L = pos('.hc-fL', 'the fin length') / 1000, h = pos('.hc-fh', 'the film coefficient h');
+    const D = shape === 'pin' ? pos('.hc-fD', 'the diameter') / 1000 : undefined, t = shape === 'rect' ? pos('.hc-ft', 'the thickness') / 1000 : undefined, w = shape === 'rect' ? pos('.hc-fw', 'the width') / 1000 : undefined;
+    const Tb = temp('.hc-fb', 'the base temperature'), Ta = temp('.hc-fa', 'the air temperature');
+    if (Tb === Ta) return 'The base and the air are at the same temperature, so no heat flows.';
+    const r = fin({ shape, k, h, L, D, t, w, Tb, Tinf: Ta, tip: sel('.hc-ftip') as 'conv' | 'adiabatic' });
+    q('.hc-oh').textContent = 'Fin';
+    q('.hc-big').textContent = `${sig(r.q, 4)} W per fin, efficiency ${sig(r.eta * 100, 3)} %`;
+    const f = [
+      fact('Heat from one fin', `${sig(r.q, 4)} W`, `fin resistance ${sig(r.Rfin, 4)} K/W`),
+      fact('Fin efficiency', `${sig(r.eta * 100, 3)} %`, 'heat shed ÷ heat if the whole fin were at the base temperature'),
+      fact('Effectiveness', sig(r.eff, 4), r.eff < 2 ? 'below about 2 a fin is hardly worth adding' : 'heat with the fin ÷ heat from the bare base area'),
+      fact('Tip temperature', C(r.Ttip)), fact('mL', sig(r.mL, 4), `m = ${sig(r.m, 4)} per m; beyond mL ≈ 2.5 extra length adds little`),
+    ];
+    q('.hc-facts').replaceChildren(...f);
+    table([], []);
+    const xs = Array.from({ length: 101 }, (_, i) => (i * L) / 100);
+    const c1 = chartFigure({ w: 380, h: 220, xLabel: 'Distance from the base (mm)', yLabel: 'Temperature (°C)', legend: 'none', series: [{ name: 'Fin', x: xs.map((x) => x * 1000), y: xs.map(r.T), mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: Ta, dash: [4, 3], label: 'air' }] }, 'Temperature along the fin');
+    const Ls = Array.from({ length: 80 }, (_, i) => ((i + 1) * 3 * L) / 80), qs = Ls.map((l) => fin({ shape, k, h, L: l, D, t, w, Tb, Tinf: Ta, tip: sel('.hc-ftip') as 'conv' | 'adiabatic' }).q);
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Fin length (mm)', yLabel: 'Heat per fin (W)', xMin: 0, yMin: Math.min(0, ...qs), legend: 'none', series: [{ name: 'Heat', x: Ls.map((l) => l * 1000), y: qs, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: L * 1000, dash: [3, 3], label: 'this fin' }] }, 'Heat shed against fin length');
+    figs = [c1, c2];
+    csvRows = [['x_mm', 'T_C'], ...xs.map((x) => [+(x * 1000).toPrecision(6), +r.T(x).toPrecision(7)])]; csvName = 'fin';
+    report = [{ title: q('.hc-big').textContent!, facts: rowsOf(f), figure: c1 }, { title: 'Length', figure: c2, note: 'One-dimensional fin theory with a uniform film coefficient.' }];
+    return null;
+  }
+
+  function doPipe(): string | null {
+    const di = pos('.hc-qdi', 'the inside diameter') / 1000, dO = pos('.hc-qdo', 'the outside diameter') / 1000;
+    if (!(dO > di)) return 'The outside diameter must be larger than the inside diameter.';
+    const kp = pos('.hc-qkp', 'the pipe conductivity'), kins = pos('.hc-qk', 'the insulation conductivity'), s = pos('.hc-qs', 'the insulation thickness', true) / 1000, Tin = temp('.hc-qti', 'the fluid temperature'), Ta = temp('.hc-qta', 'the air temperature'), ho = pos('.hc-qho', 'the outside film h'), len = pos('.hc-qlen', 'the length');
+    const hiS = inp('.hc-qhi').value.trim(), hi = hiS ? val('.hc-qhi') : Infinity;
+    if (!(hi > 0)) return 'The inside film h must be greater than 0 (or empty for none).';
+    const o = { ri: di / 2, ro: dO / 2, kp, s, kins, hi, ho, Tin, Tinf: Ta }, r = pipe(o), bare = pipe({ ...o, s: 0 });
+    q('.hc-oh').textContent = 'Insulated pipe';
+    q('.hc-big').textContent = `${sig(r.Q, 4)} W per metre, ${sig((r.Q * len) / 1000, 4)} kW over ${sig(len, 4)} m`;
+    const f = [
+      fact('Outer surface', C(r.Tsurf), s > 0 ? 'of the insulation' : 'of the bare pipe'),
+      fact('Bare pipe would lose', `${sig(bare.Q, 4)} W/m`, s > 0 ? `the insulation saves ${sig((1 - r.Q / bare.Q) * 100, 3)} %` : ''),
+      fact('Critical radius k/h', `${sig(r.rcrit * 1000, 3)} mm`, o.ro < r.rcrit ? 'the pipe is smaller than this: thin insulation increases the heat loss' : 'the pipe is larger than this: any insulation reduces the loss'),
+      fact('Pipe outer wall', C(r.Tpipe)),
+    ];
+    const maxS = inp('.hc-qmax').value.trim();
+    if (maxS) {
+      const Tm = num(maxS);
+      if (!(Tm > -273.15)) return 'Give the highest surface temperature in °C, or leave it empty.';
+      const need = thicknessFor(o, Tm);
+      f.push(fact(`Thickness for a ${sig(Tm, 4)} °C surface`, need === null ? 'more than 2 m' : `${sig(need * 1000, 3)} mm`, need === 0 ? 'already cool enough with no insulation' : 'of this insulation, with these films'));
+    }
+    q('.hc-facts').replaceChildren(...f);
+    const head = ['Resistance', 'K·m/W', 'Share'], Rt = r.Rt, rows2 = [['Inside film', r.R.inside], ['Pipe wall', r.R.wall], ['Insulation', r.R.ins], ['Outside film', r.R.outside]].map(([n, v]) => [n as string, sig(v as number, 3), `${sig(((v as number) / Rt) * 100, 3)} %`]);
+    table(head, rows2);
+    const ss = Array.from({ length: 101 }, (_, i) => (i * Math.max(0.1, 2 * s)) / 100), Qs = ss.map((x) => pipe({ ...o, s: x }).Q), Ts = ss.map((x) => pipe({ ...o, s: x }).Tsurf);
+    const mk = [{ kind: 'vline' as const, at: s * 1000, dash: [3, 3], label: 'this' }];
+    const c1 = chartFigure({ w: 380, h: 220, xLabel: 'Insulation thickness (mm)', yLabel: 'Heat loss (W/m)', xMin: 0, yMin: 0, legend: 'none', series: [{ name: 'Heat loss', x: ss.map((x) => x * 1000), y: Qs, mode: 'line', width: 2 }], marks: mk }, 'Heat loss per metre against insulation thickness');
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Insulation thickness (mm)', yLabel: 'Surface temperature (°C)', xMin: 0, legend: 'none', series: [{ name: 'Surface', x: ss.map((x) => x * 1000), y: Ts, mode: 'line', width: 2 }], marks: mk }, 'Outer surface temperature against insulation thickness');
+    figs = [c1, c2];
+    csvRows = [['insulation_mm', 'heat_loss_W_per_m', 'surface_C'], ...ss.map((x, i) => [+(x * 1000).toPrecision(6), +Qs[i].toPrecision(7), +Ts[i].toPrecision(7)])]; csvName = 'pipe';
+    report = [{ title: q('.hc-big').textContent!, facts: rowsOf(f), table: { head, rows: rows2, align: ['l', 'r', 'r'] }, figure: c1 }, { title: 'Surface temperature', figure: c2 }];
+    return null;
+  }
+
+  function setMode(m: Mode) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.hc-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.hc-p').forEach((p) => { p.hidden = p.dataset.p !== m; });
+    q('.hc-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.hc-seg button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m as Mode)));
+  // Debounce typing in the heavier 2D and slab solvers.
+  let timer = 0;
+  root.querySelectorAll('.hc-p input, .hc-p select, .hc-p textarea').forEach((i) => { const go = () => { clearTimeout(timer); timer = window.setTimeout(calc, mode === 'plate' || mode === 'slab' ? 150 : 0); }; i.addEventListener('input', go); i.addEventListener('change', go); });
+  q('.hc-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new Blob([csv(csvRows)], { type: 'text/csv' }), `heat-conduction-${csvName}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.hc-out').hidden) paintAll(); });
+  setMode('wall');
+  wireDownloads(q('.dl'), () => ({ title: 'Heat conduction', subtitle: q('.hc-oh').textContent ?? '', file: `heat-conduction-${csvName}`, sections: report }));
+</script>
+
+<style is:inline>
+  .hcd select, .hcd input { max-width: 100%; }
+  .hcd .hc-p[hidden], .hcd label[hidden], .hcd canvas[hidden] { display: none; }
+</style>

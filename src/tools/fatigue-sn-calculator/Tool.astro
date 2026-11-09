@@ -1,0 +1,199 @@
+---
+// Fatigue (stress-life): Basquin fit of S-N data, endurance estimates, mean-stress corrections with a Haigh
+// diagram, and Miner's rule for a load spectrum.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleSN } from '../../lib/sci/fatigue';
+const ex = exampleSN();
+const sn = 'stress_amplitude_MPa\tcycles\trunout\n' + ex.S.map((s, i) => `${s}\t${ex.N[i]}\t${ex.runout[i] ? 1 : 0}`).join('\n');
+const spec = 'stress_amplitude\tmean_stress\tcycles\n300\t0\t100000\n250\t50\t200000\n200\t100\t300000\n120\t0\t10000000';
+---
+<div class="ax fsn">
+  <div class="ax-card">
+    <h2>S-N data and Basquin fit</h2>
+    <label class="fsn-lab">Stress amplitude, cycles to failure and (optional) run-out flag, one specimen per line <textarea class="fsn-data" rows="7" spellcheck="false">{sn}</textarea></label>
+    <DataFile target=".fsn-data" maxCols={3} label="Open a file (2 or 3 columns)" />
+    <p class="ax-help">Use one stress unit everywhere on this page (MPa in the example). Mark a specimen that did not break with 1, yes or runout in the third column: it is plotted but left out of the fit.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Fit <select class="fsn-mode"><option value="logN">log N on log S (stress controlled, ASTM E739)</option><option value="logS">log S on log N</option></select></label>
+      <label>Endurance life (cycles) <input class="fsn-ne" inputmode="decimal" value="1e7" /></label>
+      <label>Tensile strength Su <input class="fsn-su" inputmode="decimal" value="600" /></label>
+      <label>Yield strength Sy <input class="fsn-sy" inputmode="decimal" value="450" /></label>
+    </div>
+    <p class="ax-err fsn-err" hidden></p>
+    <div class="fsn-out">
+      <p class="ax-big fsn-big"></p>
+      <dl class="ax-facts fsn-facts"></dl>
+      <canvas class="ax-fig fsn-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mean stress correction</h2>
+    <div class="ax-grid">
+      <label>Stress amplitude σa <input class="fsn-sa" inputmode="decimal" value="150" /></label>
+      <label>Mean stress σm <input class="fsn-sm" inputmode="decimal" value="100" /></label>
+      <label>Endurance limit Se <input class="fsn-se" inputmode="decimal" value="" placeholder="from the fit" /></label>
+      <label>Morrow σf' <input class="fsn-sf" inputmode="decimal" value="" placeholder="from the fit" /></label>
+    </div>
+    <p class="ax-help">Leave Se empty to use the fitted strength at the endurance life, and σf' empty to use the fitted fatigue strength coefficient. Use a corrected Se (surface, size, load, reliability) for a real part.</p>
+    <p class="ax-err fsn-merr" hidden></p>
+    <div class="fsn-mout">
+      <p class="ax-big fsn-mbig"></p>
+      <div class="ax-scroll"><table class="fsn-mtab"></table></div>
+      <p class="ax-help fsn-yld"></p>
+      <canvas class="ax-fig fsn-hfig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Miner's rule for a load spectrum</h2>
+    <label class="fsn-lab">Stress amplitude, mean stress and number of cycles, one load block per line <textarea class="fsn-spec" rows="5" spellcheck="false">{spec}</textarea></label>
+    <DataFile target=".fsn-spec" maxCols={3} label="Open a file (3 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Mean stress correction <select class="fsn-mm"><option value="goodman">Goodman</option><option value="gerber">Gerber</option><option value="soderberg">Soderberg</option><option value="morrow">Morrow</option><option value="none">none (use σa)</option></select></label>
+      <label>Below the endurance limit <select class="fsn-cut"><option value="1">no damage</option><option value="0">extend the S-N line</option></select></label>
+    </div>
+    <p class="ax-err fsn-derr" hidden></p>
+    <div class="fsn-dout">
+      <p class="ax-big fsn-dbig"></p>
+      <div class="ax-scroll"><table class="fsn-dtab"></table></div>
+      <p class="ax-help">σar is the equivalent fully reversed amplitude, n the cycles in the block and N the life at σar. Damage D = Σ n/N. Failure is predicted at D = 1, though real parts often fail between D = 0.3 and 3, so use a margin. The order of the blocks is ignored.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fsn-csv">Download the damage table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitBasquin, stressAt, lifeAt, steelEndurance, equivalent, safety, yieldSafety, haighLine, miner, METHODS, METHOD_NAME, type Basquin, type Method } from '../../lib/sci/fatigue';
+  import { num, sig, parseTable, numericColumns, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fsn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (x + 1e-12).toFixed(n);
+  const life = (N: number) => (N === Infinity ? '∞' : N >= 1e6 ? sig(N, 3) : Math.round(N).toLocaleString('en'));
+  const table = (tb: HTMLTableElement, head: string[], rows: string[][]) => {
+    tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((x, j) => { const th = document.createElement('th'); th.textContent = x; if (j) th.className = 'r'; hr.append(th); });
+    const bd = tb.createTBody(); for (const r of rows) { const tr = bd.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); }
+  };
+  const width = () => Math.round(Math.min(720, Math.max(320, q('.fsn-out').clientWidth || root.clientWidth - 34 || 640)));
+  let fit: Basquin | null = null, Se = NaN, fig: Figure | null = null, hfig: Figure | null = null;
+  let mrows: string[][] = [], drows: string[][] = [], dcsv: (string | number)[][] = [];
+  const MHEAD = ['Method', 'σar', 'Life N', 'Safety'];
+  const DHEAD = ['σa', 'σm', 'n', 'σar', 'N', 'n/N'];
+
+  function sn() {
+    const err = (m: string) => { q('.fsn-err').textContent = m; q('.fsn-err').hidden = !m; q('.fsn-out').hidden = !!m; if (m) { fit = null; fig = null; } };
+    const rows = parseTable(q<HTMLTextAreaElement>('.fsn-data').value);
+    if (rows.length && Number.isNaN(num(rows[0][0]))) rows.shift();
+    const S: number[] = [], N: number[] = [], ro: boolean[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const s = num(rows[i][0]), n = num(rows[i][1]);
+      if (!(s > 0) || !(n > 0)) return err(`Line ${i + 1} needs a stress above zero and a number of cycles above zero.`);
+      S.push(s); N.push(n); ro.push(/^(1|y|yes|true|r|run-?out|dnf|>)/i.test((rows[i][2] ?? '').trim()));
+    }
+    const Ne = v('.fsn-ne'), Su = v('.fsn-su'), Sy = v('.fsn-sy');
+    if (!(Ne >= 10)) return err('The endurance life is a number of cycles, such as 1e6 or 1e7.');
+    if (!(Su > 0) || !(Sy > 0) || Sy > Su) return err('Give the tensile and yield strength, with the yield strength no higher than the tensile strength.');
+    try { fit = fitBasquin(S, N, ro, q<HTMLSelectElement>('.fsn-mode').value as 'logN' | 'logS'); } catch (e) { return err((e as Error).message); }
+    err('');
+    Se = stressAt(fit, Ne);
+    q('.fsn-big').textContent = `σa = ${sig(fit.A, 4)} · N^${f(fit.b, 4).replace('-', '−')}`;
+    q('.fsn-facts').replaceChildren(
+      fact('Basquin exponent b', f(fit.b, 4).replace('-', '−'), `fitted to ${fit.n} failures${fit.runouts ? `, ${fit.runouts} run-out${fit.runouts > 1 ? 's' : ''} left out` : ''}; r² ${f(fit.r2, 4)}`),
+      fact("Fatigue strength coefficient σf'", sig(fit.sf, 4), `the same line written in reversals: σa = σf' (2N)^b`),
+      fact(`Strength at ${sig(Ne, 3)} cycles`, sig(Se, 4), 'the endurance estimate from your data'),
+      fact('Rule of thumb for steel', sig(steelEndurance(Su), 4), `0.5 Su (700 MPa above Su = 1400 MPa) for a polished bar; ${sig(Se / Su, 3)} Su from your fit`),
+      fact(`Scatter (s of log ${fit.mode === 'logN' ? 'N' : 'S'})`, f(fit.sLog, 3), fit.mode === 'logN' ? `a factor of ${sig(10 ** fit.sLog, 3)} on life for one standard deviation` : 'about the line'),
+      fact('Life at Sy and at Su ÷ 2', `${life(lifeAt(fit, Sy))}, ${life(lifeAt(fit, Su / 2))}`, 'cycles, read from the line (outside your data range they are extrapolated)'),
+    );
+    const Nmin = Math.min(...N), Nmax = Math.max(...N, Ne), ln = [Nmin / 2, Nmax * 2];
+    const W = width();
+    fig = chartFigure({ w: W, h: W < 500 ? 300 : 360, xLog: true, yLog: true, yMin: Math.min(...S) * 0.85, yMax: Math.max(...S) * 1.15, xLabel: 'Cycles to failure N', yLabel: 'Stress amplitude', series: [
+      { name: 'failed', x: N.filter((_, i) => !ro[i]), y: S.filter((_, i) => !ro[i]), mode: 'points', marker: 'circle', size: 4 },
+      { name: 'run-out', x: N.filter((_, i) => ro[i]), y: S.filter((_, i) => ro[i]), mode: 'points', marker: 'open-triangle', size: 5 },
+      { name: 'Basquin fit', x: ln, y: ln.map((n) => stressAt(fit!, n)), mode: 'line', width: 1.5 },
+    ], marks: [{ kind: 'vline', at: Ne, dash: [3, 3], label: 'Nₑ' }], legend: 'below' }, 'S-N plot on log-log axes with the Basquin line and run-outs');
+    paint(q<HTMLCanvasElement>('.fsn-fig'), fig);
+  }
+
+  function mean() {
+    const err = (m: string) => { q('.fsn-merr').textContent = m; q('.fsn-merr').hidden = !m; q('.fsn-mout').hidden = !!m; if (m) { hfig = null; mrows = []; } };
+    if (!fit) return err('Fit the S-N data first.');
+    const sa = v('.fsn-sa'), sm = v('.fsn-sm'), Su = v('.fsn-su'), Sy = v('.fsn-sy');
+    const se = q<HTMLInputElement>('.fsn-se').value.trim() ? v('.fsn-se') : Se, sf = q<HTMLInputElement>('.fsn-sf').value.trim() ? v('.fsn-sf') : fit.sf;
+    if (!(sa > 0) || !Number.isFinite(sm)) return err('Give a stress amplitude above zero and a mean stress (negative for compression).');
+    if (!(se > 0) || !(sf > 0)) return err('The endurance limit and σf\' must be above zero.');
+    err('');
+    const p = { Su, Sy, sf };
+    mrows = METHODS.map((m) => { const sar = equivalent(m, sa, sm, p), n = safety(m, sa, sm, se, p); return [METHOD_NAME[m], Number.isFinite(sar) ? sig(sar, 4) : '∞', Number.isFinite(sar) ? life(sar < se ? Infinity : lifeAt(fit!, sar)) : 'fails at once', f(n, 2)]; });
+    table(q<HTMLTableElement>('.fsn-mtab'), MHEAD, mrows);
+    const g = safety('goodman', sa, sm, se, p);
+    q('.fsn-mbig').textContent = `Goodman safety factor ${f(g, 2)}${g < 1 ? ': fatigue failure expected' : ''}`;
+    const ny = yieldSafety(sa, sm, Sy);
+    q('.fsn-yld').textContent = `Life is ∞ when σar is below Se. First-cycle yield (Langer line σa + |σm| = Sy): safety factor ${f(ny, 2)}${ny < 1 ? ', so the part yields on the first cycle' : ''}. Safety factors are along a load line through the origin (σa and σm grow together)${sm < 0 ? '; with a compressive mean stress they are Se ÷ σa, ignoring any benefit' : ''}.`;
+    const W = width(), lines = METHODS.map((m) => ({ m, ...haighLine(m, se, p) }));
+    const xmax = Math.max(Su, sf, sm) * 1.05, k = sm > 0 ? sa / sm : Infinity, ymax = Math.max(se, Sy, sa) * 1.15;
+    hfig = chartFigure({ w: W, h: W < 500 ? 300 : 360, xMin: Math.min(0, sm), xMax: xmax, yMin: 0, yMax: ymax, xLabel: 'Mean stress σm', yLabel: 'Stress amplitude σa', series: [
+      ...lines.map((l) => ({ name: METHOD_NAME[l.m], x: l.x, y: l.y, mode: 'line' as const, width: 1.5, ...(l.m === 'soderberg' ? { dash: [6, 3] } : l.m === 'morrow' ? { dash: [2, 3] } : {}) })),
+      { name: 'yield (Langer)', x: [0, Sy], y: [Sy, 0], mode: 'line', width: 1, dash: [1, 3] },
+      ...(k < Infinity ? [{ name: 'load line', x: [0, Math.min(xmax, ymax / k)], y: [0, Math.min(k * xmax, ymax)], mode: 'line' as const, width: 1, dash: [4, 4], color: '#888888' }] : []),
+      { name: 'your load', x: [sm], y: [sa], mode: 'points', marker: 'diamond', size: 7 },
+    ], legend: 'below' }, 'Haigh diagram: mean stress against stress amplitude with the Goodman, Gerber, Soderberg and Morrow lines, the yield line and your load');
+    paint(q<HTMLCanvasElement>('.fsn-hfig'), hfig);
+  }
+
+  function spectrum() {
+    const err = (m: string) => { q('.fsn-derr').textContent = m; q('.fsn-derr').hidden = !m; q('.fsn-dout').hidden = !!m; if (m) { drows = []; dcsv = []; } };
+    if (!fit) return err('Fit the S-N data first.');
+    const t = numericColumns(q<HTMLTextAreaElement>('.fsn-spec').value);
+    if (t.cols.length < 3 || t.rows < 1) return err('Give at least one line of stress amplitude, mean stress and cycles.');
+    const blocks = [];
+    for (let i = 0; i < t.rows; i++) {
+      const [a, m, n] = [t.cols[0][i], t.cols[1][i], t.cols[2][i]];
+      if (!(a > 0) || !Number.isFinite(m) || !(n > 0)) return err(`Block ${i + 1} needs an amplitude above zero, a mean stress and a number of cycles above zero.`);
+      blocks.push({ sa: a, sm: m, n });
+    }
+    err('');
+    const se = q<HTMLInputElement>('.fsn-se').value.trim() ? v('.fsn-se') : Se, sf = q<HTMLInputElement>('.fsn-sf').value.trim() ? v('.fsn-sf') : fit.sf;
+    const method = q<HTMLSelectElement>('.fsn-mm').value as Method | 'none';
+    const r = miner(blocks, fit, { method, Su: v('.fsn-su'), Sy: v('.fsn-sy'), sf: sf > 0 ? sf : fit.sf, ...(q<HTMLSelectElement>('.fsn-cut').value === '1' ? { Se: se } : {}) });
+    drows = r.rows.map((x) => [sig(x.sa, 4), sig(x.sm, 4), life(x.n), Number.isFinite(x.sar) ? sig(x.sar, 4) : '∞', x.N === 0 ? 'fails at once' : life(x.N), x.d === Infinity ? '∞' : sig(x.d, 3)]);
+    dcsv = [['stress_amplitude', 'mean_stress', 'cycles', 'equivalent_amplitude', 'life_cycles', 'damage'], ...r.rows.map((x) => [x.sa, x.sm, x.n, Number.isFinite(x.sar) ? +x.sar.toPrecision(8) : 'inf', x.N === Infinity ? 'inf' : +x.N.toPrecision(8), +x.d.toPrecision(8)])];
+    table(q<HTMLTableElement>('.fsn-dtab'), DHEAD, drows);
+    q('.fsn-dbig').textContent = `Damage D = ${r.D === Infinity ? '∞' : sig(r.D, 3)}${r.D > 0 && r.D < Infinity ? `: the spectrum can be repeated ${sig(r.repeats, 3)} times` : r.D === 0 ? ': no damage' : ''}`;
+  }
+
+  const all = () => { sn(); mean(); spectrum(); };
+  q('.fsn-data').addEventListener('input', all);
+  root.querySelectorAll('.fsn-mode, .fsn-ne, .fsn-su, .fsn-sy').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('.fsn-sa, .fsn-sm, .fsn-se, .fsn-sf').forEach((i) => { i.addEventListener('input', () => { mean(); spectrum(); }); });
+  root.querySelectorAll('.fsn-spec, .fsn-mm, .fsn-cut').forEach((i) => { i.addEventListener('input', spectrum); i.addEventListener('change', spectrum); });
+  q('.fsn-csv').addEventListener('click', () => dcsv.length > 1 && save(new TextEncoder().encode(csv(dcsv)), 'miner-damage.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fsn-fig'), fig); if (hfig) paint(q<HTMLCanvasElement>('.fsn-hfig'), hfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = () => [...root.querySelectorAll('.fsn-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (!q('.fsn-out').hidden) s.push({ title: `Basquin fit: ${q('.fsn-big').textContent}`, facts: facts(), ...(fig ? { figure: fig } : {}) });
+    if (!q('.fsn-mout').hidden) s.push({ title: q('.fsn-mbig').textContent!, table: { head: MHEAD, rows: mrows, align: ['l', 'r', 'r', 'r'] }, note: q('.fsn-yld').textContent!, ...(hfig ? { figure: hfig } : {}) });
+    if (!q('.fsn-dout').hidden) s.push({ title: `Miner's rule: ${q('.fsn-dbig').textContent}`, table: { head: DHEAD, rows: drows, align: ['r', 'r', 'r', 'r', 'r', 'r'] } });
+    return { title: 'Fatigue S-N analysis', subtitle: 'Basquin fit, mean stress and Miner\'s rule', file: 'fatigue-sn', sections: s };
+  });
+</script>
+
+<style is:inline>
+  .fsn select { max-width: 100%; }
+  .fsn .fsn-lab { display: block; }
+  .fsn textarea { width: 100%; font: inherit; font-size: 14px; }
+  .fsn td, .fsn th { white-space: nowrap; padding-left: 5px; padding-right: 5px; }
+</style>

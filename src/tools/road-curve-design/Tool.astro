@@ -1,0 +1,260 @@
+---
+// Road geometry: horizontal curve radius and elements, stopping sight distance, crest and sag vertical curves, gradient. All design values are the user's; examples made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rdc">
+  <div class="ax-card">
+    <h2>Horizontal curve</h2>
+    <div class="ax-grid">
+      <label>Design speed V (km/h) <input class="rd-V" type="text" inputmode="decimal" value="80" /></label>
+      <label>Superelevation e (e.g. 0.06 = 6 %) <input class="rd-e" type="text" inputmode="decimal" value="0.06" /></label>
+      <label>Side friction factor f <input class="rd-f" type="text" inputmode="decimal" value="0.14" /></label>
+      <label>Curve radius R (m) <input class="rd-R" type="text" inputmode="decimal" value="300" /></label>
+      <label>Deflection angle Δ (°) <input class="rd-D" type="text" inputmode="decimal" value="40" /></label>
+      <label>PI chainage (m) <input class="rd-pi" type="text" inputmode="decimal" value="1250" /></label>
+      <label>Stake every (m) <input class="rd-step" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Superelevation is the cross-fall banking the road into the bend; side friction is the share of sideways grip you allow the tyres to use. Both limits depend on speed and come from your road design guide. The values here are made-up examples. Δ is the change of direction between the two straights, at their meeting point (PI).</p>
+    <p class="ax-err rd-herr" hidden></p>
+  </div>
+
+  <div class="ax-card rd-hout">
+    <p class="ax-big rd-hbig"></p>
+    <dl class="ax-facts rd-hfacts"></dl>
+    <canvas class="ax-fig rd-plan"></canvas>
+    <h3 class="rd-h3">Setting out by deflection angles from the PC</h3>
+    <div class="ax-scroll"><table class="rd-stab"></table></div>
+    <div class="ax-row rd-row"><button type="button" class="btn secondary small rd-scsv">Download setting-out (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Stopping sight distance</h2>
+    <div class="ax-grid">
+      <label>Reaction time (s) <input class="rd-t" type="text" inputmode="decimal" value="2.5" /></label>
+      <label>Braking friction (or deceleration ÷ g) <input class="rd-fl" type="text" inputmode="decimal" value="0.35" /></label>
+      <label>Grade (%; minus for downhill) <input class="rd-sg" type="text" inputmode="decimal" value="-3" /></label>
+    </div>
+    <p class="ax-help">Distance travelled while the driver reacts, plus braking distance v² / (2g(f + grade)). Take the reaction time and friction from your design guide; these are examples. Uses the design speed above.</p>
+    <p class="ax-big rd-sbig"></p>
+    <dl class="ax-facts rd-sfacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Vertical curve</h2>
+    <div class="ax-grid">
+      <label>Grade in g1 (%) <input class="rd-g1" type="text" inputmode="decimal" value="3" /></label>
+      <label>Grade out g2 (%) <input class="rd-g2" type="text" inputmode="decimal" value="-2" /></label>
+      <label>VPI chainage (m) <input class="rd-vpi" type="text" inputmode="decimal" value="1500" /></label>
+      <label>VPI level (m) <input class="rd-zv" type="text" inputmode="decimal" value="100" /></label>
+      <label>Length from <select class="rd-mode"><option value="ssd" selected>Stopping sight distance above</option><option value="own">My own sight distance</option><option value="k">K value (length per % of A)</option><option value="len">My own length</option></select></label>
+      <label class="rd-obox" hidden>Sight distance S (m) <input class="rd-S" type="text" inputmode="decimal" value="150" /></label>
+      <label class="rd-kbox" hidden>K (m per %) <input class="rd-K" type="text" inputmode="decimal" value="40" /></label>
+      <label class="rd-lbox" hidden>Curve length L (m) <input class="rd-L" type="text" inputmode="decimal" value="200" /></label>
+      <label class="rd-crest">Driver eye height (m) <input class="rd-h1" type="text" inputmode="decimal" value="1.1" /></label>
+      <label class="rd-crest">Object height (m) <input class="rd-h2" type="text" inputmode="decimal" value="0.6" /></label>
+      <label class="rd-sag" hidden>Headlight height (m) <input class="rd-hl" type="text" inputmode="decimal" value="0.6" /></label>
+      <label class="rd-sag" hidden>Headlight beam angle (°) <input class="rd-al" type="text" inputmode="decimal" value="1" /></label>
+      <label>Levels every (m) <input class="rd-vstep" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">A crest (grade falling, g2 below g1) must be long enough to see an object over the top; a sag must be long enough for headlights to light the road at night. Eye, object and headlight heights are design values from your guide; the ones here are made-up examples.</p>
+    <p class="ax-err rd-verr" hidden></p>
+  </div>
+
+  <div class="ax-card rd-vout">
+    <p class="ax-big rd-vbig"></p>
+    <dl class="ax-facts rd-vfacts"></dl>
+    <canvas class="ax-fig rd-prof"></canvas>
+    <div class="ax-scroll"><table class="rd-vtab"></table></div>
+    <div class="ax-row rd-row"><button type="button" class="btn secondary small rd-vcsv">Download levels (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Gradient between two points</h2>
+    <div class="ax-grid">
+      <label>Chainage 1 (m) <input class="rd-c1" type="text" inputmode="decimal" value="0" /></label>
+      <label>Level 1 (m) <input class="rd-z1" type="text" inputmode="decimal" value="10" /></label>
+      <label>Chainage 2 (m) <input class="rd-c2" type="text" inputmode="decimal" value="250" /></label>
+      <label>Level 2 (m) <input class="rd-z2" type="text" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-big rd-gbig"></p>
+    <p class="ax-help rd-ghelp"></p>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { minRadius, frictionNeeded, circularCurve, settingOut, sightOffset, stoppingDistance, crestLength, sagLength, verticalCurve, gradient, type Curve } from '../../lib/sci/eng-road';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[-−]?[\d.]+$/.test(t) ? String(parseFloat(t.replace('−', '-'))).replace('-', '−') : t; };
+  const ch = (x: number) => { const k = Math.floor(x / 1000 + 1e-9), m = x - k * 1000; return `${k}+${m.toFixed(3).padStart(7, '0')}`; };
+  const dms = (d: number) => { const s = Math.round(Math.abs(d) * 3600), dd = Math.floor(s / 3600), mm = Math.floor((s % 3600) / 60), ss = s % 60; return `${dd}°${String(mm).padStart(2, '0')}′${String(ss).padStart(2, '0')}″`; };
+  const root = document.querySelector<HTMLElement>('.rdc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const table = (t: HTMLTableElement, head: string[], rows: string[][]) => {
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (i) e.className = 'r'; r.append(e); }); return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.replaceChildren(h, b);
+  };
+  let hSec: Section[] = [], vSec: Section[] = [], sSec: Section | null = null, gSec: Section | null = null;
+  let plan: Figure | null = null, prof: Figure | null = null, sCsv: (string | number)[][] = [], vCsv: (string | number)[][] = [];
+  let ssd = NaN, curve: Curve | null = null;
+
+  function horizontal() {
+    const err = q('.rd-herr'), out = q('.rd-hout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; hSec = []; sCsv = []; curve = null; };
+    const V = val('.rd-V'), e = val('.rd-e'), f = val('.rd-f'), R = val('.rd-R'), D = val('.rd-D'), pi = val('.rd-pi'), step = val('.rd-step');
+    if (!(V > 0 && V <= 200)) return fail('Give the design speed in km/h.');
+    if (!(e >= 0 && e < 0.2)) return fail('Give the superelevation as a decimal (0.06 for 6 %).');
+    if (!(f > 0 && f < 1)) return fail('Give the side friction factor as a decimal (often 0.1 to 0.2).');
+    if (!(R > 0)) return fail('Give the curve radius in metres.');
+    if (!(D > 0 && D < 180)) return fail('Give the deflection angle in degrees (between 0 and 180).');
+    if (!Number.isFinite(pi) || pi < 0) return fail('Give the PI chainage in metres (0 or more).');
+    if (!(step > 0)) return fail('Give the stake interval in metres.');
+    const c = circularCurve(R, D, pi);
+    if (c.pc < 0) return fail(`The curve starts before chainage 0 (tangent length ${sg(c.T)} m). Use a larger PI chainage.`);
+    if (c.L / step > 500) return fail('That is more than 500 stakes; use a longer stake interval.');
+    err.hidden = true; out.hidden = false; curve = c;
+    const Rmin = minRadius(V, e, f), fn = frictionNeeded(V, R, e), ok = R >= Rmin - 1e-9;
+    q('.rd-hbig').textContent = `Minimum radius ${sg(Rmin, 4)} m: R = ${sg(R)} m is ${ok ? 'enough' : 'too tight'}`;
+    q('.rd-hbig').classList.toggle('rd-bad', !ok);
+    q('.rd-hfacts').replaceChildren(
+      fact('Side friction used at R', sg(fn, 3), `v²/(gR) − e; ${ok ? 'within' : 'MORE than'} your f = ${sg(f)}`),
+      fact('Tangent length T', `${sg(c.T, 5)} m`, 'R tan(Δ/2), PI to PC and PI to PT'),
+      fact('Curve length L', `${sg(c.L, 5)} m`, `R Δ; degree of curve ${sg(c.Dc, 4)}° per 20 m`),
+      fact('External distance E', `${sg(c.E, 4)} m`, 'PI to the middle of the curve'),
+      fact('Middle ordinate M', `${sg(c.M, 4)} m`, `long chord ${sg(c.C, 5)} m to the middle of the curve`),
+      fact('Chainages', `PC ${ch(c.pc)}, PT ${ch(c.pt)}`, `PI ${ch(pi)}`),
+    );
+    const so = settingOut(R, c, step);
+    const rows = so.map((s, i) => [i === 0 ? `PC ${ch(s.ch)}` : i === so.length - 1 ? `PT ${ch(s.ch)}` : ch(s.ch), dms(s.defl), s.chord.toFixed(3), i ? s.sub.toFixed(3) : '–']);
+    const head = ['Chainage', 'Deflection', 'Chord from PC m', 'Sub-chord m'];
+    table(q<HTMLTableElement>('.rd-stab'), head, rows);
+    sCsv = [['chainage_m', 'arc_from_pc_m', 'deflection_deg', 'chord_from_pc_m', 'sub_chord_m'], ...so.map((s, i) => [+s.ch.toFixed(3), +s.arc.toFixed(3), +s.defl.toFixed(6), +s.chord.toFixed(3), i ? +s.sub.toFixed(3) : ''])];
+    // Plan: straights and arc, PI at the top.
+    plan = { w: 380, h: 230, alt: `Plan of a ${sg(R)} m radius curve turning ${sg(D)}°`, draw: (ctx, W, H, pal) => {
+      const d = (D * Math.PI) / 180, Tx = c.T, ext = Tx * 0.35;
+      // PC at (0,0) heading +x, centre at (0, R); PT at (R sin d, R(1 − cos d)); PI at (T, 0).
+      const pts: [number, number][] = [[-ext, 0], [0, 0]];
+      for (let i = 1; i <= 60; i++) { const a = (d * i) / 60; pts.push([R * Math.sin(a), R * (1 - Math.cos(a))]); }
+      const pt = pts[pts.length - 1]; pts.push([pt[0] + ext * Math.cos(d), pt[1] + ext * Math.sin(d)]);
+      const all = [...pts, [Tx, 0] as [number, number]], xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), sc = Math.min((W - 60) / (x1 - x0 || 1), (H - 50) / (y1 - y0 || 1));
+      const X = (x: number) => (W - (x1 - x0) * sc) / 2 + (x - x0) * sc, Y = (y: number) => 25 + (y - y0) * sc;
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(Tx), Y(0)); ctx.lineTo(X(pt[0]), Y(pt[1])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+      const dot = (x: number, y: number, t: string, below: boolean) => { ctx.beginPath(); ctx.arc(X(x), Y(y), 3, 0, 7); ctx.fill(); ctx.textBaseline = below ? 'top' : 'bottom'; ctx.fillText(t, X(x), Y(y) + (below ? 5 : -5)); };
+      dot(0, 0, 'PC', false); dot(Tx, 0, 'PI', false); dot(pt[0], pt[1], 'PT', true);
+      ctx.fillStyle = pal.muted; ctx.textBaseline = 'bottom'; ctx.fillText(`R ${sg(R)} m, Δ ${sg(D)}°, L ${sg(c.L, 4)} m`, W / 2, H - 4);
+    } };
+    paint(q<HTMLCanvasElement>('.rd-plan'), plan);
+    hSec = [{ title: q('.rd-hbig').textContent!, facts: factPairs('.rd-hfacts'), figure: plan }, { title: 'Setting out', table: { head, rows, align: ['l', 'r', 'r', 'r'] } }];
+  }
+
+  function sight() {
+    const V = val('.rd-V'), t = val('.rd-t'), fl = val('.rd-fl'), gr = val('.rd-sg') / 100;
+    ssd = NaN; sSec = null;
+    if (!(V > 0) || !(t >= 0) || !(fl > 0) || !Number.isFinite(gr) || !(fl + gr > 0)) { q('.rd-sbig').textContent = 'Give the speed, reaction time, braking friction and grade (friction + grade must be above 0).'; q('.rd-sfacts').replaceChildren(); return; }
+    const s = stoppingDistance(V, t, fl, gr); ssd = s.total;
+    q('.rd-sbig').textContent = `Stopping sight distance ${sg(s.total, 4)} m`;
+    const facts = [fact('Reaction distance', `${sg(s.react, 4)} m`, `${sg(V)} km/h for ${sg(t)} s`), fact('Braking distance', `${sg(s.brake, 4)} m`, `v² / (2g(${sg(fl)} ${gr < 0 ? '−' : '+'} ${sg(Math.abs(gr))}))`)];
+    if (curve) { const R = val('.rd-R'); facts.push(fact('Clear sightline offset on the curve', `${sg(sightOffset(R, s.total), 4)} m`, s.total <= curve.L ? 'from the inside lane centre: R(1 − cos(S/2R))' : 'sight distance is longer than the curve: this overstates it')); }
+    q('.rd-sfacts').replaceChildren(...facts);
+    sSec = { title: q('.rd-sbig').textContent!, facts: factPairs('.rd-sfacts') };
+  }
+
+  function vertical() {
+    const err = q('.rd-verr'), out = q('.rd-vout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; vSec = []; vCsv = []; };
+    const g1 = val('.rd-g1'), g2 = val('.rd-g2'), vpi = val('.rd-vpi'), zv = val('.rd-zv'), mode = q<HTMLSelectElement>('.rd-mode').value, vstep = val('.rd-vstep');
+    const crest = g2 < g1;
+    q('.rd-obox').hidden = mode !== 'own'; q('.rd-kbox').hidden = mode !== 'k'; q('.rd-lbox').hidden = mode !== 'len';
+    const needS = mode === 'ssd' || mode === 'own';
+    root.querySelectorAll<HTMLElement>('.rd-crest').forEach((e) => { e.hidden = !(needS && crest); });
+    root.querySelectorAll<HTMLElement>('.rd-sag').forEach((e) => { e.hidden = !(needS && !crest); });
+    if (!Number.isFinite(g1) || !Number.isFinite(g2) || Math.abs(g1) > 30 || Math.abs(g2) > 30) return fail('Give both grades in % (between −30 and 30).');
+    if (g1 === g2) return fail('The two grades are the same, so no vertical curve is needed.');
+    if (!Number.isFinite(vpi) || !Number.isFinite(zv)) return fail('Give the VPI chainage and level.');
+    if (!(vstep > 0)) return fail('Give the interval for the levels table.');
+    const A = Math.abs(g2 - g1);
+    let L: number, how: string;
+    if (needS) {
+      const S = mode === 'ssd' ? ssd : val('.rd-S');
+      if (!(S > 0)) return fail(mode === 'ssd' ? 'Fix the stopping sight distance above first.' : 'Give the sight distance in metres.');
+      if (crest) { const h1 = val('.rd-h1'), h2 = val('.rd-h2'); if (!(h1 > 0 && h2 >= 0)) return fail('Give the eye and object heights in metres.'); L = crestLength(A, S, h1, h2); how = `crest, S = ${sg(S, 4)} m with eye ${sg(h1)} m and object ${sg(h2)} m: L ${L > S ? '> S' : '< S'}`; }
+      else { const h = val('.rd-hl'), al = val('.rd-al'); if (!(h > 0) || !(al >= 0 && al < 10)) return fail('Give the headlight height (m) and beam angle (°).'); L = sagLength(A, S, h, al); how = `sag, headlight sight distance ${sg(S, 4)} m, height ${sg(h)} m at ${sg(al)}°: L ${L > S ? '> S' : '< S'}`; }
+    } else if (mode === 'k') { const K = val('.rd-K'); if (!(K > 0)) return fail('Give K in metres per % change of grade.'); L = K * A; how = `K ${sg(K)} × A ${sg(A)}`; }
+    else { L = val('.rd-L'); if (!(L > 0)) return fail('Give the curve length in metres.'); how = 'your length'; }
+    if (!(L > 0)) L = 0;
+    if (L / vstep > 1000) return fail('That is more than 1000 levels; use a longer interval.');
+    err.hidden = true; out.hidden = false;
+    if (L === 0) { q('.rd-vbig').textContent = `No curve needed: the change of grade is small enough for this sight distance (${how}).`; q('.rd-vfacts').replaceChildren(); q('.rd-vtab').replaceChildren(); q('.rd-prof').hidden = true; vSec = [{ title: q('.rd-vbig').textContent! }]; vCsv = []; return; }
+    q('.rd-prof').hidden = false;
+    const v = verticalCurve(g1, g2, L, vpi, zv);
+    q('.rd-vbig').textContent = `${v.crest ? 'Crest' : 'Sag'} curve ${sg(L, 4)} m long, K = ${sg(v.K, 3)}`;
+    const facts = [
+      fact('Length from', how),
+      fact('Change of grade A', `${sg(A, 3)} %`, `${sg(g1)} % to ${sg(g2)} %; rate of change ${sg(A / L * 100, 3)} % per 100 m`),
+      fact('BVC', `${ch(v.bvc)} at ${v.zb.toFixed(3)} m`, 'start of the curve'),
+      fact('EVC', `${ch(v.evc)} at ${v.ze.toFixed(3)} m`, 'end of the curve'),
+      fact('Level at the VPI chainage', `${v.at(vpi).toFixed(3)} m`, `${sg(Math.abs(zv - v.at(vpi)), 4)} m ${v.crest ? 'below' : 'above'} the VPI (A L / 800)`),
+      fact(v.crest ? 'High point' : 'Low point', v.turn ? `${ch(v.turn.ch)} at ${v.turn.z.toFixed(3)} m` : 'at the BVC or EVC', v.turn ? `${sg(v.turn.ch - v.bvc, 4)} m from the BVC: −g1 L / (g2 − g1)` : 'both grades have the same sign'),
+    ];
+    q('.rd-vfacts').replaceChildren(...facts);
+    const stations: number[] = [v.bvc]; for (let c = Math.ceil(v.bvc / vstep - 1e-9) * vstep; c < v.evc - 1e-9; c += vstep) if (c > v.bvc + 1e-9) stations.push(c);
+    if (v.turn) stations.push(v.turn.ch); stations.push(v.evc); stations.sort((a, b) => a - b);
+    const tangent = (c: number) => zv + ((c <= vpi ? g1 : g2) / 100) * (c - vpi);
+    const rows = stations.map((c) => [`${c === v.bvc ? 'BVC ' : c === v.evc ? 'EVC ' : v.turn && c === v.turn.ch ? (v.crest ? 'High ' : 'Low ') : ''}${ch(c)}`, tangent(c).toFixed(3), (v.at(c) - tangent(c)).toFixed(3), v.at(c).toFixed(3)]);
+    const head = ['Chainage', 'Tangent level m', 'Offset m', 'Curve level m'];
+    table(q<HTMLTableElement>('.rd-vtab'), head, rows);
+    vCsv = [['chainage_m', 'tangent_level_m', 'offset_m', 'curve_level_m'], ...stations.map((c) => [+c.toFixed(3), +tangent(c).toFixed(4), +(v.at(c) - tangent(c)).toFixed(4), +v.at(c).toFixed(4)])];
+    const pad = L * 0.4, xs: number[] = [], zs: number[] = [];
+    for (let i = 0; i <= 120; i++) { const c = v.bvc - pad + ((L + 2 * pad) * i) / 120; xs.push(c); zs.push(v.at(c)); }
+    prof = chartFigure({ w: 380, h: 230, xLabel: 'Chainage (m)', yLabel: 'Level (m)', legend: 'below', series: [
+      { name: 'Road profile', x: xs, y: zs, mode: 'line', width: 2 },
+      { name: 'Grades', x: [v.bvc - pad, vpi, v.evc + pad], y: [tangent(v.bvc - pad), zv, tangent(v.evc + pad)], mode: 'line', width: 1, dash: [4, 3] },
+      { name: 'BVC, EVC' + (v.turn ? (v.crest ? ', high point' : ', low point') : ''), x: [v.bvc, v.evc, ...(v.turn ? [v.turn.ch] : [])], y: [v.zb, v.ze, ...(v.turn ? [v.turn.z] : [])], mode: 'points', size: 4 },
+    ] }, `Vertical ${v.crest ? 'crest' : 'sag'} curve profile from ${ch(v.bvc)} to ${ch(v.evc)}`);
+    paint(q<HTMLCanvasElement>('.rd-prof'), prof);
+    vSec = [{ title: q('.rd-vbig').textContent!, facts: factPairs('.rd-vfacts'), figure: prof }, { title: 'Levels', table: { head, rows, align: ['l', 'r', 'r', 'r'] } }];
+  }
+
+  function grade() {
+    const c1 = val('.rd-c1'), z1 = val('.rd-z1'), c2 = val('.rd-c2'), z2 = val('.rd-z2');
+    gSec = null;
+    if (![c1, z1, c2, z2].every(Number.isFinite) || c1 === c2) { q('.rd-gbig').textContent = 'Give two different chainages and their levels.'; q('.rd-ghelp').textContent = ''; return; }
+    const g = gradient(c1, z1, c2, z2);
+    q('.rd-gbig').textContent = `Gradient ${g.percent > 0 ? '+' : ''}${sg(g.percent, 4)} %${Number.isFinite(g.oneIn) ? `, 1 in ${sg(g.oneIn, 4)}` : ' (level)'}`;
+    q('.rd-ghelp').textContent = `Angle ${sg(g.angle, 4)}°; rise ${sg(z2 - z1, 4)} m over ${sg(c2 - c1, 5)} m; length along the slope ${sg(g.slope, 6)} m.`;
+    gSec = { title: q('.rd-gbig').textContent!, text: [q('.rd-ghelp').textContent!] };
+  }
+
+  function all() { horizontal(); sight(); vertical(); grade(); }
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (plan && !q('.rd-hout').hidden) paint(q<HTMLCanvasElement>('.rd-plan'), plan); if (prof && !q('.rd-vout').hidden && !q('.rd-prof').hidden) paint(q<HTMLCanvasElement>('.rd-prof'), prof); });
+  q('.rd-scsv').addEventListener('click', () => { if (sCsv.length) save(new Blob([csv(sCsv)], { type: 'text/csv' }), 'curve-setting-out.csv', 'text/csv'); });
+  q('.rd-vcsv').addEventListener('click', () => { if (vCsv.length) save(new Blob([csv(vCsv)], { type: 'text/csv' }), 'vertical-curve-levels.csv', 'text/csv'); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Road curve design', subtitle: 'Example values made up. For study and planning: check your local code and a qualified engineer.', file: 'road-curves', sections: [...hSec, ...(sSec ? [sSec] : []), ...vSec, ...(gSec ? [gSec] : [])] }));
+</script>
+
+<style is:inline>
+  .rdc .rd-row { margin-top: 10px; }
+  .rdc .rd-h3 { font-size: 15px; margin: 16px 0 0; }
+  .rdc .rd-stab, .rdc .rd-vtab { margin: 8px 0 4px; }
+  .rdc .rd-stab th, .rdc .rd-vtab th { white-space: normal; }
+  .rdc .rd-stab th, .rdc .rd-stab td, .rdc .rd-vtab th, .rdc .rd-vtab td { padding: 7px 4px; }
+  .rdc .rd-stab { font-size: 12.5px; }
+  .rdc .rd-stab td { white-space: nowrap; }
+  .rdc .rd-stab th { white-space: normal; }
+  .rdc .rd-stab td:first-child { white-space: normal; }
+  .rdc .rd-bad { color: var(--bad); }
+  .rdc .rd-prof { margin-top: 12px; }
+</style>

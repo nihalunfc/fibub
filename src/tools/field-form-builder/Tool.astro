@@ -1,0 +1,361 @@
+---
+// Field form builder: design a data form, fill records in the field (offline once the page is open), keep them in
+// this browser if the visitor allows it, and export CSV or GeoJSON. Location is read only when the visitor taps
+// the button. Nothing is sent anywhere.
+import '../../styles/astro.css';
+---
+<div class="ax ffb">
+  <div class="ax-seg ff-tabs" role="group" aria-label="View">
+    <button type="button" data-v="design" aria-pressed="false">Design</button>
+    <button type="button" data-v="fill" aria-pressed="true">Fill a record</button>
+    <button type="button" data-v="records" aria-pressed="false">Records <span class="ff-n">(0)</span></button>
+  </div>
+
+  <div class="ax-card" data-view="design" hidden>
+    <h2>Form</h2>
+    <div class="ax-grid">
+      <label>Form title <input class="ff-title" type="text" maxlength="120" /></label>
+    </div>
+    <label style="margin-top:10px">Description <textarea class="ff-desc" rows="2" maxlength="600"></textarea></label>
+    <h3 class="ff-h">Fields</h3>
+    <div class="ff-fields"></div>
+    <div class="ax-row" style="margin-top:8px">
+      <select class="ff-newtype" aria-label="Type of new field"></select>
+      <button type="button" class="btn secondary small ff-add">Add a field</button>
+    </div>
+    <p class="ax-help ff-typehelp"></p>
+    <p class="ax-err ff-ferr" hidden></p>
+    <h3 class="ff-h">Form file</h3>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ff-save">Save form (.json)</button>
+      <button type="button" class="btn secondary small ff-open">Open a form (.json)</button>
+      <input type="file" class="ff-file" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small ff-example">Use the example</button>
+      <button type="button" class="btn secondary small ff-blank">New empty form</button>
+    </div>
+    <p class="ax-help">Share the .json file so a team fills in the same form. JSON, up to 200 KB and 60 fields. Opening a form keeps your records.</p>
+    <p class="ax-err ff-oerr" hidden></p>
+  </div>
+
+  <div class="ax-card" data-view="fill">
+    <h2 class="ff-ftitle"></h2>
+    <p class="ax-help ff-fdesc"></p>
+    <div class="ff-inputs"></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn ff-rsave">Save record</button>
+      <button type="button" class="btn secondary small ff-rcancel" hidden>Cancel editing</button>
+      <button type="button" class="btn secondary small ff-rclear">Clear</button>
+    </div>
+    <p class="ff-rmsg" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card" data-view="records" hidden>
+    <h2>Records</h2>
+    <p class="ff-rcount"></p>
+    <div class="ax-scroll"><table class="ff-tab"><thead></thead><tbody></tbody></table></div>
+    <p class="ax-help ff-old" hidden></p>
+    <div class="dl">
+      <span class="dl-l">Export</span>
+      <button type="button" class="btn secondary ff-csv">CSV</button>
+      <button type="button" class="btn secondary ff-geo">GeoJSON</button>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ff-keepun" /> GeoJSON: include records with no location (no geometry)</label>
+    <p class="ax-help ff-emsg" aria-live="polite"></p>
+    <h3 class="ff-h">Kept in this browser</h3>
+    <label class="ax-check"><input type="checkbox" class="ff-keep" checked /> Keep the form and records in this browser</label>
+    <p class="ax-help">On by default, so records you make in the field are still here after the page is closed, even with no internet. They are stored only in this browser on this device and never leave it. Export a CSV to keep a copy. Untick to remove the stored copy (records on screen stay until you leave the page).</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ff-delall">Delete all records</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ffb .ff-tabs { margin: 0 0 14px; }
+  .ffb .ff-h { font-size: 15px; margin: 16px 0 6px; }
+  .ffb .ff-fdesc { margin: 0 0 14px; }
+  .ax.ffb textarea { font-family: inherit; font-size: 15px; }
+  .ffb .ff-fd { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 0 0 10px; background: var(--bg); }
+  .ffb .ff-top { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .ffb .ff-top .ff-tn { font-weight: 600; flex: 1 1 auto; }
+  .ffb .ff-top .btn { padding: 6px 9px; }
+  .ffb .ff-fd .ax-grid { margin-top: 8px; }
+  .ffb .ff-fd label { font-size: 14px; }
+  .ffb .ff-in { margin: 0 0 14px; }
+  .ffb .ff-in > .ff-l { display: block; font-weight: 600; margin: 0 0 4px; }
+  .ffb .ff-in .ff-req { color: var(--bad); margin-left: 2px; }
+  .ffb .ff-in .ff-hint { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+  .ffb .ff-in .ff-e { color: var(--bad); font-size: 14px; margin: 4px 0 0; }
+  .ffb .ff-in.bad input, .ffb .ff-in.bad textarea { border-color: var(--bad); }
+  .ffb .ff-line { display: flex; gap: 8px; align-items: center; }
+  .ffb .ff-line > input, .ffb .ff-line > select { flex: 1 1 auto; min-width: 0; width: auto; }
+  .ffb .ff-line > .btn { flex: none; }
+  .ffb .ff-unit { color: var(--muted); flex: none; }
+  .ffb .ff-opts { display: flex; flex-direction: column; gap: 2px; }
+  .ffb .ff-opts label { display: flex; gap: 8px; align-items: center; font-size: 15px; padding: 3px 0; cursor: pointer; }
+  .ffb .ff-gps .ax-grid { margin-top: 8px; }
+  .ffb .ff-gstat { font-size: 14px; margin: 6px 0 0; }
+  .ffb .ff-rmsg { font-weight: 600; min-height: 1.2em; margin: 10px 0 0; }
+  .ffb .ff-rmsg.bad { color: var(--bad); }
+  .ffb .ff-rmsg.good { color: var(--good); }
+  .ffb .ff-tab { border-collapse: collapse; font-size: 14px; }
+  .ffb .ff-tab th, .ffb .ff-tab td { border-bottom: 1px solid var(--line); padding: 6px 10px 6px 0; text-align: left; vertical-align: top; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .ffb .ff-tab td .btn { padding: 4px 8px; font-size: 13px; margin-right: 4px; }
+</style>
+
+<script>
+  import { TYPES, EXAMPLE, slugKey, formProblems, recordErrors, toCSV, toGeoJSON, readForm, formJson, isGps, type Form, type Field, type FieldType, type Value, type Rec, type Gps } from '../../lib/sci/fieldform';
+  import { save, fileSafe } from '../../lib/report';
+
+  const KEY = 'fibub-field-form-v1';
+  const root = document.querySelector<HTMLElement>('.ffb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+  const btn = (text: string, label: string, on: () => void, cls = 'btn secondary small') => { const b = el('button', { type: 'button', className: cls, textContent: text }); b.setAttribute('aria-label', label); b.addEventListener('click', on); return b; };
+  const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
+
+  let F: Form = clone(EXAMPLE), recs: Rec[] = [], next = 1, editing = 0;
+  const autoKey = new WeakSet<Field>();
+  let vals: Record<string, Value> = {};
+
+  // ---------- storage (only when the box is ticked) ----------
+  const keeping = () => q<HTMLInputElement>('.ff-keep').checked;
+  function store() {
+    if (!keeping()) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ form: F, recs, next })); }
+    catch { q('.ff-emsg').textContent = 'This browser would not store more (it may be full or in private mode). Export a CSV now to keep your records.'; }
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(KEY); if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s?.form?.fields) F = readForm(JSON.stringify(s.form));
+      if (Array.isArray(s?.recs)) recs = s.recs.filter((r: Rec) => r && Number.isInteger(r.no) && r.values && typeof r.values === 'object');
+      next = Math.max(Number(s?.next) || 1, ...recs.map((r) => r.no + 1));
+    } catch { /* nothing usable stored */ }
+  }
+
+  // ---------- views ----------
+  function view(v: string) {
+    root.querySelectorAll<HTMLButtonElement>('.ff-tabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+    root.querySelectorAll<HTMLElement>('[data-view]').forEach((c) => (c.hidden = c.dataset.view !== v));
+    if (v === 'fill') drawFill();
+    if (v === 'records') drawRecords();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ff-tabs button').forEach((b) => b.addEventListener('click', () => view(b.dataset.v!)));
+
+  // ---------- design ----------
+  q('.ff-newtype').replaceChildren(...TYPES.map((t) => el('option', { value: t.id, textContent: t.name })));
+  const typeHelp = () => { q('.ff-typehelp').textContent = TYPES.find((t) => t.id === q<HTMLSelectElement>('.ff-newtype').value)!.help; };
+  q('.ff-newtype').addEventListener('change', typeHelp); typeHelp();
+
+  function problems() { const p = formProblems(F), e = q('.ff-ferr'); e.textContent = p.join(' '); e.hidden = !p.length; return p; }
+  function changed() { problems(); store(); }
+  function drawDesign() {
+    q<HTMLInputElement>('.ff-title').value = F.title;
+    q<HTMLTextAreaElement>('.ff-desc').value = F.description ?? '';
+    q('.ff-fields').replaceChildren(...F.fields.map((f, i) => {
+      const box = el('div', { className: 'ff-fd' });
+      const move = (d: number) => { const j = i + d; if (j < 0 || j >= F.fields.length) return; [F.fields[i], F.fields[j]] = [F.fields[j], F.fields[i]]; drawDesign(); changed(); };
+      const tname = TYPES.find((t) => t.id === f.type)!.name;
+      box.append(el('div', { className: 'ff-top' }, el('span', { className: 'ff-tn', textContent: `${i + 1}. ${tname}` }),
+        btn('↑', `Move ${f.label} up`, () => move(-1)), btn('↓', `Move ${f.label} down`, () => move(1)), btn('×', `Remove ${f.label}`, () => { F.fields.splice(i, 1); drawDesign(); changed(); })));
+      const g = el('div', { className: 'ax-grid' });
+      const label = el('input', { type: 'text', value: f.label, maxLength: 120, className: 'ff-label' });
+      const key = el('input', { type: 'text', value: f.key, maxLength: 40, className: 'ff-key', spellcheck: false, autocomplete: 'off' });
+      label.addEventListener('input', () => { f.label = label.value; if (autoKey.has(f)) { f.key = slugKey(label.value, F.fields.filter((x) => x !== f).map((x) => x.key)); key.value = f.key; } changed(); });
+      key.addEventListener('input', () => { f.key = key.value.trim(); autoKey.delete(f); changed(); });
+      const help = el('input', { type: 'text', value: f.help ?? '', maxLength: 300 });
+      help.addEventListener('input', () => { f.help = help.value; changed(); });
+      const req = el('input', { type: 'checkbox', checked: !!f.required });
+      req.addEventListener('change', () => { f.required = req.checked; changed(); });
+      g.append(el('label', {}, 'Label', label), el('label', {}, 'Column name', key), el('label', {}, 'Hint (optional)', help));
+      box.append(g, el('label', { className: 'ax-check', style: 'margin-top:8px' } as any, req, 'Required'));
+      if (f.type === 'number') {
+        const g2 = el('div', { className: 'ax-grid' });
+        const mk = (name: 'min' | 'max', text: string) => {
+          const inp = el('input', { type: 'number', step: 'any', value: f[name] == null ? '' : String(f[name]), inputMode: 'decimal' });
+          inp.addEventListener('input', () => { f[name] = inp.value.trim() === '' || !Number.isFinite(Number(inp.value)) ? null : Number(inp.value); changed(); });
+          return el('label', {}, text, inp);
+        };
+        const unit = el('input', { type: 'text', value: f.unit ?? '', maxLength: 20 });
+        unit.addEventListener('input', () => { f.unit = unit.value.trim(); changed(); });
+        g2.append(el('label', {}, 'Unit', unit), mk('min', 'Smallest allowed'), mk('max', 'Largest allowed'));
+        box.append(g2);
+      }
+      if (f.type === 'choice') {
+        const opts = el('textarea', { rows: Math.max(3, (f.options ?? []).length), value: (f.options ?? []).join('\n') });
+        opts.addEventListener('input', () => { f.options = opts.value.split('\n').map((x) => x.trim()).filter(Boolean); changed(); });
+        const multi = el('input', { type: 'checkbox', checked: !!f.multi });
+        multi.addEventListener('change', () => { f.multi = multi.checked; changed(); });
+        box.append(el('label', { style: 'margin-top:8px' } as any, 'Options, one per line', opts), el('label', { className: 'ax-check', style: 'margin-top:8px' } as any, multi, 'Allow more than one'));
+      }
+      return box;
+    }));
+    problems();
+  }
+  q<HTMLInputElement>('.ff-title').addEventListener('input', (e) => { F.title = (e.target as HTMLInputElement).value; changed(); });
+  q<HTMLTextAreaElement>('.ff-desc').addEventListener('input', (e) => { F.description = (e.target as HTMLTextAreaElement).value; changed(); });
+  q('.ff-add').addEventListener('click', () => {
+    if (F.fields.length >= 60) return;
+    const type = q<HTMLSelectElement>('.ff-newtype').value as FieldType, name = TYPES.find((t) => t.id === type)!.name;
+    const f: Field = { key: slugKey(name, F.fields.map((x) => x.key)), label: name, type, required: false, ...(type === 'choice' ? { options: ['Option 1', 'Option 2'], multi: false } : {}), ...(type === 'number' ? { min: null, max: null } : {}) };
+    autoKey.add(f); F.fields.push(f); drawDesign(); changed();
+    const all = root.querySelectorAll<HTMLInputElement>('.ff-label'); all[all.length - 1]?.select();
+  });
+  q('.ff-save').addEventListener('click', () => save(new Blob([formJson(F)], { type: 'application/json' }), `${fileSafe(F.title)}-form.json`, 'application/json'));
+  q('.ff-open').addEventListener('click', () => q<HTMLInputElement>('.ff-file').click());
+  q<HTMLInputElement>('.ff-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, file = inp.files?.[0]; inp.value = '';
+    const oe = q('.ff-oerr'); oe.hidden = true;
+    if (!file) return;
+    try {
+      if (file.size > 200_000) throw new Error(`${file.name} is ${(file.size / 1000).toFixed(0)} KB; a form file is at most 200 KB.`);
+      F = readForm(await file.text()); drawDesign(); changed(); resetFill();
+    } catch (err) { oe.textContent = (err as Error).message; oe.hidden = false; }
+  });
+  q('.ff-example').addEventListener('click', () => { F = clone(EXAMPLE); drawDesign(); changed(); resetFill(); });
+  q('.ff-blank').addEventListener('click', () => { const f: Field = { key: 'notes', label: 'Notes', type: 'text' }; autoKey.add(f); F = { title: 'My field form', description: '', fields: [f] }; drawDesign(); changed(); resetFill(); });
+
+  // ---------- fill ----------
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const nowParts = () => { const d = new Date(); return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` }; };
+  function resetFill() { vals = {}; editing = 0; drawFill(); }
+  function gpsBox(f: Field) {
+    const wrap = el('div', { className: 'ff-gps' });
+    const v = vals[f.key];
+    const cur = isGps(v) ? v : null;
+    const stat = el('p', { className: 'ff-gstat' }); stat.setAttribute('aria-live', 'polite');
+    const lat = el('input', { type: 'text', inputMode: 'decimal', value: cur ? String(cur.lat) : '', className: 'ff-lat' });
+    const lon = el('input', { type: 'text', inputMode: 'decimal', value: cur ? String(cur.lon) : '', className: 'ff-lon' });
+    const acc = el('input', { type: 'text', inputMode: 'decimal', value: cur?.acc != null ? String(cur.acc) : '', className: 'ff-acc' });
+    const typed = () => {
+      if (!lat.value.trim() && !lon.value.trim()) { vals[f.key] = null; return; }
+      vals[f.key] = { lat: Number(lat.value.trim() || NaN), lon: Number(lon.value.trim() || NaN), acc: acc.value.trim() === '' ? null : Number(acc.value), at: '' } as Gps;
+    };
+    for (const i of [lat, lon, acc]) i.addEventListener('input', typed);
+    const get = btn('Get my location', `Get my location for ${f.label}`, () => {
+      if (!('geolocation' in navigator)) { stat.textContent = 'This browser cannot give a location. Type the latitude and longitude instead.'; return; }
+      stat.textContent = 'Asking the device for its location…'; get.disabled = true;
+      navigator.geolocation.getCurrentPosition((p) => {
+        get.disabled = false;
+        const g: Gps = { lat: Math.round(p.coords.latitude * 1e7) / 1e7, lon: Math.round(p.coords.longitude * 1e7) / 1e7, acc: Math.round(p.coords.accuracy * 10) / 10, at: new Date(p.timestamp).toISOString().slice(0, 19) + 'Z' };
+        vals[f.key] = g; lat.value = String(g.lat); lon.value = String(g.lon); acc.value = String(g.acc);
+        stat.textContent = `Location found, accurate to about ${g.acc} m${g.acc! > 50 ? '. That is rough; wait in the open and try again for a better fix.' : '.'}`;
+      }, (err) => {
+        get.disabled = false;
+        stat.textContent = err.code === 1 ? 'Location was not allowed. Allow it for this site in the browser settings, or type the latitude and longitude.' : err.code === 3 ? 'No location fix in 30 seconds. Move into the open and try again, or type it.' : 'The device could not find its location. Try again, or type it.';
+      }, { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
+    }, 'btn secondary small ff-get');
+    const clr = btn('Clear', `Clear ${f.label}`, () => { vals[f.key] = null; lat.value = lon.value = acc.value = ''; stat.textContent = ''; });
+    wrap.append(el('div', { className: 'ax-row' }, get, clr), stat, el('div', { className: 'ax-grid' }, el('label', {}, 'Latitude (°, north +)', lat), el('label', {}, 'Longitude (°, east +)', lon), el('label', {}, 'Accuracy (m)', acc)));
+    if (cur?.at) stat.textContent = `Saved fix from ${cur.at.replace('T', ' ')}.`;
+    return wrap;
+  }
+  function inputFor(f: Field): HTMLElement {
+    const v = vals[f.key];
+    const set = (x: Value) => { vals[f.key] = x; };
+    if (f.type === 'gps') return gpsBox(f);
+    if (f.type === 'choice') {
+      const box = el('div', { className: 'ff-opts', role: 'group' } as any);
+      const chosen = Array.isArray(v) ? v : v ? [String(v)] : [];
+      for (const o of f.options ?? []) {
+        const i = el('input', { type: f.multi ? 'checkbox' : 'radio', name: `ff-${f.key}`, value: o, checked: chosen.includes(o) });
+        i.addEventListener('change', () => { const on = [...box.querySelectorAll<HTMLInputElement>('input:checked')].map((x) => x.value); set(f.multi ? on : on[0] ?? null); });
+        box.append(el('label', {}, i, o));
+      }
+      return box;
+    }
+    const line = el('div', { className: 'ff-line' });
+    const kind: Record<string, string> = { date: 'date', time: 'time', datetime: 'datetime-local' };
+    const i = f.type === 'text' ? el('textarea', { rows: 2, value: typeof v === 'string' ? v : '' }) : el('input', { type: kind[f.type] ?? 'text', value: typeof v === 'string' ? v : '' });
+    if (f.type === 'number') { (i as HTMLInputElement).inputMode = 'decimal'; }
+    if (f.type === 'photo') (i as HTMLInputElement).placeholder = 'IMG_2041: what the photo shows';
+    i.addEventListener('input', () => set((i as HTMLInputElement).value));
+    i.setAttribute('aria-label', f.label);
+    i.dataset.key = f.key;
+    line.append(i);
+    if (f.type === 'number' && f.unit) line.append(el('span', { className: 'ff-unit', textContent: f.unit }));
+    if (f.type === 'date' || f.type === 'time' || f.type === 'datetime') line.append(btn(f.type === 'date' ? 'Today' : 'Now', `Fill ${f.label} with now`, () => { const n = nowParts(); const x = f.type === 'date' ? n.date : f.type === 'time' ? n.time : `${n.date}T${n.time}`; (i as HTMLInputElement).value = x; set(x); }));
+    return line;
+  }
+  function drawFill() {
+    q('.ff-ftitle').textContent = editing ? `${F.title || 'Field form'}: editing record ${editing}` : F.title || 'Field form';
+    q('.ff-fdesc').textContent = F.description ?? '';
+    const p = formProblems(F);
+    if (p.length) { q('.ff-inputs').replaceChildren(el('p', { className: 'ax-err', textContent: `Fix the form first (Design): ${p.join(' ')}` })); return; }
+    q('.ff-inputs').replaceChildren(...F.fields.map((f) => {
+      const hint = [f.help, f.type === 'number' && (f.min != null || f.max != null) ? `Allowed: ${f.min ?? '…'} to ${f.max ?? '…'}${f.unit ? ' ' + f.unit : ''}.` : '', f.type === 'choice' && f.multi ? 'Tick all that apply.' : ''].filter(Boolean).join(' ');
+      const lab = el('span', { className: 'ff-l', textContent: f.label });
+      if (f.required) { const r = el('span', { className: 'ff-req', textContent: '*' }); r.setAttribute('aria-label', 'required'); lab.append(r); }
+      const box = el('div', { className: 'ff-in' }, lab);
+      box.dataset.key = f.key;
+      if (hint) box.append(el('span', { className: 'ff-hint', textContent: hint }));
+      box.append(inputFor(f), el('p', { className: 'ff-e', hidden: true }));
+      return box;
+    }));
+    q('.ff-rcancel').hidden = !editing;
+    q('.ff-rsave').textContent = editing ? 'Save changes' : 'Save record';
+  }
+  const rmsg = (t: string, cls: string) => { const m = q('.ff-rmsg'); m.textContent = t; m.className = 'ff-rmsg ' + cls; };
+  q('.ff-rsave').addEventListener('click', () => {
+    if (formProblems(F).length) return;
+    const values: Record<string, Value> = {};
+    for (const f of F.fields) { const v = vals[f.key]; values[f.key] = typeof v === 'string' ? v.trim() : v ?? (f.type === 'choice' && f.multi ? [] : null); }
+    const errs = recordErrors(F, values);
+    root.querySelectorAll<HTMLElement>('.ff-in').forEach((b) => { const e = errs[b.dataset.key!]; b.classList.toggle('bad', !!e); const p = b.querySelector<HTMLElement>('.ff-e')!; p.textContent = e ?? ''; p.hidden = !e; });
+    const n = Object.keys(errs).length;
+    if (n) { rmsg(`Not saved: ${n} field${n === 1 ? ' needs' : 's need'} attention.`, 'bad'); root.querySelector<HTMLElement>('.ff-in.bad')?.scrollIntoView({ block: 'center' }); return; }
+    const today = nowParts().date;
+    if (editing) { const r = recs.find((x) => x.no === editing)!; r.values = { ...r.values, ...values }; rmsg(`Record ${editing} updated.`, 'good'); }
+    else { recs.push({ no: next, values, saved: today }); rmsg(`Record ${next} saved.`, 'good'); next++; }
+    store(); counts(); resetFill();
+  });
+  q('.ff-rclear').addEventListener('click', () => { const e = editing; resetFill(); if (e) rmsg('', ''); });
+  q('.ff-rcancel').addEventListener('click', () => { resetFill(); rmsg('Editing cancelled.', ''); });
+
+  // ---------- records ----------
+  const show = (f: Field, v: Value | undefined) => (v == null ? '' : isGps(v) ? `${v.lat.toFixed(5)}, ${v.lon.toFixed(5)}${v.acc != null ? ` ±${v.acc} m` : ''}` : Array.isArray(v) ? v.join('; ') : `${v}${f.type === 'number' && f.unit && v !== '' ? ' ' + f.unit : ''}`);
+  function counts() { q('.ff-n').textContent = `(${recs.length})`; }
+  function drawRecords() {
+    q('.ff-rcount').textContent = recs.length ? `${recs.length} record${recs.length === 1 ? '' : 's'}.` : 'No records yet. Fill the form and press Save record.';
+    q('.ff-tab thead').replaceChildren(recs.length ? el('tr', {}, el('th', { textContent: '#' }), el('th', { textContent: '' }), ...F.fields.map((f) => el('th', { textContent: f.label }))) : '');
+    q('.ff-tab tbody').replaceChildren(...recs.map((r) => el('tr', {},
+      el('td', { textContent: String(r.no) }),
+      el('td', {}, btn('Edit', `Edit record ${r.no}`, () => { editing = r.no; vals = clone(r.values); view('fill'); }), btn('Delete', `Delete record ${r.no}`, () => { recs = recs.filter((x) => x !== r); store(); counts(); drawRecords(); })),
+      ...F.fields.map((f) => { const t = show(f, r.values[f.key]); return el('td', { textContent: t, title: t }); }))));
+    const keys = new Set(F.fields.map((f) => f.key));
+    const old = recs.filter((r) => Object.keys(r.values).some((k) => !keys.has(k) && r.values[k] != null && r.values[k] !== '')).length;
+    q('.ff-old').hidden = !old;
+    q('.ff-old').textContent = `${old} record${old === 1 ? ' has' : 's have'} values for fields that are no longer in the form. They are kept here but not exported; add the field back with the same column name to export them.`;
+  }
+  const stamp = () => nowParts().date;
+  q('.ff-csv').addEventListener('click', () => {
+    if (!recs.length) { q('.ff-emsg').textContent = 'No records to export yet.'; return; }
+    save(new Blob(['﻿' + toCSV(F, recs)], { type: 'text/csv' }), `${fileSafe(F.title)}-${stamp()}.csv`, 'text/csv');
+    q('.ff-emsg').textContent = `${recs.length} records exported as CSV.`;
+  });
+  q('.ff-geo').addEventListener('click', () => {
+    if (!F.fields.some((f) => f.type === 'gps')) { q('.ff-emsg').textContent = 'The form has no location field, so there is nothing to map. Use CSV.'; return; }
+    const g = toGeoJSON(F, recs, { keepUnlocated: q<HTMLInputElement>('.ff-keepun').checked });
+    if (!g.located && !q<HTMLInputElement>('.ff-keepun').checked) { q('.ff-emsg').textContent = 'No record has a location yet.'; return; }
+    save(new Blob([g.text], { type: 'application/geo+json' }), `${fileSafe(F.title)}-${stamp()}.geojson`, 'application/geo+json');
+    q('.ff-emsg').textContent = `${g.located} located record${g.located === 1 ? '' : 's'} exported as GeoJSON${g.unlocated ? `; ${g.unlocated} without a location ${q<HTMLInputElement>('.ff-keepun').checked ? 'included with no geometry' : 'left out'}` : ''}.`;
+  });
+  let armed = false;
+  q('.ff-delall').addEventListener('click', () => {
+    const b = q('.ff-delall');
+    if (!recs.length) return;
+    if (!armed) { armed = true; b.textContent = `Tap again to delete ${recs.length} records`; setTimeout(() => { armed = false; b.textContent = 'Delete all records'; }, 4000); return; }
+    armed = false; b.textContent = 'Delete all records';
+    recs = []; next = 1; store(); counts(); drawRecords(); q('.ff-emsg').textContent = 'All records deleted.';
+  });
+  q<HTMLInputElement>('.ff-keep').addEventListener('change', () => {
+    if (keeping()) { store(); q('.ff-emsg').textContent = 'The form and records are kept in this browser.'; }
+    else { try { localStorage.removeItem(KEY); } catch { /* nothing stored */ } q('.ff-emsg').textContent = 'The stored copy was removed. Records on screen go when you leave the page.'; }
+    try { localStorage.setItem(KEY + '-off', keeping() ? '' : '1'); if (keeping()) localStorage.removeItem(KEY + '-off'); } catch { /* fine */ }
+  });
+
+  // ---------- start ----------
+  try { if (localStorage.getItem(KEY + '-off') === '1') q<HTMLInputElement>('.ff-keep').checked = false; } catch { /* fine */ }
+  if (keeping()) restore();
+  drawDesign(); counts(); view('fill');
+</script>

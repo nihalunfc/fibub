@@ -1,0 +1,210 @@
+---
+// Capacitance and inductance of common shapes, with dielectrics and cores. Worked out in the browser.
+// Material values offered are rounded, typical figures and can be changed. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cic">
+  <div class="ax-card">
+    <h2>Shape</h2>
+    <div class="ax-grid">
+      <label>What to work out <select class="ci-g">
+        <optgroup label="Capacitors and lines">
+          <option value="plate" selected>Parallel plates (with dielectric layers)</option>
+          <option value="coax">Coaxial cable</option>
+          <option value="sphere">Sphere or concentric spheres</option>
+          <option value="twin">Two parallel wires</option>
+          <option value="plane">Wire over a ground plane</option>
+        </optgroup>
+        <optgroup label="Inductors">
+          <option value="solenoid">Solenoid (single-layer coil)</option>
+          <option value="torect">Toroid, rectangular cross-section</option>
+          <option value="toround">Toroid, round cross-section</option>
+        </optgroup>
+      </select></label>
+      <label class="ci-mat-l">Fill εr from a material <select class="ci-mat">
+        <option value="">(choose)</option>
+        <option value="1">Vacuum (1)</option>
+        <option value="1.0006">Air (1.0006)</option>
+        <option value="2.1">PTFE (about 2.1)</option>
+        <option value="2.25">Polyethylene (about 2.25)</option>
+        <option value="3">Polyester film (about 3)</option>
+        <option value="4.4">FR-4 circuit board (about 4.4)</option>
+        <option value="6">Glass or mica (about 6)</option>
+        <option value="80">Water at room temperature (about 80)</option>
+      </select></label>
+      <label class="ci-core-l">Fill μr from a core <select class="ci-core">
+        <option value="">(choose)</option>
+        <option value="1">Air or plastic (1)</option>
+        <option value="10">Iron powder (example, about 10)</option>
+        <option value="2000">Ferrite (example, about 2000)</option>
+      </select></label>
+    </div>
+    <div class="ax-grid ci-fields" style="margin-top:10px"></div>
+    <p class="ax-help ci-note"></p>
+    <p class="ax-help">Material values are rounded, typical figures for room temperature and low frequency; real parts vary, so type your own from the datasheet. Edge (fringing) fields are left out, so plates whose gap is not small next to their size have a little more capacitance than shown.</p>
+    <p class="ax-err ci-err" hidden></p>
+  </div>
+
+  <div class="ax-card ci-out">
+    <p class="ax-big ci-big"></p>
+    <dl class="ax-facts ci-facts"></dl>
+    <canvas class="ax-fig ci-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help ci-warn"></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import * as K from '../../lib/sci/ph-capind';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cic')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  type F = [key: string, label: string, def: string];
+  const SPEC: Record<string, { fields: F[]; note: string; cap: boolean }> = {
+    plate: { cap: true, note: 'Two flat plates with one or two dielectric layers between them (stacked, like a film on glass). Set layer 2 to 0 mm for a single dielectric.', fields: [['A', 'Plate area (cm²)', '100'], ['d1', 'Layer 1 thickness (mm)', '1'], ['er', 'Layer 1 εr', '1.0006'], ['d2', 'Layer 2 thickness (mm, 0 = none)', '0'], ['er2', 'Layer 2 εr', '4.4'], ['V', 'Voltage (V)', '100']] },
+    coax: { cap: true, note: 'Inner conductor inside a round shield, filled with a dielectric. Gives C and L per metre, the characteristic impedance and the signal speed.', fields: [['di', 'Inner conductor diameter (mm)', '0.9'], ['do', 'Inside diameter of the shield (mm)', '2.95'], ['len', 'Length (m)', '1'], ['er', 'Dielectric εr', '2.25'], ['mr', 'μr of the filling', '1'], ['V', 'Voltage (V)', '100']] },
+    sphere: { cap: true, note: 'A metal sphere inside a larger hollow one. Leave the outer radius empty for a sphere on its own, far from everything.', fields: [['ra', 'Inner sphere radius (cm)', '10'], ['rb', 'Outer sphere radius (cm, empty = none)', ''], ['er', 'εr between them', '1'], ['V', 'Voltage (V)', '1000']] },
+    twin: { cap: true, note: 'Two long parallel round wires, such as a twin-lead or a pair of bus bars, in a uniform medium.', fields: [['dw', 'Wire diameter (mm)', '1'], ['D', 'Centre-to-centre spacing (mm)', '3'], ['len', 'Length (m)', '1'], ['er', 'εr around the wires', '1'], ['mr', 'μr', '1'], ['V', 'Voltage (V)', '100']] },
+    plane: { cap: true, note: 'One long round wire parallel to a large flat ground plane, in a uniform medium.', fields: [['dw', 'Wire diameter (mm)', '1'], ['h', 'Height of the wire centre (mm)', '2'], ['len', 'Length (m)', '1'], ['er', 'εr around the wire', '1'], ['mr', 'μr', '1'], ['V', 'Voltage (V)', '100']] },
+    solenoid: { cap: false, note: "A single-layer coil wound on a tube. With an air core, Nagaoka's coefficient corrects the long-coil formula for a short coil.", fields: [['N', 'Turns N', '100'], ['Dm', 'Coil diameter (mm, to the wire centres)', '20'], ['l', 'Coil length (mm)', '50'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
+    torect: { cap: false, note: 'A ring core with a rectangular cross-section, wound evenly all the way round.', fields: [['N', 'Turns N', '200'], ['tdi', 'Inside diameter (mm)', '40'], ['tdo', 'Outside diameter (mm)', '80'], ['th', 'Height (mm)', '10'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
+    toround: { cap: false, note: 'A ring with a round cross-section (like a doughnut), wound evenly all the way round.', fields: [['N', 'Turns N', '200'], ['Rm', 'Radius to the centre of the tube (mm)', '30'], ['tr', 'Tube radius (mm)', '10'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
+  };
+  const kept: Record<string, Record<string, string>> = {};
+  let fig: Figure | null = null, report: Section[] = [];
+  const PRE: [number, string][] = [[1e-15, 'f'], [1e-12, 'p'], [1e-9, 'n'], [1e-6, 'µ'], [1e-3, 'm'], [1, ''], [1e3, 'k'], [1e6, 'M']];
+  const si = (x: number, u: string, n = 4) => { if (x === 0 || !Number.isFinite(x)) return `${sig(x, n)} ${u}`; const a = Math.abs(x); let p = PRE[0]; for (const e of PRE) if (a >= e[0] * 0.9999) p = e; return `${sig(x / p[0], n)} ${p[1]}${u}`; };
+
+  function fields() {
+    const g = q<HTMLSelectElement>('.ci-g').value, s = SPEC[g];
+    q('.ci-fields').replaceChildren(...s.fields.map(([k, lab, def]) => {
+      const l = document.createElement('label'); l.textContent = lab + ' ';
+      const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.className = `ci-${k}`; i.value = kept[g]?.[k] ?? def;
+      i.addEventListener('input', () => { (kept[g] ??= {})[k] = i.value; calc(); });
+      l.append(i); return l;
+    }));
+    q('.ci-note').textContent = s.note;
+    q('.ci-mat-l').hidden = !s.fields.some((f) => f[0] === 'er');
+    q('.ci-core-l').hidden = !s.fields.some((f) => f[0] === 'mr');
+  }
+
+  function calc() {
+    const err = q('.ci-err'), out = q('.ci-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const g = q<HTMLSelectElement>('.ci-g').value, s = SPEC[g];
+    const v: Record<string, number> = {};
+    for (const [k, lab] of s.fields) {
+      const raw = q<HTMLInputElement>(`.ci-${k}`).value.trim();
+      if (k === 'rb' && raw === '') { v.rb = Infinity; continue; }
+      v[k] = num(raw);
+      const zeroOk = k === 'd2' || k === 'V' || k === 'I';
+      if (!(zeroOk ? v[k] >= 0 : v[k] > 0)) return fail(`${lab.replace(/ \(.*\)$/, '')}: give a number ${zeroOk ? 'of 0 or more' : 'greater than 0'}.`);
+    }
+    if (v.er !== undefined && v.er < 1) return fail('εr is 1 or more for ordinary materials.');
+    if (v.er2 !== undefined && v.d2 > 0 && v.er2 < 1) return fail('Layer 2 εr is 1 or more for ordinary materials.');
+    const f: HTMLElement[] = [], warn: string[] = [];
+    let big = '', chart: Figure;
+    const mm = 1e-3;
+    if (g === 'plate') {
+      const A = v.A * 1e-4, layers = [{ d: v.d1 * mm, er: v.er }, ...(v.d2 > 0 ? [{ d: v.d2 * mm, er: v.er2 }] : [])], C = K.plates(A, layers);
+      big = `C = ${si(C, 'F')}`;
+      f.push(fact('Capacitance', si(C, 'F'), layers.length > 1 ? `ε0A / Σ(d/εr): the layers act as capacitors in series` : 'ε0 εr A / d'));
+      const E = K.plateFields(A, layers, v.V);
+      f.push(fact(`Charge at ${sig(v.V, 4)} V`, si(C * v.V, 'C'), 'Q = CV'), fact('Stored energy', si(0.5 * C * v.V * v.V, 'J'), '½CV²'));
+      E.forEach((e, i) => { f.push(fact(`Field in layer ${i + 1}`, `${sig(e / 1e6, 3)} kV/mm`, layers.length > 1 ? 'the layer with the lower εr takes more of the voltage' : 'E = V/d')); if (layers[i].er < 1.01 && e > 3e6) warn.push(`Layer ${i + 1} is air at ${sig(e / 1e6, 3)} kV/mm: dry air breaks down at roughly 3 kV/mm.`); });
+      const ds: number[] = []; for (let i = 0; i <= 80; i++) ds.push(v.d1 * Math.pow(10, -1 + (i / 80) * 2));
+      chart = chartFigure({ w: 380, h: 230, xLabel: 'Layer 1 thickness (mm)', yLabel: 'Capacitance (pF)', xLog: true, yLog: true, legend: 'none', series: [{ name: 'C', x: ds, y: ds.map((d) => K.plates(A, [{ d: d * mm, er: v.er }, ...(v.d2 > 0 ? [{ d: v.d2 * mm, er: v.er2 }] : [])]) * 1e12), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v.d1, dash: [3, 3], label: 'now' }] }, 'Capacitance against the gap');
+    } else if (g === 'sphere') {
+      const a = v.ra / 100, b = v.rb / 100;
+      if (Number.isFinite(b) && !(b > a)) return fail('The outer sphere must be larger than the inner one.');
+      const C = K.spheres(a, b, v.er), Q = C * v.V, Ea = Q / (4 * Math.PI * K.EPS0 * v.er * a * a);
+      big = `C = ${si(C, 'F')}`;
+      f.push(fact('Capacitance', si(C, 'F'), Number.isFinite(b) ? '4π ε0 εr ab / (b − a)' : '4π ε0 εr a, an isolated sphere'));
+      f.push(fact(`Charge at ${sig(v.V, 4)} V`, si(Q, 'C'), 'Q = CV'), fact('Stored energy', si(0.5 * C * v.V * v.V, 'J'), '½CV²'), fact('Field at the inner surface', `${sig(Ea / 1e6, 3)} kV/mm`, 'the strongest field, Q / (4π ε a²)'));
+      if (v.er < 1.01 && Ea > 3e6) warn.push(`The field at the surface is ${sig(Ea / 1e6, 3)} kV/mm: air breaks down at roughly 3 kV/mm, so expect sparks or corona.`);
+      const rs: number[] = []; for (let i = 0; i <= 80; i++) rs.push(v.ra * 1.01 * Math.pow(100 / 1.01, i / 80));
+      chart = chartFigure({ w: 380, h: 230, xLabel: 'Outer sphere radius (cm)', yLabel: 'Capacitance (pF)', xLog: true, yLog: true, legend: 'below', series: [{ name: 'Concentric spheres', x: rs, y: rs.map((r) => K.spheres(a, r / 100, v.er) * 1e12), mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: K.spheres(a, Infinity, v.er) * 1e12, dash: [4, 4], label: 'isolated' }, ...(Number.isFinite(b) ? [{ kind: 'vline' as const, at: v.rb, dash: [3, 3], label: 'now' }] : [])] }, 'Capacitance against the outer radius');
+    } else if (g === 'coax' || g === 'twin' || g === 'plane') {
+      let C: number, L: number, xs: number[], zf: (x: number) => number, xl: string, x0: number, Emax = NaN;
+      if (g === 'coax') {
+        const a = (v.di / 2) * mm, b = (v.do / 2) * mm;
+        if (!(b > a)) return fail('The shield must be wider than the inner conductor.');
+        C = K.coaxC(a, b, v.er); L = K.coaxL(a, b, v.mr); Emax = v.V / (a * Math.log(b / a));
+        x0 = v.do; xl = 'Shield inside diameter (mm)'; xs = []; for (let i = 1; i <= 80; i++) xs.push(v.di * Math.pow(30, i / 80));
+        zf = (x) => K.line(K.coaxL(a, (x / 2) * mm, v.mr), K.coaxC(a, (x / 2) * mm, v.er)).z0;
+      } else if (g === 'twin') {
+        const a = (v.dw / 2) * mm, D = v.D * mm;
+        if (!(D > 2 * a)) return fail('The spacing between centres must be more than one wire diameter.');
+        C = K.twinC(a, D, v.er); L = K.twinL(a, D, v.mr);
+        x0 = v.D; xl = 'Centre-to-centre spacing (mm)'; xs = []; for (let i = 1; i <= 80; i++) xs.push(v.dw * Math.pow(50, i / 80));
+        zf = (x) => K.line(K.twinL(a, x * mm, v.mr), K.twinC(a, x * mm, v.er)).z0;
+      } else {
+        const a = (v.dw / 2) * mm, h = v.h * mm;
+        if (!(h > a)) return fail('The wire centre must be more than one radius above the plane.');
+        C = K.planeC(a, h, v.er); L = K.planeL(a, h, v.mr);
+        x0 = v.h; xl = 'Height of the wire centre (mm)'; xs = []; for (let i = 1; i <= 80; i++) xs.push((v.dw / 2) * Math.pow(100, i / 80));
+        zf = (x) => K.line(K.planeL(a, x * mm, v.mr), K.planeC(a, x * mm, v.er)).z0;
+      }
+      const ln = K.line(L, C), vf = ln.v / 299792458;
+      big = `C = ${si(C * v.len, 'F')}, L = ${si(L * v.len, 'H')}, Z₀ = ${sig(ln.z0, 4)} Ω`;
+      f.push(fact('Capacitance', si(C * v.len, 'F'), `${si(C, 'F')} per metre`), fact('Inductance', si(L * v.len, 'H'), `${si(L, 'H')} per metre${g === 'coax' ? `, with the current on the conductor surfaces (high frequency); a solid inner conductor adds up to ${si(K.internalL * v.mr, 'H')}/m at low frequency` : ', high frequency'}`));
+      f.push(fact('Characteristic impedance Z₀', `${sig(ln.z0, 4)} Ω`, '√(L/C), what a matched load should be'), fact('Signal speed', `${sig(vf, 3)} c`, `velocity factor 1/√(εr μr); ${si(ln.v, 'm/s', 3)}; delay ${si(v.len / ln.v, 's', 3)} over the length`));
+      f.push(fact(`Charge at ${sig(v.V, 4)} V`, si(C * v.len * v.V, 'C'), 'over the whole length'), fact('Stored energy', si(0.5 * C * v.len * v.V * v.V, 'J'), '½CV²'));
+      if (g === 'coax') { f.push(fact('Field at the inner conductor', `${sig(Emax / 1e6, 3)} kV/mm`, 'the strongest field, V / (a ln(b/a))')); if (v.er < 1.01 && Emax > 3e6) warn.push(`The field at the inner conductor is ${sig(Emax / 1e6, 3)} kV/mm: air breaks down at roughly 3 kV/mm.`); }
+      chart = chartFigure({ w: 380, h: 230, xLabel: xl, yLabel: 'Z₀ (Ω)', xLog: true, legend: 'none', yMin: 0, series: [{ name: 'Z₀', x: xs, y: xs.map(zf), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: x0, dash: [3, 3], label: 'now' }] }, 'Characteristic impedance against the spacing');
+    } else {
+      let L: number, B: number, Bn = '', xs: number[], lf: (x: number) => number, xl: string, x0: number, extra: { name: string; f: (x: number) => number } | null = null;
+      if (g === 'solenoid') {
+        const D = v.Dm * mm, l = v.l * mm, air = v.mr === 1;
+        L = K.solenoid(v.N, D, l, v.mr, air); B = (K.MU0 * v.mr * v.N * v.I) / l; Bn = 'μ0 μr N I / l, inside a long coil';
+        f.push(fact("Nagaoka's coefficient", sig(K.nagaoka(D, l), 4), air ? `the short-coil correction (1 for a very long coil); the long-coil formula alone gives ${si(K.solenoid(v.N, D, l, 1, false), 'H')}` : 'not used: with a core, the long-coil formula times μr is given as a rough upper value'));
+        x0 = v.l; xl = 'Coil length (mm)'; xs = []; for (let i = 0; i <= 80; i++) xs.push(v.l * Math.pow(10, -1 + (i / 80) * 2));
+        lf = (x) => K.solenoid(v.N, D, x * mm, v.mr, air) * 1e6;
+        if (air) extra = { name: 'Long-coil formula', f: (x) => K.solenoid(v.N, D, x * mm, 1, false) * 1e6 };
+      } else if (g === 'torect') {
+        const a = (v.tdi / 2) * mm, b = (v.tdo / 2) * mm;
+        if (!(b > a)) return fail('The outside diameter must be larger than the inside diameter.');
+        L = K.toroidRect(v.N, a, b, v.th * mm, v.mr); B = (K.MU0 * v.mr * v.N * v.I) / (Math.PI * (a + b)); Bn = 'μ0 μr N I / (2π r) at the mean radius';
+        x0 = v.tdo; xl = 'Outside diameter (mm)'; xs = []; for (let i = 1; i <= 80; i++) xs.push(v.tdi * (1 + (i / 80) * 4));
+        lf = (x) => K.toroidRect(v.N, a, (x / 2) * mm, v.th * mm, v.mr) * 1e6;
+      } else {
+        const R = v.Rm * mm, r = v.tr * mm;
+        if (!(R > r)) return fail('The radius to the tube centre must be larger than the tube radius.');
+        L = K.toroidRound(v.N, R, r, v.mr); B = (K.MU0 * v.mr * v.N * v.I) / (2 * Math.PI * R); Bn = 'μ0 μr N I / (2π R) at the tube centre';
+        x0 = v.tr; xl = 'Tube radius (mm)'; xs = []; for (let i = 1; i <= 80; i++) xs.push(v.Rm * 0.99 * (i / 80));
+        lf = (x) => K.toroidRound(v.N, R, x * mm, v.mr) * 1e6;
+      }
+      big = `L = ${si(L, 'H')}`;
+      f.unshift(fact('Inductance', si(L, 'H'), `${si(L / (v.N * v.N), 'H')} per turn² (A_L value)`));
+      f.push(fact(`Energy at ${sig(v.I, 4)} A`, si(0.5 * L * v.I * v.I, 'J'), '½LI²'), fact('Flux linkage', si(L * v.I, 'Wb'), `N Φ = L I; ${si((L * v.I) / v.N, 'Wb')} per turn`), fact('Flux density B', si(B, 'T'), Bn));
+      if (v.mr > 1 && B > 0.3) warn.push(`B = ${si(B, 'T')} in a core: ferrites saturate around 0.3 to 0.5 T and iron around 1.5 T, after which μr and L fall.`);
+      chart = chartFigure({ w: 380, h: 230, xLabel: xl, yLabel: 'Inductance (µH)', xLog: g === 'solenoid', yLog: g === 'solenoid', yMin: g === 'solenoid' ? undefined : 0, legend: extra ? 'below' : 'none', series: [{ name: g === 'solenoid' ? 'With the short-coil correction' : 'L', x: xs, y: xs.map(lf), mode: 'line', width: 2 }, ...(extra ? [{ name: extra.name, x: xs, y: xs.map(extra.f), mode: 'line' as const, width: 1.4, dash: [5, 4] }] : [])], marks: [{ kind: 'vline', at: x0, dash: [3, 3], label: 'now' }] }, 'Inductance against a dimension');
+    }
+    err.hidden = true; out.hidden = false;
+    q('.ci-big').textContent = big;
+    q('.ci-facts').replaceChildren(...f);
+    q('.ci-warn').textContent = warn.join(' ');
+    paint(q<HTMLCanvasElement>('.ci-fig'), chart); fig = chart;
+    const inputs = s.fields.map(([k, lab]) => [lab, q<HTMLInputElement>(`.ci-${k}`).value || '–'] as [string, string]);
+    report = [
+      { title: q<HTMLSelectElement>('.ci-g').selectedOptions[0].text, facts: inputs },
+      { title: big, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: chart, note: warn.join(' ') || undefined },
+    ];
+  }
+
+  q('.ci-g').addEventListener('change', () => { fields(); calc(); });
+  q('.ci-mat').addEventListener('change', () => { const m = q<HTMLSelectElement>('.ci-mat'); const i = root.querySelector<HTMLInputElement>('.ci-er'); if (m.value && i) { i.value = m.value; i.dispatchEvent(new Event('input')); } m.value = ''; });
+  q('.ci-core').addEventListener('change', () => { const m = q<HTMLSelectElement>('.ci-core'); const i = root.querySelector<HTMLInputElement>('.ci-mr'); if (m.value && i) { i.value = m.value; i.dispatchEvent(new Event('input')); } m.value = ''; });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ci-out').hidden) paint(q<HTMLCanvasElement>('.ci-fig'), fig); });
+  fields(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Capacitance and inductance', subtitle: q<HTMLSelectElement>('.ci-g').selectedOptions[0].text, file: 'capacitor-inductor', sections: report }));
+</script>
+
+<style is:inline>
+  .cic select, .cic input { max-width: 100%; }
+</style>

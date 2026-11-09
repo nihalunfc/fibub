@@ -1,0 +1,146 @@
+---
+// PCB trace width for current (IPC-2221 fit), resistance and drop; microstrip and stripline impedance (closed forms).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pcbt">
+  <div class="ax-card">
+    <h2>Trace width for current</h2>
+    <div class="ax-grid">
+      <label>Lengths in <select class="pc-u"><option value="mm" selected>millimetres (mm)</option><option value="mil">mils (thousandths of an inch)</option></select></label>
+      <label>Current (A) <input class="pc-i" type="text" inputmode="decimal" value="2" /></label>
+      <label>Allowed temperature rise (°C) <input class="pc-dt" type="text" inputmode="decimal" value="10" /></label>
+      <label>Copper weight <select class="pc-oz"><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option><option value="3">3 oz (105 µm)</option></select></label>
+      <label>Layer <select class="pc-layer"><option value="outer" selected>Outer layer (in air)</option><option value="inner">Inner layer (inside the board)</option></select></label>
+      <label><span>Trace length (<span class="pc-lu">mm</span>)</span> <input class="pc-len" type="text" inputmode="decimal" value="50" /></label>
+      <label>Ambient temperature (°C) <input class="pc-ta" type="text" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-help">The IPC-2221 chart, as a formula: I = k × ΔT^0.44 × A^0.725, with A the cross-section in square mils, k = 0.048 for outer and 0.024 for inner layers. It is an old, conservative fit for traces alone; nearby planes, vias and airflow change the real temperature. The example values are made up.</p>
+    <p class="ax-big pc-big1"></p>
+    <dl class="ax-facts pc-facts1"></dl>
+    <canvas class="ax-fig pc-fig1"></canvas>
+    <p class="ax-err pc-err1" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Impedance</h2>
+    <div class="ax-grid">
+      <label>Line <select class="pc-line"><option value="ms" selected>Microstrip (outer layer over a plane)</option><option value="sl">Stripline (inner layer between two planes, centred)</option></select></label>
+      <label>Find <select class="pc-mode"><option value="z" selected>Impedance from the width</option><option value="w">Width for an impedance</option></select></label>
+      <label><span><span class="pc-hlab">Dielectric height h to the plane</span> (<span class="pc-lu">mm</span>)</span> <input class="pc-h" type="text" inputmode="decimal" value="0.2" /></label>
+      <label class="pc-wbox"><span>Trace width W (<span class="pc-lu">mm</span>)</span> <input class="pc-w" type="text" inputmode="decimal" value="0.35" /></label>
+      <label class="pc-zbox" hidden>Wanted impedance (Ω) <input class="pc-z" type="text" inputmode="decimal" value="50" /></label>
+      <label>Copper weight <select class="pc-oz2"><option value="0">ignore thickness</option><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option></select></label>
+      <label>Relative permittivity εr <input class="pc-er" type="text" inputmode="decimal" value="4.2" /></label>
+    </div>
+    <p class="ax-help">εr of FR-4 is about 4 to 4.6 depending on the glass weave and frequency; ask your board maker for their stack-up value. These closed-form formulas (Hammerstad-Jensen for microstrip, Wheeler for stripline) are approximations, usually within a few percent of a field solver; solder mask, etching and plating change real boards more than that.</p>
+    <p class="ax-big pc-big2"></p>
+    <dl class="ax-facts pc-facts2"></dl>
+    <canvas class="ax-fig pc-fig2"></canvas>
+    <p class="ax-err pc-err2" hidden></p>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement. Check high-current and controlled-impedance boards with your board maker.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ipcArea, ipcWidth, traceR, microstrip, stripline, perLength, widthFor, MIL, OZ } from '../../lib/sci/eng-pcb';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pcbt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pairs = (box: string) => [...q(box).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const sec: (Section | null)[] = [null, null], figs: (Figure | null)[] = [null, null];
+  const unit = () => (sel('.pc-u') === 'mil' ? { f: MIL, u: 'mil', other: (m: number) => `${sig(m * 1000, 3)} mm` } : { f: 1e-3, u: 'mm', other: (m: number) => `${sig(m / MIL, 3)} mil` });
+  const len = (m: number) => { const U = unit(); return `${sig(m / U.f, 3)} ${U.u}`; };
+  const ohm = (r: number) => (r < 1 ? `${sig(r * 1000, 3)} mΩ` : `${sig(r, 3)} Ω`);
+
+  function width() {
+    const U = unit(), err = q('.pc-err1');
+    const I = val('.pc-i'), dT = val('.pc-dt'), t = +sel('.pc-oz') * OZ, inner = sel('.pc-layer') === 'inner', L = val('.pc-len') * U.f, Ta = val('.pc-ta');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pc-big1').textContent = ''; q('.pc-facts1').replaceChildren(); q('.pc-fig1').hidden = true; sec[0] = null; };
+    if (!(I > 0)) return fail('Give the current in amps.');
+    if (!(dT > 0 && dT <= 150)) return fail('Give a temperature rise between 0 and 150 °C (10 °C is common).');
+    if (!(L >= 0)) return fail('Give the trace length (0 to skip the resistance).');
+    if (!Number.isFinite(Ta)) return fail('Give the ambient temperature.');
+    err.hidden = true; q('.pc-fig1').hidden = false;
+    const w = ipcWidth(I, dT, t, inner), A = ipcArea(I, dT, inner), T = Ta + dT;
+    q('.pc-big1').textContent = `At least ${len(w)} wide (${U.other(w)})`;
+    const f = [fact('Cross-section', `${sig(A, 4)} mil² (${sig(A * MIL * MIL * 1e12, 4)} µm²)`, `${sel('.pc-oz')} oz copper is about ${sig(t * 1e6, 3)} µm thick`)];
+    if (L > 0) {
+      const R = traceR(w, t, L, T), V = I * R;
+      f.push(fact('Resistance', ohm(R), `at ${sig(T, 3)} °C (ambient + rise), copper 1.724 × 10⁻⁸ Ω·m at 20 °C`));
+      f.push(fact('Voltage drop and heat', `${V < 1 ? `${sig(V * 1000, 3)} mV` : `${sig(V, 3)} V`}, ${I * V < 1 ? `${sig(I * V * 1000, 3)} mW` : `${sig(I * V, 3)} W`}`, 'one way; double it for a supply and return pair'));
+    }
+    f.push(fact(inner ? 'On an outer layer' : 'On an inner layer', len(ipcWidth(I, dT, t, !inner)), inner ? 'outer layers shed heat to the air, so they can be narrower' : 'inner layers need wider traces for the same current'));
+    if (I > 35 || A > 1e4 || dT < 10 || dT > 100) f.push(fact('Outside the chart', 'the IPC-2221 curves cover up to 35 A, 400 mil wide and 10 to 100 °C rise', 'use the result with extra care'));
+    q('.pc-facts1').replaceChildren(...f);
+    const Is: number[] = []; for (let i = 0; i <= 60; i++) Is.push((Math.max(I * 2, 1) * i) / 60);
+    const series = [10, 20, 40].map((d) => ({ name: `${d} °C rise`, x: Is, y: Is.map((x) => (x > 0 ? ipcWidth(x, d, t, inner) / U.f : 0)), mode: 'line' as const, width: d === 10 ? 2 : 1.5 }));
+    series.push({ name: 'This trace', x: [I], y: [w / U.f], mode: 'points' as const, width: 1 } as typeof series[0]);
+    figs[0] = chartFigure({ w: 380, h: 230, xLabel: 'Current (A)', yLabel: `Minimum width (${U.u})`, xMin: 0, yMin: 0, legend: 'below', series }, `Minimum trace width against current, ${inner ? 'inner' : 'outer'} layer, ${sel('.pc-oz')} oz copper`);
+    paint(q<HTMLCanvasElement>('.pc-fig1'), figs[0]);
+    sec[0] = { title: `Trace for ${sig(I, 3)} A, ${sig(dT, 3)} °C rise, ${sel('.pc-oz')} oz, ${inner ? 'inner' : 'outer'} layer: ${q('.pc-big1').textContent}`, facts: pairs('.pc-facts1'), figure: figs[0] };
+  }
+
+  function imp() {
+    const U = unit(), err = q('.pc-err2'), ms = sel('.pc-line') === 'ms', mode = sel('.pc-mode');
+    q('.pc-hlab').textContent = ms ? 'Dielectric height h to the plane' : 'Spacing b between the two planes';
+    q('.pc-wbox').hidden = mode !== 'z'; q('.pc-zbox').hidden = mode !== 'w';
+    const h = val('.pc-h') * U.f, er = val('.pc-er'), t = +sel('.pc-oz2') * OZ;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pc-big2').textContent = ''; q('.pc-facts2').replaceChildren(); q('.pc-fig2').hidden = true; sec[1] = null; };
+    if (!(h > 0)) return fail(ms ? 'Give the dielectric height to the plane.' : 'Give the spacing between the planes.');
+    if (!(er >= 1 && er <= 20)) return fail('Give εr between 1 (air) and 20.');
+    if (!ms && !(t < h * 0.5)) return fail('The copper is too thick for that plane spacing.');
+    const line = (w: number) => (ms ? microstrip(w, h, t, er) : stripline(w, h, t, er));
+    let w: number;
+    if (mode === 'z') { w = val('.pc-w') * U.f; if (!(w > 0)) return fail('Give the trace width.'); }
+    else {
+      const Z = val('.pc-z'); if (!(Z > 0)) return fail('Give the impedance you want, such as 50.');
+      w = widthFor(Z, (x) => line(x).z0, h * 0.01, h * 30);
+      if (!Number.isFinite(w)) return fail(`No width between ${len(h * 0.01)} and ${len(h * 30)} gives ${sig(Z, 3)} Ω on this stack-up; change the height or εr.`);
+    }
+    const r = line(w);
+    if (!Number.isFinite(r.z0)) return fail('These sizes are outside what the formula covers.');
+    err.hidden = true; q('.pc-fig2').hidden = false;
+    const p = perLength(r.z0, r.eeff);
+    q('.pc-big2').textContent = mode === 'z' ? `Z0 = ${sig(r.z0, 3)} Ω` : `W = ${len(w)} (${U.other(w)}) for ${sig(r.z0, 3)} Ω`;
+    const f = [
+      fact('Effective εr', sig(r.eeff, 3), ms ? 'part of the field runs in air, so it is below the board εr' : 'the field is all inside the board'),
+      fact('Delay', `${sig(p.delay * 1e9 * 1e-3 * 1000, 3)} ps/mm, ${sig(p.delay * 1e12 * 0.0254, 3)} ps/inch`, `signals travel at ${sig(100 / Math.sqrt(r.eeff), 3)} % of the speed of light`),
+      fact('Inductance and capacitance', `${sig(p.L * 1e9 * 1e-3, 3)} nH/mm, ${sig(p.C * 1e12 * 1e-3, 3)} pF/mm`),
+      fact('Width ÷ height', sig(w / h, 3), ms ? 'formula fitted for 0.01 to 100' : 'formula good for all practical widths'),
+    ];
+    q('.pc-facts2').replaceChildren(...f);
+    const ws: number[] = []; for (let i = 0; i <= 80; i++) ws.push(h * 0.05 * 400 ** (i / 80));
+    const series = [{ name: 'Z0', x: ws.map((x) => x / U.f), y: ws.map((x) => line(x).z0), mode: 'line' as const, width: 2 }, { name: 'This line', x: [w / U.f], y: [r.z0], mode: 'points' as const, width: 1 }];
+    figs[1] = chartFigure({ w: 380, h: 230, xLabel: `Trace width (${U.u})`, yLabel: 'Z0 (Ω)', xLog: true, yMin: 0, legend: 'none', series, marks: [{ kind: 'hline', at: 50, dash: [3, 3], label: '50 Ω' }] }, `Impedance against width for this ${ms ? 'microstrip' : 'stripline'}`);
+    paint(q<HTMLCanvasElement>('.pc-fig2'), figs[1]);
+    sec[1] = { title: `${ms ? 'Microstrip' : 'Stripline'}, ${ms ? 'h' : 'b'} = ${len(h)}, εr ${sig(er, 3)}, ${t ? `${sel('.pc-oz2')} oz` : 'thin'} copper: ${q('.pc-big2').textContent}${mode === 'z' ? ` at W = ${len(w)}` : ''}`, facts: pairs('.pc-facts2'), figure: figs[1] };
+  }
+
+  let lastU = 'mm';
+  function all() {
+    const u = sel('.pc-u');
+    if (u !== lastU) {
+      const k = u === 'mil' ? 1e-3 / MIL : MIL / 1e-3;
+      for (const c of ['.pc-len', '.pc-h', '.pc-w']) { const v = num(q<HTMLInputElement>(c).value); if (Number.isFinite(v)) q<HTMLInputElement>(c).value = sig(v * k, 4).replace('−', '-'); }
+      lastU = u;
+    }
+    root.querySelectorAll('.pc-lu').forEach((e) => (e.textContent = u));
+    width(); imp();
+  }
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.pc-fig1').hidden) paint(q<HTMLCanvasElement>('.pc-fig1'), figs[0]); if (figs[1] && !q('.pc-fig2').hidden) paint(q<HTMLCanvasElement>('.pc-fig2'), figs[1]); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'PCB trace calculator', subtitle: [q('.pc-big1').textContent, q('.pc-big2').textContent].filter(Boolean).join('; '), file: 'pcb-trace', sections: sec.filter((s): s is Section => !!s) }));
+</script>
+
+<style is:inline>
+  .pcbt select, .pcbt input { max-width: 100%; }
+</style>

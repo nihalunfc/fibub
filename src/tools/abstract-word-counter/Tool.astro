@@ -1,0 +1,140 @@
+---
+// Abstract word counter: words, characters, sentences and keywords against a limit you set, with the part over the
+// limit highlighted. LaTeX can be stripped first. Nothing is stored or sent.
+import '../../styles/astro.css';
+---
+<div class="ax awc">
+  <div class="ax-card">
+    <h2>Abstract</h2>
+    <textarea class="aw-in" rows="10" aria-label="Abstract text"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small aw-ex">Use the example</button>
+      <button type="button" class="btn secondary small aw-clear">Clear</button>
+      <button type="button" class="btn secondary small aw-open">Open a text file</button>
+      <input type="file" class="aw-file" accept=".txt,.tex,.md,text/plain" hidden />
+      <span class="ax-help" style="margin:0">Plain text or LaTeX (.txt, .tex, .md), up to 1 MB.</span>
+    </div>
+    <p class="ax-err aw-ferr" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="aw-tex" checked /> Remove LaTeX commands</label>
+    </div>
+    <p class="ax-help">With LaTeX removed, comments, \cite and \label are not counted, each piece of maths ($...$) and each \ref counts as one word, and \textit&#123;...&#125; keeps its words. A word is any run of characters between spaces that holds a letter or a digit, so "two-component", "2.5-m" and "e.g." are one word each and a lone "±" is none.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Limit</h2>
+    <div class="ax-grid">
+      <label>Limit <input class="aw-lim" type="number" min="1" max="100000" step="1" value="250" inputmode="numeric" /></label>
+      <label>Counted in <select class="aw-unit">
+        <option value="words" selected>Words</option>
+        <option value="chars">Characters with spaces</option>
+        <option value="charsNoSpace">Characters without spaces</option>
+      </select></label>
+    </div>
+    <p class="ax-help" style="margin-top:10px">Example limits (examples only; journals and meetings set their own, so check the journal's guide for authors):</p>
+    <div class="ax-row aw-presets" style="margin-top:6px"></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Keywords, comma separated <textarea class="aw-kw" rows="2">galaxies; star formation, galaxy discs</textarea></label>
+      <label>Keyword limit <input class="aw-klim" type="number" min="1" max="50" step="1" value="6" inputmode="numeric" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card aw-out" hidden>
+    <h2>Count</h2>
+    <p class="ax-big aw-big"></p>
+    <div class="aw-bar" role="presentation"><i></i></div>
+    <p class="aw-status"></p>
+    <dl class="ax-facts aw-facts"></dl>
+    <h3 class="aw-h">Text as counted</h3>
+    <div class="aw-view"></div>
+    <p class="ax-help aw-vhelp"></p>
+    <h3 class="aw-h">Keywords</h3>
+    <p class="aw-kws"></p>
+    <h3 class="aw-h">Most used words</h3>
+    <p class="aw-top"></p>
+  </div>
+</div>
+
+<style is:inline>
+  .awc .aw-presets .btn { font-size: 14px; padding: 6px 10px; }
+  .awc .aw-bar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 6px 0 4px; }
+  .awc .aw-bar i { display: block; height: 100%; background: var(--good); width: 0; }
+  .awc .aw-bar.over i { background: var(--bad); }
+  .awc .aw-status { margin: 4px 0 12px; font-weight: 600; }
+  .awc .aw-status.over { color: var(--bad); }
+  .awc .aw-status.ok { color: var(--good); }
+  .awc .aw-h { font-size: 15px; margin: 16px 0 6px; }
+  .awc .aw-view { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.55; max-height: 360px; overflow-y: auto; }
+  .awc .aw-view mark { background: var(--bad-soft); color: var(--bad); }
+  .awc .aw-kws .ax-pill, .awc .aw-top .ax-pill { margin: 0 6px 6px 0; font-size: 13px; }
+</style>
+
+<script>
+  import { count, stripLatex, overflowAt, topWords, keywords, PRESETS, EXAMPLE, type Unit } from '../../lib/sci/wordcount';
+
+  const root = document.querySelector<HTMLElement>('.awc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = q<HTMLTextAreaElement>('.aw-in');
+  const fmt = (n: number) => n.toLocaleString('en');
+  const UNIT: Record<Unit, string> = { words: 'words', chars: 'characters', charsNoSpace: 'characters (no spaces)' };
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const pill = (t: string, cls = '') => { const s = document.createElement('span'); s.className = 'ax-pill ' + cls; s.textContent = t; return s; };
+
+  q('.aw-presets').replaceChildren(...PRESETS.map((p) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = `Example: ${p.label}`;
+    b.addEventListener('click', () => { q<HTMLInputElement>('.aw-lim').value = String(p.limit); q<HTMLSelectElement>('.aw-unit').value = p.unit; run(); });
+    return b;
+  }));
+
+  function run() {
+    if (!inp.value.trim()) { q('.aw-out').hidden = true; return; }
+    const text = q<HTMLInputElement>('.aw-tex').checked ? stripLatex(inp.value) : inp.value.replace(/\r/g, '');
+    const c = count(text);
+    const unit = q<HTMLSelectElement>('.aw-unit').value as Unit;
+    const lim = Math.round(Number(q<HTMLInputElement>('.aw-lim').value));
+    const n = c[unit];
+    const okLim = lim >= 1;
+    q('.aw-big').textContent = okLim ? `${fmt(n)} of ${fmt(lim)} ${UNIT[unit]}` : `${fmt(n)} ${UNIT[unit]}`;
+    const over = okLim && n > lim;
+    q('.aw-bar').className = 'aw-bar' + (over ? ' over' : '');
+    q<HTMLElement>('.aw-bar i').style.width = okLim ? `${Math.min(100, (100 * n) / lim)}%` : '0';
+    const st = q('.aw-status');
+    st.className = 'aw-status ' + (over ? 'over' : 'ok');
+    st.textContent = !okLim ? 'Set a limit to compare with.' : over ? `Over the limit by ${fmt(n - lim)}. The part over the limit is marked below.` : n === lim ? 'Exactly at the limit.' : `${fmt(lim - n)} left.`;
+    q('.aw-facts').replaceChildren(fact('Words', fmt(c.words)), fact('Characters', fmt(c.chars)), fact('Without spaces', fmt(c.charsNoSpace)), fact('Sentences', fmt(c.sentences)), fact('Words per sentence', c.sentences ? c.avgSentence.toFixed(1) : '–'), fact('Paragraphs', fmt(c.paragraphs)));
+    // The counted text, with the overflow marked.
+    const at = okLim ? overflowAt(text, lim, unit) : -1;
+    const view = q('.aw-view');
+    if (at >= 0) { const m = document.createElement('mark'); m.textContent = text.slice(at); view.replaceChildren(document.createTextNode(text.slice(0, at)), m); }
+    else view.replaceChildren(document.createTextNode(text));
+    q('.aw-vhelp').textContent = q<HTMLInputElement>('.aw-tex').checked ? 'This is the text after LaTeX was removed; [math] and [ref] stand for maths and references.' : 'The text exactly as counted.';
+    const kw = keywords(q<HTMLTextAreaElement>('.aw-kw').value, text), klim = Math.round(Number(q<HTMLInputElement>('.aw-klim').value));
+    const kws = q('.aw-kws');
+    if (!kw.length) kws.textContent = 'No keywords typed.';
+    else {
+      const head = document.createElement('span'); head.textContent = `${kw.length}${klim >= 1 ? ` of ${klim}` : ''} keywords${klim >= 1 && kw.length > klim ? `, ${kw.length - klim} too many` : ''}. `;
+      if (klim >= 1 && kw.length > klim) head.style.color = 'var(--bad)';
+      kws.replaceChildren(head, document.createElement('br'), ...kw.map((k) => pill(`${k.word}: ${k.inText ? 'in the abstract' : 'not in the abstract'}`, k.inText ? 'good' : '')));
+    }
+    const top = topWords(text);
+    q('.aw-top').replaceChildren(...(top.length ? top.map(([w, k]) => pill(`${w} ×${k}`)) : [document.createTextNode('No word of four letters or more is used more than once.')]));
+    q('.aw-out').hidden = false;
+  }
+
+  for (const c of ['.aw-in', '.aw-lim', '.aw-kw', '.aw-klim']) q(c).addEventListener('input', run);
+  for (const c of ['.aw-unit', '.aw-tex']) q(c).addEventListener('change', run);
+  q('.aw-ex').addEventListener('click', () => { inp.value = EXAMPLE; q<HTMLInputElement>('.aw-tex').checked = true; run(); });
+  q('.aw-clear').addEventListener('click', () => { inp.value = ''; run(); inp.focus(); });
+  q('.aw-open').addEventListener('click', () => q<HTMLInputElement>('.aw-file').click());
+  q<HTMLInputElement>('.aw-file').addEventListener('change', async (e) => {
+    const el = e.target as HTMLInputElement, f = el.files?.[0]; el.value = '';
+    const fe = q('.aw-ferr'); fe.hidden = true;
+    if (!f) return;
+    if (f.size > 1e6) { fe.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes text files up to 1 MB. Paste just the abstract instead.`; fe.hidden = false; return; }
+    const t = (await f.text()).replace(/^﻿/, '');
+    if (/\u0000/.test(t.slice(0, 2000))) { fe.textContent = `${f.name} is not a text file. For a Word file, copy the abstract and paste it here.`; fe.hidden = false; return; }
+    inp.value = t; run();
+  });
+
+  inp.value = EXAMPLE; run();
+</script>

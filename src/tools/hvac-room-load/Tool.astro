@@ -1,0 +1,169 @@
+---
+// Simplified steady-state room heating and cooling load. Example room made up; not a full ASHRAE or CIBSE method.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hvl">
+  <p class="ax-help hv-note">A simplified estimate for study and planning, not a full ASHRAE or CIBSE load calculation: it uses steady temperature differences and peak sun, with no thermal mass, time lag or hour-by-hour sun. Check important designs with a qualified engineer.</p>
+  <div class="ax-card">
+    <h2>Room and design conditions</h2>
+    <div class="ax-grid">
+      <label>Floor area (m²) <input class="hv-A" type="text" inputmode="decimal" value="20" /></label>
+      <label>Ceiling height (m) <input class="hv-h" type="text" inputmode="decimal" value="2.7" /></label>
+      <label>Altitude (m above sea level) <input class="hv-z" type="text" inputmode="decimal" value="0" /></label>
+      <label>Heating: inside (°C) <input class="hv-tih" type="text" inputmode="decimal" value="21" /></label>
+      <label>Heating: outside design (°C) <input class="hv-toh" type="text" inputmode="decimal" value="-10" /></label>
+      <label>Heating: outside humidity (% RH) <input class="hv-rhoh" type="text" inputmode="decimal" value="80" /></label>
+      <label>Cooling: inside (°C) <input class="hv-tic" type="text" inputmode="decimal" value="24" /></label>
+      <label>Cooling: inside humidity (% RH) <input class="hv-rhic" type="text" inputmode="decimal" value="50" /></label>
+      <label>Cooling: outside design (°C) <input class="hv-toc" type="text" inputmode="decimal" value="32" /></label>
+      <label>Cooling: outside humidity (% RH) <input class="hv-rhoc" type="text" inputmode="decimal" value="40" /></label>
+    </div>
+    <p class="ax-help">Design outdoor temperatures are the cold and hot conditions you design for, usually a value exceeded only a few hours a year at your location; look them up for your town. The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Walls, windows and roof</h2>
+    <label>One element per line: name, area (m²), U-value (W/m²·K), then for glass the SHGC and the sun on it (W/m²), and for sunlit walls and roofs an extra temperature difference (K) for cooling
+      <textarea class="hv-els" rows="6" spellcheck="false">Element, Area m², U W/m²K, SHGC, Sun W/m², Extra ΔT K
+External wall, 10.5, 0.35, , , 5
+Window, 3, 1.6, 0.4, 400,
+Roof, 20, 0.2, , , 10</textarea></label>
+    <DataFile target=".hv-els" />
+    <p class="ax-help">U-value: heat flow per m² per degree. Very roughly, 0.15 to 0.4 for an insulated wall or roof, 2 for an uninsulated cavity wall, 1 to 3 for windows; use the values for your own construction. SHGC is the share of sunlight a window lets in as heat (about 0.25 to 0.7). Sun is the solar irradiance on the glass at the peak hour (up to about 800 W/m² on a sunny facade, less with shading). The extra ΔT allows for sun-heated outer surfaces. Only list surfaces between the room and outside (or an unheated space).</p>
+    <p class="ax-err hv-eerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Outdoor air and internal gains</h2>
+    <div class="ax-grid">
+      <label>Infiltration (air changes per hour) <input class="hv-ach" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Ventilation outdoor air (L/s) <input class="hv-vent" type="text" inputmode="decimal" value="20" /></label>
+      <label>People <input class="hv-np" type="text" inputmode="decimal" value="2" /></label>
+      <label>Sensible heat per person (W) <input class="hv-ps" type="text" inputmode="decimal" value="75" /></label>
+      <label>Latent heat per person (W) <input class="hv-pl" type="text" inputmode="decimal" value="55" /></label>
+      <label>Lighting (W/m² of floor) <input class="hv-lt" type="text" inputmode="decimal" value="10" /></label>
+      <label>Equipment (W) <input class="hv-eq" type="text" inputmode="decimal" value="300" /></label>
+      <label>Safety margin (%) <input class="hv-mg" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <label class="hv-chk"><input type="checkbox" class="hv-credit" /> <span>Let internal gains reduce the heating load (usually left off: the room must heat up when empty)</span></label>
+    <p class="ax-help">Infiltration is air leaking in through gaps: roughly 0.2 to 0.5 per hour for a tight modern room, 1 or more for an old draughty one. Ventilation is fresh air brought in on purpose. A seated person gives off very roughly 70 to 75 W of sensible heat and 45 to 55 W of moisture (latent) heat, more when active. All of these are rounded example figures; use your own.</p>
+    <p class="ax-err hv-err" hidden></p>
+  </div>
+
+  <div class="ax-card hv-out">
+    <h2>Peak loads</h2>
+    <p class="ax-big hv-big"></p>
+    <dl class="ax-facts hv-facts"></dl>
+    <canvas class="ax-fig hv-fig"></canvas>
+    <div class="ax-scroll"><table class="hv-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hv-csv">Breakdown (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { roomLoad, W_TO_BTUH, W_PER_TON, type Element } from '../../lib/sci/hvacload';
+  import { pressureAt } from '../../lib/sci/psychro';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const W0 = (x: number) => Math.round(x).toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.hvl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let fig: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+
+  function all() {
+    const out = q('.hv-out'), err = q('.hv-err'), eerr = q('.hv-eerr');
+    err.hidden = true; eerr.hidden = true;
+    const stop = (el: HTMLElement, m: string) => { el.textContent = m; el.hidden = false; out.hidden = true; report = []; rows = []; };
+    const tab = parseTable(q<HTMLTextAreaElement>('.hv-els').value);
+    if (tab.length && Number.isNaN(num(tab[0][1]))) tab.shift();
+    const els: Element[] = [];
+    for (const r of tab) {
+      const [name, A, U, s, g, x] = [r[0], num(r[1]), num(r[2]), num(r[3] ?? ''), num(r[4] ?? ''), num(r[5] ?? '')];
+      if (!name || !(A > 0) || !(U >= 0)) return stop(eerr, `Line "${r.join(', ')}": give a name, an area above 0 and a U-value.`);
+      if ((r[3] ?? '').trim() && !(s >= 0 && s <= 1)) return stop(eerr, `${name}: SHGC is a fraction from 0 to 1.`);
+      if ((r[4] ?? '').trim() && !(g >= 0 && g <= 1400)) return stop(eerr, `${name}: sun on the glass should be 0 to about 1,000 W/m².`);
+      if ((r[5] ?? '').trim() && !Number.isFinite(x)) return stop(eerr, `${name}: the extra ΔT is not a number.`);
+      els.push({ name, area: A, U, shgc: Number.isFinite(s) ? s : undefined, sun: Number.isFinite(g) ? g : undefined, extraDT: Number.isFinite(x) ? x : undefined });
+    }
+    if (els.length > 200) return stop(eerr, 'List up to 200 elements.');
+    const A = val('.hv-A'), h = val('.hv-h'), z = val('.hv-z');
+    const v = { tiH: val('.hv-tih'), toH: val('.hv-toh'), rhoH: val('.hv-rhoh') / 100, tiC: val('.hv-tic'), rhiC: val('.hv-rhic') / 100, toC: val('.hv-toc'), rhoC: val('.hv-rhoc') / 100 };
+    const g = { ach: val('.hv-ach'), vent: val('.hv-vent'), np: val('.hv-np'), ps: val('.hv-ps'), pl: val('.hv-pl'), lt: val('.hv-lt'), eq: val('.hv-eq'), mg: val('.hv-mg') };
+    if (!(A > 0) || !(h > 0)) return stop(err, 'Give the floor area and ceiling height.');
+    if (!(z >= -500 && z <= 6000)) return stop(err, 'Give the altitude in metres (0 at sea level).');
+    if (![v.tiH, v.toH, v.tiC, v.toC].every((t) => t >= -60 && t <= 60)) return stop(err, 'Give the design temperatures in °C (between −60 and 60).');
+    if (![v.rhoH, v.rhiC, v.rhoC].every((x) => x >= 0 && x <= 1)) return stop(err, 'Give the humidities as percentages from 0 to 100.');
+    if (!(v.tiH > v.toH)) return stop(err, 'For heating, the inside temperature should be above the outside design temperature.');
+    if (!Object.values(g).every((x) => x >= 0)) return stop(err, 'Give the air flows, people, gains and margin as numbers (0 or more).');
+    let r: ReturnType<typeof roomLoad>;
+    try { r = roomLoad({ elements: els, volume: A * h, ach: g.ach, ventLps: g.vent, p: pressureAt(z), ...v, people: g.np, perSens: g.ps, perLat: g.pl, lightW: g.lt * A, equipW: g.eq, creditHeating: q<HTMLInputElement>('.hv-credit').checked, margin: g.mg / 100 }); }
+    catch (e) { return stop(err, (e as Error).message); }
+    out.hidden = false;
+    q('.hv-big').textContent = `Heating ${W0(r.heat)} W, cooling ${W0(r.total)} W`;
+    const facts = [
+      fact('Heating', `${sg(r.heat / 1000, 3)} kW = ${W0(r.heat * W_TO_BTUH)} BTU/h`, `${sg(r.heat / A, 3)} W/m² of floor, at ${sg(v.tiH, 3)} °C inside and ${sg(v.toH, 3)} °C outside`),
+      fact('Cooling, total', `${sg(r.total / 1000, 3)} kW = ${W0(r.total * W_TO_BTUH)} BTU/h = ${sg(r.total / W_PER_TON, 3)} tons`, `${sg(r.total / A, 3)} W/m² of floor; 1 ton of refrigeration = 12,000 BTU/h = 3.517 kW`),
+      fact('Cooling, sensible', `${W0(r.sens)} W`, 'heat that raises the air temperature'),
+      fact('Cooling, latent', `${W0(r.lat)} W`, 'moisture to be condensed out of the air'),
+      fact('Sensible heat ratio', sg(r.shr, 3), 'sensible ÷ total; typical comfort cooling is 0.7 to 0.9'),
+      fact('Outdoor air', `${sg(r.Vdot * 1000, 4)} L/s`, `${sg(g.ach, 3)} air changes per hour of ${sg(A * h, 4)} m³ plus ${sg(g.vent, 4)} L/s of ventilation; humidity ratio outside ${sg(r.wOut * 1000, 3)} g/kg, inside ${sg(r.wIn * 1000, 3)} g/kg`),
+    ];
+    if (g.mg > 0) facts.push(fact('Safety margin', `${sg(g.mg, 3)} % included`, `before the margin: heating ${W0(r.heat0)} W, cooling ${W0(r.sens0 + r.lat0)} W`));
+    q('.hv-facts').replaceChildren(...facts);
+    const head = ['Part', 'Heat W', 'Cool sens. W', 'Cool lat. W'];
+    const trs = r.rows.map((x) => [x.name, W0(x.heat), W0(x.sens), W0(x.lat)]);
+    trs.push(['Total' + (g.mg ? ` (+${sg(g.mg, 3)} %)` : ''), W0(r.heat), W0(r.sens), W0(r.lat)]);
+    const tb = q<HTMLTableElement>('.hv-tab');
+    const mk = (cells: string[], tag: string, bold = false) => { const tr = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (i) e.className = 'r'; if (bold) e.style.fontWeight = '600'; tr.append(e); }); return tr; };
+    tb.replaceChildren(mk(head, 'th'), ...trs.map((c, i) => mk(c, 'td', i === trs.length - 1)));
+    rows = [['part', 'heating_W', 'cooling_sensible_W', 'cooling_latent_W'], ...r.rows.map((x) => [x.name, sg(x.heat, 6), sg(x.sens, 6), sg(x.lat, 6)]), ['total_with_margin', sg(r.heat, 6), sg(r.sens, 6), sg(r.lat, 6)]];
+    // Bar chart of the parts.
+    const parts = r.rows;
+    fig = { w: 380, h: 60 + parts.length * 30, alt: 'Heating and cooling load of each part of the room', draw: (ctx, Wd, Hd, pal) => {
+      const left = 120, right = Wd - 12, top = 26, mx = Math.max(1, ...parts.map((p) => Math.max(Math.abs(p.heat), p.sens + Math.max(0, p.lat))));
+      const X = (w: number) => left + ((right - left) * w) / mx;
+      ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      const cH = pal.red ? pal.ink : pal.accent, cS = pal.red ? pal.muted : pal.accent2, cL = pal.red ? pal.line : pal.good;
+      [['Heating', cH], ['Cooling sensible', cS], ['Cooling latent', cL]].forEach(([n, c], i) => { ctx.fillStyle = c; ctx.fillRect(8 + i * 120, 8, 10, 10); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(n, 22 + i * 120, 13); });
+      parts.forEach((p, i) => {
+        const y = top + 8 + i * 30;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right';
+        const nm = p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name;
+        ctx.fillText(nm, left - 6, y + 9);
+        if (p.heat > 0) { ctx.fillStyle = cH; ctx.fillRect(left, y, X(p.heat) - left, 8); }
+        ctx.fillStyle = cS; ctx.fillRect(left, y + 10, Math.max(0, X(p.sens) - left), 8);
+        if (p.lat > 0) { ctx.fillStyle = cL; ctx.fillRect(Math.max(left, X(p.sens)), y + 10, X(p.lat) - left, 8); }
+      });
+      ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(left, Hd - 8); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`${W0(mx)} W`, right, Hd - 6);
+    } };
+    paint(q<HTMLCanvasElement>('.hv-fig'), fig);
+    report = [
+      { title: q('.hv-big').textContent!, text: ['Simplified steady-state estimate; not a full ASHRAE or CIBSE method. For study and planning.'], facts: factsOf(facts), figure: fig },
+      { title: 'Breakdown', table: { head, rows: trs, align: ['l', 'r', 'r', 'r'] } },
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(all, 250); };
+  root.querySelectorAll('input:not([type=file])').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.hv-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'room-load.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.hv-out').hidden) paint(q<HTMLCanvasElement>('.hv-fig'), fig); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Room heating and cooling load', subtitle: q('.hv-big').textContent ?? '', file: 'room-load', sections: report }));
+</script>
+
+<style is:inline>
+  .hvl select, .hvl input { max-width: 100%; }
+  .hvl label.hv-chk { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; color: var(--ink); }
+  .hvl textarea { margin-top: 4px; }
+  .hvl .hv-note { margin: 0 0 12px; }
+</style>

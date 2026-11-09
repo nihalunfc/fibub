@@ -1,0 +1,339 @@
+---
+// Shannon entropy of a distribution, text or file bytes; joint and conditional entropy and mutual information;
+// KL divergence; channel capacity (BSC, BEC, Z channel, any discrete channel by Blahut-Arimoto). All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax enc">
+  <div class="ax-card">
+    <h2>What to measure</h2>
+    <div class="ax-seg en-mode" role="group" aria-label="What to measure">
+      <button type="button" data-m="dist" aria-pressed="true">Distribution</button>
+      <button type="button" data-m="text" aria-pressed="false">Text or file</button>
+      <button type="button" data-m="joint" aria-pressed="false">Joint table</button>
+      <button type="button" data-m="kl" aria-pressed="false">Divergence</button>
+      <button type="button" data-m="chan" aria-pressed="false">Channel</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Units <select class="en-base">
+        <option value="2">bits (log base 2)</option>
+        <option value="e">nats (natural log)</option>
+        <option value="10">hartleys (log base 10)</option>
+      </select></label>
+    </div>
+
+    <div class="en-p" data-p="dist">
+      <label style="margin-top:12px">Probabilities or counts (commas, spaces or one per line; 1/3 is fine; or "label, value" lines)
+        <textarea class="en-dist" rows="3" spellcheck="false"></textarea></label>
+      <DataFile target=".en-dist" maxMB={5} maxCols={2} maxRows={100000} />
+      <p class="ax-help">Counts are turned into probabilities by dividing by their total.</p>
+    </div>
+
+    <div class="en-p" data-p="text" hidden>
+      <label style="margin-top:12px">Text <textarea class="en-text" rows="4" spellcheck="false"></textarea></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Count <select class="en-unit">
+          <option value="char">characters</option>
+          <option value="byte">bytes (UTF-8)</option>
+          <option value="word">words</option>
+        </select></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small en-open">Measure a file's bytes</button>
+        <input type="file" class="en-file" hidden />
+        <button type="button" class="btn secondary small en-clear" hidden>Back to the text</button>
+        <span class="ax-help en-flimit" style="margin:0">Any file up to 200 MB. It is read on this device and never uploaded.</span>
+      </div>
+    </div>
+
+    <div class="en-p" data-p="joint" hidden>
+      <label style="margin-top:12px">Joint table of counts or probabilities (rows are values of X, columns values of Y; names optional)
+        <textarea class="en-joint" rows="5" spellcheck="false"></textarea></label>
+      <DataFile target=".en-joint" maxMB={5} maxCols={60} maxRows={60} />
+    </div>
+
+    <div class="en-p" data-p="kl" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>P (the true or observed distribution) <input class="en-pp" spellcheck="false" autocomplete="off" /></label>
+        <label>Q (the model or approximation) <input class="en-qq" spellcheck="false" autocomplete="off" /></label>
+      </div>
+      <p class="ax-help">Same number of values in each, in the same order. Counts are fine.</p>
+    </div>
+
+    <div class="en-p" data-p="chan" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Channel <select class="en-ch">
+          <option value="bsc">Binary symmetric (bits flip)</option>
+          <option value="bec">Binary erasure (bits get lost)</option>
+          <option value="z">Z channel (only 1s can flip)</option>
+          <option value="gen">Any channel: type its matrix</option>
+        </select></label>
+        <label class="en-pw">Probability p <input class="en-cp" inputmode="decimal" value="0.11" /></label>
+      </div>
+      <div class="en-gen" hidden>
+        <label style="margin-top:10px">Channel matrix P(y | x): one row per input x, one column per output y; each row adds to 1
+          <textarea class="en-W" rows="4" spellcheck="false"></textarea></label>
+        <DataFile target=".en-W" maxMB={5} maxCols={60} maxRows={60} />
+        <label style="margin-top:10px">Your own input distribution (optional, for I(X;Y) at that input) <input class="en-px" spellcheck="false" autocomplete="off" placeholder="e.g. 1/3, 1/3, 1/3" /></label>
+      </div>
+      <p class="ax-help en-chelp"></p>
+    </div>
+
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small en-ex">Use the example</button></div>
+    <p class="ax-err en-err" hidden></p>
+  </div>
+
+  <div class="ax-card en-out" hidden>
+    <h2 class="en-h">Result</h2>
+    <p class="ax-big en-big"></p>
+    <dl class="ax-facts en-facts"></dl>
+    <canvas class="ax-fig en-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help en-fnote"></p>
+    <div class="ax-scroll en-tw"><table class="en-tab"></table></div>
+    <p class="ax-help en-tnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small en-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .enc .en-tw { max-height: 420px; overflow-y: auto; }
+  .enc .en-tab td.m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  import { summarise, entropy, countSymbols, byteCounts, joint, divergence, bscCapacity, becCapacity, zCapacity, h2, channelMatrix, channelInfo, blahutArimoto, readDist, readTable, EXAMPLE_DIST, EXAMPLE_TEXT, EXAMPLE_JOINT, EXAMPLE_P, EXAMPLE_Q, EXAMPLE_CHANNEL } from '../../lib/sci/entropy';
+  import { barsFigure, showSymbol } from '../../lib/sci/infobars';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.enc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = (c: string) => q<HTMLTextAreaElement>(c);
+  let mode = 'dist', fig: Figure | null = null, sections: Section[] = [], tableRows: (string | number)[][] = [], csvName = 'entropy';
+  let fileBytes: Uint8Array | null = null, fileName = '';
+  const MAX_FILE = 200e6;
+
+  const EX: Record<string, () => void> = {
+    dist: () => { ta('.en-dist').value = EXAMPLE_DIST; },
+    text: () => { ta('.en-text').value = EXAMPLE_TEXT; fileBytes = null; },
+    joint: () => { ta('.en-joint').value = EXAMPLE_JOINT; },
+    kl: () => { q<HTMLInputElement>('.en-pp').value = EXAMPLE_P; q<HTMLInputElement>('.en-qq').value = EXAMPLE_Q; },
+    chan: () => { q<HTMLSelectElement>('.en-ch').value = 'gen'; ta('.en-W').value = EXAMPLE_CHANNEL; q<HTMLInputElement>('.en-px').value = ''; },
+  };
+  for (const k of Object.keys(EX)) EX[k]();
+  q<HTMLSelectElement>('.en-ch').value = 'bsc';
+
+  const baseOf = () => { const v = q<HTMLSelectElement>('.en-base').value; return v === 'e' ? Math.E : Number(v); };
+  const unitOf = () => ({ '2': 'bits', e: 'nats', '10': 'hartleys' } as Record<string, string>)[q<HTMLSelectElement>('.en-base').value];
+  const sig = (x: number, n = 6) => (x === Infinity ? '∞' : Number.isFinite(x) ? String(+x.toPrecision(n)) : '–');
+  const f = (x: number, n = 6) => sig(x, n);
+  // Figures are drawn at about the width they are shown, so their text stays readable on a phone.
+  const figW = () => Math.round(Math.max(340, Math.min(720, (root.clientWidth || 720) - 34)));
+  const setFacts = (facts: [string, string][]) => q('.en-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const setTable = (head: string[], rows: (string | number)[][], cls: string[] = [], shown = rows.length) => {
+    const t = q('.en-tab'); t.replaceChildren();
+    if (!head.length) return;
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k] === 'r') th.className = 'r'; h.append(th); });
+    for (const r of rows.slice(0, shown)) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+
+  /** A figure of the information diagram: H(X) and H(Y) as overlapping bars sharing I(X;Y). */
+  function infoFigure(j: ReturnType<typeof joint>, u: string): Figure {
+    return {
+      w: figW(), h: 196, alt: 'Information diagram: H(X|Y), I(X;Y) and H(Y|X) as parts of H(X,Y)',
+      draw: (ctx, W, H, pal) => {
+        const L = 20, R = W - 20, tot = j.Hxy || 1, X = (v: number) => L + ((R - L) * v) / tot;
+        const font = (s: number, b = false) => `${b ? 700 : 400} ${s}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        const c1 = pal.red ? pal.ink : pal.accent, c2 = pal.red ? pal.muted : pal.accent2, cI = pal.red ? pal.bad : pal.good;
+        const bar = (y: number, a: number, b: number, c: string, label: string) => {
+          ctx.fillStyle = c; ctx.fillRect(X(a), y, Math.max(1, X(b) - X(a)), 34);
+          ctx.fillStyle = pal.ink; ctx.font = font(13, true); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(label, X(a), y - 4);
+        };
+        bar(30, 0, j.Hx, c1, `H(X) = ${sig(j.Hx, 4)} ${u}`);
+        ctx.font = font(13, true); const yl = `H(Y) = ${sig(j.Hy, 4)} ${u}`;
+        bar(100, j.HxGy, j.Hxy, c2, ''); ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(yl, X(j.Hxy), 96);
+        ctx.fillStyle = cI; ctx.globalAlpha = 0.35; ctx.fillRect(X(j.HxGy), 30, Math.max(1, X(j.Hx) - X(j.HxGy)), 104); ctx.globalAlpha = 1;
+        ctx.fillStyle = pal.ink; ctx.font = font(12); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const mid = (a: number, b: number) => (X(a) + X(b)) / 2;
+        ctx.textAlign = 'left'; ctx.fillText(`H(X|Y) = ${sig(j.HxGy, 3)}`, L, 142);
+        ctx.textAlign = 'center'; ctx.fillText(`I(X;Y) = ${sig(j.I, 3)}`, Math.min(R - 50, Math.max(L + 50, mid(j.HxGy, j.Hx))), 158);
+        ctx.textAlign = 'right'; ctx.fillText(`H(Y|X) = ${sig(j.HyGx, 3)}`, R, 174);
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.en-err'); err.hidden = true;
+    const base = baseOf(), u = unitOf();
+    let big = '', facts: [string, string][] = [], head: string[] = [], rows: (string | number)[][] = [], cls: string[] = [], shown = 500, tnote = '', fnote = '', title = '';
+    fig = null; csvName = 'entropy';
+    try {
+      if (mode === 'dist') {
+        const d = readDist(ta('.en-dist').value);
+        if (d.values.length > 100000) throw new Error('Up to 100,000 values, please.');
+        const s = summarise(d.values, base), labels = d.labels ?? d.values.map((_, i) => String(i + 1));
+        title = 'Entropy of a distribution';
+        big = `H = ${f(s.H)} ${u}`;
+        facts = [['Values', `${s.n} (${s.support} above zero)`], [`Maximum, log ${s.n}`, `${f(s.Hmax)} ${u}`], ['Efficiency H / max', `${sig(100 * s.efficiency, 4)} %`], ['Redundancy', `${sig(100 * s.redundancy, 4)} %`], ['Perplexity', sig(s.perplexity, 6)], ['Min-entropy H∞', `${f(s.minEntropy)} ${u}`], ['Collision entropy H₂', `${f(s.collision)} ${u}`]];
+        if (s.normalised) facts.push(['Read as', `counts (total ${sig(d.values.reduce((a, b) => a + b, 0), 8)})`]);
+        head = ['Symbol', 'Probability', `Surprise −log p (${u})`, `−p log p (${u})`]; cls = ['m', 'r', 'r', 'r'];
+        rows = s.p.map((p, i) => [labels[i], sig(p, 6), p > 0 ? sig(-Math.log(p) / Math.log(base), 6) : '∞', p > 0 ? sig(-p * Math.log(p) / Math.log(base), 6) : '0']);
+        const top = s.n <= 60 ? s.p.map((_, i) => i) : s.p.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 60).map((x) => x[1]);
+        fig = barsFigure({ w: figW(), labels: top.map((i) => labels[i]), values: top.map((i) => s.p[i]), yLabel: 'Probability' }, 'Bar chart of the probabilities');
+        fnote = s.n > 60 ? 'The chart shows the 60 most likely values.' : '';
+        csvName = 'entropy-distribution';
+      } else if (mode === 'text') {
+        let counts: Map<string, number>, n = 0, what = '';
+        const unit = q<HTMLSelectElement>('.en-unit').value as 'char' | 'byte' | 'word';
+        if (fileBytes) {
+          const c = byteCounts(fileBytes); counts = new Map(); c.forEach((v, b) => v && counts.set(String(b), v)); n = fileBytes.length; what = 'bytes';
+          if (!n) throw new Error('That file is empty.');
+        } else {
+          const t = ta('.en-text').value;
+          if (!t) throw new Error('Type or paste some text, or measure a file.');
+          counts = countSymbols(t, unit); n = [...counts.values()].reduce((a, b) => a + b, 0); what = { char: 'characters', byte: 'bytes', word: 'words' }[unit];
+          if (!n) throw new Error('No words found in the text.');
+        }
+        const keys = [...counts.keys()], vals = keys.map((k) => counts.get(k)!);
+        const H = entropy(vals, base), Hb = entropy(vals, 2), k = keys.length;
+        const sym = (key: string) => (fileBytes || unit === 'byte' ? `${key.padStart(3, ' ')} (0x${Number(key).toString(16).toUpperCase().padStart(2, '0')}${Number(key) >= 32 && Number(key) < 127 ? ` '${String.fromCharCode(Number(key))}'` : ''})` : unit === 'word' ? key : showSymbol(key));
+        title = fileBytes ? `Entropy of ${fileName}` : 'Entropy of the text';
+        const per = what.replace(/s$/, '');
+        big = `${f(H)} ${u} per ${per}`;
+        facts = [[what[0].toUpperCase() + what.slice(1), n.toLocaleString('en')], ['Different ' + what, k.toLocaleString('en')], [`Maximum for ${k}, log ${k}`, `${f(Math.log(k) / Math.log(base))} ${u}`], ['Total information n·H', `${sig(n * H, 6)} ${u}`]];
+        if (fileBytes || unit === 'byte') facts.push(['Out of 8 bits per byte', `${sig((100 * Hb) / 8, 4)} %`]);
+        facts.push(['Order-0 coding limit', `${Math.ceil((n * Hb) / 8).toLocaleString('en')} bytes`]);
+        const order = keys.map((_, i) => i).sort((a, b) => vals[b] - vals[a] || (keys[a] < keys[b] ? -1 : 1));
+        head = ['Symbol', 'Count', 'Share', `Surprise (${u})`]; cls = ['m', 'r', 'r', 'r'];
+        rows = order.map((i) => [sym(keys[i]), vals[i], `${sig((100 * vals[i]) / n, 4)} %`, sig(-Math.log(vals[i] / n) / Math.log(base), 5)]);
+        shown = 300; tnote = rows.length > shown ? `The ${shown} most common of ${rows.length.toLocaleString('en')} are shown; the CSV has them all.` : '';
+        if (fileBytes) {
+          const c = byteCounts(fileBytes);
+          fig = barsFigure({ w: figW(), labels: c.map((_, b) => String(b)), tickEvery: 32, values: c.map((v) => v / n), yLabel: 'Share', percent: true }, 'Share of each byte value 0 to 255');
+          fnote = 'Byte values 0 to 255 along the bottom. A flat chart near 8 bits per byte means the file is compressed, encrypted or random.';
+        } else {
+          const top = order.slice(0, 40);
+          fig = barsFigure({ w: figW(), labels: top.map((i) => (unit === 'byte' ? keys[i] : unit === 'word' ? keys[i] : showSymbol(keys[i]))), values: top.map((i) => vals[i] / n), yLabel: 'Share', percent: true }, `Share of the most common ${what}`);
+          fnote = `${order.length > 40 ? `The 40 most common ${what}. ` : ''}␣ is a space and ↵ a new line. This is the order-0 entropy: it counts each ${per} on its own and ignores order, so real text compresses better than this.`;
+        }
+        csvName = 'entropy-symbols';
+      } else if (mode === 'joint') {
+        const t = readTable(ta('.en-joint').value);
+        const j = joint(t.rows, base);
+        const rn = t.rowNames?.map((s, i) => s || `x${i + 1}`) ?? t.rows.map((_, i) => `x${i + 1}`), cn = t.colNames?.map((s, i) => s || `y${i + 1}`) ?? t.rows[0].map((_, i) => `y${i + 1}`);
+        title = 'Joint and conditional entropy';
+        big = `I(X;Y) = ${f(j.I)} ${u}`;
+        facts = [['H(X)', `${f(j.Hx)} ${u}`], ['H(Y)', `${f(j.Hy)} ${u}`], ['H(X,Y)', `${f(j.Hxy)} ${u}`], ['H(X|Y)', `${f(j.HxGy)} ${u}`], ['H(Y|X)', `${f(j.HyGx)} ${u}`], ['I / min(H(X), H(Y))', sig(j.nmi, 4)], ['Table', `${j.rows} × ${j.cols}${j.normalised ? ', counts' : ''}`]];
+        head = ['X \\ Y', ...cn, 'P(x)']; cls = ['', ...cn.map(() => 'r'), 'r'];
+        rows = [...j.P.map((r, i) => [rn[i], ...r.map((p) => sig(p, 5)), sig(j.px[i], 5)]), ['P(y)', ...j.py.map((p) => sig(p, 5)), '1']];
+        tnote = 'The joint probabilities p(x, y), with the totals of each row and column (the marginal distributions).';
+        fig = infoFigure(j, u);
+        fnote = 'H(X,Y) is the whole width. The shaded overlap is the mutual information: what knowing Y tells you about X, and the other way round.';
+        csvName = 'joint-entropy';
+      } else if (mode === 'kl') {
+        const P = readDist(q<HTMLInputElement>('.en-pp').value).values, Q = readDist(q<HTMLInputElement>('.en-qq').value).values;
+        const d = divergence(P, Q, base);
+        const pn = P.map((x) => x / P.reduce((a, b) => a + b, 0)), qn = Q.map((x) => x / Q.reduce((a, b) => a + b, 0));
+        title = 'Kullback-Leibler divergence';
+        big = `D(P‖Q) = ${f(d.pq)} ${u}`;
+        facts = [['D(Q‖P)', `${f(d.qp)} ${u}`], ['Cross-entropy H(P, Q)', `${f(d.crossPQ)} ${u}`], ['H(P)', `${f(d.Hp)} ${u}`], ['H(Q)', `${f(d.Hq)} ${u}`], ['Jensen-Shannon divergence', `${f(d.js)} ${u}`]];
+        if (d.infiniteAt.length) facts.push(['Why infinite', `Q is 0 where P is not (value ${d.infiniteAt.map((i) => i + 1).join(', ')})`]);
+        head = ['Value', 'P', 'Q', `p log(p/q) (${u})`]; cls = ['', 'r', 'r', 'r'];
+        rows = pn.map((p, i) => [i + 1, sig(p, 5), sig(qn[i], 5), p > 0 ? (qn[i] > 0 ? sig((p * Math.log(p / qn[i])) / Math.log(base), 5) : '∞') : '0']);
+        tnote = 'Each row adds its share to D(P‖Q). Negative rows are normal; the total is never negative.';
+        fig = barsFigure({ w: figW(), labels: pn.map((_, i) => String(i + 1)), values: pn, values2: qn, names: ['P', 'Q'], yLabel: 'Probability' }, 'P and Q side by side');
+        csvName = 'kl-divergence';
+      } else {
+        const ch = q<HTMLSelectElement>('.en-ch').value;
+        q('.en-gen').hidden = ch !== 'gen'; q('.en-pw').hidden = ch === 'gen';
+        q('.en-chelp').textContent = { bsc: 'Each bit arrives flipped with probability p. Capacity 1 − h(p), reached with equally likely 0s and 1s.', bec: 'Each bit is lost (the receiver sees "?") with probability p, otherwise it arrives right. Capacity 1 − p.', z: 'A 0 always arrives as 0; a 1 turns into 0 with probability p. Capacity log₂(1 + (1−p)·p^(p/(1−p))), with fewer 1s sent than 0s.', gen: 'The capacity is found by the Blahut-Arimoto algorithm, which also gives a lower and an upper bound at every step.' }[ch]!;
+        const L = Math.log(base) / Math.LN2; // bits per unit
+        if (ch !== 'gen') {
+          const p = Number(q<HTMLInputElement>('.en-cp').value.trim().replace(',', '.'));
+          if (!(p >= 0 && p <= 1) || !q<HTMLInputElement>('.en-cp').value.trim()) throw new Error('Type a probability p between 0 and 1.');
+          const cap = { bsc: bscCapacity, bec: becCapacity, z: zCapacity }[ch]!;
+          const C = cap(p);
+          const W = ch === 'bsc' ? [[1 - p, p], [p, 1 - p]] : ch === 'bec' ? [[1 - p, p, 0], [0, p, 1 - p]] : [[1, 0], [p, 1 - p]];
+          const ba = blahutArimoto(W, 2);
+          title = { bsc: 'Binary symmetric channel', bec: 'Binary erasure channel', z: 'Z channel' }[ch]!;
+          big = `C = ${f(C / L)} ${u} per use`;
+          facts = [['Best share of 1s sent', sig(ba.px[1], 5)], ['Blahut-Arimoto check', `${f(ba.capacity / L)} ${u}`], ['Uniform input gives', `${f(channelInfo([0.5, 0.5], W, base))} ${u}`]];
+          if (ch === 'bsc') facts.push(['h(p)', `${f(h2(p) / L)} ${u}`]);
+          head = ['Input x', ...(ch === 'bec' ? ['y = 0', 'y = ?', 'y = 1'] : ['y = 0', 'y = 1'])]; cls = ['', 'r', 'r', 'r'];
+          rows = W.map((r, i) => [String(i), ...r.map((x) => sig(x, 5))]);
+          tnote = 'The channel matrix P(y | x).';
+          const xs = Array.from({ length: 201 }, (_, i) => i / 200);
+          fig = chartFigure({ w: figW(), h: 300, xLabel: 'p', yLabel: `Capacity (${u} per use)`, series: [{ name: title, x: xs, y: xs.map((x) => cap(x) / L), mode: 'line' }], marks: [{ kind: 'vline', at: p, label: `p = ${sig(p, 3)}` }], xMin: 0, xMax: 1, yMin: 0 }, `Capacity of the ${title.toLowerCase()} against p`);
+        } else {
+          const t = readTable(ta('.en-W').value);
+          if (t.rows.length > 60 || t.rows[0].length > 60) throw new Error('Up to 60 inputs and 60 outputs, please.');
+          const { W, rescaled } = channelMatrix(t.rows);
+          const ba = blahutArimoto(W, base);
+          title = 'Capacity of a discrete channel';
+          big = `C = ${f(ba.capacity, 8)} ${u} per use`;
+          facts = [['Inputs × outputs', `${W.length} × ${W[0].length}`], ['Iterations', ba.iterations.toLocaleString('en')], ['Bounds', `${f(ba.lower[ba.lower.length - 1], 10)} to ${f(ba.upper[ba.upper.length - 1], 10)}`], ['Converged', ba.converged ? 'yes, gap under 10⁻¹²' : `no, gap ${sig(ba.gap, 3)} ${u}`]];
+          if (rescaled) facts.push(['Rows', 'rescaled to add up to 1']);
+          const pxT = q<HTMLInputElement>('.en-px').value.trim();
+          if (pxT) {
+            const px = readDist(pxT).values;
+            if (px.length !== W.length) throw new Error(`Your input distribution has ${px.length} values; the channel has ${W.length} inputs.`);
+            const pn = px.map((x) => x / px.reduce((a, b) => a + b, 0));
+            if (px.some((x) => x < 0) || !pn.every(Number.isFinite)) throw new Error('The input distribution must be probabilities or counts.');
+            facts.push(['I(X;Y) at your input', `${f(channelInfo(pn, W, base))} ${u}`]);
+          }
+          const rn = t.rowNames ?? W.map((_, i) => `x${i + 1}`);
+          head = ['Input', 'Best input probability', ...W[0].map((_, j) => (t.colNames ? t.colNames[j] : `y${j + 1}`))]; cls = ['', 'r', ...W[0].map(() => 'r')];
+          rows = W.map((r, i) => [rn[i], sig(ba.px[i], 6), ...r.map((x) => sig(x, 4))]);
+          tnote = 'The input distribution that reaches capacity, next to each row of the channel matrix.';
+          const it = ba.lower.map((_, i) => i + 1), n = Math.min(it.length, 200);
+          fig = chartFigure({ w: figW(), h: 300, xLabel: 'Iteration', yLabel: `${u} per use`, series: [{ name: 'Upper bound', x: it.slice(0, n), y: ba.upper.slice(0, n), mode: 'line' }, { name: 'Lower bound', x: it.slice(0, n), y: ba.lower.slice(0, n), mode: 'line' }] }, 'Blahut-Arimoto bounds closing in on the capacity');
+          fnote = `The two bounds meet at the capacity${it.length > n ? ' (first 200 iterations shown)' : ''}.`;
+        }
+        csvName = 'channel';
+      }
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; q('.en-out').hidden = true; sections = []; return;
+    }
+    q('.en-out').hidden = false; q('.en-h').textContent = title;
+    q('.en-big').textContent = big; setFacts(facts);
+    const cv = q<HTMLCanvasElement>('.en-fig'); cv.hidden = !fig; if (fig) paint(cv, fig);
+    q('.en-fnote').textContent = fnote; q('.en-fnote').hidden = !fnote;
+    setTable(head, rows, cls, shown); q('.en-tnote').textContent = tnote; q('.en-tnote').hidden = !tnote;
+    tableRows = [head, ...rows];
+    sections = [{ title, facts: [['Result', big], ...facts], figure: fig ?? undefined, table: { head, rows: rows.slice(0, 200).map((r) => r.map(String)) }, note: tnote || undefined }];
+  }
+
+  q('.en-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!;
+    for (const x of q('.en-mode').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const p of root.querySelectorAll<HTMLElement>('.en-p')) p.hidden = p.dataset.p !== mode;
+    run();
+  });
+  q('.en-ex').addEventListener('click', () => { EX[mode](); if (mode === 'text') { q('.en-clear').hidden = true; q<HTMLSelectElement>('.en-unit').disabled = false; } run(); });
+  q('.en-open').addEventListener('click', () => q<HTMLInputElement>('.en-file').click());
+  q('.en-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.en-file'), file = inp.files?.[0]; inp.value = '';
+    if (!file) return;
+    if (file.size > MAX_FILE) { const err = q('.en-err'); err.textContent = `That file is ${sig(file.size / 1e6, 3)} MB; up to 200 MB, please.`; err.hidden = false; return; }
+    fileBytes = new Uint8Array(await file.arrayBuffer()); fileName = file.name;
+    q('.en-clear').hidden = false; q<HTMLSelectElement>('.en-unit').disabled = true; ta('.en-text').disabled = true;
+    q('.en-flimit').textContent = `Measuring ${file.name} (${file.size.toLocaleString('en')} bytes). It stays on this device.`;
+    run();
+  });
+  q('.en-clear').addEventListener('click', () => {
+    fileBytes = null; q('.en-clear').hidden = true; q<HTMLSelectElement>('.en-unit').disabled = false; ta('.en-text').disabled = false;
+    q('.en-flimit').textContent = 'Any file up to 200 MB. It is read on this device and never uploaded.';
+    run();
+  });
+  q('.en-csv').addEventListener('click', () => save(new Blob([csv(tableRows)], { type: 'text/csv' }), `${csvName}.csv`, 'text/csv'));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('en-file')) return; clearTimeout(t); t = window.setTimeout(run, 250); });
+  root.addEventListener('change', (e) => { if (!(e.target as HTMLElement).matches('select')) return; run(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.en-fig'), fig));
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Entropy calculator', subtitle: q('.en-big').textContent ?? '', file: csvName, sections }));
+</script>

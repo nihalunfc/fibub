@@ -1,0 +1,218 @@
+---
+// Water and steam properties (IAPWS-IF97 regions 1 to 4) and a simple or reheat Rankine cycle with a T-s diagram.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sts">
+  <div class="ax-card">
+    <h2>Water and steam properties</h2>
+    <div class="ax-grid">
+      <label>Pressure unit <select class="st-pu"><option value="0.001">kPa</option><option value="0.1">bar</option><option value="1" selected>MPa</option></select></label>
+      <label>Find from <select class="st-mode">
+        <option value="pT" selected>Pressure and temperature</option>
+        <option value="sp">Saturation at a pressure</option>
+        <option value="sT">Saturation at a temperature</option>
+        <option value="ph">Pressure and enthalpy</option>
+        <option value="ps">Pressure and entropy</option>
+        <option value="px">Pressure and quality (wet steam)</option>
+      </select></label>
+      <label class="st-pbox"><span>Pressure p (<span class="st-pul">MPa</span>)</span> <input class="st-p" type="text" inputmode="decimal" value="10" /></label>
+      <label class="st-tbox">Temperature T (°C) <input class="st-t" type="text" inputmode="decimal" value="500" /></label>
+      <label class="st-hbox" hidden>Enthalpy h (kJ/kg) <input class="st-h" type="text" inputmode="decimal" value="2500" /></label>
+      <label class="st-sbox" hidden>Entropy s (kJ/kg·K) <input class="st-s" type="text" inputmode="decimal" value="6.5" /></label>
+      <label class="st-xbox" hidden>Quality x (0 = all liquid, 1 = all vapour) <input class="st-x" type="text" inputmode="decimal" value="0.9" /></label>
+    </div>
+    <p class="ax-help">Range: 0 to 800 °C and up to 100 MPa (1,000 bar). Enthalpy, entropy and internal energy are zero for liquid water at the triple point (0.01 °C), as in all steam tables. Quality is the fraction of the mass that is vapour.</p>
+    <p class="ax-err st-err" hidden></p>
+    <div class="st-out">
+      <p class="ax-big st-big"></p>
+      <dl class="ax-facts st-facts"></dl>
+      <div class="ax-scroll"><table class="st-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rankine cycle</h2>
+    <div class="ax-grid">
+      <label><span>Boiler pressure (<span class="st-pul">MPa</span>)</span> <input class="st-pb" type="text" inputmode="decimal" value="10" /></label>
+      <label>Turbine inlet temperature (°C) <input class="st-t3" type="text" inputmode="decimal" value="550" /></label>
+      <label><span>Condenser pressure (<span class="st-pul">MPa</span>)</span> <input class="st-pc" type="text" inputmode="decimal" value="0.01" /></label>
+      <label>Turbine efficiency (%) <input class="st-et" type="text" inputmode="decimal" value="85" /></label>
+      <label>Pump efficiency (%) <input class="st-ep" type="text" inputmode="decimal" value="75" /></label>
+      <label>Net power (MW, for the flow rates) <input class="st-W" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <label class="st-chk"><input type="checkbox" class="st-rh" /> <span>Reheat: expand part way, heat again, then expand the rest</span></label>
+    <div class="ax-grid st-rhbox" hidden>
+      <label><span>Reheat pressure (<span class="st-pul">MPa</span>)</span> <input class="st-prh" type="text" inputmode="decimal" value="2" /></label>
+      <label>Reheat temperature (°C) <input class="st-trh" type="text" inputmode="decimal" value="550" /></label>
+    </div>
+    <p class="ax-help">Turbine efficiency is the actual work as a share of the work of an ideal (isentropic) expansion; pump efficiency is the ideal pump work as a share of the actual. Use 100 % for both to get the ideal cycle. Pipe and heat losses are ignored. The example values are made up.</p>
+    <p class="ax-err st-cerr" hidden></p>
+    <div class="st-cout">
+      <p class="ax-big st-cbig"></p>
+      <dl class="ax-facts st-cfacts"></dl>
+      <canvas class="ax-fig st-fig"></canvas>
+      <div class="ax-scroll"><table class="st-ctab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small st-csv">Cycle states (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { pT, satT, satP, pX, mix, rankine, dome, isobar, psat, tsat, regionOf, TC, PC, TMIN, TMAX, type State } from '../../lib/sci/if97';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.sts')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[]) => {
+    const tr = (cells: string[], tag: string) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (right.includes(i)) e.className = 'r'; r.append(e); }); return r; };
+    el.replaceChildren(tr(head, 'th'), ...rows.map((r) => tr(r, 'td')));
+  };
+  const K = 273.15;
+  let propSec: Section | null = null, cycSec: Section[] = [], fig: Figure | null = null, cCsv: (string | number)[][] = [];
+  const unit = () => { const f = +sel('.st-pu'); return { f, u: f === 1 ? 'MPa' : f === 0.1 ? 'bar' : 'kPa' }; };
+  const P = (mpa: number) => `${sg(mpa / unit().f, 5)} ${unit().u}`;
+
+  const ROWS: [string, string, (s: State) => number, number][] = [
+    ['Temperature', '°C', (s) => s.T - K, 5], ['Pressure', '', (s) => s.p, 5], ['Specific volume v', 'm³/kg', (s) => s.v, 5], ['Density ρ', 'kg/m³', (s) => s.rho, 5],
+    ['Enthalpy h', 'kJ/kg', (s) => s.h, 6], ['Internal energy u', 'kJ/kg', (s) => s.u, 6], ['Entropy s', 'kJ/kg·K', (s) => s.s, 5],
+    ['Heat capacity cp', 'kJ/kg·K', (s) => s.cp, 5], ['Heat capacity cv', 'kJ/kg·K', (s) => s.cv, 5], ['Speed of sound', 'm/s', (s) => s.w, 5],
+  ];
+  const cell = (r: (typeof ROWS)[number], s: State) => { const v = r[2](s); if (!Number.isFinite(v)) return '–'; return r[1] === '' ? sg(v / unit().f, 5) : `${sg(v, r[3])}`; };
+
+  function props() {
+    const err = q('.st-err'), out = q('.st-out'), mode = sel('.st-mode');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; propSec = null; };
+    q('.st-pbox').hidden = mode === 'sT'; q('.st-tbox').hidden = !(mode === 'pT' || mode === 'sT');
+    q('.st-hbox').hidden = mode !== 'ph'; q('.st-sbox').hidden = mode !== 'ps'; q('.st-xbox').hidden = mode !== 'px';
+    const p = val('.st-p') * unit().f, T = val('.st-t') + K;
+    if (mode !== 'sT' && !(p > 0 && p <= 100)) return fail(`Give a pressure above 0 and up to ${P(100)}.`);
+    if ((mode === 'pT' || mode === 'sT') && !(T >= TMIN && T <= TMAX)) return fail('Give a temperature from 0 to 800 °C.');
+    const facts: HTMLElement[] = [];
+    let head: string[], rows: string[][], big: string;
+    try {
+      if (mode === 'sp' || mode === 'sT') {
+        if (mode === 'sp' && !(p >= psat(TMIN) && p <= PC)) return fail(`Saturation exists from ${P(psat(TMIN))} up to the critical pressure, ${P(PC)}.`);
+        if (mode === 'sT' && T > TC) return fail('Saturation exists only up to the critical temperature, 373.946 °C.');
+        const sat = mode === 'sp' ? satP(p) : satT(T);
+        big = `Boils at ${sg(sat.T - K, 6)} °C at ${P(sat.p)}`;
+        head = ['Property', 'Liquid', 'Vapour', 'Unit'];
+        rows = ROWS.slice(2, 7).map((r) => [r[0], cell(r, sat.liq), cell(r, sat.vap), r[1]]);
+        rows.push(['Heat capacity cp', cell(ROWS[7], sat.liq), cell(ROWS[7], sat.vap), 'kJ/kg·K']);
+        facts.push(fact('Heat of evaporation h_fg', `${sg(sat.vap.h - sat.liq.h, 5)} kJ/kg`, `entropy of evaporation s_fg ${sg(sat.vap.s - sat.liq.s, 5)} kJ/kg·K`));
+        facts.push(fact('Saturation temperature and pressure', `${sg(sat.T - K, 6)} °C, ${P(sat.p)}`, `${sg(sat.T, 6)} K`));
+        if (sat.T > 645) facts.push(fact('Note', 'very close to the critical point', 'IF97 is least certain within a few kelvin of 373.946 °C; differences from the scientific formulation (IAPWS-95) reach about 1 % in density here'));
+      } else {
+        let st: State;
+        if (mode === 'pT') {
+          const r = regionOf(p, T);
+          if (!r) return fail('That point is outside the range of IF97 regions 1 to 3.');
+          st = pT(p, T);
+          if (p < PC && Math.abs(T - tsat(p)) < 1e-6) facts.push(fact('Note', 'exactly at the boiling point', 'choose "Saturation at a pressure" to see the liquid and vapour, or give enthalpy or quality'));
+        } else if (mode === 'px') {
+          const x = val('.st-x');
+          if (!(x >= 0 && x <= 1)) return fail('Give a quality from 0 (all liquid) to 1 (all vapour).');
+          if (!(p >= psat(TMIN) && p < PC)) return fail(`Wet steam exists from ${P(psat(TMIN))} up to the critical pressure, ${P(PC)}.`);
+          st = mix(satP(p), x);
+        } else {
+          const key = mode === 'ph' ? 'h' : 's', v = val(mode === 'ph' ? '.st-h' : '.st-s');
+          if (!Number.isFinite(v)) return fail(`Give the ${mode === 'ph' ? 'enthalpy in kJ/kg' : 'entropy in kJ/kg·K'}.`);
+          try { st = pX(p, key, v); } catch { const lo = pT(p, TMIN + 0.01)[key], hi = pT(p, TMAX)[key]; return fail(`At ${P(p)} the ${key === 'h' ? 'enthalpy' : 'entropy'} must be between ${sg(lo, 4)} and ${sg(hi, 5)} (0 to 800 °C).`); }
+        }
+        big = `${st.phase[0].toUpperCase()}${st.phase.slice(1)} at ${sg(st.T - K, 6)} °C and ${P(st.p)}`;
+        head = ['Property', 'Value', 'Unit'];
+        rows = ROWS.map((r) => [r[0], cell(r, st), r[1] || unit().u]);
+        if (st.x !== null) rows.splice(2, 0, ['Quality x', sg(st.x, 5), 'vapour fraction']);
+        facts.push(fact('IF97 region', st.region === 4 ? '4 (saturation: a mix of liquid and vapour)' : String(st.region), st.region === 1 ? 'liquid equation' : st.region === 2 ? 'vapour equation' : st.region === 3 ? 'near-critical equation (solved for density)' : 'properties are mass-weighted between the saturated liquid and vapour'));
+        if (st.p < PC && st.p >= psat(TMIN)) { const ts = tsat(st.p); facts.push(fact('Boiling point at this pressure', `${sg(ts - K, 6)} °C`, st.x !== null ? 'wet steam sits at the boiling point' : st.T > ts ? `${sg(st.T - ts, 4)} K of superheat` : `${sg(ts - st.T, 4)} K below boiling (subcooled)`)); }
+      }
+    } catch { return fail('That point could not be worked out. Check it is within 0 to 800 °C and up to 100 MPa.'); }
+    err.hidden = true; out.hidden = false;
+    q('.st-big').textContent = big;
+    q('.st-facts').replaceChildren(...facts);
+    table(q('.st-tab'), head, rows, head.length === 4 ? [1, 2] : [1]);
+    propSec = { title: big, facts: factsOf(facts), table: { head, rows, align: head.map((_, i) => (i === 0 || i === head.length - 1 ? 'l' : 'r')) } };
+  }
+
+  function cycle() {
+    const err = q('.st-cerr'), out = q('.st-cout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; cycSec = []; cCsv = []; };
+    const f = unit().f, rh = q<HTMLInputElement>('.st-rh').checked;
+    q('.st-rhbox').hidden = !rh;
+    const pb = val('.st-pb') * f, T3 = val('.st-t3') + K, pc = val('.st-pc') * f, et = val('.st-et') / 100, ep = val('.st-ep') / 100, Wn = val('.st-W');
+    const prh = val('.st-prh') * f, Trh = val('.st-trh') + K;
+    if (!(pc >= psat(TMIN) && pc < 1)) return fail(`Give a condenser pressure from ${P(psat(TMIN))} to ${P(1)}; power stations run at about ${P(0.005)} to ${P(0.015)}.`);
+    if (!(pb > pc && pb <= 100)) return fail(`Give a boiler pressure above the condenser pressure, up to ${P(100)}.`);
+    if (!(T3 <= TMAX)) return fail('Give a turbine inlet temperature up to 800 °C.');
+    if (pb < PC && !(T3 > tsat(pb) + 0.01)) return fail(`The turbine inlet must be steam above the boiling point at the boiler pressure (${sg(tsat(pb) - K, 5)} °C).`);
+    if (pb >= PC && !(T3 > TC)) return fail('Above the critical pressure, give a turbine inlet temperature above 373.946 °C.');
+    if (!(et > 0 && et <= 1) || !(ep > 0 && ep <= 1)) return fail('Give turbine and pump efficiencies between 1 and 100 %.');
+    if (rh && !(prh > pc && prh < pb)) return fail('The reheat pressure must lie between the condenser and boiler pressures.');
+    if (rh && !(Trh <= TMAX && (prh >= PC || Trh > tsat(prh) + 0.01))) return fail('Give a reheat temperature above the boiling point at the reheat pressure, up to 800 °C.');
+    let c: ReturnType<typeof rankine>;
+    try { c = rankine({ pBoil: pb, T3, pCond: pc, etaT: et, etaP: ep, reheat: rh ? { p: prh, T: Trh } : undefined }); } catch { return fail('That cycle could not be worked out; check the pressures and temperatures.'); }
+    err.hidden = true; out.hidden = false;
+    q('.st-cbig').textContent = `Thermal efficiency ${sg(c.eta * 100, 4)} %`;
+    const mdot = Wn > 0 ? (Wn * 1000) / c.wNet : NaN;
+    const facts = [
+      fact('Net work', `${sg(c.wNet, 5)} kJ/kg`, `turbine ${sg(c.wT, 5)} kJ/kg minus pump ${sg(c.wP, 4)} kJ/kg`),
+      fact('Heat in (boiler' + (rh ? ' and reheater' : '') + ')', `${sg(c.qIn, 5)} kJ/kg`, `heat rejected in the condenser ${sg(c.qOut, 5)} kJ/kg`),
+      fact('Back work ratio', `${sg(c.bwr * 100, 3)} %`, 'pump work as a share of turbine work'),
+      fact('Turbine exit', c.xExit === null ? 'superheated steam' : `quality ${sg(c.xExit, 4)}`, c.xExit !== null && c.xExit < 0.88 ? `${sg((1 - c.xExit) * 100, 3)} % moisture: more than about 10 to 12 % erodes the last turbine blades; try reheat or a higher inlet temperature` : 'moisture in the last stages is within the usual limit'),
+      fact('Steam rate', `${sg(c.steamRate, 4)} kg/kWh`, 'steam needed per kilowatt-hour of net work'),
+      fact('Carnot limit', `${sg(c.carnot * 100, 4)} %`, `between the hottest steam and the condensing temperature (${sg(c.pts[0].st.T - K, 4)} °C)`),
+    ];
+    if (Number.isFinite(mdot)) facts.push(fact(`For ${sg(Wn, 4)} MW net`, `${sg(mdot, 4)} kg/s of steam`, `heat input ${sg((mdot * c.qIn) / 1000, 4)} MW, heat to the cooling water ${sg((mdot * c.qOut) / 1000, 4)} MW`));
+    q('.st-cfacts').replaceChildren(...facts);
+    const head = ['State', 'p', 'T °C', 'h kJ/kg', 's kJ/kg·K', 'x'];
+    const rows = c.pts.map(({ name, st }) => [name, P(st.p), sg(st.T - K, 5), sg(st.h, 6), sg(st.s, 5), st.x === null ? '–' : sg(st.x, 4)]);
+    table(q('.st-ctab'), head, rows, [1, 2, 3, 4, 5]);
+    cCsv = [['state', 'p_MPa', 'T_C', 'h_kJ_per_kg', 's_kJ_per_kgK', 'v_m3_per_kg', 'quality'], ...c.pts.map(({ name, st }) => [name, sg(st.p, 8), sg(st.T - K, 8), sg(st.h, 8), sg(st.s, 8), sg(st.v, 8), st.x === null ? '' : sg(st.x, 6)])];
+    // T-s diagram.
+    const d = dome(50), sat = [...d.liq, ...d.vap.slice().reverse()];
+    const S = c.pts.map((p) => p.st), path: [number, number][] = [];
+    const add = (pts: [number, number][]) => { for (const v of pts) path.push(v); };
+    add([[S[0].s, S[0].T], [S[1].s, S[1].T]]);
+    add(isobar(pb, S[1], S[2]));
+    if (rh) { add([[S[3].s, S[3].T]]); add(isobar(prh, S[3], S[4])); add([[S[5].s, S[5].T]]); add(isobar(pc, S[5], S[0])); }
+    else { add([[S[3].s, S[3].T]]); add(isobar(pc, S[3], S[0])); }
+    fig = chartFigure({ w: 380, h: 300, xLabel: 'Entropy s (kJ/kg·K)', yLabel: 'Temperature (°C)', legend: 'below', xMin: 0, yMin: 0, series: [
+      { name: 'Saturation dome', x: sat.map((v) => v[0]), y: sat.map((v) => v[1] - K), mode: 'line', width: 1.5 },
+      { name: 'Cycle', x: path.map((v) => v[0]), y: path.map((v) => v[1] - K), mode: 'line', width: 2 },
+      { name: 'States', x: S.map((v) => v.s), y: S.map((v) => v.T - K), mode: 'points', size: 4, labels: S.map((_, i) => String(i + 1)) },
+    ] }, 'Temperature-entropy diagram of the cycle with the saturation dome');
+    paint(q<HTMLCanvasElement>('.st-fig'), fig);
+    cycSec = [{ title: `Rankine cycle: ${q('.st-cbig').textContent}`, text: [`Boiler ${P(pb)}, turbine inlet ${sg(T3 - K, 4)} °C, condenser ${P(pc)}, turbine ${sg(et * 100, 3)} %, pump ${sg(ep * 100, 3)} %${rh ? `, reheat at ${P(prh)} to ${sg(Trh - K, 4)} °C` : ''}.`], facts: factsOf(facts), figure: fig }, { title: 'Cycle states', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  function all() {
+    root.querySelectorAll('.st-pul').forEach((e) => { e.textContent = unit().u; });
+    props(); cycle();
+  }
+  let lastF = 1;
+  q('.st-pu').addEventListener('change', () => {
+    const f = unit().f;
+    for (const c of ['.st-p', '.st-pb', '.st-pc', '.st-prh']) { const i = q<HTMLInputElement>(c), v = num(i.value); if (Number.isFinite(v)) i.value = sg((v * lastF) / f, 6); }
+    lastF = f; all();
+  });
+  root.querySelectorAll('input, select:not(.st-pu)').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.st-csv').addEventListener('click', () => cCsv.length > 1 && save(new TextEncoder().encode(csv(cCsv)), 'rankine-cycle.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.st-cout').hidden) paint(q<HTMLCanvasElement>('.st-fig'), fig); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Steam properties and Rankine cycle', subtitle: 'IAPWS-IF97', file: 'steam-rankine', sections: [...(propSec ? [propSec] : []), ...cycSec] }));
+</script>
+
+<style is:inline>
+  .sts select, .sts input { max-width: 100%; }
+  .sts label.st-chk { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; color: var(--ink); }
+  .sts .st-chk input { width: auto; }
+  .sts .st-rhbox { margin-top: 8px; }
+</style>

@@ -1,0 +1,241 @@
+---
+// Doppler shift for sound (moving source, listener and wind, with the pass-by curve), echoes from a moving reflector
+// (sonar, bats, radar), light (relativistic), the speed from a measured shift, and beats between two tones.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dpb">
+  <div class="ax-card">
+    <h2>What is moving</h2>
+    <div class="ax-grid">
+      <label>Situation <select class="dp-mode">
+        <option value="sound" selected>Sound: moving source or listener</option>
+        <option value="echo">Echo from a moving object (sonar, bat, radar)</option>
+        <option value="light">Light from a moving star or object</option>
+        <option value="beats">Beats between two tones</option>
+      </select></label>
+      <label data-m="sound echo light">Speed units <select class="dp-u"><option value="1" selected>m/s</option><option value="0.2777777777777778">km/h</option><option value="0.44704">mph</option><option value="0.5144444444444445">knots</option><option value="1000">km/s</option></select></label>
+    </div>
+  </div>
+
+  <div class="ax-card" data-m="sound echo">
+    <h2>Wave</h2>
+    <div class="ax-grid">
+      <label>Frequency sent out (Hz) <input class="dp-f" inputmode="decimal" value="700" /></label>
+      <label>Waves travel through <select class="dp-med"><option value="air" selected>Air</option><option value="water">Water (about 1,480 m/s)</option><option value="radio" data-m="echo">Radio or radar (speed of light)</option><option value="own">My own wave speed</option></select></label>
+      <label class="dp-tl">Air temperature (°C) <input class="dp-t" inputmode="decimal" value="20" /></label>
+      <label class="dp-cl" hidden>Wave speed (m/s) <input class="dp-c" inputmode="decimal" value="343" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card" data-m="sound">
+    <h2>Motion along the line between them</h2>
+    <div class="ax-grid">
+      <label>Source speed <input class="dp-vs" inputmode="decimal" value="25" /></label>
+      <label>Source is moving <select class="dp-sd"><option value="1" selected>towards the listener</option><option value="-1">away from the listener</option></select></label>
+      <label>Listener speed <input class="dp-vo" inputmode="decimal" value="0" /></label>
+      <label>Listener is moving <select class="dp-od"><option value="1" selected>towards the source</option><option value="-1">away from the source</option></select></label>
+      <label>Wind from source to listener <input class="dp-w" inputmode="decimal" value="0" /></label>
+      <label>Closest distance as it passes (m) <input class="dp-d" inputmode="decimal" value="20" /></label>
+      <label>Measured frequency, to find the source speed (Hz, optional) <input class="dp-meas" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Only the part of each speed along the line joining source and listener counts. Wind blowing from the source towards the listener is positive; against, negative. The pass-by chart is for a source driving straight past a listener standing still, as with a siren or a train horn. The example siren is made up.</p>
+  </div>
+
+  <div class="ax-card" data-m="echo">
+    <h2>Reflector</h2>
+    <div class="ax-grid">
+      <label>Reflector speed <input class="dp-vt" inputmode="decimal" value="2" /></label>
+      <label>Reflector is moving <select class="dp-td"><option value="1" selected>towards the sender</option><option value="-1">away from the sender</option></select></label>
+      <label>Measured echo frequency, to find its speed (Hz, optional) <input class="dp-emeas" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">The sender and receiver are together and still, like a bat, a sonar or a speed gun. The wave is shifted twice: once arriving at the moving object and again leaving it.</p>
+  </div>
+
+  <div class="ax-card" data-m="light">
+    <h2>Light</h2>
+    <div class="ax-grid">
+      <label>Wavelength given out (nm) <input class="dp-lam" inputmode="decimal" value="656.28" /></label>
+      <label>Speed along the line of sight <input class="dp-vl" inputmode="decimal" value="3000" /></label>
+      <label>The object is moving <select class="dp-ld"><option value="-1" selected>away (redshift)</option><option value="1">towards us (blueshift)</option></select></label>
+      <label>Measured wavelength, to find its speed (nm, optional) <input class="dp-lmeas" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">656.28 nm is hydrogen's red H-alpha line (rounded). This uses special relativity along the line of sight; for galaxies far away the expansion of space matters too (see the redshift calculator).</p>
+  </div>
+
+  <div class="ax-card" data-m="beats" hidden>
+    <h2>Two tones</h2>
+    <div class="ax-grid">
+      <label>First frequency (Hz) <input class="dp-f1" inputmode="decimal" value="440" /></label>
+      <label>Second frequency (Hz) <input class="dp-f2" inputmode="decimal" value="443" /></label>
+    </div>
+    <p class="ax-help">Two tones close in pitch add up to one tone at their average pitch whose loudness rises and falls: the beats. Tuners listen for the beats to slow down and stop.</p>
+  </div>
+
+  <p class="ax-err dp-err" hidden></p>
+
+  <div class="ax-card dp-out">
+    <h2>Result</h2>
+    <p class="ax-big dp-big"></p>
+    <dl class="ax-facts dp-facts"></dl>
+    <canvas class="ax-fig dp-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dp-csv">Chart data (CSV)</button></div>
+    <p class="ax-help">Straight-line motion at steady speeds in still, uniform air or water. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { soundDoppler, echoDoppler, echoSpeed, sourceSpeed, lightDoppler, lightSpeed, redshiftOf, passBy, mach, beats, airSpeed, C_LIGHT } from '../../lib/sci/phdoppler';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dpb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const val = (c: string) => num(raw(c));
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const hz = (f: number) => (Math.abs(f) >= 1e6 ? `${sig(f / 1e6, 8)} MHz` : Math.abs(f) >= 1e4 ? `${sig(f, 7)} Hz` : `${f.toFixed(2)} Hz`);
+  const sgn = (x: number, s: string) => `${x >= 0 ? '+' : '−'}${s.replace('−', '')}`;
+  const semis = (r: number) => 12 * Math.log2(r);
+  const unitName = () => q<HTMLSelectElement>('.dp-u').selectedOptions[0].textContent!;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], csvName = 'doppler';
+
+  function calc() {
+    const mode = sel('.dp-mode'), err = q('.dp-err'), out = q('.dp-out');
+    root.querySelectorAll<HTMLElement>('[data-m]').forEach((e) => { if (e.tagName !== 'OPTION') e.hidden = !e.dataset.m!.split(' ').includes(mode); });
+    const radio = q<HTMLOptionElement>('.dp-med option[value=radio]');
+    radio.hidden = mode !== 'echo'; radio.disabled = mode !== 'echo';
+    if (mode !== 'echo' && sel('.dp-med') === 'radio') q<HTMLSelectElement>('.dp-med').value = 'air';
+    const med = sel('.dp-med');
+    q('.dp-tl').hidden = med !== 'air'; q('.dp-cl').hidden = med !== 'own';
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; csvRows = []; };
+    const U = +sel('.dp-u'), uN = unitName();
+    const spd = (ms: number) => `${sig(ms / U, 4)} ${uN}`;
+    let facts: HTMLElement[] = [], big = '';
+    fig = null; csvRows = [];
+    if (mode === 'sound' || mode === 'echo') {
+      const f = val('.dp-f');
+      if (!(f > 0 && f < 1e12)) return fail('Give the frequency sent out, in Hz (above 0).');
+      let c: number;
+      if (med === 'air') { const t = val('.dp-t'); if (!(t >= -60 && t <= 60)) return fail('Give an air temperature from −60 to 60 °C.'); c = airSpeed(t); }
+      else if (med === 'water') c = 1480;
+      else if (med === 'radio') c = C_LIGHT;
+      else { c = val('.dp-c'); if (!(c > 0 && c < 1e9)) return fail('Give the wave speed in m/s (above 0).'); }
+      const cDesc = med === 'air' ? `speed of sound in air at ${sig(val('.dp-t'), 3)} °C` : med === 'water' ? 'speed of sound in water, rounded' : med === 'radio' ? 'speed of light' : 'as you entered';
+      if (mode === 'sound') {
+        const vs = val('.dp-vs') * U * +sel('.dp-sd'), vo = val('.dp-vo') * U * +sel('.dp-od'), w = (raw('.dp-w') ? val('.dp-w') : 0) * U, d = val('.dp-d');
+        if (![vs, vo, w].every(Number.isFinite)) return fail('Give the source, listener and wind speeds as numbers (0 if still).');
+        if (!(Math.abs(w) < c)) return fail('The wind must be slower than the speed of sound.');
+        if (!(vo > -(c + w))) return fail('The listener is moving away faster than the sound can follow: it never arrives.');
+        const m = mach(vs, c);
+        if (vs >= c + w) {
+          big = `Mach ${sig(m.M, 3)}: the source outruns its own sound`;
+          facts = [fact('Mach number', sig(m.M, 3), `source speed ÷ ${cDesc} (${sig(c, 4)} m/s)`), fact('Mach cone half-angle', `${sig(m.angle, 3)}°`, 'the listener hears a sonic boom as the cone sweeps past, not a steady shifted tone')];
+        } else {
+          const h = soundDoppler(f, c, vs, vo, w);
+          big = `Heard: ${hz(h)} (${sgn(h - f, hz(Math.abs(h - f)))})`;
+          facts = [
+            fact('Heard frequency', hz(h), `f (c + u + v_listener)/(c + u − v_source)`),
+            fact('Shift', `${sgn(semis(h / f), sig(Math.abs(semis(h / f)), 3))} semitones`, `${sgn(h - f, sig(Math.abs(h - f), 4))} Hz, ${sig((100 * (h - f)) / f, 3)} %`),
+            fact('Wave speed', `${sig(c, 5)} m/s`, cDesc),
+          ];
+          const sp = Math.abs(vs);
+          if (sp > 0 && sp < c) {
+            const fa = soundDoppler(f, c, sp, 0), fr = soundDoppler(f, c, -sp, 0);
+            facts.push(fact('Driving past a listener standing still', `${hz(fa)} → ${hz(fr)}`, `the pitch drops ${sig(semis(fa / fr), 3)} semitones as it passes, no wind`));
+            if (!(d > 0 && d < 1e6)) return fail('Give the closest distance as it passes, in metres (above 0).');
+            const span = Math.max((6 * d) / sp, 2), pb = passBy(f, c, sp, d, span);
+            fig = chartFigure({ w: 380, h: 250, xLabel: 'Time at the listener (s)', yLabel: 'Frequency heard (Hz)', legend: 'none', series: [{ name: 'Heard', x: pb.map((p) => p.t), y: pb.map((p) => p.f), mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: f, dash: [4, 3], label: `${sig(f, 4)} Hz sent` }, { kind: 'vline', at: 0, dash: [3, 3], label: 'closest' }] }, `Frequency heard as a ${sig(f, 4)} Hz source passes at ${spd(sp)}, ${sig(d, 3)} m away`);
+            csvRows = [['time_s', 'frequency_hz'], ...pb.map((p) => [String(+p.t.toFixed(5)), String(+p.f.toFixed(4))])]; csvName = 'doppler-pass-by';
+          }
+          if (m.M > 0.3) facts.push(fact('Mach number', sig(m.M, 3), 'fast: real sources this quick also change loudness and shape'));
+        }
+        if (raw('.dp-meas')) {
+          const fm = val('.dp-meas');
+          if (!(fm > 0)) return fail('The measured frequency should be a number of Hz, or leave it empty.');
+          const v = sourceSpeed(f, fm, c, w);
+          facts.push(fact('Source speed from the measured frequency', `${spd(Math.abs(v))} ${v >= 0 ? 'towards' : 'away'}`, 'assuming the listener is still; wind included'));
+        }
+      } else {
+        const v = val('.dp-vt') * U * +sel('.dp-td');
+        if (!Number.isFinite(v) || !(Math.abs(v) < c)) return fail('Give the reflector speed, slower than the wave.');
+        const e = echoDoppler(f, c, v), sh = e - f;
+        big = `Echo: ${hz(e)} (${sgn(sh, hz(Math.abs(sh)))})`;
+        facts = [
+          fact('Echo frequency', hz(e), 'f (c + v)/(c − v)'),
+          fact('Doppler shift', `${sgn(sh, sig(Math.abs(sh), 5))} Hz`, `close to 2 v f / c = ${sig((2 * v * f) / c, 5)} Hz for slow objects`),
+          fact('Wave speed', `${sig(c, med === 'radio' ? 9 : 5)} m/s`, cDesc),
+        ];
+        if (raw('.dp-emeas')) {
+          const fm = val('.dp-emeas');
+          if (!(fm > 0)) return fail('The measured echo frequency should be a number of Hz, or leave it empty.');
+          const vv = echoSpeed(f, fm, c);
+          facts.push(fact('Speed from the measured echo', `${spd(Math.abs(vv))} ${vv >= 0 ? 'towards' : 'away'}`, `v = c (f_echo − f)/(f_echo + f)`));
+        }
+        const vmax = Math.max(Math.abs(v) * 2, 1 * U), xs = Array.from({ length: 81 }, (_, i) => -vmax + (2 * vmax * i) / 80).filter((x) => Math.abs(x) < c);
+        fig = chartFigure({ w: 380, h: 240, xLabel: `Reflector speed towards the sender (${uN})`, yLabel: 'Echo shift (Hz)', legend: 'none', series: [{ name: 'Shift', x: xs.map((x) => x / U), y: xs.map((x) => echoDoppler(f, c, x) - f), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v / U, dash: [3, 3], label: 'this' }] }, `Echo shift against speed for ${hz(f)}`);
+        csvRows = [['speed_towards_' + uN.replace('/', '_per_'), 'echo_shift_hz'], ...xs.map((x) => [String(+(x / U).toPrecision(6)), String(+(echoDoppler(f, c, x) - f).toPrecision(8))])]; csvName = 'doppler-echo';
+      }
+    } else if (mode === 'light') {
+      const lam = val('.dp-lam'), v = val('.dp-vl') * U * +sel('.dp-ld');
+      if (!(lam > 0 && lam < 1e12)) return fail('Give the wavelength given out, in nm (above 0).');
+      if (!Number.isFinite(v) || !(Math.abs(v) < C_LIGHT)) return fail('Give a speed below the speed of light (299,792 km/s).');
+      const ratio = lightDoppler(1, v), lam2 = lam / ratio, z = redshiftOf(1, ratio);
+      big = `Seen at ${sig(lam2, 6)} nm (${z >= 0 ? 'redshift' : 'blueshift'} z = ${sig(z, 4)})`;
+      facts = [
+        fact('Wavelength seen', `${sig(lam2, 7)} nm`, `${sgn(lam2 - lam, sig(Math.abs(lam2 - lam), 4))} nm from ${sig(lam, 6)} nm`),
+        fact('Redshift z', sig(z, 5), 'positive moving away; z ≈ v/c when slow'),
+        fact('Speed as a fraction of c', sig(Math.abs(v) / C_LIGHT, 4), `relativistic √((1 + β)/(1 − β)); the simple v/c rule gives ${sig(lam * (1 - v / C_LIGHT), 7)} nm`),
+      ];
+      if (raw('.dp-lmeas')) {
+        const lm = val('.dp-lmeas');
+        if (!(lm > 0)) return fail('The measured wavelength should be a number of nm, or leave it empty.');
+        const vv = lightSpeed(lam / lm);
+        facts.push(fact('Speed from the measured wavelength', `${spd(Math.abs(vv))} ${vv >= 0 ? 'towards us' : 'away'}`, `z = ${sig(lm / lam - 1, 4)}`));
+      }
+      const vmax = Math.min(Math.max(Math.abs(v) * 2, 1000 * U), 0.99 * C_LIGHT), xs = Array.from({ length: 81 }, (_, i) => -vmax + (2 * vmax * i) / 80);
+      fig = chartFigure({ w: 380, h: 240, xLabel: `Speed towards us (${uN})`, yLabel: 'Wavelength seen (nm)', legend: 'none', series: [{ name: 'Seen', x: xs.map((x) => x / U), y: xs.map((x) => lam / lightDoppler(1, x)), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v / U, dash: [3, 3], label: 'this' }, { kind: 'hline', at: lam, dash: [4, 3] }] }, `Wavelength seen against speed for ${sig(lam, 6)} nm`);
+      csvRows = [['speed_towards_' + uN.replace('/', '_per_'), 'wavelength_nm'], ...xs.map((x) => [String(+(x / U).toPrecision(6)), String(+(lam / lightDoppler(1, x)).toPrecision(9))])]; csvName = 'doppler-light';
+    } else {
+      const f1 = val('.dp-f1'), f2 = val('.dp-f2');
+      if (!(f1 > 0 && f2 > 0 && f1 < 1e7 && f2 < 1e7)) return fail('Give both frequencies in Hz (above 0).');
+      const b = beats(f1, f2);
+      big = b.fb === 0 ? 'No beats: the tones are the same' : `${sig(b.fb, 4)} beats per second`;
+      facts = [
+        fact('Beat frequency', `${sig(b.fb, 5)} Hz`, '|f₁ − f₂|'),
+        fact('Time between beats', b.fb > 0 ? `${sig(b.period, 4)} s` : '–', 'one loud-quiet cycle'),
+        fact('Pitch you hear', `${+b.mean.toPrecision(6)} Hz`, 'the average of the two'),
+        fact('Difference', `${sig(Math.abs(1200 * Math.log2(f2 / f1)), 3)} cents`, b.fb > 0 && b.fb < 15 ? 'slow enough to count: under about 15 per second' : b.fb > 0 ? 'too fast to hear as beats: it sounds rough, or as two notes' : ''),
+      ];
+      if (b.fb > 0) {
+        const T = Math.min(3 * b.period, 10), n = 3000, cycles = b.mean * T, ts = Array.from({ length: n + 1 }, (_, i) => (i * T) / n);
+        const series = [{ name: 'Envelope', x: ts, y: ts.map((t) => 2 * Math.abs(Math.cos(Math.PI * b.fb * t))), mode: 'line' as const, width: 2 }];
+        if (cycles <= 150) series.unshift({ name: 'Sound', x: ts, y: ts.map((t) => Math.sin(2 * Math.PI * f1 * t) + Math.sin(2 * Math.PI * f2 * t)), mode: 'line' as const, width: 1 });
+        fig = chartFigure({ w: 380, h: 230, xLabel: 'Time (s)', yLabel: 'Amplitude', yMin: cycles <= 150 ? -2.1 : 0, yMax: 2.1, legend: series.length > 1 ? 'below' : 'none', series }, `${sig(b.fb, 4)} beats per second between ${sig(f1, 6)} and ${sig(f2, 6)} Hz`);
+        csvRows = [['time_s', 'envelope', 'sound'], ...ts.filter((_, i) => i % 3 === 0).map((t) => [String(+t.toPrecision(6)), String(+(2 * Math.abs(Math.cos(Math.PI * b.fb * t))).toFixed(5)), String(+(Math.sin(2 * Math.PI * f1 * t) + Math.sin(2 * Math.PI * f2 * t)).toFixed(5))])]; csvName = 'beats';
+      }
+    }
+    err.hidden = true; out.hidden = false;
+    q('.dp-big').textContent = big;
+    q('.dp-facts').replaceChildren(...facts);
+    q('.dp-fig').hidden = !fig; q('.dp-csv').hidden = !csvRows.length;
+    if (fig) paint(q<HTMLCanvasElement>('.dp-fig'), fig);
+    sections = [{ title: big, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig ?? undefined }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.dp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), `${csvName}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dp-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Doppler and beats', subtitle: q('.dp-big').textContent ?? '', file: 'doppler-beats', sections }));
+</script>
+
+<style is:inline>
+  .dpb select { max-width: 100%; }
+  .dpb [hidden] { display: none !important; }
+</style>

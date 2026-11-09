@@ -1,0 +1,347 @@
+---
+// Fourier series of standard and typed waves with partial sums and the Gibbs overshoot; epicycle drawings from the
+// complex DFT of a closed path; and the FFT of a typed signal or pasted data with windows, amplitude and phase.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax fvz">
+  <div class="ax-seg fv-tabs" role="group" aria-label="Part">
+    <button type="button" data-tab="ser" aria-pressed="true">Series</button>
+    <button type="button" data-tab="epi" aria-pressed="false">Epicycles</button>
+    <button type="button" data-tab="fft" aria-pressed="false">Spectrum (FFT)</button>
+  </div>
+
+  <div class="fv-p fv-p-ser">
+    <div class="ax-card">
+      <h2>Fourier series</h2>
+      <div class="ax-grid">
+        <label>Wave <select class="fv-w">
+          <option value="square">Square wave</option><option value="sawtooth">Sawtooth</option><option value="triangle">Triangle</option>
+          <option value="halfsine">Half-wave rectified sine</option><option value="fullsine">Full-wave rectified sine</option><option value="pulse">Pulse train</option>
+          <option value="own">My own f(t)</option>
+        </select></label>
+        <label class="fv-dw" hidden>Duty cycle D (0 to 1) <input class="fv-d" inputmode="decimal" value="0.25" /></label>
+        <label>Terms N <input class="fv-n" inputmode="numeric" value="9" /></label>
+        <label>Smoothing <select class="fv-sm"><option value="none">None (plain partial sum)</option><option value="fejer">Fejér (Cesàro mean)</option><option value="lanczos">Lanczos σ factors</option></select></label>
+      </div>
+      <label class="fv-ftw" style="margin-top:10px" hidden>f(t) on −π &lt; t &lt; π, repeated every 2π <input class="fv-ft" spellcheck="false" autocomplete="off" value="t^2" /></label>
+      <label style="margin-top:10px">Slide N <input type="range" class="fv-ns" min="1" max="200" step="1" value="9" /></label>
+      <label class="ax-check" style="margin-top:6px"><input type="checkbox" class="fv-each" /> Show the first five terms one by one</label>
+      <p class="ax-help fv-form"></p>
+      <p class="ax-err fv-err" hidden></p>
+    </div>
+    <div class="ax-card fv-sout">
+      <p class="ax-big fv-big"></p>
+      <dl class="ax-facts fv-facts"></dl>
+      <canvas class="ax-fig fv-sfig" style="margin-top:14px"></canvas>
+      <canvas class="ax-fig fv-cfig" style="margin-top:14px"></canvas>
+      <h3>Coefficients</h3>
+      <p class="ax-help" style="margin-top:0">f(t) ≈ a₀/2 + Σ (aₙ cos nt + bₙ sin nt). Amplitude is √(aₙ² + bₙ²).</p>
+      <div class="ax-scroll"><table class="fv-ct"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fv-ccsv">Download the coefficients (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="fv-p fv-p-epi" hidden>
+    <div class="ax-card">
+      <h2>Epicycles</h2>
+      <p class="ax-help" style="margin-top:0">Any closed drawing is a sum of circles, each turning at a whole-number speed. Pick a shape or draw your own on the picture.</p>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Shape <select class="fv-sh"><option value="star">Star</option><option value="heart">Heart</option><option value="square">Square</option><option value="eight">Figure eight</option><option value="trefoil">Trefoil</option><option value="draw">My drawing</option></select></label>
+        <label>Circles <input class="fv-k" inputmode="numeric" value="20" /></label>
+      </div>
+      <label style="margin-top:10px">Slide the number of circles <input type="range" class="fv-ks" min="1" max="256" step="1" value="20" /></label>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small fv-play">Pause</button><button type="button" class="btn secondary small fv-eclear">Clear and draw</button></div>
+      <p class="ax-err fv-eerr" hidden></p>
+    </div>
+    <div class="ax-card">
+      <canvas class="ax-fig fv-ec" style="touch-action:none"></canvas>
+      <p class="ax-help fv-ehelp"></p>
+      <dl class="ax-facts fv-ef" style="margin-top:10px"></dl>
+    </div>
+  </div>
+
+  <div class="fv-p fv-p-fft" hidden>
+    <div class="ax-card">
+      <h2>Spectrum of a signal</h2>
+      <div class="ax-grid">
+        <label>Signal <select class="fv-src"><option value="typed">A formula in t</option><option value="data">My data</option></select></label>
+        <label>Window <select class="fv-win"><option value="rect">None (rectangular)</option><option value="hann" selected>Hann</option><option value="hamming">Hamming</option><option value="blackman">Blackman</option><option value="flattop">Flat top</option></select></label>
+        <label>Amplitude scale <select class="fv-db"><option value="lin">Linear</option><option value="db">Decibels</option></select></label>
+      </div>
+      <div class="fv-typed">
+        <label style="margin-top:10px">x(t), t in seconds <input class="fv-sig" spellcheck="false" autocomplete="off" value="sin(2*pi*50*t) + 0.5*sin(2*pi*120*t)" /></label>
+        <div class="ax-grid" style="margin-top:10px">
+          <label>Sample rate (Hz) <input class="fv-fs" inputmode="decimal" value="1000" /></label>
+          <label>Samples <input class="fv-N" inputmode="numeric" value="1000" /></label>
+        </div>
+      </div>
+      <div class="fv-data" hidden>
+        <label style="margin-top:10px">Values, one per line, or two columns: time and value <textarea class="fv-dat" rows="6" spellcheck="false"></textarea></label>
+        <DataFile target=".fv-dat" maxCols={2} maxRows={262144} />
+        <div class="ax-grid" style="margin-top:10px">
+          <label>Sample rate (Hz), for one column <input class="fv-dfs" inputmode="decimal" value="1" /></label>
+        </div>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="fv-dc" checked /> Remove the mean first (hides the 0 Hz spike)</label>
+      <p class="ax-help fv-whelp"></p>
+      <p class="ax-err fv-ferr" hidden></p>
+    </div>
+    <div class="ax-card fv-fout">
+      <p class="ax-big fv-fbig"></p>
+      <dl class="ax-facts fv-ff"></dl>
+      <canvas class="ax-fig fv-xfig" style="margin-top:14px"></canvas>
+      <canvas class="ax-fig fv-afig" style="margin-top:14px"></canvas>
+      <canvas class="ax-fig fv-pfig" style="margin-top:14px"></canvas>
+      <h3>Largest peaks</h3>
+      <div class="ax-scroll"><table class="fv-pt"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fv-scsv">Download the spectrum (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Report</h2>
+    <p class="ax-help" style="margin-top:0">The report has every part you have opened.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .fvz h3 { margin: 22px 0 8px; font-size: 15px; }
+  .fvz .fv-p { display: grid; gap: 14px; min-width: 0; }
+  .fvz .fv-p[hidden] { display: none; }
+  .fvz input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { spectrum, peaks, exactCoeffs, numericCoeffs, waveValue, partialSum, parsevalError, maxPartial, meanSquare, epicycles, epicyclePoint, resample, shape, WAVES, type WaveId, type WindowId, type Coeffs, type Circle } from '../../lib/sci/fourier';
+  import { parse, compile, variables } from '../../lib/sci/expr';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fvz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const factList = (el: HTMLElement) => [...el.querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const table = (t: HTMLElement, head: string[], rows: string[][]) => { t.replaceChildren(); const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); } for (const r of rows) { const tr = t.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); } };
+  const colors = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4']);
+  const figs: Record<string, Figure | null> = {};
+  const show = (cls: string, fig: Figure) => { figs[cls] = fig; paint(q<HTMLCanvasElement>(cls), fig); };
+  const sections: Record<string, Section | null> = {};
+  const g = (v: number, n = 4) => (Math.abs(v) < 1e-12 ? '0' : sig(v, n));
+  const tFn = (src: string, what: string) => {
+    let node; try { node = parse(src); } catch (e) { throw new Error(`${what}: ${(e as Error).message}.`); }
+    const bad = variables(node).find((v) => v !== 't'); if (bad) throw new Error(`${what} may use only t, not ${bad}.`);
+    const c = compile(node, ['t']), v = new Float64Array(1); return (t: number) => { v[0] = t; return c(v); };
+  };
+
+  // ---------- Tabs ----------
+  const opened = new Set(['ser']);
+  let tab = 'ser';
+  q('.fv-tabs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-tab]'); if (!b) return;
+    tab = b.dataset.tab!;
+    for (const x of q('.fv-tabs').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const t of ['ser', 'epi', 'fft']) q(`.fv-p-${t}`).hidden = t !== tab;
+    if (!opened.has(tab)) { opened.add(tab); if (tab === 'epi') runEpi(); if (tab === 'fft') runFft(); }
+    if (tab === 'epi') loop();
+  });
+
+  // ---------- Series ----------
+  let coeffs: Coeffs | null = null, coeffN = 0;
+  function runSeries() {
+    const err = q('.fv-err'); err.hidden = true;
+    const w = q<HTMLSelectElement>('.fv-w').value as WaveId | 'own';
+    q('.fv-dw').hidden = w !== 'pulse'; q('.fv-ftw').hidden = w !== 'own';
+    try {
+      const N = Math.round(num(inp('.fv-n').value));
+      if (!(N >= 1 && N <= 1000)) throw new Error('Use between 1 and 1000 terms.');
+      const d = num(inp('.fv-d').value);
+      if (w === 'pulse' && !(d > 0 && d < 1)) throw new Error('The duty cycle must be between 0 and 1.');
+      const f = w === 'own' ? tFn(inp('.fv-ft').value, 'f(t)') : (t: number) => waveValue(w, t, d);
+      const c = w === 'own' ? numericCoeffs(f, N) : exactCoeffs(w, N, d);
+      if (![c.a0, ...c.a, ...c.b].every(Number.isFinite)) throw new Error('f(t) is not a number somewhere between −π and π.');
+      coeffs = c; coeffN = N;
+      const sm = q<HTMLSelectElement>('.fv-sm').value as 'none' | 'fejer' | 'lanczos';
+      q('.fv-form').textContent = w === 'own' ? 'Coefficients are worked out numerically from 16,384 samples over one period (an FFT), accurate to about 10⁻⁶ where f is smooth.' : `${WAVES[w].formula}. These are the exact coefficients.`;
+      const ms = meanSquare(f), mse = sm === 'none' ? parsevalError(ms, c, N) : (() => { let s = 0; const M = 4000; for (let j = 0; j < M; j++) { const t = -Math.PI + (2 * Math.PI * (j + 0.5)) / M, e = partialSum(c, N, t, sm) - f(t); s += e * e; } return s / M; })();
+      const mx = maxPartial(c, N, sm);
+      let fmax = -Infinity, fmin = Infinity; for (let j = 0; j <= 4000; j++) { const v = f(-Math.PI + (2 * Math.PI * j) / 4000); if (v > fmax) fmax = v; if (v < fmin) fmin = v; }
+      const range = fmax - fmin;
+      q('.fv-big').textContent = `${N} term${N > 1 ? 's' : ''}: mean square error ${g(mse)} (${g((100 * mse) / (ms || 1), 3)} % of the mean square)`;
+      const over = (mx.v - fmax) / (range || 1);
+      facts(q('.fv-facts'), [
+        ['Mean a₀/2', g(c.a0 / 2, 6)],
+        ['Highest point of the sum', `${g(mx.v, 7)} at t = ${g(mx.t, 4)}`],
+        ['Overshoot', over > 1e-6 ? `${g(100 * over, 4)} % of the wave's height` : 'none'],
+        ['Mean square of f', g(ms, 6)],
+      ]);
+      const T = Array.from({ length: 1201 }, (_, j) => -2 * Math.PI + (4 * Math.PI * j) / 1200);
+      const series: Series[] = [{ name: 'f(t)', x: T, y: T.map(f), mode: 'line', width: 1.4 }, { name: `Sum of ${N} terms`, x: T, y: T.map((t) => partialSum(c, N, t, sm)), mode: 'line', width: 2 }];
+      if (inp('.fv-each').checked) for (let n = 1, k = 0; n <= N && k < 5; n++) { if (Math.abs(c.a[n]) + Math.abs(c.b[n]) < 1e-12) continue; series.push({ name: `n = ${n}`, x: T, y: T.map((t) => c.a[n] * Math.cos(n * t) + c.b[n] * Math.sin(n * t)), mode: 'line', width: 1, dash: [4, 3] }); k++; }
+      show('.fv-sfig', chartFigure({ h: 360, xLabel: 't', yLabel: 'f(t)', series, legend: 'below', xMin: -2 * Math.PI, xMax: 2 * Math.PI }, 'Wave and its partial sum'));
+      const ns = Array.from({ length: N }, (_, i) => i + 1), amp = ns.map((n) => Math.hypot(c.a[n], c.b[n]));
+      show('.fv-cfig', chartFigure({ h: 260, xLabel: 'harmonic n', yLabel: 'amplitude', series: [{ name: 'amplitude', x: [0, ...ns], y: [Math.abs(c.a0 / 2), ...amp], mode: 'points', size: N > 60 ? 2 : 3.6 }], legend: 'none', yMin: 0 }, 'Amplitude of each harmonic'));
+      table(q('.fv-ct'), ['n', 'aₙ', 'bₙ', 'Amplitude'], [['0', `${g(c.a0, 6)} (a₀)`, '', g(Math.abs(c.a0 / 2), 6)], ...ns.slice(0, 20).map((n) => [String(n), g(c.a[n], 6), g(c.b[n], 6), g(amp[n - 1], 6)])]);
+      sections.ser = { title: `Fourier series: ${w === 'own' ? `f(t) = ${inp('.fv-ft').value}` : WAVES[w].name}`, text: [q('.fv-form').textContent!], facts: [['Result', q('.fv-big').textContent!], ...factList(q('.fv-facts'))], figure: figs['.fv-sfig']!, table: { head: ['n', 'aₙ', 'bₙ'], rows: ns.slice(0, 20).map((n) => [String(n), g(c.a[n], 6), g(c.b[n], 6)]) } };
+      q('.fv-sout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.fv-sout').hidden = true; sections.ser = null; }
+  }
+  let t1 = 0;
+  const later = (fn: () => void, ms = 250) => { clearTimeout(t1); t1 = window.setTimeout(fn, ms); };
+  inp('.fv-ns').addEventListener('input', () => { inp('.fv-n').value = inp('.fv-ns').value; runSeries(); });
+  inp('.fv-n').addEventListener('input', () => later(() => { inp('.fv-ns').value = inp('.fv-n').value; runSeries(); }));
+  for (const c of ['.fv-d', '.fv-ft']) inp(c).addEventListener('input', () => later(runSeries));
+  for (const c of ['.fv-w', '.fv-sm', '.fv-each']) q(c).addEventListener('change', runSeries);
+  q('.fv-ccsv').addEventListener('click', () => { if (coeffs) save(new TextEncoder().encode(csv([['n', 'a_n', 'b_n', 'amplitude'], [0, coeffs.a0, 0, Math.abs(coeffs.a0 / 2)], ...Array.from({ length: coeffN }, (_, i) => [i + 1, coeffs!.a[i + 1], coeffs!.b[i + 1], Math.hypot(coeffs!.a[i + 1], coeffs!.b[i + 1])])])), 'fourier-coefficients.csv', 'text/csv'); });
+
+  // ---------- Epicycles ----------
+  const NPTS = 256;
+  let path: [number, number][] = [], circles: Circle[] = [], drawn: [number, number][] = [], drawing = false, playing = true, phase = 0, raf = 0, last = 0;
+  const box = { cx: 0, cy: 0, s: 1 };
+  function runEpi() {
+    const err = q('.fv-eerr'); err.hidden = true;
+    const sh = q<HTMLSelectElement>('.fv-sh').value;
+    if (sh === 'draw') {
+      if (drawn.length < 10) { path = []; circles = []; q('.fv-ehelp').textContent = 'Drag on the picture to draw a closed shape; it is joined up when you let go.'; q('.fv-ef').replaceChildren(); drawEpi(); return; }
+      path = resample(drawn, NPTS);
+    } else path = shape(sh as 'heart', NPTS);
+    circles = epicycles(path);
+    const xs = path.map((p) => p[0]), ys = path.map((p) => p[1]);
+    box.cx = (Math.min(...xs) + Math.max(...xs)) / 2; box.cy = (Math.min(...ys) + Math.max(...ys)) / 2; box.s = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) || 1;
+    epiFacts();
+  }
+  function kNow() { return Math.max(1, Math.min(NPTS, Math.round(num(inp('.fv-k').value)) || 1)); }
+  function epiFacts() {
+    if (!circles.length) return;
+    const K = kNow();
+    let e2 = 0; path.forEach((p, m) => { const r = epicyclePoint(circles, K, (2 * Math.PI * m) / NPTS); e2 += (r[0] - p[0]) ** 2 + (r[1] - p[1]) ** 2; });
+    const rms = Math.sqrt(e2 / NPTS) / box.s;
+    facts(q('.fv-ef'), [['Circles used', `${K} of ${NPTS}`], ['Gap from the shape (RMS)', `${g(100 * rms, 3)} % of its size`], ['Largest radii', circles.slice(0, 3).map((c) => g(c.amp / box.s, 3)).join(', ')], ['Speeds of the largest', circles.slice(0, 5).map((c) => (c.k > 0 ? `+${c.k}` : String(c.k).replace('-', '−'))).join(', ')]]);
+    q('.fv-ehelp').textContent = 'The shape is sampled at 256 points equally spaced along it; its discrete Fourier transform gives 256 circles, drawn largest first. The dashed line is the shape, the solid one what the circles draw.';
+    sections.epi = { title: 'Epicycles', facts: factList(q('.fv-ef')), figure: epiFigure(Math.PI / 3) };
+  }
+  function epiFigure(t: number): Figure {
+    const K = kNow(), C = circles, P = path;
+    return {
+      w: 720, h: 540, alt: 'Epicycles drawing the shape',
+      draw: (ctx, W, H, pal) => {
+        const col = colors(pal), k = (Math.min(W, H) * 0.78) / box.s;
+        const X = (x: number) => W / 2 + (x - box.cx) * k, Y = (y: number) => H / 2 - (y - box.cy) * k;
+        if (drawing || !C.length) {
+          ctx.strokeStyle = col[0]; ctx.lineWidth = 2; ctx.beginPath(); drawn.forEach(([x, y], i) => (i ? ctx.lineTo(x, H - y) : ctx.moveTo(x, H - y))); ctx.stroke();
+          if (!drawn.length) { ctx.fillStyle = pal.muted; ctx.font = '16px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Drag here to draw', W / 2, H / 2); }
+          return;
+        }
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); P.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        // Path drawn so far by K circles.
+        ctx.strokeStyle = col[0]; ctx.lineWidth = 2; ctx.beginPath();
+        const steps = 400, upto = Math.round((steps * t) / (2 * Math.PI));
+        for (let j = 0; j <= upto; j++) { const p = epicyclePoint(C, K, (2 * Math.PI * j) / steps); if (j) ctx.lineTo(X(p[0]), Y(p[1])); else ctx.moveTo(X(p[0]), Y(p[1])); }
+        ctx.stroke();
+        // The circles at time t.
+        let x = 0, y = 0;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < Math.min(K, C.length); i++) {
+          const c = C[i], a = c.k * t, nx = x + c.re * Math.cos(a) - c.im * Math.sin(a), ny = y + c.re * Math.sin(a) + c.im * Math.cos(a);
+          if (c.k !== 0) { ctx.strokeStyle = pal.grid === '#ececec' ? '#b8b8b8' : pal.line; ctx.beginPath(); ctx.arc(X(x), Y(y), c.amp * k, 0, 2 * Math.PI); ctx.stroke(); }
+          ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(nx), Y(ny)); ctx.stroke();
+          x = nx; y = ny;
+        }
+        ctx.fillStyle = col[1]; ctx.beginPath(); ctx.arc(X(x), Y(y), 4, 0, 2 * Math.PI); ctx.fill();
+      },
+    };
+  }
+  function drawEpi() { show('.fv-ec', epiFigure(phase)); }
+  function loop() {
+    cancelAnimationFrame(raf);
+    const step = (now: number) => {
+      if (tab !== 'epi') return;
+      if (playing && circles.length && !drawing) { phase = (phase + Math.min(0.05, ((now - (last || now)) / 1000) * 0.8)) % (2 * Math.PI); }
+      last = now; drawEpi();
+      if (playing) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }
+  inp('.fv-ks').addEventListener('input', () => { inp('.fv-k').value = inp('.fv-ks').value; epiFacts(); drawEpi(); });
+  inp('.fv-k').addEventListener('input', () => later(() => { const K = Math.round(num(inp('.fv-k').value)); q('.fv-eerr').hidden = K >= 1 && K <= NPTS; q('.fv-eerr').textContent = `Use between 1 and ${NPTS} circles.`; inp('.fv-ks').value = String(kNow()); epiFacts(); drawEpi(); }));
+  q('.fv-sh').addEventListener('change', () => { runEpi(); drawEpi(); });
+  q('.fv-play').addEventListener('click', () => { playing = !playing; q('.fv-play').textContent = playing ? 'Pause' : 'Play'; if (playing) { last = 0; loop(); } });
+  q('.fv-eclear').addEventListener('click', () => { drawn = []; q<HTMLSelectElement>('.fv-sh').value = 'draw'; runEpi(); drawEpi(); });
+  {
+    const cv = q<HTMLCanvasElement>('.fv-ec');
+    const pt = (e: PointerEvent): [number, number] => { const r = cv.getBoundingClientRect(), k = 720 / r.width; return [(e.clientX - r.left) * k, 540 - (e.clientY - r.top) * k]; };
+    cv.addEventListener('pointerdown', (e) => { drawing = true; drawn = [pt(e)]; q<HTMLSelectElement>('.fv-sh').value = 'draw'; circles = []; cv.setPointerCapture(e.pointerId); drawEpi(); });
+    cv.addEventListener('pointermove', (e) => { if (!drawing) return; const p = pt(e), l = drawn[drawn.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 2) { drawn.push(p); drawEpi(); } });
+    const end = () => { if (!drawing) return; drawing = false; phase = 0; runEpi(); drawEpi(); };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  }
+
+  // ---------- FFT ----------
+  let spec: ReturnType<typeof spectrum> | null = null;
+  const WHELP: Record<WindowId, string> = {
+    rect: 'No window: sharpest peaks for frequencies that fit a whole number of cycles, but strong leakage (wide skirts) for any other frequency.',
+    hann: 'Hann: a good general choice; much less leakage than none, peaks a little wider.',
+    hamming: 'Hamming: like Hann, with lower nearest side lobes but more leakage far away.',
+    blackman: 'Blackman: very low leakage, wider peaks; good for finding a small peak next to a big one.',
+    flattop: 'Flat top: the most accurate amplitude for frequencies between bins, at the cost of very wide peaks.',
+  };
+  function readData(): { x: number[]; fs: number; note: string } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.fv-dat').value).map((r) => r.map(num));
+    const numeric = rows.filter((r) => r.length && r.every(Number.isFinite));
+    if (numeric.length < 8) throw new Error('Paste at least 8 numbers, one per line (or time and value).');
+    if (numeric[0].length >= 2) {
+      const t = numeric.map((r) => r[0]), x = numeric.map((r) => r[1]), dt = (t[t.length - 1] - t[0]) / (t.length - 1);
+      if (!(dt > 0)) throw new Error('The times in the first column must increase.');
+      const worst = Math.max(...t.slice(1).map((v, i) => Math.abs(v - t[i] - dt)));
+      if (worst > 0.01 * dt) throw new Error(`The times are not evenly spaced (one gap differs from the average ${sig(dt, 4)} by ${sig(worst, 3)}). The FFT needs even steps; for uneven data use the period finder.`);
+      return { x, fs: 1 / dt, note: `${x.length} values, time step ${sig(dt, 4)} from the first column` };
+    }
+    const fs = num(inp('.fv-dfs').value);
+    if (!(fs > 0)) throw new Error('Type the sample rate (how many values per second, or per your time unit).');
+    return { x: numeric.map((r) => r[0]), fs, note: `${numeric.length} values at ${sig(fs, 4)} per unit time` };
+  }
+  function runFft() {
+    const err = q('.fv-ferr'); err.hidden = true;
+    const src = q<HTMLSelectElement>('.fv-src').value, win = q<HTMLSelectElement>('.fv-win').value as WindowId, db = q<HTMLSelectElement>('.fv-db').value === 'db';
+    q('.fv-typed').hidden = src !== 'typed'; q('.fv-data').hidden = src !== 'data';
+    q('.fv-whelp').textContent = WHELP[win];
+    try {
+      let x: number[], fs: number, note: string;
+      if (src === 'typed') {
+        fs = num(inp('.fv-fs').value); const N = Math.round(num(inp('.fv-N').value));
+        if (!(fs > 0)) throw new Error('The sample rate must be above zero.');
+        if (!(N >= 8 && N <= 1048576)) throw new Error('Use between 8 and 1,048,576 samples.');
+        const f = tFn(inp('.fv-sig').value, 'x(t)');
+        x = Array.from({ length: N }, (_, i) => f(i / fs));
+        if (!x.every(Number.isFinite)) throw new Error('x(t) is not a number at some sample time.');
+        note = `${N.toLocaleString('en')} samples over ${sig(N / fs, 4)} s`;
+      } else ({ x, fs, note } = readData());
+      const s = spectrum(x, fs, win, inp('.fv-dc').checked); spec = s;
+      const pk = peaks(s, 8), top = pk[0];
+      q('.fv-fbig').textContent = top ? `Strongest peak: ${g(top.f, 5)} Hz, amplitude ${g(top.amp, 4)}` : 'No peaks: the signal is flat.';
+      facts(q('.fv-ff'), [['Data', note], ['Frequency step (resolution)', `${g(s.df, 4)} Hz`], ['Highest frequency (Nyquist)', `${g(fs / 2, 4)} Hz`], ['Mean of the signal', g(s.mean, 4)], ['Window noise bandwidth', `${g(s.enbw, 4)} bins`]]);
+      const n = x.length, every = Math.max(1, Math.ceil(n / 3000)), ti = x.map((_, i) => i).filter((i) => i % every === 0);
+      show('.fv-xfig', chartFigure({ h: 240, xLabel: 'time (s)', yLabel: 'x', series: [{ name: 'x', x: ti.map((i) => i / fs), y: ti.map((i) => x[i]), mode: 'line', width: 1.2 }], legend: 'none' }, 'Signal'));
+      const ref = Math.max(...s.amp), ampY = s.amp.map((a) => (db ? 20 * Math.log10(Math.max(a, ref * 1e-12) / ref) : a));
+      const fe = Math.max(1, Math.ceil(s.f.length / 4000)), fi = s.f.map((_, i) => i).filter((i) => i % fe === 0);
+      show('.fv-afig', chartFigure({ h: 300, xLabel: 'frequency (Hz)', yLabel: db ? 'amplitude (dB from the largest)' : 'amplitude', series: [{ name: 'amplitude', x: fi.map((i) => s.f[i]), y: fi.map((i) => ampY[i]), mode: 'line', width: 1.3 }], legend: 'none', yMin: db ? Math.max(-160, Math.min(...ampY)) : 0, xMin: 0, xMax: fs / 2 }, 'Amplitude spectrum'));
+      const sigBins = s.amp.map((a, i) => i).filter((i) => s.amp[i] > 0.01 * ref);
+      show('.fv-pfig', chartFigure({ h: 300, xLabel: 'frequency (Hz)', yLabel: 'phase (degrees)', series: [{ name: 'phase', x: sigBins.map((i) => s.f[i]), y: sigBins.map((i) => s.phase[i]), mode: 'points', size: 3 }], legend: 'none', yMin: -180, yMax: 180, xMin: 0, xMax: fs / 2 }, 'Phase of the bins above 1 % of the largest'));
+      table(q('.fv-pt'), ['Frequency (Hz)', 'Amplitude', 'Phase (°)', 'Bin'], pk.map((p) => [g(p.f, 6), g(p.amp, 4), g(s.phase[p.bin], 4), String(p.bin)]));
+      sections.fft = { title: 'Spectrum', text: [`Window: ${q<HTMLSelectElement>('.fv-win').selectedOptions[0].textContent}. Amplitudes are one-sided: a sine of amplitude A on a bin shows as A. Phase is that of cos(2πft + φ).`], facts: [['Result', q('.fv-fbig').textContent!], ...factList(q('.fv-ff'))], figure: figs['.fv-afig']!, table: { head: ['Frequency (Hz)', 'Amplitude', 'Phase (°)'], rows: pk.map((p) => [g(p.f, 6), g(p.amp, 4), g(s.phase[p.bin], 4)]) } };
+      q('.fv-fout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.fv-fout').hidden = true; sections.fft = null; spec = null; }
+  }
+  let t3 = 0;
+  for (const c of ['.fv-sig', '.fv-fs', '.fv-N', '.fv-dat', '.fv-dfs']) q(c).addEventListener('input', () => { clearTimeout(t3); t3 = window.setTimeout(runFft, 350); });
+  for (const c of ['.fv-src', '.fv-win', '.fv-db', '.fv-dc']) q(c).addEventListener('change', runFft);
+  q('.fv-scsv').addEventListener('click', () => { if (spec) save(new TextEncoder().encode(csv([['frequency_hz', 'amplitude', 'phase_deg'], ...spec.f.map((f, i) => [f, spec!.amp[i], spec!.phase[i]])])), 'spectrum.csv', 'text/csv'); });
+
+  document.addEventListener('fibub:theme', () => { for (const [k, f] of Object.entries(figs)) if (f && !q(k).closest<HTMLElement>('.fv-p')?.hidden) paint(q<HTMLCanvasElement>(k), f); });
+  runSeries();
+  wireDownloads(q('.dl'), () => ({ title: 'Fourier visualiser', subtitle: '', file: 'fourier-visualiser', sections: ['ser', 'epi', 'fft'].map((k) => sections[k]).filter((s): s is Section => !!s) }));
+</script>

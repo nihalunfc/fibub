@@ -1,0 +1,247 @@
+---
+// Beam deflection: supports, loads and a cross-section in; reactions, shear, moment, deflection and stress out.
+// Solved with Euler-Bernoulli finite elements (src/lib/sci/eng-beam.ts). Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bmc">
+  <div class="ax-card">
+    <h2>Beam and supports</h2>
+    <div class="ax-grid">
+      <label>Supports <select class="bm-sup">
+        <option value="ss" selected>Simply supported</option>
+        <option value="cant">Cantilever (fixed left)</option>
+        <option value="ff">Fixed at both ends</option>
+        <option value="prop">Propped cantilever</option>
+        <option value="ovh">Overhanging</option>
+        <option value="cont">Continuous, 3 supports</option>
+      </select></label>
+      <label>Length L (m) <input class="bm-L" type="text" inputmode="decimal" value="6" /></label>
+      <label class="bm-abox" hidden>First support at (m) <input class="bm-a" type="text" inputmode="decimal" value="1" /></label>
+      <label class="bm-bbox" hidden><span class="bm-bl">Second support at (m)</span> <input class="bm-b" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Positions are measured from the left end. A propped cantilever is fixed at the left with a roller at the right; an overhanging beam has a pin and a roller anywhere along it. A pin or roller stops the beam moving up or down but lets it turn; a fixed end (built in) stops both.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Loads</h2>
+    <div class="bm-loads"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bm-add">Add a load</button></div>
+    <p class="ax-help">Point loads and distributed loads are downward when positive (kN and kN/m); a negative value pushes up. A distributed load runs from "at" to "to", changing in a straight line from its start value to its end value (the same for a uniform load). Moments are in kN·m, clockwise positive. The beam's own weight is not added: put it in as a distributed load if it matters.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Section and material</h2>
+    <div class="ax-grid">
+      <label>Cross-section <select class="bm-shape">
+        <option value="I" selected>I-beam built from plates</option>
+        <option value="rect">Solid rectangle</option>
+        <option value="circle">Round bar or tube</option>
+        <option value="custom">Enter I and c myself</option>
+      </select></label>
+      <label class="bm-s bm-s-I">Depth h (mm) <input class="bm-h" type="text" inputmode="decimal" value="300" /></label>
+      <label class="bm-s bm-s-I">Flange width (mm) <input class="bm-bf" type="text" inputmode="decimal" value="150" /></label>
+      <label class="bm-s bm-s-I">Flange thickness (mm) <input class="bm-tf" type="text" inputmode="decimal" value="10" /></label>
+      <label class="bm-s bm-s-I">Web thickness (mm) <input class="bm-tw" type="text" inputmode="decimal" value="7" /></label>
+      <label class="bm-s bm-s-rect" hidden>Width b (mm) <input class="bm-rb" type="text" inputmode="decimal" value="100" /></label>
+      <label class="bm-s bm-s-rect" hidden>Depth h (mm) <input class="bm-rh" type="text" inputmode="decimal" value="200" /></label>
+      <label class="bm-s bm-s-circle" hidden>Outside diameter (mm) <input class="bm-d" type="text" inputmode="decimal" value="60" /></label>
+      <label class="bm-s bm-s-circle" hidden>Inside diameter (mm, 0 for solid) <input class="bm-di" type="text" inputmode="decimal" value="0" /></label>
+      <label class="bm-s bm-s-custom" hidden>I (mm⁴) <input class="bm-I" type="text" inputmode="decimal" value="8e7" /></label>
+      <label class="bm-s bm-s-custom" hidden>c, centroid to outer fibre (mm) <input class="bm-c" type="text" inputmode="decimal" value="150" /></label>
+      <label class="bm-s bm-s-custom" hidden>Area (mm²) <input class="bm-A" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Young's modulus E (GPa) <input class="bm-E" type="text" inputmode="decimal" value="200" /></label>
+      <label>Typical E (example) <select class="bm-Epick">
+        <option value="">Pick to fill in E…</option>
+        <option value="200">200 GPa steel</option>
+        <option value="70">70 GPa aluminium</option>
+        <option value="110">110 GPa titanium or brass</option>
+        <option value="30">30 GPa concrete (uncracked)</option>
+        <option value="11">11 GPa softwood along the grain</option>
+      </select></label>
+      <label>Yield strength (MPa, optional) <input class="bm-fy" type="text" inputmode="decimal" value="250" /></label>
+    </div>
+    <p class="ax-help">E is how stiff the material is; it sets the deflection but not the stress. The typical values are rounded examples; use the figure for your grade. The yield strength (example 250 MPa) is only used to show how close the bending stress comes to it.</p>
+    <p class="ax-err bm-err" hidden></p>
+  </div>
+
+  <div class="ax-card bm-out">
+    <h2>Results</h2>
+    <p class="ax-big bm-big"></p>
+    <dl class="ax-facts bm-facts"></dl>
+    <p class="ax-help bm-warn" hidden></p>
+    <canvas class="ax-fig bm-sk"></canvas>
+    <canvas class="ax-fig bm-vf"></canvas>
+    <canvas class="ax-fig bm-mf"></canvas>
+    <canvas class="ax-fig bm-df"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement. Small deflections, elastic material and a beam that does not buckle sideways are assumed.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bm-csv">Download diagram points (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<template class="bm-tpl">
+  <div class="bm-row">
+    <label>Type <select class="bm-lt"><option value="point">Point load (kN)</option><option value="dist">Distributed (kN/m)</option><option value="moment">Moment (kN·m)</option></select></label>
+    <label><span class="bm-vl">Load (kN)</span> <input class="bm-lv" type="text" inputmode="decimal" /></label>
+    <label>At (m) <input class="bm-lx" type="text" inputmode="decimal" /></label>
+    <label class="bm-dbox">To (m) <input class="bm-lx2" type="text" inputmode="decimal" /></label>
+    <label class="bm-dbox">End value (kN/m) <input class="bm-lv2" type="text" inputmode="decimal" /></label>
+    <button type="button" class="btn secondary small bm-del" aria-label="Remove this load">Remove</button>
+  </div>
+</template>
+
+<script>
+  import { solveBeam, sectionProps, type Load, type Support, type SectionShape } from '../../lib/sci/eng-beam';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.bmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [HTMLCanvasElement, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function addLoad(t: string, v: string, x: string, x2 = '', v2 = '') {
+    const row = (document.querySelector<HTMLTemplateElement>('.bm-tpl')!.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+    const f = (c: string) => row.querySelector(c) as HTMLInputElement;
+    f('.bm-lt').value = t; f('.bm-lv').value = v; f('.bm-lx').value = x; f('.bm-lx2').value = x2; f('.bm-lv2').value = v2;
+    row.querySelector('.bm-del')!.addEventListener('click', () => { row.remove(); run(); });
+    row.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+    q('.bm-loads').append(row);
+  }
+
+  function run() {
+    const err = q('.bm-err'), out = q('.bm-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; rows = []; };
+    const kind = sel('.bm-sup'), L = val('.bm-L');
+    q('.bm-abox').hidden = kind !== 'ovh'; q('.bm-bbox').hidden = kind !== 'ovh' && kind !== 'cont';
+    q('.bm-bl').textContent = kind === 'cont' ? 'Middle support at (m)' : 'Second support at (m)';
+    root.querySelectorAll<HTMLElement>('.bm-row').forEach((r) => {
+      const t = (r.querySelector('.bm-lt') as HTMLSelectElement).value;
+      r.querySelectorAll<HTMLElement>('.bm-dbox').forEach((e) => { e.hidden = t !== 'dist'; });
+      r.querySelector('.bm-vl')!.textContent = t === 'point' ? 'Load (kN)' : t === 'dist' ? 'Start value (kN/m)' : 'Moment (kN·m)';
+    });
+    const shape = sel('.bm-shape');
+    root.querySelectorAll<HTMLElement>('.bm-s').forEach((e) => { e.hidden = !e.classList.contains('bm-s-' + shape); });
+    if (!(L > 0)) return fail('Give the beam length in metres.');
+    let sups: Support[];
+    if (kind === 'ss') sups = [{ x: 0, kind: 'pin' }, { x: L, kind: 'pin' }];
+    else if (kind === 'cant') sups = [{ x: 0, kind: 'fixed' }];
+    else if (kind === 'ff') sups = [{ x: 0, kind: 'fixed' }, { x: L, kind: 'fixed' }];
+    else if (kind === 'prop') sups = [{ x: 0, kind: 'fixed' }, { x: L, kind: 'pin' }];
+    else if (kind === 'cont') { const b = val('.bm-b'); if (!(b > 0 && b < L)) return fail('Put the middle support between the ends.'); sups = [{ x: 0, kind: 'pin' }, { x: b, kind: 'pin' }, { x: L, kind: 'pin' }]; }
+    else { const a = val('.bm-a'), b = val('.bm-b'); if (!(a >= 0 && b > a && b <= L)) return fail('Put the second support to the right of the first, both on the beam.'); sups = [{ x: a, kind: 'pin' }, { x: b, kind: 'pin' }]; }
+    const loads: Load[] = [];
+    let i = 0;
+    for (const r of root.querySelectorAll<HTMLElement>('.bm-row')) {
+      i++;
+      const g = (c: string) => num((r.querySelector(c) as HTMLInputElement).value), t = (r.querySelector('.bm-lt') as HTMLSelectElement).value;
+      const v = g('.bm-lv'), x = g('.bm-lx');
+      if (!Number.isFinite(v)) return fail(`Load ${i}: give its size.`);
+      if (!(x >= 0 && x <= L)) return fail(`Load ${i}: its position must be between 0 and ${sg(L)} m.`);
+      if (t === 'point') loads.push({ kind: 'point', x, P: v });
+      else if (t === 'moment') loads.push({ kind: 'moment', x, C: v });
+      else {
+        const x2 = g('.bm-lx2'), v2r = (r.querySelector('.bm-lv2') as HTMLInputElement).value.trim(), v2 = v2r === '' ? v : num(v2r);
+        if (!(x2 > x && x2 <= L)) return fail(`Load ${i}: the "to" position must be after "at" and no more than ${sg(L)} m.`);
+        if (!Number.isFinite(v2)) return fail(`Load ${i}: give the end value, or leave it empty for a uniform load.`);
+        loads.push({ kind: 'dist', x, x2, w: v, w2: v2 });
+      }
+    }
+    if (!loads.length) return fail('Add at least one load.');
+    let sec: SectionShape;
+    if (shape === 'I') sec = { kind: 'I', h: val('.bm-h'), bf: val('.bm-bf'), tf: val('.bm-tf'), tw: val('.bm-tw') };
+    else if (shape === 'rect') sec = { kind: 'rect', b: val('.bm-rb'), h: val('.bm-rh') };
+    else if (shape === 'circle') sec = { kind: 'circle', d: val('.bm-d'), di: val('.bm-di') || 0 };
+    else sec = { kind: 'custom', I: val('.bm-I'), c: val('.bm-c'), A: val('.bm-A') };
+    let sp; try { sp = sectionProps(sec); } catch (e) { return fail((e as Error).message); }
+    const E = val('.bm-E'), fy = val('.bm-fy');
+    if (!(E > 0)) return fail("Give Young's modulus E in GPa (steel is about 200).");
+    const EI = E * sp.I * 1e-6; // kN·m²
+    let r; try { r = solveBeam(L, EI, sups, loads); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const mm = (v: number) => v * 1000, dmax = Math.abs(r.vmax.v) * 1000;
+    const Mabs = Math.abs(r.Mmax.M) >= Math.abs(r.Mmin.M) ? r.Mmax : r.Mmin;
+    const sigma = (Math.abs(Mabs.M) * 1e6) / sp.Z, tau = (sp.k * Math.abs(r.Vabs.V) * 1e3) / sp.A;
+    const span = kind === 'cant' ? L : Math.max(...sups.map((s, j) => (j ? s.x - sups[j - 1].x : 0)), sups[0].x, L - sups[sups.length - 1].x);
+    q('.bm-big').textContent = `Largest deflection ${sg(dmax, 3)} mm ${r.vmax.v <= 0 ? 'down' : 'up'} at ${sg(r.vmax.x, 4)} m`;
+    const rx = r.reactions.map((s) => fact(`Reaction at ${sg(s.x, 4)} m`, `${sg(s.R, 4)} kN ${s.R >= 0 ? 'up' : 'down'}`, s.kind === 'fixed' ? `and a moment of ${sg(Math.abs(s.M), 4)} kN·m ${s.M >= 0 ? 'clockwise' : 'anticlockwise'} (fixed end)` : 'pin or roller'));
+    const facts = [
+      ...rx,
+      fact('Largest bending moment', `${sg(Math.abs(Mabs.M), 4)} kN·m`, `${Mabs.M >= 0 ? 'sagging' : 'hogging'} at ${sg(Mabs.x, 4)} m; range ${sg(r.Mmin.M, 4)} to ${sg(r.Mmax.M, 4)} kN·m`),
+      fact('Largest shear force', `${sg(Math.abs(r.Vabs.V), 4)} kN`, `at ${sg(r.Vabs.x, 4)} m`),
+      fact('Bending stress', `${sg(sigma, 4)} MPa`, `σ = M / Z at the outer fibre${fy > 0 ? `; ${sg((sigma / fy) * 100, 3)} % of the ${sg(fy, 4)} MPa yield (factor ${sg(fy / sigma, 3)})` : ''}`),
+      fact('Shear stress', `${sg(tau, 3)} MPa`, shape === 'I' ? 'average over the web, V / (h × web)' : `largest, ${sg(sp.k, 3)} × V / A at the neutral axis`),
+      fact('Deflection ratio', `span / ${sg((span * 1000) / dmax, 3)}`, `the longest span (or overhang) ${sg(span, 4)} m over the largest deflection`),
+      fact('Section', `I = ${sg(sp.I, 4)} mm⁴`, `Z = I / c = ${sg(sp.Z, 4)} mm³, area ${sg(sp.A, 4)} mm², EI = ${sg(EI, 4)} kN·m²`),
+    ];
+    q('.bm-facts').replaceChildren(...facts);
+    const warn = q('.bm-warn'); warn.hidden = !(fy > 0 && sigma > fy);
+    warn.textContent = 'The bending stress is above the yield strength: the beam would bend permanently, and the elastic results above no longer hold.';
+    // Beam sketch.
+    const sk: Figure = { w: 380, h: 180, alt: 'Sketch of the beam, supports and loads', draw: (ctx, W, H, pal) => {
+      const x0 = 24, x1 = W - 24, by = 112, X = (x: number) => x0 + ((x1 - x0) * x) / L;
+      ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, by); ctx.lineTo(x1, by); ctx.stroke(); ctx.lineWidth = 1.5;
+      for (const s of sups) {
+        const px = X(s.x);
+        if (s.kind === 'fixed') { const side = s.x < L / 2 ? -1 : 1; ctx.beginPath(); ctx.moveTo(px, by - 22); ctx.lineTo(px, by + 22); ctx.stroke(); for (let k = -20; k <= 20; k += 8) { ctx.beginPath(); ctx.moveTo(px, by + k); ctx.lineTo(px + side * 7, by + k + 6); ctx.stroke(); } }
+        else { ctx.beginPath(); ctx.moveTo(px, by + 2); ctx.lineTo(px - 8, by + 16); ctx.lineTo(px + 8, by + 16); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(px - 11, by + 19); ctx.lineTo(px + 11, by + 19); ctx.stroke(); }
+      }
+      const arrow = (px: number, len: number, up: boolean, col: string) => { ctx.strokeStyle = col; ctx.fillStyle = col; const a = up ? by + 4 : by - 4; const b = up ? by + 4 + len : by - 4 - len; ctx.beginPath(); ctx.moveTo(px, b); ctx.lineTo(px, a); ctx.stroke(); ctx.beginPath(); ctx.moveTo(px, a); ctx.lineTo(px - 4, a + (up ? 7 : -7)); ctx.lineTo(px + 4, a + (up ? 7 : -7)); ctx.closePath(); ctx.fill(); };
+      ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      const wmax = Math.max(1e-9, ...loads.map((l) => (l.kind === 'dist' ? Math.max(Math.abs(l.w), Math.abs(l.w2)) : 0)));
+      for (const l of loads) {
+        if (l.kind === 'dist') {
+          const col = pal.accent2, h = (w: number) => 8 + (24 * Math.abs(w)) / wmax;
+          ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(X(l.x), by - 4 - h(l.w)); ctx.lineTo(X(l.x2), by - 4 - h(l.w2)); ctx.stroke();
+          const nA = Math.max(2, Math.round((X(l.x2) - X(l.x)) / 22));
+          for (let k = 0; k <= nA; k++) { const s = l.x + ((l.x2 - l.x) * k) / nA, w = l.w + ((l.w2 - l.w) * k) / nA; arrow(X(s), h(w), w < 0, col); }
+          ctx.fillStyle = col; ctx.fillText(l.w === l.w2 ? `${sg(l.w, 3)} kN/m` : `${sg(l.w, 3)} → ${sg(l.w2, 3)} kN/m`, (X(l.x) + X(l.x2)) / 2, by - 6 - h(Math.max(Math.abs(l.w), Math.abs(l.w2))));
+        }
+      }
+      for (const l of loads) {
+        if (l.kind === 'point') { arrow(X(l.x), 74, l.P < 0, pal.accent); ctx.fillStyle = pal.accent; ctx.fillText(`${sg(l.P, 3)} kN`, X(l.x), l.P < 0 ? H - 2 : by - 80); }
+        if (l.kind === 'moment') {
+          const px = X(l.x), cw = l.C >= 0; ctx.strokeStyle = pal.bad; ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(px, by, 14, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+          const ex = cw ? px + 14 * Math.cos(Math.PI * 1.9) : px + 14 * Math.cos(Math.PI * 1.1), ey = by + 14 * Math.sin(Math.PI * 1.9);
+          ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + (cw ? -1 : 1) * 2, ey - 7); ctx.lineTo(ex + (cw ? -7 : 7), ey - 1); ctx.closePath(); ctx.fill();
+          ctx.fillText(`${sg(Math.abs(l.C), 3)} kN·m ${cw ? '↻' : '↺'}`, px, by - 18);
+        }
+      }
+      ctx.fillStyle = pal.muted; ctx.textBaseline = 'top'; ctx.fillText(`L = ${sg(L, 4)} m`, W / 2, by + 26);
+    } };
+    const vf = chartFigure({ w: 380, h: 200, xLabel: 'Position (m)', yLabel: 'Shear (kN)', xMin: 0, xMax: L, legend: 'none', series: [{ name: 'Shear force', x: r.dx, y: r.V, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0 }] }, 'Shear force diagram');
+    const mf = chartFigure({ w: 380, h: 200, xLabel: 'Position (m)', yLabel: 'Moment (kN·m)', xMin: 0, xMax: L, legend: 'none', series: [{ name: 'Bending moment', x: r.dx, y: r.M, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0 }] }, 'Bending moment diagram, sagging positive');
+    const df = chartFigure({ w: 380, h: 200, xLabel: 'Position (m)', yLabel: 'Deflection (mm)', xMin: 0, xMax: L, legend: 'none', series: [{ name: 'Deflection', x: r.x, y: r.v.map(mm), mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0 }] }, 'Deflected shape, up positive');
+    figs = [[q('.bm-sk'), sk], [q('.bm-vf'), vf], [q('.bm-mf'), mf], [q('.bm-df'), df]];
+    figs.forEach(([c, f]) => paint(c, f));
+    // CSV: diagram points with the deflection at each mesh node.
+    const vAt = (x: number) => { let k = r.x.findIndex((s) => s >= x - 1e-12); if (k < 0) k = r.x.length - 1; return [r.v[k] * 1000, r.theta[k]]; };
+    rows = [['x_m', 'shear_kN', 'moment_kNm', 'deflection_mm', 'slope_rad'], ...r.dx.map((x, j) => { const [v, th] = vAt(x); return [sg(x, 6), sg(r.V[j], 6), sg(r.M[j], 6), sg(v, 6), sg(th, 6)]; })];
+    report = [
+      { title: q('.bm-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: sk, note: 'For study and planning, not a substitute for professional judgement.' },
+      { title: 'Shear force', figure: vf }, { title: 'Bending moment', figure: mf }, { title: 'Deflection', figure: df },
+    ];
+  }
+
+  q('.bm-add').addEventListener('click', () => { addLoad('point', '5', String(val('.bm-L') / 2 || 1)); run(); });
+  q('.bm-Epick').addEventListener('change', () => { const v = sel('.bm-Epick'); if (v) q<HTMLInputElement>('.bm-E').value = v; q<HTMLSelectElement>('.bm-Epick').value = ''; run(); });
+  root.querySelectorAll(':scope > .ax-card input, :scope > .ax-card select').forEach((i) => { if (i.closest('.bm-row')) return; i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.bm-csv').addEventListener('click', () => rows.length > 1 && save(new Blob([csv(rows)], { type: 'text/csv' }), 'beam-diagrams.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.bm-out').hidden) figs.forEach(([c, f]) => paint(c, f)); });
+  addLoad('dist', '5', '0', '6', '');
+  addLoad('point', '10', '2');
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Beam calculation', subtitle: q('.bm-big').textContent ?? '', file: 'beam', sections: report }));
+</script>
+
+<style is:inline>
+  .bmc select, .bmc input { max-width: 100%; }
+  .bmc .bm-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .bmc .bm-row:first-child { padding-top: 0; }
+  .bmc .bm-row [hidden] { display: none; }
+</style>

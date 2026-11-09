@@ -1,0 +1,76 @@
+// #543 matrix calculator
+export const path = '/science/matrix-calculator/';
+export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const R = '.mxc ';
+  const big = () => page.textContent(R + '.mx-big'), sub = () => page.textContent(R + '.mx-sub');
+  const op = async (v) => { await page.selectOption(R + '.mx-op', v); await page.waitForTimeout(150); };
+  const setA = async (t) => { await page.fill(R + '.mx-a', t); await page.waitForTimeout(400); };
+  const cells = () => page.$$eval(R + '.mx-mats td', (els) => els.map((e) => e.textContent).join(' '));
+  await page.goto(`${BASE}/science/matrix-calculator/`); await page.waitForTimeout(600);
+  check((await big()) === 'det A = −1', `matrix: example determinant (${await big()} / ${await sub()})`);
+  check((await page.$$(R + '.mx-steps li')).length >= 2 && (await page.textContent(R + '.mx-steps')).includes('R2 → R2 +'), 'matrix: determinant steps shown');
+  await page.click(R + '.mx-ex[data-ex=sys]'); await page.waitForTimeout(200);
+  check((await big()) === 'One solution' && (await sub()) === 'x₁ = 2, x₂ = 3, x₃ = −1' && await page.isVisible(R + '.mx-b'), `matrix: solve the 3-equation example (${await sub()})`);
+  const nSteps = (await page.$$(R + '.mx-steps li')).length;
+  check(nSteps === 6 && (await page.$$(R + '.mx-steps td.mx-bar')).length > 0, `matrix: solve steps with the augmented bar (${nSteps})`);
+  await op('inv');
+  check((await big()) === 'A⁻¹ found' && (await sub()).includes('A × A⁻¹ = I exactly'), 'matrix: inverse found and checked');
+  check((await cells()) === '4 3 −1 −2 −2 1 5 4 −1', `matrix: inverse = sympy (${await cells()})`);
+  await setA('1 2 3\n4 5 6\n7 8 9');
+  check((await big()) === 'A has no inverse' && (await sub()).includes('rank is 2'), 'matrix: singular matrix has no inverse');
+  await op('rref');
+  check((await big()) === 'Rank 2' && (await page.textContent(R + '.mx-facts')).includes('(1, −2, 1)') && (await page.textContent(R + '.mx-steps')).includes('R2 → (−1/3)R2'), 'matrix: RREF, rank, null space and steps');
+  await op('solve'); await page.fill(R + '.mx-b', '6\n15\n24'); await page.waitForTimeout(400);
+  check((await big()).startsWith('Infinitely many solutions (1 free') && (await sub()).includes('x = (0, 3, 0) + t₁·(1, −2, 1)'), `matrix: infinitely many solutions (${await sub()})`);
+  await page.fill(R + '.mx-b', '1\n1\n2'); await page.waitForTimeout(400);
+  check((await big()) === 'No solution' && (await sub()).includes('0 = '), 'matrix: no solution');
+  await op('transpose'); await setA('1 2 3\n4 5 6');
+  check((await big()) === 'Aᵀ is 3 × 2' && (await cells()) === '1 4 2 5 3 6', 'matrix: transpose');
+  await op('pow');
+  check(!(await page.isHidden(R + '.mx-err')) && (await page.textContent(R + '.mx-err')).includes('square'), 'matrix: power needs a square matrix');
+  await setA('1 1\n1 0'); await page.fill(R + '.mx-n', '10'); await page.waitForTimeout(400);
+  check((await cells()) === '89 55 55 34', 'matrix: Fibonacci power A¹⁰');
+  await page.fill(R + '.mx-n', '-1'); await page.waitForTimeout(400);
+  check((await cells()) === '0 1 1 −1', 'matrix: negative power uses the inverse');
+  await op('mul'); await setA('1 2\n3 4'); await page.fill(R + '.mx-b', '0 1\n1 0'); await page.waitForTimeout(400);
+  check((await cells()) === '2 1 4 3' && (await page.textContent(R + '.mx-facts')).includes('different'), 'matrix: product A × B');
+  await op('add'); check((await cells()) === '1 3 4 4', 'matrix: sum');
+  await op('sub'); check((await cells()) === '1 1 2 4', 'matrix: difference');
+  await page.fill(R + '.mx-b', '1 2 3'); await page.waitForTimeout(400);
+  check((await page.textContent(R + '.mx-err')).includes('same size') && await page.isHidden(R + '.mx-out'), 'matrix: size mismatch message');
+  await op('lu'); await setA('1 2 3\n4 5 6\n7 8 10');
+  check((await big()) === 'A = L U' && (await sub()).includes('Checked exactly'), 'matrix: LU without swaps, by hand');
+  await page.selectOption(R + '.mx-piv', 'partial'); await page.waitForTimeout(200);
+  { const t = await cells(); check((await big()) === 'P A = L U' && t.includes('4/7') && t.includes('−1/2'), `matrix: LU with partial pivoting = scipy (${t})`); }
+  await page.click(R + '.mx-ex[data-ex=eig]'); await page.waitForTimeout(200);
+  check((await big()) === '2 distinct eigenvalues: 5, 2' && (await sub()).includes('λ² − 7λ + 10') && (await page.textContent(R + '.mx-tab')).includes('(1, −2)'), `matrix: eigenvalues 5, 2 with eigenvectors (${await big()})`);
+  await page.click(R + '.mx-ex[data-ex=cplx]'); await page.waitForTimeout(200);
+  check((await big()) === '2 distinct eigenvalues: 2 + i, 2 − i' && (await page.textContent(R + '.mx-tab')).includes('(1 − i, −1)'), 'matrix: complex eigenvalues exact');
+  await page.selectOption(R + '.mx-fmt', 'dec'); await page.waitForTimeout(200);
+  check((await page.textContent(R + '.mx-tab')).includes('0.8165') && (await page.textContent(R + '.mx-tab')).includes('i'), 'matrix: decimal unit eigenvectors');
+  await setA('2 1\n1 1');
+  check((await big()).includes('2.61803') && (await big()).includes('0.381966'), `matrix: irrational eigenvalues as decimals (${await big()})`);
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.mx-csv')]); const f = OUT + 'eig.csv'; await d.saveAs(f); const rows = readFileSync(f, 'utf8').trim().split('\n'); check(rows.length === 3 && rows[0].startsWith('eigenvalue (real)') && rows[1].startsWith('2.61803398875'), 'matrix: eigen CSV'); }
+  await page.selectOption(R + '.mx-fmt', 'frac');
+  await setA('1 1\n0 1');
+  check((await page.textContent(R + '.mx-facts')).includes('Diagonalisableno'), 'matrix: defective matrix is not diagonalisable');
+  await page.click(R + '.mx-ex[data-ex=spd]'); await page.waitForTimeout(200);
+  check((await big()) === 'A = L Lᵀ' && (await cells()) === '2 0 0 6 1 0 −8 5 3', `matrix: Cholesky example (${await cells()})`);
+  await setA('1 2\n2 1');
+  check((await page.textContent(R + '.mx-err')).includes('not positive definite'), 'matrix: Cholesky refuses an indefinite matrix');
+  await op('qr'); await setA('1 2\n3 4\n5 6');
+  check((await big()) === 'A = Q R' && (await cells()).includes('5.91608') && (await page.textContent(R + '.mx-facts')).includes('reduced QR'), 'matrix: QR = numpy');
+  await op('svd');
+  check((await big()) === 'Singular values: 9.52552, 0.514301' && (await page.textContent(R + '.mx-facts')).includes('18.5213'), `matrix: SVD singular values and condition number (${await big()})`);
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.mx-csv')]); const f = OUT + 'svd.csv'; await d.saveAs(f); const t = readFileSync(f, 'utf8'); check(t.startsWith('U\n') && t.includes('\nΣ\n9.52551809156511,0') && t.includes('Vᵀ'), 'matrix: SVD CSV'); }
+  await setA('1 2\n3 x');
+  check((await page.textContent(R + '.mx-err')) === 'Matrix A: "x" is not a number or a fraction', 'matrix: bad entry message');
+  await setA('1 2\n3');
+  check((await page.textContent(R + '.mx-err')).includes('Row 2 has 1 entry'), 'matrix: ragged rows message');
+  await op('det'); await setA('1/2 1/3\n1/4 1/5');
+  check((await big()) === 'det A = 1/60', 'matrix: exact fractions');
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.dl button[data-f=pdf]')]); const f = OUT + 'mx.pdf'; await d.saveAs(f); check(readFileSync(f).slice(0, 5).toString() === '%PDF-', 'matrix: PDF report'); }
+  await setA('[[1, 2], [3, 4]]');
+  check((await big()) === 'det A = −2', 'matrix: numpy-style input');
+  await page.screenshot({ path: OUT + 'matrix-desktop.png', fullPage: false });
+};

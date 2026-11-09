@@ -1,0 +1,153 @@
+---
+// Heat exchanger sizing and rating: LMTD with the 1-2 shell-and-tube F factor, and effectiveness-NTU for parallel,
+// counterflow, shell-and-tube and crossflow arrangements (src/lib/sci/eng-hx.ts). Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hxs">
+  <div class="ax-card">
+    <h2>Streams</h2>
+    <div class="ax-grid">
+      <label>Hot inlet (°C) <input class="hx-thi" type="text" inputmode="decimal" value="120" /></label>
+      <label>Hot flow (kg/s) <input class="hx-mh" type="text" inputmode="decimal" value="2" /></label>
+      <label>Hot cp (kJ/kg·K) <input class="hx-cph" type="text" inputmode="decimal" value="2.1" /></label>
+      <label>Cold inlet (°C) <input class="hx-tci" type="text" inputmode="decimal" value="20" /></label>
+      <label>Cold flow (kg/s) <input class="hx-mc" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Cold cp (kJ/kg·K) <input class="hx-cpc" type="text" inputmode="decimal" value="4.18" /></label>
+    </div>
+    <p class="ax-help">cp is the specific heat: about 4.18 for liquid water, about 1.0 for air, and roughly 2 for light oils (rounded examples; use your fluid's value at its mean temperature). The example is a made-up oil cooler with cooling water.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Exchanger</h2>
+    <div class="ax-grid">
+      <label>Arrangement <select class="hx-cfg">
+        <option value="counter">Counterflow (double pipe)</option>
+        <option value="parallel">Parallel flow</option>
+        <option value="shell" selected>Shell and tube (2, 4… tube passes)</option>
+        <option value="cross-unmixed">Crossflow, both fluids unmixed</option>
+        <option value="cross-cmax-mixed">Crossflow, larger C mixed</option>
+        <option value="cross-cmin-mixed">Crossflow, smaller C mixed</option>
+      </select></label>
+      <label class="hx-shbox">Shell passes <input class="hx-sh" type="text" inputmode="numeric" value="1" /></label>
+      <label>Overall U (W/m²·K) <input class="hx-U" type="text" inputmode="decimal" value="500" /></label>
+      <label>Find <select class="hx-mode"><option value="size" selected>Area for a duty (sizing)</option><option value="rate">Outlets for an area (rating)</option></select></label>
+      <label class="hx-sz">Known outlet <select class="hx-which"><option value="h" selected>Hot outlet</option><option value="c">Cold outlet</option></select></label>
+      <label class="hx-sz">Outlet temperature (°C) <input class="hx-to" type="text" inputmode="decimal" value="60" /></label>
+      <label class="hx-rt" hidden>Area (m²) <input class="hx-A" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">U is the overall heat transfer coefficient, including both films and fouling. 500 W/m²·K is just an example; liquid-to-liquid units are often several hundred to a few thousand, and gas sides much lower. "Mixed" in crossflow means the fluid is free to mix sideways (an open duct); "unmixed" means it is split into separate channels (tubes or fins).</p>
+    <p class="ax-err hx-err" hidden></p>
+  </div>
+
+  <div class="ax-card hx-out">
+    <h2>Results</h2>
+    <p class="ax-big hx-big"></p>
+    <dl class="ax-facts hx-facts"></dl>
+    <p class="ax-help hx-warn" hidden></p>
+    <canvas class="ax-fig hx-fig"></canvas>
+    <canvas class="ax-fig hx-tfig"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { lmtd, ends, F12, effectiveness, ntuFor, rate, type Config } from '../../lib/sci/eng-hx';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.hxs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAMES: Record<Config, string> = { counter: 'counterflow', parallel: 'parallel flow', shell: 'shell and tube', 'cross-unmixed': 'crossflow (both unmixed)', 'cross-cmax-mixed': 'crossflow (larger C mixed)', 'cross-cmin-mixed': 'crossflow (smaller C mixed)' };
+  let figs: [HTMLCanvasElement, Figure][] = [], report: Section[] = [];
+
+  function run() {
+    const cfg = sel('.hx-cfg') as Config, mode = sel('.hx-mode');
+    q('.hx-shbox').hidden = cfg !== 'shell';
+    root.querySelectorAll<HTMLElement>('.hx-sz').forEach((e) => { e.hidden = mode !== 'size'; });
+    q('.hx-rt').hidden = mode !== 'rate';
+    const err = q('.hx-err'), out = q('.hx-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const Thi = val('.hx-thi'), Tci = val('.hx-tci'), Ch = val('.hx-mh') * val('.hx-cph') * 1000, Cc = val('.hx-mc') * val('.hx-cpc') * 1000, U = val('.hx-U');
+    const shells = cfg === 'shell' ? val('.hx-sh') : 1;
+    if (!(Number.isFinite(Thi) && Number.isFinite(Tci))) return fail('Give both inlet temperatures.');
+    if (!(Thi > Tci)) return fail('The hot inlet must be hotter than the cold inlet.');
+    if (!(Ch > 0 && Cc > 0)) return fail('Give the flows and specific heats (all above 0).');
+    if (!(U > 0)) return fail('Give the overall heat transfer coefficient U.');
+    if (!(Number.isInteger(shells) && shells >= 1 && shells <= 8)) return fail('Give a whole number of shell passes, 1 to 8.');
+    const Cmin = Math.min(Ch, Cc), Cmax = Math.max(Ch, Cc), Cr = Cmin / Cmax, Qmax = Cmin * (Thi - Tci);
+    let Q: number, Tho: number, Tco: number, NTU: number, eps: number, A: number;
+    const warns: string[] = [];
+    if (mode === 'size') {
+      const which = sel('.hx-which'), To = val('.hx-to');
+      if (!Number.isFinite(To)) return fail('Give the known outlet temperature.');
+      if (which === 'h') { if (!(To < Thi && To > Tci)) return fail('The hot outlet must be between the two inlet temperatures.'); Tho = To; Q = Ch * (Thi - Tho); Tco = Tci + Q / Cc; }
+      else { if (!(To > Tci && To < Thi)) return fail('The cold outlet must be between the two inlet temperatures.'); Tco = To; Q = Cc * (Tco - Tci); Tho = Thi - Q / Ch; }
+      if (Tho <= Tci || Tco >= Thi) return fail(`This duty is impossible: it would need the hot stream to leave at ${sg(Tho, 4)} °C and the cold at ${sg(Tco, 4)} °C, beyond the other stream's inlet.`);
+      eps = Q / Qmax; NTU = ntuFor(cfg, eps, Cr, shells);
+      if (!Number.isFinite(NTU)) return fail(`A ${NAMES[cfg]} exchanger cannot reach this duty (effectiveness ${sg(eps, 3)}; its limit at this capacity ratio is ${sg(effectiveness(cfg, 200, Cr, shells), 3)}). Try counterflow or more shell passes.`);
+      A = (NTU * Cmin) / U;
+    } else {
+      A = val('.hx-A'); if (!(A > 0)) return fail('Give the heat transfer area.');
+      const r = rate(cfg, U * A, { Thi, Tci, Ch, Cc }, shells); Q = r.Q; Tho = r.Tho; Tco = r.Tco; NTU = r.NTU; eps = r.eps;
+    }
+    err.hidden = true; out.hidden = false;
+    // LMTD on the counterflow basis (parallel uses its own ends) and the F factor.
+    const [d1, d2] = ends(Thi, Tho, Tci, Tco, cfg === 'parallel'), L = lmtd(d1, d2);
+    const Feff = cfg === 'counter' || cfg === 'parallel' ? 1 : Q / (U * A * L);
+    const P = (Tco - Tci) / (Thi - Tci), R = (Thi - Tho) / (Tco - Tci), Fb = cfg === 'shell' && shells === 1 ? F12(P, R) : NaN;
+    q('.hx-big').textContent = mode === 'size' ? `Area ${sg(A, 4)} m² for ${sg(Q / 1000, 4)} kW` : `${sg(Q / 1000, 4)} kW: hot leaves at ${sg(Tho, 4)} °C, cold at ${sg(Tco, 4)} °C`;
+    const facts = [
+      fact('Duty Q', `${sg(Q / 1000, 4)} kW`, `hot ${sg(Thi, 4)} → ${sg(Tho, 4)} °C, cold ${sg(Tci, 4)} → ${sg(Tco, 4)} °C`),
+      fact('Capacity rates', `hot ${sg(Ch / 1000, 4)}, cold ${sg(Cc / 1000, 4)} kW/K`, `C = m cp; Cr = Cmin / Cmax = ${sg(Cr, 3)}`),
+      fact('Effectiveness ε', sg(eps, 4), `Q / Qmax, Qmax = Cmin (Th,in − Tc,in) = ${sg(Qmax / 1000, 4)} kW`),
+      fact('NTU', sg(NTU, 4), `U A / Cmin, ${NAMES[cfg]}${cfg === 'shell' ? `, ${shells} shell pass${shells > 1 ? 'es' : ''}` : ''}`),
+      fact('LMTD', Number.isFinite(L) ? `${sg(L, 4)} K` : '–', cfg === 'parallel' ? 'parallel-flow ends' : `counterflow ends ${sg(d1, 4)} and ${sg(d2, 4)} K`),
+      fact('F correction', sg(Feff, 4), cfg === 'shell' && shells === 1 ? `1-2 formula with P = ${sg(P, 3)}, R = ${sg(R, 3)}: F = ${sg(Fb, 4)}; Q = U A F LMTD` : cfg === 'counter' || cfg === 'parallel' ? 'none needed' : 'from ε-NTU: Q / (U A LMTD)'),
+      fact(mode === 'size' ? 'Area' : 'U A', mode === 'size' ? `${sg(A, 4)} m²` : `${sg((U * A) / 1000, 4)} kW/K`, mode === 'size' ? `NTU × Cmin / U; for counterflow it would be ${sg((ntuFor('counter', eps, Cr) * Cmin) / U, 4)} m²` : `U ${sg(U, 4)} W/m²·K × ${sg(A, 4)} m²`),
+    ];
+    if (cfg === 'shell' && Feff < 0.75) warns.push(`F is ${sg(Feff, 3)}, below about 0.75: the design is on the steep part of the curve and sensitive to small changes. Add a shell pass or use counterflow.`);
+    if (cfg !== 'parallel' && Tco > Tho) warns.push(`Temperature cross: the cold stream leaves hotter than the hot stream leaves (${sg(Tco, 4)} > ${sg(Tho, 4)} °C). Only counterflow-like arrangements can do this.`);
+    q('.hx-facts').replaceChildren(...facts);
+    const warn = q('.hx-warn'); warn.textContent = warns.join(' '); warn.hidden = !warns.length;
+    const ns: number[] = []; const nmax = Math.max(4, NTU * 1.6); for (let i = 0; i <= 80; i++) ns.push((nmax * i) / 80);
+    const sers = [{ name: `${NAMES[cfg]}${cfg === 'shell' && shells > 1 ? ` (${shells} shells)` : ''}`, x: ns, y: ns.map((n) => effectiveness(cfg, n, Cr, shells)), mode: 'line' as const, width: 2 }];
+    if (cfg !== 'counter') sers.push({ name: 'counterflow', x: ns, y: ns.map((n) => effectiveness('counter', n, Cr)), mode: 'line' as const, width: 1.5, dash: [5, 4] } as typeof sers[0]);
+    if (cfg !== 'parallel') sers.push({ name: 'parallel', x: ns, y: ns.map((n) => effectiveness('parallel', n, Cr)), mode: 'line' as const, width: 1.5, dash: [2, 3] } as typeof sers[0]);
+    const ef = chartFigure({ w: 380, h: 230, xLabel: 'NTU', yLabel: 'Effectiveness ε', xMin: 0, yMin: 0, yMax: 1, legend: 'below', series: [...sers, { name: 'This exchanger', x: [NTU], y: [eps], mode: 'points', size: 5 }] }, `Effectiveness against NTU at Cr = ${sg(Cr, 3)}`);
+    // Temperature profiles along the area for counter and parallel flow (analytic), else the end temperatures.
+    const xs: number[] = [], th: number[] = [], tc: number[] = [];
+    if (cfg === 'counter' || cfg === 'parallel') {
+      const a = (U * A) / Ch, b = (U * A) / Cc;
+      for (let i = 0; i <= 60; i++) {
+        const x = i / 60; xs.push(x * A);
+        if (cfg === 'parallel') { const dT = (Thi - Tci) * Math.exp(-(a + b) * x), q0 = ((Thi - Tci) - dT) / (a + b); th.push(Thi - a * q0); tc.push(Tci + b * q0); }
+        else {
+          // Counterflow: the difference changes as exp(−(a − b) x) along the hot flow.
+          const k = a - b, d0 = Thi - Tco;
+          const Qx = Math.abs(k) < 1e-12 ? d0 * x : (d0 * (1 - Math.exp(-k * x))) / k;
+          th.push(Thi - a * Qx); tc.push(Tco - b * Qx);
+        }
+      }
+    }
+    const tf = xs.length ? chartFigure({ w: 380, h: 220, xLabel: 'Area from the hot inlet (m²)', yLabel: 'Temperature (°C)', xMin: 0, xMax: A, legend: 'below', series: [{ name: 'Hot', x: xs, y: th, mode: 'line', width: 2 }, { name: 'Cold', x: xs, y: tc, mode: 'line', width: 2 }] }, 'Temperatures along the exchanger') : null;
+    figs = [[q('.hx-fig'), ef]]; if (tf) figs.push([q('.hx-tfig'), tf]);
+    q('.hx-tfig').hidden = !tf;
+    figs.forEach(([c, f]) => paint(c, f));
+    report = [{ title: q('.hx-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: ef }, ...(tf ? [{ title: 'Temperature profile', figure: tf }] : [])];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (!q('.hx-out').hidden) figs.forEach(([c, f]) => paint(c, f)); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Heat exchanger', subtitle: q('.hx-big').textContent ?? '', file: 'heat-exchanger', sections: report }));
+</script>
+
+<style is:inline>
+  .hxs select, .hxs input { max-width: 100%; }
+</style>

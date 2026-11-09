@@ -1,0 +1,172 @@
+---
+// Paleostress inversion of fault-slip data (Michael 1984) with bootstrap confidence, misfits and P and T axes.
+// The example is synthetic: 24 faults made by fibub from a known stress tensor with a few degrees of noise.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = '225 30 128\n081 73 7\n002 38 100\n168 73 165\n092 65 33\n199 16 139\n224 17 138\n058 54 41\n013 60 102\n330 53 104\n179 76 172\n069 48 47\n133 90 -94\n056 75 18\n184 35 133\n267 85 40\n183 33 143\n140 72 124\n294 68 77\n212 54 134\n244 82 30\n086 67 31\n348 78 128\n108 32 69';
+---
+<div class="ax pst">
+  <div class="ax-card">
+    <h2>Fault-slip data</h2>
+    <div class="ax-grid">
+      <label>Each line holds <select class="ps-fmt"><option value="rake">Strike, dip, rake</option><option value="striae">Strike, dip, striation trend, plunge, sense</option></select></label>
+      <label>Planes typed as <select class="ps-pf"><option value="rhr">Strike (right-hand rule)</option><option value="dd">Dip direction</option></select></label>
+    </div>
+    <label style="margin-top:10px">One fault per line <textarea class="ps-in" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".ps-in" maxCols={6} maxRows={5000} />
+    <p class="ax-help ps-help"></p>
+    <p class="ax-err ps-err" hidden></p>
+    <p class="ax-help ps-warn" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>Bootstrap resamples <select class="ps-nb"><option value="0">None</option><option value="200">200</option><option value="500">500</option><option value="1000" selected>1000</option><option value="2000">2000</option></select></label>
+      <label>Confidence <select class="ps-cl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Net <select class="ps-net"><option value="equal-area">Equal area (Schmidt)</option><option value="equal-angle">Equal angle (Wulff)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="ps-gc" checked /> Fault planes</label>
+      <label class="ax-check"><input type="checkbox" class="ps-sl" checked /> Slip lines</label>
+      <label class="ax-check"><input type="checkbox" class="ps-pt" /> P and T axes</label>
+      <label class="ax-check"><input type="checkbox" class="ps-bs" checked /> Bootstrap axes</label>
+    </div>
+  </div>
+
+  <div class="ax-card ps-out">
+    <h2>Stress</h2>
+    <p class="ax-big ps-big"></p>
+    <dl class="ax-facts ps-facts"></dl>
+    <div class="ps-paper"><canvas class="ps-fig" role="img" aria-label="Stereonet of the faults and principal stress axes"></canvas></div>
+    <div class="ax-legend ps-leg"></div>
+    <h3>Faults</h3>
+    <div class="ax-scroll ps-scroll"><table class="ps-tab"></table></div>
+    <p class="ax-help">Misfit: the angle between the slip you measured and the slip the stress would drive on that plane. Misfits above about 30° point to a fault that moved under a different stress, a wrong sense, or a typing error.</p>
+    <div class="dl ps-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary ps-csv">Faults (CSV)</button><button type="button" class="btn secondary ps-bcsv">Bootstrap axes (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseFaults, michael, stressOf, misfits, bootstrap, ptAxes, regime, type Stress } from '../../lib/sci/paleostress';
+  import { project, greatCircle, line, type Line, type Net } from '../../lib/sci/stereonet';
+  import { canvasPainter } from '../../lib/sci/plot';
+  import { sig, csv } from '../../lib/sci/num';
+  import { paint, pagePalette, save, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const on = (c: string) => q<HTMLInputElement>(c).checked;
+  const az = (a: number) => String(Math.round(((a % 360) + 360) % 360) % 360).padStart(3, '0');
+  const ln = (l: Line) => `${Math.round(l.plunge)}° → ${az(l.trend)}`;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const HELP = {
+    rake: 'Strike, dip and rake (Aki and Richards): rake is measured in the fault plane from the strike direction, + for reverse, − for normal, 0 left-lateral, ±180 right-lateral. Example: 133 90 -94. Text after # is ignored.',
+    striae: 'Strike, dip, the trend and plunge of the striation (slickenline), then the sense: N normal, R reverse or thrust, D dextral, S sinistral. Example: 000 60 090 60 N. Striations more than 20° off the plane are skipped; up to 20° they are projected onto it.',
+  };
+  let fig: Figure | null = null, report: Section[] = [], rows: string[][] = [], bootRows: string[][] = [];
+
+  function run() {
+    const fmt = sel('.ps-fmt') as 'rake' | 'striae';
+    q('.ps-help').textContent = HELP[fmt];
+    const err = (m: string) => { q('.ps-err').textContent = m; q('.ps-err').hidden = !m; q('.ps-out').hidden = !!m; if (m) { report = []; fig = null; } };
+    const r = parseFaults(q<HTMLTextAreaElement>('.ps-in').value, fmt, sel('.ps-pf') === 'dd');
+    const notes = [...r.bad.map((b) => `line ${b.row} skipped: ${b.why}`), ...r.warn.map((w) => `line ${w.row}: ${w.why}`)];
+    q('.ps-warn').hidden = !notes.length; q('.ps-warn').textContent = notes.slice(0, 6).join('; ') + (notes.length > 6 ? `; and ${notes.length - 6} more` : '') + (notes.length ? '.' : '');
+    const F = r.faults;
+    if (F.length < 4) return err(`Type at least 4 faults (more than about 10 for a useful answer); ${F.length} read.`);
+    const t = michael(F);
+    if (!t) return err('These faults do not fix a stress tensor (they are too alike). Add faults with other orientations.');
+    err('');
+    const s = stressOf(t), mis = misfits(t, F), nb = Number(sel('.ps-nb')), cl = Number(sel('.ps-cl'));
+    const b = nb ? bootstrap(F, s, nb, 1, cl) : null;
+    const mean = mis.reduce((a, x) => a + x, 0) / mis.length, big = mis.filter((x) => x > 30).length;
+    q('.ps-big').textContent = `σ1 ${ln(s.axes[0])}, σ3 ${ln(s.axes[2])}, Φ = ${s.phi.toFixed(2)}`;
+    const pc = `${Math.round(cl * 100)} %`;
+    const f = [
+      fact('σ1 (most compressive)', ln(s.axes[0]), b ? `${pc} of resamples within ${sig(b.cone[0], 2)}°` : 'plunge → trend'),
+      fact('σ2', ln(s.axes[1]), b ? `${pc} within ${sig(b.cone[1], 2)}°` : ''),
+      fact('σ3 (least compressive)', ln(s.axes[2]), b ? `${pc} within ${sig(b.cone[2], 2)}°` : ''),
+      fact('Stress ratio Φ = (σ2 − σ3)/(σ1 − σ3)', s.phi.toFixed(3), b ? `${pc} range ${b.phiLo.toFixed(2)} to ${b.phiHi.toFixed(2)}` : '0: σ2 = σ3; 1: σ2 = σ1'),
+      fact('R = (σ1 − σ2)/(σ1 − σ3) = 1 − Φ', (1 - s.phi).toFixed(3), b ? `${pc} range ${(1 - b.phiHi).toFixed(2)} to ${(1 - b.phiLo).toFixed(2)}` : ''),
+      fact('Regime', regime(s)),
+      fact('Misfit', `mean ${sig(mean, 3)}°`, `${F.length} faults; ${big ? `${big} above 30°` : 'none above 30°'}`),
+    ];
+    if (b) f.push(fact('Bootstrap', `${b.axes.length} resamples`, `drawn with replacement, seed 1${b.failed ? `; ${b.failed} did not fix a tensor and were left out` : ''}`));
+    q('.ps-facts').replaceChildren(...f);
+    // Table
+    rows = F.map((x, i) => { const pt = ptAxes(x); return [String(x.row), `${az(x.plane.strike)} / ${Math.round(x.plane.dip)}`, x.rake.toFixed(0), mis[i].toFixed(1), ln(pt.P), ln(pt.T)]; });
+    const head = ['Line', 'Strike / dip', 'Rake', 'Misfit (°)', 'P axis', 'T axis'];
+    const tb = q<HTMLTableElement>('.ps-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tb.createTBody(); rows.forEach((r2, i) => { const tr = bd.insertRow(); r2.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 3 && mis[i] > 30) td.className = 'ps-bad'; }); });
+    bootRows = b ? b.axes.map((a, i) => [String(i + 1), ...a.flatMap((l) => [az(l.trend), l.plunge.toFixed(2)]), b.phis[i].toFixed(4)]) : [];
+    q<HTMLButtonElement>('.ps-bcsv').disabled = !b;
+    // Figure
+    const net = sel('.ps-net') as Net, show = { gc: on('.ps-gc'), sl: on('.ps-sl'), pt: on('.ps-pt'), bs: on('.ps-bs') && !!b };
+    fig = { w: 520, h: 520, alt: `Stereonet: ${F.length} faults, σ1 ${ln(s.axes[0])}, σ2 ${ln(s.axes[1])}, σ3 ${ln(s.axes[2])}`, draw: (ctx, W, H, pal) => drawNet(ctx, W, pal, net, F, s, b?.axes ?? [], show) };
+    paint(q<HTMLCanvasElement>('.ps-fig'), fig);
+    const leg: [string, string][] = [], pp = pagePalette();
+    if (show.gc) leg.push([pp.line, 'fault planes']);
+    if (show.sl) leg.push([pp.ink, 'slip lines, arrow: hanging wall moves']);
+    leg.push([pp.bad, 'σ1 (square)'], [pp.warn, 'σ2 (triangle)'], [pp.accent, 'σ3 (circle)']);
+    if (show.bs) leg.push([pp.muted, 'small dots: bootstrap σ1 and σ3']);
+    if (show.pt) leg.push([pp.muted, 'P (open), T (filled)']);
+    q('.ps-leg').replaceChildren(...leg.map(([c, t2]) => { const sp = document.createElement('span'), i = document.createElement('i'); i.style.background = c; sp.append(i, t2); return sp; }));
+    report = [
+      { title: q('.ps-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note: 'Michael (1984) linear least-squares inversion: assumes one uniform stress, slip parallel to the resolved shear stress, and the same shear stress magnitude on every fault.' },
+      { title: 'Faults', table: { head, rows, align: ['r', 'l', 'r', 'r', 'l', 'l'] } },
+    ];
+  }
+
+  function drawNet(ctx: CanvasRenderingContext2D, S: number, pal: Palette, net: Net, F: ReturnType<typeof parseFaults>['faults'], s: Stress, boot: [Line, Line, Line][], show: { gc: boolean; sl: boolean; pt: boolean; bs: boolean }) {
+    const P = canvasPainter(ctx), C = S / 2, RAD = S * 0.42;
+    const xy = ([x, y]: [number, number]): [number, number] => [C + x * RAD, C - y * RAD];
+    const col = [pal.bad, pal.warn, pal.accent];
+    P.circle(C, C, RAD, null, pal.ink, 1.4);
+    for (let a = 0; a < 360; a += 10) { const t = (a * Math.PI) / 180, k = a % 90 ? 5 : 9; P.line([[C + Math.sin(t) * RAD, C - Math.cos(t) * RAD], [C + Math.sin(t) * (RAD + k), C - Math.cos(t) * (RAD + k)]], pal.ink, 1); }
+    P.text(C, C - RAD - 12, 'N', 15, pal.ink, 'middle', 'bottom', 0, true);
+    P.line([[C - 5, C], [C + 5, C]], pal.ink, 1); P.line([[C, C - 5], [C, C + 5]], pal.ink, 1);
+    if (show.gc) for (const f of F) P.line(greatCircle(f.plane, net).map(xy), pal.line, 1);
+    if (show.bs) { ctx.save(); ctx.globalAlpha = 0.35; for (const a of boot) for (const i of [0, 2]) { const [x, y] = xy(project(a[i], net)); P.circle(x, y, 1.6, col[i], null); } ctx.restore(); }
+    if (show.sl) for (const f of F) {
+      const l = line(f.s), [x, y] = xy(project(l, net));
+      P.circle(x, y, 2.6, pal.ink, null);
+      // Arrow for the hanging wall's horizontal motion
+      const h = Math.hypot(f.s[0], f.s[1]);
+      if (h > 0.05) { const dx = f.s[1] / h, dy = -f.s[0] / h; P.line([[x, y], [x + dx * 12, y + dy * 12]], pal.ink, 1.2); P.poly([[x + dx * 15, y + dy * 15], [x + dx * 10 - dy * 3, y + dy * 10 + dx * 3], [x + dx * 10 + dy * 3, y + dy * 10 - dx * 3]], pal.ink, null); }
+    }
+    if (show.pt) for (const f of F) { const pt = ptAxes(f), [px, py] = xy(project(pt.P, net)), [tx, ty] = xy(project(pt.T, net)); P.circle(px, py, 3.2, null, pal.muted, 1.2); P.circle(tx, ty, 3.2, pal.muted, null); }
+    s.axes.forEach((a, i) => {
+      const [x, y] = xy(project(a, net));
+      if (i === 0) P.poly([[x - 7, y - 7], [x + 7, y - 7], [x + 7, y + 7], [x - 7, y + 7]], col[0], pal.bg, 1.5);
+      else if (i === 1) P.poly([[x, y - 8.5], [x + 8, y + 6], [x - 8, y + 6]], col[1], pal.bg, 1.5);
+      else P.circle(x, y, 7, col[2], pal.bg, 1.5);
+      P.text(x + 10, y - 9, `σ${i + 1}`, 14, col[i], 'start', 'middle', 0, true);
+    });
+    P.text(S - 8, S - 10, `${net === 'equal-area' ? 'Equal area' : 'Equal angle'}, lower hemisphere`, 11, pal.muted, 'end', 'middle');
+    P.text(8, S - 10, `${F.length} faults`, 11, pal.muted, 'start', 'middle');
+  }
+
+  q('.ps-csv').addEventListener('click', () => rows.length && save(new TextEncoder().encode(csv([['line', 'strike_dip', 'rake', 'misfit_deg', 'P_axis', 'T_axis'], ...rows])), 'fault-misfits.csv', 'text/csv'));
+  q('.ps-bcsv').addEventListener('click', () => bootRows.length && save(new TextEncoder().encode(csv([['resample', 's1_trend', 's1_plunge', 's2_trend', 's2_plunge', 's3_trend', 's3_plunge', 'phi'], ...bootRows])), 'bootstrap-axes.csv', 'text/csv'));
+  let tm = 0;
+  q('.ps-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+  wireDownloads(q('.ps-out > .dl:last-child'), () => ({ title: 'Paleostress inversion', subtitle: q('.ps-big').textContent ?? '', file: 'paleostress-inversion', sections: report }));
+</script>
+
+<style is:inline>
+  .pst textarea { width: 100%; font-family: ui-monospace, monospace; }
+  .pst .ps-paper { max-width: 520px; margin: 12px auto 0; }
+  .pst .ps-paper canvas { display: block; width: 100%; height: auto; }
+  .pst h3 { margin: 14px 0 6px; font-size: 1rem; }
+  .pst .ps-tab td, .pst .ps-tab th { white-space: nowrap; }
+  .pst .ps-tab td.ps-bad { color: var(--bad); font-weight: 700; }
+  .pst .ps-scroll { max-height: 420px; overflow-y: auto; }
+</style>

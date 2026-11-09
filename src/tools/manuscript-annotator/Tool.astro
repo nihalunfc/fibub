@@ -1,0 +1,254 @@
+---
+// Manuscript image annotator: draw rectangles and polygons on local images, transcribe and annotate each region,
+// export and re-open W3C Web Annotation JSON (and CSV). Reads a local IIIF manifest; never fetches anything.
+import '../../styles/astro.css';
+---
+<div class="ax man">
+  <div class="ax-card">
+    <h2>Images</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mn-open">Open images</button>
+      <input type="file" class="mn-file" accept="image/*" multiple hidden />
+      <button type="button" class="btn secondary small mn-mopen">Open a IIIF manifest (optional)</button>
+      <input type="file" class="mn-mfile" accept=".json,application/json,application/ld+json" hidden />
+      <button type="button" class="btn secondary small mn-ex">Use the example</button>
+    </div>
+    <p class="ax-help">JPEG, PNG, WebP or GIF, up to 50 MB each. A manifest is read from the file only: this page never downloads the images it lists, so open those images from your own copy. Annotations live in this page until you export them.</p>
+    <div class="ax-grid mn-pick" style="margin-top:10px" hidden>
+      <label>Image <select class="mn-img"></select></label>
+      <label class="mn-cvl" hidden>IIIF canvas <select class="mn-cv"></select></label>
+    </div>
+    <p class="ax-help mn-info" aria-live="polite"></p>
+    <p class="ax-err mn-err" hidden></p>
+  </div>
+
+  <div class="ax-card mn-work" hidden>
+    <h2>Draw regions</h2>
+    <div class="ax-row">
+      <div class="ax-seg" role="group" aria-label="Shape">
+        <button type="button" class="mn-rect" aria-pressed="true">Rectangle</button>
+        <button type="button" class="mn-poly" aria-pressed="false">Polygon</button>
+      </div>
+      <label class="mn-zl">Zoom <select class="mn-zoom"><option value="1">Fit</option><option value="1.5">150 %</option><option value="2">200 %</option><option value="3">300 %</option></select></label>
+    </div>
+    <p class="ax-help mn-hint"></p>
+    <div class="ax-row mn-pbar" hidden style="margin-top:6px">
+      <button type="button" class="btn secondary small mn-finish">Finish polygon</button>
+      <button type="button" class="btn secondary small mn-undo">Undo point</button>
+      <button type="button" class="btn secondary small mn-cancel">Cancel</button>
+    </div>
+    <div class="mn-stage">
+      <div class="mn-wrap">
+        <img class="mn-pic" alt="The image being annotated" draggable="false" />
+        <svg class="mn-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" role="img" aria-label="Regions drawn on the image"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="ax-card mn-work" hidden>
+    <h2>Regions</h2>
+    <p class="ax-help mn-count"></p>
+    <ol class="mn-list"></ol>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small mn-json">Export Web Annotation (JSON)</button>
+      <button type="button" class="btn secondary small mn-csv">Export CSV</button>
+      <button type="button" class="btn secondary small mn-aopen">Open annotations (JSON)</button>
+      <input type="file" class="mn-afile" accept=".json,.jsonld,application/json,application/ld+json" hidden />
+    </div>
+    <p class="ax-help">The JSON is a W3C Web Annotation page: rectangles as <code>xywh=</code> media fragments, polygons as SVG, transcriptions with purpose "transcribing" and notes with "commenting". With a IIIF canvas, the target is the canvas and coordinates are in canvas pixels.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .man .mn-stage { margin-top: 10px; overflow: auto; max-height: 78vh; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .man .mn-wrap { position: relative; width: 100%; line-height: 0; }
+  .man .mn-pic { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; }
+  .man .mn-svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+  .man .mn-svg .rg { fill: var(--accent); fill-opacity: 0.14; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .man .mn-svg .rg.on { fill: var(--warn); fill-opacity: 0.22; stroke: var(--warn); stroke-width: 3; }
+  .man .mn-svg .tmp { fill: none; stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+  .man .mn-svg .tp { fill: var(--bad); }
+  .man .mn-svg text { fill: var(--accent); font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; font-family: system-ui, sans-serif; }
+  .man .mn-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .man .mn-list li { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; }
+  .man .mn-list li.on { border-color: var(--warn); box-shadow: inset 3px 0 0 var(--warn); }
+  .man .mn-list .hd { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 14px; }
+  .man .mn-list .hd b { cursor: pointer; }
+  .man .mn-list textarea { font-family: inherit; }
+  .man code { font-size: 13px; }
+  .man .mn-hint { min-height: 2.8em; }
+</style>
+
+<script>
+  import { toWebAnnotation, fromWebAnnotation, toCsv, parseManifest, matchCanvases, bbox, rectPoints, EXAMPLE_REGIONS, type Region, type Pt, type Target, type Canvas } from '../../lib/sci/annotate';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.man')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const svg = root.querySelector<SVGSVGElement>('.mn-svg')!, pic = q<HTMLImageElement>('.mn-pic'), sel = q<HTMLSelectElement>('.mn-img'), cvSel = q<HTMLSelectElement>('.mn-cv');
+  const NS = 'http://www.w3.org/2000/svg';
+  type Img = Target & { url: string };
+  let images: Img[] = [], regions: Region[] = [], canvases: Canvas[] = [], manifestLabel = '', cur = -1, tool: 'rect' | 'polygon' = 'rect', active = '', nextId = 1;
+  let draft: Pt[] = [], dragStart: Pt | null = null;
+  const err = (m: string) => { q('.mn-err').textContent = m; q('.mn-err').hidden = !m; };
+  const img = () => images[cur];
+  const el = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v)); return e; };
+  const pts = (p: Pt[]) => p.map((x) => x.join(',')).join(' ');
+  const round = (x: number) => Math.round(x * 10) / 10;
+
+  function info() {
+    const parts: string[] = [];
+    if (images.length) parts.push(`${images.length} image${images.length === 1 ? '' : 's'} open.`);
+    if (canvases.length) parts.push(`Manifest${manifestLabel ? ` "${manifestLabel}"` : ''}: ${canvases.length} canvas${canvases.length === 1 ? '' : 'es'}.`);
+    const lost = regions.filter((r) => !images.some((i) => i.name === r.image));
+    if (lost.length) parts.push(`${lost.length} region${lost.length === 1 ? ' is' : 's are'} for images that are not open (${[...new Set(lost.map((r) => r.image))].slice(0, 3).join(', ')}); they are kept and exported.`);
+    q('.mn-info').textContent = parts.join(' ');
+  }
+  function syncPick() {
+    q('.mn-pick').hidden = !images.length;
+    sel.replaceChildren(...images.map((m, i) => new Option(`${m.name} (${m.width} × ${m.height})`, String(i))));
+    sel.value = String(cur);
+    q('.mn-cvl').hidden = !canvases.length;
+    cvSel.replaceChildren(new Option('None', ''), ...canvases.map((c) => new Option(`${c.label} (${c.width} × ${c.height})`, c.id)));
+    cvSel.value = img()?.canvas?.id ?? '';
+    root.querySelectorAll<HTMLElement>('.mn-work').forEach((w) => (w.hidden = !images.length));
+    info();
+  }
+  function applyManifest() {
+    const m = matchCanvases(images.map((i) => i.name), canvases);
+    images.forEach((im, i) => { if (!im.canvas && m[i]) im.canvas = { id: m[i]!.id, width: m[i]!.width || im.width, height: m[i]!.height || im.height }; });
+  }
+  function show(i: number) {
+    cur = i; draft = []; dragStart = null;
+    const m = img(); if (!m) return;
+    pic.src = m.url; svg.setAttribute('viewBox', `0 0 ${m.width} ${m.height}`);
+    syncPick(); draw(); list();
+  }
+  function hint() {
+    q('.mn-hint').textContent = tool === 'rect' ? 'Drag on the image to draw a rectangle.' : draft.length ? `${draft.length} point${draft.length === 1 ? '' : 's'}. Tap the first point or press Finish polygon to close it; Esc cancels.` : 'Tap the image to place each corner of the polygon.';
+    q('.mn-pbar').hidden = tool !== 'polygon';
+    for (const c of ['.mn-finish', '.mn-undo', '.mn-cancel']) q<HTMLButtonElement>(c).disabled = !draft.length;
+  }
+  function draw() {
+    const m = img(); svg.replaceChildren(); if (!m) return;
+    const fs = Math.max(12, m.width / 28);
+    regions.forEach((r, k) => {
+      if (r.image !== m.name) return;
+      const shape = r.shape === 'rect' ? (() => { const b = bbox(r.points); return el('rect', { x: b.x, y: b.y, width: b.w, height: b.h }); })() : el('polygon', { points: pts(r.points) });
+      shape.setAttribute('class', `rg${r.id === active ? ' on' : ''}`); shape.dataset.id = r.id; svg.append(shape);
+      const b = bbox(r.points), t = el('text', { x: b.x + fs * 0.3, y: b.y + fs * 1.05, 'font-size': fs }); t.textContent = String(k + 1); svg.append(t);
+    });
+    if (draft.length) {
+      svg.append(el('polyline', { points: pts(draft), class: 'tmp' }));
+      for (const [x, y] of draft) svg.append(el('circle', { cx: x, cy: y, r: Math.max(3, m.width / 250), class: 'tp' }));
+    }
+    hint();
+  }
+  function list() {
+    const ol = q('.mn-list'), m = img(); ol.replaceChildren();
+    const mine = regions.map((r, k) => ({ r, k })).filter(({ r }) => r.image === m?.name);
+    q('.mn-count').textContent = `${mine.length} region${mine.length === 1 ? '' : 's'} on this image, ${regions.length} in all.${mine.length ? '' : ' Draw one on the image above.'}`;
+    for (const { r, k } of mine) {
+      const li = document.createElement('li'); li.dataset.id = r.id; if (r.id === active) li.className = 'on';
+      const b = bbox(r.points), hd = document.createElement('div'); hd.className = 'hd';
+      const title = document.createElement('b'); title.textContent = `${k + 1}. ${r.shape === 'rect' ? 'Rectangle' : `Polygon, ${r.points.length} points`}, ${Math.round(b.w)} × ${Math.round(b.h)} px at ${Math.round(b.x)}, ${Math.round(b.y)}`;
+      title.tabIndex = 0; title.addEventListener('click', () => { active = r.id; draw(); list(); });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'btn secondary small mn-del'; del.textContent = 'Delete';
+      del.addEventListener('click', () => { regions = regions.filter((x) => x !== r); draw(); list(); info(); });
+      hd.append(title, del);
+      const tl = document.createElement('label'); tl.textContent = 'Transcription';
+      const ta = document.createElement('textarea'); ta.rows = 2; ta.className = 'mn-tr'; ta.value = r.transcription; ta.addEventListener('input', () => (r.transcription = ta.value)); tl.append(ta);
+      const nl = document.createElement('label'); nl.textContent = 'Note';
+      const ni = document.createElement('input'); ni.type = 'text'; ni.className = 'mn-note'; ni.value = r.note; ni.addEventListener('input', () => (r.note = ni.value)); nl.append(ni);
+      li.append(hd, tl, nl); ol.append(li);
+    }
+  }
+  function add(shape: Region['shape'], p: Pt[]) {
+    while (regions.some((r) => r.id === `anno-${nextId}`)) nextId++;
+    const r: Region = { id: `anno-${nextId++}`, image: img().name, shape, points: p.map(([x, y]) => [round(x), round(y)] as Pt), transcription: '', note: '' };
+    regions.push(r); active = r.id; draft = []; draw(); list();
+    const ta = root.querySelector<HTMLTextAreaElement>(`.mn-list li[data-id="${r.id}"] .mn-tr`); ta?.focus({ preventScroll: true });
+  }
+  const at = (e: PointerEvent): Pt => {
+    const b = svg.getBoundingClientRect(), m = img();
+    return [Math.min(m.width, Math.max(0, ((e.clientX - b.left) / b.width) * m.width)), Math.min(m.height, Math.max(0, ((e.clientY - b.top) / b.height) * m.height))];
+  };
+  svg.addEventListener('pointerdown', (e) => {
+    if (!img()) return; e.preventDefault();
+    const p = at(e);
+    if (tool === 'rect') { dragStart = p; svg.setPointerCapture(e.pointerId); return; }
+    const m = img(), near = draft.length >= 3 && Math.hypot(p[0] - draft[0][0], p[1] - draft[0][1]) < (12 * m.width) / svg.getBoundingClientRect().width;
+    if (near) add('polygon', draft); else { draft.push(p); draw(); }
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!dragStart) return; const p = at(e); draw();
+    const x = Math.min(p[0], dragStart[0]), y = Math.min(p[1], dragStart[1]);
+    svg.append(el('rect', { x, y, width: Math.abs(p[0] - dragStart[0]), height: Math.abs(p[1] - dragStart[1]), class: 'tmp' }));
+  });
+  svg.addEventListener('pointerup', (e) => {
+    if (!dragStart) return; const p = at(e), s = dragStart; dragStart = null;
+    const w = Math.abs(p[0] - s[0]), h = Math.abs(p[1] - s[1]), min = (4 * img().width) / svg.getBoundingClientRect().width;
+    if (w < min || h < min) { draw(); return; }
+    add('rect', rectPoints(Math.min(p[0], s[0]), Math.min(p[1], s[1]), w, h));
+  });
+  const setTool = (t: typeof tool) => { tool = t; draft = []; q('.mn-rect').setAttribute('aria-pressed', String(t === 'rect')); q('.mn-poly').setAttribute('aria-pressed', String(t === 'polygon')); draw(); };
+  q('.mn-rect').addEventListener('click', () => setTool('rect'));
+  q('.mn-poly').addEventListener('click', () => setTool('polygon'));
+  q('.mn-finish').addEventListener('click', () => { if (draft.length >= 3) add('polygon', draft); else q('.mn-hint').textContent = 'A polygon needs at least 3 points.'; });
+  q('.mn-undo').addEventListener('click', () => { draft.pop(); draw(); });
+  q('.mn-cancel').addEventListener('click', () => { draft = []; draw(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && draft.length) { draft = []; draw(); } });
+  q<HTMLSelectElement>('.mn-zoom').addEventListener('change', () => { q('.mn-wrap').style.width = `${Number(q<HTMLSelectElement>('.mn-zoom').value) * 100}%`; });
+  sel.addEventListener('change', () => show(Number(sel.value)));
+  cvSel.addEventListener('change', () => { const c = canvases.find((x) => x.id === cvSel.value), m = img(); m.canvas = c ? { id: c.id, width: c.width || m.width, height: c.height || m.height } : undefined; });
+
+  const load = (url: string, name: string) => new Promise<Img>((res, rej) => { const i = new Image(); i.onload = () => res({ name, width: i.naturalWidth, height: i.naturalHeight, url }); i.onerror = () => rej(new Error(`${name} could not be opened as an image.`)); i.src = url; });
+  async function addImages(files: { blob: Blob; name: string }[]) {
+    err('');
+    for (const f of files) {
+      if (f.blob.size > 50e6) { err(`${f.name} is over 50 MB.`); continue; }
+      let name = f.name, k = 2; while (images.some((i) => i.name === name)) name = f.name.replace(/(\.[^.]*)?$/, ` (${k++})$1`);
+      try { images.push(await load(URL.createObjectURL(f.blob), name)); } catch (e) { err((e as Error).message); }
+    }
+    applyManifest(); if (images.length) show(cur >= 0 ? cur : 0);
+  }
+  q('.mn-open').addEventListener('click', () => q<HTMLInputElement>('.mn-file').click());
+  q('.mn-file').addEventListener('change', async () => { const inp = q<HTMLInputElement>('.mn-file'), fs = [...(inp.files ?? [])]; inp.value = ''; const first = images.length; await addImages(fs.map((f) => ({ blob: f, name: f.name }))); if (images.length > first) show(first); });
+  q('.mn-mopen').addEventListener('click', () => q<HTMLInputElement>('.mn-mfile').click());
+  q('.mn-mfile').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.mn-mfile'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    try { if (f.size > 20e6) throw new Error('That manifest is over 20 MB.'); const m = parseManifest(JSON.parse(await f.text())); canvases = m.canvases; manifestLabel = m.label; err(''); images.forEach((i) => (i.canvas = undefined)); applyManifest(); syncPick(); }
+    catch (e) { err(e instanceof SyntaxError ? 'That file is not valid JSON.' : (e as Error).message); }
+  });
+  q('.mn-aopen').addEventListener('click', () => q<HTMLInputElement>('.mn-afile').click());
+  q('.mn-afile').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.mn-afile'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    try {
+      const r = fromWebAnnotation(JSON.parse(await f.text()), images);
+      if (!r.regions.length) throw new Error(`No regions could be read from ${f.name}${r.skipped ? ` (${r.skipped} skipped)` : ''}.`);
+      for (const x of r.regions) { if (regions.some((y) => y.id === x.id)) x.id = `${x.id}-${nextId++}`; regions.push(x); }
+      err(''); draw(); list(); info();
+      q('.mn-info').textContent = `Opened ${r.regions.length} region${r.regions.length === 1 ? '' : 's'} from ${f.name}${r.skipped ? `; ${r.skipped} could not be read (only rectangles and polygons in pixels are supported)` : ''}. ` + q('.mn-info').textContent;
+    } catch (e) { err(e instanceof SyntaxError ? 'That file is not valid JSON.' : (e as Error).message); }
+  });
+  const base = () => (images[0]?.name ?? 'annotations').replace(/\.[^.]+$/, '').replace(/[^\p{L}\p{N}]+/gu, '-');
+  q('.mn-json').addEventListener('click', () => save(new Blob([JSON.stringify(toWebAnnotation(regions, images), null, 2)], { type: 'application/ld+json' }), `${base()}-annotations.json`, 'application/ld+json'));
+  q('.mn-csv').addEventListener('click', () => save(new Blob([toCsv(regions, images)], { type: 'text/csv' }), `${base()}-annotations.csv`, 'text/csv'));
+
+  // Example: a made-up account page drawn here, with three made-up regions.
+  q('.mn-ex').addEventListener('click', async () => {
+    if (images.some((i) => i.name === 'example-page.png')) { show(images.findIndex((i) => i.name === 'example-page.png')); return; }
+    const c = document.createElement('canvas'); c.width = 900; c.height = 1200; const x = c.getContext('2d')!;
+    x.fillStyle = '#efe4c8'; x.fillRect(0, 0, 900, 1200);
+    x.strokeStyle = '#b9a57a'; x.lineWidth = 2; x.strokeRect(80, 80, 740, 1040);
+    x.fillStyle = '#3b2a17'; x.font = 'italic 44px Georgia, "Times New Roman", serif'; x.fillText('Accompt of the Mill at Ashford', 130, 160);
+    x.font = 'italic 26px Georgia, "Times New Roman", serif';
+    const lines = ['Item rec. of Thomas Hale for grinding  ij s', 'Item rec. of the widow Pratt  xviij d', 'Item paid for a new sail cloth  v s iiij d', 'Item paid to the carpenter  iij s', 'Item for candles and grease  x d', 'Item rec. of John Webbe for malt  iiij s', 'Summa of the receipts  vij s vj d', 'Summa of the payments  ix s ij d'];
+    lines.forEach((l, i) => x.fillText(l, 110, 265 + i * 70));
+    x.fillStyle = 'rgba(120,80,30,0.35)'; x.beginPath(); x.ellipse(725, 925, 100, 75, -0.3, 0, 7); x.fill();
+    const blob = await new Promise<Blob>((r) => c.toBlob((b) => r(b!), 'image/png'));
+    regions.push(...EXAMPLE_REGIONS.filter((r) => !regions.some((y) => y.id === r.id)).map((r) => ({ ...r, points: r.points.map((p) => [...p] as Pt) })));
+    const first = images.length; await addImages([{ blob, name: 'example-page.png' }]); show(first);
+  });
+  hint();
+</script>

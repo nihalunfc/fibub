@@ -1,0 +1,200 @@
+---
+// Op-amp circuit calculator: inverting, non-inverting, difference, summing, integrator, differentiator; bandwidth from GBW, clipping.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax opa">
+  <div class="ax-card">
+    <h2>Circuit</h2>
+    <div class="ax-grid">
+      <label>Circuit <select class="op-cfg">
+        <option value="inv" selected>Inverting amplifier</option>
+        <option value="noninv">Non-inverting amplifier</option>
+        <option value="diff">Difference amplifier</option>
+        <option value="sum">Summing (inverting) amplifier</option>
+        <option value="int">Integrator</option>
+        <option value="dif">Differentiator</option>
+      </select></label>
+      <label class="op-b op-r1b"><span class="op-r1l">R1, input resistor (Ω)</span> <input class="op-r1" type="text" value="10k" /></label>
+      <label class="op-b op-rfb"><span class="op-rfl">Rf, feedback resistor (Ω)</span> <input class="op-rf" type="text" value="100k" /></label>
+      <label class="op-b op-r3b" hidden>R3, from V2 to the + input (Ω) <input class="op-r3" type="text" value="10k" /></label>
+      <label class="op-b op-r4b" hidden>R4, from the + input to ground (Ω) <input class="op-r4" type="text" value="100k" /></label>
+      <label class="op-b op-rsb" hidden>Input resistors (Ω), comma separated <input class="op-rs" type="text" value="10k, 20k, 40k" /></label>
+      <label class="op-b op-cb" hidden>Capacitor C (F) <input class="op-c" type="text" value="10n" /></label>
+    </div>
+    <p class="ax-help op-help"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Op-amp, supply and signal</h2>
+    <div class="ax-grid">
+      <label>Gain-bandwidth product GBW (Hz) <input class="op-gbw" type="text" value="1M" /></label>
+      <label>Slew rate (V/µs) <input class="op-sr" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Positive supply (V) <input class="op-vp" type="text" inputmode="decimal" value="15" /></label>
+      <label>Negative supply (V) <input class="op-vn" type="text" inputmode="decimal" value="-15" /></label>
+      <label>Output gets within (V) of each rail <input class="op-head" type="text" inputmode="decimal" value="1.5" /></label>
+      <label><span class="op-dcl">DC input (V)</span> <input class="op-dc" type="text" inputmode="decimal" value="0" /></label>
+      <label class="op-v2b" hidden><span class="op-v2l">V2 (V)</span> <input class="op-v2" type="text" inputmode="decimal" value="0" /></label>
+      <label>Sine on the input: peak (V) <input class="op-amp" type="text" inputmode="decimal" value="1" /></label>
+      <label>Sine frequency (Hz) <input class="op-f" type="text" value="1k" /></label>
+    </div>
+    <p class="ax-help">GBW and slew rate are on the op-amp's data sheet (the example is a made-up general-purpose part: 1 MHz, 0.5 V/µs). The output swing limit is how close the output gets to each supply; rail-to-rail parts get within about 0.05 V. The open-loop gain at DC is taken as 100,000 (100 dB).</p>
+    <p class="ax-err op-err" hidden></p>
+  </div>
+
+  <div class="ax-card op-out">
+    <h2>Result</h2>
+    <p class="ax-big op-big"></p>
+    <dl class="ax-facts op-facts"></dl>
+    <canvas class="ax-fig op-bode"></canvas>
+    <canvas class="ax-fig op-wave"></canvas>
+    <p class="ax-help">A single-pole op-amp model with ideal inputs (no offset, bias current or noise). For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { idealGains, realGains, noiseGain, bandwidth, fullPower, diffCmrr, diffCmrrWorst, clip, f3db, type Params, type Config } from '../../lib/sci/eng-opamp';
+  import { parseOhms, ohmText } from '../../lib/sci/eng-resistor';
+  import { parseValue, eng, logFreqs } from '../../lib/sci/eng-circuit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.opa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const ohm = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t === '' ? NaN : parseOhms(t); };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mag = (z: { re: number; im: number }) => Math.hypot(z.re, z.im);
+  const ph = (z: { re: number; im: number }) => Math.atan2(z.im, z.re);
+  const V = (x: number) => { const t = sig(x, 4); return `${/^[−\d.]+$/.test(t) && t.includes('.') ? t.replace(/\.?0+$/, '') : t} V`; };
+  let figs: Figure[] = [], sections: Section[] = [];
+
+  const HELP: Record<Config, string> = {
+    inv: 'Input through R1 to the − input; Rf from the output back to the − input; + input to ground. Gain = −Rf/R1.',
+    noninv: 'Input to the + input; R1 from the − input to ground; Rf from the output to the − input. Gain = 1 + Rf/R1.',
+    diff: 'V1 through R1 to the − input with Rf as feedback; V2 through R3 to the + input with R4 to ground. With R4/R3 = Rf/R1, Vout = (Rf/R1)(V2 − V1).',
+    sum: 'Each input through its own resistor to the − input; Rf as feedback. Vout = −Rf × (V1/R1 + V2/R2 + …). Give the input voltages comma separated in the DC box.',
+    int: 'Input through R1; C from the output to the − input. Vout = −(1/R1C) ∫ Vin dt. An optional Rf across C (leave blank for none) stops the output drifting to a rail; it makes a low-pass with DC gain −Rf/R1.',
+    dif: 'Input through C (and an optional series R1 to tame noise; 0 for none); Rf as feedback. Vout = −RfC dVin/dt. Real differentiators need R1 for stability.',
+  };
+
+  function show() {
+    const c = sel('.op-cfg') as Config;
+    const vis: Record<string, Config[]> = { '.op-r1b': ['inv', 'noninv', 'diff', 'int', 'dif'], '.op-rfb': ['inv', 'noninv', 'diff', 'sum', 'int', 'dif'], '.op-r3b': ['diff'], '.op-r4b': ['diff'], '.op-rsb': ['sum'], '.op-cb': ['int', 'dif'], '.op-v2b': ['diff'] };
+    for (const [k, v] of Object.entries(vis)) q(k).hidden = !v.includes(c);
+    q('.op-r1l').textContent = c === 'noninv' ? 'R1, from the − input to ground (Ω)' : c === 'dif' ? 'R1, in series with C (Ω, 0 for none)' : c === 'diff' ? 'R1, from V1 to the − input (Ω)' : 'R1, input resistor (Ω)';
+    q('.op-rfl').textContent = c === 'int' ? 'Rf across C (Ω, blank for none)' : 'Rf, feedback resistor (Ω)';
+    q('.op-dcl').textContent = c === 'sum' ? 'DC inputs (V), comma separated' : c === 'diff' ? 'V1, DC (V)' : 'DC input (V)';
+    q('.op-help').textContent = HELP[c];
+  }
+
+  function run() {
+    show();
+    const c = sel('.op-cfg') as Config, err = q('.op-err'), out = q('.op-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    const r1 = ohm('.op-r1'), rf = ohm('.op-rf'), cap = parseValue(q<HTMLInputElement>('.op-c').value);
+    const p: Params = { config: c, r1, rf };
+    if (c === 'dif') { const t = q<HTMLInputElement>('.op-r1').value.trim(); p.r1 = t === '' || t === '0' ? 0 : r1; if (!(p.r1 >= 0)) return fail('Give R1 in ohms, or 0.'); }
+    else if (c !== 'sum' && !(r1 > 0)) return fail('Give R1 in ohms, for example 10k.');
+    if (c === 'int') { p.rf = q<HTMLInputElement>('.op-rf').value.trim() === '' ? Infinity : rf; if (!(p.rf > 0)) return fail('Give Rf in ohms, or leave it blank.'); }
+    else if (!(rf > 0)) return fail('Give Rf in ohms, for example 100k.');
+    if (c === 'int' || c === 'dif') { if (!(cap > 0 && cap < 1)) return fail('Give C in farads, for example 10n.'); p.c = cap; }
+    if (c === 'diff') { p.r3 = ohm('.op-r3'); p.r4 = ohm('.op-r4'); if (!(p.r3 > 0 && p.r4 > 0)) return fail('Give R3 and R4 in ohms.'); }
+    let dcs = [val('.op-dc')];
+    if (c === 'sum') {
+      p.rs = q<HTMLInputElement>('.op-rs').value.split(/[,;]\s*|\s+/).filter(Boolean).map(parseOhms);
+      if (!p.rs.length || p.rs.some((r) => !(r > 0)) || p.rs.length > 10) return fail('Give 1 to 10 input resistors, comma separated, such as 10k, 20k.');
+      dcs = q<HTMLInputElement>('.op-dc').value.split(/[,;]\s*|\s+/).filter(Boolean).map(num);
+      while (dcs.length < p.rs.length) dcs.push(0);
+      if (dcs.length > p.rs.length) return fail(`Give ${p.rs.length} DC input voltages (one per resistor) or fewer.`);
+    }
+    if (c === 'diff') dcs = [val('.op-dc'), val('.op-v2')];
+    if (dcs.some((x) => !Number.isFinite(x))) return fail('Give the DC input voltage (0 for none).');
+    const gbw = parseOhms(q<HTMLInputElement>('.op-gbw').value), sr = val('.op-sr') * 1e6, vp = val('.op-vp'), vn = val('.op-vn'), hd = val('.op-head'), A = val('.op-amp'), f = parseOhms(q<HTMLInputElement>('.op-f').value);
+    if (!(gbw > 0)) return fail('Give the gain-bandwidth product in hertz, for example 1M.');
+    if (!(sr > 0)) return fail('Give the slew rate in volts per microsecond.');
+    if (!(vp > vn) || !(hd >= 0) || !(vp - hd > vn + hd)) return fail('Give the supplies (positive above negative) and a swing limit smaller than half the supply span.');
+    if (!(A >= 0)) return fail('Give the sine peak (0 for none).');
+    if (A > 0 && !(f > 0)) return fail('Give the sine frequency in hertz.');
+    err.hidden = true; out.hidden = false;
+    const hi = vp - hd, lo = vn + hd, w = 2 * Math.PI * (f || 1);
+    const ng = noiseGain(p, c === 'int' || c === 'dif' ? w : 0);
+    const facts: HTMLElement[] = [];
+    const g0 = idealGains(p, 0).map((g) => g.re);
+    // DC output (ideal): integrator without Rf has infinite DC gain.
+    let vdc = g0.reduce((s, g, i) => s + g * (dcs[i] ?? 0), 0);
+    if (c === 'dif') vdc = 0;
+    if (c === 'int' && !Number.isFinite(p.rf) && dcs[0] !== 0) vdc = dcs[0] > 0 ? -Infinity : Infinity;
+    const H = realGains(p, w, gbw)[0], Hi = idealGains(p, w)[0];
+    const name = { inv: 'Inverting', noninv: 'Non-inverting', diff: 'Difference', sum: 'Summing', int: 'Integrator', dif: 'Differentiator' }[c];
+    if (c === 'inv' || c === 'noninv' || c === 'diff') {
+      const g = c === 'diff' ? p.rf / p.r1 : g0[0];
+      q('.op-big').textContent = `${name}: gain ${sig(g, 4)} (${sig(20 * Math.log10(Math.abs(g)), 3)} dB)`;
+    } else if (c === 'sum') q('.op-big').textContent = `Summing: Vout = ${g0.map((g, i) => `${+g.toPrecision(4)} × V${i + 1}`.replace('-', '−')).join(' + ').replace(/\+ −/g, '− ')}`;
+    else if (c === 'int') q('.op-big').textContent = `Integrator: unity gain at ${eng(1 / (2 * Math.PI * p.r1 * p.c!), 'Hz')}`;
+    else q('.op-big').textContent = `Differentiator: gain ${sig(mag(Hi), 3)} at ${eng(f || 1, 'Hz')}`;
+    // Bandwidth.
+    const fr = (x: number) => mag(realGains(p, 2 * Math.PI * x, gbw)[0]);
+    if (c === 'inv' || c === 'noninv' || c === 'diff' || c === 'sum') {
+      const b3 = f3db(fr, Math.max(1e-3, gbw / 1e7), gbw * 100);
+      facts.push(fact('Bandwidth (−3 dB)', eng(b3, 'Hz'), `about GBW ÷ noise gain = ${eng(bandwidth(gbw, ng), 'Hz')}; noise gain 1/β = ${sig(ng, 4)}`));
+      facts.push(fact('Input resistance', c === 'noninv' ? 'very high (the op-amp input)' : c === 'sum' ? p.rs!.map((r, i) => `V${i + 1}: ${ohmText(r)}`).join(', ') : c === 'diff' ? `V1: ${ohmText(p.r1)}, V2: ${ohmText(p.r3! + p.r4!)}` : ohmText(p.r1), c === 'inv' || c === 'sum' ? 'the − input is a virtual ground' : ''));
+      if (c === 'diff') {
+        const cm = diffCmrr(p.r1, p.rf, p.r3!, p.r4!), g = p.rf / p.r1;
+        facts.push(fact('Common-mode rejection from the resistors', Number.isFinite(cm) ? `${sig(cm, 3)} dB` : 'perfect (ratios match)', `with 1 % resistors the worst case is about ${sig(diffCmrrWorst(g, 0.01), 3)} dB; use 0.1 % or a matched network for better`));
+        if (Math.abs(p.r4! / p.r3! - p.rf / p.r1) > 1e-9 * (p.rf / p.r1)) facts.push(fact('Ratios', `R4/R3 = ${sig(p.r4! / p.r3!, 4)} but Rf/R1 = ${sig(p.rf / p.r1, 4)}`, `Vout = ${sig(g0[1], 4)} × V2 − ${sig(-g0[0], 4)} × V1`));
+      }
+    } else if (c === 'int') {
+      facts.push(fact('Gain at the sine frequency', `${sig(mag(H), 4)} (${sig(20 * Math.log10(mag(H)), 3)} dB)`, `ideal 1/(2πfR1C) = ${sig(1 / (w * p.r1 * p.c!), 4)}`));
+      facts.push(fact('Low-frequency limit', Number.isFinite(p.rf) ? `DC gain ${sig(-p.rf / p.r1, 4)}, corner ${eng(1 / (2 * Math.PI * p.rf * p.c!), 'Hz')}` : 'none: any DC input or offset drives the output to a rail', Number.isFinite(p.rf) ? 'it integrates well above this corner' : 'add Rf across C, or reset C, in practice'));
+    } else {
+      facts.push(fact('Gain at the sine frequency', `${sig(mag(H), 4)} (${sig(20 * Math.log10(mag(H)), 3)} dB)`, `ideal 2πf Rf C = ${sig(w * p.rf * p.c!, 4)}`));
+      if (p.r1 > 0) facts.push(fact('Stops differentiating above', eng(1 / (2 * Math.PI * p.r1 * p.c!), 'Hz'), `1/(2π R1 C); the high-frequency gain levels off at Rf/R1 = ${sig(p.rf / p.r1, 4)}`));
+      else facts.push(fact('Stability', 'no series R1: the gain rises until the op-amp runs out, and the circuit may ring or oscillate', 'add R1 in series with C'));
+      const fpk = Math.sqrt(gbw / (2 * Math.PI * p.rf * p.c!));
+      facts.push(fact('Peaking near', eng(fpk, 'Hz'), '√(GBW / 2πRfC), where the rising gain meets the op-amp'));
+    }
+    // Output: DC + sine, clipping and slew.
+    const Hs = realGains(p, w, gbw)[0], pk = mag(Hs) * A;
+    const top = vdc + pk, bot = vdc - pk;
+    const clipped = !Number.isFinite(vdc) || top > hi || bot < lo;
+    facts.push(fact('Output', `${Number.isFinite(vdc) ? V(vdc) : vdc > 0 ? 'drifts to the + rail' : 'drifts to the − rail'}${A > 0 ? ` DC, ± ${V(pk)} at ${eng(f, 'Hz')}` : ''}`, `the output can swing from ${V(lo)} to ${V(hi)}`));
+    if (Number.isFinite(vdc)) {
+      const room = Math.max(0, Math.min(hi - vdc, vdc - lo));
+      facts.push(fact(clipped ? 'Clipping' : 'Headroom', clipped ? 'yes: the output hits the swing limit' : `${V(room - pk)} to spare`, A > 0 && mag(Hs) > 0 ? `largest sine input without clipping: ${V(room / mag(Hs))} peak` : ''));
+    } else facts.push(fact('Clipping', 'yes: the output sits at a rail'));
+    if (A > 0) {
+      const slope = pk * w, fpb = fullPower(sr, Math.max(pk, 1e-12));
+      facts.push(fact('Slew rate', slope > sr ? `too slow: needs ${sig(slope / 1e6, 3)} V/µs` : `fine (needs ${sig(slope / 1e6, 3)} V/µs)`, `full-power bandwidth at this swing: ${eng(fpb, 'Hz')}${slope > sr ? '; the output turns into a triangle' : ''}`));
+    }
+    q('.op-facts').replaceChildren(...facts);
+    // Bode plot: ideal and real op-amp.
+    const fz = logFreqs(Math.max(0.1, gbw / 1e6), gbw * 10, 25);
+    const db = (z: { re: number; im: number }) => 20 * Math.log10(mag(z));
+    const ideal = fz.map((x) => db(idealGains(p, 2 * Math.PI * x)[0])), real = fz.map((x) => db(realGains(p, 2 * Math.PI * x, gbw)[0]));
+    const lo2 = Math.max(-60, Math.min(...real) - 5), hi2 = Math.min(140, Math.max(...real, ...ideal.filter(Number.isFinite)) + 10);
+    const bode = chartFigure({ w: 380, h: 230, xLabel: 'Frequency (Hz)', yLabel: `Gain${c === 'sum' || c === 'diff' ? ' from V1' : ''} (dB)`, xLog: true, yMin: lo2, yMax: hi2, legend: 'below', series: [{ name: 'Ideal op-amp', x: fz, y: ideal.map((v) => Math.min(Math.max(v, lo2 - 50), hi2 + 50)), mode: 'line', width: 1.5, dash: [5, 3] }, { name: `GBW ${eng(gbw, 'Hz')}`, x: fz, y: real, mode: 'line', width: 2 }], marks: A > 0 ? [{ kind: 'vline', at: f, dash: [3, 3], label: 'signal' }] : [] }, `Gain against frequency for the ${name.toLowerCase()} circuit`);
+    paint(q<HTMLCanvasElement>('.op-bode'), bode); figs = [bode];
+    // Waveform (steady state), two periods.
+    q('.op-wave').hidden = !(A > 0);
+    if (A > 0) {
+      const T = 1 / f, ts = Array.from({ length: 241 }, (_, i) => (2 * T * i) / 240), sc = T < 1e-3 ? 1e6 : T < 1 ? 1e3 : 1, tu = sc === 1e6 ? 'µs' : sc === 1e3 ? 'ms' : 's';
+      const vin = ts.map((t) => dcs[0] + A * Math.sin(w * t)), vo = ts.map((t) => clip(Number.isFinite(vdc) ? vdc + pk * Math.sin(w * t + ph(Hs)) : vdc, lo, hi));
+      const wave = chartFigure({ w: 380, h: 220, xLabel: `Time (${tu})`, yLabel: 'Voltage (V)', xMin: 0, legend: 'below', series: [{ name: c === 'sum' || c === 'diff' ? 'V1 input' : 'Input', x: ts.map((t) => t * sc), y: vin, mode: 'line', width: 1.5 }, { name: clipped ? 'Output (clipped)' : 'Output', x: ts.map((t) => t * sc), y: vo, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: hi, dash: [3, 3] }, { kind: 'hline', at: lo, dash: [3, 3] }] }, 'Input and output waveforms');
+      paint(q<HTMLCanvasElement>('.op-wave'), wave); figs.push(wave);
+    }
+    sections = [{ title: q('.op-big').textContent!, text: [HELP[c]], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] }];
+    if (figs[1]) sections.push({ title: 'Waveforms', figure: figs[1] });
+  }
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (!q('.op-out').hidden) { paint(q<HTMLCanvasElement>('.op-bode'), figs[0]); if (figs[1] && !q('.op-wave').hidden) paint(q<HTMLCanvasElement>('.op-wave'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Op-amp circuit', subtitle: q('.op-big').textContent ?? '', file: 'op-amp', sections }));
+</script>
+
+<style is:inline>
+  .opa select, .opa input { max-width: 100%; }
+</style>

@@ -1,0 +1,213 @@
+---
+// Carrier concentration: Varshni band gap, Nc and Nv from effective masses, the intrinsic density, and the Fermi
+// level from charge neutrality with partly ionised donors and acceptors (Fermi-Dirac or Boltzmann statistics),
+// with a temperature sweep showing freeze-out, extrinsic and intrinsic regions. Example values are rounded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax carc">
+  <div class="ax-card">
+    <h2>Material</h2>
+    <div class="ax-grid">
+      <label>Example values <select class="cc-pre"></select></label>
+      <label>Gap at 0 K, Eg0 (eV) <input class="cc-eg0" inputmode="decimal" /></label>
+      <label>Varshni α (meV/K) <input class="cc-al" inputmode="decimal" /></label>
+      <label>Varshni β (K) <input class="cc-be" inputmode="decimal" /></label>
+      <label>Electron mass mₑ* (m₀) <input class="cc-me" inputmode="decimal" /></label>
+      <label>Hole mass mₕ* (m₀) <input class="cc-mh" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The example values are rounded and made up to behave like the named material; they are not reference data. Type your own from your supplier or a handbook. Eg(T) = Eg0 − αT²/(T + β). The masses are density-of-states effective masses (for a band with several valleys, the mass that already includes them).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Doping and temperature</h2>
+    <div class="ax-grid">
+      <label>Temperature T (K) <input class="cc-t" inputmode="decimal" value="300" /></label>
+      <label>Donors ND (cm⁻³) <input class="cc-nd" inputmode="decimal" value="1e16" /></label>
+      <label>Donor depth below Ec (eV) <input class="cc-ed" inputmode="decimal" value="0.045" /></label>
+      <label>Donor degeneracy gD <input class="cc-gd" inputmode="decimal" value="2" /></label>
+      <label>Acceptors NA (cm⁻³) <input class="cc-na" inputmode="decimal" value="0" /></label>
+      <label>Acceptor height above Ev (eV) <input class="cc-ea" inputmode="decimal" value="0.045" /></label>
+      <label>Acceptor degeneracy gA <input class="cc-ga" inputmode="decimal" value="4" /></label>
+      <label>Statistics <select class="cc-st"><option value="fd" selected>Fermi-Dirac (exact)</option><option value="boltzmann">Boltzmann (non-degenerate)</option></select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Sweep from (K) <input class="cc-t0" inputmode="decimal" value="20" /></label>
+      <label>Sweep to (K) <input class="cc-t1" inputmode="decimal" value="1000" /></label>
+    </div>
+    <p class="ax-help">Write densities like 1e16 or 1.5e17. The depth is the ionisation energy of the dopant: how far the donor level sits below the conduction band (or the acceptor above the valence band). g is the level's degeneracy factor, usually 2 for donors and 4 for acceptors. Fermi-Dirac statistics stay right when the doping is so high that the Fermi level reaches a band (degenerate); Boltzmann is the textbook shortcut. The sweep sets the temperature range of the plots.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big cc-big"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <p class="ax-help cc-note"></p>
+    <h3>Carriers against temperature</h3>
+    <canvas class="ax-fig cc-fig1"></canvas>
+    <p class="ax-help cc-n1"></p>
+    <h3>Fermi level against temperature</h3>
+    <canvas class="ax-fig cc-fig2"></canvas>
+    <p class="ax-help">Energies are measured up from the top of the valence band (Ev = 0), so Ec is the band gap at each temperature. Ei is the intrinsic level, Ed and Ea the dopant levels.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csv">Download the sweep (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Fermi-Dirac integral F½</h2>
+    <div class="ax-grid">
+      <label>Reduced energy η = (EF − Ec)/kT <input class="cc-eta" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-help cc-fout" aria-live="polite"></p>
+    <p class="ax-help">n = Nc F½(η), with F½ normalised so that F½(η) → e^η when η is well below 0. Boltzmann statistics use e^η for every η, which overestimates n once η passes about −3.</p>
+  </div>
+</div>
+
+<script>
+  import { PRESETS, solve, sweep, regime, ionisedShare, intrinsicTemperature, freezeOutTemperature, fermiHalf, varshni, type Material, type Doping, type Stats, type State } from '../../lib/sci/carriers';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.carc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const dens = (x: number) => (x === 0 ? '0' : `${sig(x, 4)} cm⁻³`);
+  const ev = (x: number) => `${x.toFixed(4)} eV`;
+
+  const pre = q<HTMLSelectElement>('.cc-pre');
+  pre.replaceChildren(...PRESETS.map((p) => new Option(p.name, p.id)), new Option('Your own values', 'own'));
+  const setPreset = (id: string) => {
+    const p = PRESETS.find((x) => x.id === id); if (!p) return;
+    inp('.cc-eg0').value = String(p.m.Eg0); inp('.cc-al').value = String(p.m.alpha * 1000); inp('.cc-be').value = String(p.m.beta);
+    inp('.cc-me').value = String(p.m.me); inp('.cc-mh').value = String(p.m.mh);
+  };
+  pre.addEventListener('change', () => { setPreset(pre.value); run(); });
+  ['.cc-eg0', '.cc-al', '.cc-be', '.cc-me', '.cc-mh'].forEach((c) => inp(c).addEventListener('input', () => { pre.value = 'own'; later(run); }));
+  ['.cc-t', '.cc-nd', '.cc-ed', '.cc-gd', '.cc-na', '.cc-ea', '.cc-ga', '.cc-t0', '.cc-t1'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  q('.cc-st').addEventListener('change', run);
+
+  let sections: Section[] = [], figs: Figure[] = [], rows: State[] = [], dop: Doping | null = null;
+  const REG = { 'freeze-out': 'freeze-out', extrinsic: 'extrinsic (saturation)', intrinsic: 'intrinsic', undoped: 'undoped (intrinsic)' } as const;
+
+  function read(): { m: Material; d: Doping; T: number; T0: number; T1: number; st: Stats } | string {
+    const m = { Eg0: v('.cc-eg0'), alpha: v('.cc-al') / 1000, beta: v('.cc-be'), me: v('.cc-me'), mh: v('.cc-mh') };
+    if (!(m.Eg0 > 0 && m.Eg0 < 15)) return 'The gap at 0 K is a positive energy in eV (up to 15).';
+    if (!(m.alpha >= 0) || !(m.beta >= 0)) return 'Varshni α and β are 0 or positive (α in meV/K, β in K).';
+    if (!(m.me > 0 && m.me < 50) || !(m.mh > 0 && m.mh < 50)) return 'The effective masses are positive numbers in units of the free electron mass.';
+    const d = { Nd: v('.cc-nd'), Ed: v('.cc-ed'), gd: v('.cc-gd'), Na: v('.cc-na'), Ea: v('.cc-ea'), ga: v('.cc-ga') };
+    if (!(d.Nd >= 0 && d.Nd <= 1e23) || !(d.Na >= 0 && d.Na <= 1e23)) return 'Dopant densities are 0 or positive, in cm⁻³ (write 1e16 for 10¹⁶), up to 10²³.';
+    if (!(d.Ed > 0) || !(d.Ea > 0)) return 'Dopant depths are positive energies in eV (0.045 for a shallow dopant).';
+    if (!(d.gd > 0) || !(d.ga > 0)) return 'Degeneracy factors are positive numbers (2 for donors and 4 for acceptors are usual).';
+    const T = v('.cc-t'), T0 = v('.cc-t0'), T1 = v('.cc-t1');
+    if (!(T >= 1 && T <= 3000)) return 'The temperature is between 1 and 3000 K.';
+    if (!(T0 >= 1 && T1 > T0 && T1 <= 3000)) return 'The sweep runs from at least 1 K up to a higher temperature, at most 3000 K.';
+    const Eg = Math.min(varshni(T0, m.Eg0, m.alpha, m.beta), varshni(T1, m.Eg0, m.alpha, m.beta), varshni(T, m.Eg0, m.alpha, m.beta));
+    if (!(Eg > 0)) return 'With these Varshni values the gap closes inside the temperature range. Check α and β.';
+    if (d.Ed >= Eg || d.Ea >= Eg) return 'A dopant level must lie inside the band gap.';
+    return { m, d, T, T0, T1, st: q<HTMLSelectElement>('.cc-st').value as Stats };
+  }
+
+  function run() {
+    const err = q('.cc-err'), out = q('.cc-out');
+    const r = read();
+    if (typeof r === 'string') { err.textContent = r; err.hidden = false; out.hidden = true; sections = []; return; }
+    err.hidden = true; out.hidden = false;
+    const { m, d, T, T0, T1, st } = r; dop = d;
+    const s = solve(T, m, d, st), reg = regime(s, d);
+    const type = s.n > s.p * 1.0001 ? 'n-type' : s.p > s.n * 1.0001 ? 'p-type' : 'intrinsic';
+    const fromC = s.Eg - s.EF, fromV = s.EF;
+    const pos = fromC < 0 ? `${(-fromC).toFixed(3)} eV above Ec (inside the conduction band)` : fromV < 0 ? `${(-fromV).toFixed(3)} eV below Ev (inside the valence band)` : fromC <= fromV ? `${fromC.toFixed(3)} eV below Ec` : `${fromV.toFixed(3)} eV above Ev`;
+    q('.cc-big').textContent = `${type === 'intrinsic' ? 'Intrinsic' : type} at ${sig(T, 4)} K: EF is ${pos}; n = ${sig(s.n, 3)}, p = ${sig(s.p, 3)} cm⁻³`;
+    const Ti = intrinsicTemperature(m, d), Tf = freezeOutTemperature(m, d, st);
+    const share = ionisedShare(s, d);
+    const facts = [
+      fact('Band gap Eg(T)', ev(s.Eg), `kT = ${(s.kT * 1000).toFixed(3)} meV`),
+      fact('Nc, Nv', `${sig(s.Nc, 4)}, ${sig(s.Nv, 4)} cm⁻³`, 'effective densities of states at this temperature'),
+      fact('Intrinsic density nᵢ', dens(s.ni), `√(Nc Nv) e^(−Eg/2kT); Ei = ${ev(s.Ei)} above Ev`),
+      fact('Fermi level EF', `${ev(s.EF)} above Ev`, `${(s.EF - s.Ei >= 0 ? '+' : '−') + Math.abs(s.EF - s.Ei).toFixed(4)} eV from Ei; η = (EF − Ec)/kT = ${s.etaN.toFixed(2).replace('-', '−')}`),
+      fact('Electrons n', dens(s.n)),
+      fact('Holes p', dens(s.p), `n·p / nᵢ² = ${sig((s.n * s.p) / (s.ni * s.ni), 4)}`),
+    ];
+    if (d.Nd > 0) facts.push(fact('Ionised donors ND⁺', dens(s.NdIon), `${sig((100 * s.NdIon) / d.Nd, 4)} % of ${sig(d.Nd, 3)}`));
+    if (d.Na > 0) facts.push(fact('Ionised acceptors NA⁻', dens(s.NaIon), `${sig((100 * s.NaIon) / d.Na, 4)} % of ${sig(d.Na, 3)}`));
+    facts.push(fact('Region', REG[reg], Number.isFinite(share) ? `${sig(share * 100, 3)} % of the net doping |ND − NA| is ionised` : 'no net doping'));
+    if (Number.isFinite(Tf)) facts.push(fact('Freeze-out below', `${sig(Tf, 4)} K`, 'where less than 90 % of the net doping is ionised'));
+    if (Number.isFinite(Ti)) facts.push(fact('Intrinsic above', `${sig(Ti, 4)} K`, 'where nᵢ passes the net doping'));
+    q('.cc-facts').replaceChildren(...facts);
+    const notes: string[] = [];
+    if (s.degenerate) notes.push(`The Fermi level is within 3kT of a band edge (degenerate)${st === 'boltzmann' ? ', so Boltzmann statistics overestimate the carriers: switch to Fermi-Dirac' : '; Fermi-Dirac statistics are used, so n and p stay right, but at this doping the dopant levels merge into a band and the gap shrinks, which this simple model leaves out'}.`);
+    if (d.Nd > 0 && d.Na > 0) notes.push('Compensated: the minority dopant takes carriers from the majority one, so only |ND − NA| is left to give carriers.');
+    notes.push('Dopants are treated as single levels with the degeneracy factor given; masses and dopant depths are taken as constant with temperature.');
+    q('.cc-note').textContent = notes.join(' ');
+
+    // Sweep and plots.
+    rows = sweep(m, d, T0, T1, 160, st);
+    const Ts = rows.map((x) => x.T);
+    const net = Math.abs(d.Nd - d.Na);
+    const marks: { kind: 'vline'; at: number; dash: number[]; label: string }[] = [];
+    if (Number.isFinite(Tf) && Tf > T0 && Tf < T1) marks.push({ kind: 'vline', at: Tf, dash: [4, 3], label: 'freeze-out' });
+    if (Number.isFinite(Ti) && Ti > T0 && Ti < T1) marks.push({ kind: 'vline', at: Ti, dash: [4, 3], label: 'intrinsic' });
+    const pos1 = (a: number[]) => a.map((x) => (x > 0 ? x : NaN));
+    const yMax = Math.max(...rows.map((x) => Math.max(x.n, x.p, x.ni)));
+    const yMinRaw = net > 0 ? net / 1e4 : Math.min(...rows.map((x) => x.ni)) || 1;
+    const f1 = chartFigure({
+      h: 340, xLabel: 'Temperature (K)', yLabel: 'Density (cm⁻³)', yLog: true, legend: 'below', yMin: Math.max(yMinRaw, yMax / 1e30), yMax: yMax * 3,
+      series: [
+        { name: 'Electrons n', x: Ts, y: pos1(rows.map((x) => x.n)), mode: 'line', width: 2 },
+        { name: 'Holes p', x: Ts, y: pos1(rows.map((x) => x.p)), mode: 'line', width: 2 },
+        { name: 'nᵢ', x: Ts, y: pos1(rows.map((x) => x.ni)), mode: 'line', dash: [5, 3], width: 1.2 },
+        ...(net > 0 ? [{ name: '|ND − NA|', x: [T0, T1], y: [net, net], mode: 'line' as const, dash: [2, 3], width: 1 }] : []),
+      ],
+      marks: [...marks, { kind: 'vline', at: T, dash: [1, 2], label: `${sig(T, 4)} K` }].filter((k) => k.at >= T0 && k.at <= T1),
+    }, `Electron and hole densities from ${T0} to ${T1} K on a log scale, with the intrinsic density`);
+    const f2 = chartFigure({
+      h: 340, xLabel: 'Temperature (K)', yLabel: 'Energy above Ev (eV)', legend: 'below',
+      series: [
+        { name: 'Ec', x: Ts, y: rows.map((x) => x.Eg), mode: 'line', width: 1.5 },
+        { name: 'EF', x: Ts, y: rows.map((x) => x.EF), mode: 'line', width: 2.5 },
+        { name: 'Ei', x: Ts, y: rows.map((x) => x.Ei), mode: 'line', dash: [5, 3], width: 1.2 },
+        ...(d.Nd > 0 ? [{ name: 'Ed', x: Ts, y: rows.map((x) => x.Eg - d.Ed), mode: 'line' as const, dash: [2, 3], width: 1 }] : []),
+        ...(d.Na > 0 ? [{ name: 'Ea', x: Ts, y: rows.map(() => d.Ea), mode: 'line' as const, dash: [2, 3], width: 1 }] : []),
+        { name: 'Ev', x: [T0, T1], y: [0, 0], mode: 'line', width: 1.5, color: '#555555' },
+      ],
+    }, `Fermi level against temperature between the band edges, from ${T0} to ${T1} K`);
+    figs = [f1, f2];
+    paint(q<HTMLCanvasElement>('.cc-fig1'), f1); paint(q<HTMLCanvasElement>('.cc-fig2'), f2);
+    q('.cc-n1').textContent = `Log scale. ${net > 0 ? `At low temperature the dopants hold on to their carriers (freeze-out), in the middle nearly all are ionised and the majority density is flat at |ND − NA| = ${sig(net, 3)} cm⁻³ (extrinsic), and at high temperature carriers made across the gap take over (intrinsic).` : 'With no doping, n = p = nᵢ at every temperature.'}`;
+
+    sections = [
+      { title: q('.cc-big').textContent!, facts: [...q('.cc-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), note: q('.cc-note').textContent! },
+      { title: 'Carriers against temperature', figure: f1, note: q('.cc-n1').textContent! },
+      { title: 'Fermi level against temperature', figure: f2 },
+    ];
+  }
+
+  function fd() {
+    const eta = v('.cc-eta'), out = q('.cc-fout');
+    if (!(Number.isFinite(eta) && eta >= -200 && eta <= 1000)) { out.textContent = 'Type η between −200 and 1000.'; return; }
+    const F = fermiHalf(eta), B = Math.exp(eta);
+    out.textContent = `F½(${sig(eta, 4)}) = ${sig(F, 6)}; Boltzmann e^η = ${sig(B, 6)} (${B >= F ? `${sig((100 * (B - F)) / F, 3)} % too high` : 'lower'}).`;
+  }
+  inp('.cc-eta').addEventListener('input', fd);
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 250)); };
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cc-out').hidden) { paint(q<HTMLCanvasElement>('.cc-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.cc-fig2'), figs[1]); } });
+  q('.cc-csv').addEventListener('click', () => {
+    const head = ['T_K', 'Eg_eV', 'Nc_cm3', 'Nv_cm3', 'ni_cm3', 'EF_above_Ev_eV', 'Ei_above_Ev_eV', 'n_cm3', 'p_cm3', 'Nd_ionised_cm3', 'Na_ionised_cm3', 'region'];
+    const body = rows.map((x) => [x.T, x.Eg, x.Nc, x.Nv, x.ni, x.EF, x.Ei, x.n, x.p, x.NdIon, x.NaIon].map((y) => String(+y.toPrecision(8))).concat(dop ? regime(x, dop) : ''));
+    save(new Blob([[head, ...body].map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'carrier-concentration-sweep.csv', 'text/csv');
+  });
+  setPreset('si'); pre.value = 'si';
+  run(); fd();
+  wireDownloads(q('.dl'), () => ({ title: 'Carrier concentration', subtitle: q('.cc-big').textContent ?? '', file: 'carrier-concentration', sections }));
+</script>
+
+<style is:inline>
+  .carc h3 { margin: 20px 0 8px; font-size: 15px; }
+  .carc select { max-width: 100%; }
+</style>

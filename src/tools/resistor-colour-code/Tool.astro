@@ -1,0 +1,191 @@
+---
+// Resistor colour code both ways (3 to 6 bands), nearest E-series values and an E-series voltage divider designer.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rcc">
+  <div class="ax-card">
+    <h2>Colour bands to value</h2>
+    <div class="ax-grid">
+      <label>Number of bands <select class="rc-n"><option value="3">3 (no tolerance band)</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select></label>
+    </div>
+    <div class="ax-grid rc-bands" style="margin-top:10px"></div>
+    <p class="ax-help">Read from the end with the band nearest the edge; the tolerance band (often gold or silver, or set a little apart) goes last. If the reading gives a strange value, try the other way round.</p>
+    <canvas class="ax-fig rc-pic1"></canvas>
+    <p class="ax-big rc-big1"></p>
+    <dl class="ax-facts rc-facts1"></dl>
+    <p class="ax-err rc-err1" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Value to colour bands</h2>
+    <div class="ax-grid">
+      <label>Resistance (Ω) <input class="rc-val" type="text" inputmode="text" value="4.7k" autocapitalize="off" /></label>
+      <label>Bands <select class="rc-n2"><option value="4" selected>4 (2 digits)</option><option value="5">5 (3 digits)</option><option value="6">6 (3 digits and temperature coefficient)</option></select></label>
+      <label>Tolerance <select class="rc-tol"></select></label>
+      <label class="rc-tcbox" hidden>Temperature coefficient <select class="rc-tc"></select></label>
+    </div>
+    <p class="ax-help">Type 4700, 4.7k, 4k7, 1M5 or 0R47. Here k means thousand and M (or m) means million ohms.</p>
+    <canvas class="ax-fig rc-pic2"></canvas>
+    <p class="ax-big rc-big2"></p>
+    <dl class="ax-facts rc-facts2"></dl>
+    <div class="ax-scroll"><table class="rc-near"></table></div>
+    <p class="ax-err rc-err2" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Voltage divider designer</h2>
+    <div class="ax-grid">
+      <label>Input voltage (V) <input class="rc-vin" type="text" inputmode="decimal" value="12" /></label>
+      <label>Wanted output (V) <input class="rc-vout" type="text" inputmode="decimal" value="3.3" /></label>
+      <label>Resistor series <select class="rc-ser"><option value="6">E6 (±20 %)</option><option value="12">E12 (±10 %)</option><option value="24" selected>E24 (±5 %)</option><option value="48">E48 (±2 %)</option><option value="96">E96 (±1 %)</option><option value="192">E192 (±0.5 %)</option></select></label>
+      <label>Tolerance for the worst case (%) <input class="rc-dtol" type="text" inputmode="decimal" value="5" /></label>
+      <label>Smallest R1 + R2 (Ω) <input class="rc-tmin" type="text" value="1k" /></label>
+      <label>Largest R1 + R2 (Ω) <input class="rc-tmax" type="text" value="100k" /></label>
+      <label>Load on the output (Ω, blank for none) <input class="rc-load" type="text" value="" placeholder="none" /></label>
+    </div>
+    <p class="ax-help">R1 goes from the input to the output, R2 from the output to ground. Vout = Vin × R2 ÷ (R1 + R2). A load across R2 pulls the output down, so give it if there is one. The total range sets the current: a larger total wastes less power but is more affected by the load. Worst case: both resistors at opposite ends of their tolerance.</p>
+    <p class="ax-big rc-big3"></p>
+    <div class="ax-scroll"><table class="rc-div"></table></div>
+    <p class="ax-err rc-err3" hidden></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { COLOURS, colour, decode, encode, nearest, inSeries, divider, ohmText, parseOhms, SERIES_TOL, type Colour } from '../../lib/sci/eng-resistor';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rcc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pct = (x: number) => `${+x.toPrecision(3)} %`;
+  const factPairs = (box: string) => [...q(box).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const opt = (v: string, t: string, on = false) => { const o = document.createElement('option'); o.value = v; o.textContent = t; o.selected = on; return o; };
+  const sec: (Section | null)[] = [null, null, null];
+  const pics: (Figure | null)[] = [null, null];
+
+  function picture(bands: string[], alt: string): Figure {
+    return { w: 360, h: 120, alt, draw: (ctx, W, H, pal) => {
+      const y0 = 22, bh = 56, x0 = 40, x1 = W - 40;
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(4, y0 + bh / 2); ctx.lineTo(W - 4, y0 + bh / 2); ctx.stroke();
+      ctx.fillStyle = pal.red ? '#2a0000' : '#e8d3a9'; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(x0, y0, x1 - x0, bh, 18); ctx.fill(); ctx.stroke();
+      // Value bands spread over the left part; the tolerance (and temperature) bands sit apart near the right end.
+      const n = bands.length, main = n === 3 ? 3 : n === 6 ? 4 : n - 1, span = x1 - x0 - 110;
+      bands.forEach((b, i) => {
+        const c = colour(b)!;
+        const x = i < main ? x0 + 24 + (i * span) / (main - 1) : x1 - 24 - (n - 1 - i) * 22;
+        if (c.name !== 'none') { ctx.fillStyle = pal.red ? pal.muted : c.hex; ctx.fillRect(x - 6, y0 + 1, 12, bh - 2); ctx.strokeStyle = pal.red ? pal.ink : '#555'; ctx.lineWidth = 0.7; ctx.strokeRect(x - 6, y0 + 1, 12, bh - 2); }
+        ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(c.name, x, y0 + bh + 6 + (i % 2) * 12);
+      });
+    } };
+  }
+
+  // Bands to value.
+  function bandSelects() {
+    const n = +sel('.rc-n'), nd = n <= 4 ? 2 : 3, box = q('.rc-bands');
+    const prev = [...box.querySelectorAll('select')].map((s) => s.value);
+    const roles: [string, (c: Colour) => boolean][] = [];
+    for (let i = 0; i < nd; i++) roles.push([`Band ${i + 1} (digit)`, (c) => c.digit !== undefined]);
+    roles.push([`Band ${nd + 1} (multiplier)`, (c) => c.mult !== undefined]);
+    if (n >= 4) roles.push([`Band ${nd + 2} (tolerance)`, (c) => c.tol !== undefined && c.name !== 'none']);
+    if (n === 6) roles.push(['Band 6 (temperature)', (c) => c.tc !== undefined]);
+    const def = n === 3 ? ['brown', 'black', 'red'] : n === 4 ? ['yellow', 'violet', 'red', 'gold'] : n === 5 ? ['brown', 'black', 'black', 'brown', 'brown'] : ['brown', 'black', 'black', 'brown', 'brown', 'brown'];
+    box.replaceChildren(...roles.map(([label, ok], i) => {
+      const l = document.createElement('label'); l.textContent = label;
+      const s = document.createElement('select'); s.className = `rc-b${i}`;
+      const want = prev.length === roles.length ? prev[i] : def[i];
+      COLOURS.filter(ok).forEach((c) => s.append(opt(c.name, c.name, c.name === want)));
+      l.append(' ', s); return l;
+    }));
+    box.querySelectorAll('select').forEach((s) => s.addEventListener('change', readBands));
+  }
+  function readBands() {
+    const err = q('.rc-err1'), bands = [...q('.rc-bands').querySelectorAll('select')].map((s) => s.value);
+    try {
+      const d = decode(bands);
+      err.hidden = true;
+      q('.rc-big1').textContent = `${ohmText(d.ohms)} ±${d.tol} %`;
+      const std = [6, 12, 24, 48, 96, 192].find((s) => inSeries(d.ohms, s));
+      const f = [
+        fact('Range', `${ohmText(+(d.ohms * (1 - d.tol / 100)).toPrecision(6))} to ${ohmText(+(d.ohms * (1 + d.tol / 100)).toPrecision(6))}`, 'what a resistor within its tolerance may measure'),
+        fact('Standard value?', std ? `Yes, in E${std}` : 'Not in any E series', std ? `and every larger series; E${std} parts are usually ±${SERIES_TOL[std]} % or better` : 'check the reading direction'),
+      ];
+      if (d.tc !== undefined) f.push(fact('Temperature coefficient', `${d.tc} ppm/K`, `changes about ${ohmText(+(d.ohms * d.tc * 1e-6 * 50).toPrecision(3))} over 50 °C`));
+      q('.rc-facts1').replaceChildren(...f);
+      pics[0] = picture(bands, `Resistor with bands ${bands.join(', ')}`); paint(q<HTMLCanvasElement>('.rc-pic1'), pics[0]);
+      sec[0] = { title: `Bands ${bands.join(', ')}: ${q('.rc-big1').textContent}`, facts: factPairs('.rc-facts1'), figure: pics[0] };
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; sec[0] = null; }
+  }
+
+  // Value to bands.
+  COLOURS.filter((c) => c.tol !== undefined).forEach((c) => q('.rc-tol').append(opt(c.name, `±${c.tol} % (${c.name})`, c.name === 'gold')));
+  COLOURS.filter((c) => c.tc !== undefined).forEach((c) => q('.rc-tc').append(opt(c.name, `${c.tc} ppm/K (${c.name})`, c.name === 'brown')));
+  function toBands() {
+    const err = q('.rc-err2'), n = +sel('.rc-n2'), tol = sel('.rc-tol'), r = parseOhms(q<HTMLInputElement>('.rc-val').value);
+    q('.rc-tcbox').hidden = n !== 6;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.rc-big2').textContent = ''; q('.rc-facts2').replaceChildren(); q('.rc-near').replaceChildren(); q('.rc-pic2').hidden = true; sec[1] = null; };
+    if (!(r > 0)) return fail('Type a resistance such as 4700, 4.7k or 4k7.');
+    if (tol === 'none' && n !== 4) return fail('5 and 6-band resistors always have a tolerance band; choose one, or use 4 bands (3 with no tolerance band).');
+    let e;
+    try { e = encode(r, n === 4 ? 2 : 3); } catch (x) { return fail((x as Error).message); }
+    err.hidden = true; q('.rc-pic2').hidden = false;
+    const bands = [...e.digits, e.mult, ...(tol === 'none' ? [] : [tol]), ...(n === 6 ? [sel('.rc-tc')] : [])];
+    q('.rc-big2').textContent = bands.join(', ');
+    const f = [fact('Value shown', `${ohmText(e.value)} ±${colour(tol)!.tol} %`, e.exact ? 'exactly the value typed' : `rounded from ${ohmText(r)} to ${n === 4 ? 2 : 3} significant figures`)];
+    q('.rc-facts2').replaceChildren(...f);
+    pics[1] = picture(bands, `Resistor with bands ${bands.join(', ')}`); paint(q<HTMLCanvasElement>('.rc-pic2'), pics[1]);
+    const head = ['Series', 'Below', 'Above', 'Nearest', 'Off by'];
+    const rows = [6, 12, 24, 48, 96, 192].map((s) => { const x = nearest(r, s); return [`E${s} (±${SERIES_TOL[s]} %)`, ohmText(x.below), ohmText(x.above), ohmText(x.best), x.err === 0 ? 'exact' : `${x.err > 0 ? '+' : '−'}${pct(Math.abs(x.err))}`]; });
+    const t = q<HTMLTableElement>('.rc-near'), hr = document.createElement('tr');
+    head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    t.replaceChildren(hr, ...rows.map((r0) => { const tr = document.createElement('tr'); r0.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.style.textAlign = 'right'; tr.append(td); }); return tr; }));
+    sec[1] = { title: `${ohmText(r)} in ${n} bands: ${bands.join(', ')}`, facts: factPairs('.rc-facts2'), figure: pics[1], table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] } };
+  }
+
+  // Divider.
+  let lastSer = '24';
+  function design() {
+    const err = q('.rc-err3');
+    if (sel('.rc-ser') !== lastSer) { lastSer = sel('.rc-ser'); q<HTMLInputElement>('.rc-dtol').value = String(SERIES_TOL[+lastSer]); }
+    const vin = num(q<HTMLInputElement>('.rc-vin').value), vout = num(q<HTMLInputElement>('.rc-vout').value), tol = num(q<HTMLInputElement>('.rc-dtol').value);
+    const tmin = parseOhms(q<HTMLInputElement>('.rc-tmin').value), tmax = parseOhms(q<HTMLInputElement>('.rc-tmax').value);
+    const lt = q<HTMLInputElement>('.rc-load').value.trim(), load = lt ? parseOhms(lt) : Infinity;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.rc-big3').textContent = ''; q('.rc-div').replaceChildren(); sec[2] = null; };
+    if (!(vin > 0)) return fail('Give the input voltage.');
+    if (!(vout > 0 && vout < vin)) return fail('The wanted output must be above 0 and below the input voltage.');
+    if (!(tol >= 0 && tol < 50)) return fail('Give a tolerance between 0 and 50 %.');
+    if (!(tmin > 0 && tmax >= tmin)) return fail('Give the smallest and largest total resistance, such as 1k and 100k.');
+    if (tmax / tmin > 1e6) return fail('Keep the total range within a factor of a million.');
+    if (!(load > 0)) return fail('Give the load in ohms, or leave it blank.');
+    let pairs;
+    try { pairs = divider(vin, vout, +sel('.rc-ser'), tmin, tmax, load, tol); } catch (x) { return fail((x as Error).message); }
+    if (!pairs.length) return fail('No pair fits that total range. Widen the range.');
+    err.hidden = true;
+    const b = pairs[0];
+    q('.rc-big3').textContent = `R1 = ${ohmText(b.r1)}, R2 = ${ohmText(b.r2)}: ${sig(b.vout, 4)} V (${b.err >= 0 ? '+' : '−'}${pct(Math.abs(b.err))})`;
+    const head = ['R1', 'R2', 'Vout (V)', 'Off by', 'Worst case (V)', 'Current', 'Power R1, R2'];
+    const mw = (w: number) => (w >= 0.1 ? `${sig(w, 3)} W` : `${sig(w * 1000, 3)} mW`);
+    const rows = pairs.map((p) => [ohmText(p.r1), ohmText(p.r2), sig(p.vout, 5), p.err === 0 ? 'exact' : `${p.err > 0 ? '+' : '−'}${pct(Math.abs(p.err))}`, `${sig(p.lo, 4)} to ${sig(p.hi, 4)}`, p.i >= 1e-3 ? `${sig(p.i * 1e3, 3)} mA` : `${sig(p.i * 1e6, 3)} µA`, `${mw(p.p1)}, ${mw(p.p2)}`]);
+    const t = q<HTMLTableElement>('.rc-div'), hr = document.createElement('tr');
+    head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    t.replaceChildren(hr, ...rows.map((r0) => { const tr = document.createElement('tr'); r0.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i > 1) td.style.textAlign = 'right'; tr.append(td); }); return tr; }));
+    sec[2] = { title: `Divider ${sig(vin, 4)} V to ${sig(vout, 4)} V, E${sel('.rc-ser')}${Number.isFinite(load) ? `, load ${ohmText(load)}` : ''}`, text: [q('.rc-big3').textContent!], table: { head, rows } };
+  }
+
+  q('.rc-n').addEventListener('change', () => { q('.rc-bands').replaceChildren(); bandSelects(); readBands(); });
+  root.querySelectorAll('.ax-card:nth-child(2) input, .ax-card:nth-child(2) select').forEach((i) => { i.addEventListener('input', toBands); i.addEventListener('change', toBands); });
+  root.querySelectorAll('.ax-card:nth-child(3) input, .ax-card:nth-child(3) select').forEach((i) => { i.addEventListener('input', design); i.addEventListener('change', design); });
+  document.addEventListener('fibub:theme', () => { if (pics[0]) paint(q<HTMLCanvasElement>('.rc-pic1'), pics[0]); if (pics[1] && !q('.rc-pic2').hidden) paint(q<HTMLCanvasElement>('.rc-pic2'), pics[1]); });
+  bandSelects(); readBands(); toBands(); design();
+  wireDownloads(q('.dl'), () => ({ title: 'Resistor colour code', subtitle: q('.rc-big1').textContent ?? '', file: 'resistor', sections: sec.filter((s): s is Section => !!s) }));
+</script>
+
+<style is:inline>
+  .rcc select, .rcc input { max-width: 100%; }
+  .rcc .rc-near td, .rcc .rc-div td { white-space: nowrap; }
+</style>

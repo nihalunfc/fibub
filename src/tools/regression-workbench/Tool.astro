@@ -1,0 +1,337 @@
+---
+// Regression workbench: multiple, polynomial and logistic regression from a table, with diagnostics.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLES } from '../../lib/sci/regression';
+---
+<div class="ax rw">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <div class="ax-grid">
+      <label class="rw-wide">Example <select class="rw-ex">
+        {EXAMPLES.map((e, i) => <option value={e.id} selected={i === 0}>{e.name}</option>)}
+        <option value="">My own data</option>
+      </select></label>
+    </div>
+    <label style="margin-top:10px">Table with a header row (paste from a spreadsheet, or CSV)
+      <textarea class="rw-data" rows="8" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".rw-data" maxMB={5} maxCols={30} maxRows={20000} />
+    <p class="ax-help">Numbers are used as they are. A column with text (such as soil type) is split into groups, each compared with the first group in A–Z order. Rows with an empty cell or NA in a column the model uses are left out. The examples are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Type <select class="rw-kind">
+        <option value="linear">Linear (one or more x)</option>
+        <option value="polynomial">Polynomial (one x)</option>
+        <option value="logistic">Logistic (yes/no response)</option>
+      </select></label>
+      <label>Response (y) <select class="rw-y"></select></label>
+      <label class="rw-polyx" hidden>Predictor (x) <select class="rw-px"></select></label>
+      <label class="rw-polyx" hidden>Degree <select class="rw-deg"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label>Confidence <select class="rw-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <fieldset class="rw-xs-box">
+      <legend>Predictors (x)</legend>
+      <div class="rw-xs"></div>
+    </fieldset>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rw-int" checked /> Include an intercept (leave on unless theory says the line must pass through zero)</label>
+    <p class="ax-help rw-help"></p>
+    <p class="ax-err rw-err" hidden></p>
+  </div>
+
+  <div class="ax-card rw-out">
+    <h2>Fit</h2>
+    <p class="ax-big rw-big"></p>
+    <p class="rw-eq"></p>
+    <p class="ax-help rw-notes"></p>
+    <p class="ax-err rw-warn" hidden></p>
+    <dl class="ax-facts rw-facts" style="margin-top:10px"></dl>
+    <h3 class="rw-h3">Coefficients</h3>
+    <div class="ax-scroll"><table class="rw-coef"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small rw-ccsv">Coefficients CSV</button>
+      <button type="button" class="btn secondary small rw-rcsv">Residuals CSV</button>
+    </div>
+    <h3 class="rw-h3">Plots</h3>
+    <canvas class="ax-fig rw-fit"></canvas>
+    <canvas class="ax-fig rw-rvf" style="margin-top:10px"></canvas>
+    <canvas class="ax-fig rw-qq" style="margin-top:10px"></canvas>
+    <canvas class="ax-fig rw-lev" style="margin-top:10px"></canvas>
+    <canvas class="ax-fig rw-cook" style="margin-top:10px"></canvas>
+    <h3 class="rw-h3">Rows to look at</h3>
+    <p class="ax-help rw-inf-help"></p>
+    <div class="ax-scroll"><table class="rw-inf"></table></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card rw-pred-card">
+    <h2>Predict</h2>
+    <div class="ax-grid rw-pred-in"></div>
+    <p class="ax-big rw-pred-out" style="margin-top:10px"></p>
+    <p class="ax-help rw-pred-help"></p>
+  </div>
+</div>
+
+<style>
+  .rw .rw-wide { grid-column: 1 / -1; }
+  .rw fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0 0; padding: 8px 12px 10px; min-width: 0; }
+  .rw legend { font-size: 14px; color: var(--muted); padding: 0 4px; }
+  .rw .rw-xs { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .rw .rw-xs label { display: inline-flex; flex-direction: row; gap: 6px; align-items: center; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
+  .rw .rw-eq { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; margin: 6px 0 0; }
+  .rw .rw-h3 { margin: 16px 0 6px; font-size: 15px; }
+  .rw td.sig { font-weight: 700; }
+</style>
+
+<script>
+  import { csv, fmtExp } from '../../lib/sci/num';
+  import { readTable, isMissing, design, ols, logit, olsPredict, logitPredict, newRow, qqPoints, EXAMPLES, type Table, type Design, type OlsFit, type LogitFit, type Kind } from '../../lib/sci/regression';
+  import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let table: Table | null = null, D: Design | null = null, fit: OlsFit | LogitFit | null = null;
+  let figs: Record<string, Figure | null> = {}, report: Section[] = [];
+
+  const g = (v: number, n = 5) => (!Number.isFinite(v) ? (Number.isNaN(v) ? '–' : v > 0 ? '∞' : '−∞') : v === 0 ? '0' : Math.abs(v) >= 1e6 || Math.abs(v) < 1e-4 ? fmtExp(v, n) : String(Number(v.toPrecision(n))).replace('-', '−'));
+  const fp = (p: number) => (!Number.isFinite(p) ? '–' : p < 1e-300 ? '< 10⁻³⁰⁰' : p < 1e-4 ? fmtExp(p, 3) : String(Number(p.toPrecision(3))));
+  const colorsFor = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4']);
+  const figW = () => Math.round(Math.min(720, Math.max(380, q('.rw-out').clientWidth || 720)));
+  /** A chart figure whose series colours come from the page palette by index (cols[i]). */
+  function fig(alt: string, ratio: number, build: (cols: string[], pal: Palette) => Omit<Chart, 'w' | 'h'>): Figure {
+    const w = figW(), h = Math.round(w * ratio);
+    return { w, h, alt, draw: (ctx, W, H, pal) => { const cols = colorsFor(pal); drawChart(canvasPainter(ctx), { ...build(cols, pal), w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: cols }); } };
+  }
+
+  const HELP: Record<Kind, string> = {
+    linear: 'Fits y = b₀ + b₁x₁ + b₂x₂ + … by least squares. Each coefficient is the change in y for one unit more of that x, the others held fixed.',
+    polynomial: 'Fits a curve y = b₀ + b₁x + b₂x² + … in one x. Use the lowest degree that fits: high degrees chase noise and swing wildly past the data.',
+    logistic: 'For a yes/no response: models the log odds of “yes” as b₀ + b₁x₁ + …. Each odds ratio e^b says how many times the odds multiply for one unit more of that x.',
+  };
+
+  function loadExample() {
+    const e = EXAMPLES.find((x) => x.id === sel('.rw-ex').value);
+    if (!e) return;
+    q<HTMLTextAreaElement>('.rw-data').value = e.text;
+    sel('.rw-kind').value = e.kind;
+    readData(e);
+  }
+  /** Read the table and rebuild the column pickers, keeping choices where the columns still exist. */
+  function readData(pre?: { y: string; xs: string[]; degree?: number }) {
+    try { table = readTable(q<HTMLTextAreaElement>('.rw-data').value); }
+    catch (e) { table = null; showError((e as Error).message); return; }
+    const h = table.headers, oldY = sel('.rw-y').value, oldX = checkedXs(), oldPx = sel('.rw-px').value;
+    const y = pre?.y ?? (h.includes(oldY) ? oldY : h[0]);
+    const opts = (s: HTMLSelectElement, v: string) => { s.replaceChildren(...h.map((c) => new Option(c, c, false, c === v))); };
+    opts(sel('.rw-y'), y);
+    const xs = pre?.xs ?? (oldX.filter((c) => h.includes(c) && c !== y).length ? oldX.filter((c) => h.includes(c) && c !== y) : h.filter((c) => c !== y));
+    q('.rw-xs').replaceChildren(...h.map((c) => { const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.value = c; i.checked = xs.includes(c); i.disabled = c === y; l.append(i, ` ${c}`); return l; }));
+    const numX = h.filter((c, i) => table!.numeric[i] && c !== y);
+    opts(sel('.rw-px'), pre?.xs?.[0] ?? (numX.includes(oldPx) ? oldPx : numX[0] ?? h[1] ?? h[0]));
+    if (pre?.degree) sel('.rw-deg').value = String(pre.degree);
+    calc();
+  }
+  const checkedXs = () => [...root.querySelectorAll<HTMLInputElement>('.rw-xs input:checked')].map((i) => i.value);
+
+  function showError(m: string) { const e = q('.rw-err'); e.textContent = m; e.hidden = false; q('.rw-out').hidden = true; q('.rw-pred-card').hidden = true; report = []; fit = null; D = null; }
+  const facts = (rows: [string, string][]) => q('.rw-facts').replaceChildren(...rows.map(([k, v]) => { const x = document.createElement('div'); x.innerHTML = '<dt></dt><dd></dd>'; x.querySelector('dt')!.textContent = k; x.querySelector('dd')!.textContent = v; return x; }));
+  function fillTable(el: HTMLElement, head: string[], rows: string[][], bold?: boolean[]) {
+    el.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    el.querySelector('thead tr')!.replaceChildren(...head.map((t, i) => { const th = document.createElement('th'); th.textContent = t; if (i) th.className = 'r'; return th; }));
+    el.querySelector('tbody')!.replaceChildren(...rows.map((r, k) => { const tr = document.createElement('tr'); r.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.className = 'r'; if (bold?.[k] && i === 0) td.classList.add('sig'); tr.append(td); }); return tr; }));
+  }
+
+  function calc() {
+    const kind = sel('.rw-kind').value as Kind;
+    q('.rw-help').textContent = HELP[kind];
+    root.querySelectorAll<HTMLElement>('.rw-polyx').forEach((e) => (e.hidden = kind !== 'polynomial'));
+    q('.rw-xs-box').hidden = kind === 'polynomial';
+    if (!table) return;
+    const y = sel('.rw-y').value;
+    root.querySelectorAll<HTMLInputElement>('.rw-xs input').forEach((i) => { i.disabled = i.value === y; if (i.value === y) i.checked = false; });
+    try {
+      const conf = Number(sel('.rw-conf').value), pct = `${Math.round(conf * 100)} %`;
+      const xs = kind === 'polynomial' ? [sel('.rw-px').value] : checkedXs();
+      const degree = Number(sel('.rw-deg').value);
+      D = design(table, { kind, y, xs, degree, intercept: q<HTMLInputElement>('.rw-int').checked });
+      if (D.y.length > 20000) throw new Error('Up to 20,000 rows.');
+      const f = kind === 'logistic' ? logit(D, conf) : ols(D, conf);
+      fit = f;
+      q('.rw-err').hidden = true; q('.rw-out').hidden = false; q('.rw-pred-card').hidden = false;
+      const n = f.n, notes = [...D.notes];
+      if (D.yLabels) notes.push(`${y}: “${D.yLabels[1]}” counts as 1 (yes), “${D.yLabels[0]}” as 0.`);
+      q('.rw-notes').textContent = notes.join(' ');
+      // Equation.
+      const lhs = f.kind === 'logit' ? `log odds(${y} = ${D.yLabels![1]})` : y;
+      q('.rw-eq').textContent = `${lhs} = ` + f.coefs.map((c, i) => { const v = g(Math.abs(c.est), 4), s = c.est < 0 ? '−' : '+'; const term = c.name === 'Intercept' ? v : `${v} × ${c.name}`; return i === 0 ? (c.est < 0 ? '−' : '') + term : ` ${s} ${term}`; }).join('');
+      let big = '', rows: [string, string][] = [], head: string[], coefRows: string[][];
+      const warn: string[] = [];
+      if (f.kind === 'ols') {
+        big = `R² = ${g(f.r2, 4)}, adjusted R² = ${g(f.adjR2, 4)} (n = ${n})`;
+        rows = [['Residual SD (σ)', g(f.sigma)], ['F test', f.dfModel > 0 ? `F(${f.dfModel}, ${f.dfResid}) = ${g(f.F, 4)}, p = ${fp(f.Fp)}` : '–'], ['AIC', g(f.aic, 6)], ['BIC', g(f.bic, 6)], ['Log-likelihood', g(f.llf, 6)], ['Durbin–Watson', g(f.dw, 4)]];
+        if (!f.intercept) rows.push(['Note', 'Without an intercept R² is measured from zero, not from the mean, so it is not comparable with R² of a model with one.']);
+        head = ['Term', 'Estimate', 'SE', 't', 'p', `${pct} CI low`, `${pct} CI high`, 'VIF'];
+        coefRows = f.coefs.map((c) => [c.name, g(c.est), g(c.se, 4), g(c.stat, 4), fp(c.p), g(c.lo), g(c.hi), c.vif === undefined ? '' : g(c.vif, 3)]);
+        const big5 = f.coefs.filter((c) => (c.vif ?? 0) > 5 && kind !== 'polynomial');
+        if (big5.length) warn.push(`High VIF (above 5) for ${big5.map((c) => c.name).join(', ')}: these predictors overlap, so their separate effects are uncertain.`);
+      } else {
+        big = `McFadden R² = ${g(f.pseudoR2, 4)}, ${Math.round(f.accuracy * 1000) / 10} % classified right (n = ${n})`;
+        rows = [['Likelihood-ratio test', `χ²(${f.lrDf}) = ${g(f.lr, 4)}, p = ${fp(f.lrP)}`], ['AIC', g(f.aic, 6)], ['BIC', g(f.bic, 6)], ['Log-likelihood', g(f.llf, 6)], ['Null log-likelihood', g(f.llnull, 6)],
+          ['Confusion table (cut 0.5)', `0 → 0: ${f.table[0][0]}, 0 → 1: ${f.table[0][1]}, 1 → 0: ${f.table[1][0]}, 1 → 1: ${f.table[1][1]}`], ['Iterations', `${f.iterations}${f.converged ? '' : ' (not converged)'}`]];
+        head = ['Term', 'Estimate', 'SE', 'z', 'p', `${pct} CI low`, `${pct} CI high`, 'Odds ratio', `OR ${pct} CI`];
+        coefRows = f.coefs.map((c) => [c.name, g(c.est), g(c.se, 4), g(c.stat, 4), fp(c.p), g(c.lo), g(c.hi), g(Math.exp(c.est), 4), `${g(Math.exp(c.lo), 3)} to ${g(Math.exp(c.hi), 3)}`]);
+        if (f.separation) warn.push('Some rows are predicted with a probability of almost exactly 0 or 1 (separation): one x splits the yeses from the noes perfectly, so the estimates and their SEs are not reliable. Collect more data or drop that x.');
+        if (!f.converged) warn.push('The fit did not settle after 100 steps; treat the numbers with care.');
+      }
+      if (D.y.length < 3 * f.p + 5) warn.push(`Only ${n} rows for ${f.p} coefficients: the estimates will be rough.`);
+      q('.rw-warn').textContent = warn.join(' '); q('.rw-warn').hidden = !warn.length;
+      q('.rw-big').textContent = big;
+      facts(rows);
+      fillTable(q('.rw-coef'), head, coefRows, f.coefs.map((c) => c.p < 1 - conf));
+      drawPlots(f, D, kind, conf);
+      buildPredict(D);
+      report = [
+        { title: `${kind === 'logistic' ? 'Logistic' : kind === 'polynomial' ? `Polynomial (degree ${degree})` : 'Linear'} regression of ${y}`, text: [q('.rw-eq').textContent!, ...notes], facts: [['Fit', big], ...rows] },
+        { title: 'Coefficients', table: { head, rows: coefRows, align: head.map((_, i) => (i ? 'r' : 'l')) }, note: warn.join(' ') || undefined, figure: figs.fit ?? undefined },
+        ...['rvf', 'qq', 'lev', 'cook'].filter((k) => figs[k]).map((k) => ({ title: figs[k]!.alt, figure: figs[k]! })),
+      ];
+    } catch (e) { showError((e as Error).message); }
+  }
+
+  function drawPlots(f: OlsFit | LogitFit, d: Design, kind: Kind, conf: number) {
+    const n = f.n, p = f.p, pct = `${Math.round(conf * 100)} %`, yName = sel('.rw-y').value;
+    const numericSources = [...new Set(d.terms.filter((t) => t.name !== 'Intercept').map((t) => t.source))];
+    const one = numericSources.length === 1 && d.terms.every((t) => t.level == null);
+    // 1. The fit: data with the fitted curve and bands, or observed against fitted.
+    if (one) {
+      const src = numericSources[0], xi = d.terms.findIndex((t) => t.power === 1);
+      const xs = d.X.map((r) => r[xi]), lo = Math.min(...xs), hi = Math.max(...xs), grid: number[] = [];
+      for (let i = 0; i <= 120; i++) grid.push(lo + ((hi - lo) * i) / 120);
+      const rowsAt = grid.map((x) => newRow(d, { [src]: String(x) }));
+      if (f.kind === 'ols') {
+        const pr = rowsAt.map((r) => olsPredict(f, r));
+        figs.fit = fig(`${yName} against ${src} with the fitted ${kind === 'polynomial' ? 'curve' : 'line'}, ${pct} confidence band for the mean and prediction band for new values`, 0.55, (c) => ({
+          xLabel: src, yLabel: yName, legend: 'auto',
+          series: [{ name: 'Data', x: xs, y: d.y, mode: 'points', color: c[0] }, { name: 'Fit', x: grid, y: pr.map((v) => v.est), mode: 'line', color: c[1] },
+            { name: `${pct} CI (mean)`, x: grid, y: pr.map((v) => v.ci[0]), mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }, { name: '', x: grid, y: pr.map((v) => v.ci[1]), mode: 'line', color: c[1], dash: [5, 4], width: 1.2 },
+            { name: `${pct} prediction`, x: grid, y: pr.map((v) => v.pi[0]), mode: 'line', color: c[2], dash: [2, 3], width: 1.2 }, { name: '', x: grid, y: pr.map((v) => v.pi[1]), mode: 'line', color: c[2], dash: [2, 3], width: 1.2 }],
+        }));
+      } else {
+        const pr = rowsAt.map((r) => logitPredict(f, r));
+        figs.fit = fig(`${yName} (0 or 1) against ${src} with the fitted probability and its ${pct} band`, 0.55, (c) => ({
+          xLabel: src, yLabel: `P(${yName} = ${d.yLabels![1]})`, yMin: -0.05, yMax: 1.05, legend: 'auto',
+          series: [{ name: 'Data (0 or 1)', x: xs, y: d.y, mode: 'points', color: c[0], marker: 'open-circle' }, { name: 'Fitted probability', x: grid, y: pr.map((v) => v.p), mode: 'line', color: c[1] },
+            { name: `${pct} CI`, x: grid, y: pr.map((v) => v.ci[0]), mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }, { name: '', x: grid, y: pr.map((v) => v.ci[1]), mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }],
+        }));
+      }
+    } else if (f.kind === 'ols') {
+      const lo = Math.min(...f.fitted, ...d.y), hi = Math.max(...f.fitted, ...d.y);
+      figs.fit = fig(`Observed ${yName} against fitted values`, 0.55, (c) => ({ xLabel: 'Fitted value', yLabel: `Observed ${yName}`, series: [{ name: 'Rows', x: f.fitted, y: d.y, mode: 'points', color: c[0] }, { name: 'Perfect fit (y = x)', x: [lo, hi], y: [lo, hi], mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }] }));
+    } else {
+      const order = f.eta.map((e, i) => [e, i]).sort((a, b) => a[0] - b[0]);
+      figs.fit = fig(`${yName} (0 or 1) against the fitted linear predictor`, 0.55, (c) => ({ xLabel: 'Linear predictor (log odds)', yLabel: `P(${yName} = ${d.yLabels![1]})`, yMin: -0.05, yMax: 1.05, series: [{ name: 'Data (0 or 1)', x: f.eta, y: d.y, mode: 'points', color: c[0], marker: 'open-circle' }, { name: 'Fitted probability', x: order.map((o) => o[0]), y: order.map((o) => f.prob[o[1]]), mode: 'line', color: c[1] }] }));
+    }
+    // 2. Residuals against fitted.
+    const resid = f.kind === 'ols' ? f.resid : f.devResid, fitted = f.kind === 'ols' ? f.fitted : f.eta;
+    figs.rvf = fig(f.kind === 'ols' ? 'Residuals against fitted values (look for no pattern and even spread)' : 'Deviance residuals against the linear predictor', 0.5, (c) => ({ xLabel: f.kind === 'ols' ? 'Fitted value' : 'Linear predictor (log odds)', yLabel: f.kind === 'ols' ? 'Residual' : 'Deviance residual', series: [{ name: '', x: fitted, y: resid, mode: 'points', color: c[0] }], marks: [{ kind: 'hline', at: 0 }] }));
+    // 3. Normal Q-Q of standardized residuals (least squares only).
+    if (f.kind === 'ols') {
+      const qq = qqPoints(f.stdResid), lo = Math.min(qq.x[0], qq.y[0]), hi = Math.max(qq.x[qq.x.length - 1], qq.y[qq.y.length - 1]);
+      figs.qq = fig('Normal Q-Q plot of standardized residuals (points near the line mean the errors look normal)', 0.6, (c) => ({ xLabel: 'Normal quantile', yLabel: 'Standardized residual', series: [{ name: '', x: qq.x, y: qq.y, mode: 'points', color: c[0] }, { name: '', x: [lo, hi], y: [lo, hi], mode: 'line', color: c[1], dash: [5, 4], width: 1.2 }] }));
+    } else figs.qq = null;
+    // 4. Leverage against studentized residual.
+    const sr = f.kind === 'ols' ? f.studResid : f.pearson.map((r, i) => r / Math.sqrt(1 - f.hat[i]));
+    figs.lev = fig(`Leverage against ${f.kind === 'ols' ? 'studentized' : 'standardized Pearson'} residual (dashed: leverage 2p/n)`, 0.5, (c) => ({ xLabel: 'Leverage h', yLabel: f.kind === 'ols' ? 'Studentized residual' : 'Std. Pearson residual', series: [{ name: '', x: f.hat, y: sr, mode: 'points', color: c[0] }], marks: [{ kind: 'vline', at: (2 * p) / n, label: '2p/n' }, { kind: 'hline', at: 0 }] }));
+    // 5. Cook's distance by row.
+    const rowNo = d.used.map((i) => i + 1);
+    figs.cook = fig(`Cook's distance for each row (dashed: 4/n = ${g(4 / n, 3)})`, 0.45, (c) => ({ xLabel: 'Row', yLabel: "Cook's distance", yMin: 0, series: [{ name: '', x: rowNo, y: f.cooks, mode: 'points', color: c[0], marker: 'diamond' }], marks: [{ kind: 'hline', at: 4 / n, label: '4/n' }] }));
+    for (const k of ['fit', 'rvf', 'qq', 'lev', 'cook']) { const cv = q<HTMLCanvasElement>(`.rw-${k}`); cv.hidden = !figs[k]; if (figs[k]) paint(cv, figs[k]!); }
+    // Rows to look at.
+    const flag = d.used.map((row, i) => ({ row: row + 1, h: f.hat[i], r: sr[i], c: f.cooks[i] })).filter((o) => o.c > 4 / n || o.h > (2 * p) / n || Math.abs(o.r) > 3);
+    flag.sort((a, b) => b.c - a.c);
+    q('.rw-inf-help').textContent = flag.length ? `Rows with Cook's distance above 4/n, leverage above 2p/n, or a residual beyond ±3 (largest Cook's distance first${flag.length > 15 ? '; first 15 shown' : ''}). Check them for typing mistakes; do not delete them just because they are listed.` : 'No row stands out (Cook’s distance under 4/n, leverage under 2p/n and residuals within ±3).';
+    fillTable(q('.rw-inf'), ['Row', 'Leverage', 'Residual', "Cook's D"], flag.slice(0, 15).map((o) => [String(o.row), g(o.h, 3), g(o.r, 3), g(o.c, 3)]));
+    q('.rw-inf').hidden = !flag.length;
+  }
+
+  function buildPredict(d: Design) {
+    const box = q('.rw-pred-in'), old: Record<string, string> = {};
+    box.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-src]').forEach((e) => (old[e.dataset.src!] = e.value));
+    const sources = [...new Set(d.terms.filter((t) => t.name !== 'Intercept').map((t) => t.source))];
+    const sig0 = sources.join('|');
+    if (box.dataset.sig !== sig0) {
+      box.dataset.sig = sig0;
+      box.replaceChildren(...sources.map((s) => {
+        const l = document.createElement('label'); l.append(`${s} `);
+        const levels = d.terms.filter((t) => t.source === s && t.level != null).map((t) => t.level!);
+        if (levels.length) {
+          const all = [...new Set(table!.rows.map((r) => r[table!.headers.indexOf(s)]))].filter((v) => !isMissing(v)).sort((a, b) => a.localeCompare(b));
+          const se = document.createElement('select'); se.dataset.src = s; all.forEach((v) => se.append(new Option(v, v))); if (old[s]) se.value = old[s]; l.append(se);
+        } else {
+          const i = document.createElement('input'); i.dataset.src = s; i.inputMode = 'decimal';
+          const j = d.terms.findIndex((t) => t.source === s && (t.power ?? 1) === 1);
+          const vals = d.X.map((r) => r[j]).sort((a, b) => a - b);
+          i.value = old[s] ?? String(Number(vals[Math.floor(vals.length / 2)].toPrecision(4))); l.append(i);
+        }
+        return l;
+      }));
+    }
+    predict();
+  }
+  function predict() {
+    const out = q('.rw-pred-out'), help = q('.rw-pred-help');
+    if (!D || !fit) return;
+    try {
+      const vals: Record<string, string> = {};
+      q('.rw-pred-in').querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-src]').forEach((e) => (vals[e.dataset.src!] = e.value.replace('−', '-')));
+      const row = newRow(D, vals), pct = `${Math.round(fit.conf * 100)} %`;
+      if (fit.kind === 'ols') {
+        const r = olsPredict(fit, row);
+        out.textContent = `${sel('.rw-y').value} ≈ ${g(r.est)}`;
+        help.textContent = `${pct} confidence interval for the mean: ${g(r.ci[0])} to ${g(r.ci[1])}. ${pct} prediction interval for one new value: ${g(r.pi[0])} to ${g(r.pi[1])}.`;
+      } else {
+        const r = logitPredict(fit, row);
+        out.textContent = `P(${sel('.rw-y').value} = ${D.yLabels![1]}) ≈ ${g(r.p, 4)}`;
+        help.textContent = `${pct} confidence interval: ${g(r.ci[0], 4)} to ${g(r.ci[1], 4)} (worked out on the log-odds scale).`;
+      }
+      const outside = D.terms.some((t, j) => t.power === 1 && (row[j] < Math.min(...D!.X.map((r) => r[j])) || row[j] > Math.max(...D!.X.map((r) => r[j]))));
+      if (outside) help.textContent += ' Careful: that is outside the range of your data, so the model is guessing.';
+    } catch (e) { out.textContent = ''; help.textContent = (e as Error).message; }
+  }
+
+  function coefCsv() {
+    if (!fit) return;
+    const rows: (string | number)[][] = [['term', 'estimate', 'se', fit.kind === 'ols' ? 't' : 'z', 'p', 'ci_low', 'ci_high', ...(fit.kind === 'ols' ? ['vif'] : ['odds_ratio'])]];
+    for (const c of fit.coefs) rows.push([c.name, c.est, c.se, c.stat, c.p, c.lo, c.hi, fit.kind === 'ols' ? (c.vif ?? '') : Math.exp(c.est)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'regression-coefficients.csv', 'text/csv');
+  }
+  function residCsv() {
+    if (!fit || !D) return;
+    const f = fit, rows: (string | number)[][] = [];
+    if (f.kind === 'ols') { rows.push(['row', 'observed', 'fitted', 'residual', 'standardized', 'studentized', 'leverage', 'cooks_d']); D.used.forEach((r, i) => rows.push([r + 1, D!.y[i], f.fitted[i], f.resid[i], f.stdResid[i], f.studResid[i], f.hat[i], f.cooks[i]])); }
+    else { rows.push(['row', 'observed', 'probability', 'linear_predictor', 'deviance_residual', 'pearson_residual', 'leverage', 'cooks_d']); D.used.forEach((r, i) => rows.push([r + 1, D!.y[i], f.prob[i], f.eta[i], f.devResid[i], f.pearson[i], f.hat[i], f.cooks[i]])); }
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'regression-residuals.csv', 'text/csv');
+  }
+
+  sel('.rw-ex').addEventListener('change', loadExample);
+  let t = 0;
+  q('.rw-data').addEventListener('input', () => { sel('.rw-ex').value = ''; clearTimeout(t); t = window.setTimeout(() => readData(), 300); });
+  sel('.rw-kind').addEventListener('change', () => calc());
+  sel('.rw-y').addEventListener('change', () => calc());
+  for (const c of ['.rw-px', '.rw-deg', '.rw-conf']) sel(c).addEventListener('change', () => calc());
+  q('.rw-int').addEventListener('change', () => calc());
+  q('.rw-xs').addEventListener('change', () => calc());
+  q('.rw-pred-in').addEventListener('input', predict);
+  q('.rw-pred-in').addEventListener('change', predict);
+  q('.rw-ccsv').addEventListener('click', coefCsv);
+  q('.rw-rcsv').addEventListener('click', residCsv);
+  document.addEventListener('fibub:theme', () => { for (const k of ['fit', 'rvf', 'qq', 'lev', 'cook']) if (figs[k]) paint(q<HTMLCanvasElement>(`.rw-${k}`), figs[k]!); });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Regression', subtitle: q('.rw-big').textContent ?? '', file: 'regression', sections: report }));
+</script>

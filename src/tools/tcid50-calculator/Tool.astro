@@ -1,0 +1,426 @@
+---
+// TCID50 and plaque assay calculator: the 50 % endpoint of a dilution series by Reed–Muench and Spearman–Kärber
+// (with its standard error and interval), TCID50/mL from the inoculum, an approximate PFU/mL (× ln 2, a Poisson
+// approximation), and a plaque assay titre pooled over the dilutions in the countable range with an exact Poisson
+// interval. The examples are made up. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tcd">
+  <div class="ax-card">
+    <h2>TCID50: infected wells per dilution</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small tc-ex">Use the example</button>
+      <button type="button" class="btn secondary small tc-clear">Start empty</button>
+    </div>
+    <details class="tc-box tc-mkbox">
+      <summary>Make a dilution series</summary>
+      <div class="ax-grid">
+        <label>Strongest dilution <input class="tc-m0" value="10^-1" spellcheck="false" /></label>
+        <label>Each step (fold) <input class="tc-mf" inputmode="decimal" value="10" /></label>
+        <label>Dilutions <input class="tc-mk" inputmode="numeric" value="8" /></label>
+        <label>Wells each <input class="tc-mn" inputmode="numeric" value="8" /></label>
+      </div>
+      <button type="button" class="btn secondary small tc-make">Make the rows</button>
+      <p class="ax-err tc-merr" hidden></p>
+    </details>
+    <div class="tc-rows" role="list"></div>
+    <div class="ax-row"><button type="button" class="btn secondary small tc-add">Add a dilution</button></div>
+    <details class="tc-box">
+      <summary>Paste a table</summary>
+      <label>Three columns: dilution, infected wells, total wells, one dilution per line (from a spreadsheet is fine).
+        <textarea class="tc-paste" rows="5" spellcheck="false" placeholder="10^-1	8	8&#10;10^-2	8	8&#10;10^-3	5	8"></textarea></label>
+      <button type="button" class="btn secondary small tc-usepaste">Use pasted table</button>
+      <p class="ax-err tc-perr" hidden></p>
+    </details>
+    <div class="ax-grid tc-set">
+      <label>Inoculum per well (mL) <input class="tc-vol" inputmode="decimal" value="0.1" /></label>
+      <label>Main result from <select class="tc-main"><option value="sk" selected>Spearman–Kärber</option><option value="rm">Reed–Muench</option></select></label>
+      <label>Interval <select class="tc-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">Write each dilution as 1:1000, 10^-3 or 0.001. Count a well as infected when it shows the cytopathic effect (or stains positive). The inoculum is the volume of each dilution put into one well. The example numbers are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>TCID50 titre</h2>
+    <p class="ax-err tc-err" hidden></p>
+    <div class="tc-out">
+      <p class="ax-big tc-big" aria-live="polite"></p>
+      <p class="ax-help tc-sub"></p>
+      <dl class="ax-facts tc-facts"></dl>
+      <ul class="tc-warn"></ul>
+      <canvas class="ax-fig tc-fig"></canvas>
+      <div class="ax-legend tc-legend"><span><i class="tc-k1"></i>Wells infected</span><span><i class="tc-k2"></i>Reed–Muench cumulative</span><span><i class="tc-k3"></i>50 % endpoints</span></div>
+      <div class="ax-scroll"><table class="tc-tab"></table></div>
+      <div class="ax-row tc-dlrow"><button type="button" class="btn secondary small tc-csv">Download TCID50 CSV</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plaque assay: plaques per plate</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small tc-pex">Use the example</button>
+      <button type="button" class="btn secondary small tc-pclear">Start empty</button>
+    </div>
+    <div class="tc-prows" role="list"></div>
+    <div class="ax-row"><button type="button" class="btn secondary small tc-padd">Add a dilution</button></div>
+    <details class="tc-box">
+      <summary>Paste a table</summary>
+      <label>A dilution, then the plaque count of each plate, one dilution per line. Write TNTC for a plate with too many to count.
+        <textarea class="tc-ppaste" rows="5" spellcheck="false" placeholder="10^-5	88	97	79&#10;10^-6	11	7	9"></textarea></label>
+      <button type="button" class="btn secondary small tc-pusepaste">Use pasted table</button>
+      <p class="ax-err tc-pperr" hidden></p>
+    </details>
+    <div class="ax-grid tc-set">
+      <label>Volume per plate (mL) <input class="tc-pv" inputmode="decimal" value="0.1" /></label>
+      <label>Countable from <input class="tc-min" inputmode="numeric" value="10" /></label>
+      <label>Countable up to <input class="tc-max" inputmode="numeric" value="100" /></label>
+      <label>Interval <select class="tc-pconf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">Type each plate's plaque count, separated by commas; write TNTC for a plate with too many to count. Dilutions whose average count is inside the countable range are pooled. 10 to 100 is only a round starting range: use the one that suits your plate size and plaque size.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plaque titre</h2>
+    <p class="ax-err tc-perr2" hidden></p>
+    <div class="tc-pout">
+      <p class="ax-big tc-pbig" aria-live="polite"></p>
+      <p class="ax-help tc-psub"></p>
+      <dl class="ax-facts tc-pfacts"></dl>
+      <ul class="tc-pwarn"></ul>
+      <canvas class="ax-fig tc-pfig"></canvas>
+      <div class="ax-legend tc-plegend"><span><i class="tc-k4"></i>Plates</span><span><i class="tc-k5"></i>Expected from the titre</span><span><i class="tc-k6"></i>Countable range</span></div>
+      <div class="ax-scroll"><table class="tc-ptab"></table></div>
+      <div class="ax-row tc-dlrow"><button type="button" class="btn secondary small tc-pcsv">Download plaque CSV</button></div>
+    </div>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<script>
+  import { parseDilution, dilutionLabel, dilutionText, reedMuench, spearmanKarber, reversals, perMl, PFU_PER_TCID50, plaqueTitre, parsePlate, parseWells, parsePlates, EXAMPLE_WELLS, EXAMPLE_PLATES, type Row, type RM, type SK, type PRow, type Plaque, type Plate } from '../../lib/sci/tcid50';
+  import { num, sig, fmtExp, parseTable, csv } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { save, wireDownloads, paint, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tcd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+  /** A titre: 3 significant figures, powers of ten from 10 000. */
+  const T = (x: number) => (!Number.isFinite(x) ? '–' : Math.abs(x) >= 1e4 ? fmtExp(x, 3) : sig(x, 3));
+  const L = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const SUP: Record<string, string> = { '-': '⁻', '.': '·', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  /** An endpoint as a power of ten: 5.75 → 10⁻⁵·⁷⁵. */
+  const E = (d: number) => `10${`-${L(d)}`.replace(/./g, (c) => SUP[c] ?? c)}`;
+  const pct = (c: number) => `${Math.round(c * 100)} %`;
+  const colours = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8']);
+  const figW = (c: HTMLCanvasElement) => Math.max(300, Math.min(760, Math.round(c.parentElement!.clientWidth || 640)));
+
+  // ---------- TCID50 rows ----------
+  const rowsEl = q('.tc-rows');
+  function addRow(r: Partial<Row> = {}) {
+    const d = el('div', 'tc-row'); d.setAttribute('role', 'listitem');
+    const di = el('input', 'tc-d'); di.value = r.d === undefined ? '' : dilutionText(r.d); di.spellcheck = false;
+    const pi = el('input', 'tc-p'); pi.inputMode = 'numeric'; pi.value = r.pos === undefined ? '' : String(r.pos);
+    const ni = el('input', 'tc-n'); ni.inputMode = 'numeric'; ni.value = r.n === undefined ? '' : String(r.n);
+    const l1 = el('label'); l1.append('Dilution', di);
+    const l2 = el('label'); l2.append('Infected', pi);
+    const l3 = el('label'); l3.append('Wells', ni);
+    const del = el('button', 'btn secondary small tc-del', '✕'); del.type = 'button'; del.title = 'Remove this dilution';
+    d.append(l1, l2, l3, del); rowsEl.append(d); label(rowsEl, 'tc-del');
+  }
+  const label = (box: HTMLElement, cls: string) => box.querySelectorAll<HTMLElement>(`.${cls}`).forEach((b, i) => b.setAttribute('aria-label', `Remove dilution ${i + 1}`));
+  function loadRows(rows: Partial<Row>[], vol?: number) { rowsEl.replaceChildren(); rows.forEach((r) => addRow(r)); if (vol) inp('.tc-vol').value = String(vol); runT(); }
+
+  let rm: RM | null = null, sk: SK | null = null, rows: Row[] = [], rmErr = '', skErr = '', main: 'sk' | 'rm' = 'sk', log50 = NaN, figT: Figure | null = null;
+  function readRows(): Row[] | string {
+    const out: Row[] = [];
+    const els = [...rowsEl.querySelectorAll<HTMLElement>('.tc-row')];
+    els.forEach((d) => d.classList.remove('tc-bad'));
+    for (let i = 0; i < els.length; i++) {
+      const g = (c: string) => (els[i].querySelector(c) as HTMLInputElement).value.trim();
+      const ds = g('.tc-d'), ps = g('.tc-p'), ns = g('.tc-n');
+      if (!ds && !ps && !ns) continue;
+      const bad = (m: string) => { els[i].classList.add('tc-bad'); return `Row ${i + 1}: ${m}`; };
+      const dd = parseDilution(ds), p = num(ps), n = num(ns);
+      if (!Number.isFinite(dd)) return bad('write the dilution as 1:1000, 10^-3 or 0.001.');
+      if (!(Number.isInteger(p) && p >= 0 && Number.isInteger(n) && n >= 1)) return bad('type the infected wells and the wells as whole numbers (1 well or more).');
+      if (p > n) return bad(`more infected wells (${p}) than wells (${n}).`);
+      out.push({ d: dd, pos: p, n });
+    }
+    return out;
+  }
+
+  function tcFigure(W: number, H: number): Figure {
+    const s = [...rows].sort((a, b) => a.d - b.d), r = rm, k = sk;
+    return {
+      w: W, h: H, alt: `Percentage of wells infected at each dilution${Number.isFinite(log50) ? `, with the 50 % endpoint at ${E(log50)}` : ''}`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const series: Series[] = [{ name: 'Wells infected', x: s.map((x) => x.d), y: s.map((x) => (100 * x.pos) / x.n), mode: 'both', color: c[0], marker: 'circle', size: 5, width: 1.5 }];
+        if (r) series.push({ name: 'Reed–Muench cumulative', x: r.rows.map((x) => x.d), y: r.rows.map((x) => x.pct), mode: 'both', color: c[1], marker: 'open-square', size: 5, width: 1.5, dash: [6, 4] });
+        const marks: NonNullable<Parameters<typeof drawChart>[1]['marks']> = [{ kind: 'hline', at: 50, color: pal.muted, dash: [2, 3] }];
+        const close = k && r && Math.abs(k.log50 - r.log50) < 0.4;
+        if (k) marks.push({ kind: 'vline', at: k.log50, color: c[2], label: close ? 'SK, RM' : 'SK' });
+        if (r) marks.push({ kind: 'vline', at: r.log50, color: c[2], dash: [4, 3], ...(close ? {} : { label: 'RM' }) });
+        drawChart(canvasPainter(ctx), { w, h, xLabel: 'Dilution, −log₁₀ (3 = 1:1000)', yLabel: 'Wells infected (%)', yMin: 0, yMax: 100, xMin: s[0].d - 0.5, xMax: s[s.length - 1].d + 0.5, series, marks, font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  function drawT() {
+    if (!rows.length || q('.tc-out').hidden) return;
+    const c = q<HTMLCanvasElement>('.tc-fig'), W = figW(c);
+    figT = tcFigure(W, W < 480 ? 260 : 330); paint(c, figT);
+    const cs = colours(pagePalette());
+    q('.tc-k1').style.background = cs[0]; q('.tc-k2').style.background = cs[1]; q('.tc-k3').style.background = cs[2];
+  }
+
+  function runT() {
+    const err = q('.tc-err');
+    const fail = (m: string) => { rm = sk = null; rows = []; err.textContent = m; err.hidden = false; q('.tc-out').hidden = true; };
+    const r = readRows();
+    if (typeof r === 'string') return fail(r);
+    if (r.length < 2) return fail('Type at least two dilutions, each with its infected and total wells.');
+    const vol = val('.tc-vol');
+    if (!(vol > 0)) return fail('Type the inoculum per well in mL (above 0), such as 0.1.');
+    rows = r;
+    const conf = Number(q<HTMLSelectElement>('.tc-conf').value);
+    rm = sk = null; rmErr = skErr = '';
+    try { rm = reedMuench(r); } catch (e) { rmErr = (e as Error).message; }
+    try { sk = spearmanKarber(r, conf); } catch (e) { skErr = (e as Error).message; }
+    if (/listed twice|more infected/.test(rmErr)) return fail(rmErr);
+    if (!rm && !sk) return fail(rmErr);
+    err.hidden = true; q('.tc-out').hidden = false;
+    const want = q<HTMLSelectElement>('.tc-main').value as 'sk' | 'rm';
+    main = want === 'sk' ? (sk ? 'sk' : 'rm') : (rm ? 'rm' : 'sk');
+    log50 = main === 'sk' ? sk!.log50 : rm!.log50;
+    const name = main === 'sk' ? 'Spearman–Kärber' : 'Reed–Muench', t = perMl(log50, vol);
+    q('.tc-big').textContent = `${T(t)} TCID50/mL`;
+    q('.tc-sub').textContent = `${name}: 50 % endpoint at the ${E(log50)} dilution (log₁₀ ${L(Math.log10(t))} TCID50/mL), ${T(10 ** log50)} TCID50 in each ${+vol.toPrecision(4)} mL inoculum.${want !== main ? ` ${want === 'sk' ? 'Spearman–Kärber' : 'Reed–Muench'} cannot be used here, so this is ${name}.` : ''}`;
+    const pc = Math.round(conf * 100);
+    q('.tc-facts').replaceChildren(
+      sk ? fact('Spearman–Kärber', `${T(perMl(sk.log50, vol))} /mL`, `endpoint ${E(sk.log50)}, ± ${L(sk.se)} log₁₀ (standard error); ${pc}\u00a0%: ${T(perMl(sk.lo, vol))} to ${T(perMl(sk.hi, vol))} /mL`) : fact('Spearman–Kärber', '–', skErr),
+      rm ? fact('Reed–Muench', `${T(perMl(rm.log50, vol))} /mL`, `endpoint ${E(rm.log50)}, proportionate distance ${+rm.pd.toFixed(2)}`) : fact('Reed–Muench', '–', rmErr),
+      ...(sk && rm ? [fact('Difference', `${+Math.abs(sk.log50 - rm.log50).toFixed(2)} log₁₀`, 'between the two methods; usually well under 0.3')] : []),
+      fact('PFU/mL, roughly', T(t * PFU_PER_TCID50), 'TCID50/mL × ln 2 ≈ 0.69: a Poisson approximation, not a measurement'),
+    );
+    const warn: string[] = [];
+    const s = [...r].sort((a, b) => a.d - b.d), rev = reversals(r);
+    if (rev.length) warn.push(`More wells are infected at ${rev.map((i) => dilutionLabel(+s[i].d.toFixed(3))).join(', ')} than at the dilution before. That happens by chance with few wells, but check for a pipetting slip.`);
+    const steps = s.slice(1).map((x, i) => x.d - s[i].d);
+    if (steps.some((st) => Math.abs(st - steps[0]) > 1e-6)) warn.push('The dilution steps are not all the same size. Both methods still work (the steps are used as they are), but an even series is the usual design.');
+    if (sk && sk.from > 0 && s.slice(0, sk.from).some((x) => x.pos < x.n)) warn.push(`Some wells at dilutions stronger than ${dilutionLabel(+s[sk.from].d.toFixed(3))} are not infected (toxicity or a missed well?). Spearman–Kärber starts from the weakest dilution where every well is infected.`);
+    if (sk && sk.se === 0) warn.push('There are no partly infected dilutions with 2 or more wells, so the standard error is 0. Use more wells per dilution for a real interval.');
+    q('.tc-warn').replaceChildren(...warn.map((w) => el('li', '', w)));
+    // Table
+    const tab = q<HTMLTableElement>('.tc-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow();
+    tHead().forEach((h, j) => hr.append(el('th', j ? 'r' : '', h)));
+    const tb = tab.createTBody();
+    tBody().forEach((row) => { const tr = tb.insertRow(); row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    drawT();
+  }
+  const tHead = () => ['Dilution', 'Infected', '% infected', 'Cum. infected', 'Cum. uninfected', 'RM %'];
+  const tBody = () => {
+    const s = rm ? rm.rows : [...rows].sort((a, b) => a.d - b.d).map((x) => ({ ...x, cumPos: NaN, cumNeg: NaN, pct: NaN }));
+    return s.map((x) => [dilutionLabel(+x.d.toFixed(3)), `${x.pos} / ${x.n}`, pct(x.pos / x.n), Number.isFinite(x.cumPos) ? String(x.cumPos) : '–', Number.isFinite(x.cumNeg) ? String(x.cumNeg) : '–', Number.isFinite(x.pct) ? `${sig(x.pct, 3)} %` : '–']);
+  };
+
+  // ---------- Plaque rows ----------
+  const prowsEl = q('.tc-prows');
+  function addPRow(r: Partial<PRow> = {}) {
+    const d = el('div', 'tc-prow'); d.setAttribute('role', 'listitem');
+    const di = el('input', 'tc-pd'); di.value = r.d === undefined ? '' : dilutionText(r.d); di.spellcheck = false;
+    const ci = el('input', 'tc-pc'); ci.value = r.counts ? r.counts.map((c) => (c === 'tntc' ? 'TNTC' : String(c))).join(', ') : ''; ci.spellcheck = false;
+    const l1 = el('label'); l1.append('Dilution', di);
+    const l2 = el('label'); l2.append('Plaques on each plate', ci);
+    const del = el('button', 'btn secondary small tc-pdel', '✕'); del.type = 'button'; del.title = 'Remove this dilution';
+    d.append(l1, l2, del); prowsEl.append(d); label(prowsEl, 'tc-pdel');
+  }
+  function loadPRows(rs: Partial<PRow>[]) { prowsEl.replaceChildren(); rs.forEach((r) => addPRow(r)); runP(); }
+
+  let pr: Plaque | null = null, figP: Figure | null = null;
+  function readPRows(): PRow[] | string {
+    const out: PRow[] = [];
+    const els = [...prowsEl.querySelectorAll<HTMLElement>('.tc-prow')];
+    els.forEach((d) => d.classList.remove('tc-bad'));
+    for (let i = 0; i < els.length; i++) {
+      const ds = (els[i].querySelector('.tc-pd') as HTMLInputElement).value.trim(), cs = (els[i].querySelector('.tc-pc') as HTMLInputElement).value.trim();
+      if (!ds && !cs) continue;
+      const bad = (m: string) => { els[i].classList.add('tc-bad'); return `Row ${i + 1}: ${m}`; };
+      const dd = parseDilution(ds);
+      if (!Number.isFinite(dd)) return bad('write the dilution as 1:1000, 10^-3 or 0.001.');
+      const counts = cs.split(/[,;\s]+/).map(parsePlate).filter((c): c is Plate => c !== null);
+      if (!counts.length) return bad('type the plaque count of each plate, separated by commas.');
+      if (counts.some((c) => c !== 'tntc' && !Number.isFinite(c))) return bad('plaque counts are whole numbers, or TNTC for too many to count.');
+      out.push({ d: dd, counts });
+    }
+    return out;
+  }
+
+  function plFigure(W: number, H: number): Figure {
+    const p = pr!, v = val('.tc-pv'), lo = val('.tc-min'), hi = val('.tc-max');
+    const pts = p.rows.flatMap((r) => r.counts.filter((c): c is number => c !== 'tntc' && c > 0).map((c) => [r.d, c] as [number, number]));
+    const ds = p.rows.map((r) => r.d), d0 = Math.min(...ds), d1 = Math.max(...ds);
+    return {
+      w: W, h: H, alt: `Plaques per plate at each dilution on a log scale, with the counts expected from ${T(p.titre)} PFU/mL`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const ex = (d: number) => p.titre * v * 10 ** -d;
+        const series: Series[] = [
+          { name: 'Expected', x: [d0, d1], y: [ex(d0), ex(d1)], mode: 'line', color: c[1], width: 2 },
+          { name: 'Plates', x: pts.map((x) => x[0]), y: pts.map((x) => x[1]), mode: 'points', color: c[0], marker: 'circle', size: 5 },
+        ];
+        const ys = [...pts.map((x) => x[1]), lo > 0 ? lo : hi / 10, hi, ex(d0), ex(d1)].filter((y) => y > 0);
+        drawChart(canvasPainter(ctx), {
+          w, h, xLabel: 'Dilution, −log₁₀ (3 = 1:1000)', yLabel: 'Plaques per plate (log scale)', yLog: true, yMin: Math.max(0.5, Math.min(...ys) / 2), yMax: Math.max(...ys) * 2,
+          xMin: d0 - 0.5, xMax: d1 + 0.5, series, marks: [...(lo > 0 ? [{ kind: 'hline' as const, at: lo, color: c[2], dash: [5, 4] }] : []), { kind: 'hline', at: hi, color: c[2], dash: [5, 4] }],
+          font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null,
+        });
+      },
+    };
+  }
+  function drawP() {
+    if (!pr || q('.tc-pout').hidden) return;
+    const c = q<HTMLCanvasElement>('.tc-pfig'), W = figW(c);
+    figP = plFigure(W, W < 480 ? 260 : 330); paint(c, figP);
+    const cs = colours(pagePalette());
+    q('.tc-k4').style.background = cs[0]; q('.tc-k5').style.background = cs[1]; q('.tc-k6').style.background = cs[2];
+  }
+
+  function runP() {
+    const err = q('.tc-perr2');
+    const fail = (m: string) => { pr = null; err.textContent = m; err.hidden = false; q('.tc-pout').hidden = true; };
+    const r = readPRows();
+    if (typeof r === 'string') return fail(r);
+    if (!r.length) return fail('Type the plaque counts for at least one dilution.');
+    const v = val('.tc-pv'), lo = val('.tc-min'), hi = val('.tc-max'), conf = Number(q<HTMLSelectElement>('.tc-pconf').value);
+    try { pr = plaqueTitre(r, v, lo, hi, conf); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; q('.tc-pout').hidden = false;
+    const p = pr, used = p.rows.filter((x) => x.used), pc = Math.round(conf * 100);
+    q('.tc-pbig').textContent = `${T(p.titre)} PFU/mL`;
+    q('.tc-psub').textContent = `${p.total} plaques on ${p.usedPlates} plate${p.usedPlates > 1 ? 's' : ''} at ${used.map((x) => dilutionLabel(+x.d.toFixed(3))).join(' and ')}, which held ${T(p.volume)} mL of the original stock in all. Titre = plaques ÷ that volume.`;
+    q('.tc-pfacts').replaceChildren(
+      fact(`${pc}\u00a0% interval`, `${T(p.lo)} to ${T(p.hi)}`, 'PFU/mL, exact Poisson interval from the total plaque count; it leaves out pipetting and dilution errors'),
+      fact('log₁₀ PFU/mL', L(Math.log10(p.titre)), `${L(Math.log10(p.lo))} to ${L(Math.log10(p.hi))}`),
+      fact('Counting error', `± ${sig(100 / Math.sqrt(Math.max(1, p.total)), 2)} %`, `1 ÷ √${p.total} plaques`),
+      fact('TCID50/mL, roughly', T(p.titre / PFU_PER_TCID50), 'PFU/mL ÷ ln 2: the Poisson approximation, not a measurement'),
+    );
+    const warn: string[] = [];
+    if (p.fallback) warn.push(`No dilution has an average count inside ${lo} to ${hi}, so this titre comes from ${dilutionLabel(+used[0].d.toFixed(3))} only. Treat it as rough, or plate dilutions that land in the range.`);
+    const ok = p.rows.filter((x) => !x.tntc && x.mean > 0);
+    for (let i = 1; i < ok.length; i++) {
+      const a = ok[i - 1], b = ok[i], ratio = a.titre / b.titre;
+      if (a.mean >= 5 && b.mean >= 5 && (ratio > 2 || ratio < 0.5)) { warn.push(`The titres at ${dilutionLabel(+a.d.toFixed(3))} and ${dilutionLabel(+b.d.toFixed(3))} differ ${sig(Math.max(ratio, 1 / ratio), 2)}-fold. Plaques that merge, or a dilution slip, can do that.`); break; }
+    }
+    q('.tc-pwarn').replaceChildren(...warn.map((w) => el('li', '', w)));
+    const tab = q<HTMLTableElement>('.tc-ptab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow();
+    pHead().forEach((h, j) => hr.append(el('th', j === 2 || j === 3 ? 'r' : '', h)));
+    const tb = tab.createTBody();
+    pBody().forEach((row, i) => { const tr = tb.insertRow(); if (!p.rows[i].used) tr.className = 'dim'; row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 2 || j === 3) td.className = 'r'; }); });
+    drawP();
+  }
+  const pHead = () => ['Dilution', 'Plates', 'Average', 'PFU/mL', 'Status'];
+  const pBody = () => pr!.rows.map((x) => [dilutionLabel(+x.d.toFixed(3)), x.counts.map((c) => (c === 'tntc' ? 'TNTC' : String(c))).join(', '), Number.isFinite(x.mean) ? sig(x.mean, 3) : '–', T(x.titre), x.used ? (x.why === 'in range' ? 'used' : `used (${x.why})`) : x.why]);
+
+  // ---------- Wiring ----------
+  for (const [box, run, del] of [[rowsEl, runT, 'tc-del'], [prowsEl, runP, 'tc-pdel']] as const) {
+    box.addEventListener('input', run);
+    box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest(`.${del}`); if (b) { b.closest('[role=listitem]')!.remove(); label(box, del); run(); } });
+  }
+  q('.tc-add').addEventListener('click', () => { addRow(); rowsEl.querySelector<HTMLInputElement>('.tc-row:last-child .tc-d')!.focus(); });
+  q('.tc-padd').addEventListener('click', () => { addPRow(); prowsEl.querySelector<HTMLInputElement>('.tc-prow:last-child .tc-pd')!.focus(); });
+  q('.tc-ex').addEventListener('click', () => { q<HTMLSelectElement>('.tc-main').value = 'sk'; q<HTMLSelectElement>('.tc-conf').value = '0.95'; q('.tc-perr').hidden = true; loadRows(EXAMPLE_WELLS, 0.1); });
+  q('.tc-clear').addEventListener('click', () => { loadRows([{}, {}, {}]); rowsEl.querySelector<HTMLInputElement>('.tc-d')!.focus(); });
+  q('.tc-pex').addEventListener('click', () => { inp('.tc-pv').value = '0.1'; inp('.tc-min').value = '10'; inp('.tc-max').value = '100'; q<HTMLSelectElement>('.tc-pconf').value = '0.95'; q('.tc-pperr').hidden = true; loadPRows(EXAMPLE_PLATES); });
+  q('.tc-pclear').addEventListener('click', () => { loadPRows([{}, {}]); prowsEl.querySelector<HTMLInputElement>('.tc-pd')!.focus(); });
+  q('.tc-make').addEventListener('click', () => {
+    const e = q('.tc-merr'), d0 = parseDilution(inp('.tc-m0').value), f = val('.tc-mf'), k = val('.tc-mk'), n = val('.tc-mn');
+    const m = !Number.isFinite(d0) ? 'Write the strongest dilution as 1:10, 10^-1 or 0.1.' : !(f > 1) ? 'Each step is a fold above 1, such as 10, 3.16 (half-log) or 2.' : !(Number.isInteger(k) && k >= 2 && k <= 30) ? 'Make between 2 and 30 dilutions.' : !(Number.isInteger(n) && n >= 1) ? 'Wells each is a whole number, 1 or more.' : '';
+    e.textContent = m; e.hidden = !m; if (m) return;
+    // A typed 3.16 means a half-log step: snap steps within 0.002 log of a half-log.
+    const raw = Math.log10(f), st = Math.abs(raw * 2 - Math.round(raw * 2)) < 0.004 ? Math.round(raw * 2) / 2 : raw;
+    loadRows(Array.from({ length: k }, (_, i) => ({ d: +(d0 + i * st).toFixed(6), n })));
+    rowsEl.querySelector<HTMLInputElement>('.tc-p')!.focus();
+  });
+  q('.tc-usepaste').addEventListener('click', () => {
+    const e = q('.tc-perr'), text = q<HTMLTextAreaElement>('.tc-paste').value;
+    if (!text.trim()) { e.textContent = 'Paste a table first.'; e.hidden = false; return; }
+    const r = parseWells(parseTable(text), num);
+    if (!r.rows.length) { e.textContent = 'No dilutions found: each line needs a dilution, the infected wells and the total wells.'; e.hidden = false; return; }
+    e.textContent = r.errors.length ? `Left out: ${r.errors.slice(0, 3).join(' ')}` : ''; e.hidden = !r.errors.length;
+    loadRows(r.rows);
+  });
+  q('.tc-pusepaste').addEventListener('click', () => {
+    const e = q('.tc-pperr'), text = q<HTMLTextAreaElement>('.tc-ppaste').value;
+    if (!text.trim()) { e.textContent = 'Paste a table first.'; e.hidden = false; return; }
+    const r = parsePlates(parseTable(text));
+    if (!r.rows.length) { e.textContent = 'No dilutions found: each line needs a dilution and the plaque counts.'; e.hidden = false; return; }
+    e.textContent = r.errors.length ? `Left out: ${r.errors.slice(0, 3).join(' ')}` : ''; e.hidden = !r.errors.length;
+    loadPRows(r.rows);
+  });
+  inp('.tc-vol').addEventListener('input', runT);
+  for (const c of ['.tc-main', '.tc-conf']) q(c).addEventListener('change', runT);
+  for (const c of ['.tc-pv', '.tc-min', '.tc-max']) inp(c).addEventListener('input', runP);
+  q('.tc-pconf').addEventListener('change', runP);
+
+  const n6 = (x: number) => (Number.isFinite(x) ? +x.toPrecision(6) : '');
+  q('.tc-csv').addEventListener('click', () => {
+    const vol = val('.tc-vol'), out: (string | number)[][] = [['dilution', 'log10_dilution_factor', 'infected_wells', 'wells', 'percent_infected', 'cumulative_infected', 'cumulative_uninfected', 'reed_muench_percent']];
+    const s = rm ? rm.rows : [...rows].sort((a, b) => a.d - b.d).map((x) => ({ ...x, cumPos: NaN, cumNeg: NaN, pct: NaN }));
+    for (const x of s) out.push([dilutionText(x.d), n6(x.d), x.pos, x.n, n6((100 * x.pos) / x.n), Number.isFinite(x.cumPos) ? x.cumPos : '', Number.isFinite(x.cumNeg) ? x.cumNeg : '', n6(x.pct)]);
+    out.push([], ['method', 'endpoint_log10_dilution', 'tcid50_per_ml', 'log10_tcid50_per_ml', 'standard_error_log10', 'interval_low_per_ml', 'interval_high_per_ml']);
+    if (sk) out.push(['spearman_karber', n6(sk.log50), n6(perMl(sk.log50, vol)), n6(sk.log50 - Math.log10(vol)), n6(sk.se), n6(perMl(sk.lo, vol)), n6(perMl(sk.hi, vol))]);
+    if (rm) out.push(['reed_muench', n6(rm.log50), n6(perMl(rm.log50, vol)), n6(rm.log50 - Math.log10(vol)), '', '', '']);
+    out.push([], ['inoculum_ml', vol], ['interval_level', Number(q<HTMLSelectElement>('.tc-conf').value)], ['approx_pfu_per_ml_ln2', n6(perMl(log50, vol) * PFU_PER_TCID50)]);
+    save(new Blob([csv(out)], { type: 'text/csv' }), 'tcid50.csv', 'text/csv');
+  });
+  q('.tc-pcsv').addEventListener('click', () => {
+    if (!pr) return;
+    const out: (string | number)[][] = [['dilution', 'log10_dilution_factor', 'plate_counts', 'average', 'pfu_per_ml', 'status']];
+    for (const x of pr.rows) out.push([dilutionText(x.d), n6(x.d), x.counts.map((c) => (c === 'tntc' ? 'TNTC' : c)).join(' '), n6(x.mean), n6(x.titre), x.used ? 'used' : x.why]);
+    out.push([], ['pfu_per_ml', n6(pr.titre)], ['interval_low', n6(pr.lo)], ['interval_high', n6(pr.hi)], ['interval_level', pr.conf], ['plaques_counted', pr.total], ['stock_ml_plated', n6(pr.volume)], ['volume_per_plate_ml', val('.tc-pv')], ['countable_from', val('.tc-min')], ['countable_up_to', val('.tc-max')]);
+    save(new Blob([csv(out)], { type: 'text/csv' }), 'plaque-titre.csv', 'text/csv');
+  });
+  const factsOf = (c: string) => [...q(c).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const warnsOf = (c: string) => [...q(c).querySelectorAll('li')].map((li) => 'Check: ' + li.textContent);
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (!q('.tc-out').hidden && rows.length) sections.push({ title: `TCID50: ${q('.tc-big').textContent}`, text: [q('.tc-sub').textContent!, ...warnsOf('.tc-warn')], facts: factsOf('.tc-facts'), figure: tcFigure(720, 360), table: { head: tHead(), rows: tBody(), align: ['l', 'r', 'r', 'r', 'r', 'r'] } });
+    if (pr && !q('.tc-pout').hidden) sections.push({ title: `Plaque assay: ${q('.tc-pbig').textContent}`, text: [q('.tc-psub').textContent!, ...warnsOf('.tc-pwarn')], facts: factsOf('.tc-pfacts'), figure: plFigure(720, 360), table: { head: pHead(), rows: pBody(), align: ['l', 'l', 'r', 'r', 'l'] }, note: 'Worked out on fibub.com. Reed–Muench and Spearman–Kärber 50 % endpoints; PFU ≈ 0.69 × TCID50 is a Poisson approximation.' });
+    return { title: 'Virus titre', subtitle: [!q('.tc-out').hidden ? q('.tc-big').textContent : '', pr && !q('.tc-pout').hidden ? q('.tc-pbig').textContent : ''].filter(Boolean).join(' · '), file: 'virus-titre', sections };
+  });
+  document.addEventListener('fibub:theme', () => { drawT(); drawP(); });
+  let rw = 0;
+  window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(() => { drawT(); drawP(); }, 150); });
+  loadRows(EXAMPLE_WELLS, 0.1);
+  loadPRows(EXAMPLE_PLATES);
+</script>
+
+<style is:inline>
+  .tcd [hidden] { display: none !important; }
+  .tcd .tc-rows, .tcd .tc-prows { display: grid; gap: 6px; margin: 12px 0; }
+  .tcd .tc-row, .tcd .tc-prow { display: grid; gap: 8px; align-items: end; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .tcd .tc-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .tcd .tc-prow { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) auto; }
+  .tcd .tc-row input, .tcd .tc-prow input { padding: 7px 8px; }
+  .tcd .tc-del, .tcd .tc-pdel { padding: 7px 11px; min-width: 38px; }
+  .tcd .tc-bad { border-color: var(--bad); }
+  .tcd .tc-box { margin: 10px 0 4px; }
+  .tcd .tc-box summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .tcd .tc-box .ax-grid, .tcd .tc-box textarea { margin-top: 8px; }
+  .tcd .tc-box .btn { margin-top: 8px; }
+  .tcd .tc-set { margin-top: 12px; }
+  .tcd .tc-sub, .tcd .tc-psub { margin: 2px 0 12px; }
+  .tcd .tc-warn, .tcd .tc-pwarn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .tcd .tc-warn:empty, .tcd .tc-pwarn:empty { display: none; }
+  .tcd .ax-fig { margin-top: 14px; }
+  .tcd .ax-scroll { margin-top: 10px; }
+  .tcd .tc-dlrow { margin-top: 14px; }
+  .tcd select { max-width: 100%; }
+  .tcd .tc-tab th, .tcd .tc-tab td, .tcd .tc-ptab th, .tcd .tc-ptab td { white-space: nowrap; }
+</style>

@@ -1,0 +1,214 @@
+---
+// Slope stability by Bishop's simplified method and the ordinary method of slices, with a grid search for the
+// critical circle. Example values are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ssb">
+  <div class="ax-card">
+    <h2>Slope and soil</h2>
+    <div class="ax-grid">
+      <label>Slope height H (m) <input class="ss-h" type="text" inputmode="decimal" value="10" /></label>
+      <label>Slope angle β (°) <input class="ss-b" type="text" inputmode="decimal" value="30" /></label>
+      <label>Soil layers <select class="ss-nl"><option value="1" selected>One soil</option><option value="2">Two soils (horizontal boundary)</option></select></label>
+    </div>
+    <h3>Upper soil</h3>
+    <div class="ax-grid">
+      <label>Cohesion c′ (kPa) <input class="ss-c1" type="text" inputmode="decimal" value="10" /></label>
+      <label>Friction angle φ′ (°) <input class="ss-p1" type="text" inputmode="decimal" value="25" /></label>
+      <label>Unit weight γ (kN/m³) <input class="ss-g1" type="text" inputmode="decimal" value="19" /></label>
+    </div>
+    <div class="ss-l2" hidden>
+      <h3>Lower soil</h3>
+      <div class="ax-grid">
+        <label>Boundary level (m above the toe; negative is below) <input class="ss-yi" type="text" inputmode="decimal" value="0" /></label>
+        <label>Cohesion c′ (kPa) <input class="ss-c2" type="text" inputmode="decimal" value="20" /></label>
+        <label>Friction angle φ′ (°) <input class="ss-p2" type="text" inputmode="decimal" value="20" /></label>
+        <label>Unit weight γ (kN/m³) <input class="ss-g2" type="text" inputmode="decimal" value="19.5" /></label>
+      </div>
+    </div>
+    <h3>Water</h3>
+    <div class="ax-grid">
+      <label>Pore pressure from <select class="ss-wk"><option value="none">None (dry)</option><option value="ru" selected>Pore pressure ratio ru</option><option value="line">A water table (piezometric line)</option></select></label>
+      <label class="ss-ruw">ru = u / (γ·h) <input class="ss-ru" type="text" inputmode="decimal" value="0.25" /></label>
+      <label class="ss-lw" hidden>Water level at and beyond the toe (m) <input class="ss-wt" type="text" inputmode="decimal" value="0" /></label>
+      <label class="ss-lw" hidden>Water level behind the crest (m) <input class="ss-wc" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Heights are measured from the toe. The water line runs straight from the toe to the crest and never above the ground; u = 9.81 × the height of water above the slip surface. The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Slip circles</h2>
+    <div class="ax-grid">
+      <label>Find <select class="ss-mode"><option value="grid" selected>The critical circle (grid search)</option><option value="one">One circle I give</option></select></label>
+      <label>Slices <input class="ss-n" type="text" inputmode="numeric" value="40" /></label>
+    </div>
+    <div class="ss-grid">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Centres x from (m) <input class="ss-x0" type="text" inputmode="decimal" value="-5" /></label>
+        <label>x to (m) <input class="ss-x1" type="text" inputmode="decimal" value="17.3" /></label>
+        <label>Centres y from (m) <input class="ss-y0" type="text" inputmode="decimal" value="11" /></label>
+        <label>y to (m) <input class="ss-y1" type="text" inputmode="decimal" value="25" /></label>
+        <label>Grid points per side <input class="ss-ng" type="text" inputmode="numeric" value="11" /></label>
+        <label>Deepest circle bottom (m) <input class="ss-yl" type="text" inputmode="decimal" value="-5" /></label>
+        <label>Circle depths per centre <input class="ss-nr" type="text" inputmode="numeric" value="8" /></label>
+      </div>
+      <button type="button" class="btn secondary small ss-fit" style="margin-top:10px">Fit the grid to the slope</button>
+      <p class="ax-help">Each centre gets the circle through the toe and circles touching evenly spaced levels from the deepest bottom up to 0.8 H. The best circle is then refined. Set the deepest bottom at a hard layer if there is one.</p>
+    </div>
+    <div class="ss-one" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Centre x (m) <input class="ss-cx" type="text" inputmode="decimal" value="2" /></label>
+        <label>Centre y (m) <input class="ss-cy" type="text" inputmode="decimal" value="20" /></label>
+        <label>Radius R (m) <input class="ss-cr" type="text" inputmode="decimal" value="20.1" /></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-err ss-err" hidden></p>
+    <div class="ss-out">
+      <p class="ax-big ss-big"></p>
+      <p class="ss-sub"></p>
+      <dl class="ax-facts ss-facts"></dl>
+      <canvas class="ax-fig ss-fig"></canvas>
+      <details style="margin-top:12px"><summary>Slice table</summary><div class="ax-scroll"><table class="ss-tab"></table></div></details>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small ss-csv">Download the slices (CSV)</button></div>
+      <Downloads />
+    </div>
+    <p class="ax-help"><strong>For study and planning, not a substitute for professional judgement.</strong> Circular slips in a simple slope only: no loads on the crest, tension cracks, earthquakes or non-circular surfaces. Check your local code and a qualified engineer.</p>
+  </div>
+</div>
+
+<script>
+  import { fos, search, ground, piezo, crestX, type Slope, type Fos, type Circle } from '../../lib/sci/slope';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ssb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f2 = (x: number) => x.toFixed(2), f3 = (x: number) => x.toFixed(3);
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function fitGrid() {
+    const H = val('.ss-h'), b = val('.ss-b');
+    if (!(H > 0 && b > 0 && b < 90)) return;
+    const xc = H / Math.tan((b * Math.PI) / 180);
+    q<HTMLInputElement>('.ss-x0').value = sig(-0.5 * H, 3); q<HTMLInputElement>('.ss-x1').value = sig(xc, 3);
+    q<HTMLInputElement>('.ss-y0').value = sig(1.1 * H, 3); q<HTMLInputElement>('.ss-y1').value = sig(2.5 * H, 3); q<HTMLInputElement>('.ss-yl').value = sig(-0.5 * H, 3);
+    run();
+  }
+
+  function run() {
+    const err = q('.ss-err'), out = q('.ss-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; csvRows = []; fig = null; };
+    const two = sel('.ss-nl') === '2', wk = sel('.ss-wk'), mode = sel('.ss-mode');
+    q('.ss-l2').hidden = !two; q('.ss-ruw').hidden = wk !== 'ru'; root.querySelectorAll<HTMLElement>('.ss-lw').forEach((e) => (e.hidden = wk !== 'line'));
+    q('.ss-grid').hidden = mode !== 'grid'; q('.ss-one').hidden = mode !== 'one';
+    const H = val('.ss-h'), beta = val('.ss-b');
+    if (!(H > 0)) return fail('The slope height must be above zero.');
+    if (!(beta > 0 && beta < 90)) return fail('The slope angle must be between 0 and 90°.');
+    const soil = (c: string, p: string, g: string, name: string) => {
+      const s = { c: val(c), phi: val(p), gamma: val(g) };
+      if (!(s.c >= 0 && s.phi >= 0 && s.phi < 60 && s.gamma > 0)) throw new Error(`${name}: give c′ of 0 or more, φ′ from 0 to 60° and γ above zero.`);
+      if (s.c === 0 && s.phi === 0) throw new Error(`${name}: c′ and φ′ cannot both be zero.`);
+      return s;
+    };
+    let S: Slope;
+    try {
+      const top = soil('.ss-c1', '.ss-p1', '.ss-g1', 'Upper soil'), bottom = two ? soil('.ss-c2', '.ss-p2', '.ss-g2', 'Lower soil') : undefined;
+      const yi = val('.ss-yi');
+      if (two && !Number.isFinite(yi)) throw new Error('Give the level of the boundary between the soils.');
+      const ru = val('.ss-ru'), wt = val('.ss-wt'), wc = val('.ss-wc');
+      if (wk === 'ru' && !(ru >= 0 && ru < 1)) throw new Error('ru must be from 0 to below 1.');
+      if (wk === 'line' && !(Number.isFinite(wt) && Number.isFinite(wc))) throw new Error('Give both water levels.');
+      S = { H, beta, top, bottom, yi: two ? yi : undefined, water: wk === 'ru' ? { kind: 'ru', ru } : wk === 'line' ? { kind: 'line', yToe: wt, yCrest: wc } : { kind: 'none' } };
+    } catch (e) { return fail((e as Error).message); }
+    const n = Math.round(val('.ss-n'));
+    if (!(n >= 5 && n <= 200)) return fail('Use 5 to 200 slices.');
+    let c: Circle, f: Fos | null, note = '', centres: { x: number; y: number; F: number }[] = [], tried = 1, onEdge = false, gridF = NaN;
+    const G = { x0: val('.ss-x0'), x1: val('.ss-x1'), y0: val('.ss-y0'), y1: val('.ss-y1'), nx: Math.round(val('.ss-ng')), ny: Math.round(val('.ss-ng')), yLow: val('.ss-yl'), nR: Math.round(val('.ss-nr')) };
+    if (mode === 'grid') {
+      if (![G.x0, G.x1, G.y0, G.y1, G.yLow].every(Number.isFinite) || !(G.x1 >= G.x0 && G.y1 >= G.y0)) return fail('Give the grid as x from ≤ x to and y from ≤ y to, and a deepest circle bottom.');
+      if (!(G.nx >= 1 && G.nx <= 31)) return fail('Use 1 to 31 grid points per side.');
+      if (!(G.nR >= 1 && G.nR <= 30)) return fail('Use 1 to 30 circle depths per centre.');
+      if (!(G.y0 > H)) return fail('Put the grid of centres above the crest (y from more than H).');
+      const r = search(S, G, n);
+      if (!r.best) return fail('No circle on this grid cuts the slope. Move the grid or press "Fit the grid to the slope".');
+      ({ c, f } = r.best); centres = r.centres; tried = r.tried; onEdge = r.onEdge; gridF = r.grid!.f.bishop;
+      if (onEdge) note = 'The best grid centre is on the edge of the grid: widen the grid and check again.';
+    } else {
+      c = { xc: val('.ss-cx'), yc: val('.ss-cy'), R: val('.ss-cr') };
+      if (!([c.xc, c.yc].every(Number.isFinite) && c.R > 0)) return fail('Give the centre and a radius above zero.');
+      f = fos(S, c, n);
+      if (!f) return fail('This circle does not cut through the slope. Make the radius larger or move the centre.');
+      if (f.mMin < 0.2) note = `m(α) falls to ${f2(f.mMin)} at the toe end: Bishop's method is unreliable for circles that exit this steeply.`;
+    }
+    err.hidden = true; out.hidden = false;
+    const F = f!.bishop;
+    q('.ss-big').textContent = `Bishop FS = ${f2(F)} (ordinary ${f2(f!.ordinary)})`;
+    q('.ss-sub').textContent = `${F < 1 ? 'Below 1: the slope would fail on this circle.' : F < 1.3 ? 'Between 1 and 1.3: marginal.' : 'Above 1.3.'} Many guides look for about 1.3 to 1.5 for permanent slopes; check your local code.${note ? ' ' + note : ''}`;
+    const facts = [fact('Critical circle', `centre (${f2(c.xc)}, ${f2(c.yc)}) m, R = ${f2(c.R)} m`, mode === 'grid' ? `${tried} circles tried; grid best ${f3(gridF)} refined to ${f3(F)}` : 'the circle you gave'),
+      fact('Slip mass', `from x = ${f2(f!.xL)} to ${f2(f!.xR)} m`, `toe at x = 0, crest at x = ${f2(crestX(S))} m`),
+      fact('Bishop simplified', f3(F), `${f!.iterations} iterations; smallest m(α) = ${f2(f!.mMin)}`),
+      fact('Ordinary (Fellenius)', f3(f!.ordinary), 'ignores forces between slices; usually lower than Bishop'),
+      fact('Driving moment ΣW·sin α', `${sig(f!.drive * c.R, 4)} kN·m per m`, `slip mass weight ${sig(f!.slices.reduce((a, s) => a + s.W, 0), 4)} kN per m`)];
+    q('.ss-facts').replaceChildren(...facts);
+    // Slice table.
+    const head = ['#', 'x (m)', 'b (m)', 'h (m)', 'α (°)', 'W (kN/m)', 'u (kPa)', "c′", "φ′", 'm(α)'];
+    const rows = f!.slices.map((s, i) => [String(i + 1), f2(s.x), f3(s.b), f2(s.yTop - s.yBase), (s.alpha * 180 / Math.PI).toFixed(1), sig(s.W, 4), f2(s.u), String(s.soil.c), String(s.soil.phi), f3(s.m)]);
+    const tab = q<HTMLTableElement>('.ss-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((x) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = x; e.append(d); }); return e; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    csvRows = [['slice', 'x_m', 'width_m', 'height_m', 'alpha_deg', 'weight_kN_per_m', 'u_kPa', 'c_kPa', 'phi_deg', 'm_alpha'], ...f!.slices.map((s, i) => [i + 1, sig(s.x, 6), sig(s.b, 6), sig(s.yTop - s.yBase, 6), sig(s.alpha * 180 / Math.PI, 6), sig(s.W, 6), sig(s.u, 6), s.soil.c, s.soil.phi, sig(s.m, 6)])];
+    // Drawing.
+    const xc = crestX(S), ff = f!, cc = c;
+    const xs = [ff.xL, ff.xR, -0.3 * H, xc + 0.5 * H, cc.xc, ...(mode === 'grid' ? [G.x0, G.x1] : [])], ys = [cc.yc - cc.R, 0, H, cc.yc, ...(mode === 'grid' ? [G.y1] : []), ...(two ? [S.yi!] : [])];
+    const xa = Math.min(...xs) - 1, xb = Math.max(...xs) + 1, ya = Math.min(...ys) - 1, yb = Math.max(...ys) + 1;
+    fig = { w: 380, h: Math.round(Math.min(520, Math.max(220, 380 * (yb - ya) / (xb - xa)))), alt: 'Slope cross-section with the critical slip circle, slices, water line and the grid of centres', draw: (ctx, W, Hh, pal) => {
+      const pad = 8, sc = Math.min((W - 2 * pad) / (xb - xa), (Hh - 2 * pad) / (yb - ya));
+      const ox = (W - sc * (xb - xa)) / 2, oy = (Hh - sc * (yb - ya)) / 2;
+      const P = (x: number, y: number): [number, number] => [ox + (x - xa) * sc, Hh - oy - (y - ya) * sc];
+      const line = (pts: [number, number][], color: string, w: number, dash: number[] = []) => { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.setLineDash(dash); ctx.beginPath(); pts.forEach(([x, y], i) => { const [px, py] = P(x, y); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.stroke(); ctx.setLineDash([]); };
+      // Ground (filled).
+      ctx.fillStyle = pal.grid; ctx.beginPath(); [[xa, ya], [xa, 0], [0, 0], [xc, H], [xb, H], [xb, ya]].forEach(([x, y], i) => { const [px, py] = P(x, y); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.closePath(); ctx.fill();
+      if (two && S.yi! < H) line([[S.yi! <= 0 ? xa : S.yi! / Math.tan((beta * Math.PI) / 180), S.yi!], [xb, S.yi!]], pal.muted, 1.2, [6, 3]);
+      // Slices.
+      ff.slices.forEach((s) => { line([[s.x - s.b / 2, ground(S, s.x - s.b / 2)], [s.x - s.b / 2, cc.yc - Math.sqrt(Math.max(0, cc.R ** 2 - (s.x - s.b / 2 - cc.xc) ** 2))]], pal.line, 0.8); });
+      line([[xa, 0], [0, 0], [xc, H], [xb, H]], pal.ink, 1.8);
+      if (S.water.kind === 'line') { const pts: [number, number][] = []; for (let i = 0; i <= 60; i++) { const x = xa + ((xb - xa) * i) / 60; pts.push([x, piezo(S, x)]); } line(pts, pal.accent2, 1.6, [5, 3]); }
+      // Circle arc.
+      const arc: [number, number][] = []; for (let i = 0; i <= 80; i++) { const x = ff.xL + ((ff.xR - ff.xL) * i) / 80; arc.push([x, cc.yc - Math.sqrt(Math.max(0, cc.R ** 2 - (x - cc.xc) ** 2))]); }
+      line(arc, pal.bad, 2.2);
+      line([[ff.xL, arc[0][1]], [cc.xc, cc.yc], [ff.xR, arc[80][1]]], pal.muted, 0.8, [3, 3]);
+      centres.forEach((g) => { const [px, py] = P(g.x, g.y); ctx.fillStyle = pal.muted; ctx.fillRect(px - 1.2, py - 1.2, 2.4, 2.4); });
+      const [cx, cy] = P(cc.xc, cc.yc); ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * Math.PI); ctx.fill();
+      ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`FS ${f2(ff.bishop)}`, cx + 6, cy - 2);
+    } };
+    paint(q<HTMLCanvasElement>('.ss-fig'), fig);
+    const fp = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [{ title: q('.ss-big').textContent!, text: [q('.ss-sub').textContent!], facts: fp(facts), figure: fig },
+      { title: 'Slices', table: { head, rows }, note: 'For study and planning, not a substitute for professional judgement. Example values are made up.' }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 120); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ss-fit').addEventListener('click', fitGrid);
+  q('.ss-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'slope-stability-slices.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ss-out').hidden) paint(q<HTMLCanvasElement>('.ss-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Slope stability', subtitle: q('.ss-big').textContent ?? '', file: 'slope-stability', sections }));
+</script>
+
+<style is:inline>
+  .ssb select, .ssb input[type=text] { max-width: 100%; }
+  .ssb h3 { font-size: 15px; margin: 14px 0 6px; }
+  .ssb .ss-sub { margin: 4px 0 12px; }
+  .ssb summary { cursor: pointer; font-weight: 600; }
+  .ssb td, .ssb th { text-align: right; }
+</style>

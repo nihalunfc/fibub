@@ -1,0 +1,278 @@
+---
+// Weather station data viewer: open a station CSV (time, temperature, humidity, pressure, wind, rain), find the step
+// and the gaps, chart each variable, draw a wind rose, and sum it up by day and month. Everything stays in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax sdv">
+  <div class="ax-card">
+    <h2>Station data</h2>
+    <p class="ax-help" style="margin-top:0">A table with a header row and one record per line: a <b>date and time</b> (or a date column and a time column), then any of <b>temperature, humidity, pressure, wind speed, wind direction and rain</b>. Columns are matched by their names; change them below if a guess is wrong.</p>
+    <textarea class="sd-text" rows="8" spellcheck="false" aria-label="Station data"></textarea>
+    <DataFile target=".sd-text" maxMB={20} maxCols={40} maxRows={200000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sd-ex">Use the example</button>
+      <button type="button" class="btn secondary small sd-clear">Start empty</button>
+    </div>
+    <h3 style="margin:14px 0 8px">Columns</h3>
+    <div class="ax-grid sd-map"></div>
+    <h3 style="margin:14px 0 8px">Units and format</h3>
+    <div class="ax-grid">
+      <label>Dates are written <select class="sd-ord"><option value="ymd">Year first (2026-03-04)</option><option value="dmy">Day first (04/03/2026)</option><option value="mdy">Month first (03/04/2026)</option></select></label>
+      <label>Temperature in <select class="sd-tu"><option>°C</option><option>°F</option></select></label>
+      <label>Pressure in <select class="sd-pu"><option>hPa</option><option>kPa</option><option>inHg</option><option>mmHg</option></select></label>
+      <label>Wind speed in <select class="sd-wu"><option>m/s</option><option>km/h</option><option>mph</option><option>knots</option></select></label>
+      <label>Rain in <select class="sd-ru"><option>mm</option><option>in</option></select></label>
+      <label>Rain column is <select class="sd-rm"><option value="amount">Rain in each record</option><option value="total">A running total</option></select></label>
+    </div>
+    <p class="ax-help">Times are used as written, with no time-zone change; a day is a calendar day in the file's own time. Units only label the results: nothing is converted. A running rain total is turned into amounts per record; when it drops, the counter is taken as reset.</p>
+    <p class="ax-help sd-note" hidden></p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="sd-out">
+    <div class="ax-card">
+      <h2>Overview and gaps</h2>
+      <dl class="ax-facts sd-facts"></dl>
+      <div class="sd-gapw">
+        <h3 style="margin:14px 0 6px">Gaps</h3>
+        <p class="ax-help sd-gapn" style="margin:0 0 6px"></p>
+        <div class="ax-scroll"><table class="sd-gaps"></table></div>
+        <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-gcsv">Download gaps CSV</button></div>
+      </div>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Time series</h2>
+      <div class="sd-charts"></div>
+      <p class="ax-help">Long records are thinned for drawing (the lowest and highest value of each slice are kept), so peaks still show. Rain is drawn as the running total.</p>
+    </div>
+
+    <div class="ax-card sd-rosew" style="margin-top:14px">
+      <h2>Wind rose</h2>
+      <div class="ax-grid">
+        <label>Sectors <select class="sd-sec"><option value="16">16</option><option value="8">8</option><option value="36">36 (10°)</option></select></label>
+        <label>Calm below <input class="sd-calm" inputmode="decimal" value="0.5" /></label>
+        <label>Speed classes from <input class="sd-edges" value="0.5, 2, 4, 6, 8" /></label>
+      </div>
+      <p class="ax-help">Wind direction is where the wind comes from. Calms (speed below the limit) have no direction: they are the percentage in the centre. Each wedge shows the share of all used records from that direction, split by speed class.</p>
+      <p class="ax-err sd-rerr" hidden></p>
+      <canvas class="ax-fig sd-rose" style="max-width:520px;margin:10px auto 0"></canvas>
+      <p class="ax-help sd-rnote"></p>
+      <div class="ax-scroll"><table class="sd-rtab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-rcsv">Download wind rose CSV</button><button type="button" class="btn secondary small sd-rsvg">Download wind rose SVG</button></div>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Summaries</h2>
+      <div class="ax-seg sd-by" role="group" aria-label="Summary by"><button type="button" data-by="day" aria-pressed="true">By day</button><button type="button" data-by="month" aria-pressed="false">By month</button></div>
+      <div class="ax-scroll" style="margin-top:10px"><table class="sd-sum"></table></div>
+      <p class="ax-help">Complete: share of the expected records (at the usual step) that are there. Means are of the records present, so check days with gaps.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-scsv">Download summary CSV</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .sdv .sd-sum td, .sdv .sd-sum th, .sdv .sd-rtab td, .sdv .sd-rtab th, .sdv .sd-gaps td, .sdv .sd-gaps th { white-space: nowrap; padding: 6px 7px; }
+  .sdv .sd-sum td:not(:first-child), .sdv .sd-rtab td:not(:first-child), .sdv .sd-sum th:not(:first-child), .sdv .sd-rtab th:not(:first-child) { text-align: right; }
+  .sdv .sd-charts canvas + canvas { margin-top: 12px; }
+  .sdv .sd-out { min-width: 0; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { guessColumns, loadRecords, interval, gaps, summarise, windRose, drawRose, rosePct, classLabel, sectorName, example, fmtTime, fmtDur, VARS, VAR_NAMES, type Mapping, type Rec, type Var, type Summary, type Rose, type Gap } from '../../lib/sci/station';
+  import { chartFigure, canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, LIGHT, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sdv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.sd-text');
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const KEYS: (keyof Mapping)[] = ['time', 'date', ...VARS];
+  const LABEL: Record<string, string> = { time: 'Date and time (or time of day)', date: 'Separate date column', ...VAR_NAMES };
+  let headers: string[] = [], map: Mapping | null = null, recs: Rec[] = [], step = 0, gapList: Gap[] = [], by: 'day' | 'month' = 'day';
+  let rose: Rose | null = null, roseFig: Figure | null = null, figs: Figure[] = [], sums: Record<'day' | 'month', Summary[]> = { day: [], month: [] };
+  let sections: Section[] = [], units: Record<Var, string> = { T: '°C', RH: '%', P: 'hPa', WS: 'm/s', WD: '°', R: 'mm' };
+
+  const fact = (k: string, v: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const fill = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); } return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.append(h, b);
+  };
+  const f = (x: number | undefined | null, d = 1) => (x == null || !Number.isFinite(x) ? '' : x.toFixed(d));
+  const shown = (x: string) => x.replace(/^-/, '−');
+
+  // Column pickers, rebuilt when the header changes.
+  function buildMap(force = false) {
+    const rows = parseTable(box.value), h = rows[0] ?? [];
+    if (!force && h.join('\u0001') === headers.join('\u0001')) return rows;
+    headers = h; map = guessColumns(h);
+    const wrap = q('.sd-map'); wrap.replaceChildren();
+    for (const k of KEYS) {
+      const l = document.createElement('label'); l.textContent = LABEL[k] + ' ';
+      const s = document.createElement('select'); s.dataset.k = k; s.className = `sd-c-${k}`;
+      s.append(new Option('(none)', '-1'), ...h.map((x, i) => new Option(x || `Column ${i + 1}`, String(i))));
+      s.value = String(map[k]); l.append(s); wrap.append(l);
+    }
+    return rows;
+  }
+  function readMap(): Mapping { const m = { time: -1, date: -1, clock: -1, T: -1, RH: -1, P: -1, WS: -1, WD: -1, R: -1 } as Mapping; for (const k of KEYS) m[k] = Number(q<HTMLSelectElement>(`.sd-c-${k}`)?.value ?? -1); return m; }
+
+  function fail(msg: string) { const e = q('.sd-err'); e.textContent = msg; e.hidden = false; q('.sd-out').hidden = true; sections = []; recs = []; }
+
+  function calc() {
+    const rows = buildMap();
+    const err = q('.sd-err'), note = q('.sd-note');
+    if (rows.length < 3) return fail('Paste or open a table with a header row and at least two records.');
+    const m = readMap();
+    if (m.time < 0) return fail('Pick the column with the date and time.');
+    units = { T: sel('.sd-tu'), RH: '%', P: sel('.sd-pu'), WS: sel('.sd-wu'), WD: '°', R: sel('.sd-ru') };
+    const L = loadRecords(rows.slice(1), m, num, sel('.sd-ord') as 'ymd', sel('.sd-rm') as 'amount');
+    if (L.recs.length < 2) return fail(`Could not read the times${L.firstBad ? ` (such as "${L.firstBad}")` : ''}. Check the date and time column and the date order.`);
+    const used = VARS.filter((v) => m[v] >= 0);
+    if (!used.length) return fail('Pick at least one measurement column.');
+    err.hidden = true; q('.sd-out').hidden = false;
+    recs = L.recs; step = interval(recs); gapList = gaps(recs, step); map = m;
+    const notes: string[] = [];
+    if (L.badTime) notes.push(`${L.badTime.toLocaleString('en')} row${L.badTime > 1 ? 's' : ''} without a readable time ${L.badTime > 1 ? 'were' : 'was'} skipped (first: "${L.firstBad}").`);
+    if (L.unordered) notes.push('The rows were not in time order; they were sorted.');
+    if (L.dupes) notes.push(`${L.dupes} repeated time${L.dupes > 1 ? 's were' : ' was'} dropped (the first record of each time is kept).`);
+    if (L.resets) notes.push(`The rain total dropped ${L.resets} time${L.resets > 1 ? 's' : ''}; each drop was taken as a counter reset.`);
+    note.textContent = notes.join(' '); note.hidden = !notes.length;
+    // Overview.
+    const first = recs[0].t, last = recs[recs.length - 1].t, expected = step > 0 ? Math.round((last - first) / step) + 1 : recs.length;
+    const missingRecs = gapList.reduce((s, g) => s + g.missing, 0);
+    const missingVals = used.map((v) => [v, recs.filter((r) => r[v] == null).length] as const).filter(([, n]) => n > 0);
+    const facts: [string, string, string?][] = [
+      ['Records', recs.length.toLocaleString('en'), `${used.length} variable${used.length > 1 ? 's' : ''}: ${used.map((v) => VAR_NAMES[v].toLowerCase()).join(', ')}`],
+      ['From', fmtTime(first)], ['To', fmtTime(last)],
+      ['Usual step', step > 0 ? fmtDur(step) : '–', 'the most common time between records'],
+      ['Gaps', String(gapList.length), gapList.length ? `${missingRecs.toLocaleString('en')} records missing in all` : 'no record is more than 1.5 steps after the one before'],
+      ['Complete', `${sig((100 * recs.length) / Math.max(expected, recs.length), 3)} %`, `${recs.length.toLocaleString('en')} of ${expected.toLocaleString('en')} expected records`],
+      ['Blank values', missingVals.reduce((a, [, n]) => a + n, 0).toLocaleString('en'), missingVals.length ? missingVals.map(([v, n]) => `${VAR_NAMES[v].toLowerCase()} ${n}`).join(', ') : 'every chosen column has a value in every record'],
+    ];
+    q('.sd-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    q('.sd-gapw').hidden = !gapList.length;
+    q('.sd-gapn').textContent = gapList.length > 100 ? `Showing the first 100 of ${gapList.length} gaps; the CSV has them all.` : '';
+    const gapRows = gapList.map((g) => [fmtTime(g.from), fmtTime(g.to), fmtDur(g.to - g.from), String(g.missing)]);
+    fill(q('.sd-gaps'), ['Last record before', 'Next record', 'Gap', 'Missing records'], gapRows.slice(0, 100));
+    // Time series.
+    figs = [];
+    const wrap = q('.sd-charts'); wrap.replaceChildren();
+    const xDays = (t: number) => (t - first) / 86400000;
+    for (const v of used.filter((x) => x !== 'WD')) {
+      let xs: number[] = [], ys: number[] = [];
+      if (v === 'R') { let acc = 0; for (const r of recs) if (r.R != null) { acc += r.R; xs.push(xDays(r.t)); ys.push(acc); } }
+      else for (const r of recs) if (r[v] != null) { xs.push(xDays(r.t)); ys.push(r[v]!); }
+      const parts = thin(xs, ys, 1500, (1.5 * step) / 86400000);
+      const name = v === 'R' ? `Rain, running total (${units.R})` : `${VAR_NAMES[v]} (${units[v]})`;
+      const ink = (pal: Palette) => (pal.red ? '#a30000' : pal.bg === '#ffffff' ? '#0072B2' : '#56B4E9');
+      const chart = (pal: Palette) => chartFigure({ w: 640, h: 240, xMin: 0, xMax: Math.max(1, Math.ceil(xDays(last))), xLabel: `Days since ${fmtTime(first)}`, yLabel: name, legend: 'none', colors: [ink(pal)], series: parts.map(([x, y]) => ({ name, x, y, mode: 'line' as const, width: 1.2, color: ink(pal) })) }, '');
+      const fg: Figure = { w: 640, h: 240, alt: `${name} against time`, draw: (ctx, w, h, pal) => chart(pal).draw(ctx, w, h, pal) };
+      figs.push(fg);
+      const cv = document.createElement('canvas'); cv.className = 'ax-fig sd-ts'; cv.dataset.v = v; wrap.append(cv); paint(cv, fg);
+    }
+    if (used.includes('WD') && !used.includes('WS')) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = 'The wind rose needs a wind speed column as well as the direction.'; wrap.append(p); }
+    q('.sd-rosew').hidden = !(used.includes('WS') && used.includes('WD'));
+    sums = { day: summarise(recs, 'day', step), month: summarise(recs, 'month', step) };
+    drawSummary(); drawRoseCard(); buildReport();
+  }
+
+  /** At most n points for drawing (the lowest and highest of each slice), split into pieces at gaps. */
+  function thin(xs: number[], ys: number[], n: number, gapDays: number): [number[], number[]][] {
+    const out: [number[], number[]][] = [];
+    let cx: number[] = [], cy: number[] = [];
+    const per = Math.max(1, Math.ceil(xs.length / n));
+    for (let i = 0; i < xs.length; i += per) {
+      const end = Math.min(xs.length, i + per);
+      let lo = i, hi = i;
+      for (let j = i; j < end; j++) { if (ys[j] < ys[lo]) lo = j; if (ys[j] > ys[hi]) hi = j; }
+      if (i > 0 && xs[i] - xs[i - 1] > gapDays && cx.length) { out.push([cx, cy]); cx = []; cy = []; }
+      for (const j of lo === hi ? [lo] : lo < hi ? [lo, hi] : [hi, lo]) { cx.push(xs[j]); cy.push(ys[j]); }
+    }
+    if (cx.length) out.push([cx, cy]);
+    return out;
+  }
+
+  function summaryTable() {
+    const s = sums[by], have = (v: Var) => map![v] >= 0;
+    const u = units;
+    const head = [by === 'day' ? 'Day' : 'Month', 'Records', 'Complete %',
+      ...(have('T') ? [`T min (${u.T})`, `T mean (${u.T})`, `T max (${u.T})`] : []),
+      ...(have('RH') ? ['RH min (%)', 'RH mean (%)', 'RH max (%)'] : []),
+      ...(have('P') ? [`P min (${u.P})`, `P mean (${u.P})`, `P max (${u.P})`] : []),
+      ...(have('WS') ? [`Wind mean (${u.WS})`, `Wind max (${u.WS})`] : []),
+      ...(have('WS') && have('WD') ? ['Vector-mean dir (°)'] : []),
+      ...(have('R') ? [`Rain (${u.R})`] : [])];
+    const pd = u.P === 'inHg' ? 2 : u.P === 'kPa' ? 2 : 1, rd = u.R === 'in' ? 2 : 1;
+    const rows = s.map((x) => [x.key, String(x.n), x.complete == null ? '' : (100 * x.complete).toFixed(0),
+      ...(have('T') ? [f(x.T?.min), f(x.T?.mean), f(x.T?.max)] : []),
+      ...(have('RH') ? [f(x.RH?.min, 0), f(x.RH?.mean, 0), f(x.RH?.max, 0)] : []),
+      ...(have('P') ? [f(x.P?.min, pd), f(x.P?.mean, pd), f(x.P?.max, pd)] : []),
+      ...(have('WS') ? [f(x.WS?.mean), f(x.WS?.max)] : []),
+      ...(have('WS') && have('WD') ? [x.dir == null ? '' : x.dir.toFixed(0)] : []),
+      ...(have('R') ? [x.R ? x.R.sum.toFixed(rd) : ''] : [])]);
+    return { head, rows };
+  }
+  function drawSummary() {
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.sd-by button')) b.setAttribute('aria-pressed', String(b.dataset.by === by));
+    const { head, rows } = summaryTable();
+    fill(q('.sd-sum'), head, rows.map((r) => r.map(shown)));
+  }
+
+  function drawRoseCard() {
+    rose = null; roseFig = null;
+    if (q('.sd-rosew').hidden) return;
+    const err = q('.sd-rerr'), calm = num(q<HTMLInputElement>('.sd-calm').value);
+    const edges = q<HTMLInputElement>('.sd-edges').value.split(/[,;\s]+/).filter(Boolean).map(num);
+    const bad = !(calm >= 0) ? 'The calm limit must be 0 or more.' : !edges.length || edges.length > 8 || edges.some((e) => !Number.isFinite(e) || e < 0) || edges.some((e, i) => i && e <= edges[i - 1]) ? 'List 1 to 8 rising speeds of 0 or more for the classes.' : edges[0] < calm ? 'The first speed class should start at or above the calm limit.' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; q('.sd-rose').hidden = true; fill(q('.sd-rtab'), [], []); return; }
+    err.hidden = true; q('.sd-rose').hidden = false;
+    const n = Number(sel('.sd-sec'));
+    rose = windRose(recs, edges, calm, n);
+    const r = rose, unit = units.WS;
+    const COL = ['#c6dbef', '#9ecae1', '#6baed6', '#3182bd', '#08519c', '#08306b', '#041d42', '#000000'];
+    const colors = (pal: Palette) => (pal.red ? ['#3a0000', '#5a0000', '#7a0000', '#a30000', '#c00000', '#e00000', '#ff0000', '#ff3030'] : pal.bg === '#ffffff' ? COL : ['#08306b', '#08519c', '#2171b5', '#4292c6', '#6baed6', '#9ecae1', '#c6dbef', '#ffffff']);
+    roseFig = { w: 440, h: 500, alt: `Wind rose, ${n} sectors, ${r.total} records, ${((100 * r.calm) / Math.max(1, r.total)).toFixed(1)} % calm`, draw: (ctx, w, h, pal) => drawRose(canvasPainter(ctx), r, w, h, { ink: pal.ink, muted: pal.muted, grid: pal.grid, bg: '', colors: colors(pal), unit, calm }) };
+    paint(q<HTMLCanvasElement>('.sd-rose'), roseFig);
+    const pct = rosePct(r), tot = pct.map((s) => s.reduce((a, b) => a + b, 0));
+    const top = tot.indexOf(Math.max(...tot));
+    q('.sd-rnote').textContent = `${r.total.toLocaleString('en')} records used, ${((100 * r.calm) / Math.max(1, r.total)).toFixed(1)} % calm. Most common direction: ${sectorName(top, n)} (${tot[top].toFixed(1)} %).${r.noDir ? ` ${r.noDir} record${r.noDir > 1 ? 's' : ''} with a speed but no direction left out.` : ''}`;
+    const head = ['Direction', ...edges.map((_, i) => `${classLabel(edges, i)} ${unit}`), 'All (%)'];
+    fill(q('.sd-rtab'), head, pct.map((row, s) => [sectorName(s, n), ...row.map((p) => p.toFixed(1)), tot[s].toFixed(1)]));
+  }
+
+  function buildReport() {
+    const { head, rows } = summaryTable();
+    const s: Section[] = [{ title: 'Overview', facts: [...q('.sd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]) }];
+    if (gapList.length) s.push({ title: 'Gaps', table: { head: ['Last record before', 'Next record', 'Gap', 'Missing'], rows: gapList.slice(0, 200).map((g) => [fmtTime(g.from), fmtTime(g.to), fmtDur(g.to - g.from), String(g.missing)]) } });
+    for (const fg of figs) s.push({ title: fg.alt.replace(/ against time$/, ''), figure: fg });
+    if (roseFig && rose) s.push({ title: 'Wind rose', figure: roseFig, text: [q('.sd-rnote').textContent!] });
+    const many = by === 'day' && rows.length > 62;
+    s.push({ title: by === 'day' ? 'Daily summary' : 'Monthly summary', table: { head, rows: (many ? rows.slice(0, 62) : rows).map((r) => r.map(shown)), align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: many ? `First 62 of ${rows.length} days; download the summary CSV for all.` : undefined });
+    sections = s;
+  }
+
+  q('.sd-by').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; by = b.dataset.by as 'day'; drawSummary(); buildReport(); });
+  q('.sd-ex').addEventListener('click', () => { box.value = example(); headers = []; calc(); });
+  q('.sd-clear').addEventListener('click', () => { box.value = ''; headers = []; calc(); });
+  q('.sd-map').addEventListener('change', calc);
+  for (const c of ['.sd-ord', '.sd-tu', '.sd-pu', '.sd-wu', '.sd-ru', '.sd-rm']) q(c).addEventListener('change', calc);
+  q('.sd-sec').addEventListener('change', () => { drawRoseCard(); buildReport(); });
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 400); });
+  for (const c of ['.sd-calm', '.sd-edges']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(() => { drawRoseCard(); buildReport(); }, 300); });
+  const dl = (text: string, name: string) => save(new Blob(['﻿' + text], { type: 'text/csv' }), name, 'text/csv');
+  q('.sd-scsv').addEventListener('click', () => { if (!recs.length) return; const { head, rows } = summaryTable(); dl(csv([head, ...rows]), `station-${by === 'day' ? 'daily' : 'monthly'}-summary.csv`); });
+  q('.sd-gcsv').addEventListener('click', () => { if (!gapList.length) return; dl(csv([['Last record before', 'Next record', 'Gap (minutes)', 'Missing records'], ...gapList.map((g) => [fmtTime(g.from), fmtTime(g.to), Math.round((g.to - g.from) / 60000), g.missing])]), 'station-gaps.csv'); });
+  q('.sd-rcsv').addEventListener('click', () => { if (!rose) return; const r = rose, pct = rosePct(r); dl(csv([['Direction', ...r.edges.map((_, i) => `${classLabel(r.edges, i)} ${units.WS} (%)`), 'All (%)', 'Records'], ...pct.map((row, s) => [sectorName(s, r.sectors), ...row.map((p) => +p.toFixed(3)), +row.reduce((a, b) => a + b, 0).toFixed(3), r.counts[s].reduce((a, b) => a + b, 0)]), ['Calm', ...r.edges.map(() => ''), +((100 * r.calm) / Math.max(1, r.total)).toFixed(3), r.calm]]), 'wind-rose.csv'); });
+  q('.sd-rsvg').addEventListener('click', () => { if (!rose) return; const P = svgPainter(440, 500); drawRose(P, rose, 440, 500, { ink: LIGHT.ink, muted: LIGHT.muted, grid: LIGHT.grid, bg: '#ffffff', colors: ['#c6dbef', '#9ecae1', '#6baed6', '#3182bd', '#08519c', '#08306b', '#041d42', '#000000'], unit: units.WS, calm: num(q<HTMLInputElement>('.sd-calm').value) }); save(new Blob([P.toString()], { type: 'image/svg+xml' }), 'wind-rose.svg', 'image/svg+xml'); });
+  document.addEventListener('fibub:theme', () => { root.querySelectorAll<HTMLCanvasElement>('.sd-ts').forEach((c, i) => figs[i] && paint(c, figs[i])); if (roseFig) paint(q<HTMLCanvasElement>('.sd-rose'), roseFig); });
+  box.value = example(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Weather station data', subtitle: recs.length ? `${fmtTime(recs[0].t)} to ${fmtTime(recs[recs.length - 1].t)}` : '', file: 'station-data', sections }));
+</script>

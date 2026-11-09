@@ -1,0 +1,159 @@
+---
+// Moment of inertia builder: compose simple shapes, parallel-axis theorem, totals with steps. Example parts made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax moi">
+  <div class="ax-card">
+    <h2>Parts</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="mi-pre">
+        <option value="pend" selected>Rod and ball pendulum (made up)</option>
+        <option value="plate">Plate with a hole (made up)</option>
+        <option value="fly">Flywheel on a shaft (made up)</option>
+        <option value="blank">One point mass</option>
+      </select></label>
+      <label>Lengths in <select class="mi-u"><option value="1" selected>metres (m), masses in kg</option><option value="0.01">centimetres (cm), masses in kg</option><option value="0.001">millimetres (mm), masses in g</option></select></label>
+      <label>Spin speed, optional (rpm) <input class="mi-rpm" type="text" inputmode="decimal" value="" placeholder="e.g. 60" /></label>
+    </div>
+    <div class="mi-rows"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mi-add">Add a part</button></div>
+    <p class="ax-help">All parts turn about one fixed axis. x and y are where each part's centre sits in the plane across the axis (the axis is at 0, 0), so the distance from the axis is √(x² + y²). "Axis along" means the axis runs along the part's own symmetry axis (a wheel spinning on its axle); "across" means it runs through a diameter (a rod swung end over end). Tick "hole" to subtract a part, such as a drilled hole. Every part is uniform.</p>
+    <p class="ax-err mi-err" hidden></p>
+  </div>
+
+  <div class="ax-card mi-out">
+    <h2>Moment of inertia</h2>
+    <p class="ax-big mi-big"></p>
+    <dl class="ax-facts mi-facts"></dl>
+    <div class="ax-scroll"><table class="mi-tab"></table></div>
+    <ol class="mi-steps"></ol>
+    <canvas class="ax-fig mi-fig"></canvas>
+    <p class="ax-help">I = Σ (I about the part's own centre + m d²): the parallel-axis theorem for each part, added up. Uniform, rigid parts. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SHAPES, composite, type Shape, type Orient, type Part } from '../../lib/sci/phinertia';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.moi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  type Row = { shape: Shape; m: string; d: string[]; o: Orient; x: string; y: string; hole: boolean };
+  const PRE: Record<string, Row[]> = {
+    pend: [{ shape: 'rod', m: '0.5', d: ['1'], o: 'across', x: '0.5', y: '0', hole: false }, { shape: 'sphere', m: '1', d: ['0.05'], o: 'along', x: '1.05', y: '0', hole: false }],
+    plate: [{ shape: 'box', m: '2', d: ['0.4', '0.3'], o: 'along', x: '0', y: '0', hole: false }, { shape: 'cylinder', m: '0.2', d: ['0.05', '0.01'], o: 'along', x: '0.1', y: '0', hole: true }],
+    fly: [{ shape: 'cylinder', m: '5', d: ['0.2', '0.04'], o: 'along', x: '0', y: '0', hole: false }, { shape: 'rod', m: '0.3', d: ['0.4'], o: 'along', x: '0', y: '0', hole: false }, { shape: 'tube', m: '1.2', d: ['0.18', '0.2', '0.06'], o: 'along', x: '0', y: '0', hole: false }],
+    blank: [{ shape: 'point', m: '1', d: [], o: 'along', x: '1', y: '0', hole: false }],
+  };
+  let figs: Figure[] = [], report: Section[] = [];
+
+  function addRow(r: Row) {
+    const el = document.createElement('fieldset'); el.className = 'mi-row';
+    el.innerHTML = `<legend></legend>
+      <label>Shape <select class="mi-shape">${Object.entries(SHAPES).map(([k, s]) => `<option value="${k}">${s.name}</option>`).join('')}</select></label>
+      <label><span>Mass (<span class="mi-mu">kg</span>)</span> <input class="mi-m" type="text" inputmode="decimal" /></label>
+      <label class="mi-dl1"><span class="mi-dn1"></span> <input class="mi-d1" type="text" inputmode="decimal" /></label>
+      <label class="mi-dl2"><span class="mi-dn2"></span> <input class="mi-d2" type="text" inputmode="decimal" /></label>
+      <label class="mi-dl3"><span class="mi-dn3"></span> <input class="mi-d3" type="text" inputmode="decimal" /></label>
+      <label class="mi-ol">Axis <select class="mi-o"><option value="along">along the part</option><option value="across">across the part</option></select></label>
+      <label>Centre x <input class="mi-x" type="text" inputmode="decimal" /></label>
+      <label>Centre y <input class="mi-y" type="text" inputmode="decimal" /></label>
+      <div class="ax-row"><label class="ax-check"><input class="mi-hole" type="checkbox" /> Hole (subtract)</label><button type="button" class="btn secondary small mi-del">Remove</button></div>`;
+    const s = (c: string) => el.querySelector(c) as HTMLInputElement;
+    (el.querySelector('.mi-shape') as HTMLSelectElement).value = r.shape; s('.mi-m').value = r.m; s('.mi-d1').value = r.d[0] ?? ''; s('.mi-d2').value = r.d[1] ?? ''; s('.mi-d3').value = r.d[2] ?? '';
+    (el.querySelector('.mi-o') as HTMLSelectElement).value = r.o; s('.mi-x').value = r.x; s('.mi-y').value = r.y; s('.mi-hole').checked = r.hole;
+    el.querySelector('.mi-del')!.addEventListener('click', () => { el.remove(); calc(); });
+    el.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+    q('.mi-rows').append(el);
+  }
+  function load(id: string) { q('.mi-rows').replaceChildren(); PRE[id].forEach(addRow); }
+
+  function calc() {
+    const err = q('.mi-err'), out = q('.mi-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const U = +q<HTMLSelectElement>('.mi-u').value, gram = U === 0.001, MU = gram ? 0.001 : 1, lu = U === 1 ? 'm' : U === 0.01 ? 'cm' : 'mm';
+    const rowsEl = [...root.querySelectorAll<HTMLElement>('.mi-row')], parts: Part[] = [];
+    rowsEl.forEach((el, i) => {
+      const shape = (el.querySelector('.mi-shape') as HTMLSelectElement).value as Shape, S = SHAPES[shape];
+      el.querySelector('legend')!.textContent = `Part ${i + 1}`;
+      el.querySelector('.mi-mu')!.textContent = gram ? 'g' : 'kg';
+      for (let k = 0; k < 3; k++) { (el.querySelector(`.mi-dl${k + 1}`) as HTMLElement).hidden = k >= S.dims.length; el.querySelector(`.mi-dn${k + 1}`)!.textContent = S.dims[k] ? `${S.dims[k][0].toUpperCase()}${S.dims[k].slice(1)} (${lu})` : ''; }
+      (el.querySelector('.mi-ol') as HTMLElement).hidden = !S.orient;
+      el.querySelectorAll('.mi-x, .mi-y').forEach((x) => { (x.parentElement!.firstChild as Text).textContent = `Centre ${x.classList.contains('mi-x') ? 'x' : 'y'} (${lu}) `; });
+    });
+    if (!rowsEl.length) return fail('Add at least one part.');
+    for (const [i, el] of rowsEl.entries()) {
+      const v = (c: string) => num((el.querySelector(c) as HTMLInputElement).value);
+      const shape = (el.querySelector('.mi-shape') as HTMLSelectElement).value as Shape, S = SHAPES[shape];
+      const m = v('.mi-m') * MU, dims = [v('.mi-d1'), v('.mi-d2'), v('.mi-d3')].slice(0, S.dims.length).map((d) => d * U);
+      if (!(m > 0)) return fail(`Part ${i + 1}: give a mass greater than 0.`);
+      if (dims.some((d) => !(d >= 0))) return fail(`Part ${i + 1}: give every size (${S.dims.join(', ')}) as 0 or more.`);
+      if ((shape === 'tube' || shape === 'hollowsphere') && !(dims[1] >= dims[0])) return fail(`Part ${i + 1}: the outer radius must be at least the inner radius.`);
+      const x = v('.mi-x'), y = v('.mi-y');
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return fail(`Part ${i + 1}: give the centre x and y (0 if the part sits on the axis).`);
+      parts.push({ shape, m, dims, orient: (el.querySelector('.mi-o') as HTMLSelectElement).value as Orient, x: x * U, y: y * U, hole: (el.querySelector('.mi-hole') as HTMLInputElement).checked });
+    }
+    const c = composite(parts);
+    if (!(c.M > 0)) return fail('The holes weigh as much as the solid parts or more: check the masses.');
+    if (!(c.I > 0)) return fail('The total comes out zero or negative: a hole cannot be bigger than what it is cut from.');
+    err.hidden = true; out.hidden = false;
+    const I = (x: number) => `${sig(x, 4)} kg·m²`, Mf = (x: number) => (gram ? `${sig(x * 1000, 4)} g` : `${sig(x, 4)} kg`), Lf = (x: number) => `${sig(x / U, 4)} ${lu}`;
+    q('.mi-big').textContent = `I = ${I(c.I)} about the axis`;
+    const rpm = num(q<HTMLInputElement>('.mi-rpm').value), w = (rpm * 2 * Math.PI) / 60;
+    const f = [
+      fact('Moment of inertia', I(c.I), 'about the axis at (0, 0)'),
+      fact('Total mass', Mf(c.M), parts.some((p) => p.hole) ? 'holes subtracted' : ''),
+      fact('Radius of gyration', Lf(c.k), 'the whole mass at this distance would have the same I: √(I/M)'),
+      fact('Centre of mass', `(${sig(c.cx / U, 4)}, ${sig(c.cy / U, 4)}) ${lu}`, `${Lf(c.dcm)} from the axis`),
+      fact('I about the centre of mass', I(c.Icm), 'the smallest I for any axis in this direction: I − M d²'),
+      ...(rpm > 0 ? [fact(`At ${sig(rpm, 4)} rpm`, `${sig(0.5 * c.I * w * w, 4)} J of spin energy`, `ω = ${sig(w, 4)} rad/s; angular momentum Iω = ${sig(c.I * w, 4)} kg·m²/s`)] : []),
+    ];
+    q('.mi-facts').replaceChildren(...f);
+    const head = ['Part', 'Shape', 'Mass', 'I own centre (kg·m²)', 'd', 'm d² (kg·m²)', 'I (kg·m²)'];
+    const rows = c.rows.map((r, i) => [`${i + 1}${r.hole ? ' (hole)' : ''}`, SHAPES[r.shape].name, Mf(r.mSigned), sig(r.Ic, 4), Lf(r.d), sig(r.md2, 4), sig(r.I, 4)]);
+    rows.push(['Total', '', Mf(c.M), '', '', '', sig(c.I, 4)]);
+    const tr = (cells: string[], th = false) => { const t = document.createElement('tr'); for (const x of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; t.append(e); } return t; };
+    q('.mi-tab').replaceChildren(tr(head, true), ...rows.map((r) => tr(r)));
+    const steps = c.rows.map((r, i) => {
+      const S = SHAPES[r.shape], o = r.orient ?? 'along', dimTxt = S.dims.map((d, k) => `${d.split(' ').pop()} = ${sig(r.dims[k], 4)} m`).join(', ');
+      return `Part ${i + 1}, ${S.name.toLowerCase()}${r.hole ? ' (hole, negative mass)' : ''}: I own centre = ${S.formula[o]}${dimTxt ? ` with m = ${sig(r.mSigned, 4)} kg, ${dimTxt}` : ''} = ${sig(r.Ic, 4)}; plus m d² = ${sig(r.mSigned, 4)} × ${sig(r.d, 4)}² = ${sig(r.md2, 4)}; so ${sig(r.I, 4)} kg·m².`;
+    });
+    steps.push(`Add them: I = ${c.rows.map((r) => sig(r.I, 4)).join(' + ').replace(/\+ −/g, '− ')} = ${sig(c.I, 4)} kg·m².`);
+    q('.mi-steps').replaceChildren(...steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    const pts = c.rows.map((r) => [r.x / U, r.y / U]);
+    const c1 = chartFigure({ w: 380, h: 260, xLabel: `x (${lu})`, yLabel: `y (${lu})`, legend: 'below', series: [
+      { name: 'Part centres', x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'points', marker: 'circle', size: 5, labels: c.rows.map((r, i) => `${i + 1}${r.hole ? ' hole' : ''}`) },
+      { name: 'Axis', x: [0], y: [0], mode: 'points', marker: 'cross', size: 6 },
+      { name: 'Centre of mass', x: [c.cx / U], y: [c.cy / U], mode: 'points', marker: 'open-square', size: 6 },
+    ] }, 'Where the parts sit, seen along the axis');
+    paint(q<HTMLCanvasElement>('.mi-fig'), c1); figs = [c1];
+    report = [
+      { title: q('.mi-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Parts', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r'] }, figure: c1 },
+      { title: 'Steps', text: steps },
+    ];
+  }
+
+  q('.mi-pre').addEventListener('change', () => { load(q<HTMLSelectElement>('.mi-pre').value); calc(); });
+  q('.mi-add').addEventListener('click', () => { addRow({ shape: 'point', m: '1', d: [], o: 'along', x: '0', y: '0', hole: false }); calc(); });
+  q('.mi-u').addEventListener('change', calc); q('.mi-rpm').addEventListener('input', calc);
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.mi-out').hidden) paint(q<HTMLCanvasElement>('.mi-fig'), figs[0]); });
+  load('pend'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Moment of inertia', subtitle: q('.mi-big').textContent || '', file: 'moment-of-inertia', sections: report }));
+</script>
+
+<style is:inline>
+  .moi select, .moi input[type=text] { max-width: 100%; }
+  .moi .mi-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin-top: 12px; }
+  .moi .mi-row { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; min-width: 0; display: grid; gap: 8px; }
+  .moi .mi-row > label { display: grid; gap: 4px; font-size: 14px; }
+  .moi .mi-row > label[hidden] { display: none; }
+  .moi .mi-steps { font-size: 14px; padding-left: 20px; margin: 12px 0; }
+  .moi .mi-steps li { margin: 4px 0; }
+  .moi .mi-tab td:nth-child(n+3) { text-align: right; }
+</style>

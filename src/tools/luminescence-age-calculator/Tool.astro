@@ -1,0 +1,209 @@
+---
+// Luminescence age: equivalent dose (central age model, weighted mean or one value) divided by the environmental
+// dose rate, with first-order uncertainty propagation. Every conversion factor is an input; the prefilled ones are
+// rounded example values. The example aliquots and sediment are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE_ALIQUOTS } from '../../lib/sci/luminescence';
+const pair = (cls: string, label: string, v: string, u: string, unit: string) => ({ cls, label, v, u, unit });
+const conc = [pair('K', 'Potassium', '1.2', '0.06', '%'), pair('U', 'Uranium', '2.0', '0.1', 'ppm'), pair('Th', 'Thorium', '7.5', '0.4', 'ppm')];
+const parts = [pair('alpha', 'Alpha, effective (dry)', '0', '0', 'Gy/ka'), pair('beta', 'Beta (dry)', '1.40', '0.07', 'Gy/ka'), pair('gamma', 'Gamma (dry)', '0.85', '0.05', 'Gy/ka')];
+const common = [pair('water', 'Water content', '15', '5', '% of dry mass'), pair('cosmic', 'Cosmic dose rate', '0.15', '0.015', 'Gy/ka'), pair('internal', 'Internal dose rate', '0', '0', 'Gy/ka')];
+const grain = [pair('aValue', 'Alpha efficiency (a-value)', '0', '0', ''), pair('betaAtt', 'Beta attenuation factor', '0.9', '0.02', '')];
+const factors = [['K', '%', '0', '0.8', '0.25'], ['U', 'ppm', '2.8', '0.15', '0.11'], ['Th', 'ppm', '0.74', '0.03', '0.05']];
+---
+<div class="ax lum">
+  <div class="ax-card">
+    <h2>Equivalent dose</h2>
+    <div class="ax-grid">
+      <label>From <select class="lu-demode"><option value="aliq" selected>Many aliquots or grains</option><option value="one">One value</option></select></label>
+      <label class="lu-aonly">Combine with <select class="lu-agg"><option value="cam" selected>Central age model (CAM)</option><option value="wm">Weighted mean</option><option value="mean">Arithmetic mean</option></select></label>
+    </div>
+    <div class="lu-aonly">
+      <label style="margin-top:10px">One aliquot per row: name (optional), De in Gy, its uncertainty in Gy
+        <textarea class="lu-in" rows="7" spellcheck="false" wrap="off">{EXAMPLE_ALIQUOTS}</textarea></label>
+      <DataFile target=".lu-in" maxCols={10} maxRows={5000} />
+    </div>
+    <div class="ax-grid lu-oonly" style="margin-top:10px" hidden>
+      <label>De (Gy) <input class="lu-de" type="text" inputmode="decimal" value="30" /></label>
+      <label>± (Gy) <input class="lu-deu" type="text" inputmode="decimal" value="1.5" /></label>
+    </div>
+    <p class="ax-help lu-desum" aria-live="polite"></p>
+    <canvas class="ax-fig lu-defig lu-aonly"></canvas>
+    <p class="ax-help">The example aliquots are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Dose rate</h2>
+    <label>From <select class="lu-drmode"><option value="conc" selected>K, U and Th concentrations</option><option value="parts">Alpha, beta and gamma dose rates</option></select></label>
+    <div class="lu-conly">
+      <div class="lu-pairs">
+        {conc.map((p) => <div class="lu-pair"><span>{p.label} ({p.unit})</span><input class={`lu-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`lu-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+        {grain.map((p) => <div class="lu-pair"><span>{p.label}</span><input class={`lu-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`lu-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+      </div>
+      <p class="ax-help">The a-value scales the alpha dose rate: 0 for coarse grains with the outer skin etched away, about 0.04 to 0.1 for fine grains. The beta attenuation factor allows for grain size and etching (1 = none). Enter the values for your grains.</p>
+      <h3>Conversion factors (Gy/ka per % K or per ppm U or Th)</h3>
+      <p class="ax-help lu-warn">The numbers filled in are <b>rough example values</b>, rounded, for trying the tool. Replace them with the published factors you use, and cite that source.</p>
+      <div class="ax-scroll"><table class="lu-ftab">
+        <tr><th></th><th class="r">Alpha</th><th class="r">Beta</th><th class="r">Gamma</th></tr>
+        {factors.map(([el, unit, a, b, g]) => <tr><td>{el} (per {unit})</td>{[['a', a], ['b', b], ['g', g]].map(([k, v]) => <td class="r"><input class={`lu-f-${el}${k}`} type="text" inputmode="decimal" value={v} aria-label={`${el} ${k} factor`} /></td>)}</tr>)}
+      </table></div>
+    </div>
+    <div class="lu-ponly" hidden>
+      <div class="lu-pairs">
+        {parts.map((p) => <div class="lu-pair"><span>{p.label} ({p.unit})</span><input class={`lu-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`lu-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+      </div>
+      <p class="ax-help">Dry values: the water correction below is applied to them. Set water to 0 if yours are already corrected.</p>
+    </div>
+    <div class="lu-pairs" style="margin-top:8px">
+      {common.map((p) => <div class="lu-pair"><span>{p.label} ({p.unit})</span><input class={`lu-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`lu-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+    </div>
+    <details class="lu-wd"><summary>Water correction factors</summary>
+      <p class="ax-help">Wet dose rate = dry ÷ (1 + k × W), with W the water mass divided by the dry mass (Zimmerman 1971; Aitken 1985). The k values are the usual ratios of water's to the minerals' stopping power.</p>
+      <div class="ax-grid">
+        <label>Alpha k <input class="lu-kwa" type="text" inputmode="decimal" value="1.49" /></label>
+        <label>Beta k <input class="lu-kwb" type="text" inputmode="decimal" value="1.25" /></label>
+        <label>Gamma k <input class="lu-kwg" type="text" inputmode="decimal" value="1.14" /></label>
+      </div>
+    </details>
+    <p class="ax-help">The example sediment values are made up. For study and planning: check every input against your lab's own data and methods.</p>
+    <p class="ax-err lu-err" hidden></p>
+  </div>
+
+  <div class="ax-card lu-out" hidden>
+    <h2>Age</h2>
+    <p class="ax-big lu-big"></p>
+    <p class="ax-help lu-sub"></p>
+    <dl class="ax-facts lu-facts"></dl>
+    <h3>Where the uncertainty comes from</h3>
+    <div class="ax-scroll"><table class="lu-btab"></table></div>
+    <p class="ax-help">First-order propagation (GUM), treating every input as independent. Share is each input's part of the age's variance.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lu-csv">Summary (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .lum h3 { margin: 18px 0 6px; font-size: 15px; }
+  .lum select { max-width: 100%; }
+  .lum .lu-pairs { display: grid; gap: 8px; margin-top: 10px; }
+  .lum .lu-pair { display: grid; grid-template-columns: minmax(0, 1fr) 5.5em auto 5em; gap: 6px; align-items: center; font-size: 15px; }
+  .lum .lu-pair input, .lum .lu-ftab input { width: 100%; min-width: 0; }
+  .lum .lu-ftab input { max-width: 6em; text-align: right; }
+  .lum .lu-ftab td { vertical-align: middle; }
+  .lum .lu-wd { margin-top: 12px; }
+  .lum .lu-wd summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+</style>
+
+<script>
+  import { cam, weightedMean, plainMean, age, parseAliquots, type AgeResult } from '../../lib/sci/luminescence';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lum')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const n = (c: string) => num(val(c));
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const PART: Record<string, string> = { alpha: 'Alpha', beta: 'Beta', gamma: 'Gamma', cosmic: 'Cosmic', internal: 'Internal' };
+
+  let res: AgeResult | null = null, deText = '', defig: Figure | null = null, sections: Section[] = [];
+  const err = (m: string) => { q('.lu-err').textContent = m; q('.lu-err').hidden = false; q('.lu-out').hidden = true; res = null; };
+
+  function equivalentDose(): { v: number; u: number } | string {
+    const one = val('.lu-demode') === 'one';
+    for (const el of root.querySelectorAll<HTMLElement>('.lu-aonly')) el.hidden = one;
+    q('.lu-oonly').hidden = !one;
+    const sum = q('.lu-desum');
+    if (one) {
+      const v = n('.lu-de'), u = n('.lu-deu');
+      sum.textContent = ''; defig = null;
+      if (!(v > 0)) return 'Give an equivalent dose above 0 Gy.';
+      if (!(u >= 0)) return 'Give the equivalent dose uncertainty (0 or more).';
+      deText = `${sg(v, 4)} ± ${sg(u, 3)} Gy (one value)`;
+      return { v, u };
+    }
+    const a = parseAliquots(parseTable(val('.lu-in')), num);
+    if (a.de.length < 2) { sum.textContent = ''; return 'Paste at least two aliquots, each with a De and its uncertainty.'; }
+    const agg = val('.lu-agg');
+    let r: { de: number; se: number }, extra = '';
+    try {
+      if (agg === 'cam') { const c = cam(a.de, a.u); r = c; extra = `overdispersion ${(100 * c.od).toFixed(1)} %${Number.isFinite(c.odSe) ? ` ± ${(100 * c.odSe).toFixed(1)} %` : ''}${c.converged ? '' : ' (did not converge)'}`; }
+      else if (agg === 'wm') { const w = weightedMean(a.de, a.u); r = w; extra = `MSWD ${sg(w.mswd, 3)}${w.mswd > 1.5 ? ': the spread is larger than the uncertainties explain, so the CAM is usually better' : ''}`; }
+      else { if (a.de.some((x) => !Number.isFinite(x))) throw new Error('A De is not a number.'); const m = plainMean(a.de); r = m; extra = `standard deviation ${sg(m.sd, 3)} Gy`; }
+    } catch (e) { sum.textContent = ''; return (e as Error).message; }
+    const name = agg === 'cam' ? 'CAM' : agg === 'wm' ? 'Weighted mean' : 'Mean';
+    deText = `${name} ${sg(r.de, 4)} ± ${sg(r.se, 3)} Gy from ${a.de.length} aliquots, ${extra}`;
+    sum.textContent = `${deText}.${a.skipped ? ` ${a.skipped} row${a.skipped === 1 ? '' : 's'} without two numbers (such as a header) skipped.` : ''}`;
+    const idx = a.de.map((_, i) => i).sort((i, j) => a.de[i] - a.de[j]);
+    defig = chartFigure({ w: 560, h: 300, xLabel: 'Aliquot, sorted by De', yLabel: 'De (Gy)', legend: 'none', series: [{ name: 'De', x: idx.map((_, k) => k + 1), y: idx.map((i) => a.de[i]), yErr: idx.map((i) => a.u[i]), mode: 'points' }], marks: [{ kind: 'hline', at: r.de, label: `${name} ${sg(r.de, 4)} Gy` }] }, `Equivalent doses of ${a.de.length} aliquots with the ${name}`);
+    paint(q<HTMLCanvasElement>('.lu-defig'), defig);
+    return { v: r.de, u: r.se };
+  }
+
+  const pairOf = (k: string) => ({ v: n(`.lu-v-${k}`), u: n(`.lu-u-${k}`) });
+  function run() {
+    q('.lu-err').hidden = true;
+    const conc = val('.lu-drmode') === 'conc';
+    q('.lu-conly').hidden = !conc; q('.lu-ponly').hidden = conc;
+    const De = equivalentDose();
+    if (typeof De === 'string') return err(De);
+    const kw = { a: n('.lu-kwa'), b: n('.lu-kwb'), g: n('.lu-kwg') };
+    if (![kw.a, kw.b, kw.g].every((x) => x >= 0)) return err('Water correction factors must be numbers of 0 or more.');
+    const keys = [...(conc ? ['K', 'U', 'Th', 'aValue', 'betaAtt'] : ['alpha', 'beta', 'gamma']), 'water', 'cosmic', 'internal'];
+    const P: Record<string, { v: number; u: number }> = { De };
+    for (const k of keys) {
+      const p = pairOf(k), label = (q(`.lu-v-${k}`).getAttribute('aria-label') ?? k).replace(/ value$/, '');
+      if (!Number.isFinite(p.v) || p.v < 0) return err(`${label}: give a value of 0 or more.`);
+      if (!Number.isFinite(p.u) || p.u < 0) return err(`${label}: give an uncertainty of 0 or more (leave 0 if unknown).`);
+      P[k] = k === 'water' ? { v: p.v / 100, u: p.u / 100 } : p;
+    }
+    try {
+      if (conc) {
+        const f: Record<string, number> = {};
+        for (const el of ['K', 'U', 'Th']) for (const c of ['a', 'b', 'g']) { const x = n(`.lu-f-${el}${c}`); if (!(x >= 0)) return err(`Conversion factor for ${el} (${c === 'a' ? 'alpha' : c === 'b' ? 'beta' : 'gamma'}) must be a number of 0 or more.`); f[(el === 'Th' ? 'T' : el) + c] = x; }
+        res = age('conc', { ...(P as never), f: f as never, kw });
+      } else res = age('parts', { ...(P as never), kw });
+    } catch (e) { return err((e as Error).message); }
+    out();
+  }
+
+  function out() {
+    if (!res) return;
+    q('.lu-out').hidden = false;
+    const r = res;
+    q('.lu-big').textContent = `${sg(r.age, 4)} ± ${sg(r.ageU, 2)} ka`;
+    q('.lu-sub').textContent = `Thousand years before the sampling date, 1σ (${(100 * r.ageU / r.age).toFixed(1)} %). 95 % range about ${sg(r.age - 1.96 * r.ageU, 3)} to ${sg(r.age + 1.96 * r.ageU, 3)} ka.`;
+    const facts: [string, string][] = [['Equivalent dose', deText.replace(/^(CAM|Weighted mean|Mean) /, '').replace(/ from .*/, '')], ['Dose rate', `${sg(r.doseRate, 4)} ± ${sg(r.doseRateU, 2)} Gy/ka`], ...r.parts.filter((p) => p.value > 0).map((p) => [PART[p.part], `${sg(p.value, 3)} ± ${sg(p.u, 2)} Gy/ka (${(100 * p.value / r.doseRate).toFixed(0)} %)`] as [string, string])];
+    q('.lu-facts').replaceChildren(...facts.map(([a, b]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; d.append(dt, dd); return d; }));
+    const t = q<HTMLTableElement>('.lu-btab'); t.replaceChildren();
+    const head = ['Input', 'Value', '±', 'Share of age variance'];
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const b of budget()) { const tr = t.insertRow(); b.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+  }
+  const budget = () => (res ? [...res.budget].sort((a, b) => b.share - a.share).map((b) => [b.label, b.name === 'water' ? `${sg(100 * b.value, 3)} %` : sg(b.value, 4), b.name === 'water' ? `${sg(100 * b.u, 3)} %` : sg(b.u, 3), `${(100 * b.share).toFixed(1)} %`]) : []);
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  root.querySelectorAll('input, textarea').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', run));
+  q('.lu-csv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res, g = (x: number) => String(+x.toPrecision(8));
+    save(new Blob([csv([['quantity', 'value', 'uncertainty', 'unit', 'share_of_age_variance'], ['age', g(r.age), g(r.ageU), 'ka', ''], ['dose_rate', g(r.doseRate), g(r.doseRateU), 'Gy/ka', ''],
+      ...r.parts.map((p) => [`dose_rate_${p.part}`, g(p.value), g(p.u), 'Gy/ka', '']),
+      ...r.budget.map((b) => [b.name, g(b.value), g(b.u), b.name === 'De' ? 'Gy' : b.name === 'water' ? 'fraction of dry mass' : b.name === 'K' ? '%' : ['U', 'Th'].includes(b.name) ? 'ppm' : ['aValue', 'betaAtt'].includes(b.name) ? '' : 'Gy/ka', g(b.share)])])], { type: 'text/csv' }), 'luminescence-age.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    sections = [
+      { title: 'Luminescence age', text: [q('.lu-big').textContent ?? '', q('.lu-sub').textContent ?? ''], facts: [...q('.lu-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+      { title: 'Equivalent dose', text: [deText], figure: defig && !q('.lu-defig').hidden ? defig : undefined },
+      { title: 'Uncertainty budget', table: { head: ['Input', 'Value', '±', 'Share'], rows: budget(), align: ['l', 'r', 'r', 'r'] }, note: 'First-order propagation with independent inputs. Conversion factors as entered by the user.' },
+    ];
+    return { title: 'Luminescence age', subtitle: q('.lu-big').textContent ?? '', file: 'luminescence-age', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (defig && !q('.lu-defig').hidden) paint(q<HTMLCanvasElement>('.lu-defig'), defig); });
+  run();
+</script>

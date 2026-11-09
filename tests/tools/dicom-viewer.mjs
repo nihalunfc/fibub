@@ -2,7 +2,7 @@
 export const path = '/science/dicom-viewer/';
 const FX = new URL('../fixtures/dicom/', import.meta.url).pathname;
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
-  await page.setViewportSize({ width: 1100, height: 900 });
+  const vp0 = page.viewportSize(); await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto(`${BASE}/science/dicom-viewer/`); await page.waitForTimeout(800);
   const R = '.dv ';
   const txt = (s) => page.textContent(R + s);
@@ -101,4 +101,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await txt('.dv-warn')).includes('2 series'), 'dicom viewer: mixed series noted');
   await page.click(R + '.dv-sample'); await page.waitForTimeout(300);
   check((await txt('.dv-sn')) === 'slice 12 of 24', 'dicom viewer: sample again');
+  await page.setViewportSize(vp0);
 };

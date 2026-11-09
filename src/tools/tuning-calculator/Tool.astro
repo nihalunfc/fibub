@@ -1,0 +1,203 @@
+---
+// Tuning system and cents calculator: equal temperament (any number of steps), 5-limit just intonation, Pythagorean
+// and meantone tunings with frequencies from a reference pitch, deviation tables, cents between two ratios or pitches,
+// and tones played in the browser (Web Audio) when a button is pressed.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tun">
+  <div class="ax-card">
+    <h2>Tuning</h2>
+    <div class="ax-grid">
+      <label>System <select class="tu-sys">
+        <option value="edo">Equal temperament</option>
+        <option value="just">Just intonation (5-limit)</option>
+        <option value="pyth">Pythagorean</option>
+        <option value="meantone" selected>Meantone</option>
+      </select></label>
+      <label class="tu-nl">Steps per octave <input class="tu-n" type="number" min="1" max="72" step="1" value="12" inputmode="numeric" /></label>
+      <label class="tu-fl">Fifths narrowed by (part of the syntonic comma) <select class="tu-frac">
+        <option value="0.25" selected>1/4 comma (quarter-comma)</option>
+        <option value="0.333333333333">1/3 comma</option>
+        <option value="0.285714285714">2/7 comma</option>
+        <option value="0.2">1/5 comma</option>
+        <option value="0.166666666667">1/6 comma</option>
+      </select></label>
+      <label class="tu-bl">Fifths below the tonic <select class="tu-below"></select></label>
+      <label>Tonic <select class="tu-tonic"></select></label>
+      <label>Tonic octave <input class="tu-oct" type="number" min="0" max="8" step="1" value="4" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Reference note <select class="tu-rnote"></select></label>
+      <label>Reference octave <input class="tu-roct" type="number" min="0" max="8" step="1" value="4" inputmode="numeric" /></label>
+      <label>Reference pitch (Hz) <input class="tu-rhz" inputmode="decimal" value="440" /></label>
+    </div>
+    <p class="ax-help tu-help"></p>
+    <p class="ax-err tu-err" hidden></p>
+  </div>
+
+  <div class="ax-card tu-out">
+    <p class="ax-big tu-big"></p>
+    <dl class="ax-facts tu-facts"></dl>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small tu-scale">Play the scale</button>
+      <button type="button" class="btn secondary small tu-triad">Play the major triad</button>
+      <button type="button" class="btn secondary small tu-stop">Stop</button>
+      <label class="tu-wl">Sound <select class="tu-wave"><option value="soft">soft (with overtones)</option><option value="sine">pure (sine)</option></select></label>
+    </div>
+    <p class="ax-help tu-now" aria-live="polite">Tones play only when you press a button. Tap a row's ▶ to hear that note.</p>
+    <div class="ax-scroll"><table class="tu-tab"></table></div>
+    <canvas class="ax-fig tu-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tu-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Cents between two ratios or pitches</h2>
+    <div class="ax-grid">
+      <label>From (ratio or Hz) <input class="tu-a" inputmode="decimal" value="440" /></label>
+      <label>To (ratio or Hz) <input class="tu-b" inputmode="decimal" value="660" /></label>
+      <label>Or cents to a ratio <input class="tu-c" inputmode="decimal" placeholder="e.g. 386.3" /></label>
+    </div>
+    <p class="ax-help">Type ratios like 5/4 or 3:2, decimals like 1.25, or two frequencies in Hz.</p>
+    <p class="ax-big tu-cbig" aria-live="polite"></p>
+    <p class="ax-help tu-cnote"></p>
+  </div>
+</div>
+
+<style is:inline>
+  .tun .tu-tab { min-width: 620px; }
+  .tun .tu-tab td { white-space: nowrap; }
+  .tun .tu-tab button { border: 1px solid var(--line); background: var(--bg); color: var(--accent); border-radius: 6px; padding: 2px 10px; font: inherit; cursor: pointer; }
+  .tun .tu-wl { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }
+  .tun .tu-wl select { width: auto; }
+</style>
+
+<script>
+  import { table, tonicHz, cents, ratioOf, nearestJust, parseRatio, NOTE_NAMES, PYTHAGOREAN, type System, type Row } from '../../lib/sci/tuning';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tun')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fc = (x: number) => (Math.abs(x) < 0.005 ? '0.00' : (x > 0 ? '+' : '−') + Math.abs(x).toFixed(2));
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  sel('.tu-tonic').replaceChildren(...NOTE_NAMES.map((n, i) => new Option(n, String(i))));
+  sel('.tu-rnote').replaceChildren(...NOTE_NAMES.map((n, i) => new Option(n, String(i))));
+  sel('.tu-rnote').value = '9';
+  sel('.tu-below').replaceChildren(...Array.from({ length: 12 }, (_, i) => new Option(String(i), String(i))));
+  sel('.tu-below').value = '3';
+
+  let rows: Row[] = [], sys: System = { kind: 'meantone', frac: 0.25 }, title = '', fig: Figure | null = null, factList: [string, string][] = [];
+
+  function system(): System | null {
+    const k = sel('.tu-sys').value;
+    q('.tu-nl').hidden = k !== 'edo'; q('.tu-fl').hidden = k !== 'meantone'; q('.tu-bl').hidden = !(k === 'pyth' || k === 'meantone');
+    const below = Number(sel('.tu-below').value);
+    if (k === 'edo') { const n = num(q<HTMLInputElement>('.tu-n').value); return Number.isInteger(n) && n >= 1 && n <= 72 ? { kind: 'edo', n } : null; }
+    if (k === 'just') return { kind: 'just' };
+    if (k === 'pyth') return { kind: 'pyth', below };
+    return { kind: 'meantone', frac: Number(sel('.tu-frac').value), below };
+  }
+  const sysName = (s: System) => s.kind === 'edo' ? `${s.n}-tone equal temperament${s.n === 12 ? ' (12-TET)' : ''}` : s.kind === 'just' ? 'Just intonation (5-limit)' : s.kind === 'pyth' ? 'Pythagorean tuning' : `${sel('.tu-frac').selectedOptions[0].text.replace(/ \(.*\)/, '')} meantone`;
+
+  function run() {
+    const err = q('.tu-err'); err.hidden = true;
+    const s = system(), oct = num(q<HTMLInputElement>('.tu-oct').value), roct = num(q<HTMLInputElement>('.tu-roct').value), rhz = num(q<HTMLInputElement>('.tu-rhz').value);
+    const bad = [!s && 'steps per octave must be a whole number from 1 to 72', !(Number.isInteger(oct) && oct >= 0 && oct <= 8) && 'octaves run from 0 to 8', !(Number.isInteger(roct) && roct >= 0 && roct <= 8) && 'the reference octave runs from 0 to 8', !(rhz > 0) && 'the reference pitch must be above 0 Hz'].filter(Boolean);
+    if (bad.length) { err.textContent = `Check: ${[...new Set(bad)].join('; ')}.`; err.hidden = false; q('.tu-out').hidden = true; return; }
+    sys = s!; q('.tu-out').hidden = false;
+    const tp = Number(sel('.tu-tonic').value), rp = Number(sel('.tu-rnote').value);
+    const f0 = tonicHz(sys, tp, oct, rp, roct, rhz);
+    rows = table(sys, tp, f0);
+    const tName = `${NOTE_NAMES[tp]}${oct}`, ref = `${NOTE_NAMES[rp]}${roct} = ${sig(rhz, 6)} Hz`;
+    title = `${sysName(sys)} on ${NOTE_NAMES[tp]}`;
+    q('.tu-big').textContent = `${title}: ${tName} = ${f0.toFixed(2)} Hz (${ref})`;
+    const twelve = sys.kind !== 'edo' || sys.n === 12;
+    q('.tu-help').textContent = sys.kind === 'edo' && sys.n !== 12
+      ? `Every step is 1200 / ${sys.n} = ${sig(1200 / sys.n, 5)} cents. The tonic gets its 12-TET pitch from the reference; steps are not named because ${sys.n} notes do not match the 12 letter names.`
+      : sys.kind === 'pyth' || sys.kind === 'meantone' ? `Built as a chain of 12 fifths, ${sel('.tu-below').value} below the tonic and ${11 - Number(sel('.tu-below').value)} above. The gap that closes the circle is the "wolf" fifth; moving the chain moves the wolf.` : 'Ratios of small whole numbers built from 2, 3 and 5: pure fifths and thirds in the tonic\'s key, out of tune in distant keys.';
+    // Key intervals from the tonic.
+    const byPc = (pc: number) => rows.find((r) => r.pc === pc);
+    const nearestTo = (c: number) => rows.reduce((m, r) => (Math.abs(r.cents - c) < Math.abs(m.cents - c) ? r : m));
+    const fifth = twelve ? byPc(7)! : nearestTo(701.955), third = twelve ? byPc(4)! : nearestTo(386.314), minor = twelve ? byPc(3)! : nearestTo(315.641);
+    factList = [
+      ['Fifth', `${fifth.cents.toFixed(2)} ¢`, ], ['Major third', `${third.cents.toFixed(2)} ¢`], ['Minor third', `${minor.cents.toFixed(2)} ¢`],
+    ];
+    const subs = [`${fc(fifth.cents - 701.955)} ¢ from pure 3/2`, `${fc(third.cents - 386.3137)} ¢ from pure 5/4`, `${fc(minor.cents - 315.6413)} ¢ from pure 6/5`];
+    if (sys.kind === 'pyth' || sys.kind === 'meantone') {
+      const below = Number(sel('.tu-below').value), lo = rows.find((r) => r.pc === (((-7 * below) % 12) + 12) % 12)!, hi = rows.find((r) => r.pc === (((7 * (11 - below)) % 12) + 12) % 12)!;
+      let w = lo.cents - hi.cents; w = ((w % 1200) + 1200) % 1200;
+      factList.push([`Wolf fifth ${NOTE_NAMES[(tp + hi.pc!) % 12]}–${NOTE_NAMES[(tp + lo.pc!) % 12]}`, `${w.toFixed(2)} ¢`]);
+      subs.push(`${fc(w - 701.955)} ¢ from pure`);
+    }
+    if (sys.kind === 'pyth') { factList.push(['Pythagorean comma', `${PYTHAGOREAN.toFixed(2)} ¢`]); subs.push('12 fifths minus 7 octaves'); }
+    q('.tu-facts').replaceChildren(...factList.map(([k, v], i) => fact(k, v, subs[i])));
+    // Table.
+    const t = q<HTMLTableElement>('.tu-tab'); t.replaceChildren();
+    const head = ['', 'Note', 'Ratio', 'Cents', 'vs 12-TET (¢)', 'Hz', 'Nearest just', 'vs just (¢)'];
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if ([3, 4, 5, 7].includes(k)) th.className = 'r'; h.append(th); });
+    rows.forEach((r, i) => {
+      const tr = t.insertRow(), b = document.createElement('button'); b.type = 'button'; b.textContent = '▶'; b.dataset.i = String(i); b.setAttribute('aria-label', `Play ${r.name}`);
+      tr.insertCell().append(b);
+      [r.name, r.frac ?? r.ratio.toFixed(5), r.cents.toFixed(2), fc(r.dev12), r.hz.toFixed(2), `${r.just.ratio} ${r.just.name}`, fc(r.just.dev)].forEach((s, k) => { const td = tr.insertCell(); td.textContent = s; if ([2, 3, 4, 6].includes(k)) td.className = 'r'; });
+    });
+    const inner = rows.slice(0, -1);
+    fig = chartFigure({ w: 560, h: 300, xLabel: 'Degree (cents above the tonic)', yLabel: 'Deviation (cents)', legend: 'below', xMin: 0, xMax: 1200,
+      series: [{ name: 'from 12-TET', x: inner.map((r) => r.cents), y: inner.map((r) => r.dev12), mode: 'points', marker: 'circle' }, { name: 'from the nearest just interval', x: inner.map((r) => r.cents), y: inner.map((r) => r.just.dev), mode: 'points', marker: 'square' }],
+      marks: [{ kind: 'hline', at: 0 }] }, `Deviation of each degree of ${title} from 12-TET and from just intervals`);
+    paint(q<HTMLCanvasElement>('.tu-fig'), fig);
+  }
+
+  function centsCalc() {
+    const a = parseRatio(q<HTMLInputElement>('.tu-a').value), b = parseRatio(q<HTMLInputElement>('.tu-b').value), cv = q<HTMLInputElement>('.tu-c').value.trim();
+    const out: string[] = [], notes: string[] = [];
+    if (a > 0 && b > 0) {
+      const c = cents(b / a), nj = nearestJust(((c % 1200) + 1200) % 1200);
+      out.push(`${c.toFixed(2).replace('-', '−')} ¢`);
+      notes.push(`Ratio ${sig(b / a, 6)} = ${sig(c / 100, 4)} equal-tempered semitones. Nearest simple just interval (within an octave): ${nj.name} ${nj.ratio}, ${fc(nj.dev)} ¢.`);
+    } else if (q<HTMLInputElement>('.tu-a').value.trim() || q<HTMLInputElement>('.tu-b').value.trim()) notes.push('Type two ratios or two frequencies above zero.');
+    if (cv) { const c = num(cv); if (Number.isFinite(c)) notes.push(`${sig(c, 6)} ¢ is a ratio of ${ratioOf(c).toFixed(6)}.`); else notes.push('Cents must be a number.'); }
+    q('.tu-cbig').textContent = out.join(''); q('.tu-cnote').textContent = notes.join(' ');
+  }
+
+  // Sound: an AudioContext is made only on the first button press; nothing is recorded or sent.
+  let ac: AudioContext | null = null, live: { o: OscillatorNode; g: GainNode }[] = [];
+  const stop = () => { for (const { o, g } of live) { try { g.gain.cancelScheduledValues(0); g.gain.setValueAtTime(0, ac!.currentTime); o.stop(); } catch { /* already stopped */ } } live = []; };
+  function tone(hz: number, at: number, dur: number, vol = 0.18) {
+    ac ??= new AudioContext();
+    const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+    if (sel('.tu-wave').value === 'soft') { const re = new Float32Array([0, 1, 0.5, 0.33, 0.25, 0.2, 0.12]), im = new Float32Array(re.length); o.setPeriodicWave(ac.createPeriodicWave(im, re)); } else o.type = 'sine';
+    o.frequency.value = hz; g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.02); g.gain.setValueAtTime(vol, t0 + dur - 0.08); g.gain.linearRampToValueAtTime(0, t0 + dur);
+    o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02); live.push({ o, g });
+    o.onended = () => { live = live.filter((x) => x.o !== o); };
+  }
+  const say = (s: string) => (q('.tu-now').textContent = s);
+  q('.tu-tab').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-i]'); if (!b) return;
+    const r = rows[Number(b.dataset.i)]; stop(); tone(r.hz, 0, 1.2); say(`Playing ${r.name} (${r.hz.toFixed(2)} Hz).`);
+  });
+  q('.tu-scale').addEventListener('click', () => { stop(); rows.forEach((r, i) => tone(r.hz, i * 0.45, 0.45)); say(`Playing the ${rows.length - 1}-note scale from ${rows[0].name} (${rows[0].hz.toFixed(2)} Hz) to the octave.`); });
+  q('.tu-triad').addEventListener('click', () => {
+    const twelve = sys.kind !== 'edo' || sys.n === 12, pick = (pc: number, c: number) => (twelve ? rows.find((r) => r.pc === pc) ?? rows[pc] : rows.reduce((m, r) => (Math.abs(r.cents - c) < Math.abs(m.cents - c) ? r : m)));
+    const ch = [rows[0], pick(4, 386.31), pick(7, 701.96)]; stop(); ch.forEach((r) => tone(r.hz, 0, 2.2, 0.12));
+    say(`Playing ${ch.map((r) => `${r.name} ${r.hz.toFixed(2)} Hz`).join(', ')} together. Listen for beating in the third.`);
+  });
+  q('.tu-stop').addEventListener('click', () => { stop(); say('Stopped.'); });
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 200); };
+  for (const c of ['.tu-sys', '.tu-frac', '.tu-below', '.tu-tonic', '.tu-rnote']) q(c).addEventListener('change', run);
+  for (const c of ['.tu-n', '.tu-oct', '.tu-roct', '.tu-rhz']) q(c).addEventListener('input', () => later(run));
+  for (const c of ['.tu-a', '.tu-b', '.tu-c']) q(c).addEventListener('input', () => later(centsCalc));
+  q('.tu-csv').addEventListener('click', () => {
+    save(new Blob([csv([['note', 'ratio', 'cents', 'deviation_from_12tet_cents', 'frequency_hz', 'nearest_just', 'deviation_from_just_cents'], ...rows.map((r) => [r.name, r.frac ?? r.ratio.toFixed(8), r.cents.toFixed(4), r.dev12.toFixed(4), r.hz.toFixed(4), r.just.ratio, r.just.dev.toFixed(4)])])], { type: 'text/csv' }), `tuning-${sys.kind}${sys.kind === 'edo' ? sys.n : ''}.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Tuning', subtitle: q('.tu-big').textContent ?? '', file: `tuning-${sys.kind}`, sections: [
+    { title, facts: factList, figure: fig ?? undefined, table: { head: ['Note', 'Ratio', 'Cents', 'vs 12-TET', 'Hz', 'Nearest just', 'vs just'], rows: rows.map((r) => [r.name, r.frac ?? r.ratio.toFixed(5), r.cents.toFixed(2), fc(r.dev12), r.hz.toFixed(2), r.just.ratio, fc(r.just.dev)]), align: ['l', 'r', 'r', 'r', 'r', 'l', 'r'] } },
+  ] }));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tu-fig'), fig); });
+  run(); centsCalc();
+</script>

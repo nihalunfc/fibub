@@ -1,0 +1,177 @@
+---
+// Amino acid racemisation age from reversible first-order kinetics, with the rate typed in or calibrated from a
+// sample of known age, an Arrhenius temperature adjustment, and GUM and Monte Carlo uncertainty. Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const pair = (cls: string, label: string, v: string, u: string) => ({ cls, label, v, u });
+const sample = [pair('r', 'Sample D/L ratio', '0.35', '0.02'), pair('r0', 'D/L at time zero (fresh or modern material, or induced in the lab)', '0.02', '0.005')];
+const known = [pair('k', 'Rate constant k (per year)', '0.00002', '0.000002'), pair('Tk', 'Temperature that k is for (°C)', '12', '0')];
+const cal = [pair('rCal', 'D/L of the sample of known age', '0.20', '0.01'), pair('tCal', 'Its age (years)', '8000', '200'), pair('Tcal', 'Its effective temperature (°C)', '12', '1')];
+const temp = [pair('Ts', 'Effective temperature of your sample (°C)', '10', '1'), pair('Ea', 'Activation energy Ea (kJ/mol)', '120', '10')];
+---
+<div class="ax aar">
+  <div class="ax-card">
+    <h2>Sample</h2>
+    <label>Reaction <select class="aa-kp"><option value="1" selected>Racemisation, D/L (K′ = 1), e.g. aspartic acid</option><option value="0.77">Isoleucine epimerisation, A/I (K′ about 0.77)</option><option value="other">Another K′</option></select></label>
+    <label class="aa-kpl" style="margin-top:8px" hidden>K′ (1 ÷ equilibrium constant) <input class="aa-kpv" type="text" inputmode="decimal" value="1" /></label>
+    <div class="aa-pairs">
+      {sample.map((p) => <div class="aa-pair"><span>{p.label}</span><input class={`aa-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`aa-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rate and temperature</h2>
+    <label>Rate constant <select class="aa-mode"><option value="cal" selected>Calibrate from a sample of known age</option><option value="k">I know k</option></select></label>
+    <div class="aa-pairs aa-cal">
+      {cal.map((p) => <div class="aa-pair"><span>{p.label}</span><input class={`aa-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`aa-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+    </div>
+    <div class="aa-pairs aa-k" hidden>
+      {known.map((p) => <div class="aa-pair"><span>{p.label}</span><input class={`aa-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`aa-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+    </div>
+    <div class="aa-pairs">
+      {temp.map((p) => <div class="aa-pair"><span>{p.label}</span><input class={`aa-v-${p.cls}`} type="text" inputmode="decimal" value={p.v} aria-label={`${p.label} value`} /><span>±</span><input class={`aa-u-${p.cls}`} type="text" inputmode="decimal" value={p.u} aria-label={`${p.label} uncertainty`} /></div>)}
+    </div>
+    <p class="ax-help">The rate is moved from the calibration (or k's) temperature to your sample's with the Arrhenius equation. Racemisation speeds up steeply with temperature, so the effective temperature usually matters most. Same temperature: Ea has no effect.</p>
+    <label style="margin-top:8px">Monte Carlo draws <select class="aa-mc"><option value="0">Off</option><option value="20000" selected>20,000</option><option value="100000">100,000</option></select></label>
+    <p class="ax-help">All example values are made up. Every number depends on the amino acid, the material (shell, bone, tooth, eggshell) and the lab method: use values from your own calibration. For study and planning.</p>
+    <p class="ax-err aa-err" hidden></p>
+  </div>
+
+  <div class="ax-card aa-out" hidden>
+    <h2>Age</h2>
+    <p class="ax-big aa-big"></p>
+    <p class="ax-help aa-sub"></p>
+    <dl class="ax-facts aa-facts"></dl>
+    <h3>D/L through time</h3>
+    <canvas class="ax-fig aa-cfig"></canvas>
+    <div class="aa-mcw">
+      <h3>Monte Carlo ages</h3>
+      <canvas class="ax-fig aa-hfig"></canvas>
+    </div>
+    <h3>Where the uncertainty comes from</h3>
+    <div class="ax-scroll"><table class="aa-btab"></table></div>
+    <p class="ax-help">First-order propagation (GUM) with independent inputs. Share is each input's part of the age's variance.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small aa-csv">Summary (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .aar h3 { margin: 22px 0 8px; font-size: 15px; }
+  .aar select { max-width: 100%; }
+  .aar .aa-pairs { display: grid; gap: 8px; margin-top: 10px; }
+  .aar .aa-pair { display: grid; grid-template-columns: minmax(0, 1fr) 6em auto 5.5em; gap: 6px; align-items: center; font-size: 15px; }
+  .aar .aa-pair input { width: 100%; min-width: 0; }
+  .aar .aa-btab td.r, .aar .aa-btab th.r { white-space: nowrap; }
+</style>
+
+<script>
+  import { calc, ratioAt, F, type Inputs, type Result } from '../../lib/sci/racemisation';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.aar')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const yrs = (x: number) => (Number.isFinite(x) ? Number(x.toPrecision(3)).toLocaleString('en') : '–');
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+
+  let res: Result | null = null, inp: Inputs | null = null, cfig: Figure | null = null, hfig: Figure | null = null;
+  const err = (m: string) => { q('.aa-err').textContent = m; q('.aa-err').hidden = false; q('.aa-out').hidden = true; res = null; };
+
+  function read(): Inputs | string {
+    const kpSel = val('.aa-kp');
+    q('.aa-kpl').hidden = kpSel !== 'other';
+    const Kp = kpSel === 'other' ? num(val('.aa-kpv')) : Number(kpSel);
+    const mode = val('.aa-mode') as 'k' | 'cal';
+    q('.aa-cal').hidden = mode !== 'cal'; q('.aa-k').hidden = mode !== 'k';
+    const keys = ['r', 'r0', 'Ts', 'Ea', ...(mode === 'cal' ? ['rCal', 'tCal', 'Tcal'] : ['k', 'Tk'])];
+    const p: Record<string, unknown> = { mode, Kp };
+    for (const k of ['r', 'r0', 'Ts', 'Ea', 'k', 'Tk', 'rCal', 'tCal', 'Tcal']) {
+      const v = num(val(`.aa-v-${k}`)), u = num(val(`.aa-u-${k}`)), label = (q(`.aa-v-${k}`).getAttribute('aria-label') ?? k).replace(/ value$/, '');
+      if (keys.includes(k)) {
+        if (!Number.isFinite(v)) return `${label}: type a number.`;
+        if (!Number.isFinite(u) || u < 0) return `${label}: give an uncertainty of 0 or more.`;
+      }
+      p[k] = { v: Number.isFinite(v) ? v : 0, u: Number.isFinite(u) ? u : 0 };
+    }
+    return p as Inputs;
+  }
+
+  function run() {
+    q('.aa-err').hidden = true;
+    const p = read();
+    if (typeof p === 'string') return err(p);
+    try { res = calc(p, Number(val('.aa-mc'))); inp = p; } catch (e) { return err((e as Error).message); }
+    out();
+  }
+
+  function out() {
+    if (!res || !inp) return;
+    const r = res, p = inp;
+    q('.aa-out').hidden = false;
+    q('.aa-big').textContent = `${yrs(r.age)} ± ${yrs(r.ageU)} years`;
+    q('.aa-sub').textContent = r.mc
+      ? `First-order (GUM) 1σ. Monte Carlo (${r.mc.n.toLocaleString('en')} draws): median ${yrs(r.mc.median)} years, 68 % range ${yrs(r.mc.lo68)} to ${yrs(r.mc.hi68)}, 95 % range ${yrs(r.mc.lo95)} to ${yrs(r.mc.hi95)}. The Monte Carlo range is lopsided because the age depends on temperature exponentially.`
+      : 'First-order (GUM) 1σ. Turn on Monte Carlo for ranges that follow the lopsided spread of the age.';
+    const kRef = p.mode === 'cal' ? (F(p.rCal.v, p.Kp) - F(p.r0.v, p.Kp)) / ((1 + p.Kp) * p.tCal.v) : p.k.v;
+    const facts: [string, string][] = [
+      [`k at ${sg(p.mode === 'cal' ? p.Tcal.v : p.Tk.v, 3)} °C${p.mode === 'cal' ? ' (calibrated)' : ''}`, `${sg(kRef, 4)} per year`],
+      [`k at ${sg(p.Ts.v, 3)} °C (your sample)`, `${sg(r.kS, 4)} ± ${sg(r.kSU, 2)} per year`],
+      ['ln[(1 + D/L)/(1 − K′ D/L)]', `${sg(F(p.r.v, p.Kp), 4)} (sample), ${sg(F(p.r0.v, p.Kp), 4)} (time zero)`],
+      ['Equilibrium D/L (1/K′)', sg(1 / p.Kp, 4)],
+    ];
+    q('.aa-facts').replaceChildren(...facts.map(([a, b]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; d.append(dt, dd); return d; }));
+    // The D/L curve at the sample's temperature.
+    const tMax = Math.max(r.age, p.mode === 'cal' ? p.tCal.v : 0) * 1.6, xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 120; i++) { const t = (tMax * i) / 120; xs.push(t); ys.push(ratioAt(t, r.kS, p.Kp, p.r0.v)); }
+    const series = [
+      { name: `D/L at ${sg(p.Ts.v, 3)} °C`, x: xs, y: ys, mode: 'line' as const },
+      { name: 'Your sample', x: [r.age], y: [p.r.v], xErr: [r.ageU], yErr: [p.r.u], mode: 'points' as const, size: 7 },
+    ];
+    cfig = chartFigure({ w: 600, h: 330, xLabel: 'Years', yLabel: 'D/L', yMin: 0, legend: 'below', series, marks: [{ kind: 'hline', at: 1 / p.Kp, label: 'equilibrium' }] }, 'D/L ratio against time at the sample temperature, with the sample');
+    paint(q<HTMLCanvasElement>('.aa-cfig'), cfig);
+    q('.aa-mcw').hidden = !r.mc;
+    hfig = null;
+    if (r.mc) {
+      // Histogram of the Monte Carlo ages between the 0.5 % and 99.5 % points.
+      const again = r.mc.samples;
+      if (again.length) {
+        const lo = again[Math.floor(again.length * 0.005)], hi = again[Math.floor(again.length * 0.995)], B = 50, w = (hi - lo) / B, cnt = new Array(B).fill(0);
+        for (const a of again) if (a >= lo && a < hi) cnt[Math.min(B - 1, Math.floor((a - lo) / w))]++;
+        const hx: number[] = [], hy: number[] = [];
+        cnt.forEach((c, i) => { hx.push(lo + i * w, lo + (i + 1) * w); hy.push(c / again.length / w, c / again.length / w); });
+        hfig = chartFigure({ w: 600, h: 280, xLabel: 'Age (years)', yLabel: 'Probability per year', yMin: 0, legend: 'none', series: [{ name: 'Monte Carlo', x: hx, y: hy, mode: 'line' }], marks: [{ kind: 'vline', at: r.mc.median, label: 'median' }, { kind: 'vline', at: r.mc.lo95, dash: [2, 3] }, { kind: 'vline', at: r.mc.hi95, dash: [2, 3] }] }, 'Spread of the Monte Carlo ages');
+        paint(q<HTMLCanvasElement>('.aa-hfig'), hfig);
+      }
+    }
+    const t = q<HTMLTableElement>('.aa-btab'); t.replaceChildren();
+    const h = t.insertRow(); ['Input', 'Value', '±', 'Share'].forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const b of budget()) { const tr = t.insertRow(); b.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+  }
+  const budget = () => (res ? [...res.budget].sort((a, b) => b.share - a.share).map((b) => [b.label, String(+b.value.toPrecision(4)), String(+b.u.toPrecision(3)), `${(100 * b.share).toFixed(1)} %`]) : []);
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', run));
+  q('.aa-csv').addEventListener('click', () => {
+    if (!res || !inp) return;
+    const r = res, g = (x: number) => (Number.isFinite(x) ? String(+x.toPrecision(8)) : '');
+    const rows: (string | number)[][] = [['quantity', 'value', 'uncertainty_or_range', 'share_of_age_variance'], ['age_years', g(r.age), g(r.ageU), ''], ['k_sample_per_year', g(r.kS), g(r.kSU), ''], ['K_prime', g(inp.Kp), '', '']];
+    if (r.mc) rows.push(['mc_median_years', g(r.mc.median), '', ''], ['mc_68_percent', g(r.mc.lo68), g(r.mc.hi68), ''], ['mc_95_percent', g(r.mc.lo95), g(r.mc.hi95), ''], ['mc_draws', r.mc.n, '', '']);
+    rows.push(...r.budget.map((b) => [b.name, g(b.value), g(b.u), g(b.share)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'racemisation-age.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: 'Amino acid racemisation age', text: [q('.aa-big').textContent ?? '', q('.aa-sub').textContent ?? ''], facts: [...q('.aa-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+      { title: 'D/L through time', figure: cfig ?? undefined },
+      ...(hfig ? [{ title: 'Monte Carlo ages', figure: hfig }] : []),
+      { title: 'Uncertainty budget', table: { head: ['Input', 'Value', '±', 'Share'], rows: budget(), align: ['l', 'r', 'r', 'r'] } },
+    ];
+    return { title: 'Racemisation age', subtitle: q('.aa-big').textContent ?? '', file: 'racemisation-age', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (cfig) paint(q<HTMLCanvasElement>('.aa-cfig'), cfig); if (hfig) paint(q<HTMLCanvasElement>('.aa-hfig'), hfig); });
+  run();
+</script>

@@ -1,0 +1,157 @@
+---
+// Benchmark dose modelling of quantal data: five models by maximum likelihood, BMD and profile-likelihood BMDL.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bmd">
+  <p class="note warn bmd-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Quantal data</h2>
+    <label>One dose group per row: dose, number tested, number affected. A header row is fine.
+      <textarea class="bmd-data" rows="7" spellcheck="false">Dose (mg/kg-day)	Tested	Affected
+0	50	1
+25	50	4
+50	50	9
+100	50	20
+200	50	37</textarea></label>
+    <DataFile target=".bmd-data" maxCols={5} maxRows={50} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Dose unit <input class="bmd-unit" value="mg/kg-day" /></label>
+      <label>Benchmark response, extra risk (%) <input class="bmd-bmr" inputmode="decimal" value="10" /></label>
+      <label>Multistage degree <select class="bmd-deg"><option value="1">1 (quantal linear)</option><option value="2" selected>2</option><option value="3">3</option></select></label>
+    </div>
+    <p class="ax-help">Extra risk is the added chance of the effect among those who would not have had it anyway: (P(d) − P(0)) ÷ (1 − P(0)). 10 % is the usual starting point for quantal data in the US EPA's guidance (Benchmark Dose Technical Guidance, 2012; check the official source). Higher multistage degrees allow more curvature.</p>
+    <p class="ax-err bmd-err" hidden></p>
+    <p class="ax-help bmd-busy" hidden>Fitting the models…</p>
+  </div>
+
+  <div class="ax-card bmd-out" hidden>
+    <h2>Models</h2>
+    <p class="ax-big bmd-big"></p>
+    <div class="ax-scroll"><table class="bmd-tab"></table></div>
+    <p class="ax-help">BMDL: one-sided 95 % lower limit by profile likelihood. Adequate fit: goodness-of-fit p ≥ 0.1. AIC counts only the parameters not stuck on a limit. Look at the plot and residuals too; when BMDLs of adequate models differ a lot, the guidance prefers the lowest BMDL.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bmd-csv">Download table (CSV)</button></div>
+  </div>
+
+  <div class="ax-card bmd-out" hidden>
+    <h2>Model plot</h2>
+    <label style="max-width:320px">Show <select class="bmd-show"></select></label>
+    <canvas class="ax-fig bmd-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Points: observed fraction affected with 95 % Wilson intervals. Dashed line: the BMD of the shown model; dotted line: its BMDL. Residual: (affected − expected) ÷ its binomial SD.</p>
+    <dl class="ax-facts bmd-facts" style="margin-top:12px"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="bmd-res"></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<style is:inline>
+  .bmd .ax-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .bmd-med { margin: 0 0 12px; font-size: 14px; }
+  .bmd-tab tr.best td { font-weight: 700; }
+  .bmd-tab td:first-child { white-space: nowrap; }
+  .bmd-tab td:last-child { min-width: 180px; font-size: 13px; color: var(--muted); }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { fitAll, type ModelFit, type Group } from '../../lib/sci/bmd';
+  import { normInv } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bmd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const err = q('.bmd-err');
+  let out: ReturnType<typeof fitAll> | null = null, fig: Figure | null = null, report: Section[] = [], tableRows: string[][] = [];
+  let bmrPct = 10, unit = '';
+
+  const f4 = (v: number) => (Number.isFinite(v) ? sig(v, 4) : '–');
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[], cls?: (i: number) => string) => {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody(); rows.forEach((r, k) => { const tr = b.insertRow(); if (cls) tr.className = cls(k); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (right.includes(i)) td.className = 'r'; }); });
+  };
+
+  function readGroups(): Group[] {
+    return parseTable(val('.bmd-data')).map((r) => ({ dose: num(r[0]), n: num(r[1]), r: num(r[2]) })).filter((g) => Number.isFinite(g.dose) || Number.isFinite(g.n));
+  }
+
+  function calc() {
+    err.hidden = true;
+    unit = val('.bmd-unit').trim();
+    bmrPct = num(val('.bmd-bmr'));
+    try {
+      const g = readGroups();
+      if (g.some((x) => !Number.isFinite(x.dose) || !Number.isFinite(x.n) || !Number.isFinite(x.r))) throw new Error('Every row needs a dose, the number tested and the number affected.');
+      if (!(bmrPct > 0 && bmrPct < 100)) throw new Error('The benchmark response must be between 0 and 100 % (10 % is usual).');
+      out = fitAll(g, bmrPct / 100, Number(val('.bmd-deg')));
+    } catch (e) {
+      out = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.bmd-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.bmd-out').forEach((o) => (o.hidden = false));
+    const o = out!, u = unit ? ` ${unit}` : '', L = `BMD${sig(bmrPct, 3)}`, LL = `BMDL${sig(bmrPct, 3)}`;
+    q('.bmd-big').textContent = o.lowest ? `${o.lowest.name}: ${L} = ${f4(o.lowest.bmd)}${u}, ${LL} = ${f4(o.lowest.bmdl)}${u}` : 'No model fits adequately (p ≥ 0.1): see the table';
+    const head = ['Model', 'AIC', 'p (fit)', L, LL, 'BMD/BMDL', 'Note'];
+    tableRows = o.fits.map((f) => [f.name, f.aic.toFixed(2), Number.isFinite(f.pValue) ? f.pValue.toFixed(3) : '–', f4(f.bmd), f4(f.bmdl), Number.isFinite(f.bmd / f.bmdl) ? (f.bmd / f.bmdl).toFixed(2) : '–',
+      [f === o.lowest ? 'lowest AIC of adequate fits' : f.pValue < 0.1 ? 'poor fit (p < 0.1)' : '', ...f.notes].filter(Boolean).join('; ')]);
+    table(q<HTMLTableElement>('.bmd-tab'), head, tableRows, [1, 2, 3, 4, 5], (k) => (o.fits[k] === o.lowest ? 'best' : ''));
+    const sel = q<HTMLSelectElement>('.bmd-show'), keep = sel.value;
+    sel.replaceChildren(new Option('All models', 'all'), ...o.fits.map((f) => new Option(f.name, f.id)));
+    sel.value = keep && [...sel.options].some((x) => x.value === keep) ? keep : (o.lowest?.id ?? 'all');
+    draw();
+  }
+
+  function draw() {
+    if (!out) return;
+    const o = out, show = val('.bmd-show'), shown: ModelFit | undefined = o.fits.find((f) => f.id === show) ?? undefined;
+    const D = Math.max(...o.groups.map((g) => g.dose)), xs: number[] = [];
+    for (let i = 0; i <= 200; i++) xs.push((D * 1.05 * i) / 200);
+    const z = normInv(0.975);
+    const wilson = (r: number, n: number) => { const p = r / n, c = p + (z * z) / (2 * n), h = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n)), d = 1 + (z * z) / n; return [(c - h) / d, (c + h) / d]; };
+    const w = Math.round(Math.min(720, Math.max(340, q('.bmd-fig').parentElement!.clientWidth - 34)));
+    const curves = (shown ? [shown] : o.fits).map((f, i) => ({ name: f.name, x: xs, y: xs.map(f.curve), mode: 'line' as const, dash: shown ? undefined : [[], [6, 3], [2, 3], [8, 3, 2, 3], [12, 4]][i] }));
+    const marks: { kind: 'vline' | 'hline'; at: number; label?: string; dash?: number[] }[] = [];
+    if (shown && Number.isFinite(shown.bmd)) {
+      const p0 = shown.curve(0);
+      // Label both lines only when they are far enough apart for the labels not to overlap.
+      const apart = !Number.isFinite(shown.bmdl) || (shown.bmd - shown.bmdl) / (D * 1.05) > 0.12;
+      marks.push({ kind: 'vline', at: shown.bmd, label: apart ? 'BMD' : undefined }, { kind: 'hline', at: p0 + (bmrPct / 100) * (1 - p0), label: `BMR ${sig(bmrPct, 3)} %` });
+      if (Number.isFinite(shown.bmdl)) marks.push({ kind: 'vline', at: shown.bmdl, label: apart ? 'BMDL' : undefined, dash: [2, 3] });
+    }
+    fig = chartFigure({ w, h: Math.round(w * 0.64), xLabel: `Dose${unit ? ` (${unit})` : ''}`, yLabel: 'Fraction affected', yMin: 0, yMax: 1, legend: 'below', series: [
+      { name: 'Observed', x: o.groups.map((g) => g.dose), y: o.groups.map((g) => g.r / g.n), yErr: o.groups.map((g) => { const [lo, hi] = wilson(g.r, g.n); return (hi - lo) / 2; }), marker: 'circle', mode: 'points' },
+      ...curves,
+    ], marks }, shown ? `${shown.name} model with BMD ${f4(shown.bmd)} and BMDL ${f4(shown.bmdl)}` : 'All five models over the observed fractions');
+    paint(q<HTMLCanvasElement>('.bmd-fig'), fig);
+    const facts = q('.bmd-facts'), res = q<HTMLTableElement>('.bmd-res');
+    if (shown) {
+      const list: [string, string, string?][] = [
+        ...shown.params.map((p) => [p.name, sig(p.value, 4), p.atBound ? 'on its limit' : undefined] as [string, string, string?]),
+        ['Log-likelihood', shown.ll.toFixed(3).replace('-', '−'), `${shown.k} fitted parameters`],
+        ['χ² (Pearson)', shown.chi2.toFixed(3), `df ${shown.df}, p ${Number.isFinite(shown.pValue) ? shown.pValue.toFixed(3) : '–'}`],
+      ];
+      facts.replaceChildren(...list.map(([a, b, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      table(res, ['Dose', 'n', 'Affected', 'Expected', 'Residual'], o.groups.map((g, i) => [String(g.dose), String(g.n), String(g.r), shown.expected[i].toFixed(2), shown.residuals[i].toFixed(3).replace('-', '−')]), [0, 1, 2, 3, 4]);
+    } else { facts.replaceChildren(); res.innerHTML = ''; }
+    const head = ['Model', 'AIC', 'p (fit)', `BMD${sig(bmrPct, 3)}`, `BMDL${sig(bmrPct, 3)}`, 'BMD/BMDL', 'Note'];
+    report = [
+      { title: 'Benchmark dose models', text: [`${o.groups.length} dose groups; BMR ${sig(bmrPct, 3)} % extra risk; doses in ${unit || 'your units'}. Maximum likelihood with BMDS default restrictions; BMDL by profile likelihood (one-sided 95 %). For study and teaching, not medical advice.`], table: { head, rows: tableRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: shown ? shown.name : 'All models', figure: fig, facts: shown ? shown.params.map((p) => [p.name, sig(p.value, 4)] as [string, string]) : undefined },
+    ];
+  }
+
+  q('.bmd-show').addEventListener('change', draw);
+  q('.bmd-csv').addEventListener('click', () => { if (tableRows.length) save(new Blob([csv([['model', 'aic', 'p_fit', `bmd${bmrPct}`, `bmdl${bmrPct}`, 'bmd_over_bmdl', 'note'], ...tableRows])], { type: 'text/csv' }), 'benchmark-dose.csv', 'text/csv'); });
+  let timer = 0;
+  const run = () => { q('.bmd-busy').hidden = false; setTimeout(() => { calc(); q('.bmd-busy').hidden = true; }, 20); };
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 450); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  q('.bmd-deg').addEventListener('change', run);
+  document.addEventListener('fibub:theme', draw);
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Benchmark dose analysis', subtitle: q('.bmd-big').textContent ?? '', file: 'benchmark-dose', sections: report }));
+</script>

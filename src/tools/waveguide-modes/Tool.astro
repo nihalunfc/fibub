@@ -1,0 +1,117 @@
+---
+// Waveguide cutoff frequencies and a mode chart for rectangular and circular guides, with propagation and wall
+// loss at an operating frequency. Worked out in the browser. Example sizes are illustrative.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wgm">
+  <div class="ax-card">
+    <h2>Guide</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="wg-shape"><option value="rect" selected>Rectangular</option><option value="circ">Circular</option></select></label>
+      <label class="wg-r">Wide side a (mm) <input class="wg-a" type="text" inputmode="decimal" value="22.86" /></label>
+      <label class="wg-r">Narrow side b (mm) <input class="wg-b" type="text" inputmode="decimal" value="10.16" /></label>
+      <label class="wg-c" hidden>Inside diameter (mm) <input class="wg-d" type="text" inputmode="decimal" value="20" /></label>
+      <label>Filling εr <input class="wg-er" type="text" inputmode="decimal" value="1" /></label>
+      <label>Operating frequency (GHz) <input class="wg-f" type="text" inputmode="decimal" value="10" /></label>
+      <label>Walls <select class="wg-rho"><option value="1.59e-8">Silver (rounded)</option><option value="1.72e-8" selected>Copper (rounded)</option><option value="2.44e-8">Gold (rounded)</option><option value="2.82e-8">Aluminium (rounded)</option><option value="7e-8">Brass (rounded)</option></select></label>
+      <label>List modes up to (× the lowest cutoff) <select class="wg-span"><option value="2">2</option><option value="3" selected>3</option><option value="5">5</option></select></label>
+    </div>
+    <p class="ax-help">The starting size, 22.86 × 10.16 mm, is the common X-band rectangular guide. Wall loss assumes smooth walls of the chosen metal (rounded room-temperature resistivity) and no loss in the filling; real guides lose a little more.</p>
+    <p class="ax-err wg-err" hidden></p>
+  </div>
+
+  <div class="ax-card wg-out">
+    <p class="ax-big wg-big"></p>
+    <dl class="ax-facts wg-facts"></dl>
+    <canvas class="ax-fig wg-fig" style="margin-top:12px"></canvas>
+    <h3 style="margin-top:14px">Modes</h3>
+    <div class="ax-scroll"><table class="wg-tab"></table></div>
+    <p class="ax-help">Above its cutoff a mode carries power along the guide; below it the mode dies away within a short distance (evanescent), shown as attenuation in dB per mm. Rectangular wall loss is given for TE10 only; circular for every mode. Mode names follow the usual convention: TEmn for a rectangular guide has m half-waves across a and n across b; TEnm for a circular guide has n full waves round the circumference and m half-waves along the radius.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wg-csv">Download modes (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rectModes, circModes, propagate, rectTE10Loss, circLoss, type Mode } from '../../lib/sci/ph-waveguide';
+  import { surfaceR } from '../../lib/sci/ph-skin';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wgm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const G = (f: number) => `${sig(f / 1e9, 4)} GHz`;
+  const DB = 20 / Math.LN10;
+  let fig: Figure | null = null, report: Section[] = [], csv: string[] = [];
+
+  function calc() {
+    const err = q('.wg-err'), out = q('.wg-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const circ = q<HTMLSelectElement>('.wg-shape').value === 'circ';
+    root.querySelectorAll<HTMLElement>('.wg-r').forEach((e) => { e.hidden = circ; });
+    q('.wg-c').hidden = !circ;
+    const a = val('.wg-a') / 1000, b = val('.wg-b') / 1000, R = val('.wg-d') / 2000, er = val('.wg-er'), f = val('.wg-f') * 1e9, rho = +q<HTMLSelectElement>('.wg-rho').value, span = +q<HTMLSelectElement>('.wg-span').value;
+    if (circ ? !(R > 0) : !(a > 0 && b > 0)) return fail(circ ? 'Give the inside diameter in mm.' : 'Give both inside sides in mm.');
+    if (!circ && b > a) return fail('Side a is the wider side: swap a and b.');
+    if (!(er >= 1)) return fail('The filling εr is 1 or more (1 for air).');
+    if (!(f > 0)) return fail('Give the operating frequency in GHz.');
+    err.hidden = true; out.hidden = false;
+    const first = circ ? circModes(R, er, (299792458 / Math.sqrt(er)) * 1.9 / (2 * Math.PI * R))[0] : rectModes(a, b, er, (299792458 / Math.sqrt(er)) / (2 * a) * 1.001)[0];
+    const fmax = first.fc * span * 1.000001;
+    let modes: Mode[] = circ ? circModes(R, er, fmax) : rectModes(a, b, er, fmax);
+    if (modes.length > 60) modes = modes.slice(0, 60);
+    const Rs = surfaceR(rho, f);
+    const m1 = modes[0], m2 = modes.find((m) => m.fc > m1.fc * 1.0000001);
+    const props = modes.map((m) => propagate(m, f, er));
+    const on = modes.filter((_, i) => props[i].on);
+    const loss = (m: Mode) => (circ ? circLoss(m, R, f, er, Rs) : m.name === 'TE10' ? rectTE10Loss(a, b, f, er, Rs) : NaN);
+    q('.wg-big').textContent = on.length ? `${on.length} mode${on.length > 1 ? 's' : ''} propagate${on.length > 1 ? '' : 's'} at ${G(f)}: ${on.map((m) => m.name).join(', ')}` : `Below cutoff at ${G(f)}: nothing propagates`;
+    const p1 = props[0];
+    const facts = [
+      fact(`Lowest cutoff (${m1.name})`, G(m1.fc), circ ? `1.8412 c / (2πR√εr) for the circular guide` : 'c / (2a√εr)'),
+      fact('Single-mode band', m2 ? `${G(m1.fc)} to ${G(m2.fc)}` : `above ${G(m1.fc)}`, m2 ? `the next mode is ${m2.name}${modes.filter((m) => Math.abs(m.fc - m2.fc) < 1e-6 * m2.fc).length > 1 ? ` (with ${modes.filter((m) => Math.abs(m.fc - m2.fc) < 1e-6 * m2.fc).map((m) => m.name).filter((n) => n !== m2.name).join(', ')})` : ''}` : ''),
+      fact('Usual working band', m2 ? `${G(1.25 * m1.fc)} to ${G(0.95 * m2.fc)}` : '–', 'rule of thumb: 1.25 × the first cutoff to 0.95 × the second, away from the steep loss near cutoff'),
+    ];
+    if (p1.on) {
+      facts.push(fact(`Guide wavelength (${m1.name})`, `${sig(p1.lg * 1000, 4)} mm`, `free-space wavelength in the filling ${sig((2 * Math.PI / p1.k) * 1000, 4)} mm`));
+      facts.push(fact('Phase and group speed', `${sig(p1.vp / 299792458, 4)} c, ${sig(p1.vg / 299792458, 4)} c`, 'vp × vg = (c/√εr)²: the phase moves faster than light, the energy slower'));
+      facts.push(fact(`Wave impedance (${m1.name})`, `${sig(p1.z, 4)} Ω`, m1.kind === 'TE' ? 'η / √(1 − (fc/f)²), η = 376.7 Ω/√εr' : 'η √(1 − (fc/f)²)'));
+      const l = loss(m1);
+      if (Number.isFinite(l)) facts.push(fact(`Wall loss (${m1.name})`, `${sig(l * DB, 3)} dB/m`, `smooth walls, surface resistance ${sig(Rs * 1000, 3)} mΩ per square`));
+    } else facts.push(fact(`${m1.name} at ${G(f)}`, `dies away at ${sig((p1.alpha * DB) / 1000, 3)} dB/mm`, 'below cutoff: the guide works as an attenuator'));
+    q('.wg-facts').replaceChildren(...facts);
+    // Table.
+    const head = ['Mode', 'Cutoff (GHz)', 'At f', 'λg (mm)', 'vg / c', 'Z (Ω)', 'Loss'];
+    const rows = modes.map((m, i) => { const p = props[i], l = p.on ? loss(m) : NaN;
+      return [m.name, sig(m.fc / 1e9, 5), p.on ? 'propagates' : 'evanescent', p.on ? sig(p.lg * 1000, 4) : '–', p.on ? sig(p.vg / 299792458, 3) : '–', p.on ? sig(p.z, 4) : '–', p.on ? (Number.isFinite(l) ? `${sig(l * DB, 3)} dB/m` : '–') : `${sig((p.alpha * DB) / 1000, 3)} dB/mm`]; });
+    const tab = q('.wg-tab'), hr = document.createElement('tr');
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    tab.replaceChildren(hr, ...rows.map((r, i) => { const tr = document.createElement('tr'); if (!props[i].on) tr.className = 'dim'; r.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k) td.className = 'r'; tr.append(td); }); return tr; }));
+    csv = ['mode,cutoff_GHz,propagates,guide_wavelength_mm,group_speed_over_c,wave_impedance_ohm,loss_dB_per_m', ...modes.map((m, i) => { const p = props[i], l = p.on ? loss(m) : -p.alpha; return [m.name, +(m.fc / 1e9).toPrecision(7), p.on ? 'yes' : 'no', p.on ? +(p.lg * 1000).toPrecision(6) : '', p.on ? +(p.vg / 299792458).toPrecision(5) : '', p.on ? +p.z.toPrecision(6) : '', Number.isFinite(l) ? +(l * DB).toPrecision(5) : ''].join(','); })];
+    // Mode chart: each mode as a point at its cutoff, labelled, with the operating frequency marked.
+    const ys = modes.map((_, i) => modes.length - i);
+    fig = chartFigure({ w: 380, h: Math.max(200, 60 + modes.length * 16), xLabel: 'Cutoff frequency (GHz)', yLabel: 'Modes, lowest at the top', legend: 'none', yMin: 0, yMax: modes.length + 1, series: [
+      { name: 'Propagating', x: modes.filter((_, i) => props[i].on).map((m) => m.fc / 1e9), y: ys.filter((_, i) => props[i].on), mode: 'points', marker: 'circle', labels: modes.filter((_, i) => props[i].on).map((m) => m.name) },
+      { name: 'Evanescent', x: modes.filter((_, i) => !props[i].on).map((m) => m.fc / 1e9), y: ys.filter((_, i) => !props[i].on), mode: 'points', marker: 'open-circle', labels: modes.filter((_, i) => !props[i].on).map((m) => m.name) },
+    ], marks: [{ kind: 'vline', at: f / 1e9, dash: [4, 3], label: 'f' }], xMin: 0, xMax: Math.max(fmax, f * 1.05) / 1e9 * 1.08 }, 'Mode chart: cutoff frequencies');
+    paint(q<HTMLCanvasElement>('.wg-fig'), fig);
+    report = [
+      { title: q('.wg-big').textContent!, text: [circ ? `Circular guide, ${q<HTMLInputElement>('.wg-d').value} mm inside diameter, εr ${er}` : `Rectangular guide, ${q<HTMLInputElement>('.wg-a').value} × ${q<HTMLInputElement>('.wg-b').value} mm, εr ${er}`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Modes', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.wg-out').hidden) paint(q<HTMLCanvasElement>('.wg-fig'), fig); });
+  q('.wg-csv').addEventListener('click', () => save(new Blob([csv.join('\n') + '\n'], { type: 'text/csv' }), 'waveguide-modes.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Waveguide modes', subtitle: `${q<HTMLInputElement>('.wg-f').value} GHz`, file: 'waveguide-modes', sections: report }));
+</script>
+
+<style is:inline>
+  .wgm select, .wgm input { max-width: 100%; }
+</style>

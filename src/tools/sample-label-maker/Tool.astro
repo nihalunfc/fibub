@@ -1,0 +1,256 @@
+---
+// Sample label maker: tube and sample labels from a pasted list or a CSV/Excel file, with a QR code and/or a Code 128
+// barcode, laid out on a label sheet the user describes, as a vector PDF to print at actual size. Nothing leaves the
+// browser. The example samples and sheet presets are made up or rounded.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax slm">
+  <div class="ax-card">
+    <h2>Samples</h2>
+    <label>One sample per line, columns separated by commas or tabs (paste straight from a spreadsheet)
+      <textarea class="lb-list" rows="7" spellcheck="false">ID,Name,Date,Conc
+S-001,Liver rep 1,2026-11-09,1.5 mg/mL
+S-002,Liver rep 2,2026-11-09,1.4 mg/mL
+S-003,Kidney rep 1,2026-11-09,2.1 mg/mL
+S-004,Kidney rep 2,2026-11-09,2.0 mg/mL
+S-005,Heart rep 1,2026-11-10,0.8 mg/mL
+S-006,Heart rep 2,2026-11-10,0.9 mg/mL</textarea></label>
+    <DataFile target=".lb-list" maxMB={5} maxCols={20} maxRows={5000} />
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="lb-head" checked /> First row is column names</label>
+      <label class="lb-inl">Copies of each <input class="lb-copies" type="number" min="1" max="20" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-err lb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What goes on each label</h2>
+    <div class="ax-grid">
+      <label>Code <select class="lb-code">
+        <option value="qr" selected>QR code</option><option value="c128">Code 128 barcode</option><option value="both">QR code and barcode</option><option value="none">No code, text only</option>
+      </select></label>
+      <label>The code holds <select class="lb-key"></select></label>
+      <label>QR error correction <select class="lb-ecl">
+        <option value="L">L: smallest code (7 % damage)</option><option value="M" selected>M: standard (15 %)</option><option value="Q">Q: sturdier (25 %)</option><option value="H">H: sturdiest (30 %)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">The code should hold a short unique ID that points to your records; keep the details in your notebook or LIMS. QR codes hold any text, including accents and symbols; Code 128 takes plain letters, digits and keyboard symbols and suits one-line barcode scanners.</p>
+    <div class="lb-lines"></div>
+    <p class="ax-help">Tick up to 4 columns to print as text lines; the first is printed in bold.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Label sheet</h2>
+    <label>Sheet <select class="lb-preset"></select></label>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Page width (mm) <input class="lb-s" data-k="pageW" type="number" min="10" max="1000" step="0.1" inputmode="decimal" /></label>
+      <label>Page height (mm) <input class="lb-s" data-k="pageH" type="number" min="10" max="2000" step="0.1" inputmode="decimal" /></label>
+      <label>Labels across <input class="lb-s" data-k="cols" type="number" min="1" max="40" step="1" inputmode="numeric" /></label>
+      <label>Labels down <input class="lb-s" data-k="rows" type="number" min="1" max="100" step="1" inputmode="numeric" /></label>
+      <label>Label width (mm) <input class="lb-s" data-k="labelW" type="number" min="5" max="1000" step="0.1" inputmode="decimal" /></label>
+      <label>Label height (mm) <input class="lb-s" data-k="labelH" type="number" min="5" max="1000" step="0.1" inputmode="decimal" /></label>
+      <label>Left margin (mm) <input class="lb-s" data-k="left" type="number" min="0" max="500" step="0.1" inputmode="decimal" /></label>
+      <label>Top margin (mm) <input class="lb-s" data-k="top" type="number" min="0" max="500" step="0.1" inputmode="decimal" /></label>
+      <label>Across pitch (mm) <input class="lb-s" data-k="pitchX" type="number" min="1" max="1000" step="0.1" inputmode="decimal" /></label>
+      <label>Down pitch (mm) <input class="lb-s" data-k="pitchY" type="number" min="1" max="1000" step="0.1" inputmode="decimal" /></label>
+      <label>Labels already used on the first sheet <input class="lb-skip" type="number" min="0" max="399" step="1" value="0" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="lb-outline" /> Draw label outlines (for a test print on plain paper)</label>
+    <p class="ax-help">The presets are rounded examples, not any maker's product. Measure your sheet, or copy the numbers from its box: the pitch is the distance from the start of one label to the start of the next, so it includes the gap.</p>
+  </div>
+
+  <div class="ax-card lb-out">
+    <h2>Labels</h2>
+    <p class="ax-big lb-big"></p>
+    <dl class="ax-facts lb-facts"></dl>
+    <canvas class="ax-fig lb-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small lb-pdf">Download labels (PDF)</button>
+    </div>
+    <p class="ax-help">Print the PDF at <strong>actual size (100 %)</strong>, not "fit to page", and do a test print on plain paper held against a label sheet first. Use labels made for the freezer, liquid nitrogen or solvents where you need them.</p>
+    <p class="ax-help lb-lost" hidden></p>
+  </div>
+</div>
+
+<script>
+  import { encodeQr, type Ecl } from '../../lib/sci/qr';
+  import { code128Widths, readList, sheetProblem, place, pagesNeeded, type Sheet, type Table } from '../../lib/sci/labels';
+  import { pagePalette } from '../../lib/report';
+  import { save, fileSafe } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.slm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f2 = (x: number) => (Math.round(x * 100) / 100).toString();
+
+  // Rounded example sheets (mm). Not any maker's product codes.
+  const PRESETS: { name: string; s: Sheet }[] = [
+    { name: 'A4, 5 × 13 small labels, 38 × 21 mm', s: { pageW: 210, pageH: 297, cols: 5, rows: 13, labelW: 38, labelH: 21, left: 8, top: 12, pitchX: 39, pitchY: 21 } },
+    { name: 'A4, 4 × 16 tube labels, 45 × 16 mm', s: { pageW: 210, pageH: 297, cols: 4, rows: 16, labelW: 45, labelH: 16, left: 10, top: 12, pitchX: 48, pitchY: 17 } },
+    { name: 'A4, 3 × 8 labels, 64 × 34 mm', s: { pageW: 210, pageH: 297, cols: 3, rows: 8, labelW: 64, labelH: 34, left: 7, top: 12, pitchX: 66, pitchY: 34 } },
+    { name: 'US Letter, 4 × 20 small labels, 44 × 13 mm', s: { pageW: 215.9, pageH: 279.4, cols: 4, rows: 20, labelW: 44, labelH: 13, left: 10, top: 12, pitchX: 50, pitchY: 13 } },
+    { name: 'US Letter, 3 × 10 labels, 67 × 25 mm', s: { pageW: 215.9, pageH: 279.4, cols: 3, rows: 10, labelW: 67, labelH: 25, left: 5, top: 13, pitchX: 70, pitchY: 25 } },
+    { name: 'Label printer roll, one 50 × 25 mm label a page', s: { pageW: 50, pageH: 25, cols: 1, rows: 1, labelW: 50, labelH: 25, left: 0, top: 0, pitchX: 50, pitchY: 25 } },
+  ];
+  const pre = q<HTMLSelectElement>('.lb-preset');
+  pre.replaceChildren(...PRESETS.map((p, i) => new Option(p.name, String(i))), new Option('Custom (type the sizes below)', 'custom'));
+  const fill = (s: Sheet) => root.querySelectorAll<HTMLInputElement>('.lb-s').forEach((e) => (e.value = String(s[e.dataset.k as keyof Sheet])));
+  fill(PRESETS[0].s);
+
+  type Lab = { key: string; lines: string[] };
+  let table: Table | null = null, labels: Lab[] = [], sheet: Sheet = PRESETS[0].s, lost = new Set<string>();
+
+  // ---------- Label layout, shared by the preview and the PDF (all in mm, y down) ----------
+  type Out = { rect: (x: number, y: number, w: number, h: number) => void; text: (x: number, y: number, s: string, pt: number, bold: boolean) => void; measure: (s: string, pt: number, bold: boolean) => number };
+  const PT = 25.4 / 72;
+  function drawLabel(o: Out, lab: Lab, X: number, Y: number, W: number, H: number, code: string, ecl: Ecl) {
+    const p = Math.min(1.5, H * 0.07, W * 0.05), w = W - 2 * p, h = H - 2 * p;
+    let tx = X + p, tw = w, th = h;
+    if ((code === 'qr' || code === 'both') && lab.key) {
+      const qr = encodeQr(lab.key, ecl), side = Math.min(h, w * (code === 'both' ? 0.42 : 0.5)), m = side / (qr.size + 4);
+      for (let r = 0; r < qr.size; r++) { let c = 0; while (c < qr.size) { if (!qr.modules[r][c]) { c++; continue; } let e = c; while (e < qr.size && qr.modules[r][e]) e++; o.rect(X + p + (c + 2) * m, Y + p + (h - side) / 2 + (r + 2) * m, (e - c) * m, m); c = e; } }
+      tx = X + p + side + p * 0.6; tw = W - p - (tx - X);
+    }
+    if ((code === 'c128' || code === 'both') && lab.key) {
+      const wd = code128Widths(lab.key), mods = wd.reduce((a, b) => a + b, 0) + 20, m = tw / mods, bh = Math.max(h * (code === 'both' ? 0.42 : 0.45), Math.min(h, 4));
+      let x = tx + 10 * m; const y = Y + p + h - bh;
+      wd.forEach((n, i) => { if (i % 2 === 0) o.rect(x, y, n * m, bh); x += n * m; });
+      th = h - bh - p * 0.5;
+    }
+    const lines = lab.lines.filter((l) => l !== '');
+    if (!lines.length || th < 1.2) return;
+    const lh = 1.18, maxPt = Math.min(11, th / lines.length / lh / PT);
+    let pt = maxPt;
+    for (const [i, l] of lines.entries()) { const wv = o.measure(l, 1, i === 0); if (wv > 0) pt = Math.min(pt, tw / (wv * PT)); }
+    pt = Math.max(Math.min(pt, maxPt), Math.min(4, maxPt));
+    lines.forEach((l, i) => {
+      let s = l;
+      while (s.length > 1 && o.measure(s, pt, i === 0) * PT > tw) s = s.slice(0, -2) + '…';
+      o.text(tx, Y + p + i * pt * PT * lh, s, pt, i === 0);
+    });
+  }
+
+  function readLabels(): string {
+    const t = readList(q<HTMLTextAreaElement>('.lb-list').value, q<HTMLInputElement>('.lb-head').checked);
+    if (typeof t === 'string') return t;
+    if (t.head.length > 20) return 'Up to 20 columns, please.';
+    const was = table?.head.join('|');
+    table = t;
+    if (was !== t.head.join('|')) {
+      const key = q<HTMLSelectElement>('.lb-key'); key.replaceChildren(...t.head.map((h, i) => new Option(h, String(i))));
+      const box = q('.lb-lines'); box.replaceChildren(...t.head.map((h, i) => { const l = document.createElement('label'); l.className = 'ax-check'; const c = document.createElement('input'); c.type = 'checkbox'; c.value = String(i); c.checked = i < 4; c.addEventListener('change', run); l.append(c, ' ' + h); return l; }));
+    }
+    const key = Number(q<HTMLSelectElement>('.lb-key').value) || 0, cols = [...root.querySelectorAll<HTMLInputElement>('.lb-lines input:checked')].map((c) => Number(c.value)).slice(0, 4);
+    const copies = Math.round(Number(q<HTMLInputElement>('.lb-copies').value));
+    if (!(copies >= 1 && copies <= 20)) return 'Copies of each: 1 to 20.';
+    labels = [];
+    for (const r of t.rows) for (let k = 0; k < copies; k++) labels.push({ key: r[key] ?? '', lines: cols.map((c) => r[c] ?? '') });
+    const code = q<HTMLSelectElement>('.lb-code').value, ecl = q<HTMLSelectElement>('.lb-ecl').value as Ecl;
+    for (const [i, l] of labels.entries()) {
+      if (code !== 'none' && !l.key) return `Sample ${Math.floor(i / copies) + 1} has an empty ${t.head[key]}, so there is nothing to put in its code.`;
+      try { if (code === 'qr' || code === 'both') encodeQr(l.key, ecl); if (code === 'c128' || code === 'both') code128Widths(l.key); } catch (e) { return `Sample ${Math.floor(i / copies) + 1} (${l.key.slice(0, 30)}): ${(e as Error).message}`; }
+    }
+    if (labels.length > 5000) return 'Up to 5000 labels at a time, please.';
+    return '';
+  }
+
+  function readSheet(): string {
+    const s = { ...sheet } as Sheet;
+    root.querySelectorAll<HTMLInputElement>('.lb-s').forEach((e) => ((s as any)[e.dataset.k!] = Number(e.value)));
+    const pb = sheetProblem(s); if (pb) return pb;
+    sheet = s; return '';
+  }
+
+  function run() {
+    const err = q('.lb-err'), out = q('.lb-out');
+    const msg = readLabels() || readSheet();
+    const skip = Math.max(0, Math.round(Number(q<HTMLInputElement>('.lb-skip').value) || 0));
+    const per = sheet.cols * sheet.rows;
+    const m2 = msg || (skip >= per ? `Only ${per} labels fit on a sheet, so at most ${per - 1} can be already used.` : '');
+    if (m2) { err.textContent = m2; err.hidden = false; out.hidden = true; return; }
+    err.hidden = true; out.hidden = false;
+    const code = q<HTMLSelectElement>('.lb-code').value, ecl = q<HTMLSelectElement>('.lb-ecl').value as Ecl;
+    const pages = pagesNeeded(sheet, labels.length, skip);
+    q('.lb-big').textContent = `${labels.length} label${labels.length === 1 ? '' : 's'} on ${pages} sheet${pages === 1 ? '' : 's'} (${per} a sheet)`;
+    // Module sizes for the longest key, to warn about print limits.
+    const longest = labels.reduce((a, l) => (l.key.length > a.length ? l.key : a), '');
+    const facts: HTMLElement[] = [fact('Label', `${f2(sheet.labelW)} × ${f2(sheet.labelH)} mm`, `${sheet.cols} across, ${sheet.rows} down${skip ? `, starting at label ${skip + 1}` : ''}`)];
+    const p = Math.min(1.5, sheet.labelH * 0.07, sheet.labelW * 0.05), h = sheet.labelH - 2 * p, w = sheet.labelW - 2 * p;
+    if ((code === 'qr' || code === 'both') && longest) {
+      const qr = encodeQr(longest, ecl), side = Math.min(h, w * (code === 'both' ? 0.42 : 0.5)), mod = side / (qr.size + 4);
+      facts.push(fact('QR code', `version ${qr.version} (${qr.size} × ${qr.size}), ${f2(side)} mm square`, `each square ${f2(mod)} mm${mod < 0.25 ? ': small for an office printer; use a larger label, a shorter ID or level L' : ''}`));
+    }
+    if ((code === 'c128' || code === 'both') && longest) {
+      const tw = code === 'both' ? w - Math.min(h, w * 0.42) - p * 0.6 : w, mods = code128Widths(longest).reduce((a, b) => a + b, 0) + 20, mod = tw / mods;
+      facts.push(fact('Barcode', `narrowest bar ${f2(mod)} mm`, mod < 0.19 ? 'thinner than most printers and scanners handle well; use a wider label or a shorter ID' : `${mods - 20} modules plus quiet zones`));
+    }
+    facts.push(fact('Pages', String(pages), `${pages * per - labels.length - skip} labels left blank on the last sheet`));
+    q('.lb-facts').replaceChildren(...facts);
+    preview(code, ecl, skip);
+  }
+
+  function preview(code: string, ecl: Ecl, skip: number) {
+    const c = q<HTMLCanvasElement>('.lb-fig'), pal = pagePalette(), scale = 3; // px per mm before device pixels
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = sheet.pageW * scale, H = sheet.pageH * scale;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); c.style.aspectRatio = `${W} / ${H}`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, sheet.pageW, sheet.pageH);
+    const o: Out = {
+      rect: (x, y, w, h) => { ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h); },
+      text: (x, y, s, pt, b) => { ctx.fillStyle = '#000'; ctx.font = `${b ? 700 : 400} ${pt * PT}px Helvetica, Arial, sans-serif`; ctx.textBaseline = 'top'; ctx.fillText(s, x, y); },
+      measure: (s, pt, b) => { ctx.font = `${b ? 700 : 400} ${pt}px Helvetica, Arial, sans-serif`; return ctx.measureText(s).width; },
+    };
+    const per = sheet.cols * sheet.rows;
+    for (let i = 0; i < per; i++) {
+      const r = Math.floor(i / sheet.cols), cc = i % sheet.cols, x = sheet.left + cc * sheet.pitchX, y = sheet.top + r * sheet.pitchY;
+      ctx.strokeStyle = i < skip ? '#bbbbbb' : '#999999'; ctx.lineWidth = 0.2; ctx.setLineDash(i < skip ? [1, 1] : []); ctx.strokeRect(x, y, sheet.labelW, sheet.labelH); ctx.setLineDash([]);
+    }
+    labels.forEach((l, k) => { const pl = place(sheet, k, skip); if (pl.page === 0) drawLabel(o, l, pl.x, pl.y, sheet.labelW, sheet.labelH, code, ecl); });
+    c.setAttribute('aria-label', `Preview of the first sheet: ${Math.min(labels.length, per - skip)} labels`);
+    c.style.filter = pal.red ? 'url(#red-night)' : '';
+  }
+
+  async function pdf() {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const doc = await PDFDocument.create(), font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    doc.setTitle('Sample labels'); doc.setCreator('fibub.com sample label maker'); doc.setProducer('fibub.com');
+    lost = new Set();
+    const safe = (s: string, f: typeof font) => [...s].map((ch) => { try { f.encodeText(ch); return ch; } catch { lost.add(ch); return '?'; } }).join('');
+    const k = 72 / 25.4, code = q<HTMLSelectElement>('.lb-code').value, ecl = q<HTMLSelectElement>('.lb-ecl').value as Ecl, skip = Math.max(0, Math.round(Number(q<HTMLInputElement>('.lb-skip').value) || 0));
+    const pages = pagesNeeded(sheet, labels.length, skip), pg = Array.from({ length: pages }, () => doc.addPage([sheet.pageW * k, sheet.pageH * k]));
+    const outline = q<HTMLInputElement>('.lb-outline').checked;
+    if (outline) pg.forEach((page) => { for (let i = 0; i < sheet.cols * sheet.rows; i++) { const r = Math.floor(i / sheet.cols), c = i % sheet.cols; page.drawRectangle({ x: (sheet.left + c * sheet.pitchX) * k, y: (sheet.pageH - sheet.top - r * sheet.pitchY - sheet.labelH) * k, width: sheet.labelW * k, height: sheet.labelH * k, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.3 }); } });
+    labels.forEach((l, n) => {
+      const pl = place(sheet, n, skip), page = pg[pl.page];
+      const o: Out = {
+        rect: (x, y, w, h) => page.drawRectangle({ x: x * k, y: (sheet.pageH - y - h) * k, width: w * k, height: h * k, color: rgb(0, 0, 0) }),
+        text: (x, y, s, pt, b) => page.drawText(safe(s, b ? bold : font), { x: x * k, y: (sheet.pageH - y) * k - pt * 0.8, size: pt, font: b ? bold : font, color: rgb(0, 0, 0) }),
+        measure: (s, pt, b) => (b ? bold : font).widthOfTextAtSize(safe(s, b ? bold : font), pt),
+      };
+      drawLabel(o, l, pl.x, pl.y, sheet.labelW, sheet.labelH, code, ecl);
+    });
+    const ln = q('.lb-lost');
+    ln.hidden = !lost.size; ln.textContent = lost.size ? `The PDF's built-in font cannot show ${[...lost].slice(0, 12).join(' ')}, so these print as "?" in the text lines (the QR code keeps them).` : '';
+    return doc.save();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  q('.lb-list').addEventListener('input', later);
+  root.querySelectorAll<HTMLInputElement>('.lb-s').forEach((e) => e.addEventListener('input', () => { pre.value = 'custom'; later(); }));
+  ['.lb-copies', '.lb-skip'].forEach((c) => q(c).addEventListener('input', later));
+  ['.lb-head', '.lb-code', '.lb-key', '.lb-ecl', '.lb-outline'].forEach((c) => q(c).addEventListener('change', run));
+  pre.addEventListener('change', () => { if (pre.value !== 'custom') fill(PRESETS[Number(pre.value)].s); run(); });
+  q('.lb-pdf').addEventListener('click', async () => { if (!labels.length) return; const b = await pdf(); save(b, `sample-labels-${fileSafe(labels[0].key || 'list')}.pdf`, 'application/pdf'); });
+  document.addEventListener('fibub:theme', run);
+  run();
+</script>
+
+<style is:inline>
+  .slm select { max-width: 100%; }
+  .slm .lb-inl { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; white-space: nowrap; }
+  .slm .lb-inl input { width: 80px !important; }
+  .slm .lb-lines { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
+  .slm .lb-fig { background: #fff; border: 1px solid var(--line, #ddd); }
+</style>

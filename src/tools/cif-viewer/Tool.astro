@@ -1,0 +1,234 @@
+---
+// CIF viewer: reads a Crystallographic Information File, applies its symmetry operations to fill the unit cell,
+// draws the cell in 3D (turn it to look), and lists bond lengths, cell volume, formula units and density.
+// The file is read on the page and never uploaded. The examples are textbook structures written by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cvw">
+  <div class="ax-card">
+    <h2>CIF file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cv-open">Open a CIF</button>
+      <input type="file" class="cv-file" accept=".cif,.txt,chemical/x-cif,text/plain" hidden />
+      <label class="cv-exl">Example <select class="cv-ex"></select></label>
+    </div>
+    <label style="margin-top:10px">Or paste the CIF text <textarea class="cv-in" rows="6" spellcheck="false" wrap="off"></textarea></label>
+    <p class="ax-help">A .cif file up to 5 MB, as written by a diffractometer, a refinement program or a structure database you have the right to use. The first data block with a cell and atom sites is shown. The file stays on your device.</p>
+    <p class="ax-err cv-err" hidden></p>
+    <p class="ax-help cv-warn" hidden></p>
+  </div>
+
+  <div class="ax-card cv-out" hidden>
+    <h2>Structure</h2>
+    <p class="ax-big cv-big"></p>
+    <dl class="ax-facts cv-facts"></dl>
+    <h3>Unit cell</h3>
+    <canvas class="ax-fig cv-fig"></canvas>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Turn <input class="cv-yaw" type="range" min="-180" max="180" step="1" value="-110" /></label>
+      <label>Tilt <input class="cv-tilt" type="range" min="-90" max="90" step="1" value="18" /></label>
+      <label>Bond cut-off (Å) <input class="cv-cut" inputmode="decimal" /></label>
+      <label>Atom size <input class="cv-size" type="range" min="0.2" max="1.2" step="0.05" value="0.6" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="cv-bonds" checked /> Bonds</label>
+      <label class="ax-check"><input type="checkbox" class="cv-labels" /> Labels</label>
+    </div>
+    <div class="ax-legend cv-leg"></div>
+    <p class="ax-help">Drag the picture sideways or use the sliders to turn it. Atoms on the cell's faces, edges and corners are drawn on both sides. A bond is drawn between any two atoms closer than the cut-off, which starts 15 % above the shortest distance in the structure. Colours are fibub's own, one per element; sizes are for viewing only.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cv-reset">Reset view</button></div>
+
+    <h3>Bond lengths</h3>
+    <div class="ax-scroll"><table class="cv-btab"></table></div>
+    <p class="ax-help cv-cn"></p>
+    <h3>Atoms in the cell</h3>
+    <div class="ax-scroll cv-aw"><table class="cv-atab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cv-csv">Download atoms (CSV)</button>
+      <button type="button" class="btn secondary small cv-bcsv">Download bonds (CSV)</button>
+      <button type="button" class="btn secondary small cv-cif">Download the example CIF</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readStructure, expand, summary, shortest, bondTable, displayAtoms, cartesian, toCart, EXAMPLES, type Structure, type Atom, type Summary, type BondRow } from '../../lib/sci/cif';
+  import { BY_SYMBOL } from '../../lib/sci/chem';
+  import { num, sig } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cvw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const RAD = Math.PI / 180, MAXB = 5e6, MAXATOMS = 3000;
+  const exSel = q<HTMLSelectElement>('.cv-ex');
+  exSel.replaceChildren(new Option('Choose…', ''), ...EXAMPLES.map((e) => new Option(e.name, e.id)));
+
+  // fibub's own element colours: a few familiar ones, the rest from a fixed list in order of atomic number.
+  const FIXED: Record<string, string> = { H: '#d9d9d9', C: '#4d4d4d', N: '#2f6fd6', O: '#d7301f', F: '#7cc242', Cl: '#2ca02c', Br: '#8c3a1e', I: '#6b2c91', S: '#e2c11b', P: '#ef8a17', Na: '#8064c8', K: '#9b59b6', Ca: '#5aa6a0', Mg: '#3fae49', Si: '#c9a26b', Fe: '#c05a2b', Ti: '#8e9aa6', Zn: '#7d8ab8', Cu: '#c8783c', Al: '#a8a8c8', Li: '#b07cd8' };
+  const CYCLE = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#8c6d31', '#7b4173', '#637939', '#843c39'];
+  const colour = (el: string) => FIXED[el] ?? CYCLE[(BY_SYMBOL.get(el)?.z ?? 0) % CYCLE.length];
+  const radius = (el: string) => 0.45 + 0.35 * Math.min(1, Math.sqrt((BY_SYMBOL.get(el)?.z ?? 10) / 56));
+
+  let st: Structure | null = null, atoms: Atom[] = [], sm: Summary | null = null, bonds: BondRow[] = [], name = 'structure', cut = NaN, dmin = NaN;
+  let fig: Figure | null = null, sections: Section[] = [], exampleText = '';
+
+  function load(text: string, nm: string) {
+    const err = q('.cv-err'), warn = q('.cv-warn');
+    err.hidden = warn.hidden = true;
+    q('.cv-cif').hidden = !EXAMPLES.some((e) => e.cif === text);
+    exampleText = text; name = nm;
+    try {
+      st = readStructure(text);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cv-out').hidden = true; st = null; sections = []; return; }
+    atoms = expand(st);
+    if (atoms.length > MAXATOMS) { err.textContent = `This cell holds ${atoms.length} atoms; the viewer shows up to ${MAXATOMS}.`; err.hidden = false; q('.cv-out').hidden = true; st = null; sections = []; return; }
+    sm = summary(st, atoms);
+    dmin = shortest(st.cell, atoms);
+    cut = Number.isFinite(dmin) ? Math.ceil(dmin * 1.15 * 20) / 20 : 3;
+    inp('.cv-cut').value = String(cut);
+    if (st.warnings.length) { warn.textContent = st.warnings.join(' '); warn.hidden = false; }
+    show();
+  }
+
+  function show() {
+    if (!st || !sm) return;
+    const c = st.cell, out = q('.cv-out');
+    const cu = num(inp('.cv-cut').value);
+    const err = q('.cv-err');
+    if (!(cu > 0 && cu <= 6)) { err.textContent = 'The bond cut-off is between 0 and 6 Å.'; err.hidden = false; return; }
+    err.hidden = true; cut = cu; out.hidden = false;
+    const title = st.name && st.name !== '?' ? st.name : name;
+    q('.cv-big').textContent = `${sm.formula}${sm.Z > 1 ? `, Z = ${sig(sm.Z, 3)}` : ''}; ${sm.density.toFixed(3)} g/cm³`;
+    const su = (k: 'a' | 'b' | 'c') => (Number.isFinite(st!.su[k]!) ? `(±${+st!.su[k]!.toPrecision(2)})` : '');
+    q('.cv-facts').replaceChildren(
+      fact('Structure', title, st.sg ? `space group ${st.sg}${st.sgNum ? ` (No. ${st.sgNum})` : ''}` : 'no space group name given'),
+      fact('Cell', `${+c.a.toFixed(6)}${su('a')}, ${+c.b.toFixed(6)}${su('b')}, ${+c.c.toFixed(6)}${su('c')} Å`, `α ${+c.alpha.toFixed(6)}°, β ${+c.beta.toFixed(6)}°, γ ${+c.gamma.toFixed(6)}°`),
+      fact('Cell volume', `${sm.volume.toFixed(3)} Å³`, `${sig(sm.volume / 1000, 5)} nm³`),
+      fact('Atoms in the cell', String(atoms.length), [...sm.counts].map(([el, n]) => `${el} ${sig(n, 4)}`).join(', ') + ` from ${st.sites.length} site${st.sites.length > 1 ? 's' : ''} and ${st.ops.length} symmetry operation${st.ops.length > 1 ? 's' : ''}`),
+      fact('Formula units Z', `${sig(sm.Z, 4)} × ${sm.formula}`, sm.zSource + (Number.isFinite(st.zGiven) ? `; the file says Z = ${st.zGiven}` : '')),
+      fact('Density', `${sm.density.toFixed(3)} g/cm³`, `${sig(sm.mass, 6)} g/mol in the cell ÷ (Nᴀ × V)`),
+      fact('Shortest distance', `${dmin.toFixed(3)} Å`, 'between any two atoms'),
+    );
+    const bt = bondTable(st, atoms, cut);
+    bonds = bt.rows;
+    const bhead = ['Atom', 'Neighbour', 'Distance (Å)', 'Number'];
+    const brows = bonds.map((b) => [b.a, b.b, b.d.toFixed(4), String(b.n)]);
+    tab(q<HTMLTableElement>('.cv-btab'), bhead, brows.length ? brows : [['–', 'none within the cut-off', '', '']], [0, 1]);
+    q('.cv-cn').textContent = `Neighbours within ${cut} Å (coordination): ${[...bt.cn].map(([l, n]) => `${l} ${sig(n, 3)}`).join(', ')}. Each site is listed once; its neighbours include atoms in the next cells.`;
+    const ahead = ['Label', 'Element', 'x', 'y', 'z', 'Occupancy'];
+    const arows = atoms.map((a) => [a.label, a.el, ...a.f.map((x) => x.toFixed(4)), sig(a.occ, 3)]);
+    tab(q<HTMLTableElement>('.cv-atab'), ahead, arows, [0, 1]);
+    draw();
+    const els = [...sm.counts.keys()];
+    const leg = q('.cv-leg'); leg.replaceChildren(...els.map((el) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = colour(el); s.append(i, el); return s; }));
+    sections = [
+      { title: `${title}: ${q('.cv-big').textContent}`, facts: [...q('.cv-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), figure: fig! },
+      { title: `Bond lengths up to ${cut} Å`, table: { head: bhead, rows: brows, align: ['l', 'l', 'r', 'r'] }, note: q('.cv-cn').textContent! },
+      { title: 'Atoms in the cell', table: { head: ahead, rows: arows.slice(0, 400), align: ['l', 'l', 'r', 'r', 'r', 'r'] }, ...(arows.length > 400 ? { note: `First 400 of ${arows.length}; the CSV has them all.` } : {}) },
+    ];
+  }
+  function tab(t: HTMLTableElement, head: string[], body: string[][], left: number[]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (!left.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (!left.includes(i)) td.className = 'r'; }); });
+  }
+
+  function render(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    if (!st) return;
+    const M = cartesian(st.cell), cen = toCart(M, [0.5, 0.5, 0.5]);
+    const yaw = Number(inp('.cv-yaw').value) * RAD, tilt = Number(inp('.cv-tilt').value) * RAD, size = Number(inp('.cv-size').value);
+    const rot = (p: number[]) => {
+      const x = p[0] - cen[0], y = p[1] - cen[1], z = p[2] - cen[2];
+      const x1 = x * Math.cos(yaw) - y * Math.sin(yaw), y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+      return [x1, y1 * Math.cos(tilt) - z * Math.sin(tilt), y1 * Math.sin(tilt) + z * Math.cos(tilt)];
+    };
+    const corners = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1]].map((f) => toCart(M, f));
+    const R = Math.max(...corners.map((p) => Math.hypot(p[0] - cen[0], p[1] - cen[1], p[2] - cen[2]))) + 0.6;
+    const sc = (Math.min(w, h) / 2 - 12) / R;
+    const pr = (p: number[]) => { const r = rot(p); return { x: w / 2 + r[0] * sc, y: h / 2 - r[2] * sc, z: r[1] }; };
+    const disp = displayAtoms(atoms).map((a) => { const cpos = toCart(M, a.f); return { a, c: cpos, p: pr(cpos) }; });
+    // Cell edges.
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2;
+    for (const [i, j] of [[0, 1], [0, 2], [0, 3], [1, 4], [1, 5], [2, 4], [2, 6], [3, 5], [3, 6], [4, 7], [5, 7], [6, 7]]) { const A = pr(corners[i]), B = pr(corners[j]); ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); }
+    // Bonds, then atoms, back to front.
+    type Item = { z: number; draw: () => void };
+    const items: Item[] = [];
+    if (inp('.cv-bonds').checked && disp.length <= 1500) {
+      for (let i = 0; i < disp.length; i++) for (let j = i + 1; j < disp.length; j++) {
+        const A = disp[i], B = disp[j], d = Math.hypot(A.c[0] - B.c[0], A.c[1] - B.c[1], A.c[2] - B.c[2]);
+        if (d > 0.1 && d <= cut) items.push({ z: (A.p.z + B.p.z) / 2 + 0.01, draw: () => { const mx = (A.p.x + B.p.x) / 2, my = (A.p.y + B.p.y) / 2; ctx.lineWidth = Math.max(2, sc * 0.12); ctx.lineCap = 'round'; ctx.strokeStyle = pal.red ? pal.accent : colour(A.a.el); ctx.beginPath(); ctx.moveTo(A.p.x, A.p.y); ctx.lineTo(mx, my); ctx.stroke(); ctx.strokeStyle = pal.red ? pal.accent : colour(B.a.el); ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(B.p.x, B.p.y); ctx.stroke(); } });
+      }
+    }
+    const labels = inp('.cv-labels').checked;
+    for (const D of disp) items.push({ z: D.p.z, draw: () => {
+      const r = Math.max(2, radius(D.a.el) * size * sc);
+      ctx.beginPath(); ctx.arc(D.p.x, D.p.y, r, 0, 2 * Math.PI); ctx.fillStyle = pal.red ? '#300000' : colour(D.a.el); ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = pal.red ? pal.accent : pal.ink; ctx.stroke();
+      if (D.a.occ < 1) { ctx.beginPath(); ctx.arc(D.p.x, D.p.y, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - D.a.occ)); ctx.lineTo(D.p.x, D.p.y); ctx.closePath(); ctx.fillStyle = pal.bg; ctx.fill(); }
+      if (labels) { ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink; ctx.fillText(D.a.label, D.p.x, D.p.y - r - 7); }
+    } });
+    items.sort((x, y) => y.z - x.z).forEach((it) => it.draw());
+    const o = pr(corners[0]);
+    ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ([[1, 'a'], [2, 'b'], [3, 'c']] as const).forEach(([i, n]) => { const p = pr(corners[i]); const dx = p.x - o.x, dy = p.y - o.y, L = Math.hypot(dx, dy) || 1; ctx.fillText(n, p.x + (dx / L) * 26, p.y + (dy / L) * 26); });
+  }
+  function draw() {
+    if (!st || !sm) return;
+    fig = { w: 560, h: 460, alt: `Unit cell of ${sm.formula} with ${atoms.length} atoms`, draw: render };
+    paint(q<HTMLCanvasElement>('.cv-fig'), fig);
+  }
+
+  let drag: { x: number; y: number; yaw: number; tilt: number } | null = null;
+  const cv = q<HTMLCanvasElement>('.cv-fig');
+  cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, yaw: Number(inp('.cv-yaw').value), tilt: Number(inp('.cv-tilt').value) }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    inp('.cv-yaw').value = String(Math.round(((drag.yaw - (e.clientX - drag.x) * 0.6 + 540) % 360) - 180));
+    inp('.cv-tilt').value = String(Math.round(Math.max(-90, Math.min(90, drag.tilt + (e.clientY - drag.y) * 0.4)))); draw();
+  });
+  ['pointerup', 'pointercancel'].forEach((ev) => cv.addEventListener(ev, () => { drag = null; }));
+  ['.cv-yaw', '.cv-tilt', '.cv-size'].forEach((c) => inp(c).addEventListener('input', draw));
+  ['.cv-bonds', '.cv-labels'].forEach((c) => inp(c).addEventListener('change', draw));
+  let timer = 0;
+  inp('.cv-cut').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(show, 250); });
+  q('.cv-reset').addEventListener('click', () => { inp('.cv-yaw').value = '-110'; inp('.cv-tilt').value = '18'; inp('.cv-size').value = '0.6'; draw(); });
+  let ptimer = 0;
+  q('.cv-in').addEventListener('input', () => { clearTimeout(ptimer); exSel.value = ''; ptimer = window.setTimeout(() => load(q<HTMLTextAreaElement>('.cv-in').value, 'pasted'), 400); });
+  exSel.addEventListener('change', () => { const e = EXAMPLES.find((x) => x.id === exSel.value); if (e) { q<HTMLTextAreaElement>('.cv-in').value = e.cif; load(e.cif, e.id); } });
+  q('.cv-open').addEventListener('click', () => q<HTMLInputElement>('.cv-file').click());
+  q('.cv-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.cv-file').files?.[0]; q<HTMLInputElement>('.cv-file').value = '';
+    if (!f) return;
+    if (f.size > MAXB) { q('.cv-err').textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this viewer opens CIF files up to 5 MB.`; q('.cv-err').hidden = false; return; }
+    const text = await f.text();
+    if (/\u0000/.test(text.slice(0, 2000))) { q('.cv-err').textContent = `${f.name} is not a text file. A CIF is plain text.`; q('.cv-err').hidden = false; return; }
+    exSel.value = ''; q<HTMLTextAreaElement>('.cv-in').value = text.length > 200000 ? text.slice(0, 200000) + '\n# … (shortened here; the whole file was read)' : text;
+    load(text, f.name.replace(/\.[^.]+$/, ''));
+  });
+  document.addEventListener('fibub:theme', draw);
+  const csv = (r: string[][]) => r.map((x) => x.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.cv-csv').addEventListener('click', () => {
+    if (!st) return;
+    const M = cartesian(st.cell);
+    const rows = [['label', 'element', 'fract_x', 'fract_y', 'fract_z', 'occupancy', 'cart_x_angstrom', 'cart_y_angstrom', 'cart_z_angstrom'], ...atoms.map((a) => [a.label, a.el, ...a.f.map(String), String(a.occ), ...toCart(M, a.f).map((x) => x.toFixed(5))])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-atoms.csv`, 'text/csv');
+  });
+  q('.cv-bcsv').addEventListener('click', () => save(new Blob([csv([['atom', 'neighbour', 'distance_angstrom', 'number'], ...bonds.map((b) => [b.a, b.b, b.d.toFixed(5), String(b.n)])])], { type: 'text/csv' }), `${fileSafe(name)}-bonds.csv`, 'text/csv'));
+  q('.cv-cif').addEventListener('click', () => save(new Blob([exampleText], { type: 'chemical/x-cif' }), `${fileSafe(name)}.cif`, 'chemical/x-cif'));
+  exSel.value = 'nacl'; q<HTMLTextAreaElement>('.cv-in').value = EXAMPLES[0].cif; load(EXAMPLES[0].cif, 'nacl');
+  wireDownloads(q('.dl'), () => ({ title: 'CIF viewer', subtitle: q('.cv-big').textContent ?? '', file: `${fileSafe(name)}-structure`, sections }));
+</script>
+
+<style is:inline>
+  .cvw h3 { margin: 20px 0 8px; font-size: 15px; }
+  .cvw .cv-exl { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; }
+  .cvw .cv-exl select { width: auto; }
+  .cvw .cv-fig { touch-action: pan-y; cursor: grab; border: 1px solid var(--line); max-width: 640px; margin: 0 auto; }
+  .cvw .cv-aw { max-height: 360px; overflow-y: auto; }
+  .cvw input[type=range] { width: 100%; accent-color: var(--accent); }
+  .cvw .cv-cif[hidden] { display: none; }
+</style>

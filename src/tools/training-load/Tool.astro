@@ -1,0 +1,238 @@
+---
+// Training load tracker: session RPE, Banister and Edwards TRIMP, acute:chronic workload ratio, monotony, strain.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const EXAMPLE = `date,minutes,rpe,avg_hr,z1,z2,z3,z4,z5,note
+2026-09-07,40,3,132,10,25,5,0,0,
+2026-09-08,50,7,158,10,10,10,15,5,
+2026-09-10,45,5,148,5,15,20,5,0,
+2026-09-12,80,4,140,10,50,20,0,0,
+2026-09-13,30,2,125,15,15,0,0,0,
+2026-09-14,44,3,132,11,27,6,0,0,
+2026-09-15,55,7,158,11,11,11,16,6,
+2026-09-17,50,5,148,6,16,22,6,0,
+2026-09-19,88,4,140,11,55,22,0,0,
+2026-09-20,33,2,125,16,17,0,0,0,
+2026-09-21,46,3,132,12,28,6,0,0,
+2026-09-22,57,7,158,12,10,12,17,6,
+2026-09-24,52,5,148,6,17,23,6,0,
+2026-09-26,92,4,140,12,57,23,0,0,
+2026-09-27,34,2,125,17,17,0,0,0,
+2026-09-28,32,3,132,8,20,4,0,0,
+2026-09-29,40,7,158,8,8,8,12,4,
+2026-10-01,36,5,148,4,12,16,4,0,
+2026-10-03,64,4,140,8,40,16,0,0,
+2026-10-04,24,2,125,12,12,0,0,0,
+2026-10-05,48,3,135,12,30,6,0,0,
+2026-10-06,60,8,161,12,12,12,18,6,
+2026-10-08,54,6,151,6,18,24,6,0,
+2026-10-10,96,5,143,12,60,24,0,0,
+2026-10-11,36,2,128,18,18,0,0,0,
+2026-10-12,40,3,132,10,25,5,0,0,
+2026-10-13,50,7,158,10,10,10,15,5,
+2026-10-15,45,5,148,5,15,20,5,0,
+2026-10-17,80,4,140,10,50,20,0,0,
+2026-10-18,30,2,125,15,15,0,0,0,
+2026-10-19,60,3,135,15,37,8,0,0,
+2026-10-20,75,8,161,15,15,15,22,8,"race-pace, hills"
+2026-10-22,68,6,151,8,22,30,8,0,
+2026-10-24,120,5,143,15,75,30,0,0,
+2026-10-25,45,2,128,22,23,0,0,0,`;
+---
+<div class="ax tl">
+  <p class="tl-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Athlete</h2>
+    <div class="ax-grid">
+      <label>Load to track <select class="tl-m">
+        <option value="srpe" selected>Session RPE (RPE × minutes)</option>
+        <option value="banister">Banister TRIMP (average heart rate)</option>
+        <option value="edwards">Edwards TRIMP (minutes in zones)</option>
+      </select></label>
+      <label>Resting heart rate <input class="tl-rest" inputmode="decimal" value="50" /></label>
+      <label>Maximum heart rate <input class="tl-max" inputmode="decimal" value="190" /></label>
+      <label>Sex (Banister weighting) <select class="tl-sex"><option value="m" selected>Male</option><option value="f">Female</option></select></label>
+    </div>
+    <p class="ax-help tl-mhelp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Training log</h2>
+    <label>One session per line: date (YYYY-MM-DD), minutes, RPE (0–10), average heart rate, minutes in heart rate zones 1 to 5, note. Leave a cell empty when you do not have it.
+      <textarea class="tl-in" rows="8" spellcheck="false" wrap="off">{EXAMPLE}</textarea></label>
+    <DataFile target=".tl-in" maxMB={5} maxCols={12} maxRows={20000} label="Import a CSV" />
+    <details class="tl-addw">
+      <summary>Add a session</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Date <input type="date" class="tl-ad" /></label>
+        <label>Minutes <input class="tl-amin" inputmode="decimal" placeholder="60" /></label>
+        <label>RPE (0–10) <input class="tl-arpe" inputmode="decimal" placeholder="5" /></label>
+        <label>Average heart rate <input class="tl-ahr" inputmode="decimal" placeholder="optional" /></label>
+        <label>Zone minutes 1–5 <input class="tl-az" placeholder="e.g. 10, 20, 15, 5, 0" /></label>
+        <label>Note <input class="tl-anote" placeholder="optional" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small tl-add">Add session</button></div>
+      <p class="ax-err tl-aerr" hidden></p>
+    </details>
+    <div class="tl-keep">
+      <label class="ax-check"><input type="checkbox" class="tl-remember" /> Remember my log on this device</label>
+      <p class="ax-help">Off by default. When ticked, the log and settings are kept in this browser only, so they are here next visit. They never leave this device. Untick it or press Clear to remove them.</p>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small tl-export">Export log (CSV)</button>
+        <button type="button" class="btn secondary small tl-clear">Clear</button>
+        <button type="button" class="btn secondary small tl-example">Load example</button>
+      </div>
+      <p class="ax-help tl-kmsg" aria-live="polite"></p>
+    </div>
+    <p class="ax-err tl-err" hidden></p>
+  </div>
+
+  <div class="ax-card tl-out">
+    <h2>Load</h2>
+    <p class="ax-big tl-big"></p>
+    <dl class="ax-facts tl-facts"></dl>
+    <p class="ax-help tl-warn"></p>
+    <canvas class="ax-fig tl-fig1" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig tl-fig2" style="margin-top:12px"></canvas>
+    <h3 style="margin:16px 0 6px;font-size:16px">Weeks (Monday to Sunday)</h3>
+    <div class="ax-scroll"><table class="tl-tab"></table></div>
+    <p class="ax-help">Monotony = mean daily load ÷ its standard deviation over the 7 days (rest days count as 0). Strain = weekly load × monotony.</p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small tl-csv">Download daily results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .tl .tl-med { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .tl .tl-addw { margin-top: 12px; }
+  .tl .tl-addw summary { cursor: pointer; font-weight: 600; }
+  .tl .tl-keep { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .tl .tl-tab td { white-space: nowrap; }
+  .tl .tl-tab td, .tl .tl-tab th { padding: 7px 5px; }
+</style>
+
+<script>
+  import { num, csv } from '../../lib/sci/num';
+  import { parseSessions, toCsv, daily, weeks, sessionLoad, dayStr, type Metric, type Session, type Hr } from '../../lib/sci/trainload';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const ta = q<HTMLTextAreaElement>('.tl-in');
+  const EXAMPLE = ta.value;
+  const KEY = 'fibub-training-load-v1';
+  let figs: Figure[] = [], report: Section[] = [], rows: (string | number)[][] = [];
+  const HELP: Record<string, string> = {
+    srpe: 'Session RPE (Foster et al., 2001): how hard the whole session felt on the 0–10 scale, about 30 minutes after it, times its minutes.',
+    banister: 'Banister TRIMP: minutes × fraction of heart rate reserve × a weighting that rises steeply with intensity (different for men and women). Needs resting and maximum heart rate.',
+    edwards: 'Edwards TRIMP: minutes in each heart rate zone (50–60, 60–70, 70–80, 80–90 and 90–100 % of maximum) times 1, 2, 3, 4 and 5.',
+  };
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const f0 = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en') : '–');
+  const settings = () => ({ metric: q<HTMLSelectElement>('.tl-m').value as Metric, hr: { rest: num(inp('.tl-rest').value), max: num(inp('.tl-max').value), female: q<HTMLSelectElement>('.tl-sex').value === 'f' } as Hr });
+
+  function store() {
+    try {
+      if (inp('.tl-remember').checked) localStorage.setItem(KEY, JSON.stringify({ text: ta.value, m: q<HTMLSelectElement>('.tl-m').value, rest: inp('.tl-rest').value, max: inp('.tl-max').value, sex: q<HTMLSelectElement>('.tl-sex').value }));
+    } catch {}
+  }
+  function calc() {
+    const { metric, hr } = settings();
+    q('.tl-mhelp').textContent = HELP[metric];
+    const err = q('.tl-err');
+    store();
+    try {
+      if (metric === 'banister' && !(hr.rest >= 25 && hr.max <= 230 && hr.max - hr.rest >= 30)) throw new Error('Type a resting heart rate and a maximum at least 30 beats/min above it.');
+      const s = parseSessions(ta.value);
+      if (!s.length) throw new Error('Add at least one session, or press Load example.');
+      if (metric === 'banister') for (const x of s) if (x.hr !== null && (x.hr < hr.rest || x.hr > hr.max)) throw new Error(`${x.date}: the average heart rate ${x.hr} is outside resting to maximum.`);
+      const missing = s.filter((x) => sessionLoad(x, metric, hr) === null).length;
+      if (missing === s.length) throw new Error(metric === 'srpe' ? 'No session has an RPE.' : metric === 'banister' ? 'No session has an average heart rate.' : 'No session has zone minutes.');
+      err.hidden = true; q('.tl-out').hidden = false;
+      show(s, metric, hr, missing);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.tl-out').hidden = true; report = []; rows = []; }
+  }
+  function show(s: Session[], metric: Metric, hr: Hr, missing: number) {
+    const d = daily(s, metric, hr), w = weeks(s, metric, hr), L = d[d.length - 1], lw = w[w.length - 1];
+    const name = { srpe: 'session RPE', banister: 'Banister TRIMP', edwards: 'Edwards TRIMP' }[metric];
+    q('.tl-big').textContent = Number.isFinite(L.acwr) ? `ACWR ${f2(L.acwr)} (rolling) · ${f2(L.ewmaRatio)} (EWMA)` : `EWMA ratio ${f2(L.ewmaRatio)}`;
+    const facts: [string, string][] = [
+      ['Latest day', dayStr(L.day)], ['Sessions', `${s.length} over ${d.length} days`],
+      ['Acute load (last 7 days)', f0(L.acute)], ['Chronic load (weekly mean, 28 days)', f0(L.chronic)],
+      ['EWMA acute / chronic', `${f0(L.ewmaA)} / ${f0(L.ewmaC)} a day`],
+      ['Last week: monotony', f2(lw.monotony)], ['Last week: strain', f0(lw.strain)],
+    ];
+    q('.tl-facts').replaceChildren(...facts.map(([k, v]) => { const e = document.createElement('div'); e.innerHTML = '<dt></dt><dd></dd>'; e.querySelector('dt')!.textContent = k; e.querySelector('dd')!.textContent = v; return e; }));
+    const notes: string[] = [];
+    if (missing) notes.push(`${missing} session${missing > 1 ? 's have' : ' has'} no data for ${name} and count${missing > 1 ? '' : 's'} as 0.`);
+    if (!Number.isFinite(L.acwr)) notes.push('The rolling ratio needs 28 days of log.');
+    notes.push('Units are arbitrary: compare a person with themselves, using one load type.');
+    q('.tl-warn').textContent = notes.join(' ');
+    const x = d.map((_, i) => i + 1), xl = `Day (day 1 = ${dayStr(d[0].day)})`;
+    figs = [
+      chartFigure({ w: 420, h: 340, xLabel: xl, yLabel: `Daily load (${name})`, legend: 'below', yMin: 0, series: [
+        { name: 'Daily load', x: x.filter((_, i) => d[i].load > 0), y: d.filter((r) => r.load > 0).map((r) => r.load), mode: 'points', marker: 'circle', size: 4 },
+        { name: 'EWMA acute (7 d)', x, y: d.map((r) => r.ewmaA), mode: 'line' },
+        { name: 'EWMA chronic (28 d)', x, y: d.map((r) => r.ewmaC), mode: 'line', dash: [6, 4] },
+      ] }, 'Daily training load with acute and chronic EWMA'),
+      chartFigure({ w: 420, h: 320, xLabel: xl, yLabel: 'Acute : chronic ratio', legend: 'below', yMin: 0, series: [
+        { name: 'Rolling 7 / 28 days', x: x.filter((_, i) => Number.isFinite(d[i].acwr)), y: d.filter((r) => Number.isFinite(r.acwr)).map((r) => r.acwr), mode: 'line' },
+        { name: 'EWMA', x, y: d.map((r) => r.ewmaRatio), mode: 'line', dash: [6, 4] },
+      ], marks: [{ kind: 'hline', at: 1 }] }, 'Acute to chronic workload ratio over time'),
+    ];
+    paint(q<HTMLCanvasElement>('.tl-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.tl-fig2'), figs[1]);
+    const head = ['Week of', 'Sessions', 'Load', 'Monotony', 'Strain'];
+    const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const short = (n: number) => { const [y, m, dd] = dayStr(n).split('-').map(Number); return `${dd} ${MON[m - 1]}${y === new Date(L.day * 864e5).getUTCFullYear() ? '' : ' ' + y}`; };
+    const body = w.map((k) => [short(k.start), String(k.sessions), f0(k.total), f2(k.monotony), f0(k.strain)]);
+    const tab = q<HTMLTableElement>('.tl-tab'); tab.replaceChildren();
+    { const tr = tab.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; tr.append(th); }); }
+    for (const b of body) { const tr = tab.insertRow(); b.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); }
+    const r4 = (v: number) => (Number.isFinite(v) ? +v.toFixed(4) : '');
+    rows = [['date', 'load', 'acute_7d_sum', 'chronic_28d_weekly_mean', 'acwr_rolling', 'ewma_acute', 'ewma_chronic', 'acwr_ewma'], ...d.map((r) => [dayStr(r.day), r4(r.load), r4(r.acute), r4(r.chronic), r4(r.acwr), r4(r.ewmaA), r4(r.ewmaC), r4(r.ewmaRatio)])];
+    report = [{ title: `Training load (${name})`, facts: [['Latest', q('.tl-big').textContent!], ...facts], note: q('.tl-warn').textContent!, figure: figs[0] }, { title: 'Acute : chronic workload ratio', figure: figs[1] }, { title: 'Weeks', table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  // Add one session
+  q<HTMLInputElement>('.tl-ad').value = new Date().toISOString().slice(0, 10);
+  q('.tl-add').addEventListener('click', () => {
+    const e = q('.tl-aerr');
+    try {
+      const z = inp('.tl-az').value.trim(), zs = z ? z.split(/[,;\s]+/).filter(Boolean) : [];
+      if (zs.length && zs.length !== 5) throw new Error('Give 5 zone minutes, or leave the box empty.');
+      const line = [inp('.tl-ad').value, inp('.tl-amin').value.trim(), inp('.tl-arpe').value.trim(), inp('.tl-ahr').value.trim(), ...(zs.length ? zs : ['', '', '', '', ''])].join(',') + ',' + inp('.tl-anote').value.replace(/[",\n]/g, ' ').trim();
+      const s = parseSessions(line);
+      if (s[0].rpe === null && s[0].hr === null && !s[0].zones) throw new Error('Give an RPE, an average heart rate or zone minutes.');
+      ta.value = toCsv(parseSessions(ta.value).concat(s).sort((a, b) => a.day - b.day)).trim();
+      e.hidden = true; ['.tl-amin', '.tl-arpe', '.tl-ahr', '.tl-az', '.tl-anote'].forEach((c) => (inp(c).value = ''));
+      calc();
+    } catch (er) { e.textContent = (er as Error).message.replace(/^Line 1: /, ''); e.hidden = false; }
+  });
+  const msg = (t: string) => { q('.tl-kmsg').textContent = t; };
+  q('.tl-remember').addEventListener('change', () => {
+    if (inp('.tl-remember').checked) { store(); msg('Your log is now kept in this browser.'); }
+    else { try { localStorage.removeItem(KEY); } catch {} msg('The copy in this browser was removed.'); }
+  });
+  q('.tl-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} inp('.tl-remember').checked = false; ta.value = ''; msg('Cleared: the log is empty and nothing is kept in this browser.'); calc(); });
+  q('.tl-example').addEventListener('click', () => { ta.value = EXAMPLE; msg(''); calc(); });
+  q('.tl-export').addEventListener('click', () => { try { const s = parseSessions(ta.value); if (s.length) save(new TextEncoder().encode(toCsv(s)), 'training-log.csv', 'text/csv'); } catch (e) { q('.tl-err').textContent = (e as Error).message; q('.tl-err').hidden = false; } });
+  q('.tl-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'training-load-daily.csv', 'text/csv'));
+
+  // A saved log, if the person chose to keep one.
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && typeof saved.text === 'string') {
+      ta.value = saved.text; q<HTMLSelectElement>('.tl-m').value = saved.m; inp('.tl-rest').value = saved.rest; inp('.tl-max').value = saved.max; q<HTMLSelectElement>('.tl-sex').value = saved.sex;
+      inp('.tl-remember').checked = true; msg('Your saved log was loaded from this browser.');
+    }
+  } catch {}
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.tl-addw')) return; clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('.tl-addw, .tl-keep')) return; calc(); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.tl-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.tl-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Training load', subtitle: q('.tl-big').textContent ?? '', file: 'training-load', sections: report }));
+</script>

@@ -1,0 +1,148 @@
+---
+// Pendulum lab analyser: fit g from period vs length, with the exact large-amplitude correction. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const EX = `length, period, amplitude
+0.2, 0.909, 15
+0.4, 1.264, 15
+0.6, 1.562, 15
+0.8, 1.800, 15
+1.0, 2.013, 15
+1.2, 2.206, 15`;
+---
+<div class="ax pna">
+  <div class="ax-card">
+    <h2>Your measurements</h2>
+    <label>Length, period and (optional) amplitude in degrees, one swing setting per line
+      <textarea class="pn-data" rows="8" spellcheck="false">{EX}</textarea></label>
+    <DataFile target=".pn-data" maxCols={3} maxRows={2000} label="Open a file (2 or 3 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Length unit <select class="pn-u"><option value="1" selected>metres</option><option value="0.01">centimetres</option><option value="0.001">millimetres</option></select></label>
+      <label>Each time is for this many full swings <input class="pn-n" type="text" inputmode="decimal" value="1" /></label>
+      <label>Amplitude for rows without one (°) <input class="pn-amp" type="text" inputmode="decimal" value="0" /></label>
+      <label>Fit <select class="pn-fit"><option value="origin" selected>T² = 4π²L/g (length measured to the bob's centre)</option><option value="offset">T² = 4π²(L + δ)/g (unknown extra length δ)</option></select></label>
+      <label>Expected g to compare with (m/s²) <input class="pn-gx" type="text" inputmode="decimal" value="9.81" /></label>
+    </div>
+    <p class="ax-help">A full swing is there and back. Timing 10 or 20 swings and dividing gives much better periods: type 10 in the swings box and paste the total times. The amplitude is the largest angle from the vertical; periods are corrected to small swings with the exact formula before fitting (0 = no correction). The example data are made up.</p>
+    <p class="ax-err pn-err" hidden></p>
+  </div>
+
+  <div class="ax-card pn-out">
+    <h2>Gravity from your pendulum</h2>
+    <p class="ax-big pn-big"></p>
+    <dl class="ax-facts pn-facts"></dl>
+    <canvas class="ax-fig pn-fig"></canvas>
+    <canvas class="ax-fig pn-fig2"></canvas>
+    <div class="ax-scroll"><table class="pn-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pn-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Large-angle correction</h2>
+    <div class="ax-grid">
+      <label>Length (m) <input class="pn-cl" type="text" inputmode="decimal" value="1" /></label>
+      <label>Amplitude (°) <input class="pn-ca" type="text" inputmode="decimal" value="30" /></label>
+      <label>g (m/s²) <input class="pn-cg" type="text" inputmode="decimal" value="9.81" /></label>
+    </div>
+    <p class="ax-err pn-cerr" hidden></p>
+    <dl class="ax-facts pn-cfacts" style="margin-top:10px"></dl>
+    <div class="ax-scroll"><table class="pn-ctab"></table></div>
+    <p class="ax-help">The small-angle period 2π√(L/g) is always a little short. The exact period is 2π√(L/g) × 2K(sin(θ₀/2))/π, with K the complete elliptic integral; the series 1 + θ₀²/16 + 11θ₀⁴/3072 is the usual textbook approximation. A point mass on a light string; a real bob, a heavy string and air drag add their own small effects.</p>
+  </div>
+</div>
+
+<script>
+  import { fitG, largeFactor, seriesFactor, smallPeriod } from '../../lib/sci/phpendulum';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, numericColumns, pm } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pna')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLElement, head: string[], rows: string[][]) => { const th = document.createElement('tr'); for (const h of head) { const c = document.createElement('th'); c.textContent = h; th.append(c); } const trs = rows.map((r) => { const tr = document.createElement('tr'); for (const v of r) { const c = document.createElement('td'); c.textContent = v; tr.append(c); } return tr; }); el.replaceChildren(th, ...trs); };
+  let figs: Figure[] = [], report: Section[] = [], csv = '', corr: Section | null = null;
+
+  function calc() {
+    const err = q('.pn-err'), out = q('.pn-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csv = ''; };
+    const U = +q<HTMLSelectElement>('.pn-u').value, N = val('.pn-n'), amp0 = val('.pn-amp'), offset = q<HTMLSelectElement>('.pn-fit').value === 'offset', gx = val('.pn-gx');
+    if (!(N > 0 && N <= 10000)) return fail('The number of swings per time must be 1 or more (for example 10).');
+    if (!(amp0 >= 0 && amp0 < 180)) return fail('The amplitude must be between 0° and 180° (0 = no correction).');
+    const { cols, rows } = numericColumns(q<HTMLTextAreaElement>('.pn-data').value);
+    if (cols.length < 2 || rows === 0) return fail('Paste at least two columns: length and period.');
+    const L: number[] = [], T: number[] = [], A: number[] = [];
+    for (let i = 0; i < rows; i++) {
+      const l = cols[0][i] * U, t = cols[1][i] / N, a = cols.length > 2 && Number.isFinite(cols[2][i]) ? cols[2][i] : amp0;
+      if (!(l > 0) || !(t > 0)) return fail(`Row ${i + 1}: give a length and a period greater than 0.`);
+      if (!(a >= 0 && a < 180)) return fail(`Row ${i + 1}: the amplitude must be between 0° and 180°.`);
+      L.push(l); T.push(t); A.push(a);
+    }
+    if (L.length < 3) return fail('Give at least 3 lengths so the fit has something to check itself against.');
+    if (Math.max(...L) - Math.min(...L) < 1e-9 * Math.max(...L)) return fail('Use at least two different lengths.');
+    err.hidden = true; out.hidden = false;
+    const f = fitG(L, T, A, offset), raw = fitG(L, T, [], offset), corrected = A.some((a) => a > 0);
+    q('.pn-big').textContent = `g = ${pm(f.g, f.ug)} m/s²`;
+    const facts = [
+      fact('Gravity g', `${pm(f.g, f.ug)} m/s²`, `standard uncertainty from the fit; 95 % interval ${sig(f.ci95[0], 5)} to ${sig(f.ci95[1], 5)} (t, ${f.df} degrees of freedom)`),
+      fact('Slope of T² against L', `${sig(f.slope, 5)} s²/m`, `g = 4π² ÷ slope; slope uncertainty ${sig(f.uSlope, 2)}`),
+      ...(offset ? [fact('Extra length δ', `${sig(f.offset * 1000, 3)} ± ${sig(f.uOffset * 1000, 2)} mm`, 'add this to your lengths to reach the true pivot-to-centre length; intercept ' + `${sig(f.intercept, 3)} ± ${sig(f.uIntercept, 2)} s²`)] : []),
+      ...(gx > 0 ? [fact('Compared with expected', `${(f.g >= gx ? '+' : '')}${sig(((f.g - gx) / gx) * 100, 2)} %`, Math.abs(f.g - gx) <= 2 * f.ug ? `within 2 uncertainties of ${sig(gx, 5)}` : `more than 2 uncertainties from ${sig(gx, 5)}: look for a timing or length error`)] : []),
+      fact('Amplitude correction', corrected ? `g would be ${sig(raw.g, 5)} without it` : 'none applied', corrected ? `periods divided by 2K(sin(θ₀/2))/π; it moves g by ${sig(((f.g - raw.g) / raw.g) * 100, 2)} %` : 'type an amplitude to correct for large swings'),
+      fact('Fit quality', `R² = ${f.r2.toFixed(6)}`, `${f.n} points; rms period scatter ${sig(f.rmsT * 1000, 2)} ms`),
+    ];
+    q('.pn-facts').replaceChildren(...facts);
+    const Lmax = Math.max(...L) * 1.05, xs = [0, Lmax];
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Length L (m)', yLabel: 'Period² T₀² (s²)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Measured (amplitude-corrected)', x: L, y: f.T2, mode: 'points', marker: 'circle', size: 4 },
+      { name: `Fit: g = ${sig(f.g, 5)} m/s²`, x: xs, y: xs.map((x) => f.intercept + f.slope * x), mode: 'line', width: 1.6 },
+    ] }, `Period squared against length with the straight-line fit giving g = ${sig(f.g, 5)} m/s²`);
+    const c2 = chartFigure({ w: 380, h: 180, xLabel: 'Length L (m)', yLabel: 'Residual T₀² (ms²)', legend: 'none', series: [
+      { name: 'Residual', x: L, y: f.resid.map((r) => r * 1000), mode: 'points', marker: 'square', size: 4 },
+    ], marks: [{ kind: 'hline', at: 0, dash: [4, 3] }] }, 'Residuals of the fit: they should scatter evenly around zero');
+    paint(q<HTMLCanvasElement>('.pn-fig'), c1); paint(q<HTMLCanvasElement>('.pn-fig2'), c2);
+    figs = [c1, c2];
+    const head = ['L (m)', 'T (s)', 'Amp. (°)', 'T₀ (s)', 'T₀² (s²)', 'Fit T₀² (s²)', 'Residual (s²)'];
+    const trows = L.map((l, i) => [sig(l, 5), sig(T[i], 5), sig(A[i], 3), sig(f.T0[i], 5), sig(f.T2[i], 5), sig(f.pred[i], 5), sig(f.resid[i], 3)]);
+    table(q('.pn-tab'), head, trows);
+    csv = 'L_m,T_s,amplitude_deg,T0_s,T0_squared_s2,fit_s2,residual_s2\n' + L.map((l, i) => [l, T[i], A[i], f.T0[i], f.T2[i], f.pred[i], f.resid[i]].map((v) => +v.toPrecision(8)).join(',')).join('\n') + '\n';
+    const fr = facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.pn-big').textContent!, facts: fr, figure: c1 }, { title: 'Measurements', table: { head, rows: trows, align: head.map(() => 'r') }, figure: c2 }];
+  }
+
+  function corrCalc() {
+    const e = q('.pn-cerr'), L = val('.pn-cl'), a = val('.pn-ca'), g = val('.pn-cg');
+    const bad = !(L > 0) ? 'Give a length greater than 0.' : !(a >= 0 && a < 180) ? 'The amplitude must be between 0° and 180°.' : !(g > 0) ? 'Give g greater than 0.' : '';
+    e.textContent = bad; e.hidden = !bad; q('.pn-cfacts').hidden = !!bad; q('.pn-ctab').hidden = !!bad;
+    if (bad) { corr = null; return; }
+    const T0 = smallPeriod(L, g), k = largeFactor(a), s = seriesFactor(a);
+    const cf = [
+      fact('Small-angle period', `${sig(T0, 5)} s`, '2π√(L/g)'),
+      fact('Exact period', `${sig(T0 * k, 5)} s`, `× ${k.toFixed(6)}: the small-angle formula is ${sig((k - 1) * 100, 3)} % short`),
+      fact('Series period', `${sig(T0 * s, 5)} s`, `× ${s.toFixed(6)} (1 + θ²/16 + 11θ⁴/3072); off the exact value by ${sig(((s - k) / k) * 100, 2)} %`),
+    ];
+    q('.pn-cfacts').replaceChildren(...cf);
+    const angs = [2, 5, 10, 15, 20, 30, 45, 60, 90, 120];
+    const rows = angs.map((d) => { const kk = largeFactor(d); return [`${d}°`, sig(T0 * kk, 5), `${sig((kk - 1) * 100, 3)} %`, `${sig(((seriesFactor(d) - kk) / kk) * 100, 2)} %`]; });
+    const head = ['Amplitude', 'Exact period (s)', 'Small-angle error', 'Series error'];
+    table(q('.pn-ctab'), head, rows);
+    corr = { title: `Large-angle correction for L = ${sig(L, 4)} m at ${sig(a, 3)}°`, facts: cf.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows } };
+  }
+
+  root.querySelectorAll('.pn-data, .pn-u, .pn-n, .pn-amp, .pn-fit, .pn-gx').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  root.querySelectorAll('.pn-cl, .pn-ca, .pn-cg').forEach((i) => i.addEventListener('input', corrCalc));
+  q('.pn-csv').addEventListener('click', () => { if (csv) save(new Blob([csv], { type: 'text/csv' }), 'pendulum-fit.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pn-out').hidden) { paint(q<HTMLCanvasElement>('.pn-fig'), figs[0]); paint(q<HTMLCanvasElement>('.pn-fig2'), figs[1]); } });
+  calc(); corrCalc();
+  wireDownloads(q('.dl'), () => ({ title: 'Pendulum: g from period and length', subtitle: q('.pn-big').textContent || '', file: 'pendulum', sections: corr ? [...report, corr] : report }));
+</script>
+
+<style is:inline>
+  .pna select, .pna input, .pna textarea { max-width: 100%; }
+  .pna textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
+  .pna .pn-tab, .pna .pn-ctab { margin-top: 12px; }
+  .pna td { text-align: right; }
+</style>

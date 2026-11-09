@@ -1,0 +1,176 @@
+---
+// Primary consolidation settlement of layered clay and its rate (Terzaghi), with cv from a lab t50 or t90.
+// Example values are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'layer\tH\tγ\te0\tCc\tCr\tσ′p\nSand fill\t2\t18\t0.6\t0\t0\t0\nClay A\t3\t17.5\t1.10\t0.45\t0.06\t80\nClay B\t4\t18.5\t0.85\t0.30\t0.04\t95';
+---
+<div class="ax cst">
+  <div class="ax-card">
+    <h2>Soil layers, top down</h2>
+    <label>Name, thickness H (m), unit weight γ (kN/m³), e0, Cc, Cr, σ′p (kPa), one layer per row <textarea class="cs-data" rows="5" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".cs-data" maxCols={8} maxRows={50} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Water table depth (m) <input class="cs-zw" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Sublayers per layer <input class="cs-n" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">γ is the bulk unit weight; below the water table the page uses γ − 9.81. Put Cc = Cr = 0 for sand or gravel that only adds weight. σ′p is the preconsolidation pressure; 0 means normally consolidated. Splitting thick layers into sublayers gives a more exact answer. The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Load</h2>
+    <div class="ax-grid">
+      <label>Load type <select class="cs-lk"><option value="uniform" selected>Wide fill (same stress at every depth)</option><option value="footing">Footing (2:1 spread with depth)</option></select></label>
+      <label>Pressure added q (kPa) <input class="cs-q" type="text" inputmode="decimal" value="60" /></label>
+      <label class="cs-fw" hidden>Footing width B (m) <input class="cs-b" type="text" inputmode="decimal" value="2" /></label>
+      <label class="cs-fw" hidden>Footing length L (m, blank = strip) <input class="cs-l" type="text" inputmode="decimal" value="3" /></label>
+      <label class="cs-fw" hidden>Footing base depth Df (m) <input class="cs-df" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">The 2:1 spread assumes the load spreads out one unit sideways for every two units down: Δσ = q·B·L / ((B + z)(L + z)), z below the base. It is a rough rule; elastic (Boussinesq) charts give a different shape.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Time</h2>
+    <div class="ax-grid">
+      <label>Coefficient of consolidation cv (m²/year) <input class="cs-cv" type="text" inputmode="decimal" value="2.5" /></label>
+      <label>Drainage <select class="cs-dr"><option value="2" selected>Top and bottom (Hdr = H/2)</option><option value="1">One face only (Hdr = H)</option></select></label>
+      <label>Time to reach U (%) <input class="cs-u" type="text" inputmode="decimal" value="90" /></label>
+    </div>
+    <p class="ax-help">H is the total thickness of the compressible layers, treated as one clay with one cv.</p>
+    <details class="cs-lab">
+      <summary>Find cv from a lab test (Casagrande t50 or Taylor t90)</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Read from <select class="cl-m"><option value="0.5" selected>t50 (Casagrande, log time)</option><option value="0.9">t90 (Taylor, root time)</option></select></label>
+        <label>Average sample height (mm) <input class="cl-h" type="text" inputmode="decimal" value="19" /></label>
+        <label>Sample drainage <select class="cl-d"><option value="2" selected>Top and bottom</option><option value="1">One face</option></select></label>
+        <label>Time read off the curve (min) <input class="cl-t" type="text" inputmode="decimal" value="4.5" /></label>
+      </div>
+      <p class="ax-big cl-big" style="font-size:20px"></p>
+      <p class="ax-help cl-help"></p>
+      <button type="button" class="btn secondary small cl-use">Use this cv above</button>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-err cs-err" hidden></p>
+    <div class="cs-out">
+      <p class="ax-big cs-big"></p>
+      <dl class="ax-facts cs-facts"></dl>
+      <h3>Layers (stresses at mid-layer)</h3>
+      <div class="ax-scroll"><table class="cs-tab"></table></div>
+      <p class="ax-help">Case: NC is normally consolidated (Cc); OC stays below σ′p (Cr); OC to NC passes σ′p (Cr up to σ′p, then Cc); under-consolidated means σ′p is below σ′0, treated as NC; none means Cc = Cr = 0.</p>
+      <h3>Settlement against time</h3>
+      <canvas class="ax-fig cs-fig"></canvas>
+      <h3>Excess pore pressure (isochrones)</h3>
+      <canvas class="ax-fig cs-iso"></canvas>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cs-csv">Download settlement against time (CSV)</button></div>
+      <Downloads />
+    </div>
+    <p class="ax-help"><strong>For study and planning, not a substitute for professional judgement.</strong> This is primary consolidation only: immediate (elastic) settlement and secondary compression (creep) come on top. Check your local code and a qualified engineer.</p>
+  </div>
+</div>
+
+<script>
+  import { settle, Uavg, TvFor, isochrone, cvFromLab, type Layer, type Load } from '../../lib/sci/consolidation';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s3 = (x: number) => sig(x, 3);
+  const dur = (y: number) => (y < 1 / 12 ? `${s3(y * 365.25)} days` : y < 2 ? `${s3(y * 12)} months` : `${s3(y)} years`);
+  const mm = (m: number) => `${(m * 1000).toFixed(m >= 0.1 ? 0 : 1)} mm`;
+  let fig: Figure | null = null, iso: Figure | null = null, sections: Section[] = [], csvRows: (string | number)[][] = [], labCv: number | null = null;
+
+  function lab() {
+    const U = +sel('.cl-m'), H = val('.cl-h') / 1000, d = +sel('.cl-d'), t = val('.cl-t');
+    if (!(H > 0 && t > 0)) { q('.cl-big').textContent = 'Give a sample height and a time above zero.'; q('.cl-help').textContent = ''; labCv = null; return; }
+    const Hdr = H / d, cv = cvFromLab(U, Hdr, t / (60 * 24 * 365.25));
+    labCv = cv;
+    q('.cl-big').textContent = `cv = ${s3(cv)} m²/year`;
+    q('.cl-help').textContent = `cv = Tv·Hdr²/t with Tv = ${TvFor(U).toFixed(4)} at U = ${U * 100} % (from the series), Hdr = ${s3(Hdr * 1000)} mm. That is ${s3(cv / (365.25 * 24 * 60) * 1e6)} mm²/min.`;
+  }
+
+  function run() {
+    const err = q('.cs-err'), out = q('.cs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; csvRows = []; fig = iso = null; };
+    const foot = sel('.cs-lk') === 'footing';
+    root.querySelectorAll<HTMLElement>('.cs-fw').forEach((e) => (e.hidden = !foot));
+    const layers: Layer[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.cs-data').value)) {
+      const cells = r.map((c) => c.trim());
+      if (!cells.some(Boolean)) continue;
+      const nums = cells.slice(-6).map(num);
+      if (cells.length < 6 || !nums.every(Number.isFinite)) { if (layers.length) return fail(`This row is not six numbers: "${r.join(' ')}".`); continue; }
+      layers.push({ name: cells.length > 6 ? cells[0] : `Layer ${layers.length + 1}`, H: nums[0], gamma: nums[1], e0: nums[2], Cc: nums[3], Cr: nums[4], sp: nums[5] });
+    }
+    if (!layers.length) return fail('Give at least one layer: thickness, γ, e0, Cc, Cr and σ′p (a name in front is optional).');
+    const zw = val('.cs-zw'), n = Math.round(val('.cs-n'));
+    if (!(zw >= 0)) return fail('The water table depth must be 0 or more.');
+    const Lt = q<HTMLInputElement>('.cs-l').value.trim();
+    const load: Load = foot ? { kind: 'footing', q: val('.cs-q'), B: val('.cs-b'), L: Lt ? num(Lt) : Infinity, Df: val('.cs-df') } : { kind: 'uniform', q: val('.cs-q') };
+    if (load.kind === 'footing' && !(load.B > 0 && load.L > 0 && load.Df >= 0)) return fail('Give the footing width and length above zero (length blank for a strip) and a base depth of 0 or more.');
+    let r: ReturnType<typeof settle>;
+    try { r = settle(layers, load, zw, n); } catch (e) { return fail((e as Error).message); }
+    const cv = val('.cs-cv'), drain = +sel('.cs-dr'), Ut = val('.cs-u') / 100;
+    if (!(cv > 0)) return fail('cv must be above zero.');
+    if (!(Ut > 0 && Ut < 1)) return fail('The target U must be between 0 and 100 % (not including 100).');
+    if (!(r.compressibleH > 0)) return fail('No layer is compressible: give Cc or Cr above zero for the clay.');
+    err.hidden = true; out.hidden = false;
+    const Hdr = r.compressibleH / drain, tOf = (Tv: number) => (Tv * Hdr * Hdr) / cv;
+    const tT = tOf(TvFor(Ut)), t50 = tOf(TvFor(0.5)), t90 = tOf(TvFor(0.9));
+    q('.cs-big').textContent = `Settlement ${mm(r.S)}; ${sig(Ut * 100, 3)} % after ${dur(tT)}`;
+    const f = [fact('Primary settlement', mm(r.S), `sum of ${r.rows.filter((x) => x.kind !== 'none').length} compressible layers${n > 1 ? `, each split into ${n}` : ''}`),
+      fact(`Time to ${sig(Ut * 100, 3)} %`, dur(tT), `Tv = ${TvFor(Ut).toFixed(4)}; settlement then ${mm(r.S * Ut)}`),
+      fact('Time to 50 % and 90 %', `${dur(t50)}, ${dur(t90)}`),
+      fact('Drainage path Hdr', `${s3(Hdr)} m`, `compressible thickness ${s3(r.compressibleH)} m, ${drain === 2 ? 'drained top and bottom' : 'drained one face'}`),
+      fact('After 1 year', mm(r.S * Uavg(cv / (Hdr * Hdr))), `U = ${s3(Uavg((cv * 1) / (Hdr * Hdr)) * 100)} %`)];
+    q('.cs-facts').replaceChildren(...f);
+    const KIND: Record<string, string> = { NC: 'NC: Cc', OC: 'OC: Cr', 'OC to NC': 'OC to NC: Cr, Cc', none: 'none', under: 'under-cons.: Cc' };
+    const head = ['Layer', 'Mid-depth (m)', "σ′0 (kPa)", 'Δσ (kPa)', "σ′f (kPa)", "σ′p (kPa)", 'Case', 'Settlement (mm)'];
+    const rows = r.rows.map((x) => [x.name, x.zMid.toFixed(2), x.s0.toFixed(1), x.ds.toFixed(1), x.sf.toFixed(1), x.kind === 'none' ? '–' : x.sp > 0 ? x.sp.toFixed(1) : '–', KIND[x.kind], (x.S * 1000).toFixed(1)]);
+    const tab = q<HTMLTableElement>('.cs-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; e.append(d); }); return e; };
+    tab.append(tr(head, true), ...rows.map((rw) => tr(rw)));
+    // Settlement–time curve.
+    const Tvs = Array.from({ length: 121 }, (_, i) => 10 ** (-4 + (i * 4.5) / 120));
+    const ts = Tvs.map(tOf), Us = Tvs.map(Uavg), Ss = Us.map((u) => r.S * u * 1000);
+    fig = chartFigure({ w: 380, h: 260, xLog: true, yReverse: true, yMin: 0, xLabel: 'Time (years)', yLabel: 'Settlement (mm)', legend: 'none',
+      series: [{ name: 'Settlement', x: ts, y: Ss, mode: 'line', width: 2 }],
+      marks: [{ kind: 'vline', at: t50, dash: [3, 3], label: 't50' }, { kind: 'vline', at: t90, dash: [3, 3], label: 't90' }] }, 'Consolidation settlement against time on a log time scale');
+    paint(q<HTMLCanvasElement>('.cs-fig'), fig);
+    // Isochrones over the whole compressible thickness.
+    const Z = Array.from({ length: 81 }, (_, i) => (i / 80) * drain);
+    const isoT = [0.02, 0.1, 0.2, 0.5, 1];
+    iso = chartFigure({ w: 380, h: 280, yReverse: true, xMin: 0, xMax: 1, yMin: 0, yMax: drain, xLabel: 'Excess pore pressure u/u0', yLabel: 'Depth z/Hdr', legend: 'below',
+      series: isoT.map((T) => ({ name: `Tv ${T} (${dur(tOf(T))})`, x: Z.map((z) => isochrone(z <= 1 ? z : 2 - z, T)), y: Z, mode: 'line' as const, width: 1.6 })) }, 'Isochrones of excess pore pressure through the clay');
+    paint(q<HTMLCanvasElement>('.cs-iso'), iso);
+    csvRows = [['time_years', 'Tv', 'U', 'settlement_mm'], ...Tvs.map((T, i) => [sig(ts[i], 6), sig(T, 6), sig(Us[i], 6), sig(Ss[i], 6)])];
+    const facts = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [{ title: q('.cs-big').textContent!, facts: facts(f) }, { title: 'Layers', table: { head, rows } },
+      { title: 'Settlement against time', figure: fig }, { title: 'Isochrones', figure: iso, note: 'For study and planning, not a substitute for professional judgement. Example values are made up.' }];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { const fn = i.closest('.cs-lab') ? lab : run; i.addEventListener('input', fn); i.addEventListener('change', fn); });
+  q('.cl-use').addEventListener('click', () => { if (labCv) { q<HTMLInputElement>('.cs-cv').value = sig(labCv, 3); run(); } });
+  q('.cs-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'consolidation-settlement.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.cs-out').hidden) { paint(q<HTMLCanvasElement>('.cs-fig'), fig); paint(q<HTMLCanvasElement>('.cs-iso'), iso!); } });
+  lab(); run();
+  wireDownloads(q('.dl'), () => ({ title: 'Consolidation settlement', subtitle: q('.cs-big').textContent ?? '', file: 'consolidation-settlement', sections }));
+</script>
+
+<style is:inline>
+  .cst select, .cst input[type=text] { max-width: 100%; }
+  .cst textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
+  .cst h3 { font-size: 15px; margin: 16px 0 6px; }
+  .cst details { margin-top: 12px; }
+  .cst summary { cursor: pointer; font-weight: 600; }
+  .cst .cl-big { margin: 10px 0 0; }
+  .cst .cl-use { margin-top: 8px; }
+</style>

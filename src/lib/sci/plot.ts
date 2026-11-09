@@ -81,8 +81,13 @@ export function tickLabel(v: number, step: number, log = false): string {
     if (Math.abs(a - 10 ** e) / a < 1e-9 && (e > 4 || e < -3)) return `10${superscript(e)}`;
   }
   if (a >= 1e5 || a < 1e-4) { const [m, e] = v.toExponential(2).split('e'); return `${parseFloat(m)}×10${superscript(+e)}`; }
-  const dec = log ? Math.max(0, -Math.floor(Math.log10(a) + 1e-9)) : Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  const dec = log ? Math.max(0, -Math.floor(Math.log10(a) + 1e-9)) : stepDecimals(step);
   return v.toFixed(Math.min(dec, 10)).replace('-', '−');
+}
+// Decimals the tick step needs, so 2.5 keeps one and 0.25 keeps two.
+function stepDecimals(step: number): number {
+  for (let d = 0; d <= 10; d++) { const x = step * 10 ** d; if (Math.abs(x - Math.round(x)) < 1e-6 * Math.max(1, x)) return d; }
+  return 10;
 }
 const SUPS: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
 const superscript = (n: number) => String(n).split('').map((c) => SUPS[c] ?? c).join('');

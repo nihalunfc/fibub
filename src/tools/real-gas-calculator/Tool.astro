@@ -1,0 +1,137 @@
+---
+// Real gas equations of state compared: ideal, van der Waals, Redlich-Kwong, Soave-Redlich-Kwong and Peng-Robinson.
+// Critical constants are rounded general values and editable. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { GASES } from '../../lib/sci/phrealgas';
+---
+<div class="ax rgc">
+  <div class="ax-card">
+    <h2>Gas and conditions</h2>
+    <div class="ax-grid">
+      <label>Gas <select class="rg-gas">{GASES.map((g) => <option value={g.id} selected={g.id === 'co2'}>{g.name}</option>)}<option value="custom">Other (type its constants)</option></select></label>
+      <label>Critical temperature Tc (K) <input class="rg-tc" type="text" inputmode="decimal" value="304.1" /></label>
+      <label>Critical pressure Pc (bar) <input class="rg-pc" type="text" inputmode="decimal" value="73.8" /></label>
+      <label>Acentric factor ω <input class="rg-w" type="text" inputmode="decimal" value="0.225" /></label>
+      <label>Molar mass (g/mol) <input class="rg-m" type="text" inputmode="decimal" value="44.01" /></label>
+      <label>Temperature <input class="rg-t" type="text" inputmode="decimal" value="300" /></label>
+      <label>Temperature unit <select class="rg-tu"><option value="K" selected>K</option><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label>Pressure <input class="rg-p" type="text" inputmode="decimal" value="50" /></label>
+      <label>Pressure unit <select class="rg-pu"><option value="1e5" selected>bar</option><option value="1e6">MPa</option><option value="1e3">kPa</option><option value="101325">atm</option><option value="6894.757">psi</option></select></label>
+      <label>Equation for the isotherm and Z charts <select class="rg-eos"><option value="vdw">van der Waals</option><option value="rk">Redlich-Kwong</option><option value="srk">Soave-Redlich-Kwong</option><option value="pr" selected>Peng-Robinson</option></select></label>
+    </div>
+    <p class="ax-help">Choosing a gas fills in its critical point and acentric factor (rounded general values; type over them for any other gas). ω measures how far a molecule is from a simple sphere: 0 for argon, larger for long or polar molecules; only Soave-Redlich-Kwong and Peng-Robinson use it. The example (CO₂ at 300 K and 50 bar) is made up.</p>
+    <p class="ax-err rg-err" hidden></p>
+  </div>
+
+  <div class="ax-card rg-out">
+    <h2>Compressibility factor</h2>
+    <p class="ax-big rg-big"></p>
+    <dl class="ax-facts rg-facts"></dl>
+    <h3 style="margin:16px 0 8px">Every equation at these conditions</h3>
+    <div class="ax-scroll"><table class="rg-tab"></table></div>
+    <p class="ax-help">Z = PV/(RT): 1 for an ideal gas, below 1 when attraction between molecules wins (the gas is squeezed into less space), above 1 when their own size wins. φ is the fugacity coefficient; the fugacity φP is the "effective pressure" used in phase and reaction equilibria. Where an equation has two physical roots, the one with the lower Gibbs energy (smaller φ) is shown.</p>
+    <canvas class="ax-fig rg-fig1"></canvas>
+    <canvas class="ax-fig rg-fig2"></canvas>
+    <canvas class="ax-fig rg-fig3"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rg-csv">Z against pressure (CSV)</button></div>
+    <p class="ax-help">Cubic equations are good near ordinary conditions and fair near the critical point; liquid densities from them can be off by 10 % or more (Peng-Robinson is usually best). For design work use measured data or a reference equation of state.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { GASES, EOS_LIST, EOS_NAMES, R, solveTP, psat, pressure, params, zCurve, type Eos } from '../../lib/sci/phrealgas';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rgc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  q('.rg-gas').addEventListener('change', () => {
+    const g = GASES.find((x) => x.id === sel('.rg-gas'));
+    if (!g) return;
+    inp('.rg-tc').value = String(g.Tc); inp('.rg-pc').value = String(+(g.Pc / 1e5).toPrecision(4)); inp('.rg-w').value = String(g.w); inp('.rg-m').value = String(g.M);
+  });
+  for (const c of ['.rg-tc', '.rg-pc', '.rg-w', '.rg-m']) inp(c).addEventListener('input', () => { q<HTMLSelectElement>('.rg-gas').value = 'custom'; });
+
+  function calc() {
+    const err = q('.rg-err'), out = q('.rg-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const Tc = val('.rg-tc'), Pc = val('.rg-pc') * 1e5, w = val('.rg-w'), M = val('.rg-m');
+    const tu = sel('.rg-tu'), t = val('.rg-t'), PU = +sel('.rg-pu'), pu = q<HTMLSelectElement>('.rg-pu').selectedOptions[0].textContent!;
+    const T = tu === 'K' ? t : tu === 'C' ? t + 273.15 : (t - 32) * (5 / 9) + 273.15, P = val('.rg-p') * PU;
+    if (!(Tc > 0)) return fail('Give the critical temperature in kelvin (greater than 0).');
+    if (!(Pc > 0)) return fail('Give the critical pressure in bar (greater than 0).');
+    if (!(w > -1 && w < 2)) return fail('The acentric factor ω is usually between −0.4 and 1.5.');
+    if (!(M > 0)) return fail('Give the molar mass in g/mol.');
+    if (!(T > 0)) return fail('The temperature must be above absolute zero.');
+    if (!(P > 0)) return fail('Give a pressure greater than 0.');
+    if (P > 1000 * Pc) return fail('That pressure is more than 1,000 times the critical pressure: far outside what cubic equations describe.');
+    err.hidden = true; out.hidden = false;
+    const g = { Tc, Pc, w }, eos = sel('.rg-eos') as Eos;
+    const fmtP = (p: number) => `${sig(p / PU, 4)} ${pu}`;
+    const st = solveTP(eos, g, T, P), sat = psat(eos, g, T);
+    const pct = (z: number) => `${z < 1 ? '' : '+'}${sig((z - 1) * 100, 3)} %`;
+    q('.rg-big').textContent = `Z = ${sig(st.Z, 4)} (${EOS_NAMES[eos]}): ${sig(st.Z * 100, 3)} % of the ideal-gas volume`;
+    const f = [
+      fact('Molar volume', `${sig(st.V * 1000, 4)} L/mol`, `ideal gas ${sig(((R * T) / P) * 1000, 4)} L/mol`),
+      fact('Density', `${sig((M / 1000) / st.V, 4)} kg/m³`, `${sig(1 / st.V, 4)} mol/m³`),
+      fact('Fugacity', fmtP(st.phi * P), `φ = ${sig(st.phi, 4)}`),
+      fact('Reduced temperature Tr', sig(T / Tc, 4), T > Tc ? 'above the critical temperature: no liquid at any pressure' : 'below the critical temperature: can condense'),
+      fact('Reduced pressure Pr', sig(P / Pc, 4), `${sig(T, 5)} K, ${fmtP(P)}`),
+    ];
+    if (T < Tc) f.push(fact('Saturation pressure', sat ? fmtP(sat.P) : 'not found', sat ? `predicted by ${EOS_NAMES[eos]}; ${P > sat.P ? 'above it the stable phase is liquid' : 'below it the stable phase is vapour'}` : 'too close to the critical point to separate the roots'));
+    f.push(fact('Root used', st.phase === 'one root' ? 'only one physical root' : st.phase, st.roots.length > 1 ? `roots Z = ${st.roots.map((z) => sig(z, 4)).join(', ')}` : ''));
+    q('.rg-facts').replaceChildren(...f);
+    // Comparison table.
+    const head = ['Equation', 'Z', 'Molar volume (L/mol)', 'Density (kg/m³)', 'φ', `Fugacity (${pu})`, 'Off ideal'];
+    const rows = EOS_LIST.map((e) => { const s = solveTP(e, g, T, P); return [EOS_NAMES[e], sig(s.Z, 4), sig(s.V * 1000, 4), sig((M / 1000) / s.V, 4), sig(s.phi, 4), sig((s.phi * P) / PU, 4), e === 'ideal' ? '–' : pct(s.Z)]; });
+    const tab = q('.rg-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i) d.className = 'r'; r.append(d); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    // Charts.
+    const Pmax = Math.max(2 * P, 1.5 * Pc), curves = EOS_LIST.map((e) => zCurve(e, g, T, Pmax, 160));
+    csvRows = [['P (' + pu + ')', ...EOS_LIST.map((e) => 'Z ' + EOS_NAMES[e])], ...curves[0].P.map((p, i) => [+(p / PU).toPrecision(6), ...curves.map((c) => +c.Z[i].toPrecision(6))])];
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: `Pressure (${pu})`, yLabel: 'Z = PV/RT', xMin: 0, legend: 'below', series: EOS_LIST.map((e, i) => ({ name: EOS_NAMES[e], x: curves[i].P.map((p) => p / PU), y: curves[i].Z, mode: 'line' as const, width: e === eos ? 2.4 : 1.4, dash: e === 'ideal' ? [5, 4] : undefined })), marks: [{ kind: 'vline', at: P / PU, dash: [3, 3], label: 'here' }] }, `Z against pressure at ${sig(T, 4)} K for every equation`);
+    const pa = params(eos, g, T), Vid = (R * T) / P, Vs: number[] = [];
+    const vlo = Math.max(pa.b * 1.02, 1e-9), vhi = Math.max(Vid * 8, vlo * 50);
+    for (let i = 0; i <= 300; i++) Vs.push(vlo * Math.pow(vhi / vlo, i / 300));
+    const ytop = 3 * Math.max(P, Pc), ybot = -0.5 * Pc;
+    const iso = Vs.map((V) => pressure(eos, g, T, V)), keep = Vs.map((_, i) => iso[i] < ytop && iso[i] > ybot);
+    const c2 = chartFigure({ w: 380, h: 240, xLabel: 'Molar volume (L/mol)', yLabel: `Pressure (${pu})`, xLog: true, legend: 'below', series: [
+      { name: `${EOS_NAMES[eos]} isotherm`, x: Vs.filter((_, i) => keep[i]).map((v) => v * 1000), y: iso.filter((_, i) => keep[i]).map((p) => p / PU), mode: 'line', width: 2 },
+      { name: 'Ideal gas', x: Vs.filter((V) => (R * T) / V < ytop).map((v) => v * 1000), y: Vs.filter((V) => (R * T) / V < ytop).map((V) => (R * T) / V / PU), mode: 'line', width: 1.2, dash: [5, 4] },
+      { name: 'This state', x: [st.V * 1000], y: [P / PU], mode: 'points', marker: 'circle', size: 5 },
+    ], marks: sat ? [{ kind: 'hline', at: sat.P / PU, dash: [3, 3], label: 'saturation' }] : [] }, `Pressure against molar volume at ${sig(T, 4)} K (${EOS_NAMES[eos]})`);
+    const trs = [1, 1.1, 1.3, 1.5, 2, 3], prs: number[] = [];
+    for (let i = 1; i <= 120; i++) prs.push((10 * i) / 120);
+    const c3 = chartFigure({ w: 380, h: 240, xLabel: 'Reduced pressure Pr = P/Pc', yLabel: 'Z', xMin: 0, legend: 'below', series: [
+      ...trs.map((r) => ({ name: `Tr = ${r}`, x: prs, y: prs.map((p) => solveTP(eos, g, r * Tc, p * Pc).Z), mode: 'line' as const, width: 1.6 })),
+      { name: 'This state', x: [P / Pc], y: [st.Z], mode: 'points' as const, marker: 'circle' as const, size: 5 },
+    ] }, `Generalised compressibility chart from ${EOS_NAMES[eos]}${eos === 'srk' || eos === 'pr' ? ` (ω = ${w})` : ''}`);
+    figs = [c1, c2, c3];
+    paint(q<HTMLCanvasElement>('.rg-fig1'), c1); paint(q<HTMLCanvasElement>('.rg-fig2'), c2); paint(q<HTMLCanvasElement>('.rg-fig3'), c3);
+    const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.rg-big').textContent!, facts: rowsOf(f), table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: c1 },
+      { title: 'Isotherm', figure: c2 }, { title: 'Generalised Z chart', figure: c3, note: 'Cubic equations of state; critical constants rounded. For study and planning, not a substitute for measured data.' },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.rg-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'z-against-pressure.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.rg-out').hidden) { paint(q<HTMLCanvasElement>('.rg-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.rg-fig2'), figs[1]); paint(q<HTMLCanvasElement>('.rg-fig3'), figs[2]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Real gas', subtitle: `${q<HTMLSelectElement>('.rg-gas').selectedOptions[0].textContent}, ${inp('.rg-t').value} ${sel('.rg-tu')}, ${inp('.rg-p').value} ${q<HTMLSelectElement>('.rg-pu').selectedOptions[0].textContent}`, file: 'real-gas', sections: report }));
+</script>
+
+<style is:inline>
+  .rgc select, .rgc input { max-width: 100%; }
+</style>

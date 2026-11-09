@@ -1,0 +1,50 @@
+// #571 train/test splitter: row counts checked against scikit-learn 1.9. train_test_split sizes; stratified test
+// counts per class (train_test_split(stratify=y) over 60 random_states: our counts must be one of sklearn's outcomes,
+// which is a single outcome except where remainders tie); StratifiedKFold per-fold class counts; KFold and GroupKFold
+// fold of every row; GroupShuffleSplit number of test groups. Labels: the tool's example (kinds, farms), 137 labels in
+// 5 classes and 200 rows in 23 groups (numpy seed 3). The rows picked differ from sklearn's (another random generator).
+import { randomSplit, stratifiedSplit, groupSplit, timeSplit, kfold, stratifiedKfold, groupKfold, timeOrder, balance, approximateMode, testCount, EXAMPLE } from '../../src/lib/sci/split.ts';
+import { rng } from '../../src/lib/sci/dataset.ts';
+
+const REF = {"labels":{"ex":["apple","apple","apple","apple","apple","apple","pear","apple","apple","apple","pear","apple","pear","pear","orange","orange","apple","pear","apple","pear","pear","apple","orange","apple","pear","apple","apple","apple","orange","apple","pear","apple","orange","apple","apple","apple","apple","orange","orange","apple"],"lab5":["c0","c0","c2","c1","c0","c1","c1","c0","c2","c0","c0","c1","c1","c1","c2","c4","c0","c1","c2","c0","c0","c4","c0","c0","c3","c1","c1","c2","c0","c2","c0","c0","c2","c3","c0","c1","c0","c2","c2","c0","c2","c2","c2","c2","c1","c2","c3","c0","c2","c0","c1","c0","c2","c0","c3","c0","c1","c0","c1","c0","c0","c2","c2","c1","c3","c0","c3","c0","c4","c1","c1","c4","c2","c2","c0","c0","c0","c0","c0","c3","c0","c0","c1","c2","c4","c2","c0","c1","c2","c0","c2","c0","c1","c2","c2","c1","c1","c0","c1","c0","c1","c1","c2","c0","c0","c1","c0","c2","c0","c0","c3","c0","c0","c0","c1","c0","c1","c3","c1","c2","c3","c2","c2","c2","c2","c0","c1","c0","c0","c1","c0","c1","c1","c0","c1","c0","c2"],"tiny":["a","a","a","a","a","b","b","b","c","d"],"g_ex":["F3","F2","F1","F1","F8","F3","F7","F3","F8","F7","F6","F8","F3","F5","F4","F5","F1","F8","F5","F1","F2","F8","F1","F4","F8","F4","F3","F5","F2","F2","F3","F8","F3","F1","F7","F2","F3","F8","F6","F6"],"g_grp":["g19","g02","g02","g03","g07","g11","g13","g09","g20","g15","g03","g07","g04","g04","g19","g21","g09","g05","g19","g03","g03","g06","g08","g07","g06","g05","g14","g12","g15","g21","g21","g02","g18","g09","g18","g15","g01","g20","g21","g22","g01","g03","g14","g12","g02","g20","g05","g01","g19","g13","g00","g03","g20","g17","g19","g21","g06","g12","g08","g00","g05","g01","g02","g09","g21","g19","g14","g05","g02","g15","g16","g09","g03","g06","g22","g16","g13","g07","g19","g08","g10","g17","g09","g11","g00","g18","g06","g11","g12","g03","g05","g10","g02","g20","g07","g12","g03","g22","g10","g00","g07","g07","g05","g17","g22","g15","g04","g12","g10","g15","g19","g20","g18","g15","g10","g12","g04","g12","g11","g15","g10","g07","g11","g15","g04","g14","g08","g18","g13","g11","g00","g00","g05","g12","g10","g19","g02","g14","g08","g14","g02","g08","g03","g08","g04","g16","g15","g01","g06","g19","g20","g20","g02","g22","g09","g03","g16","g02","g00","g20","g02","g09","g20","g06","g06","g08","g17","g15","g06","g03","g09","g11","g09","g15","g02","g16","g12","g00","g15","g18","g08","g09","g13","g10","g11","g12","g13","g06","g02","g20","g10","g04","g22","g12","g07","g03","g00","g14","g14","g20"]},"strat":{"ex|0.2":[[5,1,2]],"ex|0.25":[[6,2,2]],"ex|0.3":[[7,2,3]],"ex|0.15":[[4,1,1]],"ex|0.33":[[8,3,3]],"lab5|0.2":[[11,7,7,2,1]],"lab5|0.25":[[14,9,9,2,1]],"lab5|0.3":[[17,10,10,3,2]],"lab5|0.15":[[8,5,5,2,1]],"lab5|0.33":[[18,11,12,3,2],[18,12,11,3,2]],"tiny|0.2":["error"],"tiny|0.25":["error"],"tiny|0.3":["error"],"tiny|0.15":["error"],"tiny|0.33":["error"]},"skf":{"ex|3":[[8,3,3],[8,2,3],[8,2,3]],"ex|5":[[5,1,2],[5,1,2],[5,1,2],[5,2,1],[4,2,2]],"lab5|3":[[18,11,12,3,2],[18,12,11,4,1],[18,11,11,3,2]],"lab5|5":[[11,7,7,2,1],[11,7,7,2,1],[11,6,7,2,1],[11,7,6,2,1],[10,7,7,2,1]],"tiny|3":[[2,1,0,1],[2,1,0,0],[1,1,1,0]],"tiny|5":[[1,1,0,0],[1,1,0,0],[1,1,0,0],[1,0,1,0],[1,0,0,1]]},"gkf":{"ex|3":[1,2,2,2,0,1,1,1,0,1,1,0,1,0,2,0,2,0,0,2,2,0,2,2,0,2,1,0,2,2,1,0,1,2,1,2,1,0,1,1],"ex|4":[1,3,2,2,0,1,2,1,0,2,0,0,1,3,1,3,2,0,3,2,3,0,2,1,0,1,1,3,3,3,1,0,1,2,2,3,1,0,0,0],"grp|3":[0,0,0,2,0,0,1,0,1,1,2,0,2,2,0,1,0,1,0,2,2,1,2,0,1,1,2,2,1,1,1,0,0,0,0,1,2,1,1,0,2,2,2,2,0,1,1,2,0,1,1,2,1,0,0,1,1,2,2,1,1,2,0,0,1,0,2,1,0,1,2,0,2,1,0,2,1,0,0,2,2,0,0,0,1,0,1,0,2,2,1,2,0,1,0,2,2,0,2,1,0,0,1,0,0,1,2,2,2,1,0,1,0,1,2,2,2,2,0,1,2,0,0,1,2,2,2,0,1,0,1,1,1,2,2,0,0,2,2,2,0,2,2,2,2,2,1,2,1,0,1,1,0,0,0,2,2,0,1,1,0,0,1,1,1,2,0,1,1,2,0,0,0,1,0,2,2,1,1,0,2,0,1,2,0,2,1,1,0,1,2,2,0,2,0,2,1,2,2,1],"grp|4":[2,0,0,2,1,0,1,1,3,1,2,1,3,3,2,3,1,1,2,2,2,0,0,1,0,1,2,3,1,3,3,0,0,1,0,1,3,3,3,2,3,2,2,3,0,3,1,3,2,1,3,2,3,0,2,3,0,3,0,3,1,3,0,1,3,2,2,1,0,1,2,1,2,0,2,2,1,1,2,0,2,0,1,0,3,0,0,0,3,2,1,2,0,3,1,3,2,2,2,3,1,1,1,0,2,1,3,3,2,1,2,3,0,1,2,3,3,3,0,1,2,1,0,1,3,2,0,0,1,0,3,3,1,3,2,2,0,2,0,2,0,0,2,0,3,2,1,3,0,2,3,3,0,2,1,2,2,0,3,3,0,1,3,0,0,0,0,1,0,2,1,0,1,1,0,2,3,3,1,0,0,1,1,2,0,3,1,0,0,3,2,3,2,3,1,2,3,2,2,3]},"kfold":{"41|5":[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4],"40|3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2],"7|7":[0,1,2,3,4,5,6]},"sizes":{"41|0.2":[32,9],"40|0.25":[30,10],"137|0.15":[116,21],"10|0.33":[6,4]},"gss":{"ex|0.2":2,"ex|0.3":3,"grp|0.2":5,"grp|0.3":7}};
+
+export default async (check) => {
+  const L = REF.labels, cls = (y) => [...new Set(y)].sort();
+  for (const [key, [ntr, nte]] of Object.entries(REF.sizes)) { const [n, f] = key.split('|').map(Number); const s = randomSplit(n, f, 0, 1); const t = s.filter((x) => x === 1).length; check(`train-test-splitter: random split n=${n}, test ${f}: ${n - t} + ${t} as sklearn`, t === nte && n - t === ntr); }
+  for (const [key, outs] of Object.entries(REF.strat)) {
+    const [name, f] = key.split('|'), y = L[name];
+    if (outs[0] === 'error') continue;
+    let ok = true, got;
+    for (const seed of [1, 7, 42]) { const s = stratifiedSplit(y, Number(f), 0, seed); got = cls(y).map((c) => y.filter((l, i) => l === c && s[i] === 1).length); ok &&= outs.some((o) => o.join() === got.join()); }
+    check(`train-test-splitter: stratified ${name}, test ${f}: class counts ${got} as sklearn ${outs.map((o) => o.join('/')).join(' or ')}`, ok);
+  }
+  for (const [key, want] of Object.entries(REF.skf)) {
+    const [name, k] = key.split('|'), y = L[name], f = stratifiedKfold(y, Number(k), 0);
+    const got = [...Array(Number(k)).keys()].map((ff) => cls(y).map((c) => y.filter((l, i) => l === c && f[i] === ff).length));
+    check(`train-test-splitter: stratified ${k}-fold ${name}: per-fold class counts as sklearn StratifiedKFold`, JSON.stringify(got) === JSON.stringify(want));
+  }
+  for (const [key, want] of Object.entries(REF.gkf)) { const [name, k] = key.split('|'); check(`train-test-splitter: GroupKFold ${name}, k=${k}: every row's fold as sklearn`, JSON.stringify([...groupKfold(L['g_' + name], Number(k))]) === JSON.stringify(want)); }
+  for (const [key, want] of Object.entries(REF.kfold)) { const [n, k] = key.split('|').map(Number); check(`train-test-splitter: KFold in order n=${n}, k=${k} as sklearn`, JSON.stringify([...kfold(n, k, null)]) === JSON.stringify(want)); }
+  for (const [key, want] of Object.entries(REF.gss)) {
+    const [name, f] = key.split('|'), g = L['g_' + name], s = groupSplit(g, Number(f), 0, 5);
+    const tg = new Set(g.filter((_, i) => s[i] === 1)), trg = new Set(g.filter((_, i) => s[i] === 0));
+    check(`train-test-splitter: grouped split ${name} ${f}: ${tg.size} test groups as GroupShuffleSplit, none shared`, tg.size === want && [...tg].every((x) => !trg.has(x)));
+  }
+  // Shuffled k-fold: sizes as KFold, every row once, and a different seed gives a different assignment.
+  { const a = kfold(41, 5, 1), b = kfold(41, 5, 2), sizes = [0, 1, 2, 3, 4].map((f) => a.filter((x) => x === f).length);
+    check('train-test-splitter: shuffled 5-fold of 41 rows: sizes 9,8,8,8,8; seeds differ; same seed repeats', sizes.join() === '9,8,8,8,8' && a.join() !== b.join() && kfold(41, 5, 1).join() === a.join()); }
+  // Three parts.
+  { const y = L.lab5, s = stratifiedSplit(y, 0.2, 0.1, 9), n = [0, 1, 2].map((p) => s.filter((x) => x === p).length);
+    const bal = balance(y, s, 3);
+    check(`train-test-splitter: stratified train/validation/test 137 rows: ${n} (test ceil(27.4)=28, validation ceil(13.7)=14)`, n.join() === '95,28,14');
+    check('train-test-splitter: stratified three parts keep class shares within one row of exact', bal.counts.every((row) => row.every((c, p) => Math.abs(c - (row.reduce((a, b) => a + b, 0) * n[p]) / 137) < 1.5))); }
+  { const v = ['2026-03-05', '2026-01-10', '2026-02-01', '2026-01-10', '2026-04-01'], o = timeOrder(v), s = timeSplit(o, 0.2, 0.2);
+    check('train-test-splitter: time order (dates, stable) and the latest rows as test', o.join() === '1,3,2,0,4' && [...s].join() === '2,0,0,0,1'); }
+  check('train-test-splitter: time order of numbers by value, not text', timeOrder(['10', '9', '100']).join() === '1,0,2');
+  check('train-test-splitter: approximate mode 40 rows (24/7/9) to 32 train: 19/6/7 as sklearn', approximateMode([24, 7, 9], 32, rng(1)).join() === '19,6,7');
+  check('train-test-splitter: test count is ceil(fraction × n)', testCount(41, 0.2) === 9 && testCount(10, 0.3) === 3 && testCount(100, 0.07) === 7);
+  { const s = stratifiedSplit(L.tiny, 0.3, 0, 1); check('train-test-splitter: classes of one still split (sklearn refuses; the page warns)', s.filter((x) => x === 1).length === 3); }
+  let msg = ''; try { randomSplit(5, 0.6, 0.4, 1); } catch (e) { msg = e.message; } check('train-test-splitter: no rows left for training is refused', msg.includes('no rows for training'));
+  msg = ''; try { groupKfold(['a', 'b'], 3); } catch (e) { msg = e.message; } check('train-test-splitter: fewer groups than folds is refused', msg.includes('fewer than 3'));
+  check('train-test-splitter: example has 40 rows and 6 columns', EXAMPLE.split('\n').length === 41 && EXAMPLE.split('\n')[0].split(',').length === 6);
+};

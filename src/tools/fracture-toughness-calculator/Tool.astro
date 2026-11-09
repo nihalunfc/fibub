@@ -1,0 +1,171 @@
+---
+// Fracture mechanics: K = Yσ√(πa) for common geometries, critical crack size and stress, plane-strain size check,
+// plastic zone, and Paris-law fatigue crack growth life by numerical integration.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { GEOMETRY } from '../../lib/sci/fracture';
+const geoms = Object.entries(GEOMETRY);
+---
+<div class="ax frt">
+  <div class="ax-card">
+    <h2>Crack, load and toughness</h2>
+    <div class="ax-grid">
+      <label class="frt-wide">Geometry <select class="frt-g">{geoms.map(([k, g]) => <option value={k} selected={k === 'centre-secant'}>{g.name}</option>)}</select></label>
+    </div>
+    <p class="ax-help frt-formula"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="frt-alab">Crack size a (mm)</span> <input class="frt-a" inputmode="decimal" value="5" /></label>
+      <label class="frt-wbox">Plate width W (mm) <input class="frt-w" inputmode="decimal" value="100" /></label>
+      <label class="frt-ybox" hidden>Geometry factor Y <input class="frt-y" inputmode="decimal" value="1.5" /></label>
+      <label>Stress σ (MPa) <input class="frt-s" inputmode="decimal" value="200" /></label>
+      <label><span>Fracture toughness K<sub>IC</sub> (MPa√m)</span> <input class="frt-k" inputmode="decimal" value="60" /></label>
+      <label>Yield strength σy (MPa) <input class="frt-sy" inputmode="decimal" value="600" /></label>
+      <label>Thickness B (mm) <input class="frt-b" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-help">The stress is the remote (far-field) stress across the gross section, at right angles to the crack. 1 MPa√m = 0.91 ksi√in.</p>
+    <p class="ax-err frt-err" hidden></p>
+    <div class="frt-out">
+      <p class="ax-big frt-big"></p>
+      <dl class="ax-facts frt-facts"></dl>
+      <canvas class="ax-fig frt-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fatigue crack growth (Paris law)</h2>
+    <p class="ax-help" style="margin-top:0">da/dN = C ΔKᵐ with ΔK = Y Δσ √(πa), integrated from the crack size above to the final crack. The maximum stress is the stress above.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Minimum stress σmin (MPa) <input class="frt-smin" inputmode="decimal" value="20" /></label>
+      <label>Paris C (m/cycle, ΔK in MPa√m) <input class="frt-c" inputmode="decimal" value="5e-12" /></label>
+      <label>Paris exponent m <input class="frt-m" inputmode="decimal" value="3" /></label>
+      <label>Final crack size <select class="frt-end"><option value="crit">critical size (K reaches K_IC)</option><option value="typed">I'll type it</option></select></label>
+      <label class="frt-afbox" hidden>Final crack size (mm) <input class="frt-af" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">Δσ = σmax − σmin; a compressive part of the cycle (σmin below zero) is left out, since a closed crack does not grow. The example C and m are round made-up values: use ones measured for your material, environment and R ratio.</p>
+    <p class="ax-err frt-perr" hidden></p>
+    <div class="frt-pout">
+      <p class="ax-big frt-pbig"></p>
+      <dl class="ax-facts frt-pfacts"></dl>
+      <canvas class="ax-fig frt-pfig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small frt-csv">Download the curve (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { GEOMETRY, geometryFactor, stressIntensity, criticalStress, criticalCrack, maxCrack, planeStrainSize, plasticZone, parisLife, type Geometry } from '../../lib/sci/fracture';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.frt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f = (x: number, n: number) => (x + 1e-12).toFixed(n);
+  const mm = (m: number) => `${sig(m * 1000, 4)} mm`;
+  const cyc = (n: number) => (n >= 1e7 ? sig(n, 3) : Math.round(n).toLocaleString('en'));
+  const width = () => Math.round(Math.min(720, Math.max(320, root.clientWidth - 34 || 640)));
+  let fig: Figure | null = null, pfig: Figure | null = null, curve: { a: number[]; N: number[] } | null = null;
+  let st: { g: Geometry; a: number; W: number; Y: number; s: number; K: number; sy: number; ac: number | null } | null = null;
+
+  function main() {
+    const g = q<HTMLSelectElement>('.frt-g').value as Geometry, G = GEOMETRY[g];
+    q('.frt-formula').textContent = G.formula;
+    q('.frt-wbox').hidden = !G.width; q('.frt-ybox').hidden = g !== 'custom';
+    q('.frt-alab').textContent = g.startsWith('centre') ? 'Half crack length a (mm)' : g === 'penny' ? 'Crack radius a (mm)' : g === 'double-edge' ? 'Depth of each crack a (mm)' : 'Crack depth a (mm)';
+    const err = (m: string) => { q('.frt-err').textContent = m; q('.frt-err').hidden = !m; q('.frt-out').hidden = !!m; if (m) { fig = null; st = null; } };
+    const a = v('.frt-a') / 1000, W = G.width ? v('.frt-w') / 1000 : Infinity, cu = v('.frt-y'), s = v('.frt-s'), K = v('.frt-k'), sy = v('.frt-sy'), B = v('.frt-b') / 1000;
+    if (!(a > 0)) return err('Give a crack size above zero.');
+    if (G.width && !(W > 0)) return err('Give the plate width, above zero.');
+    if (g === 'custom' && !(cu > 0)) return err('Give a geometry factor Y above zero.');
+    if (!(s > 0) || !(K > 0) || !(sy > 0)) return err('Stress, fracture toughness and yield strength must all be above zero.');
+    const amax = maxCrack(g, W);
+    if (a >= amax) return err(`This formula holds only up to a = ${mm(amax)} (a/W ${G.maxRatio}) for this width.`);
+    err('');
+    const Y = geometryFactor(g, a, W, cu), Kn = stressIntensity(g, s, a, W, cu), sc = criticalStress(g, K, a, W, cu), ac = criticalCrack(g, K, s, W, cu);
+    st = { g, a, W, Y, s, K, sy, ac };
+    q('.frt-big').textContent = `K = ${f(Kn, 2)} MPa√m: ${Kn >= K ? 'fracture expected' : `safety factor ${f(K / Kn, 2)}`}`;
+    const need = planeStrainSize(K, sy), lig = G.width ? (g.startsWith('centre') || g === 'double-edge' ? W / 2 - a : W - a) : Infinity;
+    const ok = (x: number) => (x >= need ? 'yes' : 'no');
+    const facts = [
+      fact('Geometry factor Y', f(Y, 4), G.formula),
+      fact('Stress intensity K', `${f(Kn, 2)} MPa√m`, `${f((Kn / K) * 100, 1)} % of K_IC`),
+      fact('Critical stress for this crack', `${sig(sc, 4)} MPa`, sc > sy ? 'above the yield strength: the section yields before it fractures, so LEFM does not govern' : 'σc = K_IC ÷ (Y √(πa))'),
+      fact('Critical crack size at this stress', ac === null ? 'none within the formula' : mm(ac), ac === null ? 'K stays below K_IC up to the end of the formula\'s range' : `the crack can grow by ${mm(ac - a)} before fracture`),
+      fact('Plane-strain size 2.5 (K_IC/σy)²', mm(need), `${B > 0 ? `thickness ${mm(B)}: ${B >= need ? 'thick enough for plane strain' : 'too thin for plane strain'}. ` : ''}A valid K_IC test (ASTM E399) also needs the crack${Number.isFinite(lig) ? ' and the uncracked ligament' : ''} at least this long: here crack ${ok(a)}${Number.isFinite(lig) ? `, ligament ${ok(lig)}` : ''}`),
+      fact('Plastic zone at the crack tip', `${mm(plasticZone(Kn, sy, false))} plane stress`, `${mm(plasticZone(Kn, sy, true))} plane strain (Irwin, (1/2π)(K/σy)² and a third of it)`),
+    ];
+    if (B > 0 && B < need) facts.push(fact('Thickness check', 'not plane strain', `B is below ${mm(need)}: the real toughness of this plate is likely higher than K_IC (mixed or plane-stress fracture)`));
+    q('.frt-facts').replaceChildren(...facts);
+    const aEnd = Math.min(amax * 0.999, Math.max(a * 3, (ac ?? a) * 1.3)), xs: number[] = [], ks: number[] = [];
+    for (let i = 0; i <= 200; i++) { const x = (aEnd * i) / 200 || aEnd * 1e-4; xs.push(x * 1000); ks.push(stressIntensity(g, s, x, W, cu)); }
+    const W_ = width();
+    fig = chartFigure({ w: W_, h: W_ < 500 ? 280 : 340, xMin: 0, yMin: 0, xLabel: 'Crack size a (mm)', yLabel: 'K (MPa√m)', series: [
+      { name: `K at ${sig(s, 4)} MPa`, x: xs, y: ks, mode: 'line', width: 1.8 },
+      { name: 'your crack', x: [a * 1000], y: [Kn], mode: 'points', marker: 'diamond', size: 6 },
+      ...(ac !== null ? [{ name: 'critical crack', x: [ac * 1000], y: [K], mode: 'points' as const, marker: 'cross' as const, size: 7 }] : []),
+    ], marks: [{ kind: 'hline', at: K, dash: [5, 3], label: 'K_IC' }], legend: 'below' }, 'Stress intensity against crack size at the given stress, with the fracture toughness line');
+    paint(q<HTMLCanvasElement>('.frt-fig'), fig);
+  }
+
+  function paris() {
+    q('.frt-afbox').hidden = q<HTMLSelectElement>('.frt-end').value !== 'typed';
+    const err = (m: string) => { q('.frt-perr').textContent = m; q('.frt-perr').hidden = !m; q('.frt-pout').hidden = !!m; if (m) { pfig = null; curve = null; } };
+    if (!st) return err('Fill in the crack and load first.');
+    const smin = v('.frt-smin'), C = v('.frt-c'), m = v('.frt-m');
+    if (!Number.isFinite(smin) || smin >= st.s) return err('The minimum stress must be below the maximum stress (the stress above).');
+    if (!(C > 0) || !(m > 0)) return err('Paris C and m must be above zero.');
+    const typed = q<HTMLSelectElement>('.frt-end').value === 'typed';
+    const af = typed ? v('.frt-af') / 1000 : st.ac;
+    if (af === null) return err('This crack never reaches K_IC within the formula\'s range: type a final crack size.');
+    if (!(af > st.a)) return err(typed ? 'The final crack must be larger than the starting crack.' : 'The crack is already at or past its critical size.');
+    if (af >= maxCrack(st.g, st.W)) return err('The final crack is beyond the range of the geometry formula.');
+    err('');
+    const ds = st.s - Math.max(0, smin), cu = v('.frt-y');
+    const L = parisLife(st.g, { a0: st.a, af, dSigma: ds, C, m, W: st.W, custom: cu });
+    curve = L.curve;
+    const dK0 = stressIntensity(st.g, ds, st.a, st.W, cu), dK1 = stressIntensity(st.g, ds, af, st.W, cu);
+    let half = 0; for (let i = 0; i < L.curve.a.length; i++) if (L.curve.a[i] <= (st.a + af) / 2) half = L.curve.N[i];
+    q('.frt-pbig').textContent = `${cyc(L.N)} cycles from ${mm(st.a)} to ${mm(af)}`;
+    q('.frt-pfacts').replaceChildren(
+      fact('Stress range Δσ', `${sig(ds, 4)} MPa`, `R = σmin/σmax = ${f(smin / st.s, 2)}`),
+      fact('ΔK at the start and end', `${f(dK0, 2)} to ${f(dK1, 2)} MPa√m`, `growth rate ${sig(C * dK0 ** m, 3)} to ${sig(C * dK1 ** m, 3)} m/cycle`),
+      fact('Final crack', mm(af), typed ? 'as typed' : `where K at σmax reaches K_IC (${sig(st.K, 4)} MPa√m)`),
+      fact('Cycles to grow half way', cyc(half), `${f((half / L.N) * 100, 0)} % of the life is spent while the crack is still in its first half: small cracks grow slowly`),
+    );
+    const W_ = width();
+    pfig = chartFigure({ w: W_, h: W_ < 500 ? 260 : 320, xMin: 0, yMin: 0, xLabel: 'Cycles N', yLabel: 'Crack size a (mm)', series: [
+      { name: 'a', x: L.curve.N, y: L.curve.a.map((x) => x * 1000), mode: 'line', width: 1.8 },
+    ], legend: 'none' }, 'Crack size against number of cycles from Paris\' law');
+    paint(q<HTMLCanvasElement>('.frt-pfig'), pfig);
+  }
+
+  const all = () => { main(); paris(); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.frt-csv').addEventListener('click', () => {
+    if (!curve) return;
+    const step = Math.max(1, Math.floor(curve.a.length / 200)), rows: (string | number)[][] = [['cycles', 'crack_size_mm']];
+    for (let i = 0; i < curve.a.length; i += step) rows.push([Math.round(curve.N[i]), +(curve.a[i] * 1000).toPrecision(8)]);
+    const last = curve.a.length - 1; if (last % step) rows.push([Math.round(curve.N[last]), +(curve.a[last] * 1000).toPrecision(8)]);
+    save(new TextEncoder().encode(csv(rows)), 'crack-growth.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.frt-fig'), fig); if (pfig) paint(q<HTMLCanvasElement>('.frt-pfig'), pfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (!q('.frt-out').hidden) s.push({ title: q('.frt-big').textContent!, text: [`${GEOMETRY[st!.g].name}; a = ${mm(st!.a)}${Number.isFinite(st!.W) ? `, W = ${mm(st!.W)}` : ''}; σ = ${sig(st!.s, 4)} MPa; K_IC = ${sig(st!.K, 4)} MPa√m; σy = ${sig(st!.sy, 4)} MPa.`], facts: facts('.frt-facts'), ...(fig ? { figure: fig } : {}) });
+    if (!q('.frt-pout').hidden) s.push({ title: `Paris law: ${q('.frt-pbig').textContent}`, facts: facts('.frt-pfacts'), ...(pfig ? { figure: pfig } : {}) });
+    return { title: 'Fracture mechanics', subtitle: 'Stress intensity, critical crack and crack growth', file: 'fracture-toughness', sections: s };
+  });
+</script>
+
+<style is:inline>
+  .frt select { max-width: 100%; }
+  .frt [hidden] { display: none !important; }
+  .frt .frt-wide { grid-column: 1 / -1; }
+</style>

@@ -1,0 +1,337 @@
+---
+// Small model trainer: decision tree, logistic regression, k-nearest neighbours and k-means on the user's table, in a
+// Web Worker, with train/test metrics, a tree drawing and a cluster plot. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax smt">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>Paste a table (first row = column names), or open a file
+      <textarea class="smt-in" rows="7" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".smt-in" maxMB={10} maxCols={40} maxRows={20000} />
+    <p class="ax-help">The example of 150 seedlings of three varieties is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Model <select class="smt-model">
+        <option value="tree">Decision tree</option>
+        <option value="logistic">Logistic regression</option>
+        <option value="knn">k-nearest neighbours</option>
+        <option value="kmeans">k-means clustering</option>
+      </select></label>
+      <label class="smt-target-w">Class to predict <select class="smt-target"></select></label>
+      <label class="smt-test-w">Test rows (%) <input class="smt-test" inputmode="decimal" value="25" /></label>
+      <label>Seed <input class="smt-seed" inputmode="numeric" value="42" /></label>
+      <label class="smt-o-tree">Split rule <select class="smt-crit"><option value="gini">Gini impurity</option><option value="entropy">Entropy (information gain)</option></select></label>
+      <label class="smt-o-tree">Maximum depth <input class="smt-depth" inputmode="numeric" value="3" /></label>
+      <label class="smt-o-tree">Rows per leaf, at least <input class="smt-leaf" inputmode="numeric" value="1" /></label>
+      <label class="smt-o-lr">Regularisation C <input class="smt-c" inputmode="decimal" value="1" /></label>
+      <label class="smt-o-knn">Neighbours k <input class="smt-k" inputmode="numeric" value="5" /></label>
+      <label class="smt-o-knn">Distance <select class="smt-metric"><option value="euclidean">Euclidean</option><option value="manhattan">Manhattan</option></select></label>
+      <label class="smt-o-knn">Votes <select class="smt-weights"><option value="uniform">Equal</option><option value="distance">Nearer counts more (1/distance)</option></select></label>
+      <label class="smt-o-km">Clusters k <input class="smt-clusters" inputmode="numeric" value="3" /></label>
+    </div>
+    <label class="ax-check smt-scale-w" style="margin-top:10px"><input type="checkbox" class="smt-scale" checked /> Scale features to z-scores (mean 0, SD 1)</label>
+    <p class="ax-help smt-help"></p>
+    <h3 class="smt-h3">Features</h3>
+    <div class="smt-feats"></div>
+    <p class="ax-help">Text columns become one 0/1 column per value (up to 30 values). Rows with a gap in a used column are left out.</p>
+    <p class="ax-help smt-status" role="status"></p>
+    <p class="ax-err smt-err" hidden></p>
+  </div>
+
+  <div class="smt-out ax" style="margin:0" hidden>
+    <div class="ax-card">
+      <h2>Result</h2>
+      <p class="ax-big smt-big"></p>
+      <dl class="ax-facts smt-facts"></dl>
+      <p class="ax-help smt-note"></p>
+    </div>
+    <div class="ax-card smt-c-cls">
+      <h2>Test set</h2>
+      <h3 class="smt-h3" style="margin-top:0">Confusion matrix (rows: actual, columns: predicted)</h3>
+      <div class="ax-scroll"><table class="smt-cm"></table></div>
+      <h3 class="smt-h3">Per class</h3>
+      <div class="ax-scroll"><table class="smt-pc"></table></div>
+    </div>
+    <div class="ax-card smt-c-fig">
+      <h2 class="smt-fig-h"></h2>
+      <div class="ax-scroll"><canvas class="ax-fig smt-fig"></canvas></div>
+      <div class="ax-grid smt-axes" style="margin-top:10px">
+        <label>Across <select class="smt-px"></select></label>
+        <label>Up <select class="smt-py"></select></label>
+      </div>
+      <p class="ax-help smt-fig-note"></p>
+      <canvas class="ax-fig smt-fig2" style="margin-top:12px"></canvas>
+    </div>
+    <div class="ax-card smt-c-tab">
+      <h2 class="smt-tab-h"></h2>
+      <div class="ax-scroll"><table class="smt-tab"></table></div>
+    </div>
+    <div class="ax-card">
+      <h2>Downloads</h2>
+      <div class="ax-row"><button type="button" class="btn secondary small smt-csv">Table with predictions (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .smt .smt-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .smt .smt-feats { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .smt .smt-cm td, .smt .smt-pc td, .smt .smt-tab td { white-space: nowrap; }
+  .smt .smt-cm td.on { font-weight: 700; }
+</style>
+
+<script>
+  import { readTable, toCsvText, type Table } from '../../lib/sci/dataset';
+  import { EXAMPLE, type TreeNode } from '../../lib/sci/models';
+  import type { Result, Settings } from '../../lib/sci/modelworker';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure, canvasPainter, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.smt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.smt-in');
+  let table: Table | null = null, res: Result | null = null, fig: Figure | null = null, fig2: Figure | null = null, sections: Section[] = [], fileName = 'seedlings';
+  let worker: Worker | null = null, busy = false, seq = 0, timer = 0;
+  const HELP: Record<string, string> = {
+    tree: 'A tree of yes/no questions about the features, each chosen to make the groups below it as pure as possible (CART, as scikit-learn). Deeper trees fit the training rows better but can overfit.',
+    logistic: 'Fits a weight for each feature so that the predicted chance of each class matches the data (softmax for three or more classes). Smaller C means stronger regularisation (smaller weights, less overfitting).',
+    knn: 'Each row gets the class most common among its k nearest training rows. Scaling matters: without it the feature with the largest numbers decides the distances.',
+    kmeans: 'Splits the rows into k groups around k centres, so that rows are close to their own centre (k-means++ starts, best of 10 runs). No class column is needed. Use the elbow and silhouette to choose k.',
+  };
+  const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+  const f3 = (x: number) => (Number.isFinite(x) ? (+x.toPrecision(4)).toString().replace('-', '−') : '–');
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = ''): HTMLElementTagNameMap[K] { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
+  function fillTable(t: HTMLTableElement, head: string[], rows: string[][], right: boolean[], bold?: (i: number, j: number) => boolean) {
+    const tr = el('tr'); head.forEach((h, j) => tr.append(el('th', h, right[j] ? 'r' : '')));
+    const tb = el('tbody'); rows.forEach((r, i) => { const row = el('tr'); r.forEach((c, j) => row.append(el('td', c, (right[j] ? 'r' : '') + (bold?.(i, j) ? ' on' : '')))); tb.append(row); });
+    const th = el('thead'); th.append(tr); t.replaceChildren(th, tb);
+  }
+  const vnum = (c: string) => num(q<HTMLInputElement>(c).value);
+
+  /** Column choices: class column and feature boxes, kept when the column names stay the same. */
+  function columns(t: Table) {
+    const tsel = q<HTMLSelectElement>('.smt-target'), old = tsel.value;
+    const names = t.head.join('\u0000');
+    if (root.dataset.cols === names) return;
+    root.dataset.cols = names;
+    tsel.replaceChildren(...t.head.map((h) => { const o = el('option', h); o.value = h; return o; }));
+    const guess = t.head.findIndex((h) => /^(class|label|kind|type|target|y|species|variety|outcome|category|group)$/i.test(h));
+    tsel.value = t.head.includes(old) ? old : t.head[guess >= 0 ? guess : t.head.length - 1];
+    const distinct = t.head.map((_, j) => new Set(t.rows.slice(0, 5000).map((r) => r[j])).size);
+    const numeric = t.head.map((_, j) => t.rows.slice(0, 500).every((r) => !r[j] || Number.isFinite(num(r[j])) || /^(NA|N\/A|NaN|null|None|\?|-|\.)?$/i.test(r[j].trim())));
+    q('.smt-feats').replaceChildren(...t.head.map((h, j) => {
+      const lab = el('label', '', 'ax-check'), cb = el('input');
+      cb.type = 'checkbox'; cb.value = h; cb.className = 'smt-f';
+      // Leave out the class and ID-like text columns by default.
+      cb.checked = h !== tsel.value && (numeric[j] || distinct[j] <= 30) && !/^(id|.*_id|name)$/i.test(h);
+      lab.append(cb, document.createTextNode(' ' + h)); return lab;
+    }));
+  }
+
+  function settings(): Settings {
+    const model = q<HTMLSelectElement>('.smt-model').value as Settings['model'];
+    const target = q<HTMLSelectElement>('.smt-target').value;
+    const features = [...root.querySelectorAll<HTMLInputElement>('.smt-f')].filter((c) => c.checked && (model === 'kmeans' || c.value !== target)).map((c) => c.value);
+    const testPct = vnum('.smt-test'), seed = vnum('.smt-seed');
+    if (model !== 'kmeans' && !(testPct >= 5 && testPct <= 60)) throw new Error('Test rows must be from 5 to 60 %.');
+    if (!Number.isInteger(seed)) throw new Error('The seed must be a whole number.');
+    const depth = vnum('.smt-depth'), leaf = vnum('.smt-leaf'), C = vnum('.smt-c'), k = vnum('.smt-k'), clusters = vnum('.smt-clusters');
+    if (model === 'tree' && !(Number.isInteger(depth) && depth >= 1 && depth <= 30)) throw new Error('The maximum depth must be a whole number from 1 to 30.');
+    if (model === 'tree' && !(Number.isInteger(leaf) && leaf >= 1)) throw new Error('Rows per leaf must be a whole number, 1 or more.');
+    if (model === 'logistic' && !(C > 0 && C <= 1e6)) throw new Error('C must be above 0 (and at most 1,000,000).');
+    if (model === 'kmeans' && !Number.isInteger(clusters)) throw new Error('The number of clusters must be a whole number.');
+    return { model, target, features, testPct, seed, scale: q<HTMLInputElement>('.smt-scale').checked, criterion: q<HTMLSelectElement>('.smt-crit').value as 'gini', maxDepth: depth, minLeaf: leaf, C, k, metric: q<HTMLSelectElement>('.smt-metric').value as 'euclidean', weights: q<HTMLSelectElement>('.smt-weights').value as 'uniform', clusters };
+  }
+
+  function showOptions() {
+    const m = q<HTMLSelectElement>('.smt-model').value;
+    for (const [c, on] of [['.smt-o-tree', m === 'tree'], ['.smt-o-lr', m === 'logistic'], ['.smt-o-knn', m === 'knn'], ['.smt-o-km', m === 'kmeans']] as const) root.querySelectorAll<HTMLElement>(c).forEach((e) => (e.hidden = !on));
+    q('.smt-target-w').hidden = m === 'kmeans'; q('.smt-test-w').hidden = m === 'kmeans'; q('.smt-scale-w').hidden = m === 'tree';
+    q('.smt-help').textContent = HELP[m];
+  }
+
+  function train() {
+    showOptions();
+    const err = q('.smt-err');
+    let s: Settings;
+    try {
+      table = readTable(box.value);
+      if (!table.head.length || !table.rows.length) throw new Error('Paste a table with a row of column names and rows of data.');
+      columns(table);
+      s = settings();
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.smt-out').hidden = true; res = null; return; }
+    if (busy && worker) { worker.terminate(); worker = null; }
+    worker ??= new Worker(new URL('../../lib/sci/modelworker.ts', import.meta.url), { type: 'module' });
+    const id = ++seq; busy = true;
+    q('.smt-status').textContent = 'Training…';
+    worker.onmessage = (e) => {
+      if (e.data.id !== id) return;
+      busy = false; q('.smt-status').textContent = '';
+      if (!e.data.ok) { err.textContent = e.data.error; err.hidden = false; q('.smt-out').hidden = true; res = null; return; }
+      err.hidden = true; res = e.data.result; show(s);
+    };
+    worker.onerror = () => { busy = false; q('.smt-status').textContent = ''; err.textContent = 'Training stopped with an error. Try fewer rows or features.'; err.hidden = false; };
+    worker.postMessage({ id, text: box.value, settings: s });
+  }
+
+  // ---------- Pictures ----------
+  function treeFigure(rootNode: TreeNode, names: string[], classes: string[], crit: string): Figure & { rootX: number } {
+    const MAXD = 4;
+    const pos = new Map<TreeNode, { x: number; d: number }>();
+    let slot = 0;
+    const lay = (nd: TreeNode, d: number): number => {
+      if (!nd.left || !nd.right || d >= MAXD) { const x = slot++; pos.set(nd, { x, d }); return x; }
+      const a = lay(nd.left, d + 1), b = lay(nd.right, d + 1), x = (a + b) / 2; pos.set(nd, { x, d }); return x;
+    };
+    lay(rootNode, 0);
+    const bw = 150, bh = 70, gx = 12, gy = 38, depth = Math.max(...[...pos.values()].map((p) => p.d));
+    const w = Math.max(480, slot * (bw + gx) + 20), h = (depth + 1) * (bh + gy) + 10;
+    const short = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+    return {
+      rootX: 10 + pos.get(rootNode)!.x * (bw + gx) + bw / 2,
+      w, h, alt: `Decision tree drawing: ${pos.size} boxes shown`,
+      draw: (ctx, _W, _H, pal: Palette) => {
+        const P = canvasPainter(ctx), cols = pal.red ? ['#a30000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+        const at = (nd: TreeNode) => { const p = pos.get(nd)!; return [10 + p.x * (bw + gx), 5 + p.d * (bh + gy)] as const; };
+        for (const [nd] of pos) if (nd.left && nd.right && pos.has(nd.left)) {
+          const [x, y] = at(nd);
+          for (const [ch, lab] of [[nd.left, 'yes'], [nd.right, 'no']] as const) { const [cx, cy] = at(ch); P.line([[x + bw / 2, y + bh], [cx + bw / 2, cy]], pal.line, 1.2); P.text((x + cx) / 2 + bw / 2 + (lab === 'yes' ? -6 : 6), y + bh + gy / 2, lab, 11, pal.muted, lab === 'yes' ? 'end' : 'start', 'middle'); }
+        }
+        for (const [nd, p] of pos) {
+          const [x, y] = at(nd), cls = nd.counts.indexOf(Math.max(...nd.counts)), purity = Math.max(...nd.counts) / nd.n;
+          const col = cols[cls % cols.length];
+          P.poly([[x, y], [x + bw, y], [x + bw, y + bh], [x, y + bh]], pal.bg, col, 1.5);
+          P.poly([[x, y], [x + 6, y], [x + 6, y + bh], [x, y + bh]], col, null);
+          const cut = nd.left && nd.right && p.d < MAXD;
+          P.text(x + 12, y + 6, cut ? short(`${names[nd.feature]} ≤ ${f3(nd.threshold)}`, 23) : `→ ${short(classes[cls], 14)}`, 12, pal.ink, 'start', 'top', 0, true);
+          P.text(x + 12, y + 24, `${crit} ${nd.impurity.toFixed(3)}`, 11, pal.muted, 'start', 'top');
+          P.text(x + 12, y + 38, `${nd.n} row${nd.n === 1 ? '' : 's'}, ${Math.round(100 * purity)} % ${short(classes[cls], 10)}`, 11, pal.muted, 'start', 'top');
+          if (nd.left && !cut) P.text(x + 12, y + 52, 'deeper splits not drawn', 10, pal.muted, 'start', 'top');
+        }
+      },
+    };
+  }
+  function clusterFigure(r: Extract<Result, { kind: 'kmeans' }>, a: number, b: number): Figure {
+    const series = r.centers.map((_, c) => { const idx = r.labels.map((l, i) => (l === c ? i : -1)).filter((i) => i >= 0); return { name: `Cluster ${c + 1} (${r.sizes[c]})`, x: idx.map((i) => r.X[i][a]), y: idx.map((i) => r.X[i][b]), size: 3.2 }; });
+    series.push({ name: 'Centres', x: r.centers.map((c) => c[a]), y: r.centers.map((c) => c[b]), size: 6, marker: 'cross', color: '#000000' } as any);
+    const f = chartFigure({ w: 560, h: 420, xLabel: r.names[a], yLabel: r.names[b], series: series as any, legend: 'below' }, `k-means clusters of ${r.rowsUsed} rows on ${r.names[a]} and ${r.names[b]}`);
+    const draw = f.draw;
+    // The centres in the page's ink colour, so they show in dark mode too.
+    f.draw = (ctx, W, H, pal) => { (series[series.length - 1] as any).color = pal.ink; draw(ctx, W, H, pal); };
+    return f;
+  }
+
+  function show(s: Settings) {
+    const r = res!;
+    q('.smt-out').hidden = false;
+    const dropped = r.dropped ? `${r.dropped} row${r.dropped === 1 ? '' : 's'} with a gap left out. ` : '';
+    const enc = r.encoded.length ? `${r.encoded.join(', ')} turned into 0/1 columns. ` : '';
+    const axes = q('.smt-axes');
+    sections = [];
+    if (r.kind === 'kmeans') {
+      q('.smt-c-cls').hidden = true;
+      q('.smt-big').textContent = `${s.clusters} clusters: inertia ${f3(r.inertia)}${Number.isFinite(r.sil) ? `, silhouette ${r.sil.toFixed(3)}` : ''}`;
+      const facts: [string, string][] = [['Rows used', r.rowsUsed.toLocaleString('en')], ['Features', String(r.names.length)], ['Cluster sizes', r.sizes.join(', ')], ['Lloyd iterations', String(r.iterations)], ['Scaled', s.scale ? 'yes (z-scores)' : 'no']];
+      setFacts(facts);
+      q('.smt-note').textContent = `${dropped}${enc}Inertia is the sum of squared distances from each row to its centre${s.scale ? ' (in z-score units)' : ''}. Silhouette runs from −1 to 1; above about 0.5 the clusters are well separated.${r.silSkipped ? ' Silhouette is skipped above 3,000 rows (it compares every pair of rows).' : ''}`;
+      // Cluster plot on two features.
+      axes.hidden = r.names.length < 2;
+      fillAxes(r.names);
+      const a = Number(q<HTMLSelectElement>('.smt-px').value), b = Number(q<HTMLSelectElement>('.smt-py').value);
+      q('.smt-fig-h').textContent = 'Clusters';
+      fig = r.names.length >= 2 ? clusterFigure(r, a, b) : null;
+      q('.smt-fig-note').textContent = r.names.length >= 2 ? 'Each point is a row, coloured by its cluster; crosses are the centres. Clusters are found using every feature, so on two of them they can overlap.' : 'Pick two or more features to see the cluster plot.';
+      const el2 = r.elbow;
+      fig2 = chartFigure({ w: 560, h: 300, xLabel: 'Number of clusters k', yLabel: 'Inertia', series: [{ name: 'Inertia', x: el2.map((e) => e.k), y: el2.map((e) => e.inertia), mode: 'both' }], marks: [{ kind: 'vline', at: s.clusters, label: `k = ${s.clusters}` }], yMin: 0 }, 'Elbow plot: inertia against the number of clusters');
+      q('.smt-c-tab').hidden = false; q('.smt-tab-h').textContent = 'Cluster centres (original units)';
+      const head = ['Cluster', 'Rows', ...r.names], rows = r.centers.map((c, i) => [String(i + 1), String(r.sizes[i]), ...c.map(f3)]);
+      fillTable(q<HTMLTableElement>('.smt-tab'), head, rows, head.map((_, j) => j > 0));
+      const elbowRows = el2.map((e) => [String(e.k), f3(e.inertia), Number.isFinite(e.sil) ? e.sil.toFixed(3) : '–']);
+      sections = [{ title: 'k-means', facts: [['Result', q('.smt-big').textContent ?? ''], ...facts], text: [q('.smt-note').textContent ?? ''], ...(fig ? { figure: fig } : {}) }, { title: 'Elbow', figure: fig2, table: { head: ['k', 'Inertia', 'Silhouette'], rows: elbowRows, align: ['r', 'r', 'r'] } }, { title: 'Cluster centres', table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) } }];
+    } else {
+      q('.smt-c-cls').hidden = false;
+      const T = r.test, Tr = r.train;
+      q('.smt-big').textContent = `Test accuracy ${pc(T.accuracy)} (training ${pc(Tr.accuracy)})`;
+      const facts: [string, string][] = [['Rows used', `${r.rowsUsed.toLocaleString('en')} (${r.nTrain} train, ${r.nTest} test)`], ['Test accuracy, 95 % CI', `${pc(T.accuracyCI[0])} to ${pc(T.accuracyCI[1])}`], ['Test balanced accuracy', pc(T.balancedAccuracy)], ['Test macro F1', T.macro.f1.toFixed(3)], ["Test Cohen's kappa", T.kappa.toFixed(3)], ['Classes', String(r.classes.length)]];
+      const gap = Tr.accuracy - T.accuracy;
+      setFacts(facts);
+      q('.smt-note').textContent = `${dropped}${enc}${r.stratified ? 'Stratified' : 'Random'} split with seed ${s.seed}${r.scaled ? '; features scaled with the training rows' : ''}.${gap > 0.1 ? ` Training accuracy is ${Math.round(gap * 100)} points higher than test accuracy: the model may be overfitting.` : ''}`;
+      fillTable(q<HTMLTableElement>('.smt-cm'), ['', ...r.classes], r.classes.map((c, i) => [c, ...T.m[i].map(String)]), [false, ...r.classes.map(() => true)], (i, j) => j === i + 1);
+      const pcRows = T.classes.map((c) => [c.label, String(c.support), c.precision.toFixed(3), c.recall.toFixed(3), c.f1.toFixed(3)]);
+      fillTable(q<HTMLTableElement>('.smt-pc'), ['Class', 'Test rows', 'Precision', 'Recall', 'F1'], pcRows, [false, true, true, true, true]);
+      axes.hidden = true; fig2 = null; q('.smt-c-tab').hidden = false;
+      sections = [{ title: 'Result', facts: [['Result', q('.smt-big').textContent ?? ''], ...facts], text: [q('.smt-note').textContent ?? ''] }, { title: 'Test confusion matrix (rows actual)', table: { head: ['', ...r.classes], rows: r.classes.map((c, i) => [c, ...T.m[i].map(String)]), align: ['l', ...r.classes.map(() => 'r' as const)] } }, { title: 'Per class (test)', table: { head: ['Class', 'Test rows', 'Precision', 'Recall', 'F1'], rows: pcRows, align: ['l', 'r', 'r', 'r', 'r'] } }];
+      if ('tree' in r && r.tree) {
+        q('.smt-fig-h').textContent = `Tree: ${r.leaves} leaves, depth ${r.depth}`;
+        fig = treeFigure(r.tree as TreeNode, r.names, r.classes, s.criterion);
+        q('.smt-fig-note').textContent = `Each box: the question (go left for yes), the ${s.criterion === 'gini' ? 'Gini impurity' : 'entropy'}, how many training rows reach it and their most common class.${r.depth > 4 ? ' Levels below 4 are not drawn.' : ''}${fig.w > 640 ? ' On a small screen, scroll the drawing sideways.' : ''}`;
+        q('.smt-tab-h').textContent = 'Feature importance';
+        const imp = r.names.map((nm, j) => [nm, (r.importance as number[])[j]] as const).sort((a, b) => b[1] - a[1]);
+        const rows = imp.map(([nm, v]) => [nm, v.toFixed(3)]);
+        fillTable(q<HTMLTableElement>('.smt-tab'), ['Feature', 'Importance'], rows, [false, true]);
+        sections.push({ title: q('.smt-fig-h').textContent!, figure: fig, note: q('.smt-fig-note').textContent ?? '' }, { title: 'Feature importance', table: { head: ['Feature', 'Importance'], rows, align: ['l', 'r'] } });
+      } else if ('W' in r && r.W) {
+        q('.smt-c-fig').hidden = true; fig = null;
+        const W = r.W as number[][], b = r.b as number[];
+        const head = ['Feature', ...(r.binary ? [`Weight for ${r.classes[1]}`] : r.classes)];
+        const rows = [...r.names.map((nm, j) => [nm, ...W.map((w) => f3(w[j]))]), ['(intercept)', ...b.map(f3)]];
+        q('.smt-tab-h').textContent = r.scaled ? 'Weights (per SD of each feature)' : 'Weights';
+        fillTable(q<HTMLTableElement>('.smt-tab'), head, rows, head.map((_, j) => j > 0));
+        sections.push({ title: q('.smt-tab-h').textContent!, table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) }, note: r.binary ? `A positive weight raises the chance of ${r.classes[1]}.` : 'Softmax: a class gets a higher chance where its weighted sum is larger than the others.' });
+      } else if ('curve' in r && r.curve) {
+        const cv = r.curve as { k: number; acc: number }[];
+        q('.smt-fig-h').textContent = 'Test accuracy against k';
+        fig = chartFigure({ w: 560, h: 300, xLabel: 'Neighbours k', yLabel: 'Test accuracy', series: [{ name: 'Test accuracy', x: cv.map((c) => c.k), y: cv.map((c) => c.acc), mode: 'both' }], marks: [{ kind: 'vline', at: s.k, label: `k = ${s.k}` }], yMax: 1 }, 'Test accuracy for each number of neighbours k');
+        q('.smt-fig-note').textContent = 'Choosing k by the test score makes that score optimistic; for a fair estimate, choose k by cross-validation on the training rows.';
+        q('.smt-c-tab').hidden = true;
+        sections.push({ title: 'Test accuracy against k', figure: fig, note: q('.smt-fig-note').textContent ?? '' });
+      }
+    }
+    q('.smt-c-fig').hidden = !fig;
+    if (fig) {
+      const cv = q<HTMLCanvasElement>('.smt-fig'), wide = 'rootX' in fig && fig.w > 640;
+      paint(cv, fig); cv.style.width = wide ? `${fig.w * 0.85}px` : ''; cv.style.maxWidth = wide ? 'none' : '';
+      // A wide tree scrolls sideways: start with its root in view.
+      const sc = cv.parentElement!; sc.scrollLeft = wide ? Math.max(0, (fig as any).rootX * 0.85 - sc.clientWidth / 2) : 0;
+    }
+    q('.smt-fig2').hidden = !fig2; if (fig2) paint(q<HTMLCanvasElement>('.smt-fig2'), fig2);
+  }
+  function setFacts(facts: [string, string][]) { q('.smt-facts').replaceChildren(...facts.map(([k, v]) => { const d = el('div'); d.append(el('dt', k), el('dd', v)); return d; })); }
+  function fillAxes(names: string[]) {
+    for (const [c, def] of [['.smt-px', 0], ['.smt-py', 1]] as const) {
+      const s = q<HTMLSelectElement>(c), old = s.value;
+      if ([...s.options].map((o) => o.textContent).join('\u0000') === names.join('\u0000')) continue;
+      s.replaceChildren(...names.map((n, i) => { const o = el('option', n); o.value = String(i); return o; }));
+      s.value = old && Number(old) < names.length ? old : String(Math.min(def, names.length - 1));
+    }
+  }
+
+  q('.smt-csv').addEventListener('click', () => {
+    if (!res || !table) return;
+    const r = res, t = table, extra = r.kind === 'kmeans' ? ['cluster'] : ['split', `predicted_${q<HTMLSelectElement>('.smt-target').value}`];
+    const at = new Map(r.rows.map((ri, i) => [ri, i]));
+    const rows = t.rows.map((row, ri) => { const i = at.get(ri); if (i == null) return [...row, ...extra.map(() => '')]; return r.kind === 'kmeans' ? [...row, r.labels[i] + 1] : [...row, r.split[i] === 1 ? 'test' : 'train', r.pred[i]]; });
+    save(new Blob([toCsvText([...t.head, ...extra], rows)], { type: 'text/csv' }), `${fileSafe(fileName)}-${r.kind === 'kmeans' ? 'clusters' : 'predictions'}.csv`, 'text/csv');
+  });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.classList?.contains('dfb-in') && t.files?.[0]) fileName = t.files[0].name.replace(/\.[^.]+$/, ''); }, true);
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.matches('.smt-px, .smt-py')) { if (res?.kind === 'kmeans') { fig = clusterFigure(res, Number(q<HTMLSelectElement>('.smt-px').value), Number(q<HTMLSelectElement>('.smt-py').value)); paint(q<HTMLCanvasElement>('.smt-fig'), fig); if (sections[0]) sections[0].figure = fig; } return; }
+    if (t.matches('.smt-target')) { const v = (t as HTMLSelectElement).value; root.querySelectorAll<HTMLInputElement>('.smt-f').forEach((c) => { if (c.value === v) c.checked = false; }); }
+    if (t.matches('select, input[type=checkbox]')) { clearTimeout(timer); train(); }
+  });
+  root.addEventListener('input', (e) => { const t = e.target as HTMLElement; if (t.matches('select, input[type=checkbox], .dfb-in')) return; clearTimeout(timer); timer = window.setTimeout(train, 350); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.smt-fig'), fig); if (fig2) paint(q<HTMLCanvasElement>('.smt-fig2'), fig2); });
+  box.value = EXAMPLE;
+  train();
+  wireDownloads(q('.dl'), () => ({ title: 'Small model trainer', subtitle: `${fileName}: ${q('.smt-big').textContent ?? ''}`, file: `${fileSafe(fileName)}-model`, sections }));
+</script>

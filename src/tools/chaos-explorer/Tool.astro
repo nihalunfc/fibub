@@ -1,0 +1,360 @@
+---
+// Chaos explorer: the logistic map (or any typed 1D map) with cobweb, orbit diagram, Lyapunov exponent and
+// period-doubling points; the Lorenz and Rössler flows in a 3D view you can turn, with their Lyapunov spectrum;
+// and the Hénon map with its two Lyapunov exponents. Everything is worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax chx">
+  <div class="ax-seg cx-tabs" role="group" aria-label="System">
+    <button type="button" data-tab="log" aria-pressed="true">Logistic map</button>
+    <button type="button" data-tab="flow" aria-pressed="false">Lorenz, Rössler</button>
+    <button type="button" data-tab="hen" aria-pressed="false">Hénon</button>
+  </div>
+
+  <div class="cx-p cx-p-log">
+    <div class="ax-card">
+      <h2>One-dimensional map</h2>
+      <label>Map: the next x from x and r <input class="cx-f" spellcheck="false" autocomplete="off" value="r*x*(1 - x)" /></label>
+      <p class="ax-help">The logistic map r·x·(1 − x) is the classic. Try r*sin(pi*x) (the sine map) or r*x*exp(-x) (Ricker).</p>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>r <input class="cx-r" inputmode="decimal" value="3.7" /></label>
+        <label>Start x₀ <input class="cx-x0" inputmode="decimal" value="0.2" /></label>
+        <label>Steps to show <input class="cx-n" inputmode="numeric" value="60" /></label>
+      </div>
+      <label style="margin-top:10px">Slide r <input type="range" class="cx-rs" min="2.5" max="4" step="0.0005" value="3.7" /></label>
+      <p class="ax-err cx-err" hidden></p>
+    </div>
+    <div class="ax-card cx-lout">
+      <p class="ax-big cx-big"></p>
+      <dl class="ax-facts cx-facts"></dl>
+      <canvas class="ax-fig cx-cob" style="margin-top:14px"></canvas>
+      <canvas class="ax-fig cx-ts" style="margin-top:14px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cx-csv">Download the orbit (CSV)</button></div>
+      <h3>Orbit diagram and Lyapunov exponent</h3>
+      <div class="ax-grid">
+        <label>r from <input class="cx-ra" inputmode="decimal" value="2.5" /></label>
+        <label>r to <input class="cx-rb" inputmode="decimal" value="4" /></label>
+      </div>
+      <p class="ax-err cx-rerr" hidden></p>
+      <canvas class="ax-fig cx-bif" style="margin-top:10px"></canvas>
+      <p class="ax-help">For 600 values of r: 500 steps are dropped, then the next 150 values of x are drawn. One dot means a fixed point, two a 2-cycle, a smear chaos. The dashed line is your r.</p>
+      <canvas class="ax-fig cx-ly" style="margin-top:10px"></canvas>
+      <p class="ax-help">The Lyapunov exponent λ is the average of ln|f′(x)| along the orbit (20,000 steps): below 0 nearby starts come together, above 0 they separate exponentially, which is chaos.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cx-bcsv">Download λ and period by r (CSV)</button></div>
+      <h3>Period-doubling points</h3>
+      <p class="ax-help cx-dnote"></p>
+      <div class="ax-scroll"><table class="cx-dt"></table></div>
+    </div>
+  </div>
+
+  <div class="cx-p cx-p-flow" hidden>
+    <div class="ax-card">
+      <h2>Flow in three dimensions</h2>
+      <div class="ax-grid">
+        <label>System <select class="cx-sys"><option value="lorenz">Lorenz</option><option value="rossler">Rössler</option></select></label>
+        <label><span class="cx-la">σ</span> <input class="cx-a" inputmode="decimal" value="10" /></label>
+        <label><span class="cx-lb">ρ</span> <input class="cx-b" inputmode="decimal" value="28" /></label>
+        <label><span class="cx-lc">β</span> <input class="cx-c" inputmode="decimal" value="2.666667" /></label>
+        <label>Start x <input class="cx-sx" inputmode="decimal" value="1" /></label>
+        <label>Start y <input class="cx-sy" inputmode="decimal" value="1" /></label>
+        <label>Start z <input class="cx-sz" inputmode="decimal" value="1" /></label>
+        <label>Time <input class="cx-T" inputmode="decimal" value="50" /></label>
+        <label>Step (RK4) <input class="cx-h" inputmode="decimal" value="0.01" /></label>
+      </div>
+      <p class="ax-help cx-shelp"></p>
+      <p class="ax-err cx-ferr" hidden></p>
+    </div>
+    <div class="ax-card cx-fout">
+      <canvas class="ax-fig cx-3d" style="touch-action:none;cursor:grab"></canvas>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Turn <input type="range" class="cx-yaw" min="0" max="360" step="1" value="10" /></label>
+        <label>Tilt <input type="range" class="cx-pitch" min="-90" max="90" step="1" value="10" /></label>
+      </div>
+      <p class="ax-help">Drag the picture, or use the sliders, to turn it. The colour runs from the start (light) to the end (dark).</p>
+      <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small cx-tcsv">Download the path (CSV)</button></div>
+      <h3>Lyapunov exponents</h3>
+      <div class="ax-grid">
+        <label>Average over time <input class="cx-lT" inputmode="decimal" value="1000" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cx-lgo">Work out the exponents</button></div>
+      <p class="ax-err cx-lerr" hidden></p>
+      <p class="ax-big cx-lbig" hidden></p>
+      <dl class="ax-facts cx-lf"></dl>
+      <canvas class="ax-fig cx-lfig" hidden style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="cx-p cx-p-hen" hidden>
+    <div class="ax-card">
+      <h2>Hénon map</h2>
+      <p class="ax-help" style="margin-top:0">x → 1 − a·x² + y, y → b·x</p>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>a <input class="cx-ha" inputmode="decimal" value="1.4" /></label>
+        <label>b <input class="cx-hb" inputmode="decimal" value="0.3" /></label>
+        <label>Start x <input class="cx-hx" inputmode="decimal" value="0" /></label>
+        <label>Start y <input class="cx-hy" inputmode="decimal" value="0" /></label>
+        <label>Points <input class="cx-hn" inputmode="numeric" value="10000" /></label>
+      </div>
+      <p class="ax-err cx-herr" hidden></p>
+    </div>
+    <div class="ax-card cx-hout">
+      <p class="ax-big cx-hbig"></p>
+      <dl class="ax-facts cx-hf"></dl>
+      <canvas class="ax-fig cx-hfig" style="margin-top:14px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cx-hcsv">Download the points (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card cx-dl">
+    <h2>Report</h2>
+    <p class="ax-help" style="margin-top:0">The report has every part you have opened.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .chx h3 { margin: 22px 0 8px; font-size: 15px; }
+  .chx .cx-p { display: grid; gap: 14px; min-width: 0; }
+  .chx .cx-p[hidden] { display: none; }
+  .chx input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { parseMap, orbit, cobweb, lyapunov1, period, orbitDiagram, doublings, lorenz, rossler, trajectory, flowLyapunov, kaplanYorke, henon, henonLyapunov, project, type Map1 } from '../../lib/sci/chaos';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, drawChart, canvasPainter, OKABE_ITO, type Chart, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.chx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const factList = (el: HTMLElement) => [...el.querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const colors = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4']);
+  const chartWith = (pal: Palette, c: Omit<Chart, 'w' | 'h'>, W: number, H: number, ctx: CanvasRenderingContext2D) => drawChart(canvasPainter(ctx), { ...c, w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: pal.bg, colors: colors(pal) });
+  const figs: Record<string, Figure | null> = {};
+  const show = (cls: string, fig: Figure) => { figs[cls] = fig; const c = q<HTMLCanvasElement>(cls); c.hidden = false; paint(c, fig); };
+  const sections: Record<string, Section | null> = { log: null, flow: null, lyap: null, hen: null };
+
+  // ---------- Tabs ----------
+  const opened = new Set(['log']);
+  q('.cx-tabs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-tab]'); if (!b) return;
+    for (const x of q('.cx-tabs').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const t of ['log', 'flow', 'hen']) q(`.cx-p-${t}`).hidden = t !== b.dataset.tab;
+    if (!opened.has(b.dataset.tab!)) { opened.add(b.dataset.tab!); if (b.dataset.tab === 'flow') runFlow(); if (b.dataset.tab === 'hen') runHenon(); }
+    else for (const [k, f] of Object.entries(figs)) if (f && root.querySelector(k) && !q(k).hidden) paint(q<HTMLCanvasElement>(k), f);
+  });
+
+  // ---------- 1D map ----------
+  let F: Map1 | null = null, fSrc = '', ra = 2.5, rb = 4, diag: { r: number[]; x: number[] } | null = null, lyCurve: { r: number[]; l: number[]; p: number[] } | null = null, orb: number[] = [];
+  function rangeStuff() {
+    const rerr = q('.cx-rerr'); rerr.hidden = true;
+    const a = num(inp('.cx-ra').value), b = num(inp('.cx-rb').value);
+    if (!(Number.isFinite(a) && Number.isFinite(b) && b > a)) { rerr.textContent = 'Type r from and r to, with "to" larger.'; rerr.hidden = false; return false; }
+    ra = a; rb = b;
+    const rs = inp('.cx-rs'); rs.min = String(a); rs.max = String(b); rs.step = String(+((b - a) / 3000).toPrecision(2));
+    diag = orbitDiagram(F!, a, b, 600, 0.2, 500, 150);
+    const R = Array.from({ length: 500 }, (_, k) => a + ((b - a) * k) / 499);
+    lyCurve = { r: R, l: R.map((r) => lyapunov1(F!, r, 0.2, 20000, 500)), p: R.map((r) => period(F!, r, 0.2, 3000, 64)) };
+    const d = doublings(F!, a, b);
+    const rows = d.map((x, i) => [String(i + 1), `${x.p} → ${2 * x.p}`, x.r.toFixed(9), i >= 2 ? ((d[i - 1].r - d[i - 2].r) / (x.r - d[i - 1].r)).toFixed(4) : '']);
+    const t = q('.cx-dt'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['k', 'Period', 'r where it doubles', 'Ratio of gaps']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); }
+    q('.cx-dnote').textContent = d.length
+      ? `${d.length} period doublings found between r = ${a} and ${b}, each solved exactly (the r where the cycle's multiplier reaches −1). The ratio of successive gaps tends to Feigenbaum's constant δ = 4.6692… for any smooth map with one hump.${d.length >= 3 ? ` Estimated end of the cascade: r∞ ≈ ${(d.at(-1)!.r + (d.at(-1)!.r - d.at(-2)!.r) / 3.6692).toFixed(6)}.` : ''}`
+      : 'No period doublings found in this range of r.';
+    sections.dbl = d.length ? { title: 'Period-doubling points', table: { head: ['k', 'Period', 'r', 'Ratio of gaps'], rows } } : null;
+    return true;
+  }
+  function runMap(full: boolean) {
+    const err = q('.cx-err'); err.hidden = true;
+    try {
+      const src = inp('.cx-f').value;
+      if (src !== fSrc || !F) { F = parseMap(src); fSrc = src; full = true; }
+      const r = num(inp('.cx-r').value), x0 = num(inp('.cx-x0').value), n = Math.round(num(inp('.cx-n').value));
+      if (!Number.isFinite(r)) throw new Error('Type a value for r.');
+      if (!Number.isFinite(x0)) throw new Error('Type a start value x₀.');
+      if (!(n >= 1 && n <= 2000)) throw new Error('Show between 1 and 2000 steps.');
+      if (!Number.isFinite(F(x0, r))) throw new Error('The map is not a number at the start value.');
+      if (full && !rangeStuff()) return;
+      orb = orbit(F, r, x0, n);
+      const p = period(F, r, x0), lam = lyapunov1(F, r, x0, 20000, 1000), esc = !orb.every((v) => Number.isFinite(v) && Math.abs(v) < 1e12);
+      q('.cx-big').textContent = esc ? `r = ${r}: the orbit escapes to infinity` : `r = ${r}: ${p === 1 ? 'settles to a fixed point' : p > 1 ? `a cycle of period ${p}` : lam > 0 ? 'chaos' : 'no short cycle (period over 64)'} (λ = ${Number.isFinite(lam) ? sig(lam, 4) : '–'})`;
+      const fp = (() => { let x = x0; for (let i = 0; i < 2000; i++) x = F!(x, r); return x; })();
+      facts(q('.cx-facts'), [['Period', p ? String(p) : 'none found up to 64'], ['Lyapunov exponent λ', Number.isFinite(lam) ? sig(lam, 5) : 'undefined (escapes)'], ['x after 2000 steps', Number.isFinite(fp) ? sig(fp, 6) : 'escaped'], ['Meaning', !Number.isFinite(lam) ? '–' : lam > 0.001 ? 'nearby starts separate: chaotic' : lam < -0.001 ? 'nearby starts come together: stable' : 'λ ≈ 0: at a bifurcation']]);
+      const fin = orb.filter((v) => Number.isFinite(v) && Math.abs(v) < 1e12);
+      const lo0 = Math.min(...fin, 0), hi0 = Math.max(...fin, 1), pad = 0.05 * (hi0 - lo0), lo = lo0 - pad, hi = hi0 + pad;
+      const xs = Array.from({ length: 301 }, (_, k) => lo + ((hi - lo) * k) / 300);
+      const web = cobweb(fin);
+      show('.cx-cob', chartFigure({ h: 380, xLabel: 'x', yLabel: 'next x', xMin: lo, xMax: hi, yMin: lo, yMax: hi, legend: 'below', series: [
+        { name: 'f(x)', x: xs, y: xs.map((x) => F!(x, r)), mode: 'line', width: 2 },
+        { name: 'next x = x', x: [lo, hi], y: [lo, hi], mode: 'line', dash: [5, 4], width: 1.2 },
+        { name: 'cobweb', x: web.map((p) => p[0]), y: web.map((p) => p[1]), mode: 'line', width: 1.1 },
+      ] }, 'Cobweb diagram'));
+      show('.cx-ts', chartFigure({ h: 260, xLabel: 'step n', yLabel: 'x', series: [{ name: 'x', x: fin.map((_, i) => i), y: fin, mode: 'both', size: 2.4 }], legend: 'none' }, 'Orbit against step'));
+      const D = diag!, L = lyCurve!;
+      show('.cx-bif', {
+        w: 720, h: 400, alt: 'Orbit diagram: x against r',
+        draw: (ctx, W, H, pal) => {
+          const fy = D.x.filter((v) => Math.abs(v) < 1e6), y0 = Math.min(...fy, 0), y1 = Math.max(...fy, 1);
+          const m = chartWith(pal, { xLabel: 'r', yLabel: 'x', series: [], xMin: ra, xMax: rb, yMin: y0, yMax: y1, marks: [{ kind: 'vline', at: r, label: `r = ${r}` }] }, W, H, ctx);
+          ctx.save(); ctx.beginPath(); ctx.rect(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0); ctx.clip();
+          ctx.fillStyle = pal.ink; ctx.globalAlpha = 0.35;
+          for (let i = 0; i < D.r.length; i++) ctx.fillRect(m.X(D.r[i]), m.Y(D.x[i]), 1, 1);
+          ctx.restore();
+        },
+      });
+      show('.cx-ly', chartFigure({ h: 260, xLabel: 'r', yLabel: 'λ', xMin: ra, xMax: rb, yMin: Math.max(-3, Math.min(...L.l.filter(Number.isFinite))), series: [{ name: 'λ', x: L.r, y: L.l.map((v) => Math.max(v, -3)), mode: 'line', width: 1.2 }], legend: 'none', marks: [{ kind: 'hline', at: 0 }, { kind: 'vline', at: r }] }, 'Lyapunov exponent against r'));
+      sections.log = { title: `Map x → ${src}`, facts: [['r', String(r)], ['Start x₀', String(x0)], ...factList(q('.cx-facts'))], figure: figs['.cx-cob']! };
+      sections.bif = { title: 'Orbit diagram', figure: figs['.cx-bif']! };
+      q('.cx-lout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cx-lout').hidden = true; sections.log = null; }
+  }
+  inp('.cx-rs').addEventListener('input', () => { inp('.cx-r').value = inp('.cx-rs').value; runMap(false); });
+  let t1 = 0;
+  inp('.cx-r').addEventListener('input', () => { clearTimeout(t1); t1 = window.setTimeout(() => { inp('.cx-rs').value = inp('.cx-r').value; runMap(false); }, 200); });
+  for (const c of ['.cx-x0', '.cx-n']) inp(c).addEventListener('input', () => { clearTimeout(t1); t1 = window.setTimeout(() => runMap(false), 200); });
+  for (const c of ['.cx-f', '.cx-ra', '.cx-rb']) inp(c).addEventListener('input', () => { clearTimeout(t1); t1 = window.setTimeout(() => { fSrc = c === '.cx-f' ? fSrc : ''; runMap(true); }, 400); });
+  q('.cx-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['n', 'x'], ...orb.map((x, i) => [i, x])])), 'map-orbit.csv', 'text/csv'));
+  q('.cx-bcsv').addEventListener('click', () => { if (lyCurve) save(new TextEncoder().encode(csv([['r', 'lyapunov', 'period'], ...lyCurve.r.map((r, i) => [r, lyCurve!.l[i], lyCurve!.p[i] || ''])])), 'lyapunov-by-r.csv', 'text/csv'); });
+
+  // ---------- Flows ----------
+  const LABELS = { lorenz: ['σ', 'ρ', 'β', '10', '28', '2.666667', 'The Lorenz equations: x′ = σ(y − x), y′ = x(ρ − z) − y, z′ = xy − βz. Chaos for the classic σ = 10, ρ = 28, β = 8/3; below ρ ≈ 24.74 the path settles to one of two points.'], rossler: ['a', 'b', 'c', '0.2', '0.2', '5.7', 'The Rössler equations: x′ = −y − z, y′ = x + ay, z′ = b + z(x − c). Chaos for a = b = 0.2, c = 5.7; try c = 4 for a period-2 loop.'] };
+  let path: number[][] = [], yaw = 10, pitch = 10;
+  const flowOf = () => {
+    const s = q<HTMLSelectElement>('.cx-sys').value as 'lorenz' | 'rossler';
+    const a = num(inp('.cx-a').value), b = num(inp('.cx-b').value), c = num(inp('.cx-c').value);
+    if (![a, b, c].every(Number.isFinite)) throw new Error('Type all three parameters.');
+    return { s, fl: s === 'lorenz' ? lorenz(a, b, c) : rossler(a, b, c), p: [a, b, c] };
+  };
+  function draw3d() {
+    if (!path.length) return;
+    const P = path;
+    show('.cx-3d', {
+      w: 720, h: 540, alt: '3D view of the path',
+      draw: (ctx, W, H, pal) => {
+        const Y = (yaw * Math.PI) / 180, Pi = (pitch * Math.PI) / 180;
+        const c = [0, 1, 2].map((k) => (Math.min(...P.map((p) => p[k])) + Math.max(...P.map((p) => p[k]))) / 2);
+        const sc = Math.max(...[0, 1, 2].map((k) => Math.max(...P.map((p) => p[k])) - Math.min(...P.map((p) => p[k])))) || 1;
+        const pr = P.map((p) => project(p.map((v, k) => (v - c[k]) / sc), Y, Pi));
+        const k = Math.min(W, H) * 0.95, ox = W / 2, oy = H / 2;
+        const col = colors(pal)[0], rgb = [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16)), bg = pal.bg === '#ffffff' ? [255, 255, 255] : [10, 10, 10];
+        ctx.lineWidth = 1;
+        const chunks = 24;
+        for (let j = 0; j < chunks; j++) {
+          const a = Math.floor((j * (pr.length - 1)) / chunks), b = Math.floor(((j + 1) * (pr.length - 1)) / chunks), f = 0.25 + 0.75 * (j / (chunks - 1));
+          ctx.strokeStyle = `rgb(${rgb.map((v, i) => Math.round(bg[i] + (v - bg[i]) * f)).join(',')})`;
+          ctx.beginPath(); for (let i = a; i <= b; i++) { const [x, y] = pr[i]; if (i === a) ctx.moveTo(ox + x * k, oy - y * k); else ctx.lineTo(ox + x * k, oy - y * k); } ctx.stroke();
+        }
+        // Axis triad in the corner.
+        const ax = [[1, 0, 0, 'x'], [0, 1, 0, 'y'], [0, 0, 1, 'z']] as const, tx = 46, ty = H - 46;
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const [x, y, z, l] of ax) { const [u, v] = project([x, y, z], Y, Pi); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + u * 30, ty - v * 30); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(l, tx + u * 40, ty - v * 40); }
+      },
+    });
+  }
+  function runFlow() {
+    const err = q('.cx-ferr'); err.hidden = true;
+    const sys = q<HTMLSelectElement>('.cx-sys').value as 'lorenz' | 'rossler', L = LABELS[sys];
+    q('.cx-la').textContent = L[0]; q('.cx-lb').textContent = L[1]; q('.cx-lc').textContent = L[2]; q('.cx-shelp').textContent = L[6];
+    try {
+      const { fl } = flowOf();
+      const s0 = ['.cx-sx', '.cx-sy', '.cx-sz'].map((c) => num(inp(c).value));
+      if (!s0.every(Number.isFinite)) throw new Error('Type the three start values.');
+      const T = num(inp('.cx-T').value), h = num(inp('.cx-h').value);
+      if (!(T > 0 && T <= 5000)) throw new Error('Use a time between 0 and 5000.');
+      if (!(h > 0 && h <= 0.1)) throw new Error('Use a step between 0 and 0.1 (0.01 is good).');
+      if (T / h > 500000) throw new Error('That is more than 500,000 steps: use a larger step or a shorter time.');
+      const every = Math.max(1, Math.round(T / h / 20000));
+      path = trajectory(fl, s0, T, h, every);
+      if (path.length < Math.round(T / h / every) + 1) throw new Error(`The path blew up near t = ${sig((path.length - 1) * h * every, 3)}. Try a smaller step.`);
+      draw3d();
+      sections.flow = { title: sys === 'lorenz' ? 'Lorenz system' : 'Rössler system', facts: [[L[0], inp('.cx-a').value], [L[1], inp('.cx-b').value], [L[2], inp('.cx-c').value], ['Start', s0.join(', ')], ['Time', `${T} with RK4 step ${h}`], ['End point', path.at(-1)!.map((v) => sig(v, 5)).join(', ')]], figure: figs['.cx-3d']! };
+      q('.cx-fout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cx-fout').hidden = true; sections.flow = null; }
+  }
+  q('.cx-sys').addEventListener('change', () => {
+    const L = LABELS[q<HTMLSelectElement>('.cx-sys').value as 'lorenz' | 'rossler'];
+    inp('.cx-a').value = L[3]; inp('.cx-b').value = L[4]; inp('.cx-c').value = L[5];
+    inp('.cx-T').value = q<HTMLSelectElement>('.cx-sys').value === 'lorenz' ? '50' : '200';
+    lyClear(); runFlow();
+  });
+  let t2 = 0;
+  for (const c of ['.cx-a', '.cx-b', '.cx-c', '.cx-sx', '.cx-sy', '.cx-sz', '.cx-T', '.cx-h']) inp(c).addEventListener('input', () => { clearTimeout(t2); t2 = window.setTimeout(() => { lyClear(); runFlow(); }, 300); });
+  const fromSliders = () => { yaw = Number(inp('.cx-yaw').value); pitch = Number(inp('.cx-pitch').value); draw3d(); };
+  inp('.cx-yaw').addEventListener('input', fromSliders); inp('.cx-pitch').addEventListener('input', fromSliders);
+  {
+    const cv = q<HTMLCanvasElement>('.cx-3d'); let drag: { x: number; y: number; yaw: number; pitch: number } | null = null;
+    cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      yaw = ((Math.round(drag.yaw - (e.clientX - drag.x) * 0.6) % 360) + 360) % 360; pitch = Math.max(-90, Math.min(90, Math.round(drag.pitch + (e.clientY - drag.y) * 0.6)));
+      inp('.cx-yaw').value = String(yaw); inp('.cx-pitch').value = String(pitch); draw3d();
+    });
+    cv.addEventListener('pointerup', () => { drag = null; }); cv.addEventListener('pointercancel', () => { drag = null; });
+  }
+  q('.cx-tcsv').addEventListener('click', () => { const h = num(inp('.cx-h').value), T = num(inp('.cx-T').value), every = Math.max(1, Math.round(T / h / 20000)); save(new TextEncoder().encode(csv([['t', 'x', 'y', 'z'], ...path.map((p, i) => [+(i * h * every).toPrecision(12), ...p])])), `${q<HTMLSelectElement>('.cx-sys').value}-path.csv`, 'text/csv'); });
+  function lyClear() { q('.cx-lbig').hidden = true; q('.cx-lf').replaceChildren(); q('.cx-lfig').hidden = true; figs['.cx-lfig'] = null; sections.lyap = null; }
+  q('.cx-lgo').addEventListener('click', () => {
+    const err = q('.cx-lerr'); err.hidden = true;
+    let fl, p: number[], s: string;
+    try { ({ fl, p, s } = flowOf()); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; return; }
+    const T = num(inp('.cx-lT').value);
+    if (!(T >= 10 && T <= 5000)) { err.textContent = 'Average over a time between 10 and 5000.'; err.hidden = false; return; }
+    const s0 = ['.cx-sx', '.cx-sy', '.cx-sz'].map((c) => num(inp(c).value));
+    const btn = q<HTMLButtonElement>('.cx-lgo'); btn.disabled = true; btn.textContent = 'Working…';
+    setTimeout(() => {
+      const r = flowLyapunov(fl!, s0, T, 0.01, 20), l = r.exps;
+      btn.disabled = false; btn.textContent = 'Work out the exponents';
+      if (!l.every(Number.isFinite)) { err.textContent = 'The path blew up, so the exponents are undefined.'; err.hidden = false; return; }
+      const div = s === 'lorenz' ? -(p![0] + 1 + p![2]) : NaN;
+      q('.cx-lbig').hidden = false;
+      q('.cx-lbig').textContent = `λ₁ = ${sig(l[0], 4)}, λ₂ = ${sig(l[1], 3)}, λ₃ = ${sig(l[2], 5)}`;
+      facts(q('.cx-lf'), [
+        ['Verdict', l[0] > 0.01 ? 'chaotic: λ₁ > 0' : l[0] > -0.01 ? 'λ₁ ≈ 0: a loop (limit cycle) or torus' : 'settles to a point'],
+        ['Sum of exponents', `${sig(l[0] + l[1] + l[2], 5)}${s === 'lorenz' ? ` (should be −(σ + 1 + β) = ${sig(div, 5)})` : ''}`],
+        ['Kaplan-Yorke dimension', sig(kaplanYorke(l), 4)],
+        ['Doubling time of errors', l[0] > 0.01 ? `${sig(Math.LN2 / l[0], 3)} time units` : '–'],
+      ]);
+      show('.cx-lfig', chartFigure({ h: 300, xLabel: 'time averaged over', yLabel: 'exponent', legend: 'below', series: [0, 1, 2].map((k) => ({ name: `λ${'₁₂₃'[k]}`, x: r.history.map((h) => h.t), y: r.history.map((h) => h.l[k]), mode: 'line' as const })), marks: [{ kind: 'hline', at: 0 }] }, 'Running averages of the three exponents'));
+      sections.lyap = { title: 'Lyapunov exponents', text: [`Benettin's method: RK4 with step 0.01, three tangent vectors re-orthonormalised every step, averaged over ${T} time units after 20 to settle.`], facts: [['Exponents', q('.cx-lbig').textContent!], ...factList(q('.cx-lf'))], figure: figs['.cx-lfig']! };
+    }, 30);
+  });
+
+  // ---------- Hénon ----------
+  let hp: { x: number[]; y: number[] } = { x: [], y: [] };
+  function runHenon() {
+    const err = q('.cx-herr'); err.hidden = true;
+    try {
+      const a = num(inp('.cx-ha').value), b = num(inp('.cx-hb').value), x0 = num(inp('.cx-hx').value), y0 = num(inp('.cx-hy').value), n = Math.round(num(inp('.cx-hn').value));
+      if (![a, b, x0, y0].every(Number.isFinite)) throw new Error('Type a, b and the start point.');
+      if (!(n >= 100 && n <= 200000)) throw new Error('Use between 100 and 200,000 points.');
+      const r = henon(a, b, x0, y0, n, 100);
+      if (r.escaped) throw new Error('The orbit escapes to infinity for these values (try a = 1.4, b = 0.3).');
+      hp = r;
+      const l = henonLyapunov(a, b, x0, y0, 100000, 1000);
+      q('.cx-hbig').textContent = `λ₁ = ${sig(l[0], 5)}, λ₂ = ${sig(l[1], 5)}`;
+      facts(q('.cx-hf'), [['Verdict', l[0] > 0.001 ? 'chaotic: λ₁ > 0' : 'not chaotic: a cycle or a fixed point'], ['Sum λ₁ + λ₂', `${sig(l[0] + l[1], 5)} (= ln|b| = ${sig(Math.log(Math.abs(b)), 5)}: areas shrink by |b| each step)`], ['Kaplan-Yorke dimension', sig(kaplanYorke(l), 4)], ['Points drawn', n.toLocaleString('en')]]);
+      show('.cx-hfig', {
+        w: 720, h: 460, alt: 'Hénon attractor',
+        draw: (ctx, W, H, pal) => {
+          const m = chartWith(pal, { xLabel: 'x', yLabel: 'y', series: [{ name: '', x: [Math.min(...hp.x), Math.max(...hp.x)], y: [Math.min(...hp.y), Math.max(...hp.y)], mode: 'points', marker: 'none' }], legend: 'none' }, W, H, ctx);
+          ctx.fillStyle = colors(pal)[0];
+          for (let i = 0; i < hp.x.length; i++) ctx.fillRect(m.X(hp.x[i]) - 0.6, m.Y(hp.y[i]) - 0.6, 1.2, 1.2);
+        },
+      });
+      sections.hen = { title: 'Hénon map', facts: [['a', String(a)], ['b', String(b)], ['Exponents', q('.cx-hbig').textContent!], ...factList(q('.cx-hf'))], figure: figs['.cx-hfig']! };
+      q('.cx-hout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cx-hout').hidden = true; sections.hen = null; }
+  }
+  let t3 = 0;
+  for (const c of ['.cx-ha', '.cx-hb', '.cx-hx', '.cx-hy', '.cx-hn']) inp(c).addEventListener('input', () => { clearTimeout(t3); t3 = window.setTimeout(runHenon, 300); });
+  q('.cx-hcsv').addEventListener('click', () => save(new TextEncoder().encode(csv([['x', 'y'], ...hp.x.map((x, i) => [x, hp.y[i]])])), 'henon-points.csv', 'text/csv'));
+
+  document.addEventListener('fibub:theme', () => { for (const [k, f] of Object.entries(figs)) if (f && !q(k).hidden && !q(k).closest<HTMLElement>('.cx-p')?.hidden) paint(q<HTMLCanvasElement>(k), f); });
+  runMap(true);
+  wireDownloads(q('.dl'), () => ({ title: 'Chaos explorer', subtitle: q('.cx-big').textContent ?? '', file: 'chaos-explorer', sections: ['log', 'bif', 'dbl', 'flow', 'lyap', 'hen'].map((k) => sections[k]).filter((s): s is Section => !!s) }));
+</script>

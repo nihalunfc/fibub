@@ -1,0 +1,302 @@
+---
+// CFU counter: colonies counted on a plate photo (found automatically, then corrected by tapping) and the dilution
+// maths that turns plate counts into CFU per mL or per g, with an exact Poisson interval. The photo never leaves the
+// browser. The example plate is drawn by the page and its counts are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cfu">
+  <div class="ax-card">
+    <h2>Plate photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cf-open">Open a plate photo</button>
+      <input type="file" class="cf-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small cf-ex">Use the example plate</button>
+    </div>
+    <p class="ax-big cf-count" hidden></p>
+    <canvas class="cf-photo" hidden></canvas>
+    <div class="ax-row cf-prow" hidden>
+      <button type="button" class="btn secondary small cf-rim">Set the plate edge</button>
+      <button type="button" class="btn secondary small cf-clear">Undo my taps</button>
+    </div>
+    <p class="ax-help cf-ph" data-t="Tap the photo to add a colony the page missed, or tap a ring to remove it. The photo stays on your device and is never uploaded.">Open a photo taken from straight above, with the whole dish in view and even light (a dark cloth behind a clear dish helps). The photo stays on your device and is never uploaded.</p>
+    <p class="ax-err cf-perr" hidden></p>
+    <details class="cf-set" hidden>
+      <summary>Colony finding settings</summary>
+      <div class="ax-grid">
+        <label>Colonies are <select class="cf-pol"><option value="auto" selected>Found automatically</option><option value="lighter">Lighter than the agar</option><option value="darker">Darker than the agar</option></select></label>
+        <label>Threshold (grey levels) <input class="cf-thr" type="number" min="1" max="255" step="1" placeholder="auto" inputmode="numeric" /></label>
+        <label>Plate diameter (mm) <input class="cf-dish" type="number" min="20" max="300" step="1" value="90" inputmode="decimal" /></label>
+        <label>Smallest colony (mm) <input class="cf-min" type="number" min="0.05" max="20" step="0.1" value="0.4" inputmode="decimal" /></label>
+        <label>Largest single colony (mm) <input class="cf-max" type="number" min="0.2" max="40" step="0.5" value="4" inputmode="decimal" /></label>
+        <label>Rim left out (% of the radius) <input class="cf-margin" type="number" min="0" max="40" step="1" value="5" inputmode="numeric" /></label>
+      </div>
+      <label class="ax-check"><input type="checkbox" class="cf-split" checked /> Split touching colonies</label>
+      <p class="ax-help">The threshold is how much brighter (or darker) than the nearby agar a pixel must be to count as colony; leave it empty to let the page choose from the photo's noise. Spots smaller than the smallest colony are ignored as dust or noise. Blobs bigger than one colony are split where the distance map has separate peaks. Leaving out the rim avoids glare on the dish wall.</p>
+    </details>
+    <div class="cf-feed" hidden>
+      <div class="ax-grid">
+        <label>Dilution of this plate <input class="cf-pdil" type="text" value="1e-5" spellcheck="false" /></label>
+        <label>Volume plated <input class="cf-pvol" type="text" value="0.1 mL" spellcheck="false" /></label>
+      </div>
+      <label class="ax-check"><input type="checkbox" class="cf-use" checked /> Use this plate's count in the result below</label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plates and dilutions</h2>
+    <label>One plate per line: dilution, volume plated, colonies, name (optional) <textarea class="cf-plates" rows="5" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Countable from <input class="cf-lo" type="number" min="0" step="1" value="30" inputmode="numeric" /></label>
+      <label>Countable up to <input class="cf-hi" type="number" min="1" step="1" value="300" inputmode="numeric" /></label>
+      <label>Confidence <select class="cf-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Result per <select class="cf-per"><option value="mL" selected>mL of sample</option><option value="g">g of sample</option></select></label>
+    </div>
+    <p class="ax-help">Write a dilution as 1e-5, 10^-5, 1:100000 or 1/100000; a volume in mL (0.1) or µL (100 µL); TNTC for a plate with too many to count. Lines starting with # are skipped. Only plates inside the countable range are used; change the range to the one your method asks for (30 to 300 and 25 to 250 are common). For CFU per g, include the first 1 in 10 suspension of the sample in the dilution.</p>
+    <p class="ax-err cf-err" hidden></p>
+  </div>
+
+  <div class="ax-card cf-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big cf-big"></p>
+    <dl class="ax-facts cf-facts"></dl>
+    <div class="ax-scroll"><table class="cf-tab"></table></div>
+    <canvas class="ax-fig cf-chart"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cf-csv">Download plates and result (CSV)</button>
+      <button type="button" class="btn secondary small cf-pcsv">Download colony positions (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parsePlates, parseDilution, parseVolume, cfu, detectColonies, circleFrom3, nearest, examplePlate, roundSig, clean, EXAMPLE_PLATES, type Plate, type Pt, type Circle, type Detect, type CfuResult } from '../../lib/sci/cfu';
+  import { drawChart, canvasPainter, type Chart } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+  import { sig, fmtExp, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cfu')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const big = (x: number, n = 3) => (!Number.isFinite(x) ? '–' : x === 0 ? '0' : Math.abs(x) >= 1e4 || Math.abs(x) < 0.01 ? fmtExp(x, n) : sig(x, n));
+  const dilText = (d: number) => { const e = Math.log10(d); return Math.abs(e - Math.round(e)) < 1e-9 ? `10${fmtExp(d, 1).split('10')[1] ?? ''}` : sig(d, 3); };
+  const MAXW = 1000;
+
+  // Photo state.
+  let rgba: Uint8ClampedArray | null = null, W = 0, H = 0, photo: HTMLCanvasElement | null = null, name = 'plate';
+  let circle: Circle = { cx: 0, cy: 0, r: 0 }, det: Detect | null = null, found: Pt[] = [], added: Pt[] = [], removed: Pt[] = [];
+  let rimTaps: Pt[] | null = null;
+  // Result state.
+  let res: CfuResult | null = null, figC: Figure | null = null, figP: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  const shown = () => found.filter((p) => !removed.some((r) => Math.hypot(r.x - p.x, r.y - p.y) < 0.5)).concat(added);
+  const rTyp = () => Math.max(3, det && Number.isFinite(det.typicalArea) ? Math.sqrt(det.typicalArea / Math.PI) : 6);
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.cf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i > 1) td.style.textAlign = 'right'; }); });
+  }
+
+  function load(px: Uint8ClampedArray, w: number, h: number, nm: string, c?: Circle) {
+    rgba = px; W = w; H = h; name = nm;
+    photo = document.createElement('canvas'); photo.width = w; photo.height = h; photo.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(px), w, h), 0, 0);
+    circle = c ?? { cx: w / 2, cy: h / 2, r: 0.48 * Math.min(w, h) };
+    added = []; removed = []; rimTaps = null; q('.cf-rim').textContent = 'Set the plate edge';
+    ['.cf-photo', '.cf-prow', '.cf-set', '.cf-feed', '.cf-count'].forEach((s) => { q(s).hidden = false; });
+    q('.cf-perr').hidden = true; q('.cf-ph').textContent = q('.cf-ph').dataset.t ?? '';
+    detect();
+  }
+
+  function detect() {
+    if (!rgba) return;
+    const perr = (m: string) => { q('.cf-perr').textContent = m; q('.cf-perr').hidden = false; };
+    q('.cf-perr').hidden = true;
+    const dish = Number(inp('.cf-dish').value), mn = Number(inp('.cf-min').value), mx = Number(inp('.cf-max').value), mg = Number(inp('.cf-margin').value);
+    const thrS = inp('.cf-thr').value.trim(), thr = Number(thrS);
+    if (!(dish >= 20 && dish <= 300)) return perr('Give the plate diameter in mm, between 20 and 300 (a standard Petri dish is 90).');
+    if (!(mn > 0 && mx > mn)) return perr('The largest single colony must be bigger than the smallest colony, and both above 0 mm.');
+    if (!(mg >= 0 && mg <= 40)) return perr('Leave out between 0 and 40 % of the radius at the rim.');
+    if (thrS && !(thr >= 1 && thr <= 255)) return perr('The threshold is between 1 and 255 grey levels, or empty for automatic.');
+    det = detectColonies(rgba, W, H, circle, { colonies: q<HTMLSelectElement>('.cf-pol').value as 'auto', threshold: thrS ? thr : null, plateMm: dish, minMm: mn, maxMm: mx, margin: mg / 100, split: inp('.cf-split').checked });
+    inp('.cf-thr').placeholder = `auto (${Math.round(det.autoThreshold)})`;
+    found = det.points;
+    // Taps stay: a removed colony stays removed if the page finds it again.
+    removed = removed.filter((r) => found.some((p) => Math.hypot(r.x - p.x, r.y - p.y) < 0.5));
+    if (det.tooBig) perr(`${det.tooBig} patch${det.tooBig > 1 ? 'es' : ''} much bigger than a colony ${det.tooBig > 1 ? 'were' : 'was'} left out (a spreading colony, glare or a label?). Tap to add colonies there by hand if they are real.`);
+    countText(); drawPhoto(); run();
+  }
+
+  function countText() {
+    const n = shown().length;
+    const parts = [`${found.length - removed.length} found`, ...(added.length ? [`${added.length} added`] : []), ...(removed.length ? [`${removed.length} removed`] : [])];
+    q('.cf-count').textContent = `${n} ${n === 1 ? 'colony' : 'colonies'} on this plate (${parts.join(', ')})`;
+  }
+
+  function drawPhoto() {
+    if (!photo) return;
+    const c = q<HTMLCanvasElement>('.cf-photo'); c.width = W; c.height = H;
+    drawOverlay(c.getContext('2d')!, 1);
+  }
+  function drawOverlay(ctx: CanvasRenderingContext2D, s: number) {
+    if (!photo) return;
+    ctx.save(); ctx.scale(s, s); ctx.drawImage(photo, 0, 0);
+    const lw = Math.max(1.5, Math.min(W, H) / 350), r = rTyp() + 2.5;
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = '#d55e00'; ctx.setLineDash([lw * 5, lw * 3]);
+    ctx.beginPath(); ctx.arc(circle.cx, circle.cy, circle.r, 0, 2 * Math.PI); ctx.stroke();
+    const mg = Number(inp('.cf-margin').value) / 100;
+    if (mg > 0) { ctx.setLineDash([lw, lw * 3]); ctx.beginPath(); ctx.arc(circle.cx, circle.cy, circle.r * (1 - mg), 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.setLineDash([]);
+    const ring = (p: Pt, col: string) => { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = lw * 2.2; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 2 * Math.PI); ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke(); };
+    for (const p of found) if (!removed.some((x) => Math.hypot(x.x - p.x, x.y - p.y) < 0.5)) ring(p, '#0072b2');
+    for (const p of added) { ring(p, '#009e73'); ctx.beginPath(); ctx.moveTo(p.x - r / 2, p.y); ctx.lineTo(p.x + r / 2, p.y); ctx.moveTo(p.x, p.y - r / 2); ctx.lineTo(p.x, p.y + r / 2); ctx.stroke(); }
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = lw * 1.3;
+    for (const p of removed) { const k = r * 0.7; ctx.beginPath(); ctx.moveTo(p.x - k, p.y - k); ctx.lineTo(p.x + k, p.y + k); ctx.moveTo(p.x + k, p.y - k); ctx.lineTo(p.x - k, p.y + k); ctx.stroke(); }
+    if (rimTaps) { ctx.fillStyle = '#d55e00'; for (const p of rimTaps) { ctx.beginPath(); ctx.arc(p.x, p.y, lw * 4, 0, 2 * Math.PI); ctx.fill(); } }
+    ctx.restore();
+  }
+
+  function photoPlate(): Plate | string | null {
+    if (!rgba || !inp('.cf-use').checked) return null;
+    const dil = parseDilution(inp('.cf-pdil').value), vol = parseVolume(inp('.cf-pvol').value);
+    if (!Number.isFinite(dil)) return 'The photo plate\'s dilution is not readable. Write it like 1e-5, 10^-5 or 1:100000.';
+    if (!Number.isFinite(vol)) return 'Give the volume spread on the photo plate in mL (0.1) or µL (100 µL).';
+    return { name: `Photo (${name})`, dil, vol, count: shown().length, tntc: false, line: 0, photo: true };
+  }
+
+  function run() {
+    const fail = (m: string) => { q('.cf-err').textContent = m; q('.cf-err').hidden = false; q('.cf-out').hidden = true; sections = []; res = null; };
+    q('.cf-err').hidden = true;
+    const P = parsePlates(q<HTMLTextAreaElement>('.cf-plates').value);
+    if (P.errors.length) return fail(P.errors.slice(0, 3).join(' '));
+    const pp = photoPlate();
+    if (typeof pp === 'string') return fail(pp);
+    const plates = pp ? [...P.plates, pp] : P.plates;
+    if (!plates.length) return fail('Add at least one plate: type a line in the table, or open a plate photo.');
+    if (plates.length > 60) return fail('Up to 60 plates at a time, please.');
+    const lo = Number(inp('.cf-lo').value), hi = Number(inp('.cf-hi').value);
+    if (!(Number.isInteger(lo) && lo >= 0 && Number.isInteger(hi) && hi > lo)) return fail('The countable range needs two whole numbers, the second bigger than the first (such as 30 and 300).');
+    const conf = Number(q<HTMLSelectElement>('.cf-conf').value), per = q<HTMLSelectElement>('.cf-per').value, unit = `CFU/${per}`, cl = `${Math.round(conf * 100)} %`;
+    const R = cfu(plates, { lo, hi, conf }); res = R;
+    if (R.basis === 'none') return fail('Every plate is too many to count (TNTC). Plate higher dilutions, or count a sector of a plate by hand.');
+    q('.cf-out').hidden = false;
+    const used = R.plates.filter((p) => p.used);
+    const pre = R.basis === 'below' ? (R.total === 0 ? 'Below detection: fewer than ' : 'Estimated ') : R.basis === 'above' ? 'Estimated ' : '';
+    q('.cf-big').textContent = R.total === 0 ? `${pre}${big(R.ci[1], 3)} ${unit} (upper ${cl} limit)` : `${pre}${big(roundSig(R.est, 2), 2)} ${unit}`;
+    const why = R.basis === 'below' ? `no plate reached ${lo} colonies, so the most concentrated plate was used; counts this low are less precise` : R.basis === 'above' ? `every plate had more than ${hi} colonies, so the most diluted countable plate was used; crowded plates often count low` : `${used.length} plate${used.length > 1 ? 's' : ''} with ${lo} to ${hi} colonies`;
+    const disp = R.dispersion;
+    q('.cf-facts').replaceChildren(
+      fact('Estimate', `${big(R.est, 4)} ${unit}`, `= ${R.total} colonies ÷ ${big(R.vd, 3)} ${per} of sample plated (rounded to 2 significant figures above)`),
+      fact(`${cl} interval`, `${big(R.ci[0], 3)} to ${big(R.ci[1], 3)} ${unit}`, 'exact Poisson interval: counting error only, not pipetting or dilution error'),
+      fact('Plates used', used.map((p) => p.name).join(', '), why),
+      fact('Agreement between plates', disp ? `${disp.p < 0.05 ? 'Poor' : 'Good'}: χ² = ${sig(disp.chi2, 3)}, ${disp.df} df, p = ${sig(disp.p, 2)}` : 'one plate only', disp ? (disp.p < 0.05 ? 'the plates differ more than counting alone explains: check the pipetting, mixing and dilutions' : 'the plates differ no more than counting alone would explain') : 'plate in duplicate to check the dilutions'),
+      fact('One colony stands for', `${big(R.perColony, 3)} ${unit}`, 'on the plates used; the smallest step the count can show'),
+    );
+    const st = { countable: 'countable', low: `below ${lo}`, high: `above ${hi}`, tntc: 'TNTC' } as const;
+    const head = ['Plate', 'Dilution', 'Volume (mL)', 'Colonies', 'Status', `${unit} from this plate`, `${cl} interval`];
+    const rows = R.plates.map((p) => [p.name, dilText(p.dil), String(+p.vol.toPrecision(6)), p.tntc ? 'TNTC' : String(p.count), st[p.status] + (p.used ? ', used' : ''), big(p.est, 3), p.tntc ? '–' : `${big(p.ci[0], 3)} to ${big(p.ci[1], 3)}`]);
+    table(head, rows);
+    csvRows = [['plate', 'dilution', 'volume_mL', 'colonies', 'status', 'used', `${unit} this plate`, `lower ${cl}`, `upper ${cl}`],
+      ...R.plates.map((p) => [p.name, String(p.dil), String(p.vol), p.tntc ? 'TNTC' : String(p.count), p.status, p.used ? 'yes' : 'no', p.tntc ? '' : String(clean(p.est)), p.tntc ? '' : String(clean(p.ci[0])), p.tntc ? '' : String(clean(p.ci[1]))]),
+      [], ['result', `${unit}`, String(clean(R.est)), `lower ${cl}`, String(clean(R.ci[0])), `upper ${cl}`, String(clean(R.ci[1]))],
+      ['colonies used', String(R.total), `${per} plated`, String(clean(R.vd)), 'basis', R.basis, ...(disp ? ['chi2', String(disp.chi2), 'p', String(disp.p)] : [])]];
+
+    // Chart: each plate's own estimate and interval, with the combined result.
+    const pl = R.plates.map((p, i) => ({ p, i })).filter(({ p }) => !p.tntc);
+    const cv = q<HTMLCanvasElement>('.cf-chart');
+    if (pl.length) {
+      cv.hidden = false;
+      const usedPl = pl.filter(({ p }) => p.used), otherPl = pl.filter(({ p }) => !p.used);
+      const chart = (pal: Palette): Chart => ({
+        w: 640, h: 300, yMin: 0, xLabel: 'Plate (in table order)', yLabel: `${unit} from each plate`, legend: 'below', xMin: 0.5, xMax: R.plates.length + 0.5,
+        ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null,
+        series: [
+          ...usedPl.map(({ p, i }, k) => ({ name: k ? '' : `${cl} interval, plate used`, x: [i + 1, i + 1], y: [p.ci[0], p.ci[1]], mode: 'line' as const, width: 2.4, color: pal.accent })),
+          ...otherPl.map(({ p, i }, k) => ({ name: k ? '' : 'interval, plate not used', x: [i + 1, i + 1], y: [p.ci[0], p.ci[1]], mode: 'line' as const, width: 1.4, dash: [4, 3], color: pal.muted })),
+          { name: 'Plate estimate', x: pl.map(({ i }) => i + 1), y: pl.map(({ p }) => p.est), mode: 'points' as const, marker: 'circle' as const, size: 4.5, color: pal.ink },
+        ],
+        marks: R.total > 0 ? [{ kind: 'hline' as const, at: R.est, dash: [6, 4], label: 'result', color: pal.accent2 }] : [],
+      });
+      figC = { w: 640, h: 300, alt: `Each plate's ${unit} with its ${cl} interval, and the combined result`, draw: (ctx, w, h, pal) => drawChart(canvasPainter(ctx), { ...chart(pal), w, h }) };
+      paint(cv, figC);
+    } else { cv.hidden = true; figC = null; }
+    figP = photo ? { w: 480, h: Math.round(480 * H / W), alt: 'The plate photo with every counted colony ringed', draw: (ctx, w) => drawOverlay(ctx, w / W) } : null;
+    sections = [
+      { title: q('.cf-big').textContent!, facts: [...q('.cf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: head.map((_, i) => (i > 1 ? 'r' : 'l')) as ('l' | 'r')[] }, ...(figC ? { figure: figC } : {}) },
+      ...(figP ? [{ title: q('.cf-count').textContent!, figure: figP, note: 'Blue rings: found by the page. Green: added by hand. Red crosses: removed by hand. Dashed circle: the plate edge.' }] : []),
+    ];
+  }
+
+  // Photo events.
+  q('.cf-open').addEventListener('click', () => inp('.cf-file').click());
+  inp('.cf-file').addEventListener('change', () => {
+    const f = inp('.cf-file').files?.[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, MAXW / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * s)), h = Math.max(1, Math.round(im.naturalHeight * s));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d')!; cx.drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      load(cx.getImageData(0, 0, w, h).data, w, h, f.name.replace(/\.[^.]+$/, ''));
+      q('.cf-ph').textContent = `${s < 1 ? `Scaled to ${w} × ${h} px to keep the page quick. ` : ''}Tap "Set the plate edge" and then three points on the rim if the dashed circle is not on the dish. Tap the photo to add a colony, or tap a ring to remove it. The photo stays on your device and is never uploaded.`;
+    };
+    im.onerror = () => { q('.cf-perr').textContent = 'That image could not be opened. Try a PNG or JPEG.'; q('.cf-perr').hidden = false; };
+    im.src = url; inp('.cf-file').value = '';
+  });
+  function loadExample() {
+    const e = examplePlate();
+    inp('.cf-pdil').value = '1e-5'; inp('.cf-pvol').value = '0.1 mL'; inp('.cf-use').checked = true; inp('.cf-dish').value = '90';
+    q<HTMLTextAreaElement>('.cf-plates').value = EXAMPLE_PLATES;
+    load(e.px, e.w, e.h, 'example plate', e.circle);
+  }
+  q('.cf-ex').addEventListener('click', loadExample);
+  q('.cf-rim').addEventListener('click', () => { rimTaps = rimTaps ? null : []; q('.cf-rim').textContent = rimTaps ? 'Tap 3 points on the rim…' : 'Set the plate edge'; drawPhoto(); });
+  q('.cf-clear').addEventListener('click', () => { added = []; removed = []; countText(); drawPhoto(); run(); });
+  q('.cf-photo').addEventListener('click', (ev) => {
+    if (!photo) return;
+    const c = q<HTMLCanvasElement>('.cf-photo'), b = c.getBoundingClientRect(), k = W / b.width;
+    const x = (ev.clientX - b.left) * k, y = (ev.clientY - b.top) * k;
+    if (rimTaps) {
+      rimTaps.push({ x, y });
+      if (rimTaps.length < 3) { drawPhoto(); return; }
+      const cc = circleFrom3(rimTaps[0], rimTaps[1], rimTaps[2]); rimTaps = null; q('.cf-rim').textContent = 'Set the plate edge';
+      if (!cc || cc.r < 20 || cc.r > 2 * Math.max(W, H)) { q('.cf-perr').textContent = 'Those three points do not make a plate edge. Tap three points spread around the rim.'; q('.cf-perr').hidden = false; drawPhoto(); return; }
+      circle = cc; detect(); return;
+    }
+    const rad = Math.max(rTyp() * 1.4, 12 * k);
+    const ia = nearest(added, x, y, rad), cur = found.filter((p) => !removed.some((r) => Math.hypot(r.x - p.x, r.y - p.y) < 0.5)), ifd = nearest(cur, x, y, rad);
+    const dA = ia >= 0 ? Math.hypot(added[ia].x - x, added[ia].y - y) : Infinity, dF = ifd >= 0 ? Math.hypot(cur[ifd].x - x, cur[ifd].y - y) : Infinity;
+    if (ia >= 0 && dA <= dF) added.splice(ia, 1);
+    else if (ifd >= 0) removed.push(cur[ifd]);
+    else if (Math.hypot(x - circle.cx, y - circle.cy) <= circle.r) added.push({ x, y });
+    countText(); drawPhoto(); run();
+  });
+
+  let timer = 0;
+  const later = (f: () => void, ms = 300) => { clearTimeout(timer); timer = window.setTimeout(f, ms); };
+  ['.cf-thr', '.cf-dish', '.cf-min', '.cf-max', '.cf-margin'].forEach((c) => q(c).addEventListener('input', () => later(detect)));
+  ['.cf-pol', '.cf-split'].forEach((c) => q(c).addEventListener('change', detect));
+  ['.cf-plates', '.cf-pdil', '.cf-pvol', '.cf-lo', '.cf-hi'].forEach((c) => q(c).addEventListener('input', () => later(run, 250)));
+  ['.cf-conf', '.cf-per', '.cf-use'].forEach((c) => q(c).addEventListener('change', () => run()));
+  document.addEventListener('fibub:theme', () => { if (figC && !q('.cf-out').hidden) paint(q<HTMLCanvasElement>('.cf-chart'), figC); });
+  q('.cf-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${fileSafe(name)}-cfu.csv`, 'text/csv'));
+  q('.cf-pcsv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['colony', 'x_px', 'y_px', 'how'], ...shown().map((p, i) => [i + 1, p.x.toFixed(1), p.y.toFixed(1), added.includes(p) ? 'added by hand' : 'found'])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-colonies.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'CFU count', subtitle: q('.cf-big').textContent ?? '', file: `${fileSafe(name)}-cfu`, sections }));
+</script>
+
+<style is:inline>
+  .cfu .cf-photo { display: block; width: 100%; max-width: 640px; height: auto; margin: 10px auto 0; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
+  .cfu .cf-prow { margin-top: 8px; }
+  .cfu select { max-width: 100%; }
+  .cfu .cf-set { margin-top: 10px; }
+  .cfu .cf-set summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+  .cfu .cf-feed { margin-top: 12px; }
+  .cfu .cf-count { margin-top: 10px; }
+  html.red-mode .cfu .cf-photo { filter: url(#red-night); }
+</style>

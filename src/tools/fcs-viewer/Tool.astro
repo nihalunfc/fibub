@@ -1,0 +1,483 @@
+---
+// Flow cytometry FCS viewer: open an FCS 2.0 to 3.2 list-mode file, compensate with its spillover matrix, plot any two
+// channels as a density plot (or one as a histogram) on linear, log or arcsinh axes, and draw nested gates by tapping
+// the plot. Counts and percentages for every gate, gate stats and gated events as CSV. The file never leaves the
+// browser. The example sample is made up by the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fcs">
+  <div class="ax-card">
+    <h2>FCS file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small fc-open">Open an FCS file</button>
+      <input type="file" class="fc-file" accept=".fcs,.FCS,.lmd,.LMD" hidden />
+      <button type="button" class="btn secondary small fc-ex">Use the example</button>
+      <button type="button" class="btn secondary small fc-exdl">Download the example FCS file</button>
+    </div>
+    <p class="ax-help fc-ph">Open a list-mode .fcs file (FCS 2.0, 3.0 or 3.1) from any cytometer, up to 400 MB and 3 million events. It is read on this page and is never uploaded or stored.</p>
+    <p class="ax-err fc-err" hidden></p>
+    <dl class="ax-facts fc-facts"></dl>
+    <details class="fc-det">
+      <summary>Channels and all keywords in the file</summary>
+      <div class="ax-scroll"><table class="fc-ch"></table></div>
+      <div class="ax-scroll fc-kwrap"><table class="fc-kw"></table></div>
+    </details>
+  </div>
+
+  <div class="ax-card fc-pc" hidden>
+    <h2>Plot</h2>
+    <div class="ax-seg fc-type" role="group" aria-label="Plot type">
+      <button type="button" data-v="dot" aria-pressed="true">Density plot</button>
+      <button type="button" data-v="hist" aria-pressed="false">Histogram</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Show events in <select class="fc-show"></select></label>
+      <label>X channel <select class="fc-x"></select></label>
+      <label>X scale <select class="fc-sx"><option value="lin">Linear</option><option value="log">Log</option><option value="asinh">Arcsinh</option></select></label>
+      <label>X arcsinh cofactor <input class="fc-cx" type="number" min="0.01" step="any" value="150" inputmode="decimal" /></label>
+      <label class="fc-yw">Y channel <select class="fc-y"></select></label>
+      <label class="fc-yw">Y scale <select class="fc-sy"><option value="lin">Linear</option><option value="log">Log</option><option value="asinh">Arcsinh</option></select></label>
+      <label class="fc-yw">Y arcsinh cofactor <input class="fc-cy" type="number" min="0.01" step="any" value="150" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="fc-comp" checked /> Compensate with the file's spillover matrix</label>
+    <p class="ax-help fc-comph"></p>
+    <div class="ax-row fc-tools" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-g fc-dotg" data-m="rect">Rectangle gate</button>
+      <button type="button" class="btn secondary small fc-g fc-dotg" data-m="poly">Polygon gate</button>
+      <button type="button" class="btn secondary small fc-g fc-dotg" data-m="quad">Quadrants</button>
+      <button type="button" class="btn secondary small fc-g fc-histg" data-m="range" hidden>Range gate</button>
+      <button type="button" class="btn small fc-done" hidden>Finish polygon</button>
+      <button type="button" class="btn secondary small fc-cancel" hidden>Cancel</button>
+    </div>
+    <p class="ax-help fc-hint">To gate, press a gate button and then tap the plot. A new gate goes inside the population shown.</p>
+    <canvas class="ax-fig fc-plot"></canvas>
+    <p class="ax-help fc-key"></p>
+  </div>
+
+  <div class="ax-card fc-out" hidden>
+    <h2>Gates</h2>
+    <p class="ax-big fc-big"></p>
+    <div class="ax-scroll"><table class="fc-gt"></table></div>
+    <p class="ax-help">Percentages count events, not cells: doublets and debris count too unless you gate them out. Gates use the values shown (compensated when the box is ticked) on the scales they were drawn on. Rename a gate in its box; Delete also removes the gates inside it.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-csv">Download gate stats (CSV)</button>
+      <button type="button" class="btn secondary small fc-ecsv">Download events shown (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseFcs, compensate, fwd, inv, transform, autoRangeFor, axisTicks, hist1d, hist2d, gateMasks, gateStats, medianMean, quadrants, exampleFcs, exampleGates, scaleKey, count, type Fcs, type Gate, type Scale } from '../../lib/sci/fcs';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fcs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fmt = (n: number) => n.toLocaleString('en');
+  const pct = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const MAXB = 400e6, MAXE = 3e6;
+
+  let F: Fcs | null = null, name = 'sample', data: Float64Array[] = [];
+  let gates: Gate[] = [], masks = new Map<string, Uint8Array>(), nextId = 1, nextName = 1;
+  let chScale: Scale[] = [];
+  const view = { type: 'dot' as 'dot' | 'hist', x: 0, y: 1, show: '' };
+  let mode: '' | 'rect' | 'poly' | 'quad' | 'range' = '', pend: [number, number][] = [];
+  let fig: Figure | null = null, sections: Section[] = [];
+  const tcache = new Map<string, Float64Array>(), rcache = new Map<string, [number, number]>();
+  // Plot area in figure units and the axis ranges, kept for taps.
+  const G = { w: 640, h: 560, L: 64, R: 14, T: 14, B: 52, xr: [0, 1] as [number, number], yr: [0, 1] as [number, number] };
+
+  const chName = (c: number) => (F!.channels[c].s ? `${F!.channels[c].n} · ${F!.channels[c].s}` : F!.channels[c].n);
+  const short = (c: number) => F!.channels[c].s || F!.channels[c].n;
+  const tv = (c: number, s: Scale) => { const k = `${c}|${scaleKey(s)}`; let t = tcache.get(k); if (!t) { t = transform(data[c], s); tcache.set(k, t); } return t; };
+  const range = (c: number, s: Scale) => { const k = `${c}|${scaleKey(s)}`; let r = rcache.get(k); if (!r) { r = autoRangeFor(data[c], tv(c, s), s); rcache.set(k, r); } return r; };
+  const scaleText = (s: Scale) => (s.kind === 'lin' ? 'linear' : s.kind === 'log' ? 'log' : `arcsinh, cofactor ${s.cof}`);
+
+  function err(m: string) { q('.fc-err').textContent = m; q('.fc-err').hidden = false; }
+
+  function defaultScale(c: number): Scale {
+    const ch = F!.channels[c], nm = ch.n.toUpperCase();
+    if (/^(FSC|SSC|TIME)|SCATTER|^EVENT/.test(nm)) return { kind: 'lin', cof: 150 };
+    if (ch.amp[0] > 0) return { kind: 'log', cof: 150 };
+    return { kind: 'asinh', cof: 150 };
+  }
+
+  function load(bytes: Uint8Array, nm: string, preset?: { gates: Gate[]; x: number; y: number; show: string }) {
+    let f: Fcs;
+    try {
+      if (bytes.length > MAXB) throw new Error(`This file is ${Math.round(bytes.length / 1e6)} MB. Files up to 400 MB can be opened on this page.`);
+      f = parseFcs(bytes, { maxEvents: MAXE });
+      if (!f.events) throw new Error('This file has no events in it.');
+    } catch (e) { err((e as Error).message); return; }
+    q('.fc-err').hidden = true;
+    F = f; name = nm; gates = preset?.gates ?? []; nextId = gates.length + 1; nextName = 1; mode = ''; pend = [];
+    chScale = F.channels.map((_, c) => defaultScale(c));
+    const findC = (re: RegExp) => F!.channels.findIndex((c) => re.test(c.n));
+    let x = findC(/^FSC.?A$/i); if (x < 0) x = findC(/^FSC/i); if (x < 0) x = 0;
+    let y = findC(/^SSC.?A$/i); if (y < 0) y = findC(/^SSC/i); if (y < 0) y = F.channels.length > 1 ? (x === 0 ? 1 : 0) : 0;
+    Object.assign(view, { type: 'dot', x: preset?.x ?? x, y: preset?.y ?? y, show: preset?.show ?? '' });
+    const comp = q<HTMLInputElement>('.fc-comp'); comp.disabled = !F.spill; comp.checked = !!F.spill;
+    q('.fc-comph').textContent = F.spill ? `The file's ${F.spill.key} matrix covers ${F.spill.names.join(', ')}. Untick the box to see the values as recorded.` : 'This file has no spillover matrix, so the values are shown as recorded.';
+    const opts = (sel: string) => q<HTMLSelectElement>(sel).replaceChildren(...F!.channels.map((_, c) => new Option(chName(c), String(c))));
+    opts('.fc-x'); opts('.fc-y');
+    fileFacts(); setData(); syncControls(); update();
+    q('.fc-pc').hidden = false; q('.fc-out').hidden = false;
+  }
+
+  function fileFacts() {
+    const f = F!, t = f.text;
+    const kind = f.datatype === 'F' ? '32-bit floats' : f.datatype === 'D' ? '64-bit floats' : f.datatype === 'A' ? 'text (ASCII)' : `integers (${[...new Set(f.channels.map((c) => c.bits))].join(', ')} bits)`;
+    q('.fc-facts').replaceChildren(
+      fact('File', name, `${f.version}${t.$CYT ? ', ' + t.$CYT : ''}${t.$DATE ? ', ' + t.$DATE : ''}`),
+      fact('Events', fmt(f.events), `${f.channels.length} channels: ${f.channels.map((c) => c.n).join(', ')}`),
+      fact('Data', kind, f.datatype === 'A' ? '' : f.byteOrder),
+      fact('Spillover', f.spill ? `${f.spill.names.length} × ${f.spill.names.length} (${f.spill.key})` : 'none in the file', f.spill ? f.spill.names.join(', ') : ''),
+      ...f.warnings.map((w) => fact('Note', w)),
+    );
+    const ch = q<HTMLTableElement>('.fc-ch'); ch.replaceChildren();
+    const hr = ch.createTHead().insertRow(); ['#', 'Name ($PnN)', 'Stain ($PnS)', 'Bits', 'Range', 'Amplifier'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = ch.createTBody();
+    f.channels.forEach((c, i) => { const r = b.insertRow(); [String(i + 1), c.n, c.s || '–', c.bits ? String(c.bits) : '*', c.range ? fmt(c.range) : '–', c.amp[0] > 0 ? `log, ${c.amp[0]} decades` : 'linear'].forEach((v) => (r.insertCell().textContent = v)); });
+    const kw = q<HTMLTableElement>('.fc-kw'); kw.replaceChildren();
+    const kh = kw.createTHead().insertRow(); ['Keyword', 'Value'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; kh.append(th); });
+    const kb = kw.createTBody();
+    Object.entries(f.text).forEach(([k, v]) => { const r = kb.insertRow(); r.insertCell().textContent = k; r.insertCell().textContent = v.length > 300 ? v.slice(0, 300) + '…' : v; });
+  }
+
+  function setData() {
+    const on = !!F!.spill && q<HTMLInputElement>('.fc-comp').checked;
+    try { data = on ? compensate(F!.data, F!.spill!) : F!.data; } catch (e) { err((e as Error).message); data = F!.data; q<HTMLInputElement>('.fc-comp').checked = false; }
+    tcache.clear(); rcache.clear();
+  }
+
+  function syncControls() {
+    const f = F!;
+    q<HTMLSelectElement>('.fc-x').value = String(view.x); q<HTMLSelectElement>('.fc-y').value = String(view.y);
+    q<HTMLSelectElement>('.fc-sx').value = chScale[view.x].kind; q<HTMLInputElement>('.fc-cx').value = String(chScale[view.x].cof);
+    q<HTMLSelectElement>('.fc-sy').value = chScale[view.y].kind; q<HTMLInputElement>('.fc-cy').value = String(chScale[view.y].cof);
+    q<HTMLInputElement>('.fc-cx').disabled = chScale[view.x].kind !== 'asinh'; q<HTMLInputElement>('.fc-cy').disabled = chScale[view.y].kind !== 'asinh';
+    root.querySelectorAll<HTMLElement>('.fc-type button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === view.type)));
+    root.querySelectorAll<HTMLElement>('.fc-yw').forEach((e) => (e.hidden = view.type === 'hist'));
+    root.querySelectorAll<HTMLElement>('.fc-dotg').forEach((e) => (e.hidden = view.type === 'hist' || f.channels.length < 2));
+    q('.fc-histg').hidden = view.type !== 'hist';
+    q('.fc-done').hidden = mode !== 'poly'; q('.fc-cancel').hidden = !mode;
+    root.querySelectorAll<HTMLElement>('.fc-g').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    const hints: Record<string, string> = {
+      '': 'To gate, press a gate button and then tap the plot. A new gate goes inside the population shown.',
+      rect: pend.length ? 'Now tap the opposite corner.' : 'Tap one corner of the rectangle.',
+      poly: pend.length < 3 ? `Tap the corners of the polygon one by one (${pend.length} so far).` : `${pend.length} corners. Tap the first corner again, or press Finish polygon, to close it.`,
+      quad: 'Tap where the four quadrants should meet.',
+      range: pend.length ? 'Now tap the other end of the range.' : 'Tap one end of the range.',
+    };
+    q('.fc-hint').textContent = hints[mode];
+  }
+
+  function showOptions() {
+    const st = gateStats(gates, masks, F!.events), sel = q<HTMLSelectElement>('.fc-show');
+    if (view.show && !gates.some((g) => g.id === view.show)) view.show = '';
+    sel.replaceChildren(new Option(`All events (${fmt(F!.events)})`, ''), ...st.map((s) => new Option(`${'– '.repeat(s.depth + 1)}${s.name} (${fmt(s.count)})`, s.id)));
+    sel.value = view.show;
+  }
+
+  // ---- Colours for density ----
+  function ramp(pal: Palette): (t: number) => [number, number, number] {
+    const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+    const stops = (pal.red ? ['#3a0000', '#6e0000', '#a30000', '#d00000'] : pal.bg === '#ffffff' ? ['#3d55b8', '#21918c', '#5ba82e', '#e8a019', '#d1301e'] : ['#6f8cf2', '#3cc3b8', '#8bd448', '#f4b43a', '#f2614e']).map(hex);
+    return (t) => { const x = Math.max(0, Math.min(1, t)) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(x)), f = x - i; return [0, 1, 2].map((k) => Math.round(stops[i][k] + (stops[i + 1][k] - stops[i][k]) * f)) as [number, number, number]; };
+  }
+
+  // A gate's outline mapped onto the current axes (null if it is not on them).
+  function outline(g: Gate): { pts: [number, number][]; closed: boolean; vline?: boolean } | null {
+    const sx = chScale[view.x], sy = chScale[view.y];
+    const map = (gc: number, gs: Scale, v: number, c: number, s: Scale) => (gc === c ? fwd(s, inv(gs, v)) : NaN);
+    if (view.type === 'hist') {
+      if (g.kind !== 'range' || g.x !== view.x) return null;
+      const [a, b] = g.pts[0];
+      return { pts: [[map(g.x, g.sx, a, view.x, sx), 0], [map(g.x, g.sx, b, view.x, sx), 0]], closed: false, vline: true };
+    }
+    if (g.kind === 'range') {
+      const [a, b] = g.pts[0];
+      if (g.x === view.x) return { pts: [[map(g.x, g.sx, a, view.x, sx), NaN], [map(g.x, g.sx, b, view.x, sx), NaN]], closed: false, vline: true };
+      if (g.x === view.y) return { pts: [[NaN, map(g.x, g.sx, a, view.y, sy)], [NaN, map(g.x, g.sx, b, view.y, sy)]], closed: false, vline: false };
+      return null;
+    }
+    const swap = g.x === view.y && g.y === view.x && view.x !== view.y;
+    if (!(g.x === view.x && g.y === view.y) && !swap) return null;
+    const P = (p: [number, number]): [number, number] => { const vx = inv(g.sx, p[0]), vy = inv(g.sy, p[1]); return swap ? [fwd(sx, vy), fwd(sy, vx)] : [fwd(sx, vx), fwd(sy, vy)]; };
+    if (g.kind === 'rect') { const [[a, b], [c, d]] = g.pts; return { pts: [P([a, b]), P([c, b]), P([c, d]), P([a, d])], closed: true }; }
+    const same = scaleKey(g.sx) === scaleKey(swap ? sy : sx) && scaleKey(g.sy) === scaleKey(swap ? sx : sy), out: [number, number][] = [];
+    g.pts.forEach((p, i) => { const r = g.pts[(i + 1) % g.pts.length], k = same ? 1 : 24; for (let j = 0; j < k; j++) out.push(P([p[0] + ((r[0] - p[0]) * j) / k, p[1] + ((r[1] - p[1]) * j) / k])); });
+    return { pts: out, closed: true };
+  }
+
+  function update() {
+    if (!F) return;
+    masks = gateMasks(gates, F.events, tv);
+    showOptions(); syncControls();
+    const st = gateStats(gates, masks, F.events), byId = new Map(st.map((s) => [s.id, s]));
+    const m = view.show ? masks.get(view.show)! : null, nShow = count(m, F.events);
+    const showName = view.show ? byId.get(view.show)!.name : 'All events';
+    const sx = chScale[view.x], sy = chScale[view.y];
+    const X = tv(view.x, sx), xr = range(view.x, sx);
+    const small = root.clientWidth < 560;
+    G.xr = xr; G.w = small ? 440 : 640; G.h = view.type === 'hist' ? (small ? 330 : 420) : (small ? 420 : 560);
+    const pw = G.w - G.L - G.R, ph = G.h - G.T - G.B;
+    let draw: (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => void;
+    const visible = gates.filter((g) => (g.parent ?? '') === view.show).map((g) => ({ g, o: outline(g), s: byId.get(g.id)! })).filter((v) => v.o);
+    const xlab = `${chName(view.x)} (${scaleText(sx)})`;
+    if (view.type === 'dot') {
+      const Y = tv(view.y, sy), yr = range(view.y, sy); G.yr = yr;
+      const nx = 200, ny = Math.round((200 * ph) / pw), H = hist2d(X, Y, m, nx, ny, xr, yr);
+      let mx = 0; for (const v of H) if (v > mx) mx = v;
+      draw = (ctx, w, h, pal) => {
+        const col = ramp(pal), img = new ImageData(nx, ny), lm = Math.log(1 + mx);
+        for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++) {
+          const v = H[iy * nx + ix]; if (!v) continue;
+          const [r, g, b] = col(lm > 0 ? Math.log(1 + v) / lm : 1), p = 4 * ((ny - 1 - iy) * nx + ix);
+          img.data[p] = r; img.data[p + 1] = g; img.data[p + 2] = b; img.data[p + 3] = 255;
+        }
+        const oc = document.createElement('canvas'); oc.width = nx; oc.height = ny; oc.getContext('2d')!.putImageData(img, 0, 0);
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(oc, G.L, G.T, pw, ph); ctx.imageSmoothingEnabled = true;
+        axes(ctx, pal, sx, xr, sy, yr, xlab, `${chName(view.y)} (${scaleText(sy)})`);
+        overlay(ctx, pal, visible);
+      };
+    } else {
+      const nb = 200, H = hist1d(X, m, nb, xr[0], xr[1]);
+      let mx = 0; for (const v of H) if (v > mx) mx = v;
+      const yt = niceTicks(0, Math.max(1, mx) * 1.05, 5), top = yt[yt.length - 1] || 1; G.yr = [0, top];
+      draw = (ctx, w, h, pal) => {
+        ctx.beginPath(); ctx.moveTo(G.L, G.T + ph);
+        for (let i = 0; i < nb; i++) { const y = G.T + ph - (H[i] / top) * ph; ctx.lineTo(G.L + (i / nb) * pw, y); ctx.lineTo(G.L + ((i + 1) / nb) * pw, y); }
+        ctx.lineTo(G.L + pw, G.T + ph); ctx.closePath();
+        ctx.fillStyle = pal.red ? '#5a0000' : pal.bg === '#ffffff' ? '#c9d7ee' : '#2a3a5c'; ctx.fill();
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.4; ctx.stroke();
+        axes(ctx, pal, sx, xr, null, [0, top], xlab, 'Events', yt);
+        overlay(ctx, pal, visible);
+      };
+    }
+    fig = { w: G.w, h: G.h, alt: view.type === 'dot' ? `Density plot of ${chName(view.x)} against ${chName(view.y)} for ${showName}, ${fmt(nShow)} events` : `Histogram of ${chName(view.x)} for ${showName}, ${fmt(nShow)} events`, draw };
+    const cv = q<HTMLCanvasElement>('.fc-plot');
+    paint(cv, fig);
+    Object.assign(cv.dataset, { fw: String(G.w), fh: String(G.h), area: `${G.L},${G.T},${pw},${ph}`, xr: G.xr.join(','), yr: G.yr.join(',') });
+    q('.fc-key').textContent = view.type === 'dot' ? `${fmt(nShow)} events from ${showName}. Colour shows how many events fall on each spot, from blue (few) to red (many), on a log scale. Events beyond the axes are drawn on the edge${sx.kind === 'log' || sy.kind === 'log' ? '; on a log axis, values of zero or less sit on the lowest edge' : ''}.` : `${fmt(nShow)} events from ${showName} in 200 bins. Events beyond the axis are counted in the end bins.`;
+
+    // Gate table and the big line.
+    const big = view.show ? byId.get(view.show)! : null;
+    q('.fc-big').textContent = big ? `${big.name}: ${fmt(big.count)} events, ${pct(big.ofParent)} % of ${big.parent}` : `All events: ${fmt(F.events)}${gates.length ? '' : '. No gates yet'}`;
+    const t = q<HTMLTableElement>('.fc-gt'); t.replaceChildren();
+    const head = ['Gate', 'Inside', 'Drawn on', 'Events', '% of parent', '% of all', ''];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= 3 && i < 6) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    const allRow = tb.insertRow(); ['All events', '', '', fmt(F.events), '100.00', '100.00', ''].forEach((v, i) => { const c = allRow.insertCell(); c.textContent = v; if (i >= 3 && i < 6) c.className = 'r'; });
+    for (const s of st) {
+      const g = gates.find((x) => x.id === s.id)!, r = tb.insertRow();
+      const nmC = r.insertCell(), inp = document.createElement('input');
+      inp.type = 'text'; inp.value = s.name; inp.style.width = '9em'; inp.style.minWidth = '9em'; inp.className = 'fc-gname'; inp.setAttribute('aria-label', 'Gate name'); inp.dataset.id = s.id;
+      nmC.append(document.createTextNode('↳ '.repeat(s.depth ? 1 : 0)), inp); nmC.style.paddingLeft = `${6 + s.depth * 12}px`;
+      const on = g.kind === 'range' ? `${short(g.x)} range` : `${short(g.x)} × ${short(g.y)}${g.kind === 'poly' ? ' (polygon)' : ''}`;
+      [s.parent, on, fmt(s.count), pct(s.ofParent), pct(s.ofAll)].forEach((v, i) => { const c = r.insertCell(); c.textContent = v; if (i >= 2) c.className = 'r'; });
+      const act = r.insertCell(); act.className = 'fc-act';
+      const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'btn secondary small fc-sh'; sb.textContent = 'Show'; sb.dataset.id = s.id;
+      const db = document.createElement('button'); db.type = 'button'; db.className = 'btn secondary small fc-del'; db.textContent = 'Delete'; db.dataset.id = s.id;
+      act.append(sb, db);
+    }
+    const thead = ['Gate', 'Inside', 'Drawn on', 'Events', '% of parent', '% of all'];
+    const rows = [['All events', '', '', fmt(F.events), '100.00', '100.00'], ...st.map((s) => { const g = gates.find((x) => x.id === s.id)!; return [s.name, s.parent, g.kind === 'range' ? `${short(g.x)} range` : `${short(g.x)} × ${short(g.y)}`, fmt(s.count), pct(s.ofParent), pct(s.ofAll)]; })];
+    sections = [
+      { title: `${name}: ${F.version}, ${fmt(F.events)} events`, facts: [...q('.fc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: q('.fc-big').textContent!, figure: fig, table: { head: thead, rows, align: thead.map((_, i) => (i >= 3 ? 'r' : 'l')) as ('l' | 'r')[] }, note: `${F.spill && q<HTMLInputElement>('.fc-comp').checked ? 'Compensated with the file\'s spillover matrix.' : 'Not compensated.'} ${q('.fc-key').textContent}` },
+    ];
+  }
+
+  function axes(ctx: CanvasRenderingContext2D, pal: Palette, sx: Scale, xr: [number, number], sy: Scale | null, yr: [number, number], xl: string, yl: string, yLin?: number[]) {
+    const pw = G.w - G.L - G.R, ph = G.h - G.T - G.B;
+    const X = (t: number) => G.L + ((t - xr[0]) / (xr[1] - xr[0])) * pw, Y = (t: number) => G.T + ph - ((t - yr[0]) / (yr[1] - yr[0])) * ph;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(G.L, G.T, pw, ph);
+    ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.ink;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (const t of axisTicks(sx, xr[0], xr[1])) { const x = X(t.at); ctx.beginPath(); ctx.moveTo(x, G.T + ph); ctx.lineTo(x, G.T + ph + (t.major ? 6 : 3)); ctx.stroke(); if (t.label) ctx.fillText(t.label, x, G.T + ph + 8); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = sy ? axisTicks(sy, yr[0], yr[1]) : (yLin ?? []).map((v) => ({ at: v, label: v >= 1e4 ? `${+(v / 1e3).toPrecision(4)}k` : String(v), major: true }));
+    for (const t of yt) { const y = Y(t.at); ctx.beginPath(); ctx.moveTo(G.L, y); ctx.lineTo(G.L - (t.major ? 6 : 3), y); ctx.stroke(); if (t.label) ctx.fillText(t.label, G.L - 8, y); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xl, G.L + pw / 2, G.h - 4, pw);
+    ctx.save(); ctx.translate(15, G.T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0, ph); ctx.restore();
+  }
+
+  function overlay(ctx: CanvasRenderingContext2D, pal: Palette, vis: { g: Gate; o: ReturnType<typeof outline>; s: { name: string; ofParent: number } }[]) {
+    const pw = G.w - G.L - G.R, ph = G.h - G.T - G.B, [x0, x1] = G.xr, [y0, y1] = G.yr;
+    const cl = (v: number, a: number, b: number) => (Number.isNaN(v) ? NaN : Math.max(a - 2, Math.min(b + 2, v)));
+    const X = (t: number) => cl(G.L + ((t - x0) / (x1 - x0)) * pw, G.L, G.L + pw), Y = (t: number) => cl(G.T + ph - ((t - y0) / (y1 - y0)) * ph, G.T, G.T + ph);
+    const ink = pal.red ? pal.accent : pal.ink;
+    ctx.save(); ctx.beginPath(); ctx.rect(G.L - 1, G.T - 1, pw + 2, ph + 2); ctx.clip();
+    ctx.lineWidth = 1.8; ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.font = '600 13px system-ui, sans-serif';
+    const labels: [string, number, number][] = [];
+    for (const { o, s } of vis) {
+      if (!o) continue;
+      const lab = `${s.name} ${pct(s.ofParent)} %`;
+      if (o.vline !== undefined && !o.closed) {
+        if (o.vline) {
+          const a = X(o.pts[0][0]), b = X(o.pts[1][0]), lo = Math.min(a, b), hi = Math.max(a, b), y = G.T + 22;
+          ctx.beginPath(); ctx.moveTo(lo, G.T + ph); ctx.lineTo(lo, G.T + 6); ctx.moveTo(hi, G.T + ph); ctx.lineTo(hi, G.T + 6); ctx.moveTo(lo, y); ctx.lineTo(hi, y); ctx.stroke();
+          labels.push([lab, Math.max(G.L + 4, Math.min(lo + 4, G.L + pw - 150)), y - 4]);
+        } else {
+          const a = Y(o.pts[0][1]), b = Y(o.pts[1][1]), lo = Math.min(a, b), hi = Math.max(a, b);
+          ctx.beginPath(); ctx.moveTo(G.L, lo); ctx.lineTo(G.L + pw, lo); ctx.moveTo(G.L, hi); ctx.lineTo(G.L + pw, hi); ctx.stroke();
+          labels.push([lab, G.L + 6, Math.max(G.T + 16, lo - 4)]);
+        }
+        continue;
+      }
+      const P = o.pts.map(([a, b]) => [X(a), Y(b)] as [number, number]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+      if (P.length < 2) continue;
+      ctx.beginPath(); P.forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); if (o.closed) ctx.closePath(); ctx.stroke();
+      const top = P.reduce((m, p) => (p[1] < m[1] ? p : m), P[0]), left = Math.min(...P.map((p) => p[0]));
+      labels.push([lab, Math.max(G.L + 4, Math.min(left + 4, G.L + pw - 150)), Math.min(G.T + ph - 4, Math.max(G.T + 18, top[1] + 18))]);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.lineJoin = 'round';
+    for (const [t, x, y] of labels) { ctx.lineWidth = 4; ctx.strokeStyle = pal.bg; ctx.strokeText(t, x, y); ctx.fillStyle = ink; ctx.fillText(t, x, y); }
+    // A gate being drawn.
+    if (pend.length) {
+      ctx.strokeStyle = pal.red ? pal.accent : pal.accent2; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+      const P = pend.map(([a, b]) => [X(a), view.type === 'hist' ? G.T + ph / 2 : Y(b)] as [number, number]);
+      ctx.beginPath(); P.forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); ctx.stroke(); ctx.setLineDash([]);
+      for (const [a, b] of P) { ctx.beginPath(); ctx.arc(a, b, 4, 0, 2 * Math.PI); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+
+  // ---- Gating by taps ----
+  function addGate(g: Omit<Gate, 'id' | 'parent' | 'name'> & { name?: string }) {
+    gates.push({ ...g, id: 'g' + nextId++, parent: view.show || null, name: g.name ?? `Gate ${nextName++}` } as Gate);
+  }
+  function finish() {
+    const sx = { ...chScale[view.x] }, sy = { ...chScale[view.y] };
+    if (mode === 'poly') { if (pend.length < 3) return; addGate({ kind: 'poly', x: view.x, y: view.y, sx, sy, pts: pend.slice() }); }
+    mode = ''; pend = []; update();
+  }
+  q('.fc-plot').addEventListener('click', (ev) => {
+    if (!F || !mode) return;
+    const cv = q<HTMLCanvasElement>('.fc-plot'), r = cv.getBoundingClientRect();
+    const fx = ((ev.clientX - r.left) / r.width) * G.w, fy = ((ev.clientY - r.top) / r.height) * G.h;
+    const pw = G.w - G.L - G.R, ph = G.h - G.T - G.B;
+    if (fx < G.L - 8 || fx > G.L + pw + 8 || fy < G.T - 8 || fy > G.T + ph + 8) return;
+    const tx = G.xr[0] + ((fx - G.L) / pw) * (G.xr[1] - G.xr[0]), ty = G.yr[0] + ((G.T + ph - fy) / ph) * (G.yr[1] - G.yr[0]);
+    const sx = { ...chScale[view.x] }, sy = { ...chScale[view.y] }, spanX = G.xr[1] - G.xr[0], spanY = G.yr[1] - G.yr[0];
+    if (mode === 'quad') {
+      const n0 = short(view.x), n1 = short(view.y);
+      const names = [`${n0}− ${n1}+`, `${n0}+ ${n1}+`, `${n0}+ ${n1}−`, `${n0}− ${n1}−`];
+      quadrants(tx, ty).forEach((pts, i) => addGate({ kind: 'rect', x: view.x, y: view.y, sx, sy, pts, name: names[i] }));
+      mode = ''; pend = []; update(); return;
+    }
+    if (mode === 'poly' && pend.length >= 3) {
+      const [a, b] = pend[0], dx = ((a - tx) / spanX) * pw, dy = ((b - ty) / spanY) * ph;
+      if (Math.hypot(dx, dy) < 14) { finish(); return; }
+    }
+    pend.push([tx, ty]);
+    if ((mode === 'rect' || mode === 'range') && pend.length === 2) {
+      const [[a, b], [c, d]] = pend;
+      if (Math.abs(a - c) < spanX * 0.01 || (mode === 'rect' && Math.abs(b - d) < spanY * 0.01)) { pend = []; err('That gate is too small; tap two points further apart.'); update(); return; }
+      q('.fc-err').hidden = true;
+      if (mode === 'rect') addGate({ kind: 'rect', x: view.x, y: view.y, sx, sy, pts: [[a, b], [c, d]] });
+      else addGate({ kind: 'range', x: view.x, y: view.x, sx, sy: sx, pts: [[Math.min(a, c), Math.max(a, c)]] });
+      mode = ''; pend = [];
+    }
+    update();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.fc-g').forEach((b) => b.addEventListener('click', () => { mode = mode === b.dataset.m ? '' : (b.dataset.m as typeof mode); pend = []; q('.fc-err').hidden = true; update(); }));
+  q('.fc-done').addEventListener('click', finish);
+  q('.fc-cancel').addEventListener('click', () => { mode = ''; pend = []; update(); });
+
+  // ---- Controls ----
+  root.querySelectorAll<HTMLButtonElement>('.fc-type button').forEach((b) => b.addEventListener('click', () => { view.type = b.dataset.v as 'dot' | 'hist'; mode = ''; pend = []; update(); }));
+  q('.fc-show').addEventListener('change', () => { view.show = q<HTMLSelectElement>('.fc-show').value; pend = []; update(); });
+  q('.fc-x').addEventListener('change', () => { view.x = Number(q<HTMLSelectElement>('.fc-x').value); pend = []; update(); });
+  q('.fc-y').addEventListener('change', () => { view.y = Number(q<HTMLSelectElement>('.fc-y').value); pend = []; update(); });
+  const setScale = (axis: 'x' | 'y') => {
+    const c = axis === 'x' ? view.x : view.y, kind = q<HTMLSelectElement>(axis === 'x' ? '.fc-sx' : '.fc-sy').value as Scale['kind'];
+    const cof = Number(q<HTMLInputElement>(axis === 'x' ? '.fc-cx' : '.fc-cy').value);
+    if (!(cof > 0)) { err('The arcsinh cofactor must be a number above 0. Try 150 for most flow cytometers, or 5 for mass cytometry.'); return; }
+    q('.fc-err').hidden = true; chScale[c] = { kind, cof }; pend = []; update();
+  };
+  q('.fc-sx').addEventListener('change', () => setScale('x'));
+  q('.fc-sy').addEventListener('change', () => setScale('y'));
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 300); };
+  q('.fc-cx').addEventListener('input', () => later(() => setScale('x')));
+  q('.fc-cy').addEventListener('input', () => later(() => setScale('y')));
+  q('.fc-comp').addEventListener('change', () => { setData(); update(); });
+  q('.fc-gt').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('button'); if (!b) return;
+    const id = b.dataset.id!;
+    if (b.classList.contains('fc-sh')) { view.show = id; mode = ''; pend = []; const g = gates.find((x) => x.id === id)!; const kids = gates.filter((x) => x.parent === id); const k = kids[0] ?? g; view.x = k.x; if (k.kind !== 'range') { view.y = k.y; view.type = 'dot'; } update(); q('.fc-plot').scrollIntoView({ block: 'nearest' }); return; }
+    if (b.classList.contains('fc-del')) {
+      const gone = new Set([id]); let grew = true;
+      while (grew) { grew = false; for (const g of gates) if (g.parent && gone.has(g.parent) && !gone.has(g.id)) { gone.add(g.id); grew = true; } }
+      if (gone.has(view.show)) view.show = gates.find((g) => g.id === id)!.parent ?? '';
+      gates = gates.filter((g) => !gone.has(g.id)); update();
+    }
+  });
+  q('.fc-gt').addEventListener('change', (ev) => {
+    const i = ev.target as HTMLInputElement; if (!i.classList.contains('fc-gname')) return;
+    const g = gates.find((x) => x.id === i.dataset.id); if (g) { g.name = i.value.trim() || g.name; update(); }
+  });
+
+  // ---- Files ----
+  q('.fc-open').addEventListener('click', () => q<HTMLInputElement>('.fc-file').click());
+  q('.fc-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.fc-file'), f = inp.files?.[0]; if (!f) return;
+    inp.value = '';
+    if (f.size > MAXB) { err(`This file is ${Math.round(f.size / 1e6)} MB. Files up to 400 MB can be opened on this page.`); return; }
+    q('.fc-ph').textContent = `Reading ${f.name}…`;
+    try { load(new Uint8Array(await f.arrayBuffer()), f.name.replace(/\.[^.]+$/, '')); } finally { q('.fc-ph').textContent = 'The file is read on this page only. It is never uploaded or stored.'; }
+  });
+  const loadExample = () => {
+    load(exampleFcs(), 'fibub-example', { gates: exampleGates(), x: 2, y: 3, show: 'g1' });
+    nextName = 1;
+  };
+  q('.fc-ex').addEventListener('click', loadExample);
+  q('.fc-exdl').addEventListener('click', () => save(exampleFcs(), 'fibub-example.fcs', 'application/vnd.isac.fcs'));
+
+  // ---- Downloads ----
+  q('.fc-csv').addEventListener('click', () => {
+    if (!F) return;
+    const st = gateStats(gates, masks, F.events), on = !!F.spill && q<HTMLInputElement>('.fc-comp').checked;
+    const head = ['gate', 'parent', 'kind', 'x channel', 'x scale', 'y channel', 'y scale', 'events', 'percent of parent', 'percent of all', 'compensated', ...F.channels.flatMap((c) => [`${c.n} median`, `${c.n} mean`])];
+    const all = F.channels.map((_, c) => medianMean(data[c], null));
+    const rows = [['All events', '', '', '', '', '', '', String(F.events), '100', '100', on ? 'yes' : 'no', ...all.flatMap((v) => [String(v.median), String(v.mean)])],
+      ...st.map((s) => { const g = gates.find((x) => x.id === s.id)!, mm = F!.channels.map((_, c) => medianMean(data[c], masks.get(s.id)!));
+        return [s.name, s.parent, g.kind, F!.channels[g.x].n, scaleText(g.sx), g.kind === 'range' ? '' : F!.channels[g.y].n, g.kind === 'range' ? '' : scaleText(g.sy), String(s.count), String(s.ofParent), String(s.ofAll), on ? 'yes' : 'no', ...mm.flatMap((v) => [String(v.median), String(v.mean)])]; })];
+    save(new Blob([csv([head, ...rows])], { type: 'text/csv' }), `${fileSafe(name)}-gate-stats.csv`, 'text/csv');
+  });
+  q('.fc-ecsv').addEventListener('click', () => {
+    if (!F) return;
+    const m = view.show ? masks.get(view.show)! : null, parts: string[] = [csv([F.channels.map((c) => c.n)])];
+    let chunk: string[] = [];
+    for (let e = 0; e < F.events; e++) {
+      if (m && !m[e]) continue;
+      chunk.push(data.map((a) => String(+a[e].toPrecision(7))).join(','));
+      if (chunk.length >= 20000) { parts.push(chunk.join('\n') + '\n'); chunk = []; }
+    }
+    if (chunk.length) parts.push(chunk.join('\n') + '\n');
+    const g = gates.find((x) => x.id === view.show);
+    save(new Blob(parts, { type: 'text/csv' }), `${fileSafe(name)}-${fileSafe(g ? g.name : 'all-events')}.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && F) paint(q<HTMLCanvasElement>('.fc-plot'), fig); });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Flow cytometry gates', subtitle: q('.fc-big').textContent ?? '', file: `${fileSafe(name)}-gates`, sections }));
+</script>
+
+<style is:inline>
+  .fcs .fc-plot { touch-action: manipulation; cursor: crosshair; max-width: 680px; }
+  .fcs select { max-width: 100%; }
+  .fcs .fc-det { margin-top: 10px; }
+  .fcs .fc-det summary { cursor: pointer; font-weight: 600; }
+  .fcs .fc-kwrap { max-height: 320px; overflow-y: auto; margin-top: 10px; }
+  .fcs .fc-kw td:last-child { word-break: break-all; }
+  .fcs .fc-gt th, .fcs .fc-gt td { white-space: nowrap; }
+  .fcs .fc-act { white-space: nowrap; }
+  .fcs .fc-act .btn + .btn { margin-left: 6px; }
+  .fcs .fc-tools .btn[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+</style>

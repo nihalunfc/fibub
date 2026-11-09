@@ -1,0 +1,144 @@
+---
+// Gravity corrections: drift from base readings, normal gravity, free-air, Bouguer slab and ring terrain
+// corrections, then free-air, simple and complete Bouguer anomalies. The example survey is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up survey: a north-south line over a buried body, base read three times, drift 0.04 mGal per hour.
+const demo = 'station\ttime\treading\tlatitude\televation\tdistance\tterrain\nBASE\t08:00\t2512.300\t52.0995\t118.0\t\t\nG00\t08:15\t2496.131\t52.1\t121.4\t0\t0.12\nG01\t08:30\t2495.953\t52.1018\t125.0\t200\t0.08\nG02\t08:45\t2495.179\t52.1036\t131.7\t400\t0.05\nG03\t09:00\t2494.035\t52.1054\t140.2\t600\t0.09\nG04\t09:15\t2492.125\t52.10719\t152.8\t800\t0.21\nG05\t09:30\t2491.307\t52.10899\t160.3\t1000\t0.35\nBASE\t09:50\t2512.373\t52.0995\t118.0\t\t\nG06\t10:05\t2492.271\t52.11079\t158.1\t1200\t0.3\nG07\t10:20\t2494.142\t52.11259\t149.9\t1400\t0.18\nG08\t10:35\t2496.181\t52.11439\t141.2\t1600\t0.1\nG09\t10:50\t2497.701\t52.11619\t135.5\t1800\t0.07\nG10\t11:05\t2499.215\t52.11799\t130.0\t2000\t0.06\nBASE\t11:30\t2512.440\t52.0995\t118.0\t\t';
+const rings = '2 20 3 1 0 2 4 1\n20 60 6 2 8 5 3 1\n60 200 25 10 30 15 12 20\n200 500 40 35 60 20 45 30\n500 1000 80 60 95 70 50 65 90 75';
+---
+<div class="ax grv">
+  <div class="ax-card">
+    <h2>Survey readings</h2>
+    <div class="ax-grid">
+      <label>Base station name <input class="gr-base" type="text" value="BASE" /></label>
+      <label>Gravity at the base (mGal) <input class="gr-gb" type="text" inputmode="decimal" value="981234.56" /></label>
+      <label>Meter factor (mGal per reading unit) <input class="gr-cal" type="text" inputmode="decimal" value="1" /></label>
+      <label>Bouguer density (kg/m³) <input class="gr-rho" type="text" inputmode="decimal" value="2670" /></label>
+      <label>Normal gravity <select class="gr-ell"><option value="grs80" selected>GRS80</option><option value="wgs84">WGS84</option></select></label>
+      <label>Free-air <select class="gr-fa"><option value="simple" selected>0.3086 mGal/m</option><option value="second">second order (latitude, h²)</option></select></label>
+    </div>
+    <label style="margin-top:10px">Station, time (hh:mm or hours), reading, latitude (°), elevation (m), then optional distance along the line (m) and terrain correction (mGal)
+      <textarea class="gr-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".gr-data" maxCols={8} maxRows={20000} label="Open a file" />
+    <p class="ax-help">Read the base at the start, during and at the end of the day; drift is taken as a straight line between base readings. The example survey is made up.</p>
+    <p class="ax-err gr-err" hidden></p>
+  </div>
+
+  <div class="ax-card gr-out">
+    <h2>Anomalies</h2>
+    <p class="ax-big gr-big"></p>
+    <dl class="ax-facts gr-facts"></dl>
+    <canvas class="ax-fig gr-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="gr-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small gr-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Terrain correction by rings</h2>
+    <p class="ax-help" style="margin-top:0">One ring per line: inner radius, outer radius (m), then the mean height difference between the station and the ground in each compartment of the ring (m, above or below; the ring is split into as many equal compartments as heights you give). Uses the density above.</p>
+    <textarea class="gr-rings" rows="6" spellcheck="false">{rings}</textarea>
+    <p class="ax-big gr-tc" style="margin-top:10px"></p>
+    <div class="ax-scroll"><table class="gr-rtab"></table></div>
+    <p class="ax-help">Each compartment adds (2πGρ/n)[r2 − r1 + √(r1² + h²) − √(r2² + h²)]. Hills and valleys both lower gravity, so terrain corrections are always added. Put the total in the station's terrain column above. The ring radii and heights here are made up.</p>
+  </div>
+</div>
+
+<script>
+  import { reduce, parseHours, terrainCorrection, bouguerSlab, ELLIPSOIDS, type Reading, type Ellipsoid } from '../../lib/sci/gravity';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.grv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f3 = (v: number) => (Number.isFinite(v) ? v.toFixed(3).replace('-', '−') : '');
+  const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (j) d.className = 'r'; e.append(d); }); return e; };
+  const hm = (h: number) => { const m = Math.round(h * 60); return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+  let fig: Figure | null = null, report: Section[] = [], table: string[][] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.gr-err'), out = q('.gr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const base = q<HTMLInputElement>('.gr-base').value.trim(), gBase = val('.gr-gb'), cal = val('.gr-cal'), rho = val('.gr-rho');
+    const ell = sel('.gr-ell') as Ellipsoid, fa = sel('.gr-fa') as 'simple' | 'second';
+    if (!base) return fail('Enter the name of the base station, as written in the table.');
+    if (!Number.isFinite(gBase)) return fail('Enter the gravity at the base station in mGal (for example from a tie to an absolute station).');
+    if (!(cal > 0)) return fail('The meter factor must be above zero (1 if the readings are already in mGal).');
+    if (!(rho > 0 && rho < 20000)) return fail('Enter a Bouguer density in kg/m³, for example 2670.');
+    const rows: Reading[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.gr-data').value)) {
+      const name = (r[0] ?? '').trim(), t = parseHours(r[1] ?? ''), reading = num(r[2] ?? ''), lat = num(r[3] ?? ''), h = num(r[4] ?? '');
+      if (!name || !Number.isFinite(reading)) continue; // header line
+      if (!Number.isFinite(t)) return fail(`Station ${name}: the time "${r[1] ?? ''}" is not hh:mm or hours.`);
+      if (!(Math.abs(lat) <= 90)) return fail(`Station ${name}: latitude must be within ±90°.`);
+      if (!Number.isFinite(h)) return fail(`Station ${name}: enter the elevation in metres.`);
+      const x = num(r[5] ?? ''), tc = num(r[6] ?? '');
+      rows.push({ name, t, reading, lat, h, x: Number.isFinite(x) ? x : undefined, tc: Number.isFinite(tc) ? tc : undefined });
+    }
+    if (rows.length < 2) return fail('Paste the readings: station, time, reading, latitude and elevation, one station per line.');
+    for (let i = 1; i < rows.length; i++) if (rows[i].t < rows[i - 1].t) return fail(`Readings must be in time order: ${rows[i].name} comes before ${rows[i - 1].name}.`);
+    let R: ReturnType<typeof reduce>;
+    try { R = reduce(rows, { base, gBase, cal, rho, ell, fa }); } catch (e) { return fail(`${(e as Error).message}. Check the base station name.`); }
+    err.hidden = true; out.hidden = false;
+    const st = R.rows.filter((r) => !r.isBase), anyTc = st.some((r) => r.tc !== undefined);
+    if (!st.length) return fail('There are only base readings. Add the survey stations.');
+    const rng = (k: 'faa' | 'sba' | 'cba') => { const v = st.map((r) => r[k]); return `${f3(Math.min(...v))} to ${f3(Math.max(...v))} mGal`; };
+    q('.gr-big').textContent = `${st.length} station${st.length > 1 ? 's' : ''}: ${anyTc ? 'complete' : 'simple'} Bouguer anomaly ${rng(anyTc ? 'cba' : 'sba')}`;
+    const fs = [
+      fact('Drift', R.base.length > 1 ? `${R.rate >= 0 ? '+' : '−'}${Math.abs(R.rate).toFixed(3)} mGal/h` : 'one base reading: no drift correction', R.base.length > 1 ? `${R.base.length} base readings over ${sig(R.base[R.base.length - 1].t - R.base[0].t, 3)} h, applied as straight lines between them` : 'read the base again at the end of the day'),
+      fact('Free-air anomaly', rng('faa'), fa === 'simple' ? 'observed − normal gravity + 0.3086 mGal/m × elevation' : 'with the second-order free-air term'),
+      fact('Simple Bouguer anomaly', rng('sba'), `free-air anomaly − 2πGρh, which is −${bouguerSlab(rho, 1).toFixed(5)} mGal per metre`),
+    ];
+    if (anyTc) fs.push(fact('Complete Bouguer anomaly', rng('cba'), 'simple Bouguer anomaly + terrain correction'));
+    fs.push(fact('Normal gravity', `${ELLIPSOIDS[ell].name}, Somigliana's formula`, `${f3(st[0].gamma)} mGal at ${st[0].lat}°`));
+    q('.gr-facts').replaceChildren(...fs);
+    const head = ['Station', 'Time', 'Drift', 'g observed', 'Normal γ', 'Free-air corr.', 'Bouguer corr.', 'Terrain', 'Free-air anomaly', 'Simple Bouguer', 'Complete Bouguer'];
+    table = R.rows.map((r) => [r.name + (r.isBase ? ' (base)' : ''), hm(r.t), f3(r.drift), f3(r.gObs), f3(r.gamma), f3(r.faC), f3(r.bC), r.tc === undefined ? '' : f3(r.tc), f3(r.faa), f3(r.sba), r.tc === undefined && !anyTc ? '' : f3(r.cba)]);
+    csvRows = [['station', 'time', 'reading', 'latitude', 'elevation_m', 'distance_m', 'drift_mgal', 'g_obs_mgal', 'normal_gravity_mgal', 'free_air_corr_mgal', 'bouguer_corr_mgal', 'terrain_mgal', 'free_air_anomaly_mgal', 'simple_bouguer_mgal', 'complete_bouguer_mgal'],
+      ...R.rows.map((r) => [r.name, hm(r.t), r.reading, r.lat, r.h, r.x ?? '', r.drift.toFixed(4), r.gObs.toFixed(4), r.gamma.toFixed(4), r.faC.toFixed(4), r.bC.toFixed(4), r.tc ?? '', r.faa.toFixed(4), r.sba.toFixed(4), r.cba.toFixed(4)])];
+    const tb = q<HTMLTableElement>('.gr-tab'); tb.replaceChildren(tr(head, true), ...table.map((c) => tr(c)));
+    // Profile: distance if given for every station, else station order.
+    const hasX = st.every((r) => r.x !== undefined), xs = st.map((r, i) => (hasX ? r.x! : i + 1));
+    const ser: any[] = [{ name: 'Free-air', x: xs, y: st.map((r) => r.faa), mode: 'both', marker: 'circle', size: 3.5 }, { name: 'Simple Bouguer', x: xs, y: st.map((r) => r.sba), mode: 'both', marker: 'square', size: 3.5 }];
+    if (anyTc) ser.push({ name: 'Complete Bouguer', x: xs, y: st.map((r) => r.cba), mode: 'both', marker: 'triangle', size: 3.5 });
+    fig = chartFigure({ w: 420, h: 320, xLabel: hasX ? 'Distance (m)' : 'Station number', yLabel: 'Anomaly (mGal)', legend: 'below', series: ser }, 'Profile of free-air and Bouguer anomalies along the line');
+    paint(q<HTMLCanvasElement>('.gr-fig'), fig);
+    report = [{ title: q('.gr-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: table, align: head.map((_, j) => (j ? 'r' : 'l')) } }];
+  }
+
+  function rings() {
+    const rho = val('.gr-rho'), list: { r1: number; r2: number; heights: number[] }[] = [];
+    const tb = q<HTMLTableElement>('.gr-rtab');
+    const bad = (m: string) => { q('.gr-tc').textContent = m; tb.replaceChildren(); };
+    for (const line of q<HTMLTextAreaElement>('.gr-rings').value.split('\n')) {
+      const v = line.trim().split(/[\s,;]+/).filter(Boolean).map(num);
+      if (!v.length) continue;
+      if (v.length < 3 || v.some((x) => !Number.isFinite(x))) return bad(`Each line needs two radii and at least one height: "${line.trim()}".`);
+      if (!(v[0] >= 0 && v[1] > v[0])) return bad(`The outer radius must be bigger than the inner one: "${line.trim()}".`);
+      list.push({ r1: v[0], r2: v[1], heights: v.slice(2) });
+    }
+    if (!list.length) return bad('Enter at least one ring.');
+    if (!(rho > 0)) return bad('Enter the Bouguer density above.');
+    const T = terrainCorrection(list, rho);
+    q('.gr-tc').textContent = `Terrain correction ${T.total.toFixed(3)} mGal`;
+    tb.replaceChildren(tr(['Ring (m)', 'Compartments', 'Mean |h| (m)', 'Correction (mGal)'], true), ...list.map((g, i) => tr([`${g.r1}–${g.r2}`, String(g.heights.length), sig(g.heights.reduce((s, h) => s + Math.abs(h), 0) / g.heights.length, 3), T.per[i].toFixed(4)])));
+  }
+
+  root.querySelectorAll('.ax-card:first-child input, .ax-card:first-child textarea, .ax-card:first-child select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.gr-rings').addEventListener('input', rings); q('.gr-rho').addEventListener('input', rings);
+  q('.gr-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'gravity-anomalies.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.gr-fig'), fig));
+  calc(); rings();
+  wireDownloads(q('.dl'), () => ({ title: 'Gravity anomalies', subtitle: q('.gr-big').textContent ?? '', file: 'gravity-anomalies', sections: report }));
+</script>
+
+<style is:inline>
+  .grv select, .grv input { max-width: 100%; }
+  .grv textarea { width: 100%; }
+</style>

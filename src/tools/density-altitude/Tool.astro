@@ -1,0 +1,173 @@
+---
+// Pressure altitude, density altitude and air density from the altimeter setting or station pressure, temperature
+// and dew point, with the ISA standard atmosphere. A chart and a table over a temperature range. All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dal">
+  <div class="ax-card">
+    <h2>Air</h2>
+    <div class="ax-grid">
+      <label>Heights in <select class="da-hu"><option value="ft">feet</option><option value="m">metres</option></select></label>
+      <label>Pressure in <select class="da-pu"><option value="hpa">hPa (mb)</option><option value="inhg">inHg</option></select></label>
+      <label>Temperatures in <select class="da-tu"><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label>Pressure given as <select class="da-pk"><option value="qnh">Altimeter setting (QNH)</option><option value="stn">Station pressure</option></select></label>
+      <label><span class="da-pl">Altimeter setting</span> <input class="da-p" inputmode="decimal" value="1013" /></label>
+      <label>Elevation <input class="da-z" inputmode="decimal" value="5000" /></label>
+      <label>Air temperature <input class="da-t" inputmode="decimal" value="30" /></label>
+      <label>Dew point (blank = dry air) <input class="da-d" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">The altimeter setting is the pressure reduced to sea level that makes an altimeter read the field elevation (QNH, as in a METAR). Station pressure is what a barometer reads at the site; with it, the elevation is only used to work out the altimeter setting. Moist air is lighter than dry air, so the dew point raises the density altitude a little.</p>
+    <p class="ax-help"><b>Not for flight planning on its own.</b> Use your aircraft's performance charts and official weather; this page shows the standard-atmosphere arithmetic.</p>
+    <p class="ax-err da-err" hidden></p>
+  </div>
+
+  <div class="ax-card da-out">
+    <h2>Density altitude</h2>
+    <p class="ax-big da-big"></p>
+    <p class="da-sub"></p>
+    <dl class="ax-facts da-facts"></dl>
+    <canvas class="ax-fig da-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help">Density altitude against air temperature at this pressure and dew point (the dew point is held, but never above the temperature). The dot is your air; the dashed line is the pilot's rule of thumb of 120 ft per °C.</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Table for a temperature range</h2>
+    <div class="ax-grid">
+      <label>Temperature from <input class="da-a" inputmode="decimal" value="-10" /></label>
+      <label>to <input class="da-b" inputmode="decimal" value="45" /></label>
+      <label>step <input class="da-s" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Same pressure and dew point as above, up to 61 rows. Where the temperature is below the dew point, the air is taken as saturated (dew point = temperature).</p>
+    <p class="ax-err da-terr" hidden></p>
+    <div class="ax-scroll"><table class="da-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small da-csv">Download CSV</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dal .da-sub { margin: 4px 0 12px; color: var(--muted); }
+  .dal .da-tab td, .dal .da-tab th { text-align: right; white-space: nowrap; padding: 6px 6px; }
+  .dal .da-tab tr.hl td { font-weight: 700; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { densityAlt, stationFromQnh, qnhFromStation, FT, INHG, type DA } from '../../lib/sci/densalt';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dal')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let fig: Figure | null = null, report: Section[] = [], tableCsv = '';
+
+  function units() {
+    const ft = sel('.da-hu') === 'ft', inhg = sel('.da-pu') === 'inhg', F = sel('.da-tu') === 'F';
+    const H = ft ? 'ft' : 'm', P = inhg ? 'inHg' : 'hPa', U = F ? '°F' : '°C';
+    return {
+      ft, inhg, F, H, P, U,
+      toM: (x: number) => (ft ? x * FT : x), fromM: (x: number) => (ft ? x / FT : x),
+      toHpa: (x: number) => (inhg ? x * INHG : x), fromHpa: (x: number) => (inhg ? x / INHG : x),
+      toC: (x: number) => (F ? (x - 32) / 1.8 : x), fromC: (x: number) => (F ? x * 1.8 + 32 : x), dC: (x: number) => (F ? x * 1.8 : x),
+      h: (m: number) => `${Math.round(ft ? m / FT : m).toLocaleString('en').replace('-', '−')} ${H}`,
+      p: (hpa: number) => (inhg ? `${(hpa / INHG).toFixed(2)} inHg` : `${hpa.toFixed(1)} hPa`),
+      t: (c: number) => `${sig(F ? c * 1.8 + 32 : c, 3)} ${U}`,
+    };
+  }
+  const dl = (el: HTMLElement, rows: [string, string, string?][]) => el.replaceChildren(...rows.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+
+  type Input = { p: number; elev: number; qnh: number; tC: number; td: number | null };
+  function read(): Input {
+    const u = units(), pIn = num(inp('.da-p').value), zIn = num(inp('.da-z').value), tIn = num(inp('.da-t').value), dTxt = inp('.da-d').value.trim();
+    if (!Number.isFinite(pIn)) throw new Error(sel('.da-pk') === 'qnh' ? 'Type the altimeter setting.' : 'Type the station pressure.');
+    if (!Number.isFinite(zIn)) throw new Error('Type the elevation.');
+    if (!Number.isFinite(tIn)) throw new Error('Type the air temperature.');
+    const elev = u.toM(zIn), tC = u.toC(tIn), pr = u.toHpa(pIn);
+    if (elev < -500 || elev > 9000) throw new Error(`Elevation must be between ${u.h(-500)} and ${u.h(9000)}.`);
+    if (tC < -60 || tC > 60) throw new Error(`Air temperature must be between ${u.t(-60)} and ${u.t(60)}.`);
+    if (sel('.da-pk') === 'qnh' ? pr < 850 || pr > 1090 : pr < 250 || pr > 1100) throw new Error(sel('.da-pk') === 'qnh' ? `An altimeter setting must be between ${u.p(850)} and ${u.p(1090)}. Did you pick the right unit?` : `Station pressure must be between ${u.p(250)} and ${u.p(1100)}. Did you pick the right unit?`);
+    let td: number | null = null;
+    if (dTxt) { const d = num(dTxt); if (!Number.isFinite(d)) throw new Error('The dew point is not a number (leave it blank for dry air).'); td = u.toC(d); if (td > tC + 1e-9) throw new Error('The dew point cannot be above the air temperature.'); if (td < -80) throw new Error('The dew point looks too low.'); }
+    const p = sel('.da-pk') === 'qnh' ? stationFromQnh(pr, elev) : pr, qnh = sel('.da-pk') === 'qnh' ? pr : qnhFromStation(pr, elev);
+    return { p, elev, qnh, tC, td };
+  }
+
+  function calc() {
+    const u = units();
+    q('.da-pl').textContent = sel('.da-pk') === 'qnh' ? `Altimeter setting (${u.P})` : `Station pressure (${u.P})`;
+    const err = q('.da-err');
+    let I: Input, r: DA;
+    try { I = read(); r = densityAlt(I.p, I.tC, I.td); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.da-out').hidden = true; report = []; return; }
+    err.hidden = true; q('.da-out').hidden = false;
+    q('.da-big').textContent = u.h(r.da);
+    q('.da-sub').textContent = `${r.da >= r.pa ? 'Higher' : 'Lower'} than the pressure altitude by ${u.h(Math.abs(r.da - r.pa))}: the air is as thin as the standard atmosphere at ${u.h(r.da)}.`;
+    const dev = u.dC(r.isaDev);
+    const facts: [string, string, string?][] = [
+      ['Pressure altitude', u.h(r.pa), 'the standard-atmosphere height for the station pressure'],
+      ['Density altitude, dry air', u.h(r.daDry), I.td == null ? 'no dew point given' : `humidity adds ${u.h(r.da - r.daDry)}`],
+      ['Air density', `${r.rho.toFixed(4)} kg/m³`, `${sig(r.rhoPct, 3)} % of the sea-level standard 1.225 kg/m³`],
+      ['Standard temperature here', u.t(r.isaT), `ISA ${dev >= 0 ? '+' : '−'}${sig(Math.abs(dev), 3)} ${u.U}`],
+      ['Virtual temperature', u.t(r.tv - 273.15), 'dry air at this temperature has the same density'],
+      ['Station pressure', u.p(I.p)],
+      ['Altimeter setting (QNH)', u.p(I.qnh)],
+      ['Vapour pressure', `${sig(r.e, 3)} hPa`, I.td == null ? 'dry air' : `mixing ratio ${sig(r.w * 1000, 3)} g/kg`],
+      ['Rule of thumb', u.h(r.thumb), 'pressure altitude + 120 ft per °C above standard (dry air)'],
+    ];
+    dl(q('.da-facts'), facts);
+    const xs: number[] = []; const lo = Math.min(-20, Math.floor(r.isaT / 5) * 5 - 10), hi = Math.max(45, Math.ceil(I.tC / 5) * 5 + 5);
+    for (let x = lo; x <= hi; x += 0.5) xs.push(x);
+    const at = (x: number) => densityAlt(I.p, x, I.td == null ? null : Math.min(I.td, x));
+    fig = chartFigure({ w: 560, h: 360, xLabel: `Air temperature (${u.U})`, yLabel: `Density altitude (${u.H})`, legend: 'below', series: [
+      { name: I.td == null ? 'Dry air' : `Dew point ${u.t(I.td)}`, x: xs.map(u.fromC), y: xs.map((x) => u.fromM(at(x).da)), mode: 'line', width: 2 },
+      { name: 'Rule of thumb', x: xs.map(u.fromC), y: xs.map((x) => u.fromM(at(x).thumb)), mode: 'line', width: 1.2, dash: [5, 4] },
+      { name: 'This air', x: [u.fromC(I.tC)], y: [u.fromM(r.da)], marker: 'circle', size: 5 },
+    ], marks: [{ kind: 'hline', at: u.fromM(r.pa), dash: [2, 3], label: 'pressure altitude' }, { kind: 'vline', at: u.fromC(r.isaT), dash: [2, 3], label: 'ISA' }] }, `Density altitude against temperature at ${u.p(I.p)} station pressure`);
+    paint(q<HTMLCanvasElement>('.da-fig'), fig);
+    report = [{ title: `Density altitude ${u.h(r.da)}`, text: [`Station pressure ${u.p(I.p)} (altimeter setting ${u.p(I.qnh)}, elevation ${u.h(I.elev)}), air ${u.t(I.tC)}, ${I.td == null ? 'dry air' : `dew point ${u.t(I.td)}`}.`, q('.da-sub').textContent!], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]), figure: fig, note: 'ICAO standard atmosphere (general constants). Not for flight planning on its own: use your aircraft performance charts.' }];
+  }
+
+  function tab() {
+    const u = units(), err = q('.da-terr');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.da-tab').replaceChildren(); tableCsv = ''; };
+    let I: Input; try { I = read(); } catch { return fail('Fix the air values above first.'); }
+    const a = num(inp('.da-a').value), b = num(inp('.da-b').value), s = num(inp('.da-s').value);
+    if (![a, b, s].every(Number.isFinite) || s <= 0 || b < a || Math.floor((b - a) / s + 1e-9) + 1 > 61) return fail('Give a range with "from" below "to", a step above 0 and at most 61 rows.');
+    if (u.toC(a) < -60 || u.toC(b) > 60) return fail(`Keep the temperatures between ${u.t(-60)} and ${u.t(60)}.`);
+    err.hidden = true;
+    const head = [`Air (${u.U})`, `ISA dev. (${u.U})`, 'Density (kg/m³)', `Density altitude (${u.H})`, `Dry air (${u.H})`];
+    const short = [`Air ${u.U}`, 'ISA ±', 'kg/m³', `DA ${u.H}`, `Dry DA ${u.H}`];
+    const rows: (string | number)[][] = [];
+    for (let i = 0; a + i * s <= b + 1e-9; i++) {
+      const tx = +(a + i * s).toFixed(6), tC = u.toC(tx), r = densityAlt(I.p, tC, I.td == null ? null : Math.min(I.td, tC));
+      rows.push([tx, +u.dC(r.isaDev).toFixed(1), r.rho.toFixed(4), Math.round(u.fromM(r.da)), Math.round(u.fromM(r.daDry))]);
+    }
+    const t = q('.da-tab'); t.replaceChildren();
+    const tr = (cells: (string | number)[], th: boolean) => { const e = document.createElement('tr'); for (const c of cells) { const x = document.createElement(th ? 'th' : 'td'); x.textContent = typeof c === 'number' ? c.toLocaleString('en', { maximumFractionDigits: 4 }).replace('-', '−') : c; e.append(x); } return e; };
+    const th = document.createElement('thead'); th.append(tr(short, true)); const tb = document.createElement('tbody'); rows.forEach((r) => { const e = tr(r, false); if (Math.abs(u.toC(r[0] as number) - I.tC) < 1e-6) e.className = 'hl'; tb.append(e); }); t.append(th, tb);
+    tableCsv = csv([head, ...rows]);
+    if (report[0]) report[1] = { title: 'Density altitude by temperature', text: [`Station pressure ${u.p(I.p)}, ${I.td == null ? 'dry air' : `dew point ${u.t(I.td)} (or the temperature, if lower)`}.`], table: { head, rows: rows.map((r) => r.map(String)), align: head.map(() => 'r') as ('l' | 'r')[] } };
+  }
+
+  // Unit switches convert what is typed, so the air stays the same.
+  const conv = (c: string, f: (x: number) => number, d: number) => { const el = inp(c), x = num(el.value); if (Number.isFinite(x)) el.value = String(+f(x).toFixed(d)); };
+  q('.da-hu').addEventListener('change', () => { const ft = sel('.da-hu') === 'ft'; conv('.da-z', (x) => (ft ? x / FT : x * FT), 0); run(); });
+  q('.da-pu').addEventListener('change', () => { const ih = sel('.da-pu') === 'inhg'; conv('.da-p', (x) => (ih ? x / INHG : x * INHG), ih ? 2 : 1); run(); });
+  q('.da-tu').addEventListener('change', () => { const F = sel('.da-tu') === 'F', f = (x: number) => (F ? x * 1.8 + 32 : (x - 32) / 1.8); for (const c of ['.da-t', '.da-d', '.da-a', '.da-b']) conv(c, f, 1); conv('.da-s', (x) => (F ? x * 1.8 : x / 1.8), 1); run(); });
+  q('.da-pk').addEventListener('change', () => {
+    // Switch between QNH and station pressure for the same air.
+    const u = units(), el = inp('.da-p'), x = u.toHpa(num(el.value)), z = u.toM(num(inp('.da-z').value));
+    if (Number.isFinite(x) && Number.isFinite(z)) el.value = String(+u.fromHpa(sel('.da-pk') === 'stn' ? stationFromQnh(x, z) : qnhFromStation(x, z)).toFixed(u.inhg ? 2 : 1));
+    run();
+  });
+  const run = () => { calc(); tab(); };
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).tagName === 'SELECT') return; clearTimeout(tm); tm = window.setTimeout(run, 200); });
+  q('.da-csv').addEventListener('click', () => { if (tableCsv) save(new Blob(['﻿' + tableCsv], { type: 'text/csv' }), 'density-altitude-table.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.da-fig'), fig));
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Density altitude', subtitle: q('.da-big').textContent ?? '', file: 'density-altitude', sections: report }));
+</script>

@@ -1,0 +1,175 @@
+---
+// Quantum dot size: the Brus equation turns a dot's radius into its band gap and first absorption peak, and back,
+// with your effective masses and dielectric constant; an optional sizing polynomial of your own; and a plot of the
+// gap against diameter. Example materials use rounded values.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax qdots">
+  <div class="ax-card">
+    <h2>Material</h2>
+    <div class="ax-grid">
+      <label>Example values <select class="qd-pre"></select></label>
+      <label>Bulk band gap Eg (eV) <input class="qd-eg" inputmode="decimal" /></label>
+      <label>Electron mass mₑ* (m₀) <input class="qd-me" inputmode="decimal" /></label>
+      <label>Hole mass mₕ* (m₀) <input class="qd-mh" inputmode="decimal" /></label>
+      <label>Dielectric constant ε <input class="qd-eps" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="qd-pol" /> Include the polarisation term (−0.248 E*Ry)</label>
+    <p class="ax-help">The example values are rounded and made up to behave like the named material; they are not reference data, so type your own. Masses are effective masses in units of the free electron mass, ε is the relative (optical) dielectric constant. The polarisation term is a small correction from Brus's paper; most papers leave it out.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What you know</h2>
+    <div class="ax-grid">
+      <label>I know the <select class="qd-mode"><option value="d">Diameter (nm)</option><option value="e">Band gap (eV)</option><option value="l" selected>First absorption peak (nm)</option></select></label>
+      <label>Value <input class="qd-v" inputmode="decimal" value="560" /></label>
+      <label>Plot diameters from (nm) <input class="qd-d0" inputmode="decimal" value="1.5" /></label>
+      <label>to (nm) <input class="qd-d1" inputmode="decimal" value="12" /></label>
+    </div>
+    <p class="ax-help">The first excitonic absorption peak is taken as the dot's band gap, E = 1239.84 / λ(nm) eV. From a gap or peak the page finds the radius on the small-dot side of the Brus curve.</p>
+    <p class="ax-err qd-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your sizing curve (optional)</h2>
+    <label>Polynomial coefficients for D(λ): c0, c1, c2, … <input class="qd-poly" spellcheck="false" placeholder="from the paper you follow" /></label>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>λ range from (nm) <input class="qd-p0" inputmode="decimal" value="450" /></label>
+      <label>to (nm) <input class="qd-p1" inputmode="decimal" value="650" /></label>
+    </div>
+    <p class="ax-help">Many groups size their dots with an empirical curve fitted to microscope sizes: D(nm) = c0 + c1·λ + c2·λ² + …, with λ the first absorption peak in nm. Type the coefficients from the paper or calibration you trust (c0 first). The page does not supply any. The range is where the curve is valid; it is drawn over that range only.</p>
+    <p class="ax-err qd-perr" hidden></p>
+  </div>
+
+  <div class="ax-card qd-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big qd-big"></p>
+    <dl class="ax-facts qd-facts"></dl>
+    <p class="ax-help qd-note"></p>
+    <h3>Band gap against diameter</h3>
+    <canvas class="ax-fig qd-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qd-csv">Download the curve (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PRESETS, brus, radiusFor, branchEnd, bohr, rydberg, poly, parseCoeffs, HC, type Material } from '../../lib/sci/qdot';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.qdots')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  const pre = q<HTMLSelectElement>('.qd-pre');
+  pre.replaceChildren(...PRESETS.map((p) => new Option(p.name, p.id)), new Option('Your own values', 'own'));
+  const setPreset = (id: string) => { const p = PRESETS.find((x) => x.id === id); if (!p) return; inp('.qd-eg').value = String(p.m.Eg); inp('.qd-me').value = String(p.m.me); inp('.qd-mh').value = String(p.m.mh); inp('.qd-eps').value = String(p.m.eps); };
+
+  let lastR = NaN, sections: Section[] = [], fig: Figure | null = null, curve: { D: number; E: number }[] = [], mat: Material | null = null, polar = false;
+
+  function run() {
+    const err = q('.qd-err'), perr = q('.qd-perr'), out = q('.qd-out');
+    err.hidden = perr.hidden = true;
+    const fail = (msg: string, box = err) => { box.textContent = msg; box.hidden = false; out.hidden = true; sections = []; lastR = NaN; };
+    const m: Material = { Eg: v('.qd-eg'), me: v('.qd-me'), mh: v('.qd-mh'), eps: v('.qd-eps') };
+    if (!(m.Eg > 0 && m.Eg < 15)) return fail('The bulk band gap is a positive energy in eV.');
+    if (!(m.me > 0 && m.me < 20) || !(m.mh > 0 && m.mh < 20)) return fail('The effective masses are positive numbers in units of m₀.');
+    if (!(m.eps >= 1 && m.eps < 200)) return fail('The dielectric constant is at least 1.');
+    const mode = q<HTMLSelectElement>('.qd-mode').value, val = v('.qd-v');
+    const d0 = v('.qd-d0'), d1 = v('.qd-d1');
+    if (!(d0 > 0 && d1 > d0 && d1 <= 200)) return fail('The plot runs from a positive diameter to a larger one (up to 200 nm).');
+    polar = inp('.qd-pol').checked; mat = m;
+    let R: number, Ev: number;
+    if (mode === 'd') {
+      if (!(val > 0 && val <= 200)) return fail('The diameter is a positive number of nm.');
+      R = val / 2; Ev = brus(R, m, polar).E;
+    } else {
+      Ev = mode === 'e' ? val : HC / val;
+      if (!(val > 0) || !Number.isFinite(Ev)) return fail(mode === 'e' ? 'The band gap is a positive energy in eV.' : 'The peak is a positive wavelength in nm.');
+      R = radiusFor(Ev, m, polar);
+      if (!Number.isFinite(R)) return fail(`${sig(Ev, 4)} eV is ${Ev <= m.Eg ? 'not above the bulk gap' : 'too close to the bulk gap'} (${m.Eg} eV): the Brus equation gives no confined size. ${mode === 'l' ? 'Check the peak wavelength' : 'Check the gap'} and the material.`);
+    }
+    const t = brus(R, m, polar), aB = bohr(m), Rstar = branchEnd(m);
+    lastR = R;
+    out.hidden = false;
+    const lam = HC / t.E;
+    q('.qd-big').textContent = mode === 'd'
+      ? `Band gap ${t.E.toFixed(3)} eV, first absorption peak about ${lam.toFixed(0)} nm, for a ${sig(2 * R, 4)} nm dot`
+      : `Diameter ${(2 * R).toFixed(2)} nm (radius ${R.toFixed(2)} nm) for ${Ev.toFixed(3)} eV (${lam.toFixed(1)} nm)`;
+    const facts = [
+      fact('Diameter, radius', `${sig(2 * R, 4)} nm, ${sig(R, 4)} nm`, `${sig(R / aB, 3)} × the exciton Bohr radius`),
+      fact('Dot gap E', `${t.E.toFixed(4)} eV`, `λ = ${lam.toFixed(1)} nm; ${(t.E - m.Eg >= 0 ? '+' : '−') + Math.abs(t.E - m.Eg).toFixed(4)} eV from the bulk ${m.Eg} eV`),
+      fact('Confinement term', `+${t.conf.toFixed(4)} eV`, 'ħ²π²/(2R²) · (1/mₑ* + 1/mₕ*)'),
+      fact('Coulomb term', `−${t.coul.toFixed(4)} eV`, '1.786 e²/(4πε₀εR)'),
+      ...(polar ? [fact('Polarisation term', `−${t.pol.toFixed(4)} eV`, `0.248 E*Ry, E*Ry = ${(rydberg(m) * 1000).toFixed(2)} meV`)] : []),
+      fact('Exciton Bohr radius aB', `${sig(aB, 4)} nm`, `ε · (m₀/μ) · a₀, μ = ${sig(1 / (1 / m.me + 1 / m.mh), 4)} m₀`),
+    ];
+    // User's sizing curve.
+    const pc = parseCoeffs(inp('.qd-poly').value);
+    const p0 = v('.qd-p0'), p1 = v('.qd-p1');
+    let poly0: { D: number; l: number }[] = [];
+    if (typeof pc === 'string') { perr.textContent = pc; perr.hidden = false; }
+    else if (pc.length) {
+      if (!(p0 > 0 && p1 > p0)) { perr.textContent = 'Give the λ range of your curve, the shorter wavelength first.'; perr.hidden = false; }
+      else {
+        const Dl = poly(pc, lam);
+        facts.push(fact('Your sizing curve', lam >= p0 && lam <= p1 ? `${sig(Dl, 4)} nm at ${lam.toFixed(1)} nm` : `${sig(Dl, 4)} nm (outside ${p0}–${p1} nm)`, `D(λ) = ${pc.map((c, i) => `${c}${i ? `·λ${i > 1 ? ['', '', '²', '³', '⁴', '⁵', '⁶', '⁷'][i] : ''}` : ''}`).join(' + ').replace(/\+ -/g, '− ')}`));
+        poly0 = Array.from({ length: 80 }, (_, i) => { const l = p0 + ((p1 - p0) * i) / 79; return { l, D: poly(pc, l) }; });
+      }
+    }
+    q('.qd-facts').replaceChildren(...facts);
+    const notes: string[] = [];
+    if (R < aB) notes.push(`R is below the Bohr radius (${sig(aB, 3)} nm), the strong-confinement regime where the Brus equation applies; for the smallest dots it usually overestimates the gap, because the bands are not parabolic and the barrier is not infinite.`);
+    else notes.push(`R is above the Bohr radius (${sig(aB, 3)} nm): confinement is weak and the Brus equation is a rough guide only.`);
+    notes.push(`The curve has a minimum at R = ${sig(Rstar, 3)} nm; sizes are only read on the small side of it.`);
+    q('.qd-note').textContent = notes.join(' ');
+
+    // Plot.
+    curve = Array.from({ length: 160 }, (_, i) => { const D = d0 * (d1 / d0) ** (i / 159); return { D, E: brus(D / 2, m, polar).E }; });
+    const yMax = Math.max(t.E, ...curve.map((c) => c.E).filter((e) => e < m.Eg + 5)) * 1.03;
+    fig = chartFigure({
+      h: 330, xLabel: 'Diameter (nm)', yLabel: 'Band gap (eV)', legend: 'below', yMin: Math.max(0, m.Eg - 0.2), yMax,
+      series: [
+        { name: 'Brus equation', x: curve.map((c) => c.D), y: curve.map((c) => c.E), mode: 'line', width: 2 },
+        ...(poly0.length ? [{ name: 'Your sizing curve', x: poly0.map((p) => p.D), y: poly0.map((p) => HC / p.l), mode: 'line' as const, dash: [5, 3], width: 1.6 }] : []),
+        { name: 'This dot', x: [2 * R], y: [t.E], mode: 'points', marker: 'diamond', size: 6 },
+      ],
+      marks: [{ kind: 'hline', at: m.Eg, dash: [3, 3], label: 'bulk gap' }, ...(2 * aB >= d0 && 2 * aB <= d1 ? [{ kind: 'vline' as const, at: 2 * aB, dash: [2, 3], label: '2aB' }] : [])],
+    }, `Band gap against dot diameter from the Brus equation, from ${d0} to ${d1} nm`);
+    paint(q<HTMLCanvasElement>('.qd-fig'), fig);
+    sections = [{ title: q('.qd-big').textContent!, facts: [...q('.qd-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.qd-note').textContent!, figure: fig }];
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 250)); };
+  pre.addEventListener('change', () => { setPreset(pre.value); run(); });
+  ['.qd-eg', '.qd-me', '.qd-mh', '.qd-eps'].forEach((c) => inp(c).addEventListener('input', () => { pre.value = 'own'; later(run); }));
+  ['.qd-v', '.qd-d0', '.qd-d1', '.qd-poly', '.qd-p0', '.qd-p1'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  q('.qd-pol').addEventListener('change', run);
+  q('.qd-mode').addEventListener('change', () => {
+    // Carry the current dot over to the new kind of value.
+    const md = q<HTMLSelectElement>('.qd-mode').value;
+    if (mat && Number.isFinite(lastR)) { const E = brus(lastR, mat, polar).E; inp('.qd-v').value = md === 'd' ? (2 * lastR).toFixed(2) : md === 'e' ? E.toFixed(3) : (HC / E).toFixed(1); }
+    run();
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.qd-out').hidden) paint(q<HTMLCanvasElement>('.qd-fig'), fig); });
+  q('.qd-csv').addEventListener('click', () => {
+    if (!mat) return;
+    const head = ['diameter_nm', 'radius_nm', 'gap_eV', 'peak_nm', 'confinement_eV', 'coulomb_eV', 'polarisation_eV'];
+    const body = curve.map((c) => { const t = brus(c.D / 2, mat!, polar); return [c.D, c.D / 2, t.E, HC / t.E, t.conf, t.coul, t.pol].map((x) => String(+x.toPrecision(8))); });
+    save(new Blob([[head, ...body].map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'quantum-dot-brus.csv', 'text/csv');
+  });
+  setPreset('cdse'); pre.value = 'cdse';
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Quantum dot size', subtitle: q('.qd-big').textContent ?? '', file: 'quantum-dot-size', sections }));
+</script>
+
+<style is:inline>
+  .qdots h3 { margin: 20px 0 8px; font-size: 15px; }
+  .qdots select { max-width: 100%; }
+</style>

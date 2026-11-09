@@ -1,0 +1,259 @@
+---
+// Colour difference (ΔE) calculator: two colours as CIELAB, LCh, XYZ or sRGB, with ΔE*ab (1976), ΔE94 and CIEDE2000
+// (with kL, kC, kH), swatches, and a before/after table for fading surveys. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cdc">
+  <div class="ax-card">
+    <h2>Two colours</h2>
+    <div class="ax-grid">
+      <label>Values are <select class="cd-space">
+        <option value="lab">CIELAB (L*, a*, b*)</option>
+        <option value="lch">LCh (L*, C*, h°)</option>
+        <option value="xyz">XYZ (Y = 100 for white)</option>
+        <option value="srgb">sRGB (0 to 255, or hex)</option>
+      </select></label>
+      <label>Reference white <select class="cd-white"><option value="D65">D65, 2° observer</option><option value="D50">D50, 2° observer</option></select></label>
+    </div>
+    <p class="ax-help">The white matters only when converting from XYZ or sRGB; for L*a*b* and LCh values it does not change ΔE. XYZ is read against this white (pick the one your instrument used); sRGB is defined for D65 and is adapted to D50 (Bradford) when D50 is chosen.</p>
+    <div class="cd-pair">
+      <fieldset class="cd-col">
+        <legend>Before (reference)</legend>
+        <div class="cd-sw cd-swa" aria-hidden="true"></div>
+        <div class="cd-three">
+          <label><span class="cd-n1">L*</span> <input class="cd-a1" inputmode="decimal" value="42.1" /></label>
+          <label><span class="cd-n2">a*</span> <input class="cd-a2" inputmode="decimal" value="48.3" /></label>
+          <label><span class="cd-n3">b*</span> <input class="cd-a3" inputmode="decimal" value="22.6" /></label>
+        </div>
+        <label class="cd-hexl" hidden>Hex <input class="cd-ahex" spellcheck="false" autocomplete="off" placeholder="#a1b2c3" /></label>
+      </fieldset>
+      <fieldset class="cd-col">
+        <legend>After (sample)</legend>
+        <div class="cd-sw cd-swb" aria-hidden="true"></div>
+        <div class="cd-three">
+          <label><span class="cd-n1">L*</span> <input class="cd-b1" inputmode="decimal" value="44.0" /></label>
+          <label><span class="cd-n2">a*</span> <input class="cd-b2" inputmode="decimal" value="44.9" /></label>
+          <label><span class="cd-n3">b*</span> <input class="cd-b3" inputmode="decimal" value="21.8" /></label>
+        </div>
+        <label class="cd-hexl" hidden>Hex <input class="cd-bhex" spellcheck="false" autocomplete="off" placeholder="#a1b2c3" /></label>
+      </fieldset>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>kL (lightness weight) <input class="cd-kl" inputmode="decimal" value="1" /></label>
+      <label>kC (chroma weight) <input class="cd-kc" inputmode="decimal" value="1" /></label>
+      <label>kH (hue weight) <input class="cd-kh" inputmode="decimal" value="1" /></label>
+      <label>ΔE94 weights <select class="cd-app"><option value="graphic">Graphic arts (kL 1)</option><option value="textiles">Textiles (kL 2)</option></select></label>
+    </div>
+    <p class="ax-help">kL, kC and kH are the CIEDE2000 parametric factors: 1, 1, 1 is the reference setting; a larger number makes that part of the difference count less (textiles often use kL = 2).</p>
+    <p class="ax-err cd-err" hidden></p>
+    <div class="cd-out">
+      <p class="ax-big cd-big"></p>
+      <dl class="ax-facts cd-facts"></dl>
+      <p class="ax-help cd-note"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Fading survey: before and after</h2>
+      <button type="button" class="btn secondary small cd-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">One object or spot per line: a name, three before values, three after values (in the units chosen above; for sRGB you can give two hex codes) <textarea class="cd-in" rows="7" spellcheck="false" wrap="off" placeholder="Sample&#9;L1&#9;a1&#9;b1&#9;L2&#9;a2&#9;b2&#10;Red band&#9;42.1&#9;48.3&#9;22.6&#9;44.0&#9;44.9&#9;21.8"></textarea></label>
+    <DataFile target=".cd-in" maxCols={10} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Flag changes of ΔE00 at least <input class="cd-thr" inputmode="decimal" value="2" /></label>
+      <label>Sort by <select class="cd-sort"><option value="in">order given</option><option value="e00">largest ΔE00 first</option></select></label>
+    </div>
+    <p class="ax-help">The flag level is yours to set: it depends on the object, the lighting and your institution's rules. Re-measure the same spots with the same instrument settings for a fair comparison.</p>
+    <p class="ax-err cd-serr" hidden></p>
+    <div class="cd-sout" hidden>
+      <p class="ax-big cd-sbig"></p>
+      <canvas class="ax-fig cd-fig" style="margin-top:10px"></canvas>
+      <div class="ax-scroll"><table class="cd-tab"></table></div>
+      <p class="ax-help">Signs are after minus before: ΔL* above 0 is lighter, ΔC* below 0 is less saturated (faded), Δb* above 0 is yellower.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cd-csv">Download the table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .cdc fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 0; min-width: 0; }
+  .cdc legend { font-size: 14px; font-weight: 600; padding: 0 4px; }
+  .cdc .cd-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; margin-top: 12px; }
+  .cdc .cd-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cdc .cd-sw { height: 56px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 8px; }
+  .cdc .cd-hexl { margin-top: 8px; }
+  .cdc .cd-tab { min-width: 780px; }
+  .cdc .cd-tab td:first-child { min-width: 120px; }
+  .cdc .cd-tab td.sw { padding: 4px 8px; white-space: nowrap; }
+  .cdc .cd-tab td.sw span { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--line); vertical-align: middle; }
+  .cdc .cd-tab td.sw span + span { margin-left: 3px; }
+  html.red-mode .cdc .cd-sw, html.red-mode .cdc .cd-tab td.sw span, html.red-mode .cdc .cd-fig { filter: url(#red-night); }
+</style>
+
+<script>
+  import { toLab, labToXyz, adapt, labToLch, labToSrgb, compare, describe, parseHex, parseSurvey, EXAMPLE_SURVEY, type Space, type White, type V3, type Weights94, type SurveyRow } from '../../lib/sci/colourdiff';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cdc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = (c: string) => [...root.querySelectorAll<HTMLElement>(c)];
+  const f2 = (x: number) => (Math.abs(x) < 0.005 ? '0.00' : x.toFixed(2).replace('-', '−'));
+  const sgn = (x: number) => (x > 0.005 ? '+' : '') + f2(x);
+  const NAMES: Record<Space, [string, string, string]> = { lab: ['L*', 'a*', 'b*'], lch: ['L*', 'C*', 'h (°)'], xyz: ['X', 'Y', 'Z'], srgb: ['R', 'G', 'B'] };
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+
+  let space: Space = 'lab', white: White = 'D65', single: { a: V3; b: V3; d: ReturnType<typeof compare> } | null = null, rows: SurveyRow[] = [], fig: Figure | null = null;
+  const opts = () => {
+    const k = (c: string) => { const v = num(q<HTMLInputElement>(c).value); return v > 0 ? v : NaN; };
+    return { kL: k('.cd-kl'), kC: k('.cd-kc'), kH: k('.cd-kh'), app: q<HTMLSelectElement>('.cd-app').value as Weights94 };
+  };
+  const read = (p: 'a' | 'b'): V3 => [1, 2, 3].map((i) => num(q<HTMLInputElement>(`.cd-${p}${i}`).value)) as V3;
+
+  function pair() {
+    const err = q('.cd-err'); err.hidden = true;
+    const a = read('a'), b = read('b'), o = opts();
+    const bad = [!a.every(Number.isFinite) && 'the before colour needs three numbers', !b.every(Number.isFinite) && 'the after colour needs three numbers', ![o.kL, o.kC, o.kH].every(Number.isFinite) && 'kL, kC and kH must be numbers above 0'].filter(Boolean);
+    if (space === 'srgb' && [...a, ...b].some((v) => v < 0 || v > 255)) bad.push('sRGB values run from 0 to 255');
+    if ((space === 'lab' || space === 'lch') && [a[0], b[0]].some((v) => v < 0 || v > 100)) bad.push('L* runs from 0 to 100');
+    if (space === 'lch' && [a[1], b[1]].some((v) => v < 0)) bad.push('chroma C* cannot be negative');
+    if (space === 'xyz' && [...a, ...b].some((v) => v < 0)) bad.push('X, Y and Z cannot be negative');
+    if (bad.length) { err.textContent = `Check the numbers: ${bad.join('; ')}.`; err.hidden = false; q('.cd-out').hidden = true; single = null; return; }
+    const la = toLab(a, space, white), lb = toLab(b, space, white), d = compare(la, lb, o);
+    single = { a: la, b: lb, d };
+    q('.cd-out').hidden = false;
+    const sa = labToSrgb(la, white), sb = labToSrgb(lb, white);
+    q('.cd-swa').style.background = sa.hex; q('.cd-swb').style.background = sb.hex;
+    q('.cd-big').textContent = `ΔE00 = ${f2(d.e00)}`;
+    const ca = labToLch(la), cb = labToLch(lb);
+    q('.cd-facts').replaceChildren(
+      fact('ΔE00 (CIEDE2000)', f2(d.e00), `kL ${sig(o.kL, 3)}, kC ${sig(o.kC, 3)}, kH ${sig(o.kH, 3)}`),
+      fact('ΔE94', f2(d.e94), o.app === 'textiles' ? 'textiles weights' : 'graphic arts weights'),
+      fact('ΔE*ab (1976)', f2(d.e76), 'straight distance in CIELAB'),
+      fact('ΔL* lightness', sgn(d.dL)), fact('ΔC* chroma', sgn(d.dC)), fact('ΔH* hue', sgn(d.dH)),
+      fact('Δa* / Δb*', `${sgn(d.da)} / ${sgn(d.db)}`),
+      fact('Change', describe(d, la)),
+      fact('Before L*, a*, b*', la.map(f2).join(', '), `C* ${f2(ca[1])}, h ${ca[2].toFixed(1)}°`),
+      fact('After L*, a*, b*', lb.map(f2).join(', '), `C* ${f2(cb[1])}, h ${cb[2].toFixed(1)}°`),
+    );
+    q('.cd-note').textContent = `Swatches are an sRGB preview on your screen (${sa.hex} and ${sb.hex})${sa.inGamut && sb.inGamut ? '' : '; at least one colour is outside what sRGB screens can show, so its swatch is clipped'}. Screens differ, so judge colour from the numbers, not the swatches. ΔE94 takes the before colour as the reference.`;
+  }
+
+  function survey() {
+    const err = q('.cd-serr'), text = q<HTMLTextAreaElement>('.cd-in').value; err.hidden = true;
+    const o = opts();
+    if (!text.trim()) { q('.cd-sout').hidden = true; rows = []; return; }
+    if (![o.kL, o.kC, o.kH].every(Number.isFinite)) { err.textContent = 'kL, kC and kH must be numbers above 0.'; err.hidden = false; q('.cd-sout').hidden = true; return; }
+    const r = parseSurvey(text, space, white, o);
+    rows = r.rows;
+    if (r.bad.length) { err.textContent = r.bad.slice(0, 3).join(' ') + (r.bad.length > 3 ? ` And ${r.bad.length - 3} more.` : ''); err.hidden = false; }
+    if (!rows.length) { q('.cd-sout').hidden = true; if (!r.bad.length) { err.textContent = 'No rows found: give a name and six numbers per line.'; err.hidden = false; } return; }
+    q('.cd-sout').hidden = false;
+    const thr = num(q<HTMLInputElement>('.cd-thr').value);
+    const shown = q<HTMLSelectElement>('.cd-sort').value === 'e00' ? [...rows].sort((x, y) => y.d.e00 - x.d.e00) : rows;
+    const mean = rows.reduce((s, x) => s + x.d.e00, 0) / rows.length, top = rows.reduce((m, x) => (x.d.e00 > m.d.e00 ? x : m));
+    const nf = Number.isFinite(thr) ? rows.filter((x) => x.d.e00 >= thr).length : 0;
+    q('.cd-sbig').textContent = `${rows.length} sample${rows.length === 1 ? '' : 's'}: mean ΔE00 ${f2(mean)}, largest ${f2(top.d.e00)} (${top.label})${Number.isFinite(thr) ? `; ${nf} at or over ${sig(thr, 3)}` : ''}`;
+    const t = q<HTMLTableElement>('.cd-tab'); t.replaceChildren();
+    const head = ['Sample', 'Before / after', 'ΔL*', 'ΔC*', 'ΔH*', 'ΔE*ab', 'ΔE94', 'ΔE00', 'Change', 'Flag'];
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k >= 2 && k <= 7) th.className = 'r'; h.append(th); });
+    for (const x of shown) {
+      const tr = t.insertRow(), cell = (s: string, c = '') => { const td = tr.insertCell(); td.textContent = s; if (c) td.className = c; return td; };
+      cell(x.label);
+      const sw = cell('', 'sw'); for (const lab of [x.before, x.after]) { const s = document.createElement('span'); s.style.background = labToSrgb(lab, white).hex; sw.append(s); }
+      [x.d.dL, x.d.dC, x.d.dH].forEach((v) => cell(sgn(v), 'r'));
+      [x.d.e76, x.d.e94, x.d.e00].forEach((v) => cell(f2(v), 'r'));
+      cell(describe(x.d, x.before));
+      cell(Number.isFinite(thr) && x.d.e00 >= thr ? 'over' : '');
+    }
+    drawFig(shown, thr);
+  }
+
+  function drawFig(list: SurveyRow[], thr: number) {
+    const n = list.length, rowH = 30, H = Math.max(150, 60 + n * rowH), max = Math.max(...list.map((x) => x.d.e00), Number.isFinite(thr) ? thr : 0) * 1.1 || 1;
+    fig = {
+      w: 480, h: H, alt: `ΔE00 for ${n} samples, largest ${f2(Math.max(...list.map((x) => x.d.e00)))}`,
+      draw: (ctx, W, Hh, pal) => {
+        const L = Math.min(190, W * 0.4), R = 36, T = 14, B = 34, bw = (W - L - R) / max, rh = (Hh - T - B) / n;
+        ctx.font = '13px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'middle';
+        list.forEach((x, i) => {
+          const y = T + i * rh + rh / 2;
+          ctx.fillStyle = labToSrgb(x.before, white).hex; ctx.fillRect(L - 34, y - 8, 14, 16);
+          ctx.fillStyle = labToSrgb(x.after, white).hex; ctx.fillRect(L - 18, y - 8, 14, 16);
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(L - 34, y - 8, 14, 16); ctx.strokeRect(L - 18, y - 8, 14, 16);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right';
+          let s = x.label; while (s.length > 3 && ctx.measureText(s).width > L - 42) s = s.slice(0, -2); if (s !== x.label) s = s.slice(0, -1) + '…';
+          ctx.fillText(s, L - 40, y);
+          const over = Number.isFinite(thr) && x.d.e00 >= thr;
+          ctx.fillStyle = over ? pal.bad : pal.accent; ctx.fillRect(L, y - rh * 0.3, x.d.e00 * bw, rh * 0.6);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(f2(x.d.e00), L + x.d.e00 * bw + 4, y);
+        });
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, Hh - B); ctx.lineTo(W - R, Hh - B); ctx.stroke();
+        if (Number.isFinite(thr) && thr > 0) { ctx.strokeStyle = pal.bad; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(L + thr * bw, T); ctx.lineTo(L + thr * bw, Hh - B); ctx.stroke(); ctx.setLineDash([]); }
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const step = [0.5, 1, 2, 5, 10, 20, 50].find((s) => max / s <= 6) ?? 100;
+        for (let v = 0; v <= max; v += step) ctx.fillText(String(v), L + v * bw, Hh - B + 4);
+        ctx.fillText('ΔE00 (CIEDE2000)', L + (W - L - R) / 2, Hh - 15);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.cd-fig'), fig);
+  }
+
+  function setSpace() {
+    space = q<HTMLSelectElement>('.cd-space').value as Space; white = q<HTMLSelectElement>('.cd-white').value as White;
+    const n = NAMES[space];
+    qa('.cd-n1').forEach((e) => (e.textContent = n[0])); qa('.cd-n2').forEach((e) => (e.textContent = n[1])); qa('.cd-n3').forEach((e) => (e.textContent = n[2]));
+    qa('.cd-hexl').forEach((e) => (e.hidden = space !== 'srgb'));
+  }
+  // Changing the units converts the two colours, so the pair stays the same colours.
+  function convert(prev: Space, prevWhite: White) {
+    for (const p of ['a', 'b'] as const) {
+      const v = read(p); if (!v.every(Number.isFinite)) continue;
+      const lab = toLab(v, prev, prevWhite);
+      let out: number[];
+      if (space === 'lab') out = lab.map((x) => +x.toFixed(2));
+      else if (space === 'lch') out = labToLch(lab).map((x, i) => +x.toFixed(i === 2 ? 1 : 2));
+      else if (space === 'srgb') out = labToSrgb(lab, white).rgb;
+      else { out = adapt(labToXyz(lab, prevWhite), prevWhite, white).map((x) => +x.toFixed(3)); }
+      out.forEach((x, i) => (q<HTMLInputElement>(`.cd-${p}${i + 1}`).value = String(x)));
+      if (space === 'srgb') q<HTMLInputElement>(`.cd-${p}hex`).value = labToSrgb(lab, white).hex;
+    }
+  }
+
+  const all = () => { pair(); survey(); };
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 200); };
+  q('.cd-space').addEventListener('change', () => { const ps = space, pw = white; setSpace(); convert(ps, pw); all(); });
+  q('.cd-white').addEventListener('change', () => { setSpace(); all(); });
+  for (const c of ['.cd-a1', '.cd-a2', '.cd-a3', '.cd-b1', '.cd-b2', '.cd-b3']) q(c).addEventListener('input', () => later(pair));
+  for (const p of ['a', 'b']) q(`.cd-${p}hex`).addEventListener('input', () => {
+    const v = parseHex(q<HTMLInputElement>(`.cd-${p}hex`).value); if (!v) return;
+    v.forEach((x, i) => (q<HTMLInputElement>(`.cd-${p}${i + 1}`).value = String(x))); pair();
+  });
+  for (const c of ['.cd-kl', '.cd-kc', '.cd-kh']) q(c).addEventListener('input', () => later(all));
+  q('.cd-app').addEventListener('change', all);
+  q('.cd-in').addEventListener('input', () => later(survey));
+  q('.cd-thr').addEventListener('input', () => later(survey));
+  q('.cd-sort').addEventListener('change', survey);
+  q('.cd-ex').addEventListener('click', () => {
+    q<HTMLSelectElement>('.cd-space').value = 'lab'; q<HTMLSelectElement>('.cd-white').value = 'D65'; setSpace();
+    q<HTMLTextAreaElement>('.cd-in').value = EXAMPLE_SURVEY; survey();
+  });
+  q('.cd-csv').addEventListener('click', () => {
+    const n = NAMES.lab;
+    save(new Blob([csv([['sample', ...n.map((x) => `before ${x}`), ...n.map((x) => `after ${x}`), 'dL', 'da', 'db', 'dC', 'dH', 'dE76', 'dE94', 'dE00', 'change'],
+      ...rows.map((x) => [x.label, ...x.before.map((v) => v.toFixed(3)), ...x.after.map((v) => v.toFixed(3)), ...[x.d.dL, x.d.da, x.d.db, x.d.dC, x.d.dH, x.d.e76, x.d.e94, x.d.e00].map((v) => v.toFixed(3)), describe(x.d, x.before)])])], { type: 'text/csv' }), 'colour-difference-survey.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const o = opts(), sections: Section[] = [];
+    if (single) sections.push({ title: 'Two colours', facts: [['Before L*, a*, b*', single.a.map(f2).join(', ')], ['After L*, a*, b*', single.b.map(f2).join(', ')], ['ΔE00', f2(single.d.e00)], ['ΔE94', f2(single.d.e94)], ['ΔE*ab', f2(single.d.e76)], ['ΔL*, ΔC*, ΔH*', [single.d.dL, single.d.dC, single.d.dH].map(sgn).join(', ')], ['Change', describe(single.d, single.a)]] });
+    if (rows.length) sections.push({ title: 'Fading survey', text: [q('.cd-sbig').textContent ?? ''], figure: fig ?? undefined, table: { head: ['Sample', 'ΔL*', 'ΔC*', 'ΔH*', 'ΔE*ab', 'ΔE94', 'ΔE00', 'Change'], rows: rows.map((x) => [x.label, sgn(x.d.dL), sgn(x.d.dC), sgn(x.d.dH), f2(x.d.e76), f2(x.d.e94), f2(x.d.e00), describe(x.d, x.before)]), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'l'] } });
+    return { title: 'Colour difference', subtitle: `White ${white}; CIEDE2000 kL ${o.kL}, kC ${o.kC}, kH ${o.kH}; ΔE94 ${o.app === 'textiles' ? 'textiles' : 'graphic arts'}`, file: 'colour-difference', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && rows.length) paint(q<HTMLCanvasElement>('.cd-fig'), fig); });
+  setSpace(); q<HTMLTextAreaElement>('.cd-in').value = EXAMPLE_SURVEY; all();
+</script>

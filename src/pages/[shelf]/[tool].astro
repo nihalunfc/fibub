@@ -58,7 +58,7 @@ const CARDS = 12;
   {related.direct.length > 0 && (
     <nav class="also" aria-label="Works well with">
       <span>Works well with</span>
-      {related.direct.map((t) => <a href={toolUrl(t)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />{t.data.name}</a>)}
+      {related.direct.slice(0, CARDS).map((t) => <a href={toolUrl(t)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />{t.data.name}</a>)}
     </nav>
   )}
   <article class="prose">

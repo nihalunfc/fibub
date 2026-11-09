@@ -1,0 +1,184 @@
+---
+// Analog filter designer: Butterworth / Chebyshev low- and high-pass as Sallen-Key stages, LC ladders, or first-order RC / RL.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fdz">
+  <div class="ax-card">
+    <h2>Filter</h2>
+    <div class="ax-grid">
+      <label>Pass <select class="fd-resp"><option value="lp" selected>Low-pass (keeps low frequencies)</option><option value="hp">High-pass (keeps high frequencies)</option></select></label>
+      <label>Build as <select class="fd-build"><option value="sk" selected>Active: Sallen-Key op-amp stages</option><option value="lc">Passive: LC ladder</option><option value="rc">Passive: one RC (first order)</option><option value="rl">Passive: one RL (first order)</option></select></label>
+      <label class="fd-hi">Shape <select class="fd-kind"><option value="butter" selected>Butterworth (flattest passband)</option><option value="cheby">Chebyshev (steeper, with ripple)</option></select></label>
+      <label class="fd-hi fd-ripbox" hidden>Passband ripple (dB) <input class="fd-rip" type="text" inputmode="decimal" value="1" /></label>
+      <label class="fd-hi">Order (1 to 12) <input class="fd-n" type="text" inputmode="numeric" value="4" /></label>
+      <label><span class="fd-fclab">Corner frequency (Hz)</span> <input class="fd-fc" type="text" inputmode="decimal" value="1k" /></label>
+      <label class="fd-skbox">Capacitor C (F) <input class="fd-c" type="text" value="10n" /></label>
+      <label class="fd-lcbox" hidden>Source and load resistance (Ω) <input class="fd-r" type="text" value="50" /></label>
+      <label class="fd-lcbox" hidden>Ladder starts with <select class="fd-first"><option value="shunt" selected>a capacitor (low-pass) / inductor (high-pass) to ground</option><option value="series">a series part</option></select></label>
+      <label class="fd-rcbox" hidden>Capacitor C (F) <input class="fd-rcc" type="text" value="100n" /></label>
+      <label class="fd-rlbox" hidden>Resistor R (Ω) <input class="fd-rlr" type="text" value="1k" /></label>
+      <label>Round parts to <select class="fd-round"><option value="0">exact values</option><option value="12">E12 (R, C, L)</option><option value="24" selected>E24 R, E12 C and L</option><option value="96">E96 R, E12 C and L</option></select></label>
+    </div>
+    <p class="ax-help fd-help"></p>
+    <details class="fd-ord fd-hi" style="margin-top:8px"><summary>What order do I need?</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>At least this cut (dB) <input class="fd-att" type="text" inputmode="decimal" value="40" /></label>
+        <label>at frequency (Hz) <input class="fd-fs" type="text" inputmode="decimal" value="3k" /></label>
+      </div>
+      <p class="ax-help fd-ordout"></p>
+      <button type="button" class="btn secondary small fd-use">Use this order</button>
+    </details>
+    <p class="ax-err fd-err" hidden></p>
+  </div>
+
+  <div class="ax-card fd-out">
+    <h2>Design</h2>
+    <p class="ax-big fd-big"></p>
+    <dl class="ax-facts fd-facts"></dl>
+    <div class="ax-scroll"><table class="fd-tab"></table></div>
+    <canvas class="ax-fig fd-mag"></canvas>
+    <canvas class="ax-fig fd-ph"></canvas>
+    <label style="display:block;margin-top:10px" class="fd-netbox">Netlist for the circuit simulator <textarea class="fd-net" rows="6" readonly spellcheck="false"></textarea></label>
+    <p class="ax-help">Ideal parts are assumed: a perfect op-amp (unity-gain buffer) and lossless inductors and capacitors. Real op-amps need a gain-bandwidth well above f0 × Q of each stage; use 1 % resistors and C0G/NP0 or film capacitors. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { stages, response, minOrder, sallenKey, skStageResponse, ladder, ladderNetlist, type Kind, type Resp } from '../../lib/sci/eng-filter';
+  import { parseNetlist, acSweep, bode, logFreqs, parseValue, eng } from '../../lib/sci/eng-circuit';
+  import { nearest } from '../../lib/sci/eng-resistor';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fdz')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => parseValue(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fx = (x: number, d: number) => { const t = x.toFixed(d); return (/^-0\.?0*$/.test(t) ? t.slice(1) : t).replace('-', '−'); };
+  const ORD = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth', 'Eleventh', 'Twelfth'];
+  let figs: Figure[] = [], sections: Section[] = [];
+
+  type Row = { stage: string; part: string; exact: number; unit: string; round: number };
+  function rnd(x: number, unit: string) {
+    const r = +sel('.fd-round');
+    if (!r || !Number.isFinite(x)) return x;
+    return nearest(x, unit === 'Ω' ? r : 12).best;
+  }
+
+  function run() {
+    const err = q('.fd-err'), out = q('.fd-out');
+    const resp = sel('.fd-resp') as Resp, build = sel('.fd-build'), kind = sel('.fd-kind') as Kind;
+    const first = build === 'rc' || build === 'rl';
+    root.querySelectorAll<HTMLElement>('.fd-hi').forEach((e) => (e.hidden = first));
+    q('.fd-ripbox').hidden = first || kind !== 'cheby';
+    q('.fd-skbox').hidden = build !== 'sk';
+    root.querySelectorAll<HTMLElement>('.fd-lcbox').forEach((e) => (e.hidden = build !== 'lc'));
+    q('.fd-rcbox').hidden = build !== 'rc'; q('.fd-rlbox').hidden = build !== 'rl';
+    q('.fd-fclab').textContent = !first && kind === 'cheby' ? 'Passband edge (Hz), where the ripple band ends' : 'Corner frequency (Hz), the −3 dB point';
+    q('.fd-help').textContent = build === 'sk' ? 'Each Sallen-Key stage is one op-amp, two resistors and two capacitors, and makes two orders; an odd order adds one RC stage. Choose C (a handy capacitor value) and the resistors are worked out.'
+      : build === 'lc' ? 'An LC ladder of n inductors and capacitors between a source and a load resistance, as used in RF and audio crossovers. Its passband gain is half (−6 dB) because of the two resistors.'
+      : build === 'rc' ? 'One resistor and one capacitor: the simplest filter, 20 dB per decade. Low-pass: R in series, C to ground. High-pass: C in series, R to ground.'
+      : 'One resistor and one inductor, 20 dB per decade. Low-pass: L in series, R to ground. High-pass: R in series, L to ground.';
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    const fc = val('.fd-fc'), rip = val('.fd-rip'), n = first ? 1 : Math.round(num0(q<HTMLInputElement>('.fd-n').value));
+    if (!(fc > 0)) return fail('Give the corner frequency in hertz, for example 1k.');
+    if (!(n >= 1 && n <= 12)) return fail('Choose an order from 1 to 12.');
+    if (!first && kind === 'cheby' && !(rip >= 0.01 && rip <= 6)) return fail('Choose a passband ripple between 0.01 and 6 dB.');
+    const wc = 2 * Math.PI * fc, k: Kind = first ? 'butter' : kind;
+    const st = stages(n, k, rip || 1);
+    const rows: Row[] = [];
+    let built: (w: number) => { re: number; im: number }, net = '';
+    if (build === 'sk') {
+      const C = val('.fd-c');
+      if (!(C > 0 && C < 1)) return fail('Give the capacitor value in farads, for example 10n.');
+      const sk = sallenKey(st, resp, wc, C);
+      const rk = sk.map((p) => ({ ...p, r1: rnd(p.r1, 'Ω'), r2: rnd(p.r2, 'Ω'), c1: rnd(p.c1, 'F'), c2: rnd(p.c2, 'F') }));
+      sk.forEach((p, i) => {
+        const s = String(p.stage);
+        if (p.order === 1) { rows.push({ stage: s, part: 'R', exact: p.r1, unit: 'Ω', round: rk[i].r1 }, { stage: s, part: 'C', exact: p.c1, unit: 'F', round: rk[i].c1 }); return; }
+        rows.push({ stage: s, part: resp === 'lp' ? 'R1 (input)' : 'R1 (to output)', exact: p.r1, unit: 'Ω', round: rk[i].r1 }, { stage: s, part: resp === 'lp' ? 'R2' : 'R2 (to ground)', exact: p.r2, unit: 'Ω', round: rk[i].r2 },
+          { stage: s, part: resp === 'lp' ? 'C1 (to output)' : 'C1 (input)', exact: p.c1, unit: 'F', round: rk[i].c1 }, { stage: s, part: resp === 'lp' ? 'C2 (to ground)' : 'C2', exact: p.c2, unit: 'F', round: rk[i].c2 });
+      });
+      built = (w) => rk.reduce((h, p) => { const s = skStageResponse(p, resp, w); return { re: h.re * s.re - h.im * s.im, im: h.re * s.im + h.im * s.re }; }, { re: 1, im: 0 });
+    } else if (build === 'lc') {
+      const R = val('.fd-r');
+      if (!(R > 0)) return fail('Give the source and load resistance, for example 50.');
+      const L = ladder(n, k, rip || 1, resp, wc, R, sel('.fd-first') as 'shunt' | 'series');
+      const parts = L.parts.map((p) => ({ ...p, value: rnd(p.value, p.kind === 'L' ? 'H' : 'F') }));
+      L.parts.forEach((p, i) => rows.push({ stage: p.where === 'series' ? 'in series' : 'to ground', part: p.name, exact: p.value, unit: p.kind === 'L' ? 'H' : 'F', round: parts[i].value }));
+      rows.push({ stage: 'source', part: 'RS', exact: R, unit: 'Ω', round: R }, { stage: 'load', part: 'RL', exact: L.rLoad, unit: 'Ω', round: L.rLoad });
+      net = `* ${ORD[n]}-order ${k === 'butter' ? 'Butterworth' : 'Chebyshev'} ${resp === 'lp' ? 'low' : 'high'}-pass LC ladder\n` + ladderNetlist(parts, R, L.rLoad).replace(/ (\d[\d.e+-]*)$/gm, (_, v) => ' ' + eng(+v).replace(/ /g, '').replace('µ', 'u').replace('M', 'meg'));
+      const nl = parseNetlist(net), gain = (R + L.rLoad) / L.rLoad;
+      built = (w) => { const r = acSweep(nl, [w / (2 * Math.PI)]); return { re: r.re.out[0] * gain, im: r.im.out[0] * gain }; };
+    } else if (build === 'rc') {
+      const C = val('.fd-rcc');
+      if (!(C > 0 && C < 1)) return fail('Give the capacitor value in farads, for example 100n.');
+      const R = 1 / (wc * C), Rr = rnd(R, 'Ω'), Cr = rnd(C, 'F');
+      rows.push({ stage: resp === 'lp' ? 'in series' : 'to ground', part: 'R', exact: R, unit: 'Ω', round: Rr }, { stage: resp === 'lp' ? 'to ground' : 'in series', part: 'C', exact: C, unit: 'F', round: Cr });
+      built = (w) => { const t = w * Rr * Cr, m = 1 + t * t; return resp === 'lp' ? { re: 1 / m, im: -t / m } : { re: (t * t) / m, im: t / m }; };
+      net = `* First-order RC ${resp === 'lp' ? 'low' : 'high'}-pass\nV1 in 0 AC 1\n${resp === 'lp' ? `R1 in out ${fmtV(Rr)}\nC1 out 0 ${fmtV(Cr)}` : `C1 in out ${fmtV(Cr)}\nR1 out 0 ${fmtV(Rr)}`}\n`;
+    } else {
+      const R = val('.fd-rlr');
+      if (!(R > 0)) return fail('Give the resistor value in ohms, for example 1k.');
+      const L = R / wc, Lr = rnd(L, 'H'), Rr = rnd(R, 'Ω');
+      rows.push({ stage: resp === 'lp' ? 'in series' : 'to ground', part: 'L', exact: L, unit: 'H', round: Lr }, { stage: resp === 'lp' ? 'to ground' : 'in series', part: 'R', exact: R, unit: 'Ω', round: Rr });
+      built = (w) => { const t = (w * Lr) / Rr, m = 1 + t * t; return resp === 'lp' ? { re: 1 / m, im: -t / m } : { re: (t * t) / m, im: t / m }; };
+      net = `* First-order RL ${resp === 'lp' ? 'low' : 'high'}-pass\nV1 in 0 AC 1\n${resp === 'lp' ? `L1 in out ${fmtV(Lr)}\nR1 out 0 ${fmtV(Rr)}` : `R1 in out ${fmtV(Rr)}\nL1 out 0 ${fmtV(Lr)}`}\n`;
+    }
+    err.hidden = true; out.hidden = false;
+    const name = `${ORD[n]}-order ${first ? (build === 'rc' ? 'RC' : 'RL') : k === 'butter' ? 'Butterworth' : `Chebyshev (${fx(rip, 2).replace(/\.?0+$/, '')} dB)`} ${resp === 'lp' ? 'low' : 'high'}-pass`;
+    q('.fd-big').textContent = `${name}, ${!first && k === 'cheby' ? 'edge' : '−3 dB'} at ${eng(fc, 'Hz')}`;
+    // Response curves.
+    const f = logFreqs(fc / 100, fc * 100, 40), ideal = f.map((x) => response(st, resp, wc, 2 * Math.PI * x)), real = f.map((x) => built(2 * Math.PI * x));
+    const dB = (h: { re: number; im: number }) => 20 * Math.log10(Math.hypot(h.re, h.im));
+    const unwrap = (hs: { re: number; im: number }[]) => { let prev = NaN; return hs.map((h) => { let p = (Math.atan2(h.im, h.re) * 180) / Math.PI; if (Number.isFinite(prev)) { while (p - prev > 180) p -= 360; while (p - prev < -180) p += 360; } prev = p; return p; }); };
+    const at = (m: number) => dB(response(st, resp, wc, 2 * Math.PI * (resp === 'lp' ? fc * m : fc / m)));
+    const facts = [
+      fact(`Cut at ${resp === 'lp' ? '2×' : '½×'} and ${resp === 'lp' ? '10×' : '1/10×'} the corner`, `${fx(at(2), 1)} dB and ${fx(at(10), 1)} dB`, `falls ${20 * n} dB per decade far from the corner`),
+      fact(build === 'sk' ? 'Stages' : 'Sections of the response', st.map((s) => `f0 ${eng((resp === 'lp' ? s.w0 : 1 / s.w0) * fc, 'Hz')}${s.order === 2 ? ` Q ${s.q.toFixed(3)}` : ' (first order)'}`).join('; '), 'pole frequency and Q of each pair'),
+    ];
+    if (+sel('.fd-round')) { const dev = Math.max(...f.map((x, i) => (Math.abs(x / fc - 1) < 0.5 || (resp === 'lp' ? x < fc : x > fc)) ? Math.abs(dB(real[i]) - dB(ideal[i])) : 0)); facts.push(fact('With rounded parts', `within ${fx(dev, 2)} dB of the exact design in the passband`, 'both curves are drawn below')); }
+    q('.fd-facts').replaceChildren(...facts);
+    const head = [build === 'sk' ? 'Stage' : 'Where', 'Part', 'Exact', +sel('.fd-round') ? 'Rounded' : 'Value'];
+    const body = rows.map((r) => [r.stage, r.part, eng(r.exact, r.unit), eng(r.round, r.unit)]);
+    const t = q<HTMLTableElement>('.fd-tab'), hr = document.createElement('tr');
+    head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    t.replaceChildren(hr, ...body.map((r0) => { const tr = document.createElement('tr'); r0.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i > 1) td.style.textAlign = 'right'; tr.append(td); }); return tr; }));
+    const lo = Math.max(-80, Math.min(...ideal.map(dB)) - 5);
+    const series = [{ name: 'Exact design', x: f, y: ideal.map(dB), mode: 'line' as const, width: 2 }];
+    if (+sel('.fd-round')) series.push({ name: 'Rounded parts', x: f, y: real.map(dB), mode: 'line' as const, width: 1.5, dash: [5, 3] } as typeof series[0]);
+    const m1 = chartFigure({ w: 380, h: 240, xLabel: 'Frequency (Hz)', yLabel: 'Gain (dB)', xLog: true, yMin: lo, yMax: Math.max(5, Math.ceil(Math.max(...ideal.map(dB), ...real.map(dB)) + 3)), legend: series.length > 1 ? 'below' : 'none', series, marks: [{ kind: 'vline', at: fc, dash: [4, 3] }, { kind: 'hline', at: -3, dash: [2, 3], label: '−3 dB' }] }, `Bode magnitude of the ${name}`);
+    const m2 = chartFigure({ w: 380, h: 200, xLabel: 'Frequency (Hz)', yLabel: 'Phase (°)', xLog: true, legend: 'none', series: [{ name: 'Phase', x: f, y: unwrap(ideal), mode: 'line', width: 2 }] }, `Bode phase of the ${name}`);
+    paint(q<HTMLCanvasElement>('.fd-mag'), m1); paint(q<HTMLCanvasElement>('.fd-ph'), m2); figs = [m1, m2];
+    q('.fd-netbox').hidden = !net; q<HTMLTextAreaElement>('.fd-net').value = net;
+    sections = [{ title: q('.fd-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows: body, align: ['l', 'l', 'r', 'r'] }, figure: m1 }, { title: 'Phase', figure: m2 }];
+    if (net) sections.push({ title: 'Netlist', text: net.trim().split('\n') });
+    order();
+  }
+  const fmtV = (x: number) => eng(x).replace(/ /g, '').replace('µ', 'u').replace('M', 'meg');
+  function num0(s: string) { return parseValue(s); }
+  function order() {
+    const att = val('.fd-att'), fs = val('.fd-fs'), fc = val('.fd-fc'), resp = sel('.fd-resp');
+    const ratio = resp === 'lp' ? fs / fc : fc / fs, kind = sel('.fd-kind') as Kind;
+    const o = q('.fd-ordout'), btn = q<HTMLButtonElement>('.fd-use');
+    if (!(att > 0 && fs > 0 && ratio > 1)) { o.textContent = `Give a cut in dB and a frequency ${resp === 'lp' ? 'above' : 'below'} the corner.`; btn.hidden = true; return; }
+    const n = minOrder(kind, val('.fd-rip') || 1, att, ratio);
+    btn.hidden = !(n <= 12); btn.dataset.n = String(n);
+    o.textContent = n > 12 ? `That needs order ${n}, more than 12. Move the stopband further away or accept less cut.` : `${kind === 'butter' ? 'Butterworth' : 'Chebyshev'} needs order ${n} for at least ${att} dB at ${eng(fs, 'Hz')}.`;
+  }
+  q('.fd-use').addEventListener('click', () => { q<HTMLInputElement>('.fd-n').value = q('.fd-use').dataset.n!; run(); });
+  root.querySelectorAll('input, select').forEach((i) => { if (i.classList.contains('fd-net')) return; i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.fd-out').hidden) { paint(q<HTMLCanvasElement>('.fd-mag'), figs[0]); paint(q<HTMLCanvasElement>('.fd-ph'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Analog filter design', subtitle: q('.fd-big').textContent ?? '', file: 'filter-design', sections }));
+</script>
+
+<style is:inline>
+  .fdz select, .fdz input { max-width: 100%; }
+  .fdz .fd-tab td { white-space: nowrap; }
+  .fdz .fd-net { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .fdz summary { cursor: pointer; font-weight: 600; }
+</style>

@@ -1,0 +1,180 @@
+---
+// BibTeX cleaner: parse a .bib (ADS exports too), tidy fields, merge duplicates, write journal macros out, protect
+// capitals, sort, and export a clean .bib, a formatted reference list, RIS or CSL-JSON. Nothing leaves the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bbc">
+  <div class="ax-card">
+    <h2>Your BibTeX</h2>
+    <textarea class="bc-in" rows="12" spellcheck="false" aria-label="BibTeX entries"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small bc-ex">Use the example</button>
+      <button type="button" class="btn secondary small bc-clear">Clear</button>
+      <button type="button" class="btn secondary small bc-open">Open a .bib file</button>
+      <input type="file" class="bc-file" accept=".bib,.bibtex,.txt,text/plain,application/x-bibtex" hidden />
+      <span class="ax-help" style="margin:0">BibTeX text (.bib or .txt), up to 5 MB and 20,000 entries.</span>
+    </div>
+    <p class="ax-err bc-ferr" hidden></p>
+    <p class="ax-help">Paste entries from a reference manager, Google Scholar or an ADS export, or open your .bib file. You can also drop a file on the box. Broken entries are reported with their line number and the rest are still read.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Clean-up</h2>
+    <div class="ax-grid">
+      <label>Journal macros such as \apj <select class="bc-jr">
+        <option value="abbrev" selected>Short name (ApJ)</option>
+        <option value="full">Full name</option>
+        <option value="keep">Keep the macro</option>
+      </select></label>
+      <label>Capitals in titles <select class="bc-pr">
+        <option value="acronyms" selected>Protect acronyms (DNA, pH)</option>
+        <option value="all">Protect every capital</option>
+        <option value="none">Leave as is</option>
+      </select></label>
+      <label>Order <select class="bc-sort">
+        <option value="none" selected>As written</option>
+        <option value="author">First author, then year</option>
+        <option value="year">Year</option>
+        <option value="key">Citation key</option>
+      </select></label>
+      <label>Fields to remove <input class="bc-drop" type="text" value="abstract, file, keywords, adsnote" spellcheck="false" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="bc-dd" checked /> Merge duplicates</label>
+      <label class="ax-check"><input type="checkbox" class="bc-uw" checked /> Unwrap &#123;whole titles&#125;</label>
+      <label class="ax-check"><input type="checkbox" class="bc-pg" checked /> Page ranges as --</label>
+      <label class="ax-check"><input type="checkbox" class="bc-doi" checked /> Bare DOIs</label>
+    </div>
+    <p class="ax-help"><b>Journal macros</b>: ADS writes journals as \apj or \mnras, which only work with the AAS macro file; this writes the name instead. <b>Capitals</b>: BibTeX styles may turn titles to lower case; braces keep words such as &#123;DNA&#125; as typed. <b>Merge duplicates</b> keeps the fuller of two entries with the same DOI, or with the same title and first author, and adds any fields only the other had. <b>Unwrap</b> removes the braces ADS puts around a whole title, which stop styles from changing any letter. <b>Bare DOIs</b> removes https://doi.org/ so styles do not print it twice.</p>
+  </div>
+
+  <div class="ax-card bc-out" hidden>
+    <h2>Result</h2>
+    <dl class="ax-facts bc-facts"></dl>
+    <ul class="bc-msgs"></ul>
+    <details class="bc-det"><summary>What changed</summary><ul class="bc-chg"></ul></details>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Show <select class="bc-show">
+        <option value="bib" selected>Cleaned .bib</option>
+        <option value="apa">References, APA-like</option>
+        <option value="numbered">References, numbered (IEEE-like)</option>
+        <option value="aas">References, AAS-like</option>
+        <option value="ris">RIS (EndNote, Zotero, Mendeley)</option>
+        <option value="csl">CSL-JSON (Zotero, Pandoc)</option>
+      </select></label>
+    </div>
+    <ol class="bc-prev plain" hidden></ol>
+    <textarea class="bc-res" rows="14" readonly spellcheck="false" aria-label="Cleaned output"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small bc-copy">Copy</button>
+      <button type="button" class="btn secondary small bc-word" hidden>Copy for Word</button>
+      <button type="button" class="btn secondary small bc-dl">Download</button>
+      <span class="ax-help bc-msg" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help bc-note" hidden>The reference styles are close to APA, IEEE and AAS but not exact: check the journal's guide for its rules on et al., italics and DOIs.</p>
+    <div class="bc-dls" hidden><Downloads label="Reference list" /></div>
+  </div>
+  <p class="ax-err bc-err" hidden></p>
+</div>
+
+<style is:inline>
+  .bbc .bc-msgs { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--warn); }
+  .bbc .bc-msgs:empty { display: none; }
+  .bbc .bc-msgs li.bad { color: var(--bad); }
+  .bbc .bc-det { margin-top: 10px; font-size: 14px; }
+  .bbc .bc-det ul { padding-left: 20px; margin: 6px 0 0; color: var(--muted); max-height: 240px; overflow: auto; }
+  .bbc .bc-res { margin-top: 12px; }
+  .bbc .bc-prev { margin: 12px 0 0; padding: 12px 12px 12px 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 15px; overflow-wrap: anywhere; max-height: 420px; overflow-y: auto; }
+  .bbc .bc-prev li { margin-bottom: 8px; }
+  .bbc .bc-prev.plain { list-style: none; padding-left: 12px; }
+</style>
+
+<script>
+  import { parseBib, cleanEntries, writeBib, referenceList, toRIS, toCSL, DEFAULTS, EXAMPLE, type CleanOptions, type Styled } from '../../lib/sci/bibtex';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bbc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = q<HTMLTextAreaElement>('.bc-in');
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const li = (t: string, cls = '') => { const e = document.createElement('li'); e.textContent = t; if (cls) e.className = cls; return e; };
+  const STYLE_NAMES: Record<string, string> = { apa: 'References (APA-like)', numbered: 'References (numbered)', aas: 'References (AAS-like)' };
+  let out = '', refs: Styled[] = [], cur = 'bib', cleanedBib = '';
+
+  const opts = (): CleanOptions => ({
+    ...DEFAULTS,
+    journals: q<HTMLSelectElement>('.bc-jr').value as CleanOptions['journals'],
+    protect: q<HTMLSelectElement>('.bc-pr').value as CleanOptions['protect'],
+    sort: q<HTMLSelectElement>('.bc-sort').value as CleanOptions['sort'],
+    drop: q<HTMLInputElement>('.bc-drop').value.split(/[,;\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean),
+    dedupe: q<HTMLInputElement>('.bc-dd').checked, unwrapTitle: q<HTMLInputElement>('.bc-uw').checked,
+    pages: q<HTMLInputElement>('.bc-pg').checked, doi: q<HTMLInputElement>('.bc-doi').checked,
+  });
+
+  function run() {
+    const err = q('.bc-err'); err.hidden = true; q('.bc-msg').textContent = '';
+    if (!inp.value.trim()) { q('.bc-out').hidden = true; return; }
+    const P = parseBib(inp.value);
+    if (!P.entries.length) { err.textContent = P.errors.length ? P.errors.join(' ') : 'No BibTeX entries found. Entries start with @article{key, ... or similar.'; err.hidden = false; q('.bc-out').hidden = true; return; }
+    if (P.entries.length > 20000) { err.textContent = `This text has ${P.entries.length.toLocaleString('en')} entries; this tool takes up to 20,000.`; err.hidden = false; q('.bc-out').hidden = true; return; }
+    const C = cleanEntries(P.entries, opts());
+    cleanedBib = writeBib(C.entries, P.preambles);
+    cur = q<HTMLSelectElement>('.bc-show').value;
+    if (cur === 'bib') out = cleanedBib;
+    else if (cur === 'ris') out = toRIS(C.entries);
+    else if (cur === 'csl') out = JSON.stringify(toCSL(C.entries), null, 2) + '\n';
+    else { refs = referenceList(C.entries, cur as 'apa' | 'numbered' | 'aas'); out = refs.map((r) => r.text).join('\n') + '\n'; }
+    const isRefs = cur in STYLE_NAMES;
+    const res = q<HTMLTextAreaElement>('.bc-res'); res.value = out; res.hidden = isRefs;
+    const prev = q<HTMLOListElement>('.bc-prev'); prev.hidden = !isRefs; 
+    if (isRefs) prev.replaceChildren(...refs.map((r) => { const e = document.createElement('li'); e.innerHTML = r.html; return e; })); // html is escaped by the library
+    q('.bc-word').hidden = !isRefs; q('.bc-note').hidden = !isRefs; q('.bc-dls').hidden = !isRefs;
+    const ck = new Set(C.changes.map((c) => c.key)), nChanged = C.entries.filter((e) => ck.has(e.key)).length;
+    q('.bc-facts').replaceChildren(fact('Entries read', String(P.entries.length)), fact('Duplicates merged', String(C.removed.length)), fact('Entries out', String(C.entries.length)), fact('Entries changed', String(nChanged)));
+    q('.bc-msgs').replaceChildren(
+      ...P.errors.map((e) => li(e, 'bad')),
+      ...C.removed.map((r) => li(`Removed ${r.key || 'an entry with no key'}: ${r.why} as ${r.keptAs}. Cite ${r.keptAs} instead.`)),
+      ...[...P.warnings, ...C.warnings].slice(0, 200).map((w) => li(w)),
+    );
+    const groups = new Map<string, string[]>();
+    for (const c of C.changes) groups.set(c.key, [...(groups.get(c.key) ?? []), c.what]);
+    q('.bc-chg').replaceChildren(...[...groups].slice(0, 500).map(([k, w]) => li(`${k}: ${[...new Set(w)].join('; ')}`)));
+    q('.bc-det').hidden = !groups.size;
+    q('.bc-out').hidden = false;
+  }
+
+  let timer = 0;
+  inp.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, inp.value.length > 200000 ? 400 : 60); });
+  for (const c of ['.bc-jr', '.bc-pr', '.bc-sort', '.bc-dd', '.bc-uw', '.bc-pg', '.bc-doi', '.bc-show']) q(c).addEventListener('change', run);
+  q('.bc-drop').addEventListener('input', run);
+  q('.bc-ex').addEventListener('click', () => { inp.value = EXAMPLE; run(); });
+  q('.bc-clear').addEventListener('click', () => { inp.value = ''; run(); inp.focus(); });
+  const msg = (m: string) => { q('.bc-msg').textContent = m; };
+  q('.bc-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(out); } catch { const t = q<HTMLTextAreaElement>('.bc-res'); t.hidden = false; t.select(); document.execCommand('copy'); t.hidden = cur in STYLE_NAMES; } msg('Copied.'); });
+  q('.bc-word').addEventListener('click', async () => {
+    const html = `<ol style="list-style:none;padding:0">${refs.map((r) => `<li>${r.html}</li>`).join('')}</ol>`;
+    try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([out], { type: 'text/plain' }) })]); }
+    catch { const r = document.createRange(); r.selectNodeContents(q('.bc-prev')); const s = getSelection()!; s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); s.removeAllRanges(); }
+    msg('Copied with italics. Paste into Word or Google Docs.');
+  });
+  q('.bc-dl').addEventListener('click', () => {
+    const [name, type] = cur === 'bib' ? ['references-clean.bib', 'application/x-bibtex'] : cur === 'ris' ? ['references.ris', 'application/x-research-info-systems'] : cur === 'csl' ? ['references.json', 'application/json'] : [`references-${cur}.txt`, 'text/plain'];
+    save(new Blob([out], { type: `${type};charset=utf-8` }), name, type);
+  });
+  wireDownloads(q('.bc-dls'), () => ({ title: STYLE_NAMES[cur] ?? 'References', sections: cur in STYLE_NAMES ? [{ title: 'Reference list', text: refs.map((r) => r.text) } as Section] : [], file: `references-${cur}` }));
+
+  const openFile = async (f: File) => {
+    const fe = q('.bc-ferr'); fe.hidden = true;
+    if (f.size > 5e6) { fe.textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes .bib files up to 5 MB. Split the file and clean each part.`; fe.hidden = false; return; }
+    const t = (await f.text()).replace(/^﻿/, '');
+    if (/\u0000/.test(t.slice(0, 4000))) { fe.textContent = `${f.name} is not a text file. Open a .bib or .txt file.`; fe.hidden = false; return; }
+    inp.value = t; run();
+  };
+  q('.bc-open').addEventListener('click', () => q<HTMLInputElement>('.bc-file').click());
+  q<HTMLInputElement>('.bc-file').addEventListener('change', (e) => { const el = e.target as HTMLInputElement; const f = el.files?.[0]; el.value = ''; if (f) openFile(f); });
+  inp.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  inp.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); openFile(f); } });
+
+  inp.value = EXAMPLE; run();
+</script>
