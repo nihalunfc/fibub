@@ -1,0 +1,166 @@
+---
+// Parallel-plate capacitor lab: plate area, gap, a dielectric slab sliding in, battery connected or disconnected;
+// C, Q, V, energy and field, and capacitors in series and parallel. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax cpl">
+  <div class="ax-card">
+    <h2>Parallel-plate capacitor</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small cpl-bat">Disconnect the battery</button>
+      <button type="button" class="btn secondary small cpl-reset">Start again</button>
+    </div>
+    <label class="cpl-sl">Battery voltage: <b class="cpl-vv">6.0 V</b><input type="range" class="cpl-v" min="1" max="12" step="0.5" value="6" aria-label="Battery voltage" /></label>
+    <label class="cpl-sl">Plate area: <b class="cpl-av">100 cm²</b><input type="range" class="cpl-a" min="25" max="400" step="25" value="100" aria-label="Plate area in square centimetres" /></label>
+    <label class="cpl-sl">Gap between the plates: <b class="cpl-dv">2.0 mm</b><input type="range" class="cpl-d" min="0.5" max="10" step="0.5" value="2" aria-label="Gap in millimetres" /></label>
+    <label class="cpl-sl">Dielectric constant of the slab K: <b class="cpl-kv">4.0</b><input type="range" class="cpl-k" min="1" max="10" step="0.5" value="4" aria-label="Dielectric constant" /></label>
+    <label class="cpl-sl">Slab pushed in: <b class="cpl-xv">0%</b><input type="range" class="cpl-x" min="0" max="100" step="5" value="0" aria-label="How far the slab is pushed in, percent" /></label>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig cpl-fig"></canvas>
+    <div class="ax-legend"><span><i class="cpl-kp"></i>+ charge</span><span><i class="cpl-kn"></i>− charge</span><span><i class="cpl-ks"></i>dielectric slab</span><span>arrows: electric field</span></div>
+    <p class="ax-big cpl-big" aria-live="polite"></p>
+    <p class="cpl-formula"></p>
+    <dl class="ax-facts cpl-facts" style="margin-top:10px"></dl>
+    <p class="cpl-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Two capacitors together</h2>
+    <div class="ax-grid">
+      <label>C₁ (µF) <input class="cpl-c1" type="text" inputmode="decimal" value="4" /></label>
+      <label>C₂ (µF) <input class="cpl-c2" type="text" inputmode="decimal" value="12" /></label>
+      <label>Battery (V) <input class="cpl-cv" type="text" inputmode="decimal" value="12" /></label>
+    </div>
+    <p class="ax-err cpl-err" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="cpl-tab"></table></div>
+    <p class="ax-help">In series the charge on each is the same and the voltages add; in parallel the voltage is the same and the charges add.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cpl-try">
+      <li>Double the area: C doubles. Double the gap: C halves.</li>
+      <li>With the battery connected, push the slab in: C and Q go up, V stays the same, and the battery does work.</li>
+      <li>Disconnect the battery, then push the slab in: Q stays the same, so V and the stored energy go down. The slab is pulled in.</li>
+      <li>Disconnect, then widen the gap: V goes up, and the energy too. You do work pulling the plates apart.</li>
+      <li>Put 4 µF and 12 µF in series: the total, 3 µF, is less than either.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cpl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cpl .cpl-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .cpl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cpl-fig { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .cpl-kp { background: var(--bad); }
+  .cpl-kn { background: var(--accent); }
+  .cpl-ks { background: var(--warn-soft); border: 1px solid var(--warn); }
+  .cpl-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .cpl-formula, .cpl-note { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .cpl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .cpl .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .cpl .eq-q p { margin: 0 0 6px; }
+  .cpl .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .cpl .eq-ok { color: var(--good); font-weight: 600; }
+  .cpl .eq-no { color: var(--bad); }
+  .cpl .eq-work { margin-top: 4px; font-size: 14px; }
+  .cpl .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .cpl .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { plateC, state, series, parallel, questions } from '../../lib/sci/capacitor-lab';
+  import { pagePalette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.cpl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.cpl-fig');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const unit = (x: number, u: string) => { const a = Math.abs(x); return a >= 1 ? `${sg(x)} ${u}` : a >= 1e-3 ? `${sg(x * 1e3)} m${u}` : a >= 1e-6 ? `${sg(x * 1e6)} µ${u}` : a >= 1e-9 ? `${sg(x * 1e9)} n${u}` : `${sg(x * 1e12)} p${u}`; };
+  let connected = true, Qheld = 0;
+  const geo = () => ({ A: val('.cpl-a') * 1e-4, d: val('.cpl-d') * 1e-3, k: val('.cpl-k'), x: val('.cpl-x') / 100, V: val('.cpl-v') });
+  const now = () => { const g = geo(), C = plateC(g.A, g.d, g.k, g.x); return { ...g, ...state(C, g.d, connected, g.V, Qheld) }; };
+
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+  const W = 360, H = 240;
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = now();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const pw = 70 + 160 * Math.sqrt(s.A / 0.04), gap = 16 + 13 * (s.d * 1000), cx = 200, cy = 118;
+    const x0 = cx - pw / 2, x1 = cx + pw / 2, yt = cy - gap / 2, yb = cy + gap / 2;
+    // Slab sliding in from the right.
+    const sx = x1 - s.x * pw;
+    if (s.x > 0) { c.fillStyle = pal.red ? '#240000' : pal.warn; c.globalAlpha = 0.18; c.fillRect(sx, yt, x1 - sx, gap); c.globalAlpha = 1; c.strokeStyle = pal.warn; c.lineWidth = 1; c.strokeRect(sx, yt, x1 - sx + (s.x < 1 ? 30 * (1 - s.x) : 0), gap); }
+    // Field arrows: spacing shows the field strength V/d (same in the air part and the slab part here).
+    const Ek = Math.max(0, Math.min(1, s.E / 6000)), n = Math.max(2, Math.round(4 + 14 * Ek));
+    c.strokeStyle = pal.muted; c.fillStyle = pal.muted; c.lineWidth = 1;
+    if (s.V > 0) for (let i = 0; i < n; i++) { const x = x0 + ((i + 0.5) * pw) / n; c.beginPath(); c.moveTo(x, yt + 4); c.lineTo(x, yb - 6); c.stroke(); c.beginPath(); c.moveTo(x, yb - 3); c.lineTo(x - 3, yb - 8); c.lineTo(x + 3, yb - 8); c.closePath(); c.fill(); }
+    // Plates.
+    c.fillStyle = pal.ink; c.fillRect(x0, yt - 6, pw, 6); c.fillRect(x0, yb, pw, 6);
+    // Charges: more on the part with the slab (σ = K ε0 E there).
+    const sigAir = 8.854e-12 * s.E, nAir = Math.round(Math.min(14, sigAir / 4e-9 * 6) * (1 - s.x) * (pw / 230)), nSlab = Math.round(Math.min(40, (sigAir * s.k) / 4e-9 * 6) * s.x * (pw / 230));
+    c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center';
+    const signs = (count: number, from: number, to: number) => { for (let i = 0; i < count; i++) { const x = from + ((i + 0.5) * (to - from)) / count; c.fillStyle = pal.bad; c.fillText('+', x, yt - 9); c.fillStyle = pal.accent; c.fillText('−', x, yb + 18); } };
+    signs(nAir, x0, sx); signs(nSlab, sx, x1);
+    // Battery and switch on the left.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x0 + 6, yt - 6); c.lineTo(x0 + 6, 30); c.lineTo(40, 30); c.lineTo(40, 100); c.moveTo(40, 136); c.lineTo(40, 206); c.lineTo(x0 + 6, 206); c.lineTo(x0 + 6, yb + 6); c.stroke();
+    c.beginPath(); c.moveTo(26, 104); c.lineTo(54, 104); c.moveTo(33, 114); c.lineTo(47, 114); c.moveTo(26, 122); c.lineTo(54, 122); c.moveTo(33, 132); c.lineTo(47, 132); c.stroke();
+    c.fillStyle = pal.bg; c.fillRect(70, 22, 40, 16); c.strokeStyle = pal.ink;
+    c.beginPath(); c.arc(74, 30, 2.5, 0, Math.PI * 2); c.arc(106, 30, 2.5, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(74, 30); connected ? c.lineTo(106, 30) : c.lineTo(102, 14); c.stroke();
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText(connected ? 'switch closed' : 'switch open', 70, 52); c.fillText(`${sg(val('.cpl-v'))} V`, 58, 122);
+    fig.setAttribute('aria-label', `Capacitor plates ${sg(s.d * 1000)} mm apart, slab ${Math.round(s.x * 100)}% in, ${connected ? 'battery connected' : 'battery disconnected'}`);
+  }
+  function texts() {
+    const s = now();
+    q('.cpl-vv').textContent = `${s.V.toFixed(1)} V`;
+    q('.cpl-av').textContent = `${Math.round(s.A * 1e4)} cm²`; q('.cpl-dv').textContent = `${(s.d * 1000).toFixed(1)} mm`;
+    q('.cpl-kv').textContent = s.k.toFixed(1); q('.cpl-xv').textContent = `${Math.round(s.x * 100)}%`;
+    q<HTMLInputElement>('.cpl-v').disabled = !connected;
+    q('.cpl-bat').textContent = connected ? 'Disconnect the battery' : 'Connect the battery';
+    q('.cpl-big').textContent = `C = ${unit(s.C, 'F')}, Q = ${unit(s.Q, 'C')}, V = ${sg(s.V)} V`;
+    q('.cpl-formula').textContent = s.x > 0
+      ? `C = ε₀ A (1 − x + K x) / d = 8.85 × 10⁻¹² × ${+s.A.toPrecision(3)} × (${sg(1 - s.x, 2)} + ${sg(s.k, 2)} × ${sg(s.x, 2)}) / ${+s.d.toPrecision(3)} = ${unit(s.C, 'F')}`
+      : `C = ε₀ A / d = 8.85 × 10⁻¹² × ${+s.A.toPrecision(3)} m² / ${+s.d.toPrecision(3)} m = ${unit(s.C, 'F')}`;
+    q('.cpl-facts').replaceChildren(fact('Capacitance', unit(s.C, 'F')), fact('Charge Q = C V', unit(s.Q, 'C')), fact('Voltage', `${sg(s.V)} V`, connected ? 'held by the battery' : 'V = Q / C'), fact('Energy stored', unit(s.U, 'J'), 'U = ½ C V²'), fact('Field between the plates', s.E >= 1000 ? `${sg(s.E / 1000)} kV/m` : `${sg(s.E)} V/m`, 'E = V / d'));
+    q('.cpl-note').textContent = connected ? 'Battery connected: the voltage stays fixed, so any change in C changes the charge.' : `Battery disconnected: the charge stays at ${unit(Qheld, 'C')}, so any change in C changes the voltage.`;
+  }
+  function combo() {
+    const c1 = num(q<HTMLInputElement>('.cpl-c1').value), c2 = num(q<HTMLInputElement>('.cpl-c2').value), V = num(q<HTMLInputElement>('.cpl-cv').value);
+    const err = !(c1 > 0) || !(c2 > 0) ? 'Type both capacitances in microfarads (more than 0).' : !(V > 0 && V <= 1e5) ? 'Type a battery voltage above 0.' : '';
+    const e = q('.cpl-err'); e.hidden = !err; e.textContent = err; q('.cpl-tab').hidden = !!err;
+    if (err) return;
+    const cs = series([c1, c2]), cp = parallel([c1, c2]), Qs = cs * V;
+    const rows = [
+      ['Series', `${sg(cs)} µF`, `${sg(Qs)} µC each`, `${sg(Qs / c1)} V + ${sg(Qs / c2)} V`, `${sg(0.5 * cs * V * V)} µJ`],
+      ['Parallel', `${sg(cp)} µF`, `${sg(c1 * V)} + ${sg(c2 * V)} µC`, `${sg(V)} V each`, `${sg(0.5 * cp * V * V)} µJ`],
+    ];
+    const head = document.createElement('tr'); head.innerHTML = '<th></th><th>Total C</th><th>Charge</th><th>Voltage</th><th>Energy</th>';
+    q('.cpl-tab').replaceChildren(head, ...rows.map((r) => { const tr = document.createElement('tr'); for (const v of r) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } return tr; }));
+  }
+  const all = () => { texts(); draw(); };
+  for (const c of ['.cpl-v', '.cpl-a', '.cpl-d', '.cpl-k', '.cpl-x']) q(c).addEventListener('input', all);
+  q('.cpl-bat').addEventListener('click', () => { if (connected) { Qheld = now().Q; connected = false; } else connected = true; all(); });
+  q('.cpl-reset').addEventListener('click', () => { connected = true; for (const [c, v] of [['.cpl-v', 6], ['.cpl-a', 100], ['.cpl-d', 2], ['.cpl-k', 4], ['.cpl-x', 0]] as const) q<HTMLInputElement>(c).value = String(v); all(); });
+  for (const c of ['.cpl-c1', '.cpl-c2', '.cpl-cv']) q(c).addEventListener('input', combo);
+  new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  all(); combo();
+  quiz(q('.cpl-quiz'), () => questions());
+</script>
