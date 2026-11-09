@@ -1,0 +1,280 @@
+---
+// Household carbon footprint: amount × factor lines in categories, flights by great-circle distance, a breakdown
+// chart, scenarios to compare, CSV and report downloads. Every factor is the user's; the defaults are rounded
+// examples. Numbers stay on the device (saved in this browser only if the user ticks the box).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cfp">
+  <p class="cf-warn"><b>Example values, replace with your country's official factors.</b> Every emission factor on this page is a rounded example to show how the sums work, not data for any country, supplier or product. Official factors are published by government and energy agencies; your electricity supplier may publish its own.</p>
+
+  <div class="ax-card">
+    <h2>Household</h2>
+    <div class="ax-grid">
+      <label>People in the household <input class="cf-people" type="number" min="1" max="50" step="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Everything is per year. Home energy, travel and goods are for the whole household; food lines are per person and are multiplied by the number of people. The result is shown for the household and per person.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cf-reset">Start again from the example</button><button type="button" class="btn secondary small cf-blank">Clear all amounts</button></div>
+  </div>
+
+  <div class="cf-cats"></div>
+
+  <div class="ax-card">
+    <h2>Flights</h2>
+    <div class="cf-flights"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cf-addf">Add a flight</button></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Factor (kg CO₂e per passenger-km) <input class="cf-ff" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Extra distance for routing (%) <input class="cf-up" type="number" min="0" max="100" step="any" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Type each end as latitude, longitude (north and east positive; an airport's coordinates are on its map page), or type the distance in km. The page finds the shortest distance over the Earth (the WGS84 ellipsoid). Real flights are a little longer because of routes and holding; some methods add a percentage for that, which you can set. Trips are one way; tick Return to count the trip back too. Factors differ a lot between methods (some include effects of flying beyond CO₂), so use the one your source gives.</p>
+  </div>
+
+  <div class="ax-card cf-out">
+    <h2>Footprint</h2>
+    <p class="ax-err cf-err" hidden></p>
+    <p class="ax-big cf-big"></p>
+    <p class="cf-sub"></p>
+    <canvas class="ax-fig cf-fig"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="cf-tab"><thead><tr><th>Category</th><th>kg CO₂e</th><th>Share</th></tr></thead><tbody></tbody></table></div>
+    <Downloads label="Report" />
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cf-csv">All lines (.csv)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare scenarios</h2>
+    <p class="ax-help" style="margin-top:0">Keep the current numbers as a scenario, change something (drive less, switch heating, change the electricity factor for a green tariff) and keep that too. Up to 6 scenarios.</p>
+    <div class="ax-grid">
+      <label>Scenario name <input class="cf-sname" maxlength="40" placeholder="e.g. Now" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small cf-keep">Keep as a scenario</button></div>
+    <div class="cf-scen" hidden>
+      <div class="ax-scroll" style="margin-top:12px"><table class="cf-stab"><thead></thead><tbody></tbody></table></div>
+      <canvas class="ax-fig cf-sfig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cf-scsv">Scenarios (.csv)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Keep my numbers</h2>
+    <label class="ax-check"><input type="checkbox" class="cf-rem" /> Remember my numbers and scenarios in this browser</label>
+    <p class="ax-help">Off unless you tick it. When on, your numbers are kept in this browser's storage on this device only, so they are here next time. They are never sent anywhere. Untick or press Delete to remove them.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cf-del">Delete saved numbers</button></div>
+    <p class="cf-msg" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<style is:global>
+  .cfp .cf-warn { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 8px; margin: 0 0 14px; font-size: 15px; }
+  .cfp .cf-line { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 6px; align-items: end; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .cfp .cf-line label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); min-width: 0; }
+  .cfp .cf-line input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; width: 100%; }
+  .cfp .cf-x { border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
+  .cfp .cf-fl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .cfp .cf-fl .cf-wide { grid-column: 1 / -2; }
+  .cfp .cf-fl .cf-ret { display: flex; gap: 6px; align-items: center; font-size: 14px; color: var(--ink); padding-bottom: 8px; }
+  .cfp .cf-fl .cf-ret input { width: 18px; height: 18px; }
+  .cfp .cf-dist { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
+  @media (max-width: 560px) {
+    .cfp .cf-line:not(.cf-fl) { grid-template-columns: repeat(3, minmax(0, 1fr)) 36px; }
+    .cfp .cf-line .cf-lab { grid-column: 1 / 4; }
+    .cfp .cf-line:not(.cf-fl) .cf-x { grid-column: 4; grid-row: 1; }
+  }
+  .cfp .cf-sub { font-weight: 600; margin: 0 0 12px; }
+  .cfp .cf-tab, .cfp .cf-stab { border-collapse: collapse; font-size: 14px; width: 100%; }
+  .cfp .cf-tab th, .cfp .cf-tab td, .cfp .cf-stab th, .cfp .cf-stab td { border-bottom: 1px solid var(--line); padding: 6px 10px 6px 0; text-align: right; white-space: nowrap; }
+  .cfp .cf-tab th:first-child, .cfp .cf-tab td:first-child, .cfp .cf-stab th:first-child, .cfp .cf-stab td:first-child { text-align: left; }
+  .cfp .cf-tab tr.tot td { font-weight: 700; }
+  .cfp .cf-stab button { font: inherit; font-size: 13px; color: var(--accent); background: none; border: 0; cursor: pointer; padding: 2px 4px; font-weight: 600; }
+  .cfp .cf-msg { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+</style>
+
+<script>
+  import { footprint, exampleState, csvRows, type State, type Result } from '../../lib/sci/footprint';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-footprint-v1';
+  const root = document.querySelector<HTMLElement>('.cfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const n = (s: string) => { const t = s.trim().replace(',', '.').replace('−', '-'); return t === '' ? 0 : Number(t); };
+  const kgTxt = (kg: number) => (Math.abs(kg) >= 1000 ? `${(kg / 1000).toFixed(kg >= 1e5 ? 0 : 2).replace(/\.?0+$/, '')} t` : `${Math.round(kg)} kg`);
+  const round = (x: number) => Math.round(x).toLocaleString('en');
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+
+  type Scenario = { name: string; state: State; cats: [string, number][]; total: number; perPerson: number };
+  let state: State = exampleState(), scenarios: Scenario[] = [], last: Result | null = null;
+  let fig: Figure | null = null, sfig: Figure | null = null, sections: Section[] = [];
+
+  // ---------- storage (only when the box is ticked) ----------
+  const remember = () => q<HTMLInputElement>('.cf-rem').checked;
+  function persist() { if (!remember()) return; try { localStorage.setItem(KEY, JSON.stringify({ state, scenarios })); } catch { /* storage blocked */ } }
+  function forget(msg: string) { try { localStorage.removeItem(KEY); } catch { /* */ } q('.cf-msg').textContent = msg; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved?.state?.cats) { state = saved.state; scenarios = Array.isArray(saved.scenarios) ? saved.scenarios : []; q<HTMLInputElement>('.cf-rem').checked = true; q('.cf-msg').textContent = 'Your saved numbers were loaded from this browser.'; }
+  } catch { /* nothing saved */ }
+
+  // ---------- editors ----------
+  function field(label: string, value: string | number, on: (v: string) => void, attrs: Partial<HTMLInputElement> = {}, cls = '') {
+    const i = el('input', { value: String(value), ...attrs });
+    i.addEventListener('input', () => { on(i.value); run(); });
+    return el('label', { className: cls }, label, i);
+  }
+  function xButton(title: string, on: () => void) { const b = el('button', { type: 'button', className: 'cf-x', title, textContent: '×' }); b.setAttribute('aria-label', title); b.addEventListener('click', () => { on(); build(); run(); }); return b; }
+
+  function build() {
+    q<HTMLInputElement>('.cf-people').value = String(state.people);
+    q<HTMLInputElement>('.cf-ff').value = String(state.flightFactor);
+    q<HTMLInputElement>('.cf-up').value = String(Math.round(state.uplift * 1e6) / 1e4);
+    q('.cf-cats').replaceChildren(...state.cats.map((c, ci) => {
+      const card = el('div', { className: 'ax-card' }, el('h2', { textContent: c.name }));
+      card.dataset.cat = c.id;
+      for (const [li, l] of c.lines.entries()) {
+        const row = el('div', { className: 'cf-line' },
+          field('Item', l.label, (v) => { l.label = v; }, { maxLength: 60 }, 'cf-lab'),
+          field('Amount', l.amount, (v) => { l.amount = n(v); }, { inputMode: 'decimal', className: 'cf-amt' }),
+          field('Unit', l.unit, (v) => { l.unit = v; }, { maxLength: 16 }),
+          field(`kg CO₂e per ${l.unit || 'unit'}`, l.factor, (v) => { l.factor = n(v); }, { inputMode: 'decimal', className: 'cf-fac' }),
+          xButton(`Remove ${l.label || 'this line'}`, () => { c.lines.splice(li, 1); }));
+        card.append(row);
+      }
+      const add = el('button', { type: 'button', className: 'btn secondary small cf-add', textContent: 'Add a line' });
+      add.addEventListener('click', () => { state.cats[ci].lines.push({ label: '', amount: 0, unit: c.lines[0]?.unit ?? '', factor: 0 }); build(); run(); });
+      card.append(el('div', { className: 'ax-row', style: 'margin-top:8px' } as Partial<HTMLDivElement>, add));
+      if (c.perPerson) card.append(el('p', { className: 'ax-help', textContent: 'Per person: a day count × kg CO₂e per day, multiplied by the people in the household. Change the daily values to match how you eat.' }));
+      if (c.id === 'goods') card.append(el('p', { className: 'ax-help', textContent: 'Spend-based: money spent in a year × kg CO₂e per unit of your currency. Rough by nature; use factors made for your currency and year.' }));
+      return card;
+    }));
+    q('.cf-flights').replaceChildren(...state.flights.map((f, fi) => {
+      const row = el('div', { className: 'cf-line cf-fl' },
+        field('Flight', f.label, (v) => { f.label = v; }, { maxLength: 60 }, 'cf-wide'),
+        xButton(`Remove ${f.label || 'this flight'}`, () => { state.flights.splice(fi, 1); }),
+        field('From (lat, lon)', f.from, (v) => { f.from = v; }, { className: 'cf-from', inputMode: 'text' }),
+        field('To (lat, lon)', f.to, (v) => { f.to = v; }, { className: 'cf-to', inputMode: 'text' }),
+        el('span'),
+        field('or distance (km)', f.km ?? '', (v) => { f.km = v.trim() === '' ? null : n(v); }, { inputMode: 'decimal', className: 'cf-km' }),
+        field('Trips', f.trips, (v) => { f.trips = n(v); }, { inputMode: 'numeric', className: 'cf-trips' }),
+        (() => { const c = el('input', { type: 'checkbox', checked: f.ret, className: 'cf-retbox' }); c.addEventListener('change', () => { f.ret = c.checked; run(); }); return el('label', { className: 'cf-ret' }, c, 'Return'); })(),
+        el('p', { className: 'cf-dist' }));
+      return row;
+    }));
+  }
+
+  // ---------- charts ----------
+  /** Horizontal stacked bars: one row per label, parts coloured by series. */
+  function barFigure(rows: { label: string; parts: number[] }[], names: string[], alt: string): Figure {
+    const legendRows = names.length > 1 ? Math.ceil(names.length / 2) : 0;
+    const h = 30 + rows.length * 34 + legendRows * 20 + 24;
+    return { w: 400, h, alt, draw: (ctx, W, H, pal) => {
+      const font = (s: number, b = false) => `${b ? 600 : 400} ${s}px system-ui, sans-serif`;
+      ctx.font = font(14);
+      const lw = Math.min(150, Math.max(...rows.map((r) => ctx.measureText(r.label).width)) + 12);
+      const max = Math.max(1, ...rows.map((r) => r.parts.reduce((a, b) => a + Math.max(0, b), 0)));
+      const x0 = lw, x1 = W - 56, sc = (x1 - x0) / max;
+      rows.forEach((r, i) => {
+        const y = 16 + i * 34;
+        ctx.fillStyle = pal.ink; ctx.font = font(14); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        let lab = r.label; while (ctx.measureText(lab).width > lw - 10 && lab.length > 3) lab = lab.slice(0, -2) + '…';
+        ctx.fillText(lab, lw - 8, y + 12);
+        let x = x0;
+        r.parts.forEach((v, k) => { const w = Math.max(0, v) * sc; ctx.fillStyle = pal.red ? pal.accent : names.length > 1 ? OKABE_ITO[k % OKABE_ITO.length] : pal.accent; ctx.fillRect(x, y, w, 24); x += w; });
+        const tot = r.parts.reduce((a, b) => a + b, 0);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = font(13, true); ctx.fillText(kgTxt(tot), x + 6, y + 12);
+      });
+      ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(x0 + 0.5, 10); ctx.lineTo(x0 + 0.5, 16 + rows.length * 34); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = font(12); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText('kg CO₂e a year', (x0 + x1) / 2, 16 + rows.length * 34 + 16);
+      if (legendRows) names.forEach((nm, k) => {
+        const lx = 20 + (k % 2) * (W / 2), ly = 16 + rows.length * 34 + 30 + Math.floor(k / 2) * 20;
+        ctx.fillStyle = pal.red ? pal.accent : OKABE_ITO[k % OKABE_ITO.length]; ctx.fillRect(lx, ly, 12, 12);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(nm, lx + 18, ly + 6);
+      });
+      void H;
+    } };
+  }
+
+  // ---------- run ----------
+  function run() {
+    state.people = Math.round(n(q<HTMLInputElement>('.cf-people').value));
+    state.flightFactor = n(q<HTMLInputElement>('.cf-ff').value);
+    state.uplift = n(q<HTMLInputElement>('.cf-up').value) / 100;
+    const errs: string[] = [];
+    if (!(state.people >= 1 && state.people <= 50)) errs.push('People in the household is a whole number from 1 to 50.');
+    if (!(state.flightFactor >= 0)) errs.push('The flight factor must be 0 or more.');
+    if (!(state.uplift >= 0 && state.uplift <= 1)) errs.push('The extra distance is between 0 and 100 %.');
+    const r = footprint({ ...state, people: state.people >= 1 ? state.people : 1 });
+    errs.push(...r.errors);
+    // Distances under each flight.
+    root.querySelectorAll<HTMLElement>('.cf-fl').forEach((row, i) => {
+      const f = state.flights[i], fr = r.flights[i];
+      row.querySelector('.cf-dist')!.textContent = fr.error ? 'Distance: type both ends or a distance.' : `${f.km != null && f.km > 0 ? 'Typed' : 'Shortest'} distance ${round(fr.km)} km × ${fr.legs} flight${fr.legs === 1 ? '' : 's'}${state.uplift ? ` + ${Math.round(state.uplift * 1000) / 10} %` : ''} = ${kgTxt(fr.kg)} CO₂e`;
+    });
+    const e = q('.cf-err'); e.textContent = errs.join(' '); e.hidden = !errs.length;
+    last = r;
+    q('.cf-big').textContent = `${kgTxt(r.total)} CO₂e a year`;
+    q('.cf-sub').textContent = `${kgTxt(r.perPerson)} per person (${state.people} ${state.people === 1 ? 'person' : 'people'}). Built from example factors unless you changed them.`;
+    const tb = q('.cf-tab tbody');
+    tb.replaceChildren(...r.cats.map((c) => el('tr', {}, el('td', { textContent: c.name }), el('td', { textContent: round(c.kg) }), el('td', { textContent: r.total > 0 ? `${Math.round((c.kg / r.total) * 100)} %` : '–' }))),
+      el('tr', { className: 'tot' }, el('td', { textContent: 'Total' }), el('td', { textContent: round(r.total) }), el('td', { textContent: r.total > 0 ? '100 %' : '–' })));
+    fig = barFigure(r.cats.map((c) => ({ label: c.name, parts: [c.kg] })), ['kg CO₂e'], `Footprint by category: total ${kgTxt(r.total)} CO₂e a year`);
+    paint(q<HTMLCanvasElement>('.cf-fig'), fig);
+    const lines: [string, string][] = [];
+    for (const c of state.cats) { const rc = r.cats.find((x) => x.id === c.id)!; for (const l of rc.lines) lines.push([`${c.name}: ${l.label || 'line'}`, `${l.amount} ${l.unit} × ${l.factor}${c.perPerson ? ` × ${state.people} people` : ''} = ${round(l.kg)} kg`]); }
+    for (const f of r.flights) lines.push([`Flight: ${f.label || 'flight'}`, `${round(f.km)} km × ${f.legs} × ${state.flightFactor}${state.uplift ? ` × ${1 + state.uplift}` : ''} = ${round(f.kg)} kg`]);
+    sections = [
+      { title: 'Footprint', text: [`${q('.cf-big').textContent}. ${q('.cf-sub').textContent}`, 'Example values, replace with your country\'s official factors.'], table: { head: ['Category', 'kg CO₂e', 'Share'], rows: [...tb.children].map((tr) => [...tr.children].map((td) => td.textContent ?? '')), align: ['l', 'r', 'r'] } },
+      { title: 'By category', figure: fig },
+      { title: 'Every line', facts: lines },
+    ];
+    if (scenarios.length) sections.push({ title: 'Scenarios', table: scenTable(), figure: sfig ?? undefined });
+    persist();
+  }
+
+  // ---------- scenarios ----------
+  const catNames = () => [...new Set(scenarios.flatMap((s) => s.cats.map((c) => c[0])))];
+  function scenTable() {
+    const names = catNames();
+    return { head: ['Scenario', ...names, 'Total', 'Per person'], rows: scenarios.map((s) => [s.name, ...names.map((nm) => round(s.cats.find((c) => c[0] === nm)?.[1] ?? 0)), round(s.total), round(s.perPerson)]), align: ['l', ...names.map(() => 'r' as const), 'r', 'r'] as ('l' | 'r')[] };
+  }
+  function showScenarios() {
+    q('.cf-scen').hidden = !scenarios.length;
+    if (!scenarios.length) { sfig = null; run(); return; }
+    const t = scenTable(), base = scenarios[0].total;
+    q('.cf-stab thead').replaceChildren(el('tr', {}, ...[...t.head, 'vs first', ''].map((h) => el('th', { textContent: h }))));
+    q('.cf-stab tbody').replaceChildren(...scenarios.map((s, i) => {
+      const load = el('button', { type: 'button', textContent: 'Load', className: 'cf-load' }), rm = el('button', { type: 'button', textContent: 'Remove', className: 'cf-rm' });
+      load.addEventListener('click', () => { state = structuredClone(s.state); build(); run(); q('.cf-msg').textContent = ''; });
+      rm.addEventListener('click', () => { scenarios.splice(i, 1); showScenarios(); });
+      const diff = i === 0 || base <= 0 ? '–' : `${s.total >= base ? '+' : '−'}${Math.abs(Math.round(((s.total - base) / base) * 100))} %`;
+      return el('tr', {}, ...t.rows[i].map((c) => el('td', { textContent: c })), el('td', { textContent: diff }), el('td', {}, load, rm));
+    }));
+    const names = catNames();
+    sfig = barFigure(scenarios.map((s) => ({ label: s.name, parts: names.map((nm) => s.cats.find((c) => c[0] === nm)?.[1] ?? 0) })), names, `Scenarios compared: ${scenarios.map((s) => `${s.name} ${kgTxt(s.total)}`).join(', ')}`);
+    paint(q<HTMLCanvasElement>('.cf-sfig'), sfig);
+    run();
+  }
+  q('.cf-keep').addEventListener('click', () => {
+    if (!last) return;
+    const name = q<HTMLInputElement>('.cf-sname').value.trim() || `Scenario ${scenarios.length + 1}`;
+    const s: Scenario = { name, state: structuredClone(state), cats: last.cats.map((c) => [c.name, c.kg]), total: last.total, perPerson: last.perPerson };
+    const at = scenarios.findIndex((x) => x.name === name);
+    if (at >= 0) scenarios[at] = s; else if (scenarios.length < 6) scenarios.push(s); else { q('.cf-msg').textContent = 'Up to 6 scenarios: remove one first.'; return; }
+    q<HTMLInputElement>('.cf-sname').value = '';
+    showScenarios();
+  });
+  q('.cf-scsv').addEventListener('click', () => { const t = scenTable(); save(new Blob([csv([t.head.map((h) => h.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_$/, '') + (h === 'Scenario' ? '' : '_kg_co2e')), ...t.rows.map((r) => r.map((c, i) => (i ? c.replace(/,/g, '') : c)))])], { type: 'text/csv' }), 'footprint-scenarios.csv', 'text/csv'); });
+
+  // ---------- wiring ----------
+  for (const c of ['.cf-people', '.cf-ff', '.cf-up']) q(c).addEventListener('input', run);
+  q('.cf-addf').addEventListener('click', () => { state.flights.push({ label: '', from: '', to: '', km: null, trips: 1, ret: true }); build(); run(); });
+  q('.cf-reset').addEventListener('click', () => { state = exampleState(); build(); run(); });
+  q('.cf-blank').addEventListener('click', () => { for (const c of state.cats) for (const l of c.lines) l.amount = 0; for (const f of state.flights) f.trips = 0; build(); run(); });
+  q('.cf-rem').addEventListener('change', () => { if (remember()) { persist(); q('.cf-msg').textContent = 'Saved in this browser. It stays on this device.'; } else forget('Not remembered; anything saved was deleted.'); });
+  q('.cf-del').addEventListener('click', () => { q<HTMLInputElement>('.cf-rem').checked = false; forget('Saved numbers deleted from this browser.'); });
+  q('.cf-csv').addEventListener('click', () => { if (last) save(new Blob([csv(csvRows(state, last))], { type: 'text/csv' }), 'carbon-footprint.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cf-fig'), fig); if (sfig) paint(q<HTMLCanvasElement>('.cf-sfig'), sfig); });
+  wireDownloads(q('.cf-out .dl'), () => ({ title: 'Household carbon footprint', subtitle: 'Example values, replace with your country\'s official factors.', file: 'carbon-footprint', sections }));
+  build(); showScenarios();
+</script>
