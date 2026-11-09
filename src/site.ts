@@ -263,7 +263,7 @@ export const AREAS: Area[] = [
     blurb: 'For school students: tools, experiments, short courses and language practice.',
     tabs: [
       { name: 'Overview', href: '/learn/' },
-      { name: 'Class 8 to 12', href: '/learn/school/' },
+      { name: 'Class 8 to 12', href: '/learn/school/', match: ['/learn/class-'] },
       { name: 'Experiments', href: '/learn/experiments/' },
       { name: 'Courses', href: '/learn/courses/' },
       { name: 'Languages', href: '/learn/languages/' },
