@@ -1,0 +1,199 @@
+---
+// Two-body orbit sandbox: elements, exact Kepler motion animated, and an independent RK4 check of energy and angular momentum.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tbo">
+  <div class="ax-card">
+    <h2>Two bodies</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="tb-pre">
+        <option value="sunearth" selected>Sun and an Earth-like planet (rounded)</option>
+        <option value="ecc">Eccentric binary star (made up)</option>
+        <option value="equal">Equal-mass binary (made up)</option>
+        <option value="flyby">Fly-by, too fast to stay (made up)</option>
+        <option value="earthmoon">Earth and a Moon-like satellite (rounded)</option>
+        <option value="custom">Custom</option>
+      </select></label>
+      <label>Units <select class="tb-u">
+        <option value="sun" selected>Star scale: Sun masses, AU, km/s, days</option>
+        <option value="planet">Planet scale: Earth masses, km, km/s, hours</option>
+      </select></label>
+    </div>
+    <div class="tb-bodies">
+      <fieldset class="tb-b"><legend>Body 1</legend>
+        <label><span>Mass (<span class="tb-mu">M☉</span>)</span> <input class="tb-m1" type="text" inputmode="decimal" /></label>
+        <label><span>x (<span class="tb-du">AU</span>)</span> <input class="tb-x1" type="text" inputmode="decimal" /></label>
+        <label><span>y (<span class="tb-du">AU</span>)</span> <input class="tb-y1" type="text" inputmode="decimal" /></label>
+        <label>vx (km/s) <input class="tb-vx1" type="text" inputmode="decimal" /></label>
+        <label>vy (km/s) <input class="tb-vy1" type="text" inputmode="decimal" /></label>
+      </fieldset>
+      <fieldset class="tb-b"><legend>Body 2</legend>
+        <label><span>Mass (<span class="tb-mu">M☉</span>)</span> <input class="tb-m2" type="text" inputmode="decimal" /></label>
+        <label><span>x (<span class="tb-du">AU</span>)</span> <input class="tb-x2" type="text" inputmode="decimal" /></label>
+        <label><span>y (<span class="tb-du">AU</span>)</span> <input class="tb-y2" type="text" inputmode="decimal" /></label>
+        <label>vx (km/s) <input class="tb-vx2" type="text" inputmode="decimal" /></label>
+        <label>vy (km/s) <input class="tb-vy2" type="text" inputmode="decimal" /></label>
+      </fieldset>
+    </div>
+    <p class="ax-help">Give each body's mass, starting position and velocity in a flat plane. Only the difference between the two matters for the shape of the orbit; the rest moves the centre of mass, which the picture holds still. GM of the Sun (1.32712440018 × 10²⁰ m³/s²) and of the Earth (3.986004418 × 10¹⁴ m³/s²) are standard values; the presets are rounded or made up.</p>
+    <p class="ax-err tb-err" hidden></p>
+  </div>
+
+  <div class="ax-card tb-out">
+    <h2>The orbit</h2>
+    <p class="ax-big tb-big"></p>
+    <canvas class="tb-live" aria-label="Animated orbit of the two bodies around their centre of mass"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small tb-play">Pause</button>
+      <label class="ax-check">Speed <input class="tb-speed" type="range" min="0.25" max="4" step="0.25" value="1" /></label>
+      <span class="ax-help tb-clock" style="margin:0"></span>
+    </div>
+    <dl class="ax-facts tb-facts" style="margin-top:12px"></dl>
+    <h2 style="margin-top:14px">Checks</h2>
+    <dl class="ax-facts tb-checks"></dl>
+    <canvas class="ax-fig tb-fig"></canvas>
+    <p class="ax-help">The motion is the exact solution of the two-body problem (Kepler's laws, solved with universal variables, so ellipses, parabolas and hyperbolas all work). As an independent check, the page also integrates both bodies directly with fourth-order Runge-Kutta and reports how well energy and angular momentum are kept and how close the two answers end up. Point masses only. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { system, positionsAt, kepler, integrate, type Body, type V2 } from '../../lib/sci/phtwobody';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tbo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const UNITS = {
+    sun: { GM: 1.32712440018e20, D: 1.495978707e11, du: 'AU', mu: 'M☉', T: 86400, tu: 'days', E: 'J per kg' },
+    planet: { GM: 3.986004418e14, D: 1000, du: 'km', mu: 'Earth masses', T: 3600, tu: 'hours', E: 'J per kg' },
+  } as const;
+  type U = keyof typeof UNITS;
+  // [units, m1, x1, y1, vx1, vy1, m2, x2, y2, vx2, vy2]
+  const PRE: Record<string, [U, ...string[]]> = {
+    sunearth: ['sun', '1', '0', '0', '0', '0', '0.000003', '1', '0', '0', '29.78'],
+    ecc: ['sun', '1', '0', '0', '0', '0', '0.5', '1', '0', '0', '20'],
+    equal: ['sun', '1', '-0.5', '0', '0', '-21', '1', '0.5', '0', '0', '21'],
+    flyby: ['sun', '1', '0', '0', '0', '0', '0.001', '1', '0', '-10', '50'],
+    earthmoon: ['planet', '1', '0', '0', '0', '0', '0.0123', '384400', '0', '0', '1.022'],
+  };
+  const FIELDS = ['.tb-m1', '.tb-x1', '.tb-y1', '.tb-vx1', '.tb-vy1', '.tb-m2', '.tb-x2', '.tb-y2', '.tb-vx2', '.tb-vy2'];
+  let figs: Figure[] = [], report: Section[] = [];
+  let anim: { b1: Body; b2: Body; G: number; span: number; path1: V2[]; path2: V2[]; ext: number; u: (typeof UNITS)[U]; t: number; last: number } | null = null;
+  let playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, raf = 0;
+
+  function load(id: string) { const p = PRE[id]; if (!p) return; q<HTMLSelectElement>('.tb-u').value = p[0]; FIELDS.forEach((f, i) => { inp(f).value = p[i + 1]; }); }
+
+  function calc() {
+    const err = q('.tb-err'), out = q('.tb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; anim = null; };
+    const uk = q<HTMLSelectElement>('.tb-u').value as U, u = UNITS[uk];
+    root.querySelectorAll('.tb-du').forEach((e) => { e.textContent = u.du; }); root.querySelectorAll('.tb-mu').forEach((e) => { e.textContent = uk === 'sun' ? 'M☉' : 'Earth masses'; });
+    const v = FIELDS.map((f) => num(inp(f).value));
+    if (!(v[0] > 0) || !(v[5] > 0)) return fail('Both masses must be greater than 0.');
+    if (v.some((x) => !Number.isFinite(x))) return fail(`Fill in every box with a number (${FIELDS.filter((_, i) => !Number.isFinite(v[i])).length} empty or not a number).`);
+    const b1: Body = { m: v[0], p: [v[1] * u.D, v[2] * u.D], v: [v[3] * 1000, v[4] * 1000] }, b2: Body = { m: v[5], p: [v[6] * u.D, v[7] * u.D], v: [v[8] * 1000, v[9] * 1000] };
+    const d0 = Math.hypot(b2.p[0] - b1.p[0], b2.p[1] - b1.p[1]);
+    if (!(d0 > 0)) return fail('The two bodies start in the same place: move one of them.');
+    const s = system(b1, b2, u.GM), el = s.el;
+    if (Math.abs(el.h) < 1e-9 * d0 * Math.hypot(s.v[0], s.v[1]) + 1e-30) return fail('The bodies are moving straight towards or away from each other (no sideways speed), so they would collide or fly apart in a line. Give one a sideways velocity.');
+    err.hidden = true; out.hidden = false;
+    const D = (m: number) => `${sig(m / u.D, 4)} ${u.du}`, Tm = (sec: number) => `${sig(sec / u.T, 4)} ${u.tu}`;
+    const bound = el.eps < 0;
+    // Display span: one period, or until the separation is five times the start (or periapsis) distance.
+    let span = el.T;
+    if (!bound) { const target = 5 * Math.max(d0, el.rp); let t = 0, dt = d0 / Math.hypot(s.v[0], s.v[1]) / 20; for (let i = 0; i < 2000; i++) { t += dt; const k = kepler(s.mu, s.r, s.v, t); if (Math.hypot(k.r[0], k.r[1]) > target) break; dt *= 1.05; } span = t; }
+    const path1: V2[] = [], path2: V2[] = [];
+    for (let i = 0; i <= 400; i++) { const p = positionsAt(b1, b2, (span * i) / 400, u.GM); path1.push(p.p1); path2.push(p.p2); }
+    const ext = Math.max(...path1.concat(path2).map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1])))) * 1.1;
+    const shape = el.kind === 'circle' ? 'Circle' : el.kind === 'ellipse' ? 'Ellipse' : el.kind === 'parabola' ? 'Parabola (just escapes)' : 'Hyperbola (they fly apart)';
+    q('.tb-big').textContent = bound ? `${shape}, e = ${sig(el.e, 3)}, period ${Tm(el.T)}` : `${shape}, e = ${sig(el.e, 3)}`;
+    const vcm = Math.hypot(s.vcm[0], s.vcm[1]);
+    const f = [
+      fact('Shape', shape, `eccentricity e = ${sig(el.e, 4)}; ${el.dir > 0 ? 'anticlockwise' : 'clockwise'} as drawn`),
+      fact('Semi-major axis a', bound ? D(el.a) : `${D(el.a)} (negative: unbound)`, 'half the longest width of the relative orbit'),
+      fact('Closest approach', D(el.rp), 'periapsis separation a(1 − e)'),
+      fact('Farthest apart', bound ? D(el.ra) : 'never returns', bound ? 'apoapsis separation a(1 + e)' : ''),
+      fact('Period', bound ? Tm(el.T) : 'none (not bound)', bound ? "2π√(a³ / G(m₁ + m₂)): Kepler's third law" : ''),
+      fact('Starting separation and speed', `${D(d0)}, ${sig(el.v / 1000, 4)} km/s`, `escape speed here ${sig(el.vesc / 1000, 4)} km/s`),
+      fact('Energy per unit reduced mass', `${sig(el.eps, 4)} J/kg`, bound ? 'negative: bound' : 'zero or positive: unbound'),
+      fact('Angular momentum per unit reduced mass', `${sig(Math.abs(el.h), 4)} m²/s`, 'r × v, constant (Kepler\'s second law)'),
+      fact('Each body around the centre of mass', `${sig(v[5] / (v[0] + v[5]), 3)} and ${sig(v[0] / (v[0] + v[5]), 3)} of the separation`, `body 1 and body 2; the centre of mass drifts at ${sig(vcm / 1000, 3)} km/s (held still in the picture)`),
+    ];
+    q('.tb-facts').replaceChildren(...f);
+    // Independent check: direct RK4 of both bodies over the span.
+    const n = integrate(b1, b2, span, 4000, u.GM), a = positionsAt(b1, b2, span, u.GM);
+    const cm: V2 = [s.cm[0] + s.vcm[0] * span, s.cm[1] + s.vcm[1] * span];
+    const diff = Math.max(Math.hypot(n.p1[0] - (a.p1[0] + cm[0]), n.p1[1] - (a.p1[1] + cm[1])), Math.hypot(n.p2[0] - (a.p2[0] + cm[0]), n.p2[1] - (a.p2[1] + cm[1]))) / d0;
+    const sci = (x: number) => (x === 0 ? '0' : x < 1e-4 ? fmtExp(x, 2) : sig(x, 2));
+    const ch = [
+      fact('Energy kept to', sci(n.dE), `largest relative change over ${bound ? 'one period' : 'the fly-by'} (${n.steps} RK4 steps)`),
+      fact('Angular momentum kept to', sci(n.dL), 'largest relative change'),
+      fact('RK4 vs exact Kepler', `${sci(diff)} of the start separation`, `difference in final positions after ${Tm(span)}`),
+    ];
+    const ok = n.dE < 1e-6 && n.dL < 1e-6 && diff < 1e-4;
+    ch.unshift(fact('Result', ok ? 'passed' : 'loose', ok ? 'the two independent methods agree' : 'the orbit is extreme (very close approach); trust the exact Kepler solution'));
+    q('.tb-checks').replaceChildren(...ch);
+    // Static chart for the report.
+    const c1 = chartFigure({ w: 380, h: 340, xLabel: `x (${u.du})`, yLabel: `y (${u.du})`, xMin: -ext / u.D, xMax: ext / u.D, yMin: -ext / u.D, yMax: ext / u.D, legend: 'below', series: [
+      { name: 'Body 1', x: path1.map((p) => p[0] / u.D), y: path1.map((p) => p[1] / u.D), mode: 'line', width: 1.6 },
+      { name: 'Body 2', x: path2.map((p) => p[0] / u.D), y: path2.map((p) => p[1] / u.D), mode: 'line', width: 1.6 },
+      { name: 'Start', x: [path1[0][0] / u.D, path2[0][0] / u.D], y: [path1[0][1] / u.D, path2[0][1] / u.D], mode: 'points', marker: 'circle', size: 4 },
+      { name: 'Centre of mass', x: [0], y: [0], mode: 'points', marker: 'cross', size: 5 },
+    ] }, `Paths of both bodies around their centre of mass (${shape.toLowerCase()})`);
+    paint(q<HTMLCanvasElement>('.tb-fig'), c1); figs = [c1];
+    const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: 'Starting values', facts: [['Units', uk === 'sun' ? 'Sun masses, AU, km/s, days' : 'Earth masses, km, km/s, hours'], ['Body 1', `m = ${v[0]}, at (${v[1]}, ${v[2]}), moving (${v[3]}, ${v[4]}) km/s`], ['Body 2', `m = ${v[5]}, at (${v[6]}, ${v[7]}), moving (${v[8]}, ${v[9]}) km/s`]] },
+      { title: q('.tb-big').textContent!, facts: rows(f), figure: c1 },
+      { title: 'Checks', facts: rows(ch) },
+    ];
+    anim = { b1, b2, G: u.GM, span, path1, path2, ext, u, t: 0, last: 0 };
+    draw();
+    if (playing && !raf) raf = requestAnimationFrame(tick);
+  }
+
+  function draw() {
+    const cv = q<HTMLCanvasElement>('.tb-live'); if (!anim) return;
+    const W = cv.clientWidth || 340, H = Math.min(W, 360), dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px'; }
+    const ctx = cv.getContext('2d')!, pal = pagePalette(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const sc = (Math.min(W, H) / 2 - 8) / anim.ext, X = (p: V2) => W / 2 + p[0] * sc, Y = (p: V2) => H / 2 - p[1] * sc;
+    const cols = pal.red ? [pal.ink, pal.muted] : [pal.accent, pal.accent2];
+    [anim.path1, anim.path2].forEach((path, i) => { ctx.strokeStyle = cols[i]; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.2; ctx.beginPath(); path.forEach((p, j) => (j ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p)))); ctx.stroke(); ctx.globalAlpha = 1; });
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W / 2 - 5, H / 2); ctx.lineTo(W / 2 + 5, H / 2); ctx.moveTo(W / 2, H / 2 - 5); ctx.lineTo(W / 2, H / 2 + 5); ctx.stroke();
+    const p = positionsAt(anim.b1, anim.b2, anim.t, anim.G), m1 = anim.b1.m, m2 = anim.b2.m, r = (m: number) => 3 + 6 * Math.cbrt(m / Math.max(m1, m2));
+    [[p.p1, m1], [p.p2, m2]].forEach(([pp, m], i) => { ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.arc(X(pp as V2), Y(pp as V2), r(m as number), 0, 2 * Math.PI); ctx.fill(); });
+    q('.tb-clock').textContent = `t = ${sig(anim.t / anim.u.T, 3)} ${anim.u.tu}`;
+  }
+  function tick(now: number) {
+    raf = 0; if (!anim || !playing) return;
+    const dt = anim.last ? Math.min(0.1, (now - anim.last) / 1000) : 0; anim.last = now;
+    anim.t += (dt / 8) * anim.span * num(inp('.tb-speed').value);
+    if (anim.t > anim.span) anim.t = anim.span >= Infinity ? 0 : anim.t % anim.span;
+    draw(); raf = requestAnimationFrame(tick);
+  }
+
+  q('.tb-play').addEventListener('click', () => { playing = !playing; q('.tb-play').textContent = playing ? 'Pause' : 'Play'; if (anim) anim.last = 0; if (playing && !raf) raf = requestAnimationFrame(tick); });
+  q('.tb-play').textContent = playing ? 'Pause' : 'Play';
+  q('.tb-pre').addEventListener('change', () => { load(q<HTMLSelectElement>('.tb-pre').value); calc(); });
+  q('.tb-u').addEventListener('change', calc);
+  FIELDS.forEach((f) => inp(f).addEventListener('input', () => { q<HTMLSelectElement>('.tb-pre').value = 'custom'; calc(); }));
+  window.addEventListener('resize', draw);
+  document.addEventListener('fibub:theme', () => { draw(); if (figs.length && !q('.tb-out').hidden) paint(q<HTMLCanvasElement>('.tb-fig'), figs[0]); });
+  load('sunearth'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Two-body orbit', subtitle: q('.tb-big').textContent || '', file: 'two-body-orbit', sections: report }));
+</script>
+
+<style is:global>
+  .tbo select, .tbo input[type=text] { max-width: 100%; }
+  .tbo .tb-bodies { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-top: 12px; }
+  .tbo .tb-b { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; min-width: 0; display: grid; gap: 8px; }
+  .tbo .tb-b label { display: grid; gap: 4px; font-size: 14px; }
+  .tbo .tb-live { display: block; width: 100%; max-width: 420px; margin: 8px auto 0; border: 1px solid var(--line); border-radius: 8px; }
+</style>
