@@ -1,0 +1,122 @@
+---
+// Heron's formula: three side sliders (or drag the top corner), the triangle drawn or "can't make a triangle",
+// the area by Heron's formula step by step, checked against ½ × base × height. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hf">
+  <div class="ax-card">
+    <h2>Three sides</h2>
+    <svg class="sm-fig hf-fig" viewBox="0 0 340 260" role="img" aria-label="The triangle with sides a, b and c"></svg>
+    <p class="ax-help">Drag the top corner C, or use the sliders. Side c is the base.</p>
+    <div class="sm-sl"><b>a</b><input type="range" class="hf-ar" min="1" max="20" step="0.5" value="13" aria-label="a slider" /><input type="number" class="hf-a" min="0.1" step="0.5" value="13" inputmode="decimal" aria-label="Side a (BC)" /></div>
+    <div class="sm-sl"><b>b</b><input type="range" class="hf-br" min="1" max="20" step="0.5" value="15" aria-label="b slider" /><input type="number" class="hf-b" min="0.1" step="0.5" value="15" inputmode="decimal" aria-label="Side b (CA)" /></div>
+    <div class="sm-sl"><b>c</b><input type="range" class="hf-cr" min="1" max="20" step="0.5" value="14" aria-label="c slider" /><input type="number" class="hf-c" min="0.1" step="0.5" value="14" inputmode="decimal" aria-label="Side c (AB, the base)" /></div>
+    <p class="hf-kind" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Heron's formula, step by step</h2>
+    <ol class="sm-steps hf-steps"></ol>
+    <p class="ax-big hf-big"></p>
+    <p class="sm-f hf-check"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Make a + b equal to c. The triangle flattens to a line and the area becomes 0.</li>
+      <li>Set all three sides to 10. Compare Heron's answer with (√3/4) × 10².</li>
+      <li>Find another triangle with whole-number sides and a whole-number area. (Hint: 13, 14, 15 is one.)</li>
+      <li>Drag C along a line parallel to the base. The area does not change. Why?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Give answers to 2 decimal places where needed. Nothing is saved.</p>
+    <div class="hf-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hf svg .hf-tri { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .hf svg .hf-arm { stroke: var(--bad); stroke-width: 2.5; }
+</style>
+
+<script>
+  import { heron, valid, kind, place, heightOn } from '../../lib/sci/heron-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.hf-fig');
+  const A = q<HTMLInputElement>('.hf-a'), B = q<HTMLInputElement>('.hf-b'), C = q<HTMLInputElement>('.hf-c');
+  const setA = pair(q('.hf-ar'), A, draw), setB = pair(q('.hf-br'), B, draw); pair(q('.hf-cr'), C, draw);
+  let view = { k: 1, ox: 0, oy: 0 }, dragging = false;
+
+  function draw() {
+    const a = val(A, 13, 0.001), b = val(B, 15, 0.001), c = val(C, 14, 0.001), ok = valid(a, b, c), H = heron(a, b, c);
+    fig.replaceChildren();
+    if (ok) {
+      const [P, Q, R] = place(a, b, c);
+      if (!dragging) {
+        const minX = Math.min(0, R[0]), maxX = Math.max(c, R[0]), k = Math.min(300 / (maxX - minX), 200 / Math.max(R[1], 1e-9));
+        view = { k, ox: 20 + (300 - (maxX - minX) * k) / 2 - minX * k, oy: 225 };
+      }
+      const { k, ox, oy } = view, X = (p: number[]) => ox + p[0] * k, Y = (p: number[]) => oy - p[1] * k;
+      S('polygon', { points: [P, Q, R].map((p) => `${X(p)},${Y(p)}`).join(' '), class: 'hf-tri' }, fig);
+      S('line', { x1: X(R), y1: Y(R), x2: X(R), y2: oy, class: 'sm-dash' }, fig);
+      if (R[0] < 0 || R[0] > c) S('line', { x1: X(R), y1: oy, x2: X(R[0] < 0 ? P : Q), y2: oy, class: 'sm-dash' }, fig);
+      const lab = (x: number, y: number, t: string, anchor = 'middle') => S('text', { x, y, 'text-anchor': anchor, style: 'font-weight:600' }, fig, t);
+      lab((X(P) + X(Q)) / 2, oy + 18, `c = ${fmt(c, 2)}`);
+      lab((X(Q) + X(R)) / 2 + 10, (oy + Y(R)) / 2, `a = ${fmt(a, 2)}`, 'start');
+      lab((X(P) + X(R)) / 2 - 10, (oy + Y(R)) / 2, `b = ${fmt(b, 2)}`, 'end');
+      lab(X(R) + 6, (oy + Y(R)) / 2 + 22, `h = ${fmt(heightOn(c, H.area), 2)}`, 'start');
+      S('circle', { cx: X(R), cy: Y(R), r: 22, class: 'sm-hit' }, fig);
+      S('circle', { cx: X(R), cy: Y(R), r: 9, class: 'sm-handle hf-h' }, fig);
+      const kd = kind(a, b, c);
+      q('.hf-kind').replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill good', textContent: `${kd.bySides}, ${kd.byAngles}` }), ` Perimeter ${fmt(a + b + c, 3)}.`);
+    } else {
+      // Show why it fails: the two arms from the ends of the base cannot meet.
+      const k = 300 / Math.max(c, a + b, 1e-9), ox = 20, oy = 200;
+      S('line', { x1: ox, y1: oy, x2: ox + c * k, y2: oy, class: 'sm-line' }, fig);
+      const arm = (x: number, len: number, dir: number) => S('line', { x1: x, y1: oy, x2: x + dir * len * k * Math.cos(Math.PI / 6), y2: oy - len * k * Math.sin(Math.PI / 6), class: 'hf-arm' }, fig);
+      arm(ox, b, 1); arm(ox + c * k, a, -1);
+      S('text', { x: 170, y: 40, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, "These sides can't make a triangle");
+      q('.hf-kind').replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill bad', textContent: 'Not a triangle' }), ' Each side must be shorter than the other two together.');
+    }
+    const s = H.s, f = (x: number) => fmt(x, 3);
+    q('.hf-steps').replaceChildren(...[
+      `Semi-perimeter s = (a + b + c)/2 = (${f(a)} + ${f(b)} + ${f(c)})/2 = ${f(s)}`,
+      `s − a = ${f(s - a)},  s − b = ${f(s - b)},  s − c = ${f(s - c)}`,
+      `s(s − a)(s − b)(s − c) = ${f(s)} × ${f(s - a)} × ${f(s - b)} × ${f(s - c)} = ${f(H.product)}`,
+      ok ? `Area = √${f(H.product)} = ${f(H.area)}` : 'One of s − a, s − b, s − c is 0 or less: the sides break the triangle rule, so there is no area.',
+    ].map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q('.hf-big').textContent = ok ? `Area ≈ ${fmt(H.area, 2)} square units` : '';
+    q('.hf-check').textContent = ok ? `Check with ½ × base × height: ½ × ${f(c)} × ${f(heightOn(c, H.area))} = ${f(0.5 * c * heightOn(c, H.area))}. Heron needs no height, which is its point.` : '';
+  }
+
+  dragOn(fig, (x, y) => { const h = fig.querySelector('.hf-h'); return h && Math.hypot(x - Number(h.getAttribute('cx')), y - Number(h.getAttribute('cy'))) < 30 ? 'c' : null; },
+    (_id, x, y) => {
+      dragging = true;
+      const { k, ox, oy } = view, px = (x - ox) / k, py = Math.max(0.05, (oy - Math.min(y, oy - 2)) / k), c = val(C, 14, 0.001);
+      setB(Math.round(Math.hypot(px, py) * 10) / 10); setA(Math.round(Math.hypot(px - c, py) * 10) / 10); draw();
+    }, () => { dragging = false; draw(); });
+  draw();
+
+  const NICE = [[13, 14, 15, 84], [5, 12, 13, 30], [9, 10, 17, 36], [7, 15, 20, 42], [10, 17, 21, 84], [6, 25, 29, 60], [5, 5, 6, 12], [5, 5, 8, 12], [4, 13, 15, 24]];
+  quiz(q('.hf-quiz'), () => {
+    const out: Question[] = [];
+    const [a, b, c, ar] = NICE[randInt(0, NICE.length - 1)], k = randInt(1, 3), s = ((a + b + c) * k) / 2;
+    out.push({ q: `Find the area of a triangle with sides ${a * k} cm, ${b * k} cm and ${c * k} cm.`, want: [ar * k * k], hint: 'cm²', work: `s = ${s}; area = √[${s} × ${s - a * k} × ${s - b * k} × ${s - c * k}] = √${s * (s - a * k) * (s - b * k) * (s - c * k)} = ${ar * k * k} cm².` });
+    const e = randInt(2, 12);
+    out.push({ q: `Find the area of an equilateral triangle with side ${e} cm (to 2 decimal places).`, want: [Math.round((Math.sqrt(3) / 4) * e * e * 100) / 100], tol: 0.002, hint: 'cm²', work: `s = ${fmt(1.5 * e)}; area = √[${fmt(1.5 * e)} × ${fmt(e / 2)}³] = (√3/4) × ${e}² ≈ ${fmt((Math.sqrt(3) / 4) * e * e, 2)} cm².` });
+    const m = randInt(2, 6), per = 12 * m;
+    out.push({ q: `The sides of a triangle are in the ratio 3 : 4 : 5 and its perimeter is ${per} cm. Find its area.`, want: [6 * m * m], hint: 'cm²', work: `The sides are ${3 * m}, ${4 * m} and ${5 * m} cm; s = ${6 * m}; area = √[${6 * m} × ${3 * m} × ${2 * m} × ${m}] = ${6 * m * m} cm².` });
+    const [p, qq, r] = [[3, 4, 9], [2, 5, 8], [4, 6, 11], [1, 2, 3]][randInt(0, 3)];
+    out.push({ q: `Can ${p} cm, ${qq} cm and ${r} cm make a triangle? Type 1 for yes, 0 for no.`, want: [0], work: `${p} + ${qq} = ${p + qq}, which is not more than ${r}, so no triangle can be made.` });
+    return out;
+  });
+</script>
