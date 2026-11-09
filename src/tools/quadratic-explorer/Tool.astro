@@ -1,0 +1,220 @@
+---
+// Quadratic explorer for school maths: a, b, c sliders move a parabola; vertex, roots, discriminant, completing
+// the square with tiles and splitting the middle term update live. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm qx">
+  <div class="ax-card">
+    <h2>Move the parabola</h2>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg qx-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <p class="ax-big qx-eq" aria-live="polite" style="margin:10px 0 4px">y = x² − 5x + 6</p>
+    <svg class="sm-fig qx-fig" viewBox="0 0 340 320" role="img" aria-label="Graph of the parabola with its vertex and roots"></svg>
+    <p class="ax-help">Drag the blue vertex dot to move the curve, or use the sliders. Dots on the x axis are the roots.</p>
+    <div class="sm-sl"><b>a</b><input type="range" class="qx-ar" min="-5" max="5" step="0.5" value="1" aria-label="a slider" /><input type="number" class="qx-a" step="0.5" value="1" inputmode="decimal" aria-label="a" /></div>
+    <div class="sm-sl"><b>b</b><input type="range" class="qx-br" min="-12" max="12" step="0.5" value="-5" aria-label="b slider" /><input type="number" class="qx-b" step="0.5" value="-5" inputmode="decimal" aria-label="b" /></div>
+    <div class="sm-sl"><b>c</b><input type="range" class="qx-cr" min="-12" max="12" step="0.5" value="6" aria-label="c slider" /><input type="number" class="qx-c" step="0.5" value="6" inputmode="decimal" aria-label="c" /></div>
+    <p class="ax-err qx-err" hidden></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small qx-pre" data-p="1,-5,6">Two roots</button>
+      <button type="button" class="btn secondary small qx-pre" data-p="1,-4,4">Touches</button>
+      <button type="button" class="btn secondary small qx-pre" data-p="1,2,5">Misses</button>
+      <button type="button" class="btn secondary small qx-pre" data-p="-1,2,3">Upside down</button>
+    </div>
+    <dl class="ax-facts qx-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The discriminant decides</h2>
+    <p class="sm-f qx-d"></p>
+    <p class="qx-kind"></p>
+    <p class="sm-f qx-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Completing the square with tiles</h2>
+    <p class="ax-help qx-tnote"></p>
+    <svg class="sm-fig qx-tiles" viewBox="0 0 340 250" role="img" aria-label="Tiles: an x by x square, two strips and the missing corner"></svg>
+    <ol class="sm-steps qx-cs"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Split the middle term</h2>
+    <div class="qx-split"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Keep a = 1 and b = −4. Slide c from 0 up to 6. Watch the two roots move together, meet at c = 4, then vanish. What is D at that moment?</li>
+      <li>Make a negative. The parabola turns upside down and the vertex becomes the highest point.</li>
+      <li>Drag the vertex left and right. The axis of symmetry x = −b/2a follows it, and b changes while a stays the same.</li>
+      <li>Find three different values of c that give whole-number roots when a = 1 and b = −6, then check them with "Split the middle term".</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type numbers like 3, −2.5 or 3/2. Nothing is saved.</p>
+    <div class="qx-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { quad, quadText, completeSquare, splitMiddle, factorText, practice } from '../../lib/sci/quadratic-school';
+  import { fmt, sgn, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.qx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.qx-fig'), tiles = q<SVGSVGElement>('.qx-tiles');
+  const A = q<HTMLInputElement>('.qx-a'), B = q<HTMLInputElement>('.qx-b'), C = q<HTMLInputElement>('.qx-c');
+  const setA = pair(q('.qx-ar'), A, draw), setB = pair(q('.qx-br'), B, draw), setC = pair(q('.qx-cr'), C, draw);
+  let level = 10;
+
+  // Graph window: x from −8 to 8, y from −10 to 10.
+  const X0 = -8, X1 = 8, Y0 = -10, Y1 = 10, L = 10, R = 330, T = 10, Bm = 310;
+  const px = (x: number) => L + ((x - X0) / (X1 - X0)) * (R - L);
+  const py = (y: number) => Bm - ((y - Y0) / (Y1 - Y0)) * (Bm - T);
+  const ux = (p: number) => X0 + ((p - L) / (R - L)) * (X1 - X0);
+  const uy = (p: number) => Y0 + ((Bm - p) / (Bm - T)) * (Y1 - Y0);
+
+  function facts(dl: Element, rows: [string, string][]) {
+    dl.replaceChildren(...rows.map(([k, v]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; }));
+  }
+
+  function graph(a: number, b: number, c: number, Q: ReturnType<typeof quad>) {
+    fig.replaceChildren();
+    for (let x = X0; x <= X1; x += 2) S('line', { x1: px(x), x2: px(x), y1: T, y2: Bm, class: 'sm-grid' }, fig);
+    for (let y = Y0; y <= Y1; y += 2) S('line', { x1: L, x2: R, y1: py(y), y2: py(y), class: 'sm-grid' }, fig);
+    S('line', { x1: L, x2: R, y1: py(0), y2: py(0), class: 'sm-axis' }, fig);
+    S('line', { x1: px(0), x2: px(0), y1: T, y2: Bm, class: 'sm-axis' }, fig);
+    for (const x of [-6, -4, -2, 2, 4, 6]) S('text', { x: px(x), y: py(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(x));
+    for (const y of [-8, -4, 4, 8]) S('text', { x: px(0) - 4, y: py(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(y));
+    // Axis of symmetry.
+    if (Q.h >= X0 && Q.h <= X1) S('line', { x1: px(Q.h), x2: px(Q.h), y1: T, y2: Bm, class: 'sm-dash' }, fig);
+    // The curve, clipped to the window.
+    let d = '', pen = false;
+    for (let i = 0; i <= 320; i++) {
+      const x = X0 + (i / 320) * (X1 - X0), y = a * x * x + b * x + c;
+      if (y < Y0 - 2 || y > Y1 + 2) { pen = false; continue; }
+      d += `${pen ? 'L' : 'M'}${px(x).toFixed(1)},${py(Math.max(Y0 - 2, Math.min(Y1 + 2, y))).toFixed(1)}`; pen = true;
+    }
+    const clip = S('clipPath', { id: 'qx-clip' }, fig); S('rect', { x: L, y: T, width: R - L, height: Bm - T }, clip);
+    S('path', { d, class: 'sm-curve', 'clip-path': 'url(#qx-clip)' }, fig);
+    for (const r of new Set(Q.roots)) if (r >= X0 && r <= X1) S('circle', { cx: px(r), cy: py(0), r: 6, class: 'sm-good qx-root' }, fig);
+    // Vertex handle (kept on screen even when the vertex is outside the window).
+    const vx = Math.max(X0, Math.min(X1, Q.h)), vy = Math.max(Y0, Math.min(Y1, Q.k));
+    S('circle', { cx: px(vx), cy: py(vy), r: 22, class: 'sm-hit' }, fig);
+    S('circle', { cx: px(vx), cy: py(vy), r: 9, class: 'sm-handle qx-vtx' }, fig);
+    const lab = `(${fmt(Q.h)}, ${fmt(Q.k)})`;
+    S('text', { x: Math.min(R - 4, Math.max(L + 4, px(vx) + 12)), y: py(vy) + (a > 0 ? 22 : -14), 'text-anchor': px(vx) > 250 ? 'end' : 'start' }, fig, lab);
+  }
+
+  function tileDraw(a: number, b: number, c: number) {
+    tiles.replaceChildren();
+    const p = b / (2 * a), ap = Math.abs(p);
+    const X = 120, s = Math.min(70, Math.max(14, ap * 14)), ox = 40, oy = 30;
+    S('rect', { x: ox, y: oy, width: X, height: X, class: 'sm-soft' }, tiles);
+    S('text', { x: ox + X / 2, y: oy + X / 2 + 5, 'text-anchor': 'middle' }, tiles, 'x²');
+    S('text', { x: ox + X / 2, y: oy - 8, 'text-anchor': 'middle', class: 'sm-tick' }, tiles, 'x');
+    S('text', { x: ox - 8, y: oy + X / 2 + 4, 'text-anchor': 'end', class: 'sm-tick' }, tiles, 'x');
+    if (ap < 1e-9) { S('text', { x: 180, y: 220, 'text-anchor': 'middle' }, tiles, 'b = 0: x² is already a square'); return; }
+    const cls = p > 0 ? 'sm-soft2' : 'sm-soft3';
+    S('rect', { x: ox + X, y: oy, width: s, height: X, class: cls }, tiles);
+    S('rect', { x: ox, y: oy + X, width: X, height: s, class: cls }, tiles);
+    S('text', { x: ox + X + s / 2, y: oy + X / 2 + 4, 'text-anchor': 'middle', class: 'sm-tick' }, tiles, `${fmt(ap)}x`);
+    S('text', { x: ox + X / 2, y: oy + X + s / 2 + 4, 'text-anchor': 'middle', class: 'sm-tick' }, tiles, `${fmt(ap)}x`);
+    S('text', { x: ox + X + s / 2, y: oy - 8, 'text-anchor': 'middle', class: 'sm-tick' }, tiles, fmt(ap));
+    S('rect', { x: ox + X, y: oy + X, width: s, height: s, class: 'sm-dash qx-corner' }, tiles);
+    S('text', { x: ox + X + s + 8, y: oy + X + s / 2 + 4, class: 'sm-tick' }, tiles, `missing corner ${fmt(p * p, 3)}`);
+    S('text', { x: 10, y: 240, class: 'sm-tick' }, tiles, p > 0 ? `x² + ${fmt(2 * ap, 3)}x + ${fmt(p * p, 3)} = (x + ${fmt(ap, 3)})²` : `strips taken away: (x − ${fmt(ap, 3)})² = x² − ${fmt(2 * ap, 3)}x + ${fmt(p * p, 3)}`);
+  }
+
+  function draw() {
+    const err = q('.qx-err');
+    let a = val(A, 1, -100, 100);
+    const b = val(B, 0, -1000, 1000), c = val(C, 0, -1000, 1000);
+    if (a === 0) { err.textContent = 'With a = 0 there is no x² term, so it is a straight line, not a quadratic. Using a = 1 for now.'; err.hidden = false; a = 1; }
+    else err.hidden = true;
+    const Q = quad(a, b, c);
+    q('.qx-eq').textContent = `y = ${quadText(a, b, c)}`;
+    graph(a, b, c, Q);
+    const rootsText = Q.kind === 'none' ? (level === 11 ? `${fmt(Q.re, 3)} ± ${fmt(Q.im, 3)}i (not real)` : 'none (the curve misses the x axis)') : Q.kind === 'one' ? `x = ${fmt(Q.roots[0], 3)} (twice)` : `x = ${fmt(Q.roots[0], 3)} and x = ${fmt(Q.roots[1], 3)}`;
+    facts(q('.qx-facts'), [
+      ['Vertex', `(${fmt(Q.h, 3)}, ${fmt(Q.k, 3)})`],
+      ['Axis of symmetry', `x = ${fmt(Q.h, 3)}`],
+      ['Opens', a > 0 ? 'upwards (lowest point)' : 'downwards (highest point)'],
+      ['Roots', rootsText],
+      ['y-intercept', `(0, ${fmt(c, 3)})`],
+      ...(level === 11 ? [['Sum and product of roots', `−b/a = ${fmt(Q.sum, 3)}, c/a = ${fmt(Q.product, 3)}`] as [string, string]] : []),
+    ]);
+    q('.qx-d').innerHTML = '';
+    q('.qx-d').append(`D = b² − 4ac = (${fmt(b)})² − 4 × ${fmt(a)} × ${fmt(c)} = `, Object.assign(document.createElement('span'), { className: 'v', textContent: fmt(Q.D, 3) }));
+    const kind = q('.qx-kind');
+    kind.replaceChildren(Object.assign(document.createElement('span'), {
+      className: 'ax-pill ' + (Q.kind === 'two' ? 'good' : Q.kind === 'one' ? 'warn' : 'bad'),
+      textContent: Q.kind === 'two' ? 'D > 0: two different real roots' : Q.kind === 'one' ? 'D = 0: two equal real roots' : 'D < 0: no real roots',
+    }), ' ', Q.kind === 'two' ? 'The parabola cuts the x axis twice.' : Q.kind === 'one' ? 'The vertex sits exactly on the x axis.' : 'The parabola never reaches the x axis.');
+    const two = fmt(2 * a);
+    q('.qx-formula').textContent = Q.kind === 'none'
+      ? (level === 11 ? `x = (−b ± √D) / 2a = (${fmt(-b)} ± √(${fmt(Q.D, 3)})) / ${two} = ${fmt(Q.re, 3)} ± ${fmt(Q.im, 3)}i, since √(${fmt(Q.D, 3)}) = ${fmt(Math.sqrt(-Q.D), 3)}i.` : `x = (−b ± √D) / 2a needs √D, and √(${fmt(Q.D, 3)}) is not a real number, so there are no real roots.`)
+      : `x = (−b ± √D) / 2a = (${fmt(-b)} ± ${fmt(Math.sqrt(Math.max(0, Q.D)), 3)}) / ${two}, so x = ${fmt(Q.roots[0], 3)}${Q.kind === 'two' ? ` or x = ${fmt(Q.roots[1], 3)}` : ' (both roots)'}.`;
+    q('.qx-tnote').textContent = a === 1 ? 'An x by x square plus b x of strips, cut in half and placed on two sides. Filling the missing corner makes a perfect square.' : `First divide by a = ${fmt(a)} so the x² tile stands alone: x² ${sgn(b / a, 3)}x ${sgn(c / a, 3)} = 0.`;
+    tileDraw(a, b, c);
+    q('.qx-cs').replaceChildren(...completeSquare(a, b, c).map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+    const sp = q('.qx-split'), m = splitMiddle(a, b, c);
+    sp.replaceChildren();
+    const P = (t: string) => { const e = document.createElement('p'); e.className = 'sm-f'; e.textContent = t; sp.append(e); };
+    if (![a, b, c].every(Number.isInteger)) P('Splitting the middle term works with whole numbers. Make a, b and c whole numbers to try it.');
+    else if (!m) P(`Look for two whole numbers that add to b = ${fmt(b)} and multiply to a × c = ${fmt(a * c)}. There are none, so ${quadText(a, b, c)} does not factor with whole numbers. Use the formula instead.`);
+    else {
+      P(`Two numbers that add to b = ${fmt(b)} and multiply to a × c = ${fmt(a * c)}: ${fmt(m.p)} and ${fmt(m.q)}.`);
+      P(`${quadText(a, b, c)} = ${fmt(a) === '1' ? '' : fmt(a)}x² ${sgn(m.p)}x ${sgn(m.q)}x ${c ? sgn(c) : ''}`.replace(/ \+ 0x| − 0x/g, '').replace(/\s+$/, ''));
+      P(`= ${factorText(m.f1)}${factorText(m.f2)}`);
+    }
+  }
+
+  dragOn(fig, (x, y) => {
+    const a = val(A, 1) || 1, Q = quad(a, val(B, 0), val(C, 0));
+    const vx = px(Math.max(X0, Math.min(X1, Q.h))), vy = py(Math.max(Y0, Math.min(Y1, Q.k)));
+    return Math.hypot(x - vx, y - vy) < 30 ? 'v' : null;
+  }, (_id, x, y) => {
+    const a = val(A, 1) || 1;
+    const h = Math.round(Math.max(X0, Math.min(X1, ux(x))) * 2) / 2, k = Math.round(Math.max(Y0, Math.min(Y1, uy(y))) * 2) / 2;
+    setB(Math.round(-2 * a * h * 100) / 100); setC(Math.round((a * h * h + k) * 100) / 100); draw();
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.qx-pre').forEach((btn) => btn.addEventListener('click', () => {
+    const [a, b, c] = btn.dataset.p!.split(',').map(Number); setA(a); setB(b); setC(c); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.qx-level button').forEach((btn) => btn.addEventListener('click', () => {
+    level = Number(btn.dataset.l);
+    root.querySelectorAll('.qx-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    draw();
+  }));
+  draw();
+
+  quiz(q('.qx-quiz'), () => {
+    const out: Question[] = [];
+    let p1 = practice(); while (p1.roots[0] === p1.roots[1]) p1 = practice();
+    out.push({ q: `Solve ${quadText(p1.a, p1.b, p1.c)} = 0.`, want: p1.roots, hint: 'both roots, e.g. 2, −3',
+      work: (() => { const s = splitMiddle(p1.a, p1.b, p1.c)!; return `a × c = ${fmt(p1.a * p1.c)}; two numbers adding to ${fmt(p1.b)} and multiplying to ${fmt(p1.a * p1.c)} are ${fmt(s.p)} and ${fmt(s.q)}. So ${quadText(p1.a, p1.b, p1.c)} = ${factorText(s.f1)}${factorText(s.f2)} and x = ${fmt(p1.roots[0])} or x = ${fmt(p1.roots[1])}.`; })() });
+    const a2 = randInt(1, 3), b2 = randInt(-9, 9, true), c2 = randInt(-6, 9, true), D2 = b2 * b2 - 4 * a2 * c2;
+    out.push({ q: `What is the discriminant of ${quadText(a2, b2, c2)} = 0? How many real roots does it have?`, want: [D2], hint: 'the value of D',
+      work: `D = b² − 4ac = (${b2})² − 4 × ${a2} × ${c2} = ${b2 * b2} ${sgn(-4 * a2 * c2)} = ${fmt(D2)}. ${D2 > 0 ? 'D > 0, so two different real roots.' : D2 === 0 ? 'D = 0, so two equal roots.' : 'D < 0, so no real roots.'}` });
+    const a3 = randInt(-2, 2, true), h3 = randInt(-4, 4), k3 = randInt(-5, 5), b3 = -2 * a3 * h3, c3 = a3 * h3 * h3 + k3;
+    out.push({ q: `Where is the vertex of y = ${quadText(a3, b3, c3)}? Give x and y.`, want: [h3, k3], ordered: true, hint: 'x, y',
+      work: `x = −b/2a = ${fmt(-b3)}/${fmt(2 * a3)} = ${fmt(h3)}. Put it back in: y = ${fmt(a3)}(${fmt(h3)})² ${sgn(b3)}(${fmt(h3)}) ${sgn(c3)} = ${fmt(k3)}. Vertex (${fmt(h3)}, ${fmt(k3)}).` });
+    const r1 = randInt(-5, 5, true), r2 = randInt(-5, 5, true);
+    out.push({ q: `A quadratic x² + bx + c has roots ${fmt(r1)} and ${fmt(r2)}. Find b and c.`, want: [-(r1 + r2), r1 * r2], ordered: true, hint: 'b, c',
+      work: `(x ${sgn(-r1)})(x ${sgn(-r2)}) = x² ${sgn(-(r1 + r2))}x ${sgn(r1 * r2)}. So b = ${fmt(-(r1 + r2))} (minus the sum of the roots) and c = ${fmt(r1 * r2)} (their product).` });
+    return out;
+  });
+</script>
