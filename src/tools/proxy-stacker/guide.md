@@ -11,7 +11,7 @@ order: 508
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, radiocarbon-calibration, time-series-analyser, dendro-crossdating]
+related: [trend-analyser, radiocarbon-calibration, time-series-analyser, dendro-crossdating, age-depth-model, insolation-calculator, isotope-delta-converter, data-cleaner]
 sources:
   - "Effective sample size for correlating two autocorrelated series: Bretherton, C. S., Widmann, M., Dymnikov, V. P., Wallace, J. M. and Bladé, I. (1999), Journal of Climate 12, 1990 to 2009, equation 31."
   - "Interpolation, z-scores, stacks, the bootstrap, correlations, lag-1 autocorrelations and the lag scan are written by fibub and checked in the tests against numpy, pandas and scipy on the example."
@@ -33,6 +33,8 @@ A single lake core, cave stalagmite or marine record is noisy, has its own datin
 - **Stack.** The mean or median of the records at each age, using only ages with at least the number of records you set. The envelope is either **±1 SD** of the records or a **bootstrap 95 %** band: whole records are drawn with replacement 1,000 times, restacked, and the 2.5 and 97.5 percentiles kept.
 - **Correlations.** Pearson r for every pair over their shared ages, with the **effective sample size** of Bretherton et al. (1999), n_eff = n (1 − r₁r₁′) / (1 + r₁r₁′), where r₁ and r₁′ are the lag-1 autocorrelations. The p-value uses n_eff − 2 degrees of freedom; the plain p-value is shown beside it for comparison.
 - **Lag scan.** r between record A at each age and record B at that age plus a lag, over a range of lags, to spot an age offset.
+
+Put each core on an age scale first with the [[age-depth-model]], and compare the stack with orbital forcing in the [[insolation-calculator]].
 
 ## How to use it
 

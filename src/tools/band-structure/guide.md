@@ -11,7 +11,7 @@ order: 6
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [altermagnet-bands, chiral-magnon-bands, plot-maker]
+related: [altermagnet-bands, chiral-magnon-bands, plot-maker, brillouin-zone, carrier-concentration, hall-effect, heat-capacity-fitter]
 sources:
   - "Tight-binding bands of the chain, diatomic chain, square lattice and honeycomb lattice, the Kronig-Penney condition and the density of states: standard textbook results, for example Ashcroft, N. W. and Mermin, N. D., Solid State Physics (1976), and Kittel, C., Introduction to Solid State Physics."
   - "Exact square-lattice density of states with the complete elliptic integral K: a standard closed form; K is computed with the arithmetic-geometric mean."
@@ -35,6 +35,8 @@ In a crystal, the energy levels of electrons on single atoms spread out into **b
 - **Kronig-Penney**: free electrons in a row of square wells, solved exactly. It shows how a periodic potential cuts the free-electron parabola into bands.
 
 For each model you get the band energies along a path through the Brillouin zone, the **density of states** (how many states there are per unit energy), the band edges and gaps, the **Fermi level** for the number of electrons you choose, and the **effective mass** at the band bottom or graphene's **Fermi velocity**.
+
+Find the high-symmetry points the bands run between with the [[brillouin-zone|Brillouin zone viewer]], and turn a band gap into electron and hole numbers with the [[carrier-concentration|carrier concentration calculator]].
 
 ## How to use it
 

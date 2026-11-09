@@ -11,7 +11,7 @@ order: 4
 icon: target
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker]
+related: [uncertainty-calculator, plot-maker, gaussian-beam, fft-workbench, curve-fitter, dls-analyser]
 sources:
   - "Power spectrum calibration, the aliased Lorentzian for sampled data, the analytical 1/P fit and the expected scatter of averaged spectra: Berg-Sørensen, K. and Flyvbjerg, H. (2004), Review of Scientific Instruments 75, 594. Equipartition and Stokes drag: standard statistical physics. Faxén's correction: Faxén (1923), as given in Svoboda, K. and Block, S. M. (1994), Annual Review of Biophysics and Biomolecular Structure 23, 247."
   - "Checked against scipy.signal.welch and scipy.optimize.curve_fit on the same record, written for the tests. Boltzmann constant: SI exact value."
@@ -31,6 +31,8 @@ This page does the two classic calibrations on a recorded position trace:
 
 - **Power spectrum:** the spectrum of a trapped bead's position is a **Lorentzian**, flat at low frequency and falling as 1/f² above the **corner frequency fc**. The stiffness is k = 2π γ fc, where γ = 6πηr is the Stokes drag on the bead. The fit also gives the **diffusion coefficient D**, which should equal kT/γ; if your positions are in volts, comparing the two gives the detector's **sensitivity β** in nm per volt.
 - **Equipartition:** the mean thermal energy in the spring is ½kT, so k = kT / ⟨x²⟩. It needs calibrated positions and is spoiled by drift and noise, so it is a useful cross-check.
+
+Size the trapping laser's focus with the [[gaussian-beam|Gaussian beam calculator]], and look at the bead's power spectrum in more detail with the [[fft-workbench]].
 
 ## How to use it
 

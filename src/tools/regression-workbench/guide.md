@@ -11,7 +11,7 @@ order: 561
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [distribution-explorer, calibration-curve, plot-maker, data-cleaner, sample-size]
+related: [distribution-explorer, calibration-curve, plot-maker, data-cleaner, sample-size, hypothesis-tests, time-series-analyser, experiment-design, bootstrap-permutation, curve-fitter, regression-ols-iv-panel]
 sources:
   - "Methods: least squares by Householder QR; logistic regression by iteratively reweighted least squares; standard textbook formulas for leverage, studentized residuals, Cook's distance, VIF and Durbin–Watson."
   - "Checked against statsmodels 0.15.0 (OLS, Logit, GLM Binomial influence, variance_inflation_factor, get_prediction) on all three examples, and against 60-digit mpmath for a badly conditioned degree-5 polynomial."
@@ -32,6 +32,8 @@ Regression explains one column (the response, y) with others (the predictors, x)
 - **Logistic**, for a yes/no response (0/1, pass/fail, alive/dead). It gives odds ratios and the chance of “yes” for any x.
 
 For each fit you get the equation; a coefficient table with the estimate, standard error, t (or z) statistic, p-value and confidence interval; R² and adjusted R² (McFadden's R² for logistic); the overall F or likelihood-ratio test; AIC, BIC and the log-likelihood; and a predictor box that gives the predicted value with a confidence interval for the mean and a prediction interval for one new value.
+
+Tidy your data first in the [[data-cleaner]], and for curved models fitted to lab data try the [[curve-fitter]] or the [[calibration-curve]].
 
 ## Checking the model
 

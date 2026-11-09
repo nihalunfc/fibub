@@ -11,7 +11,7 @@ order: 648
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [column-buckling, load-combination-helper, rebar-calculator, retaining-wall-check]
+related: [column-buckling, load-combination-helper, rebar-calculator, retaining-wall-check, beam-calculator, moment-of-inertia, stress-strain-analyser, matrix-calculator]
 sources:
   - "Direct stiffness method for plane trusses and frames (Euler-Bernoulli beam-column elements, fixed-end loads for a uniform load, Hermite shape functions for the deflected shape): standard structural analysis, for example Kassimali, A., Matrix Analysis of Structures, and Hibbeler, R. C., Structural Analysis (method only)."
   - "Checked against an independent NumPy direct stiffness program written for the tests, against the method of joints for a statically determinate truss (solved as an equilibrium matrix), and against textbook formulas for a cantilever (PL³/3EI) and a propped cantilever (wL²/8)."
@@ -33,6 +33,8 @@ This is a small structural analysis program for flat (2D) structures. You descri
 - A drawing of the structure with its supports and loads and the **deflected shape**, drawn larger by a factor you can set, plus CSV files of the member forces and node results.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer.
+
+Combine your loads first with the [[load-combination-helper]], check members in compression with the [[column-buckling|column buckling calculator]], and design single beams in the [[beam-calculator]].
 
 ## How to use it
 

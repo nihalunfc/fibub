@@ -11,7 +11,7 @@ order: 37
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [image-resizer, plot-maker, compress-file, file-converter]
+related: [image-resizer, plot-maker, compress-file, file-converter, contrast-checker, science-colour-palette, figure-checker, visual-acuity-converter]
 sources:
   - "Method: Viénot F, Brettel H, Mollon JD (1999), Digital video colourmaps for checking the legibility of displays by dichromats, Color Research and Application 24(4):243-252. Matrices computed in the page from that method's definition, not copied."
   - "sRGB transfer function, primaries and D65 white: IEC 61966-2-1 (the sRGB standard). Cone responses: the Hunt-Pointer-Estevez transform, a standard colour-science matrix. Checked in the tests against an independent NumPy implementation."

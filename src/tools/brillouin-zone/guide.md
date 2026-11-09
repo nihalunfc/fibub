@@ -11,7 +11,7 @@ order: 7
 icon: target
 works: offline
 updated: 2026-11-09
-related: [band-structure, point-group-finder, altermagnet-bands]
+related: [band-structure, point-group-finder, altermagnet-bands, miller-index-calculator, xrd-peak-calculator, electron-diffraction-indexer, chiral-magnon-bands]
 sources:
   - "Reciprocal lattice, Wigner-Seitz construction of the first Brillouin zone and Voronoi-relevant vectors: standard results, for example Ashcroft, N. W. and Mermin, N. D., Solid State Physics (1976), chapters 5 and 8, and Conway, J. H. and Sloane, N. J. A., Sphere Packings, Lattices and Groups (Voronoi's criterion)."
   - "High-symmetry point names and fractional coordinates: the common textbook conventions, as also tabulated by Setyawan, W. and Curtarolo, S. (2010), Computational Materials Science 49, 299 to 312. These are labels of geometric points (facts of geometry), checked by fibub to lie on the zone surface."
@@ -34,6 +34,8 @@ This viewer builds the reciprocal lattice from your real-space cell, constructs 
 - the **cell and zone volumes** (or areas in 2D), which are always (2π)³/V apart;
 - the zone's **faces, corners and edges**, with the distance from Γ to the nearest faces;
 - the **high-symmetry points** with fractional and Cartesian coordinates and distance from Γ.
+
+Draw the bands along the paths between these points with the [[band-structure|band structure explorer]], and index the lattice planes behind the zone faces with the [[miller-index-calculator|Miller index calculator]].
 
 ## How to use it
 

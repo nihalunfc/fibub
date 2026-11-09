@@ -11,7 +11,7 @@ order: 318
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, wave-calculator, biodiversity-indices, plot-maker, audio-spectrum-analyser, fft-workbench, notch-filter-psd]
+related: [period-finder, wave-calculator, biodiversity-indices, plot-maker, audio-spectrum-analyser, fft-workbench, notch-filter-psd, ethogram-logger, pitch-contour-tracker]
 sources:
   - "Short-time Fourier transform and one-sided power spectral density as in SciPy (scipy.signal.spectrogram, density scaling, periodic windows); Hann, Hamming and Blackman windows from F. J. Harris, Proc. IEEE 66 (1978) 51–83. Written by fibub."
   - "Checked in the tests against scipy.signal.spectrogram 1.18 (same window, overlap, no detrending) to 1 part in 100 000, and against Parseval's theorem for a pure tone. Viridis colours: the polynomial fit by Matt Zucker of the matplotlib map (CC0)."
@@ -28,6 +28,8 @@ flow:
 A spectrogram shows a sound as a picture: time runs left to right, pitch (frequency) runs bottom to top, and the darker a spot is, the louder that pitch is at that moment. It is how ornithologists, bioacousticians and students compare songs, count notes and measure how high or how fast a call is. This tool draws one from a WAV recording and measures any part you select: the **peak frequency**, the **bandwidth**, and the **start, end and length of each note**, with the gaps between them.
 
 Everything happens in your browser. The recording is read by this page on your own device and is never uploaded or stored.
+
+Log what the birds were doing while they sang with the [[ethogram-logger|ethogram logger]], and trace the pitch of each note with the [[pitch-contour-tracker|pitch contour tracker]].
 
 ## How to use it
 

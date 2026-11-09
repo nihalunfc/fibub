@@ -11,7 +11,7 @@ order: 557
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [number-theory-toolkit, group-explorer, sample-size]
+related: [number-theory-toolkit, group-explorer, sample-size, graph-algorithms, logic-simplifier, distribution-explorer]
 sources:
   - "Standard counting formulas and recurrences (Pascal's rule, Stirling's recurrences, the Bell triangle, Euler's pentagonal number theorem)."
   - "Checked against sympy (binomial, ff, multinomial_coefficients, stirling, bell, catalan, npartitions, nT, subfactorial), including C(1000, 500), B(300), C(1000) and p(20000)."
@@ -29,6 +29,8 @@ Counting problems turn up in probability, statistics, chemistry and computing, a
 - **Multinomial:** n! / (k1! k2! …), the ways to split things into groups of given sizes. Type a word and it counts the different arrangements of its letters.
 - **Special numbers** for any n: partitions p(n), Bell B(n), Catalan C(n), derangements !n and n!, with a table of every value from 0 to n.
 - **Triangles:** Pascal's triangle, Stirling numbers of the first kind c(n, k) and second kind S(n, k), Lah numbers and partitions into exactly k parts, with your entry highlighted.
+
+Turn counts into probabilities in the [[distribution-explorer]], and work with primes and remainders in the [[number-theory-toolkit]].
 
 ## How to use it
 

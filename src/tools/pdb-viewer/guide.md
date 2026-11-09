@@ -11,7 +11,7 @@ order: 1
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [ramachandran-plot, cryo-em-calculator, protein-calculator, peptide-mass-calculator]
+related: [ramachandran-plot, cryo-em-calculator, protein-calculator, peptide-mass-calculator, crystallisation-screen, molecule-viewer, hydropathy-plot, cif-viewer]
 sources:
   - "File reading (PDB columns and mmCIF tables), the secondary-structure guess, distances, contacts and the 3D drawing are written by fibub. The guess uses C-alpha distance windows in the style of the published P-SEA method, with ranges chosen by fibub."
   - "Checked in the tests against Biopython 1.88 on the example: atoms, residues, chains, distances, every residue contact at four settings (NeighborSearch), mmCIF tokens (MMCIF2Dict) and the same structure written as mmCIF; the principal axes against NumPy; an ideal helix worked by hand."

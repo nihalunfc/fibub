@@ -11,7 +11,7 @@ order: 876
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [grain-size-stats, apparent-dip]
+related: [grain-size-stats, apparent-dip, age-depth-model, range-chart-plotter, cross-section-profile, proxy-stacker]
 sources:
   - "Lithology patterns: fibub's own simple designs, in the spirit of common geological map and log conventions (such as the US FGDC digital cartographic standard) but not copied from them. Grain-size classes: Udden-Wentworth."
   - "Example section: made up by fibub."
@@ -33,6 +33,8 @@ A stratigraphic column (a graphic log) shows a rock succession as a stack of bed
 - **notes**: fossils, structures, sample numbers. They go to the right of the column with leader lines and are moved apart so they never overlap.
 
 The heights are added up from the base, a black-and-white scale bar runs up the left side, a grain-size scale sits under the column, and a legend lists the patterns used.
+
+Get the grain-size numbers for each bed from [[grain-size-stats]], and turn depths into ages with the [[age-depth-model]].
 
 ## How to use it
 

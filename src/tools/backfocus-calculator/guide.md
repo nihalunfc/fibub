@@ -11,7 +11,7 @@ order: 40
 icon: ruler
 works: offline
 updated: 2026-11-08
-related: [telescope-calculator, sub-exposure-calculator, fits-viewer]
+related: [telescope-calculator, sub-exposure-calculator, fits-viewer, star-fwhm-checker, mosaic-planner, calibration-frames, image-stacker]
 flow:
   - { icon: target, label: "Backfocus" }
   - { icon: table, label: "Your parts" }

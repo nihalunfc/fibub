@@ -11,7 +11,7 @@ order: 400
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [growth-curve-tracker, plot-maker]
+related: [growth-curve-tracker, plot-maker, acid-base-interpreter, protocol-timer]
 sources:
   - "Record layout follows the general pattern of anaesthetic monitoring records used in veterinary teaching (time-stamped vital signs and depth notes). No published chart, form or reference ranges are reproduced."
   - "The alert ranges are blank by default and set by the user; the optional practice ranges are round made-up numbers labelled as such."

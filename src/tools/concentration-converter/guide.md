@@ -11,7 +11,7 @@ order: 517
 icon: convert
 works: offline
 updated: 2026-11-09
-related: [solution-calculator, molar-mass-calculator, gas-law-calculator, reaction-equivalents, colligative-properties, lab-unit-converter]
+related: [solution-calculator, molar-mass-calculator, gas-law-calculator, reaction-equivalents, colligative-properties, lab-unit-converter, periodic-table, buffer-recipe-calculator]
 sources:
   - "Unit definitions and the ideal gas law are standard; the gas constant is the exact SI value (Avogadro constant × Boltzmann constant). Code written by fibub and checked in the tests against an independent Python version built on pint and scipy.optimize.brentq."
   - "Molar masses: IUPAC/CIAAW standard atomic weights (abridged values), through the molar mass calculator's formula reader. Dry air is taken as 28.9647 g/mol."
@@ -35,6 +35,8 @@ Concentrations come in a dozen units, and changing between them is where lab and
 - **Gases:** ppmv, ppbv, pptv, % v/v, mg/m³ and µg/m³, plus mol/L and the mass-based units, at the temperature and pressure you give.
 
 Type the solute as a formula (NaCl, CuSO4·5H2O, C2H5OH) and its molar mass is worked out for you, or type the molar mass in g/mol. For each answer, the page shows the working: the formula used and the numbers put into it. It all runs in your browser and keeps working offline.
+
+Look up molar masses with the [[molar-mass-calculator]], and make up the solution with the [[solution-calculator]].
 
 ## How to use it
 

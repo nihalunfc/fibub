@@ -11,7 +11,7 @@ order: 12
 icon: table
 works: offline
 updated: 2026-11-09
-related: [plate-layout, pcr-master-mix, hemocytometer]
+related: [plate-layout, pcr-master-mix, hemocytometer, cell-doubling-time, moi-calculator, fluorescence-image-analyser, fcs-viewer, plasmid-map, nucleic-acid-concentration]
 sources:
   - "The arithmetic (amount per well × wells × spare, DNA volume = mass ÷ stock, reagent = ratio × DNA) is written by fibub and checked in the tests against a hand-worked example and an independent NumPy script."
   - "The starting amounts per well and the example stocks are rounded values made up by fibub. They are not from any kit insert or paper; type the amounts your reagent's instructions give."

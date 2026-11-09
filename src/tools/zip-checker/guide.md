@@ -10,6 +10,7 @@ order: 15
 icon: zip
 works: offline
 updated: 2026-11-06
+related: [compress-file, file-converter, checksum-checker, image-resizer]
 flow:
   - { icon: zip, label: "Drop a ZIP" }
   - { icon: search, label: "Look inside" }

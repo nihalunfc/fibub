@@ -11,7 +11,7 @@ order: 838
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [pdb-viewer, qc-output-parser, point-group-finder, unsaturation-calculator, periodic-table]
+related: [pdb-viewer, qc-output-parser, point-group-finder, unsaturation-calculator, periodic-table, cif-viewer, molar-mass-calculator, huckel-mo-calculator]
 sources:
   - "File reading (XYZ, MOL and SDF V2000 layouts), the bond guess, the measurements and the 3D drawing are written by fibub. The covalent radii for guessing bonds are rounded values chosen by fibub; atom colours follow the usual CPK convention."
   - "Molar mass from IUPAC/CIAAW standard atomic weights."
@@ -37,6 +37,8 @@ Chemists pass small molecules around as **XYZ** files (an atom count, a comment 
 - **Downloads**: a PNG picture of the current view on white, and the coordinates as XYZ.
 
 For proteins, DNA and other PDB or mmCIF files, use the [PDB structure viewer](/science/pdb-viewer/), which draws cartoons and finds contacts.
+
+Get a geometry from a calculation with the [[qc-output-parser|quantum chemistry output parser]], and find the molecule's symmetry with the [[point-group-finder|point group finder]].
 
 ## How to use it
 

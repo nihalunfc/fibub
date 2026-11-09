@@ -33,6 +33,8 @@ A phylogenetic tree shows how a set of sequences are related: which share a more
 
 You see the tree, the distance matrix, the Newick text, and can download them. Nothing is uploaded.
 
+Line up your sequences first with [[sequence-alignment|pairwise sequence alignment]], then root and style the tree in the [[tree-viewer|phylogenetic tree viewer]] and date its splits with the [[molecular-clock|molecular clock calculator]].
+
 ## How to use it
 
 1. Paste your **aligned** sequences in FASTA format (a line `>name`, then the sequence), or open a FASTA file. All sequences must have the same length; use `-` for gaps. If they are not aligned yet, align them first. The tree is only as good as the alignment.

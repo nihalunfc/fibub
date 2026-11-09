@@ -11,7 +11,7 @@ order: 303
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, decay-calculator, plot-maker, trend-analyser, lotka-volterra-simulator, epidemic-model, ode-solver, yield-per-recruit]
+related: [biodiversity-indices, decay-calculator, plot-maker, trend-analyser, lotka-volterra-simulator, epidemic-model, ode-solver, yield-per-recruit, mark-recapture]
 sources:
   - "Methods: P. H. Leslie (1945) matrix model; H. Caswell, Matrix Population Models (2nd ed. 2001) for the characteristic equation, stable distribution, reproductive value, R₀ and generation time; Verhulst's logistic equation. Formulas only; no tables are copied."
   - "Checked in the tests against NumPy 2.x (numpy.linalg.eig of the matrix and its transpose, and matrix powers) and Python's math module."
@@ -30,6 +30,8 @@ This calculator covers the three population growth models taught in every ecolog
 - **Exponential growth**: N(t) = N₀ e^(rt). With no limits, a population grows by the same proportion every time unit.
 - **Logistic growth**: N(t) = K / (1 + ((K − N₀)/N₀) e^(−rt)). Growth slows as the population approaches the carrying capacity K, giving the familiar S-shaped curve.
 - **Leslie matrix**: an age- or stage-structured population, where each class has its own fecundity and survival. The tool projects the numbers forward and finds the long-run growth rate λ (the dominant eigenvalue), the stable age distribution and the reproductive value of each class.
+
+Estimate the starting population with the [[mark-recapture|mark-recapture estimator]], and add a predator or a competitor in the [[lotka-volterra-simulator|Lotka-Volterra simulator]].
 
 ## How to use it
 

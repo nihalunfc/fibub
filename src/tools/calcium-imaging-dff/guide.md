@@ -11,7 +11,7 @@ order: 350
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, trend-analyser, plot-maker, hemocytometer, spike-train-analyser, fluorescence-image-analyser]
+related: [period-finder, trend-analyser, plot-maker, hemocytometer, spike-train-analyser, fluorescence-image-analyser, stereotaxic-helper, time-series-analyser]
 sources:
   - "ΔF/F = (F − F0)/F0 with F0 from a running low percentile, as widely used in two-photon imaging (e.g. Jia et al., Nature Protocols 6 (2011) 28–35, for the idea of a running baseline; Suite2p and CaImAn documentation for neuropil factor 0.7 as a common default). Robust noise as 1.4826 × median absolute deviation. Written by fibub; methods only, no data copied."
   - "Checked in the tests against an independent NumPy 2.5 calculation (np.percentile over each clipped window, np.median, np.std(ddof=1), run finding with np.argmax), and against the made-up transients planted in the example."
@@ -34,6 +34,8 @@ Calcium imaging gives a fluorescence trace F for every region of interest (ROI, 
 5. draws a **heat map** of all ROIs, plus the trace, baseline and events of any one ROI.
 
 Everything runs in your browser; files are never uploaded.
+
+Measure the cells in your images first with the [[fluorescence-image-analyser]], and compare the events with electrode recordings in the [[spike-train-analyser]].
 
 ## How to use it
 

@@ -29,6 +29,8 @@ Insects grow faster when it is warm and hardly at all when it is cold, so their 
 
 This calculator takes a list of daily minimum and maximum temperatures and gives you the degree-days for each day, the running total from the day you choose (the biofix), and the date a degree-day target is reached. If the target has not been reached yet, it gives a rough projected date. Everything is worked out in your browser and nothing is sent anywhere.
 
+Get daily temperatures from the [[station-data-viewer|weather station data viewer]], and line the forecast up with your catches in the [[trap-count-index|trap count index]].
+
 ## How to use it
 
 1. Paste three columns: **date, minimum, maximum**. A header row is fine; rows that cannot be read are skipped and counted. You can also open a CSV or Excel file.

@@ -11,7 +11,7 @@ order: 548
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, period-finder, trend-analyser]
+related: [plot-maker, period-finder, trend-analyser, chaos-explorer, numerical-methods, pathway-ode-builder, lotka-volterra-simulator, epidemic-model, coupled-oscillators]
 sources:
   - "Methods: Dormand and Prince (1980) RK5(4) pair with Shampine's (1986) dense output, step control as SciPy's solve_ivp RK45; classic RK4; explicit finite differences (FTCS, leapfrog). Example systems are textbook models with round, made-up parameter values."
 flow:
@@ -30,6 +30,8 @@ Type a system of ordinary differential equations (ODEs), one per line, and this 
 - **Equilibria** (points where nothing changes), found by Newton's method, with the **eigenvalues of the Jacobian** and what they mean: stable or unstable node, spiral, saddle or centre.
 - **A bifurcation diagram**: sweep a parameter and see where the behaviour changes, for example where a resting state starts to oscillate.
 - **A heat and wave equation playground**: the 1D diffusion and wave equations solved by explicit finite differences, with the stability limit shown, so you can watch a too-large time step blow up.
+
+See how the step-by-step methods behind it work in the [[numerical-methods|numerical methods teacher]], and watch nonlinear systems turn chaotic in the [[chaos-explorer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 15
 icon: target
 works: offline
 updated: 2026-11-09
-related: [lc50-probit, dose-response, drug-synergy, species-sensitivity, nca-pk, pk-simulator, binding-curve-fitter]
+related: [lc50-probit, dose-response, drug-synergy, species-sensitivity, nca-pk, pk-simulator, binding-curve-fitter, margin-of-exposure, exposure-twa]
 sources:
   - "Benchmark dose method: K. S. Crump, Fundam. Appl. Toxicol. 4 (1984) 854 and Risk Anal. 15 (1995) 79; model forms, parameter restrictions, extra risk, the p ≥ 0.1 adequacy rule and AIC as in US EPA, Benchmark Dose Technical Guidance (EPA/100/R-12/001, 2012) and its BMDS software (checked 2026-11-09; check the official source). AIC: H. Akaike, IEEE Trans. Autom. Control 19 (1974) 716. Formulas only; no data or tables copied."
   - "Fitting written by fibub (Nelder-Mead on bounded transforms, profile likelihood with bisection). Checked in the tests against an independent SciPy implementation (L-BFGS-B with box bounds; SLSQP profile with the BMD as an equality constraint) on the example and 10 random data sets: log-likelihoods to 10⁻¹³, BMDs to 1.3 × 10⁻⁷ and BMDLs to 4 × 10⁻⁸ (relative)."
@@ -28,6 +28,8 @@ flow:
 The **benchmark dose (BMD)** approach finds the dose that causes a small, defined increase in the chance of an effect (the benchmark response, BMR), using a curve fitted to all the dose groups rather than a single "no observed effect" dose. Its lower confidence limit, the **BMDL**, is the usual point of departure in risk assessment. This page fits the five standard models for quantal data (each animal or subject either shows the effect or not) by maximum likelihood, works out the BMD and BMDL for each, and compares the fits.
 
 It is for study and teaching, not medical advice. Regulatory assessments use the official software and guidance; check the official source.
+
+Fit a plain dose-response curve with the [[dose-response|4PL curve fitter]], and compare the BMDL with real exposure in the [[margin-of-exposure|margin of exposure calculator]].
 
 ## How to use it
 

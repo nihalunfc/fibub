@@ -11,7 +11,7 @@ order: 393
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [shelf-life-estimator, decay-calculator, reaction-kinetics-fitter, recipe-nutrition-calculator]
+related: [shelf-life-estimator, decay-calculator, reaction-kinetics-fitter, recipe-nutrition-calculator, haccp-plan-builder, f0-calculator, heat-conduction]
 sources:
   - "General first-order microbial inactivation formulas: D from the slope of log10 N against time, z from the slope of log10 D against temperature, F = D·(log10 N0 − log10 N), lethal rate L = 10^((T − Tref)/z), and the general method (trapezoid rule). The reference of 121.1 °C and z = 10 °C for F0 is a general textbook convention."
   - "Checked against numpy.polyfit (D, z and R²) and numpy.trapezoid / scipy cumulative_trapezoid (F0, F with other Tref and z, and F partway through) on the example data."

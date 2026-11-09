@@ -34,6 +34,8 @@ This simulator solves those equations step by step (fourth-order Runge-Kutta, 0.
 
 For study and teaching, not for clinical use.
 
+Work out the reversal potentials to put into the model with the [[membrane-potential|membrane potential calculator]], and analyse the spikes it fires in the [[spike-train-analyser]].
+
 ## How to use it
 
 1. **Stimulus.** A **step** holds a current for a while; a **pulse train** gives short pulses at a set frequency. Amplitudes are in µA/cm² of membrane.

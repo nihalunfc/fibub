@@ -11,7 +11,7 @@ order: 636
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [dh-kinematics, reaction-kinetics-fitter, impedance-fitter]
+related: [dh-kinematics, reaction-kinetics-fitter, impedance-fitter, pole-placement, kalman-filter-playground, ode-solver, digital-filter-designer]
 sources:
   - "PID control with a filtered derivative, closed-loop simulation, Bode plots, gain and phase margins and the Ziegler-Nichols tuning rules (ultimate-gain and reaction-curve forms) are standard control textbook material, written out by fibub."
   - "Checked against python-control 0.10.2 (step_response, step_info, margin, poles) on 8 loops, and against an independent numpy simulation for loops with dead time."
@@ -32,6 +32,8 @@ A PID controller sets its output from the error between what you want (the setpo
 - **Bode plot** of the open loop C(s)·G(s) with the **gain margin**, **phase margin** and **delay margin**.
 - **Ziegler-Nichols** starting gains from the ultimate gain and period, and from the reaction curve (the tangent to the plant's own step response). Press **Use** to try them.
 - An optional **load disturbance**: a step added to the plant input part way through, to test how well the loop holds the setpoint.
+
+For a model in state-space form, place the poles directly with [[pole-placement|state space and pole placement]], and clean up a noisy sensor first with the [[kalman-filter-playground]].
 
 ## The plant
 

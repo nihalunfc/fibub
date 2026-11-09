@@ -11,7 +11,7 @@ order: 42
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [bland-altman, method-validation, calibration-curve, uncertainty-calculator, sample-size, non-detects]
+related: [bland-altman, method-validation, calibration-curve, uncertainty-calculator, sample-size, non-detects, westgard-qc, lab-unit-converter]
 sources:
   - "Nonparametric rank method and 90 % CIs of the limits: CLSI EP28-A3c, Defining, establishing and verifying reference intervals in the clinical laboratory (2008, reaffirmed 2010)."
   - "Dixon's 1/3 rule for reference data: Reed AH, Henry RJ and Mason WB (1971), Clinical Chemistry 17:275-284. Tukey fences on transformed data: Horn PS, Feng L, Li Y and Pesce AJ (2001), Clinical Chemistry 47:2137-2145."
@@ -29,6 +29,8 @@ flow:
 Every lab result is read against a **reference interval**: the range that holds the central 95 % of results from healthy people. Labs are expected to set or check these intervals for their own method and population. This tool works one out from your own reference results, in your browser, following the methods of CLSI EP28-A3c.
 
 You get the **nonparametric** interval (the 2.5th and 97.5th percentiles by the CLSI rank method) with **90 % confidence intervals** of each limit from order statistics, a **parametric** interval (mean ± 1.96 SD) on the raw, log or **Box-Cox** scale with exact confidence intervals, an **outlier screen** (Tukey fences or Dixon's 1/3 rule), a **Harris-Boyd** check of whether two subgroups such as women and men need separate intervals, and a histogram with both sets of limits.
+
+Convert results into the units you need with the [[lab-unit-converter]], and keep the method in control with the [[westgard-qc|Westgard QC checker]].
 
 ## How to use it
 

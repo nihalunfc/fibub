@@ -6,6 +6,9 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.evaluate(() => { try { localStorage.removeItem('fibub-reagents-v1'); } catch {} }); await page.reload(); await page.waitForTimeout(400);
   check(await page.isVisible(R + '.ri-empty') && (await page.textContent(R + '.ri-store')).includes('never sent to fibub'), 'reagents: empty list message and the plain storage statement');
   await page.click(R + '.ri-ex'); await page.waitForTimeout(200);
+  check(!(await page.isChecked(R + '.ri-keep')) && (await page.evaluate(() => localStorage.getItem('fibub-reagents-v1'))) === null, 'reagents: nothing stored before the remember box is ticked');
+  await page.check(R + '.ri-keep'); await page.waitForTimeout(100);
+  check(JSON.parse(await page.evaluate(() => localStorage.getItem('fibub-reagents-v1'))).reagents.length === 8, 'reagents: ticking the box saves the list now');
   const facts = async () => (await page.textContent(R + '.ri-facts')).replace(/\s+/g, '');
   check((await facts()) === 'Reagents8Expired1Expiringwithin30days3Lowstockorempty2', `reagents: example summary (${await facts()})`);
   const names = async () => page.$$eval(R + '.ri-tab tbody tr', (rs) => rs.map((r) => r.cells[0].firstChild?.textContent));
@@ -50,7 +53,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.fill(R + '.ri-q', '');
   // Kept after a reload.
   await page.reload(); await page.waitForTimeout(400);
-  check((await facts()).startsWith('Reagents9'), 'reagents: list kept in this browser after reload');
+  check((await facts()).startsWith('Reagents9') && await page.isChecked(R + '.ri-keep'), 'reagents: list kept in this browser after reload, box ticked');
 
   // CSV and JSON downloads.
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.ri-csv')]); const f = OUT + 'reagents.csv'; await d.saveAs(f); const rows = readFileSync(f, 'utf8').trim().split('\n');

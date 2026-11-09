@@ -11,7 +11,7 @@ order: 330
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, dose-response, lc50-probit, plot-maker, sample-size, leaf-disease-severity, epidemic-model, field-trial-designer]
+related: [trend-analyser, dose-response, lc50-probit, plot-maker, sample-size, leaf-disease-severity, epidemic-model, field-trial-designer, yield-trial-anova]
 sources:
   - "AUDPC: G. Shaner and R. E. Finney, Phytopathology 67, 1051-1056 (1977). AUDPS: I. Simko and H.-P. Piepho, Phytopathology 102, 381-389 (2012). Models and transforms: C. L. Campbell and L. V. Madden, Introduction to Plant Disease Epidemiology (Wiley, 1990); J. E. Vanderplank, Plant Diseases: Epidemics and Control (1963). Formulas only."
   - "Checked in the tests against Python: numpy.trapezoid for AUDPC, the stairs definition of AUDPS, scipy.stats.linregress for the linearised rates and scipy.optimize.curve_fit for the curve fits and their standard errors (SciPy 1.18)."
@@ -31,6 +31,8 @@ When a plant disease is rated several times through a season, the ratings make a
 - **AUDPS**, the area under the disease progress **stairs** (Simko and Piepho 2012), treats each rating as a bar one interval wide. AUDPC underweights the first and last ratings; AUDPS gives them their full weight: AUDPS = AUDPC + (y₁ + yₙ)/2 × (tₙ − t₁)/(n − 1).
 - **Relative AUDPC and AUDPS** divide by the largest possible area, so epidemics of different lengths or rating scales can be compared on a 0 to 1 scale.
 - **Monomolecular**, **logistic** and **Gompertz** models give the **apparent infection rate r**. The monomolecular model suits diseases that spread from inoculum already in the field (one cycle a season). The logistic and Gompertz models suit diseases with many cycles a season. For the logistic model, r is Vanderplank's apparent infection rate.
+
+Score each plot's severity on the day with [[leaf-disease-severity]], and compare treatments across plots with the [[yield-trial-anova]].
 
 ## How to use it
 

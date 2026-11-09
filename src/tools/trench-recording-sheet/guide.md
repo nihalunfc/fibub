@@ -11,7 +11,7 @@ order: 406
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [traverse-calculator, level-book-reducer, gps-track-analyser, harris-matrix-builder, artefact-scale-tool]
+related: [traverse-calculator, level-book-reducer, gps-track-analyser, harris-matrix-builder, artefact-scale-tool, seriation-analyser, field-form-builder, utm-converter, strat-column]
 sources:
   - "Baseline-and-offset and levelling (height of instrument = datum + backsight, height = HI − foresight) as in standard field survey practice. Grid to latitude/longitude by Puissant's short-line formulas on the WGS84 ellipsoid (a = 6378137 m, f = 1/298.257223563), using the meridian and prime-vertical radii of curvature."
   - "Checked against Vincenty's direct formula on WGS84, written separately in Python: 40 random cases up to 1 km from the origin at latitudes up to 60° agreed to better than 0.03 mm per metre (under 1 mm at 1 km); the inverse returns the grid point to 1e-9 m."

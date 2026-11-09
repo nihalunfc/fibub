@@ -11,7 +11,7 @@ order: 304
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, reaction-kinetics-fitter, plot-maker, decay-calculator, ode-solver, chaos-explorer, agent-based-models]
+related: [biodiversity-indices, reaction-kinetics-fitter, plot-maker, decay-calculator, ode-solver, chaos-explorer, agent-based-models, population-growth-models, epidemic-model]
 sources:
   - "Models: A. J. Lotka (1925) and V. Volterra (1926); G. F. Gause (1934) for competition; the logistic prey term as in standard ecology texts (e.g. N. J. Gotelli, A Primer of Ecology, 4th ed. 2008). Numerical method: classic fourth-order Runge-Kutta. Formulas only; no tables are copied."
   - "Checked in the tests against SciPy 1.x solve_ivp (RK45 with tolerances of 1e-12), numpy.linalg.eigvals for the equilibria and scipy.signal.find_peaks for the cycle period, plus the conserved quantity of the classic model."
@@ -31,6 +31,8 @@ The Lotka-Volterra equations are the starting point for how two interacting spec
 - **Competition**: two species each grow logistically towards their own carrying capacity, and each counts against the other's capacity through the competition coefficients α₁₂ and α₂₁. Depending on these, one species wins, they coexist, or the winner depends on who starts ahead.
 
 For each model you get the populations over time, the **phase plane** (one population against the other) with the **nullclines** where each stops changing, and every **equilibrium** with the eigenvalues of the Jacobian that say whether it attracts or repels.
+
+Start with a single species in the [[population-growth-models|population growth models]], and solve your own equations with the [[ode-solver|ODE solver]].
 
 ## How to use it
 

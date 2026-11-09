@@ -11,7 +11,7 @@ order: 739
 icon: percent
 works: offline
 updated: 2026-11-09
-related: [currency-converter, loan-payoff-planner, budget-calculator, trend-analyser, plot-maker]
+related: [currency-converter, loan-payoff-planner, budget-calculator, trend-analyser, plot-maker, npv-irr-calculator, gini-lorenz, supply-demand]
 sources:
   - "Standard index-number formulas: price ratios, compound average rates, rebasing, deflating by a price index, and the Fisher equation (Irving Fisher, The Theory of Interest, 1930). No index data is included; the user enters official figures."
   - "Written by fibub. Checked in the tests against pandas (pct_change, rebasing, period dates) and the closed forms."
@@ -28,6 +28,8 @@ flow:
 Prices rise over time, so a sum of money buys less than it used to. This calculator answers the everyday questions that follow: what an amount from one year is worth in another, how fast prices rose on average, how much a pay rise really was after inflation, and what a savings rate earns in real terms.
 
 It does **not** include any official price data. Instead you type in the consumer price index (CPI) for your dates, or paste a whole series, from your country's statistics office. That keeps the numbers current and lets you use any index you like: national CPI, a regional index, food prices, house prices or a producer price index. You can also work with a steady yearly rate instead. Everything runs in your browser and nothing is sent anywhere.
+
+Bring past costs to today's money before you compare projects with the [[npv-irr-calculator]], and see what a pay rise means for your monthly spending with the [[budget-calculator]].
 
 ## Where to find official price indexes
 

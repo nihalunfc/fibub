@@ -11,7 +11,7 @@ order: 588
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [graph-algorithms, plot-maker, data-cleaner]
+related: [graph-algorithms, plot-maker, data-cleaner, social-network-analysis, correspondence-network, agent-based-models, cellular-automata, gene-network-viewer]
 sources:
   - "Standard network-science measures (density, clustering, transitivity, components, diameter, degree assortativity, PageRank, modularity, the Louvain method of Blondel et al. 2008, Fruchterman-Reingold layout), written by fibub."
   - "Checked against networkx 3.7 (BSD licence) on the example and on 40 random networks: every measure equal to networkx; Louvain modularity close to networkx's (its result depends on node order, as networkx's depends on its random seed)."
@@ -35,6 +35,8 @@ Give it a network as a list of links (who knows whom, which page links to which,
 - **PageRank**: the importance score Google first used for web pages, with the damping factor you choose.
 - **Communities** by the Louvain method, with their **modularity**: how much more densely the groups are linked inside than chance would give.
 - A **degree distribution** on log-log axes, and a force-directed **drawing** of networks up to 300 nodes, coloured by community and sized by PageRank.
+
+Find shortest paths and spanning trees in [[graph-algorithms]], and analyse ties between people with [[social-network-analysis]].
 
 ## How to use it
 

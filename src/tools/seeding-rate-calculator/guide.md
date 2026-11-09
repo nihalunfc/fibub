@@ -11,7 +11,7 @@ order: 384
 icon: target
 works: offline
 updated: 2026-11-09
-related: [fertiliser-blend-calculator, soil-test-interpreter]
+related: [fertiliser-blend-calculator, soil-test-interpreter, sprayer-calibration, irrigation-scheduler, field-trial-designer, yield-trial-anova, plant-growth-analysis]
 sources:
   - "Seeds to sow = target plants ÷ (germination × purity × field emergence); seed mass from the thousand-seed weight; seeds per metre of row = seeds per m² × row spacing. General agronomy arithmetic with exact unit conversions (1 acre = 0.40468564224 ha, 1 lb = 0.45359237 kg, 1 ft = 0.3048 m)."
   - "Checked against hand-worked sums in Python, including the standard deviation of stand counts (statistics.stdev). The example values are made up."

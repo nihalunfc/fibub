@@ -11,7 +11,7 @@ order: 352
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, wave-calculator, uncertainty-calculator, reaction-kinetics-fitter, embryo-development-timer, ode-solver, agent-based-models]
+related: [plot-maker, wave-calculator, uncertainty-calculator, reaction-kinetics-fitter, embryo-development-timer, ode-solver, agent-based-models, cellular-automata]
 sources:
   - "A. M. Turing, The chemical basis of morphogenesis, Phil. Trans. R. Soc. B 237 (1952) 37–72. A. Gierer and H. Meinhardt, Kybernetik 12 (1972) 30–39 (activator-inhibitor model; saturation as in Meinhardt's later work). P. Gray and S. K. Scott (1984) and J. E. Pearson, Science 261 (1993) 189–192 (Gray-Scott patterns; diffusion constants rescaled to grid units). L. Wolpert, J. Theor. Biol. 25 (1969) 1–47 (French flag). Equations only; the parameter sets were chosen and tested by fibub."
   - "Checked in the tests: steady states (Gray-Scott u = 1, v = 0; Gierer-Meinhardt a = μh/μa, h = ρμh/μa²) stay put; the wrap-around Laplacian conserves the total; the 1-D finite-difference gradient relaxes to the exact cosh steady state; the Turing band and fastest wavelength match NumPy eigenvalues (18.39 cells)."
@@ -33,6 +33,8 @@ How does a ball of identical cells lay down stripes, spots and body parts in the
 
 - **Gierer-Meinhardt**: an activator *a* that boosts its own production and that of a fast-spreading inhibitor *h*: ∂a/∂t = Da∇²a + ρa²/((1 + κa²)h) − μa·a and ∂h/∂t = Dh∇²h + ρa² − μh·h. With κ = 0 it makes spots; a little saturation (κ) gives stripes.
 - **Gray-Scott**: a substance *u* fed in at rate F and turned into *v* by u + 2v → 3v, with *v* removed at rate F + k. Different F and k give spots that split, mazes of stripes, and more (Pearson 1993).
+
+Solve the same equations step by step with the [[ode-solver]], and compare with rule-based patterns in [[cellular-automata]].
 
 ## How to use it
 

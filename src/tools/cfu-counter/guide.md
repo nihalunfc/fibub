@@ -11,7 +11,7 @@ order: 2
 icon: target
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, solution-calculator, media-recipe-scaler, cell-doubling-time, uncertainty-calculator]
+related: [hemocytometer, solution-calculator, media-recipe-scaler, cell-doubling-time, uncertainty-calculator, growth-curve-od600, counting-statistics, tcid50-calculator]
 sources:
   - "The dilution maths (CFU = all colonies on the countable plates ÷ the total volume of sample they received), the exact Poisson interval and the chi-square agreement test are general statistics, written by fibub and checked in the tests against an independent Python script and textbook Poisson limits."
   - "Colony finding (local background, threshold, connected groups, distance-map splitting) is written by fibub; the groups and distance maps are checked against NumPy and brute force on random images."
@@ -30,6 +30,8 @@ A viable count tells you how many live bacteria (or yeasts) were in a sample: yo
 - **Count a plate from a photo.** It evens out the light across the agar, marks every spot that stands out from the nearby agar by more than a threshold, joins the pixels into blobs, ignores specks smaller than a colony, and splits blobs of touching colonies where the distance map has separate peaks. Blue rings show what it found. Tap a missed colony to add it (green), or tap a ring to remove it (red cross).
 - **Work out CFU per mL or per g.** Type one line per plate: dilution, volume plated and colonies. Plates inside the countable range (30 to 300 by default) are combined as a weighted mean: all their colonies divided by the total amount of sample they received. A plate that got more sample counts for more, which is the right weighting for counts.
 - **Show how sure the number is.** The interval is the exact Poisson interval for the total count. A chi-square test says whether the plates agree as well as counting alone allows; if not, look for a pipetting or mixing problem.
+
+Plan the dilutions with the [[solution-calculator]], and follow the culture over time with the [[growth-curve-od600|growth curve calculator]].
 
 ## How to use it
 

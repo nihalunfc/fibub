@@ -11,7 +11,7 @@ order: 865
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [tauc-plot, carrier-concentration, wave-calculator, plot-maker]
+related: [tauc-plot, carrier-concentration, wave-calculator, plot-maker, thin-film-coating, sellmeier-fitter, afm-roughness]
 sources:
   - "The thin-film transmittance formula and envelope method of Swanepoel (1983), interference orders 2nd = mλ, the Cauchy dispersion formula and fringe counting are standard optics; the code is written by fibub and checked in the tests against an independent transfer-matrix calculation, SciPy (find_peaks, CubicSpline) and NumPy."
   - "The example spectrum is made up by the page: a 1000 nm film with n = 2.2 + 3×10⁴/λ² (λ in nm) and weak absorption on a substrate with s = 1.5, with made-up noise."
@@ -29,6 +29,8 @@ Light reflected from the top and bottom of a thin film interferes, so the transm
 - **Swanepoel's envelope method** (transmittance of a film on a thick transparent substrate). The page finds the maxima and minima, draws smooth upper and lower envelopes through them, and gets n at each fringe from N = 2s(T_M − T_m)/(T_M T_m) + (s² + 1)/2 and n = √(N + √(N² − s²)). Neighbouring fringes give a first thickness d₁; each fringe's order is then rounded to a whole (or half) number, and d = mλ/2n from every fringe gives the final thickness and its spread. The orders also give a refined index n₂, and the upper envelope gives the absorption coefficient α where the film absorbs weakly.
 - **Fringe positions with a known index.** With n constant or following Cauchy's n = A + B/λ², the positions alone give d, in transmittance or reflectance, at any angle of incidence.
 - **Fringe count.** N whole fringes between λ₁ and λ₂ give d = N / (2n(1/λ₁ − 1/λ₂)).
+
+Get the refractive index across the spectrum with the [[sellmeier-fitter|Sellmeier fitter]], and design coatings of a given thickness with the [[thin-film-coating|thin film coating designer]].
 
 ## How to use it
 

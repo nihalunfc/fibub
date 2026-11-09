@@ -11,7 +11,7 @@ order: 681
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [ecg-viewer, trend-analyser, plot-maker]
+related: [ecg-viewer, trend-analyser, plot-maker, fft-workbench, digital-filter-designer, notch-filter-psd, gait-cadence]
 sources:
   - "Methods written from their standard textbook descriptions: Welch's averaged periodogram (Welch 1967), mean and median frequency of the EMG power spectrum and their fall with fatigue (De Luca 1997, The use of surface electromyography in biomechanics, Journal of Applied Biomechanics 13), onset by a baseline mean plus k standard deviations (Hodges and Bui 1996). No code or data copied."
   - "Checked against SciPy and NumPy: scipy.signal.welch spectra to 1e-15, mean and median frequency in all 63 windows of the example to 1e-12 Hz, the moving RMS against numpy.convolve, the low-pass envelope against scipy.signal.sosfiltfilt, and the fatigue slope, intercept, R² and slope error against scipy.stats.linregress; burst onsets against the known burst times of the synthetic EMG (within 30 ms)."
@@ -33,6 +33,8 @@ Surface electromyography (EMG) records the electrical activity of a muscle throu
 - **Fatigue**: the median frequency (MDF) and mean frequency (MNF) of the spectrum in sliding windows, with a straight-line trend. When a muscle tires during a sustained contraction, the spectrum shifts to lower frequencies and both fall.
 
 **For study and research, not for diagnosis.**
+
+Remove mains hum first with the [[notch-filter-psd|notch filter and PSD tool]], and look at the spectrum in more depth with the [[fft-workbench|FFT workbench]].
 
 ## How to use it
 

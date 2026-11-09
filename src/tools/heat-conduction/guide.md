@@ -11,7 +11,7 @@ order: 5
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [heat-engine-cycles, psychrometric-calculator]
+related: [heat-engine-cycles, psychrometric-calculator, heat-exchanger-sizing, diffusion-calculator, random-walk-diffusion, thermal-mismatch-stress, hvac-room-load, numerical-methods]
 sources:
   - "Conduction, fin and thermal-resistance formulas, the plane-wall series solution and the critical radius of insulation: standard results, for example Incropera, F. P. et al., Fundamentals of Heat and Mass Transfer; Carslaw, H. S. and Jaeger, J. C., Conduction of Heat in Solids."
   - "Numerical methods: Crank-Nicolson (1947) with two backward-Euler start-up steps; Peaceman-Rachford ADI (1955) for the 2D plate."
@@ -34,6 +34,8 @@ Heat flows from hot to cold through solids at a rate set by their **thermal cond
 - **2D plate**: a rectangle with its four edges held at set temperatures; heat spreads in over time (**ADI** method) or to the steady state, shown as a colour map. With one edge different, the steady centre is checked against the exact Fourier series.
 - **Fin**: a pin or flat fin on a hot surface. Gives the heat shed, the **fin efficiency**, the **effectiveness** and the temperature along it.
 - **Pipe**: heat lost from an insulated pipe, the surface temperature, the **critical radius** k/h, and the insulation thickness needed to keep the surface below a temperature.
+
+Size a whole exchanger with the [[heat-exchanger-sizing|heat exchanger calculator]], and see the same maths for atoms in the [[diffusion-calculator]].
 
 ## How to use it
 

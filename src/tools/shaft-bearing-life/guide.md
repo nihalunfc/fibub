@@ -11,7 +11,7 @@ order: 645
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [gear-train-calculator, beam-calculator, bolt-torque-calculator, spring-designer]
+related: [gear-train-calculator, beam-calculator, bolt-torque-calculator, spring-designer, tolerance-stackup, fatigue-sn-calculator]
 sources:
   - "Basic rating life L10 = (C/P)^p with p = 3 for ball and 10/3 for roller bearings, the equivalent load P = X Fr + Y Fa, and the adjusted life a1 · aISO · L10, as defined in ISO 281 and machine design texts (equations only; no catalogue or factor tables are reproduced)."
   - "Reliability factor from a two-parameter Weibull distribution of bearing life through the 90 % point, a standard result (e.g. Shigley's Mechanical Engineering Design, chapter on rolling-contact bearings)."
@@ -37,6 +37,8 @@ Two linked checks for a rotating shaft and the bearings that carry it.
 - or, switched round, the **C you need** for a target life in hours.
 
 **Shaft diameter.** A shaft under a steady load turns its bending stress into a fully reversed cycle every revolution, while the torque stays steady. The DE-Goodman criterion combines the alternating and mean von Mises stresses with your endurance limit Se and tensile strength Sut to give the **diameter for a safety factor**, or the **safety factor of a diameter**. It also checks first-cycle yield and gives the plain **static diameters** by the von Mises and maximum shear stress theories.
+
+Get the shaft speed and torque from the [[gear-train-calculator]] first, and set the bearing fits with the [[tolerance-stackup]].
 
 ## How to use it
 

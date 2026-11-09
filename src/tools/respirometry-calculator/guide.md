@@ -11,7 +11,7 @@ order: 342
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [gas-law-calculator, psychrometric-calculator, uncertainty-calculator, plot-maker, allometry-calculator, fick-cardiac-output, vo2max-estimator]
+related: [gas-law-calculator, psychrometric-calculator, uncertainty-calculator, plot-maker, allometry-calculator, fick-cardiac-output, vo2max-estimator, osmolarity-calculator, energy-needs]
 sources:
   - "Flow-through equations: J. R. B. Lighton, Measuring Metabolic Rates: A Manual for Scientists (Oxford University Press, 2008), chapters 8 to 10 (nitrogen balance, eq. 10.2 for scrubbed CO₂). Written from the mass balances; no tables copied."
   - "Energy: J. B. de V. Weir (1949), J. Physiol. 109: 1-9, kcal = 3.941 V̇O₂ + 1.106 V̇CO₂; oxycalorific equivalent 16 + 5.164 RQ J/mL O₂ from Lighton et al. (1987) as given in Lighton (2008)."
@@ -32,6 +32,8 @@ Respirometry measures how fast an animal (or a plant, a soil core or a person on
 - **Closed-chamber respirometry.** The animal sits in a sealed chamber and you record the O₂ falling over time, in air (as a percentage) or in water (dissolved O₂ in mg/L). The slope of that fall times the volume of air or water is the O₂ uptake.
 
 For study and teaching, not for clinical use.
+
+Turn oxygen uptake into blood flow with the [[fick-cardiac-output|Fick cardiac output calculator]], and scale metabolic rate with body size using the [[allometry-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 305
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, quadrat-transect-analyser]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, quadrat-transect-analyser, mark-recapture]
 sources:
   - "Methods: S. T. Buckland, D. R. Anderson, K. P. Burnham, J. L. Laake, D. L. Borchers and L. Thomas, Introduction to Distance Sampling (Oxford University Press, 2001): detection functions, the likelihood for exact distances, encounter-rate variance, the delta method, the log-normal interval and Satterthwaite degrees of freedom. Hazard-rate model: Hayes and Buckland (1983). Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python fit (SciPy 1.x optimize.minimize, integrate.quad, a finite-difference Hessian and stats.t) of the same data, and against the closed-form half-normal estimate σ² = mean of x² with no truncation."
@@ -33,6 +33,8 @@ It fits two standard **detection functions** by maximum likelihood to your exact
 - **Hazard-rate**: g(x) = 1 − exp(−(x/σ)^−b), with a shape b that allows a flat "shoulder" near the line.
 
 Both assume every animal on the line or point itself is seen (g(0) = 1). From the fit you get the **effective strip width** (lines) or **effective detection radius** (points), the average **detection probability**, and the **density** per km² and per hectare with a log-normal confidence interval (Buckland et al. 2001).
+
+Plan your transects with the [[field-sampling-planner|field sampling planner]], and check the density against a [[mark-recapture|mark-recapture estimate]].
 
 ## How to use it
 

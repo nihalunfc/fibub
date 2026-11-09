@@ -11,7 +11,7 @@ order: 315
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, reliability-analysis, sample-size, field-sampling-planner, home-range-analyser, bird-song-spectrogram]
+related: [biodiversity-indices, reliability-analysis, sample-size, field-sampling-planner, home-range-analyser, bird-song-spectrogram, camera-trap-tagger, crosstab-chi-square]
 sources:
   - "Continuous (all-occurrence) recording of states and events, time budgets and bouts: Martin, P. and Bateson, P., Measuring Behaviour: An Introductory Guide (Cambridge University Press); Altmann, J. (1974), Behaviour 49: 227–267."
   - "Checked against an independent Python check on the page's made-up session (the running state sampled on a 1 ms grid with numpy; bouts listed directly)."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 An ethogram is the list of behaviours you score when you watch an animal. This logger turns your keyboard (or the screen of a phone or tablet) into a behaviour recorder for continuous focal sampling: press a key when a behaviour starts, and the page keeps the time. When you stop, it works out the **time budget** (the share of the session spent in each state), the number of **bouts** and how long they lasted, and how often each **point event** happened, and it draws a timeline of the whole session. Everything runs in your browser; nothing is uploaded.
+
+Test how behaviour differs between groups with the [[crosstab-chi-square|crosstab chi-square tool]], and map where the animals went with the [[home-range-analyser|home range analyser]].
 
 ## How to use it
 

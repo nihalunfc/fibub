@@ -11,7 +11,7 @@ order: 5
 icon: check
 works: offline
 updated: 2026-11-09
-related: [vcf-viewer, sample-size, sequence-tools, allele-frequency-calculator, punnett-square, mendelian-chi-square, ternary-plot-maker]
+related: [vcf-viewer, sample-size, sequence-tools, allele-frequency-calculator, punnett-square, mendelian-chi-square, ternary-plot-maker, effective-population-size, wright-fisher-simulator]
 sources:
   - "Hardy-Weinberg principle (G. H. Hardy 1908; W. Weinberg 1908). Exact test: J. E. Wigginton, D. J. Cutler and G. R. Abecasis (2005), Am. J. Hum. Genet. 76: 887-893. Continuity correction: F. Yates (1934). de Finetti diagram: B. de Finetti (1926). Formulas only; no tables are copied."
   - "Checked in the tests: two-sided and one-sided exact p-values against a full enumeration with exact fractions in Python; Yates-corrected chi-square against NumPy and scipy.stats.chi2; three-allele chi-square, He and F against an independent NumPy calculation."
@@ -28,6 +28,8 @@ flow:
 In a large population with random mating and no selection, migration or mutation at a gene, genotype shares settle at **p², 2pq and q²**, where p and q are the two allele frequencies. This is **Hardy-Weinberg equilibrium (HWE)**. Testing it is a classic teaching exercise. It is also a routine quality check for genotyping: a SNP far out of HWE in healthy samples often means a genotyping error.
 
 This page tests one sample at one gene (locus). It gives the allele frequencies, the expected counts, the **chi-square test** (with Yates's continuity correction if you want it), the **exact test** of Wigginton and others (two-sided, plus one-sided for a heterozygote deficit or excess), the **inbreeding coefficient F = 1 − Ho/He**, and a **de Finetti diagram**.
+
+Find allele frequencies across several populations with the [[allele-frequency-calculator]], and watch them drift over generations in the [[wright-fisher-simulator]].
 
 ## How to use it
 

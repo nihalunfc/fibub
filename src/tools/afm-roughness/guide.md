@@ -11,7 +11,7 @@ order: 861
 icon: image
 works: offline
 updated: 2026-11-09
-related: [nanoparticle-calculator, image-stacker, thermal-mismatch-stress, dls-analyser]
+related: [nanoparticle-calculator, image-stacker, thermal-mismatch-stress, dls-analyser, grain-size-intercept, particle-size-image, lattice-fft, thin-film-thickness, uncertainty-calculator]
 sources:
   - "Parameter definitions follow the usual ISO 25178-2 (areal) and ISO 4287 (profile) formulas: arithmetic and root-mean-square heights, skewness, kurtosis, peak, valley and total heights. These are general formulas; fibub's code is its own and checked in the tests against NumPy and SciPy."
   - "The 'AFM hot' colours use the simple r = 2t, g = 2t − ½, b = 2t − 1 ramp. The example surface is made up (seeded noise, a tilt and a 20 nm step)."
@@ -33,6 +33,8 @@ An atomic force microscope (AFM), or an optical or stylus profilometer, gives a 
 - **Line profile**: drag a line on the map (or type its ends) to see the heights along it with Ra, Rq, Rsk, Rku, Rz and Rt.
 - **Step height**: drag two regions, A and B; the page gives the difference of their mean heights, with each region's roughness and the standard error.
 - **Histogram and colour map**, with downloads of the profile (CSV), the levelled heights (text matrix) and a full report.
+
+Size the particles you see with [[particle-size-image|particle sizing from images]], and check film thickness with the [[thin-film-thickness|thin film thickness tool]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 634
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [link-budget-calculator]
+related: [link-budget-calculator, antenna-calculator, smith-chart, error-correcting-codes, entropy-calculator]
 sources:
   - "Bit and symbol error rates of BPSK, QPSK and M-PSK in AWGN (Craig's integral for the M-PSK symbol error rate) and of square M-QAM, as in Proakis and Salehi, Digital Communications, and Simon and Alouini, Digital Communication over Fading Channels (equations only)."
   - "Exact bit error rate of Gray-coded square M-QAM from Cho and Yoon (2002), IEEE Transactions on Communications 50(7), 1074–1080 (equation only)."
@@ -33,6 +33,8 @@ Digital radios, modems and Wi-Fi send bits as **symbols**: points in a plane of 
 - a **sweep** of Eb/N0 that plots the simulated BER against the theory curves of all five schemes.
 
 The noise is additive white Gaussian noise (AWGN) from a seeded random generator, so the same seed always gives the same result. The receiver picks the nearest constellation point (the optimum decision in this channel).
+
+Get the signal-to-noise ratio from the [[link-budget-calculator]], and see how coding fixes the errors with the [[error-correcting-codes|error-correcting codes playground]].
 
 ## How to use it
 

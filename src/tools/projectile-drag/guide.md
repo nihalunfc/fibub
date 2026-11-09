@@ -11,7 +11,7 @@ order: 1
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [rocket-equation, uncertainty-calculator, plot-maker, graph-digitizer]
+related: [rocket-equation, uncertainty-calculator, plot-maker, graph-digitizer, video-motion-tracker, collision-calculator, model-rocket-simulator, dimensionless-numbers]
 sources:
   - "Newton's second law with quadratic drag F = ½ ρ Cd A v² and the fourth-order Runge-Kutta method: standard results in any classical mechanics or numerical methods text."
   - "Checked against an independent SciPy solve_ivp integration (relative tolerance 10⁻¹²) with event detection for landing and the highest point, and against the closed-form no-drag formulas."
@@ -28,6 +28,8 @@ flow:
 In a school textbook a thrown ball follows a perfect parabola and goes furthest at 45°. In real air it does not: drag slows it all the way, the path comes down more steeply than it went up, and the best angle is usually lower. This simulator works out the real path of a ball (or any roughly round object) with **air drag that grows with the square of the speed**, a **steady wind** along the direction of the throw, and a launch from any **height**.
 
 It gives the **range**, the **highest point** and where it happens, the **time of flight**, the **landing speed and angle**, the path **without air** for comparison, the **launch angle that gives the longest range** with your drag and wind, and the **terminal speed** (the fastest the object could ever fall). It draws the path and the speed against time, and you can download the whole path as a CSV file for your own plots.
+
+To check a real throw against the model, film it and track it with the [[video-motion-tracker]], and for a launch with thrust try the [[model-rocket-simulator]].
 
 ## How to use it
 

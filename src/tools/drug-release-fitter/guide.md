@@ -11,7 +11,7 @@ order: 682
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [reaction-kinetics-fitter, enzyme-kinetics-fitter, binding-curve-fitter, plot-maker]
+related: [reaction-kinetics-fitter, enzyme-kinetics-fitter, binding-curve-fitter, plot-maker, pk-simulator, nca-pk, curve-fitter, diffusion-calculator]
 sources:
   - "Model forms as reviewed by Costa, P. and Sousa Lobo, J. M. (2001), Modeling and comparison of dissolution profiles, European Journal of Pharmaceutical Sciences 13, 123 to 133; Korsmeyer et al. (1983) and the exponent limits for slab, cylinder and sphere from Ritger, P. L. and Peppas, N. A. (1987), Journal of Controlled Release 5, 23 to 36 (general model facts). AIC in the form n·ln(SSE/n) + 2k used by Zhang et al. (2010), DDSolver."
   - "Checked against scipy.optimize.curve_fit: the parameters, standard errors, SSE, R² and AIC of all six models on the example, and the degradation rate constant with the starting mass fixed and fitted; plus exact recovery of each model from noise-free curves."
@@ -35,6 +35,8 @@ In a dissolution or release test you measure how much of a drug (or any active s
 - **Weibull**, F = 100·(1 − e^(−(t/τ)^β)): an empirical curve; τ is the time to 63.2 % and β its shape.
 
 Each fit gives parameters with standard errors, R², adjusted R² and AIC, and the model with the lowest AIC is marked best. A second panel fits **first-order degradation** of a biomaterial's mass, M = M₀·e^(−k·t), and gives the half-life.
+
+Fit any other model with the [[curve-fitter|curve fitter]], and follow the released drug through the body in the [[pk-simulator|PK simulator]].
 
 ## How to use it
 

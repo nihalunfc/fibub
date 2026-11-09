@@ -11,7 +11,7 @@ order: 2
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [real-gas-calculator, thermochemistry-calculator, psychrometric-calculator]
+related: [real-gas-calculator, thermochemistry-calculator, psychrometric-calculator, steam-tables, heat-exchanger-sizing, heat-conduction]
 sources:
   - "Air-standard cycle analysis with an ideal gas of constant heat capacities: standard results found in engineering thermodynamics textbooks (for example Çengel and Boles, Thermodynamics: An Engineering Approach; Moran and Shapiro, Fundamentals of Engineering Thermodynamics). Efficiency formulas for the Otto, Diesel and Brayton cycles are the textbook closed forms."
   - "Gas constants and heat capacity ratios of air, nitrogen, helium and argon: rounded general values."
@@ -35,6 +35,8 @@ A heat engine takes heat from something hot, turns part of it into work and thro
 - **Stirling**: two isothermal and two constant-volume processes, with a **regenerator** that stores heat between them. With a perfect regenerator it reaches the Carnot efficiency.
 
 For each one you get the pressure, volume, temperature and entropy at all four states, the heat and work of every process, the net work per kilogram, the heat taken in and given out, the **mean effective pressure**, the **efficiency** and the **Carnot limit** between the same hottest and coldest temperatures. The cycle is drawn on a **P-v diagram** (the enclosed area is the work) and a **T-s diagram** (the area under the top is the heat taken in).
+
+Look up steam properties for a Rankine cycle in the [[steam-tables]], and size the boiler or condenser with the [[heat-exchanger-sizing|heat exchanger calculator]].
 
 ## How to use it
 

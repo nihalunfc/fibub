@@ -12,7 +12,7 @@ order: 744
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, plot-maker, trend-analyser, sample-size, difference-in-differences, unit-root-cointegration, gravity-model]
+related: [data-cleaner, plot-maker, trend-analyser, sample-size, difference-in-differences, unit-root-cointegration, gravity-model, regression-workbench, hypothesis-tests, csv-profiler]
 sources:
   - "Formulas: White (1980) and MacKinnon and White (1985) for HC0 to HC3; Liang and Zeger (1986) for clustered errors; two-stage least squares and the within estimator as in Wooldridge, Econometric Analysis of Cross Section and Panel Data. Example data made up."
 flow:
@@ -31,6 +31,8 @@ This is a regression calculator for economics and the social sciences that runs 
 - **Panel fixed effects**: the within estimator, with entity effects and, if you tick it, time effects as well (two-way fixed effects). It works with unbalanced panels.
 
 You get a coefficient table with standard errors, t statistics, p-values and confidence intervals, plus R², adjusted R², a Wald F test of all slopes, the residual standard error, and a plot of residuals against fitted values. Download the report as an image, PDF or Word file, or the coefficients as CSV.
+
+Clean and check your data first with the [[data-cleaner]], and test whether time series drift with [[unit-root-cointegration|unit root and cointegration tests]].
 
 ## How to use it
 

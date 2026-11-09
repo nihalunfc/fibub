@@ -11,11 +11,11 @@ order: 812
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [reagent-inventory, plate-layout, shift-scheduler]
+related: [reagent-inventory, plate-layout, shift-scheduler, protocol-timer, gantt-chart, planner]
 sources:
   - "Repeats, clash finding, the week layout and the .ics writer are written by fibub. The tests check the repeats against Python's icalendar and recurring_ical_events libraries reading the .ics file this page writes (150 random bookings, 3,023 occurrences, all the same), and the clashes against a brute-force pair check."
   - "iCalendar format: RFC 5545 (IETF), the open standard calendar apps read."
-  - "The example week is made up. Your bookings are saved only in this browser (localStorage) and never uploaded."
+  - "The example week is made up. Your bookings are saved only in this browser (localStorage) only if you tick the box, and never uploaded."
 flow:
   - { icon: pencil, label: "Book" }
   - { icon: calendar, label: "Week" }
@@ -33,6 +33,8 @@ If you use several shared instruments (a confocal on Monday morning, the flow cy
 - **Export.** A .ics file for Google Calendar, Outlook or Apple Calendar, with the repeats and cancelled dates kept as calendar rules, and a CSV with one row per booking and a clash column.
 
 It is a personal planner, not a shared booking system: nobody else sees your bookings. Use it to plan, then book the slots in your facility's own system, or send the .ics file to the instrument's owner.
+
+Time the steps of your run with the [[protocol-timer]], and plan the whole project in a [[gantt-chart|Gantt chart]].
 
 ## How to use it
 
@@ -55,7 +57,7 @@ The summary reads **9 bookings, 26.25 h booked, 1 instrument clash, 1 overlap**.
 
 ## Your data
 
-Bookings are saved automatically in this browser on this device and are never sent anywhere; the page works offline. Clearing browser data removes them, so use *Download backup (JSON)* now and then. *Open a backup* restores it (or moves it to another device), and *Clear all* removes everything from this browser.
+Nothing is saved until you tick *Remember my bookings in this browser*. Ticked, bookings stay in this browser on this device (untick it to remove the saved copy) and are never sent anywhere; the page works offline. Clearing browser data removes them, so use *Download backup (JSON)* now and then. *Open a backup* restores it (or moves it to another device), and *Clear all* removes everything from this browser.
 
 ## FAQ
 

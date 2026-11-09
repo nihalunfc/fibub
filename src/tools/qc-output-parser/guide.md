@@ -11,7 +11,7 @@ order: 839
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [huckel-mo-calculator, ir-band-finder, point-group-finder, thermochemistry-calculator]
+related: [huckel-mo-calculator, ir-band-finder, point-group-finder, thermochemistry-calculator, molecule-viewer, plot-maker]
 sources:
   - "File reading, the summary, the Lorentzian spectrum and the XYZ writer are written by fibub from the published layouts of Gaussian 16 and ORCA 5 output. Not affiliated with Gaussian, Inc. or the ORCA developers."
   - "Unit conversions: CODATA 2018 (1 Eh = 27.211386 eV = 2625.4996 kJ/mol; 1 e·a₀ = 2.541746 D)."
@@ -35,6 +35,8 @@ Quantum chemistry programs write long text files. This page reads a **Gaussian**
 - **Orbital energies**: HOMO, LUMO and the gap in eV, the ten orbitals around the gap (α and β for open-shell jobs), and every orbital in a CSV.
 - **Vibrational frequencies** with IR intensities, an **imaginary-frequency warning** (one imaginary mode means a transition state, not a minimum), and an **IR spectrum** drawn from the sticks with your own **scaling factor** and **band width**.
 - **Final geometry** as an XYZ file, to open in a viewer or start the next job.
+
+Open the final geometry in the [[molecule-viewer|molecule viewer]], and match the computed bands to a measured spectrum with the [[ir-band-finder|IR band finder]].
 
 ## How to use it
 

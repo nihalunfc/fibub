@@ -11,7 +11,7 @@ order: 312
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [vcf-viewer, biodiversity-indices, sample-size, sequence-tools, hardy-weinberg-tester, effective-population-size, punnett-square]
+related: [vcf-viewer, biodiversity-indices, sample-size, sequence-tools, hardy-weinberg-tester, effective-population-size, punnett-square, coalescent-simulator, wright-fisher-simulator, carrier-risk]
 sources:
   - "Hardy-Weinberg exact test: J. E. Wigginton, D. J. Cutler and G. R. Abecasis (2005), Am. J. Hum. Genet. 76: 887-893 (the algorithm). F-statistics: B. S. Weir and C. C. Cockerham (1984), Evolution 38: 1358-1370; M. Nei (1977), Ann. Hum. Genet. 41: 225-233. Formulas only; no tables are copied."
   - "Checked in the tests: exact-test p-values against a full enumeration of every heterozygote count with exact fractions in Python (8 cases, including tiny samples and a p-value of 5.6 × 10⁻¹⁹); chi-square against scipy.stats.chi2; Weir and Cockerham's θ, F, f and variance components against scikit-allel 1.3.13 (weir_cockerham_fst); Nei's FIS, FST and FIT against an independent numpy calculation."
@@ -28,6 +28,8 @@ flow:
 For a gene with two alleles, say A and B, every individual is AA, AB or BB. From the numbers of each, this calculator works out the **allele frequencies** p (of A) and q (of B), the **genotype frequencies**, and the counts that **Hardy-Weinberg equilibrium** predicts: p²n, 2pqn and q²n. It tests whether the observed counts differ from those by the classic **chi-square test** and by the **exact test**, which stays correct for small samples and rare alleles.
 
 With several populations it also gives **F-statistics**: FIS (the heterozygote shortage inside populations, as from inbreeding), FST (how different the populations' allele frequencies are) and FIT (the total).
+
+Test whether the counts fit Hardy-Weinberg proportions with the [[hardy-weinberg-tester|Hardy-Weinberg tester]], and watch frequencies drift over generations in the [[wright-fisher-simulator|Wright-Fisher simulator]].
 
 ## How to use it
 

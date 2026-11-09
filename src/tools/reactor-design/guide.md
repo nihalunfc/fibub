@@ -11,7 +11,7 @@ order: 665
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [mass-balance-solver, reaction-kinetics-fitter, enzyme-kinetics-fitter, equilibrium-solver]
+related: [mass-balance-solver, reaction-kinetics-fitter, enzyme-kinetics-fitter, equilibrium-solver, adiabatic-temperature-rise, ode-solver, thermochemistry-calculator]
 sources:
   - "Design equations of ideal reactors (CSTR, PFR, batch, CSTRs in series), the Levenspiel plot, the Arrhenius equation and the volume-change factor ε: standard chemical reaction engineering, for example Fogler, Elements of Chemical Reaction Engineering, and Levenspiel, Chemical Reaction Engineering (methods only)."
   - "The example rate constant, activation energy and feed are made up."
@@ -35,6 +35,8 @@ The same reaction can need very different reactor sizes depending on how the rea
 Choose the rate law: **n-th order** (−rA = k·CA^n, any order from 0 to 5), **reversible first order** A ⇌ B (the conversion cannot pass equilibrium, Xe = K/(1+K)) or a **saturating** law of Michaelis-Menten form, −rA = k·CA/(Km + CA). The rate constant is moved from a reference temperature to the reactor temperature with the **Arrhenius** equation. For gas-phase flow reactors, ε accounts for the change in the number of moles.
 
 You can size the reactors for a target conversion or find the conversion a given volume (or batch time) reaches. The **Levenspiel plot** shows FA0/(−rA) against conversion: the CSTR volume is the rectangle, the PFR volume the area under the curve. A second chart shows conversion against volume for all three flow arrangements.
+
+Fit the rate constant from your lab data with the [[reaction-kinetics-fitter]], and check the heat released with the [[adiabatic-temperature-rise|adiabatic temperature rise calculator]].
 
 ## How to use it
 

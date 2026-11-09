@@ -11,7 +11,7 @@ order: 348
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, plot-maker, sample-size, uncertainty-calculator, hodgkin-huxley-simulator, calcium-imaging-dff, notch-filter-psd]
+related: [period-finder, plot-maker, sample-size, uncertainty-calculator, hodgkin-huxley-simulator, calcium-imaging-dff, notch-filter-psd, bootstrap-permutation]
 sources:
   - "Definitions as in P. Dayan and L. F. Abbott, Theoretical Neuroscience (MIT Press, 2001), chapter 1: firing rate, ISI coefficient of variation (SD with n in the denominator), Fano factor, PSTH and autocorrelogram. Fano factor here uses the sample variance (n − 1) of spike counts across trains. Written by fibub."
   - "Checked in the tests against an independent NumPy 2.5 calculation (np.diff, np.var, np.histogram) on the example, and against the Poisson-process values CV = 1 and Fano factor = 1."
@@ -35,6 +35,8 @@ Give it the times at which a neuron fired, for one or many trials (or many cells
 - **Autocorrelogram**: how often a neuron fires again at each lag after one of its own spikes. A gap around zero shows the refractory period; side peaks show rhythmic or bursting firing.
 
 Nothing is uploaded; all the sums are done in your browser.
+
+Clean mains hum out of the raw recording first with the [[notch-filter-psd|notch filter]], and compare your cells with a model neuron in the [[hodgkin-huxley-simulator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 764
 icon: check
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, data-cleaner, plot-maker, sample-size, irt-item-analysis, effect-size-learning-gain]
+related: [reliability-analysis, data-cleaner, plot-maker, sample-size, irt-item-analysis, effect-size-learning-gain, rubric-grade-calculator, questionnaire-scorer]
 sources:
   - "Methods: classical test theory; Kelley (1939) 27 % groups; Kuder and Richardson (1937) KR-20 and KR-21; Ebel and Frisbie's guide for the discrimination index."
   - "Example data: made up for this page."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 After a test, item analysis tells you which questions worked: which were too easy or too hard, which separated students who know the material from those who do not, and which wrong options (distractors) did their job. This tool does the standard classical test theory analysis from a pasted table of answers, the way exam boards and teacher-education courses describe it. Everything runs in your browser, so student results never leave your computer.
+
+Fit item response models to the same answers with the [[irt-item-analysis|IRT item analysis]], and check the test's reliability with [[reliability-analysis|reliability and agreement]].
 
 ## How to use it
 

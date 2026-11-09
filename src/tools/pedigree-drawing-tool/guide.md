@@ -11,7 +11,7 @@ order: 4
 icon: table
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sequence-tools, primer-checker, plot-maker, punnett-square, crossing-plan, hardy-weinberg-tester]
+related: [tree-viewer, sequence-tools, primer-checker, plot-maker, punnett-square, crossing-plan, hardy-weinberg-tester, carrier-risk, kinship-diagram]
 sources:
   - "Symbols and layout conventions: Bennett, R. L. et al. (2008), Standardized human pedigree nomenclature: update and assessment of the recommendations of the National Society of Genetic Counselors, Journal of Genetic Counseling 17: 424–433."
   - "Family structure checks (loops, generations, common ancestors) compared with an independent Python check using networkx 3.7 on the example family and on deliberately broken tables."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 A pedigree is a family tree drawn with a small set of standard symbols, used in genetics teaching, genetic counselling and breeding to show how a trait runs through a family. This tool draws one for you from a simple table. It places everyone in generations automatically, numbers the generations with Roman numerals and the people in each generation from left to right, and uses the symbols recommended by the National Society of Genetic Counselors (Bennett et al. 2008). It also checks the table for mistakes that would make the pedigree impossible. Everything is done in your browser: family details never leave your device. It is for study and teaching, not for clinical use.
+
+Work out the chances for a child with the [[punnett-square|Punnett square calculator]], and a relative's carrier risk with the [[carrier-risk]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 664
 icon: table
 works: offline
 updated: 2026-11-09
-related: [equilibrium-solver, molar-mass-calculator, thermochemistry-calculator, steam-tables]
+related: [equilibrium-solver, molar-mass-calculator, thermochemistry-calculator, steam-tables, reactor-design, adiabatic-temperature-rise, mccabe-thiele-calculator, heat-exchanger-sizing]
 sources:
   - "Steady-state material balances, degrees-of-freedom analysis, extent of reaction, recycle and purge, and sensible-heat energy balances with constant heat capacity: standard chemical engineering, for example Felder, Rousseau and Bullard, Elementary Principles of Chemical Processes, and Himmelblau and Riggs, Basic Principles and Calculations in Chemical Engineering (methods only)."
   - "Molar masses are general facts from standard atomic weights. The heat capacities and heat of reaction in the example are rounded, made-up values for illustration; the example flowsheet is made up."
@@ -37,6 +37,8 @@ You describe the plant as **units** joined by **streams**:
 Every balance is linear in the component molar flows, so the tool writes all of them as one matrix and solves it in a single step. That handles **recycle loops directly**, with no guessing and iterating of "tear streams" as in a sequential solution. Before solving it does a **degrees-of-freedom analysis**: it counts the unknown flows and the independent equations, and tells you if the problem is fully specified, needs more information (and which flows are still free) or has conflicting specifications.
 
 Add a molar mass for each component to get mass flows and a mass closure check on every unit. Add heat capacities and feed temperatures to get the **energy balance**: the outlet temperature of adiabatic mixers and reactors (with the heat of reaction), and the heat duty of any reactor or separator whose outlet temperature you fix.
+
+Size the reactor in the [[reactor-design|reactor design calculator]], and check how hot it could get with the [[adiabatic-temperature-rise|adiabatic temperature rise calculator]].
 
 ## How to use it
 

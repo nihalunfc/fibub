@@ -11,7 +11,7 @@ order: 8
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [band-structure, trend-analyser, dsc-tga-analyser, plot-maker, uncertainty-calculator]
+related: [band-structure, trend-analyser, dsc-tga-analyser, plot-maker, uncertainty-calculator, superconductor-calculator, curve-fitter, quantum-statistics, partition-function]
 sources:
   - "Debye (1912) and Einstein (1907) models of the lattice heat capacity, the electronic term γT and the low-temperature law C/T = γ + βT² with β = 12π⁴nR/(5θ_D³): standard textbook results, for example Kittel, C., Introduction to Solid State Physics, chapters 5 and 6, and Ashcroft, N. W. and Mermin, N. D., Solid State Physics, chapter 23."
   - "Checked by fibub against SciPy (quad for the Debye integral and curve_fit for the fits, with the same weights) on the made-up example data; R is the exact CODATA value."
@@ -34,6 +34,8 @@ This tool fits your measured heat capacity with:
 - each with or without the electronic **γT** term.
 
 It reports the fitted θ (and γ) with standard errors, the fit quality of all four combinations side by side, a residual plot, and the classic **C/T against T²** straight line at low temperature, whose intercept is γ and slope gives θ_D independently.
+
+Fit any other formula to your data with the [[curve-fitter|curve fitter]], and see where the Debye and Einstein models come from with the [[partition-function|partition function calculator]].
 
 ## How to use it
 

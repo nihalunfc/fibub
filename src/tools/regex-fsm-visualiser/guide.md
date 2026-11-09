@@ -11,7 +11,7 @@ order: 559
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [sql-playground, combinatorics-calculator]
+related: [sql-playground, combinatorics-calculator, algorithm-visualiser, toy-compiler, logic-simplifier, graph-algorithms, syntax-tree-drawer]
 sources:
   - "Standard automata theory: Kleene's theorem, Thompson's construction (1968), the subset construction (Rabin and Scott, 1959) and Moore's minimisation algorithm (1956)."
   - "Checked by brute force against JavaScript's own RegExp engine: for the textbook example (a|b)*abb, 21 hand-picked and 300 random regexes, every string up to length 6 (or 10) gets the same answer from the NFA, the DFA and the minimal DFA; every minimal DFA was also checked to have no two equivalent states."
@@ -33,6 +33,8 @@ Every regular expression has a finite state machine that recognises the same str
 For each machine you get the **state diagram**, the **transition table** (CSV download) and a **string tester** that steps through a word one symbol at a time, lighting up the current state (or set of states for the NFA). The summary gives the alphabet, the state counts, whether the language is empty, finite or infinite, the shortest matching strings and how many strings of each length match.
 
 You can also **type your own DFA**, as lines such as `q0 a q1`, and see it drawn and minimised. "Edit this as a DFA" copies any DFA from the regex side into the editor.
+
+See how a tokeniser uses the same machines in the [[toy-compiler|compiler stage visualiser]], and simplify Boolean expressions with the [[logic-simplifier]].
 
 ## How to use it
 

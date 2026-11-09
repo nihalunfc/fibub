@@ -11,7 +11,7 @@ order: 806
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [author-list-formatter, bibtex-cleaner, prompt-pruner]
+related: [author-list-formatter, bibtex-cleaner, prompt-pruner, readability-checker, reviewer-response, lexical-diversity-readability, figure-checker, poster-layout]
 sources:
   - "Word, character and sentence counting rules are written by fibub. Sentence counts were checked against the pysbd sentence splitter and word counts against Python and wc on made-up abstracts."
   - "The example limits (150, 250 and 300 words, 1,500 characters) are round numbers chosen as examples, not any journal's rule."
@@ -32,6 +32,8 @@ Abstracts have hard limits, and a submission system that rejects 253 words at 11
 - **LaTeX removed** if you paste from your .tex file: comments, `\cite` and `\label` are left out, maths such as `$r$` and each `\ref` count as one word, `\textit{in situ}` keeps its words and accents such as `caf\'e` become letters.
 - **Keywords**: type them to count them against the keyword limit and see which ones also appear in the abstract.
 - **Most used words**: words of four letters or more used more than once, to catch repetition.
+
+Check how easy the abstract is to read with the [[readability-checker]], and get the author line right with the [[author-list-formatter]].
 
 ## How to use it
 

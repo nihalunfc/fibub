@@ -11,7 +11,7 @@ order: 680
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [period-finder, plot-maker, trend-analyser]
+related: [period-finder, plot-maker, trend-analyser, emg-analyser, heart-rate-zones, fft-workbench, digital-filter-designer, notch-filter-psd]
 sources:
   - "QRS detection: Pan, J. and Tompkins, W. J. (1985), A real-time QRS detection algorithm, IEEE Transactions on Biomedical Engineering 32, 230 to 236 (method only, written from the description)."
   - "HRV measures and bands: Task Force of the European Society of Cardiology and the North American Society of Pacing and Electrophysiology (1996), Heart rate variability: standards of measurement, physiological interpretation and clinical use. Poincaré SD1 and SD2: Brennan, Palaniswami and Kamen (2001). Lomb-Scargle spectrum: Zechmeister and Kürster (2009), using fibub's existing periodogram code."
@@ -35,6 +35,8 @@ Heart rate variability (HRV) is the beat-to-beat change in the time between hear
 - **Poincaré plot** of each interval against the next, with SD1 and SD2.
 
 **For study and research, not for diagnosis.** It does not judge heart rhythm or wave shapes.
+
+Look at muscle signals in the same way with the [[emg-analyser|EMG analyser]], and design your own filters with the [[digital-filter-designer|digital filter designer]].
 
 ## How to use it
 

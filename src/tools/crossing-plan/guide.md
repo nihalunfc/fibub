@@ -11,7 +11,7 @@ order: 388
 icon: link
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sample-size]
+related: [tree-viewer, sample-size, breeders-equation, field-trial-designer, punnett-square, pedigree-drawing-tool, linkage-map-calculator]
 sources:
   - "Tabular method for the relationship matrix (Emik and Terrill 1949; Henderson 1976) and Wright's inbreeding and coancestry coefficients, as in Falconer and Mackay, Introduction to Quantitative Genetics (4th ed.), chapter 5."
   - "Checked against textbook values (selfing 1/2 then 3/4, full-sib 1/4, half-sib 1/8, backcross 1/4, repeated selfing and full-sib recurrences) and an independent Python implementation (recursive coancestry with networkx ordering) on the example and five random 40-plant pedigrees: all 8,382 values agree exactly."

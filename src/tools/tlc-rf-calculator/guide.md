@@ -11,7 +11,7 @@ order: 6
 icon: ruler
 works: offline
 updated: 2026-11-08
-related: [chromatography-calculator, reaction-equivalents, molar-mass-calculator, graph-digitizer]
+related: [chromatography-calculator, reaction-equivalents, molar-mass-calculator, graph-digitizer, ir-band-finder, unsaturation-calculator, nmr-impurity-checker]
 flow:
   - { icon: camera, label: "Photo" }
   - { icon: pointer, label: "Tap spots" }

@@ -11,7 +11,7 @@ order: 871
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [mineral-formula, ternary-plot-maker, molar-mass-calculator, piper-diagram]
+related: [mineral-formula, ternary-plot-maker, molar-mass-calculator, piper-diagram, point-counter, mineral-id-key]
 sources:
   - "CIPW norm procedure: Cross, Iddings, Pirsson and Washington (1902, Journal of Geology 10, 555), in the step order restated by Verma, Torres-Alvarado and Velasco-Tapia (2003, Schweiz. Mineral. Petrogr. Mitt. 83, 197). Iron: Le Maitre (1976, Contrib. Mineral. Petrol. 56, 181). Differentiation index: Thornton and Tuttle (1960). fibub's code is its own, checked in the tests against pyrolite's CIPW_norm."
   - "Molar masses from standard atomic weights. The example rocks are made up and rounded. Nothing you paste or open is sent or stored."
@@ -31,6 +31,8 @@ A rock analysis lists oxides; the CIPW norm turns them into an ideal set of anhy
 - Splits total iron into FeO and Fe2O3 by Le Maitre's (1976) volcanic or plutonic formula, or by a fixed ratio you choose, or uses them as analysed.
 - Gives the **differentiation index** (Q + Or + Ab + Ne + Lc + Kp), the **An content of normative plagioclase**, a **colour index**, the Mg share in the mafic minerals and the silica saturation.
 - Checks the mass balance: the minerals add up to the oxides, so the total is 100 % after recalculation.
+
+Compare the norm with the minerals you actually see using the [[point-counter]], and work out single-mineral formulas from analyses with the [[mineral-formula|mineral formula calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 831
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [satellite-tracker, orbit-transfer-calculator, porkchop-plot, rocket-equation, link-budget-calculator]
+related: [satellite-tracker, orbit-transfer-calculator, porkchop-plot, rocket-equation, link-budget-calculator, two-body-orbit, cubesat-power-budget]
 sources:
   - "Two-body orbital mechanics (conic sections, the anomalies, Kepler's and Barker's equations, the conversions between elements and state vectors) is standard textbook material; the code is written by fibub and checked against an independent NumPy implementation, SciPy's solve_ivp integrating the two-body equations, SciPy brentq, the sgp4 package's TLE reader and Vallado's RV2COE worked example."
   - "Gravitational parameters and radii of the preset bodies are general physical constants. The ISS example is a public NORAD two-line element set from 2008 (a common test case); the other examples are made up."
@@ -32,6 +32,8 @@ An orbit around one body can be described two ways. **Classical (Keplerian) elem
 - **A drawing** you can turn in 3D, or view flat on the x-y, x-z and y-z planes or in the orbit's own plane.
 
 The special cases are handled: a circular orbit has no periapsis, so ω is set to 0 and ν becomes the argument of latitude; an equatorial orbit has no node, so Ω is 0 and ω becomes the longitude of periapsis; a circular equatorial orbit uses the true longitude.
+
+Plan a change of orbit with the [[orbit-transfer-calculator|orbit transfer calculator]], and follow a real satellite across your sky with the [[satellite-tracker|satellite tracker]].
 
 ## How to use it
 

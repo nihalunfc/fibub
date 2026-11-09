@@ -11,7 +11,7 @@ order: 900
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [koppen-climate, wind-chill-heat-index, plot-maker]
+related: [koppen-climate, wind-chill-heat-index, plot-maker, trend-analyser, station-data-viewer, et0-calculator, energy-balance-model, weather-log]
 sources:
   - "Climate diagram conventions: Walter, H. and Lieth, H. (1960 to 1967), Klimadiagramm-Weltatlas, VEB Gustav Fischer, Jena: 10 °C to 20 mm, a tenth of the scale above 100 mm, dotted dry and hatched humid seasons, frost bars (the layout, written into code by fibub; no diagrams or data copied)."
   - "The dry-season logic was checked 2026-11-09 against NumPy dense sampling on 400 random climates."
@@ -34,6 +34,8 @@ A **Walter-Lieth climate diagram** packs a place's whole climate into one small 
 - The header with the station name, elevation, period, annual mean temperature and annual precipitation, and a line of extremes (warmest month's mean daily maximum, coldest month's mean daily minimum, absolute minimum).
 
 For the Köppen class of the same data, use the Köppen climate classifier, which also draws a simpler version of this diagram.
+
+Load the station's monthly records with the [[station-data-viewer|station data viewer]], and look for long-term change in them with the [[trend-analyser|trend analyser]].
 
 ## How to use it
 

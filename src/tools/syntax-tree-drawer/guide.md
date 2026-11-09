@@ -11,7 +11,7 @@ order: 734
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [plot-maker, plasmid-map, interlinear-gloss]
+related: [plot-maker, plasmid-map, interlinear-gloss, corpus-concordancer, toy-compiler, regex-fsm-visualiser]
 sources:
   - "Notation: the labelled bracketing used across syntax textbooks; LaTeX output follows the documented syntax of the forest and qtree packages. Example sentences written for this tool."
 flow:
@@ -23,6 +23,8 @@ flow:
 ## What it does
 
 Syntax homework, papers and slides need tree diagrams, and drawing them by hand in a slide program is slow. This tool turns **labelled bracket notation** into a neat tree as you type. Each phrase is written as a bracket that starts with its label, followed by its parts: `[S [NP [D the] [N dog]] [VP [V barked]]]`. The tree updates straight away, and you can download it as an **SVG** (sharp at any size, editable in Inkscape or Illustrator) or a **PNG** image, or copy **LaTeX** code for the `forest` or `qtree` packages.
+
+Set out the example sentence itself with the [[interlinear-gloss|interlinear gloss formatter]], and see how a computer parses code into a tree in the [[toy-compiler|compiler stage visualiser]].
 
 ## How to use it
 

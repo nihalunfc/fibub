@@ -11,7 +11,7 @@ order: 889
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [dem-terrain, vector-map-viewer, runoff-calculator, unit-hydrograph]
+related: [dem-terrain, vector-map-viewer, runoff-calculator, unit-hydrograph, stream-profile, manning-weir-calculator, flood-frequency]
 sources:
   - "Depression filling: R. Barnes, C. Lehman and D. Mulla, 'Priority-Flood: an optimal depression-filling and watershed-labeling algorithm for digital elevation models', Computers and Geosciences 62 (2014), the +epsilon variant; written by fibub."
   - "Flow directions: the D8 method of J. F. O'Callaghan and D. M. Mark, 'The extraction of drainage networks from digital elevation data', Computer Vision, Graphics and Image Processing 28 (1984); direction codes as used by ESRI and pysheds."
@@ -34,6 +34,8 @@ A **watershed** (catchment, drainage basin) is all the land that drains to one p
 3. **Flow accumulation.** For every cell, the number of cells whose water passes through it.
 4. **Streams.** Cells with more than a threshold number of cells draining through them form the stream network, each segment with its **Strahler order** (two order-1 streams make an order-2 stream, and so on).
 5. **Watershed.** Tap the map: the outlet moves to the cell with the most flow nearby (**snapping**, so a tap just beside the stream still lands on it), and every cell that drains to it is shaded and outlined.
+
+Shade the terrain and work out slopes first with the [[dem-terrain|DEM terrain tool]], then follow the main channel downstream in the [[stream-profile|stream long profile]].
 
 ## How to use it
 

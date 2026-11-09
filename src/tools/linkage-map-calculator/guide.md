@@ -33,6 +33,8 @@ Genes that sit close together on a chromosome tend to be inherited together. Cro
 
 Nothing is uploaded: everything is worked out in your browser.
 
+Check first whether the counts depart from independent assortment with the [[mendelian-chi-square|Mendelian chi-square test]], and plan the crosses with the [[crossing-plan]].
+
 ## Mapping functions
 
 RF never goes above 0.5 (50 %), because a second crossover between two genes can undo the first. So RF only matches map distance for short intervals. Mapping functions correct for this:

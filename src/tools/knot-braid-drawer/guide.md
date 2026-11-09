@@ -11,7 +11,7 @@ order: 546
 icon: link
 works: offline
 updated: 2026-11-09
-related: [group-explorer]
+related: [group-explorer, polyhedron-viewer, poincare-disk, geometry-construction, combinatorics-calculator]
 sources:
   - "Standard knot theory: Artin's braid group, Alexander's theorem (every knot is a closed braid) and the Burau formula Δ(t) ≐ det(I − B(β)) (1 − t)/(1 − t^n). The braid words of the named knots are standard ones and are mathematical facts."
   - "Checked against sympy, which worked the Alexander polynomials out a different way (unreduced Burau matrix, deleting a row and column), for the named knots and 25 random braids; the named values match the usual knot tables."
@@ -33,6 +33,8 @@ This tool reads a braid word and:
 - for links, the **linking number** of each pair of components;
 - works out the **Alexander polynomial** Δ(t) of the closure exactly, plus the knot **determinant** |Δ(−1)| and a lower bound for the genus;
 - says which knot in the named table has the same Δ.
+
+Explore the rules of groups in the [[group-explorer|group theory explorer]], and draw shapes in curved space with the [[poincare-disk|hyperbolic geometry drawer]].
 
 ## How to use it
 

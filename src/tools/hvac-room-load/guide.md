@@ -11,7 +11,7 @@ order: 663
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, steam-tables, pump-system-curve]
+related: [psychrometric-calculator, steam-tables, pump-system-curve, pipe-network-solver, greenhouse-heating, fume-hood-ventilation, heat-conduction, heat-exchanger-sizing]
 sources:
   - "Steady-state fabric loss Q = U × A × ΔT, solar gain through glazing Q = A × SHGC × I, and the sensible and latent loads of outdoor air from mass flow and humidity ratios: standard building services engineering, as set out in textbooks such as McQuiston, Parker and Spitler, Heating, Ventilating and Air Conditioning (methods only)."
   - "Moist air properties from the ASHRAE Handbook, Fundamentals (2017, SI) chapter 1 equations, shared with fibub's psychrometric calculator."
@@ -36,6 +36,8 @@ Before choosing a radiator, heat pump or air conditioner you need the room's **p
 You get the heating load, and the sensible, latent and total cooling loads, in **watts, kW, BTU/h and tons of refrigeration**, the load per m² of floor, the sensible heat ratio, a bar chart and a breakdown table.
 
 This is a **simplified steady-state estimate**. A full ASHRAE (heat balance, radiant time series) or CIBSE calculation also handles the heat stored in walls and furniture, the time lag before sun on a wall reaches the room, and the sun hour by hour. For study and planning, check important designs with a qualified engineer.
+
+Check the air's humidity and dew point with the [[psychrometric-calculator|psychrometric calculator]], and size the pump for the chilled water with the [[pump-system-curve|pump and system curve tool]].
 
 ## How to use it
 

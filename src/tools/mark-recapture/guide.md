@@ -11,7 +11,7 @@ order: 301
 icon: target
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, distance-sampling, population-growth-models]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, distance-sampling, population-growth-models, camera-trap-tagger]
 sources:
   - "Methods: Lincoln (1930) and Petersen; D. G. Chapman (1951) estimator; G. A. F. Seber, The Estimation of Animal Abundance (2nd ed. 1982) for the variance and adjusted Schnabel estimate; Z. E. Schnabel (1938); A. Chao (1987) and Burnham et al. (1987) for the log-normal interval; C. J. Krebs, Ecological Methodology (2nd ed. 1999) for the Schnabel limits; Robson and Regier (1964) for the 7-recapture rule. Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python implementation using SciPy 1.x (normal, chi-square and t quantiles)."
@@ -29,6 +29,8 @@ Counting every animal in a pond, a field or a forest is rarely possible. Mark-re
 
 - **Two samples** gives the classic **Lincoln-Petersen** estimate M × C / R and the **Chapman** estimate (M+1)(C+1)/(R+1) − 1, which is almost unbiased and still works when no marked animals are recaught. The standard error uses Seber's variance.
 - **Several samples (Schnabel)** handles a study with three or more catches, where each catch is checked for marks and the unmarked animals are marked before release. It pools the information from every catch.
+
+Plan where and how often to trap with the [[field-sampling-planner|field sampling planner]], and project the population forward with the [[population-growth-models|population growth models]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 1
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [manning-weir-calculator, darcy-flow-calculator, wave-calculator, uncertainty-calculator]
+related: [manning-weir-calculator, darcy-flow-calculator, wave-calculator, uncertainty-calculator, lattice-boltzmann, boundary-layer, airfoil-calculator, buckingham-pi, pipe-network-solver]
 sources:
   - "Definitions of the dimensionless groups: standard results, for example White, F. M., Fluid Mechanics, and Incropera et al., Fundamentals of Heat and Mass Transfer. Mean free path from viscosity: first-order kinetic theory, λ = (μ/p)√(πkT/2m)."
   - "Regime limits (pipe Re 2300 and 4000, plate 5 × 10⁵, cylinder shedding near 47, Rayleigh-Bénard 1708, Knudsen 0.01, 0.1 and 10, Mach 0.3, 0.8 and 1.2) are the usual rough textbook guides."
@@ -27,6 +27,8 @@ flow:
 ## What it does
 
 Flows that look nothing alike behave the same when their **dimensionless numbers** match: that is why wind tunnels work with models and why honey and air can be compared. Each number is a ratio of two effects, and its size tells you which one wins. This page works out the common ones from one set of inputs and says in a line what each means here.
+
+Find which groups matter for a new problem with the [[buckingham-pi]], and use the Reynolds number for a flat plate in the [[boundary-layer|boundary layer calculator]].
 
 ## How to use it
 

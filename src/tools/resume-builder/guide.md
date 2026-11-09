@@ -10,6 +10,7 @@ order: 24
 icon: resume
 works: offline
 updated: 2026-11-07
+related: [ats-resume-checker, linkedin-post-formatter, file-converter, readability-checker]
 flow:
   - { icon: pencil, label: "Fill it in" }
   - { icon: eye, label: "Preview" }

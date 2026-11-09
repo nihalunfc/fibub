@@ -11,7 +11,7 @@ order: 668
 icon: flag
 works: offline
 updated: 2026-11-09
-related: [standard-atmosphere, rocket-equation, uncertainty-calculator]
+related: [standard-atmosphere, rocket-equation, uncertainty-calculator, propeller-thrust, density-altitude, airfoil-calculator, drone-flight-time, boundary-layer]
 sources:
   - "Parabolic drag polar, best L/D, least-drag and least-power speeds, Breguet range and endurance for jet and propeller aircraft, and the take-off ground roll from m dV/dt = T − D − μ(W − L): standard flight mechanics as in Anderson, J. D., Aircraft Performance and Design (1999), and Raymer, D. P., Aircraft Design: A Conceptual Approach (equations only)."
   - "Air density from the 1976 US Standard Atmosphere (US government, public domain), calculated by fibub's standard atmosphere tool."
@@ -32,6 +32,8 @@ Most of an aircraft's cruise performance follows from one curve, the **drag pola
 - **Breguet range and endurance** for a jet (from its TSFC) or a propeller aircraft (from the BSFC and propeller efficiency);
 - a **take-off ground roll** to lift-off at 1.2 times the stall speed, with the classic one-line estimate for comparison;
 - curves of drag and power needed against speed, a table of the key speeds and a CSV of the drag curve.
+
+Work out the air density at your height with the [[standard-atmosphere|standard atmosphere calculator]], and check the wing section with the [[airfoil-calculator]].
 
 ## How to use it
 

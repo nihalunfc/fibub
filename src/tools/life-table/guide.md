@@ -11,7 +11,7 @@ order: 754
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, data-cleaner, population-pyramid, cohort-component-projection]
+related: [sample-size, plot-maker, data-cleaner, population-pyramid, cohort-component-projection, fertility-rates, survival-analysis, rate-standardisation]
 sources:
   - "Formulas only: Preston, Heuveline and Guillot (2001) Demography, chapter 3; Coale and Demeny (1983) a0 and 4a1 equations; Andreev and Kingkade (2015) a0 equations. Example deaths and population are made up."
 flow:
@@ -31,6 +31,8 @@ A **life table** follows an imaginary group of newborns through life, exposed at
 - **lx** survivors at exact age x out of the radix, **ndx** deaths, **nLx** person-years lived, **Tx** person-years still to live, and **ex = Tx ÷ lx**, life expectancy at age x.
 
 It works for **abridged** tables (0, 1–4, 5–9, …) and **complete** single-year tables, read from the ages you paste. The last group is always open-ended: everyone dies in it, nax = 1 ÷ M and L = l ÷ M.
+
+Feed its survival ratios into the [[cohort-component-projection]], and draw the population you start from with the [[population-pyramid]].
 
 ## How to use it
 

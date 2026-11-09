@@ -11,7 +11,7 @@ order: 7
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [pendulum-analyser, moment-of-inertia, collision-calculator, wave-calculator]
+related: [pendulum-analyser, moment-of-inertia, collision-calculator, wave-calculator, lagrangian-helper, standing-waves, matrix-calculator, ode-solver, fourier-visualiser]
 sources:
   - "Small oscillations, the generalised eigenproblem K v = ω² M v and normal-mode superposition: standard classical mechanics. Eigenvalues by the cyclic Jacobi method (own code)."
   - "Checked against SciPy eigh for the generalised problem, the closed form ω = 2√(k/m) sin(jπ/2(N+1)) for a uniform chain, and the matrix exponential of the equations of motion (SciPy expm)."
@@ -28,6 +28,8 @@ flow:
 Join two pendulums with a spring, or line up masses on springs, and the motion looks complicated: energy sloshes from one to another and back. Underneath, every such system has a set of **normal modes**: special patterns in which all the masses swing at the **same frequency**, in step or in opposition, with fixed proportions. Any motion at all is just a sum of these modes, each swinging at its own frequency. Molecules vibrate this way, crystals carry sound this way, and buildings sway this way.
 
 This tool takes up to **12 masses in a line** joined by springs, with both ends tied to walls, one end free, or both ends free, and finds all the normal modes by solving the eigenvalue problem K v = ω² M v. It lists each mode's **angular frequency, frequency and period** and its **shape**, draws the shapes, and **animates** the chain either in one mode or from any starting displacement. It also shows **how the energy is shared** between the modes and plots every mass's displacement against time.
+
+Derive the equations for your own system with the [[lagrangian-helper]], and look at the frequencies in the motion with the [[fourier-visualiser|Fourier and FFT visualiser]].
 
 ## How to use it
 

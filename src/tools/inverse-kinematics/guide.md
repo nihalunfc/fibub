@@ -11,7 +11,7 @@ order: 637
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [mass-balance-solver, uncertainty-calculator, plot-maker]
+related: [mass-balance-solver, uncertainty-calculator, plot-maker, dh-kinematics, path-planner, pid-simulator, numerical-methods]
 sources:
   - "Closed-form inverse kinematics of the planar two-link arm (law of cosines and atan2) and the three-link arm with a wrist point: standard robotics, for example Craig, Introduction to Robotics: Mechanics and Control, and Spong, Hutchinson and Vidyasagar, Robot Modeling and Control (methods only)."
   - "The example arm and targets are made up."
@@ -40,6 +40,8 @@ It also:
 - checks optional **joint limits** and shows which solution, if any, the joints can reach;
 - draws the arm, the other solution and the reachable area;
 - solves a whole list of targets, for example a path, and downloads the joint angles as CSV.
+
+Check the angles by running them forward in [[dh-kinematics|D-H forward kinematics]], and plan the route between targets with the [[path-planner|path planning visualiser]].
 
 ## How to use it
 

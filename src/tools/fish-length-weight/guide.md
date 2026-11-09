@@ -11,7 +11,7 @@ order: 331
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, trend-analyser, plot-maker, sample-size, field-sampling-planner, von-bertalanffy-fitter, zooplankton-biomass, stocking-density-calculator]
+related: [biodiversity-indices, trend-analyser, plot-maker, sample-size, field-sampling-planner, von-bertalanffy-fitter, zooplankton-biomass, stocking-density-calculator, cpue-trend, yield-per-recruit]
 sources:
   - "Method: E. D. Le Cren, Journal of Animal Ecology 20, 201-219 (1951) for W = aL^b and relative condition Kn; R. Froese, Journal of Applied Ichthyology 22, 241-253 (2006) for the review of a, b and condition factors; D. G. Sprugel, Ecology 64, 209-210 (1983) for the log-normal bias correction. Formulas only."
   - "Checked in the tests against Python: scipy.stats.linregress on log₁₀ values, statsmodels OLS t_test of b = 3, scipy.stats.t for the interval, and NumPy for the correction factor, Fulton's K and Kn."
@@ -31,6 +31,8 @@ This tool fits W = a·L^b by least squares on log₁₀ W against log₁₀ L, t
 
 - **Fulton's condition factor K = 100·W/L³** (W in g, L in cm). Simple, but it assumes isometric growth, so it drifts with length when b is not 3.
 - **Le Cren's relative condition Kn = W / (a·L^b)**: the fish's weight divided by the weight expected for its length. Kn = 1 is an average fish; 1.1 is 10 % heavier than expected.
+
+Fit growth with age using the [[von-bertalanffy-fitter]], and see how catch rates change over the years with the [[cpue-trend]] tool.
 
 ## How to use it
 

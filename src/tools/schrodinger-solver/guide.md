@@ -11,7 +11,7 @@ order: 1
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [huckel-mo-calculator, diatomic-spectroscopy, plot-maker]
+related: [huckel-mo-calculator, diatomic-spectroscopy, plot-maker, wave-packet, perturbation-theory, hydrogen-orbitals, quantum-dot-size]
 sources:
   - "Finite-difference (three-point) discretisation of the Schrödinger equation and the analytic levels of the infinite well, harmonic oscillator, finite square well, Morse, linear (Airy) and Pöschl–Teller potentials: standard textbook results, for example Griffiths, D. J., Introduction to Quantum Mechanics, and Flügge, S., Practical Quantum Mechanics."
   - "Airy function zeros: asymptotic start from Abramowitz and Stegun (1964) 10.4.105, refined numerically. ħc and the electron rest energy: CODATA 2018 values, rounded."
@@ -29,6 +29,8 @@ flow:
 The time-independent Schrödinger equation in one dimension, −(ħ²/2m) ψ″(x) + V(x) ψ(x) = E ψ(x), has well-behaved solutions only at certain energies: the **energy levels** of a particle trapped by the potential V(x). Only a handful of potentials can be solved on paper. This tool solves any of them numerically.
 
 It puts the particle on a grid of up to 4,000 points between two hard walls, turns the second derivative into the three-point difference (ψᵢ₋₁ − 2ψᵢ + ψᵢ₊₁)/h², and so turns the equation into a matrix eigenvalue problem. The lowest eigenvalues are the energy levels and the eigenvectors are the wavefunctions. It finds them by bisection with Sturm sequence counts (each level to full double precision for that matrix) and inverse iteration, all in your browser.
+
+Watch a particle tunnel through a barrier with [[wave-packet|wave packet tunnelling]], and check small changes to the potential with the [[perturbation-theory|perturbation theory checker]].
 
 ## How to use it
 

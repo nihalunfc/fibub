@@ -11,7 +11,7 @@ order: 3
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [lattice-boltzmann, dimensionless-numbers, rocket-equation]
+related: [lattice-boltzmann, dimensionless-numbers, rocket-equation, potential-flow, boundary-layer, aircraft-performance, propeller-thrust, standard-atmosphere, wind-energy-yield]
 sources:
   - "NACA 4-digit geometry: Jacobs, E. N., Ward, K. E. and Pinkerton, R. M. (1933), NACA Report 460 (public domain)."
   - "Thin airfoil theory: Abbott, I. H. and von Doenhoff, A. E. (1959), Theory of Wing Sections. Linear-strength vortex panel method: Kuethe, A. M. and Chow, C.-Y., Foundations of Aerodynamics. Lifting-line wing: Prandtl."
@@ -32,6 +32,8 @@ The NACA 4-digit airfoils are the classic wing sections: four digits describe th
 - A **vortex panel method** wraps the real shape, thickness included, in 60 to 240 straight panels carrying a linearly varying vortex sheet, makes the flow follow the surface, and imposes the Kutta condition at the sharp trailing edge. It gives the pressure over the surface and slightly more lift than thin theory, because thickness adds lift slope.
 
 It then turns the coefficients into forces for your chord and speed, adds a rough drag estimate, and, if you give a wing aspect ratio, the lift and induced drag of a finite wing.
+
+Get the air density at height from the [[standard-atmosphere]], and use the lift and drag in the [[aircraft-performance|aircraft performance calculator]].
 
 ## How to use it
 

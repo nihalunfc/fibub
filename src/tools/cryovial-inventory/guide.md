@@ -11,7 +11,7 @@ order: 15
 icon: table
 works: offline
 updated: 2026-11-09
-related: [cell-doubling-time, hemocytometer, media-recipe-scaler, plate-layout, solution-calculator]
+related: [cell-doubling-time, hemocytometer, media-recipe-scaler, plate-layout, solution-calculator, sample-label-maker, reagent-inventory, transfection-planner]
 sources:
   - "Box positions (row letter, column number), the inventory, search, thaw log and file formats are designed and written by fibub."
   - "The freezing helper is plain arithmetic (cells = vials × cells per vial; medium = vials × volume × (1 + extra); each part = its percentage of the medium; cooling time = temperature drop ÷ rate), written by fibub. Checked in the tests against an independent Python script on the worked example and five random batches; the CSV export was read back with Python's csv module and a CSV written by Python's csv.writer is read by the page."

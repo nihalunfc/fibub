@@ -11,7 +11,7 @@ order: 1
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [isotope-pattern-calculator, molar-mass-calculator]
+related: [isotope-pattern-calculator, molar-mass-calculator, metabolite-volcano-pca, peptide-mass-calculator, unsaturation-calculator, chromatography-calculator]
 sources:
   - "Monoisotopic masses of the elements from the fibub element data (isotope masses from NIST/IUPAC via chemical-elements, MIT licence; see NOTICE) and the CODATA 2018 electron mass."
   - "Adduct and neutral loss formulas are standard electrospray chemistry, written by fibub; no adduct tables were copied."
@@ -30,6 +30,8 @@ In electrospray mass spectrometry a molecule rarely flies as itself. It picks up
 - **Neutral losses:** the ions left after losing water, ammonia, CO, CO₂, formic acid, methanol, acetic acid, phosphoric acid, SO₃, a hexose, a pentose or glucuronic acid, or any formula you type.
 - **Matching:** paste or open a peak list and see which ions each peak could be, with the error in ppm.
 - **No molecule?** Choose "Nothing" and each observed m/z is turned into the neutral mass it would have as each common adduct, with pairs of peaks that agree on one mass pointed out.
+
+Check the isotope peaks that go with a formula in the [[isotope-pattern-calculator]], and compare features across groups with the [[metabolite-volcano-pca|volcano plot and PCA tool]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 21
 icon: chart
 works: offline
 updated: 2026-11-08
-related: [radio-telescope-calculator, uv-coverage, link-budget-calculator, rotation-curve-fitter, sky-coordinates]
+related: [radio-telescope-calculator, uv-coverage, link-budget-calculator, rotation-curve-fitter, sky-coordinates, redshift-calculator, fft-workbench]
 sources:
   - "21 cm line frequency: 1420.405751768 MHz."
   - "Galactic constants: the IAU 1985 values (R₀ 8.5 kpc, V₀ 220 km/s) and modern round values."

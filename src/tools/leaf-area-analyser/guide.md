@@ -34,6 +34,8 @@ This page does the job of a leaf area meter with nothing more than a scanner or 
 
 Your photo is read on this page only. It is never uploaded, and nothing is kept after you close the tab.
 
+Use the leaf areas in a [[plant-growth-analysis|plant growth analysis]], and count the stomata on the same leaves with the [[stomatal-density-counter|stomatal density counter]].
+
 ## How to use it
 
 1. **Photo.** Pick *Leaf area* or *Canopy cover*, then open a photo. Large photos are scaled to 1200 px on the long side; the scale is read on the same picture, so areas still come out right.

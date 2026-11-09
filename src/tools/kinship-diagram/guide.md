@@ -11,7 +11,7 @@ order: 761
 icon: link
 works: offline
 updated: 2026-11-09
-related: [plot-maker]
+related: [plot-maker, pedigree-drawing-tool, field-note-organiser, social-network-analysis, correspondence-network, interlinear-gloss]
 sources:
   - "Conventions: standard anthropological kinship diagram symbols and kin type notation (primitive kin types F, M, B, Z, S, D, H, W; P, G, C, E for sex unknown), as taught in introductory anthropology."
   - "Example family: made up, with invented names."
@@ -33,6 +33,8 @@ Kinship diagrams are how anthropologists record who is related to whom. This pag
 - **Ego**, the person every relation is counted from, filled in.
 
 Under each person it writes their **kin type** in standard notation, worked out from the links you entered: F father, M mother, B brother, Z sister, S son, D daughter, H husband, W wife, with P (parent), G (sibling), C (child) and E (spouse) when the sex is unknown. Codes read outwards from Ego, so **FBD** is the father's brother's daughter and **MZS** the mother's sister's son: the two kinds of first cousin that many kinship systems treat very differently (parallel cousins). A table lists every relative with the code, the reading in words, the generation (+1 for Ego's parents, −1 for Ego's children) and whether the link is by blood or by marriage.
+
+Record the interviews behind it in the [[field-note-organiser|field note organiser]], and map wider ties between people with [[social-network-analysis|social network analysis]].
 
 ## How to use it
 

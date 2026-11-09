@@ -11,7 +11,7 @@ order: 827
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [field-sampling-planner, gps-track-analyser, biodiversity-indices, data-cleaner]
+related: [field-sampling-planner, gps-track-analyser, biodiversity-indices, data-cleaner, weather-log, camera-trap-tagger, sample-label-maker, data-dictionary, metadata-builder, quadrat-transect-analyser]
 sources:
   - "The form layout, checks and exports are written by fibub. CSV follows RFC 4180 and GeoJSON follows RFC 7946 (longitude before latitude, WGS 84)."
   - "The example form (a roadside pollinator count) is made up."
@@ -32,6 +32,8 @@ Citizen-science projects, student field trips and small surveys need a simple fo
 - **Location only when you ask.** Tap *Get my location* and the browser asks your device for one fix (latitude, longitude and its accuracy in metres). Nothing reads your location at any other time. You can also type the coordinates, for example from a handheld GPS.
 - **Records** are listed in a table where you can edit or delete them, and, once you tick *Keep the form and records in this browser* (off at first), are kept in this browser so they survive closing the page with no signal.
 - **Export** as CSV for a spreadsheet or R and Python, or as GeoJSON to put the points on a map in QGIS or another GIS. Save the form as a .json file so a whole team fills in exactly the same form.
+
+Plan where and when to sample with the [[field-sampling-planner]], and tidy the returned sheets with the [[data-cleaner]].
 
 ## How to use it
 

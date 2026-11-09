@@ -11,7 +11,7 @@ order: 755
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, sample-size, cohort-component-projection]
+related: [plot-maker, data-cleaner, sample-size, cohort-component-projection, life-table, fertility-rates, rate-standardisation]
 sources:
   - "Formulas only: standard demographic measures (dependency ratios, sex ratio, grouped median by interpolation), as in Preston, Heuveline and Guillot (2001). Example counts are made up."
 flow:
@@ -31,6 +31,8 @@ A **population pyramid** shows a population's age and sex structure at a glance:
 - the share of the population at old age.
 
 Add a **second year or area** and it is drawn as an outline over the bars, with its measures side by side, so you can see where the shape has changed.
+
+Project the population forward with the [[cohort-component-projection]], and work out birth rates for it with the [[fertility-rates]] tool.
 
 ## How to use it
 

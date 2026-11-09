@@ -11,7 +11,7 @@ order: 43
 icon: check
 works: offline
 updated: 2026-11-09
-related: [reference-interval, bland-altman, method-validation, calibration-curve, uncertainty-calculator]
+related: [reference-interval, bland-altman, method-validation, calibration-curve, uncertainty-calculator, control-charts, lab-unit-converter, calibration-drift]
 sources:
   - "Multirules: Westgard JO, Barry PL, Hunt MR and Groth T (1981), A multi-rule Shewhart chart for quality control in clinical chemistry, Clinical Chemistry 27:493-501."
   - "Control chart: Levey S and Jennings ER (1950), American Journal of Clinical Pathology 20:1059-1066."
@@ -27,6 +27,8 @@ flow:
 ## What it does
 
 Every analytical run in a clinical lab includes control samples with known values. **Westgard rules** decide, from where those control results fall against their target mean and SD, whether the run can be reported or must be rejected and investigated. This tool checks a whole series of runs at once, in your browser: it flags each run as in control, warning or rejected, names the rule that was broken, draws a **Levey-Jennings chart** for each control level, and works out the **CV**, **bias** and **sigma metric**.
+
+See the same runs as a chart with [[control-charts]], and set up the patient ranges in the [[reference-interval|reference interval calculator]].
 
 ## How to use it
 

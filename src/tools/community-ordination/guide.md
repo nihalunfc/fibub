@@ -33,6 +33,8 @@ Community data come as a table: species down the side, sites (quadrats, traps, p
 
 Nothing is uploaded: every number is worked out in your browser.
 
+Collect the species table with the [[quadrat-transect-analyser|quadrat and transect analyser]], and work out each site's diversity with the [[biodiversity-indices|biodiversity indices calculator]].
+
 ## How to use it
 
 1. Put **species in the first column** and **one column per site**, with the site names in the first row. This is the same layout as the biodiversity index calculator, so the same table works in both. Paste from a spreadsheet, or open a CSV, TSV, TXT or Excel file. Blank cells count as zero.

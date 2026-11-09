@@ -11,7 +11,7 @@ order: 584
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [lp-solver, sample-size, plot-maker]
+related: [lp-solver, sample-size, plot-maker, shift-scheduler, distribution-explorer, agent-based-models]
 sources:
   - "Formulas: the standard results of queueing theory (Erlang B and C, the M/M/c/K balance equations, Pollaczek-Khinchine), as in operations research textbooks."
   - "Checked against exact rational arithmetic in Python (fractions) for 60 random models of all six kinds, to 1 part in a billion; the simulation was checked against the formulas."
@@ -35,6 +35,8 @@ Queues are everywhere: calls waiting for an agent, patients at a clinic, jobs on
 - **M/G/1**: one server with any service time spread, given its mean and standard deviation (the Pollaczek-Khinchine formula).
 
 It also works out **staffing**, the fewest servers that meet a target such as "80 % of calls answered within 20 seconds" or "lose at most 1 % of calls", and runs a **simulation** of the same queue to compare with the formulas.
+
+Turn the number of staff you need into a rota with the [[shift-scheduler|shift scheduler]], and explore arrival and service time distributions with the [[distribution-explorer|distribution explorer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 807
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [abstract-word-counter, author-list-formatter, bibtex-cleaner]
+related: [abstract-word-counter, author-list-formatter, bibtex-cleaner, table-converter, figure-checker, equation-converter, readability-checker]
 sources:
   - "The splitting rules and letter layout are written by fibub from common practice in response letters; no journal template is copied."
   - "The example reviewer comments are made up."
@@ -32,6 +32,8 @@ A response to reviewers is a long, careful document: every comment quoted, every
 - **One box per point** for your response and an optional box for the change in the manuscript (such as "Methods, lines 80 to 85"). A green edge shows answered points and a count shows what is left.
 - **Downloads** the full letter as Word, PDF or an image, as a LaTeX document that compiles on its own (comments in grey italics, responses in normal type), or as Markdown. Unanswered points are marked "[Response to be written.]" so none slips through.
 - **Your draft** stays on the page. Tick *Keep my draft in this browser* to have it here next time; it never leaves your device and *Clear draft* deletes it.
+
+Fix the figures the reviewers asked about with the [[figure-checker]], and tidy any new references with the [[bibtex-cleaner]].
 
 ## How to use it
 

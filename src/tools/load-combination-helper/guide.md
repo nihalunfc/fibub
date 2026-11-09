@@ -11,7 +11,7 @@ order: 651
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [rebar-calculator, concrete-mix-design, uncertainty-calculator]
+related: [rebar-calculator, concrete-mix-design, uncertainty-calculator, column-buckling, retaining-wall-check, beam-calculator, truss-solver, bearing-capacity]
 sources:
   - "Linear superposition of factored load effects: general structural analysis (for example Hibbeler, R. C., Structural Analysis). The sign search and the governing-value search are fibub's own code."
   - "The two example factor sets are made up by fibub to show how the tool works. They are not taken from ASCE 7, Eurocode (EN 1990), IS 875, NBC, AASHTO or any other code, and are labelled \"check your code edition\"."
@@ -33,6 +33,8 @@ Structures are designed for loads acting together: the weight of the structure (
 - For each effect it shows the **largest** and **smallest** value and which combination gives it, highlights them in the full table, and draws a bar chart.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer.
+
+Take the governing combination to the [[beam-calculator|beam calculator]] or the [[column-buckling|column buckling check]], then size the steel with the [[rebar-calculator|rebar calculator]].
 
 ## How to use it
 

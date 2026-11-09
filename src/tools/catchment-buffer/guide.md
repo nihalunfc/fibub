@@ -11,7 +11,7 @@ order: 760
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, plot-maker, data-cleaner, hotspot-density]
+related: [gps-track-analyser, plot-maker, data-cleaner, hotspot-density, gravity-model, vector-map-viewer, utm-converter, location-quotient-shift-share]
 sources:
   - "Great-circle distance by the haversine formula on a sphere of mean Earth radius 6,371,008.8 m; polygon centroids by the shoelace formula on a local flat projection. Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against an independent Python implementation (own haversine and a brute-force NumPy distance matrix)."
@@ -32,6 +32,8 @@ Planners, health researchers and geographers often ask: how many people live wit
 - a simple **walkability score** from the amenity types within reach.
 
 **These are straight-line distances**, as the crow flies along the Earth's surface, not along roads or paths. Real walking routes are longer, often by a quarter to a half, and rivers, motorways or rail lines can make them much longer. Use this for a first look or to compare places on equal terms; use a network analysis tool for travel times.
+
+Check your points on a map with the [[vector-map-viewer]], and estimate how many people travel between places with the [[gravity-model]].
 
 ## How to use it
 

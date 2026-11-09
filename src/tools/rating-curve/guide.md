@@ -11,7 +11,7 @@ order: 5
 icon: curve
 works: offline
 updated: 2026-11-08
-related: [manning-weir-calculator, flood-frequency, runoff-calculator, uncertainty-calculator]
+related: [manning-weir-calculator, flood-frequency, runoff-calculator, uncertainty-calculator, unit-hydrograph, rain-gauge-average, curve-fitter]
 sources:
   - "The power-law rating curve Q = a (h − h0)^b fitted by least squares on logarithms, with h0 as the stage of zero flow: standard hydrometric practice, as described for example in the WMO Manual on Stream Gauging (WMO-No. 1044, 2010) and ISO 18320 (equations only; no tables reproduced)."
   - "Confidence ranges from ordinary least-squares regression on the logarithms with Student's t; the zero-flow stage is found by a one-dimensional search that minimises the misfit."

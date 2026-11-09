@@ -11,7 +11,7 @@ order: 346
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [period-finder, trend-analyser, plot-maker, uncertainty-calculator, digital-filter-designer, fft-workbench, ecg-viewer, spike-train-analyser]
+related: [period-finder, trend-analyser, plot-maker, uncertainty-calculator, digital-filter-designer, fft-workbench, ecg-viewer, spike-train-analyser, emg-analyser, wavelet-viewer]
 sources:
   - "Notch design as scipy.signal.iirnotch (second-order IIR notch; S. J. Orfanidis, Introduction to Signal Processing, Prentice Hall 1996). Zero-phase filtering as scipy.signal.filtfilt (forward-backward with odd padding and steady-state initial conditions, F. Gustafsson, IEEE Trans. Signal Process. 44 (1996) 988–992). Spectra by Welch's method (P. D. Welch, IEEE Trans. Audio Electroacoust. 15 (1967) 70–73). Written by fibub."
   - "Checked in the tests against SciPy 1.18 (iirnotch, lfilter_zi, lfilter, filtfilt, welch, freqz) to 1 part in 10⁹, and band powers against NumPy sums over the SciPy spectrum. EEG band edges are common conventions, not a standard; edit them freely."
@@ -28,6 +28,8 @@ flow:
 Mains electricity puts a hum at 50 Hz (or 60 Hz) and its harmonics into almost every electrophysiology recording: EEG, local field potentials, ECG, and patch-clamp currents. This tool removes it with narrow **IIR notch filters**, one per harmonic, run **forwards and then backwards** so the waveform is not shifted in time. It shows the **power spectrum** before and after (Welch's method), the **power in each frequency band** you name, and how much hum was removed. Download the cleaned trace as CSV to carry on in your own analysis.
 
 Everything runs in your browser. Files are read on your device and never uploaded. For study and research, not for clinical use.
+
+Detect spikes in the clean recording with the [[spike-train-analyser]], or design a different filter in the [[digital-filter-designer]].
 
 ## How to use it
 

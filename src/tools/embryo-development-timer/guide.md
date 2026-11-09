@@ -11,7 +11,7 @@ order: 351
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [time-zone-planner, planner, uncertainty-calculator, plot-maker, insect-degree-days, turing-pattern-simulator]
+related: [time-zone-planner, planner, uncertainty-calculator, plot-maker, insect-degree-days, turing-pattern-simulator, protocol-timer]
 sources:
   - "Zebrafish: C. B. Kimmel, W. W. Ballard, S. R. Kimmel, B. Ullmann and T. F. Schilling, Stages of embryonic development of the zebrafish, Developmental Dynamics 203 (1995) 253–310: the formula H_T = h / (0.055 T − 0.57) only, cited as the method. No stage table from the paper is copied."
   - "Degree-hours (thermal time) model: development rate proportional to temperature above a base, a standard textbook model. Checked in the tests by hand arithmetic (for example 24 h at 28.5 °C = 24 / 0.805 = 29.81 h at 25 °C) and by consistency checks (equal degree-hours at every temperature)."
@@ -31,6 +31,8 @@ Embryos of fish, amphibians, insects and birds develop faster when warm and slow
 - **Any species (degree-hours)**: development speed rises in a straight line with temperature above a **base temperature**, so hours × (T − base) is the same for a stage at every temperature. Give the base for your species and the **reference temperature** your stage times are for.
 
 The two agree: Kimmel's formula is a degree-hours model with a base of 10.36 °C (0.57 ÷ 0.055).
+
+Set lab reminders for each stage with the [[protocol-timer]], and see how patterns form in the embryo with the [[turing-pattern-simulator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 8
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [coupled-oscillators, pendulum-analyser, two-body-orbit, moment-of-inertia, uncertainty-calculator]
+related: [coupled-oscillators, pendulum-analyser, two-body-orbit, moment-of-inertia, uncertainty-calculator, symbolic-algebra, ode-solver, chaos-explorer]
 sources:
   - "Lagrangian mechanics: L = T − V, the Euler-Lagrange equations d/dt(∂L/∂q′) − ∂L/∂q = 0, generalised momenta and the energy function h = Σ q′ ∂L/∂q′ − L. Standard results in any classical mechanics text."
   - "The symbolic differentiator, simplifier and Runge-Kutta integrator are written for this site in TypeScript (no outside algebra system)."
@@ -33,6 +33,8 @@ d/dt (∂L/∂q′) − ∂L/∂q = 0.
 The differentiation is mechanical but error-prone by hand, especially the total time derivative, which needs the chain rule through every coordinate and rate. This helper does it symbolically. It shows the **Lagrangian**, each **generalised momentum** ∂L/∂q′, each **∂L/∂q** and **d/dt(∂L/∂q′)**, and the **equation of motion**. For one coordinate it solves for the **acceleration**; for several it gives the **mass-matrix form** M(q) q″ = F. It also gives the **energy function** h and says whether it is conserved (it is when L has no explicit time in it).
 
 A plain-text copy of everything is ready to paste into SymPy, a notebook or your notes, and a **numerical run** integrates the equations from any start so you can see the motion and check that energy is conserved.
+
+Solve the equations for longer runs with the [[ode-solver|ODE solver]], and watch a double pendulum turn chaotic in the [[chaos-explorer]].
 
 ## How to use it
 

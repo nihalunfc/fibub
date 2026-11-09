@@ -11,7 +11,7 @@ order: 321
 icon: book
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, biodiversity-indices, field-sampling-planner, plate-layout, gram-stain-key, herbarium-label-maker]
+related: [tree-viewer, biodiversity-indices, field-sampling-planner, plate-layout, gram-stain-key, herbarium-label-maker, mineral-id-key]
 sources:
   - "Dichotomous key structure (couplets of two contrasting leads): standard taxonomic practice, as in Winston, J. E., Describing Species (Columbia University Press, 1999)."
   - "The example key was written for this page from general knowledge of insect orders; it is simplified and not for identification."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 A dichotomous key identifies an organism by a series of choices between two contrasting statements, called a couplet. Each choice leads either to another couplet or to a name. Keys are easy to start and easy to break: a lead that points to a couplet that does not exist, a loop that sends the reader back where they started, or a species that no path reaches. This tool lets you write a key for any group (insects, leaves, fungi, fish), checks it for those mistakes, lets you try it one step at a time as a reader would, and saves it as JSON (to open again later) or as printable text with dot leaders. Everything happens in your browser.
+
+Label the specimens you identify with the [[herbarium-label-maker|herbarium label maker]], and see a finished key for bacteria in the [[gram-stain-key|Gram stain key]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 34
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, daly-qaly, herd-immunity, plot-maker, reliability-analysis]
+related: [sample-size, daly-qaly, herd-immunity, plot-maker, reliability-analysis, crosstab-chi-square, likert-chart, questionnaire-scorer, rate-standardisation, polling-average]
 sources:
   - "Raking (iterative proportional fitting): Deming and Stephan (1940), Annals of Mathematical Statistics 11: 427-444; as calibration: Deville and Särndal (1992), Journal of the American Statistical Association 87: 376-382."
   - "Post-stratification: Holt and Smith (1979), Journal of the Royal Statistical Society A 142: 33-46."

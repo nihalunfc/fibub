@@ -11,7 +11,7 @@ order: 856
 icon: camera
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, sample-label-maker]
+related: [biodiversity-indices, field-sampling-planner, sample-size, sample-label-maker, occupancy-estimator, habitat-connectivity, ethogram-logger, mark-recapture]
 sources:
   - "The EXIF reader, event grouping, independent detections (a gap rule applied per station and species), the relative abundance index (detections per 100 trap-nights) and naive occupancy are written by fibub. The tests check the EXIF reader against exifread and Pillow on JPEGs made with Pillow, and the detection counts and summaries against the same rules in pandas on made-up records."
   - "EXIF 2.3 (JEITA CP-3451) tags DateTimeOriginal, DateTimeDigitized and DateTime: open specification."
@@ -35,6 +35,8 @@ Camera traps take thousands of photos, most of them bursts of the same animal or
 - exports the photos with their tags, and the detections, as **CSV**.
 
 **Your photos stay on this device.** They are read by your browser and never uploaded; the page works offline once loaded.
+
+Plan where to put the cameras with the [[field-sampling-planner]], and turn your detections into occupancy with the [[occupancy-estimator]].
 
 ## How to use it
 

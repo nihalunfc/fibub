@@ -11,7 +11,7 @@ order: 423
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [harmonics-analyser, tuning-calculator, period-finder]
+related: [harmonics-analyser, tuning-calculator, period-finder, audio-spectrum-analyser, bird-song-spectrogram, fft-workbench, gait-cadence]
 sources:
   - "Onset strength by spectral flux of log-compressed magnitude spectra (Bello et al. 2005, Böck and Widmer 2013), tempo by autocorrelation of the onset strength, and beat tracking by dynamic programming (D. P. W. Ellis, 2007, Journal of New Music Research 36, 51-60): published methods, implemented by fibub."
   - "Checked against an independent NumPy implementation on two noisy click tracks (44.1 and 22.05 kHz): onset envelope and autocorrelation to 10⁻¹³, the same onset and beat times. Click tracks at 60, 90, 97, 104, 120, 145.5, 174 and 200 BPM give back their tempo within 0.1 BPM and every click within 10 ms."
@@ -30,6 +30,8 @@ Musicologists, dancers, DJs, music teachers and anyone transcribing music often 
 1. **Onsets**: the sound is cut into short overlapping frames (about 46 ms, every 11.6 ms at 44.1 kHz). For each frame the page measures how much the spectrum rises compared with the frame before (the **spectral flux**). Sudden rises are notes and drum hits. The peaks of this **onset strength** are listed as onsets with their times.
 2. **Tempo**: the onset strength is compared with shifted copies of itself (**autocorrelation**). A steady pulse makes it match itself every beat, so the peaks of the autocorrelation are **tempo candidates**. The strongest one inside your tempo range is the detected tempo; if a pulse twice as fast is nearly as strong (95 %), that faster pulse is taken as the beat.
 3. **Beats**: beat times are placed by dynamic programming, which follows strong onsets while keeping the gaps close to the beat period, so slight tempo changes are followed.
+
+Look at the notes themselves with the [[harmonics-analyser|harmonics analyser]], and tune them against a reference with the [[tuning-calculator|tuning calculator]].
 
 ## How to use it
 

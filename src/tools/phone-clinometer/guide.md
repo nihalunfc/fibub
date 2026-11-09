@@ -11,7 +11,7 @@ order: 866
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [stereonet, drill-hole-composites]
+related: [stereonet, drill-hole-composites, apparent-dip, cross-section-profile, paleostress-inversion, utm-converter, gps-track-analyser]
 sources:
   - "Device orientation angles and the rotation R = Rz(alpha)·Rx(beta)·Ry(gamma) from the W3C DeviceOrientation Event specification; checked against SciPy's Rotation (intrinsic Z-X'-Y'' Euler angles) for 48 angle sets."
   - "Strike and dip (right-hand rule), dip direction, trend and plunge from the plane's normal and the line's direction vector: standard structural geology, written by fibub."
@@ -30,7 +30,9 @@ A geologist's compass-clinometer measures how rock surfaces and lines are orient
 - **Planes** (bedding, joints, foliation, faults): lay the phone flat on the surface. The page gives the **strike and dip** by the right-hand rule (the plane dips to your right when you face along the strike) or the **dip direction and dip**.
 - **Lines** (lineations, fold axes, slickenlines): lay the phone's long edge along the line. The page gives the **plunge and trend**, pointing down the line.
 
-Each reading is **averaged over one second** of sensor data and shows its **spread** (how much the phone moved). Directions are corrected by the **magnetic declination** you type, so they are from true north. Readings go into a **field log** with your note and, if you press the button, your **position**. The log stays in this browser, works offline, and downloads as CSV, including files ready for the [Stereonet plotter](/science/stereonet/).
+Each reading is **averaged over one second** of sensor data and shows its **spread** (how much the phone moved). Directions are corrected by the **magnetic declination** you type, so they are from true north. Readings go into a **field log** with your note and, if you press the button, your **position**. The log works offline, is kept in this browser only once you tick **Remember my readings in this browser** (nothing is saved until then), and downloads as CSV, including files ready for the [Stereonet plotter](/science/stereonet/).
+
+Plot your readings on the [[stereonet]], and turn them into a section with the [[cross-section-profile|cross-section tool]].
 
 ## How to use it
 
@@ -54,6 +56,6 @@ On a computer, open the demo and tick *Use these angles*. With alpha 300°, beta
 
 **Does it need a signal?** No. Once the page has loaded it works offline. Position comes from the phone's GPS when you ask.
 
-**Where is my log kept?** Only in this browser on this device. Nothing is sent anywhere. Delete readings one by one, or all of them.
+**Where is my log kept?** Nowhere until you tick **Remember my readings in this browser**; then only in this browser on this device, positions included. Untick it to remove the saved copy. Nothing is sent anywhere. Delete readings one by one, or all of them.
 
 **Which north does it use?** Phones report magnetic north (Android and iPhone compass readings); adding your declination gives true north.

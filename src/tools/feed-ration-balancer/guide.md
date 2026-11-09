@@ -11,7 +11,7 @@ order: 397
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [budget-calculator]
+related: [budget-calculator, breeding-calendar, growth-curve-tracker, stocking-density-calculator, lp-solver]
 sources:
   - "Least-cost ration as a linear programme (minimise cost subject to nutrient and feed limits), solved with the two-phase simplex method and Bland's rule, as in any operations research textbook (for example Hillier and Lieberman, Introduction to Operations Research)."
   - "Pearson square for mixing two feeds to a target concentration: a standard animal nutrition teaching method."

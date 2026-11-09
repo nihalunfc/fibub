@@ -11,7 +11,7 @@ order: 692
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, pvt-correlations, gas-law-calculator, psychrometric-calculator]
+related: [uncertainty-calculator, pvt-correlations, gas-law-calculator, psychrometric-calculator, physical-constants, dimensional-analysis, concentration-converter, lab-unit-converter, scientific-notation-formatter]
 sources:
   - "SI units and prefixes: BIPM, The International System of Units (SI brochure, 9th edition). Inch, foot, yard, mile and pound: the 1959 international yard and pound agreement. US gallon (231 cubic inches) and imperial gallon (4.54609 litres) by definition; standard gravity 9.80665 m/s² (CGPM 1901); thermochemical calorie 4.184 J; international table calorie and Btu."
   - "Each factor is written by fibub as arithmetic on those definitions. Checked against the Python pint package (BSD licence), used only for testing; no code copied."
@@ -30,6 +30,8 @@ Engineering work mixes unit systems all the time: a pump curve in US gallons per
 - **Convert anything**: type a quantity and the unit you want, such as `3 kN*m to lbf*ft` or `450 bbl/d to m^3/h`. The tool works out the dimensions of both sides (length, mass, time, temperature and so on) and refuses a conversion that is physically impossible, such as metres per second to newtons, telling you what each side actually is.
 
 All factors are **exact definitions**, not rounded table values: the inch is 25.4 mm, the pound 0.45359237 kg, the pound-force a pound times standard gravity (9.80665 m/s²), the US gallon 231 cubic inches, and the Btu and calorie follow their international table definitions. Everything runs in your browser.
+
+Check that a formula's units balance with the [[dimensional-analysis|dimensional analysis checker]], and convert lab concentrations such as molarity and ppm with the [[concentration-converter|concentration converter]].
 
 ## How to use the expression box
 

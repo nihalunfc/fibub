@@ -11,7 +11,7 @@ order: 572
 icon: target
 works: offline
 updated: 2026-11-09
-related: [small-model-trainer, csv-profiler, plot-maker]
+related: [small-model-trainer, csv-profiler, plot-maker, confusion-matrix, train-test-splitter, community-ordination, factor-analysis, metabolite-volcano-pca, neural-network-toys]
 sources:
   - "Methods as in scikit-learn: PCA (explained variance with n − 1, svd_flip signs) and TSNE(method='exact') with its perplexity search, early exaggeration, momentum and gains; trustworthiness as sklearn.manifold.trustworthiness. Checked against scikit-learn 1.9."
   - "The example of 120 readings from four machines is made up for this tool."
@@ -28,6 +28,8 @@ A table with many number columns is hard to picture. This tool draws it as a two
 
 - **PCA (principal component analysis)** finds the straight directions along which the rows spread most. You get the share of the variance each component explains (scree plot), the **loadings** (how much each column counts in each component) and a scatter plot of any two components.
 - **t-SNE** (exact, as in scikit-learn) places rows that are similar in the data close together on the map. It is often better than PCA at separating groups, at the cost of distances that are not to scale. You get the **KL divergence** it reached and two checks of how faithful the map is: **trustworthiness** and the share of each row's 10 nearest neighbours that stay among its 10 nearest on the map.
+
+Profile the table before you start with the [[csv-profiler|CSV profiler]], and test whether the groups you see can be predicted with the [[small-model-trainer|small model trainer]].
 
 ## How to use it
 

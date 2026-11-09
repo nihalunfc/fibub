@@ -11,7 +11,7 @@ order: 892
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, traverse-calculator, level-book-reducer]
+related: [gps-track-analyser, traverse-calculator, level-book-reducer, tissot-explorer, vector-map-viewer, phone-clinometer]
 sources:
   - "Transverse Mercator: the Krüger series to sixth order in the third flattening, as given by C. F. F. Karney, 'Transverse Mercator with an accuracy of a few nanometres', Journal of Geodesy 85 (2011); formulas written by fibub."
   - "UTM zones, latitude bands, the Norway and Svalbard exceptions and the MGRS 100 km square lettering: public grid definitions, written by fibub."
@@ -36,6 +36,8 @@ GPS receivers, maps and field forms write the same place in different ways. This
 It also gives the **grid convergence** (the angle between grid north and true north) and the **point scale factor** (how much the grid stretches distances there), the **distance and bearings** between two points along the shortest path on the ellipsoid, and converts **a whole list** of points from a paste or a file.
 
 Everything runs in your browser and works offline once the page has loaded.
+
+Load your converted points onto a map with the [[vector-map-viewer]], and see how map projections stretch distances with the [[tissot-explorer]].
 
 ## How to use it
 

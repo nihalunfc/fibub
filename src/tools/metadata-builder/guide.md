@@ -11,7 +11,7 @@ order: 816
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [science-file-converter, checksum-checker, biodiversity-indices]
+related: [science-file-converter, checksum-checker, biodiversity-indices, dataset-readme, data-dictionary, data-management-plan, author-list-formatter]
 sources:
   - "Term names, namespaces and controlled lists are those of the standards: the DCMI Metadata Element Set 1.1 (Dublin Core Metadata Initiative), the DataCite Metadata Schema 4.5 (DataCite) and the Darwin Core terms (Biodiversity Information Standards, TDWG). Help lines are fibub's own words."
   - "ORCID iD check digits follow ISO 7064 MOD 11-2 as ORCID documents it; dates follow ISO 8601."
@@ -31,6 +31,8 @@ Repositories, data journals and biodiversity portals ask for metadata in a stand
 - **DataCite** (Metadata Schema 4.5): what you need for a dataset DOI. The six mandatory properties (Identifier, Creator, Title, Publisher, PublicationYear, ResourceType), the recommended ones (Subject, Contributor, Date, RelatedIdentifier, Description, GeoLocation) and some optional ones (Language, Version, Rights, Format, Size, FundingReference).
 - **Dublin Core**: the 15 elements (title, creator, subject, description, publisher, contributor, date, type, format, identifier, source, language, relation, coverage, rights) as an `oai_dc` record.
 - **Darwin Core**: one occurrence record (a species seen or collected at a place and time) with the terms biodiversity portals expect: occurrenceID, basisOfRecord, scientificName, eventDate, coordinates and their datum and uncertainty, countryCode and more.
+
+Write the human-readable side with the [[dataset-readme|dataset README builder]], and list your columns and units with the [[data-dictionary|data dictionary generator]].
 
 ## How to use it
 

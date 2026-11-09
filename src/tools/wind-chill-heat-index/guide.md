@@ -11,7 +11,7 @@ order: 896
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, skew-t-sounding]
+related: [psychrometric-calculator, skew-t-sounding, station-data-viewer, weather-log, density-altitude, uv-index-estimator]
 sources:
   - "Wind chill: the 2001 wind chill temperature index of the Joint Action Group for Temperature Indices (JAG/TI), as used by the US National Weather Service and Environment and Climate Change Canada (government formula). Risk categories: Environment and Climate Change Canada."
   - "Heat index: US National Weather Service method (Steadman's simple formula and the Rothfusz regression with the NWS adjustments) and its caution bands (government formula)."
@@ -37,6 +37,8 @@ The air temperature alone does not say how cold or hot it feels. Wind strips hea
 The big number is the single "feels like" the US National Weather Service would give: the wind chill when it applies, the heat index from 80 °F, and otherwise the air temperature.
 
 **Not a safety forecast.** The page applies the published formulas to the numbers you type. For warnings and advice, check your national weather service.
+
+Read the temperature and wind from your own station with the [[station-data-viewer]], and note what you felt in the [[weather-log]].
 
 ## How to use it
 

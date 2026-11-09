@@ -11,7 +11,7 @@ order: 6
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [schrodinger-solver, huckel-mo-calculator, quantum-circuit]
+related: [schrodinger-solver, huckel-mo-calculator, quantum-circuit, operator-algebra, hydrogen-orbitals, matrix-calculator, partition-function]
 sources:
   - "Rayleigh–Schrödinger perturbation theory, non-degenerate (to third order) and degenerate (first order and the second-order effective Hamiltonian): standard textbook results, for example Sakurai, J. J. and Napolitano, J., Modern Quantum Mechanics, and Griffiths, D. J., Introduction to Quantum Mechanics."
   - "Anharmonic oscillator series 1/2 + 3λ/4 − 21λ²/8 + 333λ³/16: Bender, C. M. and Wu, T. T. (1969), Physical Review 184, 1231 (a textbook result, used only as a check)."
@@ -35,6 +35,8 @@ For a non-degenerate level n (in the eigenbasis of H₀):
 - **Third order:** E⁽³⁾ = Σ_k,m V_nk V_km V_mn / ((E_n − E_k)(E_n − E_m)) − V_nn Σ_m |V_mn|² / (E_n − E_m)².
 
 When several levels of H₀ are equal (**degenerate**), these formulas divide by zero. The tool then diagonalises V inside the degenerate set: its eigenvalues are the first-order shifts and its eigenvectors the "good" states for second order. If V does not split the set at first order, it diagonalises the second-order effective Hamiltonian instead.
+
+Build the Hamiltonian and its perturbation as matrices with the [[operator-algebra|operator algebra helper]], and compare with exact levels from the [[schrodinger-solver|1D Schrödinger solver]].
 
 ## How to use it
 

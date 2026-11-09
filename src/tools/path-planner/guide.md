@@ -11,7 +11,7 @@ order: 640
 icon: target
 works: offline
 updated: 2026-11-09
-related: [kalman-filter-playground]
+related: [kalman-filter-playground, inverse-kinematics, dh-kinematics, algorithm-visualiser, vehicle-routing, pid-simulator]
 sources:
   - "A* search (Hart, Nilsson and Raphael 1968) with the Manhattan and octile distance heuristics, and Dijkstra's algorithm (1959): standard algorithms, written by fibub."
   - "Rapidly-exploring random tree (RRT, LaValle 1998) with goal bias and greedy shortcut smoothing: standard motion-planning practice, written by fibub."
@@ -30,6 +30,8 @@ Robots, games and delivery apps all have to find a way from A to B around obstac
 - **Dijkstra** spreads out from the start in rings of equal distance until it reaches the goal. It always finds the shortest path, but it searches in every direction.
 - **A\*** does the same, but always looks next at the cell with the smallest *distance so far plus a guess of the distance left*. The guess never overestimates (straight-line Manhattan distance for 4 directions, octile distance for 8), so A* still finds the shortest path while expanding far fewer cells.
 - **RRT** (rapidly-exploring random tree) works in continuous space instead of on the grid. It picks random points, grows the tree a fixed step towards each one, and stops when a branch gets close to the goal. It handles big, open spaces well, but its path is not the shortest, and every random seed grows a different tree. Optional **shortcuts** straighten the path afterwards.
+
+Turn the waypoints into arm joint angles with the [[inverse-kinematics|inverse kinematics solver]], and for delivery rounds between many stops try [[vehicle-routing]].
 
 ## How to use it
 

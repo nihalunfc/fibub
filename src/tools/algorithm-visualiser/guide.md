@@ -11,7 +11,7 @@ order: 573
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [big-o-plotter, regex-fsm-visualiser, graph-algorithms, sql-playground]
+related: [big-o-plotter, regex-fsm-visualiser, graph-algorithms, sql-playground, cache-simulator, toy-compiler, combinatorics-calculator]
 sources:
   - "Algorithms as described in standard textbooks (general computer science); the quicksort is the Lomuto partition with the last value as pivot, as in Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms."
   - "Checked against separate Python implementations written for this tool: sorted output and comparison, swap and write counts for all eight sorts on 32 lists, linear and binary search results and counts, LCS and edit distance on 16 pairs (including the textbook ABCBDAB / BDCABA and kitten / sitting), and knapsack optima against an integer linear program solved by SciPy (milp)."
@@ -32,6 +32,8 @@ Algorithms are much easier to understand when you can watch them. This visualise
 - **Dynamic programming:** the table for the longest common subsequence (LCS) of two words, the edit (Levenshtein) distance, and the 0/1 knapsack, filled one cell at a time, showing which earlier cells each one uses, then the trace back that reads off the answer.
 
 Below the player, a table runs **every sorting method on the same list**, so you can see that, for example, selection sort always makes n(n − 1)/2 comparisons while insertion sort makes very few on a nearly sorted list.
+
+Measure how running time grows with input size with the [[big-o-plotter|Big-O plotter]], and step through graph searches in [[graph-algorithms]].
 
 ## How to use it
 

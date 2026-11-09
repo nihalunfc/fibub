@@ -11,7 +11,7 @@ order: 38
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [colour-vision-simulator, plot-maker, image-resizer]
+related: [colour-vision-simulator, plot-maker, image-resizer, science-colour-palette, figure-checker, readability-checker, visual-acuity-converter, poster-layout]
 sources:
   - "Contrast ratio, relative luminance and the AA and AAA thresholds: W3C Web Content Accessibility Guidelines (WCAG) 2.x, success criteria 1.4.3, 1.4.6 and 1.4.11 (checked 2026-11-09; check the official source). The sRGB linearisation uses the sRGB standard's 0.04045 threshold, as in WCAG 2.2."
   - "Flesch reading ease: Flesch R (1948), A new readability yardstick, Journal of Applied Psychology 32(3):221-233. Flesch-Kincaid grade: Kincaid JP, Fishburne RP, Rogers RL, Chissom BS (1975), Naval Technical Training Command research branch report 8-75. Syllables are estimated by our own spelling rule."

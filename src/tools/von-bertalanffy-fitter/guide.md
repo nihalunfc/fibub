@@ -11,7 +11,7 @@ order: 340
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [binding-curve-fitter, calibration-curve, trend-analyser, fish-length-weight, yield-per-recruit, curve-fitter, growth-curve-tracker]
+related: [binding-curve-fitter, calibration-curve, trend-analyser, fish-length-weight, yield-per-recruit, curve-fitter, growth-curve-tracker, cpue-trend]
 sources:
   - "Von Bertalanffy growth function L(t) = L∞(1 − e^(−K(t − t0))) (L. von Bertalanffy 1938; R. J. H. Beverton and S. J. Holt 1957); Ford-Walford plot (E. Ford 1933; L. A. Walford 1946); growth performance index φ' = log10 K + 2 log10 L∞ (D. Pauly and J. L. Munro 1984, Fishbyte 2: 21). Method only."
   - "Fitting by Levenberg-Marquardt with standard errors from s²(JᵀJ)⁻¹. Checked in the tests against SciPy's scipy.optimize.curve_fit (parameters, standard errors, t intervals) and scipy.stats.linregress (Ford-Walford line). The example fish are made up."
@@ -36,6 +36,8 @@ The tool fits the curve to your fish by **nonlinear least squares** (Levenberg-M
 
 - the **growth performance index φ'** = log₁₀ K + 2 log₁₀ L∞ (L∞ in cm), used to compare growth between stocks and species, because K and L∞ trade off against each other;
 - the **Ford-Walford plot**: mean length at age t + 1 against mean length at age t. For von Bertalanffy growth the points lie on a straight line L(t+1) = a + b L(t), giving K = −ln b and L∞ = a ÷ (1 − b), where the line crosses the 1:1 line. It is a quick check and supplies the starting values for the fit.
+
+Get the weight at each length from the [[fish-length-weight|length-weight calculator]], and use the growth curve in the [[yield-per-recruit|yield per recruit calculator]].
 
 ## How to use it
 

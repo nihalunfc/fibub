@@ -11,7 +11,7 @@ order: 1
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, radiometric-age-calculator, reaction-kinetics-fitter, uncertainty-calculator]
+related: [decay-calculator, radiometric-age-calculator, reaction-kinetics-fitter, uncertainty-calculator, gamma-shielding, counting-statistics, spectrum-peak-fitter, decay-heat, plot-maker]
 sources:
   - "Bateman, H. (1910), Solution of a system of differential equations occurring in the theory of radioactive transformations, Proceedings of the Cambridge Philosophical Society 15, 423 to 427 (the equations; public domain by age)."
   - "Divided differences of the exponential for close decay constants: the Taylor-series approach of McCurdy, A. C., Ng, K. C. and Parlett, B. N. (1984), Mathematics of Computation 43, 501 to 528 (method only)."
@@ -29,6 +29,8 @@ flow:
 Many radioactive nuclides decay into something that is itself radioactive. Molybdenum-99 decays into technetium-99m, radium-226 into radon-222 and then a string of short-lived "progeny". The amount of each daughter depends on how fast it is made (by its parent) and how fast it decays. The **Bateman equations** give the answer exactly for any linear chain A → B → C → …, and this page solves them for a parent and up to seven daughters.
 
 You get the activity and number of atoms of every member at any time, a chart of the ingrowth, the time at which each daughter's activity peaks, and whether the chain settles into **equilibrium** with its parent.
+
+Shield the source you have worked out with the [[gamma-shielding|gamma shielding calculator]], and plan how long to count it with [[counting-statistics|counting statistics]].
 
 ## How to use it
 

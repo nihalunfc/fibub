@@ -11,7 +11,7 @@ order: 333
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, hemocytometer, water-quality-index, sample-size, fish-length-weight, pond-oxygen-budget]
+related: [biodiversity-indices, field-sampling-planner, hemocytometer, water-quality-index, sample-size, fish-length-weight, pond-oxygen-budget, coral-cover-calculator]
 sources:
   - "Method: standard net-sample calculations (volume filtered from mouth area, distance and efficiency or a flowmeter; scaling from a subsample) and length-weight conversion of zooplankton, as described in R. P. Harris et al. (eds.), ICES Zooplankton Methodology Manual (Academic Press, 2000) and E. McCauley in J. A. Downing and F. H. Rigler (eds.), A Manual on Methods for the Assessment of Secondary Productivity in Fresh Waters (Blackwell, 1984). Formulas only."
   - "No length-weight coefficients are bundled. The example a and b values are made up and labelled illustrative; users enter equations from the source they cite."
@@ -32,6 +32,8 @@ A plankton net hauled through the water catches the animals in a known volume of
 2. **Density** of each taxon: count ÷ share of the sample counted ÷ V, in individuals per m³ (and per litre).
 3. **Individual mass**: each measured animal's length is turned into mass with the **length-weight equation** for its taxon, in one of the three usual forms: ln W = a + b ln L, log₁₀ W = a + b log₁₀ L, or W = a × L^b.
 4. **Biomass** of each taxon: density × mean individual mass, and the total for the sample.
+
+Plan your net tows with the [[field-sampling-planner]], and check the water they came from with the [[water-quality-index]].
 
 ## How to use it
 

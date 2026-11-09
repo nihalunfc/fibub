@@ -11,7 +11,7 @@ order: 411
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, radiometric-age-calculator, uncertainty-calculator, decay-calculator, racemisation-age]
+related: [radiocarbon-calibration, radiometric-age-calculator, uncertainty-calculator, decay-calculator, racemisation-age, age-depth-model, dendro-crossdating]
 sources:
   - "Central age model: Galbraith, R. F., Roberts, R. G., Laslett, G. M., Yoshida, H. and Olley, J. M. (1999), Archaeometry 41(2). Water correction: Zimmerman, D. W. (1971) and Aitken, M. J. (1985), Thermoluminescence Dating. Uncertainty propagation: JCGM 100:2008 (GUM)."
   - "No conversion-factor table is built in: the factors are inputs, prefilled with rough rounded example values that the user is told to replace with the published factors they use."
@@ -36,6 +36,8 @@ This calculator does the sums around that equation:
 - **Dose rate.** Either from **K (%), U (ppm) and Th (ppm)** with conversion factors you enter, an a-value for alpha particles and a beta attenuation factor for grain size, or straight from **alpha, beta and gamma** dose rates. Add the cosmic and any internal dose rate.
 - **Water.** Pore water absorbs radiation, so the dry dose rates are divided by (1 + k × W), with W the water mass over the dry mass and k = 1.49, 1.25 and 1.14 for alpha, beta and gamma (editable).
 - **Uncertainty.** Every input's standard uncertainty is carried through to the age (first-order, GUM), and a table shows which inputs matter most.
+
+Compare the age with a radiocarbon date from the [[radiocarbon-calibration|radiocarbon calibration tool]], and build a timeline for the whole section with the [[age-depth-model|age-depth model]].
 
 ## The central age model
 

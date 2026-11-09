@@ -11,7 +11,7 @@ order: 507
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [wave-calculator, skew-t-sounding, psychrometric-calculator]
+related: [wave-calculator, skew-t-sounding, psychrometric-calculator, tide-predictor, dissolved-oxygen, carbonate-system, vector-map-viewer]
 sources:
   - "Ekman, V. W. (1905) On the influence of the earth's rotation on ocean currents. Arkiv för Matematik, Astronomi och Fysik 2(11); Ekman transport, depth and spiral as in standard texts such as Pond, S. and Pickard, G. L. (1983) Introductory Dynamical Oceanography, 2nd ed., and Talley, L. D. et al. (2011) Descriptive Physical Oceanography, 6th ed. (the empirical surface current and depth formulas are from Pond and Pickard)."
   - "Geostrophic balance, thermal wind, dynamic height and Rossby radii are standard results of geophysical fluid dynamics, written here as formulas by fibub."
@@ -34,6 +34,8 @@ Most ocean currents near the surface are driven by the wind and steered by the E
 - **Geostrophic current** from the slope of the sea surface, as satellite altimetry measures it.
 - **Thermal wind**: the current profile across a section between two stations from their density (or dynamic height) profiles, relative to a level of no motion.
 - **Rossby radius**: barotropic, two-layer baroclinic and from the buoyancy frequency N.
+
+Separate out the tidal part of the flow with the [[tide-predictor|tide predictor]], and look at the waves on top with the [[wave-calculator|wave calculator]].
 
 ## How to use it
 

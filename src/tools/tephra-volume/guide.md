@@ -11,7 +11,7 @@ order: 887
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [eruption-column]
+related: [eruption-column, grain-size-stats, strat-column, curve-fitter, radiocarbon-calibration]
 sources:
   - "Methods (formulas only, no data copied): Pyle (1989) exponential thinning; Fierstein and Nathenson (1992) and Bonadonna and Houghton (2005) multi-segment exponential and power-law integration; Bonadonna and Costa (2012) Weibull function; Newhall and Self (1982) VEI volume classes."
   - "Example isopachs: synthetic, made by fibub from a two-segment exponential with a little noise. Densities: round values, editable."
@@ -31,6 +31,8 @@ Tephra fall deposits thin away from the vent. Mapping lines of equal thickness (
 - **Weibull** T = θ (x/λ)<sup>n−2</sup> exp(−(x/λ)<sup>n</sup>) (Bonadonna and Costa 2012), with volume 2θλ²/n.
 
 It also gives the **VEI class**, the **mass** for your deposit density and the **dense-rock-equivalent (DRE)** volume.
+
+Turn the eruption rate into a column height with the [[eruption-column|eruption column calculator]], and describe the tephra grains with [[grain-size-stats]].
 
 ## How to use it
 

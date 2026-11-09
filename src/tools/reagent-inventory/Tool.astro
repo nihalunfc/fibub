@@ -1,7 +1,7 @@
 ---
 // Reagent inventory: a list of reagents with location, amount, lot, opened date and expiry, flags for expired,
 // expiring-soon and low stock, search and filters, spreadsheet import and export, and a printable list.
-// The list is kept only in this browser (localStorage), never sent anywhere, and can be cleared.
+// The list is kept in this browser (localStorage) only if the visitor ticks the box; never sent anywhere, and can be cleared.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 import DataFile from '../../components/DataFile.astro';
@@ -87,7 +87,8 @@ import DataFile from '../../components/DataFile.astro';
 
   <div class="ax-card">
     <h2>Kept in this browser</h2>
-    <p class="ax-help ri-store">Your list is saved automatically in this browser on this device, so it is here next time you open this page. It is never sent to fibub or anyone else. Clearing your browser data removes it, so download a backup now and then. Another device or browser will not see it; move it with a backup file.</p>
+    <label class="ax-check"><input type="checkbox" class="ri-keep" /> Remember my list in this browser</label>
+    <p class="ax-help ri-store">Nothing is saved until you tick the box. Ticked, your list stays in this browser on this device so it is here next time you open this page; it is never sent to fibub or anyone else. Untick it to remove the saved copy. Clearing your browser data also removes it, so download a backup now and then. Another device or browser will not see it; move it with a backup file.</p>
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn secondary small ri-json">Download backup (JSON)</button>
       <button type="button" class="btn secondary small ri-jopen">Open a backup</button>
@@ -119,13 +120,16 @@ import DataFile from '../../components/DataFile.astro';
   let editing: string | null = null;
 
   const soon = () => { const v = Math.round(Number(inp('.ri-soon').value)); return Number.isFinite(v) && v >= 0 ? v : 30; };
+  const keeping = () => inp('.ri-keep').checked;
   const persist = () => {
+    if (!keeping()) return;
     try { localStorage.setItem(KEY, JSON.stringify({ reagents: JSON.parse(R.toJson(list)).reagents, soon: soon() })); } catch { /* storage full or blocked */ }
   };
   const restore = () => {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return;
+      inp('.ri-keep').checked = true;
       const s = JSON.parse(raw);
       list = R.fromJson(JSON.stringify(s));
       if (Number.isFinite(s.soon)) inp('.ri-soon').value = String(s.soon);
@@ -295,7 +299,12 @@ import DataFile from '../../components/DataFile.astro';
   q('.ri-clear').addEventListener('click', () => {
     if (list.length && !confirm('Remove every reagent from this browser? Download a backup first if you may need it.')) return;
     list = []; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    inp('.ri-keep').checked = false;
     q('.ri-form').hidden = true; render(); msg('.ri-bmsg', 'Cleared. Nothing is kept in this browser now.');
+  });
+  inp('.ri-keep').addEventListener('change', () => {
+    if (keeping()) { persist(); msg('.ri-bmsg', 'Your list is now kept in this browser.'); }
+    else { try { localStorage.removeItem(KEY); } catch { /* blocked */ } msg('.ri-bmsg', 'Not kept: the saved copy is removed from this browser.'); }
   });
 
   restore();

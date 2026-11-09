@@ -11,7 +11,7 @@ order: 622
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [circuit-simulator, uncertainty-calculator]
+related: [circuit-simulator, uncertainty-calculator, led-resistor-calculator, op-amp-calculator, filter-designer, pcb-trace-calculator]
 sources:
   - "Band meanings (digits, multipliers including gold, silver and pink, tolerance and temperature coefficient colours) follow the colour code of IEC 60062, a general convention printed on parts and in electronics textbooks."
   - "E-series preferred numbers: E3 to E24 are the well-known IEC 60063 lists; E48, E96 and E192 are 10^(i/n) rounded to three figures, with 9.20 in E192 as the standard has it."
@@ -30,6 +30,8 @@ Most through-hole resistors show their value as coloured bands instead of printe
 - **Colour bands to value**: pick 3, 4, 5 or 6 bands and get the resistance, tolerance, the range a good part may measure, whether it is a standard value, and (for 6 bands) the temperature coefficient.
 - **Value to colour bands**: type a value such as 4.7k or 4k7 and see the bands for 4, 5 or 6-band parts, plus the nearest standard value below and above it in every E series from E6 to E192.
 - **Voltage divider designer**: give the input and wanted output voltage and it searches every pair in your chosen series for the closest output, with the worst-case range, current and power in each resistor.
+
+Once you know the value, work out the resistor an LED needs with the [[led-resistor-calculator]], or try the part in a circuit with the [[circuit-simulator]].
 
 ## How the code works
 

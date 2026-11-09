@@ -11,7 +11,7 @@ order: 14
 icon: target
 works: offline
 updated: 2026-11-07
-related: [astro-time, star-trail-exposure, sky-tonight]
+related: [astro-time, star-trail-exposure, sky-tonight, telescope-calculator, observing-session, sky-coordinates, object-altitude]
 sources:
   - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
   - "City coordinates and time zones: public geographic facts, typed by fibub."

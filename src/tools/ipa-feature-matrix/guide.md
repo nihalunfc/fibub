@@ -11,7 +11,7 @@ order: 731
 icon: table
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, ipa-keyboard]
+related: [data-cleaner, ipa-keyboard, vowel-formant-chart, interlinear-gloss, pitch-contour-tracker, flashcards]
 sources:
   - "Feature values are derived on this page by rule from each symbol's standard IPA description (place, manner and voicing; vowel height, backness and rounding), in the tradition of Chomsky and Halle (1968, The Sound Pattern of English) with place features as in modern textbooks (e.g. Hayes 2009, Introductory Phonology). No published feature chart is copied; frameworks differ on details."
 flow:
@@ -30,6 +30,8 @@ Phonology describes sounds as bundles of **distinctive features**: [±voice], [�
 - the **smallest feature sets** that pick out exactly that set within your inventory, or a clear "not a natural class" with the extra segments that get in;
 - **find by features**: type [+voice −sonorant] and see which segments match;
 - export as a **LaTeX tabular** or **CSV**.
+
+Type the segments for your inventory with the [[ipa-keyboard]], and measure real vowels with the [[vowel-formant-chart]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 3
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [dose-response, solution-calculator, plate-layout, protein-assay, calibration-curve]
+related: [dose-response, solution-calculator, plate-layout, protein-assay, calibration-curve, tcid50-calculator, peptide-overlap-designer, reagent-inventory, binding-curve-fitter]
 sources:
   - "The arithmetic (stock volume = final volume ÷ N, 1 mg/mL = 1 µg/µL, serial transfer = volume ÷ (fold − 1)) and the endpoint titre (straight-line interpolation on log10 dilution to the cutoff) are written by fibub and checked in the tests against hand working and an independent NumPy script."
   - "The example stock, dilutions, ELISA ODs and blanks are made up by fibub. They are not from any data sheet, kit insert or paper; type your own."
@@ -32,6 +32,8 @@ Antibodies are used at tiny amounts, so most of the work is arithmetic: how many
 4. **Antibody for a run.** For a number of blots (mL each) or plates (wells × µL), at a dilution and with a spare margin, you get the working volume, the stock volume, the micrograms and how many blots or plates one vial covers.
 
 Here **1:N means 1 part in N parts in total**, the way antibody data sheets use it: 1:1000 is 1 µL of antibody in 1 mL of finished dilution. Some labs write 1:N for 1 part plus N parts of diluent; for large N the difference is tiny, but for 1:2 or 1:5 it matters, so check which your protocol means.
+
+Lay out a titration plate with the [[plate-layout]], and fit the titration curve with [[dose-response]].
 
 ## How to use it
 

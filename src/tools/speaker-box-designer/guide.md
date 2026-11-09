@@ -11,7 +11,7 @@ order: 5
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [standing-waves, room-acoustics, decibel-distance]
+related: [standing-waves, room-acoustics, decibel-distance, filter-designer, audio-spectrum-analyser]
 sources:
   - "Thiele, A. N. (1961) and Small, R. H. (1972, 1973), closed-box and vented-box loudspeaker systems, J. Audio Eng. Soc.: the 2nd-order closed-box and 4th-order vented-box transfer functions with box losses QL, used as formulas."
   - "Port length from the Helmholtz resonance with end corrections 0.8216 and 0.6133 times the radius (flanged and free ends); reference efficiency 4π²·fs³·Vas/(c³·Qes) and 112.1 + 10·lg η0 dB at 1 W, 1 m."
@@ -31,6 +31,8 @@ A woofer on its own makes little bass: the sound from the back of the cone cance
 - a **ported box** (vented, bass reflex): a tuned port extends the bass lower, then falls at 24 dB per octave below the tuning frequency **fb**.
 
 It gives each box's **f3** (where the response is 3 dB down), whether there is a **bump**, the **port length** for your port size with end corrections, a rough worst-case **port air speed**, the cone's **displacement volume** and the driver's **sensitivity** from Qes. It can also **size a sealed box** for a chosen Qtc.
+
+Design the crossover with the [[filter-designer|analog filter designer]], and check the room the speaker will play in with the [[room-acoustics|room acoustics calculator]].
 
 ## How to use it
 

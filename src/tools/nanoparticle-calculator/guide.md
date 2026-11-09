@@ -11,7 +11,7 @@ order: 858
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [diffusion-calculator]
+related: [diffusion-calculator, dls-analyser, quantum-dot-size, particle-size-image, afm-roughness, centrifuge-calculator]
 sources:
   - "S/V = 6/d, specific surface area 6/(ρd), and the magic-number cluster counts N = (10n³ + 15n² + 11n + 3)/3 with 10n² + 2 surface atoms (Mackay 1962, Acta Cryst. 15, 916; Benfield 1992, J. Chem. Soc. Faraday Trans. 88, 1107) are standard closed forms. fibub's code is checked in the tests against clusters built atom by atom in NumPy."
   - "The example uses the density and molar mass of gold, rounded; the concentration and surface area are made-up round values."
@@ -32,6 +32,8 @@ Nanoparticles are small enough that a large share of their atoms sit on the surf
 - **Magic-number clusters**: closed-shell cuboctahedra (cut from an fcc crystal) and Mackay icosahedra with n shells have N = (10n³ + 15n² + 11n + 3)/3 atoms (13, 55, 147, 309, 561 ...) and 10n² + 2 surface atoms. The page splits the surface into corner, edge and face atoms, which have different numbers of neighbours and so behave differently in catalysis, and lists the next sizes.
 - **Concentration**: from a mass concentration (for example from ICP), the number of particles per mL, the **molar concentration of particles** (often nanomolar), the atoms per mL and the surface area per mL.
 - **BET-equivalent diameter** 6/(ρ × SSA) from a measured specific surface area, and how it compares with your size.
+
+Measure the real size in solution with the [[dls-analyser]] or from microscope pictures with the [[particle-size-image]] tool.
 
 ## How to use it
 

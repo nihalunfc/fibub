@@ -11,7 +11,7 @@ order: 721
 icon: target
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, uncertainty-calculator, reaction-time-experiments, staircase-threshold-fitter]
+related: [reliability-analysis, sample-size, plot-maker, uncertainty-calculator, reaction-time-experiments, staircase-threshold-fitter, roc-curve, memory-attention-tasks, effect-size-converter]
 sources:
   - "Formulas: Green and Swets (1966); Macmillan and Creelman, Detection Theory: A User's Guide; Grier (1971) for A′ and B″; Hautus (1995) and Macmillan and Kaplan (1985) for corrections; Gourevitch and Galanter (1967) for the variance of d′; Dorfman and Alf (1969) for the maximum likelihood ROC fit."
   - "All example numbers are made up."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 Signal detection theory separates two things that plain percent correct mixes together: how well someone can tell a signal from noise (**sensitivity, d′**) and how willing they are to say "yes" (**bias, c and β**). It is used in perception and memory experiments, in recognition tests, in radiology reading studies and anywhere people make yes/no decisions under uncertainty. This calculator gives all the usual measures from your counts, works on a whole class or study at once, and fits a full ROC curve when you have confidence ratings. Everything runs in your browser; nothing is uploaded.
+
+Collect hits and false alarms with the [[memory-attention-tasks|memory and attention tasks]], and find a detection threshold with the [[staircase-threshold-fitter|staircase threshold fitter]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 383
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [et0-calculator, soil-test-interpreter, fertiliser-blend-calculator]
+related: [et0-calculator, soil-test-interpreter, fertiliser-blend-calculator, soil-texture-triangle, seeding-rate-calculator, rain-gauge-average, station-data-viewer]
 sources:
   - "Daily root-zone water balance with a single crop coefficient: total and readily available water, the water stress coefficient Ks, deep percolation and the depletion-fraction adjustment p + 0.04 (5 − ETc): Allen, R. G., Pereira, L. S., Raes, D. and Smith, M. (1998), Crop evapotranspiration, FAO Irrigation and Drainage Paper 56, chapter 8 (equations only; none of its tables or example data are reproduced)."
   - "No soil, crop coefficient or depletion fraction tables are bundled: users type their own values."

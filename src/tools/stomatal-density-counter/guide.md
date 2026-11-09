@@ -11,7 +11,7 @@ order: 327
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, biodiversity-indices, sample-size, leaf-area-analyser, spore-size-measurer, cfu-counter]
+related: [hemocytometer, biodiversity-indices, sample-size, leaf-area-analyser, spore-size-measurer, cfu-counter, photosynthesis-curve-fitter]
 sources:
   - "Salisbury, E. J. (1928) On the causes and ecological significance of stomatal frequency, with special reference to the woodland flora. Philosophical Transactions of the Royal Society B 216, 1–65 (stomatal index = stomata ÷ (stomata + epidermal cells) × 100)."
   - "Field of view diameter = eyepiece field number ÷ (objective × any extra magnification), the standard microscope relation."
@@ -35,6 +35,8 @@ Stomatal density is the number of stomata per square millimetre of leaf surface;
 - **Several fields.** Add each photo to the list and the page gives the mean and standard deviation across fields.
 
 The photo is read on this page only and is never uploaded.
+
+Relate stomatal density to gas exchange with the [[photosynthesis-curve-fitter|photosynthesis curve fitter]], and measure the leaves themselves with the [[leaf-area-analyser|leaf area analyser]].
 
 ## How to use it
 

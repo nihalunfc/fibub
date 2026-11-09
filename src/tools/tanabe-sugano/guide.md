@@ -11,7 +11,7 @@ order: 837
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [crystal-field-calculator, electron-count-calculator, beer-lambert-calculator, point-group-finder, huckel-mo-calculator]
+related: [crystal-field-calculator, electron-count-calculator, beer-lambert-calculator, point-group-finder, huckel-mo-calculator, hydrogen-orbitals]
 sources:
   - "Method: Tanabe and Sugano (1954, J. Phys. Soc. Japan 9, 753 and 766); Slater–Condon rules and Racah parameters B = F2 − 5F4, C = 35F4 (Condon and Shortley, The Theory of Atomic Spectra; Griffith, The Theory of Transition-Metal Ions). fibub's code is its own and builds the diagram from the Slater determinants; it is checked in the tests against an independent NumPy calculation and the textbook free-ion term energies and d³/d⁸ band formulas."
   - "The ion list and C/B = 4.5 are general textbook facts. The example bands (17000 and 24000 cm⁻¹) and B = 700 cm⁻¹ are made up. Nothing you type is sent or stored."
@@ -34,6 +34,8 @@ Printed diagrams are drawn for one C/B ratio and are hard to read accurately. Th
 - **Read any point.** Tap or click the diagram, or type a Δ/B, to list every state with its energy in units of B, and, given B, in cm⁻¹ and nm.
 - **Δ and B from a spectrum** for d³ (Cr³⁺) and d⁸ (Ni²⁺) complexes, with the third band predicted and the nephelauxetic ratio β if you know the free-ion B.
 - **Free-ion terms** (Δ = 0) with their energies, so you can see where each line starts.
+
+Get a first estimate of the splitting with the [[crystal-field-calculator|crystal field calculator]], and count the metal's d electrons with the [[electron-count-calculator|electron count calculator]].
 
 ## How to use it
 

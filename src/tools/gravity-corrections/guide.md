@@ -11,7 +11,7 @@ order: 880
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [earthquake-locator, level-book-reducer, traverse-calculator, plot-maker]
+related: [earthquake-locator, level-book-reducer, traverse-calculator, plot-maker, magnetic-anomaly, utm-converter, cross-section-profile, uncertainty-calculator]
 sources:
   - "Normal gravity: Somigliana's closed formula with the GRS80 constants (Moritz 1980, Geodetic Reference System 1980) and the WGS84 constants (NIMA TR8350.2); general geodetic constants."
   - "Free-air gradient 0.3086 mGal/m, the second-order free-air formula (as given by Hinze et al. 2005, Geophysics 70 J25), the Bouguer slab 2πGρh and the ring-compartment formula of Hammer (1939) are standard results, written by fibub from the formulas; no zone charts or tables are reproduced."
@@ -35,6 +35,8 @@ A gravity meter measures tiny differences in the pull of the Earth, a few parts 
 - **Bouguer correction.** The rock between the station and the datum pulls too. It is taken as a flat slab: 2πGρh, about 0.1119 mGal per metre at 2670 kg/m³.
 - **Terrain correction.** Hills above and valleys below the station both reduce gravity, so a terrain correction is always added. The ring calculator works it out from the mean height of each compartment of rings around the station.
 - **Anomalies.** Free-air anomaly = observed − normal + free-air correction. Simple Bouguer anomaly = free-air anomaly − Bouguer correction. Complete Bouguer anomaly = simple Bouguer anomaly + terrain correction.
+
+Get accurate station heights from the [[level-book-reducer]] before you start, and plot the anomaly along your survey line with the [[plot-maker]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 641
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker]
+related: [uncertainty-calculator, plot-maker, truss-solver, column-buckling, load-combination-helper, rebar-calculator, stress-strain-analyser, fatigue-sn-calculator, shaft-bearing-life]
 sources:
   - "Euler-Bernoulli beam theory and the finite element method with Hermite cubic beam elements and consistent nodal loads, as in standard texts such as Gere and Goodno, Mechanics of Materials, and Logan, A First Course in the Finite Element Method (methods and formulas only)."
   - "Closed-form beam cases used in the checks (for example 5wL⁴/384EI and PL³/3EI) are the standard textbook formulas."
@@ -35,6 +35,8 @@ This calculator works out how a straight beam carries its loads. Tell it how the
 - the **bending stress** σ = M / Z and the **shear stress** in the section, compared with a yield strength if you give one.
 
 It handles beams that statics alone cannot solve, such as a beam fixed at both ends, a propped cantilever or a beam continuous over three supports. Behind the scenes the beam is split into a few hundred short finite elements (Euler-Bernoulli beam theory), with a node at every support, load and load end, so the deflections at the nodes are exact for the theory. The shear and moment then come from simple statics using the solved reactions.
+
+Combine your loads first with the [[load-combination-helper]], solve whole frames in the [[truss-solver]], and check slender posts with the [[column-buckling|column buckling calculator]].
 
 ## How to use it
 

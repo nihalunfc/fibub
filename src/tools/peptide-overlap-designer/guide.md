@@ -11,7 +11,7 @@ order: 4
 icon: scissors
 works: offline
 updated: 2026-11-09
-related: [peptide-mass-calculator, protein-calculator, hydropathy-plot, sequence-tools]
+related: [peptide-mass-calculator, protein-calculator, hydropathy-plot, sequence-tools, antibody-dilution, plate-layout, sample-label-maker]
 sources:
   - "Overlapping peptide tiling and matrix (row and column) pooling are general lab methods described in many immunology textbooks; the sums are fibub's own."
   - "Peptide masses come from fibub's peptide mass calculator (residue formulas with exact isotope masses and IUPAC conventional atomic weights)."
@@ -34,6 +34,8 @@ To find which part of a protein an antibody or a T cell recognises (its epitope)
 - **Matrix pools**: puts the peptides in a grid. Every row is one pool and every column another, so each peptide is in exactly two pools and you need far fewer tests than one per peptide.
 - **Deconvolution**: tap the pools that gave a response and see the peptides where a positive row meets a positive column.
 - **Order list**: a CSV with every peptide, its masses, flags and pools, ready to send to a peptide supplier.
+
+Check each peptide's mass with the [[peptide-mass-calculator]], and plan the pools on a plate with the [[plate-layout]].
 
 ## How to use it
 

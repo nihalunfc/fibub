@@ -11,7 +11,7 @@ order: 556
 icon: link
 works: offline
 updated: 2026-11-09
-related: [network-metrics, transportation-assignment, combinatorics-calculator, sql-playground, plot-maker]
+related: [network-metrics, transportation-assignment, combinatorics-calculator, sql-playground, plot-maker, logic-simplifier, vehicle-routing, project-scheduler, matrix-calculator, social-network-analysis]
 sources:
   - "Standard textbook algorithms (Dijkstra, Bellman-Ford, BFS, DFS, Kruskal, Prim, Edmonds-Karp, greedy and DSatur colouring, Brandes betweenness, Kahn's topological sort, Fruchterman-Reingold layout), written by fibub."
   - "Checked against networkx 3.7 (BSD licence) on the examples and on 100 random graphs, directed and undirected: distances, search orders, spanning tree weights, flow values, colourings, centralities and topological orders all equal."
@@ -36,6 +36,8 @@ A graph is a set of points (nodes) joined by lines (edges): towns and roads, com
 - **Topological order** of a directed graph, or the cycle that makes one impossible.
 
 Everything runs in your browser. Nothing is uploaded.
+
+Measure how central each node is with [[network-metrics]], and plan real delivery rounds with [[vehicle-routing]].
 
 ## How to use it
 

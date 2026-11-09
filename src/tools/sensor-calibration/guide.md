@@ -11,7 +11,7 @@ order: 870
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [air-quality-calculator, calibration-curve, method-validation, data-cleaner, trend-analyser]
+related: [air-quality-calculator, calibration-curve, method-validation, data-cleaner, trend-analyser, gaussian-plume-calculator, bland-altman, calibration-drift, regression-workbench]
 sources:
   - "Hampel filter, stuck-value and range checks, time averaging, ordinary least squares, Deming regression and the agreement metrics are written by fibub. The tests check them against pandas (rolling median and MAD, run lengths, resample with origin='epoch'), statsmodels OLS (coefficients, standard errors, R², adjusted R²), scipy.odr (Deming as orthogonal distance regression) and numpy."
   - "The method (co-location with a reference, then a regression with humidity and temperature terms, judged on data not used to fit) is general practice for low-cost sensors; no agency's coefficients or thresholds are copied."
@@ -34,6 +34,8 @@ This page does the whole job in your browser:
 3. **Fits** a calibration: reference = a + b × sensor, optionally with relative humidity and temperature terms, or a Deming line that allows for error in both instruments.
 4. **Tests** it on the last part of the record, which the fit never saw, and reports R², RMSE, MAE and bias before and after.
 5. **Applies** it to new sensor data and gives you a CSV.
+
+Check how far the two instruments agree with a [[bland-altman]] plot, and turn the calibrated readings into an index with the [[air-quality-calculator]].
 
 ## How to use it
 

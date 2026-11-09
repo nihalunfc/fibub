@@ -11,7 +11,7 @@ order: 568
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sql-playground, plot-maker, trend-analyser]
+related: [sql-playground, plot-maker, trend-analyser, train-test-splitter, small-model-trainer, embedding-visualiser, data-dictionary, science-file-converter, table-converter]
 sources:
   - "Statistics as defined in pandas (describe, skew, kurt, value_counts, duplicated, DataFrame.corr) and numpy's automatic histogram bins; checked against pandas 3.1 and numpy 2.5 on the example and a random table."
   - "The example table of 41 plants is made up for this tool."
@@ -33,6 +33,8 @@ For the whole table it shows the number of rows and columns, missing cells, rows
 - For text, dates and yes/no: the **most common values** with their counts and shares, and the first and last value.
 
 A **correlation heatmap** shows how every pair of number columns moves together, with the strongest pairs listed.
+
+Query the table with the [[sql-playground|SQL playground]], then split it for modelling with the [[train-test-splitter|train/test splitter]].
 
 ## How to use it
 

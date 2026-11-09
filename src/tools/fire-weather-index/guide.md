@@ -11,7 +11,7 @@ order: 337
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, trend-analyser, tree-carbon, wind-chill-heat-index, station-data-viewer, forest-inventory-summary]
+related: [psychrometric-calculator, trend-analyser, tree-carbon, wind-chill-heat-index, station-data-viewer, forest-inventory-summary, weather-log]
 sources:
   - "C. E. Van Wagner (1987), Development and structure of the Canadian Forest Fire Weather Index System, Canadian Forestry Service, Forestry Technical Report 35; C. E. Van Wagner and T. L. Pickett (1985), Equations and FORTRAN program for the Canadian Forest Fire Weather Index System, Forestry Technical Report 33; X. Wang, K. R. Anderson and R. D. Suddaby (2015), Updated source code for calculating fire danger indices in the Canadian Forest Fire Weather Index System, Information Report NOR-X-424. The published equations and their coefficients are the method; no tables or data are copied."
   - "Checked in the tests against xclim 1.0 (its Python port of the CFS cffdrs code), day by day over a made-up 150-day series with a long drought and heavy rain, and over the page's made-up example. Not an official fire danger rating."
@@ -38,6 +38,8 @@ Three **fire behaviour indices** combine them:
 - **BUI** (Buildup Index): DMC and DC; how much fuel is available to burn.
 - **FWI** (Fire Weather Index): ISI and BUI; the overall fire intensity rating.
 - **DSR** (Daily Severity Rating): 0.0272 × FWI^1.77, which averages well over a season (the seasonal severity rating).
+
+Get the noon readings from your own records in the [[weather-log|weather observer's log]] or the [[station-data-viewer|weather station data viewer]], and follow the season's run of values with the [[trend-analyser|trend and anomaly analyser]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 758
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, plot-maker, data-cleaner, gravity-model, catchment-buffer]
+related: [trend-analyser, plot-maker, data-cleaner, gravity-model, catchment-buffer, leontief-multipliers, gini-lorenz, population-pyramid]
 sources:
   - "Formulas: location quotient and the economic base (LQ method) as in standard regional economics textbooks; classic shift-share decomposition (Dunn 1960)."
   - "Example data: made up."
@@ -31,6 +31,8 @@ Which industries is a region specialised in, and why did its jobs grow faster or
 - **Economic base:** jobs above the reference share (where LQ > 1) are counted as **basic**, serving customers outside the region; the rest are **non-basic**. Total jobs divided by basic jobs is the **economic base multiplier**.
 
 It also gives the **coefficient of specialisation**: half the sum of the differences in industry shares, from 0 (the same mix as the reference area) to 1 (nothing in common). Everything runs in your browser; nothing is uploaded.
+
+Follow up the key industries with [[leontief-multipliers|input-output multipliers]], and see how strongly places draw trade or trips from each other with the [[gravity-model]].
 
 ## How to use it
 
