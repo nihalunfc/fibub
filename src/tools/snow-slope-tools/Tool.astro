@@ -1,0 +1,294 @@
+---
+// Snow water equivalent (depth and density, snow tube, layers), roof snow load with a user factor, and slope angle
+// (map contours, phone tilt sensor, two GPS points) with the general avalanche starting-angle bands.
+// Example numbers are made up. Not an avalanche or safety forecast, and not a design code.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const tubes = 'full g, empty g, core length cm\n1300, 820, 78\n1325, 820, 82\n1280, 820, 74';
+const lays = 'thickness cm, density kg/m³ (top first)\n12, 90\n25, 180\n30, 260\n15, 320';
+---
+<div class="ax sst">
+  <p class="sst-note"><strong>Not an avalanche or safety forecast.</strong> These are measuring and arithmetic tools. Check your local avalanche forecast, get avalanche training, and use your local building code and an engineer for roofs.</p>
+
+  <div class="ax-card">
+    <h2>Snow water equivalent</h2>
+    <div class="ax-seg ss-m" role="group" aria-label="Method"><button type="button" data-v="dd" aria-pressed="true">Depth and density</button><button type="button" data-v="tube" aria-pressed="false">Snow tube</button><button type="button" data-v="lay" aria-pressed="false">Layers</button></div>
+    <div class="ss-dd ax-grid" style="margin-top:12px">
+      <label>Snow depth (cm) <input class="ss-d" inputmode="decimal" value="85" /></label>
+      <label>Bulk density (kg/m³) <input class="ss-rho" inputmode="decimal" value="250" /></label>
+    </div>
+    <div class="ss-tube" hidden style="margin-top:12px">
+      <div class="ax-grid"><label>Tube inner diameter (cm) <input class="ss-dia" inputmode="decimal" value="4.6" /></label></div>
+      <label style="margin-top:10px">One sample per line: tube with snow (g), empty tube (g), length of the snow core (cm) <textarea class="ss-tin" rows="5" spellcheck="false">{tubes}</textarea></label>
+      <DataFile target=".ss-tin" maxCols={3} maxRows={500} maxMB={1} />
+    </div>
+    <div class="ss-lay" hidden style="margin-top:12px">
+      <label>One layer per line: thickness (cm), density (kg/m³) <textarea class="ss-lin" rows="6" spellcheck="false">{lays}</textarea></label>
+      <DataFile target=".ss-lin" maxCols={2} maxRows={500} maxMB={1} />
+    </div>
+    <p class="ax-help">SWE is the depth of water you would get by melting the snow: depth × snow density ÷ water density. 1 mm of SWE is 1 kg of snow on each square metre. Fresh snow is often around 50 to 150 kg/m³, settled snow 200 to 400 and old wet spring snow up to about 500. The example numbers are made up.</p>
+    <p class="ax-err ss-err" hidden></p>
+    <div class="ss-out">
+      <p class="ax-big ss-big"></p>
+      <dl class="ax-facts ss-facts"></dl>
+      <div class="ax-scroll ss-tw" hidden><table class="ss-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Snow load on a roof</h2>
+    <div class="ax-grid">
+      <label>Ground snow load from <select class="rl-src"><option value="swe">the SWE above</option><option value="typed">a value I type</option></select></label>
+      <label>Ground snow load (kN/m²) <input class="rl-g" inputmode="decimal" value="2" disabled /></label>
+      <label>Roof factor (roof load ÷ ground load) <input class="rl-f" inputmode="decimal" value="0.8" /></label>
+      <label>Roof area, plan view (m², optional) <input class="rl-a" inputmode="decimal" value="120" /></label>
+    </div>
+    <p class="ax-help">The factor rolls the roof's shape, exposure to wind, heat loss and drifting into one number that you choose. <strong>This is not a design code:</strong> building codes set their own ground loads and factors, including drifts and rain on snow. Use your local code and a structural engineer.</p>
+    <p class="ax-err rl-err" hidden></p>
+    <div class="rl-out">
+      <p class="ax-big rl-big"></p>
+      <dl class="ax-facts rl-facts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Slope angle</h2>
+    <div class="ax-seg sl-m" role="group" aria-label="Slope from"><button type="button" data-v="map" aria-pressed="true">Map contours</button><button type="button" data-v="phone" aria-pressed="false">Phone tilt</button><button type="button" data-v="gps" aria-pressed="false">Two GPS points</button></div>
+    <div class="sl-map ax-grid" style="margin-top:12px">
+      <label>Contour interval (m) <input class="sl-ci" inputmode="decimal" value="10" /></label>
+      <label>Intervals crossed <input class="sl-n" inputmode="decimal" value="5" /></label>
+      <label>Distance on the map (mm) <input class="sl-mm" inputmode="decimal" value="3" /></label>
+      <label>Map scale 1 : <input class="sl-sc" inputmode="decimal" value="25000" /></label>
+    </div>
+    <div class="sl-phone" hidden style="margin-top:12px">
+      <p class="ax-help" style="margin-top:0">Lay the phone flat on the snow or on a ski pole laid down the fall line, screen up. The tilt is read from the phone's motion sensors in this page only.</p>
+      <div class="ax-row"><button type="button" class="btn sl-start">Start the tilt sensor</button><button type="button" class="btn secondary sl-hold" disabled>Hold this reading</button></div>
+      <p class="sl-live" aria-live="polite">No reading yet.</p>
+      <label style="margin-top:8px;max-width:260px">Or type a measured angle (°) <input class="sl-typed" inputmode="decimal" value="" placeholder="from a clinometer" /></label>
+    </div>
+    <div class="sl-gps" hidden style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Point A latitude (°) <input class="sl-la1" inputmode="decimal" value="46.5200" /></label>
+        <label>Point A longitude (°) <input class="sl-lo1" inputmode="decimal" value="7.9800" /></label>
+        <label>Point A elevation (m) <input class="sl-z1" inputmode="decimal" value="2150" /></label>
+        <label>Point B latitude (°) <input class="sl-la2" inputmode="decimal" value="46.5212" /></label>
+        <label>Point B longitude (°) <input class="sl-lo2" inputmode="decimal" value="7.9808" /></label>
+        <label>Point B elevation (m) <input class="sl-z2" inputmode="decimal" value="2245" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sl-here" data-p="1">Use my location for A</button><button type="button" class="btn secondary small sl-here" data-p="2">Use my location for B</button></div>
+      <p class="ax-help sl-gpsmsg">Phone GPS heights can be off by 10 m or more; heights from a map or an altimeter are usually better. Distance is measured on the WGS84 ellipsoid (Vincenty). Your location stays in this page.</p>
+    </div>
+    <p class="ax-err sl-err" hidden></p>
+    <div class="sl-out">
+      <p class="ax-big sl-big"></p>
+      <dl class="ax-facts sl-facts"></dl>
+      <canvas class="ax-fig sl-fig"></canvas>
+      <p class="sl-band"></p>
+      <p class="ax-help">General avalanche terrain fact: most slab avalanches start on slopes of about 30 to 45°. Angle alone says nothing about today's snowpack, and a slope's steepest part, the terrain above it and its runout all matter. <strong>Not an avalanche or safety forecast.</strong></p>
+    </div>
+    <div class="dl ss-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary ss-csv">Results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { sweFromDepth, tubeSamples, layers, groundLoad, roofLoad, slopeFromMap, phoneTilt, slopeFromGps, band, BANDS } from '../../lib/sci/snowslope';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const factsOf = (sel: string) => [...q(sel).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const showErr = (c: string, msg: string) => { const e = q(c); e.textContent = msg; e.hidden = !msg; };
+  const seg = (c: string) => q(c).querySelector<HTMLElement>('[aria-pressed=true]')!.dataset.v!;
+  const rows = (text: string) => parseTable(text).map((r) => r.map(num)).filter((r) => r.some((x) => !Number.isNaN(x)));
+  const fin = (...xs: number[]) => xs.every(Number.isFinite);
+
+  let swe = NaN, sweText = '', slope = NaN, slopeText = '', held: number | null = null, live: { tilt: number; downhill: number } | null = null;
+  let fig: Figure | null = null, out: [string, string, string][] = [];
+
+  function snow() {
+    const m = seg('.ss-m');
+    q('.ss-dd').hidden = m !== 'dd'; q('.ss-tube').hidden = m !== 'tube'; q('.ss-lay').hidden = m !== 'lay';
+    let err = '', depth = NaN, rho = NaN, extra: HTMLElement[] = [];
+    const tab = q<HTMLTableElement>('.ss-tab'); q('.ss-tw').hidden = true;
+    if (m === 'dd') {
+      depth = v('.ss-d'); rho = v('.ss-rho');
+      if (!fin(depth) || depth < 0) err = 'Type a snow depth of 0 cm or more.';
+      else if (!fin(rho) || rho <= 0 || rho > 917) err = 'Snow density is between 0 and 917 kg/m³ (solid ice).';
+      else swe = sweFromDepth(depth, rho);
+    } else if (m === 'tube') {
+      const d = v('.ss-dia'), r = rows(q<HTMLTextAreaElement>('.ss-tin').value);
+      if (!fin(d) || d <= 0) err = 'Type the tube’s inner diameter in cm.';
+      else if (!r.length) err = 'Type at least one sample: tube with snow, empty tube, core length.';
+      else if (r.some((x) => x.length < 3 || !fin(x[0], x[1], x[2]) || x[0] < x[1] || x[2] <= 0)) err = 'Each sample needs three numbers: the full tube weighs at least as much as the empty tube, and the core length is above 0.';
+      else {
+        const t = tubeSamples(d, r.map((x) => ({ full: x[0], empty: x[1], length: x[2] })));
+        swe = t.swe; rho = t.rho; depth = t.depth;
+        if (rho > 917) err = 'These weights give a density above solid ice (917 kg/m³). Check grams, centimetres and the diameter.';
+        extra = [fact('Samples', `${r.length}`, r.length > 1 ? `SWE standard deviation ${sig(t.sd, 3)} mm` : ''), fact('Tube area', `${sig(t.each[0].area * 1e4, 4)} cm²`)];
+        tab.innerHTML = '<thead><tr><th>#</th><th class="r">Snow (g)</th><th class="r">Core (cm)</th><th class="r">SWE (mm)</th><th class="r">Density (kg/m³)</th></tr></thead><tbody></tbody>';
+        tab.tBodies[0].append(...t.each.map((e, i) => { const tr = document.createElement('tr'); for (const [s, cl] of [[String(i + 1), ''], [sig(e.mass * 1000, 4), 'r'], [String(r[i][2]), 'r'], [e.swe.toFixed(1), 'r'], [e.rho.toFixed(0), 'r']]) { const td = document.createElement('td'); td.textContent = s; if (cl) td.className = cl; tr.append(td); } return tr; }));
+        q('.ss-tw').hidden = false;
+      }
+    } else {
+      const r = rows(q<HTMLTextAreaElement>('.ss-lin').value);
+      if (!r.length) err = 'Type at least one layer: thickness (cm), density (kg/m³).';
+      else if (r.some((x) => x.length < 2 || !fin(x[0], x[1]) || x[0] < 0 || x[1] <= 0 || x[1] > 917)) err = 'Each layer needs a thickness of 0 cm or more and a density above 0 and up to 917 kg/m³.';
+      else {
+        const l = layers(r.map((x) => ({ h: x[0], rho: x[1] }))); swe = l.swe; rho = l.rho; depth = l.depth;
+        extra = [fact('Layers', `${r.length}`, 'bulk density = thickness-weighted mean')];
+      }
+    }
+    showErr('.ss-err', err); q('.ss-out').hidden = !!err;
+    if (err) { swe = NaN; sweText = ''; return; }
+    sweText = `SWE = ${swe.toFixed(1)} mm`;
+    q('.ss-big').textContent = sweText;
+    q('.ss-facts').replaceChildren(
+      fact('Snow depth', `${sig(depth, 4)} cm`, m === 'tube' ? 'mean core length' : ''),
+      fact('Bulk density', `${rho.toFixed(0)} kg/m³`, `${(rho / 10).toFixed(1)} % of the water's density`),
+      fact('Water in the snow', `${swe.toFixed(1)} kg/m², ${(swe / 25.4).toFixed(2)} in`),
+      fact('Ground snow load', `${groundLoad(swe).toFixed(3)} kN/m²`, 'weight of the snow on 1 m² of level ground'),
+      ...extra,
+    );
+  }
+
+  function roof() {
+    const fromSwe = q<HTMLSelectElement>('.rl-src').value === 'swe', gIn = q<HTMLInputElement>('.rl-g');
+    gIn.disabled = fromSwe;
+    if (fromSwe && Number.isFinite(swe)) gIn.value = groundLoad(swe).toFixed(3);
+    const g = fromSwe && Number.isFinite(swe) ? groundLoad(swe) : v('.rl-g'), f = v('.rl-f'), aRaw = q<HTMLInputElement>('.rl-a').value.trim(), a = aRaw ? num(aRaw) : 0;
+    let err = '';
+    if (fromSwe && !Number.isFinite(swe)) err = 'Fix the snow water equivalent above first, or type a ground load.';
+    else if (!fin(g) || g < 0) err = 'Type a ground snow load of 0 kN/m² or more.';
+    else if (!fin(f) || f < 0) err = 'Type a roof factor of 0 or more (for example 0.8).';
+    else if (!fin(a) || a < 0) err = 'The roof area is 0 m² or more (or leave it empty).';
+    showErr('.rl-err', err); q('.rl-out').hidden = !!err;
+    if (err) return null;
+    const r = roofLoad(g, f, a);
+    q('.rl-big').textContent = `Roof load = ${r.roof.toFixed(2)} kN/m²`;
+    q('.rl-facts').replaceChildren(
+      fact('Ground load × factor', `${sig(g, 4)} × ${sig(f, 3)} kN/m²`),
+      fact('Same load as mass', `${r.kgm2.toFixed(0)} kg/m²`, `${r.psf.toFixed(1)} lb/ft²`),
+      ...(a > 0 ? [fact('On the whole roof', `${sig(r.total, 4)} kN`, `about ${sig(r.tonnes, 3)} tonnes of snow on ${sig(a, 4)} m² (plan area)`)] : []),
+    );
+    return r;
+  }
+
+  const bandColour = (id: string, p: Palette) => (id === 'prime' ? p.bad : id === 'mid' || id === 'steep' ? p.warn : p.line);
+  const bandFig = (deg: number): Figure => ({ w: 440, h: 120, alt: `Slope ${deg.toFixed(1)}° on a 0 to 90° scale with the general avalanche starting-angle bands`, draw: (ctx, w, h, p) => {
+    const L = 20, Rr = w - 20, y = 40, bh = 26, x = (d: number) => L + ((Rr - L) * Math.min(90, Math.max(0, d))) / 90;
+    ctx.fillStyle = p.bg; ctx.fillRect(0, 0, w, h);
+    for (const b of BANDS) { ctx.fillStyle = bandColour(b.id, p); ctx.globalAlpha = b.id === 'prime' ? 0.55 : 0.4; ctx.fillRect(x(b.from), y, x(Math.min(90, b.to)) - x(b.from), bh); }
+    ctx.globalAlpha = 1; ctx.strokeStyle = p.ink; ctx.lineWidth = 1; ctx.strokeRect(L, y, Rr - L, bh);
+    ctx.fillStyle = p.ink; ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'top';
+    for (const t of [0, 25, 30, 45, 60, 90]) { ctx.beginPath(); ctx.moveTo(x(t), y + bh); ctx.lineTo(x(t), y + bh + 5); ctx.stroke(); ctx.textAlign = t === 25 || t === 90 ? 'right' : t === 30 || t === 0 ? 'left' : 'center'; ctx.fillText(`${t}°`, x(t) + (t === 25 ? 2 : t === 30 ? -2 : 0), y + bh + 7); }
+    const xm = x(deg); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(xm, y - 14); ctx.lineTo(xm, y + bh + 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xm - 7, y - 22); ctx.lineTo(xm + 7, y - 22); ctx.lineTo(xm, y - 12); ctx.closePath(); ctx.fill();
+    ctx.textBaseline = 'bottom'; ctx.font = 'bold 16px system-ui, sans-serif'; ctx.textAlign = xm < 60 ? 'left' : xm > w - 60 ? 'right' : 'center'; ctx.fillText(`${deg.toFixed(1)}°`, xm, y - 23);
+  } });
+
+  function slopeRun() {
+    const m = seg('.sl-m');
+    q('.sl-map').hidden = m !== 'map'; q('.sl-phone').hidden = m !== 'phone'; q('.sl-gps').hidden = m !== 'gps';
+    let err = '', deg = NaN, facts: HTMLElement[] = [];
+    if (m === 'map') {
+      const ci = v('.sl-ci'), n = v('.sl-n'), mm = v('.sl-mm'), sc = v('.sl-sc');
+      if (!fin(ci, n, mm, sc) || ci <= 0 || n <= 0 || mm <= 0 || sc <= 0) err = 'Type a contour interval, the number of intervals crossed, the map distance in mm and the scale, all above 0.';
+      else { const s = slopeFromMap(ci, n, mm, sc); deg = s.deg; facts = [fact('Rise', `${sig(s.rise, 4)} m`, `${sig(n, 3)} × ${sig(ci, 3)} m`), fact('Horizontal distance', `${sig(s.run, 4)} m`, `${sig(mm, 3)} mm × ${sc.toLocaleString('en')}`), fact('Grade', `${s.grade.toFixed(0)} %`)];
+        if (s.run < 3 * ci) facts.push(fact('Note', 'Very close contours', 'the map can hide steeper steps between contours; the real slope may be steeper in places')); }
+    } else if (m === 'phone') {
+      const typed = q<HTMLInputElement>('.sl-typed').value.trim();
+      if (typed) { deg = num(typed); if (!fin(deg) || deg < 0 || deg > 90) err = 'A slope angle is between 0 and 90°.'; else facts = [fact('From', 'typed angle')]; }
+      else if (held !== null) { deg = held; facts = [fact('From', 'held phone reading')]; }
+      else if (live) { deg = live.tilt; facts = [fact('From', 'live phone reading', 'press Hold to keep it')]; }
+      else err = 'Start the tilt sensor and lay the phone on the slope, or type an angle.';
+      if (!err) facts.push(fact('Grade', `${(100 * Math.tan((deg * Math.PI) / 180)).toFixed(0)} %`));
+    } else {
+      const p1 = { lat: v('.sl-la1'), lon: v('.sl-lo1'), z: v('.sl-z1') }, p2 = { lat: v('.sl-la2'), lon: v('.sl-lo2'), z: v('.sl-z2') };
+      if (!fin(p1.lat, p1.lon, p1.z, p2.lat, p2.lon, p2.z)) err = 'Type the latitude, longitude and elevation of both points.';
+      else if ([p1.lat, p2.lat].some((x) => Math.abs(x) > 90) || [p1.lon, p2.lon].some((x) => Math.abs(x) > 180)) err = 'Latitude is −90 to 90° and longitude −180 to 180°.';
+      else {
+        const s = slopeFromGps(p1, p2);
+        if (!(s.run > 0)) err = 'The two points are at the same place; move one of them.';
+        else if (s.run > 20000) err = 'The points are more than 20 km apart; this gives an average, not a slope angle. Use points on the same slope.';
+        else { deg = s.deg; facts = [fact('Horizontal distance', `${s.run.toFixed(1)} m`), fact('Height difference', `${(p2.z - p1.z).toFixed(1)} m`, p2.z >= p1.z ? 'B is higher' : 'B is lower'), fact('Distance along the slope', `${s.slopeDist.toFixed(1)} m`), fact('Grade', `${s.grade.toFixed(0)} %`)];
+          if (s.run < 30) facts.push(fact('Note', 'Points less than 30 m apart', 'GPS errors of a few metres can change the angle a lot')); }
+      }
+    }
+    showErr('.sl-err', err); q('.sl-out').hidden = !!err;
+    if (err) { slope = NaN; slopeText = ''; fig = null; return; }
+    slope = deg; slopeText = `Slope angle = ${deg.toFixed(1)}°`;
+    q('.sl-big').textContent = slopeText;
+    q('.sl-facts').replaceChildren(...facts);
+    const b = band(deg);
+    q('.sl-band').innerHTML = '<strong></strong> <span></span>';
+    q('.sl-band strong').textContent = `${b.name}:`; q('.sl-band span').textContent = b.text;
+    fig = bandFig(deg); paint(q<HTMLCanvasElement>('.sl-fig'), fig);
+  }
+
+  function run() {
+    snow(); const r = roof(); slopeRun();
+    out = [];
+    if (sweText) { out.push(['snow_water_equivalent', swe.toFixed(2), 'mm'], ['ground_snow_load', groundLoad(swe).toFixed(4), 'kN/m2']); }
+    if (r) out.push(['roof_load', r.roof.toFixed(4), 'kN/m2'], ['roof_total', r.total.toFixed(3), 'kN']);
+    if (slopeText) out.push(['slope_angle', slope.toFixed(2), 'deg'], ['slope_band', band(slope).name.replace(/°/g, ' deg'), '']);
+  }
+
+  for (const s of ['.ss-m', '.sl-m']) q(s).addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    q(s).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run();
+  });
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+
+  // Phone tilt sensor (DeviceOrientation). iOS asks for permission on a button press.
+  let started = false, last = 0;
+  const onOri = (e: DeviceOrientationEvent) => {
+    if (e.beta === null || e.gamma === null) return;
+    live = phoneTilt(e.beta, e.gamma); last = performance.now();
+    q('.sl-live').textContent = `Live: ${live.tilt.toFixed(1)}° (downhill toward ${live.downhill.toFixed(0)}° clockwise from the phone’s top edge)`;
+    (q('.sl-hold') as HTMLButtonElement).disabled = false;
+    if (held === null && seg('.sl-m') === 'phone') slopeRun();
+  };
+  q('.sl-start').addEventListener('click', async () => {
+    const D = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent;
+    if (!D) { q('.sl-live').textContent = 'This browser has no tilt sensor access. Type an angle instead.'; return; }
+    try { if (typeof D.requestPermission === 'function' && (await D.requestPermission()) !== 'granted') { q('.sl-live').textContent = 'Motion access was not allowed. Type an angle instead.'; return; } }
+    catch { q('.sl-live').textContent = 'Motion access was not allowed. Type an angle instead.'; return; }
+    if (!started) { window.addEventListener('deviceorientation', onOri); started = true; }
+    held = null; q('.sl-live').textContent = 'Waiting for the sensor… lay the phone on the slope.';
+    setTimeout(() => { if (!last) q('.sl-live').textContent = 'No tilt reading came. Computers usually have no tilt sensor; type an angle instead.'; }, 2500);
+  });
+  q('.sl-hold').addEventListener('click', () => { if (live) { held = live.tilt; q('.sl-live').textContent = `Held: ${held.toFixed(1)}°. Press Start to measure again.`; slopeRun(); run(); } });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.sl-here')) b.addEventListener('click', () => {
+    const msg = q('.sl-gpsmsg');
+    if (!navigator.geolocation) { msg.textContent = 'This browser cannot give a location. Type the point instead.'; return; }
+    navigator.geolocation.getCurrentPosition((p) => {
+      const k = b.dataset.p!; q<HTMLInputElement>(`.sl-la${k}`).value = p.coords.latitude.toFixed(6); q<HTMLInputElement>(`.sl-lo${k}`).value = p.coords.longitude.toFixed(6);
+      if (p.coords.altitude !== null) q<HTMLInputElement>(`.sl-z${k}`).value = p.coords.altitude.toFixed(1);
+      msg.textContent = `Point ${k === '1' ? 'A' : 'B'} set (±${p.coords.accuracy.toFixed(0)} m)${p.coords.altitude === null ? '; this device gave no height, so type it from a map or altimeter' : ''}.`;
+      run();
+    }, () => { msg.textContent = 'Could not get your location. Type the point instead.'; }, { enableHighAccuracy: true, timeout: 20000 });
+  });
+
+  q('.ss-csv').addEventListener('click', () => out.length && save(new TextEncoder().encode(csv([['quantity', 'value', 'unit'], ...out])), 'snow-and-slope.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sl-fig'), fig); });
+  run();
+  wireDownloads(q('.sst .ax-card:last-child > .dl:last-child'), () => {
+    const sec: Section[] = [{ title: 'Not an avalanche or safety forecast', text: ['Measuring and arithmetic tools only. Check your local avalanche forecast and use your local building code and an engineer for roofs.'] }];
+    if (sweText) sec.push({ title: sweText, facts: factsOf('.ss-facts') });
+    if (!q('.rl-out').hidden) sec.push({ title: q('.rl-big').textContent!, facts: factsOf('.rl-facts'), note: 'Not a design code.' });
+    if (slopeText && fig) sec.push({ title: slopeText, facts: factsOf('.sl-facts'), figure: fig, text: [q('.sl-band').textContent!] });
+    return { title: 'Snow water, snow load and slope angle', subtitle: 'Not an avalanche or safety forecast', file: 'snow-and-slope', sections: sec };
+  });
+</script>
+
+<style is:global>
+  .sst .sst-note { border: 1px solid var(--warn); color: var(--ink); border-radius: 10px; padding: 10px 12px; margin: 0; font-size: 15px; }
+  .sst .sl-live { margin: 10px 0 0; font-variant-numeric: tabular-nums; }
+  .sst .sl-band { margin: 8px 0; }
+  .sst .ss-tw { margin-top: 10px; }
+</style>
