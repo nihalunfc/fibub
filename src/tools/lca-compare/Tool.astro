@@ -1,0 +1,166 @@
+---
+// LCA lite: compare two products over their life stages with the user's own factors; totals for a number of uses,
+// break-even, flip sensitivity and a Monte Carlo run. No factors are built in; the example factors are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const inputs = `product,stage,input,amount,factor,counted,± %
+A,Materials,Stainless steel (kg),0.3,6,once,20
+A,Materials,Plastic cap (kg),0.02,3,once,20
+A,Manufacturing,Factory electricity (kWh),2,0.4,once,30
+A,Transport,Truck and ship (t·km),0.6,0.1,once,40
+A,Use,Washing (kWh),0.05,0.4,use,50
+A,End of life,Landfill and recycling (kg),0.32,0.05,once,50
+B,Materials,PET plastic (kg),0.025,3,once,20
+B,Manufacturing,Factory electricity (kWh),0.08,0.4,once,30
+B,Transport,Truck (t·km),0.05,0.1,once,40
+B,End of life,Landfill and recycling (kg),0.025,0.1,once,50`;
+---
+<div class="ax lcc">
+  <div class="ax-card">
+    <h2>Products</h2>
+    <div class="ax-grid">
+      <label>Product A <input class="lx-na" value="Reusable bottle" /></label>
+      <label>Uses before A is replaced <input class="lx-la" inputmode="numeric" value="500" /></label>
+      <label>Product B <input class="lx-nb" value="Single-use bottles" /></label>
+      <label>Uses before B is replaced <input class="lx-lb" inputmode="numeric" value="1" /></label>
+      <label>Compare over this many uses <input class="lx-n" inputmode="numeric" value="365" /></label>
+      <label>Impact unit <input class="lx-unit" value="kg CO₂e" /></label>
+    </div>
+    <p class="ax-help">Compare the two on the same job, such as a year of drinks. A product that wears out after a number of uses is made again, so its once-only inputs count again each time.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Inputs and factors</h2>
+    <label>One row per input: product (A or B), stage, input name, amount, factor (impact per unit of the amount), counted once per product or per use, and ± % uncertainty in the factor <textarea class="lx-data" rows="12" spellcheck="false">{inputs}</textarea></label>
+    <DataFile target=".lx-data" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px"><label>Random seed for the uncertainty run <input class="lx-seed" inputmode="numeric" value="1" /></label></div>
+    <p class="ax-help"><strong>No emission factors are built in, and the example factors are made up.</strong> Use factors from a database or study you trust, all for the same impact (for example kg CO₂e per kg of steel or per kWh). Stages can be any names. The uncertainty run draws each factor 10,000 times, spread evenly within ± its percentage. Up to 500 rows.</p>
+    <p class="ax-err lx-err" hidden></p>
+  </div>
+
+  <div class="ax-card lx-out">
+    <h2>Comparison</h2>
+    <p class="ax-big lx-big"></p>
+    <dl class="ax-facts lx-facts"></dl>
+    <canvas class="ax-fig lx-bar"></canvas>
+    <canvas class="ax-fig lx-fig" style="margin-top:12px"></canvas>
+    <details class="lx-sd">
+      <summary>Every input and what would flip the result (table)</summary>
+      <div class="ax-scroll"><table class="lx-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lx-csv">Download the inputs table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { totals, breakEven, flips, monteCarlo, type Row, type Life } from '../../lib/sci/lca';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.lcc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const txt = (c: string, d: string) => q<HTMLInputElement>(c).value.trim() || d;
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let bar: Figure | null = null, fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.lx-err').textContent = m; q('.lx-err').hidden = false; q('.lx-out').hidden = true; bar = fig = null; sections = []; csvRows = []; };
+    q('.lx-err').hidden = true;
+    const nA = txt('.lx-na', 'Product A'), nB = txt('.lx-nb', 'Product B'), unit = txt('.lx-unit', 'units');
+    const life: Life = { A: Math.round(val('.lx-la')), B: Math.round(val('.lx-lb')) }, N = Math.round(val('.lx-n'));
+    if (!(life.A >= 1 && life.B >= 1 && life.A <= 1e6 && life.B <= 1e6)) return fail('Give how many uses each product lasts (a whole number, 1 or more).');
+    if (!(N >= 1 && N <= 1e6)) return fail('Give the number of uses to compare over (1 to 1,000,000).');
+    const lines = parseTable(q<HTMLTextAreaElement>('.lx-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    const data = lines.filter((r) => /^[ab]$/i.test((r[0] ?? '').trim()));
+    if (!data.length) return fail('Give at least one input row for each product, starting with A or B.');
+    if (data.length > 500) return fail('Up to 500 rows, please.');
+    const rows: Row[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i], amount = num(r[3]), factor = num(r[4]), basis = (r[5] ?? '').trim().toLowerCase(), u = isNum(r[6]) ? num(r[6]) : 0;
+      const where = `Row ${i + 1} (${(r[2] ?? '').trim() || 'no name'})`;
+      if (!isNum(r[3]) || !(amount >= 0)) return fail(`${where}: give the amount as a number, 0 or more.`);
+      if (!isNum(r[4])) return fail(`${where}: give the factor as a number (it can be negative for a credit, such as recycling).`);
+      if (basis !== '' && !['once', 'use', 'per use', 'product', 'per product'].includes(basis)) return fail(`${where}: "counted" should be "once" (per product made) or "use" (every use).`);
+      if (!(u >= 0 && u <= 100)) return fail(`${where}: give the uncertainty as a percentage from 0 to 100.`);
+      rows.push({ p: r[0].trim().toUpperCase() as 'A' | 'B', stage: (r[1] ?? '').trim() || 'Other', item: (r[2] ?? '').trim() || `Input ${i + 1}`, amount, factor, perUse: basis === 'use' || basis === 'per use', unc: u / 100 });
+    }
+    if (!rows.some((r) => r.p === 'A') || !rows.some((r) => r.p === 'B')) return fail('Give at least one input for each of A and B.');
+    const t = totals(rows, life, N);
+    if (!(t.A > 0 && t.B > 0)) return fail('Each product needs a total impact above 0 to compare.');
+    q('.lx-out').hidden = false;
+    const better = t.A < t.B ? nA : t.B < t.A ? nB : '', lo = Math.min(t.A, t.B), hi = Math.max(t.A, t.B);
+    q('.lx-big').textContent = better ? `${better} is ${Math.round((100 * (hi - lo)) / hi)} % lower over ${tn(N)} uses` : `Both are equal over ${tn(N)} uses`;
+    const be = breakEven(rows, life, Math.max(100000, N * 4)), t1 = totals(rows, life, 1);
+    const seed = Math.max(1, Math.round(val('.lx-seed')) || 1), mc = monteCarlo(rows, life, N, 10000, seed);
+    const top = (p: 'A' | 'B') => { let k = -1; rows.forEach((r, i) => { if (r.p === p && (k < 0 || Math.abs(t.contrib[i]) > Math.abs(t.contrib[k]))) k = i; }); return k; };
+    const kA = top('A'), kB = top('B'), uses = (p: 'A' | 'B') => Math.ceil(N / life[p] - 1e-9);
+    const fl = flips(rows, life, N);
+    const easiest = rows.map((r, i) => ({ i, f: fl[i] })).filter((x) => Number.isFinite(x.f) && x.f > -1).sort((a, b) => Math.abs(a.f) - Math.abs(b.f))[0];
+    q('.lx-facts').replaceChildren(
+      fact(nA, `${tn(t.A)} ${unit}`, `${sg(t.A / N, 3)} per use; ${tn(uses('A'))} made over ${tn(N)} uses`),
+      fact(nB, `${tn(t.B)} ${unit}`, `${sg(t.B / N, 3)} per use; ${tn(uses('B'))} made over ${tn(N)} uses`),
+      fact('Break-even', Number.isFinite(be) ? `${tn(be)} uses` : 'none', Number.isFinite(be) ? `below ${tn(be)} uses ${t1.A < t1.B ? nA : nB} comes out lower, and ${t1.A < t1.B ? nB : nA} from then on (it can switch back when a product is replaced)` : 'the same product is lower at every number of uses tried'),
+      fact('With the uncertainty', `${nA} lower in ${sg(mc.pA * 100, 3)} % of runs`, `${nB} minus ${nA}: ${sg(mc.p5, 3)} to ${sg(mc.p95, 3)} ${unit} (90 % of runs, median ${sg(mc.p50, 3)})`),
+      fact('Easiest flip', easiest ? `${rows[easiest.i].item} (${rows[easiest.i].p === 'A' ? nA : nB})` : 'no single input', easiest ? `its impact would have to change by ${easiest.f > 0 ? '+' : '−'}${sg(Math.abs(easiest.f) * 100, 3)} % to make the two equal` : 'no one input can change enough on its own to make them equal'),
+      fact('Biggest input', `${rows[kA].item} for ${nA}, ${rows[kB].item} for ${nB}`, `${sg((100 * t.contrib[kA]) / t.A, 3)} % and ${sg((100 * t.contrib[kB]) / t.B, 3)} % of each total`),
+    );
+    // Stacked bars by stage.
+    const stages = [...new Set(rows.map((r) => r.stage))];
+    bar = { w: 640, h: 250, alt: `Impact by life stage over ${N} uses`, draw: (ctx, W, H, pal) => {
+      const cols = [pal.accent, pal.accent2, pal.good, pal.warn, pal.bad, pal.muted, pal.ink];
+      const L = 20, R = 20, top = 48, rowH = 54, gap = 26, max = Math.max(t.A, t.B) * 1.02, sx = (W - L - R) / max;
+      ctx.font = '20px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+      ctx.fillText(`Over ${tn(N)} uses (${unit})`, L, 30);
+      ([['A', nA, t.byA, t.A], ['B', nB, t.byB, t.B]] as const).forEach(([, name, by, tot], j) => {
+        const y = top + j * (rowH + gap) + 26; let x = L;
+        ctx.fillStyle = pal.ink; ctx.textBaseline = 'bottom'; ctx.fillText(`${name}: ${tn(tot)}`, L, y - 4);
+        stages.forEach((s, k) => { const v = Math.max(0, by.get(s) ?? 0), w = v * sx; if (w > 0) { ctx.fillStyle = cols[k % cols.length]; ctx.fillRect(x, y, w, rowH - 26); x += w; } });
+      });
+      ctx.textBaseline = 'middle'; let lx = L, ly = H - 34;
+      stages.forEach((s, k) => { const w = ctx.measureText(s).width + 34; if (lx + w > W - R) { lx = L; ly += 26; } ctx.fillStyle = cols[k % cols.length]; ctx.fillRect(lx, ly - 8, 16, 16); ctx.fillStyle = pal.ink; ctx.fillText(s, lx + 22, ly); lx += w; });
+    } };
+    bar.h = 250 + Math.max(0, Math.ceil(stages.length / 3) - 1) * 26;
+    paint(q<HTMLCanvasElement>('.lx-bar'), bar);
+    const xMax = Math.max(N * 2, Number.isFinite(be) ? be * 2 : 0, 10), xs: number[] = [], ya: number[] = [], yb: number[] = [];
+    const step = Math.max(1, Math.floor(xMax / 400));
+    for (let n = 1; n <= xMax; n += step) { const tt = totals(rows, life, n); xs.push(n); ya.push(tt.A); yb.push(tt.B); }
+    const marks: { kind: 'vline'; at: number; dash?: number[]; label?: string }[] = [{ kind: 'vline', at: N, dash: [4, 3], label: `${tn(N)} uses` }];
+    if (Number.isFinite(be) && Math.abs(be - N) / xMax > 0.08) marks.push({ kind: 'vline', at: be, dash: [2, 4], label: 'break-even' });
+    fig = chartFigure({ h: 300, xLabel: 'Number of uses', yLabel: `Total (${unit})`, yMin: 0, legend: 'below', series: [
+      { name: nA, x: xs, y: ya, mode: 'line', width: 2 }, { name: nB, x: xs, y: yb, mode: 'line', width: 2, dash: [6, 4] },
+    ], marks }, `Total impact against the number of uses`);
+    paint(q<HTMLCanvasElement>('.lx-fig'), fig);
+    const head = ['Product', 'Stage', 'Input', `Impact (${unit})`, 'Share', 'Change to flip'];
+    const trs = rows.map((r, i) => [r.p === 'A' ? nA : nB, r.stage, r.item, sg(t.contrib[i], 3), `${sg((100 * t.contrib[i]) / (r.p === 'A' ? t.A : t.B), 3)} %`, !Number.isFinite(fl[i]) ? '–' : fl[i] <= -1 ? 'cannot alone' : `${fl[i] > 0 ? '+' : '−'}${tn(Math.abs(fl[i]) * 100)} %`]);
+    table('.lx-tab', head, trs, [3, 4, 5]);
+    csvRows = [['product', 'stage', 'input', 'amount', 'factor', 'counted', 'uncertainty_pct', 'times_counted', 'impact', 'change_to_flip_pct'], ...rows.map((r, i) => [r.p, r.stage, r.item, String(r.amount), String(r.factor), r.perUse ? 'use' : 'once', String(r.unc * 100), String(r.perUse ? N : uses(r.p)), sg(t.contrib[i], 6), Number.isFinite(fl[i]) ? sg(fl[i] * 100, 6) : ''])];
+    sections = [{ title: q('.lx-big').textContent!, text: [`${nA} (lasts ${tn(life.A)} uses) against ${nB} (lasts ${tn(life.B)} uses) over ${tn(N)} uses, with the user's own factors.`], facts: [...q('.lx-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: bar },
+      { title: 'Against the number of uses', figure: fig, table: { head, rows: trs, align: ['l', 'l', 'l', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, input').forEach((i) => i.addEventListener('input', later));
+  q('.lx-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'lca-compare.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (bar) paint(q<HTMLCanvasElement>('.lx-bar'), bar); if (fig) paint(q<HTMLCanvasElement>('.lx-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Life cycle comparison', subtitle: q('.lx-big').textContent ?? '', file: 'lca-compare', sections }));
+</script>
+
+<style is:global>
+  .lcc .lx-sd { margin-top: 14px; }
+  .lcc .lx-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

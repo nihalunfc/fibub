@@ -145,6 +145,7 @@ import * as SMP from '../src/lib/sci/sampling.ts';
 import * as BIO from '../src/lib/sci/bioacc.ts';
 import * as NB from '../src/lib/sci/barrier.ts';
 import * as TC from '../src/lib/sci/treecarbon.ts';
+import * as LCA from '../src/lib/sci/lca.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2872,6 +2873,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('tree growth D', TC.forest(trees, m1, 0.25, 0.47, { g: 0.6 }).perYear, 338.79289863239137, 1e-9);
   near('tree growth rdh', TC.forest(trees, m2, 0.25, 0.47, { g: 0.6 }).perYear, 380.8929449998768, 1e-9);
   near('CO2 per C', TC.CO2_PER_C, 3.664, 1e-3);
+}
+{
+  // LCA lite: against an independent Python version (same mulberry32 stream for the Monte Carlo). Made-up factors.
+  const raw = [['A', 'Materials', 'Stainless steel', 0.3, 6, 'once', 20], ['A', 'Materials', 'Plastic cap', 0.02, 3, 'once', 20], ['A', 'Manufacturing', 'Factory electricity', 2, 0.4, 'once', 30], ['A', 'Transport', 'Truck and ship', 0.6, 0.1, 'once', 40], ['A', 'Use', 'Washing', 0.05, 0.4, 'use', 50], ['A', 'End of life', 'Landfill and recycling', 0.32, 0.05, 'once', 50],
+    ['B', 'Materials', 'PET plastic', 0.025, 3, 'once', 20], ['B', 'Manufacturing', 'Factory electricity', 0.08, 0.4, 'once', 30], ['B', 'Transport', 'Truck', 0.05, 0.1, 'once', 40], ['B', 'End of life', 'Landfill and recycling', 0.025, 0.1, 'once', 50]];
+  const rows = raw.map(([p, stage, item, amount, factor, b, u]) => ({ p, stage, item, amount, factor, perUse: b === 'use', unc: u / 100 })), life = { A: 500, B: 1 };
+  near('lca A 1 use', LCA.totals(rows, life, 1).A, 2.756, 1e-12); near('lca B 1 use', LCA.totals(rows, life, 1).B, 0.1145, 1e-12);
+  near('lca A 365', LCA.totals(rows, life, 365).A, 10.036, 1e-12); near('lca B 365', LCA.totals(rows, life, 365).B, 41.7925, 1e-12);
+  near('lca A 501 uses buys a second bottle', LCA.totals(rows, life, 501).A - LCA.totals(rows, life, 500).A, 2.756, 1e-12);
+  check('lca break-even', LCA.breakEven(rows, life) === 29);
+  const fl = LCA.flips(rows, life, 365);
+  near('lca flip steel', fl[0], 17.642500000000005, 1e-12); near('lca flip washing', fl[4], 4.350205479452055, 1e-12); near('lca flip PET', fl[6], -1.1600547945205482, 1e-12);
+  const m1 = LCA.monteCarlo(rows, life, 365, 10000, 1), m2 = LCA.monteCarlo(rows, life, 30, 10000, 1);
+  check('lca MC 365', m1.pA === 1); near('lca MC 365 p50', m1.p50, 31.825753420237692, 1e-9);
+  near('lca MC 30 pA', m2.pA, 0.5923, 1e-12); near('lca MC 30 p5', m2.p5, -0.6048322133878243, 1e-9); near('lca MC 30 p95', m2.p95, 0.8201603659705721, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
