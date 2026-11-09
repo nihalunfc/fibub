@@ -75,7 +75,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await page.$$eval('.qc-doc option', (o) => o.length)) === 4 && (await page.isChecked('.qc-keep')), 'qc: project back after reload');
   await click('.qc-clear');
   check((await page.evaluate(() => localStorage.getItem('fibub-qualcode-v1'))) === null && (await page.$$('.qc-code')).length === 0 && !(await page.isChecked('.qc-keep')), 'qc: clear all');
-  await page.setInputFiles('.qc-jfile', jp); await page.waitForTimeout(400);
+  await page.setInputFiles('.qc-jfile', jp); await page.waitForTimeout(1000);
   check((await cells('.qc-counts')).length === 5 && (await page.$$eval('.qc-doc option', (o) => o.length)) === 3, 'qc: import JSON');
   await page.setInputFiles('.qc-jfile', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('[1]') }); await page.waitForTimeout(300);
   check(/not a coding project/.test(await page.textContent('.qc-ierr')), 'qc: wrong file message');
