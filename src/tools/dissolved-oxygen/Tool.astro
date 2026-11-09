@@ -1,0 +1,252 @@
+---
+// Dissolved oxygen: solubility in fresh and sea water (Garcia and Gordon 1992), % saturation, AOU, unit conversions,
+// a profile or batch of samples, and plankton counts to densities. Everything is worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax dox">
+  <div class="ax-card">
+    <h2>Water</h2>
+    <div class="ax-grid">
+      <label>Temperature (°C) <input class="do-t" inputmode="decimal" value="15" /></label>
+      <label>Salinity <input class="do-s" inputmode="decimal" value="35" /></label>
+      <label>Pressure from <select class="do-pm"><option value="hpa">Barometric pressure</option><option value="alt">Altitude</option></select></label>
+      <label class="do-pw">Barometric pressure (hPa) <input class="do-p" inputmode="decimal" value="1013.25" /></label>
+      <label class="do-aw" hidden>Altitude (m) <input class="do-alt" inputmode="decimal" value="0" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small do-fresh">Fresh water (S 0)</button><button type="button" class="btn secondary small do-sea">Sea water (S 35)</button></div>
+    <p class="ax-help">Salinity is practical salinity (about g of salt per kg; 0 for fresh water, about 35 for the open ocean). Saturation is for water in balance with moist air at the barometric pressure (not corrected to sea level). Altitude uses the standard atmosphere.</p>
+    <p class="ax-err do-err" hidden></p>
+  </div>
+
+  <div class="do-out">
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Oxygen at saturation</h2>
+      <dl class="ax-facts do-sat"></dl>
+      <h3 style="margin:14px 0 8px">Your measurement</h3>
+      <div class="ax-grid">
+        <label>Measured oxygen <input class="do-m" inputmode="decimal" value="230" /></label>
+        <label>Unit <select class="do-u"><option value="umolkg">µmol/kg</option><option value="umolL">µmol/L</option><option value="mgL">mg/L</option><option value="mLL">mL/L</option></select></label>
+      </div>
+      <p class="ax-err do-merr" hidden></p>
+      <dl class="ax-facts do-meas" style="margin-top:10px"></dl>
+      <p class="ax-help">AOU (apparent oxygen utilisation) is saturation minus measured: how much oxygen the water has lost to respiration since it left the surface, if it was saturated then. Negative AOU means supersaturation (photosynthesis, bubbles or fast warming).</p>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Solubility against temperature</h2>
+      <div class="ax-grid"><label>Show in <select class="do-cu"><option value="mgL">mg/L</option><option value="umolkg">µmol/kg</option><option value="umolL">µmol/L</option><option value="mLL">mL/L</option></select></label></div>
+      <canvas class="ax-fig do-cfig" style="margin-top:10px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small do-ccsv">Download table CSV (0 to 40 °C)</button></div>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>A profile or many samples</h2>
+      <p class="ax-help" style="margin-top:0">One sample per line: a <b>label or depth</b>, <b>temperature (°C)</b>, <b>salinity</b> and <b>oxygen</b> (in the unit below). The barometric pressure above is used for every sample. The example profile is made up.</p>
+      <textarea class="do-text" rows="7" spellcheck="false" aria-label="Samples"></textarea>
+      <DataFile target=".do-text" maxMB={5} maxCols={20} maxRows={20000} />
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Oxygen column is in <select class="do-bu"><option value="umolkg">µmol/kg</option><option value="umolL">µmol/L</option><option value="mgL">mg/L</option><option value="mLL">mL/L</option></select></label>
+        <label class="ax-check" style="align-self:end"><input type="checkbox" class="do-depth" checked /> First column is depth (chart as a profile)</label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small do-ex">Use the example</button><button type="button" class="btn secondary small do-clear">Start empty</button></div>
+      <p class="ax-help do-bnote" hidden></p>
+      <p class="ax-err do-berr" hidden></p>
+      <div class="do-bout">
+        <div class="ax-scroll" style="margin-top:10px"><table class="do-btab"></table></div>
+        <canvas class="ax-fig do-bfig" style="margin-top:12px"></canvas>
+        <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small do-bcsv">Download results CSV</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ax-card" style="margin-top:14px">
+    <h2>Plankton count to density</h2>
+    <div class="ax-grid">
+      <label>Sample <select class="do-pk"><option value="water">Water sample (cells per litre)</option><option value="net">Net tow (individuals per m³)</option></select></label>
+      <label>Count (cells or individuals) <input class="do-n" inputmode="decimal" value="230" /></label>
+    </div>
+    <div class="ax-grid do-water" style="margin-top:10px">
+      <label>Volume examined from <select class="do-vm"><option value="ml">A volume I type</option><option value="fields">Fields or strips</option></select></label>
+      <label class="do-vmlw">Volume examined (mL) <input class="do-vml" inputmode="decimal" value="1" /></label>
+      <label class="do-fw" hidden>Fields or strips counted <input class="do-nf" inputmode="decimal" value="20" /></label>
+      <label class="do-fw" hidden>Area of one (mm²) <input class="do-fa" inputmode="decimal" value="0.5" /></label>
+      <label class="do-fw" hidden>Chamber depth (mm) <input class="do-fd" inputmode="decimal" value="1" /></label>
+      <label>Original volume (mL) <input class="do-vo" inputmode="decimal" value="1000" /></label>
+      <label>Volume after concentrating (mL) <input class="do-vc" inputmode="decimal" value="20" /></label>
+    </div>
+    <div class="ax-grid do-net" style="margin-top:10px" hidden>
+      <label>Share of the sample counted <input class="do-fr" inputmode="decimal" value="1/8" /></label>
+      <label>Water filtered from <select class="do-fm"><option value="m3">A volume I type</option><option value="tow">Net size and tow length</option></select></label>
+      <label class="do-m3w">Water filtered (m³) <input class="do-m3" inputmode="decimal" value="5" /></label>
+      <label class="do-tw" hidden>Net mouth diameter (m) <input class="do-nd" inputmode="decimal" value="0.5" /></label>
+      <label class="do-tw" hidden>Tow length (m) <input class="do-tl" inputmode="decimal" value="25" /></label>
+      <label class="do-tw" hidden>Filtering efficiency (0 to 1) <input class="do-fe" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help do-phelp">Concentration factor = original volume ÷ volume after settling or filtering. For a split sample, type the share you counted as a fraction (1/8 after three Folsom splits) or a decimal. The example numbers are made up.</p>
+    <p class="ax-err do-perr" hidden></p>
+    <dl class="ax-facts do-pfacts" style="margin-top:10px"></dl>
+    <p class="ax-help">The 95 % range treats the count as Poisson (organisms spread at random): exact limits for the count, scaled like the count. Counting 400 gives about ±10 % (Lund and others, 1958); clumped samples vary more.</p>
+  </div>
+
+  <div class="ax-card" style="margin-top:14px"><h2>Report</h2><Downloads /></div>
+</div>
+
+<style is:global>
+  .dox table td, .dox table th { white-space: nowrap; padding: 6px 7px; }
+  .dox table td:not(:first-child), .dox table th:not(:first-child) { text-align: right; }
+  .dox .do-out { min-width: 0; }
+</style>
+
+<script>
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+  import { saturation, satState, convert, altitudeAtm, cellsPerLitre, fieldsVolume, perCubicMetre, towVolume, poissonCI, lundPrecision, UNITS, EXAMPLE, type Unit, type Sat } from '../../lib/sci/oxygen';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dox')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const mm = (s: string) => s.replace(/-/g, '−');
+  const fact = (k: string, val: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const factsOf = (s: string) => [...q(s).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const fill = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); } return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.append(h, b);
+  };
+  const DEC: Record<Unit, number> = { umolkg: 1, umolL: 1, mgL: 2, mLL: 2 };
+  const fu = (x: number, u: Unit) => `${mm(x.toFixed(DEC[u]))} ${UNITS[u]}`;
+  /** n significant figures, with thousands separators for big numbers and no trailing zeros. */
+  const nice = (x: number, n = 4) => { if (!Number.isFinite(x)) return '–'; const r = +x.toPrecision(n); return Math.abs(r) >= 1e4 ? r.toLocaleString('en') : String(r); };
+  const dl = (text: string, name: string) => save(new Blob(['﻿' + text], { type: 'text/csv' }), name, 'text/csv');
+  /** A fraction typed as 1/8, 0.125 or 12.5 %. */
+  const frac = (s: string) => { const t = s.trim(); const m = t.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/); if (m) return +m[1] / +m[2]; if (t.endsWith('%')) return num(t.slice(0, -1)) / 100; return num(t); };
+
+  let P = 1, t = 15, S = 35, sat: Sat | null = null, figs: Record<string, Figure | null> = {}, secs: Record<string, Section[]> = {}, batchRows: (string | number)[][] = [];
+
+  function pressure(): number {
+    const alt = sel('.do-pm') === 'alt';
+    q('.do-pw').hidden = alt; q('.do-aw').hidden = !alt;
+    return alt ? altitudeAtm(v('.do-alt')) : v('.do-p') / 1013.25;
+  }
+  function calc() {
+    P = pressure(); t = v('.do-t'); S = v('.do-s');
+    const err = q('.do-err');
+    try { sat = saturation(t, S, P); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.do-out').hidden = true; sat = null; secs.sat = []; return; }
+    err.hidden = true; q('.do-out').hidden = false;
+    const s = sat;
+    q('.do-sat').replaceChildren(
+      fact('Saturation', fu(s.mgL, 'mgL'), `${fu(s.umolkg, 'umolkg')}, ${fu(s.umolL, 'umolL')}, ${fu(s.mLL, 'mLL')}`),
+      fact('At 1 atm', fu(s.umolkg / s.factor, 'umolkg'), `pressure factor ${s.factor.toFixed(4)}`),
+      fact('Pressure', `${(P * 1013.25).toFixed(1)} hPa`, `${P.toFixed(4)} atm`),
+      fact('Water density', `${s.rho.toFixed(2)} kg/m³`, 'to turn per kg into per litre'),
+      fact('Water vapour', `${(s.pw * 1013.25).toFixed(2)} hPa`, 'over the water'),
+    );
+    measure(); curve(); batch();
+  }
+  function measure() {
+    const e = q('.do-merr');
+    if (!sat) return;
+    const x = v('.do-m'), u = sel('.do-u') as Unit;
+    if (!(x >= 0)) { e.textContent = 'Type a measured oxygen of 0 or more.'; e.hidden = false; q('.do-meas').replaceChildren(); secs.sat = [{ title: 'Oxygen at saturation', facts: factsOf('.do-sat') }]; return; }
+    e.hidden = true;
+    const r = satState(x, u, t, S, P);
+    q('.do-meas').replaceChildren(
+      fact('Saturation', `${r.pct.toFixed(1)} %`, r.pct > 100 ? 'supersaturated' : r.pct < 80 ? 'well below saturation' : 'near saturation'),
+      fact('AOU', fu(r.aou, 'umolkg'), `${fu(convert(r.aou, 'umolkg', 'mLL', t, S), 'mLL')}, ${fu(convert(r.aou, 'umolkg', 'mgL', t, S), 'mgL')}`),
+      ...(['umolkg', 'umolL', 'mgL', 'mLL'] as Unit[]).filter((k) => k !== u).map((k) => fact(`Measured in ${UNITS[k]}`, fu(convert(x, u, k, t, S), k))),
+    );
+    secs.sat = [{ title: 'Oxygen at saturation', facts: [['Water', `${t} °C, salinity ${S}, ${(P * 1013.25).toFixed(1)} hPa`], ...factsOf('.do-sat')] }, { title: 'Measurement', facts: [['Measured', fu(x, u)], ...factsOf('.do-meas')] }];
+  }
+  function curve() {
+    if (!sat) return;
+    const u = sel('.do-cu') as Unit, Ts = Array.from({ length: 41 }, (_, i) => i);
+    const fr = Ts.map((x) => convert(saturation(x, 0, P).umolkg, 'umolkg', u, x, 0)), sw = Ts.map((x) => convert(saturation(x, S, P).umolkg, 'umolkg', u, x, S));
+    figs.c = chartFigure({ w: 640, h: 360, xLabel: 'Temperature (°C)', yLabel: `Oxygen at saturation (${UNITS[u]})`, legend: 'inside', xMin: 0, xMax: 40, series: [{ name: 'Fresh water (S 0)', x: Ts, y: fr, mode: 'line', width: 2 }, ...(S > 0 ? [{ name: `Salinity ${S}`, x: Ts, y: sw, mode: 'line' as const, width: 2 }] : []), { name: 'This water', x: [t], y: [convert(sat.umolkg, 'umolkg', u, t, S)], mode: 'points', marker: 'circle', size: 5 }] }, `Oxygen solubility against temperature at ${(P * 1013.25).toFixed(0)} hPa`);
+    paint(q<HTMLCanvasElement>('.do-cfig'), figs.c);
+    secs.curve = [{ title: 'Solubility against temperature', figure: figs.c }];
+  }
+  function batch() {
+    const err = q('.do-berr'), note = q('.do-bnote'), u = sel('.do-bu') as Unit, depth = q<HTMLInputElement>('.do-depth').checked;
+    let rows = parseTable(q<HTMLTextAreaElement>('.do-text').value);
+    if (rows.length && !Number.isFinite(num(rows[0][1]))) rows = rows.slice(1);
+    const out: { lab: string; d: number; t: number; S: number; o2: number; sat: number; pct: number; aou: number }[] = [];
+    let bad = 0, range = 0;
+    for (const r of rows) {
+      const tt = num(r[1]), ss = num(r[2]), o = num(r[3]);
+      if (![tt, ss, o].every(Number.isFinite) || o < 0) { bad++; continue; }
+      try { const st = satState(o, u, tt, ss, P); out.push({ lab: r[0], d: num(r[0]), t: tt, S: ss, o2: st.o2, sat: st.sat.umolkg, pct: st.pct, aou: st.aou }); } catch { range++; }
+    }
+    const notes = [bad ? `${bad} line${bad > 1 ? 's' : ''} without a temperature, salinity and oxygen ${bad > 1 ? 'were' : 'was'} skipped.` : '', range ? `${range} sample${range > 1 ? 's' : ''} outside −2 to 40 °C or salinity 0 to 42 ${range > 1 ? 'were' : 'was'} skipped.` : ''].filter(Boolean);
+    note.textContent = notes.join(' '); note.hidden = !notes.length;
+    batchRows = []; secs.batch = []; figs.b = null;
+    if (!out.length) { err.textContent = 'Paste or open samples: label or depth, temperature, salinity, oxygen.'; err.hidden = false; q('.do-bout').hidden = true; return; }
+    err.hidden = true; q('.do-bout').hidden = false;
+    const head = [depth ? 'Depth' : 'Sample', 'T (°C)', 'S', 'O₂ (µmol/kg)', 'Saturation (µmol/kg)', 'Saturation (%)', 'AOU (µmol/kg)'];
+    const shown = out.map((x) => [x.lab, mm(String(x.t)), String(x.S), x.o2.toFixed(1), x.sat.toFixed(1), x.pct.toFixed(1), mm(x.aou.toFixed(1))]);
+    fill(q('.do-btab'), head, shown);
+    batchRows = [['Sample', 'Temperature (C)', 'Salinity', 'O2 (umol/kg)', 'O2 (mg/L)', 'Saturation (umol/kg)', 'Saturation (mg/L)', 'Saturation (%)', 'AOU (umol/kg)'], ...out.map((x) => [x.lab, x.t, x.S, +x.o2.toFixed(3), +convert(x.o2, 'umolkg', 'mgL', x.t, x.S).toFixed(4), +x.sat.toFixed(3), +convert(x.sat, 'umolkg', 'mgL', x.t, x.S).toFixed(4), +x.pct.toFixed(2), +x.aou.toFixed(3)])];
+    const prof = depth && out.every((x) => Number.isFinite(x.d));
+    const idx = out.map((_, i) => i + 1);
+    figs.b = prof
+      ? chartFigure({ w: 640, h: 420, xLabel: 'Oxygen (µmol/kg)', yLabel: 'Depth', yReverse: true, legend: 'inside', series: [{ name: 'Measured', x: out.map((x) => x.o2), y: out.map((x) => x.d), mode: 'both', width: 2 }, { name: 'Saturation', x: out.map((x) => x.sat), y: out.map((x) => x.d), mode: 'line', width: 2, dash: [6, 4] }] }, `Oxygen profile: measured and saturation, ${out.length} depths`)
+      : chartFigure({ w: 640, h: 340, xLabel: 'Sample', yLabel: 'Saturation (%)', legend: 'none', series: [{ name: 'Saturation', x: idx, y: out.map((x) => x.pct), mode: 'both', width: 1.5 }], marks: [{ kind: 'hline', at: 100, dash: [5, 4], label: '100 %' }] }, `Percent saturation of ${out.length} samples`);
+    paint(q<HTMLCanvasElement>('.do-bfig'), figs.b);
+    secs.batch = [{ title: 'Samples', table: { head, rows: shown.slice(0, 80) }, note: shown.length > 80 ? `First 80 of ${shown.length}; download the CSV for all.` : undefined }, { title: prof ? 'Oxygen profile' : 'Saturation by sample', figure: figs.b }];
+  }
+
+  function plankton() {
+    const water = sel('.do-pk') === 'water', err = q('.do-perr');
+    q('.do-water').hidden = !water; q('.do-net').hidden = water;
+    const fields = sel('.do-vm') === 'fields', tow = sel('.do-fm') === 'tow';
+    q('.do-vmlw').hidden = fields; for (const e of root.querySelectorAll<HTMLElement>('.do-fw')) e.hidden = !fields;
+    q('.do-m3w').hidden = tow; for (const e of root.querySelectorAll<HTMLElement>('.do-tw')) e.hidden = !tow;
+    const N = v('.do-n');
+    try {
+      if (!(N >= 0) || !Number.isInteger(N)) throw new Error('The count must be a whole number, 0 or more.');
+      const [lo, hi] = poissonCI(N), f: [string, string, string?][] = [];
+      if (water) {
+        const vol = fields ? fieldsVolume(v('.do-nf'), v('.do-fa'), v('.do-fd')) : v('.do-vml');
+        const vo = v('.do-vo'), vc = v('.do-vc');
+        if (!(vo > 0 && vc > 0)) throw new Error('Volumes must be more than 0.');
+        if (vc > vo) throw new Error('The concentrated volume cannot be more than the original volume.');
+        const cf = vo / vc, d = cellsPerLitre(N, vol, cf);
+        f.push(['Density', `${nice(d, 4)} cells/L`, `${String(+(d / 1000).toPrecision(4))} cells/mL`], ['95 % range', `${nice((d * lo) / Math.max(N, 1e-300), 3)} to ${nice((d * hi) / Math.max(N, 1e-300), 3)} cells/L`, `count ${nice(lo, 3)} to ${nice(hi, 3)}`], ['Concentration factor', `× ${nice(cf, 4)}`, `${nice(vo, 4)} mL to ${nice(vc, 4)} mL`], ['Volume examined', `${nice(vol, 4)} mL`, `${nice((vol / vc) * 100, 3)} % of the concentrate`]);
+        if (N === 0) f[1] = ['95 % range', `0 to ${nice(hi / vol / cf * 1000, 3)} cells/L`, `none counted; upper limit for a count of 0 is ${nice(hi, 3)}`];
+      } else {
+        const fr = frac(q<HTMLInputElement>('.do-fr').value);
+        const V = tow ? towVolume(v('.do-nd'), v('.do-tl'), v('.do-fe')) : v('.do-m3');
+        if (tow && !(v('.do-fe') > 0 && v('.do-fe') <= 1)) throw new Error('Filtering efficiency must be more than 0 and at most 1.');
+        const d = perCubicMetre(N, fr, V);
+        f.push(['Density', `${nice(d, 4)} per m³`, `${String(+(d / 1000).toPrecision(4))} per litre`], ['95 % range', N ? `${nice((d * lo) / N, 3)} to ${nice((d * hi) / N, 3)} per m³` : `0 to ${nice(hi / fr / V, 3)} per m³`, `count ${nice(lo, 3)} to ${nice(hi, 3)}`], ['Share counted', `${String(+(fr * 100).toPrecision(4))} %`, `the whole sample holds about ${nice(N / fr, 4)}`], ['Water filtered', `${nice(V, 4)} m³`, tow ? 'π d²/4 × tow length × efficiency' : 'as typed']);
+      }
+      f.push(['Counting precision', N > 0 ? `± ${lundPrecision(N).toFixed(1)} %` : '–', 'about 2/√N at 95 %']);
+      err.hidden = true; q('.do-pfacts').hidden = false;
+      q('.do-pfacts').replaceChildren(...f.map(([k, x, s]) => fact(k, x, s)));
+      secs.pk = [{ title: water ? 'Plankton density (water sample)' : 'Plankton density (net tow)', facts: [['Count', String(N)], ...factsOf('.do-pfacts')] }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.do-pfacts').hidden = true; secs.pk = []; }
+  }
+
+  let tm = 0;
+  const later = (fn: () => void) => () => { clearTimeout(tm); tm = window.setTimeout(fn, 250); };
+  for (const c of ['.do-t', '.do-s', '.do-p', '.do-alt']) q(c).addEventListener('input', later(calc));
+  q('.do-pm').addEventListener('change', calc);
+  q('.do-m').addEventListener('input', later(measure)); q('.do-u').addEventListener('change', measure);
+  q('.do-cu').addEventListener('change', curve);
+  q('.do-text').addEventListener('input', later(batch)); q('.do-bu').addEventListener('change', batch); q('.do-depth').addEventListener('change', batch);
+  q('.do-fresh').addEventListener('click', () => { q<HTMLInputElement>('.do-s').value = '0'; calc(); });
+  q('.do-sea').addEventListener('click', () => { q<HTMLInputElement>('.do-s').value = '35'; calc(); });
+  q('.do-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.do-text').value = EXAMPLE; q<HTMLSelectElement>('.do-bu').value = 'umolkg'; batch(); });
+  q('.do-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.do-text').value = ''; batch(); });
+  for (const c of ['.do-pk', '.do-vm', '.do-fm']) q(c).addEventListener('change', plankton);
+  for (const c of ['.do-n', '.do-vml', '.do-nf', '.do-fa', '.do-fd', '.do-vo', '.do-vc', '.do-fr', '.do-m3', '.do-nd', '.do-tl', '.do-fe']) q(c).addEventListener('input', later(plankton));
+  q('.do-ccsv').addEventListener('click', () => { if (!sat) return; dl(csv([['Temperature (C)', 'Salinity', 'Pressure (hPa)', 'Saturation (umol/kg)', 'Saturation (umol/L)', 'Saturation (mg/L)', 'Saturation (mL/L)'], ...Array.from({ length: 41 }, (_, x) => { const s = saturation(x, S, P); return [x, S, +(P * 1013.25).toFixed(2), +s.umolkg.toFixed(3), +s.umolL.toFixed(3), +s.mgL.toFixed(4), +s.mLL.toFixed(4)]; })]), 'oxygen-solubility.csv'); });
+  q('.do-bcsv').addEventListener('click', () => { if (batchRows.length) dl(csv(batchRows), 'oxygen-samples.csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.c) paint(q<HTMLCanvasElement>('.do-cfig'), figs.c); if (figs.b && !q('.do-bout').hidden) paint(q<HTMLCanvasElement>('.do-bfig'), figs.b); });
+  q<HTMLTextAreaElement>('.do-text').value = EXAMPLE;
+  calc(); plankton();
+  wireDownloads(q('.dl'), () => ({ title: 'Dissolved oxygen', subtitle: sat ? `${t} °C, salinity ${S}` : '', file: 'dissolved-oxygen', sections: [...(secs.sat ?? []), ...(secs.curve ?? []), ...(secs.batch ?? []), ...(secs.pk ?? [])] }));
+</script>
