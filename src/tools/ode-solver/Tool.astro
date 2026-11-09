@@ -1,0 +1,509 @@
+---
+// Systems of ODEs typed as text, solved in the browser (RK4 or adaptive Dormand-Prince RK45, as SciPy), with time
+// plots, a phase portrait (direction field, nullclines, equilibria and their Jacobian eigenvalues), a bifurcation
+// diagram over a parameter, and an explicit finite-difference playground for the 1D heat and wave equations.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax odes">
+  <div class="ax-card">
+    <h2>Equations</h2>
+    <div class="ax-grid">
+      <label>Example <select class="od-pre"></select></label>
+    </div>
+    <label style="margin-top:10px"><span>One equation per line, like <code>x' = y</code> or <code>dx/dt = y</code>. Lines like <code>mu = 1</code> are parameters.</span> <textarea class="od-sys" rows="6" spellcheck="false" autocomplete="off"></textarea></label>
+    <p class="ax-help">Use + − * / ^, brackets, t (time), pi, and sin, cos, tan, exp, ln, log, sqrt, abs, sinh, cosh, tanh, atan2, min, max. Anything after # is a comment.</p>
+    <h3>Start values and time</h3>
+    <div class="ax-grid od-y0"></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Start time <input class="od-t0" inputmode="decimal" value="0" /></label>
+      <label>End time <input class="od-t1" inputmode="decimal" value="30" /></label>
+      <label>Method <select class="od-m"><option value="rk45">Adaptive RK45 (Dormand-Prince)</option><option value="rk4">RK4, fixed step</option></select></label>
+      <label class="od-tolw">Accuracy (relative tolerance) <select class="od-tol"><option value="1e-3">10⁻³ (SciPy's default)</option><option value="1e-6" selected>10⁻⁶</option><option value="1e-9">10⁻⁹</option></select></label>
+      <label class="od-nw" hidden>Number of steps <input class="od-n" inputmode="numeric" value="3000" /></label>
+    </div>
+    <p class="ax-help od-mhelp"></p>
+    <p class="ax-err od-err" hidden></p>
+  </div>
+
+  <div class="ax-card od-out" hidden>
+    <h2>Solution</h2>
+    <p class="ax-big od-big"></p>
+    <p class="ax-err od-stop" hidden></p>
+    <dl class="ax-facts od-facts"></dl>
+    <canvas class="ax-fig od-tfig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small od-csv">Download the solution (CSV)</button></div>
+
+    <h3>Phase portrait</h3>
+    <div class="ax-grid">
+      <label>Across <select class="od-px"></select></label>
+      <label class="od-pyw">Up <select class="od-py"></select></label>
+      <label>From <input class="od-x0" inputmode="decimal" placeholder="auto" /></label>
+      <label>To <input class="od-x1" inputmode="decimal" placeholder="auto" /></label>
+      <label class="od-yw">Bottom <input class="od-y0w" inputmode="decimal" placeholder="auto" /></label>
+      <label class="od-yw">Top <input class="od-y1w" inputmode="decimal" placeholder="auto" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="od-field" checked /> Direction field</label>
+      <label class="ax-check"><input type="checkbox" class="od-null" checked /> Nullclines</label>
+    </div>
+    <canvas class="ax-fig od-pfig" style="margin-top:10px"></canvas>
+    <p class="ax-help od-phelp"></p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small od-clear" hidden>Clear the added paths</button></div>
+    <h3>Equilibria</h3>
+    <p class="ax-help od-eqnote"></p>
+    <div class="ax-scroll"><table class="od-eqtab"></table></div>
+
+    <h3>Bifurcation diagram</h3>
+    <p class="ax-help od-bnone" hidden>Add a parameter line (like <code>mu = 1</code>) to sweep it.</p>
+    <div class="od-bw">
+      <div class="ax-grid">
+        <label>Parameter <select class="od-bp"></select></label>
+        <label>From <input class="od-bfrom" inputmode="decimal" /></label>
+        <label>To <input class="od-bto" inputmode="decimal" /></label>
+        <label>Values <input class="od-bn" inputmode="numeric" value="100" /></label>
+        <label>Show <select class="od-bv"></select></label>
+        <label>Settle for (time) <input class="od-btr" inputmode="decimal" value="100" /></label>
+        <label>Then record (time) <input class="od-brec" inputmode="decimal" value="40" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small od-bgo">Draw the diagram</button><button type="button" class="btn secondary small od-bcsv" hidden>Download the points (CSV)</button></div>
+      <p class="ax-help od-bnote">For each value the system starts where the last one ended (a slow sweep), runs for the settling time, then records the highest and lowest points of each swing. Equilibria are marked too.</p>
+      <p class="ax-err od-berr" hidden></p>
+      <canvas class="ax-fig od-bfig" hidden style="margin-top:10px"></canvas>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card od-pde">
+    <h2>Heat and wave equation playground</h2>
+    <p class="ax-help" style="margin-top:0">One space dimension, solved by explicit finite differences. A time step past the stability limit makes the numbers blow up; try it.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Equation <select class="od-pk"><option value="heat">Heat (diffusion): u_t = D u_xx</option><option value="wave">Wave: u_tt = c² u_xx</option></select></label>
+      <label>Length L <input class="od-pL" inputmode="decimal" value="1" /></label>
+      <label><span class="od-pkl">Diffusivity D</span> <input class="od-pkv" inputmode="decimal" value="0.1" /></label>
+      <label>Grid points <input class="od-pnx" inputmode="numeric" value="51" /></label>
+      <label>Time step Δt <input class="od-pdt" inputmode="decimal" value="0.001" /></label>
+      <label>End time <input class="od-pT" inputmode="decimal" value="0.5" /></label>
+      <label>Ends <select class="od-pbc"><option value="fixed">Fixed values</option><option value="free">Insulated / free (no slope)</option></select></label>
+      <label class="od-pew">Left end value <input class="od-pl" inputmode="decimal" value="0" /></label>
+      <label class="od-pew">Right end value <input class="od-pr" inputmode="decimal" value="0" /></label>
+    </div>
+    <label style="margin-top:10px">Start shape u(x, 0), using x and L <input class="od-pu0" spellcheck="false" autocomplete="off" value="sin(pi*x/L)" /></label>
+    <label class="od-pvw" style="margin-top:10px" hidden>Start speed u_t(x, 0) <input class="od-pv0" spellcheck="false" autocomplete="off" value="0" /></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small od-pmax">Use 90 % of the largest stable step</button></div>
+    <p class="ax-err od-perr" hidden></p>
+    <div class="od-pout">
+      <p class="ax-big od-pbig" style="margin-top:12px"></p>
+      <p><span class="ax-pill od-pst"></span></p>
+      <dl class="ax-facts od-pfacts"></dl>
+      <canvas class="ax-fig od-psnap" style="margin-top:14px"></canvas>
+      <canvas class="ax-fig od-pmap" style="margin-top:14px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small od-pcsv">Download the snapshots (CSV)</button></div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .odes h3 { margin: 22px 0 8px; font-size: 15px; }
+  .odes code { font-size: 13px; }
+  .odes .od-pfig { cursor: crosshair; touch-action: manipulation; }
+</style>
+
+<script>
+  import { parseSystem, rk45, rk4, equilibria, gridStarts, zeroContour, bifurcation, pde, type Sys, type Solution, type Eq, type BifPoint } from '../../lib/sci/ode';
+  import { parse, compile, variables } from '../../lib/sci/expr';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, drawChart, canvasPainter, OKABE_ITO, type Chart, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.odes')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+
+  type Preset = { name: string; sys: string; y0: number[]; t1: number; px?: number; py?: number; bp?: string; b?: [number, number]; btr?: number; brec?: number; win?: [number, number, number, number] };
+  const PRESETS: Preset[] = [
+    { name: 'Van der Pol oscillator', sys: "x' = y\ny' = mu*(1 - x^2)*y - x\nmu = 1", y0: [2, 0], t1: 30, bp: 'mu', b: [-1, 3], btr: 100, brec: 40 },
+    { name: 'Damped spring (harmonic oscillator)', sys: "x' = v\nv' = -k*x - c*v\nk = 1\nc = 0.3", y0: [1, 0], t1: 30, bp: 'c', b: [-0.5, 3], btr: 40, brec: 20 },
+    { name: 'Pendulum with friction', sys: "theta' = w\nw' = -(g/L)*sin(theta) - b*w\ng = 9.81\nL = 1\nb = 0.5", y0: [3, 0], t1: 20, bp: 'b', b: [0, 3], btr: 40, brec: 20, win: [-4, 7, -7, 7] },
+    { name: 'Predator and prey (Lotka-Volterra)', sys: "x' = a*x - b*x*y   # prey\ny' = -c*y + d*x*y  # predators\na = 1.1\nb = 0.4\nc = 0.4\nd = 0.1", y0: [10, 10], t1: 50, bp: 'a', b: [0.2, 2], btr: 50, brec: 60 },
+    { name: 'Brusselator (chemical oscillator)', sys: "x' = a - (b + 1)*x + x^2*y\ny' = b*x - x^2*y\na = 1\nb = 3", y0: [1, 1], t1: 40, bp: 'b', b: [1, 3.5], btr: 100, brec: 40 },
+    { name: 'Lorenz system (chaos)', sys: "x' = sigma*(y - x)\ny' = x*(rho - z) - y\nz' = x*y - beta*z\nsigma = 10\nrho = 28\nbeta = 8/3", y0: [1, 1, 1], t1: 40, px: 0, py: 2, bp: 'rho', b: [0, 30], btr: 60, brec: 20 },
+    { name: 'SIR epidemic', sys: "S' = -beta*S*I\nI' = beta*S*I - gamma*I\nR' = gamma*I\nbeta = 0.3\ngamma = 0.1", y0: [0.99, 0.01, 0], t1: 160, px: 0, py: 1, bp: 'beta', b: [0.05, 0.5], btr: 0, brec: 300 },
+    { name: 'Forced Duffing oscillator', sys: "x' = v\nv' = -delta*v - alpha*x - beta*x^3 + gamma*cos(omega*t)\ndelta = 0.3\nalpha = -1\nbeta = 1\ngamma = 0.5\nomega = 1.2", y0: [1, 0], t1: 100, bp: 'gamma', b: [0.2, 0.6], btr: 200, brec: 100 },
+    { name: 'Logistic growth (one equation)', sys: "N' = r*N*(1 - N/K)\nr = 0.5\nK = 100", y0: [5], t1: 30, bp: 'r', b: [-1, 1], btr: 60, brec: 20 },
+    { name: 'Saddle-node: x\' = r + x²', sys: "x' = r + x^2\nr = -1", y0: [0], t1: 10, bp: 'r', b: [-2, 1], btr: 20, brec: 10, win: [-2, 2, 0, 0] },
+  ];
+  const pre = q<HTMLSelectElement>('.od-pre');
+  pre.replaceChildren(...PRESETS.map((p, i) => new Option(p.name, String(i))), new Option('My own equations', 'own'));
+
+  let sys: Sys | null = null, sol: Solution | null = null, y0: number[] = [], t0 = 0, t1 = 30;
+  let extra: number[][][] = [], eqs: Eq[] = [], bif: { points: BifPoint[]; failed: number; param: string; v: string } | null = null;
+  let tFig: Figure | null = null, pFig: Figure | null = null, bFig: Figure | null = null, sFig: Figure | null = null, mFig: Figure | null = null;
+  let pMap: { X: (v: number) => number; Y: (v: number) => number; px0: number; px1: number; py0: number; py1: number; xa: number; xb: number; ya: number; yb: number } | null = null;
+  let win: [number, number, number, number] = [0, 1, 0, 1];
+  let pdeSection: Section | null = null, pdeCsv: (string | number)[][] = [];
+
+  const fmt = (v: number) => (Number.isFinite(v) ? sig(v, 6) : String(v));
+  const table = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); }
+  };
+  const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const colors = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']);
+  const chartWith = (pal: Palette, c: Omit<Chart, 'w' | 'h'>, W: number, H: number, ctx: CanvasRenderingContext2D) =>
+    drawChart(canvasPainter(ctx), { ...c, w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: pal.bg, colors: colors(pal) });
+
+  function fillPreset(i: number) {
+    const p = PRESETS[i];
+    q<HTMLTextAreaElement>('.od-sys').value = p.sys;
+    inp('.od-t0').value = '0'; inp('.od-t1').value = String(p.t1);
+    for (const c of ['.od-x0', '.od-x1', '.od-y0w', '.od-y1w']) inp(c).value = '';
+    if (p.win) { [inp('.od-x0').value, inp('.od-x1').value] = [String(p.win[0]), String(p.win[1])]; if (p.win[2] !== p.win[3]) [inp('.od-y0w').value, inp('.od-y1w').value] = [String(p.win[2]), String(p.win[3])]; }
+    y0Fields(parseSystem(p.sys).vars, p.y0);
+    axesFields(parseSystem(p.sys), p.px ?? 0, p.py ?? 1);
+    bifFields(parseSystem(p.sys), p);
+  }
+  function y0Fields(vars: string[], vals?: number[]) {
+    const box = q('.od-y0'), old: Record<string, string> = {};
+    for (const i of box.querySelectorAll<HTMLInputElement>('input')) old[i.dataset.v!] = i.value;
+    if (!vals && vars.join() === [...box.querySelectorAll<HTMLInputElement>('input')].map((i) => i.dataset.v).join()) return;
+    box.replaceChildren(...vars.map((v, k) => {
+      const l = document.createElement('label'); l.textContent = `${v} at the start `;
+      const i = document.createElement('input'); i.inputMode = 'decimal'; i.dataset.v = v; i.className = `od-v-${k}`;
+      i.value = vals ? String(vals[k] ?? 1) : old[v] ?? '1';
+      l.append(i); return l;
+    }));
+  }
+  function axesFields(s: Sys, px: number, py: number) {
+    const x = q<HTMLSelectElement>('.od-px'), y = q<HTMLSelectElement>('.od-py'), v = q<HTMLSelectElement>('.od-bv');
+    const keep = [x.value, y.value, v.value];
+    const opts = () => s.vars.map((n, i) => new Option(n, String(i)));
+    x.replaceChildren(...opts()); y.replaceChildren(...opts()); v.replaceChildren(...opts());
+    if (px >= 0) { x.value = String(Math.min(px, s.vars.length - 1)); y.value = String(Math.min(py, s.vars.length - 1)); v.value = '0'; }
+    else { if (Number(keep[0]) < s.vars.length) x.value = keep[0]; if (Number(keep[1]) < s.vars.length) y.value = keep[1]; else y.value = String(Math.min(1, s.vars.length - 1)); if (Number(keep[2]) < s.vars.length) v.value = keep[2]; }
+    q('.od-pyw').hidden = s.vars.length < 2;
+    for (const e of root.querySelectorAll<HTMLElement>('.od-yw')) e.hidden = s.vars.length < 2;
+  }
+  function bifFields(s: Sys, p?: Preset) {
+    const sel = q<HTMLSelectElement>('.od-bp'), keep = sel.value;
+    sel.replaceChildren(...s.params.map((x) => new Option(x.name, x.name)));
+    q('.od-bnone').hidden = s.params.length > 0; q('.od-bw').hidden = !s.params.length;
+    if (p?.bp) { sel.value = p.bp; inp('.od-bfrom').value = String(p.b![0]); inp('.od-bto').value = String(p.b![1]); inp('.od-btr').value = String(p.btr ?? 100); inp('.od-brec').value = String(p.brec ?? 40); }
+    else if (s.params.some((x) => x.name === keep)) sel.value = keep;
+    else if (s.params.length) { const v = s.params[0].value; inp('.od-bfrom').value = String(v === 0 ? -1 : sig(v / 2, 3)); inp('.od-bto').value = String(v === 0 ? 1 : sig(v * 2, 3)); }
+  }
+
+  function solve() {
+    const err = q('.od-err'); err.hidden = true;
+    const m = q<HTMLSelectElement>('.od-m').value;
+    q('.od-tolw').hidden = m !== 'rk45'; q('.od-nw').hidden = m !== 'rk4';
+    q('.od-mhelp').textContent = m === 'rk45'
+      ? 'RK45 changes its step to keep the estimated error of each step below the tolerance: small steps where the solution turns fast, large ones where it is smooth. The steps, error control and in-between values are the same as SciPy\'s solve_ivp(method="RK45").'
+      : 'Classic fourth-order Runge-Kutta with equal steps. Halving the step cuts the error about 16 times; if the curve changes when you add steps, it was not accurate yet.';
+    try {
+      const s = parseSystem(q<HTMLTextAreaElement>('.od-sys').value);
+      const changed = !sys || s.vars.join() !== sys.vars.join() || s.params.map((p) => p.name).join() !== sys.params.map((p) => p.name).join();
+      if (changed) { y0Fields(s.vars); axesFields(s, -1, -1); bifFields(s); extra = []; }
+      sys = s;
+      y0 = s.vars.map((v, k) => { const x = num(inp(`.od-v-${k}`).value); if (!Number.isFinite(x)) throw new Error(`Type a start value for ${v}.`); return x; });
+      t0 = num(inp('.od-t0').value); t1 = num(inp('.od-t1').value);
+      if (!Number.isFinite(t0) || !Number.isFinite(t1)) throw new Error('Type a start and an end time.');
+      if (!(t1 > t0)) throw new Error('The end time must be after the start time.');
+      if (t1 - t0 > 1e6) throw new Error('Keep the time span under 1,000,000.');
+      const f = s.make();
+      const f0 = f(t0, y0);
+      if (!f0.every(Number.isFinite)) throw new Error(`At the start the right-hand side is not a number (${s.vars.map((v, i) => `${v}' = ${fmt(f0[i])}`).join(', ')}). Check for division by zero or a log of a negative number.`);
+      if (m === 'rk45') {
+        const tEval = Array.from({ length: 1001 }, (_, k) => t0 + ((t1 - t0) * k) / 1000);
+        sol = rk45(f, t0, y0, t1, { rtol: Number(q<HTMLSelectElement>('.od-tol').value), atol: Number(q<HTMLSelectElement>('.od-tol').value) * 1e-3, tEval });
+      } else {
+        const n = Math.round(num(inp('.od-n').value));
+        if (!(n >= 10 && n <= 1e6)) throw new Error('Use between 10 and 1,000,000 steps.');
+        sol = rk4(f, t0, y0, t1, n);
+      }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.od-out').hidden = true; sol = null; return; }
+    q('.od-out').hidden = false;
+    const s = sys!, S = sol!, tEnd = S.t.at(-1)!, yEnd = S.y.at(-1)!;
+    q('.od-big').textContent = s.vars.map((v, i) => `${v}(${fmt(tEnd)}) = ${fmt(yEnd[i])}`).join(', ');
+    q('.od-stop').hidden = !S.stopped; q('.od-stop').textContent = S.stopped ?? '';
+    facts(q('.od-facts'), [
+      ['Method', m === 'rk45' ? `Adaptive RK45, tolerance ${q<HTMLSelectElement>('.od-tol').value}` : `RK4, step ${fmt((t1 - t0) / S.steps)}`],
+      ['Steps', `${S.steps.toLocaleString('en')}${S.rejected ? ` (+${S.rejected} rejected)` : ''}`],
+      ['Smallest and largest step', `${fmt(S.minStep)} to ${fmt(S.maxStep)}`],
+      ['Right-hand side evaluated', `${S.evals.toLocaleString('en')} times`],
+    ]);
+    drawTime(); phase(); bifStale();
+  }
+
+  function drawTime() {
+    const s = sys!, S = sol!, every = Math.max(1, Math.ceil(S.t.length / 2000));
+    const idx = S.t.map((_, i) => i).filter((i) => i % every === 0 || i === S.t.length - 1);
+    const series: Series[] = s.vars.map((v, k) => ({ name: v, x: idx.map((i) => S.t[i]), y: idx.map((i) => S.y[i][k]), mode: 'line' }));
+    tFig = chartFigure({ h: 340, xLabel: 't', yLabel: s.vars.length === 1 ? s.vars[0] : 'Value', series, legend: s.vars.length > 1 ? 'below' : 'none', xMin: t0, xMax: S.t.at(-1) }, `${s.vars.join(', ')} against time`);
+    paint(q<HTMLCanvasElement>('.od-tfig'), tFig);
+  }
+
+  const range = (vals: number[]): [number, number] => {
+    const fin = vals.filter(Number.isFinite); if (!fin.length) return [-1, 1];
+    let lo = Math.min(...fin), hi = Math.max(...fin);
+    if (hi - lo < 1e-9 * Math.max(1, Math.abs(hi))) { const d = Math.max(1, Math.abs(hi) * 0.5); lo -= d; hi += d; }
+    const pad = 0.12 * (hi - lo); return [lo - pad, hi + pad];
+  };
+
+  function phase() {
+    const s = sys!, S = sol!, n = s.vars.length, f = s.make();
+    const ix = Number(q<HTMLSelectElement>('.od-px').value), iy = n > 1 ? Number(q<HTMLSelectElement>('.od-py').value) : -1;
+    const typed = (c: string) => { const t = inp(c).value.trim(); return t ? num(t) : NaN; };
+    const [ax0, ax1] = range(S.y.map((r) => r[ix]).concat(...extra.map((p) => p.map((r) => r[ix]))));
+    let x0 = Number.isFinite(typed('.od-x0')) ? typed('.od-x0') : ax0, x1 = Number.isFinite(typed('.od-x1')) ? typed('.od-x1') : ax1;
+    if (!(x1 > x0)) { x0 = ax0; x1 = ax1; }
+    let y0w = 0, y1w = 1;
+    if (iy >= 0) {
+      const [ay0, ay1] = range(S.y.map((r) => r[iy]).concat(...extra.map((p) => p.map((r) => r[iy]))));
+      y0w = Number.isFinite(typed('.od-y0w')) ? typed('.od-y0w') : ay0; y1w = Number.isFinite(typed('.od-y1w')) ? typed('.od-y1w') : ay1;
+      if (!(y1w > y0w)) { y0w = ay0; y1w = ay1; }
+    }
+    win = [x0, x1, y0w, y1w];
+    // Equilibria: Newton from a grid over the window (other variables at their start values) and from the end point.
+    const starts = gridStarts(y0, ix, iy, x0, x1, y0w, y1w, n === 1 ? 25 : 9);
+    starts.push(S.y.at(-1)!.slice(), y0.slice());
+    eqs = equilibria(f, starts, t0);
+    const showField = inp('.od-field').checked, showNull = inp('.od-null').checked;
+    const other = n > 2 ? ` The other variables are held at their start values (${s.vars.filter((_, k) => k !== ix && k !== iy).map((v) => `${v} = ${fmt(y0[s.vars.indexOf(v)])}`).join(', ')}) for the arrows and nullclines.` : '';
+    const tNote = /\bt\b/.test(s.rhs.join(' ')) ? ` The equations depend on t, so the arrows show the directions at t = ${fmt(t0)} only.` : '';
+    if (n === 1) {
+      // Phase line: x' against x.
+      const xs = Array.from({ length: 401 }, (_, k) => x0 + ((x1 - x0) * k) / 400), ys = xs.map((x) => f(t0, [x])[0]);
+      const st = eqs.filter((e) => e.stable === true), un = eqs.filter((e) => e.stable !== true);
+      const series: Series[] = [{ name: `${s.vars[0]}'`, x: xs, y: ys.map((v) => (Math.abs(v) > 1e9 ? NaN : v)), mode: 'line' },
+        { name: 'stable', x: st.map((e) => e.x[0]), y: st.map(() => 0), mode: 'points', marker: 'circle', size: 6 },
+        { name: 'unstable', x: un.map((e) => e.x[0]), y: un.map(() => 0), mode: 'points', marker: 'open-circle', size: 6 }];
+      pFig = chartFigure({ h: 340, xLabel: s.vars[0], yLabel: `${s.vars[0]}'`, series: series.filter((x) => x.x.length), xMin: x0, xMax: x1, marks: [{ kind: 'hline', at: 0 }], legend: 'below' }, `Phase line of ${s.vars[0]}`);
+      paint(q<HTMLCanvasElement>('.od-pfig'), pFig); pMap = null;
+      q('.od-phelp').textContent = `${s.vars[0]} grows where the curve is above zero and shrinks where it is below. Filled dots are stable equilibria, open dots unstable ones.${tNote}`;
+    } else {
+      const vx = s.vars[ix], vy = s.vars[iy];
+      const at = (a: number, b: number) => { const y = y0.slice(); y[ix] = a; y[iy] = b; return f(t0, y); };
+      const ncX = showNull ? zeroContour((a, b) => at(a, b)[ix], x0, x1, y0w, y1w, 90, 90) : [];
+      const ncY = showNull ? zeroContour((a, b) => at(a, b)[iy], x0, x1, y0w, y1w, 90, 90) : [];
+      const paths = [S.y, ...extra];
+      const visEq = eqs.filter((e) => e.x[ix] >= x0 && e.x[ix] <= x1 && e.x[iy] >= y0w && e.x[iy] <= y1w);
+      pFig = {
+        w: 720, h: 546, alt: `Phase portrait, ${vy} against ${vx}`,
+        draw: (ctx, W, H, pal) => {
+          const C = colors(pal);
+          const series: Series[] = paths.map((p, k) => ({ name: k ? '' : 'Solution', x: p.map((r) => r[ix]), y: p.map((r) => r[iy]), mode: 'line', color: C[k ? 1 + ((k - 1) % 3) : 0], width: k ? 1.4 : 1.8 }));
+          const m = chartWith(pal, { xLabel: vx, yLabel: vy, series, legend: 'none', xMin: x0, xMax: x1, yMin: y0w, yMax: y1w }, W, H - 26, ctx);
+          pMap = m;
+          ctx.save(); ctx.beginPath(); ctx.rect(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0); ctx.clip();
+          if (showField) {
+            const gx = 22, gy = 16, cw = (m.px1 - m.px0) / gx, ch = (m.py1 - m.py0) / gy, len = Math.min(cw, ch) * 0.38;
+            ctx.strokeStyle = pal.muted; ctx.fillStyle = pal.muted; ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
+            for (let a = 0; a < gx; a++) for (let b = 0; b < gy; b++) {
+              const cx = m.px0 + (a + 0.5) * cw, cy = m.py0 + (b + 0.5) * ch;
+              const dx0 = x0 + ((cx - m.px0) / (m.px1 - m.px0)) * (x1 - x0), dy0 = y1w - ((cy - m.py0) / (m.py1 - m.py0)) * (y1w - y0w);
+              const d = at(dx0, dy0); if (!Number.isFinite(d[ix]) || !Number.isFinite(d[iy])) continue;
+              // Screen direction: scale data rates to pixels.
+              const sx = (d[ix] / (x1 - x0)) * (m.px1 - m.px0), sy = -(d[iy] / (y1w - y0w)) * (m.py1 - m.py0), h = Math.hypot(sx, sy);
+              if (!(h > 0)) { ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, 7); ctx.fill(); continue; }
+              const ux = sx / h, uy = sy / h, ex = cx + ux * len, ey = cy + uy * len;
+              ctx.beginPath(); ctx.moveTo(cx - ux * len, cy - uy * len); ctx.lineTo(ex, ey); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 5 - uy * 3, ey - uy * 5 + ux * 3); ctx.lineTo(ex - ux * 5 + uy * 3, ey - uy * 5 - ux * 3); ctx.closePath(); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
+          const seg = (list: number[][], col: string, dash: number[]) => { ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.setLineDash(dash); ctx.beginPath(); for (const g of list) { ctx.moveTo(m.X(g[0]), m.Y(g[1])); ctx.lineTo(m.X(g[2]), m.Y(g[3])); } ctx.stroke(); ctx.setLineDash([]); };
+          seg(ncX, C[2], [6, 4]); seg(ncY, C[3], [2, 3]);
+          // Redraw the paths over the arrows, and the start points.
+          paths.forEach((p, k) => { ctx.strokeStyle = C[k ? 1 + ((k - 1) % 3) : 0]; ctx.lineWidth = k ? 1.4 : 1.8; ctx.beginPath(); p.forEach((r, i) => (i ? ctx.lineTo(m.X(r[ix]), m.Y(r[iy])) : ctx.moveTo(m.X(r[ix]), m.Y(r[iy])))); ctx.stroke(); ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(m.X(p[0][ix]), m.Y(p[0][iy]), 3.5, 0, 7); ctx.fill(); });
+          for (const e of visEq) {
+            ctx.beginPath(); ctx.arc(m.X(e.x[ix]), m.Y(e.x[iy]), 6, 0, 7); ctx.lineWidth = 2; ctx.strokeStyle = pal.ink;
+            ctx.fillStyle = e.stable === true ? pal.ink : pal.bg; ctx.fill(); ctx.stroke();
+            if (e.stable === null) { ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(m.X(e.x[ix]), m.Y(e.x[iy]), 6, Math.PI / 2, (3 * Math.PI) / 2); ctx.fill(); }
+          }
+          ctx.restore();
+          // Key.
+          const fs = 12, ky = H - 6; let kx = m.px0;
+          ctx.font = `400 ${fs}px system-ui, sans-serif`; ctx.textBaseline = 'bottom';
+          const item = (draw: () => void, label: string) => { draw(); ctx.fillStyle = pal.ink; ctx.fillText(label, kx + 26, ky); kx += 34 + ctx.measureText(label).width; };
+          if (showNull) {
+            item(() => { ctx.strokeStyle = C[2]; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(kx, ky - 6); ctx.lineTo(kx + 20, ky - 6); ctx.stroke(); ctx.setLineDash([]); }, `${vx}' = 0`);
+            item(() => { ctx.strokeStyle = C[3]; ctx.lineWidth = 1.6; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(kx, ky - 6); ctx.lineTo(kx + 20, ky - 6); ctx.stroke(); ctx.setLineDash([]); }, `${vy}' = 0`);
+          }
+          if (visEq.length) item(() => { ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(kx + 10, ky - 6, 5, 0, 7); ctx.fill(); }, 'stable, ○ unstable');
+        },
+      };
+      paint(q<HTMLCanvasElement>('.od-pfig'), pFig);
+      q('.od-phelp').textContent = `Tap the picture to start another path from that point (up to 8).${showNull ? ` On a nullcline one rate is zero: ${vx} stops changing on the dashed one, ${vy} on the dotted one; equilibria are where they cross.` : ''}${other}${tNote}`;
+    }
+    q('.od-clear').hidden = !extra.length;
+    const shown = eqs.slice(0, 12);
+    q('.od-eqnote').textContent = eqs.length
+      ? `${eqs.length} found by Newton's method from ${starts.length} starting points around the window${eqs.length > 12 ? ' (the first 12 are listed)' : ''}. Eigenvalues are of the Jacobian matrix there, by numerical derivatives. Equilibria outside the area searched may be missed.`
+      : `No equilibria found from ${starts.length} starting points around the window. Widen the window to look further.`;
+    const ev = (e: Eq) => e.eig.map(([re, im]) => (im ? `${sig(re, 4)} ${im > 0 ? '+' : '−'} ${sig(Math.abs(im), 4)}i` : sig(re, 4))).join(', ');
+    table(q('.od-eqtab'), [...s.vars, 'Eigenvalues', 'Type'], shown.map((e) => [...e.x.map((v) => sig(v, 6)), ev(e), e.kind]));
+  }
+
+  // Tap to add a path.
+  q('.od-pfig').addEventListener('click', (e) => {
+    if (!sys || !sol || sys.vars.length < 2 || !pMap) return;
+    const cv = q<HTMLCanvasElement>('.od-pfig'), r = cv.getBoundingClientRect(), k = 720 / r.width;
+    const px = (e.clientX - r.left) * k, py = (e.clientY - r.top) * k;
+    if (px < pMap.px0 || px > pMap.px1 || py < pMap.py0 || py > pMap.py1) return;
+    const ix = Number(q<HTMLSelectElement>('.od-px').value), iy = Number(q<HTMLSelectElement>('.od-py').value);
+    const start = y0.slice();
+    start[ix] = win[0] + ((px - pMap.px0) / (pMap.px1 - pMap.px0)) * (win[1] - win[0]);
+    start[iy] = win[3] - ((py - pMap.py0) / (pMap.py1 - pMap.py0)) * (win[3] - win[2]);
+    const tEval = Array.from({ length: 801 }, (_, j) => t0 + ((t1 - t0) * j) / 800);
+    const p = rk45(sys.make(), t0, start, t1, { rtol: 1e-6, atol: 1e-9, tEval });
+    if (p.y.length < 2) return;
+    // Keep the window as it is while adding paths.
+    if (!inp('.od-x0').value.trim()) { inp('.od-x0').value = sig(win[0], 4); inp('.od-x1').value = sig(win[1], 4); inp('.od-y0w').value = sig(win[2], 4); inp('.od-y1w').value = sig(win[3], 4); }
+    extra.push(p.y); if (extra.length > 8) extra.shift();
+    phase();
+  });
+  q('.od-clear').addEventListener('click', () => { extra = []; phase(); });
+
+  // Bifurcation diagram.
+  function bifStale() { if (bif) { bif = null; bFig = null; q('.od-bfig').hidden = true; q('.od-bcsv').hidden = true; } }
+  q('.od-bgo').addEventListener('click', () => {
+    const berr = q('.od-berr'); berr.hidden = true;
+    if (!sys || !sol) return;
+    const s = sys, param = q<HTMLSelectElement>('.od-bp').value, iv = Number(q<HTMLSelectElement>('.od-bv').value);
+    const a = num(inp('.od-bfrom').value), b = num(inp('.od-bto').value), n = Math.round(num(inp('.od-bn').value));
+    const tr = num(inp('.od-btr').value), rec = num(inp('.od-brec').value);
+    const fail = (m: string) => { berr.textContent = m; berr.hidden = false; };
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) return fail('Type two different parameter values.');
+    if (!(n >= 2 && n <= 400)) return fail('Use between 2 and 400 values.');
+    if (!(tr >= 0) || !(rec > 0)) return fail('The settling time must be 0 or more, and the recording time more than 0.');
+    if (tr + rec > 20000) return fail('Keep the settling plus recording time under 20,000.');
+    const btn = q<HTMLButtonElement>('.od-bgo'); btn.disabled = true; btn.textContent = 'Working…';
+    setTimeout(() => {
+      try {
+        const values = Array.from({ length: n }, (_, k) => a + ((b - a) * k) / (n - 1));
+        const ix = Number(q<HTMLSelectElement>('.od-px').value), iy = s.vars.length > 1 ? Number(q<HTMLSelectElement>('.od-py').value) : -1;
+        const starts = gridStarts(y0, ix, iy, win[0], win[1], win[2], win[3], s.vars.length === 1 ? 15 : 5);
+        const r = bifurcation(s, param, values, iv, y0, { tTransient: tr, tRecord: rec, starts });
+        bif = { ...r, param, v: s.vars[iv] };
+        const by = (k: BifPoint['kind'][]) => r.points.filter((p) => k.includes(p.kind));
+        const osc = by(['max', 'min']), end = by(['end']), st = by(['stable']), un = by(['unstable']);
+        const series: Series[] = [
+          { name: 'Peaks and troughs of the swings', x: osc.map((p) => p.p), y: osc.map((p) => p.v), mode: 'points', marker: 'circle', size: 1.6 },
+          { name: 'Where it settled', x: end.map((p) => p.p), y: end.map((p) => p.v), mode: 'points', marker: 'circle', size: 2.4 },
+          { name: 'Stable equilibrium', x: st.map((p) => p.p), y: st.map((p) => p.v), mode: 'points', marker: 'square', size: 2.6 },
+          { name: 'Unstable equilibrium', x: un.map((p) => p.p), y: un.map((p) => p.v), mode: 'points', marker: 'open-circle', size: 3 },
+        ].filter((x) => x.x.length) as Series[];
+        bFig = chartFigure({ h: 400, xLabel: param, yLabel: s.vars[iv], series, legend: 'below', xMin: Math.min(a, b), xMax: Math.max(a, b) }, `Bifurcation diagram of ${s.vars[iv]} over ${param}`);
+        q('.od-bfig').hidden = false; paint(q<HTMLCanvasElement>('.od-bfig'), bFig); q('.od-bcsv').hidden = false;
+        q('.od-bnote').textContent = `${n} values of ${param}: ${osc.length.toLocaleString('en')} swing peaks and troughs, ${end.length} settled values, ${st.length + un.length} equilibria.${r.failed ? ` At ${r.failed} value${r.failed > 1 ? 's' : ''} the solution blew up or would not finish; ${r.failed > 1 ? 'they are' : 'it is'} left out.` : ''} One value: one dot means it settles; two dots (a peak and a trough) mean a steady swing (a limit cycle); many dots mean a longer cycle or chaos.`;
+      } catch (e) { fail((e as Error).message); }
+      btn.disabled = false; btn.textContent = 'Draw the diagram';
+    }, 30);
+  });
+  q('.od-bcsv').addEventListener('click', () => { if (bif) save(new TextEncoder().encode(csv([[bif.param, bif.v, 'kind'], ...bif.points.map((p) => [p.p, p.v, p.kind])])), 'bifurcation.csv', 'text/csv'); });
+  q('.od-csv').addEventListener('click', () => { if (sys && sol) save(new TextEncoder().encode(csv([['t', ...sys.vars], ...sol.t.map((t, i) => [t, ...sol!.y[i]])])), 'ode-solution.csv', 'text/csv'); });
+
+  // ---------- PDE playground ----------
+  const PDE_DEF = { heat: { k: '0.1', nx: '51', dt: '0.001', T: '0.5', u0: 'sin(pi*x/L)' }, wave: { k: '1', nx: '101', dt: '0.008', T: '2', u0: 'exp(-200*(x - 0.3*L)^2)' } };
+  q('.od-pk').addEventListener('change', () => {
+    const k = q<HTMLSelectElement>('.od-pk').value as 'heat' | 'wave', d = PDE_DEF[k];
+    inp('.od-pkv').value = d.k; inp('.od-pnx').value = d.nx; inp('.od-pdt').value = d.dt; inp('.od-pT').value = d.T; inp('.od-pu0').value = d.u0; inp('.od-pv0').value = '0';
+  });
+  const xFn = (src: string, what: string, L: number) => {
+    let node; try { node = parse(src); } catch (e) { throw new Error(`${what}: ${(e as Error).message}.`); }
+    const bad = variables(node).find((v) => v !== 'x' && v !== 'L');
+    if (bad) throw new Error(`${what} may use only x and L, not ${bad}.`);
+    const g = compile(node, ['x', 'L']); return (x: number) => g([x, L]);
+  };
+  function runPde() {
+    const err = q('.od-perr'); err.hidden = true;
+    const kind = q<HTMLSelectElement>('.od-pk').value as 'heat' | 'wave', bc = q<HTMLSelectElement>('.od-pbc').value as 'fixed' | 'free';
+    q('.od-pkl').textContent = kind === 'heat' ? 'Diffusivity D' : 'Wave speed c';
+    q('.od-pvw').hidden = kind !== 'wave';
+    for (const e of root.querySelectorAll<HTMLElement>('.od-pew')) e.hidden = bc !== 'fixed';
+    try {
+      const L = num(inp('.od-pL').value), k = num(inp('.od-pkv').value), nx = Math.round(num(inp('.od-pnx').value)), dt = num(inp('.od-pdt').value), T = num(inp('.od-pT').value);
+      if (!(L > 0)) throw new Error('The length must be above zero.');
+      if (!(k > 0)) throw new Error(kind === 'heat' ? 'The diffusivity must be above zero.' : 'The wave speed must be above zero.');
+      if (!(nx >= 5 && nx <= 2001)) throw new Error('Use between 5 and 2001 grid points.');
+      if (!(dt > 0) || !(T > 0)) throw new Error('The time step and the end time must be above zero.');
+      const steps = Math.round(T / dt);
+      if (steps * nx > 2e7) throw new Error(`That is ${steps.toLocaleString('en')} steps × ${nx} points, too many for a browser. Use a larger time step, fewer points or a shorter time.`);
+      const left = num(inp('.od-pl').value) || 0, right = num(inp('.od-pr').value) || 0;
+      const u0 = xFn(inp('.od-pu0').value, 'The start shape', L), v0 = kind === 'wave' ? xFn(inp('.od-pv0').value || '0', 'The start speed', L) : undefined;
+      const r = pde({ kind, L, k, nx, dt, tEnd: T, u0, v0, bc, left, right });
+      if (!r.snapU[0].every(Number.isFinite)) throw new Error('The start shape is not a number somewhere between 0 and L.');
+      const dx = r.dx, dtMax = kind === 'heat' ? (0.5 * dx * dx) / k : dx / k;
+      const name = kind === 'heat' ? 'r = D·Δt/Δx²' : 'Courant number c·Δt/Δx';
+      q('.od-pbig').textContent = `${name} = ${sig(r.number, 4)}`;
+      const pill = q('.od-pst');
+      pill.className = `ax-pill od-pst ${r.stable ? 'good' : 'bad'}`;
+      pill.textContent = r.stable ? `Stable: the limit is ${r.limit === 0.5 ? '½' : '1'}` : `Unstable: above the limit of ${r.limit === 0.5 ? '½' : '1'}${r.blewUp != null ? `; blew up at t = ${sig(r.blewUp, 4)}` : ''}`;
+      facts(q('.od-pfacts'), [['Grid spacing Δx', sig(dx, 4)], ['Largest stable Δt', sig(dtMax, 4)], ['Steps', r.steps.toLocaleString('en')], ['Scheme', kind === 'heat' ? 'Forward in time, centred in space (FTCS)' : 'Leapfrog (centred in time and space)']]);
+      const xs = r.x;
+      sFig = chartFigure({ h: 340, xLabel: 'x', yLabel: 'u', series: r.snapU.map((u, j) => ({ name: `t = ${sig(r.snapT[j], 3)}`, x: xs, y: u.map((v) => (Math.abs(v) > 1e6 ? NaN : v)), mode: 'line' })), legend: 'below', xMin: 0, xMax: L }, 'Snapshots of u(x) at several times');
+      paint(q<HTMLCanvasElement>('.od-psnap'), sFig);
+      const grid = r.grid, gT = r.gridT, M = Math.max(1e-12, ...grid.flat().filter((v) => Number.isFinite(v) && Math.abs(v) < 1e6).map(Math.abs));
+      const tTop = gT.at(-1)! || T;
+      mFig = {
+        w: 720, h: 360, alt: 'u(x, t) as colour: x across, time up',
+        draw: (ctx, W, H, pal) => {
+          const m = chartWith(pal, { xLabel: 'x', yLabel: 't', series: [], xMin: 0, xMax: L, yMin: 0, yMax: tTop, grid: false }, W, H, ctx);
+          const neg = pal.red ? [80, 0, 0] : pal.bg === '#ffffff' ? [0, 114, 178] : [86, 180, 233], pos = pal.red ? [163, 0, 0] : pal.bg === '#ffffff' ? [213, 94, 0] : [240, 180, 90];
+          const bg = pal.bg === '#ffffff' ? [255, 255, 255] : [10, 10, 10];
+          const cw = (m.px1 - m.px0) / xs.length;
+          grid.forEach((row, j) => {
+            const ya = m.Y(j ? (gT[j - 1] + gT[j]) / 2 : 0), yb = m.Y(j < gT.length - 1 ? (gT[j] + gT[j + 1]) / 2 : tTop);
+            row.forEach((v, i) => {
+              const s = Number.isFinite(v) ? Math.max(-1, Math.min(1, v / M)) : 1, c = s < 0 ? neg : pos, a = Math.abs(s);
+              ctx.fillStyle = `rgb(${c.map((cc, k) => Math.round(bg[k] + (cc - bg[k]) * a)).join(',')})`;
+              ctx.fillRect(m.px0 + i * cw, yb, cw + 0.6, ya - yb + 0.6);
+            });
+          });
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.strokeRect(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0);
+        },
+      };
+      paint(q<HTMLCanvasElement>('.od-pmap'), mFig);
+      pdeCsv = [['x', ...r.snapT.map((t) => `u at t=${sig(t, 6)}`)], ...xs.map((x, i) => [x, ...r.snapU.map((u) => u[i])])];
+      pdeSection = { title: kind === 'heat' ? 'Heat equation' : 'Wave equation', facts: [[name, sig(r.number, 4)], ['Stability', pill.textContent ?? ''], ['Grid spacing Δx', sig(dx, 4)], ['Time step Δt', sig(dt, 4)], ['Largest stable Δt', sig(dtMax, 4)], ['Start shape', inp('.od-pu0').value], ['Ends', bc === 'fixed' ? `fixed at ${left} and ${right}` : 'insulated / free']], figure: sFig };
+      q('.od-pout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.od-pout').hidden = true; pdeSection = null; }
+  }
+  q('.od-pmax').addEventListener('click', () => {
+    const kind = q<HTMLSelectElement>('.od-pk').value, L = num(inp('.od-pL').value), k = num(inp('.od-pkv').value), nx = Math.round(num(inp('.od-pnx').value));
+    if (!(L > 0 && k > 0 && nx >= 5)) return;
+    const dx = L / (nx - 1); inp('.od-pdt').value = String(+(0.9 * (kind === 'heat' ? (0.5 * dx * dx) / k : dx / k)).toPrecision(3)); runPde();
+  });
+  q('.od-pcsv').addEventListener('click', () => { if (pdeCsv.length) save(new TextEncoder().encode(csv(pdeCsv)), `${q<HTMLSelectElement>('.od-pk').value}-equation.csv`, 'text/csv'); });
+
+  // Wiring.
+  let timer = 0;
+  const later = (fn: () => void) => { clearTimeout(timer); timer = window.setTimeout(fn, 250); };
+  pre.addEventListener('change', () => { if (pre.value !== 'own') { fillPreset(Number(pre.value)); extra = []; sys = null; solve(); } });
+  q<HTMLTextAreaElement>('.od-sys').addEventListener('input', () => { pre.value = 'own'; later(solve); });
+  for (const c of ['.od-t0', '.od-t1', '.od-n']) inp(c).addEventListener('input', () => later(solve));
+  q('.od-y0').addEventListener('input', () => later(solve));
+  for (const c of ['.od-m', '.od-tol']) q(c).addEventListener('change', solve);
+  for (const c of ['.od-px', '.od-py']) q(c).addEventListener('change', () => { extra = []; for (const w of ['.od-x0', '.od-x1', '.od-y0w', '.od-y1w']) inp(w).value = ''; if (sol) phase(); });
+  for (const c of ['.od-x0', '.od-x1', '.od-y0w', '.od-y1w']) inp(c).addEventListener('input', () => later(() => sol && phase()));
+  for (const c of ['.od-field', '.od-null']) q(c).addEventListener('change', () => sol && phase());
+  q('.od-pde').addEventListener('input', () => later(runPde));
+  q('.od-pde').addEventListener('change', (e) => { if ((e.target as HTMLElement).tagName === 'SELECT') runPde(); });
+  document.addEventListener('fibub:theme', () => {
+    if (sol) { if (tFig) paint(q<HTMLCanvasElement>('.od-tfig'), tFig); if (pFig) paint(q<HTMLCanvasElement>('.od-pfig'), pFig); if (bFig && bif) paint(q<HTMLCanvasElement>('.od-bfig'), bFig); }
+    if (sFig && pdeSection) { paint(q<HTMLCanvasElement>('.od-psnap'), sFig); if (mFig) paint(q<HTMLCanvasElement>('.od-pmap'), mFig); }
+  });
+  fillPreset(0); solve(); runPde();
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (sys && sol) {
+      sections.push({ title: 'Solution', text: [`Equations: ${sys.vars.map((v, i) => `${v}' = ${sys!.rhs[i]}`).join('; ')}${sys.params.length ? `; ${sys.params.map((p) => `${p.name} = ${p.text}`).join(', ')}` : ''}.`, `Start: ${sys.vars.map((v, i) => `${v} = ${y0[i]}`).join(', ')} at t = ${t0}.`], facts: [['End values', q('.od-big').textContent ?? ''], ...[...q('.od-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string])], figure: tFig ?? undefined });
+      if (pFig) sections.push({ title: 'Phase portrait and equilibria', figure: pFig, table: eqs.length ? { head: [...sys.vars, 'Eigenvalues', 'Type'], rows: [...q('.od-eqtab').querySelectorAll('tr')].slice(1).map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent ?? '')) } : undefined });
+      if (bif && bFig) sections.push({ title: 'Bifurcation diagram', text: [q('.od-bnote').textContent ?? ''], figure: bFig });
+    }
+    if (pdeSection) sections.push(pdeSection);
+    return { title: 'ODE solver', subtitle: q('.od-big').textContent ?? '', file: 'ode-solver', sections };
+  });
+</script>
