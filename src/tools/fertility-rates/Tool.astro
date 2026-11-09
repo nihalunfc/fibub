@@ -1,0 +1,109 @@
+---
+// Fertility rates: ASFR, TFR, GRR, NRR, mean age at childbearing, CBR and GFR from births by mother's age and women by age.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax fr">
+  <div class="ax-card">
+    <h2>Births and women by age</h2>
+    <label>One row per age group of mothers. Columns: Age, Births, Women (mid-year female population). Optional: "Female births" and "nLx" (female person-years from a life table). Made-up example.
+      <textarea class="fr-in" rows="8" spellcheck="false" wrap="off">Age	Births	Women	nLx
+15-19	26	2620	496954
+20-24	126	2810	495904
+25-29	275	3050	494683
+30-34	303	3190	493195
+35-39	173	3150	491289
+40-44	45	3000	488730
+45-49	6	2900	485158</textarea></label>
+    <DataFile target=".fr-in" maxMB={1} maxCols={8} maxRows={100} />
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Births cover (years) <input class="fr-yrs" type="number" min="0.1" step="any" value="1" inputmode="decimal" /></label>
+      <label>Total population (for CBR) <input class="fr-pop" type="number" min="0" step="1" value="86310" inputmode="numeric" /></label>
+      <label>Sex ratio at birth (boys per girl) <input class="fr-srb" type="number" min="0.5" max="2" step="0.01" value="1.05" inputmode="decimal" /></label>
+      <label>NRR from <select class="fr-nrr"><option value="L" selected>My nLx column</option><option value="p">Survival to mean age</option></select></label>
+      <label class="fr-rl">Life-table radix l0 <input class="fr-radix" type="number" min="1" step="1" value="100000" inputmode="numeric" /></label>
+      <label class="fr-pl" hidden>Survival to mean age at childbearing <input class="fr-p" type="number" min="0" max="1" step="0.001" value="0.99" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Births cover: use 3 if the births are a 3-year total (the women are then the mid-period population). Sex ratio: used for GRR and NRR when there is no female births column. NRR from survival to mean age: GRR × the chance a girl lives to the mean age of childbearing, when you have no life table. Leave the total population empty to skip the crude birth rate.</p>
+    <p class="ax-err fr-err" hidden></p>
+  </div>
+
+  <div class="ax-card fr-out" hidden>
+    <h2>Fertility</h2>
+    <p class="ax-big fr-big"></p>
+    <dl class="ax-facts fr-facts"></dl>
+    <canvas class="ax-fig fr-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="fr-tab"></table></div>
+    <p class="ax-help fr-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small fr-csv">Download rates (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .fr table th, .fr table td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { fertility, groupsOf } from '../../lib/sci/fertility';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], fig: Figure | null = null, csvRows: string[][] = [];
+
+  function calc() {
+    const err = q('.fr-err'), useL = q<HTMLSelectElement>('.fr-nrr').value === 'L';
+    q('.fr-rl').hidden = !useL; q('.fr-pl').hidden = useL;
+    try {
+      const t = parseTable(q<HTMLTextAreaElement>('.fr-in').value);
+      if (t.length < 2) throw new Error('Paste a header row and at least one age group');
+      const h = t[0].map((c) => c.trim().toLowerCase());
+      const ai = Math.max(0, h.findIndex((c) => /^age/.test(c)));
+      const bi = h.findIndex((c) => /^(all )?births?$/.test(c)), wi = h.findIndex((c) => /^(women|females?|female pop.*|population)$/.test(c));
+      const gi = h.findIndex((c) => /^(female|girl)s? births?$|^births?,? (female|girls?)$/.test(c)), li = h.findIndex((c) => /^n?lx$/.test(c));
+      if (bi < 0 || wi < 0) throw new Error('Head the columns Age, Births and Women');
+      if (useL && li < 0) throw new Error('Add an "nLx" column, or choose "Survival to mean age" for the NRR');
+      const rows = t.slice(1).filter((r) => r.some((c) => c.trim()));
+      const col = (i: number, name: string) => rows.map((r, k) => { const v = num(r[i]); if (!Number.isFinite(v)) throw new Error(`Row ${k + 2}: ${name} "${r[i] ?? ''}" is not a number`); return v; });
+      const labels = rows.map((r) => (r[ai] ?? '').trim());
+      const g = groupsOf(labels);
+      const d = { labels, ...g, births: col(bi, 'births'), women: col(wi, 'women'), femaleBirths: gi >= 0 ? col(gi, 'female births') : undefined, L: useL ? col(li, 'nLx') : undefined };
+      const popTxt = q<HTMLInputElement>('.fr-pop').value.trim();
+      const r = fertility(d, { srb: Number(q<HTMLInputElement>('.fr-srb').value), radix: Number(q<HTMLInputElement>('.fr-radix').value), pAM: Number(q<HTMLInputElement>('.fr-p').value), totalPop: popTxt ? Number(popTxt) : undefined, years: Number(q<HTMLInputElement>('.fr-yrs').value) });
+      q('.fr-big').textContent = `Total fertility rate ${r.tfr.toFixed(2)} children per woman`;
+      const fl: [string, string][] = [
+        ['Gross reproduction rate (GRR)', r.grr.toFixed(3)],
+        ['Net reproduction rate (NRR)', r.nrr.toFixed(3)],
+        ['Mean age at childbearing', `${r.mac.toFixed(2)} years`],
+        ['General fertility rate', Number.isFinite(r.gfr) ? `${r.gfr.toFixed(1)} per 1,000 women 15–49` : 'needs groups from 15 to 49'],
+        ['Crude birth rate', Number.isFinite(r.cbr) ? `${r.cbr.toFixed(2)} per 1,000 people` : '–'],
+        ['Births', r.births.toLocaleString('en')],
+      ];
+      const dl = q('.fr-facts'); dl.innerHTML = '';
+      for (const [a, b] of fl) { const e = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; e.append(dt, dd); dl.append(e); }
+      const head = ['Age', 'Births', 'Women', 'ASFR per 1,000', 'Female ASFR per 1,000', 'Share of TFR'];
+      const body = labels.map((l, i) => [l, d.births[i].toLocaleString('en'), d.women[i].toLocaleString('en'), (r.asfr[i] * 1000).toFixed(2), (r.fasfr[i] * 1000).toFixed(2), `${(r.share[i] * 100).toFixed(1)} %`]);
+      const tb = q<HTMLTableElement>('.fr-tab'); tb.innerHTML = '';
+      const hr = tb.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+      const bb = tb.createTBody(); body.forEach((row) => { const tr = bb.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      fig = chartFigure({ w: 600, h: 340, xLabel: "Mother's age (middle of group)", yLabel: 'Births per 1,000 women', yMin: 0, series: [{ name: 'ASFR', x: g.ages.map((a, i) => a + g.widths[i] / 2), y: r.asfr.map((f) => f * 1000), mode: 'both', marker: 'circle', size: 3.5 }], marks: [{ kind: 'vline', at: r.mac, label: 'mean age' }] }, 'Age-specific fertility rates by age of mother, with the mean age at childbearing.');
+      paint(q<HTMLCanvasElement>('.fr-fig'), fig);
+      const note = `ASFR = births ÷ (women × years). TFR = Σ n × ASFR. GRR = TFR counting girls only (${r.grrNote}). NRR = ${r.nrrNote}: daughters per woman after mortality; 1 is replacement. Mean age = Σ (middle of group × ASFR) ÷ Σ ASFR. GFR = births ÷ women 15–49; CBR = births ÷ total population.`;
+      q('.fr-note').textContent = note;
+      csvRows = [['Age', 'Births', 'Women', 'ASFR', 'Female ASFR'], ...labels.map((l, i) => [l, String(d.births[i]), String(d.women[i]), String(r.asfr[i]), String(r.fasfr[i])]), [], ['Measure', 'Value'], ['TFR', String(r.tfr)], ['GRR', String(r.grr)], ['NRR', String(r.nrr)], ['Mean age at childbearing', String(r.mac)], ['GFR per 1000', String(r.gfr)], ['CBR per 1000', String(r.cbr)]];
+      report = [{ title: 'Fertility', facts: [['Total fertility rate', r.tfr.toFixed(3)], ...fl] }, { title: 'Age-specific fertility', figure: fig }, { title: 'By age', table: { head, rows: body, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note }];
+      err.hidden = true; q('.fr-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.fr-out').hidden = true; report = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.fr-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'fertility-rates.csv', 'text/csv'); });
+  new MutationObserver(() => fig && paint(q<HTMLCanvasElement>('.fr-fig'), fig)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Fertility rates', file: 'fertility-rates', sections: report }));
+</script>
