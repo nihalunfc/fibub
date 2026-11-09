@@ -1,0 +1,122 @@
+---
+// Membrane potential: Nernst potential for each ion, the Goldman-Hodgkin-Katz voltage and GHK current-voltage
+// curves. The example concentrations are illustrative textbook-style values, made up and rounded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const ions = [
+  { id: 'K', label: 'K⁺', z: 1, out: '5', inn: '140', p: '1' },
+  { id: 'Na', label: 'Na⁺', z: 1, out: '145', inn: '12', p: '0.05' },
+  { id: 'Cl', label: 'Cl⁻', z: -1, out: '110', inn: '10', p: '0.45' },
+  { id: 'Ca', label: 'Ca²⁺', z: 2, out: '2', inn: '0.0001', p: '0' },
+];
+---
+<div class="ax mbp">
+  <div class="ax-card">
+    <h2>Ions</h2>
+    <div class="ax-scroll">
+      <table class="mb-ions">
+        <thead><tr><th>Ion</th><th>Outside (mM)</th><th>Inside (mM)</th><th>Permeability</th></tr></thead>
+        <tbody>{ions.map((i) => <tr data-ion={i.id} data-z={i.z}><td>{i.label}</td><td><input class="mb-o" inputmode="decimal" value={i.out} aria-label={`${i.label} outside`} /></td><td><input class="mb-i" inputmode="decimal" value={i.inn} aria-label={`${i.label} inside`} /></td><td><input class="mb-p" inputmode="decimal" value={i.p} aria-label={`${i.label} relative permeability`} /></td></tr>)}</tbody>
+      </table>
+    </div>
+    <p class="ax-help">Permeabilities are relative to K⁺ (K⁺ = 1). The example concentrations are illustrative textbook-style values for a mammalian neuron, made up and rounded; type your own.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Temperature (°C) <input class="mb-T" inputmode="decimal" value="37" /></label>
+      <label>Permeabilities <select class="mb-pre"><option value="">As typed</option><option value="rest">Resting: 1 : 0.05 : 0.45</option><option value="peak">Spike peak: 1 : 20 : 0.45</option></select></label>
+      <label>P of K⁺ (cm/s, for currents) <input class="mb-pk" inputmode="decimal" value="1e-6" /></label>
+    </div>
+    <p class="ax-help">The GHK voltage equation uses K⁺, Na⁺ and Cl⁻. When Ca²⁺ is given a permeability, the tool also finds the potential where all the currents add to zero. The absolute K⁺ permeability only scales the currents, not the voltages. For study and teaching, not for clinical use.</p>
+    <p class="ax-err mb-err" hidden></p>
+  </div>
+
+  <div class="ax-card mb-out">
+    <h2>Result</h2>
+    <p class="ax-big mb-big"></p>
+    <dl class="ax-facts mb-facts"></dl>
+    <h3 style="margin-top:14px">Each ion</h3>
+    <div class="ax-scroll"><table class="mb-tab"></table></div>
+    <h3 style="margin-top:14px">GHK current–voltage curves</h3>
+    <canvas class="ax-fig mb-fig"></canvas>
+    <p class="ax-help">Outward current is positive. Each ion's curve crosses zero at its Nernst potential; the total crosses zero at the membrane potential. The bend comes from the unequal concentrations (rectification).</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mb-csv">Download I–V table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { nernst, ghkVoltage, ghkCurrent, totalCurrent, zeroCurrent, rtf, type Ion } from '../../lib/sci/ghk';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mbp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cn = (x: number, d = 6) => String(+x.toPrecision(d));
+  const mv = (x: number) => `${x < 0 ? '−' : x > 0 ? '+' : ''}${Math.abs(x).toFixed(1)} mV`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const LABEL: Record<string, string> = { K: 'K⁺', Na: 'Na⁺', Cl: 'Cl⁻', Ca: 'Ca²⁺' };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.mb-err').textContent = m; q('.mb-err').hidden = false; q('.mb-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.mb-err').hidden = true;
+    const T = num(q<HTMLInputElement>('.mb-T').value), pk = num(q<HTMLInputElement>('.mb-pk').value);
+    if (!(T > -10 && T < 60)) return fail('Type a temperature in °C between −10 and 60.');
+    if (!(pk > 0)) return fail('Type the K⁺ permeability in cm/s (for example 1e-6).');
+    const ions: Ion[] = [];
+    for (const tr of root.querySelectorAll<HTMLTableRowElement>('.mb-ions tbody tr')) {
+      const name = tr.dataset.ion!, z = Number(tr.dataset.z), g = (c: string) => num(tr.querySelector<HTMLInputElement>(c)!.value);
+      const o = g('.mb-o'), i = g('.mb-i'), p = g('.mb-p');
+      if (!(o > 0) || !(i > 0)) return fail(`Type both ${LABEL[name]} concentrations, above zero.`);
+      if (!(p >= 0)) return fail(`The ${LABEL[name]} permeability must be zero or more.`);
+      ions.push({ name, z, out: o, in: i, p });
+    }
+    const mono = ions.filter((i) => Math.abs(i.z) === 1 && i.p > 0);
+    if (!mono.length) return fail('Give K⁺, Na⁺ or Cl⁻ a permeability above zero.');
+    const vm = ghkVoltage(ions, T), ca = ions.find((i) => i.name === 'Ca')!, v0 = ca.p > 0 ? zeroCurrent(ions, T) : vm;
+    q('.mb-out').hidden = false;
+    q('.mb-big').textContent = `Membrane potential (GHK) = ${mv(vm)}`;
+    const facts = [
+      fact('RT/F', `${sig(rtf(T), 4)} mV`, `${sig(rtf(T) * Math.LN10, 4)} mV per tenfold ratio for a monovalent ion at ${sig(T, 3)} °C`),
+      fact('Ratio P(Na⁺) : P(K⁺)', cn(ions[1].p / ions[0].p, 3), ions[1].p / ions[0].p > 1 ? 'Na⁺ dominates: the membrane swings towards E_Na, as at the peak of an action potential' : 'K⁺ dominates: the membrane sits near E_K, as at rest'),
+    ];
+    if (ca.p > 0) facts.splice(0, 0, fact('Zero-current potential with Ca²⁺', Number.isFinite(v0) ? mv(v0) : 'not found', 'where the GHK currents of all four ions add to zero'));
+    q('.mb-facts').replaceChildren(...facts);
+
+    const head = ['Ion', 'Out (mM)', 'In (mM)', 'Nernst E', 'Driving force Vm − E', 'Current at Vm (µA/cm²)'];
+    const rows = ions.map((i) => { const E = nernst(i.z, i.out, i.in, T); return [LABEL[i.name], cn(i.out, 4), cn(i.in, 4), mv(E), mv(v0 - E), i.p > 0 ? sig(ghkCurrent(i, v0, T, pk), 3) : '0']; });
+    const t = q<HTMLTableElement>('.mb-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, k) => { const th = document.createElement('th'); th.textContent = h; if (k) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, k) => { const td = tr.insertCell(); td.textContent = c; if (k) td.className = 'r'; }); });
+
+    const Vs: number[] = []; for (let v = -120; v <= 60.0001; v += 2) Vs.push(Math.round(v));
+    const perm = ions.filter((i) => i.p > 0);
+    fig = chartFigure({ h: 320, xLabel: 'Membrane potential (mV)', yLabel: 'Current (µA/cm²)', legend: 'below', series: [
+      ...perm.map((i) => ({ name: LABEL[i.name], x: Vs, y: Vs.map((v) => ghkCurrent(i, v, T, pk)), mode: 'line' as const })),
+      { name: 'Total', x: Vs, y: Vs.map((v) => totalCurrent(ions, v, T, pk)), mode: 'line' as const, width: 3, color: '#000000' },
+    ], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, { kind: 'vline', at: v0, label: 'Vm', dash: [4, 3] }] }, 'GHK current-voltage curves for each ion and their total');
+    paint(q<HTMLCanvasElement>('.mb-fig'), fig);
+    csvRows = [['V (mV)', ...perm.map((i) => `I ${i.name} (uA/cm2)`), 'I total (uA/cm2)'], ...Vs.map((v) => [String(v), ...perm.map((i) => cn(ghkCurrent(i, v, T, pk))), cn(totalCurrent(ions, v, T, pk))])];
+    sections = [{ title: q('.mb-big').textContent!, text: [`Temperature ${sig(T, 3)} °C. Permeabilities relative to K⁺; P_K = ${sig(pk, 3)} cm/s. For study and teaching, not for clinical use.`], facts: [...q('.mb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: fig }];
+  }
+
+  q('.mb-pre').addEventListener('change', () => {
+    const v = q<HTMLSelectElement>('.mb-pre').value; if (!v) return;
+    const set: Record<string, string> = v === 'rest' ? { K: '1', Na: '0.05', Cl: '0.45' } : { K: '1', Na: '20', Cl: '0.45' };
+    for (const [id, p] of Object.entries(set)) root.querySelector<HTMLInputElement>(`tr[data-ion=${id}] .mb-p`)!.value = p;
+    calc();
+  });
+  root.querySelectorAll('.mb-p').forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.mb-pre').value = ''; }));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  q('.mb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'ghk-iv.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Membrane potential', subtitle: q('.mb-big').textContent ?? '', file: 'membrane-potential', sections }));
+</script>
+
+<style is:global>
+  .mbp select { max-width: 100%; }
+  .mbp .mb-ions input { width: 100%; min-width: 64px; }
+  .mbp .mb-ions td, .mbp .mb-ions th { padding: 5px 4px; }
+  .mbp .mb-tab td { white-space: nowrap; }
+</style>
