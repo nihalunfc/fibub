@@ -1,0 +1,221 @@
+---
+// Age-depth model for a sediment or ice core: linear interpolation, smoothing spline and Monte Carlo with no age
+// reversals; accumulation rates, ages at chosen depths, flagged dates, CSV in and out.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLE } from '../../lib/sci/agedepth';
+---
+<div class="ax adm">
+  <div class="ax-card">
+    <h2>Dated levels</h2>
+    <label>One date per line: depth, age, 1σ error, and a label if you like. Put # in front of a line to leave that date out.
+      <textarea class="adm-in" rows="9" spellcheck="false">{EXAMPLE}</textarea></label>
+    <DataFile target=".adm-in" maxCols={6} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Depth unit <select class="adm-du"><option value="cm">cm</option><option value="m">m</option><option value="mm">mm</option></select></label>
+      <label>Age unit <select class="adm-au">
+        <option value="cal yr BP">cal yr BP</option><option value="yr BP">yr BP</option><option value="yr b2k">yr b2k</option><option value="ka">ka (thousand years)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Radiocarbon dates must be calibrated first (for example with the radiocarbon calibration tool): type the calibrated median or mean and a 1σ that covers the calibrated range. Ages must grow with depth. The example core is made up.</p>
+    <p class="ax-err adm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Model settings</h2>
+    <div class="ax-grid">
+      <label>Top depth <input class="adm-top" inputmode="decimal" placeholder="first date" /></label>
+      <label>Bottom depth <input class="adm-bot" inputmode="decimal" placeholder="last date" /></label>
+      <label>Step <input class="adm-step" inputmode="decimal" placeholder="about 200 steps" /></label>
+      <label>Spline smoothing S <input class="adm-s" inputmode="decimal" placeholder="number of dates" /></label>
+      <label>Monte Carlo runs <input class="adm-n" inputmode="numeric" value="2000" /></label>
+      <label>Random seed <input class="adm-seed" inputmode="numeric" value="1" /></label>
+      <label>Flag dates more than (σ) <input class="adm-z" inputmode="decimal" value="2" /></label>
+      <label>Rates as <select class="adm-rate"><option value="dep">Deposition time (years per depth)</option><option value="acc">Accumulation rate (depth per year)</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="adm-ext" checked /> Extrapolate above the top date and below the bottom date</label>
+    <p class="ax-help"><b>S</b> is the target for Σ((age − curve)/σ)²: the number of dates fits the curve within the errors, 0 passes through every date, larger is smoother. The <b>Monte Carlo</b> draws every date from its normal error, throws away draws where an age goes backwards with depth, and joins the dates with straight lines; the median and the 2.5 and 97.5 % ages give the 95 % envelope. The same seed always gives the same answer.</p>
+    <p class="ax-err adm-serr" hidden></p>
+  </div>
+
+  <div class="ax-card adm-out" hidden>
+    <h2>Age-depth model</h2>
+    <p class="ax-big adm-big"></p>
+    <p class="adm-msg ax-help"></p>
+    <canvas class="ax-fig adm-f1"></canvas>
+    <h3 style="margin:18px 0 6px">The dates</h3>
+    <div class="ax-scroll"><table class="adm-tab"></table></div>
+    <h3 style="margin:18px 0 6px" class="adm-rh">Deposition time</h3>
+    <canvas class="ax-fig adm-f2"></canvas>
+    <h3 style="margin:18px 0 6px">Ages at chosen depths</h3>
+    <label>Depths, one per line or separated by commas
+      <textarea class="adm-pd" rows="3" spellcheck="false">120
+226
+300
+470</textarea></label>
+    <DataFile target=".adm-pd" maxCols={2} maxRows={20000} label="Open a list of depths" />
+    <p class="ax-err adm-perr" hidden></p>
+    <div class="ax-scroll" style="margin-top:8px"><table class="adm-ptab"></table></div>
+    <div class="ax-row" style="margin-top:14px">
+      <button type="button" class="btn small adm-csvm">Model as CSV</button>
+      <button type="button" class="btn secondary small adm-csvp">Ages at depths as CSV</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .adm .adm-tab td:nth-child(n+2), .adm .adm-ptab td:nth-child(n+2) { white-space: nowrap; }
+  .adm .adm-msg:empty { display: none; }
+</style>
+
+<script>
+  import * as A from '../../lib/sci/agedepth';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.adm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value.trim();
+  let figs: Figure[] = [], report: Section[] = [];
+  let model: { grid: number[]; cols: [string, number[]][]; pred: (string | number)[][]; predHead: string[] } | null = null;
+
+  const r1 = (v: number) => (Number.isFinite(v) ? (Math.abs(v) >= 100 ? Math.round(v).toString() : sig(v, 4)) : '–');
+
+  function calc() {
+    const err = q('.adm-err'), serr = q('.adm-serr'), perr = q('.adm-perr');
+    const p = A.parseLevels(q<HTMLTextAreaElement>('.adm-in').value);
+    const msgs: string[] = [];
+    if (p.bad.length) msgs.push(`Line ${p.bad.slice(0, 8).join(', ')}${p.bad.length > 8 ? ' …' : ''}: type a depth, an age and a 1σ error above 0.`);
+    if (p.levels.length < 2) msgs.push('Type at least two dated levels.');
+    err.textContent = msgs.join(' '); err.hidden = !msgs.length;
+    const L = p.levels, du = q<HTMLSelectElement>('.adm-du').value, au = q<HTMLSelectElement>('.adm-au').value;
+    const yrs = au === 'ka' ? 1000 : 1;
+    const top = val('.adm-top') === '' ? L[0]?.depth : num(val('.adm-top')), bot = val('.adm-bot') === '' ? L[L.length - 1]?.depth : num(val('.adm-bot'));
+    const step = val('.adm-step') === '' ? undefined : num(val('.adm-step'));
+    const S = val('.adm-s') === '' ? L.length : num(val('.adm-s'));
+    const N = Math.round(num(val('.adm-n'))), seed = Math.round(num(val('.adm-seed'))), zMax = num(val('.adm-z'));
+    const ext = q<HTMLInputElement>('.adm-ext').checked, asAcc = q<HTMLSelectElement>('.adm-rate').value === 'acc';
+    const sm: string[] = [];
+    if (!(Number.isFinite(top) && Number.isFinite(bot) && bot > top)) sm.push('The bottom depth must be below the top depth.');
+    if (step !== undefined && !(step > 0)) sm.push('The step must be above 0.');
+    if (!(S >= 0)) sm.push('S must be 0 or more.');
+    if (!(N >= 100 && N <= 10000)) sm.push('Monte Carlo runs must be from 100 to 10,000.');
+    if (!Number.isFinite(seed)) sm.push('Type a whole number as the seed.');
+    if (!(zMax > 0)) sm.push('The flag limit must be above 0.');
+    let grid: number[] = [];
+    if (!sm.length) { grid = A.depthGrid(top, bot, step); if (grid.length > 1001) sm.push(`That step gives ${grid.length} depths; use a step that gives 1,000 or fewer.`); }
+    serr.textContent = sm.join(' '); serr.hidden = !sm.length;
+    const ok = !msgs.length && !sm.length;
+    q('.adm-out').hidden = !ok;
+    if (!ok) { model = null; report = []; return; }
+
+    const x = L.map((l) => l.depth), y = L.map((l) => l.age), sd = L.map((l) => l.sd);
+    const sp = A.splineForChi2(x, y, sd, S);
+    const lin = grid.map((d) => A.linearAt(x, y, d, ext)), spl = grid.map((d) => A.splineAt(sp, d, ext));
+    const mc = A.monteCarlo(L, grid, N, seed, ext);
+    const flags = A.flagLevels(L, sp, zMax);
+    const dU = du, aU = au, rateU = asAcc ? `${dU}/${au === 'ka' ? 'ka' : 'yr'}` : `yr/${dU}`;
+    const rate = (s: number) => { const t = s * yrs; return asAcc ? (t > 0 ? (au === 'ka' ? 1000 : 1) / t : NaN) : t; };
+
+    // Messages
+    const notes: string[] = [];
+    if (p.merged.length) notes.push(`Combined (error-weighted mean): ${p.merged.join('; ')}.`);
+    if (p.left.length) notes.push(`${p.left.length} date${p.left.length > 1 ? 's' : ''} left out (# lines), drawn as open circles.`);
+    const back: string[] = []; for (let i = 1; i < grid.length; i++) if (spl[i] < spl[i - 1] - 1e-9) back.push(String(grid[i]));
+    if (back.length) notes.push(`The spline goes backwards in age near ${back[0]} ${dU}${back.length > 1 ? ` (and ${back.length - 1} more step${back.length > 2 ? 's' : ''})` : ''}: raise S, or rely on the Monte Carlo model, which never does.`);
+    const yRev = y.some((v, i) => i && v < y[i - 1]);
+    if (yRev) notes.push('Some dates are younger than the date above them. The Monte Carlo keeps only draws where they swap back, so check those dates.');
+    const acc = mc.n / mc.tries;
+    if (mc.n < N) notes.push(`Only ${mc.n} of ${N} Monte Carlo draws had no age reversal in ${mc.tries.toLocaleString('en')} tries. The dates overlap badly or one is an outlier: leave it out with #.`);
+    else if (acc < 0.01) notes.push(`Only ${sig(acc * 100, 2)} % of draws had no age reversal; check the flagged dates.`);
+    const nFlag = flags.filter((f) => f.outlier || f.reversal).length;
+    q('.adm-big').textContent = `${L.length} dates, ${sig(top, 6)} to ${sig(bot, 6)} ${dU}: ${nFlag ? `${nFlag} flagged` : 'none flagged'}`;
+    q('.adm-msg').textContent = `Monte Carlo: ${mc.n.toLocaleString('en')} draws kept of ${mc.tries.toLocaleString('en')} (${sig(acc * 100, 3)} %). Spline: χ² = ${sig(sp.chi2, 4)}${sp.lambda === Infinity ? ' (a straight line already fits within S)' : ''}. ` + notes.join(' ');
+
+    // Dates table
+    const tb = q<HTMLTableElement>('.adm-tab'); tb.innerHTML = '';
+    const head = [`Depth (${dU})`, `Age (${aU})`, '±1σ', 'Label', 'Spline', 'z', 'Check'];
+    const rows = flags.map((f) => [sig(f.level.depth, 8), r1(f.level.age), r1(f.level.sd), f.level.label, r1(A.splineAt(sp, f.level.depth)), f.z.toFixed(2), f.outlier && f.reversal ? 'Off the curve; reversal' : f.outlier ? 'Off the curve' : f.reversal ? 'Reversal' : 'OK']);
+    const hr = tb.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const body = tb.createTBody();
+    rows.forEach((r) => { const tr = body.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); if (i === 6) { const s = document.createElement('span'); s.className = `ax-pill ${v === 'OK' ? 'good' : 'warn'}`; s.textContent = v; td.append(s); } else td.textContent = v; }); });
+
+    // Figures
+    const ageLab = `Age (${aU})`, depLab = `Depth (${dU})`;
+    const series = [
+      { name: 'Dates (±2σ)', x: y, y: x, xErr: sd.map((s) => 2 * s), mode: 'points' as const, marker: 'circle' as const },
+      ...(p.left.length ? [{ name: 'Left out', x: p.left.map((l) => l.age), y: p.left.map((l) => l.depth), xErr: p.left.map((l) => 2 * l.sd), mode: 'points' as const, marker: 'open-circle' as const }] : []),
+      { name: 'Linear', x: lin, y: grid, mode: 'line' as const, width: 1.2 },
+      { name: 'Spline', x: spl, y: grid, mode: 'line' as const, dash: [6, 3] },
+      ...(mc.n ? [{ name: 'MC median', x: mc.median, y: grid, mode: 'line' as const, width: 2 }, { name: 'MC 95 %', x: mc.lo, y: grid, mode: 'line' as const, dash: [2, 3], width: 1.2, color: '#8a8a8a' }, { name: '', x: mc.hi, y: grid, mode: 'line' as const, dash: [2, 3], width: 1.2, color: '#8a8a8a' }] : []),
+    ];
+    const W = Math.round(Math.min(720, Math.max(420, (q('.adm-out').clientWidth || 720) - 34)));
+    const f1 = chartFigure({ w: W, h: Math.round(W * 0.75), xLabel: ageLab, yLabel: depLab, yReverse: true, series, legend: 'below' }, 'Age-depth model');
+    const linR = grid.map((d) => rate(A.linearSlope(x, y, d, ext))), splR = grid.map((d) => rate(A.splineSlope(sp, d, ext)));
+    let mR = mc.rateMedian.map(rate), lR = mc.rateLo.map(rate), hR = mc.rateHi.map(rate);
+    if (asAcc) [lR, hR] = [hR, lR];
+    const rs = [
+      { name: 'Linear', x: grid, y: linR, mode: 'line' as const, width: 1.2 },
+      { name: 'Spline', x: grid, y: splR, mode: 'line' as const, dash: [6, 3] },
+      ...(mc.n ? [{ name: 'MC median', x: grid, y: mR, mode: 'line' as const, width: 2 }, { name: 'MC 95 %', x: grid, y: lR, mode: 'line' as const, dash: [2, 3], width: 1.2, color: '#8a8a8a' }, { name: '', x: grid, y: hR, mode: 'line' as const, dash: [2, 3], width: 1.2, color: '#8a8a8a' }] : []),
+    ];
+    const rName = asAcc ? 'Accumulation rate' : 'Deposition time';
+    q('.adm-rh').textContent = rName;
+    const f2 = chartFigure({ w: W, h: Math.round(W * 0.5) + 40, xLabel: depLab, yLabel: `${rName} (${rateU})`, series: rs, legend: 'below' }, `${rName} by depth`);
+    figs = [f1, f2]; draw();
+
+    // Ages at chosen depths
+    const pdTxt = q<HTMLTextAreaElement>('.adm-pd').value, pds: number[] = [], pbad: string[] = [];
+    pdTxt.split(/[\n,;\t]+/).map((s) => s.trim()).filter(Boolean).forEach((s, i) => { const v = num(s); if (Number.isFinite(v)) pds.push(v); else if (i || !/[a-z]/i.test(s)) pbad.push(s); });
+    if (pds.length > 5000) pbad.push(`only the first 5,000 of ${pds.length} depths are used`);
+    const pd = pds.slice(0, 5000);
+    perr.textContent = pbad.length ? `Not read: ${pbad.slice(0, 6).join(', ')}${pbad.length > 6 ? ' …' : ''}.` : ''; perr.hidden = !pbad.length;
+    const pm = pd.length ? A.monteCarlo(L, pd, N, seed, ext) : null;
+    const predHead = [`Depth (${dU})`, 'Linear', 'Spline', 'MC median', 'MC 2.5 %', 'MC 97.5 %'];
+    const pred = pd.map((d, i) => [d, A.linearAt(x, y, d, ext), A.splineAt(sp, d, ext), pm ? pm.median[i] : NaN, pm ? pm.lo[i] : NaN, pm ? pm.hi[i] : NaN]);
+    const pt = q<HTMLTableElement>('.adm-ptab'); pt.innerHTML = '';
+    if (pred.length) {
+      const h2 = pt.createTHead().insertRow(); predHead.forEach((h) => { const th = document.createElement('th'); th.textContent = h; h2.append(th); });
+      const b2 = pt.createTBody(); pred.slice(0, 200).forEach((r) => { const tr = b2.insertRow(); r.forEach((v, i) => { tr.insertCell().textContent = i ? r1(v as number) : sig(v as number, 8); }); });
+      if (pred.length > 200) { const tr = b2.insertRow(), td = tr.insertCell(); td.colSpan = 6; td.textContent = `… ${pred.length - 200} more in the CSV`; }
+    }
+    const cols: [string, number[]][] = [['linear', lin], ['spline', spl], ['mc_median', mc.median], ['mc_2.5', mc.lo], ['mc_97.5', mc.hi], ['mc_mean', mc.mean],
+      [`linear_rate_${rateU}`, linR], [`spline_rate_${rateU}`, splR], [`mc_rate_median_${rateU}`, mR], [`mc_rate_2.5_${rateU}`, lR], [`mc_rate_97.5_${rateU}`, hR]];
+    model = { grid, cols, pred: pred.map((r) => r.map((v) => (Number.isFinite(v as number) ? +(v as number).toPrecision(10) : ''))), predHead };
+    report = [
+      { title: 'Model', facts: [['Dates', String(L.length)], ['Depths', `${sig(top, 6)} to ${sig(bot, 6)} ${dU}`], ['Spline S, χ²', `${sig(S, 4)}, ${sig(sp.chi2, 4)}`], ['Monte Carlo', `${mc.n} draws, seed ${seed}, ${sig(acc * 100, 3)} % kept`]], text: [q('.adm-msg').textContent ?? ''] },
+      { title: 'Age-depth plot', figure: f1 },
+      { title: 'Dates', table: { head, rows, align: ['r', 'r', 'r', 'l', 'r', 'r', 'l'] } },
+      { title: rName, figure: f2 },
+      ...(pred.length ? [{ title: 'Ages at chosen depths', table: { head: predHead.map((h, i) => (i ? `${h} (${aU})` : h)), rows: pred.slice(0, 200).map((r) => r.map((v, i) => (i ? r1(v as number) : sig(v as number, 8)))), align: predHead.map(() => 'r' as const) } }] : []),
+    ];
+  }
+  function draw() {
+    if (!figs.length) return;
+    paint(q<HTMLCanvasElement>('.adm-f1'), figs[0]); paint(q<HTMLCanvasElement>('.adm-f2'), figs[1]);
+    q('.adm-f1').dataset.drawn = String(Date.now());
+  }
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); };
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input:not([type=checkbox]), textarea')) later(); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) calc(); });
+  document.addEventListener('fibub:theme', draw);
+  let lastW = 0; window.addEventListener('resize', () => { const w = root.clientWidth; if (Math.abs(w - lastW) > 40) { lastW = w; later(); } });
+
+  q('.adm-csvm').addEventListener('click', () => {
+    if (!model) return;
+    const du = q<HTMLSelectElement>('.adm-du').value;
+    const rows: (string | number)[][] = [[`depth_${du}`, ...model.cols.map((c) => c[0])], ...model.grid.map((d, i) => [d, ...model!.cols.map((c) => (Number.isFinite(c[1][i]) ? +c[1][i].toPrecision(10) : ''))])];
+    save(new TextEncoder().encode(csv(rows)), 'age-depth-model.csv', 'text/csv');
+  });
+  q('.adm-csvp').addEventListener('click', () => {
+    if (!model) return;
+    const du = q<HTMLSelectElement>('.adm-du').value;
+    save(new TextEncoder().encode(csv([[`depth_${du}`, 'linear', 'spline', 'mc_median', 'mc_2.5', 'mc_97.5'], ...model.pred])), 'ages-at-depths.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Age-depth model', subtitle: `${q<HTMLSelectElement>('.adm-au').value}`, file: 'age-depth-model', sections: report }));
+  calc();
+</script>
