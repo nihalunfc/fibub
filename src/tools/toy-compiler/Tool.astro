@@ -1,0 +1,209 @@
+---
+// Compiler stage visualiser: a tiny language through tokens, syntax tree, stack bytecode and a step-through VM.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tc">
+  <div class="ax-card">
+    <h2>Program</h2>
+    <div class="ax-grid"><label>Example <select class="tc-ex">
+      <option value="sum">Add up 1 to 10</option>
+      <option value="fact">Factorial of 25</option>
+      <option value="fib">Fibonacci numbers</option>
+      <option value="gcd">Greatest common divisor (Euclid)</option>
+      <option value="primes">Prime numbers below 60</option>
+      <option value="collatz">Collatz steps for 27</option>
+    </select></label></div>
+    <label style="margin-top:10px">Your program
+      <textarea class="tc-src" rows="11" spellcheck="false" wrap="off"></textarea></label>
+    <p class="ax-help">The language: <code>x = 5;</code> stores a whole number, <code>print x * 2;</code> shows a value, <code>if x &gt; 3 &#123; … &#125; else &#123; … &#125;</code> and <code>while x &gt; 0 &#123; … &#125;</code> repeat or choose, and <code>#</code> starts a comment. Operators: + − * / % (division and remainder round down), == != &lt; &lt;= &gt; &gt;=, and, or, not. True is 1 and false is 0.</p>
+    <p class="ax-err tc-err" hidden></p>
+  </div>
+
+  <div class="ax-card tc-stage">
+    <h2>1. Tokens <small class="tc-tcount"></small></h2>
+    <p class="ax-help" style="margin:0 0 8px">The lexer cuts the text into words: numbers, names, keywords, operators and punctuation. Spaces and comments are dropped.</p>
+    <div class="tc-toks"></div>
+  </div>
+
+  <div class="ax-card tc-stage">
+    <h2>2. Syntax tree <small class="tc-ncount"></small></h2>
+    <p class="ax-help" style="margin:0 0 8px">The parser arranges the tokens into a tree by the grammar: each operator sits above the two values it joins, so 2 + 3 * 4 puts * lower down (done first).</p>
+    <div class="ax-scroll tc-treebox"><canvas class="tc-tree" role="img"></canvas></div>
+    <p class="ax-help tc-big" hidden></p>
+  </div>
+
+  <div class="ax-card tc-stage">
+    <h2>3. Bytecode <small class="tc-icount"></small></h2>
+    <p class="ax-help" style="margin:0 0 8px">The code generator walks the tree and writes instructions for a stack machine: values are pushed on a stack and each operation takes its inputs off the top. if and while become jumps.</p>
+    <div class="ax-scroll tc-codebox"><table class="tc-code"></table></div>
+  </div>
+
+  <div class="ax-card tc-stage">
+    <h2>4. Run it</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small tc-reset" aria-label="Back to the start">⏮</button>
+      <button type="button" class="btn small tc-play">Run</button>
+      <button type="button" class="btn secondary small tc-step">Step ▶</button>
+      <button type="button" class="btn secondary small tc-end" aria-label="Run to the end">⏭</button>
+      <label class="tc-inl">Speed <select class="tc-speed"><option value="400">Slow</option><option value="120" selected>Normal</option><option value="20">Fast</option><option value="1">Very fast</option></select></label>
+    </div>
+    <p class="tc-say" aria-live="polite"></p>
+    <div class="tc-panes">
+      <div><h3>Stack <small>(top first)</small></h3><ol class="tc-stack"></ol></div>
+      <div><h3>Variables</h3><table class="tc-vars"></table></div>
+      <div><h3>Output</h3><pre class="tc-out"></pre></div>
+    </div>
+    <p class="ax-err tc-rerr" hidden></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small tc-csv">Bytecode (CSV)</button>
+      <button type="button" class="btn secondary small tc-tcsv">Tokens (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .tc h2 small, .tc h3 small { font-weight: 400; font-size: 13px; color: var(--muted); }
+  .tc h3 { margin: 0 0 6px; font-size: 15px; }
+  .tc .tc-toks { display: flex; flex-wrap: wrap; gap: 4px; max-height: 260px; overflow-y: auto; }
+  .tc .tk { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); }
+  .tc .tk-keyword { background: var(--accent-soft); font-weight: 700; }
+  .tc .tk-number { background: var(--good-soft); }
+  .tc .tk-operator { background: var(--warn-soft); }
+  .tc .tk-end { color: var(--muted); }
+  .tc .tc-treebox canvas { display: block; }
+  .tc .tc-codebox { max-height: 360px; overflow-y: auto; }
+  .tc .tc-code td { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: nowrap; padding: 3px 8px; }
+  .tc .tc-code tr.on td { background: var(--accent); color: var(--accent-ink); }
+  .tc .tc-inl { display: inline-grid; }
+  .tc .tc-err { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; }
+  .tc .tc-say { margin: 10px 0; font-size: 15px; min-height: 1.5em; }
+  .tc .tc-panes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; }
+  .tc .tc-stack { margin: 0; padding-left: 0; list-style: none; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-height: 1.5em; overflow-wrap: anywhere; }
+  .tc .tc-stack li { border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; margin-bottom: 3px; }
+  .tc .tc-vars td { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 3px 8px; overflow-wrap: anywhere; }
+  .tc .tc-out { margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; min-height: 3em; max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+</style>
+
+<script>
+  import { build, toTree, layoutTree, newVM, stepVM, CompileError, RunError, type Token, type Ins, type VM, type Stmt } from '../../lib/sci/toycomp';
+  import { csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const EX: Record<string, string> = {
+    sum: '# Add up 1 to 10, then say if the total is even (1) or odd (0)\ntotal = 0;\ni = 1;\nwhile i <= 10 {\n  total = total + i;\n  i = i + 1;\n}\nprint total;\nif total % 2 == 0 { print 1; } else { print 0; }\n',
+    fact: '# 25! is far beyond 64-bit integers; whole numbers here never overflow\nn = 25;\nf = 1;\nwhile n > 1 {\n  f = f * n;\n  n = n - 1;\n}\nprint f;\n',
+    fib: '# The first 15 Fibonacci numbers\na = 0;\nb = 1;\nk = 0;\nwhile k < 15 {\n  print a;\n  t = a + b;\n  a = b;\n  b = t;\n  k = k + 1;\n}\n',
+    gcd: '# Euclid: the greatest common divisor of 1071 and 462\na = 1071;\nb = 462;\nwhile b != 0 {\n  t = b;\n  b = a % b;\n  a = t;\n}\nprint a;\n',
+    primes: '# Print the primes below 60 by trial division\nn = 2;\nwhile n < 60 {\n  d = 2;\n  prime = 1;\n  while d * d <= n and prime {\n    if n % d == 0 { prime = 0; }\n    d = d + 1;\n  }\n  if prime { print n; }\n  n = n + 1;\n}\n',
+    collatz: '# How many steps does 27 take to reach 1?\nn = 27;\nsteps = 0;\nwhile n != 1 {\n  if n % 2 == 0 { n = n / 2; } else { n = 3 * n + 1; }\n  steps = steps + 1;\n}\nprint steps;\n',
+  };
+  const LIMIT = 200000;
+  const root = document.querySelector<HTMLElement>('.tc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const srcBox = q<HTMLTextAreaElement>('.tc-src');
+  let tokens: Token[] = [], code: Ins[] = [], ast: Stmt[] = [], vm: VM = newVM(), timer = 0, treeFig: Figure | null = null, runErr: RunError | null = null;
+
+  function treeFigure(): Figure | null {
+    const L = layoutTree(toTree(ast));
+    if (L.nodes.length > 600) return null;
+    const maxLab = Math.max(...L.nodes.map((n) => n.label.length)), slot = Math.max(44, Math.min(14, maxLab) * 8 + 14), rowH = 52;
+    const w = Math.round(L.width * slot + 16), h = (L.depth + 1) * rowH + 10;
+    const X = (x: number) => 8 + (x + 0.5) * slot, Y = (y: number) => 22 + y * rowH;
+    return {
+      w, h, alt: `Syntax tree with ${L.nodes.length} nodes`,
+      draw: (ctx, _W, _H, pal) => {
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1.2;
+        for (const [a, b] of L.edges) { ctx.beginPath(); ctx.moveTo(X(L.nodes[a].x), Y(L.nodes[a].y) + 10); ctx.lineTo(X(L.nodes[b].x), Y(L.nodes[b].y) - 10); ctx.stroke(); }
+        ctx.font = '13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const n of L.nodes) {
+          const lab = n.label.length > 14 ? n.label.slice(0, 13) + '…' : n.label, tw = ctx.measureText(lab).width + 12, x = X(n.x), y = Y(n.y);
+          const stmt = /^(program|if|while|print|then|else|do)$|=$/.test(n.label);
+          ctx.fillStyle = stmt ? pal.accent : pal.bg; ctx.strokeStyle = stmt ? pal.accent : pal.muted;
+          ctx.beginPath(); ctx.roundRect(x - tw / 2, y - 10, tw, 20, 6); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = stmt ? pal.bg : pal.ink; ctx.fillText(lab, x, y + 1);
+        }
+      },
+    };
+  }
+
+  function showVM() {
+    q('.tc-code').querySelectorAll('tr').forEach((r, i) => r.classList.toggle('on', i - 1 === vm.pc && !runErr));
+    const cur = q('.tc-code tr.on'); if (cur) { const box = q('.tc-codebox'); const top = cur.offsetTop; if (top < box.scrollTop || top > box.scrollTop + box.clientHeight - 30) box.scrollTop = top - box.clientHeight / 2; }
+    q('.tc-stack').replaceChildren(...vm.stack.slice().reverse().map((v) => Object.assign(document.createElement('li'), { textContent: v.toString() })));
+    q('.tc-vars').replaceChildren(...[...vm.vars].map(([k, v]) => { const r = document.createElement('tr'); r.append(Object.assign(document.createElement('td'), { textContent: k }), Object.assign(document.createElement('td'), { textContent: v.toString() })); return r; }));
+    q('.tc-out').textContent = vm.out.join('\n');
+    const ins = code[vm.pc];
+    q('.tc-say').textContent = runErr ? `Stopped after ${vm.steps.toLocaleString('en')} steps.` : vm.halted ? `Finished after ${vm.steps.toLocaleString('en')} steps.` : vm.steps >= LIMIT ? `Stopped after ${LIMIT.toLocaleString('en')} steps: is there a loop that never ends?` : `Step ${vm.steps.toLocaleString('en')}. Next: ${vm.pc} ${ins.op}${ins.arg !== undefined ? ' ' + ins.arg : ''} (line ${ins.line}).`;
+    const re = q('.tc-rerr'); re.hidden = !runErr; if (runErr) re.textContent = `Line ${runErr.line}: ${runErr.message}.`;
+    q('.tc-play').textContent = timer ? 'Pause' : 'Run';
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = 0; } }
+  function one(): boolean {
+    if (vm.halted || runErr || vm.steps >= LIMIT) return false;
+    try { stepVM(vm, code); } catch (e) { runErr = e as RunError; return false; }
+    return !vm.halted;
+  }
+  function reset() { stop(); vm = newVM(); runErr = null; showVM(); }
+
+  function compileAll() {
+    stop();
+    const err = q('.tc-err');
+    try { ({ tokens, ast, code } = build(srcBox.value)); }
+    catch (e) {
+      if (!(e instanceof CompileError)) throw e;
+      const line = srcBox.value.split('\n')[e.line - 1] ?? '';
+      err.textContent = `${e.stage}, line ${e.line}, column ${e.col}: ${e.message}.\n${line}\n${' '.repeat(Math.max(0, e.col - 1))}^`;
+      err.hidden = false; root.querySelectorAll<HTMLElement>('.tc-stage').forEach((s) => (s.hidden = true)); code = []; return;
+    }
+    err.hidden = true; root.querySelectorAll<HTMLElement>('.tc-stage').forEach((s) => (s.hidden = false));
+    // Tokens
+    q('.tc-tcount').textContent = `${tokens.length} tokens`;
+    q('.tc-toks').replaceChildren(...tokens.map((t) => { const s = document.createElement('span'); s.className = `tk tk-${t.kind}`; s.textContent = t.kind === 'end' ? 'END' : t.text; s.title = `${t.kind}, line ${t.line}, column ${t.col}`; return s; }));
+    // Tree
+    const L = layoutTree(toTree(ast));
+    q('.tc-ncount').textContent = `${L.nodes.length} nodes`;
+    treeFig = treeFigure();
+    const cv = q<HTMLCanvasElement>('.tc-tree');
+    if (treeFig) { paint(cv, treeFig); cv.style.width = `${treeFig.w}px`; cv.hidden = false; q('.tc-big').hidden = true; }
+    else { cv.hidden = true; q('.tc-big').textContent = `The tree has ${L.nodes.length} nodes, too many to draw clearly. Try a shorter program.`; q('.tc-big').hidden = false; }
+    // Bytecode
+    q('.tc-icount').textContent = `${code.length} instructions`;
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c) => r.append(Object.assign(document.createElement(th ? 'th' : 'td'), { textContent: c }))); return r; };
+    q('.tc-code').replaceChildren(tr(['#', 'Instruction', 'Argument', 'Line'], true), ...code.map((c, i) => tr([String(i), c.op, c.arg ?? '', String(c.line)])));
+    reset();
+  }
+
+  q('.tc-step').addEventListener('click', () => { stop(); one(); showVM(); });
+  q('.tc-end').addEventListener('click', () => { stop(); while (one()); showVM(); });
+  q('.tc-reset').addEventListener('click', reset);
+  q('.tc-play').addEventListener('click', () => {
+    if (timer) { stop(); showVM(); return; }
+    if (vm.halted || runErr) { vm = newVM(); runErr = null; }
+    const ms = Number(q<HTMLSelectElement>('.tc-speed').value);
+    timer = window.setInterval(() => { const n = ms <= 1 ? 50 : 1; let go = true; for (let k = 0; k < n && go; k++) go = one(); if (!go) stop(); showVM(); }, ms);
+    showVM();
+  });
+  q('.tc-speed').addEventListener('change', () => { if (timer) { stop(); q('.tc-play').click(); } });
+  q('.tc-ex').addEventListener('change', () => { srcBox.value = EX[q<HTMLSelectElement>('.tc-ex').value]; compileAll(); });
+  let t = 0;
+  srcBox.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(compileAll, 300); });
+  q('.tc-csv').addEventListener('click', () => code.length && save(new Blob([csv([['address', 'instruction', 'argument', 'line'], ...code.map((c, i) => [i, c.op, c.arg ?? '', c.line])])], { type: 'text/csv' }), 'bytecode.csv', 'text/csv'));
+  q('.tc-tcsv').addEventListener('click', () => tokens.length && save(new Blob([csv([['kind', 'text', 'line', 'column'], ...tokens.map((x) => [x.kind, x.text, x.line, x.col])])], { type: 'text/csv' }), 'tokens.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => {
+    if (!code.length) return { title: 'Compiler stages', file: 'compiler-stages', sections: [] };
+    const done = vm.halted ? vm : (() => { const v = newVM(); try { while (!v.halted && v.steps < LIMIT) stepVM(v, code); } catch { /* shown on the page */ } return v; })();
+    const sections: Section[] = [
+      { title: 'Program', text: srcBox.value.split('\n').filter((l) => l.trim()) },
+      { title: `Tokens (${tokens.length})`, text: [tokens.map((x) => (x.kind === 'end' ? 'END' : x.text)).join('  ')] },
+    ];
+    if (treeFig) sections.push({ title: 'Syntax tree', figure: treeFig });
+    sections.push({ title: `Bytecode (${code.length} instructions)`, table: { head: ['#', 'Instruction', 'Argument', 'Line'], rows: code.map((c, i) => [String(i), c.op, c.arg ?? '', String(c.line)]) } });
+    sections.push({ title: 'Output', text: done.out.length ? done.out : ['(nothing printed)'], facts: [['Steps', done.steps.toLocaleString('en')]] });
+    return { title: 'Compiler stages', subtitle: 'Tokens, syntax tree, bytecode and output', file: 'compiler-stages', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (treeFig) paint(q<HTMLCanvasElement>('.tc-tree'), treeFig); });
+  srcBox.value = EX.sum;
+  compileAll();
+</script>
