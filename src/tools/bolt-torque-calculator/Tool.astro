@@ -1,0 +1,165 @@
+---
+// Bolt preload and tightening torque, with joint stiffness and separation load (src/lib/sci/eng-bolt.ts).
+// Example values (strength, nut factor, friction) are made up or rounded and labelled as examples.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax btq">
+  <div class="ax-card">
+    <h2>Bolt and thread</h2>
+    <div class="ax-grid">
+      <label>Thread system <select class="bt-sys"><option value="iso" selected>ISO metric (mm, kN, N·m)</option><option value="un">Unified inch, UNC/UNF (in, lbf, lbf·ft)</option></select></label>
+      <label><span>Nominal diameter d (<span class="bt-lu">mm</span>)</span> <input class="bt-d" type="text" inputmode="decimal" value="10" /></label>
+      <label class="bt-pbox">Pitch (mm) <input class="bt-p" type="text" inputmode="decimal" value="1.5" /></label>
+      <label class="bt-nbox" hidden>Threads per inch <input class="bt-n" type="text" inputmode="decimal" value="13" /></label>
+      <label><span>Proof strength (<span class="bt-su">MPa</span>)</span> <input class="bt-sp" type="text" inputmode="decimal" value="600" /></label>
+      <label class="bt-fbox">Preload, % of proof load <input class="bt-frac" type="text" inputmode="decimal" value="75" /></label>
+      <label class="bt-pcbox">Property class (optional, e.g. 8.8) <input class="bt-pc" type="text" inputmode="text" value="" /></label>
+    </div>
+    <p class="ax-help">Proof strength is the stress the bolt must carry without permanent stretch; take it from your bolt's grade standard (600 MPa here is just an example). A preload of about 75 % of the proof load is a common choice for joints that are taken apart again, and about 90 % for permanent ones. Example thread: M10 coarse has a 1.5 mm pitch; 1/2-13 UNC has 13 threads per inch.</p>
+    <p class="ax-help bt-pcout" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Tightening</h2>
+    <div class="ax-grid">
+      <label>Find <select class="bt-mode"><option value="T" selected>Torque for this preload</option><option value="F">Preload from a torque</option></select></label>
+      <label class="bt-tbox" hidden><span>Torque (<span class="bt-tu">N·m</span>)</span> <input class="bt-T" type="text" inputmode="decimal" value="50" /></label>
+      <label>Method <select class="bt-meth"><option value="K" selected>Nut factor K (T = K F d)</option><option value="mu">Thread and under-head friction</option></select></label>
+      <label class="bt-kbox">Nut factor K <input class="bt-K" type="text" inputmode="decimal" value="0.2" /></label>
+      <label class="bt-kbox">Typical K (example) <select class="bt-Kpick">
+        <option value="">Pick to fill in K…</option>
+        <option value="0.2">0.20 plain steel, as received (example)</option>
+        <option value="0.15">0.15 lightly oiled (example)</option>
+        <option value="0.12">0.12 with anti-seize or wax (example)</option>
+        <option value="0.25">0.25 dry or zinc plated (example)</option>
+      </select></label>
+      <label class="bt-mbox" hidden>Thread friction μt <input class="bt-mut" type="text" inputmode="decimal" value="0.12" /></label>
+      <label class="bt-mbox" hidden>Under-head friction μb <input class="bt-mub" type="text" inputmode="decimal" value="0.12" /></label>
+      <label class="bt-mbox" hidden><span>Bearing face outside diameter (<span class="bt-lu">mm</span>, empty = 1.5 d)</span> <input class="bt-dw" type="text" inputmode="decimal" value="" /></label>
+      <label class="bt-mbox" hidden><span>Hole diameter (<span class="bt-lu">mm</span>, empty = 1.1 d)</span> <input class="bt-dh" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">K lumps all the friction into one number and is the biggest uncertainty: the same torque can give 25 % more or less clamp force. The typical values are rounded examples; a test on your own parts is best. The friction method splits the torque into stretching the bolt, thread friction and friction under the head or nut.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Joint</h2>
+    <div class="ax-grid">
+      <label><span>Grip length, total clamped thickness (<span class="bt-lu">mm</span>)</span> <input class="bt-grip" type="text" inputmode="decimal" value="30" /></label>
+      <label><span>Plain (unthreaded) shank inside the grip (<span class="bt-lu">mm</span>)</span> <input class="bt-shank" type="text" inputmode="decimal" value="10" /></label>
+      <label><span>Bolt E (<span class="bt-eu">GPa</span>)</span> <input class="bt-E" type="text" inputmode="decimal" value="200" /></label>
+      <label><span>Clamped parts E (<span class="bt-eu">GPa</span>)</span> <input class="bt-Em" type="text" inputmode="decimal" value="200" /></label>
+      <label><span>Tensile load per bolt (<span class="bt-fu">kN</span>)</span> <input class="bt-load" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The clamped parts are treated as one material, squeezed in 30° cones spreading from a washer face 1.5 d wide. The external load pulls the joint apart along the bolt axis (no shear, no bending).</p>
+    <p class="ax-err bt-err" hidden></p>
+  </div>
+
+  <div class="ax-card bt-out">
+    <h2>Results</h2>
+    <p class="ax-big bt-big"></p>
+    <dl class="ax-facts bt-facts"></dl>
+    <p class="ax-help bt-warn" hidden></p>
+    <canvas class="ax-fig bt-fig"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement. Torque only roughly sets preload; critical joints are tightened by angle, stretch or load-indicating washers.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { stressArea, torqueK, torqueFriction, joint, propertyClass } from '../../lib/sci/eng-bolt';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d).replace('−', '-'); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)).replace('-', '−') : t.replace('-', '−'); };
+  const root = document.querySelector<HTMLElement>('.btq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, report: Section[] = [], lastSys = 'iso';
+
+  function run() {
+    const sys = sel('.bt-sys') as 'iso' | 'un', iso = sys === 'iso';
+    if (sys !== lastSys) {
+      // Swap the example values to the other unit system.
+      const set = (c: string, v: string) => { q<HTMLInputElement>(c).value = v; };
+      if (iso) { set('.bt-d', '10'); set('.bt-sp', '600'); set('.bt-grip', '30'); set('.bt-shank', '10'); set('.bt-E', '200'); set('.bt-Em', '200'); set('.bt-load', '10'); set('.bt-T', '50'); }
+      else { set('.bt-d', '0.5'); set('.bt-n', '13'); set('.bt-sp', '85'); set('.bt-grip', '1.25'); set('.bt-shank', '0.5'); set('.bt-E', '30'); set('.bt-Em', '30'); set('.bt-load', '2000'); set('.bt-T', '75'); }
+      set('.bt-dw', ''); set('.bt-dh', ''); lastSys = sys;
+    }
+    const U = iso ? { lu: 'mm', su: 'MPa', eu: 'GPa', fu: 'kN', tu: 'N·m', au: 'mm²', ku: 'kN/mm', F: 1000, S: 1, E: 1000, T: 1000 } : { lu: 'in', su: 'ksi', eu: 'Mpsi', fu: 'lbf', tu: 'lbf·ft', au: 'in²', ku: 'lbf/in', F: 1, S: 1000, E: 1e6, T: 12 };
+    // Internal: mm, N, MPa, N·mm (ISO) or in, lbf, psi, lbf·in (inch). F, S, E, T convert page units to these.
+    root.querySelectorAll('.bt-lu').forEach((e) => { e.textContent = U.lu; });
+    q('.bt-su').textContent = U.su; root.querySelectorAll('.bt-eu').forEach((e) => { e.textContent = U.eu; });
+    q('.bt-fu').textContent = U.fu; q('.bt-tu').textContent = U.tu;
+    q('.bt-pbox').hidden = !iso; q('.bt-nbox').hidden = iso; q('.bt-pcbox').hidden = !iso;
+    const mode = sel('.bt-mode'), meth = sel('.bt-meth');
+    q('.bt-tbox').hidden = mode === 'T'; q('.bt-fbox').hidden = mode !== 'T';
+    root.querySelectorAll<HTMLElement>('.bt-kbox').forEach((e) => { e.hidden = meth !== 'K'; });
+    root.querySelectorAll<HTMLElement>('.bt-mbox').forEach((e) => { e.hidden = meth !== 'mu'; });
+    const pcv = q<HTMLInputElement>('.bt-pc').value.trim(), pc = iso && pcv ? propertyClass(pcv) : null, pco = q('.bt-pcout');
+    pco.hidden = !(iso && pcv);
+    pco.textContent = pc ? `Class ${pcv}: nominal tensile strength ${pc.Rm} MPa and yield ${pc.Re} MPa, read from the class number itself (first number × 100, then × the second number ÷ 10). The proof strength is a little below the yield, often near 0.9 × yield ≈ ${Math.round(0.9 * pc.Re)} MPa; the exact minimum depends on size, so check the bolt's standard.` : 'Type a class as two numbers with a dot, such as 8.8 or 10.9.';
+    const err = q('.bt-err'), out = q('.bt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const d = val('.bt-d'), P = iso ? val('.bt-p') : 1 / val('.bt-n'), Sp = val('.bt-sp') * U.S, frac = val('.bt-frac') / 100;
+    if (!(d > 0)) return fail('Give the nominal diameter.');
+    if (!(P > 0 && P < d / 2)) return fail(iso ? 'Give the thread pitch in mm (less than half the diameter).' : 'Give the threads per inch.');
+    if (!(Sp > 0)) return fail('Give the proof strength of the bolt.');
+    const As = stressArea(d, P, sys);
+    const Dw = q<HTMLInputElement>('.bt-dw').value.trim() ? val('.bt-dw') : 1.5 * d, Dh = q<HTMLInputElement>('.bt-dh').value.trim() ? val('.bt-dh') : 1.1 * d;
+    let K: number, split: ReturnType<typeof torqueFriction> | null = null;
+    if (meth === 'K') { K = val('.bt-K'); if (!(K > 0 && K < 1)) return fail('Give a nut factor K, usually 0.1 to 0.3.'); }
+    else {
+      const mut = val('.bt-mut'), mub = val('.bt-mub');
+      if (!(mut >= 0 && mut < 1 && mub >= 0 && mub < 1)) return fail('Give the friction coefficients (usually 0.08 to 0.2).');
+      if (!(Dw > Dh && Dh >= d)) return fail('The bearing face must be wider than the hole, and the hole at least the bolt diameter.');
+      split = torqueFriction(1, d, P, mut, mub, Dw, Dh); K = split.K;
+    }
+    let Fi: number, T: number;
+    if (mode === 'T') { if (!(frac > 0 && frac <= 1)) return fail('Give the preload as a percentage of the proof load (up to 100).'); Fi = frac * Sp * As; T = torqueK(K, Fi, d); }
+    else { const Tin = val('.bt-T'); if (!(Tin > 0)) return fail('Give the tightening torque.'); T = Tin * U.T; Fi = T / (K * d); }
+    const grip = val('.bt-grip'), shank = val('.bt-shank'), E = val('.bt-E') * U.E, Em = val('.bt-Em') * U.E, load = val('.bt-load') * U.F;
+    if (!(load >= 0)) return fail('Give the external tensile load per bolt (0 or more).');
+    let j; try { j = joint({ d, P, system: sys, Sp, frac, E, Em, grip, shank, load, Fi }); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const f = (N: number) => `${sg(N / U.F, 4)} ${U.fu}`, s = (st: number) => `${sg(st / U.S, 4)} ${U.su}`, tq = (t: number) => `${sg(t / U.T, 3)} ${U.tu}`;
+    q('.bt-big').textContent = mode === 'T' ? `Tighten to ${tq(T)} for a preload of ${f(Fi)}` : `${tq(T)} gives a preload of about ${f(Fi)}`;
+    const facts = [
+      fact('Tensile stress area', `${sg(As, 4)} ${U.au}`, iso ? '(π/4)(d − 0.9382 P)²' : '0.7854 (d − 0.9743 / n)²'),
+      fact('Preload', f(Fi), `${s(j.preloadStress)} in the thread, ${sg((Fi / (Sp * As)) * 100, 3)} % of the proof load ${f(Sp * As)}`),
+      fact('Torque', tq(T), split ? `K = ${sg(K, 3)}: ${sg((split.pitch / split.T) * 100, 3)} % stretches the bolt, ${sg((split.thread / split.T) * 100, 3)} % thread friction, ${sg((split.bearing / split.T) * 100, 3)} % under the head` : `T = K F d with K = ${sg(K, 3)}`),
+      fact('If K is 25 % off', mode === 'T' ? `${f(T / (1.25 * K * d))} to ${f(T / (0.75 * K * d))}` : `${f(Fi / 1.25)} to ${f(Fi / 0.75)}`, 'preload from the same torque with K 25 % higher or lower'),
+      fact('Stiffness', `bolt ${sg(j.kb / U.F, 4)}, parts ${sg(j.km / U.F, 4)} ${U.ku}`, `joint constant C = kb / (kb + km) = ${sg(j.C, 3)}: the bolt feels ${sg(j.C * 100, 3)} % of the external load`),
+      fact('Separation load', f(j.P0), `the external load that unclamps the joint, Fi / (1 − C); factor ${Number.isFinite(j.nSep) ? sg(j.nSep, 3) : '–'} on your load`),
+      fact('Under the load', `bolt ${f(j.Fb)}, clamp left ${f(j.Fm)}`, `bolt stress ${s(j.boltStress)}; yield factor ${sg(j.np, 3)} = proof load ÷ bolt load; load factor ${Number.isFinite(j.nProof) ? sg(j.nProof, 3) : '–'} before the bolt reaches proof`),
+    ];
+    q('.bt-facts').replaceChildren(...facts);
+    const warn = q('.bt-warn'), msgs: string[] = [];
+    if (j.separated) msgs.push('The external load is above the separation load: the parts open up and the bolt carries the whole load, which leads to fatigue and loosening. Raise the preload or use more or bigger bolts.');
+    if (j.Fb > Sp * As) msgs.push('The bolt load is above its proof load: it will stretch permanently.');
+    if (Fi > Sp * As) msgs.push('The preload alone is above the proof load.');
+    warn.textContent = msgs.join(' '); warn.hidden = !msgs.length;
+    // Joint diagram: force against stretch of the bolt and squeeze of the parts.
+    const db = Fi / j.kb, dm = Fi / j.km, dl = j.separated ? load / j.kb - db : (j.C * load) / j.kb, sc = 1000, xu = iso ? 'µm' : 'thou (0.001 in)';
+    fig = chartFigure({ w: 380, h: 240, xLabel: `Bolt stretch (${xu})`, yLabel: `Force (${U.fu})`, xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Bolt', x: [0, db * sc, (db + Math.max(dl, 0) * 1.6) * sc], y: [0, Fi / U.F, (Fi + j.kb * Math.max(dl, 0) * 1.6) / U.F], mode: 'line', width: 2 },
+      { name: 'Clamped parts', x: [db * sc, (db + dm) * sc], y: [Fi / U.F, 0], mode: 'line', width: 2 },
+      ...(load > 0 ? [{ name: 'External load', x: [(db + dl) * sc, (db + dl) * sc], y: [j.Fm / U.F, j.Fb / U.F], mode: 'both' as const, width: 2 }] : []),
+    ] }, 'Joint diagram: bolt and clamped-part stiffness lines crossing at the preload');
+    paint(q<HTMLCanvasElement>('.bt-fig'), fig);
+    report = [{ title: q('.bt-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note: 'For study and planning, not a substitute for professional judgement.' }];
+  }
+
+  q('.bt-Kpick').addEventListener('change', () => { const v = sel('.bt-Kpick'); if (v) q<HTMLInputElement>('.bt-K').value = v; q<HTMLSelectElement>('.bt-Kpick').value = ''; run(); });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.bt-out').hidden) paint(q<HTMLCanvasElement>('.bt-fig'), fig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Bolt preload and torque', subtitle: q('.bt-big').textContent ?? '', file: 'bolt-torque', sections: report }));
+</script>
+
+<style is:global>
+  .btq select, .btq input { max-width: 100%; }
+</style>
