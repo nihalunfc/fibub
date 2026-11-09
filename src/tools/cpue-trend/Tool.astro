@@ -1,0 +1,269 @@
+---
+// Catch per unit effort: nominal CPUE by year and a log-linear standardised index (year + factors) with confidence
+// intervals and a trend. The example records are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const recs = `year,catch (kg),effort (hours),vessel,area
+2015,50,21.2,Alpha,South
+2015,13,9.5,Comet,North
+2015,110,19.3,Bravo,South
+2015,68,25.3,Alpha,North
+2015,34,29.6,Comet,South
+2015,53,15.8,Bravo,South
+2015,29,10.8,Comet,South
+2015,100,27.7,Alpha,South
+2015,0,27.8,Bravo,North
+2015,20,15.6,Alpha,North
+2015,45,8.4,Bravo,South
+2015,0,23.2,Bravo,North
+2016,24,14.8,Comet,North
+2016,29,8.5,Alpha,South
+2016,24,12.3,Alpha,South
+2016,13,8.6,Comet,South
+2016,59,14.4,Alpha,South
+2016,20,12.8,Comet,North
+2016,25,15.5,Comet,North
+2016,24,8.9,Bravo,South
+2016,37,24.3,Alpha,North
+2016,82,25.2,Bravo,South
+2016,61,17.7,Bravo,North
+2016,7,8.8,Comet,North
+2017,27,13.4,Comet,North
+2017,23,22.0,Comet,North
+2017,19,13.1,Alpha,North
+2017,77,22.0,Bravo,South
+2017,23,14.9,Alpha,North
+2017,23,9.9,Alpha,North
+2017,16,9.5,Comet,North
+2017,35,18.2,Alpha,South
+2017,107,24.7,Bravo,South
+2017,30,11.0,Alpha,South
+2017,107,21.3,Alpha,South
+2017,45,24.2,Alpha,South
+2018,92,22.8,Bravo,South
+2018,25,10.1,Comet,South
+2018,57,25.6,Alpha,North
+2018,25,24.6,Comet,North
+2018,32,16.5,Alpha,North
+2018,125,24.4,Bravo,South
+2018,39,9.4,Bravo,South
+2018,152,25.7,Bravo,South
+2018,71,16.2,Alpha,South
+2018,39,17.4,Bravo,South
+2018,73,19.6,Bravo,North
+2018,13,11.8,Comet,North
+2019,15,9.0,Bravo,North
+2019,32,17.2,Alpha,South
+2019,15,13.6,Bravo,North
+2019,25,16.9,Bravo,North
+2019,35,16.0,Alpha,South
+2019,21,12.8,Alpha,North
+2019,23,9.0,Bravo,South
+2019,16,16.0,Comet,North
+2019,49,16.0,Bravo,South
+2019,72,22.6,Alpha,South
+2019,79,27.9,Bravo,South
+2019,16,12.0,Alpha,North
+2020,19,19.0,Alpha,North
+2020,48,18.7,Alpha,South
+2020,49,11.7,Bravo,South
+2020,12,8.7,Alpha,North
+2020,64,28.1,Bravo,South
+2020,59,19.5,Bravo,South
+2020,22,13.4,Alpha,North
+2020,34,17.6,Bravo,South
+2020,50,21.0,Alpha,South
+2020,0,25.3,Bravo,North
+2020,22,9.5,Bravo,North
+2020,32,20.4,Alpha,North
+2021,11,8.0,Alpha,North
+2021,19,9.1,Alpha,South
+2021,47,15.8,Bravo,South
+2021,106,27.6,Alpha,South
+2021,17,10.8,Comet,South
+2021,113,23.1,Bravo,South
+2021,25,22.9,Comet,South
+2021,63,23.0,Bravo,North
+2021,0,8.7,Comet,North
+2021,20,10.7,Comet,North
+2021,21,14.8,Alpha,North
+2021,10,8.6,Alpha,South
+2022,29,22.9,Alpha,North
+2022,37,23.7,Alpha,North
+2022,64,24.7,Alpha,South
+2022,17,17.3,Comet,North
+2022,65,23.0,Bravo,South
+2022,45,18.6,Bravo,South
+2022,24,16.2,Comet,South
+2022,11,10.0,Comet,North
+2022,19,11.4,Comet,South
+2022,68,26.3,Alpha,South
+2022,25,15.1,Alpha,South
+2022,44,15.1,Bravo,South
+2023,17,18.5,Comet,North
+2023,28,14.9,Comet,North
+2023,33,28.7,Comet,South
+2023,36,23.9,Bravo,North
+2023,22,22.9,Alpha,South
+2023,52,26.0,Alpha,North
+2023,9,11.6,Comet,North
+2023,13,11.3,Alpha,North
+2023,72,18.0,Alpha,South
+2023,14,19.8,Alpha,South
+2023,34,15.1,Alpha,South
+2023,0,26.3,Alpha,North
+2024,37,21.9,Alpha,North
+2024,22,28.2,Alpha,South
+2024,51,13.5,Bravo,South
+2024,43,29.6,Alpha,South
+2024,19,15.3,Comet,North
+2024,22,19.7,Alpha,South
+2024,44,22.1,Bravo,South
+2024,23,19.3,Comet,North
+2024,29,27.3,Comet,North
+2024,15,23.6,Comet,North
+2024,37,20.1,Alpha,North
+2024,9,10.4,Alpha,North`;
+---
+<div class="ax cpu">
+  <div class="ax-card">
+    <h2>Catch and effort records</h2>
+    <label><span>One row per trip, set or haul: year, catch, effort, then any factors (vessel, area, gear, month…)</span> <textarea class="cp-data" rows="9" spellcheck="false">{recs}</textarea></label>
+    <DataFile target=".cp-data" maxCols={10} maxRows={50000} />
+    <p class="ax-help">Catch and effort in any units (kg and hours, numbers and hooks): CPUE is catch ÷ effort. Columns after the third are factors, treated as categories; a first row of names labels them. Up to 50,000 records and 7 factors. The example (120 trips, 2015 to 2024, three vessels in two areas) is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Zero catches <select class="cp-z">
+        <option value="drop" selected>Leave them out of the model</option>
+        <option value="add">Keep them: add 10 % of mean CPUE</option>
+      </select></label>
+    </div>
+    <fieldset class="cp-fs" hidden>
+      <legend>Factors in the model</legend>
+      <div class="cp-fl"></div>
+    </fieldset>
+    <p class="ax-help">The standardised index fits ln(CPUE) = year + factors (a lognormal GLM) by least squares, so a year in which more fishing happened in a richer area or by a better vessel is not mistaken for more fish. A logarithm of zero is impossible: leave zero catches out (the index then follows catch rates when fish were caught), or add a small constant to every CPUE.</p>
+    <p class="ax-err cp-err" hidden></p>
+  </div>
+
+  <div class="ax-card cp-out">
+    <h2>CPUE index</h2>
+    <p class="ax-big cp-big"></p>
+    <dl class="ax-facts cp-facts"></dl>
+    <canvas class="ax-fig cp-fig"></canvas>
+    <h3>By year</h3>
+    <div class="ax-scroll"><table class="cp-tab"></table></div>
+    <details class="cp-sd">
+      <summary>Factor effects (table)</summary>
+      <div class="ax-scroll"><table class="cp-eff"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cp-csv">Download the index (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { cpueIndex, type Rec } from '../../lib/sci/cpue';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const pc = (x: number) => `${x < 0 ? '−' : '+'}${Math.abs(x).toFixed(1)} %`;
+  const root = document.querySelector<HTMLElement>('.cpu')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], factorKey = '';
+  const off = new Set<string>();
+
+  function table(sel: string, head: string[], rows: string[][], left = 1) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= left) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i >= left) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.cp-err').textContent = m; q('.cp-err').hidden = false; q('.cp-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.cp-err').hidden = true;
+    const all = parseTable(q<HTMLTextAreaElement>('.cp-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    if (!all.length) return fail('Give one row per record: year, catch, effort, then any factors.');
+    const head = !Number.isFinite(num(all[0][0])) ? all[0] : null, body = head ? all.slice(1) : all;
+    if (!body.length) return fail('Give at least one record under the header row.');
+    if (body.length > 50000) return fail('Up to 50,000 records, please.');
+    const width = Math.max(...body.map((r) => r.length));
+    if (width < 3) return fail('Each record needs at least a year, a catch and an effort.');
+    if (width - 3 > 7) return fail('Up to 7 factor columns, please.');
+    const names = Array.from({ length: width - 3 }, (_, j) => (head?.[3 + j]?.trim() || `Factor ${j + 1}`));
+    // Factor checkboxes, rebuilt when the columns change.
+    const key = names.join('|');
+    if (key !== factorKey) {
+      factorKey = key; off.clear();
+      q('.cp-fl').replaceChildren(...names.map((n, j) => { const l = document.createElement('label'); l.className = 'cp-ck'; const c = document.createElement('input'); c.type = 'checkbox'; c.checked = true; c.dataset.j = String(j); c.addEventListener('change', () => { if (c.checked) off.delete(String(j)); else off.add(String(j)); later(); }); l.append(c, ` ${n}`); return l; }));
+    }
+    q('.cp-fs').hidden = names.length === 0;
+    const recs: Rec[] = [];
+    for (let i = 0; i < body.length; i++) {
+      const r = body[i], row = i + 1 + (head ? 1 : 0), y = num(r[0]), c = num(r[1]), e = num(r[2]);
+      if (!(Number.isInteger(y) && y >= 1000 && y <= 3000)) return fail(`Row ${row}: give the year as a whole number, like 2024.`);
+      if (!(c >= 0)) return fail(`Row ${row}: give the catch (0 or more).`);
+      if (!(e > 0)) return fail(`Row ${row}: give the effort (above 0).`);
+      const f = names.map((_, j) => (r[3 + j] ?? '').trim());
+      const miss = f.findIndex((v, j) => v === '' && !off.has(String(j)));
+      if (miss >= 0) return fail(`Row ${row}: give the ${names[miss]}, or untick that factor.`);
+      recs.push({ year: y, catch: c, effort: e, f });
+    }
+    const use = names.map((_, j) => j).filter((j) => !off.has(String(j)));
+    const zeros = q<HTMLSelectElement>('.cp-z').value as 'drop' | 'add';
+    if (new Set(recs.map((r) => r.year)).size < 2) return fail('Give records from at least 2 years.');
+    let r;
+    try { r = cpueIndex(recs.map((x) => ({ ...x, f: use.map((j) => x.f[j]) })), use.map((j) => names[j]), zeros); } catch (e) { return fail((e as Error).message); }
+    q('.cp-out').hidden = false;
+    const Y = r.years, y0 = Y[0], y1 = Y[Y.length - 1];
+    q('.cp-big').textContent = r.trend ? `Standardised CPUE ${r.trend.pct < 0 ? 'fell' : 'rose'} ${Math.abs(r.trend.pct).toFixed(1)} % a year, ${y0.year} to ${y1.year}` : `Standardised CPUE, ${y0.year} to ${y1.year}`;
+    const mN = Y.reduce((s, v) => s + v.nominal, 0) / Y.length, mI = Y.reduce((s, v) => s + v.index, 0) / Y.length;
+    q('.cp-facts').replaceChildren(
+      ...(r.trend ? [fact('Trend', `${pc(r.trend.pct)} a year`, `95 % interval ${pc(r.trend.lo)} to ${pc(r.trend.hi)}; a straight line through ln(index) against year, R² ${sg(r.trend.r2, 2)}`)] : [fact('Trend', 'needs 3 or more years')]),
+      fact('Change over the series', `${pc(100 * (y1.index / y0.index - 1))} standardised, ${pc(100 * (y1.nominal / y0.nominal - 1))} nominal`, `${y0.year} to ${y1.year}`),
+      fact('Model', `ln(CPUE) = year${use.length ? ' + ' + use.map((j) => names[j]).join(' + ') : ''}`, `${r.n} records, ${r.p} terms, residual SD ${sg(r.s, 3)} on the log scale, R² ${sg(r.r2, 2)}`),
+      fact('Zero catches', r.dropped ? `${r.dropped} left out` : zeros === 'add' ? `kept, with ${sg(r.delta, 3)} added to every CPUE` : 'none', ''),
+      fact('Index units', 'CPUE at the reference levels', r.effects.filter((e) => e.ref).map((e) => `${e.factor} = ${e.level}`).join(', ') || 'no other factors'),
+    );
+    const x = Y.map((v) => v.year);
+    fig = chartFigure({ h: 320, xLabel: 'Year', yLabel: 'Relative CPUE (mean = 1)', yMin: 0, legend: 'below', series: [
+      { name: 'Standardised', x, y: Y.map((v) => v.index / mI), mode: 'both', width: 2, size: 4 },
+      { name: '95 % interval', x, y: Y.map((v) => v.lo / mI), mode: 'line', width: 1, dash: [4, 3], color: '#888888' },
+      { name: '', x, y: Y.map((v) => v.hi / mI), mode: 'line', width: 1, dash: [4, 3], color: '#888888' },
+      { name: 'Nominal', x, y: Y.map((v) => v.nominal / mN), mode: 'both', width: 1.5, marker: 'open-square', dash: [6, 4] },
+    ] }, `Nominal and standardised CPUE index by year, each scaled to a mean of 1, with the 95 % interval`);
+    paint(q<HTMLCanvasElement>('.cp-fig'), fig);
+    const head2 = ['Year', 'Records', 'Catch > 0', 'Nominal CPUE', 'Standardised', '95 % from', 'to'];
+    const rows = Y.map((v) => [String(v.year), String(v.records), String(v.positive), sg(v.nominal, 4), sg(v.index, 4), sg(v.lo, 4), sg(v.hi, 4)]);
+    table('.cp-tab', head2, rows);
+    const head3 = ['Factor', 'Level', 'Records', 'CPUE × (vs reference)', '95 % from', 'to'];
+    const rows3 = r.effects.map((e) => [e.factor, e.level, String(e.n), e.ref ? '1 (reference)' : sg(e.mult, 3), e.ref ? '' : sg(e.lo, 3), e.ref ? '' : sg(e.hi, 3)]);
+    table('.cp-eff', head3, rows3, 2);
+    csvRows = [['year', 'records', 'positive_records', 'catch', 'effort', 'nominal_cpue', 'standardised_cpue', 'ci95_low', 'ci95_high', 'se_log', 'nominal_relative', 'standardised_relative'], ...Y.map((v) => [String(v.year), String(v.records), String(v.positive), String(v.catch), sg(v.effort, 8), sg(v.nominal, 6), sg(v.index, 6), sg(v.lo, 6), sg(v.hi, 6), sg(v.se, 6), sg(v.nominal / mN, 6), sg(v.index / mI, 6)])];
+    sections = [{ title: q('.cp-big').textContent!, facts: [...q('.cp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head: head2, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      ...(rows3.length ? [{ title: 'Factor effects', table: { head: head3, rows: rows3, align: ['l', 'l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : [])];
+  }
+
+  let timer = 0;
+  function later() { clearTimeout(timer); timer = window.setTimeout(calc, 250); }
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.cp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'cpue-index.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cp-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'CPUE index', subtitle: q('.cp-big').textContent ?? '', file: 'cpue-index', sections }));
+</script>
+
+<style is:global>
+  .cpu select { max-width: 100%; }
+  .cpu textarea { width: 100%; }
+  .cpu h3 { margin: 18px 0 8px; font-size: 16px; }
+  .cpu .cp-fs { border: 1px solid var(--line, #ccc); border-radius: 8px; padding: 8px 12px; margin: 12px 0 0; }
+  .cpu .cp-fs legend { font-size: 14px; padding: 0 4px; }
+  .cpu .cp-fl { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .cpu .cp-ck { display: flex; align-items: center; gap: 6px; color: inherit; font-size: 15px; }
+  .cpu .cp-sd { margin-top: 14px; }
+  .cpu .cp-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

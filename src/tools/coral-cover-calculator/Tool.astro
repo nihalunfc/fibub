@@ -1,0 +1,221 @@
+---
+// Coral cover by photo-quadrat point count (as CPCe does): random, stratified random or grid points on each photo,
+// the user labels each point with a category, and cover per category is pooled over all photos with a binomial
+// (Wilson) interval. Photos never leave the browser. The example quadrats are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ccv">
+  <div class="ax-card">
+    <h2>Quadrat photos</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cc-open">Add photos</button>
+      <input type="file" class="cc-file" accept="image/*" multiple hidden />
+      <button type="button" class="btn secondary small cc-ex">Use the example</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Points <select class="cc-mode"><option value="stratified" selected>Stratified random (one in each cell)</option><option value="random">Simple random</option><option value="grid">Regular grid</option></select></label>
+      <label class="cc-o-n" hidden>Points per photo <input class="cc-n" type="number" min="1" max="500" step="1" value="25" inputmode="numeric" /></label>
+      <label class="cc-o-rc">Rows <input class="cc-rows" type="number" min="1" max="30" step="1" value="5" inputmode="numeric" /></label>
+      <label class="cc-o-rc">Columns <input class="cc-cols" type="number" min="1" max="30" step="1" value="5" inputmode="numeric" /></label>
+      <label>Border left clear (%) <input class="cc-border" type="number" min="0" max="40" step="1" value="2" inputmode="numeric" /></label>
+      <label>Random seed <input class="cc-seed" type="number" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">New photos get points with these settings (photo 1 uses the seed, photo 2 the seed + 1, and so on, so the same settings give the same points). <b>Place points again</b> redoes the shown photo and clears its labels.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-work" hidden>
+    <h2>Label the points</h2>
+    <div class="ax-row">
+      <label class="cc-pl">Photo <select class="cc-photo-sel"></select></label>
+      <button type="button" class="btn secondary small cc-replace">Place points again</button>
+      <button type="button" class="btn secondary small cc-del">Remove this photo</button>
+    </div>
+    <canvas class="cc-photo"></canvas>
+    <p class="cc-where"></p>
+    <div class="cc-cats"></div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cc-prev">◀ Previous point</button>
+      <button type="button" class="btn secondary small cc-next">Next point ▶</button>
+      <button type="button" class="btn secondary small cc-unl">Clear this label</button>
+    </div>
+    <p class="ax-help">Tap a point on the photo to pick it, then tap its category (or press 1 to 9). The page moves to the next unlabelled point. The photos stay on your device and are never uploaded.</p>
+    <label style="margin-top:12px">Categories, one per line <textarea class="cc-catlist" rows="6" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Left out of cover (comma separated) <input class="cc-skip" type="text" value="Shadow or tape" /></label>
+      <label>Interval <select class="cc-lvl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">Points on a left-out category (shadow, tape, the quadrat frame, "can't tell") are not counted in the total, as point-count programs do.</p>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <h2>Cover</h2>
+    <p class="ax-big cc-big"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <div class="ax-scroll"><table class="cc-tab"></table></div>
+    <h3 class="cc-h3">By photo (% of counted points)</h3>
+    <div class="ax-scroll"><table class="cc-ptab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cc-csv">Download cover (CSV)</button>
+      <button type="button" class="btn secondary small cc-pcsv">Download every point (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleReef, placePoints, cover, CORAL_CATS, dist, type Pt } from '../../lib/sci/plantimg';
+  import { readPhoto, photoCanvas, tapAt, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ccv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  type Photo = { name: string; w: number; h: number; img: HTMLCanvasElement; pts: Pt[]; lab: (string | null)[] };
+  let photos: Photo[] = [], cur = 0, sel = 0, cats: string[] = [], sections: Section[] = [], sumRows: (string | number)[][] = [];
+
+  const seedFor = (i: number) => Math.round(Number(inp('.cc-seed').value) || 0) + i;
+  function layout(): { mode: 'random' | 'stratified' | 'grid'; n: number; rows: number; cols: number; border: number } | string {
+    const mode = q<HTMLSelectElement>('.cc-mode').value as 'random' | 'stratified' | 'grid', n = Number(inp('.cc-n').value), rows = Number(inp('.cc-rows').value), cols = Number(inp('.cc-cols').value), b = Number(inp('.cc-border').value);
+    if (mode === 'random' && !(Number.isInteger(n) && n >= 1 && n <= 500)) return 'Give 1 to 500 points per photo.';
+    if (mode !== 'random' && !(Number.isInteger(rows) && Number.isInteger(cols) && rows >= 1 && cols >= 1 && rows * cols <= 500)) return 'Give whole numbers of rows and columns, at most 500 points in all.';
+    if (!(b >= 0 && b <= 40)) return 'The border runs from 0 to 40 %.';
+    return { mode, n, rows, cols, border: b / 100 };
+  }
+  function place(p: Photo, i: number): string | null {
+    const l = layout(); if (typeof l === 'string') return l;
+    p.pts = placePoints(l.mode, p.w, p.h, { ...l, seed: seedFor(i) }); p.lab = p.pts.map(() => null); return null;
+  }
+  function showErr(m: string | null) { q('.cc-err').textContent = m ?? ''; q('.cc-err').hidden = !m; }
+  function modeFields() { const m = q<HTMLSelectElement>('.cc-mode').value; root.querySelectorAll<HTMLElement>('.cc-o-n').forEach((e) => (e.hidden = m !== 'random')); root.querySelectorAll<HTMLElement>('.cc-o-rc').forEach((e) => (e.hidden = m === 'random')); }
+
+  function readCats() {
+    cats = [...new Set(q<HTMLTextAreaElement>('.cc-catlist').value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean))].slice(0, 30);
+    const box = q('.cc-cats'); box.replaceChildren();
+    cats.forEach((c, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.dataset.c = c; b.textContent = i < 9 ? `${i + 1} ${c}` : c; box.append(b); });
+  }
+
+  function refreshSelect() {
+    const s = q<HTMLSelectElement>('.cc-photo-sel');
+    s.replaceChildren(...photos.map((p, i) => new Option(`${i + 1}. ${p.name} (${p.lab.filter((l) => l !== null).length} of ${p.pts.length})`, String(i), false, i === cur)));
+  }
+  function nextUnlabelled(from: number) { const p = photos[cur]; for (let k = 1; k <= p.pts.length; k++) { const i = (from + k) % p.pts.length; if (p.lab[i] === null) return i; } return Math.min(from + 1, p.pts.length - 1); }
+
+  function draw() {
+    const p = photos[cur]; if (!p) return;
+    const c = q<HTMLCanvasElement>('.cc-photo'); c.width = p.w; c.height = p.h;
+    const ctx = c.getContext('2d')!; ctx.drawImage(p.img, 0, 0);
+    const r = Math.max(8, Math.min(p.w, p.h) / 32), fs = Math.max(12, Math.round(r * 1.4));
+    ctx.font = `bold ${fs}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
+    p.pts.forEach(([x, y], i) => {
+      const done = p.lab[i] !== null, on = i === sel;
+      ctx.lineWidth = on ? 4 : 2.5; ctx.strokeStyle = on ? '#ffffff' : '#000000';
+      ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke();
+      ctx.lineWidth = on ? 2 : 1.4; ctx.strokeStyle = on ? '#d55e00' : done ? '#009e73' : '#f0e442';
+      ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke();
+      const t = String(i + 1); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText(t, x + r * 0.7, y - r * 0.8); ctx.fillText(t, x + r * 0.7, y - r * 0.8);
+      if (on) { ctx.strokeStyle = '#d55e00'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, r * 1.5, 0, 2 * Math.PI); ctx.stroke(); }
+    });
+    q('.cc-where').textContent = `Point ${sel + 1} of ${p.pts.length}: ${p.lab[sel] ?? 'not labelled yet'}`;
+    root.querySelectorAll<HTMLButtonElement>('.cc-cats button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === p.lab[sel])));
+  }
+
+  function results() {
+    refreshSelect(); draw();
+    const skip = inp('.cc-skip').value.split(',').map((s) => s.trim()).filter(Boolean), lvl = Number(q<HTMLSelectElement>('.cc-lvl').value);
+    const all = photos.flatMap((p) => p.lab), C = cover(all, cats, skip, lvl);
+    if (!C.n) { q('.cc-out').hidden = true; sections = []; return; }
+    q('.cc-out').hidden = false;
+    const pc = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–'), L = Math.round(lvl * 100);
+    const top = C.rows.reduce((a, b) => (b.k > a.k ? b : a));
+    q('.cc-big').textContent = `${top.cat}: ${pc(top.pct)} % (${L} % CI ${pc(top.lo)} to ${pc(top.hi)} %)`;
+    q('.cc-facts').replaceChildren(
+      fact('Photos', String(photos.length)),
+      fact('Points counted', String(C.n), `${C.skipped} left out (${skip.join(', ') || 'none'}), ${C.unlabelled} not labelled yet`),
+      fact('Interval', `${L} % Wilson`, 'for the share of all points pooled over the photos'),
+    );
+    const head = ['Category', 'Points', 'Cover (%)', `${L} % CI (%)`];
+    const rows = C.rows.map((r) => [r.cat, String(r.k), pc(r.pct), `${pc(r.lo)} – ${pc(r.hi)}`]);
+    fillTable(q<HTMLTableElement>('.cc-tab'), head, rows);
+    const per = photos.map((p) => cover(p.lab, cats, skip, lvl));
+    const counted = C.rows.map((r) => r.cat);
+    const phead = ['Photo', 'Points', ...counted];
+    const prow = photos.map((p, i) => [`${i + 1}. ${p.name}`, String(per[i].n), ...per[i].rows.map((r) => pc(r.pct))]);
+    fillTable(q<HTMLTableElement>('.cc-ptab'), phead, prow);
+    sumRows = [['category', 'points', 'cover_percent', `ci${L}_low`, `ci${L}_high`, ...photos.map((p, i) => `photo_${i + 1}_${p.name}_percent`)], ...C.rows.map((r, j) => [r.cat, r.k, r.pct.toFixed(3), r.lo.toFixed(3), r.hi.toFixed(3), ...per.map((x) => (Number.isFinite(x.rows[j].pct) ? x.rows[j].pct.toFixed(3) : ''))])];
+    sections = [
+      { title: q('.cc-big').textContent!, facts: factPairs(q('.cc-facts')), table: { head, rows } },
+      { title: 'By photo (% of counted points)', table: { head: phead, rows: prow } },
+      { title: `Photo ${cur + 1}: ${photos[cur].name}`, figure: canvasFigure(q<HTMLCanvasElement>('.cc-photo'), 'The shown quadrat photo with its numbered points') },
+    ];
+  }
+
+  function addPhoto(img: HTMLCanvasElement, w: number, h: number, nm: string): string | null {
+    const p: Photo = { name: nm, w, h, img, pts: [], lab: [] };
+    const e = place(p, photos.length); if (e) return e;
+    photos.push(p); cur = photos.length - 1; sel = 0;
+    q('.cc-work').hidden = false; return null;
+  }
+  function label(c: string | null) {
+    const p = photos[cur]; if (!p) return;
+    p.lab[sel] = c;
+    if (c !== null) sel = nextUnlabelled(sel);
+    results();
+  }
+
+  q('.cc-open').addEventListener('click', () => inp('.cc-file').click());
+  q('.cc-file').addEventListener('change', async () => {
+    const fs = [...(inp('.cc-file').files ?? [])]; inp('.cc-file').value = '';
+    for (const f of fs) {
+      try { const p = await readPhoto(f, 1400); const e = addPhoto(photoCanvas(p.px, p.w, p.h), p.w, p.h, p.name); showErr(e); if (e) break; }
+      catch (e) { showErr((e as Error).message); }
+    }
+    results();
+  });
+  function loadExample() {
+    photos = []; q<HTMLSelectElement>('.cc-mode').value = 'stratified'; inp('.cc-rows').value = '5'; inp('.cc-cols').value = '5'; inp('.cc-border').value = '2'; inp('.cc-seed').value = '1'; modeFields();
+    q<HTMLTextAreaElement>('.cc-catlist').value = CORAL_CATS.join('\n'); inp('.cc-skip').value = 'Shadow or tape'; readCats();
+    for (let v = 0; v < 2; v++) { const e = exampleReef(v); addPhoto(photoCanvas(e.px, e.w, e.h), e.w, e.h, `example-quadrat-${v + 1}`); const p = photos[v]; p.lab = p.pts.map(e.at); }
+    cur = 0; sel = 0; showErr(null); results();
+  }
+  q('.cc-ex').addEventListener('click', loadExample);
+  q('.cc-mode').addEventListener('change', modeFields);
+  q('.cc-photo-sel').addEventListener('change', () => { cur = Number(q<HTMLSelectElement>('.cc-photo-sel').value); sel = 0; results(); });
+  q('.cc-replace').addEventListener('click', () => { const p = photos[cur]; if (!p) return; const e = place(p, cur); showErr(e); sel = 0; results(); });
+  q('.cc-del').addEventListener('click', () => { if (!photos.length) return; photos.splice(cur, 1); cur = Math.max(0, cur - 1); sel = 0; if (!photos.length) { q('.cc-work').hidden = true; q('.cc-out').hidden = true; sections = []; return; } results(); });
+  q('.cc-photo').addEventListener('click', (ev) => {
+    const p = photos[cur]; if (!p) return;
+    const t = tapAt(ev, q<HTMLCanvasElement>('.cc-photo'), p.w, p.h);
+    let best = 0, bd = Infinity; p.pts.forEach((pt, i) => { const d = dist(pt, t); if (d < bd) { bd = d; best = i; } });
+    sel = best; draw();
+  });
+  q('.cc-cats').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-c]'); if (b) label(b.dataset.c!); });
+  q('.cc-prev').addEventListener('click', () => { const p = photos[cur]; if (p) { sel = (sel - 1 + p.pts.length) % p.pts.length; draw(); } });
+  q('.cc-next').addEventListener('click', () => { const p = photos[cur]; if (p) { sel = (sel + 1) % p.pts.length; draw(); } });
+  q('.cc-unl').addEventListener('click', () => label(null));
+  document.addEventListener('keydown', (e) => {
+    if (q('.cc-work').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target as HTMLElement; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    if (/^[1-9]$/.test(e.key) && cats[Number(e.key) - 1]) { label(cats[Number(e.key) - 1]); e.preventDefault(); }
+  });
+  let timer = 0;
+  q('.cc-catlist').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { readCats(); results(); }, 300); });
+  inp('.cc-skip').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(results, 300); });
+  q('.cc-lvl').addEventListener('change', results);
+  q('.cc-csv').addEventListener('click', () => save(new Blob([csv(sumRows)], { type: 'text/csv' }), 'coral-cover.csv', 'text/csv'));
+  q('.cc-pcsv').addEventListener('click', () => save(new Blob([csv([['photo', 'point', 'x_px', 'y_px', 'category'], ...photos.flatMap((p) => p.pts.map((pt, i) => [p.name, i + 1, pt[0].toFixed(1), pt[1].toFixed(1), p.lab[i] ?? '']))])], { type: 'text/csv' }), 'coral-cover-points.csv', 'text/csv'));
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Coral cover (point count)', subtitle: q('.cc-big').textContent ?? '', file: `coral-cover-${fileSafe(photos[0]?.name ?? 'photos')}`, sections }));
+</script>
+
+<style is:global>
+  .ccv .cc-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: pointer; touch-action: manipulation; }
+  .ccv .cc-pl { flex: 1 1 200px; }
+  .ccv .cc-where { font-weight: 600; margin: 8px 0; }
+  .ccv .cc-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ccv .cc-cats .btn[aria-pressed=true] { background: var(--accent); color: var(--accent-ink, #fff); border-color: var(--accent); }
+  .ccv .cc-h3 { font-size: 16px; margin: 16px 0 6px; }
+  .ccv select { max-width: 100%; }
+</style>

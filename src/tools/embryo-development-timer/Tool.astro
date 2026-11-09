@@ -1,0 +1,156 @@
+---
+// Development time at another temperature: zebrafish (Kimmel et al. 1995) or a degree-hours model for any species.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax em">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Species and model<select class="em-model"><option value="kimmel">Zebrafish: Kimmel et al. (1995)</option><option value="degree">Any species: degree-hours</option></select></label>
+      <label class="em-dg" hidden>Base temperature (°C)<input class="em-base" type="number" step="any" value="10" /><span class="ax-help">No development at or below this.</span></label>
+      <label class="em-dg" hidden>Reference temperature (°C)<input class="em-ref" type="number" step="any" value="20" /><span class="ax-help">The temperature your stage times are for.</span></label>
+    </div>
+    <p class="ax-help em-mhelp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert a time</h2>
+    <div class="ax-grid">
+      <label>Time (hours)<input class="em-h" type="number" min="0" step="any" value="24" /></label>
+      <label>At (°C)<input class="em-t1" type="number" step="any" value="28.5" /></label>
+      <label>Same stage at (°C)<input class="em-t2" type="number" step="any" value="25" /></label>
+    </div>
+    <p class="ax-big em-conv" style="margin:12px 0 0"></p>
+    <p class="ax-help em-warn"></p>
+    <p class="ax-err em-err1" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plan the stages</h2>
+    <div class="ax-grid">
+      <label>Incubation temperature (°C)<input class="em-T" type="number" step="any" value="26" /></label>
+      <label>Fertilised at<input class="em-start" type="datetime-local" /></label>
+    </div>
+    <label style="margin-top:10px">Stages: a name and the hours at the reference temperature, one per line. <strong>Illustrative, rounded example, not a staging table:</strong> replace it with the stages and times from your own staging reference.
+      <textarea class="em-stages" rows="7" spellcheck="false">First cleavage, 1
+Gastrulation under way, 6
+Somites forming, 12
+Heartbeat seen, 24
+Hatching window opens, 48
+Swimming and feeding, 120</textarea></label>
+    <p class="ax-err em-err2" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="em-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small em-csv">Stage plan (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Temperature history</h2>
+    <label>Hours and °C, one step per line, in order (for example if the incubator was off overnight).
+      <textarea class="em-hist" rows="4" spellcheck="false">6, 28.5
+16, 25
+2, 22</textarea></label>
+    <p class="em-hout" style="margin:10px 0 0"></p>
+    <p class="ax-err em-err3" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Development rate and temperature</h2>
+    <canvas class="ax-fig em-fig"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .em .em-tab td:first-child { min-width: 130px; }
+  .em .em-tab td:last-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { rate, refTemp, hoursAt, convert, accumulate, degreeHours, parseStages, parseSteps, KIMMEL_RANGE, KIMMEL_BASE, type Model } from '../../lib/sci/embryo';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.em')!;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q(c).value);
+  { const d = new Date(); d.setHours(9, 0, 0, 0); const p = (n: number) => String(n).padStart(2, '0'); q('.em-start').value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T09:00`; }
+  let fig: Figure | null = null, report: Section[] = [], plan: (string | number)[][] = [];
+  /** 29.81 h → "29.81 h (1 d 5 h 49 min)". */
+  const dur = (h: number) => { const m = Math.round(h * 60), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60; return `${sig(h, 4)} h${h >= 1 && (d || mm) ? ` (${d ? `${d} d ` : ''}${hh} h ${mm} min)` : ''}`; };
+  const deg = (t: number) => String(+t.toFixed(2));
+  const when = (d: Date) => d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function calc() {
+    const kind = q<HTMLSelectElement>('.em-model').value;
+    root.querySelectorAll<HTMLElement>('.em-dg').forEach((e) => (e.hidden = kind !== 'degree'));
+    const base = v('.em-base'), ref = v('.em-ref');
+    const m: Model = kind === 'kimmel' ? { kind: 'kimmel' } : { kind: 'degree', base, ref };
+    const R = refTemp(m), unit = kind === 'kimmel' ? 'hpf at 28.5 °C' : `h at ${deg(R)} °C`;
+    q('.em-mhelp').textContent = kind === 'kimmel'
+      ? `H(T) = h ÷ (0.055 T − 0.57): h is the time at 28.5 °C, H(T) the time at T °C. Kimmel et al. give it for about ${KIMMEL_RANGE[0]}–${KIMMEL_RANGE[1]} °C. It is the same as a degree-hours model with a base of ${sig(KIMMEL_BASE, 4)} °C.`
+      : 'Development speed is taken to rise in a straight line with temperature above the base: hours × (T − base) is the same for a stage at any temperature. Use a base temperature measured for your species, and stay within the range where it was measured.';
+    const errs = ['.em-err1', '.em-err2', '.em-err3'].map((c) => q(c)); errs.forEach((e) => (e.hidden = true));
+    const show = (e: HTMLElement, msg: string) => { e.textContent = msg; e.hidden = false; };
+    if (kind === 'degree' && !(ref > base)) { show(errs[0], 'The reference temperature must be above the base temperature.'); q('.em-conv').textContent = ''; report = []; return; }
+    const facts: [string, string][] = [];
+    // 1. Conversion.
+    const h = v('.em-h'), t1 = v('.em-t1'), t2 = v('.em-t2');
+    const warn = (T: number) => (kind === 'kimmel' && (T < KIMMEL_RANGE[0] || T > KIMMEL_RANGE[1]) ? `${T} °C is outside ${KIMMEL_RANGE[0]}–${KIMMEL_RANGE[1]} °C, where the formula was described: treat the answer as a rough guide.` : '');
+    try {
+      if (!(h >= 0) || !Number.isFinite(t1) || !Number.isFinite(t2)) throw new Error('Type a time in hours and two temperatures.');
+      const out = convert(m, h, t1, t2);
+      q('.em-conv').textContent = `${sig(h, 4)} h at ${deg(t1)} °C = ${dur(out)} at ${deg(t2)} °C`;
+      facts.push(['Conversion', q('.em-conv').textContent!]);
+    } catch (e) { q('.em-conv').textContent = ''; show(errs[0], (e as Error).message); }
+    q('.em-warn').textContent = [warn(t1), warn(t2)].filter(Boolean).join(' ');
+    // 2. Stage plan.
+    const T = v('.em-T'), start = new Date(q('.em-start').value), tb = q<HTMLTableElement>('.em-tab'); tb.innerHTML = ''; plan = [];
+    let stageRows: string[][] = [];
+    const head = ['Stage', `Hours (${unit})`, `Hours at ${deg(T)} °C`, 'Expected'];
+    try {
+      if (!Number.isFinite(T)) throw new Error('Type the incubation temperature.');
+      const st = parseStages(q<HTMLTextAreaElement>('.em-stages').value);
+      if (!st.length) throw new Error('Add at least one stage, like "Heartbeat, 24".');
+      stageRows = st.map((s) => { const hT = hoursAt(m, s.hRef, T); const at = Number.isNaN(start.getTime()) ? '–' : when(new Date(start.getTime() + hT * 3.6e6)); plan.push([s.name, s.hRef, +hT.toFixed(3), Number.isNaN(start.getTime()) ? '' : new Date(start.getTime() + hT * 3.6e6).toISOString()]); return [s.name, sig(s.hRef, 4), sig(hT, 4), at]; });
+      const hr = tb.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i === 1 || i === 2) th.className = 'r'; hr.append(th); });
+      const body = tb.createTBody(); stageRows.forEach((r) => { const tr = body.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 1 || i === 2) td.className = 'r'; }); });
+      if (warn(T)) show(errs[1], warn(T));
+    } catch (e) { show(errs[1], (e as Error).message); }
+    // 3. Temperature history.
+    let histText = '';
+    try {
+      const steps = parseSteps(q<HTMLTextAreaElement>('.em-hist').value);
+      if (steps.length) {
+        const eq = accumulate(m, steps), hrs = steps.reduce((s, x) => s + x.hours, 0);
+        let st: { name: string; hRef: number }[] = []; try { st = parseStages(q<HTMLTextAreaElement>('.em-stages').value); } catch { /* shown above */ }
+        const reached = st.filter((s) => s.hRef <= eq + 1e-9).pop(), next = st.find((s) => s.hRef > eq + 1e-9);
+        const dh = kind === 'degree' ? ` (${sig(degreeHours(base, steps), 4)} degree-hours above ${sig(base, 4)} °C)` : '';
+        histText = `${sig(hrs, 4)} h in all = ${sig(eq, 4)} ${unit}${dh}. ${reached ? `Last stage reached: ${reached.name}.` : 'No stage in the list reached yet.'}${next ? ` Next: ${next.name}, in ${dur(hoursAt(m, next.hRef - eq, steps[steps.length - 1].T))} at ${deg(steps[steps.length - 1].T)} °C.` : ''}`;
+        const cold = steps.filter((s) => rate(m, s.T) <= 0);
+        if (cold.length) histText += ` Steps at or below the base temperature add nothing.`;
+      }
+    } catch (e) { show(errs[2], (e as Error).message); }
+    q('.em-hout').textContent = histText;
+    // Chart: relative rate against temperature.
+    const xs: number[] = []; for (let x = 15; x <= 35.001; x += 0.5) xs.push(+x.toFixed(1));
+    const series = [{ name: kind === 'kimmel' ? 'Zebrafish (Kimmel 1995)' : `Degree-hours, base ${sig(base, 3)} °C`, x: xs, y: xs.map((x) => Math.max(0, rate(m, x))), mode: 'line' as const }];
+    if (kind === 'kimmel') series.push({ name: 'Range given', x: xs.filter((x) => x >= KIMMEL_RANGE[0] && x <= KIMMEL_RANGE[1]), y: xs.filter((x) => x >= KIMMEL_RANGE[0] && x <= KIMMEL_RANGE[1]).map((x) => rate(m, x)), mode: 'line' as const, width: 4 } as typeof series[0]);
+    fig = chartFigure({ h: 280, xLabel: 'Temperature (°C)', yLabel: `Speed relative to ${deg(R)} °C`, yMin: 0, legend: 'inside', series, marks: [{ kind: 'hline', at: 1, dash: [3, 3] }, ...(Number.isFinite(T) ? [{ kind: 'vline' as const, at: T, label: `${deg(T)} °C` }] : [])] }, 'Relative development speed against temperature');
+    paint(q<HTMLCanvasElement>('.em-fig'), fig);
+    report = [
+      { title: 'Model', text: [q('.em-mhelp').textContent!], facts },
+      ...(stageRows.length ? [{ title: `Stage plan at ${deg(T)} °C`, table: { head, rows: stageRows, align: ['l', 'r', 'r', 'l'] as ('l' | 'r')[] }, note: 'Stage list as entered on the page. The default list is an illustrative, rounded example, not a staging table.' }] : []),
+      ...(histText ? [{ title: 'Temperature history', text: [histText] }] : []),
+      { title: 'Development speed', figure: fig },
+    ];
+  }
+
+  for (const c of ['.em-base', '.em-ref', '.em-h', '.em-t1', '.em-t2', '.em-T', '.em-start', '.em-stages', '.em-hist']) q(c).addEventListener('input', calc);
+  q('.em-model').addEventListener('change', () => { const k = q<HTMLSelectElement>('.em-model').value; if (k === 'degree' && q('.em-t1').value === '28.5') q('.em-t1').value = q('.em-ref').value; calc(); });
+  q('.em-csv').addEventListener('click', () => plan.length && save(new TextEncoder().encode(csv([['stage', 'hours_at_reference', `hours_at_${v('.em-T')}C`, 'expected_utc'], ...plan])), 'stage-plan.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.em-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Embryo development timer', file: 'embryo-development', sections: report }));
+</script>

@@ -1,0 +1,128 @@
+---
+// Osmolarity of a solution from its solutes, van 't Hoff osmotic pressure, and osmotic / tonic comparison
+// against a reference the user sets. The example solution is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax osm">
+  <div class="ax-card">
+    <h2>Solutes</h2>
+    <div class="os-rows"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small os-add">Add a solute</button></div>
+    <p class="ax-help">i is the number of particles one formula unit gives in water (NaCl 2, CaCl₂ 3, glucose 1). The osmotic coefficient φ corrects for ions not acting fully independently: 1 is ideal; about 0.93 is often used for NaCl near 0.15 mol/L. Tick "crosses membranes" for solutes such as urea or glycerol that enter cells, so they do not count towards tonicity. The example solution is made up.</p>
+    <h3 style="margin:14px 0 6px">Conditions and reference</h3>
+    <div class="ax-grid">
+      <label>Temperature (°C) <input class="os-T" inputmode="decimal" value="37" /></label>
+      <label>Reference (mOsm/L) <input class="os-ref" inputmode="decimal" value="290" /></label>
+      <label>Counts as equal within (± mOsm/L) <input class="os-tol" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The reference is what you compare against, for example the cells' own inside (an example value of 290 is filled in; type your own). For study and teaching, not for clinical use.</p>
+    <p class="ax-err os-err" hidden></p>
+  </div>
+
+  <div class="ax-card os-out">
+    <h2>Result</h2>
+    <p class="ax-big os-big"></p>
+    <dl class="ax-facts os-facts"></dl>
+    <h3>Each solute</h3>
+    <div class="ax-scroll"><table class="os-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small os-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SOLUTES, UNITS, solute, formulaMass, toMmolL, osmolarity, osmoticKPa, compare, KPA_ATM, KPA_MMHG, type Unit, type Row } from '../../lib/sci/osmolar';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.osm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cn = (x: number, d = 6) => String(+x.toPrecision(d));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  let sections: Section[] = [], csvRows: string[][] = [];
+
+  function addRow(id = 'glucose', amount = '10', unit: Unit = 'mM', phi = '1') {
+    const box = el('div', 'os-row');
+    const g = el('div', 'ax-grid');
+    const lab = (t: string, input: HTMLElement) => { const l = el('label'); l.append(t + ' ', input); return l; };
+    const sel = el('select', 'os-s'); for (const s of SOLUTES) { const o = el('option', '', `${s.name} (i = ${s.i})`); o.value = s.id; sel.append(o); } const oo = el('option', '', 'Other…'); oo.value = 'other'; sel.append(oo); sel.value = id;
+    const amt = el('input', 'os-a'); amt.inputMode = 'decimal'; amt.value = amount;
+    const us = el('select', 'os-u'); for (const u of UNITS) { const o = el('option', '', u.label); o.value = u.id; us.append(o); } us.value = unit;
+    const iIn = el('input', 'os-i'); iIn.inputMode = 'decimal'; iIn.value = String(solute(id)?.i ?? 1);
+    const phiIn = el('input', 'os-phi'); phiIn.inputMode = 'decimal'; phiIn.value = phi;
+    const nm = el('input', 'os-n'); nm.value = 'My solute';
+    const mm = el('input', 'os-mm'); mm.inputMode = 'decimal'; mm.value = '100';
+    const pen = el('input', 'os-p'); pen.type = 'checkbox'; pen.checked = !!solute(id)?.penetrating;
+    const penL = el('label', 'ax-check'); penL.append(pen, ' Crosses membranes');
+    const rm = el('button', 'btn secondary small os-rm', 'Remove'); (rm as HTMLButtonElement).type = 'button';
+    const nameL = lab('Name', nm), mmL = lab('Molar mass (g/mol)', mm);
+    g.append(lab('Solute', sel), lab('Amount', amt), lab('Unit', us), nameL, mmL, lab('i', iIn), lab('Osmotic coefficient φ', phiIn));
+    const foot = el('div', 'ax-row'); foot.style.marginTop = '8px'; foot.append(penL, rm);
+    box.append(g, foot);
+    const vis = () => { const other = sel.value === 'other'; nameL.hidden = !other; mmL.hidden = !other; };
+    sel.addEventListener('change', () => { const s = solute(sel.value); if (s) { iIn.value = String(s.i); pen.checked = !!s.penetrating; } vis(); calc(); });
+    rm.addEventListener('click', () => { box.remove(); calc(); });
+    box.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+    vis();
+    q('.os-rows').append(box);
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.os-err').textContent = m; q('.os-err').hidden = false; q('.os-out').hidden = true; sections = []; csvRows = []; };
+    q('.os-err').hidden = true;
+    const boxes = [...root.querySelectorAll<HTMLElement>('.os-row')];
+    if (!boxes.length) return fail('Add at least one solute.');
+    const rows: (Row & { unitText: string; amount: number; M: number })[] = [];
+    for (const [k, b] of boxes.entries()) {
+      const g = <T extends HTMLElement>(c: string) => b.querySelector(c) as T;
+      const id = g<HTMLSelectElement>('.os-s').value, s = solute(id), unit = g<HTMLSelectElement>('.os-u').value as Unit;
+      const name = s ? s.name : g<HTMLInputElement>('.os-n').value.trim() || `Solute ${k + 1}`;
+      const M = s ? formulaMass(s.formula) : num(g<HTMLInputElement>('.os-mm').value);
+      const amount = num(g<HTMLInputElement>('.os-a').value), i = num(g<HTMLInputElement>('.os-i').value), phi = num(g<HTMLInputElement>('.os-phi').value);
+      if (!(amount >= 0)) return fail(`Type the amount of ${name} (zero or more).`);
+      if (!(i >= 1 && i <= 10)) return fail(`i for ${name} should be from 1 to 10.`);
+      if (!(phi > 0 && phi <= 2)) return fail(`The osmotic coefficient of ${name} should be above 0 and at most 2 (1 if unsure).`);
+      const needsMass = UNITS.find((u) => u.id === unit)!.needsMass;
+      if (needsMass && !(M > 0)) return fail(`Type the molar mass of ${name} in g/mol, or give its amount in mmol/L.`);
+      rows.push({ name, mmolL: toMmolL(amount, unit, M), i, phi, penetrating: g<HTMLInputElement>('.os-p').checked, unitText: UNITS.find((u) => u.id === unit)!.label, amount, M });
+    }
+    const T = num(q<HTMLInputElement>('.os-T').value), ref = num(q<HTMLInputElement>('.os-ref').value), tol = num(q<HTMLInputElement>('.os-tol').value);
+    if (!(T > -20 && T < 150)) return fail('Type a temperature in °C between −20 and 150.');
+    if (!(ref > 0)) return fail('Type a reference osmolarity in mOsm/L to compare with.');
+    if (!(tol >= 0)) return fail('Type how close counts as equal, in mOsm/L (0 or more).');
+    const o = osmolarity(rows), kPa = osmoticKPa(o.total, T), effKPa = osmoticKPa(o.effective, T);
+    const word = { hypo: 'lower than', iso: 'about equal to', hyper: 'higher than' } as const;
+    const OSMW = { hypo: "hypo-osmotic", iso: "iso-osmotic", hyper: "hyperosmotic" } as const;
+    const osmC = compare(o.total, ref, tol), tonC = compare(o.effective, ref, tol);
+    const cell = { hypo: 'water moves into the cells and they swell', iso: 'no net water movement, so the cells keep their size', hyper: 'water moves out of the cells and they shrink' } as const;
+    q('.os-out').hidden = false;
+    q('.os-big').textContent = `${sig(o.total, 4)} mOsm/L: ${OSMW[osmC]}, ${tonC}tonic`;
+    q('.os-facts').replaceChildren(
+      fact('Osmolarity', `${sig(o.total, 4)} mOsm/L`, `${word[osmC]} the reference of ${sig(ref, 4)} (± ${sig(tol, 3)})`),
+      fact('Effective osmolarity (tonicity)', `${sig(o.effective, 4)} mOsm/L`, `${tonC}tonic: ${cell[tonC]}`),
+      fact('Osmotic pressure', `${sig(kPa, 4)} kPa`, `${sig(kPa / KPA_ATM, 4)} atm, ${sig(kPa / KPA_MMHG, 4)} mmHg at ${sig(T, 3)} °C`),
+      fact('From non-penetrating solutes', `${sig(effKPa, 4)} kPa`, 'the pressure that would pull water across a cell membrane'),
+    );
+    const head = ['Solute', 'Amount', 'mmol/L', 'i × φ', 'mOsm/L', 'Share', 'Crosses'];
+    const trows = rows.map((r, k) => [r.name, `${cn(r.amount)} ${r.unitText.split(' ')[0]}`, sig(r.mmolL, 4), sig(r.i * r.phi, 3), sig(o.parts[k].mOsm, 4), o.total ? `${sig((100 * o.parts[k].mOsm) / o.total, 3)} %` : '–', r.penetrating ? 'yes' : 'no']);
+    const t = q<HTMLTableElement>('.os-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = el('th', i && i < 6 ? 'r' : '', h); hr.append(th); });
+    const tb = t.createTBody(); trows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i && i < 6) td.className = 'r'; }); });
+    csvRows = [['Solute', 'Amount', 'Unit', 'Molar mass (g/mol)', 'mmol/L', 'i', 'phi', 'mOsm/L', 'Crosses membranes'], ...rows.map((r, k) => [r.name, cn(r.amount), r.unitText, Number.isFinite(r.M) ? cn(r.M) : '', cn(r.mmolL), cn(r.i), cn(r.phi), cn(o.parts[k].mOsm), r.penetrating ? 'yes' : 'no']), [], ['Osmolarity (mOsm/L)', cn(o.total)], ['Effective osmolarity (mOsm/L)', cn(o.effective)], ['Osmotic pressure (kPa)', cn(kPa)], ['Temperature (C)', cn(T)], ['Reference (mOsm/L)', cn(ref)]];
+    sections = [{ title: q('.os-big').textContent!, text: ["Osmolarity = Σ concentration × i × φ; osmotic pressure by van 't Hoff, π = cRT. For study and teaching, not for clinical use."], facts: [...q('.os-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  q('.os-add').addEventListener('click', () => { addRow(); calc(); });
+  root.querySelectorAll('.os-T, .os-ref, .os-tol').forEach((i) => i.addEventListener('input', calc));
+  q('.os-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'osmolarity.csv', 'text/csv'); });
+  addRow('NaCl', '0.9', 'pct', '0.93'); addRow('urea', '100', 'mM', '1');
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Osmolarity', subtitle: q('.os-big').textContent ?? '', file: 'osmolarity', sections }));
+</script>
+
+<style is:global>
+  .osm select { max-width: 100%; }
+  .osm .os-row { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+</style>

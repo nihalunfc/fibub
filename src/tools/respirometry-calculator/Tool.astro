@@ -1,0 +1,205 @@
+---
+// Respirometry: VO2, VCO2, RQ and metabolic rate from flow-through (open) or closed-chamber measurements.
+// The example readings are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const airEx = 'time (min)\tO2 (%)\n0\t20.90\n5\t20.71\n10\t20.55\n15\t20.33\n20\t20.17\n25\t19.98\n30\t19.80';
+---
+<div class="ax rsp">
+  <div class="ax-card">
+    <h2>Measurement</h2>
+    <div class="ax-seg rs-mode" role="group" aria-label="Type of respirometry">
+      <button type="button" data-m="both" aria-pressed="true">Flow-through, O₂ and CO₂</button><button type="button" data-m="o2" aria-pressed="false">Flow-through, O₂ only</button><button type="button" data-m="air" aria-pressed="false">Closed chamber, air</button><button type="button" data-m="water" aria-pressed="false">Closed chamber, water</button>
+    </div>
+
+    <div class="rs-open" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Flow rate (mL/min) <input class="rs-flow" inputmode="decimal" value="500" /></label>
+        <label>Flow measured <select class="rs-at"><option value="in" selected>Before the chamber (incurrent)</option><option value="out">After the chamber (excurrent)</option></select></label>
+        <label>Flow is <select class="rs-stp"><option value="stpd" selected>Already at STPD (mass flow meter)</option><option value="meas">At the temperature and pressure below</option></select></label>
+        <label>Incurrent O₂ (%) <input class="rs-fio2" inputmode="decimal" value="20.94" /></label>
+        <label class="rs-co2w">Incurrent CO₂ (%) <input class="rs-fico2" inputmode="decimal" value="0.04" /></label>
+        <label>Excurrent O₂ (%) <input class="rs-feo2" inputmode="decimal" value="20.36" /></label>
+        <label class="rs-co2w">Excurrent CO₂ (%) <input class="rs-feco2" inputmode="decimal" value="0.50" /></label>
+      </div>
+      <p class="ax-help rs-openhelp">All gas dry (water scrubbed before the analysers and the flow meter). Nitrogen passes through unchanged, so the flow on the other side of the chamber is worked out from it (the Haldane transformation). The example readings are made up.</p>
+    </div>
+
+    <div class="rs-closed" hidden style="margin-top:12px">
+      <label><span class="rs-datal">Time (min) and O₂ (%), one reading per row</span>
+        <textarea class="rs-data" rows="8" spellcheck="false">{airEx}</textarea></label>
+      <DataFile target=".rs-data" maxCols={5} maxRows={20000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label><span class="rs-voll">Chamber volume (mL)</span> <input class="rs-vol" inputmode="decimal" value="1000" /></label>
+        <label><span class="rs-anil">Animal volume (mL)</span> <input class="rs-ani" inputmode="decimal" value="40" /></label>
+        <label><span class="rs-blankl">Blank chamber slope (% per min)</span> <input class="rs-blank" inputmode="decimal" value="0" /></label>
+        <label class="rs-wetw">Chamber air <select class="rs-wet"><option value="sat" selected>Saturated with water</option><option value="dry">Dry</option></select></label>
+      </div>
+      <p class="ax-help rs-closedhelp"></p>
+    </div>
+
+    <div class="ax-grid rs-tp" style="margin-top:10px">
+      <label>Temperature (°C) <input class="rs-T" inputmode="decimal" value="20" /></label>
+      <label>Air pressure (kPa) <input class="rs-P" inputmode="decimal" value="101.3" /></label>
+    </div>
+
+    <h3 style="margin:14px 0 6px">Energy and body mass</h3>
+    <div class="ax-grid">
+      <label>Energy from O₂ <select class="rs-en"><option value="lighton" selected>Lighton: 16 + 5.164 × RQ J/mL</option><option value="weir">Weir (1949)</option><option value="fixed">Fixed J per mL O₂</option></select></label>
+      <label class="rs-jw" hidden>J per mL O₂ <input class="rs-j" inputmode="decimal" value="20.1" /></label>
+      <label class="rs-rqw" hidden>Assumed RQ <input class="rs-rq" inputmode="decimal" value="0.8" /></label>
+      <label>Body mass (g, optional) <input class="rs-m" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-help">RQ is CO₂ out ÷ O₂ in: about 0.7 burning fat, 0.8 protein, 1.0 carbohydrate. When CO₂ is not measured, the energy uses the RQ you assume. For study and teaching, not for clinical use.</p>
+    <p class="ax-err rs-err" hidden></p>
+  </div>
+
+  <div class="ax-card rs-out">
+    <h2>Result</h2>
+    <p class="ax-big rs-big"></p>
+    <dl class="ax-facts rs-facts"></dl>
+    <canvas class="ax-fig rs-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rs-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { openBoth, openO2, toStpd, line, closedAir, closedWaterMg, mgO2toMl, watts, joulesPerMl, kjPerDay, waterVapourKPa, type EnergyMethod, type FlowAt } from '../../lib/sci/respiro';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cn = (x: number, d = 6) => String(+x.toPrecision(d));
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const EX: Record<string, string> = {
+    air: 'time (min)\tO2 (%)\n0\t20.90\n5\t20.71\n10\t20.55\n15\t20.33\n20\t20.17\n25\t19.98\n30\t19.80',
+    water: 'time (min)\tO2 (mg/L)\n0\t8.10\n5\t7.93\n10\t7.71\n15\t7.55\n20\t7.36\n25\t7.17\n30\t7.01',
+  };
+  let mode = 'both', lastClosed = 'air', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.rs-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    const closed = m === 'air' || m === 'water';
+    q('.rs-open').hidden = closed; q('.rs-closed').hidden = !closed;
+    root.querySelectorAll<HTMLElement>('.rs-co2w').forEach((e) => (e.hidden = m !== 'both'));
+    if (closed && m !== lastClosed) {
+      const box = q<HTMLTextAreaElement>('.rs-data'), cur = box.value.trim();
+      if (cur === EX[lastClosed] || !cur) box.value = EX[m];
+      if (m === 'water') { q<HTMLInputElement>('.rs-vol').value = '0.5'; q<HTMLInputElement>('.rs-ani').value = '0.01'; q<HTMLInputElement>('.rs-m').value = '10'; }
+      else { q<HTMLInputElement>('.rs-vol').value = '1000'; q<HTMLInputElement>('.rs-ani').value = '40'; q<HTMLInputElement>('.rs-m').value = '30'; }
+      q<HTMLInputElement>('.rs-blank').value = '0';
+      lastClosed = m;
+    }
+    q('.rs-datal').textContent = m === 'water' ? 'Time (min) and dissolved O₂ (mg/L), one reading per row' : 'Time (min) and O₂ (%), one reading per row';
+    q('.rs-voll').textContent = m === 'water' ? 'Chamber volume (L)' : 'Chamber volume (mL)';
+    q('.rs-anil').textContent = m === 'water' ? 'Animal volume (L)' : 'Animal volume (mL)';
+    q('.rs-blankl').textContent = m === 'water' ? 'Blank chamber slope (mg/L per min)' : 'Blank chamber slope (% per min)';
+    q('.rs-wetw').hidden = m !== 'air';
+    q('.rs-closedhelp').textContent = m === 'water'
+      ? 'The slope of dissolved O₂ against time, times the water volume (chamber minus animal), is the O₂ taken up. A blank run with no animal gives the background slope from microbes, which is taken off. The example readings are made up.'
+      : 'The slope of O₂ against time, times the air volume (chamber minus animal), is the O₂ taken up, corrected to STPD (0 °C, 101.325 kPa, dry). CO₂ should be absorbed (soda lime) or the falling O₂ is diluted. A blank run gives the background slope. The example readings are made up.';
+    calc();
+  }
+
+  function calc() {
+    const out = q('.rs-out'), err = q('.rs-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fig = null; sections = []; csvRows = []; };
+    err.hidden = true;
+    const method = q<HTMLSelectElement>('.rs-en').value as EnergyMethod;
+    q('.rs-jw').hidden = method !== 'fixed';
+    const measured = mode === 'both';
+    q('.rs-rqw').hidden = measured;
+    const closed = mode === 'air' || mode === 'water';
+    q('.rs-tp').hidden = mode === 'water' || (!closed && q<HTMLSelectElement>('.rs-stp').value === 'stpd');
+    const T = val('.rs-T'), P = val('.rs-P');
+    const needTP = !q('.rs-tp').hidden;
+    if (needTP && !(T > -50 && T < 100)) return fail('Type the temperature in °C (between −50 and 100).');
+    if (needTP && !(P > 10 && P < 400)) return fail('Type the air pressure in kPa (sea level is about 101.3).');
+    const fixedJ = val('.rs-j');
+    if (method === 'fixed' && !(fixedJ > 5 && fixedJ < 40)) return fail('Type the joules per mL of O₂ (about 20).');
+    const rqA = val('.rs-rq');
+    if (!measured && !(rqA >= 0.5 && rqA <= 1.5)) return fail('Type an assumed RQ between 0.5 and 1.5 (0.8 if unsure).');
+    const mRaw = q<HTMLInputElement>('.rs-m').value.trim(), mass = num(mRaw);
+    if (mRaw && !(mass > 0)) return fail('Body mass must be above zero, or leave it empty.');
+
+    let vo2 = 0, vco2: number | null = null, rq: number | null = null, mgMin: number | null = null;
+    const facts: HTMLElement[] = [], rows: string[][] = [];
+    fig = null;
+    if (!closed) {
+      const flowRaw = val('.rs-flow'), at = q<HTMLSelectElement>('.rs-at').value as FlowAt;
+      const pc = (c: string) => val(c) / 100;
+      const fiO2 = pc('.rs-fio2'), feO2 = pc('.rs-feo2'), fiCO2 = measured ? pc('.rs-fico2') : 0, feCO2 = measured ? pc('.rs-feco2') : 0;
+      if (!(flowRaw > 0)) return fail('Type the flow rate in mL/min.');
+      for (const [v, n] of [[fiO2, 'incurrent O₂'], [feO2, 'excurrent O₂'], ...(measured ? [[fiCO2, 'incurrent CO₂'], [feCO2, 'excurrent CO₂']] : [])] as [number, string][])
+        if (!(v >= 0 && v < 1)) return fail(`Type the ${n} as a percentage from 0 to 100.`);
+      if (!(fiO2 > feO2)) return fail('Excurrent O₂ must be lower than incurrent O₂: the animal takes O₂ out of the air.');
+      if (measured && !(feCO2 > fiCO2)) return fail('Excurrent CO₂ must be higher than incurrent CO₂: the animal adds CO₂ to the air.');
+      const flow = q<HTMLSelectElement>('.rs-stp').value === 'stpd' ? flowRaw : toStpd(flowRaw, T, P);
+      const r = measured ? openBoth(flow, at, fiO2, fiCO2, feO2, feCO2) : openO2(flow, at, fiO2, feO2);
+      vo2 = r.vo2; vco2 = r.vco2; rq = r.rq;
+      facts.push(fact('Flow at STPD', `${sig(flow, 4)} mL/min`, at === 'in' ? `incurrent; excurrent is ${sig(r.fre, 5)} mL/min` : `excurrent; incurrent is ${sig(r.fri, 5)} mL/min`));
+      facts.push(fact('Change in O₂', `${sig(100 * (fiO2 - feO2), 3)} %`, measured ? `CO₂ rises by ${sig(100 * (feCO2 - fiCO2), 3)} %` : 'CO₂ scrubbed before the O₂ analyser'));
+      rows.push(['Flow at STPD (mL/min)', cn(flow, 6)], ['Incurrent flow (mL/min)', cn(r.fri, 6)], ['Excurrent flow (mL/min)', cn(r.fre, 6)]);
+    } else {
+      const data = parseTable(q<HTMLTextAreaElement>('.rs-data').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+      if (data.length > 20000) return fail('Up to 20,000 readings, please.');
+      if (data.length < 2 || new Set(data.map((d) => d[0])).size < 2) return fail('Give at least two readings at different times, as "time, O₂" per row.');
+      const vol = val('.rs-vol'), ani = val('.rs-ani') || 0, blank = val('.rs-blank') || 0;
+      if (!(vol > 0)) return fail('Type the chamber volume.');
+      if (!(ani >= 0 && ani < vol)) return fail('The animal volume must be smaller than the chamber volume.');
+      const t = data.map((d) => d[0]), y = data.map((d) => d[1]);
+      if (mode === 'air' && y.some((v) => !(v >= 0 && v <= 100))) return fail('O₂ readings are percentages from 0 to 100.');
+      if (mode === 'water' && y.some((v) => !(v >= 0 && v < 100))) return fail('Dissolved O₂ readings are in mg/L (fresh air-saturated water is about 8 to 10).');
+      const L = line(t, y), net = L.slope - blank, room = vol - ani;
+      if (!(net < 0)) return fail('O₂ does not fall over time in these readings (after taking off the blank), so there is no uptake to measure.');
+      const unit = mode === 'air' ? '% per min' : 'mg/L per min';
+      if (mode === 'air') {
+        const pw = q<HTMLSelectElement>('.rs-wet').value === 'sat' ? waterVapourKPa(T) : 0;
+        if (pw >= P) return fail('The water-vapour pressure is above the air pressure at this temperature. Check both.');
+        vo2 = closedAir(net / 100, room, T, P, pw);
+        facts.push(fact('Air volume', `${sig(room, 4)} mL`, `${sig(toStpd(room, T, P - pw), 4)} mL dry at STPD${pw ? `; water vapour ${sig(pw, 3)} kPa` : ''}`));
+      } else {
+        mgMin = closedWaterMg(net, room); vo2 = mgO2toMl(mgMin);
+        facts.push(fact('O₂ uptake (mass)', `${sig(mgMin * 60, 4)} mg O₂/h`, `${sig(room, 4)} L of water`));
+      }
+      facts.push(fact('Slope', `${sig(L.slope, 4)} ${unit}`, `R² = ${sig(L.r2, 4)}, ${L.n} readings${blank ? `; net of blank ${sig(net, 4)}` : ''}`));
+      rows.push(['Slope (' + unit + ')', cn(L.slope, 6)], ['Blank slope', cn(blank, 6)], ['R squared', cn(L.r2, 6)], ['Readings', String(L.n)]);
+      if (mgMin !== null) rows.push(['O2 uptake (mg/h)', cn(mgMin * 60, 6)]);
+      const t0 = Math.min(...t), t1 = Math.max(...t);
+      fig = chartFigure({ h: 280, xLabel: 'Time (min)', yLabel: mode === 'air' ? 'O₂ (%)' : 'Dissolved O₂ (mg/L)', legend: 'below', series: [
+        { name: 'Readings', x: t, y, mode: 'points', marker: 'circle' },
+        { name: 'Fitted line', x: [t0, t1], y: [L.intercept + L.slope * t0, L.intercept + L.slope * t1], mode: 'line' },
+      ] }, 'O₂ against time with the fitted straight line');
+    }
+    if (!(vo2 > 0)) return fail('These readings give no O₂ uptake. Check them.');
+    const co2 = vco2 ?? rqA * vo2, rqUse = rq ?? rqA, W = watts(vo2, co2, method, fixedJ);
+    out.hidden = false;
+    q('.rs-big').textContent = `V̇O₂ = ${sig(vo2, 4)} mL/min (${sig(vo2 * 60, 4)} mL/h)`;
+    if (vco2 !== null) facts.unshift(fact('V̇CO₂', `${sig(vco2, 4)} mL/min`, `${sig(vco2 * 60, 4)} mL/h`), fact('RQ', sig(rq!, 3), rq! < 0.67 || rq! > 1.2 ? 'outside the usual 0.7 to 1.0: check the analysers and the baseline' : 'V̇CO₂ ÷ V̇O₂'));
+    facts.unshift(fact('Metabolic rate', `${sig(W, 4)} W`, `${sig(kjPerDay(W), 4)} kJ/day; ${sig(joulesPerMl(rqUse, method, fixedJ), 4)} J per mL O₂${vco2 === null ? ` at an assumed RQ of ${sig(rqA, 3)}` : ''}`));
+    if (mass > 0) facts.push(fact('Per gram of body mass', `${sig((vo2 * 60) / mass, 4)} mL O₂/(g·h)`, `${sig((W / mass) * 1000, 4)} W/kg`));
+    q('.rs-facts').replaceChildren(...facts);
+    if (fig) { q('.rs-fig').hidden = false; paint(q<HTMLCanvasElement>('.rs-fig'), fig); } else q('.rs-fig').hidden = true;
+    csvRows = [['Quantity', 'Value'], ['VO2 (mL/min STPD)', cn(vo2, 6)], ['VCO2 (mL/min STPD)', vco2 === null ? '' : cn(vco2, 6)], ['RQ', rq === null ? `${cn(rqA, 3)} (assumed)` : cn(rq, 6)], ['Metabolic rate (W)', cn(W, 6)], ['Metabolic rate (kJ/day)', cn(kjPerDay(W), 6)], ['Energy method', method], ...rows, ...(mass > 0 ? [['Body mass (g)', cn(mass, 6)], ['VO2 per g (mL/(g h))', cn((vo2 * 60) / mass, 6)]] : [])];
+    sections = [{ title: q('.rs-big').textContent!, text: ['For study and teaching, not for clinical use.'], facts: [...q('.rs-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}) }];
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.rs-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.rs-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'respirometry.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.rs-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Respirometry', subtitle: q('.rs-big').textContent ?? '', file: 'respirometry', sections }));
+</script>
+
+<style is:global>
+  .rsp select { max-width: 100%; }
+</style>

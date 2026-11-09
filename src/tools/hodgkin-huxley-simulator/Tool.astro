@@ -1,0 +1,183 @@
+---
+// Hodgkin-Huxley squid axon simulator: current clamp with a step or a pulse train, plots of V, m, h, n,
+// threshold search and an f-I curve. Model equations from Hodgkin and Huxley (1952), modern convention.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hhs">
+  <div class="ax-card">
+    <h2>Current clamp</h2>
+    <div class="ax-seg hh-kind" role="group" aria-label="Stimulus"><button type="button" data-k="step" aria-pressed="true">Step</button><button type="button" data-k="train" aria-pressed="false">Pulse train</button></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Amplitude (µA/cm²) <input class="hh-amp" inputmode="decimal" value="10" /></label>
+      <label>Start (ms) <input class="hh-start" inputmode="decimal" value="5" /></label>
+      <label class="hh-stepw">Duration (ms) <input class="hh-dur" inputmode="decimal" value="40" /></label>
+      <label class="hh-trw" hidden>Pulse width (ms) <input class="hh-width" inputmode="decimal" value="1" /></label>
+      <label class="hh-trw" hidden>Frequency (Hz) <input class="hh-freq" inputmode="decimal" value="50" /></label>
+      <label class="hh-trw" hidden>Number of pulses <input class="hh-count" inputmode="numeric" value="3" /></label>
+      <label>Simulate for (ms) <input class="hh-end" inputmode="decimal" value="60" /></label>
+      <label>Temperature (°C) <input class="hh-T" inputmode="decimal" value="6.3" /></label>
+    </div>
+    <details class="hh-more" style="margin-top:10px"><summary>Conductances (block channels)</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>g̅Na (mS/cm²) <input class="hh-gna" inputmode="decimal" value="120" /></label>
+        <label>g̅K (mS/cm²) <input class="hh-gk" inputmode="decimal" value="36" /></label>
+        <label>g̅L (mS/cm²) <input class="hh-gl" inputmode="decimal" value="0.3" /></label>
+      </div>
+      <p class="ax-help">Set g̅Na to 0 to mimic tetrodotoxin (no spikes), or g̅K to 0 to mimic TEA (the axon cannot repolarise properly).</p>
+    </details>
+    <p class="ax-help">The 1952 squid giant axon model at 6.3 °C, with rest at −65 mV. Rates speed up by 3 for every 10 °C (Q₁₀ = 3). A spike is counted when V rises through 0 mV. For study and teaching, not for clinical use.</p>
+    <p class="ax-err hh-err" hidden></p>
+  </div>
+
+  <div class="ax-card hh-out">
+    <h2>Result</h2>
+    <p class="ax-big hh-big"></p>
+    <dl class="ax-facts hh-facts"></dl>
+    <canvas class="ax-fig hh-v" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig hh-g" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig hh-i" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hh-csv">Download traces (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Threshold and f–I curve</h2>
+    <div class="ax-grid">
+      <label>Single pulse width (ms) <input class="hh-tw" inputmode="decimal" value="1" /></label>
+      <label>f–I up to (µA/cm²) <input class="hh-fmax" inputmode="decimal" value="40" /></label>
+      <label>Points <input class="hh-fn" inputmode="numeric" value="21" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hh-thr">Find threshold</button><button type="button" class="btn secondary small hh-fi">Draw f–I curve</button></div>
+    <p class="ax-help">Threshold: the smallest current in one pulse of this width that fires a spike (found by halving the interval 30 times). f–I: the firing rate during a 500 ms step, counting spikes after the first 100 ms, at evenly spaced currents. Uses the temperature and conductances above.</p>
+    <p class="ax-err hh-ferr" hidden></p>
+    <p class="ax-big hh-thrv" hidden></p>
+    <canvas class="ax-fig hh-fig" hidden></canvas>
+    <div class="ax-scroll"><table class="hh-ftab" hidden></table></div>
+    <div class="ax-row hh-fcw" hidden style="margin-top:10px"><button type="button" class="btn secondary small hh-fcsv">Download f–I (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { simulate, threshold, rate, DEFAULTS, type Params, type Stim, type Run } from '../../lib/sci/hhsim';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hhs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const cn = (x: number, d = 6) => String(+x.toPrecision(d));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let kind: 'step' | 'train' = 'step', run: Run | null = null, figs: Figure[] = [], ffig: Figure | null = null, fi: [number, number][] = [], thrText = '';
+
+  function params(): Params | string {
+    const p = { ...DEFAULTS, tempC: val('.hh-T'), gNa: val('.hh-gna'), gK: val('.hh-gk'), gL: val('.hh-gl') };
+    if (!(p.tempC >= -5 && p.tempC <= 40)) return 'Type a temperature between −5 and 40 °C (the model was fitted at 6.3 °C).';
+    if (!(p.gNa >= 0 && p.gK >= 0 && p.gL > 0) || p.gNa > 1000 || p.gK > 1000 || p.gL > 100) return 'Conductances must be zero or more (leak above zero), in mS/cm².';
+    return p;
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.hh-err').textContent = m; q('.hh-err').hidden = false; q('.hh-out').hidden = true; run = null; figs = []; };
+    q('.hh-err').hidden = true;
+    const p = params(); if (typeof p === 'string') return fail(p);
+    const amp = val('.hh-amp'), start = val('.hh-start'), end = val('.hh-end');
+    if (!Number.isFinite(amp) || Math.abs(amp) > 1000) return fail('Type the current amplitude in µA/cm² (up to ±1000).');
+    if (!(start >= 0)) return fail('Type when the stimulus starts, in ms (0 or more).');
+    if (!(end > 0 && end <= 1000)) return fail('Simulate for between 0 and 1000 ms.');
+    let st: Stim;
+    if (kind === 'step') {
+      const dur = val('.hh-dur'); if (!(dur > 0)) return fail('Type the step duration in ms.');
+      st = { kind: 'step', amp, start, dur };
+    } else {
+      const width = val('.hh-width'), freq = val('.hh-freq'), count = val('.hh-count');
+      if (!(width > 0)) return fail('Type the pulse width in ms.');
+      if (!(freq > 0 && freq <= 1000)) return fail('Type a frequency between 0 and 1000 Hz.');
+      if (!(width < 1000 / freq)) return fail('The pulse width must be shorter than the time between pulses.');
+      if (!(Number.isInteger(count) && count >= 1 && count <= 1000)) return fail('Type a whole number of pulses from 1 to 1000.');
+      st = { kind: 'train', amp, start, width, freq, count };
+    }
+    run = simulate(st, end, p, 0.01, Math.max(1, Math.ceil(end / 0.01 / 3000)));
+    q('.hh-out').hidden = false;
+    const n = run.spikes.length, isi = run.spikes.slice(1).map((s, i) => s - run!.spikes[i]);
+    q('.hh-big').textContent = n ? `${n} spike${n > 1 ? 's' : ''}, first at ${sig(run.spikes[0], 4)} ms, peak ${sig(run.peak, 3)} mV` : `No spike: peak ${sig(run.peak, 3)} mV`;
+    const facts = [
+      fact('Spike times', n ? run.spikes.slice(0, 8).map((s) => sig(s, 4)).join(', ') + (n > 8 ? ', …' : '') + ' ms' : 'none', 'when V rises through 0 mV'),
+      ...(isi.length ? [fact('Firing rate', `${sig(1000 / (isi.reduce((a, b) => a + b, 0) / isi.length), 3)} Hz`, `mean interval ${sig(isi.reduce((a, b) => a + b, 0) / isi.length, 3)} ms`)] : []),
+      fact('V at the end', `${sig(run.V[run.V.length - 1], 3)} mV`, `after ${sig(end, 4)} ms`),
+      fact('Temperature factor φ', sig(3 ** ((p.tempC - 6.3) / 10), 3), `3^((${cn(p.tempC, 4)} − 6.3)/10)`),
+    ];
+    q('.hh-facts').replaceChildren(...facts);
+    const t = run.t;
+    figs = [
+      chartFigure({ h: 260, xLabel: 'Time (ms)', yLabel: 'V (mV)', legend: 'none', xMin: 0, xMax: end, series: [{ name: 'V', x: t, y: run.V, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, 'Membrane potential against time'),
+      chartFigure({ h: 220, xLabel: 'Time (ms)', yLabel: 'Gate (0 to 1)', legend: 'below', xMin: 0, xMax: end, yMin: 0, yMax: 1, series: [{ name: 'm (Na⁺ act.)', x: t, y: run.m, mode: 'line' }, { name: 'h (Na⁺ inact.)', x: t, y: run.h, mode: 'line' }, { name: 'n (K⁺ act.)', x: t, y: run.n, mode: 'line' }] }, 'Gating variables m, h and n against time'),
+      chartFigure({ h: 150, xLabel: 'Time (ms)', yLabel: 'I (µA/cm²)', legend: 'none', xMin: 0, xMax: end, series: [{ name: 'I', x: t, y: run.I, mode: 'line' }] }, 'Injected current against time'),
+    ];
+    paintAll();
+  }
+  function paintAll() {
+    ['.hh-v', '.hh-g', '.hh-i'].forEach((c, i) => { if (figs[i]) paint(q<HTMLCanvasElement>(c), figs[i]); });
+    if (ffig) paint(q<HTMLCanvasElement>('.hh-fig'), ffig);
+  }
+
+  function ferr(m: string) { q('.hh-ferr').textContent = m; q('.hh-ferr').hidden = !m; }
+  q('.hh-thr').addEventListener('click', () => {
+    const p = params(), w = val('.hh-tw');
+    if (typeof p === 'string') return ferr(p);
+    if (!(w > 0 && w <= 100)) return ferr('Type a pulse width between 0 and 100 ms.');
+    ferr(''); q('.hh-thrv').hidden = false; q('.hh-thrv').textContent = 'Working…';
+    setTimeout(() => {
+      const a = threshold(w, p);
+      thrText = Number.isFinite(a) ? `Threshold for a ${sig(w, 3)} ms pulse: ${sig(a, 4)} µA/cm² (${sig(a * w, 4)} nC/cm²)` : `No spike even at 500 µA/cm² for a ${sig(w, 3)} ms pulse`;
+      q('.hh-thrv').textContent = thrText;
+    }, 20);
+  });
+  q('.hh-fi').addEventListener('click', () => {
+    const p = params(), max = val('.hh-fmax'), n = val('.hh-fn');
+    if (typeof p === 'string') return ferr(p);
+    if (!(max > 0 && max <= 500)) return ferr('Type the largest current for the f–I curve, up to 500 µA/cm².');
+    if (!(Number.isInteger(n) && n >= 2 && n <= 101)) return ferr('Type a whole number of points from 2 to 101.');
+    ferr(''); q('.hh-fi').textContent = 'Working…';
+    setTimeout(() => {
+      fi = Array.from({ length: n }, (_, k) => { const a = (max * k) / (n - 1); return [a, rate(a, p)] as [number, number]; });
+      q('.hh-fi').textContent = 'Draw f–I curve';
+      ffig = chartFigure({ h: 260, xLabel: 'Step current (µA/cm²)', yLabel: 'Firing rate (Hz)', legend: 'none', yMin: 0, series: [{ name: 'f', x: fi.map((d) => d[0]), y: fi.map((d) => d[1]), mode: 'both', marker: 'circle' }] }, 'Firing rate against step current');
+      q('.hh-fig').hidden = false; paint(q<HTMLCanvasElement>('.hh-fig'), ffig);
+      const t = q<HTMLTableElement>('.hh-ftab'); t.replaceChildren(); t.hidden = false;
+      const hr = t.createTHead().insertRow(); ['Current (µA/cm²)', 'Rate (Hz)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; th.className = 'r'; hr.append(th); });
+      const first = fi.find((d) => d[1] > 0);
+      const tb = t.createTBody(); fi.forEach(([a, r]) => { const tr = tb.insertRow(); for (const v of [sig(a, 3), sig(r, 3)]) { const td = tr.insertCell(); td.textContent = v; td.className = 'r'; } });
+      const cap = t.createCaption(); cap.textContent = first ? `Repetitive firing starts between ${sig(fi[fi.indexOf(first) - 1]?.[0] ?? 0, 3)} and ${sig(first[0], 3)} µA/cm².` : 'No repetitive firing in this range.'; cap.style.textAlign = 'left'; cap.style.captionSide = 'bottom'; cap.className = 'ax-help';
+      q('.hh-fcw').hidden = false;
+    }, 20);
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.hh-kind button').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.k as 'step' | 'train';
+    root.querySelectorAll('.hh-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.hh-stepw').hidden = kind !== 'step'; root.querySelectorAll<HTMLElement>('.hh-trw').forEach((e) => (e.hidden = kind !== 'train'));
+    if (kind === 'train' && val('.hh-amp') === 10) q<HTMLInputElement>('.hh-amp').value = '15';
+    if (kind === 'step' && val('.hh-amp') === 15) q<HTMLInputElement>('.hh-amp').value = '10';
+    calc();
+  }));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('.ax-card:first-child input').forEach((i) => i.addEventListener('input', later));
+  q('.hh-csv').addEventListener('click', () => { if (run) save(new TextEncoder().encode(toCsv([['t (ms)', 'V (mV)', 'm', 'h', 'n', 'I (uA/cm2)'], ...run.t.map((t, i) => [cn(t), cn(run!.V[i]), cn(run!.m[i]), cn(run!.h[i]), cn(run!.n[i]), cn(run!.I[i])])])), 'hodgkin-huxley.csv', 'text/csv'); });
+  q('.hh-fcsv').addEventListener('click', () => { if (fi.length) save(new TextEncoder().encode(toCsv([['I (uA/cm2)', 'rate (Hz)'], ...fi.map(([a, r]) => [cn(a), cn(r)])])), 'hodgkin-huxley-fI.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', paintAll);
+  calc();
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (run) sections.push({ title: q('.hh-big').textContent!, text: ['Hodgkin-Huxley (1952) squid axon model, current clamp. For study and teaching, not for clinical use.'], facts: [...q('.hh-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] }, { title: 'Gates', figure: figs[1] });
+    if (thrText) sections.push({ title: thrText });
+    if (ffig) sections.push({ title: 'f–I curve', figure: ffig, table: { head: ['Current (µA/cm²)', 'Rate (Hz)'], rows: fi.map(([a, r]) => [sig(a, 3), sig(r, 3)]), align: ['r', 'r'] } });
+    return { title: 'Hodgkin-Huxley simulation', subtitle: q('.hh-big').textContent ?? '', file: 'hodgkin-huxley', sections };
+  });
+</script>
+
+<style is:global>
+  .hhs details summary { cursor: pointer; font-size: 15px; }
+</style>

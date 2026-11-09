@@ -1,0 +1,182 @@
+---
+// Fick principle cardiac output from V̇O2 and arterial/venous O2 content; Fick's law of diffusion; Poiseuille flow.
+// The example numbers are illustrative textbook-style values, made up and rounded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fck">
+  <div class="ax-card">
+    <h2>Cardiac output by the Fick principle</h2>
+    <div class="ax-grid">
+      <label>O₂ uptake V̇O₂ (mL/min) <input class="fk-vo2" inputmode="decimal" value="250" /></label>
+      <label>Haemoglobin (g/dL) <input class="fk-hb" inputmode="decimal" value="15" /></label>
+      <label>Arterial saturation SaO₂ (%) <input class="fk-sa" inputmode="decimal" value="98" /></label>
+      <label>Arterial PO₂ <input class="fk-pa" inputmode="decimal" value="95" /></label>
+      <label>Mixed venous saturation SvO₂ (%) <input class="fk-sv" inputmode="decimal" value="75" /></label>
+      <label>Mixed venous PO₂ <input class="fk-pv" inputmode="decimal" value="40" /></label>
+      <label>PO₂ unit <select class="fk-pu"><option value="mmHg" selected>mmHg</option><option value="kPa">kPa</option></select></label>
+      <label>Hüfner factor (mL O₂/g Hb) <select class="fk-huf"><option value="1.34" selected>1.34</option><option value="1.36">1.36</option><option value="1.39">1.39 (theoretical)</option></select></label>
+      <label>Heart rate (beats/min, optional) <input class="fk-hr" inputmode="decimal" value="70" /></label>
+      <label>Body surface area (m², optional) <input class="fk-bsa" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">O₂ content = Hüfner factor × Hb × saturation + 0.0031 × PO₂ (mmHg), in mL O₂ per dL of blood. The example numbers are illustrative textbook-style values for a resting adult, made up and rounded. For study and teaching, not for clinical use.</p>
+    <p class="ax-err fk-err" hidden></p>
+    <div class="fk-out">
+      <p class="ax-big fk-big"></p>
+      <dl class="ax-facts fk-facts"></dl>
+      <canvas class="ax-fig fk-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fick's law of diffusion</h2>
+    <div class="ax-grid">
+      <label>Diffusion coefficient D (cm²/s) <input class="fd-D" inputmode="decimal" value="2e-5" /></label>
+      <label>Area (cm²) <input class="fd-A" inputmode="decimal" value="1" /></label>
+      <label>Concentration difference (mmol/L) <input class="fd-C" inputmode="decimal" value="0.1" /></label>
+      <label>Thickness (µm) <input class="fd-x" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Rate = D × area × ΔC ÷ thickness. Double the thickness and the rate halves; double the area and it doubles. D of small molecules in water is about 1 × 10⁻⁵ to 2 × 10⁻⁵ cm²/s.</p>
+    <p class="ax-err fd-err" hidden></p>
+    <dl class="ax-facts fd-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Blood flow in a tube (Poiseuille)</h2>
+    <div class="ax-grid">
+      <label>Pressure drop (mmHg) <input class="fp-dp" inputmode="decimal" value="10" /></label>
+      <label>Radius (mm) <input class="fp-r" inputmode="decimal" value="1.5" /></label>
+      <label>Length (cm) <input class="fp-L" inputmode="decimal" value="10" /></label>
+      <label>Viscosity (mPa·s) <input class="fp-eta" inputmode="decimal" value="3.5" /></label>
+      <label>Density (kg/m³) <input class="fp-rho" inputmode="decimal" value="1060" /></label>
+    </div>
+    <p class="ax-help">Q = π ΔP r⁴ ÷ (8 η L), for steady, smooth (laminar) flow in a straight rigid tube. Water is about 0.7 mPa·s at 37 °C; whole blood is roughly 3 to 4 mPa·s and is not truly Newtonian, so treat this as a teaching model.</p>
+    <p class="ax-err fp-err" hidden></p>
+    <div class="fp-out" style="margin-top:12px">
+      <dl class="ax-facts fp-facts"></dl>
+      <canvas class="ax-fig fp-fig" style="margin-top:12px"></canvas>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fk-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { o2Content, fick, diffusion, poiseuille, KPA_MMHG } from '../../lib/sci/fickco';
+  import { num, sig, fmtExp, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fck')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s ? num(s) : null; };
+  const cn = (x: number, d = 6) => String(+x.toPrecision(d));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const facts = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const sci = (x: number) => (Math.abs(x) >= 1e4 || Math.abs(x) < 1e-2 ? fmtExp(x, 3) : sig(x, 3));
+  const show = (e: string, out: string, m: string) => { q(e).textContent = m; q(e).hidden = !m; if (out) q(out).hidden = !!m; };
+  let fig: Figure | null = null, pfig: Figure | null = null;
+  let rows: { fick: string[][]; diff: string[][]; pois: string[][] } = { fick: [], diff: [], pois: [] };
+
+  function calcFick() {
+    const fail = (m: string) => { show('.fk-err', '.fk-out', m); fig = null; rows.fick = []; };
+    const vo2 = val('.fk-vo2'), hb = val('.fk-hb'), sa = val('.fk-sa') / 100, sv = val('.fk-sv') / 100, huf = Number(q<HTMLSelectElement>('.fk-huf').value);
+    const k = q<HTMLSelectElement>('.fk-pu').value === 'kPa' ? KPA_MMHG : 1, pa = val('.fk-pa') * k, pv = val('.fk-pv') * k;
+    const hr = opt('.fk-hr'), bsa = opt('.fk-bsa');
+    if (!(vo2 > 0)) return fail('Type the O₂ uptake in mL/min (about 250 for a resting adult).');
+    if (!(hb > 0 && hb < 30)) return fail('Type the haemoglobin in g/dL (between 0 and 30).');
+    if (!(sa > 0 && sa <= 1) || !(sv >= 0 && sv <= 1)) return fail('Saturations are percentages from 0 to 100.');
+    if (!(pa >= 0) || !(pv >= 0)) return fail('Type both PO₂ values (zero or more).');
+    if (hr !== null && !(hr > 0)) return fail('Heart rate must be above zero, or leave it empty.');
+    if (bsa !== null && !(bsa > 0)) return fail('Body surface area must be above zero, or leave it empty.');
+    const a = o2Content(hb, sa, pa, huf), v = o2Content(hb, sv, pv, huf);
+    if (!(a.total > v.total)) return fail('Arterial O₂ content must be higher than venous: check the saturations and PO₂ values.');
+    const r = fick(vo2, a.total, v.total, hr, bsa);
+    show('.fk-err', '.fk-out', '');
+    q('.fk-big').textContent = `Cardiac output = ${sig(r.co, 3)} L/min`;
+    q('.fk-facts').replaceChildren(
+      fact('Arterial O₂ content', `${sig(a.total, 4)} mL/dL`, `${sig(a.bound, 4)} bound + ${sig(a.dissolved, 3)} dissolved`),
+      fact('Venous O₂ content', `${sig(v.total, 4)} mL/dL`, `${sig(v.bound, 4)} bound + ${sig(v.dissolved, 3)} dissolved`),
+      fact('a–v O₂ difference', `${sig(r.avDiff, 3)} mL/dL`, 'O₂ taken out of each 100 mL of blood'),
+      ...(r.sv !== null ? [fact('Stroke volume', `${sig(r.sv, 3)} mL`, `at ${sig(hr!, 3)} beats/min`)] : []),
+      ...(r.ci !== null ? [fact('Cardiac index', `${sig(r.ci, 3)} L/min/m²`, `over ${sig(bsa!, 3)} m²`)] : []),
+      fact('O₂ delivery', `${sig(r.do2, 4)} mL/min`, 'cardiac output × arterial O₂ content'),
+      fact('O₂ extraction', `${sig(100 * r.extraction, 3)} %`, 'share of delivered O₂ taken up'),
+    );
+    const lo = Math.max(1, r.avDiff / 3), hi = r.avDiff * 3, xs: number[] = [];
+    for (let i = 0; i <= 100; i++) xs.push(lo + ((hi - lo) * i) / 100);
+    fig = chartFigure({ h: 260, xLabel: 'a–v O₂ difference (mL/dL)', yLabel: 'Cardiac output (L/min)', legend: 'none', yMin: 0, series: [
+      { name: `V̇O₂ ${sig(vo2, 3)} mL/min`, x: xs, y: xs.map((d) => vo2 / (d * 10)), mode: 'line', width: 2 },
+      { name: 'Your values', x: [r.avDiff], y: [r.co], mode: 'points', marker: 'circle' },
+    ] }, 'Cardiac output against the arteriovenous O₂ difference at this O₂ uptake');
+    paint(q<HTMLCanvasElement>('.fk-fig'), fig);
+    rows.fick = [['VO2 (mL/min)', cn(vo2)], ['CaO2 (mL/dL)', cn(a.total)], ['CvO2 (mL/dL)', cn(v.total)], ['a-v difference (mL/dL)', cn(r.avDiff)], ['Cardiac output (L/min)', cn(r.co)], ['Stroke volume (mL)', r.sv === null ? '' : cn(r.sv)], ['Cardiac index (L/min/m2)', r.ci === null ? '' : cn(r.ci)], ['O2 delivery (mL/min)', cn(r.do2)], ['O2 extraction', cn(r.extraction)]];
+  }
+
+  function calcDiff() {
+    const D = val('.fd-D'), A = val('.fd-A'), C = val('.fd-C'), x = val('.fd-x');
+    const m = !(D > 0) ? 'Type the diffusion coefficient in cm²/s (for example 2e-5).' : !(A > 0) ? 'Type the area in cm².' : !Number.isFinite(C) ? 'Type the concentration difference in mmol/L.' : !(x > 0) ? 'Type the thickness in µm.' : '';
+    show('.fd-err', '', m); q('.fd-facts').hidden = !!m;
+    if (m) { rows.diff = []; return; }
+    const d = diffusion(D, A, C, x);
+    q('.fd-facts').replaceChildren(
+      fact('Diffusion rate', `${sci(d.rate * 1e9)} nmol/s`, `${sci(d.rate * 6e10)} nmol/min`),
+      fact('Flux', `${sci(d.flux * 1e9)} nmol/(cm²·s)`, 'per square centimetre'),
+      fact('Time to diffuse across', `${sci(d.time * 1000)} ms`, 'x² ÷ 2D, a rough time scale'),
+    );
+    rows.diff = [['Diffusion rate (mol/s)', cn(d.rate)], ['Flux (mol/(cm2 s))', cn(d.flux)], ['Diffusion time x2/2D (s)', cn(d.time)]];
+  }
+
+  function calcPois() {
+    const fail = (m: string) => { show('.fp-err', '.fp-out', m); pfig = null; rows.pois = []; };
+    const dp = val('.fp-dp'), r = val('.fp-r'), L = val('.fp-L'), eta = val('.fp-eta'), rho = val('.fp-rho');
+    if (!(dp > 0)) return fail('Type the pressure drop in mmHg.');
+    if (!(r > 0) || !(L > 0)) return fail('Type the radius (mm) and the length (cm), both above zero.');
+    if (!(eta > 0)) return fail('Type the viscosity in mPa·s (water is about 0.7, blood about 3.5).');
+    if (!(rho > 0)) return fail('Type the density in kg/m³ (blood is about 1060).');
+    const p = poiseuille(dp, r, eta, L, rho);
+    show('.fp-err', '.fp-out', '');
+    q('.fp-facts').replaceChildren(
+      fact('Flow', `${sig(p.q, 4)} mL/s`, `${sig(p.q * 60, 4)} mL/min`),
+      fact('Mean velocity', `${sig(p.velocity, 4)} cm/s`, 'flow ÷ cross-section; the centre moves twice as fast'),
+      fact('Resistance', `${sig(p.resistance, 4)} mmHg·s/mL`, 'pressure drop ÷ flow'),
+      fact('Reynolds number', sig(p.reynolds, 4), p.reynolds < 2000 ? 'below about 2000: laminar, so Poiseuille applies' : 'above about 2000: flow may be turbulent, so Poiseuille overestimates it'),
+      fact('Wall shear stress', `${sig(p.shear, 4)} Pa`, `${sig(p.shear * 10, 4)} dyn/cm²`),
+    );
+    const xs: number[] = []; for (let i = 0; i <= 80; i++) xs.push((r * 2 * i) / 80);
+    pfig = chartFigure({ h: 240, xLabel: 'Radius (mm)', yLabel: 'Flow (mL/s)', legend: 'none', yMin: 0, series: [
+      { name: 'Q', x: xs, y: xs.map((x) => poiseuille(dp, x || 1e-9, eta, L, rho).q), mode: 'line', width: 2 },
+      { name: 'Your tube', x: [r], y: [p.q], mode: 'points', marker: 'circle' },
+    ] }, 'Flow rises with the fourth power of the radius');
+    paint(q<HTMLCanvasElement>('.fp-fig'), pfig);
+    rows.pois = [['Flow (mL/s)', cn(p.q)], ['Mean velocity (cm/s)', cn(p.velocity)], ['Resistance (mmHg s/mL)', cn(p.resistance)], ['Reynolds number', cn(p.reynolds)], ['Wall shear stress (Pa)', cn(p.shear)]];
+  }
+
+  function sections(): Section[] {
+    const s: Section[] = [];
+    if (rows.fick.length) s.push({ title: q('.fk-big').textContent!, text: ['Fick principle: cardiac output = V̇O₂ ÷ (CaO₂ − CvO₂). For study and teaching, not for clinical use.'], facts: facts('.fk-facts'), ...(fig ? { figure: fig } : {}) });
+    if (rows.diff.length) s.push({ title: "Fick's law of diffusion", facts: facts('.fd-facts') });
+    if (rows.pois.length) s.push({ title: 'Poiseuille flow', facts: facts('.fp-facts'), ...(pfig ? { figure: pfig } : {}) });
+    return s;
+  }
+
+  const wire = (sel: string, fn: () => void) => root.querySelectorAll(sel).forEach((i) => { i.addEventListener('input', fn); i.addEventListener('change', fn); });
+  wire('[class^=fk-]', calcFick); wire('[class^=fd-]', calcDiff); wire('[class^=fp-]', calcPois);
+  q('.fk-pu').addEventListener('change', () => {
+    const k = q<HTMLSelectElement>('.fk-pu').value === 'kPa' ? 1 / KPA_MMHG : KPA_MMHG;
+    for (const c of ['.fk-pa', '.fk-pv']) { const x = val(c); if (Number.isFinite(x)) q<HTMLInputElement>(c).value = sig(x * k, 3); }
+    calcFick();
+  });
+  q('.fk-csv').addEventListener('click', () => {
+    const all = [['Quantity', 'Value'], ...rows.fick, ...rows.diff, ...rows.pois];
+    if (all.length > 1) save(new TextEncoder().encode(toCsv(all)), 'fick-cardiac-output.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fk-fig'), fig); if (pfig) paint(q<HTMLCanvasElement>('.fp-fig'), pfig); });
+  calcFick(); calcDiff(); calcPois();
+  wireDownloads(q('.dl'), () => ({ title: 'Fick principle, diffusion and Poiseuille flow', subtitle: q('.fk-big').textContent ?? '', file: 'fick-cardiac-output', sections: sections() }));
+</script>
+
+<style is:global>
+  .fck select { max-width: 100%; }
+</style>

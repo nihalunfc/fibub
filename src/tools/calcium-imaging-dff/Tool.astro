@@ -1,0 +1,172 @@
+---
+// Calcium imaging fluorescence traces (many ROIs) to ΔF/F, with neuropil subtraction, baseline options and events.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ca">
+  <div class="ax-card">
+    <h2>Fluorescence traces</h2>
+    <label>One column per ROI (cell), one row per frame. An optional first column called time or t (s, or ms if the name says so) sets the frame rate.
+      <textarea class="ca-in" rows="7" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".ca-in" maxMB={50} maxCols={500} maxRows={200000} />
+    <details class="ca-npw">
+      <summary>Neuropil traces (optional)</summary>
+      <label style="margin-top:8px">The same shape: one column per ROI, in the same order, one row per frame.
+        <textarea class="ca-np" rows="5" spellcheck="false" wrap="off"></textarea></label>
+      <DataFile target=".ca-np" maxMB={50} maxCols={500} maxRows={200000} />
+    </details>
+    <p class="ax-help">The example is made up: 8 ROIs at 20 frames/s for 60 s, with bleaching, random transients and neuropil. Files are read on your device and never uploaded.</p>
+    <p class="ax-err ca-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Frame rate (Hz)<input class="ca-fr" type="number" min="0.001" step="any" value="20" /><span class="ax-help ca-frn"></span></label>
+      <label>Neuropil factor r<input class="ca-r" type="number" min="0" max="2" step="0.05" value="0.7" /><span class="ax-help">F − r × neuropil. 0 turns it off.</span></label>
+      <label>Baseline F0<select class="ca-bm"><option value="sliding">Percentile of a sliding window</option><option value="first">Mean of the first N frames</option><option value="whole">Percentile of the whole trace</option></select></label>
+      <label class="ca-o-p">Percentile<input class="ca-p" type="number" min="0" max="100" step="any" value="8" /><span class="ax-help">Low values (5–20) sit under the transients.</span></label>
+      <label class="ca-o-w">Window (s)<input class="ca-w" type="number" min="0.1" step="any" value="30" /><span class="ax-help">Long enough to span several transients; follows bleaching.</span></label>
+      <label class="ca-o-n" hidden>First N frames<input class="ca-n" type="number" min="1" step="1" value="100" /><span class="ax-help">Use a quiet stretch before any stimulus.</span></label>
+      <label>Event threshold (× noise)<input class="ca-k" type="number" min="0.5" step="0.5" value="3" /></label>
+      <label>Noise estimate<select class="ca-ns"><option value="robust">Robust (1.4826 × MAD)</option><option value="sd">Standard deviation</option></select><span class="ax-help">Robust ignores the transients themselves.</span></label>
+      <label>Shortest event (frames)<input class="ca-md" type="number" min="1" step="1" value="3" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card ca-out" hidden>
+    <h2>ΔF/F</h2>
+    <dl class="ax-facts ca-facts"></dl>
+    <h3>All ROIs</h3>
+    <div class="ax-grid"><label>Colours<select class="ca-cm"><option value="colour">Colour (viridis)</option><option value="grey">Grey</option></select></label><label>Colour scale top (ΔF/F)<input class="ca-top" type="number" min="0.01" step="0.1" placeholder="auto" /><span class="ax-help">Blank = the 99th percentile.</span></label></div>
+    <canvas class="ax-fig ca-heat"></canvas>
+    <h3>One ROI</h3>
+    <label style="max-width:240px">ROI<select class="ca-roi"></select></label>
+    <canvas class="ax-fig ca-tr"></canvas>
+    <canvas class="ax-fig ca-raw"></canvas>
+    <h3>Each ROI</h3>
+    <div class="ax-scroll"><table class="ca-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small ca-csv">ΔF/F (CSV)</button>
+      <button type="button" class="btn secondary small ca-ecsv">Events (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ca .ca-npw { margin-top: 12px; }
+  .ca .ca-npw summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .ca canvas + canvas { margin-top: 10px; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { baseline, subtractNeuropil, deltaF, detectEvents, percentile, exampleCalcium, type BaselineOpt, type Event } from '../../lib/sci/dff';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { rasterFigure } from '../../lib/rasterfig';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ca')!;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.ca-in'), npBox = q<HTMLTextAreaElement>('.ca-np'), roiSel = q<HTMLSelectElement>('.ca-roi');
+  {
+    const ex = exampleCalcium(), n = ex.F[0].length, head = ex.F.map((_, k) => `ROI${k + 1}`).join('\t');
+    const tab = (cols: Float64Array[]) => `time_s\t${head}\n` + Array.from({ length: n }, (_, i) => `${(i / ex.fps).toFixed(2)}\t${cols.map((c) => c[i].toFixed(1)).join('\t')}`).join('\n');
+    box.value = tab(ex.F); npBox.value = tab(ex.N);
+  }
+  type Res = { names: string[]; t: number[]; fps: number; F: Float64Array[]; F0: Float64Array[]; Fc: Float64Array[]; D: Float64Array[]; ev: { events: Event[]; threshold: number; sigma: number }[] };
+  let res: Res | null = null, figs: [string, Figure][] = [], report: Section[] = [];
+
+  function readTable(text: string, what: string) {
+    const rows = parseTable(text);
+    if (rows.length < 2) throw new Error(`${what}: paste at least a few frames, one row per frame.`);
+    const head = rows[0].some((c) => c !== '' && Number.isNaN(num(c)));
+    const body = head ? rows.slice(1) : rows, width = Math.max(...rows.map((r) => r.length));
+    let names = Array.from({ length: width }, (_, i) => (head ? rows[0][i] || `ROI ${i + 1}` : `ROI ${i + 1}`));
+    let cols = names.map((_, j) => Float64Array.from(body, (r) => num(r[j])));
+    let fps: number | null = null, t0 = 0;
+    if (head && width > 1 && /^(t|time)([\s_(\[-]|$)/i.test(names[0])) {
+      const t = cols[0], k = /ms|msec|milli/i.test(names[0]) ? 1e-3 : 1;
+      fps = (t.length - 1) / ((t[t.length - 1] - t[0]) * k); t0 = t[0] * k;
+      if (!(fps > 0)) throw new Error(`${what}: the time column must increase from top to bottom.`);
+      cols = cols.slice(1); names = names.slice(1);
+    }
+    cols.forEach((c, j) => { const i = c.findIndex((v) => !Number.isFinite(v)); if (i >= 0) throw new Error(`${what}: ${names[j]}, row ${i + 1 + (head ? 1 : 0)} is not a number. Every frame needs a value.`); });
+    return { names, cols, fps, t0 };
+  }
+
+  function calc() {
+    const err = q('.ca-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.ca-out').hidden = true; report = []; res = null; };
+    const bm = q<HTMLSelectElement>('.ca-bm').value;
+    q('.ca-o-p').hidden = bm === 'first'; q('.ca-o-w').hidden = bm !== 'sliding'; q('.ca-o-n').hidden = bm !== 'first';
+    let A, N = null;
+    try { A = readTable(box.value, 'Traces'); if (npBox.value.trim()) N = readTable(npBox.value, 'Neuropil'); } catch (e) { return fail((e as Error).message); }
+    if (N && (N.cols.length !== A.cols.length || N.cols[0].length !== A.cols[0].length)) return fail(`The neuropil table has ${N.cols.length} ROIs × ${N.cols[0].length} frames but the traces have ${A.cols.length} × ${A.cols[0].length}. They must match.`);
+    if (A.fps) { q('.ca-fr').value = String(+A.fps.toPrecision(8)); q('.ca-fr').disabled = true; q('.ca-frn').textContent = 'From the time column.'; }
+    else { q('.ca-fr').disabled = false; q('.ca-frn').textContent = 'No time column: type the imaging rate.'; }
+    const fps = A.fps ?? num(q('.ca-fr').value), r = num(q('.ca-r').value), p = num(q('.ca-p').value), w = num(q('.ca-w').value), nf = Math.round(num(q('.ca-n').value)), k = num(q('.ca-k').value), md = Math.round(num(q('.ca-md').value)), robust = q<HTMLSelectElement>('.ca-ns').value === 'robust';
+    if (!(fps > 0)) return fail('Type the frame rate (frames per second).');
+    if (!(r >= 0)) return fail('The neuropil factor must be 0 or more.');
+    if (bm !== 'first' && !(p >= 0 && p <= 100)) return fail('The percentile must be between 0 and 100.');
+    if (bm === 'sliding' && !(w * fps >= 3)) return fail('The window must span at least 3 frames.');
+    if (bm === 'first' && !(nf >= 1)) return fail('N must be at least 1 frame.');
+    if (!(k > 0) || !(md >= 1)) return fail('The threshold must be above 0 and the shortest event at least 1 frame.');
+    const opt: BaselineOpt = bm === 'sliding' ? { method: 'sliding', window: Math.max(3, Math.round(w * fps)), p } : bm === 'first' ? { method: 'first', n: nf } : { method: 'whole', p };
+    const n = A.cols[0].length, t = Array.from({ length: n }, (_, i) => A.t0 + i / fps);
+    const Fc = A.cols.map((f, j) => (N && r > 0 ? subtractNeuropil(f, N.cols[j], r) : f));
+    const F0 = Fc.map((f) => baseline(f, opt));
+    const bad = F0.findIndex((b) => b.some((v) => !(v > 0)));
+    if (bad >= 0) return fail(`${A.names[bad]}: the baseline F0 falls to zero or below${N && r > 0 ? ' after neuropil subtraction; lower the neuropil factor' : ''}. ΔF/F needs a positive baseline.`);
+    const D = Fc.map((f, j) => deltaF(f, F0[j])), ev = D.map((d) => detectEvents(d, k, md, robust));
+    res = { names: A.names, t, fps, F: A.cols, F0, Fc, D, ev };
+    q('.ca-out').hidden = false;
+    const total = ev.reduce((s, e) => s + e.events.length, 0), mins = (n / fps) / 60;
+    const facts: [string, string][] = [['ROIs', String(A.names.length)], ['Frames', `${n.toLocaleString('en')} (${sig(n / fps, 4)} s at ${sig(fps, 4)} Hz)`], ['Events', String(total)], ['Mean event rate', `${sig(total / A.names.length / mins, 3)} per ROI per min`], ['Active ROIs', `${ev.filter((e) => e.events.length).length} of ${A.names.length}`]];
+    const dl = q('.ca-facts'); dl.innerHTML = '';
+    for (const [a, b] of facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.children[0].textContent = a; d.children[1].textContent = b; dl.append(d); }
+    const prev = roiSel.value; roiSel.innerHTML = ''; A.names.forEach((nm, i) => roiSel.add(new Option(nm, String(i)))); if (prev && Number(prev) < A.names.length) roiSel.value = prev;
+    const head = ['ROI', 'Median F0', 'Noise σ', 'Threshold', 'Events', 'Per min', 'Max ΔF/F'];
+    const rows = A.names.map((nm, j) => [nm, sig(percentile(F0[j], 50), 4), sig(ev[j].sigma, 3), sig(ev[j].threshold, 3), String(ev[j].events.length), sig(ev[j].events.length / mins, 3), sig(Math.max(...D[j]), 3)]);
+    const tb = q<HTMLTableElement>('.ca-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tbody = tb.createTBody(); rows.forEach((rw) => { const tr = tbody.insertRow(); rw.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    draw();
+    report = [
+      { title: 'Summary', facts, text: [`Baseline: ${bm === 'sliding' ? `${sig(p, 3)}th percentile of a ${sig(w, 4)} s sliding window` : bm === 'first' ? `mean of the first ${nf} frames` : `${sig(p, 3)}th percentile of the whole trace`}. Neuropil factor ${N ? sig(r, 3) : 'not used (no neuropil traces)'}. Events: ${sig(k, 3)} × ${robust ? 'robust noise (1.4826 × MAD)' : 'standard deviation'} above the ${robust ? 'median' : 'mean'}, at least ${md} frames.`] },
+      { title: 'ΔF/F of all ROIs', figure: figs[0][1] }, { title: `ROI ${A.names[Number(roiSel.value)]}`, figure: figs[1][1] }, { title: 'Each ROI', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  function draw() {
+    if (!res) return;
+    const { D, t, names, ev } = res, n = t.length, cols = Math.min(1000, n), R = D.length;
+    let top = num(q('.ca-top').value);
+    if (!(top > 0)) top = Math.max(0.01, percentile(Float64Array.from(D.flatMap((d) => Array.from(d))), 99));
+    const v = new Float32Array(cols * R);
+    for (let j = 0; j < R; j++) for (let c = 0; c < cols; c++) { const a = Math.floor((c * n) / cols), b = Math.max(a + 1, Math.floor(((c + 1) * n) / cols)); let s = 0; for (let i = a; i < b; i++) s += D[j][i]; v[j * cols + c] = s / (b - a) / top; }
+    const every = Math.max(1, Math.ceil(R / 12));
+    const heat = rasterFigure({ cols, rows: R, v, x: [t[0], t[n - 1] + 1 / res.fps], y: [0, R], xLabel: 'Time (s)', yLabel: 'ROI', cmap: q<HTMLSelectElement>('.ca-cm').value as 'grey' | 'colour', yTicks: names.map((nm, i) => ({ at: R - i - 0.5, label: nm.length > 6 ? String(i + 1) : nm })).filter((_, i) => i % every === 0), bar: { lo: '0', hi: `${sig(top, 2)} ΔF/F` } }, 720, Math.min(560, 110 + R * 22), 'Heat map of ΔF/F for every ROI');
+    const j = Number(roiSel.value) || 0, step = Math.max(1, Math.floor(n / 3000)), idx: number[] = []; for (let i = 0; i < n; i += step) idx.push(i);
+    const e = ev[j].events;
+    const tr = chartFigure({ h: 280, xLabel: 'Time (s)', yLabel: 'ΔF/F', legend: 'inside', series: [{ name: 'ΔF/F', x: idx.map((i) => t[i]), y: idx.map((i) => D[j][i]), mode: 'line', width: 1.2 }, { name: `Events (${e.length})`, x: e.map((x) => t[x.peak]), y: e.map((x) => x.amp), mode: 'points', marker: 'triangle' }], marks: [{ kind: 'hline', at: ev[j].threshold, dash: [5, 4], label: 'threshold' }] }, `ΔF/F of ${names[j]} with detected events`);
+    const raw = chartFigure({ h: 240, xLabel: 'Time (s)', yLabel: 'Fluorescence', legend: 'inside', series: [{ name: res.Fc[j] === res.F[j] ? 'F' : 'F − r × neuropil', x: idx.map((i) => t[i]), y: idx.map((i) => res!.Fc[j][i]), mode: 'line', width: 1 }, { name: 'Baseline F0', x: idx.map((i) => t[i]), y: idx.map((i) => res!.F0[j][i]), mode: 'line', width: 2 }] }, `Fluorescence and baseline of ${names[j]}`);
+    figs = [['.ca-heat', heat], ['.ca-tr', tr], ['.ca-raw', raw]];
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+    if (report.length) { report[1].figure = heat; report[2] = { title: `ROI ${names[j]}`, figure: tr }; }
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); };
+  for (const c of ['.ca-in', '.ca-np', '.ca-fr', '.ca-r', '.ca-p', '.ca-w', '.ca-n', '.ca-k', '.ca-md']) q(c).addEventListener('input', later);
+  for (const c of ['.ca-bm', '.ca-ns']) q(c).addEventListener('change', calc);
+  q('.ca-roi').addEventListener('change', draw); q('.ca-cm').addEventListener('change', draw); q('.ca-top').addEventListener('input', draw);
+  const f6 = (v: number) => String(+v.toPrecision(6));
+  q('.ca-csv').addEventListener('click', () => { if (!res) return; const r = res; const lines = [['time_s', ...r.names].join(',')]; for (let i = 0; i < r.t.length; i++) lines.push([f6(r.t[i]), ...r.D.map((d) => f6(d[i]))].join(',')); save(new TextEncoder().encode(lines.join('\n') + '\n'), 'dff.csv', 'text/csv'); });
+  q('.ca-ecsv').addEventListener('click', () => { if (!res) return; const r = res; const lines = ['roi,onset_s,peak_s,end_s,peak_dff']; r.ev.forEach((e, j) => e.events.forEach((x) => lines.push([r.names[j].includes(',') ? `"${r.names[j]}"` : r.names[j], f6(r.t[x.onset]), f6(r.t[x.peak]), f6(r.t[x.end]), f6(x.amp)].join(',')))); save(new TextEncoder().encode(lines.join('\n') + '\n'), 'events.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Calcium imaging ΔF/F', file: 'calcium-dff', sections: report }));
+</script>

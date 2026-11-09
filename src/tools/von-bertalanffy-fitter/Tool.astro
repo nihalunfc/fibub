@@ -1,0 +1,180 @@
+---
+// Von Bertalanffy growth curve fitted to length-at-age (nonlinear least squares with standard errors), the Ford-Walford
+// plot and the growth performance index φ'. The example fish are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const fish = `age (years),length (cm)
+1,16.2
+1,14.7
+1,17.7
+1,19.6
+1,21.6
+1,18.7
+2,25.5
+2,24.8
+2,29.1
+2,31.6
+2,27.8
+2,23.6
+2,24.3
+2,31.5
+3,34.5
+3,29.1
+3,33.7
+3,30.7
+3,32.2
+3,32.6
+3,31.9
+3,35.5
+4,39.3
+4,37.8
+4,40.6
+4,41.8
+4,34.9
+4,38.7
+4,36.7
+5,43.4
+5,40.3
+5,44.0
+5,43.8
+5,43.1
+5,41.0
+6,46.4
+6,44.4
+6,43.7
+6,48.1
+6,44.4
+7,53.6
+7,52.4
+7,44.8
+7,51.1
+8,49.6
+8,52.7
+8,52.8
+9,48.9
+9,53.8
+10,55.3`;
+---
+<div class="ax vbg">
+  <div class="ax-card">
+    <h2>Length at age</h2>
+    <label><span>One row per fish: age, length</span> <textarea class="vb-data" rows="9" spellcheck="false">{fish}</textarea></label>
+    <DataFile target=".vb-data" maxCols={10} maxRows={50000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Length unit <select class="vb-u">
+        <option value="cm" selected>cm</option>
+        <option value="mm">mm</option>
+        <option value="in">inches</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Ages in years, from otoliths, scales or known-age fish; fractional ages (such as 2.5 for a fish caught mid-year) are fine. A first row of names is skipped, and extra columns are ignored. The unit only labels results and sets φ', which is defined with L∞ in cm. Up to 50,000 fish. The example (50 fish aged 1 to 10) is made up.</p>
+    <p class="ax-err vb-err" hidden></p>
+  </div>
+
+  <div class="ax-card vb-out">
+    <h2>Growth curve</h2>
+    <p class="ax-big vb-big"></p>
+    <dl class="ax-facts vb-facts"></dl>
+    <canvas class="ax-fig vb-fig1"></canvas>
+    <h3>Ford-Walford plot</h3>
+    <p class="ax-help vb-fwnote"></p>
+    <canvas class="ax-fig vb-fig2"></canvas>
+    <details class="vb-sd">
+      <summary>Mean length at each age (table)</summary>
+      <div class="ax-scroll"><table class="vb-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small vb-csv">Download fitted lengths (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitVB, meansByAge, vb } from '../../lib/sci/vbgf';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.vbg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.vb-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c) => { const td = tr.insertCell(); td.textContent = c; td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.vb-err').textContent = m; q('.vb-err').hidden = false; q('.vb-out').hidden = true; figs = []; sections = []; csvRows = []; };
+    q('.vb-err').hidden = true;
+    const u = q<HTMLSelectElement>('.vb-u').value, cm = u === 'mm' ? 0.1 : u === 'in' ? 2.54 : 1;
+    const all = parseTable(q<HTMLTextAreaElement>('.vb-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    const body = all.length && !Number.isFinite(num(all[0][0])) ? all.slice(1) : all;
+    if (!body.length) return fail('Give one row per fish: age and length.');
+    if (body.length > 50000) return fail('Up to 50,000 fish, please.');
+    const age: number[] = [], len: number[] = [];
+    for (let i = 0; i < body.length; i++) {
+      const a = num(body[i][0]), l = num(body[i][1]), row = i + 1 + (all.length - body.length);
+      if (!(a >= 0 && a <= 300)) return fail(`Row ${row}: give the age in years (0 or more).`);
+      if (!(l > 0)) return fail(`Row ${row}: give the length (above 0).`);
+      age.push(a); len.push(l);
+    }
+    let f;
+    try { f = fitVB(age, len, cm); } catch (e) { return fail((e as Error).message); }
+    const [Li, K, t0] = f.p;
+    q('.vb-out').hidden = false;
+    q('.vb-big').textContent = `L∞ ${sg(Li, 3)} ${u}, K ${sg(K, 3)} per year, t₀ ${sg(t0, 2)} years`;
+    const ci = (i: number, d = 3) => `95 % interval ${sg(f.ci[i][0], d)} to ${sg(f.ci[i][1], d)}`;
+    const fw = f.fw;
+    q('.vb-facts').replaceChildren(
+      fact('L∞ (asymptotic length)', `${sg(Li, 4)} ± ${sg(f.se[0], 3)} ${u}`, `${ci(0)}; the mean length fish would reach if they lived for ever`),
+      fact('K (growth coefficient)', `${sg(K, 4)} ± ${sg(f.se[1], 3)} per year`, `${ci(1)}; how fast length approaches L∞`),
+      fact('t₀', `${sg(t0, 3)} ± ${sg(f.se[2], 2)} years`, `${ci(2, 2)}; the age at which the curve gives length 0`),
+      fact("Growth performance φ'", sg(f.phi, 3), 'log₁₀ K + 2 log₁₀ L∞, with L∞ in cm (Pauly and Munro)'),
+      fact('Fit', `residual SD ${sg(f.s, 3)} ${u}`, `${age.length} fish, ${new Set(age).size} ages, R² ${sg(f.r2, 3)}${f.converged ? '' : '; the fit did not fully converge'}`),
+      fact('Ford-Walford estimate', fw && Number.isFinite(fw.K) ? `L∞ ${sg(fw.Linf, 3)} ${u}, K ${sg(fw.K, 3)}` : 'not available', fw ? 'from mean lengths at ages one year apart' : 'needs mean lengths at 4 or more ages one year apart'),
+    );
+    const amax = Math.max(...age), amin = Math.min(0, t0), xs = Array.from({ length: 101 }, (_, k) => amin + ((amax * 1.1 - amin) * k) / 100);
+    figs = [chartFigure({ h: 320, xLabel: 'Age (years)', yLabel: `Length (${u})`, yMin: 0, legend: 'below', series: [
+      { name: 'Fish', x: age, y: len, mode: 'points', size: 3, marker: 'open-circle' },
+      { name: 'von Bertalanffy fit', x: xs, y: xs.map((t) => Math.max(0, vb(t, f.p))), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'hline', at: Li, dash: [5, 4], label: 'L∞' }] }, `Length against age for ${age.length} fish with the fitted von Bertalanffy curve`)];
+    if (fw) {
+      const hi = Math.max(Li, ...fw.pairs.map((p) => p.y)) * 1.05, lx = [0, hi];
+      figs.push(chartFigure({ h: 300, xLabel: `Mean length at age t (${u})`, yLabel: `Mean length at age t+1 (${u})`, xMin: 0, yMin: 0, legend: 'below', series: [
+        { name: 'Mean lengths', x: fw.pairs.map((p) => p.x), y: fw.pairs.map((p) => p.y), mode: 'points', size: 4 },
+        { name: 'Fitted line', x: lx, y: lx.map((v) => fw.a + fw.b * v), mode: 'line', width: 2 },
+        { name: '1:1 line', x: lx, y: lx, mode: 'line', width: 1, dash: [4, 4], color: '#888888' },
+      ] }, `Ford-Walford plot of ${fw.pairs.length} pairs of mean lengths`));
+      q('.vb-fwnote').textContent = `L(t+1) = ${sg(fw.a, 4)} + ${sg(fw.b, 4)} × L(t), R² ${sg(fw.r2, 3)}. The line meets the 1:1 line at L∞ = a ÷ (1 − b), and K = −ln b.`;
+    } else q('.vb-fwnote').textContent = 'Needs mean lengths at 4 or more ages one year apart.';
+    q('.vb-fig2').hidden = !fw;
+    paint(q<HTMLCanvasElement>('.vb-fig1'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.vb-fig2'), figs[1]);
+    const mb = meansByAge(age, len);
+    const head = ['Age', 'Fish', `Mean length (${u})`, `Fitted (${u})`, 'Difference'];
+    const rows = mb.map((m) => [sg(m.age, 4), String(m.n), sg(m.mean, 4), sg(vb(m.age, f.p), 4), sg(m.mean - vb(m.age, f.p), 3)]);
+    table(head, rows);
+    csvRows = [['age', `length_${u}`, `fitted_${u}`, 'residual'], ...age.map((a, i) => [String(a), String(len[i]), sg(vb(a, f.p), 6), sg(len[i] - vb(a, f.p), 6)])];
+    sections = [{ title: q('.vb-big').textContent!, facts: [...q('.vb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0], table: { head, rows, align: ['r', 'r', 'r', 'r', 'r'] } },
+      ...(figs[1] ? [{ title: 'Ford-Walford plot', text: [q('.vb-fwnote').textContent!], figure: figs[1] }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.vb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'von-bertalanffy.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.vb-fig1'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.vb-fig2'), figs[1]); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Von Bertalanffy growth', subtitle: q('.vb-big').textContent ?? '', file: 'von-bertalanffy', sections }));
+</script>
+
+<style is:global>
+  .vbg select { max-width: 100%; }
+  .vbg textarea { width: 100%; }
+  .vbg h3 { margin: 18px 0 8px; font-size: 16px; }
+  .vbg .vb-sd { margin-top: 14px; }
+  .vbg .vb-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

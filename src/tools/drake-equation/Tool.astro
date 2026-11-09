@@ -1,0 +1,126 @@
+---
+// Drake equation playground: a low and high value per factor, a log-uniform Monte Carlo of N, and exact checks.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { FACTORS, PRESETS } from '../../lib/sci/drake';
+const start = PRESETS.wide.ranges;
+---
+<div class="ax dke">
+  <div class="ax-card">
+    <h2>Factors</h2>
+    <label>Start from <select class="dk-preset">
+      {Object.entries(PRESETS).map(([k, p]) => <option value={k} selected={k === 'wide'}>{p.name}</option>)}
+      <option value="custom">My own ranges</option>
+    </select></label>
+    <p class="ax-help">The starting ranges are made up for illustration. They are not anyone's published estimates; replace them with your own.</p>
+    <div class="dk-rows">
+      {FACTORS.map((f, i) => (
+        <fieldset class="dk-row" data-i={i}>
+          <legend>{f.label}</legend>
+          <label>Low <input class="dk-lo" inputmode="decimal" value={String(start[i][0])} /></label>
+          <label>High <input class="dk-hi" inputmode="decimal" value={String(start[i][1])} /></label>
+        </fieldset>
+      ))}
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Random draws <input class="dk-n" inputmode="numeric" value="100000" /></label>
+      <label>Seed <input class="dk-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">N = R* × fp × ne × fl × fi × fc × L is the number of civilisations in our galaxy sending signals we could detect right now. Each draw picks every factor between its low and high value, with every factor of ten equally likely (log-uniform), because for most factors we do not even know the power of ten. Set low = high to fix a factor. Fractions cannot exceed 1. Numbers like 1e-6 are fine. Up to 1,000,000 draws.</p>
+    <p class="ax-err dk-err" hidden></p>
+  </div>
+
+  <div class="ax-card dk-out">
+    <h2>Result</h2>
+    <p class="ax-big dk-big"></p>
+    <dl class="ax-facts dk-facts"></dl>
+    <h3>How N is spread</h3>
+    <canvas class="ax-fig dk-fig"></canvas>
+    <p class="ax-help">Each step of 1 on the axis is a factor of ten in N. Left of the dashed line (N below 1), we are probably the only signalling civilisation in the galaxy right now.</p>
+    <h3>Which factor matters most</h3>
+    <div class="ax-scroll"><table class="dk-tab"></table></div>
+    <p class="ax-help">Share of spread: how much of the uncertainty in log₁₀ N comes from each factor (its share of the variance). Narrowing the top one would sharpen the answer most.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dk-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { FACTORS, PRESETS, pointN, logMoments, exactCdf, sampleLogN, quantile, shareBelow, type Range } from '../../lib/sci/drake';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, fmtExp, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dke')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const rows = [...root.querySelectorAll<HTMLElement>('.dk-row')];
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fN = (x: number) => (x === 0 ? '0' : x >= 1e6 || x < 1e-3 ? fmtExp(x, 2) : (+x.toPrecision(2)).toLocaleString('en', { maximumFractionDigits: 6 }));
+  const pc = (p: number) => (p > 0 && p < 0.001 ? 'under 0.1 %' : p < 1 && p > 0.999 ? 'over 99.9 %' : `${+(100 * p).toPrecision(3)} %`);
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.dk-err').textContent = m; q('.dk-err').hidden = false; q('.dk-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.dk-err').hidden = true;
+    const r: Range[] = [];
+    for (const [i, row] of rows.entries()) {
+      const f = FACTORS[i], lo = num(row.querySelector<HTMLInputElement>('.dk-lo')!.value), hi = num(row.querySelector<HTMLInputElement>('.dk-hi')!.value), name = f.label.split(':')[0];
+      if (!(lo > 0 && hi > 0)) return fail(`${name}: low and high must both be above zero (a log-uniform range cannot include 0; use a tiny value such as 1e-12).`);
+      if (hi < lo) return fail(`${name}: the high value is below the low value.`);
+      if (f.max && hi > f.max) return fail(`${name} is a fraction, so it cannot be more than 1.`);
+      r.push({ lo, hi });
+    }
+    const n = num(q<HTMLInputElement>('.dk-n').value), seed = num(q<HTMLInputElement>('.dk-seed').value);
+    if (!(Number.isInteger(n) && n >= 1000 && n <= 1e6)) return fail('Random draws must be a whole number from 1,000 to 1,000,000.');
+    if (!(Number.isInteger(seed) && seed >= 0 && seed < 2 ** 32)) return fail('The seed must be a whole number from 0 to 4,294,967,295.');
+    q('.dk-out').hidden = false;
+    const s = sampleLogN(r, n, seed), mom = logMoments(r), med = quantile(s, 0.5), p5 = quantile(s, 0.05), p95 = quantile(s, 0.95);
+    const below1 = shareBelow(s, 0), above1k = 1 - shareBelow(s, 3), ex1 = exactCdf(r, 0), ex1k = 1 - exactCdf(r, 3);
+    q('.dk-big').textContent = `Median N = ${fN(10 ** med)}; ${pc(below1)} chance of fewer than 1`;
+    const facts: [string, string, string][] = [
+      ['Middle estimate', fN(pointN(r)), 'every factor at the middle of its range on a log scale'],
+      ['Median N', fN(10 ** med), `half the draws are below this`],
+      ['90 % of draws', `${fN(10 ** p5)} to ${fN(10 ** p95)}`, 'from the 5th to the 95th percentile'],
+      ['Chance N < 1', pc(below1), `exact: ${pc(ex1)}; then we are probably alone in the galaxy right now`],
+      ['Chance N ≥ 1,000', pc(above1k), `exact: ${pc(ex1k)}`],
+      ['Mean of log₁₀ N', (+(s.reduce((a, b) => a + b, 0) / n).toFixed(3)).toString().replace('-', '−'), `exact: ${(+mom.mean.toFixed(3)).toString().replace('-', '−')}; spread (SD) ${(+Math.sqrt(mom.var).toFixed(2))} factors of ten`],
+    ];
+    q('.dk-facts').replaceChildren(...facts.map(([k, v, sm]) => fact(k, v, sm)));
+    // Histogram of log10 N as a step outline.
+    const a = s[0], b = s[n - 1], bins = 40, w = (b - a) / bins || 1, cnt = new Array(bins).fill(0);
+    for (const v of s) cnt[Math.min(bins - 1, Math.floor((v - a) / w))]++;
+    const hx: number[] = [], hy: number[] = []; cnt.forEach((c, k) => { hx.push(a + k * w, a + (k + 1) * w); hy.push(c / (n * w), c / (n * w)); });
+    fig = chartFigure({ h: 300, yMin: 0, xLabel: 'log₁₀ N (number of civilisations, as a power of ten)', yLabel: 'Density', legend: 'none', series: [{ name: 'Draws', x: hx, y: hy, mode: 'line' }],
+      marks: [{ kind: 'vline', at: 0, label: 'N = 1' }, { kind: 'vline', at: med, label: 'median', dash: [2, 3] }] }, `Distribution of log10 N from ${n} draws`);
+    paint(q<HTMLCanvasElement>('.dk-fig'), fig);
+    const head = ['Factor', 'Low', 'High', 'Middle', 'Share of spread'];
+    const trs = FACTORS.map((f, i) => [f.label.split(':')[0], fN(r[i].lo), fN(r[i].hi), fN(Math.sqrt(r[i].lo * r[i].hi)), `${Math.round(100 * mom.share[i])} %`]);
+    const tb = q<HTMLTableElement>('.dk-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const bd = tb.createTBody(); trs.forEach((tr0) => { const tr = bd.insertRow(); tr0.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+    csvRows = [['factor', 'low', 'high', 'middle', 'share of spread'], ...FACTORS.map((f, i) => [f.key, r[i].lo, r[i].hi, +Math.sqrt(r[i].lo * r[i].hi).toPrecision(6), +mom.share[i].toFixed(4)]), [],
+      ['quantity', 'value'], ['draws', n], ['seed', seed], ['middle estimate N', +pointN(r).toPrecision(6)], ['median N', +(10 ** med).toPrecision(6)], ['5th percentile N', +(10 ** p5).toPrecision(6)], ['95th percentile N', +(10 ** p95).toPrecision(6)],
+      ['P(N < 1) Monte Carlo', +below1.toFixed(6)], ['P(N < 1) exact', +ex1.toFixed(6)], ['P(N >= 1000) Monte Carlo', +above1k.toFixed(6)], ['mean log10 N exact', +mom.mean.toFixed(6)], [],
+      ['log10 N from', 'log10 N to', 'share of draws'], ...cnt.map((c, k) => [+(a + k * w).toFixed(4), +(a + (k + 1) * w).toFixed(4), +(c / n).toFixed(6)])];
+    sections = [{ title: q('.dk-big').textContent!, text: [`Drake equation N = R* · fp · ne · fl · fi · fc · L, each factor log-uniform between its low and high value; ${n.toLocaleString('en')} draws, seed ${seed}. The ranges are the user's own or made-up illustrations, not published estimates.`],
+      facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig, table: { head, rows: trs, align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  const setPreset = (k: string) => { const p = PRESETS[k]; if (!p) return; rows.forEach((row, i) => { row.querySelector<HTMLInputElement>('.dk-lo')!.value = String(p.ranges[i][0]); row.querySelector<HTMLInputElement>('.dk-hi')!.value = String(p.ranges[i][1]); }); };
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll<HTMLInputElement>('input').forEach((i) => i.addEventListener('input', () => { if (i.closest('.dk-row')) q<HTMLSelectElement>('.dk-preset').value = 'custom'; later(); }));
+  q('.dk-preset').addEventListener('change', () => { setPreset(q<HTMLSelectElement>('.dk-preset').value); calc(); });
+  q('.dk-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'drake-equation.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dk-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Drake equation', subtitle: q('.dk-big').textContent ?? '', file: 'drake-equation', sections }));
+</script>
+
+<style is:global>
+  .dke select { max-width: 100%; }
+  .dke .dk-tab td, .dke .dk-tab th { white-space: nowrap; }
+  .dke .dk-rows { display: grid; gap: 10px; margin-top: 12px; }
+  .dke .dk-row { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; min-width: 0; }
+  .dke .dk-row legend { font-size: 14px; font-weight: 600; color: var(--ink); padding: 0 4px; }
+</style>

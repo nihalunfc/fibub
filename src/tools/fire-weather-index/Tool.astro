@@ -1,0 +1,156 @@
+---
+// Canadian Forest Fire Weather Index System (Van Wagner 1987) run over a series of daily noon weather. For study
+// and teaching, not official fire danger ratings. The example weather is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const wx = 'date,temp (°C),RH (%),wind (km/h),rain (mm)\n2026-06-01,23.1,22,17,0\n2026-06-02,18.1,53,2,6.0\n2026-06-03,28.6,41,12,0\n2026-06-04,19.7,42,12,0\n2026-06-05,21.7,59,13,7.0\n2026-06-06,24.4,40,13,0\n2026-06-07,28.4,37,13,0\n2026-06-08,21.7,47,19,4.6\n2026-06-09,25.7,20,20,8.1\n2026-06-10,24.5,52,11,0\n2026-06-11,23.5,46,22,0\n2026-06-12,23.3,58,13,0\n2026-06-13,23.5,53,13,0\n2026-06-14,21.7,25,18,10.8\n2026-06-15,20.2,42,19,20.3\n2026-06-16,20.6,63,1,0\n2026-06-17,18.5,48,24,2.0\n2026-06-18,13.8,75,14,0\n2026-06-19,11.0,82,19,0\n2026-06-20,17.2,60,10,20.1\n2026-06-21,16.9,42,10,0\n2026-06-22,13.3,68,7,0\n2026-06-23,12.3,76,19,0\n2026-06-24,11.2,68,13,16.8\n2026-06-25,12.4,62,17,0\n2026-06-26,18.6,69,23,12.5\n2026-06-27,11.2,71,0,0\n2026-06-28,16.0,45,8,0\n2026-06-29,14.3,67,26,0\n2026-06-30,17.1,58,25,0';
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+---
+<div class="ax fwx">
+  <div class="ax-card">
+    <h2>Daily noon weather</h2>
+    <label><span>One row per day, in order: date (YYYY-MM-DD) or month number, temperature (°C), relative humidity (%), wind speed (km/h) and rain in the last 24 hours (mm)</span> <textarea class="fw-data" rows="9" spellcheck="false">{wx}</textarea></label>
+    <DataFile target=".fw-data" maxCols={10} maxRows={3660} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Month, if rows have no date <select class="fw-mon">{months.map((m, i) => <option value={i + 1} selected={i === 5}>{m}</option>)}</select></label>
+    </div>
+    <p class="ax-help">The system uses weather at local noon (standard time): temperature and humidity in the shade, wind at 10 m in the open, and rain over the 24 hours to noon. Columns headed date, month, temp, RH, wind and rain are found by name. Days must follow each other with none missing. Up to 3,660 days. The example (June, 30 days) is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Start-up codes</h2>
+    <div class="ax-grid">
+      <label>FFMC on the day before <input class="fw-f0" inputmode="decimal" value="85" /></label>
+      <label>DMC on the day before <input class="fw-p0" inputmode="decimal" value="6" /></label>
+      <label>DC on the day before <input class="fw-d0" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">The codes carry moisture from one day to the next, so the run needs yesterday's values. At the start of the season, three days after the snow has gone, the standard start-up values are FFMC 85, DMC 6 and DC 15. To continue a run, type the last codes of the earlier run. The DC in particular takes weeks to forget its start, so a winter with little snow may need a higher DC.</p>
+    <p class="ax-err fw-err" hidden></p>
+  </div>
+
+  <div class="ax-card fw-out">
+    <h2>Fire Weather Index</h2>
+    <p class="ax-big fw-big"></p>
+    <dl class="ax-facts fw-facts"></dl>
+    <canvas class="ax-fig fw-fig1"></canvas>
+    <canvas class="ax-fig fw-fig2"></canvas>
+    <details class="fw-sd">
+      <summary>Every day (table)</summary>
+      <div class="ax-scroll"><table class="fw-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fw-csv">Download every day (CSV)</button></div>
+    <p class="ax-help"><strong>For study and teaching, not official fire danger ratings.</strong> Fire agencies use quality-checked station data, their own start-up rules, and local danger classes. Check your fire agency for current fire danger and burning restrictions.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fwiSeries, type Day, type FwiDay } from '../../lib/sci/fwi';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const root = document.querySelector<HTMLElement>('.fwx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], sections: Section[] = [], csvRows: string[][] = [];
+  const DATE = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/;
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.fw-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.fw-err').textContent = m; q('.fw-err').hidden = false; q('.fw-out').hidden = true; figs = []; sections = []; csvRows = []; };
+    q('.fw-err').hidden = true;
+    const all = parseTable(q<HTMLTextAreaElement>('.fw-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    if (!all.length) return fail('Give one row per day: date or month, temperature, RH, wind and rain.');
+    const first = all[0], head = first.some((c) => /temp|rh|hum|wind|rain/i.test(c)) ? first : null;
+    const body = head ? all.slice(1) : all;
+    if (!body.length) return fail('Give at least one day under the header row.');
+    if (body.length > 3660) return fail('Up to 3,660 days, please.');
+    const find = (re: RegExp) => (head ? head.findIndex((c) => re.test(c)) : -1);
+    let cDate = find(/date|day/i), cMon = find(/month|mth/i), cT = find(/temp|^t\b/i), cH = find(/rh|hum/i), cW = find(/wind|ws/i), cR = find(/rain|prec|^pr?\b/i);
+    if (cT < 0 || cH < 0 || cW < 0 || cR < 0) {
+      const r0 = body[0], lead = DATE.test(r0[0]?.trim() ?? '') ? 'date' : r0.length >= 5 ? 'month' : 'none';
+      const o = lead === 'none' ? 0 : 1;
+      cDate = lead === 'date' ? 0 : -1; cMon = lead === 'month' ? 0 : -1; cT = o; cH = o + 1; cW = o + 2; cR = o + 3;
+    }
+    const mDefault = Number(q<HTMLSelectElement>('.fw-mon').value);
+    const days: Day[] = [];
+    for (let i = 0; i < body.length; i++) {
+      const r = body[i], row = i + 1 + (head ? 1 : 0);
+      let month = mDefault, label = `Day ${i + 1}`;
+      if (cDate >= 0) {
+        const m = DATE.exec((r[cDate] ?? '').trim());
+        if (!m || +m[2] < 1 || +m[2] > 12) return fail(`Row ${row}: give the date as YYYY-MM-DD.`);
+        month = +m[2]; label = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+      } else if (cMon >= 0) {
+        month = num(r[cMon]);
+        if (!(Number.isInteger(month) && month >= 1 && month <= 12)) return fail(`Row ${row}: give the month as a number from 1 to 12.`);
+      }
+      const T = num(r[cT]), H = num(r[cH]), W = num(r[cW]), R = (r[cR] ?? '').trim() === '' ? 0 : num(r[cR]);
+      if (!(T >= -50 && T <= 60)) return fail(`Row ${row}: give the noon temperature in °C.`);
+      if (!(H >= 0 && H <= 100)) return fail(`Row ${row}: give the relative humidity in % (0 to 100).`);
+      if (!(W >= 0 && W <= 200)) return fail(`Row ${row}: give the wind speed in km/h (0 or more).`);
+      if (!(R >= 0 && R <= 500)) return fail(`Row ${row}: give the rain in mm (0 or more).`);
+      days.push({ month, T, H, W, rain: R, label });
+    }
+    const F0 = num(q<HTMLInputElement>('.fw-f0').value), P0 = num(q<HTMLInputElement>('.fw-p0').value), D0 = num(q<HTMLInputElement>('.fw-d0').value);
+    if (!(F0 >= 0 && F0 <= 101)) return fail('Give a start-up FFMC from 0 to 101.');
+    if (!(P0 >= 0 && P0 <= 1000)) return fail('Give a start-up DMC of 0 or more.');
+    if (!(D0 >= 0 && D0 <= 2000)) return fail('Give a start-up DC of 0 or more.');
+    const out = fwiSeries(days, { ffmc: F0, dmc: P0, dc: D0 });
+    const last = out[out.length - 1], peak = out.reduce((a, b) => (b.fwi > a.fwi ? b : a));
+    const meanF = out.reduce((s, d) => s + d.fwi, 0) / out.length, ssr = out.reduce((s, d) => s + d.dsr, 0) / out.length;
+    q('.fw-out').hidden = false;
+    q('.fw-big').textContent = `${last.label}: FWI ${f1(last.fwi)}`;
+    q('.fw-facts').replaceChildren(
+      fact('Last day', `FFMC ${f1(last.ffmc)}, DMC ${f1(last.dmc)}, DC ${f1(last.dc)}`, `ISI ${f1(last.isi)}, BUI ${f1(last.bui)}, DSR ${f1(last.dsr)}; use these codes to continue the run`),
+      fact('Highest FWI', f1(peak.fwi), `on ${peak.label}`),
+      fact('Mean FWI', f1(meanF), `over ${out.length} day${out.length > 1 ? 's' : ''}`),
+      fact('Seasonal severity rating', f1(ssr), 'the mean of the daily severity ratings, DSR = 0.0272 × FWI^1.77'),
+    );
+    const x = out.map((_, i) => i + 1), xl = days[0].label!.startsWith('Day') ? 'Day' : `Day (1 = ${days[0].label})`;
+    figs = [
+      chartFigure({ h: 300, xLabel: xl, yLabel: 'Index', yMin: 0, legend: 'below', series: [
+        { name: 'FWI', x, y: out.map((d) => d.fwi), mode: out.length <= 60 ? 'both' : 'line', width: 2, size: 3 },
+        { name: 'ISI', x, y: out.map((d) => d.isi), mode: 'line', width: 1.5, dash: [6, 4] },
+        { name: 'BUI', x, y: out.map((d) => d.bui), mode: 'line', width: 1.5, dash: [2, 3] },
+      ] }, `Fire Weather Index, Initial Spread Index and Buildup Index over ${out.length} days`),
+      chartFigure({ h: 300, xLabel: xl, yLabel: 'Code', yMin: 0, legend: 'below', series: [
+        { name: 'FFMC', x, y: out.map((d) => d.ffmc), mode: 'line', width: 2 },
+        { name: 'DMC', x, y: out.map((d) => d.dmc), mode: 'line', width: 2, dash: [6, 4] },
+        { name: 'DC', x, y: out.map((d) => d.dc), mode: 'line', width: 2, dash: [2, 3] },
+      ] }, `Fine Fuel Moisture Code, Duff Moisture Code and Drought Code over ${out.length} days`),
+    ];
+    paint(q<HTMLCanvasElement>('.fw-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.fw-fig2'), figs[1]);
+    const head2 = ['Day', 'Temp', 'RH', 'Wind', 'Rain', 'FFMC', 'DMC', 'DC', 'ISI', 'BUI', 'FWI', 'DSR'];
+    const rows = out.map((d: FwiDay) => [d.label!, sig(d.T, 4), sig(d.H, 4), sig(d.W, 4), sig(d.rain, 4), f1(d.ffmc), f1(d.dmc), f1(d.dc), f1(d.isi), f1(d.bui), f1(d.fwi), f1(d.dsr)]);
+    table(head2, rows);
+    csvRows = [['day', 'month', 'temp_c', 'rh_pct', 'wind_kmh', 'rain_mm', 'ffmc', 'dmc', 'dc', 'isi', 'bui', 'fwi', 'dsr'], ...out.map((d) => [d.label!, String(d.month), String(d.T), String(d.H), String(d.W), String(d.rain), ...[d.ffmc, d.dmc, d.dc, d.isi, d.bui, d.fwi, d.dsr].map((v) => v.toFixed(4))])];
+    sections = [
+      { title: q('.fw-big').textContent!, text: ['Canadian Forest Fire Weather Index System (Van Wagner 1987). For study and teaching, not official fire danger ratings.'], facts: [...q('.fw-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      { title: 'Moisture codes', figure: figs[1], table: { head: head2, rows, align: head2.map((_, i) => (i ? 'r' : 'l')) } },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.fw-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'fire-weather-index.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.fw-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.fw-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Fire Weather Index', subtitle: q('.fw-big').textContent ?? '', file: 'fire-weather-index', sections }));
+</script>
+
+<style is:global>
+  .fwx select { max-width: 100%; }
+  .fwx textarea { width: 100%; }
+  .fwx .fw-sd { margin-top: 14px; }
+  .fwx .fw-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

@@ -1,0 +1,179 @@
+---
+// Morphogen gradient with French-flag thresholds, and Gray-Scott / Gierer-Meinhardt reaction-diffusion patterns.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tp">
+  <div class="ax-card">
+    <h2>Morphogen gradient and the French flag</h2>
+    <p class="ax-help" style="margin-top:0">A source at the left edge holds the morphogen at C₀; it spreads by diffusion and breaks down at rate k. Cells read the local level against two thresholds.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Source level C₀<input class="tp-c0" type="number" min="0" step="any" value="100" /></label>
+      <label>Diffusion D (µm²/s)<input class="tp-d" type="number" min="0" step="any" value="1" /></label>
+      <label>Decay rate k (per s)<input class="tp-k" type="number" min="0" step="any" value="0.0001" /></label>
+      <label>Tissue length (µm)<input class="tp-l" type="number" min="1" step="any" value="500" /></label>
+      <label>Threshold 1 (blue | white)<input class="tp-t1" type="number" min="0" step="any" value="50" /></label>
+      <label>Threshold 2 (white | red)<input class="tp-t2" type="number" min="0" step="any" value="20" /></label>
+      <label class="ax-check" style="align-self:center"><input type="checkbox" class="tp-seal" checked /> Far end sealed (no leak)</label>
+    </div>
+    <p class="ax-big tp-lam" style="margin:12px 0 4px"></p>
+    <p class="tp-pos" style="margin:0"></p>
+    <p class="ax-err tp-gerr" hidden></p>
+    <canvas class="ax-fig tp-gfig" style="margin-top:10px"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Reaction-diffusion patterns</h2>
+    <div class="ax-grid">
+      <label>Preset<select class="tp-preset"></select></label>
+      <label>Grid (cells)<select class="tp-n"><option>64</option><option selected>128</option><option>192</option></select><span class="ax-help">Wraps around at the edges.</span></label>
+      <label>Seed<input class="tp-seed" type="number" min="0" step="1" value="1" /><span class="ax-help">Same seed, same starting noise, same pattern.</span></label>
+      <label>Colours<select class="tp-cm"><option value="grey">Grey</option><option value="colour">Colour (viridis)</option></select></label>
+    </div>
+    <div class="ax-grid tp-gs" style="margin-top:10px">
+      <label>Feed F<input class="tp-F" type="number" step="0.001" /><span class="ax-help">How fast u is topped up.</span></label>
+      <label>Kill k<input class="tp-kk" type="number" step="0.001" /><span class="ax-help">How fast v is removed.</span></label>
+      <label>Diffusion of u<input class="tp-Du" type="number" step="any" /></label>
+      <label>Diffusion of v<input class="tp-Dv" type="number" step="any" /></label>
+    </div>
+    <div class="ax-grid tp-gm" style="margin-top:10px" hidden>
+      <label>Activator diffusion Da<input class="tp-Da" type="number" step="any" /></label>
+      <label>Inhibitor diffusion Dh<input class="tp-Dh" type="number" step="any" /><span class="ax-help">Must be much larger than Da for patterns.</span></label>
+      <label>Production ρ<input class="tp-rho" type="number" step="any" /></label>
+      <label>Activator decay μa<input class="tp-mua" type="number" step="any" /></label>
+      <label>Inhibitor decay μh<input class="tp-muh" type="number" step="any" /></label>
+      <label>Saturation κ<input class="tp-kap" type="number" min="0" step="any" /><span class="ax-help">0 gives spots; a little gives stripes.</span></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Time step<input class="tp-dt" type="number" min="0.001" step="any" /><span class="ax-help">Smaller is safer; too big blows up.</span></label>
+      <label>Steps per frame<input class="tp-spf" type="number" min="1" max="2000" step="1" value="40" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small tp-run">Run</button>
+      <button type="button" class="btn secondary small tp-adv">Jump 2,000 steps</button>
+      <button type="button" class="btn secondary small tp-reset">Start again</button>
+    </div>
+    <p class="tp-status" style="margin:10px 0 0"></p>
+    <p class="ax-help tp-lin"></p>
+    <p class="ax-err tp-err" hidden></p>
+    <canvas class="ax-fig tp-fig" style="margin-top:10px;max-width:520px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { decayLength, gradient, thresholdPosition, PRESETS, createSim, step, turingAnalysis, fieldStats, type Params, type Sim } from '../../lib/sci/turing';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { rasterFigure } from '../../lib/rasterfig';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tp')!;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q(c).value);
+  let gfig: Figure | null = null, pfig: Figure | null = null, gReport: Section[] = [];
+
+  // ---------- Gradient ----------
+  function grad() {
+    const C0 = v('.tp-c0'), D = v('.tp-d'), k = v('.tp-k'), L = v('.tp-l'), t1 = v('.tp-t1'), t2 = v('.tp-t2'), seal = q<HTMLInputElement>('.tp-seal').checked, err = q('.tp-gerr');
+    err.hidden = true;
+    if (!(C0 > 0 && D > 0 && k > 0 && L > 0)) { err.textContent = 'C₀, D, k and the length must all be above 0.'; err.hidden = false; gReport = []; return; }
+    if (!(t1 > t2 && t2 > 0)) { err.textContent = 'Threshold 1 must be above threshold 2, and both above 0.'; err.hidden = false; gReport = []; return; }
+    const lam = decayLength(D, k), Lx = seal ? L : null;
+    const x1 = thresholdPosition(t1, C0, lam, Lx), x2 = thresholdPosition(t2, C0, lam, Lx);
+    const pos = (x: number) => (Number.isNaN(x) ? 'never (stays above it)' : x > L ? `beyond the tissue (${sig(x, 4)} µm)` : `${sig(x, 4)} µm`);
+    q('.tp-lam').textContent = `λ = √(D/k) = ${sig(lam, 4)} µm`;
+    q('.tp-pos').textContent = `Blue ends at ${pos(x1)}; white ends at ${pos(x2)}. Level at the far end: ${sig(gradient(L, C0, lam, Lx), 4)}. Steady state after roughly 3/k = ${sig(3 / k / 3600, 3)} h.`;
+    const xs = Array.from({ length: 201 }, (_, i) => (L * i) / 200), ys = xs.map((x) => gradient(x, C0, lam, Lx));
+    const chart = chartFigure({ h: 260, xLabel: 'Distance from source (µm)', yLabel: 'Concentration', yMin: 0, xMin: 0, xMax: L, series: [{ name: '', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: t1, dash: [4, 3], label: 'threshold 1' }, { kind: 'hline', at: t2, dash: [4, 3], label: 'threshold 2' }] }, 'Morphogen concentration along the tissue');
+    const band = (x: number) => (gradient(x, C0, lam, Lx) >= t1 ? 0 : gradient(x, C0, lam, Lx) >= t2 ? 1 : 2);
+    gfig = {
+      w: 720, h: 320, alt: 'Morphogen gradient with the French flag of cell fates',
+      draw(ctx, W, H, pal) {
+        chart.draw(ctx, W, 260, pal);
+        // The flag: blue, white, red bands along the tissue, with its own 0 and L labels.
+        const l = 14, r = W - 14, y = 272, h = 26, cols = pal.red ? ['#5a0000', '#000000', '#a30000'] : ['#0072B2', pal.bg, '#D55E00'];
+        for (let px = l; px < r; px++) { ctx.fillStyle = cols[band(((px - l + 0.5) / (r - l)) * L)]; ctx.fillRect(px, y, 1, h); }
+        ctx.strokeStyle = pal.line; ctx.strokeRect(l + 0.5, y + 0.5, r - l - 1, h - 1);
+        ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('0', l, y + h + 4); ctx.textAlign = 'right'; ctx.fillText(`${sig(L, 4)} µm`, r, y + h + 4); ctx.textAlign = 'center'; ctx.fillText('Cell fate along the tissue: blue | white | red', (l + r) / 2, y + h + 4);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.tp-gfig'), gfig);
+    gReport = [{ title: 'Morphogen gradient', facts: [['Decay length λ', `${sig(lam, 4)} µm`], ['Blue | white', pos(x1)], ['White | red', pos(x2)], ['Source C₀', sig(C0, 4)], ['D', `${sig(D, 4)} µm²/s`], ['k', `${sig(k, 4)} per s`], ['Tissue', `${sig(L, 4)} µm, ${seal ? 'sealed far end' : 'open (very long)'}`]], figure: gfig }];
+  }
+  for (const c of ['.tp-c0', '.tp-d', '.tp-k', '.tp-l', '.tp-t1', '.tp-t2']) q(c).addEventListener('input', grad);
+  q('.tp-seal').addEventListener('change', grad);
+
+  // ---------- Reaction-diffusion ----------
+  const sel = q<HTMLSelectElement>('.tp-preset');
+  for (const [id, p] of Object.entries(PRESETS)) sel.add(new Option(p.name, id));
+  const GSF: [string, keyof Extract<Params, { model: 'gs' }>][] = [['.tp-F', 'F'], ['.tp-kk', 'k'], ['.tp-Du', 'Du'], ['.tp-Dv', 'Dv']];
+  const GMF: [string, keyof Extract<Params, { model: 'gm' }>][] = [['.tp-Da', 'Da'], ['.tp-Dh', 'Dh'], ['.tp-rho', 'rho'], ['.tp-mua', 'mua'], ['.tp-muh', 'muh'], ['.tp-kap', 'kappa']];
+  let sim: Sim | null = null, running = false, model: 'gs' | 'gm' = 'gs';
+
+  function loadPreset() {
+    const pr = PRESETS[sel.value], p = pr.p as Record<string, number | string>;
+    model = pr.p.model;
+    q('.tp-gs').hidden = model !== 'gs'; q('.tp-gm').hidden = model !== 'gm';
+    for (const [c, k] of model === 'gs' ? GSF : GMF) q(c).value = String(+Number(p[k]).toPrecision(6));
+    q('.tp-dt').value = String(pr.p.dt); q('.tp-spf').value = model === 'gs' ? '40' : '200';
+    reset();
+  }
+  function params(): Params | null {
+    const err = q('.tp-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; return null; };
+    const dt = v('.tp-dt');
+    if (!(dt > 0)) return fail('The time step must be above 0.');
+    if (model === 'gs') {
+      const p = { model: 'gs' as const, F: v('.tp-F'), k: v('.tp-kk'), Du: v('.tp-Du'), Dv: v('.tp-Dv'), dt };
+      if (![p.F, p.k, p.Du, p.Dv].every((x) => x >= 0)) return fail('F, k and the diffusion rates must be 0 or more.');
+      if (4 * Math.max(p.Du, p.Dv) * dt >= 1) return fail(`With these diffusion rates the time step must be below ${sig(1 / (4 * Math.max(p.Du, p.Dv)), 3)}, or the simulation blows up.`);
+      return p;
+    }
+    const p = { model: 'gm' as const, Da: v('.tp-Da'), Dh: v('.tp-Dh'), rho: v('.tp-rho'), mua: v('.tp-mua'), muh: v('.tp-muh'), kappa: v('.tp-kap'), sigma: 0, dt };
+    if (![p.Da, p.Dh, p.rho, p.kappa].every((x) => x >= 0) || !(p.mua > 0 && p.muh > 0)) return fail('Diffusion, ρ and κ must be 0 or more; the decay rates above 0.');
+    if (4 * Math.max(p.Da, p.Dh) * dt >= 1) return fail(`With these diffusion rates the time step must be below ${sig(1 / (4 * Math.max(p.Da, p.Dh)), 3)}, or the simulation blows up.`);
+    return p;
+  }
+  function describe(p: Params) {
+    const a = turingAnalysis(p);
+    q('.tp-lin').textContent = a && a.stableUniform && a.unstableBand
+      ? `Turing check: the uniform state (${sig(a.u, 3)}, ${sig(a.v, 3)}) is stable without diffusion, but with it, waves between ${sig((2 * Math.PI) / a.unstableBand[1], 3)} and ${sig((2 * Math.PI) / a.unstableBand[0], 3)} cells long grow; the fastest is about ${sig(a.fastest, 3)} cells, which sets the spacing of the pattern.`
+      : a && a.stableUniform ? 'Turing check: the uniform state is stable and no wavelength grows, so no pattern is expected (try a larger inhibitor diffusion).'
+      : p.model === 'gs' ? 'Gray-Scott patterns here grow out of the seeded squares (a finite disturbance of the empty state u = 1, v = 0), not from a small-noise Turing instability.'
+      : 'The uniform state is unstable even without diffusion, so the whole field oscillates or runs away rather than forming a Turing pattern.';
+  }
+  function reset() {
+    const p = params(); if (!p) return;
+    const n = Number(q<HTMLSelectElement>('.tp-n').value), seed = Math.max(0, Math.round(v('.tp-seed')) || 0);
+    sim = createSim(p, n, seed); describe(p); show();
+  }
+  function show() {
+    if (!sim) return;
+    const f = sim.p.model === 'gs' ? sim.v : sim.u, st = fieldStats(f), span = st.max - st.min || 1, vv = new Float32Array(f.length);
+    for (let i = 0; i < f.length; i++) vv[i] = (f[i] - st.min) / span;
+    const bad = !Number.isFinite(st.mean);
+    q('.tp-status').textContent = bad ? 'The simulation blew up (numbers too large). Lower the time step and start again.' : `Step ${sim.steps.toLocaleString('en')} (time ${sig(sim.t, 5)}). Showing ${sim.p.model === 'gs' ? 'v' : 'the activator a'}: ${sig(st.min, 3)} (${q<HTMLSelectElement>('.tp-cm').value === 'grey' ? 'light' : 'dark'}) to ${sig(st.max, 3)}.`;
+    if (bad) { running = false; q('.tp-run').textContent = 'Run'; }
+    pfig = rasterFigure({ cols: sim.n, rows: sim.n, v: vv, x: [0, sim.n], y: [0, sim.n], axes: false, cmap: q<HTMLSelectElement>('.tp-cm').value as 'grey' | 'colour' }, 512, 512, `${PRESETS[sel.value]?.name ?? 'Pattern'} after ${sim.steps} steps`);
+    paint(q<HTMLCanvasElement>('.tp-fig'), pfig);
+  }
+  function frame() {
+    if (!running || !sim) return;
+    step(sim, Math.max(1, Math.min(2000, Math.round(v('.tp-spf')) || 1))); show();
+    requestAnimationFrame(frame);
+  }
+  q('.tp-run').addEventListener('click', () => { if (!sim) reset(); if (!sim) return; running = !running; q('.tp-run').textContent = running ? 'Pause' : 'Run'; if (running) requestAnimationFrame(frame); });
+  q('.tp-adv').addEventListener('click', () => { if (!sim) reset(); if (!sim) return; step(sim, 2000); show(); });
+  q('.tp-reset').addEventListener('click', reset);
+  sel.addEventListener('change', loadPreset);
+  q('.tp-n').addEventListener('change', reset); q('.tp-seed').addEventListener('change', reset); q('.tp-cm').addEventListener('change', show);
+  for (const c of [...GSF, ...GMF].map((x) => x[0]).concat('.tp-dt')) q(c).addEventListener('input', () => { const p = params(); if (p && sim) { sim.p = p; describe(p); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && running) { running = false; q('.tp-run').textContent = 'Run'; } });
+  document.addEventListener('fibub:theme', () => { if (gfig) paint(q<HTMLCanvasElement>('.tp-gfig'), gfig); show(); });
+  grad(); loadPreset();
+  wireDownloads(q('.dl'), () => {
+    const p = sim?.p, facts: [string, string][] = p ? Object.entries(p).filter(([k]) => k !== 'model' && k !== 'sigma').map(([k, x]) => [k, String(x)]) : [];
+    return { title: 'Turing patterns', file: 'turing-pattern', sections: [...gReport, ...(sim && pfig ? [{ title: `${PRESETS[sel.value].name}, ${sim.n} × ${sim.n} grid, seed ${sim.seed}, step ${sim.steps}`, facts, figure: pfig, text: [q('.tp-lin').textContent!] }] : [])] };
+  });
+</script>
