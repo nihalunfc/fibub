@@ -31,6 +31,6 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   writeFileSync(OUT + 'prof.csv', 'time,temp\n0,121.1\n10,121.1\n');
   await page.locator(S + '.dfb-in').nth(2).setInputFiles(OUT + 'prof.csv'); await page.waitForTimeout(400);
   check((await page.textContent(S + '.tp-big4')).startsWith('F = 10 min'), 'thermal: open a profile file');
-  await page.click(S + '.tp-ex'); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.locator('.therm').screenshot({ path: OUT + 'therm-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click(S + '.tp-ex'); const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.locator('.therm').screenshot({ path: OUT + 'therm-375.png' }); await page.setViewportSize(vp0);
 };

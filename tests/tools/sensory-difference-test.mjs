@@ -28,6 +28,6 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(S + '.sd-err')).includes('0 to 36'), 'sensory: too many correct message');
   await page.fill(S + '.sd-pv', '0'); await page.waitForTimeout(400);
   check((await page.textContent(S + '.sd-perr')).includes('above 0'), 'sensory: zero difference message');
-  await page.click(S + '.sd-ex'); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.locator('.sens').screenshot({ path: OUT + 'sens-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click(S + '.sd-ex'); const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.locator('.sens').screenshot({ path: OUT + 'sens-375.png' }); await page.setViewportSize(vp0);
 };
