@@ -1,0 +1,257 @@
+---
+// Refraction and Snell's law for school: a ray crossing a boundary (with total internal reflection), a glass slab's
+// sideways shift, and apparent depth. Maths in src/lib/sci/school-optics.ts.
+import '../../styles/astro.css';
+const MEDIA = [['Air', '1.00'], ['Water', '1.33'], ['Ice', '1.31'], ['Kerosene', '1.44'], ['Crown glass', '1.52'], ['Dense flint glass', '1.65'], ['Diamond', '2.42']];
+---
+<div class="ax snl">
+  <div class="ax-card">
+    <div class="ax-row snl-top">
+      <div class="ax-seg snl-mode" role="group" aria-label="What to show">
+        <button type="button" data-m="edge" aria-pressed="true">Boundary</button><button type="button" data-m="slab" aria-pressed="false">Glass slab</button><button type="button" data-m="depth" aria-pressed="false">Apparent depth</button>
+      </div>
+      <div class="ax-seg snl-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="12" aria-pressed="false">Class 12</button>
+      </div>
+    </div>
+    <canvas class="ax-fig snl-fig" aria-label="Refraction picture"></canvas>
+    <p class="ax-help snl-hint">Drag in the top half of the picture to aim the ray, or use the slider.</p>
+    <div class="ax-grid">
+      <label class="snl-i-l">Angle of incidence i: <b class="snl-iv"></b><input class="snl-i" type="range" min="0" max="89" step="1" value="40" /></label>
+      <label class="snl-n1-l"><span class="snl-n1-t">Top medium</span>
+        <select class="snl-m1">{MEDIA.map(([n, v]) => <option value={v} selected={n === 'Air'}>{n} ({v})</option>)}</select></label>
+      <label class="snl-n2-l"><span class="snl-n2-t">Bottom medium</span>
+        <select class="snl-m2">{MEDIA.map(([n, v]) => <option value={v} selected={n === 'Crown glass'}>{n} ({v})</option>)}</select></label>
+      <label class="snl-t-l" hidden>Slab thickness: <b class="snl-tv"></b><input class="snl-t" type="range" min="1" max="10" step="0.5" value="5" /></label>
+      <label class="snl-d-l" hidden>Real depth: <b class="snl-dv"></b><input class="snl-d" type="range" min="10" max="200" step="5" value="100" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small snl-swap">Swap the two media</button>
+      <label class="ax-check snl-own-l">Type my own index <input type="checkbox" class="snl-own" /></label>
+    </div>
+    <div class="ax-grid snl-ownbox" hidden>
+      <label><span class="snl-own1-t">n of the top medium</span> <input class="snl-n1" type="text" inputmode="decimal" value="1.00" /></label>
+      <label class="snl-own2"><span class="snl-own2-t">n of the bottom medium</span> <input class="snl-n2" type="text" inputmode="decimal" value="1.52" /></label>
+    </div>
+    <p class="ax-help">Refractive indices are rounded everyday values for yellow light; real ones change a little with colour and temperature.</p>
+    <p class="ax-err snl-err" hidden></p>
+  </div>
+
+  <div class="ax-card snl-out">
+    <p class="ax-big snl-big"></p>
+    <dl class="ax-facts snl-facts"></dl>
+    <pre class="snl-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="snl-try">
+      <li>Air into glass: the ray bends <b>towards</b> the normal. Swap the media and it bends <b>away</b> from it.</li>
+      <li>Glass into air: slowly raise the angle. At about 41° the ray skims along the surface; past that it cannot get out at all and is totally reflected. Try diamond: its critical angle is only about 24°, which is why it sparkles.</li>
+      <li>Glass slab: the ray comes out parallel to how it went in, just shifted sideways. Make the slab thicker or the angle bigger and the shift grows.</li>
+      <li>Apparent depth: a pool 2 m deep looks only about 1.5 m deep from above.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Angles in degrees to one decimal place. Nothing is saved.</p>
+    <div class="snl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .snl input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .snl-top { justify-content: space-between; margin-bottom: 8px; }
+  .snl .ax-seg button { min-height: 40px; }
+  .snl-fig { touch-action: pan-y; cursor: crosshair; border: 1px solid var(--line); margin: 4px auto; max-width: 480px; }
+  .snl-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .snl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { refractAngle, criticalAngle, slabShift, apparentDepth, speedIn, rad } from '../../lib/sci/school-optics';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.snl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.snl-fig');
+  const st = { mode: 'edge', level: '10', i: 40, t: 5, d: 100 };
+  const W = 400, H = 280, CX = 200, CY = 140;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const dg = (x: number) => `${sig(x, 3)}°`;
+  const name = (sel: HTMLSelectElement) => (q<HTMLInputElement>('.snl-own').checked ? 'medium' : sel.selectedOptions[0].textContent!.replace(/ \(.*/, '').toLowerCase());
+  const idx = () => (q<HTMLInputElement>('.snl-own').checked ? [num(q<HTMLInputElement>('.snl-n1').value), num(q<HTMLInputElement>('.snl-n2').value)] : [Number(q<HTMLSelectElement>('.snl-m1').value), Number(q<HTMLSelectElement>('.snl-m2').value)]);
+
+  const font = (n: number, w = 600) => `${w} ${n}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const seg = (ctx: CanvasRenderingContext2D, a: number[], b: number[], dash = false) => { ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); };
+  const chevron = (ctx: CanvasRenderingContext2D, a: number[], b: number[]) => { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, an = Math.atan2(b[1] - a[1], b[0] - a[0]); ctx.beginPath(); ctx.moveTo(mx - 7 * Math.cos(an - 0.5), my - 7 * Math.sin(an - 0.5)); ctx.lineTo(mx, my); ctx.lineTo(mx - 7 * Math.cos(an + 0.5), my - 7 * Math.sin(an + 0.5)); ctx.stroke(); };
+  const tint = (ctx: CanvasRenderingContext2D, pal: Palette, n: number, x: number, y: number, w: number, h: number) => { ctx.globalAlpha = Math.min(0.35, Math.max(0.03, (n - 1) * 0.22)); ctx.fillStyle = pal.accent; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1; };
+  const arc = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, a0: number, a1: number) => { ctx.beginPath(); ctx.arc(x, y, r, Math.min(a0, a1), Math.max(a0, a1)); ctx.stroke(); };
+
+  function edgeFig(n1: number, n2: number, i: number, r: number | null): Figure {
+    return { w: W, h: H, alt: `Ray from n ${n1} into n ${n2} at ${i}°`, draw: (ctx, w, h, pal) => {
+      tint(ctx, pal, n1, 0, 0, W, CY); tint(ctx, pal, n2, 0, CY, W, H - CY);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; seg(ctx, [0, CY], [W, CY]);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; seg(ctx, [CX, 10], [CX, H - 10], true);
+      ctx.fillStyle = pal.muted; ctx.font = font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`n₁ = ${n1}`, 8, 8); ctx.fillText(`n₂ = ${n2}`, 8, CY + 8); ctx.fillText('normal', CX + 4, 10);
+      const L = 170, ir = rad(i), A = [CX - L * Math.sin(ir), CY - L * Math.cos(ir)];
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; seg(ctx, A, [CX, CY]); chevron(ctx, A, [CX, CY]);
+      const Rf = [CX + L * Math.sin(ir), CY - L * Math.cos(ir)];
+      ctx.strokeStyle = r === null ? pal.bad : pal.muted; ctx.lineWidth = r === null ? 2.5 : 1; seg(ctx, [CX, CY], Rf); chevron(ctx, [CX, CY], Rf);
+      ctx.lineWidth = 1.2; ctx.strokeStyle = pal.accent; arc(ctx, CX, CY, 34, -Math.PI / 2, -Math.PI / 2 - ir);
+      ctx.fillStyle = pal.accent; ctx.font = font(13); ctx.textAlign = 'right'; ctx.fillText('i', CX - 6 - 30 * Math.sin(ir / 2), CY - 52 * Math.cos(ir / 2));
+      if (r !== null) {
+        const rr = rad(r), B = [CX + L * Math.sin(rr), CY + L * Math.cos(rr)];
+        ctx.strokeStyle = pal.bad; ctx.lineWidth = 2.5; seg(ctx, [CX, CY], B); chevron(ctx, [CX, CY], B);
+        ctx.lineWidth = 1.2; arc(ctx, CX, CY, 40, Math.PI / 2, Math.PI / 2 - rr);
+        ctx.fillStyle = pal.bad; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('r', CX + 6 + 36 * Math.sin(rr / 2), CY + 44 * Math.cos(rr / 2));
+      } else { ctx.fillStyle = pal.bad; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('Total internal reflection', W - 8, CY - 6); }
+    } };
+  }
+  function slabFig(n: number, i: number, t: number): Figure {
+    return { w: W, h: H, alt: `Ray through a glass slab ${t} cm thick`, draw: (ctx, w, h, pal) => {
+      const s = 160 / 10, top = 60, bot = top + t * s;
+      tint(ctx, pal, n, 0, top, W, bot - top);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; seg(ctx, [0, top], [W, top]); seg(ctx, [0, bot], [W, bot]);
+      const ir = rad(i), rr = Math.asin(Math.sin(ir) / n), x0 = 130, P = [x0, top], Q = [x0 + (bot - top) * Math.tan(rr), bot];
+      const A = [x0 - 60 * Math.tan(ir), 0];
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; seg(ctx, [x0, top - 50], [x0, top + 40], true); seg(ctx, [Q[0], bot - 40], [Q[0], bot + 50], true);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; seg(ctx, A, P); chevron(ctx, A, P);
+      seg(ctx, P, Q);
+      const far = 400, E = [Q[0] + far * Math.sin(ir), bot + far * Math.cos(ir)];
+      seg(ctx, Q, E); chevron(ctx, Q, [Q[0] + 80 * Math.sin(ir), bot + 80 * Math.cos(ir)]);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2; seg(ctx, P, [x0 + far * Math.sin(ir), top + far * Math.cos(ir)], true);
+      // Perpendicular from the exit point to the undeviated line: the lateral shift.
+      const ux = Math.sin(ir), uy = Math.cos(ir), dx = Q[0] - x0, dy = Q[1] - top, along = dx * ux + dy * uy, F = [x0 + along * ux, top + along * uy];
+      ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; seg(ctx, Q, F);
+      ctx.fillStyle = pal.bad; ctx.font = font(13); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('d', (Q[0] + F[0]) / 2 + 6, (Q[1] + F[1]) / 2 + 8);
+      ctx.fillStyle = pal.muted; ctx.font = font(12); ctx.textBaseline = 'top'; ctx.fillText(`slab n = ${n}, ${sig(t, 3)} cm`, 8, top + 4);
+    } };
+  }
+  function depthFig(n: number, real: number): Figure {
+    return { w: W, h: H, alt: `Coin at ${real} cm in a liquid of index ${n}`, draw: (ctx, w, h, pal) => {
+      const top = 70, s = 190 / 200, yc = top + real * s, ya = top + (real / n) * s;
+      tint(ctx, pal, n, 40, top, W - 80, H - top - 6);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; seg(ctx, [40, top], [W - 40, top]);
+      ctx.beginPath(); ctx.moveTo(40, top - 10); ctx.lineTo(40, H - 6); ctx.lineTo(W - 40, H - 6); ctx.lineTo(W - 40, top - 10); ctx.stroke();
+      // Eye above.
+      ctx.beginPath(); ctx.ellipse(CX, 22, 16, 8, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.beginPath(); ctx.arc(CX, 22, 4, 0, 2 * Math.PI); ctx.fillStyle = pal.ink; ctx.fill();
+      for (const sgn of [-1, 1]) {
+        const xs = CX + sgn * 26, S = [xs, top];
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; seg(ctx, [CX, yc], S); chevron(ctx, [CX, yc], S);
+        const dx = xs - CX, dy = top - ya, k = (top - 30) / -dy; seg(ctx, S, [xs + dx * k * 0.98, top - (top - 30)]);
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; seg(ctx, S, [CX, ya], true);
+      }
+      ctx.fillStyle = pal.warn; ctx.beginPath(); ctx.ellipse(CX, yc, 12, 4, 0, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = pal.warn; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(CX, ya, 12, 4, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.ink; ctx.font = font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(`real ${sig(real, 3)} cm`, CX + 20, yc); ctx.fillText(`seems ${sig(real / n, 3)} cm`, CX + 20, ya);
+      ctx.fillStyle = pal.muted; ctx.textBaseline = 'top'; ctx.fillText(`liquid n = ${n}`, 46, top + 4);
+    } };
+  }
+
+  let fig: Figure;
+  function draw() {
+    const err = q('.snl-err'), out = q('.snl-out');
+    const [n1, n2] = idx(), { mode, i, level } = st;
+    const own = q<HTMLInputElement>('.snl-own').checked;
+    q('.snl-ownbox').hidden = !own; q('.snl-n1-l').hidden = own || mode !== 'edge'; q('.snl-n2-l').hidden = own;
+    q('.snl-own2').hidden = false; q('.snl-own1-t').parentElement!.hidden = mode !== 'edge';
+    q('.snl-n2-t').textContent = mode === 'edge' ? 'Bottom medium' : mode === 'slab' ? 'Slab' : 'Liquid';
+    q('.snl-own2-t').textContent = mode === 'edge' ? 'n of the bottom medium' : mode === 'slab' ? 'n of the slab' : 'n of the liquid';
+    q('.snl-swap').hidden = mode !== 'edge';
+    q('.snl-i-l').hidden = mode === 'depth'; q('.snl-t-l').hidden = mode !== 'slab'; q('.snl-d-l').hidden = mode !== 'depth';
+    q('.snl-hint').hidden = mode === 'depth';
+    q('.snl-iv').textContent = `${i}°`; q('.snl-tv').textContent = `${st.t} cm`; q('.snl-dv').textContent = `${st.d} cm`;
+    const bad = (x: number) => !(x >= 1 && x <= 4);
+    if ((mode === 'edge' && bad(n1)) || bad(n2)) { err.textContent = 'Give refractive indices from 1 to 4 (air is 1.00, water 1.33, glass about 1.5).'; err.hidden = false; out.hidden = true; return; }
+    err.hidden = true; out.hidden = false;
+    const f: HTMLElement[] = [], L: string[] = [];
+    if (mode === 'edge') {
+      const r = refractAngle(n1, n2, i), C = criticalAngle(n1, n2), m1 = name(q('.snl-m1')), m2 = name(q('.snl-m2'));
+      fig = edgeFig(n1, n2, i, r);
+      L.push('n₁ sin i = n₂ sin r');
+      if (r === null) {
+        q('.snl-big').textContent = `Totally reflected: i = ${i}° is more than the critical angle ${dg(C!)}`;
+        L.push(`sin r = n₁ sin i / n₂ = ${n1} × sin ${i}° / ${n2} = ${sig((n1 * Math.sin(rad(i))) / n2, 4)}`, 'sin r cannot be more than 1, so no ray gets out: total internal reflection.');
+        f.push(fact('Refracted ray', 'none'), fact('Critical angle C', dg(C!), `sin C = n₂/n₁ = ${sig(n2 / n1, 4)}`));
+      } else {
+        const towards = i === 0 ? 'goes straight on (no bending at 0°)' : n2 > n1 ? 'bends towards the normal' : n2 < n1 ? 'bends away from the normal' : 'goes straight on';
+        q('.snl-big').textContent = `r = ${dg(r)}: the ray ${towards}`;
+        L.push(`sin r = n₁ sin i / n₂ = ${n1} × sin ${i}° / ${n2} = ${sig((n1 * Math.sin(rad(i))) / n2, 4)}`, `r = ${dg(r)}`);
+        f.push(fact('Angle of refraction r', dg(r)), fact('Deviation |i − r|', dg(Math.abs(i - r))));
+        if (C !== null) f.push(fact('Critical angle C', dg(C), `beyond this, ${m1} to ${m2} light is totally reflected`));
+      }
+      f.push(fact(`n₂₁ = n₂/n₁`, sig(n2 / n1, 4), `refractive index of ${m2} relative to ${m1}`));
+      if (level === '12') {
+        f.push(fact('Speed in top medium', `${sig(speedIn(n1) / 1e8, 4)} × 10⁸ m/s`, 'v = c/n'), fact('Speed in bottom medium', `${sig(speedIn(n2) / 1e8, 4)} × 10⁸ m/s`));
+        if (C !== null) L.push(`Critical angle: sin C = n₂/n₁ = ${n2}/${n1} → C = ${dg(C)}`);
+      }
+    } else if (mode === 'slab') {
+      const r = refractAngle(1, n2, i)!, d = slabShift(st.t, n2, i);
+      fig = slabFig(n2, i, st.t);
+      q('.snl-big').textContent = `Lateral shift d = ${sig(d, 3)} cm`;
+      L.push(`Inside: sin r = sin ${i}° / ${n2} → r = ${dg(r)}`, `d = t sin(i − r) / cos r = ${st.t} × sin(${sig(i - r, 3)}°) / cos(${sig(r, 3)}°) = ${sig(d, 3)} cm`);
+      f.push(fact('Angle inside r', dg(r)), fact('Angle coming out e', `${i}°`, 'same as i: the ray leaves parallel'), fact('Lateral shift d', `${sig(d, 3)} cm`));
+      if (level === '12') f.push(fact('Path inside the slab', `${sig(st.t / Math.cos(rad(r)), 3)} cm`, 't / cos r'));
+    } else {
+      const a = apparentDepth(st.d, n2);
+      fig = depthFig(n2, st.d);
+      q('.snl-big').textContent = `Seems ${sig(a, 3)} cm deep (really ${st.d} cm)`;
+      L.push(`apparent depth = real depth / n = ${st.d} / ${n2} = ${sig(a, 3)} cm`, `raised by ${st.d} − ${sig(a, 3)} = ${sig(st.d - a, 3)} cm`);
+      f.push(fact('Apparent depth', `${sig(a, 3)} cm`), fact('Raised by', `${sig(st.d - a, 3)} cm`, 'real × (1 − 1/n)'));
+      if (level === '12') L.push('This holds when you look almost straight down (small angles).');
+    }
+    q('.snl-facts').replaceChildren(...f);
+    q('.snl-formula').textContent = L.join('\n');
+    paint(canvas, fig);
+  }
+
+  const seg2 = (sel: string, key: 'mode' | 'level', attr: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+    st[key] = b.dataset[attr]!;
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (key === 'mode' && st.mode !== 'edge') { const v = st.mode === 'slab' ? '1.52' : '1.33'; q<HTMLSelectElement>('.snl-m2').value = v; q<HTMLInputElement>('.snl-n2').value = v; }
+    draw();
+  }));
+  seg2('.snl-mode', 'mode', 'm'); seg2('.snl-level', 'level', 'l');
+  q('.snl-i').addEventListener('input', () => { st.i = Number(q<HTMLInputElement>('.snl-i').value); draw(); });
+  q('.snl-t').addEventListener('input', () => { st.t = Number(q<HTMLInputElement>('.snl-t').value); draw(); });
+  q('.snl-d').addEventListener('input', () => { st.d = Number(q<HTMLInputElement>('.snl-d').value); draw(); });
+  root.querySelectorAll('select, .snl-ownbox input, .snl-own').forEach((e) => { e.addEventListener('input', draw); e.addEventListener('change', draw); });
+  q('.snl-own').addEventListener('change', () => { q<HTMLInputElement>('.snl-n1').value = q<HTMLSelectElement>('.snl-m1').value; q<HTMLInputElement>('.snl-n2').value = q<HTMLSelectElement>('.snl-m2').value; draw(); });
+  q('.snl-swap').addEventListener('click', () => {
+    const a = q<HTMLSelectElement>('.snl-m1'), b = q<HTMLSelectElement>('.snl-m2'), t = a.value; a.value = b.value; b.value = t;
+    const c = q<HTMLInputElement>('.snl-n1'), d = q<HTMLInputElement>('.snl-n2'), u = c.value; c.value = d.value; d.value = u;
+    draw();
+  });
+  let dragging = false;
+  const aim = (e: PointerEvent) => {
+    if (st.mode !== 'edge') return;
+    const r = canvas.getBoundingClientRect(), x = ((e.clientX - r.left) * W) / r.width, y = ((e.clientY - r.top) * H) / r.height;
+    if (y >= CY - 2) return;
+    st.i = Math.max(0, Math.min(89, Math.round((Math.atan2(Math.abs(CX - x), CY - y) * 180) / Math.PI)));
+    q<HTMLInputElement>('.snl-i').value = String(st.i); draw();
+  };
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; canvas.setPointerCapture(e.pointerId); aim(e); });
+  canvas.addEventListener('pointermove', (e) => { if (dragging) aim(e); });
+  canvas.addEventListener('pointerup', () => (dragging = false)); canvas.addEventListener('pointercancel', () => (dragging = false));
+  document.addEventListener('fibub:theme', () => fig && paint(canvas, fig));
+
+  // Check yourself.
+  const NS: [string, number][] = [['water', 1.33], ['glass', 1.5], ['glass', 1.52], ['diamond', 2.42], ['kerosene', 1.44]];
+  const make = (): Question => {
+    const t = pick(['r', 'n', 'C', 'depth', 'v']);
+    const [m, n] = pick(NS);
+    if (t === 'r') { const i = randInt(15, 70), r = refractAngle(1, n, i)!; return { text: `Light goes from air into ${m} (n = ${n}) at an angle of incidence of ${i}°. Find the angle of refraction.`, unit: '°', answer: Math.round(r * 10) / 10, tol: 0.15, work: [`sin r = sin ${i}° / ${n} = ${sig(Math.sin(rad(i)) / n, 4)}`, `r = ${(Math.round(r * 10) / 10).toFixed(1)}`] }; }
+    if (t === 'n') { const i = randInt(30, 70), r = randInt(15, i - 8), nn = Math.sin(rad(i)) / Math.sin(rad(r)); return { text: `A ray in air hits a clear block at ${i}° and travels on inside at ${r}° to the normal. Find the block's refractive index (2 decimal places).`, unit: '', answer: Math.round(nn * 100) / 100, tol: 0.011, work: [`n = sin i / sin r = sin ${i}° / sin ${r}° = ${sig(Math.sin(rad(i)), 4)} / ${sig(Math.sin(rad(r)), 4)}`, `n = ${(Math.round(nn * 100) / 100).toFixed(2)}`] }; }
+    if (t === 'C') { const C = criticalAngle(n, 1)!; return { text: `Find the critical angle for light going from ${m} (n = ${n}) into air.`, unit: '°', answer: Math.round(C * 10) / 10, tol: 0.15, work: [`sin C = 1/n = 1/${n} = ${sig(1 / n, 4)}`, `C = ${(Math.round(C * 10) / 10).toFixed(1)}`] }; }
+    if (t === 'depth') { const d = randInt(4, 40) * 5, a = apparentDepth(d, 1.33); return { text: `A coin lies at the bottom of a tank of water (n = 1.33) ${d} cm deep. Looking straight down, how deep does it seem, in cm (1 decimal place)?`, unit: 'cm', answer: Math.round(a * 10) / 10, tol: 0.15, work: [`apparent depth = real depth / n = ${d} / 1.33`, `= ${(Math.round(a * 10) / 10).toFixed(1)}`] }; }
+    const v = 3 / n; return { text: `The speed of light in air is about 3 × 10⁸ m/s. How fast does it travel in ${m} (n = ${n})? Give the number in front of × 10⁸ m/s (2 decimal places).`, unit: '× 10⁸ m/s', answer: Math.round(v * 100) / 100, tol: 0.011, work: [`v = c / n = 3 × 10⁸ / ${n}`, `= ${(Math.round(v * 100) / 100).toFixed(2)}`, '(× 10⁸ m/s)'] };
+  };
+  mountQuiz(q('.snl-quiz'), make, 4);
+  draw();
+</script>
