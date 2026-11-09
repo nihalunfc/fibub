@@ -1,0 +1,255 @@
+---
+// Quantum chemistry output reader: Gaussian and ORCA output files, read in the browser. Final energy, optimisation
+// plot and convergence, thermochemistry, dipole, orbital energies, frequencies with a broadened IR spectrum, and the
+// final geometry as XYZ. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax qcop">
+  <div class="ax-card">
+    <h2>Output file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small qc-open">Open an output file</button>
+      <input type="file" class="qc-file" accept=".log,.out,.txt,text/plain" hidden />
+      <span class="ax-help" style="margin:0">Gaussian .log or .out, ORCA .out; up to 100 MB.</span>
+    </div>
+    <label style="margin-top:10px">Or paste the output text <textarea class="qc-in" rows="5" spellcheck="false" placeholder="Paste a Gaussian or ORCA output here, or drop the file on this box."></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small qc-ex" data-ex="g">Gaussian: water</button>
+      <button type="button" class="btn secondary small qc-ex" data-ex="o">ORCA: formaldehyde</button>
+    </div>
+    <p class="ax-help">The examples are made-up output files written by fibub in the Gaussian 16 and ORCA 5 layouts; their numbers are invented. Your file is read on this page only and never uploaded.</p>
+    <p class="ax-err qc-err" hidden></p>
+    <p class="ax-help qc-name"></p>
+  </div>
+
+  <div class="ax-card qc-out" hidden>
+    <h2>Summary</h2>
+    <p class="ax-big qc-big"></p>
+    <p class="qc-status"></p>
+    <dl class="ax-facts qc-facts"></dl>
+    <ul class="qc-notes"></ul>
+    <Downloads label="Report" />
+  </div>
+
+  <div class="ax-card qc-out qc-opt-card" hidden>
+    <h2>Energy at each geometry</h2>
+    <canvas class="ax-fig qc-efig"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="qc-steps"><thead></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qc-steps-csv">Steps (.csv)</button></div>
+  </div>
+
+  <div class="ax-card qc-out qc-orb-card" hidden>
+    <h2>Orbital energies</h2>
+    <div class="ax-scroll"><table class="qc-orb"><thead></thead><tbody></tbody></table></div>
+    <p class="ax-help">The ten orbitals around the HOMO–LUMO gap. The CSV has every orbital.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qc-orb-csv">All orbitals (.csv)</button></div>
+  </div>
+
+  <div class="ax-card qc-out qc-freq-card" hidden>
+    <h2>Vibrational frequencies and IR spectrum</h2>
+    <p class="qc-imag"></p>
+    <div class="ax-grid">
+      <label>Scaling factor <input class="qc-scale" type="number" step="0.001" min="0.5" max="1.5" value="1" inputmode="decimal" /></label>
+      <label>Band width, FWHM (cm⁻¹) <input class="qc-fwhm" type="number" step="1" min="1" max="200" value="20" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Calculated harmonic frequencies usually come out a few per cent too high; multiply by a scaling factor published for your method and basis set (1 leaves them as they are). Each band is drawn as a Lorentzian curve of this full width at half maximum, with its area equal to the IR intensity.</p>
+    <p class="ax-err qc-ferr" hidden></p>
+    <canvas class="ax-fig qc-irfig" style="margin-top:10px"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="qc-freqs"><thead><tr><th class="r">Mode</th><th class="r">Freq. (cm⁻¹)</th><th class="r">Scaled</th><th class="r">IR (km/mol)</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help qc-irnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small qc-freq-csv">Frequencies (.csv)</button>
+      <button type="button" class="btn secondary small qc-spec-csv">Spectrum (.csv)</button>
+    </div>
+  </div>
+
+  <div class="ax-card qc-out qc-geo-card" hidden>
+    <h2>Final geometry</h2>
+    <pre class="qc-xyz"></pre>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small qc-xyz-dl">Geometry (.xyz)</button>
+      <button type="button" class="btn secondary small qc-xyz-copy">Copy XYZ</button>
+      <span class="ax-help qc-copied" style="margin:0"></span>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .qcop .qc-status { margin: 0 0 12px; }
+  .qcop .qc-status .ax-pill { margin: 0 6px 4px 0; font-size: 13px; }
+  .qcop .qc-notes { margin: 12px 0 0; padding-left: 20px; font-size: 14px; }
+  .qcop .qc-notes:empty { display: none; }
+  .qcop .qc-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
+  .qcop .qc-facts dd { font-size: 16px; }
+  .qcop table td.r, .qcop table th.r { text-align: right; white-space: nowrap; }
+  .qcop tr.imag td { color: var(--bad); font-weight: 600; }
+  .qcop tr.front td { font-weight: 600; }
+  .qcop .qc-imag { margin: 0 0 10px; font-weight: 600; }
+  .qcop .qc-imag:empty { display: none; }
+  .qcop .qc-imag.bad { color: var(--bad); }
+  .qcop .qc-xyz { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 0; overflow-x: auto; max-height: 320px; }
+  .qcop .qc-in.drag { border-color: var(--accent); }
+</style>
+
+<script>
+  import { parseOutput, frontier, irSpectrum, toXyz, formulaOf, EH_EV, EH_KJ, EH_KCAL, type QcResult } from '../../lib/sci/qcout';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.qcop')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = 'ax-pill ' + cls; s.textContent = t; return s; };
+  const row = (cells: string[], cls = '', head = false) => { const tr = document.createElement('tr'); if (cls) tr.className = cls; for (const [k, c] of cells.entries()) { const td = document.createElement(head ? 'th' : 'td'); td.textContent = c; if (k > 0 || head) td.className = 'r'; tr.append(td); } return tr; };
+  const eh = (x: number) => x.toFixed(6);
+  const MAX = 100e6;
+  let res: QcResult | null = null, fileName = 'output', efig: Figure | null = null, irfig: Figure | null = null, spec = { x: [] as number[], y: [] as number[] };
+  let sections: Section[] = [];
+
+  async function load(text: string, name: string) {
+    fileName = name.replace(/\.[^.]+$/, '') || 'output';
+    const err = q('.qc-err');
+    try { res = parseOutput(text); err.hidden = true; }
+    catch (e) { res = null; err.textContent = (e as Error).message; err.hidden = false; for (const o of root.querySelectorAll<HTMLElement>('.qc-out')) o.hidden = true; return; }
+    q('.qc-name').textContent = `${name}: ${res.program}${res.version ? ' ' + res.version : ''}, ${text.split('\n').length.toLocaleString('en')} lines.`;
+    show();
+  }
+
+  function show() {
+    const r = res!;
+    for (const o of root.querySelectorAll<HTMLElement>('.qc-out')) o.hidden = false;
+    const E = r.energies.at(-1), geo = r.geometries.at(-1) ?? [], fr = frontier(r.orbitals);
+    const imag = r.freqs.filter((f) => f.freq < 0);
+    q('.qc-big').textContent = E !== undefined ? `Final energy: ${eh(E)} Eh` : 'No energy in the file';
+    const st = q('.qc-status'); st.replaceChildren();
+    st.append(pill(r.normal ? 'Normal termination' : 'No normal termination', r.normal ? 'good' : 'bad'));
+    if (r.optimisation) st.append(pill(r.converged ? `Optimisation converged (${r.steps.length} steps)` : `Optimisation not converged (${r.steps.length} steps)`, r.converged ? 'good' : 'bad'));
+    if (r.freqs.length) st.append(pill(imag.length ? `${imag.length} imaginary frequenc${imag.length > 1 ? 'ies' : 'y'}` : 'No imaginary frequencies', imag.length ? 'warn' : 'good'));
+    const facts: [string, string][] = [];
+    if (E !== undefined) facts.push(['Final energy', `${eh(E)} Eh = ${(E * EH_EV).toFixed(4)} eV`]);
+    if (r.method || r.route) facts.push(['Method', r.route || r.method]);
+    if (geo.length) facts.push(['Molecule', `${formulaOf(geo)}, ${geo.length} atoms`]);
+    if (r.charge !== null) facts.push(['Charge, multiplicity', `${r.charge}, ${r.mult}`]);
+    if (fr) facts.push(['HOMO', `${eh(fr.homo)} Eh = ${(fr.homo * EH_EV).toFixed(3)} eV`], ['LUMO', Number.isFinite(fr.lumo) ? `${eh(fr.lumo)} Eh = ${(fr.lumo * EH_EV).toFixed(3)} eV` : 'none printed'], ['HOMO–LUMO gap', Number.isFinite(fr.gapEV) ? `${fr.gapEV.toFixed(3)} eV` : '–']);
+    if (r.dipole) facts.push(['Dipole moment', `${r.dipole.total.toFixed(4)} D (x ${r.dipole.x.toFixed(3)}, y ${r.dipole.y.toFixed(3)}, z ${r.dipole.z.toFixed(3)})`]);
+    const t = r.thermo;
+    if (t.zpe !== undefined) facts.push(['Zero-point energy', `${eh(t.zpe)} Eh = ${(t.zpe * EH_KJ).toFixed(2)} kJ/mol`]);
+    if (t.h !== undefined) facts.push(['Enthalpy H', `${eh(t.h)} Eh`]);
+    if (t.g !== undefined) facts.push(['Gibbs energy G', `${eh(t.g)} Eh`]);
+    if (t.g !== undefined && E !== undefined) facts.push(['G − E (thermal correction)', `${(t.g - E).toFixed(6)} Eh = ${((t.g - E) * EH_KJ).toFixed(2)} kJ/mol`]);
+    if (t.temperature) facts.push(['Temperature', `${t.temperature} K`]);
+    q('.qc-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v)));
+    const notes = [...r.notes];
+    if (imag.length === 1) notes.push(`One imaginary frequency (${imag[0].freq.toFixed(1)} cm⁻¹): this geometry is a transition state or a saddle point, not a minimum. If you wanted a minimum, displace the structure along that mode and optimise again.`);
+    if (imag.length > 1) notes.push(`${imag.length} imaginary frequencies: a higher-order saddle point, not a minimum or a simple transition state.`);
+    if (r.optimisation && !r.converged) notes.push('The optimisation did not finish: the last geometry is not a stationary point, so its frequencies and thermochemistry should not be trusted.');
+    q('.qc-notes').replaceChildren(...notes.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+
+    // Energies and convergence
+    const pal = pagePalette();
+    const optCard = q('.qc-opt-card'); optCard.hidden = r.energies.length < 1;
+    if (r.energies.length) {
+      const rel = r.energies.map((e) => (e - E!) * EH_KJ);
+      efig = chartFigure({ w: 480, h: 300, font: 15, xLabel: 'Geometry (step)', yLabel: 'E − E(final) (kJ/mol)', legend: 'none', xMin: 0.5, xMax: r.energies.length + 0.5, series: [{ name: 'Energy', x: rel.map((_, k) => k + 1), y: rel, mode: 'both', marker: 'circle', color: pal.accent, width: 2 }] },
+        `Energy at each of ${r.energies.length} geometries, relative to the final energy`);
+      paint(q<HTMLCanvasElement>('.qc-efig'), efig);
+      const names = r.steps[0]?.map((s) => s.name) ?? [];
+      q('.qc-steps thead').replaceChildren(row(['Step', 'Energy (Eh)', 'ΔE (kJ/mol)', ...names], '', true));
+      q('.qc-steps tbody').replaceChildren(...r.energies.map((e, k) => row([String(k + 1), eh(e), (k ? (e - r.energies[k - 1]) * EH_KJ : NaN).toFixed(3).replace('NaN', '–'), ...names.map((n) => { const it = r.steps[k]?.find((s) => s.name === n); return it ? `${it.value.toExponential(2)} ${it.ok ? '✓' : '✗'}` : ''; })])));
+    }
+    // Orbitals
+    const orbCard = q('.qc-orb-card'); orbCard.hidden = !r.orbitals;
+    if (r.orbitals) {
+      const o = r.orbitals, hasB = !!o.beta;
+      q('.qc-orb thead').replaceChildren(row(hasB ? ['Orbital', 'α (eV)', 'α occ.', 'β (eV)', 'β occ.'] : ['Orbital', 'Energy (Eh)', 'Energy (eV)', 'Occupied'], '', true));
+      const lo = Math.max(0, o.nAlpha - 5), hi = Math.min(o.alpha.length, o.nAlpha + 5);
+      const rows: HTMLTableRowElement[] = [];
+      for (let k = hi - 1; k >= lo; k--) {
+        const lab = k === o.nAlpha - 1 ? 'HOMO' : k === o.nAlpha ? 'LUMO' : k < o.nAlpha ? `HOMO−${o.nAlpha - 1 - k}` : `LUMO+${k - o.nAlpha}`;
+        const cells = hasB ? [`${k + 1} (${lab})`, (o.alpha[k] * EH_EV).toFixed(3), k < o.nAlpha ? 'yes' : 'no', o.beta![k] !== undefined ? (o.beta![k] * EH_EV).toFixed(3) : '', k < o.nBeta! ? 'yes' : 'no'] : [`${k + 1} (${lab})`, eh(o.alpha[k]), (o.alpha[k] * EH_EV).toFixed(3), k < o.nAlpha ? 'yes' : 'no'];
+        rows.push(row(cells, k === o.nAlpha - 1 || k === o.nAlpha ? 'front' : ''));
+      }
+      q('.qc-orb tbody').replaceChildren(...rows);
+    }
+    q('.qc-geo-card').hidden = !geo.length;
+    q('.qc-xyz').textContent = geo.length ? toXyz(geo, `${fileName}: final geometry from ${r.program}${E !== undefined ? `, E = ${eh(E)} Eh` : ''}`) : '';
+    q('.qc-freq-card').hidden = !r.freqs.length;
+    drawIr();
+  }
+
+  function drawIr() {
+    const r = res; if (!r || !r.freqs.length) { sections = buildSections(); return; }
+    const scale = Number(q<HTMLInputElement>('.qc-scale').value), fwhm = Number(q<HTMLInputElement>('.qc-fwhm').value), ferr = q('.qc-ferr');
+    const bad = !(scale >= 0.5 && scale <= 1.5) ? 'The scaling factor is between 0.5 and 1.5.' : !(fwhm >= 1 && fwhm <= 200) ? 'The band width is between 1 and 200 cm⁻¹.' : '';
+    ferr.textContent = bad; ferr.hidden = !bad;
+    const imag = r.freqs.filter((f) => f.freq < 0), im = q('.qc-imag');
+    im.textContent = imag.length ? `Imaginary frequenc${imag.length > 1 ? 'ies' : 'y'}: ${imag.map((f) => `${f.freq.toFixed(1)} cm⁻¹ (mode ${f.mode})`).join(', ')}. Shown with a minus sign, left out of the spectrum.` : `No imaginary frequencies: ${r.freqs.length} real modes.`;
+    im.className = 'qc-imag' + (imag.length ? ' bad' : '');
+    q('.qc-freqs tbody').replaceChildren(...r.freqs.map((f) => row([String(f.mode), f.freq.toFixed(2), Number.isFinite(scale) ? (f.freq * scale).toFixed(1) : '–', f.ir === null ? '–' : f.ir.toFixed(2)], f.freq < 0 ? 'imag' : '')));
+    q('.qc-irnote').textContent = r.irNote;
+    if (bad) { sections = buildSections(); return; }
+    const top = Math.max(4000, Math.ceil((Math.max(...r.freqs.map((f) => f.freq)) * scale + 4 * fwhm) / 100) * 100);
+    spec = irSpectrum(r.freqs, { fwhm, scale, from: 0, to: top, step: Math.max(0.5, Math.min(2, fwhm / 10)) });
+    const ymax = Math.max(...spec.y) || 1, imax = Math.max(...r.freqs.map((f) => f.ir ?? 0)) || 1;
+    const pal = pagePalette();
+    const sticks = r.freqs.filter((f) => f.freq > 0 && (f.ir ?? 0) > 0).map((f, k) => ({ name: k ? `s${k}` : 'Sticks (scaled to the tallest)', x: [f.freq * scale, f.freq * scale], y: [0, f.ir! / imax], mode: 'line' as const, color: pal.muted, width: 1.5 }));
+    irfig = chartFigure({ w: 480, h: 320, font: 15, xLabel: 'Wavenumber (cm⁻¹)', yLabel: 'Relative intensity', xReverse: true, xMin: 0, xMax: top, yMin: 0, yMax: 1.08, legend: 'none',
+      series: [...sticks, { name: 'Broadened', x: spec.x, y: spec.y.map((v) => v / ymax), mode: 'line', color: pal.accent, width: 2 }] },
+      `Calculated IR spectrum, ${r.freqs.length} modes, scaling ${scale}, Lorentzian FWHM ${fwhm} cm⁻¹`);
+    paint(q<HTMLCanvasElement>('.qc-irfig'), irfig);
+    sections = buildSections();
+  }
+
+  function buildSections(): Section[] {
+    const r = res; if (!r) return [];
+    const s: Section[] = [{ title: 'Summary', text: [q('.qc-big').textContent ?? '', q('.qc-status').textContent ?? '', ...[...q('.qc-notes').children].map((li) => li.textContent ?? '')], facts: [...q('.qc-facts').children].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? '']) as [string, string][] }];
+    if (efig) s.push({ title: 'Energy at each geometry', figure: efig });
+    if (r.freqs.length && irfig) s.push({ title: 'IR spectrum', figure: irfig }, { title: 'Frequencies', table: { head: ['Mode', 'Frequency (cm⁻¹)', 'Scaled', 'IR (km/mol)'], rows: [...q('.qc-freqs tbody').children].map((tr) => [...tr.children].map((td) => td.textContent ?? '')), align: ['r', 'r', 'r', 'r'] } });
+    if (r.geometries.length) s.push({ title: 'Final geometry (XYZ, Å)', text: [q('.qc-xyz').textContent ?? ''] });
+    return s;
+  }
+
+  // File input, drop and paste
+  const fileIn = q<HTMLInputElement>('.qc-file');
+  q('.qc-open').addEventListener('click', () => fileIn.click());
+  const readFile = async (f: File) => {
+    if (f.size > MAX) { const e = q('.qc-err'); e.textContent = `That file is ${(f.size / 1e6).toFixed(0)} MB; the limit is 100 MB.`; e.hidden = false; return; }
+    const text = await f.text(); q<HTMLTextAreaElement>('.qc-in').value = text.length > 200000 ? text.slice(0, 200000) + '\n… (file read in full; only the start shown here)' : text; load(text, f.name);
+  };
+  fileIn.addEventListener('change', () => { const f = fileIn.files?.[0]; if (f) readFile(f); fileIn.value = ''; });
+  const box = q<HTMLTextAreaElement>('.qc-in');
+  box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('drag'); });
+  box.addEventListener('dragleave', () => box.classList.remove('drag'));
+  box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove('drag'); const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { if (box.value.trim()) load(box.value, 'pasted text'); }, 250); });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.qc-ex')) b.addEventListener('click', async () => {
+    const m = await import('../../lib/sci/qcexample');
+    const [text, name] = b.dataset.ex === 'g' ? [m.GAUSSIAN_WATER, 'water-example.log'] : [m.ORCA_FORMALDEHYDE, 'formaldehyde-example.out'];
+    box.value = text; load(text, name);
+  });
+  for (const c of ['.qc-scale', '.qc-fwhm']) q(c).addEventListener('input', drawIr);
+
+  // Downloads
+  const base = () => fileName.replace(/[^\w.-]+/g, '-');
+  q('.qc-steps-csv').addEventListener('click', () => { const r = res; if (!r) return; const names = r.steps[0]?.map((s) => s.name) ?? [];
+    save(new Blob([csv([['step', 'energy_Eh', 'delta_E_kJ_mol', ...names.flatMap((n) => [n.replace(/\s+/g, '_').toLowerCase(), n.replace(/\s+/g, '_').toLowerCase() + '_converged'])], ...r.energies.map((e, k) => [k + 1, e, k ? +((e - r.energies[k - 1]) * EH_KJ).toFixed(6) : '', ...names.flatMap((n) => { const it = r.steps[k]?.find((s) => s.name === n); return it ? [it.value, it.ok ? 'yes' : 'no'] : ['', '']; })])])], { type: 'text/csv' }), `${base()}-steps.csv`, 'text/csv'); });
+  q('.qc-orb-csv').addEventListener('click', () => { const o = res?.orbitals; if (!o) return;
+    const rows: (string | number)[][] = [['spin', 'orbital', 'energy_Eh', 'energy_eV', 'occupied']];
+    o.alpha.forEach((e, k) => rows.push([o.beta ? 'alpha' : 'restricted', k + 1, e, +(e * EH_EV).toFixed(5), k < o.nAlpha ? 'yes' : 'no']));
+    o.beta?.forEach((e, k) => rows.push(['beta', k + 1, e, +(e * EH_EV).toFixed(5), k < o.nBeta! ? 'yes' : 'no']));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${base()}-orbitals.csv`, 'text/csv'); });
+  q('.qc-freq-csv').addEventListener('click', () => { const r = res; if (!r) return; const s = Number(q<HTMLInputElement>('.qc-scale').value);
+    save(new Blob([csv([['mode', 'frequency_cm-1', 'scaled_cm-1', 'ir_intensity_km_mol', 'imaginary'], ...r.freqs.map((f) => [f.mode, f.freq, +(f.freq * s).toFixed(4), f.ir ?? '', f.freq < 0 ? 'yes' : 'no'])])], { type: 'text/csv' }), `${base()}-frequencies.csv`, 'text/csv'); });
+  q('.qc-spec-csv').addEventListener('click', () => { if (!spec.x.length) return;
+    save(new Blob([csv([['wavenumber_cm-1', 'intensity_km_mol_per_cm-1'], ...spec.x.map((x, k) => [x, +spec.y[k].toPrecision(6)])])], { type: 'text/csv' }), `${base()}-ir-spectrum.csv`, 'text/csv'); });
+  q('.qc-xyz-dl').addEventListener('click', () => save(new Blob([q('.qc-xyz').textContent ?? ''], { type: 'chemical/x-xyz' }), `${base()}-final.xyz`, 'chemical/x-xyz'));
+  q('.qc-xyz-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(q('.qc-xyz').textContent ?? ''); q('.qc-copied').textContent = 'Copied.'; } catch { q('.qc-copied').textContent = 'Select the text and copy it.'; } });
+  document.addEventListener('fibub:theme', () => { if (res) show(); });
+  wireDownloads(q('.qc-out .dl'), () => ({ title: `${res?.program ?? ''} output: ${fileName}`, subtitle: 'Read by the fibub quantum chemistry output reader', file: `${base()}-summary`, sections }));
+  // Start with the Gaussian example.
+  (root.querySelector('.qc-ex[data-ex="g"]') as HTMLButtonElement).click();
+</script>
