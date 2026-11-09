@@ -1,11 +1,13 @@
 // #736 Lexical diversity and readability: browser checks.
 export const path = '/science/lexical-diversity-readability/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
+  page.setDefaultTimeout(120000); // slow shared test machines
   await page.setViewportSize({ width: 1200, height: 900 });
-  await page.goto(BASE + path); await page.waitForTimeout(800);
+  await page.goto(BASE + path); await page.waitForFunction(() => document.querySelector('.ld-fig')?.width > 300);
   const val = (sel, name) => page.$$eval(sel + ' tbody tr', (trs, name) => trs.find((tr) => tr.cells[0].textContent.startsWith(name))?.cells[1].textContent, name);
   const fact = (k) => page.$$eval('.ld-counts div', (ds, k) => ds.find((d) => d.querySelector('dt').textContent === k)?.querySelector('dd').textContent, k);
-  const setv = async (sel, v) => { await page.fill(sel, String(v)); await page.waitForTimeout(500); };
+  const setv = async (sel, v) => { await page.fill(sel, String(v)); await page.waitForTimeout(1200); };
 
   check((await val('.ld-div', 'Tokens')) === '158' && (await val('.ld-div', 'Types')) === '116', 'ld: 158 tokens, 116 types');
   check((await val('.ld-div', 'Type-token')) === '0.734' && (await val('.ld-div', 'Root TTR')) === '9.228' && (await val('.ld-div', 'Log TTR')) === '0.939', 'ld: TTR, root TTR, log TTR');
@@ -34,12 +36,13 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check(p.suggestedFilename() === 'lexical-diversity-readability.pdf', 'ld: PDF report');
 
   await page.setInputFiles('.ld-file', { name: 'essay.txt', mimeType: 'text/plain', buffer: Buffer.from('The cat sat. The cat ran away from the big dog. It was fast. The dog was slow and old.') });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1000);
   check((await val('.ld-div', 'Tokens')) === '20' && (await fact('Sentences')) === '4' && /essay\.txt/.test(await page.textContent('.ld-fnote')), 'ld: open a .txt file');
   await setv('.ld-in', 'Too short.');
   check(await page.locator('.ld-err').isVisible() && /at least 10 words/.test(await page.textContent('.ld-err')), 'ld: too-short message');
   await page.reload(); await page.waitForTimeout(700);
   await page.setViewportSize({ width: 375, height: 800 });
   await page.screenshot({ path: OUT + 'lexical-diversity-readability-375.png', fullPage: false });
-  await page.setViewportSize({ width: 1200, height: 900 });
+  page.setDefaultTimeout(30000);
+  if (vp0) await page.setViewportSize(vp0);
 };
