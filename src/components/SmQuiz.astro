@@ -1,0 +1,28 @@
+---
+// "Check yourself" box for the school maths (Learn) tools. The tool's script fills it with quiz() from
+// src/lib/sm-quiz.ts. Nothing is stored or sent.
+const { cls = '' } = Astro.props as { cls?: string };
+---
+<div class={`ax-card smq ${cls}`}>
+  <h2>Check yourself</h2>
+  <p class="ax-help">Fresh numbers every time. Type a number or a fraction such as 3/4; nothing is saved or sent.</p>
+  <ol class="smq-list"></ol>
+  <button type="button" class="btn small secondary smq-new">New questions</button>
+</div>
+
+<style is:inline>
+  .smq .smq-list { margin: 8px 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .smq .smq-text { margin: 0 0 6px; color: var(--ink); }
+  .smq .smq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .smq .smq-in { max-width: 160px; min-height: 44px; }
+  .smq .smq-check { min-height: 44px; }
+  .smq .smq-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+  .smq .smq-choices button { min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .smq .smq-choices button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .smq .smq-out { margin: 6px 0 0; font-weight: 600; }
+  .smq .smq-ok { color: var(--good); }
+  .smq .smq-no { color: var(--bad); }
+  .smq .smq-work { margin-top: 4px; font-size: 14px; color: var(--muted); }
+  .smq .smq-work summary { cursor: pointer; min-height: 32px; }
+  .smq .smq-work p { margin: 4px 0 0; white-space: pre-line; }
+</style>
