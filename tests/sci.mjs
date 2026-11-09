@@ -148,6 +148,7 @@ import * as TC from '../src/lib/sci/treecarbon.ts';
 import * as LCA from '../src/lib/sci/lca.ts';
 import * as SQ from '../src/lib/sci/seqtools.ts';
 import * as NC from '../src/lib/sci/nucconc.ts';
+import * as QP from '../src/lib/sci/qpcr.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2929,6 +2930,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('nc dilute too weak', NC.diluteTo(5, 10, 50) === null);
   check('nc purity ok', NC.purity('ds', 1.85, 2.1).ok); check('nc purity protein', NC.purity('ds', 1.5, 2.1).notes[0].includes('protein'));
   check('nc purity rna fine at 2.05', NC.purity('rna', 2.05, NaN).ok); check('nc purity salt', NC.purity('rna', 2.0, 1.2).notes[0].includes('260/230'));
+}
+// #165 qPCR: checked against scipy.stats.linregress and an independent NumPy ΔΔCq / Pfaffl calculation.
+{
+  const c = QP.stdCurve([1e6, 1e6, 1e5, 1e5, 1e4, 1e4, 1e3, 1e3, 1e2, 1e2], [15.12, 15.30, 18.55, 18.41, 21.90, 22.04, 25.31, 25.20, 28.75, 28.60]);
+  near('qp slope', c.slope, -3.3705, 1e-10); near('qp intercept', c.intercept, 35.4, 1e-10); near('qp r2', c.r2, 0.9996807653500582, 1e-12);
+  near('qp se slope', c.seSlope, 0.02129480570468995, 1e-12); near('qp efficiency', c.eff, 0.9801217103905819, 1e-12);
+  near('qp eff lo', c.effLo, 0.9716469715842233, 1e-12); near('qp eff hi', c.effHi, 0.9887413422597298, 1e-12);
+  near('qp unknown', QP.quantify(c, 20) / 37072.76995950164, 1, 1e-12);
+  const W = [];
+  const add = (s, g, v) => v.forEach((cq) => W.push({ sample: s, gene: g, cq }));
+  add('Ctrl', 'GOI', [24.1, 24.3, 24.2]); add('Ctrl', 'REF', [18.0, 18.1, 17.9]); add('Ctrl', 'REF2', [20.2, 20.0, 20.1]);
+  add('Drug', 'GOI', [22.0, 22.3, 22.1]); add('Drug', 'REF', [18.1, 18.2, 18.0]); add('Drug', 'REF2', [20.3, 20.1, 20.2]);
+  const one = QP.relative(W.filter((w) => w.gene !== 'REF2'), ['REF'], 'Ctrl'), d = one.rows.find((r) => r.sample === 'Drug');
+  near('qp ddcq', d.ddCq, -2.1666666666666643, 1e-12); near('qp fold', d.nrq, 4.489848193237485, 1e-12);
+  near('qp fold lo', d.lo, 3.956137256980559, 1e-12); near('qp fold hi', d.hi, 5.095560514931085, 1e-12);
+  near('qp control is 1', one.rows.find((r) => r.sample === 'Ctrl').nrq, 1, 1e-12);
+  near('qp pfaffl', QP.relative(W.filter((w) => w.gene !== 'REF2'), ['REF'], 'Ctrl', { GOI: 1.95, REF: 2.05 }).rows.find((r) => r.sample === 'Drug').nrq, 4.2714984153955955, 1e-12);
+  const two = QP.relative(W, ['REF', 'REF2'], 'Ctrl').rows.find((r) => r.sample === 'Drug');
+  near('qp two refs', two.nrq, 4.48984819323749, 1e-12); near('qp two refs sd', two.sdLog2, 0.1683250823060347, 1e-12);
+  check('qp missing ref skipped', QP.relative(W.filter((w) => w.gene !== 'REF2' && !(w.sample === 'Drug' && w.gene === 'REF')), ['REF'], 'Ctrl').rows.length === 1);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
