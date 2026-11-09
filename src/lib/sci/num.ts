@@ -24,7 +24,7 @@ export function parseTable(text: string): string[][] {
   let sep: RegExp;
   if (sample.includes('\t')) sep = /\t/;
   else if (sample.includes(';')) sep = /;/;
-  else if (/,/.test(sample) && !/\d,\d+\s+\d/.test(sample)) sep = /,/;
+  else if (/,/.test(sample) && !/\d,\d+[ \t]+\d/.test(sample)) sep = /,/;
   else sep = /\s+/;
   return lines.map((l) => l.split(sep).map((c) => c.trim().replace(/^"(.*)"$/, '$1')));
 }
