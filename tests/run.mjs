@@ -122,7 +122,17 @@ try {
   for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ acceptDownloads: true });
+  // The view and use counters (worker/index.ts) are not part of the static preview, so the tests
+  // answer for them: running totals that go up by one per note, as the real Worker does.
+  const fakeCounts = { site: 41, v: 9, u: 2 };
+  await ctx.route(BASE + '/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/hit') { fakeCounts.site++; fakeCounts.v++; return route.fulfill({ json: { ...fakeCounts } }); }
+    if (path === '/api/use') { fakeCounts.u++; return route.fulfill({ json: { u: fakeCounts.u } }); }
+    return route.fulfill({ status: 404, json: {} });
+  });
   await ctx.route(BASE + '/**', async (route) => {
+    if (new URL(route.request().url()).pathname.startsWith('/api/')) return route.fallback();
     const res = await route.fetch();
     const headers = { ...res.headers() };
     if ((headers['content-type'] || '').includes('text/html')) headers['content-security-policy'] = CSP.replace('upgrade-insecure-requests', '');
@@ -130,7 +140,11 @@ try {
   });
   const page = await ctx.newPage();
   const requests = [];
-  page.on('request', (r) => requests.push({ url: r.url(), method: r.method() }));
+  // Counter notes (POST /api/hit and /api/use) are the only requests allowed to send anything,
+  // and they may carry nothing but the tool's id. They are kept apart from the upload checks.
+  const counterNotes = [];
+  const isNote = (r) => r.method() === 'POST' && /^\/api\/(hit|use)$/.test(new URL(r.url()).pathname);
+  page.on('request', (r) => { if (isNote(r)) counterNotes.push({ url: r.url(), body: r.postData() }); else requests.push({ url: r.url(), method: r.method() }); });
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy|Refused/.test(m.text())) pageErrors.push('CSP: ' + m.text()); });
@@ -815,6 +829,8 @@ try {
   const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url));
   check(offsite.length === 0, `no requests leave the site (${offsite.map((r) => r.url).join(', ') || 'none'})`);
   check(requests.every((r) => r.method === 'GET'), `no uploads: ${requests.length} requests, all GET`);
+  check(counterNotes.length > 0 && counterNotes.every((n) => { const b = JSON.parse(n.body || '{}'); return Object.keys(b).every((k) => k === 't') && (b.t === undefined || /^[a-z0-9-]+$/.test(b.t)); }),
+    `counter notes carry only a tool id (${counterNotes.length} notes)`);
 
   // 8. Works offline once the page has loaded.
   await page.goto(`${BASE}/documents/compress-file/`);
@@ -3089,6 +3105,28 @@ try {
     { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.rdg .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'digest: PDF'); }
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
+
+  // Public counters: site views in the footer, views and uses on tool pages; a use counts once.
+  {
+    await page.goto(BASE + '/money/loan-payoff-planner/');
+    await page.waitForSelector('.site-views:not([hidden])');
+    check(/^[\d,]+ page views$/.test((await page.textContent('.site-views')).trim()), `counters: footer shows site page views (${(await page.textContent('.site-views')).trim()})`);
+    await page.waitForSelector('.tool-counts:not([hidden])');
+    const before = (await page.innerText('.tool-counts')).replace(/\s+/g, ' ').trim();
+    check(/^[\d,]+ views? [\d,]+ uses?$/.test(before), `counters: tool page shows views and uses (${before})`);
+    const notes = counterNotes.length;
+    const field = page.locator('.tool-ui input[type=number], .tool-ui input:not([type])').first();
+    await field.fill('12345'); await field.fill('2345');
+    await page.waitForFunction((b) => document.querySelector('.tool-counts').innerText.replace(/\s+/g, ' ').trim() !== b, before);
+    const uses = counterNotes.slice(notes).filter((n) => n.url.endsWith('/api/use'));
+    check(uses.length === 1 && JSON.parse(uses[0].body).t === 'loan-payoff-planner', `counters: one use sent for the tool however much it is used (${uses.length})`);
+    await page.goto(BASE + '/about/');
+    await page.waitForSelector('.site-views:not([hidden])');
+    check(!(await page.$('.tool-counts')) && JSON.parse(counterNotes.at(-1).body).t === undefined, 'counters: other pages count a site view only');
+    await page.goto(BASE + '/stats/');
+    await page.waitForSelector('.lc-msg:not([hidden]), .lc-tbl tbody tr');
+    check(await page.isVisible('.lc-msg'), 'counters: stats page says so when the live totals cannot be reached');
+  }
 
   // 9. Phone: 50 MB limit, layout fits.
   const phoneCtx = await browser.newContext({ ...require('playwright').devices['iPhone 13'], acceptDownloads: true });

@@ -13,14 +13,14 @@ const tools = await allTools();
 const liveTools = tools.filter((t) => t.data.status === 'live');
 const menus = SHELVES.map((s) => ({ shelf: s, groups: bySection(s.id, liveTools), subjects: bySubject(s.id, liveTools), hasSubjects: !!SUBJECTS[s.id], count: liveTools.filter((t) => t.data.shelf === s.id).length }));
 const PER_SECTION = 3;
-interface Props { title: string; description?: string; shelf?: string; noindex?: boolean; image?: string }
-const { title, description = SITE.description, shelf, noindex = false, image = '/og/home.png' } = Astro.props;
+interface Props { title: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string }
+const { title, description = SITE.description, shelf, noindex = false, image = '/og/home.png', tool } = Astro.props;
 const imageUrl = new URL(image, SITE.url).href;
 const canonical = new URL(Astro.url.pathname, SITE.url).href;
 const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`;
 ---
 <!doctype html>
-<html lang="en" data-shelf={shelf}>
+<html lang="en" data-shelf={shelf} data-tool={tool}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -168,11 +168,15 @@ const fullTitle = title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${tit
           <span><b>fibub</b>: Free In-Browser Utility Bubble. Your files stay on your device.</span>
           <nav aria-label="Site"><a href="/about/">About</a><a href="/changes/">Change log</a><a href="/stats/">Usage stats</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/contact/">Contact</a></nav>
         </div>
-        <span><a href={SITE.maker.url} rel="author">Developer</a></span>
+        <div class="row">
+          <span><a href={SITE.maker.url} rel="author">Developer</a></span>
+          <span class="site-views" data-counter hidden title="Every page opened on fibub, counted as a running total. Nothing about you is kept."><b data-count="site"></b> page views</span>
+        </div>
       </div>
     </footer>
     <script>
       import '../scripts/site';
+      import '../scripts/counts';
     </script>
   </body>
 </html>
