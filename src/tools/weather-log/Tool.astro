@@ -1,0 +1,300 @@
+---
+// Weather log: a home observer's daily record (max/min temperature, rain, snow, wind, pressure, cloud, notes), kept
+// only in this browser, with monthly summaries, charts, records and CSV in and out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const points = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+---
+<div class="ax wlg">
+  <div class="ax-card">
+    <h2>Your log stays on this device</h2>
+    <p class="ax-help" style="margin-top:0">Every day you save is kept in this browser's own storage (localStorage) so it is here next time. It is never sent anywhere, other browsers and devices cannot see it, and clearing your browser data deletes it. Download a CSV now and then as a backup.</p>
+    <p class="wl-count ax-help" style="font-weight:600;color:var(--ink)"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small wl-ex">Load a made-up example</button>
+      <button type="button" class="btn secondary small wl-wipe">Delete my log</button>
+    </div>
+    <p class="ax-help wl-snote" hidden></p>
+    <h3 style="margin:14px 0 8px">Units</h3>
+    <div class="ax-grid">
+      <label>Temperature <select class="wl-ut"><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label>Rain <select class="wl-ur"><option value="mm">mm</option><option value="in">in</option></select></label>
+      <label>Snow <select class="wl-us"><option value="cm">cm</option><option value="in">in</option></select></label>
+      <label>Wind speed <select class="wl-uw"><option value="km/h">km/h</option><option value="mph">mph</option><option value="m/s">m/s</option><option value="kn">knots</option></select></label>
+      <label>Pressure <select class="wl-up"><option value="hPa">hPa</option><option value="inHg">inHg</option></select></label>
+      <label>Rain day from <input class="wl-rd" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Changing a unit converts every saved day. A rain day is a day with at least this much rain (1 mm is a common choice; 0.2 mm counts any measurable rain).</p>
+  </div>
+
+  <div class="ax-card" style="margin-top:14px">
+    <h2>Add or change a day</h2>
+    <div class="ax-grid">
+      <label>Date <input type="date" class="wl-date" /></label>
+      <label>Max temp <span class="wl-u-t"></span> <input class="wl-tmax" inputmode="decimal" /></label>
+      <label>Min temp <span class="wl-u-t"></span> <input class="wl-tmin" inputmode="decimal" /></label>
+      <label>Rain <span class="wl-u-r"></span> <input class="wl-rain" inputmode="decimal" /></label>
+      <label>New snow <span class="wl-u-s"></span> <input class="wl-snow" inputmode="decimal" /></label>
+      <label>Wind speed <span class="wl-u-w"></span> <input class="wl-wind" inputmode="decimal" /></label>
+      <label>Wind from <select class="wl-dir"><option value="">–</option><option>Calm</option>{points.map((p) => <option>{p}</option>)}</select></label>
+      <label>Pressure <span class="wl-u-p"></span> <input class="wl-pres" inputmode="decimal" /></label>
+      <label>Cloud (oktas) <select class="wl-cloud"><option value="">–</option>{[0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option value={n}>{n}{n === 0 ? ' (clear)' : n === 8 ? ' (overcast)' : ''}</option>)}</select></label>
+    </div>
+    <label style="display:block;margin-top:10px">Notes <input class="wl-notes" maxlength="300" placeholder="Thunder, fog, first frost…" /></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn wl-save">Save day</button><button type="button" class="btn secondary small wl-reset">Clear the form</button></div>
+    <p class="ax-help">Leave anything you did not measure blank. Max and min are for the 24 hours of the day; rain is the day's total; pressure is the sea-level reading at your usual time; cloud is in eighths of the sky (oktas). Saving a date that is already in the log replaces it.</p>
+    <p class="ax-err wl-ferr" hidden></p>
+    <p class="ax-help wl-fok" hidden></p>
+  </div>
+
+  <div class="wl-out">
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Days</h2>
+      <div class="ax-grid"><label>Show <select class="wl-view"></select></label></div>
+      <dl class="ax-facts wl-vfacts" style="margin-top:10px"></dl>
+      <canvas class="ax-fig wl-tfig" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig wl-rfig" style="margin-top:12px"></canvas>
+      <div class="ax-scroll" style="margin-top:10px"><table class="wl-days"></table></div>
+      <p class="ax-help wl-undo" hidden><span></span> <button type="button" class="btn secondary small wl-undob">Undo</button></p>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Monthly summary</h2>
+      <div class="ax-scroll"><table class="wl-mon"></table></div>
+      <p class="ax-help">Mean is the average of (max + min) ÷ 2 on days with both. Frost days: minimum below freezing. Wind: mean speed and the most often logged direction. Months with missing days are summed from the days you logged.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wl-mcsv">Download summary CSV</button></div>
+    </div>
+
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Records</h2>
+      <dl class="ax-facts wl-rec"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card" style="margin-top:14px">
+    <h2>Import and export</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small wl-csv">Download my log (CSV)</button></div>
+    <p class="ax-help">To bring in days from a spreadsheet or another device, paste or open a CSV with a Date column (YYYY-MM-DD) and any of: max, min, rain, snow, wind speed, wind direction (compass point or degrees), pressure, cloud, notes. Values must be in the units chosen above.</p>
+    <textarea class="wl-in" rows="5" spellcheck="false" aria-label="Days to import" placeholder="Date,Max temp,Min temp,Rain&#10;2026-11-01,9.5,2.1,4.2"></textarea>
+    <DataFile target=".wl-in" maxMB={5} maxCols={20} maxRows={40000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small wl-add">Add to my log</button><button type="button" class="btn secondary small wl-replace">Replace my log</button></div>
+    <p class="ax-help wl-inote" hidden></p>
+    <p class="ax-err wl-ierr" hidden></p>
+  </div>
+
+  <div class="ax-card" style="margin-top:14px"><h2>Report</h2><p class="ax-help" style="margin-top:0">The days shown, the monthly summary and the records.</p><Downloads /></div>
+</div>
+
+<style is:global>
+  .wlg table td, .wlg table th { white-space: nowrap; padding: 6px 7px; }
+  .wlg table td:not(:first-child), .wlg table th:not(:first-child) { text-align: right; }
+  .wlg .wl-days td.wl-note { text-align: left; white-space: normal; min-width: 10em; }
+  .wlg .wl-days td .btn { padding: 2px 8px; font-size: 13px; }
+  .wlg .wl-out { min-width: 0; }
+</style>
+
+<script>
+  import { num, parseTable, csv } from '../../lib/sci/num';
+  import { DEFAULT_UNITS, conv, convertLog, problem, upsert, monthly, records, fromRows, toRows, example, type Entry, type Units, type MonthSum } from '../../lib/sci/weatherlog';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const KEY = 'fibub-weather-log-v1';
+  const root = document.querySelector<HTMLElement>('.wlg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const mm = (s: string) => s.replace(/-/g, '−');
+  const fact = (k: string, v: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const fill = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); for (const c of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; r.append(e); } return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.append(h, b);
+  };
+
+  let want = '', log: Entry[] = [], units: Units = { ...DEFAULT_UNITS }, figs: Figure[] = [], sections: Section[] = [], lastDeleted: Entry | null = null;
+  const U = () => ({ t: `°${units.t}`, r: units.r, s: units.s, w: units.w === 'kn' ? 'kn' : units.w, p: units.p });
+
+  // ---- Storage (this browser only).
+  function load() {
+    try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (Array.isArray(d.log)) log = d.log; if (d.units) units = { ...DEFAULT_UNITS, ...d.units }; if (d.rainDay != null) inp('.wl-rd').value = String(d.rainDay); } } catch { /* storage blocked: the log lives for this visit only */ }
+  }
+  function store() {
+    const n = q('.wl-snote');
+    try {
+      if (log.length) localStorage.setItem(KEY, JSON.stringify({ log, units, rainDay: num(inp('.wl-rd').value) })); else localStorage.removeItem(KEY);
+      n.hidden = true;
+    } catch { n.textContent = 'This browser is not letting the page save, so the log will be lost when you close it. Download a CSV to keep it.'; n.hidden = false; }
+  }
+
+  const f = (x: number | null | undefined, d = 1) => (x == null ? '' : mm(x.toFixed(d)));
+  const pd = () => ({ t: 1, r: units.r === 'in' ? 2 : 1, s: 1, w: 1, p: units.p === 'inHg' ? 2 : 1 });
+
+  function render() {
+    const u = U();
+    for (const k of ['t', 'r', 's', 'w', 'p'] as const) for (const e of root.querySelectorAll(`.wl-u-${k}`)) e.textContent = `(${u[k]})`;
+    q<HTMLSelectElement>('.wl-ut').value = units.t; q<HTMLSelectElement>('.wl-ur').value = units.r; q<HTMLSelectElement>('.wl-us').value = units.s; q<HTMLSelectElement>('.wl-uw').value = units.w; q<HTMLSelectElement>('.wl-up').value = units.p;
+    q('.wl-count').textContent = log.length ? `${log.length.toLocaleString('en')} day${log.length > 1 ? 's' : ''} saved, ${log[0].date} to ${log[log.length - 1].date}.` : 'No days saved yet. Add today below, import a CSV, or load the made-up example to look around.';
+    q('.wl-out').hidden = !log.length;
+    if (!log.length) { sections = []; return; }
+    // Month picker.
+    const vs = q<HTMLSelectElement>('.wl-view'), was = want || vs.value, months = [...new Set(log.map((e) => e.date.slice(0, 7)))];
+    vs.replaceChildren(new Option('All days', 'all'), ...months.slice().reverse().map((m) => new Option(monthName(m), m)));
+    vs.value = was && (was === 'all' || months.includes(was)) ? was : months[months.length - 1]; want = '';
+    renderView(); renderSummary();
+  }
+  const monthName = (k: string) => new Date(k + '-01T00:00:00Z').toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  let monthRows: { head: string[]; rows: string[][] } = { head: [], rows: [] }, recRows: string[][] = [], dayRows: { head: string[]; rows: string[][] } = { head: [], rows: [] };
+  function renderView() {
+    const view = q<HTMLSelectElement>('.wl-view').value, es = view === 'all' ? log : log.filter((e) => e.date.startsWith(view));
+    const u = U(), P = pd(), rd = num(inp('.wl-rd').value) || 1;
+    const s = es.length ? monthlyAll(es, rd) : null;
+    if (s) q('.wl-vfacts').replaceChildren(
+      fact('Days logged', String(s.days), view === 'all' ? `${es[0].date} to ${es[es.length - 1].date}` : monthName(view)),
+      fact('Mean max / min', `${f(s.tmax.mean)} / ${f(s.tmin.mean)} ${u.t}`, s.tmean == null ? '' : `mean ${f(s.tmean)} ${u.t}`),
+      fact('Highest / lowest', `${f(s.tmax.max)} / ${f(s.tmin.min)} ${u.t}`),
+      fact('Rain', `${f(s.rain.sum, P.r)} ${u.r}`, `${s.rainDays} rain day${s.rainDays === 1 ? '' : 's'}`),
+      ...(s.snow.sum > 0 ? [fact('Snow', `${f(s.snow.sum)} ${u.s}`, `${s.snowDays} day${s.snowDays === 1 ? '' : 's'} with snow`)] : []),
+      fact('Frost days', String(s.frost)),
+    );
+    // Charts against the day number from the first day shown.
+    const d0 = Date.parse(es[0].date + 'T00:00:00Z'), x = (e: Entry) => (Date.parse(e.date + 'T00:00:00Z') - d0) / 86400000 + (view === 'all' ? 0 : 1);
+    const xs = view === 'all' ? `Days since ${es[0].date}` : 'Day of the month';
+    const xMin = view === 'all' ? -1 : 0, xMax = Math.ceil(x(es[es.length - 1])) + 1;
+    const seg = (key: 'tmax' | 'tmin') => { const out: { x: number[]; y: number[] }[] = []; let cur: { x: number[]; y: number[] } | null = null, last = -9; for (const e of es) { const v = e[key]; const xx = x(e); if (v == null || xx - last > 1.5) { cur = null; } if (v != null) { if (!cur) { cur = { x: [], y: [] }; out.push(cur); } cur.x.push(xx); cur.y.push(v); } last = v == null ? -9 : xx; } return out; };
+    const series = [...seg('tmax').map((p, i) => ({ name: i ? '' : 'Max', ...p, mode: 'both' as const, width: 1.6, size: 2.6, color: '#D55E00' })), ...seg('tmin').map((p, i) => ({ name: i ? '' : 'Min', ...p, mode: 'both' as const, width: 1.6, size: 2.6, color: '#0072B2' }))];
+    const tfig: Figure = { w: 640, h: 300, alt: `Daily maximum and minimum temperature, ${view === 'all' ? 'all days' : monthName(view)}`, draw: (ctx, w, h, pal) => chartFigure({ w, h, xLabel: xs, yLabel: `Temperature (${u.t})`, legend: 'inside', xMin, xMax, series: series.map((s2) => ({ ...s2, color: pal.red ? (s2.color === '#D55E00' ? '#c00000' : '#6e0000') : pal.bg === '#ffffff' ? s2.color : s2.color === '#D55E00' ? '#E69F00' : '#56B4E9' })), marks: units.t === 'C' ? [{ kind: 'hline', at: 0, dash: [2, 3] }] : [{ kind: 'hline', at: 32, dash: [2, 3] }] }, '').draw(ctx, w, h, pal) };
+    // Rain as bars: a step outline, one step per day.
+    const rx: number[] = [], ry: number[] = [];
+    for (const e of es) { if (e.rain == null) continue; const a = x(e) - 0.4, b = x(e) + 0.4; rx.push(a, a, b, b); ry.push(0, e.rain, e.rain, 0); }
+    const rfig: Figure = { w: 640, h: 240, alt: `Daily rain, ${f(s?.rain.sum ?? 0, P.r)} ${u.r} in all`, draw: (ctx, w, h, pal) => chartFigure({ w, h, xLabel: xs, yLabel: `Rain (${u.r})`, legend: 'none', xMin, xMax, yMin: 0, series: [{ name: 'Rain', x: rx, y: ry, mode: 'line', width: 1.4, color: pal.red ? '#a30000' : pal.bg === '#ffffff' ? '#0072B2' : '#56B4E9' }] }, '').draw(ctx, w, h, pal) };
+    figs = [tfig, rfig];
+    paint(q<HTMLCanvasElement>('.wl-tfig'), tfig); paint(q<HTMLCanvasElement>('.wl-rfig'), rfig);
+    // Table (newest first), with edit and delete.
+    const head = ['Date', `Max (${u.t})`, `Min (${u.t})`, `Rain (${u.r})`, `Snow (${u.s})`, `Wind (${u.w})`, 'From', `Pressure (${u.p})`, 'Cloud', 'Notes', ''];
+    const t = q('.wl-days'); t.replaceChildren();
+    const th = document.createElement('thead'), hr = document.createElement('tr'); for (const h of head) { const c = document.createElement('th'); c.textContent = h; hr.append(c); } th.append(hr);
+    const tb = document.createElement('tbody');
+    const shown = es.slice().reverse().slice(0, view === 'all' ? 62 : 31);
+    dayRows = { head: head.slice(0, 10), rows: [] };
+    for (const e of shown) {
+      const cells = [e.date, f(e.tmax), f(e.tmin), f(e.rain, P.r), f(e.snow), f(e.wind, 0), e.dir, f(e.pres, P.p), e.cloud == null ? '' : String(e.cloud), e.notes];
+      dayRows.rows.push(cells);
+      const tr = document.createElement('tr'); tr.dataset.date = e.date;
+      cells.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i === 9) td.className = 'wl-note'; tr.append(td); });
+      const td = document.createElement('td'); td.innerHTML = '<button type="button" class="btn secondary small wl-edit">Edit</button> <button type="button" class="btn secondary small wl-del">Delete</button>'; tr.append(td);
+      tb.append(tr);
+    }
+    t.append(th, tb);
+    if (view === 'all' && es.length > 62) { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 11; td.textContent = `Newest 62 of ${es.length} days; pick a month to see the rest.`; tr.append(td); tb.append(tr); }
+    buildReport();
+  }
+  /** One summary over a set of days (any span). */
+  function monthlyAll(es: Entry[], rd: number): MonthSum { return monthly(es.map((e) => ({ ...e, date: '0000-01' + e.date.slice(7) })), units, rd)[0]; }
+
+  function renderSummary() {
+    const u = U(), P = pd(), rd = num(inp('.wl-rd').value) || 1, ms = monthly(log, units, rd);
+    const head = ['Month', 'Days', `Mean max (${u.t})`, `Mean min (${u.t})`, `Mean (${u.t})`, `Highest (${u.t})`, `Lowest (${u.t})`, `Rain (${u.r})`, 'Rain days', `Snow (${u.s})`, 'Frost days', `Wind (${u.w})`, 'Wind from', `Pressure (${u.p})`, 'Cloud'];
+    const rows = ms.map((m) => [m.key, String(m.days), f(m.tmax.mean), f(m.tmin.mean), f(m.tmean), f(m.tmax.max), f(m.tmin.min), m.rain.n ? f(m.rain.sum, P.r) : '', String(m.rainDays), m.snow.n ? f(m.snow.sum) : '', String(m.frost), f(m.wind.mean), m.dir, f(m.pres.mean, P.p), f(m.cloud.mean)]);
+    monthRows = { head, rows };
+    fill(q('.wl-mon'), head, rows);
+    const unit: Record<string, string> = { 'Highest maximum': u.t, 'Lowest maximum': u.t, 'Highest minimum': u.t, 'Lowest minimum': u.t, 'Wettest day': u.r, 'Most snow in a day': u.s, 'Windiest day': u.w, 'Highest pressure': u.p, 'Lowest pressure': u.p };
+    const dp: Record<string, number> = { 'Wettest day': P.r, 'Highest pressure': P.p, 'Lowest pressure': P.p, 'Windiest day': 0 };
+    recRows = records(log).map((r) => [r.label, `${f(r.value, dp[r.label] ?? 1)} ${unit[r.label]}`, r.dates.length > 3 ? `${r.dates.slice(0, 3).join(', ')} and ${r.dates.length - 3} more` : r.dates.join(', ')]);
+    q('.wl-rec').replaceChildren(...recRows.map(([k, v, d]) => fact(k, v, d)));
+    buildReport();
+  }
+  function buildReport() {
+    const view = q<HTMLSelectElement>('.wl-view').value;
+    sections = [
+      { title: view === 'all' ? 'All days' : monthName(view), facts: [...q('.wl-vfacts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small')?.textContent ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]) },
+      ...figs.map((fg) => ({ title: fg.alt.split(',')[0], figure: fg })),
+      { title: 'Days', table: { head: dayRows.head, rows: dayRows.rows } },
+      { title: 'Monthly summary', table: { head: monthRows.head, rows: monthRows.rows.slice(-24) }, note: monthRows.rows.length > 24 ? 'Last 24 months; download the CSV for all.' : undefined },
+      { title: 'Records', table: { head: ['Record', 'Value', 'Date'], rows: recRows } },
+    ];
+  }
+
+  // ---- Form.
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const opt = (c: string) => { const s = inp(c).value.trim(); return s === '' ? null : num(s); };
+  function clearForm(date = today()) { inp('.wl-date').value = date; for (const c of ['.wl-tmax', '.wl-tmin', '.wl-rain', '.wl-snow', '.wl-wind', '.wl-pres', '.wl-notes']) inp(c).value = ''; q<HTMLSelectElement>('.wl-dir').value = ''; q<HTMLSelectElement>('.wl-cloud').value = ''; }
+  function saveDay() {
+    const err = q('.wl-ferr'), ok = q('.wl-fok');
+    const e: Entry = { date: inp('.wl-date').value, tmax: opt('.wl-tmax'), tmin: opt('.wl-tmin'), rain: opt('.wl-rain'), snow: opt('.wl-snow'), wind: opt('.wl-wind'), dir: q<HTMLSelectElement>('.wl-dir').value, pres: opt('.wl-pres'), cloud: q<HTMLSelectElement>('.wl-cloud').value === '' ? null : Number(q<HTMLSelectElement>('.wl-cloud').value), notes: inp('.wl-notes').value.trim() };
+    const nanField = (['tmax', 'tmin', 'rain', 'snow', 'wind', 'pres'] as const).find((k) => e[k] != null && Number.isNaN(e[k]));
+    const why = nanField ? 'Type numbers only (or leave a box blank).' : problem(e, units);
+    if (!why && [e.tmax, e.tmin, e.rain, e.snow, e.wind, e.pres, e.cloud].every((x) => x == null) && !e.dir && !e.notes) { err.textContent = 'Fill in at least one thing for the day.'; err.hidden = false; ok.hidden = true; return; }
+    if (why) { err.textContent = why; err.hidden = false; ok.hidden = true; return; }
+    err.hidden = true;
+    const r = upsert(log, e); log = r.log; store();
+    ok.textContent = `${r.replaced ? 'Updated' : 'Saved'} ${e.date}.`; ok.hidden = false;
+    want = e.date.slice(0, 7);
+    render();
+    const next = new Date(Date.parse(e.date + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+    clearForm(next > today() ? e.date : next);
+  }
+  q('.wl-save').addEventListener('click', saveDay);
+  q('.wl-reset').addEventListener('click', () => { clearForm(); q('.wl-ferr').hidden = true; q('.wl-fok').hidden = true; });
+  q('.wl-days').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('button'), tr = b?.closest('tr'); if (!b || !tr?.dataset.date) return;
+    const e = log.find((x) => x.date === tr.dataset.date)!;
+    if (b.classList.contains('wl-edit')) {
+      inp('.wl-date').value = e.date; inp('.wl-tmax').value = e.tmax == null ? '' : String(e.tmax); inp('.wl-tmin').value = e.tmin == null ? '' : String(e.tmin); inp('.wl-rain').value = e.rain == null ? '' : String(e.rain); inp('.wl-snow').value = e.snow == null ? '' : String(e.snow); inp('.wl-wind').value = e.wind == null ? '' : String(e.wind); q<HTMLSelectElement>('.wl-dir').value = e.dir; inp('.wl-pres').value = e.pres == null ? '' : String(e.pres); q<HTMLSelectElement>('.wl-cloud').value = e.cloud == null ? '' : String(e.cloud); inp('.wl-notes').value = e.notes;
+      inp('.wl-date').scrollIntoView({ block: 'center' }); inp('.wl-tmax').focus();
+    } else {
+      lastDeleted = e; log = log.filter((x) => x !== e); store(); render();
+      const u = q('.wl-undo'); u.querySelector('span')!.textContent = `Deleted ${e.date}.`; u.hidden = false;
+    }
+  });
+  q('.wl-undob').addEventListener('click', () => { if (!lastDeleted) return; log = upsert(log, lastDeleted).log; lastDeleted = null; store(); q('.wl-undo').hidden = true; render(); });
+
+  // ---- Two-tap confirmations for the big buttons.
+  function twoTap(btn: HTMLButtonElement, ask: string, run: () => void) {
+    const label = btn.textContent!;
+    btn.addEventListener('click', () => {
+      if (!log.length || btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = label; run(); return; }
+      btn.dataset.armed = '1'; btn.textContent = ask;
+      setTimeout(() => { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = label; } }, 6000);
+    });
+  }
+  twoTap(q<HTMLButtonElement>('.wl-ex'), 'Tap again to replace your log', () => { units = { ...DEFAULT_UNITS }; log = example(); store(); render(); });
+  twoTap(q<HTMLButtonElement>('.wl-wipe'), 'Tap again to delete every day', () => { log = []; store(); render(); });
+  twoTap(q<HTMLButtonElement>('.wl-replace'), 'Tap again to replace your log', () => doImport(true));
+
+  // ---- Units: converting the whole log.
+  for (const [c, k] of [['.wl-ut', 't'], ['.wl-ur', 'r'], ['.wl-us', 's'], ['.wl-uw', 'w'], ['.wl-up', 'p']] as const) q(c).addEventListener('change', () => {
+    const next = { ...units, [k]: q<HTMLSelectElement>(c).value } as Units;
+    const rd = num(inp('.wl-rd').value);
+    if (k === 'r' && rd > 0) inp('.wl-rd').value = String(+conv('r', rd, units.r, next.r).toFixed(next.r === 'in' ? 3 : 1));
+    log = convertLog(log, units, next); units = next; store(); render();
+  });
+  inp('.wl-rd').addEventListener('input', () => { if (num(inp('.wl-rd').value) > 0) { store(); render(); } });
+  q('.wl-view').addEventListener('change', renderView);
+
+  // ---- CSV.
+  const dl = (text: string, name: string) => save(new Blob(['﻿' + text], { type: 'text/csv' }), name, 'text/csv');
+  q('.wl-csv').addEventListener('click', () => { if (log.length) dl(`# Units: temperature °${units.t}, rain ${units.r}, snow ${units.s}, wind ${units.w}, pressure ${units.p}\n` + csv(toRows(log)), 'weather-log.csv'); });
+  q('.wl-mcsv').addEventListener('click', () => { if (monthRows.rows.length) dl(csv([monthRows.head, ...monthRows.rows.map((r) => r.map((c) => c.replace(/−/g, '-')))]), 'weather-log-monthly.csv'); });
+  function doImport(replace: boolean) {
+    const err = q('.wl-ierr'), note = q('.wl-inote');
+    const rows = parseTable(q<HTMLTextAreaElement>('.wl-in').value);
+    if (rows.length < 2) { err.textContent = 'Paste or open a CSV with a header row and at least one day.'; err.hidden = false; note.hidden = true; return; }
+    const r = fromRows(rows, units, num);
+    if (!r.entries.length) { err.textContent = `No days could be read. ${r.skipped[0] ? `Line ${r.skipped[0].line}: ${r.skipped[0].why}` : ''}`; err.hidden = false; note.hidden = true; return; }
+    err.hidden = true;
+    let base = replace ? [] : log, replaced = 0;
+    for (const e of r.entries) { const u = upsert(base, e); base = u.log; if (u.replaced) replaced++; }
+    log = base; store();
+    note.textContent = `${r.entries.length} day${r.entries.length > 1 ? 's' : ''} read${replace ? '; the log was replaced' : replaced ? ` (${replaced} replaced days already in the log)` : ''}.${r.skipped.length ? ` ${r.skipped.length} line${r.skipped.length > 1 ? 's' : ''} skipped: ${r.skipped.slice(0, 3).map((s) => `line ${s.line}: ${s.why}`).join(' ')}` : ''}`;
+    note.hidden = false;
+    want = 'latest';
+    render();
+  }
+  q('.wl-add').addEventListener('click', () => doImport(false));
+
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.wl-tfig'), figs[0]); paint(q<HTMLCanvasElement>('.wl-rfig'), figs[1]); } });
+  load(); clearForm(); render();
+  wireDownloads(q('.dl'), () => ({ title: 'Weather log', subtitle: log.length ? `${log[0].date} to ${log[log.length - 1].date}` : '', file: 'weather-log', sections }));
+</script>
