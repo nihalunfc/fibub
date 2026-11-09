@@ -1,0 +1,213 @@
+---
+// Unit hydrograph builder: synthetic unit hydrographs (gamma with a peak rate factor, or a Nash cascade), a storm
+// hydrograph by convolution, and a unit hydrograph derived from an observed storm. Example storm data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// A made-up storm: hourly rain and flow drawn by fibub from a gamma unit hydrograph with 3 % noise (not a real river).
+const flows = [3.00, 3.02, 5.26, 18.08, 45.02, 69.02, 75.40, 66.54, 49.65, 33.27, 21.23, 13.27, 8.59, 5.94, 4.60, 3.94, 3.62, 3.48, 3.43, 3.42, 3.42, 3.44, 3.46, 3.48, 3.50, 3.52, 3.54, 3.56, 3.58, 3.60];
+const rain = [2, 8, 15, 10, 4, 1];
+const demo = 'hour,rain (mm),flow (m³/s)\n' + flows.map((q, i) => `${i},${rain[i] ?? 0},${q.toFixed(2)}`).join('\n');
+---
+<div class="ax uhb">
+  <div class="ax-card">
+    <h2>Catchment and unit hydrograph</h2>
+    <div class="ax-grid">
+      <label><span>Catchment area (km²)</span> <input class="uh-A" type="text" inputmode="decimal" value="50" /></label>
+      <label><span>Rain step D (h)</span> <input class="uh-D" type="text" inputmode="decimal" value="1" /></label>
+      <label>Shape <select class="uh-kind">
+        <option value="gamma" selected>Gamma curve (SCS type)</option>
+        <option value="nash">Nash cascade</option>
+      </select></label>
+      <label class="uh-g"><span>Time of concentration tc (h)</span> <input class="uh-tc" type="text" inputmode="decimal" value="4" /></label>
+      <label class="uh-g"><span>Peak rate factor</span> <input class="uh-prf" type="text" inputmode="decimal" value="484" /></label>
+      <label class="uh-n" hidden><span>Number of reservoirs n</span> <input class="uh-nn" type="text" inputmode="decimal" value="3" /></label>
+      <label class="uh-n" hidden><span>Storage constant k (h)</span> <input class="uh-k" type="text" inputmode="decimal" value="1.2" /></label>
+    </div>
+    <p class="ax-help">A unit hydrograph is the flow at the outlet from 1 mm of runoff falling evenly over the catchment in one rain step D. The gamma curve peaks at Tp = D/2 + 0.6 tc. The peak rate factor sets how sharp it is: 484 is the usual value, about 300 suits flat or swampy land and about 600 steep land. The Nash cascade routes the runoff through n equal reservoirs, each holding it for k hours on average.</p>
+    <p class="ax-err uh-err" hidden></p>
+    <div class="uh-out">
+      <p class="ax-big uh-big"></p>
+      <dl class="ax-facts uh-facts"></dl>
+      <canvas class="ax-fig uh-ufig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card uh-out">
+    <h2>Storm hydrograph</h2>
+    <div class="ax-grid">
+      <label class="uh-wide"><span>Excess rain in each step (mm, separated by commas or spaces)</span> <input class="uh-pe" type="text" inputmode="decimal" value="0, 5, 12, 8, 2" /></label>
+      <label><span>Baseflow (m³/s)</span> <input class="uh-bf" type="text" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="ax-help">Excess rain is the part that runs off, after losses to soaking in and evaporation (the Runoff calculator estimates it with a curve number). Each value falls during one rain step. For design work, check the method and values against your local design manual.</p>
+    <p class="ax-err uh-serr" hidden></p>
+    <p class="ax-big uh-sbig"></p>
+    <dl class="ax-facts uh-sfacts"></dl>
+    <canvas class="ax-fig uh-sfig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small uh-csv">Download unit and storm hydrographs (CSV)</button></div>
+  </div>
+
+  <div class="ax-card uh-out">
+    <h2>Unit hydrograph from an observed storm</h2>
+    <label>Rain and flow, one row per rain step <textarea class="uh-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".uh-data" maxCols={20} maxRows={2000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Baseflow <select class="uh-bsep"><option value="line" selected>Straight line, first to last flow</option><option value="constant">Constant at the first flow</option></select></label>
+      <label><span>Unit hydrograph length (steps; blank = longest possible)</span> <input class="uh-nu" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">One row per rain step of length D (set above), with total rain (mm) and flow at the outlet (m³/s). Columns named rain or precipitation and flow, discharge or Q are found by name. Start before the rain, when the river is at baseflow, and run until it is back near baseflow. Up to 2,000 rows. The example storm is made up. The tool removes the baseflow, finds the runoff depth from the area above, sets a constant loss (φ-index) so the excess rain matches it, and then finds the non-negative unit hydrograph that best reproduces the flow.</p>
+    <p class="ax-err uh-derr" hidden></p>
+    <p class="ax-big uh-dbig"></p>
+    <dl class="ax-facts uh-dfacts"></dl>
+    <canvas class="ax-fig uh-dfig"></canvas>
+    <canvas class="ax-fig uh-ffig"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { gammaUH, nashUH, shapeFor, convolve, baseflow, phiIndex, deriveUH, impliedArea, type UH } from '../../lib/sci/uh';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.uhb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const list = (s: string) => s.split(/[\s,;]+/).filter(Boolean).map(num);
+  const say = (sel: string, m: string) => { q(sel).textContent = m; q(sel).hidden = !m; };
+  let figs: [string, Figure][] = [], sections: Section[] = [], uh: UH | null = null, storm: number[] = [], A = 0;
+
+  function calc() {
+    figs = []; sections = []; uh = null;
+    const kind = q<HTMLSelectElement>('.uh-kind').value;
+    root.querySelectorAll<HTMLElement>('.uh-g').forEach((e) => { e.hidden = kind !== 'gamma'; });
+    root.querySelectorAll<HTMLElement>('.uh-n').forEach((e) => { e.hidden = kind !== 'nash'; });
+    A = val('.uh-A'); const D = val('.uh-D');
+    const fail = (m: string) => { say('.uh-err', m); root.querySelectorAll<HTMLElement>('.uh-out').forEach((e) => { e.hidden = true; }); };
+    if (!(A > 0 && A <= 1e6)) return fail('Give the catchment area in km², above 0.');
+    if (!(D > 0 && D <= 48)) return fail('Give the rain step D in hours, above 0 and up to 48.');
+    let Tp = 0, m = 0;
+    if (kind === 'gamma') {
+      const tc = val('.uh-tc'), prf = val('.uh-prf');
+      if (!(tc > 0 && tc <= 500)) return fail('Give the time of concentration in hours, above 0.');
+      if (!(prf >= 100 && prf <= 600)) return fail('Give a peak rate factor between 100 and 600 (484 is the usual value).');
+      Tp = D / 2 + 0.6 * tc; m = shapeFor(prf);
+      if (Tp / D > 2000) return fail('The rain step is too short for this catchment: use a longer step.');
+      uh = gammaUH(A, Tp, m, D);
+    } else {
+      const n = val('.uh-nn'), k = val('.uh-k');
+      if (!(n >= 0.5 && n <= 50)) return fail('Give n between 0.5 and 50 (it need not be a whole number).');
+      if (!(k > 0 && k <= 500)) return fail('Give k in hours, above 0.');
+      if ((n * k) / D > 2000) return fail('The rain step is too short for this catchment: use a longer step.');
+      uh = nashUH(A, n, k, D, D);
+    }
+    say('.uh-err', ''); root.querySelectorAll<HTMLElement>('.uh-out').forEach((e) => { e.hidden = false; });
+    const t = uh.q.map((_, i) => i * D);
+    q('.uh-big').textContent = `Peak ${sg(uh.peak, 3)} m³/s per mm at ${sg(uh.tPeak, 3)} h`;
+    const lag = uh.q.reduce((s, x, i) => s + x * i * D, 0) / uh.q.reduce((s, x) => s + x, 0);
+    q('.uh-facts').replaceChildren(
+      fact('Unit hydrograph', `${D} h, ${uh.q.length} ordinates over ${sg((uh.q.length - 1) * D, 3)} h`, `volume 1 mm over ${sg(A, 4)} km² = ${sg(1000 * A, 4)} m³`),
+      kind === 'gamma' ? fact('Shape', `Tp ${sg(Tp, 3)} h, gamma shape m ${sg(m, 3)}`, 'Tp = D/2 + 0.6 tc; m from the peak rate factor') : fact('Shape', `mean delay n·k = ${sg(val('.uh-nn') * val('.uh-k'), 3)} h`, 'plus half a rain step'),
+      fact('Centroid', `${sg(lag, 3)} h after the start of the rain step`),
+    );
+    const ufig = chartFigure({ w: 380, h: 220, xLabel: 'Time (h)', yLabel: 'm³/s per mm', xMin: 0, yMin: 0, series: [{ name: 'Unit hydrograph', x: t, y: uh.q, mode: 'line', width: 2.2 }] }, 'Unit hydrograph');
+    figs.push(['.uh-ufig', ufig]);
+    sections.push({ title: q('.uh-big').textContent!, facts: facts('.uh-facts'), figure: ufig });
+    stormCalc(); derive();
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+  }
+  const facts = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function stormCalc() {
+    storm = [];
+    const P = list(q<HTMLInputElement>('.uh-pe').value), bf = val('.uh-bf'), D = val('.uh-D');
+    const hide = (m: string) => { say('.uh-serr', m); ['.uh-sbig', '.uh-sfacts', '.uh-sfig'].forEach((c) => { q(c).hidden = !!m; }); };
+    if (!P.length || !P.every((x) => x >= 0 && x <= 2000)) return hide('Give the excess rain as numbers in mm (0 or more), one per rain step.');
+    if (P.length > 2000) return hide('Up to 2,000 rain steps, please.');
+    if (!(bf >= 0)) return hide('Give the baseflow in m³/s (0 or more).');
+    hide('');
+    const d = convolve(P, uh!.q); storm = d.map((x) => x + bf);
+    let k = 0; storm.forEach((x, i) => { if (x > storm[k]) k = i; });
+    const depth = P.reduce((s, x) => s + x, 0);
+    q('.uh-sbig').textContent = `Peak flow ${sg(storm[k], 3)} m³/s at ${sg(k * D, 3)} h`;
+    q('.uh-sfacts').replaceChildren(
+      fact('Excess rain', `${sg(depth, 4)} mm in ${P.length} steps`, `runoff volume ${sg(depth * 1000 * A, 4)} m³`),
+      fact('Peak direct runoff', `${sg(d[k], 3)} m³/s`, `plus ${sg(bf, 3)} m³/s baseflow`),
+    );
+    const t = storm.map((_, i) => i * D), tp = P.map((_, i) => (i + 0.5) * D), top = Math.max(...storm), pmax = Math.max(...P) || 1;
+    const sfig = chartFigure({ w: 380, h: 240, xLabel: 'Time (h)', yLabel: 'Flow (m³/s)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Flow at the outlet', x: t, y: storm, mode: 'line', width: 2.2 },
+      { name: `Excess rain (bars to scale, top = ${sg(pmax, 3)} mm)`, x: tp, y: P.map((p) => (p / pmax) * top * 0.35), mode: 'points', size: 4 },
+    ], marks: [{ kind: 'hline', at: bf, dash: [4, 3], label: 'baseflow' }] }, 'Storm hydrograph with the excess rain');
+    figs.push(['.uh-sfig', sfig]);
+    sections.push({ title: q('.uh-sbig').textContent!, facts: facts('.uh-sfacts'), figure: sfig });
+  }
+
+  function derive() {
+    const D = val('.uh-D');
+    const hide = (m: string) => { say('.uh-derr', m); ['.uh-dbig', '.uh-dfacts', '.uh-dfig', '.uh-ffig'].forEach((c) => { q(c).hidden = !!m; }); };
+    const tab = numericColumns(q<HTMLTextAreaElement>('.uh-data').value);
+    if (!tab.cols.length) return hide('Paste rain and flow, one row per rain step.');
+    const find = (re: RegExp) => tab.headers.findIndex((h) => re.test(h.toLowerCase()));
+    let pi = find(/rain|precip|^p\b|^p$/), qi = find(/flow|discharge|^q\b|^q$|m³\/s|cumec|cfs/);
+    const nums = tab.cols.map((c, i) => (c.filter(Number.isFinite).length >= c.length * 0.8 ? i : -1)).filter((i) => i >= 0);
+    if (pi < 0 || qi < 0) { const rest = nums.filter((i) => i !== pi && i !== qi); if (pi < 0 && qi < 0) { pi = rest[rest.length - 2] ?? -1; qi = rest[rest.length - 1] ?? -1; } else if (pi < 0) pi = rest[rest.length - 1] ?? -1; else qi = rest[rest.length - 1] ?? -1; }
+    if (pi < 0 || qi < 0) return hide('Need a rain column and a flow column. Name them "rain" and "flow", or put rain then flow as the last two columns.');
+    const P = tab.cols[pi], Q = tab.cols[qi];
+    if (P.length !== Q.length || !P.every((x) => Number.isFinite(x) && x >= 0) || !Q.every((x) => Number.isFinite(x) && x >= 0)) return hide('Every row needs rain (0 or more) and flow (0 or more); blanks are not allowed here.');
+    if (Q.length < 5) return hide('Give at least 5 rows: from before the rain until the flow is back near baseflow.');
+    if (Q.length > 2000) return hide('Up to 2,000 rows, please.');
+    const bf = baseflow(Q, q<HTMLSelectElement>('.uh-bsep').value as 'line'), Qd = Q.map((x, i) => x - bf[i]);
+    const vol = Qd.reduce((s, x) => s + x, 0) * D * 3600, depth = vol / (1000 * A), total = P.reduce((s, x) => s + x, 0);
+    if (!(depth > 0)) return hide('There is no flow above the baseflow, so there is no storm runoff to work with.');
+    if (depth > total) return hide(`The storm runoff (${sg(depth, 3)} mm over ${sg(A, 4)} km²) is more than the rain (${sg(total, 3)} mm). Check the area, the rain step D and the units.`);
+    const ph = phiIndex(P, depth); let last = 0; ph.excess.forEach((x, i) => { if (x > 0) last = i; });
+    const maxU = Q.length - last, nUin = q<HTMLInputElement>('.uh-nu').value.trim(), nU = nUin ? Math.round(num(nUin)) : maxU;
+    if (!(nU >= 2 && nU <= maxU)) return hide(`Give a length between 2 and ${maxU} steps (the rows after the last excess rain), or leave it blank.`);
+    if (nU > 400) return hide('The unit hydrograph would be over 400 steps: use a longer rain step.');
+    hide('');
+    const r = deriveUH(ph.excess, Qd, nU);
+    let k = 0; r.U.forEach((x, i) => { if (x > r.U[k]) k = i; });
+    q('.uh-dbig').textContent = `Derived unit hydrograph: peak ${sg(r.U[k], 3)} m³/s per mm at ${sg(k * D, 3)} h`;
+    q('.uh-dfacts').replaceChildren(
+      fact('Storm runoff', `${sg(depth, 3)} mm of ${sg(total, 3)} mm rain (${sg((100 * depth) / total, 3)} %)`, `${sg(vol, 4)} m³ above the baseflow, over ${sg(A, 4)} km²`),
+      fact('Losses (φ-index)', `${sg(ph.phi, 3)} mm per step`, 'a constant loss in every step that leaves exactly the runoff depth as excess rain'),
+      fact('Fit to the observed flow', `Nash–Sutcliffe efficiency ${sg(r.nse, 4)}`, '1 is perfect; below about 0.8 the storm may not suit a single unit hydrograph (uneven rain, changing losses or snowmelt)'),
+      fact('Check', `holds ${sg(impliedArea(r.U, D) / A, 3)} mm`, 'a unit hydrograph should hold 1 mm; it does when the losses and baseflow are right'),
+    );
+    const tU = r.U.map((_, i) => i * D);
+    const dfig = chartFigure({ w: 380, h: 230, xLabel: 'Time (h)', yLabel: 'm³/s per mm', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Derived from the storm', x: tU, y: r.U, mode: 'both', width: 2.2, size: 3 },
+      { name: 'Synthetic, from the settings above', x: uh!.q.map((_, i) => i * D), y: uh!.q, mode: 'line', width: 1.4, dash: [5, 3] },
+    ] }, 'Derived and synthetic unit hydrographs');
+    const tQ = Q.map((_, i) => i * D);
+    const ffig = chartFigure({ w: 380, h: 230, xLabel: 'Time (h)', yLabel: 'Flow (m³/s)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Observed', x: tQ, y: Q, mode: 'points', size: 3 },
+      { name: 'Rebuilt from the unit hydrograph', x: tQ, y: r.fit.map((x, i) => x + bf[i]), mode: 'line', width: 2 },
+      { name: 'Baseflow', x: tQ, y: bf, mode: 'line', width: 1.2, dash: [4, 3] },
+    ] }, 'Observed flow and the flow rebuilt from the derived unit hydrograph');
+    figs.push(['.uh-dfig', dfig], ['.uh-ffig', ffig]);
+    sections.push({ title: q('.uh-dbig').textContent!, facts: facts('.uh-dfacts'), figure: dfig }, { title: 'Observed and rebuilt flow', figure: ffig });
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input:not([type=file]), select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.uh-csv').addEventListener('click', () => {
+    if (!uh) return; const D = val('.uh-D'), n = Math.max(uh.q.length, storm.length);
+    const rows = Array.from({ length: n }, (_, i) => [String(+(i * D).toFixed(6)), i < uh!.q.length ? sig(uh!.q[i], 6) : '', i < storm.length ? sig(storm[i], 6) : '']);
+    save(new TextEncoder().encode(toCsv([['Time (h)', 'Unit hydrograph (m³/s per mm)', 'Storm flow (m³/s)'], ...rows])), 'unit-hydrograph.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Unit hydrograph', subtitle: q('.uh-big').textContent ?? '', file: 'unit-hydrograph', sections }));
+</script>
+
+<style is:global>
+  .uhb select, .uhb input { max-width: 100%; }
+  .uhb .uh-wide { grid-column: 1 / -1; }
+  .uhb textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+</style>

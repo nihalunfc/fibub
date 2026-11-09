@@ -1,0 +1,163 @@
+---
+// Rain gauge network average by Thiessen polygons, compared with the plain average. Example catchment and gauges are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const boundary = 'x (km),y (km)\n0,0\n9,1\n14,5\n12,11\n7,9\n5,13\n-1,10\n1,5';
+const gauges = 'gauge,x (km),y (km),storm 1 (mm),storm 2 (mm)\nHill Farm,2,2,32,12\nMill,7,3,41,15\nEast Ridge,12,5,28,22\nReservoir,10,9,19,25\nSchool,4,7,36,\nNorth Fell,1,10,24,9\nRoad Depot,11,-1,34,14';
+---
+<div class="ax rga">
+  <div class="ax-card">
+    <h2>Catchment and gauges</h2>
+    <div class="ax-grid">
+      <label>Coordinates <select class="rg-crs">
+        <option value="km" selected>x and y in kilometres</option>
+        <option value="m">x and y in metres</option>
+        <option value="deg">Longitude and latitude (degrees)</option>
+      </select></label>
+    </div>
+    <label>Catchment boundary, one corner per row (x, y) <textarea class="rg-poly" rows="6" spellcheck="false">{boundary}</textarea></label>
+    <DataFile target=".rg-poly" maxCols={10} maxRows={20000} label="Open a boundary file" />
+    <label style="margin-top:10px;display:block">Gauges: name (optional), x, y, then one or more rain columns <textarea class="rg-g" rows="8" spellcheck="false">{gauges}</textarea></label>
+    <DataFile target=".rg-g" maxCols={60} maxRows={2000} label="Open a gauge file" />
+    <p class="ax-help">Use one coordinate system for both. With longitude and latitude, the tool projects them onto a flat map around the middle of your points, which is fine for a catchment up to a few hundred kilometres across. The boundary is the corners in order around the edge (do not repeat the first one at the end). Each rain column is one storm, day or month. Leave a cell blank when a gauge has no reading, and that gauge is left out of that column with the polygons redrawn. Gauges just outside the catchment still count for the part of it they are nearest to. Up to 2,000 gauges and 20,000 boundary corners. The example is made up.</p>
+    <p class="ax-err rg-err" hidden></p>
+  </div>
+
+  <div class="ax-card rg-out">
+    <h2>Catchment rainfall</h2>
+    <div class="ax-grid rg-colbox"><label>Rain column <select class="rg-col"></select></label></div>
+    <p class="ax-big rg-big"></p>
+    <dl class="ax-facts rg-facts"></dl>
+    <canvas class="ax-fig rg-map"></canvas>
+    <div class="ax-scroll"><table class="rg-tab"></table></div>
+    <h3 class="rg-allh">Every column</h3>
+    <div class="ax-scroll"><table class="rg-all"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rg-csv">Download weights and means (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { arealMean, selfCrossing, lonLatToKm, inside, type Pt } from '../../lib/sci/thiessen';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.rga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (x: number) => (Math.abs(x) >= 1000 ? sg(x, 4) : x.toFixed(1).replace('-', '−'));
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.rg-err').textContent = m; q('.rg-err').hidden = false; root.querySelectorAll<HTMLElement>('.rg-out').forEach((e) => { e.hidden = true; }); fig = null; sections = []; };
+    const crs = q<HTMLSelectElement>('.rg-crs').value;
+    // Boundary.
+    const pr = parseTable(q<HTMLTextAreaElement>('.rg-poly').value).filter((r) => isNum(r[0]) && isNum(r[1]));
+    let poly: Pt[] = pr.map((r) => [num(r[0]), num(r[1])]);
+    if (poly.length > 1 && poly[0][0] === poly[poly.length - 1][0] && poly[0][1] === poly[poly.length - 1][1]) poly = poly.slice(0, -1);
+    if (poly.length < 3) return fail('Give the catchment boundary as at least 3 corners, one "x, y" per row.');
+    if (poly.length > 20000) return fail('Up to 20,000 boundary corners, please.');
+    // Gauges: optional name column, then x, y, then rain columns.
+    const rows = parseTable(q<HTMLTextAreaElement>('.rg-g').value);
+    if (!rows.length) return fail('Give at least one gauge: name, x, y and rain.');
+    const named = !isNum(rows[rows.length - 1][0]), x0 = named ? 1 : 0;
+    const header = !isNum(rows[0][x0]) ? rows[0] : null, data = header ? rows.slice(1) : rows;
+    if (!data.length) return fail('Give at least one gauge: name, x, y and rain.');
+    if (data.length > 2000) return fail('Up to 2,000 gauges, please.');
+    const width = Math.max(...data.map((r) => r.length));
+    const nCols = width - x0 - 2;
+    if (nCols < 1) return fail('Each gauge needs x, y and at least one rain value.');
+    if (nCols > 50) return fail('Up to 50 rain columns, please.');
+    const bad = data.findIndex((r) => !isNum(r[x0]) || !isNum(r[x0 + 1]));
+    if (bad >= 0) return fail(`Gauge ${bad + 1} needs numbers for x and y.`);
+    const names = data.map((r, i) => (named ? r[0] || `Gauge ${i + 1}` : `Gauge ${i + 1}`));
+    const colNames = Array.from({ length: nCols }, (_, k) => (header?.[x0 + 2 + k]?.trim() || (nCols > 1 ? `Column ${k + 1}` : 'Rain')));
+    const vals = Array.from({ length: nCols }, (_, k) => data.map((r) => (isNum(r[x0 + 2 + k]) ? num(r[x0 + 2 + k]) : NaN)));
+    if (vals.some((c) => c.some((v) => v < 0))) return fail('Rain cannot be negative. Leave a cell blank for a missing reading.');
+    let gpts: Pt[] = data.map((r) => [num(r[x0]), num(r[x0 + 1])]), unit = 'km';
+    if (crs === 'deg') {
+      if (![...poly, ...gpts].every(([lo, la]) => Math.abs(lo) <= 180 && Math.abs(la) <= 85)) return fail('Longitudes must be within ±180° and latitudes within ±85°.');
+      const p = lonLatToKm(poly); poly = p.pts; gpts = lonLatToKm(gpts, p.centre).pts;
+    } else if (crs === 'm') unit = 'm';
+    if (selfCrossing(poly)) return fail('The boundary crosses itself. List the corners in order around the edge.');
+    // Column chooser.
+    const sel = q<HTMLSelectElement>('.rg-col'), keep = sel.value;
+    if (sel.options.length !== nCols || [...sel.options].some((o, i) => o.textContent !== colNames[i])) {
+      sel.replaceChildren(...colNames.map((n, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = n; return o; }));
+      sel.value = keep !== '' && +keep < nCols ? keep : '0';
+    }
+    q('.rg-colbox').hidden = nCols < 2;
+    const k = +sel.value || 0;
+    const res = vals.map((v) => arealMean(poly, gpts, v));
+    if (res.some((r) => !(r.total > 0))) return fail('The boundary has no area.');
+    const r = res[k];
+    if (!r.used) return fail(`No gauge has a reading in "${colNames[k]}".`);
+    q('.rg-err').hidden = true; root.querySelectorAll<HTMLElement>('.rg-out').forEach((e) => { e.hidden = false; });
+    const a2 = (a: number) => (unit === 'm' ? a / 1e6 : a);
+    q('.rg-big').textContent = `Catchment rainfall ${mm(r.mean)} mm (Thiessen)`;
+    const zero = r.useIdx.filter((g) => r.weights[g] === 0).length, outside = r.useIdx.filter((g) => !inside(poly, gpts[g]) && r.weights[g] > 0).length;
+    q('.rg-facts').replaceChildren(
+      fact('Plain average of the gauges', `${mm(r.arith)} mm`, `${r.used} gauges with a reading${Number.isFinite(r.arithIn) && r.arithIn !== r.arith ? `; ${mm(r.arithIn)} mm for those inside the catchment` : ''}`),
+      fact('Difference', `${mm(r.mean - r.arith)} mm (${sg((100 * (r.mean - r.arith)) / (r.arith || 1), 3)} %)`, 'Thiessen minus the plain average: large when the gauges are unevenly spread'),
+      fact('Catchment area', `${sg(a2(r.total), 4)} km²`, crs === 'deg' ? 'on a flat projection around the middle of your points' : 'from the boundary'),
+      fact('Rain volume', `${sg(a2(r.total) * r.mean * 1000, 4)} m³`, 'catchment rainfall × area'),
+      ...(zero ? [fact('Gauges with no area', String(zero), 'outside the catchment and nearer to other gauges everywhere inside it')] : []),
+      ...(outside ? [fact('Gauges outside the catchment that still count', String(outside))] : []),
+    );
+    const rowsT = data.map((_, g) => [names[g], Number.isFinite(vals[k][g]) ? sg(vals[k][g], 4) : 'no reading', Number.isFinite(vals[k][g]) ? sg(a2(r.cells[r.useIdx.indexOf(g)].area), 4) : '–', Number.isFinite(vals[k][g]) ? `${sg(100 * r.weights[g], 3)}\u00a0%` : '–']);
+    table('.rg-tab', ['Gauge', 'Rain (mm)', 'Area (km²)', 'Weight'], rowsT, [1, 2, 3]);
+    q('.rg-allh').hidden = q('.rg-all').hidden = nCols < 2;
+    const allRows = res.map((x, i) => [colNames[i], mm(x.mean), mm(x.arith), String(x.used)]);
+    table('.rg-all', ['Column', 'Thiessen (mm)', 'Plain (mm)', 'Gauges'], allRows, [1, 2, 3]);
+    csvRows = [['Gauge', 'x', 'y', ...colNames.flatMap((c) => [`${c}`, `${c} weight`])], ...data.map((d, g) => [names[g], d[x0], d[x0 + 1], ...res.flatMap((x, i) => [Number.isFinite(vals[i][g]) ? String(vals[i][g]) : '', Number.isFinite(vals[i][g]) ? sig(x.weights[g], 6) : ''])]), ['Thiessen mean', '', '', ...res.flatMap((x) => [sig(x.mean, 6), ''])], ['Plain average', '', '', ...res.flatMap((x) => [sig(x.arith, 6), ''])]];
+    // Map.
+    const cells = r.cells, used = r.useIdx;
+    fig = { w: 380, h: 380, alt: 'Catchment with the Thiessen polygon of each gauge', draw: (ctx, W, H, pal) => {
+      const all = [...poly, ...gpts];
+      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), xa = Math.min(...xs), xb = Math.max(...xs), ya = Math.min(...ys), yb = Math.max(...ys);
+      const s = Math.min((W - 40) / (xb - xa || 1), (H - 50) / (yb - ya || 1)), ox = (W - (xb - xa) * s) / 2, oy = 24 + ((H - 50) - (yb - ya) * s) / 2;
+      const P = (p: Pt): Pt => [ox + (p[0] - xa) * s, oy + (yb - p[1]) * s];
+      const rmax = Math.max(...used.map((g) => vals[k][g])) || 1;
+      cells.forEach((c, i) => {
+        if (c.poly.length < 3) return;
+        ctx.beginPath(); c.poly.forEach((p, j) => { const [x, y] = P(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath();
+        ctx.globalAlpha = 0.12 + 0.5 * (vals[k][used[i]] / rmax); ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      });
+      ctx.beginPath(); poly.forEach((p, j) => { const [x, y] = P(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      gpts.forEach((g, i) => {
+        const [x, y] = P(g), has = Number.isFinite(vals[k][i]);
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, 2 * Math.PI); ctx.fillStyle = has ? pal.ink : pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.fillStyle = pal.ink; if (data.length <= 40) ctx.fillText(has ? `${sg(vals[k][i], 3)}` : '–', x, y - 6);
+      });
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.ink; ctx.fillText(`${colNames[k]}: darker = more rain; open dot = no reading`, 6, 4);
+    } };
+    paint(q<HTMLCanvasElement>('.rg-map'), fig);
+    sections = [{ title: q('.rg-big').textContent!, facts: [...q('.rg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head: ['Gauge', 'Rain (mm)', 'Cell area (km²)', 'Weight'], rows: rowsT, align: ['l', 'r', 'r', 'r'] } },
+      ...(nCols > 1 ? [{ title: 'Every column', table: { head: ['Column', 'Thiessen (mm)', 'Plain average (mm)', 'Gauges'], rows: allRows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.rg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'thiessen-weights.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.rg-map'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Rain gauge network average', subtitle: q('.rg-big').textContent ?? '', file: 'thiessen-rainfall', sections }));
+</script>
+
+<style is:global>
+  .rga select { max-width: 100%; }
+  .rga textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+  .rga h3 { font-size: 15px; margin: 14px 0 6px; }
+</style>

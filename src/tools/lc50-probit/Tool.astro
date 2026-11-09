@@ -1,0 +1,165 @@
+---
+// Quantal LC50 / EC50 by probit or logit maximum likelihood, with Abbott's correction and fiducial (Fieller) limits.
+// The example test is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'concentration (mg/L)\texposed\tdead\n0\t20\t1\n1\t20\t2\n1.8\t20\t4\n3.2\t20\t8\n5.6\t20\t13\n10\t20\t17\n18\t20\t20';
+---
+<div class="ax lcp">
+  <div class="ax-card">
+    <h2>Test results</h2>
+    <label>Concentration, number exposed, number that responded (died or showed the effect). One row per concentration; a row at 0 is the control.
+      <textarea class="lc-data" rows="9" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".lc-data" maxCols={10} maxRows={1000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Model <select class="lc-link"><option value="probit" selected>Probit (normal)</option><option value="logit">Logit (logistic)</option></select></label>
+      <label>Response <select class="lc-kind"><option value="LC" selected>Death (LC)</option><option value="EC">Other effect (EC)</option></select></label>
+      <label>Natural response <select class="lc-nat"><option value="control" selected>From the control (Abbott)</option><option value="none">Assume none</option><option value="set">Set it (%)</option></select></label>
+      <label class="lc-natbox" hidden>Natural response (%) <input class="lc-natv" inputmode="decimal" value="5" /></label>
+      <label>Concentration unit <input class="lc-unit" value="mg/L" /></label>
+      <label>Limits <select class="lc-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Also report (%) <input class="lc-ps" value="10, 20, 90" /></label>
+    </div>
+    <p class="ax-help">Probit is the classic choice in toxicity testing; logit gives nearly the same LC50 with slightly wider tails. The natural response is the share that dies or responds with no chemical at all; with "From the control" it is taken from the rows at concentration 0 and the fit is corrected for it (Abbott). Up to 1,000 rows. The example test is made up.</p>
+    <p class="ax-err lc-err" hidden></p>
+  </div>
+
+  <div class="ax-card lc-out">
+    <h2>Result</h2>
+    <p class="ax-big lc-big"></p>
+    <dl class="ax-facts lc-facts"></dl>
+    <canvas class="ax-fig lc-fig"></canvas>
+    <h3>Effect concentrations</h3>
+    <div class="ax-scroll"><table class="lc-tab"></table></div>
+    <h3>Observed and fitted</h3>
+    <div class="ax-scroll"><table class="lc-grp"></table></div>
+    <h3>Straight-line check</h3>
+    <canvas class="ax-fig lc-lin"></canvas>
+    <p class="ax-help lc-linhelp"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lc-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitQuantal, lcp, abbott, predict, type Fit, type Link } from '../../lib/sci/probit';
+  import { normInv } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.lcp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pct = (p: number) => `${sg(100 * p, 3)} %`;
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, lin: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.lc-err').textContent = m; q('.lc-err').hidden = false; q('.lc-out').hidden = true; fig = lin = null; sections = []; csvRows = []; };
+    q('.lc-err').hidden = true;
+    const link = q<HTMLSelectElement>('.lc-link').value as Link, kind = q<HTMLSelectElement>('.lc-kind').value;
+    const nat = q<HTMLSelectElement>('.lc-nat').value, conf = Number(q<HTMLSelectElement>('.lc-conf').value);
+    q('.lc-natbox').hidden = nat !== 'set';
+    const unit = q<HTMLInputElement>('.lc-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const rows = parseTable(q<HTMLTextAreaElement>('.lc-data').value).filter((r) => isNum(r[0]) && isNum(r[1]) && isNum(r[2]));
+    if (rows.length > 1000) return fail('Up to 1,000 rows, please.');
+    const groups = rows.map((r) => ({ conc: num(r[0]), n: num(r[1]), r: num(r[2]) }));
+    for (const g of groups) {
+      if (g.conc < 0) return fail(`Concentrations cannot be negative (found ${g.conc}).`);
+      if (!(g.n > 0)) return fail('Each row needs at least one organism exposed.');
+      if (g.r < 0 || g.r > g.n) return fail(`The number that responded must be between 0 and the number exposed (row with ${g.conc}${u}: ${g.r} of ${g.n}).`);
+    }
+    const ctrl = groups.filter((g) => g.conc === 0), treat = groups.filter((g) => g.conc > 0);
+    if (new Set(treat.map((g) => g.conc)).size < 2) return fail('Give at least two different concentrations above zero, as "concentration, exposed, responded" per row.');
+    const cN = ctrl.reduce((s, g) => s + g.n, 0), cR = ctrl.reduce((s, g) => s + g.r, 0);
+    let c = 0, cNote = 'assumed zero';
+    if (nat === 'control') { if (cN) { c = cR / cN; cNote = `${cR} of ${cN} in the control`; } else cNote = 'no control row (concentration 0), so taken as zero'; }
+    else if (nat === 'set') { const v = num(q<HTMLInputElement>('.lc-natv').value); if (!(v >= 0 && v < 100)) return fail('Set the natural response as a percentage from 0 to below 100.'); c = v / 100; cNote = 'set by you'; }
+    if (c >= 0.9) return fail('The natural response is 90 % or more, so there is almost nothing left for the chemical to explain. Check the control.');
+    const tN = treat.reduce((s, g) => s + g.n, 0), tR = treat.reduce((s, g) => s + g.r, 0);
+    if (tR === 0) return fail('Nothing responded at any concentration, so no LC50 can be found. Test higher concentrations.');
+    if (tR === tN) return fail('Everything responded at every concentration, so no LC50 can be found. Test lower concentrations.');
+    const fit: Fit = fitQuantal(groups, link, c);
+    const xs = treat.map((g) => Math.log10(g.conc)), span = Math.max(...xs) - Math.min(...xs);
+    if (!Number.isFinite(fit.b) || !Number.isFinite(fit.a) || Math.abs(fit.b) * span > 60 || !fit.converged)
+      return fail('The responses jump from none to all with no partial response in between, so the slope cannot be estimated. Add concentrations in the jump.');
+    if (!(fit.b > 0)) return fail('The response does not rise with concentration in these data, so there is no LC50. Check the columns are concentration, exposed, responded.');
+    q('.lc-out').hidden = false;
+
+    const L = kind, name = (p: number) => `${L}${sg(100 * p, 3)}`;
+    const ps = [...new Set([0.5, ...q<HTMLInputElement>('.lc-ps').value.split(/[,;\s]+/).map(num).filter((v) => v > 0 && v < 100).map((v) => v / 100)])].sort((a, b) => a - b).slice(0, 20);
+    const res = ps.map((p) => lcp(fit, p, conf)), r50 = res.find((r) => r.p === 0.5)!;
+    const lim = (r: ReturnType<typeof lcp>) => (r.defined ? `${sg(r.lo, 3)} to ${sg(r.hi, 3)}` : 'not defined');
+    const cl = `${Math.round(conf * 100)} %`;
+    q('.lc-big').textContent = `${L}50 = ${sg(r50.conc, 3)}${u}` + (r50.defined ? ` (${cl} limits ${lim(r50)})` : '');
+    const se = Math.sqrt(fit.cov[1][1]), lo = Math.min(...treat.map((g) => g.conc)), hi = Math.max(...treat.map((g) => g.conc));
+    const facts = [
+      fact('Slope', `${sg(fit.b, 4)} ± ${sg(se, 2)}`, `${link === 'probit' ? 'probits' : 'logits'} per tenfold rise in concentration (± standard error${fit.hetero ? ', inflated for heterogeneity' : ''})`),
+      fact('Intercept', sg(fit.a, 4), `fitted line: ${link === 'probit' ? 'z' : 'logit'} = ${sg(fit.a, 4)} + ${sg(fit.b, 4)} × log₁₀(concentration)`),
+      fact('Natural response', pct(c), cNote),
+      fact('Goodness of fit (Pearson χ²)', `${sg(fit.chi2, 3)} on ${fit.df} df, p = ${sg(fit.pChi, 2)}`, fit.df < 1 ? 'needs three or more concentrations to test' : fit.hetero ? 'more scatter than chance (p < 0.05): limits widened by the heterogeneity factor and t' : 'scatter is consistent with chance'),
+      ...(fit.hetero ? [fact('Heterogeneity factor', sg(fit.factor, 3), `χ²/df; the limits use t with ${fit.df} df`)] : []),
+      fact('g (Finney)', sg(r50.g, 2), r50.g < 0.4 ? 'below 0.4: the slope is well determined and the limits are reliable' : r50.g < 1 ? '0.4 or more: the limits are wide and lopsided; treat them with care' : '1 or more: the slope is not significant, so the limits are not defined'),
+      ...(r50.conc < lo || r50.conc > hi ? [fact('Warning', `${L}50 is outside the tested range`, `${sg(lo, 3)} to ${sg(hi, 3)}${u}; the result is extrapolated`)] : []),
+      fact('Model', link === 'probit' ? 'Probit, maximum likelihood' : 'Logit, maximum likelihood', `${treat.length} concentrations, ${tN} organisms; ${fit.iter + 1} iterations`),
+    ];
+    q('.lc-facts').replaceChildren(...facts);
+
+    const tabRows = res.map((r) => [name(r.p), `${sg(r.conc, 4)}`, r.defined ? sg(r.lo, 3) : '–', r.defined ? sg(r.hi, 3) : '–']);
+    const tabHead = ['', `Concentration${u}`, `Lower ${cl}`, `Upper ${cl}`];
+    table('.lc-tab', tabHead, tabRows, [1, 2, 3]);
+    const grows = groups.slice().sort((a, b) => a.conc - b.conc).map((g) => {
+      const P = predict(fit, g.conc), o = g.r / g.n, resid = (g.r - g.n * P) / Math.sqrt(g.n * P * (1 - P));
+      return [`${sg(g.conc, 4)}${g.conc === 0 ? ' (control)' : ''}`, String(g.n), String(g.r), pct(o), g.conc > 0 && c > 0 ? pct(Math.max(0, abbott(o, c))) : '–', sg(g.n * P, 3), pct(P), g.conc > 0 ? sg(resid, 2) : '–'];
+    });
+    const gHead = [`Conc.${u}`, 'Exposed', 'Responded', 'Observed', 'Corrected', 'Expected', 'Fitted', 'Residual'];
+    table('.lc-grp', gHead, grows, [1, 2, 3, 4, 5, 6, 7]);
+
+    // Curve on a log axis, with the control drawn as a horizontal line.
+    const xlo = lo / 2, xhi = hi * 2, cx: number[] = [];
+    for (let i = 0; i <= 200; i++) cx.push(xlo * (xhi / xlo) ** (i / 200));
+    fig = chartFigure({ h: 360, xLog: true, yMin: 0, yMax: 100, xLabel: `Concentration${unit ? ` (${unit})` : ''}`, yLabel: 'Responded (%)', legend: 'below', series: [
+      { name: 'Observed', x: treat.map((g) => g.conc), y: treat.map((g) => (100 * g.r) / g.n), mode: 'points', marker: 'circle' },
+      { name: `${link === 'probit' ? 'Probit' : 'Logit'} fit`, x: cx, y: cx.map((v) => 100 * predict(fit, v)), mode: 'line' },
+    ], marks: [{ kind: 'vline', at: r50.conc, label: `${L}50` }, ...(c > 0 ? [{ kind: 'hline' as const, at: 100 * c, label: 'natural' }] : [])] }, `Fitted ${L}50 curve: ${L}50 ${sg(r50.conc, 3)}${u}`);
+    paint(q<HTMLCanvasElement>('.lc-fig'), fig);
+
+    // Linearised plot: transformed Abbott-corrected proportions against log concentration (0 % and 100 % cannot be drawn).
+    const T = (p: number) => (link === 'probit' ? normInv(p) : Math.log(p / (1 - p)));
+    const pts = treat.map((g) => ({ x: g.conc, p: abbott(g.r / g.n, c) })).filter((d) => d.p > 0 && d.p < 1);
+    lin = chartFigure({ h: 300, xLog: true, xLabel: `Concentration${unit ? ` (${unit})` : ''}`, yLabel: link === 'probit' ? 'Normal deviate z' : 'Logit ln(p/(1−p))', legend: 'below', series: [
+      { name: 'Corrected observed', x: pts.map((d) => d.x), y: pts.map((d) => T(d.p)), mode: 'points', marker: 'circle' },
+      { name: 'Fitted line', x: [xlo, xhi], y: [fit.a + fit.b * Math.log10(xlo), fit.a + fit.b * Math.log10(xhi)], mode: 'line' },
+    ], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, 'Linearised dose-response check');
+    paint(q<HTMLCanvasElement>('.lc-lin'), lin);
+    const dropped = treat.length - pts.length;
+    q('.lc-linhelp').textContent = `On this scale the fitted model is a straight line, so points far off the line show where the model fits poorly. ${dropped ? `${dropped} concentration${dropped > 1 ? 's' : ''} at 0 % or 100 % cannot be drawn here but are in the fit.` : ''}`.trim();
+
+    csvRows = [['Quantity', `Concentration${u}`, `Lower ${cl}`, `Upper ${cl}`], ...tabRows, [], ['Slope', sg(fit.b, 6)], ['Slope SE', sg(se, 6)], ['Intercept', sg(fit.a, 6)], ['Natural response', sg(c, 6)], ['Chi-squared', sg(fit.chi2, 6)], ['df', String(fit.df)], ['p', sg(fit.pChi, 4)], [], gHead, ...grows];
+    sections = [{ title: q('.lc-big').textContent!, text: [`${link === 'probit' ? 'Probit' : 'Logit'} model fitted by maximum likelihood: P = c + (1 − c) F(a + b log₁₀ concentration), with c the natural response. Fiducial limits by Fieller's theorem.`],
+      facts: [...q('.lc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: tabHead.map((h, i) => (i ? h : 'Quantity')), rows: tabRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Observed and fitted', table: { head: gHead, rows: grows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: lin }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.lc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'lc50-results.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lc-fig'), fig); if (lin) paint(q<HTMLCanvasElement>('.lc-lin'), lin); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'LC50 / EC50 probit analysis', subtitle: q('.lc-big').textContent ?? '', file: 'lc50-probit', sections }));
+</script>
+
+<style is:global>
+  .lcp select { max-width: 100%; }
+</style>

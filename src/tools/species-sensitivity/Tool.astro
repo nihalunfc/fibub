@@ -1,0 +1,153 @@
+---
+// Species sensitivity distribution: log-normal and log-logistic fits, model average, HCp with bootstrap limits, PAF.
+// The example species and values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'species\tgroup\tEC10 (µg/L)\nWater flea\tcrustacean\t12\nWater flea\tcrustacean\t20\nAmphipod\tcrustacean\t35\nMayfly\tinsect\t8.5\nMidge\tinsect\t60\nPond snail\tmollusc\t140\nGreen alga\talga\t22\nDiatom\talga\t95\nDuckweed\tplant\t250\nTrout\tfish\t18\nMinnow\tfish\t44\nTadpole\tamphibian\t310';
+---
+<div class="ax ssd">
+  <div class="ax-card">
+    <h2>Toxicity values</h2>
+    <label>Species, group (optional), then the toxicity value, one test per row. A species with several values gets their geometric mean.
+      <textarea class="sd-data" rows="10" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".sd-data" maxCols={10} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Model <select class="sd-model"><option value="avg" selected>Average of both (AICc)</option><option value="lnorm">Log-normal</option><option value="llogis">Log-logistic</option></select></label>
+      <label>Protect (HCp, %) <input class="sd-p" inputmode="decimal" value="5" /></label>
+      <label>Also report (%) <input class="sd-ps" value="1, 10, 20, 50" /></label>
+      <label>Concentration unit <input class="sd-unit" value="µg/L" /></label>
+      <label>Limits <select class="sd-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option></select></label>
+      <label>Bootstrap samples <select class="sd-B"><option value="1000" selected>1,000 (fast)</option><option value="10000">10,000 (steadier)</option></select></label>
+      <label>Fraction affected at (optional) <input class="sd-paf" inputmode="decimal" placeholder="e.g. 10" /></label>
+    </div>
+    <p class="ax-help">Use one kind of endpoint for every species (for example all chronic EC10 or all acute LC50) in one unit. HC5 is the concentration that 5 % of species are expected to be more sensitive than. The limits come from a parametric bootstrap with a fixed seed, so the same data always give the same answer. Fill in "Fraction affected at" to get the share of species expected to be affected at that concentration. Up to 5,000 rows. The example species and values are made up.</p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="ax-card sd-out">
+    <h2>Result</h2>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+    <canvas class="ax-fig sd-fig"></canvas>
+    <h3>Hazardous concentrations</h3>
+    <div class="ax-scroll"><table class="sd-hc"></table></div>
+    <h3>Model comparison</h3>
+    <div class="ax-scroll"><table class="sd-mod"></table></div>
+    <h3>Species</h3>
+    <div class="ax-scroll"><table class="sd-sp"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { speciesMeans, fitLnorm, fitLlogis, weights, mixQ, andersonDarling, bootstrapHC, bootstrapAvg, hazen, type SsdFit } from '../../lib/sci/ssd';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.ssd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  const NAMES = { lnorm: 'Log-normal', llogis: 'Log-logistic', avg: 'Model average' } as const;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.sd-err').textContent = m; q('.sd-err').hidden = false; q('.sd-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.sd-err').hidden = true;
+    const unit = q<HTMLInputElement>('.sd-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const model = q<HTMLSelectElement>('.sd-model').value as 'avg' | 'lnorm' | 'llogis';
+    const conf = Number(q<HTMLSelectElement>('.sd-conf').value), B = Number(q<HTMLSelectElement>('.sd-B').value), cl = `${Math.round(conf * 100)} %`;
+    // Rows: the value is the last number on the row; text before it is species and (optionally) group.
+    const raw = parseTable(q<HTMLTextAreaElement>('.sd-data').value);
+    if (raw.length > 5000) return fail('Up to 5,000 rows, please.');
+    const rows: { species: string; group: string; value: number }[] = [];
+    for (const r of raw) {
+      const cells = r.map((c) => c.trim()); let k = cells.length - 1;
+      while (k >= 0 && cells[k] === '') k--;
+      if (k < 0 || !isNum(cells[k])) continue;
+      const v = num(cells[k]);
+      if (!(v > 0)) return fail(`Toxicity values must be above zero (found ${cells[k]}${cells[0] && k > 0 ? ` for ${cells[0]}` : ''}).`);
+      rows.push({ species: k >= 1 && cells[0] ? cells[0] : `Species ${rows.length + 1}`, group: k >= 2 ? cells[1] : '', value: v });
+    }
+    const sp = speciesMeans(rows).sort((a, b) => a.value - b.value);
+    if (sp.length < 5) return fail(`Give values for at least 5 different species (found ${sp.length}). Each row is species, optional group, value.`);
+    const y = sp.map((d) => Math.log10(d.value));
+    if (Math.max(...y) - Math.min(...y) < 1e-9) return fail('All species have the same value, so there is no spread to fit.');
+    const p = num(q<HTMLInputElement>('.sd-p').value) / 100;
+    if (!(p > 0 && p < 1)) return fail('Set the protection level (HCp) as a percentage between 0 and 100, such as 5.');
+    q('.sd-out').hidden = false;
+
+    const fits: SsdFit[] = [fitLnorm(y), fitLlogis(y)], w = weights(fits);
+    const ps = [...new Set([p, ...q<HTMLInputElement>('.sd-ps').value.split(/[,;\s]+/).map(num).filter((v) => v > 0 && v < 100).map((v) => v / 100)])].sort((a, b) => a - b).slice(0, 12);
+    const chosen = model === 'avg' ? null : fits[model === 'lnorm' ? 0 : 1];
+    const est = (pp: number) => (chosen ? chosen.q(pp) : mixQ(fits, w, pp));
+    const lims = chosen ? bootstrapHC(chosen, ps, B, conf) : bootstrapAvg(fits, w, ps, B, conf);
+    const Fsel = (v: number) => (chosen ? chosen.F(v) : fits.reduce((s, f, i) => s + w[i] * f.F(v), 0));
+    const k0 = ps.indexOf(p), name = (pp: number) => `HC${sg(100 * pp, 3)}`;
+    q('.sd-big').textContent = `${name(p)} = ${sg(10 ** est(p), 3)}${u} (${cl} limits ${sg(10 ** lims[k0][0], 2)} to ${sg(10 ** lims[k0][1], 2)})`;
+
+    const groups = new Set(sp.map((d) => d.group.toLowerCase()).filter(Boolean));
+    const ad = fits.map((f) => andersonDarling(y, f.F));
+    const pafIn = q<HTMLInputElement>('.sd-paf').value.trim(), pafC = num(pafIn);
+    const facts = [
+      fact('Species', String(sp.length), `${rows.length} values${groups.size ? `, ${groups.size} groups` : ''}${sp.length < rows.length ? '; species with several values use their geometric mean' : ''}`),
+      fact('Model', NAMES[model], model === 'avg' ? `weights ${Math.round(100 * w[0])} % log-normal, ${Math.round(100 * w[1])} % log-logistic (from AICc)` : `AICc weight of this model: ${Math.round(100 * w[model === 'lnorm' ? 0 : 1])} %`),
+      fact('Limits', `${cl}, parametric bootstrap`, `${B.toLocaleString('en')} samples, fixed seed`),
+      ...(pafIn && pafC > 0 ? [fact(`Fraction affected at ${sg(pafC, 4)}${u}`, `${sg(100 * Fsel(Math.log10(pafC)), 3)} %`, 'potentially affected fraction (PAF) of species')] : pafIn ? [fact('Fraction affected', 'enter a concentration above zero')] : []),
+      ...(sp.length < 8 ? [fact('Caution', `only ${sp.length} species`, 'many guidelines ask for at least 8 species from several groups; check the one you work under')] : []),
+      ...(est(p) < y[0] ? [fact('Note', `${name(p)} is below the most sensitive species`, 'it is extrapolated beyond the data')] : []),
+    ];
+    q('.sd-facts').replaceChildren(...facts);
+
+    const hcRows = ps.map((pp, i) => [name(pp), sg(10 ** est(pp), 4), sg(10 ** lims[i][0], 3), sg(10 ** lims[i][1], 3)]);
+    const hcHead = ['', `Concentration${u}`, `Lower ${cl}`, `Upper ${cl}`];
+    table('.sd-hc', hcHead, hcRows, [1, 2, 3]);
+    const modRows = fits.map((f, i) => [NAMES[f.model], sg(f.mu, 4), sg(f.s, 4), sg(f.logLik, 4), sg(f.aicc, 4), `${sg(100 * w[i], 3)} %`, sg(ad[i], 3), sg(10 ** f.q(p), 3)]);
+    const modHead = ['Model', 'Centre (log₁₀)', 'Spread (log₁₀)', 'Log-likelihood', 'AICc', 'Weight', 'A²', `${name(p)}${u}`];
+    table('.sd-mod', modHead, modRows, [1, 2, 3, 4, 5, 6, 7]);
+    const pp = hazen(sp.length);
+    const spRows = sp.map((d, i) => [String(i + 1), d.species, d.group || '–', sg(d.value, 4), String(d.vals.length), `${sg(100 * pp[i], 3)} %`]);
+    const spHead = ['Rank', 'Species', 'Group', `Value${u}`, 'Tests', 'Plotted at'];
+    table('.sd-sp', spHead, spRows, [0, 3, 4, 5]);
+
+    // Plot on a log axis: species at Hazen positions, both fits and the chosen curve.
+    const lo = 10 ** Math.min(y[0] - 0.5, est(Math.min(...ps)) - 0.2), hi = 10 ** (y[y.length - 1] + 0.5), cx: number[] = [];
+    for (let i = 0; i <= 200; i++) cx.push(lo * (hi / lo) ** (i / 200));
+    fig = chartFigure({ h: 400, xLog: true, yMin: 0, yMax: 100, xLabel: `Concentration${unit ? ` (${unit})` : ''}`, yLabel: 'Species affected (%)', legend: 'below', series: [
+      { name: 'Species', x: sp.map((d) => d.value), y: pp.map((v) => 100 * v), mode: 'points', marker: 'circle', labels: sp.length <= 25 ? sp.map((d) => d.species) : undefined },
+      { name: 'Log-normal', x: cx, y: cx.map((v) => 100 * fits[0].F(Math.log10(v))), mode: 'line', dash: model === 'lnorm' ? undefined : [5, 4], width: model === 'lnorm' ? 2 : 1 },
+      { name: 'Log-logistic', x: cx, y: cx.map((v) => 100 * fits[1].F(Math.log10(v))), mode: 'line', dash: model === 'llogis' ? undefined : [5, 4], width: model === 'llogis' ? 2 : 1 },
+      ...(model === 'avg' ? [{ name: 'Average', x: cx, y: cx.map((v) => 100 * Fsel(Math.log10(v))), mode: 'line' as const, width: 2 }] : []),
+    ], marks: [{ kind: 'vline', at: 10 ** est(p), label: name(p) }, { kind: 'hline', at: 100 * p, dash: [2, 3] }] }, `Species sensitivity distribution with ${name(p)} ${sg(10 ** est(p), 3)}${u}`);
+    paint(q<HTMLCanvasElement>('.sd-fig'), fig);
+
+    csvRows = [['Quantity', `Concentration${u}`, `Lower ${cl}`, `Upper ${cl}`], ...hcRows, [], modHead, ...modRows, [], spHead, ...spRows];
+    sections = [{ title: q('.sd-big').textContent!, text: [`Species sensitivity distribution fitted by maximum likelihood to log₁₀ of one value per species (${NAMES[model].toLowerCase()}). Limits by parametric bootstrap.`],
+      facts: [...q('.sd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: hcHead.map((h, i) => (i ? h : 'Quantity')), rows: hcRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Model comparison', table: { head: modHead, rows: modRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Species', table: { head: spHead, rows: spRows, align: ['r', 'l', 'l', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.sd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'species-sensitivity.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.sd-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Species sensitivity distribution', subtitle: q('.sd-big').textContent ?? '', file: 'species-sensitivity', sections }));
+</script>
+
+<style is:global>
+  .ssd select { max-width: 100%; }
+</style>

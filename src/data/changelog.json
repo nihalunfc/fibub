@@ -1,5 +1,80 @@
 [
  {
+  "sha": "8351a6c5c03d",
+  "date": "2026-11-09T00:55:19+00:00",
+  "title": "Add #152 species sensitivity distribution (HC5)",
+  "tools": [
+   "lc50-probit",
+   "species-sensitivity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "85c672ebcc52",
+  "date": "2026-11-09T00:41:34+00:00",
+  "title": "Add #151 LC50 / EC50 probit and logit analysis (first environmental science tool)",
+  "tools": [
+   "dose-response",
+   "lc50-probit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a094da5d6844",
+  "date": "2026-11-09T00:26:49+00:00",
+  "title": "Add the rain gauge network average (#150)",
+  "tools": [
+   "rain-gauge-average"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ea2c51f0754c",
+  "date": "2026-11-09T00:08:22+00:00",
+  "title": "Add the unit hydrograph builder (#149)",
+  "tools": [
+   "unit-hydrograph"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1d41ee4670db",
+  "date": "2026-11-08T23:54:32+00:00",
+  "title": "Add the chiral magnon bands tool (#148)",
+  "tools": [
+   "chiral-magnon-bands"
+  ],
+  "site": false
+ },
+ {
+  "sha": "217270cf3c6b",
+  "date": "2026-11-08T23:48:25+00:00",
+  "title": "Add the spin splitter conductivity tool (#147)",
+  "tools": [
+   "altermagnet-bands",
+   "spin-splitter-conductivity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "28bd60a3517e",
+  "date": "2026-11-08T23:39:11+00:00",
+  "title": "Add the anomalous Hall checker (#146)",
+  "tools": [
+   "anomalous-hall-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a207f3fb45d5",
+  "date": "2026-11-08T23:27:11+00:00",
+  "title": "Add the altermagnet band explorer (#145)",
+  "tools": [
+   "altermagnet-bands"
+  ],
+  "site": false
+ },
+ {
   "sha": "0b07a3281797",
   "date": "2026-11-08T23:14:48+00:00",
   "title": "Add the rating curve fitter (#144)",

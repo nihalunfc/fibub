@@ -1,0 +1,171 @@
+---
+// Altermagnet band explorer: spin-split bands, Fermi contours, splitting map and spin-resolved DOS of minimal 2D models.
+// Every parameter is a made-up model value, not a measured material.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax amb">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-grid">
+      <label>Model <select class="am-kind">
+        <option value="two" selected>Two sublattices (d-wave from anisotropic hopping)</option>
+        <option value="one">One band with a spin-splitting form</option>
+      </select></label>
+      <label class="am-one" hidden>Splitting form <select class="am-form">
+        <option value="dx2y2" selected>d-wave: cos kx − cos ky</option>
+        <option value="dxy">d-wave: sin kx sin ky</option>
+        <option value="g">g-wave: sin kx sin ky (cos kx − cos ky)</option>
+      </select></label>
+      <label class="am-two"><span>Hopping between sublattices t1</span> <input class="am-t1" type="text" inputmode="decimal" value="1" /></label>
+      <label class="am-two"><span>Hopping along the easy axis ta</span> <input class="am-ta" type="text" inputmode="decimal" value="0.3" /></label>
+      <label class="am-two"><span>Hopping along the other axis tb</span> <input class="am-tb" type="text" inputmode="decimal" value="-0.1" /></label>
+      <label class="am-one" hidden><span>Nearest-neighbour hopping t</span> <input class="am-t" type="text" inputmode="decimal" value="1" /></label>
+      <label class="am-one" hidden><span>Next-nearest hopping t′</span> <input class="am-tp" type="text" inputmode="decimal" value="0.2" /></label>
+      <label><span>Exchange splitting J</span> <input class="am-J" type="text" inputmode="decimal" value="0.8" /></label>
+      <label><span>Chemical potential μ</span> <input class="am-mu" type="text" inputmode="decimal" value="0.2" /></label>
+    </div>
+    <p class="ax-help">Energies are in units of a hopping, on a square lattice with spacing 1. In the two-sublattice model, atoms A (spin up) and B (spin down) sit on a checkerboard. A hops ta along x and tb along y, and B the other way round, so only a 90° rotation turns one sublattice into the other. That is what makes the spin splitting d-wave while the net moment stays zero. The one-band model writes the splitting form directly. Set ta = tb to see the splitting vanish (a plain antiferromagnet). All values are made up.</p>
+    <p class="ax-err am-err" hidden></p>
+  </div>
+
+  <div class="ax-card am-out">
+    <h2>Spin-split bands</h2>
+    <p class="ax-big am-big"></p>
+    <dl class="ax-facts am-facts"></dl>
+    <canvas class="ax-fig am-bfig"></canvas>
+    <canvas class="ax-fig am-ffig"></canvas>
+    <canvas class="ax-fig am-sfig"></canvas>
+    <canvas class="ax-fig am-dfig"></canvas>
+    <p class="ax-help">Spin up is drawn solid, spin down dashed. In the Fermi contour map, the two spins trace different shapes that are rotated copies of each other, so the electrons at the Fermi level carry spin in some directions of motion and the opposite spin in others. The spin-resolved density of states is the same for both spins, which is why there is no net magnetisation.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { bands, maxSplit, kPath, grid, dos, filling, contour, nBands, FORMS, type Model } from '../../lib/sci/amband';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-9) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.amb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const kTxt = (x: number) => { const r = x / Math.PI; return Math.abs(r) < 1e-9 ? '0' : Math.abs(Math.abs(r) - 1) < 1e-9 ? (r < 0 ? '−π' : 'π') : `${sg(r, 2)}π`; };
+  let figs: [string, Figure][] = [], report: Section[] = [];
+  const N = 160;
+
+  function calc() {
+    const kind = sel('.am-kind');
+    root.querySelectorAll<HTMLElement>('.am-two').forEach((e) => { e.hidden = kind !== 'two'; });
+    root.querySelectorAll<HTMLElement>('.am-one').forEach((e) => { e.hidden = kind !== 'one'; });
+    const err = q('.am-err'), out = q('.am-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; };
+    const J = val('.am-J'), mu = val('.am-mu');
+    let m: Model;
+    if (kind === 'two') {
+      const t1 = val('.am-t1'), ta = val('.am-ta'), tb = val('.am-tb');
+      if (![t1, ta, tb].every((v) => Math.abs(v) <= 10)) return fail('Give the hoppings as numbers between −10 and 10.');
+      m = { kind: 'two', t1, ta, tb, J, mu };
+    } else {
+      const t = val('.am-t'), tp = val('.am-tp');
+      if (![t, tp].every((v) => Math.abs(v) <= 10)) return fail('Give the hoppings as numbers between −10 and 10.');
+      m = { kind: 'one', t, tp, J, mu, form: sel('.am-form') as 'dx2y2' };
+    }
+    if (!(Math.abs(J) <= 10) || !(Math.abs(mu) <= 30)) return fail('Give J between −10 and 10 and μ between −30 and 30.');
+    err.hidden = true; out.hidden = false;
+    const nb = nBands(m), split = maxSplit(m), big = split.reduce((a, b) => (Math.abs(b.d) > Math.abs(a.d) ? b : a));
+    const form = m.kind === 'two' ? FORMS.dx2y2.name : FORMS[m.form].name, wave = m.kind === 'one' && m.form === 'g' ? 'g-wave' : 'd-wave';
+    const nodes = m.kind === 'one' && m.form === 'dxy' ? 'kx = 0 and ky = 0' : m.kind === 'one' && m.form === 'g' ? 'kx = 0, ky = 0 and kx = ±ky' : 'kx = ±ky';
+    const g = grid(m, N), fill = filling(g, N), D = dos(g, N);
+    const noSplit = Math.abs(big.d) < 1e-9;
+    q('.am-big').textContent = noSplit ? 'No spin splitting: the bands are spin-degenerate' : `${wave[0].toUpperCase()}${wave.slice(1)} altermagnet: spin splitting up to ${sg(Math.abs(big.d), 3)}`;
+    const facts = [
+      fact('Splitting form', noSplit ? 'none' : form, noSplit ? (m.kind === 'two' ? 'ta = tb: the sublattices are alike, so this is a plain antiferromagnet' : 'J = 0') : `zero along ${nodes}; it changes sign across each of these lines`),
+      fact('Largest splitting E↑ − E↓', `${sg(big.d, 3)}`, `at k = (${kTxt(big.kx)}, ${kTxt(big.ky)})${nb > 1 ? `, ${split.indexOf(big) ? 'upper' : 'lower'} band` : ''}`),
+      fact('Electrons per cell', `${sg(fill[0], 4)} spin up, ${sg(fill[1], 4)} spin down`, `net moment ${sg(Math.abs(fill[0] - fill[1]), 2)}: compensated`),
+      fact('Bands', `${nb} per spin`, `${sg(D.lo, 3)} to ${sg(D.hi, 3)}; Fermi level at 0 (after μ)`),
+    ];
+    q('.am-facts').replaceChildren(...facts);
+    // Band structure along Y–Γ–X–M–Γ.
+    const P = kPath(60), bfig: Figure = { w: 380, h: 250, alt: 'Spin-up and spin-down bands along Y–Γ–X–M–Γ', draw: (ctx, W, H, pal) => {
+      const L = 40, R = 10, T = 10, B = 26, pw = W - L - R, ph = H - T - B;
+      const es = P.pts.map((p) => [bands(m, p.kx, p.ky, 1), bands(m, p.kx, p.ky, -1)]);
+      let lo = Infinity, hi = -Infinity; es.forEach(([u, d]) => [...u, ...d].forEach((e) => { lo = Math.min(lo, e); hi = Math.max(hi, e); }));
+      lo = Math.min(lo, 0); hi = Math.max(hi, 0); const pad = 0.06 * (hi - lo || 1); lo -= pad; hi += pad;
+      const X = (x: number) => L + (x / P.length) * pw, Y = (e: number) => T + ((hi - e) / (hi - lo)) * ph;
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(L, T, pw, ph);
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const t of P.ticks) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(t.at), T); ctx.lineTo(X(t.at), T + ph); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(t.label, X(t.at), T + ph + 4); }
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted;
+      const step = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4))) * ([1, 2, 5].find((s) => (hi - lo) / (s * Math.pow(10, Math.floor(Math.log10((hi - lo) / 4)))) <= 6) ?? 10);
+      for (let e = Math.ceil(lo / step) * step; e <= hi; e += step) ctx.fillText(sg(e, 2), L - 4, Y(e));
+      ctx.save(); ctx.translate(10, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Energy (units of t)', 0, 0); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(L, T, pw, ph); ctx.clip();
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(L + pw, Y(0)); ctx.stroke();
+      for (let b = 0; b < nb; b++) for (const s of [0, 1]) {
+        ctx.setLineDash(s ? [5, 3] : []); ctx.strokeStyle = s ? pal.accent2 : pal.accent; ctx.lineWidth = 1.8; ctx.beginPath();
+        P.pts.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(es[i][s][b])) : ctx.moveTo(X(p.x), Y(es[i][s][b])))); ctx.stroke();
+      }
+      ctx.restore(); ctx.setLineDash([]);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '10px system-ui, sans-serif';
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(L + 6, T + 10); ctx.lineTo(L + 24, T + 10); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText('spin up', L + 28, T + 10);
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(L + 80, T + 10); ctx.lineTo(L + 98, T + 10); ctx.stroke(); ctx.setLineDash([]); ctx.fillText('spin down', L + 102, T + 10);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText('E = 0', L + pw - 4, Y(0) - 7);
+    } };
+    // Fermi contours and splitting map, square zone −π..π.
+    const zone = (alt: string, body: (ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, S: number, pal: Parameters<Figure['draw']>[3]) => void): Figure => ({ w: 380, h: 330, alt, draw: (ctx, W, H, pal) => {
+      const S = Math.min(W - 60, H - 60), x0 = (W - S) / 2 + 8, y0 = 12;
+      const X = (k: number) => x0 + ((k + Math.PI) / (2 * Math.PI)) * S, Y = (k: number) => y0 + ((Math.PI - k) / (2 * Math.PI)) * S;
+      body(ctx, X, Y, S, pal);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.strokeRect(x0, y0, S, S);
+      ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(0), y0); ctx.lineTo(X(0), y0 + S); ctx.moveTo(x0, Y(0)); ctx.lineTo(x0 + S, Y(0)); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText('−π', X(-Math.PI), y0 + S + 3); ctx.fillText('kx', X(0), y0 + S + 3); ctx.fillText('π', X(Math.PI), y0 + S + 3);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('π', x0 - 4, Y(Math.PI)); ctx.fillText('ky', x0 - 4, Y(0)); ctx.fillText('−π', x0 - 4, Y(-Math.PI));
+    } });
+    const ffig = zone('Fermi contours of both spins in the Brillouin zone', (ctx, X, Y, S, pal) => {
+      for (const s of [0, 1]) for (let b = 0; b < nb; b++) {
+        const seg = contour(g[s][b], N);
+        ctx.save(); ctx.beginPath(); ctx.rect(X(-Math.PI), Y(Math.PI), S, S); ctx.clip();
+        ctx.strokeStyle = s ? pal.accent2 : pal.accent; ctx.lineWidth = 1.8; ctx.setLineDash(s ? [5, 3] : []); ctx.beginPath();
+        for (const [a, c, d, e] of seg) { ctx.moveTo(X(a), Y(c)); ctx.lineTo(X(d), Y(e)); }
+        ctx.stroke(); ctx.restore();
+      }
+      ctx.setLineDash([]); ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('Fermi contours (E = 0)', X(-Math.PI) + 4, Y(Math.PI) + 4);
+    });
+    const band0 = nb > 1 && Math.abs(split[1].d) > Math.abs(split[0].d) ? 1 : 0, M = 80;
+    const sfig = zone('Map of the spin splitting E↑ − E↓ over the Brillouin zone', (ctx, X, Y, S, pal) => {
+      const vals: number[] = []; let amax = 0;
+      for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { const kx = -Math.PI + (2 * Math.PI * (i + 0.5)) / M, ky = -Math.PI + (2 * Math.PI * (j + 0.5)) / M, v = bands(m, kx, ky, 1)[band0] - bands(m, kx, ky, -1)[band0]; vals.push(v); amax = Math.max(amax, Math.abs(v)); }
+      const c = S / M;
+      vals.forEach((v, idx) => { const i = idx % M, j = Math.floor(idx / M); if (!amax) return; ctx.globalAlpha = Math.min(1, Math.abs(v) / amax) * 0.85; ctx.fillStyle = v > 0 ? pal.accent : pal.accent2; ctx.fillRect(X(-Math.PI) + i * c, Y(-Math.PI) - (j + 1) * c, c + 0.5, c + 0.5); });
+      ctx.globalAlpha = 1; ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`E↑ − E↓${nb > 1 ? `, ${band0 ? 'upper' : 'lower'} band` : ''}: dark = ±${sg(amax, 2)}`, X(-Math.PI) + 4, Y(Math.PI) + 4);
+      const ly = Y(-Math.PI) + 18; ctx.fillStyle = pal.accent; ctx.fillRect(X(-Math.PI), ly, 12, 9); ctx.fillStyle = pal.ink; ctx.fillText('spin up higher', X(-Math.PI) + 16, ly);
+      ctx.fillStyle = pal.accent2; ctx.fillRect(X(0) + 10, ly, 12, 9); ctx.fillStyle = pal.ink; ctx.fillText('spin down higher', X(0) + 26, ly);
+    });
+    const dfig = chartFigure({ w: 380, h: 210, xLabel: 'Energy (units of t)', yLabel: 'States per energy', yMin: 0, legend: 'below', series: [
+      { name: 'Spin up', x: D.e, y: Array.from(D.up), mode: 'line', width: 2.2 },
+      { name: 'Spin down', x: D.e, y: Array.from(D.dn), mode: 'line', width: 1.4, dash: [5, 3] },
+    ], marks: [{ kind: 'vline', at: 0, dash: [3, 3], label: 'E = 0' }] }, 'Spin-resolved density of states');
+    figs = [['.am-bfig', bfig], ['.am-ffig', ffig], ['.am-sfig', sfig], ['.am-dfig', dfig]];
+    for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f);
+    report = [{ title: q('.am-big').textContent!, facts: [...q('.am-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: bfig }, { title: 'Fermi contours', figure: ffig }, { title: 'Spin splitting map', figure: sfig }, { title: 'Density of states', figure: dfig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(q<HTMLCanvasElement>(c), f); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Altermagnet bands', subtitle: q('.am-big').textContent ?? '', file: 'altermagnet-bands', sections: report }));
+</script>
+
+<style is:global>
+  .amb select, .amb input { max-width: 100%; }
+</style>
