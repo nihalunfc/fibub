@@ -80,3 +80,38 @@ export function neiF(pops: PopCounts[]) {
 export function pooled(pops: PopCounts[]): PopCounts {
   return { name: 'All pooled', AA: pops.reduce((a, c) => a + c.AA, 0), AB: pops.reduce((a, c) => a + c.AB, 0), BB: pops.reduce((a, c) => a + c.BB, 0) };
 }
+
+/** Exact-test p-values: two-sided (as hweExact), and one-sided for too few or too many heterozygotes. */
+export function hweExactSides(nAA: number, nAB: number, nBB: number) {
+  const e = hweExact(nAA, nAB, nBB);
+  let lo = 0, hi = 0;
+  e.probs.forEach((p, h) => { if (h <= nAB) lo += p; if (h >= nAB) hi += p; });
+  return { p: e.p, deficit: Math.min(1, lo), excess: Math.min(1, hi), probs: e.probs };
+}
+
+/** Chi-square with Yates's continuity correction: Σ (|O − E| − 0.5)² / E, each term floored at 0. */
+export function hweChiYates(nAA: number, nAB: number, nBB: number) {
+  const s = popStats({ name: '', AA: nAA, AB: nAB, BB: nBB });
+  const t = (o: number, e: number) => (e > 0 ? Math.max(0, Math.abs(o - e) - 0.5) ** 2 / e : 0);
+  const chi2 = t(nAA, s.eAA) + t(nAB, s.eAB) + t(nBB, s.eBB);
+  return { chi2, p: s.p > 0 && s.q > 0 ? chiSqUpper(chi2, 1) : 1 };
+}
+
+/** Hardy-Weinberg chi-square for any number of alleles. `counts` maps "a/b" genotype keys (a ≤ b in allele order)
+ * to counts; missing genotypes count 0. df = k(k − 1)/2. Ho, He = 1 − Σp² and F = 1 − Ho/He. */
+export function hweMulti(alleles: string[], counts: Map<string, number>, yates = false) {
+  const k = alleles.length, key = (i: number, j: number) => `${alleles[Math.min(i, j)]}/${alleles[Math.max(i, j)]}`;
+  let n = 0; for (const v of counts.values()) n += v;
+  const copies = new Array(k).fill(0);
+  let het = 0;
+  for (let i = 0; i < k; i++) for (let j = i; j < k; j++) { const c = counts.get(key(i, j)) ?? 0; copies[i] += c; copies[j] += c; if (i !== j) het += c; }
+  const p = copies.map((c) => c / (2 * n)), rows: { genotype: string; obs: number; exp: number; contrib: number }[] = [];
+  let chi2 = 0;
+  for (let i = 0; i < k; i++) for (let j = i; j < k; j++) {
+    const o = counts.get(key(i, j)) ?? 0, e = i === j ? n * p[i] * p[i] : 2 * n * p[i] * p[j];
+    const c = e > 0 ? (yates ? Math.max(0, Math.abs(o - e) - 0.5) ** 2 : (o - e) ** 2) / e : 0;
+    chi2 += c; rows.push({ genotype: key(i, j), obs: o, exp: e, contrib: c });
+  }
+  const df = (k * (k - 1)) / 2, Ho = het / n, He = 1 - p.reduce((s, x) => s + x * x, 0);
+  return { n, p, rows, chi2, df, pChi: chiSqUpper(chi2, df), Ho, He, F: He > 0 ? 1 - Ho / He : NaN, minExpected: Math.min(...rows.map((r) => r.exp)) };
+}

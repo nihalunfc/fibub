@@ -1,0 +1,184 @@
+---
+// Single-locus Hardy-Weinberg tester: chi-square (optionally continuity corrected), exact test, F and a de Finetti diagram.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const multi = 'Genotype\tCount\nA/A\t20\nA/B\t25\nA/C\t15\nB/B\t12\nB/C\t18\nC/C\t10';
+---
+<div class="ax hwt">
+  <div class="ax-card">
+    <h2>Genotype counts</h2>
+    <div class="ax-seg hw-mode" role="group" aria-label="Number of alleles">
+      <button type="button" data-m="two" aria-pressed="true">Two alleles</button>
+      <button type="button" data-m="multi" aria-pressed="false">Three or more</button>
+    </div>
+    <div class="hw-two">
+      <div class="ax-grid" style="margin-top:12px">
+        <label><span class="hw-l0">AA</span> <input class="hw-aa" inputmode="numeric" value="12" /></label>
+        <label><span class="hw-l1">AB</span> <input class="hw-ab" inputmode="numeric" value="70" /></label>
+        <label><span class="hw-l2">BB</span> <input class="hw-bb" inputmode="numeric" value="18" /></label>
+        <label>Allele names <input class="hw-names" value="A, B" /></label>
+      </div>
+    </div>
+    <div class="hw-multi" hidden>
+      <label style="margin-top:12px">One row per genotype: the two alleles separated by a slash (A/B), then the count. Genotypes you leave out count as 0.
+        <textarea class="hw-mdata" rows="8" spellcheck="false" wrap="off">{multi}</textarea></label>
+      <DataFile target=".hw-mdata" maxCols={5} maxRows={1000} />
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="hw-yates" /> Continuity correction (Yates) for the chi-square test</label>
+    <p class="ax-help">Hardy-Weinberg equilibrium predicts genotype shares p², 2pq and q² from the allele frequencies. The chi-square test is an approximation that needs expected counts of about 5 or more; Yates's correction makes it more cautious in small samples. The exact test (two alleles) is correct at any sample size and is the one to report. F = 1 − Ho/He: above 0 means too few heterozygotes, below 0 too many. The example counts are made up.</p>
+    <p class="ax-err hw-err" hidden></p>
+  </div>
+
+  <div class="ax-card hw-out">
+    <h2>Result</h2>
+    <p class="ax-big hw-big"></p>
+    <dl class="ax-facts hw-facts"></dl>
+    <h3>Observed and expected</h3>
+    <div class="ax-scroll"><table class="hw-tab"></table></div>
+    <p class="ax-help hw-note"></p>
+    <div class="hw-figs">
+      <h3>de Finetti diagram</h3>
+      <canvas class="ax-fig hw-tri"></canvas>
+      <p class="ax-help">Each corner is a genotype; a sample is a point whose distances from the three sides are its genotype shares. The curve is every population in Hardy-Weinberg equilibrium. Points below the curve have too few heterozygotes; above it, too many.</p>
+      <h3>Exact test: every possible heterozygote count</h3>
+      <canvas class="ax-fig hw-dist"></canvas>
+      <p class="ax-help">With these allele counts fixed, the chance of each possible number of heterozygotes under Hardy-Weinberg. The exact p-value adds up every count no more likely than the one observed.</p>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hw-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { popStats, hweExactSides, hweChiYates, hweMulti } from '../../lib/sci/hwefst';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hwt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s4 = (x: number) => (Number.isFinite(x) ? String(+x.toPrecision(4)).replace('-', '−') : '–');
+  const pv = (p: number) => (p >= 0.9995 ? '1.00' : sig(p, 3));
+  let mode = 'two', tri: Figure | null = null, dist: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function triFigure(fAA: number, fAB: number, fBB: number, labels: string[], alt: string): Figure {
+    return { w: 600, h: 500, alt, draw: (ctx, W, H, pal) => {
+      const m = 46, side = Math.min(W - 2 * m, ((H - 2 * m) * 2) / Math.sqrt(3)), x0 = (W - side) / 2, y0 = H - m;
+      const P = (x: number, y: number): [number, number] => [x0 + x * side, y0 - y * side];
+      const pt = (aa: number, ab: number, bb: number) => P(bb + ab / 2, (ab * Math.sqrt(3)) / 2);
+      const A = pt(1, 0, 0), B = pt(0, 0, 1), C = pt(0, 1, 0);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.lineTo(...C); ctx.closePath(); ctx.stroke();
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+      for (let i = 1; i < 10; i++) { const t = i / 10; ctx.beginPath(); ctx.moveTo(...pt(1 - t, t, 0)); ctx.lineTo(...pt(0, t, 1 - t)); ctx.stroke(); }
+      ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const qq = i / 200, pp = 1 - qq, [x, y] = pt(pp * pp, 2 * pp * qq, qq * qq); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+      const [sx, sy] = pt(fAA, fAB, fBB);
+      ctx.fillStyle = pal.red ? pal.ink : pal.bad; ctx.beginPath(); ctx.arc(sx, sy, 7, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = pal.ink; ctx.font = '600 18px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right'; ctx.fillText(labels[0], A[0] - 8, A[1]); ctx.textAlign = 'left'; ctx.fillText(labels[2], B[0] + 8, B[1]);
+      ctx.textAlign = 'center'; ctx.fillText(labels[1], C[0], C[1] - 18);
+      ctx.font = '15px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('● sample   — Hardy-Weinberg', 8, 16);
+    } };
+  }
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.hw-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.hw-err').textContent = m; q('.hw-err').hidden = false; q('.hw-out').hidden = true; tri = dist = null; sections = []; csvRows = []; };
+    q('.hw-err').hidden = true;
+    q('.hw-two').hidden = mode !== 'two'; q('.hw-multi').hidden = mode === 'two'; q('.hw-figs').hidden = mode !== 'two';
+    const yates = q<HTMLInputElement>('.hw-yates').checked, head = ['Genotype', 'Observed', 'Expected', 'Share obs.', 'Share exp.', yates ? '(|O − E| − ½)²/E' : '(O − E)²/E'];
+    let big = '', facts: [string, string, string][] = [], rows: string[][] = [], note = '';
+    if (mode === 'two') {
+      const nm = q<HTMLInputElement>('.hw-names').value.split(/[,;/]+/).map((s) => s.trim()).filter(Boolean), A = nm[0] || 'A', B = nm[1] || 'B';
+      const g = [A + A, A + B, B + B];
+      ['.hw-l0', '.hw-l1', '.hw-l2'].forEach((c, i) => (q(c).textContent = g[i]));
+      const [aa, ab, bb] = ['.hw-aa', '.hw-ab', '.hw-bb'].map((c) => num(q<HTMLInputElement>(c).value));
+      if (![aa, ab, bb].every((v) => Number.isInteger(v) && v >= 0)) return fail('Counts must be whole numbers of zero or more.');
+      const n = aa + ab + bb;
+      if (n === 0) return fail('Enter at least one individual.');
+      if (n > 1e6) return fail('Up to 1,000,000 individuals, please.');
+      const s = popStats({ name: '', AA: aa, AB: ab, BB: bb });
+      if (s.p === 0 || s.p === 1) return fail(`Only one allele (${s.p === 1 ? A : B}) is present, so there is nothing to test: every population with one allele is in Hardy-Weinberg equilibrium.`);
+      const ex = hweExactSides(aa, ab, bb), ch = yates ? hweChiYates(aa, ab, bb) : { chi2: s.chi2, p: s.pChi };
+      big = `Exact p = ${pv(ex.p)}: ${ex.p >= 0.05 ? 'consistent with Hardy-Weinberg' : `out of Hardy-Weinberg (too ${ab < s.eAB ? 'few' : 'many'} heterozygotes)`}`;
+      facts = [
+        [`p (${A})`, s4(s.p), `${2 * aa + ab} of ${2 * n} gene copies`], [`q (${B})`, s4(s.q), ''],
+        ['Observed heterozygosity Ho', s4(s.Ho), `${ab} of ${n}`], ['Expected heterozygosity He', s4(s.He), '2pq'],
+        ['Inbreeding coefficient F', s4(s.Fis), s.Fis > 0 ? 'heterozygote deficit (inbreeding, population mixture, null alleles or genotyping errors)' : s.Fis < 0 ? 'heterozygote excess (outbreeding, selection for heterozygotes, or errors)' : 'exactly as expected'],
+        [yates ? 'Chi-square (Yates)' : 'Chi-square', `${s4(ch.chi2)}, p = ${pv(ch.p)}`, '1 degree of freedom'],
+        ['Exact test (two-sided)', `p = ${pv(ex.p)}`, 'Wigginton, Cutler and Abecasis (2005)'],
+        ['Exact, too few heterozygotes', `p = ${pv(ex.deficit)}`, 'one-sided'], ['Exact, too many heterozygotes', `p = ${pv(ex.excess)}`, 'one-sided'],
+      ];
+      const t = (o: number, e: number) => (yates ? Math.max(0, Math.abs(o - e) - 0.5) ** 2 : (o - e) ** 2) / e;
+      rows = [[g[0], aa, s.eAA], [g[1], ab, s.eAB], [g[2], bb, s.eBB]].map(([lab, o, e]) => [lab as string, String(o), s4(e as number), s4((o as number) / n), s4((e as number) / n), s4(t(o as number, e as number))]);
+      note = s.minExpected < 5 ? `An expected count is below 5 (${s4(s.minExpected)}), so the chi-square p-value is unreliable: use the exact test.` : 'All expected counts are 5 or more, so chi-square and the exact test should agree closely.';
+      tri = triFigure(s.fAA, s.fAB, s.fBB, g, `de Finetti diagram: sample at ${g.join(', ')} shares ${s4(s.fAA)}, ${s4(s.fAB)}, ${s4(s.fBB)}`);
+      paint(q<HTMLCanvasElement>('.hw-tri'), tri);
+      const hs: number[] = [], ps: number[] = [];
+      ex.probs.forEach((p, h) => { if ((h & 1) === ((2 * Math.min(aa, bb) + ab) & 1)) { hs.push(h); ps.push(p); } });
+      dist = chartFigure({ h: 280, yMin: 0, xLabel: `Number of ${g[1]} heterozygotes`, yLabel: 'Probability', legend: 'none', series: [{ name: 'Probability', x: hs, y: ps, mode: hs.length > 80 ? 'line' : 'both', size: 2.5 }],
+        marks: [{ kind: 'vline', at: ab, label: 'observed' }] }, 'Probability of each heterozygote count under Hardy-Weinberg, with the observed count');
+      paint(q<HTMLCanvasElement>('.hw-dist'), dist);
+    } else {
+      const counts = new Map<string, number>(), order: string[] = [];
+      for (const r of parseTable(q<HTMLTextAreaElement>('.hw-mdata').value)) {
+        const c = r.filter((x) => x.trim() !== '');
+        if (!c.length) continue;
+        const m = c[0].match(/^\s*([^/\s]+)\s*\/\s*([^/\s]+)\s*$/);
+        if (!m) { if (counts.size || Number.isFinite(num(c[1] ?? ''))) return fail(`Write each genotype as two alleles with a slash, such as A/B (row "${c.join(' ').slice(0, 30)}").`); continue; }
+        const v = num(c[1] ?? '');
+        if (!(Number.isInteger(v) && v >= 0)) return fail(`Give a whole-number count for ${c[0]}.`);
+        for (const a of [m[1], m[2]]) if (!order.includes(a)) order.push(a);
+        counts.set(`${m[1]}\u0000${m[2]}`, (counts.get(`${m[1]}\u0000${m[2]}`) ?? 0) + v);
+      }
+      if (order.length < 2) return fail('Give genotypes with at least two different alleles, one per row, such as "A/B 25".');
+      if (order.length > 20) return fail('Up to 20 alleles, please.');
+      const keyed = new Map<string, number>();
+      for (const [k, v] of counts) { const [a, b] = k.split('\u0000'), i = order.indexOf(a), j = order.indexOf(b); const key = `${order[Math.min(i, j)]}/${order[Math.max(i, j)]}`; keyed.set(key, (keyed.get(key) ?? 0) + v); }
+      const r = hweMulti(order, keyed, yates);
+      if (r.n === 0) return fail('All counts are zero.');
+      big = `Chi-square p = ${pv(r.pChi)}: ${r.pChi >= 0.05 ? 'consistent with Hardy-Weinberg' : 'out of Hardy-Weinberg'}`;
+      facts = [
+        ['Alleles', order.map((a, i) => `${a} ${s4(r.p[i])}`).join(', '), `${r.n} individuals`],
+        ['Observed heterozygosity Ho', s4(r.Ho), ''], ['Expected heterozygosity He', s4(r.He), '1 − Σ p²'],
+        ['Inbreeding coefficient F', s4(r.F), r.F > 0 ? 'heterozygote deficit' : r.F < 0 ? 'heterozygote excess' : ''],
+        [yates ? 'Chi-square (Yates)' : 'Chi-square', `${s4(r.chi2)}, p = ${pv(r.pChi)}`, `${r.df} degree${r.df === 1 ? '' : 's'} of freedom: k(k − 1)/2 for k = ${order.length} alleles`],
+      ];
+      rows = r.rows.map((x) => [x.genotype, String(x.obs), s4(x.exp), s4(x.obs / r.n), s4(x.exp / r.n), s4(x.contrib)]);
+      const small = r.rows.filter((x) => x.exp < 5).length;
+      note = `${small ? `${small} of ${r.rows.length} genotypes have an expected count below 5, so the chi-square p-value is unreliable; with rare alleles, pool them into one allele or use specialised exact-test software. ` : ''}The exact test and the de Finetti diagram are for two alleles.`;
+    }
+    q('.hw-out').hidden = false;
+    q('.hw-big').textContent = big;
+    q('.hw-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    table(head, rows); q('.hw-note').textContent = note;
+    csvRows = [head, ...rows, [], ['Quantity', 'Value'], ...facts.map(([k, v]) => [k, v])];
+    sections = [{ title: big, facts: facts.map(([k, v]) => [k, v] as [string, string]), table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, text: [note] },
+      ...(mode === 'two' && tri && dist ? [{ title: 'de Finetti diagram', figure: tri }, { title: 'Exact test distribution', figure: dist }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.hw-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m!; q('.hw-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc();
+  });
+  q('.hw-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'hardy-weinberg.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (tri && mode === 'two') paint(q<HTMLCanvasElement>('.hw-tri'), tri); if (dist && mode === 'two') paint(q<HTMLCanvasElement>('.hw-dist'), dist); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Hardy-Weinberg test', subtitle: q('.hw-big').textContent ?? '', file: 'hardy-weinberg', sections }));
+</script>
+
+<style is:global>
+  .hwt .hw-tab td, .hwt .hw-tab th { white-space: nowrap; }
+  .hwt canvas.hw-tri { max-width: 520px; margin: 0 auto; }
+</style>
