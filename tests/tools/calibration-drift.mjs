@@ -2,6 +2,9 @@
 export const path = '/science/calibration-drift/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.goto(`${BASE}/science/calibration-drift/`); await page.waitForTimeout(600);
+  // Other tools tested earlier in the same browser may have stored their own keys; this tool must add none.
+  const keys = () => page.evaluate(() => { try { return Object.keys(localStorage).sort().join('|'); } catch { return ''; } });
+  const keys0 = await keys();
   const big = () => page.textContent('.cdr .cd-big'), facts = () => page.textContent('.cdr .cd-facts');
   const set = async (s, v) => { await page.fill(`.cdr ${s}`, v); await page.waitForTimeout(150); };
   check((await big()) === 'Next calibration by 2025-02-18: 11.9 months after the last, for 95 % reliability', 'drift: example headline');
@@ -25,5 +28,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent('.cdr .cd-err')).includes('at least 3 calibrations') && await page.isHidden('.cdr .cd-out'), 'drift: too few rows');
   await set('.cd-data', '2024-01-01,0.1\n2024-06-01,0.2\n2025-01-01,0.25'); await set('.cd-hi', '-1');
   check((await page.textContent('.cdr .cd-err')).includes('upper tolerance limit must be above'), 'drift: bad limits');
-  check(await page.evaluate(() => { try { return localStorage.length === 0; } catch { return true; } }), 'drift: nothing stored in the browser');
+  check((await keys()) === keys0, 'drift: nothing stored in the browser');
 };
