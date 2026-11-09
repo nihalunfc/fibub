@@ -1,0 +1,215 @@
+---
+// SN1 vs SN2: pick substrate, nucleophile, solvent and leaving group → favoured mechanism with reasons, schematic
+// energy profiles, a 3D animation of backside attack (inversion) or the carbocation route (racemisation).
+import '../../styles/astro.css';
+import { SUBSTRATES, NUCS } from '../../lib/sci/sn';
+---
+<div class="ax sns">
+  <div class="ax-card">
+    <h2>Set the conditions</h2>
+    <div class="ax-grid">
+      <label>Substrate (alkyl halide) <select class="sn-s">{SUBSTRATES.map((s) => <option value={s.id} selected={s.id === 'secondary'}>{s.label}: {s.example}</option>)}</select></label>
+      <label>Leaving group <select class="sn-lg"><option value="I">I (iodide)</option><option value="Br" selected>Br (bromide)</option><option value="Cl">Cl (chloride)</option><option value="F">F (fluoride)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><span class="ax-help" style="margin:0">Nucleophile</span><span class="ax-seg sn-n" role="group" aria-label="Nucleophile">{NUCS.map((n) => <button type="button" data-v={n.id} aria-pressed={n.id === 'strong' ? 'true' : 'false'}>{n.label}</button>)}</span></div>
+    <p class="ax-help sn-nhelp"></p>
+    <div class="ax-row"><span class="ax-help" style="margin:0">Solvent</span><span class="ax-seg sn-v" role="group" aria-label="Solvent"><button type="button" data-v="aprotic" aria-pressed="true">Polar aprotic (acetone, DMSO)</button><button type="button" data-v="protic" aria-pressed="false">Polar protic (water, ethanol)</button></span></div>
+    <p class="ax-big sn-big"></p>
+    <div class="sn-bars"><div><span>SN2</span><i class="sn-b2"></i><b class="sn-p2"></b></div><div><span>SN1</span><i class="sn-b1"></i><b class="sn-p1"></b></div></div>
+    <p class="ax-help">Points from the rules below (a teaching model): the route with clearly more points wins.</p>
+    <ul class="sn-reasons"></ul>
+    <p class="ax-err sn-elim" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Energy profiles</h2>
+    <canvas class="ax-fig sn-prof"></canvas>
+    <p class="sn-rates"></p>
+    <p class="ax-help">Schematic: shapes and which barrier is lower are what matter; the heights are not real values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Watch it happen</h2>
+    <p class="ax-help" style="margin-top:0">Example: (R)-2-bromobutane with OH⁻. Drag the picture to turn it.</p>
+    <div class="ax-row"><span class="ax-seg sn-mech" role="group" aria-label="Mechanism"><button type="button" data-m="SN2" aria-pressed="true">SN2</button><button type="button" data-m="SN1" aria-pressed="false">SN1</button></span>
+      <span class="ax-seg sn-side" role="group" aria-label="SN1 attack side" hidden><button type="button" data-s="-1" aria-pressed="true">Attack from the back</button><button type="button" data-s="1" aria-pressed="false">From the front</button></span></div>
+    <canvas class="ax-fig sn-fig" tabindex="0"></canvas>
+    <label>Reaction progress <input type="range" class="sn-t" min="0" max="100" step="1" value="0" /></label>
+    <div class="ax-row"><button type="button" class="btn small sn-play">Play</button><span class="sn-stage"></span></div>
+    <p class="sn-stereo"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sn-try">
+      <li>Start with a methyl halide, strong nucleophile, aprotic solvent: clear SN2. Change one thing at a time towards tertiary, weak, protic.</li>
+      <li>Play SN2 and watch the three groups flip like an umbrella in the wind: the product is the mirror arrangement (inversion).</li>
+      <li>Play SN1 from the back, then from the front: the flat carbocation is attacked equally from both sides, so you get both R and S.</li>
+      <li>Change the leaving group from I to F: both barriers rise. The C–F bond is the hardest to break.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sn-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Which mechanism is favoured? New questions every time; nothing is saved.</p>
+    <div class="sn-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small sn-check">Check</button><button type="button" class="btn secondary small sn-new">New questions</button><span class="sn-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sn-bars { display: grid; gap: 6px; margin: 6px 0; }
+  .sn-bars div { display: grid; grid-template-columns: 44px 1fr 34px; gap: 8px; align-items: center; font-size: 14px; }
+  .sn-bars i { display: block; height: 14px; border-radius: 4px; background: var(--accent); min-width: 2px; }
+  .sn-bars b { text-align: right; font-variant-numeric: tabular-nums; }
+  .sn-reasons, .sn-try { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sn-prof { max-width: 520px; margin: 0 auto; }
+  .sn-fig { max-width: 420px; margin: 8px auto; touch-action: none; cursor: grab; border: 1px solid var(--line); }
+  .sns input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .sn-rates, .sn-stereo { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .sn-stage { font-weight: 700; }
+  .sn-qs { display: grid; gap: 12px; }
+  .sn-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .sn-q1 select { max-width: 220px; }
+  .sn-ans { font-size: 14px; margin: 0; }
+  .sn-ans.ok { color: var(--good); } .sn-ans.no { color: var(--bad); }
+  .sn-score { font-weight: 700; }
+</style>
+
+<script>
+  import { SUBSTRATES, NUCS, predict, profile, curve, geometry, arrangement, type Substrate, type Nuc, type Solvent, type Leaving, type Verdict } from '../../lib/sci/sn';
+  import { rank, descriptor } from '../../lib/sci/chirality';
+  import { mul, rotX, rotY, apply, project, type M3, type V3 } from '../../lib/sci/mol3d';
+  import { paint, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sns')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  let nuc: Nuc = 'strong', solv: Solvent = 'aprotic', mech: 'SN1' | 'SN2' = 'SN2', side: 1 | -1 = -1, vd: Verdict;
+  const START: M3 = mul(rotX(0.35), rotY(0.55));
+  let R: M3 = START, timer = 0;
+  const seg = (sel: string, attr: string, val: string) => { for (const b of root.querySelectorAll<HTMLButtonElement>(`${sel} button`)) b.setAttribute('aria-pressed', String(b.dataset[attr] === val)); };
+
+  function profFig(): Figure {
+    const lg = q<HTMLSelectElement>('.sn-lg').value as Leaving;
+    return { w: 520, h: 260, alt: `Energy profiles: SN2 with one barrier, SN1 with two barriers and a carbocation; ${vd.winner === 'both' ? 'both similar' : vd.winner + ' lower'}`, draw: (ctx, W, H, pal) => {
+      const l = 30, r = 12, t = 12, b = 30, all = [...profile('SN1', vd, lg), ...profile('SN2', vd, lg)].map((p) => p[1]);
+      const ymin = Math.min(-25, ...all) - 5, ymax = Math.max(...all) + 15;
+      const X = (x: number) => l + x * (W - l - r), Y = (e: number) => H - b - ((e - ymin) / (ymax - ymin)) * (H - t - b);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, t); ctx.lineTo(l, H - b); ctx.lineTo(W - r, H - b); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('reaction progress →', (l + W - r) / 2, H - 10);
+      ctx.save(); ctx.translate(14, (t + H - b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('energy', 0, 0); ctx.restore();
+      for (const m of ['SN2', 'SN1'] as const) {
+        const fav = vd.winner === m || vd.winner === 'both', pts = profile(m, vd, lg), c = curve(pts);
+        ctx.strokeStyle = m === 'SN2' ? pal.accent : pal.accent2; ctx.lineWidth = fav ? 3 : 1.6; ctx.setLineDash(fav ? [] : [6, 4]);
+        ctx.beginPath(); c.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = m === 'SN2' ? pal.accent : pal.accent2; ctx.font = '600 12px system-ui, sans-serif';
+        const top = pts.reduce((a, p) => (p[1] > a[1] ? p : a));
+        ctx.fillText(`${m} ${m === 'SN2' ? 'TS' : 'TS 1'}`, X(top[0]), Y(top[1]) - 8);
+        if (m === 'SN1') { ctx.fillText('carbocation', X(pts[2][0]), Y(pts[2][1]) + 16); }
+      }
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('R–X + Nu', l + 4, Y(0) - 8); ctx.textAlign = 'right'; ctx.fillText('R–Nu + X⁻', W - r - 2, Y(-15) - 8);
+    } };
+  }
+
+  // 3D scene: C at the origin, X on +x, Nu on the far side, H, CH₃ and C₂H₅ round the middle.
+  const LABELS = ['H', 'CH₃', 'C₂H₅'];
+  function sceneFig(t: number): Figure {
+    const g = geometry(mech, t, side);
+    return { w: 420, h: 300, alt: `${mech} at ${Math.round(t * 100)} % of the way`, draw: (ctx, W, H, pal) => {
+      const cx = W / 2, cy = H / 2, L = 62;
+      const P = (v: V3) => project(apply(R, v), cx, cy, L, 0.12);
+      const items: { z: number; d: () => void }[] = [];
+      const ball = (v: V3, text: string, col: string) => { const p = P(v), z = apply(R, v)[2]; items.push({ z, d: () => { ctx.font = `700 ${Math.round(14 * p.k)}px system-ui, sans-serif`; const w = Math.max(30, ctx.measureText(text).width + 12) * p.k; ctx.fillStyle = pal.bg; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - 13 * p.k, w, 26 * p.k, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, p.x, p.y + 0.5); } }); };
+      const bond = (a: V3, b: V3, kind: 'full' | 'part' | 'none') => { if (kind === 'none') return; const pa = P(a), pb = P(b), z = (apply(R, a)[2] + apply(R, b)[2]) / 2 - 0.01; items.push({ z, d: () => { ctx.strokeStyle = pal.ink; ctx.lineWidth = kind === 'full' ? 4 : 2; ctx.setLineDash(kind === 'part' ? [5, 4] : []); ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke(); ctx.setLineDash([]); } }); };
+      const O: V3 = [0, 0, 0];
+      g.groups.forEach((p, i) => { const v: V3 = [p[0] * 1.6, p[1] * 1.6, p[2] * 1.6]; bond(O, v, 'full'); ball(v, LABELS[i], pal.ink); });
+      const xv: V3 = [g.x * 1.6, 0, 0], nv: V3 = [g.nu * 1.6, 0, 0];
+      bond(O, xv, g.x < 1.25 ? 'full' : g.x < 2 ? 'part' : 'none'); ball(xv, 'Br', pal.accent2);
+      bond(O, nv, Math.abs(g.nu) < 1.15 ? 'full' : Math.abs(g.nu) < 1.9 ? 'part' : 'none'); ball(nv, 'OH⁻'.replace('⁻', Math.abs(g.nu) < 1.15 ? '' : '⁻'), pal.accent);
+      const c0 = P(O); items.push({ z: 0, d: () => { ctx.beginPath(); ctx.arc(c0.x, c0.y, 13, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = '700 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(g.cation ? 'C⁺' : 'C', c0.x, c0.y + 0.5); } });
+      items.sort((a, b) => a.z - b.z).forEach((it) => it.d());
+    } };
+  }
+
+  function stage(t: number) {
+    if (mech === 'SN2') return t < 0.05 ? 'Start: OH⁻ approaches from the side opposite Br' : t < 0.44 ? 'OH⁻ moves in, Br starts to leave' : t <= 0.56 ? 'Transition state: five groups, HO···C···Br' : t < 0.97 ? 'Br⁻ leaves, the umbrella flips' : 'Product: inverted';
+    return t < 0.05 ? 'Start' : t < 0.45 ? 'Slow step: Br⁻ leaves on its own' : t <= 0.55 ? 'Flat carbocation (sp²)' : t < 0.97 ? `Fast step: OH⁻ attacks from the ${side < 0 ? 'back' : 'front'}` : 'Product';
+  }
+  function scene() {
+    const t = Number(q<HTMLInputElement>('.sn-t').value) / 100;
+    paint(q<HTMLCanvasElement>('.sn-fig'), sceneFig(t));
+    q('.sn-stage').textContent = stage(t);
+    const d = (ids: string[], pos: [number, number, number][]) => descriptor(pos, rank(ids).order);
+    const s0 = d(['Br', 'H', 'CH3', 'C2H5'], arrangement('SN1start'));
+    if (mech === 'SN2') q('.sn-stereo').textContent = `(${s0})-2-bromobutane → (${d(['OH', 'H', 'CH3', 'C2H5'], arrangement('SN2'))})-butan-2-ol: inversion of configuration (Walden inversion). One pure enantiomer in, the other one out.`;
+    else { const f = d(['OH', 'H', 'CH3', 'C2H5'], arrangement('SN1front')), b = d(['OH', 'H', 'CH3', 'C2H5'], arrangement('SN1back')); q('.sn-stereo').textContent = `(${s0})-2-bromobutane → attack from the front gives (${f})-butan-2-ol, from the back (${b})-butan-2-ol. Both happen equally: a 50 : 50 racemic mixture, optically inactive.`; }
+  }
+
+  function update() {
+    const s = q<HTMLSelectElement>('.sn-s').value as Substrate, lg = q<HTMLSelectElement>('.sn-lg').value as Leaving;
+    vd = predict(s, nuc, solv, lg);
+    q('.sn-nhelp').textContent = `Examples: ${NUCS.find((n) => n.id === nuc)!.examples}.`;
+    q('.sn-big').textContent = vd.winner === 'both' ? 'Both SN1 and SN2 compete' : `Favoured: ${vd.winner}`;
+    const max = Math.max(8, vd.sn1, vd.sn2), min = Math.min(-6, vd.sn1, vd.sn2);
+    q('.sn-b1').style.width = `${((vd.sn1 - min) / (max - min)) * 100}%`; q('.sn-b2').style.width = `${((vd.sn2 - min) / (max - min)) * 100}%`;
+    q('.sn-p1').textContent = String(vd.sn1); q('.sn-p2').textContent = String(vd.sn2);
+    q('.sn-reasons').replaceChildren(...vd.reasons.map(li));
+    const el = q('.sn-elim'); el.hidden = !vd.elimination; el.textContent = vd.elimination ? 'Watch out: a strong base with a crowded halide also gives elimination (an alkene), which competes with substitution.' : '';
+    q('.sn-rates').textContent = 'SN2: one step, rate = k[R–X][Nu⁻] (second order). SN1: two steps, the slow one is R–X → R⁺ + X⁻, so rate = k[R–X] (first order).';
+    paint(q<HTMLCanvasElement>('.sn-prof'), profFig());
+    scene();
+  }
+  const setMech = (m: 'SN1' | 'SN2') => { mech = m; seg('.sn-mech', 'm', m); q('.sn-side').hidden = m !== 'SN1'; scene(); };
+  q('.sn-s').addEventListener('change', update); q('.sn-lg').addEventListener('change', update);
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.sn-n button')) b.addEventListener('click', () => { nuc = b.dataset.v as Nuc; seg('.sn-n', 'v', nuc); update(); });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.sn-v button')) b.addEventListener('click', () => { solv = b.dataset.v as Solvent; seg('.sn-v', 'v', solv); update(); });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.sn-mech button')) b.addEventListener('click', () => setMech(b.dataset.m as 'SN1' | 'SN2'));
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.sn-side button')) b.addEventListener('click', () => { side = Number(b.dataset.s) as 1 | -1; seg('.sn-side', 's', String(side)); scene(); });
+  q('.sn-t').addEventListener('input', scene);
+  q('.sn-play').addEventListener('click', () => {
+    const btn = q('.sn-play'), sl = q<HTMLInputElement>('.sn-t');
+    if (timer) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; return; }
+    if (Number(sl.value) >= 100) sl.value = '0';
+    btn.textContent = 'Pause';
+    timer = window.setInterval(() => { const v = Number(sl.value) + 1; sl.value = String(Math.min(100, v)); scene(); if (v >= 100) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; } }, 40);
+  });
+  const fig = q<HTMLCanvasElement>('.sn-fig');
+  let last: { x: number; y: number } | null = null;
+  fig.addEventListener('pointerdown', (e) => { fig.setPointerCapture(e.pointerId); last = { x: e.clientX, y: e.clientY }; });
+  fig.addEventListener('pointermove', (e) => { if (!last) return; const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY }; R = mul(mul(rotY(dx * 0.012), rotX(dy * 0.012)), R); scene(); });
+  const stop = () => { last = null; }; fig.addEventListener('pointerup', stop); fig.addEventListener('pointercancel', stop);
+  fig.addEventListener('keydown', (e) => { const m: Record<string, M3> = { ArrowLeft: rotY(-0.15), ArrowRight: rotY(0.15), ArrowUp: rotX(-0.15), ArrowDown: rotX(0.15) }; if (m[e.key]) { e.preventDefault(); R = mul(m[e.key], R); scene(); } });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  // Check yourself.
+  let quiz: { s: Substrate; n: Nuc; v: Solvent; answer: string; why: string }[] = [];
+  function newQuiz() {
+    quiz = []; const seen = new Set<string>();
+    while (quiz.length < 4) {
+      const s = SUBSTRATES[Math.floor(Math.random() * SUBSTRATES.length)].id, n: Nuc = Math.random() < 0.5 ? 'strong' : 'weak', v: Solvent = Math.random() < 0.5 ? 'aprotic' : 'protic';
+      const k = s + n + v; if (seen.has(k)) continue; seen.add(k);
+      const p = predict(s, n, v); quiz.push({ s, n, v, answer: p.winner, why: p.reasons.slice(0, 3).join(' ') });
+    }
+    q('.sn-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'sn-q1';
+      const sub = SUBSTRATES.find((s) => s.id === x.s)!, nu = NUCS.find((n) => n.id === x.n)!;
+      const lab = document.createElement('label'); lab.textContent = `${i + 1}. ${sub.example} (${sub.label.toLowerCase()}) with a ${x.n} nucleophile (${nu.examples.split(', ')[0]}) in a polar ${x.v} solvent.`;
+      const s = document.createElement('select'); s.className = 'sn-qa'; s.innerHTML = '<option value="">Choose</option><option value="SN1">SN1</option><option value="SN2">SN2</option><option value="both">Both compete</option>';
+      lab.append(s); const a = document.createElement('p'); a.className = 'sn-ans'; a.hidden = true; d.append(lab, a); return d;
+    }));
+    q('.sn-score').textContent = '';
+  }
+  q('.sn-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.sn-q1').forEach((d, i) => {
+      const v = d.querySelector('select')!.value, a = d.querySelector<HTMLElement>('.sn-ans')!, x = quiz[i], ok = v === x.answer; if (ok) right++;
+      a.hidden = false; a.className = 'sn-ans ' + (ok ? 'ok' : 'no');
+      a.textContent = `${ok ? '✓ Right.' : v ? `✗ ${x.answer === 'both' ? 'Both compete' : x.answer + ' is favoured'}.` : '✗ No answer yet.'} ${x.why}`;
+    });
+    q('.sn-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.sn-new').addEventListener('click', newQuiz);
+
+  update(); setMech('SN2'); newQuiz();
+</script>
