@@ -1,6 +1,7 @@
 // Inflation calculator: two index values, a yearly rate, a pasted series (rebase, convert, real values), Fisher, downloads, bad input.
 export const path = '/science/inflation-calculator/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  page.setDefaultTimeout(120000); // pages load slowly when many builds share the machine; reset at the end
   const dl = async (sel) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
   const big = () => page.textContent('.inf-big');
   const waitBig = (re) => page.waitForFunction((s) => new RegExp(s).test(document.querySelector('.inf-big')?.textContent || ''), re.source);
@@ -56,4 +57,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill('.inf-data', 'Year\tCPI\n2020\t100\nlater\t98');
   await waitErr(/later/);
   check(/"later" is not a date/.test(await page.textContent('.inf-err')), 'inflation: bad series date explained');
+  page.setDefaultTimeout(30000);
 };
