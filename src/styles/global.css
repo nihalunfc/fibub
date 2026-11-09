@@ -84,6 +84,8 @@ h1 { font-size: clamp(26px, 3.6vw, 36px); max-width: 820px; line-height: 1.15; l
 h2 { font-size: 20px; letter-spacing: -0.01em; margin: 36px 0 12px; }
 h3 { font-size: 17px; margin: 24px 0 8px; }
 .lead { color: var(--muted); font-size: 17px; max-width: 640px; margin: 0 0 20px; }
+.page-views { margin: -6px 0 12px; font-size: 14px; color: var(--muted); }
+.page-views b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--good); background: var(--good-soft); padding: 4px 10px; border-radius: 999px; }
 .crumbs { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .crumbs a { color: var(--muted); text-decoration: none; }

@@ -33,6 +33,7 @@ const everyTool = tool ? await allTools() : [];
 <Base title={tool.data.title} description={tool.data.summary} shelf={shelf.id} tool={tool.id} image={`/og/${tool.id}.png`}>
   <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={subject ? `/${shelf.id}/${subject.id}/#${section.id}` : `/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
+  <p class="page-views tool-counts" data-counter hidden title="How many times this tool's page has been opened, counted as a running total. Nothing about you is kept."><b data-count="v"></b>{' '}<span data-one="view" data-many="views">views</span></p>
   <p class="lead">{tool.data.summary}</p>
   <div class="bm" data-id={tool.id}>
     <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
@@ -48,10 +49,6 @@ const everyTool = tool ? await allTools() : [];
       </div>
     </dialog>
   </div>
-  <p class="tool-counts" data-counter hidden title="Running totals for this tool, open to everyone. A use is counted the first time someone works the tool after opening the page. Nothing about you is kept.">
-    <span><b data-count="v"></b>{' '}<span data-one="view" data-many="views">views</span></span>
-    <span><b data-count="u"></b>{' '}<span data-one="use" data-many="uses">uses</span></span>
-  </p>
   {tool.data.flow && <ToolFlow steps={tool.data.flow} works={tool.data.works} />}
   <div class="tool-ui"><ToolUI /></div>
   {related.direct.length > 0 && (
@@ -94,8 +91,6 @@ const everyTool = tool ? await allTools() : [];
 
 <style>
   .tool-ui { display: contents; }
-  .tool-counts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: -4px 0 16px; font-size: 14px; color: var(--muted); }
-  .tool-counts b { color: var(--ink); font-variant-numeric: tabular-nums; }
   .more-log { font-size: 14px; color: var(--muted); }
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
   .suggest span { color: var(--muted); font-size: 15px; }
