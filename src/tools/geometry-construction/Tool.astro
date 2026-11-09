@@ -1,0 +1,400 @@
+---
+// Interactive geometry construction: points, lines, circles and constructions that update when points are dragged.
+import '../../styles/astro.css';
+---
+<div class="ax gc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <label class="gc-exl">Example <select class="gc-ex">
+        <option value="circum">Circumcircle of a triangle</option>
+        <option value="incircle">Incircle of a triangle</option>
+        <option value="varignon">Midpoints of a quadrilateral</option>
+        <option value="blank">Blank page</option>
+      </select></label>
+      <div class="ax-row"><button type="button" class="btn secondary small gc-undo">Undo</button><button type="button" class="btn secondary small gc-clear">Clear all</button></div>
+    </div>
+    <div class="gc-tools" role="group" aria-label="Tools">
+      <button type="button" data-t="move">Move</button>
+      <button type="button" data-t="point">Point</button>
+      <button type="button" data-t="segment">Segment</button>
+      <button type="button" data-t="line">Line</button>
+      <button type="button" data-t="circle">Circle</button>
+      <button type="button" data-t="mid">Midpoint</button>
+      <button type="button" data-t="perp">Perpendicular</button>
+      <button type="button" data-t="par">Parallel</button>
+      <button type="button" data-t="pbis">Perpendicular bisector</button>
+      <button type="button" data-t="abis">Angle bisector</button>
+      <button type="button" data-t="inter">Intersect</button>
+      <button type="button" data-t="dist">Distance</button>
+      <button type="button" data-t="angle">Angle</button>
+      <button type="button" data-t="poly">Polygon</button>
+    </div>
+    <p class="gc-hint" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="gc-cv" role="img" aria-label="Construction"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <div class="ax-seg"><button type="button" class="gc-zin" aria-label="Zoom in">+</button><button type="button" class="gc-zout" aria-label="Zoom out">−</button></div>
+      <label class="ax-check"><input type="checkbox" class="gc-grid" checked /> Grid</label>
+      <label class="ax-check"><input type="checkbox" class="gc-snap" /> Snap to the grid</label>
+    </div>
+    <div class="dl">
+      <span class="dl-l">Download</span>
+      <button type="button" class="btn secondary gc-png">PNG</button>
+      <button type="button" class="btn secondary gc-svg">SVG</button>
+      <button type="button" class="btn secondary gc-csv">CSV</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Objects and measurements</h2>
+    <div class="ax-scroll"><table class="gc-list"></table></div>
+    <p class="ax-help">Type new coordinates for any free point, or drag it. Removing an object also removes everything built on it.</p>
+  </div>
+</div>
+
+<style is:global>
+  .gc-exl { flex: 1 1 220px; max-width: 320px; }
+  .gc-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .gc-tools button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .gc-tools button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .gc-hint { margin: 10px 0 0; font-size: 15px; min-height: 1.4em; }
+  .gc-cv { display: block; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 4 / 3; height: auto; border: 1px solid var(--line); border-radius: 8px; touch-action: none; cursor: crosshair; }
+  .gc-list td { vertical-align: middle; }
+  .gc-list input { width: 5.5em !important; padding: 5px 7px !important; }
+  .gc-x { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; width: 34px; height: 32px; font-size: 16px; cursor: pointer; }
+  .gc-xy { display: inline-flex; gap: 6px; align-items: center; }
+</style>
+
+<script>
+  import { evaluate, intersect, dependants, distanceTo, type Item, type Def, type Geo, type Ln, type Ci, type Pt } from '../../lib/sci/construct';
+  import { niceTicks, canvasPainter, svgPainter, OKABE_ITO, type Painter } from '../../lib/sci/plot';
+  import { sig, num } from '../../lib/sci/num';
+  import { pagePalette, LIGHT, save, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.gc-cv');
+  const fmt = (v: number, n = 6) => { const t = sig(v, n); return /×/.test(t) ? t : t.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''); };
+  type Tool = 'move' | 'point' | 'segment' | 'line' | 'circle' | 'mid' | 'perp' | 'par' | 'pbis' | 'abis' | 'inter' | 'dist' | 'angle' | 'poly';
+  const HINT: Record<Tool, string[]> = {
+    move: ['Drag a free point (a filled dot) to move it. Everything built on it follows.'],
+    point: ['Tap anywhere to place a point.'],
+    segment: ['Tap the first end (a point, or an empty spot for a new one).', 'Tap the second end.'],
+    line: ['Tap a first point on the line.', 'Tap a second point on the line.'],
+    circle: ['Tap the centre.', 'Tap a point the circle passes through.'],
+    mid: ['Tap the first point.', 'Tap the second point.'],
+    perp: ['Tap a line or segment, then a point the perpendicular passes through.', 'Now tap the other one (a point or a line).'],
+    par: ['Tap a line or segment, then a point the parallel passes through.', 'Now tap the other one (a point or a line).'],
+    pbis: ['Tap the first point.', 'Tap the second point.'],
+    abis: ['Tap a point on the first arm.', 'Tap the corner (vertex) of the angle.', 'Tap a point on the second arm.'],
+    inter: ['Tap the first line or circle.', 'Tap the second line or circle.'],
+    dist: ['Tap the first point.', 'Tap the second point.'],
+    angle: ['Tap a point on the first arm.', 'Tap the corner (vertex).', 'Tap a point on the second arm.'],
+    poly: ['Tap the corners in order. Tap the first corner again to finish.'],
+  };
+  const NEED: Partial<Record<Tool, number>> = { segment: 2, line: 2, circle: 2, mid: 2, pbis: 2, dist: 2, abis: 3, angle: 3 };
+  let items: Item[] = [], geo = new Map<string, Geo | null>(), history: string[] = [];
+  let tool: Tool = 'move', pending: string[] = [];
+  let view = { cx: 0, cy: 0, w: 14 }, W = 600, H = 450;
+
+  // ---------- Names ----------
+  const LET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  function newId(k: Def['k']): string {
+    const has = (s: string) => items.some((i) => i.id === s);
+    if (k === 'point' || k === 'mid' || k === 'inter') { for (let n = 0; ; n++) for (const L of LET) { const s = n ? `${L}${n}` : L; if (!has(s)) return s; } }
+    const pre = k === 'circle' ? 'c' : k === 'dist' ? 'd' : k === 'angle' ? 'α' : k === 'poly' ? 'P' : 'l';
+    for (let n = 1; ; n++) if (!has(`${pre}${n}`)) return `${pre}${n}`;
+  }
+  const isPoint = (id: string) => geo.get(id)?.t === 'pt';
+  const isLine = (id: string) => geo.get(id)?.t === 'ln';
+  const isCurve = (id: string) => { const g = geo.get(id); return g?.t === 'ln' || g?.t === 'ci'; };
+  const DESC = (it: Item): string => {
+    const d = it.def;
+    switch (d.k) {
+      case 'point': return 'Free point';
+      case 'mid': return `Midpoint of ${d.a}${d.b}`;
+      case 'inter': return `Crossing of ${d.a} and ${d.b}${['ci'].includes(geo.get(d.a)?.t ?? '') || ['ci'].includes(geo.get(d.b)?.t ?? '') ? ` (${d.i ? 'second' : 'first'})` : ''}`;
+      case 'segment': return `Segment ${d.a}${d.b}`;
+      case 'line': return `Line ${d.a}${d.b}`;
+      case 'circle': return `Circle, centre ${d.c}, through ${d.p}`;
+      case 'perp': return `Perpendicular to ${d.l} through ${d.p}`;
+      case 'par': return `Parallel to ${d.l} through ${d.p}`;
+      case 'pbis': return `Perpendicular bisector of ${d.a}${d.b}`;
+      case 'abis': return `Bisector of angle ${d.a}${d.b}${d.c}`;
+      case 'dist': return `Distance ${d.a}${d.b}`;
+      case 'angle': return `Angle ${d.a}${d.b}${d.c}`;
+      case 'poly': return `Polygon ${d.pts.join('')}`;
+    }
+  };
+  function valueText(g: Geo | null | undefined): string {
+    if (!g) return 'does not exist now';
+    switch (g.t) {
+      case 'pt': return `(${fmt(g.x)}, ${fmt(g.y)})`;
+      case 'ln': {
+        const len = g.len !== undefined ? `length ${fmt(g.len)}; ` : '';
+        if (Math.abs(g.dx) < 1e-12) return `${len}x = ${fmt(g.px)}`;
+        const m = g.dy / g.dx, b = g.py - m * g.px;
+        return `${len}y = ${Math.abs(m) < 1e-12 ? '' : `${fmt(m)}x `}${Math.abs(m) < 1e-12 ? fmt(b) : `${b < 0 ? '−' : '+'} ${fmt(Math.abs(b))}`}`;
+      }
+      case 'ci': return `centre (${fmt(g.cx)}, ${fmt(g.cy)}), radius ${fmt(g.r)}, area ${fmt(Math.PI * g.r * g.r)}`;
+      case 'val': return g.unit === 'degrees' ? `${fmt(g.v)}°` : fmt(g.v);
+      case 'pg': return `area ${fmt(g.area)}, perimeter ${fmt(g.perimeter)}`;
+    }
+  }
+
+  // ---------- Model ----------
+  const snapshot = () => { history.push(JSON.stringify(items)); if (history.length > 100) history.shift(); };
+  function add(def: Def): string { const id = newId(def.k); items.push({ id, def }); return id; }
+  function recompute() { geo = evaluate(items); }
+  function refresh() { recompute(); list(); paint(); hint(); }
+  function hint() {
+    const h = HINT[tool], step = tool === 'poly' ? 0 : Math.min(pending.length, h.length - 1);
+    q('.gc-hint').textContent = (pending.length ? `Chosen: ${pending.join(', ')}. ` : '') + h[step];
+  }
+  function finish() {
+    const p = pending, t = tool;
+    snapshot();
+    if (t === 'segment' || t === 'line') add({ k: t, a: p[0], b: p[1] });
+    else if (t === 'circle') add({ k: 'circle', c: p[0], p: p[1] });
+    else if (t === 'mid' || t === 'pbis' || t === 'dist') add({ k: t, a: p[0], b: p[1] });
+    else if (t === 'abis' || t === 'angle') add({ k: t, a: p[0], b: p[1], c: p[2] });
+    else if (t === 'perp' || t === 'par') { const l = p.find(isLine)!, pt2 = p.find(isPoint)!; add({ k: t, l, p: pt2 }); }
+    else if (t === 'inter') {
+      const A = geo.get(p[0]) as Ln | Ci, B = geo.get(p[1]) as Ln | Ci, two = A.t === 'ci' || B.t === 'ci';
+      add({ k: 'inter', a: p[0], b: p[1], i: 0 }); if (two) add({ k: 'inter', a: p[0], b: p[1], i: 1 });
+      if (!intersect(A, B).length) { pending = []; refresh(); q('.gc-hint').textContent = 'They do not meet right now; the crossing will appear when they do.'; return; }
+    }
+    else if (t === 'poly') add({ k: 'poly', pts: [...p] });
+    pending = [];
+    refresh();
+  }
+
+  // ---------- View ----------
+  const k = () => W / view.w;
+  const SX = (x: number) => W / 2 + (x - view.cx) * k(), SY = (y: number) => H / 2 - (y - view.cy) * k();
+  const WX = (sx: number) => view.cx + (sx - W / 2) / k(), WY = (sy: number) => view.cy - (sy - H / 2) / k();
+  function hitPoint(sx: number, sy: number, r = 14): string | null {
+    let best: string | null = null, bd = r;
+    for (const it of items) { const g = geo.get(it.id); if (g?.t === 'pt') { const d = Math.hypot(SX(g.x) - sx, SY(g.y) - sy); if (d < bd) { bd = d; best = it.id; } } }
+    return best;
+  }
+  function hitCurve(sx: number, sy: number, r = 12): string | null {
+    let best: string | null = null, bd = r / k();
+    const x = WX(sx), y = WY(sy);
+    for (const it of items) { const g = geo.get(it.id); if (g && (g.t === 'ln' || g.t === 'ci')) { const d = distanceTo(g, x, y); if (d < bd) { bd = d; best = it.id; } } }
+    return best;
+  }
+  const snapV = (v: number) => (q<HTMLInputElement>('.gc-snap').checked ? Math.round(v * 2) / 2 : +v.toFixed(4));
+
+  // ---------- Drawing ----------
+  const colors = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1']);
+  function draw(P: Painter, w: number, h: number, pal: Palette) {
+    const col = colors(pal), sel = new Set(pending);
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], pal.bg, null);
+    const kk = w / view.w, sx = (x: number) => w / 2 + (x - view.cx) * kk, sy = (y: number) => h / 2 - (y - view.cy) * kk;
+    if (q<HTMLInputElement>('.gc-grid').checked) {
+      const x0 = view.cx - view.w / 2, x1 = view.cx + view.w / 2, hh = (h / w) * view.w, y0 = view.cy - hh / 2, y1 = view.cy + hh / 2;
+      const xt = niceTicks(x0, x1, Math.round(w / 45)), yt = niceTicks(y0, y1, Math.round(h / 45));
+      for (const v of xt) P.line([[sx(v), 0], [sx(v), h]], pal.grid, 1);
+      for (const v of yt) P.line([[0, sy(v)], [w, sy(v)]], pal.grid, 1);
+      P.line([[sx(0), 0], [sx(0), h]], pal.line, 1.2); P.line([[0, sy(0)], [w, sy(0)]], pal.line, 1.2);
+      const step = xt[1] - xt[0];
+      for (const v of xt) if (Math.abs(v) > 1e-9 && v % (step * 2) === 0) P.text(sx(v), Math.min(h - 14, Math.max(2, sy(0) + 3)), fmt(v), 10.5, pal.muted, 'middle', 'top');
+      for (const v of yt) if (Math.abs(v) > 1e-9 && v % (step * 2) === 0) P.text(Math.min(w - 3, Math.max(14, sx(0) - 4)), sy(v), fmt(v), 10.5, pal.muted, 'end', 'middle');
+    }
+    P.clip(0, 0, w, h);
+    let ci = 0;
+    const colOf = new Map<string, string>();
+    for (const it of items) { const g = geo.get(it.id); if (g && (g.t === 'ln' || g.t === 'ci' || g.t === 'pg')) colOf.set(it.id, col[ci++ % col.length]); }
+    for (const it of items) {
+      const g = geo.get(it.id); if (!g || g.t !== 'pg') continue;
+      const c = colOf.get(it.id)!, pts = g.pts.map(([x, y]) => [sx(x), sy(y)] as [number, number]);
+      P.poly(pts, pal.red ? '#200000' : pal.bg === '#ffffff' ? '#eef3fa' : '#16202c', c, sel.has(it.id) ? 3 : 1.6);
+      const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+      P.text(cx, cy, `${it.id}: ${fmt(g.area, 4)}`, 12, pal.ink, 'middle', 'middle');
+    }
+    for (const it of items) {
+      const g = geo.get(it.id); if (!g) continue;
+      const c = colOf.get(it.id) ?? pal.ink, wdt = sel.has(it.id) ? 3.5 : 2;
+      if (g.t === 'ln') {
+        const T = g.len ?? 4 * Math.hypot(view.w, view.w), a = g.len !== undefined ? 0 : -T;
+        P.line([[sx(g.px + a * g.dx), sy(g.py + a * g.dy)], [sx(g.px + T * g.dx), sy(g.py + T * g.dy)]], c, wdt);
+        if (g.len === undefined) { const lx = Math.min(w - 20, Math.max(20, sx(g.px + g.dx * view.w * 0.3))), ly = Math.min(h - 20, Math.max(14, sy(g.py + g.dy * view.w * 0.3))); P.text(lx + 6, ly - 4, it.id, 12, c, 'start', 'bottom', 0, true); }
+      } else if (g.t === 'ci') P.circle(sx(g.cx), sy(g.cy), g.r * kk, null, c, wdt);
+    }
+    // Measures drawn where they belong.
+    for (const it of items) {
+      const g = geo.get(it.id), d = it.def; if (!g || g.t !== 'val') continue;
+      if (d.k === 'dist') { const a = geo.get(d.a) as Pt, b = geo.get(d.b) as Pt; P.line([[sx(a.x), sy(a.y)], [sx(b.x), sy(b.y)]], pal.muted, 1, [4, 4]); P.text((sx(a.x) + sx(b.x)) / 2 + 4, (sy(a.y) + sy(b.y)) / 2 - 4, `${it.id} = ${fmt(g.v, 4)}`, 12, pal.ink, 'start', 'bottom'); }
+      if (d.k === 'angle') {
+        const a = geo.get(d.a) as Pt, b = geo.get(d.b) as Pt, c = geo.get(d.c) as Pt;
+        const t1 = Math.atan2(a.y - b.y, a.x - b.x), t2 = Math.atan2(c.y - b.y, c.x - b.x); let dt = t2 - t1; while (dt > Math.PI) dt -= 2 * Math.PI; while (dt < -Math.PI) dt += 2 * Math.PI;
+        const arc: [number, number][] = []; for (let i = 0; i <= 24; i++) { const t = t1 + (dt * i) / 24; arc.push([sx(b.x) + 22 * Math.cos(t), sy(b.y) - 22 * Math.sin(t)]); }
+        P.line(arc, pal.ink, 1.4); const tm = t1 + dt / 2; P.text(sx(b.x) + 30 * Math.cos(tm), sy(b.y) - 30 * Math.sin(tm), `${fmt(g.v, 4)}°`, 12, pal.ink, Math.cos(tm) < -0.3 ? 'end' : Math.cos(tm) > 0.3 ? 'start' : 'middle', 'middle');
+      }
+    }
+    for (const it of items) {
+      const g = geo.get(it.id); if (!g || g.t !== 'pt') continue;
+      const free = it.def.k === 'point', x = sx(g.x), y = sy(g.y);
+      if (sel.has(it.id)) P.circle(x, y, 9, null, pal.accent, 2);
+      P.circle(x, y, free ? 5 : 4, free ? pal.ink : pal.bg, pal.ink, 1.6);
+      P.text(x + 7, y - 5, it.id, 13, pal.ink, 'start', 'bottom', 0, true);
+    }
+    P.unclip();
+  }
+  function paint() {
+    W = Math.max(240, Math.round(cv.clientWidth || 600)); H = Math.round(W * 0.75);
+    const dpr = Math.min(3, window.devicePixelRatio || 1); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw(canvasPainter(ctx), W, H, pagePalette());
+    cv.setAttribute('aria-label', `Construction with ${items.length} objects`);
+  }
+  function list() {
+    const t = q<HTMLTableElement>('.gc-list');
+    if (!items.length) { t.replaceChildren(); return; }
+    t.innerHTML = '<thead><tr><th>Name</th><th>What</th><th>Value</th><th></th></tr></thead><tbody></tbody>';
+    t.tBodies[0].replaceChildren(...items.map((it) => {
+      const tr = document.createElement('tr'); tr.dataset.id = it.id;
+      tr.innerHTML = '<td><b></b></td><td></td><td></td><td><button type="button" class="gc-x">×</button></td>';
+      tr.querySelector('b')!.textContent = it.id; tr.cells[1].textContent = DESC(it);
+      if (it.def.k === 'point') {
+        tr.cells[2].innerHTML = '<span class="gc-xy">(<input class="gc-px" inputmode="decimal" />, <input class="gc-py" inputmode="decimal" />)</span>';
+        const [x, y] = tr.querySelectorAll('input'); x.value = String(it.def.x); y.value = String(it.def.y); x.setAttribute('aria-label', `${it.id} x`); y.setAttribute('aria-label', `${it.id} y`);
+      } else tr.cells[2].textContent = valueText(geo.get(it.id));
+      const b = tr.querySelector('button')!; b.setAttribute('aria-label', `Remove ${it.id}`);
+      return tr;
+    }));
+  }
+  function updateValues() {
+    root.querySelectorAll<HTMLTableRowElement>('.gc-list tbody tr').forEach((tr) => {
+      const it = items.find((i) => i.id === tr.dataset.id); if (!it) return;
+      if (it.def.k === 'point') { const [x, y] = tr.querySelectorAll('input'); if (document.activeElement !== x) x.value = String(it.def.x); if (document.activeElement !== y) y.value = String(it.def.y); }
+      else tr.cells[2].textContent = valueText(geo.get(it.id));
+    });
+  }
+
+  // ---------- Tapping and dragging ----------
+  function tap(sx: number, sy: number) {
+    const x = snapV(WX(sx)), y = snapV(WY(sy));
+    const P0 = hitPoint(sx, sy), Cv = P0 ? null : hitCurve(sx, sy);
+    const newPoint = () => { snapshot(); return add({ k: 'point', x, y }); };
+    switch (tool) {
+      case 'move': return;
+      case 'point': if (!P0) { newPoint(); refresh(); } return;
+      case 'inter': if (Cv && !pending.includes(Cv)) { pending.push(Cv); if (pending.length === 2) finish(); else refresh(); } return;
+      case 'perp': case 'par': {
+        const want = pending.some(isLine) ? 'pt' : pending.some(isPoint) ? 'ln' : 'any';
+        let pick: string | null = null;
+        if ((want === 'pt' || want === 'any') && P0) pick = P0;
+        else if ((want === 'ln' || want === 'any') && Cv && isLine(Cv)) pick = Cv;
+        else if (want === 'pt' && !P0) pick = newPoint();
+        if (pick) { pending.push(pick); if (pending.length === 2) finish(); else refresh(); }
+        return;
+      }
+      case 'poly': {
+        if (P0 && pending.length >= 3 && P0 === pending[0]) { finish(); return; }
+        const id = P0 ?? newPoint(); if (!pending.includes(id)) pending.push(id); refresh(); return;
+      }
+      default: {
+        const id = P0 ?? newPoint();
+        if (pending.includes(id) && tool !== 'abis' && tool !== 'angle') { refresh(); return; }
+        pending.push(id);
+        if (pending.length === NEED[tool]) finish(); else refresh();
+      }
+    }
+  }
+  let drag: { id: string; moved: boolean; x0: number; y0: number } | null = null, down: { x: number; y: number } | null = null;
+  const local = (e: PointerEvent) => { const r = cv.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H }; };
+  cv.addEventListener('pointerdown', (e) => {
+    const p = local(e); down = p; cv.setPointerCapture(e.pointerId);
+    const id = hitPoint(p.x, p.y);
+    drag = id && items.find((i) => i.id === id)?.def.k === 'point' ? { id, moved: false, x0: p.x, y0: p.y } : null;
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return; const p = local(e);
+    if (!drag.moved && Math.hypot(p.x - drag.x0, p.y - drag.y0) < 5) return;
+    if (!drag.moved) snapshot();
+    drag.moved = true;
+    const it = items.find((i) => i.id === drag!.id)!; const d = it.def as { k: 'point'; x: number; y: number };
+    d.x = snapV(WX(p.x)); d.y = snapV(WY(p.y));
+    recompute(); updateValues(); paint();
+  });
+  cv.addEventListener('pointerup', (e) => {
+    const p = local(e);
+    if (drag?.moved) { drag = null; down = null; return; }
+    drag = null;
+    if (down && Math.hypot(p.x - down.x, p.y - down.y) < 8) tap(p.x, p.y);
+    down = null;
+  });
+  cv.addEventListener('pointercancel', () => { drag = null; down = null; });
+
+  // ---------- Examples ----------
+  function example(id: string) {
+    items = []; pending = []; history = [];
+    const pt2 = (x: number, y: number) => add({ k: 'point', x, y });
+    if (id === 'circum' || id === 'incircle') {
+      pt2(-4, -2); pt2(3, -3); pt2(1, 4);
+      add({ k: 'segment', a: 'A', b: 'B' }); add({ k: 'segment', a: 'B', b: 'C' }); add({ k: 'segment', a: 'C', b: 'A' });
+      if (id === 'circum') {
+        add({ k: 'pbis', a: 'A', b: 'B' }); add({ k: 'pbis', a: 'B', b: 'C' });
+        add({ k: 'inter', a: 'l4', b: 'l5', i: 0 }); add({ k: 'circle', c: 'D', p: 'A' });
+        add({ k: 'dist', a: 'D', b: 'A' }); add({ k: 'dist', a: 'D', b: 'B' }); add({ k: 'dist', a: 'D', b: 'C' }); add({ k: 'angle', a: 'A', b: 'B', c: 'C' });
+      } else {
+        add({ k: 'abis', a: 'B', b: 'A', c: 'C' }); add({ k: 'abis', a: 'A', b: 'B', c: 'C' });
+        add({ k: 'inter', a: 'l4', b: 'l5', i: 0 }); add({ k: 'perp', l: 'l1', p: 'D' }); add({ k: 'inter', a: 'l1', b: 'l6', i: 0 });
+        add({ k: 'circle', c: 'D', p: 'E' }); add({ k: 'dist', a: 'D', b: 'E' }); add({ k: 'poly', pts: ['A', 'B', 'C'] });
+      }
+    } else if (id === 'varignon') {
+      pt2(-5, -3); pt2(4, -4); pt2(5, 3); pt2(-2, 5);
+      add({ k: 'poly', pts: ['A', 'B', 'C', 'D'] });
+      add({ k: 'mid', a: 'A', b: 'B' }); add({ k: 'mid', a: 'B', b: 'C' }); add({ k: 'mid', a: 'C', b: 'D' }); add({ k: 'mid', a: 'D', b: 'A' });
+      add({ k: 'poly', pts: ['E', 'F', 'G', 'H'] });
+    }
+    view = { cx: 0, cy: 0, w: 14 };
+    setTool(id === 'blank' ? 'point' : 'move');
+    refresh();
+  }
+  function setTool(t: Tool) {
+    tool = t; pending = [];
+    root.querySelectorAll<HTMLButtonElement>('.gc-tools button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
+    cv.style.cursor = t === 'move' ? 'grab' : 'crosshair';
+  }
+
+  // ---------- Downloads ----------
+  q('.gc-svg').addEventListener('click', () => { const P = svgPainter(W, H); draw(P, W, H, LIGHT); save(new Blob([P.toString()], { type: 'image/svg+xml' }), 'construction.svg', 'image/svg+xml'); });
+  q('.gc-png').addEventListener('click', () => { const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2; const ctx = c.getContext('2d')!; ctx.scale(2, 2); draw(canvasPainter(ctx), W, H, LIGHT); c.toBlob((b) => b && save(b, 'construction.png', 'image/png'), 'image/png'); });
+  q('.gc-csv').addEventListener('click', () => {
+    const cell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s), g = (v: number) => String(+v.toPrecision(12));
+    const rows = items.map((it) => {
+      const o = geo.get(it.id); let x = '', y = '', v = '';
+      if (o?.t === 'pt') { x = g(o.x); y = g(o.y); } else if (o?.t === 'val') v = g(o.v); else if (o?.t === 'ci') v = g(o.r); else if (o?.t === 'pg') v = g(o.area); else if (o?.t === 'ln' && o.len !== undefined) v = g(o.len);
+      return [it.id, cell(DESC(it)), x, y, v, cell(valueText(o))].join(',');
+    });
+    save(new Blob([['name,what,x,y,value,description', ...rows].join('\n') + '\n'], { type: 'text/csv' }), 'construction.csv', 'text/csv');
+  });
+
+  // ---------- Wiring ----------
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    if (b.dataset.t) { setTool(b.dataset.t as Tool); refresh(); }
+    else if (b.classList.contains('gc-x')) { const id = b.closest('tr')!.dataset.id!; snapshot(); const dead = dependants(items, id); items = items.filter((i) => !dead.has(i.id)); pending = pending.filter((p) => !dead.has(p)); refresh(); }
+    else if (b.classList.contains('gc-undo')) { const s = history.pop(); if (s) { items = JSON.parse(s); pending = []; refresh(); } }
+    else if (b.classList.contains('gc-clear')) { snapshot(); items = []; pending = []; refresh(); }
+    else if (b.classList.contains('gc-zin')) { view.w /= 1.5; paint(); }
+    else if (b.classList.contains('gc-zout')) { view.w *= 1.5; paint(); }
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.classList.contains('gc-ex')) example(t.value);
+    else if (t.classList.contains('gc-px') || t.classList.contains('gc-py')) {
+      const it = items.find((i) => i.id === t.closest('tr')!.dataset.id); const v = num(t.value);
+      if (!it || it.def.k !== 'point' || !Number.isFinite(v)) { list(); return; }
+      snapshot(); if (t.classList.contains('gc-px')) it.def.x = v; else it.def.y = v; recompute(); updateValues(); paint();
+    } else paint();
+  });
+  new ResizeObserver(() => { if (Math.round(cv.clientWidth) !== W) paint(); }).observe(cv);
+  new MutationObserver(() => paint()).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  example('circum');
+</script>
