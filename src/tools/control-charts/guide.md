@@ -11,7 +11,7 @@ order: 690
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [gauge-rr, trend-analyser, method-validation, uncertainty-calculator]
+related: [gauge-rr, trend-analyser, method-validation, uncertainty-calculator, calibration-drift, westgard-qc, tolerance-stackup, time-series-analyser]
 sources:
   - "Shewhart control charts and limits as in Montgomery, D. C., Introduction to Statistical Quality Control; the d2, d3 and c4 constants are computed by fibub from the normal distribution (Tippett 1925 for the range, the gamma function for c4), not copied from tables."
   - "Western Electric Statistical Quality Control Handbook (1956) rules and Nelson, L. S. (1984), The Shewhart control chart: tests for special causes, Journal of Quality Technology 16(4); rule wording by fibub."
@@ -34,6 +34,8 @@ A **control chart** tells you whether a process is stable: whether its ups and d
 - **c** and **u** for the number of defects in each sample or per unit inspected.
 
 Limits are the centre line ± 3 sigma, estimated from your data. Points are checked against the **Western Electric** rules (4 rules) or the eight **Nelson** rules, such as 2 of 3 points beyond 2 sigma or 9 points in a row on one side. For measurement charts, add specification limits to get **process capability**: Cp, Cpk, Pp and Ppk with confidence intervals, the expected parts per million out of specification, and a histogram with normal curves.
+
+Check the measurement system first with a [[gauge-rr|gauge R&R study]], and set tolerances the process can meet with the [[tolerance-stackup|tolerance stack-up]].
 
 ## How to use it
 

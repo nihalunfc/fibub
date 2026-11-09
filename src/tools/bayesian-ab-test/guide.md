@@ -11,7 +11,7 @@ order: 564
 icon: percent
 works: offline
 updated: 2026-11-09
-related: [hypothesis-tests, bootstrap-permutation, sample-size, effect-size-converter]
+related: [hypothesis-tests, bootstrap-permutation, sample-size, effect-size-converter, distribution-explorer, experiment-design, randomisation-list]
 sources:
   - "Methods: Evan Miller (2015), Formulas for Bayesian A/B testing; Gelman et al., Bayesian Data Analysis (conjugate priors). Example numbers made up."
 flow:
@@ -26,6 +26,8 @@ flow:
 A classical A/B test answers "would a difference this big be surprising if there were none?". A Bayesian A/B test answers the question people actually ask: **how likely is it that B is better than A, and how much do I risk if I pick it?** Type the visitors and conversions for each version and the tool gives the probability that B beats A, the expected loss of each choice and credible intervals, with a picture of both posterior distributions.
 
 The second mode, **Update a prior**, shows Bayesian updating in its simplest form: a conjugate prior plus data gives a posterior of the same family. It covers proportions (beta-binomial), rates of counts (gamma-Poisson) and means with a known spread (normal-normal), with a table and a plot of prior against posterior.
+
+For a classic p-value on the same data use the [[hypothesis-tests|hypothesis test chooser]], and plan how many visitors or samples you need with the [[sample-size|sample size calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 316
 icon: target
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, biodiversity-indices, field-sampling-planner, plot-maker]
+related: [gps-track-analyser, biodiversity-indices, field-sampling-planner, plot-maker, vector-map-viewer, utm-converter, mark-recapture, ethogram-logger, habitat-connectivity, camera-trap-tagger]
 sources:
   - "Reference bandwidth and fixed kernel home range: Worton, B. J. (1989), Ecology 70: 164–168."
   - "Minimum convex polygon and the percentage MCP by distance to the centre: as in Calenge, C. (2006), the adehabitatHR package for R, Ecological Modelling 197: 516–519."
@@ -29,6 +29,8 @@ flow:
 A home range is the area an animal uses for its normal activities: finding food, resting, raising young. With a GPS collar you get a list of positions (fixes), and this tool turns that list into the standard home range estimates used in animal ecology and wildlife management, plus simple movement statistics. It draws a map of the fixes with the ranges on top. Everything is worked out in your browser: the collar file never leaves your device, and the page works offline once loaded.
 
 This is a different job from the GPS track analyser, which is for hikes and runs (distance, climb and pace). Here the question is how much space an animal uses, and how it moves between fixes.
+
+Clean up the GPS fixes first with the [[gps-track-analyser|GPS track analyser]], and see how habitat patches link up with [[habitat-connectivity|habitat connectivity]].
 
 ## How to use it
 

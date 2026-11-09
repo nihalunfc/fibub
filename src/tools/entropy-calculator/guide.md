@@ -11,7 +11,7 @@ order: 578
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [huffman-coding, error-correcting-codes, cipher-teacher, biodiversity-indices, link-budget-calculator, compress-file]
+related: [huffman-coding, error-correcting-codes, cipher-teacher, biodiversity-indices, link-budget-calculator, compress-file, constellation-ber]
 sources:
   - "Formulas: Shannon (1948); Cover and Thomas, Elements of Information Theory (general textbook definitions). Blahut-Arimoto as in Blahut (1972) and Arimoto (1972), with Blahut's upper and lower bounds."
   - "Checked against scipy.stats.entropy, scipy's Jensen-Shannon distance, scikit-learn's mutual_info_score and, for channel capacity, a separate scipy.optimize maximisation of I(X;Y) plus the closed forms for the binary symmetric, erasure and Z channels."
@@ -34,6 +34,8 @@ Entropy measures uncertainty: how many yes-or-no questions, on average, it takes
 - **Channel**: the capacity of the binary symmetric channel (bits flip), the binary erasure channel (bits go missing), the Z channel, and any channel you type as a matrix, found by the **Blahut-Arimoto** algorithm with its upper and lower bounds at each step.
 
 Every answer can be shown in bits (log base 2), nats (natural log) or hartleys (log base 10).
+
+See how close a real code gets to the entropy with [[huffman-coding|Huffman coding]], and protect the bits against a noisy channel with [[error-correcting-codes]].
 
 ## How to use it
 

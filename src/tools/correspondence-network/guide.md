@@ -11,7 +11,7 @@ order: 417
 icon: link
 works: offline
 updated: 2026-11-09
-related: [stylometry-delta, topic-modeller, historic-calendar-converter]
+related: [stylometry-delta, topic-modeller, historic-calendar-converter, manuscript-annotator, social-network-analysis, network-metrics, graph-algorithms]
 sources:
   - "Methods: U. Brandes (2001), \"A faster algorithm for betweenness centrality\", Journal of Mathematical Sociology 25(2); A. Clauset, M. Newman and C. Moore (2004), \"Finding community structure in very large networks\", Physical Review E 70, 066111; M. Newman (2004), weighted modularity; T. Fruchterman and E. Reingold (1991), force-directed layout."
   - "Checked against networkx on the example and 30 random letter networks: degree, strength, betweenness and modularity identical (to 1e-15); greedy_modularity_communities gave the same communities in 30 of 31, and in the other our joining order found a slightly higher modularity."
@@ -33,6 +33,8 @@ Letters are one of the richest sources for history: who wrote to whom, how often
 - a **date filter** to see how the network looked in any period.
 
 Everything runs in your browser and your list is never uploaded.
+
+Fix the letters' dates first with the [[historic-calendar-converter|historic calendar converter]], and measure who is most central with [[social-network-analysis|social network analysis]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 14
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [physical-constants, sig-fig-checker, uncertainty-calculator]
+related: [physical-constants, sig-fig-checker, uncertainty-calculator, buckingham-pi, unit-converter, dimensionless-numbers]
 sources:
   - "SI base units, derived units with special names and prefixes: BIPM, The International System of Units (SI brochure, 9th edition, 2019); dimensional homogeneity is a standard principle of physics."
   - "The dimensions of 46 units were compared with sympy.physics.units (no differences), written for the tests."
@@ -26,6 +26,8 @@ flow:
 Every correct physics equation is **dimensionally consistent**: both sides, and every term added together, have the same dimensions. You cannot add a length to a time, and the argument of exp, ln or sin must be a pure number. Checking this is the quickest way to catch an algebra slip, a missing square or a wrong formula from memory.
 
 This checker turns each symbol's unit into powers of the seven **SI base units** (kg, m, s, A, K, mol, cd), works through your equation, and tells you whether it balances. If it does not, it points to the place: two terms that cannot be added, a dimensioned argument to a function, or two sides that differ.
+
+Find the dimensionless groups of a problem with the [[buckingham-pi|Buckingham Pi tool]], and convert between unit systems with the [[unit-converter|unit converter]].
 
 ## How to use it
 

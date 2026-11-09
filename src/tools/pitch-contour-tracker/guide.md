@@ -11,7 +11,7 @@ order: 735
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, trend-analyser, period-finder]
+related: [plot-maker, trend-analyser, period-finder, vowel-formant-chart, audio-spectrum-analyser, tuning-calculator, ipa-keyboard]
 sources:
   - "Methods: YIN, de Cheveigné and Kawahara (2002), J. Acoust. Soc. Am. 111, 1917; normalised autocorrelation pitch detection (textbook method, e.g. Rabiner and Schafer, Digital Processing of Speech Signals). Semitones: 12 log2(f / reference)."
   - "Example sound: made up for this page (a synthetic voice with an invented pitch contour)."
@@ -27,6 +27,8 @@ flow:
 Pitch is how high or low a voice sounds; its physical measure is the **fundamental frequency, F0**, the number of times the vocal folds vibrate per second. Intonation (a question rising at the end, a statement falling), lexical tone in languages such as Mandarin or Yoruba, stress and emotion all show up in the F0 contour.
 
 This tool tracks F0 every 10 ms through a recording and draws the contour in hertz and in semitones. It runs in your browser, so recordings never leave your device.
+
+Measure the vowels in the same recording with the [[vowel-formant-chart]], and look at its full spectrum with the [[audio-spectrum-analyser]].
 
 ## How to use it
 

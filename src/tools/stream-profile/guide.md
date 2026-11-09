@@ -11,7 +11,7 @@ order: 890
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [infinite-slope, manning-weir-calculator]
+related: [infinite-slope, manning-weir-calculator, dem-terrain, watershed-delineation, rating-curve, grain-size-stats]
 sources:
   - "Methods (formulas only, no data copied): stream power and slope-area scaling (Flint 1974; Hack 1957); chi analysis (Perron and Royden 2013); priority-flood pit filling (Barnes, Lehman and Mulla 2014); D8 flow routing (O'Callaghan and Mark 1984); BIC for segment counts (Schwarz 1978)."
   - "Example profile and DEM: synthetic, made up by fibub from Hack's law and a steady-state stream-power profile."
@@ -32,6 +32,8 @@ Rivers record how fast the land is rising and how hard the rock is. At steady st
 - **χ plot**: χ = ∫ (A₀/A)^θ dx from the outlet up (Perron and Royden 2013). At steady state elevation is a straight line against χ, and its slope is the **normalised steepness ksn** at the reference concavity θref (with A₀ = 1 m²). χ uses the whole profile instead of noisy local slopes, so it is the steadier measure.
 - **Best θ**: the page tries θ from 0.05 to 1.5 and keeps the one that makes the χ plot straightest (largest R²).
 - **Knickpoint hints**: places where z against χ is better fitted by two or three separate lines (chosen by BIC), with ksn below and above each.
+
+Pick out the stream network first with [[watershed-delineation]], and look at the hillslopes beside it with the [[dem-terrain|DEM slope and hillshade]] tool.
 
 ## How to use it
 

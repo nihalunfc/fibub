@@ -11,7 +11,7 @@ order: 563
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [sample-size, uncertainty-calculator, plot-maker, reliability-analysis]
+related: [sample-size, uncertainty-calculator, plot-maker, reliability-analysis, hypothesis-tests, bootstrap-permutation, bayesian-ab-test, counting-statistics, regression-workbench]
 sources:
   - "Formulas are standard textbook results. Methods: Loader's saddle-point binomial and Poisson terms (as in R), Numerical Recipes series and continued fractions for the incomplete gamma and beta functions, Gauss–Legendre quadrature for the Rice and von Mises distributions."
   - "Checked against scipy.stats 1.18.1 for all 35 distributions (density or mass, CDF, survival function and quantiles at several points, and the four moments), and against mpmath at 30 digits where scipy's own far-tail values are slightly off."
@@ -33,6 +33,8 @@ This is a statistics table and a graphing calculator in one. Choose a probabilit
 - a **random sample** of up to 100,000 values from a seed you choose, with its histogram drawn over the true curve.
 
 There are 35 distributions. **Continuous:** normal, Student's t, chi-squared, F, beta, gamma, exponential, Weibull, log-normal, Cauchy, logistic, Gumbel, Pareto, uniform, triangular, Laplace, Rayleigh, Rice, von Mises, chi, Maxwell–Boltzmann, inverse gamma, half-normal, generalised extreme value, generalised Pareto, inverse Gaussian and log-logistic. **Whole numbers:** Bernoulli, binomial, Poisson, negative binomial, geometric, hypergeometric, discrete uniform and beta-binomial. Each one has a line saying where it turns up, and each parameter a line saying what it does.
+
+Once you know which distribution fits, run the right test with the [[hypothesis-tests|hypothesis test chooser]] or check your error bars with the [[uncertainty-calculator]].
 
 ## How to use it
 

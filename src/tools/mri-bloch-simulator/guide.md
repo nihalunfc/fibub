@@ -11,7 +11,7 @@ order: 1
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, plot-maker]
+related: [decay-calculator, plot-maker, ct-reconstruction, ultrasound-calculator, dicom-viewer, fourier-visualiser, bloch-sphere]
 sources:
   - "Bloch equations, spin echo, spoiled gradient echo (Ernst) and inversion recovery signal equations, k-space and the 2D Fourier transform: standard MRI physics, for example Haacke, E. M. et al. (1999), Magnetic Resonance Imaging: Physical Principles and Sequence Design, and Hargreaves' Bloch simulation notes (rotation and relaxation matrices)."
   - "Checked against an independent numpy steady-state solver (fixed point of the rotation and relaxation matrices) and numpy.fft, written for the tests."
@@ -28,6 +28,8 @@ flow:
 An MRI scanner does not photograph tissue; it measures the radio signal from hydrogen nuclei whose magnetisation has been tipped by radio-frequency pulses. How bright each tissue looks depends on two relaxation times, **T1** (how fast the magnetisation grows back along the main field) and **T2** (how fast the signal in the transverse plane dies away), on its **proton density**, and on the timings the operator chooses.
 
 This simulator works that out in two independent ways. It uses the **closed-form signal equations** for spin echo, spoiled gradient echo and inversion recovery, and it also **steps the Bloch equations** pulse by pulse (rotations for the pulses, exponential relaxation in between) until the signal settles. The two columns in the table agree, which is a good check that the formulas mean what they say. It then builds a made-up head-like image from those signals, takes its **2D Fourier transform** to show the **k-space** the scanner really records, and rebuilds the image from all or part of it.
+
+Open real scans with the [[dicom-viewer]], and compare how CT builds an image in the [[ct-reconstruction|CT reconstruction demo]].
 
 ## How to use it
 

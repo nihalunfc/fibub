@@ -11,7 +11,7 @@ order: 5
 icon: table
 works: offline
 updated: 2026-11-09
-related: [bloch-sphere, hydrogen-orbitals]
+related: [bloch-sphere, hydrogen-orbitals, operator-algebra, error-correcting-codes, cipher-teacher, logic-simplifier, matrix-calculator]
 sources:
   - "OpenQASM 2.0 language and the qelib1.inc gate definitions: Cross, A. W., Bishop, L. S., Smolin, J. A. and Gambetta, J. M. (2017), Open Quantum Assembly Language, arXiv:1707.03429 (the specification; no code from it is used)."
   - "State-vector simulation and gate matrices: standard textbook results, for example Nielsen, M. A. and Chuang, I. L., Quantum Computation and Quantum Information."
@@ -29,6 +29,8 @@ flow:
 A quantum computer's state for n qubits is a list of 2ⁿ complex numbers, the **amplitudes** of every basis state from |00…0⟩ to |11…1⟩. Each gate mixes them, and measuring at the end picks one basis state with probability |amplitude|². This simulator keeps the whole list and applies each gate exactly, so for up to 20 qubits (about a million amplitudes) it gives the exact answer a perfect, noise-free quantum computer would.
 
 Circuits are written in **OpenQASM 2.0**, the plain-text format that Qiskit and many other tools read and write, so you can paste a circuit from elsewhere, check it here and save it again. You can also build one with the gate picker.
+
+Follow one qubit's state on the [[bloch-sphere|Bloch sphere]], and check gate matrices with the [[operator-algebra|operator algebra helper]].
 
 ## How to use it
 

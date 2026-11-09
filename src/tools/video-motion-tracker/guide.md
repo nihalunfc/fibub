@@ -11,7 +11,7 @@ order: 6
 icon: camera
 works: offline
 updated: 2026-11-09
-related: [projectile-drag, pendulum-analyser, collision-calculator, graph-digitizer, plot-maker]
+related: [projectile-drag, pendulum-analyser, collision-calculator, graph-digitizer, plot-maker, curve-fitter, uncertainty-calculator, jump-height]
 sources:
   - "Finite differences on uneven time steps (second-order central differences, as in numpy.gradient) and least-squares polynomial fits with standard errors: standard numerical methods."
   - "Checked against numpy.gradient and numpy.polyfit(cov=True), and in the browser against a generated test video of a ball moving at 1.2 m/s sideways and falling at 9.81 m/s²."
@@ -34,6 +34,8 @@ You **step through the video frame by frame** and **click the object** in each f
 - a **straight-line fit** to the horizontal motion (constant speed) and a **parabola fit** to the vertical motion (constant acceleration), with uncertainties. For a thrown ball the vertical acceleration should come out close to −9.81 m/s².
 
 It draws position, velocity and acceleration against time, shows a table, and downloads everything as CSV or as a report.
+
+Fit your positions to a model with the [[curve-fitter]], and compare a thrown object's path with the [[projectile-drag|projectile and drag simulator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 13
 icon: image
 works: offline
 updated: 2026-11-09
-related: [gel-densitometry, hemocytometer]
+related: [gel-densitometry, hemocytometer, fcs-viewer, transfection-planner, calcium-imaging-dff, particle-size-image, cell-doubling-time]
 sources:
   - "Rolling-ball background (done exactly as a grey-scale opening with a paraboloid), Otsu and triangle thresholds, hole filling, 8-connected labelling, the distance map and the watershed are written by fibub and checked in the tests against SciPy and scikit-image."
   - "Otsu, N. (1979) and Zack, Rogers and Latt (1977) for the two automatic thresholds; Felzenszwalb and Huttenlocher (2012) for the distance transform. Methods only, no numbers are copied."

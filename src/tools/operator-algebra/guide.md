@@ -11,7 +11,7 @@ order: 7
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [bloch-sphere, perturbation-theory, quantum-circuit, hydrogen-orbitals]
+related: [bloch-sphere, perturbation-theory, quantum-circuit, hydrogen-orbitals, matrix-calculator, symbolic-algebra, schrodinger-solver]
 sources:
   - "Angular momentum matrices (with ⟨j, m ± 1|J±|j, m⟩ = √(j(j+1) − m(m±1))), Pauli matrices and harmonic oscillator ladder operators: standard textbook results, for example Sakurai, J. J. and Napolitano, J., Modern Quantum Mechanics."
   - "Checked against NumPy (numpy.linalg.eigvals, eigvalsh, det and direct matrix products) written for the tests."
@@ -31,6 +31,8 @@ Choose a **space**:
 - **Spin j** from ½ to 5: Jx, Jy, Jz, Jp (J₊), Jm (J₋), J2 (J²) and the identity I, in the basis m = j, j − 1, …, −j. For spin ½ there are also the Pauli matrices X, Y, Z and the Hadamard H.
 - **Two spins ½:** Pauli matrices on each spin (X1, Y1, Z1, X2, Y2, Z2), spin operators Sx1 … Sz2, the total S2 and SWAP.
 - **Harmonic oscillator** cut off after N states: a, ad (a†), n, x, p and H = n + ½, with ħ = m = ω = 1.
+
+Watch a spin-½ state move under these operators on the [[bloch-sphere|Bloch sphere]], and use your matrices as perturbations in the [[perturbation-theory|perturbation theory checker]].
 
 ## How to use it
 

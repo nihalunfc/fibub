@@ -11,7 +11,7 @@ order: 2
 icon: target
 works: offline
 updated: 2026-11-09
-related: [field-line-plotter, uncertainty-calculator]
+related: [field-line-plotter, uncertainty-calculator, magnetic-circuit, capacitor-inductor-calculator, skin-depth-calculator, particle-drifts, mri-bloch-simulator]
 sources:
   - "Field of a circular current loop in terms of complete elliptic integrals, from the Biot-Savart law: standard result, for example Jackson, J. D., Classical Electrodynamics, section 5.5, and Smythe, W. R., Static and Dynamic Electricity."
   - "Helmholtz pair (separation equal to the radius), Maxwell three-coil arrangement (outer coils of radius R√(4/7) at ±R√(3/7) with 49/64 of the ampere-turns) and anti-Helmholtz spacing √3 R: classical designs, rederived and confirmed numerically for these tests."
@@ -34,6 +34,8 @@ Ready-made sets:
 - **Maxwell coil:** a centre coil and two smaller ones; with the right sizes and turns, the field is flat to the sixth power of the distance, so the uniform region is much larger.
 - **Anti-Helmholtz pair:** currents opposite, √3 R apart: zero field at the centre and an even gradient, as used in magneto-optical traps.
 - **Single coil**, or **custom**: type up to 20 coils, each with radius, position, turns, current and, if you like, the size of its winding.
+
+Work out the coil's inductance with the [[capacitor-inductor-calculator]], and when it has an iron core use the [[magnetic-circuit|magnetic circuit solver]].
 
 ## How to use it
 

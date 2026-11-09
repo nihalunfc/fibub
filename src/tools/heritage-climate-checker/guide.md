@@ -11,7 +11,7 @@ order: 420
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, light-exposure-budget, colour-difference-calculator, trend-analyser]
+related: [psychrometric-calculator, light-exposure-budget, colour-difference-calculator, trend-analyser, station-data-viewer]
 sources:
   - "Dew point: Magnus formula with b = 17.62 and c = 243.12 °C over water (Sonntag 1990, as in the WMO Guide to Instruments and Methods of Observation). Decay rate: the Arrhenius equation, with a user-set activation energy and humidity exponent; the time-weighted index is the time-weighted harmonic mean of the point indices (general chemical kinetics)."
   - "Checked against an independent pandas/NumPy script on the example log and on a random irregular log with gaps, comma decimals and separate date and time columns: means, dew points, hours over each limit, longest damp spell, daily swings and the Arrhenius rate all agree to 10⁻⁹."
@@ -34,6 +34,8 @@ Museums, archives, libraries and historic houses log temperature and relative hu
 - **Preservation index**: a time-weighted measure of chemical decay. The rate at each reading is exp(−Ea/RT) × RH<sup>n</sup>, relative to the reference temperature and RH. An index of 0.86 means objects decay as if they had 0.86 times the life they would have at the reference.
 
 For a single reading of air (wet bulb, humidity ratio, enthalpy), use the [psychrometric calculator](/science/psychrometric-calculator/).
+
+Look at a logger file first in the [[station-data-viewer|weather station data viewer]], and plan the light side of a display with the [[light-exposure-budget|light exposure budget]].
 
 ## How to use it
 

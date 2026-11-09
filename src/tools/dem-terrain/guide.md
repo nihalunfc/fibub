@@ -11,7 +11,7 @@ order: 888
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [spectral-index-calculator, vector-map-viewer]
+related: [spectral-index-calculator, vector-map-viewer, watershed-delineation, stream-profile, infinite-slope, cross-section-profile, snow-slope-tools]
 sources:
   - "Slope and aspect: B. K. P. Horn, 'Hill shading and the reflectance map', Proceedings of the IEEE 69 (1981); the 3 × 3 weighted-difference formulas, written by fibub."
   - "Curvature: L. W. Zevenbergen and C. R. Thorne, 'Quantitative analysis of land surface topography', Earth Surface Processes and Landforms 12 (1987), with the general, profile and plan curvature definitions documented for ArcGIS; written by fibub."
@@ -35,6 +35,8 @@ A **digital elevation model (DEM)** is a grid of ground heights. From it you can
 - **Hillshade**: the relief lit by a sun at the direction and height you choose, with optional vertical exaggeration.
 - **Curvature** after Zevenbergen and Thorne: general (total), profile (along the slope) and plan (across it), with the same signs and units as ArcGIS.
 - **Statistics**: lowest and highest point, mean height, mean and median slope, the area in each slope class, and the share of the area facing each compass direction.
+
+Trace where water flows across the same model with [[watershed-delineation]], and draw a profile along any line with the [[cross-section-profile|cross-section tool]].
 
 ## How to use it
 

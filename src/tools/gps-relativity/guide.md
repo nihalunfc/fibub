@@ -11,7 +11,7 @@ order: 4
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [spacetime-diagram, schwarzschild-orbits, satellite-tracker, orbit-transfer-calculator]
+related: [spacetime-diagram, schwarzschild-orbits, satellite-tracker, orbit-transfer-calculator, two-body-orbit, orbit-elements, physical-constants]
 sources:
   - "Gravitational and velocity time dilation in the weak-field, slow-motion limit, the factory frequency offset and the eccentricity correction (2/c²)√(GMa) e sin E: standard results, for example Ashby, N. (2003), Relativity in the Global Positioning System, Living Reviews in Relativity 6, 1 (open access)."
   - "Earth's GM = 3.986004418 × 10¹⁴ m³/s², rotation rate 7.292115 × 10⁻⁵ rad/s and mean radius 6,371 km are standard rounded constants; orbit radii of the presets are rounded."
@@ -33,6 +33,8 @@ A GPS receiver works out where it is by timing signals from satellites: a timing
 The net effect is a gain of about **38 microseconds per day**. Left uncorrected, positions would drift by around 11 km a day. GPS deals with this by tuning each clock slightly low before launch, so it ticks at the right rate in orbit, and receivers apply a small periodic correction for the slightly elliptical orbit.
 
 This explainer shows each of these numbers for any orbit and receiver: the two effects separately and together, the frequency to set on the ground, the error if ignored, the eccentricity correction, and the orbit radius at which the two effects cancel.
+
+Draw the same clock effects on a [[spacetime-diagram]], and follow the satellites overhead with the [[satellite-tracker]].
 
 ## How to use it
 

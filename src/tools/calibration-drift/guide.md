@@ -11,7 +11,7 @@ order: 691
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, calibration-curve, control-charts, trend-analyser]
+related: [uncertainty-calculator, calibration-curve, control-charts, trend-analyser, gauge-rr, sensor-calibration, westgard-qc]
 sources:
   - "Least-squares straight line with its prediction interval and the t distribution (standard regression results, e.g. Montgomery and Runger, Applied Statistics and Probability for Engineers)."
   - "The reliability-target approach to calibration intervals follows the ideas in NCSL International RP-1 and ILAC-G24 / OIML D 10 (guidance on the determination of calibration intervals), described in fibub's own words; no text or tables copied."
@@ -36,6 +36,8 @@ This tool takes the **calibration history** of one instrument and:
 - optionally applies a **guard band**, pulling the limits in by the latest calibration uncertainty.
 
 Nothing is stored or sent: the history stays on this page and is gone when you close it.
+
+Build each calibration from standards with the [[calibration-curve|calibration curve tool]], and watch day-to-day results with [[control-charts|control charts]].
 
 ## How to use it
 

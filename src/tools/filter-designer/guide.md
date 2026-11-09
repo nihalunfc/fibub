@@ -11,7 +11,7 @@ order: 623
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [circuit-simulator, resistor-colour-code, impedance-fitter]
+related: [circuit-simulator, resistor-colour-code, impedance-fitter, op-amp-calculator, digital-filter-designer, capacitor-inductor-calculator]
 sources:
   - "Butterworth and Chebyshev type I pole formulas, the minimum-order formulas, and doubly terminated ladder g-values (Matthaei, Young and Jones, Microwave Filters, Impedance-Matching Networks and Coupling Structures, 1964; equations only, the values are computed)."
   - "Unity-gain Sallen-Key low-pass and high-pass transfer functions derived from nodal analysis (Sallen and Key, 1955), with the common equal-resistor and equal-capacitor choices."
@@ -32,6 +32,8 @@ A filter lets some frequencies through and cuts others. This designer works out 
 - **Low-pass** or **high-pass**, of **order 1 to 12**. Each order adds 20 dB per decade of cut far from the corner.
 
 You can build it as **Sallen-Key** active stages (one op-amp per two orders, unity gain), a **passive LC ladder** between equal source and load resistances, or a single **RC** or **RL** for a simple first-order filter. Every part is listed exactly and rounded to standard E-series values, and the Bode plot shows both, so you can see whether rounding matters.
+
+Check the op-amp in each stage with the [[op-amp-calculator]], and if your signal is already digital, use the [[digital-filter-designer]] instead.
 
 ## How to use it
 

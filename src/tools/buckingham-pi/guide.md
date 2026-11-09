@@ -11,7 +11,7 @@ order: 551
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, ode-solver, plot-maker]
+related: [uncertainty-calculator, ode-solver, plot-maker, dimensional-analysis, dimensionless-numbers, unit-converter, physical-constants]
 sources:
   - "Method: Buckingham's Π theorem (1914), exact rational row reduction. Example problems are classic textbook cases (pipe flow, drag, pendulum, convection, ship resistance, Taylor's blast wave, pumps); no data are used."
 flow:
@@ -29,6 +29,8 @@ Any physical law must work in every system of units, so it can always be written
 - builds the **dimension matrix** and finds its **rank** by exact row reduction (fractions, no rounding);
 - gives an **integer basis of the null space**: every dimensionless product of your variables is a combination of these;
 - forms the **Π groups** with the **repeating variables** you tick, each written as a formula with whole-number powers, and the relation Π₁ = φ(Π₂, Π₃, ...).
+
+Check that each equation balances with the [[dimensional-analysis|dimensional analysis checker]], and look up named groups such as the Reynolds number in [[dimensionless-numbers]].
 
 ## How to use it
 

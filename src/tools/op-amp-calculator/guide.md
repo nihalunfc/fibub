@@ -11,7 +11,7 @@ order: 625
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [filter-designer, circuit-simulator, resistor-colour-code]
+related: [filter-designer, circuit-simulator, resistor-colour-code, oscilloscope-viewer, pcb-trace-calculator, notch-filter-psd]
 sources:
   - "Ideal op-amp circuit gains and the feedback-factor model of a single-pole op-amp, closed-loop gain G × Aβ/(1 + Aβ), as in electronics textbooks (for example Horowitz and Hill, The Art of Electronics; Franco, Design with Operational Amplifiers and Analog Integrated Circuits; equations only)."
   - "Full-power bandwidth SR/(2πVpeak) and the difference-amplifier common-mode rejection formulas (standard results)."
@@ -33,6 +33,8 @@ Op-amps are the building block of analog electronics. Pick one of six classic ci
 - For the difference amplifier, the **common-mode rejection** caused by mismatched resistors.
 
 The Bode plot compares the ideal circuit with your op-amp, and the waveform shows two periods of the input and the (clipped) output.
+
+Pick standard resistor values with the [[resistor-colour-code]], and turn a gain stage into a full filter with the [[filter-designer|analog filter designer]].
 
 ## How to use it
 

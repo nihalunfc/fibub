@@ -11,7 +11,7 @@ order: 1
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [noise-barrier, wave-calculator, uncertainty-calculator]
+related: [noise-barrier, wave-calculator, uncertainty-calculator, decibel-distance, standing-waves, speaker-box-designer, audio-spectrum-analyser, noise-dose]
 sources:
   - "Rectangular room modes f = (c/2)·√((nx/L)² + (ny/W)² + (nz/H)²), the smoothed mode count and the Schroeder frequency 2000·√(T/V): standard room acoustics, for example Kuttruff, H., Room Acoustics (Taylor and Francis)."
   - "Reverberation time: Sabine, W. C. (1900) and Eyring, C. F. (1930), J. Acoust. Soc. Am. 1, 217 to 241, with the 4mV air term; Sabine's constant worked out as 24·ln 10 / c from the speed of sound."
@@ -31,6 +31,8 @@ Sound in a room does two things at once. At **low frequencies** the room behaves
 - **Modes:** every mode up to the frequency you choose, labelled **axial** (bouncing between one pair of walls, the strongest), **tangential** (two pairs) and **oblique** (all three pairs, the weakest). Pairs of modes within 0.5 % of each other are flagged, because they pile up into one loud note.
 - **Reverberation time (RT60):** the time for sound to fall by 60 dB, in six octave bands from 125 Hz to 4 kHz, by **Sabine's** formula T = 0.161 V / A and by **Eyring's**, which is better when the room absorbs a lot. Both include the sound absorbed by the air itself (ISO 9613-1 formula).
 - The **Schroeder frequency**, where modes give way to reverberation, the **mean free path** between reflections and the **critical distance**, where the direct sound and the reverberant sound are equally loud.
+
+Find the low notes that build up between the walls with the [[standing-waves|standing waves calculator]], and check how loud a source is at a distance with the [[decibel-distance|decibel distance calculator]].
 
 ## How to use it
 

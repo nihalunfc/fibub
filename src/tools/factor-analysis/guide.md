@@ -11,7 +11,7 @@ order: 724
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, data-cleaner, plot-maker, irt-item-analysis]
+related: [reliability-analysis, sample-size, data-cleaner, plot-maker, irt-item-analysis, questionnaire-scorer, likert-chart, item-analysis]
 sources:
   - "Methods: Kaiser (1970, 1974) KMO; Bartlett (1950); Horn (1965) parallel analysis; iterated principal axis factoring; maximum likelihood with the objective of R's factanal (Joreskog 1967); varimax (Kaiser 1958) and promax (Hendrickson and White 1964) with Kaiser normalisation."
   - "Example data: made up for this page."
@@ -27,6 +27,8 @@ flow:
 Exploratory factor analysis (EFA) looks for a small number of hidden factors that explain why a set of questionnaire items or test scores go together. It is the usual first step when you build a new scale or check that an existing one has the structure you expect. This tool runs the whole EFA routine in your browser: it checks whether the data is suitable, helps you decide how many factors to keep, extracts and rotates them, and shows the loadings in a table you can download. Nothing is uploaded.
 
 The results match the Python package factor_analyzer (minres and ML extraction, varimax and promax rotation) to within 0.00002 on the example.
+
+Score the items first with the [[questionnaire-scorer|questionnaire scorer]], and check each factor's reliability with [[reliability-analysis|reliability and agreement]].
 
 ## How to use it
 

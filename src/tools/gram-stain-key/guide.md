@@ -11,7 +11,7 @@ order: 4
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, media-recipe-scaler, cell-doubling-time, plate-layout]
+related: [hemocytometer, media-recipe-scaler, cell-doubling-time, plate-layout, cfu-counter, growth-curve-od600, dichotomous-key-builder, f0-calculator]
 sources:
   - "The example key (19 groups, 15 tests) is written by fibub from general textbook microbiology and simplified for teaching; it is not copied from any published table, and real strains vary. Edit it or load your own."
   - "The key builder, candidates and ranking are written by fibub and checked in the tests against an independent Python version on the example and 60 random keys."
@@ -36,6 +36,8 @@ Microbiology classes identify bacteria with a chain of quick tests: the Gram sta
 A group with a **variable** result (strains differ) or a blank result stays on both sides of that test, so it is never ruled out by it.
 
 **This page is for teaching only.** It is not a clinical or diagnostic identification. Real identification needs pure cultures, controls, validated kits or methods and a trained laboratory. The example table is simplified and written by fibub; real strains vary.
+
+Count colonies before you pick one with the [[cfu-counter|CFU counter]], and build your own identification key with the [[dichotomous-key-builder]].
 
 ## How to use it
 

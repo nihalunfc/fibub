@@ -11,7 +11,7 @@ order: 726
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, data-cleaner]
+related: [reliability-analysis, sample-size, plot-maker, data-cleaner, item-analysis, factor-analysis, questionnaire-scorer]
 sources:
   - "Methods: Birnbaum (1968) two-parameter logistic model; Rasch (1960); marginal maximum likelihood by the EM algorithm of Bock and Aitkin (1981) with Gauss-Hermite quadrature; EAP scoring (Bock and Mislevy 1982)."
   - "Example data: simulated for this page."
@@ -30,6 +30,8 @@ Item response theory (IRT) describes each test item by how hard it is and how we
 - **1PL (Rasch)**: all items share one discrimination, so they differ only in difficulty. This is the Rasch model, written with the spread of ability as the common slope.
 
 Both are fitted by **marginal maximum likelihood**, the standard method in IRT programs: ability is treated as normally distributed and integrated out with 41-point Gauss-Hermite quadrature, using the EM algorithm of Bock and Aitkin. Standard errors come from the observed information. Each person gets an **EAP** (expected a posteriori) ability score with its standard error. Nothing is uploaded.
+
+Start with classical difficulty and discrimination in the [[item-analysis|item analysis]], and check whether one ability lies behind all the items with the [[factor-analysis|factor analysis]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 863
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [carrier-concentration, beer-lambert-calculator, plot-maker]
+related: [carrier-concentration, beer-lambert-calculator, plot-maker, thin-film-thickness, solar-cell-iv, quantum-dot-size, spectrometer-calibration]
 sources:
   - "The Tauc relation (αhν)^n ∝ (hν − Eg), the Kubelka-Munk function, the Urbach rule and straight-line fitting with delta-method errors are standard; the code is written by fibub and checked in the tests against NumPy (polyfit with covariance) and exact synthetic spectra with known gaps."
   - "The example spectrum is made up by the page: a 400 nm film with a direct gap of 2.40 eV and a 50 meV Urbach tail, with made-up noise."
@@ -32,6 +32,8 @@ A semiconductor or insulator lets light through until the photons carry enough e
 - **Band gap with honest error bars.** The x-intercept and its standard error from the fit, plus the window spread: how far the gap moves when the region's ends shift by about 10 %. The spread is usually the larger of the two and the one worth quoting.
 - **Baseline.** When the sample absorbs below the gap, the line can cross a straight baseline fitted to the sub-gap part instead of zero.
 - **Urbach energy.** The slope of ln α below the gap gives the width of the absorption tail, Eu.
+
+Get the film thickness for the absorption coefficient from the [[thin-film-thickness|thin film thickness calculator]], and turn the gap into carrier numbers with the [[carrier-concentration|carrier concentration calculator]].
 
 ## How to use it
 

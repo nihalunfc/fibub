@@ -11,7 +11,7 @@ order: 505
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [lca-compare, tree-carbon, budget-calculator]
+related: [lca-compare, tree-carbon, budget-calculator, scope-emissions, solar-pv-yield]
 sources:
   - "Footprint arithmetic (amount × emission factor, summed by category) written by fibub. No agency's factor table is included: the default factors are rounded example values chosen to show the sums, labelled on the page as examples to replace."
   - "Flight distances by Vincenty, T. (1975) Direct and inverse solutions of geodesics on the ellipsoid with application of nested equations. Survey Review 23(176), 88–93, on the WGS84 ellipsoid; checked against GeographicLib (Karney 2013) and pyproj."
@@ -39,6 +39,8 @@ for example 4,000 kWh of electricity × 0.4 kg CO₂e per kWh = 1,600 kg. The ha
 - **Breakdown** as a bar chart and table, **scenarios** to compare side by side, and downloads (CSV of every line, and an image, PDF or Word report).
 
 **The default factors are example values. Replace them with your country's official factors.** They are rounded numbers to make the example work and are not data for any country.
+
+For a business report split by scope, use the [[scope-emissions|scope 1, 2 and 3 emissions calculator]], and compare two products over their whole life with the [[lca-compare|life cycle comparison]].
 
 ## How to use it
 

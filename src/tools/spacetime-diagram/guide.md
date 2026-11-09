@@ -11,7 +11,7 @@ order: 1
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [cosmology-calculator, redshift-calculator, uncertainty-calculator]
+related: [cosmology-calculator, redshift-calculator, uncertainty-calculator, schwarzschild-orbits, gps-relativity, relativistic-kinematics, gw-chirp]
 sources:
   - "Lorentz transformation, spacetime interval, relativity of simultaneity, relativistic Doppler effect and the twin paradox: standard results of special relativity, for example Taylor, E. F. and Wheeler, J. A., Spacetime Physics (2nd edition, 1992)."
   - "Checked by fibub against SymPy (interval invariance and composition of boosts) and NumPy (example events, and a numerical integral of the traveller's proper time)."
@@ -34,6 +34,8 @@ A **spacetime (Minkowski) diagram** draws events with position x across and time
 In **Events** mode you type events in frame S; the tool gives their coordinates in frame S′, draws both diagrams, and for every pair gives the interval, its type, the proper time (or proper length), whether the order is kept or reversed in S′, and the speed of the frame in which the two events are simultaneous or at the same place.
 
 In **Twin paradox** mode one twin stays home while the other travels at β to a distance D and back. The tool gives both ages, the jump in "now on Earth" when the traveller turns round, and how many of Earth's yearly signals arrive on each leg (the relativistic Doppler effect), which settles the "paradox" without any acceleration argument.
+
+See time dilation at work in satellite clocks with the [[gps-relativity|GPS relativity explainer]], and work out fast collisions with [[relativistic-kinematics]].
 
 ## How to use it
 

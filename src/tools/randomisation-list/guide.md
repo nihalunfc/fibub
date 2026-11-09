@@ -11,7 +11,7 @@ order: 10
 icon: table
 works: offline
 updated: 2026-11-09
-related: [bland-altman, sample-size, plate-layout, field-sampling-planner]
+related: [bland-altman, sample-size, plate-layout, field-sampling-planner, experiment-design, survival-analysis, sample-label-maker]
 sources:
   - "Permuted blocks and stratified randomisation: Altman DG and Bland JM (1999), BMJ 318:1209; Schulz KF and Grimes DA (2002), The Lancet 359:515-519."
   - "Generator: xoshiro128** by Blackman D and Vigna S (2018, public domain reference code), seeded by SplitMix32 from a 32-bit FNV-1a hash of the seed text."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 Random allocation is what makes a clinical trial fair: neither the researcher nor the patient chooses who gets which treatment. This tool makes the allocation list before the trial starts, in your browser. It supports **simple randomisation**, **permuted blocks** with one block size or with block sizes chosen at random, **stratified randomisation** (a separate list for each combination of factors such as site and age group), any **allocation ratio** such as 2:1 or 1:1:1, and a **seed** so the same list can be made again by anyone, for example an auditor or a statistician checking your work. Download the full list as CSV, a report as PDF, Word or an image, or print **sealed-envelope labels**.
+
+Work out how many patients you need with the [[sample-size|sample size calculator]] first, and print labels for the coded packs with the [[sample-label-maker]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 644
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [bolt-torque-calculator, beam-calculator, gear-train-calculator]
+related: [bolt-torque-calculator, beam-calculator, gear-train-calculator, shaft-bearing-life, tolerance-stackup, fatigue-sn-calculator, stress-strain-analyser, coupled-oscillators]
 sources:
   - "Helical spring rate G d⁴ / (8 D³ Na), the Wahl and Bergsträsser stress factors, end-type formulas for total coils and solid height, the steel buckling criterion L0 < 2.63 D / α, surge frequency, extension-spring active coils Nb + G/E and hook stress factors, and torsion-spring rate d⁴E / (10.8 D Na) with leg allowance and inner-fibre factor: Shigley's Mechanical Engineering Design (Budynas and Nisbett), chapter on mechanical springs, and Wahl, Mechanical Springs (equations only)."
   - "Material values (G 79 GPa, E 200 GPa, density 7850 kg/m³) are rounded general figures for carbon steel; the allowed stresses are placeholders chosen by fibub, labelled, and not copied from any table. The example springs are made up."
@@ -32,6 +32,8 @@ This tool sizes the three common kinds of coiled wire spring and checks them:
 - **Torsion springs** (twisted by legs): rate per turn and per degree, the angle for a moment, bending stress, and how much the coils tighten.
 
 You enter the material: shear modulus G, Young's modulus E, the allowed stresses and the density. Example values for carbon spring steel are filled in and labelled; the allowed stresses in particular depend on the wire grade and size, so use your wire maker's figures.
+
+Check how long the spring lasts under repeated loads with the [[fatigue-sn-calculator]], and see how springs and masses vibrate in the [[coupled-oscillators]].
 
 ## How to use it
 

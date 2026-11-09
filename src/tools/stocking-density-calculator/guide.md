@@ -11,7 +11,7 @@ order: 401
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [growth-curve-tracker, feed-ration-balancer, water-quality-index]
+related: [growth-curve-tracker, feed-ration-balancer, water-quality-index, pond-oxygen-budget, fish-length-weight, von-bertalanffy-fitter, dissolved-oxygen]
 sources:
   - "Standard aquaculture formulas: biomass = number × mean weight; density = biomass ÷ water volume; FCR = feed given ÷ biomass gained; SGR = 100 × (ln final weight − ln initial weight) ÷ days; daily feed = biomass × feeding rate (% body weight). General textbook definitions."
   - "Projection assumes steady exponential growth at the SGR, a steady loss rate, and continuous feeding at a fixed % of body weight (cumulative feed integrated exactly)."

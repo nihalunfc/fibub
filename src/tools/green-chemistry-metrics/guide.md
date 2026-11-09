@@ -11,7 +11,7 @@ order: 1
 icon: percent
 works: offline
 updated: 2026-11-08
-related: [reaction-equivalents, equation-balancer, molar-mass-calculator, thermochemistry-calculator]
+related: [reaction-equivalents, equation-balancer, molar-mass-calculator, thermochemistry-calculator, fume-hood-ventilation, lca-compare, exposure-twa, mass-balance-solver]
 sources:
   - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
 flow:

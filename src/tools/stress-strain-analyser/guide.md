@@ -11,7 +11,7 @@ order: 846
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, plot-maker]
+related: [reliability-analysis, plot-maker, fatigue-sn-calculator, fracture-toughness-calculator, laminate-calculator, larson-miller-calculator, curve-fitter, beam-calculator, unit-converter]
 sources:
   - "Engineering and true stress and strain, offset yield, toughness, resilience and the Hollomon fit follow the usual textbook definitions (Callister and Rethwisch, Materials Science and Engineering, chapter 6; Dieter, Mechanical Metallurgy, chapter 8), written by fibub and checked in the tests against NumPy."
   - "The example test is made up by the page (E = 200 GPa with Voce hardening, then a drop in stress for necking); it is not data for any real alloy."
@@ -35,6 +35,8 @@ A tensile test pulls a specimen until it breaks and records the force and the ex
 - **Toughness.** The area under the engineering curve up to fracture: the energy absorbed per unit volume. Since 1 MPa equals 1 MJ/m³, stress times strain is energy per volume.
 - **Modulus of resilience.** The elastic energy stored up to yield, σy² ÷ 2E.
 - **True stress and true strain** up to the UTS: σ(1 + e) and ln(1 + e), and the **strain-hardening exponent n** from a Hollomon fit σ = K εⁿ on the true curve between yield and UTS. Considère's rule says n should be close to the true strain at the UTS, a handy check.
+
+Take the yield strength into a design with the [[beam-calculator|beam deflection calculator]], and check how long a part lasts under repeated loads with the [[fatigue-sn-calculator|fatigue S-N calculator]].
 
 ## How to use it
 

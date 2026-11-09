@@ -11,7 +11,7 @@ order: 542
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [plot-maker, uncertainty-calculator, matrix-calculator]
+related: [plot-maker, uncertainty-calculator, matrix-calculator, function-grapher, numerical-methods, ode-solver, lagrangian-helper, dimensional-analysis, number-theory-toolkit]
 sources:
   - "Methods: standard algebra and calculus rules (sum, product, quotient and chain rules; power rule, partial fractions, substitution and integration by parts), Yun's square-free factorisation and Kronecker's factor search, written for fibub."
   - "Checked against sympy 1.x on 88 expressions: values, simplify, expand, factor_list, diff and integrate (up to a constant), plus exact values, definite integrals and printing."
@@ -35,6 +35,8 @@ A small computer algebra system (CAS) that runs in your browser, for homework, c
 - **Substitute**: put in values such as `x = 2` or `x = t + 1`, and get a decimal value when every letter has a number.
 
 Every answer is exact (1/3 stays 1/3, √2 stays √2) and can be copied as SymPy/Python code or LaTeX for a report. When there is a graph, the expression is the solid line and its derivative or antiderivative the dashed one.
+
+Graph the result in the [[function-grapher|graphing calculator]], and solve equations with no neat answer in [[numerical-methods]].
 
 ## How to type expressions
 

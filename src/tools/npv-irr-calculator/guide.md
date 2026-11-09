@@ -11,7 +11,7 @@ order: 743
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [loan-payoff-planner, budget-calculator, currency-converter, uncertainty-calculator, inflation-calculator]
+related: [loan-payoff-planner, budget-calculator, currency-converter, uncertainty-calculator, inflation-calculator, lcoe-calculator, grant-budget]
 sources:
   - "Standard capital budgeting formulas (discounted cash flow, internal rate of return, modified IRR, payback, profitability index, equivalent annual annuity) as in corporate finance textbooks. No tables copied."
   - "Written by fibub. Checked in the tests against numpy-financial 1.1 (npv, irr, mirr), every IRR against the real roots of the cash-flow polynomial from numpy.roots, and payback against numpy.cumsum."
@@ -36,6 +36,8 @@ Should you invest in a project, a machine, a course or a rental property? Money 
 - An **NPV profile** chart: NPV against the discount rate, crossing zero at each IRR.
 
 Everything runs in your browser.
+
+Turn past or future prices into today's money with the [[inflation-calculator]], and compare energy projects by their cost per unit with the [[lcoe-calculator]].
 
 ## How to use it
 

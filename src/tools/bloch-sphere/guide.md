@@ -11,7 +11,7 @@ order: 4
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [hydrogen-orbitals, schrodinger-solver, plot-maker]
+related: [hydrogen-orbitals, schrodinger-solver, plot-maker, quantum-circuit, operator-algebra, mri-bloch-simulator, polarisation-calculator]
 sources:
   - "Bloch sphere representation, single-qubit gates as SU(2) rotations, the Rabi formula and the optical Bloch equations with T1 and T2 (Torrey steady state): standard textbook results, for example Nielsen, M. A. and Chuang, I. L., Quantum Computation and Quantum Information, and Allen, L. and Eberly, J. H., Optical Resonance and Two-Level Atoms."
   - "Checked against NumPy/SciPy (scipy.linalg.expm of the Pauli matrices and scipy.integrate.solve_ivp of the Bloch equations) written for the tests."
@@ -31,6 +31,8 @@ The tool has two parts:
 
 - **Gates and rotations.** Pick a start state and type or tap a list of gates. The tool applies them one after another, draws the path the state takes on the sphere, and gives the final amplitudes, Bloch vector, angles and the measurement probabilities along z, x and y, with a table of every step.
 - **Rabi oscillations.** A qubit driven by an oscillating field at Rabi frequency Ω, detuned by Δ, swings between |0⟩ and |1⟩. The tool solves the Bloch equations in the rotating frame, with optional T1 (energy relaxation) and T2 (dephasing), and plots the probability of |1⟩ against time, alongside the path on the sphere.
+
+Put several qubits together in the [[quantum-circuit|quantum circuit simulator]], and work out spin matrices with the [[operator-algebra|operator algebra helper]].
 
 ## How to use it
 

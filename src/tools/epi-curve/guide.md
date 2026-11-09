@@ -11,7 +11,7 @@ order: 4
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [odds-risk-ratio, rate-standardisation, nnt-calculator, plot-maker, sample-size]
+related: [odds-risk-ratio, rate-standardisation, nnt-calculator, plot-maker, sample-size, epidemic-model, diagnostic-test-calculator, herd-immunity]
 sources:
   - "Methods: Centers for Disease Control and Prevention, Principles of Epidemiology in Public Health Practice, 3rd ed. (2006, textbook), lesson 6 on epidemic curves and food-specific attack rates; Katz et al. (1978, Biometrics 34:469) for the risk ratio interval; Fisher (1935, J R Stat Soc) for the exact test."
   - "The example outbreak and food-history numbers are made up for teaching."

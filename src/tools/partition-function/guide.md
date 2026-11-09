@@ -11,7 +11,7 @@ order: 4
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [ising-model, diatomic-spectroscopy, thermochemistry-calculator]
+related: [ising-model, diatomic-spectroscopy, thermochemistry-calculator, quantum-statistics, heat-capacity-fitter, real-gas-calculator, schrodinger-solver]
 sources:
   - "Canonical ensemble formulas (Z = Σ g e^(−E/kT), U, S, F, Cv from Z): standard statistical mechanics, for example McQuarrie, Statistical Mechanics."
   - "Constants: CODATA 2018 exact values of h, c, kB, NA and e."
@@ -33,6 +33,8 @@ Give this explorer a list of levels and a temperature and it works out:
 - **Populations**: the fraction of particles in each level, g e^(−E/kT)/Z, and per individual state.
 - **Mean energy** U, **entropy** S, **Helmholtz energy** F = −kT ln Z and **heat capacity** Cv, per particle (in your energy unit and in units of kB) and per mole.
 - Charts of the populations, of Cv against temperature (look for the **Schottky bump** of a two-level system), and of S, U and ln Z against temperature.
+
+Get the energy levels from the [[schrodinger-solver]] or [[diatomic-spectroscopy]], and compare the heat capacity with real data in the [[heat-capacity-fitter]].
 
 ## How to use it
 

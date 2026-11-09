@@ -11,7 +11,7 @@ order: 621
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [impedance-fitter, wave-calculator, uncertainty-calculator]
+related: [impedance-fitter, wave-calculator, uncertainty-calculator, resistor-colour-code, filter-designer, op-amp-calculator, led-resistor-calculator, capacitor-inductor-calculator, oscilloscope-viewer]
 sources:
   - "Modified nodal analysis, the trapezoidal rule and backward Euler companion models, and the PULSE, SIN and PWL source conventions as described in circuit simulation textbooks (for example Vlach and Singhal, Computer Methods for Circuit Analysis and Design) and the public Berkeley SPICE documentation (method only; no code copied)."
   - "Checked against an independent NumPy nodal solve, the analytic transfer functions of RC and series RLC circuits, and SciPy solve_ivp on the circuits' differential equations with the same sources."
@@ -32,6 +32,8 @@ This is a small circuit simulator in the style of SPICE, for **linear circuits**
 - **Transient**: the voltage against time when the sources switch on, pulse or oscillate, by the trapezoidal rule or backward Euler.
 
 It is for study and planning, not a substitute for professional judgement. Diodes, transistors and op-amp models are not included.
+
+Read the values off your parts with the [[resistor-colour-code]] first, and design a filter to drop into your circuit with the [[filter-designer|analog filter designer]].
 
 ## How to use it
 

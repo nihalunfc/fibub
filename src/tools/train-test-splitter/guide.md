@@ -11,7 +11,7 @@ order: 571
 icon: scissors
 works: offline
 updated: 2026-11-09
-related: [csv-profiler, confusion-matrix, sample-size]
+related: [csv-profiler, confusion-matrix, sample-size, small-model-trainer, embedding-visualiser, sql-playground, randomisation-list, bootstrap-permutation]
 sources:
   - "Row counts follow scikit-learn's rules (train_test_split, StratifiedShuffleSplit, GroupShuffleSplit, KFold, StratifiedKFold, GroupKFold); checked against scikit-learn 1.9. The random generator is fibub's own (mulberry32), so the rows picked differ from scikit-learn's."
   - "The example of 40 fruit from 8 farms is made up for this tool."
@@ -33,6 +33,8 @@ To know how well a model will do on new data, you test it on rows it never saw w
 - **k-fold:** every row gets a fold number for cross-validation: shuffled, stratified, grouped or in order (blocks).
 
 The **class balance** table shows how many rows of each class are in each part, and you can download the training, test and validation rows as CSV files, or the whole table with a split or fold column.
+
+Check the table for gaps first with the [[csv-profiler|CSV profiler]], then train on the split with the [[small-model-trainer|small model trainer]].
 
 ## How to use it
 

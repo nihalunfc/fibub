@@ -11,7 +11,7 @@ order: 840
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [sun-position-calculator, koppen-climate]
+related: [sun-position-calculator, koppen-climate, proxy-stacker, age-depth-model, energy-balance-model, glacier-ice]
 sources:
   - "Daily and instantaneous insolation: A. Berger, 'Long-term variations of daily insolation and Quaternary climatic changes', Journal of the Atmospheric Sciences 35 (1978); formulas written by fibub, with Kepler's equation solved exactly."
   - "Caloric half-years: M. Milankovitch, Kanon der Erdbestrahlung (1941), as described in later literature; summer energy above a threshold: P. Huybers, Science 313 (2006). Written by fibub."
@@ -38,6 +38,8 @@ This tool works out, for an orbit you type in:
 - the **summer energy** over the days whose daily mean is at or above a threshold (Huybers 2006), and how many days that is.
 
 Everything is computed in your browser from Berger's (1978) formulas. The Sun's position on any calendar day is found by solving Kepler's equation exactly, so very eccentric orbits are handled too.
+
+Set your records side by side with the [[proxy-stacker]], and see what a change in sunlight does to temperature with the [[energy-balance-model]].
 
 ## How to use it
 

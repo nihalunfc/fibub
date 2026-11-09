@@ -11,7 +11,7 @@ order: 3
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [detention-pond, water-quality-index, landfill-gas]
+related: [detention-pond, water-quality-index, landfill-gas, mass-balance-solver, reactor-design, dissolved-oxygen]
 sources:
   - "Steady-state complete-mix activated sludge mass balances (Monod growth with endogenous decay and cell debris, solids retention time, oxygen from the bCOD balance): standard wastewater engineering textbook methods. Written by fibub; no design-manual tables are copied."
   - "Checked in the tests against an independent Python implementation of the same balances, and that the solids in the tank equal the daily sludge production times the sludge age."

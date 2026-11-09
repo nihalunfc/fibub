@@ -11,7 +11,7 @@ order: 570
 icon: target
 works: offline
 updated: 2026-11-09
-related: [small-model-trainer, train-test-splitter, csv-profiler, reliability-analysis, sample-size]
+related: [small-model-trainer, train-test-splitter, csv-profiler, reliability-analysis, sample-size, roc-curve, diagnostic-test-calculator, embedding-visualiser, signal-detection-calculator]
 sources:
   - "Metric definitions as in scikit-learn (precision_recall_fscore_support, balanced_accuracy_score, matthews_corrcoef, cohen_kappa_score); Wilson score intervals; kappa's large-sample standard error from Fleiss, Cohen and Everitt (1969). Checked against scikit-learn 1.9 and statsmodels 0.14."
   - "The example counts, matrix and spam/ham table are made up for this tool."
@@ -30,6 +30,8 @@ A classifier, a diagnostic test or a human rater sorts cases into classes. The *
 - **Per class:** how many cases were actual and predicted, precision, recall and specificity with Wilson 95 % intervals, and F1.
 - **Averages:** macro, weighted and micro precision, recall and F1.
 - **Two classes:** sensitivity, specificity, positive and negative predictive value (with intervals), false positive and false negative rates, prevalence, F1, Youden's J and the likelihood ratios.
+
+Train a model to test with the [[small-model-trainer|small model trainer]], and see how the threshold changes things with the [[roc-curve|ROC curve tool]].
 
 ## How to use it
 

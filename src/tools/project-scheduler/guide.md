@@ -11,7 +11,7 @@ order: 585
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [lp-solver, queueing-calculator, plot-maker]
+related: [lp-solver, queueing-calculator, plot-maker, gantt-chart, shift-scheduler, graph-algorithms]
 sources:
   - "Methods: the critical path method, PERT three-point estimates and the beta-PERT distribution, as in project management and operations research textbooks."
   - "Checked against a longest-path calculation in Python (networkx Bellman-Ford on the start and finish events) for 1,200 random projects, half with SS, FF and SF links and lags, and the PERT figures against SciPy's normal distribution and a NumPy beta-PERT simulation."
@@ -32,6 +32,8 @@ Every project has a chain of tasks that sets its length: the **critical path**. 
 - links of all four kinds, **finish-to-start**, **start-to-start**, **finish-to-finish** and **start-to-finish**, each with a **lag** (or a lead, a negative lag);
 - a **Gantt chart**, with optional calendar dates that skip weekends;
 - with three-point estimates, **PERT**: the expected duration, its standard deviation and the **chance of finishing by a date**, plus a **Monte Carlo simulation** that checks it.
+
+Draw the finished plan as a timeline with the [[gantt-chart|Gantt chart maker]], and share out tight resources with the [[lp-solver|linear programming solver]].
 
 ## How to use it
 

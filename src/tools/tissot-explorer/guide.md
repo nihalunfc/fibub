@@ -11,7 +11,7 @@ order: 894
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [band-combiner, spectral-index-calculator, gps-track-analyser, traverse-calculator]
+related: [band-combiner, spectral-index-calculator, gps-track-analyser, traverse-calculator, vector-map-viewer, utm-converter, poincare-disk]
 sources:
   - "Projection formulas on the sphere and the distortion formulas (h, k, areal scale, Tissot axes a and b, angular distortion ω) follow J. P. Snyder, Map Projections: A Working Manual, USGS Professional Paper 1395 (1987), a public-domain US government work. The code is written by fibub."
   - "The tests check every projection and its distortion against pyproj 3.8 with PROJ 9.8 (forward projection and Proj.get_factors) at random points."
@@ -28,6 +28,8 @@ flow:
 Every flat map of the round Earth stretches something: distances, areas, angles or all three. In the 1880s Nicolas Tissot showed how to see it. Draw small circles of the same size all over the globe and project them: each becomes an ellipse (a **Tissot indicatrix**) whose size and shape tell you how the map distorts that place.
 
 This page draws 11 common projections with the world's coastlines and a grid of these ellipses, and works out the distortion numbers at any point you tap. The numbers come from the projection's own partial derivatives, as in Snyder's *Map Projections: A Working Manual*, and are checked against PROJ, the library behind most GIS software.
+
+See your own map data in the [[vector-map-viewer]], and convert between latitude, longitude and UTM with the [[utm-converter]].
 
 ## How to use it
 

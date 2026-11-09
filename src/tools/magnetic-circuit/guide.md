@@ -11,7 +11,7 @@ order: 6
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [capacitor-inductor-calculator, coil-field-designer]
+related: [capacitor-inductor-calculator, coil-field-designer, skin-depth-calculator, circuit-simulator, unit-converter]
 sources:
   - "Magnetic circuit analysis (reluctance l/μA, Hopkinson's law, flux division between parallel legs), inductance N²/ℜ, stored energy and the Maxwell-stress pull B²A/2μ₀: standard results, for example Hughes' Electrical and Electronic Technology and Fitzgerald, Kingsley and Umans, Electric Machinery."
   - "The fringing allowance (√A + g)² is a common first approximation for square poles, not an exact result."
@@ -37,6 +37,8 @@ This solver adds up the reluctances of the segments you list, solves the circuit
 - a warning when any core segment goes past the saturation value you set.
 
 It handles a single loop, or a **three-leg core** (like an E-core or a transformer core) with the coil on the centre leg and two return legs that share the flux.
+
+Find the inductance this gives with the [[capacitor-inductor-calculator]], and check eddy current losses in the core with the [[skin-depth-calculator]].
 
 ## How to use it
 

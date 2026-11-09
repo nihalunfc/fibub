@@ -11,7 +11,7 @@ order: 768
 icon: target
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, gps-track-analyser]
+related: [plot-maker, data-cleaner, gps-track-analyser, crime-rate-calculator, catchment-buffer, vector-map-viewer, home-range-analyser, utm-converter]
 sources:
   - "Kernel density estimation: Silverman (1986), Density Estimation for Statistics and Data Analysis (quartic/biweight and Gaussian kernels, rule-of-thumb bandwidths); Scott's rule (Scott 1992). Clark and Evans (1954), Distance to nearest neighbor as a measure of spatial relationships in populations. Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against scikit-learn (KernelDensity), SciPy (cKDTree, normal distribution) and NumPy."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 Hot spot maps show where events bunch together: incidents, calls for service, collisions, complaints, sightings. This tool takes your own list of points and builds a **kernel density estimate (KDE)**: every point spreads a small smooth bump over the area around it, and the bumps are added up on a grid of cells. Where many bumps overlap, density is high. The result is a heat map with contour lines, a list of the highest cells, and a test of whether the points are more **clustered** than chance (the **Clark–Evans nearest neighbour index**). Your file is read in the browser and never uploaded.
+
+Turn counts into fair rates with the [[crime-rate-calculator]], and draw buffers around key sites with [[catchment-buffer|catchment buffers]].
 
 ## How to use it
 

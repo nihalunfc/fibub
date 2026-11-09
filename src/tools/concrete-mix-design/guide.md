@@ -11,7 +11,7 @@ order: 649
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, sample-size, method-validation]
+related: [uncertainty-calculator, sample-size, method-validation, rebar-calculator, load-combination-helper, column-buckling, retaining-wall-check, unit-converter]
 sources:
   - "Absolute volume method of proportioning concrete, oven-dry aggregate basis with moisture correction (wet mass = dry × (1 + moisture), free water = dry × (moisture − absorption)), as described in general concrete technology textbooks such as Neville, A. M., Properties of Concrete, and Mehta and Monteiro, Concrete: Microstructure, Properties and Materials (method only)."
   - "Target mean strength f'cr = f'c + k·s and the normal distribution: general statistics. The normal curve uses the Abramowitz and Stegun (1964) 7.1.26 approximation."
@@ -37,6 +37,8 @@ This calculator does those sums for you. You enter every factor yourself, from y
 - the mix as a **ratio by mass** (1 : sand : stone), a picture of the volumes and a CSV of the batch weights.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer, and confirm every mix with trial batches and strength tests.
+
+Once the mix is set, work out the bars you need with the [[rebar-calculator|rebar calculator]], and check the design loads with the [[load-combination-helper|load combination helper]].
 
 ## How to use it
 

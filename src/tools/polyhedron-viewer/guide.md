@@ -11,7 +11,7 @@ order: 554
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [poincare-disk, geometry-construction, function-grapher]
+related: [poincare-disk, geometry-construction, function-grapher, knot-braid-drawer, group-explorer, point-group-finder, molecule-viewer, miller-index-calculator]
 sources:
   - "Vertex coordinates from the standard closed-form formulas (sign changes and permutations of numbers built from √2, the golden ratio and the tribonacci constant); the snub dodecahedron is solved numerically as the orbit of one point under the icosahedral rotations. General mathematics; no outside data."
   - "Checked against closed-form volumes for edge 1 and Python scipy.spatial.ConvexHull (volume, area and face count) for all 18 solids."
@@ -32,6 +32,8 @@ A **polyhedron** is a solid with flat polygon faces. This viewer shows the most 
 Each solid is built from its vertex coordinates, worked out from exact formulas, not copied from a model file. The edges are the shortest distances between vertices and the faces are traced from the edges, so the counts on the page are computed, not typed in.
 
 The second tab draws the 11 **plane tilings** in which regular polygons meet the same way at every corner: 3 regular ones (triangles, squares, hexagons) and 8 semi-regular ones.
+
+Study the symmetry groups of each solid in the [[group-explorer|group theory explorer]], and find the same symmetries in molecules with the [[point-group-finder]].
 
 ## How to use it
 

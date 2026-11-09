@@ -11,7 +11,7 @@ order: 2
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [schrodinger-solver, wave-calculator, plot-maker]
+related: [schrodinger-solver, wave-calculator, plot-maker, fourier-visualiser, hydrogen-orbitals, operator-algebra]
 sources:
   - "Split-step Fourier method (Strang splitting) for the time-dependent Schrödinger equation: Feit, M. D., Fleck, J. A. and Steiger, A. (1982), Journal of Computational Physics 47, 412 to 433; the standard textbook method."
   - "Transmission through piecewise-constant potentials by transfer matrices, and the closed-form rectangular-barrier and step results: standard textbook formulas, for example Griffiths, D. J., Introduction to Quantum Mechanics."
@@ -32,6 +32,8 @@ A quantum particle is not a little ball but a wave packet: a bump of probability
 This tool sets up a Gaussian packet on the left, moving right, and solves the time-dependent Schrödinger equation iħ ∂ψ/∂t = −(ħ²/2m) ∂²ψ/∂x² + V(x) ψ by the **split-step Fourier method**: each small time step applies half the potential, then the kinetic energy exactly in momentum space (via a fast Fourier transform), then the other half of the potential. You can play the result as an animation and scrub through time.
 
 At the end it adds up how much probability went left (**R**) and right (**T**), and compares T with the **stationary** answer: the exact plane-wave transmission T(E) from the transfer-matrix method, averaged over the range of energies the packet contains.
+
+Find the bound states of a potential with the [[schrodinger-solver|1D Schrödinger solver]], and see how a packet is built from waves in the [[fourier-visualiser]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 881
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [gravity-corrections, earthquake-locator, stereonet, plot-maker]
+related: [gravity-corrections, earthquake-locator, stereonet, plot-maker, gpr-viewer, ves-inversion, utm-converter, cross-section-profile]
 sources:
   - "Dipole and 2D line-dipole fields, the thin-sheet integral and the face-by-face (surface pole) solution for a uniformly magnetised prism are standard potential-field results (see Blakely 1995, Potential Theory in Gravity and Magnetic Applications), written by fibub from the physics."
   - "Checked against independent NumPy and SciPy models: a dipole potential differentiated numerically, and point dipoles integrated along strike, over a sheet and through a box."
@@ -33,6 +33,8 @@ Magnetised rocks, such as magnetite-rich dykes, ore bodies, basalt flows or buri
 - **Vertical prism**: a box with vertical sides, finite in all three directions, for plugs and ore lenses.
 
 The body is magnetised by **induction** (susceptibility χ times the Earth's field) and, if you tick the box, by **remanence**, a magnetisation frozen into the rock with its own direction. The page shows the **Koenigsberger ratio Q**, remanent over induced.
+
+Compare your profile with the gravity over the same ground using the [[gravity-corrections|gravity survey corrections]], and draw the geology beneath it with the [[cross-section-profile|cross-section tool]].
 
 ## How to use it
 

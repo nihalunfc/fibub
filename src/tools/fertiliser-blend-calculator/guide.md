@@ -11,7 +11,7 @@ order: 381
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: []
+related: [soil-test-interpreter, irrigation-scheduler, seeding-rate-calculator, sprayer-calibration, soil-texture-triangle, unit-converter]
 sources:
   - "Mass balance of nutrients from product grades (percent by weight, the usual N-P2O5-K2O label convention) and the oxide-to-element factors worked out from standard atomic weights (general chemistry facts)."
   - "Closest blend by non-negative least squares (Lawson and Hanson, Solving Least Squares Problems, 1974) and least-cost blend by linear programming, both solved exactly by visiting every basic solution."

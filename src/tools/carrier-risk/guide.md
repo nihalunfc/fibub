@@ -11,7 +11,7 @@ order: 40
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [sequence-tools, vcf-viewer, sequence-alignment, sample-size, dental-chart]
+related: [sequence-tools, vcf-viewer, sequence-alignment, sample-size, dental-chart, hardy-weinberg-tester, punnett-square, pedigree-drawing-tool, allele-frequency-calculator, diagnostic-test-calculator]
 sources:
   - "Method: Bayes' theorem as used in genetic counselling: Young ID (2007) Introduction to Risk Calculation in Genetic Counselling, 3rd ed., Oxford University Press; Harper PS (2020) Practical Genetic Counselling, 8th ed., CRC Press; Nussbaum RL, McInnes RR, Willard HF, Thompson & Thompson Genetics in Medicine (Bayesian analysis chapter)."
   - "Prior of 2/3 for the mother of an isolated case of a lethal X-linked condition: Haldane JBS (1935) The rate of spontaneous mutation of a human gene, J Genet 31:317."

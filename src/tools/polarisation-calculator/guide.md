@@ -11,7 +11,7 @@ order: 7
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [thin-film-coating, gaussian-beam, fibre-optic-calculator]
+related: [thin-film-coating, gaussian-beam, fibre-optic-calculator, lens-ray-tracer, diffraction-patterns, sellmeier-fitter, bloch-sphere, plot-maker]
 sources:
   - "Jones calculus, Stokes parameters, Mueller matrices (M_ij = ½ Tr(J† σᵢ J σⱼ)) and the Poincaré sphere: standard results, for example Goldstein, D., Polarized Light, and Hecht, E., Optics, chapter 8. Handedness follows the IEEE convention, stated on the page."
   - "Checked against an independent NumPy implementation (Mueller matrices built as A (J ⊗ J*) A⁻¹) and against Malus's law; no data tables are used. The example chain is made up."
@@ -32,6 +32,8 @@ This calculator follows the light through a chain of elements with two standard 
 - **Mueller calculus** uses the four **Stokes parameters** (S₀ intensity, S₁ horizontal minus vertical, S₂ +45° minus −45°, S₃ right minus left circular) and 4 × 4 matrices, so it also handles partly polarised and unpolarised light and depolarisers.
 
 The state after every element is drawn on the **Poincaré sphere**, where linear states lie on the equator and circular states at the poles. A waveplate turns the point around an axis through the sphere; a polariser jumps it to a point on the equator.
+
+See how coatings change the two polarisations with the [[thin-film-coating|thin-film coating calculator]], and follow a polarised beam into a fibre with the [[fibre-optic-calculator|fibre optic calculator]].
 
 ## How to use it
 

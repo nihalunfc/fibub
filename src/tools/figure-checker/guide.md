@@ -11,7 +11,7 @@ order: 805
 icon: image
 works: offline
 updated: 2026-11-09
-related: [plot-maker, graph-digitizer, image-resizer]
+related: [plot-maker, graph-digitizer, image-resizer, science-colour-palette, poster-layout, scientific-notation-formatter, colour-vision-simulator, contrast-checker]
 sources:
   - "File reading (PNG pHYs, JPEG JFIF and EXIF, TIFF resolution tags, SVG and PDF sizes), print sizes and the DPI rewrite are written by fibub and checked in the tests against the sizes and DPI that Pillow reads from test files."
   - "Colour-blind simulation follows the method of Viénot, Brettel and Mollon (1999), built from the sRGB standard and the Smith and Pokorny (1975) cone space; the tests check it against DaltonLens-Python to within one colour level."
@@ -33,6 +33,8 @@ Journals reject figures for three common reasons: too few pixels for the printed
 - **Fix the stored DPI.** A screenshot or a plot saved at "72 dpi" may have plenty of pixels but opens tiny or huge. *Download with this DPI* rewrites only the resolution field of a PNG or JPEG. The pixels are not changed or re-compressed.
 - **Colour vision.** Side-by-side previews for deuteranopia, protanopia and tritanopia (no green, red or blue cones), with a strength slider, and a greyscale preview for black-and-white printing.
 - **Vector files.** SVG and PDF figures stay sharp at any size, so DPI does not apply. The page shows the size set in the file and notes embedded pictures.
+
+Choose colours everyone can read with the [[science-colour-palette]], and place the finished figures on a [[poster-layout|poster]].
 
 ## How to use it
 

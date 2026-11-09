@@ -11,7 +11,7 @@ order: 853
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [gel-densitometry, uncertainty-calculator]
+related: [gel-densitometry, uncertainty-calculator, particle-size-image, phase-fraction, lattice-fft, afm-roughness, point-counter, plot-maker]
 sources:
   - "The line-intercept count, the test-line layouts and the statistics are written by fibub. The tests check the boundary counts against an independent Python count (SciPy and scikit-image) on a Voronoi grain image, Otsu's threshold against scikit-image, and the mean intercept of random Voronoi grains against the known value π / (4 √density)."
   - "G uses the ASTM E112 relation G = −6.6457 log10(ℓ) − 3.298 with ℓ in millimetres, a published formula. This page is not the standard and is not affiliated with ASTM; check the standard for test procedures."
@@ -38,6 +38,8 @@ This page does the counting for you:
 - **Boundary finding.** The grey level along each line is read pixel by pixel. With *dark lines* each run of pixels at or below the threshold is one boundary (the usual etched look); *light lines* is the opposite; *a change of shade* counts a boundary wherever the shade steps by more than the threshold per pixel, for colour-etched or EBSD-like images with no boundary lines. The automatic threshold is Otsu's method.
 - **Your corrections.** Tap a test line where a boundary was missed to add a green mark, or tap a mark (a twin boundary, a scratch, a spot of dirt) to remove it.
 - **Statistics.** Each line gives its own crossings per unit length. The spread between lines gives a Student-t confidence interval and the relative accuracy (%RA) in the way ASTM E112 treats fields; about 10 % or better is usually enough.
+
+Measure the share of each phase with the [[phase-fraction|phase fraction tool]], and size loose particles with [[particle-size-image|particle sizing from images]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 5
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [protein-calculator, peptide-mass-calculator, sequence-tools, gel-densitometry]
+related: [protein-calculator, peptide-mass-calculator, sequence-tools, gel-densitometry, pdb-viewer, peptide-overlap-designer]
 sources:
   - "The method (a sliding-window mean of a hydropathy scale, and 19-residue windows above about 1.6 for membrane-crossing helices) follows Kyte and Doolittle's 1982 description; the method is general science knowledge."
   - "The scale is fibub's own: the widely taught Kyte–Doolittle values rounded to the nearest 0.5. It is not the published table; every value can be edited, or a whole scale pasted in."

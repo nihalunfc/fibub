@@ -11,7 +11,7 @@ order: 737
 icon: table
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner]
+related: [plot-maker, data-cleaner, ipa-keyboard, syntax-tree-drawer, corpus-concordancer, field-note-organiser]
 sources:
   - "Conventions: the Leipzig Glossing Rules (Comrie, Haspelmath and Bickel, Max Planck Institute for Evolutionary Anthropology), described in our own words; the built-in abbreviation list is a short list written for this tool. LaTeX output follows the documented syntax of the gb4e and expex packages. Example sentences made up for this tool."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 Linguistics papers, theses and fieldwork reports show examples from other languages as **interlinear glossed text**: the original sentence, the same sentence split into morphemes, a gloss for every morpheme, and a free translation. The **Leipzig Glossing Rules** are the conventions most journals ask for. Getting the glosses to line up by hand, and keeping every hyphen in the gloss matched to a hyphen in the word, is fiddly. This tool checks your examples against the rules, shows them aligned, and writes them out for your document. Everything happens in your browser.
+
+Type the transcription line with the [[ipa-keyboard]], and draw the structure of the example with the [[syntax-tree-drawer]].
 
 ## How to use it
 

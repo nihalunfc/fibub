@@ -11,7 +11,7 @@ order: 803
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [plot-maker, uncertainty-calculator, graph-digitizer]
+related: [plot-maker, uncertainty-calculator, graph-digitizer, table-converter, bibtex-cleaner, scientific-notation-formatter, symbolic-algebra]
 sources:
   - "The LaTeX reader, the MathML writer and the MathML reader are written by fibub. Command meanings follow the LaTeX and amsmath manuals; characters follow the Unicode and MathML standards (W3C MathML Core)."
   - "Checked in the tests against latex2mathml 3.81.1 (Python, MIT licence) on 87 expressions, and by converting every expression to MathML, back to LaTeX and to MathML again."
@@ -36,6 +36,8 @@ It understands the LaTeX most papers use:
 - **Matrices and layouts:** `matrix`, `pmatrix`, `bmatrix`, `Bmatrix`, `vmatrix`, `Vmatrix`, `cases`, `aligned`, `gathered` and `array`.
 - **Accents and fonts:** `\hat`, `\bar`, `\vec`, `\dot`, `\tilde`, `\overline`, `\underbrace`; `\mathbf`, `\mathbb`, `\mathcal`, `\mathrm`, `\boldsymbol`; and `\text{...}`.
 - **Greek letters, operators, relations and arrows**, with the full list on the page.
+
+Simplify the maths first with [[symbolic-algebra]], and convert the tables around it with the [[table-converter]].
 
 ## How to use it
 

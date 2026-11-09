@@ -11,7 +11,7 @@ order: 509
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [apparent-dip, stereonet, gps-track-analyser, drill-hole-composites]
+related: [apparent-dip, stereonet, gps-track-analyser, drill-hole-composites, phone-clinometer, dem-terrain, strat-column, gravity-corrections]
 sources:
   - "Apparent dip: tan α = tan δ · sin(azimuth − strike) (right-hand rule), the standard relation found in structural geology textbooks; the page uses the same function as fibub's apparent dip calculator."
   - "Bilinear sampling, the GeoTIFF and ASCII grid readers, the profile and the apparent dips are written by fibub and checked in the tests against scipy (RegularGridInterpolator) on rasters written by Python (tifffile), and against the intersection of the bed and section planes in numpy."
@@ -32,6 +32,8 @@ A geological cross-section shows what lies under a line across a map: the shape 
 - **Contacts by apparent dip.** For each contact, give the distance where it meets the surface and the bed's strike and dip. A section that does not run straight down the dip shows a gentler **apparent dip**: tan α = tan δ · sin(azimuth − strike), right-hand rule. The page works this out with the azimuth of the line segment the contact falls on and draws the contact down from the surface.
 - **Units.** Contacts are listed from the youngest unit down. Each unit is filled between its base contact and the contacts above it (a layer cake), with the last unit filling everything below.
 - **Downloads.** The section as SVG (vector, edit it in Inkscape or Illustrator), as an image, PDF or Word report, and the sampled profile with each contact's elevation as CSV.
+
+Measure strike and dip in the field with the [[phone-clinometer]], and turn true dips into the apparent dips seen along your line with the [[apparent-dip|apparent dip calculator]].
 
 ## How to use it
 

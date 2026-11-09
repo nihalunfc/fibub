@@ -11,7 +11,7 @@ order: 1
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sequence-tools, primer-checker, sequence-alignment]
+related: [sequence-tools, primer-checker, sequence-alignment, mendelian-chi-square, pedigree-drawing-tool, hardy-weinberg-tester, linkage-map-calculator, carrier-risk, crossing-plan]
 sources:
   - "The square, the ratios, the branch method, the binomial chances and the Bayes tables are written by fibub from the standard rules of Mendelian inheritance and checked in the tests against an independent brute-force Python version (300 random crosses, 0 differences) and classic textbook results worked by hand (9:3:3:1, 27:9:9:9:3:3:3:1, 1/9 and 3/32 for two partners with affected siblings, 1/5 for an X-linked carrier with two unaffected sons)."
   - "The example crosses use letters and trait names only (Mendel's yellow/green and round/wrinkled peas are general textbook knowledge). The typed carrier chance 1/50 is made up and editable; it is not a figure for any real condition or population."
@@ -33,6 +33,8 @@ A Punnett square lists every egg one parent can make against every sperm the oth
 - **Branch method.** Each gene on its own, then the product rule, with the working shown, for any child you describe: a genotype or a look for each gene, and a sex when there is an X-linked gene.
 - **Several children.** The binomial rule for "exactly k of n children", at least k, at most k, none and at least one.
 - **Carrier risk.** A Bayes table for an autosomal recessive condition (two unaffected partners and their unaffected children) or an X-linked recessive one (a woman and her unaffected sons).
+
+Test whether real offspring counts fit the ratio with the [[mendelian-chi-square|Mendelian chi-square test]], and draw the family behind a carrier risk with the [[pedigree-drawing-tool]].
 
 ## How to use it
 

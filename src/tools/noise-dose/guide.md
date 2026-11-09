@@ -11,7 +11,7 @@ order: 7
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [decibel-distance, audio-spectrum-analyser, noise-barrier]
+related: [decibel-distance, audio-spectrum-analyser, noise-barrier, room-acoustics, audiogram, exposure-twa]
 sources:
   - "Dose D = 100·Σ C/T with T = 8 / 2^((L − Lc)/q), and TWA = Lc + (q/lg 2)·lg(D/100): US OSHA 29 CFR 1910.95 and its Appendix A (US government work, public domain; the Appendix A worked example is used in the tests). Checked 2026-11-09."
   - "NIOSH (1998), Criteria for a Recommended Standard: Occupational Noise Exposure, DHHS (NIOSH) Publication No. 98-126: 85 dB(A), 3 dB exchange rate. Checked 2026-11-09."
@@ -34,6 +34,8 @@ This calculator takes a list of tasks with their **A-weighted level** and **dura
 - the total **dose** in per cent, and the **8-hour time-weighted average (TWA)** that gives the same dose;
 - **LEX,8h**, the energy average normalised to 8 hours used in the EU and UK;
 - the **time left** at the loudest task before the dose reaches 100 %.
+
+Work out the level at each place from a source's distance with the [[decibel-distance|decibel distance calculator]], and keep track of hearing over time with the [[audiogram|audiogram plotter]].
 
 ## How to use it
 

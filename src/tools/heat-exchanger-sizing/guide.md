@@ -11,7 +11,7 @@ order: 647
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [shaft-bearing-life, gear-train-calculator]
+related: [shaft-bearing-life, gear-train-calculator, heat-conduction, steam-tables, psychrometric-calculator, mass-balance-solver, dimensionless-numbers, pump-system-curve, hvac-room-load]
 sources:
   - "Log-mean temperature difference, the F correction factor for one shell pass and an even number of tube passes (Bowman, Mueller and Nagle, 1940), and the effectiveness-NTU relations for parallel flow, counterflow, shell and tube (one and n shell passes) and crossflow with one fluid mixed, as in Incropera et al., Fundamentals of Heat and Mass Transfer, and Kays and London, Compact Heat Exchangers (equations only)."
   - "Crossflow with both fluids unmixed uses the exact series solution (Mason, 1954); the common approximation is used only as a check."
@@ -35,6 +35,8 @@ It uses both classic methods and shows they agree:
 
 - **LMTD:** Q = U A F ΔT_lm, with the log-mean temperature difference ΔT_lm and, for a shell-and-tube unit, the correction factor F from the 1-2 formula.
 - **Effectiveness-NTU:** ε = Q / Qmax depends only on NTU = UA / Cmin, the capacity ratio Cr = Cmin / Cmax and the flow arrangement. It works for every arrangement, including crossflow, and needs no iteration for rating.
+
+Balance the flows and heat duty first with the [[mass-balance-solver|mass and energy balance solver]], and look up water and steam properties in the [[steam-tables]].
 
 ## How to use it
 

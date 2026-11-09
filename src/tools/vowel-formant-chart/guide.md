@@ -11,7 +11,7 @@ order: 730
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, trend-analyser, pitch-contour-tracker, ipa-feature-matrix, ipa-keyboard]
+related: [plot-maker, data-cleaner, trend-analyser, pitch-contour-tracker, ipa-feature-matrix, ipa-keyboard, audio-spectrum-analyser, harmonics-analyser]
 sources:
   - "Method: linear prediction by the autocorrelation method with the Levinson-Durbin recursion (Makhoul 1975, Proc. IEEE 63, 561); formant settings follow Praat's documented defaults (Boersma and Weenink). Normalisation: Lobanov (1971), J. Acoust. Soc. Am. 49, 606."
   - "Example sound and example table: made up for this page (synthetic vowels and invented speakers A and B)."
@@ -27,6 +27,8 @@ flow:
 Formants are the resonances of the vocal tract. The first two, **F1** and **F2**, are what make one vowel sound different from another: F1 rises as the jaw and tongue lower (so [a] has a high F1 and [i] a low one), and F2 rises as the tongue moves forward (so [i] has a high F2 and [u] a low one). Plot F2 across and F1 down, both reversed, and the vowels fall roughly where they sit on the IPA vowel chart.
 
 This tool measures formants from your own recording and draws that chart. It reads the sound in your browser, so recordings of yourself, your students or your participants never leave the device.
+
+Follow the intonation of the same recording with the [[pitch-contour-tracker]], and write the vowels down with the [[ipa-keyboard]].
 
 ## How to use it
 

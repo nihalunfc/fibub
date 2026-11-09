@@ -11,7 +11,7 @@ order: 307
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, trap-count-index, camera-trap-tagger, distance-sampling, mark-recapture, habitat-connectivity]
 sources:
   - "Method: D. I. MacKenzie, J. D. Nichols, G. B. Lachman, S. Droege, J. A. Royle and C. A. Langtimm (2002), Estimating site occupancy rates when detection probabilities are less than one, Ecology 83: 2248-2255; D. I. MacKenzie et al., Occupancy Estimation and Modeling (2006) for the conditional occupancy of never-detected sites. Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python fit (SciPy 1.x optimize.minimize with BFGS, a finite-difference Hessian and scipy.stats.norm) of the same data."
@@ -31,6 +31,8 @@ Not finding a species at a site does not mean it is absent: it may simply have b
 - **Detection probability p**: the chance of detecting it in one survey of an occupied site.
 
 It compares the estimate with the **naive occupancy** (sites where it was seen ÷ all sites), which is always too low when p is below 1, and it works out how likely each never-detected site is to hold the species anyway.
+
+Turn camera trap photos into detection histories with the [[camera-trap-tagger|camera trap tagger]], and when you can count the animals, estimate their numbers with [[distance-sampling|distance sampling]] instead.
 
 ## How to use it
 

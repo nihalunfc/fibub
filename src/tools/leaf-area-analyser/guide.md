@@ -11,7 +11,7 @@ order: 323
 icon: image
 works: offline
 updated: 2026-11-09
-related: [spectral-index-calculator, biodiversity-indices, tree-carbon, image-resizer]
+related: [spectral-index-calculator, biodiversity-indices, tree-carbon, image-resizer, canopy-gap-analyser, stomatal-density-counter, leaf-disease-severity, plant-growth-analysis]
 sources:
   - "Otsu, N. (1979) A threshold selection method from gray-level histograms. IEEE Transactions on Systems, Man, and Cybernetics 9, 62–66 (the automatic threshold)."
   - "Woebbecke, D. M. et al. (1995) Color indices for weed identification under various soil, residue, and lighting conditions. Transactions of the ASAE 38, 259–269 (excess green index, 2g − r − b)."
@@ -33,6 +33,8 @@ This page does the job of a leaf area meter with nothing more than a scanner or 
 - **Canopy cover.** Open a photo looking down on a crop, lawn or pasture (or straight up into green leaves) and the page reports the percentage of the picture covered by green plants, using the excess green index and an automatic threshold.
 
 Your photo is read on this page only. It is never uploaded, and nothing is kept after you close the tab.
+
+Use the leaf areas in a [[plant-growth-analysis|plant growth analysis]], and count the stomata on the same leaves with the [[stomatal-density-counter|stomatal density counter]].
 
 ## How to use it
 

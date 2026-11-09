@@ -11,7 +11,7 @@ order: 762
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, plot-maker, sample-size]
+related: [data-cleaner, plot-maker, sample-size, body-measures, reference-interval, body-mass-estimator, field-note-organiser, hypothesis-tests]
 sources:
   - "Formulas: standard anthropometric and osteometric ratios as given in introductory physical anthropology texts. BMI bands for adults as published by the World Health Organization (general knowledge)."
   - "Example data: made up."
@@ -43,6 +43,8 @@ Physical anthropologists, human biologists and osteology students describe body 
 Class names are given only where they are standard textbook knowledge: the adult **BMI** bands (below 18.5 underweight, 18.5 to 24.9 healthy weight range, 25 to 29.9 overweight, 30 and above obesity) and the three classic **cephalic index** bands (below 75 dolichocephalic, 75 to 79.9 mesocephalic, 80 and above brachycephalic). Other indices are shown as plain values, because their older class names and cut-offs differ from book to book.
 
 This page is for study and teaching. It is **not a medical or growth assessment**: it has no growth charts or z-scores for children, and BMI bands apply to adults only.
+
+Compare against clinical cut-offs with the [[body-measures|body measures calculator]], and test differences between groups with [[hypothesis-tests|hypothesis tests]].
 
 ## How to use it
 

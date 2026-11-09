@@ -28,8 +28,11 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill(R + '.pc-note', 'fold axis'); await page.selectOption(R + '.pc-kind', 'line'); await page.click(R + '.pc-take'); await wait();
   { const t = await page.textContent(R + '.pc-log'); check(t.includes('Plane 030/35.0') && t.includes('Line 35.0 → 120') && t.includes('45.12346, -66.50000') && t.includes('bedding, site 4') && (await page.textContent(R + '.pc-pos')).includes('added to that reading'), 'clino: two readings logged with note and position'); }
   check(await page.isVisible(R + '.pc-net'), 'clino: readings drawn on the net');
+  check(!(await page.isChecked(R + '.pc-keep')) && (await page.evaluate(() => localStorage.getItem('fibub-clinometer-v1'))) === null, 'clino: nothing stored (positions included) before the remember box is ticked');
+  await page.check(R + '.pc-keep'); await wait();
+  check(JSON.parse(await page.evaluate(() => localStorage.getItem('fibub-clinometer-v1'))).length === 2, 'clino: ticking the box saves the log now');
   await page.reload(); await wait(800);
-  check((await page.textContent(R + '.pc-log')).includes('Plane 030/35.0'), 'clino: log kept in this browser after reload');
+  check((await page.textContent(R + '.pc-log')).includes('Plane 030/35.0') && await page.isChecked(R + '.pc-keep'), 'clino: log kept in this browser after reload');
   await page.selectOption(R + '.pc-fmt', 'dd'); await wait();
   check((await page.textContent(R + '.pc-log')).includes('Plane 120/35.0'), 'clino: log follows the plane format');
   await page.selectOption(R + '.pc-fmt', 'rhr');

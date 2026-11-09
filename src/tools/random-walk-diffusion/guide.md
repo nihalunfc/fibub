@@ -11,7 +11,7 @@ order: 7
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [ising-model, partition-function, trend-analyser, plot-maker]
+related: [ising-model, partition-function, trend-analyser, plot-maker, heat-conduction, diffusion-calculator, gillespie-simulator, distribution-explorer]
 sources:
   - "Random walks, the diffusion equation and MSD = 2dDt: Einstein, A. (1905), Annalen der Physik 17, 549; standard treatment in Berg, H. C., Random Walks in Biology."
   - "MSD analysis of single-particle tracks with a localisation offset and the anomalous exponent: standard practice, for example Michalet, X. (2010), Physical Review E 82, 041914."
@@ -32,6 +32,8 @@ The tool has two parts:
 
 - **Simulate**: hundreds of walkers on a line, a plane or in space, with steps of fixed length along the axes (lattice) or random Gaussian steps. You see the first ten paths, the MSD against time next to the theory line 2·d·D·t with D = a²/(2·d·Δt), the fitted D and exponent α, and a histogram of where the walkers ended up compared with the Gaussian the diffusion equation predicts.
 - **Fit your tracks**: paste or open particle tracks (track name, time, x, y and optionally z). The tool works out the **time-averaged MSD** over all tracks at each lag, fits **D** over the first lags (with an optional **offset** for localisation error) and the **anomalous exponent α** from the log-log slope.
+
+See the smooth version of the same spreading in the [[heat-conduction|heat conduction solver]], and work out diffusion in solids with the [[diffusion-calculator]].
 
 ## How to use it
 

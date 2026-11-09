@@ -11,7 +11,7 @@ order: 836
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [molar-mass-calculator, ir-band-finder, nmr-impurity-checker, isotope-pattern-calculator, periodic-table]
+related: [molar-mass-calculator, ir-band-finder, nmr-impurity-checker, isotope-pattern-calculator, periodic-table, adduct-calculator]
 sources:
   - "Method: the standard degree-of-unsaturation formula, 1 + ½ Σ nᵢ(vᵢ − 2), as taught in organic chemistry and mass spectrometry courses. Formula and SMILES reading, the ion rules and the combinations are written by fibub."
   - "Atomic masses: fibub's element table (IUPAC/CIAAW standard atomic weights; isotope masses from NIST/IUPAC data via the MIT-licensed chemical-elements package)."
@@ -40,6 +40,8 @@ It then checks the formula:
 - **Masses**: monoisotopic (for high-resolution mass spectrometry, with the electrons of the charge taken off), nominal and average.
 
 Finally it lists **every combination** of rings, double bonds and triple bonds that adds up to the value, such as 1 ring + 3 double bonds for a benzene ring.
+
+Get the formula's isotope peaks with the [[isotope-pattern-calculator]], then match the rings and double bonds to the spectrum with the [[ir-band-finder|IR band finder]].
 
 ## How to use it
 

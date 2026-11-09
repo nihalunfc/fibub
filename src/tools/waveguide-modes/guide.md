@@ -11,7 +11,7 @@ order: 5
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [skin-depth-calculator, capacitor-inductor-calculator, link-budget-calculator]
+related: [skin-depth-calculator, capacitor-inductor-calculator, link-budget-calculator, antenna-calculator, smith-chart, fibre-optic-calculator]
 sources:
   - "Cutoff frequencies, propagation constants, wave impedances and conductor attenuation of TE and TM modes in rectangular and circular waveguides: standard results, for example Pozar, D. M., Microwave Engineering, chapter 3, and Collin, R. E., Foundations for Microwave Engineering."
   - "Bessel functions from their integral representation and their zeros found numerically in the page; no tables of zeros are used."
@@ -36,6 +36,8 @@ This calculator lists every TE (transverse electric) and TM (transverse magnetic
 - the **wall loss** in dB per metre from the finite conductivity of the metal (for TE10 in rectangular guides and for every circular mode).
 
 Bessel functions and their zeros, needed for circular guides, are worked out in the page.
+
+Match the guide to its load with the [[smith-chart]], and work out the signal at the far end with the [[link-budget-calculator]].
 
 ## How to use it
 

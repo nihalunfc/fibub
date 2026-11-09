@@ -11,7 +11,7 @@ order: 3
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plasma-parameters, particle-drifts, calibration-curve, plot-maker]
+related: [plasma-parameters, particle-drifts, calibration-curve, plot-maker, paschen-curve, curve-fitter, uncertainty-calculator]
 sources:
   - "Single-probe theory: Langmuir and Mott-Smith (1926); standard treatments in Hutchinson, I. H., Principles of Plasma Diagnostics, and Chen, F. F. (2003), Langmuir probe diagnostics (IEEE ICOPS mini-course). Bohm ion flux factor 0.61 = exp(−1/2)."
   - "Checked against an independent NumPy re-implementation of the same fitting steps on the example trace, and against the made-up plasma (Tₑ = 3 eV, n = 10¹⁶ m⁻³, Vp = 12 V) used to generate it."
@@ -32,6 +32,8 @@ A **Langmuir probe** is a small bare wire put into a plasma. Sweeping its voltag
 3. Fits a straight line to ln(electron current) in the **transition region**: the slope is 1/Tₑ, so the electron temperature comes straight out in electronvolts.
 4. Finds the **plasma potential** Vp at the knee, where the exponential line meets the electron-saturation line.
 5. Works out the **density** twice: from the electron saturation current (¼ n e A v̄) and from the ion saturation current (Bohm, 0.61 n e A √(kTₑ/mᵢ)).
+
+Turn the temperature and density into Debye length and more with the [[plasma-parameters|plasma parameter calculator]], and check when your gas breaks down with the [[paschen-curve|Paschen curve calculator]].
 
 ## How to use it
 

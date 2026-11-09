@@ -11,7 +11,7 @@ order: 738
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker, trend-analyser, inflation-calculator, nash-equilibrium-solver]
+related: [uncertainty-calculator, plot-maker, trend-analyser, inflation-calculator, nash-equilibrium-solver, regression-ols-iv-panel, leontief-multipliers, function-grapher]
 sources:
   - "Standard microeconomics formulas (Marshallian surplus, point and midpoint elasticity, tax incidence); no tables copied."
   - "Written by fibub. Checked in the tests against an independent SciPy calculation (brentq for prices, numerical integration of the inverse curves for surplus and deadweight loss) and the textbook closed forms."
@@ -33,6 +33,8 @@ This calculator works through the supply and demand questions from a first econo
 - the **arc (midpoint) elasticity** between any two observed price and quantity points.
 
 Everything is worked out in your browser. Nothing is sent anywhere.
+
+Estimate a demand curve from real data with the [[regression-ols-iv-panel]] first, and see how firms set prices against each other with the [[nash-equilibrium-solver]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 659
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [soil-classification, consolidation-settlement, slope-stability]
+related: [soil-classification, consolidation-settlement, slope-stability, bearing-capacity, grain-size-stats, graph-digitizer]
 sources:
   - "Casagrande liquid limit flow curve (water content against log blows, read at 25 blows), flow and toughness indices, liquidity and consistency indices, and Skempton's activity PI / clay fraction: general soil mechanics."
   - "One-point liquid limit LL = wN (N/25)^0.121: the commonly used exponent from the general literature; the page lets you change it."
@@ -35,6 +35,8 @@ Two everyday soil lab tests in one place.
 - with the natural water content, the **liquidity index** and **consistency index**; with the clay fraction, the **activity**.
 
 **The compaction (Proctor) curve** shows how dense a soil gets when compacted at different water contents. The page turns each bulk density into a **dry density**, fits a smooth curve, and reads the **maximum dry density** and the **optimum water content** at its peak. It draws the **zero-air-voids** line and the 5 % and 10 % air-voids lines from Gs, and gives the **relative compaction** of a field test.
+
+Put the limits straight into the [[soil-classification]], and add the sieve results with the [[grain-size-stats|grain size statistics]] tool.
 
 ## How to use it
 

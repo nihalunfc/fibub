@@ -11,7 +11,7 @@ order: 3
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [pathway-ode-builder, gene-network-viewer]
+related: [pathway-ode-builder, gene-network-viewer, genetic-circuit-designer, ode-solver, random-walk-diffusion, distribution-explorer]
 sources:
   - "Gillespie, D. T. (1977), Exact stochastic simulation of coupled chemical reactions, J. Phys. Chem. 81, 2340 to 2361 (the direct method); the two-stage gene expression noise result of Thattai, M. and van Oudenaarden, A. (2001), PNAS 98, 8614 to 8619: used as methods, written by fibub."
   - "Checked against exact results: the Poisson stationary distribution of the birth-death process (chi-square test with SciPy's Poisson and chi-square functions), the binomial distribution of first-order decay, the mean and Fano factor of the two-stage gene expression model, and the ODE mean of a linear model. Example rates are made up."
@@ -34,6 +34,8 @@ This page runs the SSA many times and shows:
 - The **Fano factor** (variance ÷ mean): 1 for a Poisson distribution, above 1 for bursty noise.
 
 Everything runs in your browser.
+
+Compare with the smooth average from the [[pathway-ode-builder]], and look at the shape of the count distribution in the [[distribution-explorer]].
 
 ## How to use it
 

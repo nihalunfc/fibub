@@ -11,7 +11,7 @@ order: 586
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [transportation-assignment, graph-algorithms]
+related: [transportation-assignment, graph-algorithms, lp-solver, utm-converter, gps-track-analyser, catchment-buffer]
 sources:
   - "Standard methods, written by fibub: Clarke and Wright's savings algorithm (1964), 2-opt and or-opt local search, Held-Karp dynamic programming for the shortest tour, subset dynamic programming for the exact capacitated plan, classical multidimensional scaling for the picture."
   - "Checked against brute force over every stop order, and against an integer program solved with scipy.optimize.milp (HiGHS, BSD licence) on 41 instances including the example: exact totals equal."
@@ -34,6 +34,8 @@ This tool solves small instances in your browser:
 - **Or-opt**: move one to three neighbouring stops to a better place, in the same route or another vehicle with room.
 - **Exact order**: every route of up to 12 stops is put in its shortest possible order by Held-Karp dynamic programming.
 - **Exact plan**: with **12 customers or fewer**, it also finds the shortest possible plan of all, within the number of vehicles you allow, and tells you how far the heuristic was from it.
+
+Assign whole loads from several depots with the [[transportation-assignment|transportation and assignment solver]], and turn latitude and longitude into map coordinates with the [[utm-converter|UTM converter]].
 
 ## How to use it
 

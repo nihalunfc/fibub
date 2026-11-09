@@ -11,7 +11,7 @@ order: 421
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [wave-calculator, uncertainty-calculator]
+related: [wave-calculator, uncertainty-calculator, harmonics-analyser, tempo-detector, standing-waves, audio-spectrum-analyser, doppler-beats, pitch-contour-tracker]
 sources:
   - "Cents (1200 × log2 of the ratio), the syntonic comma 81/80, the Pythagorean comma 3¹²/2¹⁹, chains of fifths for Pythagorean and meantone tunings, 5-limit just ratios and equal division of the octave: standard music theory and acoustics."
   - "Checked against an independent Python script (fractions and math): all Pythagorean fractions and cents, quarter-comma meantone cents (to 10⁻⁸ ¢), the reference-pitch frequencies (C4 = 264, 261.626 and 260.741 Hz with A4 = 440 in just, 12-TET and Pythagorean) and the commas."
@@ -32,6 +32,8 @@ A tuning system decides exactly how high each note of a scale is. Modern keyboar
 - **Meantone**: fifths narrowed by part of the syntonic comma. Quarter-comma makes the major thirds pure 5/4.
 
 For each note you get the ratio (as a fraction where there is one), the size in **cents** (hundredths of an equal-tempered semitone), the deviation from 12-TET, the frequency in Hz from your reference pitch, and the nearest simple just interval with the difference. A chart shows both deviations at once.
+
+Check the overtones of a real note with the [[harmonics-analyser|harmonics analyser]], and see how a string or pipe makes its pitch with [[standing-waves|standing waves]].
 
 ## How to use it
 

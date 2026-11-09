@@ -11,7 +11,7 @@ order: 629
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [fft-workbench, plot-maker]
+related: [fft-workbench, plot-maker, aliasing-demo, wavelet-viewer, filter-designer, notch-filter-psd, oscilloscope-viewer, kalman-filter-playground]
 sources:
   - "Window method and Kaiser's formulas: Oppenheim and Schafer, Discrete-Time Signal Processing; Kaiser (1974), Nonrecursive digital filter design using the I0-sinh window function. Butterworth and Chebyshev prototypes and the bilinear transform with pre-warping: standard textbook results (for example Parks and Burrus, Digital Filter Design)."
   - "Checked against scipy.signal (firwin, kaiserord, butter, cheby1, zpk2sos, sosfreqz, group_delay, lfilter) and numpy (kaiser, roots), used only for testing; no code copied."
@@ -31,6 +31,8 @@ It designs two families:
 
 - **FIR (finite impulse response)** filters by the **window method**: the ideal "brick-wall" response is a sinc function; it is cut to a fixed length (the number of **taps**) and tapered with a window. FIR filters are always stable and delay every frequency by the same time (linear phase), so pulse shapes are kept.
 - **IIR (infinite impulse response)** filters, **Butterworth** (as flat as possible in the pass band) and **Chebyshev type I** (a small ripple in the pass band for a steeper edge). They are designed as analogue filters and turned into digital ones with the **bilinear transform**, with the edge frequencies pre-warped so they land exactly where you asked. An IIR filter needs far fewer coefficients than an FIR filter for the same steepness, but its delay varies with frequency.
+
+Find the noise you need to remove with the [[fft-workbench]] first, and for a filter built from resistors, capacitors and op-amps use the [[filter-designer|analog filter designer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 581
 icon: lock
 works: offline
 updated: 2026-11-09
-related: [entropy-calculator, error-correcting-codes, huffman-coding]
+related: [entropy-calculator, error-correcting-codes, huffman-coding, checksum-checker, number-theory-toolkit]
 sources:
   - "Methods: the classical ciphers as described in general cryptography textbooks; SHA-256 as specified in NIST FIPS 180-4 (a public standard; its round constants are part of the specification)."
   - "Checked against Python's hashlib (8 fixed messages, including empty, 55, 56 and 64 bytes and multi-block, and 20 random ones), a separate Python SHA-256 for every round and message-schedule word, the FIPS 180-2 worked example for \"abc\", and textbook cipher examples plus a Python reference for each cipher."
@@ -44,6 +44,8 @@ For each one the tool shows its working (the letter mapping, the keyword under t
 3. The **64 rounds**: the eight working registers a to h after every round, with the round constant Kₜ and word Wₜ.
 4. The **final addition** that gives the hash, checked against your browser's own SHA-256.
 5. An **avalanche** demo: flip any single bit of the message and see how many of the 256 hash bits change, drawn as a grid.
+
+Measure how random a ciphertext looks with the [[entropy-calculator]], and hash real files with the [[checksum-checker]].
 
 ## How to use it
 

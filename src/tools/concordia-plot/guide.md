@@ -11,7 +11,7 @@ order: 874
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [radiometric-age-calculator, decay-calculator, uncertainty-calculator]
+related: [radiometric-age-calculator, decay-calculator, uncertainty-calculator, age-depth-model, plot-maker]
 sources:
   - "Decay constants λ238 = 1.55125 × 10⁻¹⁰/yr and λ235 = 9.8485 × 10⁻¹⁰/yr (Jaffey et al. 1971, Physical Review C); ²³⁸U/²³⁵U = 137.818 (Hiess et al. 2012, Science) or 137.88 (Steiger and Jäger 1977). Physical constants."
   - "Concordia age and its MSWDs of concordance and equivalence after Ludwig (1998, Geochimica et Cosmochimica Acta); York et al. (2004) regression for discordia; Wetherill (1956) and Tera and Wasserburg (1972) diagrams. Written by fibub from the equations and checked against an independent NumPy/SciPy implementation."
@@ -32,6 +32,8 @@ Uranium-lead dating uses two clocks in one mineral: ²³⁸U decays to ²⁰⁶P
 - Calculates the **concordia age** of a group of analyses (Ludwig 1998): their weighted mean point and the age on concordia that fits it best, with the **MSWD** of concordance, of equivalence and of both, and their probabilities.
 - Fits a **discordia** line by **York regression** (errors in both ratios and their correlation) and gives its **upper and lower intercepts** with concordia, with errors.
 - Gives the **weighted mean ²⁰⁶Pb/²³⁸U age** with MSWD, and each analysis's ²⁰⁶Pb/²³⁸U, ²⁰⁷Pb/²³⁵U and ²⁰⁷Pb/²⁰⁶Pb ages and **discordance**.
+
+Turn single isotope ratios into ages with the [[radiometric-age-calculator|radiometric age calculator]], and place the dated layers in a timeline with the [[age-depth-model|age-depth model]].
 
 ## How to use it
 

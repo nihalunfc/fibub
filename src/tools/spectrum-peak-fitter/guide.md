@@ -11,7 +11,7 @@ order: 7
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [counting-statistics, gamma-shielding, calibration-curve, plot-maker]
+related: [counting-statistics, gamma-shielding, calibration-curve, plot-maker, decay-chain, spectrometer-calibration, curve-fitter, uncertainty-calculator]
 sources:
   - "Weighted non-linear least squares (Levenberg-Marquardt) with Poisson weights, Gaussian peak area A σ √(2π) and FWHM = 2√(2 ln 2) σ: standard results, for example Knoll, G. F., Radiation Detection and Measurement, and Bevington and Robinson, Data Reduction and Error Analysis for the Physical Sciences."
   - "Checked against SciPy curve_fit (absolute Poisson sigma) on the same spectrum and NumPy polyfit for the calibration, in tests written for this page."
@@ -30,6 +30,8 @@ A gamma-ray, X-ray or alpha spectrum (or any histogram) shows peaks sitting on a
 counts(x) = background(x) + Σ A exp(−(x − μ)² / 2σ²)
 
 by weighted least squares. Each channel is weighted by 1/counts, as Poisson statistics require, so the uncertainties are the counting uncertainties. Overlapping peaks (doublets) are fitted together.
+
+Decide how long to count with [[counting-statistics|counting statistics]], and turn peak areas into activities over time with the [[decay-chain|decay chain calculator]].
 
 ## How to use it
 

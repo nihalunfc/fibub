@@ -11,7 +11,7 @@ order: 14
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [dose-response, binding-curve-fitter, enzyme-kinetics-fitter, lc50-probit, decay-calculator, reaction-kinetics-fitter, plot-maker, calibration-curve]
+related: [dose-response, binding-curve-fitter, enzyme-kinetics-fitter, lc50-probit, decay-calculator, reaction-kinetics-fitter, plot-maker, calibration-curve, pk-simulator]
 sources:
   - "Method: M. Gibaldi and D. Perrier, Pharmacokinetics (2nd ed., Marcel Dekker 1982): AUC, AUMC, MRT, clearance and volume by statistical moments; K. Yamaoka, T. Nakagawa and T. Uno, J. Pharmacokinet. Biopharm. 6 (1978) 547: statistical moments in pharmacokinetics; the linear-up/log-down rule as in Phoenix WinNonlin's user guide. Terminal-point selection (adjusted R², ties within 0.0001 go to more points) as in PKNCA: W. S. Denney, S. Duvvuri and C. Buckeridge, J. Pharmacokinet. Pharmacodyn. 42 (2015) S65. Formulas only; no tables copied."
   - "Calculations written by fibub. Checked in the tests against an independent NumPy implementation of the same conventions (58 random profiles, all routes and both AUC methods, agreement to 1 part in 10¹³) and against the closed form for an exact exponential (AUC0-inf = C0/k, MRT = 1/k)."
@@ -28,6 +28,8 @@ flow:
 Non-compartmental analysis (NCA) is the standard first look at a pharmacokinetic study. It needs no model of the body: it takes the measured concentrations at each sampling time and works out the peak, the area under the curve and the terminal slope directly. This page does the whole NCA for one profile (one subject, one administration) in your browser, using the same conventions as the common packages (PKNCA in R and Phoenix WinNonlin), and draws the curve with the terminal fit.
 
 It is for study and teaching, not medical advice. It analyses numbers you measured; it never suggests what amount of a drug to give.
+
+Turn instrument readings into concentrations with the [[calibration-curve|calibration curve tool]], and see how a model regimen behaves with the [[pk-simulator|PK simulator]].
 
 ## How to use it
 

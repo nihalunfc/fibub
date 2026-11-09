@@ -11,7 +11,7 @@ order: 677
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, radiometric-age-calculator]
+related: [decay-calculator, radiometric-age-calculator, neutron-diffusion, decay-heat, decay-chain, ode-solver, counting-statistics]
 sources:
   - "Point kinetics equations, prompt-jump approximation and inhour equation as given in standard reactor physics textbooks (general physics)."
   - "Delayed-neutron data: rounded six-group values for thermal fission of U-235 (β = 0.0065) as printed in common textbooks, rounded and editable; physical constants, not a copied data table."
@@ -37,6 +37,8 @@ This simulator:
 - plots power (log or linear) and reactivity, and downloads the time series as CSV.
 
 It is educational: there is no temperature feedback, spatial effect or decay heat, so it shows the bare kinetics only.
+
+Find the core size that makes the reactor critical with [[neutron-diffusion|neutron diffusion]], and follow the heat left after shutdown with the [[decay-heat|decay heat calculator]].
 
 ## How to use it
 

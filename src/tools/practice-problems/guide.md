@@ -11,7 +11,7 @@ order: 825
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [solution-calculator, gas-law-calculator, decay-calculator, uncertainty-calculator]
+related: [solution-calculator, gas-law-calculator, decay-calculator, uncertainty-calculator, flashcards, lab-report-template, sig-fig-checker, molar-mass-calculator, item-analysis, rubric-grade-calculator]
 sources:
   - "Every problem, its wording and its worked steps are written by fibub. The numbers are made up by a seeded random number generator."
   - "Formulas and constants are standard school science (v = u + at, pV = nRT, C1V1 = C2V2, pH = −log[H+], g = 9.81 m/s², R = 8.314 J/(mol·K)); molar masses come from the standard atomic weights."
@@ -32,6 +32,8 @@ This page writes numeric practice problems for school and first-year science, ch
 - **Answer checking.** Type an answer such as `0.0250`, `2.5e-3` or `2.5 × 10^-3` (a unit after the number is fine). It is marked right if it is within the tolerance you choose (1 % by default) of the exact answer or of the correctly rounded one. If the value is right but the number of significant figures is not, you get an amber "right value" note with the properly rounded answer. If your answer is 1000 times too big or small, the page says so, as that is usually a unit slip.
 - **Worked steps** under every problem: the formula, the numbers put in, the unrounded result and the rounding rule.
 - **Worksheet and answer key** as PDF or Word, with optional name and date lines and optional worked steps in the key. Both show the set code.
+
+Check the rounding in your answers with the [[sig-fig-checker]], and learn the facts behind the problems with [[flashcards]].
 
 ## How the rounding works
 

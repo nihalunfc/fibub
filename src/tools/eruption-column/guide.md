@@ -11,7 +11,7 @@ order: 886
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: []
+related: [tephra-volume, standard-atmosphere, skew-t-sounding, gaussian-plume-calculator]
 sources:
   - "Power law form H = a·V^b with default coefficients a = 2.00, b = 0.241 from Mastin, L. G. et al. (2009), A multidisciplinary effort to assign realistic source parameters to models of volcanic ash-cloud transport and dispersion during eruptions, Journal of Volcanology and Geothermal Research 186, 10-21 (two coefficients quoted with credit, editable)."
   - "Plume theory: Morton, B. R., Taylor, G. I. and Turner, J. S. (1956), Turbulent gravitational convection from maintained and instantaneous sources, Proceedings of the Royal Society A 234, 1-23; equations integrated by fibub."
@@ -29,6 +29,8 @@ The height of an eruption column is one of the few things you can see during an 
 
 - an **empirical power law** H = a · V<sup>b</sup>, H in km above the vent and V the DRE volume flux in m³/s. The default a = 2.00, b = 0.241 is the widely used fit of Mastin et al. (2009); both numbers are editable, so you can use another fit written in the same form;
 - **buoyant plume theory** (Morton, Taylor and Turner 1956): a turbulent plume that entrains air as it rises through stably layered air stops at H = C · α<sup>−1/2</sup> F₀<sup>1/4</sup> N<sup>−3/4</sup>.
+
+Get the air's layering above the vent from a [[skew-t-sounding|skew-T sounding]], and estimate the erupted volume from the deposit with [[tephra-volume|tephra volume and VEI]].
 
 ## How to use it
 

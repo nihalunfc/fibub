@@ -11,7 +11,7 @@ order: 319
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [et0-calculator, koppen-climate, plot-maker, trend-analyser]
+related: [et0-calculator, koppen-climate, plot-maker, trend-analyser, trap-count-index, embryo-development-timer, station-data-viewer]
 sources:
   - "Single sine method: Baskerville, G. L. and Emin, P. (1969), Ecology 50: 514–517."
   - "Cutoff methods: Zalom, F. G. et al. (1983), Degree-days: the calculation and use of heat units in pest management, University of California Division of Agriculture and Natural Resources Leaflet 21373."
@@ -28,6 +28,8 @@ flow:
 Insects grow faster when it is warm and hardly at all when it is cold, so their development follows accumulated heat rather than the calendar. Degree-days measure that heat: each day adds the number of degrees by which it was warmer than the insect's lower developmental threshold. Growers, extension officers and students use running totals of degree-days to time trap checks, sprays and field visits for pests such as codling moth, and to compare one season with another.
 
 This calculator takes a list of daily minimum and maximum temperatures and gives you the degree-days for each day, the running total from the day you choose (the biofix), and the date a degree-day target is reached. If the target has not been reached yet, it gives a rough projected date. Everything is worked out in your browser and nothing is sent anywhere.
+
+Get daily temperatures from the [[station-data-viewer|weather station data viewer]], and line the forecast up with your catches in the [[trap-count-index|trap count index]].
 
 ## How to use it
 

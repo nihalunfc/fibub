@@ -11,7 +11,7 @@ order: 849
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [stress-strain-analyser, fatigue-sn-calculator, fracture-toughness-calculator]
+related: [stress-strain-analyser, fatigue-sn-calculator, fracture-toughness-calculator, curve-fitter, unit-converter]
 sources:
   - "The Larson-Miller, Sherby-Dorn and Manson-Haferd parameters and Norton's law are the textbook forms (Dieter, Mechanical Metallurgy, chapter 13; Dowling, Mechanical Behavior of Materials, chapter 15), written by fibub and checked in the tests against NumPy (polyfit, lstsq) and SciPy (minimize_scalar, Nelder-Mead, brentq)."
   - "The example creep-rupture and creep-rate data are made up by the page from a chosen master curve and Norton law with random scatter; they are not data for any real alloy."
@@ -33,6 +33,8 @@ Creep tests at high temperature take months or years. To design a boiler tube or
 - fits **Norton's creep law** ε̇ = A σⁿ exp(−Q/RT) to minimum (steady-state) creep rates, giving the stress exponent n and, with tests at two or more temperatures, the activation energy Q.
 
 Each fit reports its scatter as the standard deviation of log₁₀ t between the tests and the curve, so you can see which parameter describes your data best.
+
+Check the short-term strength from a tensile test with the [[stress-strain-analyser|stress-strain curve analyser]], and the effect of cycling loads with the [[fatigue-sn-calculator|fatigue S-N calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 652
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [load-combination-helper, rebar-calculator, uncertainty-calculator]
+related: [load-combination-helper, rebar-calculator, uncertainty-calculator, concrete-mix-design, beam-calculator, truss-solver, stress-strain-analyser]
 sources:
   - "Euler's buckling formula P = π²EI/(KL)², ideal effective length factors from elastic stability theory, and the Johnson parabola σ = fy − (fy/2π)² λ²/E for intermediate columns, as in mechanics of materials textbooks such as Timoshenko and Gere, Theory of Elastic Stability, and Gere and Goodno, Mechanics of Materials (formulas only)."
   - "Section properties from the standard formulas for area and second moment of area."
@@ -36,6 +36,8 @@ A slim column under compression does not crush first: it bows sideways and colla
 - An **allowed load** with a factor of safety you choose, and a check of an applied load if you give one.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer.
+
+Get the design axial load from the [[load-combination-helper|load combination helper]], and check bending in the [[beam-calculator|beam calculator]].
 
 ## How to use it
 

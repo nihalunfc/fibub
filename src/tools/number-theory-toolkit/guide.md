@@ -11,7 +11,7 @@ order: 544
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, sql-playground]
+related: [uncertainty-calculator, sql-playground, group-explorer, combinatorics-calculator, cipher-teacher, error-correcting-codes, symbolic-algebra]
 sources:
   - "Standard number theory (Euclid, Fermat, Euler, Gauss, Lagrange). Miller-Rabin bases from Sorenson and Webster (2015); Baillie-PSW as described by Baillie and Wagstaff (1980); Pollard rho with Brent's improvement (1980)."
   - "Checked against sympy: isprime, factorint, totient, mobius, divisor_sigma, reduced_totient, mod_inverse, solve_congruence, continued_fraction, n_order and diop_DN, on fixed and random numbers up to 10^40 and Mersenne numbers up to 2^1279 − 1."
@@ -31,6 +31,8 @@ A toolkit for the sums of elementary number theory, done exactly with whole numb
 - **Modular arithmetic:** a^e mod m by fast repeated squaring, the **modular inverse**, the **order** of a, whether a is a primitive root, and the solutions of a·x ≡ b (mod m).
 - **Chinese remainder theorem:** solve several congruences x ≡ r (mod m) at once. The moduli do not need to be coprime; when they clash, it says which lines.
 - **Continued fractions** of a fraction, a decimal, a square root, π or e, with every **convergent** p/q and its value. For √n you also get the period and the smallest solution of **Pell's equation** x² − n·y² = 1.
+
+Watch modular arithmetic at work in the [[cipher-teacher]], and explore the groups it builds in the [[group-explorer|group theory explorer]].
 
 ## How to use it
 

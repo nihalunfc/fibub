@@ -11,7 +11,7 @@ order: 3
 icon: table
 works: offline
 updated: 2026-11-09
-related: [plate-layout, solution-calculator, buffer-recipe-calculator, protein-calculator]
+related: [plate-layout, solution-calculator, buffer-recipe-calculator, protein-calculator, pdb-viewer, reagent-inventory, cryo-em-calculator]
 sources:
   - "Grids, C1V1 volumes, rounding, totals and the two-stock pH mix are written by fibub and checked in the tests against an independent NumPy implementation (linspace and geomspace grids, and the pH mix found by bisection on the forward Henderson–Hasselbalch pH of the mixed stocks) on the example and three other screens, agreeing to better than 0.0000001 µL."
   - "The Henderson–Hasselbalch equation and C1V1 dilution are general textbook science. The pH mix assumes ideal behaviour; the page says to check real wells with a meter."

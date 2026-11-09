@@ -11,7 +11,7 @@ order: 553
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [poincare-disk, function-grapher]
+related: [poincare-disk, function-grapher, polyhedron-viewer, knot-braid-drawer, symbolic-algebra]
 sources:
   - "Standard coordinate geometry (line and circle intersections, shoelace area); no outside data."
   - "Checked against Python sympy: circumcentre, circumradius, incentre, area, angle and perimeter of a triangle, line–circle and circle–circle intersections, and the foot of a perpendicular."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 This is a small dynamic geometry sketchpad, the kind used to explore school and university geometry. You place points and build on them: segments, lines, circles, midpoints, perpendiculars, parallels, perpendicular bisectors, angle bisectors and intersections. Every object remembers how it was made, so when you **drag a point**, everything built on it moves too and every measurement updates. That is how you see that a property holds for every triangle, not just the one you drew.
+
+Step into curved space with the [[poincare-disk|hyperbolic geometry drawer]], and graph the equations behind your shapes in the [[function-grapher|graphing calculator]].
 
 ## How to use it
 

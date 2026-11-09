@@ -11,7 +11,7 @@ order: 2
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [gaussian-beam, beer-lambert-calculator, plot-maker]
+related: [gaussian-beam, beer-lambert-calculator, plot-maker, polarisation-calculator, sellmeier-fitter, lens-ray-tracer, thin-film-thickness, spectrometer-calibration]
 sources:
   - "Characteristic (transfer) matrix method for thin-film stacks, tilted admittances for s and p light: Macleod, H. A., Thin-Film Optical Filters (standard textbook result); Born, M. and Wolf, E., Principles of Optics, chapter 1.6."
   - "Refractive indices of MgF₂ (1.38), SiO₂ (1.46), Al₂O₃ (1.63), Ta₂O₅ (2.1), TiO₂ and ZnS (2.35) are rounded, general textbook values for visible light, treated as constant; they are editable starting points, not data for a real coating."
@@ -28,6 +28,8 @@ flow:
 Light reflected from the top and bottom of a thin layer interferes with itself. If the two reflections are half a wave out of step they cancel, and the surface reflects less; if they are in step they add, and it reflects more. That is why soap bubbles shimmer, why camera lenses look purple-green, and how a stack of alternating layers can make a mirror that reflects more than 99.8 % of one colour.
 
 This simulator works out the reflectance R, transmittance T and absorptance A of any stack of flat layers on a substrate, using the **transfer-matrix (characteristic matrix) method**: each layer is a 2 × 2 matrix built from its index, thickness and the angle of the light inside it, and the product of all of them gives the whole coating. It handles **s and p polarisation** separately, any angle of incidence, and **absorbing layers** through a complex index n − ik.
+
+Get accurate refractive indices for your layers from the [[sellmeier-fitter|Sellmeier fitter]], and see how the coating treats s and p light in the [[polarisation-calculator|polarisation calculator]].
 
 ## How to use it
 

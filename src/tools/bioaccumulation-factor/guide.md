@@ -11,7 +11,7 @@ order: 3
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [lc50-probit, species-sensitivity, non-detects]
+related: [lc50-probit, species-sensitivity, non-detects, margin-of-exposure, benchmark-dose, water-quality-index]
 sources:
   - "The first-order one-compartment uptake and depuration model, the kinetic and steady-state BCF, growth correction and lipid normalisation to 5 %, as used in flow-through fish bioconcentration tests (OECD Test Guideline 305 describes the test design; only the method is used, no text or data copied)."
   - "TMF as 10 to the power of the slope of log₁₀ concentration against trophic level: standard method from the food-web literature."

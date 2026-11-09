@@ -11,7 +11,7 @@ order: 515
 icon: search
 works: offline
 updated: 2026-11-09
-related: [point-counter, ternary-plot-maker, grain-size-stats]
+related: [point-counter, ternary-plot-maker, grain-size-stats, mineral-formula, cipw-norm, xrd-peak-calculator]
 sources:
   - "Property values are rounded general facts written by fibub from general mineralogy knowledge, as taught in standard textbooks such as Klein and Philpotts, Earth Materials (Cambridge University Press), and Nesse, Introduction to Mineralogy (Oxford University Press). No tables were copied."
   - "Mohs hardness scale (Mohs 1812) and the common field references: fingernail about 2.5, copper coin about 3.5, steel knife and glass about 5.5."
@@ -27,6 +27,8 @@ flow:
 This is a **mineral identification key** for hand specimens. It holds about 50 common minerals: the main rock-forming silicates (quartz, feldspars, micas, amphibole, pyroxene, olivine, garnet and more), carbonates, sulfates, halides, and common ore minerals (magnetite, hematite, pyrite, chalcopyrite, galena, sphalerite, cassiterite, native metals and others). For each it knows rounded, general values: **Mohs hardness** range, **specific gravity** range, **lustre**, **streak**, **cleavage**, usual **colours** and simple **tests** (fizzing in dilute acid, magnetism, thin sheets, greasy feel, striations, dissolving in water, double refraction).
 
 You tell it what you see. Every mineral is scored against each observation: **1** if it fits, **½** if it is close, **0** if it does not. The page lists the best matches with ✓, ≈ and ✗ for each reason, so you can see why a mineral is (or is not) suggested. A full property table can be printed or saved as CSV.
+
+Once you have named the minerals, count how much of each is there with the [[point-counter]], and plot the rock on a [[ternary-plot-maker|ternary diagram]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 655
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [darcy-flow-calculator, graph-digitizer]
+related: [darcy-flow-calculator, graph-digitizer, atterberg-compaction, bearing-capacity, grain-size-stats, soil-texture-triangle, consolidation-settlement]
 sources:
   - "Unified Soil Classification System decision logic (as in ASTM D2487) and the AASHTO system (as in AASHTO M 145): group boundaries and the group index formula GI = (F − 35)[0.2 + 0.005(LL − 40)] + 0.01(F − 15)(PI − 10), written out by fibub in its own words; no tables or figures are copied. Check the current standards."
   - "Casagrande's plasticity chart lines: A-line PI = 0.73 (LL − 20) and U-line PI = 0.9 (LL − 8), general soil mechanics."
@@ -32,6 +32,8 @@ Engineers sort soils into groups so that a two- or three-letter code tells you h
 - **AASHTO** (used for roads and highway subgrades) gives a **group** from A-1-a to A-7-6 and a **group index**, a number that ranks subgrade quality within a group (0 is best).
 
 It also works out **D10, D30 and D60**, the **coefficient of uniformity Cu** and the **coefficient of curvature Cc**, and draws the **grading curve** and the **plasticity chart** with the A-line and U-line.
+
+Work out the liquid and plastic limits first with the [[atterberg-compaction|Atterberg limits tool]], then use the class to choose soil values for the [[bearing-capacity|bearing capacity calculator]].
 
 ## How to use it
 

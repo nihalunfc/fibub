@@ -11,7 +11,7 @@ order: 344
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [colligative-properties, solution-calculator, molar-mass-calculator, buffer-recipe-calculator]
+related: [colligative-properties, solution-calculator, molar-mass-calculator, buffer-recipe-calculator, membrane-potential, fick-cardiac-output, respirometry-calculator, lab-unit-converter, concentration-converter]
 sources:
   - "Osmotic pressure: J. H. van 't Hoff (1887), π = cRT. Gas constant R = 8.314462618 J/(mol·K) (CODATA)."
   - "Molar masses from the formula and the IUPAC/CIAAW standard atomic weights; the van 't Hoff factors are ideal dissociation counts (general chemistry). Which solutes cross cell membranes (urea, glycerol, ethanol) is general physiology."
@@ -34,6 +34,8 @@ where **i** is the number of particles one formula unit gives (NaCl gives Na⁺ 
 It then gives the **osmotic pressure** by van 't Hoff's law (π = cRT) and compares the solution with a **reference** you choose, such as the inside of a cell.
 
 For study and teaching, not for clinical use.
+
+Make up the solution with the [[solution-calculator]], and see how the same particles lower the freezing point with [[colligative-properties]].
 
 ## Osmotic or tonic?
 

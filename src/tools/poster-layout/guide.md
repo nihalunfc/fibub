@@ -11,7 +11,7 @@ order: 809
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [figure-checker, science-colour-palette, plot-maker]
+related: [figure-checker, science-colour-palette, plot-maker, scientific-notation-formatter, author-list-formatter, abstract-word-counter, image-resizer, readability-checker]
 sources:
   - "ISO 216 A sizes and the inch sizes are standard paper dimensions. The column grid is plain arithmetic, checked in the tests against numbers worked out separately in Python."
   - "Text sizes use visual angle: the smallest letters readable with normal (6/6 or 20/20) sight span 5 minutes of arc, and the page asks for 3 times that by default (editable), taking sans-serif capitals as 0.7 of the font size."
@@ -32,6 +32,8 @@ A conference poster is read standing up, from a metre or more away, often in a c
 - **To scale.** The layout is drawn to scale with an A4 sheet and a 100 mm bar beside it, so you can feel how big the poster really is.
 - **Text sizes.** For the title, section headings, body text and captions, it gives the font size whose capital letters stay comfortably readable from the distance you set, and how many characters fit on one line of a column at the body size.
 - **Templates.** Full-size SVG and PDF files with the guides as dashed boxes and every size written in, ready to open in Inkscape, Illustrator, Affinity, Scribus or PowerPoint.
+
+Check each figure first with the [[figure-checker]], and format the author line with the [[author-list-formatter]].
 
 ## How to use it
 

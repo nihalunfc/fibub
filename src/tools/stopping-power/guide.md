@@ -11,7 +11,7 @@ order: 4
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [gamma-shielding, relativistic-kinematics, decay-chain, uncertainty-calculator]
+related: [gamma-shielding, relativistic-kinematics, decay-chain, uncertainty-calculator, counting-statistics, spectrum-peak-fitter, physical-constants, plot-maker]
 sources:
   - "Bethe-Bloch formula and the maximum energy transfer Tmax: Particle Data Group, Review of Particle Physics, Passage of particles through matter (formula only); Bethe, H. (1930), Annalen der Physik 397, 325."
   - "Mean excitation energies, Z/A and densities: rounded, commonly quoted values (for example in ICRU Report 37 and the PDG atomic and nuclear properties pages), filled in as editable defaults. Particle masses: rounded general constants."
@@ -33,6 +33,8 @@ A fast charged particle slows down in matter mainly by knocking electrons about.
 where z is the particle's charge, Z/A the material's electrons per nucleon, I its **mean excitation energy**, β and γ the particle's speed and Lorentz factor, and Tmax the largest energy it can give to one electron. Adding up the path needed to lose all the energy gives the **CSDA range** (continuous slowing-down approximation).
 
 Because the loss rises steeply as the particle slows, a proton or ion deposits most of its energy just before it stops: the **Bragg peak**, the reason protons and carbon ions are used in cancer therapy.
+
+Get the particle's speed and momentum from the [[relativistic-kinematics|relativistic kinematics calculator]], and compare with photon shielding in the [[gamma-shielding|gamma shielding calculator]].
 
 ## How to use it
 

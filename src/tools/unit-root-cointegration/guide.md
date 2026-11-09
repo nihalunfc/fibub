@@ -11,7 +11,7 @@ order: 746
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, plot-maker, data-cleaner, period-finder]
+related: [trend-analyser, plot-maker, data-cleaner, period-finder, regression-ols-iv-panel, time-series-analyser, difference-in-differences, inflation-calculator]
 sources:
   - "Formulas: Dickey and Fuller (1979), Said and Dickey (1984), Kwiatkowski, Phillips, Schmidt and Shin (1992), Hobijn, Franses and Ooms (1998), Engle and Granger (1987). Critical values are simulated on the page; no published tables are used. Example data made up."
 flow:
@@ -27,6 +27,8 @@ Before you regress one time series on another, you need to know whether each ser
 - **Augmented Dickey-Fuller (ADF)**: null hypothesis = unit root. The number of lagged changes is chosen by AIC or BIC, or fixed by you.
 - **KPSS**: null hypothesis = stationary (around a level or a trend), the reverse of ADF. Using both gives a fuller picture.
 - **Engle-Granger**: regress one series on one or more others, then run an ADF test on the residuals. Null hypothesis = no cointegration.
+
+Look at each series' shape and seasons first in the [[time-series-analyser]], and once it is stationary, run the [[regression-ols-iv-panel|regression tool]].
 
 ## Critical values by simulation
 

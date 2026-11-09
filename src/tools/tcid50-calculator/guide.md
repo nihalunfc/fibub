@@ -11,7 +11,7 @@ order: 1
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [lc50-probit, dose-response, hemocytometer, solution-calculator, plate-layout]
+related: [lc50-probit, dose-response, hemocytometer, solution-calculator, plate-layout, moi-calculator, antibody-dilution, counting-statistics]
 sources:
   - "Reed–Muench: L. J. Reed and H. Muench (1938). Spearman–Kärber: C. Spearman (1908) and G. Kärber (1931), with the standard error as given by D. J. Finney. Exact Poisson interval: F. Garwood (1936). The PFU ≈ 0.69 × TCID50 rule follows from the Poisson zero term (e^−m = 0.5, so m = ln 2). Methods only; no tables are copied."
   - "Written by fibub. Checked in the tests against an independent NumPy script (Reed–Muench table form, the even-step Kärber formula and its standard error, and Poisson intervals found by summing probabilities) on the example and five random series, and against hand working."
@@ -31,6 +31,8 @@ A virus stock is titrated by diluting it step by step and seeing how far it can 
 - **Plaque assay (PFU/mL).** Each dilution is spread on plates and the plaques are counted. Plates with too few plaques are noisy and plates with too many merge, so only dilutions whose average count is in the **countable range** are used. Those plates are pooled: titre = all their plaques ÷ the volume of original stock they held. The **interval** is the exact Poisson interval for the total count.
 
 TCID50 per inoculum becomes **TCID50/mL** by dividing by the volume put in each well. Because one TCID50 infects half the wells, each well got on average ln 2 ≈ 0.69 infectious particles, so **PFU/mL ≈ 0.69 × TCID50/mL**. That is a Poisson approximation, and only holds when one particle is enough to infect a well and to make a plaque.
+
+Turn the titre into an infection plan with the [[moi-calculator|MOI calculator]], and count the cells to infect with the [[hemocytometer]].
 
 ## How to use it
 

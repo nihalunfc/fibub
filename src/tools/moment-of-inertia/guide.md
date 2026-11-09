@@ -11,7 +11,7 @@ order: 4
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [pendulum-analyser, two-body-orbit, projectile-drag, uncertainty-calculator]
+related: [pendulum-analyser, two-body-orbit, projectile-drag, uncertainty-calculator, collision-calculator, lagrangian-helper, unit-converter]
 sources:
   - "Moments of inertia of uniform rods, cylinders, tubes, rings, spheres, shells and boxes, and the parallel-axis (Huygens-Steiner) theorem: standard classical mechanics results."
   - "Every shape formula was re-derived by integrating a uniform density in SymPy for the tests, and two composite examples were checked with exact rational arithmetic."
@@ -28,6 +28,8 @@ flow:
 The moment of inertia, I, is to turning what mass is to moving in a straight line: it says how hard an object is to spin up or slow down about a particular axis. It depends not just on the mass but on **how far the mass sits from the axis**, squared. That is why a figure skater spins faster with arms pulled in, and why flywheels put their mass in a heavy rim.
 
 Real objects are rarely a single textbook shape, but most can be built from a few. This builder lets you **add parts** (thin rod, solid cylinder or disc, thick tube, thin ring, solid sphere, thin spherical shell, thick hollow sphere, box or plate, point mass), say **where each part's centre is** relative to the axis, and **subtract holes**. It applies the formula for each part about its own centre, moves it to the axis with the **parallel-axis theorem** I = I_centre + m d², and adds everything up, showing each step.
+
+Use the result to predict a physical pendulum's period in the [[pendulum-analyser|pendulum lab analyser]], or to set up the equations of motion in the [[lagrangian-helper]].
 
 ## How to use it
 

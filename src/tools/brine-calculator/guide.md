@@ -11,7 +11,7 @@ order: 394
 icon: percent
 works: offline
 updated: 2026-11-09
-related: [recipe-nutrition-calculator, shelf-life-estimator, solution-calculator, colligative-properties]
+related: [recipe-nutrition-calculator, shelf-life-estimator, solution-calculator, colligative-properties, haccp-plan-builder, sensory-difference-test, concentration-converter, thermal-process-calculator]
 sources:
   - "Arithmetic by weight (general facts): brine % = salt ÷ (salt + water); salt per water = salt ÷ water; ppm = mg per kg. The salinometer scale (0° for water, 100° for saturated brine, about 26.4 % sodium chloride by weight at 15.6 °C / 60 °F) is a general convention."
   - "Checked by hand and with an independent Python calculation (salt for 5 % brine both ways, strength of 60 g in 940 g, salinometer degrees, equilibrium salt, dry cure, cure grams for a ppm and back)."

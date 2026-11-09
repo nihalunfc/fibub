@@ -11,7 +11,7 @@ order: 898
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [wind-chill-heat-index, psychrometric-calculator, skew-t-sounding]
+related: [wind-chill-heat-index, psychrometric-calculator, skew-t-sounding, standard-atmosphere, aircraft-performance, station-data-viewer, propeller-thrust]
 sources:
   - "Standard atmosphere: the ICAO Standard Atmosphere (identical to the US Standard Atmosphere 1976 up to 51 km): sea level 1013.25 hPa and 15 °C, g0 = 9.80665 m/s², R = 287.05287 J/(kg K) and the layer lapse rates (general constants)."
   - "Vapour pressure from the dew point: Bolton, D. (1980), The computation of equivalent potential temperature, Monthly Weather Review 108, 1046 to 1053."
@@ -36,6 +36,8 @@ The page works out:
 - The pilot's **rule of thumb** (120 ft per °C above standard), to show how close it comes.
 
 **Not for flight planning on its own.** Use your aircraft's performance data and official weather. This page shows the standard-atmosphere arithmetic.
+
+See what it does to take-off and climb with the [[aircraft-performance|aircraft performance calculator]], and compare it with the [[standard-atmosphere]].
 
 ## How to use it
 

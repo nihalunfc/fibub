@@ -11,7 +11,7 @@ order: 547
 icon: search
 works: offline
 updated: 2026-11-09
-related: [function-grapher, chaos-explorer]
+related: [function-grapher, chaos-explorer, cellular-automata, turing-pattern-simulator, poincare-disk]
 sources:
   - "Escape-time algorithm with smooth colouring, the cardioid and bulb test, the chaos game and Moran's equation are standard mathematics; the Barnsley fern's four maps are the well-known ones from Michael Barnsley's 1988 book Fractals Everywhere (mathematical constants)."
   - "Checked against a plain Python loop over complex numbers (escape counts and smooth values) and scipy brentq (similarity dimensions)."
@@ -31,6 +31,8 @@ Fractals are shapes with detail at every scale. This page draws three kinds, all
 - **Iterated function systems:** the Barnsley fern, the Sierpinski triangle and carpet, and the Heighway dragon. These are grown by the "chaos game": start anywhere, pick one of a few shrinking maps at random, apply it, and repeat. The points settle onto the fractal.
 
 The Mandelbrot and Julia pictures are computed in a Web Worker, a background thread, so the page stays smooth while a deep view is being drawn, band by band.
+
+Follow the logistic map on its way to chaos in the [[chaos-explorer]], and grow patterns from simple rules in the [[cellular-automata]].
 
 ## How to use it
 

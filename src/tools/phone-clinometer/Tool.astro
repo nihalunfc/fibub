@@ -1,7 +1,7 @@
 ---
 // Phone clinometer: strike and dip of a plane (phone laid flat on it) or trend and plunge of a line (phone's long
 // edge along it) from DeviceOrientation, averaged over a second, with user-entered magnetic declination, notes and an
-// optional position. The log stays in this browser; CSV out, in the stereonet plotter's input format too.
+// optional position. The log is kept in this browser only if the visitor ticks the box; CSV out, in the stereonet plotter's input format too.
 // Maths in src/lib/sci/clino.ts. Nothing leaves the device.
 import '../../styles/astro.css';
 ---
@@ -47,7 +47,8 @@ import '../../styles/astro.css';
       <button type="button" class="btn secondary small pc-gps">Add my position to the next reading</button>
     </div>
     <p class="ax-help pc-pos" aria-live="polite">Position is only read when you press the button, once.</p>
-    <p class="ax-help">The log is kept only in this browser on this device (its local storage) so it is here when you come back; it is never sent anywhere. Delete readings below, or all of them.</p>
+    <label class="ax-check"><input type="checkbox" class="pc-keep" /> Remember my readings in this browser</label>
+    <p class="ax-help pc-store">Nothing is kept until you tick the box. Ticked, the log (with any positions) stays only in this browser on this device (its local storage) so it is here when you come back; untick it to remove the saved copy. It is never sent anywhere. Delete readings below, or all of them.</p>
     <div class="ax-scroll"><table class="pc-log"></table></div>
     <canvas class="ax-fig pc-net" style="margin-top:12px;max-width:420px"></canvas>
     <div class="ax-row" style="margin-top:10px">
@@ -74,8 +75,9 @@ import '../../styles/astro.css';
 
   type Entry = { id: number; time: string; kind: 'plane' | 'line'; strike?: number; dip?: number; dipdir?: number; trend?: number; plunge?: number; decl: number; rms: number; n: number; lat?: number; lon?: number; acc?: number; note: string; src: 'sensor' | 'demo' };
   let log: Entry[] = [];
-  try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); if (Array.isArray(v)) log = v; } catch {}
-  const store = () => { try { log.length ? localStorage.setItem(KEY, JSON.stringify(log)) : localStorage.removeItem(KEY); } catch { err('This browser blocks storage, so the log will be lost when you leave: download the CSV.'); } };
+  const keeping = () => q<HTMLInputElement>('.pc-keep').checked;
+  try { const raw = localStorage.getItem(KEY); if (raw) { q<HTMLInputElement>('.pc-keep').checked = true; const v = JSON.parse(raw); if (Array.isArray(v)) log = v; } } catch {}
+  const store = () => { try { log.length && keeping() ? localStorage.setItem(KEY, JSON.stringify(log)) : localStorage.removeItem(KEY); } catch { err('This browser blocks storage, so the log will be lost when you leave: download the CSV.'); } };
 
   // ---------- sensor ----------
   let latest: { a: number; b: number; g: number; abs: boolean } | null = null, on = false, events = 0, collect: V3[] | null = null, lastShow = 0;
@@ -195,7 +197,8 @@ import '../../styles/astro.css';
     ...log.map((e) => [e.id, e.time, e.kind, e.strike ?? '', e.dip ?? '', e.dipdir ?? '', e.trend ?? '', e.plunge ?? '', e.decl, e.rms, e.n, e.lat ?? '', e.lon ?? '', e.acc ?? '', e.note, e.src])])], { type: 'text/csv' }), 'clinometer-log.csv', 'text/csv'));
   q('.pc-splanes').addEventListener('click', () => save(new Blob(['# strike dip (right-hand rule), true north; from the fibub phone clinometer\n' + log.filter((e) => e.kind === 'plane').map((e) => `${rhr(e)}${e.note ? ` # ${e.note.replace(/[\r\n]+/g, ' ')}` : ''}`).join('\n') + '\n'], { type: 'text/csv' }), 'clinometer-planes.csv', 'text/csv'));
   q('.pc-slines').addEventListener('click', () => save(new Blob(['# plunge trend, true north; from the fibub phone clinometer\n' + log.filter((e) => e.kind === 'line').map((e) => `${e.plunge} ${pad3(e.trend!)}${e.note ? ` # ${e.note.replace(/[\r\n]+/g, ' ')}` : ''}`).join('\n') + '\n'], { type: 'text/csv' }), 'clinometer-lines.csv', 'text/csv'));
-  q('.pc-clear').addEventListener('click', () => { if (!confirm('Delete all readings from this browser?')) return; log = []; store(); render(); });
+  q('.pc-clear').addEventListener('click', () => { if (!confirm('Delete all readings from this browser?')) return; log = []; q<HTMLInputElement>('.pc-keep').checked = false; store(); render(); });
+  q('.pc-keep').addEventListener('change', () => store());
 
   q('.pc-gps').addEventListener('click', () => {
     if (!('geolocation' in navigator)) { q('.pc-pos').textContent = 'This browser cannot give a position.'; return; }

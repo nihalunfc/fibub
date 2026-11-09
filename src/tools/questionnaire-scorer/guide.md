@@ -28,6 +28,8 @@ Most questionnaires are scored the same way: flip the negatively worded items, a
 
 It works with any questionnaire you are allowed to use. It contains no items or scoring keys from published instruments: you type in the item numbers, the reverse-keyed items and the subscales from your own scoring instructions.
 
+Check each scale's internal consistency with [[reliability-analysis|reliability and agreement]], and chart the answers with the [[likert-chart|Likert chart maker]].
+
 ## How to use it
 
 1. **Paste the responses** with one row per person and one column per item, or open a file. A header row with item names and a first column of IDs are both optional. Leave a cell blank when an answer is missing.

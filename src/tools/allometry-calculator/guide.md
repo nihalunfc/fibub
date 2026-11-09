@@ -11,7 +11,7 @@ order: 317
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, calibration-curve, uncertainty-calculator, tree-carbon]
+related: [plot-maker, calibration-curve, uncertainty-calculator, tree-carbon, respirometry-calculator, fish-length-weight, regression-workbench, body-mass-estimator, von-bertalanffy-fitter]
 sources:
   - "Allometric equation and log-log fitting: Huxley, J. S. (1932), Problems of Relative Growth; Kleiber, M. (1932), Hilgardia 6: 315–353 (the 3/4 exponent)."
   - "Back-transformation bias correction: Baskerville, G. L. (1972), Canadian Journal of Forest Research 2: 49–53; Sprugel, D. G. (1983), Ecology 64: 209–210."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 Many traits of animals and plants change with body size as a power law, Y = a M^b. Metabolic rate, heart rate, lifespan, home range size, bone length and leaf area all follow this pattern, each with its own exponent b. On a log-log plot a power law is a straight line, so b is the slope and a is the value of Y at a mass of 1. This calculator fits that line to your own data, tells you how precise a and b are, tests whether your exponent differs from a theoretical value such as 3/4 or 2/3, and predicts Y for a new mass. A second panel works out the classic scaling laws for any mass, with coefficients you can edit. Everything runs in your browser.
+
+Fit and test the line itself in the [[regression-workbench|regression workbench]], and estimate body mass from bones with the [[body-mass-estimator|body mass estimator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 883
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [seismic-refraction, gravity-corrections, pump-test-analyser, darcy-flow-calculator]
+related: [seismic-refraction, gravity-corrections, pump-test-analyser, darcy-flow-calculator, gpr-viewer, magnetic-anomaly, well-field-drawdown, cross-section-profile]
 sources:
   - "Geometric factors, the Pekeris recurrence for the layered-earth kernel and the Hankel-transform forms of the potential (Koefoed 1979, Geosounding Principles) are standard results, written by fibub from the equations."
   - "The linear filter weights were computed by fibub by least squares against exact transform pairs; no published filter coefficients are used. They are checked against the exact image series for two layers and against direct numerical integration with SciPy's Bessel functions."
@@ -33,6 +33,8 @@ A **vertical electrical sounding** (VES) measures how the resistivity of the gro
 - **Inverts** the readings: starting from a model, it adjusts the logarithms of every resistivity and thickness by damped least squares (Marquardt-Levenberg) until the model curve matches the readings as well as it can.
 - Reports each layer with an **error factor** (×/÷), the depth to each interface, the RMS misfit, and the **longitudinal conductance** S = Σ h/ρ, which is often better fixed than the layers themselves.
 - Draws the log-log sounding curve with the model, the resistivity-against-depth column, and lets you download the fit as CSV.
+
+Check the layers against the [[seismic-refraction|seismic refraction interpreter]] on the same line, and if you have found an aquifer, test it with the [[pump-test-analyser]].
 
 ## How to use it
 

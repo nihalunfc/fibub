@@ -11,7 +11,7 @@ order: 742
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, data-cleaner, plot-maker, sample-size, supply-demand]
+related: [biodiversity-indices, data-cleaner, plot-maker, sample-size, supply-demand, inflation-calculator, survey-weighting, bootstrap-permutation]
 sources:
   - "Standard definitions: Lorenz (1905) curve, Gini (1912) coefficient, Theil (1967) indices, Atkinson (1970) index, Palma ratio as in Cobham and Sumner (2013). No tables copied."
   - "Written by fibub. Checked in the tests against an independent NumPy calculation (Gini from the weighted mean absolute difference over all pairs, shares by interpolation, Theil and Atkinson from their definitions) on made-up, random weighted and grouped data."
@@ -33,6 +33,8 @@ How unequal is a set of incomes, wages, wealth or any other amount shared among 
 - **Theil T** and **Theil L** (mean log deviation), the two "generalised entropy" indices that can be split into within-group and between-group parts;
 - the **Atkinson index** for any inequality aversion ε, the share of total income society would give up to have the rest shared equally;
 - the **P90/P10** ratio of the incomes at the 90th and 10th percentiles.
+
+Bring incomes from different years to the same prices with the [[inflation-calculator]] first, and weight survey incomes to the population with the [[survey-weighting]] tool.
 
 ## How to use it
 

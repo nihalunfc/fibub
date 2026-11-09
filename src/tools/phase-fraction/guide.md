@@ -11,7 +11,7 @@ order: 855
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [grain-size-intercept, gel-densitometry, uncertainty-calculator]
+related: [grain-size-intercept, gel-densitometry, uncertainty-calculator, particle-size-image, lattice-fft, afm-roughness, point-counter, phase-diagram-calculator]
 sources:
   - "Segmentation, area fractions, the point count and field statistics are written by fibub. The tests check Otsu and multi-level Otsu thresholds against scikit-image (and an exhaustive float64 search in Python), and the fractions, point counts and field intervals against NumPy and SciPy on a test image; CIELAB colours against scikit-image."
   - "The point-count error and field-to-field interval follow the general statistics of systematic point counting (binomial standard error; Student's t over fields), in the manner of ASTM E562. This page is not the standard and is not affiliated with ASTM."
@@ -35,6 +35,8 @@ The area fraction of a phase in a random section equals its volume fraction in t
 - **Point count.** A regular grid of points (10 across by default) is read as a manual point count would be: the fraction of points on each phase, with the binomial standard error √(P(1 − P) / N). It tells you how precise a quick manual count would have been.
 - **Fields.** The area is cut into tiles (4 across by default). The spread of each phase's fraction between tiles gives a Student-t confidence interval and the relative accuracy, as is done across fields of view. This is the honest error for a structure that is not even across the image.
 - **Overlay.** The phases are tinted on the image so you can see at once whether the split follows the structure.
+
+Check the result against the expected phases with the [[phase-diagram-calculator|phase diagram calculator]], and measure the grains with the [[grain-size-intercept|grain size intercept tool]].
 
 ## How to use it
 

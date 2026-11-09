@@ -11,7 +11,7 @@ order: 549
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [period-finder, ode-solver, plot-maker]
+related: [period-finder, ode-solver, plot-maker, fft-workbench, wavelet-viewer, audio-spectrum-analyser, numerical-methods, aliasing-demo]
 sources:
   - "Methods: textbook Fourier series formulas; Cooley-Tukey radix-2 FFT with Bluestein's algorithm for other lengths; periodic windows as in SciPy's get_window. Example signals and shapes are made from formulas."
 flow:
@@ -27,6 +27,8 @@ Every repeating signal is a sum of sine and cosine waves. This tool shows that i
 - **Series:** choose a square, sawtooth, triangle, rectified sine or pulse wave, or type your own f(t). Add terms one by one and watch the partial sum close in on the wave. The coefficients aₙ and bₙ are listed (exact formulas for the standard waves), with the error and the **Gibbs overshoot**: near a jump the sum always overshoots by about 9 % of the jump, however many terms you add. Fejér and Lanczos smoothing show how to tame it.
 - **Epicycles:** any closed drawing is a sum of turning circles. Pick a shape or draw your own, and watch the circles draw it. The heart is made of only a few circles, so a handful draw it perfectly; a star's sharp corners need many. Fewer circles give a smoother, rounder version.
 - **Spectrum (FFT):** type a signal such as sin(2*pi*50*t) or paste your own measurements (or open a CSV or Excel file), choose a window, and get the amplitude and phase spectrum with the largest peaks listed.
+
+For longer recordings and filtering use the [[fft-workbench]], and for signals whose frequency changes over time the [[wavelet-viewer|wavelet transform viewer]].
 
 ## How to use it
 

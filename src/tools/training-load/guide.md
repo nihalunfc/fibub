@@ -11,7 +11,7 @@ order: 28
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [heart-rate-zones, vo2max-estimator, jump-height, plot-maker, trend-analyser]
+related: [heart-rate-zones, vo2max-estimator, jump-height, plot-maker, trend-analyser, gait-cadence, energy-needs, time-series-analyser]
 sources:
   - "Foster C et al. (2001). A new approach to monitoring exercise training. J Strength Cond Res 15: 109–115 (session RPE)."
   - "Foster C (1998). Monitoring training in athletes with reference to overtraining syndrome. Med Sci Sports Exerc 30: 1164–1168 (monotony and strain)."
@@ -32,6 +32,8 @@ flow:
 Coaches and sport scientists track **training load** to see whether an athlete is building up steadily or doing too much too soon. This page takes a simple training log and works out the common load measures: **session RPE**, **Banister TRIMP** and **Edwards TRIMP** for each session, the **acute:chronic workload ratio (ACWR)** day by day, and Foster's weekly **monotony** and **strain**. It draws the daily load with its averages and the ratio over time.
 
 Your log stays on your device. Nothing is sent anywhere. It is not even kept in the browser unless you tick "Remember my log on this device".
+
+Set session intensities with the [[heart-rate-zones|heart rate zone calculator]], and check fitness as it changes with the [[vo2max-estimator|VO2max estimator]].
 
 ## How to use it
 

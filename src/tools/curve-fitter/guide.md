@@ -11,7 +11,7 @@ order: 12
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker, optical-tweezers, sig-fig-checker]
+related: [uncertainty-calculator, plot-maker, optical-tweezers, sig-fig-checker, calibration-curve, graph-digitizer, oscilloscope-viewer, regression-workbench]
 sources:
   - "Weighted least squares, Levenberg-Marquardt, parameter covariance, chi-square goodness of fit: standard methods, for example Bevington, P. R. and Robinson, D. K. (2003), Data Reduction and Error Analysis for the Physical Sciences; Press, W. H. et al., Numerical Recipes (incomplete gamma function)."
   - "Checked against scipy.optimize.curve_fit (absolute_sigma=True for weighted fits) and scipy.stats.chi2.sf on the example data for every built-in model, written for the tests; parameters agree to 1e-8 and uncertainties to 1e-7."
@@ -28,6 +28,8 @@ flow:
 Fitting a curve to measurements is the heart of most lab reports: a straight line through a calibration, an exponential through a decay, a Gaussian through a peak. This fitter finds the parameters that make the curve pass as close as possible to your points (least squares), tells you how well each parameter is known, and checks whether the curve actually describes the data.
 
 It works for **straight lines and polynomials** (linear models) and for **nonlinear models** such as exponentials, power laws, Gaussian peaks and sine waves, or **any formula you type**, using the Levenberg-Marquardt method. If you have an **uncertainty for each y value**, the fit gives more weight to the better-measured points and you get a **chi-square test** of the fit.
+
+Read data off a published graph with the [[graph-digitizer|graph digitiser]], and draw a finished figure with the [[plot-maker|plot maker]].
 
 ## How to use it
 

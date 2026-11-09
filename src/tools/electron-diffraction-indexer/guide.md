@@ -11,7 +11,7 @@ order: 845
 icon: target
 works: offline
 updated: 2026-11-09
-related: [xrd-peak-calculator, miller-index-calculator, point-group-finder]
+related: [xrd-peak-calculator, miller-index-calculator, point-group-finder, cif-viewer, lattice-fft, uncertainty-calculator]
 sources:
   - "The relativistic electron wavelength uses CODATA 2018 constants; the camera equation Rd = λL, ring-ratio indexing and the zone law are standard textbook electron microscopy. The code is written by fibub and checked in the tests against scipy.constants and NumPy."
   - "The example rings are made up by the page: a face-centred cubic standard with a = 4.08 Å and a body-centred cubic sample with a = 2.87 Å at 200 kV and 1000 mm, with small made-up measuring errors."
@@ -31,6 +31,8 @@ In a transmission electron microscope, a polycrystalline sample gives rings and 
 - **d-spacings.** From radii or diameters in mm, pixels (with a pixel size or a calibration in pixels) or 1/nm from a calibrated image. An exact-geometry option uses tan 2θ = R/L instead of the small-angle rule.
 - **Ring-ratio indexing.** For a cubic lattice R² is proportional to N = h² + k² + l². The page tries simple, body-centred, face-centred and diamond cubic, gives hkl for each ring and the lattice parameter a, and lists allowed rings that are missing.
 - **Spot patterns.** Give two spot distances and the angle between them. The page finds the hkl pairs of the lattice that fit and their zone axis, the direction the beam runs along.
+
+Measure spot spacings from lattice images with the [[lattice-fft|lattice FFT tool]], and compare with X-ray peaks in the [[xrd-peak-calculator|XRD peak calculator]].
 
 ## How to use it
 

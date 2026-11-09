@@ -11,7 +11,7 @@ order: 843
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [miller-index-calculator, xrd-peak-calculator, electron-diffraction-indexer, point-group-finder, molar-mass-calculator]
+related: [miller-index-calculator, xrd-peak-calculator, electron-diffraction-indexer, point-group-finder, molar-mass-calculator, molecule-viewer, lattice-fft, brillouin-zone]
 sources:
   - "The CIF reader, symmetry expansion, distances and density are written by fibub and checked in the tests against gemmi (read_small_structure) and NumPy on fibub's own example files and a made-up test CIF. No database CIF is used."
   - "The examples (rock salt, rutile, wurtzite ZnO) are textbook structures typed by fibub with rounded cell sizes and positions; the symmetry operations are the standard ones for each space group."
@@ -32,6 +32,8 @@ A CIF (Crystallographic Information File) is the standard text file for a crysta
 - **Filling the cell.** Every operation, such as −x + ½, y, z + ½, is applied to every site; positions are brought back into the cell and duplicates (closer than 0.01 Å) merged.
 - **3D view.** The cell drawn to scale with atoms coloured by element and bonds between atoms closer than a cut-off you set. Turn it by dragging or with the sliders, change the atom size, and show labels. Partly occupied sites are drawn partly filled.
 - **Numbers.** Cell volume, atoms of each element in the cell, the formula and formula units Z, density from the atomic weights, the shortest distance, and a bond-length table with coordination numbers that includes atoms in the neighbouring cells.
+
+Predict the powder pattern of the structure with the [[xrd-peak-calculator|XRD peak calculator]], and work out its symmetry with the [[point-group-finder|point group finder]].
 
 ## How to use it
 

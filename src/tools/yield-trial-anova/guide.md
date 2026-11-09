@@ -11,7 +11,7 @@ order: 386
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [field-trial-designer, sample-size, reliability-analysis]
+related: [field-trial-designer, sample-size, reliability-analysis, seeding-rate-calculator, fertiliser-blend-calculator, hypothesis-tests, experiment-design, breeders-equation]
 sources:
   - "Sums of squares, F tests, CV % and Fisher's least significant difference are standard methods, as in Gomez and Gomez, Statistical Procedures for Agricultural Research (2nd ed.), chapters 2 and 5. Letters by the insert-and-absorb algorithm of Piepho (2004), Journal of Computational and Graphical Statistics 13: 456-466."
   - "Checked against statsmodels (anova_lm) and scipy (t quantiles) on the example (as RCBD and CRD), a 4 × 4 Latin square and an unbalanced CRD: every sum of squares, F, p-value, CV and LSD."

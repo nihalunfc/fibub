@@ -11,7 +11,7 @@ order: 748
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, plot-maker, data-cleaner, sample-size]
+related: [reliability-analysis, plot-maker, data-cleaner, sample-size, crosstab-chi-square, questionnaire-scorer, factor-analysis, survey-weighting]
 sources:
   - "Method: Likert (1932) rating scales; diverging stacked bar charts as described by Robbins and Heiberger (2011). Example data made up."
 flow:
@@ -33,6 +33,8 @@ This tool makes that chart from your data, in your browser:
 - with a summary table: number of answers, % disagree, % neutral, % agree, **median** and mean (SD) for each statement.
 
 Download the chart as **PNG** or **SVG** (vector, for reports and slides), the summary as **CSV**, or everything as an image, PDF or Word report.
+
+Score whole scales with the [[questionnaire-scorer]], and check that the items hang together with the [[reliability-analysis]] tool.
 
 ## How to use it
 

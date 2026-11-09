@@ -11,7 +11,7 @@ order: 848
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [stress-strain-analyser, fatigue-sn-calculator]
+related: [stress-strain-analyser, fatigue-sn-calculator, larson-miller-calculator, laminate-calculator, uncertainty-calculator]
 sources:
   - "K = Yσ√(πa), Feddersen's secant correction and Tada's finite-width fits are the textbook forms (Tada, Paris and Irwin, The Stress Analysis of Cracks Handbook, as quoted in Anderson, Fracture Mechanics, chapter 2, and Dowling, Mechanical Behavior of Materials, chapter 8). The plane-strain size 2.5 (K/σy)² is the ASTM E399 criterion. fibub's code is checked in the tests against SciPy (brentq and integrate.quad)."
   - "The example numbers (crack, stress, toughness, Paris C and m) are made-up round values, not data for any real material."
@@ -36,6 +36,8 @@ where Y is a geometry factor that depends on where the crack is and how wide the
 - checks the **plane-strain size** 2.5 (K_IC/σy)²: for a K_IC test to be valid (ASTM E399), the thickness B, the crack a and the uncracked ligament must each be at least this big;
 - shows Irwin's **plastic zone** size at the crack tip in plane stress and plane strain;
 - integrates **Paris' law** da/dN = C ΔKᵐ to give the number of load cycles for the crack to grow to its critical size (or a size you choose), with the crack growth curve.
+
+Find the stress range a part sees and its fatigue life with the [[fatigue-sn-calculator|fatigue S-N calculator]], and the yield strength for the size check with the [[stress-strain-analyser|stress-strain curve analyser]].
 
 ## Geometries
 

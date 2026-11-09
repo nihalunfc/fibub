@@ -11,7 +11,7 @@ order: 884
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, insolation-calculator, radiometric-age-calculator, dendro-crossdating, range-chart-plotter, luminescence-age-calculator]
+related: [radiocarbon-calibration, insolation-calculator, radiometric-age-calculator, dendro-crossdating, range-chart-plotter, luminescence-age-calculator, proxy-stacker]
 sources:
   - "Smoothing spline: C. H. Reinsch, 'Smoothing by spline functions', Numerische Mathematik 10 (1967), in the form of P. J. Green and B. W. Silverman, Nonparametric Regression and Generalized Linear Models (1994); written by fibub."
   - "Monte Carlo age-depth model with rejection of age reversals: the approach described for Clam by M. Blaauw, Quaternary Geochronology 5 (2010); written by fibub (it does not use Clam's code or calibration curves)."
@@ -32,6 +32,8 @@ An **age-depth model** turns a handful of dated levels in a lake, peat, marine o
 - **Monte Carlo**: each date is drawn many times from a normal distribution with its 1σ error. Draws in which an age gets younger with depth are thrown away, and the rest are joined with straight lines. The **median** of all draws is the best age and the 2.5 % and 97.5 % ages give a **95 % envelope**, which widens between dates and beyond them.
 
 It also shows **deposition time** (years per cm) or **accumulation rate** (cm per year) down the core, gives the ages at any depths you list, and **flags dates** that sit more than 2σ from the spline or that are significantly older than the date below them.
+
+Calibrate radiocarbon dates first with the [[radiocarbon-calibration]] tool, and stack the dated records with the [[proxy-stacker]].
 
 ## How to use it
 

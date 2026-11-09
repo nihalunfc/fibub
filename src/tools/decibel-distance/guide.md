@@ -11,7 +11,7 @@ order: 2
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [room-acoustics, noise-barrier, gaussian-plume-calculator]
+related: [room-acoustics, noise-barrier, gaussian-plume-calculator, noise-dose, audio-spectrum-analyser, audiogram]
 sources:
   - "Geometric spreading from point (20 lg r) and line (10 lg r) sources and energy addition of levels: standard acoustics."
   - "Atmospheric absorption: the pure-tone formula of ISO 9613-1:1993 (relaxation of oxygen and nitrogen), used as a formula only; no tables copied."
@@ -29,6 +29,8 @@ flow:
 Sound gets quieter with distance for two reasons. It **spreads out**: from a small source (a point) the same energy covers a sphere that grows with the square of the distance, so the level falls by 6 dB every time the distance doubles. A long, busy road or a pipe is a **line source** and falls by only 3 dB per doubling, and very close to a big flat source it hardly falls at all. And the **air absorbs** sound, very little at low frequencies but a lot at high ones, depending on temperature and humidity.
 
 This calculator does both, for one frequency or for a whole **octave band spectrum** with the A-weighted total in dB(A), and draws the level against distance. It also finds the **distance where the level falls to a target**, and has a small **decibel adder** for adding levels, averaging them and taking off the background.
+
+Turn the levels into a day's exposure with the [[noise-dose|noise dose calculator]], and plan a wall to cut road noise with the [[noise-barrier|noise barrier calculator]].
 
 ## How to use it
 

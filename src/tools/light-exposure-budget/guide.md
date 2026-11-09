@@ -33,6 +33,8 @@ This calculator does the sums around a budget:
 - **UV**: from the UV content of the light in microwatts per lumen (µW/lm, read from a UV meter), the UV irradiance in mW/m² and the UV exposure in kJ/m². Give your own UV limit and the page says whether the light is within it.
 - **Plan of display periods**: list displays, loans, study visits and photography sessions for one object. The page adds them up, compares the total with the yearly budget × the years the plan covers, and says how many more days a next display could last.
 
+Measure any fading you see with the [[colour-difference-calculator|colour difference calculator]], and keep the room's climate in range with the [[heritage-climate-checker|heritage climate checker]].
+
 ## How to use it
 
 1. Type the **yearly budget** your institution, conservator or loan agreement sets for this object. The 100,000 lux-hours on the page is only an example: budgets depend on how light-sensitive the object is.
