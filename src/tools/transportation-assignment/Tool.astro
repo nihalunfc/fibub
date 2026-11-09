@@ -1,0 +1,254 @@
+---
+// Transportation and assignment problem solver: a starting plan (northwest corner, least cost or Vogel), then the
+// MODI method to the optimum, step by step; and the Hungarian method for assignment. All in the browser; the maths
+// is in src/lib/sci/transport.ts. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax trx">
+  <div class="ax-card">
+    <h2>Problem</h2>
+    <div class="ax-seg tr-kind" role="group" aria-label="Problem type">
+      <button type="button" data-k="t" aria-pressed="true">Transportation</button>
+      <button type="button" data-k="a" aria-pressed="false">Assignment</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Goal <select class="tr-goal"><option value="min">Lowest total cost</option><option value="max">Highest total profit</option></select></label>
+      <label class="tr-ml">Starting plan <select class="tr-meth">
+        <option value="vogel">Vogel's approximation</option>
+        <option value="least">Least cost</option>
+        <option value="nw">Northwest corner</option>
+      </select></label>
+    </div>
+
+    <div class="tr-t">
+      <label style="margin-top:12px">Cost per unit from each source (row) to each destination (column); supply in the last column, demand in the last row <textarea class="tr-tin" rows="6" spellcheck="false" autocomplete="off"></textarea></label>
+      <DataFile target=".tr-tin" maxMB={1} maxCols={22} maxRows={21} label="Open a table file" />
+      <p class="ax-help">Paste from a spreadsheet, or separate values with tabs, commas or spaces. Names in the first row and column are optional. Write <b>x</b> for a route that is not allowed. If supply and demand totals differ, a dummy source or destination takes up the difference at zero cost. Up to 20 sources and 20 destinations.</p>
+    </div>
+    <div class="tr-a" hidden>
+      <label style="margin-top:12px">Cost (or profit) of giving each row's person or machine each column's job <textarea class="tr-ain" rows="6" spellcheck="false" autocomplete="off"></textarea></label>
+      <DataFile target=".tr-ain" maxMB={1} maxCols={51} maxRows={51} label="Open a table file" />
+      <p class="ax-help">Each row gets a different column. If there are more rows than columns, some rows get none (and the other way round). Write <b>x</b> for a pairing that is not allowed. Up to 50 × 50.</p>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small tr-ex">Use the example</button></div>
+    <p class="ax-err tr-err" hidden></p>
+  </div>
+
+  <div class="ax-card tr-out" hidden>
+    <h2>Answer</h2>
+    <p class="ax-big tr-big" aria-live="polite"></p>
+    <p class="ax-err tr-warn" hidden></p>
+    <dl class="ax-facts tr-facts"></dl>
+    <h3 class="tr-h1"></h3>
+    <div class="ax-scroll"><table class="tr-plan"></table></div>
+    <p class="ax-help tr-pnote"></p>
+    <div class="tr-steps-wrap">
+      <h3>Improving step by step (MODI method)</h3>
+      <div class="ax-scroll"><table class="tr-steps"></table></div>
+      <p class="ax-help tr-snote"></p>
+      <h3>Starting plan</h3>
+      <div class="ax-scroll"><table class="tr-start"></table></div>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small tr-csv">Download the answer (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .trx h3 { margin: 22px 0 8px; font-size: 15px; }
+  .trx table.tr-grid td, .trx table.tr-grid th { text-align: right; white-space: nowrap; }
+  .trx table.tr-grid td:first-child, .trx table.tr-grid th:first-child { text-align: left; }
+  .trx table.tr-grid td small { display: block; color: var(--muted); font-size: 11.5px; }
+  .trx table.tr-grid td.on { background: var(--accent-soft); font-weight: 700; }
+  .trx table.tr-grid td.dum, .trx table.tr-grid th.dum { color: var(--muted); font-style: italic; }
+  .trx table.tr-grid tr.sum td { border-top: 2px solid var(--line); color: var(--muted); }
+</style>
+
+<script>
+  import * as T from '../../lib/sci/transport';
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.trx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let kind: 't' | 'a' = 't';
+  let report: { title: string; subtitle: string; sections: Section[]; csv: (string | number)[][] } | null = null;
+  const f = (x: number) => sig(Math.abs(x) < 1e-9 ? 0 : x, 8);
+
+  type Cell = { text: string; sub?: string; cls?: string };
+  function grid(t: HTMLElement, head: string[], rows: (string | Cell)[][], opts: { sumRows?: number; headCls?: string[] } = {}) {
+    t.replaceChildren(); t.className = (t.className.split(' ')[0] || '') + ' tr-grid';
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (opts.headCls?.[k]) th.className = opts.headCls[k]; h.append(th); });
+    rows.forEach((r, ri) => {
+      const tr = t.insertRow(); if (opts.sumRows && ri >= rows.length - opts.sumRows) tr.className = 'sum';
+      for (const c of r) {
+        const td = tr.insertCell(), cell = typeof c === 'string' ? { text: c } : c;
+        td.textContent = cell.text; if (cell.cls) td.className = cell.cls;
+        if (cell.sub) { const s = document.createElement('small'); s.textContent = cell.sub; td.append(s); }
+      }
+    });
+  }
+
+  /** Read a pasted table into optional column names, optional row names and the cells. */
+  function readGrid(text: string, lastIsTotals = false) {
+    const rows = parseTable(text);
+    if (!rows.length) return null;
+    const isNum = (s: string) => T.readCost(s ?? '') !== undefined && (s ?? '').trim() !== '';
+    const head = rows[0].some((c, k) => (k > 0 || rows[0].length === 1) && c !== '' && !isNum(c)) || (rows[0].length > 0 && !isNum(rows[0][0]) && rows[0].slice(1).every((c) => !isNum(c)));
+    const header = head ? rows[0] : null, body = head ? rows.slice(1) : rows;
+    const rowNames = (lastIsTotals && body.length > 1 ? body.slice(0, -1) : body).some((r) => r[0] !== undefined && !isNum(r[0]) && r[0] !== '');
+    if (lastIsTotals && !rowNames && body.length > 1 && !isNum(body[body.length - 1][0])) body[body.length - 1] = body[body.length - 1].slice(1);
+    return { header, names: rowNames ? body.map((r) => r[0]) : null, cells: body.map((r, k) => (rowNames && !(lastIsTotals && k === body.length - 1 && isNum(r[0])) ? r.slice(1) : r)) };
+  }
+  const colNamesFor = (header: string[] | null, n: number, extra: number, fallback: (j: number) => string) => {
+    if (!header) return Array.from({ length: n }, (_, j) => fallback(j));
+    let h = header.slice();
+    if (h.length >= n + extra + 1) h = h.slice(h.length - n - extra);
+    return Array.from({ length: n }, (_, j) => h[j] || fallback(j));
+  };
+
+  function fail(msg: string) { q('.tr-err').textContent = msg; q('.tr-err').hidden = false; q('.tr-out').hidden = true; report = null; }
+
+  function runTransport() {
+    const g = readGrid(q<HTMLTextAreaElement>('.tr-tin').value, true);
+    if (!g) { q('.tr-out').hidden = true; report = null; return; }
+    const { cells } = g;
+    if (cells.length < 2) return fail('Give at least one row of costs and a demand row at the bottom.');
+    const costRows = cells.slice(0, -1), demRow = cells[cells.length - 1];
+    const n = costRows[0].length - 1;
+    if (n < 1) return fail('Each source row needs its costs and then its supply in the last column.');
+    if (costRows.length > 20 || n > 20) return fail('This tool takes up to 20 sources and 20 destinations.');
+    const cost: (number | null)[][] = [], supply: number[] = [];
+    for (let i = 0; i < costRows.length; i++) {
+      const r = costRows[i];
+      if (r.length !== n + 1) return fail(`Row ${i + 1} has ${r.length} values; it needs ${n} costs and a supply (like the first row).`);
+      const row: (number | null)[] = [];
+      for (let j = 0; j < n; j++) { const v = T.readCost(r[j]); if (v === undefined) return fail(`Row ${i + 1}, column ${j + 1}: "${r[j]}" is not a number (write x for a route that is not allowed).`); row.push(v); }
+      const sv = num(r[n]); if (!(sv >= 0)) return fail(`Row ${i + 1}: the supply "${r[n]}" must be a number of 0 or more.`);
+      cost.push(row); supply.push(sv);
+    }
+    if (demRow.length < n) return fail(`The last row (demand) needs ${n} values, one per destination.`);
+    const demand = demRow.slice(0, n).map(num);
+    if (demand.some((v) => !(v >= 0))) return fail('Every demand in the last row must be a number of 0 or more.');
+    if (supply.reduce((a, b) => a + b, 0) <= 0 || demand.reduce((a, b) => a + b, 0) <= 0) return fail('Total supply and total demand must be more than 0.');
+    const maximise = q<HTMLSelectElement>('.tr-goal').value === 'max', meth = q<HTMLSelectElement>('.tr-meth').value as 'nw' | 'least' | 'vogel';
+    let r: ReturnType<typeof T.solveTransport>;
+    try { r = T.solveTransport(cost, supply, demand, meth, maximise); } catch (e) { return fail((e as Error).message); }
+    q('.tr-err').hidden = true; q('.tr-out').hidden = false;
+    const p = r.problem, m = cost.length, rn = (g.names ?? []).slice(0, m).map((s, i) => s || `S${i + 1}`), cn = colNamesFor(g.header, n, 1, (j) => `D${j + 1}`);
+    while (rn.length < m) rn.push(`S${rn.length + 1}`);
+    const RN = [...rn, ...(p.dummy === 'source' ? ['Dummy source'] : [])], CN = [...cn, ...(p.dummy === 'destination' ? ['Dummy'] : [])];
+    const userCost = (i: number, j: number) => (i < m && j < n ? cost[i][j] : 0);
+    const word = maximise ? 'profit' : 'cost';
+    q('.tr-big').textContent = `${maximise ? 'Highest total profit' : 'Lowest total cost'}: ${f(r.value)}`;
+    const warn = q('.tr-warn');
+    warn.hidden = !r.usesForbidden; warn.textContent = r.usesForbidden ? 'No plan avoids every route marked x: the answer above still uses one (shown as x). Check the supplies, demands and forbidden routes.' : '';
+    const shipped = r.end.x.reduce((s2, row, i) => s2 + row.reduce((t, v, j) => t + (i < m && j < n ? v : 0), 0), 0);
+    const facts: [string, string][] = [
+      [`Starting plan (${q<HTMLSelectElement>('.tr-meth').selectedOptions[0].text})`, `${word} ${f(r.startValue)}`],
+      ['Improvement steps', String(r.end.steps.length)], ['Units shipped', f(shipped)],
+      ['Balance', p.dummy === 'none' ? 'supply = demand' : p.dummy === 'destination' ? `${f(p.demand[n])} units of supply left unused (dummy destination)` : `${f(p.supply[m])} units of demand not met (dummy source)`],
+      ['Other equally good plans', r.ties ? 'yes' : 'no'],
+    ];
+    const dl = q('.tr-facts'); dl.replaceChildren();
+    for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    const planRows = (x: number[][], basis: T.Cell[], u?: number[], v?: number[]) => {
+      const isB = (i: number, j: number) => basis.some(([a, b]) => a === i && b === j);
+      const rows: (string | Cell)[][] = x.map((row, i) => [{ text: RN[i], cls: i >= m ? 'dum' : '' }, ...row.map((val, j): Cell => {
+        const uc = userCost(i, j), shown = uc === null ? 'x' : f(uc as number);
+        return { text: val > 1e-9 || isB(i, j) ? f(val) : '', sub: `${word} ${shown}`, cls: [val > 1e-9 ? 'on' : '', i >= m || j >= n ? 'dum' : ''].join(' ').trim() };
+      }), f(p.supply[i]), ...(u ? [f(u[i])] : [])]);
+      rows.push(['Demand', ...p.demand.map((dd) => f(dd)), f(p.supply.reduce((a, b) => a + b, 0)), ...(u ? [''] : [])]);
+      if (v) rows.push(['v', ...v.map((vv) => f(vv)), '', '']);
+      return rows;
+    };
+    const showUV = !maximise;
+    // Totals after each step in the user's own terms (profits are solved as losses: largest profit − profit).
+    const top = Math.max(...cost.flat().filter((v): v is number => v !== null));
+    const stepValues = r.end.steps.map((s2) => (maximise ? top * shipped - s2.cost : s2.cost));
+    q('.tr-h1').textContent = 'Best plan: units to send on each route';
+    grid(q('.tr-plan'), ['', ...CN, 'Supply', ...(showUV ? ['u'] : [])], planRows(r.end.x, r.end.basis, showUV ? r.end.u : undefined, showUV ? r.end.v : undefined), { sumRows: showUV ? 2 : 1, headCls: ['', ...CN.map((_, j) => (j >= n ? 'dum' : ''))] });
+    q('.tr-pnote').textContent = `Shaded cells carry goods; the small number is the ${word} per unit. ${showUV ? 'u and v are the MODI potentials: on every route, cost − u − v is 0 if used and 0 or more if not, which proves the plan is optimal. ' : 'Profits are turned into losses (largest profit − profit) and the lowest loss is found, which gives the highest profit. '}A 0 in a cell is a "degenerate" route kept in the plan's basis with nothing on it.`;
+    q('.tr-steps-wrap').hidden = false;
+    const RC = (c2: T.Cell) => `${RN[c2[0]]} → ${CN[c2[1]]}`;
+    grid(q('.tr-steps'), ['Step', 'Route added', `${maximise ? 'Profit' : 'Cost'} change per unit`, 'Units moved (θ)', 'Route dropped', `Total ${word} after`], r.end.steps.map((s2, k) => [String(k + 1), RC(s2.enter), f(maximise ? -s2.delta : s2.delta), f(s2.theta), RC(s2.leave), f(stepValues[k])]));
+    q('.tr-snote').textContent = r.end.steps.length ? 'Each step adds the unused route whose cost − u − v is most negative and moves θ units round its loop of used routes, until no route can lower the total.' : 'The starting plan is already optimal: no unused route would lower the total.';
+    grid(q('.tr-start'), ['', ...CN, 'Supply'], planRows(r.start.x, r.start.basis), { sumRows: 1 });
+    const routes: (string | number)[][] = [['from', 'to', 'units', `${word}_per_unit`, `${word}`]];
+    r.end.x.forEach((row, i) => row.forEach((val, j) => { if (val > 1e-9) { const uc = userCost(i, j); routes.push([RN[i], CN[j], f(val), uc === null ? 'x' : f(uc as number), uc === null ? '' : f(val * (uc as number))]); } }));
+    routes.push(['total', '', f(shipped), '', f(r.value)]);
+    const planText = (x: number[][]) => [...x.map((row, i) => [RN[i], ...row.map((val, j) => { const uc = userCost(i, j); return `${val > 1e-9 ? f(val) : '–'} (${uc === null ? 'x' : f(uc as number)})`; }), f(p.supply[i])]), ['Demand', ...p.demand.map((dd) => f(dd)), '']];
+    report = {
+      title: 'Transportation problem', subtitle: q('.tr-big').textContent ?? '', csv: routes,
+      sections: [
+        { title: 'Answer', text: [q('.tr-big').textContent ?? ''], facts },
+        { title: 'Best plan (units, with cost per unit in brackets)', table: { head: ['', ...CN, 'Supply'], rows: planText(r.end.x) } },
+        ...(r.end.steps.length ? [{ title: 'MODI steps', table: { head: ['Step', 'Added', 'Change/unit', 'θ', 'Dropped', 'Total after'], rows: r.end.steps.map((s2, k) => [String(k + 1), RC(s2.enter), f(maximise ? -s2.delta : s2.delta), f(s2.theta), RC(s2.leave), f(stepValues[k])]) } }] : []),
+        { title: 'Starting plan', table: { head: ['', ...CN, 'Supply'], rows: planText(r.start.x) } },
+      ],
+    };
+  }
+
+  function runAssign() {
+    const g = readGrid(q<HTMLTextAreaElement>('.tr-ain').value);
+    if (!g) { q('.tr-out').hidden = true; report = null; return; }
+    const cells = g.cells, w = Math.max(...cells.map((r) => r.length));
+    if (!w) return fail('Give a table of costs.');
+    if (cells.length > 50 || w > 50) return fail('This tool takes tables up to 50 × 50.');
+    const cost: (number | null)[][] = [];
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].length !== w) return fail(`Row ${i + 1} has ${cells[i].length} values; every row needs ${w}.`);
+      const row: (number | null)[] = [];
+      for (let j = 0; j < w; j++) { const v = T.readCost(cells[i][j]); if (v === undefined) return fail(`Row ${i + 1}, column ${j + 1}: "${cells[i][j]}" is not a number (write x for a pairing that is not allowed).`); row.push(v); }
+      cost.push(row);
+    }
+    const maximise = q<HTMLSelectElement>('.tr-goal').value === 'max';
+    let h: ReturnType<typeof T.hungarian>;
+    try { h = T.hungarian(cost, maximise); } catch (e) { return fail((e as Error).message); }
+    q('.tr-err').hidden = true; q('.tr-out').hidden = false;
+    const rn = cost.map((_, i) => g.names?.[i] || `R${i + 1}`), cn = colNamesFor(g.header, w, 0, (j) => `C${j + 1}`);
+    q('.tr-big').textContent = `${maximise ? 'Highest total' : 'Lowest total'}: ${f(h.total)}`;
+    const warn = q('.tr-warn'); warn.hidden = !h.forbidden; warn.textContent = h.forbidden ? 'No assignment avoids every pairing marked x: the answer uses one. Check the table.' : '';
+    const pairs = h.rowTo.map((j, i) => [i, j]).filter(([, j]) => j >= 0);
+    const facts: [string, string][] = [['Pairs', String(pairs.length)], ['Table', `${cost.length} rows × ${w} columns`], ...(cost.length !== w ? [[cost.length > w ? 'Rows left without a job' : 'Columns left unused', String(Math.abs(cost.length - w))] as [string, string]] : []), ['Method', 'Hungarian (Kuhn-Munkres)']];
+    const dl = q('.tr-facts'); dl.replaceChildren();
+    for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    q('.tr-h1').textContent = 'Best assignment';
+    grid(q('.tr-plan'), ['', ...cn], cost.map((row, i) => [rn[i], ...row.map((v, j): Cell => ({ text: v === null ? 'x' : f(v), cls: h.rowTo[i] === j ? 'on' : '' }))]));
+    q('.tr-pnote').textContent = `Shaded cells are the chosen pairs: ${pairs.map(([i, j]) => `${rn[i]} → ${cn[j]}`).join(', ')}.`;
+    q('.tr-steps-wrap').hidden = true;
+    const rows: (string | number)[][] = [['row', 'column', maximise ? 'profit' : 'cost'], ...pairs.map(([i, j]) => [rn[i], cn[j], f(cost[i][j] ?? NaN)]), ['total', '', f(h.total)]];
+    report = {
+      title: 'Assignment problem', subtitle: q('.tr-big').textContent ?? '', csv: rows,
+      sections: [
+        { title: 'Answer', text: [q('.tr-big').textContent ?? ''], facts, table: { head: ['Row', 'Column', maximise ? 'Profit' : 'Cost'], rows: pairs.map(([i, j]) => [rn[i], cn[j], f(cost[i][j] ?? NaN)]) } },
+        { title: 'Table (chosen pairs in brackets)', table: { head: ['', ...cn], rows: cost.map((row, i) => [rn[i], ...row.map((v, j) => (h.rowTo[i] === j ? `[${v === null ? 'x' : f(v)}]` : v === null ? 'x' : f(v)))]) } },
+      ],
+    };
+  }
+
+  const run = () => (kind === 't' ? runTransport() : runAssign());
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  for (const c of ['.tr-tin', '.tr-ain']) q(c).addEventListener('input', later);
+  for (const c of ['.tr-goal', '.tr-meth']) q(c).addEventListener('change', run);
+  q('.tr-kind').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!b) return;
+    kind = b.dataset.k as 't' | 'a';
+    q('.tr-kind').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.tr-t').hidden = kind !== 't'; q('.tr-a').hidden = kind !== 'a'; q('.tr-ml').hidden = kind !== 't';
+    q('.tr-err').hidden = true;
+    const box = q<HTMLTextAreaElement>(kind === 't' ? '.tr-tin' : '.tr-ain');
+    if (!box.value.trim()) box.value = kind === 't' ? T.EXAMPLE_TRANSPORT : T.EXAMPLE_ASSIGN;
+    run();
+  });
+  q('.tr-ex').addEventListener('click', () => {
+    if (kind === 't') q<HTMLTextAreaElement>('.tr-tin').value = T.EXAMPLE_TRANSPORT; else q<HTMLTextAreaElement>('.tr-ain').value = T.EXAMPLE_ASSIGN;
+    q<HTMLSelectElement>('.tr-goal').value = 'min'; run();
+  });
+  q('.tr-csv').addEventListener('click', () => { if (report) save(new Blob([csv(report.csv)], { type: 'text/csv' }), kind === 't' ? 'transportation-plan.csv' : 'assignment.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: report?.title ?? 'Transportation and assignment', subtitle: report?.subtitle ?? '', file: kind === 't' ? 'transportation-plan' : 'assignment', sections: report?.sections ?? [] }));
+  q<HTMLTextAreaElement>('.tr-tin').value = T.EXAMPLE_TRANSPORT; run();
+</script>
