@@ -1,5 +1,59 @@
 [
  {
+  "sha": "172b319a9a43",
+  "date": "2026-11-09T10:02:38+00:00",
+  "title": "Add #188 Cryo-EM sampling and resolution calculator",
+  "tools": [
+   "cryo-em-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ad4e8d163c1e",
+  "date": "2026-11-09T10:02:24+00:00",
+  "title": "Add #186 Ramachandran plot",
+  "tools": [
+   "ramachandran-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c9dd5e3dbd3b",
+  "date": "2026-11-09T09:51:39+00:00",
+  "title": "Add #182 Hydropathy plot and transmembrane helix finder",
+  "tools": [
+   "hydropathy-plot"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9c7e504b895f",
+  "date": "2026-11-09T09:51:10+00:00",
+  "title": "Add #183 Stock solution and media recipe scaler",
+  "tools": [
+   "media-recipe-scaler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "64a87fbdd56e",
+  "date": "2026-11-09T09:50:51+00:00",
+  "title": "Add #184 Ion exchange and IEF pH picker",
+  "tools": [
+   "ion-exchange-ph"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a8819b51b86e",
+  "date": "2026-11-09T09:49:13+00:00",
+  "title": "Add #181 Protein assay standard curve",
+  "tools": [
+   "protein-assay"
+  ],
+  "site": false
+ },
+ {
   "sha": "268a0eef3784",
   "date": "2026-11-09T09:35:05+00:00",
   "title": "Add #180 gel and western blot densitometry; per-tool test files",

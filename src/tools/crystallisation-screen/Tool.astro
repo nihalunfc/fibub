@@ -1,0 +1,345 @@
+---
+// Crystallisation screen designer: grid and gradient screens on 24- and 96-well plates, worked out in the
+// browser. Nothing is uploaded or stored. The example screen and its stocks are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cxs">
+  <div class="ax-card">
+    <h2>Plate</h2>
+    <div class="ax-grid">
+      <label>Wells <select class="cx-size"><option value="24">24 (4 rows × 6 columns)</option><option value="96" selected>96 (8 rows × 12 columns)</option></select></label>
+      <label>Volume per well (µL) <input class="cx-vol" type="number" min="1" step="any" value="100" inputmode="decimal" /></label>
+      <label>Round volumes to <select class="cx-round"><option value="0">No rounding</option><option value="0.1" selected>0.1 µL</option><option value="0.5">0.5 µL</option><option value="1">1 µL</option></select></label>
+      <label>Smallest volume you can pipette (µL) <input class="cx-min" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Spare to make (%) <input class="cx-spare" type="number" min="0" step="1" value="10" inputmode="numeric" /></label>
+      <label>Drop: protein (µL) <input class="cx-dp" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Drop: reservoir (µL) <input class="cx-dr" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The volume per well is the reservoir solution you make in each well; water tops every well up to it. Rounding makes the volumes easy to pipette (the water takes up the difference). The spare covers what is lost in tips and tubes. The drop sizes only change the "in the drop" line below.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Factors</h2>
+    <p class="ax-help" style="margin:0 0 10px">Each factor runs across the columns, down the rows, or is the same in every well (a fixed additive). A concentration comes from one stock (C1V1). A pH comes from two stocks of one buffer, one below and one above the pH range, mixed in the right ratio.</p>
+    <div class="cx-fs"></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small cx-addc">Add a concentration</button>
+      <button type="button" class="btn secondary small cx-addp">Add a pH</button>
+      <button type="button" class="btn secondary small cx-ex">Use the example</button>
+    </div>
+    <p class="ax-err cx-err" hidden></p>
+  </div>
+
+  <div class="ax-card cx-out">
+    <h2>Plate map</h2>
+    <p class="ax-big cx-big"></p>
+    <dl class="ax-facts cx-facts"></dl>
+    <p class="ax-err cx-over" hidden></p>
+    <p class="ax-help cx-small" hidden></p>
+    <label class="cx-by-l" style="margin-top:12px">Colour by <select class="cx-by"></select></label>
+    <div class="cx-wrap"><div class="cx-plate" aria-label="Plate map: tap a well to see its recipe"></div></div>
+    <div class="cx-leg"><span class="cx-lo"></span><i class="cx-bar"></i><span class="cx-hi"></span></div>
+    <p class="cx-well" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card cx-out">
+    <h2>Stocks to make</h2>
+    <div class="ax-scroll"><table class="cx-tot"></table></div>
+    <p class="ax-help">Make each stock in water, filter it, and check the pH of the two buffer stocks. Fill each well with water first, then buffer and salts, and the thick precipitant (PEG, MPD) last, then mix.</p>
+  </div>
+
+  <div class="ax-card cx-out">
+    <h2>Pipetting table</h2>
+    <label>Show <select class="cx-view"></select></label>
+    <div class="ax-scroll cx-tw"><table class="cx-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small cx-csv">Download every well (CSV)</button>
+      <button type="button" class="btn secondary small cx-scsv">Download stocks (CSV)</button>
+    </div>
+    <Downloads label="Map and table" />
+  </div>
+</div>
+
+<style is:global>
+  .cxs .cx-f { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+  .cxs .cx-f:first-child { margin-top: 0; }
+  .cxs .cx-fh { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .cxs .cx-fh b { font-size: 15px; }
+  .cxs .cx-fh .btn { padding: 4px 10px; font-size: 14px; }
+  .cxs .cx-f .ax-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 100px), 1fr)); }
+  .cxs .cx-f label[data-f=name], .cxs .cx-f label[data-f=dir], .cxs .cx-f label[data-f=mix], .cxs .cx-f label[data-f=spacing] { grid-column: 1 / -1; }
+  .cxs .cx-lv { font-size: 13px; color: var(--muted); margin: 8px 0 0; overflow-wrap: anywhere; }
+  .cxs .cx-wrap { margin-top: 12px; }
+  .cxs .cx-plate { display: grid; gap: 3px; container-type: inline-size; }
+  .cxs .cx-h { font-size: 11px; color: var(--muted); text-align: center; align-self: center; }
+  .cxs .cx-w { aspect-ratio: 1; min-width: 0; border-radius: 50%; border: 1px solid var(--line); padding: 0; font: 600 clamp(7px, 2.3cqi, 13px)/1 system-ui, sans-serif; overflow: hidden; cursor: pointer; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+  .cxs .cx-w.over { border: 2px solid var(--bad); }
+  .cxs .cx-w[aria-pressed=true] { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cxs .cx-leg { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .cxs .cx-bar { flex: 1; max-width: 220px; height: 10px; border-radius: 5px; border: 1px solid var(--line); }
+  .cxs .cx-well { font-size: 14px; margin: 10px 0 0; }
+  .cxs .cx-tw { max-height: 520px; overflow-y: auto; }
+  .cxs .cx-tab th, .cxs .cx-tot th { white-space: nowrap; }
+  .cxs .cx-tab td, .cxs .cx-tot td.r { white-space: nowrap; }
+  .cxs .cx-tab tr.over td { color: var(--bad); }
+</style>
+
+<script>
+  import { design, levels, factorErrors, withSpare, dropFactor, PLATE, EXAMPLE, type Factor, type Design, type Dir } from '../../lib/sci/crystalscreen';
+  import { csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cxs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const MAX = 6;
+  const DIRS: [Dir, string][] = [['col', 'Across the columns'], ['row', 'Down the rows'], ['all', 'Same in every well']];
+  const dirWord = (d: Dir) => (d === 'col' ? 'across the columns' : d === 'row' ? 'down the rows' : 'in every well');
+  const fmt = (x: number) => (Number.isFinite(x) ? String(+x.toPrecision(3)).replace('-', '−') : '–');
+  let d: Design | null = null, fs: Factor[] = [], sel = 0, dec = 1;
+
+  // ---------- factor forms ----------
+  const mk = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string, string> = {}) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(props)) e.setAttribute(k, v); return e; };
+  const field = (label: string, key: string, v: string | number, opts?: [string, string][]) => {
+    const l = mk('label'); l.dataset.f = key; l.append(label + ' ');
+    if (opts) { const s = mk('select', { 'data-k': key }); for (const [a, b] of opts) { const o = mk('option', { value: a }); o.textContent = b; s.append(o); } s.value = String(v); l.append(s); }
+    else { const i = mk('input', { 'data-k': key, inputmode: typeof v === 'number' ? 'decimal' : 'text' }) as HTMLInputElement; i.type = typeof v === 'number' ? 'number' : 'text'; if (typeof v === 'number') i.step = 'any'; i.value = String(v); l.append(i); }
+    return l;
+  };
+  function factorEl(f: Factor) {
+    const box = mk('div', { class: 'cx-f' }); box.dataset.kind = f.kind;
+    const h = mk('div', { class: 'cx-fh' }), b = mk('b'), rm = mk('button', { type: 'button', class: 'btn secondary cx-rm' });
+    rm.textContent = 'Remove'; h.append(b, rm);
+    const g = mk('div', { class: 'ax-grid' });
+    g.append(field('Name', 'name', f.name), field('Runs', 'dir', f.dir, DIRS));
+    if (f.kind === 'conc') {
+      g.append(field('From', 'from', f.from), field('To', 'to', f.to), field('Unit', 'unit', f.unit), field('Stock', 'stock', f.stock),
+        field('Steps', 'spacing', f.spacing ?? 'lin', [['lin', 'Even steps'], ['log', 'Even ratios (log)']]));
+    } else {
+      g.append(field('pH from', 'from', f.from), field('pH to', 'to', f.to), field('Buffer in the well', 'final', f.final), field('Unit', 'unit', f.unit), field('Each stock', 'stock', f.stock),
+        field('Low-pH stock pH', 'pHlo', f.pHlo), field('High-pH stock pH', 'pHhi', f.pHhi), field('Buffer pKa', 'pKa', f.pKa),
+        field('Mixing', 'mix', f.mix ?? 'hh', [['hh', 'By the pKa'], ['lin', 'Straight line']]));
+    }
+    const lv = mk('p', { class: 'cx-lv' });
+    box.append(h, g, lv);
+    return box;
+  }
+  function readFactor(box: HTMLElement): Factor {
+    const g = (k: string) => (box.querySelector(`[data-k=${k}]`) as HTMLInputElement).value;
+    const n = (k: string) => { const s = g(k).trim(); return s === '' ? NaN : Number(s); };
+    const dir = g('dir') as Dir, from = n('from'), to = dir === 'all' ? from : n('to');
+    if (box.dataset.kind === 'conc') return { kind: 'conc', name: g('name').trim(), unit: g('unit').trim(), stock: n('stock'), from, to, dir, spacing: g('spacing') as 'lin' | 'log' };
+    return { kind: 'ph', name: g('name').trim(), unit: g('unit').trim(), stock: n('stock'), final: n('final'), pHlo: n('pHlo'), pHhi: n('pHhi'), pKa: n('pKa'), from, to, dir, mix: g('mix') as 'hh' | 'lin' };
+  }
+  function setFactors(list: Factor[]) { q('.cx-fs').replaceChildren(...list.map(factorEl)); sel = 0; run(); }
+  const NEW_C: Factor = { kind: 'conc', name: 'Additive', unit: 'mM', stock: 100, from: 10, to: 10, dir: 'all', spacing: 'lin' };
+  const NEW_P: Factor = { kind: 'ph', name: 'Buffer 2', unit: 'M', stock: 1, final: 0.1, pHlo: 5.5, pHhi: 7.5, pKa: 6.5, from: 5.6, to: 7.4, dir: 'row', mix: 'hh' };
+
+  // ---------- colours ----------
+  const mixc = (a: number[], b: number[], t: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(',')})`;
+  // Light page: a blue ramp. Dark page: greys only (the dark theme has no blue). Red night light: reds only.
+  type Ramp = 'light' | 'dark' | 'red';
+  const shade = (t: number, m: Ramp) => (m === 'red' ? mixc([40, 0, 0], [163, 0, 0], t) : m === 'dark' ? mixc([45, 45, 45], [235, 235, 235], t) : mixc([222, 235, 247], [8, 69, 148], t));
+  const inkOn = (t: number, m: Ramp) => (m === 'red' ? (t > 0.55 ? '#000' : '#a30000') : m === 'dark' ? (t > 0.5 ? '#000' : '#fff') : t > 0.5 ? '#fff' : '#000');
+  const ramp = (): Ramp => (document.documentElement.classList.contains('red-mode') ? 'red' : document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+  const palRamp = (pal: Palette): Ramp => (pal.red ? 'red' : pal.bg === '#ffffff' ? 'light' : 'dark');
+  const unitOf = (f: Factor) => (f.kind === 'ph' ? '' : ` ${f.unit}`);
+  const label = (f: Factor) => (f.kind === 'ph' ? `${f.name} pH` : `${f.name} (${f.unit})`);
+  const span = (k: number) => { const v = d!.wells.map((w) => w.values[k]); return [Math.min(...v), Math.max(...v)]; };
+  const tOf = (k: number, v: number) => { const [a, b] = span(k); return b > a ? (v - a) / (b - a) : 0.5; };
+  const uL = (x: number) => x.toFixed(dec);
+  const vol = (x: number) => (Math.abs(x) >= 1000 ? `${(x / 1000).toFixed(2)} mL` : `${x.toFixed(1)} µL`);
+
+  // ---------- main ----------
+  function run() {
+    const err = q('.cx-err'); err.hidden = true;
+    const boxes = [...root.querySelectorAll<HTMLElement>('.cx-f')];
+    fs = boxes.map(readFactor);
+    boxes.forEach((b, i) => {
+      b.querySelector('b')!.textContent = `Factor ${i + 1}: ${fs[i].kind === 'ph' ? 'pH' : 'concentration'}`;
+      const dir = fs[i].dir; (b.querySelector('[data-f=to]') as HTMLElement).hidden = dir === 'all';
+      (b.querySelector('[data-f=from]') as HTMLElement).firstChild!.textContent = dir === 'all' ? (fs[i].kind === 'ph' ? 'pH ' : 'Value ') : fs[i].kind === 'ph' ? 'pH from ' : 'From ';
+      const e = factorErrors(fs[i], i), lv = b.querySelector('.cx-lv')!;
+      if (e.length || dir === 'all') { lv.textContent = e.length ? '' : `${fmt(fs[i].from)}${unitOf(fs[i])} in all ${q<HTMLSelectElement>('.cx-size').value} wells.`; return; }
+      const [R, C] = PLATE[Number(q<HTMLSelectElement>('.cx-size').value) as 24 | 96], n = dir === 'col' ? C : R;
+      const l = levels(fs[i].from, fs[i].to, n, fs[i].kind === 'conc' ? fs[i].spacing : 'lin');
+      const step = fs[i].kind === 'conc' && fs[i].spacing === 'log' ? `each ${fmt(l[1] / l[0])} times the last` : `step ${fmt(l[1] - l[0])}`;
+      lv.textContent = `${n} levels (${step}): ${l.map(fmt).join(', ')}${unitOf(fs[i])}`;
+    });
+    q<HTMLButtonElement>('.cx-addc').disabled = q<HTMLButtonElement>('.cx-addp').disabled = fs.length >= MAX;
+    const size = Number(q<HTMLSelectElement>('.cx-size').value) as 24 | 96, round = Number(q<HTMLSelectElement>('.cx-round').value);
+    dec = round === 1 ? 0 : round === 0 ? 2 : 1;
+    try {
+      if (fs.some((f) => !f.name)) throw new Error('Give every factor a name.');
+      d = design(fs, { size, volume: val('.cx-vol'), round, minPip: Math.max(0, val('.cx-min') || 0) });
+    } catch (e) {
+      d = null; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.cx-out').forEach((x) => (x.hidden = true)); return;
+    }
+    root.querySelectorAll<HTMLElement>('.cx-out').forEach((x) => (x.hidden = false));
+    const varying = fs.map((f, i) => (f.dir !== 'all' && f.from !== f.to ? i : -1)).filter((i) => i >= 0);
+    const by = q<HTMLSelectElement>('.cx-by'), keep = by.value;
+    by.replaceChildren(...fs.map((f, i) => { const o = mk('option', { value: String(i) }); o.textContent = label(f); return o; }));
+    by.value = keep !== '' && fs[Number(keep)] ? keep : String(varying[0] ?? 0);
+    const conds = new Set(d.wells.map((w) => w.values.join('|'))).size;
+    q('.cx-big').textContent = `${conds} condition${conds === 1 ? '' : 's'} on a ${size}-well plate, ${d.stocks.length} stock${d.stocks.length === 1 ? '' : 's'}`;
+    const df = dropFactor(val('.cx-dp') || 0, val('.cx-dr') || 0);
+    const facts: [string, string][] = [
+      ['Volume per well', `${fmt(d.volume)} µL`],
+      ['Water per plate', vol(d.water)],
+      ['Most water in a well', `${uL(Math.max(...d.wells.map((w) => w.water)))} µL`],
+      ['In the drop at the start', Number.isFinite(df) ? `${Math.round(df * 100)} % of each condition` : '–'],
+    ];
+    q('.cx-facts').replaceChildren(...facts.map(([k, v]) => { const x = mk('div'), dt = mk('dt'), dd = mk('dd'); dt.textContent = k; dd.textContent = v; x.append(dt, dd); return x; }));
+    q('.cx-over').hidden = !d.over.length;
+    q('.cx-over').textContent = `${d.over.length} well${d.over.length === 1 ? '' : 's'} need more than ${fmt(d.volume)} µL of stocks (${list(d.over)}): use stronger stocks, a bigger volume per well, or a lower top value. They have a red ring on the map.`;
+    const smallStocks = [...new Set(d.wells.flatMap((w) => w.small))].map((k) => d!.stocks[k].label);
+    q('.cx-small').hidden = !d.small.length;
+    q('.cx-small').textContent = `${d.small.length} well${d.small.length === 1 ? ' has' : 's have'} a volume below ${fmt(val('.cx-min'))} µL (${smallStocks.join(', ')}; ${list(d.small)}). Use a weaker (diluted) stock for those, or a bigger volume per well.`;
+    const view = q<HTMLSelectElement>('.cx-view'), vk = view.value;
+    view.replaceChildren(...[['wells', 'Every well, one row each'], ...d.stocks.map((s, k) => [String(k), `${s.label}: µL per well, as a plate`]), ['water', 'Water: µL per well, as a plate']].map(([a, b]) => { const o = mk('option', { value: a }); o.textContent = b; return o; }));
+    view.value = [...view.options].some((o) => o.value === vk) ? vk : 'wells';
+    if (sel >= d.wells.length) sel = 0;
+    map(); totals(); table();
+  }
+  const list = (ns: string[]) => (ns.length > 8 ? `${ns.slice(0, 8).join(', ')} and ${ns.length - 8} more` : ns.join(', '));
+
+  function map() {
+    if (!d) return;
+    const k = Number(q<HTMLSelectElement>('.cx-by').value), red = ramp();
+    const plate = q('.cx-plate');
+    plate.style.gridTemplateColumns = `auto repeat(${d.C}, minmax(0, 1fr))`;
+    plate.style.maxWidth = `${d.C * 52 + 24}px`;
+    const els: HTMLElement[] = [mk('span', { class: 'cx-h' })];
+    for (let c = 0; c < d.C; c++) { const s = mk('span', { class: 'cx-h' }); s.textContent = String(c + 1); els.push(s); }
+    for (let r = 0; r < d.R; r++) {
+      const s = mk('span', { class: 'cx-h' }); s.textContent = String.fromCharCode(65 + r); els.push(s);
+      for (let c = 0; c < d.C; c++) {
+        const i = r * d.C + c, w = d.wells[i], t = tOf(k, w.values[k]);
+        const b = mk('button', { type: 'button', class: `cx-w${w.over ? ' over' : ''}`, 'data-i': String(i), 'aria-pressed': String(i === sel) });
+        b.style.background = shade(t, red); b.style.color = inkOn(t, red);
+        b.textContent = fmt(w.values[k]);
+        b.setAttribute('aria-label', `${w.name}: ${fs.map((f, j) => `${label(f)} ${fmt(w.values[j])}`).join(', ')}${w.over ? ', too full' : ''}`);
+        els.push(b);
+      }
+    }
+    plate.replaceChildren(...els);
+    const [a, b] = span(k);
+    q('.cx-lo').textContent = fmt(a); q('.cx-hi').textContent = `${fmt(b)}${unitOf(fs[k])}`;
+    q('.cx-bar').style.background = `linear-gradient(to right, ${shade(0, red)}, ${shade(1, red)})`;
+    well();
+  }
+  function well() {
+    if (!d) return;
+    const w = d.wells[sel];
+    const has = fs.map((f, j) => (f.kind === 'ph' ? `pH ${fmt(w.values[j])} (${fmt(f.final)} ${f.unit} ${f.name})` : `${f.name} ${fmt(w.values[j])} ${f.unit}`));
+    const pip = d.stocks.map((s, k) => `${s.label} ${uL(w.vols[k])} µL`);
+    q('.cx-well').textContent = `${w.name}: ${has.join(', ')}. Pipette ${pip.join(', ')} and water ${uL(w.water)} µL.${w.over ? ' Too full: the stocks alone are more than the well volume.' : ''}`;
+  }
+  function totals() {
+    if (!d) return;
+    const spare = Math.max(0, val('.cx-spare') || 0);
+    const t = q<HTMLTableElement>('.cx-tot'); t.replaceChildren();
+    const head = ['Stock', 'Concentration', 'Per plate', `With ${fmt(spare)} % spare`];
+    const rows = [...d.stocks.map((s, k) => [s.label, `${fmt(s.conc)} ${s.unit}${s.pH !== undefined ? `, pH ${s.pH}` : ''}`, vol(d!.totals[k]), vol(withSpare(d!.totals[k], spare))]), ['Water', '', vol(d.water), vol(withSpare(d.water, spare))]];
+    fill(t, head, rows, [2, 3]);
+  }
+  function fill(t: HTMLTableElement, head: string[], rows: string[][], right: number[], over: boolean[] = []) {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, j) => { const th = mk('th'); th.textContent = x; if (right.includes(j)) th.className = 'r'; h.append(th); });
+    rows.forEach((r, i) => { const tr = t.insertRow(); if (over[i]) tr.className = 'over'; r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (right.includes(j)) td.className = 'r'; }); });
+  }
+  const wellHead = () => ['Well', ...fs.map(label), ...d!.stocks.map((s) => `${s.label} µL`), 'Water µL'];
+  const wellRows = () => d!.wells.map((w) => [w.name, ...w.values.map(fmt), ...w.vols.map(uL), uL(w.water)]);
+  const gridOf = (pick: (i: number) => number) => Array.from({ length: d!.R }, (_, r) => [String.fromCharCode(65 + r), ...Array.from({ length: d!.C }, (_, c) => uL(pick(r * d!.C + c)))]);
+  const gridHead = () => ['', ...Array.from({ length: d!.C }, (_, c) => String(c + 1))];
+  function table() {
+    if (!d) return;
+    const v = q<HTMLSelectElement>('.cx-view').value, t = q<HTMLTableElement>('.cx-tab');
+    const all = Array.from({ length: d.C + 1 }, (_, j) => j);
+    if (v === 'wells') fill(t, wellHead(), wellRows(), all.slice(1, wellHead().length), d.wells.map((w) => w.over));
+    else fill(t, gridHead(), gridOf((i) => (v === 'water' ? d!.wells[i].water : d!.wells[i].vols[Number(v)])), all.slice(1));
+  }
+
+  // ---------- report ----------
+  function plateFigure(k: number): Figure {
+    const D = d!, f = fs[k], cell = D.C === 12 ? 44 : 64, x0 = 28, y0 = 26, w = x0 + D.C * cell + 8, h = y0 + D.R * cell + 50;
+    const [a, b] = span(k);
+    return { w, h, alt: `Plate map coloured by ${label(f)}, from ${fmt(a)} to ${fmt(b)}`, draw: (ctx, W, H, pal: Palette) => {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '12px system-ui, sans-serif';
+      for (let c = 0; c < D.C; c++) { ctx.fillStyle = pal.muted; ctx.fillText(String(c + 1), x0 + cell * (c + 0.5), y0 / 2); }
+      for (let r = 0; r < D.R; r++) {
+        ctx.fillStyle = pal.muted; ctx.fillText(String.fromCharCode(65 + r), x0 / 2, y0 + cell * (r + 0.5));
+        for (let c = 0; c < D.C; c++) {
+          const wl = D.wells[r * D.C + c], t = tOf(k, wl.values[k]), x = x0 + cell * (c + 0.5), y = y0 + cell * (r + 0.5);
+          ctx.beginPath(); ctx.arc(x, y, cell * 0.44, 0, Math.PI * 2); ctx.fillStyle = shade(t, palRamp(pal)); ctx.fill();
+          ctx.lineWidth = wl.over ? 2.5 : 1; ctx.strokeStyle = wl.over ? pal.bad : pal.line; ctx.stroke();
+          ctx.fillStyle = inkOn(t, palRamp(pal)); ctx.font = `600 ${cell >= 60 ? 15 : 12}px system-ui, sans-serif`; ctx.fillText(fmt(wl.values[k]), x, y);
+        }
+      }
+      const ly = y0 + D.R * cell + 26, lx = x0, lw = Math.min(220, W - 200);
+      const g = ctx.createLinearGradient(lx, 0, lx + lw, 0); g.addColorStop(0, shade(0, palRamp(pal))); g.addColorStop(1, shade(1, palRamp(pal)));
+      ctx.fillStyle = g; ctx.fillRect(lx, ly - 6, lw, 12); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(lx, ly - 6, lw, 12);
+      ctx.fillStyle = pal.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`${label(f)}: ${fmt(a)} to ${fmt(b)}`, lx + lw + 10, ly);
+    } };
+  }
+  function sections(): Section[] {
+    if (!d) return [];
+    const spare = Math.max(0, val('.cx-spare') || 0);
+    const desc = fs.map((f) => {
+      const how = f.dir === 'all' ? `${fmt(f.from)}${unitOf(f)} in every well` : `${fmt(f.from)} to ${fmt(f.to)}${unitOf(f)} ${dirWord(f.dir)}${f.kind === 'conc' && f.spacing === 'log' ? ' (even ratios)' : ''}`;
+      return f.kind === 'ph' ? `${f.name} pH: ${how}, ${fmt(f.final)} ${f.unit} in the well, from ${fmt(f.stock)} ${f.unit} stocks at pH ${f.pHlo} and ${f.pHhi} mixed ${f.mix === 'lin' ? 'in a straight line' : `by the pKa (${f.pKa})`}.` : `${f.name}: ${how}, from a ${fmt(f.stock)} ${f.unit} stock.`;
+    });
+    const varying = fs.map((f, i) => (f.dir !== 'all' && f.from !== f.to ? i : -1)).filter((i) => i >= 0);
+    const tot: Section = { title: 'Stocks to make', table: { head: ['Stock', 'Concentration', 'Per plate', `With ${fmt(spare)} % spare`], rows: [...d.stocks.map((s, k) => [s.label, `${fmt(s.conc)} ${s.unit}${s.pH !== undefined ? `, pH ${s.pH}` : ''}`, vol(d!.totals[k]), vol(withSpare(d!.totals[k], spare))]), ['Water', '', vol(d.water), vol(withSpare(d.water, spare))]], align: ['l', 'l', 'r', 'r'] } };
+    const grids: Section[] = [...d.stocks.map((s, k) => ({ title: `${s.label}: µL per well`, table: { head: gridHead(), rows: gridOf((i) => d!.wells[i].vols[k]), align: Array(d!.C + 1).fill('r') as ('r')[] } })),
+      { title: 'Water: µL per well', table: { head: gridHead(), rows: gridOf((i) => d!.wells[i].water), align: Array(d.C + 1).fill('r') as ('r')[] } }];
+    return [
+      { title: 'Screen', text: desc, facts: [...[...q('.cx-facts').querySelectorAll('div')].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string])], note: [q('.cx-over').hidden ? '' : q('.cx-over').textContent, q('.cx-small').hidden ? '' : q('.cx-small').textContent].filter(Boolean).join(' ') || undefined },
+      ...(varying.length ? varying : [0]).map((k) => ({ title: `Plate map: ${label(fs[k])}`, figure: plateFigure(k) })),
+      tot, ...grids,
+      { title: 'Every well', table: { head: wellHead(), rows: wellRows(), align: ['l', ...Array(wellHead().length - 1).fill('r')] as ('l' | 'r')[] }, note: 'Made with fibub.com. Check the pH of a few wells with a meter: real buffers drift from the Henderson–Hasselbalch mix with salt, PEG and temperature.' },
+    ];
+  }
+
+  // ---------- events ----------
+  let t = 0;
+  const later = () => { clearTimeout(t); t = window.setTimeout(run, 200); };
+  q('.cx-fs').addEventListener('input', later);
+  q('.cx-fs').addEventListener('change', run);
+  q('.cx-fs').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.cx-rm'); if (!b) return; b.closest('.cx-f')!.remove(); run(); });
+  q('.cx-addc').addEventListener('click', () => { if (fs.length < MAX) { q('.cx-fs').append(factorEl(NEW_C)); run(); } });
+  q('.cx-addp').addEventListener('click', () => { if (fs.length < MAX) { q('.cx-fs').append(factorEl(NEW_P)); run(); } });
+  q('.cx-ex').addEventListener('click', () => {
+    q<HTMLSelectElement>('.cx-size').value = '96'; q<HTMLInputElement>('.cx-vol').value = '100'; q<HTMLSelectElement>('.cx-round').value = '0.1';
+    q<HTMLInputElement>('.cx-min').value = '1'; q<HTMLInputElement>('.cx-spare').value = '10'; q<HTMLInputElement>('.cx-dp').value = '1'; q<HTMLInputElement>('.cx-dr').value = '1';
+    q<HTMLSelectElement>('.cx-by').value = '0'; setFactors(EXAMPLE);
+  });
+  for (const c of ['.cx-vol', '.cx-min', '.cx-dp', '.cx-dr']) q(c).addEventListener('input', later);
+  q('.cx-spare').addEventListener('input', totals);
+  q('.cx-size').addEventListener('change', () => { const v = q<HTMLInputElement>('.cx-vol'); if (v.value === '100' && q<HTMLSelectElement>('.cx-size').value === '24') v.value = '500'; else if (v.value === '500' && q<HTMLSelectElement>('.cx-size').value === '96') v.value = '100'; sel = 0; run(); });
+  q('.cx-round').addEventListener('change', run);
+  q('.cx-by').addEventListener('change', map);
+  q('.cx-view').addEventListener('change', table);
+  q('.cx-plate').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.cx-w'); if (!b) return;
+    sel = Number(b.dataset.i);
+    root.querySelectorAll('.cx-w').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    well();
+  });
+  q('.cx-csv').addEventListener('click', () => {
+    if (!d) return;
+    const head = ['well', 'row', 'column', ...fs.map((f) => (f.kind === 'ph' ? `${f.name} pH` : `${f.name} (${f.unit})`)), ...d.stocks.map((s) => `${s.label} uL`), 'water uL', 'total uL', 'note'];
+    save(new Blob([csv([head, ...d.wells.map((w) => [w.name, String.fromCharCode(65 + w.r), w.c + 1, ...w.values.map((x) => +x.toFixed(6)), ...w.vols.map(uL), uL(w.water), fmt(d!.volume), w.over ? 'too full' : w.small.length ? 'volume below pipette limit' : ''])])], { type: 'text/csv' }), 'crystallisation-screen.csv', 'text/csv');
+  });
+  q('.cx-scsv').addEventListener('click', () => {
+    if (!d) return;
+    const spare = Math.max(0, val('.cx-spare') || 0);
+    save(new Blob([csv([['stock', 'concentration', 'unit', 'pH', 'per_plate_uL', `with_${spare}pct_spare_uL`], ...d.stocks.map((s, k) => [s.label, s.conc, s.unit, s.pH ?? '', d!.totals[k].toFixed(2), withSpare(d!.totals[k], spare).toFixed(2)]), ['water', '', '', '', d.water.toFixed(2), withSpare(d.water, spare).toFixed(2)]])], { type: 'text/csv' }), 'crystallisation-screen-stocks.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Crystallisation screen', subtitle: q('.cx-big').textContent ?? '', file: 'crystallisation-screen', sections: sections() }));
+  document.addEventListener('fibub:theme', () => map());
+  setFactors(EXAMPLE);
+</script>
