@@ -1,5 +1,14 @@
 [
  {
+  "sha": "e643aa768e44",
+  "date": "2026-11-09T03:05:04+00:00",
+  "title": "Add #161 tree carbon calculator (allometric biomass, CO2e, yearly uptake)",
+  "tools": [
+   "tree-carbon"
+  ],
+  "site": false
+ },
+ {
   "sha": "23071eba6035",
   "date": "2026-11-09T02:52:59+00:00",
   "title": "Add #160 noise barrier calculator (octave-band insertion loss, dB(A))",
