@@ -1,0 +1,253 @@
+---
+// Calibration frames: master bias, dark and flat by mean, median or sigma-clipped mean, light-frame calibration
+// (L − D) / normalised (F − B), with images, histograms and statistics before and after, and a made-up demo set.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax calf">
+  <div class="ax-card">
+    <h2>Frames</h2>
+    <div class="cf-files">
+      <label class="cf-pick"><span><strong>Bias frames</strong> (shortest exposure, cap on)</span><small class="cf-n" data-k="bias">none</small><input type="file" class="cf-in" data-k="bias" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="cf-pick"><span><strong>Dark frames</strong> (cap on, same temperature)</span><small class="cf-n" data-k="darks">none</small><input type="file" class="cf-in" data-k="darks" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="cf-pick"><span><strong>Flat frames</strong> (even light, same focus and filter)</span><small class="cf-n" data-k="flats">none</small><input type="file" class="cf-in" data-k="flats" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+      <label class="cf-pick"><span><strong>Light frames</strong> (the pictures to calibrate)</span><small class="cf-n" data-k="lights">none</small><input type="file" class="cf-in" data-k="lights" multiple accept=".fits,.fit,.fts,.gz,image/png,image/jpeg,image/webp,application/fits,image/fits" hidden /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small cf-go">Make masters and calibrate</button>
+      <button type="button" class="btn secondary small cf-demo">Load the made-up demo set</button>
+    </div>
+    <p class="ax-help">FITS straight from the camera is best (its values are linear); PNG and JPEG work for a look. Up to 50 frames of each kind and 400 megapixels in all; frames over 25 megapixels are binned 2 × 2. Everything stays in your browser. The demo set is made up by the page: a camera with a bias pattern, hot pixels, vignetting, a dust donut, a cosmic ray in one dark and a satellite trail in one flat.</p>
+    <p class="ax-help cf-status" aria-live="polite"></p>
+    <p class="ax-err cf-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>Combine frames by <select class="cf-m"><option value="sigma" selected>Sigma-clipped mean</option><option value="median">Median</option><option value="mean">Mean</option></select></label>
+      <label class="cf-sg">Clip beyond κ = <input class="cf-k" inputmode="decimal" value="3" /></label>
+      <label class="cf-sg">Spread measured by <select class="cf-dev"><option value="mad" selected>MAD σ (robust)</option><option value="std">Standard deviation</option></select></label>
+      <label class="cf-sg">Clipping passes (max) <input class="cf-it" inputmode="numeric" value="5" /></label>
+      <label>Normalise the flat by its <select class="cf-fn"><option value="mean" selected>Mean</option><option value="median">Median</option></select></label>
+      <label>Darks <select class="cf-ds"><option value="match" selected>Match the lights' exposure</option><option value="scale">Scale by exposure time (needs bias)</option></select></label>
+      <label class="cf-sc" hidden>Light exposure (s) <input class="cf-tl" inputmode="decimal" value="120" /></label>
+      <label class="cf-sc" hidden>Dark exposure (s) <input class="cf-td" inputmode="decimal" value="120" /></label>
+    </div>
+    <p class="ax-help">Each pixel of a master is combined from the same pixel in every frame. The sigma-clipped mean leaves out values more than κ spreads from the median (cosmic rays, satellite trails), recomputing until nothing more changes, and averages the rest. With few frames use the MAD σ: a standard deviation is pulled up by the very outlier it should catch. The calibrated light is (L − D) / [(F − B) / its mean]. With exposure scaling, it is (L − B − (D − B)·t<sub>L</sub>/t<sub>D</sub>) / [(F − B) / its mean]. Flat pixels below 5 % of the mean are left uncorrected.</p>
+  </div>
+
+  <div class="ax-card cf-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big cf-big"></p>
+    <div class="ax-grid">
+      <label>Show <select class="cf-view"><option value="after">Light after calibration</option><option value="before">Light before calibration</option><option value="bias">Master bias</option><option value="dark">Master dark</option><option value="flat">Master flat (normalised)</option></select></label>
+      <label>Light frame <select class="cf-li"></select></label>
+      <label>Stretch <select class="cf-st"><option value="linear">Linear</option><option value="asinh" selected>Asinh (shows faint parts)</option></select></label>
+    </div>
+    <canvas class="ax-fig cf-img photo" style="margin-top:8px"></canvas>
+    <p class="ax-help cf-imgnote"></p>
+    <h3>Histogram of the light before and after</h3>
+    <canvas class="ax-fig cf-hist"></canvas>
+    <h3>Statistics</h3>
+    <div class="ax-scroll"><table class="cf-tab"></table></div>
+    <p class="ax-help">σ is the standard deviation (stars and hot pixels included); MAD σ is 1.4826 × the median absolute deviation, a robust noise level. Centre / corner is the median of the middle of the frame over the median of its four corners: vignetting makes it above 1, a good flat brings it back to about 1.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cf-fits">Calibrated light (FITS)</button>
+      <button type="button" class="btn secondary small cf-mfits" data-k="bias">Master bias (FITS)</button>
+      <button type="button" class="btn secondary small cf-mfits" data-k="dark">Master dark (FITS)</button>
+      <button type="button" class="btn secondary small cf-mfits" data-k="flat">Master flat (FITS)</button>
+      <button type="button" class="btn secondary small cf-csv">Statistics (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .cf-files { display: grid; gap: 8px; }
+  .cf-pick { display: grid; gap: 2px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+  .cf-pick small { color: var(--muted); }
+</style>
+<style is:global>
+  .calf h3 { margin: 20px 0 8px; font-size: 15px; }
+  .calf select { max-width: 100%; }
+  .calf .cf-tab td, .calf .cf-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { readImage, percentiles, stretchFn } from '../../lib/astro/fits';
+  import { writeFits } from '../../lib/sci/stack';
+  import { combine, calibrate, exactStats, histogram, flatness, demoSet, type Frame, type Method, type Stats } from '../../lib/sci/calframes';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.calf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  type Kind = 'bias' | 'darks' | 'flats' | 'lights';
+  type Loaded = { name: string; frame: Frame; exp: number };
+  const KINDS: Kind[] = ['bias', 'darks', 'flats', 'lights'];
+  let sets: Record<Kind, Loaded[]> = { bias: [], darks: [], flats: [], lights: [] };
+  let bottomFirst = false, binned = false, demo = false;
+  let masters: { bias?: Frame; dark?: Frame; flat?: Frame; rej: Record<string, number>; flatNorm?: number } = { rej: {} };
+  let before: Frame | null = null, after: Frame | null = null, statRows: (string | number)[][] = [], sections: Section[] = [], imgFig: Figure | null = null, histFig: Figure | null = null;
+  const pause = () => new Promise((r) => setTimeout(r, 0));
+  const status = (t: string) => { q('.cf-status').textContent = t; };
+  const MAX_PER = 50, MAX_MP = 400e6;
+
+  function bin2(f: Frame): Frame { const w = f.w >> 1, h = f.h >> 1; return { w, h, planes: f.planes.map((p) => { const o = new Float32Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = 2 * y * f.w + 2 * x; o[y * w + x] = (p[i] + p[i + 1] + p[i + f.w] + p[i + f.w + 1]) / 4; } return o; }) }; }
+  async function decode(f: File): Promise<Loaded> {
+    let b = new Uint8Array(await f.arrayBuffer());
+    if (b[0] === 0x1f && b[1] === 0x8b) { const { gunzipSync } = await import('fflate'); b = gunzipSync(b); }
+    let fr: Frame, exp = NaN;
+    if (String.fromCharCode(...b.slice(0, 6)) === 'SIMPLE') { const im = readImage(b); fr = { w: im.w, h: im.h, planes: im.planes.map((p) => new Float32Array(p)) }; bottomFirst = true; exp = im.header.num('EXPTIME') ?? im.header.num('EXPOSURE') ?? NaN; }
+    else {
+      const bmp = await createImageBitmap(f), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      const ctx = c.getContext('2d')!; ctx.drawImage(bmp, 0, 0); const px = ctx.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height;
+      const planes = [0, 1, 2].map((k) => { const o = new Float32Array(n); for (let i = 0; i < n; i++) o[i] = px[4 * i + k]; return o; });
+      const grey = planes[0].every((v, i) => i % 97 || (v === planes[1][i] && v === planes[2][i]));
+      fr = { w: c.width, h: c.height, planes: grey ? [planes[1]] : planes };
+    }
+    if (fr.w * fr.h > 25e6) { binned = true; fr = bin2(fr); }
+    return { name: f.name, frame: fr, exp };
+  }
+  const pixelsHeld = () => KINDS.reduce((s, k) => s + sets[k].reduce((a, l) => a + l.frame.w * l.frame.h * l.frame.planes.length, 0), 0);
+
+  root.querySelectorAll<HTMLInputElement>('.cf-in').forEach((el) => el.addEventListener('change', async () => {
+    const k = el.dataset.k as Kind, files = [...(el.files ?? [])];
+    const err = q('.cf-err'); err.hidden = true;
+    if (demo) { sets = { bias: [], darks: [], flats: [], lights: [] }; demo = false; KINDS.forEach((kk) => (q(`.cf-n[data-k=${kk}]`).textContent = 'none')); }
+    if (files.length > MAX_PER) { err.textContent = `Up to ${MAX_PER} ${k} frames at a time; the first ${MAX_PER} are used.`; err.hidden = false; }
+    sets[k] = [];
+    try {
+      for (const [i, f] of files.slice(0, MAX_PER).entries()) {
+        status(`Reading ${k} ${i + 1} of ${Math.min(files.length, MAX_PER)}…`);
+        const l = await decode(f); sets[k].push(l); await pause();
+        if (pixelsHeld() > MAX_MP) throw new Error('These frames come to more than 400 megapixels in all, more than a browser tab can safely hold. Use fewer frames or bin them first.');
+      }
+      status('');
+    } catch (e) { sets[k] = []; err.textContent = (e as Error).message; err.hidden = false; status(''); }
+    q(`.cf-n[data-k=${k}]`).textContent = sets[k].length ? `${sets[k].length} frame${sets[k].length > 1 ? 's' : ''}, ${sets[k][0].frame.w} × ${sets[k][0].frame.h}${binned ? ' (binned 2 × 2)' : ''}${Number.isFinite(sets[k][0].exp) ? `, ${sets[k][0].exp} s` : ''}` : 'none';
+    if (k === 'lights' && Number.isFinite(sets.lights[0]?.exp)) inp('.cf-tl').value = String(sets.lights[0].exp);
+    if (k === 'darks' && Number.isFinite(sets.darks[0]?.exp)) inp('.cf-td').value = String(sets.darks[0].exp);
+    el.value = '';
+  }));
+
+  const opts = () => ({ method: sel('.cf-m').value as Method, kappa: num(inp('.cf-k').value), iters: Math.round(num(inp('.cf-it').value)), dev: sel('.cf-dev').value as 'mad' | 'std' });
+  async function makeMasters() {
+    const o = opts();
+    if (o.method === 'sigma' && !(o.kappa > 0 && o.kappa <= 20)) throw new Error('κ is a positive number of spreads (usually 2.5 to 5).');
+    if (o.method === 'sigma' && !(o.iters >= 1 && o.iters <= 50)) throw new Error('Give 1 to 50 clipping passes.');
+    masters = { rej: {} };
+    for (const [k, key] of [['bias', 'bias'], ['darks', 'dark'], ['flats', 'flat']] as const) {
+      if (!sets[k].length) continue;
+      status(`Combining ${sets[k].length} ${k === 'bias' ? 'bias' : k.slice(0, -1)} frame${sets[k].length > 1 ? 's' : ''}…`); await pause();
+      const c = combine(sets[k].map((l) => l.frame), o); masters[key] = c.frame; if (o.method === 'sigma') masters.rej[key] = c.rejected;
+    }
+    status('');
+  }
+
+  const fmt = (x: number) => (Number.isFinite(x) ? (Math.abs(x) >= 1e5 ? sig(x, 6) : x.toFixed(Math.abs(x) < 10 ? 4 : 2)) : '–');
+  function calLight() {
+    const li = Number(sel('.cf-li').value) || 0, L = sets.lights[li];
+    if (!L) { before = after = null; return; }
+    const scale = sel('.cf-ds').value === 'scale';
+    const r = calibrate(L.frame, masters, { scaleDark: scale, tLight: num(inp('.cf-tl').value), tDark: num(inp('.cf-td').value), flatNorm: sel('.cf-fn').value as 'mean' | 'median', minFlat: 0.05 });
+    before = L.frame; after = r.frame; masters.flatNorm = r.flatNorm[0];
+    return r;
+  }
+
+  function show() {
+    if (!after || !before) return;
+    const view = sel('.cf-view').value;
+    let f: Frame | undefined = view === 'after' ? after : view === 'before' ? before : view === 'bias' ? masters.bias : view === 'dark' ? masters.dark : masters.flat;
+    const note = q('.cf-imgnote');
+    if (!f) { note.textContent = `No ${view} frames were given.`; f = after; } else note.textContent = '';
+    if (view === 'flat' && f && masters.flat) { const B = masters.bias?.planes[0]; const n = new Float32Array(f.planes[0].length); const norm = masters.flatNorm || 1; for (let i = 0; i < n.length; i++) n[i] = (f.planes[0][i] - (B ? B[i] : 0)) / norm; f = { w: f.w, h: f.h, planes: [n, ...f.planes.slice(1)] }; note.textContent = 'The flat minus the bias, divided by its mean: the light falling on each pixel compared with the average.'; }
+    const fr = f!, w = fr.w, h = fr.h, stretch = sel('.cf-st').value as 'linear' | 'asinh';
+    const [lo, hi] = percentiles(fr.planes[0], [0.005, 0.998]), sf = stretchFn(stretch, lo, hi);
+    const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+    const ctx = tmp.getContext('2d')!, img = ctx.createImageData(w, h);
+    const P = fr.planes.length >= 3 ? fr.planes : [fr.planes[0], fr.planes[0], fr.planes[0]];
+    for (let y = 0; y < h; y++) { const sy = bottomFirst ? h - 1 - y : y; for (let x = 0; x < w; x++) { const i = sy * w + x, o = 4 * (y * w + x); img.data[o] = sf(P[0][i]); img.data[o + 1] = sf(P[1][i]); img.data[o + 2] = sf(P[2][i]); img.data[o + 3] = 255; } }
+    ctx.putImageData(img, 0, 0);
+    const scale = Math.min(1, 900 / w);
+    imgFig = { w: Math.round(w * scale), h: Math.round(h * scale), alt: `${sel('.cf-view').selectedOptions[0].text}, ${w} × ${h} pixels`, draw: (c) => { c.imageSmoothingEnabled = scale < 1; c.drawImage(tmp, 0, 0, Math.round(w * scale), Math.round(h * scale)); } };
+    paint(q<HTMLCanvasElement>('.cf-img'), imgFig);
+  }
+
+  function report() {
+    if (!after || !before) return;
+    const S: [string, Frame | undefined, string][] = [['Master bias', masters.bias, `${sets.bias.length} frames${masters.rej.bias != null ? `, ${masters.rej.bias} values clipped` : ''}`], ['Master dark', masters.dark, `${sets.darks.length} frames${masters.rej.dark != null ? `, ${masters.rej.dark} values clipped` : ''}`], ['Master flat', masters.flat, `${sets.flats.length} frames${masters.rej.flat != null ? `, ${masters.rej.flat} values clipped` : ''}`], ['Light before', before, sets.lights[Number(sel('.cf-li').value) || 0]?.name ?? ''], ['Light after', after, 'calibrated']];
+    const head = ['Frame', 'Mean', 'Median', 'σ', 'MAD σ', 'Min', 'Max', 'Centre / corner', 'Notes'];
+    statRows = [];
+    const st: Record<string, { s: Stats; fl: number }> = {};
+    for (const [name, f, note] of S) { if (!f) continue; const s = exactStats(f.planes[0]), fl = flatness(f.planes[0], f.w, f.h).ratio; st[name] = { s, fl }; statRows.push([name, s.mean, s.median, s.std, s.madSigma, s.min, s.max, fl, note]); }
+    const tab = q<HTMLTableElement>('.cf-tab');
+    const tr = (c: string[], th = false) => { const r = document.createElement('tr'); r.append(...c.map((x) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; return e; })); return r; };
+    tab.replaceChildren(tr(head, true), ...statRows.map((r) => tr(r.map((x, i) => (typeof x === 'number' ? (i === 7 ? x.toFixed(3) : fmt(x)) : x)))));
+    // Before/after flatness: compare the light minus dark (or bias) with the calibrated light, so the camera's offset does not hide the vignetting.
+    const ld = calibrate(before, { bias: masters.bias, dark: masters.dark }, { scaleDark: sel('.cf-ds').value === 'scale' && !!masters.bias && !!masters.dark, tLight: num(inp('.cf-tl').value), tDark: num(inp('.cf-td').value), flatNorm: 'mean', minFlat: 0.05 }).frame;
+    const r0 = flatness(ld.planes[0], ld.w, ld.h).ratio, r1 = st['Light after'].fl;
+    q('.cf-big').textContent = masters.flat ? `Centre / corner brightness ${r0.toFixed(3)} before the flat, ${r1.toFixed(3)} after; background ${fmt(st['Light before'].s.median)} → ${fmt(st['Light after'].s.median)} ADU` : `Background ${fmt(st['Light before'].s.median)} → ${fmt(st['Light after'].s.median)} ADU (no flat given)`;
+    // Histogram.
+    const [a0, a1] = percentiles(before.planes[0], [0.001, 0.995]), [b0, b1] = percentiles(after.planes[0], [0.001, 0.995]);
+    const lo = Math.min(a0, b0), hi = Math.max(a1, b1), hb = histogram(before.planes[0], lo, hi, 160, false), ha = histogram(after.planes[0], lo, hi, 160, false);
+    histFig = chartFigure({ h: 300, xLabel: 'Pixel value (ADU)', yLabel: 'Pixels', yLog: true, legend: 'inside', series: [{ name: 'Before', x: hb.centres, y: hb.counts.map((c) => c || NaN), mode: 'line', width: 1.6 }, { name: 'After', x: ha.centres, y: ha.counts.map((c) => c || NaN), mode: 'line', width: 1.6 }] }, 'Histograms of the light frame before and after calibration');
+    paint(q<HTMLCanvasElement>('.cf-hist'), histFig);
+    sections = [{ title: q('.cf-big').textContent!, figure: imgFig ?? undefined }, { title: 'Histograms', figure: histFig }, { title: 'Statistics', table: { head, rows: statRows.map((r) => r.map((x, i) => (typeof x === 'number' ? (i === 7 ? x.toFixed(3) : fmt(x)) : x))), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  let busy = false;
+  async function run(remake = true) {
+    const err = q('.cf-err'), out = q('.cf-out');
+    if (busy) return; busy = true;
+    err.hidden = true;
+    try {
+      if (!sets.lights.length) throw new Error('Open at least one light frame, or load the demo set.');
+      if (!sets.bias.length && !sets.darks.length && !sets.flats.length) throw new Error('Open some bias, dark or flat frames to calibrate with.');
+      if (remake) await makeMasters();
+      const keepLi = sel('.cf-li').value;
+      sel('.cf-li').replaceChildren(...sets.lights.map((l, i) => new Option(`${i + 1}: ${l.name}`, String(i))));
+      if (remake === false && Number(keepLi) < sets.lights.length) sel('.cf-li').value = keepLi;
+      const r = calLight();
+      out.hidden = false; show(); report();
+      if (r && r.lowFlat) q('.cf-imgnote').textContent = `${r.lowFlat} pixels had a flat below 5 % of its mean and were left uncorrected.`;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; status(''); }
+    busy = false;
+  }
+
+  q('.cf-go').addEventListener('click', () => run());
+  q('.cf-demo').addEventListener('click', () => {
+    const d = demoSet(), name = (k: string, i: number) => `demo-${k}-${i + 1}`;
+    sets = { bias: d.bias.map((f, i) => ({ name: name('bias', i), frame: f, exp: 0 })), darks: d.darks.map((f, i) => ({ name: name('dark', i), frame: f, exp: d.tDark })), flats: d.flats.map((f, i) => ({ name: name('flat', i), frame: f, exp: 1 })), lights: d.lights.map((f, i) => ({ name: name('light', i), frame: f, exp: d.tLight })) };
+    bottomFirst = false; binned = false; demo = true;
+    for (const k of KINDS) q(`.cf-n[data-k=${k}]`).textContent = `${sets[k].length} made-up frames, 240 × 160`;
+    inp('.cf-tl').value = '120'; inp('.cf-td').value = '120';
+    run();
+  });
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 350)); };
+  const remake = () => { if (!q('.cf-out').hidden || demo) run(); };
+  sel('.cf-m').addEventListener('change', () => { root.querySelectorAll<HTMLElement>('.cf-sg').forEach((e) => (e.hidden = sel('.cf-m').value !== 'sigma')); remake(); });
+  sel('.cf-dev').addEventListener('change', remake);
+  ['.cf-k', '.cf-it'].forEach((c) => inp(c).addEventListener('input', () => later(remake)));
+  ['.cf-fn', '.cf-li'].forEach((c) => sel(c).addEventListener('change', () => run(false)));
+  sel('.cf-ds').addEventListener('change', () => { root.querySelectorAll<HTMLElement>('.cf-sc').forEach((e) => (e.hidden = sel('.cf-ds').value !== 'scale')); run(false); });
+  ['.cf-tl', '.cf-td'].forEach((c) => inp(c).addEventListener('input', () => later(() => run(false))));
+  ['.cf-view', '.cf-st'].forEach((c) => sel(c).addEventListener('change', () => { show(); if (sections[0]) sections[0].figure = imgFig ?? undefined; }));
+  document.addEventListener('fibub:theme', () => { if (histFig && !q('.cf-out').hidden) paint(q<HTMLCanvasElement>('.cf-hist'), histFig); });
+
+  const fitsName = (s: string) => s.replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 60);
+  q('.cf-fits').addEventListener('click', () => { if (!after) return; const L = sets.lights[Number(sel('.cf-li').value) || 0]; save(writeFits(after, [['IMAGETYP', 'Light Frame', 'calibrated by fibub.com'], ['HISTORY', 'calibrated: (L - D) / normalised (F - B)']], bottomFirst), `${fitsName(L.name.replace(/\.[^.]+$/, ''))}-calibrated.fits`, 'application/fits'); });
+  root.querySelectorAll<HTMLButtonElement>('.cf-mfits').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.k as 'bias' | 'dark' | 'flat', f = masters[k];
+    if (!f) { q('.cf-imgnote').textContent = `No ${k} frames were given, so there is no master ${k}.`; return; }
+    save(writeFits(f, [['IMAGETYP', `Master ${k}`, `${sel('.cf-m').value} of ${(k === 'bias' ? sets.bias : k === 'dark' ? sets.darks : sets.flats).length} frames`]], bottomFirst), `master-${k}.fits`, 'application/fits');
+  }));
+  q('.cf-csv').addEventListener('click', () => { if (!statRows.length) return; save(new Blob([csv([['frame', 'mean', 'median', 'std', 'mad_sigma', 'min', 'max', 'centre_corner_ratio', 'notes'], ...statRows.map((r) => r.map((x) => (typeof x === 'number' ? String(+x.toPrecision(8)) : x)))])], { type: 'text/csv' }), 'calibration-stats.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Calibration frames', subtitle: q('.cf-big').textContent ?? '', file: 'calibration-frames', sections }));
+  q<HTMLButtonElement>('.cf-demo').click();
+</script>
