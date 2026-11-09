@@ -1,0 +1,132 @@
+---
+// Fish length-weight relationship W = aL^b, isometry test, Fulton's K and relative condition Kn. Example fish made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'fish\tlength (cm)\tweight (g)\n1\t10.8\t15.9\n2\t19.0\t87.2\n3\t21.2\t137.0\n4\t8.6\t8.0\n5\t11.3\t17.2\n6\t28.4\t313.6\n7\t9.5\t11.0\n8\t10.9\t16.1\n9\t28.9\t317.7\n10\t21.7\t144.1\n11\t16.1\t60.5\n12\t19.3\t98.8\n13\t22.6\t155.8\n14\t14.1\t39.0\n15\t11.0\t18.5\n16\t25.3\t226.6\n17\t22.7\t170.7\n18\t19.3\t106.7\n19\t26.0\t247.8\n20\t20.1\t108.2';
+---
+<div class="ax flw">
+  <div class="ax-card">
+    <h2>Fish</h2>
+    <label>One row per fish: an optional name or number, then length and weight
+      <textarea class="fl-data" rows="9" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".fl-data" maxCols={10} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Length in <select class="fl-lu"><option value="1" selected>cm</option><option value="0.1">mm</option></select></label>
+      <label>Weight in <select class="fl-wu"><option value="1" selected>g</option><option value="1000">kg</option></select></label>
+      <label>Bias correction of a <select class="fl-cf"><option value="1" selected>On (log-normal)</option><option value="0">Off</option></select></label>
+      <label>Confidence <select class="fl-conf"><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Kn from <select class="fl-kn"><option value="fit" selected>This fit</option><option value="own">My own a and b</option></select></label>
+      <label class="fl-ownbox" hidden>a (cm, g) <input class="fl-a" inputmode="decimal" value="0.01" /></label>
+      <label class="fl-ownbox" hidden>b <input class="fl-b" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="ax-help">The fit is a straight line through log weight against log length. Back-transforming it underestimates the mean weight slightly; the bias correction multiplies a by exp(s² (ln 10)² / 2). For Kn you can use a and b from another study (in cm and g). Header rows are skipped; a header with the words length and weight lets the columns come in any order. Up to 20,000 fish. The example fish are made up.</p>
+    <p class="ax-err fl-err" hidden></p>
+  </div>
+
+  <div class="ax-card fl-out">
+    <h2>Result</h2>
+    <p class="ax-big fl-big"></p>
+    <dl class="ax-facts fl-facts"></dl>
+    <canvas class="ax-fig fl-fig"></canvas>
+    <canvas class="ax-fig fl-log"></canvas>
+    <h3>Each fish</h3>
+    <div class="ax-scroll"><table class="fl-tab"></table></div>
+    <p class="ax-help fl-more"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fl-csv">Download fish table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitLW, fulton, relCondition } from '../../lib/sci/fishlw';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const root = document.querySelector<HTMLElement>('.flw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, lfig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.fl-err').textContent = m; q('.fl-err').hidden = false; q('.fl-out').hidden = true; fig = lfig = null; sections = []; csvRows = []; };
+    q('.fl-err').hidden = true;
+    const lu = Number(q<HTMLSelectElement>('.fl-lu').value), wu = Number(q<HTMLSelectElement>('.fl-wu').value);
+    const correct = q<HTMLSelectElement>('.fl-cf').value === '1', conf = Number(q<HTMLSelectElement>('.fl-conf').value), knMode = q<HTMLSelectElement>('.fl-kn').value;
+    root.querySelectorAll<HTMLElement>('.fl-ownbox').forEach((e) => (e.hidden = knMode !== 'own'));
+    const t = parseTable(q<HTMLTextAreaElement>('.fl-data').value);
+    if (!t.length) return fail('Paste one row per fish: name (optional), length, weight.');
+    const head = t[0].map((c) => c.toLowerCase()), hasHead = head.some((c) => c && !Number.isFinite(num(c)));
+    let iL = -1, iW = -1, iN = -1;
+    if (hasHead && head.some((c) => /length|\btl\b|\bfl\b|\bsl\b/.test(c)) && head.some((c) => /weight|mass/.test(c))) {
+      iL = head.findIndex((c) => /length|\btl\b|\bfl\b|\bsl\b/.test(c)); iW = head.findIndex((c) => /weight|mass/.test(c)); iN = head.findIndex((_, i) => i !== iL && i !== iW);
+    } else {
+      const row = t.find((r) => r.filter((c) => Number.isFinite(num(c))).length >= 2) ?? t[0];
+      if (row.length >= 3) { iN = 0; iL = 1; iW = 2; } else { iL = 0; iW = 1; }
+    }
+    const body = (hasHead ? t.slice(1) : t);
+    if (body.length > 20000) return fail('Up to 20,000 fish, please.');
+    const fish: { id: string; L: number; W: number }[] = [];
+    for (const [k, r] of body.entries()) {
+      const L = num(r[iL]), W = num(r[iW]);
+      if (!Number.isFinite(L) && !Number.isFinite(W)) continue;
+      if (!(L > 0) || !(W > 0)) return fail(`Length and weight must both be above zero (row ${k + 1}${iN >= 0 && r[iN] ? `, fish ${r[iN]}` : ''}).`);
+      fish.push({ id: iN >= 0 && (r[iN] ?? '').trim() ? r[iN].trim() : String(k + 1), L: L * lu, W: W * wu });
+    }
+    if (fish.length < 3 || new Set(fish.map((f) => f.L)).size < 2) return fail('Give at least 3 fish with different lengths.');
+    const f = fitLW(fish.map((x) => x.L), fish.map((x) => x.W), correct, conf);
+    let ka = f.a, kb = f.b;
+    if (knMode === 'own') { ka = num(q<HTMLInputElement>('.fl-a').value); kb = num(q<HTMLInputElement>('.fl-b').value); if (!(ka > 0) || !Number.isFinite(kb)) return fail('Give your own a (above zero) and b for Kn.'); }
+    q('.fl-out').hidden = false;
+    const cl = `${Math.round(conf * 100)} %`;
+    q('.fl-big').textContent = `W = ${sg(f.a, 4)} × L^${sg(f.b, 4)} (${f.growth})`;
+    const K = fish.map((x) => fulton(x.L, x.W)), Kn = fish.map((x) => relCondition(x.L, x.W, ka, kb));
+    const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+    const sd = (a: number[]) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+    const flags = f.resid.map((r) => Math.abs(r) > 3 * f.s);
+    q('.fl-facts').replaceChildren(
+      fact('a', sg(f.a, 4), correct ? `bias-corrected (× ${sg(f.cf, 5)}); ${sg(f.aRaw, 4)} uncorrected; for L in cm and W in g` : 'uncorrected; for L in cm and W in g'),
+      fact('b', `${sg(f.b, 4)} ± ${sg(f.seB, 2)}`, `${cl} CI ${sg(f.bLo, 4)} to ${sg(f.bHi, 4)}`),
+      fact('b against 3', f.growth, `t = ${sg(f.t3, 3)}, df ${f.n - 2}, p = ${sg(f.p3, 2)}; ${f.growth === 'isometric' ? 'no evidence that shape changes with length' : f.growth === 'positive allometric' ? 'fish get relatively heavier as they grow' : 'fish get relatively slimmer as they grow'}`),
+      fact('R² (log scale)', sg(f.r2, 4), `${f.n} fish; residual SD ${sg(f.s, 3)} in log₁₀ W`),
+      fact("Fulton's K", `${sg(mean(K), 3)} ± ${sg(sd(K), 2)}`, 'mean ± SD of 100·W/L³ (g, cm)'),
+      fact('Relative condition Kn', `${mean(Kn).toFixed(3)} ± ${sg(sd(Kn), 2)}`, knMode === 'own' ? `mean ± SD, from your a = ${ka}, b = ${kb}` : 'mean ± SD of W ÷ (a·L^b); 1 is an average fish'),
+      ...(flags.some(Boolean) ? [fact('Check', `${flags.filter(Boolean).length} fish far off the line`, 'more than 3 residual SDs; check for typing slips (marked ! below)')] : []),
+    );
+    const Ls = fish.map((x) => x.L), lo = Math.min(...Ls), hi = Math.max(...Ls), xs = Array.from({ length: 101 }, (_, i) => lo + ((hi - lo) * i) / 100);
+    fig = chartFigure({ w: 440, h: 300, xLabel: 'Length (cm)', yLabel: 'Weight (g)', legend: 'below', series: [
+      { name: 'Fish', x: Ls, y: fish.map((x) => x.W), mode: 'points', marker: 'open-circle' },
+      { name: `W = ${sg(f.a, 3)} L^${sg(f.b, 3)}`, x: xs, y: xs.map((x) => f.a * x ** f.b), mode: 'line' },
+    ] }, 'Weight against length with the fitted power curve');
+    lfig = chartFigure({ w: 440, h: 300, xLog: true, yLog: true, xLabel: 'Length (cm, log scale)', yLabel: 'Weight (g, log scale)', legend: 'below', series: [
+      { name: 'Fish', x: Ls, y: fish.map((x) => x.W), mode: 'points', marker: 'open-circle' },
+      { name: 'Fitted line', x: [lo, hi], y: [f.aRaw * lo ** f.b, f.aRaw * hi ** f.b], mode: 'line' },
+    ] }, 'Log weight against log length');
+    paint(q<HTMLCanvasElement>('.fl-fig'), fig); paint(q<HTMLCanvasElement>('.fl-log'), lfig);
+    const head2 = ['Fish', 'Length (cm)', 'Weight (g)', 'Predicted (g)', "Fulton's K", 'Kn', ''];
+    const rows = fish.map((x, i) => [x.id, String(+x.L.toPrecision(6)), String(+x.W.toPrecision(6)), sg(f.a * x.L ** f.b, 4), sg(K[i], 3), sg(Kn[i], 3), flags[i] ? '!' : '']);
+    const tab = q<HTMLTableElement>('.fl-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head2.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = tab.createTBody(); rows.slice(0, 300).forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; if (i === 6 && c) td.style.color = 'var(--bad)'; }); });
+    q('.fl-more').textContent = `${rows.length > 300 ? `Showing the first 300 of ${rows.length} fish; the CSV has them all. ` : ''}${lu !== 1 || wu !== 1 ? 'Lengths and weights are shown in cm and g. ' : ''}Kn above 1: heavier than an average fish of the same length.`;
+    csvRows = [['fish', 'length_cm', 'weight_g', 'predicted_g', 'fulton_K', 'Kn', 'flag'], ...fish.map((x, i) => [x.id, String(x.L), String(x.W), (f.a * x.L ** f.b).toPrecision(6), K[i].toPrecision(6), Kn[i].toPrecision(6), flags[i] ? 'check' : '']), [], ['a', String(f.a)], ['b', String(f.b)], ['SE b', String(f.seB)], ['bias corrected', correct ? 'yes' : 'no'], ['t (b=3)', String(f.t3)], ['p', String(f.p3)]];
+    sections = [{ title: q('.fl-big').textContent!, text: ['Fitted as log₁₀ W = log₁₀ a + b log₁₀ L by least squares (L in cm, W in g). Isometry test: t = (b − 3)/SE(b) with n − 2 df.'], facts: [...q('.fl-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Each fish', figure: lfig, table: { head: head2, rows: rows.slice(0, 2000), align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.fl-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'fish-length-weight.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fl-fig'), fig); if (lfig) paint(q<HTMLCanvasElement>('.fl-log'), lfig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Fish length-weight relationship', subtitle: q('.fl-big').textContent ?? '', file: 'fish-length-weight', sections }));
+</script>
+
+<style is:global>
+  .flw select { max-width: 100%; }
+  .flw textarea { width: 100%; }
+  .flw .fl-log { margin-top: 12px; }
+</style>
