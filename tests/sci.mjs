@@ -151,6 +151,7 @@ import * as NC from '../src/lib/sci/nucconc.ts';
 import * as QP from '../src/lib/sci/qpcr.ts';
 import * as LG from '../src/lib/sci/ligation.ts';
 import * as PR from '../src/lib/sci/primer.ts';
+import * as DG from '../src/lib/sci/digest.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2987,6 +2988,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const m1 = 'TT' + F.slice(0, 5) + 'G' + F.slice(6) + 'TT', m3 = 'TT' + F.slice(0, 19) + 'A' + 'TT';
   check('pr one mismatch found', PR.sites(m1, F, 1).some((x) => x.pos === 2 && x.mm === 1) && PR.sites(m1, F, 0).length === 0);
   check('pr 3-prime mismatch rejected', PR.sites(m3, F, 2).length === 0);
+}
+// #168 restriction digest: cut positions follow Biopython 1.88 Restriction (search(), 1-based first base after the cut),
+// checked there on random sequence for the classic enzymes, IUPAC sites (AvaI, HincII), a non-palindromic site on both
+// strands (BbvCI) and a site across the origin of a circle; these small cases repeat the same rules.
+{
+  const E = (t) => DG.parseEnzyme(t);
+  check('dg parse', JSON.stringify(E('EcoRI G^AATTC')) === '{"name":"EcoRI","site":"GAATTC","cut":1,"bottom":5}' && E('X CC^TCA_GC').bottom === 5 && E('bad GAATTC') === null && E('two G^A^ATTC') === null);
+  check('dg classic count', DG.CLASSIC.length === 12 && DG.CLASSIC.every((e) => e.site.length >= 6));
+  const s = 'AAA' + 'GAATTC' + 'T'.repeat(20) + 'GGATCC' + 'A'.repeat(30) + 'CTGCAG' + 'TT';
+  check('dg EcoRI', DG.cuts(s, E('EcoRI G^AATTC'), false).join() === '4'); check('dg BamHI', DG.cuts(s, E('BamHI G^GATCC'), false).join() === '30');
+  check('dg PstI', DG.cuts(s, E('PstI CTGCA^G'), false).join() === '70');
+  check('dg AvaI iupac', DG.cuts('TTCTCGAGTTCCCGGGTTCTCGGGTT', E('AvaI C^YCGRG'), false).join() === '3,11,19');
+  check('dg BbvCI reverse strand', DG.cuts('TTTTGCTGAGGTTTT', E('BbvCI CC^TCA_GC'), false).join() === '6' && DG.cuts('TTTTCCTCAGCTTTT', E('BbvCI CC^TCA_GC'), false).join() === '6');
+  const w = 'ATTC' + 'A'.repeat(20) + 'GA';
+  check('dg across origin', DG.cuts(w, E('EcoRI G^AATTC'), true).join() === '25' && DG.cuts(w, E('EcoRI G^AATTC'), false).length === 0);
+  const lin = DG.fragments(3000, [{ pos: 381, enz: 'EcoRI' }, { pos: 1151, enz: 'BamHI' }, { pos: 1801, enz: 'EcoRI' }], false).map((f) => f.size).join();
+  const circ = DG.fragments(3000, [{ pos: 381, enz: 'EcoRI' }, { pos: 1151, enz: 'BamHI' }, { pos: 1801, enz: 'EcoRI' }], true).map((f) => f.size).join();
+  check('dg fragments linear', lin === '381,770,650,1199'); check('dg fragments circular', circ === '770,650,1580');
+  check('dg one cut circle', DG.fragments(3000, [{ pos: 10, enz: 'X' }], true)[0].size === 3000);
+  near('dg migration ends', DG.migration(10000, 100, 10000), 0.06, 1e-12); near('dg migration mid', DG.migration(1000, 100, 10000), 0.5, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

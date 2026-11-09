@@ -1,0 +1,254 @@
+---
+// Restriction digest simulator: sites on both strands, fragments, a map and a virtual gel. The example plasmid is random
+// made-up sequence; the built-in enzymes are a few classic ones whose sites are textbook facts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { CLASSIC } from '../../lib/sci/digest';
+const plasmid = `>example made-up 3 kb plasmid
+TGGCAAGGGGTCCCTAATTATGATGCGCCATGAACTCGACATCGTAGTTGAGCGCTGACC
+CTAGGATGAGGAGTTGAAGCTAAAGCGAATTTACGACCTCGTAGACAAGCCTTACGGATC
+GTCTGCCGACATACTGGACATAGCCACTATACGCATGGCTCCAGCCGTTGACAACATATA
+CGTGTGATGGTGTCCCCGAGGCTTGTGACATAATCGAACCGTGGACATAACGCAACAGTG
+ATAAGGAACCCAGTAGATCGTGGCGGCTTCATTTTGTTCAACTCCGTTGCGGAAATCTAA
+ACGTAGTATTTTGGCAGATATCTACTAGCCCTCATTTCATCCTGCGTTATTTCAGGCAAA
+GTTTTCTCGATGTTAATATAGAATTCTTTATCTATCATGAGGTGCTAGCCTCATACAGTA
+ATCATTAACTGTTTATAGTATGCCGATAGAATTTCCCACACCGCCGAAAGCAACCCGAGA
+CAACCAGAAAGGTTCTGTTGTTCTAATGCCCATCAGGATGATCTCGCTCCCCTCCATCTC
+GTCAAAGACTTCGCGGGATGCTTACTCTAACTTTAAACTCGCCCCCACAAGTATTGCCCA
+TTTCCCCTCAGCGTACTATTGATTCTCCCGGCGTCAGCGTATACTGGTTAAGGACAGCGA
+TTTAACTCTCACAAACTCGACATAAGCGTCTCCCTAGTAGACTCGGACGCCGACAAACCG
+ACCGGTCCAATGTACAGGCCAATCAAAAAAGGTCCTTCGATTCGGTCTTCCTTCTCGTGG
+CTGTATGATAAGGGCGCGAATAGCAAACCCTGGACTCGGAGTCAATTTTTCCTCTCACTT
+CGATCTGATGGCATATTCCGCTCCCCAGATGTGACCACTTCCAACGGGACTTCGTCTAAG
+ACTGCCGCATGTTTGGGTCTGTCTGTAGCTCACCTCCACCCTCATGCGGCAGAACTACGC
+TATGGGTTATGTTCTTAAGGCTTTTTCTGGCCATCGTGGTTGGTAGTCTGAGCTTCTGTC
+CAAGCTATGCGACGATAAGGCACGAGTTCGGAACGAGGTCTCAACGATTCCGGCACCGGA
+TCTTCCCGTGGGAATTACACGTACTAGACTCTATAGGGTTGCACGTGCGCTAGAACGCTT
+TGTAATTACTGGATCCTCCGATCTGACGAGTTTTTAACAGTTGCAACAGTGAACTTTGAC
+GTGGCTACACACGCAATCTCGTAATCGTTGTACAAGTATCGTTATTCATGGCAGCCCATG
+GGCCTAACGTAGATATGCACCGATTAATGTATCTAGATGATCGTGGCAACAGAGAGCCAA
+GCAGCCTCTAGAGGATGGATTGTCTCTCCAGTGAGAGAACCGTCGTAAGCGAGAGGTATC
+CGTAAATGTATGCATCCTTCACTCCATTTTCTTTAGTGACCGTAAAGCCTCCGTTAAGTC
+CAATTTACCTCACAAGAGCAGATCTTACATCAGTAAGACATCTACGGAAGATCCCACCGC
+GGGGTATAGCACCTTTGGGTAAGAGCCGAGGTTTTTGTTGTACTGTACCTAACTCAGTCC
+GATATGAGCAAGGGGTTGTTTCCGTTTACACGCAAGACCCCGGAGTTGCCGACCTCGGCT
+TCGATCAACGAATCCGGTTCAGGACAACTCTCCACGGCTTGGAGACGTATAGAATACCTG
+ACAATCAGCCAGATAGCGTCGTACGCCCTTGAACTTGTACGCGCCCTAAACCCCTAGACA
+TAGTAATTGCGTGCGACTTTAGCTCTAAGCGCCCACGAAGAGGTATTCTCGATGGAGAGG
+GAATTCTTCCAAGAATGGTCGAGTGGTTCTCTGGGATTGCGACAGAGACACGTGTCCCTA
+GGGACGATAGGCATGGCGAAGGTGATAGGTGCGCATTTGTGGATACTCGGAGGGGCAATG
+AGACACGGTAAAGAGCATCCGTTGAAAGGAACACCATCCCACTCCACCTGTTAACCTCGA
+AAGCCGCTTACATCTAATGTGGGGCGGCACCCTTACATGAGAGCTTATCGCGGTGGACGA
+GTCTACTGTGCCGTCGACCTATAGATGAAGGATTTGTAGCGCCCGATGGCTTAAGTCGAT
+TTCTAAGTGGGGATATTTGGGTTTATTGCAGTAAATTAACAACGTATCCATCCAGAACGG
+GGGGACCTATGGTACAAGCGTATGATCAGATCCCTTCTCCTTACATGTCCAAGCTTCCCA
+TGCGCAGGATGTTCGACCCAGGTCTGCTTGAGACGTTGCAGTCAGACCTCAGTAAGCATG
+GTCTAAAAAGCTGTGATGGAACCAAAATGTTTAAACATGCCGGATAATCTGTTAACGAGT
+GTGTGCTGACCTATCCTCTAGCTCCCCTTTTGCGTCTAACAGTATGTGATCCGTGCGGCT
+ATCCTGGAGATGTTAACACCCAAATTCCGTTTATCCTCAGGAATCGCCAGGAAGCTCCTT
+GATTATGACCGTACCACTTCCTCTGACTTCACACGGCGTCTCTGCTTAAGGTCAAACGGC
+CCGGGCGGATAGCAAGTTTAGTGATACACAGGTCTACCCATGTAACGACATAGATGAGGT
+CTCGTGTCAGATAGAGTTCCTCTAGAAAGGGTTAGTTTTACCTACCGGTTCTATAATTCT
+TTTTAGCTGGCTGCAGTGCGGTACACCGTCGTTGGTCCTGCCCAAAAACTGAGCAAAATA
+TAACGACCCTGGATGGCATTAGTCGTTCAACTATATCGGAAGGACACATTCAGCTAATTT
+CATATCGCCTGAAATCTTCTTCGATCCCGGTGGACGGGGGTCGAAGATCATATACGATAA
+GCGCGCCCATCGTAGACCACATAGATGTTAGGTCCGTTCTTCACACAGTTAGCACACACC
+TGCGTACAAGCCGTAATCATTGATATATGCCTAAGAGGTCGCGAAACCACCATCCAACTG
+ATATTGGATGTCCCCCATTTCGGCGATTTGTTTGTCTCGTTTCTGCACGCAACATAACAA`;
+const on = ['EcoRI', 'BamHI', 'HindIII'];
+---
+<div class="ax rdg">
+  <div class="ax-card">
+    <h2>Sequence</h2>
+    <label>DNA, as FASTA or plain letters <textarea class="rd-seq" rows="4" spellcheck="false">{plasmid}</textarea></label>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rd-open">Open a sequence file</button>
+      <input type="file" class="rd-file" accept=".fa,.fasta,.fna,.fas,.seq,.txt,text/plain" hidden />
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Shape <select class="rd-top"><option value="circ" selected>Circular (plasmid)</option><option value="lin">Linear (PCR product, genomic piece)</option></select></label>
+    </div>
+    <p class="ax-help">FASTA or plain text up to 20 MB; the first record is used, up to 1 million bases. Numbers, spaces and line breaks are ignored and U is read as T. The file stays on your device. The example is random made-up sequence with a few sites planted in it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Enzymes</h2>
+    <div class="rd-classic">
+      {CLASSIC.map((e) => <label class="rd-chk"><input type="checkbox" value={e.name} checked={on.includes(e.name)} /> {e.name} <span class="rd-site">{e.site.slice(0, e.cut)}^{e.site.slice(e.cut)}</span></label>)}
+    </div>
+    <label style="margin-top:10px">Your own enzymes, one per line: name and site with ^ where the top strand is cut <textarea class="rd-own" rows="3" spellcheck="false" placeholder="MyEnz GT^MKAC"></textarea></label>
+    <p class="ax-help">The built-in list is a handful of classic enzymes from textbooks. For any other enzyme, copy its site from the supplier's sheet: IUPAC letters (N, R, Y…) are allowed, and for a site that reads differently on the two strands add _ where the bottom strand is cut (for example CC^TCA_GC). Enzymes that cut outside their site are not supported.</p>
+    <p class="ax-err rd-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Gel</h2>
+    <div class="ax-grid">
+      <label>Ladder band sizes (bp) <input class="rd-lad" value="100, 200, 300, 400, 500, 700, 1000, 1500, 2000, 3000, 5000, 10000" /></label>
+      <label>Lanes <select class="rd-lanes"><option value="each" selected>Each enzyme alone, then all together</option><option value="all">All together only</option></select></label>
+    </div>
+    <p class="ax-help">The default ladder is a made-up, evenly spread one; type the sizes of the ladder you use. Bands are placed by a simple rule (distance falls with the logarithm of size) and drawn brighter when they carry more DNA. A real gel bends this at both ends, and uncut circular DNA runs at odd positions.</p>
+  </div>
+
+  <div class="ax-card rd-out">
+    <h2>Digest</h2>
+    <p class="ax-big rd-big"></p>
+    <dl class="ax-facts rd-facts"></dl>
+    <canvas class="ax-fig rd-map"></canvas>
+    <canvas class="ax-fig rd-gel"></canvas>
+    <div class="ax-scroll"><table class="rd-tab"></table></div>
+    <details class="rd-sd"><summary>Cut positions by enzyme</summary><div class="ax-scroll"><table class="rd-ctab"></table></div></details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rd-csv">Download fragments (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { CLASSIC, parseEnzyme, cuts, fragments, migration, type Enzyme, type Fragment } from '../../lib/sci/digest';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rdg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let map: Figure | null = null, gel: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  function readSeq(text: string) {
+    const lines = text.split(/\r?\n/); let name = '', out: string[] = [], seen = false;
+    for (const l of lines) { if (l.startsWith('>')) { if (seen) break; seen = true; name = l.slice(1).trim(); continue; } out.push(l); }
+    return { name, seq: out.join('').toUpperCase().replace(/U/g, 'T').replace(/[^ACGTRYSWKMBDHVN]/g, '') };
+  }
+
+  function mapFigure(L: number, circ: boolean, marks: { pos: number; enz: string }[]): Figure {
+    return {
+      w: 720, h: circ ? 480 : 280, alt: `${circ ? 'Circular' : 'Linear'} map of ${tn(L)} bp with ${marks.length} cut sites`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        ctx.font = `${fs * 1.05}px system-ui, sans-serif`; ctx.fillStyle = pal.ink; ctx.strokeStyle = pal.ink;
+        const sorted = [...marks].sort((a, b) => a.pos - b.pos);
+        if (circ) {
+          const cx = W / 2, cy = H / 2, r = Math.min(W, H) * 0.28;
+          ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${tn(L)} bp`, cx, cy);
+          sorted.forEach((m, i) => {
+            const a = -Math.PI / 2 + (2 * Math.PI * m.pos) / L, rr = r + fs * (i % 2 ? 2.6 : 1.2);
+            ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + (r - 8) * Math.cos(a), cy + (r - 8) * Math.sin(a)); ctx.lineTo(cx + (r + 8) * Math.cos(a), cy + (r + 8) * Math.sin(a)); ctx.stroke();
+            ctx.textAlign = Math.cos(a) > 0.2 ? 'left' : Math.cos(a) < -0.2 ? 'right' : 'center';
+            ctx.fillText(`${m.enz} ${tn(m.pos)}`, cx + rr * Math.cos(a), cy + rr * Math.sin(a));
+          });
+        } else {
+          const x0 = fs, x1 = W - fs, y = H * 0.55, X = (p: number) => x0 + ((x1 - x0) * p) / L;
+          ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('1', x0, y + 10); ctx.textAlign = 'right'; ctx.fillText(tn(L), x1, y + 10);
+          sorted.forEach((m, i) => {
+            const x = X(m.pos), up = fs * (1.2 + 1.3 * (i % 3));
+            ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x, y + 6); ctx.stroke();
+            ctx.lineWidth = 1; ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x, y - up + fs * 0.5); ctx.stroke(); ctx.strokeStyle = pal.ink;
+            ctx.textAlign = x > W * 0.8 ? 'right' : x < W * 0.2 ? 'left' : 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(`${m.enz} ${tn(m.pos)}`, x, y - up + fs * 0.4);
+          });
+        }
+      },
+    };
+  }
+
+  function gelFigure(lanes: { name: string; sizes: number[] }[], ladder: number[]): Figure {
+    const lo = Math.min(...ladder), hi = Math.max(...ladder);
+    return {
+      w: 720, h: 460, alt: `Virtual gel: ladder and ${lanes.length} lane${lanes.length > 1 ? 's' : ''} (${lanes.map((l) => `${l.name}: ${l.sizes.map(tn).join(', ')} bp`).join('; ')})`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        const left = fs * 3.4, top = fs * 3.2, bot = H - fs * 0.6, nL = lanes.length + 1, lw = (W - left - fs * 0.5) / nL, Y = (bp: number) => top + (bot - top) * Math.min(0.99, Math.max(0.01, migration(bp, lo, hi)));
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(left, top, W - left - fs * 0.5, bot - top);
+        ctx.font = `${fs * 0.85}px system-ui, sans-serif`; ctx.fillStyle = pal.ink; ctx.textBaseline = 'bottom';
+        const names = ['Ladder', ...lanes.map((l) => l.name)];
+        names.forEach((n, i) => {
+          const cx = left + lw * (i + 0.5); ctx.save(); ctx.translate(cx, top - 6); ctx.rotate(-Math.PI / 6); ctx.textAlign = 'left';
+          let t = n; while (ctx.measureText(t).width > fs * 5.5 && t.length > 3) t = t.slice(0, -2) + '…'; ctx.fillText(t, 0, 0); ctx.restore();
+          ctx.fillStyle = pal.muted; ctx.fillRect(cx - lw * 0.32, top + 2, lw * 0.64, 4); ctx.fillStyle = pal.ink;
+        });
+        const band = (cx: number, y: number, alpha: number) => { ctx.globalAlpha = alpha; ctx.fillStyle = pal.ink; ctx.fillRect(cx - lw * 0.32, y - 3, lw * 0.64, 6); ctx.globalAlpha = 1; };
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ladder.forEach((s) => { const y = Y(s); band(left + lw * 0.5, y, 0.75); ctx.fillStyle = pal.muted; ctx.fillText(tn(s), left - 6, y); });
+        lanes.forEach((l, i) => {
+          const cx = left + lw * (i + 1.5), tot = l.sizes.reduce((a, b) => a + b, 0) || 1;
+          const groups = new Map<number, number>(); l.sizes.forEach((s) => groups.set(Math.round(Y(s)), (groups.get(Math.round(Y(s))) ?? 0) + s));
+          for (const [y, mass] of groups) band(cx, y, Math.min(1, 0.35 + (1.3 * mass) / tot));
+        });
+      },
+    };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.rd-err').textContent = m; q('.rd-err').hidden = false; q('.rd-out').hidden = true; map = gel = null; sections = []; csvRows = []; };
+    q('.rd-err').hidden = true;
+    const { name, seq } = readSeq(q<HTMLTextAreaElement>('.rd-seq').value);
+    if (seq.length < 10) return fail('Paste a DNA sequence of at least 10 bases.');
+    if (seq.length > 1e6) return fail('Up to 1 million bases, please.');
+    const circ = q<HTMLSelectElement>('.rd-top').value === 'circ', L = seq.length;
+    const picked = [...root.querySelectorAll<HTMLInputElement>('.rd-chk input')].filter((i) => i.checked).map((i) => CLASSIC.find((e) => e.name === i.value)!);
+    const own: Enzyme[] = [];
+    for (const line of q<HTMLTextAreaElement>('.rd-own').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+      const e = parseEnzyme(line); if (!e) return fail(`Could not read "${line}". Write a name, a space, then the site with one ^ where the top strand is cut, e.g. EcoRI G^AATTC.`); own.push(e);
+    }
+    const enz = [...picked, ...own];
+    if (!enz.length) return fail('Pick at least one enzyme, or type your own.');
+    if (enz.length > 30) return fail('Up to 30 enzymes at once, please.');
+    const lad = q<HTMLInputElement>('.rd-lad').value.split(/[,;\s]+/).filter(Boolean).map(num);
+    if (lad.length < 2 || lad.some((x) => !(x >= 10 && x <= 1e6))) return fail('Give at least two ladder sizes in bp (10 or more), separated by commas.');
+    const ladder = [...new Set(lad)].sort((a, b) => a - b);
+    const per = enz.map((e) => ({ e, c: cuts(seq, e, circ) }));
+    const all = per.flatMap((p) => p.c.map((pos) => ({ pos, enz: p.e.name })));
+    const frags = fragments(L, all, circ), bySize = [...frags].sort((a, b) => b.size - a.size);
+    q('.rd-out').hidden = false;
+    const label = enz.map((e) => e.name).join(' + ');
+    const nCut = new Set(all.map((c) => c.pos)).size;
+    q('.rd-big').textContent = nCut === 0 ? `${label}: no cuts` : `${frags.length} fragment${frags.length > 1 ? 's' : ''}: ${bySize.slice(0, 6).map((f) => tn(f.size)).join(', ')}${frags.length > 6 ? '…' : ''} bp`;
+    const once = per.filter((p) => p.c.length === 1).map((p) => p.e.name), none = per.filter((p) => !p.c.length).map((p) => p.e.name), many = per.filter((p) => p.c.length > 1);
+    q('.rd-facts').replaceChildren(
+      fact('Sequence', `${tn(L)} bp, ${circ ? 'circular' : 'linear'}`, name ? `“${name.slice(0, 60)}”` : ''),
+      fact('Cut once', once.length ? once.join(', ') : 'none', 'single cutters, handy for opening a plasmid'),
+      ...(many.length ? [fact('Cut more than once', many.map((p) => `${p.e.name} ×${p.c.length}`).join(', '))] : []),
+      ...(none.length ? [fact('Do not cut', none.join(', '))] : []),
+      ...(frags.some((f) => f.size < 100) ? [fact('Small pieces', `${frags.filter((f) => f.size < 100).length} under 100 bp`, 'may run off or be faint on an agarose gel')] : []),
+    );
+    map = mapFigure(L, circ, all); paint(q<HTMLCanvasElement>('.rd-map'), map);
+    const sizesFor = (list: typeof per) => { const cs = list.flatMap((p) => p.c.map((pos) => ({ pos, enz: p.e.name }))); return cs.length ? fragments(L, cs, circ).map((f) => f.size) : [L]; };
+    const lanes = q<HTMLSelectElement>('.rd-lanes').value === 'each' && per.length > 1 ? [...per.map((p) => ({ name: p.e.name, sizes: sizesFor([p]) })), { name: 'All', sizes: frags.map((f) => f.size) }] : [{ name: per.length > 1 ? 'All' : per[0].e.name, sizes: frags.map((f) => f.size) }];
+    gel = gelFigure(lanes, ladder); paint(q<HTMLCanvasElement>('.rd-gel'), gel);
+    const head = ['Size (bp)', 'From', 'To', 'Left end', 'Right end'];
+    const trs = bySize.slice(0, 500).map((f: Fragment) => [tn(f.size), tn(f.start), tn(f.end), f.left || '–', f.right || '–']);
+    table('.rd-tab', head, trs, [0, 1, 2]);
+    table('.rd-ctab', ['Enzyme', 'Site', 'Cuts', 'Positions (after base)'], per.map((p) => [p.e.name, `${p.e.site.slice(0, p.e.cut)}^${p.e.site.slice(p.e.cut)}`, String(p.c.length), p.c.slice(0, 40).map(tn).join(', ') + (p.c.length > 40 ? '…' : '')]), [2]);
+    csvRows = [['size_bp', 'start', 'end', 'left_enzyme', 'right_enzyme'], ...bySize.map((f) => [String(f.size), String(f.start), String(f.end), f.left, f.right])];
+    sections = [{ title: `${label}: ${q('.rd-big').textContent}`, facts: [...q('.rd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: map, table: { head, rows: trs, align: ['r', 'r', 'r', 'l', 'l'] } }, { title: 'Virtual gel', figure: gel }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, input:not([type=file]), select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.rd-open').addEventListener('click', () => q<HTMLInputElement>('.rd-file').click());
+  q('.rd-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.rd-file').files?.[0]; if (!f) return;
+    if (f.size > 20e6) { q('.rd-err').textContent = 'That file is over 20 MB.'; q('.rd-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.rd-seq').value = await f.text(); q<HTMLInputElement>('.rd-file').value = ''; calc();
+  });
+  q('.rd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'digest-fragments.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (map) paint(q<HTMLCanvasElement>('.rd-map'), map); if (gel) paint(q<HTMLCanvasElement>('.rd-gel'), gel); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Restriction digest', subtitle: q('.rd-big').textContent ?? '', file: 'restriction-digest', sections }));
+</script>
+
+<style is:global>
+  .rdg .rd-classic { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 12px; }
+  .rdg .rd-chk { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
+  .rdg .rd-site { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8rem; color: var(--muted, #666); }
+  .rdg .rd-sd { margin-top: 14px; }
+  .rdg .rd-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .rdg select { max-width: 100%; }
+</style>
