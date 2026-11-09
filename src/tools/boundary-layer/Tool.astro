@@ -1,0 +1,113 @@
+---
+// Flat-plate boundary layer: thickness, skin friction and drag, laminar (Blasius) and turbulent (1/7 power law).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax blc">
+  <div class="ax-card">
+    <h2>Plate and flow</h2>
+    <div class="ax-grid">
+      <label>Fluid <select class="bl-fl"></select></label>
+      <label>Density ρ (kg/m³) <input class="bl-rho" type="text" inputmode="decimal" /></label>
+      <label>Kinematic viscosity ν (m²/s) <input class="bl-nu" type="text" inputmode="decimal" /></label>
+      <label>Free-stream speed U (m/s) <input class="bl-u" type="text" inputmode="decimal" value="10" /></label>
+      <label>Plate length L (m) <input class="bl-l" type="text" inputmode="decimal" value="2" /></label>
+      <label>Plate width (m) <input class="bl-b" type="text" inputmode="decimal" value="1" /></label>
+      <label>Look at distance x from the leading edge (m) <input class="bl-x" type="text" inputmode="decimal" value="1" /></label>
+      <label>Boundary layer <select class="bl-m"><option value="auto" selected>Laminar, then turbulent past transition</option><option value="laminar">Laminar all the way</option><option value="turbulent">Turbulent from the leading edge (tripped)</option></select></label>
+      <label>Transition Reynolds number <input class="bl-rc" type="text" inputmode="decimal" value="5e5" /></label>
+      <label>Turbulent drag law <select class="bl-law"><option value="power" selected>1/7 power law, 0.074 Re^−0.2 (Re up to 10⁷)</option><option value="schlichting">Prandtl-Schlichting, 0.455/(log Re)^2.58 (up to 10⁹)</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="bl-two" /> Count both sides of the plate</label>
+    <p class="ax-help">Fluid properties are rounded values near 20 °C; edit them for other conditions. Transition is usually taken at Re = 5 × 10⁵ on a smooth plate in a quiet stream; a rough plate or a turbulent stream trips it earlier (3 × 10⁵ or less), a very quiet one later (up to 3 × 10⁶).</p>
+    <p class="ax-err bl-err" hidden></p>
+  </div>
+
+  <div class="ax-card bl-out">
+    <h2>Boundary layer</h2>
+    <p class="ax-big bl-big"></p>
+    <dl class="ax-facts bl-facts"></dl>
+    <canvas class="ax-fig bl-fig"></canvas>
+    <canvas class="ax-fig bl-fig2"></canvas>
+    <p class="ax-help">Smooth flat plate, no pressure gradient, incompressible flow. The laminar values come from the exact Blasius solution, worked out on this page; the turbulent ones from the 1/7 power law, measured from the leading edge. Real transition is gradual. For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bl-csv">Values along the plate (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { FLUIDS, local, plateCD, blasiusCached, type Mode, type TurbLaw } from '../../lib/sci/phbl';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.blc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fl = q<HTMLSelectElement>('.bl-fl');
+  for (const f of FLUIDS) fl.append(new Option(f.name, f.id));
+  fl.append(new Option('My own fluid', 'own'));
+  const fill = () => { const f = FLUIDS.find((x) => x.id === fl.value); if (f) { q<HTMLInputElement>('.bl-rho').value = String(f.rho); q<HTMLInputElement>('.bl-nu').value = String(f.nu); } };
+  fill();
+  let figs: Figure[] = [], report: Section[] = [], rows: (string | number)[][] = [];
+  const mm = (m: number) => (m >= 1 ? `${sig(m, 3)} m` : m >= 1e-3 ? `${sig(m * 1e3, 3)} mm` : `${sig(m * 1e6, 3)} µm`);
+  const N = (f: number) => (Math.abs(f) >= 1e4 ? `${sig(f / 1e3, 3)} kN` : `${sig(f, 3)} N`);
+
+  function calc() {
+    const err = q('.bl-err'), out = q('.bl-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; rows = []; };
+    const rho = val('.bl-rho'), nu = val('.bl-nu'), U = val('.bl-u'), L = val('.bl-l'), b = val('.bl-b'), x = val('.bl-x'), rc = val('.bl-rc');
+    const mode = q<HTMLSelectElement>('.bl-m').value as Mode, law = q<HTMLSelectElement>('.bl-law').value as TurbLaw, sides = q<HTMLInputElement>('.bl-two').checked ? 2 : 1;
+    if (!(rho > 0) || !(nu > 0)) return fail('Give a density and a kinematic viscosity greater than 0.');
+    if (!(U > 0)) return fail('Give a free-stream speed greater than 0.');
+    if (!(L > 0) || !(b > 0)) return fail('Give a plate length and width greater than 0.');
+    if (!(x > 0 && x <= L)) return fail('The distance x must be between 0 and the plate length.');
+    if (!(rc >= 1e4 && rc <= 1e7)) return fail('Give a transition Reynolds number between 10⁴ and 10⁷ (5 × 10⁵ is usual).');
+    err.hidden = true; out.hidden = false;
+    const ReL = (U * L) / nu, q0 = 0.5 * rho * U * U, xtr = (rc * nu) / U, P = plateCD(ReL, mode, rc, law), D = P.CD * q0 * L * b * sides;
+    const loc = local(x, U, nu, mode, rc);
+    q('.bl-big').textContent = `Drag ${N(D)} (CD = ${sig(P.CD, 3)}); boundary layer ${mm(loc.delta)} thick at x = ${sig(x, 3)} m`;
+    const regime = mode === 'laminar' ? 'laminar (forced)' : mode === 'turbulent' ? 'turbulent (tripped)' : xtr >= L ? 'laminar over the whole plate' : `laminar to ${sig(xtr, 3)} m, then turbulent`;
+    const f = [
+      fact('Plate Reynolds number', sig(ReL, 3), `UL/ν; ${regime}`),
+      fact('Transition point', mode === 'auto' ? (xtr < L ? `${sig(xtr, 3)} m from the leading edge` : `beyond the plate (${sig(xtr, 3)} m)`) : 'not used', `where U x / ν reaches ${sig(rc, 3)}`),
+      fact(`Boundary layer at x = ${sig(x, 3)} m`, `${loc.laminar ? 'laminar' : 'turbulent'}, Reₓ = ${sig(loc.Re, 3)}`, loc.laminar ? 'Blasius solution' : '1/7 power law from the leading edge'),
+      fact('Thickness δ (99 % of U)', mm(loc.delta), loc.laminar ? `${sig(blasiusCached().eta99, 4)} x/√Reₓ` : '0.37 x Reₓ^−0.2'),
+      fact('Displacement thickness δ*', mm(loc.dstar), 'how far the plate seems to push the outer flow out'),
+      fact('Momentum thickness θ', mm(loc.theta), `shape factor H = δ*/θ = ${sig(loc.H, 3)}`),
+      fact('Local skin friction cf', sig(loc.cf, 3), `wall shear stress τw = cf × ½ρU² = ${sig(loc.cf * q0, 3)} Pa`),
+      fact('Average drag coefficient CD', sig(P.CD, 4), mode === 'auto' && P.A ? `mixed plate: turbulent law − ${sig(P.A, 4)}/Re_L for the laminar start` : mode === 'laminar' || P.A === 0 && mode === 'auto' ? '1.328/√Re_L (Blasius)' : law === 'power' ? '0.074 Re_L^−0.2' : '0.455/(log₁₀ Re_L)^2.58'),
+      fact('Drag force', N(D), `CD × ½ρU² × area, ${sides === 2 ? 'both sides' : 'one side'} of a ${sig(L, 3)} × ${sig(b, 3)} m plate`),
+    ];
+    if (mode !== 'laminar' && law === 'power' && ReL > 1e7) f.push(fact('Note', 'Re above 10⁷', 'the 1/7 power law drag is low here; choose Prandtl-Schlichting'));
+    if (mode === 'laminar' && ReL > 3e6) f.push(fact('Note', 'unlikely to stay laminar', 'above about 3 × 10⁶ even very quiet flows turn turbulent'));
+    q('.bl-facts').replaceChildren(...f);
+    // Along the plate.
+    const xs = Array.from({ length: 201 }, (_, i) => (L * (i + 0.5)) / 201), lv = xs.map((xx) => local(xx, U, nu, mode, rc));
+    rows = [['x_m', 'Re_x', 'regime', 'delta_m', 'delta_star_m', 'theta_m', 'cf', 'tau_w_Pa'], ...xs.map((xx, i) => [+xx.toPrecision(5), +lv[i].Re.toPrecision(5), lv[i].laminar ? 'laminar' : 'turbulent', +lv[i].delta.toPrecision(5), +lv[i].dstar.toPrecision(5), +lv[i].theta.toPrecision(5), +lv[i].cf.toPrecision(5), +(lv[i].cf * q0).toPrecision(5)])];
+    const s = (m: number) => m * 1e3;
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Distance from the leading edge (m)', yLabel: 'Thickness (mm)', yMin: 0, legend: 'below', series: [
+      { name: 'δ, 99 % thickness', x: xs, y: lv.map((v) => s(v.delta)), mode: 'line', width: 2 },
+      { name: 'δ*, displacement', x: xs, y: lv.map((v) => s(v.dstar)), mode: 'line', width: 1.5, dash: [6, 3] },
+    ], marks: [...(mode === 'auto' && xtr < L ? [{ kind: 'vline' as const, at: xtr, dash: [3, 3], label: 'transition' }] : []), { kind: 'vline', at: x, dash: [1, 3], label: 'x' }] }, `Boundary layer thickness along a ${sig(L, 3)} m plate at ${sig(U, 3)} m/s`);
+    let py: number[], pu: number[];
+    if (loc.laminar) { const sc = x / Math.sqrt(loc.Re), pr = blasiusCached().profile.filter((p) => p[0] <= 7); py = pr.map((p) => s(p[0] * sc)); pu = pr.map((p) => p[1]); }
+    else { pu = Array.from({ length: 101 }, (_, i) => i / 100); py = pu.map((u) => s(loc.delta * u ** 7)); pu.push(1); py.push(s(loc.delta * 1.4)); }
+    const c2 = chartFigure({ w: 380, h: 240, xLabel: 'Speed u / U', yLabel: 'Height above the plate (mm)', xMin: 0, xMax: 1.05, yMin: 0, legend: 'none', series: [{ name: loc.laminar ? 'Blasius profile' : '1/7 power-law profile', x: pu, y: py, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: s(loc.delta), dash: [4, 3], label: 'δ' }] }, `${loc.laminar ? 'Laminar (Blasius)' : 'Turbulent (1/7 power)'} velocity profile at x = ${sig(x, 3)} m`);
+    figs = [c1, c2]; paint(q<HTMLCanvasElement>('.bl-fig'), c1); paint(q<HTMLCanvasElement>('.bl-fig2'), c2);
+    report = [{ title: q('.bl-big').textContent!, text: [`${fl.selectedOptions[0].text}: ρ = ${rho} kg/m³, ν = ${nu} m²/s; U = ${U} m/s.`], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: c1 }, { title: 'Velocity profile', figure: c2 }];
+  }
+
+  fl.addEventListener('change', () => { fill(); calc(); });
+  for (const c of ['.bl-rho', '.bl-nu']) q(c).addEventListener('input', () => { fl.value = 'own'; });
+  root.querySelectorAll('input, select:not(.bl-fl)').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.bl-out').hidden) { paint(q<HTMLCanvasElement>('.bl-fig'), figs[0]); paint(q<HTMLCanvasElement>('.bl-fig2'), figs[1]); } });
+  q('.bl-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv(rows)], { type: 'text/csv' }), 'boundary-layer.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Flat plate boundary layer', subtitle: q('.bl-big').textContent ?? '', file: 'boundary-layer', sections: report }));
+</script>
+
+<style is:global>
+  .blc canvas.ax-fig { margin-top: 12px; }
+</style>
