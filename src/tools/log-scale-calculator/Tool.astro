@@ -1,0 +1,134 @@
+---
+// Log scale: Doyle, International 1/4-inch and Scribner board-foot rules by formula, and cubic volume by Smalian,
+// Huber and Newton. No volume tables. The example logs are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19,17.4\nL3,20,12,22.5,21.2\nL4,9,8,10,9.5\nL5,24,10,26,25\nL6,14,18,16.5,15.2';
+---
+<div class="ax lgs">
+  <div class="ax-card">
+    <h2>Logs</h2>
+    <div class="ax-grid">
+      <label>Units <select class="ls-u">
+        <option value="imp" selected>Inches and feet (ft³)</option>
+        <option value="met">cm and metres (m³)</option>
+      </select></label>
+    </div>
+    <label style="margin-top:10px;display:block"><span>One row per log: name (optional), small-end diameter, length, and if you have them the large-end and middle diameters</span> <textarea class="ls-data" rows="8" spellcheck="false">{logs}</textarea></label>
+    <DataFile target=".ls-data" maxCols={10} maxRows={20000} />
+    <p class="ax-help">Measure diameters inside the bark. The board-foot rules use only the small-end diameter and the length; Smalian needs both ends, Huber the middle, and Newton all three. In metric the board-foot rules use the diameter and length converted to inches and feet. Up to 20,000 logs. The example logs are made up.</p>
+    <p class="ax-err ls-err" hidden></p>
+  </div>
+
+  <div class="ax-card ls-out">
+    <h2>Volume</h2>
+    <p class="ax-big ls-big"></p>
+    <dl class="ax-facts ls-facts"></dl>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span>Chart: rules for a log of length (<span class="ls-lu">ft</span>)</span> <input class="ls-cl" inputmode="decimal" value="16" /></label>
+    </div>
+    <canvas class="ax-fig ls-fig"></canvas>
+    <details class="ls-sd" open>
+      <summary>Every log (table)</summary>
+      <div class="ax-scroll"><table class="ls-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ls-csv">Download every log (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { scaleLog, type Log, type LogResult } from '../../lib/sci/logscale';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const bf = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en') : '–');
+  const root = document.querySelector<HTMLElement>('.lgs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  let lastUnit = 'imp';
+
+  function table(head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>('.ls-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.ls-err').textContent = m; q('.ls-err').hidden = false; q('.ls-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.ls-err').hidden = true;
+    const imp = q<HTMLSelectElement>('.ls-u').value === 'imp';
+    if ((imp ? 'imp' : 'met') !== lastUnit) { q<HTMLInputElement>('.ls-cl').value = imp ? '16' : '5'; lastUnit = imp ? 'imp' : 'met'; }
+    const du = imp ? 'in' : 'cm', lu = imp ? 'ft' : 'm', vu = imp ? 'ft³' : 'm³';
+    q('.ls-lu').textContent = lu;
+    const all = parseTable(q<HTMLTextAreaElement>('.ls-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    const rows = all.filter((r) => r.some((c) => isNum(c)));
+    if (!rows.length) return fail(`Give at least one log: name (optional), small-end diameter in ${du} and length in ${lu}.`);
+    if (rows.length > 20000) return fail('Up to 20,000 logs, please.');
+    const named = rows.some((r) => !isNum(r[0])), x0 = named ? 1 : 0;
+    const maxD = imp ? 200 : 500, maxL = imp ? 100 : 30;
+    const logs: Log[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i], s = num(r[x0]), L = num(r[x0 + 1]);
+      if (!(s > 0 && s <= maxD)) return fail(`Log ${i + 1}: give the small-end diameter in ${du} (above 0).`);
+      if (!(L > 0 && L <= maxL)) return fail(`Log ${i + 1}: give the length in ${lu} (above 0, up to ${maxL}).`);
+      const lg = isNum(r[x0 + 2]) ? num(r[x0 + 2]) : undefined, md = isNum(r[x0 + 3]) ? num(r[x0 + 3]) : undefined;
+      if (lg !== undefined && !(lg >= s && lg <= maxD)) return fail(`Log ${i + 1}: the large-end diameter must be at least the small-end diameter.`);
+      if (md !== undefined && !(md >= s && (lg === undefined || md <= lg))) return fail(`Log ${i + 1}: the middle diameter must lie between the two ends.`);
+      logs.push({ id: named ? r[0].trim() || `Log ${i + 1}` : `Log ${i + 1}`, small: s, length: L, large: lg, mid: md });
+    }
+    const res = logs.map((g) => scaleLog(g, imp));
+    const tot = (k: keyof LogResult) => res.reduce((s, r) => s + (r[k] as number), 0);
+    const all3 = (k: 'smalian' | 'huber' | 'newton') => res.filter((r) => Number.isFinite(r[k]));
+    const T = { doyle: tot('doyle'), intl: tot('intl'), scrib: tot('scrib') };
+    q('.ls-out').hidden = false;
+    q('.ls-big').textContent = `${bf(T.intl)} bd ft by International ¼-inch, ${bf(T.scrib)} Scribner, ${bf(T.doyle)} Doyle (${logs.length} log${logs.length > 1 ? 's' : ''})`;
+    const cub = (k: 'smalian' | 'huber' | 'newton', name: string, need: string) => { const ok = all3(k); return fact(name, ok.length ? `${sg(ok.reduce((s, r) => s + r[k], 0), 4)} ${vu}` : 'not worked out', ok.length ? `${ok.length} of ${res.length} logs${ok.length < res.length ? `; needs ${need}` : ''}` : `needs ${need}`); };
+    const small = res.filter((r) => r.intl > 0 && r.doyle / r.intl < 0.8).map((r) => r.id);
+    q('.ls-facts').replaceChildren(
+      fact('International ¼-inch', `${bf(T.intl)} bd ft`, 'formula version: 4 ft sections, ½ inch taper each, × 0.905 for a ¼-inch kerf'),
+      fact('Scribner (formula)', `${bf(T.scrib)} bd ft`, '(0.79 D² − 2D − 4) × L / 16; the Scribner Decimal C table will differ'),
+      fact('Doyle', `${bf(T.doyle)} bd ft`, small.length ? `(D − 4)² × L / 16; well below the others for small logs (${small.slice(0, 4).join(', ')}${small.length > 4 ? '…' : ''})` : '(D − 4)² × L / 16'),
+      cub('smalian', 'Smalian cubic volume', 'both end diameters'),
+      cub('huber', 'Huber cubic volume', 'the middle diameter'),
+      cub('newton', 'Newton cubic volume', 'both ends and the middle'),
+    );
+    // Chart: each rule against small-end diameter for one log length.
+    const cl = num(q<HTMLInputElement>('.ls-cl').value), CL = cl > 0 && cl <= maxL ? cl : imp ? 16 : 5;
+    const dmax = Math.max(imp ? 30 : 75, ...logs.map((g) => g.small)), dmin = imp ? 4 : 10;
+    const xs = Array.from({ length: 61 }, (_, k) => dmin + ((dmax - dmin) * k) / 60), lines = xs.map((d) => scaleLog({ id: '', small: d, length: CL }, imp));
+    fig = chartFigure({ h: 320, xLabel: `Small-end diameter (${du})`, yLabel: 'Board feet', yMin: 0, legend: 'below', series: [
+      { name: 'International ¼-inch', x: xs, y: lines.map((r) => r.intl), mode: 'line', width: 2 },
+      { name: 'Scribner (formula)', x: xs, y: lines.map((r) => r.scrib), mode: 'line', width: 2, dash: [6, 4] },
+      { name: 'Doyle', x: xs, y: lines.map((r) => r.doyle), mode: 'line', width: 2, dash: [2, 3] },
+    ] }, `Board feet by three log rules against small-end diameter, for a ${sg(CL, 3)} ${lu} log`);
+    paint(q<HTMLCanvasElement>('.ls-fig'), fig);
+    const head = ['Log', `Small (${du})`, `Length (${lu})`, 'Intl ¼', 'Scribner', 'Doyle', `Smalian (${vu})`, `Huber (${vu})`, `Newton (${vu})`];
+    const trs = res.map((r) => [r.id, sg(r.small, 4), sg(r.length, 4), bf(r.intl), bf(r.scrib), bf(r.doyle), sg(r.smalian, 4), sg(r.huber, 4), sg(r.newton, 4)]);
+    table(head, trs, [1, 2, 3, 4, 5, 6, 7, 8]);
+    const vk = imp ? 'ft3' : 'm3';
+    csvRows = [['log', `small_end_${du}`, `length_${lu}`, `large_end_${du}`, `middle_${du}`, 'international_quarter_bdft', 'scribner_formula_bdft', 'doyle_bdft', `smalian_${vk}`, `huber_${vk}`, `newton_${vk}`],
+      ...res.map((r) => [r.id, String(r.small), String(r.length), r.large ?? '', r.mid ?? '', sg(r.intl, 6), sg(r.scrib, 6), sg(r.doyle, 6), Number.isFinite(r.smalian) ? sg(r.smalian, 6) : '', Number.isFinite(r.huber) ? sg(r.huber, 6) : '', Number.isFinite(r.newton) ? sg(r.newton, 6) : ''].map(String))];
+    sections = [{ title: q('.ls-big').textContent!, facts: [...q('.ls-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: trs, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ls-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'log-scale.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ls-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Log scale', subtitle: q('.ls-big').textContent ?? '', file: 'log-scale', sections }));
+</script>
+
+<style is:global>
+  .lgs select { max-width: 100%; }
+  .lgs textarea { width: 100%; }
+  .lgs .ls-sd { margin-top: 14px; }
+  .lgs .ls-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
