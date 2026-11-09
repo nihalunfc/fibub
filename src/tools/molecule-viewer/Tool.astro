@@ -1,0 +1,328 @@
+---
+// Small-molecule 3D viewer: XYZ, MOL and SDF (V2000) files drawn on a canvas by fibub's own renderer (ball and
+// stick, sticks, space-filling), turned and zoomed by touch or mouse; tap atoms to measure distances, angles and
+// dihedrals. Formula, molar mass, centre of mass; PNG and XYZ downloads. Nothing is stored or sent.
+import '../../styles/astro.css';
+---
+<div class="ax molv">
+  <div class="ax-card">
+    <h2>Structure file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small mv-open">Open a file</button>
+      <input type="file" class="mv-file" accept=".xyz,.mol,.sdf,.sd,.mdl,.txt" hidden />
+      <span class="ax-help" style="margin:0">XYZ, MOL or SDF (V2000), up to 20 MB.</span>
+    </div>
+    <label style="margin-top:10px">Or paste the file text <textarea class="mv-in" rows="4" spellcheck="false" placeholder="Paste XYZ, MOL or SDF text, or drop a file on this box."></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small mv-ex" data-ex="caf">Caffeine (MOL)</button>
+      <button type="button" class="btn secondary small mv-ex" data-ex="eth">Ethanol (XYZ)</button>
+      <button type="button" class="btn secondary small mv-ex" data-ex="sdf">Three molecules (SDF)</button>
+    </div>
+    <p class="ax-err mv-err" hidden></p>
+    <label class="mv-reclab" hidden style="margin-top:10px">Molecule in the file <select class="mv-rec"></select></label>
+  </div>
+
+  <div class="ax-card mv-out" hidden>
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="ax-seg mv-style" role="group" aria-label="Drawing style">
+        <button type="button" data-s="ball" aria-pressed="true">Ball and stick</button>
+        <button type="button" data-s="stick" aria-pressed="false">Sticks</button>
+        <button type="button" data-s="space" aria-pressed="false">Space-filling</button>
+      </span>
+    </div>
+    <canvas class="mv-cv" tabindex="0" aria-label="3D view of the molecule. Drag to turn, pinch or scroll to zoom, tap atoms to measure."></canvas>
+    <p class="ax-help">Drag to turn, pinch or scroll to zoom, tap atoms to measure. Arrow keys turn it too.</p>
+    <div class="ax-row" style="margin-top:6px">
+      <label class="ax-check"><input type="checkbox" class="mv-h" checked /> Hydrogens</label>
+      <label class="mv-lablab">Labels <select class="mv-lab"><option value="none">None</option><option value="el">Element</option><option value="num">Number</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mv-reset">Reset view</button>
+      <button type="button" class="btn secondary small mv-zin" aria-label="Zoom in">+</button>
+      <button type="button" class="btn secondary small mv-zout" aria-label="Zoom out">−</button>
+      <button type="button" class="btn secondary small mv-png">Picture (.png)</button>
+      <button type="button" class="btn secondary small mv-xyz">Coordinates (.xyz)</button>
+    </div>
+  </div>
+
+  <div class="ax-card mv-out" hidden>
+    <h2>Measure</h2>
+    <p class="mv-picks">Tap two atoms for a distance, three for an angle, four for a dihedral.</p>
+    <p class="ax-big mv-meas" style="font-size:20px"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Or type atom numbers <input class="mv-typed" placeholder="1 2 3 4" inputmode="numeric" autocomplete="off" /></label>
+    </div>
+    <p class="ax-err mv-terr" hidden></p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small mv-clear">Clear</button></div>
+  </div>
+
+  <div class="ax-card mv-out" hidden>
+    <h2>Molecule</h2>
+    <dl class="ax-facts mv-facts"></dl>
+    <div class="mv-props"></div>
+    <h3 class="mv-h3">Bonds</h3>
+    <div class="ax-scroll mv-bscroll"><table class="mv-bonds"><thead><tr><th>Bond</th><th class="r">Order</th><th class="r">Length (Å)</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mv-bcsv">Bonds (.csv)</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .molv .mv-cv { display: block; width: 100%; aspect-ratio: 1 / 1; max-height: 520px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); touch-action: none; cursor: grab; }
+  .molv .mv-cv:focus-visible { outline: 3px solid var(--accent); }
+  .molv .mv-lablab { display: inline-flex !important; flex-direction: row; align-items: center; gap: 8px; color: var(--ink) !important; }
+  .molv .mv-lablab select { width: auto !important; }
+  .molv .mv-picks { margin: 0 0 6px; }
+  .molv .mv-meas:empty { display: none; }
+  .molv .mv-h3 { font-size: 16px; margin: 18px 0 8px; }
+  .molv .mv-bscroll { max-height: 320px; overflow-y: auto; }
+  .molv .mv-props table { margin-top: 12px; }
+</style>
+
+<script>
+  import { parseAny, summary, distance, angle, dihedral, toXyz, startView, mul, rotX, rotY, apply, radius, atomColor, TOLERANCE, type Molecule, type Mat } from '../../lib/sci/molview';
+  import { csv } from '../../lib/sci/num';
+  import { save, pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.molv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.mv-cv');
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const MAXB = 20e6;
+  let mols: Molecule[] = [], mol: Molecule | null = null, fileName = 'molecule';
+  let R: Mat = [1, 0, 0, 0, 1, 0, 0, 0, 1], zoom = 1, style: 'ball' | 'stick' | 'space' = 'ball', picks: number[] = [];
+  let centre = { x: 0, y: 0, zc: 0 }, extent = 1;
+  const label = (i: number) => `${mol!.atoms[i].el}${i + 1}`;
+
+  function load(text: string, name: string) {
+    const err = q('.mv-err');
+    try { mols = parseAny(text, name); err.hidden = true; }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; for (const o of root.querySelectorAll<HTMLElement>('.mv-out')) o.hidden = true; q('.mv-reclab').hidden = true; mols = []; mol = null; return; }
+    fileName = name.replace(/\.[^.]+$/, '') || 'molecule';
+    const sel = q<HTMLSelectElement>('.mv-rec');
+    sel.replaceChildren(...mols.map((m, k) => { const o = document.createElement('option'); o.value = String(k); o.textContent = `${k + 1}: ${m.title || summary(m).formula} (${m.atoms.length} atoms)`; return o; }));
+    q('.mv-reclab').hidden = mols.length < 2;
+    pick(0);
+  }
+
+  function pick(k: number) {
+    mol = mols[k]; picks = [];
+    for (const o of root.querySelectorAll<HTMLElement>('.mv-out')) o.hidden = false;
+    const s = summary(mol);
+    centre = s.centroid;
+    extent = Math.max(1, ...mol.atoms.map((a) => distance(a, centre) + radius(a.el) + 0.8));
+    R = startView(mol); zoom = 1;
+    const facts: [string, string][] = [
+      ['Formula', s.formula + (s.charge ? `, charge ${s.charge > 0 ? '+' : '−'}${Math.abs(s.charge)}` : '')],
+      ['Atoms', String(mol.atoms.length)],
+      ['Bonds', `${mol.bonds.length} (${mol.bondsFromFile ? 'from the file' : `guessed from distances, tolerance ${TOLERANCE} Å`})`],
+      ['Molar mass', `${s.mass.toFixed(3)} g/mol`],
+      ['Centre of mass (Å)', `${s.com.x.toFixed(4)}, ${s.com.y.toFixed(4)}, ${s.com.zc.toFixed(4)}`],
+      ['Centroid (Å)', `${s.centroid.x.toFixed(4)}, ${s.centroid.y.toFixed(4)}, ${s.centroid.zc.toFixed(4)}`],
+      ['Format', mol.format + (mol.title ? `, title "${mol.title}"` : '')],
+    ];
+    q('.mv-facts').replaceChildren(...facts.map(([a, b]) => fact(a, b)));
+    const pr = q('.mv-props'); pr.replaceChildren();
+    if (mol.props.length) {
+      const t = document.createElement('table'); t.innerHTML = '<thead><tr><th>SD field</th><th>Value</th></tr></thead><tbody></tbody>';
+      for (const [a, b] of mol.props) { const tr = document.createElement('tr'); for (const v of [a, b]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } t.tBodies[0].append(tr); }
+      pr.append(t);
+    }
+    const ORD = ['', 'single', 'double', 'triple', 'aromatic'];
+    q('.mv-bonds tbody').replaceChildren(...mol.bonds.slice(0, 2000).map((b) => { const tr = document.createElement('tr'); for (const [v, r] of [[`${label(b.a)}–${label(b.b)}`, false], [ORD[b.order] ?? String(b.order), true], [distance(mol!.atoms[b.a], mol!.atoms[b.b]).toFixed(4), true]] as const) { const td = document.createElement('td'); td.textContent = v; if (r) td.className = 'r'; tr.append(td); } return tr; }));
+    measure(); draw();
+  }
+
+  // ---------- drawing ----------
+  let proj: { x: number; y: number; d: number; r: number }[] = [];
+  function draw() {
+    if (!mol) return;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const W = cv.clientWidth || 340, H = cv.clientHeight || W;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext('2d')!;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const pal = pagePalette(), dark = document.documentElement.dataset.theme === 'dark';
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    paintScene(ctx, W, H, pal.red, dark, pal.ink, pal.bg);
+    cv.dataset.atoms = proj.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(';');
+  }
+
+  function paintScene(ctx: CanvasRenderingContext2D, W: number, H: number, red: boolean, dark: boolean, ink: string, bg: string) {
+    const m = mol!, showH = q<HTMLInputElement>('.mv-h').checked, lab = q<HTMLSelectElement>('.mv-lab').value;
+    const s = (zoom * (Math.min(W, H) / 2 - 8)) / extent, cam = extent * 6;
+    proj = m.atoms.map((a) => {
+      const v = apply(R, [a.x - centre.x, a.y - centre.y, a.zc - centre.zc]);
+      const f = cam / (cam - v[2]);
+      const rA = style === 'space' ? radius(a.el) + 0.8 : style === 'stick' ? 0.14 : 0.2 + 0.2 * radius(a.el);
+      return { x: W / 2 + v[0] * s * f, y: H / 2 - v[1] * s * f, d: v[2], r: rA * s * f };
+    });
+    const visible = (i: number) => showH || m.atoms[i].el !== 'H';
+    type Item = { d: number; draw: () => void };
+    const items: Item[] = [];
+    const col = (el: string) => (red ? '#a30000' : atomColor(el));
+    const shade = (c: string, t: number) => { const h = c.replace('#', ''); const v = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); const to = t > 0 ? 255 : 0; return `rgb(${v.map((x) => Math.round(x + (to - x) * Math.abs(t))).join(',')})`; };
+    if (style !== 'space') {
+      const bw = (style === 'stick' ? 0.28 : 0.13) * s;
+      for (const b of m.bonds) {
+        if (!visible(b.a) || !visible(b.b)) continue;
+        const p = proj[b.a], r2 = proj[b.b];
+        items.push({ d: (p.d + r2.d) / 2 - 0.01, draw: () => {
+          const dx = r2.x - p.x, dy = r2.y - p.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+          const n = style === 'stick' ? 1 : b.order === 4 ? 2 : Math.min(3, b.order), w = n > 1 ? bw * 0.55 : bw, gap = w * 1.25;
+          for (let k = 0; k < n; k++) {
+            const off = (k - (n - 1) / 2) * gap;
+            const ax = p.x + nx * off, ay = p.y + ny * off, bx = r2.x + nx * off, by = r2.y + ny * off, mx = (ax + bx) / 2, my = (ay + by) / 2;
+            ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.2, w);
+            ctx.setLineDash(b.order === 4 && k === 1 ? [w * 1.2, w * 1.2] : []);
+            for (const [x0, y0, x1, y1, el] of [[ax, ay, mx, my, m.atoms[b.a].el], [mx, my, bx, by, m.atoms[b.b].el]] as const) {
+              ctx.strokeStyle = style === 'stick' ? shade(col(el), -0.05) : red ? '#6e0000' : dark ? '#9a9a9a' : '#8a8a8a';
+              if (style === 'stick') ctx.strokeStyle = col(el);
+              ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+            }
+          }
+          ctx.setLineDash([]);
+        } });
+      }
+    }
+    m.atoms.forEach((a, i) => {
+      if (!visible(i)) return;
+      const p = proj[i];
+      if (style === 'stick' && m.bonds.some((b) => b.a === i || b.b === i)) { items.push({ d: p.d, draw: () => { ctx.fillStyle = col(a.el); ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, p.r), 0, Math.PI * 2); ctx.fill(); } }); return; }
+      items.push({ d: p.d, draw: () => {
+        const c = col(a.el), r = Math.max(1.5, p.r);
+        const g = ctx.createRadialGradient(p.x - r * 0.35, p.y - r * 0.35, r * 0.1, p.x, p.y, r);
+        g.addColorStop(0, red ? '#c00000' : shade(c, 0.55)); g.addColorStop(0.7, c); g.addColorStop(1, red ? '#3a0000' : shade(c, -0.35));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+      } });
+    });
+    items.sort((x, y) => x.d - y.d).forEach((it) => it.draw());
+    // Labels and picks on top.
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (lab !== 'none') {
+      ctx.font = '600 12px system-ui, sans-serif';
+      m.atoms.forEach((a, i) => { if (!visible(i)) return; const p = proj[i], t = lab === 'el' ? a.el : String(i + 1); ctx.lineWidth = 3; ctx.strokeStyle = bg; ctx.strokeText(t, p.x, p.y); ctx.fillStyle = ink; ctx.fillText(t, p.x, p.y); });
+    }
+    if (picks.length > 1) { ctx.setLineDash([4, 4]); ctx.strokeStyle = red ? '#a30000' : '#d4a000'; ctx.lineWidth = 2; ctx.beginPath(); picks.forEach((k, j) => (j ? ctx.lineTo(proj[k].x, proj[k].y) : ctx.moveTo(proj[k].x, proj[k].y))); ctx.stroke(); ctx.setLineDash([]); }
+    picks.forEach((k, j) => {
+      const p = proj[k]; ctx.lineWidth = 3; ctx.strokeStyle = red ? '#c00000' : '#d4a000';
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(8, p.r + 4), 0, Math.PI * 2); ctx.stroke();
+      ctx.font = '700 13px system-ui, sans-serif'; ctx.fillStyle = red ? '#c00000' : dark ? '#ffd24d' : '#7a5c00'; ctx.fillText(String(j + 1), p.x + Math.max(8, p.r + 4) + 6, p.y - Math.max(8, p.r + 4));
+    });
+  }
+
+  // ---------- measuring ----------
+  function measure() {
+    const out = q('.mv-meas'), pk = q('.mv-picks');
+    if (!mol || !picks.length) { pk.textContent = 'Tap two atoms for a distance, three for an angle, four for a dihedral.'; out.textContent = ''; return; }
+    const A = picks.map((k) => mol!.atoms[k]);
+    pk.textContent = `Picked: ${picks.map(label).join(' – ')}`;
+    const parts: string[] = [];
+    if (A.length >= 2) parts.push(`${label(picks[0])}–${label(picks[1])} ${distance(A[0], A[1]).toFixed(4)} Å`);
+    if (A.length >= 3) parts.push(`angle ${angle(A[0], A[1], A[2]).toFixed(2)}°`);
+    if (A.length === 4) parts.push(`dihedral ${dihedral(A[0], A[1], A[2], A[3]).toFixed(2)}°`);
+    out.textContent = parts.join(', ');
+  }
+  function tapAt(x: number, y: number) {
+    if (!mol) return;
+    const showH = q<HTMLInputElement>('.mv-h').checked;
+    let best = -1, bd = -Infinity;
+    proj.forEach((p, i) => { if (!showH && mol!.atoms[i].el === 'H') return; if (Math.hypot(p.x - x, p.y - y) <= Math.max(14, p.r) && p.d > bd) { bd = p.d; best = i; } });
+    if (best < 0) return;
+    const at = picks.indexOf(best);
+    if (at >= 0) picks.splice(at, 1);
+    else { if (picks.length === 4) picks = []; picks.push(best); }
+    q<HTMLInputElement>('.mv-typed').value = ''; q('.mv-terr').hidden = true;
+    measure(); draw();
+  }
+
+  // ---------- pointer, wheel and keys ----------
+  const pts = new Map<number, { x: number; y: number }>();
+  let down: { x: number; y: number; t: number; moved: boolean } | null = null, pinch0 = 0, zoom0 = 1;
+  const rel = (e: PointerEvent | WheelEvent) => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+  cv.addEventListener('pointerdown', (e) => {
+    cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, rel(e));
+    if (pts.size === 1) down = { ...rel(e), t: performance.now(), moved: false };
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); zoom0 = zoom; if (down) down.moved = true; }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId)!, now = rel(e); pts.set(e.pointerId, now);
+    if (pts.size === 1) {
+      const dx = now.x - prev.x, dy = now.y - prev.y;
+      if (down && Math.hypot(now.x - down.x, now.y - down.y) > 5) down.moved = true;
+      if (down?.moved) { R = mul(mul(rotY(dx * 0.01), rotX(dy * 0.01)), R); draw(); }
+    } else if (pts.size === 2) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch0 > 0) { zoom = Math.min(8, Math.max(0.3, zoom0 * d / pinch0)); draw(); }
+    }
+  });
+  const up = (e: PointerEvent) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (down && !down.moved && pts.size === 0 && performance.now() - down.t < 600) { const p = rel(e); tapAt(p.x, p.y); }
+    if (pts.size === 0) down = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); down = null; });
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); zoom = Math.min(8, Math.max(0.3, zoom * Math.exp(-e.deltaY * 0.0015))); draw(); }, { passive: false });
+  cv.addEventListener('keydown', (e) => {
+    const k = e.key, a = 0.12;
+    const m: Record<string, Mat> = { ArrowLeft: rotY(-a), ArrowRight: rotY(a), ArrowUp: rotX(-a), ArrowDown: rotX(a) };
+    if (m[k]) { e.preventDefault(); R = mul(m[k], R); draw(); }
+    if (k === '+' || k === '=') { zoom = Math.min(8, zoom * 1.2); draw(); }
+    if (k === '-') { zoom = Math.max(0.3, zoom / 1.2); draw(); }
+  });
+
+  // ---------- controls ----------
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.mv-style button')) b.addEventListener('click', () => {
+    style = b.dataset.s as typeof style;
+    for (const x of root.querySelectorAll('.mv-style button')) x.setAttribute('aria-pressed', String(x === b));
+    draw();
+  });
+  q('.mv-h').addEventListener('change', () => { if (!q<HTMLInputElement>('.mv-h').checked) picks = picks.filter((k) => mol!.atoms[k].el !== 'H'); measure(); draw(); });
+  q('.mv-lab').addEventListener('change', draw);
+  q('.mv-reset').addEventListener('click', () => { if (mol) { R = startView(mol); zoom = 1; draw(); } });
+  q('.mv-zin').addEventListener('click', () => { zoom = Math.min(8, zoom * 1.25); draw(); });
+  q('.mv-zout').addEventListener('click', () => { zoom = Math.max(0.3, zoom / 1.25); draw(); });
+  q('.mv-clear').addEventListener('click', () => { picks = []; q<HTMLInputElement>('.mv-typed').value = ''; q('.mv-terr').hidden = true; measure(); draw(); });
+  q('.mv-typed').addEventListener('input', () => {
+    if (!mol) return;
+    const t = q<HTMLInputElement>('.mv-typed').value.trim(), err = q('.mv-terr');
+    const nums = t ? t.split(/[\s,;–-]+/).filter(Boolean).map(Number) : [];
+    const bad = nums.length > 4 ? 'Type two to four atom numbers.' : nums.find((n) => !Number.isInteger(n) || n < 1 || n > mol!.atoms.length) !== undefined ? `Atom numbers run from 1 to ${mol.atoms.length}.` : new Set(nums).size !== nums.length ? 'Each atom once.' : '';
+    err.textContent = bad; err.hidden = !bad;
+    if (bad) return;
+    picks = nums.map((n) => n - 1); measure(); draw();
+  });
+  q('.mv-rec').addEventListener('change', () => pick(Number(q<HTMLSelectElement>('.mv-rec').value)));
+  q('.mv-png').addEventListener('click', () => {
+    if (!mol) return;
+    const W = 1200, H = 1200, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const keep = proj; paintScene(ctx, W, H, false, false, '#0a0a0a', '#ffffff'); proj = keep;
+    c.toBlob((b) => { if (b) save(b, `${fileName}.png`, 'image/png'); }, 'image/png');
+  });
+  q('.mv-xyz').addEventListener('click', () => { if (mol) save(new Blob([toXyz(mol, mol.title || fileName)], { type: 'chemical/x-xyz' }), `${fileName}.xyz`, 'chemical/x-xyz'); });
+  q('.mv-bcsv').addEventListener('click', () => { if (!mol) return; save(new Blob([csv([['atom_1', 'atom_2', 'element_1', 'element_2', 'order', 'length_A'], ...mol.bonds.map((b) => [b.a + 1, b.b + 1, mol!.atoms[b.a].el, mol!.atoms[b.b].el, b.order, +distance(mol!.atoms[b.a], mol!.atoms[b.b]).toFixed(5)])])], { type: 'text/csv' }), `${fileName}-bonds.csv`, 'text/csv'); });
+
+  // File, drop, paste, examples
+  const fin = q<HTMLInputElement>('.mv-file'), box = q<HTMLTextAreaElement>('.mv-in');
+  q('.mv-open').addEventListener('click', () => fin.click());
+  const readFile = async (f: File) => {
+    if (f.size > MAXB) { const e = q('.mv-err'); e.textContent = `That file is ${(f.size / 1e6).toFixed(0)} MB; the limit is 20 MB.`; e.hidden = false; return; }
+    const t = await f.text(); box.value = t.length > 100000 ? t.slice(0, 100000) + '\n…' : t; load(t, f.name);
+  };
+  fin.addEventListener('change', () => { const f = fin.files?.[0]; if (f) readFile(f); fin.value = ''; });
+  box.addEventListener('dragover', (e) => e.preventDefault());
+  box.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+  let timer = 0;
+  box.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { if (box.value.trim()) load(box.value, 'pasted'); }, 250); });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.mv-ex')) b.addEventListener('click', async () => {
+    const E = await import('../../lib/sci/molexample');
+    const [t, n] = b.dataset.ex === 'caf' ? [E.CAFFEINE_MOL, 'caffeine.mol'] : b.dataset.ex === 'eth' ? [E.ETHANOL_XYZ, 'ethanol.xyz'] : [E.THREE_SDF, 'three.sdf'];
+    box.value = t; load(t, n);
+  });
+  new ResizeObserver(() => draw()).observe(cv);
+  document.addEventListener('fibub:theme', draw);
+  (root.querySelector('.mv-ex[data-ex="caf"]') as HTMLButtonElement).click();
+</script>
