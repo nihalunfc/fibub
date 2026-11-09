@@ -1,0 +1,200 @@
+---
+// Decibels over distance (point, line or plane source) with ISO 9613-1 air absorption, one frequency or octave bands
+// with A-weighting, the distance to reach a target level, and adding, averaging and subtracting levels. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const bands = [63, 125, 250, 500, 1000, 2000, 4000, 8000], spec = [80, 84, 86, 88, 87, 84, 80, 74];
+const lbl = (f: number) => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`);
+---
+<div class="ax dbd">
+  <div class="ax-card">
+    <h2>Sound and distances</h2>
+    <div class="ax-grid">
+      <label>Sound given as <select class="dd-mode"><option value="one" selected>One level at one frequency</option><option value="oct">Octave band levels</option></select></label>
+      <label class="dd-one">Sound level L₁ (dB) <input class="dd-L1" inputmode="decimal" value="90" /></label>
+      <label class="dd-one">Frequency (Hz) <input class="dd-f" inputmode="decimal" value="1000" /></label>
+      <label>Measured at distance r₁ (m) <input class="dd-r1" inputmode="decimal" value="1" /></label>
+      <label>Find the level at r₂ (m) <input class="dd-r2" inputmode="decimal" value="100" /></label>
+      <label>Source <select class="dd-kind"><option value="point" selected>Point (a machine, a speaker): −6 dB per doubling</option><option value="line">Line (a busy road, a pipe): −3 dB per doubling</option><option value="plane">Large flat surface, close up: no spreading</option></select></label>
+      <label>Other losses (dB) <input class="dd-x" inputmode="decimal" value="0" /></label>
+      <label>Distance to reach (dB) <input class="dd-target" inputmode="decimal" value="45" /></label>
+    </div>
+    <div class="ax-grid dd-oct" hidden>
+      {bands.map((f, i) => <label>{lbl(f)} (dB) <input class={`dd-B dd-B${i}`} inputmode="decimal" value={String(spec[i])} /></label>)}
+    </div>
+    <p class="ax-help">A point source spreads its sound over a growing sphere, so the level drops 6 dB each time the distance doubles; a long line source spreads over a cylinder and drops 3 dB. Other losses: anything else you want to take off, such as a barrier or ground effect, in dB. Leave "Distance to reach" empty to skip it. In octave band mode the levels are unweighted band levels at r₁ (leave a band empty if you have none), and the target is an A-weighted total. The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Air</h2>
+    <div class="ax-grid">
+      <label>Temperature (°C) <input class="dd-t" inputmode="decimal" value="20" /></label>
+      <label>Relative humidity (%) <input class="dd-rh" inputmode="decimal" value="50" /></label>
+      <label>Air pressure (kPa) <input class="dd-p" inputmode="decimal" value="101.325" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="dd-air" checked /> Include sound absorbed by the air</label>
+    <p class="ax-help">Air soaks up high frequencies far more than low ones, and how much depends on the temperature and humidity. 101.325 kPa is sea level; about 90 kPa at 1,000 m. Calm, still air is assumed: wind and temperature layers can bend sound by many decibels outdoors.</p>
+    <p class="ax-err dd-err" hidden></p>
+  </div>
+
+  <div class="ax-card dd-out">
+    <h2>Result</h2>
+    <p class="ax-big dd-big"></p>
+    <dl class="ax-facts dd-facts"></dl>
+    <canvas class="ax-fig dd-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll dd-tw" hidden><table class="dd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dd-csv">Level against distance (CSV)</button></div>
+    <p class="ax-help">Free field: no reflections from the ground or walls, no wind, no barriers unless you add them as other losses. For study and planning, not a substitute for professional judgement or a noise survey.</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Add, average or subtract levels</h2>
+    <div class="ax-grid">
+      <label>Levels (dB), separated by commas or spaces <input class="dd-list" inputmode="decimal" value="85, 82, 79" /></label>
+      <label>Background level alone (dB, optional) <input class="dd-bg" inputmode="decimal" value="70" /></label>
+    </div>
+    <p class="ax-help">Decibels add as energies: two equal sources are 3 dB louder than one, not twice the number. The background is subtracted from the total to give the sources on their own.</p>
+    <p class="ax-err dd-serr" hidden></p>
+    <dl class="ax-facts dd-sum" style="margin-top:10px"></dl>
+  </div>
+</div>
+
+<script>
+  import { levelAt, aWeight, distanceFor, dbSum, dbMean, dbSubtract, OCTAVES, type SourceKind, type Air } from '../../lib/sci/phdb';
+  import { soundSpeed } from '../../lib/sci/phair';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dbd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const d1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  const d2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2).replace('-', '−') : '–');
+  const m = (x: number) => `${sig(x, 4)} m`;
+  const fl = (f: number) => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`);
+  const p6 = (x: number) => String(+x.toPrecision(6));
+  let fig: Figure | null = null, sections: Section[] = [], sumSection: Section | null = null, curve: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.dd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+  const factRows = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function calc() {
+    const err = q('.dd-err'), out = q('.dd-out');
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; fig = null; sections = []; curve = []; };
+    const mode = q<HTMLSelectElement>('.dd-mode').value, oct = mode === 'oct';
+    root.querySelectorAll<HTMLElement>('.dd-one').forEach((e) => { e.hidden = oct; });
+    q('.dd-oct').hidden = !oct; q('.dd-tw').hidden = !oct;
+    const r1 = val('.dd-r1'), r2 = val('.dd-r2'), kind = q<HTMLSelectElement>('.dd-kind').value as SourceKind, extra = val('.dd-x') || 0;
+    const tStr = q<HTMLInputElement>('.dd-target').value.trim(), target = tStr ? num(tStr) : NaN;
+    const air: Air = { tC: val('.dd-t'), rh: val('.dd-rh'), pKPa: val('.dd-p'), on: q<HTMLInputElement>('.dd-air').checked };
+    if (!(r1 > 0 && r1 <= 1e6)) return fail('Give the distance r₁ where the level was measured, in metres (above 0).');
+    if (!(r2 > 0 && r2 <= 1e6)) return fail('Give the distance r₂ in metres (above 0, up to 1,000 km).');
+    if (!(extra >= -50 && extra <= 100) && q<HTMLInputElement>('.dd-x').value.trim()) return fail('Other losses should be a number of dB from −50 to 100.');
+    if (tStr && !(target > -50 && target < 250)) return fail('The level to reach should be a number of dB, or leave it empty.');
+    if (!(air.tC >= -40 && air.tC <= 50)) return fail('Give an air temperature from −40 to 50 °C.');
+    if (!(air.rh >= 0 && air.rh <= 100)) return fail('Give a relative humidity from 0 to 100 %.');
+    if (!(air.pKPa >= 50 && air.pKPa <= 110)) return fail('Give the air pressure in kPa, from 50 to 110 (101.325 at sea level).');
+    const kname = kind === 'point' ? 'point source' : kind === 'line' ? 'line source' : 'plane source';
+    let LAt: (r: number) => number, flat: (r: number) => number, facts: HTMLElement[] = [], yLabel: string, unit: string, label: string;
+    if (!oct) {
+      const L1 = val('.dd-L1'), f = val('.dd-f');
+      if (!(L1 > -50 && L1 < 250)) return fail('Give the sound level L₁ in dB.');
+      if (!(f >= 10 && f <= 100000)) return fail('Give a frequency from 10 Hz to 100 kHz.');
+      LAt = (r) => levelAt(L1, r1, r, f, kind, air, extra).L2;
+      flat = (r) => levelAt(L1, r1, r, f, kind, { ...air, on: false }, extra).L2;
+      const res = levelAt(L1, r1, r2, f, kind, air, extra);
+      unit = 'dB'; yLabel = 'Sound level (dB)'; label = `${sig(L1, 4)} dB at ${fl(f).replace(' ', ' ')}`;
+      facts = [
+        fact('Spreading', `${res.spread >= 0 ? '−' : '+'}${d1(Math.abs(res.spread))} dB`, `${kname}, ${m(r1)} → ${m(r2)}`),
+        fact('Air absorption', `−${d2(res.absorb).replace('−', '')} dB`, air.on ? `${sig(res.alpha * 1000, 3)} dB per km at ${fl(f)}, ${sig(air.tC, 3)} °C, ${sig(air.rh, 3)} %` : 'switched off'),
+        fact('A-weighted', `${d1(res.L2 + aWeight(f))} dB(A)`, `A-weighting at ${fl(f)} is ${d1(aWeight(f))} dB`),
+        fact('Wavelength', m(soundSpeed(air.tC) / f), `speed of sound ${sig(soundSpeed(air.tC), 4)} m/s`),
+      ];
+      if (extra) facts.splice(2, 0, fact('Other losses', `−${d1(extra)} dB`, 'as you entered'));
+      q('.dd-big').textContent = `${d1(res.L2)} dB at ${m(r2)}`;
+    } else {
+      const raw = OCTAVES.map((_, i) => q<HTMLInputElement>(`.dd-B${i}`).value.trim()), have = raw.map((s) => s !== ''), L = raw.map((s) => num(s));
+      if (!have.some(Boolean)) return fail('Give the level in at least one octave band.');
+      const bad = L.findIndex((v, i) => have[i] && !(v > -50 && v < 250));
+      if (bad >= 0) return fail(`The ${fl(OCTAVES[bad]).replace(' ', ' ')} band should be a number of dB.`);
+      const use = OCTAVES.map((f, i) => ({ f, i })).filter((b) => have[b.i]);
+      const tot = (r: number, a: Air) => dbSum(use.map((b) => levelAt(L[b.i], r1, r, b.f, kind, a, extra).L2 + aWeight(b.f)));
+      LAt = (r) => tot(r, air); flat = (r) => tot(r, { ...air, on: false });
+      const L0 = dbSum(use.map((b) => L[b.i] + aWeight(b.f)));
+      unit = 'dB(A)'; yLabel = 'A-weighted level (dB(A))'; label = `${d1(L0)} dB(A) spectrum`;
+      const rows = use.map((b) => { const r = levelAt(L[b.i], r1, r2, b.f, kind, air, extra); return [fl(b.f), sig(r.alpha * 1000, 3), d2(r.absorb), d1(r.L2), d1(r.L2 + aWeight(b.f))]; });
+      table(['Band', 'Air (dB/km)', 'Air loss (dB)', `At ${m(r2)} (dB)`, 'A-weighted (dB(A))'], rows);
+      const spread = levelAt(0, r1, r2, 1000, kind, air).spread;
+      facts = [
+        fact('At r₁', `${d1(L0)} dB(A)`, `unweighted ${d1(dbSum(use.map((b) => L[b.i])))} dB`),
+        fact('Spreading', `${spread >= 0 ? '−' : '+'}${d1(Math.abs(spread))} dB`, `${kname}, the same in every band`),
+        fact('Air absorption', `${d1(flat(r2) - LAt(r2))} dB(A)`, air.on ? 'on the A-weighted total; far more at high frequencies (see the table)' : 'switched off'),
+        fact('Unweighted at r₂', `${d1(dbSum(use.map((b) => levelAt(L[b.i], r1, r2, b.f, kind, air, extra).L2)))} dB`, 'all bands added'),
+      ];
+      q('.dd-big').textContent = `${d1(LAt(r2))} dB(A) at ${m(r2)}`;
+      sections = [{ title: 'Octave bands', table: { head: ['Band', 'Air (dB/km)', 'Air loss (dB)', `At ${m(r2)} (dB)`, 'A-weighted (dB(A))'], rows, align: ['l', 'r', 'r', 'r', 'r'] } }];
+    }
+    let rT = NaN;
+    if (tStr) {
+      rT = distanceFor(target, 0, r1, LAt);
+      facts.push(fact(`Distance to reach ${sig(target, 4)} ${unit}`, Number.isFinite(rT) ? m(rT) : LAt(r1) <= target ? `already at or below at ${m(r1)}` : 'not within 1,000 km', Number.isFinite(rT) ? (Math.abs(flat(rT) - LAt(rT)) > 0.05 ? `${m(distanceFor(target, 0, r1, flat))} without air absorption` : 'air absorption makes little difference here') : kind === 'plane' && !air.on ? 'a plane source does not fall off with distance' : ''));
+    }
+    err.hidden = true; out.hidden = false;
+    q('.dd-facts').replaceChildren(...facts);
+    const rEnd = Math.max(r2, Number.isFinite(rT) ? rT : 0, r1 * 10) * 2, xs: number[] = [];
+    for (let i = 0; i <= 120; i++) xs.push(r1 * Math.pow(rEnd / r1, i / 120));
+    const ys = xs.map(LAt), ys0 = xs.map(flat);
+    curve = [['distance_m', `level_${unit === 'dB' ? 'db' : 'dba'}`, `level_without_air_${unit === 'dB' ? 'db' : 'dba'}`], ...xs.map((x, i) => [p6(x), p6(ys[i]), p6(ys0[i])])];
+    const marks: { kind: 'vline' | 'hline'; at: number; label?: string; dash?: number[] }[] = [{ kind: 'vline', at: r2, label: 'r₂', dash: [4, 3] }];
+    if (Number.isFinite(target) && Number.isFinite(rT)) marks.push({ kind: 'hline', at: target, label: `${sig(target, 4)} ${unit}` });
+    fig = chartFigure({ w: 380, h: 260, xLabel: 'Distance (m)', yLabel, xLog: true, legend: 'below', series: [
+      { name: air.on ? 'With air absorption' : 'Level', x: xs, y: ys, mode: 'line', width: 2 },
+      ...(air.on ? [{ name: 'Spreading only', x: xs, y: ys0, mode: 'line' as const, width: 1.5, dash: [6, 4] }] : []),
+    ], marks }, `Level against distance from ${m(r1)}: ${q('.dd-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.dd-fig'), fig);
+    const main: Section = { title: q('.dd-big').textContent!, text: [`${label} at ${m(r1)}, ${kname}, ${air.on ? `air at ${sig(air.tC, 3)} °C, ${sig(air.rh, 3)} % humidity, ${sig(air.pKPa, 5)} kPa` : 'no air absorption'}.`], facts: factRows('.dd-facts'), figure: fig };
+    sections = oct ? [main, ...sections] : [main];
+  }
+
+  function sums() {
+    const e = q('.dd-serr'), out = q('.dd-sum');
+    const s = q<HTMLInputElement>('.dd-list').value.trim(), L = s ? s.split(/[,;\s]+/).filter(Boolean).map(num) : [];
+    const bs = q<HTMLInputElement>('.dd-bg').value.trim(), bg = bs ? num(bs) : NaN;
+    const fail = (msg: string) => { e.textContent = msg; e.hidden = false; out.replaceChildren(); sumSection = null; };
+    if (!L.length) return fail('Type at least one level in dB.');
+    if (!L.every((x) => x > -100 && x < 250)) return fail('Every level should be a number of dB, separated by commas or spaces.');
+    if (bs && !(bg > -100 && bg < 250)) return fail('The background level should be a number of dB, or leave it empty.');
+    e.hidden = true;
+    const tot = dbSum(L), f = [
+      fact('Total (all together)', `${d1(tot)} dB`, `energy sum of ${L.length} level${L.length > 1 ? 's' : ''}`),
+      fact('Energy average', `${d1(dbMean(L))} dB`, `the steady level with the same energy; plain average ${d1(L.reduce((a, b) => a + b, 0) / L.length)} dB`),
+    ];
+    if (bs) {
+      const s0 = dbSubtract(tot, bg);
+      f.push(fact('Sources without the background', Number.isFinite(s0) ? `${d1(s0)} dB` : 'cannot tell', Number.isFinite(s0) ? `total ${d1(tot)} minus background ${d1(bg)} dB (correction ${d2(s0 - tot)} dB)${tot - bg < 3 ? '; under 3 dB above the background, so this is very uncertain' : ''}` : 'the total must be above the background'));
+    }
+    out.replaceChildren(...f);
+    sumSection = { title: 'Adding levels', text: [`Levels: ${L.map((x) => sig(x, 4)).join(', ')} dB${bs ? `; background ${sig(bg, 4)} dB` : ''}.`], facts: factRows('.dd-sum') };
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => { calc(); sums(); }, 150); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.dd-csv').addEventListener('click', () => { if (curve.length) save(new TextEncoder().encode(toCsv(curve)), 'decibel-distance.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dd-fig'), fig); });
+  calc(); sums();
+  wireDownloads(q('.dl'), () => ({ title: 'Decibels and distance', subtitle: q('.dd-big').textContent ?? '', file: 'decibel-distance', sections: [...sections, ...(sumSection ? [sumSection] : [])] }));
+</script>
+
+<style is:global>
+  .dbd select { max-width: 100%; }
+  .dbd .dd-oct { margin-top: 10px; }
+  .dbd [hidden] { display: none !important; }
+</style>
