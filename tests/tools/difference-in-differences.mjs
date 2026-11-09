@@ -2,8 +2,10 @@
 export const path = '/science/difference-in-differences/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
   const vp = page.viewportSize();
+  page.setDefaultTimeout(120000);
   await page.goto(BASE + path);
   await page.waitForSelector('.dd-out:not([hidden])');
+  const waitText = (sel, re) => page.waitForFunction(([sl, src]) => new RegExp(src).test(document.querySelector(sl)?.textContent ?? ''), [sel, re.source], { timeout: 60000 }).catch(() => {});
   const big = () => page.textContent('.dd-big'), facts = () => page.textContent('.dd-facts');
   check(/DiD = 2\.115 \(95 % CI 1\.868 to 2\.363\)/.test(await big()), `did: example DiD 2.115 (${await big()})`);
   check(/Clustered SE0\.1183/.test(await facts()) && /8 treated, 12 comparison/.test(await facts()) && /F\(3, 19\) = 0\.1616, p 0\.9209/.test(await facts()), `did: SE, units and pre-trend F (${await facts()})`);
@@ -28,15 +30,15 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
     check(d.suggestedFilename() === `did-event-study.${f}`, `did: ${f} download`);
   }
   // Start period errors and a treated column that changes inside a unit.
-  await page.fill('.dd-start', '2015'); await page.waitForTimeout(500);
+  await page.fill('.dd-start', '2015'); await waitText('.dd-err', /No periods before the start/);
   check(/No periods before the start/.test(await page.textContent('.dd-err')), 'did: no pre-period explained');
   await page.fill('.dd-start', '2019'); await page.waitForTimeout(500);
   const text = await page.inputValue('.dd-in');
-  await page.fill('.dd-in', text.replace('C01,2015,1,', 'C01,2015,0,')); await page.waitForTimeout(500);
+  await page.fill('.dd-in', text.replace('C01,2015,1,', 'C01,2015,0,')); await waitText('.dd-err', /same in every row of a unit/);
   check(/same in every row of a unit/.test(await page.textContent('.dd-err')), 'did: treated must be fixed within a unit');
-  await page.fill('.dd-in', text.replace('C01,2015,1,', 'C01,2015,maybe,')); await page.waitForTimeout(500);
+  await page.fill('.dd-in', text.replace('C01,2015,1,', 'C01,2015,maybe,')); await waitText('.dd-err', /should hold 1 or 0/);
   check(/should hold 1 or 0/.test(await page.textContent('.dd-err')), 'did: non 0/1 treated value explained');
-  await page.fill('.dd-in', text + '\nC01,2016,1,55'); await page.waitForTimeout(500);
+  await page.fill('.dd-in', text + '\nC01,2016,1,55'); await waitText('.dd-err', /two rows for period 2016/);
   check(/two rows for period 2016/.test(await page.textContent('.dd-err')), 'did: duplicate unit-period explained');
   await page.fill('.dd-in', text); await page.waitForTimeout(500);
   await page.selectOption('.dd-tr', 'county'); await page.waitForTimeout(200);
@@ -59,4 +61,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.waitForSelector('.dd-out:not([hidden])');
   await page.screenshot({ path: OUT + 'difference-in-differences.png', fullPage: true });
   await page.setViewportSize(vp);
+  page.setDefaultTimeout(30000);
 };
