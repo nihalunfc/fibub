@@ -1,0 +1,191 @@
+---
+// Instrument harmonics analyser: a local audio file (or a short microphone recording, only after a button press)
+// decoded in the browser; windowed FFT spectrum, fundamental, harmonic levels, inharmonicity and spectral centroid.
+// The sound is never stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hma">
+  <div class="ax-card">
+    <h2>Sound</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small hm-open">Open an audio file</button>
+      <input type="file" class="hm-file" accept="audio/*,.wav,.mp3,.ogg,.oga,.flac,.m4a,.aac,.webm" hidden />
+      <button type="button" class="btn secondary small hm-rec">Record from the microphone</button>
+      <label class="hm-secl">for <select class="hm-sec"><option value="2">2 s</option><option value="4" selected>4 s</option><option value="8">8 s</option></select></label>
+      <button type="button" class="btn secondary small hm-ex">Use the example</button>
+    </div>
+    <p class="ax-help">WAV, MP3, OGG, FLAC or M4A, up to 50 MB. The sound is decoded on this device and never stored or sent; the microphone is used only while recording after you press the button.</p>
+    <p class="ax-help hm-info" aria-live="polite"></p>
+    <p class="ax-err hm-err" hidden></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Analyse from (s) <input class="hm-t0" inputmode="decimal" value="0.1" /></label>
+      <label>Length (s) <input class="hm-len" inputmode="decimal" value="1" /></label>
+      <label>FFT size <select class="hm-n"><option>4096</option><option>8192</option><option selected>16384</option><option>32768</option><option>65536</option></select></label>
+      <label>Window <select class="hm-win"><option value="hann">Hann</option><option value="hamming">Hamming</option><option value="blackman">Blackman</option><option value="rect">Rectangular (none)</option></select></label>
+      <label>Harmonics to find <input class="hm-h" type="number" min="1" max="60" step="1" value="16" inputmode="numeric" /></label>
+      <label>Fundamental (Hz, blank = find it) <input class="hm-f0" inputmode="decimal" placeholder="auto" /></label>
+      <label>Ignore peaks more than (dB below the top) <input class="hm-floor" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-help">Skip the attack and pick a steady part of the note. A longer FFT separates close partials better (resolution = sample rate ÷ FFT size); frames overlap by half and are averaged.</p>
+  </div>
+
+  <div class="ax-card hm-out" hidden>
+    <p class="ax-big hm-big"></p>
+    <dl class="ax-facts hm-facts"></dl>
+    <h3>Spectrum</h3>
+    <canvas class="ax-fig hm-fig"></canvas>
+    <h3>Harmonics</h3>
+    <canvas class="ax-fig hm-fig2"></canvas>
+    <div class="ax-scroll"><table class="hm-tab"></table></div>
+    <p class="ax-help">Cents compare each partial with an exact multiple of the fitted fundamental; stiff strings (piano, guitar) run sharp as the number rises.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hm-csv">Download harmonics (CSV)</button>
+      <button type="button" class="btn secondary small hm-scsv">Download spectrum (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hma h3 { margin: 20px 0 8px; font-size: 15px; }
+  .hma .hm-secl { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }
+  .hma .hm-secl select { width: auto; }
+  .hma .hm-tab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { spectrum, peaks, fundamental, harmonicSeries, centroid, noteOf, synth, db, type WindowKind, type HarmonicFit, type Spectrum } from '../../lib/sci/harmonics';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hma')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const fc = (x: number) => (Math.abs(x) < 0.05 ? '0.0' : (x > 0 ? '+' : '−') + Math.abs(x).toFixed(1));
+  const m1 = (x: number) => x.toFixed(1).replace('-', '−');
+  const err = (s: string) => { q('.hm-err').textContent = s; q('.hm-err').hidden = !s; };
+
+  let x: Float32Array | Float64Array | null = null, fs = 44100, name = 'sound', sp: Spectrum | null = null, fit: HarmonicFit | null = null, figs: Figure[] = [], facts: [string, string][] = [], cen = NaN;
+
+  function load(data: Float32Array | Float64Array, rate: number, label: string, info: string) {
+    x = data; fs = rate; name = label;
+    q('.hm-info').textContent = info;
+    const dur = data.length / rate;
+    if (num(q<HTMLInputElement>('.hm-t0').value) >= dur) q<HTMLInputElement>('.hm-t0').value = '0';
+    run();
+  }
+
+  async function decode(buf: ArrayBuffer, label: string) {
+    const ac = new AudioContext();
+    try {
+      const a = await ac.decodeAudioData(buf);
+      const mono = new Float32Array(a.length);
+      for (let c = 0; c < a.numberOfChannels; c++) { const d = a.getChannelData(c); for (let i = 0; i < a.length; i++) mono[i] += d[i] / a.numberOfChannels; }
+      load(mono, a.sampleRate, label, `${label}: ${a.duration.toFixed(2)} s at ${a.sampleRate.toLocaleString('en')} Hz${a.numberOfChannels > 1 ? `, ${a.numberOfChannels} channels mixed to one` : ''}.`);
+    } catch { err(`${label} could not be decoded. Try WAV, MP3, OGG or FLAC.`); }
+    finally { ac.close(); }
+  }
+
+  function run() {
+    err('');
+    if (!x) return;
+    const n = Number(q<HTMLSelectElement>('.hm-n').value), t0 = num(q<HTMLInputElement>('.hm-t0').value), len = num(q<HTMLInputElement>('.hm-len').value);
+    const H = num(q<HTMLInputElement>('.hm-h').value), floor = num(q<HTMLInputElement>('.hm-floor').value), fixed = q<HTMLInputElement>('.hm-f0').value.trim() ? num(q<HTMLInputElement>('.hm-f0').value) : NaN;
+    const dur = x.length / fs;
+    const bad = [!(t0 >= 0 && t0 < dur) && `the start must be from 0 to ${dur.toFixed(2)} s`, !(len > 0) && 'the length must be above 0', !(Number.isInteger(H) && H >= 1 && H <= 60) && 'harmonics to find: a whole number from 1 to 60', !(floor > 0) && 'the dB range must be above 0', q<HTMLInputElement>('.hm-f0').value.trim() && !(fixed > 0) && 'the fundamental must be above 0 Hz'].filter(Boolean);
+    if (bad.length) { err(`Check: ${bad.join('; ')}.`); q('.hm-out').hidden = true; return; }
+    const start = Math.round(t0 * fs), length = Math.min(x.length - start, Math.round(len * fs));
+    let peak = 0, run = 0, clipRun = 0; for (let i = start; i < start + length; i++) { const a = Math.abs(x[i]); peak = Math.max(peak, a); run = a >= 0.999 ? run + 1 : 0; clipRun = Math.max(clipRun, run); }
+    if (peak < 1e-4) { err('That part of the sound is silent. Choose another start time.'); q('.hm-out').hidden = true; return; }
+    sp = spectrum(x, fs, n, q<HTMLSelectElement>('.hm-win').value as WindowKind, start, length);
+    const ps = peaks(sp, { floorDb: floor });
+    const f0 = fixed > 0 ? fixed : fundamental(ps);
+    if (!(f0 > 0)) { err('No clear pitch was found. Try a longer or later part of the note, or type the fundamental.'); q('.hm-out').hidden = true; return; }
+    fit = harmonicSeries(ps, f0, H, fs / 2);
+    cen = centroid(sp);
+    q('.hm-out').hidden = false;
+    const nt = noteOf(fit.f0);
+    q('.hm-big').textContent = `Fundamental ${fit.f0.toFixed(2)} Hz (${nt.name} ${fc(nt.cents)} ¢)`;
+    const clip = clipRun >= 3;
+    facts = [
+      ['Fundamental', `${fit.f0.toFixed(2)} Hz`], ['Nearest note', `${nt.name} ${fc(nt.cents)} ¢`],
+      ['Inharmonicity B', fit.found >= 3 ? (fit.B === 0 ? '0' : fit.B.toExponential(2).replace('-', '−')) : 'needs 3 partials'],
+      ['Harmonics found', `${fit.found} of ${H}`],
+      ['Spectral centroid', `${cen.toFixed(0)} Hz`], ['Centroid ÷ fundamental', sig(cen / fit.f0, 3)],
+      ['Frames averaged', String(sp.frames)], ['Resolution', `${sig(sp.df, 3)} Hz per bin`],
+    ];
+    const subs: Record<string, string> = { 'Fundamental': fixed > 0 ? 'fitted near the value you typed' : 'fitted to the partials', 'Inharmonicity B': 'fₙ = n f₀ √(1 + B n²)', 'Centroid ÷ fundamental': 'brightness in harmonic numbers', 'Frames averaged': `${(sp.n / fs).toFixed(3)} s each` };
+    q('.hm-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v, subs[k] ?? '')));
+    if (clip) err('The sound reaches full scale in this part, so it may be clipped: clipping adds false harmonics.');
+    // Table.
+    const t = q<HTMLTableElement>('.hm-tab'); t.replaceChildren();
+    const hr = t.insertRow(); ['n', 'n × f₀ (Hz)', 'Measured (Hz)', 'Cents', 'Level (dB)', 'vs strongest (dB)'].forEach((s, k) => { const th = document.createElement('th'); th.textContent = s; if (k) th.className = 'r'; hr.append(th); });
+    for (const h of fit.harmonics) {
+      const tr = t.insertRow();
+      [String(h.n), (h.n * fit.f0).toFixed(2), h.f != null ? h.f.toFixed(2) : 'not found', h.cents != null ? fc(h.cents) : '', h.db != null ? m1(h.db) : '', h.rel != null ? m1(h.rel) : ''].forEach((s, k) => { const td = tr.insertCell(); td.textContent = s; if (k) td.className = 'r'; });
+    }
+    // Figures.
+    const fMax = Math.min(fs / 2, Math.max(500, (H + 1.5) * fit.f0)), kMax = Math.min(sp.amp.length - 1, Math.ceil(fMax / sp.df));
+    const step = Math.max(1, Math.floor(kMax / 3000)), xs: number[] = [], ys: number[] = [];
+    for (let k = 1; k <= kMax; k += step) { let m = 0, km = k; for (let j = k; j < Math.min(k + step, kMax + 1); j++) if (sp.amp[j] > m) { m = sp.amp[j]; km = j; } xs.push(km * sp.df); ys.push(db(m)); }
+    const top = Math.max(...ys), found = fit.harmonics.filter((h) => h.f != null);
+    figs = [
+      chartFigure({ w: 560, h: 320, xLabel: 'Frequency (Hz)', yLabel: 'Level (dB)', legend: 'none', xMin: 0, xMax: fMax, yMin: top - Math.max(floor, 20) - 10, yMax: top + 5,
+        series: [{ name: 'Spectrum', x: xs, y: ys, mode: 'line', width: 1 }, { name: 'Harmonics', x: found.map((h) => h.f!), y: found.map((h) => h.db!), mode: 'points', marker: 'open-circle', labels: found.filter((h) => h.n <= 8).length === found.length ? found.map((h) => String(h.n)) : undefined }] }, `Spectrum up to ${fMax.toFixed(0)} Hz with ${found.length} harmonics marked`),
+      chartFigure({ w: 560, h: 260, xLabel: 'Harmonic number', yLabel: 'Level vs strongest (dB)', legend: 'none', xMin: 0, xMax: H + 1,
+        series: [{ name: 'Level', x: found.map((h) => h.n), y: found.map((h) => h.rel!), mode: 'both', marker: 'circle' }] }, `Harmonic levels relative to the strongest`),
+    ];
+    paint(q<HTMLCanvasElement>('.hm-fig'), figs[0]); paint(q<HTMLCanvasElement>('.hm-fig2'), figs[1]);
+  }
+
+  // Microphone: asked for only when the button is pressed; the recording stays in memory and is analysed like a file.
+  q('.hm-rec').addEventListener('click', async () => {
+    err('');
+    const secs = Number(q<HTMLSelectElement>('.hm-sec').value);
+    let stream: MediaStream;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') throw new Error('none');
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch { err('The microphone is not available here (blocked by the browser, the site or the device). Record the note with another app and open the file instead.'); return; }
+    const rec = new MediaRecorder(stream), chunks: Blob[] = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); q<HTMLButtonElement>('.hm-rec').disabled = false; await decode(await new Blob(chunks, { type: rec.mimeType }).arrayBuffer(), 'Recording'); };
+    q<HTMLButtonElement>('.hm-rec').disabled = true; q('.hm-info').textContent = `Recording for ${secs} s… play a steady note.`;
+    rec.start(); setTimeout(() => rec.state !== 'inactive' && rec.stop(), secs * 1000);
+  });
+  q('.hm-open').addEventListener('click', () => q<HTMLInputElement>('.hm-file').click());
+  q('.hm-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.hm-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    if (f.size > 50e6) { err(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 50 MB. Cut out the note you want first.`); return; }
+    q('.hm-info').textContent = `Reading ${f.name}…`; err('');
+    await decode(await f.arrayBuffer(), f.name);
+  });
+  q('.hm-ex').addEventListener('click', example);
+  function example() {
+    q<HTMLInputElement>('.hm-t0').value = '0.1'; q<HTMLInputElement>('.hm-len').value = '1'; q<HTMLInputElement>('.hm-f0').value = '';
+    const t = synth(44100, 2, 110, { B: 0.0003, count: 24, amp: (n) => 0.5 / n ** 1.2, noise: 0.004, seed: 3 }), g = 0.8 / t.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    load(t.map((v) => v * g), 44100, 'example', 'Example: a made-up stiff-string tone at 110 Hz (A2) with 24 partials stretched by B = 0.0003, 2 s at 44,100 Hz.');
+  }
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  for (const c of ['.hm-t0', '.hm-len', '.hm-h', '.hm-f0', '.hm-floor']) q(c).addEventListener('input', later);
+  for (const c of ['.hm-n', '.hm-win']) q(c).addEventListener('change', run);
+  q('.hm-csv').addEventListener('click', () => {
+    if (!fit) return;
+    save(new Blob([csv([['n', 'n_times_f0_hz', 'measured_hz', 'cents', 'level_db', 'relative_db'], ...fit.harmonics.map((h) => [h.n, (h.n * fit!.f0).toFixed(3), h.f?.toFixed(3) ?? '', h.cents?.toFixed(2) ?? '', h.db?.toFixed(2) ?? '', h.rel?.toFixed(2) ?? ''])])], { type: 'text/csv' }), `${name.replace(/\.[^.]+$/, '')}-harmonics.csv`, 'text/csv');
+  });
+  q('.hm-scsv').addEventListener('click', () => {
+    if (!sp) return;
+    const rows: (string | number)[][] = [['frequency_hz', 'amplitude', 'level_db']];
+    for (let k = 0; k < sp.amp.length; k++) rows.push([(k * sp.df).toFixed(3), sp.amp[k].toExponential(5), db(sp.amp[k]).toFixed(2)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${name.replace(/\.[^.]+$/, '')}-spectrum.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Harmonics', subtitle: `${q('.hm-big').textContent ?? ''}, ${name}`, file: `${name.replace(/\.[^.]+$/, '')}-harmonics`, sections: fit ? [
+    { title: 'Summary', facts, figure: figs[0] },
+    { title: 'Harmonics', figure: figs[1], table: { head: ['n', 'n × f0 (Hz)', 'Measured (Hz)', 'Cents', 'Level (dB)', 'Relative (dB)'], rows: fit.harmonics.map((h) => [String(h.n), (h.n * fit!.f0).toFixed(2), h.f?.toFixed(2) ?? 'not found', h.cents != null ? fc(h.cents) : '', h.db != null ? m1(h.db) : '', h.rel != null ? m1(h.rel) : '']), align: ['r', 'r', 'r', 'r', 'r', 'r'] } },
+  ] : [] }));
+  document.addEventListener('fibub:theme', () => { if (fit) { paint(q<HTMLCanvasElement>('.hm-fig'), figs[0]); paint(q<HTMLCanvasElement>('.hm-fig2'), figs[1]); } });
+  example();
+</script>
