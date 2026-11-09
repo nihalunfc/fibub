@@ -1,0 +1,189 @@
+---
+// Combinatorics calculator: permutations, combinations, multinomials, Stirling, Lah, Bell, Catalan, partitions and derangements, exact.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cmb">
+  <div class="ax-card">
+    <div class="ax-seg cmb-modes" role="group" aria-label="What to count">
+      <button type="button" data-m="c" aria-pressed="true">Choose and arrange</button>
+      <button type="button" data-m="m" aria-pressed="false">Multinomial</button>
+      <button type="button" data-m="s" aria-pressed="false">Special numbers</button>
+      <button type="button" data-m="t" aria-pressed="false">Triangles</button>
+    </div>
+    <div class="cmb-p" data-p="c" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>n, things to pick from <input class="cmb-n" inputmode="numeric" value="10" /></label>
+        <label>k, how many you pick <input class="cmb-k" inputmode="numeric" value="3" /></label>
+      </div>
+      <p class="ax-help">n and k up to 5000.</p>
+    </div>
+    <div class="cmb-p" data-p="m" style="margin-top:12px" hidden>
+      <label>Group sizes, separated by commas <input class="cmb-ks" value="1, 4, 4, 2" autocomplete="off" /></label>
+      <label style="margin-top:10px">Or a word, to count its different arrangements <input class="cmb-word" value="MISSISSIPPI" autocomplete="off" spellcheck="false" /></label>
+      <p class="ax-help">Typing a word fills in the group sizes from how often each letter appears.</p>
+    </div>
+    <div class="cmb-p" data-p="s" style="margin-top:12px" hidden>
+      <label>n <input class="cmb-sn" inputmode="numeric" value="10" /></label>
+      <p class="ax-help">Bell numbers up to n = 400, partitions up to 20 000, the others up to 5000.</p>
+    </div>
+    <div class="cmb-p" data-p="t" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label>Triangle <select class="cmb-tk">
+          <option value="pascal">Binomial C(n, k) (Pascal)</option>
+          <option value="s1">Stirling, first kind c(n, k)</option>
+          <option value="s2" selected>Stirling, second kind S(n, k)</option>
+          <option value="lah">Lah numbers L(n, k)</option>
+          <option value="pk">Partitions into k parts p(n, k)</option>
+        </select></label>
+        <label>n <input class="cmb-tn" inputmode="numeric" value="5" /></label>
+        <label>k <input class="cmb-tkk" inputmode="numeric" value="2" /></label>
+      </div>
+      <p class="ax-help cmb-thelp"></p>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="cmb-full" /> Show every digit</label>
+    <p class="ax-err cmb-err" hidden></p>
+  </div>
+
+  <div class="ax-card cmb-out">
+    <h2 class="cmb-h">Result</h2>
+    <p class="ax-big cmb-big"></p>
+    <dl class="ax-facts cmb-facts"></dl>
+    <div class="cmb-tw" hidden>
+      <h3 class="cmb-th" style="margin:16px 0 6px;font-size:16px"></h3>
+      <div class="ax-scroll"><table class="cmb-tab"></table></div>
+      <p class="ax-help cmb-tnote"></p>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cmb-csv">Table as CSV</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cmb .cmb-big { overflow-wrap: anywhere; font-size: clamp(20px, 4.4vw, 28px); }
+  .cmb .cmb-facts dd { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .cmb .cmb-facts dd small { word-break: normal; }
+  .cmb .cmb-tab td { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .cmb .cmb-tab td.hi { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+</style>
+
+<script>
+  import * as C from '../../lib/sci/combinatorics';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cmb')!;
+  const q = <E extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as E;
+  let mode = 'c', big = '', report: Section[] = [];
+  type Tab = { title: string; head: string[]; rows: string[][]; csv: string[][]; note: string; hi?: [number, number] };
+  let table: Tab | null = null;
+  const full = () => q<HTMLInputElement>('.cmb-full').checked;
+  const show = (x: bigint) => (full() ? x.toString() : C.shortNum(x));
+  const int = (c: string, name: string) => { const s = q<HTMLInputElement>(c).value.trim().replace(/[\s,_]/g, ''); if (!/^\d+$/.test(s)) throw new Error(`${name} must be a whole number of 0 or more.`); return Number(s); };
+  const withSci = (x: bigint): string => (x.toString().length > 9 ? `${show(x)}  ≈ ${C.sci(x)}` : show(x));
+
+  function chooseMode(): [string, string][] {
+    const n = int('.cmb-n', 'n'), k = int('.cmb-k', 'k');
+    if (n > C.LIMIT.n || k > C.LIMIT.n) throw new Error(`n and k may be up to ${C.LIMIT.n}.`);
+    const c = C.choose(n, k), p = C.permutations(n, k), m = C.multichoose(n, k), pw = C.power(n, k);
+    big = `C(${n}, ${k}) = ${show(c)}`;
+    table = {
+      title: `Picking ${k} from ${n}`, head: ['', 'No repeats', 'Repeats allowed'],
+      rows: [['Order matters', `${show(p)}  (nPk)`, `${show(pw)}  (n^k)`], ['Order does not matter', `${show(c)}  (nCk)`, `${show(m)}  (multiset)`]],
+      csv: [['', 'no repeats', 'repeats allowed'], ['order matters', p.toString(), pw.toString()], ['order does not matter', c.toString(), m.toString()]],
+      note: `Order matters with no repeats: a podium of ${k} from ${n} runners. Repeats allowed: a ${k}-digit code from ${n} symbols. Order does not matter: a hand of ${k} cards from ${n}, or (with repeats) ${k} scoops from ${n} flavours.`,
+    };
+    return [['Combinations C(n, k)', withSci(c)], ['Permutations nPk = n!/(n − k)!', withSci(p)], ['With repetition, order matters n^k', withSci(pw)], ['With repetition, unordered C(n + k − 1, k)', withSci(m)], ['n!', withSci(C.factorial(n))]];
+  }
+
+  function multiMode(): [string, string][] {
+    const raw = q<HTMLInputElement>('.cmb-ks').value;
+    const ks = raw.split(/[,;\s]+/).filter(Boolean).map((s) => { if (!/^\d+$/.test(s)) throw new Error(`"${s}" is not a whole number. Separate group sizes with commas.`); return Number(s); });
+    const v = C.multinomial(ks), n = ks.reduce((a, b) => a + b, 0);
+    big = `${n}! / (${ks.map((k) => k + '!').join(' ')}) = ${show(v)}`;
+    table = null;
+    return [['Total n', String(n)], ['Groups', String(ks.length)], ['Multinomial coefficient', withSci(v)], ['Meaning', `Ways to split ${n} labelled things into groups of sizes ${ks.join(', ')} (in that order), or to arrange ${n} letters where the copies of each letter look alike.`]];
+  }
+
+  function specialMode(): [string, string][] {
+    const n = int('.cmb-sn', 'n');
+    if (n > C.LIMIT.partitions) throw new Error(`n may be up to ${C.LIMIT.partitions} (partitions); the others stop sooner.`);
+    const P = C.partitions(n), Bl = n <= C.LIMIT.bell ? C.bell(n) : null, Ca = n <= C.LIMIT.n ? C.catalan(n) : null, D = n <= C.LIMIT.n ? C.derangements(n) : null;
+    const F: bigint[] = []; if (n <= C.LIMIT.n) { let f = 1n; for (let i = 0; i <= n; i++) { if (i) f *= BigInt(i); F.push(f); } }
+    big = `p(${n}) = ${show(P[n])}`;
+    const dash = '—';
+    const csv = [['n', 'n!', 'Bell B(n)', 'Catalan C(n)', 'partitions p(n)', 'derangements !n'], ...P.map((p, i) => [String(i), F[i]?.toString() ?? '', Bl?.[i]?.toString() ?? '', Ca?.[i]?.toString() ?? '', p.toString(), D?.[i]?.toString() ?? ''])];
+    const rows = csv.slice(1, 202).map((r) => r.map((c, j) => (j === 0 ? c : c ? (full() ? c : C.shortNum(BigInt(c), 24)) : dash)));
+    table = { title: `Sequences for 0 to ${n}`, head: ['n', 'n!', 'Bell B(n)', 'Catalan C(n)', 'p(n)', '!n'], rows, csv, note: n > 200 ? `Showing n = 0 to 200; the CSV has all ${n + 1} rows.` : 'Bell: ways to split n things into groups. Catalan: bracketings, binary trees, Dyck paths. p(n): ways to write n as a sum. !n: shuffles with nothing in its place.' };
+    const facts: [string, string][] = [['Partitions p(n)', withSci(P[n])]];
+    if (Bl) facts.push(['Bell number B(n)', withSci(Bl[n])]); else facts.push(['Bell number B(n)', `n up to ${C.LIMIT.bell} only`]);
+    if (Ca && D) facts.push(['Catalan number C(n)', withSci(Ca[n])], ['Derangements !n', withSci(D[n])], ['n!', withSci(F[n])]);
+    if (D && n >= 1) facts.push(['Chance a shuffle moves everything', `!n / n! ≈ ${(Number(D[Math.min(n, 170)]) / Number(F[Math.min(n, 170)])).toFixed(6)} (→ 1/e)`]);
+    return facts;
+  }
+
+  const TRI: Record<string, { f: (N: number) => bigint[][]; sym: string; help: string }> = {
+    pascal: { f: C.pascal, sym: 'C', help: 'C(n, k): ways to choose k things from n. Each entry is the sum of the two above it.' },
+    s1: { f: C.stirling1, sym: 'c', help: 'c(n, k): permutations of n things with exactly k cycles (unsigned; the signed version is (−1)^(n−k) c(n, k)). Row sums are n!.' },
+    s2: { f: C.stirling2, sym: 'S', help: 'S(n, k): ways to split n labelled things into k non-empty groups (the order of the groups does not matter). Row sums are the Bell numbers.' },
+    lah: { f: C.lah, sym: 'L', help: 'L(n, k): ways to split n labelled things into k non-empty lists, where order within a list matters but the lists are unordered.' },
+    pk: { f: C.partitionsK, sym: 'p', help: 'p(n, k): ways to write n as a sum of exactly k positive whole numbers, ignoring order. Row sums are p(n).' },
+  };
+  function triangleMode(): [string, string][] {
+    const kind = q<HTMLSelectElement>('.cmb-tk').value, T = TRI[kind];
+    q('.cmb-thelp').textContent = T.help;
+    const n = int('.cmb-tn', 'n'), k = int('.cmb-tkk', 'k');
+    if (n > C.LIMIT.triangle) throw new Error(`n may be up to ${C.LIMIT.triangle} for triangles.`);
+    const rows = T.f(n), v = k <= n ? rows[n][k] : 0n;
+    big = `${T.sym}(${n}, ${k}) = ${show(v)}`;
+    const show0 = Math.max(0, n - 19), W = Math.min(n, 15);
+    const head = ['n \\ k', ...Array.from({ length: W + 1 }, (_, i) => String(i))];
+    const hrows = rows.slice(show0).map((r, i) => [String(show0 + i), ...Array.from({ length: W + 1 }, (_, j) => (j < r.length ? (full() ? r[j].toString() : C.shortNum(r[j], 16)) : ''))]);
+    const csv = [['n', ...Array.from({ length: n + 1 }, (_, i) => `k=${i}`)], ...rows.map((r, i) => [String(i), ...r.map(String)])];
+    table = { title: `${q<HTMLSelectElement>('.cmb-tk').selectedOptions[0].textContent}, rows ${show0} to ${n}`, head, rows: hrows, csv, note: (n > 19 || n > 15 ? `Showing the last 20 rows and k up to 15; the CSV has rows 0 to ${n} in full. ` : '') + 'Your entry is highlighted.', hi: k <= W ? [n - show0, k + 1] : undefined };
+    const sum = rows[n].reduce((a, b) => a + b, 0n);
+    return [[`${T.sym}(n, k)`, withSci(v)], [`Row ${n} sum`, withSci(sum)], ['Row length', `${n + 1} entries, k = 0 to ${n}`]];
+  }
+
+  function render() {
+    const err = q('.cmb-err');
+    try {
+      const facts = mode === 'c' ? chooseMode() : mode === 'm' ? multiMode() : mode === 's' ? specialMode() : triangleMode();
+      err.hidden = true; q('.cmb-out').hidden = false;
+      q('.cmb-h').textContent = { c: 'Choose and arrange', m: 'Multinomial coefficient', s: 'Special numbers', t: 'Triangle' }[mode]!;
+      q('.cmb-big').textContent = big;
+      q('.cmb-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; }));
+      q('.cmb-tw').hidden = !table;
+      if (table) {
+        q('.cmb-th').textContent = table.title; q('.cmb-tnote').textContent = table.note;
+        const t = q<HTMLTableElement>('.cmb-tab'); t.replaceChildren();
+        const hr = t.createTHead().insertRow(); table.head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i && mode !== 'c') th.className = 'r'; hr.append(th); });
+        const tb = t.createTBody();
+        table.rows.forEach((r, i) => { const tr = tb.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j && mode !== 'c') td.className = 'r'; if (table!.hi && table!.hi[0] === i && table!.hi[1] === j) td.className = 'r hi'; }); });
+      }
+      report = [{ title: q('.cmb-h').textContent!, text: [big], facts }];
+      if (table) report.push({ title: table.title, table: { head: table.head, rows: table.rows.slice(0, 60) }, note: table.note });
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cmb-out').hidden = true; report = []; }
+  }
+  const setMode = (m: string) => {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.cmb-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.cmb-p').forEach((p) => (p.hidden = p.dataset.p !== m));
+    render();
+  };
+  root.querySelectorAll<HTMLButtonElement>('.cmb-modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  q('.cmb-word').addEventListener('input', () => {
+    const w = q<HTMLInputElement>('.cmb-word').value.replace(/\s+/g, '').toUpperCase(), counts = new Map<string, number>();
+    for (const ch of w) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+    if (counts.size) q<HTMLInputElement>('.cmb-ks').value = [...counts.values()].join(', ');
+  });
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.cmb-p')) { clearTimeout(t); t = window.setTimeout(render, 250); } });
+  q('.cmb-tk').addEventListener('change', render);
+  q('.cmb-full').addEventListener('change', render);
+  q('.cmb-csv').addEventListener('click', () => {
+    if (!table) return;
+    save(new Blob([table.csv.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'], { type: 'text/csv' }), `combinatorics-${mode}.csv`, 'text/csv');
+  });
+  render();
+  wireDownloads(q('.dl'), () => ({ title: 'Combinatorics', subtitle: big.length > 120 ? big.slice(0, 120) + '…' : big, file: 'combinatorics', sections: report }));
+</script>
