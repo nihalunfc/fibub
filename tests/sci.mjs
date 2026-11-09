@@ -160,6 +160,7 @@ import * as AL from '../src/lib/sci/align.ts';
 import * as VC from '../src/lib/sci/vcf.ts';
 import * as SR from '../src/lib/roster.ts';
 import * as IV from '../src/lib/sci/intervals.ts';
+import * as KM from '../src/lib/sci/kmer.ts';
 import * as RX from '../src/lib/rosterExport.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
@@ -3332,6 +3333,36 @@ ORIGIN
   const s = IV.summary(exon);
   check('intervals: summary', s.count === 125 && s.covered === 37272 && s.chroms.length === 2 && s.strands.plus + s.strands.minus === 125 && s.total > s.covered);
   check('intervals: BED out and lanes', IV.toBed([{ chrom: 'c', start: 1, end: 5, name: '', score: '', strand: '.' }]) === 'c\t1\t5\t.\t0\t.\n' && IV.pack([{ start: 0, end: 10 }, { start: 5, end: 20 }, { start: 12, end: 30 }]).lanes === 2);
+}
+// #176 k-mer counter: counts, spectrum and most common k-mers on the simulated example agreed with a separate
+// Python Counter script (k = 5, 21, 25; canonical and not); here they are checked against a plain string count.
+{
+  const ex = KM.exampleReads();
+  check('kmer: example is fixed', ex.fastq === KM.exampleReads().fastq && ex.genome.length === 40000 && ex.fastq.split('\n').length === 40001);
+  const run = (text, k, canonical, step = 65537) => { const c = new KM.KmerCounter({ k, canonical }); for (let i = 0; i < text.length; i += step) c.push(text.slice(i, i + step)); c.end(); return c; };
+  const c21 = run(ex.fastq, 21, true);
+  const h = KM.spectrum(c21.counts, 200), est = KM.genomeEstimate(h);
+  check('kmer: example counts (k 21, canonical)', c21.format === 'fastq' && c21.records === 10000 && c21.bases === 1e6 && c21.total === 800000 && c21.counts.size === 188111 && h[1] === 145234 && h[2] === 4031);
+  check('kmer: genome size from the peak', est && est.valley === 4 && est.peak === 15 && Math.round(est.size) === 43096);
+  check('kmer: most common', JSON.stringify(KM.topKmers(c21.counts, 21, 2)) === JSON.stringify([{ kmer: 'CAGTGACCTTTGCACCGGGGA', count: 61 }, { kmer: 'GCTCAGAAGAGTGAAAGGGAA', count: 61 }]) && c21.get('TCCCCGGTGCAAAGGTCACTG') === 61 && c21.get('CAGTGACCTTTGCACCGGGGA') === 61 && Number.isNaN(c21.get('ACGT')) && Number.isNaN(c21.get('NAGTGACCTTTGCACCGGGGA')));
+  check('kmer: one strand halves the peak', KM.genomeEstimate(KM.spectrum(run(ex.fastq, 21, false).counts, 200)).peak === 8);
+  // Plain string counting on a small mixed input: FASTA over several lines, N, lower case, CRLF, tiny chunks.
+  const fa = '>s1 x\r\nACGTNacgtAC\r\nGTTT\r\n>s2\r\n\r\nGGGG\r\nCC\r\n';
+  const seqs = ['ACGTNACGTACGTTT', 'GGGGCC'], comp = { A: 'T', C: 'G', G: 'C', T: 'A' };
+  let good = true;
+  for (const k of [1, 2, 3, 4]) for (const can of [false, true]) {
+    const want = new Map(); let total = 0;
+    for (const s of seqs) for (let i = 0; i + k <= s.length; i++) { let w = s.slice(i, i + k); if (/[^ACGT]/.test(w)) continue; if (can) { const r = [...w].reverse().map((x) => comp[x]).join(''); if (r < w) w = r; } want.set(w, (want.get(w) ?? 0) + 1); total++; }
+    const c = run(fa, k, can, 3);
+    good &&= c.total === total && c.counts.size === want.size && [...want].every(([w, n]) => c.get(w) === n) && c.records === 2 && c.other === 1;
+  }
+  check('kmer: FASTA lines, N, lower case and chunking match a plain count', good);
+  const plain = run('ACGTACGT\n\nTTTT\n', 2, false);
+  check('kmer: plain sequence, blank line breaks words', plain.format === 'plain' && plain.total === 10 && plain.get('TT') === 3 && plain.get('TA') === 1);
+  check('kmer: encode, decode, reverse complement', KM.decode(KM.encode('GATTACA'), 7) === 'GATTACA' && KM.encode('AC') === 1 && KM.revComp('AACG') === 'CGTT' && KM.decode(0, 3) === 'AAA');
+  check('kmer: k limits', (() => { try { new KM.KmerCounter({ k: 26, canonical: true }); return false; } catch { return true; } })() && run('ACGTACGTACGTACGTACGTACGTACGTACGT', 25, true).total === 8);
+  check('kmer: no clear peak, no estimate', KM.genomeEstimate(KM.spectrum(run('>a\n' + ex.genome + '\n', 21, true).counts, 200)) === null);
+  check('kmer: distinct limit', (() => { const c = new KM.KmerCounter({ k: 8, canonical: false, maxDistinct: 10 }); c.push(ex.genome.slice(0, 500)); c.end(); return c.full && c.counts.size === 10; })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
