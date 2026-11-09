@@ -1,0 +1,200 @@
+---
+// Pairwise sequence alignment: global, local or semi-global with affine gaps, for DNA or protein, with a dot plot.
+// The examples are made-up sequences from a seeded random generator. The protein scores are simple side-chain groups
+// written by fibub, not a published substitution matrix.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { rng } from '../../lib/sci/fastq';
+const r = rng(2026);
+const rnd = (al: string, n: number) => Array.from({ length: n }, () => al[Math.floor(r() * al.length)]).join('');
+const wrap = (s: string) => s.match(/.{1,60}/g)!.join('\n');
+const a = rnd('ACGT', 240);
+// The copy: a few changed bases, 6 extra bases after 80 and 4 missing after 170.
+let b = a.slice(0, 80) + 'TTGACC' + a.slice(80, 170) + a.slice(174);
+b = [...b].map((c, i) => (i % 37 === 11 ? ({ A: 'G', G: 'A', C: 'T', T: 'C' } as Record<string, string>)[c] : c)).join('');
+const exA = `>made-up gene, copy 1\n${wrap(a)}`, exB = `>made-up gene, copy 2\n${wrap(b)}`;
+---
+<div class="ax sqa" data-pa={`>made-up protein 1\n${wrap(rnd('ACDEFGHIKLMNPQRSTVWY', 120))}`}>
+  <div class="ax-card">
+    <h2>Sequences</h2>
+    <label>First sequence (FASTA or plain) <textarea class="sa-a" rows="4" spellcheck="false">{exA}</textarea></label>
+    <div class="ax-row"><button type="button" class="btn secondary small sa-opena">Open a file</button><input type="file" class="sa-filea" accept=".fa,.fasta,.fna,.faa,.fas,.seq,.txt,text/plain" hidden /></div>
+    <label style="margin-top:10px">Second sequence <textarea class="sa-b" rows="4" spellcheck="false">{exB}</textarea></label>
+    <div class="ax-row"><button type="button" class="btn secondary small sa-openb">Open a file</button><input type="file" class="sa-fileb" accept=".fa,.fasta,.fna,.faa,.fas,.seq,.txt,text/plain" hidden /></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sa-pex">Try a made-up protein pair</button><button type="button" class="btn secondary small sa-dex">Back to the DNA example</button></div>
+    <p class="ax-help">The first record of each box or file is used; numbers and spaces are ignored. Up to 25 million cells (for example 5,000 × 5,000 letters). Files stay on your device. The examples are made-up random sequences.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Kind <select class="sa-type"><option value="auto" selected>Work it out</option><option value="dna">DNA or RNA</option><option value="protein">Protein</option></select></label>
+      <label>Alignment <select class="sa-mode"><option value="global" selected>Global: end to end</option><option value="semiglobal">Semi-global: free gaps at the ends</option><option value="local">Local: best matching part</option></select></label>
+    </div>
+    <div class="ax-grid sa-dna" style="margin-top:10px">
+      <label>Match <input class="sa-match" type="number" step="any" value="2" /></label>
+      <label>Mismatch <input class="sa-mis" type="number" step="any" value="-3" /></label>
+      <label>Gap opening <input class="sa-dopen" type="number" step="any" value="-5" /></label>
+      <label>Gap extension <input class="sa-dext" type="number" step="any" value="-2" /></label>
+    </div>
+    <div class="ax-grid sa-prot" style="margin-top:10px" hidden>
+      <label>Same amino acid <input class="sa-same" type="number" step="any" value="5" /></label>
+      <label>Same group <input class="sa-sim" type="number" step="any" value="2" /></label>
+      <label>Different <input class="sa-diff" type="number" step="any" value="-2" /></label>
+      <label>Gap opening <input class="sa-popen" type="number" step="any" value="-10" /></label>
+      <label>Gap extension <input class="sa-pext" type="number" step="any" value="-1" /></label>
+    </div>
+    <p class="ax-help">Global lines up both sequences from end to end. Semi-global does too, but gaps before or after a sequence cost nothing, for a short piece inside a longer one. Local finds the best-matching stretch. A gap of length k costs the opening score plus (k − 1) times the extension score. Protein groups: ILMV, FWY, KRH, DE, STNQ, AG, C and P (simple side-chain classes, not a published matrix).</p>
+    <p class="ax-err sa-err" hidden></p>
+  </div>
+
+  <div class="ax-card sa-out">
+    <h2>Alignment</h2>
+    <p class="ax-big sa-big"></p>
+    <dl class="ax-facts sa-facts"></dl>
+    <pre class="sa-aln"></pre>
+    <p class="ax-help sa-note"></p>
+    <h3>Dot plot</h3>
+    <canvas class="ax-fig sa-dot"></canvas>
+    <p class="ax-help sa-doth"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sa-fa">Download alignment (FASTA)</button>
+      <button type="button" class="btn secondary small sa-txt">Download alignment (text)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { align, blocks, dotPlot, guessType, dnaScoring, proteinScoring, MAX_CELLS, type Alignment, type Scoring, type Mode } from '../../lib/sci/align';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sqa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const pc = (x: number, d = 1) => `${(100 * x).toFixed(d)} %`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const exA = q<HTMLTextAreaElement>('.sa-a').value, exB = q<HTMLTextAreaElement>('.sa-b').value;
+  let al: Alignment | null = null, sc: Scoring | null = null, names: [string, string] = ['A', 'B'], figs: Figure[] = [], sections: Section[] = [];
+
+  function read(text: string) {
+    let name = '', body: string[] = [], seen = false;
+    for (const l of text.split(/\r?\n/)) { if (l.startsWith('>')) { if (seen) break; seen = true; name = l.slice(1).trim(); continue; } if (!l.startsWith(';')) body.push(l); }
+    return { name, seq: body.join('').toUpperCase().replace(/[^A-Z*]/g, '').replace(/\*$/, '') };
+  }
+  const err = (m: string) => { q('.sa-err').textContent = m; q('.sa-err').hidden = !m; if (m) q('.sa-out').hidden = true; };
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+
+  function width() {
+    const pre = q('.sa-aln'), cw = 7.2; // about one monospace letter at 12 px
+    const room = Math.floor((pre.clientWidth || 320) / cw) - 6 - Math.max(names[0].length, names[1].length) - 2 * String(Math.max(al?.aEnd ?? 0, al?.bEnd ?? 0)).length;
+    return Math.max(10, Math.min(60, Math.floor(room / 10) * 10));
+  }
+  function shortNames(a: string, b: string): [string, string] {
+    const s = (x: string, d: string) => (x.split(/\s+/)[0] || d).slice(0, 12);
+    let n1 = s(a, 'seq1'), n2 = s(b, 'seq2'); if (n1 === n2) { n1 = 'seq1'; n2 = 'seq2'; } return [n1, n2];
+  }
+
+  function run() {
+    err('');
+    const A = read(q<HTMLTextAreaElement>('.sa-a').value), B = read(q<HTMLTextAreaElement>('.sa-b').value);
+    if (!A.seq || !B.seq) return err('Paste or open both sequences.');
+    if ((A.seq.length + 1) * (B.seq.length + 1) > MAX_CELLS) return err(`These are ${tn(A.seq.length)} × ${tn(B.seq.length)} letters, more than 25 million cells. Try a shorter piece of the longer sequence.`);
+    let type = q<HTMLSelectElement>('.sa-type').value as 'auto' | 'dna' | 'protein';
+    if (type === 'auto') type = guessType(A.seq + B.seq);
+    const dna = type === 'dna';
+    q('.sa-dna').hidden = !dna; q('.sa-prot').hidden = dna;
+    const nums = dna ? ['.sa-match', '.sa-mis', '.sa-dopen', '.sa-dext'] : ['.sa-same', '.sa-sim', '.sa-diff', '.sa-popen', '.sa-pext'];
+    if (nums.some((c) => !Number.isFinite(val(c)))) return err('Each score needs a number.');
+    const open = dna ? val('.sa-dopen') : val('.sa-popen'), ext = dna ? val('.sa-dext') : val('.sa-pext');
+    if (open > 0 || ext > 0) return err('Gap scores should be zero or negative (a penalty).');
+    if (dna && !(val('.sa-match') > 0)) return err('A match should score above zero.');
+    if (!dna && !(val('.sa-same') > 0)) return err('The same amino acid should score above zero.');
+    sc = dna ? dnaScoring(val('.sa-match'), val('.sa-mis'), open, ext) : proteinScoring(val('.sa-same'), val('.sa-sim'), val('.sa-diff'), open, ext);
+    const mode = q<HTMLSelectElement>('.sa-mode').value as Mode;
+    const a = dna ? A.seq.replace(/U/g, 'T') : A.seq, b = dna ? B.seq.replace(/U/g, 'T') : B.seq;
+    al = align(a, b, sc, mode);
+    names = shortNames(A.name, B.name);
+    q('.sa-out').hidden = false;
+    if (!al.columns) { q('.sa-big').textContent = 'No matching stretch found'; q('.sa-facts').replaceChildren(); q('.sa-aln').textContent = ''; return; }
+    const aligned = al.columns - al.gaps;
+    q('.sa-big').textContent = `Score ${+al.score.toFixed(3)}: ${pc(al.identities / al.columns)} identical over ${tn(al.columns)} columns`;
+    q('.sa-facts').replaceChildren(
+      fact('Kind and mode', `${dna ? 'DNA' : 'Protein'}, ${mode === 'semiglobal' ? 'semi-global' : mode}`, q<HTMLSelectElement>('.sa-type').value === 'auto' ? 'kind worked out from the letters' : ''),
+      fact('Identical', `${tn(al.identities)} of ${tn(al.columns)} (${pc(al.identities / al.columns)})`, aligned ? `${pc(al.identities / aligned)} of the ${tn(aligned)} columns without a gap` : ''),
+      ...(dna ? [] : [fact('Similar (same group)', `${tn(al.similar)} (${pc(al.similar / al.columns)})`, 'identical plus same side-chain group')]),
+      fact('Gaps', `${tn(al.gaps)} columns in ${tn(al.gapOpenings)} gap${al.gapOpenings === 1 ? '' : 's'}`, `${pc(al.gaps / al.columns)} of columns`),
+      fact('Aligned part', `${names[0]} ${tn(al.aStart)}–${tn(al.aEnd)} of ${tn(a.length)}; ${names[1]} ${tn(al.bStart)}–${tn(al.bEnd)} of ${tn(b.length)}`),
+    );
+    const w = width(), lines = blocks(al, sc, w, names);
+    const MAXL = 4000;
+    q('.sa-aln').textContent = lines.slice(0, MAXL).join('\n');
+    q('.sa-note').textContent = `| identical${dna ? '' : ', : same group'}, - gap. ${lines.length > MAXL ? 'Only the start is shown here; the downloads have it all. ' : ''}Blocks of ${w} to fit this screen; the text download uses 60.`;
+    // Dot plot.
+    const k = dna ? (a.length * b.length > 4e6 ? 12 : 8) : 3;
+    const dp = dotPlot(a, b, k, 200000, dna);
+    const path: [number, number][] = []; { let i = al.aStart - 1, j = al.bStart - 1; for (let p = 0; p < al.columns; p++) { if (al.a[p] !== '-') i++; if (al.b[p] !== '-') j++; if (al.a[p] !== '-' && al.b[p] !== '-') path.push([i, j]); } }
+    const dot: Figure = {
+      w: 640, h: 640, alt: `Dot plot of ${names[0]} (across) against ${names[1]} (down): dots where ${k} letters in a row match`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640), L = fs * 3.2, T = fs * 2.2, R = fs * 0.8, Bm = fs * 0.8, pw = W - L - R, ph = H - T - Bm;
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        const X = (i: number) => L + (pw * i) / a.length, Y = (j: number) => T + (ph * j) / b.length, sz = Math.max(1, Math.min(pw / a.length, 3 * (W / 640)));
+        ctx.globalAlpha = 0.85; ctx.fillStyle = pal.red ? pal.muted : pal.accent2;
+        for (const [i, j] of dp.rev) ctx.fillRect(X(i), Y(j), sz, sz);
+        ctx.fillStyle = pal.ink; for (const [i, j] of dp.fwd) ctx.fillRect(X(i), Y(j), sz, sz);
+        ctx.globalAlpha = 0.5; ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 4 * (W / 640); ctx.beginPath();
+        path.forEach(([i, j], p) => (p ? ctx.lineTo(X(i + 0.5), Y(j + 0.5)) : ctx.moveTo(X(i + 0.5), Y(j + 0.5)))); ctx.stroke(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2 * (W / 640); ctx.strokeRect(L, T, pw, ph);
+        ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.85}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(`${names[0]} (1 to ${tn(a.length)})`, L + pw / 2, fs * 0.8);
+        ctx.save(); ctx.translate(fs * 0.9, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(`${names[1]} (1 to ${tn(b.length)})`, 0, 0); ctx.restore();
+        ctx.font = `${fs * 0.7}px system-ui, sans-serif`; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('1', L, T - fs * 0.5); ctx.textAlign = 'right'; ctx.fillText(tn(a.length), L + pw, T - fs * 0.5);
+      },
+    };
+    q('.sa-doth').textContent = `Black dots: the same ${k} letters in a row in both sequences${dna ? '; orange: matches on the opposite strand (reverse complement)' : ''}. The shaded line is the alignment. A diagonal line means the sequences match there; a step sideways is a gap.${dp.capped ? ' Only the first 200,000 dots are drawn.' : ''}`;
+    paint(q<HTMLCanvasElement>('.sa-dot'), dot);
+    // Alignment as a picture for the report (monospace blocks of 60).
+    const rep = blocks(al, sc, 60, names), shown = rep.slice(0, 120);
+    const alnFig: Figure = {
+      w: 760, h: 22 * shown.length + 30, alt: `Alignment, ${rep.length > shown.length ? 'first 30 blocks of 60 columns' : 'blocks of 60 columns'}`,
+      draw(ctx, W, H, pal) { const k2 = W / 760; ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); ctx.fillStyle = pal.ink; ctx.font = `${14 * k2}px ui-monospace, Menlo, Consolas, monospace`; ctx.textBaseline = 'middle'; shown.forEach((l, i) => ctx.fillText(l, 8 * k2, (15 + 22 * i) * k2)); },
+    };
+    figs = [dot, alnFig];
+    sections = [{ title: q('.sa-big').textContent!, facts: [...q('.sa-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), text: [`Scoring: ${dna ? `match ${val('.sa-match')}, mismatch ${val('.sa-mis')}` : `same ${val('.sa-same')}, same group ${val('.sa-sim')}, different ${val('.sa-diff')}`}, gap opening ${open}, extension ${ext}.`] },
+      { title: alnFig.alt, figure: alnFig }, { title: 'Dot plot', figure: dot }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 350); };
+  root.querySelectorAll('textarea, input:not([type=file]), select').forEach((el) => { el.addEventListener('input', later); el.addEventListener('change', later); });
+  for (const s of ['a', 'b'] as const) {
+    q(`.sa-open${s}`).addEventListener('click', () => q<HTMLInputElement>(`.sa-file${s}`).click());
+    q(`.sa-file${s}`).addEventListener('change', async () => {
+      const f = q<HTMLInputElement>(`.sa-file${s}`).files?.[0]; q<HTMLInputElement>(`.sa-file${s}`).value = ''; if (!f) return;
+      if (f.size > 20e6) return err('That file is over 20 MB. Paste the part you need instead.');
+      const t = await f.text(), first = t.slice(0, t.indexOf('\n>', 1) > 0 ? t.indexOf('\n>', 1) : t.length);
+      q<HTMLTextAreaElement>(`.sa-${s}`).value = first.length > 200000 ? first.slice(0, 200000) : first; run();
+    });
+  }
+  q('.sa-pex').addEventListener('click', () => {
+    const p = root.dataset.pa!, seq = read(p).seq;
+    // A made-up relative: some swaps within groups, a few other changes, a deletion and an insertion.
+    const swap: Record<string, string> = { I: 'V', V: 'L', L: 'I', M: 'L', F: 'Y', Y: 'F', W: 'F', K: 'R', R: 'K', H: 'R', D: 'E', E: 'D', S: 'T', T: 'S', N: 'Q', Q: 'N', A: 'G', G: 'A' };
+    let s2 = [...seq].map((c, i) => (i % 7 === 3 ? swap[c] ?? c : i % 23 === 5 ? 'W' : c)).join('');
+    s2 = s2.slice(0, 40) + s2.slice(46, 90) + 'GSGS' + s2.slice(90);
+    q<HTMLTextAreaElement>('.sa-a').value = p; q<HTMLTextAreaElement>('.sa-b').value = `>made-up protein 2\n${s2.match(/.{1,60}/g)!.join('\n')}`; run();
+  });
+  q('.sa-dex').addEventListener('click', () => { q<HTMLTextAreaElement>('.sa-a').value = exA; q<HTMLTextAreaElement>('.sa-b').value = exB; run(); });
+  q('.sa-fa').addEventListener('click', () => { if (al) save(new Blob([`>${names[0]} ${al.aStart}-${al.aEnd}\n${al.a.match(/.{1,60}/g)!.join('\n')}\n>${names[1]} ${al.bStart}-${al.bEnd}\n${al.b.match(/.{1,60}/g)!.join('\n')}\n`], { type: 'text/plain' }), 'alignment.fasta', 'text/plain'); });
+  q('.sa-txt').addEventListener('click', () => { if (al && sc) save(new Blob([[q('.sa-big').textContent, ...[...q('.sa-facts').children].map((d) => `${d.querySelector('dt')!.textContent}: ${d.querySelector('dd')!.childNodes[0].textContent}`), '', ...blocks(al, sc, 60, names)].join('\n') + '\n'], { type: 'text/plain' }), 'alignment.txt', 'text/plain'); });
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.sa-dot'), figs[0]); });
+  let rw = 0; window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(() => { if (al) run(); }, 300); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Sequence alignment', subtitle: q('.sa-big').textContent ?? '', file: 'alignment', sections }));
+</script>
+
+<style is:global>
+  .sqa .sa-aln { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.35; white-space: pre; overflow-x: auto; max-height: 520px; overflow-y: auto; padding: 8px; border: 1px solid var(--line, #ddd); border-radius: 6px; }
+  .sqa h3 { margin: 16px 0 4px; font-size: 1rem; }
+</style>

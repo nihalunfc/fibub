@@ -156,6 +156,7 @@ import * as GS from '../src/lib/sci/gelsize.ts';
 import * as GB from '../src/lib/sci/genbank.ts';
 import * as PM from '../src/lib/sci/plasmidmap.ts';
 import * as FQ from '../src/lib/sci/fastq.ts';
+import * as AL from '../src/lib/sci/align.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3148,6 +3149,35 @@ ORIGIN
   check('fq: file cut short', cut.reads === 1 && cut.errors.some((e) => e.includes('ends in the middle of read 2')));
   check('fq: histogram quantile', FQ.histQuantile([0, 2, 0, 2], 0.5) === 1 && FQ.histQuantile([0, 2, 0, 2], 0.51) === 3 && Number.isNaN(FQ.histQuantile([0, 0], 0.5)));
   check('fq: seeded random', (() => { const a = FQ.rng(1), b = FQ.rng(1); return a() === b() && a() !== a(); })());
+}
+// #172 pairwise alignment: optimal scores checked against Biopython 1.88 PairwiseAligner with the same scoring
+// (match/mismatch or the fibub group matrix, affine gaps, end gaps free for semi-global); 600 random cases agreed
+// during development, 12 are kept here. Each alignment must also rescore to its score and give back its sequences.
+{
+  const cases = [{"a": "GGGTGAGGCCTCGGAACCCGAGGCTTTCGCAGTCAGCGGTATTCAATCGCGGAGACGTCCCAGCTC", "b": "ATGGCCACGAGCTTTCGCATCAGACGGTATTCGTCGAGGTAGAGTCCCGCTTGTTTAAGCCG", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 8}, {"a": "CLGKRKHNIYG", "b": "QLGKEKHTNPYG", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 27}, {"a": "CGCGGGTAGTGGAAGACCAACTGTAAAGTGACCACTCCAG", "b": "CGTCGAGTAGGGGAAGACAAACCTGTAAAGGGACCACTCCAG", "prot": false, "mode": "local", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 51}, {"a": "GQGLQMWFAQQPYEDYPGGRQYHHCA", "b": "QPYQMWGIAQPNYEDYTGGRYHHEHDLWNPVNAM", "prot": true, "mode": "semiglobal", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 46}, {"a": "AGGCAACAGTGAGAACCAATAATAA", "b": "AAGGCAACACGTAGACGCAAATATA", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 8}, {"a": "TCTAGCGGGTCTGATCTCAACGGATAAGTGGAAAATAATTTGCGTGGCGTTGTTTGT", "b": "TTCTAGCGGGTCGATCTCAACGGTAAGTGGAAAATAATTTGCGTGGCCGTTGTTTGT", "prot": false, "mode": "semiglobal", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 95}, {"a": "CCTATGACACCT", "b": "CTTGATAGAACCGT", "prot": false, "mode": "local", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 6}, {"a": "INRLIRFWIRFFVH", "b": "INRNIRFIRLFQVH", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -7, "extend": -1}, "score": 37}, {"a": "FVYFRPYGRGPQGIHKASYRYKRNRYSRI", "b": "VYFGPYGRGPQGHMKASTKRYKRYSRI", "prot": true, "mode": "semiglobal", "sc": {"same": 5, "similar": 2, "different": -2, "open": -7, "extend": -1}, "score": 87}, {"a": "CTATCACTATAAACGTATAAAGG", "b": "CGTATCAGTAATAAACTGTTAAAACGG", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 13}, {"a": "HRGVDVSEFFTLMSDDMMAEAKEKEEYQGLDR", "b": "GYRFFGLMIDDNMFEALKETKVEMQGLDRVDQGEMLAKD", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 60}, {"a": "CCTTTG", "b": "ACTTTG", "prot": false, "mode": "semiglobal", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 7}];
+  for (const [n, c] of cases.entries()) {
+    const S = c.prot ? AL.proteinScoring(c.sc.same, c.sc.similar, c.sc.different, c.sc.open, c.sc.extend) : AL.dnaScoring(c.sc.match, c.sc.mismatch, c.sc.open, c.sc.extend);
+    const al = AL.align(c.a, c.b, S, c.mode);
+    const back = al.a.replace(/-/g, '') === (c.mode === 'local' ? c.a.slice(al.aStart - 1, al.aEnd) : c.a) && al.b.replace(/-/g, '') === (c.mode === 'local' ? c.b.slice(al.bStart - 1, al.bEnd) : c.b);
+    check(`align: case ${n + 1} ${c.mode} ${c.prot ? 'protein' : 'DNA'} score ${c.score}`, al.score === c.score && back && AL.rescore(al.a, al.b, S, c.mode) === c.score);
+  }
+  const d = AL.dnaScoring(2, -3, -5, -2);
+  const g = AL.align('ACGTACGT', 'ACGTCGT', d, 'global');
+  check('align: one deletion', g.score === 9 && g.a === 'ACGTACGT' && g.b.replace(/-/g, '') === 'ACGTCGT' && g.gaps === 1 && g.gapOpenings === 1 && g.identities === 7 && g.columns === 8);
+  const l = AL.align('TTTTTGATTACATTTTT', 'CCGATTACACC', d, 'local');
+  check('align: local finds the shared word', l.a === 'GATTACA' && l.b === 'GATTACA' && l.score === 14 && l.aStart === 6 && l.aEnd === 12 && l.bStart === 3 && l.bEnd === 9);
+  const sg = AL.align('GATTACA', 'CCCGATTACAGGG', d, 'semiglobal');
+  check('align: semi-global end gaps free', sg.score === 14 && sg.a === '---GATTACA---' && sg.b === 'CCCGATTACAGGG');
+  const gl = AL.align('GATTACA', 'CCCGATTACAGGG', d, 'global');
+  check('align: global pays for end gaps', gl.score === 14 - 2 * (5 + 2 * 2) && AL.rescore(gl.a, gl.b, d, 'global') === gl.score);
+  check('align: affine gap, one run of 3', AL.rescore('ACGTTTACG', 'ACG---ACG', d, 'global') === 12 - 5 - 4 && AL.rescore('ACGTTTACG', 'ACG-T-ACG', d, 'global') === 14 - 10);
+  check('align: protein groups', AL.sameGroup('I', 'V') && AL.sameGroup('D', 'E') && !AL.sameGroup('D', 'K') && AL.proteinScoring().score('L', 'L') === 5 && AL.proteinScoring().score('L', 'I') === 2 && AL.proteinScoring().score('L', 'D') === -2);
+  const bl = AL.blocks(g, d, 4, ['s1', 's2']);
+  check('align: text blocks', bl[0] === 's1 1 ACGT 4' && bl[2] === 's2 1 ACGT 4' && bl[1] === '     ||||' && bl[4].startsWith('s1 5 ACGT 8'));
+  const dp = AL.dotPlot('ACGTACGT', 'ACGT', 4, 1000, true);
+  check('align: dot plot words', JSON.stringify(dp.fwd) === '[[0,0],[4,0]]' && dp.rev.length === 2);
+  check('align: type guess', AL.guessType('ACGTNACGT') === 'dna' && AL.guessType('MKVLAAGIV') === 'protein');
+  check('align: size limit', (() => { try { AL.align('A'.repeat(6000), 'A'.repeat(6000), d, 'global'); return false; } catch { return true; } })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
