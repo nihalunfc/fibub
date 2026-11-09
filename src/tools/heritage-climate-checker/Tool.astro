@@ -1,0 +1,196 @@
+---
+// Heritage climate and mould risk checker: a data-logger series (time, temperature, RH) checked against the user's
+// limits: dew point, hours outside the limits, daily RH swings, the longest damp spell and a time-weighted
+// preservation index from an Arrhenius rate. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hcc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Logger data</h2>
+      <button type="button" class="btn secondary small hc-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Time, temperature and RH, one reading per line, with the header row your logger writes <textarea class="hc-in" rows="7" spellcheck="false" wrap="off" placeholder="Time,Temperature (°C),RH (%)&#10;2026-06-01 00:00,18.1,54.2"></textarea></label>
+    <DataFile target=".hc-in" maxMB={20} maxCols={12} maxRows={200000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Dates are written <select class="hc-order"><option value="auto">year first, or guess</option><option value="dmy">day/month/year</option><option value="mdy">month/day/year</option></select></label>
+      <label>Temperature in <select class="hc-unit"><option value="c">°C</option><option value="f">°F</option></select></label>
+      <label>Time column <select class="hc-ctime"></select></label>
+      <label>Separate date column <select class="hc-cdate"></select></label>
+      <label>Temperature column <select class="hc-ctemp"></select></label>
+      <label>RH column <select class="hc-crh"></select></label>
+    </div>
+    <p class="ax-help">Columns are picked from the header names; change them if the guess is wrong. Times are read as the logger's own clock.</p>
+    <p class="ax-err hc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your limits</h2>
+    <div class="ax-grid">
+      <label>RH upper limit (%) <input class="hc-rhhi" inputmode="decimal" value="65" /></label>
+      <label>RH lower limit (%) <input class="hc-rhlo" inputmode="decimal" value="40" /></label>
+      <label>Temperature upper limit (°C) <input class="hc-thi" inputmode="decimal" value="22" /></label>
+      <label>Temperature lower limit (°C) <input class="hc-tlo" inputmode="decimal" value="16" /></label>
+      <label>Mould-risk RH, at or above (%) <input class="hc-mould" inputmode="decimal" value="70" /></label>
+      <label>Daily RH swing limit (% RH) <input class="hc-swing" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">These are example values. Use the targets your institution, conservator or loan agreement sets; they depend on the collection and the building.</p>
+    <h3>Preservation index</h3>
+    <div class="ax-grid">
+      <label>Activation energy (kJ/mol) <input class="hc-ea" inputmode="decimal" value="100" /></label>
+      <label>Reference temperature (°C) <input class="hc-tref" inputmode="decimal" value="20" /></label>
+      <label>Reference RH (%) <input class="hc-rhref" inputmode="decimal" value="50" /></label>
+      <label>Humidity exponent <input class="hc-n" inputmode="decimal" value="1" /></label>
+      <label>Life at the reference (years, optional) <input class="hc-life" inputmode="decimal" placeholder="none" /></label>
+    </div>
+    <p class="ax-help">The decay rate is taken as exp(−Ea/RT) × RH<sup>n</sup>, relative to the reference conditions; the activation energy depends on the material (example value). The index is how much longer (above 1) or shorter (below 1) objects last than at the reference, averaged over time.</p>
+  </div>
+
+  <div class="ax-card hc-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big hc-big"></p>
+    <dl class="ax-facts hc-facts"></dl>
+    <p class="ax-help hc-note"></p>
+    <h3>Relative humidity</h3>
+    <canvas class="ax-fig hc-frh"></canvas>
+    <h3>Temperature and dew point</h3>
+    <canvas class="ax-fig hc-ft"></canvas>
+    <h3>Daily RH swing</h3>
+    <canvas class="ax-fig hc-fsw"></canvas>
+    <div class="ax-scroll hc-tw"><table class="hc-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hc-csv">Download daily summary (CSV)</button>
+      <button type="button" class="btn secondary small hc-rcsv">Download readings with dew point (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hcc h3 { margin: 20px 0 8px; font-size: 15px; }
+  .hcc .hc-tw { max-height: 360px; overflow-y: auto; margin-top: 12px; }
+  .hcc .hc-tab tr.over td { color: var(--bad); }
+  .hcc .hc-tab td:first-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseLog, analyse, thin, exampleLog, relRate, type Result, type Reading, type DateOrder, type Options } from '../../lib/sci/heritageclimate';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hcc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  const hrs = (h: number) => (h >= 48 ? `${f1(h)} h (${f1(h / 24)} days)` : `${f1(h)} h`);
+  const when = (t: number) => new Date(t).toISOString().slice(0, 16).replace('T', ' ');
+  const dayStr = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const COLS = ['.hc-ctime', '.hc-cdate', '.hc-ctemp', '.hc-crh'] as const;
+  let res: Result | null = null, rd: Reading[] = [], figs: Figure[] = [], facts: [string, string][] = [], opts: Options | null = null, headKey = '', userCols = false;
+
+  function fillCols(headers: string[], cols: { time: number; date: number; temp: number; rh: number }) {
+    const key = headers.join('\u0001');
+    if (key === headKey) return;
+    headKey = key; userCols = false;
+    const vals = [cols.time, cols.date, cols.temp, cols.rh];
+    COLS.forEach((c, k) => {
+      const s = q<HTMLSelectElement>(c);
+      s.replaceChildren(...(k === 1 ? [new Option('none', '-1')] : []), ...headers.map((h, i) => new Option(h || `Column ${i + 1}`, String(i))));
+      s.value = String(vals[k]);
+    });
+  }
+
+  function run() {
+    const err = q('.hc-err'); err.hidden = true;
+    const text = q<HTMLTextAreaElement>('.hc-in').value;
+    if (!text.trim()) { q('.hc-out').hidden = true; res = null; return; }
+    const o: Options = { rhHigh: v('.hc-rhhi'), rhLow: v('.hc-rhlo'), tHigh: v('.hc-thi'), tLow: v('.hc-tlo'), mouldRh: v('.hc-mould'), swing: v('.hc-swing'), ea: v('.hc-ea'), tRef: v('.hc-tref'), rhRef: v('.hc-rhref'), rhExp: v('.hc-n') };
+    const bad = Object.entries(o).filter(([, x]) => !Number.isFinite(x)).length;
+    if (bad || !(o.rhRef > 0) || !(o.ea >= 0) || o.tRef <= -273.15) { err.textContent = 'Check the limits and preservation settings: each needs a number (reference RH above 0, activation energy 0 or more).'; err.hidden = false; q('.hc-out').hidden = true; return; }
+    const cols = userCols ? Object.fromEntries(COLS.map((c, k) => [['time', 'date', 'temp', 'rh'][k], Number(q<HTMLSelectElement>(c).value)])) : undefined;
+    const p = parseLog(text, { order: q<HTMLSelectElement>('.hc-order').value as DateOrder, fahrenheit: q<HTMLSelectElement>('.hc-unit').value === 'f', cols });
+    fillCols(p.headers, p.cols);
+    if (p.readings.length < 2) { err.textContent = `Fewer than two readings could be read${p.firstBad ? `; the first problem is ${p.firstBad}` : ''}. Check the columns and the date order; RH must be above 0 and at most 100 %.`; err.hidden = false; q('.hc-out').hidden = true; res = null; return; }
+    if (p.bad) { err.textContent = `${p.bad.toLocaleString('en')} line${p.bad === 1 ? '' : 's'} skipped (first: ${p.firstBad}): no readable time, temperature or RH from 0 to 100 %.`; err.hidden = false; }
+    rd = p.readings; opts = o; res = analyse(rd, o);
+    show(res, o);
+  }
+
+  function show(r: Result, o: Options) {
+    q('.hc-out').hidden = false;
+    const pct = (h: number) => `${f1((100 * h) / r.hours)} % of the time`;
+    q('.hc-big').textContent = `${r.n.toLocaleString('en')} readings over ${f1(r.hours / 24)} days: ${hrs(r.hoursMould)} at or above ${sig(o.mouldRh, 3)} % RH, longest spell ${hrs(r.longest.hours)}`;
+    const life = v('.hc-life');
+    facts = [
+      ['From', when(r.start)], ['To', when(r.end)],
+      ['Reading every', r.step >= 3600000 ? `${sig(r.step / 3600000, 3)} h` : `${sig(r.step / 60000, 3)} min`], ['Gaps (over 3 steps)', String(r.gaps)],
+      ['Temperature', `${f1(r.temp.mean)} °C`], ['Temperature range', `${f1(r.temp.min)} to ${f1(r.temp.max)} °C`],
+      ['RH', `${f1(r.rh.mean)} %`], ['RH range', `${f1(r.rh.min)} to ${f1(r.rh.max)} %`],
+      ['Dew point', `${f1(r.dew.mean)} °C`], ['Dew point range', `${f1(r.dew.min)} to ${f1(r.dew.max)} °C`],
+      [`RH above ${sig(o.rhHigh, 3)} %`, hrs(r.hoursRhHigh)], [`RH below ${sig(o.rhLow, 3)} %`, hrs(r.hoursRhLow)],
+      [`Temperature above ${sig(o.tHigh, 3)} °C`, hrs(r.hoursTHigh)], [`Temperature below ${sig(o.tLow, 3)} °C`, hrs(r.hoursTLow)],
+      [`At or above ${sig(o.mouldRh, 3)} % RH`, hrs(r.hoursMould)],
+      ['Longest spell at that RH', r.longest.hours ? `${hrs(r.longest.hours)}` : 'none'],
+      ['Daily RH swing, mean', r.maxSwing ? `${f1(r.meanSwing)} % RH` : 'needs a full day'],
+      ['Largest daily swing', r.maxSwing ? `${f1(r.maxSwing.range)} % RH on ${dayStr(r.maxSwing.day)}` : '–'],
+      [`Days with a swing over ${sig(o.swing, 3)} %`, r.maxSwing ? String(r.daysOverSwing) : '–'],
+      ['Decay rate vs reference', `${sig(r.rate, 3)} ×`],
+      ['Preservation index (time-weighted)', `${sig(r.twpi, 3)}${life > 0 ? ` (${sig(r.twpi * life, 3)} years)` : ''}`],
+    ];
+    const sub: Record<string, string> = {
+      [`RH above ${sig(o.rhHigh, 3)} %`]: pct(r.hoursRhHigh), [`RH below ${sig(o.rhLow, 3)} %`]: pct(r.hoursRhLow), [`Temperature above ${sig(o.tHigh, 3)} °C`]: pct(r.hoursTHigh), [`Temperature below ${sig(o.tLow, 3)} °C`]: pct(r.hoursTLow), [`At or above ${sig(o.mouldRh, 3)} % RH`]: pct(r.hoursMould),
+      'Longest spell at that RH': r.longest.hours ? `${when(r.longest.from)} to ${when(r.longest.to)}` : '',
+      'Decay rate vs reference': `1 at ${sig(o.tRef, 3)} °C, ${sig(o.rhRef, 3)} % RH`,
+    };
+    q('.hc-facts').replaceChildren(...facts.map(([k, x]) => fact(k, x, sub[k] ?? '')));
+    const notes = [`Each reading counts until the next one; a gap of more than 3 usual steps counts as one step. Daily swings use calendar days with at least three quarters of their readings (${r.days.length} days in all).`];
+    if (r.longest.hours >= 24 * 3) notes.push('A damp spell of several days is a mould warning sign: check for musty smells, bloom on surfaces and the air circulation.');
+    q('.hc-note').textContent = notes.join(' ');
+    // Figures: x in days since the first reading.
+    const d0 = Math.floor(r.start / 86400000) * 86400000, X = rd.map((x) => (x.t - d0) / 86400000), xl = `Days since ${dayStr(d0)} 00:00`;
+    const rh = thin(X, rd.map((x) => x.rh)), te = thin(X, rd.map((x) => x.temp)), dp = thin(X, r.dewPts);
+    figs = [
+      chartFigure({ w: 520, h: 320, xLabel: xl, yLabel: 'RH (%)', legend: 'none', series: [{ name: 'RH', x: rh.x, y: rh.y, mode: 'line', width: 1.2 }],
+        marks: [{ kind: 'hline', at: o.rhHigh, dash: [5, 4], label: `${sig(o.rhHigh, 3)} %` }, { kind: 'hline', at: o.rhLow, dash: [5, 4], label: `${sig(o.rhLow, 3)} %` }, ...(o.mouldRh !== o.rhHigh ? [{ kind: 'hline' as const, at: o.mouldRh, dash: [2, 3], label: `mould ${sig(o.mouldRh, 3)} %` }] : [])] }, `Relative humidity over ${f1(r.hours / 24)} days, ${f1(r.rh.min)} to ${f1(r.rh.max)} %`),
+      chartFigure({ w: 520, h: 320, xLabel: xl, yLabel: 'Temperature (°C)', legend: 'below', series: [{ name: 'Air temperature', x: te.x, y: te.y, mode: 'line', width: 1.2 }, { name: 'Dew point', x: dp.x, y: dp.y, mode: 'line', width: 1.2 }],
+        marks: [{ kind: 'hline', at: o.tHigh, dash: [5, 4], label: `${sig(o.tHigh, 3)} °C` }, { kind: 'hline', at: o.tLow, dash: [5, 4], label: `${sig(o.tLow, 3)} °C` }] }, `Temperature ${f1(r.temp.min)} to ${f1(r.temp.max)} °C and dew point ${f1(r.dew.min)} to ${f1(r.dew.max)} °C`),
+      chartFigure({ w: 520, h: 280, xLabel: xl, yLabel: 'Daily RH swing (% RH)', legend: 'none', yMin: 0, series: [{ name: 'Daily swing', x: r.days.map((d) => (d.day - d0) / 86400000 + 0.5), y: r.days.map((d) => d.range), mode: 'both', marker: 'circle', size: 3 }],
+        marks: [{ kind: 'hline', at: o.swing, dash: [5, 4], label: `${sig(o.swing, 3)} %` }] }, `Daily RH swings, largest ${r.maxSwing ? f1(r.maxSwing.range) : '–'} % RH`),
+    ];
+    ['.hc-frh', '.hc-ft', '.hc-fsw'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i]));
+    const t = q<HTMLTableElement>('.hc-tab'); t.replaceChildren();
+    const h = t.insertRow(); ['Day', 'Readings', 'RH min', 'RH max', 'Swing'].forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const d of r.days) { const tr = t.insertRow(); if (d.range > o.swing) tr.className = 'over'; [dayStr(d.day), String(d.n), f1(d.min), f1(d.max), f1(d.range)].forEach((s, k) => { const td = tr.insertCell(); td.textContent = s; if (k) td.className = 'r'; }); }
+  }
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 300); };
+  q('.hc-in').addEventListener('input', () => later(run));
+  for (const c of ['.hc-rhhi', '.hc-rhlo', '.hc-thi', '.hc-tlo', '.hc-mould', '.hc-swing', '.hc-ea', '.hc-tref', '.hc-rhref', '.hc-n', '.hc-life']) q(c).addEventListener('input', () => later(run));
+  for (const c of ['.hc-order', '.hc-unit']) q(c).addEventListener('change', run);
+  for (const c of COLS) q(c).addEventListener('change', () => { userCols = true; run(); });
+  q('.hc-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.hc-in').value = exampleLog(); q<HTMLSelectElement>('.hc-order').value = 'auto'; q<HTMLSelectElement>('.hc-unit').value = 'c'; headKey = ''; run(); });
+  q('.hc-csv').addEventListener('click', () => {
+    if (!res) return;
+    save(new Blob([csv([['day', 'readings', 'rh_min', 'rh_max', 'rh_swing'], ...res.days.map((d) => [dayStr(d.day), d.n, d.min, d.max, +d.range.toFixed(3)])])], { type: 'text/csv' }), 'climate-daily-summary.csv', 'text/csv');
+  });
+  q('.hc-rcsv').addEventListener('click', () => {
+    if (!res || !opts) return;
+    const o = opts;
+    save(new Blob([csv([['time', 'temperature_c', 'rh_percent', 'dew_point_c', 'relative_decay_rate'], ...rd.map((x, i) => [when(x.t), +x.temp.toFixed(3), x.rh, res!.dewPts[i].toFixed(2), relRate(x.temp, x.rh, o).toFixed(4)])])], { type: 'text/csv' }), 'climate-readings.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = res ? [
+      { title: 'Summary', text: [q('.hc-big').textContent ?? '', q('.hc-note').textContent ?? ''], facts },
+      { title: 'Relative humidity', figure: figs[0] }, { title: 'Temperature and dew point', figure: figs[1] },
+      { title: 'Daily RH swing', figure: figs[2], table: { head: ['Day', 'Readings', 'RH min', 'RH max', 'Swing'], rows: res.days.map((d) => [dayStr(d.day), String(d.n), f1(d.min), f1(d.max), f1(d.range)]), align: ['l', 'r', 'r', 'r', 'r'] } },
+    ] : [];
+    return { title: 'Heritage climate check', subtitle: 'Limits set by the user; dew point by the Magnus formula', file: 'heritage-climate', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (res) ['.hc-frh', '.hc-ft', '.hc-fsw'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  q<HTMLTextAreaElement>('.hc-in').value = exampleLog(); run();
+</script>
