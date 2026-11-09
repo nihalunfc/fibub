@@ -1,5 +1,14 @@
 [
  {
+  "sha": "a094da5d6844",
+  "date": "2026-11-09T00:26:49+00:00",
+  "title": "Add the rain gauge network average (#150)",
+  "tools": [
+   "rain-gauge-average"
+  ],
+  "site": false
+ },
+ {
   "sha": "ea2c51f0754c",
   "date": "2026-11-09T00:08:22+00:00",
   "title": "Add the unit hydrograph builder (#149)",
