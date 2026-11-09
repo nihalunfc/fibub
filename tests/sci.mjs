@@ -140,6 +140,7 @@ import * as NDS from '../src/lib/sci/censored.ts';
 import * as LFG from '../src/lib/sci/lfg.ts';
 import * as POND from '../src/lib/sci/pond.ts';
 import * as WQI from '../src/lib/sci/wqi.ts';
+import * as ASL from '../src/lib/sci/asludge.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2785,6 +2786,19 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('wqi categories', WQI.category(95) === 'Excellent' && WQI.category(94.9) === 'Good' && WQI.category(44.9) === 'Poor');
   const all = WQI.wqi(objs, [{ v: 0, value: 7 }, { v: 2, value: 0.01 }]); near('wqi all pass = 100', all.index, 100, 1e-12);
   check('wqi unused variable not counted', all.nVar === 2);
+}
+{
+  // Activated sludge: checked against an independent Python mass balance (same textbook equations).
+  const p = { Q: 4000, S0: 200, srt: 8, mlss: 3000, Y: 0.6, kd: 0.1, fd: 0.15, mumax: 5, Ks: 40, nbVSS: 20, iTSS: 10, vssRatio: 0.85, bcodRatio: 1.6, ote: 0.10, Xr: 8000 };
+  const r = ASL.size(p);
+  near('as S', r.S, 1.8848167539267013, 1e-10); near('as bio', r.bio, 264.15357766143103, 1e-8); near('as debris', r.debris, 31.698429319371723, 1e-8);
+  near('as pxVSS', r.pxVSS, 375.85200698080274, 1e-8); near('as pxTSS', r.pxTSS, 468.06118468329737, 1e-8); near('as V', r.V, 1248.1631591554597, 1e-7);
+  near('as hrt', r.hrt, 7.488978954932758, 1e-10); near('as fm', r.fm, 0.26606216846703623, 1e-12); near('as o2', r.o2, 847.827322862129, 1e-7);
+  near('as air', r.airM3min, 21.078050686283213, 1e-9); near('as R', r.R, 0.6, 1e-12); near('as Qw', r.Qw, 58.50764808541217, 1e-9);
+  near('as minSrt', ASL.minSrt(p), 0.24590163934426226, 1e-12);
+  check('as washout', ASL.effluentS({ ...p, srt: 0.2 }) === Infinity);
+  // Mass balance: biomass in the tank equals production times SRT.
+  near('as tank solids', (r.V * p.mlss) / 1000, r.pxTSS * p.srt, 1e-6);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
