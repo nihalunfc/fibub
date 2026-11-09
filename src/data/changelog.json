@@ -1,5 +1,14 @@
 [
  {
+  "sha": "b03bbfef2762",
+  "date": "2026-11-09T05:43:55+00:00",
+  "title": "Add #171 FASTQ and FASTA quality inspector (streaming, gzip, quality boxes, GC, repeats)",
+  "tools": [
+   "fastq-inspector"
+  ],
+  "site": false
+ },
+ {
   "sha": "f9a7e8ca78b3",
   "date": "2026-11-09T05:28:21+00:00",
   "title": "Add #170 plasmid map viewer and editor (GenBank in and out, circular or linear map, SVG)",
