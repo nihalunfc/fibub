@@ -1,5 +1,14 @@
 [
  {
+  "sha": "471930612754",
+  "date": "2026-11-09T04:30:23+00:00",
+  "title": "Add #167 primer checker: Tm, GC clamp, runs, hairpins, dimers and template products",
+  "tools": [
+   "primer-checker"
+  ],
+  "site": false
+ },
+ {
   "sha": "8184d23ab387",
   "date": "2026-11-09T04:16:33+00:00",
   "title": "Add #166 ligation and assembly calculator: molar ratios, amounts and pipetting volumes",
