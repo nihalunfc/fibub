@@ -1,0 +1,280 @@
+---
+// Food web builder: a forest or pond web drawn by trophic level. Tap two organisms to add or remove "who eats
+// whom", remove a species and see the knock-on effects, and read the energy pyramid with the 10 % rule.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fwb">
+  <p class="ax-help fwb-note">Simplified teaching webs: real forests and ponds have many more species and links.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="fwb-lab">Level</span>
+      <div class="ax-seg fwb-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 8–10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></div></div>
+    <div class="ax-row fwb-gap"><span class="fwb-lab">Habitat</span>
+      <div class="ax-seg fwb-web" role="group" aria-label="Habitat"><button type="button" data-v="forest" aria-pressed="true">Forest</button><button type="button" data-v="pond" aria-pressed="false">Pond</button></div>
+      <button type="button" class="btn secondary small fwb-blank">Clear the links</button><button type="button" class="btn secondary small fwb-reset">Start again</button></div>
+    <div class="ax-row fwb-gap"><span class="fwb-lab">A tap will</span>
+      <div class="ax-seg fwb-mode" role="group" aria-label="What a tap does"><button type="button" data-v="link" aria-pressed="true">Draw who eats whom</button><button type="button" data-v="remove" aria-pressed="false">Remove a species</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <p class="fwb-hint" aria-live="polite"></p>
+    <svg class="fwb-svg" role="group" aria-label="Food web"></svg>
+    <p class="ax-help">Arrows point from the food to the eater: the way energy flows. Producers (plants and algae) are at the bottom.</p>
+    <p class="ax-big fwb-big" aria-live="polite"></p>
+    <p class="fwb-say"></p>
+    <dl class="ax-facts fwb-facts"></dl>
+    <div class="ax-row fwb-gap"><button type="button" class="btn secondary small fwb-back" hidden>Bring everyone back</button><button type="button" class="btn secondary small fwb-csv">Download food chains (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Energy pyramid</h2>
+    <label>Energy the producers store: <b class="fwb-ev"></b>
+      <input type="range" class="fwb-e" min="1000" max="100000" step="1000" value="10000" aria-label="Energy stored by producers, kilojoules" /></label>
+    <label class="fwb-l12 fwb-gap">Energy passed up each level: <b class="fwb-fv"></b>
+      <input type="range" class="fwb-f" min="5" max="20" step="1" value="10" aria-label="Per cent passed to the next level" /></label>
+    <canvas class="ax-fig fwb-pyr"></canvas>
+    <p class="fwb-formula"></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fwb-try">
+      <li>Remove the deer. Who else disappears, and why?</li>
+      <li>Remove the snake. Which animals might become more common?</li>
+      <li>Clear the links and build the pond web yourself: tap the food first, then the eater.</li>
+      <li>Why are there so few animals at the top of a food chain? Look at the energy left at level 4.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="fwb-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small fwb-check">Check answers</button><button type="button" class="btn secondary small fwb-new">New questions</button></div>
+    <p class="fwb-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { WEBS, levels, chains, removeEffects, pyramid, type Web, type Link } from '../../lib/sci/foodweb';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fwb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  let level = 8, web: Web = WEBS[0], links: Link[] = [...WEBS[0].links], mode: 'link' | 'remove' = 'link';
+  let sel = '', removed = '', pyr: Figure | null = null;
+  const nameOf = (id: string) => web.orgs.find((o) => o.id === id)!.name;
+  const lvWords = ['', 'producer', 'primary consumer (herbivore)', 'secondary consumer', 'tertiary consumer', 'quaternary consumer'];
+
+  // ---------- the web ----------
+  const pos: Record<string, { x: number; y: number }> = {};
+  function layout() {
+    const lv = levels(web.orgs, links), maxL = Math.max(1, ...Object.values(lv).filter(Number.isFinite));
+    const rows = new Map<number, string[]>();
+    for (const o of web.orgs) { const r = Number.isFinite(lv[o.id]) ? lv[o.id] : maxL + 1; rows.set(r, [...(rows.get(r) ?? []), o.id]); }
+    const nRows = Math.max(...rows.keys()), W = 480, rowH = 74, H = nRows * rowH + 10;
+    for (const [r, ids] of rows) ids.forEach((id, i) => { pos[id] = { x: ((i + 0.5) * W) / ids.length, y: H - (r - 0.5) * rowH }; });
+    return { lv, W, H, maxL, nRows, orphanRow: rows.has(maxL + 1) && web.orgs.some((o) => !Number.isFinite(lv[o.id])) };
+  }
+  function draw() {
+    const { lv, W, H } = layout(), svg = q<SVGSVGElement>('.fwb-svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.replaceChildren();
+    const el = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v)); if (text != null) e.textContent = text; return e; };
+    const defs = el('defs', {}); const mk = el('marker', { id: 'fwb-ah', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }); mk.append(el('path', { d: 'M0,0L10,5L0,10z', class: 'fwb-ahp' })); defs.append(mk); svg.append(defs);
+    const fx = removed ? removeEffects(web.orgs, links, removed) : null;
+    const dead = new Set(fx ? [removed, ...fx.gone] : []);
+    const bw = Math.min(92, 440 / Math.max(...[...new Set(Object.values(pos).map((p) => p.y))].map((y) => Object.values(pos).filter((p) => p.y === y).length))) , bh = 34;
+    for (const [f, e] of links) {
+      const a = pos[f], b = pos[e]; if (!a || !b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const edge = (hw: number, hh: number) => Math.min(Math.abs(dx) > 1e-9 ? hw / Math.abs(dx) : Infinity, Math.abs(dy) > 1e-9 ? hh / Math.abs(dy) : Infinity);
+      const sa = edge(bw / 2, bh / 2), sb = edge(bw / 2 + 3, bh / 2 + 3);
+      if (sa + sb >= 1) continue;
+      const x1 = a.x + sa * dx, y1 = a.y + sa * dy, x2 = b.x - sb * dx, y2 = b.y - sb * dy;
+      svg.append(el('line', { x1, y1, x2, y2, class: `fwb-link${dead.has(f) || dead.has(e) ? ' fwb-dead' : ''}`, 'marker-end': 'url(#fwb-ah)', 'data-l': `${f}>${e}` }));
+    }
+    for (const o of web.orgs) {
+      const p = pos[o.id], g = el('g', { class: `fwb-node${o.producer ? ' fwb-prod' : ''}${sel === o.id ? ' fwb-sel' : ''}${dead.has(o.id) ? ' fwb-dead' : ''}`, 'data-o': o.id, tabindex: 0, role: 'button', 'aria-label': `${o.name}${dead.has(o.id) ? ', gone' : ''}` });
+      g.append(el('rect', { x: p.x - bw / 2, y: p.y - bh / 2, width: bw, height: bh, rx: 9 }));
+      g.append(el('text', { x: p.x, y: p.y + 4.5, 'text-anchor': 'middle', ...(o.name.length > 11 ? { textLength: bw - 10, lengthAdjust: 'spacingAndGlyphs' } : {}) }, o.name));
+      let tag = '';
+      if (fx) tag = o.id === removed ? 'removed' : fx.gone.includes(o.id) ? '✕ dies out' : fx.more.includes(o.id) ? '↑ more' : fx.hungrier.includes(o.id) ? '↓ less food' : '';
+      else if (level === 12 && Number.isFinite(lv[o.id])) tag = `level ${lv[o.id]}`;
+      else if (!o.producer && !Number.isFinite(lv[o.id])) tag = 'no food yet';
+      if (tag) g.append(el('text', { x: p.x, y: p.y + bh / 2 + 12, 'text-anchor': 'middle', class: 'fwb-tag' }, tag));
+      g.addEventListener('click', () => tapOrg(o.id));
+      g.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter' || (ev as KeyboardEvent).key === ' ') { ev.preventDefault(); tapOrg(o.id); } });
+      svg.append(g);
+    }
+    report(lv, fx);
+  }
+
+  function tapOrg(id: string) {
+    if (mode === 'remove') { removed = removed === id ? '' : id; sel = ''; draw(); return; }
+    if (removed) { removed = ''; }
+    if (!sel) { sel = id; q('.fwb-hint').textContent = `Now tap who eats ${nameOf(id)} (or tap it again to cancel).`; draw(); return; }
+    if (sel === id) { sel = ''; hint(); draw(); return; }
+    const i = links.findIndex(([f, e]) => f === sel && e === id);
+    const eater = web.orgs.find((o) => o.id === id)!;
+    if (i >= 0) { links.splice(i, 1); q('.fwb-hint').textContent = `Removed: ${nameOf(sel)} → ${eater.name}.`; }
+    else if (eater.producer) { q('.fwb-hint').textContent = `${eater.name} makes its own food by photosynthesis, so it does not eat ${nameOf(sel)}.`; }
+    else if (links.some(([f, e]) => f === id && e === sel)) { q('.fwb-hint').textContent = `${eater.name} is already food for ${nameOf(sel)}. Tap the food first, then the eater.`; }
+    else { links.push([sel, id]); q('.fwb-hint').textContent = `Added: ${nameOf(sel)} → ${eater.name} (${eater.name} eats ${nameOf(sel).toLowerCase()}).`; }
+    sel = ''; draw();
+  }
+  const hint = () => { q('.fwb-hint').textContent = mode === 'link' ? 'Tap a food, then the animal that eats it, to add or remove an arrow.' : 'Tap a species to remove it from the habitat. Tap it again to bring it back.'; };
+
+  let factList: [string, string, string?][] = [], chainList: string[][] = [];
+  function report(lv: Record<string, number>, fx: ReturnType<typeof removeEffects> | null) {
+    chainList = chains(web.orgs.filter((o) => !(fx && (o.id === removed || fx.gone.includes(o.id)))), links.filter(([f, e]) => !(fx && [removed, ...fx.gone].some((g) => g === f || g === e))));
+    const longest = chainList.reduce((a, c) => (c.length > a.length ? c : a), [] as string[]);
+    if (fx) {
+      q('.fwb-big').textContent = `Without the ${nameOf(removed).toLowerCase()}: ${fx.gone.length ? `${fx.gone.length} more species ${fx.gone.length === 1 ? 'dies' : 'die'} out` : 'no other species dies out'}`;
+      const parts = [];
+      if (fx.gone.length) parts.push(`${fx.gone.map(nameOf).join(', ')} ${fx.gone.length > 1 ? 'have' : 'has'} nothing left to eat and die${fx.gone.length > 1 ? '' : 's'} out.`);
+      if (fx.more.length) parts.push(`${fx.more.map(nameOf).join(', ')} ${fx.more.length > 1 ? 'are' : 'is'} eaten less, so numbers may grow.`);
+      if (fx.hungrier.length) parts.push(`${fx.hungrier.map(nameOf).join(', ')} lost some food but can eat other things.`);
+      q('.fwb-say').textContent = parts.join(' ') || 'Nothing in this web depends on it.';
+    } else {
+      q('.fwb-big').textContent = `${chainList.length} food chain${chainList.length === 1 ? '' : 's'} in this ${web.name.toLowerCase()} web`;
+      q('.fwb-say').textContent = longest.length ? `Longest: ${longest.map(nameOf).join(' → ')}.` : 'No food chains yet: add arrows from producers to the animals that eat them.';
+    }
+    const producers = web.orgs.filter((o) => o.producer).length;
+    const tops = web.orgs.filter((o) => !o.producer && Number.isFinite(lv[o.id]) && !links.some(([f]) => f === o.id)).map((o) => o.name);
+    factList = [['Producers', String(producers), 'make food from sunlight'], ['Links', String(links.length), 'who eats whom'], ['Food chains', String(chainList.length)], ['Top consumers', tops.join(', ') || 'none', 'nothing here eats them']];
+    if (level === 12) factList.push(['Longest chain', `${longest.length} organisms`, `${Math.max(0, longest.length - 1)} steps of energy transfer`], ['Highest level', String(Math.max(0, ...Object.values(lv).filter(Number.isFinite))), 'trophic level']);
+    q('.fwb-facts').replaceChildren(...factList.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    q<HTMLButtonElement>('.fwb-back').hidden = !removed;
+    drawPyramid(lv);
+  }
+
+  // ---------- energy pyramid ----------
+  function drawPyramid(lv: Record<string, number>) {
+    const E = Number(q<HTMLInputElement>('.fwb-e').value), f = level === 12 ? Number(q<HTMLInputElement>('.fwb-f').value) / 100 : 0.1;
+    const n = Math.max(3, Math.min(5, Math.max(1, ...Object.values(lv).filter(Number.isFinite))));
+    const es = pyramid(E, f, n);
+    const fmt = (x: number) => (x >= 100 ? Math.round(x).toLocaleString('en-GB') : x >= 1 ? x.toFixed(1) : x.toFixed(2));
+    q('.fwb-ev').textContent = `${E.toLocaleString('en-GB')} kJ`;
+    q('.fwb-fv').textContent = `${Math.round(f * 100)} %`;
+    const names = ['Producers', 'Herbivores', 'Carnivores', 'Top carnivores', 'Level 5'];
+    pyr = { w: 480, h: 50 * n + 20, alt: `Energy pyramid: ${es.map(fmt).join(', ')} kJ`, draw: (ctx, W, Hh, pal: Palette) => {
+      ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      es.forEach((e, i) => {
+        const y = Hh - 14 - (i + 1) * 50, w = Math.max(10, (e / E) * (W - 40)), x = (W - w) / 2;
+        ctx.fillStyle = i === 0 ? pal.good : pal.accent; ctx.globalAlpha = i === 0 ? 0.35 : 0.25 + 0.1 * i; ctx.fillRect(x, y + 4, w, 40); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x, y + 4, w, 40);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+        ctx.fillText(`${names[i]}: ${fmt(e)} kJ`, W / 2, w > 200 ? y + 24 : y - 2 + 0);
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.fwb-pyr'), pyr);
+    q('.fwb-formula').textContent = `Each level gets ${Math.round(f * 100)} % of the one below: ${es.map(fmt).join(' → ')} kJ. ${level === 12 ? `After ${n - 1} steps only ${(100 * f ** (n - 1)).toPrecision(2)} % is left.` : 'The rest is used for living (respiration) and lost as heat.'}`;
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const E = pick([1000, 5000, 10000, 20000, 50000]), L = pick([2, 3, 4]);
+    const ch = pick([['Grass', 'Grasshopper', 'Frog', 'Snake'], ['Algae', 'Water fleas', 'Small fish', 'Heron'], ['Leaves', 'Caterpillar', 'Sparrow', 'Hawk']]);
+    const k = pick([1, 2, 3]);
+    qs = [
+      { text: `Producers store ${E.toLocaleString('en-GB')} kJ. With the 10 % rule, how much energy (kJ) reaches level ${L}?`, answer: E * 0.1 ** (L - 1), tol: 0.01, worked: `${E} × 0.1${L > 2 ? `^${L - 1}` : ''} = ${E * 0.1 ** (L - 1)} kJ` },
+      { text: `In the chain ${ch.join(' → ')}, which is the ${['', 'primary', 'secondary', 'tertiary'][k]} consumer?`, options: ch, answer: ch[k], worked: `Count from the producer (${ch[0]}): primary ${ch[1]}, secondary ${ch[2]}, tertiary ${ch[3]}.` },
+      { text: 'In the forest web here, if all the snakes were removed, what would most likely happen to the frogs at first?', options: ['they would increase', 'they would decrease', 'they would die out'], answer: 'they would increase', worked: 'Snakes eat frogs; with fewer predators, more frogs survive (for a while).' },
+    ];
+    if (level === 8) qs.push({ text: 'Which of these is a producer?', options: ['algae', 'snail', 'heron'], answer: 'algae', worked: 'Algae make their own food by photosynthesis.' });
+    else {
+      const a = pick([2000, 4000, 5000, 8000]), pc = pick([8, 10, 12, 15]);
+      qs.push({ text: `Herbivores take in ${a} kJ and carnivores get ${(a * pc) / 100} kJ from them. What percentage is passed on?`, answer: pc, tol: 0.05, worked: `${(a * pc) / 100} ÷ ${a} × 100 = ${pc} %` });
+      qs.push({ text: 'Why is a pyramid of energy never upside down?', options: ['energy is lost at every step, mostly as heat', 'predators are always bigger', 'producers are always more numerous'], answer: 'energy is lost at every step, mostly as heat', worked: 'Each level uses most of its energy for living, so less is always passed up.' });
+    }
+    const ol = q('.fwb-qs'); ol.innerHTML = '';
+    qs.forEach((x, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(x.answer);
+      const p = document.createElement('p'); p.textContent = x.text; li.append(p);
+      if (x.options) { const s = document.createElement('select'); s.className = 'fwb-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...x.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'fwb-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'fwb-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.fwb-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.fwb-qs li').forEach((li, j) => {
+      const x = qs[j], val = (li.querySelector('.fwb-ans') as HTMLInputElement).value.trim().replace(/[ ,]/g, '');
+      const ok = x.options ? (li.querySelector('.fwb-ans') as HTMLSelectElement).value === x.answer : val !== '' && Math.abs(Number(val) - Number(x.answer)) <= (x.tol ?? 0.01) * Math.max(1, Math.abs(Number(x.answer)));
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.fwb-worked')!; w.hidden = false; w.className = `fwb-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${x.worked}`;
+    });
+    q('.fwb-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (s: string, val: string) => root.querySelectorAll<HTMLButtonElement>(`${s} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === val)));
+  root.querySelectorAll<HTMLButtonElement>('.fwb-level button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.v); press('.fwb-level', b.dataset.v!); root.querySelectorAll<HTMLElement>('.fwb-l12').forEach((x) => (x.hidden = level !== 12)); draw(); makeQuiz(); }));
+  root.querySelectorAll<HTMLButtonElement>('.fwb-web button').forEach((b) => b.addEventListener('click', () => { web = WEBS.find((w) => w.id === b.dataset.v)!; links = [...web.links]; sel = ''; removed = ''; press('.fwb-web', web.id); hint(); draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.fwb-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.v as typeof mode; press('.fwb-mode', mode); sel = ''; hint(); draw(); }));
+  q('.fwb-blank').addEventListener('click', () => { links = []; sel = ''; removed = ''; mode = 'link'; press('.fwb-mode', 'link'); hint(); draw(); });
+  q('.fwb-reset').addEventListener('click', () => { links = [...web.links]; sel = ''; removed = ''; hint(); draw(); });
+  q('.fwb-back').addEventListener('click', () => { removed = ''; draw(); });
+  root.querySelectorAll('.fwb-e, .fwb-f').forEach((x) => x.addEventListener('input', () => drawPyramid(levels(web.orgs, links))));
+  q('.fwb-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['chain', 'length', 'top_consumer'], ...chainList.map((c) => [c.map(nameOf).join(' > '), c.length, nameOf(c[c.length - 1])])])), `food-chains-${web.id}.csv`, 'text/csv'));
+  q('.fwb-check').addEventListener('click', checkQuiz);
+  q('.fwb-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', () => drawPyramid(levels(web.orgs, links)));
+  root.querySelectorAll<HTMLElement>('.fwb-l12').forEach((x) => (x.hidden = true));
+  hint(); draw(); makeQuiz();
+  // Report figure: the web drawn on a canvas from the same layout.
+  const webFig = (): Figure => { const { W, H, lv } = layout(); return { w: W, h: H, alt: `${web.name} food web`, draw: (ctx, w, h, pal) => {
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.3;
+    for (const [f, e] of links) { const a = pos[f], b = pos[e]; ctx.beginPath(); ctx.moveTo(a.x, a.y - 12); ctx.lineTo(b.x, b.y + 12); ctx.stroke(); const ang = Math.atan2(b.y + 12 - (a.y - 12), b.x - a.x); ctx.beginPath(); ctx.moveTo(b.x, b.y + 12); ctx.lineTo(b.x - 8 * Math.cos(ang - 0.4), b.y + 12 - 8 * Math.sin(ang - 0.4)); ctx.lineTo(b.x - 8 * Math.cos(ang + 0.4), b.y + 12 - 8 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fillStyle = pal.muted; ctx.fill(); }
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const o of web.orgs) { const p = pos[o.id]; ctx.fillStyle = pal.bg; ctx.strokeStyle = o.producer ? pal.good : pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(p.x - 42, p.y - 14, 84, 28, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(o.name, p.x, p.y + 1); }
+    void lv;
+  } }; };
+  wireDownloads(q('.dl'), () => ({ title: 'Food web', subtitle: q('.fwb-big').textContent ?? '', file: `food-web-${web.id}`,
+    sections: [
+      { title: `${web.name} food web`, text: [q('.fwb-say').textContent ?? '', 'Simplified teaching web.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: webFig() },
+      { title: 'Food chains', table: { head: ['Chain', 'Organisms'], rows: chainList.map((c) => [c.map(nameOf).join(' → '), String(c.length)]) } },
+      { title: 'Energy pyramid', text: [q('.fwb-formula').textContent ?? ''], figure: pyr ?? undefined },
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .fwb .fwb-note { margin: 0; }
+  .fwb .fwb-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
+  .fwb .fwb-gap { margin-top: 12px; }
+  .fwb .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .fwb .btn.small { min-height: 44px; }
+  .fwb .btn[hidden], .fwb label[hidden] { display: none; }
+  .fwb input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .fwb label b { color: var(--ink); }
+  .fwb .fwb-hint { margin: 0 0 8px; font-weight: 600; min-height: 1.4em; }
+  .fwb .fwb-svg { display: block; width: 100%; height: auto; touch-action: manipulation; }
+  .fwb .fwb-svg .fwb-link { stroke: var(--muted); stroke-width: 1.6; }
+  .fwb .fwb-svg .fwb-link.fwb-dead { stroke-dasharray: 3 4; opacity: 0.45; }
+  .fwb .fwb-svg .fwb-ahp { fill: var(--muted); }
+  .fwb .fwb-svg .fwb-node { cursor: pointer; outline: none; }
+  .fwb .fwb-svg .fwb-node rect { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
+  .fwb .fwb-svg .fwb-node.fwb-prod rect { stroke: var(--good); stroke-width: 2.5; fill: var(--good-soft); }
+  .fwb .fwb-svg .fwb-node.fwb-sel rect, .fwb .fwb-svg .fwb-node:focus-visible rect { stroke: var(--accent); stroke-width: 4; }
+  .fwb .fwb-svg .fwb-node.fwb-dead rect { stroke-dasharray: 4 3; opacity: 0.5; }
+  .fwb .fwb-svg .fwb-node text { font: 600 12.5px system-ui, sans-serif; fill: var(--ink); }
+  .fwb .fwb-svg .fwb-node .fwb-tag { font: 600 11.5px system-ui, sans-serif; fill: var(--bad); }
+  .fwb .fwb-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+  .fwb .fwb-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .fwb .fwb-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .fwb .fwb-qs p { margin: 0 0 6px; }
+  .fwb .fwb-qs select { width: 100%; min-height: 44px; }
+  .fwb .fwb-qs input { max-width: 220px; min-height: 44px; }
+  .fwb .fwb-worked.ok { color: var(--good); }
+  .fwb .fwb-worked.no { color: var(--bad); }
+  .fwb .fwb-score { font-weight: 700; }
+</style>
