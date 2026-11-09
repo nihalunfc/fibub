@@ -1,0 +1,194 @@
+---
+// Randomisation list generator: simple, permuted blocks (fixed or random sizes), stratified, with ratios and a seed.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rl">
+  <div class="ax-card">
+    <p class="rl-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Trial design</h2>
+    <div class="ax-grid">
+      <label>Arms (groups), separated by commas <input class="rl-arms" value="Treatment, Control" /></label>
+      <label>Allocation ratio <input class="rl-ratio" value="1:1" /></label>
+      <label>Method <select class="rl-method">
+        <option value="random-blocks" selected>Permuted blocks, random sizes</option>
+        <option value="blocks">Permuted blocks, one size</option>
+        <option value="simple">Simple (like a coin toss)</option>
+      </select></label>
+      <label class="rl-bsl">Block sizes <input class="rl-bs" value="4, 6" /></label>
+      <label>Participants per stratum <input class="rl-n" inputmode="numeric" value="40" /></label>
+      <label>ID prefix <input class="rl-prefix" value="P" /></label>
+    </div>
+    <label style="margin-top:10px">Strata, one factor per line as "Name: level, level" (leave empty for one list)
+      <textarea class="rl-strata" rows="3" spellcheck="false">Site: Clinic 1, Clinic 2
+Age: under 65, 65 or over</textarea></label>
+    <div class="ax-row" style="margin-top:10px;align-items:end">
+      <label style="flex:1;min-width:160px">Seed (any word or number; the same seed gives the same list) <input class="rl-seed" value="my-trial-2026" /></label>
+      <button type="button" class="btn secondary small rl-new">New random seed</button>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rl-show" checked /> Show the arms on screen</label>
+    <p class="ax-help rl-help"></p>
+    <p class="ax-err rl-err" hidden></p>
+  </div>
+
+  <div class="ax-card rl-out" hidden>
+    <h2>Randomisation list</h2>
+    <p class="ax-big rl-big"></p>
+    <div class="ax-scroll"><table class="rl-sum"></table></div>
+    <p class="ax-help rl-note"></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small rl-csv">Full list (CSV)</button>
+      <button type="button" class="btn secondary small rl-print">Print sealed envelopes</button>
+    </div>
+    <h3 style="margin:16px 0 6px">The list</h3>
+    <p class="ax-help rl-shown" style="margin:0 0 6px"></p>
+    <div class="ax-scroll rl-listbox"><table class="rl-list"></table></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>How the list is made</h2>
+    <p class="ax-help" style="font-size:14px">The seed text is hashed with 32-bit FNV-1a, four SplitMix32 outputs from that hash start an xoshiro128** generator (Blackman and Vigna), whole numbers are drawn without bias by rejection, and each block is shuffled by Fisher-Yates. Each stratum has its own generator seeded with "seed/stratum name". Anyone with the seed, the settings and this description can make the same list again.</p>
+  </div>
+</div>
+
+<style>
+  .rl-med { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .rl-listbox { max-height: 420px; overflow-y: auto; }
+  .rl-bsl[hidden] { display: none; }
+</style>
+<style is:global>
+  .rl-printout { display: none; }
+  .rl-sum td:first-child { min-width: 10em; }
+  @media print {
+    html.rl-printing body > *:not(.rl-printout) { display: none !important; }
+    html.rl-printing .rl-printout { display: block; color: #000; background: #fff; font: 12pt/1.4 system-ui, sans-serif; }
+    .rl-env { break-inside: avoid; border: 1px dashed #000; margin: 0 0 6mm; display: grid; grid-template-columns: 1fr 1fr; }
+    .rl-env > div { padding: 5mm; min-height: 32mm; }
+    .rl-env > div + div { border-left: 1px dashed #000; }
+    .rl-env b { font-size: 15pt; }
+    .rl-env small { display: block; font-size: 9pt; color: #333; margin-top: 2mm; }
+  }
+</style>
+
+<script>
+  import { num, csv } from '../../lib/sci/num';
+  import { makeList, parseRatio, type Allocation, type Method, type StratumSummary } from '../../lib/sci/randomise';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let list: Allocation[] = [], summary: StratumSummary[] = [], arms: string[] = [], report: Section[] = [], seed = '', prefix = '';
+  const HELP: Record<Method, string> = {
+    'random-blocks': 'Each block holds the arms in the exact ratio in a shuffled order, and the block size is picked at random from your list for each block, so staff cannot guess the last allocations of a block.',
+    blocks: 'Each block holds the arms in the exact ratio in a shuffled order. Groups stay balanced, but with one known block size the last allocation of a block can be guessed.',
+    simple: 'Each participant is allocated independently, like a coin toss weighted by the ratio. Unbiased, but groups can end up quite unequal in small trials.',
+  };
+  const id = (a: Allocation) => `${prefix}${String(a.seq).padStart(String(list.length).length < 3 ? 3 : String(list.length).length, '0')}`;
+
+  function readFactors() {
+    return val('.rl-strata').split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => {
+      const m = /^([^:]*):(.*)$/.exec(l);
+      const name = m ? m[1].trim() : `Factor ${i + 1}`, levels = (m ? m[2] : l).split(',').map((s) => s.trim()).filter(Boolean);
+      if (levels.length < 2) throw new Error(`The stratum line "${l}" needs at least two levels separated by commas, such as "Site: A, B".`);
+      if (new Set(levels).size !== levels.length) throw new Error(`The stratum line "${l}" repeats a level.`);
+      return { name, levels };
+    });
+  }
+
+  function calc() {
+    const err = q('.rl-err'), method = q<HTMLSelectElement>('.rl-method').value as Method;
+    q('.rl-help').textContent = HELP[method];
+    q('.rl-bsl').hidden = method === 'simple';
+    try {
+      arms = val('.rl-arms').split(',').map((s) => s.trim()).filter(Boolean);
+      const ratio = parseRatio(val('.rl-ratio'), arms.length);
+      const bsText = val('.rl-bs').split(/[,\s;]+/).filter(Boolean);
+      const blockSizes = bsText.map(num);
+      if (method !== 'simple' && blockSizes.some((b) => !Number.isFinite(b))) throw new Error('Block sizes must be whole numbers, separated by commas.');
+      const nText = val('.rl-n').trim(), n = num(nText);
+      if (!nText || !Number.isInteger(n)) throw new Error('Type how many participants each stratum needs, as a whole number.');
+      seed = val('.rl-seed').trim(); prefix = val('.rl-prefix').trim();
+      const factors = readFactors();
+      ({ list, summary } = makeList({ arms, ratio, method, blockSizes: method === 'random-blocks' ? [...new Set(blockSizes)] : blockSizes.slice(0, 1), perStratum: n, factors, seed }));
+      if (method === 'blocks' && blockSizes.length > 1) q('.rl-help').textContent += ` Only the first size, ${blockSizes[0]}, is used.`;
+      err.hidden = true; q('.rl-out').hidden = false;
+      show(method, ratio);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.rl-out').hidden = true; list = []; report = []; }
+  }
+
+  function show(method: Method, ratio: number[]) {
+    const totals = arms.map((_, k) => summary.reduce((s, t) => s + t.counts[k], 0));
+    const st = summary.length;
+    q('.rl-big').textContent = `${list.length} allocations${st > 1 ? ` in ${st} strata` : ''}: ${arms.map((a, k) => `${totals[k]} ${a}`).join(', ')}`;
+    const blocky = method !== 'simple';
+    const head = ['Stratum', ...arms, ...(blocky ? ['Blocks'] : []), 'Max gap'];
+    const rows = summary.map((s, i) => [st > 1 ? `${i + 1}. ${s.name}` : s.name, ...s.counts.map(String), ...(blocky ? [`${s.blocks}${s.lastBlockComplete ? '' : '*'}`] : []), `${+s.maxImbalance.toFixed(2)}`]);
+    const code = new Map(summary.map((s, i) => [s.name, String(i + 1)]));
+    const tab = q<HTMLTableElement>('.rl-sum');
+    tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (i > 0) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    const cut = summary.filter((s) => !s.lastBlockComplete).length;
+    q('.rl-note').textContent = `Ratio ${ratio.join(':')}. "Max gap" is the largest gap, at any point in the list, between an arm's count and its share by the ratio.${cut ? ` * In ${cut} ${cut === 1 ? 'stratum' : 'strata'} the last block is cut short by the list length, so the totals can differ slightly from the ratio; make the length a multiple of the block sizes to avoid that.` : ''} Keep the seed secret from the people who enrol participants.`;
+    const showArms = q<HTMLInputElement>('.rl-show').checked;
+    const LIM = 200;
+    const lt = q<HTMLTableElement>('.rl-list');
+    lt.replaceChildren(tr(['ID', ...(st > 1 ? ['Stratum'] : []), ...(blocky ? ['Block', 'Size'] : []), 'Arm'], true),
+      ...list.slice(0, LIM).map((a) => tr([id(a), ...(st > 1 ? [code.get(a.stratum)!] : []), ...(blocky ? [String(a.block), String(a.blockSize)] : []), showArms ? a.arm : '•••'])));
+    q('.rl-shown').textContent = `${st > 1 ? 'Stratum numbers as in the table above. ' : ''}${list.length > LIM ? `The first ${LIM} of ${list.length}; the CSV has them all.` : `All ${list.length}.`}${showArms ? '' : ' Arms hidden on screen; they are in the CSV, the envelopes and the downloads.'}`;
+    const listRows = list.map((a) => [id(a), ...(st > 1 ? [a.stratum] : []), ...(blocky ? [String(a.block), String(a.blockSize)] : []), a.arm]);
+    report = [
+      { title: 'Design', facts: [['Arms and ratio', `${arms.join(', ')} (${ratio.join(':')})`], ['Method', q<HTMLSelectElement>('.rl-method').selectedOptions[0].textContent!], ...(method === 'simple' ? [] : [['Block sizes', val('.rl-bs')] as [string, string]]), ['Seed', seed], ['Generator', 'FNV-1a hash, SplitMix32, xoshiro128**, Fisher-Yates; stratum seed "seed/stratum"']] },
+      { title: 'Balance by stratum', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) } },
+      list.length <= 2000
+        ? { title: 'Allocation list', table: { head: ['ID', ...(st > 1 ? ['Stratum'] : []), ...(blocky ? ['Block', 'Size'] : []), 'Arm'], rows: listRows }, note: 'Made with fibub.com. Keep this list away from the people who enrol participants.' }
+        : { title: 'Allocation list', text: [`${list.length} allocations: too many for this file; use the CSV download.`] },
+    ];
+  }
+
+  function printEnvelopes() {
+    if (!list.length) return;
+    document.querySelector('.rl-printout')?.remove();
+    const out = document.createElement('div');
+    out.className = 'rl-printout';
+    const h = document.createElement('p'); h.textContent = `Sealed envelope labels: ${list.length} envelopes. Cut along the dashed lines, fold so the allocation is inside, and seal. Seed: ${seed}.`;
+    out.append(h);
+    for (const a of list) {
+      const env = document.createElement('div'); env.className = 'rl-env';
+      const o = document.createElement('div'), i = document.createElement('div');
+      o.innerHTML = '<b></b><small></small><small>Open only after the participant has consented and been enrolled. Write the name, date and time opened on this side.</small>';
+      o.querySelector('b')!.textContent = `Envelope ${id(a)}`;
+      o.querySelector('small')!.textContent = a.stratum ? `Stratum: ${a.stratum}` : 'No strata';
+      i.innerHTML = '<small>Allocation</small><b></b><small></small>';
+      i.querySelector('b')!.textContent = a.arm;
+      i.querySelectorAll('small')[1].textContent = `${id(a)}${a.stratum ? ` · ${a.stratum}` : ''}`;
+      env.append(o, i); out.append(env);
+    }
+    document.body.append(out);
+    document.documentElement.classList.add('rl-printing');
+    const done = () => { document.documentElement.classList.remove('rl-printing'); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+    setTimeout(done, 1000);
+  }
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', calc);
+  q('.rl-new').addEventListener('click', () => {
+    const b = new Uint32Array(2); crypto.getRandomValues(b);
+    q<HTMLInputElement>('.rl-seed').value = Array.from(b, (x) => x.toString(36)).join('-');
+    calc();
+  });
+  q('.rl-csv').addEventListener('click', () => {
+    if (!list.length) return;
+    const blocky = list.some((a) => a.block > 0);
+    const rows: (string | number)[][] = [['id', 'stratum', 'number_in_stratum', ...(blocky ? ['block', 'block_size'] : []), 'arm'], ...list.map((a) => [id(a), a.stratum, a.inStratum, ...(blocky ? [a.block, a.blockSize] : []), a.arm])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'randomisation-list.csv', 'text/csv');
+  });
+  q('.rl-print').addEventListener('click', printEnvelopes);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Randomisation list', subtitle: q('.rl-big').textContent ?? '', file: 'randomisation-list', sections: report }));
+</script>
