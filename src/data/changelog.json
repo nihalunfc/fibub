@@ -1,5 +1,14 @@
 [
  {
+  "sha": "c63c4817db5b",
+  "date": "2026-11-09T03:49:38+00:00",
+  "title": "Add #164 DNA, RNA and protein concentration: A260/A280, purity, molarity, copy number and dilution",
+  "tools": [
+   "nucleic-acid-concentration"
+  ],
+  "site": false
+ },
+ {
   "sha": "018af27c971d",
   "date": "2026-11-09T03:33:00+00:00",
   "title": "Add #163 DNA sequence tools: reverse complement, six-frame translation, ORF finder and codon usage",
