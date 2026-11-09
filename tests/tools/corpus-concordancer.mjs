@@ -1,11 +1,13 @@
 // #733 Corpus concordancer: browser checks.
 export const path = '/science/corpus-concordancer/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
+  page.setDefaultTimeout(120000); // slow shared test machines
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(BASE + path); await page.waitForTimeout(700);
   const rows = () => page.$$eval('.cc-tab tbody tr', (trs) => trs.map((tr) => [...tr.cells].map((c) => c.textContent)));
   const fact = (k) => page.$$eval('.cc-facts div', (ds, k) => ds.find((d) => d.querySelector('dt').textContent === k)?.querySelector('dd').textContent, k);
-  const setv = async (sel, v) => { await page.fill(sel, String(v)); await page.waitForTimeout(450); };
+  const setv = async (sel, v) => { await page.fill(sel, String(v)); await page.waitForTimeout(1200); };
   const mode = async (m) => { const b = page.locator(`.cc-mode button[data-m="${m}"]`); await b.scrollIntoViewIfNeeded(); await b.click(); await page.waitForTimeout(200); };
 
   let r = await rows();
@@ -56,7 +58,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
 
   await page.fill('.cc-in', '');
   await page.setInputFiles('.cc-file', [{ name: 'one.txt', mimeType: 'text/plain', buffer: Buffer.from('Strong tea and strong coffee. The tea was cold.') }, { name: 'two.txt', mimeType: 'text/plain', buffer: Buffer.from('Green tea is not strong tea.') }]);
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1000);
   check((await page.$$('.cc-files li')).length === 2 && (await fact('Files')) === '2' && (await fact('Words (tokens)')) === '15', `cc: two files opened (${await fact('Words (tokens)')})`);
   await mode('kwic'); r = await rows();
   check(r.length === 4 && r[0].length === 4 && ['one.txt', 'two.txt'].includes(r[0][0]), `cc: concordance has a file column (${r.length})`);
@@ -64,8 +66,9 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await fact('Words (tokens)')) === '6' && (await rows()).length === 2, 'cc: remove a file');
   await page.click('.cc-files li .cc-rm'); await page.waitForTimeout(200);
   check(await page.locator('.cc-err').isVisible() && /no words/.test(await page.textContent('.cc-err')), 'cc: empty corpus message');
-  await page.reload(); await page.waitForTimeout(600);
+  await page.goto(BASE + path); await page.waitForSelector('.cc-tab tbody tr');
   await page.setViewportSize({ width: 375, height: 800 });
   await page.screenshot({ path: OUT + 'corpus-concordancer-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1200, height: 900 });
+  page.setDefaultTimeout(30000);
+  if (vp0) await page.setViewportSize(vp0);
 };
