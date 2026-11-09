@@ -3,8 +3,8 @@
 
 export type Minimum = { x: number[]; f: number; iterations: number; converged: boolean };
 
-export function nelderMead(f: (x: number[]) => number, x0: number[], opts: { step?: number[]; maxIter?: number; tol?: number; restarts?: number } = {}): Minimum {
-  const n = x0.length, maxIter = opts.maxIter ?? 4000, tol = opts.tol ?? 1e-10;
+export function nelderMead(f: (x: number[]) => number, x0: number[], opts: { step?: number[]; maxIter?: number; tol?: number; xtol?: number; restarts?: number } = {}): Minimum {
+  const n = x0.length, maxIter = opts.maxIter ?? 4000, tol = opts.tol ?? 1e-10, xtol = opts.xtol ?? 1e-9;
   const val = (x: number[]) => { const v = f(x); return Number.isFinite(v) ? v : Infinity; };
   let best = x0.slice(), fBest = val(best), total = 0, converged = false;
   for (let r = 0; r <= (opts.restarts ?? 3); r++) {
@@ -20,7 +20,7 @@ export function nelderMead(f: (x: number[]) => number, x0: number[], opts: { ste
       const idx = fs.map((_, i) => i).sort((a, b) => fs[a] - fs[b]);
       const S = idx.map((i) => simplex[i]), F = idx.map((i) => fs[i]);
       simplex.splice(0, n + 1, ...S); fs = F;
-      if (Math.abs(fs[n] - fs[0]) <= tol * (Math.abs(fs[0]) + tol) && S.every((p) => p.every((v, j) => Math.abs(v - S[0][j]) < 1e-9 * (1 + Math.abs(S[0][j]))))) break;
+      if (Math.abs(fs[n] - fs[0]) <= tol * (Math.abs(fs[0]) + tol) && S.every((p) => p.every((v, j) => Math.abs(v - S[0][j]) < xtol * (1 + Math.abs(S[0][j]))))) break;
       const c = Array.from({ length: n }, (_, j) => S.slice(0, n).reduce((s, p) => s + p[j], 0) / n);
       const at = (t: number) => c.map((cj, j) => cj + t * (S[n][j] - cj));
       const xr = at(-1), fr = val(xr);

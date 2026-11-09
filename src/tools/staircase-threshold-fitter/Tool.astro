@@ -1,0 +1,348 @@
+---
+// Staircase and threshold fitter: simulate an adaptive staircase, run a brightness staircase yourself, or
+// paste trial data, then fit a psychometric function by maximum likelihood with a bootstrap interval.
+// Maths in src/lib/sci/staircase.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax st">
+  <div class="ax-card">
+    <h2>Where do the trials come from?</h2>
+    <div class="ax-seg st-mode" role="group" aria-label="Trials">
+      <button type="button" data-m="sim" aria-pressed="true">Simulate</button><button type="button" data-m="try" aria-pressed="false">Try it yourself</button><button type="button" data-m="fit" aria-pressed="false">Fit my data</button>
+    </div>
+    <p class="ax-help st-what"></p>
+
+    <div class="st-p st-rule" data-m="sim try">
+      <h3 style="margin:14px 0 8px;font-size:15px">Staircase</h3>
+      <div class="ax-grid">
+        <label>Rule <select class="st-down"><option value="2" selected>1-up-2-down (70.7 %)</option><option value="3">1-up-3-down (79.4 %)</option><option value="1">1-up-1-down, weighted steps</option></select></label>
+        <label>Start level <input class="st-start" inputmode="decimal" value="8" /></label>
+        <label>Step down <input class="st-sd" inputmode="decimal" value="1" /></label>
+        <label>Step up <input class="st-su" inputmode="decimal" value="1" /></label>
+        <label>Steps are <select class="st-mult"><option value="add" selected>Added (linear)</option><option value="mul">Multiplied (log)</option></select></label>
+        <label>Trials <input class="st-n" type="number" min="10" max="500" value="80" inputmode="numeric" /></label>
+        <label>Lowest level <input class="st-min" inputmode="decimal" value="0" /></label>
+        <label>Highest level <input class="st-max" inputmode="decimal" value="20" /></label>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="st-halve" checked /> Halve the steps after the 2nd and 4th reversal</label>
+      <p class="ax-help">After the set number of correct answers in a row the level goes down (harder); after a wrong answer it goes up (easier). With weighted 1-up-1-down steps the staircase settles where % correct = step up ÷ (step up + step down), so a 3 : 1 ratio aims at 75 %.</p>
+    </div>
+
+    <div class="st-p" data-m="sim">
+      <h3 style="margin:14px 0 8px;font-size:15px">Simulated observer</h3>
+      <div class="ax-grid">
+        <label>True threshold α <input class="st-ta" inputmode="decimal" value="4" /></label>
+        <label>Slope β <input class="st-tb" inputmode="decimal" value="1" /></label>
+        <label>Guess rate γ <input class="st-tg" inputmode="decimal" value="0.5" /></label>
+        <label>Lapse rate λ <input class="st-tl" inputmode="decimal" value="0.02" /></label>
+        <label>Random seed <input class="st-seed" type="number" value="1" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-help">The observer answers correctly with probability γ + (1 − γ − λ)·F(level), with F the shape chosen under "Fit". Change the seed for a new run.</p>
+    </div>
+
+    <div class="st-p" data-m="try" hidden>
+      <p class="ax-help">Two grey squares flash for 0.3 s. Say which one was lighter: ← or → (or tap). The level is the difference in grey value (out of 255). Screens are not calibrated, so treat the result as a demonstration.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn st-go">Start</button><span class="ax-pill st-prog" hidden></span><button type="button" class="btn secondary small st-quit" hidden>Stop</button></div>
+      <div class="st-stage" hidden><div class="st-sq" data-side="left"></div><div class="st-sq" data-side="right"></div><span class="st-msg"></span></div>
+      <div class="st-keys" hidden><button type="button" data-v="left">← Left</button><button type="button" data-v="right">Right →</button></div>
+    </div>
+
+    <div class="st-p" data-m="fit" hidden>
+      <label>Either two columns, level and correct (1 or 0), one row per trial; or three columns: level, number correct, number of trials.
+        <textarea class="st-in" rows="9" spellcheck="false" wrap="off">Level	Correct	Trials
+1	21	40
+2	22	40
+3	25	40
+4	30	40
+5	34	40
+6	38	40
+7	38	40
+8	38	40</textarea></label>
+      <DataFile target=".st-in" maxCols={5} />
+      <p class="ax-help">Made-up example: a two-choice task with 40 trials at each of 8 levels.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fit</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="st-shape"><option value="logistic" selected>Logistic</option><option value="weibull">Weibull</option><option value="normal">Cumulative normal</option></select></label>
+      <label>Guess rate γ <input class="st-g" inputmode="decimal" value="0.5" /></label>
+      <label>Lapse rate λ <input class="st-l" inputmode="decimal" value="0" /></label>
+      <label>Threshold at (% correct) <input class="st-pt" inputmode="decimal" value="75" /></label>
+      <label>Bootstrap samples <select class="st-boot"><option value="200">200</option><option value="500" selected>500</option><option value="1000">1000</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="st-lfree" /> Fit the lapse rate (0 to 10 %)</label>
+    <p class="ax-help">γ is the chance of being right by guessing: 0.5 for two choices, 1/m for m choices, 0 for yes/no detection. λ allows for careless errors at easy levels; a small fixed value (0.01 to 0.02) or a fitted one stops a few slips from flattening the curve. Weibull needs levels above 0.</p>
+    <p class="ax-err st-err" hidden></p>
+  </div>
+
+  <div class="ax-card st-out" hidden>
+    <h2>Threshold</h2>
+    <p class="ax-big st-big"></p>
+    <dl class="ax-facts st-facts"></dl>
+    <canvas class="ax-fig st-fig1" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig st-fig2" style="margin-top:14px"></canvas>
+    <h3 style="margin-top:14px">By level</h3>
+    <div class="ax-scroll"><table class="st-tab"></table></div>
+    <p class="ax-help st-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small st-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .st .st-stage { position: relative; margin-top: 12px; height: 180px; border-radius: 12px; background: rgb(128, 128, 128); display: flex; justify-content: center; align-items: center; gap: 18%; user-select: none; -webkit-user-select: none; }
+  .st .st-sq { width: 22%; aspect-ratio: 1; background: rgb(128, 128, 128); }
+  .st .st-msg { position: absolute; inset: auto 0 10px 0; text-align: center; color: #fff; font-weight: 700; font-size: 18px; }
+  .st .st-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .st .st-keys button { font: inherit; font-size: 17px; font-weight: 600; padding: 16px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); touch-action: manipulation; cursor: pointer; }
+  .st .st-tab td.r { white-space: nowrap; }
+  html.red-mode .st .st-stage { filter: url(#red-night); }
+</style>
+
+<script>
+  import { parseTable, num, csv, sig } from '../../lib/sci/num';
+  import { fitPF, inverse, psi, bootRaw, joinBoot, bootSummary, group, initStair, stairStep, simulateStair, reversalMean, target, type Level, type Rule, type Shape, type StairTrial } from '../../lib/sci/staircase';
+  import { rng } from '../../lib/sci/sdt-optim';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.st')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let mode = 'sim', report: Section[] = [], figs: (Figure | null)[] = [null, null], csvRows: (string | number)[][] = [];
+  let mine: StairTrial[] = [];
+  const WHAT: Record<string, string> = {
+    sim: 'Watch a staircase home in on a simulated observer whose true threshold you set, then see how well the fit recovers it.',
+    try: 'Run a real 1-up-2-down staircase on yourself: which of two grey squares is lighter?',
+    fit: 'Paste trial data from any experiment and fit a psychometric function, with a bootstrap 95 % interval for the threshold.',
+  };
+  const n3 = (x: number) => (Number.isFinite(x) ? sig(x, 4).replace(/^-/, '−') : '–');
+  const need = (c: string, what: string, test: (v: number) => boolean = Number.isFinite, msg = '') => { const v = num(val(c)); if (!Number.isFinite(v) || !test(v)) throw new Error(msg || `Enter a number for ${what}.`); return v; };
+
+  function rule(): Rule {
+    const down = Number(q<HTMLSelectElement>('.st-down').value), mult = q<HTMLSelectElement>('.st-mult').value === 'mul';
+    const stepDown = need('.st-sd', 'step down', (v) => (mult ? v > 1 : v > 0), mult ? 'With multiplied steps, each step must be a factor above 1 (such as 1.25).' : 'Steps must be above 0.');
+    const stepUp = need('.st-su', 'step up', (v) => (mult ? v > 1 : v > 0), mult ? 'With multiplied steps, each step must be a factor above 1 (such as 1.25).' : 'Steps must be above 0.');
+    const min = need('.st-min', 'lowest level'), max = need('.st-max', 'highest level', (v) => v > min, 'The highest level must be above the lowest.');
+    const start = need('.st-start', 'start level', (v) => v >= min && v <= max, 'The start level must be between the lowest and highest levels.');
+    if (mult && min <= 0) throw new Error('With multiplied steps the lowest level must be above 0.');
+    return { down, stepDown, stepUp, start, min, max, multiplicative: mult, halveAt: q<HTMLInputElement>('.st-halve').checked ? [2, 4] : [] };
+  }
+  function fitOpts() {
+    const shape = q<HTMLSelectElement>('.st-shape').value as Shape;
+    const g = need('.st-g', 'the guess rate', (v) => v >= 0 && v < 1, 'The guess rate must be from 0 up to (not including) 1.');
+    const lfree = q<HTMLInputElement>('.st-lfree').checked;
+    const l = lfree ? 'free' as const : need('.st-l', 'the lapse rate', (v) => v >= 0 && v < 0.5 && g + v < 1, 'The lapse rate must be from 0 to below 0.5, with guess + lapse below 1.');
+    const pt = need('.st-pt', 'the threshold %', (v) => v > g * 100 && v < 100 * (1 - (lfree ? 0.1 : (l as number))), `The threshold must lie between the guess rate (${(g * 100).toFixed(0)} %) and the top of the curve.`) / 100;
+    return { shape, g, l, pt, reps: Number(q<HTMLSelectElement>('.st-boot').value) };
+  }
+
+  function readData(): Level[] {
+    const rows = parseTable(val('.st-in')).filter((r) => r.some((c) => c.trim() !== ''));
+    const isNum = (c: string) => Number.isFinite(num(c));
+    const body = rows.length && rows[0].every(isNum) ? rows : rows.slice(1);
+    if (!body.length) throw new Error('Paste your trials first.');
+    const w = Math.max(...body.map((r) => r.length));
+    const cells = body.map((r, i) => r.slice(0, 3).map((c) => { const v = num(c.trim()); if (!Number.isFinite(v)) throw new Error(`"${c}" in row ${i + 1} is not a number.`); return v; }));
+    if (w === 2 || cells.every((r) => r.length === 2)) {
+      if (cells.some((r) => r[1] !== 0 && r[1] !== 1)) throw new Error('With two columns, the second must be 1 (correct) or 0 (wrong).');
+      return group(cells.map((r) => ({ x: r[0], correct: r[1] === 1 })));
+    }
+    const m = new Map<number, Level>();
+    cells.forEach((r, i) => {
+      if (r.length < 3) throw new Error(`Row ${i + 1} needs a level, a number correct and a number of trials.`);
+      if (!(Number.isInteger(r[1]) && Number.isInteger(r[2]) && r[1] >= 0 && r[2] > 0 && r[1] <= r[2])) throw new Error(`Row ${i + 1}: the number correct must be a whole number from 0 to the number of trials.`);
+      const g = m.get(r[0]) ?? { x: r[0], k: 0, n: 0 }; g.k += r[1]; g.n += r[2]; m.set(r[0], g);
+    });
+    return [...m.values()].sort((a, b) => a.x - b.x);
+  }
+
+  function stairFigure(t: StairTrial[], truth?: number): Figure {
+    const ok = t.filter((x) => x.correct), bad = t.filter((x) => !x.correct), rv = t.filter((x) => x.reversal);
+    const series: Series[] = [
+      { name: 'Level', x: t.map((x) => x.trial), y: t.map((x) => x.x), mode: 'line', width: 1, marker: 'none' },
+      { name: 'Correct', x: ok.map((x) => x.trial), y: ok.map((x) => x.x), mode: 'points', marker: 'circle' },
+      { name: 'Wrong', x: bad.map((x) => x.trial), y: bad.map((x) => x.x), mode: 'points', marker: 'open-circle' },
+      { name: 'Reversal', x: rv.map((x) => x.trial), y: rv.map((x) => x.x), mode: 'points', marker: 'cross', size: 9 },
+    ];
+    return chartFigure({ h: 300, xLabel: 'Trial', yLabel: 'Level', legend: 'below', series, marks: truth !== undefined && Number.isFinite(truth) ? [{ kind: 'hline', at: truth, dash: [5, 4], label: 'true target' }] : [] }, 'Staircase track: the level on each trial, with correct, wrong and reversal trials marked.');
+  }
+
+  function calc() {
+    const err = q('.st-err');
+    try {
+      const o = fitOpts();
+      let data: Level[], trials: StairTrial[] | null = null, r: Rule | null = null, truth: number | undefined;
+      if (mode === 'fit') data = readData();
+      else {
+        r = rule();
+        if (mode === 'sim') {
+          const a = need('.st-ta', 'the true threshold'), b = need('.st-tb', 'the slope', (v) => v > 0, 'The slope must be above 0.'), g = need('.st-tg', 'the guess rate', (v) => v >= 0 && v < 1, 'The guess rate must be from 0 up to 1.'), l = need('.st-tl', 'the lapse rate', (v) => v >= 0 && g + v < 1, 'The lapse rate must be 0 or more, with guess + lapse below 1.');
+          const n = need('.st-n', 'trials', (v) => Number.isInteger(v) && v >= 10 && v <= 500, 'Choose between 10 and 500 trials.');
+          if (o.shape === 'weibull' && r.min <= 0) throw new Error('A Weibull observer needs levels above 0: raise the lowest level.');
+          trials = simulateStair(r, (x) => psi(o.shape, x, a, b, g, l), n, rng(Number(val('.st-seed')) || 1));
+          truth = inverse(o.shape, target(r), a, b, g, l);
+        } else {
+          if (!mine.length) { q('.st-out').hidden = true; err.hidden = true; report = []; return; }
+          trials = mine;
+        }
+        data = group(trials.map((t) => ({ x: t.x, correct: t.correct })));
+      }
+      const fit = fitPF(data, o.shape, o.g, o.l);
+      const th = inverse(fit.shape, o.pt, fit.alpha, fit.beta, fit.gamma, fit.lambda);
+      q('.st-big').textContent = `${Math.round(o.pt * 1000) / 10} % threshold = ${n3(th)}`;
+      const fl: [string, string][] = [
+        ['95 % interval (bootstrap)', 'working it out…'],
+        ['Bootstrap SE', '…'],
+        [fit.shape === 'weibull' ? 'Scale α' : 'Midpoint α', n3(fit.alpha)],
+        ['Slope β', n3(fit.beta)],
+        ['Guess rate γ', n3(fit.gamma)],
+        ['Lapse rate λ', `${n3(fit.lambda)}${fit.lambdaFree ? ' (fitted)' : ' (fixed)'}`],
+        ['Deviance', `${n3(fit.deviance)} on ${fit.df} df`],
+        ['Trials, levels', `${fit.n}, ${data.length}`],
+      ];
+      if (trials && r) {
+        const rm = reversalMean(trials, r.halveAt?.length ? 4 : 2, 8, !!r.multiplicative);
+        fl.push(['Reversal mean', rm.n ? `${n3(rm.mean)} (last ${rm.n} reversals${r.halveAt?.length ? ', after the first 4' : ', after the first 2'})` : 'not enough reversals'], ['Staircase aims at', `${(target(r) * 100).toFixed(1)} % correct${r.down > 1 && r.stepDown !== r.stepUp ? ' (for equal steps)' : ''}`]);
+        if (truth !== undefined) fl.push(['True level at that %', n3(truth)]);
+      }
+      renderFacts(fl);
+      // Curve figure
+      const xs = data.map((d) => d.x), lo = Math.min(...xs), hi = Math.max(...xs), pad = (hi - lo || 1) * 0.08;
+      const cx: number[] = [], cy: number[] = [];
+      for (let i = 0; i <= 200; i++) { const x = (fit.shape === 'weibull' ? Math.max(lo - pad, 1e-6) : lo - pad) + ((hi + pad - (fit.shape === 'weibull' ? Math.max(lo - pad, 1e-6) : lo - pad)) * i) / 200; cx.push(x); cy.push(psi(fit.shape, x, fit.alpha, fit.beta, fit.gamma, fit.lambda)); }
+      const curve = chartFigure({ h: 320, xLabel: 'Level', yLabel: 'Proportion correct', yMin: Math.min(fit.gamma, ...data.map((d) => d.k / d.n)) - 0.05, yMax: 1.02, legend: 'inside', series: [
+        { name: 'Fitted', x: cx, y: cy, mode: 'line', width: 2 },
+        { name: 'Observed', x: xs, y: data.map((d) => d.k / d.n), mode: 'points', labels: data.length <= 12 ? data.map((d) => `${d.n}`) : undefined },
+      ], marks: Number.isFinite(th) ? [{ kind: 'vline', at: th, dash: [5, 4], label: 'threshold' }] : [] }, 'Psychometric function: proportion correct against level, with the fitted curve.');
+      figs = trials ? [stairFigure(trials, truth), curve] : [curve, null];
+      const head = ['Level', 'Trials', 'Correct', 'Proportion', 'Fitted'];
+      const rows = data.map((d) => [n3(d.x), String(d.n), String(d.k), (d.k / d.n).toFixed(3), psi(fit.shape, d.x, fit.alpha, fit.beta, fit.gamma, fit.lambda).toFixed(3)]);
+      const t = q<HTMLTableElement>('.st-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th2 = document.createElement('th'); th2.textContent = h; if (i) th2.className = 'r'; hr.append(th2); });
+      const tb = t.createTBody(); rows.forEach((r2) => { const tr = tb.insertRow(); r2.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      csvRows = trials ? [['trial', 'level', 'correct', 'reversal'], ...trials.map((x) => [x.trial, x.x, x.correct ? 1 : 0, x.reversal ? 1 : 0])] : [['level', 'trials', 'correct', 'fitted'], ...data.map((d) => [d.x, d.n, d.k, psi(fit.shape, d.x, fit.alpha, fit.beta, fit.gamma, fit.lambda)])];
+      q('.st-note').textContent = `Fitted by maximum likelihood: ψ(x) = γ + (1 − γ − λ)·F(x), with F the ${fit.shape === 'normal' ? 'cumulative normal' : fit.shape} function. The interval is a parametric bootstrap: ${o.reps} new data sets drawn from the fitted curve at your levels and trial numbers, each refitted (fixed seed, so the same data give the same interval). Staircase data put most trials near the target, so the slope is often poorly pinned down even when the threshold is good.` + (trials && r ? ' The reversal mean is the classic quick estimate; the fit uses every trial.' : '');
+      report = [{ title: 'Threshold', facts: [['Threshold', q('.st-big').textContent!], ...fl], figure: figs[0]! }, ...(figs[1] ? [{ title: 'Psychometric function', figure: figs[1] }] : []), { title: 'By level', table: { head, rows, align: ['r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }];
+      err.hidden = true; q('.st-out').hidden = false;
+      q<HTMLCanvasElement>('.st-fig2').hidden = !figs[1];
+      draw();
+      runBoot(data, fit, o.pt, o.reps, fl);
+    } catch (e) { token++; err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.st-out').hidden = true; report = []; }
+  }
+  function renderFacts(fl: [string, string][]) {
+    const dl = q('.st-facts'); dl.innerHTML = '';
+    for (const [k, v] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  // The bootstrap runs in chunks so the page stays responsive; a newer calculation cancels an older one.
+  let token = 0;
+  async function runBoot(data: Level[], fit: ReturnType<typeof fitPF>, pt: number, reps: number, fl: [string, string][]) {
+    const my = ++token, rand = rng(1);
+    let raw = { th: [] as number[], sl: [] as number[], failed: 0 };
+    root.dataset.boot = 'running';
+    for (let done = 0; done < reps; done += 25) {
+      raw = joinBoot(raw, bootRaw(data, fit, pt, Math.min(25, reps - done), rand));
+      await new Promise((r) => setTimeout(r, 0));
+      if (my !== token) return;
+      fl[0][1] = `working it out… ${Math.round(((done + 25) / reps) * 100)} %`; renderFacts(fl);
+    }
+    const bs = bootSummary(raw);
+    fl[0][1] = bs.used > 10 ? `${n3(bs.ci[0])} to ${n3(bs.ci[1])}` : 'too few fits';
+    fl[1][1] = n3(bs.se);
+    if (bs.failed) fl.push(['Bootstrap fits that failed', String(bs.failed)]);
+    renderFacts(fl);
+    if (report[0]) report[0].facts = [['Threshold', q('.st-big').textContent!], ...fl];
+    root.dataset.boot = 'done';
+  }
+  function draw() { if (figs[0]) paint(q<HTMLCanvasElement>('.st-fig1'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.st-fig2'), figs[1]); }
+
+  // ----- Try it yourself: brightness 2AFC -----
+  let live: { r: Rule; s: ReturnType<typeof initStair>; i: number; n: number; side: string; open: boolean; timers: number[] } | null = null;
+  const stage = q('.st-stage');
+  const squares = [...root.querySelectorAll<HTMLElement>('.st-sq')];
+  function tryStart() {
+    try {
+      const r = rule();
+      const n = need('.st-n', 'trials', (v) => Number.isInteger(v) && v >= 10 && v <= 500, 'Choose between 10 and 500 trials.');
+      if (r.max > 127 || r.min < 0) throw new Error('For the brightness test, keep the levels between 0 and 127 grey values.');
+      live = { r, s: initStair(r), i: 0, n, side: '', open: false, timers: [] }; mine = [];
+      q('.st-err').hidden = true;
+      for (const c of ['.st-stage', '.st-keys', '.st-prog', '.st-quit']) q(c).hidden = false;
+      q('.st-go').hidden = true; q('.st-out').hidden = true;
+      (document.activeElement as HTMLElement | null)?.blur();
+      setTimeout(trial, 600);
+    } catch (e) { q('.st-err').textContent = (e as Error).message; q('.st-err').hidden = false; }
+  }
+  function trial() {
+    if (!live) return;
+    if (live.i >= live.n) return tryEnd();
+    q('.st-prog').textContent = `Trial ${live.i + 1} of ${live.n} · level ${n3(live.s.x)}`;
+    q('.st-msg').textContent = '';
+    live.side = Math.random() < 0.5 ? 'left' : 'right';
+    const d = Math.round(live.s.x);
+    squares.forEach((e) => (e.style.background = e.dataset.side === live!.side ? `rgb(${128 + d}, ${128 + d}, ${128 + d})` : 'rgb(128, 128, 128)'));
+    stage.dataset.answer = live.side; live.open = true;
+    live.timers.push(window.setTimeout(() => squares.forEach((e) => (e.style.background = 'rgb(128, 128, 128)')), 300));
+  }
+  function answer(v: string) {
+    if (!live || !live.open) return;
+    live.open = false; delete stage.dataset.answer;
+    const correct = v === live.side, x = live.s.x, st = stairStep(live.r, live.s, correct);
+    mine.push({ trial: live.i + 1, x, correct, reversal: st.reversal });
+    live.s = st.s; live.i++;
+    q('.st-msg').textContent = correct ? '✓' : '✗';
+    live.timers.push(window.setTimeout(trial, 500));
+  }
+  function tryEnd() {
+    if (live) live.timers.forEach(clearTimeout);
+    live = null; delete stage.dataset.answer;
+    for (const c of ['.st-stage', '.st-keys', '.st-prog', '.st-quit']) q(c).hidden = true;
+    q('.st-go').hidden = false; q('.st-go').textContent = 'Start again';
+    calc();
+    if (!q('.st-out').hidden) q('.st-out').scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+  }
+  q('.st-go').addEventListener('click', tryStart);
+  q('.st-quit').addEventListener('click', tryEnd);
+  q('.st-keys').addEventListener('pointerdown', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-v]'); if (b) { e.preventDefault(); answer(b.dataset.v!); } });
+  document.addEventListener('keydown', (e) => {
+    if (!live) return;
+    if (e.key === 'Escape') return tryEnd();
+    const v = e.key === 'ArrowLeft' || e.key === 'f' ? 'left' : e.key === 'ArrowRight' || e.key === 'j' ? 'right' : '';
+    if (v) { e.preventDefault(); if (!e.repeat) answer(v); }
+  });
+
+  function setMode(m: string) {
+    if (live) tryEnd();
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.st-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.st-p').forEach((p) => (p.hidden = !p.dataset.m!.split(' ').includes(m)));
+    q('.st-what').textContent = WHAT[m];
+    if (m === 'try' && !mine.length) {
+      // Brightness test defaults: grey-value differences, starting easy.
+      const set = (c: string, v: string) => (q<HTMLInputElement>(c).value = v);
+      set('.st-start', '24'); set('.st-sd', '4'); set('.st-su', '4'); set('.st-min', '1'); set('.st-max', '60'); set('.st-n', '40');
+      q<HTMLSelectElement>('.st-mult').value = 'add'; q<HTMLSelectElement>('.st-down').value = '2';
+    } else if (m === 'sim') {
+      const set = (c: string, v: string) => (q<HTMLInputElement>(c).value = v);
+      set('.st-start', '8'); set('.st-sd', '1'); set('.st-su', '1'); set('.st-min', '0'); set('.st-max', '20'); set('.st-n', '80');
+    }
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.st-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.st-out')) return; clearTimeout(t); t = window.setTimeout(calc, 350); });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    // Weighted 1-up-1-down needs unequal steps; start from 3 : 1, which aims at 75 % correct.
+    if (el.matches('.st-down') && q<HTMLSelectElement>('.st-down').value === '1' && val('.st-su') === val('.st-sd')) q<HTMLInputElement>('.st-su').value = String(num(val('.st-sd')) * 3);
+    if (el.matches('select, input[type=checkbox]')) { clearTimeout(t); calc(); }
+  });
+  q('.st-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `staircase-${mode}.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (report.length) draw(); });
+  setMode('sim');
+  wireDownloads(q('.dl'), () => ({ title: 'Staircase threshold', file: `staircase-${mode}`, sections: report }));
+</script>
