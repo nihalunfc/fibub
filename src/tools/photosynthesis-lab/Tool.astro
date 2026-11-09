@@ -1,0 +1,304 @@
+---
+// Photosynthesis lab: pondweed under a lamp gives off oxygen bubbles. Light (lamp distance), carbon dioxide and
+// temperature set the rate; the factor in shortest supply limits it (Blackman). Teaching model, made-up numbers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax phl">
+  <p class="ax-help phl-note">A teaching model: the plant's numbers are made-up round values, so a real pondweed will give different counts.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="phl-lab">Level</span>
+      <div class="ax-seg phl-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <label class="phl-gap">Lamp distance: <b class="phl-dv"></b>
+      <input type="range" class="phl-d" min="10" max="100" step="1" value="20" aria-label="Lamp distance in centimetres" /></label>
+    <label class="phl-gap">Carbon dioxide (baking soda added to the water): <b class="phl-cv"></b>
+      <input type="range" class="phl-c" min="0" max="1" step="0.05" value="0.25" aria-label="Sodium hydrogencarbonate added, per cent" /></label>
+    <label class="phl-gap">Water temperature: <b class="phl-tv"></b>
+      <input type="range" class="phl-t" min="0" max="50" step="1" value="25" aria-label="Water temperature in degrees Celsius" /></label>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig phl-fig"></canvas>
+    <p class="ax-help phl-speed">Bubbles are shown 4 times faster than real life.</p>
+    <p class="ax-big phl-big" aria-live="polite"></p>
+    <p class="phl-say"></p>
+    <dl class="ax-facts phl-facts"></dl>
+    <p class="phl-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Count the bubbles</h2>
+    <p class="ax-help">Like the real experiment: count for one minute, change one thing, count again. Real bubbles come at random, so two counts are rarely the same.</p>
+    <div class="ax-row"><button type="button" class="btn small phl-count">Count for 1 minute</button><button type="button" class="btn secondary small phl-csv" disabled>Download results (CSV)</button><button type="button" class="btn secondary small phl-clear" disabled>Clear</button></div>
+    <div class="ax-scroll"><table class="phl-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rate graph</h2>
+    <div class="ax-row"><span class="phl-lab">Across</span>
+      <div class="ax-seg phl-axis" role="group" aria-label="What changes along the graph"><button type="button" data-v="light" aria-pressed="true">Light</button><button type="button" data-v="co2" aria-pressed="false">CO₂</button><button type="button" data-v="temperature" aria-pressed="false">Temperature</button></div></div>
+    <canvas class="ax-fig phl-graph"></canvas>
+    <p class="ax-help phl-gnote"></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="phl-try">
+      <li>Move the lamp from 20 cm to 10 cm. The light becomes 4 times stronger: does the rate go up 4 times?</li>
+      <li>Push the lamp close, then add more baking soda. Which slider makes a difference now, and why?</li>
+      <li>Warm the water from 25 °C to 45 °C. Why does the rate fall after about 30 °C?</li>
+      <li>Class 11: in the light graph, find where each line goes flat. That is where something other than light starts to limit.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="phl-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small phl-check">Check answers</button><button type="button" class="btn secondary small phl-new">New questions</button></div>
+    <p class="phl-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { rate, lightAt, tempFactor, compensation, poisson, ALPHA, BETA, C0, PMAX, type Factor } from '../../lib/sci/photolab';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.phl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fx = (x: number, d = 1) => x.toFixed(d).replace('-', '−');
+  const NAMES: Record<Factor, string> = { light: 'light', co2: 'carbon dioxide', temperature: 'temperature' };
+  let level = 10, axis: Factor = 'light', graph: Figure | null = null;
+  let counts: { d: number; I: number; c: number; t: number; n: number }[] = [];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- the picture (drawn every frame while bubbles rise) ----------
+  type Bubble = { x: number; y: number; r: number; s: number };
+  let bubbles: Bubble[] = [], last = 0, debt = 0;
+  const W = 480, H = 280;
+  function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    const d = v('.phl-d'), t = v('.phl-t'), c = v('.phl-c'), I = lightAt(d), r = rate(I, c, t);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    // beaker with pondweed under an upside-down funnel and test tube
+    const bx = 250, bw = 190, by = 70, bh = 190, wx = bx + bw / 2;
+    const glow = pal.red ? pal.twilight : pal.bg === '#ffffff' ? '#fff3c4' : '#3a3214';
+    // light beam strength by distance
+    const lampX = bx - 18 - (d - 10) * 1.9;
+    ctx.globalAlpha = Math.min(0.9, 0.15 + I / 120); ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.moveTo(lampX + 14, by + 70); ctx.lineTo(bx, by + 20); ctx.lineTo(bx, by + bh - 10); ctx.lineTo(lampX + 14, by + 110); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    // lamp
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillStyle = pal.bg;
+    ctx.beginPath(); ctx.moveTo(lampX - 20, by + 60); ctx.lineTo(lampX + 14, by + 66); ctx.lineTo(lampX + 14, by + 114); ctx.lineTo(lampX - 20, by + 120); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lampX - 8, by + 120); ctx.lineTo(lampX - 8, by + bh); ctx.lineTo(lampX - 30, by + bh); ctx.lineTo(lampX + 14, by + bh); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.fillText('lamp', lampX - 3, by + 46);
+    // distance marker
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(lampX + 14, by + bh + 8); ctx.lineTo(bx, by + bh + 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.fillText(`${d} cm`, (lampX + 14 + bx) / 2, by + bh + 4 - 12 + 22);
+    // water
+    ctx.globalAlpha = 0.18; ctx.fillStyle = pal.accent; ctx.fillRect(bx, by + 20, bw, bh - 20); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by); ctx.stroke();
+    // funnel and test tube
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(wx - 60, by + bh - 6); ctx.lineTo(wx - 10, by + 110); ctx.lineTo(wx - 10, by + 40); ctx.moveTo(wx + 60, by + bh - 6); ctx.lineTo(wx + 10, by + 110); ctx.lineTo(wx + 10, by + 40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wx - 13, by + 70); ctx.lineTo(wx - 13, by - 40); ctx.arc(wx, by - 40, 13, Math.PI, 0); ctx.lineTo(wx + 13, by + 70); ctx.stroke();
+    // pondweed: a few leafy stems, green where colour means "plant"
+    ctx.strokeStyle = pal.good; ctx.lineWidth = 2.5;
+    for (const k of [-24, 0, 22]) {
+      ctx.beginPath(); ctx.moveTo(wx + k, by + bh - 6); ctx.quadraticCurveTo(wx + k * 0.4 + 6, by + bh - 50, wx + k * 0.15, by + 128); ctx.stroke();
+      for (let j = 0; j < 4; j++) { const yy = by + bh - 20 - j * 15, xx = wx + k * (0.85 - j * 0.18); ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx - 8, yy - 6); ctx.moveTo(xx, yy); ctx.lineTo(xx + 8, yy - 6); ctx.stroke(); }
+    }
+    // bubbles
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2;
+    for (const b of bubbles) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke(); }
+    // gas collected at the top of the tube
+    ctx.globalAlpha = 0.5; ctx.fillStyle = pal.bg; ctx.fillRect(wx - 11, by - 40, 22, 8 + Math.min(30, r.net)); ctx.globalAlpha = 1;
+    // thermometer
+    const tx = bx + bw - 18; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(tx - 4, by - 20, 8, 150, 4); ctx.stroke();
+    ctx.fillStyle = pal.bad; ctx.fillRect(tx - 2, by + 128 - (t / 50) * 140, 4, (t / 50) * 140); ctx.beginPath(); ctx.arc(tx, by + 132, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`${t} °C`, tx - 52, by - 28);
+    // big readout
+    ctx.textAlign = 'left'; ctx.font = '600 15px system-ui, sans-serif'; ctx.fillStyle = pal.ink;
+    ctx.fillText(`${fx(r.net)} bubbles a minute`, 12, 22);
+    ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+    ctx.fillText(`limited by ${NAMES[r.limit]}`, 12, 42);
+  }
+  const canvas = () => q<HTMLCanvasElement>('.phl-fig');
+  const picture: Figure = { w: W, h: H, alt: 'Pondweed under a lamp giving off oxygen bubbles', draw: drawScene };
+  function frame(now: number) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    const r = rate(lightAt(v('.phl-d')), v('.phl-c'), v('.phl-t'));
+    debt += (r.net / 60) * 4 * dt; // shown 4 times faster than real life
+    while (debt >= 1) { debt -= 1; bubbles.push({ x: 365 + (Math.random() - 0.5) * 40, y: 70 + 150, r: 2.5 + Math.random() * 2, s: 50 + Math.random() * 30 }); }
+    bubbles.forEach((b) => { b.y -= b.s * dt; b.x += (365 - b.x) * Math.min(1, 1.5 * dt); });
+    bubbles = bubbles.filter((b) => b.y > 40);
+    paint(canvas(), picture, pagePalette());
+    if (!reduce) requestAnimationFrame(frame);
+  }
+
+  // ---------- numbers ----------
+  function facts(list: [string, string, string?][]) {
+    return list.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; });
+  }
+  let factList: [string, string, string?][] = [];
+  function update() {
+    const d = v('.phl-d'), c = v('.phl-c'), t = v('.phl-t'), I = lightAt(d), r = rate(I, c, t);
+    q('.phl-dv').textContent = `${d} cm (light ${fx(I)} units)`;
+    q('.phl-cv').textContent = `${fx(c, 2)} %`;
+    q('.phl-tv').textContent = `${t} °C`;
+    q('.phl-big').textContent = `${fx(r.net)} bubbles a minute: ${NAMES[r.limit]} is the limiting factor`;
+    const tip = r.limit === 'light' ? 'Bring the lamp closer and the rate goes up; extra carbon dioxide would change nothing.'
+      : r.limit === 'co2' ? 'Add baking soda (more carbon dioxide) and the rate goes up; a brighter lamp would change nothing.'
+      : t > 30 ? 'The water is too warm: the enzymes that make sugar slow down and start to break. Cool it towards 30 °C.'
+      : 'The water is cool, so the enzymes that make sugar work slowly. Warm it towards 30 °C.';
+    q('.phl-say').textContent = r.gross <= r.resp ? `The plant uses up all the oxygen it makes in respiration, so no bubbles come off. ${tip}` : tip;
+    factList = [
+      ['Light intensity', `${fx(I)} units`, `100 × (10 ÷ ${d})²`],
+      ['Oxygen bubbles', `${fx(r.net)} per minute`, level === 11 ? `gross ${fx(r.gross)} − respiration ${fx(r.resp)}` : 'what you would count'],
+      ['Limiting factor', NAMES[r.limit][0].toUpperCase() + NAMES[r.limit].slice(1), 'the one in shortest supply'],
+    ];
+    if (level === 11) factList.push(
+      ['Light could allow', `${fx(r.light)} /min`, `${ALPHA} × light`],
+      ['CO₂ could allow', `${fx(r.co2)} /min`, `${BETA} × (${C0} + ${fx(c, 2)})`],
+      ['Enzymes could allow', `${fx(r.temp)} /min`, `${PMAX} × ${fx(tempFactor(t), 2)} at ${t} °C`],
+      ['Compensation point', `${fx(compensation(t))} light units`, 'photosynthesis = respiration'],
+    );
+    q('.phl-facts').replaceChildren(...facts(factList));
+    q('.phl-formula').textContent = level === 10
+      ? `Light ∝ 1 ÷ distance²: (10 ÷ ${d})² × 100 = ${fx(I)} units. Glucose + oxygen come from 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ (light, chlorophyll).`
+      : `Rate = smallest of (${fx(r.light)}, ${fx(r.co2)}, ${fx(r.temp)}) = ${fx(r.gross)}; minus respiration ${fx(r.resp)} = ${fx(r.net)} bubbles/min`;
+    drawGraph();
+    if (reduce) paint(canvas(), picture);
+  }
+
+  function drawGraph() {
+    const d = v('.phl-d'), c = v('.phl-c'), t = v('.phl-t'), I = lightAt(d);
+    const series: any[] = [];
+    let xLabel = '', xMax = 100, here = 0, note = '';
+    const grid = (n: number, hi: number) => Array.from({ length: n + 1 }, (_, j) => (j / n) * hi);
+    if (axis === 'light') {
+      const xs = grid(200, 100); xLabel = 'Light intensity (units; 100 = lamp at 10 cm)'; here = I;
+      for (const cc of [0.1, 0.3, 0.6]) series.push({ name: `CO₂ ${cc} %`, x: xs, y: xs.map((x) => rate(x, cc, t).net), mode: 'line', width: 2.2 });
+      note = `Each line rises while light limits, then goes flat when carbon dioxide or temperature (${t} °C) takes over.`;
+    } else if (axis === 'co2') {
+      const xs = grid(200, 1); xLabel = 'Baking soda added (%)'; xMax = 1; here = c;
+      for (const dd of [40, 20, 10]) series.push({ name: `Lamp ${dd} cm`, x: xs, y: xs.map((x) => rate(lightAt(dd), x, t).net), mode: 'line', width: 2.2 });
+      note = 'More carbon dioxide helps until light or temperature becomes the limit.';
+    } else {
+      const xs = grid(250, 50); xLabel = 'Temperature (°C)'; xMax = 50; here = t;
+      series.push({ name: `Lamp ${d} cm, CO₂ ${fx(c, 2)} %`, x: xs, y: xs.map((x) => rate(I, c, x).net), mode: 'line', width: 2.2 });
+      series.push({ name: 'Bright lamp, lots of CO₂', x: xs, y: xs.map((x) => rate(100, 1, x).net), mode: 'line', width: 2, dash: [6, 3] });
+      note = 'Enzymes speed up as it warms, are fastest near 30 °C, then break down. In dim light temperature hardly matters.';
+    }
+    const hy = axis === 'light' ? rate(here, c, t).net : axis === 'co2' ? rate(I, here, t).net : rate(I, c, here).net;
+    series.push({ name: 'Now', x: [here], y: [hy], marker: 'circle', size: 8 });
+    graph = chartFigure({ w: 480, h: 320, font: 14, xLabel, yLabel: 'Bubbles per minute', xMin: 0, xMax, yMin: 0, legend: 'below', series }, `Oxygen bubbles per minute against ${NAMES[axis]}`);
+    paint(q<HTMLCanvasElement>('.phl-graph'), graph);
+    q('.phl-gnote').textContent = note;
+  }
+
+  function drawCounts() {
+    const tb = q<HTMLTableElement>('.phl-tab'); tb.innerHTML = '';
+    if (!counts.length) return;
+    const hr = tb.createTHead().insertRow();
+    ['Lamp (cm)', 'Light', 'CO₂ (%)', 'Temp (°C)', 'Bubbles in 1 min'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    counts.forEach((r) => { const tr = b.insertRow(); [String(r.d), fx(r.I), fx(r.c, 2), String(r.t), String(r.n)].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const d1 = pick([20, 30, 40]), k = pick([2, 3]) ; const d2 = d1 / k;
+    const n = pick([30, 36, 45, 54, 60]), mins = pick([2, 3]);
+    qs = [
+      { text: `A lamp is moved from ${d1} cm to ${fx(d2, d2 % 1 ? 1 : 0)} cm from the pondweed. How many times stronger is the light?`, answer: k * k, tol: 0.01, worked: `Light ∝ 1 ÷ d², so (${d1} ÷ ${fx(d2, d2 % 1 ? 1 : 0)})² = ${k}² = ${k * k} times.` },
+      { text: `You count ${n} bubbles in ${mins} minutes. What is the rate in bubbles per minute?`, answer: n / mins, tol: 0.05, worked: `${n} ÷ ${mins} = ${fx(n / mins, 1)} bubbles per minute.` },
+      { text: 'Which gas is in the bubbles?', options: ['oxygen', 'carbon dioxide', 'nitrogen'], answer: 'oxygen', worked: 'Photosynthesis splits water and gives off oxygen.' },
+    ];
+    if (level === 10) {
+      qs.push({ text: 'The lamp is very close and the rate stops rising when you bring it closer still. What should you add to make it faster?', options: ['more carbon dioxide', 'more light', 'nothing will help'], answer: 'more carbon dioxide', worked: 'When more light makes no difference, light is no longer the limit: carbon dioxide (or temperature) is.' });
+    } else {
+      const L = pick([10, 20, 30, 45]), C = pick([0.1, 0.2, 0.4, 0.8]), T = pick([15, 25, 30, 40]);
+      const r = rate(L, C, T);
+      qs.push({ text: `Using this page's model (light allows 0.6 × light, CO₂ allows 80 × (0.05 + CO₂ %), enzymes allow ${PMAX} × f(T)): light ${L} units, CO₂ ${C} %, ${T} °C (f = ${fx(tempFactor(T), 2)}). Which factor is limiting?`, options: ['light', 'carbon dioxide', 'temperature'], answer: NAMES[r.limit], worked: `Light ${fx(r.light)}, CO₂ ${fx(r.co2)}, enzymes ${fx(r.temp)}: the smallest is ${NAMES[r.limit]} (${fx(r.gross)}).` });
+    }
+    const ol = q('.phl-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(qq.answer);
+      const p = document.createElement('p'); p.textContent = qq.text; li.append(p);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'phl-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'phl-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'phl-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.phl-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.phl-qs li').forEach((li, j) => {
+      const qq = qs[j], val = (li.querySelector('.phl-ans') as HTMLInputElement).value.trim().replace('−', '-');
+      const ok = qq.options ? val === qq.answer : val !== '' && Math.abs(Number(val) - Number(qq.answer)) <= (qq.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.phl-worked')!; w.hidden = false; w.className = `phl-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.phl-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  function seg(sel: string, on: (val: string) => void) {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o === b))); on(b.dataset.v!);
+    }));
+  }
+  seg('.phl-level', (val) => { level = Number(val); update(); makeQuiz(); });
+  seg('.phl-axis', (val) => { axis = val as Factor; drawGraph(); });
+  root.querySelectorAll('input[type=range]').forEach((el) => el.addEventListener('input', update));
+  q('.phl-count').addEventListener('click', () => {
+    const d = v('.phl-d'), c = v('.phl-c'), t = v('.phl-t'), I = lightAt(d);
+    counts.push({ d, I, c, t, n: poisson(rate(I, c, t).net, Math.random) });
+    q<HTMLButtonElement>('.phl-csv').disabled = false; q<HTMLButtonElement>('.phl-clear').disabled = false; drawCounts();
+  });
+  q('.phl-clear').addEventListener('click', () => { counts = []; q<HTMLButtonElement>('.phl-csv').disabled = true; q<HTMLButtonElement>('.phl-clear').disabled = true; drawCounts(); });
+  q('.phl-csv').addEventListener('click', () => counts.length && save(new TextEncoder().encode(csv([['lamp_cm', 'light_units', 'co2_percent', 'temperature_C', 'bubbles_per_min'], ...counts.map((r) => [r.d, +r.I.toFixed(3), r.c, r.t, r.n])])), 'photosynthesis-counts.csv', 'text/csv'));
+  q('.phl-check').addEventListener('click', checkQuiz);
+  q('.phl-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', update);
+  if (reduce) q('.phl-speed').textContent = 'Moving bubbles are off because your device asks for less motion.';
+  update(); makeQuiz();
+  if (!reduce) requestAnimationFrame(frame);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Photosynthesis lab', subtitle: q('.phl-big').textContent ?? '', file: 'photosynthesis-lab',
+    sections: [
+      { title: 'Set-up', text: [q('.phl-say').textContent ?? '', q('.phl-formula').textContent ?? '', 'Teaching model with made-up round numbers.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: picture },
+      { title: 'Rate graph', figure: graph ?? undefined, ...(counts.length ? { table: { head: ['Lamp (cm)', 'Light', 'CO₂ (%)', 'Temp (°C)', 'Bubbles in 1 min'], rows: counts.map((r) => [String(r.d), fx(r.I), fx(r.c, 2), String(r.t), String(r.n)]), align: ['r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } } : {}) },
+    ] as Section[],
+  }));
+</script>
+
+<style is:inline>
+  .phl .phl-note { margin: 0; }
+  .phl .phl-lab { font-size: 14px; color: var(--muted); min-width: 56px; }
+  .phl .phl-gap { margin-top: 12px; }
+  .phl .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .phl input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .phl label b { color: var(--ink); }
+  .phl .btn.small { min-height: 44px; }
+  .phl .phl-say { margin: 6px 0 12px; }
+  .phl .phl-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; margin: 12px 0 0; }
+  .phl .phl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .phl .phl-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .phl .phl-qs p { margin: 0 0 6px; }
+  .phl .phl-qs select, .phl .phl-qs input { max-width: 240px; min-height: 44px; }
+  .phl .phl-worked.ok { color: var(--good); }
+  .phl .phl-worked.no { color: var(--bad); }
+  .phl .phl-score { font-weight: 700; }
+</style>
