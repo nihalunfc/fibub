@@ -1,0 +1,173 @@
+---
+// Polling average: margin of error per poll and for a lead, a weighted average by sample size and recency, and a smoothed trend with a sampling band.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pa">
+  <div class="ax-card">
+    <h2>Your polls</h2>
+    <label>One row per poll: date (YYYY-MM-DD), pollster (optional), sample size "n", then one column per party with its share in %. Made-up example.
+      <textarea class="pa-in" rows="9" spellcheck="false" wrap="off">Date,Pollster,n,Party A,Party B,Party C,Others
+2026-01-06,Pollster 1,1000,38,33,17,12
+2026-01-13,Pollster 2,1500,37,34,16,13
+2026-01-20,Pollster 3,800,39,31,18,12
+2026-01-27,Pollster 1,1000,36,34,17,13
+2026-02-03,Pollster 2,1200,36,35,16,13
+2026-02-10,Pollster 3,900,35,34,18,13
+2026-02-17,Pollster 1,1000,35,36,16,13
+2026-02-24,Pollster 2,2000,34,36,17,13
+2026-03-03,Pollster 3,750,36,35,15,14
+2026-03-10,Pollster 1,1000,33,37,17,13
+2026-03-17,Pollster 2,1400,34,37,16,13
+2026-03-24,Pollster 3,1100,33,38,16,13</textarea></label>
+    <DataFile target=".pa-in" maxMB={5} maxCols={30} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Weight polls by <select class="pa-w"><option value="n" selected>Sample size n</option><option value="sqrt">√n (limits big polls)</option><option value="equal">Equally</option></select></label>
+      <label>Half-life (days) <input class="pa-hl" type="number" min="0" step="1" value="14" inputmode="numeric" /></label>
+      <label>Average on <input class="pa-at" type="date" /></label>
+      <label>Trend line <select class="pa-tr"><option value="loess" selected>LOESS (local line)</option><option value="ewma">Exponential average</option><option value="none">None</option></select></label>
+      <label>LOESS span <input class="pa-span" type="number" min="0.2" max="1" step="0.05" value="0.6" inputmode="decimal" /></label>
+      <label>Confidence <select class="pa-cl"><option value="90">90 %</option><option value="95" selected>95 %</option><option value="99">99 %</option></select></label>
+      <label>Design effect <input class="pa-deff" type="number" min="1" step="0.1" value="1" inputmode="decimal" /></label>
+      <label>Lead of <select class="pa-x"></select></label>
+      <label>over <select class="pa-y"></select></label>
+    </div>
+    <p class="ax-help">Half-life: a poll this many days old counts half as much as one taken on the average's date (0 = no fading). LOESS span: the share of polls each point of the trend looks at. Design effect: how much weighting inflates the variance (1 = simple random sample; many online panels are 1.5 to 2).</p>
+    <p class="ax-err pa-err" hidden></p>
+  </div>
+
+  <div class="ax-card pa-out" hidden>
+    <h2>Polling average</h2>
+    <p class="ax-big pa-big"></p>
+    <dl class="ax-facts pa-facts"></dl>
+    <canvas class="ax-fig pa-fig" style="margin-top:14px"></canvas>
+    <h3 class="pa-h3">Average</h3>
+    <div class="ax-scroll"><table class="pa-avg"></table></div>
+    <h3 class="pa-h3">Each poll</h3>
+    <div class="ax-scroll"><table class="pa-polls"></table></div>
+    <p class="ax-help pa-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small pa-csv">Download trend and polls (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>What the margin of error does and does not cover</h2>
+    <p>The margin of error (MoE) is the sampling error of a simple random sample: if the same poll were repeated many times, about 95 % of the results would land within ± MoE of the true share. For a poll of 1,000 at 50 %, it is about ± 3.1 points.</p>
+    <p><b>The lead has a bigger margin.</b> When one party goes up in a poll the other tends to go down, so the MoE on the gap between two parties from the same poll is close to twice the MoE of one share, not the same.</p>
+    <p><b>It does not cover</b> who chose not to answer, people who are hard to reach, how the question was worded, the weighting model, "house effects" (one pollster's lean compared with others), or late changes of mind. Real polling error is usually larger than the stated MoE. Online opt-in panels are not random samples at all, so their MoE is a rough guide only; the design effect box lets you widen it.</p>
+    <p><b>The average's band is narrower than any single poll's</b> because it pools several samples, but it shows sampling error only. Polls that share the same bias will not average it away.</p>
+  </div>
+</div>
+
+<style is:global>
+  .pa .pa-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .pa table th, .pa table td { white-space: nowrap; }
+  .pa td.pa-sig { font-weight: 700; }
+  .pa .ax-card > p { margin: 0 0 10px; line-height: 1.55; }
+</style>
+
+<script>
+  import { parseTable, csv } from '../../lib/sci/num';
+  import * as P from '../../lib/sci/polls';
+  import { chartFigure, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], csvRows: string[][] = [], fig: Figure | null = null, lastParties = '';
+  const pts = (x: number) => (x * 100).toFixed(1);
+  const sgn = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(1);
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+  const numIn = (c: string, name: string, lo: number, hi = Infinity) => { const v = Number(q<HTMLInputElement>(c).value); if (!Number.isFinite(v) || v < lo || v > hi) throw new Error(`${name} must be a number from ${lo}${hi < Infinity ? ` to ${hi}` : ' up'}`); return v; };
+
+  function calc() {
+    const err = q('.pa-err');
+    try {
+      const S = P.parsePolls(parseTable(q<HTMLTextAreaElement>('.pa-in').value));
+      const K = S.parties.length, polls = S.polls;
+      // Party pickers for the lead.
+      if (S.parties.join('|') !== lastParties) {
+        lastParties = S.parties.join('|');
+        for (const [sel, def] of [['.pa-x', 1], ['.pa-y', 0]] as const) { const s = q<HTMLSelectElement>(sel); s.innerHTML = ''; S.parties.forEach((p, i) => s.add(new Option(p, String(i), false, i === Math.min(def, K - 1)))); }
+        const at = q<HTMLInputElement>('.pa-at'); at.value = polls[polls.length - 1].date; at.min = polls[0].date;
+      }
+      const w = q<HTMLSelectElement>('.pa-w').value as P.Weighting, hl = numIn('.pa-hl', 'The half-life', 0);
+      const deff = numIn('.pa-deff', 'The design effect', 1, 10), level = Number(q<HTMLSelectElement>('.pa-cl').value), z = P.zFor(level);
+      const trend = q<HTMLSelectElement>('.pa-tr').value, span = numIn('.pa-span', 'The LOESS span', 0.2, 1);
+      const atDay = P.dayOf(q<HTMLInputElement>('.pa-at').value || polls[polls.length - 1].date);
+      if (!Number.isFinite(atDay)) throw new Error('Pick a date for the average');
+      if (atDay < polls[0].day) throw new Error(`The average's date is before the first poll (${polls[0].date})`);
+      const X = Number(q<HTMLSelectElement>('.pa-x').value), Y = Number(q<HTMLSelectElement>('.pa-y').value);
+      const av = S.parties.map((_, k) => P.average(polls, k, atDay, hl, w, deff));
+      // Lead in the average: its SE pools each poll's lead variance with the same weights.
+      const wts = av[X].weights;
+      const lead = av[X].mean - av[Y].mean;
+      const leadSe = Math.sqrt(polls.reduce((s, p, i) => s + (wts[i] ** 2 * deff * (av[X].mean + av[Y].mean - lead ** 2)) / p.n, 0));
+      const lm = z * leadSe;
+      q('.pa-big').textContent = X === Y ? `${S.parties[X]}: ${pts(av[X].mean)} %` : `${S.parties[lead >= 0 ? X : Y]} leads ${S.parties[lead >= 0 ? Y : X]} by ${pts(Math.abs(lead))} points (± ${pts(lm)})`;
+      const used = av[0].used;
+      const fl: [string, string][] = [
+        ['Average on', `${P.dateOf(atDay)} (${used} poll${used === 1 ? '' : 's'})`],
+        ['Effective number of polls', av[0].neff.toFixed(1)],
+        ...S.parties.map((p, k) => [p, `${pts(av[k].mean)} % ± ${pts(z * av[k].se)}`] as [string, string]),
+      ];
+      const dl = q('.pa-facts'); dl.innerHTML = '';
+      for (const [k, v] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+      const avgHead = ['Party', 'Average %', `± (${level} %, sampling only)`, 'Latest poll %', 'Change since first poll'];
+      const avgRows = S.parties.map((p, k) => [p, pts(av[k].mean), pts(z * av[k].se), Number.isFinite(polls[polls.length - 1].shares[k]) ? pts(polls[polls.length - 1].shares[k]) : '–', sgn(av[k].mean - polls[0].shares[k])]);
+      table(q('.pa-avg'), avgHead, avgRows);
+      // Each poll.
+      const pHead = ['Date', 'Pollster', 'n', `MoE at 50 %`, ...S.parties.map((p) => `${p} %`), ...(X !== Y ? [`Lead ${S.parties[X]} − ${S.parties[Y]}`, 'Lead MoE'] : []), 'Weight %'];
+      const sig: boolean[] = [];
+      const pRows = polls.map((p, i) => {
+        const l = p.shares[X] - p.shares[Y], m = P.leadMoe(p.shares[X], p.shares[Y], p.n, z, deff);
+        sig.push(Math.abs(l) > m);
+        return [p.date, p.pollster || '–', p.n.toLocaleString('en'), '± ' + pts(P.headlineMoe(p.n, z, deff)), ...p.shares.map((s) => (Number.isFinite(s) ? pts(s) : '–')), ...(X !== Y ? [sgn(l), '± ' + pts(m)] : []), (wts[i] * 100).toFixed(1)];
+      });
+      table(q('.pa-polls'), pHead, pRows, (r, c) => (X !== Y && c === 4 + K && sig[r] ? 'pa-sig' : ''));
+      const nSig = sig.filter(Boolean).length;
+      // Trend.
+      const series: Series[] = [], tr: P.Trend[] = [];
+      const x0 = polls[0].day;
+      S.parties.forEach((p, k) => {
+        const col = OKABE_ITO[k % OKABE_ITO.length];
+        series.push({ name: p, x: polls.map((pp) => pp.day - x0), y: polls.map((pp) => pp.shares[k] * 100), mode: 'points', color: col, marker: 'circle', size: 3 });
+        if (trend === 'none' || polls.length < 3) return;
+        const t = trend === 'loess' ? P.loessTrend(polls, k, span, w, z, deff) : P.ewmaTrend(polls, k, hl, w, z, deff);
+        tr[k] = t;
+        series.push({ name: '', x: t.x.map((d) => d - x0), y: t.y.map((v) => v * 100), mode: 'line', color: col, width: 2 });
+        series.push({ name: '', x: t.x.map((d) => d - x0), y: t.lo.map((v) => v * 100), mode: 'line', color: col, width: 1, dash: [3, 3] });
+        series.push({ name: '', x: t.x.map((d) => d - x0), y: t.hi.map((v) => v * 100), mode: 'line', color: col, width: 1, dash: [3, 3] });
+      });
+      fig = chartFigure({ w: 640, h: 420, xLabel: `Days since ${polls[0].date}`, yLabel: 'Share (%)', series, legend: 'below', marks: atDay - x0 <= polls[polls.length - 1].day - x0 ? [{ kind: 'vline', at: atDay - x0, label: 'average' }] : [] }, `Poll shares over time with ${trend === 'none' ? 'no trend' : trend === 'loess' ? 'LOESS trends' : 'exponential trends'} and dashed ${level} % sampling bands.`);
+      paint(q<HTMLCanvasElement>('.pa-fig'), fig);
+      const note = `${trend === 'loess' ? `Trend: LOESS, a straight line fitted around each day to the nearest ${Math.round(span * 100)} % of polls with tricube distance weights × poll weights.` : trend === 'ewma' ? `Trend: the weighted average worked out on each day from the polls up to that day.` : ''} Dashed lines: ${level} % band for sampling error only. Bold leads are larger than that poll's lead MoE. ${nSig} of ${polls.length} polls show a lead outside its margin. ${S.notes.join(' ')}`.trim();
+      q('.pa-note').textContent = note;
+      // CSV: trend by day, then polls.
+      csvRows = [];
+      if (tr.length) { csvRows.push(['Date', ...S.parties.flatMap((p) => [`${p} trend %`, `${p} low %`, `${p} high %`])]); const base = tr.find(Boolean)!; base.x.forEach((d, i) => csvRows.push([P.dateOf(d), ...S.parties.flatMap((_, k) => (tr[k] ? [tr[k].y[i], tr[k].lo[i], tr[k].hi[i]].map((v) => (v * 100).toFixed(3)) : ['', '', '']))])); csvRows.push([]); }
+      csvRows.push(pHead, ...pRows);
+      report = [
+        { title: 'Polling average', facts: fl, text: [q('.pa-big').textContent!] },
+        { title: 'Trend', figure: fig, note },
+        { title: 'Average', table: { head: avgHead, rows: avgRows, align: avgHead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+        { title: 'Each poll', table: { head: pHead, rows: pRows, align: pHead.map((_, i) => (i > 1 ? 'r' : 'l')) as ('l' | 'r')[] } },
+        { title: 'What the margin of error covers', text: ['Sampling error of a simple random sample only. It leaves out non-response, coverage, question wording, weighting, house effects and late swings, so real error is usually larger.'] },
+      ];
+      err.hidden = true; q('.pa-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.pa-out').hidden = true; report = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.pa-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'polling-average.csv', 'text/csv'); });
+  new MutationObserver(() => fig && paint(q<HTMLCanvasElement>('.pa-fig'), fig)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Polling average', file: 'polling-average', sections: report }));
+</script>
